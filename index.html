@@ -55,6 +55,8 @@ tr:hover{background:rgba(255,153,0,.03)}
 .upload-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
 .drop-zone{border:2px dashed var(--bd);border-radius:12px;padding:50px 30px;cursor:pointer;text-align:center;max-width:500px;width:100%}
 .drop-zone:hover{border-color:var(--o)}
+.spinner{width:48px;height:48px;border:4px solid var(--bd);border-top:4px solid var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 .hidden{display:none}
 @media(max-width:768px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.content{padding:16px}}
 </style>

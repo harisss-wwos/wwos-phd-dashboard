@@ -35,9 +35,22 @@ function computeMetrics(data){
   const refDate=new Date(maxDate.getFullYear(),maxDate.getMonth(),maxDate.getDate(),19,0,0);
   const T=data.length;
   const statuses={};data.forEach(r=>{statuses[r.Status]=(statuses[r.Status]||0)+1;});
-  const asgn=statuses['Assigned']||0,pend=statuses['Pending']||0,wip=statuses['Work In Progress']||0,res=statuses['Resolved']||0;
-  const inQ=asgn+pend+wip;
+  const asgn=statuses['Assigned']||0,pend=statuses['Pending']||0,wip=statuses['Work In Progress']||0,res=statuses['Resolved']||0,researching=statuses['Researching']||0,closed=statuses['Closed']||0;
+  const inQ=asgn+pend+wip+researching;
   const autosim=data.filter(r=>r.ResolvedByIdentity&&r.ResolvedByIdentity.includes('AutoSIM')).length;
+  // Ticket Color Classification
+  const now=new Date();
+  const colorTickets={green:[],yellow:[],red:[],black:[],purple:[]};
+  data.forEach(r=>{
+    if(r.Status==='Resolved'||r.Status==='Closed')return;
+    const cd=new Date(r.CreateDate);const ageHrs=hBetween(cd,now);
+    const hasResolvedDate=r.ResolvedDate&&r.ResolvedDate.trim()!=='';
+    if(hasResolvedDate){colorTickets.purple.push(r);}
+    else if(ageHrs<=96){colorTickets.green.push(r);}
+    else if(ageHrs<=168){colorTickets.yellow.push(r);}
+    else if(ageHrs<=240){colorTickets.red.push(r);}
+    else{colorTickets.black.push(r);}
+  });
   let n10=0,p72=0,nSLA=0;
   data.forEach(r=>{const cd=new Date(r.CreateDate);const h=hBetween(cd,refDate);if(r.Status!=='Resolved'){if(h>720)n10++;if(h>672)nSLA++;}if(r.Status==='Assigned'&&h>72)p72++;});
   const ss=new Date(refDate);ss.setHours(ss.getHours()-12);
@@ -50,22 +63,41 @@ function computeMetrics(data){
   const rToday=data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=ts&&rd<=te;}return false;}).length;
   const rTimes=[];data.forEach(r=>{if(r.Status==='Resolved'&&r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/(36e5);if(h>=0)rTimes.push(h);}});
   const avgR=avg(rTimes);
-  const dL=[],dD=[];for(let i=6;i>=0;i--){const ds=new Date(maxDate);ds.setDate(ds.getDate()-i);ds.setHours(0,0,0,0);const de=new Date(ds);de.setDate(de.getDate()+1);dL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));dD.push(data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}return false;}).length);}
-  const wb={};data.forEach(r=>{if(r.CreateDate){const d=new Date(r.CreateDate);const j4=new Date(d.getFullYear(),0,4);const dy=Math.ceil((d-new Date(d.getFullYear(),0,1))/(864e5));const wn=Math.ceil((dy+j4.getDay())/7);wb[`W${wn}`]=(wb[`W${wn}`]||0)+1;}});
-  const wL=Object.keys(wb).sort(),wD=wL.map(k=>wb[k]);
+  const dL=[],dD=[],dC=[];for(let i=6;i>=0;i--){const ds=new Date(maxDate);ds.setDate(ds.getDate()-i);ds.setHours(0,0,0,0);const de=new Date(ds);de.setDate(de.getDate()+1);dL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));dD.push(data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}return false;}).length);dC.push(data.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);}
+  const wb={},wbR={};data.forEach(r=>{if(r.CreateDate){const d=new Date(r.CreateDate);const j4=new Date(d.getFullYear(),0,4);const dy=Math.ceil((d-new Date(d.getFullYear(),0,1))/(864e5));const wn=Math.ceil((dy+j4.getDay())/7);wb[`W${wn}`]=(wb[`W${wn}`]||0)+1;}});
+  data.forEach(r=>{if(r.ResolvedDate){const d=new Date(r.ResolvedDate);const j4=new Date(d.getFullYear(),0,4);const dy=Math.ceil((d-new Date(d.getFullYear(),0,1))/(864e5));const wn=Math.ceil((dy+j4.getDay())/7);wbR[`W${wn}`]=(wbR[`W${wn}`]||0)+1;}});
+  const wL=Object.keys(wb).sort(),wD=wL.map(k=>wb[k]),wDR=wL.map(k=>wbR[k]||0);
   const geoM={};data.forEach(r=>{const t=r.Title||'';let g='Other';['US','UK','CA','AU','BR','JP','IN','DE','SG','IT','FR','MX','AE'].forEach(c=>{if(t.startsWith(c+' '))g=c;});geoM[g]=(geoM[g]||0)+1;});
   const gL=Object.keys(geoM).sort((a,b)=>geoM[b]-geoM[a]),gD=gL.map(k=>geoM[k]);
-  const incM={};data.forEach(r=>{const t=r.Title||'';let tp='Other';if(t.includes('Pet Incident')||t.includes('Attack w/ Pet')||t.includes('Attack w/o Pet'))tp='Pet Incident';else if(t.includes('Verbal Harassment'))tp='Verbal Harassment';else if(t.includes('Weapon Present'))tp='Weapon Present';else if(t.includes('Attack w/o Weapon'))tp='Attack w/o Weapon';else if(t.includes('Detrimental Behavior'))tp='Detrimental Behavior';else if(t.includes('Impeding Egress'))tp='Impeding Egress';else if(t.toLowerCase().includes('dog bite'))tp='Dog Bite';else if(t.includes('Concerning Behavior'))tp='Concerning Behavior';else if(t.toLowerCase().includes('assault'))tp='Assault';incM[tp]=(incM[tp]||0)+1;});
+  // Incident Types - from RootCauseDetails "Issue:" or from Title
+  const incM={};const incTickets={};
+  data.forEach(r=>{
+    let tp='Other';const details=r.RootCauseDetails||'';const title=r.Title||'';
+    const issueMatch=details.match(/Issue:\s*([^\n\r]+)/i);
+    if(issueMatch){tp=issueMatch[1].trim();}
+    else{const tMatch=title.match(/- (?:Severity\s*\w*\s*-?\s*)?(?:No EMT - )?(?:Non[- ]?[Pp]et\s*)?(.+)$/);if(tMatch)tp=tMatch[1].trim();else tp=title.substring(0,50)||'Other';}
+    if(tp.length>60)tp=tp.substring(0,60);
+    incM[tp]=(incM[tp]||0)+1;
+    if(!incTickets[tp])incTickets[tp]=[];
+    incTickets[tp].push({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:title});
+  });
   const iL=Object.keys(incM).sort((a,b)=>incM[b]-incM[a]),iD=iL.map(k=>incM[k]);
-  // Agents
-  const aRes={},aTm={};data.forEach(r=>{if(r.Status==='Resolved'&&r.ResolvedByIdentity&&!r.ResolvedByIdentity.includes('AutoSIM')){const x=r.ResolvedByIdentity;aRes[x]=(aRes[x]||0)+1;if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5;if(h>=0){if(!aTm[x])aTm[x]=[];aTm[x].push(h);}}}});
-  const aOpen={},aAsgn={};data.filter(r=>r.Status!=='Resolved').forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aOpen[r.AssigneeIdentity]=(aOpen[r.AssigneeIdentity]||0)+1;});
+  // Slim incTickets for storage (only keep top types to avoid localStorage overflow)
+  const incTicketsSlim={};iL.forEach(k=>{incTicketsSlim[k]=incTickets[k].map(r=>({ShortId:r.ShortId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title}));});
+  // Agents (Resolved/Closed = resolved, rest = open)
+  const aRes={},aTm={};data.forEach(r=>{if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!r.ResolvedByIdentity.includes('AutoSIM')){const x=r.ResolvedByIdentity;aRes[x]=(aRes[x]||0)+1;if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5;if(h>=0){if(!aTm[x])aTm[x]=[];aTm[x].push(h);}}}});
+  const aOpen={},aAsgn={};data.filter(r=>r.Status!=='Resolved'&&r.Status!=='Closed').forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aOpen[r.AssigneeIdentity]=(aOpen[r.AssigneeIdentity]||0)+1;});
   data.forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aAsgn[r.AssigneeIdentity]=(aAsgn[r.AssigneeIdentity]||0)+1;});
-  const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?avg(aTm[n]):0,group:getGroup(n)}));
+  // Per-agent status counts
+  const aStatus={};PHD_AGENTS.forEach(n=>{aStatus[n]={Assigned:0,'Work In Progress':0,Researching:0,Pending:0,Resolved:0,Closed:0};});
+  data.forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity)&&aStatus[r.AssigneeIdentity][r.Status]!==undefined){aStatus[r.AssigneeIdentity][r.Status]++;}});
+  const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?avg(aTm[n]):0,group:getGroup(n),statuses:aStatus[n]}));
   // HI
   const cntP=/\bCnt\s*[:\s]\s*(\d+)/i;const hiCases=[];
-  data.forEach(r=>{if(r.RootCauseDetails){const m=r.RootCauseDetails.match(cntP);if(m&&parseInt(m[1])>0)hiCases.push({id:r.ShortId,cnt:parseInt(m[1]),assignee:r.AssigneeIdentity,rootCause:r.RootCause,status:r.Status});}});
+  data.forEach(r=>{if(r.RootCauseDetails){const m=r.RootCauseDetails.match(cntP);if(m&&parseInt(m[1])>0){const rc=(r.RootCause||'').toLowerCase();const isAnimal=rc.includes('unsecured animal');hiCases.push({id:r.ShortId,cnt:parseInt(m[1]),assignee:r.AssigneeIdentity,rootCause:r.RootCause,status:r.Status,isAnimal});}}});
   hiCases.sort((a,b)=>b.cnt-a.cnt);
+  const hiAnimal=hiCases.filter(h=>h.isAnimal);
+  const hiNonAnimal=hiCases.filter(h=>!h.isAnimal);
   // Groups
   let a1R=0,a2R=0,bR=0,a1O=0,a2O=0,bO=0;
   data.forEach(r=>{if(r.Status==='Resolved'){const g=getGroup(r.ResolvedByIdentity);if(g==='A1')a1R++;else if(g==='A2')a2R++;else if(g==='B')bR++;}if(r.Status!=='Resolved'){const g=getGroup(r.AssigneeIdentity);if(g==='A1')a1O++;else if(g==='A2')a2O++;else if(g==='B')bO++;}});
@@ -81,7 +113,7 @@ function computeMetrics(data){
   const pwAn={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
-  return{T,asgn,pend,wip,res,inQ,autosim,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,dL,dD,wL,wD,gL,gD,iL,iD,agents,hiCases,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
+  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,hiCases,hiAnimal,hiNonAnimal,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
 }
 
 // ========= UI RENDERING =========
@@ -93,7 +125,17 @@ function destroyCharts(){charts.forEach(c=>c.destroy());charts.length=0;}
 
 function handleFile(file){
   const reader=new FileReader();
-  reader.onload=(e)=>{const data=parseCSV(e.target.result);M=computeMetrics(data);localStorage.setItem(STORAGE_KEY,JSON.stringify(M));renderDashboard();};
+  const uploadTime=new Date().toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  // Show loading
+  document.getElementById('app').innerHTML=`<div class="upload-wrap"><div style="text-align:center"><div class="spinner"></div><p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">Processing CSV data...</p><p style="color:#879596;margin-top:8px;font-size:.9em">Building your dashboard</p></div></div>`;
+  reader.onload=(e)=>{setTimeout(()=>{const data=parseCSV(e.target.result);M=computeMetrics(data);M.uploadTime=uploadTime;
+    // Store metrics without rawData/colorTickets full objects (too large for localStorage)
+    const toStore={...M};delete toStore.rawData;
+    // Slim down colorTickets for storage (only keep essential fields)
+    toStore.colorTickets={green:M.colorTickets.green.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),yellow:M.colorTickets.yellow.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),red:M.colorTickets.red.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),black:M.colorTickets.black.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),purple:M.colorTickets.purple.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title}))};
+    // incTickets already slim from computeMetrics    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(toStore));}catch(e){console.warn('localStorage full, continuing without persistence');}
+    M.colorTickets=toStore.colorTickets;
+    renderDashboard();},50);};
   reader.readAsText(file);
 }
 
@@ -111,7 +153,19 @@ function renderUpload(){
         <p style="color:#879596;font-size:.9em">or click to browse</p>
         <input type="file" accept=".csv" id="fileInput" style="display:none">
       </div>
-      <p style="color:#879596;font-size:.8em;margin-top:20px">Required: IssueId, Title, Status, CreateDate, ResolvedDate, ResolvedByIdentity, RootCause, RootCauseDetails</p>
+      <p style="color:#879596;font-size:.8em;margin-top:20px">Required columns in the CSV for a complete dashboard:</p>\
+      <ul style="color:#879596;font-size:.8em;margin-top:8px;list-style:none;padding:0;text-align:left;display:inline-block">\
+        <li style="padding:3px 0">• Status</li>\
+        <li style="padding:3px 0">• Created</li>\
+        <li style="padding:3px 0">• Severity</li>\
+        <li style="padding:3px 0">• Assignee</li>\
+        <li style="padding:3px 0">• Resolved Date</li>\
+        <li style="padding:3px 0">• Age</li>\
+        <li style="padding:3px 0">• Closure Code</li>\
+        <li style="padding:3px 0">• Resolved By</li>\
+        <li style="padding:3px 0">• Root Cause</li>\
+        <li style="padding:3px 0">• Root Cause Details</li>\
+      </ul>
     </div>
   </div>`;
   const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
@@ -141,11 +195,60 @@ function makeChart(id,config){
   if(ctx){const c=new Chart(ctx,config);charts.push(c);}
 }
 
+function showColorPopup(color,tickets){
+  const colorNames={green:'GREEN (0-96 hrs)',yellow:'YELLOW (96-168 hrs)',red:'RED (168-240 hrs)',black:'BLACK (>240 hrs)',purple:'PURPLE (Reopened)'};
+  const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
+  const tix=M.colorTickets[color];
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
+  const rows=tix.map(r=>{const cd=new Date(r.CreateDate);return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${r.AssigneeIdentity||'-'}</td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td><td>${r.Status}</td></tr>`;}).join('');
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="color:${colorHex[color]};font-size:1.2em">${colorNames[color]} — ${tix.length} tickets</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="document.getElementById('colorPopup').remove()">Close</button></div>
+    </div>
+    <table><thead><tr><th>Ticket ID</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
+}
+function downloadColorCSV(color){
+  const tickets=M.colorTickets[color];
+  let csv='ShortId,Assignee,CreateDate,Status,Title\n';
+  tickets.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`${color}_tickets.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+function showIncidentPopup(type){
+  const tickets=M.incTickets[type]||[];
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
+  const rows=tickets.map(r=>{const cd=new Date(r.CreateDate);return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${r.AssigneeIdentity||'-'}</td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td><td>${r.Status}</td></tr>`;}).join('');
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <h2 style="color:#ff9900;font-size:1.1em">${type} — ${tickets.length} tickets</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="document.getElementById('incPopup').remove()">Close</button></div>
+    </div>
+    <table><thead><tr><th>Ticket ID</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
+}
+function downloadIncidentCSV(type){
+  const tickets=M.incTickets[type]||[];
+  let csv='ShortId,Assignee,CreateDate,Status,Title\n';
+  tickets.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`${type.replace(/[^a-zA-Z0-9]/g,'_')}_tickets.csv`;a.click();URL.revokeObjectURL(url);
+}
+
 function renderDashboard(){
   const m=M;
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
+  const ct=m.colorTickets;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
-  <div class="page-title"><h1>Ticket Operations Overview</h1><p>Data as of ${m.dateStr} | 19:00 IST | Handoff: IND → AMER</p></div>
+  <div class="page-title"><h1>Operations Overview</h1><p>Dashboard created with data last uploaded at ${m.uploadTime||'N/A'}</p></div>
   <div class="kpi-grid">
     <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets</div></div>
     <div class="kpi-card success"><div class="value">${(m.res/m.T*100).toFixed(1)}%</div><div class="label">Resolved %</div></div>
@@ -153,34 +256,61 @@ function renderDashboard(){
     <div class="kpi-card"><div class="value">${m.autosim}</div><div class="label">AutoSIM Resolved</div></div>
     <div class="kpi-card danger"><div class="value">${m.p72}</div><div class="label">Pending >72hrs</div></div>
   </div>
-  <div class="section"><h2>Previous Shift Handoff Summary</h2>
-    <p class="meta-info">Date: ${m.dateStr} | Time: 19:00 IST | Handoff: IND → AMER | Timeframe: 7:00 AM - 7:00 PM IST</p>
-    <div class="handoff-grid">
-      <div class="handoff-box"><h3>Ticket Health</h3><ul><li><span>>10 Days Not Closed</span><span class="val">${m.n10}</span></li><li><span>Pending >72 Hours</span><span class="val">${m.p72}</span></li><li><span>Nearing SLA (≤48hrs)</span><span class="val">${m.nSLA}</span></li></ul></div>
-      <div class="handoff-box"><h3>Last 12 Hours Activity</h3><ul><li><span>Assigned</span><span class="val">${m.l12A}</span></li><li><span>Pending</span><span class="val">${m.l12P}</span></li><li><span>WIP</span><span class="val">${m.l12W}</span></li><li><span>Resolved</span><span class="val">${m.l12R}</span></li></ul></div>
-      <div class="handoff-box"><h3>Current Queue Status</h3><ul><li><span>Assigned</span><span class="val">${m.asgn} (${(m.asgn/m.T*100).toFixed(1)}%)</span></li><li><span>Pending</span><span class="val">${m.pend} (${(m.pend/m.T*100).toFixed(1)}%)</span></li><li><span>WIP</span><span class="val">${m.wip} (${(m.wip/m.T*100).toFixed(1)}%)</span></li><li><span>Resolved</span><span class="val">${m.res.toLocaleString()} (${(m.res/m.T*100).toFixed(1)}%)</span></li></ul></div>
-      <div class="handoff-box"><h3>Key Info</h3><ul><li><span>In Queue</span><span class="val">${m.inQ}</span></li><li><span>AutoSIM</span><span class="val">${m.autosim}</span></li><li><span>Resolved Today</span><span class="val">${m.rToday}</span></li><li><span>Avg Resolution</span><span class="val">${m.avgR.toFixed(1)} hrs</span></li></ul></div>
+
+  <div class="section"><h2>Ticket Age Classification</h2>
+    <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
+    <div class="kpi-grid">
+      <div class="kpi-card" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="label">GREEN (0-96 hrs)</div></div>
+      <div class="kpi-card" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="label">YELLOW (96-168 hrs)</div></div>
+      <div class="kpi-card" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="label">RED (168-240 hrs)</div></div>
+      <div class="kpi-card" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="label">BLACK (>240 hrs)</div></div>
+      <div class="kpi-card" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="label">PURPLE (Reopened)</div></div>
     </div></div>
+
+  <div class="section"><h2>Queue Status</h2>
+    <div class="handoff-grid">
+      <div class="handoff-box"><h3>Ticket Count by Status</h3><ul>
+        <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
+        <li><span>Work In Progress</span><span class="val">${m.wip}</span></li>
+        <li><span>Researching</span><span class="val">${m.researching}</span></li>
+        <li><span>Pending</span><span class="val">${m.pend}</span></li>
+        <li><span>Resolved</span><span class="val">${m.res}</span></li>
+        <li><span>Closed</span><span class="val">${m.closed}</span></li>
+      </ul></div>
+      <div class="handoff-box"><h3>Status Distribution (%)</h3><ul>
+        <li><span>Assigned</span><span class="val">${(m.asgn/m.T*100).toFixed(1)}%</span></li>
+        <li><span>Work In Progress</span><span class="val">${(m.wip/m.T*100).toFixed(1)}%</span></li>
+        <li><span>Researching</span><span class="val">${(m.researching/m.T*100).toFixed(1)}%</span></li>
+        <li><span>Pending</span><span class="val">${(m.pend/m.T*100).toFixed(1)}%</span></li>
+        <li><span>Resolved</span><span class="val">${(m.res/m.T*100).toFixed(1)}%</span></li>
+        <li><span>Closed</span><span class="val">${(m.closed/m.T*100).toFixed(1)}%</span></li>
+      </ul></div>
+    </div></div>
+
   <div class="charts-grid">
-    <div class="chart-box"><h3>Status Distribution</h3><div class="chart-wrap"><canvas id="c1"></canvas></div></div>
-    <div class="chart-box"><h3>Daily Resolution (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2"></canvas></div></div>
+    <div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>
+    <div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>
+    <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
+    <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
     <div class="chart-box"><h3>Incident Types</h3><div class="chart-wrap"><canvas id="c3"></canvas></div></div>
-    <div class="chart-box"><h3>Weekly Volume Trend</h3><div class="chart-wrap"><canvas id="c4"></canvas></div></div>
-    <div class="chart-box"><h3>Geography</h3><div class="chart-wrap"><canvas id="c5"></canvas></div></div>
     <div class="chart-box"><h3>Agent Resolution Volume</h3><div class="chart-wrap"><canvas id="c6"></canvas></div></div>
   </div>
-  <div class="section"><h2>Agent Performance Table</h2><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th>Assigned</th><th>Resolved</th><th>Open</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>
-    ${sorted.map(a=>`<tr><td><strong>${a.name}</strong></td><td>${a.assigned}</td><td><span class="badge badge-g">${a.resolved}</span></td><td><span class="badge badge-w">${a.open}</span></td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
+  <div class="section"><h2>Agent Performance Table</h2><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th>Assigned</th><th>WIP</th><th>Researching</th><th>Pending</th><th>Resolved</th><th>Closed</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>
+    ${sorted.map(a=>`<tr><td><strong>${a.name}</strong></td><td>${a.statuses?a.statuses['Assigned']:0}</td><td>${a.statuses?a.statuses['Work In Progress']:0}</td><td>${a.statuses?a.statuses['Researching']:0}</td><td>${a.statuses?a.statuses['Pending']:0}</td><td><span class="badge badge-g">${a.statuses?a.statuses['Resolved']:0}</span></td><td>${a.statuses?a.statuses['Closed']:0}</td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
   </tbody></table></div></div>
-  ${m.hiCases.length>0?`<div class="section"><h2>Historical Incidents (Cnt > 0)</h2><p class="meta-info">Total: ${m.hiCases.length} (Cnt=1: ${m.hiCases.filter(h=>h.cnt===1).length}, Cnt≥2: ${m.hiCases.filter(h=>h.cnt>=2).length})</p><div style="overflow-x:auto"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiCases.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></div>`:''}</div>`;
+  ${m.hiCases.length>0?`<div class="section"><h2>Historical Incidents (Cnt > 0)</h2><p class="meta-info">Total: ${m.hiCases.length} | Non-Animal: ${m.hiNonAnimal.length} | Animal: ${m.hiAnimal.length}</p>
+    ${m.hiNonAnimal.length>0?`<details style="margin-bottom:16px;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden"><summary style="padding:12px 16px;cursor:pointer;background:#0a0a0a;color:#a78bfa;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Non-Animal Incidents (${m.hiNonAnimal.length})</summary><div style="overflow-x:auto;padding:0"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiNonAnimal.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></details>`:''}
+    ${m.hiAnimal.length>0?`<details style="border:1px solid #2a2a2a;border-radius:6px;overflow:hidden"><summary style="padding:12px 16px;cursor:pointer;background:#0a0a0a;color:#ff9900;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Animal Incidents (${m.hiAnimal.length})</summary><div style="overflow-x:auto;padding:0"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiAnimal.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></details>`:''}
+  </div>`:''}</div>`;
   attachNewFileHandler();
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
-  makeChart('c1',{type:'doughnut',data:{labels:['Resolved','WIP','Assigned','Pending'],datasets:[{data:[m.res,m.wip,m.asgn,m.pend],backgroundColor:['#1d8102','#ff9900','#2074d5','#d13212'],borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#d5dbdb'}}}}});
-  makeChart('c2',{type:'line',data:{labels:m.dL,datasets:[{data:m.dD,borderColor:'#ff9900',backgroundColor:'rgba(255,153,0,.08)',fill:true,tension:.4,pointBackgroundColor:'#ff9900',pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{color:'rgba(255,255,255,.04)'}}}}});
-  makeChart('c3',{type:'bar',data:{labels:m.iL,datasets:[{data:m.iD,backgroundColor:COLORS,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}});
-  makeChart('c4',{type:'bar',data:{labels:m.wL,datasets:[{data:m.wD,backgroundColor:'rgba(255,153,0,.7)',borderColor:'#ff9900',borderWidth:1,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{color:'rgba(255,255,255,.04)'}}}}});
-  makeChart('c5',{type:'pie',data:{labels:m.gL,datasets:[{data:m.gD,backgroundColor:COLORS,borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#d5dbdb',font:{size:11}}}}}});
-  makeChart('c6',{type:'bar',data:{labels:m.agents.map(a=>a.name),datasets:[{label:'Resolved',data:m.agents.map(a=>a.resolved),backgroundColor:'rgba(29,129,2,.75)',borderRadius:2},{label:'Open',data:m.agents.map(a=>a.open),backgroundColor:'rgba(255,153,0,.75)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
+  makeChart('c2a',{type:'bar',data:{labels:m.dL,datasets:[{label:'Created',data:m.dC,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
+  makeChart('c2b',{type:'bar',data:{labels:m.dL,datasets:[{label:'Resolved',data:m.dD,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
+  makeChart('c3',{type:'bar',data:{labels:m.iL.slice(0,15),datasets:[{data:m.iD.slice(0,15),backgroundColor:COLORS,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}},onClick:(evt,elements)=>{if(elements.length>0){const idx=elements[0].index;const type=m.iL[idx];showIncidentPopup(type);}}}});
+  makeChart('c4a',{type:'bar',data:{labels:m.wL,datasets:[{label:'Created',data:m.wD,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
+  makeChart('c4b',{type:'bar',data:{labels:m.wL,datasets:[{label:'Resolved',data:m.wDR,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
+  const sortedAgents=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
+  makeChart('c6',{type:'bar',data:{labels:sortedAgents.map(a=>a.name),datasets:[{label:'Resolved',data:sortedAgents.map(a=>a.resolved),backgroundColor:'rgba(74,222,128,.75)',borderRadius:2},{label:'Open',data:sortedAgents.map(a=>a.open),backgroundColor:'rgba(255,153,0,.75)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
 }
 
 function renderGroups(){
