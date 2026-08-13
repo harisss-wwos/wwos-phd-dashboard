@@ -9,6 +9,8 @@ const GB = ['mbozied','nobregak','mellanej'];
 const COLORS = ['#ff9900','#2074d5','#1d8102','#d13212','#1b9cb0','#8c6bb1','#44b9d6','#ec7211','#3ecf4a','#879596','#ffb84d','#5b9bd5','#ff5252'];
 
 function getGroup(n){if(GA1.includes(n))return'A1';if(GA2.includes(n))return'A2';if(GB.includes(n))return'B';return null;}
+function displayName(n){if(n==='0d1616c8-bcb7-4450-8bc5-f0a296bc01d1')return'LM-CAP';if(n&&n.includes('AutoSIM'))return'AutoSIM';return n;}
+function isLMCAP(n){return n==='0d1616c8-bcb7-4450-8bc5-f0a296bc01d1';}
 function hBetween(d1,d2){return Math.abs(d2-d1)/(1000*60*60);}
 function avg(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0;}
 function dayOrd(d){const n=d.getDate();const s=['th','st','nd','rd'];const v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -63,27 +65,93 @@ function computeMetrics(data){
   const rToday=data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=ts&&rd<=te;}return false;}).length;
   const rTimes=[];data.forEach(r=>{if(r.Status==='Resolved'&&r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/(36e5);if(h>=0)rTimes.push(h);}});
   const avgR=avg(rTimes);
+  const slaCompliant=rTimes.filter(h=>h<=240).length;
+  const slaPct=rTimes.length>0?((slaCompliant/rTimes.length)*100).toFixed(1):0;
   const dL=[],dD=[],dC=[];for(let i=6;i>=0;i--){const ds=new Date(maxDate);ds.setDate(ds.getDate()-i);ds.setHours(0,0,0,0);const de=new Date(ds);de.setDate(de.getDate()+1);dL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));dD.push(data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}return false;}).length);dC.push(data.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);}
   const wb={},wbR={};data.forEach(r=>{if(r.CreateDate){const d=new Date(r.CreateDate);const j4=new Date(d.getFullYear(),0,4);const dy=Math.ceil((d-new Date(d.getFullYear(),0,1))/(864e5));const wn=Math.ceil((dy+j4.getDay())/7);wb[`W${wn}`]=(wb[`W${wn}`]||0)+1;}});
   data.forEach(r=>{if(r.ResolvedDate){const d=new Date(r.ResolvedDate);const j4=new Date(d.getFullYear(),0,4);const dy=Math.ceil((d-new Date(d.getFullYear(),0,1))/(864e5));const wn=Math.ceil((dy+j4.getDay())/7);wbR[`W${wn}`]=(wbR[`W${wn}`]||0)+1;}});
   const wL=Object.keys(wb).sort(),wD=wL.map(k=>wb[k]),wDR=wL.map(k=>wbR[k]||0);
   const geoM={};data.forEach(r=>{const t=r.Title||'';let g='Other';['US','UK','CA','AU','BR','JP','IN','DE','SG','IT','FR','MX','AE'].forEach(c=>{if(t.startsWith(c+' '))g=c;});geoM[g]=(geoM[g]||0)+1;});
   const gL=Object.keys(geoM).sort((a,b)=>geoM[b]-geoM[a]),gD=gL.map(k=>geoM[k]);
-  // Incident Types - from RootCauseDetails "Issue:" or from Title
+  // Incident Types - use RootCause field as primary, match to defined categories
+  const INCIDENT_CATEGORIES=['Armed Robbery','Attack w/pet','Attack w/weapon','Critical injury','False imprisonment','Fatality from assault','Kidnapping','Repeat CAT2 incident','Sexual assault (physical)','Shots fired','Armed w/weapon','Discriminatory harassment','Harassment/intimidation','Impeding egress','Indecent exposure','Physical altercation','Repeat CAT3 incident','Robbery w/o weapon','Sexual harassment (verbal)','Signage/Paraphernalia','Vandalism','Verbal threat','Weapon pointed at driver','Weapon present (2nd incident)','Written Harassment','Written threat','Inappropriate CX name','Inappropriate delivery notes','Name calling','Weapon present (no threat, 1st incident)','Yelling/abusive behavior'];
+  function matchIncidentType(rawType){
+    const lower=rawType.toLowerCase();
+    for(const cat of INCIDENT_CATEGORIES){if(lower.includes(cat.toLowerCase()))return cat;}
+    if(lower.includes('armed robbery'))return'Armed Robbery';
+    if(lower.includes('attack')&&lower.includes('weapon'))return'Attack w/weapon';
+    if(lower.includes('critical injury'))return'Critical injury';
+    if(lower.includes('false imprison'))return'False imprisonment';
+    if(lower.includes('fatality'))return'Fatality from assault';
+    if(lower.includes('kidnap'))return'Kidnapping';
+    if(lower.includes('sexual assault'))return'Sexual assault (physical)';
+    if(lower.includes('shots fired')||lower.includes('shot fired'))return'Shots fired';
+    if(lower.includes('armed')&&lower.includes('weapon')&&!lower.includes('robbery'))return'Armed w/weapon';
+    if(lower.includes('discriminat')||lower.includes('inappropriate racial'))return'Discriminatory harassment';
+    if(lower.includes('harassment')&&lower.includes('intimidat'))return'Harassment/intimidation';
+    if(lower.includes('impeding')||lower.includes('egress'))return'Impeding egress';
+    if(lower.includes('indecent'))return'Indecent exposure';
+    if(lower.includes('physical altercation'))return'Physical altercation';
+    if(lower.includes('robbery')&&!lower.includes('armed'))return'Robbery w/o weapon';
+    if(lower.includes('sexual harassment')||(lower.includes('sexual')&&lower.includes('verbal')))return'Sexual harassment (verbal)';
+    if(lower.includes('signage')||lower.includes('paraphernalia'))return'Signage/Paraphernalia';
+    if(lower.includes('vandal'))return'Vandalism';
+    if(lower.includes('verbal')&&(lower.includes('threat')||lower.includes('harass')))return'Verbal threat';
+    if(lower.includes('weapon')&&lower.includes('point'))return'Weapon pointed at driver';
+    if(lower.includes('weapon present')&&(lower.includes('2nd')||lower.includes('second')))return'Weapon present (2nd incident)';
+    if(lower.includes('written')&&lower.includes('harassment'))return'Written Harassment';
+    if(lower.includes('written')&&lower.includes('threat'))return'Written threat';
+    if(lower.includes('inappropriate')&&lower.includes('name'))return'Inappropriate CX name';
+    if(lower.includes('inappropriate')&&lower.includes('delivery'))return'Inappropriate delivery notes';
+    if(lower.includes('name call'))return'Name calling';
+    if(lower.includes('weapon present')&&(lower.includes('1st')||lower.includes('first')||lower.includes('no threat')))return'Weapon present (no threat, 1st incident)';
+    if(lower.includes('weapon present')||lower.includes('weapon implied'))return'Weapon present (no threat, 1st incident)';
+    if(lower.includes('yelling')||lower.includes('abusive behavior')||lower.includes('abusive behaviour'))return'Yelling/abusive behavior';
+    if(lower.includes('verbal harassment'))return'Verbal threat';
+    if(lower.includes('threat')&&lower.includes('weapon'))return'Armed w/weapon';
+    if(lower.includes('assault')&&!lower.includes('sexual'))return'Physical altercation';
+    if(lower.includes('concerning behavior')||lower.includes('detrimental'))return'Harassment/intimidation';
+    if(lower.includes('aggressive'))return'Harassment/intimidation';
+    if(lower.includes('dog bite'))return'Attack w/pet';
+    if(lower.includes('unfamiliar')&&lower.includes('delivery'))return'Yelling/abusive behavior';
+    if(lower.includes('not applicable')||lower.includes('no further action'))return'Other (No Action Required)';
+    if(lower.includes('failure to de-escalate'))return'Harassment/intimidation';
+    if(lower.includes('transporter felt unsafe'))return'Harassment/intimidation';
+    if(lower.includes('unexpected delivery'))return'Yelling/abusive behavior';
+    if(lower.includes('not following delivery'))return'Yelling/abusive behavior';
+    if(lower.includes('first time pet'))return'Pet Incident (Immediately Resolved)';
+    return rawType;
+  }
   const incM={};const incTickets={};
+  const ANALYSTS=['arunkzn','flofalgu','harisss','punithsd','mbozied','mellanej','nobregak','chousoud','dbiswamb','obalasut','shaavhad','tanviroo','urmahala'];
   data.forEach(r=>{
-    let tp='Other';const details=r.RootCauseDetails||'';const title=r.Title||'';
-    const issueMatch=details.match(/Issue:\s*([^\n\r]+)/i);
-    if(issueMatch){tp=issueMatch[1].trim();}
-    else{const tMatch=title.match(/- (?:Severity\s*\w*\s*-?\s*)?(?:No EMT - )?(?:Non[- ]?[Pp]et\s*)?(.+)$/);if(tMatch)tp=tMatch[1].trim();else tp=title.substring(0,50)||'Other';}
+    let tp='Other';const details=r.RootCauseDetails||'';const rootCause=(r.RootCause||'').replace(/^\s*-\s*/,'').trim();const title=r.Title||'';const resolver=r.ResolvedByIdentity||'';
+    // Check if pet/animal incident via RootCause
+    const isAnimalRC=rootCause.toLowerCase().includes('unsecured animal');
+    // Check if pet via title
+    const isPetTitle=title.includes('Pet Incident')||title.includes('Attack w/ Pet')||title.includes('Attack w/o Pet');
+    if(isAnimalRC||isPetTitle){
+      const hasDetails=details.trim()!=='';
+      if(hasDetails){tp='Pet Incident (HI>0)';}
+      else{tp='Pet Incident (Resolved by AUTO-SIM)';}
+    } else if(rootCause&&rootCause.length>2&&rootCause.toLowerCase()!=='other'){
+      // Use RootCause field, match to categories
+      tp=matchIncidentType(rootCause);
+    } else {
+      // Fallback to title
+      const parts=title.split(' - ');
+      let rawType=parts.length>1?parts[parts.length-1].trim():title;
+      rawType=rawType.replace(/Account ID[:\s]*\S*/gi,'').replace(/Severity\s*\d+\s*/gi,'').replace(/No EMT\s*-?\s*/gi,'').replace(/^\s*-\s*/,'').replace(/\s+/g,' ').trim();
+      if(rawType&&rawType.length>2){tp=matchIncidentType(rawType);}
+    }
     if(tp.length>60)tp=tp.substring(0,60);
     incM[tp]=(incM[tp]||0)+1;
     if(!incTickets[tp])incTickets[tp]=[];
-    incTickets[tp].push({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:title});
+    incTickets[tp].push({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,ResolvedByIdentity:resolver,CreateDate:r.CreateDate,Status:r.Status,Title:title});
   });
   const iL=Object.keys(incM).sort((a,b)=>incM[b]-incM[a]),iD=iL.map(k=>incM[k]);
-  // Slim incTickets for storage (only keep top types to avoid localStorage overflow)
-  const incTicketsSlim={};iL.forEach(k=>{incTicketsSlim[k]=incTickets[k].map(r=>({ShortId:r.ShortId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title}));});
+  // Slim incTickets for storage
+  const incTicketsSlim={};iL.forEach(k=>{incTicketsSlim[k]=incTickets[k].map(r=>({ShortId:r.ShortId,AssigneeIdentity:r.AssigneeIdentity,ResolvedByIdentity:r.ResolvedByIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title}));});
   // Agents (Resolved/Closed = resolved, rest = open)
   const aRes={},aTm={};data.forEach(r=>{if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!r.ResolvedByIdentity.includes('AutoSIM')){const x=r.ResolvedByIdentity;aRes[x]=(aRes[x]||0)+1;if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5;if(h>=0){if(!aTm[x])aTm[x]=[];aTm[x].push(h);}}}});
   const aOpen={},aAsgn={};data.filter(r=>r.Status!=='Resolved'&&r.Status!=='Closed').forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aOpen[r.AssigneeIdentity]=(aOpen[r.AssigneeIdentity]||0)+1;});
@@ -113,7 +181,7 @@ function computeMetrics(data){
   const pwAn={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
-  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,hiCases,hiAnimal,hiNonAnimal,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
+  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,hiCases,hiAnimal,hiNonAnimal,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
 }
 
 // ========= UI RENDERING =========
@@ -195,21 +263,54 @@ function makeChart(id,config){
   if(ctx){const c=new Chart(ctx,config);charts.push(c);}
 }
 
+function closeAllPopups(){const p=document.getElementById('colorPopup');if(p)p.remove();const p2=document.getElementById('incPopup');if(p2)p2.remove();}
+
 function showColorPopup(color,tickets){
+  closeAllPopups();
   const colorNames={green:'GREEN (0-96 hrs)',yellow:'YELLOW (96-168 hrs)',red:'RED (168-240 hrs)',black:'BLACK (>240 hrs)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
   const tix=M.colorTickets[color];
+  // Group by agent
+  const byAgent={};tix.forEach(r=>{const a=r.AssigneeIdentity||'Unassigned';if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
+  const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
   const overlay=document.createElement('div');
   overlay.id='colorPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
-  const rows=tix.map(r=>{const cd=new Date(r.CreateDate);return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${r.AssigneeIdentity||'-'}</td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td><td>${r.Status}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  const agentRows=agentList.map(([name,tickets])=>{const dn=displayName(name);const style=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${dn}</strong>${isLMCAP(name)?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:${colorHex[color]};font-weight:700;font-size:1.1em">${tickets.length}</td></tr>`;}).join('');
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:600px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[color]};font-size:1.2em">${colorNames[color]} — ${tix.length} tickets</h2>
-      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="document.getElementById('colorPopup').remove()">Close</button></div>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadColorCSV('${color}')">Download All CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <table><thead><tr><th>Ticket ID</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <p style="color:#879596;font-size:.85em;margin-bottom:12px">Click an agent to view their tickets</p>
+    <table><thead><tr><th>Agent</th><th>Tickets</th></tr></thead><tbody>${agentRows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
+}
+
+function showAgentDrilldown(color,agentName){
+  closeAllPopups();
+  const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
+  const tix=M.colorTickets[color].filter(r=>(r.AssigneeIdentity||'Unassigned')===agentName);
+  // Sort by CreateDate descending
+  tix.sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  const now=new Date();const dn=displayName(agentName);
+  const rows=tix.map(r=>{
+    const cd=new Date(r.CreateDate);
+    const daysAgo=Math.floor((now-cd)/(864e5));
+    const daysText=daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;
+    return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.Status}</td></tr>`;
+  }).join('');
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="color:${colorHex[color]};font-size:1.1em">${dn} — ${tix.length} tickets</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+    </div>
+    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
 }
 function downloadColorCSV(color){
@@ -221,18 +322,46 @@ function downloadColorCSV(color){
 }
 
 function showIncidentPopup(type){
+  closeAllPopups();
   const tickets=M.incTickets[type]||[];
+  // Group by resolver/assignee
+  const byAgent={};tickets.forEach(r=>{const a=displayName(r.ResolvedByIdentity||r.AssigneeIdentity||'Unassigned');if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
+  const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
   const overlay=document.createElement('div');
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
-  const rows=tickets.map(r=>{const cd=new Date(r.CreateDate);return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${r.AssigneeIdentity||'-'}</td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td><td>${r.Status}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showIncidentAgentDrilldown('${type.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:600px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="color:#ff9900;font-size:1.1em">${type} — ${tickets.length} tickets</h2>
-      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="document.getElementById('incPopup').remove()">Close</button></div>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <table><thead><tr><th>Ticket ID</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <p style="color:#879596;font-size:.85em;margin-bottom:12px">Click an agent to view their tickets</p>
+    <table><thead><tr><th>Agent</th><th>Tickets</th></tr></thead><tbody>${agentRows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
+}
+
+function showIncidentAgentDrilldown(type,agentName){
+  closeAllPopups();
+  const tickets=(M.incTickets[type]||[]).filter(r=>displayName(r.ResolvedByIdentity||r.AssigneeIdentity||'Unassigned')===agentName);
+  tickets.sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  const now=new Date();
+  const rows=tickets.map(r=>{
+    const cd=new Date(r.CreateDate);const daysAgo=Math.floor((now-cd)/(864e5));
+    const daysText=daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;
+    return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.Status}</td></tr>`;
+  }).join('');
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${type})</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+    </div>
+    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
 }
 function downloadIncidentCSV(type){
@@ -249,12 +378,16 @@ function renderDashboard(){
   const ct=m.colorTickets;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title"><h1>Operations Overview</h1><p>Dashboard created with data last uploaded at ${m.uploadTime||'N/A'}</p></div>
-  <div class="kpi-grid">
-    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets</div></div>
-    <div class="kpi-card success"><div class="value">${(m.res/m.T*100).toFixed(1)}%</div><div class="label">Resolved %</div></div>
-    <div class="kpi-card warning"><div class="value">${m.inQ}</div><div class="label">In Queue</div></div>
-    <div class="kpi-card"><div class="value">${m.autosim}</div><div class="label">AutoSIM Resolved</div></div>
-    <div class="kpi-card danger"><div class="value">${m.p72}</div><div class="label">Pending >72hrs</div></div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets <span title="Total number of tickets in the uploaded CSV data" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card"><div class="value">${m.avgR.toFixed(0)} hrs</div><div class="label">Avg Resolution Time <span title="Average time taken to resolve a ticket from creation to resolution" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (≤240 hrs) <span title="Percentage of resolved tickets that were resolved within 240 hours (10 days) of creation. ${m.slaCompliant} out of ${m.res+m.closed} tickets met SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+  </div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi-card success"><div class="value">${(m.res+m.closed)} (${((m.res+m.closed)/m.T*100).toFixed(1)}%)</div><div class="label">Resolved <span title="Tickets in Resolved or Closed status. Percentage = (Resolved / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card warning"><div class="value">${m.inQ} (${(m.inQ/m.T*100).toFixed(1)}%)</div><div class="label">In Queue <span title="Tickets in Assigned, Work In Progress, Researching, or Pending status. Percentage = (In Queue / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card"><div class="value">${m.autosim} (${(m.autosim/m.T*100).toFixed(1)}%)</div><div class="label">AutoSIM Resolved <span title="Tickets automatically resolved by AutoSIM. Percentage = (AutoSIM / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card danger"><div class="value">${m.p72} (${(m.p72/m.T*100).toFixed(1)}%)</div><div class="label">Pending >72hrs <span title="Tickets in Assigned status that were created more than 72 hours ago. Percentage = (Pending >72hrs / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
 
   <div class="section"><h2>Ticket Age Classification</h2>
@@ -287,17 +420,15 @@ function renderDashboard(){
       </ul></div>
     </div></div>
 
-  <div class="charts-grid">
+  <div class="charts-grid" style="grid-template-columns:repeat(2,1fr)">
     <div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>
     <div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>
+  </div>
+  <div class="charts-grid" style="grid-template-columns:repeat(2,1fr)">
     <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
     <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
-    <div class="chart-box"><h3>Incident Types</h3><div class="chart-wrap"><canvas id="c3"></canvas></div></div>
-    <div class="chart-box"><h3>Agent Resolution Volume</h3><div class="chart-wrap"><canvas id="c6"></canvas></div></div>
   </div>
-  <div class="section"><h2>Agent Performance Table</h2><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th>Assigned</th><th>WIP</th><th>Researching</th><th>Pending</th><th>Resolved</th><th>Closed</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>
-    ${sorted.map(a=>`<tr><td><strong>${a.name}</strong></td><td>${a.statuses?a.statuses['Assigned']:0}</td><td>${a.statuses?a.statuses['Work In Progress']:0}</td><td>${a.statuses?a.statuses['Researching']:0}</td><td>${a.statuses?a.statuses['Pending']:0}</td><td><span class="badge badge-g">${a.statuses?a.statuses['Resolved']:0}</span></td><td>${a.statuses?a.statuses['Closed']:0}</td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
-  </tbody></table></div></div>
+  <div class="chart-box" style="border:1px solid var(--bd);border-radius:8px;padding:20px;margin-bottom:24px"><h3 style="color:#fff;margin-bottom:16px;text-align:center;font-size:1.1em;font-weight:600">Incident Types</h3><p style="color:#879596;font-size:.8em;text-align:center;margin-bottom:16px">Click on a bar to view agent breakdown for that incident type</p><div style="position:relative;height:500px"><canvas id="c3"></canvas></div></div>
   ${m.hiCases.length>0?`<div class="section"><h2>Historical Incidents (Cnt > 0)</h2><p class="meta-info">Total: ${m.hiCases.length} | Non-Animal: ${m.hiNonAnimal.length} | Animal: ${m.hiAnimal.length}</p>
     ${m.hiNonAnimal.length>0?`<details style="margin-bottom:16px;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden"><summary style="padding:12px 16px;cursor:pointer;background:#0a0a0a;color:#a78bfa;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Non-Animal Incidents (${m.hiNonAnimal.length})</summary><div style="overflow-x:auto;padding:0"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiNonAnimal.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></details>`:''}
     ${m.hiAnimal.length>0?`<details style="border:1px solid #2a2a2a;border-radius:6px;overflow:hidden"><summary style="padding:12px 16px;cursor:pointer;background:#0a0a0a;color:#ff9900;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Animal Incidents (${m.hiAnimal.length})</summary><div style="overflow-x:auto;padding:0"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiAnimal.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></details>`:''}
@@ -306,11 +437,9 @@ function renderDashboard(){
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('c2a',{type:'bar',data:{labels:m.dL,datasets:[{label:'Created',data:m.dC,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c2b',{type:'bar',data:{labels:m.dL,datasets:[{label:'Resolved',data:m.dD,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
-  makeChart('c3',{type:'bar',data:{labels:m.iL.slice(0,15),datasets:[{data:m.iD.slice(0,15),backgroundColor:COLORS,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}},onClick:(evt,elements)=>{if(elements.length>0){const idx=elements[0].index;const type=m.iL[idx];showIncidentPopup(type);}}}});
+  makeChart('c3',{type:'bar',data:{labels:m.iL,datasets:[{data:m.iD,backgroundColor:COLORS.concat(COLORS),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>`${ctx.raw} tickets (${(ctx.raw/m.T*100).toFixed(1)}%)`}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:12}}},y:{grid:{display:false},ticks:{font:{size:11}}}},onClick:(evt,elements)=>{if(elements.length>0){const idx=elements[0].index;const type=m.iL[idx];showIncidentPopup(type);}}}});
   makeChart('c4a',{type:'bar',data:{labels:m.wL,datasets:[{label:'Created',data:m.wD,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c4b',{type:'bar',data:{labels:m.wL,datasets:[{label:'Resolved',data:m.wDR,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
-  const sortedAgents=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
-  makeChart('c6',{type:'bar',data:{labels:sortedAgents.map(a=>a.name),datasets:[{label:'Resolved',data:sortedAgents.map(a=>a.resolved),backgroundColor:'rgba(74,222,128,.75)',borderRadius:2},{label:'Open',data:sortedAgents.map(a=>a.open),backgroundColor:'rgba(255,153,0,.75)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
 }
 
 function renderGroups(){
@@ -336,9 +465,10 @@ function renderGroups(){
     <div class="chart-box"><h3>Workload Distribution</h3><div class="chart-wrap"><canvas id="g3"></canvas></div></div>
     <div class="chart-box"><h3>Daily Group Trend (Last 7 Days)</h3><div class="chart-wrap"><canvas id="g4"></canvas></div></div>
     <div class="chart-box" style="grid-column:span 2"><h3>Per-Agent Resolved (by Group)</h3><div class="chart-wrap" style="height:400px"><canvas id="g5"></canvas></div></div>
+    <div class="chart-box" style="grid-column:span 2"><h3>Agent Resolution Volume</h3><div class="chart-wrap" style="height:350px"><canvas id="g6"></canvas></div></div>
   </div>
-  <div class="section"><h2>Individual Agent Performance</h2><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th>Group</th><th>Assigned</th><th>Resolved</th><th>Open</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>
-    ${sorted.map(a=>`<tr><td><strong>${a.name}</strong></td><td><span class="tag ${tc[a.group]}">${a.group}</span></td><td>${a.assigned}</td><td>${a.resolved}</td><td>${a.open}</td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
+  <div class="section"><h2>Individual Agent Performance</h2><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th>Group</th><th>Assigned</th><th>WIP</th><th>Researching</th><th>Pending</th><th>Resolved</th><th>Closed</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>
+    ${sorted.map(a=>`<tr><td><strong>${a.name}</strong></td><td><span class="tag ${tc[a.group]}">${a.group}</span></td><td>${a.statuses?a.statuses['Assigned']:0}</td><td>${a.statuses?a.statuses['Work In Progress']:0}</td><td>${a.statuses?a.statuses['Researching']:0}</td><td>${a.statuses?a.statuses['Pending']:0}</td><td><span class="badge badge-g">${a.statuses?a.statuses['Resolved']:0}</span></td><td>${a.statuses?a.statuses['Closed']:0}</td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
   </tbody></table></div></div>
   <div class="section"><h2>Group Totals Summary</h2><table><thead><tr><th>Group</th><th>Members</th><th>Assigned</th><th>Resolved</th><th>Open</th><th>Avg Hrs</th><th>Res/Member</th><th>Rate</th></tr></thead><tbody>
     <tr><td><span class="tag tag-a1">A1</span></td><td>4</td><td>${m.a1As}</td><td>${m.a1R}</td><td>${m.a1O}</td><td>${m.a1Avg.toFixed(1)}</td><td>${(m.a1R/4).toFixed(1)}</td><td>${m.a1R+m.a1O>0?((m.a1R/(m.a1R+m.a1O))*100).toFixed(1):0}%</td></tr>
@@ -351,6 +481,8 @@ function renderGroups(){
   makeChart('g3',{type:'pie',data:{labels:[`A1(${m.a1As})`,`A2(${m.a2As})`,`B(${m.bAs})`],datasets:[{data:[m.a1As,m.a2As,m.bAs],backgroundColor:['rgba(125,211,252,.85)','rgba(251,191,36,.85)','rgba(74,222,128,.85)'],borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#d5dbdb'}}}}});
   makeChart('g4',{type:'line',data:{labels:m.dL,datasets:[{label:'A1',data:m.dgA1,borderColor:'#7dd3fc',backgroundColor:'rgba(125,211,252,.08)',fill:true,tension:.4,pointRadius:4},{label:'A2',data:m.dgA2,borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.08)',fill:true,tension:.4,pointRadius:4},{label:'B',data:m.dgB,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{color:'rgba(255,255,255,.04)'}}}}});
   makeChart('g5',{type:'bar',data:{labels:sorted.map(a=>a.name),datasets:[{label:'Resolved',data:sorted.map(a=>a.resolved),backgroundColor:sorted.map(a=>gc[a.group]),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}});
+  const sortedByRes=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
+  makeChart('g6',{type:'bar',data:{labels:sortedByRes.map(a=>a.name),datasets:[{label:'Resolved',data:sortedByRes.map(a=>a.resolved),backgroundColor:'rgba(74,222,128,.75)',borderRadius:2},{label:'Open',data:sortedByRes.map(a=>a.open),backgroundColor:'rgba(255,153,0,.75)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
 }
 
 function renderPreviousWeek(){
