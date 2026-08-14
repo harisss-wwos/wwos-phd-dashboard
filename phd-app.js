@@ -73,78 +73,24 @@ function computeMetrics(data){
   const wL=Object.keys(wb).sort(),wD=wL.map(k=>wb[k]),wDR=wL.map(k=>wbR[k]||0);
   const geoM={};data.forEach(r=>{const t=r.Title||'';let g='Other';['US','UK','CA','AU','BR','JP','IN','DE','SG','IT','FR','MX','AE'].forEach(c=>{if(t.startsWith(c+' '))g=c;});geoM[g]=(geoM[g]||0)+1;});
   const gL=Object.keys(geoM).sort((a,b)=>geoM[b]-geoM[a]),gD=gL.map(k=>geoM[k]);
-  // Incident Types - use RootCause field as primary, match to defined categories
-  const INCIDENT_CATEGORIES=['Armed Robbery','Attack w/pet','Attack w/weapon','Critical injury','False imprisonment','Fatality from assault','Kidnapping','Repeat CAT2 incident','Sexual assault (physical)','Shots fired','Armed w/weapon','Discriminatory harassment','Harassment/intimidation','Impeding egress','Indecent exposure','Physical altercation','Repeat CAT3 incident','Robbery w/o weapon','Sexual harassment (verbal)','Signage/Paraphernalia','Vandalism','Verbal threat','Weapon pointed at driver','Weapon present (2nd incident)','Written Harassment','Written threat','Inappropriate CX name','Inappropriate delivery notes','Name calling','Weapon present (no threat, 1st incident)','Yelling/abusive behavior'];
-  function matchIncidentType(rawType){
-    const lower=rawType.toLowerCase();
-    for(const cat of INCIDENT_CATEGORIES){if(lower.includes(cat.toLowerCase()))return cat;}
-    if(lower.includes('armed robbery'))return'Armed Robbery';
-    if(lower.includes('attack')&&lower.includes('weapon'))return'Attack w/weapon';
-    if(lower.includes('critical injury'))return'Critical injury';
-    if(lower.includes('false imprison'))return'False imprisonment';
-    if(lower.includes('fatality'))return'Fatality from assault';
-    if(lower.includes('kidnap'))return'Kidnapping';
-    if(lower.includes('sexual assault'))return'Sexual assault (physical)';
-    if(lower.includes('shots fired')||lower.includes('shot fired'))return'Shots fired';
-    if(lower.includes('armed')&&lower.includes('weapon')&&!lower.includes('robbery'))return'Armed w/weapon';
-    if(lower.includes('discriminat')||lower.includes('inappropriate racial'))return'Discriminatory harassment';
-    if(lower.includes('harassment')&&lower.includes('intimidat'))return'Harassment/intimidation';
-    if(lower.includes('impeding')||lower.includes('egress'))return'Impeding egress';
-    if(lower.includes('indecent'))return'Indecent exposure';
-    if(lower.includes('physical altercation'))return'Physical altercation';
-    if(lower.includes('robbery')&&!lower.includes('armed'))return'Robbery w/o weapon';
-    if(lower.includes('sexual harassment')||(lower.includes('sexual')&&lower.includes('verbal')))return'Sexual harassment (verbal)';
-    if(lower.includes('signage')||lower.includes('paraphernalia'))return'Signage/Paraphernalia';
-    if(lower.includes('vandal'))return'Vandalism';
-    if(lower.includes('verbal')&&(lower.includes('threat')||lower.includes('harass')))return'Verbal threat';
-    if(lower.includes('weapon')&&lower.includes('point'))return'Weapon pointed at driver';
-    if(lower.includes('weapon present')&&(lower.includes('2nd')||lower.includes('second')))return'Weapon present (2nd incident)';
-    if(lower.includes('written')&&lower.includes('harassment'))return'Written Harassment';
-    if(lower.includes('written')&&lower.includes('threat'))return'Written threat';
-    if(lower.includes('inappropriate')&&lower.includes('name'))return'Inappropriate CX name';
-    if(lower.includes('inappropriate')&&lower.includes('delivery'))return'Inappropriate delivery notes';
-    if(lower.includes('name call'))return'Name calling';
-    if(lower.includes('weapon present')&&(lower.includes('1st')||lower.includes('first')||lower.includes('no threat')))return'Weapon present (no threat, 1st incident)';
-    if(lower.includes('weapon present')||lower.includes('weapon implied'))return'Weapon present (no threat, 1st incident)';
-    if(lower.includes('yelling')||lower.includes('abusive behavior')||lower.includes('abusive behaviour'))return'Yelling/abusive behavior';
-    if(lower.includes('verbal harassment'))return'Verbal threat';
-    if(lower.includes('threat')&&lower.includes('weapon'))return'Armed w/weapon';
-    if(lower.includes('assault')&&!lower.includes('sexual'))return'Physical altercation';
-    if(lower.includes('concerning behavior')||lower.includes('detrimental'))return'Harassment/intimidation';
-    if(lower.includes('aggressive'))return'Harassment/intimidation';
-    if(lower.includes('dog bite'))return'Attack w/pet';
-    if(lower.includes('unfamiliar')&&lower.includes('delivery'))return'Yelling/abusive behavior';
-    if(lower.includes('not applicable')||lower.includes('no further action'))return'Other (No Action Required)';
-    if(lower.includes('failure to de-escalate'))return'Harassment/intimidation';
-    if(lower.includes('transporter felt unsafe'))return'Harassment/intimidation';
-    if(lower.includes('unexpected delivery'))return'Yelling/abusive behavior';
-    if(lower.includes('not following delivery'))return'Yelling/abusive behavior';
-    if(lower.includes('first time pet'))return'Pet Incident (Immediately Resolved)';
-    return rawType;
-  }
+  // Incident Types - use RootCause field directly as incident type
   const incM={};const incTickets={};
   const ANALYSTS=['arunkzn','flofalgu','harisss','punithsd','mbozied','mellanej','nobregak','chousoud','dbiswamb','obalasut','shaavhad','tanviroo','urmahala'];
   data.forEach(r=>{
     let tp='Other';const details=r.RootCauseDetails||'';const rootCause=(r.RootCause||'').replace(/^\s*-\s*/,'').trim();const title=r.Title||'';const resolver=r.ResolvedByIdentity||'';
-    // Check if pet/animal incident via RootCause
-    const isAnimalRC=rootCause.toLowerCase().includes('unsecured animal');
-    // Check if pet via title
-    const isPetTitle=title.includes('Pet Incident')||title.includes('Attack w/ Pet')||title.includes('Attack w/o Pet');
-    if(isAnimalRC||isPetTitle){
-      const hasDetails=details.trim()!=='';
-      if(hasDetails){tp='Pet Incident (HI>0)';}
-      else{tp='Pet Incident (Resolved by AUTO-SIM)';}
-    } else if(rootCause&&rootCause.length>2&&rootCause.toLowerCase()!=='other'){
-      // Use RootCause field, match to categories
-      tp=matchIncidentType(rootCause);
+    if(rootCause&&rootCause.length>1){
+      // Check if animal/pet
+      if(rootCause.toLowerCase().includes('unsecured animal')){
+        const hasDetails=details.trim()!=='';
+        if(hasDetails){tp='Pet Incident (HI>0)';}
+        else{tp='Pet Incident (Resolved by AUTO-SIM)';}
+      } else {
+        tp=rootCause;
+      }
     } else {
-      // Fallback to title
-      const parts=title.split(' - ');
-      let rawType=parts.length>1?parts[parts.length-1].trim():title;
-      rawType=rawType.replace(/Account ID[:\s]*\S*/gi,'').replace(/Severity\s*\d+\s*/gi,'').replace(/No EMT\s*-?\s*/gi,'').replace(/^\s*-\s*/,'').replace(/\s+/g,' ').trim();
-      if(rawType&&rawType.length>2){tp=matchIncidentType(rawType);}
+      tp='No Root Cause';
     }
-    if(tp.length>60)tp=tp.substring(0,60);
+    if(tp.length>80)tp=tp.substring(0,80);
     incM[tp]=(incM[tp]||0)+1;
     if(!incTickets[tp])incTickets[tp]=[];
     incTickets[tp].push({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,ResolvedByIdentity:resolver,CreateDate:r.CreateDate,Status:r.Status,Title:title});
@@ -159,6 +105,9 @@ function computeMetrics(data){
   // Per-agent status counts
   const aStatus={};PHD_AGENTS.forEach(n=>{aStatus[n]={Assigned:0,'Work In Progress':0,Researching:0,Pending:0,Resolved:0,Closed:0};});
   data.forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity)&&aStatus[r.AssigneeIdentity][r.Status]!==undefined){aStatus[r.AssigneeIdentity][r.Status]++;}});
+  // Per-agent open tickets (Assigned, WIP, Pending) for popup drill-down
+  const agentOpenTickets={};PHD_AGENTS.forEach(n=>{agentOpenTickets[n]=[];});
+  data.forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity)&&(r.Status==='Assigned'||r.Status==='Work In Progress'||r.Status==='Pending')){agentOpenTickets[r.AssigneeIdentity].push({ShortId:r.ShortId||r.IssueId,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title});}});
   const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?avg(aTm[n]):0,group:getGroup(n),statuses:aStatus[n]}));
   // HI
   const cntP=/\bCnt\s*[:\s]\s*(\d+)/i;const hiCases=[];
@@ -181,7 +130,7 @@ function computeMetrics(data){
   const pwAn={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
-  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,hiCases,hiAnimal,hiNonAnimal,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
+  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,agentOpenTickets,hiCases,hiAnimal,hiNonAnimal,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
 }
 
 // ========= UI RENDERING =========
@@ -278,7 +227,7 @@ function showColorPopup(color,tickets){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   const agentRows=agentList.map(([name,tickets])=>{const dn=displayName(name);const style=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${dn}</strong>${isLMCAP(name)?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:${colorHex[color]};font-weight:700;font-size:1.1em">${tickets.length}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:600px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[color]};font-size:1.2em">${colorNames[color]} — ${tix.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="downloadColorCSV('${color}')">Download All CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -305,7 +254,7 @@ function showAgentDrilldown(color,agentName){
   overlay.id='colorPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[color]};font-size:1.1em">${dn} — ${tix.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -332,7 +281,7 @@ function showIncidentPopup(type){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showIncidentAgentDrilldown('${type.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:600px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="color:#ff9900;font-size:1.1em">${type} — ${tickets.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -356,7 +305,7 @@ function showIncidentAgentDrilldown(type,agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:800px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${type})</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -370,6 +319,79 @@ function downloadIncidentCSV(type){
   tickets.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
   const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`${type.replace(/[^a-zA-Z0-9]/g,'_')}_tickets.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+function showAgentTicketsPopup(agentName){
+  closeAllPopups();
+  const tickets=M.agentOpenTickets[agentName]||[];
+  const assigned=tickets.filter(t=>t.Status==='Assigned').sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  const wip=tickets.filter(t=>t.Status==='Work In Progress').sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  const pending=tickets.filter(t=>t.Status==='Pending').sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  const now=new Date();
+  function renderRows(tix){
+    if(tix.length===0)return'<tr><td colspan="3" style="color:#879596;text-align:center">No tickets</td></tr>';
+    return tix.map(r=>{const cd=new Date(r.CreateDate);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.Status}</td></tr>`;}).join('');
+  }
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="color:#44b9d6;font-size:1.2em">${agentName} — Open Tickets (${tickets.length})</h2>
+      <button class="btn danger" onclick="closeAllPopups()">Close</button>
+    </div>
+    <h3 style="color:#ff9900;font-size:.9em;font-weight:600;text-transform:uppercase;margin-bottom:8px">Assigned (${assigned.length})</h3>
+    <table style="margin-bottom:20px"><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${renderRows(assigned)}</tbody></table>
+    <h3 style="color:#fbbf24;font-size:.9em;font-weight:600;text-transform:uppercase;margin-bottom:8px">Work In Progress (${wip.length})</h3>
+    <table style="margin-bottom:20px"><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${renderRows(wip)}</tbody></table>
+    <h3 style="color:#a78bfa;font-size:.9em;font-weight:600;text-transform:uppercase;margin-bottom:8px">Pending (${pending.length})</h3>
+    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${renderRows(pending)}</tbody></table>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+function showHIPopup(rootCause){
+  closeAllPopups();
+  const tickets=M.hiCases.filter(h=>(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim()===rootCause);
+  const byAgent={};tickets.forEach(r=>{const a=displayName(r.assignee||'Unassigned');if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
+  const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showHIAgentDrilldown('${rootCause.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <h2 style="color:#ff9900;font-size:1.1em">${rootCause} — ${tickets.length} tickets</h2>
+      <button class="btn danger" onclick="closeAllPopups()">Close</button>
+    </div>
+    <p style="color:#879596;font-size:.85em;margin-bottom:12px">Click an agent to view their tickets</p>
+    <table><thead><tr><th>Agent</th><th>Tickets</th></tr></thead><tbody>${agentRows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
+}
+
+function showHIAgentDrilldown(rootCause,agentName){
+  closeAllPopups();
+  const tickets=M.hiCases.filter(h=>(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim()===rootCause&&displayName(h.assignee||'Unassigned')===agentName);
+  tickets.sort((a,b)=>b.cnt-a.cnt);
+  const now=new Date();
+  const rows=tickets.map(r=>{
+    const cd=new Date(r.CreateDate||'');const daysAgo=Math.floor((now-cd)/(864e5));
+    const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;
+    return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.id}" target="_blank" style="color:#44b9d6">${r.id}</a></td><td><strong style="color:${r.cnt>=2?'#ff5252':'#ffb84d'}">${r.cnt}</strong></td><td>${r.status}</td></tr>`;
+  }).join('');
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${rootCause})</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="showHIPopup('${rootCause.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+    </div>
+    <table><thead><tr><th>Ticket ID</th><th>Cnt</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
 }
 
 function renderDashboard(){
@@ -428,16 +450,18 @@ function renderDashboard(){
     <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
     <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
   </div>
-  <div class="chart-box" style="border:1px solid var(--bd);border-radius:8px;padding:20px;margin-bottom:24px"><h3 style="color:#fff;margin-bottom:16px;text-align:center;font-size:1.1em;font-weight:600">Incident Types</h3><p style="color:#879596;font-size:.8em;text-align:center;margin-bottom:16px">Click on a bar to view agent breakdown for that incident type</p><div style="position:relative;height:500px"><canvas id="c3"></canvas></div></div>
-  ${m.hiCases.length>0?`<div class="section"><h2>Historical Incidents (Cnt > 0)</h2><p class="meta-info">Total: ${m.hiCases.length} | Non-Animal: ${m.hiNonAnimal.length} | Animal: ${m.hiAnimal.length}</p>
-    ${m.hiNonAnimal.length>0?`<details style="margin-bottom:16px;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden"><summary style="padding:12px 16px;cursor:pointer;background:#0a0a0a;color:#a78bfa;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Non-Animal Incidents (${m.hiNonAnimal.length})</summary><div style="overflow-x:auto;padding:0"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiNonAnimal.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></details>`:''}
-    ${m.hiAnimal.length>0?`<details style="border:1px solid #2a2a2a;border-radius:6px;overflow:hidden"><summary style="padding:12px 16px;cursor:pointer;background:#0a0a0a;color:#ff9900;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Animal Incidents (${m.hiAnimal.length})</summary><div style="overflow-x:auto;padding:0"><table><thead><tr><th>ShortId</th><th>Cnt</th><th>Assignee</th><th>Root Cause</th><th>Status</th></tr></thead><tbody>${m.hiAnimal.map(h=>`<tr><td><a href="https://t.corp.amazon.com/issues/${h.id}" target="_blank" style="color:#44b9d6">${h.id}</a></td><td><strong style="color:${h.cnt>=2?'#ff5252':'#ffb84d'}">${h.cnt}</strong></td><td>${h.assignee}</td><td>${h.rootCause}</td><td><span class="badge badge-g">${h.status}</span></td></tr>`).join('')}</tbody></table></div></details>`:''}
-  </div>`:''}</div>`;
+  <div class="section"><h2>Incident Types</h2><p class="meta-info">Click any incident type to view agent breakdown</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>
+    ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${type}</strong></td><td>${count}</td><td>${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
+    </tbody></table></div></div>
+  ${m.hiCases.length>0?`<div class="section"><h2>Historical Incidents (Cnt > 0)</h2><p class="meta-info">Total: ${m.hiCases.length} tickets with prior incident history. Click any root cause to view agent breakdown.</p>
+    <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>
+    ${(()=>{const hiByRC={};m.hiCases.forEach(h=>{const rc=(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim();hiByRC[rc]=(hiByRC[rc]||0)+1;});const hiSorted=Object.entries(hiByRC).sort((a,b)=>b[1]-a[1]);const hiMax=hiSorted.length>0?hiSorted[0][1]:1;return hiSorted.map(([rc,count],i)=>`<tr style="cursor:pointer" onclick="showHIPopup('${rc.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${rc}</strong></td><td>${count}</td><td>${(count/m.hiCases.length*100).toFixed(1)}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${(count/hiMax*100).toFixed(0)}%;min-width:4px"></div></div></td></tr>`).join('');})()}
+    </tbody></table></div></div>`:''}</div>`;
   attachNewFileHandler();
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('c2a',{type:'bar',data:{labels:m.dL,datasets:[{label:'Created',data:m.dC,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c2b',{type:'bar',data:{labels:m.dL,datasets:[{label:'Resolved',data:m.dD,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
-  makeChart('c3',{type:'bar',data:{labels:m.iL,datasets:[{data:m.iD,backgroundColor:COLORS.concat(COLORS),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>`${ctx.raw} tickets (${(ctx.raw/m.T*100).toFixed(1)}%)`}}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{size:12}}},y:{grid:{display:false},ticks:{font:{size:11}}}},onClick:(evt,elements)=>{if(elements.length>0){const idx=elements[0].index;const type=m.iL[idx];showIncidentPopup(type);}}}});
   makeChart('c4a',{type:'bar',data:{labels:m.wL,datasets:[{label:'Created',data:m.wD,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c4b',{type:'bar',data:{labels:m.wL,datasets:[{label:'Resolved',data:m.wDR,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
 }
@@ -468,7 +492,7 @@ function renderGroups(){
     <div class="chart-box" style="grid-column:span 2"><h3>Agent Resolution Volume</h3><div class="chart-wrap" style="height:350px"><canvas id="g6"></canvas></div></div>
   </div>
   <div class="section"><h2>Individual Agent Performance</h2><div style="overflow-x:auto"><table><thead><tr><th>Agent</th><th>Group</th><th>Assigned</th><th>WIP</th><th>Researching</th><th>Pending</th><th>Resolved</th><th>Closed</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>
-    ${sorted.map(a=>`<tr><td><strong>${a.name}</strong></td><td><span class="tag ${tc[a.group]}">${a.group}</span></td><td>${a.statuses?a.statuses['Assigned']:0}</td><td>${a.statuses?a.statuses['Work In Progress']:0}</td><td>${a.statuses?a.statuses['Researching']:0}</td><td>${a.statuses?a.statuses['Pending']:0}</td><td><span class="badge badge-g">${a.statuses?a.statuses['Resolved']:0}</span></td><td>${a.statuses?a.statuses['Closed']:0}</td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
+    ${sorted.map(a=>`<tr><td><strong style="color:#44b9d6;cursor:pointer" onclick="showAgentTicketsPopup('${a.name}')">${a.name}</strong></td><td><span class="tag ${tc[a.group]}">${a.group}</span></td><td>${a.statuses?a.statuses['Assigned']:0}</td><td>${a.statuses?a.statuses['Work In Progress']:0}</td><td>${a.statuses?a.statuses['Researching']:0}</td><td>${a.statuses?a.statuses['Pending']:0}</td><td><span class="badge badge-g">${a.statuses?a.statuses['Resolved']:0}</span></td><td>${a.statuses?a.statuses['Closed']:0}</td><td>${a.avgTime.toFixed(1)}</td><td>${a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0}%</td></tr>`).join('')}
   </tbody></table></div></div>
   <div class="section"><h2>Group Totals Summary</h2><table><thead><tr><th>Group</th><th>Members</th><th>Assigned</th><th>Resolved</th><th>Open</th><th>Avg Hrs</th><th>Res/Member</th><th>Rate</th></tr></thead><tbody>
     <tr><td><span class="tag tag-a1">A1</span></td><td>4</td><td>${m.a1As}</td><td>${m.a1R}</td><td>${m.a1O}</td><td>${m.a1Avg.toFixed(1)}</td><td>${(m.a1R/4).toFixed(1)}</td><td>${m.a1R+m.a1O>0?((m.a1R/(m.a1R+m.a1O))*100).toFixed(1):0}%</td></tr>
