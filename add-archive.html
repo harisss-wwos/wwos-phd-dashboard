@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Archive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo span{font-size:1.1em;font-weight:700;color:#fff}
+.btn{display:inline-flex;align-items:center;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.wrap{max-width:600px;margin:0 auto;padding:50px 24px}
+.wrap h1{color:#fff;font-size:1.8em;margin-bottom:8px}
+.wrap p{color:var(--tm);margin-bottom:24px;font-size:.9em;line-height:1.5}
+label{display:block;color:var(--tm);font-size:.85em;margin-bottom:6px;margin-top:18px}
+input[type=text]{width:100%;padding:10px 12px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.95em}
+input:focus{outline:none;border-color:var(--o)}
+.drop-zone{border:2px dashed var(--bd);border-radius:10px;padding:30px;text-align:center;cursor:pointer;margin-top:8px}
+.drop-zone:hover{border-color:var(--o)}
+.status{margin-top:20px;padding:14px;border-radius:8px;font-size:.9em;display:none}
+.status.ok{background:rgba(74,222,128,.12);color:#4ade80;display:block}
+.status.err{background:rgba(255,82,82,.12);color:#ff5252;display:block}
+.spinner{width:36px;height:36px;border:4px solid var(--bd);border-top:4px solid var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:20px auto;display:none}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.code{background:#0a0a0a;border:1px solid var(--bd);border-radius:6px;padding:12px;font-family:monospace;font-size:.8em;color:#4ade80;margin-top:12px;word-break:break-all;max-height:150px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="top-bar"><div class="logo"><span>WWOS-PHD · Add Archive</span></div><a class="btn sec" href="home.html">← Home</a></div>
+<div class="wrap">
+  <h1>Add New Archive Dashboard</h1>
+  <p>Authorized access confirmed. Upload a CSV and give the dashboard a name. It will be processed and saved to your browser so you can preview it immediately.</p>
+  <label>Dashboard / Button Name</label>
+  <input type="text" id="btnName" placeholder="e.g. Q3 2026 Report" autocomplete="off">
+  <label>CSV File</label>
+  <div class="drop-zone" id="dropZone">
+    <p style="color:#fff;font-weight:600">Drop CSV here or click to browse</p>
+    <input type="file" accept=".csv" id="fileInput" style="display:none">
+  </div>
+  <div class="spinner" id="spin"></div>
+  <div class="status" id="status"></div>
+  <div id="exportArea" style="display:none">
+    <p style="color:var(--tm);margin-top:24px;font-size:.85em">To make this dashboard permanent and visible to all users, the generated metrics file needs to be committed to the repository. Click below to download it, then share it for deployment.</p>
+    <button class="btn" id="downloadBtn" style="margin-top:12px">Download metrics JSON</button>
+  </div>
+</div>
+<script src="add-archive.js"></script>
+</body>
+</html>

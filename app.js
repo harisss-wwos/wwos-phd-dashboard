@@ -8,6 +8,17 @@ const GA2 = ['tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb'];
 const GB = ['mbozied','nobregak','mellanej'];
 const COLORS = ['#ff9900','#2074d5','#1d8102','#d13212','#1b9cb0','#8c6bb1','#44b9d6','#ec7211','#3ecf4a','#879596','#ffb84d','#5b9bd5','#ff5252'];
 
+// ===== Status ranking for merge logic =====
+const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4,'Resolved':5,'Closed':6};
+
+// ===== IndexedDB storage =====
+const DB_NAME='phd_dashboard_db';const STORE='tickets';
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=(e)=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'ShortId'});};req.onsuccess=(e)=>resolve(e.target.result);req.onerror=(e)=>reject(e.target.error);});}
+async function dbGetAll(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});}
+async function dbPutAll(rows){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');const store=tx.objectStore(STORE);rows.forEach(r=>store.put(r));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+async function dbClear(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+async function dbCount(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).count();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+
 function getGroup(n){if(GA1.includes(n))return'A1';if(GA2.includes(n))return'A2';if(GB.includes(n))return'B';return null;}
 function displayName(n){if(n==='0d1616c8-bcb7-4450-8bc5-f0a296bc01d1')return'LM-CAP';if(n&&n.includes('AutoSIM'))return'AutoSIM';return n;}
 function isLMCAP(n){return n==='0d1616c8-bcb7-4450-8bc5-f0a296bc01d1';}
@@ -141,30 +152,87 @@ const charts = [];
 function destroyCharts(){charts.forEach(c=>c.destroy());charts.length=0;}
 
 function handleFile(file){
+  // legacy entry (fresh upload)
+  handleUpload(file,'fresh');
+}
+
+// mode: 'fresh' = clear then load, 'merge' = merge into existing
+function handleUpload(file,mode){
+  if(!file)return;
   const reader=new FileReader();
   const uploadTime=new Date().toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  // Show loading
-  document.getElementById('app').innerHTML=`<div class="upload-wrap"><div style="text-align:center"><div class="spinner"></div><p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">Processing CSV data...</p><p style="color:#879596;margin-top:8px;font-size:.9em">Building your dashboard</p></div></div>`;
-  reader.onload=(e)=>{setTimeout(()=>{const data=parseCSV(e.target.result);M=computeMetrics(data);M.uploadTime=uploadTime;
-    // Store metrics without rawData/colorTickets full objects (too large for localStorage)
-    const toStore={...M};delete toStore.rawData;
-    // Slim down colorTickets for storage (only keep essential fields)
-    toStore.colorTickets={green:M.colorTickets.green.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),yellow:M.colorTickets.yellow.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),red:M.colorTickets.red.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),black:M.colorTickets.black.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title})),purple:M.colorTickets.purple.map(r=>({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title}))};
-    // incTickets already slim from computeMetrics    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(toStore));}catch(e){console.warn('localStorage full, continuing without persistence');}
-    M.colorTickets=toStore.colorTickets;
-    renderDashboard();},50);};
+  document.getElementById('app').innerHTML=`<div class="upload-wrap"><div style="text-align:center"><div class="spinner"></div><p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">Processing CSV data...</p><p style="color:#879596;margin-top:8px;font-size:.9em">${mode==='merge'?'Merging with existing data':'Building your dashboard'}</p></div></div>`;
+  reader.onload=(e)=>{setTimeout(async()=>{
+    const newRows=parseCSV(e.target.result).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
+    let mergeReport=null;
+    if(mode==='fresh'){
+      await dbClear();
+      await dbPutAll(newRows);
+    } else {
+      // Merge: load existing, apply merge rules
+      const existing=await dbGetAll();
+      const existingMap={};existing.forEach(r=>{existingMap[r.ShortId]=r;});
+      const newMap={};newRows.forEach(r=>{newMap[r.ShortId]=r;});
+      let added=0,updated=0,unchanged=0,reopened=0;const missing=[];
+      const toWrite=[];
+      newRows.forEach(nr=>{
+        const old=existingMap[nr.ShortId];
+        if(!old){toWrite.push(nr);added++;return;}
+        const oldRank=STATUS_RANK[old.Status]||0;const newRank=STATUS_RANK[nr.Status]||0;
+        const newHasResolvedDate=nr.ResolvedDate&&nr.ResolvedDate.trim()!=='';
+        const isReopen=(old.Status==='Resolved'||old.Status==='Closed')&&nr.Status==='Work In Progress'&&newHasResolvedDate;
+        if(newRank>oldRank){toWrite.push(nr);updated++;}
+        else if(isReopen){toWrite.push(nr);reopened++;}
+        else{unchanged++;}
+      });
+      // Tickets in existing but NOT in new file
+      existing.forEach(old=>{if(!newMap[old.ShortId])missing.push(old.ShortId);});
+      if(toWrite.length>0)await dbPutAll(toWrite);
+      mergeReport={added,updated,reopened,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
+    }
+    // Recompute from full merged set
+    const allRows=await dbGetAll();
+    M=computeMetrics(allRows);M.uploadTime=uploadTime;M.mergeReport=mergeReport;M.totalStored=allRows.length;
+    renderDashboard();
+    if(mergeReport)showMergeReport(mergeReport);
+  },50);};
   reader.readAsText(file);
 }
 
-function logout(){localStorage.removeItem(STORAGE_KEY);M=null;destroyCharts();renderUpload();}
+function showMergeReport(rep){
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:700px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="color:#4ade80;font-size:1.2em">Merge Complete</h2>
+      <button class="btn danger" onclick="closeAllPopups()">Close</button>
+    </div>
+    <div class="handoff-grid">
+      <div class="handoff-box"><h3>Merge Summary</h3><ul>
+        <li><span>New tickets added</span><span class="val" style="color:#4ade80">${rep.added}</span></li>
+        <li><span>Tickets updated (status advanced)</span><span class="val" style="color:#fbbf24">${rep.updated}</span></li>
+        <li><span>Tickets reopened</span><span class="val" style="color:#a78bfa">${rep.reopened}</span></li>
+        <li><span>Unchanged</span><span class="val" style="color:#879596">${rep.unchanged}</span></li>
+        <li><span>Not present in new file (retained)</span><span class="val" style="color:#ff5252">${rep.missing}</span></li>
+      </ul></div>
+    </div>
+    ${rep.missing>0?`<p style="color:#879596;font-size:.85em;margin-top:16px">The new data did not contain these ${rep.missing} ticket(s) that exist in the dashboard. They were retained unchanged:</p><p style="color:#ff9900;font-size:.8em;margin-top:8px;word-break:break-all">${rep.missingIds.join(', ')}${rep.missing>50?' ...and more':''}</p>`:''}
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function startFresh(){await dbClear();M=null;destroyCharts();renderUpload();}
 function nav(view){currentView=view;destroyCharts();if(view==='dashboard')renderDashboard();else if(view==='groups')renderGroups();else if(view==='previous-week')renderPreviousWeek();}
 
 function renderUpload(){
   document.getElementById('app').innerHTML=`
   <div class="upload-wrap">
     <div style="text-align:center;max-width:500px">
+      <a href="index.html" style="color:#879596;font-size:.85em;text-decoration:none;display:inline-block;margin-bottom:20px">← Back to All Dashboards</a>
       <h1 style="color:#fff;font-size:2em;margin-bottom:8px">WWOS-PHD Dashboard</h1>
-      <p style="color:#879596;margin-bottom:30px">No data exists to create a dashboard. Upload a CSV file to get started.</p>
+      <p style="color:#879596;margin-bottom:30px">No data exists to create a dashboard. Upload a CSV file to get started. Later you can merge additional CSVs to keep the dashboard updated.</p>
       <div class="drop-zone" id="dropZone">
         <p style="color:#fff;font-size:1.1em;font-weight:600;margin-bottom:8px">Drop CSV file here</p>
         <p style="color:#879596;font-size:.9em">or click to browse</p>
@@ -188,23 +256,26 @@ function renderUpload(){
   const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
   dz.onclick=()=>fi.click();
   dz.ondragover=(e)=>e.preventDefault();
-  dz.ondrop=(e)=>{e.preventDefault();handleFile(e.dataTransfer.files[0]);};
-  fi.onchange=(e)=>handleFile(e.target.files[0]);
+  dz.ondrop=(e)=>{e.preventDefault();handleUpload(e.dataTransfer.files[0],'fresh');};
+  fi.onchange=(e)=>handleUpload(e.target.files[0],'fresh');
 }
 
 function topBar(active){
   return `<div class="top-bar"><div class="logo"><span>WWOS-PHD Dashboard</span></div><div class="nav-actions">
-    <label class="btn sec" style="cursor:pointer">Upload New CSV<input type="file" accept=".csv" id="newFile" style="display:none"></label>
+    <a class="btn sec" href="index.html">← Home</a>
+    <label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>
+    <label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>
     <button class="btn sec" onclick="nav('dashboard')" ${active==='dashboard'?'style="border-color:var(--o);color:var(--o)"':''}>Dashboard</button>
     <button class="btn sec" onclick="nav('groups')" ${active==='groups'?'style="border-color:var(--o);color:var(--o)"':''}>Groups</button>
     <button class="btn sec" onclick="nav('previous-week')" ${active==='previous-week'?'style="border-color:var(--o);color:var(--o)"':''}>Previous Week</button>
-    <button class="btn danger" onclick="logout()">Logout</button>
   </div></div>`;
 }
 
 function attachNewFileHandler(){
-  const nf=document.getElementById('newFile');
-  if(nf)nf.onchange=(e)=>handleFile(e.target.files[0]);
+  const mf=document.getElementById('mergeFile');
+  if(mf)mf.onchange=(e)=>handleUpload(e.target.files[0],'merge');
+  const ff=document.getElementById('freshFile');
+  if(ff)ff.onchange=(e)=>{if(confirm('Start Fresh will replace ALL existing data with this new file. Continue?'))handleUpload(e.target.files[0],'fresh');else e.target.value='';};
 }
 
 function makeChart(id,config){
@@ -399,9 +470,9 @@ function renderDashboard(){
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
   const ct=m.colorTickets;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
-  <div class="page-title"><h1>Operations Overview</h1><p>Dashboard created with data last uploaded at ${m.uploadTime||'N/A'}</p></div>
+  <div class="page-title"><h1>Operations Overview</h1><p>${m.uploadTime?'Data last uploaded at '+m.uploadTime+' · ':''}${(m.totalStored||m.T).toLocaleString()} tickets in dashboard. Use "+ Merge Data" to add a new file, or "Start Fresh" to replace all.</p></div>
   <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets <span title="Total number of tickets in the uploaded CSV data" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets <span title="Total number of tickets stored in the dashboard (merged across uploads)" style="cursor:help;opacity:.7">&#9432;</span></div></div>
     <div class="kpi-card"><div class="value">${m.avgR.toFixed(0)} hrs</div><div class="label">Avg Resolution Time <span title="Average time taken to resolve a ticket from creation to resolution" style="cursor:help;opacity:.7">&#9432;</span></div></div>
     <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (≤240 hrs) <span title="Percentage of resolved tickets that were resolved within 240 hours (10 days) of creation. ${m.slaCompliant} out of ${m.res+m.closed} tickets met SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
@@ -544,8 +615,15 @@ function renderPreviousWeek(){
 }
 
 // ========= INIT =========
-(function init(){
-  const stored=localStorage.getItem(STORAGE_KEY);
-  if(stored){try{M=JSON.parse(stored);renderDashboard();}catch(e){renderUpload();}}
-  else{renderUpload();}
+(async function init(){
+  try{
+    const count=await dbCount();
+    if(count>0){
+      const allRows=await dbGetAll();
+      M=computeMetrics(allRows);M.totalStored=allRows.length;
+      renderDashboard();
+    } else {
+      renderUpload();
+    }
+  }catch(e){renderUpload();}
 })();

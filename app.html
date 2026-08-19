@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WWOS-PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--ol:#ffb84d;--bl:#2074d5;--bll:#44b9d6;--tl:#1b9cb0;--g:#1d8102;--gl:#3ecf4a;--r:#d13212;--rl:#ff5252;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--s:#000;--a1:#7dd3fc;--a2:#fbbf24;--b:#4ade80}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo span{font-size:1.1em;font-weight:700;color:#fff}
+.nav-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;padding:7px 16px;background:var(--o);color:#000;border-radius:4px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.danger{background:var(--r);color:#fff}
+.content{padding:24px;max-width:1600px;margin:0 auto}
+.page-title{margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.page-title h1{font-size:1.8em;color:#fff;font-weight:700}
+.page-title p{color:var(--tm);margin-top:4px;font-size:.9em}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+.kpi-card{background:var(--s);border-radius:8px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
+.kpi-card .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
+.kpi-card .label{font-size:.78em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+.kpi-card.accent .value{color:var(--o)}.kpi-card.success .value{color:var(--gl)}.kpi-card.warning .value{color:var(--ol)}.kpi-card.danger .value{color:var(--rl)}
+.section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
+.section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
+.section h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
+.chart-box{background:var(--s);border-radius:8px;padding:20px;border:1px solid var(--bd)}
+.chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}
+.chart-wrap{position:relative;height:300px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd);font-size:.88em}
+th{background:#0a0a0a;color:var(--tm);font-weight:600;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
+tr:hover{background:rgba(255,153,0,.03)}
+.badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.78em;font-weight:600}
+.badge-g{background:rgba(62,207,74,.2);color:#3ecf4a;font-weight:700}
+.badge-w{background:rgba(255,153,0,.15);color:var(--ol)}
+.handoff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.handoff-box{background:#0a0a0a;border-radius:6px;padding:16px;border:1px solid var(--bd)}
+.handoff-box h3{color:var(--o);margin-bottom:12px;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.handoff-box ul{list-style:none;padding:0}
+.handoff-box li{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;font-size:.9em}
+.handoff-box li:last-child{border-bottom:none}
+.handoff-box .val{color:var(--o);font-weight:600}
+.meta-info{color:var(--tm);font-size:.85em;margin-bottom:16px}
+.tag{display:inline-block;padding:2px 10px;border-radius:4px;font-size:.72em;font-weight:600}
+.tag-a1{background:rgba(125,211,252,.15);color:var(--a1)}.tag-a2{background:rgba(251,191,36,.15);color:var(--a2)}.tag-b{background:rgba(74,222,128,.15);color:var(--b)}
+.upload-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+.drop-zone{border:2px dashed var(--bd);border-radius:12px;padding:50px 30px;cursor:pointer;text-align:center;max-width:500px;width:100%}
+.drop-zone:hover{border-color:var(--o)}
+.spinner{width:48px;height:48px;border:4px solid var(--bd);border-top:4px solid var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.hidden{display:none}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.content{padding:16px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+</body>
+</html>
