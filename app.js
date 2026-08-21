@@ -58,7 +58,8 @@ function computeMetrics(data){
     if(r.Status==='Resolved'||r.Status==='Closed')return;
     const cd=new Date(r.CreateDate);const ageHrs=hBetween(cd,now);
     const hasResolvedDate=r.ResolvedDate&&r.ResolvedDate.trim()!=='';
-    if(hasResolvedDate){colorTickets.purple.push(r);}
+    // Reopened = flagged during merge OR (WIP-type status with a prior ResolvedDate attached)
+    if(r._reopened||hasResolvedDate){colorTickets.purple.push(r);}
     else if(ageHrs<=96){colorTickets.green.push(r);}
     else if(ageHrs<=168){colorTickets.yellow.push(r);}
     else if(ageHrs<=240){colorTickets.red.push(r);}
@@ -184,22 +185,27 @@ function handleUpload(file,mode){
       const existing=await dbGetAll();
       const existingMap={};existing.forEach(r=>{existingMap[r.ShortId]=r;});
       const newMap={};newRows.forEach(r=>{newMap[r.ShortId]=r;});
-      let added=0,updated=0,unchanged=0,reopened=0;const missing=[];
+      let added=0,updated=0,unchanged=0,reopened=0,autoClosed=0;const missing=[];
       const toWrite=[];
       newRows.forEach(nr=>{
         const old=existingMap[nr.ShortId];
         if(!old){toWrite.push(nr);added++;return;}
         const oldRank=STATUS_RANK[old.Status]||0;const newRank=STATUS_RANK[nr.Status]||0;
-        const newHasResolvedDate=nr.ResolvedDate&&nr.ResolvedDate.trim()!=='';
-        const isReopen=(old.Status==='Resolved'||old.Status==='Closed')&&nr.Status==='Work In Progress'&&newHasResolvedDate;
-        if(newRank>oldRank){toWrite.push(nr);updated++;}
-        else if(isReopen){toWrite.push(nr);reopened++;}
+        const isReopen=(old.Status==='Resolved'||old.Status==='Closed')&&nr.Status==='Work In Progress';
+        if(isReopen){nr._reopened=true;toWrite.push(nr);reopened++;}
+        else if(newRank>oldRank){if(old._reopened&&(nr.Status==='Resolved'||nr.Status==='Closed')){/* reopened ticket now closed again - clear flag */}else if(old._reopened){nr._reopened=true;}toWrite.push(nr);updated++;}
         else{unchanged++;}
       });
       // Tickets in existing but NOT in new file
-      existing.forEach(old=>{if(!newMap[old.ShortId])missing.push(old.ShortId);});
+      existing.forEach(old=>{
+        if(!newMap[old.ShortId]){
+          missing.push(old.ShortId);
+          // Auto-promote missing Resolved tickets to Closed (new data often omits closed tickets)
+          if(old.Status==='Resolved'){toWrite.push({...old,Status:'Closed'});autoClosed++;}
+        }
+      });
       if(toWrite.length>0)await dbPutAll(toWrite);
-      mergeReport={added,updated,reopened,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
+      mergeReport={added,updated,reopened,autoClosed,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
     }
     // Recompute from full merged set
     const allRows=await dbGetAll();
@@ -224,12 +230,14 @@ function showMergeReport(rep){
       <div class="handoff-box"><h3>Merge Summary</h3><ul>
         <li><span>New tickets added</span><span class="val" style="color:#4ade80">${rep.added}</span></li>
         <li><span>Tickets updated (status advanced)</span><span class="val" style="color:#fbbf24">${rep.updated}</span></li>
-        <li><span>Tickets reopened</span><span class="val" style="color:#a78bfa">${rep.reopened}</span></li>
+        <li><span>Tickets reopened (→ Purple)</span><span class="val" style="color:#a78bfa">${rep.reopened}</span></li>
+        <li><span>Auto-closed (missing + was Resolved)</span><span class="val" style="color:#44b9d6">${rep.autoClosed||0}</span></li>
         <li><span>Unchanged</span><span class="val" style="color:#879596">${rep.unchanged}</span></li>
         <li><span>Not present in new file (retained)</span><span class="val" style="color:#ff5252">${rep.missing}</span></li>
       </ul></div>
     </div>
-    ${rep.missing>0?`<p style="color:#879596;font-size:.85em;margin-top:16px">The new data did not contain these ${rep.missing} ticket(s) that exist in the dashboard. They were retained unchanged:</p><p style="color:#ff9900;font-size:.8em;margin-top:8px;word-break:break-all">${rep.missingIds.join(', ')}${rep.missing>50?' ...and more':''}</p>`:''}
+    ${rep.autoClosed>0?`<p style="color:#879596;font-size:.85em;margin-top:16px">${rep.autoClosed} ticket(s) that were "Resolved" and absent from the new file were auto-promoted to "Closed" (new exports often omit closed tickets).</p>`:''}
+    ${rep.missing>0?`<p style="color:#879596;font-size:.85em;margin-top:12px">The new data did not contain these ${rep.missing} ticket(s) that exist in the dashboard. Non-resolved ones were retained unchanged:</p><p style="color:#ff9900;font-size:.8em;margin-top:8px;word-break:break-all">${rep.missingIds.join(', ')}${rep.missing>50?' ...and more':''}</p>`:''}
   </div>`;
   document.body.appendChild(overlay);
 }
