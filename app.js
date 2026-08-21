@@ -120,10 +120,21 @@ function computeMetrics(data){
   const agentOpenTickets={};PHD_AGENTS.forEach(n=>{agentOpenTickets[n]=[];});
   data.forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity)&&(r.Status==='Assigned'||r.Status==='Work In Progress'||r.Status==='Pending')){agentOpenTickets[r.AssigneeIdentity].push({ShortId:r.ShortId||r.IssueId,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title});}});
   const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?avg(aTm[n]):0,group:getGroup(n),statuses:aStatus[n]}));
-  // HI
-  const cntP=/\bCnt\s*[:\s]\s*(\d+)/i;const hiCases=[];
-  data.forEach(r=>{if(r.RootCauseDetails){const m=r.RootCauseDetails.match(cntP);if(m&&parseInt(m[1])>0){const rc=(r.RootCause||'').toLowerCase();const isAnimal=rc.includes('unsecured animal');hiCases.push({id:r.ShortId,cnt:parseInt(m[1]),assignee:r.AssigneeIdentity,rootCause:r.RootCause,status:r.Status,isAnimal});}}});
+  // HI - Historical Incident (Cnt in RootCauseDetails, or "Historical Incident:")
+  const cntP=/\bCnt\s*[:\s]\s*(\d+)/i;const hiP=/Historical Incident\s*:?\s*(\d+)/i;const hiCases=[];
+  data.forEach(r=>{if(r.RootCauseDetails){let n=0;const m=r.RootCauseDetails.match(cntP);const m2=r.RootCauseDetails.match(hiP);if(m)n=parseInt(m[1]);else if(m2)n=parseInt(m2[1]);if(n>0){const rc=(r.RootCause||'').toLowerCase();const isAnimal=rc.includes('unsecured animal');const resolvedStatus=(r.Status==='Resolved'||r.Status==='Closed');hiCases.push({id:r.ShortId,cnt:n,assignee:r.AssigneeIdentity,rootCause:r.RootCause,status:r.Status,isAnimal,CreateDate:r.CreateDate,resolvedStatus});}}});
   hiCases.sort((a,b)=>b.cnt-a.cnt);
+  const hiResolved=hiCases.filter(h=>h.resolvedStatus).length;
+  const hiUnresolved=hiCases.filter(h=>!h.resolvedStatus).length;
+  const hiUnresolvedTickets=hiCases.filter(h=>!h.resolvedStatus).sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  // Last 12 hours resolved (based on ResolvedDate relative to latest date in data)
+  const allCreateDates=data.map(r=>new Date(r.CreateDate)).filter(d=>!isNaN(d));
+  const refNow=allCreateDates.length?new Date(Math.max(...allCreateDates)):new Date();
+  const twelveAgo=new Date(refNow.getTime()-12*36e5);
+  const twentyfourAgo=new Date(refNow.getTime()-24*36e5);
+  const last12Resolved=data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=twelveAgo&&rd<=refNow;}return false;}).length;
+  const last12Created=data.filter(r=>{const cd=new Date(r.CreateDate);return cd>=twelveAgo&&cd<=refNow;}).length;
+  const last24Created=data.filter(r=>{const cd=new Date(r.CreateDate);return cd>=twentyfourAgo&&cd<=refNow;}).length;
   const hiAnimal=hiCases.filter(h=>h.isAnimal);
   const hiNonAnimal=hiCases.filter(h=>!h.isAnimal);
   // Groups
@@ -141,7 +152,7 @@ function computeMetrics(data){
   const pwAn={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
-  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,agentOpenTickets,hiCases,hiAnimal,hiNonAnimal,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
+  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,agentOpenTickets,hiCases,hiAnimal,hiNonAnimal,hiResolved,hiUnresolved,hiUnresolvedTickets,last12Resolved,last12Created,last24Created,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
 }
 
 // ========= UI RENDERING =========
@@ -224,7 +235,7 @@ function showMergeReport(rep){
 }
 
 async function startFresh(){await dbClear();M=null;destroyCharts();renderUpload();}
-function nav(view){currentView=view;destroyCharts();if(view==='dashboard')renderDashboard();else if(view==='groups')renderGroups();else if(view==='previous-week')renderPreviousWeek();}
+function nav(view){currentView=view;destroyCharts();if(view==='dashboard')renderDashboard();else if(view==='groups')renderGroups();else if(view==='previous-week')renderPreviousWeek();else if(view==='shift-report')renderShiftReport();}
 
 function renderUpload(){
   document.getElementById('app').innerHTML=`
@@ -261,14 +272,23 @@ function renderUpload(){
 }
 
 function topBar(active){
-  return `<div class="top-bar"><div class="logo"><span>WWOS-PHD Dashboard</span></div><div class="nav-actions">
-    <a class="btn sec" href="index.html">← Home</a>
-    <label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>
-    <label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>
-    <button class="btn sec" onclick="nav('dashboard')" ${active==='dashboard'?'style="border-color:var(--o);color:var(--o)"':''}>Dashboard</button>
-    <button class="btn sec" onclick="nav('groups')" ${active==='groups'?'style="border-color:var(--o);color:var(--o)"':''}>Groups</button>
-    <button class="btn sec" onclick="nav('previous-week')" ${active==='previous-week'?'style="border-color:var(--o);color:var(--o)"':''}>Previous Week</button>
-  </div></div>`;
+  const navBtn=(view,lbl)=>`<button class="btn ${active===view?'':'sec'}" onclick="nav('${view}')" style="${active===view?'':'border-color:var(--bd)'}">${lbl}</button>`;
+  return `<div class="top-bar" style="flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div class="logo"><span>WWOS-PHD Dashboard</span></div>
+      <div style="display:flex;gap:8px">
+        ${navBtn('dashboard','Dashboard')}
+        ${navBtn('groups','Groups')}
+        ${navBtn('previous-week','Previous Week')}
+        ${navBtn('shift-report','Shift Report')}
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a class="btn sec" href="index.html">← Home</a>
+      <label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>
+      <label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>
+    </div>
+  </div>`;
 }
 
 function attachNewFileHandler(){
@@ -392,6 +412,192 @@ function downloadIncidentCSV(type){
   const a=document.createElement('a');a.href=url;a.download=`${type.replace(/[^a-zA-Z0-9]/g,'_')}_tickets.csv`;a.click();URL.revokeObjectURL(url);
 }
 
+function showHIUnresolvedPopup(){
+  closeAllPopups();
+  const tix=M.hiUnresolvedTickets||[];
+  const now=new Date();
+  const rows=tix.map(r=>{const cd=new Date(r.CreateDate);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.id}" target="_blank" style="color:#44b9d6">${r.id}</a></td><td><strong style="color:${r.cnt>=2?'#ff5252':'#ffb84d'}">${r.cnt}</strong></td><td>${displayName(r.assignee)||'-'}</td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.status}</td></tr>`;}).join('');
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="color:#ffb84d;font-size:1.1em">Unresolved Repeat Incidents (HI>0) — ${tix.length} tickets</h2><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+    <table><thead><tr><th>Ticket ID</th><th>HI Cnt</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.body.appendChild(overlay);
+}
+
+function renderShiftReport(){
+  const m=M;const ct=m.colorTickets;
+  const today=new Date();
+  const dateStr=today.toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
+  const black=ct.black.length;const red=ct.red.length;
+  const inQueue=m.inQ;
+  // open statuses (exclude Closed)
+  const openStatuses=[['Assigned',m.asgn],['Work In Progress',m.wip],['Researching',m.researching],['Pending',m.pend],['Resolved',m.res]];
+  const openTotal=m.T-m.closed;
+  document.getElementById('app').innerHTML=topBar('shift-report')+`<div class="content">
+  <div class="page-title"><h1>Shift Takeover Report</h1></div>
+  <div class="section">
+    <div style="color:var(--t);font-size:.95em;line-height:1.9">
+      Good morning team,<br><br>
+      Our queue currently stands at <strong style="color:var(--o)">${inQueue}</strong> unresolved tickets, with statuses:<br>
+      <span style="display:inline-block;margin-left:16px">• PURPLE (Reopened): <strong>${ct.purple.length}</strong></span><br>
+      <span style="display:inline-block;margin-left:16px">• BLACK (&gt;240 hrs / &gt;10 days): <strong>${black}</strong></span><br>
+      <span style="display:inline-block;margin-left:16px">• RED (168-240 hrs / 7-10 days): <strong>${red}</strong></span><br>
+      <span style="display:inline-block;margin-left:16px">• YELLOW (96-168 hrs / 4-7 days): <strong>${ct.yellow.length}</strong></span><br>
+      <span style="display:inline-block;margin-left:16px">• GREEN (0-96 hrs / 0-4 days): <strong>${ct.green.length}</strong></span><br>
+      Please prioritize the above.
+    </div>
+    <button class="btn" style="margin-top:18px" onclick="exportTakeover()">Export Takeover Report</button>
+  </div>
+
+  <div class="page-title" style="margin-top:12px"><h1>Shift Handoff Report</h1></div>
+  <div class="section" id="shiftContent">
+    <div id="shiftHeader" style="margin-bottom:20px">
+      <p style="color:var(--t);font-size:.95em;line-height:1.9">
+        <strong>Date/Time:</strong> <span id="shiftDate">${dateStr}</span> 19:00 <span id="shiftTz">IST</span><br>
+        <strong>Timeframe Collected:</strong> 7:00 AM <span class="shiftTz2">IST</span> - 7:00 PM <span class="shiftTz2">IST</span><br>
+        <strong>Handoff:</strong> <span id="shiftHandoff">IND → AMER</span>
+      </p>
+    </div>
+    <div class="handoff-grid">
+      <div class="handoff-box"><h3>Ticket Health Status</h3><ul>
+        <li><span>&gt;10 Days Not Closed (BLACK)</span><span class="val">${black}</span></li>
+        <li><span>Pending &gt;72 Hours (RED)</span><span class="val">${red}</span></li>
+        <li><span>Created in Last 12 Hours</span><span class="val">${m.last12Created}</span></li>
+        <li><span>Created in Last 24 Hours</span><span class="val">${m.last24Created}</span></li>
+      </ul></div>
+      <div class="handoff-box"><h3>Last 12 Hours Activity</h3><ul>
+        <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
+        <li><span>Pending</span><span class="val">${m.pend}</span></li>
+        <li><span>WIP</span><span class="val">${m.wip}</span></li>
+        <li><span>Resolved</span><span class="val">${m.last12Resolved}</span></li>
+      </ul></div>
+      <div class="handoff-box"><h3>Ticket Count by Status</h3><ul>
+        <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
+        <li><span>Work In Progress</span><span class="val">${m.wip}</span></li>
+        <li><span>Researching</span><span class="val">${m.researching}</span></li>
+        <li><span>Pending</span><span class="val">${m.pend}</span></li>
+        <li><span>Resolved</span><span class="val">${m.res}</span></li>
+      </ul></div>
+      <div class="handoff-box"><h3>Status Distribution (%)</h3><ul>
+        <li><span>Assigned</span><span class="val">${(m.asgn/openTotal*100||0).toFixed(1)}%</span></li>
+        <li><span>Work In Progress</span><span class="val">${(m.wip/openTotal*100||0).toFixed(1)}%</span></li>
+        <li><span>Researching</span><span class="val">${(m.researching/openTotal*100||0).toFixed(1)}%</span></li>
+        <li><span>Pending</span><span class="val">${(m.pend/openTotal*100||0).toFixed(1)}%</span></li>
+        <li><span>Resolved</span><span class="val">${(m.res/openTotal*100||0).toFixed(1)}%</span></li>
+      </ul></div>
+    </div>
+    <div style="margin-top:20px;padding:16px;background:#0a0a0a;border:1px solid var(--bd);border-radius:8px">
+      <strong style="color:var(--o)">Current Amount of Tickets In Queue:</strong> <span style="color:#fff;font-size:1.1em;font-weight:700">${inQueue}</span>
+    </div>
+    <div style="margin-top:20px">
+      <h3 style="color:var(--o);font-size:.9em;text-transform:uppercase;margin-bottom:8px">Notes</h3>
+      <textarea id="shiftNotes" placeholder="Add your notes here..." style="width:100%;min-height:100px;padding:12px;background:#0a0a0a;border:1px solid var(--bd);border-radius:8px;color:#fff;font-family:inherit;font-size:.9em;resize:vertical"></textarea>
+    </div>
+  </div>
+  <div style="margin-bottom:40px">
+    <button class="btn" onclick="showExportRegionModal()">Export Handoff Report</button>
+  </div>
+  </div>`;
+  attachNewFileHandler();
+}
+
+function showExportRegionModal(){
+  closeAllPopups();
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px">
+    <h2 style="color:#fff;font-size:1.2em;margin-bottom:8px">Export Shift Report</h2>
+    <p style="color:#879596;font-size:.9em;margin-bottom:20px">Which region is this report for?</p>
+    <div style="display:flex;gap:12px">
+      <button class="btn" style="flex:1" onclick="applyRegion('IN')">India (IST)</button>
+      <button class="btn" style="flex:1" onclick="applyRegion('US')">US (MST)</button>
+    </div>
+    <button class="btn sec" style="margin-top:14px;width:100%" onclick="closeAllPopups()">Cancel</button>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+function applyRegion(region){
+  const m=M;const ct=m.colorTickets;
+  const tz=region==='IN'?'IST':'MST';
+  const handoff=region==='IN'?'IND → AMER':'AMER → IND';
+  document.getElementById('shiftTz').textContent=tz;
+  document.querySelectorAll('.shiftTz2').forEach(el=>el.textContent=tz);
+  document.getElementById('shiftHandoff').textContent=handoff;
+  const today=new Date().toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
+  const openTotal=m.T-m.closed;
+  const notes=(document.getElementById('shiftNotes')||{}).value||'';
+  const txt=`Shift Handoff Report
+Date/Time: ${today} 19:00 ${tz}
+Timeframe Collected: 7:00 AM ${tz} - 7:00 PM ${tz}
+Handoff: ${handoff}
+
+Ticket Health Status
+    >10 Days Not Closed: ${ct.black.length}
+    Pending >72 Hours: ${ct.red.length}
+    Created in Last 12 Hours: ${m.last12Created}
+    Created in Last 24 Hours: ${m.last24Created}
+
+Last 12 Hours Activity
+    Assigned: ${m.asgn}
+    Pending: ${m.pend}
+    WIP: ${m.wip}
+    Resolved: ${m.last12Resolved}
+
+Ticket Count by Status
+    Assigned: ${m.asgn}
+    Work In Progress: ${m.wip}
+    Researching: ${m.researching}
+    Pending: ${m.pend}
+    Resolved: ${m.res}
+
+Status Distribution (%)
+    Assigned: ${(m.asgn/openTotal*100||0).toFixed(1)}%
+    Work In Progress: ${(m.wip/openTotal*100||0).toFixed(1)}%
+    Researching: ${(m.researching/openTotal*100||0).toFixed(1)}%
+    Pending: ${(m.pend/openTotal*100||0).toFixed(1)}%
+    Resolved: ${(m.res/openTotal*100||0).toFixed(1)}%
+
+Current Amount of Tickets In Queue: ${m.inQ}
+
+Notes: ${notes}`;
+  closeAllPopups();
+  const clearNotes=()=>{const n=document.getElementById('shiftNotes');if(n)n.value='';};
+  navigator.clipboard.writeText(txt).then(()=>{
+    showToast('Shift report copied to clipboard ('+region+' / '+tz+')');clearNotes();
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+    showToast('Shift report copied to clipboard ('+region+' / '+tz+')');clearNotes();
+  });
+}
+
+function exportTakeover(){
+  const m=M;const ct=m.colorTickets;
+  const txt=`Good morning team,
+
+Our queue currently stands at ${m.inQ} unresolved tickets, with statuses:
+    PURPLE (Reopened): ${ct.purple.length}
+    BLACK (>240 hrs / >10 days): ${ct.black.length}
+    RED (168-240 hrs / 7-10 days): ${ct.red.length}
+    YELLOW (96-168 hrs / 4-7 days): ${ct.yellow.length}
+    GREEN (0-96 hrs / 0-4 days): ${ct.green.length}
+Please prioritize the above.`;
+  navigator.clipboard.writeText(txt).then(()=>showToast('Takeover report copied to clipboard')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Takeover report copied to clipboard');
+  });
+}
+
+function showToast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1d8102;color:#fff;padding:12px 24px;border-radius:8px;z-index:2000;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
 function showAgentTicketsPopup(agentName){
   closeAllPopups();
   const tickets=M.agentOpenTickets[agentName]||[];
@@ -470,26 +676,37 @@ function renderDashboard(){
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
   const ct=m.colorTickets;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
-  <div class="page-title"><h1>Operations Overview</h1><p>${m.uploadTime?'Data last uploaded at '+m.uploadTime+' · ':''}${(m.totalStored||m.T).toLocaleString()} tickets in dashboard. Use "+ Merge Data" to add a new file, or "Start Fresh" to replace all.</p></div>
+  <div class="page-title"><h1>Wall Street Journal</h1><p>${m.uploadTime?'Data last uploaded at '+m.uploadTime+' · ':''}${(m.totalStored||m.T).toLocaleString()} tickets in dashboard. Use "+ Merge Data" to add a new file, or "Start Fresh" to replace all.</p></div>
+
+  <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
   <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets <span title="Total number of tickets stored in the dashboard (merged across uploads)" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card"><div class="value">${m.avgR.toFixed(0)} hrs</div><div class="label">Avg Resolution Time <span title="Average time taken to resolve a ticket from creation to resolution" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (≤240 hrs) <span title="Percentage of resolved tickets that were resolved within 240 hours (10 days) of creation. ${m.slaCompliant} out of ${m.res+m.closed} tickets met SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets <span title="Total number of tickets stored in the dashboard" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card success"><div class="value">${(m.res+m.closed).toLocaleString()} (${((m.res+m.closed)/m.T*100).toFixed(1)}%)</div><div class="label">Resolved <span title="Tickets in Resolved or Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card warning"><div class="value">${m.inQ.toLocaleString()} (${(m.inQ/m.T*100).toFixed(1)}%)</div><div class="label">Unresolved Tickets <span title="Tickets not in Resolved/Closed status (Assigned, WIP, Researching, Pending)" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
+
+  <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card"><div class="value">${m.avgR.toFixed(0)} hrs (${(m.avgR/240*100).toFixed(1)}%)</div><div class="label">Avg Resolution Time <span title="Average resolution time. Percentage = avg / 240hr SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (≤240 hrs) <span title="${m.slaCompliant} of ${m.res+m.closed} resolved within 240 hrs" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card"><div class="value">${m.autosim.toLocaleString()} (${(m.autosim/m.T*100).toFixed(1)}%)</div><div class="label">AutoSIM Resolved <span title="Tickets auto-resolved by AutoSIM" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+  </div>
+
+  <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>
   <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi-card success"><div class="value">${(m.res+m.closed)} (${((m.res+m.closed)/m.T*100).toFixed(1)}%)</div><div class="label">Resolved <span title="Tickets in Resolved or Closed status. Percentage = (Resolved / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card warning"><div class="value">${m.inQ} (${(m.inQ/m.T*100).toFixed(1)}%)</div><div class="label">In Queue <span title="Tickets in Assigned, Work In Progress, Researching, or Pending status. Percentage = (In Queue / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card"><div class="value">${m.autosim} (${(m.autosim/m.T*100).toFixed(1)}%)</div><div class="label">AutoSIM Resolved <span title="Tickets automatically resolved by AutoSIM. Percentage = (AutoSIM / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card danger"><div class="value">${m.p72} (${(m.p72/m.T*100).toFixed(1)}%)</div><div class="label">Pending >72hrs <span title="Tickets in Assigned status that were created more than 72 hours ago. Percentage = (Pending >72hrs / Total) × 100" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card accent"><div class="value">${m.hiCases.length.toLocaleString()}</div><div class="label">Repeat Incidents (HI&gt;0) <span title="Tickets with Historical Incident / Cnt > 0" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card"><div class="value">${(m.hiCases.length/m.T*100).toFixed(1)}%</div><div class="label">Repeat Incident % <span title="Repeat incidents as % of total tickets" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card success"><div class="value">${m.hiResolved.toLocaleString()}</div><div class="label">Repeat - Resolved <span title="Repeat incidents in Resolved/Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card warning" style="cursor:pointer" onclick="showHIUnresolvedPopup()"><div class="value">${m.hiUnresolved.toLocaleString()}</div><div class="label">Repeat - Unresolved <span title="Click to view unresolved repeat incident tickets" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
 
   <div class="section"><h2>Ticket Age Classification</h2>
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
-      <div class="kpi-card" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="label">GREEN (0-96 hrs)</div></div>
-      <div class="kpi-card" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="label">YELLOW (96-168 hrs)</div></div>
-      <div class="kpi-card" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="label">RED (168-240 hrs)</div></div>
-      <div class="kpi-card" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="label">BLACK (>240 hrs)</div></div>
+      <div class="kpi-card" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="label">GREEN (0-96 hrs / 0-4 days)</div></div>
+      <div class="kpi-card" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="label">YELLOW (96-168 hrs / 4-7 days)</div></div>
+      <div class="kpi-card" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="label">RED (168-240 hrs / 7-10 days)</div></div>
+      <div class="kpi-card" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="label">BLACK (>240 hrs / >10 days)</div></div>
       <div class="kpi-card" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="label">PURPLE (Reopened)</div></div>
     </div></div>
 
