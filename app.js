@@ -443,11 +443,17 @@ function renderShiftReport(){
   // open statuses (exclude Closed)
   const openStatuses=[['Assigned',m.asgn],['Work In Progress',m.wip],['Researching',m.researching],['Pending',m.pend],['Resolved',m.res]];
   const openTotal=m.T-m.closed;
+  // Per-agent color breakdown for the takeover chart
+  const agentColors={};
+  const addToAgent=(list,color)=>{list.forEach(r=>{const a=displayName(r.AssigneeIdentity||'Unassigned');if(!agentColors[a])agentColors[a]={purple:0,black:0,red:0,yellow:0,green:0,total:0};agentColors[a][color]++;agentColors[a].total++;});};
+  addToAgent(ct.purple,'purple');addToAgent(ct.black,'black');addToAgent(ct.red,'red');addToAgent(ct.yellow,'yellow');addToAgent(ct.green,'green');
+  const agentSorted=Object.entries(agentColors).sort((a,b)=>b[1].total-a[1].total);
+  window._takeoverAgents=agentSorted;
   document.getElementById('app').innerHTML=topBar('shift-report')+`<div class="content">
   <div class="page-title"><h1>Shift Takeover Report</h1></div>
   <div class="section">
-    <div style="color:var(--t);font-size:.95em;line-height:1.9">
-      Good morning team,<br><br>
+    <div style="color:var(--t);font-size:.95em;line-height:1.7">
+      Hello Team,<br>
       Our queue currently stands at <strong style="color:var(--o)">${inQueue}</strong> unresolved tickets, with statuses:<br>
       <span style="display:inline-block;margin-left:16px">• PURPLE (Reopened): <strong>${ct.purple.length}</strong></span><br>
       <span style="display:inline-block;margin-left:16px">• BLACK (&gt;240 hrs / &gt;10 days): <strong>${black}</strong></span><br>
@@ -456,6 +462,7 @@ function renderShiftReport(){
       <span style="display:inline-block;margin-left:16px">• GREEN (0-96 hrs / 0-4 days): <strong>${ct.green.length}</strong></span><br>
       Please prioritize the above.
     </div>
+    <div class="chart-box" style="margin-top:20px;background:linear-gradient(160deg,#0f0f0f,#000);box-shadow:0 8px 32px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);border:1px solid #333"><h3 style="letter-spacing:.5px">Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px"><canvas id="takeoverChart"></canvas></div></div>
     <button class="btn" style="margin-top:18px" onclick="exportTakeover()">Export Takeover Report</button>
   </div>
 
@@ -509,6 +516,30 @@ function renderShiftReport(){
   </div>
   </div>`;
   attachNewFileHandler();
+  // Render takeover stacked bar chart
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  const labels=agentSorted.map(e=>e[0]);
+  const seg=(key)=>agentSorted.map(e=>e[1][key]);
+  const canvasEl=document.getElementById('takeoverChart');
+  // Vertical gradient helper for each series color
+  const grad=(c1,c2)=>{const cx=canvasEl.getContext('2d');const g=cx.createLinearGradient(0,0,0,380);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;};
+  // Soft drop-shadow plugin for bars
+  const shadowPlugin={id:'barShadow',beforeDatasetsDraw(chart){const cx=chart.ctx;cx.save();cx.shadowColor='rgba(0,0,0,.45)';cx.shadowBlur=10;cx.shadowOffsetX=0;cx.shadowOffsetY=4;},afterDatasetsDraw(chart){chart.ctx.restore();}};
+  makeChart('takeoverChart',{type:'bar',data:{labels,datasets:[
+    {label:'Purple (Reopened)',data:seg('purple'),backgroundColor:grad('#c4b0fb','#8b5cf6')},
+    {label:'Black (>10d)',data:seg('black'),backgroundColor:grad('#a3a3a3','#555')},
+    {label:'Red (7-10d)',data:seg('red'),backgroundColor:grad('#ff7b7b','#e0342f')},
+    {label:'Yellow (4-7d)',data:seg('yellow'),backgroundColor:grad('#ffd76b','#eab308')},
+    {label:'Green (0-4d)',data:seg('green'),backgroundColor:grad('#6ee7a0','#22c55e')}
+  ].map(d=>({...d,borderRadius:5,borderSkipped:false,borderWidth:1,borderColor:'rgba(0,0,0,.25)',maxBarThickness:52}))},
+  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:10}},
+    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+    onClick:(evt,els)=>{if(els.length>0){const el=els[0];const agent=labels[el.index];const colorKey=['purple','black','red','yellow','green'][el.datasetIndex];showTakeoverAgentColorPopup(agent,colorKey);}},
+    plugins:{legend:{position:'top',labels:{color:'#d5dbdb',font:{size:11},usePointStyle:true,pointStyle:'rectRounded',padding:16}},
+      tooltip:{backgroundColor:'rgba(10,10,10,.95)',borderColor:'#333',borderWidth:1,padding:12,cornerRadius:8,titleColor:'#fff',bodyColor:'#d5dbdb',usePointStyle:true}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#d5dbdb',font:{size:11,weight:'500'}}},
+      y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.05)',drawBorder:false},ticks:{font:{size:11}},border:{display:false}}}},
+  plugins:[shadowPlugin]});
 }
 
 function showExportRegionModal(){
@@ -537,7 +568,8 @@ function applyRegion(region){
   document.getElementById('shiftHandoff').textContent=handoff;
   const today=new Date().toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
   const openTotal=m.T-m.closed;
-  const notes=(document.getElementById('shiftNotes')||{}).value||'';
+  const rawNotes=(document.getElementById('shiftNotes')||{}).value||'';
+  const notes=rawNotes.split(/\r?\n/).filter(l=>l.trim()!=='').map(l=>'    • '+l.trim()).join('\n');
   const txt=`Shift Handoff Report
 Date/Time: ${today} 19:00 ${tz}
 Timeframe Collected: 7:00 AM ${tz} - 7:00 PM ${tz}
@@ -560,18 +592,17 @@ Ticket Count by Status
     Work In Progress: ${m.wip}
     Researching: ${m.researching}
     Pending: ${m.pend}
-    Resolved: ${m.res}
 
 Status Distribution (%)
     Assigned: ${(m.asgn/openTotal*100||0).toFixed(1)}%
     Work In Progress: ${(m.wip/openTotal*100||0).toFixed(1)}%
     Researching: ${(m.researching/openTotal*100||0).toFixed(1)}%
     Pending: ${(m.pend/openTotal*100||0).toFixed(1)}%
-    Resolved: ${(m.res/openTotal*100||0).toFixed(1)}%
 
 Current Amount of Tickets In Queue: ${m.inQ}
 
-Notes: ${notes}`;
+Notes:
+${notes}`;
   closeAllPopups();
   const clearNotes=()=>{const n=document.getElementById('shiftNotes');if(n)n.value='';};
   navigator.clipboard.writeText(txt).then(()=>{
@@ -582,20 +613,55 @@ Notes: ${notes}`;
   });
 }
 
-function exportTakeover(){
+async function exportTakeover(){
   const m=M;const ct=m.colorTickets;
-  const txt=`Good morning team,
-
-Our queue currently stands at ${m.inQ} unresolved tickets, with statuses:
-    PURPLE (Reopened): ${ct.purple.length}
-    BLACK (>240 hrs / >10 days): ${ct.black.length}
-    RED (168-240 hrs / 7-10 days): ${ct.red.length}
-    YELLOW (96-168 hrs / 4-7 days): ${ct.yellow.length}
-    GREEN (0-96 hrs / 0-4 days): ${ct.green.length}
+  const linesHtml=`Hello Team,<br>
+Our queue currently stands at <b>${m.inQ}</b> unresolved tickets, with statuses:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PURPLE (Reopened): <b>${ct.purple.length}</b><br>
+&nbsp;&nbsp;&nbsp;&nbsp;BLACK (&gt;240 hrs / &gt;10 days): <b>${ct.black.length}</b><br>
+&nbsp;&nbsp;&nbsp;&nbsp;RED (168-240 hrs / 7-10 days): <b>${ct.red.length}</b><br>
+&nbsp;&nbsp;&nbsp;&nbsp;YELLOW (96-168 hrs / 4-7 days): <b>${ct.yellow.length}</b><br>
+&nbsp;&nbsp;&nbsp;&nbsp;GREEN (0-96 hrs / 0-4 days): <b>${ct.green.length}</b><br>
 Please prioritize the above.`;
-  navigator.clipboard.writeText(txt).then(()=>showToast('Takeover report copied to clipboard')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Takeover report copied to clipboard');
+  const txt=`Hello Team,\nOur queue currently stands at ${m.inQ} unresolved tickets, with statuses:\n    PURPLE (Reopened): ${ct.purple.length}\n    BLACK (>240 hrs / >10 days): ${ct.black.length}\n    RED (168-240 hrs / 7-10 days): ${ct.red.length}\n    YELLOW (96-168 hrs / 4-7 days): ${ct.yellow.length}\n    GREEN (0-96 hrs / 0-4 days): ${ct.green.length}\nPlease prioritize the above.`;
+  // Get chart image
+  const canvas=document.getElementById('takeoverChart');
+  try{
+    if(canvas&&window.ClipboardItem){
+      const imgData=canvas.toDataURL('image/png');
+      const html=`<div>${linesHtml}<br><br><img src="${imgData}" style="max-width:700px"/></div>`;
+      const htmlBlob=new Blob([html],{type:'text/html'});
+      const textBlob=new Blob([txt],{type:'text/plain'});
+      await navigator.clipboard.write([new ClipboardItem({'text/html':htmlBlob,'text/plain':textBlob})]);
+      showToast('Takeover report + chart copied to clipboard');
+      return;
+    }
+  }catch(e){/* fall through to text-only */}
+  navigator.clipboard.writeText(txt).then(()=>showToast('Takeover report copied (text only)')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Takeover report copied (text only)');
   });
+}
+
+function showTakeoverAgentColorPopup(agentName,colorKey){
+  closeAllPopups();
+  const colorNames={green:'GREEN (0-96 hrs / 0-4 days)',yellow:'YELLOW (96-168 hrs / 4-7 days)',red:'RED (168-240 hrs / 7-10 days)',black:'BLACK (>240 hrs / >10 days)',purple:'PURPLE (Reopened)'};
+  const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
+  // Filter tickets in that color that belong to this agent, sorted oldest -> newest
+  const tix=(M.colorTickets[colorKey]||[]).filter(r=>displayName(r.AssigneeIdentity||'Unassigned')===agentName)
+    .sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate));
+  const now=new Date();
+  const rows=tix.map(r=>{const cd=new Date(r.CreateDate);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.Status}</td></tr>`;}).join('');
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="color:${colorHex[colorKey]};font-size:1.1em">${agentName} — ${colorNames[colorKey]} — ${tix.length} tickets</h2>
+      <button class="btn danger" onclick="closeAllPopups()">Close</button>
+    </div>
+    <p style="color:#879596;font-size:.85em;margin-bottom:8px">Sorted oldest → newest by creation date</p>
+    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:#879596">No tickets</td></tr>'}</tbody></table></div>`;
+  document.body.appendChild(overlay);
 }
 
 function showToast(msg){
