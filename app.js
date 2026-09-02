@@ -965,7 +965,7 @@ async function doPublish(){
     const payload={updatedAt:new Date().toISOString(),count:allRows.length,tickets:allRows};
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const apiBase=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_PATH}`;
-    const headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'};
+    const headers={'Authorization':'token '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
     // Get existing file SHA (needed to update)
     let sha=undefined;
     const getResp=await fetch(apiBase+'?ref='+GH_BRANCH,{headers});
