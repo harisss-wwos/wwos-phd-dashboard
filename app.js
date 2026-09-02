@@ -11,6 +11,15 @@ const COLORS = ['#ff9900','#2074d5','#1d8102','#d13212','#1b9cb0','#8c6bb1','#44
 // ===== Status ranking for merge logic =====
 const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4,'Resolved':5,'Closed':6};
 
+// ===== GitHub publish config (shared data store) =====
+const GH_OWNER='harisss-wwos';
+const GH_REPO='wwos-phd-dashboard';
+const GH_BRANCH='main';
+const GH_DATA_PATH='live-data.json';
+
+// Global lock — true while a publish/deploy is in progress. Blocks uploads/merges.
+let PUBLISHING=false;
+
 // ===== IndexedDB storage =====
 const DB_NAME='phd_dashboard_db';const STORE='tickets';
 function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=(e)=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'ShortId'});};req.onsuccess=(e)=>resolve(e.target.result);req.onerror=(e)=>reject(e.target.error);});}
@@ -171,6 +180,7 @@ function handleFile(file){
 // mode: 'fresh' = clear then load, 'merge' = merge into existing
 function handleUpload(file,mode){
   if(!file)return;
+  if(PUBLISHING){showToast('Publish in progress — data changes are locked.');return;}
   const reader=new FileReader();
   const uploadTime=new Date().toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('app').innerHTML=`<div class="upload-wrap"><div style="text-align:center"><div class="spinner"></div><p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">Processing CSV data...</p><p style="color:#879596;margin-top:8px;font-size:.9em">${mode==='merge'?'Merging with existing data':'Building your dashboard'}</p></div></div>`;
@@ -295,15 +305,16 @@ function topBar(active){
       <a class="btn sec" href="index.html">← Home</a>
       <label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>
       <label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>
+      <button class="btn" style="background:#4ade80" onclick="showPublishModal()">Publish Data</button>
     </div>
   </div>`;
 }
 
 function attachNewFileHandler(){
   const mf=document.getElementById('mergeFile');
-  if(mf)mf.onchange=(e)=>handleUpload(e.target.files[0],'merge');
+  if(mf)mf.onchange=(e)=>{if(PUBLISHING){showToast('Publish in progress — please wait before adding data.');e.target.value='';return;}handleUpload(e.target.files[0],'merge');};
   const ff=document.getElementById('freshFile');
-  if(ff)ff.onchange=(e)=>{if(confirm('Start Fresh will replace ALL existing data with this new file. Continue?'))handleUpload(e.target.files[0],'fresh');else e.target.value='';};
+  if(ff)ff.onchange=(e)=>{if(PUBLISHING){showToast('Publish in progress — please wait before adding data.');e.target.value='';return;}if(confirm('Start Fresh will replace ALL existing data with this new file. Continue?'))handleUpload(e.target.files[0],'fresh');else e.target.value='';};
 }
 
 function makeChart(id,config){
@@ -905,9 +916,108 @@ function renderPreviousWeek(){
   makeChart('p2',{type:'bar',data:{labels:phdOnly.map(([k])=>k),datasets:[{data:phdOnly.map(([,v])=>v),backgroundColor:phdOnly.map((_,i)=>i<3?'rgba(255,153,0,.8)':i<8?'rgba(32,116,213,.8)':'rgba(27,156,176,.7)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}});
 }
 
+// ========= PUBLISH TO GITHUB (shared data) =========
+function showPublishModal(){
+  closeAllPopups();
+  const savedToken=sessionStorage.getItem('gh_token')||'';
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;padding:28px">
+    <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Publish Data to Everyone</h2>
+    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This publishes the current dashboard data to GitHub so all users see it. Paste a GitHub token with <b>Contents: write</b> permission for this repo. The token stays only in this browser session and is never saved to the site.</p>
+    <label style="display:block;color:#879596;font-size:.85em;margin-bottom:6px">GitHub Personal Access Token</label>
+    <input type="password" id="ghToken" value="${savedToken}" placeholder="github_pat_..." style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.9em">
+    <label style="display:flex;align-items:center;gap:8px;color:#879596;font-size:.82em;margin-top:12px;cursor:pointer"><input type="checkbox" id="ghRemember" ${savedToken?'checked':''}> Remember token for this session</label>
+    <div class="err" id="pubErr" style="color:#ff5252;font-size:.85em;margin-top:12px;display:none"></div>
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
+      <button class="btn" style="background:#4ade80" onclick="doPublish()">Publish</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(()=>document.getElementById('ghToken').focus(),50);
+}
+
+function showPublishSpinner(){
+  closeAllPopups();
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<div style="text-align:center">
+    <div class="spinner"></div>
+    <p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed...</p>
+    <p style="color:#879596;margin-top:8px;font-size:.9em">Publishing to GitHub. This may take a moment.</p>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function doPublish(){
+  const token=document.getElementById('ghToken').value.trim();
+  const remember=document.getElementById('ghRemember').checked;
+  const errEl=document.getElementById('pubErr');
+  if(!token){errEl.textContent='Please paste a GitHub token.';errEl.style.display='block';return;}
+  if(remember)sessionStorage.setItem('gh_token',token);else sessionStorage.removeItem('gh_token');
+  PUBLISHING=true;                 // lock uploads/merges
+  showPublishSpinner();
+  try{
+    // Build payload: all stored tickets + metadata
+    const allRows=await dbGetAll();
+    const payload={updatedAt:new Date().toISOString(),count:allRows.length,tickets:allRows};
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const apiBase=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_PATH}`;
+    const headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'};
+    // Get existing file SHA (needed to update)
+    let sha=undefined;
+    const getResp=await fetch(apiBase+'?ref='+GH_BRANCH,{headers});
+    if(getResp.status===200){const j=await getResp.json();sha=j.sha;}
+    else if(getResp.status!==404){throw new Error('GitHub read failed: HTTP '+getResp.status);}
+    // Commit the file
+    const putResp=await fetch(apiBase,{method:'PUT',headers,body:JSON.stringify({message:'Publish dashboard data '+new Date().toISOString(),content,branch:GH_BRANCH,sha})});
+    if(!putResp.ok){const t=await putResp.text();throw new Error('GitHub write failed: HTTP '+putResp.status+' '+t.substring(0,120));}
+    // Keep the lock during the GitHub Pages deploy window (~60s) so no one edits mid-deploy
+    updatePublishSpinner('Data committed. Waiting for deployment to complete...');
+    await new Promise(r=>setTimeout(r,60000));
+    PUBLISHING=false;              // unlock
+    closeAllPopups();
+    showToast('Data published & deployed! Live for everyone now.');
+  }catch(e){
+    PUBLISHING=false;             // unlock on failure
+    closeAllPopups();
+    showPublishModal();
+    setTimeout(()=>{const el=document.getElementById('pubErr');if(el){el.textContent=e.message;el.style.display='block';}},60);
+  }
+}
+
+function updatePublishSpinner(msg){
+  const p=document.querySelector('#incPopup p');
+  if(p)p.textContent=msg;
+}
+
+async function loadSharedData(){
+  try{
+    const resp=await fetch(GH_DATA_PATH+'?t='+Date.now());
+    if(!resp.ok)return null;
+    const j=await resp.json();
+    if(j&&j.tickets&&j.tickets.length)return j;
+  }catch(e){}
+  return null;
+}
+
 // ========= INIT =========
 (async function init(){
   try{
+    // 1. Prefer shared published data (so all users see the same thing)
+    const shared=await loadSharedData();
+    if(shared){
+      await dbClear();
+      await dbPutAll(shared.tickets);
+      const allRows=await dbGetAll();
+      M=computeMetrics(allRows);M.totalStored=allRows.length;
+      M.uploadTime=shared.updatedAt?new Date(shared.updatedAt).toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+      renderDashboard();
+      return;
+    }
+    // 2. Fall back to local IndexedDB
     const count=await dbCount();
     if(count>0){
       const allRows=await dbGetAll();
