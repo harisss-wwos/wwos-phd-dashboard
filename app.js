@@ -293,7 +293,7 @@ function topBar(active){
   const navBtn=(view,lbl)=>`<button class="btn ${active===view?'':'sec'}" onclick="nav('${view}')" style="${active===view?'':'border-color:var(--bd)'}">${lbl}</button>`;
   return `<div class="top-bar" style="flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div class="logo"><span>WWOS-PHD Dashboard</span></div>
+      <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
       <div style="display:flex;gap:8px">
         ${navBtn('dashboard','Dashboard')}
         ${navBtn('groups','Groups')}

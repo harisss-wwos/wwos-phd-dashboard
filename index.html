@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WWOS-PHD Dashboards</title>
+<title>WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff9900' d='M14.7 17.6c-2.6 1.7-6.4 2.6-9.6 2.6-4.5 0-8.6-1.7-11.6-4.4-.24-.22 0-.5.26-.34 3.3 1.9 7.4 3 11.6 3 2.9 0 6-.6 8.9-1.85.44-.18.8.3.4.6z' transform='translate(4 0)'/%3E%3Cpath fill='%23ff9900' d='M15.8 16.3c-.34-.43-2.2-.2-3.06-.1-.26.03-.3-.2-.06-.37 1.5-1.05 3.95-.75 4.24-.4.28.36-.08 2.8-1.48 3.97-.22.18-.42.08-.33-.16.3-.8.96-2.55.75-2.94z' transform='translate(4 0)'/%3E%3Ctext x='12' y='9' font-size='7' font-family='Arial' font-weight='bold' fill='%23ff9900' text-anchor='middle'%3Ea%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -11,12 +12,31 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;gap:12px}
-.logo span{font-size:1.2em;font-weight:700;color:#fff}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:30px;width:auto;display:block}
+.logo span{font-size:1.2em;font-weight:700;color:#fff;line-height:1}
 .wrap{max-width:1000px;margin:0 auto;padding:60px 24px}
-.hero{text-align:center;margin-bottom:50px}
+.hero{text-align:center;margin-bottom:40px}
 .hero h1{font-size:2.4em;color:#fff;font-weight:700;margin-bottom:10px}
 .hero p{color:var(--tm);font-size:1.05em}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+.gsoc-logo{max-width:220px;width:100%;height:auto;margin:0 auto 24px;display:block}
+.about{width:80vw;max-width:1200px;margin:24px auto 0;padding:26px 34px;background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;text-align:left;position:relative;left:50%;transform:translateX(-50%)}
+.about h3{color:var(--o);font-size:1.05em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+.about h4{color:#fff;font-size:.95em;font-weight:600;margin:20px 0 8px}
+.about p{color:var(--t);font-size:.9em;line-height:1.7;margin:0 0 10px}
+.about ul{margin:0 0 10px;padding-left:20px}
+.about li{color:var(--t);font-size:.88em;line-height:1.65;margin-bottom:5px}
+.about li b{color:#fff}
+.wiki-btn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;text-decoration:none}
+.wiki-btn:hover{background:var(--oh)}
+.cmp-table{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:.88em}
+.cmp-table th,.cmp-table td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--bd)}
+.cmp-table th{background:#000;color:var(--tm);font-size:.78em;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.cmp-table td:first-child{font-weight:600;color:#fff}
+.cmp-table .before{color:#ff9d6b}
+.cmp-table .after{color:#4ade80;font-weight:600}
+.cmp-table .change{color:#44b9d6;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;width:80vw;max-width:1200px;margin-left:50%;transform:translateX(-50%)}
 .card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:28px;cursor:pointer;transition:transform .15s,border-color .2s;text-decoration:none;display:block}
 .card:hover{transform:translateY(-3px);border-color:var(--o)}
 .card h2{color:#fff;font-size:1.25em;font-weight:600;margin-bottom:8px}
@@ -28,6 +48,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card.upload{border-top-color:#a78bfa}
 .card.upload:hover{border-color:#a78bfa}
 .card.upload .tag{background:rgba(167,139,250,.12);color:#a78bfa}
+.card.tools{border-top-color:#44b9d6}
+.card.tools:hover{border-color:#44b9d6}
+.card.tools .tag{background:rgba(68,185,214,.12);color:#44b9d6}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.card-head h2{margin-bottom:0}
+.card-icon{font-size:1.4em;line-height:1}
 /* modal */
 .modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px}
@@ -43,11 +69,55 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </style>
 </head>
 <body>
-<div class="top-bar"><div class="logo"><span>WWOS-PHD Dashboards</span></div></div>
+<div class="top-bar"><div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div></div>
 <div class="wrap">
   <div class="hero">
-    <h1>PHD Program Dashboards</h1>
-    <p>Select a dashboard to view analytics, or upload live data.</p>
+    <div class="about">
+      <h3>About the PHD Program</h3>
+      <p>The Potential Harm to Drivers (PHD) program is a security risk mitigation function within Worldwide Operations Security (WWOS), operating under the GSOC. It protects Last Mile delivery transporters from violence, threats, and harassment originating from customers or identifiable Persons of Interest (POI), focusing on reducing repeat incidents that could cause physical, mental, or emotional harm.</p>
+
+      <h4>How it functions (the workflow)</h4>
+      <ul>
+        <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
+        <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
+        <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
+        <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
+        <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
+        <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
+      </ul>
+
+      <h4>Scope</h4>
+      <ul>
+        <li><b>In scope:</b> violence/threats/harassment with harm potential, incidents from identifiable customers/POI, pet incidents (pet as weapon, EMS transport, repeats), and on-road detrimental behavior (assault, theft, impeding egress, intimidation, etc.)</li>
+        <li><b>Out of scope:</b> unidentifiable POI, collisions/non-behavioral safety, package theft when transporter absent, vandalism where transporter isn't the direct victim</li>
+      </ul>
+
+      <h4>Guiding principles (tenets)</h4>
+      <p>Transporter safety over package delivery; safety is transporter-agnostic; robust but flexible processes; prioritize risk frameworks over opinion; consider the totality of risk (location + POI history); evidence-driven, unbiased assessments.</p>
+
+      <h4>Geographic coverage</h4>
+      <ul>
+        <li><b>AMER:</b> Brazil, Canada, Mexico, Puerto Rico, US</li>
+        <li><b>EMEA:</b> EU, South Africa, UK</li>
+        <li><b>APAC:</b> Australia, India, Japan, Singapore</li>
+      </ul>
+
+      <table class="cmp-table">
+        <thead><tr><th>Metric</th><th>Before GSOC<br><span style="font-weight:400;text-transform:none">(Jan 2021 – Mar 2026)</span></th><th>After GSOC<br><span style="font-weight:400;text-transform:none">(Q2 2026)</span></th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Ticket volume / month</td><td class="before">~898/mo (5-yr avg)</td><td class="after">~2,367/mo</td><td class="change">~2.6× more volume</td></tr>
+          <tr><td>Avg resolution time</td><td class="before">367.9 hrs</td><td class="after">103.9 hrs</td><td class="change">72% faster</td></tr>
+          <tr><td>Median resolution time</td><td class="before">229.9 hrs</td><td class="after">69.3 hrs</td><td class="change">70% faster</td></tr>
+          <tr><td>SLA compliance (≤240 hrs)</td><td class="before">51.7%</td><td class="after">88.7%</td><td class="change">+37 points</td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:24px;padding:20px 24px;background:linear-gradient(135deg,rgba(255,153,0,.12),rgba(255,153,0,.03));border:1px solid rgba(255,153,0,.3);border-radius:12px;text-align:center">
+        <p style="color:#fff;font-size:1.05em;font-weight:600;margin-bottom:6px">📚 Want the full picture?</p>
+        <p style="color:var(--tm);font-size:.9em;margin-bottom:16px;line-height:1.6">Dive deeper into the PHD program — origin story, detailed processes, severity frameworks, tenets, and everything the team does to keep transporters safe. It's all on the official wiki.</p>
+        <a class="wiki-btn" href="https://w.amazon.com/bin/view/GSOC/PHD#Attachments" target="_blank" rel="noopener" style="font-size:.95em;padding:11px 24px">📖 Explore the PHD Wiki →</a>
+      </div>
+    </div>
   </div>
   <div class="grid" id="cardGrid">
     <a class="card" href="archive.html?ds=archive">
@@ -70,6 +140,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <p>Restricted access. Authorized users can add a new permanent dashboard from a CSV file.</p>
       <span class="tag">Protected</span>
     </div>
+    <a class="card tools" href="tools.html">
+      <div class="card-head"><span class="card-icon">🛠️</span><h2>PHD Tools</h2></div>
+      <p>Quick-access toolkit: common blurbs, hashtags, paging contacts, and prompts.</p>
+      <span class="tag">Toolkit</span>
+    </a>
   </div>
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
 </div>

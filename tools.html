@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHD Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo img{height:28px;width:auto;display:block}
+.logo{display:flex;align-items:center;gap:10px}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{max-width:1000px;margin:0 auto;padding:50px 24px}
+.hero{text-align:center;margin-bottom:44px}
+.hero h1{font-size:2.2em;color:#fff;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:12px}
+.hero p{color:var(--tm);font-size:1em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--tl);border-radius:12px;padding:28px;cursor:pointer;transition:transform .15s,border-color .2s;text-decoration:none;display:block}
+.card:hover{transform:translateY(-3px);border-color:var(--tl)}
+.card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.card-icon{font-size:1.6em;line-height:1}
+.card h2{color:#fff;font-size:1.2em;font-weight:600}
+.card p{color:var(--tm);font-size:.9em;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
+  <a class="btn sec" href="index.html">← All Dashboards</a>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <h1>🛠️ PHD Tools</h1>
+    <p>Quick-access toolkit for the PHD team.</p>
+  </div>
+  <div class="grid">
+    <a class="card" href="tool-blurbs.html">
+      <div class="card-head"><span class="card-icon">📝</span><h2>Common Blurbs</h2></div>
+      <p>Reusable canned responses and standard message templates.</p>
+    </a>
+    <a class="card" href="tool-hashtags.html">
+      <div class="card-head"><span class="card-icon">#️⃣</span><h2>Hashtags</h2></div>
+      <p>Standard hashtags used for tagging and categorizing tickets.</p>
+    </a>
+    <a class="card" href="tool-paging.html">
+      <div class="card-head"><span class="card-icon">📟</span><h2>Paging Contacts</h2></div>
+      <p>Escalation and on-call contacts for paging during incidents.</p>
+    </a>
+    <a class="card" href="tool-prompts.html">
+      <div class="card-head"><span class="card-icon">💬</span><h2>Prompt</h2></div>
+      <p>Prompt templates and quick-reference text for common tasks.</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>

@@ -28,6 +28,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card.upload{border-top-color:#a78bfa}
 .card.upload:hover{border-color:#a78bfa}
 .card.upload .tag{background:rgba(167,139,250,.12);color:#a78bfa}
+.card.tools{border-top-color:#44b9d6}
+.card.tools:hover{border-color:#44b9d6}
+.card.tools .tag{background:rgba(68,185,214,.12);color:#44b9d6}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.card-head h2{margin-bottom:0}
+.card-icon{font-size:1.4em;line-height:1}
 /* modal */
 .modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px}
@@ -70,6 +76,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <p>Restricted access. Authorized users can add a new permanent dashboard from a CSV file.</p>
       <span class="tag">Protected</span>
     </div>
+    <a class="card tools" href="tools.html">
+      <div class="card-head"><span class="card-icon">🛠️</span><h2>PHD Tools</h2></div>
+      <p>Quick-access toolkit: common blurbs, hashtags, paging contacts, and prompts.</p>
+      <span class="tag">Toolkit</span>
+    </a>
   </div>
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
 </div>

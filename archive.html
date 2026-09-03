@@ -12,7 +12,9 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.logo span{font-size:1.1em;font-weight:700;color:#fff}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.1em;font-weight:700;color:#fff;line-height:1}
 .btn{display:inline-flex;align-items:center;padding:7px 16px;background:var(--o);color:#000;border-radius:4px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
@@ -41,11 +43,74 @@ tr:hover{background:rgba(255,153,0,.03)}
 @keyframes spin{100%{transform:rotate(360deg)}}
 .phd-badge{display:inline-block;margin-left:6px;padding:1px 6px;background:rgba(255,153,0,.15);color:var(--o);border-radius:3px;font-size:.7em;font-weight:600}
 @media(max-width:768px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.content{padding:16px}}
+/* Root-cause grouped table */
+.rc-table{width:100%;border-collapse:collapse;font-size:.9em}
+.rc-table thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd)}
+.rc-grow{cursor:pointer;transition:background .12s}
+.rc-grow td{padding:12px 14px;border-bottom:1px solid var(--bd)}
+.rc-grow:hover{background:rgba(255,153,0,.07)}
+.rc-grow.open{background:rgba(255,153,0,.12)}
+.rc-idx{color:var(--tm);font-weight:600}
+.rc-gname{color:#fff;font-weight:600}
+.rc-gname .rc-caret{color:var(--o);font-size:.7em;margin-right:10px;display:inline-block;transition:transform .15s}
+.rc-grow.open .rc-gname .rc-caret{transform:rotate(90deg)}
+.rc-gcount{text-align:right;color:var(--o);font-weight:700}
+.rc-gshare{text-align:right;color:var(--tm)}
+.rc-detail-row>td{padding:0;border-bottom:1px solid var(--bd);background:#050505}
+.rc-detail-row>td:first-child{border-bottom:none;background:#000}
+.rc-detail-row .rc-group-regions{padding:12px 16px 6px}
+.rc-regions-label{display:block;font-size:.7em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+.rc-regions{display:flex;flex-wrap:wrap;gap:5px}
+.rc-region-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:.78em;color:#d5dbdb;background:rgba(255,255,255,.07)}
+.rc-region-chip b{color:var(--o);font-weight:600;margin-left:2px}
+.rc-subtable{width:100%;border-collapse:collapse;margin:4px 0 10px}
+.rc-subtable thead th{background:transparent;color:var(--tm);font-size:.68em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:6px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+.rc-subtable tbody td{padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+.rc-subtable tbody tr:last-child td{border-bottom:none}
+.rc-item-name{color:var(--t)}
+.rc-item-count{color:#fff;font-weight:600;text-align:right}
+/* Incident-type agent drill-down modal */
+.inc-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.inc-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:85vh;display:flex;flex-direction:column}
+.inc-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 22px;border-bottom:1px solid var(--bd)}
+.inc-modal-head h2{color:#fff;font-size:1.15em;font-weight:600;margin:0}
+.inc-modal-head h2::before{display:none}
+.inc-modal-sub{display:block;color:var(--o);font-size:.8em;font-weight:600;margin-top:4px}
+.inc-modal-close{background:transparent;border:none;color:var(--tm);font-size:1.5em;cursor:pointer;line-height:1;padding:0 4px}
+.inc-modal-close:hover{color:#fff}
+.inc-modal-body{overflow-y:auto;padding:14px 22px 22px}
+.inc-agent-list{display:flex;flex-direction:column;gap:6px}
+.inc-agent{border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:#000}
+.inc-agent-head{width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:none;cursor:pointer;color:#fff;font-size:.92em;font-weight:600;text-align:left;font-family:inherit;transition:background .12s}
+.inc-agent-head:hover{background:rgba(255,153,0,.08)}
+.inc-agent-head.open{background:rgba(255,153,0,.12)}
+.inc-caret{color:var(--o);font-size:.72em;transition:transform .15s;flex-shrink:0}
+.inc-agent-head.open .inc-caret{transform:rotate(90deg)}
+.inc-agent-name{flex:1}
+.inc-agent-count{color:var(--o);font-weight:700;background:rgba(255,153,0,.12);padding:2px 11px;border-radius:20px;font-size:.85em}
+.inc-agent-body{border-top:1px solid var(--bd);padding:4px 0}
+.inc-ticket-table{width:100%;border-collapse:collapse;font-size:.84em}
+.inc-ticket-table thead th{color:var(--tm);font-size:.7em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:7px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+.inc-ticket-table tbody td{padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--t)}
+.inc-ticket-table tbody tr:last-child td{border-bottom:none}
+.inc-ticket-table a{color:var(--bll);text-decoration:none}
+.inc-ticket-table a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
-<div class="top-bar"><div class="logo"><span>WWOS-PHD</span></div><a class="btn sec" href="home.html">← All Dashboards</a></div>
+<div class="top-bar"><div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div><a class="btn sec" href="index.html">← All Dashboards</a></div>
 <div id="app"><div class="spinner"></div></div>
+
+<div class="inc-modal-bg" id="incModalBg" onclick="if(event.target===this)closeIncidentModal()">
+  <div class="inc-modal">
+    <div class="inc-modal-head">
+      <div><h2 id="incModalTitle">Incident Type</h2><span class="inc-modal-sub" id="incModalSub"></span></div>
+      <button class="inc-modal-close" onclick="closeIncidentModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="inc-modal-body" id="incModalBody"></div>
+  </div>
+</div>
+
 <script src="archive.js"></script>
 </body>
 </html>

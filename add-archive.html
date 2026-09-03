@@ -10,7 +10,9 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;align-items:center;justify-content:space-between}
-.logo span{font-size:1.1em;font-weight:700;color:#fff}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.1em;font-weight:700;color:#fff;line-height:1}
 .btn{display:inline-flex;align-items:center;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
@@ -32,7 +34,7 @@ input:focus{outline:none;border-color:var(--o)}
 </style>
 </head>
 <body>
-<div class="top-bar"><div class="logo"><span>WWOS-PHD · Add Archive</span></div><a class="btn sec" href="home.html">← Home</a></div>
+<div class="top-bar"><div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div><a class="btn sec" href="index.html">← Home</a></div>
 <div class="wrap">
   <h1>Add New Archive Dashboard</h1>
   <p>Authorized access confirmed. Upload a CSV and give the dashboard a name. It will be processed and saved to your browser so you can preview it immediately.</p>
