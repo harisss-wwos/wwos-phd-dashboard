@@ -5,7 +5,7 @@
 (function () {
   var override = window.PHD_API_BASE;
   var isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-  window.PHD_API_BASE = override || (isLocal ? 'http://127.0.0.1:3000' : 'https://REPLACE-WITH-RENDER-URL.onrender.com');
+  window.PHD_API_BASE = override || (isLocal ? 'http://127.0.0.1:3000' : 'https://wwos-phd-api.onrender.com');
 })();
 
 // ---- Auth session helpers (shared across pages) ----
