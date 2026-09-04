@@ -11,13 +11,10 @@ const COLORS = ['#ff9900','#2074d5','#1d8102','#d13212','#1b9cb0','#8c6bb1','#44
 // ===== Status ranking for merge logic =====
 const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4,'Resolved':5,'Closed':6};
 
-// ===== GitHub publish config (shared data store) =====
-const GH_OWNER='harisss-wwos';
-const GH_REPO='wwos-phd-dashboard';
-const GH_BRANCH='main';
-const GH_DATA_PATH='live-data.json';
+// ===== Shared data store: MongoDB Atlas via the Render API (see api-config.js) =====
+// Auth + publish now go through window.PHDAuth / window.PHD_API_BASE.
 
-// Global lock — true while a publish/deploy is in progress. Blocks uploads/merges.
+// Global lock — true while a publish is in progress. Blocks uploads/merges.
 let PUBLISHING=false;
 
 // ===== IndexedDB storage =====
@@ -293,7 +290,7 @@ function topBar(active){
   const navBtn=(view,lbl)=>`<button class="btn ${active===view?'':'sec'}" onclick="nav('${view}')" style="${active===view?'':'border-color:var(--bd)'}">${lbl}</button>`;
   return `<div class="top-bar" style="flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
+      <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span>${LIVE_QUARTER?`<span class="live-badge">${LIVE_QUARTER.label} · LIVE</span>`:''}</div>
       <div style="display:flex;gap:8px">
         ${navBtn('dashboard','Dashboard')}
         ${navBtn('groups','Groups')}
@@ -303,12 +300,33 @@ function topBar(active){
     </div>
     <div class="nav-actions">
       <a class="btn sec" href="index.html">← Home</a>
-      <label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>
-      <label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>
-      <button class="btn" style="background:#4ade80" onclick="showPublishModal()">Publish Data</button>
+      ${authActions()}
     </div>
   </div>`;
 }
+
+// Role-aware action buttons. Publishing/merge is admin+; profile/logout for any logged-in user; users page for owner.
+function authActions(){
+  const A=window.PHDAuth;const user=A?A.getUser():null;
+  if(!user){
+    return `<button class="btn" style="background:#4ade80" onclick="showLoginModal()">Login</button>`;
+  }
+  const canPublish=A.atLeast('admin');
+  const isOwner=A.atLeast('owner');
+  let html='';
+  html+=`<span style="color:#879596;font-size:.82em;margin-right:4px">${user.username} <span style="color:#ff9900;text-transform:uppercase;font-size:.85em;font-weight:700">${user.role}</span></span>`;
+  if(canPublish){
+    html+=`<label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>`;
+    html+=`<label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>`;
+    html+=`<button class="btn" style="background:#4ade80" onclick="showPublishModal()">Publish Data</button>`;
+  }
+  if(isOwner)html+=`<a class="btn sec" href="users.html">Users</a>`;
+  html+=`<a class="btn sec" href="profile.html">Profile</a>`;
+  html+=`<button class="btn sec" onclick="doLogout()">Logout</button>`;
+  return html;
+}
+
+function doLogout(){window.PHDAuth.clear();location.reload();}
 
 function attachNewFileHandler(){
   const mf=document.getElementById('mergeFile');
@@ -917,26 +935,71 @@ function renderPreviousWeek(){
 }
 
 // ========= PUBLISH TO GITHUB (shared data) =========
-function showPublishModal(){
+// ========= LOGIN =========
+function showLoginModal(){
   closeAllPopups();
-  const savedToken=sessionStorage.getItem('gh_token')||'';
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px">
+    <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Log in</h2>
+    <p style="color:#879596;font-size:.85em;margin-bottom:18px;line-height:1.5">Viewing the dashboard needs no login. Log in to publish or manage data.</p>
+    <label style="display:block;color:#879596;font-size:.85em;margin-bottom:6px">Username</label>
+    <input type="text" id="loginUser" autocomplete="username" style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.9em">
+    <label style="display:block;color:#879596;font-size:.85em;margin:12px 0 6px">Password</label>
+    <input type="password" id="loginPass" autocomplete="current-password" style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.9em">
+    <label style="display:flex;align-items:center;gap:8px;color:#879596;font-size:.82em;margin-top:12px;cursor:pointer"><input type="checkbox" id="loginRemember"> Keep me logged in on this device</label>
+    <div class="err" id="loginErr" style="color:#ff5252;font-size:.85em;margin-top:12px;display:none"></div>
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
+      <button class="btn" style="background:#4ade80" onclick="doLogin()">Log in</button>
+    </div>
+    <p style="color:#5f6b6c;font-size:.75em;margin-top:14px">First login may take ~30–50s while the server wakes.</p>
+  </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(()=>{const u=document.getElementById('loginUser');if(u)u.focus();
+    const p=document.getElementById('loginPass');if(p)p.addEventListener('keydown',(e)=>{if(e.key==='Enter')doLogin();});},50);
+}
+
+async function doLogin(){
+  const username=document.getElementById('loginUser').value.trim();
+  const password=document.getElementById('loginPass').value;
+  const remember=document.getElementById('loginRemember').checked;
+  const errEl=document.getElementById('loginErr');
+  if(!username||!password){errEl.textContent='Enter username and password.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  const btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Logging in...';}
+  try{
+    const r=await window.PHDAuth.api('POST','/api/login',{username,password});
+    if(!r.ok){throw new Error((r.data&&r.data.error)||('Login failed (HTTP '+r.status+')'));}
+    window.PHDAuth.setSession(r.data.token,r.data.user,remember);
+    closeAllPopups();
+    showToast('Logged in as '+r.data.user.username+' ('+r.data.user.role+')');
+    // Re-render current view so role-gated buttons appear
+    nav(currentView);
+  }catch(e){
+    errEl.textContent=e.message;errEl.style.display='block';
+    if(btn){btn.disabled=false;btn.textContent='Log in';}
+  }
+}
+
+// ========= PUBLISH (to MongoDB Atlas via API) =========
+function showPublishModal(){
+  if(!window.PHDAuth.atLeast('admin')){showToast('You need admin privileges to publish.');return;}
+  closeAllPopups();
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;padding:28px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Publish Data to Everyone</h2>
-    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This publishes the current dashboard data to GitHub so all users see it. Paste a GitHub token with <b>Contents: write</b> permission for this repo. The token stays only in this browser session and is never saved to the site.</p>
-    <label style="display:block;color:#879596;font-size:.85em;margin-bottom:6px">GitHub Personal Access Token</label>
-    <input type="password" id="ghToken" value="${savedToken}" placeholder="github_pat_..." style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.9em">
-    <label style="display:flex;align-items:center;gap:8px;color:#879596;font-size:.82em;margin-top:12px;cursor:pointer"><input type="checkbox" id="ghRemember" ${savedToken?'checked':''}> Remember token for this session</label>
-    <div class="err" id="pubErr" style="color:#ff5252;font-size:.85em;margin-top:12px;display:none"></div>
-    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This saves the current dashboard data to the shared database so all viewers see it. No token needed — you're already logged in.</p>
+    <div class="err" id="pubErr" style="color:#ff5252;font-size:.85em;margin-top:4px;display:none"></div>
+    <div style="margin-top:8px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
       <button class="btn" style="background:#4ade80" onclick="doPublish()">Publish</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
-  setTimeout(()=>document.getElementById('ghToken').focus(),50);
 }
 
 function showPublishSpinner(){
@@ -946,68 +1009,91 @@ function showPublishSpinner(){
   overlay.innerHTML=`<div style="text-align:center">
     <div class="spinner"></div>
     <p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed...</p>
-    <p style="color:#879596;margin-top:8px;font-size:.9em">Publishing to GitHub. This may take a moment.</p>
+    <p style="color:#879596;margin-top:8px;font-size:.9em">Saving to the shared database. This may take a moment.</p>
   </div>`;
   document.body.appendChild(overlay);
 }
 
-async function doPublish(){
-  const token=document.getElementById('ghToken').value.trim();
-  const remember=document.getElementById('ghRemember').checked;
-  const errEl=document.getElementById('pubErr');
-  if(!token){errEl.textContent='Please paste a GitHub token.';errEl.style.display='block';return;}
-  if(remember)sessionStorage.setItem('gh_token',token);else sessionStorage.removeItem('gh_token');
+// Current live quarter info (set on init from the API). e.g. {quarter:'2026-Q3',label:'Q3 2026',range:{...}}
+let LIVE_QUARTER=null;
+
+// Publish the current dataset to the live quarter. Handles the cross-quarter 409 warning.
+async function doPublish(confirmCrossQuarter){
+  if(!window.PHDAuth.atLeast('admin')){showToast('You need admin privileges to publish.');return;}
   PUBLISHING=true;                 // lock uploads/merges
   showPublishSpinner();
   try{
-    // Build payload: all stored tickets + metadata
     const allRows=await dbGetAll();
     const payload={updatedAt:new Date().toISOString(),count:allRows.length,tickets:allRows};
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const apiBase=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_DATA_PATH}`;
-    const headers={'Authorization':'token '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
-    // Get existing file SHA (needed to update)
-    let sha=undefined;
-    const getResp=await fetch(apiBase+'?ref='+GH_BRANCH,{headers});
-    if(getResp.status===200){const j=await getResp.json();sha=j.sha;}
-    else if(getResp.status!==404){throw new Error('GitHub read failed: HTTP '+getResp.status);}
-    // Commit the file
-    const putResp=await fetch(apiBase,{method:'PUT',headers,body:JSON.stringify({message:'Publish dashboard data '+new Date().toISOString(),content,branch:GH_BRANCH,sha})});
-    if(!putResp.ok){const t=await putResp.text();throw new Error('GitHub write failed: HTTP '+putResp.status+' '+t.substring(0,120));}
-    // Keep the lock during the GitHub Pages deploy window (~60s) so no one edits mid-deploy
-    updatePublishSpinner('Data committed. Waiting for deployment to complete...');
-    await new Promise(r=>setTimeout(r,60000));
-    PUBLISHING=false;              // unlock
+    const body={data:payload};
+    if(confirmCrossQuarter)body.confirmCrossQuarter=true;
+    const r=await window.PHDAuth.api('POST','/api/live-quarter',body);
+    // Cross-quarter warning: server refuses until confirmed
+    if(r.status===409&&r.data&&r.data.error==='cross-quarter'){
+      PUBLISHING=false;
+      closeAllPopups();
+      showCrossQuarterWarning(r.data);
+      return;
+    }
+    if(!r.ok){throw new Error((r.data&&r.data.error)||('Publish failed (HTTP '+r.status+')'));}
+    PUBLISHING=false;
     closeAllPopups();
-    showToast('Data published & deployed! Live for everyone now.');
+    const live=(r.data.written||[]).find(w=>w.isLive);
+    showToast('Data published to '+(LIVE_QUARTER?LIVE_QUARTER.label:'the live quarter')+'! Live for everyone now.');
   }catch(e){
-    PUBLISHING=false;             // unlock on failure
+    PUBLISHING=false;
     closeAllPopups();
     showPublishModal();
     setTimeout(()=>{const el=document.getElementById('pubErr');if(el){el.textContent=e.message;el.style.display='block';}},60);
   }
 }
 
-function updatePublishSpinner(msg){
-  const p=document.querySelector('#incPopup p');
-  if(p)p.textContent=msg;
+// Warn the admin that the upload contains tickets created in a non-live quarter.
+function showCrossQuarterWarning(info){
+  closeAllPopups();
+  const rows=(info.crossQuarter||[]).map(c=>`<li><span>${c.label}</span><span class="val" style="color:#fbbf24">${c.count} ticket(s)</span></li>`).join('');
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:560px;width:100%;padding:28px">
+    <h2 style="color:#fbbf24;font-size:1.2em;margin-bottom:8px">⚠ Data outside the live quarter</h2>
+    <p style="color:#879596;font-size:.9em;margin-bottom:14px;line-height:1.6">This upload contains tickets created in a <b>non-live quarter</b>. The live quarter is <b style="color:#4ade80">${info.liveLabel}</b>. Publishing will also <b>overwrite that finalized quarter's data</b> with these tickets.</p>
+    <ul class="cross-list" style="list-style:none;padding:0;margin:0 0 8px">
+      <li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a2a;color:#4ade80"><span>${info.liveLabel} (live)</span><span class="val">${info.liveCount} ticket(s)</span></li>
+      ${rows}
+    </ul>
+    <p style="color:#879596;font-size:.82em;margin-top:12px">Do you want to continue and update the non-live quarter(s) too?</p>
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
+      <button class="btn" style="background:#fbbf24;color:#000" onclick="doPublish(true)">Continue &amp; overwrite</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
 }
 
-async function loadSharedData(){
+async function loadLiveQuarter(){
   try{
-    const resp=await fetch(GH_DATA_PATH+'?t='+Date.now());
-    if(!resp.ok)return null;
-    const j=await resp.json();
-    if(j&&j.tickets&&j.tickets.length)return j;
+    const r=await window.PHDAuth.api('GET','/api/live-quarter');
+    if(r.ok&&r.data){
+      LIVE_QUARTER={quarter:r.data.quarter,label:r.data.label,range:r.data.range};
+      const d=r.data.data;
+      if(d&&d.tickets&&d.tickets.length){
+        return {updatedAt:(r.data.meta&&r.data.meta.publishedAt)||d.updatedAt,count:d.count,tickets:d.tickets};
+      }
+    }
   }catch(e){}
   return null;
 }
 
 // ========= INIT =========
 (async function init(){
+  // Loading shimmer while we fetch the live quarter from Atlas (may hit Render cold start).
+  if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
+    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading live dashboard data from the database…');
+  }
   try{
-    // 1. Prefer shared published data (so all users see the same thing)
-    const shared=await loadSharedData();
+    // 1. Load the live quarter dataset from Atlas (shared for everyone)
+    const shared=await loadLiveQuarter();
     if(shared){
       await dbClear();
       await dbPutAll(shared.tickets);
@@ -1017,7 +1103,7 @@ async function loadSharedData(){
       renderDashboard();
       return;
     }
-    // 2. Fall back to local IndexedDB
+    // 2. Fall back to local IndexedDB (offline / not yet published)
     const count=await dbCount();
     if(count>0){
       const allRows=await dbGetAll();

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{max-width:520px;margin:0 auto;padding:50px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:26px;margin-bottom:20px}
+.card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.92em}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--tm)}
+.row .v{color:#fff;font-weight:600}
+.badge{background:rgba(255,153,0,.14);color:var(--o);padding:2px 10px;border-radius:20px;font-size:.85em;text-transform:uppercase;font-weight:700}
+label{display:block;color:var(--tm);font-size:.85em;margin:14px 0 6px}
+input{width:100%;padding:10px 12px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.92em}
+input:focus{outline:none;border-color:var(--o)}
+.msg{font-size:.86em;margin-top:14px;display:none}
+.msg.err{color:#ff5252}
+.msg.ok{color:var(--gl)}
+.gate{text-align:center;padding:40px 0}
+.gate p{color:var(--tm);margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
+  <a class="btn sec" href="app.html">← Live Dashboard</a>
+</div>
+<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+function render(){
+  const user=A.getUser();
+  const wrap=document.getElementById('wrap');
+  if(!user||!A.getToken()){
+    wrap.innerHTML='<div class="gate"><h1>Profile</h1><p>You are not logged in. Log in from the Live Dashboard to view your profile.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
+    return;
+  }
+  wrap.innerHTML=`
+    <h1>My Profile</h1>
+    <p class="sub">Manage your account.</p>
+    <div class="card">
+      <h2>Account</h2>
+      <div class="row"><span class="k">Username</span><span class="v">${user.username}</span></div>
+      <div class="row"><span class="k">Role</span><span class="v"><span class="badge">${user.role}</span></span></div>
+    </div>
+    <div class="card">
+      <h2>Change Password</h2>
+      <label>Current password</label>
+      <input type="password" id="curPw" autocomplete="current-password">
+      <label>New password (min 6 chars)</label>
+      <input type="password" id="newPw" autocomplete="new-password">
+      <label>Confirm new password</label>
+      <input type="password" id="newPw2" autocomplete="new-password">
+      <div class="msg err" id="msgErr"></div>
+      <div class="msg ok" id="msgOk"></div>
+      <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sec" onclick="location.href='app.html'">Back</button>
+        <button class="btn" id="saveBtn" onclick="changePw()">Update Password</button>
+      </div>
+    </div>`;
+}
+async function changePw(){
+  const cur=document.getElementById('curPw').value;
+  const np=document.getElementById('newPw').value;
+  const np2=document.getElementById('newPw2').value;
+  const err=document.getElementById('msgErr'),ok=document.getElementById('msgOk');
+  err.style.display='none';ok.style.display='none';
+  if(!cur||!np){err.textContent='Fill in all fields.';err.style.display='block';return;}
+  if(np.length<6){err.textContent='New password must be at least 6 characters.';err.style.display='block';return;}
+  if(np!==np2){err.textContent='New passwords do not match.';err.style.display='block';return;}
+  const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Updating…';
+  const r=await A.api('POST','/api/change-password',{currentPassword:cur,newPassword:np});
+  btn.disabled=false;btn.textContent='Update Password';
+  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='block';document.getElementById('curPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';}
+  else if(r.status===401 && !A.getToken()){err.textContent='Session expired. Please log in again from the Live Dashboard.';err.style.display='block';setTimeout(render,1500);}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+render();
+</script>
+</body>
+</html>

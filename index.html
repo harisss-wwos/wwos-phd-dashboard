@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff9900' d='M14.7 17.6c-2.6 1.7-6.4 2.6-9.6 2.6-4.5 0-8.6-1.7-11.6-4.4-.24-.22 0-.5.26-.34 3.3 1.9 7.4 3 11.6 3 2.9 0 6-.6 8.9-1.85.44-.18.8.3.4.6z' transform='translate(4 0)'/%3E%3Cpath fill='%23ff9900' d='M15.8 16.3c-.34-.43-2.2-.2-3.06-.1-.26.03-.3-.2-.06-.37 1.5-1.05 3.95-.75 4.24-.4.28.36-.08 2.8-1.48 3.97-.22.18-.42.08-.33-.16.3-.8.96-2.55.75-2.94z' transform='translate(4 0)'/%3E%3Ctext x='12' y='9' font-size='7' font-family='Arial' font-weight='bold' fill='%23ff9900' text-anchor='middle'%3Ea%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
 <style>
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -54,6 +55,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .card-head h2{margin-bottom:0}
 .card-icon{font-size:1.4em;line-height:1}
+.live-pill{margin-left:auto;font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 10px;animation:livepulse 2s ease-in-out infinite}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.6}}
 /* modal */
 .modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px}
@@ -130,16 +133,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <p>WWOS-managed incident data for Q2 2026 (Apr–Jun). Read-only snapshot.</p>
       <span class="tag">7,102 tickets · Archived</span>
     </a>
-    <a class="card live" href="app.html">
-      <h2>Live Dashboard</h2>
-      <p>Upload the latest CSV and build a live operations dashboard. Merge new files to keep it current.</p>
-      <span class="tag">Upload & Merge</span>
-    </a>
-    <div class="card upload" id="uploadCard">
-      <h2>+ Add New Archive Dashboard</h2>
-      <p>Restricted access. Authorized users can add a new permanent dashboard from a CSV file.</p>
-      <span class="tag">Protected</span>
-    </div>
+    <!-- Dynamic quarter cards (live + any past DB-backed quarters) are injected here by home.js -->
     <a class="card tools" href="tools.html">
       <div class="card-head"><span class="card-icon">🛠️</span><h2>PHD Tools</h2></div>
       <p>Quick-access toolkit: common blurbs, hashtags, paging contacts, and prompts.</p>
@@ -149,21 +143,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
 </div>
 
-<div class="modal-bg" id="authModal">
-  <div class="modal">
-    <h2>Authorized Access Required</h2>
-    <label>Username</label>
-    <input type="text" id="authUser" autocomplete="off">
-    <label>Password</label>
-    <input type="password" id="authPass" autocomplete="off">
-    <div class="err" id="authErr">Invalid credentials. Access denied.</div>
-    <div style="margin-top:8px">
-      <button class="btn sec" onclick="closeAuth()">Cancel</button>
-      <button class="btn" onclick="checkAuth()">Continue</button>
-    </div>
-  </div>
-</div>
-
+<script src="api-config.js"></script>
 <script src="home.js"></script>
 </body>
 </html>

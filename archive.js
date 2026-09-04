@@ -18,6 +18,17 @@ async function loadMetrics(){
     const key=qparam('key');
     try{const rec=await dbGet(key);return rec?{metrics:rec.metrics,name:rec.name}:null;}catch(e){return null;}
   }
+  // Dynamic quarter (DB-backed, non-live): fetch raw tickets and compute metrics in the browser.
+  if(ds==='quarter'){
+    const qid=qparam('qid');
+    if(!qid||!window.QuarterMetrics)throw new Error('Quarter view unavailable.');
+    const r=await window.PHDAuth.api('GET','/api/quarter/'+encodeURIComponent(qid));
+    if(!r.ok||!r.data)throw new Error('Could not load quarter '+qid+' (HTTP '+(r.status||'?')+')');
+    const tickets=(r.data.data&&r.data.data.tickets)||[];
+    const range=r.data.range||null;
+    const metrics=window.QuarterMetrics.compute(tickets,range);
+    return {metrics,name:(r.data.label||qid)+' Report',ds:'quarter'};
+  }
   const key=(ds==='q2'?'q2':'archive')+'_'+SCHEMA_VER;
   const file=ds==='q2'?'metrics-q2.json':'metrics-archive.json';
   const name=ds==='q2'?'Q2 2026 Report':'Program History: Jan 2021 – Mar 2026';
@@ -52,15 +63,21 @@ function barCfg(entries,horizontal){
 
 function render(metrics,name,ds){
   const m=metrics;
-  const isQ2=ds==='q2';
+  // "Q2-style" (weekly charts, root-cause groups, incident agent drill-down, resolution merge)
+  // applies to the static Q2 dataset AND any dynamic non-live quarter.
+  const isQ2=(ds==='q2'||ds==='quarter');
+  const quarterMode=(ds==='quarter');
   const phd=m.phdResolvers||[];
   // Split resolvers: PHD first, then others
   const phdRes=m.resolvers.filter(([k])=>phd.includes(k));
   const otherRes=m.resolvers.filter(([k])=>!phd.includes(k));
   // Human-friendly date like "1st April 2026"
   const fmtDate=(iso)=>{const d=new Date(iso+'T00:00:00');if(isNaN(d))return iso;const day=d.getDate();const suf=(day%10===1&&day!==11)?'st':(day%10===2&&day!==12)?'nd':(day%10===3&&day!==13)?'rd':'th';return day+suf+' '+d.toLocaleString('en-US',{month:'long'})+' '+d.getFullYear();};
-  // Q2 shows the fixed reporting window Apr 1 – Jun 30; archive uses computed range.
-  const rangeText=isQ2?'1st April 2026 to 30th June 2026':`${fmtDate(m.dateRange[0])} to ${fmtDate(m.dateRange[1])}`;
+  // Q2 static shows its fixed window; dynamic quarters + archive use the computed range.
+  const rangeText=(ds==='q2')?'1st April 2026 to 30th June 2026':`${fmtDate(m.dateRange[0])} to ${fmtDate(m.dateRange[1])}`;
+  // Short window label for weekly chart titles, e.g. "(Apr 1 – Jun 30, 2026)".
+  const shortD=(iso)=>{const d=new Date(iso+'T00:00:00');return isNaN(d)?iso:d.toLocaleString('en-US',{month:'short',day:'numeric'});};
+  const windowText=(ds==='q2')?'Apr 1 – Jun 30, 2026':(m.dateRange&&m.dateRange[0]?`${shortD(m.dateRange[0])} – ${shortD(m.dateRange[1])}`:'this quarter');
   document.getElementById('app').innerHTML=`<div class="content">
     <div class="page-title"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets · Read-only archive</p></div>
 
@@ -92,8 +109,8 @@ function render(metrics,name,ds){
 
     <div class="charts-grid">
       ${isQ2?`
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week (Apr 1 – Jun 30)</h3><div class="chart-wrap"><canvas id="cCreatedWeek"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week (Apr 1 – Jun 30)</h3><div class="chart-wrap"><canvas id="cResolvedWeek"></canvas></div></div>
+      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week (${windowText})</h3><div class="chart-wrap"><canvas id="cCreatedWeek"></canvas></div></div>
+      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week (${windowText})</h3><div class="chart-wrap"><canvas id="cResolvedWeek"></canvas></div></div>
       <div class="chart-box" style="grid-column:1/-1"><h3>Created vs Resolved per Week (Backlog Trend)</h3><div class="chart-wrap"><canvas id="cCvRWeek"></canvas></div></div>
       `:`
       <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Year</h3><div class="chart-wrap"><canvas id="cCreatedYear"></canvas></div></div>
@@ -170,14 +187,14 @@ function render(metrics,name,ds){
   }
   if(isQ2){
     // Weekly charts (Q2 only) — buckets are week-start dates spanning Apr 1 – Jun 30, 2026
-    mkChart('cCreatedWeek',{type:'bar',data:{labels:(m.createdByWeek||[]).map(e=>e[0]),datasets:[{label:'Created',data:(m.createdByWeek||[]).map(e=>e[1]),backgroundColor:'rgba(255,153,0,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets created',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week (Apr 1 – Jun 30, 2026)',color:'#d5dbdb',font:{size:12}}}}}});
-    mkChart('cResolvedWeek',{type:'bar',data:{labels:(m.resolvedByWeek||[]).map(e=>e[0]),datasets:[{label:'Resolved',data:(m.resolvedByWeek||[]).map(e=>e[1]),backgroundColor:'rgba(74,222,128,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets resolved',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week (Apr 1 – Jun 30, 2026)',color:'#d5dbdb',font:{size:12}}}}}});
+    mkChart('cCreatedWeek',{type:'bar',data:{labels:(m.createdByWeek||[]).map(e=>e[0]),datasets:[{label:'Created',data:(m.createdByWeek||[]).map(e=>e[1]),backgroundColor:'rgba(255,153,0,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets created',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+windowText+')',color:'#d5dbdb',font:{size:12}}}}}});
+    mkChart('cResolvedWeek',{type:'bar',data:{labels:(m.resolvedByWeek||[]).map(e=>e[0]),datasets:[{label:'Resolved',data:(m.resolvedByWeek||[]).map(e=>e[1]),backgroundColor:'rgba(74,222,128,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets resolved',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+windowText+')',color:'#d5dbdb',font:{size:12}}}}}});
     // Created vs Resolved overlay per week (backlog trend) — same 13 Apr1–Jun30 buckets
     const wkLabels=(m.createdByWeek||[]).map(e=>e[0]);
     const wkCreated=(m.createdByWeek||[]).map(e=>e[1]);
     const wkResolvedMap=Object.fromEntries(m.resolvedByWeek||[]);
     const wkResolved=wkLabels.map(l=>wkResolvedMap[l]||0);
-    mkChart('cCvRWeek',{type:'line',data:{labels:wkLabels,datasets:[{label:'Created',data:wkCreated,borderColor:'#ff9900',backgroundColor:'rgba(255,153,0,.08)',fill:true,tension:.3,pointRadius:2},{label:'Resolved',data:wkResolved,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.3,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week (Apr 1 – Jun 30, 2026)',color:'#d5dbdb',font:{size:12}}}}}});
+    mkChart('cCvRWeek',{type:'line',data:{labels:wkLabels,datasets:[{label:'Created',data:wkCreated,borderColor:'#ff9900',backgroundColor:'rgba(255,153,0,.08)',fill:true,tension:.3,pointRadius:2},{label:'Resolved',data:wkResolved,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.3,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+windowText+')',color:'#d5dbdb',font:{size:12}}}}}});
 
     renderResolutionAlternatives(resTypeEntries);
   }else{
@@ -382,9 +399,15 @@ function renderCrossTab(elId,data,colKeys,maxRows,maxCols){
 }
 
 (async function(){
+  // Show a loading shimmer immediately (esp. for DB-backed quarters which may hit Render cold start).
+  const ds=qparam('ds');
+  const loadingNote=(ds==='quarter')?'Loading quarter data from the database…':'Loading report…';
+  if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
+    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard(loadingNote);
+  }
   try{
     const result=await loadMetrics();
-    if(!result){document.getElementById('app').innerHTML='<div class="content"><div class="section"><h2>Dashboard not found</h2><p style="color:#879596">This archive could not be loaded. <a href="home.html" style="color:#44b9d6">Return home</a></p></div></div>';return;}
+    if(!result){document.getElementById('app').innerHTML='<div class="content"><div class="section"><h2>Dashboard not found</h2><p style="color:#879596">This archive could not be loaded. <a href="index.html" style="color:#44b9d6">Return home</a></p></div></div>';return;}
     render(result.metrics,result.name,qparam('ds'));
   }catch(e){document.getElementById('app').innerHTML='<div class="content"><div class="section"><h2>Error loading dashboard</h2><p style="color:#879596">'+e.message+'</p></div></div>';}
 })();

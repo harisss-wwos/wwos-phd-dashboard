@@ -1,0 +1,28 @@
+/* Loading shimmer / skeleton used while data is fetched from Atlas. */
+.shimmer{
+  position:relative;
+  overflow:hidden;
+  background:#0f0f0f;
+  border:1px solid var(--bd,#2a2a2a);
+  border-radius:10px;
+}
+.shimmer::after{
+  content:'';
+  position:absolute;top:0;left:-150%;height:100%;width:150%;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);
+  animation:shimmermove 1.3s infinite;
+}
+@keyframes shimmermove{100%{left:150%}}
+
+.sk-wrap{max-width:1200px;margin:0 auto;padding:24px}
+.sk-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.sk-title{height:26px;width:320px;max-width:70%;margin-bottom:8px}
+.sk-sub{height:14px;width:440px;max-width:85%;margin-bottom:24px;opacity:.7}
+.sk-kpi{height:92px;flex:1;min-width:150px}
+.sk-chart{height:300px;flex:1;min-width:320px}
+.sk-chart.tall{height:380px}
+.sk-card{height:150px;flex:1;min-width:300px}
+.sk-line{height:14px;border-radius:6px;margin:10px 0}
+.sk-note{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--tm,#879596);font-size:.85em;margin:8px 0 20px}
+.sk-dot{width:8px;height:8px;border-radius:50%;background:var(--o,#ff9900);animation:livepulse 1.2s ease-in-out infinite}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.4}}

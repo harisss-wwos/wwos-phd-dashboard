@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="shimmer.css">
 <style>
 :root{--o:#ff9900;--oh:#ec7211;--ol:#ffb84d;--bl:#2074d5;--bll:#44b9d6;--tl:#1b9cb0;--g:#1d8102;--gl:#3ecf4a;--r:#d13212;--rl:#ff5252;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--s:#000;--a1:#7dd3fc;--a2:#fbbf24;--b:#4ade80}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -15,6 +16,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.1em;font-weight:700;color:#fff;line-height:1}
+.live-badge{font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 12px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;animation:livepulse 2s ease-in-out infinite}
+.live-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.62}}
 .nav-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;padding:7px 16px;background:var(--o);color:#000;border-radius:4px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
@@ -65,6 +69,7 @@ tr:hover{background:rgba(255,153,0,.03)}
 </head>
 <body>
 <div id="app"></div>
+<script src="api-config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

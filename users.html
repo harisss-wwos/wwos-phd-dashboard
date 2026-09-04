@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Management · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);padding:5px 10px;font-size:.78em}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
+.wrap{max-width:920px;margin:0 auto;padding:44px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:24px;margin-bottom:22px}
+.card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
+td.user{color:#fff;font-weight:600}
+select{background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;padding:6px 10px;font-size:.85em}
+select:focus{outline:none;border-color:var(--o)}
+.badge{padding:2px 10px;border-radius:20px;font-size:.75em;text-transform:uppercase;font-weight:700}
+.badge.owner{background:rgba(167,139,250,.15);color:#a78bfa}
+.badge.admin{background:rgba(255,153,0,.15);color:var(--o)}
+.badge.editor{background:rgba(68,185,214,.15);color:#44b9d6}
+.badge.user{background:rgba(135,149,150,.15);color:var(--tm)}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.form-row .fld{flex:1;min-width:150px}
+label{display:block;color:var(--tm);font-size:.8em;margin-bottom:6px}
+input{width:100%;padding:9px 12px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.9em}
+input:focus{outline:none;border-color:var(--o)}
+.msg{font-size:.85em;margin-top:12px;display:none}
+.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
+  <a class="btn sec" href="app.html">← Live Dashboard</a>
+</div>
+<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+const ROLES=['user','editor','admin'];// owner not assignable
+
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>User Management</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+
+async function load(){
+  const user=A.getUser();
+  if(!user||!A.getToken()){gate('You are not logged in. Log in from the Live Dashboard first.');return;}
+  if(A.role()!=='owner'){gate('Only the owner can manage users. Your role: '+A.role()+'.');return;}
+  const r=await A.api('GET','/api/users');
+  if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
+  if(!r.ok){gate('Could not load users (HTTP '+r.status+').');return;}
+  renderList(r.data);
+}
+
+function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
+
+function renderList(users){
+  const wrap=document.getElementById('wrap');
+  const rows=users.map(u=>{
+    if(u.role==='owner'){
+      return '<tr><td class="user">'+u.username+'</td><td>'+badge('owner')+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
+    }
+    const opts=ROLES.map(r=>'<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+r+'</option>').join('');
+    return '<tr><td class="user">'+u.username+'</td>'
+      +'<td><select onchange="changeRole(\''+u.id+'\',this.value,\''+u.username+'\')">'+opts+'</select></td>'
+      +'<td><button class="btn danger" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">Remove</button></td></tr>';
+  }).join('');
+  wrap.innerHTML=`
+    <h1>User Management</h1>
+    <p class="sub">Owner only. Create accounts and set roles. The owner account cannot be changed or removed.</p>
+    <div class="card">
+      <h2>Accounts (${users.length})</h2>
+      <table><thead><tr><th>Username</th><th>Role</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="msg err" id="listErr"></div>
+      <div class="msg ok" id="listOk"></div>
+    </div>
+    <div class="card">
+      <h2>Add User</h2>
+      <div class="form-row">
+        <div class="fld"><label>Username</label><input type="text" id="nUser" autocomplete="off"></div>
+        <div class="fld"><label>Temporary password</label><input type="text" id="nPass" autocomplete="off"></div>
+        <div class="fld" style="max-width:150px"><label>Role</label>
+          <select id="nRole">${ROLES.map(r=>'<option value="'+r+'"'+(r==='admin'?' selected':'')+'>'+r+'</option>').join('')}</select>
+        </div>
+        <button class="btn" onclick="addUser()">Add</button>
+      </div>
+      <div class="msg err" id="addErr"></div>
+      <div class="msg ok" id="addOk"></div>
+      <p style="color:#5f6b6c;font-size:.78em;margin-top:12px">Tell the new user their temporary password; they can change it on their Profile page.</p>
+    </div>`;
+}
+
+function flash(id,msg,kind){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},4000);}
+
+async function changeRole(id,role,username){
+  const r=await A.api('PATCH','/api/users/'+id+'/role',{role});
+  if(r.ok)flash('listOk',username+' is now '+role+'.','ok');
+  else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');load();}
+}
+async function delUser(id,username){
+  if(!confirm('Remove user "'+username+'"? This cannot be undone.'))return;
+  const r=await A.api('DELETE','/api/users/'+id);
+  if(r.ok){flash('listOk','Removed '+username+'.','ok');load();}
+  else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+}
+async function addUser(){
+  const username=document.getElementById('nUser').value.trim();
+  const password=document.getElementById('nPass').value;
+  const role=document.getElementById('nRole').value;
+  if(!username||!password){flash('addErr','Enter username and password.','err');return;}
+  const r=await A.api('POST','/api/users',{username,password,role});
+  if(r.ok){flash('addOk','Created '+username+' ('+role+').','ok');document.getElementById('nUser').value='';document.getElementById('nPass').value='';load();}
+  else flash('addErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+}
+load();
+</script>
+</body>
+</html>

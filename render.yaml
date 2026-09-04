@@ -1,0 +1,24 @@
+# Render Blueprint for the WWOS-GSOC PHD API.
+# In Render: New + -> Blueprint -> pick this repo. Render reads this file.
+# The service code lives in the /server subfolder of the repo.
+services:
+  - type: web
+    name: wwos-phd-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Secrets are NOT stored here. Set these in the Render dashboard
+      # (Environment tab) so they never land in the public repo.
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGODB_DB
+        value: phd
+      - key: ALLOWED_ORIGINS
+        value: https://harisss-wwos.github.io
