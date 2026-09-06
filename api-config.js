@@ -27,19 +27,26 @@ window.PHDAuth = {
   rank: function (role) { return ({ user: 0, editor: 1, admin: 2, owner: 3 })[role] != null ? ({ user: 0, editor: 1, admin: 2, owner: 3 })[role] : -1; },
   atLeast: function (role) { return this.rank(this.role()) >= this.rank(role); },
   // ---- Loading shimmer skeletons (shown while fetching from Atlas) ----
-  // A full report/dashboard skeleton: title, KPIs, charts.
+  // Full live-dashboard skeleton matching the current UI: 2-row header (title bar + toolbar),
+  // KPI rows, the color-tile row, and chart blocks.
   skeletonDashboard: function (note) {
-    var kpis = '';
-    for (var i = 0; i < 5; i++) kpis += '<div class="shimmer sk-kpi"></div>';
+    var pill = function (w) { return '<div class="shimmer sk-pill" style="width:' + w + 'px"></div>'; };
+    var navBtns = pill(90) + pill(70) + pill(110) + pill(100) + pill(120) + pill(100);
+    var actBtns = pill(120) + pill(70) + pill(120) + pill(90) + '<div class="shimmer" style="width:34px;height:34px;border-radius:50%"></div>';
+    var kpis = ''; for (var i = 0; i < 3; i++) kpis += '<div class="shimmer sk-kpi"></div>';
+    var colors = ''; for (var c = 0; c < 5; c++) colors += '<div class="shimmer sk-kpi" style="min-width:120px"></div>';
     return '' +
+      // Header row 1: logo/title bar
+      '<div class="sk-topbar"><div class="shimmer" style="width:210px;height:24px"></div></div>' +
+      // Header row 2: toolbar (nav on left, actions/avatar on right)
+      '<div class="sk-toolbar"><div class="sk-tb-left">' + navBtns + '</div><div class="sk-tb-right">' + actBtns + '</div></div>' +
       '<div class="sk-wrap">' +
       '<div class="shimmer sk-title"></div>' +
-      '<div class="shimmer sk-sub"></div>' +
       (note ? '<div class="sk-note"><span class="sk-dot"></span>' + note + '</div>' : '') +
       '<div class="sk-row">' + kpis + '</div>' +
+      '<div class="sk-row" style="flex-wrap:wrap">' + colors + '</div>' +
       '<div class="sk-row"><div class="shimmer sk-chart"></div><div class="shimmer sk-chart"></div></div>' +
       '<div class="sk-row"><div class="shimmer sk-chart tall"></div></div>' +
-      '<div class="sk-row"><div class="shimmer sk-chart"></div><div class="shimmer sk-chart"></div></div>' +
       '</div>';
   },
   // A grid of card skeletons (for the home page).
@@ -63,4 +70,35 @@ window.PHDAuth = {
     if (resp.status === 401) { /* token invalid/expired */ this.clear(); }
     return { status: resp.status, ok: resp.ok, data: data };
   },
+  // ---- Avatars ----
+  _avatarColor: function (s) {
+    var colors = ['#ff9900', '#2074d5', '#1d8102', '#8c6bb1', '#1b9cb0', '#d13212', '#3ecf4a', '#5b9bd5', '#e67e22', '#9b59b6'];
+    var h = 0; s = String(s || '?');
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return colors[h % colors.length];
+  },
+  _initial: function (person) {
+    var base = (person && (person.displayName || person.username)) || '?';
+    return String(base).trim().charAt(0).toUpperCase() || '?';
+  },
+  // Avatar HTML: <img> if person.avatar set, else a colored initial circle. size = px diameter.
+  avatarHtml: function (person, size) {
+    size = size || 32;
+    var esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); };
+    if (person && person.avatar) {
+      return '<img class="phd-avatar" src="' + esc(person.avatar) + '" alt="avatar" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;object-fit:cover;display:block">';
+    }
+    var ch = this._initial(person);
+    var col = this._avatarColor((person && (person.displayName || person.username)) || ch);
+    var fs = Math.round(size * 0.46);
+    return '<span class="phd-avatar" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + col + ';color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:' + fs + 'px;line-height:1;flex-shrink:0">' + esc(ch) + '</span>';
+  },
+  // Cache + fetch the logged-in user's profile (displayName/avatar). Used by the toolbar avatar.
+  _myProfile: null,
+  loadMyProfile: async function () {
+    if (!this.getUser()) return null;
+    try { var r = await this.api('GET', '/api/me/profile'); if (r.ok && r.data) { this._myProfile = r.data; return r.data; } } catch (e) {}
+    return null;
+  },
+  myProfile: function () { return this._myProfile || this.getUser(); },
 };

@@ -14,7 +14,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
@@ -36,6 +36,19 @@ input:focus{outline:none;border-color:var(--o)}
 .msg.ok{color:var(--gl)}
 .gate{text-align:center;padding:40px 0}
 .gate p{color:var(--tm);margin-bottom:18px}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:#ff5252}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:440px;width:100%;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.btn.mini{padding:5px 12px;font-size:.78em}
+.avatar-wrap{position:relative;width:96px;height:96px;margin:0 auto 12px}
+.avatar-wrap #avatarBox{width:96px;height:96px}
+.avatar-edit{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#000;border:2px solid #0a0a0a;cursor:pointer;font-size:.85em;display:flex;align-items:center;justify-content:center}
+.avatar-edit:hover{background:var(--oh)}
 </style>
 </head>
 <body>
@@ -45,9 +58,29 @@ input:focus{outline:none;border-color:var(--o)}
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
+<div class="modal-bg" id="pwModal" onclick="if(event.target===this)closePwModal()">
+  <div class="modal">
+    <div class="modal-head"><h2>Change Password</h2><button class="modal-close" onclick="closePwModal()" aria-label="Close">&times;</button></div>
+    <label>Current password</label>
+    <input type="password" id="curPw" autocomplete="current-password">
+    <label>New password (min 6 chars)</label>
+    <input type="password" id="newPw" autocomplete="new-password">
+    <label>Confirm new password</label>
+    <input type="password" id="newPw2" autocomplete="new-password">
+    <div class="msg err" id="msgErr"></div>
+    <div class="msg ok" id="msgOk"></div>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closePwModal()">Cancel</button>
+      <button class="btn" id="saveBtn" onclick="changePw()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script>
 const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 function render(){
   const user=A.getUser();
   const wrap=document.getElementById('wrap');
@@ -55,30 +88,111 @@ function render(){
     wrap.innerHTML='<div class="gate"><h1>Profile</h1><p>You are not logged in. Log in from the Live Dashboard to view your profile.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
     return;
   }
+  const prof=A.myProfile()||user;
   wrap.innerHTML=`
     <h1>My Profile</h1>
-    <p class="sub">Manage your account.</p>
+    <p class="sub">Manage your account. Your display name and photo are visible to other users.</p>
     <div class="card">
       <h2>Account</h2>
-      <div class="row"><span class="k">Username</span><span class="v">${user.username}</span></div>
+      <div class="avatar-wrap">
+        <div id="avatarBox">${A.avatarHtml(prof,96)}</div>
+        <button class="avatar-edit" title="Change photo" onclick="document.getElementById('avatarFile').click()">✎</button>
+        <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
+        <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Upload photo</button>
+        ${prof.avatar?('<button class="btn sec mini" onclick="removeAvatar()">'+ic('trash')+' Remove photo</button>'):''}
+      </div>
+      <label>Display name</label>
+      <input type="text" id="displayName" maxlength="40" value="${(prof.displayName||'').replace(/"/g,'&quot;')}" placeholder="How your name appears to others">
+      <div class="row" style="margin-top:16px"><span class="k">Login ID</span><span class="v">${user.username}</span></div>
       <div class="row"><span class="k">Role</span><span class="v"><span class="badge">${user.role}</span></span></div>
+      <div class="msg err" id="profErr"></div>
+      <div class="msg ok" id="profOk"></div>
+      <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn" id="saveProfBtn" onclick="saveProfile()">Save changes</button>
+      </div>
     </div>
     <div class="card">
-      <h2>Change Password</h2>
-      <label>Current password</label>
-      <input type="password" id="curPw" autocomplete="current-password">
-      <label>New password (min 6 chars)</label>
-      <input type="password" id="newPw" autocomplete="new-password">
-      <label>Confirm new password</label>
-      <input type="password" id="newPw2" autocomplete="new-password">
-      <div class="msg err" id="msgErr"></div>
-      <div class="msg ok" id="msgOk"></div>
-      <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn sec" onclick="location.href='app.html'">Back</button>
-        <button class="btn" id="saveBtn" onclick="changePw()">Update Password</button>
+      <h2>Security</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="openPwModal()">${ic('lock')} Change Password</button>
+        <button class="btn danger" onclick="doLogout()">${ic('log-out')} Logout</button>
       </div>
     </div>`;
+  wireAvatarInput();
 }
+
+// Pending avatar data URL (set after a successful resize; null = unchanged).
+let PENDING_AVATAR=undefined; // undefined=no change, ''=remove, 'data:...'=new
+
+function wireAvatarInput(){
+  const inp=document.getElementById('avatarFile');
+  if(inp)inp.onchange=(e)=>handleAvatarFile(e.target.files[0]);
+}
+
+function removeAvatar(){
+  PENDING_AVATAR='';
+  const p=A.myProfile()||A.getUser();
+  document.getElementById('avatarBox').innerHTML=A.avatarHtml({displayName:document.getElementById('displayName').value,username:p.username},96);
+  const rm=document.querySelector('.avatar-wrap ~ div button[onclick="removeAvatar()"]');if(rm)rm.remove();
+}
+
+// Read an image file, resize to 128px on a canvas, produce a compressed JPEG data URL.
+function handleAvatarFile(file){
+  const err=document.getElementById('profErr'),ok=document.getElementById('profOk');
+  err.style.display='none';ok.style.display='none';
+  if(!file)return;
+  if(!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)){err.textContent='Unsupported file. Please upload a different image (PNG, JPG, GIF, or WebP).';err.style.display='block';return;}
+  if(file.size>8*1024*1024){err.textContent='That image is too large. Please upload a smaller / different image.';err.style.display='block';return;}
+  const reader=new FileReader();
+  reader.onerror=()=>{err.textContent='Could not read that image. Please upload a different one.';err.style.display='block';};
+  reader.onload=(ev)=>{
+    const img=new Image();
+    img.onerror=()=>{err.textContent='That file is not a valid image. Please upload a different one.';err.style.display='block';};
+    img.onload=()=>{
+      const size=128;const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      // cover-crop to square
+      const s=Math.min(img.width,img.height);const sx=(img.width-s)/2,sy=(img.height-s)/2;
+      ctx.drawImage(img,sx,sy,s,s,0,0,size,size);
+      let dataUrl=canvas.toDataURL('image/jpeg',0.82);
+      if(dataUrl.length>200000){dataUrl=canvas.toDataURL('image/jpeg',0.6);}
+      if(dataUrl.length>200000){err.textContent='Image is still too large after resizing. Please upload a different image.';err.style.display='block';return;}
+      PENDING_AVATAR=dataUrl;
+      document.getElementById('avatarBox').innerHTML='<img class="phd-avatar" src="'+dataUrl+'" alt="avatar" style="width:96px;height:96px;border-radius:50%;object-fit:cover;display:block">';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile(){
+  const err=document.getElementById('profErr'),ok=document.getElementById('profOk');
+  err.style.display='none';ok.style.display='none';
+  const body={displayName:document.getElementById('displayName').value.trim()};
+  if(PENDING_AVATAR!==undefined)body.avatar=PENDING_AVATAR;
+  const btn=document.getElementById('saveProfBtn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await A.api('POST','/api/me/profile',body);
+  btn.disabled=false;btn.textContent='Save changes';
+  if(r.ok){A._myProfile=r.data;PENDING_AVATAR=undefined;ok.textContent='Profile updated.';ok.style.display='block';render();setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='block';setTimeout(()=>o.style.display='none',1500);}},30);}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+
+function openPwModal(){
+  document.getElementById('curPw').value='';
+  document.getElementById('newPw').value='';
+  document.getElementById('newPw2').value='';
+  document.getElementById('msgErr').style.display='none';
+  document.getElementById('msgOk').style.display='none';
+  const btn=document.getElementById('saveBtn');btn.disabled=false;btn.textContent='Update Password';
+  document.getElementById('pwModal').style.display='flex';
+  setTimeout(()=>document.getElementById('curPw').focus(),40);
+}
+function closePwModal(){document.getElementById('pwModal').style.display='none';}
+
+function doLogout(){A.clear();location.href='index.html';}
+
 async function changePw(){
   const cur=document.getElementById('curPw').value;
   const np=document.getElementById('newPw').value;
@@ -91,11 +205,12 @@ async function changePw(){
   const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Updating…';
   const r=await A.api('POST','/api/change-password',{currentPassword:cur,newPassword:np});
   btn.disabled=false;btn.textContent='Update Password';
-  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='block';document.getElementById('curPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';}
-  else if(r.status===401 && !A.getToken()){err.textContent='Session expired. Please log in again from the Live Dashboard.';err.style.display='block';setTimeout(render,1500);}
+  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='block';document.getElementById('curPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';setTimeout(closePwModal,1200);}
+  else if(r.status===401 && !A.getToken()){err.textContent='Session expired. Please log in again from the Live Dashboard.';err.style.display='block';setTimeout(()=>{closePwModal();render();},1500);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
-render();
+// Load the full profile (displayName/avatar) first, then render.
+(async()=>{ if(A.getUser()&&A.getToken()){await A.loadMyProfile();} render(); })();
 </script>
 </body>
 </html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paging Contacts · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.mini{padding:5px 12px;font-size:.78em}
+.wrap{width:80%;max-width:1000px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.7em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:22px}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;text-align:left;padding:12px 16px;border-bottom:1px solid var(--bd)}
+tbody td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,153,0,.04)}
+.c-country{color:#fff;font-weight:600}
+.c-code{color:var(--tm);font-weight:600}
+.c-email{color:#44b9d6}
+.email-cell{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.copied{color:var(--gl)!important;border-color:rgba(74,222,128,.5)!important}
+.msg{font-size:.85em;margin-top:10px;display:none}.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
+.edit-area input{width:100%;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit}
+.edit-area label{display:block;color:var(--tm);font-size:.8em;margin:10px 0 6px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:480px;width:100%;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn sec" href="tools.html">← PHD Tools</a>
+</div>
+<div class="wrap" id="wrap">
+  <div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:280px"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Add region popup (admin+) -->
+<div class="modal-bg" id="addModal" onclick="if(event.target===this)closeAddModal()">
+  <div class="modal">
+    <div class="modal-head"><h2>➕ Add Region</h2><button class="modal-close" onclick="closeAddModal()" aria-label="Close">&times;</button></div>
+    <div class="edit-area">
+      <label>Country</label>
+      <input type="text" id="newCountry" placeholder="e.g. Brazil">
+      <label>Code</label>
+      <input type="text" id="newCode" placeholder="e.g. BR">
+      <label>Email</label>
+      <input type="text" id="newEmail" placeholder="e.g. sds-ecr-adhoc@amazon.com.br">
+      <div class="msg err" id="addErr"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sec" onclick="closeAddModal()">Cancel</button>
+        <button class="btn" onclick="addContact()">Add region</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+let CONTACTS=[];
+const canAdd=()=>A.atLeast&&A.atLeast('admin');
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+async function load(){
+  const r=await A.api('GET','/api/paging');
+  if(!r.ok){document.getElementById('wrap').innerHTML='<h1>Paging Contacts</h1><p class="sub" style="color:#ff5252">Could not load contacts (HTTP '+r.status+').</p>';return;}
+  CONTACTS=Array.isArray(r.data)?r.data:[];
+  render();
+}
+
+function render(){
+  const admin=canAdd();
+  let html='<h1>Paging Contacts</h1><p class="sub">SDS ECR paging contacts by region. Click Copy to copy the email.'+(admin?' As an admin you can add a new region.':'')+'</p>';
+  if(admin)html+=`<div style="margin-bottom:18px"><button class="btn" onclick="openAddModal()">➕ Add Region</button></div>`;
+  html+=`<div class="tbl-card"><table>
+    <thead><tr><th>Country</th><th>Code</th><th>Email</th></tr></thead>
+    <tbody>`+CONTACTS.map((c,i)=>`
+      <tr>
+        <td class="c-country">${esc(c.country)}</td>
+        <td class="c-code">${esc(c.code)}</td>
+        <td><div class="email-cell"><span class="c-email">${esc(c.email)}</span>
+          <button class="btn sec mini" id="copyBtn-${i}" onclick="copyEmail(${i})">📋 Copy</button></div></td>
+      </tr>`).join('')+`</tbody></table></div>`;
+  document.getElementById('wrap').innerHTML=html;
+}
+
+function copyEmail(i){
+  const text=CONTACTS[i].email;
+  const done=()=>{const btn=document.getElementById('copyBtn-'+i);if(btn){btn.textContent='✓ Copied';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy';btn.classList.remove('copied');},1600);}toast('Email copied to clipboard');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}ta.remove();done();}
+
+function openAddModal(){document.getElementById('addModal').style.display='flex';document.getElementById('newCountry').value='';document.getElementById('newCode').value='';document.getElementById('newEmail').value='';document.getElementById('addErr').style.display='none';setTimeout(()=>document.getElementById('newCountry').focus(),40);}
+function closeAddModal(){document.getElementById('addModal').style.display='none';}
+async function addContact(){
+  const country=document.getElementById('newCountry').value.trim();
+  const code=document.getElementById('newCode').value.trim();
+  const email=document.getElementById('newEmail').value.trim();
+  const err=document.getElementById('addErr');
+  if(!country||!code||!email){err.textContent='Country, code, and email are all required.';err.style.display='block';return;}
+  const r=await A.api('POST','/api/paging',{country,code,email});
+  if(r.ok){closeAddModal();toast('Region added');await load();}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+
+load();
+</script>
+</body>
+</html>

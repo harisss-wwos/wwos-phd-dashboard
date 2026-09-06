@@ -18,8 +18,11 @@ const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4
 let PUBLISHING=false;
 
 // ===== IndexedDB storage =====
-const DB_NAME='phd_dashboard_db';const STORE='tickets';
-function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=(e)=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'ShortId'});};req.onsuccess=(e)=>resolve(e.target.result);req.onerror=(e)=>reject(e.target.error);});}
+const DB_NAME='phd_dashboard_db';const STORE='tickets';const META_STORE='meta';
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,2);req.onupgradeneeded=(e)=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'ShortId'});if(!db.objectStoreNames.contains(META_STORE))db.createObjectStore(META_STORE,{keyPath:'key'});};req.onsuccess=(e)=>resolve(e.target.result);req.onerror=(e)=>reject(e.target.error);});}
+// Cache metadata: which live quarter + its publishedAt is currently stored in the tickets store.
+async function metaGet(key){const db=await openDB();return new Promise((resolve)=>{try{const tx=db.transaction(META_STORE,'readonly');const req=tx.objectStore(META_STORE).get(key);req.onsuccess=()=>resolve(req.result?req.result.value:null);req.onerror=()=>resolve(null);}catch(e){resolve(null);}});}
+async function metaSet(key,value){const db=await openDB();return new Promise((resolve)=>{try{const tx=db.transaction(META_STORE,'readwrite');tx.objectStore(META_STORE).put({key,value});tx.oncomplete=()=>resolve();tx.onerror=()=>resolve();}catch(e){resolve();}});}
 async function dbGetAll(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});}
 async function dbPutAll(rows){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');const store=tx.objectStore(STORE);rows.forEach(r=>store.put(r));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function dbClear(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
@@ -99,9 +102,17 @@ function computeMetrics(data){
     if(rootCause&&rootCause.length>1){
       // Check if animal/pet
       if(rootCause.toLowerCase().includes('unsecured animal')){
-        const hasDetails=details.trim()!=='';
-        if(hasDetails){tp='Pet Incident (HI>0)';}
-        else{tp='Pet Incident (Resolved by AUTO-SIM)';}
+        // Pet tickets closed as Immediately Resolved / Automatically Closed WITH an assignee are
+        // treated as first-time pet incidents (no action taken) — clubbed under one bucket.
+        const cc=(r.ClosureCode||'').trim();
+        const isImmAuto=(cc==='Immediately Resolved'||cc==='Automatically Closed');
+        if(isImmAuto&&(r.AssigneeIdentity||'').trim()!==''){
+          tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
+        } else {
+          const hasDetails=details.trim()!=='';
+          if(hasDetails){tp='Pet Incident (HI>0)';}
+          else{tp='Pet Incident (Resolved by AUTO-SIM)';}
+        }
       } else {
         tp=rootCause;
       }
@@ -159,7 +170,30 @@ function computeMetrics(data){
   const pwAn={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
-  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,agentOpenTickets,hiCases,hiAnimal,hiNonAnimal,hiResolved,hiUnresolved,hiUnresolvedTickets,last12Resolved,last12Created,last24Created,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
+  // ---- SLA compliance per week (≤240h), bucketed by RESOLVED date, for the current quarter ----
+  // Quarter start = first day of the quarter that contains the latest ticket date. 13 weekly buckets.
+  const qStart=new Date(maxDate.getFullYear(),Math.floor(maxDate.getMonth()/3)*3,1);
+  const isoWeekNum=(d)=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-ys)/864e5+1)/7);};
+  const weekIndexOf=(d)=>{const days=Math.floor((new Date(d.getFullYear(),d.getMonth(),d.getDate())-qStart)/864e5);if(days<0)return -1;const idx=Math.floor(days/7);return idx>12?-1:idx;};
+  const slaResolvedWk=new Array(13).fill(0),slaWithinWk=new Array(13).fill(0);
+  // Which week (0-based) does "now" fall into? Weeks beyond this stay null (not yet drawn).
+  const currentWeekIdx=weekIndexOf(maxDate);
+  data.forEach(r=>{
+    if(!r.ResolvedDate||!r.CreateDate)return;
+    const rd=new Date(r.ResolvedDate);if(isNaN(rd))return;
+    const wi=weekIndexOf(rd);if(wi<0)return;
+    const h=(rd-new Date(r.CreateDate))/36e5;if(h<0)return;
+    slaResolvedWk[wi]++;if(h<=240)slaWithinWk[wi]++;
+  });
+  const slaByWeek=[];for(let i=0;i<13;i++){
+    const dt=new Date(qStart.getFullYear(),qStart.getMonth(),qStart.getDate()+i*7);
+    const label='W'+String(isoWeekNum(dt)).padStart(2,'0');
+    // Only include weeks up to (and including) the current one — future weeks are not drawn yet.
+    const inRange=(currentWeekIdx<0)||(i<=currentWeekIdx);
+    const pct=(inRange&&slaResolvedWk[i])?+(slaWithinWk[i]/slaResolvedWk[i]*100).toFixed(1):null;
+    slaByWeek.push({week:label,resolved:inRange?slaResolvedWk[i]:0,within:inRange?slaWithinWk[i]:0,pct});
+  }
+  return{T,asgn,pend,wip,res,researching,closed,inQ,autosim,colorTickets,slaByWeek,n10,p72,nSLA,l12A,l12P,l12W,l12R,rToday,avgR,slaCompliant,slaPct,dL,dD,dC,wL,wD,wDR,gL,gD,iL,iD,incTickets:incTicketsSlim,agents,agentOpenTickets,hiCases,hiAnimal,hiNonAnimal,hiResolved,hiUnresolved,hiUnresolvedTickets,last12Resolved,last12Created,last24Created,a1R,a2R,bR,a1O,a2O,bO,a1Avg:avg(a1T),a2Avg:avg(a2T),bAvg:avg(bT),a1As,a2As,bAs,dgA1,dgA2,dgB,pwCreated:pwC.length,pwResolved:pwR.length,pwAuto,pwRC,pwAn,pwDC,pwDR,pwDL,pwSt,dateStr:`${dayOrd(maxDate)} ${MO[maxDate.getMonth()]} ${maxDate.getFullYear()}`,pwStartStr:`${dayOrd(pwS)} ${MO[pwS.getMonth()]} ${pwS.getFullYear()}`,pwEndStr:`${dayOrd(pwE)} ${MO[pwE.getMonth()]} ${pwE.getFullYear()}`};
 }
 
 // ========= UI RENDERING =========
@@ -174,8 +208,9 @@ function handleFile(file){
   handleUpload(file,'fresh');
 }
 
-// mode: 'fresh' = clear then load, 'merge' = merge into existing
-function handleUpload(file,mode){
+// mode: 'fresh' = clear then load, 'merge' = merge into existing.
+// autoPublish: after computing, push the merged dataset to Atlas and record the audit log.
+function handleUpload(file,mode,autoPublish){
   if(!file)return;
   if(PUBLISHING){showToast('Publish in progress — data changes are locked.');return;}
   const reader=new FileReader();
@@ -218,23 +253,37 @@ function handleUpload(file,mode){
     const allRows=await dbGetAll();
     M=computeMetrics(allRows);M.uploadTime=uploadTime;M.mergeReport=mergeReport;M.totalStored=allRows.length;
     renderDashboard();
-    if(mergeReport)showMergeReport(mergeReport);
+    if(autoPublish){
+      // Push merged dataset to Atlas, passing the merge report so it's saved in the audit log.
+      await doPublish(undefined, mergeReport);
+    } else if(mergeReport){
+      showMergeReport(mergeReport);
+    }
   },50);};
   reader.readAsText(file);
 }
 
-function showMergeReport(rep){
+function showMergeReport(rep,crossInfo){
+  crossInfo=crossInfo||{};
+  const skipped=crossInfo.skipped||[];
+  let crossNote='';
+  if(crossInfo.reviewed){
+    crossNote=`<p style="color:#fbbf24;font-size:.85em;margin-top:16px;padding:10px 12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px"><b>Cross-quarter review completed.</b> Non-live quarter data was reviewed and overwritten with the uploaded tickets.</p>`;
+  }else if(skipped.length){
+    const s=skipped.map(c=>`${c.label} (${c.count})`).join(', ');
+    crossNote=`<p style="color:#879596;font-size:.85em;margin-top:16px;padding:10px 12px;background:rgba(135,149,150,.08);border:1px solid #2a2a2a;border-radius:8px">Non-live quarter tickets were <b>skipped</b> — only the live quarter was updated. Skipped: ${s}.</p>`;
+  }
   const overlay=document.createElement('div');
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:700px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2 style="color:#4ade80;font-size:1.2em">Merge Complete</h2>
+      <h2 style="color:#4ade80;font-size:1.2em">Upload Complete</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
     </div>
     <div class="handoff-grid">
-      <div class="handoff-box"><h3>Merge Summary</h3><ul>
+      <div class="handoff-box"><h3>Change Summary</h3><ul>
         <li><span>New tickets added</span><span class="val" style="color:#4ade80">${rep.added}</span></li>
         <li><span>Tickets updated (status advanced)</span><span class="val" style="color:#fbbf24">${rep.updated}</span></li>
         <li><span>Tickets reopened (→ Purple)</span><span class="val" style="color:#a78bfa">${rep.reopened}</span></li>
@@ -243,6 +292,7 @@ function showMergeReport(rep){
         <li><span>Not present in new file (retained)</span><span class="val" style="color:#ff5252">${rep.missing}</span></li>
       </ul></div>
     </div>
+    ${crossNote}
     ${rep.autoClosed>0?`<p style="color:#879596;font-size:.85em;margin-top:16px">${rep.autoClosed} ticket(s) that were "Resolved" and absent from the new file were auto-promoted to "Closed" (new exports often omit closed tickets).</p>`:''}
     ${rep.missing>0?`<p style="color:#879596;font-size:.85em;margin-top:12px">The new data did not contain these ${rep.missing} ticket(s) that exist in the dashboard. Non-resolved ones were retained unchanged:</p><p style="color:#ff9900;font-size:.8em;margin-top:8px;word-break:break-all">${rep.missingIds.join(', ')}${rep.missing>50?' ...and more':''}</p>`:''}
   </div>`;
@@ -286,53 +336,173 @@ function renderUpload(){
   fi.onchange=(e)=>handleUpload(e.target.files[0],'fresh');
 }
 
+// Safe icon wrapper (no-op if icons.js isn't loaded).
+function ic(name,size){return (typeof window.icon==='function')?window.icon(name,size||15):'';}
+
 function topBar(active){
-  const navBtn=(view,lbl)=>`<button class="btn ${active===view?'':'sec'}" onclick="nav('${view}')" style="${active===view?'':'border-color:var(--bd)'}">${lbl}</button>`;
-  return `<div class="top-bar" style="flex-wrap:wrap;gap:10px">
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span>${LIVE_QUARTER?`<span class="live-badge">${LIVE_QUARTER.label} · LIVE</span>`:''}</div>
-      <div style="display:flex;gap:8px">
-        ${navBtn('dashboard','Dashboard')}
-        ${navBtn('groups','Groups')}
-        ${navBtn('previous-week','Previous Week')}
-        ${navBtn('shift-report','Shift Report')}
-      </div>
+  const navBtn=(view,lbl,ico)=>`<button class="btn ${active===view?'':'sec'}" onclick="nav('${view}')" style="${active===view?'':'border-color:var(--bd)'}">${ic(ico)} ${lbl}</button>`;
+  const loggedIn=!!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser());
+  // Row 1: title bar only — clicking the logo/title goes Home.
+  // Row 2: a dedicated toolbar section holding all nav + auth action buttons.
+  return `<div class="top-bar">
+    <a class="logo logo-link" href="index.html" title="Back to all dashboards"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span>${LIVE_QUARTER?`<span class="live-badge">${LIVE_QUARTER.label} · LIVE</span>`:''}</a>
+  </div>
+  <div class="toolbar">
+    <div class="toolbar-nav">
+      ${navBtn('dashboard','Dashboard','grid')}
+      ${loggedIn?`${navBtn('groups','Groups','users')}
+      ${navBtn('previous-week','Previous Week','clock-rewind')}
+      ${navBtn('shift-report','Shift Report','clipboard')}`:''}
+      ${(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?`<a class="btn sec" href="agent-analytics.html">${ic('bar-chart')} Agent Analytics</a><a class="btn sec" href="last24.html">${ic('clock')} Last 24 Hours</a>`:''}
     </div>
-    <div class="nav-actions">
-      <a class="btn sec" href="index.html">← Home</a>
+    <div class="toolbar-actions">
       ${authActions()}
     </div>
   </div>`;
 }
 
-// Role-aware action buttons. Publishing/merge is admin+; profile/logout for any logged-in user; users page for owner.
+// Role-aware action buttons. Publishing/upload is admin/manager+; the rest for any logged-in user; users page for owner.
 function authActions(){
   const A=window.PHDAuth;const user=A?A.getUser():null;
   if(!user){
-    return `<button class="btn" style="background:#4ade80" onclick="showLoginModal()">Login</button>`;
+    return `<button class="btn" style="background:#4ade80" onclick="showLoginModal()">${ic('key')} Login</button>`;
   }
-  const canPublish=A.atLeast('admin');
+  const canPublish=A.atLeast('admin'); // admin & manager (same rank) & owner
   const isOwner=A.atLeast('owner');
   let html='';
   html+=`<span style="color:#879596;font-size:.82em;margin-right:4px">${user.username} <span style="color:#ff9900;text-transform:uppercase;font-size:.85em;font-weight:700">${user.role}</span></span>`;
   if(canPublish){
-    html+=`<label class="btn" style="cursor:pointer">+ Merge Data<input type="file" accept=".csv" id="mergeFile" style="display:none"></label>`;
-    html+=`<label class="btn sec" style="cursor:pointer">Start Fresh<input type="file" accept=".csv" id="freshFile" style="display:none"></label>`;
-    html+=`<button class="btn" style="background:#4ade80" onclick="showPublishModal()">Publish Data</button>`;
+    // Single button: ingest CSV -> merge -> auto-publish to Atlas.
+    html+=`<label class="btn" style="background:#4ade80;cursor:pointer">${ic('upload')} Upload new data<input type="file" accept=".csv" id="uploadFile" style="display:none"></label>`;
   }
-  if(isOwner)html+=`<a class="btn sec" href="users.html">Users</a>`;
-  html+=`<a class="btn sec" href="profile.html">Profile</a>`;
-  html+=`<button class="btn sec" onclick="doLogout()">Logout</button>`;
+  html+=`<a class="btn sec" href="my-tickets.html">${ic('ticket')} My Tickets</a>`;
+  if(isOwner)html+=`<a class="btn sec" href="users.html">${ic('users-gear')} Users</a>`;
+  html+=`<a class="btn sec" href="data-log.html">${ic('history')} Update data log</a>`;
+  html+=`<a class="btn sec" href="tools.html">${ic('tool')} PHD Tools</a>`;
+  // Profile button is the user's avatar (photo or initial circle).
+  const prof=(window.PHDAuth.myProfile&&window.PHDAuth.myProfile())||user;
+  html+=`<a href="profile.html" title="Profile" style="display:inline-flex;align-items:center;text-decoration:none">${window.PHDAuth.avatarHtml(prof,34)}</a>`;
+  // Logout moved to the Profile page.
   return html;
 }
 
 function doLogout(){window.PHDAuth.clear();location.reload();}
 
+// ===== Help alerts (editor "ask for help") =====
+// IDs of open requests we've already fired a desktop notification for (this tab's lifetime).
+window._notifiedHelpIds=window._notifiedHelpIds||new Set();
+window._helpPollTimer=window._helpPollTimer||null;
+let _helpNotifPrimed=false; // becomes true after the first fetch so we don't blast notifications for the existing backlog on load
+
+// Only admins/owner get desktop notifications (they're the ones who answer).
+function canGetHelpNotifications(){return !!(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'));}
+
+// Ask for OS notification permission once (called after login / on dashboard load for admins).
+function ensureNotifyPermission(){
+  if(!('Notification'in window))return;
+  if(!canGetHelpNotifications())return;
+  if(Notification.permission==='default'){try{Notification.requestPermission();}catch(e){}}
+}
+
+// Update the badge from a known open list, and fire desktop notifications for any newly-seen requests.
+function applyHelpOpenList(list){
+  const badge=document.getElementById('alertBadge');
+  const n=Array.isArray(list)?list.length:0;
+  if(badge){if(n>0){badge.textContent=n;badge.style.display='flex';}else{badge.style.display='none';}}
+  if(!canGetHelpNotifications()||!Array.isArray(list))return;
+  // On the very first fetch, just record the existing IDs so we don't notify for the backlog.
+  if(!_helpNotifPrimed){list.forEach(h=>window._notifiedHelpIds.add(h.id));_helpNotifPrimed=true;return;}
+  const canNotify=('Notification'in window)&&Notification.permission==='granted';
+  list.forEach(h=>{
+    if(window._notifiedHelpIds.has(h.id))return;
+    window._notifiedHelpIds.add(h.id);
+    if(canNotify){
+      try{
+        const body=(h.doubt||'').slice(0,140);
+        const note=new Notification('New help request — '+(h.requester||'someone'),{
+          body:(h.shortId?('Ticket '+h.shortId+': '):'')+body,
+          tag:'help-'+h.id, // collapses duplicates for the same request
+          icon:'gsoc-logo.svg'
+        });
+        note.onclick=()=>{try{window.focus();}catch(e){}showHelpAlerts();try{note.close();}catch(e){}};
+      }catch(e){/* notification failed silently */}
+    }
+  });
+}
+
+// Fetch open requests, update badge + notifications. Used by the poller and after render.
+async function refreshHelpAlertCount(){
+  const badge=document.getElementById('alertBadge');
+  try{
+    const r=await window.PHDAuth.api('GET','/api/help/open');
+    const list=(r.ok&&Array.isArray(r.data))?r.data:[];
+    applyHelpOpenList(list);
+  }catch(e){if(badge)badge.style.display='none';}
+}
+
+// Start a background poll so admins get notified even when the dashboard tab is in the background.
+function startHelpNotificationPolling(){
+  if(window._helpPollTimer)return; // already running
+  if(!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser()))return; // logged-in only
+  ensureNotifyPermission();
+  // Poll every 45s. The badge/notifications update regardless of which view is showing.
+  window._helpPollTimer=setInterval(refreshHelpAlertCount,45000);
+}
+function stopHelpNotificationPolling(){if(window._helpPollTimer){clearInterval(window._helpPollTimer);window._helpPollTimer=null;}}
+
+async function showHelpAlerts(){
+  closeAllPopups();
+  ensureNotifyPermission(); // clicking Alerts is a user gesture — good moment to ask for notification permission
+  const canReply=window.PHDAuth.atLeast('admin'); // admin/manager/owner
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const r=await window.PHDAuth.api('GET','/api/help/open');
+  const list=(r.ok&&Array.isArray(r.data))?r.data:[];
+  const threads=list.length?list.map(h=>{
+    const replies=(h.replies||[]).map(rp=>`<div style="border-top:1px solid rgba(255,255,255,.06);padding:6px 0;font-size:.85em"><b style="color:#d5dbdb">${esc(rp.by)}</b> <span style="color:#5f6b6c">(${esc(rp.role)})</span><div style="color:#d5dbdb;white-space:pre-wrap;margin-top:2px">${esc(rp.text)}</div></div>`).join('')||'<div style="color:#5f6b6c;font-size:.82em;font-style:italic;padding:4px 0">No reply yet</div>';
+    return `<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <div><b style="color:#44b9d6">${esc(h.requester)}</b> asked on <a href="${esc(h.ticketUrl)}" target="_blank" rel="noopener" style="color:#44b9d6">${esc(h.shortId)}</a></div>
+        <div style="color:#5f6b6c;font-size:.78em">${new Date(h.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="color:#fff;font-size:.9em;white-space:pre-wrap;margin-bottom:6px">Q: ${esc(h.doubt)}</div>
+      <div>${replies}</div>
+      ${canReply?`<div style="margin-top:10px;display:flex;gap:8px;align-items:flex-start">
+        <textarea id="reply-${h.id}" placeholder="Reply / suggestion…" style="flex:1;min-height:52px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical"></textarea>
+        <button class="btn mini" onclick="submitHelpReply('${h.id}')">Reply</button>
+      </div>`:''}
+    </div>`;
+  }).join(''):'<div style="text-align:center;color:#879596;padding:30px">No open help requests right now. 🎉</div>';
+  const overlay=document.createElement('div');overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:680px;width:100%;max-height:85vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="color:#fbbf24;font-size:1.2em">Help Requests (${list.length})</h2>
+      <button class="btn danger" onclick="closeAllPopups()">Close</button>
+    </div>
+    ${canReply?'':'<p style="color:#879596;font-size:.82em;margin-bottom:12px">Admins and the owner can reply to these requests.</p>'}
+    ${threads}
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function submitHelpReply(id){
+  const el=document.getElementById('reply-'+id);
+  const text=(el&&el.value||'').trim();
+  if(!text){showToast('Enter a reply first.');return;}
+  const r=await window.PHDAuth.api('POST','/api/help/'+id+'/reply',{text});
+  if(r.ok){showToast('Reply sent');showHelpAlerts();}
+  else{showToast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+
 function attachNewFileHandler(){
-  const mf=document.getElementById('mergeFile');
-  if(mf)mf.onchange=(e)=>{if(PUBLISHING){showToast('Publish in progress — please wait before adding data.');e.target.value='';return;}handleUpload(e.target.files[0],'merge');};
-  const ff=document.getElementById('freshFile');
-  if(ff)ff.onchange=(e)=>{if(PUBLISHING){showToast('Publish in progress — please wait before adding data.');e.target.value='';return;}if(confirm('Start Fresh will replace ALL existing data with this new file. Continue?'))handleUpload(e.target.files[0],'fresh');else e.target.value='';};
+  // Single "Upload new data" flow: merge the CSV into the current dataset, then auto-publish to Atlas.
+  const uf=document.getElementById('uploadFile');
+  if(uf)uf.onchange=(e)=>{
+    if(PUBLISHING){showToast('Upload in progress — please wait.');e.target.value='';return;}
+    const file=e.target.files[0];e.target.value='';
+    if(file)handleUpload(file,'merge',/*autoPublish*/true);
+  };
 }
 
 function makeChart(id,config){
@@ -342,7 +512,32 @@ function makeChart(id,config){
 
 function closeAllPopups(){const p=document.getElementById('colorPopup');if(p)p.remove();const p2=document.getElementById('incPopup');if(p2)p2.remove();}
 
+// Ticket-level detail is restricted to logged-in users.
+function requireLoginForTickets(){
+  const user=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
+  if(user)return true;
+  showTicketAccessPrompt();
+  return false;
+}
+function showTicketAccessPrompt(){
+  closeAllPopups();
+  const overlay=document.createElement('div');overlay.id='colorPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:440px;width:100%;padding:28px;text-align:center">
+    <div style="font-size:2em;margin-bottom:8px">🔒</div>
+    <h2 style="color:#fff;font-size:1.2em;margin-bottom:10px">Login required</h2>
+    <p style="color:#879596;font-size:.9em;line-height:1.6;margin-bottom:20px">Ticket-level details are available to logged-in users only. Please log in to view tickets, or for access reach out to <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener" style="color:#ff9900;font-weight:600;text-decoration:none">@harisss</a>.</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn sec" onclick="closeAllPopups()">Close</button>
+      <button class="btn" style="background:#4ade80" onclick="closeAllPopups();showLoginModal()">Login</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
 function showColorPopup(color,tickets){
+  if(!requireLoginForTickets())return;
   closeAllPopups();
   const colorNames={green:'GREEN (0-96 hrs)',yellow:'YELLOW (96-168 hrs)',red:'RED (168-240 hrs)',black:'BLACK (>240 hrs)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
@@ -350,45 +545,92 @@ function showColorPopup(color,tickets){
   // Group by agent
   const byAgent={};tix.forEach(r=>{const a=r.AssigneeIdentity||'Unassigned';if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
   const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
+  // Split into registered (accounts in our DB) vs non-registered (unknown logins / LM-CAP / AutoSIM / Unassigned).
+  const registered=agentList.filter(([name])=>isRegisteredUser(name));
+  const nonRegistered=agentList.filter(([name])=>!isRegisteredUser(name));
+  const rowFor=([name,tickets])=>{const dn=displayName(name);const style=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#44b9d6';const pic=window.PHDAuth&&window.PHDAuth.avatarHtml?window.PHDAuth.avatarHtml(profileFor(name),30):'';return`<tr style="cursor:pointer" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')"><td style="width:44px">${pic}</td><td><strong style="${style}">${dn}</strong>${isLMCAP(name)?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:${colorHex[color]};font-weight:700;font-size:1.1em">${tickets.length}</td></tr>`;};
+  const sumTix=(list)=>list.reduce((s,[,t])=>s+t.length,0);
+  const sectionTable=(list)=>`<table><thead><tr><th></th><th>Agent</th><th>Tickets</th></tr></thead><tbody>${list.map(rowFor).join('')}</tbody></table>`;
   const overlay=document.createElement('div');
   overlay.id='colorPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  const agentRows=agentList.map(([name,tickets])=>{const dn=displayName(name);const style=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${dn}</strong>${isLMCAP(name)?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:${colorHex[color]};font-weight:700;font-size:1.1em">${tickets.length}</td></tr>`;}).join('');
+  const regSection=`<div style="margin-bottom:22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:#4ade80;font-weight:700;font-size:.95em">${ic('check-circle',15)} Registered users</span><span style="color:#5f6b6c;font-size:.8em">${registered.length} agent${registered.length===1?'':'s'} · ${sumTix(registered)} tickets</span></div>
+      ${registered.length?sectionTable(registered):'<p style="color:#5f6b6c;font-size:.85em;font-style:italic;margin:4px 0 0">None.</p>'}
+    </div>`;
+  const nonRegSection=`<div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:#ff9900;font-weight:700;font-size:.95em">${ic('alert',15)} Non-registered logins</span><span style="color:#5f6b6c;font-size:.8em">${nonRegistered.length} agent${nonRegistered.length===1?'':'s'} · ${sumTix(nonRegistered)} tickets</span></div>
+      <p style="color:#879596;font-size:.78em;margin:0 0 8px">These assignees are not accounts in our database (unknown login, default queue, or unassigned).</p>
+      ${nonRegistered.length?sectionTable(nonRegistered):'<p style="color:#5f6b6c;font-size:.85em;font-style:italic;margin:4px 0 0">None.</p>'}
+    </div>`;
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[color]};font-size:1.2em">${colorNames[color]} — ${tix.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="downloadColorCSV('${color}')">Download All CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <p style="color:#879596;font-size:.85em;margin-bottom:12px">Click an agent to view their tickets</p>
-    <table><thead><tr><th>Agent</th><th>Tickets</th></tr></thead><tbody>${agentRows}</tbody></table></div>`;
+    <p style="color:#879596;font-size:.85em;margin-bottom:16px">Click an agent to view their tickets</p>
+    ${regSection}
+    ${nonRegSection}</div>`;
   document.body.appendChild(overlay);
 }
 
 function showAgentDrilldown(color,agentName){
+  if(!requireLoginForTickets())return;
   closeAllPopups();
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
   const tix=M.colorTickets[color].filter(r=>(r.AssigneeIdentity||'Unassigned')===agentName);
-  // Sort by CreateDate descending
-  tix.sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
+  // Sort by CreateDate ascending (oldest first, newest at the bottom)
+  tix.sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate));
   const now=new Date();const dn=displayName(agentName);
+  // Latest-comment column is shown only for red / black / purple sections.
+  const showComments=(color==='red'||color==='black'||color==='purple');
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const rows=tix.map(r=>{
     const cd=new Date(r.CreateDate);
     const daysAgo=Math.floor((now-cd)/(864e5));
     const daysText=daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;
-    return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.Status}</td></tr>`;
+    const sid=r.ShortId||'';
+    const commentCell=showComments?`<td class="cmt-col" data-sid="${esc(sid)}" style="color:#879596;font-style:italic">Loading…</td>`:'';
+    return`<tr><td><a href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" style="color:#44b9d6">${esc(sid)}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${esc(r.Status)}</td>${commentCell}</tr>`;
   }).join('');
   const overlay=document.createElement('div');
   overlay.id='colorPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  const head=`<tr><th>Ticket ID</th><th>Created</th><th>Status</th>${showComments?'<th>Latest comment</th>':''}</tr>`;
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:${showComments?'1100px':'1000px'};width:100%;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[color]};font-size:1.1em">${dn} — ${tix.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <table><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
+  // Fetch latest comments for the shown tickets (red/black/purple only) and fill the column.
+  if(showComments){fillLatestComments(overlay,tix.map(r=>r.ShortId).filter(Boolean));}
+}
+
+// Batch-fetch the latest comment per ticket and populate the "Latest comment" cells.
+async function fillLatestComments(overlay,shortIds){
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const setAll=(text,color,italic)=>{overlay.querySelectorAll('.cmt-col').forEach(td=>{td.innerHTML=text;td.style.color=color||'#879596';td.style.fontStyle=italic?'italic':'normal';});};
+  if(!window.PHDAuth||!window.PHDAuth.getUser||!window.PHDAuth.getUser()){setAll('Login to view comments','#879596',true);return;}
+  try{
+    const r=await window.PHDAuth.api('POST','/api/comments/latest',{shortIds});
+    const map=(r.ok&&r.data)?r.data:{};
+    overlay.querySelectorAll('.cmt-col').forEach(td=>{
+      const sid=td.getAttribute('data-sid');
+      const c=map[sid];
+      if(c&&c.text){
+        const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+        td.style.color='#d5dbdb';td.style.fontStyle='normal';
+        td.innerHTML=`<div style="max-width:360px">${esc(c.text)}</div><div style="color:#5f6b6c;font-size:.72em;margin-top:3px">— ${esc(c.user)}${when?(' · '+when):''}</div>`;
+      }else{
+        td.style.color='#5f6b6c';td.style.fontStyle='italic';
+        td.textContent='No comment made by user';
+      }
+    });
+  }catch(e){setAll('Could not load comments','#ff5252',true);}
 }
 function downloadColorCSV(color){
   const tickets=M.colorTickets[color];
@@ -399,6 +641,7 @@ function downloadColorCSV(color){
 }
 
 function showIncidentPopup(type){
+  if(!requireLoginForTickets())return;
   closeAllPopups();
   const tickets=M.incTickets[type]||[];
   // Group by resolver/assignee
@@ -420,6 +663,7 @@ function showIncidentPopup(type){
 }
 
 function showIncidentAgentDrilldown(type,agentName){
+  if(!requireLoginForTickets())return;
   closeAllPopups();
   const tickets=(M.incTickets[type]||[]).filter(r=>displayName(r.ResolvedByIdentity||r.AssigneeIdentity||'Unassigned')===agentName);
   tickets.sort((a,b)=>new Date(b.CreateDate)-new Date(a.CreateDate));
@@ -732,6 +976,7 @@ function showAgentTicketsPopup(agentName){
 }
 
 function showHIPopup(rootCause){
+  if(!requireLoginForTickets())return;
   closeAllPopups();
   const tickets=M.hiCases.filter(h=>(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim()===rootCause);
   const byAgent={};tickets.forEach(r=>{const a=displayName(r.assignee||'Unassigned');if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
@@ -752,6 +997,7 @@ function showHIPopup(rootCause){
 }
 
 function showHIAgentDrilldown(rootCause,agentName){
+  if(!requireLoginForTickets())return;
   closeAllPopups();
   const tickets=M.hiCases.filter(h=>(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim()===rootCause&&displayName(h.assignee||'Unassigned')===agentName);
   tickets.sort((a,b)=>b.cnt-a.cnt);
@@ -778,39 +1024,64 @@ function renderDashboard(){
   const m=M;
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
   const ct=m.colorTickets;
+  // Priority blink conditions:
+  // BLACK: blink whenever there are any black (>240h) tickets.
+  const blackBlink=ct.black.length>0;
+  // PURPLE policy (role-based): only owner/manager/admin may hold reopened (purple) tickets.
+  // Blink if count>0 AND any purple ticket is Unassigned OR assigned to someone who is NOT
+  // owner/manager/admin. PURPLE_ALLOWED_SET is populated from /api/user-roles (see loadUserRoles).
+  const allowed=window.PURPLE_ALLOWED_SET;// Set of lowercase usernames, or null if roster unknown
+  const purpleBlink=ct.purple.length>0 && ct.purple.some(r=>{
+    const a=(r.AssigneeIdentity||'').trim().toLowerCase();
+    if(!a)return true;                       // Unassigned -> not allowed -> blink
+    if(!allowed)return false;                // roster not loaded yet -> don't false-blink
+    return !allowed.has(a);                  // assigned to a non owner/manager/admin -> blink
+  });
+  const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
-  <div class="page-title"><h1>Wall Street Journal</h1><p>${m.uploadTime?'Data last uploaded at '+m.uploadTime+' · ':''}${(m.totalStored||m.T).toLocaleString()} tickets in dashboard. Use "+ Merge Data" to add a new file, or "Start Fresh" to replace all.</p></div>
+  <div class="page-title" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
+    ${loggedIn?`<button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button>`:''}
+  </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
   <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">Total Tickets <span title="Total number of tickets stored in the dashboard" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card success"><div class="value">${(m.res+m.closed).toLocaleString()} (${((m.res+m.closed)/m.T*100).toFixed(1)}%)</div><div class="label">Resolved <span title="Tickets in Resolved or Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card warning"><div class="value">${m.inQ.toLocaleString()} (${(m.inQ/m.T*100).toFixed(1)}%)</div><div class="label">Unresolved Tickets <span title="Tickets not in Resolved/Closed status (Assigned, WIP, Researching, Pending)" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card accent"><div class="value">${m.T.toLocaleString()}</div><div class="label">${ic('ticket',14)} Total Tickets <span title="Total number of tickets stored in the dashboard" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card success"><div class="value">${(m.res+m.closed).toLocaleString()} (${((m.res+m.closed)/m.T*100).toFixed(1)}%)</div><div class="label">${ic('check-circle',14)} Resolved <span title="Tickets in Resolved or Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card warning"><div class="value">${m.inQ.toLocaleString()} (${(m.inQ/m.T*100).toFixed(1)}%)</div><div class="label">${ic('hourglass',14)} Unresolved Tickets <span title="Tickets not in Resolved/Closed status (Assigned, WIP, Researching, Pending)" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>
   <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi-card"><div class="value">${m.avgR.toFixed(0)} hrs (${(m.avgR/240*100).toFixed(1)}%)</div><div class="label">Avg Resolution Time <span title="Average resolution time. Percentage = avg / 240hr SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>
     <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (≤240 hrs) <span title="${m.slaCompliant} of ${m.res+m.closed} resolved within 240 hrs" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card"><div class="value">${m.autosim.toLocaleString()} (${(m.autosim/m.T*100).toFixed(1)}%)</div><div class="label">AutoSIM Resolved <span title="Tickets auto-resolved by AutoSIM" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card"><div class="value">${m.autosim.toLocaleString()} (${(m.autosim/m.T*100).toFixed(1)}%)</div><div class="label">${ic('bolt',14)} AutoSIM Resolved <span title="Tickets auto-resolved by AutoSIM" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi-card accent"><div class="value">${m.hiCases.length.toLocaleString()}</div><div class="label">Repeat Incidents (HI&gt;0) <span title="Tickets with Historical Incident / Cnt > 0" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card"><div class="value">${(m.hiCases.length/m.T*100).toFixed(1)}%</div><div class="label">Repeat Incident % <span title="Repeat incidents as % of total tickets" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card success"><div class="value">${m.hiResolved.toLocaleString()}</div><div class="label">Repeat - Resolved <span title="Repeat incidents in Resolved/Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card warning" style="cursor:pointer" onclick="showHIUnresolvedPopup()"><div class="value">${m.hiUnresolved.toLocaleString()}</div><div class="label">Repeat - Unresolved <span title="Click to view unresolved repeat incident tickets" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-  </div>
+  ${(()=>{
+    const totalHI=m.hiCases.length;
+    const pet=m.hiAnimal.length, nonPet=m.hiNonAnimal.length;
+    const petPct=totalHI?(pet/totalHI*100):0, nonPetPct=totalHI?(nonPet/totalHI*100):0;
+    const diff=(petPct-nonPetPct); // how much pet incidents dominate/inflate the HI mix
+    return `<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-card accent"><div class="value">${totalHI.toLocaleString()}</div><div class="label">${ic('repeat',14)} Repeat Incidents (HI&gt;0) <span title="Tickets with Historical Incident / Cnt > 0" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+      <div class="kpi-card" style="border-top-color:#a78bfa"><div class="value" style="color:#a78bfa">${pet.toLocaleString()}</div><div class="label">${ic('paw',14)} HI involving pet incidents <span title="Repeat incidents whose root cause is an unsecured animal / pet" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+      <div class="kpi-card" style="border-top-color:#a78bfa"><div class="value" style="color:#a78bfa">${petPct.toFixed(1)}%</div><div class="label">${ic('paw',14)} % of HI involving pet incidents</div></div>
+      <div class="kpi-card"><div class="value">${nonPet.toLocaleString()}</div><div class="label">${ic('repeat',14)} HI involving non-pet incidents</div></div>
+      <div class="kpi-card"><div class="value">${nonPetPct.toFixed(1)}%</div><div class="label">${ic('repeat',14)} % of HI involving non-pet incidents</div></div>
+      <div class="kpi-card ${diff>=0?'warning':'success'}"><div class="value">${diff>=0?'+':''}${diff.toFixed(1)}%</div><div class="label">${ic('bar-chart',14)} Pet vs non-pet gap in HI <span title="Percentage-point difference: how much pet incidents inflate the repeat-incident (HI>0) count over non-pet ones" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    </div>`;
+  })()}
 
   <div class="section"><h2>Ticket Age Classification</h2>
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
-      <div class="kpi-card" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="label">GREEN (0-96 hrs / 0-4 days)</div></div>
-      <div class="kpi-card" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="label">YELLOW (96-168 hrs / 4-7 days)</div></div>
-      <div class="kpi-card" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="label">RED (168-240 hrs / 7-10 days)</div></div>
-      <div class="kpi-card" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="label">BLACK (>240 hrs / >10 days)</div></div>
-      <div class="kpi-card" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="label">PURPLE (Reopened)</div></div>
+      <div class="kpi-card" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="label">${ic('check-circle',14)} GREEN (0-96 hrs / 0-4 days)</div></div>
+      <div class="kpi-card" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="label">${ic('clock',14)} YELLOW (96-168 hrs / 4-7 days)</div></div>
+      <div class="kpi-card" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="label">${ic('alert',14)} RED (168-240 hrs / 7-10 days)</div></div>
+      <div class="kpi-card${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="label">${ic('flame',14)} BLACK (&gt;240 hrs / &gt;10 days)</div></div>
+      <div class="kpi-card${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="label">${ic('reopen',14)} PURPLE (Reopened)${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':''}</div></div>
     </div></div>
 
   <div class="section"><h2>Queue Status</h2>
@@ -841,20 +1112,56 @@ function renderDashboard(){
     <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
     <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
   </div>
+  ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section"><h2>SLA Compliance per Week (&le;240 hrs)</h2>
+    <p class="meta-info" style="margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA, for ${LIVE_QUARTER?LIVE_QUARTER.label:'this quarter'}. Weeks are bucketed by resolved date and drawn as each week passes.</p>
+    <div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>
+  </div>`:''}
   <div class="section"><h2>Incident Types</h2><p class="meta-info">Click any incident type to view agent breakdown</p>
     <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>
     ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${type}</strong></td><td>${count}</td><td>${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
     </tbody></table></div></div>
-  ${m.hiCases.length>0?`<div class="section"><h2>Historical Incidents (Cnt > 0)</h2><p class="meta-info">Total: ${m.hiCases.length} tickets with prior incident history. Click any root cause to view agent breakdown.</p>
-    <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>
-    ${(()=>{const hiByRC={};m.hiCases.forEach(h=>{const rc=(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim();hiByRC[rc]=(hiByRC[rc]||0)+1;});const hiSorted=Object.entries(hiByRC).sort((a,b)=>b[1]-a[1]);const hiMax=hiSorted.length>0?hiSorted[0][1]:1;return hiSorted.map(([rc,count],i)=>`<tr style="cursor:pointer" onclick="showHIPopup('${rc.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${rc}</strong></td><td>${count}</td><td>${(count/m.hiCases.length*100).toFixed(1)}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${(count/hiMax*100).toFixed(0)}%;min-width:4px"></div></div></td></tr>`).join('');})()}
-    </tbody></table></div></div>`:''}</div>`;
+  ${m.hiCases.length>0?(()=>{
+    const totalHI=m.hiCases.length;
+    const petCount=m.hiCases.filter(h=>h.isAnimal).length;
+    const nonPetCount=totalHI-petCount;
+    const petPct=(petCount/totalHI*100).toFixed(1);
+    const nonPetPct=(nonPetCount/totalHI*100).toFixed(1);
+    // Build a root-cause breakdown table for a subset of hiCases.
+    const subTable=(cases,accent)=>{
+      if(!cases.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
+      const byRC={};cases.forEach(h=>{const rc=(h.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim();byRC[rc]=(byRC[rc]||0)+1;});
+      const sorted=Object.entries(byRC).sort((a,b)=>b[1]-a[1]);const mx=sorted[0][1];
+      return `<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>`
+        +sorted.map(([rc,count],i)=>`<tr style="cursor:pointer" onclick="showHIPopup('${rc.replace(/'/g,"\\'")}')"><td style="color:${accent};font-weight:700">${i+1}</td><td><strong>${rc}</strong></td><td>${count}</td><td>${(count/totalHI*100).toFixed(1)}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:${accent};width:${(count/mx*100).toFixed(0)}%;min-width:4px"></div></div></td></tr>`).join('')
+        +`</tbody></table></div>`;
+    };
+    return `<div class="section"><h2>Historical Incidents (Cnt > 0)</h2>
+    <div style="background:#000;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:18px">
+      <p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">${totalHI}</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">${petPct}%</strong> are driven by <strong>pet/animal incidents</strong>. Pet incidents are the primary reason the HI&gt;0 count is elevated — handling them accounts for the majority of repeat cases.</p>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        <div style="background:#0a0a0a;border:1px solid rgba(167,139,250,.35);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#a78bfa">${petCount} <span style="font-size:.55em;color:#879596">(${petPct}%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI due to pet / animal incidents</div></div>
+        <div style="background:#0a0a0a;border:1px solid rgba(255,153,0,.3);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#ff9900">${nonPetCount} <span style="font-size:.55em;color:#879596">(${nonPetPct}%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI NOT related to pet incidents</div></div>
+      </div>
+    </div>
+    <h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">🐾 Involving pet / animal incidents — ${petCount} (${petPct}% of all HI)</h3>
+    ${subTable(m.hiCases.filter(h=>h.isAnimal),'#a78bfa')}
+    <h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — ${nonPetCount} (${nonPetPct}% of all HI)</h3>
+    ${subTable(m.hiCases.filter(h=>!h.isAnimal),'#ff9900')}
+    <p class="meta-info" style="margin-top:12px">Click any root cause to view the agent breakdown.</p>
+    </div>`;
+  })():''}</div>`;
   attachNewFileHandler();
+  refreshHelpAlertCount();
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('c2a',{type:'bar',data:{labels:m.dL,datasets:[{label:'Created',data:m.dC,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c2b',{type:'bar',data:{labels:m.dL,datasets:[{label:'Resolved',data:m.dD,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c4a',{type:'bar',data:{labels:m.wL,datasets:[{label:'Created',data:m.wD,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c4b',{type:'bar',data:{labels:m.wL,datasets:[{label:'Resolved',data:m.wDR,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
+  // SLA compliance per week — wave (filled, smooth) area chart. Weeks up to "now" are drawn; future weeks stay null.
+  if(m.slaByWeek&&m.slaByWeek.length){
+    const slaQ=LIVE_QUARTER?LIVE_QUARTER.label:'this quarter';
+    makeChart('cSlaWave',{type:'line',data:{labels:m.slaByWeek.map(w=>w.week),datasets:[{label:'SLA % (≤240h)',data:m.slaByWeek.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=m.slaByWeek[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
+  }
 }
 
 function renderGroups(){
@@ -975,7 +1282,10 @@ async function doLogin(){
     window.PHDAuth.setSession(r.data.token,r.data.user,remember);
     closeAllPopups();
     showToast('Logged in as '+r.data.user.username+' ('+r.data.user.role+')');
-    // Re-render current view so role-gated buttons appear
+    // Refresh the role roster + my profile (avatar), then re-render so role-gated UI updates.
+    await loadUserRoles();
+    if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
+    startHelpNotificationPolling(); // begin desktop notifications for admins/owner
     nav(currentView);
   }catch(e){
     errEl.textContent=e.message;errEl.style.display='block';
@@ -1017,18 +1327,28 @@ function showPublishSpinner(){
 // Current live quarter info (set on init from the API). e.g. {quarter:'2026-Q3',label:'Q3 2026',range:{...}}
 let LIVE_QUARTER=null;
 
-// Publish the current dataset to the live quarter. Handles the cross-quarter 409 warning.
-async function doPublish(confirmCrossQuarter){
+// Carries the merge report across a cross-quarter confirm retry so the audit log keeps it.
+let PENDING_CHANGE_SUMMARY=null;
+
+// Publish the current dataset to the live quarter. Handles the cross-quarter warning.
+// mode: undefined/false = first attempt (may trigger the 409 warning),
+//       'drop'    = update the live quarter only (ignore non-live tickets),
+//       'confirm' = review complete: include & overwrite non-live quarters.
+// changeSummary (optional) is the merge report; saved to the audit log server-side.
+async function doPublish(mode,changeSummary){
   if(!window.PHDAuth.atLeast('admin')){showToast('You need admin privileges to publish.');return;}
+  if(changeSummary!==undefined)PENDING_CHANGE_SUMMARY=changeSummary; // remember across warning retry
   PUBLISHING=true;                 // lock uploads/merges
   showPublishSpinner();
   try{
     const allRows=await dbGetAll();
     const payload={updatedAt:new Date().toISOString(),count:allRows.length,tickets:allRows};
     const body={data:payload};
-    if(confirmCrossQuarter)body.confirmCrossQuarter=true;
+    if(mode==='confirm')body.confirmCrossQuarter=true;
+    if(mode==='drop')body.dropCrossQuarter=true;
+    if(PENDING_CHANGE_SUMMARY)body.changeSummary=PENDING_CHANGE_SUMMARY;
     const r=await window.PHDAuth.api('POST','/api/live-quarter',body);
-    // Cross-quarter warning: server refuses until confirmed
+    // Cross-quarter warning: server refuses on the first attempt until the user chooses.
     if(r.status===409&&r.data&&r.data.error==='cross-quarter'){
       PUBLISHING=false;
       closeAllPopups();
@@ -1038,34 +1358,82 @@ async function doPublish(confirmCrossQuarter){
     if(!r.ok){throw new Error((r.data&&r.data.error)||('Publish failed (HTTP '+r.status+')'));}
     PUBLISHING=false;
     closeAllPopups();
-    const live=(r.data.written||[]).find(w=>w.isLive);
+    // Invalidate the local cache version. The server stamps its own publishedAt; clearing this
+    // makes the next visit do one clean refetch that re-syncs the cache to the server's value.
+    try{await metaSet('liveCache',null);}catch(_){}
+    const summary=PENDING_CHANGE_SUMMARY;
+    PENDING_CHANGE_SUMMARY=null;
+    const reviewed=!!(r.data&&r.data.crossQuarterReviewed);
+    const skipped=(r.data&&r.data.skippedCrossQuarter)||[];
     showToast('Data published to '+(LIVE_QUARTER?LIVE_QUARTER.label:'the live quarter')+'! Live for everyone now.');
+    if(summary)showMergeReport(summary,{reviewed,skipped}); // change-summary popup after a successful upload+publish
   }catch(e){
     PUBLISHING=false;
     closeAllPopups();
-    showPublishModal();
-    setTimeout(()=>{const el=document.getElementById('pubErr');if(el){el.textContent=e.message;el.style.display='block';}},60);
+    setTimeout(()=>showToast('Publish failed: '+e.message),60);
   }
 }
 
-// Warn the admin that the upload contains tickets created in a non-live quarter.
+// Two-section warning when the upload contains tickets created in a non-live quarter.
+// Section 1: update the LIVE quarter as-is (Update / Cancel) — skips non-live tickets.
+// Section 2: review the actual non-live tickets, then Skip-for-now / Review complete & confirm.
 function showCrossQuarterWarning(info){
   closeAllPopups();
-  const rows=(info.crossQuarter||[]).map(c=>`<li><span>${c.label}</span><span class="val" style="color:#fbbf24">${c.count} ticket(s)</span></li>`).join('');
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Flatten all non-live tickets across quarters for the review list.
+  const allCross=[];
+  (info.crossQuarter||[]).forEach(c=>{(c.tickets||[]).forEach(t=>allCross.push({...t,label:c.label}));});
+  // sort oldest first by createDate
+  allCross.sort((a,b)=>new Date(a.createDate)-new Date(b.createDate));
+  const quarterRows=(info.crossQuarter||[]).map(c=>`<div style="display:flex;justify-content:space-between;padding:6px 0;color:#fbbf24;font-size:.88em"><span>${esc(c.label)}</span><span>${c.count} ticket(s)</span></div>`).join('');
+  const ticketRows=allCross.map((t,i)=>`<tr>
+      <td style="color:#879596">${i+1}</td>
+      <td>${t.url?`<a href="${esc(t.url)}" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">${esc(t.id)}</a>`:esc(t.id)}</td>
+      <td style="color:#fbbf24">${esc(t.label)}</td>
+      <td style="color:#879596">${esc((t.createDate||'').split('T')[0])}</td>
+      <td>${esc(t.status)}</td>
+      <td style="color:#879596">${esc(t.assignee||'—')}</td>
+    </tr>`).join('');
+
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:560px;width:100%;padding:28px">
-    <h2 style="color:#fbbf24;font-size:1.2em;margin-bottom:8px">⚠ Data outside the live quarter</h2>
-    <p style="color:#879596;font-size:.9em;margin-bottom:14px;line-height:1.6">This upload contains tickets created in a <b>non-live quarter</b>. The live quarter is <b style="color:#4ade80">${info.liveLabel}</b>. Publishing will also <b>overwrite that finalized quarter's data</b> with these tickets.</p>
-    <ul class="cross-list" style="list-style:none;padding:0;margin:0 0 8px">
-      <li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a2a;color:#4ade80"><span>${info.liveLabel} (live)</span><span class="val">${info.liveCount} ticket(s)</span></li>
-      ${rows}
-    </ul>
-    <p style="color:#879596;font-size:.82em;margin-top:12px">Do you want to continue and update the non-live quarter(s) too?</p>
-    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
-      <button class="btn" style="background:#fbbf24;color:#000" onclick="doPublish(true)">Continue &amp; overwrite</button>
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+    <h2 style="color:#fbbf24;font-size:1.2em;margin-bottom:6px">⚠ Data outside the live quarter</h2>
+    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.6">This upload contains tickets created in a <b>non-live quarter</b>. The live quarter is <b style="color:#4ade80">${esc(info.liveLabel)}</b>.</p>
+
+    <!-- Section 1: update the live quarter as-is -->
+    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:16px 18px;margin-bottom:16px">
+      <h3 style="color:#fff;font-size:.98em;margin-bottom:8px">1 · Update the live quarter only</h3>
+      <p style="color:#879596;font-size:.84em;line-height:1.6;margin-bottom:6px">Publish the <b style="color:#4ade80">${esc(info.liveLabel)}</b> tickets (<b>${info.liveCount}</b>) and <b>ignore</b> the non-live tickets below. Finalized quarters stay untouched.</p>
+      <div style="margin-top:6px">${quarterRows}</div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
+        <button class="btn" style="background:#4ade80" onclick="doPublish('drop')">Update</button>
+      </div>
+    </div>
+
+    <!-- Section 2: review the non-live tickets -->
+    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:16px 18px">
+      <h3 style="color:#fff;font-size:.98em;margin-bottom:8px">2 · Review the non-live tickets (${allCross.length})</h3>
+      <p style="color:#879596;font-size:.84em;line-height:1.6;margin-bottom:10px">These tickets were created in a non-live quarter. Confirming will <b style="color:#fbbf24">overwrite that quarter's data</b> with them. Oldest first.</p>
+      <div style="max-height:280px;overflow:auto;border:1px solid #2a2a2a;border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:.82em">
+          <thead><tr style="position:sticky;top:0;background:#000">
+            <th style="text-align:left;padding:8px 10px;color:#879596">#</th>
+            <th style="text-align:left;padding:8px 10px;color:#879596">Ticket</th>
+            <th style="text-align:left;padding:8px 10px;color:#879596">Quarter</th>
+            <th style="text-align:left;padding:8px 10px;color:#879596">Created</th>
+            <th style="text-align:left;padding:8px 10px;color:#879596">Status</th>
+            <th style="text-align:left;padding:8px 10px;color:#879596">Assignee</th>
+          </tr></thead>
+          <tbody>${ticketRows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sec" onclick="doPublish('drop')">Skip for now</button>
+        <button class="btn" style="background:#fbbf24;color:#000" onclick="doPublish('confirm')">Review complete — upload &amp; confirm</button>
+      </div>
     </div>
   </div>`;
   document.body.appendChild(overlay);
@@ -1085,32 +1453,116 @@ async function loadLiveQuarter(){
   return null;
 }
 
-// ========= INIT =========
-(async function init(){
-  // Loading shimmer while we fetch the live quarter from Atlas (may hit Render cold start).
-  if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
+// Load the user roster (username->role) so the dashboard knows which assignees are
+// owner/manager/admin (allowed to hold purple/reopened tickets). Logged-in only.
+window.PURPLE_ALLOWED_SET=null;
+async function loadUserRoles(){
+  if(!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser()))return;
+  try{
+    const r=await window.PHDAuth.api('GET','/api/user-roles');
+    if(r.ok&&Array.isArray(r.data)){
+      const allowedRoles=new Set(['owner','manager','admin']);
+      const set=new Set();const profiles={};
+      r.data.forEach(u=>{const un=(u.username||'').toLowerCase();if(allowedRoles.has(u.role))set.add(un);profiles[un]=u;});
+      window.PURPLE_ALLOWED_SET=set;
+      window.USER_PROFILES=profiles; // lowercase username -> {username,role,displayName,avatar}
+    }
+  }catch(e){/* leave null -> purple only blinks on Unassigned */}
+}
+// Look up a person's profile (for avatars) by assignee identity/username.
+function profileFor(name){
+  const p=(window.USER_PROFILES||{})[String(name||'').toLowerCase()];
+  return p||{username:name};
+}
+// Is this assignee a registered account in our database (present in /api/user-roles)?
+function isRegisteredUser(name){
+  if(!name)return false;
+  const roster=window.USER_PROFILES||null;
+  if(!roster)return false; // roster not loaded -> treat as unknown/non-registered
+  return Object.prototype.hasOwnProperty.call(roster,String(name).toLowerCase());
+}
+
+// Cheap "is it stale?" check: returns the live quarter's id + publishedAt without the ticket payload.
+async function fetchLiveQuarterVersion(){
+  try{
+    const r=await window.PHDAuth.api('GET','/api/quarters');
+    if(r.ok&&r.data){
+      const liveId=r.data.liveQuarter;
+      const q=(r.data.quarters||[]).find(x=>x.id===liveId);
+      // Keep LIVE_QUARTER label in sync even on a cache hit.
+      if(liveId)LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:liveId,label:(r.data.liveLabel||liveId)});
+      return {liveId,publishedAt:q?(q.publishedAt||null):null};
+    }
+  }catch(e){}
+  return null;
+}
+
+// Render the dashboard from whatever is currently in the local tickets store.
+async function renderFromLocal(uploadTimeIso){
+  const allRows=await dbGetAll();
+  if(!allRows.length)return false;
+  M=computeMetrics(allRows);M.totalStored=allRows.length;
+  M.uploadTime=uploadTimeIso?new Date(uploadTimeIso).toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+  renderDashboard();
+  return true;
+}
+
+// Fetch the full live-quarter dataset, store it, cache its version, and render.
+async function refreshFromServer(showShimmer){
+  if(showShimmer&&window.PHDAuth&&window.PHDAuth.skeletonDashboard){
     document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading live dashboard data from the database…');
   }
+  const shared=await loadLiveQuarter();// sets LIVE_QUARTER
+  if(shared){
+    await dbClear();
+    await dbPutAll(shared.tickets);
+    // Cache the version so future visits can skip the heavy fetch when nothing changed.
+    await metaSet('liveCache',{quarter:LIVE_QUARTER?LIVE_QUARTER.quarter:null,publishedAt:shared.updatedAt||null});
+    await renderFromLocal(shared.updatedAt);
+    return true;
+  }
+  return false;
+}
+
+// ========= INIT ========= (stale-while-revalidate: instant from cache, refresh only if changed)
+(async function init(){
+  // Paint the shimmer IMMEDIATELY (before any awaits) so the screen is never blank while we
+  // check the roster / cache / server version. A cache hit will replace it instantly.
+  if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
+    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading live dashboard…');
+  }
+  // Fetch the role roster + my profile (avatar) first so the header renders correctly.
+  await loadUserRoles();
+  if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
+  // Start background help-request notifications for admins/owner (no-op if not logged in / not admin).
+  startHelpNotificationPolling();
   try{
-    // 1. Load the live quarter dataset from Atlas (shared for everyone)
-    const shared=await loadLiveQuarter();
-    if(shared){
-      await dbClear();
-      await dbPutAll(shared.tickets);
-      const allRows=await dbGetAll();
-      M=computeMetrics(allRows);M.totalStored=allRows.length;
-      M.uploadTime=shared.updatedAt?new Date(shared.updatedAt).toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
-      renderDashboard();
+    const cache=await metaGet('liveCache');           // {quarter, publishedAt} from last successful load
+    const localCount=await dbCount();
+    const version=await fetchLiveQuarterVersion();     // cheap server check (id + publishedAt)
+
+    if(version){
+      const fresh=cache && localCount>0 && cache.quarter===version.liveId && (cache.publishedAt||null)===(version.publishedAt||null);
+      if(fresh){
+        // Nothing changed since last visit -> render instantly from cache, no shimmer, no heavy fetch.
+        await renderFromLocal(version.publishedAt);
+        return;
+      }
+      // Cache is stale or empty -> if we have SOME local data, show it instantly while we refresh;
+      // otherwise show the shimmer during the full fetch.
+      const hadLocal = localCount>0 ? await renderFromLocal(cache?cache.publishedAt:null) : false;
+      const ok=await refreshFromServer(/*showShimmer*/ !hadLocal);
+      if(!ok && !hadLocal)renderUpload();
       return;
     }
-    // 2. Fall back to local IndexedDB (offline / not yet published)
-    const count=await dbCount();
-    if(count>0){
-      const allRows=await dbGetAll();
-      M=computeMetrics(allRows);M.totalStored=allRows.length;
-      renderDashboard();
-    } else {
-      renderUpload();
-    }
-  }catch(e){renderUpload();}
+
+    // Version check failed (offline / server unreachable): fall back to local cache if present.
+    if(localCount>0){ await renderFromLocal(cache?cache.publishedAt:null); return; }
+    // No cache and no server -> last resort: try a full fetch with shimmer, else upload screen.
+    const ok=await refreshFromServer(true);
+    if(!ok)renderUpload();
+  }catch(e){
+    try{ if(await renderFromLocal(null))return; }catch(_){}
+    renderUpload();
+  }
 })();

@@ -13,7 +13,14 @@ const COLLECTIONS = {
   users: 'users',
   liveData: 'live_data',   // legacy single-doc store (kept for compatibility)
   quarters: 'quarters',    // per-quarter dataset docs: { _id: "2026-Q3", tickets: [...], meta: {...} }
-  comments: 'comments',    // used in Stage 2
+  dataLog: 'data_log',     // audit log of uploads/publishes (who/when/what changed)
+  blurbs: 'blurbs',        // common blurbs (title + text) shown on the Blurbs tool page
+  blurbLog: 'blurb_log',   // audit log of blurb create/edit actions
+  hashtags: 'hashtags',    // hashtags (tag + description) shown on the Hashtags tool page
+  hashtagLog: 'hashtag_log', // audit log of hashtag create/edit/delete actions
+  paging: 'paging',        // paging contacts (country + code + email)
+  comments: 'comments',    // per-ticket comments (My Tickets)
+  helpRequests: 'help_requests', // editor "ask for help" threads
 };
 
 let clientPromise = null;

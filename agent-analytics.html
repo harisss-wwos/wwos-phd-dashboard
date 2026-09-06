@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Analytics · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--pu:#a78bfa;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{width:94%;max-width:1400px;margin:0 auto;padding:32px 20px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
+.section{margin-bottom:30px}
+.section h2{color:var(--o);font-size:1.05em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1000px}
+thead th{background:#000;color:var(--tm);font-size:.68em;text-transform:uppercase;letter-spacing:.4px;font-weight:600;text-align:center;padding:10px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
+thead th.l{text-align:left}
+tbody td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;text-align:center;white-space:nowrap}
+tbody td.l{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,153,0,.03)}
+.uname{color:#fff;font-weight:600}
+.role{color:var(--o);text-transform:uppercase;font-size:.68em;font-weight:700;margin-left:6px;background:rgba(255,153,0,.14);padding:1px 7px;border-radius:20px}
+.big{font-weight:700;color:#fff}
+.colors{display:inline-flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.dot{display:inline-flex;align-items:center;gap:3px;font-size:.8em;font-weight:600}
+.dot i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.d-green i{background:#4ade80}.d-yellow i{background:#fbbf24}.d-red i{background:#ff5252}.d-black i{background:#888}.d-purple i{background:#a78bfa}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn sec" href="app.html">← Live Dashboard</a>
+</div>
+<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:200px;margin-bottom:16px"></div><div class="shimmer sk-card" style="min-height:200px"></div></div></div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Agent Analytics</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+
+function colorsCell(c){
+  return '<div class="colors">'
+    +'<span class="dot d-green"><i></i>'+c.green+'</span>'
+    +'<span class="dot d-yellow"><i></i>'+c.yellow+'</span>'
+    +'<span class="dot d-red"><i></i>'+c.red+'</span>'
+    +'<span class="dot d-black"><i></i>'+c.black+'</span>'
+    +'<span class="dot d-purple"><i></i>'+c.purple+'</span>'
+  +'</div>';
+}
+
+function tableFor(rows,isEditor){
+  const head=`<thead><tr>
+    <th class="l">Agent</th>
+    <th>Resolved (quarter)</th>
+    <th>Working on (open)</th>
+    <th>Successful</th>
+    <th>Immediate / Auto</th>
+    <th>Resolved 12h</th>
+    <th>Resolved 24h</th>
+    <th>Open by color (G Y R B P)</th>
+    ${isEditor?'<th>Tickets w/ comment</th>':''}
+  </tr></thead>`;
+  const body=rows.map(r=>`<tr>
+    <td class="l"><span class="uname">${esc(r.username)}</span></td>
+    <td class="big">${r.resolvedInQuarter}</td>
+    <td>${r.open}</td>
+    <td>${r.resolvedSuccessful}</td>
+    <td>${r.immediateAuto}</td>
+    <td>${r.resolved12}</td>
+    <td>${r.resolved24}</td>
+    <td>${colorsCell(r.colors)}</td>
+    ${isEditor?('<td class="big">'+r.touched+'</td>'):''}
+  </tr>`).join('');
+  return `<div class="tbl-card"><table>${head}<tbody>${body}</tbody></table></div>`;
+}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
+  if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
+  const r=await A.api('GET','/api/agent-analytics');
+  if(r.status===403){gate('Admin, manager, or owner access required.');return;}
+  if(!r.ok){gate('Could not load analytics (HTTP '+r.status+').');return;}
+  const d=r.data;
+  document.getElementById('wrap').innerHTML=`
+    <h1>Agent Analytics</h1>
+    <p class="sub">Per-agent performance in the current live quarter (<b style="color:#fff">${esc(d.quarter||'')}</b>). Sorted by tickets resolved (highest first). 12h/24h are relative to now.</p>
+    <div class="section"><h2>Owner &amp; Admins</h2>${tableFor(d.leads||[],false)}</div>
+    <div class="section"><h2>Editors</h2>${tableFor(d.editors||[],true)}</div>`;
+}
+load();
+</script>
+</body>
+</html>

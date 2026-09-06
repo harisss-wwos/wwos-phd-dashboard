@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Last 24 Hours · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--bll:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{width:88%;max-width:1100px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.kpi{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:22px}
+.kpi .value{font-size:2.1em;font-weight:700;color:#fff;line-height:1}
+.kpi .label{color:var(--tm);font-size:.85em;margin-top:8px;line-height:1.4}
+.kpi.info{border-top-color:var(--bll)}.kpi.info .value{color:var(--bll)}
+.kpi.good{border-top-color:var(--gl)}.kpi.good .value{color:var(--gl)}
+.kpi.warn{border-top-color:var(--rl)}.kpi.warn .value{color:var(--rl)}
+.kpi.amber{border-top-color:var(--yl)}.kpi.amber .value{color:var(--yl)}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn sec" href="app.html">← Live Dashboard</a>
+</div>
+<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:220px"></div></div></div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Last 24 Hours</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function card(cls,val,label){return '<div class="kpi '+cls+'"><div class="value">'+val+'</div><div class="label">'+label+'</div></div>';}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
+  if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
+  const r=await A.api('GET','/api/last24');
+  if(r.status===403){gate('Admin, manager, or owner access required.');return;}
+  if(!r.ok){gate('Could not load last-24h data (HTTP '+r.status+').');return;}
+  const d=r.data;
+  const sla=d.slaPct24==null?'—':(d.slaPct24+'%');
+  document.getElementById('wrap').innerHTML=`
+    <h1>Last 24 Hours</h1>
+    <p class="sub">Rolling 24-hour snapshot for the current live quarter (<b style="color:#fff">${d.quarter||''}</b>), relative to now.</p>
+    <div class="kpi-grid">
+      ${card('info',d.created24,'Tickets created in the last 24 hours')}
+      ${card('good',d.resolved24,'Tickets resolved in the last 24 hours')}
+      ${card('good',sla,'SLA compliance (\u2264240h) among tickets resolved in the last 24 hours'+(d.slaBase?(' &middot; '+d.slaBase+' measured'):''))}
+      ${card('amber',d.hi24,'Repeat incidents (HI Cnt &gt; 0) resolved in the last 24 hours')}
+      ${card('info',d.immediateAuto24,'Immediately Resolved / Automatically Closed in the last 24 hours (everyone)')}
+      ${card('warn',d.crossing240Next24,'Open tickets likely to cross the 240-hour mark in the next 24 hours')}
+    </div>
+    ${helpSection(d.helpActivity||[])}`;
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtTime(iso){if(!iso)return '';try{return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+function helpSection(items){
+  let h='<h2 style="color:var(--o);font-size:1.05em;text-transform:uppercase;letter-spacing:.5px;margin:32px 0 14px">Help Activity (last 24h)</h2>';
+  if(!items.length)return h+'<div style="text-align:center;color:var(--tm);padding:24px;border:1px dashed var(--bd);border-radius:12px">No help requests or replies in the last 24 hours.</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:14px">';
+  h+=items.map(it=>{
+    const statusPill=`<span style="padding:2px 9px;border-radius:20px;font-weight:700;font-size:.7em;${it.status==='resolved'?'background:rgba(74,222,128,.15);color:#4ade80':'background:rgba(251,191,36,.15);color:#fbbf24'}">${it.status==='resolved'?'RESOLVED':'OPEN'}</span>`;
+    const ticket=it.ticketUrl?`<a href="${esc(it.ticketUrl)}" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">${esc(it.shortId)}</a>`:esc(it.shortId);
+    const replies=(it.replies||[]).length
+      ? it.replies.map(r=>`<div style="border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.83em"><span style="color:#4ade80;font-weight:600">A · ${esc(r.by)}</span> <span style="color:#5f6b6c">(${esc(r.role)}) · ${fmtTime(r.at)}</span><div style="color:var(--t);white-space:pre-wrap;margin-top:2px">${esc(r.text)}</div></div>`).join('')
+      : '<div style="border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.8em;color:#5f6b6c;font-style:italic">No reply yet</div>';
+    return `<div style="background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <div style="font-size:.85em"><b style="color:#44b9d6">${esc(it.requester)}</b> asked on ${ticket} <span style="color:#5f6b6c">· ${fmtTime(it.createdAt)}</span></div>
+        ${statusPill}
+      </div>
+      <div style="color:#fff;font-size:.86em;white-space:pre-wrap;margin-bottom:4px"><span style="color:var(--yl);font-weight:600">Q ·</span> ${esc(it.doubt)}</div>
+      <div>${replies}</div>
+    </div>`;
+  }).join('');
+  h+='</div>';
+  return h;
+}
+load();
+</script>
+</body>
+</html>

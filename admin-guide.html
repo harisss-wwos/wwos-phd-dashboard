@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin &amp; Operations Guide · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--bll:#44b9d6;--pu:#a78bfa}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh;line-height:1.6}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid var(--bd);color:var(--t);border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--o);color:var(--o)}
+.wrap{max-width:900px;margin:0 auto;padding:44px 24px 80px}
+h1{color:#fff;font-size:2em;margin-bottom:8px}
+.lede{color:var(--tm);font-size:1em;margin-bottom:8px}
+.links{color:var(--tm);font-size:.9em;margin-bottom:6px}
+.links a{color:var(--bll);text-decoration:none}
+.links a:hover{text-decoration:underline}
+h2{color:#fff;font-size:1.3em;margin:40px 0 12px;padding-top:14px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+h2 .num{color:var(--o);font-weight:700}
+h3{color:#fff;font-size:1.02em;margin:22px 0 8px}
+h4{color:var(--o);font-size:.86em;text-transform:uppercase;letter-spacing:.5px;margin:20px 0 8px}
+p{margin:0 0 12px;font-size:.94em}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:6px;font-size:.94em}
+b,strong{color:#fff}
+a{color:var(--bll)}
+code{background:#111;border:1px solid var(--bd);border-radius:4px;padding:1px 6px;font-size:.85em;color:#ffd7a8;font-family:ui-monospace,Menlo,Consolas,monospace}
+table{width:100%;border-collapse:collapse;margin:6px 0 18px;font-size:.9em;display:block;overflow-x:auto}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top}
+th{background:#0a0a0a;color:var(--tm);font-size:.76em;text-transform:uppercase;letter-spacing:.4px;font-weight:600;white-space:nowrap}
+td:first-child b,td:first-child{color:#fff}
+.note{background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:8px;padding:12px 16px;margin:0 0 16px;font-size:.9em;color:var(--t)}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+.chk{list-style:none;padding-left:0}
+.chk li{padding-left:26px;position:relative}
+.chk li::before{content:'☐';position:absolute;left:0;color:var(--o);font-size:1.1em}
+.pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:.72em;font-weight:700}
+.g{background:rgba(74,222,128,.15);color:var(--gl)}
+.y{background:rgba(251,191,36,.15);color:var(--yl)}
+.r{background:rgba(255,82,82,.15);color:var(--rl)}
+.k{color:#5f6b6c}.blk{color:#aaa}.pu{color:var(--pu)}
+.foot{color:var(--tm);font-size:.85em;margin-top:36px;padding-top:16px;border-top:1px solid var(--bd)}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn" href="index.html">← All Dashboards</a>
+</div>
+
+<div class="wrap">
+  <h1>Admin &amp; Operations Guide</h1>
+  <p class="lede">A practical guide for the people who run the PHD ticket-analytics dashboard. Share this with your peers.</p>
+  <p class="links"><b style="color:#fff">Live site:</b> <a href="index.html">This dashboard</a></p>
+  <p class="links"><b style="color:#fff">Who this is for:</b> Admins, Managers, and the Owner (who log in, upload data, and answer help requests). Contractors (called <em>editors</em> in the system) have a section at the end.</p>
+
+  <h2><span class="num">1.</span> Roles at a glance</h2>
+  <table>
+    <thead><tr><th>Role</th><th>View dashboard</th><th>Upload / publish</th><th>Answer help</th><th>Manage users</th></tr></thead>
+    <tbody>
+      <tr><td><b>Owner</b></td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td><b>Manager</b></td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td><b>Admin</b></td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td><b>Editor</b> (contractor)</td><td>Yes</td><td>No</td><td>No (they <em>ask</em>)</td><td>No</td></tr>
+      <tr><td>Anyone (not logged in)</td><td>Summary only</td><td>No</td><td>No</td><td>No</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li><b>Viewing the dashboard needs no login.</b> Anyone can see the charts and summary tables.</li>
+    <li><b>Ticket-level detail</b> (clicking a color tile, incident type, or historical-incident row to see per-agent tickets) is <b>logged-in only</b>. Logged-out visitors get a "Login required" prompt.</li>
+    <li><b>Groups, Previous Week, and Shift Report</b> buttons only appear for logged-in users.</li>
+    <li>Only the <b>Owner</b> can add, edit, or remove user accounts.</li>
+  </ul>
+
+  <h2><span class="num">2.</span> First login — and change your password right away</h2>
+  <ol>
+    <li>Go to the live dashboard and click <b>Login</b> (top-right).</li>
+    <li>Enter the <b>username</b> and <b>temporary password</b> the Owner gave you.</li>
+    <li>Your name and role appear in the toolbar.</li>
+  </ol>
+  <h3>Change your password immediately after first login</h3>
+  <ol>
+    <li>Click your <b>avatar</b> (top-right) to open your <b>Profile</b> page.</li>
+    <li>Under <b>Security</b>, click <b>Change Password</b>.</li>
+    <li>Enter your <b>current password</b>, then your <b>new password</b> (minimum 6 characters) twice.</li>
+    <li>Click <b>Update Password</b>.</li>
+  </ol>
+  <div class="note">Treat the temporary password as one-time. Don't share accounts — everyone should log in as themselves so the data log and help threads attribute actions correctly.</div>
+  <h4>While you're on the Profile page</h4>
+  <ul>
+    <li>Set a <b>display name</b> and optionally upload a <b>profile photo</b> (avatar). These are visible to other users across the dashboard.</li>
+    <li>Your <b>login ID</b> and <b>role</b> are read-only — only the Owner can change a role.</li>
+  </ul>
+
+  <h2><span class="num">3.</span> Uploading data <span style="font-size:.7em;color:var(--tm);font-weight:400">(Admin / Manager / Owner)</span></h2>
+  <p>Data is uploaded as a <b>CSV export of PHD tickets</b>. On upload, the file is <b>merged</b> into the current quarter's dataset and <b>published to everyone</b> automatically (it becomes the live data for all viewers).</p>
+  <h3>How to upload</h3>
+  <ol>
+    <li>Log in.</li>
+    <li>On the live dashboard, click <b>Upload new data</b> (green button, top-right).</li>
+    <li>Pick your CSV. The dashboard processes it, merges it with existing tickets, and publishes.</li>
+    <li>An <b>Upload Complete</b> summary shows what changed (added / updated / reopened / auto-closed / unchanged).</li>
+  </ol>
+  <h3>What "merge" does</h3>
+  <ul>
+    <li><b>New tickets</b> are added.</li>
+    <li><b>Existing tickets</b> update when status advances (e.g. Assigned → Resolved).</li>
+    <li><b>Reopened tickets</b> (was Resolved/Closed, now Work In Progress again) are flagged and shown as <b class="pu">PURPLE</b>.</li>
+    <li><b>Missing tickets</b> that were previously Resolved are treated as auto-closed.</li>
+    <li>The whole change set is recorded in the <b>Update data log</b>.</li>
+  </ul>
+  <h3>Quarters</h3>
+  <p>The dashboard is organized by <b>quarter</b> (e.g. Q3 2026). The <b>live quarter</b> is the current quarter based on today's date. If your upload contains tickets from a <b>different quarter</b>, the dashboard flags it and asks you to review before overwriting that quarter's data — this prevents accidentally mixing quarters.</p>
+
+  <h2><span class="num">4.</span> CSV fields — what the upload needs</h2>
+  <p>Each row is one ticket. The parser keys off column <b>headers</b>, so header names must match. A row is only kept if it has a <b>ShortId</b> (or <code>IssueId</code>, which is treated as the ShortId).</p>
+  <h4>Required / most important</h4>
+  <table>
+    <thead><tr><th>Field</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><b>ShortId</b> (or IssueId)</td><td>Unique ticket ID. Rows without it are skipped. Used as the merge key.</td></tr>
+      <tr><td><b>CreateDate</b></td><td>Creation time. Drives ticket age, the 240-hour (10-day) deadline, created charts, and SLA timing.</td></tr>
+      <tr><td><b>Status</b></td><td><code>Assigned</code>, <code>Work In Progress</code>, <code>Pending</code>, <code>Researching</code>, <code>Resolved</code>, <code>Closed</code>. Drives queue counts, color classification, reopen detection.</td></tr>
+      <tr><td><b>ResolvedDate</b></td><td>When resolved. Drives resolved charts, average resolution time, and <b>SLA compliance (≤240 hrs)</b>.</td></tr>
+      <tr><td><b>AssigneeIdentity</b></td><td>Who it's assigned to. Drives per-agent breakdowns and "My Tickets". Logins not in our DB appear under <b>Non-registered logins</b>.</td></tr>
+      <tr><td><b>ResolvedByIdentity</b></td><td>Who resolved it (an agent, or <code>AutoSIM</code> for automated closures). Drives resolver stats.</td></tr>
+    </tbody>
+  </table>
+  <h4>Powers the deeper analytics</h4>
+  <table>
+    <thead><tr><th>Field</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td><b>RootCause</b></td><td>The <b>Incident Type</b> classification and repeat-incident (HI) breakdowns.</td></tr>
+      <tr><td><b>RootCauseDetails</b></td><td>Detecting <b>Historical Incident / Cnt &gt; 0</b> (repeat incidents).</td></tr>
+      <tr><td><b>ClosureCode</b></td><td><code>Immediately Resolved</code>, <code>Automatically Closed</code> — classifies first-time pet incidents.</td></tr>
+      <tr><td><b>Title</b></td><td>Region detection (US/UK/CA/…) for the geographic breakdown.</td></tr>
+    </tbody>
+  </table>
+  <div class="note">Export with these columns present and correctly named. If <code>RootCause</code>/<code>RootCauseDetails</code> are missing, the incident-type and repeat-incident sections will be sparse, but core counts (queue, SLA, ages) still work as long as ShortId, CreateDate, Status, and ResolvedDate are present.</div>
+
+  <h2><span class="num">5.</span> What information you can see</h2>
+  <h3>Live Dashboard <span style="font-size:.75em;color:var(--tm)">(everyone; ticket detail logged-in only)</span></h3>
+  <ul>
+    <li><b>KPI summary</b> — total tickets, in-queue, resolved, AutoSIM, average resolution time, SLA %, and more.</li>
+    <li><b>Repeat Incident (HI) data</b> — repeat incidents (Cnt &gt; 0), split into <b>pet vs non-pet</b>, with percentages and the pet-vs-non-pet gap.</li>
+    <li><b>Ticket Age Classification</b> — five color tiles:
+      <ul>
+        <li><span class="pill g">GREEN</span> 0–96 hrs (0–4 days)</li>
+        <li><span class="pill y">YELLOW</span> 96–168 hrs (4–7 days)</li>
+        <li><span class="pill r">RED</span> 168–240 hrs (7–10 days)</li>
+        <li><b class="blk">BLACK</b> &gt; 240 hrs (&gt; 10 days)</li>
+        <li><b class="pu">PURPLE</b> Reopened (⚠ shows if a reopened ticket is held by someone outside the allowed reviewers)</li>
+      </ul>
+      Click any tile (logged in) for the <b>per-agent breakdown</b>, split into <b>Registered users</b> vs <b>Non-registered logins</b>, then drill into an agent's tickets. Download CSVs per segment.
+    </li>
+    <li><b>SLA Compliance per Week (≤240 hrs)</b> — a wave chart of each week's SLA % for the current quarter, drawn as each week passes.</li>
+    <li><b>Incident Types</b> — ranked table; click a type (logged in) for the agent breakdown.</li>
+    <li><b>Historical Incidents (Cnt &gt; 0)</b> — repeat-incident root-cause breakdown; click a row (logged in) for the agent breakdown.</li>
+    <li>Daily and weekly <b>created vs resolved</b> charts.</li>
+  </ul>
+  <h3>Other pages (logged-in)</h3>
+  <ul>
+    <li><b>Groups</b> — A1 / A2 / B group performance and totals.</li>
+    <li><b>Previous Week</b> — the prior week's created/resolved report.</li>
+    <li><b>Shift Report</b> — a copy-ready shift handoff summary (choose region).</li>
+    <li><b>My Tickets</b> — your own open tickets, deadlines (240h), and per-ticket comments.</li>
+    <li><b>PHD Tools</b> — Common Blurbs, Hashtags, and Paging contacts (each card has a <b>Copy</b> and a <b>View</b> button). Admins can add/edit/delete blurbs and hashtags.</li>
+    <li><b>Update data log</b> — full audit history of every upload/publish and what changed.</li>
+    <li><b>Agent Analytics</b> and <b>Last 24 Hours</b> — <b>Admin+</b> (Managers excluded from Agent Analytics). Last 24 Hours also shows a <b>Help Activity</b> section.</li>
+    <li><b>Users</b> — <b>Owner only</b>: create accounts, set roles, reset passwords, remove users.</li>
+  </ul>
+
+  <h2><span class="num">6.</span> The Help feature — how contractors ask, and how you help</h2>
+  <p>Contractors (editors) can raise questions on their own tickets. Admins, Managers, and the Owner answer them.</p>
+  <h3>How a contractor asks for help</h3>
+  <ul>
+    <li>On <b>My Tickets</b>, each of their tickets has an <b>Ask for help</b> button.</li>
+    <li>They click it, type their question, and submit.</li>
+    <li><b>Only one open request per ticket at a time.</b> To ask another question on the same ticket, they must first close the current one with <b>Help received</b>.</li>
+  </ul>
+  <h3>How you (Admin / Manager / Owner) help</h3>
+  <ol>
+    <li>On the <b>live dashboard</b>, find the <b>Alerts</b> button beside the quarter title. A <b>red badge</b> shows the number of open requests (hidden when none). <em>The button is visible to all logged-in users, but only Admin+ can reply.</em></li>
+    <li>Click <b>Alerts</b>. Each open request shows who asked, which ticket (linked), their question, and any replies so far.</li>
+    <li>Type your reply and click <b>Reply</b>. Replies are <b>append-only and threaded</b> — multiple replies over time, each attributed and timestamped.</li>
+    <li>The contractor sees your replies <b>inline on their My Tickets page</b>, in that ticket's thread.</li>
+  </ol>
+  <h3>Closing the loop</h3>
+  <ul>
+    <li>When satisfied, the contractor clicks <b>Help received</b>. It drops off the Alerts list but is <b>kept for the record</b> (nothing is deleted).</li>
+    <li>Every question and answer is documented in <b>Last 24 Hours → Help Activity</b>: who asked, the ticket, the question, who replied, and open/resolved status.</li>
+  </ul>
+
+  <h2><span class="num">7.</span> Quick operational checklist</h2>
+  <div class="card">
+    <ul class="chk">
+      <li>Logged in with my own account.</li>
+      <li>Changed my temporary password (Profile → Security → Change Password).</li>
+      <li>Set my display name / photo.</li>
+      <li>Confirmed my CSV has: ShortId, CreateDate, Status, ResolvedDate, AssigneeIdentity, ResolvedByIdentity (plus RootCause / RootCauseDetails / ClosureCode / Title for full analytics).</li>
+      <li>Uploaded via <b>Upload new data</b>, reviewed the <b>Upload Complete</b> summary.</li>
+      <li>Checked the <b>Alerts</b> badge and answered any open help requests.</li>
+      <li>Reviewed the <b>Update data log</b> if I need to audit a change.</li>
+    </ul>
+  </div>
+
+  <h2><span class="num">8.</span> FAQ / troubleshooting</h2>
+  <h3>A visitor can't see tickets when clicking a tile.</h3>
+  <p>Expected — ticket-level detail is logged-in only. Ask them to log in, or if they need an account, reach out to <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener">@harisss</a> (also linked in the "Login required" popup).</p>
+  <h3>An assignee like "vaine" shows under "Non-registered logins".</h3>
+  <p>Their login isn't an account in our user database. It's informational — those tickets still count everywhere; they're just separated in the per-agent drilldown so you can tell registered users apart from unknown/default logins.</p>
+  <h3>My upload was flagged as "cross-quarter".</h3>
+  <p>Your CSV contained tickets from a quarter other than the live one. Review the prompt before confirming so you don't overwrite another quarter's data.</p>
+  <h3>Where do I see who changed what?</h3>
+  <p><b>Update data log</b> — records each upload/publish with the change summary (added / updated / reopened / auto-closed / unchanged).</p>
+
+  <p class="foot">For account creation, role changes, or password resets you can't do yourself, contact the Owner — <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener">@harisss</a>.</p>
+</div>
+</body>
+</html>

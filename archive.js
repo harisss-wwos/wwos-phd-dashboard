@@ -10,7 +10,7 @@ async function dbPut(key,metrics,name){const db=await openDB();return new Promis
 function qparam(k){return new URLSearchParams(location.search).get(k);}
 
 // Bump when metrics JSON shape changes so stale IndexedDB caches auto-invalidate.
-const SCHEMA_VER='v4-incidentagents';
+const SCHEMA_VER='v5-slabyweek';
 
 async function loadMetrics(){
   const ds=qparam('ds');
@@ -128,6 +128,11 @@ function render(metrics,name,ds){
     ${m.yoy.map(y=>`<tr><td><strong>${y.year}</strong></td><td>${y.count.toLocaleString()}</td><td style="color:${y.growth===null?'#879596':parseFloat(y.growth)>=0?'#ff5252':'#4ade80'}">${y.growth===null?'—':(parseFloat(y.growth)>=0?'+':'')+y.growth+'%'}</td></tr>`).join('')}
     </tbody></table></div></div>`}
 
+    ${isQ2&&m.slaByWeek?`<div class="section"><h2>SLA Compliance per Week (≤240 hrs)</h2>
+      <p style="color:var(--tm);font-size:.85em;margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date.</p>
+      <div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div>
+    </div>`:''}
+
     ${isQ2
       ?`<div class="section"><h2>Root Causes by Group</h2><div id="rcGroups" class="rc-accordion"></div></div>`
       :`<div class="section"><h2>Root Cause × Region (Cross-Tab)</h2><div style="overflow-x:auto" id="rcRegionTable"></div></div>`}
@@ -195,6 +200,13 @@ function render(metrics,name,ds){
     const wkResolvedMap=Object.fromEntries(m.resolvedByWeek||[]);
     const wkResolved=wkLabels.map(l=>wkResolvedMap[l]||0);
     mkChart('cCvRWeek',{type:'line',data:{labels:wkLabels,datasets:[{label:'Created',data:wkCreated,borderColor:'#ff9900',backgroundColor:'rgba(255,153,0,.08)',fill:true,tension:.3,pointRadius:2},{label:'Resolved',data:wkResolved,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.3,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+windowText+')',color:'#d5dbdb',font:{size:12}}}}}});
+
+    // SLA compliance per week — wave (filled, smooth) area chart.
+    if(m.slaByWeek&&m.slaByWeek.length){
+      const slaLabels=m.slaByWeek.map(w=>w.week);
+      const slaData=m.slaByWeek.map(w=>w.pct);
+      mkChart('cSlaWave',{type:'line',data:{labels:slaLabels,datasets:[{label:'SLA % (≤240h)',data:slaData,borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=m.slaByWeek[c.dataIndex];return (c.raw==null?'No resolutions':c.raw+'% within SLA')+(w?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+windowText+')',color:'#d5dbdb',font:{size:12}}}}}});
+    }
 
     renderResolutionAlternatives(resTypeEntries);
   }else{

@@ -11,7 +11,8 @@ if (!JWT_SECRET) {
 const TOKEN_TTL = process.env.JWT_TTL || '12h';
 
 // Role hierarchy (higher number = more privilege).
-const ROLES = { user: 0, editor: 1, admin: 2, owner: 3 };
+// 'manager' has the same access level as 'admin' (can publish/upload; cannot manage users).
+const ROLES = { user: 0, editor: 1, admin: 2, manager: 2, owner: 3 };
 const VALID_ROLES = Object.keys(ROLES);
 
 function rank(role) {

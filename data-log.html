@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update Data Log · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{max-width:1100px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+.log-entry{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.log-head{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--bd)}
+.log-user{color:#fff;font-weight:700}
+.log-role{color:var(--o);text-transform:uppercase;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);padding:2px 9px;border-radius:20px;margin-left:6px}
+.log-when{margin-left:auto;text-align:right;font-size:.82em;color:var(--tm);line-height:1.5}
+.log-when b{color:#d5dbdb;font-weight:600}
+.log-body{padding:14px 20px}
+.log-quarter{font-size:.8em;color:var(--tm);margin-bottom:12px}
+.log-quarter b{color:var(--gl)}
+.change-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.chg{background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:.85em}
+.chg .k{color:var(--tm)}
+.chg .v{font-weight:700}
+.chg .v.added{color:var(--gl)}.chg .v.updated{color:#fbbf24}.chg .v.reopened{color:#a78bfa}
+.chg .v.autoClosed{color:#44b9d6}.chg .v.unchanged{color:var(--tm)}.chg .v.missing{color:var(--rl)}
+.nochg{color:var(--tm);font-size:.85em;font-style:italic}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn sec" href="app.html">← Live Dashboard</a>
+</div>
+<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:120px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:120px"></div></div></div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+
+// Format an ISO timestamp into a timezone label. Uses Intl with the IANA zone.
+function fmtTZ(iso,zone){
+  try{
+    return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+  }catch(e){ return iso; }
+}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Update Data Log</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+
+function changeCells(cs){
+  if(!cs)return '<div class="nochg">No change summary recorded for this upload.</div>';
+  const items=[
+    ['Added','added'],['Updated','updated'],['Reopened','reopened'],
+    ['Auto-closed','autoClosed'],['Unchanged','unchanged'],['Not in file','missing']
+  ];
+  return '<div class="change-grid">'+items.map(([label,key])=>{
+    const v=cs[key];
+    if(v==null)return '';
+    return '<div class="chg"><span class="k">'+label+'</span><span class="v '+key+'">'+v+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function render(entries){
+  const wrap=document.getElementById('wrap');
+  let html='<h1>Update Data Log</h1><p class="sub">History of data uploads to the live dashboard — who uploaded, when (IST &amp; MST), and what changed. Latest first.</p>';
+  if(!entries.length){
+    html+='<div class="empty">No uploads recorded yet.</div>';
+    wrap.innerHTML=html;return;
+  }
+  html+=entries.map(e=>{
+    const liveWritten=(e.written||[]).find(w=>w.isLive);
+    const liveCount=liveWritten?liveWritten.count:(e.totalTickets!=null?e.totalTickets:'');
+    return ''+
+    '<div class="log-entry">'+
+      '<div class="log-head">'+
+        '<span class="log-user">'+esc(e.user)+'<span class="log-role">'+esc(e.role||'')+'</span></span>'+
+        '<span class="log-when">'+
+          '<b>IST:</b> '+fmtTZ(e.at,'Asia/Kolkata')+'<br>'+
+          '<b>MST:</b> '+fmtTZ(e.at,'America/Denver')+
+        '</span>'+
+      '</div>'+
+      '<div class="log-body">'+
+        '<div class="log-quarter">Published to <b>'+esc(e.liveQuarter||'')+'</b>'+(liveCount!==''?(' · '+liveCount+' tickets in live quarter'):'')+'</div>'+
+        changeCells(e.changeSummary)+
+      '</div>'+
+    '</div>';
+  }).join('');
+  wrap.innerHTML=html;
+}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  const r=await A.api('GET','/api/data-log');
+  if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
+  if(!r.ok){gate('Could not load the data log (HTTP '+r.status+').');return;}
+  render(Array.isArray(r.data)?r.data:[]);
+}
+load();
+</script>
+</body>
+</html>

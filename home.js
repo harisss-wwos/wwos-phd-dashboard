@@ -41,12 +41,13 @@ async function renderQuarterCards(){
     a.href=isLive?'app.html':('archive.html?ds=quarter&qid='+encodeURIComponent(q.id));
     a.className='card '+(isLive?'live':'');
     const countTxt=q.count!=null?(fmtCount(q.count)+' tickets'):'';
+    const ic=(n,s)=>window.icon?window.icon(n,s||22):'';
     if(isLive){
-      a.innerHTML='<div class="card-head"><h2>'+q.label+' Report</h2><span class="live-pill">● LIVE</span></div>'
+      a.innerHTML='<div class="card-head"><span class="card-ic">'+ic('grid')+'</span><h2>'+q.label+' Report</h2><span class="live-pill">● LIVE</span></div>'
         +'<p>Current quarter — live operations dashboard. Authorized users upload &amp; merge the latest CSV; everyone sees the published data.</p>'
         +'<span class="tag">'+(countTxt||'Live')+'</span>';
     }else{
-      a.innerHTML='<h2>'+q.label+' Report</h2>'
+      a.innerHTML='<div class="card-head"><span class="card-ic">'+ic('bar-chart')+'</span><h2>'+q.label+' Report</h2></div>'
         +'<p>WWOS-managed incident data for '+q.label+'. Read-only snapshot.</p>'
         +'<span class="tag">'+(countTxt||'Archived')+'</span>';
     }

@@ -23,6 +23,10 @@
 .sk-chart.tall{height:380px}
 .sk-card{height:150px;flex:1;min-width:300px}
 .sk-line{height:14px;border-radius:6px;margin:10px 0}
+.sk-pill{height:32px;border-radius:6px}
+.sk-topbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:12px 24px}
+.sk-toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:10px 24px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sk-tb-left,.sk-tb-right{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .sk-note{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--tm,#879596);font-size:.85em;margin:8px 0 20px}
 .sk-dot{width:8px;height:8px;border-radius:50%;background:var(--o,#ff9900);animation:livepulse 1.2s ease-in-out infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.4}}

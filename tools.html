@@ -28,6 +28,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .card-icon{font-size:1.6em;line-height:1}
 .card h2{color:#fff;font-size:1.2em;font-weight:600}
+.card-ic{color:var(--tl);display:inline-flex}
 .card p{color:var(--tm);font-size:.9em;line-height:1.5}
 </style>
 </head>
@@ -43,22 +44,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   </div>
   <div class="grid">
     <a class="card" href="tool-blurbs.html">
-      <div class="card-head"><span class="card-icon">📝</span><h2>Common Blurbs</h2></div>
+      <div class="card-head"><span class="card-ic" data-ic="clipboard"></span><h2>Common Blurbs</h2></div>
       <p>Reusable canned responses and standard message templates.</p>
     </a>
     <a class="card" href="tool-hashtags.html">
-      <div class="card-head"><span class="card-icon">#️⃣</span><h2>Hashtags</h2></div>
+      <div class="card-head"><span class="card-ic" data-ic="hash"></span><h2>Hashtags</h2></div>
       <p>Standard hashtags used for tagging and categorizing tickets.</p>
     </a>
     <a class="card" href="tool-paging.html">
-      <div class="card-head"><span class="card-icon">📟</span><h2>Paging Contacts</h2></div>
+      <div class="card-head"><span class="card-ic" data-ic="mail"></span><h2>Paging Contacts</h2></div>
       <p>Escalation and on-call contacts for paging during incidents.</p>
     </a>
     <a class="card" href="tool-prompts.html">
-      <div class="card-head"><span class="card-icon">💬</span><h2>Prompt</h2></div>
+      <div class="card-head"><span class="card-ic" data-ic="message"></span><h2>Prompt</h2></div>
       <p>Prompt templates and quick-reference text for common tasks.</p>
     </a>
   </div>
 </div>
+<script src="icons.js"></script>
+<script>document.querySelectorAll('[data-ic]').forEach(function(el){if(window.icon)el.innerHTML=window.icon(el.getAttribute('data-ic'),24);});</script>
 </body>
 </html>

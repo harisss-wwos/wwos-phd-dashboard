@@ -36,6 +36,7 @@
     let resolvedClosed=0,open=0,reopen=0;
     const createdByMonth={},resolvedByMonth={},createdByYear={},resolvedByYear={},createdByQuarter={},resolvedByQuarter={};
     const createdWeekQ=new Array(13).fill(0),resolvedWeekQ=new Array(13).fill(0);
+    const slaResolvedWeek=new Array(13).fill(0),slaWithinWeek=new Array(13).fill(0);const slaHrsConst=240;
     const sevByYear={};const resTimeByMonth={};
     const rcXregion={},driverXincident={},regionXincident={};
     const incidentAgents={};
@@ -75,7 +76,7 @@
       const rd=new Date(r.ResolvedDate);
       if(!isNaN(rd)){const y=rd.getFullYear();const mo=`${y}-${String(rd.getMonth()+1).padStart(2,'0')}`;const q=`${y}-Q${Math.floor(rd.getMonth()/3)+1}`;
         resolvedByYear[y]=(resolvedByYear[y]||0)+1;resolvedByMonth[mo]=(resolvedByMonth[mo]||0)+1;resolvedByQuarter[q]=(resolvedByQuarter[q]||0)+1;
-        const rwi=weekIndex(rd);if(rwi>=0)resolvedWeekQ[rwi]++;}
+        const rwi=weekIndex(rd);if(rwi>=0){resolvedWeekQ[rwi]++;if(r.CreateDate){const h=(rd-new Date(r.CreateDate))/36e5;if(h>=0){slaResolvedWeek[rwi]++;if(h<=slaHrsConst)slaWithinWeek[rwi]++;}}}}
       const rcKey=(r.RootCause||'Unknown').replace(/^\s*-\s*/,'').substring(0,40);
       rcXregion[rcKey]=rcXregion[rcKey]||{};rcXregion[rcKey][region]=(rcXregion[rcKey][region]||0)+1;
       if(dt){driverXincident[dt]=driverXincident[dt]||{};driverXincident[dt][incType]=(driverXincident[dt][incType]||0)+1;}
@@ -106,6 +107,7 @@
       createdByMonth:Object.entries(createdByMonth).sort(),resolvedByMonth:Object.entries(resolvedByMonth).sort(),
       createdByQuarter:Object.entries(createdByQuarter).sort(),resolvedByQuarter:Object.entries(resolvedByQuarter).sort(),
       createdByWeek:weekLabels().map((lbl,i)=>[lbl,createdWeekQ[i]]),resolvedByWeek:weekLabels().map((lbl,i)=>[lbl,resolvedWeekQ[i]]),
+      slaByWeek:weekLabels().map((lbl,i)=>({week:lbl,resolved:slaResolvedWeek[i],within:slaWithinWeek[i],pct:slaResolvedWeek[i]?+(slaWithinWeek[i]/slaResolvedWeek[i]*100).toFixed(1):null})),
       sevByYear,resTrendLabels,resTrendData,yoy,
       rcXregion,driverXincident,regionXincident,
       incidentAgents

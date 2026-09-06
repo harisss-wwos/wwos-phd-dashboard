@@ -52,9 +52,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card.tools{border-top-color:#44b9d6}
 .card.tools:hover{border-color:#44b9d6}
 .card.tools .tag{background:rgba(68,185,214,.12);color:#44b9d6}
+.card.guide{border-top-color:#4ade80}
+.card.guide:hover{border-color:#4ade80}
+.card.guide .card-ic{color:#4ade80}
+.card.guide .tag{background:rgba(74,222,128,.12);color:#4ade80}
 .card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .card-head h2{margin-bottom:0}
 .card-icon{font-size:1.4em;line-height:1}
+.card-ic{color:var(--o);display:inline-flex}
+.card.live .card-ic{color:#4ade80}
 .live-pill{margin-left:auto;font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 10px;animation:livepulse 2s ease-in-out infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.6}}
 /* modal */
@@ -124,26 +130,31 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   </div>
   <div class="grid" id="cardGrid">
     <a class="card" href="archive.html?ds=archive">
-      <h2>Program History: Jan 2021 – Mar 2026</h2>
+      <div class="card-head"><span class="card-ic" data-ic="inbox"></span><h2>Program History: Jan 2021 – Mar 2026</h2></div>
       <p>Complete incident analytics from the program's first era (handled by the prior team until 31 Mar 2026). Read-only archive.</p>
       <span class="tag">56,578 tickets · Archived</span>
     </a>
     <a class="card" href="archive.html?ds=q2">
-      <h2>Q2 2026 Report</h2>
+      <div class="card-head"><span class="card-ic" data-ic="bar-chart"></span><h2>Q2 2026 Report</h2></div>
       <p>WWOS-managed incident data for Q2 2026 (Apr–Jun). Read-only snapshot.</p>
       <span class="tag">7,102 tickets · Archived</span>
     </a>
     <!-- Dynamic quarter cards (live + any past DB-backed quarters) are injected here by home.js -->
-    <a class="card tools" href="tools.html">
-      <div class="card-head"><span class="card-icon">🛠️</span><h2>PHD Tools</h2></div>
-      <p>Quick-access toolkit: common blurbs, hashtags, paging contacts, and prompts.</p>
-      <span class="tag">Toolkit</span>
+    <a class="card guide" href="admin-guide.html">
+      <div class="card-head"><span class="card-ic" data-ic="book"></span><h2>Admin &amp; Operations Guide</h2></div>
+      <p>How to log in, change your password, upload data (and the CSV fields that matter), what you can see, and how to answer contractor help requests.</p>
+      <span class="tag">Docs · For admins</span>
     </a>
   </div>
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
 </div>
 
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script>
+// Fill any static icon placeholders (<span class="card-ic" data-ic="name">) with SVG icons.
+document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 22); });
+</script>
 <script src="home.js"></script>
 </body>
 </html>

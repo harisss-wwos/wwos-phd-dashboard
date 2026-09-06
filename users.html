@@ -56,7 +56,10 @@ input:focus{outline:none;border-color:var(--o)}
 <script src="api-config.js"></script>
 <script>
 const A=window.PHDAuth;
-const ROLES=['user','editor','admin'];// owner not assignable
+const ROLES=['user','editor','admin','manager'];// owner not assignable
+// Section display order for grouping accounts.
+const ROLE_ORDER=['owner','manager','admin','editor','user'];
+const ROLE_TITLE={owner:'Owner',manager:'Managers',admin:'Admins',editor:'Editors',user:'Users'};
 
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>User Management</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
 
@@ -74,7 +77,8 @@ function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
 
 function renderList(users){
   const wrap=document.getElementById('wrap');
-  const rows=users.map(u=>{
+  // Row builder for a single user.
+  const rowFor=(u)=>{
     if(u.role==='owner'){
       return '<tr><td class="user">'+u.username+'</td><td>'+badge('owner')+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
     }
@@ -82,16 +86,24 @@ function renderList(users){
     return '<tr><td class="user">'+u.username+'</td>'
       +'<td><select onchange="changeRole(\''+u.id+'\',this.value,\''+u.username+'\')">'+opts+'</select></td>'
       +'<td><button class="btn danger" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">Remove</button></td></tr>';
-  }).join('');
+  };
+  // Group users by role and render a section per role in ROLE_ORDER.
+  const byRole={};users.forEach(u=>{(byRole[u.role]=byRole[u.role]||[]).push(u);});
+  let sectionsHtml='';
+  ROLE_ORDER.forEach(role=>{
+    const group=(byRole[role]||[]).sort((a,b)=>a.username.localeCompare(b.username));
+    if(!group.length)return;
+    sectionsHtml+=`<div class="card">
+      <h2>${ROLE_TITLE[role]||role} (${group.length})</h2>
+      <table><thead><tr><th>Username</th><th>Role</th><th></th></tr></thead><tbody>${group.map(rowFor).join('')}</tbody></table>
+    </div>`;
+  });
   wrap.innerHTML=`
     <h1>User Management</h1>
-    <p class="sub">Owner only. Create accounts and set roles. The owner account cannot be changed or removed.</p>
-    <div class="card">
-      <h2>Accounts (${users.length})</h2>
-      <table><thead><tr><th>Username</th><th>Role</th><th></th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="msg err" id="listErr"></div>
-      <div class="msg ok" id="listOk"></div>
-    </div>
+    <p class="sub">Owner only. Accounts are grouped by role. The owner account cannot be changed or removed.</p>
+    <div class="msg err" id="listErr"></div>
+    <div class="msg ok" id="listOk"></div>
+    ${sectionsHtml}
     <div class="card">
       <h2>Add User</h2>
       <div class="form-row">

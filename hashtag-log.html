@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hashtag Change Log · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
+.btn.mini{padding:5px 12px;font-size:.78em}
+.wrap{max-width:1000px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+.entry{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--bd)}
+.act{padding:2px 10px;border-radius:20px;font-size:.72em;font-weight:700;text-transform:uppercase}
+.act.create{background:rgba(74,222,128,.15);color:var(--gl)}
+.act.edit{background:rgba(251,191,36,.15);color:#fbbf24}
+.act.delete{background:rgba(255,82,82,.15);color:var(--rl)}
+.entry-title{color:#44b9d6;font-weight:700}
+.entry-user{color:var(--tm);font-size:.85em}
+.entry-user b{color:#d5dbdb}.entry-role{color:var(--o);text-transform:uppercase;font-size:.72em;font-weight:700;margin-left:4px}
+.entry-when{margin-left:auto;text-align:right;font-size:.8em;color:var(--tm);line-height:1.5}
+.entry-when b{color:#d5dbdb}
+.entry-body{padding:12px 18px}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diff .col h4{font-size:.72em;text-transform:uppercase;letter-spacing:.5px;color:var(--tm);margin-bottom:6px}
+.diff pre,.single pre{white-space:pre-wrap;font-family:inherit;font-size:.8em;line-height:1.5;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;max-height:200px;overflow:auto;color:var(--t)}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:440px;width:100%;padding:24px}
+.modal h2{color:var(--rl);font-size:1.05em;margin-bottom:10px}
+.modal p{color:var(--t);font-size:.9em;line-height:1.6}
+@media(max-width:640px){.diff{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="tool-hashtags.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn sec" href="tool-hashtags.html">← Hashtags</a>
+</div>
+<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:100px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:100px"></div></div></div>
+
+<div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal">
+    <h2>Delete log entry?</h2>
+    <p>This permanently removes this entry from the hashtag change log. This cannot be undone.</p>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeConfirm()">Cancel</button>
+      <button class="btn danger" onclick="doDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+function fmtTZ(iso,zone){try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Hashtag Change Log</h1><p>'+msg+'</p><a class="btn" href="tool-hashtags.html">Go to Hashtags</a></div>';}
+const isOwner=()=>A.role&&A.role()==='owner';
+const ACT_LABEL={create:'Created',edit:'Edited',delete:'Deleted'};
+const ACT_CLASS={create:'create',edit:'edit',delete:'delete'};
+const hash=(t)=>'#'+String(t||'').replace(/^#/,'');
+
+function bodyFor(e){
+  if(e.action==='edit'&&e.before&&e.after){
+    return `<div class="diff">
+      <div class="col"><h4>Before</h4><pre>${esc(hash(e.before.tag))}\n\n${esc(e.before.desc)}</pre></div>
+      <div class="col"><h4>After</h4><pre>${esc(hash(e.after.tag))}\n\n${esc(e.after.desc)}</pre></div>
+    </div>`;
+  }
+  const a=e.after||e.before||{};
+  return `<div class="single"><pre>${esc(hash(a.tag||e.tag||''))}\n\n${esc(a.desc||'')}</pre></div>`;
+}
+
+let DEL_ID=null;
+function confirmDelete(id){DEL_ID=id;document.getElementById('confirmModal').style.display='flex';}
+function closeConfirm(){document.getElementById('confirmModal').style.display='none';DEL_ID=null;}
+async function doDelete(){
+  if(!DEL_ID)return;
+  const r=await A.api('DELETE','/api/hashtag-log/'+DEL_ID);
+  closeConfirm();
+  if(r.ok){load();}else{alert((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')'));}
+}
+
+function render(entries){
+  const wrap=document.getElementById('wrap');const owner=isOwner();
+  let html='<h1>Hashtag Change Log</h1><p class="sub">Who added, edited, or deleted which hashtag, when (IST &amp; MST). Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
+  if(!entries.length){html+='<div class="empty">No hashtag changes recorded yet.</div>';wrap.innerHTML=html;return;}
+  html+=entries.map(e=>`
+    <div class="entry">
+      <div class="entry-head">
+        <span class="act ${ACT_CLASS[e.action]||'edit'}">${ACT_LABEL[e.action]||e.action}</span>
+        <span class="entry-title">${esc(hash(e.tag))}</span>
+        <span class="entry-user">by <b>${esc(e.user)}</b><span class="entry-role">${esc(e.role||'')}</span></span>
+        <span class="entry-when"><b>IST:</b> ${fmtTZ(e.at,'Asia/Kolkata')}<br><b>MST:</b> ${fmtTZ(e.at,'America/Denver')}</span>
+        ${owner?`<button class="btn danger mini" onclick="confirmDelete('${e.id}')">Delete</button>`:''}
+      </div>
+      <div class="entry-body">${bodyFor(e)}</div>
+    </div>`).join('');
+  wrap.innerHTML=html;
+}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  const r=await A.api('GET','/api/hashtag-log');
+  if(r.status===401){gate('Session expired. Please log in again.');return;}
+  if(!r.ok){gate('Could not load the hashtag log (HTTP '+r.status+').');return;}
+  render(Array.isArray(r.data)?r.data:[]);
+}
+load();
+</script>
+</body>
+</html>

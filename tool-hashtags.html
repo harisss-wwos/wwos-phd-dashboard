@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hashtags · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.nav-right{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.mini{padding:5px 12px;font-size:.78em}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
+.wrap{width:80%;max-width:1200px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.7em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+.tag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.tag-card{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:14px;min-height:84px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--tl);border-radius:12px;padding:16px 18px;font-family:inherit;transition:transform .12s,border-color .2s}
+.tag-card:hover{transform:translateY(-3px);border-color:var(--tl)}
+.tc-title{color:#44b9d6;font-weight:600;font-size:1em;line-height:1.4;word-break:break-word}
+.tc-actions{display:flex;gap:8px}
+.tc-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--bd)}
+.tc-copy{background:var(--tl);color:#000;border-color:var(--tl)}
+.tc-copy:hover{filter:brightness(1.08)}
+.tc-copy.copied{background:var(--gl);border-color:var(--gl);color:#000}
+.tc-view{background:transparent;color:var(--tm)}
+.tc-view:hover{color:var(--tl);border-color:var(--tl)}
+.tag-text{white-space:pre-wrap;color:var(--t);font-size:.92em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;max-height:56vh;overflow:auto}
+.tag-name{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:10px}
+.meta{color:#5f6b6c;font-size:.75em;margin-top:8px}
+.copied{color:var(--gl)!important;border-color:rgba(74,222,128,.5)!important}
+.edit-area input,.edit-area textarea{width:100%;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit}
+.edit-area textarea{min-height:140px;line-height:1.6;resize:vertical}
+.edit-area label{display:block;color:var(--tm);font-size:.8em;margin:10px 0 6px}
+.msg{font-size:.85em;margin-top:10px;display:none}.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal.modal-wide{max-width:720px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <div class="nav-right">
+    <a class="btn sec" href="tools.html">← PHD Tools</a>
+    <a class="btn sec" href="hashtag-log.html" id="logLink" style="display:none">Hashtag change log</a>
+  </div>
+</div>
+<div class="wrap" id="wrap">
+  <div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div>
+    <div class="shimmer sk-card" style="min-height:100px;margin-bottom:14px"></div>
+    <div class="shimmer sk-card" style="min-height:100px"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- View hashtag popup -->
+<div class="modal-bg" id="viewModal" onclick="if(event.target===this)closeViewModal()">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h2 id="viewTag" style="color:#44b9d6"></h2>
+      <button class="modal-close" onclick="closeViewModal()" aria-label="Close">&times;</button>
+    </div>
+    <div id="viewRead">
+      <div class="tag-text" id="viewDesc"></div>
+      <div class="meta" id="viewMeta"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn danger" id="viewDeleteBtn" onclick="confirmDelete()" style="display:none">Delete</button>
+        <button class="btn sec" id="viewEditBtn" onclick="startEdit()">Edit</button>
+        <button class="btn" id="copyBtnModal" onclick="copyCurrent()">📋 Copy hashtag</button>
+      </div>
+    </div>
+    <div id="viewEdit" style="display:none">
+      <div class="edit-area">
+        <label>Hashtag (without #)</label>
+        <input type="text" id="editTag">
+        <label>Description</label>
+        <textarea id="editDesc"></textarea>
+        <div class="msg err" id="editErr"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn sec" onclick="cancelEdit()">Cancel</button>
+          <button class="btn" onclick="saveEdit()">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete popup -->
+<div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()" style="z-index:2100">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head"><h2 style="color:#ff5252">Delete hashtag?</h2><button class="modal-close" onclick="closeConfirm()" aria-label="Close">&times;</button></div>
+    <p id="confirmText" style="color:var(--t);font-size:.9em;line-height:1.6;margin:6px 0 4px"></p>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeConfirm()">Cancel</button>
+      <button class="btn danger" onclick="doDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add hashtag popup -->
+<div class="modal-bg" id="addModal" onclick="if(event.target===this)closeAddModal()">
+  <div class="modal">
+    <div class="modal-head"><h2>➕ Add New Hashtag</h2><button class="modal-close" onclick="closeAddModal()" aria-label="Close">&times;</button></div>
+    <div class="edit-area">
+      <label>Hashtag (without #)</label>
+      <input type="text" id="newTag" placeholder="e.g. out-of-scope">
+      <label>Description</label>
+      <textarea id="newDesc" placeholder="What this hashtag means / when to use it…"></textarea>
+      <div class="msg err" id="addErr"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sec" onclick="closeAddModal()">Cancel</button>
+        <button class="btn" onclick="addHashtag()">Add hashtag</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+let TAGS=[];let VIEW_INDEX=null;
+const canEdit=()=>A.atLeast&&A.atLeast('admin');
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function hashOf(t){return '#'+String(t.tag||'').replace(/^#/,'');}
+
+async function load(){
+  if(canEdit())document.getElementById('logLink').style.display='';
+  const r=await A.api('GET','/api/hashtags');
+  if(!r.ok){document.getElementById('wrap').innerHTML='<h1>Hashtags</h1><p class="sub" style="color:#ff5252">Could not load hashtags (HTTP '+r.status+').</p>';return;}
+  TAGS=Array.isArray(r.data)?r.data:[];
+  render();
+}
+
+function render(){
+  const editor=canEdit();
+  let html='<h1>Hashtags</h1><p class="sub">Click a hashtag to see what it means and copy it.'+(editor?' As an admin you can edit, add, or delete hashtags.':' Log in as an admin to edit or add hashtags.')+'</p>';
+  if(editor)html+=`<div style="margin-bottom:22px"><button class="btn" onclick="openAddModal()">➕ Add New Hashtag</button></div>`;
+  html+=`<div class="tag-grid">`+TAGS.map((h,i)=>`
+    <div class="tag-card" title="${esc(hashOf(h))}">
+      <span class="tc-title">${esc(hashOf(h))}</span>
+      <div class="tc-actions">
+        <button class="tc-btn tc-copy" id="copyCard-${i}" onclick="copyHashtag(${i})" title="Copy this hashtag">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span>Copy</span>
+        </button>
+        <button class="tc-btn tc-view" onclick="openViewModal(${i})" title="View this hashtag">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>View</span>
+        </button>
+      </div>
+    </div>`).join('')+`</div>`;
+  document.getElementById('wrap').innerHTML=html;
+}
+
+// Copy a hashtag directly from its card (default action).
+function copyHashtag(i){
+  const text=hashOf(TAGS[i]);
+  const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('span');const old=s.textContent;btn.classList.add('copied');s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');s.textContent=old;},1600);}toast('Hashtag copied to clipboard');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
+  else fallbackCopy(text,done);
+}
+
+function openViewModal(i){
+  VIEW_INDEX=i;const h=TAGS[i];const editor=canEdit();
+  document.getElementById('viewTag').textContent=hashOf(h);
+  document.getElementById('viewDesc').textContent=h.desc;
+  document.getElementById('viewMeta').textContent=h.updatedBy?('Last updated by '+h.updatedBy):'';
+  document.getElementById('viewEditBtn').style.display=editor?'':'none';
+  document.getElementById('viewDeleteBtn').style.display=editor?'':'none';
+  document.getElementById('viewRead').style.display='';
+  document.getElementById('viewEdit').style.display='none';
+  const cb=document.getElementById('copyBtnModal');cb.textContent='📋 Copy hashtag';cb.classList.remove('copied');
+  document.getElementById('viewModal').style.display='flex';
+}
+function closeViewModal(){document.getElementById('viewModal').style.display='none';VIEW_INDEX=null;}
+
+function copyCurrent(){
+  if(VIEW_INDEX==null)return;
+  const text=hashOf(TAGS[VIEW_INDEX]);
+  const done=()=>{const btn=document.getElementById('copyBtnModal');btn.textContent='✓ Copied';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy hashtag';btn.classList.remove('copied');},1600);toast('Hashtag copied to clipboard');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}ta.remove();done();}
+
+function startEdit(){
+  if(VIEW_INDEX==null||!canEdit())return;
+  const h=TAGS[VIEW_INDEX];
+  document.getElementById('editTag').value=h.tag;
+  document.getElementById('editDesc').value=h.desc;
+  document.getElementById('editErr').style.display='none';
+  document.getElementById('viewRead').style.display='none';
+  document.getElementById('viewEdit').style.display='';
+}
+function cancelEdit(){document.getElementById('viewRead').style.display='';document.getElementById('viewEdit').style.display='none';}
+
+async function saveEdit(){
+  if(VIEW_INDEX==null)return;const h=TAGS[VIEW_INDEX];
+  const tag=document.getElementById('editTag').value.trim();
+  const desc=document.getElementById('editDesc').value;
+  const err=document.getElementById('editErr');
+  if(!tag||!desc.trim()){err.textContent='Hashtag and description are required.';err.style.display='block';return;}
+  const r=await A.api('PUT','/api/hashtags/'+h.id,{tag,desc});
+  if(r.ok){toast('Hashtag updated');closeViewModal();await load();}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+
+function confirmDelete(){
+  if(VIEW_INDEX==null||!canEdit())return;const h=TAGS[VIEW_INDEX];
+  document.getElementById('confirmText').innerHTML='Delete the hashtag <b>'+esc(hashOf(h))+'</b>? This cannot be undone.';
+  document.getElementById('confirmModal').style.display='flex';
+}
+function closeConfirm(){document.getElementById('confirmModal').style.display='none';}
+async function doDelete(){
+  if(VIEW_INDEX==null)return;const h=TAGS[VIEW_INDEX];
+  const r=await A.api('DELETE','/api/hashtags/'+h.id);
+  closeConfirm();
+  if(r.ok){toast('Hashtag deleted');closeViewModal();await load();}
+  else{toast((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')'));}
+}
+
+function openAddModal(){document.getElementById('addModal').style.display='flex';document.getElementById('newTag').value='';document.getElementById('newDesc').value='';document.getElementById('addErr').style.display='none';setTimeout(()=>document.getElementById('newTag').focus(),40);}
+function closeAddModal(){document.getElementById('addModal').style.display='none';}
+async function addHashtag(){
+  const tag=document.getElementById('newTag').value.trim();
+  const desc=document.getElementById('newDesc').value;
+  const err=document.getElementById('addErr');
+  if(!tag||!desc.trim()){err.textContent='Hashtag and description are required.';err.style.display='block';return;}
+  const r=await A.api('POST','/api/hashtags',{tag,desc});
+  if(r.ok){closeAddModal();toast('Hashtag added');await load();}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+
+load();
+</script>
+</body>
+</html>

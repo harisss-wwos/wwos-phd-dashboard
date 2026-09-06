@@ -6,10 +6,20 @@ const { getCollection, COLLECTIONS } = require('./db');
 const { hashPassword } = require('./auth');
 
 const SEED_USERS = [
-  { username: 'harisss',  role: 'owner', pw: process.env.SEED_HARISSS_PW  || 'harisss@123'  },
-  { username: 'arunkzn',  role: 'admin', pw: process.env.SEED_ARUNKZN_PW  || 'arunkzn@123'  },
-  { username: 'flofalgu', role: 'admin', pw: process.env.SEED_FLOFALGU_PW || 'flofalgu@123' },
-  { username: 'punithsd', role: 'admin', pw: process.env.SEED_PUNITHSD_PW || 'punithsd@123' },
+  { username: 'harisss',  role: 'owner',  pw: process.env.SEED_HARISSS_PW  || 'harisss@123'  },
+  { username: 'arunkzn',  role: 'admin',  pw: process.env.SEED_ARUNKZN_PW  || 'arunkzn@123'  },
+  { username: 'flofalgu', role: 'admin',  pw: process.env.SEED_FLOFALGU_PW || 'flofalgu@123' },
+  { username: 'punithsd', role: 'admin',  pw: process.env.SEED_PUNITHSD_PW || 'punithsd@123' },
+  // Added batch:
+  { username: 'mbozied',  role: 'admin',  pw: 'mbozied@123'  },
+  { username: 'mellanej', role: 'admin',  pw: 'mellanej@123' },
+  { username: 'nobregak', role: 'admin',  pw: 'nobregak@123' },
+  { username: 'chousoud', role: 'editor', pw: 'chousoud@123' },
+  { username: 'dbiswamb', role: 'editor', pw: 'dbiswamb@123' },
+  { username: 'obalasut', role: 'editor', pw: 'obalasut@123' },
+  { username: 'shaavhad', role: 'editor', pw: 'shaavhad@123' },
+  { username: 'tanviroo', role: 'editor', pw: 'tanviroo@123' },
+  { username: 'urmahala', role: 'editor', pw: 'urmahala@123' },
 ];
 
 (async () => {

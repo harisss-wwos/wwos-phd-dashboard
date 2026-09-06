@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Tickets · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6;--yl:#fbbf24}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.mini{padding:5px 12px;font-size:.78em}
+.wrap{width:92%;max-width:1300px;margin:0 auto;padding:36px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;text-align:left;padding:11px 14px;border-bottom:1px solid var(--bd);white-space:nowrap}
+tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,153,0,.03)}
+.tk-id a{color:#44b9d6;text-decoration:none;font-weight:600}
+.tk-id a:hover{text-decoration:underline}
+.tk-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
+.tz{line-height:1.5;white-space:nowrap}.tz b{color:#d5dbdb}.tz .z{color:var(--tm);font-size:.85em}
+.rem{font-weight:700;white-space:nowrap}
+.rem.ok{color:var(--gl)}.rem.warn{color:var(--yl)}.rem.over{color:var(--rl)}
+.cmt-cell{min-width:240px}
+.cmt-input{width:100%;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical;min-height:52px}
+.cmt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:600px;width:100%;max-height:85vh;overflow:auto;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.cmt{border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#000}
+.cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.75em;color:var(--tm);margin-bottom:6px}
+.cmt-meta b{color:#d5dbdb}
+.cmt-text{white-space:pre-wrap;color:var(--t);font-size:.88em;line-height:1.5}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+.btn{display:inline-flex;align-items:center;gap:5px}
+.help-col{min-width:260px}
+.help-cell{display:flex;flex-direction:column;gap:8px}
+.help-thread{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;background:#000}
+.help-thread.resolved{opacity:.7}
+.help-q{color:#fff;font-size:.84em;margin-bottom:6px;white-space:normal}
+.help-tag{font-size:.68em;font-weight:700;text-transform:uppercase;padding:1px 7px;border-radius:20px;margin-left:6px}
+.help-tag.open{background:rgba(251,191,36,.15);color:var(--yl)}
+.help-tag.ok{background:rgba(74,222,128,.15);color:var(--gl)}
+.help-replies{margin:4px 0 8px}
+.help-reply{color:var(--t);font-size:.82em;line-height:1.5;padding:4px 0;border-top:1px solid rgba(255,255,255,.05);white-space:normal}
+.help-none{color:#5f6b6c;font-size:.8em;font-style:italic}
+.help-hint{color:#879596;font-size:.78em;line-height:1.4;display:flex;gap:5px;align-items:flex-start}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="btn sec" href="app.html">← Live Dashboard</a>
+</div>
+<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:300px"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- Ask for help popup -->
+<div class="modal-bg" id="helpModal" onclick="if(event.target===this)closeHelp()">
+  <div class="modal">
+    <div class="modal-head"><h2>Ask for help · <span id="helpTicket" style="color:#fbbf24"></span></h2><button class="modal-close" onclick="closeHelp()" aria-label="Close">&times;</button></div>
+    <p style="color:#879596;font-size:.82em;margin-bottom:10px">Describe your question. Admins/owner will see it in the live-dashboard alert and can reply. You can ask more than once.</p>
+    <textarea id="helpDoubt" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="What do you need help with on this ticket?"></textarea>
+    <div class="msg err" id="helpErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeHelp()">Cancel</button>
+      <button class="btn" onclick="submitHelp()">Send help request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Comment log popup -->
+<div class="modal-bg" id="cmtModal" onclick="if(event.target===this)closeCmt()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="cmtTitle">Comments</h2><button class="modal-close" onclick="closeCmt()" aria-label="Close">&times;</button></div>
+    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Append-only history — comments cannot be edited or deleted.</p>
+    <div id="cmtList"></div>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+const isEditor=()=>A.role&&A.role()==='editor';
+let TICKETS=[];
+let MY_HELP={}; // shortId(lower) -> [ {id,doubt,status,createdAt,replies} ]
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>My Tickets</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
+function tzBlock(iso){return '<div class="tz"><b>MST:</b> '+fmtTZ(iso,'America/Denver')+' <span class="z"></span><br><b>IST:</b> '+fmtTZ(iso,'Asia/Kolkata')+'</div>';}
+
+// Time remaining / overdue relative to the 240h deadline.
+function remaining(deadlineIso){
+  if(!deadlineIso)return {cls:'',txt:'—'};
+  const ms=new Date(deadlineIso)-new Date();
+  const h=Math.round(Math.abs(ms)/3600000);
+  const d=Math.floor(h/24),hr=h%24;
+  const span=(d>0?d+'d ':'')+hr+'h';
+  if(ms<=0)return {cls:'over',txt:'Overdue by '+span};
+  if(ms<=48*3600000)return {cls:'warn',txt:'In '+span};
+  return {cls:'ok',txt:'In '+span};
+}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  const r=await A.api('GET','/api/my-tickets');
+  if(r.status===401){gate('Session expired. Please log in again.');return;}
+  if(!r.ok){gate('Could not load your tickets (HTTP '+r.status+').');return;}
+  TICKETS=(r.data&&r.data.tickets)||[];
+  // Load my help requests (for editors) to show inline threads + statuses.
+  MY_HELP={};
+  if(isEditor()){
+    try{const hr=await A.api('GET','/api/help/mine');if(hr.ok&&Array.isArray(hr.data)){hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(MY_HELP[k]=MY_HELP[k]||[]).push(h);});}}catch(e){}
+  }
+  render();
+}
+
+// Inline help thread block for a ticket (editor view).
+function helpBlock(t){
+  const list=MY_HELP[String(t.shortId).toLowerCase()]||[];
+  const hasOpen=list.some(h=>h.status==='open');
+  let inner='';
+  if(list.length){
+    inner=list.map(h=>{
+      const replies=(h.replies||[]).map(r=>`<div class="help-reply"><b>${esc(r.by)}</b> <span style="color:#5f6b6c">(${esc(r.role)})</span>: ${esc(r.text)}</div>`).join('')||'<div class="help-none">No reply yet</div>';
+      const resolved=h.status==='resolved';
+      return `<div class="help-thread ${resolved?'resolved':''}">
+        <div class="help-q">Q: ${esc(h.doubt)} ${resolved?'<span class="help-tag ok">resolved</span>':'<span class="help-tag open">open</span>'}</div>
+        <div class="help-replies">${replies}</div>
+        ${resolved?'':`<button class="btn sec mini" onclick="resolveHelp('${h.id}')">${ic('check-circle')} Help received</button>`}
+      </div>`;
+    }).join('');
+  }
+  // Only one open request per ticket: show "Ask for help" only when none is open.
+  const askBtn=hasOpen
+    ? `<div class="help-hint">${ic('info')} Close the open question with "Help received" to ask another.</div>`
+    : `<button class="btn mini" style="background:#fbbf24;color:#000" onclick="openHelp('${esc(t.shortId)}')">${ic('message')} Ask for help</button>`;
+  return `<div class="help-cell">
+    ${askBtn}
+    ${inner}
+  </div>`;
+}
+
+function render(){
+  const u=A.getUser();const editor=isEditor();
+  let html='<h1>My Tickets</h1><p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in MST &amp; IST.</p>';
+  if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
+  html+=`<div class="tbl-card"><table>
+    <thead><tr>
+      <th>Ticket</th><th>Status</th><th>Created</th><th>Deadline (+240h)</th><th>Time left</th><th>Add comment</th><th></th>${editor?'<th>Help</th>':''}
+    </tr></thead><tbody>`+TICKETS.map((t,i)=>{
+      const rem=remaining(t.deadline);
+      return `<tr>
+        <td class="tk-id"><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></td>
+        <td><span class="tk-status">${esc(t.status)}</span></td>
+        <td>${tzBlock(t.createDate)}</td>
+        <td>${tzBlock(t.deadline)}</td>
+        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
+        <td class="cmt-cell">
+          <textarea class="cmt-input" id="cmt-${i}" maxlength="2000" placeholder="Add a comment on this ticket…"></textarea>
+          <div class="cmt-actions"><button class="btn mini" onclick="addComment(${i})">Add comment</button></div>
+        </td>
+        <td><button class="btn sec mini" onclick="openCmt(${i})">Comment log</button></td>
+        ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
+      </tr>`;
+    }).join('')+`</tbody></table></div>`;
+  document.getElementById('wrap').innerHTML=html;
+}
+
+// ---- Help request actions ----
+function openHelp(shortId){
+  document.getElementById('helpTicket').textContent=shortId;
+  document.getElementById('helpDoubt').value='';
+  document.getElementById('helpErr').style.display='none';
+  document.getElementById('helpModal').setAttribute('data-sid',shortId);
+  document.getElementById('helpModal').style.display='flex';
+  setTimeout(()=>document.getElementById('helpDoubt').focus(),40);
+}
+function closeHelp(){document.getElementById('helpModal').style.display='none';}
+async function submitHelp(){
+  const shortId=document.getElementById('helpModal').getAttribute('data-sid');
+  const doubt=document.getElementById('helpDoubt').value.trim();
+  const err=document.getElementById('helpErr');
+  if(!doubt){err.textContent='Please describe your question.';err.style.display='block';return;}
+  const r=await A.api('POST','/api/help',{shortId,doubt});
+  if(r.ok){closeHelp();toast('Help request sent for '+shortId);await load();}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+async function resolveHelp(id){
+  const r=await A.api('POST','/api/help/'+id+'/resolve',{});
+  if(r.ok){toast('Marked as help received');await load();}
+  else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+
+async function addComment(i){
+  const t=TICKETS[i];
+  const el=document.getElementById('cmt-'+i);
+  const text=el.value.trim();
+  if(!text){toast('Enter a comment first.');return;}
+  const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text});
+  if(r.ok){el.value='';toast('Comment added to '+t.shortId);}
+  else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+
+async function openCmt(i){
+  const t=TICKETS[i];
+  document.getElementById('cmtTitle').textContent='Comments · '+t.shortId;
+  document.getElementById('cmtList').innerHTML='<p style="color:#879596">Loading…</p>';
+  document.getElementById('cmtModal').style.display='flex';
+  const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments');
+  if(!r.ok){document.getElementById('cmtList').innerHTML='<p style="color:#ff5252">Could not load comments.</p>';return;}
+  const list=Array.isArray(r.data)?r.data:[];
+  if(!list.length){document.getElementById('cmtList').innerHTML='<p style="color:#879596">No comments yet on this ticket.</p>';return;}
+  document.getElementById('cmtList').innerHTML=list.map(c=>`
+    <div class="cmt">
+      <div class="cmt-meta"><span>by <b>${esc(c.user)}</b></span><span>MST: ${fmtTZ(c.at,'America/Denver')} · IST: ${fmtTZ(c.at,'Asia/Kolkata')}</span></div>
+      <div class="cmt-text">${esc(c.text)}</div>
+    </div>`).join('');
+}
+function closeCmt(){document.getElementById('cmtModal').style.display='none';}
+
+load();
+</script>
+</body>
+</html>
