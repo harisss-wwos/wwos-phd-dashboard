@@ -30,6 +30,20 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .log-body{padding:14px 20px}
 .log-quarter{font-size:.8em;color:var(--tm);margin-bottom:12px}
 .log-quarter b{color:var(--gl)}
+/* One upload session = one collapsible card; header is a button, body holds quarter blocks. */
+.log-session{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.log-session>.log-head{background:#050505;width:100%;border:none;border-bottom:1px solid transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.log-session>.log-head:hover{background:#0d0d0d}
+.log-session.open>.log-head{border-bottom-color:var(--bd)}
+.log-caret{margin-left:14px;color:var(--tm);transition:transform .18s;flex-shrink:0}
+.log-session.open .log-caret{transform:rotate(180deg)}
+.log-session-body{padding:16px 20px;display:none;flex-direction:column;gap:14px}
+.log-session.open .log-session-body{display:flex}
+.log-quarter-block{background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
+.log-quarter-block.live{border-left:3px solid #4ade80}
+.log-quarter-block.past{border-left:3px solid #fbbf24}
+.log-quarter-block .log-quarter.live b{color:#4ade80}
+.log-quarter-block .log-quarter.past b{color:#fbbf24}
 .change-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .chg{background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:.85em}
 .chg .k{color:var(--tm)}
@@ -93,25 +107,56 @@ function render(entries){
     html+='<div class="empty">No '+(qid?('uploads recorded for '+esc(qid)+' yet.'):'uploads recorded yet.')+'</div>';
     wrap.innerHTML=html;return;
   }
-  html+=entries.map(e=>{
+  // Group entries that belong to the SAME upload (same user + same timestamp) into one section.
+  // A single upload can write both the live quarter and one or more past quarters — each is its
+  // own log entry, but they share e.at, so we cluster them together.
+  const groups=[];const byKey={};
+  entries.forEach(e=>{
+    const key=(e.user||'')+'|'+(e.at||'');
+    if(!byKey[key]){byKey[key]={at:e.at,user:e.user,role:e.role,items:[]};byKey[key]._i=groups.length;groups.push(byKey[key]);}
+    byKey[key].items.push(e);
+  });
+  // Newest first (entries already arrive sorted desc, so groups are in that order).
+
+  // One quarter's change block within a section.
+  function quarterBlock(e){
     const liveWritten=(e.written||[]).find(w=>w.isLive);
     const liveCount=liveWritten?liveWritten.count:(e.totalTickets!=null?e.totalTickets:'');
+    const heading=(e.pastQuarterMerge?'Merged into past quarter ':'Published to ')+'<b>'+esc(e.liveQuarter||'')+'</b>'+
+      (liveCount!==''?(' · '+liveCount+(e.pastQuarterMerge?' tickets in quarter':' tickets in live quarter')):'');
+    return '<div class="log-quarter-block '+(e.pastQuarterMerge?'past':'live')+'">'+
+      '<div class="log-quarter '+(e.pastQuarterMerge?'past':'live')+'">'+heading+'</div>'+
+      changeCells(e.changeSummary)+
+    '</div>';
+  }
+
+  html+=groups.map((g,gi)=>{
+    // Put the live-quarter entry first, then past quarters.
+    const items=g.items.slice().sort((a,b)=>(a.pastQuarterMerge?1:0)-(b.pastQuarterMerge?1:0));
+    const open=(gi===0); // only the latest session is expanded by default
+    const qCount=items.length;
     return ''+
-    '<div class="log-entry">'+
-      '<div class="log-head">'+
-        '<span class="log-user">'+esc(e.user)+'<span class="log-role">'+esc(e.role||'')+'</span></span>'+
+    '<div class="log-session'+(open?' open':'')+'">'+
+      '<button type="button" class="log-head" aria-expanded="'+(open?'true':'false')+'" onclick="toggleSession(this)">'+
+        '<span class="log-user">'+esc(g.user)+'<span class="log-role">'+esc(g.role||'')+'</span></span>'+
         '<span class="log-when">'+
-          '<b>IST:</b> '+fmtTZ(e.at,'Asia/Kolkata')+'<br>'+
-          '<b>MST:</b> '+fmtTZ(e.at,'America/Denver')+
+          '<b>IST:</b> '+fmtTZ(g.at,'Asia/Kolkata')+'<br>'+
+          '<b>MST:</b> '+fmtTZ(g.at,'America/Denver')+
         '</span>'+
-      '</div>'+
-      '<div class="log-body">'+
-        '<div class="log-quarter">'+(e.pastQuarterMerge?'Merged into past quarter ':'Published to ')+'<b>'+esc(e.liveQuarter||'')+'</b>'+(liveCount!==''?(' · '+liveCount+(e.pastQuarterMerge?' tickets in quarter':' tickets in live quarter')):'')+'</div>'+
-        changeCells(e.changeSummary)+
-      '</div>'+
+        '<span class="log-caret" aria-hidden="true">▾</span>'+
+      '</button>'+
+      '<div class="log-session-body">'+items.map(quarterBlock).join('')+'</div>'+
     '</div>';
   }).join('');
   wrap.innerHTML=html;
+}
+
+// Expand/collapse a session card.
+function toggleSession(btn){
+  const card=btn.closest('.log-session');
+  if(!card)return;
+  const isOpen=card.classList.toggle('open');
+  btn.setAttribute('aria-expanded',isOpen?'true':'false');
 }
 
 async function load(){
