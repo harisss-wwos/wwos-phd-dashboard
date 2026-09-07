@@ -371,6 +371,72 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
   }
 });
 
+// Merge an uploaded ticket set INTO a specific PAST (non-live) quarter, by ShortId (admin+).
+// Newly uploaded tickets win on conflict; existing tickets not in the upload are preserved.
+// Records a data-log entry. Body: { data: { tickets: [...] } }.
+app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
+  try {
+    const qid = req.params.qid;
+    if (!/^\d{4}-Q[1-4]$/.test(qid)) return res.status(400).json({ error: 'Invalid quarter id.' });
+    if (qid === currentQuarter()) {
+      return res.status(400).json({ error: 'This is the live quarter — use the live dashboard upload instead.' });
+    }
+    const body = req.body || {};
+    const data = body.data;
+    if (!data || !Array.isArray(data.tickets)) return res.status(400).json({ error: 'No tickets provided.' });
+
+    const coll = await getCollection(COLLECTIONS.quarters);
+    const existingDoc = await coll.findOne({ _id: qid });
+    const existingTickets = (existingDoc && existingDoc.data && existingDoc.data.tickets) || [];
+
+    // Merge by ShortId: start with existing, then apply uploaded (uploaded wins).
+    const map = new Map();
+    existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
+    const dbBefore = map.size;
+
+    let added = 0, updated = 0, skippedNoId = 0;
+    for (const t of data.tickets) {
+      if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
+      const id = String(t.ShortId || '').trim();
+      if (!id) { skippedNoId++; continue; }
+      if (map.has(id)) updated++; else added++;
+      map.set(id, t); // uploaded (new) version wins
+    }
+    const merged = Array.from(map.values());
+    const publishedAt = new Date().toISOString();
+    const changeSummary = {
+      added,                          // tickets not previously in this quarter
+      updated,                        // existing tickets overwritten by the upload
+      preserved: dbBefore - updated,  // existing tickets kept (not in the upload)
+      uploaded: data.tickets.length,
+      total: merged.length,
+    };
+
+    const meta = { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary };
+    const payload = { updatedAt: publishedAt, count: merged.length, tickets: merged };
+    await coll.updateOne({ _id: qid }, { $set: { data: payload, meta } }, { upsert: true });
+
+    // Audit-log entry (mirrors the live-quarter publish log shape; marks this as a past-quarter merge).
+    try {
+      const logColl = await getCollection(COLLECTIONS.dataLog);
+      await logColl.insertOne({
+        user: req.user.username,
+        role: req.user.role,
+        at: publishedAt,
+        liveQuarter: qid,             // the quarter this action targeted
+        pastQuarterMerge: true,       // flag so the data log can label it
+        written: [{ quarter: qid, label: quarterLabel(qid), count: merged.length, isLive: false }],
+        changeSummary,
+        totalTickets: merged.length,
+      });
+    } catch (logErr) { /* logging must never block a successful merge */ }
+
+    res.json({ ok: true, quarter: qid, label: quarterLabel(qid), changeSummary });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not merge quarter data.' });
+  }
+});
+
 // Audit log of uploads/publishes (logged-in users only). Newest first.
 app.get('/api/data-log', requireRole('user'), async (req, res) => {
   try {
@@ -382,6 +448,7 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
       role: e.role,
       at: e.at,
       liveQuarter: e.liveQuarter,
+      pastQuarterMerge: !!e.pastQuarterMerge,
       written: e.written || [],
       changeSummary: e.changeSummary || null,
       totalTickets: e.totalTickets,

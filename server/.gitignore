@@ -1,2 +1,4 @@
 node_modules/
 .env
+# Local one-time backups from data backfills (do not commit)
+backup-*.json

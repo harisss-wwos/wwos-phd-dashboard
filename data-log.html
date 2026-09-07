@@ -96,7 +96,7 @@ function render(entries){
         '</span>'+
       '</div>'+
       '<div class="log-body">'+
-        '<div class="log-quarter">Published to <b>'+esc(e.liveQuarter||'')+'</b>'+(liveCount!==''?(' · '+liveCount+' tickets in live quarter'):'')+'</div>'+
+        '<div class="log-quarter">'+(e.pastQuarterMerge?'Merged into past quarter ':'Published to ')+'<b>'+esc(e.liveQuarter||'')+'</b>'+(liveCount!==''?(' · '+liveCount+(e.pastQuarterMerge?' tickets in quarter':' tickets in live quarter')):'')+'</div>'+
         changeCells(e.changeSummary)+
       '</div>'+
     '</div>';

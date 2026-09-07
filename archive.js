@@ -78,8 +78,15 @@ function render(metrics,name,ds){
   // Short window label for weekly chart titles, e.g. "(Apr 1 – Jun 30, 2026)".
   const shortD=(iso)=>{const d=new Date(iso+'T00:00:00');return isNaN(d)?iso:d.toLocaleString('en-US',{month:'short',day:'numeric'});};
   const windowText=(ds==='q2')?'Apr 1 – Jun 30, 2026':(m.dateRange&&m.dateRange[0]?`${shortD(m.dateRange[0])} – ${shortD(m.dateRange[1])}`:'this quarter');
+  // Admin-only "upload/merge into this quarter" control (past/non-live quarters only).
+  const canMerge=quarterMode && window.PHDAuth && window.PHDAuth.atLeast && window.PHDAuth.atLeast('admin');
+  const qid=quarterMode?qparam('qid'):'';
+  const mergeBtn=canMerge?`<label class="btn" style="cursor:pointer;margin-left:auto">⬆ Upload / merge into this quarter<input type="file" accept=".csv" id="qMergeFile" style="display:none"></label>`:'';
   document.getElementById('app').innerHTML=`<div class="content">
-    <div class="page-title"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets · Read-only archive</p></div>
+    <div class="page-title" style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets · ${quarterMode?'Read-only report (DB-backed)':'Read-only archive'}</p></div>
+      ${mergeBtn}
+    </div>
 
     <div class="section"><h2>Summary Statistics</h2>
     <div class="kpi-grid">
@@ -232,6 +239,70 @@ function render(metrics,name,ds){
     // Cross-tab tables
     renderCrossTab('rcRegionTable',m.rcXregion,m.regions.slice(0,8).map(e=>e[0]),10);
   }
+  // Wire the admin "upload/merge into this quarter" file input (past quarters only).
+  if(canMerge){
+    const fi=document.getElementById('qMergeFile');
+    if(fi)fi.onchange=(e)=>{const f=e.target.files[0];e.target.value='';if(f)mergeIntoQuarter(qid,f);};
+  }
+}
+
+// ===== Admin: upload/merge a CSV into THIS (past, non-live) quarter =====
+// CSV parser (mirrors the app/loader parser: handles quoted fields + embedded newlines).
+function parseCSVArchive(text){
+  const cells=[];let cur='';let inQ=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(ch==='"'){if(inQ&&text[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
+    else if(ch===','&&!inQ){cells.push(cur);cur='';}
+    else if((ch==='\n'||ch==='\r')&&!inQ){if(ch==='\r'&&text[i+1]==='\n')i++;cells.push(cur);cur='';cells.push('__RE__');}
+    else{cur+=ch;}}
+  if(cur)cells.push(cur);cells.push('__RE__');
+  const rows=[];let row=[];
+  for(const c of cells){if(c==='__RE__'){if(row.length>0)rows.push(row);row=[];}else{row.push(c);}}
+  const h=rows[0]||[];const d=[];
+  for(let i=1;i<rows.length;i++){const o={};for(let j=0;j<h.length;j++)o[h[j]]=rows[i][j]||'';d.push(o);}
+  return d;
+}
+
+function archiveOverlay(html){
+  const o=document.createElement('div');
+  o.className='inc-modal-bg';o.style.display='flex';
+  o.onclick=(e)=>{if(e.target===o)o.remove();};
+  o.innerHTML=`<div class="inc-modal" style="max-width:520px"><div class="inc-modal-body" style="padding:22px">${html}</div></div>`;
+  document.body.appendChild(o);
+  return o;
+}
+
+async function mergeIntoQuarter(qid,file){
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    let rows;
+    try{
+      rows=parseCSVArchive(e.target.result).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
+    }catch(err){archiveOverlay('<h2 style="color:#ff5252;margin:0 0 8px">Could not read CSV</h2><p style="color:#879596">The file could not be parsed.</p>');return;}
+    if(!rows.length){archiveOverlay('<h2 style="color:#ff5252;margin:0 0 8px">No tickets found</h2><p style="color:#879596">No rows with a ShortId/IssueId were found in the file.</p>');return;}
+    const busy=archiveOverlay(`<h2 style="color:#fff;margin:0 0 10px">Merging…</h2><p style="color:#879596">Uploading ${rows.length.toLocaleString()} tickets and merging into ${qid} by ShortId.</p><div class="spinner" style="margin:20px auto"></div>`);
+    try{
+      const r=await window.PHDAuth.api('POST','/api/quarter/'+encodeURIComponent(qid)+'/merge',{data:{tickets:rows}});
+      busy.remove();
+      if(!r.ok){archiveOverlay(`<h2 style="color:#ff5252;margin:0 0 8px">Merge failed</h2><p style="color:#879596">${(r.data&&r.data.error)||('HTTP '+r.status)}</p>`);return;}
+      const cs=r.data.changeSummary||{};
+      const rowLi=(label,val,color)=>`<li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">${label}</span><span style="font-weight:700;color:${color||'#fff'}">${(val||0).toLocaleString()}</span></li>`;
+      const done=archiveOverlay(`
+        <h2 style="color:#3ecf4a;margin:0 0 6px">Merge complete</h2>
+        <p style="color:#879596;margin:0 0 14px">${r.data.label} updated. Newly uploaded tickets win on conflict; existing tickets not in the file were kept.</p>
+        <ul style="list-style:none;padding:0;margin:0">
+          ${rowLi('Uploaded in file',cs.uploaded,'#44b9d6')}
+          ${rowLi('New tickets added',cs.added,'#3ecf4a')}
+          ${rowLi('Existing tickets updated',cs.updated,'#fbbf24')}
+          ${rowLi('Existing tickets preserved',cs.preserved,'#879596')}
+          ${rowLi('New quarter total',cs.total,'#ff9900')}
+        </ul>
+        <p style="color:#879596;font-size:.82em;margin:14px 0 0">Recorded in the data log. Reloading the report…</p>
+        <div style="margin-top:16px;text-align:right"><button class="btn" onclick="location.reload()">Reload now</button></div>`);
+      setTimeout(()=>location.reload(),2500);
+    }catch(err){busy.remove();archiveOverlay('<h2 style="color:#ff5252;margin:0 0 8px">Merge failed</h2><p style="color:#879596">'+err.message+'</p>');}
+  };
+  reader.readAsText(file);
 }
 
 // ===== Root-cause grouping (Q2 view) =====
