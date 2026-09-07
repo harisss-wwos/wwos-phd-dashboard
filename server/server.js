@@ -282,9 +282,10 @@ app.get('/api/quarter/:qid', async (req, res) => {
 });
 
 // Publish to the live quarter (admin+). Body: { data: { tickets: [...], updatedAt, count } }.
-// Routes tickets by CreateDate: those in the live quarter update the live quarter doc.
-// Tickets whose CreateDate falls in a NON-live quarter are reported back (crossQuarter) —
-// they are only written to their own quarter doc if body.confirmCrossQuarter === true.
+// Routes tickets by CreateDate: the live-quarter bucket REPLACES the live doc (client already
+// merged locally). Non-live buckets are MERGED by ShortId into their own quarter doc (uploaded
+// wins, existing preserved). Each quarter touched gets its OWN data-log entry. The client shows
+// the per-quarter breakdown + Upload/Cancel before calling this, so no server-side 409 is needed.
 app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
   try {
     const body = req.body || {};
@@ -301,71 +302,68 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
       (byQuarter[q] = byQuarter[q] || []).push(t);
     }
 
-    // Cross-quarter summary (anything not in the live quarter), including the actual tickets
-    // so the client can present them for review.
-    const crossQuarter = Object.entries(byQuarter)
-      .filter(([q]) => q !== liveQ)
-      .map(([q, arr]) => ({
-        quarter: q,
-        label: quarterLabel(q),
-        count: arr.length,
-        tickets: arr.map(t => ({
-          id: t.ShortId || t.IssueId || '',
-          url: t.IssueUrl || '',
-          createDate: t.CreateDate || '',
-          status: t.Status || '',
-          assignee: t.AssigneeIdentity || '',
-        })),
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    // If there are cross-quarter tickets and the client hasn't confirmed, do not write anything.
-    // dropCrossQuarter: publish ONLY the live quarter and ignore non-live tickets ("update as-is").
-    // confirmCrossQuarter: publish everything including overwriting non-live quarters.
-    if (crossQuarter.length && !body.confirmCrossQuarter && !body.dropCrossQuarter) {
-      return res.status(409).json({
-        error: 'cross-quarter',
-        liveQuarter: liveQ,
-        liveLabel: quarterLabel(liveQ),
-        crossQuarter,
-        liveCount: (byQuarter[liveQ] || []).length,
-      });
-    }
-
-    // Decide which quarter buckets to actually write.
-    const bucketsToWrite = body.dropCrossQuarter
-      ? Object.fromEntries(Object.entries(byQuarter).filter(([q]) => q === liveQ))
-      : byQuarter;
-
     const coll = await getCollection(COLLECTIONS.quarters);
+    const logColl = await getCollection(COLLECTIONS.dataLog);
     const written = [];
     const publishedAt = new Date().toISOString();
-    for (const [q, arr] of Object.entries(bucketsToWrite)) {
-      const meta = { publishedBy: req.user.username, publishedAt, count: arr.length };
-      // Store the full dataset payload shape for this quarter (tickets + meta wrapper).
-      const payload = { updatedAt: meta.publishedAt, count: arr.length, tickets: arr };
-      await coll.updateOne({ _id: q }, { $set: { data: payload, meta } }, { upsert: true });
-      written.push({ quarter: q, label: quarterLabel(q), count: arr.length, isLive: q === liveQ });
+
+    // Write each quarter bucket to its own doc.
+    //  - LIVE quarter: the client already merged the new file into the full live dataset locally,
+    //    so this bucket IS the complete live dataset -> REPLACE the live quarter doc.
+    //  - NON-LIVE quarters (e.g. Q2 tickets in a Q3-live upload): these are only the rows from the
+    //    uploaded file, so MERGE them by ShortId into the existing quarter doc (uploaded wins,
+    //    existing preserved). Each quarter gets its OWN data-log entry.
+    for (const [q, arr] of Object.entries(byQuarter)) {
+      const isLive = (q === liveQ);
+      if (isLive) {
+        const meta = { publishedBy: req.user.username, publishedAt, count: arr.length };
+        const payload = { updatedAt: publishedAt, count: arr.length, tickets: arr };
+        await coll.updateOne({ _id: q }, { $set: { data: payload, meta } }, { upsert: true });
+        written.push({ quarter: q, label: quarterLabel(q), count: arr.length, isLive: true });
+        // Live-quarter data-log entry (uses the client's browser merge report).
+        try {
+          await logColl.insertOne({
+            user: req.user.username, role: req.user.role, at: publishedAt,
+            liveQuarter: q, pastQuarterMerge: false,
+            written: [{ quarter: q, label: quarterLabel(q), count: arr.length, isLive: true }],
+            changeSummary: body.changeSummary || null,
+            totalTickets: arr.length,
+          });
+        } catch (logErr) { /* never block publish */ }
+      } else {
+        // Merge by ShortId into the existing non-live quarter doc.
+        const existingDoc = await coll.findOne({ _id: q });
+        const existingTickets = (existingDoc && existingDoc.data && existingDoc.data.tickets) || [];
+        const map = new Map();
+        existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
+        const dbBefore = map.size;
+        let added = 0, updated = 0;
+        for (const t of arr) {
+          if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
+          const id = String(t.ShortId || '').trim(); if (!id) continue;
+          if (map.has(id)) updated++; else added++;
+          map.set(id, t); // uploaded (new) version wins
+        }
+        const merged = Array.from(map.values());
+        const qSummary = { added, updated, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
+        const meta = { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary: qSummary };
+        const payload = { updatedAt: publishedAt, count: merged.length, tickets: merged };
+        await coll.updateOne({ _id: q }, { $set: { data: payload, meta } }, { upsert: true });
+        written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
+        // Non-live (past) quarter data-log entry with ITS OWN change summary.
+        try {
+          await logColl.insertOne({
+            user: req.user.username, role: req.user.role, at: publishedAt,
+            liveQuarter: q, pastQuarterMerge: true,
+            written: [{ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false }],
+            changeSummary: qSummary,
+            totalTickets: merged.length,
+          });
+        } catch (logErr) { /* never block publish */ }
+      }
     }
-    const skippedCrossQuarter = body.dropCrossQuarter ? crossQuarter.map(c => ({ quarter: c.quarter, label: c.label, count: c.count })) : [];
 
-    // Record an audit-log entry (who / when / what changed).
-    try {
-      const logColl = await getCollection(COLLECTIONS.dataLog);
-      await logColl.insertOne({
-        user: req.user.username,
-        role: req.user.role,
-        at: publishedAt,               // ISO timestamp; client formats to IST/MST
-        liveQuarter: liveQ,
-        written,                       // per-quarter counts written
-        changeSummary: body.changeSummary || null, // merge report from the client
-        totalTickets: (byQuarter[liveQ] || []).length,
-        crossQuarterReviewed: !!body.confirmCrossQuarter && crossQuarter.length > 0,
-        crossQuarterSkipped: skippedCrossQuarter,
-      });
-    } catch (logErr) { /* logging must never block a successful publish */ }
-
-    res.json({ ok: true, liveQuarter: liveQ, written, undated, skippedCrossQuarter, crossQuarterReviewed: !!body.confirmCrossQuarter && crossQuarter.length > 0 });
+    res.json({ ok: true, liveQuarter: liveQ, written, undated });
   } catch (e) {
     res.status(500).json({ error: 'Could not publish quarter data.' });
   }

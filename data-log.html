@@ -44,8 +44,12 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 <body>
 <div class="top-bar">
   <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <a class="btn sec" href="app.html">← Live Dashboard</a>
+  <a class="btn sec" id="backBtn" href="app.html">← Live Dashboard</a>
 </div>
+<script>
+// If we arrived from a specific quarter report (?qid=), send "back" to that report instead of the live dashboard.
+(function(){var qid=new URLSearchParams(location.search).get('qid');if(qid){var b=document.getElementById('backBtn');if(b){b.href='archive.html?ds=quarter&qid='+encodeURIComponent(qid);b.textContent='← '+qid+' Report';}}})();
+</script>
 <div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:120px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:120px"></div></div></div>
 
 <script src="api-config.js"></script>
@@ -78,9 +82,15 @@ function changeCells(cs){
 
 function render(entries){
   const wrap=document.getElementById('wrap');
-  let html='<h1>Update Data Log</h1><p class="sub">History of data uploads to the live dashboard — who uploaded, when (IST &amp; MST), and what changed. Latest first.</p>';
+  const qid=new URLSearchParams(location.search).get('qid');
+  if(qid)entries=entries.filter(e=>e.liveQuarter===qid);
+  const heading=qid?('Update Data Log — '+esc(qid)):'Update Data Log';
+  const subText=qid
+    ?('History of data uploads/merges into <b>'+esc(qid)+'</b> — who, when (IST &amp; MST), and what changed. Latest first.')
+    :'History of data uploads to the live dashboard — who uploaded, when (IST &amp; MST), and what changed. Latest first.';
+  let html='<h1>'+heading+'</h1><p class="sub">'+subText+'</p>';
   if(!entries.length){
-    html+='<div class="empty">No uploads recorded yet.</div>';
+    html+='<div class="empty">No '+(qid?('uploads recorded for '+esc(qid)+' yet.'):'uploads recorded yet.')+'</div>';
     wrap.innerHTML=html;return;
   }
   html+=entries.map(e=>{

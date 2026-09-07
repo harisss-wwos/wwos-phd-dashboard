@@ -217,7 +217,13 @@ function handleUpload(file,mode,autoPublish){
   const uploadTime=new Date().toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('app').innerHTML=`<div class="upload-wrap"><div style="text-align:center"><div class="spinner"></div><p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">Processing CSV data...</p><p style="color:#879596;margin-top:8px;font-size:.9em">${mode==='merge'?'Merging with existing data':'Building your dashboard'}</p></div></div>`;
   reader.onload=(e)=>{setTimeout(async()=>{
-    const newRows=parseCSV(e.target.result).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
+    const parsed=parseCSV(e.target.result).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
+    // Split by quarter: the local store + browser merge only concern the LIVE quarter.
+    // Non-live rows (e.g. Q2 tickets) are passed straight to the server, which merges them
+    // into their own quarter doc — they must NOT enter the local live-dashboard store.
+    const liveQ=LIVE_QUARTER?LIVE_QUARTER.quarter:null;
+    const newRows=[];const nonLiveRows=[];
+    parsed.forEach(r=>{const q=quarterOf(r.CreateDate);if(liveQ&&q&&q!==liveQ)nonLiveRows.push(r);else newRows.push(r);});
     let mergeReport=null;
     if(mode==='fresh'){
       await dbClear();
@@ -249,13 +255,15 @@ function handleUpload(file,mode,autoPublish){
       if(toWrite.length>0)await dbPutAll(toWrite);
       mergeReport={added,updated,reopened,autoClosed,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
     }
-    // Recompute from full merged set
+    // Recompute from full merged LIVE set (local store holds live-quarter tickets only)
     const allRows=await dbGetAll();
     M=computeMetrics(allRows);M.uploadTime=uploadTime;M.mergeReport=mergeReport;M.totalStored=allRows.length;
     renderDashboard();
     if(autoPublish){
-      // Push merged dataset to Atlas, passing the merge report so it's saved in the audit log.
-      await doPublish(undefined, mergeReport);
+      // Push the merged LIVE dataset + the raw non-live rows to Atlas. The server buckets by
+      // quarter: replaces the live doc, merges non-live rows into their own quarter docs,
+      // and writes a separate data-log entry per quarter.
+      await doPublish(nonLiveRows, mergeReport);
     } else if(mergeReport){
       showMergeReport(mergeReport);
     }
@@ -370,7 +378,6 @@ function authActions(){
   const canPublish=A.atLeast('admin'); // admin & manager (same rank) & owner
   const isOwner=A.atLeast('owner');
   let html='';
-  html+=`<span style="color:#879596;font-size:.82em;margin-right:4px">${user.username} <span style="color:#ff9900;text-transform:uppercase;font-size:.85em;font-weight:700">${user.role}</span></span>`;
   if(canPublish){
     // Single button: ingest CSV -> merge -> auto-publish to Atlas.
     html+=`<label class="btn" style="background:#4ade80;cursor:pointer">${ic('upload')} Upload new data<input type="file" accept=".csv" id="uploadFile" style="display:none"></label>`;
@@ -496,13 +503,70 @@ async function submitHelpReply(id){
 }
 
 function attachNewFileHandler(){
-  // Single "Upload new data" flow: merge the CSV into the current dataset, then auto-publish to Atlas.
+  // Single "Upload new data" flow: first show a per-quarter breakdown + Upload/Cancel,
+  // then (on Upload) merge the CSV into the current dataset and auto-publish to Atlas.
   const uf=document.getElementById('uploadFile');
   if(uf)uf.onchange=(e)=>{
     if(PUBLISHING){showToast('Upload in progress — please wait.');e.target.value='';return;}
     const file=e.target.files[0];e.target.value='';
-    if(file)handleUpload(file,'merge',/*autoPublish*/true);
+    if(file)previewUpload(file);
   };
+}
+
+// Which quarter does a CreateDate fall in? e.g. "2026-Q3". Returns null if unparseable.
+function quarterOf(createDate){
+  const d=new Date(createDate);
+  if(isNaN(d))return null;
+  return d.getFullYear()+'-Q'+(Math.floor(d.getMonth()/3)+1);
+}
+
+// Parse the CSV, compute a per-quarter breakdown, and show an Upload/Cancel confirmation
+// popup BEFORE any processing. On Upload -> handleUpload(merge, autoPublish). On Cancel -> nothing.
+function previewUpload(file){
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    let rows;
+    try{ rows=parseCSV(e.target.result).filter(r=>r.ShortId||r.IssueId); }
+    catch(err){ showToast('Could not read the CSV file.'); return; }
+    if(!rows.length){ showToast('No tickets with a ShortId/IssueId were found in the file.'); return; }
+    const liveQ=LIVE_QUARTER?LIVE_QUARTER.quarter:null;
+    // Tally tickets per quarter (undated tickets are counted with the live quarter).
+    const tally={};let undated=0;
+    rows.forEach(r=>{const q=quarterOf(r.CreateDate)||liveQ||'unknown';if(!quarterOf(r.CreateDate))undated++;tally[q]=(tally[q]||0)+1;});
+    const quarters=Object.keys(tally).sort();
+    const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const qLabel=(q)=>{const m=/^(\d{4})-Q([1-4])$/.exec(q);return m?('Q'+m[2]+' '+m[1]):q;};
+    const rowsHtml=quarters.map(q=>{
+      const isLive=(q===liveQ);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #2a2a2a">
+        <span style="color:#fff;font-weight:600">${esc(qLabel(q))} ${isLive?'<span style="color:#4ade80;font-size:.75em;font-weight:700;margin-left:6px">● LIVE</span>':'<span style="color:#fbbf24;font-size:.75em;font-weight:700;margin-left:6px">PAST QUARTER</span>'}</span>
+        <span style="color:${isLive?'#4ade80':'#fbbf24'};font-weight:700">${tally[q].toLocaleString()} ticket${tally[q]===1?'':'s'}</span>
+      </div>`;
+    }).join('');
+    const hasPast=quarters.some(q=>q!==liveQ);
+    const note=hasPast
+      ? `<p style="color:#fbbf24;font-size:.85em;margin:14px 0 0;padding:10px 12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px"><b>Note:</b> tickets from a past quarter will be merged into <b>that quarter's own dashboard</b> (not the live one). Each quarter keeps its own data and update log.</p>`
+      : `<p style="color:#879596;font-size:.85em;margin:14px 0 0">All tickets belong to the live quarter and will update the live dashboard.</p>`;
+    const overlay=document.createElement('div');
+    overlay.id='incPopup';
+    overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
+    overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+      <h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">${ic('upload',18)} Confirm upload</h2>
+      <p style="color:#879596;font-size:.88em;margin-bottom:16px">This file has <b style="color:#fff">${rows.length.toLocaleString()}</b> ticket${rows.length===1?'':'s'}. Here's how they'll be routed by quarter:</p>
+      <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px 12px">${rowsHtml}</div>
+      ${undated?`<p style="color:#879596;font-size:.8em;margin-top:8px">${undated} ticket(s) had no readable date and are counted with the live quarter.</p>`:''}
+      ${note}
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
+        <button class="btn" style="background:#4ade80" id="confirmUploadBtn">${ic('upload',15)} Upload</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const btn=document.getElementById('confirmUploadBtn');
+    if(btn)btn.onclick=()=>{closeAllPopups();handleUpload(file,'merge',/*autoPublish*/true);};
+  };
+  reader.readAsText(file);
 }
 
 function makeChart(id,config){
@@ -1039,7 +1103,7 @@ function renderDashboard(){
   });
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
-  <div class="page-title" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
     ${loggedIn?`<button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button>`:''}
   </div>
@@ -1077,11 +1141,11 @@ function renderDashboard(){
   <div class="section"><h2>Ticket Age Classification</h2>
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
-      <div class="kpi-card" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="label">${ic('check-circle',14)} GREEN (0-96 hrs / 0-4 days)</div></div>
-      <div class="kpi-card" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="label">${ic('clock',14)} YELLOW (96-168 hrs / 4-7 days)</div></div>
-      <div class="kpi-card" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="label">${ic('alert',14)} RED (168-240 hrs / 7-10 days)</div></div>
-      <div class="kpi-card${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="label">${ic('flame',14)} BLACK (&gt;240 hrs / &gt;10 days)</div></div>
-      <div class="kpi-card${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="label">${ic('reopen',14)} PURPLE (Reopened)${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':''}</div></div>
+      <div class="kpi-card age-tile" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="age-name">${ic('check-circle',14)} GREEN</div><div class="age-range">(0-96 hrs / 0-4 days)</div></div>
+      <div class="kpi-card age-tile" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="age-name">${ic('clock',14)} YELLOW</div><div class="age-range">(96-168 hrs / 4-7 days)</div></div>
+      <div class="kpi-card age-tile" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="age-name">${ic('alert',14)} RED</div><div class="age-range">(168-240 hrs / 7-10 days)</div></div>
+      <div class="kpi-card age-tile${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="age-name">${ic('flame',14)} BLACK</div><div class="age-range">(&gt;240 hrs / &gt;10 days)</div></div>
+      <div class="kpi-card age-tile${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="age-name">${ic('reopen',14)} PURPLE${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':''}</div><div class="age-range">(Reopened)</div></div>
     </div></div>
 
   <div class="section"><h2>Queue Status</h2>
@@ -1281,17 +1345,31 @@ async function doLogin(){
     if(!r.ok){throw new Error((r.data&&r.data.error)||('Login failed (HTTP '+r.status+')'));}
     window.PHDAuth.setSession(r.data.token,r.data.user,remember);
     closeAllPopups();
-    showToast('Logged in as '+r.data.user.username+' ('+r.data.user.role+')');
+    showLoginLoader(); // full-screen loader while roster/profile load + the toolbar re-renders
     // Refresh the role roster + my profile (avatar), then re-render so role-gated UI updates.
     await loadUserRoles();
     if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
     startHelpNotificationPolling(); // begin desktop notifications for admins/owner
+    hideLoginLoader();
     nav(currentView);
+    showToast('Logged in as '+r.data.user.username+' ('+r.data.user.role+')');
   }catch(e){
+    hideLoginLoader();
     errEl.textContent=e.message;errEl.style.display='block';
     if(btn){btn.disabled=false;btn.textContent='Log in';}
   }
 }
+
+// Full-screen loader shown during login while the roster/profile load and the UI re-renders.
+function showLoginLoader(){
+  hideLoginLoader();
+  const o=document.createElement('div');
+  o.id='loginLoader';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px';
+  o.innerHTML='<div class="spinner" style="width:48px;height:48px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite"></div><p style="color:#fff;font-size:1.05em;font-weight:600">Signing you in…</p><p style="color:#879596;font-size:.85em">Loading your dashboard and permissions</p>';
+  document.body.appendChild(o);
+}
+function hideLoginLoader(){const o=document.getElementById('loginLoader');if(o)o.remove();}
 
 // ========= PUBLISH (to MongoDB Atlas via API) =========
 function showPublishModal(){
@@ -1327,46 +1405,29 @@ function showPublishSpinner(){
 // Current live quarter info (set on init from the API). e.g. {quarter:'2026-Q3',label:'Q3 2026',range:{...}}
 let LIVE_QUARTER=null;
 
-// Carries the merge report across a cross-quarter confirm retry so the audit log keeps it.
-let PENDING_CHANGE_SUMMARY=null;
-
-// Publish the current dataset to the live quarter. Handles the cross-quarter warning.
-// mode: undefined/false = first attempt (may trigger the 409 warning),
-//       'drop'    = update the live quarter only (ignore non-live tickets),
-//       'confirm' = review complete: include & overwrite non-live quarters.
-// changeSummary (optional) is the merge report; saved to the audit log server-side.
-async function doPublish(mode,changeSummary){
+// Publish to Atlas. Sends the merged LIVE dataset (local store) PLUS any non-live rows from the
+// upload; the server buckets by quarter (replace live, merge non-live) and logs each quarter.
+// nonLiveRows: raw uploaded rows whose CreateDate is outside the live quarter (may be empty).
+// changeSummary (optional): the live-quarter browser merge report for the live data-log entry.
+async function doPublish(nonLiveRows,changeSummary){
   if(!window.PHDAuth.atLeast('admin')){showToast('You need admin privileges to publish.');return;}
-  if(changeSummary!==undefined)PENDING_CHANGE_SUMMARY=changeSummary; // remember across warning retry
+  nonLiveRows=Array.isArray(nonLiveRows)?nonLiveRows:[];
   PUBLISHING=true;                 // lock uploads/merges
   showPublishSpinner();
   try{
-    const allRows=await dbGetAll();
-    const payload={updatedAt:new Date().toISOString(),count:allRows.length,tickets:allRows};
+    const liveRows=await dbGetAll();
+    const tickets=liveRows.concat(nonLiveRows);
+    const payload={updatedAt:new Date().toISOString(),count:tickets.length,tickets};
     const body={data:payload};
-    if(mode==='confirm')body.confirmCrossQuarter=true;
-    if(mode==='drop')body.dropCrossQuarter=true;
-    if(PENDING_CHANGE_SUMMARY)body.changeSummary=PENDING_CHANGE_SUMMARY;
+    if(changeSummary)body.changeSummary=changeSummary;
     const r=await window.PHDAuth.api('POST','/api/live-quarter',body);
-    // Cross-quarter warning: server refuses on the first attempt until the user chooses.
-    if(r.status===409&&r.data&&r.data.error==='cross-quarter'){
-      PUBLISHING=false;
-      closeAllPopups();
-      showCrossQuarterWarning(r.data);
-      return;
-    }
     if(!r.ok){throw new Error((r.data&&r.data.error)||('Publish failed (HTTP '+r.status+')'));}
     PUBLISHING=false;
     closeAllPopups();
-    // Invalidate the local cache version. The server stamps its own publishedAt; clearing this
-    // makes the next visit do one clean refetch that re-syncs the cache to the server's value.
+    // Invalidate the local cache version so the next visit re-syncs to the server's publishedAt.
     try{await metaSet('liveCache',null);}catch(_){}
-    const summary=PENDING_CHANGE_SUMMARY;
-    PENDING_CHANGE_SUMMARY=null;
-    const reviewed=!!(r.data&&r.data.crossQuarterReviewed);
-    const skipped=(r.data&&r.data.skippedCrossQuarter)||[];
-    showToast('Data published to '+(LIVE_QUARTER?LIVE_QUARTER.label:'the live quarter')+'! Live for everyone now.');
-    if(summary)showMergeReport(summary,{reviewed,skipped}); // change-summary popup after a successful upload+publish
+    showToast('Data published! Live for everyone now.');
+    showUploadResult((r.data&&r.data.written)||[],changeSummary);
   }catch(e){
     PUBLISHING=false;
     closeAllPopups();
@@ -1374,67 +1435,28 @@ async function doPublish(mode,changeSummary){
   }
 }
 
-// Two-section warning when the upload contains tickets created in a non-live quarter.
-// Section 1: update the LIVE quarter as-is (Update / Cancel) — skips non-live tickets.
-// Section 2: review the actual non-live tickets, then Skip-for-now / Review complete & confirm.
-function showCrossQuarterWarning(info){
-  closeAllPopups();
+// Post-upload summary: what was written per quarter (live replace + non-live merges).
+function showUploadResult(written,liveSummary){
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  // Flatten all non-live tickets across quarters for the review list.
-  const allCross=[];
-  (info.crossQuarter||[]).forEach(c=>{(c.tickets||[]).forEach(t=>allCross.push({...t,label:c.label}));});
-  // sort oldest first by createDate
-  allCross.sort((a,b)=>new Date(a.createDate)-new Date(b.createDate));
-  const quarterRows=(info.crossQuarter||[]).map(c=>`<div style="display:flex;justify-content:space-between;padding:6px 0;color:#fbbf24;font-size:.88em"><span>${esc(c.label)}</span><span>${c.count} ticket(s)</span></div>`).join('');
-  const ticketRows=allCross.map((t,i)=>`<tr>
-      <td style="color:#879596">${i+1}</td>
-      <td>${t.url?`<a href="${esc(t.url)}" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">${esc(t.id)}</a>`:esc(t.id)}</td>
-      <td style="color:#fbbf24">${esc(t.label)}</td>
-      <td style="color:#879596">${esc((t.createDate||'').split('T')[0])}</td>
-      <td>${esc(t.status)}</td>
-      <td style="color:#879596">${esc(t.assignee||'—')}</td>
-    </tr>`).join('');
-
-  const overlay=document.createElement('div');overlay.id='incPopup';
+  const rowsHtml=(written||[]).map(w=>{
+    const isLive=w.isLive;
+    return `<div style="padding:12px 0;border-bottom:1px solid #2a2a2a">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="color:#fff;font-weight:600">${esc(w.label||w.quarter)} ${isLive?'<span style="color:#4ade80;font-size:.72em;font-weight:700;margin-left:6px">● LIVE — updated</span>':'<span style="color:#fbbf24;font-size:.72em;font-weight:700;margin-left:6px">PAST — merged</span>'}</span>
+        <span style="color:${isLive?'#4ade80':'#fbbf24'};font-weight:700">${(w.count||0).toLocaleString()} tickets</span>
+      </div>
+      <div style="color:#5f6b6c;font-size:.78em;margin-top:4px">${isLive?'View changes in the live quarter\u2019s update log.':'View changes in the '+esc(w.label||w.quarter)+' dashboard\u2019s update log.'}</div>
+    </div>`;
+  }).join('')||'<p style="color:#879596">No quarters were written.</p>';
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:26px">
-    <h2 style="color:#fbbf24;font-size:1.2em;margin-bottom:6px">⚠ Data outside the live quarter</h2>
-    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.6">This upload contains tickets created in a <b>non-live quarter</b>. The live quarter is <b style="color:#4ade80">${esc(info.liveLabel)}</b>.</p>
-
-    <!-- Section 1: update the live quarter as-is -->
-    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:16px 18px;margin-bottom:16px">
-      <h3 style="color:#fff;font-size:.98em;margin-bottom:8px">1 · Update the live quarter only</h3>
-      <p style="color:#879596;font-size:.84em;line-height:1.6;margin-bottom:6px">Publish the <b style="color:#4ade80">${esc(info.liveLabel)}</b> tickets (<b>${info.liveCount}</b>) and <b>ignore</b> the non-live tickets below. Finalized quarters stay untouched.</p>
-      <div style="margin-top:6px">${quarterRows}</div>
-      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
-        <button class="btn" style="background:#4ade80" onclick="doPublish('drop')">Update</button>
-      </div>
-    </div>
-
-    <!-- Section 2: review the non-live tickets -->
-    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:16px 18px">
-      <h3 style="color:#fff;font-size:.98em;margin-bottom:8px">2 · Review the non-live tickets (${allCross.length})</h3>
-      <p style="color:#879596;font-size:.84em;line-height:1.6;margin-bottom:10px">These tickets were created in a non-live quarter. Confirming will <b style="color:#fbbf24">overwrite that quarter's data</b> with them. Oldest first.</p>
-      <div style="max-height:280px;overflow:auto;border:1px solid #2a2a2a;border-radius:8px">
-        <table style="width:100%;border-collapse:collapse;font-size:.82em">
-          <thead><tr style="position:sticky;top:0;background:#000">
-            <th style="text-align:left;padding:8px 10px;color:#879596">#</th>
-            <th style="text-align:left;padding:8px 10px;color:#879596">Ticket</th>
-            <th style="text-align:left;padding:8px 10px;color:#879596">Quarter</th>
-            <th style="text-align:left;padding:8px 10px;color:#879596">Created</th>
-            <th style="text-align:left;padding:8px 10px;color:#879596">Status</th>
-            <th style="text-align:left;padding:8px 10px;color:#879596">Assignee</th>
-          </tr></thead>
-          <tbody>${ticketRows}</tbody>
-        </table>
-      </div>
-      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn sec" onclick="doPublish('drop')">Skip for now</button>
-        <button class="btn" style="background:#fbbf24;color:#000" onclick="doPublish('confirm')">Review complete — upload &amp; confirm</button>
-      </div>
-    </div>
+  overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+    <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:6px">${ic('check-circle',18)} Upload complete</h2>
+    <p style="color:#879596;font-size:.88em;margin-bottom:14px">Tickets were routed to their quarters. Each quarter's own update log records its changes.</p>
+    <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:2px 16px 6px">${rowsHtml}</div>
+    <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeAllPopups()">Done</button></div>
   </div>`;
   document.body.appendChild(overlay);
 }

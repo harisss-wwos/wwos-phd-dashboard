@@ -46,6 +46,9 @@ async function loadMetrics(){
   return{metrics,name};
 }
 
+// Inline-SVG icon helper (icons.js). Returns '' if unavailable so markup stays clean.
+function ic(name,size){return (typeof window.icon==='function')?window.icon(name,size||15):'';}
+
 function mkChart(id,cfg){const el=document.getElementById(id);if(el){charts.push(new Chart(el,cfg));}}
 
 function pieCfg(entries,label){return{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:COLORS,borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#d5dbdb',font:{size:10},padding:6}}}}};}
@@ -79,22 +82,25 @@ function render(metrics,name,ds){
   const shortD=(iso)=>{const d=new Date(iso+'T00:00:00');return isNaN(d)?iso:d.toLocaleString('en-US',{month:'short',day:'numeric'});};
   const windowText=(ds==='q2')?'Apr 1 – Jun 30, 2026':(m.dateRange&&m.dateRange[0]?`${shortD(m.dateRange[0])} – ${shortD(m.dateRange[1])}`:'this quarter');
   // Admin-only "upload/merge into this quarter" control (past/non-live quarters only).
+  const loggedIn=quarterMode && window.PHDAuth && window.PHDAuth.getUser && window.PHDAuth.getUser();
   const canMerge=quarterMode && window.PHDAuth && window.PHDAuth.atLeast && window.PHDAuth.atLeast('admin');
   const qid=quarterMode?qparam('qid'):'';
-  const mergeBtn=canMerge?`<label class="btn" style="cursor:pointer;margin-left:auto">⬆ Upload / merge into this quarter<input type="file" accept=".csv" id="qMergeFile" style="display:none"></label>`:'';
+  const logBtn=loggedIn?`<a class="btn sec" href="data-log.html?qid=${encodeURIComponent(qid)}">${ic('history')} Update data log</a>`:'';
+  const mergeBtn=canMerge?`<label class="btn" style="cursor:pointer">${ic('upload')} Upload / merge into this quarter<input type="file" accept=".csv" id="qMergeFile" style="display:none"></label>`:'';
+  const actions=(logBtn||mergeBtn)?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-left:auto">${logBtn}${mergeBtn}</div>`:'';
   document.getElementById('app').innerHTML=`<div class="content">
     <div class="page-title" style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:240px"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets · ${quarterMode?'Read-only report (DB-backed)':'Read-only archive'}</p></div>
-      ${mergeBtn}
+      ${actions}
     </div>
 
-    <div class="section"><h2>Summary Statistics</h2>
+    <div class="section"><h2>${ic('bar-chart',18)} Summary Statistics</h2>
     <div class="kpi-grid">
-      <div class="kpi-card accent"><div class="value">${m.total.toLocaleString()}</div><div class="label">Total Tickets</div></div>
-      <div class="kpi-card success"><div class="value">${m.resolvedClosed.toLocaleString()}</div><div class="label">Resolved / Closed</div></div>
-      <div class="kpi-card warning"><div class="value">${m.open.toLocaleString()}</div><div class="label">Open</div></div>
-      <div class="kpi-card success"><div class="value">${m.slaPct}%</div><div class="label">SLA ≤${m.slaHrs}hrs</div></div>
-      <div class="kpi-card warning"><div class="value">${m.hiRepeatPct}%</div><div class="label">Repeat Offenders (HI>0)</div></div>
+      <div class="kpi-card accent"><div class="value">${m.total.toLocaleString()}</div><div class="label">${ic('ticket',13)} Total Tickets</div></div>
+      <div class="kpi-card success"><div class="value">${m.resolvedClosed.toLocaleString()}</div><div class="label">${ic('check-circle',13)} Resolved / Closed</div></div>
+      <div class="kpi-card warning"><div class="value">${m.open.toLocaleString()}</div><div class="label">${ic('hourglass',13)} Open</div></div>
+      <div class="kpi-card success"><div class="value">${m.slaPct}%</div><div class="label">${ic('target',13)} SLA ≤${m.slaHrs}hrs</div></div>
+      <div class="kpi-card warning"><div class="value">${m.hiRepeatPct}%</div><div class="label">${ic('repeat',13)} Repeat Offenders (HI>0)</div></div>
     </div></div>
 
     <div class="charts-grid">
@@ -103,11 +109,11 @@ function render(metrics,name,ds){
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-      <div class="section" style="margin-bottom:0"><h2>Geography / Region — Count</h2>
+      <div class="section" style="margin-bottom:0"><h2>${ic('globe',18)} Geography / Region — Count</h2>
       <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Region</th><th>Number of Cases</th></tr></thead><tbody>
       ${m.regions.map(([k,v],i)=>`<tr><td>${i+1}</td><td><strong>${k}</strong></td><td>${v.toLocaleString()}</td></tr>`).join('')}
       </tbody></table></div></div>
-      <div class="section" style="margin-bottom:0"><h2>Resolver Volume — PHD Team (WWOS)</h2>
+      <div class="section" style="margin-bottom:0"><h2>${ic('users',18)} Resolver Volume — PHD Team (WWOS)</h2>
       <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>
       ${phdRes.map(([k,v],i)=>`<tr><td>${i+1}</td><td><strong>${k}</strong><span class="phd-badge">PHD</span></td><td>${v}</td></tr>`).join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>'}
       </tbody></table></div></div>
@@ -126,23 +132,22 @@ function render(metrics,name,ds){
       <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Quarter</h3><div class="chart-wrap"><canvas id="cResolvedQ"></canvas></div></div>
       <div class="chart-box" style="grid-column:1/-1"><h3>Created vs Resolved per Month (Backlog Trend)</h3><div class="chart-wrap"><canvas id="cCvR"></canvas></div></div>
       <div class="chart-box" style="grid-column:1/-1"><h3>Severity Trend Over Time (by Year)</h3><div class="chart-wrap"><canvas id="cSevTrend"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Resolution Time Trend (Median hrs per Month)</h3><div class="chart-wrap"><canvas id="cResTrend"></canvas></div></div>
       `}
     </div>
 
-    ${isQ2?'':`<div class="section"><h2>Year-over-Year Growth</h2>
+    ${isQ2?'':`<div class="section"><h2>${ic('bar-chart',18)} Year-over-Year Growth</h2>
     <div style="overflow-x:auto"><table><thead><tr><th>Year</th><th>Tickets Created</th><th>YoY Growth %</th></tr></thead><tbody>
     ${m.yoy.map(y=>`<tr><td><strong>${y.year}</strong></td><td>${y.count.toLocaleString()}</td><td style="color:${y.growth===null?'#879596':parseFloat(y.growth)>=0?'#ff5252':'#4ade80'}">${y.growth===null?'—':(parseFloat(y.growth)>=0?'+':'')+y.growth+'%'}</td></tr>`).join('')}
     </tbody></table></div></div>`}
 
-    ${isQ2&&m.slaByWeek?`<div class="section"><h2>SLA Compliance per Week (≤240 hrs)</h2>
+    ${isQ2&&m.slaByWeek?`<div class="section"><h2>${ic('check-circle',18)} SLA Compliance per Week (≤240 hrs)</h2>
       <p style="color:var(--tm);font-size:.85em;margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date.</p>
       <div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div>
     </div>`:''}
 
     ${isQ2
-      ?`<div class="section"><h2>Root Causes by Group</h2><div id="rcGroups" class="rc-accordion"></div></div>`
-      :`<div class="section"><h2>Root Cause × Region (Cross-Tab)</h2><div style="overflow-x:auto" id="rcRegionTable"></div></div>`}
+      ?`<div class="section"><h2>${ic('repeat',18)} Root Causes by Group</h2><div id="rcGroups" class="rc-accordion"></div></div>`
+      :`<div class="section"><h2>${ic('repeat',18)} Root Cause × Region (Cross-Tab)</h2><div style="overflow-x:auto" id="rcRegionTable"></div></div>`}
   </div>`;
 
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
@@ -230,8 +235,6 @@ function render(metrics,name,ds){
   const sevYears=Object.keys(m.sevByYear).sort();const allSev=[...new Set(sevYears.flatMap(y=>Object.keys(m.sevByYear[y])))].sort();
   const sevColors={'3':'#4ade80','4':'#fbbf24','5':'#ff5252'};
   mkChart('cSevTrend',{type:'line',data:{labels:sevYears,datasets:allSev.map((sev,i)=>({label:'Sev '+sev,data:sevYears.map(y=>m.sevByYear[y][sev]||0),borderColor:sevColors[sev]||COLORS[i],backgroundColor:'transparent',tension:.3,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true}}}});
-  // Res time trend
-  mkChart('cResTrend',{type:'line',data:{labels:m.resTrendLabels,datasets:[{label:'Median Res (hrs)',data:m.resTrendData,borderColor:'#2074d5',backgroundColor:'rgba(32,116,213,.08)',fill:true,tension:.3,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true},x:{ticks:{font:{size:8},maxTicksLimit:20}}}}});
   }
   if(isQ2){
     renderRootCauseGroups('rcGroups',m.rcXregion);

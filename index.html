@@ -75,10 +75,43 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t);margin-right:10px}
 .dynamic-btns{margin-top:20px}
+@keyframes hspin{100%{transform:rotate(360deg)}}
+/* Top-bar auth controls (login button / avatar / logout) — override the modal .btn top margin */
+#homeAuth .btn{margin-top:0;margin-right:0;padding:8px 16px;font-size:.85em}
+#homeAuth .btn.sec{margin-right:0}
+#homeAuth .avatar-initial,#homeAuth img{border-radius:50%}
+/* Quarter-card loading skeleton (mirrors .card dimensions) */
+.q-skel{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid #1a1a1a;border-radius:12px;padding:28px}
+.q-skel-head{height:22px;width:70%;border-radius:6px;margin-bottom:16px}
+.q-skel-line{height:12px;width:100%;border-radius:6px;margin-bottom:8px}
+.q-skel-line.short{width:55%}
+.q-skel-tag{height:24px;width:120px;border-radius:20px;margin-top:16px}
 </style>
 </head>
 <body>
-<div class="top-bar"><div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div></div>
+<div class="top-bar"><div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div><div id="homeAuth" style="margin-left:auto;display:flex;align-items:center;gap:10px"></div></div>
+
+<!-- Login modal (shared styles with the rest of the page) -->
+<div class="modal-bg" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
+  <div class="modal">
+    <h2>Log in</h2>
+    <p style="color:var(--tm);font-size:.85em;margin:-8px 0 6px;line-height:1.5">Log in to publish or manage data. Viewing the dashboards needs no login.</p>
+    <label>Username</label>
+    <input type="text" id="hLoginUser" autocomplete="username">
+    <label>Password</label>
+    <input type="password" id="hLoginPass" autocomplete="current-password">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:var(--tm)"><input type="checkbox" id="hLoginRemember" style="width:auto"> Keep me signed in</label>
+    <div class="err" id="hLoginErr"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeLoginModal()">Cancel</button>
+      <button class="btn" id="hLoginBtn" onclick="homeDoLogin()">Log in</button>
+    </div>
+  </div>
+</div>
+<div id="homeLoginLoader" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1200;align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:hspin 1s linear infinite"></div>
+  <p style="color:#fff;font-weight:600">Signing you in…</p>
+</div>
 <div class="wrap">
   <div class="hero">
     <div class="about">
@@ -128,20 +161,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       </div>
     </div>
   </div>
+  <!-- Fixed card order: Admin & Operations Guide, Program History, then quarters ascending (Q2, Q3, Q4...) injected by home.js. -->
   <div class="grid" id="cardGrid">
-    <a class="card" href="archive.html?ds=archive">
-      <div class="card-head"><span class="card-ic" data-ic="inbox"></span><h2>Program History: Jan 2021 – Mar 2026</h2></div>
-      <p>Complete incident analytics from the program's first era (handled by the prior team until 31 Mar 2026). Read-only archive.</p>
-      <span class="tag">56,578 tickets · Archived</span>
-    </a>
-    <!-- Q2 2026 (and all other quarters) come from the database via home.js.
-         Only Program History above is hardcoded. -->
-    <!-- Dynamic quarter cards (live + any past DB-backed quarters) are injected here by home.js -->
     <a class="card guide" href="admin-guide.html">
       <div class="card-head"><span class="card-ic" data-ic="book"></span><h2>Admin &amp; Operations Guide</h2></div>
       <p>How to log in, change your password, upload data (and the CSV fields that matter), what you can see, and how to answer contractor help requests.</p>
       <span class="tag">Docs · For admins</span>
     </a>
+    <a class="card" href="archive.html?ds=archive">
+      <div class="card-head"><span class="card-ic" data-ic="inbox"></span><h2>Program History: Jan 2021 – Mar 2026</h2></div>
+      <p>Complete incident analytics from the program's first era (handled by the prior team until 31 Mar 2026). Read-only archive.</p>
+      <span class="tag">56,578 tickets · Archived</span>
+    </a>
+    <!-- Q2 2026 (and all other quarters) come from the database via home.js, appended here in ascending order. -->
+    <!-- Dynamic quarter cards (Q2, Q3, Q4...) are appended here by home.js -->
   </div>
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
 </div>
@@ -151,6 +184,52 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script>
 // Fill any static icon placeholders (<span class="card-ic" data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 22); });
+
+// ===== Homepage auth (Login button / avatar + Logout) =====
+var A = window.PHDAuth;
+function ic(n,s){ return (typeof window.icon==='function') ? window.icon(n,s||15) : ''; }
+function renderHomeAuth(){
+  var slot = document.getElementById('homeAuth');
+  if(!slot || !A) return;
+  var user = A.getUser && A.getUser();
+  if(!user){
+    slot.innerHTML = '<button class="btn" onclick="openLoginModal()">'+ic('key')+' Login</button>';
+    return;
+  }
+  var prof = (A.myProfile && A.myProfile()) || user;
+  var avatar = A.avatarHtml ? A.avatarHtml(prof, 32) : '';
+  slot.innerHTML =
+    '<a href="profile.html" title="Profile" style="display:inline-flex;align-items:center;text-decoration:none">'+avatar+'</a>'+
+    '<button class="btn sec" onclick="homeLogout()">'+ic('log-out')+' Logout</button>';
+}
+function openLoginModal(){ document.getElementById('loginModal').style.display='flex'; setTimeout(function(){var u=document.getElementById('hLoginUser'); if(u) u.focus();},40); }
+function closeLoginModal(){ document.getElementById('loginModal').style.display='none'; }
+function homeLogout(){ A.clear(); location.reload(); }
+async function homeDoLogin(){
+  var u=document.getElementById('hLoginUser').value.trim();
+  var p=document.getElementById('hLoginPass').value;
+  var remember=document.getElementById('hLoginRemember').checked;
+  var err=document.getElementById('hLoginErr');
+  if(!u||!p){ err.textContent='Enter username and password.'; err.style.display='block'; return; }
+  err.style.display='none';
+  var btn=document.getElementById('hLoginBtn'); btn.disabled=true; btn.textContent='Logging in…';
+  try{
+    var r=await A.api('POST','/api/login',{username:u,password:p});
+    if(!r.ok) throw new Error((r.data&&r.data.error)||('Login failed (HTTP '+r.status+')'));
+    A.setSession(r.data.token, r.data.user, remember);
+    closeLoginModal();
+    document.getElementById('homeLoginLoader').style.display='flex';
+    if(A.loadMyProfile) await A.loadMyProfile();
+    location.reload(); // simplest: reload so all cards/links reflect the logged-in state
+  }catch(e){
+    err.textContent=e.message; err.style.display='block';
+    btn.disabled=false; btn.textContent='Log in';
+  }
+}
+// Load my profile (avatar) if a session exists, then render the auth controls.
+(async function(){ try{ if(A && A.getUser && A.getUser() && A.loadMyProfile) await A.loadMyProfile(); }catch(e){} renderHomeAuth(); })();
+// Allow Enter to submit the login form.
+document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
 <script src="home.js"></script>
 </body>

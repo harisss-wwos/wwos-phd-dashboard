@@ -18,6 +18,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.tools-subnav{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:0 24px;display:flex;gap:4px;flex-wrap:wrap}
+.tools-subnav a{padding:12px 16px;color:var(--tm);text-decoration:none;font-size:.88em;font-weight:600;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tools-subnav a:hover{color:#fff}
+.tools-subnav a.active{color:var(--o);border-bottom-color:var(--o)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:5px 12px;font-size:.78em}
 .wrap{width:80%;max-width:1000px;margin:0 auto;padding:40px 24px}
@@ -51,6 +55,11 @@ tbody tr:hover{background:rgba(255,153,0,.04)}
 <div class="top-bar">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
   <a class="btn sec" href="tools.html">← PHD Tools</a>
+</div>
+<div class="tools-subnav">
+  <a href="tool-blurbs.html">Common Blurbs</a>
+  <a href="tool-hashtags.html">Hashtags</a>
+  <a href="tool-paging.html" class="active">Paging Contacts</a>
 </div>
 <div class="wrap" id="wrap">
   <div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:280px"></div></div>

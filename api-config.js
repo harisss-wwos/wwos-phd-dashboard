@@ -34,14 +34,17 @@ window.PHDAuth = {
     var navBtns = pill(90) + pill(70) + pill(110) + pill(100) + pill(120) + pill(100);
     var actBtns = pill(120) + pill(70) + pill(120) + pill(90) + '<div class="shimmer" style="width:34px;height:34px;border-radius:50%"></div>';
     var kpis = ''; for (var i = 0; i < 3; i++) kpis += '<div class="shimmer sk-kpi"></div>';
-    var colors = ''; for (var c = 0; c < 5; c++) colors += '<div class="shimmer sk-kpi" style="min-width:120px"></div>';
+    // Age tiles: stacked count / name / range placeholders (matches the new tile layout).
+    var colors = '';
+    for (var c = 0; c < 5; c++) colors += '<div class="sk-age"><div class="shimmer sk-age-val"></div><div class="shimmer sk-age-name"></div><div class="shimmer sk-age-range"></div></div>';
     return '' +
       // Header row 1: logo/title bar
       '<div class="sk-topbar"><div class="shimmer" style="width:210px;height:24px"></div></div>' +
-      // Header row 2: toolbar (nav on left, actions/avatar on right)
+      // Header row 2: toolbar stacked — nav row then actions row (matches the two-row toolbar)
       '<div class="sk-toolbar"><div class="sk-tb-left">' + navBtns + '</div><div class="sk-tb-right">' + actBtns + '</div></div>' +
       '<div class="sk-wrap">' +
-      '<div class="shimmer sk-title"></div>' +
+      // Title on the left, Alerts button placeholder on the right (one line)
+      '<div class="sk-title-row"><div class="shimmer sk-title"></div><div class="shimmer sk-alert"></div></div>' +
       (note ? '<div class="sk-note"><span class="sk-dot"></span>' + note + '</div>' : '') +
       '<div class="sk-row">' + kpis + '</div>' +
       '<div class="sk-row" style="flex-wrap:wrap">' + colors + '</div>' +

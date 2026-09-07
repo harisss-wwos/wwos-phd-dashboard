@@ -1,38 +1,49 @@
 // Home page: inject dynamic quarter cards (the live quarter + any DB-backed past quarters).
-// Static cards (Program History, Q2 2026, PHD Tools) are in the HTML. The old "Live Dashboard"
-// and "+ Add New Archive Dashboard" cards were removed in favor of this dynamic, quarter-based model.
+// Static cards (Admin & Operations Guide, Program History) are in the HTML. Quarter cards
+// (Q2, Q3, Q4...) are appended dynamically from the database in ascending order.
 
 function fmtCount(n){return (typeof n==='number')?n.toLocaleString():'';}
 
-// Insert quarter cards just before the PHD Tools card so the live quarter sits with the reports.
+// Build one card-shaped shimmer placeholder that mirrors the real quarter card layout.
+function quarterSkeletonCard(){
+  const el=document.createElement('div');
+  el.className='q-skel';
+  el.innerHTML=
+    '<div class="shimmer q-skel-head"></div>'+
+    '<div class="shimmer q-skel-line"></div>'+
+    '<div class="shimmer q-skel-line short"></div>'+
+    '<div class="shimmer q-skel-tag"></div>';
+  return el;
+}
+
+// Append quarter cards (from the DB) after the static cards. Shows card-shaped shimmers while loading.
 async function renderQuarterCards(){
   const grid=document.getElementById('cardGrid');
   if(!grid||!window.PHDAuth)return;
-  const toolsCardEl=grid.querySelector('.card.tools');
-  // Loading shimmer placeholder card(s) while /api/quarters loads (may hit Render cold start).
-  const ph=document.createElement('div');
-  ph.className='shimmer sk-card';
-  ph.id='quarterLoading';
-  ph.style.minHeight='150px';
-  if(toolsCardEl)grid.insertBefore(ph,toolsCardEl);else grid.appendChild(ph);
+  // Loading shimmer: a few card-shaped placeholders matching the quarter-card grid
+  // (Render can cold-start, so this may be visible for a moment).
+  const skWrap=document.createElement('div');
+  skWrap.id='quarterLoading';
+  skWrap.style.display='contents'; // let the skeleton cards sit directly in the grid
+  for(let i=0;i<2;i++)skWrap.appendChild(quarterSkeletonCard());
+  grid.appendChild(skWrap);
   let info;
   try{
     const r=await window.PHDAuth.api('GET','/api/quarters');
-    if(!r.ok||!r.data){ph.remove();return;}
+    if(!r.ok||!r.data){skWrap.remove();return;}
     info=r.data;
-  }catch(e){ph.remove();return;}
-  ph.remove();
+  }catch(e){skWrap.remove();return;}
+  skWrap.remove();
 
   const liveId=info.liveQuarter;
-  const toolsCard=grid.querySelector('.card.tools');
   const frag=document.createDocumentFragment();
 
-  // Sort quarters newest first; ensure the live quarter is present even if not yet in DB.
+  // Sort quarters ASCENDING (Q2, Q3, Q4...); ensure the live quarter is present even if not yet in DB.
   const seen={};
   const quarters=(info.quarters||[]).slice();
   quarters.forEach(q=>{seen[q.id]=true;});
   if(liveId && !seen[liveId]){quarters.push({id:liveId,label:info.liveLabel,count:undefined,isLive:true});}
-  quarters.sort((a,b)=>b.id.localeCompare(a.id));
+  quarters.sort((a,b)=>a.id.localeCompare(b.id));
 
   quarters.forEach(q=>{
     const a=document.createElement('a');
@@ -54,8 +65,8 @@ async function renderQuarterCards(){
     frag.appendChild(a);
   });
 
-  if(toolsCard)grid.insertBefore(frag,toolsCard);
-  else grid.appendChild(frag);
+  // Append quarter cards after the static cards (Admin Guide, Program History) — ascending order.
+  grid.appendChild(frag);
 }
 
 renderQuarterCards();

@@ -25,8 +25,18 @@
 .sk-line{height:14px;border-radius:6px;margin:10px 0}
 .sk-pill{height:32px;border-radius:6px}
 .sk-topbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:12px 24px}
-.sk-toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:10px 24px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* Two stacked rows to match the live-dashboard toolbar (nav on row 1, actions on row 2). */
+.sk-toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:10px 24px;display:flex;flex-direction:column;gap:10px}
 .sk-tb-left,.sk-tb-right{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sk-tb-right{padding-top:10px;border-top:1px solid var(--bd,#2a2a2a)}
+.sk-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.sk-title-row .sk-title{margin-bottom:0}
+.sk-alert{height:32px;width:110px;border-radius:6px}
+/* Stacked age-tile skeleton: count / name / range */
+.sk-age{flex:1;min-width:150px;background:#0a0a0a;border:1px solid var(--bd,#2a2a2a);border-radius:8px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.sk-age-val{height:30px;width:60px}
+.sk-age-name{height:14px;width:90px;opacity:.8}
+.sk-age-range{height:11px;width:130px;opacity:.6}
 .sk-note{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--tm,#879596);font-size:.85em;margin:8px 0 20px}
 .sk-dot{width:8px;height:8px;border-radius:50%;background:var(--o,#ff9900);animation:livepulse 1.2s ease-in-out infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.4}}

@@ -22,9 +22,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .live-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.62}}
 /* Second row: toolbar holding all nav + action buttons */
-.toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:53px;z-index:99}
+/* Two explicit rows: nav on line 1, action buttons on line 2. */
+.toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;flex-direction:column;align-items:stretch;gap:10px;position:sticky;top:53px;z-index:99}
 .toolbar-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.toolbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--bd)}
 .nav-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 /* Priority blink for BLACK / out-of-policy PURPLE ticket sections */
 .blink-alert{animation:blinkAlert 1s ease-in-out infinite;border:1px solid rgba(255,82,82,.55)!important}
@@ -76,6 +77,9 @@ tr:hover{background:rgba(255,153,0,.03)}
 .hidden{display:none}
 /* Icon alignment: labels/buttons show icon + text neatly */
 .kpi-card .label{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+/* Ticket Age tiles: count / COLOR / (range) stacked on separate lines */
+.age-tile .age-name{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:.9em;letter-spacing:.5px;margin-top:6px;color:#fff}
+.age-tile .age-range{color:var(--tm);font-size:.72em;margin-top:4px}
 .btn .ic,.btn svg.ic{margin-right:2px}
 .ic{opacity:.9}
 /* Wide tables scroll horizontally instead of breaking the layout on small screens */
