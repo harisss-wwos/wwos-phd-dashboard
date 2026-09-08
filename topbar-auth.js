@@ -59,7 +59,11 @@
       // login loader
       + '.tb-loader{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}'
       + '.tb-loader .sp{width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite}'
-      + '.tb-loader p{color:#fff;font-weight:600}';
+      + '.tb-loader p{color:#fff;font-weight:600}'
+      // floating circular back button (bottom-right)
+      + '.tb-back-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;transition:transform .15s,background .15s}'
+      + '.tb-back-fab:hover{background:#ec7211;transform:translateY(-2px)}'
+      + '.tb-back-fab svg{width:22px;height:22px}';
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
     st.textContent = css;
@@ -88,6 +92,9 @@
   function navHtml(active, inApp) {
     var li = loggedIn();
     var isAdmin = atLeast('admin');
+    // Per-page opt-out: body[data-nav-hide="home,dashboard,tools"] hides those nav buttons.
+    var hideAttr = (document.body.getAttribute('data-nav-hide') || '').toLowerCase();
+    var hide = {}; hideAttr.split(',').forEach(function (k) { k = k.trim(); if (k) hide[k] = true; });
     // View buttons (live-dashboard views). In app.html these call nav(); elsewhere link to app.html?view=.
     function view(key, lbl, icon) {
       var cls = 'tb-navbtn' + (active === key ? ' active' : '');
@@ -105,15 +112,15 @@
       return '<a class="' + cls + '" href="help-activity.html">' + ic('alert') + ' Help Activity</a>';
     }
     var html = '';
-    // Home first — goes to the all-dashboards landing page (available to everyone).
-    html += '<a class="tb-navbtn" href="index.html">' + ic('home') + ' Home</a>';
+    // Home, Dashboard, PHD Tools show only for LOGGED-IN users (and can be hidden per-page).
+    if (li && !hide.home) html += '<a class="tb-navbtn" href="index.html">' + ic('home') + ' Home</a>';
     // Fixed order requested by the team.
     if (isAdmin) { // Upload new data (admin+). Lives on app.html; from elsewhere, go there first.
       if (inApp) html += '<label class="tb-navbtn upload" style="cursor:pointer">' + ic('upload') + ' Upload new data<input type="file" accept=".csv" id="uploadFile" style="display:none"></label>';
       else html += '<a class="tb-navbtn upload" href="app.html">' + ic('upload') + ' Upload new data</a>';
     }
     if (li) html += link('data-log', 'Update data log', 'history', 'data-log.html');
-    html += view('dashboard', 'Dashboard', 'grid');
+    if (li && !hide.dashboard) html += view('dashboard', 'Dashboard', 'grid');
     if (li) html += link('my-tickets', 'My Tickets', 'ticket', 'my-tickets.html');
     if (isAdmin) html += link('agent-analytics', 'Agent Analytics', 'bar-chart', 'agent-analytics.html');
     if (li) {
@@ -123,7 +130,7 @@
     }
     if (isAdmin) html += link('last24', 'Last 24 Hours', 'clock', 'last24.html');
     if (li) html += helpActivityBtn();
-    html += link('tools', 'PHD Tools', 'tool', 'tools.html');
+    if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
     return html;
   }
 
@@ -200,12 +207,26 @@
     });
   }
 
+  // Floating circular back button (bottom-right) when a page sets data-back-href. Works on any page.
+  function buildBackButton() {
+    var backHref = document.body.getAttribute('data-back-href');
+    if (!backHref || document.querySelector('.tb-back-fab')) return;
+    var lbl = document.body.getAttribute('data-back-label') || 'Back';
+    var fab = document.createElement('a');
+    fab.className = 'tb-back-fab';
+    fab.href = backHref;
+    fab.title = 'Back to ' + lbl;
+    fab.setAttribute('aria-label', 'Back to ' + lbl);
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
+    document.body.appendChild(fab);
+  }
+
   // ---- Standalone-page auto-mount: replace the page's .top-bar with the shared toolbar ----
   // Reads data-nav-active on <body> for the active highlight. Skipped on app.html (it builds its own).
   (async function () {
     injectStyles();
     buildModalAndLoader();
-    if (document.body.getAttribute('data-app') === 'live') return; // app.html handles its own toolbar
+    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); return; } // app.html: only the back button
 
     var oldBar = document.querySelector('.top-bar');
     var active = document.body.getAttribute('data-nav-active') || '';
@@ -220,6 +241,8 @@
       // No existing bar: insert at the very top of <body>, in order.
       for (var i = nodes.length - 1; i >= 0; i--) document.body.insertBefore(nodes[i], document.body.firstChild);
     }
+
+    buildBackButton(); // floating back button if data-back-href is set
 
     // Show avatar spinner while the profile loads, then refresh the right controls.
     if (loggedIn()) {
