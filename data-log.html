@@ -53,6 +53,14 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .chg .v.added{color:var(--gl)}.chg .v.updated{color:#fbbf24}.chg .v.reopened{color:#a78bfa}
 .chg .v.autoClosed{color:#44b9d6}.chg .v.unchanged{color:var(--tm)}.chg .v.missing{color:var(--rl)}
 .nochg{color:var(--tm);font-size:.85em;font-style:italic}
+/* Exact ShortIds changed (2026-Q2 only) */
+.tk-changes{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+.tk-group-title{font-size:.75em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.tk-group-title.added{color:var(--gl)}.tk-group-title.updated{color:#fbbf24}
+.tk-chips{display:flex;flex-wrap:wrap;gap:8px}
+.tk-chip{background:#000;border:1px solid var(--bd);border-radius:6px;padding:4px 10px;font-size:.82em}
+.tk-chip a{color:#44b9d6;text-decoration:none;font-weight:600}
+.tk-chip a:hover{text-decoration:underline}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
 </style>
@@ -94,6 +102,21 @@ function changeCells(cs){
   }).join('')+'</div>';
 }
 
+// Chips listing the exact ShortIds added/updated (only recorded for 2026-Q2 merges).
+function ticketChips(ids){
+  return (ids||[]).map(id=>'<span class="tk-chip"><a href="https://t.corp.amazon.com/issues/'+encodeURIComponent(id)+'" target="_blank" rel="noopener">'+esc(id)+'</a></span>').join('');
+}
+function changedTicketsBlock(ct){
+  if(!ct)return ''; // only present for 2026-Q2
+  const added=(ct.added||[]),updated=(ct.updated||[]);
+  if(!added.length&&!updated.length)return '';
+  let h='<div class="tk-changes">';
+  if(added.length)h+='<div class="tk-group"><div class="tk-group-title added">Added tickets ('+added.length+')</div><div class="tk-chips">'+ticketChips(added)+'</div></div>';
+  if(updated.length)h+='<div class="tk-group"><div class="tk-group-title updated">Updated tickets ('+updated.length+')</div><div class="tk-chips">'+ticketChips(updated)+'</div></div>';
+  h+='</div>';
+  return h;
+}
+
 function render(entries){
   const wrap=document.getElementById('wrap');
   const qid=new URLSearchParams(location.search).get('qid');
@@ -127,6 +150,7 @@ function render(entries){
     return '<div class="log-quarter-block '+(e.pastQuarterMerge?'past':'live')+'">'+
       '<div class="log-quarter '+(e.pastQuarterMerge?'past':'live')+'">'+heading+'</div>'+
       changeCells(e.changeSummary)+
+      changedTicketsBlock(e.changedTickets)+
     '</div>';
   }
 

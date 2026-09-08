@@ -11,6 +11,9 @@ const {
 } = require('./auth');
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 
+// Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
+const Q2_QUARTER = '2026-Q2';
+
 const app = express();
 app.use(express.json({ limit: '15mb' })); // live dataset can be sizeable
 
@@ -364,10 +367,11 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
         existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
         const dbBefore = map.size;
         let added = 0, updated = 0;
+        const addedIds = [], updatedIds = [];
         for (const t of arr) {
           if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
           const id = String(t.ShortId || '').trim(); if (!id) continue;
-          if (map.has(id)) updated++; else added++;
+          if (map.has(id)) { updated++; updatedIds.push(id); } else { added++; addedIds.push(id); }
           map.set(id, t); // uploaded (new) version wins
         }
         const merged = Array.from(map.values());
@@ -378,13 +382,16 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
         written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
         // Non-live (past) quarter data-log entry with ITS OWN change summary.
         try {
-          await logColl.insertOne({
+          const logDoc = {
             user: req.user.username, role: req.user.role, at: publishedAt,
             liveQuarter: q, pastQuarterMerge: true,
             written: [{ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false }],
             changeSummary: qSummary,
             totalTickets: merged.length,
-          });
+          };
+          // Only for 2026-Q2: record which ShortIds were added/updated.
+          if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
+          await logColl.insertOne(logDoc);
         } catch (logErr) { /* never block publish */ }
       }
     }
@@ -419,11 +426,12 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
     const dbBefore = map.size;
 
     let added = 0, updated = 0, skippedNoId = 0;
+    const addedIds = [], updatedIds = [];
     for (const t of data.tickets) {
       if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
       const id = String(t.ShortId || '').trim();
       if (!id) { skippedNoId++; continue; }
-      if (map.has(id)) updated++; else added++;
+      if (map.has(id)) { updated++; updatedIds.push(id); } else { added++; addedIds.push(id); }
       map.set(id, t); // uploaded (new) version wins
     }
     const merged = Array.from(map.values());
@@ -443,7 +451,7 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
     // Audit-log entry (mirrors the live-quarter publish log shape; marks this as a past-quarter merge).
     try {
       const logColl = await getCollection(COLLECTIONS.dataLog);
-      await logColl.insertOne({
+      const logDoc = {
         user: req.user.username,
         role: req.user.role,
         at: publishedAt,
@@ -452,7 +460,10 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
         written: [{ quarter: qid, label: quarterLabel(qid), count: merged.length, isLive: false }],
         changeSummary,
         totalTickets: merged.length,
-      });
+      };
+      // Only for 2026-Q2: record which ShortIds were added/updated.
+      if (qid === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
+      await logColl.insertOne(logDoc);
     } catch (logErr) { /* logging must never block a successful merge */ }
 
     res.json({ ok: true, quarter: qid, label: quarterLabel(qid), changeSummary });
@@ -475,6 +486,7 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
       pastQuarterMerge: !!e.pastQuarterMerge,
       written: e.written || [],
       changeSummary: e.changeSummary || null,
+      changedTickets: e.changedTickets || null,
       totalTickets: e.totalTickets,
     })));
   } catch (e) {
