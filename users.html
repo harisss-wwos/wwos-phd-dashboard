@@ -79,13 +79,20 @@ function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
 function renderList(users){
   const wrap=document.getElementById('wrap');
   // Row builder for a single user.
+  const tzSelect=(u)=>{
+    const tz=(u.timezone==='MST')?'MST':'IST';
+    return '<select onchange="changeTz(\''+u.id+'\',this.value,\''+u.username+'\')">'
+      +'<option value="IST"'+(tz==='IST'?' selected':'')+'>IST</option>'
+      +'<option value="MST"'+(tz==='MST'?' selected':'')+'>MST</option></select>';
+  };
   const rowFor=(u)=>{
     if(u.role==='owner'){
-      return '<tr><td class="user">'+u.username+'</td><td>'+badge('owner')+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
+      return '<tr><td class="user">'+u.username+'</td><td>'+badge('owner')+'</td><td>'+tzSelect(u)+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
     }
     const opts=ROLES.map(r=>'<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+r+'</option>').join('');
     return '<tr><td class="user">'+u.username+'</td>'
       +'<td><select onchange="changeRole(\''+u.id+'\',this.value,\''+u.username+'\')">'+opts+'</select></td>'
+      +'<td>'+tzSelect(u)+'</td>'
       +'<td><button class="btn danger" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">Remove</button></td></tr>';
   };
   // Group users by role and render a section per role in ROLE_ORDER.
@@ -96,7 +103,7 @@ function renderList(users){
     if(!group.length)return;
     sectionsHtml+=`<div class="card">
       <h2>${ROLE_TITLE[role]||role} (${group.length})</h2>
-      <table><thead><tr><th>Username</th><th>Role</th><th></th></tr></thead><tbody>${group.map(rowFor).join('')}</tbody></table>
+      <table><thead><tr><th>Username</th><th>Role</th><th>Timezone</th><th></th></tr></thead><tbody>${group.map(rowFor).join('')}</tbody></table>
     </div>`;
   });
   wrap.innerHTML=`
@@ -112,6 +119,9 @@ function renderList(users){
         <div class="fld"><label>Temporary password</label><input type="text" id="nPass" autocomplete="off"></div>
         <div class="fld" style="max-width:150px"><label>Role</label>
           <select id="nRole">${ROLES.map(r=>'<option value="'+r+'"'+(r==='admin'?' selected':'')+'>'+r+'</option>').join('')}</select>
+        </div>
+        <div class="fld" style="max-width:130px"><label>Timezone</label>
+          <select id="nTz"><option value="IST" selected>IST</option><option value="MST">MST</option></select>
         </div>
         <button class="btn" onclick="addUser()">Add</button>
       </div>
@@ -134,13 +144,19 @@ async function delUser(id,username){
   if(r.ok){flash('listOk','Removed '+username+'.','ok');load();}
   else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
 }
+async function changeTz(id,timezone,username){
+  const r=await A.api('PATCH','/api/users/'+id+'/timezone',{timezone});
+  if(r.ok)flash('listOk',username+"'s timezone is now "+timezone+'.','ok');
+  else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');load();}
+}
 async function addUser(){
   const username=document.getElementById('nUser').value.trim();
   const password=document.getElementById('nPass').value;
   const role=document.getElementById('nRole').value;
+  const timezone=document.getElementById('nTz').value;
   if(!username||!password){flash('addErr','Enter username and password.','err');return;}
-  const r=await A.api('POST','/api/users',{username,password,role});
-  if(r.ok){flash('addOk','Created '+username+' ('+role+').','ok');document.getElementById('nUser').value='';document.getElementById('nPass').value='';load();}
+  const r=await A.api('POST','/api/users',{username,password,role,timezone});
+  if(r.ok){flash('addOk','Created '+username+' ('+role+', '+timezone+').','ok');document.getElementById('nUser').value='';document.getElementById('nPass').value='';load();}
   else flash('addErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
 }
 load();

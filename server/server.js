@@ -54,8 +54,19 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ---- Profile ----
+// Valid per-user timezone preferences. IST = Asia/Kolkata, MST = America/Denver.
+const VALID_TZ = ['IST', 'MST'];
+const DEFAULT_TZ = 'IST';
+function normTz(tz) { tz = String(tz || '').trim().toUpperCase(); return VALID_TZ.includes(tz) ? tz : DEFAULT_TZ; }
+
 app.get('/api/me', requireRole('user'), async (req, res) => {
-  res.json({ username: req.user.username, role: req.user.role });
+  let timezone = DEFAULT_TZ;
+  try {
+    const users = await getCollection(COLLECTIONS.users);
+    const u = await users.findOne({ username: req.user.username }, { projection: { timezone: 1 } });
+    if (u && u.timezone) timezone = normTz(u.timezone);
+  } catch (e) { /* fall back to default */ }
+  res.json({ username: req.user.username, role: req.user.role, timezone });
 });
 
 app.post('/api/change-password', requireRole('user'), async (req, res) => {
@@ -139,22 +150,23 @@ app.post('/api/me/profile', requireRole('user'), async (req, res) => {
 app.get('/api/users', requireRole('owner'), async (req, res) => {
   const users = await getCollection(COLLECTIONS.users);
   const list = await users.find({}, { projection: { passwordHash: 0 } }).sort({ role: -1, username: 1 }).toArray();
-  res.json(list.map(u => ({ id: String(u._id), username: u.username, role: u.role })));
+  res.json(list.map(u => ({ id: String(u._id), username: u.username, role: u.role, timezone: normTz(u.timezone) })));
 });
 
 app.post('/api/users', requireRole('owner'), async (req, res) => {
   try {
-    let { username, password, role } = req.body || {};
+    let { username, password, role, timezone } = req.body || {};
     username = String(username || '').trim().toLowerCase();
     role = String(role || 'user');
+    const tz = normTz(timezone);
     if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
     if (!VALID_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role.' });
     if (role === 'owner') return res.status(403).json({ error: 'Cannot create another owner.' });
     const users = await getCollection(COLLECTIONS.users);
     if (await users.findOne({ username })) return res.status(409).json({ error: 'Username already exists.' });
-    const doc = { username, passwordHash: await hashPassword(password), role, createdAt: new Date() };
+    const doc = { username, passwordHash: await hashPassword(password), role, timezone: tz, createdAt: new Date() };
     const r = await users.insertOne(doc);
-    res.status(201).json({ id: String(r.insertedId), username, role });
+    res.status(201).json({ id: String(r.insertedId), username, role, timezone: tz });
   } catch (e) {
     res.status(500).json({ error: 'Could not create user.' });
   }
@@ -173,6 +185,20 @@ app.patch('/api/users/:id/role', requireRole('owner'), async (req, res) => {
     res.json({ id: String(target._id), username: target.username, role });
   } catch (e) {
     res.status(500).json({ error: 'Could not change role.' });
+  }
+});
+
+// Change a user's preferred timezone (owner only). Body: { timezone: 'IST' | 'MST' }.
+app.patch('/api/users/:id/timezone', requireRole('owner'), async (req, res) => {
+  try {
+    const timezone = normTz((req.body || {}).timezone);
+    const users = await getCollection(COLLECTIONS.users);
+    const target = await users.findOne({ _id: new ObjectId(req.params.id) });
+    if (!target) return res.status(404).json({ error: 'User not found.' });
+    await users.updateOne({ _id: target._id }, { $set: { timezone, updatedAt: new Date() } });
+    res.json({ id: String(target._id), username: target.username, timezone });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not change timezone.' });
   }
 });
 
@@ -1064,7 +1090,9 @@ app.get('/api/agent-analytics', requireRole('admin'), async (req, res) => {
 
     const leads = [], editors = [];
     uList.forEach(u => {
-      // Owner/admin/manager -> leads; editor -> editors. (Managers have full admin-level access.)
+      // Managers are excluded from Agent Analytics entirely.
+      if (u.role === 'manager') return;
+      // Owner/admin -> leads; editor -> editors.
       const s = statsFor(u.username);
       s.role = u.role;
       if (u.role === 'editor') editors.push(s); else leads.push(s);

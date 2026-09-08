@@ -132,8 +132,11 @@ let MY_HELP={}; // shortId(lower) -> [ {id,doubt,status,createdAt,replies} ]
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>My Tickets</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+let MY_TZ='IST'; // logged-in user's preferred timezone (IST|MST); set from /api/me in load().
+const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
-function tzBlock(iso){return '<div class="tz"><b>MST:</b> '+fmtTZ(iso,'America/Denver')+' <span class="z"></span><br><b>IST:</b> '+fmtTZ(iso,'Asia/Kolkata')+'</div>';}
+// Show only the logged-in user's preferred timezone.
+function tzBlock(iso){const z=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;return '<div class="tz"><b>'+MY_TZ+':</b> '+fmtTZ(iso,z)+'</div>';}
 
 // Time remaining / overdue relative to the 240h deadline.
 function remaining(deadlineIso){
@@ -143,12 +146,14 @@ function remaining(deadlineIso){
   const d=Math.floor(h/24),hr=h%24;
   const span=(d>0?d+'d ':'')+hr+'h';
   if(ms<=0)return {cls:'over',txt:'Overdue by '+span};
-  if(ms<=48*3600000)return {cls:'warn',txt:'In '+span};
-  return {cls:'ok',txt:'In '+span};
+  if(ms<=48*3600000)return {cls:'warn',txt:span};
+  return {cls:'ok',txt:span};
 }
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  // Load the user's preferred timezone (IST/MST) first so the table renders in one zone.
+  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
   if(r.status===401){gate('Session expired. Please log in again.');return;}
   if(!r.ok){gate('Could not load your tickets (HTTP '+r.status+').');return;}
@@ -189,7 +194,7 @@ function helpBlock(t){
 
 function render(){
   const u=A.getUser();const editor=isEditor();
-  let html='<h1>My Tickets</h1><p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in MST &amp; IST.</p>';
+  let html='<h1>My Tickets</h1><p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=`<div class="tbl-card"><table>
     <thead><tr>
@@ -307,7 +312,7 @@ async function openCmt(i){
   if(!list.length){document.getElementById('cmtList').innerHTML='<p style="color:#879596">No comments yet on this ticket.</p>';return;}
   document.getElementById('cmtList').innerHTML=list.map(c=>`
     <div class="cmt">
-      <div class="cmt-meta"><span>by <b>${esc(c.user)}</b></span><span>MST: ${fmtTZ(c.at,'America/Denver')} · IST: ${fmtTZ(c.at,'Asia/Kolkata')}</span></div>
+      <div class="cmt-meta"><span>by <b>${esc(c.user)}</b></span><span>${esc(MY_TZ)}: ${fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)}</span></div>
       <div class="cmt-text">${esc(c.text)}</div>
     </div>`).join('');
 }
