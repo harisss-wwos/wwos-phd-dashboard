@@ -74,6 +74,10 @@ tr:hover{background:rgba(255,153,0,.03)}
 .drop-zone:hover{border-color:var(--o)}
 .spinner{width:48px;height:48px;border:4px solid var(--bd);border-top:4px solid var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+/* Small inline spinner for a loading number, and chart-area spinner overlay (shell -> DB fill) */
+.num-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+.chart-spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--s);z-index:2}
+.chart-spin .spinner{margin:0}
 .hidden{display:none}
 /* Icon alignment: labels/buttons show icon + text neatly */
 .kpi-card .label{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
@@ -108,10 +112,11 @@ tr:hover{background:rgba(255,153,0,.03)}
 }
 </style>
 </head>
-<body>
+<body data-app="live">
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

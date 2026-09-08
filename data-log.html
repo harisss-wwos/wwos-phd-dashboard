@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="shimmer.css">
 <style>
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
@@ -55,18 +57,16 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
 </style>
 </head>
-<body>
+<body data-nav-active="data-log">
 <div class="top-bar">
   <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <a class="btn sec" id="backBtn" href="app.html">← Live Dashboard</a>
 </div>
-<script>
-// If we arrived from a specific quarter report (?qid=), send "back" to that report instead of the live dashboard.
-(function(){var qid=new URLSearchParams(location.search).get('qid');if(qid){var b=document.getElementById('backBtn');if(b){b.href='archive.html?ds=quarter&qid='+encodeURIComponent(qid);b.textContent='← '+qid+' Report';}}})();
-</script>
-<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:120px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:120px"></div></div></div>
 
+<div class="wrap" id="wrap"><h1>Update Data Log</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">History of data uploads — who, when, and what changed.</p><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 

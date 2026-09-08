@@ -19,6 +19,7 @@ const COLLECTIONS = {
   hashtags: 'hashtags',    // hashtags (tag + description) shown on the Hashtags tool page
   hashtagLog: 'hashtag_log', // audit log of hashtag create/edit/delete actions
   paging: 'paging',        // paging contacts (country + code + email)
+  pagingLog: 'paging_log', // audit log of paging create/edit/delete actions
   comments: 'comments',    // per-ticket comments (My Tickets)
   helpRequests: 'help_requests', // editor "ask for help" threads
 };

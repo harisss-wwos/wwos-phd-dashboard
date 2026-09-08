@@ -30,18 +30,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .wrap{width:80%;max-width:1200px;margin:0 auto;padding:40px 24px}
 h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
-/* Grid of title-only cards */
-.blurb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-.blurb-card{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:14px;min-height:96px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:16px 18px;font-family:inherit;transition:transform .12s,border-color .2s}
-.blurb-card:hover{transform:translateY(-3px);border-color:var(--o)}
-.bc-title{color:#fff;font-weight:600;font-size:1em;line-height:1.4}
-.bc-actions{display:flex;gap:8px}
-.bc-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--bd)}
-.bc-copy{background:var(--o);color:#000;border-color:var(--o)}
+/* Header row: title left, actions right */
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.page-head h1{margin:0}
+.page-head-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* Stacked list of expandable, click-to-copy blurb cards */
+.blurb-list{display:flex;flex-direction:column;gap:14px}
+.blurb-card{position:relative;background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s,background .15s}
+.blurb-card:hover{border-color:var(--o);background:#0d0d0d}
+.bc-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bc-title{color:#fff;font-weight:600;font-size:1.02em;line-height:1.4}
+.bc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--o);background:var(--o);color:#000;flex-shrink:0}
 .bc-copy:hover{filter:brightness(1.08)}
 .bc-copy.copied{background:var(--gl);border-color:var(--gl);color:#000}
-.bc-view{background:transparent;color:var(--tm)}
-.bc-view:hover{color:var(--o);border-color:var(--o)}
+/* Content: hidden by default, revealed on hover (or when .show for touch) */
+.bc-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease;margin-top:0}
+.blurb-card:hover .bc-content,.blurb-card.show .bc-content{max-height:600px;opacity:1;margin-top:12px}
+.bc-content .bc-text{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;border-top:1px solid var(--bd);padding-top:12px}
+.bc-content .bc-hash{color:#44b9d6;font-size:.85em;margin-top:8px}
+.bc-admin{display:flex;gap:8px;margin-top:12px}
+.bc-admin .btn.mini{flex:0 0 auto}
 .blurb-text{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;max-height:56vh;overflow:auto}
 .meta{color:#5f6b6c;font-size:.75em;margin-top:8px}
 .copied{color:var(--gl)!important;border-color:rgba(74,222,128,.5)!important}
@@ -63,13 +71,9 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .toast.show{opacity:1}
 </style>
 </head>
-<body>
+<body data-nav-active="tools">
 <div class="top-bar">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <div class="nav-right">
-    <a class="btn sec" href="tools.html">← PHD Tools</a>
-    <a class="btn sec" href="blurb-log.html" id="logLink" style="display:none">Blurb change log</a>
-  </div>
 </div>
 <div class="tools-subnav">
   <a href="tool-blurbs.html" class="active">Common Blurbs</a>
@@ -145,7 +149,9 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
   </div>
 </div>
 
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 let BLURBS=[];
@@ -154,7 +160,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 async function load(){
-  if(canEdit())document.getElementById('logLink').style.display='';
+  if(canEdit()){var _ll=document.getElementById('logLink');if(_ll)_ll.style.display='';}
   const r=await A.api('GET','/api/blurbs');
   if(!r.ok){document.getElementById('wrap').innerHTML='<h1>Common Blurbs</h1><p class="sub" style="color:#ff5252">Could not load blurbs (HTTP '+r.status+').</p>';return;}
   BLURBS=Array.isArray(r.data)?r.data:[];
@@ -163,30 +169,31 @@ async function load(){
 
 function render(){
   const editor=canEdit();
-  let html='<h1>Common Blurbs</h1><p class="sub">Copy a blurb with one click.'+(editor?' As an admin you can edit any blurb or add a new one.':' Log in as an admin to edit or add blurbs.')+'</p>';
-  if(editor){
-    html+=`<div style="margin-bottom:22px"><button class="btn" onclick="openAddModal()">➕ Add New Blurb</button></div>`;
-  }
-  // Grid of title-only cards. Clicking a card opens a popup with the full blurb.
-  html+=`<div class="blurb-grid">`+BLURBS.map((b,i)=>`
-    <div class="blurb-card" title="${esc(b.title)}">
-      <span class="bc-title">${esc(b.title)}</span>
-      <div class="bc-actions">
-        <button class="bc-btn bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i})" title="Copy this blurb">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span>Copy</span>
-        </button>
-        <button class="bc-btn bc-view" onclick="openViewModal(${i})" title="View this blurb">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-          <span>View</span>
-        </button>
+  const copyIcon='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  // Header: title left, actions (Add + edit log) right.
+  let html='<div class="page-head"><h1>Common Blurbs</h1><div class="page-head-actions">'
+    +(editor?'<button class="btn" onclick="openAddModal()">➕ Add New Blurb</button>':'')
+    +'<a class="btn sec" href="blurb-log.html">'+(window.icon?window.icon('history',15):'')+' Blurb edit log</a>'
+    +'</div></div>';
+  html+='<p class="sub">Copy a blurb with one click.'+(editor?' As an admin you can edit any blurb or add a new one.':'')+'</p>';
+  // Expandable, click-to-copy cards. Hover reveals the content; clicking the card copies it.
+  html+=`<div class="blurb-list">`+BLURBS.map((b,i)=>`
+    <div class="blurb-card" id="card-${i}" onclick="copyBlurb(${i},event)" title="Click to copy">
+      <div class="bc-head">
+        <span class="bc-title">${esc(b.title)}</span>
+        <button class="bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i},event)" title="Copy this blurb">${copyIcon}<span>Copy</span></button>
+      </div>
+      <div class="bc-content">
+        <div class="bc-text">${esc(b.text)}</div>
+        ${editor?`<div class="bc-admin"><button class="btn sec mini" onclick="event.stopPropagation();openViewModal(${i})">Edit</button></div>`:''}
       </div>
     </div>`).join('')+`</div>`;
   document.getElementById('wrap').innerHTML=html;
 }
 
-// Copy a blurb directly from its card (default action).
-function copyBlurb(i){
+// Copy a blurb (clicking anywhere on the card, or the Copy button). Stops the click from bubbling.
+function copyBlurb(i,ev){
+  if(ev)ev.stopPropagation();
   const text=BLURBS[i].text;
   const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('span');const old=s.textContent;btn.classList.add('copied');s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');s.textContent=old;},1600);}toast('Blurb copied to clipboard');};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}

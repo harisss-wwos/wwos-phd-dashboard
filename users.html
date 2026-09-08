@@ -46,14 +46,15 @@ input:focus{outline:none;border-color:var(--o)}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 </style>
 </head>
-<body>
+<body data-nav-active="users">
 <div class="top-bar">
   <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
-  <a class="btn sec" href="app.html">← Live Dashboard</a>
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 const ROLES=['user','editor','admin','manager'];// owner not assignable

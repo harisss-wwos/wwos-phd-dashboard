@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blurb Change Log · WWOS-GSOC PHD Dashboard</title>
+<title>Paging Change Log · WWOS-GSOC PHD Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shimmer.css">
@@ -27,7 +27,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .entry.open .entry-head{border-bottom-color:var(--bd)}
 .entry-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
 .entry.open .entry-caret{transform:rotate(180deg)}
-.entry-body{display:none}
+.entry-body{display:none;padding:12px 18px}
 .entry.open .entry-body{display:block}
 .act{padding:2px 10px;border-radius:20px;font-size:.72em;font-weight:700;text-transform:uppercase}
 .act.create{background:rgba(74,222,128,.15);color:var(--gl)}
@@ -45,7 +45,6 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .entry-user b{color:#d5dbdb}.entry-role{color:var(--o);text-transform:uppercase;font-size:.72em;font-weight:700;margin-left:4px}
 .entry-when{margin-left:auto;text-align:right;font-size:.8em;color:var(--tm);line-height:1.5}
 .entry-when b{color:#d5dbdb}
-.entry-body{padding:12px 18px}
 .diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .diff .col h4{font-size:.72em;text-transform:uppercase;letter-spacing:.5px;color:var(--tm);margin-bottom:6px}
 .diff pre{white-space:pre-wrap;font-family:inherit;font-size:.8em;line-height:1.5;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;max-height:200px;overflow:auto;color:var(--t)}
@@ -57,14 +56,14 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 </head>
 <body data-nav-active="tools">
 <div class="top-bar">
-  <a class="logo" href="tool-blurbs.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="logo" href="tool-paging.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:100px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:100px"></div></div></div>
 
 <div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()">
   <div class="modal">
     <h2>Delete log entry?</h2>
-    <p>This permanently removes this entry from the blurb change log. This cannot be undone.</p>
+    <p>This permanently removes this entry from the paging change log. This cannot be undone.</p>
     <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeConfirm()">Cancel</button>
       <button class="btn danger" onclick="doDelete()">Delete</button>
@@ -79,17 +78,15 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 const A=window.PHDAuth;
 function fmtTZ(iso,zone){try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Blurb Change Log</h1><p>'+msg+'</p><a class="btn" href="tool-blurbs.html">Go to Common Blurbs</a></div>';}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Paging Change Log</h1><p>'+msg+'</p><a class="btn" href="tool-paging.html">Go to Paging Contacts</a></div>';}
 
+function fmtContact(c){if(!c)return '';return esc(c.country||'')+' ('+esc(c.code||'')+')\n'+esc(c.email||'');}
 function bodyFor(e){
   if(e.action==='edit'&&e.before&&e.after){
-    return `<div class="diff">
-      <div class="col"><h4>Before</h4><pre>${esc(e.before.title)}\n\n${esc(e.before.text)}</pre></div>
-      <div class="col"><h4>After</h4><pre>${esc(e.after.title)}\n\n${esc(e.after.text)}</pre></div>
-    </div>`;
+    return '<div class="diff"><div class="col"><h4>Before</h4><pre>'+fmtContact(e.before)+'</pre></div><div class="col"><h4>After</h4><pre>'+fmtContact(e.after)+'</pre></div></div>';
   }
-  const a=e.after||{};
-  return `<div class="single"><pre>${esc(a.title||e.title||'')}\n\n${esc(a.text||'')}</pre></div>`;
+  const c=e.after||e.before||{country:e.country,code:e.code};
+  return '<div class="single"><pre>'+fmtContact(c)+'</pre></div>';
 }
 
 const isOwner=()=>A.role&&A.role()==='owner';
@@ -99,14 +96,14 @@ const ACT_CLASS={create:'create',edit:'edit',delete:'delete'};
 function render(entries){
   const wrap=document.getElementById('wrap');
   const owner=isOwner();
-  let html='<div style="margin-bottom:14px"><a class="btn sec" href="tool-blurbs.html">← Back to Common Blurbs</a></div>'
-    +'<h1>Blurb Change Log</h1><p class="sub">Who added, edited, or deleted which blurb, when (IST &amp; MST). Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
-  if(!entries.length){html+='<div class="empty">No blurb changes recorded yet.</div>';wrap.innerHTML=html;return;}
+  let html='<div style="margin-bottom:14px"><a class="btn sec" href="tool-paging.html">← Back to Paging Contacts</a></div>'
+    +'<h1>Paging Change Log</h1><p class="sub">Who added, edited, or deleted which paging contact, when (IST &amp; MST). Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
+  if(!entries.length){html+='<div class="empty">No paging changes recorded yet.</div>';wrap.innerHTML=html;return;}
   html+=entries.map((e,i)=>`
     <div class="entry${i===0?' open':''}">
       <div class="entry-head" onclick="toggleEntry(this)">
         <span class="act ${ACT_CLASS[e.action]||'edit'}">${ACT_LABEL[e.action]||e.action}</span>
-        <span class="entry-title">${esc(e.title)}</span>
+        <span class="entry-title">${esc(e.country||'')} <span style="color:var(--tm);font-weight:600">(${esc(e.code||'')})</span></span>
         <span class="entry-user">by <b>${esc(e.user)}</b><span class="entry-role">${esc(e.role||'')}</span></span>
         <span class="entry-when"><b>IST:</b> ${fmtTZ(e.at,'Asia/Kolkata')}<br><b>MST:</b> ${fmtTZ(e.at,'America/Denver')}</span>
         ${owner?`<button class="btn danger mini" onclick="event.stopPropagation();confirmDelete('${e.id}')">Delete</button>`:''}
@@ -123,7 +120,7 @@ function confirmDelete(id){DEL_ID=id;document.getElementById('confirmModal').sty
 function closeConfirm(){document.getElementById('confirmModal').style.display='none';DEL_ID=null;}
 async function doDelete(){
   if(!DEL_ID)return;
-  const r=await A.api('DELETE','/api/blurb-log/'+DEL_ID);
+  const r=await A.api('DELETE','/api/paging-log/'+DEL_ID);
   closeConfirm();
   if(r.ok){load();}
   else{alert((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')'));}
@@ -131,9 +128,9 @@ async function doDelete(){
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
-  const r=await A.api('GET','/api/blurb-log');
+  const r=await A.api('GET','/api/paging-log');
   if(r.status===401){gate('Session expired. Please log in again.');return;}
-  if(!r.ok){gate('Could not load the blurb log (HTTP '+r.status+').');return;}
+  if(!r.ok){gate('Could not load the paging log (HTTP '+r.status+').');return;}
   render(Array.isArray(r.data)?r.data:[]);
 }
 load();

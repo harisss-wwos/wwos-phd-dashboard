@@ -49,6 +49,38 @@ async function loadMetrics(){
 // Inline-SVG icon helper (icons.js). Returns '' if unavailable so markup stays clean.
 function ic(name,size){return (typeof window.icon==='function')?window.icon(name,size||15):'';}
 
+// Chart-loading spinner overlay — only for DB-backed quarter reports (ds=quarter). Placed inside
+// a .chart-wrap; removed by clearChartSpinners() once charts have drawn.
+function cspin(){return (qparam('ds')==='quarter')?'<div class="chart-spin"><div class="spinner"></div></div>':'';}
+function clearChartSpinners(){document.querySelectorAll('.chart-spin').forEach(function(el){el.remove();});}
+
+// Collapsible section wrapper. titleHtml may include an icon; bodyHtml is the content.
+// open=true renders expanded; header is a button that toggles the body.
+let _collapseId=0;
+function collapsible(titleHtml,bodyHtml,open){
+  const id='cs'+(++_collapseId);
+  return '<div class="section collapsible'+(open?' open':'')+'" id="'+id+'">'+
+    '<h2 class="collapse-head" role="button" tabindex="0" aria-expanded="'+(open?'true':'false')+'" onclick="toggleCollapse(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleCollapse(this);}">'+
+      '<span class="collapse-title">'+titleHtml+'</span><span class="collapse-caret" aria-hidden="true">▾</span>'+
+    '</h2>'+
+    '<div class="collapse-body">'+bodyHtml+'</div>'+
+  '</div>';
+}
+function toggleCollapse(headEl){
+  const sec=headEl.closest('.collapsible');if(!sec)return;
+  const isOpen=sec.classList.toggle('open');
+  headEl.setAttribute('aria-expanded',isOpen?'true':'false');
+}
+
+// Replace KPI number spinners with their real values after a short delay (mimics a DB fetch).
+function fillKpiNumbers(delay){
+  setTimeout(function(){
+    document.querySelectorAll('.kpi-num[data-val]').forEach(function(el){
+      el.textContent=el.getAttribute('data-val');
+    });
+  }, delay||600);
+}
+
 function mkChart(id,cfg){const el=document.getElementById(id);if(el){charts.push(new Chart(el,cfg));}}
 
 function pieCfg(entries,label){return{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:COLORS,borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#d5dbdb',font:{size:10},padding:6}}}}};}
@@ -96,16 +128,16 @@ function render(metrics,name,ds){
 
     <div class="section"><h2>${ic('bar-chart',18)} Summary Statistics</h2>
     <div class="kpi-grid">
-      <div class="kpi-card accent"><div class="value">${m.total.toLocaleString()}</div><div class="label">${ic('ticket',13)} Total Tickets</div></div>
-      <div class="kpi-card success"><div class="value">${m.resolvedClosed.toLocaleString()}</div><div class="label">${ic('check-circle',13)} Resolved / Closed</div></div>
-      <div class="kpi-card warning"><div class="value">${m.open.toLocaleString()}</div><div class="label">${ic('hourglass',13)} Open</div></div>
-      <div class="kpi-card success"><div class="value">${m.slaPct}%</div><div class="label">${ic('target',13)} SLA ≤${m.slaHrs}hrs</div></div>
-      <div class="kpi-card warning"><div class="value">${m.hiRepeatPct}%</div><div class="label">${ic('repeat',13)} Repeat Offenders (HI>0)</div></div>
+      <div class="kpi-card accent"><div class="value kpi-num" data-val="${m.total.toLocaleString()}"><span class="num-spinner"></span></div><div class="label">${ic('ticket',13)} Total Tickets</div></div>
+      <div class="kpi-card success"><div class="value kpi-num" data-val="${m.resolvedClosed.toLocaleString()}"><span class="num-spinner"></span></div><div class="label">${ic('check-circle',13)} Resolved / Closed</div></div>
+      <div class="kpi-card warning"><div class="value kpi-num" data-val="${m.open.toLocaleString()}"><span class="num-spinner"></span></div><div class="label">${ic('hourglass',13)} Open</div></div>
+      <div class="kpi-card success"><div class="value kpi-num" data-val="${m.slaPct}%"><span class="num-spinner"></span></div><div class="label">${ic('target',13)} SLA ≤${m.slaHrs}hrs</div></div>
+      <div class="kpi-card warning"><div class="value kpi-num" data-val="${m.hiRepeatPct}%"><span class="num-spinner"></span></div><div class="label">${ic('repeat',13)} Repeat Offenders (HI>0)</div></div>
     </div></div>
 
     <div class="charts-grid">
-      <div class="chart-box"${isQ2?' style="grid-column:1/-1"':''}><h3>Resolution Type</h3><div class="chart-wrap${isQ2?' tall':''}"><canvas id="${isQ2?'cResBar':'cResType'}"></canvas></div></div>
-      <div class="chart-box"${isQ2?' style="grid-column:1/-1"':''}><h3>Incident Types${isQ2?' <span style="font-size:.7em;color:#879596;font-weight:400">(click a bar for agent breakdown)</span>':' (from Issue field)'}</h3><div class="chart-wrap tall"><canvas id="cIncident"></canvas></div></div>
+      <div class="chart-box"${isQ2?' style="grid-column:1/-1"':''}><h3>Resolution Type</h3><div class="chart-wrap${isQ2?' tall':''}">${cspin()}<canvas id="${isQ2?'cResBar':'cResType'}"></canvas></div></div>
+      <div class="chart-box"${isQ2?' style="grid-column:1/-1"':''}><h3>Incident Types${isQ2?' <span style="font-size:.7em;color:#879596;font-weight:400">(click a bar for agent breakdown)</span>':' (from Issue field)'}</h3><div class="chart-wrap tall">${cspin()}<canvas id="cIncident"></canvas></div></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
@@ -120,35 +152,40 @@ function render(metrics,name,ds){
     </div>
     <div style="margin-bottom:24px"></div>
 
-    <div class="charts-grid">
-      ${isQ2?`
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week (${windowText})</h3><div class="chart-wrap"><canvas id="cCreatedWeek"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week (${windowText})</h3><div class="chart-wrap"><canvas id="cResolvedWeek"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Created vs Resolved per Week (Backlog Trend)</h3><div class="chart-wrap"><canvas id="cCvRWeek"></canvas></div></div>
-      `:`
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Year</h3><div class="chart-wrap"><canvas id="cCreatedYear"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Year</h3><div class="chart-wrap"><canvas id="cResolvedYear"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Quarter</h3><div class="chart-wrap"><canvas id="cCreatedQ"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Quarter</h3><div class="chart-wrap"><canvas id="cResolvedQ"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Created vs Resolved per Month (Backlog Trend)</h3><div class="chart-wrap"><canvas id="cCvR"></canvas></div></div>
-      <div class="chart-box" style="grid-column:1/-1"><h3>Severity Trend Over Time (by Year)</h3><div class="chart-wrap"><canvas id="cSevTrend"></canvas></div></div>
-      `}
-    </div>
+    ${isQ2?`
+      ${collapsible(ic('bar-chart',18)+' Weekly Trends ('+windowText+')',
+        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cCreatedWeek"></canvas></div></div>'+
+        '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cResolvedWeek"></canvas></div></div></div>', true)}
+      <div class="charts-grid">
+      <div class="chart-box" style="grid-column:1/-1"><h3>Created vs Resolved per Week (Backlog Trend)</h3><div class="chart-wrap">${cspin()}<canvas id="cCvRWeek"></canvas></div></div>
+    </div>`:`
+      ${collapsible(ic('bar-chart',18)+' Yearly Trends',
+        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Year</h3><div class="chart-wrap"><canvas id="cCreatedYear"></canvas></div></div>'+
+        '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Year</h3><div class="chart-wrap"><canvas id="cResolvedYear"></canvas></div></div></div>', true)}
+      ${collapsible(ic('bar-chart',18)+' Quarterly Trends',
+        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Quarter</h3><div class="chart-wrap"><canvas id="cCreatedQ"></canvas></div></div>'+
+        '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Quarter</h3><div class="chart-wrap"><canvas id="cResolvedQ"></canvas></div></div></div>', true)}
+      ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Month (Backlog Trend)',
+        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><div class="chart-wrap"><canvas id="cCvR"></canvas></div></div></div>', true)}
+    `}
 
-    ${isQ2?'':`<div class="section"><h2>${ic('bar-chart',18)} Year-over-Year Growth</h2>
-    <div style="overflow-x:auto"><table><thead><tr><th>Year</th><th>Tickets Created</th><th>YoY Growth %</th></tr></thead><tbody>
-    ${m.yoy.map(y=>`<tr><td><strong>${y.year}</strong></td><td>${y.count.toLocaleString()}</td><td style="color:${y.growth===null?'#879596':parseFloat(y.growth)>=0?'#ff5252':'#4ade80'}">${y.growth===null?'—':(parseFloat(y.growth)>=0?'+':'')+y.growth+'%'}</td></tr>`).join('')}
-    </tbody></table></div></div>`}
+    ${isQ2?'':collapsible(ic('bar-chart',18)+' Year-over-Year Growth',
+      '<div style="overflow-x:auto"><table><thead><tr><th>Year</th><th>Tickets Created</th><th>YoY Growth %</th></tr></thead><tbody>'+
+      m.yoy.map(y=>`<tr><td><strong>${y.year}</strong></td><td>${y.count.toLocaleString()}</td><td style="color:${y.growth===null?'#879596':parseFloat(y.growth)>=0?'#ff5252':'#4ade80'}">${y.growth===null?'—':(parseFloat(y.growth)>=0?'+':'')+y.growth+'%'}</td></tr>`).join('')+
+      '</tbody></table></div>', false)}
 
     ${isQ2&&m.slaByWeek?`<div class="section"><h2>${ic('check-circle',18)} SLA Compliance per Week (≤240 hrs)</h2>
       <p style="color:var(--tm);font-size:.85em;margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date.</p>
-      <div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div>
+      <div class="chart-wrap tall">${cspin()}<canvas id="cSlaWave"></canvas></div>
     </div>`:''}
 
     ${isQ2
       ?`<div class="section"><h2>${ic('repeat',18)} Root Causes by Group</h2><div id="rcGroups" class="rc-accordion"></div></div>`
-      :`<div class="section"><h2>${ic('repeat',18)} Root Cause × Region (Cross-Tab)</h2><div style="overflow-x:auto" id="rcRegionTable"></div></div>`}
+      :collapsible(ic('repeat',18)+' Root Cause × Region (Cross-Tab)','<div style="overflow-x:auto" id="rcRegionTable"></div>', false)}
   </div>`;
+
+  // KPI numbers: swap spinners for real values after a short delay (mimics a DB fetch).
+  fillKpiNumbers(600);
 
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   // Q2 only: merge duplicate/mis-typed resolution-type variants into canonical names, then sum counts.
@@ -231,10 +268,7 @@ function render(metrics,name,ds){
   const allMonths=[...new Set([...m.createdByMonth.map(e=>e[0]),...m.resolvedByMonth.map(e=>e[0])])].sort();
   const cMap=Object.fromEntries(m.createdByMonth),rMap=Object.fromEntries(m.resolvedByMonth);
   mkChart('cCvR',{type:'line',data:{labels:allMonths,datasets:[{label:'Created',data:allMonths.map(mo=>cMap[mo]||0),borderColor:'#ff9900',backgroundColor:'rgba(255,153,0,.06)',fill:true,tension:.3,pointRadius:0},{label:'Resolved',data:allMonths.map(mo=>rMap[mo]||0),borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.06)',fill:true,tension:.3,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true},x:{ticks:{font:{size:8},maxTicksLimit:20}}}}});
-  // Severity trend
-  const sevYears=Object.keys(m.sevByYear).sort();const allSev=[...new Set(sevYears.flatMap(y=>Object.keys(m.sevByYear[y])))].sort();
-  const sevColors={'3':'#4ade80','4':'#fbbf24','5':'#ff5252'};
-  mkChart('cSevTrend',{type:'line',data:{labels:sevYears,datasets:allSev.map((sev,i)=>({label:'Sev '+sev,data:sevYears.map(y=>m.sevByYear[y][sev]||0),borderColor:sevColors[sev]||COLORS[i],backgroundColor:'transparent',tension:.3,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true}}}});
+  // (Severity Trend Over Time chart removed per request.)
   }
   if(isQ2){
     renderRootCauseGroups('rcGroups',m.rcXregion);
@@ -247,6 +281,8 @@ function render(metrics,name,ds){
     const fi=document.getElementById('qMergeFile');
     if(fi)fi.onchange=(e)=>{const f=e.target.files[0];e.target.value='';if(f)mergeIntoQuarter(qid,f);};
   }
+  // Charts have drawn — remove the chart-loading spinner overlays (Q2/quarter reports).
+  clearChartSpinners();
 }
 
 // ===== Admin: upload/merge a CSV into THIS (past, non-live) quarter =====
@@ -484,12 +520,50 @@ function renderCrossTab(elId,data,colKeys,maxRows,maxCols){
   document.getElementById(elId).innerHTML=html;
 }
 
+// Paint the Q2/quarter page STRUCTURE immediately with spinners in every DB-driven slot
+// (title total count, KPI numbers, chart areas, table bodies). render() replaces this once the
+// DB data arrives. Homepage-style: static bits show instantly, live values spin until loaded.
+function renderQuarterShell(qid){
+  var m=/^(\d{4})-Q([1-4])$/.exec(qid||'');
+  var label=m?('Q'+m[2]+' '+m[1]):(qid||'Quarter');
+  var sp='<span class="num-spinner"></span>';
+  var kpi=function(cls,lbl){return '<div class="kpi-card '+cls+'"><div class="value">'+sp+'</div><div class="label">'+lbl+'</div></div>';};
+  var chartBox=function(title){return '<div class="chart-box" style="grid-column:1/-1"><h3>'+title+'</h3><div class="chart-wrap"><div class="chart-spin"><div class="spinner"></div></div></div></div>';};
+  var tableSpin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
+  document.getElementById('app').innerHTML=''+
+    '<div class="content">'+
+      '<div class="page-title"><h1>'+label+' Report</h1><p>Data range: <span class="num-spinner"></span> · <span class="num-spinner"></span> total tickets · Read-only report (DB-backed)</p></div>'+
+      '<div class="section"><h2>'+ic('bar-chart',18)+' Summary Statistics</h2><div class="kpi-grid">'+
+        kpi('accent',ic('ticket',13)+' Total Tickets')+
+        kpi('success',ic('check-circle',13)+' Resolved / Closed')+
+        kpi('warning',ic('hourglass',13)+' Open')+
+        kpi('success',ic('target',13)+' SLA \u2264240hrs')+
+        kpi('warning',ic('repeat',13)+' Repeat Offenders (HI>0)')+
+      '</div></div>'+
+      '<div class="charts-grid">'+chartBox('Resolution Type')+chartBox('Incident Types')+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">'+
+        '<div class="section" style="margin-bottom:0"><h2>'+ic('globe',18)+' Geography / Region — Count</h2>'+tableSpin+'</div>'+
+        '<div class="section" style="margin-bottom:0"><h2>'+ic('users',18)+' Resolver Volume — PHD Team (WWOS)</h2>'+tableSpin+'</div>'+
+      '</div>'+
+      '<div style="margin-bottom:24px"></div>'+
+      '<div class="charts-grid">'+chartBox('Weekly Trends')+'</div>'+
+      '<div class="section"><h2>'+ic('repeat',18)+' Root Causes by Group</h2>'+tableSpin+'</div>'+
+    '</div>';
+}
+
 (async function(){
   // Show a loading shimmer immediately (esp. for DB-backed quarters which may hit Render cold start).
+  // The Program History archive (ds=archive) loads from a static file and renders its own KPI
+  // spinners, so it skips the full shimmer and shows just a light spinner.
   const ds=qparam('ds');
-  const loadingNote=(ds==='quarter')?'Loading quarter data from the database…':'Loading report…';
-  if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
-    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard(loadingNote);
+  if(ds==='quarter'){
+    // Paint the shell (structure + spinners) instantly; render() fills it after the DB fetch.
+    renderQuarterShell(qparam('qid'));
+  }else if(ds==='archive'){
+    // Program History (static file) renders its own KPI spinners; show just a light spinner.
+    document.getElementById('app').innerHTML='<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>';
+  }else if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
+    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading report…');
   }
   try{
     const result=await loadMetrics();

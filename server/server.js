@@ -702,7 +702,7 @@ app.get('/api/paging', async (req, res) => {
   }
 });
 
-// Add a paging contact (admin+). All three fields required.
+// Add a paging contact (admin+). All three fields required. Records a paging-log entry.
 app.post('/api/paging', requireRole('admin'), async (req, res) => {
   try {
     let { country, code, email } = req.body || {};
@@ -716,9 +716,91 @@ app.post('/api/paging', requireRole('admin'), async (req, res) => {
     const last = await coll.find({}).sort({ order: -1 }).limit(1).toArray();
     const order = last.length && typeof last[0].order === 'number' ? last[0].order + 1 : 1;
     const r = await coll.insertOne({ country, code, email, createdBy: req.user.username, createdAt: now, order });
+    try {
+      const logColl = await getCollection(COLLECTIONS.pagingLog);
+      await logColl.insertOne({ action: 'create', pagingId: String(r.insertedId), country, code, user: req.user.username, role: req.user.role, at: now, after: { country, code, email } });
+    } catch (logErr) { /* never block */ }
     res.status(201).json({ id: String(r.insertedId), country, code, email });
   } catch (e) {
     res.status(500).json({ error: 'Could not add paging contact.' });
+  }
+});
+
+// Edit a paging contact (admin+). Records a paging-log entry with before/after.
+app.put('/api/paging/:id', requireRole('admin'), async (req, res) => {
+  try {
+    let { country, code, email } = req.body || {};
+    country = String(country || '').trim();
+    code = String(code || '').trim().toUpperCase();
+    email = String(email || '').trim();
+    if (!country || !code || !email) return res.status(400).json({ error: 'Country, code, and email are all required.' });
+    const coll = await getCollection(COLLECTIONS.paging);
+    const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
+    if (!existing) return res.status(404).json({ error: 'Paging contact not found.' });
+    // Another contact using the new code?
+    const dup = await coll.findOne({ code, _id: { $ne: existing._id } });
+    if (dup) return res.status(409).json({ error: 'A contact with code "' + code + '" already exists.' });
+    const now = new Date().toISOString();
+    await coll.updateOne({ _id: existing._id }, { $set: { country, code, email, updatedBy: req.user.username, updatedAt: now } });
+    try {
+      const logColl = await getCollection(COLLECTIONS.pagingLog);
+      await logColl.insertOne({
+        action: 'edit', pagingId: String(existing._id), country, code, user: req.user.username, role: req.user.role, at: now,
+        before: { country: existing.country, code: existing.code, email: existing.email },
+        after: { country, code, email },
+      });
+    } catch (logErr) { /* never block */ }
+    res.json({ id: String(existing._id), country, code, email });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not update paging contact.' });
+  }
+});
+
+// Delete a paging contact (admin+). Records a paging-log entry.
+app.delete('/api/paging/:id', requireRole('admin'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.paging);
+    const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
+    if (!existing) return res.status(404).json({ error: 'Paging contact not found.' });
+    await coll.deleteOne({ _id: existing._id });
+    try {
+      const logColl = await getCollection(COLLECTIONS.pagingLog);
+      await logColl.insertOne({
+        action: 'delete', pagingId: String(existing._id), country: existing.country, code: existing.code,
+        user: req.user.username, role: req.user.role, at: new Date().toISOString(),
+        before: { country: existing.country, code: existing.code, email: existing.email },
+      });
+    } catch (logErr) { /* never block */ }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete paging contact.' });
+  }
+});
+
+// Paging audit log (logged-in users only). Newest first.
+app.get('/api/paging-log', requireRole('user'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.pagingLog);
+    const entries = await logColl.find({}).sort({ at: -1 }).limit(300).toArray();
+    res.json(entries.map(e => ({
+      id: String(e._id), action: e.action, pagingId: e.pagingId,
+      country: e.country, code: e.code, user: e.user, role: e.role, at: e.at,
+      before: e.before || null, after: e.after || null,
+    })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load paging log.' });
+  }
+});
+
+// Delete a paging-log entry (owner only).
+app.delete('/api/paging-log/:id', requireRole('owner'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.pagingLog);
+    const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });
+    if (!r.deletedCount) return res.status(404).json({ error: 'Log entry not found.' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete log entry.' });
   }
 });
 
@@ -861,6 +943,22 @@ app.get('/api/help/open', requireRole('user'), async (req, res) => {
   }
 });
 
+// FULL help-request history (any logged-in user) — powers the Help Activity page. Newest first.
+app.get('/api/help/all', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.helpRequests);
+    const list = await coll.find({}).sort({ createdAt: -1 }).toArray();
+    res.json(list.map(h => ({
+      id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '',
+      requester: h.requester, doubt: h.doubt, status: h.status,
+      createdAt: h.createdAt, resolvedAt: h.resolvedAt || null,
+      replies: (h.replies || []).map(rp => ({ by: rp.by, role: rp.role, text: rp.text, at: rp.at })),
+    })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load help activity.' });
+  }
+});
+
 // My help requests (requester = me), open + resolved, with replies — for the My Tickets page.
 app.get('/api/help/mine', requireRole('user'), async (req, res) => {
   try {
@@ -965,8 +1063,7 @@ app.get('/api/agent-analytics', requireRole('admin'), async (req, res) => {
 
     const leads = [], editors = [];
     uList.forEach(u => {
-      // Managers are viewers only — excluded from analytics. Owner/admin -> leads, editor -> editors.
-      if (u.role === 'manager') return;
+      // Owner/admin/manager -> leads; editor -> editors. (Managers have full admin-level access.)
       const s = statsFor(u.username);
       s.role = u.role;
       if (u.role === 'editor') editors.push(s); else leads.push(s);
@@ -996,8 +1093,11 @@ app.get('/api/last24', requireRole('admin'), async (req, res) => {
     const slaPct24 = slaBase ? +(within / slaBase * 100).toFixed(1) : null;
     // HI (Cnt) > 0 resolved in last 24h
     const hi24 = resolvedLast24.filter(t => hiCount(t) > 0).length;
-    // immediate/auto resolved in last 24h (everyone)
-    const immediateAuto24 = resolvedLast24.filter(t => IMMEDIATE_AUTO.includes(t.ClosureCode || '')).length;
+    // Immediately Resolved / Automatically Closed in last 24h, split by resolver:
+    // AUTO-SIM (ResolvedByIdentity contains 'AutoSIM') vs agents (everyone else).
+    const immediateAutoTickets = resolvedLast24.filter(t => IMMEDIATE_AUTO.includes(t.ClosureCode || ''));
+    const immediateAutoAutoSim24 = immediateAutoTickets.filter(t => String(t.ResolvedByIdentity || '').includes('AutoSIM')).length;
+    const immediateAutoAgents24 = immediateAutoTickets.length - immediateAutoAutoSim24;
     // open tickets crossing 240h in the next 24h (age currently 216-240h)
     const crossing = tickets.filter(t => {
       if (isResolved(t)) return false;
@@ -1027,7 +1127,7 @@ app.get('/api/last24', requireRole('admin'), async (req, res) => {
       helpActivity.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } catch (e) { /* ignore */ }
 
-    res.json({ quarter: currentQuarter(), created24, resolved24, slaPct24, slaBase, hi24, immediateAuto24, crossing240Next24: crossing, helpActivity });
+    res.json({ quarter: currentQuarter(), created24, resolved24, slaPct24, slaBase, hi24, immediateAutoAgents24, immediateAutoAutoSim24, crossing240Next24: crossing, helpActivity });
   } catch (e) {
     res.status(500).json({ error: 'Could not compute last-24h analytics.' });
   }

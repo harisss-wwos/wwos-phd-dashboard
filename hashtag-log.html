@@ -25,7 +25,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
 .entry{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:14px;overflow:hidden}
-.entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--bd)}
+.entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid transparent;cursor:pointer;transition:background .12s}
+.entry-head:hover{background:#0d0d0d}
+.entry.open .entry-head{border-bottom-color:var(--bd)}
+.entry-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
+.entry.open .entry-caret{transform:rotate(180deg)}
+.entry-body{display:none}
+.entry.open .entry-body{display:block}
 .act{padding:2px 10px;border-radius:20px;font-size:.72em;font-weight:700;text-transform:uppercase}
 .act.create{background:rgba(74,222,128,.15);color:var(--gl)}
 .act.edit{background:rgba(251,191,36,.15);color:#fbbf24}
@@ -48,10 +54,9 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 @media(max-width:640px){.diff{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
+<body data-nav-active="tools">
 <div class="top-bar">
   <a class="logo" href="tool-hashtags.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <a class="btn sec" href="tool-hashtags.html">← Hashtags</a>
 </div>
 <div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:100px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:100px"></div></div></div>
 
@@ -66,7 +71,9 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
   </div>
 </div>
 
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 function fmtTZ(iso,zone){try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
@@ -100,21 +107,24 @@ async function doDelete(){
 
 function render(entries){
   const wrap=document.getElementById('wrap');const owner=isOwner();
-  let html='<h1>Hashtag Change Log</h1><p class="sub">Who added, edited, or deleted which hashtag, when (IST &amp; MST). Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
+  let html='<div style="margin-bottom:14px"><a class="btn sec" href="tool-hashtags.html">← Back to Hashtags</a></div>'
+    +'<h1>Hashtag Change Log</h1><p class="sub">Who added, edited, or deleted which hashtag, when (IST &amp; MST). Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
   if(!entries.length){html+='<div class="empty">No hashtag changes recorded yet.</div>';wrap.innerHTML=html;return;}
-  html+=entries.map(e=>`
-    <div class="entry">
-      <div class="entry-head">
+  html+=entries.map((e,i)=>`
+    <div class="entry${i===0?' open':''}">
+      <div class="entry-head" onclick="toggleEntry(this)">
         <span class="act ${ACT_CLASS[e.action]||'edit'}">${ACT_LABEL[e.action]||e.action}</span>
         <span class="entry-title">${esc(hash(e.tag))}</span>
         <span class="entry-user">by <b>${esc(e.user)}</b><span class="entry-role">${esc(e.role||'')}</span></span>
         <span class="entry-when"><b>IST:</b> ${fmtTZ(e.at,'Asia/Kolkata')}<br><b>MST:</b> ${fmtTZ(e.at,'America/Denver')}</span>
-        ${owner?`<button class="btn danger mini" onclick="confirmDelete('${e.id}')">Delete</button>`:''}
+        ${owner?`<button class="btn danger mini" onclick="event.stopPropagation();confirmDelete('${e.id}')">Delete</button>`:''}
+        <span class="entry-caret">▾</span>
       </div>
       <div class="entry-body">${bodyFor(e)}</div>
     </div>`).join('');
   wrap.innerHTML=html;
 }
+function toggleEntry(head){var en=head.closest('.entry');if(en)en.classList.toggle('open');}
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}

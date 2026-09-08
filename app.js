@@ -348,49 +348,12 @@ function renderUpload(){
 function ic(name,size){return (typeof window.icon==='function')?window.icon(name,size||15):'';}
 
 function topBar(active){
-  const navBtn=(view,lbl,ico)=>`<button class="btn ${active===view?'':'sec'}" onclick="nav('${view}')" style="${active===view?'':'border-color:var(--bd)'}">${ic(ico)} ${lbl}</button>`;
-  const loggedIn=!!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser());
-  // Row 1: title bar only — clicking the logo/title goes Home.
-  // Row 2: a dedicated toolbar section holding all nav + auth action buttons.
-  return `<div class="top-bar">
-    <a class="logo logo-link" href="index.html" title="Back to all dashboards"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span>${LIVE_QUARTER?`<span class="live-badge">${LIVE_QUARTER.label} · LIVE</span>`:''}</a>
-  </div>
-  <div class="toolbar">
-    <div class="toolbar-nav">
-      ${navBtn('dashboard','Dashboard','grid')}
-      ${loggedIn?`${navBtn('groups','Groups','users')}
-      ${navBtn('previous-week','Previous Week','clock-rewind')}
-      ${navBtn('shift-report','Shift Report','clipboard')}`:''}
-      ${(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?`<a class="btn sec" href="agent-analytics.html">${ic('bar-chart')} Agent Analytics</a><a class="btn sec" href="last24.html">${ic('clock')} Last 24 Hours</a>`:''}
-    </div>
-    <div class="toolbar-actions">
-      ${authActions()}
-    </div>
-  </div>`;
-}
-
-// Role-aware action buttons. Publishing/upload is admin/manager+; the rest for any logged-in user; users page for owner.
-function authActions(){
-  const A=window.PHDAuth;const user=A?A.getUser():null;
-  if(!user){
-    return `<button class="btn" style="background:#4ade80" onclick="showLoginModal()">${ic('key')} Login</button>`;
+  // Shared nav (Section 1: logo + LIVE badge + Users/avatar; Section 2: full nav row) from topbar-auth.js.
+  if(window.PHDNav&&window.PHDNav.buildToolbarHtml){
+    return window.PHDNav.buildToolbarHtml(active,{inApp:true,liveLabel:LIVE_QUARTER?LIVE_QUARTER.label:''});
   }
-  const canPublish=A.atLeast('admin'); // admin & manager (same rank) & owner
-  const isOwner=A.atLeast('owner');
-  let html='';
-  if(canPublish){
-    // Single button: ingest CSV -> merge -> auto-publish to Atlas.
-    html+=`<label class="btn" style="background:#4ade80;cursor:pointer">${ic('upload')} Upload new data<input type="file" accept=".csv" id="uploadFile" style="display:none"></label>`;
-  }
-  html+=`<a class="btn sec" href="my-tickets.html">${ic('ticket')} My Tickets</a>`;
-  if(isOwner)html+=`<a class="btn sec" href="users.html">${ic('users-gear')} Users</a>`;
-  html+=`<a class="btn sec" href="data-log.html">${ic('history')} Update data log</a>`;
-  html+=`<a class="btn sec" href="tools.html">${ic('tool')} PHD Tools</a>`;
-  // Profile button is the user's avatar (photo or initial circle).
-  const prof=(window.PHDAuth.myProfile&&window.PHDAuth.myProfile())||user;
-  html+=`<a href="profile.html" title="Profile" style="display:inline-flex;align-items:center;text-decoration:none">${window.PHDAuth.avatarHtml(prof,34)}</a>`;
-  // Logout moved to the Profile page.
-  return html;
+  // Fallback (topbar-auth.js not loaded): minimal bar.
+  return `<div class="top-bar"><a class="logo logo-link" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a></div>`;
 }
 
 function doLogout(){window.PHDAuth.clear();location.reload();}
@@ -1084,6 +1047,93 @@ function showHIAgentDrilldown(rootCause,agentName){
   document.body.appendChild(overlay);
 }
 
+// Live-dashboard SHELL: paint the full structure + static labels immediately with spinners in
+// every DB-derived slot (KPI numbers, chart areas, table bodies). renderDashboard() replaces it
+// once the ticket data is loaded + computed. Mirrors renderDashboard()'s layout so there's no jump.
+function renderDashboardShell(){
+  const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
+  const sp='<span class="num-spinner"></span>';                 // inline number spinner
+  const csp='<div class="chart-spin"><div class="spinner"></div></div>'; // chart-area spinner
+  const tsp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
+  const kpi=(cls,label,tip)=>`<div class="kpi-card ${cls||''}"><div class="value">${sp}</div><div class="label">${label}${tip?` <span title="${tip}" style="cursor:help;opacity:.7">&#9432;</span>`:''}</div></div>`;
+  const ageTile=(color,name,range)=>`<div class="kpi-card age-tile" style="border-top-color:${color}"><div class="value" style="color:${color}">${sp}</div><div class="age-name">${name}</div><div class="age-range">${range}</div></div>`;
+  const chartBox=(title,tall)=>`<div class="chart-box"><h3>${title}</h3><div class="chart-wrap${tall?' tall':''}">${csp}</div></div>`;
+  document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
+  <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
+    ${loggedIn?`<button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button>`:''}
+  </div>
+
+  <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    ${kpi('accent',ic('ticket',14)+' Total Tickets','Total number of tickets stored in the dashboard')}
+    ${kpi('success',ic('check-circle',14)+' Resolved','Tickets in Resolved or Closed status')}
+    ${kpi('warning',ic('hourglass',14)+' Unresolved Tickets','Tickets not in Resolved/Closed status')}
+  </div>
+
+  <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    ${kpi('','Avg Resolution Time','Average resolution time vs 240hr SLA')}
+    ${kpi('','SLA Compliance (≤240 hrs)','Resolved within 240 hrs')}
+    ${kpi('',ic('bolt',14)+' AutoSIM Resolved','Tickets auto-resolved by AutoSIM')}
+  </div>
+
+  <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    ${kpi('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)','Tickets with Historical Incident / Cnt > 0')}
+    ${kpi('',ic('paw',14)+' HI involving pet incidents','Repeat incidents whose root cause is an unsecured animal / pet')}
+    ${kpi('',ic('paw',14)+' % of HI involving pet incidents')}
+    ${kpi('',ic('repeat',14)+' HI involving non-pet incidents')}
+    ${kpi('',ic('repeat',14)+' % of HI involving non-pet incidents')}
+    ${kpi('',ic('bar-chart',14)+' Pet vs non-pet gap in HI','Percentage-point difference')}
+  </div>
+
+  <div class="section"><h2>Ticket Age Classification</h2>
+    <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
+    <div class="kpi-grid">
+      ${ageTile('#4ade80',ic('check-circle',14)+' GREEN','(0-96 hrs / 0-4 days)')}
+      ${ageTile('#fbbf24',ic('clock',14)+' YELLOW','(96-168 hrs / 4-7 days)')}
+      ${ageTile('#ff5252',ic('alert',14)+' RED','(168-240 hrs / 7-10 days)')}
+      ${ageTile('#888',ic('flame',14)+' BLACK','(&gt;240 hrs / &gt;10 days)')}
+      ${ageTile('#a78bfa',ic('reopen',14)+' PURPLE','(Reopened)')}
+    </div></div>
+
+  <div class="section"><h2>Queue Status</h2>
+    <div class="handoff-grid">
+      <div class="handoff-box"><h3>Ticket Count by Status</h3><ul>
+        <li><span>Assigned</span><span class="val">${sp}</span></li>
+        <li><span>Work In Progress</span><span class="val">${sp}</span></li>
+        <li><span>Researching</span><span class="val">${sp}</span></li>
+        <li><span>Pending</span><span class="val">${sp}</span></li>
+        <li><span>Resolved</span><span class="val">${sp}</span></li>
+        <li><span>Closed</span><span class="val">${sp}</span></li>
+      </ul></div>
+      <div class="handoff-box"><h3>Status Distribution (%)</h3><ul>
+        <li><span>Assigned</span><span class="val">${sp}</span></li>
+        <li><span>Work In Progress</span><span class="val">${sp}</span></li>
+        <li><span>Researching</span><span class="val">${sp}</span></li>
+        <li><span>Pending</span><span class="val">${sp}</span></li>
+        <li><span>Resolved</span><span class="val">${sp}</span></li>
+        <li><span>Closed</span><span class="val">${sp}</span></li>
+      </ul></div>
+    </div></div>
+
+  <div class="charts-grid" style="grid-template-columns:repeat(2,1fr)">
+    ${chartBox('Daily Tickets Created (Last 7 Days)')}
+    ${chartBox('Daily Tickets Resolved (Last 7 Days)')}
+  </div>
+  <div class="charts-grid" style="grid-template-columns:repeat(2,1fr)">
+    ${chartBox('Weekly Volume: Created')}
+    ${chartBox('Weekly Volume: Resolved')}
+  </div>
+  <div class="section"><h2>SLA Compliance per Week (&le;240 hrs)</h2>
+    <div class="chart-box"><div class="chart-wrap tall">${csp}</div></div>
+  </div>
+  <div class="section"><h2>Incident Types</h2><p class="meta-info">Click any incident type to view agent breakdown</p>${tsp}</div>
+  <div class="section"><h2>Historical Incidents (Cnt > 0)</h2>${tsp}</div>
+  </div>`;
+}
+
 function renderDashboard(){
   const m=M;
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
@@ -1531,8 +1581,9 @@ async function renderFromLocal(uploadTimeIso){
 
 // Fetch the full live-quarter dataset, store it, cache its version, and render.
 async function refreshFromServer(showShimmer){
-  if(showShimmer&&window.PHDAuth&&window.PHDAuth.skeletonDashboard){
-    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading live dashboard data from the database…');
+  if(showShimmer){
+    // Dashboard shell (labels + spinners) during a full fetch; neutral spinner if deep-linked to a view.
+    paintInitialLoading();
   }
   const shared=await loadLiveQuarter();// sets LIVE_QUARTER
   if(shared){
@@ -1546,13 +1597,33 @@ async function refreshFromServer(showShimmer){
   return false;
 }
 
+// Deep-link support: another page can link to app.html?view=groups|previous-week|shift-report.
+// After the dashboard data is ready, switch to that view.
+function applyInitialView(){
+  try{
+    const v=new URLSearchParams(location.search).get('view');
+    if(v && v!=='dashboard' && ['groups','previous-week','shift-report'].includes(v) && M){ nav(v); }
+  }catch(e){}
+}
+
+// Is the page deep-linked to a non-dashboard view (Groups/Prev/Shift)? Then we shouldn't flash the
+// dashboard shell — show a neutral spinner while data loads, then render the requested view.
+function initialViewParam(){
+  try{const v=new URLSearchParams(location.search).get('view');return (['groups','previous-week','shift-report'].includes(v))?v:'';}catch(e){return '';}
+}
+function paintInitialLoading(){
+  if(initialViewParam()){
+    document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>';
+  }else{
+    renderDashboardShell();
+  }
+}
+
 // ========= INIT ========= (stale-while-revalidate: instant from cache, refresh only if changed)
 (async function init(){
-  // Paint the shimmer IMMEDIATELY (before any awaits) so the screen is never blank while we
-  // check the roster / cache / server version. A cache hit will replace it instantly.
-  if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
-    document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading live dashboard…');
-  }
+  // Paint immediately so the screen is never blank. Dashboard -> shell w/ spinners; a deep-linked
+  // view (?view=groups|previous-week|shift-report) -> neutral spinner (avoids the dashboard flash).
+  paintInitialLoading();
   // Fetch the role roster + my profile (avatar) first so the header renders correctly.
   await loadUserRoles();
   if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
@@ -1568,6 +1639,7 @@ async function refreshFromServer(showShimmer){
       if(fresh){
         // Nothing changed since last visit -> render instantly from cache, no shimmer, no heavy fetch.
         await renderFromLocal(version.publishedAt);
+        applyInitialView();
         return;
       }
       // Cache is stale or empty -> if we have SOME local data, show it instantly while we refresh;
@@ -1575,14 +1647,15 @@ async function refreshFromServer(showShimmer){
       const hadLocal = localCount>0 ? await renderFromLocal(cache?cache.publishedAt:null) : false;
       const ok=await refreshFromServer(/*showShimmer*/ !hadLocal);
       if(!ok && !hadLocal)renderUpload();
+      applyInitialView();
       return;
     }
 
     // Version check failed (offline / server unreachable): fall back to local cache if present.
-    if(localCount>0){ await renderFromLocal(cache?cache.publishedAt:null); return; }
+    if(localCount>0){ await renderFromLocal(cache?cache.publishedAt:null); applyInitialView(); return; }
     // No cache and no server -> last resort: try a full fetch with shimmer, else upload screen.
     const ok=await refreshFromServer(true);
-    if(!ok)renderUpload();
+    if(!ok)renderUpload(); else applyInitialView();
   }catch(e){
     try{ if(await renderFromLocal(null))return; }catch(_){}
     renderUpload();

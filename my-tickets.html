@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="shimmer.css">
 <style>
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6;--yl:#fbbf24}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -67,12 +69,11 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .help-hint{color:#879596;font-size:.78em;line-height:1.4;display:flex;gap:5px;align-items:flex-start}
 </style>
 </head>
-<body>
+<body data-nav-active="my-tickets">
 <div class="top-bar">
   <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <a class="btn sec" href="app.html">← Live Dashboard</a>
 </div>
-<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:300px"></div></div></div>
+<div class="wrap" id="wrap"><h1>My Tickets</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">Your open tickets, deadlines, and comments.</p><div style="display:flex;align-items:center;justify-content:center;min-height:280px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
 <div class="toast" id="toast"></div>
 
 <!-- Ask for help popup -->
@@ -98,8 +99,23 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
   </div>
 </div>
 
+<!-- Add-comment popup -->
+<div class="modal-bg" id="addCmtModal" onclick="if(event.target===this)closeAddComment()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="addCmtTitle">Add comment</h2><button class="modal-close" onclick="closeAddComment()" aria-label="Close">&times;</button></div>
+    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:10px">Comments are append-only — they can't be edited or deleted after posting.</p>
+    <textarea id="addCmtText" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Add a comment on this ticket…"></textarea>
+    <div class="msg err" id="addCmtErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeAddComment()">Cancel</button>
+      <button class="btn" id="addCmtBtn" onclick="submitAddComment()">Add comment</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -179,10 +195,7 @@ function render(){
         <td>${tzBlock(t.createDate)}</td>
         <td>${tzBlock(t.deadline)}</td>
         <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
-        <td class="cmt-cell">
-          <textarea class="cmt-input" id="cmt-${i}" maxlength="2000" placeholder="Add a comment on this ticket…"></textarea>
-          <div class="cmt-actions"><button class="btn mini" onclick="addComment(${i})">Add comment</button></div>
-        </td>
+        <td><button class="btn mini" onclick="openAddComment(${i})">Add comment</button></td>
         <td><button class="btn sec mini" onclick="openCmt(${i})">Comment log</button></td>
         ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
       </tr>`;
@@ -215,14 +228,30 @@ async function resolveHelp(id){
   else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
 }
 
-async function addComment(i){
+let ADD_CMT_INDEX=null;
+function openAddComment(i){
+  ADD_CMT_INDEX=i;
   const t=TICKETS[i];
-  const el=document.getElementById('cmt-'+i);
-  const text=el.value.trim();
-  if(!text){toast('Enter a comment first.');return;}
+  document.getElementById('addCmtTitle').textContent='Add comment · '+t.shortId;
+  const ta=document.getElementById('addCmtText');ta.value='';
+  document.getElementById('addCmtErr').style.display='none';
+  document.getElementById('addCmtModal').style.display='flex';
+  setTimeout(()=>ta.focus(),40);
+}
+function closeAddComment(){document.getElementById('addCmtModal').style.display='none';ADD_CMT_INDEX=null;}
+async function submitAddComment(){
+  if(ADD_CMT_INDEX==null)return;
+  const t=TICKETS[ADD_CMT_INDEX];
+  const ta=document.getElementById('addCmtText');
+  const err=document.getElementById('addCmtErr');
+  const text=ta.value.trim();
+  if(!text){err.textContent='Enter a comment first.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('addCmtBtn');btn.disabled=true;btn.textContent='Adding…';
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text});
-  if(r.ok){el.value='';toast('Comment added to '+t.shortId);}
-  else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+  btn.disabled=false;btn.textContent='Add comment';
+  if(r.ok){closeAddComment();toast('Comment added to '+t.shortId);}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
 async function openCmt(i){

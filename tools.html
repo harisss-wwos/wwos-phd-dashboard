@@ -32,10 +32,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card p{color:var(--tm);font-size:.9em;line-height:1.5}
 </style>
 </head>
-<body>
+<body data-nav-active="tools">
 <div class="top-bar">
   <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
-  <a class="btn sec" href="index.html">← All Dashboards</a>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -63,5 +62,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 <script src="icons.js"></script>
 <script>document.querySelectorAll('[data-ic]').forEach(function(el){if(window.icon)el.innerHTML=window.icon(el.getAttribute('data-ic'),24);});</script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 </body>
 </html>

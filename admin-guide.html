@@ -49,10 +49,9 @@ td:first-child b,td:first-child{color:#fff}
 .foot{color:var(--tm);font-size:.85em;margin-top:36px;padding-top:16px;border-top:1px solid var(--bd)}
 </style>
 </head>
-<body>
+<body data-nav-active="">
 <div class="top-bar">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <a class="btn" href="index.html">← All Dashboards</a>
 </div>
 
 <div class="wrap">
@@ -173,7 +172,7 @@ td:first-child b,td:first-child{color:#fff}
     <li><b>My Tickets</b> — your own open tickets, deadlines (240h), and per-ticket comments.</li>
     <li><b>PHD Tools</b> — Common Blurbs, Hashtags, and Paging contacts (each card has a <b>Copy</b> and a <b>View</b> button). Admins can add/edit/delete blurbs and hashtags.</li>
     <li><b>Update data log</b> — full audit history of every upload/publish and what changed.</li>
-    <li><b>Agent Analytics</b> and <b>Last 24 Hours</b> — <b>Admin+</b> (Managers excluded from Agent Analytics). Last 24 Hours also shows a <b>Help Activity</b> section.</li>
+    <li><b>Agent Analytics</b> and <b>Last 24 Hours</b> — <b>Admin / Manager / Owner</b>. Last 24 Hours also shows a <b>Help Activity</b> section.</li>
     <li><b>Users</b> — <b>Owner only</b>: create accounts, set roles, reset passwords, remove users.</li>
   </ul>
 
@@ -223,5 +222,8 @@ td:first-child b,td:first-child{color:#fff}
 
   <p class="foot">For account creation, role changes, or password resets you can't do yourself, contact the Owner — <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener">@harisss</a>.</p>
 </div>
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 </body>
 </html>

@@ -51,10 +51,9 @@ input:focus{outline:none;border-color:var(--o)}
 .avatar-edit:hover{background:var(--oh)}
 </style>
 </head>
-<body>
+<body data-nav-active="profile">
 <div class="top-bar">
   <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
-  <a class="btn sec" href="app.html">← Live Dashboard</a>
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
@@ -78,6 +77,7 @@ input:focus{outline:none;border-color:var(--o)}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';

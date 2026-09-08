@@ -30,17 +30,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .wrap{width:80%;max-width:1200px;margin:0 auto;padding:40px 24px}
 h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
-.tag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-.tag-card{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:14px;min-height:84px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--tl);border-radius:12px;padding:16px 18px;font-family:inherit;transition:transform .12s,border-color .2s}
-.tag-card:hover{transform:translateY(-3px);border-color:var(--tl)}
-.tc-title{color:#44b9d6;font-weight:600;font-size:1em;line-height:1.4;word-break:break-word}
-.tc-actions{display:flex;gap:8px}
-.tc-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--bd)}
-.tc-copy{background:var(--tl);color:#000;border-color:var(--tl)}
+/* Header row: title left, actions right */
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.page-head h1{margin:0}
+.page-head-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* Stacked list of expandable, click-to-copy hashtag cards (copies the # itself) */
+.tag-list{display:flex;flex-direction:column;gap:14px}
+.tag-card{position:relative;background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--tl);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s,background .15s}
+.tag-card:hover{border-color:var(--tl);background:#0d0d0d}
+.tc-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tc-title{color:#44b9d6;font-weight:700;font-size:1.05em;line-height:1.4;word-break:break-word}
+.tc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--tl);background:var(--tl);color:#000;flex-shrink:0}
 .tc-copy:hover{filter:brightness(1.08)}
 .tc-copy.copied{background:var(--gl);border-color:var(--gl);color:#000}
-.tc-view{background:transparent;color:var(--tm)}
-.tc-view:hover{color:var(--tl);border-color:var(--tl)}
+/* Meaning: hidden by default, revealed on hover */
+.tc-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease;margin-top:0}
+.tag-card:hover .tc-content,.tag-card.show .tc-content{max-height:400px;opacity:1;margin-top:12px}
+.tc-content .tc-desc{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;border-top:1px solid var(--bd);padding-top:12px}
+.tc-admin{display:flex;gap:8px;margin-top:12px}
 .tag-text{white-space:pre-wrap;color:var(--t);font-size:.92em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;max-height:56vh;overflow:auto}
 .tag-name{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:10px}
 .meta{color:#5f6b6c;font-size:.75em;margin-top:8px}
@@ -60,13 +67,9 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .toast.show{opacity:1}
 </style>
 </head>
-<body>
+<body data-nav-active="tools">
 <div class="top-bar">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
-  <div class="nav-right">
-    <a class="btn sec" href="tools.html">← PHD Tools</a>
-    <a class="btn sec" href="hashtag-log.html" id="logLink" style="display:none">Hashtag change log</a>
-  </div>
 </div>
 <div class="tools-subnav">
   <a href="tool-blurbs.html">Common Blurbs</a>
@@ -142,7 +145,9 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
   </div>
 </div>
 
+<script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 let TAGS=[];let VIEW_INDEX=null;
@@ -152,7 +157,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function hashOf(t){return '#'+String(t.tag||'').replace(/^#/,'');}
 
 async function load(){
-  if(canEdit())document.getElementById('logLink').style.display='';
+  if(canEdit()){var _ll=document.getElementById('logLink');if(_ll)_ll.style.display='';}
   const r=await A.api('GET','/api/hashtags');
   if(!r.ok){document.getElementById('wrap').innerHTML='<h1>Hashtags</h1><p class="sub" style="color:#ff5252">Could not load hashtags (HTTP '+r.status+').</p>';return;}
   TAGS=Array.isArray(r.data)?r.data:[];
@@ -161,27 +166,31 @@ async function load(){
 
 function render(){
   const editor=canEdit();
-  let html='<h1>Hashtags</h1><p class="sub">Click a hashtag to see what it means and copy it.'+(editor?' As an admin you can edit, add, or delete hashtags.':' Log in as an admin to edit or add hashtags.')+'</p>';
-  if(editor)html+=`<div style="margin-bottom:22px"><button class="btn" onclick="openAddModal()">➕ Add New Hashtag</button></div>`;
-  html+=`<div class="tag-grid">`+TAGS.map((h,i)=>`
-    <div class="tag-card" title="${esc(hashOf(h))}">
-      <span class="tc-title">${esc(hashOf(h))}</span>
-      <div class="tc-actions">
-        <button class="tc-btn tc-copy" id="copyCard-${i}" onclick="copyHashtag(${i})" title="Copy this hashtag">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span>Copy</span>
-        </button>
-        <button class="tc-btn tc-view" onclick="openViewModal(${i})" title="View this hashtag">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-          <span>View</span>
-        </button>
+  const copyIcon='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  // Header: title left, actions (Add + edit log) right.
+  let html='<div class="page-head"><h1>Hashtags</h1><div class="page-head-actions">'
+    +(editor?'<button class="btn" onclick="openAddModal()">➕ Add New Hashtag</button>':'')
+    +'<a class="btn sec" href="hashtag-log.html">'+(window.icon?window.icon('history',15):'')+' Hashtag edit log</a>'
+    +'</div></div>';
+  html+='<p class="sub">Copy a hashtag with one click.'+(editor?' As an admin you can edit any hashtag or add a new one.':'')+'</p>';
+  // Expandable, click-to-copy cards. Copies the # itself; hover reveals the meaning/description.
+  html+=`<div class="tag-list">`+TAGS.map((h,i)=>`
+    <div class="tag-card" id="tagcard-${i}" onclick="copyHashtag(${i},event)" title="Click to copy ${esc(hashOf(h))}">
+      <div class="tc-head">
+        <span class="tc-title">${esc(hashOf(h))}</span>
+        <button class="tc-copy" id="copyCard-${i}" onclick="copyHashtag(${i},event)" title="Copy this hashtag">${copyIcon}<span>Copy</span></button>
+      </div>
+      <div class="tc-content">
+        <div class="tc-desc">${esc(h.desc||'')}</div>
+        ${editor?`<div class="tc-admin"><button class="btn sec mini" onclick="event.stopPropagation();openViewModal(${i})">Edit</button></div>`:''}
       </div>
     </div>`).join('')+`</div>`;
   document.getElementById('wrap').innerHTML=html;
 }
 
-// Copy a hashtag directly from its card (default action).
-function copyHashtag(i){
+// Copy the HASHTAG itself (the #), clicking anywhere on the card or the Copy button.
+function copyHashtag(i,ev){
+  if(ev)ev.stopPropagation();
   const text=hashOf(TAGS[i]);
   const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('span');const old=s.textContent;btn.classList.add('copied');s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');s.textContent=old;},1600);}toast('Hashtag copied to clipboard');};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
