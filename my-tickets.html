@@ -218,19 +218,30 @@ async function fillLatestComments(){
   if(!ids.length)return;
   let map={};
   try{const r=await A.api('POST','/api/comments/latest',{shortIds:ids});if(r.ok&&r.data)map=r.data;}catch(e){}
-  TICKETS.forEach((t,i)=>{
-    const cell=document.getElementById('latest-'+i);if(!cell)return;
-    const c=map[t.shortId];
-    if(c&&c.text){
-      const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-      const countBadge='<span class="cmt-count" onclick="openCmt('+i+')" title="View all comments">'+ic('message',12)+' '+c.count+'</span>';
-      cell.style.color='var(--t)';cell.style.fontStyle='normal';
-      cell.innerHTML='<div class="latest-text">'+esc(c.text)+'</div><div class="latest-meta">— '+esc(c.user)+(when?(' · '+when):'')+' '+countBadge+'</div>';
-    }else{
-      cell.style.color='#5f6b6c';cell.style.fontStyle='normal';
-      cell.textContent='-';
-    }
-  });
+  TICKETS.forEach((t,i)=>paintLatestCell(i,map[t.shortId]));
+}
+
+// Render one Latest-comment cell from a {text,user,at,count} object (or falsy for none).
+function paintLatestCell(i,c){
+  const cell=document.getElementById('latest-'+i);if(!cell)return;
+  if(c&&c.text){
+    const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+    const countBadge='<span class="cmt-count" onclick="openCmt('+i+')" title="View all comments">'+ic('message',12)+' '+c.count+'</span>';
+    cell.style.color='var(--t)';cell.style.fontStyle='normal';
+    cell.innerHTML='<div class="latest-text">'+esc(c.text)+'</div><div class="latest-meta">— '+esc(c.user)+(when?(' · '+when):'')+' '+countBadge+'</div>';
+  }else{
+    cell.style.color='#5f6b6c';cell.style.fontStyle='normal';
+    cell.textContent='-';
+  }
+}
+
+// Re-fetch just one ticket's latest comment + count and repaint its cell.
+async function refreshLatestComment(i){
+  const t=TICKETS[i];if(!t)return;
+  try{
+    const r=await A.api('POST','/api/comments/latest',{shortIds:[t.shortId]});
+    if(r.ok&&r.data)paintLatestCell(i,r.data[t.shortId]);
+  }catch(e){}
 }
 
 // ---- Help request actions ----
@@ -278,9 +289,10 @@ async function submitAddComment(){
   if(!text){err.textContent='Enter a comment first.';err.style.display='block';return;}
   err.style.display='none';
   const btn=document.getElementById('addCmtBtn');btn.disabled=true;btn.textContent='Adding…';
+  const idx=ADD_CMT_INDEX;
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text});
   btn.disabled=false;btn.textContent='Add comment';
-  if(r.ok){closeAddComment();toast('Comment added to '+t.shortId);}
+  if(r.ok){closeAddComment();toast('Comment added to '+t.shortId);refreshLatestComment(idx);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
