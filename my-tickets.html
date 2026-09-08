@@ -22,11 +22,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:5px 12px;font-size:.78em}
-.wrap{width:80%;margin:0 auto;padding:36px 24px}
+.wrap{width:96%;max-width:1600px;margin:0 auto;padding:36px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
-.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow:auto}
-table{width:100%;border-collapse:collapse;min-width:900px}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:auto}
 thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;text-align:left;padding:11px 14px;border-bottom:1px solid var(--bd);white-space:nowrap}
 tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;vertical-align:top}
 tbody tr:last-child td{border-bottom:none}
@@ -34,9 +34,16 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .tk-id a{color:#44b9d6;text-decoration:none;font-weight:600}
 .tk-id a:hover{text-decoration:underline}
 .tk-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
+.tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:.72em;font-weight:800;background:rgba(255,153,0,.16);color:var(--o);vertical-align:middle;cursor:default}
 .tz{line-height:1.5;white-space:nowrap}.tz b{color:#d5dbdb}.tz .z{color:var(--tm);font-size:.85em}
 .rem{font-weight:700;white-space:nowrap}
 .rem.ok{color:var(--gl)}.rem.warn{color:var(--yl)}.rem.over{color:var(--rl)}
+/* Latest-comment column */
+.latest-cmt{min-width:180px;vertical-align:top}
+.latest-text{color:var(--t);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:1.4}
+.latest-meta{color:#5f6b6c;font-size:.72em;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700;cursor:pointer}
+.cmt-count:hover{background:rgba(68,185,214,.25)}
 .cmt-cell{min-width:240px}
 .cmt-input{width:100%;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical;min-height:52px}
 .cmt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
@@ -186,21 +193,44 @@ function render(){
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=`<div class="tbl-card"><table>
     <thead><tr>
-      <th>Ticket</th><th>Status</th><th>Created</th><th>Deadline (+240h)</th><th>Time left</th><th>Add comment</th><th></th>${editor?'<th>Help</th>':''}
+      <th>Ticket</th><th>Created</th><th>Deadline (+240h)</th><th>Latest comment</th><th>Add comment</th>${editor?'<th>Help</th>':''}<th>Time left</th>
     </tr></thead><tbody>`+TICKETS.map((t,i)=>{
       const rem=remaining(t.deadline);
+      const st=String(t.status||'');
+      const letter=st.trim().charAt(0).toUpperCase()||'?';
       return `<tr>
-        <td class="tk-id"><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></td>
-        <td><span class="tk-status">${esc(t.status)}</span></td>
+        <td class="tk-id"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></td>
         <td>${tzBlock(t.createDate)}</td>
         <td>${tzBlock(t.deadline)}</td>
-        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
+        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}" style="color:#5f6b6c;font-style:italic;font-size:.85em">Loading…</td>
         <td><button class="btn mini" onclick="openAddComment(${i})">Add comment</button></td>
-        <td><button class="btn sec mini" onclick="openCmt(${i})">Comment log</button></td>
         ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
+        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
       </tr>`;
     }).join('')+`</tbody></table></div>`;
   document.getElementById('wrap').innerHTML=html;
+  fillLatestComments();
+}
+
+// Fetch the latest comment + count per ticket and fill the "Latest comment" column.
+async function fillLatestComments(){
+  const ids=TICKETS.map(t=>t.shortId).filter(Boolean);
+  if(!ids.length)return;
+  let map={};
+  try{const r=await A.api('POST','/api/comments/latest',{shortIds:ids});if(r.ok&&r.data)map=r.data;}catch(e){}
+  TICKETS.forEach((t,i)=>{
+    const cell=document.getElementById('latest-'+i);if(!cell)return;
+    const c=map[t.shortId];
+    if(c&&c.text){
+      const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      const countBadge='<span class="cmt-count" onclick="openCmt('+i+')" title="View all comments">'+ic('message',12)+' '+c.count+'</span>';
+      cell.style.color='var(--t)';cell.style.fontStyle='normal';
+      cell.innerHTML='<div class="latest-text">'+esc(c.text)+'</div><div class="latest-meta">— '+esc(c.user)+(when?(' · '+when):'')+' '+countBadge+'</div>';
+    }else{
+      cell.style.color='#5f6b6c';cell.style.fontStyle='normal';
+      cell.textContent='-';
+    }
+  });
 }
 
 // ---- Help request actions ----

@@ -867,11 +867,12 @@ app.post('/api/comments/latest', requireRole('user'), async (req, res) => {
     ids = ids.map(String).slice(0, 1000); // cap
     if (!ids.length) return res.json({});
     const coll = await getCollection(COLLECTIONS.comments);
-    // newest first, then keep the first seen per shortId
+    // newest first, then keep the first seen per shortId (= latest); also tally the count.
     const rows = await coll.find({ shortId: { $in: ids } }).sort({ at: -1 }).toArray();
     const out = {};
     for (const c of rows) {
-      if (!out[c.shortId]) out[c.shortId] = { text: c.text, user: c.user, at: c.at };
+      if (!out[c.shortId]) out[c.shortId] = { text: c.text, user: c.user, at: c.at, count: 0 };
+      out[c.shortId].count++;
     }
     res.json(out);
   } catch (e) {
