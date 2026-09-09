@@ -16,12 +16,18 @@ const COLLECTIONS = {
   dataLog: 'data_log',     // audit log of uploads/publishes (who/when/what changed)
   blurbs: 'blurbs',        // common blurbs (title + text) shown on the Blurbs tool page
   blurbLog: 'blurb_log',   // audit log of blurb create/edit actions
+  blurbCopies: 'blurb_copies', // per-user tally of blurb copies (user+blurbId -> count)
   hashtags: 'hashtags',    // hashtags (tag + description) shown on the Hashtags tool page
   hashtagLog: 'hashtag_log', // audit log of hashtag create/edit/delete actions
+  hashtagCopies: 'hashtag_copies', // per-user tally of hashtag copies (user+hashtagId -> count)
   paging: 'paging',        // paging contacts (country + code + email)
   pagingLog: 'paging_log', // audit log of paging create/edit/delete actions
+  pagingCopies: 'paging_copies', // per-user tally of paging-email copies (user+pagingId -> count)
   comments: 'comments',    // per-ticket comments (My Tickets)
+  incidentLogs: 'incident_logs', // per-ticket incident logs (final mitigation + hashtags), My Tickets
+  importantCases: 'important_cases', // admin "mark important" notes + links per ticket (Unique Cases)
   helpRequests: 'help_requests', // editor "ask for help" threads
+  activityLog: 'activity_log', // account activity (e.g. password changes) — owner-visible, never stores secrets
 };
 
 let clientPromise = null;

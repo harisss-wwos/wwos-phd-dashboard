@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unique Cases · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--yl:#fbbf24;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;text-decoration:none;font-family:inherit}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn:disabled{opacity:.6;cursor:default}
+.wrap{max-width:820px;margin:0 auto;padding:44px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+.search-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.search-row input{flex:1;min-width:220px;padding:11px 14px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.95em}
+.search-row input:focus{outline:none;border-color:var(--o)}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:24px}
+.card.found{border-left:3px solid var(--gl)}
+.card.notfound{border-left:3px solid var(--rl)}
+.tk-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.tk-id{color:#44b9d6;font-weight:700;font-size:1.2em;text-decoration:none}
+.tk-id:hover{text-decoration:underline}
+.tk-q{color:var(--tm);font-size:.78em;background:rgba(255,255,255,.06);padding:2px 10px;border-radius:20px;font-weight:600}
+.tk-title{color:var(--t);font-size:.92em;margin-bottom:18px;line-height:1.5}
+.detail{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.92em}
+.detail:last-child{border-bottom:none}
+.detail .k{color:var(--tm)}
+.detail .v{color:#fff;font-weight:600;text-align:right}
+.detail .v.open{color:var(--yl)}
+.detail .v.over{color:var(--rl)}
+.detail .v.resolved{color:var(--gl)}
+.spinner{width:20px;height:20px;border:3px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.hint{color:#5f6b6c;font-size:.82em;margin-top:8px}
+.card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
+.marked-badge{color:var(--yl);font-weight:700;font-size:.85em}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg[style*="flex"]{display:flex}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-head h2{color:var(--o);font-size:1.1em;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.mark-ticket{background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+.mark-ticket .detail{padding:8px 0}
+.mark-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
+.fld-label{display:block;color:var(--tm);font-size:.82em;margin:12px 0 6px;font-weight:600}
+#markInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+#markInfo:focus{outline:none;border-color:var(--o)}
+.link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
+.link-row input:focus{outline:none;border-color:var(--o)}
+.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:8px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
+.link-row .rm:hover{background:rgba(255,82,82,.12)}
+.add-link{margin-top:2px;padding:7px 14px;font-size:.82em}
+.msg-err{color:var(--rl);font-size:.85em;margin-top:10px;display:none}
+.mark-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body data-nav-active="my-tickets" data-back-href="my-tickets.html" data-back-label="My Tickets">
+<div class="top-bar">
+  <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+
+<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
+
+<!-- Mark important popup -->
+<div class="modal-bg" id="markModal" onclick="if(event.target===this)closeMark()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="markTitle">Mark important</h2><button class="modal-close" onclick="closeMark()" aria-label="Close">&times;</button></div>
+    <div class="mark-ticket" id="markTicket"></div>
+    <label class="fld-label">Information about this ticket</label>
+    <textarea id="markInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
+    <label class="fld-label">Links</label>
+    <div id="markLinks"></div>
+    <button type="button" class="btn sec add-link" onclick="addLinkInput('')">＋ Add another link</button>
+    <div class="msg-err" id="markErr"></div>
+    <div class="mark-actions">
+      <button class="btn sec" onclick="closeMark()">Cancel</button>
+      <button class="btn" id="markBtn" onclick="completeMarking()">Complete marking</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Unique Cases</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+
+// Timezone: fetched from /api/me (IST/MST). Falls back to IST.
+let MY_TZ='IST';
+const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
+function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
+
+// Remaining time until the 240h SLA from creation (for still-open tickets).
+function slaRemaining(createIso,slaHours){
+  const cd=new Date(createIso);if(isNaN(cd))return null;
+  const deadline=cd.getTime()+ (slaHours||240)*3600*1000;
+  const ms=deadline-Date.now();
+  const over=ms<=0;
+  const abs=Math.abs(ms);
+  const d=Math.floor(abs/86400000), h=Math.floor((abs%86400000)/3600000);
+  return {over, txt:(d>0?d+'d ':'')+h+'h'};
+}
+
+function renderSearch(){
+  document.getElementById('wrap').innerHTML=
+    '<h1>Unique Cases</h1>'+
+    '<p class="sub">Search any ticket across all quarters (live and past). Enter a ticket ShortId and click Search.</p>'+
+    '<div class="search-row">'+
+      '<input type="text" id="q" placeholder="e.g. V2346261846" autocomplete="off">'+
+      '<button class="btn" id="searchBtn" onclick="doSearch()">'+ic('bar-chart')+' Search</button>'+
+    '</div>'+
+    '<div id="result"></div>';
+  const input=document.getElementById('q');
+  input.focus();
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+}
+
+async function doSearch(){
+  const q=document.getElementById('q').value.trim();
+  const box=document.getElementById('result');
+  if(!q){box.innerHTML='<p class="hint">Enter a ticket ShortId first.</p>';return;}
+  const btn=document.getElementById('searchBtn');btn.disabled=true;
+  box.innerHTML='<div class="card"><span class="spinner"></span> <span style="color:var(--tm)">Searching all quarters…</span></div>';
+  const r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(q));
+  btn.disabled=false;
+  if(!r.ok){box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Search failed (HTTP '+r.status+').</b></div>';return;}
+  const d=r.data||{};
+  if(!d.found){
+    box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Ticket not found.</b><p class="hint">No ticket matching <b>'+esc(q)+'</b> exists in any quarter.</p></div>';
+    return;
+  }
+  renderResult(d);
+}
+
+let CURRENT=null; // the currently displayed ticket result (for the marking popup)
+
+function ticketDetailRows(d){
+  let resolvedRow;
+  if(d.resolvedDate){
+    resolvedRow='<div class="detail"><span class="k">When resolved</span><span class="v resolved">'+fmtTZ(d.resolvedDate)+'</span></div>';
+  }else{
+    const rem=slaRemaining(d.createDate,d.slaHours);
+    const txt=rem?(rem.over?('Overdue by '+rem.txt+' past SLA'):(rem.txt+' remaining until SLA')):'—';
+    resolvedRow='<div class="detail"><span class="k">When resolved</span><span class="v '+(rem&&rem.over?'over':'open')+'">Still open · '+txt+'</span></div>';
+  }
+  return '<div class="detail"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>'+
+    '<div class="detail"><span class="k">When created</span><span class="v">'+fmtTZ(d.createDate)+'</span></div>'+
+    resolvedRow+
+    '<div class="detail"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>'+
+    '<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
+}
+
+function renderResult(d){
+  CURRENT=d;
+  const marked=!!(d.important&&(d.important.info||(d.important.links&&d.important.links.length)));
+  document.getElementById('result').innerHTML=
+    '<div class="card found">'+
+      '<div class="tk-head">'+
+        '<a class="tk-id" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.shortId)+'</a>'+
+        '<span class="tk-q">'+esc(d.quarter||'')+(d.status?(' · '+esc(d.status)):'')+'</span>'+
+      '</div>'+
+      (d.title?('<div class="tk-title">'+esc(d.title)+'</div>'):'')+
+      ticketDetailRows(d)+
+      '<div class="card-actions">'+
+        (marked?'<span class="marked-badge" id="markedBadge">★ Marked important</span>':'<span></span>')+
+        '<button class="btn" onclick="openMark()">★ '+(marked?'Edit marking':'Mark important')+'</button>'+
+      '</div>'+
+    '</div>';
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// Append a link input row (URL only). Existing value pre-filled; full URL shown on hover (title).
+function addLinkInput(val){
+  const wrap=document.getElementById('markLinks');
+  const row=document.createElement('div');
+  row.className='link-row';
+  const inp=document.createElement('input');
+  inp.type='text';inp.placeholder='https://…';inp.value=val||'';inp.title=val||'';
+  inp.addEventListener('input',()=>{inp.title=inp.value;});
+  const rm=document.createElement('button');
+  rm.type='button';rm.className='rm';rm.textContent='✕';rm.title='Remove this link';
+  rm.onclick=()=>{row.remove();if(!document.querySelectorAll('#markLinks .link-row').length)addLinkInput('');};
+  row.appendChild(inp);row.appendChild(rm);
+  wrap.appendChild(row);
+}
+
+function openMark(){
+  if(!CURRENT)return;
+  const d=CURRENT;
+  document.getElementById('markTitle').textContent='Mark important · '+d.shortId;
+  // Ticket details up top.
+  document.getElementById('markTicket').innerHTML=
+    '<span class="mt-id">'+esc(d.shortId)+'</span>'+
+    (d.title?('<div class="tk-title" style="margin-bottom:10px">'+esc(d.title)+'</div>'):'')+
+    ticketDetailRows(d);
+  // Pre-fill existing marking if present.
+  const imp=d.important||{};
+  document.getElementById('markInfo').value=imp.info||'';
+  const links=(imp.links&&imp.links.length)?imp.links:[''];
+  const box=document.getElementById('markLinks');box.innerHTML='';
+  links.forEach(l=>addLinkInput(l));
+  document.getElementById('markErr').style.display='none';
+  document.getElementById('markModal').style.display='flex';
+  setTimeout(()=>document.getElementById('markInfo').focus(),40);
+}
+function closeMark(){document.getElementById('markModal').style.display='none';}
+
+async function completeMarking(){
+  if(!CURRENT)return;
+  const info=document.getElementById('markInfo').value.trim();
+  const links=[...document.querySelectorAll('#markLinks .link-row input')].map(i=>i.value.trim()).filter(Boolean);
+  const err=document.getElementById('markErr');
+  if(!info && !links.length){err.textContent='Add some information or at least one link.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('markBtn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await A.api('POST','/api/important-cases/'+encodeURIComponent(CURRENT.shortId),{quarter:CURRENT.quarter,info,links});
+  btn.disabled=false;btn.textContent='Complete marking';
+  if(r.ok){
+    CURRENT.important=(r.data&&r.data.important)||{info,links};
+    closeMark();
+    toast('Marked '+CURRENT.shortId+' as important');
+    renderResult(CURRENT); // refresh card (badge + Edit label)
+  }else{
+    err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';
+  }
+}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  if(!(A.atLeast&&A.atLeast('admin'))){gate('This page is for admins and above. Your role: '+(A.role?A.role():'user')+'.');return;}
+  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
+  renderSearch();
+}
+load();
+</script>
+</body>
+</html>

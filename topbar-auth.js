@@ -49,6 +49,10 @@
       + '.tb-modal p.sub{color:#879596;font-size:.85em;margin:0 0 14px;line-height:1.5}'
       + '.tb-modal label{display:block;color:#879596;font-size:.85em;margin:14px 0 6px}'
       + '.tb-modal input[type=text],.tb-modal input[type=password]{width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.95em}'
+      + '.tb-pass-wrap{position:relative}'
+      + '.tb-pass-wrap input{padding-right:44px!important}'
+      + '.tb-pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:#879596;cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}'
+      + '.tb-pass-eye:hover{color:#ff9900}'
       + '.tb-modal input:focus{outline:none;border-color:#ff9900}'
       + '.tb-err{color:#ff5252;font-size:.85em;margin-top:12px;display:none}'
       + '.tb-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}'
@@ -159,6 +163,18 @@
     setTimeout(function () { var u = document.getElementById('tbUser'); if (u) u.focus(); }, 40);
   };
   window.tbCloseLogin = function () { document.getElementById('tbLoginModal').style.display = 'none'; };
+  // Toggle password visibility in the login modal (eye <-> eye-off).
+  window.tbTogglePass = function () {
+    var inp = document.getElementById('tbPass');
+    var btn = document.getElementById('tbPassEye');
+    if (!inp || !btn) return;
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.innerHTML = ic(show ? 'eye-off' : 'eye');
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+    inp.focus();
+  };
   window.tbDoLogin = async function () {
     var u = document.getElementById('tbUser').value.trim();
     var p = document.getElementById('tbPass').value;
@@ -192,7 +208,10 @@
         '<h2>Log in</h2>' +
         '<p class="sub">Log in to publish or manage data. Viewing needs no login.</p>' +
         '<label>Username</label><input type="text" id="tbUser" autocomplete="username">' +
-        '<label>Password</label><input type="password" id="tbPass" autocomplete="current-password">' +
+        '<label>Password</label>' +
+        '<div class="tb-pass-wrap"><input type="password" id="tbPass" autocomplete="current-password">' +
+          '<button type="button" class="tb-pass-eye" id="tbPassEye" onclick="tbTogglePass()" aria-label="Show password" title="Show password">' + ic('eye') + '</button>' +
+        '</div>' +
         '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:#879596"><input type="checkbox" id="tbRemember" style="width:auto"> Keep me signed in</label>' +
         '<div class="tb-err" id="tbErr"></div>' +
         '<div class="tb-modal-actions"><button class="tb-mbtn sec" onclick="tbCloseLogin()">Cancel</button><button class="tb-mbtn" id="tbLoginBtn" onclick="tbDoLogin()">Log in</button></div>' +

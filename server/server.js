@@ -83,6 +83,11 @@ app.post('/api/change-password', requireRole('user'), async (req, res) => {
       return res.status(401).json({ error: 'Current password is incorrect.' });
     }
     await users.updateOne({ _id: user._id }, { $set: { passwordHash: await hashPassword(newPassword), updatedAt: new Date() } });
+    // Owner-visible activity log — record WHO changed their password and WHEN (never the password itself).
+    try {
+      const logColl = await getCollection(COLLECTIONS.activityLog);
+      await logColl.insertOne({ type: 'password_changed', user: user.username, role: user.role, at: new Date().toISOString() });
+    } catch (logErr) { /* logging must never block the password change */ }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not change password.' });
@@ -215,6 +220,80 @@ app.delete('/api/users/:id', requireRole('owner'), async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete user.' });
+  }
+});
+
+// Reset a user's password to "<username>@123" (owner only). Cannot reset the owner's own password.
+app.post('/api/users/:id/reset-password', requireRole('owner'), async (req, res) => {
+  try {
+    const users = await getCollection(COLLECTIONS.users);
+    const target = await users.findOne({ _id: new ObjectId(req.params.id) });
+    if (!target) return res.status(404).json({ error: 'User not found.' });
+    if (target.role === 'owner') return res.status(403).json({ error: "Cannot reset the owner's password." });
+    const newPassword = target.username + '@123';
+    await users.updateOne({ _id: target._id }, { $set: { passwordHash: await hashPassword(newPassword), updatedAt: new Date() } });
+    // Log the reset (never the password): who was reset, by whom, when.
+    try {
+      const logColl = await getCollection(COLLECTIONS.activityLog);
+      await logColl.insertOne({
+        type: 'password_reset', user: target.username, role: target.role,
+        by: req.user.username, at: new Date().toISOString(),
+      });
+    } catch (logErr) { /* never block the reset */ }
+    res.json({ ok: true, username: target.username });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not reset password.' });
+  }
+});
+
+// Per-user blurb-copy breakdown (owner only): which user copied which blurb, how many times.
+app.get('/api/blurb-copies', requireRole('owner'), async (req, res) => {
+  try {
+    const copies = await getCollection(COLLECTIONS.blurbCopies);
+    const rows = await copies.find({}).sort({ count: -1 }).toArray();
+    res.json(rows.map(r => ({
+      user: r.user,
+      role: r.role || '',
+      blurbId: r.blurbId,
+      blurbTitle: r.blurbTitle || '',
+      count: r.count || 0,
+      lastAt: r.lastAt || null,
+    })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load blurb copy activity.' });
+  }
+});
+
+// Per-user hashtag-copy breakdown (owner only).
+app.get('/api/hashtag-copies', requireRole('owner'), async (req, res) => {
+  try {
+    const copies = await getCollection(COLLECTIONS.hashtagCopies);
+    const rows = await copies.find({}).sort({ count: -1 }).toArray();
+    res.json(rows.map(r => ({ user: r.user, role: r.role || '', hashtagId: r.hashtagId, tag: r.tag || '', count: r.count || 0, lastAt: r.lastAt || null })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load hashtag copy activity.' });
+  }
+});
+
+// Per-user paging-copy breakdown (owner only).
+app.get('/api/paging-copies', requireRole('owner'), async (req, res) => {
+  try {
+    const copies = await getCollection(COLLECTIONS.pagingCopies);
+    const rows = await copies.find({}).sort({ count: -1 }).toArray();
+    res.json(rows.map(r => ({ user: r.user, role: r.role || '', pagingId: r.pagingId, label: r.label || '', email: r.email || '', count: r.count || 0, lastAt: r.lastAt || null })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load paging copy activity.' });
+  }
+});
+
+// Account activity log (owner only): password changes etc. Never contains secrets. Newest first.
+app.get('/api/activity-log', requireRole('owner'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.activityLog);
+    const rows = await logColl.find({}).sort({ at: -1 }).limit(500).toArray();
+    res.json(rows.map(e => ({ id: String(e._id), type: e.type || 'activity', user: e.user, role: e.role || '', by: e.by || null, at: e.at })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load activity log.' });
   }
 });
 
@@ -499,16 +578,48 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
 app.get('/api/blurbs', async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.blurbs);
+    // Base order (manual order) first so it acts as the tie-breaker, then sort by copyCount desc.
     const list = await coll.find({}).sort({ order: 1, createdAt: 1 }).toArray();
+    list.sort((a, b) => (b.copyCount || 0) - (a.copyCount || 0)); // stable: ties keep manual order
     res.json(list.map(b => ({
       id: String(b._id),
       title: b.title,
       text: b.text,
+      copyCount: b.copyCount || 0,
       updatedBy: b.updatedBy || b.createdBy || null,
       updatedAt: b.updatedAt || b.createdAt || null,
     })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load blurbs.' });
+  }
+});
+
+// Record a copy of a blurb (logged-in only). Atomically increments the shared global count AND
+// upserts a per-user tally (user + blurbId) for the owner-visible breakdown. Returns the new count.
+app.post('/api/blurbs/:id/copy', requireRole('user'), async (req, res) => {
+  try {
+    let _id;
+    try { _id = new ObjectId(req.params.id); } catch (e) { return res.status(400).json({ error: 'Invalid blurb id.' }); }
+    const coll = await getCollection(COLLECTIONS.blurbs);
+    const updated = await coll.findOneAndUpdate(
+      { _id },
+      { $inc: { copyCount: 1 } },
+      { returnDocument: 'after' }
+    );
+    const doc = updated && (updated.value || updated); // driver compatibility
+    if (!doc || !doc._id) return res.status(404).json({ error: 'Blurb not found.' });
+    // Per-user tally (universal, one shared counter per user+blurb).
+    try {
+      const copies = await getCollection(COLLECTIONS.blurbCopies);
+      await copies.updateOne(
+        { user: req.user.username, blurbId: String(_id) },
+        { $inc: { count: 1 }, $set: { blurbTitle: doc.title || '', role: req.user.role, lastAt: new Date().toISOString() } },
+        { upsert: true }
+      );
+    } catch (tallyErr) { /* never block the copy count */ }
+    res.json({ ok: true, id: String(_id), copyCount: doc.copyCount || 0 });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not record copy.' });
   }
 });
 
@@ -621,15 +732,41 @@ app.get('/api/hashtags', async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.hashtags);
     const list = await coll.find({}).sort({ order: 1, createdAt: 1 }).toArray();
+    list.sort((a, b) => (b.copyCount || 0) - (a.copyCount || 0)); // most-copied first; ties keep manual order
     res.json(list.map(h => ({
       id: String(h._id),
       tag: h.tag,
       desc: h.desc,
+      copyCount: h.copyCount || 0,
       updatedBy: h.updatedBy || h.createdBy || null,
       updatedAt: h.updatedAt || h.createdAt || null,
     })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load hashtags.' });
+  }
+});
+
+// Record a copy of a hashtag (logged-in only). Atomically increments the shared global count AND
+// upserts a per-user tally. Returns the new count.
+app.post('/api/hashtags/:id/copy', requireRole('user'), async (req, res) => {
+  try {
+    let _id;
+    try { _id = new ObjectId(req.params.id); } catch (e) { return res.status(400).json({ error: 'Invalid hashtag id.' }); }
+    const coll = await getCollection(COLLECTIONS.hashtags);
+    const updated = await coll.findOneAndUpdate({ _id }, { $inc: { copyCount: 1 } }, { returnDocument: 'after' });
+    const doc = updated && (updated.value || updated);
+    if (!doc || !doc._id) return res.status(404).json({ error: 'Hashtag not found.' });
+    try {
+      const copies = await getCollection(COLLECTIONS.hashtagCopies);
+      await copies.updateOne(
+        { user: req.user.username, hashtagId: String(_id) },
+        { $inc: { count: 1 }, $set: { tag: doc.tag || '', role: req.user.role, lastAt: new Date().toISOString() } },
+        { upsert: true }
+      );
+    } catch (tallyErr) { /* never block */ }
+    res.json({ ok: true, id: String(_id), copyCount: doc.copyCount || 0 });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not record copy.' });
   }
 });
 
@@ -734,9 +871,35 @@ app.get('/api/paging', async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.paging);
     const list = await coll.find({}).sort({ order: 1, createdAt: 1 }).toArray();
-    res.json(list.map(p => ({ id: String(p._id), country: p.country, code: p.code, email: p.email })));
+    list.sort((a, b) => (b.copyCount || 0) - (a.copyCount || 0)); // most-copied first; ties keep manual order
+    res.json(list.map(p => ({ id: String(p._id), country: p.country, code: p.code, email: p.email, copyCount: p.copyCount || 0 })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load paging contacts.' });
+  }
+});
+
+// Record a copy of a paging contact's email (logged-in only). Atomically increments the shared
+// global count AND upserts a per-user tally. Returns the new count.
+app.post('/api/paging/:id/copy', requireRole('user'), async (req, res) => {
+  try {
+    let _id;
+    try { _id = new ObjectId(req.params.id); } catch (e) { return res.status(400).json({ error: 'Invalid paging id.' }); }
+    const coll = await getCollection(COLLECTIONS.paging);
+    const updated = await coll.findOneAndUpdate({ _id }, { $inc: { copyCount: 1 } }, { returnDocument: 'after' });
+    const doc = updated && (updated.value || updated);
+    if (!doc || !doc._id) return res.status(404).json({ error: 'Paging contact not found.' });
+    try {
+      const copies = await getCollection(COLLECTIONS.pagingCopies);
+      const label = [doc.country, doc.code].filter(Boolean).join(' · ');
+      await copies.updateOne(
+        { user: req.user.username, pagingId: String(_id) },
+        { $inc: { count: 1 }, $set: { label, email: doc.email || '', role: req.user.role, lastAt: new Date().toISOString() } },
+        { upsert: true }
+      );
+    } catch (tallyErr) { /* never block */ }
+    res.json({ ok: true, id: String(_id), copyCount: doc.copyCount || 0 });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not record copy.' });
   }
 });
 
@@ -854,6 +1017,104 @@ async function findLiveTicket(shortId) {
   return tickets.find(t => String(t.ShortId || t.IssueId || '') === String(shortId)) || null;
 }
 
+// Search any ticket across ALL quarters by ShortId (admin+). Used by the "Unique cases" page.
+app.get('/api/ticket-search', requireRole('admin'), async (req, res) => {
+  try {
+    const shortId = String((req.query.shortId || '')).trim();
+    if (!shortId) return res.status(400).json({ error: 'A ticket ShortId is required.' });
+    const coll = await getCollection(COLLECTIONS.quarters);
+    // Pull every quarter's tickets (small enough — a handful of quarters).
+    const docs = await coll.find({}).toArray();
+    let hit = null, hitQuarter = null;
+    const target = shortId.toLowerCase();
+    for (const d of docs) {
+      const tickets = (d.data && d.data.tickets) || [];
+      const found = tickets.find(t => String(t.ShortId || t.IssueId || '').toLowerCase() === target);
+      if (found) { hit = found; hitQuarter = d._id; break; }
+    }
+    if (!hit) return res.json({ found: false, shortId });
+    // Country: prefer the Country field. Otherwise take a SHORT leading token of the Title
+    // (e.g. "US - ..." or "India Customer ..."). Ignore over-long matches (likely not a country).
+    let country = String(hit.Country || '').trim();
+    if (!country) {
+      const title = String(hit.Title || '').trim();
+      const dash = /^([A-Za-z][A-Za-z .]{0,18}?)\s*[-:]/.exec(title); // up to first - or :
+      if (dash && dash[1].trim().length <= 18) {
+        country = dash[1].trim();
+      } else {
+        const word = /^([A-Za-z]{2,})\b/.exec(title); // else just the first word
+        country = word ? word[1] : '';
+      }
+    }
+    res.json({
+      found: true,
+      quarter: hitQuarter,
+      shortId: hit.ShortId || hit.IssueId || shortId,
+      url: hit.IssueUrl || (hit.ShortId ? ('https://t.corp.amazon.com/issues/' + hit.ShortId) : ''),
+      title: hit.Title || '',
+      status: hit.Status || '',
+      requester: hit.RequesterIdentity || '',
+      createDate: hit.CreateDate || '',
+      resolvedDate: hit.ResolvedDate || '',
+      assignee: hit.AssigneeIdentity || '',
+      country,
+      slaHours: SLA_HOURS,
+      important: await getImportantMarking(hit.ShortId || hit.IssueId || shortId),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not search for the ticket.' });
+  }
+});
+
+// Helper: fetch the "important" marking for a ticket (or null).
+async function getImportantMarking(shortId) {
+  try {
+    const coll = await getCollection(COLLECTIONS.importantCases);
+    const doc = await coll.findOne({ shortId: String(shortId) });
+    if (!doc) return null;
+    return { info: doc.info || '', links: doc.links || [], markedBy: doc.markedBy || '', at: doc.at || null, updatedAt: doc.updatedAt || null };
+  } catch (e) { return null; }
+}
+
+// Get the important marking for a ticket (admin+).
+app.get('/api/important-cases/:shortId', requireRole('admin'), async (req, res) => {
+  try {
+    const marking = await getImportantMarking(String(req.params.shortId));
+    res.json({ shortId: String(req.params.shortId), important: marking });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the marking.' });
+  }
+});
+
+// Create/update the "important" marking for a ticket (admin+). Upsert by shortId.
+// Body: { quarter, info, links: [ "https://..." ] }.
+app.post('/api/important-cases/:shortId', requireRole('admin'), async (req, res) => {
+  try {
+    const shortId = String(req.params.shortId).trim();
+    if (!shortId) return res.status(400).json({ error: 'A ticket ShortId is required.' });
+    const body = req.body || {};
+    const info = String(body.info || '').trim();
+    if (info.length > 5000) return res.status(400).json({ error: 'Info must be 5000 characters or fewer.' });
+    // Clean + de-dupe the link list; keep non-empty strings, cap count/length.
+    let links = Array.isArray(body.links) ? body.links : [];
+    links = links.map(l => String(l || '').trim()).filter(Boolean).slice(0, 50).map(l => l.slice(0, 2000));
+    const now = new Date().toISOString();
+    const coll = await getCollection(COLLECTIONS.importantCases);
+    await coll.updateOne(
+      { shortId },
+      {
+        $set: { shortId, quarter: String(body.quarter || ''), info, links, markedBy: req.user.username, role: req.user.role, updatedAt: now },
+        $setOnInsert: { at: now },
+      },
+      { upsert: true }
+    );
+    const marking = await getImportantMarking(shortId);
+    res.json({ ok: true, shortId, important: marking });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not save the marking.' });
+  }
+});
+
 // GET my open tickets in the current live quarter (assigned to the logged-in user).
 app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   try {
@@ -938,6 +1199,41 @@ app.post('/api/tickets/:shortId/comments', requireRole('user'), async (req, res)
     res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not add comment.' });
+  }
+});
+
+// ---- Incident logs (My Tickets: final mitigation + hashtags per ticket) ----
+// Add an incident log entry for a ticket (assignee-only, append-only). Stored for later use.
+app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, res) => {
+  try {
+    const shortId = String(req.params.shortId);
+    let { text } = req.body || {};
+    text = String(text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Incident log text is required.' });
+    if (text.length > 5000) return res.status(400).json({ error: 'Incident log must be 5000 characters or fewer.' });
+    // The ticket must exist in the live quarter AND be assigned to the requester.
+    const ticket = await findLiveTicket(shortId);
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found in the live quarter.' });
+    if (String(ticket.AssigneeIdentity || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'You can only add incident logs to tickets assigned to you.' });
+    }
+    const now = new Date().toISOString();
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    const r = await coll.insertOne({ shortId, text, user: req.user.username, role: req.user.role, at: now });
+    res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not add incident log.' });
+  }
+});
+
+// GET the incident-log history for a ticket (logged-in). Oldest first.
+app.get('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    const list = await coll.find({ shortId: String(req.params.shortId) }).sort({ at: 1 }).toArray();
+    res.json(list.map(x => ({ id: String(x._id), text: x.text, user: x.user, role: x.role, at: x.at })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load incident logs.' });
   }
 });
 

@@ -120,6 +120,20 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
   </div>
 </div>
 
+<!-- Add-incident-log popup -->
+<div class="modal-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="incidentTitle">Add incident log</h2><button class="modal-close" onclick="closeIncidentLog()" aria-label="Close">&times;</button></div>
+    <p style="color:#9aa7a8;font-size:.82em;margin-bottom:12px;line-height:1.55">Capture your <b style="color:#fff">final mitigation</b> and any relevant <b style="color:#44b9d6">#hashtags</b> for this incident so it can be tracked and referenced later.</p>
+    <textarea id="incidentText" maxlength="5000" style="width:100%;min-height:150px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
+    <div class="msg err" id="incidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeIncidentLog()">Cancel</button>
+      <button class="btn" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js"></script>
@@ -194,11 +208,15 @@ function helpBlock(t){
 
 function render(){
   const u=A.getUser();const editor=isEditor();
-  let html='<h1>My Tickets</h1><p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
+  const isAdmin=A.atLeast&&A.atLeast('admin');
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">My Tickets</h1>'
+    +(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Unique cases</a>':'')
+    +'</div>';
+  html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=`<div class="tbl-card"><table>
     <thead><tr>
-      <th>Ticket</th><th>Created</th><th>Deadline (+240h)</th><th>Latest comment</th><th>Add comment</th>${editor?'<th>Help</th>':''}<th>Time left</th>
+      <th>Ticket</th><th>Created</th><th>Deadline (+240h)</th><th>Latest comment</th><th>Add comment</th>${editor?'<th>Help</th>':''}<th>Time left</th><th>Incident log</th>
     </tr></thead><tbody>`+TICKETS.map((t,i)=>{
       const rem=remaining(t.deadline);
       const st=String(t.status||'');
@@ -211,6 +229,7 @@ function render(){
         <td><button class="btn mini" onclick="openAddComment(${i})">Add comment</button></td>
         ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
         <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
+        <td><button class="btn sec mini" onclick="openIncidentLog(${i})">Add incident log</button></td>
       </tr>`;
     }).join('')+`</tbody></table></div>`;
   document.getElementById('wrap').innerHTML=html;
@@ -285,6 +304,33 @@ function openAddComment(i){
   setTimeout(()=>ta.focus(),40);
 }
 function closeAddComment(){document.getElementById('addCmtModal').style.display='none';ADD_CMT_INDEX=null;}
+
+// ---- Incident log ----
+let INCIDENT_INDEX=null;
+function openIncidentLog(i){
+  INCIDENT_INDEX=i;
+  const t=TICKETS[i];
+  document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
+  const ta=document.getElementById('incidentText');ta.value='';
+  document.getElementById('incidentErr').style.display='none';
+  document.getElementById('incidentModal').style.display='flex';
+  setTimeout(()=>ta.focus(),40);
+}
+function closeIncidentLog(){document.getElementById('incidentModal').style.display='none';INCIDENT_INDEX=null;}
+async function submitIncidentLog(){
+  if(INCIDENT_INDEX==null)return;
+  const t=TICKETS[INCIDENT_INDEX];
+  const ta=document.getElementById('incidentText');
+  const err=document.getElementById('incidentErr');
+  const text=ta.value.trim();
+  if(!text){err.textContent='Enter the incident details first.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});
+  btn.disabled=false;btn.textContent='Save incident log';
+  if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
 async function submitAddComment(){
   if(ADD_CMT_INDEX==null)return;
   const t=TICKETS[ADD_CMT_INDEX];

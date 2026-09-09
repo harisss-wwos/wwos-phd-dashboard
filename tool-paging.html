@@ -45,6 +45,8 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .pg-headrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .pg-title{display:flex;align-items:center;gap:10px;min-width:0}
 .pg-country{color:#fff;font-weight:600;font-size:1.02em}
+.pg-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:var(--tl);border-radius:20px;padding:2px 9px;font-size:.7em;font-weight:700;flex-shrink:0}
+.pg-count svg{width:12px;height:12px}
 .pg-code{color:var(--tm);font-weight:700;font-size:.75em;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:20px;flex-shrink:0}
 .pg-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--tl);background:var(--tl);color:#000;flex-shrink:0}
 .pg-copy:hover{filter:brightness(1.08)}
@@ -163,7 +165,7 @@ function render(){
   html+=`<div class="pg-list">`+CONTACTS.map((c,i)=>`
     <div class="pg-card" id="pgcard-${i}" onclick="copyEmail(${i},event)" title="Click to copy ${esc(c.email)}">
       <div class="pg-headrow">
-        <div class="pg-title"><span class="pg-country">${esc(c.country)}</span><span class="pg-code">${esc(c.code)}</span></div>
+        <div class="pg-title"><span class="pg-count" id="count-${i}" title="Times copied">${copyIcon}<span class="pg-count-n">${c.copyCount||0}</span></span><span class="pg-country">${esc(c.country)}</span><span class="pg-code">${esc(c.code)}</span></div>
         <button class="pg-copy" id="copyBtn-${i}" onclick="copyEmail(${i},event)" title="Copy email">${copyIcon}<span>Copy</span></button>
       </div>
       <div class="pg-content">
@@ -178,9 +180,21 @@ function render(){
 function copyEmail(i,ev){
   if(ev)ev.stopPropagation();
   const text=CONTACTS[i].email;
-  const done=()=>{const btn=document.getElementById('copyBtn-'+i);if(btn){const s=btn.querySelector('span');const old=s?s.textContent:'';if(s)s.textContent='Copied';btn.classList.add('copied');setTimeout(()=>{if(s)s.textContent=old;btn.classList.remove('copied');},1600);}toast('Email copied to clipboard');};
+  const done=()=>{const btn=document.getElementById('copyBtn-'+i);if(btn){const s=btn.querySelector('span');const old=s?s.textContent:'';if(s)s.textContent='Copied';btn.classList.add('copied');setTimeout(()=>{if(s)s.textContent=old;btn.classList.remove('copied');},1600);}toast('Email copied to clipboard');recordCopy(i);};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
   else fallbackCopy(text,done);
+}
+
+// Record a copy on the server (logged-in only) and bump the on-screen count badge.
+function recordCopy(i){
+  const c=CONTACTS[i];if(!c||!c.id)return;
+  if(!(A.getUser&&A.getUser())||!(A.getToken&&A.getToken()))return;
+  A.api('POST','/api/paging/'+c.id+'/copy',{}).then(r=>{
+    if(r&&r.ok&&r.data&&typeof r.data.copyCount==='number'){
+      c.copyCount=r.data.copyCount;
+      const el=document.querySelector('#count-'+i+' .pg-count-n');if(el)el.textContent=c.copyCount;
+    }
+  }).catch(()=>{});
 }
 function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}ta.remove();done();}
 

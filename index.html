@@ -82,6 +82,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Top-bar auth controls (login button / avatar / logout) — override the modal .btn top margin */
 #homeAuth .btn{margin-top:0;margin-right:0;padding:8px 16px;font-size:.85em}
 #homeAuth .btn.sec{margin-right:0}
+.pass-wrap{position:relative}
+.pass-wrap input{padding-right:44px!important}
+.pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:var(--tm);cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}
+.pass-eye:hover{color:var(--o)}
 #homeAuth .avatar-initial,#homeAuth img{border-radius:50%}
 </style>
 </head>
@@ -96,7 +100,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
     <label>Username</label>
     <input type="text" id="hLoginUser" autocomplete="username">
     <label>Password</label>
-    <input type="password" id="hLoginPass" autocomplete="current-password">
+    <div class="pass-wrap"><input type="password" id="hLoginPass" autocomplete="current-password">
+      <button type="button" class="pass-eye" id="hLoginEye" onclick="homeTogglePass()" aria-label="Show password" title="Show password"></button>
+    </div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:var(--tm)"><input type="checkbox" id="hLoginRemember" style="width:auto"> Keep me signed in</label>
     <div class="err" id="hLoginErr"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -212,6 +218,17 @@ function renderHomeAuth(){
 }
 function openLoginModal(){ document.getElementById('loginModal').style.display='flex'; setTimeout(function(){var u=document.getElementById('hLoginUser'); if(u) u.focus();},40); }
 function closeLoginModal(){ document.getElementById('loginModal').style.display='none'; }
+// Toggle password visibility in the home login modal (eye <-> eye-off).
+function homeTogglePass(){
+  var inp=document.getElementById('hLoginPass'), btn=document.getElementById('hLoginEye');
+  if(!inp||!btn) return;
+  var show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.innerHTML=ic(show?'eye-off':'eye');
+  btn.setAttribute('aria-label',show?'Hide password':'Show password');
+  btn.setAttribute('title',show?'Hide password':'Show password');
+  inp.focus();
+}
 function homeLogout(){ A.clear(); location.reload(); }
 async function homeDoLogin(){
   var u=document.getElementById('hLoginUser').value.trim();
@@ -237,6 +254,7 @@ async function homeDoLogin(){
 // If logged in, show an avatar spinner immediately, load the profile, then render the real avatar.
 // If logged out, render the Login button right away (no spinner).
 (async function(){
+  var eyeBtn=document.getElementById('hLoginEye'); if(eyeBtn) eyeBtn.innerHTML=ic('eye');
   var slot=document.getElementById('homeAuth');
   var loggedIn=A && A.getUser && A.getUser();
   if(loggedIn && slot){ slot.innerHTML='<span class="avatar-spinner" title="Loading profile…"></span>'; }

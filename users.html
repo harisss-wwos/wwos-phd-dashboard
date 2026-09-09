@@ -57,6 +57,8 @@ input:focus{outline:none;border-color:var(--o)}
 <script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
 const ROLES=['user','editor','admin','manager'];// owner not assignable
 // Section display order for grouping accounts.
 const ROLE_ORDER=['owner','manager','admin','editor','user'];
@@ -72,6 +74,77 @@ async function load(){
   if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
   if(!r.ok){gate('Could not load users (HTTP '+r.status+').');return;}
   renderList(r.data);
+  loadActivity();
+  loadBlurbCopies();
+  loadHashtagCopies();
+  loadPagingCopies();
+}
+
+// Owner-only: which user copied which hashtag, how many times.
+async function loadHashtagCopies(){
+  const box=document.getElementById('hashtagCopyBox');
+  if(!box)return;
+  const r=await A.api('GET','/api/hashtag-copies');
+  if(!r.ok){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">Could not load hashtag copy activity ('+r.status+').</p>';return;}
+  const rows=Array.isArray(r.data)?r.data:[];
+  if(!rows.length){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">No hashtag copies recorded yet.</p>';return;}
+  box.innerHTML='<table><thead><tr><th>User</th><th>Hashtag</th><th>Times copied</th></tr></thead><tbody>'+
+    rows.map(e=>'<tr><td class="user">'+esc(e.user||'')+' '+badge(e.role||'user')+'</td>'
+      +'<td>'+esc(e.tag?('#'+e.tag):(e.hashtagId||''))+'</td>'
+      +'<td style="font-weight:700;color:var(--o)">'+(e.count||0)+'</td></tr>').join('')+
+    '</tbody></table>';
+}
+
+// Owner-only: which user copied which paging email, how many times.
+async function loadPagingCopies(){
+  const box=document.getElementById('pagingCopyBox');
+  if(!box)return;
+  const r=await A.api('GET','/api/paging-copies');
+  if(!r.ok){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">Could not load paging copy activity ('+r.status+').</p>';return;}
+  const rows=Array.isArray(r.data)?r.data:[];
+  if(!rows.length){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">No paging copies recorded yet.</p>';return;}
+  box.innerHTML='<table><thead><tr><th>User</th><th>Region</th><th>Email</th><th>Times copied</th></tr></thead><tbody>'+
+    rows.map(e=>'<tr><td class="user">'+esc(e.user||'')+' '+badge(e.role||'user')+'</td>'
+      +'<td>'+esc(e.label||e.pagingId||'')+'</td>'
+      +'<td style="color:var(--tm);font-size:.85em">'+esc(e.email||'')+'</td>'
+      +'<td style="font-weight:700;color:var(--o)">'+(e.count||0)+'</td></tr>').join('')+
+    '</tbody></table>';
+}
+
+// Owner-only: which user copied which blurb, how many times (most-copied first).
+async function loadBlurbCopies(){
+  const box=document.getElementById('blurbCopyBox');
+  if(!box)return;
+  const r=await A.api('GET','/api/blurb-copies');
+  if(!r.ok){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">Could not load blurb copy activity ('+r.status+').</p>';return;}
+  const rows=Array.isArray(r.data)?r.data:[];
+  if(!rows.length){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">No blurb copies recorded yet.</p>';return;}
+  box.innerHTML='<table><thead><tr><th>User</th><th>Blurb</th><th>Times copied</th></tr></thead><tbody>'+
+    rows.map(e=>'<tr><td class="user">'+esc(e.user||'')+' '+badge(e.role||'user')+'</td>'
+      +'<td>'+esc(e.blurbTitle||e.blurbId||'')+'</td>'
+      +'<td style="font-weight:700;color:var(--o)">'+(e.count||0)+'</td></tr>').join('')+
+    '</tbody></table>';
+}
+
+// Fetch the account activity log (password changes) and render it into the placeholder.
+async function loadActivity(){
+  const box=document.getElementById('activityBox');
+  if(!box)return;
+  const r=await A.api('GET','/api/activity-log');
+  if(!r.ok){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">Could not load activity ('+(r.status)+').</p>';return;}
+  const rows=Array.isArray(r.data)?r.data:[];
+  if(!rows.length){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">No account activity recorded yet.</p>';return;}
+  const label=(e)=>{
+    if(e.type==='password_changed')return 'Changed password';
+    if(e.type==='password_reset')return 'Password reset'+(e.by?(' by '+esc(e.by)):'');
+    return e.type||'activity';
+  };
+  box.innerHTML='<table><thead><tr><th>User</th><th>Activity</th><th>When (IST)</th><th>When (MST)</th></tr></thead><tbody>'+
+    rows.map(e=>'<tr><td class="user">'+esc(e.user||'')+' '+badge(e.role||'user')+'</td>'
+      +'<td>'+label(e)+'</td>'
+      +'<td style="color:var(--tm);font-size:.85em">'+fmtTZ(e.at,'Asia/Kolkata')+'</td>'
+      +'<td style="color:var(--tm);font-size:.85em">'+fmtTZ(e.at,'America/Denver')+'</td></tr>').join('')+
+    '</tbody></table>';
 }
 
 function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
@@ -93,7 +166,10 @@ function renderList(users){
     return '<tr><td class="user">'+u.username+'</td>'
       +'<td><select onchange="changeRole(\''+u.id+'\',this.value,\''+u.username+'\')">'+opts+'</select></td>'
       +'<td>'+tzSelect(u)+'</td>'
-      +'<td><button class="btn danger" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">Remove</button></td></tr>';
+      +'<td style="display:flex;gap:8px;flex-wrap:wrap">'
+        +'<button class="btn sec" style="padding:5px 10px;font-size:.78em" onclick="resetPw(\''+u.id+'\',\''+u.username+'\')">Reset password</button>'
+        +'<button class="btn danger" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">Remove</button>'
+      +'</td></tr>';
   };
   // Group users by role and render a section per role in ROLE_ORDER.
   const byRole={};users.forEach(u=>{(byRole[u.role]=byRole[u.role]||[]).push(u);});
@@ -128,6 +204,26 @@ function renderList(users){
       <div class="msg err" id="addErr"></div>
       <div class="msg ok" id="addOk"></div>
       <p style="color:#5f6b6c;font-size:.78em;margin-top:12px">Tell the new user their temporary password; they can change it on their Profile page.</p>
+    </div>
+    <div class="card">
+      <h2>Account Activity</h2>
+      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Password changes are recorded here — who and when (never the password). Newest first.</p>
+      <div id="activityBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
+    </div>
+    <div class="card">
+      <h2>Blurb Copy Activity</h2>
+      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which blurb, and how many times. Most-copied first.</p>
+      <div id="blurbCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
+    </div>
+    <div class="card">
+      <h2>Hashtag Copy Activity</h2>
+      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which hashtag, and how many times. Most-copied first.</p>
+      <div id="hashtagCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
+    </div>
+    <div class="card">
+      <h2>Paging Copy Activity</h2>
+      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which paging email, and how many times. Most-copied first.</p>
+      <div id="pagingCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
     </div>`;
 }
 
@@ -142,6 +238,12 @@ async function delUser(id,username){
   if(!confirm('Remove user "'+username+'"? This cannot be undone.'))return;
   const r=await A.api('DELETE','/api/users/'+id);
   if(r.ok){flash('listOk','Removed '+username+'.','ok');load();}
+  else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+}
+async function resetPw(id,username){
+  if(!confirm('Reset password for "'+username+'" to "'+username+'@123"? They should change it after logging in.'))return;
+  const r=await A.api('POST','/api/users/'+id+'/reset-password',{});
+  if(r.ok){flash('listOk','Password for '+username+' reset to '+username+'@123.','ok');loadActivity();}
   else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
 }
 async function changeTz(id,timezone,username){

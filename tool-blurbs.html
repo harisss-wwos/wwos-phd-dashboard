@@ -39,7 +39,9 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .blurb-card{position:relative;background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s,background .15s}
 .blurb-card:hover{border-color:var(--o);background:#0d0d0d}
 .bc-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.bc-title{color:#fff;font-weight:600;font-size:1.02em;line-height:1.4}
+.bc-title{color:#fff;font-weight:600;font-size:1.02em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bc-count{display:inline-flex;align-items:center;gap:4px;background:rgba(255,153,0,.14);color:var(--o);border-radius:20px;padding:2px 9px;font-size:.72em;font-weight:700;flex-shrink:0}
+.bc-count svg{width:12px;height:12px}
 .bc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--o);background:var(--o);color:#000;flex-shrink:0}
 .bc-copy:hover{filter:brightness(1.08)}
 .bc-copy.copied{background:var(--gl);border-color:var(--gl);color:#000}
@@ -181,7 +183,7 @@ function render(){
   html+=`<div class="blurb-list">`+BLURBS.map((b,i)=>`
     <div class="blurb-card" id="card-${i}" onclick="copyBlurb(${i},event)" title="Click to copy">
       <div class="bc-head">
-        <span class="bc-title">${esc(b.title)}</span>
+        <span class="bc-title"><span class="bc-count" id="count-${i}" title="Times copied">${copyIcon}<span class="bc-count-n">${b.copyCount||0}</span></span> ${esc(b.title)}</span>
         <button class="bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i},event)" title="Copy this blurb">${copyIcon}<span>Copy</span></button>
       </div>
       <div class="bc-content">
@@ -196,9 +198,21 @@ function render(){
 function copyBlurb(i,ev){
   if(ev)ev.stopPropagation();
   const text=BLURBS[i].text;
-  const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('span');const old=s.textContent;btn.classList.add('copied');s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');s.textContent=old;},1600);}toast('Blurb copied to clipboard');};
+  const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('span');const old=s.textContent;btn.classList.add('copied');s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');s.textContent=old;},1600);}toast('Blurb copied to clipboard');recordCopy(i);};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
   else fallbackCopy(text,done);
+}
+
+// Record a copy on the server (logged-in only) and bump the on-screen count badge.
+function recordCopy(i){
+  const b=BLURBS[i];if(!b||!b.id)return;
+  if(!(A.getUser&&A.getUser())||!(A.getToken&&A.getToken()))return; // only logged-in copies count
+  A.api('POST','/api/blurbs/'+b.id+'/copy',{}).then(r=>{
+    if(r&&r.ok&&r.data&&typeof r.data.copyCount==='number'){
+      b.copyCount=r.data.copyCount;
+      const el=document.querySelector('#count-'+i+' .bc-count-n');if(el)el.textContent=b.copyCount;
+    }
+  }).catch(()=>{});
 }
 
 let VIEW_INDEX=null;
@@ -223,7 +237,8 @@ function closeViewModal(){document.getElementById('viewModal').style.display='no
 function copyCurrent(){
   if(VIEW_INDEX==null)return;
   const text=BLURBS[VIEW_INDEX].text;
-  const done=()=>{const btn=document.getElementById('copyBtnModal');btn.textContent='✓ Copied';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy';btn.classList.remove('copied');},1600);toast('Blurb copied to clipboard');};
+  const idx=VIEW_INDEX;
+  const done=()=>{const btn=document.getElementById('copyBtnModal');btn.textContent='✓ Copied';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy';btn.classList.remove('copied');},1600);toast('Blurb copied to clipboard');recordCopy(idx);};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
   else fallbackCopy(text,done);
 }
