@@ -41,6 +41,30 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .dot i{width:9px;height:9px;border-radius:2px;display:inline-block}
 .d-green i{background:#4ade80}.d-yellow i{background:#fbbf24}.d-red i{background:#ff5252}.d-black i{background:#888}.d-purple i{background:#a78bfa}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.btn.mini{padding:5px 12px;font-size:.78em}
+/* Bucket popup */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:820px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px}
+.modal-head h2{color:var(--o);font-size:1.1em;font-weight:700;text-transform:none;letter-spacing:0}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.bk-sub{color:var(--tm);font-size:.85em;margin-bottom:16px}
+.bk-tk{background:#000;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:10px;padding:14px 16px;margin-bottom:14px;text-align:left}
+.bk-tk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.bk-id{color:#44b9d6;font-weight:700;text-decoration:none}.bk-id:hover{text-decoration:underline}
+.bk-title{color:var(--t);font-size:.9em;margin-bottom:10px;line-height:1.5}
+.bk-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm);margin-bottom:10px}
+.bk-meta b{color:#fff;font-weight:600}
+.bk-rem{font-weight:700}.bk-rem.ok{color:var(--gl)}.bk-rem.warn{color:var(--yl)}.bk-rem.over{color:var(--rl)}
+.bk-cmts{border-top:1px solid rgba(255,255,255,.08);padding-top:10px}
+.bk-cmts-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px}
+.bk-cmt{background:#0a0a0a;border:1px solid var(--bd);border-radius:8px;padding:8px 11px;margin-bottom:7px}
+.bk-cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.72em;color:#5f6b6c;margin-bottom:3px}
+.bk-cmt-meta b{color:#d5dbdb}
+.bk-cmt-text{color:var(--t);font-size:.85em;white-space:pre-wrap;line-height:1.5}
+.bk-nocmt{color:#5f6b6c;font-size:.82em;font-style:italic}
+.bk-empty{text-align:center;color:var(--tm);padding:30px;border:1px dashed var(--bd);border-radius:10px}
 </style>
 </head>
 <body data-nav-active="agent-analytics">
@@ -49,13 +73,26 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 </div>
 <div class="wrap" id="wrap"><h1>Agent Analytics</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">Per-agent ticket performance for the live quarter.</p><div style="display:flex;align-items:center;justify-content:center;min-height:220px;border:1px solid var(--bd,#2a2a2a);border-radius:12px"><div class="spinner"></div></div></div>
 
+<!-- Editor bucket popup -->
+<div class="modal-bg" id="bucketModal" onclick="if(event.target===this)closeBucket()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="bucketTitle">Bucket</h2><button class="modal-close" onclick="closeBucket()" aria-label="Close">&times;</button></div>
+    <p class="bk-sub" id="bucketSub"></p>
+    <div id="bucketBody"></div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
+const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Agent Analytics</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
+function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
 
 function colorsCell(c){
   return '<div class="colors">'
@@ -78,6 +115,7 @@ function tableFor(rows,isEditor){
     <th>Resolved 24h</th>
     <th>Open by color (G Y R B P)</th>
     ${isEditor?'<th>Tickets w/ comment</th>':''}
+    ${isEditor&&isAdminPlus()?'<th></th>':''}
   </tr></thead>`;
   const body=rows.map(r=>`<tr>
     <td class="l"><span class="uname">${esc(r.username)}</span></td>
@@ -89,13 +127,58 @@ function tableFor(rows,isEditor){
     <td>${r.resolved24}</td>
     <td>${colorsCell(r.colors)}</td>
     ${isEditor?('<td class="big">'+r.touched+'</td>'):''}
+    ${isEditor&&isAdminPlus()?('<td><button class="btn sec mini" onclick="openBucket(\''+esc(r.username)+'\')">Check bucket</button></td>'):''}
   </tr>`).join('');
   return `<div class="tbl-card"><table>${head}<tbody>${body}</tbody></table></div>`;
 }
 
+// Time remaining vs the 240h SLA from creation (for open tickets).
+function slaRem(deadlineIso){
+  if(!deadlineIso)return {cls:'',txt:'—'};
+  const ms=new Date(deadlineIso)-new Date();
+  const over=ms<=0;const abs=Math.abs(ms);
+  const d=Math.floor(abs/86400000),h=Math.floor((abs%86400000)/3600000);
+  const span=(d>0?d+'d ':'')+h+'h';
+  if(over)return {cls:'over',txt:'Overdue by '+span};
+  return {cls:(ms<=48*3600000?'warn':'ok'),txt:span+' left'};
+}
+function ageText(ageHours){
+  if(ageHours==null)return '—';
+  const d=Math.floor(ageHours/24),h=Math.floor(ageHours%24);
+  return (d>0?d+'d ':'')+h+'h';
+}
+
+async function openBucket(username){
+  document.getElementById('bucketTitle').textContent="Bucket · "+username;
+  document.getElementById('bucketSub').textContent='Open (live) tickets assigned to '+username+'. Times in '+MY_TZ+'.';
+  document.getElementById('bucketBody').innerHTML='<div style="display:flex;justify-content:center;padding:30px"><div class="spinner"></div></div>';
+  document.getElementById('bucketModal').style.display='flex';
+  const r=await A.api('GET','/api/agent-bucket?username='+encodeURIComponent(username));
+  const body=document.getElementById('bucketBody');
+  if(!r.ok){body.innerHTML='<p style="color:var(--rl)">Could not load bucket (HTTP '+r.status+').</p>';return;}
+  const tix=(r.data&&r.data.tickets)||[];
+  if(!tix.length){body.innerHTML='<div class="bk-empty">No open tickets assigned to '+esc(username)+' right now. 🎉</div>';return;}
+  body.innerHTML=tix.map(t=>{
+    const rem=slaRem(t.deadline);
+    const cmts=(t.comments||[]);
+    const cmtHtml=cmts.length
+      ? cmts.map(c=>'<div class="bk-cmt"><div class="bk-cmt-meta"><span>by <b>'+esc(c.user)+'</b></span><span>'+fmtTZ(c.at)+'</span></div><div class="bk-cmt-text">'+esc(c.text)+'</div></div>').join('')
+      : '<div class="bk-nocmt">No comments on this ticket yet.</div>';
+    return '<div class="bk-tk">'+
+      '<div class="bk-tk-head"><a class="bk-id" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId)+'</a>'+
+        '<span class="bk-rem '+rem.cls+'">'+rem.txt+'</span></div>'+
+      (t.title?('<div class="bk-title">'+esc(t.title)+'</div>'):'')+
+      '<div class="bk-meta"><span>Created: <b>'+fmtTZ(t.createDate)+'</b></span><span>Age: <b>'+ageText(t.ageHours)+'</b></span><span>Status: <b>'+esc(t.status||'')+'</b></span></div>'+
+      '<div class="bk-cmts"><div class="bk-cmts-t">Comments ('+cmts.length+')</div>'+cmtHtml+'</div>'+
+    '</div>';
+  }).join('');
+}
+function closeBucket(){document.getElementById('bucketModal').style.display='none';}
+
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
   if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
+  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
   const r=await A.api('GET','/api/agent-analytics');
   if(r.status===403){gate('Admin, manager, or owner access required.');return;}
   if(!r.ok){gate('Could not load analytics (HTTP '+r.status+').');return;}

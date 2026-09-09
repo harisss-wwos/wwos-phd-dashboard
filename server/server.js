@@ -158,7 +158,7 @@ app.post('/api/me/profile', requireRole('user'), async (req, res) => {
 app.get('/api/users', requireRole('owner'), async (req, res) => {
   const users = await getCollection(COLLECTIONS.users);
   const list = await users.find({}, { projection: { passwordHash: 0 } }).sort({ role: -1, username: 1 }).toArray();
-  res.json(list.map(u => ({ id: String(u._id), username: u.username, role: u.role, timezone: normTz(u.timezone) })));
+  res.json(list.map(u => ({ id: String(u._id), username: u.username, role: u.role, timezone: normTz(u.timezone), displayName: u.displayName || '', avatar: u.avatar || '' })));
 });
 
 app.post('/api/users', requireRole('owner'), async (req, res) => {
@@ -1076,6 +1076,44 @@ async function getImportantMarking(shortId) {
   } catch (e) { return null; }
 }
 
+// List ALL marked "important" tickets (admin+), newest first. For the leadership Unique Cases page.
+// Joins each ticket's title/status from the quarter data when available.
+app.get('/api/important-cases', requireRole('admin'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.importantCases);
+    const rows = await coll.find({}).sort({ updatedAt: -1, at: -1 }).toArray();
+    // Build a ShortId -> {title,status} lookup across all quarters (once).
+    const qColl = await getCollection(COLLECTIONS.quarters);
+    const docs = await qColl.find({}).toArray();
+    const info = {};
+    for (const d of docs) {
+      const tickets = (d.data && d.data.tickets) || [];
+      for (const t of tickets) {
+        const sid = String(t.ShortId || t.IssueId || '');
+        if (sid && !info[sid]) info[sid] = { title: t.Title || '', status: t.Status || '', url: t.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid) };
+      }
+    }
+    res.json(rows.map(r => {
+      const meta = info[r.shortId] || {};
+      return {
+        shortId: r.shortId,
+        quarter: r.quarter || '',
+        title: meta.title || '',
+        status: meta.status || '',
+        url: meta.url || ('https://t.corp.amazon.com/issues/' + r.shortId),
+        info: r.info || '',
+        links: r.links || [],
+        markedBy: r.markedBy || '',
+        role: r.role || '',
+        at: r.at || null,
+        updatedAt: r.updatedAt || null,
+      };
+    }));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load unique cases.' });
+  }
+});
+
 // Get the important marking for a ticket (admin+).
 app.get('/api/important-cases/:shortId', requireRole('admin'), async (req, res) => {
   try {
@@ -1410,6 +1448,51 @@ app.get('/api/agent-analytics', requireRole('admin'), async (req, res) => {
     res.json({ quarter: currentQuarter(), leads, editors });
   } catch (e) {
     res.status(500).json({ error: 'Could not compute agent analytics.' });
+  }
+});
+
+// An editor's live "bucket" (admin+): their still-open tickets in the live quarter, with all comments.
+app.get('/api/agent-bucket', requireRole('admin'), async (req, res) => {
+  try {
+    const username = String(req.query.username || '').trim().toLowerCase();
+    if (!username) return res.status(400).json({ error: 'A username is required.' });
+    const tickets = await liveTickets();
+    const now = Date.now();
+    const mine = tickets.filter(t =>
+      String(t.AssigneeIdentity || '').toLowerCase() === username &&
+      OPEN_STATUSES.includes(t.Status)
+    );
+    // Gather all comments for these tickets in one query.
+    const ids = mine.map(t => String(t.ShortId || t.IssueId || '')).filter(Boolean);
+    const commentsColl = await getCollection(COLLECTIONS.comments);
+    const commentRows = ids.length ? await commentsColl.find({ shortId: { $in: ids } }).sort({ at: 1 }).toArray() : [];
+    const byTicket = {};
+    commentRows.forEach(c => { (byTicket[c.shortId] = byTicket[c.shortId] || []).push({ text: c.text, user: c.user, role: c.role, at: c.at }); });
+
+    const out = mine.map(t => {
+      const shortId = String(t.ShortId || t.IssueId || '');
+      const created = t.CreateDate || '';
+      const cd = new Date(created);
+      let ageHours = null, deadline = null;
+      if (!isNaN(cd)) {
+        ageHours = Math.max(0, (now - cd.getTime()) / 36e5);
+        deadline = new Date(cd.getTime() + SLA_HOURS * 3600 * 1000).toISOString();
+      }
+      return {
+        shortId,
+        url: t.IssueUrl || (shortId ? ('https://t.corp.amazon.com/issues/' + shortId) : ''),
+        title: t.Title || '',
+        status: t.Status || '',
+        createDate: created,
+        ageHours,
+        deadline,
+        comments: byTicket[shortId] || [],
+      };
+    }).sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
+
+    res.json({ username, slaHours: SLA_HOURS, count: out.length, tickets: out });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the agent bucket.' });
   }
 });
 

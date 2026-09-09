@@ -77,6 +77,10 @@
   // ---- Section 1: right-side controls (Users owner-only + avatar/Login) ----
   function rightControlsHtml() {
     var html = '';
+    // Unique cases (leadership listing) — admin+ and only after login.
+    if (loggedIn() && atLeast('admin')) {
+      html += '<a class="tb-btn" href="important-cases.html">' + ic('bar-chart') + ' Unique cases</a>';
+    }
     if (loggedIn() && atLeast('owner')) {
       html += '<a class="tb-btn" href="users.html">' + ic('users-gear') + ' Users</a>';
     }

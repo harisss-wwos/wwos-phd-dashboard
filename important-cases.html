@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unique Cases · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--yl:#fbbf24;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.wrap{max-width:1000px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+/* Expand/collapse case cards */
+.case{background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.case-head{display:flex;align-items:center;gap:14px;padding:16px 20px;width:100%;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.case-head:hover{background:#0d0d0d}
+.case-id{color:#44b9d6;font-weight:700;font-size:1.02em;flex-shrink:0}
+.case-title{color:var(--t);font-size:.9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.case-by{color:var(--tm);font-size:.78em;white-space:nowrap;flex-shrink:0}
+.case-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
+.case.open .case-caret{transform:rotate(180deg)}
+.case-body{padding:0 20px;display:none;flex-direction:column;gap:14px}
+.case.open .case-body{display:flex;padding:4px 20px 18px}
+.case-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm)}
+.case-meta b{color:#fff;font-weight:600}
+.blk-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px}
+.case-info{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:12px 14px}
+.links{display:flex;flex-direction:column;gap:6px}
+.link-item{background:#000;border:1px solid var(--bd);border-radius:8px;padding:8px 12px}
+.link-item a{color:#44b9d6;text-decoration:none;font-size:.85em;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.link-item a:hover{text-decoration:underline}
+.none{color:#5f6b6c;font-size:.85em;font-style:italic}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+</style>
+</head>
+<body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar">
+  <a class="logo" href="app.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+
+<div class="wrap" id="wrap"><h1>Unique Cases</h1><p class="sub">Loading…</p><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Unique Cases</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
+function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
+
+function linkRow(url){
+  const u=esc(url);
+  return '<div class="link-item"><a href="'+u+'" target="_blank" rel="noopener" title="'+u+'">'+u+'</a></div>';
+}
+
+function caseCard(c,i){
+  const open=(i===0); // newest expanded by default
+  const links=(c.links&&c.links.length)?('<div class="links">'+c.links.map(linkRow).join('')+'</div>'):'<div class="none">No links added.</div>';
+  const when=c.updatedAt||c.at;
+  return '<div class="case'+(open?' open':'')+'">'+
+    '<button type="button" class="case-head" onclick="toggleCase(this)">'+
+      '<span class="case-id">'+esc(c.shortId)+'</span>'+
+      '<span class="case-title">'+esc(c.title||'(no title)')+'</span>'+
+      '<span class="case-by">'+esc(c.markedBy||'')+'</span>'+
+      '<span class="case-caret">▾</span>'+
+    '</button>'+
+    '<div class="case-body">'+
+      '<div class="case-meta">'+
+        '<span>Ticket: <b><a href="'+esc(c.url)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(c.shortId)+'</a></b></span>'+
+        (c.quarter?('<span>Quarter: <b>'+esc(c.quarter)+'</b></span>'):'')+
+        (c.status?('<span>Status: <b>'+esc(c.status)+'</b></span>'):'')+
+        '<span>Marked by: <b>'+esc(c.markedBy||'—')+'</b></span>'+
+        '<span>When: <b>'+fmtTZ(when)+'</b></span>'+
+      '</div>'+
+      '<div><div class="blk-t">Information</div>'+(c.info?('<div class="case-info">'+esc(c.info)+'</div>'):'<div class="none">No notes added.</div>')+'</div>'+
+      '<div><div class="blk-t">Links</div>'+links+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function toggleCase(btn){const card=btn.closest('.case');if(card)card.classList.toggle('open');}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  if(!(A.atLeast&&A.atLeast('admin'))){gate('This page is for admins and above. Your role: '+(A.role?A.role():'user')+'.');return;}
+  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
+  const r=await A.api('GET','/api/important-cases');
+  if(!r.ok){gate('Could not load unique cases (HTTP '+r.status+').');return;}
+  const rows=Array.isArray(r.data)?r.data:[];
+  let html='<h1>Unique Cases</h1><p class="sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</p>';
+  if(!rows.length){html+='<div class="empty">No unique cases marked yet. Mark tickets via Search ticket on the My Tickets page.</div>';document.getElementById('wrap').innerHTML=html;return;}
+  html+=rows.map(caseCard).join('');
+  document.getElementById('wrap').innerHTML=html;
+}
+load();
+</script>
+</body>
+</html>

@@ -29,6 +29,11 @@ table{width:100%;border-collapse:collapse}
 th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
 td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
 td.user{color:#fff;font-weight:600}
+.u-cell{display:flex;align-items:center;gap:10px}
+.u-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--bd)}
+.u-avatar-ph{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.16);color:var(--o);font-weight:800;font-size:.9em}
+.u-name{display:flex;flex-direction:column;line-height:1.25}
+.u-dn{color:var(--tm);font-weight:400;font-size:.78em}
 select{background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;padding:6px 10px;font-size:.85em}
 select:focus{outline:none;border-color:var(--o)}
 .badge{padding:2px 10px;border-radius:20px;font-size:.75em;text-transform:uppercase;font-weight:700}
@@ -151,6 +156,15 @@ function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
 
 function renderList(users){
   const wrap=document.getElementById('wrap');
+  // Avatar cell: uploaded pic if present, else an initials circle. Username shown beside it.
+  const userCell=(u)=>{
+    const initial=String(u.username||'?').charAt(0).toUpperCase();
+    const pic=u.avatar
+      ? '<img class="u-avatar" src="'+esc(u.avatar)+'" alt="">'
+      : '<span class="u-avatar u-avatar-ph">'+esc(initial)+'</span>';
+    const name=esc(u.username)+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
+    return '<div class="u-cell">'+pic+'<span class="u-name">'+name+'</span></div>';
+  };
   // Row builder for a single user.
   const tzSelect=(u)=>{
     const tz=(u.timezone==='MST')?'MST':'IST';
@@ -160,10 +174,10 @@ function renderList(users){
   };
   const rowFor=(u)=>{
     if(u.role==='owner'){
-      return '<tr><td class="user">'+u.username+'</td><td>'+badge('owner')+'</td><td>'+tzSelect(u)+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
+      return '<tr><td class="user">'+userCell(u)+'</td><td>'+badge('owner')+'</td><td>'+tzSelect(u)+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
     }
     const opts=ROLES.map(r=>'<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+r+'</option>').join('');
-    return '<tr><td class="user">'+u.username+'</td>'
+    return '<tr><td class="user">'+userCell(u)+'</td>'
       +'<td><select onchange="changeRole(\''+u.id+'\',this.value,\''+u.username+'\')">'+opts+'</select></td>'
       +'<td>'+tzSelect(u)+'</td>'
       +'<td style="display:flex;gap:8px;flex-wrap:wrap">'

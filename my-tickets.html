@@ -210,7 +210,7 @@ function render(){
   const u=A.getUser();const editor=isEditor();
   const isAdmin=A.atLeast&&A.atLeast('admin');
   let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">My Tickets</h1>'
-    +(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Unique cases</a>':'')
+    +(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search ticket</a>':'')
     +'</div>';
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
