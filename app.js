@@ -1061,7 +1061,7 @@ function renderDashboardShell(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
-    ${loggedIn?`<button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1155,7 +1155,7 @@ function renderDashboard(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
-    ${loggedIn?`<button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>

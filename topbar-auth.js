@@ -117,14 +117,12 @@
     }
     var html = '';
     // Home, Dashboard, PHD Tools show only for LOGGED-IN users (and can be hidden per-page).
-    if (li && !hide.home) html += '<a class="tb-navbtn" href="index.html">' + ic('home') + ' Home</a>';
-    // Fixed order requested by the team.
+    // Fixed order requested by the team. (Home removed; Dashboard first.)
+    if (li && !hide.dashboard) html += view('dashboard', 'Dashboard', 'grid');
     if (isAdmin) { // Upload new data (admin+). Lives on app.html; from elsewhere, go there first.
       if (inApp) html += '<label class="tb-navbtn upload" style="cursor:pointer">' + ic('upload') + ' Upload new data<input type="file" accept=".csv" id="uploadFile" style="display:none"></label>';
       else html += '<a class="tb-navbtn upload" href="app.html">' + ic('upload') + ' Upload new data</a>';
     }
-    if (li) html += link('data-log', 'Update data log', 'history', 'data-log.html');
-    if (li && !hide.dashboard) html += view('dashboard', 'Dashboard', 'grid');
     if (li) html += link('my-tickets', 'My Tickets', 'ticket', 'my-tickets.html');
     if (isAdmin) html += link('agent-analytics', 'Agent Analytics', 'bar-chart', 'agent-analytics.html');
     if (li) {
@@ -143,12 +141,14 @@
   function buildToolbarHtml(active, opts) {
     opts = opts || {};
     var live = opts.liveLabel ? '<span class="tb-live">' + opts.liveLabel + ' · LIVE</span>' : '';
+    // opts.noNav: render Section 1 (top bar) only, without the Section 2 nav row.
+    var navRow = opts.noNav ? '' : ('<div class="tb-nav">' + navHtml(active, !!opts.inApp) + '</div>');
     return ''
       + '<div class="tb-topbar">'
         + '<span class="tb-logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span>' + live + '</span>'
         + '<div class="tb-right" id="tbAuth">' + rightControlsHtml() + '</div>'
       + '</div>'
-      + '<div class="tb-nav">' + navHtml(active, !!opts.inApp) + '</div>';
+      + navRow;
   }
 
   window.PHDNav = {
@@ -250,8 +250,9 @@
     var oldBar = document.querySelector('.top-bar');
     var active = document.body.getAttribute('data-nav-active') || '';
     var liveLabel = document.body.getAttribute('data-live-label') || '';
+    var noNav = (document.body.getAttribute('data-nav') || '') === 'none'; // hide the nav row entirely
     var wrap = document.createElement('div');
-    wrap.innerHTML = buildToolbarHtml(active, { inApp: false, liveLabel: liveLabel });
+    wrap.innerHTML = buildToolbarHtml(active, { inApp: false, liveLabel: liveLabel, noNav: noNav });
     var nodes = []; while (wrap.firstChild) nodes.push(wrap.firstChild), wrap.removeChild(wrap.firstChild);
     if (oldBar) {
       nodes.forEach(function (n) { oldBar.parentNode.insertBefore(n, oldBar); });
