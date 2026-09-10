@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Tickets · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shimmer.css">
@@ -49,6 +50,12 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .cmt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+/* Manager panel (managers carry no personal bucket) */
+.mgr-panel{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:16px;padding:44px 36px;text-align:center;max-width:620px;margin:10px auto}
+.mgr-icon{width:64px;height:64px;border-radius:50%;background:rgba(255,153,0,.14);color:var(--o);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.mgr-panel h2{color:#fff;font-size:1.3em;font-weight:700;margin-bottom:12px}
+.mgr-panel p{color:var(--tm);font-size:.95em;line-height:1.7;max-width:480px;margin:0 auto 8px}
+.mgr-actions{margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:600px;width:100%;max-height:85vh;overflow:auto;padding:24px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -209,9 +216,24 @@ function helpBlock(t){
 function render(){
   const u=A.getUser();const editor=isEditor();
   const isAdmin=A.atLeast&&A.atLeast('admin');
+  const isManager=(A.role&&A.role()==='manager');
   let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">My Tickets</h1>'
     +(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search ticket</a>':'')
     +'</div>';
+  // Managers don't carry a personal ticket bucket — show a tailored panel instead of the table.
+  if(isManager){
+    html+='<p class="sub">Times shown in '+esc(MY_TZ)+'.</p>'+
+      '<div class="mgr-panel">'+
+        '<div class="mgr-icon">'+ic('shield',30)+'</div>'+
+        '<h2>You\u2019re a manager \u2014 no tickets in your bucket</h2>'+
+        '<p>Managers don\u2019t get tickets assigned to them. You can still <b>search any ticket</b> across all quarters and <b>mark it important</b> to flag it for leadership discussion.</p>'+
+        '<div class="mgr-actions">'+
+          '<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search &amp; mark a ticket</a>'+
+          '<a class="btn sec" href="important-cases.html">'+ic('target')+' View unique cases</a>'+
+        '</div>'+
+      '</div>';
+    document.getElementById('wrap').innerHTML=html;return;
+  }
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=`<div class="tbl-card"><table>

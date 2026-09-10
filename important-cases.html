@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unique Cases · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -43,6 +44,33 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .none{color:#5f6b6c;font-size:.85em;font-style:italic}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.case-actions{margin-top:6px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;flex-wrap:wrap}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
+/* Edit popup */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-head h2{color:var(--o);font-size:1.1em;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.edit-ticket{background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+.edit-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
+.edit-ticket .meta-line{color:var(--tm);font-size:.82em}.edit-ticket .meta-line b{color:#fff}
+.fld-label{display:block;color:var(--tm);font-size:.82em;margin:12px 0 6px;font-weight:600}
+#editInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+#editInfo:focus{outline:none;border-color:var(--o)}
+.link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
+.link-row input:focus{outline:none;border-color:var(--o)}
+.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:8px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
+.link-row .rm:hover{background:rgba(255,82,82,.12)}
+.add-link{margin-top:2px;padding:7px 14px;font-size:.82em}
+.msg-err{color:var(--rl);font-size:.85em;margin-top:10px;display:none}
+.edit-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
 </style>
 </head>
 <body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
@@ -51,6 +79,38 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 </div>
 
 <div class="wrap" id="wrap"><h1>Unique Cases</h1><p class="sub">Loading…</p><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+
+<!-- Edit marking popup -->
+<div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="editTitle">Edit marking</h2><button class="modal-close" onclick="closeEdit()" aria-label="Close">&times;</button></div>
+    <div class="edit-ticket" id="editTicket"></div>
+    <label class="fld-label">Information about this ticket</label>
+    <textarea id="editInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
+    <label class="fld-label">Links</label>
+    <div id="editLinks"></div>
+    <button type="button" class="btn sec add-link" onclick="addLinkInput('')">＋ Add another link</button>
+    <div class="msg-err" id="editErr"></div>
+    <div class="edit-actions">
+      <button class="btn sec" onclick="closeEdit()">Cancel</button>
+      <button class="btn" id="editBtn" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove importance confirm popup -->
+<div class="modal-bg" id="unmarkModal" onclick="if(event.target===this)closeUnmark()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head"><h2 style="color:var(--rl)">Remove importance?</h2><button class="modal-close" onclick="closeUnmark()" aria-label="Close">&times;</button></div>
+    <p id="unmarkText" style="color:var(--t);font-size:.9em;line-height:1.6"></p>
+    <div class="msg-err" id="unmarkErr"></div>
+    <div class="edit-actions">
+      <button class="btn sec" onclick="closeUnmark()">Cancel</button>
+      <button class="btn danger" id="unmarkBtn" onclick="doUnmark()">Remove importance</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
@@ -71,6 +131,8 @@ function caseCard(c,i){
   const open=(i===0); // newest expanded by default
   const links=(c.links&&c.links.length)?('<div class="links">'+c.links.map(linkRow).join('')+'</div>'):'<div class="none">No links added.</div>';
   const when=c.updatedAt||c.at;
+  // Only the person who marked it can edit/unmark.
+  const mine=(A.getUser&&A.getUser()&&String(c.markedBy||'').toLowerCase()===String(A.getUser().username||'').toLowerCase());
   return '<div class="case'+(open?' open':'')+'">'+
     '<button type="button" class="case-head" onclick="toggleCase(this)">'+
       '<span class="case-id">'+esc(c.shortId)+'</span>'+
@@ -88,11 +150,80 @@ function caseCard(c,i){
       '</div>'+
       '<div><div class="blk-t">Information</div>'+(c.info?('<div class="case-info">'+esc(c.info)+'</div>'):'<div class="none">No notes added.</div>')+'</div>'+
       '<div><div class="blk-t">Links</div>'+links+'</div>'+
+      (mine?('<div class="case-actions"><button class="btn sec" onclick="openEdit('+i+')">'+(window.icon?window.icon('pencil',15):'')+' Edit</button>'+
+        '<button class="btn danger" onclick="askUnmark('+i+')">'+(window.icon?window.icon('trash',15):'')+' Remove importance</button></div>'):'')+
     '</div>'+
   '</div>';
 }
 
 function toggleCase(btn){const card=btn.closest('.case');if(card)card.classList.toggle('open');}
+
+// ---- Edit marking popup (same fields as the Mark important popup) ----
+let CASES=[];let EDIT_SID=null;
+function addLinkInput(val){
+  const wrap=document.getElementById('editLinks');
+  const row=document.createElement('div');
+  row.className='link-row';
+  const inp=document.createElement('input');
+  inp.type='text';inp.placeholder='https://…';inp.value=val||'';inp.title=val||'';
+  inp.addEventListener('input',()=>{inp.title=inp.value;});
+  const rm=document.createElement('button');
+  rm.type='button';rm.className='rm';rm.textContent='✕';rm.title='Remove this link';
+  rm.onclick=()=>{row.remove();if(!document.querySelectorAll('#editLinks .link-row').length)addLinkInput('');};
+  row.appendChild(inp);row.appendChild(rm);
+  wrap.appendChild(row);
+}
+function openEdit(i){
+  const c=CASES[i];if(!c)return;
+  EDIT_SID=c.shortId;
+  document.getElementById('editTitle').textContent='Edit marking · '+c.shortId;
+  document.getElementById('editTicket').innerHTML=
+    '<span class="mt-id">'+esc(c.shortId)+'</span>'+
+    (c.title?('<div style="color:var(--t);font-size:.9em;margin-bottom:8px">'+esc(c.title)+'</div>'):'')+
+    '<div class="meta-line">'+(c.quarter?('Quarter: <b>'+esc(c.quarter)+'</b>'):'')+(c.status?('  ·  Status: <b>'+esc(c.status)+'</b>'):'')+'</div>';
+  document.getElementById('editInfo').value=c.info||'';
+  const links=(c.links&&c.links.length)?c.links:[''];
+  const box=document.getElementById('editLinks');box.innerHTML='';
+  links.forEach(l=>addLinkInput(l));
+  document.getElementById('editErr').style.display='none';
+  document.getElementById('editModal').style.display='flex';
+  setTimeout(()=>document.getElementById('editInfo').focus(),40);
+}
+function closeEdit(){document.getElementById('editModal').style.display='none';EDIT_SID=null;}
+function toast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+async function saveEdit(){
+  if(!EDIT_SID)return;
+  const c=CASES.find(x=>x.shortId===EDIT_SID)||{};
+  const info=document.getElementById('editInfo').value.trim();
+  const links=[...document.querySelectorAll('#editLinks .link-row input')].map(i=>i.value.trim()).filter(Boolean);
+  const err=document.getElementById('editErr');
+  if(!info && !links.length){err.textContent='Add some information or at least one link.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('editBtn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await A.api('POST','/api/important-cases/'+encodeURIComponent(EDIT_SID),{quarter:c.quarter||'',info,links});
+  btn.disabled=false;btn.textContent='Save changes';
+  if(r.ok){closeEdit();toast('Updated '+EDIT_SID);load();}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+
+let UNMARK_SID=null;
+function askUnmark(i){
+  const c=CASES[i];if(!c)return;
+  UNMARK_SID=c.shortId;
+  document.getElementById('unmarkText').innerHTML='Remove the important marking on <b style="color:#fff">'+esc(c.shortId)+'</b>? It will no longer appear in Unique Cases. This cannot be undone.';
+  document.getElementById('unmarkErr').style.display='none';
+  document.getElementById('unmarkModal').style.display='flex';
+}
+function closeUnmark(){document.getElementById('unmarkModal').style.display='none';UNMARK_SID=null;}
+async function doUnmark(){
+  if(!UNMARK_SID)return;
+  const sid=UNMARK_SID;
+  const btn=document.getElementById('unmarkBtn');btn.disabled=true;btn.textContent='Removing…';
+  const r=await A.api('DELETE','/api/important-cases/'+encodeURIComponent(sid));
+  btn.disabled=false;btn.textContent='Remove importance';
+  if(r.ok){closeUnmark();toast('Removed importance from '+sid);load();}
+  else{document.getElementById('unmarkErr').textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');document.getElementById('unmarkErr').style.display='block';}
+}
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
@@ -101,7 +232,11 @@ async function load(){
   const r=await A.api('GET','/api/important-cases');
   if(!r.ok){gate('Could not load unique cases (HTTP '+r.status+').');return;}
   const rows=Array.isArray(r.data)?r.data:[];
-  let html='<h1>Unique Cases</h1><p class="sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</p>';
+  CASES=rows; // stash for the edit popup
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">Unique Cases</h1>'
+    +'<a class="btn sec" href="unique-cases-log.html">'+(window.icon?window.icon('history',15):'')+' Unique cases log</a>'
+    +'</div>'
+    +'<p class="sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</p>';
   if(!rows.length){html+='<div class="empty">No unique cases marked yet. Mark tickets via Search ticket on the My Tickets page.</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=rows.map(caseCard).join('');
   document.getElementById('wrap').innerHTML=html;

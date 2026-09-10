@@ -26,6 +26,7 @@ const COLLECTIONS = {
   comments: 'comments',    // per-ticket comments (My Tickets)
   incidentLogs: 'incident_logs', // per-ticket incident logs (final mitigation + hashtags), My Tickets
   importantCases: 'important_cases', // admin "mark important" notes + links per ticket (Unique Cases)
+  importantCasesLog: 'important_cases_log', // audit log of mark/update actions on unique cases
   helpRequests: 'help_requests', // editor "ask for help" threads
   activityLog: 'activity_log', // account activity (e.g. password changes) — owner-visible, never stores secrets
 };

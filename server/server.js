@@ -573,6 +573,18 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
   }
 });
 
+// Delete a data-log entry (owner only).
+app.delete('/api/data-log/:id', requireRole('owner'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.dataLog);
+    const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });
+    if (!r.deletedCount) return res.status(404).json({ error: 'Log entry not found.' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the log entry.' });
+  }
+});
+
 // ---- Common Blurbs ----
 // Public: list all blurbs (ordered).
 app.get('/api/blurbs', async (req, res) => {
@@ -1138,6 +1150,11 @@ app.post('/api/important-cases/:shortId', requireRole('admin'), async (req, res)
     links = links.map(l => String(l || '').trim()).filter(Boolean).slice(0, 50).map(l => l.slice(0, 2000));
     const now = new Date().toISOString();
     const coll = await getCollection(COLLECTIONS.importantCases);
+    const existed = await coll.findOne({ shortId });
+    // Editing an existing marking is restricted to the person who originally marked it.
+    if (existed && String(existed.markedBy || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'Only ' + (existed.markedBy || 'the marker') + ' can edit this marking.' });
+    }
     await coll.updateOne(
       { shortId },
       {
@@ -1146,10 +1163,71 @@ app.post('/api/important-cases/:shortId', requireRole('admin'), async (req, res)
       },
       { upsert: true }
     );
+    // Log this mark/update action for the Unique Cases change log.
+    try {
+      const logColl = await getCollection(COLLECTIONS.importantCasesLog);
+      await logColl.insertOne({
+        action: existed ? 'update' : 'mark',
+        shortId, quarter: String(body.quarter || ''),
+        info, links,
+        user: req.user.username, role: req.user.role, at: now,
+      });
+    } catch (logErr) { /* never block the marking */ }
     const marking = await getImportantMarking(shortId);
     res.json({ ok: true, shortId, important: marking });
   } catch (e) {
     res.status(500).json({ error: 'Could not save the marking.' });
+  }
+});
+
+// Unmark a ticket (admin+). Only the person who marked it may remove it. Logs an 'unmark' action.
+app.delete('/api/important-cases/:shortId', requireRole('admin'), async (req, res) => {
+  try {
+    const shortId = String(req.params.shortId).trim();
+    const coll = await getCollection(COLLECTIONS.importantCases);
+    const existing = await coll.findOne({ shortId });
+    if (!existing) return res.status(404).json({ error: 'Marking not found.' });
+    if (String(existing.markedBy || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'Only ' + (existing.markedBy || 'the marker') + ' can unmark this ticket.' });
+    }
+    await coll.deleteOne({ shortId });
+    try {
+      const logColl = await getCollection(COLLECTIONS.importantCasesLog);
+      await logColl.insertOne({
+        action: 'unmark', shortId, quarter: existing.quarter || '',
+        info: existing.info || '', links: existing.links || [],
+        user: req.user.username, role: req.user.role, at: new Date().toISOString(),
+      });
+    } catch (logErr) { /* never block */ }
+    res.json({ ok: true, shortId });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not unmark the ticket.' });
+  }
+});
+
+// Unique Cases change log (admin+): every mark/update action, newest first.
+app.get('/api/unique-cases-log', requireRole('admin'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.importantCasesLog);
+    const rows = await logColl.find({}).sort({ at: -1 }).limit(500).toArray();
+    res.json(rows.map(e => ({
+      id: String(e._id), action: e.action || 'mark', shortId: e.shortId, quarter: e.quarter || '',
+      info: e.info || '', links: e.links || [], user: e.user, role: e.role || '', at: e.at,
+    })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the unique cases log.' });
+  }
+});
+
+// Delete a unique-cases-log entry (owner only).
+app.delete('/api/unique-cases-log/:id', requireRole('owner'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.importantCasesLog);
+    const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });
+    if (!r.deletedCount) return res.status(404).json({ error: 'Log entry not found.' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the log entry.' });
   }
 });
 

@@ -24,7 +24,7 @@ window.PHDAuth = {
     localStorage.removeItem(this.TOKEN_KEY); localStorage.removeItem(this.USER_KEY);
   },
   role: function () { var u = this.getUser(); return u ? u.role : 'user'; },
-  rank: function (role) { return ({ user: 0, editor: 1, admin: 2, owner: 3 })[role] != null ? ({ user: 0, editor: 1, admin: 2, owner: 3 })[role] : -1; },
+  rank: function (role) { return ({ user: 0, editor: 1, admin: 2, manager: 2, owner: 3 })[role] != null ? ({ user: 0, editor: 1, admin: 2, manager: 2, owner: 3 })[role] : -1; },
   atLeast: function (role) { return this.rank(this.role()) >= this.rank(role); },
   // ---- Loading shimmer skeletons (shown while fetching from Atlas) ----
   // Full live-dashboard skeleton matching the current UI: 2-row header (title bar + toolbar),
