@@ -11,6 +11,70 @@ const COLORS = ['#ff9900','#2074d5','#1d8102','#d13212','#1b9cb0','#8c6bb1','#44
 // ===== Status ranking for merge logic =====
 const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4,'Resolved':5,'Closed':6};
 
+// ===== Upload validation: the CSV header MUST contain all of these columns =====
+const REQUIRED_COLUMNS=['IssueId','IssueUrl','ShortId','Title','Status','CreateDate','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails','AssignedGroup','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
+
+// Parse only the header row of a CSV (respects quoted commas), returns trimmed header names.
+function parseCSVHeaders(text){
+  const cells=[];let cur='';let inQ=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(ch==='"'){if(inQ&&text[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
+    else if(ch===','&&!inQ){cells.push(cur);cur='';}
+    else if((ch==='\n'||ch==='\r')&&!inQ){break;} // end of first line
+    else{cur+=ch;}}
+  cells.push(cur);
+  return cells.map(h=>String(h||'').trim());
+}
+
+// Freshness compare: is date a strictly-or-equally newer than date b? Missing/invalid b => true
+// (incoming wins when we have nothing to compare, e.g. legacy tickets without LastUpdatedDate).
+function isNewer(a,b){
+  const da=new Date(a);const db=new Date(b);
+  if(isNaN(db))return true;      // no/invalid stored value -> incoming wins
+  if(isNaN(da))return false;     // incoming has no date but stored does -> keep stored
+  return da.getTime()>=db.getTime();
+}
+
+// Merge rule: the 3 activity timestamps that trigger an update, and the data fields to overwrite.
+const TIMESTAMP_FIELDS=['LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
+const MERGE_FIELDS=['Title','Status','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails'];
+// Normalize a timestamp for equality: same instant => equal; blank/invalid both => equal ('').
+function tsNorm(v){ const d=new Date(v); return isNaN(d)?String(v==null?'':v).trim():String(d.getTime()); }
+// Did ANY of the 3 activity timestamps change between the incoming row and the stored ticket?
+function timestampsChanged(nr,old){
+  return TIMESTAMP_FIELDS.some(f=>tsNorm(nr[f])!==tsNorm(old[f]));
+}
+
+// Returns { ok, missing:[...] } — case-insensitive/trimmed match of required columns against the header.
+function validateColumns(csvText){
+  const headers=parseCSVHeaders(csvText);
+  const have=new Set(headers.map(h=>h.toLowerCase()));
+  const missing=REQUIRED_COLUMNS.filter(c=>!have.has(c.toLowerCase()));
+  return { ok: missing.length===0, missing };
+}
+
+// Popup: mandatory-columns error. Lists all 18; highlights the missing ones. No upload happens.
+function showColumnError(missing){
+  closeAllPopups();
+  const miss=new Set(missing);
+  const listHtml=REQUIRED_COLUMNS.map(c=>{
+    const bad=miss.has(c);
+    return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:'+(bad?'#ff5252':'#4ade80')+'">'
+      +(bad?'✗':'✓')+' <span style="font-family:monospace;font-size:.9em">'+c+'</span>'+(bad?' <span style="color:#ff5252;font-size:.78em">(missing)</span>':'')+'</li>';
+  }).join('');
+  const overlay=document.createElement('div');
+  overlay.id='incPopup';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+    <h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
+    <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All 18 columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>
+    <ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">${listHtml}</ul>
+    <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeAllPopups()">Close</button></div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
 // ===== Shared data store: MongoDB Atlas via the Render API (see api-config.js) =====
 // Auth + publish now go through window.PHDAuth / window.PHD_API_BASE.
 
@@ -212,12 +276,21 @@ function handleFile(file){
 // autoPublish: after computing, push the merged dataset to Atlas and record the audit log.
 function handleUpload(file,mode,autoPublish){
   if(!file)return;
-  if(PUBLISHING){showToast('Publish in progress — data changes are locked.');return;}
   const reader=new FileReader();
+  reader.onload=(e)=>handleUploadText(e.target.result,mode,autoPublish);
+  reader.readAsText(file);
+}
+
+// Same as handleUpload but from CSV text already in memory (used by the cross-page handoff).
+function handleUploadText(csvText,mode,autoPublish){
+  if(PUBLISHING){showToast('Publish in progress — data changes are locked.');return;}
+  // RULE 1: reject the file if the header is missing any required column (no upload happens).
+  const colCheck=validateColumns(csvText);
+  if(!colCheck.ok){ showColumnError(colCheck.missing); return; }
   const uploadTime=new Date().toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.getElementById('app').innerHTML=`<div class="upload-wrap"><div style="text-align:center"><div class="spinner"></div><p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">Processing CSV data...</p><p style="color:#879596;margin-top:8px;font-size:.9em">${mode==='merge'?'Merging with existing data':'Building your dashboard'}</p></div></div>`;
-  reader.onload=(e)=>{setTimeout(async()=>{
-    const parsed=parseCSV(e.target.result).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
+  {setTimeout(async()=>{
+    const parsed=parseCSV(csvText).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
     // Split by quarter: the local store + browser merge only concern the LIVE quarter.
     // Non-live rows (e.g. Q2 tickets) are passed straight to the server, which merges them
     // into their own quarter doc — they must NOT enter the local live-dashboard store.
@@ -225,6 +298,7 @@ function handleUpload(file,mode,autoPublish){
     const newRows=[];const nonLiveRows=[];
     parsed.forEach(r=>{const q=quarterOf(r.CreateDate);if(liveQ&&q&&q!==liveQ)nonLiveRows.push(r);else newRows.push(r);});
     let mergeReport=null;
+    let deltaLive=null; // the changed/new live tickets to send in a delta publish (null => full replace)
     if(mode==='fresh'){
       await dbClear();
       await dbPutAll(newRows);
@@ -238,11 +312,19 @@ function handleUpload(file,mode,autoPublish){
       newRows.forEach(nr=>{
         const old=existingMap[nr.ShortId];
         if(!old){toWrite.push(nr);added++;return;}
-        const oldRank=STATUS_RANK[old.Status]||0;const newRank=STATUS_RANK[nr.Status]||0;
+        // Rule: a ticket is only updated if ANY of the 3 activity timestamps changed vs stored.
+        // If all three are unchanged, ignore the ticket entirely (no DB write).
+        if(!timestampsChanged(nr,old)){ unchanged++; return; }
+        // Something changed -> overwrite the specific data fields from the CSV; keep other stored
+        // fields (IssueUrl, AssignedGroup, CreateDate, etc.) as-is. Also refresh the 3 timestamps.
+        const merged={...old};
+        MERGE_FIELDS.forEach(f=>{ merged[f]=nr[f]; });
+        TIMESTAMP_FIELDS.forEach(f=>{ merged[f]=nr[f]; });
+        // Reopen -> purple flag when a resolved/closed ticket comes back as Work In Progress.
         const isReopen=(old.Status==='Resolved'||old.Status==='Closed')&&nr.Status==='Work In Progress';
-        if(isReopen){nr._reopened=true;toWrite.push(nr);reopened++;}
-        else if(newRank>oldRank){if(old._reopened&&(nr.Status==='Resolved'||nr.Status==='Closed')){/* reopened ticket now closed again - clear flag */}else if(old._reopened){nr._reopened=true;}toWrite.push(nr);updated++;}
-        else{unchanged++;}
+        if(isReopen){ merged._reopened=true; reopened++; }
+        else if(old._reopened&&(nr.Status==='Resolved'||nr.Status==='Closed')){ delete merged._reopened; }
+        toWrite.push(merged);updated++;
       });
       // Tickets in existing but NOT in new file
       existing.forEach(old=>{
@@ -253,6 +335,7 @@ function handleUpload(file,mode,autoPublish){
         }
       });
       if(toWrite.length>0)await dbPutAll(toWrite);
+      deltaLive=toWrite; // only the changed/new (+auto-closed) live tickets — the delta to publish
       mergeReport={added,updated,reopened,autoClosed,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
     }
     // Recompute from full merged LIVE set (local store holds live-quarter tickets only)
@@ -260,15 +343,13 @@ function handleUpload(file,mode,autoPublish){
     M=computeMetrics(allRows);M.uploadTime=uploadTime;M.mergeReport=mergeReport;M.totalStored=allRows.length;
     renderDashboard();
     if(autoPublish){
-      // Push the merged LIVE dataset + the raw non-live rows to Atlas. The server buckets by
-      // quarter: replaces the live doc, merges non-live rows into their own quarter docs,
-      // and writes a separate data-log entry per quarter.
-      await doPublish(nonLiveRows, mergeReport);
+      // Delta publish: send only the changed/new live tickets (deltaLive) + non-live rows. For a
+      // 'fresh' upload (deltaLive null) we do a full replace. doPublish handles the fallback.
+      await doPublish(nonLiveRows, mergeReport, deltaLive);
     } else if(mergeReport){
       showMergeReport(mergeReport);
     }
-  },50);};
-  reader.readAsText(file);
+  },50);}
 }
 
 function showMergeReport(rep,crossInfo){
@@ -465,16 +546,26 @@ async function submitHelpReply(id){
   else{showToast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
 }
 
-function attachNewFileHandler(){
-  // Single "Upload new data" flow: first show a per-quarter breakdown + Upload/Cancel,
-  // then (on Upload) merge the CSV into the current dataset and auto-publish to Atlas.
-  const uf=document.getElementById('uploadFile');
-  if(uf)uf.onchange=(e)=>{
-    if(PUBLISHING){showToast('Upload in progress — please wait.');e.target.value='';return;}
-    const file=e.target.files[0];e.target.value='';
-    if(file)previewUpload(file);
-  };
+// Handle a chosen CSV from the "Upload new data" input.
+function onUploadFileChange(e){
+  if(PUBLISHING){showToast('Upload in progress — please wait.');e.target.value='';return;}
+  const file=e.target.files&&e.target.files[0];e.target.value='';
+  if(file)previewUpload(file);
 }
+
+// Delegated listener (bound once): survives every toolbar re-render since the #uploadFile input
+// is re-created by the shared nav on each render. Using document-level delegation avoids the
+// binding being lost when the toolbar HTML is replaced.
+function attachNewFileHandler(){
+  // No-op: the "Upload new data" pipeline now lives entirely in topbar-auth.js (in-place, runs on
+  // any page including app.html). It binds its own delegated #uploadFile change listener there.
+}
+
+// Let the shared upload module refresh the dashboard in-place after a successful upload (app.html).
+window.PHDRefreshLive=async function(){
+  try{ await metaSet('liveCache',null); }catch(e){}
+  try{ await refreshFromServer(false); }catch(e){}
+};
 
 // Which quarter does a CreateDate fall in? e.g. "2026-Q3". Returns null if unparseable.
 function quarterOf(createDate){
@@ -486,12 +577,29 @@ function quarterOf(createDate){
 // Parse the CSV, compute a per-quarter breakdown, and show an Upload/Cancel confirmation
 // popup BEFORE any processing. On Upload -> handleUpload(merge, autoPublish). On Cancel -> nothing.
 function previewUpload(file){
+  showAssessingSpinner();
   const reader=new FileReader();
-  reader.onload=(e)=>{
+  reader.onload=(e)=>previewUploadText(e.target.result);
+  reader.onerror=()=>{hideAssessingSpinner();showToast('Could not read the file.');};
+  reader.readAsText(file);
+}
+
+// Same as previewUpload but from CSV text already in memory (used by the cross-page handoff).
+function previewUploadText(csvText){
+  showAssessingSpinner();
+  // Let the spinner paint before the (synchronous) parse/validate work runs.
+  setTimeout(()=>assessAndPreview(csvText),40);
+}
+function assessAndPreview(csvText){
+  // RULE 1: reject the file if the header is missing any required column (no upload happens).
+  const colCheck=validateColumns(csvText);
+  if(!colCheck.ok){ hideAssessingSpinner(); showColumnError(colCheck.missing); return; }
+  {
+    const e={target:{result:csvText}};
     let rows;
     try{ rows=parseCSV(e.target.result).filter(r=>r.ShortId||r.IssueId); }
-    catch(err){ showToast('Could not read the CSV file.'); return; }
-    if(!rows.length){ showToast('No tickets with a ShortId/IssueId were found in the file.'); return; }
+    catch(err){ hideAssessingSpinner(); showToast('Could not read the CSV file.'); return; }
+    if(!rows.length){ hideAssessingSpinner(); showToast('No tickets with a ShortId/IssueId were found in the file.'); return; }
     const liveQ=LIVE_QUARTER?LIVE_QUARTER.quarter:null;
     // Tally tickets per quarter (undated tickets are counted with the live quarter).
     const tally={};let undated=0;
@@ -510,6 +618,18 @@ function previewUpload(file){
     const note=hasPast
       ? `<p style="color:#fbbf24;font-size:.85em;margin:14px 0 0;padding:10px 12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px"><b>Note:</b> tickets from a past quarter will be merged into <b>that quarter's own dashboard</b> (not the live one). Each quarter keeps its own data and update log.</p>`
       : `<p style="color:#879596;font-size:.85em;margin:14px 0 0">All tickets belong to the live quarter and will update the live dashboard.</p>`;
+    // RULE 2 (freshness): compare the file's newest LastUpdatedDate to what's already live.
+    // If the file is OLDER, warn (but still allow — admin can override).
+    let staleWarn='';
+    try{
+      const maxDate=(arr,f)=>arr.reduce((m,r)=>{const d=new Date(f(r));return (!isNaN(d)&&d.getTime()>m)?d.getTime():m;},0);
+      const fileMax=maxDate(rows,r=>r.LastUpdatedDate||r.CreateDate);
+      const dbMax=(window._dbMaxLastUpdated!=null)?window._dbMaxLastUpdated:0;
+      if(fileMax&&dbMax&&fileMax<dbMax){
+        const fmt=(ms)=>new Date(ms).toLocaleString('en-US',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        staleWarn=`<p style="color:#ff5252;font-size:.85em;margin:14px 0 0;padding:10px 12px;background:rgba(255,82,82,.1);border:1px solid rgba(255,82,82,.35);border-radius:8px"><b>⚠ This file looks OLDER than the current data.</b><br>Newest change in file: <b>${fmt(fileMax)}</b> · Newest already live: <b>${fmt(dbMax)}</b>.<br>Uploading an outdated export may not reflect recent changes. Only continue if you're sure this is the correct file.</p>`;
+      }
+    }catch(e){}
     const overlay=document.createElement('div');
     overlay.id='incPopup';
     overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -519,17 +639,18 @@ function previewUpload(file){
       <p style="color:#879596;font-size:.88em;margin-bottom:16px">This file has <b style="color:#fff">${rows.length.toLocaleString()}</b> ticket${rows.length===1?'':'s'}. Here's how they'll be routed by quarter:</p>
       <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px 12px">${rowsHtml}</div>
       ${undated?`<p style="color:#879596;font-size:.8em;margin-top:8px">${undated} ticket(s) had no readable date and are counted with the live quarter.</p>`:''}
+      ${staleWarn}
       ${note}
       <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
         <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
         <button class="btn" style="background:#4ade80" id="confirmUploadBtn">${ic('upload',15)} Upload</button>
       </div>
     </div>`;
+    hideAssessingSpinner(); // assessment done — show the confirm popup
     document.body.appendChild(overlay);
     const btn=document.getElementById('confirmUploadBtn');
-    if(btn)btn.onclick=()=>{closeAllPopups();handleUpload(file,'merge',/*autoPublish*/true);};
-  };
-  reader.readAsText(file);
+    if(btn)btn.onclick=()=>{closeAllPopups();handleUploadText(csvText,'merge',/*autoPublish*/true);};
+  }
 }
 
 function makeChart(id,config){
@@ -1452,6 +1573,20 @@ function showPublishSpinner(){
   document.body.appendChild(overlay);
 }
 
+// Full-page spinner shown while the uploaded file is being validated/parsed (before the confirm popup).
+function showAssessingSpinner(){
+  closeAllPopups();
+  const overlay=document.createElement('div');overlay.id='assessSpinner';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:1050;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<div style="text-align:center">
+    <div class="spinner"></div>
+    <p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being assessed...</p>
+    <p style="color:#879596;margin-top:8px;font-size:.9em">This may take a moment.</p>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+function hideAssessingSpinner(){const el=document.getElementById('assessSpinner');if(el)el.remove();}
+
 // Current live quarter info (set on init from the API). e.g. {quarter:'2026-Q3',label:'Q3 2026',range:{...}}
 let LIVE_QUARTER=null;
 
@@ -1459,19 +1594,36 @@ let LIVE_QUARTER=null;
 // upload; the server buckets by quarter (replace live, merge non-live) and logs each quarter.
 // nonLiveRows: raw uploaded rows whose CreateDate is outside the live quarter (may be empty).
 // changeSummary (optional): the live-quarter browser merge report for the live data-log entry.
-async function doPublish(nonLiveRows,changeSummary){
+// deltaLive: array of only the changed/new live tickets to patch. When provided, we try the fast
+// delta endpoint first (small payload, no full-doc rewrite) and fall back to a full replace on 409.
+async function doPublish(nonLiveRows,changeSummary,deltaLive){
   if(!window.PHDAuth.atLeast('admin')){showToast('You need admin privileges to publish.');return;}
   nonLiveRows=Array.isArray(nonLiveRows)?nonLiveRows:[];
   PUBLISHING=true;                 // lock uploads/merges
   showPublishSpinner();
   try{
-    const liveRows=await dbGetAll();
-    const tickets=liveRows.concat(nonLiveRows);
-    const payload={updatedAt:new Date().toISOString(),count:tickets.length,tickets};
-    const body={data:payload};
-    if(changeSummary)body.changeSummary=changeSummary;
-    const r=await window.PHDAuth.api('POST','/api/live-quarter',body);
-    if(!r.ok){throw new Error((r.data&&r.data.error)||('Publish failed (HTTP '+r.status+')'));}
+    let r=null, usedDelta=false;
+    // 1) Fast path: delta publish (only changed/new live tickets + non-live rows).
+    if(Array.isArray(deltaLive)){
+      const patchBody={changed:deltaLive,nonLive:nonLiveRows,changeSummary:changeSummary||null};
+      const pr=await window.PHDAuth.api('POST','/api/live-quarter/patch',patchBody);
+      if(pr.ok){ r=pr; usedDelta=true; }
+      else if(pr.status!==409 && !(pr.data&&pr.data.needFull)){
+        // A real error (not "no live doc yet") -> surface it.
+        throw new Error((pr.data&&pr.data.error)||('Publish failed (HTTP '+pr.status+')'));
+      }
+      // else: 409/needFull -> fall through to full replace below.
+    }
+    // 2) Full replace: fresh upload, or delta rejected because no live doc exists yet.
+    if(!usedDelta){
+      const liveRows=await dbGetAll();
+      const tickets=liveRows.concat(nonLiveRows);
+      const payload={updatedAt:new Date().toISOString(),count:tickets.length,tickets};
+      const body={data:payload};
+      if(changeSummary)body.changeSummary=changeSummary;
+      r=await window.PHDAuth.api('POST','/api/live-quarter',body);
+      if(!r.ok){throw new Error((r.data&&r.data.error)||('Publish failed (HTTP '+r.status+')'));}
+    }
     PUBLISHING=false;
     closeAllPopups();
     // Invalidate the local cache version so the next visit re-syncs to the server's publishedAt.
@@ -1573,6 +1725,8 @@ async function fetchLiveQuarterVersion(){
 async function renderFromLocal(uploadTimeIso){
   const allRows=await dbGetAll();
   if(!allRows.length)return false;
+  // Track the newest LastUpdatedDate currently live, so the upload confirm can flag a stale file.
+  try{ window._dbMaxLastUpdated=allRows.reduce((m,r)=>{const d=new Date(r.LastUpdatedDate);return(!isNaN(d)&&d.getTime()>m)?d.getTime():m;},0); }catch(e){}
   M=computeMetrics(allRows);M.totalStored=allRows.length;
   M.uploadTime=uploadTimeIso?new Date(uploadTimeIso).toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
   renderDashboard();
@@ -1619,6 +1773,32 @@ function paintInitialLoading(){
   }
 }
 
+// If we arrived from a standalone page's "Upload new data" (sessionStorage handoff + ?upload=1),
+// load the live-quarter data, then open the upload confirmation for the stashed CSV. The full
+// pipeline (parse -> merge -> publish) then runs here and lands on the refreshed dashboard.
+async function maybeHandlePendingUpload(){
+  let flagged=false;
+  try{ flagged=new URLSearchParams(location.search).get('upload')==='1'; }catch(e){}
+  let stashed=null;
+  try{ stashed=sessionStorage.getItem('phdPendingUpload'); }catch(e){}
+  if(!flagged||!stashed)return false;
+  try{ sessionStorage.removeItem('phdPendingUpload'); }catch(e){}
+  // Clean the URL so a refresh doesn't re-trigger.
+  try{ history.replaceState(null,'','app.html'); }catch(e){}
+  if(window.tbHideLoader)window.tbHideLoader();
+  if(!(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))){
+    showToast('Admin access required to upload.');return false;
+  }
+  // Need the current live quarter (for per-quarter routing) + the current dashboard data.
+  await loadLiveQuarter();
+  await refreshFromServer(/*showShimmer*/true);
+  let payload;
+  try{ payload=JSON.parse(stashed); }catch(e){ payload=null; }
+  if(!payload||!payload.text){ showToast('Upload handoff failed. Please try again.'); return true; }
+  previewUploadText(payload.text);
+  return true;
+}
+
 // ========= INIT ========= (stale-while-revalidate: instant from cache, refresh only if changed)
 (async function init(){
   // Paint immediately so the screen is never blank. Dashboard -> shell w/ spinners; a deep-linked
@@ -1629,6 +1809,8 @@ function paintInitialLoading(){
   if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
   // Start background help-request notifications for admins/owner (no-op if not logged in / not admin).
   startHelpNotificationPolling();
+  // Cross-page upload handoff: a standalone page stashed a CSV and sent us here with ?upload=1.
+  if(await maybeHandlePendingUpload())return;
   try{
     const cache=await metaGet('liveCache');           // {quarter, publishedAt} from last successful load
     const localCount=await dbCount();

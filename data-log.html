@@ -174,7 +174,7 @@ function render(entries){
           '<b>IST:</b> '+fmtTZ(g.at,'Asia/Kolkata')+'<br>'+
           '<b>MST:</b> '+fmtTZ(g.at,'America/Denver')+
         '</span>'+
-        (owner?'<button class="btn danger mini" style="margin-left:12px" onclick="event.stopPropagation();delSession('+JSON.stringify(JSON.stringify(ids))+')">Delete</button>':'')+
+
         '<span class="log-caret" aria-hidden="true">▾</span>'+
       '</button>'+
       '<div class="log-session-body">'+items.map(quarterBlock).join('')+'</div>'+

@@ -23,6 +23,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:5px 12px;font-size:.78em}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
 .wrap{width:96%;max-width:1600px;margin:0 auto;padding:36px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
@@ -41,6 +43,16 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .rem.ok{color:var(--gl)}.rem.warn{color:var(--yl)}.rem.over{color:var(--rl)}
 /* Latest-comment column */
 .latest-cmt{min-width:180px;vertical-align:top}
+.incident-cell{white-space:nowrap}
+.incident-cell .btn{display:block;margin-bottom:6px}
+.incident-cell .btn:last-child{margin-bottom:0}
+/* Incident log list in popup */
+.ilog-item{background:#000;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.ilog-meta{display:flex;justify-content:space-between;gap:10px;font-size:.74em;color:#5f6b6c;margin-bottom:6px}
+.ilog-meta b{color:#d5dbdb}
+.ilog-text{color:var(--t);white-space:pre-wrap;font-size:.88em;line-height:1.55}
+.ilog-actions{display:flex;gap:8px;margin-top:8px}
+.ilog-empty{color:var(--tm);text-align:center;padding:24px;font-style:italic}
 .latest-text{color:var(--t);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:1.4}
 .latest-meta{color:#5f6b6c;font-size:.72em;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700;cursor:pointer}
@@ -123,6 +135,28 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeAddComment()">Cancel</button>
       <button class="btn" id="addCmtBtn" onclick="submitAddComment()">Add comment</button>
+    </div>
+  </div>
+</div>
+
+<!-- View-incident-log popup -->
+<div class="modal-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="viewIncidentTitle">Incident log</h2><button class="modal-close" onclick="closeViewIncident()" aria-label="Close">&times;</button></div>
+    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Entries you added on this ticket. You can edit or delete your own.</p>
+    <div id="viewIncidentList"></div>
+  </div>
+</div>
+
+<!-- Edit-incident-log popup -->
+<div class="modal-bg" id="editIncidentModal" onclick="if(event.target===this)closeEditIncident()">
+  <div class="modal">
+    <div class="modal-head"><h2>Edit incident log</h2><button class="modal-close" onclick="closeEditIncident()" aria-label="Close">&times;</button></div>
+    <textarea id="editIncidentText" maxlength="5000" style="width:100%;min-height:150px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
+    <div class="msg err" id="editIncidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeEditIncident()">Cancel</button>
+      <button class="btn" id="editIncidentBtn" onclick="submitEditIncident()">Save changes</button>
     </div>
   </div>
 </div>
@@ -217,7 +251,7 @@ function render(){
   const u=A.getUser();const editor=isEditor();
   const isAdmin=A.atLeast&&A.atLeast('admin');
   const isManager=(A.role&&A.role()==='manager');
-  let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">My Tickets</h1>'
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">My Tickets ('+(TICKETS?TICKETS.length:0)+')</h1>'
     +(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search ticket</a>':'')
     +'</div>';
   // Managers don't carry a personal ticket bucket — show a tailored panel instead of the table.
@@ -238,20 +272,18 @@ function render(){
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=`<div class="tbl-card"><table>
     <thead><tr>
-      <th>Ticket</th><th>Created</th><th>Deadline (+240h)</th><th>Latest comment</th><th>Add comment</th>${editor?'<th>Help</th>':''}<th>Time left</th><th>Incident log</th>
+      <th>Time left</th><th>Ticket</th><th>Latest comment</th><th>Add comment</th>${editor?'<th>Help</th>':''}<th>Incident log</th>
     </tr></thead><tbody>`+TICKETS.map((t,i)=>{
       const rem=remaining(t.deadline);
       const st=String(t.status||'');
       const letter=st.trim().charAt(0).toUpperCase()||'?';
       return `<tr>
+        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
         <td class="tk-id"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></td>
-        <td>${tzBlock(t.createDate)}</td>
-        <td>${tzBlock(t.deadline)}</td>
         <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}" style="color:#5f6b6c;font-style:italic;font-size:.85em">Loading…</td>
         <td><button class="btn mini" onclick="openAddComment(${i})">Add comment</button></td>
         ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
-        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
-        <td><button class="btn sec mini" onclick="openIncidentLog(${i})">Add incident log</button></td>
+        <td class="incident-cell"><button class="btn sec mini" onclick="openIncidentLog(${i})">Add incident log</button><button class="btn sec mini" onclick="openViewIncident(${i})">View incident log</button></td>
       </tr>`;
     }).join('')+`</tbody></table></div>`;
   document.getElementById('wrap').innerHTML=html;
@@ -353,6 +385,69 @@ async function submitIncidentLog(){
   if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
+
+// ---- View / edit / delete incident logs ----
+let VIEW_INC_INDEX=null;
+async function openViewIncident(i){
+  VIEW_INC_INDEX=i;
+  const t=TICKETS[i];
+  const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log');
+  const list=(r.ok&&Array.isArray(r.data))?r.data:[];
+  // Only entries the current user added.
+  const mine=list.filter(e=>e.mine);
+  if(!mine.length){
+    // No log exists for this user -> inform via popup.
+    document.getElementById('viewIncidentTitle').textContent='Incident log · '+t.shortId;
+    document.getElementById('viewIncidentList').innerHTML='<div class="ilog-empty">No incident log exists for this ticket.</div>';
+    document.getElementById('viewIncidentModal').style.display='flex';
+    return;
+  }
+  renderIncidentList(t.shortId,mine);
+  document.getElementById('viewIncidentModal').style.display='flex';
+}
+function renderIncidentList(shortId,items){
+  document.getElementById('viewIncidentTitle').textContent='Incident log · '+shortId;
+  document.getElementById('viewIncidentList').innerHTML=items.map(e=>{
+    const when=e.at?(fmtTZ(e.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'';
+    return '<div class="ilog-item" data-id="'+esc(e.id)+'">'+
+      '<div class="ilog-meta"><span>by <b>'+esc(e.user)+'</b></span><span>'+when+'</span></div>'+
+      '<div class="ilog-text">'+esc(e.text)+'</div>'+
+      '<div class="ilog-actions"><button class="btn sec mini" onclick="openEditIncident(\''+esc(e.id)+'\')">Edit</button>'+
+        '<button class="btn danger mini" onclick="deleteIncident(\''+esc(e.id)+'\')">Delete</button></div>'+
+    '</div>';
+  }).join('');
+}
+function closeViewIncident(){document.getElementById('viewIncidentModal').style.display='none';VIEW_INC_INDEX=null;}
+
+let EDIT_INC_ID=null;
+function openEditIncident(id){
+  EDIT_INC_ID=id;
+  const item=document.querySelector('#viewIncidentList .ilog-item[data-id="'+id+'"] .ilog-text');
+  document.getElementById('editIncidentText').value=item?item.textContent:'';
+  document.getElementById('editIncidentErr').style.display='none';
+  document.getElementById('editIncidentModal').style.display='flex';
+  setTimeout(()=>document.getElementById('editIncidentText').focus(),40);
+}
+function closeEditIncident(){document.getElementById('editIncidentModal').style.display='none';EDIT_INC_ID=null;}
+async function submitEditIncident(){
+  if(!EDIT_INC_ID)return;
+  const text=document.getElementById('editIncidentText').value.trim();
+  const err=document.getElementById('editIncidentErr');
+  if(!text){err.textContent='Enter the incident details.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('editIncidentBtn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await A.api('PUT','/api/incident-log/'+EDIT_INC_ID,{text});
+  btn.disabled=false;btn.textContent='Save changes';
+  if(r.ok){closeEditIncident();toast('Incident log updated');if(VIEW_INC_INDEX!=null)openViewIncident(VIEW_INC_INDEX);}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+async function deleteIncident(id){
+  if(!confirm('Delete this incident log entry? This cannot be undone.'))return;
+  const r=await A.api('DELETE','/api/incident-log/'+id);
+  if(r.ok){toast('Incident log deleted');if(VIEW_INC_INDEX!=null)openViewIncident(VIEW_INC_INDEX);}
+  else{alert((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+
 async function submitAddComment(){
   if(ADD_CMT_INDEX==null)return;
   const t=TICKETS[ADD_CMT_INDEX];

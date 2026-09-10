@@ -481,6 +481,93 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
   }
 });
 
+// DELTA publish (admin+): apply ONLY the changed/new live-quarter tickets to the live quarter doc
+// by ShortId, instead of replacing the entire dataset. Much smaller payload + faster write.
+// Body: { changed: [ ...live tickets ], removed: [ shortId ], nonLive: [ ...rows ], changeSummary }.
+// If the live quarter doc doesn't exist yet, respond 409 so the client falls back to full replace.
+app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const changed = Array.isArray(body.changed) ? body.changed : [];
+    const removed = Array.isArray(body.removed) ? body.removed.map(String) : [];
+    const nonLive = Array.isArray(body.nonLive) ? body.nonLive : [];
+    const liveQ = currentQuarter();
+    const coll = await getCollection(COLLECTIONS.quarters);
+    const logColl = await getCollection(COLLECTIONS.dataLog);
+    const publishedAt = new Date().toISOString();
+
+    // Live quarter must already exist for a delta; otherwise tell client to do a full replace.
+    const liveDoc = await coll.findOne({ _id: liveQ });
+    if (!liveDoc || !liveDoc.data || !Array.isArray(liveDoc.data.tickets)) {
+      return res.status(409).json({ error: 'No live dataset to patch — do a full publish.', needFull: true });
+    }
+
+    // Apply the delta by ShortId onto the existing live tickets.
+    const map = new Map();
+    liveDoc.data.tickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
+    let applied = 0;
+    for (const t of changed) {
+      if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
+      const id = String(t.ShortId || '').trim(); if (!id) continue;
+      map.set(id, t); applied++;
+    }
+    let removedCount = 0;
+    for (const id of removed) { if (map.delete(String(id).trim())) removedCount++; }
+
+    const mergedLive = Array.from(map.values());
+    const meta = { publishedBy: req.user.username, publishedAt, count: mergedLive.length };
+    const payload = { updatedAt: publishedAt, count: mergedLive.length, tickets: mergedLive };
+    await coll.updateOne({ _id: liveQ }, { $set: { data: payload, meta } }, { upsert: true });
+
+    const written = [{ quarter: liveQ, label: quarterLabel(liveQ), count: mergedLive.length, isLive: true }];
+    // Live-quarter data-log entry (browser merge report).
+    try {
+      await logColl.insertOne({
+        user: req.user.username, role: req.user.role, at: publishedAt,
+        liveQuarter: liveQ, pastQuarterMerge: false,
+        written: [{ quarter: liveQ, label: quarterLabel(liveQ), count: mergedLive.length, isLive: true }],
+        changeSummary: body.changeSummary || null,
+        totalTickets: mergedLive.length,
+      });
+    } catch (logErr) { /* never block */ }
+
+    // Merge any non-live rows into their own quarter docs (same rules as the full endpoint).
+    const byQuarter = {};
+    for (const t of nonLive) {
+      const q = quarterOf(t.CreateDate) || liveQ;
+      if (q === liveQ) continue; // safety: don't route live rows here
+      (byQuarter[q] = byQuarter[q] || []).push(t);
+    }
+    for (const [q, arr] of Object.entries(byQuarter)) {
+      const existingDoc = await coll.findOne({ _id: q });
+      const existingTickets = (existingDoc && existingDoc.data && existingDoc.data.tickets) || [];
+      const qmap = new Map();
+      existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) qmap.set(id, t); });
+      const dbBefore = qmap.size;
+      let added = 0, updated = 0; const addedIds = [], updatedIds = [];
+      for (const t of arr) {
+        if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
+        const id = String(t.ShortId || '').trim(); if (!id) continue;
+        if (qmap.has(id)) { updated++; updatedIds.push(id); } else { added++; addedIds.push(id); }
+        qmap.set(id, t);
+      }
+      const merged = Array.from(qmap.values());
+      const qSummary = { added, updated, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
+      await coll.updateOne({ _id: q }, { $set: { data: { updatedAt: publishedAt, count: merged.length, tickets: merged }, meta: { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary: qSummary } } }, { upsert: true });
+      written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
+      try {
+        const logDoc = { user: req.user.username, role: req.user.role, at: publishedAt, liveQuarter: q, pastQuarterMerge: true, written: [{ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false }], changeSummary: qSummary, totalTickets: merged.length };
+        if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
+        await logColl.insertOne(logDoc);
+      } catch (logErr) { /* never block */ }
+    }
+
+    res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not apply the delta publish.' });
+  }
+});
+
 // Merge an uploaded ticket set INTO a specific PAST (non-live) quarter, by ShortId (admin+).
 // Newly uploaded tickets win on conflict; existing tickets not in the upload are preserved.
 // Records a data-log entry. Body: { data: { tickets: [...] } }.
@@ -1347,9 +1434,44 @@ app.get('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, r
   try {
     const coll = await getCollection(COLLECTIONS.incidentLogs);
     const list = await coll.find({ shortId: String(req.params.shortId) }).sort({ at: 1 }).toArray();
-    res.json(list.map(x => ({ id: String(x._id), text: x.text, user: x.user, role: x.role, at: x.at })));
+    res.json(list.map(x => ({ id: String(x._id), text: x.text, user: x.user, role: x.role, at: x.at, mine: String(x.user||'').toLowerCase() === String(req.user.username).toLowerCase() })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load incident logs.' });
+  }
+});
+
+// Edit an incident-log entry (author only).
+app.put('/api/incident-log/:id', requireRole('user'), async (req, res) => {
+  try {
+    let text = String((req.body || {}).text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Incident log text is required.' });
+    if (text.length > 5000) return res.status(400).json({ error: 'Incident log must be 5000 characters or fewer.' });
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
+    if (!existing) return res.status(404).json({ error: 'Incident log not found.' });
+    if (String(existing.user || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'You can only edit your own incident logs.' });
+    }
+    await coll.updateOne({ _id: existing._id }, { $set: { text, editedAt: new Date().toISOString() } });
+    res.json({ ok: true, id: String(existing._id), text });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not update the incident log.' });
+  }
+});
+
+// Delete an incident-log entry (author only).
+app.delete('/api/incident-log/:id', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
+    if (!existing) return res.status(404).json({ error: 'Incident log not found.' });
+    if (String(existing.user || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'You can only delete your own incident logs.' });
+    }
+    await coll.deleteOne({ _id: existing._id });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the incident log.' });
   }
 });
 

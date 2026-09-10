@@ -123,9 +123,10 @@
     // Home, Dashboard, PHD Tools show only for LOGGED-IN users (and can be hidden per-page).
     // Fixed order requested by the team. (Home removed; Dashboard first.)
     if (li && !hide.dashboard) html += view('dashboard', 'Dashboard', 'grid');
-    if (isAdmin) { // Upload new data (admin+). Lives on app.html; from elsewhere, go there first.
-      if (inApp) html += '<label class="tb-navbtn upload" style="cursor:pointer">' + ic('upload') + ' Upload new data<input type="file" accept=".csv" id="uploadFile" style="display:none"></label>';
-      else html += '<a class="tb-navbtn upload" href="app.html">' + ic('upload') + ' Upload new data</a>';
+    if (isAdmin) { // Upload new data (admin+). Works from any page. Shows a mandatory-columns intro first.
+      if (inApp) html += '<button type="button" class="tb-navbtn upload" onclick="tbUploadIntro(\'app\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
+      // On standalone pages: pick the file here, hand it off to app.html via sessionStorage, then navigate.
+      else html += '<button type="button" class="tb-navbtn upload" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
     }
     if (li) html += link('my-tickets', 'My Tickets', 'ticket', 'my-tickets.html');
     if (isAdmin) html += link('agent-analytics', 'Agent Analytics', 'bar-chart', 'agent-analytics.html');
@@ -160,6 +161,255 @@
     rightControlsHtml: rightControlsHtml,
     refreshRight: function () { var s = document.getElementById('tbAuth'); if (s) s.innerHTML = rightControlsHtml(); }
   };
+
+  // Full-page loader (reuses .tb-loader). msg optional.
+  window.tbShowLoader = function (msg) {
+    var l = document.getElementById('tbLoader');
+    if (!l) return;
+    var p = l.querySelector('p'); if (p && msg) p.textContent = msg;
+    l.style.display = 'flex';
+  };
+  window.tbHideLoader = function () { var l = document.getElementById('tbLoader'); if (l) l.style.display = 'none'; };
+
+  // Required CSV columns (kept in sync with app.js REQUIRED_COLUMNS). Standalone upload validates here.
+  var TB_REQUIRED_COLUMNS = ['IssueId','IssueUrl','ShortId','Title','Status','CreateDate','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails','AssignedGroup','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
+  function tbMissingColumns(text) {
+    var cells = [], cur = '', inQ = false;
+    for (var i = 0; i < text.length; i++) { var ch = text[i];
+      if (ch === '"') { if (inQ && text[i + 1] === '"') { cur += '"'; i++; } else { inQ = !inQ; } }
+      else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+      else if ((ch === '\n' || ch === '\r') && !inQ) { break; }
+      else { cur += ch; } }
+    cells.push(cur);
+    var have = {}; cells.forEach(function (h) { have[String(h || '').trim().toLowerCase()] = true; });
+    return TB_REQUIRED_COLUMNS.filter(function (c) { return !have[c.toLowerCase()]; });
+  }
+  // Pre-upload intro popup: lists the 18 mandatory columns; Proceed opens the file picker.
+  window.tbUploadIntro = function (target) {
+    var inputId = (target === 'standalone') ? 'uploadFileStandalone' : 'uploadFile';
+    var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
+      return '<li style="padding:3px 0;color:#d5dbdb"><span style="color:#4ade80">•</span> <span style="font-family:monospace;font-size:.9em">' + c + '</span></li>';
+    }).join('');
+    var ov = document.createElement('div');
+    ov.id = 'tbUploadIntro';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
+    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:580px;width:100%;max-height:88vh;overflow:auto;padding:26px">' +
+      '<h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
+      '<p style="color:#879596;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#fff">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
+      '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
+      '<div style="margin-top:22px;display:flex;gap:10px;justify-content:flex-end">' +
+        '<button class="tb-mbtn sec" id="tbUploadCancel">Cancel</button>' +
+        '<button class="tb-mbtn" id="tbUploadProceed">Proceed &amp; choose file</button>' +
+      '</div></div>';
+    document.body.appendChild(ov);
+    document.getElementById('tbUploadCancel').onclick = function () { ov.remove(); };
+    document.getElementById('tbUploadProceed').onclick = function () {
+      ov.remove();
+      var inp = document.getElementById(inputId);
+      if (inp) inp.click();
+    };
+  };
+
+  function tbShowColumnError(missing) {
+    var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
+      var bad = missing.indexOf(c) !== -1;
+      return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:' + (bad ? '#ff5252' : '#4ade80') + '">' + (bad ? '✗' : '✓') + ' <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + (bad ? ' <span style="color:#ff5252;font-size:.78em">(missing)</span>' : '') + '</li>';
+    }).join('');
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
+    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:26px">' +
+      '<h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
+      '<p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All 18 columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
+      '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
+      '<div style="margin-top:20px;text-align:right"><button class="tb-mbtn" onclick="this.closest(\'div[style*=fixed]\').remove()">Close</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+  }
+
+  // ---- In-place "Upload new data" pipeline (runs on ANY page; the page is retained) ----
+  // Fields whose change (on a ticket with a newer LastUpdatedDate) triggers an update.
+  var TB_MERGE_FIELDS = ['Title','Status','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails'];
+  var TB_TS_FIELDS = ['LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
+  var tbAssessAborted = false;
+
+  // CSV parser (handles quoted commas / escaped quotes). Returns array of row objects keyed by header.
+  function tbParseCSV(text) {
+    var cells = [], cur = '', inQ = false;
+    for (var i = 0; i < text.length; i++) { var ch = text[i];
+      if (ch === '"') { if (inQ && text[i + 1] === '"') { cur += '"'; i++; } else { inQ = !inQ; } }
+      else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+      else if ((ch === '\n' || ch === '\r') && !inQ) { if (ch === '\r' && text[i + 1] === '\n') i++; cells.push(cur); cur = ''; cells.push('__ROW__'); }
+      else { cur += ch; } }
+    if (cur !== '') cells.push(cur); cells.push('__ROW__');
+    var rows = [], row = [];
+    for (var k = 0; k < cells.length; k++) { if (cells[k] === '__ROW__') { if (row.length) rows.push(row); row = []; } else row.push(cells[k]); }
+    if (!rows.length) return [];
+    var H = rows[0].map(function (h) { return String(h || '').trim(); });
+    var data = [];
+    for (var r = 1; r < rows.length; r++) { var o = {}; for (var j = 0; j < H.length; j++) o[H[j]] = rows[r][j] || ''; data.push(o); }
+    return data;
+  }
+  function tbQuarterOf(d) { var x = new Date(d); return isNaN(x) ? null : (x.getFullYear() + '-Q' + (Math.floor(x.getMonth() / 3) + 1)); }
+  function tbEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+
+  // Small full-page overlay helpers for this flow.
+  function tbFlowOverlay(id, inner, z) {
+    var ov = document.createElement('div'); ov.id = id;
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:' + (z || 3400) + ';display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML = inner; document.body.appendChild(ov); return ov;
+  }
+  function tbRemove(id) { var el = document.getElementById(id); if (el) el.remove(); }
+
+  // Single delegated listener for BOTH upload inputs (app.html #uploadFile + standalone).
+  document.addEventListener('change', function (e) {
+    if (!e.target || (e.target.id !== 'uploadFile' && e.target.id !== 'uploadFileStandalone')) return;
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) { tbBeginUpload(String(ev.target.result || '')); };
+    reader.onerror = function () { alert('Could not read the file.'); };
+    reader.readAsText(file);
+  });
+
+  // Step A: validate columns, then assess.
+  function tbBeginUpload(csvText) {
+    var missing = tbMissingColumns(csvText);
+    if (missing.length) { tbShowColumnError(missing); return; }
+    tbAssessAborted = false;
+    tbFlowOverlay('tbAssess',
+      '<div style="text-align:center">' +
+        '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
+        '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">The file is being assessed for new data, please wait…</p>' +
+        '<p style="color:#879596;margin-top:8px;font-size:.9em">Comparing against the live data. This may take a moment.</p>' +
+        '<button class="tb-mbtn sec" id="tbAssessCancel" style="margin-top:18px">Cancel</button>' +
+      '</div>');
+    document.getElementById('tbAssessCancel').onclick = function () { tbAssessAborted = true; tbRemove('tbAssess'); };
+    // Defer so the spinner paints before the (sync) parse + fetch.
+    setTimeout(function () { tbAssess(csvText); }, 40);
+  }
+
+  // Step B: parse + compare LastUpdatedDate vs stored; build the delta; show the confirm popup.
+  async function tbAssess(csvText) {
+    var rows;
+    try { rows = tbParseCSV(csvText).filter(function (r) { return r.ShortId || r.IssueId; }).map(function (r) { if (!r.ShortId && r.IssueId) r.ShortId = r.IssueId; return r; }); }
+    catch (err) { tbRemove('tbAssess'); alert('Could not read the CSV file.'); return; }
+    if (!rows.length) { tbRemove('tbAssess'); alert('No tickets with a ShortId/IssueId were found in the file.'); return; }
+
+    // Fetch the current live-quarter dataset to compare against.
+    var live;
+    try { live = await A.api('GET', '/api/live-quarter'); } catch (e) { live = null; }
+    if (tbAssessAborted) return;
+    if (!live || !live.ok || !live.data) { tbRemove('tbAssess'); alert('Could not load the live dataset to compare. Try again.'); return; }
+    var liveQ = live.data.quarter;
+    var storedTix = (live.data.data && live.data.data.tickets) || [];
+    var storedMap = {}; storedTix.forEach(function (t) { var id = String(t.ShortId || t.IssueId || ''); if (id) storedMap[id] = t; });
+
+    // Split rows into live-quarter vs non-live (past quarters merged server-side by ShortId).
+    var changed = [];    // live tickets to write (field changes) OR new live tickets
+    var nonLive = [];
+    var xNewer = 0, yUpdated = 0, zNew = 0;
+    var lud = function (v) { var d = new Date(v); return isNaN(d) ? null : d.getTime(); };
+
+    rows.forEach(function (nr) {
+      var q = tbQuarterOf(nr.CreateDate);
+      if (q && liveQ && q !== liveQ) { nonLive.push(nr); return; }
+      var old = storedMap[String(nr.ShortId)];
+      if (!old) { changed.push(nr); zNew++; return; }        // new live ticket -> add whole
+      // Only a strictly-greater LastUpdatedDate counts as "newer".
+      var a = lud(nr.LastUpdatedDate), b = lud(old.LastUpdatedDate);
+      var newer = (a != null) && (b == null || a > b);
+      if (!newer) return;                                     // not newer -> ignore
+      xNewer++;
+      var fieldChanged = TB_MERGE_FIELDS.some(function (f) { return String(nr[f] == null ? '' : nr[f]) !== String(old[f] == null ? '' : old[f]); });
+      if (!fieldChanged) return;                              // newer but no field change -> ignore
+      // Update: overwrite the 10 fields + refresh all 3 timestamps; keep other stored fields.
+      var merged = {}; for (var k in old) merged[k] = old[k];
+      TB_MERGE_FIELDS.forEach(function (f) { merged[f] = nr[f]; });
+      TB_TS_FIELDS.forEach(function (f) { merged[f] = nr[f]; });
+      changed.push(merged); yUpdated++;
+    });
+
+    if (tbAssessAborted) return;
+    tbRemove('tbAssess');
+    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ });
+  }
+
+  // Step C: confirmation popup with the counts. On confirm -> delta publish.
+  function tbShowConfirm(res) {
+    var nonLiveNote = res.nonLive.length ? ('<p style="color:#fbbf24;font-size:.82em;margin-top:10px">' + res.nonLive.length + ' ticket(s) from past quarters will be merged into their own quarter dashboards.</p>') : '';
+    // No newer data at all (0 tickets with a changed LastUpdatedDate) and no new tickets/past-quarter
+    // rows -> tell the user there are no new changes and let them close the upload.
+    if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
+      tbFlowOverlay('tbConfirm',
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:480px;width:100%;padding:26px;text-align:center">' +
+          '<div style="font-size:2em">✅</div>' +
+          '<h2 style="color:#fff;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
+          '<p style="color:#879596;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#d5dbdb">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
+          '<div style="margin-top:22px"><button class="tb-mbtn" id="tbConfirmClose">Close</button></div>' +
+        '</div>');
+      document.getElementById('tbConfirmClose').onclick = function () { tbRemove('tbConfirm'); };
+      return;
+    }
+    tbFlowOverlay('tbConfirm',
+      '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;padding:26px">' +
+        '<h2 style="color:#fff;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
+        '<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px">' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Tickets with newer data</span><span style="color:#44b9d6;font-weight:700">' + res.xNewer + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Will be updated (field changes)</span><span style="color:#fbbf24;font-weight:700">' + res.yUpdated + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#879596">New tickets to add</span><span style="color:#4ade80;font-weight:700">' + res.zNew + '</span></div>' +
+        '</div>' + nonLiveNote +
+        '<p style="color:#879596;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
+        '<div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">' +
+          '<button class="tb-mbtn sec" id="tbConfirmCancel">Cancel</button>' +
+          '<button class="tb-mbtn" id="tbConfirmGo">Confirm &amp; upload</button>' +
+        '</div>' +
+      '</div>');
+    document.getElementById('tbConfirmCancel').onclick = function () { tbRemove('tbConfirm'); };
+    document.getElementById('tbConfirmGo').onclick = function () { tbRemove('tbConfirm'); tbPublish(res); };
+  }
+
+  // Step D: delta publish (only changed/new + non-live). Stays on the current page.
+  async function tbPublish(res) {
+    tbFlowOverlay('tbPush',
+      '<div style="text-align:center">' +
+        '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
+        '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
+        '<p style="color:#879596;margin-top:8px;font-size:.9em">Saving to the shared database. This may take a moment.</p>' +
+      '</div>');
+    try {
+      var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated } };
+      var r = await A.api('POST', '/api/live-quarter/patch', body);
+      if (!r.ok) {
+        // Fallback: if there is no live doc yet, a delta can't apply — inform (rare; live quarter exists).
+        throw new Error((r.data && r.data.error) || ('Upload failed (HTTP ' + r.status + ')'));
+      }
+      tbRemove('tbPush');
+      tbFlowOverlay('tbDone',
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:460px;width:100%;padding:26px;text-align:center">' +
+          '<div style="font-size:2em">✅</div>' +
+          '<h2 style="color:#4ade80;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
+          '<p style="color:#879596;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
+          '<div style="margin-top:18px"><button class="tb-mbtn" id="tbDoneClose">Done</button></div>' +
+        '</div>');
+      document.getElementById('tbDoneClose').onclick = function () {
+        tbRemove('tbDone');
+        // Refresh in-place if the current page can re-render from the live data.
+        if (typeof window.PHDRefreshLive === 'function') { try { window.PHDRefreshLive(); } catch (e) {} }
+      };
+    } catch (err) {
+      tbRemove('tbPush');
+      tbFlowOverlay('tbErr',
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:460px;width:100%;padding:26px;text-align:center">' +
+          '<h2 style="color:#ff5252;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
+          '<p style="color:#879596;font-size:.9em">' + tbEsc(err.message) + '</p>' +
+          '<div style="margin-top:18px"><button class="tb-mbtn" id="tbErrClose">Close</button></div>' +
+        '</div>');
+      document.getElementById('tbErrClose').onclick = function () { tbRemove('tbErr'); };
+    }
+  }
 
   // ---- Login modal + loader ----
   window.tbOpenLogin = function () {
