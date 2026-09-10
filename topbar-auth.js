@@ -23,8 +23,8 @@
       + '.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none}'
       + '.tb-logo img{height:28px;width:auto;display:block}'
       + '.tb-logo span{font-size:1.12em;font-weight:700;color:#fff;line-height:1}'
-      + '.tb-live{font-size:.68em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 10px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}'
-      + '.tb-live::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80}'
+      + '.tb-qbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.82em;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit;margin-left:8px;transition:border-color .15s,color .15s}'
+      + '.tb-qbtn:hover{border-color:#ff9900;color:#ff9900}'
       + '.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}'
       + '.tb-avatar{display:inline-flex;align-items:center;text-decoration:none}'
       + '.tb-avatar img,.tb-avatar .avatar-initial{border-radius:50%}'
@@ -77,10 +77,6 @@
   // ---- Section 1: right-side controls (Users owner-only + avatar/Login) ----
   function rightControlsHtml() {
     var html = '';
-    // Unique cases (leadership listing) — admin+ and only after login.
-    if (loggedIn() && atLeast('admin')) {
-      html += '<a class="tb-btn" href="important-cases.html">' + ic('bar-chart') + ' Unique cases</a>';
-    }
     if (loggedIn() && atLeast('owner')) {
       html += '<a class="tb-btn" href="users.html">' + ic('users-gear') + ' Users</a>';
     }
@@ -122,7 +118,6 @@
     var html = '';
     // Home, Dashboard, PHD Tools show only for LOGGED-IN users (and can be hidden per-page).
     // Fixed order requested by the team. (Home removed; Dashboard first.)
-    if (li && !hide.dashboard) html += view('dashboard', 'Dashboard', 'grid');
     if (isAdmin) { // Upload new data (admin+). Works from any page. Shows a mandatory-columns intro first.
       if (inApp) html += '<button type="button" class="tb-navbtn upload" onclick="tbUploadIntro(\'app\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
       // On standalone pages: pick the file here, hand it off to app.html via sessionStorage, then navigate.
@@ -138,6 +133,7 @@
     if (isAdmin) html += link('last24', 'Last 24 Hours', 'clock', 'last24.html');
     if (li) html += helpActivityBtn();
     if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
+    if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html'); // admin+ leadership listing
     return html;
   }
 
@@ -145,12 +141,14 @@
   // Used by app.html's topBar(). liveLabel e.g. "Q3 2026".
   function buildToolbarHtml(active, opts) {
     opts = opts || {};
-    var live = opts.liveLabel ? '<span class="tb-live">' + opts.liveLabel + ' · LIVE</span>' : '';
+    // Hardcoded quarter buttons (regular button look): Q3 live + Q2 report.
+    var live = '<a class="tb-qbtn" href="app.html" title="Go to the live dashboard">Q3 2026 · LIVE</a>'
+      + '<a class="tb-qbtn" href="archive.html?ds=quarter&qid=2026-Q2" title="Q2 2026 report">Q2 2026</a>';
     // opts.noNav: render Section 1 (top bar) only, without the Section 2 nav row.
     var navRow = opts.noNav ? '' : ('<div class="tb-nav">' + navHtml(active, !!opts.inApp) + '</div>');
     return ''
       + '<div class="tb-topbar">'
-        + '<span class="tb-logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span>' + live + '</span>'
+        + '<span class="tb-logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD</span>' + live + '</span>'
         + '<div class="tb-right" id="tbAuth">' + rightControlsHtml() + '</div>'
       + '</div>'
       + navRow;
@@ -526,20 +524,6 @@
       window.PHDNav.refreshRight();
     }
 
-    // Fill the live-quarter badge from /api/quarters (unless already set via data-live-label).
-    if (!liveLabel) {
-      try {
-        var qr = await A.api('GET', '/api/quarters');
-        if (qr.ok && qr.data && qr.data.liveLabel) {
-          var logo = document.querySelector('.tb-logo');
-          if (logo && !logo.querySelector('.tb-live')) {
-            var b = document.createElement('span');
-            b.className = 'tb-live';
-            b.textContent = qr.data.liveLabel + ' · LIVE';
-            logo.appendChild(b);
-          }
-        }
-      } catch (e) {}
-    }
+    // Quarter buttons are hardcoded in buildToolbarHtml (Q3 live + Q2), no dynamic fetch needed.
   })();
 })();
