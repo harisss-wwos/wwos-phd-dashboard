@@ -89,7 +89,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #homeAuth .avatar-initial,#homeAuth img{border-radius:50%}
 </style>
 </head>
-<body>
+<body data-no-toolbar="true">
 <div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a><div id="homeAuth" style="margin-left:auto;display:flex;align-items:center;gap:10px"></div></div>
 
 <!-- Login modal (shared styles with the rest of the page) -->
@@ -195,6 +195,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 // Fill any static icon placeholders (<span class="card-ic" data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 22); });

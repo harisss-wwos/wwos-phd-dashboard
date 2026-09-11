@@ -12,7 +12,9 @@
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* Keep the static fallback bar's box (no layout jump) but invisible, so the shared toolbar (with the
+   hamburger, injected by topbar-auth.js) is the only bar the user sees — no hamburger-less flash. */
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
@@ -72,7 +74,7 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .toast.show{opacity:1}
 </style>
 </head>
-<body data-nav-active="tools">
+<body data-nav-active="tools" data-back-href="tools.html" data-back-label="PHD Tools">
 <div class="top-bar">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>

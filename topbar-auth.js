@@ -91,6 +91,18 @@
       + '.tb-back-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;transition:transform .15s,background .15s}'
       + '.tb-back-fab:hover{background:#ec7211;transform:translateY(-2px)}'
       + '.tb-back-fab svg{width:22px;height:22px}'
+      // floating circular RECENT-HISTORY button (bottom-left) + its popup of recently visited pages
+      + '.tb-hist-fab{position:fixed;left:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,background .15s,border-color .15s}'
+      + '.tb-hist-fab:hover{background:#222d3a;border-color:#ff9900;transform:translateY(-2px)}'
+      + '.tb-hist-fab svg{width:22px;height:22px}'
+      + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:260px;max-width:calc(100vw - 44px);background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
+      + '.tb-hist-pop.open{display:flex}'
+      + '.tb-hist-title{color:#879596;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px 8px}'
+      + '.tb-hist-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.tb-hist-item:hover{background:#1b2430;color:#fff}'
+      + '.tb-hist-item svg{width:15px;height:15px;flex-shrink:0;color:#879596}'
+      + '.tb-hist-item .tb-hist-name{overflow:hidden;text-overflow:ellipsis}'
+      + '.tb-hist-empty{color:#5f6b6c;font-size:.82em;font-style:italic;padding:8px 10px}'
       // ---- Shared responsive guard (kills x-axis scroll; applies on every page) ----
       + 'html,body{max-width:100%;overflow-x:hidden}'
       + '*{box-sizing:border-box}'
@@ -572,12 +584,98 @@
     document.body.appendChild(fab);
   }
 
+  // ---- Recent-history quick-swap (bottom-left FAB) ----
+  var TB_HISTORY_KEY = 'phd_recent_pages';
+  // A friendly title for the CURRENT page: prefer document.title (trimmed of the site suffix),
+  // else the nav-active label, else the filename.
+  function tbPageTitle() {
+    var t = (document.title || '').split('·')[0].split('|')[0].trim();
+    if (t) return t;
+    var f = (location.pathname.split('/').pop() || '').replace(/\.html?$/i, '');
+    return f ? f.replace(/[-_]/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : 'Page';
+  }
+  // Record the current page (path + search) at the front of the recent list; dedupe, cap at 5.
+  function tbTrackHistory() {
+    try {
+      var here = location.pathname + location.search;
+      var title = tbPageTitle();
+      var list = [];
+      try { list = JSON.parse(localStorage.getItem(TB_HISTORY_KEY) || '[]'); } catch (e) { list = []; }
+      if (!Array.isArray(list)) list = [];
+      // Drop ANY existing entry for this page (dedupe by path, ignoring query) so it never repeats,
+      // then put the current page at the front.
+      var norm = function (h) { return String(h || '').split('?')[0]; };
+      list = list.filter(function (x) { return x && norm(x.href) !== norm(here); });
+      list.unshift({ href: here, title: title, at: Date.now() });
+      list = list.slice(0, 12); // keep extra so the popup can still show 8 OTHER pages
+      localStorage.setItem(TB_HISTORY_KEY, JSON.stringify(list));
+    } catch (e) { /* history is best-effort */ }
+  }
+  // Build the bottom-left history FAB + popup listing up to 5 recently visited OTHER pages.
+  function buildHistoryButton() {
+    if (document.querySelector('.tb-hist-fab')) return;
+    var fab = document.createElement('button');
+    fab.type = 'button';
+    fab.className = 'tb-hist-fab';
+    fab.title = 'Recently visited pages';
+    fab.setAttribute('aria-label', 'Recently visited pages');
+    // clock-with-arrow (history) icon
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>';
+    var pop = document.createElement('div');
+    pop.className = 'tb-hist-pop';
+    pop.id = 'tbHistPop';
+    fab.onclick = function (e) {
+      e.stopPropagation();
+      if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+      tbRenderHistory(pop);
+      pop.classList.add('open');
+    };
+    document.body.appendChild(fab);
+    document.body.appendChild(pop);
+    // Close the popup when clicking elsewhere.
+    document.addEventListener('click', function (e) {
+      if (!pop.classList.contains('open')) return;
+      if (pop.contains(e.target) || fab.contains(e.target)) return;
+      pop.classList.remove('open');
+    });
+  }
+  function tbRenderHistory(pop) {
+    var here = location.pathname + location.search;
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(TB_HISTORY_KEY) || '[]'); } catch (e) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    // Show up to 8 recent pages OTHER than the current one (deduped by path).
+    var norm = function (h) { return String(h || '').split('?')[0]; };
+    var seen = {}; var others = [];
+    list.forEach(function (x) {
+      if (!x || !x.href) return;
+      var k = norm(x.href);
+      if (k === norm(here) || seen[k]) return;
+      seen[k] = true; others.push(x);
+    });
+    others = others.slice(0, 8);
+    var linkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v2H6v12h12v-5h2v7H4z"/><path d="M14 4h6v6"/><path d="M20 4l-8 8"/></svg>';
+    var html = '<div class="tb-hist-title">Recently visited</div>';
+    if (!others.length) {
+      html += '<div class="tb-hist-empty">No other pages visited yet.</div>';
+    } else {
+      html += others.map(function (x) {
+        return '<a class="tb-hist-item" href="' + tbEsc(x.href) + '" title="' + tbEsc(x.title) + '">' + linkIcon + '<span class="tb-hist-name">' + tbEsc(x.title) + '</span></a>';
+      }).join('');
+    }
+    pop.innerHTML = html;
+  }
+
   // ---- Standalone-page auto-mount: replace the page's .top-bar with the shared toolbar ----
   // Reads data-nav-active on <body> for the active highlight. Skipped on app.html (it builds its own).
   (async function () {
     injectStyles();
     buildModalAndLoader();
-    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); return; } // app.html: only the back button
+    tbTrackHistory();       // record this page in the recent-history list (runs on every page)
+    // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
+    // recent-history quick-swap button so the feature is on EVERY page.
+    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildHistoryButton(); return; }
+    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); return; } // app.html: back + history FABs only
 
     var oldBar = document.querySelector('.top-bar');
     var active = document.body.getAttribute('data-nav-active') || '';
@@ -595,13 +693,16 @@
     }
 
     buildBackButton(); // floating back button if data-back-href is set
+    buildHistoryButton(); // floating recent-history quick-swap button (bottom-left)
 
-    // Show avatar spinner while the profile loads, then refresh the right controls.
+    // Right controls are already rendered from the cached user (rightControlsHtml uses A.getUser()),
+    // so the avatar/role badge show immediately with NO spinner flash. Load the full profile
+    // (custom photo/display name) in the background and silently refresh only if it changed something.
     if (loggedIn()) {
-      var slot = document.getElementById('tbAuth');
-      if (slot) slot.innerHTML = '<span class="tb-spinner" title="Loading profile…"></span>';
+      var beforeProfile = A._myProfile;
       try { if (A.loadMyProfile) await A.loadMyProfile(); } catch (e) {}
-      window.PHDNav.refreshRight();
+      // Only re-render if the fetched profile differs from what we already painted.
+      if (A._myProfile !== beforeProfile) window.PHDNav.refreshRight();
     }
 
     // Quarter buttons are hardcoded in buildToolbarHtml (Q3 live + Q2), no dynamic fetch needed.
