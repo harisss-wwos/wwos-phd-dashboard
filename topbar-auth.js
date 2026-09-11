@@ -31,6 +31,8 @@
       + '.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none}'
       + '.tb-logo img{height:28px;width:auto;display:block}'
       + '.tb-logo span{font-size:1.12em;font-weight:700;color:#fff;line-height:1}'
+      // logo acts as a Home button on every page (-> index.html)
+      + '.tb-logo-link{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}'
       + '.tb-qbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.82em;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit;margin-left:8px;transition:border-color .15s,color .15s}'
       + '.tb-qbtn:hover{border-color:#ff9900;color:#ff9900}'
       // Quarter + Upload/My-Tickets buttons now live inside the hamburger menu (all sizes) -> hide from the bar
@@ -207,7 +209,7 @@
     return ''
       + '<div class="tb-topbar">'
         + '<button type="button" class="tb-hamburger" id="tbHamburger" aria-label="Menu" aria-expanded="false" title="Menu" onclick="tbToggleMenu()"><span></span><span></span><span></span></button>'
-        + '<span class="tb-logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD</span>' + live + '</span>'
+        + '<span class="tb-logo"><a class="tb-logo-link" href="index.html" title="Home"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD</span></a>' + live + '</span>'
         + '<div class="tb-right" id="tbAuth">' + rightControlsHtml() + '</div>'
       + '</div>'
       + menu;

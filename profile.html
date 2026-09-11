@@ -50,11 +50,18 @@ input:focus{outline:none;border-color:var(--o)}
 .avatar-wrap #avatarBox{width:96px;height:96px}
 .avatar-edit{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#000;border:2px solid #0a0a0a;cursor:pointer;font-size:.85em;display:flex;align-items:center;justify-content:center}
 .avatar-edit:hover{background:var(--oh)}
+/* Small inline spinners shown only where DB-backed data (avatar, display name) is still loading. */
+.pspin{display:inline-block;border:2px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:pspin .8s linear infinite}
+.pspin.big{width:40px;height:40px;border-width:3px}
+.pspin.sm{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+@keyframes pspin{100%{transform:rotate(360deg)}}
+.avatar-loading{width:96px;height:96px;border-radius:50%;background:#000;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center}
+.field-loading{display:flex;align-items:center;color:var(--tm);font-size:.9em;padding:10px 12px;background:#000;border:1px solid var(--bd);border-radius:6px}
 </style>
 </head>
 <body data-nav-active="profile" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar">
-  <div class="logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></div>
+  <a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
@@ -82,6 +89,8 @@ input:focus{outline:none;border-color:var(--o)}
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
+// True once the DB-backed profile (displayName/avatar) has been fetched at least once.
+let PROFILE_LOADED=false;
 function render(){
   const user=A.getUser();
   const wrap=document.getElementById('wrap');
@@ -89,29 +98,39 @@ function render(){
     wrap.innerHTML='<div class="gate"><h1>Profile</h1><p>You are not logged in. Log in from the Live Dashboard to view your profile.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
     return;
   }
-  const prof=A.myProfile()||user;
+  // Everything that doesn't need the DB renders instantly from the cached user (username, role,
+  // all headings/labels/buttons). The avatar + display name are DB-backed, so until the profile
+  // has loaded they show inline spinners instead of a full-page one.
+  const prof=A._myProfile||user;
+  const avatarInner=PROFILE_LOADED
+    ? `<div id="avatarBox">${A.avatarHtml(prof,96)}</div>`
+    : `<div id="avatarBox"><div class="avatar-loading"><span class="pspin big"></span></div></div>`;
+  const nameField=PROFILE_LOADED
+    ? `<input type="text" id="displayName" maxlength="40" value="${(prof.displayName||'').replace(/"/g,'&quot;')}" placeholder="How your name appears to others">`
+    : `<div class="field-loading" id="displayNameLoading"><span class="pspin sm"></span>Loading…</div>`;
+  const removeBtn=(PROFILE_LOADED&&prof.avatar)?('<button class="btn sec mini" onclick="removeAvatar()">'+ic('trash')+' Remove photo</button>'):'';
   wrap.innerHTML=`
     <h1>My Profile</h1>
     <p class="sub">Manage your account. Your display name and photo are visible to other users.</p>
     <div class="card">
       <h2>Account</h2>
       <div class="avatar-wrap">
-        <div id="avatarBox">${A.avatarHtml(prof,96)}</div>
+        ${avatarInner}
         <button class="avatar-edit" title="Change photo" onclick="document.getElementById('avatarFile').click()">✎</button>
         <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">
       </div>
       <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
         <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Upload photo</button>
-        ${prof.avatar?('<button class="btn sec mini" onclick="removeAvatar()">'+ic('trash')+' Remove photo</button>'):''}
+        ${removeBtn}
       </div>
       <label>Display name</label>
-      <input type="text" id="displayName" maxlength="40" value="${(prof.displayName||'').replace(/"/g,'&quot;')}" placeholder="How your name appears to others">
+      ${nameField}
       <div class="row" style="margin-top:16px"><span class="k">Login ID</span><span class="v">${user.username}</span></div>
       <div class="row"><span class="k">Role</span><span class="v"><span class="badge">${user.role}</span></span></div>
       <div class="msg err" id="profErr"></div>
       <div class="msg ok" id="profOk"></div>
       <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-        <button class="btn" id="saveProfBtn" onclick="saveProfile()">Save changes</button>
+        <button class="btn" id="saveProfBtn" onclick="saveProfile()"${PROFILE_LOADED?'':' disabled'}>Save changes</button>
       </div>
     </div>
     <div class="card">
@@ -121,7 +140,7 @@ function render(){
         <button class="btn danger" style="flex:1;min-width:160px;justify-content:center" onclick="doLogout()">${ic('log-out')} Logout</button>
       </div>
     </div>`;
-  wireAvatarInput();
+  if(PROFILE_LOADED)wireAvatarInput();
 }
 
 // Pending avatar data URL (set after a successful resize; null = unchanged).
@@ -210,8 +229,16 @@ async function changePw(){
   else if(r.status===401 && !A.getToken()){err.textContent='Session expired. Please log in again from the Live Dashboard.';err.style.display='block';setTimeout(()=>{closePwModal();render();},1500);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
-// Load the full profile (displayName/avatar) first, then render.
-(async()=>{ if(A.getUser()&&A.getToken()){await A.loadMyProfile();} render(); })();
+// Render the static structure immediately (no full-page spinner). The avatar + display name show
+// inline spinners until the DB-backed profile loads, then we re-render to fill them in.
+(async()=>{
+  render();
+  if(A.getUser()&&A.getToken()){
+    try{ await A.loadMyProfile(); }catch(e){}
+    PROFILE_LOADED=true;
+    render();
+  }
+})();
 </script>
 </body>
 </html>
