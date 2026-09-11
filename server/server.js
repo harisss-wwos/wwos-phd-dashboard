@@ -14,6 +14,14 @@ const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./qua
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
 
+// Fields that count as a real "change" when merging an uploaded ticket into a quarter doc. Used so a
+// re-uploaded past-quarter ticket with no actual difference is treated as preserved, not "updated".
+const MERGE_DIFF_FIELDS = ['Title', 'Status', 'Severity', 'AssigneeIdentity', 'ResolvedDate', 'Age', 'ClosureCode', 'ResolvedByIdentity', 'RootCause', 'RootCauseDetails', 'LastUpdatedDate'];
+function ticketChanged(incoming, existing) {
+  if (!existing) return true;
+  return MERGE_DIFF_FIELDS.some(f => String(incoming[f] == null ? '' : incoming[f]) !== String(existing[f] == null ? '' : existing[f]));
+}
+
 const app = express();
 app.use(express.json({ limit: '15mb' })); // live dataset can be sizeable
 
@@ -445,22 +453,24 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
         const map = new Map();
         existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
         const dbBefore = map.size;
-        let added = 0, updated = 0;
+        let added = 0, updated = 0, unchanged = 0;
         const addedIds = [], updatedIds = [];
         for (const t of arr) {
           if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
           const id = String(t.ShortId || '').trim(); if (!id) continue;
-          if (map.has(id)) { updated++; updatedIds.push(id); } else { added++; addedIds.push(id); }
-          map.set(id, t); // uploaded (new) version wins
+          const existing = map.get(id);
+          if (!existing) { added++; addedIds.push(id); map.set(id, t); }
+          else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); } // real change -> uploaded wins
+          else { unchanged++; } // identical -> keep stored, don't log as updated
         }
         const merged = Array.from(map.values());
-        const qSummary = { added, updated, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
+        const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
         const meta = { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary: qSummary };
         const payload = { updatedAt: publishedAt, count: merged.length, tickets: merged };
         await coll.updateOne({ _id: q }, { $set: { data: payload, meta } }, { upsert: true });
         written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
-        // Non-live (past) quarter data-log entry with ITS OWN change summary.
-        try {
+        // Non-live (past) quarter data-log entry — only when something actually changed.
+        if (added > 0 || updated > 0) try {
           const logDoc = {
             user: req.user.username, role: req.user.role, at: publishedAt,
             liveQuarter: q, pastQuarterMerge: true,
@@ -544,18 +554,20 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
       const qmap = new Map();
       existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) qmap.set(id, t); });
       const dbBefore = qmap.size;
-      let added = 0, updated = 0; const addedIds = [], updatedIds = [];
+      let added = 0, updated = 0, unchanged = 0; const addedIds = [], updatedIds = [];
       for (const t of arr) {
         if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
         const id = String(t.ShortId || '').trim(); if (!id) continue;
-        if (qmap.has(id)) { updated++; updatedIds.push(id); } else { added++; addedIds.push(id); }
-        qmap.set(id, t);
+        const existing = qmap.get(id);
+        if (!existing) { added++; addedIds.push(id); qmap.set(id, t); }
+        else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); qmap.set(id, t); } // real change only
+        else { unchanged++; } // identical -> preserved, not logged as updated
       }
       const merged = Array.from(qmap.values());
-      const qSummary = { added, updated, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
+      const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
       await coll.updateOne({ _id: q }, { $set: { data: { updatedAt: publishedAt, count: merged.length, tickets: merged }, meta: { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary: qSummary } } }, { upsert: true });
       written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
-      try {
+      if (added > 0 || updated > 0) try {
         const logDoc = { user: req.user.username, role: req.user.role, at: publishedAt, liveQuarter: q, pastQuarterMerge: true, written: [{ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false }], changeSummary: qSummary, totalTickets: merged.length };
         if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
         await logColl.insertOne(logDoc);
@@ -591,21 +603,24 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
     existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
     const dbBefore = map.size;
 
-    let added = 0, updated = 0, skippedNoId = 0;
+    let added = 0, updated = 0, unchanged = 0, skippedNoId = 0;
     const addedIds = [], updatedIds = [];
     for (const t of data.tickets) {
       if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
       const id = String(t.ShortId || '').trim();
       if (!id) { skippedNoId++; continue; }
-      if (map.has(id)) { updated++; updatedIds.push(id); } else { added++; addedIds.push(id); }
-      map.set(id, t); // uploaded (new) version wins
+      const existing = map.get(id);
+      if (!existing) { added++; addedIds.push(id); map.set(id, t); }
+      else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); } // real change only
+      else { unchanged++; } // identical -> preserved, not logged as updated
     }
     const merged = Array.from(map.values());
     const publishedAt = new Date().toISOString();
     const changeSummary = {
       added,                          // tickets not previously in this quarter
-      updated,                        // existing tickets overwritten by the upload
-      preserved: dbBefore - updated,  // existing tickets kept (not in the upload)
+      updated,                        // existing tickets with a real field change
+      unchanged,                      // uploaded but identical -> not overwritten
+      preserved: dbBefore - updated,  // existing tickets kept (not changed / not in the upload)
       uploaded: data.tickets.length,
       total: merged.length,
     };
