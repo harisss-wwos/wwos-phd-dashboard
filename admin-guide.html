@@ -145,7 +145,51 @@ td:first-child b,td:first-child{color:#fff}
   </table>
   <div class="note">Export with these columns present and correctly named. If <code>RootCause</code>/<code>RootCauseDetails</code> are missing, the incident-type and repeat-incident sections will be sparse, but core counts (queue, SLA, ages) still work as long as ShortId, CreateDate, Status, and ResolvedDate are present.</div>
 
-  <h2><span class="num">5.</span> What information you can see</h2>
+  <h2><span class="num">5.</span> Reference: rankings</h2>
+  <p>These are the standard rank values used across the system for roles, ticket status, and resolution (closure) outcomes. Lower numbers come first / earlier; higher numbers are more privileged (roles), further along the lifecycle (status), or a lower-quality outcome (resolution).</p>
+
+  <h3>Roles <span style="font-size:.75em;color:var(--tm)">(privilege — higher = more access)</span></h3>
+  <table>
+    <thead><tr><th>Role</th><th>Rank</th></tr></thead>
+    <tbody>
+      <tr><td>user</td><td>0</td></tr>
+      <tr><td>editor</td><td>1</td></tr>
+      <tr><td>admin</td><td>2</td></tr>
+      <tr><td>manager</td><td>2</td></tr>
+      <tr><td>owner</td><td>3</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>admin</b> and <b>manager</b> share rank 2 (same access level). Only the <b>owner</b> (rank 3) can manage users.</div>
+
+  <h3>Ticket status <span style="font-size:.75em;color:var(--tm)">(lifecycle order)</span></h3>
+  <table>
+    <thead><tr><th>Status</th><th>Rank</th></tr></thead>
+    <tbody>
+      <tr><td>Assigned</td><td>1</td></tr>
+      <tr><td>Researching</td><td>2</td></tr>
+      <tr><td>Work In Progress</td><td>3</td></tr>
+      <tr><td>Pending</td><td>4</td></tr>
+      <tr><td>Resolved</td><td>5</td></tr>
+      <tr><td>Closed</td><td>6</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Resolution / closure outcome <span style="font-size:.75em;color:var(--tm)">(best &rarr; worst)</span></h3>
+  <table>
+    <thead><tr><th>Resolved status (ClosureCode)</th><th>Rank</th></tr></thead>
+    <tbody>
+      <tr><td>Successful</td><td>1</td></tr>
+      <tr><td>Successful with Problems</td><td>2</td></tr>
+      <tr><td>Immediately Resolved</td><td>3</td></tr>
+      <tr><td>Automatically Closed</td><td>4</td></tr>
+      <tr><td>Duplicate</td><td>5</td></tr>
+      <tr><td>No Issue</td><td>6</td></tr>
+      <tr><td>No Plan to Fix</td><td>7</td></tr>
+      <tr><td>Unsuccessful</td><td>8</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">6.</span> What information you can see</h2>
   <h3>Live Dashboard <span style="font-size:.75em;color:var(--tm)">(everyone; ticket detail logged-in only)</span></h3>
   <ul>
     <li><b>KPI summary</b> — total tickets, in-queue, resolved, AutoSIM, average resolution time, SLA %, and more.</li>
@@ -177,7 +221,7 @@ td:first-child b,td:first-child{color:#fff}
     <li><b>Users</b> — <b>Owner only</b>: create accounts, set roles, reset passwords, remove users.</li>
   </ul>
 
-  <h2><span class="num">6.</span> The Help feature — how contractors ask, and how you help</h2>
+  <h2><span class="num">7.</span> The Help feature — how contractors ask, and how you help</h2>
   <p>Contractors (editors) can raise questions on their own tickets. Admins, Managers, and the Owner answer them.</p>
   <h3>How a contractor asks for help</h3>
   <ul>
@@ -198,7 +242,7 @@ td:first-child b,td:first-child{color:#fff}
     <li>Every question and answer is documented in <b>Last 24 Hours → Help Activity</b>: who asked, the ticket, the question, who replied, and open/resolved status.</li>
   </ul>
 
-  <h2><span class="num">7.</span> Quick operational checklist</h2>
+  <h2><span class="num">8.</span> Quick operational checklist</h2>
   <div class="card">
     <ul class="chk">
       <li>Logged in with my own account.</li>
@@ -211,7 +255,7 @@ td:first-child b,td:first-child{color:#fff}
     </ul>
   </div>
 
-  <h2><span class="num">8.</span> FAQ / troubleshooting</h2>
+  <h2><span class="num">9.</span> FAQ / troubleshooting</h2>
   <h3>A visitor can't see tickets when clicking a tile.</h3>
   <p>Expected — ticket-level detail is logged-in only. Ask them to log in, or if they need an account, reach out to <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener">@harisss</a> (also linked in the "Login required" popup).</p>
   <h3>An assignee like "vaine" shows under "Non-registered logins".</h3>
