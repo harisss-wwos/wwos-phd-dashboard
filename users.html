@@ -76,10 +76,16 @@ async function load(){
   const user=A.getUser();
   if(!user||!A.getToken()){gate('You are not logged in. Log in from the Live Dashboard first.');return;}
   if(A.role()!=='owner'){gate('Only the owner can manage users. Your role: '+A.role()+'.');return;}
-  const r=await A.api('GET','/api/users');
-  if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
-  if(!r.ok){gate('Could not load users (HTTP '+r.status+').');return;}
-  renderList(r.data);
+  // Cache (time-based): paint the roster instantly from cache, then refresh in the background.
+  const res=await A.swrLoad({
+    key:'users',
+    fetch:()=>A.api('GET','/api/users'),
+    onData:(rows)=>renderList(rows)
+  });
+  if(!res.painted){
+    if(res.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
+    gate('Could not load users (HTTP '+res.status+').');return;
+  }
   loadActivity();
   loadBlurbCopies();
   loadHashtagCopies();

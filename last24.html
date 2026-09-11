@@ -52,10 +52,20 @@ function card(cls,val,label){return '<div class="kpi '+cls+'"><div class="value"
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
   if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
-  const r=await A.api('GET','/api/last24');
-  if(r.status===403){gate('Admin, manager, or owner access required.');return;}
-  if(!r.ok){gate('Could not load last-24h data (HTTP '+r.status+').');return;}
-  const d=r.data;
+  // Version-stamped cache: instant from cache, refresh in background; a new upload busts it.
+  const version=await A.liveVersion();
+  const res=await A.swrLoad({
+    key:'last24',
+    version:version,
+    fetch:()=>A.api('GET','/api/last24'),
+    onData:(d)=>render(d)
+  });
+  if(!res.painted){
+    if(res.status===403){gate('Admin, manager, or owner access required.');return;}
+    gate('Could not load last-24h data (HTTP '+res.status+').');
+  }
+}
+function render(d){
   const sla=d.slaPct24==null?'—':(d.slaPct24+'%');
   document.getElementById('wrap').innerHTML=`
     <h1>Last 24 Hours</h1>

@@ -113,10 +113,16 @@ function render(items){
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in first.');return;}
-  const r=await A.api('GET','/api/help/all');
-  if(r.status===401){gate('Session expired. Please log in again.');return;}
-  if(!r.ok){gate('Could not load help activity (HTTP '+r.status+').');return;}
-  render(Array.isArray(r.data)?r.data:[]);
+  // Cache (time-based): help threads update in real time, so paint cache instantly then refresh.
+  const res=await A.swrLoad({
+    key:'help-activity',
+    fetch:()=>A.api('GET','/api/help/all'),
+    onData:(rows)=>render(Array.isArray(rows)?rows:[])
+  });
+  if(!res.painted){
+    if(res.status===401){gate('Session expired. Please log in again.');return;}
+    gate('Could not load help activity (HTTP '+res.status+').');
+  }
 }
 load();
 </script>

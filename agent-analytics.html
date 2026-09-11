@@ -180,10 +180,20 @@ async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
   if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
   try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
-  const r=await A.api('GET','/api/agent-analytics');
-  if(r.status===403){gate('Admin, manager, or owner access required.');return;}
-  if(!r.ok){gate('Could not load analytics (HTTP '+r.status+').');return;}
-  const d=r.data;
+  // Version-stamped cache: instant from cache, refresh in background; a new upload busts it.
+  const version=await A.liveVersion();
+  const res=await A.swrLoad({
+    key:'agent-analytics',
+    version:version,
+    fetch:()=>A.api('GET','/api/agent-analytics'),
+    onData:(d)=>render(d)
+  });
+  if(!res.painted){
+    if(res.status===403){gate('Admin, manager, or owner access required.');return;}
+    gate('Could not load analytics (HTTP '+res.status+').');
+  }
+}
+function render(d){
   document.getElementById('wrap').innerHTML=`
     <h1>Agent Analytics</h1>
     <p class="sub">Per-agent performance in the current live quarter (<b style="color:#fff">${esc(d.quarter||'')}</b>). Sorted by tickets resolved (highest first). 12h/24h are relative to now.</p>

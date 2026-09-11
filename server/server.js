@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { ObjectId } = require('mongodb');
-const { getCollection, COLLECTIONS } = require('./db');
+const { getDb, getCollection, COLLECTIONS } = require('./db');
 const {
   VALID_ROLES, rank,
   hashPassword, verifyPassword,
@@ -302,6 +302,73 @@ app.get('/api/activity-log', requireRole('owner'), async (req, res) => {
     res.json(rows.map(e => ({ id: String(e._id), type: e.type || 'activity', user: e.user, role: e.role || '', by: e.by || null, at: e.at })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load activity log.' });
+  }
+});
+
+// ---- Database health (owner only) ----
+// Returns overall DB size + per-collection stats + a per-quarter ticket breakdown. Read-only.
+app.get('/api/db-health', requireRole('owner'), async (req, res) => {
+  try {
+    const db = await getDb();
+    const dbStats = await db.command({ dbStats: 1, scale: 1 });
+    const cols = await db.listCollections().toArray();
+    const collections = [];
+    for (const c of cols) {
+      try {
+        const cs = await db.command({ collStats: c.name, scale: 1 });
+        collections.push({
+          name: c.name,
+          count: cs.count || 0,
+          dataSize: cs.size || 0,
+          storageSize: cs.storageSize || 0,
+          indexSize: cs.totalIndexSize || 0,
+          indexes: cs.nindexes || 0,
+          avgObjSize: cs.avgObjSize || 0,
+        });
+      } catch (e) { collections.push({ name: c.name, count: 0, error: true }); }
+    }
+    collections.sort((a, b) => (b.storageSize || 0) - (a.storageSize || 0));
+    // Per-quarter ticket counts (the largest documents; watch the 16MB/doc Mongo limit).
+    const quarters = [];
+    try {
+      const qColl = await getCollection(COLLECTIONS.quarters);
+      const qDocs = await qColl.find({}).toArray();
+      const DOC_LIMIT = 16 * 1024 * 1024;
+      for (const doc of qDocs) {
+        const tickets = (doc.data && Array.isArray(doc.data.tickets)) ? doc.data.tickets.length : 0;
+        // Approximate document size (JSON byte length) to gauge headroom against the 16MB cap.
+        let approxBytes = 0;
+        try { approxBytes = Buffer.byteLength(JSON.stringify(doc)); } catch (e) {}
+        quarters.push({
+          id: doc._id,
+          tickets,
+          approxBytes,
+          docLimitPct: +((approxBytes / DOC_LIMIT) * 100).toFixed(1),
+          publishedAt: (doc.meta && doc.meta.publishedAt) || null,
+          updatedAt: (doc.data && doc.data.updatedAt) || null,
+        });
+      }
+    } catch (e) { /* quarters optional */ }
+    let usersCount = 0;
+    try { usersCount = await (await getCollection(COLLECTIONS.users)).countDocuments(); } catch (e) {}
+    res.json({
+      db: db.databaseName,
+      generatedAt: new Date().toISOString(),
+      tier: { name: 'MongoDB Atlas M0 (free)', limitBytes: 512 * 1024 * 1024 },
+      totals: {
+        collections: dbStats.collections || collections.length,
+        objects: dbStats.objects || 0,
+        dataSize: dbStats.dataSize || 0,
+        storageSize: dbStats.storageSize || 0,
+        indexSize: dbStats.indexSize || 0,
+        totalSize: (dbStats.dataSize || 0) + (dbStats.indexSize || 0),
+      },
+      usersCount,
+      collections,
+      quarters,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load database health.' });
   }
 });
 

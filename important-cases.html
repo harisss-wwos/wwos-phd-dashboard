@@ -229,9 +229,15 @@ async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   if(!(A.atLeast&&A.atLeast('admin'))){gate('This page is for admins and above. Your role: '+(A.role?A.role():'user')+'.');return;}
   try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
-  const r=await A.api('GET','/api/important-cases');
-  if(!r.ok){gate('Could not load unique cases (HTTP '+r.status+').');return;}
-  const rows=Array.isArray(r.data)?r.data:[];
+  // Cache (time-based): paint instantly from cache, then refresh in the background.
+  const res=await A.swrLoad({
+    key:'unique-cases',
+    fetch:()=>A.api('GET','/api/important-cases'),
+    onData:(rows)=>render(Array.isArray(rows)?rows:[])
+  });
+  if(!res.painted)gate('Could not load unique cases (HTTP '+res.status+').');
+}
+function render(rows){
   CASES=rows; // stash for the edit popup
   let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">Unique Cases</h1>'
     +'<a class="btn sec" href="unique-cases-log.html">'+(window.icon?window.icon('history',15):'')+' Unique cases log</a>'

@@ -5,7 +5,23 @@ const DB_NAME='phd_archive_db',STORE='archives';
 
 function openDB(){return new Promise((res,rej)=>{const rq=indexedDB.open(DB_NAME,1);rq.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'key'});};rq.onsuccess=e=>res(e.target.result);rq.onerror=e=>rej(e.target.error);});}
 async function dbGet(key){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const rq=tx.objectStore(STORE).get(key);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);});}
-async function dbPut(key,metrics,name){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({key,metrics,name});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function dbPut(key,metrics,name,publishedAt){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({key,metrics,name,publishedAt:publishedAt||null});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+
+// Background revalidation for a cached quarter: fetch fresh, and if the quarter's publishedAt
+// changed since we cached it, recompute + re-cache + silently re-render.
+async function quarterRevalidate(qid,cacheKey,cachedPublishedAt){
+  try{
+    const r=await window.PHDAuth.api('GET','/api/quarter/'+encodeURIComponent(qid));
+    if(!r.ok||!r.data)return;
+    const publishedAt=(r.data.meta&&r.data.meta.publishedAt)||null;
+    if((publishedAt||null)===(cachedPublishedAt||null))return; // unchanged -> keep the instant cache
+    const tickets=(r.data.data&&r.data.data.tickets)||[];
+    const metrics=window.QuarterMetrics.compute(tickets,r.data.range||null);
+    const name=(r.data.label||qid);
+    try{ dbPut(cacheKey,metrics,name,publishedAt); }catch(e){}
+    render(metrics,name,'quarter'); // silent swap to the fresh data
+  }catch(e){/* offline / cold -> keep the cached view */}
+}
 
 function qparam(k){return new URLSearchParams(location.search).get(k);}
 
@@ -19,15 +35,29 @@ async function loadMetrics(){
     try{const rec=await dbGet(key);return rec?{metrics:rec.metrics,name:rec.name}:null;}catch(e){return null;}
   }
   // Dynamic quarter (DB-backed, non-live): fetch raw tickets and compute metrics in the browser.
+  // This is the slow path (large ticket payload + Render cold start), so we cache the COMPUTED
+  // metrics in IndexedDB keyed by qid. On revisit we return the cache instantly, then revalidate
+  // in the background (re-render if the quarter's publishedAt changed, e.g. a past-quarter merge).
   if(ds==='quarter'){
     const qid=qparam('qid');
     if(!qid||!window.QuarterMetrics)throw new Error('Quarter view unavailable.');
+    const cacheKey='quarterMetrics_'+qid+'_'+SCHEMA_VER;
+    let cachedRec=null;
+    try{ cachedRec=await Promise.race([dbGet(cacheKey),new Promise(r=>setTimeout(()=>r(null),1200))]); }catch(e){}
+    if(cachedRec&&cachedRec.metrics){
+      // Instant paint from cache; revalidate in the background.
+      quarterRevalidate(qid,cacheKey,cachedRec.publishedAt||null);
+      return {metrics:cachedRec.metrics,name:cachedRec.name,ds:'quarter'};
+    }
     const r=await window.PHDAuth.api('GET','/api/quarter/'+encodeURIComponent(qid));
     if(!r.ok||!r.data)throw new Error('Could not load quarter '+qid+' (HTTP '+(r.status||'?')+')');
     const tickets=(r.data.data&&r.data.data.tickets)||[];
     const range=r.data.range||null;
     const metrics=window.QuarterMetrics.compute(tickets,range);
-    return {metrics,name:(r.data.label||qid),ds:'quarter'};
+    const name=(r.data.label||qid);
+    const publishedAt=(r.data.meta&&r.data.meta.publishedAt)||null;
+    try{ dbPut(cacheKey,metrics,name,publishedAt); }catch(e){}
+    return {metrics,name,ds:'quarter'};
   }
   const key=(ds==='q2'?'q2':'archive')+'_'+SCHEMA_VER;
   const file=ds==='q2'?'metrics-q2.json':'metrics-archive.json';

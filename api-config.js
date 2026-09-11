@@ -26,6 +26,59 @@ window.PHDAuth = {
   role: function () { var u = this.getUser(); return u ? u.role : 'user'; },
   rank: function (role) { return ({ user: 0, editor: 1, admin: 2, manager: 2, owner: 3 })[role] != null ? ({ user: 0, editor: 1, admin: 2, manager: 2, owner: 3 })[role] : -1; },
   atLeast: function (role) { return this.rank(this.role()) >= this.rank(role); },
+
+  // ---- Shared page cache (stale-while-revalidate, version-stamped) ----
+  // Lets standalone pages paint instantly from localStorage, then refresh in the background.
+  // A cache entry is invalidated automatically when its stored `version` no longer matches the
+  // current one (we tie quarter-derived pages to the live quarter's publishedAt, so a new upload
+  // transparently busts every user's cache on their next visit). Time-based pages omit `version`.
+  _liveVerCache: undefined, // in-memory memo for this page load
+  // Cheap live-quarter version (id + publishedAt) via /api/quarters (no ticket payload). Memoized.
+  liveVersion: async function () {
+    if (this._liveVerCache !== undefined) return this._liveVerCache;
+    try {
+      var r = await this.api('GET', '/api/quarters');
+      if (r.ok && r.data) {
+        var liveId = r.data.liveQuarter;
+        var arr = r.data.quarters || [];
+        var q = null; for (var i = 0; i < arr.length; i++) { if (arr[i]._id === liveId || arr[i].quarter === liveId) { q = arr[i]; break; } }
+        this._liveVerCache = liveId + '|' + ((q && (q.publishedAt || (q.meta && q.meta.publishedAt))) || '');
+        return this._liveVerCache;
+      }
+    } catch (e) {}
+    this._liveVerCache = null; // unknown (offline / cold) -> don't invalidate existing caches
+    return this._liveVerCache;
+  },
+  _cacheKey: function (key) { var u = this.getUser(); return 'phd_cache_' + key + '_' + ((u && u.username) || 'anon'); },
+  _cacheRead: function (key) { try { var raw = localStorage.getItem(this._cacheKey(key)); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } },
+  _cacheWrite: function (key, version, data) { try { localStorage.setItem(this._cacheKey(key), JSON.stringify({ version: version, at: Date.now(), data: data })); } catch (e) {} },
+  // Stale-while-revalidate loader.
+  //   opts: { key, fetch:()->{ok,data}, onData:(data,fromCache)->void, version?:string|null, ttlMs?:number }
+  // - Paints cached data immediately (if valid) via onData(data,true).
+  // - Fetches fresh; on success re-caches and calls onData(data,false) when it changed.
+  // - version: when provided, a cache entry is only served if its stored version matches.
+  // - ttlMs: for versionless pages, cache is served instantly regardless, but always refreshed.
+  swrLoad: async function (opts) {
+    var self = this;
+    var cached = this._cacheRead(opts.key);
+    var painted = false;
+    var curVersion = (typeof opts.version === 'undefined') ? undefined : opts.version;
+    // Serve cache instantly when: no version required, OR the stored version still matches.
+    if (cached && cached.data != null) {
+      var versionOk = (typeof curVersion === 'undefined') || curVersion === null || cached.version === curVersion;
+      if (versionOk) { try { opts.onData(cached.data, true); painted = true; } catch (e) {} }
+    }
+    // Background refresh.
+    var res;
+    try { res = await opts.fetch(); } catch (e) { res = null; }
+    if (!res || !res.ok) { return { painted: painted, ok: false, status: res ? res.status : 0, data: res ? res.data : null }; }
+    var fresh = res.data;
+    var ver = (typeof curVersion === 'undefined') ? (cached && cached.version) || null : curVersion;
+    this._cacheWrite(opts.key, ver, fresh);
+    var changed = !cached || JSON.stringify(cached.data) !== JSON.stringify(fresh);
+    if (!painted || changed) { try { opts.onData(fresh, false); } catch (e) {} }
+    return { painted: true, ok: true, status: res.status, data: fresh };
+  },
   // ---- Loading shimmer skeletons (shown while fetching from Atlas) ----
   // Full live-dashboard skeleton matching the current UI: 2-row header (title bar + toolbar),
   // KPI rows, the color-tile row, and chart blocks.

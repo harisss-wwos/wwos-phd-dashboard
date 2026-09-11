@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Database Health · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6;--yl:#fbbf24}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+/* Keep the static fallback bar's box (no layout jump) but invisible, so the shared toolbar (with the
+   hamburger, injected by topbar-auth.js) is the only bar the user sees — no hamburger-less flash. */
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.wrap{width:90%;max-width:1200px;margin:0 auto;padding:40px 24px}
+h1{color:#fff;font-size:1.7em;margin-bottom:6px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+.gate{text-align:center;padding:60px 0}.gate p{color:var(--tm);margin-bottom:18px}
+/* KPI summary cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:28px}
+.kpi{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:18px 20px}
+.kpi .v{color:#fff;font-size:1.6em;font-weight:700;line-height:1.1}
+.kpi .l{color:var(--tm);font-size:.8em;margin-top:6px;text-transform:uppercase;letter-spacing:.4px}
+.kpi .sm{color:#5f6b6c;font-size:.75em;margin-top:6px}
+/* Storage usage bar */
+.usage{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:18px 20px;margin-bottom:28px}
+.usage h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.bar{height:14px;background:#000;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,#4ade80,#22c55e)}
+.usage .cap{display:flex;justify-content:space-between;color:var(--tm);font-size:.82em;margin-top:8px}
+.section{margin-bottom:28px}
+.section h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:.86em}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{color:var(--tm);font-weight:600;font-size:.82em;text-transform:uppercase;letter-spacing:.4px}
+td{color:var(--t)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:#0d0d0d}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow:auto}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700}
+.pill.ok{background:rgba(74,222,128,.14);color:var(--gl)}
+.pill.warn{background:rgba(251,191,36,.16);color:var(--yl)}
+.pill.bad{background:rgba(255,82,82,.16);color:var(--rl)}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:60px auto}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.note{color:#5f6b6c;font-size:.8em;line-height:1.6;margin-top:6px}
+</style>
+</head>
+<body data-nav-active="db-health" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:240px"><div class="spinner"></div></div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const isOwner=()=>A.atLeast&&A.atLeast('owner');
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Human-friendly bytes.
+function fmtBytes(b){
+  b=Number(b)||0;
+  if(b>=1073741824)return (b/1073741824).toFixed(2)+' GB';
+  if(b>=1048576)return (b/1048576).toFixed(2)+' MB';
+  if(b>=1024)return (b/1024).toFixed(1)+' KB';
+  return b+' B';
+}
+function num(n){return (Number(n)||0).toLocaleString();}
+
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Database Health</h1><p>'+esc(msg)+'</p><a class="btn" href="index.html">Go to Home</a></div>';}
+
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for the owner only. Please log in.');return;}
+  if(!isOwner()){gate('This page is restricted to the owner.');return;}
+  // Cache (time-based): paint instantly from cache, then refresh in the background.
+  const res=await A.swrLoad({
+    key:'db-health',
+    fetch:()=>A.api('GET','/api/db-health'),
+    onData:(d)=>{ if(d)render(d); }
+  });
+  if(!res.painted){
+    if(res.status===401){gate('Session expired. Please log in again.');return;}
+    if(res.status===403){gate('This page is restricted to the owner.');return;}
+    document.getElementById('wrap').innerHTML='<h1>Database Health</h1><p class="sub" style="color:#ff5252">Could not load database health (HTTP '+res.status+').</p>';
+  }
+}
+
+function render(d){
+  const totals=d.totals||{};
+  const tierLimit=(d.tier&&d.tier.limitBytes)||(512*1024*1024);
+  const used=totals.totalSize||0;
+  const pct=Math.min(100,(used/tierLimit)*100);
+  const pctTxt=pct<0.1?'<0.1%':pct.toFixed(1)+'%';
+
+  let html='<h1>Database Health</h1>';
+  html+='<p class="sub">Live storage and collection stats for the <b style="color:#fff">'+esc(d.db)+'</b> database · generated '+esc(new Date(d.generatedAt).toLocaleString())+'.</p>';
+
+  // KPI summary
+  html+='<div class="kpi-grid">'
+    +kpi(fmtBytes(totals.totalSize),'Total size','data + indexes')
+    +kpi(fmtBytes(totals.dataSize),'Data size','')
+    +kpi(fmtBytes(totals.storageSize),'Storage on disk','compressed')
+    +kpi(fmtBytes(totals.indexSize),'Index size','')
+    +kpi(num(totals.collections),'Collections','')
+    +kpi(num(totals.objects),'Total documents','')
+    +kpi(num(d.usersCount),'User accounts','')
+    +'</div>';
+
+  // Usage bar vs tier limit
+  html+='<div class="usage"><h2>Storage usage</h2>'
+    +'<div class="bar"><span style="width:'+Math.max(pct,0.5).toFixed(2)+'%"></span></div>'
+    +'<div class="cap"><span>'+fmtBytes(used)+' used</span><span>'+pctTxt+' of '+fmtBytes(tierLimit)+' ('+esc((d.tier&&d.tier.name)||'tier')+')</span></div>'
+    +'</div>';
+
+  // Quarters (largest documents)
+  if(Array.isArray(d.quarters)&&d.quarters.length){
+    html+='<div class="section"><h2>Ticket datasets (quarters)</h2><div class="tbl-card"><table><thead><tr>'
+      +'<th>Quarter</th><th class="num">Tickets</th><th class="num">Doc size</th><th class="num">16MB limit</th><th>Published</th>'
+      +'</tr></thead><tbody>';
+    d.quarters.sort((a,b)=>(b.tickets||0)-(a.tickets||0)).forEach(q=>{
+      const p=q.docLimitPct||0;
+      const cls=p>=80?'bad':p>=50?'warn':'ok';
+      html+='<tr><td><b>'+esc(q.id)+'</b></td>'
+        +'<td class="num">'+num(q.tickets)+'</td>'
+        +'<td class="num">'+fmtBytes(q.approxBytes)+'</td>'
+        +'<td class="num"><span class="pill '+cls+'">'+(p<0.1?'<0.1':p)+'%</span></td>'
+        +'<td>'+(q.publishedAt?esc(new Date(q.publishedAt).toLocaleString()):'—')+'</td></tr>';
+    });
+    html+='</tbody></table></div>'
+      +'<p class="note">Each quarter stores all its tickets inside a single MongoDB document (16 MB hard limit). Watch the "16MB limit" column as ticket volume grows.</p></div>';
+  }
+
+  // Per-collection table
+  const cols=(d.collections||[]);
+  html+='<div class="section"><h2>Collections ('+cols.length+')</h2><div class="tbl-card"><table><thead><tr>'
+    +'<th>Collection</th><th class="num">Docs</th><th class="num">Data</th><th class="num">Storage</th><th class="num">Index</th><th class="num">#idx</th>'
+    +'</tr></thead><tbody>';
+  cols.forEach(c=>{
+    html+='<tr><td><b>'+esc(c.name)+'</b></td>'
+      +'<td class="num">'+num(c.count)+'</td>'
+      +'<td class="num">'+fmtBytes(c.dataSize)+'</td>'
+      +'<td class="num">'+fmtBytes(c.storageSize)+'</td>'
+      +'<td class="num">'+fmtBytes(c.indexSize)+'</td>'
+      +'<td class="num">'+num(c.indexes)+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+
+  document.getElementById('wrap').innerHTML=html;
+}
+
+function kpi(v,l,sm){
+  return '<div class="kpi"><div class="v">'+esc(v)+'</div><div class="l">'+esc(l)+'</div>'+(sm?'<div class="sm">'+esc(sm)+'</div>':'')+'</div>';
+}
+
+load();
+</script>
+</body>
+</html>
