@@ -73,12 +73,60 @@ function toggleCollapse(headEl){
 }
 
 // Replace KPI number spinners with their real values after a short delay (mimics a DB fetch).
+// Animate each Summary KPI from a random "scramble" into its real value, then a quick count-up
+// that settles exactly on the target. Handles plain counts (7,136), percentages (88.7%), and 0.
+// While the DB data loads, flicker random numbers in every .scramble-kpi so the Summary Statistics
+// look alive instead of spinning. Stopped (stopKpiScramble) the moment the real render takes over.
+var _kpiScrTimer=null;
+function startKpiScramble(){
+  stopKpiScramble();
+  var tick=function(){
+    var els=document.querySelectorAll('.scramble-kpi');
+    if(!els.length){stopKpiScramble();return;}
+    els.forEach(function(el){
+      var max=parseInt(el.getAttribute('data-scr-max'),10)||100;
+      var pct=el.getAttribute('data-scr-pct')==='1';
+      var n=Math.random()*max;
+      el.textContent=pct?(n.toFixed(1)+'%'):Math.floor(n).toLocaleString();
+    });
+  };
+  tick();
+  _kpiScrTimer=setInterval(tick,70);
+}
+function stopKpiScramble(){ if(_kpiScrTimer){clearInterval(_kpiScrTimer);_kpiScrTimer=null;} }
+
 function fillKpiNumbers(delay){
+  var raf=window.requestAnimationFrame||function(cb){return setTimeout(function(){cb(Date.now());},16);};
   setTimeout(function(){
     document.querySelectorAll('.kpi-num[data-val]').forEach(function(el){
-      el.textContent=el.getAttribute('data-val');
+      var raw=el.getAttribute('data-val')||'';
+      // Whatever happens, never leave a stuck spinner: show the real value on any failure.
+      try{
+        var isPct=/%\s*$/.test(raw);
+        var m=raw.match(/\.(\d+)/);
+        var decimals=(m&&m[1])?m[1].length:0;                  // e.g. "88.7%" -> 1 decimal
+        var target=parseFloat(raw.replace(/[^0-9.\-]/g,''));
+        if(isNaN(target)){ el.textContent=raw; return; }       // non-numeric -> just show it
+        var fmt=function(n){
+          var s=isPct?n.toFixed(decimals):Math.round(n).toLocaleString();
+          return isPct?(s+'%'):s;
+        };
+        el.textContent=fmt(target*0);                          // clear any spinner immediately
+        var SCRAMBLE_MS=150, COUNT_MS=750, start=null;         // shell already scrambled; brief blend then count up
+        var scrMax=Math.max(10, isPct?100:target*1.3);         // plausible flicker range
+        var step=function(ts){
+          try{
+            if(start===null)start=ts;
+            var t=ts-start;
+            if(t<SCRAMBLE_MS){ el.textContent=fmt(Math.random()*scrMax); raf(step); }
+            else if(t<SCRAMBLE_MS+COUNT_MS){ var p=(t-SCRAMBLE_MS)/COUNT_MS; el.textContent=fmt(target*(1-Math.pow(1-p,3))); raf(step); }
+            else { el.textContent=raw; }                       // land exactly on the real value
+          }catch(err){ el.textContent=raw; }
+        };
+        raf(step);
+      }catch(err){ el.textContent=raw; }
     });
-  }, delay||600);
+  }, delay||300);
 }
 
 function mkChart(id,cfg){const el=document.getElementById(id);if(el){charts.push(new Chart(el,cfg));}}
@@ -97,6 +145,7 @@ function barCfg(entries,horizontal){
 }
 
 function render(metrics,name,ds){
+  stopKpiScramble(); // shell scramble handed off to the real count-up below
   const m=metrics;
   // "Q2-style" (weekly charts, root-cause groups, incident agent drill-down, resolution merge)
   // applies to the static Q2 dataset AND any dynamic non-live quarter.
@@ -185,8 +234,8 @@ function render(metrics,name,ds){
       :collapsible(ic('repeat',18)+' Root Cause × Region (Cross-Tab)','<div style="overflow-x:auto" id="rcRegionTable"></div>', false)}
   </div>`;
 
-  // KPI numbers: swap spinners for real values after a short delay (mimics a DB fetch).
-  fillKpiNumbers(600);
+  // Data is here — hand the scrambling numbers straight into a count-up that lands on real values.
+  fillKpiNumbers(0);
 
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   // Q2 only: merge duplicate/mis-typed resolution-type variants into canonical names, then sum counts.
@@ -528,18 +577,22 @@ function renderQuarterShell(qid){
   var m=/^(\d{4})-Q([1-4])$/.exec(qid||'');
   var label=m?('Q'+m[2]+' '+m[1]):(qid||'Quarter');
   var sp='<span class="num-spinner"></span>';
-  var kpi=function(cls,lbl){return '<div class="kpi-card '+cls+'"><div class="value">'+sp+'</div><div class="label">'+lbl+'</div></div>';};
+  // KPIs scramble random numbers from the very start (while the DB data loads) instead of spinning.
+  // scrMax = plausible upper bound; pct=true renders with a % sign.
+  var kpiScr=function(cls,lbl,scrMax,pct){
+    return '<div class="kpi-card '+cls+'"><div class="value scramble-kpi" data-scr-max="'+scrMax+'" data-scr-pct="'+(pct?1:0)+'">0</div><div class="label">'+lbl+'</div></div>';
+  };
   var chartBox=function(title){return '<div class="chart-box" style="grid-column:1/-1"><h3>'+title+'</h3><div class="chart-wrap"><div class="chart-spin"><div class="spinner"></div></div></div></div>';};
   var tableSpin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
   document.getElementById('app').innerHTML=''+
     '<div class="content">'+
       '<div class="page-title"><h1>'+label+'</h1><p>Data range: <span class="num-spinner"></span> · <span class="num-spinner"></span> total tickets</p></div>'+
       '<div class="section"><h2>'+ic('bar-chart',18)+' Summary Statistics</h2><div class="kpi-grid">'+
-        kpi('accent',ic('ticket',13)+' Total Tickets')+
-        kpi('success',ic('check-circle',13)+' Resolved / Closed')+
-        kpi('warning',ic('hourglass',13)+' Open')+
-        kpi('success',ic('target',13)+' SLA \u2264240hrs')+
-        kpi('warning',ic('repeat',13)+' Repeat Offenders (HI>0)')+
+        kpiScr('accent',ic('ticket',13)+' Total Tickets',9000,false)+
+        kpiScr('success',ic('check-circle',13)+' Resolved / Closed',9000,false)+
+        kpiScr('warning',ic('hourglass',13)+' Open',200,false)+
+        kpiScr('success',ic('target',13)+' SLA \u2264240hrs',100,true)+
+        kpiScr('warning',ic('repeat',13)+' Repeat Offenders (HI>0)',100,true)+
       '</div></div>'+
       '<div class="charts-grid">'+chartBox('Resolution Type')+chartBox('Incident Types')+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">'+
@@ -550,6 +603,7 @@ function renderQuarterShell(qid){
       '<div class="charts-grid">'+chartBox('Weekly Trends')+'</div>'+
       '<div class="section"><h2>'+ic('repeat',18)+' Root Causes by Group</h2>'+tableSpin+'</div>'+
     '</div>';
+  startKpiScramble(); // animate the KPI numbers from the start, while the DB data loads
 }
 
 (async function(){

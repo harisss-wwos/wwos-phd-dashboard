@@ -55,6 +55,7 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .ilog-empty{color:var(--tm);text-align:center;padding:24px;font-style:italic}
 .latest-text{color:var(--t);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:1.4}
 .latest-meta{color:#5f6b6c;font-size:.72em;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.latest-updated{color:#6b7a7b;font-size:.7em;margin-top:3px;display:inline-flex;align-items:center;gap:4px}
 .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700;cursor:pointer}
 .cmt-count:hover{background:rgba(68,185,214,.25)}
 .cmt-cell{min-width:240px}
@@ -70,6 +71,7 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .mgr-actions{margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:600px;width:100%;max-height:85vh;overflow:auto;padding:24px}
+.modal.modal-wide{max-width:860px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
@@ -141,8 +143,14 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 
 <!-- View-incident-log popup -->
 <div class="modal-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
-  <div class="modal">
-    <div class="modal-head"><h2 id="viewIncidentTitle">Incident log</h2><button class="modal-close" onclick="closeViewIncident()" aria-label="Close">&times;</button></div>
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h2 id="viewIncidentTitle">Incident log</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn sec mini" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none">Copy all</button>
+        <button class="modal-close" onclick="closeViewIncident()" aria-label="Close">&times;</button>
+      </div>
+    </div>
     <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Entries you added on this ticket. You can edit or delete your own.</p>
     <div id="viewIncidentList"></div>
   </div>
@@ -291,34 +299,59 @@ function render(){
 }
 
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.
+// Per-ticket app-activity timestamp (our own reference: when a comment/log was last added/edited).
+// { shortId: { at, by, type } }. Separate from the CSV LastUpdated* fields.
+let ACTIVITY={};
 async function fillLatestComments(){
   const ids=TICKETS.map(t=>t.shortId).filter(Boolean);
   if(!ids.length)return;
   let map={};
-  try{const r=await A.api('POST','/api/comments/latest',{shortIds:ids});if(r.ok&&r.data)map=r.data;}catch(e){}
+  // Fetch latest comments and last-activity timestamps in parallel.
+  try{
+    const [rc,ra]=await Promise.all([
+      A.api('POST','/api/comments/latest',{shortIds:ids}),
+      A.api('POST','/api/tickets/activity',{shortIds:ids})
+    ]);
+    if(rc.ok&&rc.data)map=rc.data;
+    if(ra.ok&&ra.data)ACTIVITY=ra.data;
+  }catch(e){}
   TICKETS.forEach((t,i)=>paintLatestCell(i,map[t.shortId]));
+}
+
+// "Updated ..." line = our reference timestamp of the last comment/log activity, in the user's TZ.
+function activityMetaHtml(shortId){
+  const a=ACTIVITY[shortId];
+  if(!a||!a.at)return '';
+  const when=fmtTZ(a.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST);
+  return '<div class="latest-updated" title="When a comment or incident log was last added/edited (our reference — not the CSV data)">'+ic('clock',11)+' Updated '+when+' '+MY_TZ+'</div>';
 }
 
 // Render one Latest-comment cell from a {text,user,at,count} object (or falsy for none).
 function paintLatestCell(i,c){
   const cell=document.getElementById('latest-'+i);if(!cell)return;
+  const t=TICKETS[i];
+  const updated=t?activityMetaHtml(t.shortId):'';
   if(c&&c.text){
     const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
     const countBadge='<span class="cmt-count" onclick="openCmt('+i+')" title="View all comments">'+ic('message',12)+' '+c.count+'</span>';
     cell.style.color='var(--t)';cell.style.fontStyle='normal';
-    cell.innerHTML='<div class="latest-text">'+esc(c.text)+'</div><div class="latest-meta">— '+esc(c.user)+(when?(' · '+when):'')+' '+countBadge+'</div>';
+    cell.innerHTML='<div class="latest-text">'+esc(c.text)+'</div><div class="latest-meta">— '+esc(c.user)+(when?(' · '+when):'')+' '+countBadge+'</div>'+updated;
   }else{
     cell.style.color='#5f6b6c';cell.style.fontStyle='normal';
-    cell.textContent='-';
+    cell.innerHTML=updated?('<span style="color:#5f6b6c">-</span>'+updated):'-';
   }
 }
 
-// Re-fetch just one ticket's latest comment + count and repaint its cell.
+// Re-fetch just one ticket's latest comment + count (and its activity ts) and repaint its cell.
 async function refreshLatestComment(i){
   const t=TICKETS[i];if(!t)return;
   try{
-    const r=await A.api('POST','/api/comments/latest',{shortIds:[t.shortId]});
-    if(r.ok&&r.data)paintLatestCell(i,r.data[t.shortId]);
+    const [rc,ra]=await Promise.all([
+      A.api('POST','/api/comments/latest',{shortIds:[t.shortId]}),
+      A.api('POST','/api/tickets/activity',{shortIds:[t.shortId]})
+    ]);
+    if(ra.ok&&ra.data&&ra.data[t.shortId])ACTIVITY[t.shortId]=ra.data[t.shortId];
+    if(rc.ok&&rc.data)paintLatestCell(i,rc.data[t.shortId]);
   }catch(e){}
 }
 
@@ -380,14 +413,16 @@ async function submitIncidentLog(){
   if(!text){err.textContent='Enter the incident details first.';err.style.display='block';return;}
   err.style.display='none';
   const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
+  const idx=INCIDENT_INDEX;
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});
   btn.disabled=false;btn.textContent='Save incident log';
-  if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);}
+  if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);refreshLatestComment(idx);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
 // ---- View / edit / delete incident logs ----
 let VIEW_INC_INDEX=null;
+let VIEW_INC_ITEMS=[]; // current popup's entries, used by Copy all
 async function openViewIncident(i){
   VIEW_INC_INDEX=i;
   const t=TICKETS[i];
@@ -395,17 +430,40 @@ async function openViewIncident(i){
   const list=(r.ok&&Array.isArray(r.data))?r.data:[];
   // Only entries the current user added.
   const mine=list.filter(e=>e.mine);
+  const copyBtn=document.getElementById('viewIncidentCopyBtn');
   if(!mine.length){
     // No log exists for this user -> inform via popup.
+    VIEW_INC_ITEMS=[];
+    if(copyBtn)copyBtn.style.display='none';
     document.getElementById('viewIncidentTitle').textContent='Incident log · '+t.shortId;
     document.getElementById('viewIncidentList').innerHTML='<div class="ilog-empty">No incident log exists for this ticket.</div>';
     document.getElementById('viewIncidentModal').style.display='flex';
     return;
   }
+  if(copyBtn)copyBtn.style.display='';
   renderIncidentList(t.shortId,mine);
   document.getElementById('viewIncidentModal').style.display='flex';
 }
+// Copy every incident-log entry in the open popup as plain text.
+async function copyIncidentLog(){
+  if(!VIEW_INC_ITEMS.length){toast('Nothing to copy');return;}
+  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const text=VIEW_INC_ITEMS.map(function(e,n){
+    const when=e.at?(fmtTZ(e.at,zone)+' '+MY_TZ):'';
+    return '['+(n+1)+'] '+(when?when+' — ':'')+'by '+(e.user||'')+'\n'+(e.text||'');
+  }).join('\n\n');
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Copied '+VIEW_INC_ITEMS.length+' incident log entr'+(VIEW_INC_ITEMS.length===1?'y':'ies'));
+  }catch(e){
+    // Fallback for older browsers / non-secure contexts.
+    const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copied to clipboard');}catch(_){toast('Copy failed');}
+    document.body.removeChild(ta);
+  }
+}
 function renderIncidentList(shortId,items){
+  VIEW_INC_ITEMS=items||[];
   document.getElementById('viewIncidentTitle').textContent='Incident log · '+shortId;
   document.getElementById('viewIncidentList').innerHTML=items.map(e=>{
     const when=e.at?(fmtTZ(e.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'';
@@ -438,13 +496,13 @@ async function submitEditIncident(){
   const btn=document.getElementById('editIncidentBtn');btn.disabled=true;btn.textContent='Saving…';
   const r=await A.api('PUT','/api/incident-log/'+EDIT_INC_ID,{text});
   btn.disabled=false;btn.textContent='Save changes';
-  if(r.ok){closeEditIncident();toast('Incident log updated');if(VIEW_INC_INDEX!=null)openViewIncident(VIEW_INC_INDEX);}
+  if(r.ok){closeEditIncident();toast('Incident log updated');if(VIEW_INC_INDEX!=null){refreshLatestComment(VIEW_INC_INDEX);openViewIncident(VIEW_INC_INDEX);}}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 async function deleteIncident(id){
   if(!confirm('Delete this incident log entry? This cannot be undone.'))return;
   const r=await A.api('DELETE','/api/incident-log/'+id);
-  if(r.ok){toast('Incident log deleted');if(VIEW_INC_INDEX!=null)openViewIncident(VIEW_INC_INDEX);}
+  if(r.ok){toast('Incident log deleted');if(VIEW_INC_INDEX!=null){refreshLatestComment(VIEW_INC_INDEX);openViewIncident(VIEW_INC_INDEX);}}
   else{alert((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
 }
 

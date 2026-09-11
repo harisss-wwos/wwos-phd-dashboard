@@ -1184,6 +1184,23 @@ function showHIAgentDrilldown(rootCause,agentName){
 
 // Live-dashboard SHELL: paint the full structure + static labels immediately with spinners in
 // every DB-derived slot (KPI numbers, chart areas, table bodies). renderDashboard() replaces it
+// ---- Loading scramble: cycle random numbers in the age tiles until real data lands. ----
+let _scrambleTimer=null;
+function startScramble(){
+  stopScramble();
+  const tick=()=>{
+    const els=document.querySelectorAll('.scramble-num');
+    if(!els.length){stopScramble();return;}
+    els.forEach(el=>{
+      const max=parseInt(el.getAttribute('data-scramble-max'),10)||100;
+      el.textContent=Math.floor(Math.random()*max);
+    });
+  };
+  tick();
+  _scrambleTimer=setInterval(tick,70); // ~14 fps flicker — fast enough to read as "loading"
+}
+function stopScramble(){ if(_scrambleTimer){clearInterval(_scrambleTimer);_scrambleTimer=null;} }
+
 // once the ticket data is loaded + computed. Mirrors renderDashboard()'s layout so there's no jump.
 function renderDashboardShell(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
@@ -1191,7 +1208,9 @@ function renderDashboardShell(){
   const csp='<div class="chart-spin"><div class="spinner"></div></div>'; // chart-area spinner
   const tsp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
   const kpi=(cls,label,tip)=>`<div class="kpi-card ${cls||''}"><div class="value">${sp}</div><div class="label">${label}${tip?` <span title="${tip}" style="cursor:help;opacity:.7">&#9432;</span>`:''}</div></div>`;
-  const ageTile=(color,name,range)=>`<div class="kpi-card age-tile" style="border-top-color:${color}"><div class="value" style="color:${color}">${sp}</div><div class="age-name">${name}</div><div class="age-range">${range}</div></div>`;
+  // Age tiles show a "slot-machine" scramble of random numbers while the real counts load.
+  const rnd=(max)=>Math.floor(Math.random()*max);
+  const ageTile=(color,name,range,scrMax)=>`<div class="kpi-card age-tile" style="border-top-color:${color}"><div class="value scramble-num" data-scramble-max="${scrMax}" style="color:${color}">${rnd(scrMax)}</div><div class="age-name">${name}</div><div class="age-range">${range}</div></div>`;
   const chartBox=(title,tall)=>`<div class="chart-box"><h3>${title}</h3><div class="chart-wrap${tall?' tall':''}">${csp}</div></div>`;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
@@ -1226,11 +1245,11 @@ function renderDashboardShell(){
   <div class="section"><h2>Ticket Age Classification</h2>
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
-      ${ageTile('#4ade80',ic('check-circle',14)+' GREEN','(0-96 hrs / 0-4 days)')}
-      ${ageTile('#fbbf24',ic('clock',14)+' YELLOW','(96-168 hrs / 4-7 days)')}
-      ${ageTile('#ff5252',ic('alert',14)+' RED','(168-240 hrs / 7-10 days)')}
-      ${ageTile('#888',ic('flame',14)+' BLACK','(&gt;240 hrs / &gt;10 days)')}
-      ${ageTile('#a78bfa',ic('reopen',14)+' PURPLE','(Reopened)')}
+      ${ageTile('#4ade80',ic('check-circle',14)+' GREEN','(0-96 hrs / 0-4 days)',200)}
+      ${ageTile('#fbbf24',ic('clock',14)+' YELLOW','(96-168 hrs / 4-7 days)',80)}
+      ${ageTile('#ff5252',ic('alert',14)+' RED','(168-240 hrs / 7-10 days)',15)}
+      ${ageTile('#888',ic('flame',14)+' BLACK','(&gt;240 hrs / &gt;10 days)',8)}
+      ${ageTile('#a78bfa',ic('reopen',14)+' PURPLE','(Reopened)',12)}
     </div></div>
 
   <div class="section"><h2>Queue Status</h2>
@@ -1267,9 +1286,11 @@ function renderDashboardShell(){
   <div class="section"><h2>Incident Types</h2><p class="meta-info">Click any incident type to view agent breakdown</p>${tsp}</div>
   <div class="section"><h2>Historical Incidents (Cnt > 0)</h2>${tsp}</div>
   </div>`;
+  startScramble(); // animate the age-tile numbers while data loads
 }
 
 function renderDashboard(){
+  stopScramble(); // real counts are in — halt the loading animation
   const m=M;
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
   const ct=m.colorTickets;

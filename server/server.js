@@ -1364,6 +1364,39 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   }
 });
 
+// Record when a ticket last had app-side activity (a comment or incident-log add/edit/delete).
+// This is OUR OWN reference timestamp — distinct from the CSV-imported LastUpdated* fields.
+// Stored in a small keyed-by-shortId collection so it survives quarter re-publishes.
+async function recordTicketActivity(shortId, user, type) {
+  try {
+    if (!shortId) return;
+    const coll = await getCollection(COLLECTIONS.ticketActivity);
+    await coll.updateOne(
+      { _id: String(shortId) },
+      { $set: { lastActivityAt: new Date().toISOString(), lastActivityBy: String(user || ''), lastActivityType: String(type || '') } },
+      { upsert: true }
+    );
+  } catch (e) { /* activity tracking must never block the primary write */ }
+}
+
+// Batch: latest app-activity timestamp for a set of ShortIds (logged-in).
+// Body: { shortIds: [...] } -> { shortId: { at, by, type } } for tickets that have any activity.
+app.post('/api/tickets/activity', requireRole('user'), async (req, res) => {
+  try {
+    let ids = (req.body && req.body.shortIds) || [];
+    if (!Array.isArray(ids)) ids = [];
+    ids = ids.map(String).slice(0, 1000);
+    if (!ids.length) return res.json({});
+    const coll = await getCollection(COLLECTIONS.ticketActivity);
+    const rows = await coll.find({ _id: { $in: ids } }).toArray();
+    const out = {};
+    for (const r of rows) out[r._id] = { at: r.lastActivityAt, by: r.lastActivityBy || '', type: r.lastActivityType || '' };
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load ticket activity.' });
+  }
+});
+
 // GET the comment log for a ticket (logged-in). Oldest first (append-only history).
 app.get('/api/tickets/:shortId/comments', requireRole('user'), async (req, res) => {
   try {
@@ -1414,6 +1447,7 @@ app.post('/api/tickets/:shortId/comments', requireRole('user'), async (req, res)
     const now = new Date().toISOString();
     const coll = await getCollection(COLLECTIONS.comments);
     const r = await coll.insertOne({ shortId, text, user: req.user.username, role: req.user.role, at: now });
+    await recordTicketActivity(shortId, req.user.username, 'comment');
     res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not add comment.' });
@@ -1438,6 +1472,7 @@ app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, 
     const now = new Date().toISOString();
     const coll = await getCollection(COLLECTIONS.incidentLogs);
     const r = await coll.insertOne({ shortId, text, user: req.user.username, role: req.user.role, at: now });
+    await recordTicketActivity(shortId, req.user.username, 'incident-log');
     res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not add incident log.' });
@@ -1468,6 +1503,7 @@ app.put('/api/incident-log/:id', requireRole('user'), async (req, res) => {
       return res.status(403).json({ error: 'You can only edit your own incident logs.' });
     }
     await coll.updateOne({ _id: existing._id }, { $set: { text, editedAt: new Date().toISOString() } });
+    await recordTicketActivity(existing.shortId, req.user.username, 'incident-log-edit');
     res.json({ ok: true, id: String(existing._id), text });
   } catch (e) {
     res.status(500).json({ error: 'Could not update the incident log.' });
@@ -1484,6 +1520,7 @@ app.delete('/api/incident-log/:id', requireRole('user'), async (req, res) => {
       return res.status(403).json({ error: 'You can only delete your own incident logs.' });
     }
     await coll.deleteOne({ _id: existing._id });
+    await recordTicketActivity(existing.shortId, req.user.username, 'incident-log-delete');
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete the incident log.' });
