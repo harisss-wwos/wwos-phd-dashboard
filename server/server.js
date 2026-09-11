@@ -710,6 +710,67 @@ app.get('/api/blurbs', async (req, res) => {
 
 // Record a copy of a blurb (logged-in only). Atomically increments the shared global count AND
 // upserts a per-user tally (user + blurbId) for the owner-visible breakdown. Returns the new count.
+// ---- Copy-count persistence across delete + re-add ----
+// Copy counts live on the item doc (copyCount) + per-user tallies keyed by the item _id. A plain
+// edit keeps the same _id (count preserved), but delete+re-add makes a NEW _id, orphaning the count.
+// To preserve it, on delete we stash the count + per-user tallies keyed by a stable content
+// signature; on (re-)create we restore them onto the new doc if a matching stash exists.
+// Content signatures (case-normalized): blurb=title|text, hashtag=tag, paging=code.
+function copySig(kind, doc) {
+  const norm = (s) => String(s == null ? '' : s).trim().toLowerCase();
+  if (kind === 'blurb') return norm(doc.title) + '\u0001' + norm(doc.text);
+  if (kind === 'hashtag') return norm(doc.tag);
+  if (kind === 'paging') return norm(doc.code);
+  return '';
+}
+// On delete: move the item's copyCount + its per-user tally rows into the archive (keyed kind+sig).
+// If an archive already exists for that sig, keep the larger count and merge tallies.
+async function archiveCopyCount(kind, sig, copyCount, tallyCollName, idField, id) {
+  if (!sig) return;
+  try {
+    const tallyColl = await getCollection(tallyCollName);
+    const tallies = await tallyColl.find({ [idField]: String(id) }).toArray();
+    const archive = await getCollection(COLLECTIONS.copyCountArchive);
+    const existing = await archive.findOne({ kind, sig });
+    const mergedTallies = (existing && Array.isArray(existing.tallies)) ? existing.tallies.slice() : [];
+    // Merge new tallies into any existing archived ones (sum per user).
+    tallies.forEach((t) => {
+      const prev = mergedTallies.find((x) => x.user === t.user);
+      if (prev) { prev.count = (prev.count || 0) + (t.count || 0); if ((t.lastAt || '') > (prev.lastAt || '')) prev.lastAt = t.lastAt; }
+      else mergedTallies.push({ user: t.user, role: t.role || '', count: t.count || 0, lastAt: t.lastAt || null });
+    });
+    const bestCount = Math.max(copyCount || 0, (existing && existing.copyCount) || 0);
+    await archive.updateOne({ kind, sig }, { $set: { kind, sig, copyCount: bestCount, tallies: mergedTallies, at: new Date().toISOString() } }, { upsert: true });
+    // Remove the now-stale per-user tally rows for the deleted item.
+    await tallyColl.deleteMany({ [idField]: String(id) });
+  } catch (e) { /* archiving must never block the delete */ }
+}
+// On create: if an archived count matches this content, restore copyCount onto the new doc and
+// re-create the per-user tally rows pointing at the new _id; then clear the archive entry.
+// Returns the restored copyCount (0 if none).
+async function restoreCopyCount(kind, sig, itemCollName, tallyCollName, idField, newId, tallySetFields) {
+  if (!sig) return 0;
+  try {
+    const archive = await getCollection(COLLECTIONS.copyCountArchive);
+    const stash = await archive.findOne({ kind, sig });
+    if (!stash) return 0;
+    const itemColl = await getCollection(itemCollName);
+    await itemColl.updateOne({ _id: newId }, { $set: { copyCount: stash.copyCount || 0 } });
+    if (Array.isArray(stash.tallies) && stash.tallies.length) {
+      const tallyColl = await getCollection(tallyCollName);
+      for (const t of stash.tallies) {
+        await tallyColl.updateOne(
+          { user: t.user, [idField]: String(newId) },
+          { $set: Object.assign({ count: t.count || 0, role: t.role || '', lastAt: t.lastAt || null }, tallySetFields || {}) },
+          { upsert: true }
+        );
+      }
+    }
+    await archive.deleteOne({ _id: stash._id });
+    return stash.copyCount || 0;
+  } catch (e) { return 0; }
+}
+
 app.post('/api/blurbs/:id/copy', requireRole('user'), async (req, res) => {
   try {
     let _id;
@@ -751,6 +812,8 @@ app.post('/api/blurbs', requireRole('admin'), async (req, res) => {
     const order = last.length && typeof last[0].order === 'number' ? last[0].order + 1 : 1;
     const doc = { title, text, createdBy: req.user.username, createdAt: now, updatedBy: req.user.username, updatedAt: now, order };
     const r = await coll.insertOne(doc);
+    // Restore any copy count stashed when a blurb with identical title+text was previously deleted.
+    await restoreCopyCount('blurb', copySig('blurb', { title, text }), COLLECTIONS.blurbs, COLLECTIONS.blurbCopies, 'blurbId', r.insertedId, { blurbTitle: title });
     try {
       const logColl = await getCollection(COLLECTIONS.blurbLog);
       await logColl.insertOne({ action: 'create', blurbId: String(r.insertedId), title, user: req.user.username, role: req.user.role, at: now, after: { title, text } });
@@ -792,6 +855,8 @@ app.delete('/api/blurbs/:id', requireRole('admin'), async (req, res) => {
     const coll = await getCollection(COLLECTIONS.blurbs);
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
     if (!existing) return res.status(404).json({ error: 'Blurb not found.' });
+    // Stash the copy count so a later re-add of the same blurb restores it.
+    await archiveCopyCount('blurb', copySig('blurb', existing), existing.copyCount || 0, COLLECTIONS.blurbCopies, 'blurbId', existing._id);
     await coll.deleteOne({ _id: existing._id });
     try {
       const logColl = await getCollection(COLLECTIONS.blurbLog);
@@ -897,6 +962,8 @@ app.post('/api/hashtags', requireRole('admin'), async (req, res) => {
     const order = last.length && typeof last[0].order === 'number' ? last[0].order + 1 : 1;
     const doc = { tag, desc, createdBy: req.user.username, createdAt: now, updatedBy: req.user.username, updatedAt: now, order };
     const r = await coll.insertOne(doc);
+    // Restore any copy count stashed when a hashtag with the same tag was previously deleted.
+    await restoreCopyCount('hashtag', copySig('hashtag', { tag }), COLLECTIONS.hashtags, COLLECTIONS.hashtagCopies, 'hashtagId', r.insertedId, { tag });
     try {
       const logColl = await getCollection(COLLECTIONS.hashtagLog);
       await logColl.insertOne({ action: 'create', hashtagId: String(r.insertedId), tag, user: req.user.username, role: req.user.role, at: now, after: { tag, desc } });
@@ -938,6 +1005,8 @@ app.delete('/api/hashtags/:id', requireRole('admin'), async (req, res) => {
     const coll = await getCollection(COLLECTIONS.hashtags);
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
     if (!existing) return res.status(404).json({ error: 'Hashtag not found.' });
+    // Stash the copy count so a later re-add of the same tag restores it.
+    await archiveCopyCount('hashtag', copySig('hashtag', existing), existing.copyCount || 0, COLLECTIONS.hashtagCopies, 'hashtagId', existing._id);
     await coll.deleteOne({ _id: existing._id });
     try {
       const logColl = await getCollection(COLLECTIONS.hashtagLog);
@@ -1031,6 +1100,8 @@ app.post('/api/paging', requireRole('admin'), async (req, res) => {
     const last = await coll.find({}).sort({ order: -1 }).limit(1).toArray();
     const order = last.length && typeof last[0].order === 'number' ? last[0].order + 1 : 1;
     const r = await coll.insertOne({ country, code, email, createdBy: req.user.username, createdAt: now, order });
+    // Restore any copy count stashed when a paging contact with the same code was previously deleted.
+    await restoreCopyCount('paging', copySig('paging', { code }), COLLECTIONS.paging, COLLECTIONS.pagingCopies, 'pagingId', r.insertedId, { label: [country, code].filter(Boolean).join(' \u00b7 '), email });
     try {
       const logColl = await getCollection(COLLECTIONS.pagingLog);
       await logColl.insertOne({ action: 'create', pagingId: String(r.insertedId), country, code, user: req.user.username, role: req.user.role, at: now, after: { country, code, email } });
@@ -1077,6 +1148,8 @@ app.delete('/api/paging/:id', requireRole('admin'), async (req, res) => {
     const coll = await getCollection(COLLECTIONS.paging);
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
     if (!existing) return res.status(404).json({ error: 'Paging contact not found.' });
+    // Stash the copy count so a later re-add of the same code restores it.
+    await archiveCopyCount('paging', copySig('paging', existing), existing.copyCount || 0, COLLECTIONS.pagingCopies, 'pagingId', existing._id);
     await coll.deleteOne({ _id: existing._id });
     try {
       const logColl = await getCollection(COLLECTIONS.pagingLog);

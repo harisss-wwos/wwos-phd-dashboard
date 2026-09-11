@@ -26,6 +26,7 @@ const COLLECTIONS = {
   comments: 'comments',    // per-ticket comments (My Tickets)
   incidentLogs: 'incident_logs', // per-ticket incident logs (final mitigation + hashtags), My Tickets
   ticketActivity: 'ticket_activity', // per-ticket last app-activity (comment/log add/edit/delete) — our own reference, separate from CSV timestamps
+  copyCountArchive: 'copy_count_archive', // stashed copy counts (+ per-user tallies) for deleted blurbs/hashtags/paging, so a delete+re-add restores the count
   importantCases: 'important_cases', // admin "mark important" notes + links per ticket (Unique Cases)
   importantCasesLog: 'important_cases_log', // audit log of mark/update actions on unique cases
   helpRequests: 'help_requests', // editor "ask for help" threads

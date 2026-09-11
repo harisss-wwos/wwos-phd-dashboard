@@ -28,7 +28,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .tools-subnav a.active{color:var(--o);border-bottom-color:var(--o)}
 .btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
-.wrap{width:80%;max-width:1200px;margin:0 auto;padding:40px 24px}
+.wrap{width:90%;max-width:1400px;margin:0 auto;padding:40px 24px}
 h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
 /* Header row: title left, actions right */
@@ -36,19 +36,26 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .page-head h1{margin:0}
 .page-head-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 /* Stacked list of expandable, click-to-copy blurb cards */
-.blurb-list{display:flex;flex-direction:column;gap:14px}
-.blurb-card{position:relative;background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s,background .15s}
+.blurb-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start}
+@media(max-width:760px){.blurb-list{grid-template-columns:1fr}}
+.blurb-card{position:relative;background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;padding:16px 18px;transition:border-color .15s,background .15s}
 .blurb-card:hover{border-color:var(--o);background:#0d0d0d}
-.bc-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.bc-title{color:#fff;font-weight:600;font-size:1.02em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* View toggle button */
+.bc-view{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--bd);background:transparent;color:var(--t);flex-shrink:0}
+.bc-view:hover{border-color:var(--o);color:var(--o)}
+.blurb-card.show .bc-view{border-color:var(--o);color:var(--o)}
+.bc-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.bc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.bc-title{color:#fff;font-weight:600;font-size:1.02em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;flex:1}
+.bc-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .bc-count{display:inline-flex;align-items:center;gap:4px;background:rgba(255,153,0,.14);color:var(--o);border-radius:20px;padding:2px 9px;font-size:.72em;font-weight:700;flex-shrink:0}
 .bc-count svg{width:12px;height:12px}
 .bc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--o);background:var(--o);color:#000;flex-shrink:0}
 .bc-copy:hover{filter:brightness(1.08)}
 .bc-copy.copied{background:var(--gl);border-color:var(--gl);color:#000}
-/* Content: hidden by default, revealed on hover (or when .show for touch) */
+/* Content: hidden by default, revealed only when the card is expanded via the View button (.show) */
 .bc-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease;margin-top:0}
-.blurb-card:hover .bc-content,.blurb-card.show .bc-content{max-height:600px;opacity:1;margin-top:12px}
+.blurb-card.show .bc-content{max-height:600px;opacity:1;margin-top:12px}
 .bc-content .bc-text{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;border-top:1px solid var(--bd);padding-top:12px}
 .bc-content .bc-hash{color:#44b9d6;font-size:.85em;margin-top:8px}
 .bc-admin{display:flex;gap:8px;margin-top:12px}
@@ -163,12 +170,26 @@ const canEdit=()=>A.atLeast&&A.atLeast('admin');
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
+// Browser cache (stale-while-revalidate) — this data changes rarely, so paint instantly from the
+// last-known copy and refresh in the background.
+const CACHE_KEY='phd_blurbs_cache';
+function readCache(){try{const raw=localStorage.getItem(CACHE_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}}
+function writeCache(arr){try{localStorage.setItem(CACHE_KEY,JSON.stringify(arr));}catch(e){}}
+
 async function load(){
   if(canEdit()){var _ll=document.getElementById('logLink');if(_ll)_ll.style.display='';}
+  // Instant paint from cache if present.
+  let paintedFromCache=false;
+  const cached=readCache();
+  if(Array.isArray(cached)&&cached.length){BLURBS=cached;render();paintedFromCache=true;}
+  // Background refresh.
   const r=await A.api('GET','/api/blurbs');
-  if(!r.ok){document.getElementById('wrap').innerHTML='<h1>Common Blurbs</h1><p class="sub" style="color:#ff5252">Could not load blurbs (HTTP '+r.status+').</p>';return;}
-  BLURBS=Array.isArray(r.data)?r.data:[];
-  render();
+  if(!r.ok){ if(!paintedFromCache)document.getElementById('wrap').innerHTML='<h1>Common Blurbs</h1><p class="sub" style="color:#ff5252">Could not load blurbs (HTTP '+r.status+').</p>'; return; }
+  const fresh=Array.isArray(r.data)?r.data:[];
+  writeCache(fresh);
+  const changed=JSON.stringify(fresh)!==JSON.stringify(BLURBS);
+  BLURBS=fresh;
+  if(!paintedFromCache||changed)render();
 }
 
 function render(){
@@ -182,10 +203,13 @@ function render(){
   html+='<p class="sub">Copy a blurb with one click.'+(editor?' As an admin you can edit any blurb or add a new one.':'')+'</p>';
   // Expandable, click-to-copy cards. Hover reveals the content; clicking the card copies it.
   html+=`<div class="blurb-list">`+BLURBS.map((b,i)=>`
-    <div class="blurb-card" id="card-${i}" onclick="copyBlurb(${i},event)" title="Click to copy">
+    <div class="blurb-card" id="card-${i}">
       <div class="bc-head">
-        <span class="bc-title"><span class="bc-count" id="count-${i}" title="Times copied">${copyIcon}<span class="bc-count-n">${b.copyCount||0}</span></span> ${esc(b.title)}</span>
-        <button class="bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i},event)" title="Copy this blurb">${copyIcon}<span>Copy</span></button>
+        <span class="bc-title"><span class="bc-count" id="count-${i}" title="Times copied">${copyIcon}<span class="bc-count-n">${b.copyCount||0}</span></span> <span class="bc-name" title="${esc(b.title)}">${esc(b.title)}</span></span>
+        <div class="bc-actions">
+          <button class="bc-view" id="viewCard-${i}" onclick="toggleView(${i},event)" title="Show / hide the blurb text"><span>View</span></button>
+          <button class="bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i},event)" title="Copy this blurb">${copyIcon}<span>Copy</span></button>
+        </div>
       </div>
       <div class="bc-content">
         <div class="bc-text">${esc(b.text)}</div>
@@ -195,7 +219,21 @@ function render(){
   document.getElementById('wrap').innerHTML=html;
 }
 
-// Copy a blurb (clicking anywhere on the card, or the Copy button). Stops the click from bubbling.
+// Expand/collapse a card's content via the View button. Accordion: only one open at a time.
+function toggleView(i,ev){
+  if(ev)ev.stopPropagation();
+  const card=document.getElementById('card-'+i);
+  if(!card)return;
+  const willOpen=!card.classList.contains('show');
+  // Close every other open card first.
+  document.querySelectorAll('.blurb-card.show').forEach(c=>{
+    if(c!==card){c.classList.remove('show');const b=c.querySelector('.bc-view span');if(b)b.textContent='View';}
+  });
+  card.classList.toggle('show',willOpen);
+  const label=card.querySelector('.bc-view span');if(label)label.textContent=willOpen?'Hide':'View';
+}
+
+// Copy a blurb (the Copy button). Stops the click from bubbling.
 function copyBlurb(i,ev){
   if(ev)ev.stopPropagation();
   const text=BLURBS[i].text;
