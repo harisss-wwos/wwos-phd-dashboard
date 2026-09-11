@@ -1881,6 +1881,8 @@ async function maybeHandlePendingUpload(){
   }
   // Nothing cached to paint -> show the shell/spinner so the screen is never blank.
   if(!paintedFromCache)paintInitialLoading();
+  // Painted stale cache -> show the "fetching the latest" banner while we version-check + refresh.
+  if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.show();
 
   // Fetch the role roster + my profile (avatar) so the header renders correctly. If we already
   // painted from cache, re-render the top bar once these resolve (avatar/role badge/nav gating).
@@ -1901,6 +1903,7 @@ async function maybeHandlePendingUpload(){
       if(fresh){
         // Nothing changed since last visit. If we already painted from cache, we're done.
         if(!paintedFromCache)await renderFromLocal(version.publishedAt);
+        if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); // cache was current
         applyInitialView();
         return;
       }
@@ -1908,17 +1911,19 @@ async function maybeHandlePendingUpload(){
       // background (no shimmer) and swap in the fresh render; otherwise fetch with the shimmer.
       const ok=await refreshFromServer(/*showShimmer*/ !paintedFromCache);
       if(!ok && !paintedFromCache)renderUpload();
+      if(paintedFromCache&&window.PHDRefreshBanner){ ok?window.PHDRefreshBanner.updated('Dashboard updated with the latest data.'):window.PHDRefreshBanner.hide(); }
       applyInitialView();
       return;
     }
 
     // Version check failed (offline / server unreachable): keep whatever we painted from cache.
+    if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide();
     if(paintedFromCache || localCount>0){ if(!paintedFromCache)await renderFromLocal(cache?cache.publishedAt:null); applyInitialView(); return; }
     // No cache and no server -> last resort: try a full fetch with shimmer, else upload screen.
     const ok=await refreshFromServer(true);
     if(!ok)renderUpload(); else applyInitialView();
   }catch(e){
-    if(paintedFromCache){ applyInitialView(); return; }
+    if(paintedFromCache){ if(window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); applyInitialView(); return; }
     try{ if(await renderFromLocal(null))return; }catch(_){}
     renderUpload();
   }

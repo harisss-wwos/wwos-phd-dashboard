@@ -63,20 +63,27 @@ window.PHDAuth = {
     var cached = this._cacheRead(opts.key);
     var painted = false;
     var curVersion = (typeof opts.version === 'undefined') ? undefined : opts.version;
+    var banner = window.PHDRefreshBanner;
     // Serve cache instantly when: no version required, OR the stored version still matches.
     if (cached && cached.data != null) {
       var versionOk = (typeof curVersion === 'undefined') || curVersion === null || cached.version === curVersion;
-      if (versionOk) { try { opts.onData(cached.data, true); painted = true; } catch (e) {} }
+      if (versionOk) {
+        try { opts.onData(cached.data, true); painted = true; } catch (e) {}
+        // We painted stale cache -> tell the user we're fetching the latest.
+        if (painted && banner) { try { banner.show(opts.refreshMsg); } catch (e) {} }
+      }
     }
     // Background refresh.
     var res;
     try { res = await opts.fetch(); } catch (e) { res = null; }
-    if (!res || !res.ok) { return { painted: painted, ok: false, status: res ? res.status : 0, data: res ? res.data : null }; }
+    if (!res || !res.ok) { if (painted && banner) { try { banner.hide(); } catch (e) {} } return { painted: painted, ok: false, status: res ? res.status : 0, data: res ? res.data : null }; }
     var fresh = res.data;
     var ver = (typeof curVersion === 'undefined') ? (cached && cached.version) || null : curVersion;
     this._cacheWrite(opts.key, ver, fresh);
     var changed = !cached || JSON.stringify(cached.data) !== JSON.stringify(fresh);
     if (!painted || changed) { try { opts.onData(fresh, false); } catch (e) {} }
+    // Resolve the banner: flash "Updated" if the data changed, else just clear it.
+    if (painted && banner) { try { changed ? banner.updated(opts.updatedMsg) : banner.hide(); } catch (e) {} }
     return { painted: true, ok: true, status: res.status, data: fresh };
   },
   // ---- Loading shimmer skeletons (shown while fetching from Atlas) ----

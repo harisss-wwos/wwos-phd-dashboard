@@ -10,17 +10,19 @@ async function dbPut(key,metrics,name,publishedAt){const db=await openDB();retur
 // Background revalidation for a cached quarter: fetch fresh, and if the quarter's publishedAt
 // changed since we cached it, recompute + re-cache + silently re-render.
 async function quarterRevalidate(qid,cacheKey,cachedPublishedAt){
+  const banner=window.PHDRefreshBanner;
   try{
     const r=await window.PHDAuth.api('GET','/api/quarter/'+encodeURIComponent(qid));
-    if(!r.ok||!r.data)return;
+    if(!r.ok||!r.data){ if(banner)banner.hide(); return; }
     const publishedAt=(r.data.meta&&r.data.meta.publishedAt)||null;
-    if((publishedAt||null)===(cachedPublishedAt||null))return; // unchanged -> keep the instant cache
+    if((publishedAt||null)===(cachedPublishedAt||null)){ if(banner)banner.hide(); return; } // unchanged -> keep the instant cache
     const tickets=(r.data.data&&r.data.data.tickets)||[];
     const metrics=window.QuarterMetrics.compute(tickets,r.data.range||null);
     const name=(r.data.label||qid);
     try{ dbPut(cacheKey,metrics,name,publishedAt); }catch(e){}
     render(metrics,name,'quarter'); // silent swap to the fresh data
-  }catch(e){/* offline / cold -> keep the cached view */}
+    if(banner)banner.updated('Updated with the latest data.');
+  }catch(e){ if(banner)banner.hide(); /* offline / cold -> keep the cached view */ }
 }
 
 function qparam(k){return new URLSearchParams(location.search).get(k);}
@@ -45,7 +47,8 @@ async function loadMetrics(){
     let cachedRec=null;
     try{ cachedRec=await Promise.race([dbGet(cacheKey),new Promise(r=>setTimeout(()=>r(null),1200))]); }catch(e){}
     if(cachedRec&&cachedRec.metrics){
-      // Instant paint from cache; revalidate in the background.
+      // Instant paint from cache; revalidate in the background (with the shared refresh banner).
+      if(window.PHDRefreshBanner)window.PHDRefreshBanner.show();
       quarterRevalidate(qid,cacheKey,cachedRec.publishedAt||null);
       return {metrics:cachedRec.metrics,name:cachedRec.name,ds:'quarter'};
     }

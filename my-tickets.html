@@ -234,14 +234,16 @@ async function load(){
     MY_HELP=cached.help||{};
     render();
     paintedFromCache=true;
+    // Painted stale cache -> show the "fetching the latest" banner while we refresh below.
+    if(window.PHDRefreshBanner)window.PHDRefreshBanner.show();
   }
 
   // BACKGROUND REFRESH: pull fresh data from the server.
   // Load the user's preferred timezone (IST/MST) first so the table renders in one zone.
   try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
-  if(r.status===401){ if(!paintedFromCache)gate('Session expired. Please log in again.'); return; }
-  if(!r.ok){ if(!paintedFromCache)gate('Could not load your tickets (HTTP '+r.status+').'); return; }
+  if(r.status===401){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Session expired. Please log in again.'); return; }
+  if(!r.ok){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Could not load your tickets (HTTP '+r.status+').'); return; }
   TICKETS=(r.data&&r.data.tickets)||[];
   // Load my help requests (for editors) to show inline threads + statuses.
   MY_HELP={};
@@ -254,6 +256,8 @@ async function load(){
   const changed=!cached||JSON.stringify(cached.tickets)!==JSON.stringify(TICKETS)||JSON.stringify(cached.help||{})!==JSON.stringify(MY_HELP)||cached.tz!==MY_TZ;
   writeCache(fresh);
   if(!paintedFromCache||changed)render();
+  // Resolve the banner: flash "Updated" if something changed, else clear it.
+  if(paintedFromCache&&window.PHDRefreshBanner){ changed?window.PHDRefreshBanner.updated('Your tickets are up to date.'):window.PHDRefreshBanner.hide(); }
 }
 
 // Inline help thread block for a ticket (editor view).

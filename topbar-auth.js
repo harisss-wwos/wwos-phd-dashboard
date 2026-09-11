@@ -103,6 +103,24 @@
       + '.tb-hist-item svg{width:15px;height:15px;flex-shrink:0;color:#879596}'
       + '.tb-hist-item .tb-hist-name{overflow:hidden;text-overflow:ellipsis}'
       + '.tb-hist-empty{color:#5f6b6c;font-size:.82em;font-style:italic;padding:8px 10px}'
+      // ---- "Refreshing cached data" banner (just under the top bar; slides in) ----
+      + '.tb-refresh{position:sticky;top:53px;z-index:95;display:flex;align-items:center;gap:12px;justify-content:center;'
+        + 'padding:10px 18px;font-size:.86em;font-weight:600;color:#ffcf8a;'
+        + 'background:linear-gradient(90deg,rgba(255,153,0,.14),rgba(255,153,0,.07));'
+        + 'border-bottom:1px solid rgba(255,153,0,.35);'
+        + 'max-height:0;padding-top:0;padding-bottom:0;overflow:hidden;opacity:0;'
+        + 'transition:max-height .3s ease,opacity .25s ease,padding .3s ease,color .3s ease,background .3s ease}'
+      + '.tb-refresh.show{max-height:64px;padding-top:10px;padding-bottom:10px;opacity:1}'
+      + '.tb-refresh .tb-rf-ic{width:18px;height:18px;flex-shrink:0;display:inline-flex}'
+      + '.tb-refresh .tb-rf-ic svg{width:18px;height:18px;animation:tbrfspin 1s linear infinite}'
+      + '.tb-refresh .tb-rf-dot{width:9px;height:9px;border-radius:50%;background:#ff9900;box-shadow:0 0 8px #ff9900;animation:tbrfpulse 1.1s ease-in-out infinite;flex-shrink:0}'
+      + '.tb-refresh .tb-rf-msg{line-height:1.3}'
+      + '.tb-refresh.done{color:#4ade80;background:linear-gradient(90deg,rgba(74,222,128,.16),rgba(74,222,128,.06));border-bottom-color:rgba(74,222,128,.4)}'
+      + '.tb-refresh.done .tb-rf-ic svg{animation:none}'
+      + '.tb-refresh.done .tb-rf-dot{background:#4ade80;box-shadow:0 0 8px #4ade80;animation:none}'
+      + '@keyframes tbrfspin{100%{transform:rotate(360deg)}}'
+      + '@keyframes tbrfpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}'
+      + '@media(max-width:920px){.tb-refresh{top:52px;font-size:.8em;gap:9px;padding-left:12px;padding-right:12px}}'
       // ---- Shared responsive guard (kills x-axis scroll; applies on every page) ----
       + 'html,body{max-width:100%;overflow-x:hidden}'
       + '*{box-sizing:border-box}'
@@ -251,6 +269,55 @@
     rightControlsHtml: rightControlsHtml,
     refreshRight: function () { var s = document.getElementById('tbAuth'); if (s) s.innerHTML = rightControlsHtml(); }
   };
+
+  // ---- Shared "refreshing cached data" banner (just under the top bar) ----
+  // Pages that paint from cache call show() immediately, then updated() (data changed) or hide()
+  // (nothing changed / not from cache) once the background refresh resolves.
+  (function () {
+    var _syncIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+    var _checkIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    var _hideTimer = null;
+    function el() {
+      var e = document.getElementById('tbRefreshBar');
+      if (e) return e;
+      e = document.createElement('div');
+      e.id = 'tbRefreshBar';
+      e.className = 'tb-refresh';
+      e.setAttribute('role', 'status');
+      e.setAttribute('aria-live', 'polite');
+      // Insert right after the top bar so it sits directly beneath the title bar.
+      var bar = document.querySelector('.tb-topbar');
+      if (bar && bar.parentNode) bar.parentNode.insertBefore(e, bar.nextSibling);
+      else document.body.insertBefore(e, document.body.firstChild);
+      return e;
+    }
+    window.PHDRefreshBanner = {
+      show: function (msg) {
+        if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
+        var e = el();
+        e.classList.remove('done');
+        e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _syncIc + '</span>'
+          + '<span class="tb-rf-msg">' + (msg || 'Showing your last saved view \u2014 fetching the latest data. Please hold on a moment\u2026') + '</span>';
+        // force reflow so the transition plays
+        void e.offsetWidth;
+        e.classList.add('show');
+      },
+      updated: function (msg) {
+        var e = document.getElementById('tbRefreshBar');
+        if (!e) return;
+        e.classList.add('done');
+        e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _checkIc + '</span>'
+          + '<span class="tb-rf-msg">' + (msg || 'Updated with the latest data.') + '</span>';
+        if (_hideTimer) clearTimeout(_hideTimer);
+        _hideTimer = setTimeout(function () { window.PHDRefreshBanner.hide(); }, 2600);
+      },
+      hide: function () {
+        var e = document.getElementById('tbRefreshBar');
+        if (!e) return;
+        e.classList.remove('show');
+      }
+    };
+  })();
 
   // Full-page loader (reuses .tb-loader). msg optional.
   window.tbShowLoader = function (msg) {
