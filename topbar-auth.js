@@ -316,13 +316,14 @@
       if (q && liveQ && q !== liveQ) { nonLive.push(nr); return; }
       var old = storedMap[String(nr.ShortId)];
       if (!old) { changed.push(nr); zNew++; return; }        // new live ticket -> add whole
-      // Only a strictly-greater LastUpdatedDate counts as "newer".
+      // Not-older = file LastUpdatedDate >= stored. (Equal is allowed so a status change that didn't
+      // bump the timestamp — e.g. a resolution — still applies. An OLDER file row is ignored.)
       var a = lud(nr.LastUpdatedDate), b = lud(old.LastUpdatedDate);
-      var newer = (a != null) && (b == null || a > b);
-      if (!newer) return;                                     // not newer -> ignore
-      xNewer++;
+      var notOlder = (a != null) && (b == null || a >= b);
+      if (!notOlder) return;                                  // older -> ignore
       var fieldChanged = TB_MERGE_FIELDS.some(function (f) { return String(nr[f] == null ? '' : nr[f]) !== String(old[f] == null ? '' : old[f]); });
-      if (!fieldChanged) return;                              // newer but no field change -> ignore
+      if (!fieldChanged) return;                              // no field change -> ignore (nothing to update)
+      xNewer++;                                               // has newer-or-equal data AND a real change
       // Update: overwrite the 10 fields + refresh all 3 timestamps; keep other stored fields.
       var merged = {}; for (var k in old) merged[k] = old[k];
       TB_MERGE_FIELDS.forEach(function (f) { merged[f] = nr[f]; });
