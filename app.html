@@ -20,8 +20,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo-link{text-decoration:none;cursor:pointer;transition:opacity .15s}
 .logo-link:hover{opacity:.82}
 .live-badge{font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 12px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;animation:livepulse 2s ease-in-out infinite}
-.live-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80}
+.live-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:liveblink 1s steps(1,end) infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.62}}
+@keyframes liveblink{0%,49%{opacity:1;box-shadow:0 0 8px 2px #4ade80}50%,100%{opacity:.25;box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 /* Second row: toolbar holding all nav + action buttons */
 /* Two explicit rows: nav on line 1, action buttons on line 2. */
 .toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;flex-direction:column;align-items:stretch;gap:10px;position:sticky;top:53px;z-index:99}

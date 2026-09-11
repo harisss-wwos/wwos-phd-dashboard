@@ -87,6 +87,9 @@ function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open
 // Cache metadata: which live quarter + its publishedAt is currently stored in the tickets store.
 async function metaGet(key){const db=await openDB();return new Promise((resolve)=>{try{const tx=db.transaction(META_STORE,'readonly');const req=tx.objectStore(META_STORE).get(key);req.onsuccess=()=>resolve(req.result?req.result.value:null);req.onerror=()=>resolve(null);}catch(e){resolve(null);}});}
 async function metaSet(key,value){const db=await openDB();return new Promise((resolve)=>{try{const tx=db.transaction(META_STORE,'readwrite');tx.objectStore(META_STORE).put({key,value});tx.oncomplete=()=>resolve();tx.onerror=()=>resolve();}catch(e){resolve();}});}
+// Delete every cached-metrics entry (key prefixed 'metrics:') except keepKey, so the meta store
+// doesn't accumulate one stale metrics blob per historical publish.
+async function metaPruneMetrics(keepKey){const db=await openDB();return new Promise((resolve)=>{try{const tx=db.transaction(META_STORE,'readwrite');const store=tx.objectStore(META_STORE);const req=store.getAllKeys();req.onsuccess=()=>{try{(req.result||[]).forEach(k=>{if(typeof k==='string'&&k.indexOf('metrics:')===0&&k!==keepKey)store.delete(k);});}catch(e){}};tx.oncomplete=()=>resolve();tx.onerror=()=>resolve();}catch(e){resolve();}});}
 async function dbGetAll(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});}
 async function dbPutAll(rows){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');const store=tx.objectStore(STORE);rows.forEach(r=>store.put(r));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function dbClear(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
@@ -1192,7 +1195,7 @@ function renderDashboardShell(){
   const chartBox=(title,tall)=>`<div class="chart-box"><h3>${title}</h3><div class="chart-wrap${tall?' tall':''}">${csp}</div></div>`;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-    <h1 style="margin:0">Q3 2026</h1>
+    <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
     ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
@@ -1286,7 +1289,7 @@ function renderDashboard(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-    <h1 style="margin:0">Q3 2026</h1>
+    <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
     ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
@@ -1738,12 +1741,31 @@ async function fetchLiveQuarterVersion(){
 
 // Render the dashboard from whatever is currently in the local tickets store.
 async function renderFromLocal(uploadTimeIso){
+  // Fast path: reuse previously-computed metrics for this exact dataset version so we skip the
+  // heavy computeMetrics() pass over ~8k rows on repeat loads. Keyed by publishedAt.
+  const metricsKey=uploadTimeIso||null;
+  if(metricsKey){
+    try{
+      const cachedM=await metaGet('metrics:'+metricsKey);
+      if(cachedM){
+        M=cachedM;
+        try{ if(cachedM._dbMaxLastUpdated!=null)window._dbMaxLastUpdated=cachedM._dbMaxLastUpdated; }catch(e){}
+        renderDashboard();
+        return true;
+      }
+    }catch(e){}
+  }
   const allRows=await dbGetAll();
   if(!allRows.length)return false;
   // Track the newest LastUpdatedDate currently live, so the upload confirm can flag a stale file.
-  try{ window._dbMaxLastUpdated=allRows.reduce((m,r)=>{const d=new Date(r.LastUpdatedDate);return(!isNaN(d)&&d.getTime()>m)?d.getTime():m;},0); }catch(e){}
+  let maxLU=0;
+  try{ maxLU=allRows.reduce((m,r)=>{const d=new Date(r.LastUpdatedDate);return(!isNaN(d)&&d.getTime()>m)?d.getTime():m;},0); window._dbMaxLastUpdated=maxLU; }catch(e){}
   M=computeMetrics(allRows);M.totalStored=allRows.length;
   M.uploadTime=uploadTimeIso?new Date(uploadTimeIso).toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+  // Persist the computed metrics for this version so the next load renders without recomputing.
+  if(metricsKey){
+    try{ const toStore=Object.assign({},M,{_dbMaxLastUpdated:maxLU}); await metaSet('metrics:'+metricsKey,toStore); }catch(e){}
+  }
   renderDashboard();
   return true;
 }
@@ -1760,6 +1782,8 @@ async function refreshFromServer(showShimmer){
     await dbPutAll(shared.tickets);
     // Cache the version so future visits can skip the heavy fetch when nothing changed.
     await metaSet('liveCache',{quarter:LIVE_QUARTER?LIVE_QUARTER.quarter:null,publishedAt:shared.updatedAt||null});
+    // Drop stale computed-metrics blobs from previous versions (keep only the current one).
+    try{ await metaPruneMetrics('metrics:'+(shared.updatedAt||'')); }catch(e){}
     await renderFromLocal(shared.updatedAt);
     return true;
   }
@@ -1816,12 +1840,32 @@ async function maybeHandlePendingUpload(){
 
 // ========= INIT ========= (stale-while-revalidate: instant from cache, refresh only if changed)
 (async function init(){
-  // Paint immediately so the screen is never blank. Dashboard -> shell w/ spinners; a deep-linked
-  // view (?view=groups|previous-week|shift-report) -> neutral spinner (avoids the dashboard flash).
-  paintInitialLoading();
-  // Fetch the role roster + my profile (avatar) first so the header renders correctly.
+  // Cross-page upload handoff runs first (needs a full fetch + upload confirm, no cache shortcut).
+  // Peek at the flag synchronously before painting anything.
+  let uploadHandoff=false;
+  try{ uploadHandoff=new URLSearchParams(location.search).get('upload')==='1' && !!sessionStorage.getItem('phdPendingUpload'); }catch(e){}
+
+  // ---- INSTANT PATH ----
+  // Whenever we have ANY local data, render it immediately with NO spinner — before we touch the
+  // network or even the user roster. The header/avatar re-render themselves once roles resolve.
+  let paintedFromCache=false;
+  if(!uploadHandoff){
+    try{
+      const localCount=await dbCount();
+      if(localCount>0){
+        const cache=await metaGet('liveCache');
+        paintedFromCache=await renderFromLocal(cache?cache.publishedAt:null);
+      }
+    }catch(e){}
+  }
+  // Nothing cached to paint -> show the shell/spinner so the screen is never blank.
+  if(!paintedFromCache)paintInitialLoading();
+
+  // Fetch the role roster + my profile (avatar) so the header renders correctly. If we already
+  // painted from cache, re-render the top bar once these resolve (avatar/role badge/nav gating).
   await loadUserRoles();
   if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
+  if(paintedFromCache){ try{ if(window.PHDNav&&window.PHDNav.refreshRight)window.PHDNav.refreshRight(); }catch(e){} }
   // Start background help-request notifications for admins/owner (no-op if not logged in / not admin).
   startHelpNotificationPolling();
   // Cross-page upload handoff: a standalone page stashed a CSV and sent us here with ?upload=1.
@@ -1834,26 +1878,26 @@ async function maybeHandlePendingUpload(){
     if(version){
       const fresh=cache && localCount>0 && cache.quarter===version.liveId && (cache.publishedAt||null)===(version.publishedAt||null);
       if(fresh){
-        // Nothing changed since last visit -> render instantly from cache, no shimmer, no heavy fetch.
-        await renderFromLocal(version.publishedAt);
+        // Nothing changed since last visit. If we already painted from cache, we're done.
+        if(!paintedFromCache)await renderFromLocal(version.publishedAt);
         applyInitialView();
         return;
       }
-      // Cache is stale or empty -> if we have SOME local data, show it instantly while we refresh;
-      // otherwise show the shimmer during the full fetch.
-      const hadLocal = localCount>0 ? await renderFromLocal(cache?cache.publishedAt:null) : false;
-      const ok=await refreshFromServer(/*showShimmer*/ !hadLocal);
-      if(!ok && !hadLocal)renderUpload();
+      // Cache is stale or empty. If we already painted stale cache, refresh silently in the
+      // background (no shimmer) and swap in the fresh render; otherwise fetch with the shimmer.
+      const ok=await refreshFromServer(/*showShimmer*/ !paintedFromCache);
+      if(!ok && !paintedFromCache)renderUpload();
       applyInitialView();
       return;
     }
 
-    // Version check failed (offline / server unreachable): fall back to local cache if present.
-    if(localCount>0){ await renderFromLocal(cache?cache.publishedAt:null); applyInitialView(); return; }
+    // Version check failed (offline / server unreachable): keep whatever we painted from cache.
+    if(paintedFromCache || localCount>0){ if(!paintedFromCache)await renderFromLocal(cache?cache.publishedAt:null); applyInitialView(); return; }
     // No cache and no server -> last resort: try a full fetch with shimmer, else upload screen.
     const ok=await refreshFromServer(true);
     if(!ok)renderUpload(); else applyInitialView();
   }catch(e){
+    if(paintedFromCache){ applyInitialView(); return; }
     try{ if(await renderFromLocal(null))return; }catch(_){}
     renderUpload();
   }

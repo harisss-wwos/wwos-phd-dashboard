@@ -38,14 +38,20 @@
       + '.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}'
       + '.tb-avatar{display:inline-flex;align-items:center;text-decoration:none}'
       + '.tb-avatar img,.tb-avatar .avatar-initial{border-radius:50%}'
+      // role badge (pill) shown to the LEFT of the avatar for logged-in users
+      + '.tb-role{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;line-height:1;border:1px solid #2a2a2a;background:#1a2230;color:#9fb0c3;white-space:nowrap}'
+      + '.tb-role-owner{background:#2a1d10;color:#f0b45a;border-color:#5a3d18}'
+      + '.tb-role-admin{background:#101f2a;color:#57b6e6;border-color:#1c3d52}'
+      + '.tb-role-manager{background:#1a1030;color:#b087f0;border-color:#392561}'
+      + '.tb-role-editor{background:#0f1f14;color:#4ade80;border-color:#1c4029}'
       + '.tb-spinner{display:inline-block;width:30px;height:30px;border:3px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin .8s linear infinite}'
       + '@keyframes tbspin{100%{transform:rotate(360deg)}}'
       // hamburger dropdown menu (collapsible) — FULL WIDTH across the page at all sizes, items centered
       // Slides down on open / up on close (animated via transform + opacity + max-height).
       // OUTER: full-width, flush under the top bar (no side gaps) — looks like the bar expanding down.
       // Animates height only; ALWAYS overflow:hidden so no scrollbar flashes during the slide.
-      + '.tb-menu{position:fixed;top:53px;left:0;right:0;z-index:99;background:#121820;border-bottom:1px solid #2a2a2a;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:0;overflow:hidden;opacity:1;transform:none;pointer-events:none;transition:max-height .3s ease}'
-      + '.tb-menu.open{max-height:85vh;pointer-events:auto}'
+      + '.tb-menu{position:fixed;top:53px;left:0;right:0;z-index:99;background:#121820;border-bottom:0 solid #2a2a2a;box-shadow:none;max-height:0;overflow:hidden;opacity:1;transform:none;pointer-events:none;transition:max-height .3s ease}'
+      + '.tb-menu.open{max-height:85vh;pointer-events:auto;border-bottom-width:1px;box-shadow:0 10px 30px rgba(0,0,0,.5)}'
       // INNER: centered content column; the padding animates away with the bar so it collapses flush.
       + '.tb-menu-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 16px}'
       + '.tb-menu .tb-menuitem{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 18px;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;background:transparent;color:#d5dbdb;text-decoration:none;font-family:inherit;text-align:center;width:100%;max-width:420px}'
@@ -136,6 +142,10 @@
       html += '<button class="tb-btn" onclick="tbOpenLogin()">' + ic('key') + ' Login</button>';
     } else {
       var prof = (A.myProfile && A.myProfile()) || A.getUser();
+      // Role badge to the LEFT of the avatar. Editors are shown as "User"; everyone else uses their own role name.
+      var rl = (A.role && A.role()) || 'user';
+      var rlLabel = (rl === 'editor') ? 'User' : (rl.charAt(0).toUpperCase() + rl.slice(1));
+      html += '<span class="tb-role tb-role-' + rl + '">' + rlLabel + '</span>';
       html += '<a class="tb-avatar" href="profile.html" title="Profile">' + (A.avatarHtml ? A.avatarHtml(prof, 32) : '') + '</a>';
     }
     return html;
