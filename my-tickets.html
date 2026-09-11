@@ -192,6 +192,14 @@ const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 const isEditor=()=>A.role&&A.role()==='editor';
 let TICKETS=[];
 let MY_HELP={}; // shortId(lower) -> [ {id,doubt,status,createdAt,replies} ]
+
+// ---- Instant-load cache (stale-while-revalidate) ----
+// The slow part of this page is GET /api/my-tickets (scans the big quarter doc + Render cold start).
+// We cache the rendered inputs per-user in localStorage so repeat visits paint instantly, then
+// refresh from the server in the background and silently re-render if anything changed.
+function cacheKey(){var u=A.getUser();return 'phd_mytickets_'+((u&&u.username)||'anon');}
+function readCache(){try{var raw=localStorage.getItem(cacheKey());return raw?JSON.parse(raw):null;}catch(e){return null;}}
+function writeCache(obj){try{localStorage.setItem(cacheKey(),JSON.stringify(obj));}catch(e){}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>My Tickets</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
@@ -215,18 +223,37 @@ function remaining(deadlineIso){
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+
+  // INSTANT PATH: if we have a cached copy for this user, render it immediately (no spinner)
+  // while we refresh in the background below.
+  let paintedFromCache=false;
+  const cached=readCache();
+  if(cached&&Array.isArray(cached.tickets)){
+    if(cached.tz)MY_TZ=cached.tz;
+    TICKETS=cached.tickets;
+    MY_HELP=cached.help||{};
+    render();
+    paintedFromCache=true;
+  }
+
+  // BACKGROUND REFRESH: pull fresh data from the server.
   // Load the user's preferred timezone (IST/MST) first so the table renders in one zone.
   try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
-  if(r.status===401){gate('Session expired. Please log in again.');return;}
-  if(!r.ok){gate('Could not load your tickets (HTTP '+r.status+').');return;}
+  if(r.status===401){ if(!paintedFromCache)gate('Session expired. Please log in again.'); return; }
+  if(!r.ok){ if(!paintedFromCache)gate('Could not load your tickets (HTTP '+r.status+').'); return; }
   TICKETS=(r.data&&r.data.tickets)||[];
   // Load my help requests (for editors) to show inline threads + statuses.
   MY_HELP={};
   if(isEditor()){
     try{const hr=await A.api('GET','/api/help/mine');if(hr.ok&&Array.isArray(hr.data)){hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(MY_HELP[k]=MY_HELP[k]||[]).push(h);});}}catch(e){}
   }
-  render();
+  // Save the fresh copy for next time, then (re-)render. Skip a redundant re-render only when the
+  // freshly fetched data is identical to what we already painted from cache.
+  const fresh={tz:MY_TZ,tickets:TICKETS,help:MY_HELP,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
+  const changed=!cached||JSON.stringify(cached.tickets)!==JSON.stringify(TICKETS)||JSON.stringify(cached.help||{})!==JSON.stringify(MY_HELP)||cached.tz!==MY_TZ;
+  writeCache(fresh);
+  if(!paintedFromCache||changed)render();
 }
 
 // Inline help thread block for a ticket (editor view).
@@ -302,9 +329,17 @@ function render(){
 // Per-ticket app-activity timestamp (our own reference: when a comment/log was last added/edited).
 // { shortId: { at, by, type } }. Separate from the CSV LastUpdated* fields.
 let ACTIVITY={};
+let LATEST={}; // shortId -> {text,user,at,count}
 async function fillLatestComments(){
   const ids=TICKETS.map(t=>t.shortId).filter(Boolean);
   if(!ids.length)return;
+  // Paint from cached maps first (instant), then refresh from the server.
+  const cached=readCache();
+  if(cached){
+    if(cached.latest)LATEST=cached.latest;
+    if(cached.activity)ACTIVITY=cached.activity;
+    if(cached.latest||cached.activity)TICKETS.forEach((t,i)=>paintLatestCell(i,LATEST[t.shortId]));
+  }
   let map={};
   // Fetch latest comments and last-activity timestamps in parallel.
   try{
@@ -315,7 +350,10 @@ async function fillLatestComments(){
     if(rc.ok&&rc.data)map=rc.data;
     if(ra.ok&&ra.data)ACTIVITY=ra.data;
   }catch(e){}
+  LATEST=map;
   TICKETS.forEach((t,i)=>paintLatestCell(i,map[t.shortId]));
+  // Persist the comment/activity maps alongside the tickets cache.
+  const c=readCache()||{};c.latest=LATEST;c.activity=ACTIVITY;writeCache(c);
 }
 
 // "Updated ..." line = our reference timestamp of the last comment/log activity, in the user's TZ.
