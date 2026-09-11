@@ -48,6 +48,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
 .section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
 .section h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
+/* Collapsible sections */
+.section.collapsible>h2{cursor:pointer;user-select:none;justify-content:space-between}
+.section.collapsible>h2 .sec-caret{margin-left:auto;color:var(--tm);transition:transform .2s;font-size:.8em}
+.section.collapsible.collapsed>h2{margin-bottom:0}
+.section.collapsible.collapsed>h2 .sec-caret{transform:rotate(-90deg)}
+.section.collapsible.collapsed>.sec-body{display:none}
+/* Grouped chart pair section: two charts side by side, stacked on mobile */
+.section .pair-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+@media(max-width:920px){.section .pair-grid{grid-template-columns:1fr}}
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
 .chart-box{background:var(--s);border-radius:8px;padding:20px;border:1px solid var(--bd)}
 .chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}

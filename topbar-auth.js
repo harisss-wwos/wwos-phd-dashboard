@@ -20,26 +20,41 @@
     var css = ''
       // top bar (section 1) — fixed at top, highlighted background
       + '.tb-topbar{background:#121820;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100}'
+      + '.tb-hamburger{display:inline-flex;flex-direction:column;justify-content:center;gap:4px;width:38px;height:34px;padding:8px 9px;background:transparent;border:1px solid #2a2a2a;border-radius:6px;cursor:pointer;flex-shrink:0}'
+      + '.tb-hamburger:hover{border-color:#ff9900}'
+      + '.tb-hamburger span{display:block;height:2px;width:100%;background:#d5dbdb;border-radius:2px;transition:background .15s,transform .28s ease,opacity .2s ease}'
+      + '.tb-hamburger:hover span{background:#ff9900}'
+      // animate to an X when the menu is open
+      + '.tb-hamburger[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}'
+      + '.tb-hamburger[aria-expanded="true"] span:nth-child(2){opacity:0}'
+      + '.tb-hamburger[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}'
       + '.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none}'
       + '.tb-logo img{height:28px;width:auto;display:block}'
       + '.tb-logo span{font-size:1.12em;font-weight:700;color:#fff;line-height:1}'
       + '.tb-qbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.82em;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit;margin-left:8px;transition:border-color .15s,color .15s}'
       + '.tb-qbtn:hover{border-color:#ff9900;color:#ff9900}'
+      // Quarter + Upload/My-Tickets buttons now live inside the hamburger menu (all sizes) -> hide from the bar
+      + '.tb-qbtn,.tb-movable{display:none!important}'
       + '.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}'
       + '.tb-avatar{display:inline-flex;align-items:center;text-decoration:none}'
       + '.tb-avatar img,.tb-avatar .avatar-initial{border-radius:50%}'
       + '.tb-spinner{display:inline-block;width:30px;height:30px;border:3px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin .8s linear infinite}'
       + '@keyframes tbspin{100%{transform:rotate(360deg)}}'
-      // nav (section 2) — fixed below section 1, subtly different highlighted background
-      + '.tb-nav{background:#0e141b;border-bottom:1px solid #2a2a2a;box-shadow:0 2px 8px rgba(0,0,0,.35);padding:12px 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;position:sticky;top:53px;z-index:99}'
-      + '.tb-nav .tb-navbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 12px;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:1px solid #2a2a2a;background:transparent;color:#d5dbdb;text-decoration:none;font-family:inherit;text-align:center}'
-      + '.tb-nav .tb-navbtn:hover{border-color:#ff9900;color:#ff9900}'
-      + '.tb-nav .tb-navbtn.active{background:#ff9900;color:#000;border-color:#ff9900}'
-      + '.tb-nav .tb-navbtn.upload{background:rgba(74,222,128,.12);color:#4ade80;border-color:rgba(74,222,128,.45)}'
-      + '.tb-nav .tb-navbtn.upload:hover{background:rgba(74,222,128,.20);color:#4ade80;border-color:#4ade80}'
-      + '@media(max-width:1100px){.tb-nav{grid-template-columns:repeat(3,1fr)}}'
-      + '@media(max-width:680px){.tb-nav{grid-template-columns:repeat(2,1fr)}}'
-      + '@media(max-width:420px){.tb-nav{grid-template-columns:1fr}}'
+      // hamburger dropdown menu (collapsible) — FULL WIDTH across the page at all sizes, items centered
+      // Slides down on open / up on close (animated via transform + opacity + max-height).
+      // OUTER: full-width, flush under the top bar (no side gaps) — looks like the bar expanding down.
+      // Animates height only; ALWAYS overflow:hidden so no scrollbar flashes during the slide.
+      + '.tb-menu{position:fixed;top:53px;left:0;right:0;z-index:99;background:#121820;border-bottom:1px solid #2a2a2a;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:0;overflow:hidden;opacity:1;transform:none;pointer-events:none;transition:max-height .3s ease}'
+      + '.tb-menu.open{max-height:85vh;pointer-events:auto}'
+      // INNER: centered content column; the padding animates away with the bar so it collapses flush.
+      + '.tb-menu-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 16px}'
+      + '.tb-menu .tb-menuitem{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 18px;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;background:transparent;color:#d5dbdb;text-decoration:none;font-family:inherit;text-align:center;width:100%;max-width:420px}'
+      + '.tb-menu .tb-menuitem:hover{background:#1a2430;color:#ff9900}'
+      + '.tb-menu .tb-menuitem.active{background:#ff9900;color:#000}'
+      + '.tb-menu .tb-menu-mobile,.tb-menu .tb-menu-label,.tb-menu .tb-menu-divider{width:100%;max-width:420px;text-align:center}'
+      + '.tb-menu-mobile{display:flex;flex-direction:column;align-items:center;gap:4px}'  // shown in the menu at all sizes
+      + '.tb-menu-label{color:#5f6b6c;font-size:.68em;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:6px 14px 2px}'
+      + '.tb-menu-divider{height:1px;background:#2a2a2a;margin:6px 8px}'
       + '.tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit}'
       + '.tb-btn:hover{border-color:#ff9900;color:#ff9900}'
       // login modal
@@ -67,20 +82,57 @@
       // floating circular back button (bottom-right)
       + '.tb-back-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;transition:transform .15s,background .15s}'
       + '.tb-back-fab:hover{background:#ec7211;transform:translateY(-2px)}'
-      + '.tb-back-fab svg{width:22px;height:22px}';
+      + '.tb-back-fab svg{width:22px;height:22px}'
+      // ---- Shared responsive guard (kills x-axis scroll; applies on every page) ----
+      + 'html,body{max-width:100%;overflow-x:hidden}'
+      + '*{box-sizing:border-box}'
+      + 'img,svg,canvas,video{max-width:100%;height:auto}'
+      + 'pre{max-width:100%;overflow-x:auto;white-space:pre-wrap;word-break:break-word}'
+      // any data table sits in a scroll container instead of pushing the page wider
+      + '.tbl-card{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}'
+      + 'table{max-width:100%}'
+      + '@media(max-width:920px){'
+        + '.tb-topbar{padding:10px 12px;gap:8px;flex-wrap:wrap}'
+        + '.tb-logo{flex-wrap:wrap;gap:6px}'
+        + '.tb-logo span{font-size:.95em}'
+        + '.tb-logo img{height:24px}'
+        // let the logo/title take the top row with the hamburger + avatar; buttons wrap to next row
+        + '.tb-right{gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}'
+        + '.tb-btn,.tb-qbtn{padding:6px 10px;font-size:.76em;gap:4px}'
+        + '.tb-menu{left:0;right:0;top:52px}'
+        + '.tb-avatar img,.tb-avatar .avatar-initial{width:28px!important;height:28px!important}'
+        // page wrappers: full width with small gutters (overrides fixed 80% / 80vw / big max-widths)
+        + '.wrap{width:auto!important;max-width:100%!important;margin:0!important;padding:20px 14px!important}'
+        // the index.html centering trick (80vw + translateX) overflows on mobile -> neutralize
+        + '.about,.grid{width:auto!important;max-width:100%!important;left:auto!important;margin-left:0!important;transform:none!important}'
+        // collapse multi-column grids to a single column
+        + '.grid,.kpi-grid,.change-grid{grid-template-columns:1fr!important}'
+        // shrink oversized hero text so it fits narrow screens
+        + '.hero h1{font-size:1.6em!important}'
+        // any bare data table becomes its own horizontal-scroll container (never widens the page).
+        // Tables already inside a .tbl-card scroll via that card, so exclude those (reset to normal).
+        + 'table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}'
+        + '.tbl-card>table,.tbl-card table{display:table;overflow:visible}'
+      + '}';
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
     st.textContent = css;
     document.head.appendChild(st);
   }
 
-  // ---- Section 1: right-side controls (Users owner-only + avatar/Login) ----
+  // ---- Section 1: right-side controls (Upload + My Tickets + avatar/Login) ----
   function rightControlsHtml() {
     var html = '';
-    if (loggedIn() && atLeast('owner')) {
-      html += '<a class="tb-btn" href="users.html">' + ic('users-gear') + ' Users</a>';
+    var li = loggedIn();
+    var isAdmin = atLeast('admin');
+    var inApp = document.body.getAttribute('data-app') === 'live';
+    // Upload new data (admin+) — same in-place pipeline; app vs standalone input id.
+    if (isAdmin) {
+      if (inApp) html += '<button type="button" class="tb-btn tb-movable" onclick="tbUploadIntro(\'app\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
+      else html += '<button type="button" class="tb-btn tb-movable" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
     }
-    if (!loggedIn()) {
+    if (li) html += '<a class="tb-btn tb-movable" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
+    if (!li) {
       html += '<button class="tb-btn" onclick="tbOpenLogin()">' + ic('key') + ' Login</button>';
     } else {
       var prof = (A.myProfile && A.myProfile()) || A.getUser();
@@ -89,41 +141,36 @@
     return html;
   }
 
-  // ---- Section 2: the full nav row (role-gated, active highlight) ----
-  // active: one of 'dashboard','groups','previous-week','shift-report','agent-analytics',
-  //   'last24','my-tickets','data-log','tools' (or '' for none).
-  // inApp: true when rendered inside app.html (view buttons use nav()); false = standalone (links).
+  // ---- Hamburger menu contents (role-gated). Rendered inside the collapsible dropdown. ----
+  // active: one of 'groups','previous-week','shift-report','agent-analytics','last24',
+  //   'help-activity','tools','unique-cases','users' (or '' for none).
+  // inApp: true inside app.html (view buttons call nav()); false = standalone (links to app.html?view=).
   function navHtml(active, inApp) {
     var li = loggedIn();
     var isAdmin = atLeast('admin');
-    // Per-page opt-out: body[data-nav-hide="home,dashboard,tools"] hides those nav buttons.
+    var isOwner = atLeast('owner');
     var hideAttr = (document.body.getAttribute('data-nav-hide') || '').toLowerCase();
     var hide = {}; hideAttr.split(',').forEach(function (k) { k = k.trim(); if (k) hide[k] = true; });
-    // View buttons (live-dashboard views). In app.html these call nav(); elsewhere link to app.html?view=.
     function view(key, lbl, icon) {
-      var cls = 'tb-navbtn' + (active === key ? ' active' : '');
-      if (inApp) return '<button class="' + cls + '" onclick="nav(\'' + key + '\')">' + ic(icon) + ' ' + lbl + '</button>';
-      var href = (key === 'dashboard') ? 'app.html' : ('app.html?view=' + key);
+      var cls = 'tb-menuitem' + (active === key ? ' active' : '');
+      if (inApp) return '<button class="' + cls + '" onclick="tbCloseMenu();nav(\'' + key + '\')">' + ic(icon) + ' ' + lbl + '</button>';
+      var href = 'app.html?view=' + key;
       return '<a class="' + cls + '" href="' + href + '">' + ic(icon) + ' ' + lbl + '</a>';
     }
-    function link(key, lbl, icon, href, extraCls) {
-      var cls = 'tb-navbtn' + (active === key ? ' active' : '') + (extraCls ? ' ' + extraCls : '');
+    function link(key, lbl, icon, href) {
+      var cls = 'tb-menuitem' + (active === key ? ' active' : '');
       return '<a class="' + cls + '" href="' + href + '">' + ic(icon) + ' ' + lbl + '</a>';
-    }
-    // Help Activity -> dedicated full-history page.
-    function helpActivityBtn() {
-      var cls = 'tb-navbtn' + (active === 'help-activity' ? ' active' : '');
-      return '<a class="' + cls + '" href="help-activity.html">' + ic('alert') + ' Help Activity</a>';
     }
     var html = '';
-    // Home, Dashboard, PHD Tools show only for LOGGED-IN users (and can be hidden per-page).
-    // Fixed order requested by the team. (Home removed; Dashboard first.)
-    if (isAdmin) { // Upload new data (admin+). Works from any page. Shows a mandatory-columns intro first.
-      if (inApp) html += '<button type="button" class="tb-navbtn upload" onclick="tbUploadIntro(\'app\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
-      // On standalone pages: pick the file here, hand it off to app.html via sessionStorage, then navigate.
-      else html += '<button type="button" class="tb-navbtn upload" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
-    }
-    if (li) html += link('my-tickets', 'My Tickets', 'ticket', 'my-tickets.html');
+    // MOBILE ONLY: the top-bar quick actions (Q3 LIVE, Q2, Upload, My Tickets) move into the menu.
+    // Hidden on desktop via CSS (.tb-menu-mobile{display:none} until <=768px).
+    var mob = '<div class="tb-menu-mobile"><div class="tb-menu-label">Quick actions</div>';
+    mob += '<a class="tb-menuitem" href="app.html">' + ic('bolt') + ' Q3 2026 · LIVE</a>';
+    mob += '<a class="tb-menuitem" href="archive.html?ds=quarter&qid=2026-Q2">' + ic('calendar') + ' Q2 2026</a>';
+    if (isAdmin) mob += '<button type="button" class="tb-menuitem" onclick="tbCloseMenu();tbUploadIntro(\'' + (inApp ? 'app' : 'standalone') + '\')">' + ic('upload') + ' Upload new data</button>';
+    if (li) mob += '<a class="tb-menuitem" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
+    mob += '<div class="tb-menu-divider"></div><div class="tb-menu-label">Navigate</div></div>';
+    html += mob;
     if (isAdmin) html += link('agent-analytics', 'Agent Analytics', 'bar-chart', 'agent-analytics.html');
     if (li) {
       html += view('groups', 'Groups', 'users');
@@ -131,9 +178,10 @@
       html += view('previous-week', 'Previous Week', 'clock-rewind');
     }
     if (isAdmin) html += link('last24', 'Last 24 Hours', 'clock', 'last24.html');
-    if (li) html += helpActivityBtn();
+    if (li) html += link('help-activity', 'Help Activity', 'alert', 'help-activity.html');
     if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
-    if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html'); // admin+ leadership listing
+    if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html');
+    if (isOwner) html += link('users', 'Users', 'users-gear', 'users.html');
     return html;
   }
 
@@ -144,15 +192,34 @@
     // Hardcoded quarter buttons (regular button look): Q3 live + Q2 report.
     var live = '<a class="tb-qbtn" href="app.html" title="Go to the live dashboard">Q3 2026 · LIVE</a>'
       + '<a class="tb-qbtn" href="archive.html?ds=quarter&qid=2026-Q2" title="Q2 2026 report">Q2 2026</a>';
-    // opts.noNav: render Section 1 (top bar) only, without the Section 2 nav row.
-    var navRow = opts.noNav ? '' : ('<div class="tb-nav">' + navHtml(active, !!opts.inApp) + '</div>');
+    // Menu items live in a collapsible dropdown behind the hamburger (unless noNav).
+    var menu = opts.noNav ? '' : ('<div class="tb-menu" id="tbMenu"><div class="tb-menu-inner">' + navHtml(active, !!opts.inApp) + '</div></div>');
     return ''
       + '<div class="tb-topbar">'
+        + '<button type="button" class="tb-hamburger" id="tbHamburger" aria-label="Menu" aria-expanded="false" title="Menu" onclick="tbToggleMenu()"><span></span><span></span><span></span></button>'
         + '<span class="tb-logo"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD</span>' + live + '</span>'
         + '<div class="tb-right" id="tbAuth">' + rightControlsHtml() + '</div>'
       + '</div>'
-      + navRow;
+      + menu;
   }
+
+  // ---- Hamburger menu open/close ----
+  window.tbToggleMenu = function () {
+    var m = document.getElementById('tbMenu'); if (!m) return;
+    var open = m.classList.toggle('open');
+    var h = document.getElementById('tbHamburger'); if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  window.tbCloseMenu = function () {
+    var m = document.getElementById('tbMenu'); if (m) m.classList.remove('open');
+    var h = document.getElementById('tbHamburger'); if (h) h.setAttribute('aria-expanded', 'false');
+  };
+  // Close the menu when clicking outside it (but not on the hamburger).
+  document.addEventListener('click', function (e) {
+    var m = document.getElementById('tbMenu'); if (!m || !m.classList.contains('open')) return;
+    var h = document.getElementById('tbHamburger');
+    if (m.contains(e.target) || (h && h.contains(e.target))) return;
+    tbCloseMenu();
+  });
 
   window.PHDNav = {
     buildToolbarHtml: buildToolbarHtml,

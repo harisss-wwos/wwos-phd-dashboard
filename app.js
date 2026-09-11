@@ -660,6 +660,17 @@ function makeChart(id,config){
 
 function closeAllPopups(){const p=document.getElementById('colorPopup');if(p)p.remove();const p2=document.getElementById('incPopup');if(p2)p2.remove();}
 
+// Collapse/expand a dashboard section (header is the click target). Charts inside are resized on expand.
+function toggleSection(h2){
+  const sec=h2.closest('.section');if(!sec)return;
+  const nowCollapsed=sec.classList.toggle('collapsed');
+  if(!nowCollapsed){
+    // Re-expanded: resize any Chart.js canvases that were hidden so they render at full width.
+    setTimeout(()=>{try{charts.forEach(c=>{if(sec.contains(c.canvas))c.resize();});}catch(e){}},30);
+  }
+}
+window.toggleSection=toggleSection;
+
 // Ticket-level detail is restricted to logged-in users.
 function requireLoginForTickets(){
   const user=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
@@ -1181,7 +1192,7 @@ function renderDashboardShell(){
   const chartBox=(title,tall)=>`<div class="chart-box"><h3>${title}</h3><div class="chart-wrap${tall?' tall':''}">${csp}</div></div>`;
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-    <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
+    <h1 style="margin:0">Q3 2026</h1>
     ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
@@ -1275,7 +1286,7 @@ function renderDashboard(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-    <h1 style="margin:0">${LIVE_QUARTER?LIVE_QUARTER.label+' — Live Dashboard':'Live Dashboard'}</h1>
+    <h1 style="margin:0">Q3 2026</h1>
     ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
@@ -1309,7 +1320,7 @@ function renderDashboard(){
     </div>`;
   })()}
 
-  <div class="section"><h2>Ticket Age Classification</h2>
+  <div class="section collapsible"><h2 onclick="toggleSection(this)">Ticket Age Classification <span class="sec-caret">▾</span></h2><div class="sec-body">
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
       <div class="kpi-card age-tile" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="age-name">${ic('check-circle',14)} GREEN</div><div class="age-range">(0-96 hrs / 0-4 days)</div></div>
@@ -1317,9 +1328,9 @@ function renderDashboard(){
       <div class="kpi-card age-tile" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="age-name">${ic('alert',14)} RED</div><div class="age-range">(168-240 hrs / 7-10 days)</div></div>
       <div class="kpi-card age-tile${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="age-name">${ic('flame',14)} BLACK</div><div class="age-range">(&gt;240 hrs / &gt;10 days)</div></div>
       <div class="kpi-card age-tile${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="age-name">${ic('reopen',14)} PURPLE${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':''}</div><div class="age-range">(Reopened)</div></div>
-    </div></div>
+    </div></div></div>
 
-  <div class="section"><h2>Queue Status</h2>
+  <div class="section collapsible"><h2 onclick="toggleSection(this)">Queue Status <span class="sec-caret">▾</span></h2><div class="sec-body">
     <div class="handoff-grid">
       <div class="handoff-box"><h3>Ticket Count by Status</h3><ul>
         <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
@@ -1337,24 +1348,28 @@ function renderDashboard(){
         <li><span>Resolved</span><span class="val">${(m.res/m.T*100).toFixed(1)}%</span></li>
         <li><span>Closed</span><span class="val">${(m.closed/m.T*100).toFixed(1)}%</span></li>
       </ul></div>
-    </div></div>
+    </div></div></div>
 
-  <div class="charts-grid" style="grid-template-columns:repeat(2,1fr)">
-    <div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>
-    <div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>
-  </div>
-  <div class="charts-grid" style="grid-template-columns:repeat(2,1fr)">
-    <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
-    <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
-  </div>
+  <div class="section collapsible"><h2 onclick="toggleSection(this)">Daily Tickets (Last 7 Days) <span class="sec-caret">▾</span></h2><div class="sec-body">
+    <div class="pair-grid">
+      <div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>
+      <div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>
+    </div>
+  </div></div>
+  <div class="section collapsible"><h2 onclick="toggleSection(this)">Weekly Volume <span class="sec-caret">▾</span></h2><div class="sec-body">
+    <div class="pair-grid">
+      <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
+      <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
+    </div>
+  </div></div>
   ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section"><h2>SLA Compliance per Week (&le;240 hrs)</h2>
     <p class="meta-info" style="margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA, for ${LIVE_QUARTER?LIVE_QUARTER.label:'this quarter'}. Weeks are bucketed by resolved date and drawn as each week passes.</p>
     <div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>
   </div>`:''}
-  <div class="section"><h2>Incident Types</h2><p class="meta-info">Click any incident type to view agent breakdown</p>
+  <div class="section collapsible"><h2 onclick="toggleSection(this)">Incident Types <span class="sec-caret">▾</span></h2><div class="sec-body"><p class="meta-info">Click any incident type to view agent breakdown</p>
     <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>
     ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${type}</strong></td><td>${count}</td><td>${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
-    </tbody></table></div></div>
+    </tbody></table></div></div></div>
   ${m.hiCases.length>0?(()=>{
     const totalHI=m.hiCases.length;
     const petCount=m.hiCases.filter(h=>h.isAnimal).length;
@@ -1370,7 +1385,7 @@ function renderDashboard(){
         +sorted.map(([rc,count],i)=>`<tr style="cursor:pointer" onclick="showHIPopup('${rc.replace(/'/g,"\\'")}')"><td style="color:${accent};font-weight:700">${i+1}</td><td><strong>${rc}</strong></td><td>${count}</td><td>${(count/totalHI*100).toFixed(1)}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:${accent};width:${(count/mx*100).toFixed(0)}%;min-width:4px"></div></div></td></tr>`).join('')
         +`</tbody></table></div>`;
     };
-    return `<div class="section"><h2>Historical Incidents (Cnt > 0)</h2>
+    return `<div class="section collapsible"><h2 onclick="toggleSection(this)">Historical Incidents (Cnt &gt; 0) <span class="sec-caret">▾</span></h2><div class="sec-body">
     <div style="background:#000;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:18px">
       <p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">${totalHI}</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">${petPct}%</strong> are driven by <strong>pet/animal incidents</strong>. Pet incidents are the primary reason the HI&gt;0 count is elevated — handling them accounts for the majority of repeat cases.</p>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
@@ -1383,7 +1398,7 @@ function renderDashboard(){
     <h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — ${nonPetCount} (${nonPetPct}% of all HI)</h3>
     ${subTable(m.hiCases.filter(h=>!h.isAnimal),'#ff9900')}
     <p class="meta-info" style="margin-top:12px">Click any root cause to view the agent breakdown.</p>
-    </div>`;
+    </div></div>`;
   })():''}</div>`;
   attachNewFileHandler();
   refreshHelpAlertCount();

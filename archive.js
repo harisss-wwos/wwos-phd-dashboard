@@ -27,7 +27,7 @@ async function loadMetrics(){
     const tickets=(r.data.data&&r.data.data.tickets)||[];
     const range=r.data.range||null;
     const metrics=window.QuarterMetrics.compute(tickets,range);
-    return {metrics,name:(r.data.label||qid)+' Report',ds:'quarter'};
+    return {metrics,name:(r.data.label||qid),ds:'quarter'};
   }
   const key=(ds==='q2'?'q2':'archive')+'_'+SCHEMA_VER;
   const file=ds==='q2'?'metrics-q2.json':'metrics-archive.json';
@@ -108,8 +108,9 @@ function render(metrics,name,ds){
   const otherRes=m.resolvers.filter(([k])=>!phd.includes(k));
   // Human-friendly date like "1st April 2026"
   const fmtDate=(iso)=>{const d=new Date(iso+'T00:00:00');if(isNaN(d))return iso;const day=d.getDate();const suf=(day%10===1&&day!==11)?'st':(day%10===2&&day!==12)?'nd':(day%10===3&&day!==13)?'rd':'th';return day+suf+' '+d.toLocaleString('en-US',{month:'long'})+' '+d.getFullYear();};
-  // Q2 static shows its fixed window; dynamic quarters + archive use the computed range.
-  const rangeText=(ds==='q2')?'1st April 2026 to 30th June 2026':`${fmtDate(m.dateRange[0])} to ${fmtDate(m.dateRange[1])}`;
+  // Q2 (static OR dynamic) shows its fixed window; other dynamic quarters + archive use computed range.
+  const _qidRT=quarterMode?qparam('qid'):'';
+  const rangeText=(ds==='q2'||_qidRT==='2026-Q2')?'31st March 2026 to 30th June 2026':`${fmtDate(m.dateRange[0])} to ${fmtDate(m.dateRange[1])}`;
   // Short window label for weekly chart titles, e.g. "(Apr 1 – Jun 30, 2026)".
   const shortD=(iso)=>{const d=new Date(iso+'T00:00:00');return isNaN(d)?iso:d.toLocaleString('en-US',{month:'short',day:'numeric'});};
   const windowText=(ds==='q2')?'Apr 1 – Jun 30, 2026':(m.dateRange&&m.dateRange[0]?`${shortD(m.dateRange[0])} – ${shortD(m.dateRange[1])}`:'this quarter');
@@ -122,7 +123,7 @@ function render(metrics,name,ds){
   const actions=(logBtn||mergeBtn)?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-left:auto">${logBtn}${mergeBtn}</div>`:'';
   document.getElementById('app').innerHTML=`<div class="content">
     <div class="page-title" style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
-      <div style="flex:1;min-width:240px"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets · ${quarterMode?'Read-only report (DB-backed)':'Read-only archive'}</p></div>
+      <div style="flex:1;min-width:240px"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets${quarterMode?'':' · Read-only archive'}</p></div>
       ${actions}
     </div>
 
@@ -532,7 +533,7 @@ function renderQuarterShell(qid){
   var tableSpin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
   document.getElementById('app').innerHTML=''+
     '<div class="content">'+
-      '<div class="page-title"><h1>'+label+' Report</h1><p>Data range: <span class="num-spinner"></span> · <span class="num-spinner"></span> total tickets · Read-only report (DB-backed)</p></div>'+
+      '<div class="page-title"><h1>'+label+'</h1><p>Data range: <span class="num-spinner"></span> · <span class="num-spinner"></span> total tickets</p></div>'+
       '<div class="section"><h2>'+ic('bar-chart',18)+' Summary Statistics</h2><div class="kpi-grid">'+
         kpi('accent',ic('ticket',13)+' Total Tickets')+
         kpi('success',ic('check-circle',13)+' Resolved / Closed')+
