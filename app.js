@@ -1630,7 +1630,7 @@ function renderAgeChunk(d){
   });
   const tile=(color,cls,icon,name,range,list,blink,warn)=>
     '<div class="kpi-card age-tile'+(blink?' blink-alert':'')+'" style="border-top-color:'+color+';cursor:pointer" onclick="showColorPopup(\''+cls+'\')">'+
-      '<div class="value" style="color:'+color+'">'+list.length+'</div>'+
+      '<div class="value kpi-anim" data-kpi-val="'+list.length+'" style="color:'+color+'"></div>'+
       '<div class="age-name">'+ic(icon,14)+' '+name+(warn?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':'')+'</div>'+
       '<div class="age-range">'+range+'</div>'+
     '</div>';
@@ -1642,6 +1642,8 @@ function renderAgeChunk(d){
       tile('#888','black','flame','BLACK','(&gt;240 hrs / &gt;10 days)',ct.black,blackBlink,false)+
       tile('#a78bfa','purple','reopen','PURPLE','(Reopened)',ct.purple,purpleBlink,purpleBlink)+
     '</div>';
+  // Animate each tile number from a brief scramble into its real value (same effect as the summary KPIs).
+  slot.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
 function renderQueueChunk(d){
   const slot=document.getElementById('dashQueueBody');if(!slot)return;
