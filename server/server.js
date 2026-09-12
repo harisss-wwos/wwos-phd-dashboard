@@ -568,6 +568,12 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
     const changed = Array.isArray(body.changed) ? body.changed : [];
     const removed = Array.isArray(body.removed) ? body.removed.map(String) : [];
     const nonLive = Array.isArray(body.nonLive) ? body.nonLive : [];
+    // Uploaded-file metadata (captured client-side), stored on the data-log entry. Sanitised.
+    const fileMeta = {
+      fileName: String(body.fileName || '').slice(0, 260),
+      fileSize: Number.isFinite(+body.fileSize) && +body.fileSize > 0 ? Math.round(+body.fileSize) : 0,
+      fileType: String(body.fileType || '').slice(0, 120),
+    };
     const liveQ = currentQuarter();
     const coll = await getCollection(COLLECTIONS.quarters);
     const logColl = await getCollection(COLLECTIONS.dataLog);
@@ -604,6 +610,7 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
         liveQuarter: liveQ, pastQuarterMerge: false, publishedAt,
         written: [{ quarter: liveQ, label: quarterLabel(liveQ), count: mergedLive.length, isLive: true }],
         changeSummary: body.changeSummary || null,
+        fileName: fileMeta.fileName, fileSize: fileMeta.fileSize, fileType: fileMeta.fileType,
         totalTickets: mergedLive.length,
       });
     } catch (logErr) { /* never block */ }
@@ -732,9 +739,13 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
       at: e.at,
       liveQuarter: e.liveQuarter,
       pastQuarterMerge: !!e.pastQuarterMerge,
+      publishedAt: e.publishedAt || null,
       written: e.written || [],
       changeSummary: e.changeSummary || null,
       changedTickets: e.changedTickets || null,
+      fileName: e.fileName || '',
+      fileSize: e.fileSize || 0,
+      fileType: e.fileType || '',
       totalTickets: e.totalTickets,
     })));
   } catch (e) {
@@ -1943,6 +1954,221 @@ app.get('/api/last24', requireRole('admin'), async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Could not compute last-24h analytics.' });
   }
+});
+
+// ============================================================================
+// CHUNKED DASHBOARD ENDPOINTS
+// Instead of shipping the whole live-quarter tickets array to every visitor, these
+// endpoints each read the live quarter server-side and return ONE small precomputed
+// slice of the dashboard. The client fetches the summary on load and each chart card
+// lazily on first expand, caching every chunk version-first (busts on a new publish).
+// The math MIRRORS app.js computeMetrics() so the numbers match the full-array render.
+// ============================================================================
+
+// --- shared date/number helpers (mirror app.js) ---
+function _hBetween(d1, d2) { return Math.abs(d2 - d1) / 36e5; }
+function _avg(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
+function _num(v) { const d = new Date(v); return isNaN(d) ? null : d; }
+// The "reference now" for age classification. app.js uses the real clock (new Date()).
+function _now() { return new Date(); }
+// The dashboard's max CreateDate (used for the 7-day window + weekly buckets).
+function _maxCreate(tickets) {
+  let mx = 0;
+  tickets.forEach(t => { const d = _num(t.CreateDate); if (d && d.getTime() > mx) mx = d.getTime(); });
+  return mx ? new Date(mx) : new Date();
+}
+// Live-quarter tickets + the doc's publishedAt (the cache version).
+async function liveTicketsWithMeta() {
+  const coll = await getCollection(COLLECTIONS.quarters);
+  const doc = await coll.findOne({ _id: currentQuarter() });
+  const tickets = (doc && doc.data && doc.data.tickets) || [];
+  const publishedAt = (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null;
+  return { tickets, publishedAt };
+}
+
+// ---- Summary (the 9 KPIs across Total / Average / Repeat-Incident) ----
+function dashSummary(tickets) {
+  const T = tickets.length;
+  const statuses = {};
+  tickets.forEach(t => { statuses[t.Status] = (statuses[t.Status] || 0) + 1; });
+  const asgn = statuses['Assigned'] || 0, pend = statuses['Pending'] || 0, wip = statuses['Work In Progress'] || 0,
+    res = statuses['Resolved'] || 0, researching = statuses['Researching'] || 0, closed = statuses['Closed'] || 0;
+  const inQ = asgn + pend + wip + researching;
+  const autosim = tickets.filter(t => t.ResolvedByIdentity && t.ResolvedByIdentity.includes('AutoSIM')).length;
+  // Avg resolution time + SLA (Resolved only, both dates, hours >= 0)
+  const rTimes = [];
+  tickets.forEach(t => { if (t.Status === 'Resolved' && t.CreateDate && t.ResolvedDate) { const h = (new Date(t.ResolvedDate) - new Date(t.CreateDate)) / 36e5; if (h >= 0) rTimes.push(h); } });
+  const avgR = _avg(rTimes);
+  const slaCompliant = rTimes.filter(h => h <= 240).length;
+  const slaPct = rTimes.length ? +((slaCompliant / rTimes.length) * 100).toFixed(1) : 0;
+  // Repeat incidents (HI>0), split pet vs non-pet (pet = RootCause contains 'unsecured animal')
+  let hi = 0, pet = 0, nonPet = 0;
+  tickets.forEach(t => {
+    if (hiCount(t) > 0) {
+      hi++;
+      if (String(t.RootCause || '').toLowerCase().includes('unsecured animal')) pet++; else nonPet++;
+    }
+  });
+  const petPct = hi ? +(pet / hi * 100).toFixed(1) : 0;
+  const nonPetPct = hi ? +(nonPet / hi * 100).toFixed(1) : 0;
+  const gap = +(petPct - nonPetPct).toFixed(1);
+  return {
+    total: T, resolved: res + closed, unresolved: inQ,
+    resolvedPct: T ? +(((res + closed) / T) * 100).toFixed(1) : 0,
+    unresolvedPct: T ? +((inQ / T) * 100).toFixed(1) : 0,
+    avgResolutionHrs: +avgR.toFixed(0), avgResolutionPct: +((avgR / 240) * 100).toFixed(1),
+    slaPct, slaCompliant, slaBase: rTimes.length,
+    autosim, autosimPct: T ? +((autosim / T) * 100).toFixed(1) : 0,
+    repeatIncidents: hi, hiPet: pet, hiNonPet: nonPet, hiPetPct: petPct, hiNonPetPct: nonPetPct, hiGap: gap,
+  };
+}
+
+// ---- Ticket Age Classification (open tickets only) ----
+function dashAge(tickets) {
+  const now = _now();
+  const c = { green: 0, yellow: 0, red: 0, black: 0, purple: 0 };
+  tickets.forEach(t => {
+    if (t.Status === 'Resolved' || t.Status === 'Closed') return;
+    const cd = _num(t.CreateDate); const ageHrs = cd ? _hBetween(cd, now) : 0;
+    const hasResolvedDate = t.ResolvedDate && String(t.ResolvedDate).trim() !== '';
+    if (t._reopened || hasResolvedDate) c.purple++;
+    else if (ageHrs <= 96) c.green++;
+    else if (ageHrs <= 168) c.yellow++;
+    else if (ageHrs <= 240) c.red++;
+    else c.black++;
+  });
+  return c;
+}
+
+// ---- Queue Status (counts + % by status) ----
+function dashQueue(tickets) {
+  const T = tickets.length;
+  const s = {};
+  tickets.forEach(t => { s[t.Status] = (s[t.Status] || 0) + 1; });
+  const counts = {
+    Assigned: s['Assigned'] || 0, 'Work In Progress': s['Work In Progress'] || 0,
+    Researching: s['Researching'] || 0, Pending: s['Pending'] || 0,
+    Resolved: s['Resolved'] || 0, Closed: s['Closed'] || 0,
+  };
+  const pct = {};
+  Object.keys(counts).forEach(k => { pct[k] = T ? +((counts[k] / T) * 100).toFixed(1) : 0; });
+  return { total: T, counts, pct };
+}
+
+// ---- Daily Tickets (Last 7 Days), created + resolved, keyed off maxCreate ----
+function dashDaily7(tickets) {
+  const maxDate = _maxCreate(tickets);
+  const labels = [], created = [], resolved = [];
+  for (let i = 6; i >= 0; i--) {
+    const ds = new Date(maxDate); ds.setDate(ds.getDate() - i); ds.setHours(0, 0, 0, 0);
+    const de = new Date(ds); de.setDate(de.getDate() + 1);
+    labels.push(ds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    created.push(tickets.filter(t => { const cd = _num(t.CreateDate); return cd && cd >= ds && cd < de; }).length);
+    resolved.push(tickets.filter(t => { const rd = _num(t.ResolvedDate); return rd && rd >= ds && rd < de; }).length);
+  }
+  return { labels, created, resolved };
+}
+
+// ---- Weekly Volume (created + resolved) using app.js's week numbering ----
+function dashWeekly(tickets) {
+  const wk = (d) => { const j4 = new Date(d.getFullYear(), 0, 4); const dy = Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 864e5); return Math.ceil((dy + j4.getDay()) / 7); };
+  const wb = {}, wbR = {};
+  tickets.forEach(t => { const d = _num(t.CreateDate); if (d) { const k = 'W' + wk(d); wb[k] = (wb[k] || 0) + 1; } });
+  tickets.forEach(t => { const d = _num(t.ResolvedDate); if (d) { const k = 'W' + wk(d); wbR[k] = (wbR[k] || 0) + 1; } });
+  const labels = Object.keys(wb).sort();
+  return { labels, created: labels.map(k => wb[k]), resolved: labels.map(k => wbR[k] || 0) };
+}
+
+// ---- SLA Compliance per Week (<=240h), 13 buckets from quarter start (mirrors app.js) ----
+function dashSlaWeekly(tickets) {
+  const maxDate = _maxCreate(tickets);
+  const qStart = new Date(maxDate.getFullYear(), Math.floor(maxDate.getMonth() / 3) * 3, 1);
+  const isoWeekNum = (d) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - ys) / 864e5 + 1) / 7); };
+  const weekIndexOf = (d) => { const days = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - qStart) / 864e5); if (days < 0) return -1; const idx = Math.floor(days / 7); return idx > 12 ? -1 : idx; };
+  const resolvedWk = new Array(13).fill(0), withinWk = new Array(13).fill(0);
+  const currentWeekIdx = weekIndexOf(maxDate);
+  tickets.forEach(t => {
+    const rd = _num(t.ResolvedDate); const cd = _num(t.CreateDate);
+    if (!rd || !cd) return;
+    const wi = weekIndexOf(rd); if (wi < 0) return;
+    const h = (rd - cd) / 36e5; if (h < 0) return;
+    resolvedWk[wi]++; if (h <= 240) withinWk[wi]++;
+  });
+  const out = [];
+  for (let i = 0; i < 13; i++) {
+    const dt = new Date(qStart.getFullYear(), qStart.getMonth(), qStart.getDate() + i * 7);
+    const label = 'W' + String(isoWeekNum(dt)).padStart(2, '0');
+    const inRange = (currentWeekIdx < 0) || (i <= currentWeekIdx);
+    const pct = (inRange && resolvedWk[i]) ? +(withinWk[i] / resolvedWk[i] * 100).toFixed(1) : null;
+    out.push({ week: label, resolved: inRange ? resolvedWk[i] : 0, within: inRange ? withinWk[i] : 0, pct });
+  }
+  return { weeks: out };
+}
+
+// ---- Incident Types (RootCause with the pet special-casing) ----
+function _incidentType(t) {
+  const details = t.RootCauseDetails || '';
+  const rootCause = String(t.RootCause || '').replace(/^\s*-\s*/, '').trim();
+  if (rootCause && rootCause.length > 1) {
+    if (rootCause.toLowerCase().includes('unsecured animal')) {
+      const cc = (t.ClosureCode || '').trim();
+      const isImmAuto = (cc === 'Immediately Resolved' || cc === 'Automatically Closed');
+      if (isImmAuto && (t.AssigneeIdentity || '').trim() !== '') return 'First Time Pet Incident (Immediately Resolved / No Action Taken)';
+      return details.trim() !== '' ? 'Pet Incident (HI>0)' : 'Pet Incident (Resolved by AUTO-SIM)';
+    }
+    let tp = rootCause; if (tp.length > 80) tp = tp.substring(0, 80); return tp;
+  }
+  return 'No Root Cause';
+}
+function dashIncidents(tickets) {
+  const T = tickets.length;
+  const m = {};
+  tickets.forEach(t => { const tp = _incidentType(t); m[tp] = (m[tp] || 0) + 1; });
+  const labels = Object.keys(m).sort((a, b) => m[b] - m[a]);
+  return { total: T, types: labels.map(k => ({ type: k, count: m[k], pct: T ? +((m[k] / T) * 100).toFixed(1) : 0 })) };
+}
+
+// ---- Historical Incidents (Cnt > 0), pet vs non-pet + root-cause breakdown ----
+function dashHi(tickets) {
+  const cases = [];
+  tickets.forEach(t => {
+    const n = hiCount(t);
+    if (n > 0) {
+      const rc = String(t.RootCause || '').replace(/^\s*-\s*/, '').trim();
+      cases.push({ id: t.ShortId || t.IssueId, cnt: n, rootCause: rc || 'Unknown', isAnimal: String(t.RootCause || '').toLowerCase().includes('unsecured animal') });
+    }
+  });
+  const total = cases.length;
+  const petCases = cases.filter(c => c.isAnimal), nonPetCases = cases.filter(c => !c.isAnimal);
+  const byRootCause = (list) => {
+    const b = {}; list.forEach(c => { b[c.rootCause] = (b[c.rootCause] || 0) + 1; });
+    return Object.entries(b).sort((a, x) => x[1] - a[1]).map(([rootCause, count]) => ({ rootCause, count }));
+  };
+  return {
+    total,
+    pet: petCases.length, nonPet: nonPetCases.length,
+    petPct: total ? +(petCases.length / total * 100).toFixed(1) : 0,
+    nonPetPct: total ? +(nonPetCases.length / total * 100).toFixed(1) : 0,
+    petBreakdown: byRootCause(petCases), nonPetBreakdown: byRootCause(nonPetCases),
+  };
+}
+
+// Register all chunk endpoints (public read, matching /api/live-quarter). Each returns
+// { quarter, publishedAt, ...slice } so the client can cache it against the live version.
+const DASH_CHUNKS = {
+  summary: dashSummary, age: dashAge, queue: dashQueue, daily7: dashDaily7,
+  weekly: dashWeekly, 'sla-weekly': dashSlaWeekly, incidents: dashIncidents, hi: dashHi,
+};
+Object.keys(DASH_CHUNKS).forEach(name => {
+  app.get('/api/dash/' + name, async (req, res) => {
+    try {
+      const { tickets, publishedAt } = await liveTicketsWithMeta();
+      const slice = DASH_CHUNKS[name](tickets);
+      res.json(Object.assign({ quarter: currentQuarter(), label: quarterLabel(currentQuarter()), publishedAt }, slice));
+    } catch (e) {
+      res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
+    }
+  });
 });
 
 const PORT = process.env.PORT || 3000;

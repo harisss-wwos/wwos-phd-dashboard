@@ -45,6 +45,20 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .log-session.open .log-caret{transform:rotate(180deg)}
 .log-session-body{padding:16px 20px;display:none;flex-direction:column;gap:14px}
 .log-session.open .log-session-body{display:flex}
+/* Multi-upload days get a coloured left accent + subtle tinted background so they stand out. */
+.log-session.log-day-0{border-left:4px solid #4ade80;background:rgba(74,222,128,.06)}
+.log-session.log-day-1{border-left:4px solid #60a5fa;background:rgba(96,165,250,.06)}
+.log-session.log-day-2{border-left:4px solid #f472b6;background:rgba(244,114,182,.06)}
+.log-session.log-day-3{border-left:4px solid #fbbf24;background:rgba(251,191,36,.06)}
+.log-session.log-day-4{border-left:4px solid #a78bfa;background:rgba(167,139,250,.06)}
+.log-session.log-day-5{border-left:4px solid #22d3ee;background:rgba(34,211,238,.06)}
+.log-session[class*="log-day-"]>.log-head{background:transparent}
+/* Uploaded-file details row */
+.log-file{display:flex;align-items:center;gap:10px;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 14px}
+.log-file-icon{font-size:1.1em;flex-shrink:0}
+.log-file-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lf-name{color:#d5dbdb;font-weight:600;font-size:.86em;word-break:break-all}
+.lf-sub{color:var(--tm);font-size:.76em}
 .log-quarter-block{background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
 .log-quarter-block.live{border-left:3px solid #4ade80}
 .log-quarter-block.past{border-left:3px solid #fbbf24}
@@ -106,6 +120,30 @@ function changeCells(cs){
   }).join('')+'</div>';
 }
 
+// Human-readable byte size.
+function fmtBytes(b){
+  b=Number(b);
+  if(!isFinite(b)||b<=0)return '';
+  const u=['B','KB','MB','GB'];let i=0;
+  while(b>=1024&&i<u.length-1){b/=1024;i++;}
+  return (i===0?b:b.toFixed(b>=10?0:1))+' '+u[i];
+}
+
+// The uploaded-file details (name / size / type) captured at upload time, if present.
+// Reads from whichever item in the session carries them (they're the same for the whole upload).
+function fileMetaHtml(items){
+  const it=(items||[]).find(x=>x&&(x.fileName||x.fileSize||x.fileType))||{};
+  if(!it.fileName&&!it.fileSize&&!it.fileType)return '';
+  const size=fmtBytes(it.fileSize);
+  return '<div class="log-file">'+
+    '<span class="log-file-icon" aria-hidden="true">📄</span>'+
+    '<span class="log-file-meta">'+
+      '<span class="lf-name">'+esc(it.fileName||'Uploaded file')+'</span>'+
+      (size||it.fileType?'<span class="lf-sub">'+[size,esc(it.fileType||'')].filter(Boolean).join(' · ')+'</span>':'')+
+    '</span>'+
+  '</div>';
+}
+
 // Chips listing the exact ShortIds added/updated (only recorded for 2026-Q2 merges).
 function ticketChips(ids){
   return (ids||[]).map(id=>'<span class="tk-chip"><a href="https://t.corp.amazon.com/issues/'+encodeURIComponent(id)+'" target="_blank" rel="noopener">'+esc(id)+'</a></span>').join('');
@@ -129,8 +167,8 @@ function render(entries){
   if(qid)entries=entries.filter(e=>e.liveQuarter===qid);
   const heading=qid?('Update Data Log — '+esc(qid)):'Update Data Log';
   const subText=qid
-    ?('History of data uploads/merges into <b>'+esc(qid)+'</b> — who, when (IST &amp; MST), and what changed. Latest first.')
-    :'History of data uploads to the live dashboard — who uploaded, when (IST &amp; MST), and what changed. Latest first.';
+    ?('History of data uploads/merges into <b>'+esc(qid)+'</b> — who, when ('+esc(MY_TZ)+'), and what changed. Latest first.')
+    :'History of data uploads to the live dashboard — who uploaded, when ('+esc(MY_TZ)+'), and what changed. Latest first.';
   let html='<h1>'+heading+'</h1><p class="sub">'+subText+'</p>';
   if(!entries.length){
     html+='<div class="empty">No '+(qid?('uploads recorded for '+esc(qid)+' yet.'):'uploads recorded yet.')+'</div>';
@@ -160,24 +198,33 @@ function render(entries){
     '</div>';
   }
 
+  // Assign a background colour per upload DAY (in the user's timezone). Days that have MORE THAN ONE
+  // upload session get a coloured background so multi-upload days stand out; single-upload days stay plain.
+  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const dayKey=(iso)=>{try{return new Date(iso).toLocaleDateString('en-CA',{timeZone:zone});}catch(e){return 'x';}};
+  const dayCounts={}; groups.forEach(g=>{const k=dayKey(g.at);dayCounts[k]=(dayCounts[k]||0)+1;});
+  const dayColorIdx={}; let ci=0;
+  groups.forEach(g=>{const k=dayKey(g.at);if(dayCounts[k]>1&&dayColorIdx[k]===undefined){dayColorIdx[k]=(ci++%6);}});
+
   html+=groups.map((g,gi)=>{
     // Put the live-quarter entry first, then past quarters.
     const items=g.items.slice().sort((a,b)=>(a.pastQuarterMerge?1:0)-(b.pastQuarterMerge?1:0));
     const open=(gi===0); // only the latest session is expanded by default
-    const qCount=items.length;
     const ids=items.map(it=>it.id).filter(Boolean);
+    const k=dayKey(g.at);
+    const dayCls=(dayCounts[k]>1)?(' log-day-'+dayColorIdx[k]):'';
+    // File metadata (captured at upload, if present on any item in the session).
+    const fileMeta=fileMetaHtml(items);
     return ''+
-    '<div class="log-session'+(open?' open':'')+'">'+
+    '<div class="log-session'+(open?' open':'')+dayCls+'">'+
       '<button type="button" class="log-head" aria-expanded="'+(open?'true':'false')+'" onclick="toggleSession(this)">'+
         '<span class="log-user">'+esc(g.user)+'<span class="log-role">'+esc(g.role||'')+'</span></span>'+
         '<span class="log-when">'+
-          '<b>IST:</b> '+fmtTZ(g.at,'Asia/Kolkata')+'<br>'+
-          '<b>MST:</b> '+fmtTZ(g.at,'America/Denver')+
+          '<b>'+esc(MY_TZ)+':</b> '+fmtTZ(g.at,zone)+
         '</span>'+
-
         '<span class="log-caret" aria-hidden="true">▾</span>'+
       '</button>'+
-      '<div class="log-session-body">'+items.map(quarterBlock).join('')+'</div>'+
+      '<div class="log-session-body">'+fileMeta+items.map(quarterBlock).join('')+'</div>'+
     '</div>';
   }).join('');
   wrap.innerHTML=html;
@@ -200,8 +247,11 @@ function toggleSession(btn){
   btn.setAttribute('aria-expanded',isOpen?'true':'false');
 }
 
+let MY_TZ='IST'; // logged-in user's preferred timezone (IST|MST)
+const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
   const r=await A.api('GET','/api/data-log');
   if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
   if(!r.ok){gate('Could not load the data log (HTTP '+r.status+').');return;}

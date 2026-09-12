@@ -124,6 +124,8 @@
       + '.tb-refresh .tb-rf-ic svg{width:18px;height:18px;animation:tbrfspin 1s linear infinite}'
       + '.tb-refresh .tb-rf-dot{width:9px;height:9px;border-radius:50%;background:#ff9900;box-shadow:0 0 8px #ff9900;animation:tbrfpulse 1.1s ease-in-out infinite;flex-shrink:0}'
       + '.tb-refresh .tb-rf-msg{line-height:1.3}'
+      + '.tb-refresh .tb-rf-timer{flex-shrink:0;font-variant-numeric:tabular-nums;font-weight:800;background:rgba(255,153,0,.18);color:#ffcf8a;border-radius:20px;padding:2px 10px;font-size:.92em}'
+      + '.tb-refresh.done .tb-rf-timer{display:none}'
       + '.tb-refresh.done{color:#4ade80;background:linear-gradient(90deg,rgba(74,222,128,.16),rgba(74,222,128,.06));border-bottom-color:rgba(74,222,128,.4)}'
       + '.tb-refresh.done .tb-rf-ic svg{animation:none}'
       + '.tb-refresh.done .tb-rf-dot{background:#4ade80;box-shadow:0 0 8px #4ade80;animation:none}'
@@ -328,6 +330,8 @@
     var _syncIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
     var _checkIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     var _hideTimer = null;
+    var _countTimer = null, _countLeft = 60;
+    function stopCountdown() { if (_countTimer) { clearInterval(_countTimer); _countTimer = null; } }
     function el() {
       var e = document.getElementById('tbRefreshBar');
       if (e) return e;
@@ -345,15 +349,29 @@
     window.PHDRefreshBanner = {
       show: function (msg) {
         if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
+        stopCountdown();
         var e = el();
         e.classList.remove('done');
         e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _syncIc + '</span>'
-          + '<span class="tb-rf-msg">' + (msg || 'Showing your last saved view \u2014 fetching the latest data. Please hold on a moment\u2026') + '</span>';
+          + '<span class="tb-rf-msg">' + (msg || 'Showing your last saved view \u2014 fetching the latest data. Please hold on a moment\u2026') + '</span>'
+          + '<span class="tb-rf-timer" id="tbRfTimer">60s</span>';
         // force reflow so the transition plays
         void e.offsetWidth;
         e.classList.add('show');
+        // Countdown: 60s down; on reaching 1s, top up +30s and append an apology, until resolved.
+        _countLeft = 60;
+        var apologised = false;
+        _countTimer = setInterval(function () {
+          _countLeft -= 1;
+          if (_countLeft <= 1) {
+            _countLeft = 30;
+            if (!apologised) { apologised = true; var m = document.querySelector('#tbRefreshBar .tb-rf-msg'); if (m) m.textContent = 'Still fetching — apologies, this is taking a little longer…'; }
+          }
+          var t = document.getElementById('tbRfTimer'); if (t) t.textContent = _countLeft + 's';
+        }, 1000);
       },
       updated: function (msg) {
+        stopCountdown();
         var e = document.getElementById('tbRefreshBar');
         if (!e) return;
         e.classList.add('done');
@@ -365,6 +383,7 @@
       // Nothing changed since last visit: briefly reassure the user, then fade. No heavy fetch ran.
       upToDate: function (msg) {
         if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
+        stopCountdown();
         var e = el();
         e.classList.add('done');
         e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _checkIc + '</span>'
@@ -374,6 +393,7 @@
         _hideTimer = setTimeout(function () { window.PHDRefreshBanner.hide(); }, 2500);
       },
       hide: function () {
+        stopCountdown();
         var e = document.getElementById('tbRefreshBar');
         if (!e) return;
         e.classList.remove('show');
@@ -487,8 +507,10 @@
     var file = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!file) return;
+    // Capture file metadata (name/size/type) up front — recorded on the upload log.
+    var fileMeta = { fileName: file.name || '', fileSize: file.size || 0, fileType: file.type || '' };
     var reader = new FileReader();
-    reader.onload = function (ev) { tbBeginUpload(String(ev.target.result || '')); };
+    reader.onload = function (ev) { tbBeginUpload(String(ev.target.result || ''), fileMeta); };
     reader.onerror = function () { alert('Could not read the file.'); };
     reader.readAsText(file);
   });
@@ -505,7 +527,7 @@
   }
 
   // Step A: validate columns, then assess.
-  function tbBeginUpload(csvText) {
+  function tbBeginUpload(csvText, fileMeta) {
     var missing = tbMissingColumns(csvText);
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
@@ -524,11 +546,11 @@
       '</div>');
     document.getElementById('tbAssessCancel').onclick = function () { tbAssessAborted = true; tbRemove('tbAssess'); };
     // Defer so the spinner paints before the (sync) parse + fetch.
-    setTimeout(function () { tbAssess(csvText); }, 40);
+    setTimeout(function () { tbAssess(csvText, fileMeta); }, 40);
   }
 
   // Step B: parse + compare LastUpdatedDate vs stored; build the delta; show the confirm popup.
-  async function tbAssess(csvText) {
+  async function tbAssess(csvText, fileMeta) {
     var rows;
     try { rows = tbParseCSV(csvText).filter(function (r) { return r.ShortId || r.IssueId; }).map(function (r) { if (!r.ShortId && r.IssueId) r.ShortId = r.IssueId; return r; }); }
     catch (err) { tbRemove('tbAssess'); alert('Could not read the CSV file.'); return; }
@@ -593,7 +615,7 @@
 
     if (tbAssessAborted) return;
     tbRemove('tbAssess');
-    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ });
+    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {} });
   }
 
   // Step C: confirmation popup with the counts. On confirm -> delta publish.
@@ -653,7 +675,8 @@
       if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
     }, 1000);
     try {
-      var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated } };
+      var fm = res.fileMeta || {};
+      var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
       var r = await A.api('POST', '/api/live-quarter/patch', body);
       clearInterval(_pTimer);
       await tbCountdownToZero(_pTime, 'tbPushTimer');   // wind down to 0 cleanly

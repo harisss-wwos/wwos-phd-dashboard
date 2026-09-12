@@ -392,7 +392,49 @@ function showMergeReport(rep,crossInfo){
 }
 
 async function startFresh(){await dbClear();M=null;destroyCharts();renderUpload();}
-function nav(view){currentView=view;destroyCharts();if(view==='dashboard')renderDashboard();else if(view==='groups')renderGroups();else if(view==='previous-week')renderPreviousWeek();else if(view==='shift-report')renderShiftReport();}
+
+// Views other than the (chunked) dashboard need the FULL tickets array + computed M.
+// Load it on demand so the dashboard stays lightweight. Shows a spinner while loading.
+async function ensureFullData(){
+  if(M)return true;
+  try{
+    // Paint a neutral spinner so the switch isn't blank while ~8k rows load.
+    document.getElementById('app').innerHTML=topBar(currentView||'dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div><p style="color:#879596;margin-top:16px">Loading full dataset…</p></div>';
+  }catch(e){}
+  // Prefer whatever is already in IndexedDB; else fetch from the server.
+  try{ const c=await metaGet('liveCache'); if(await renderFromLocalData())return !!M; }catch(e){}
+  const ok=await refreshFromServerData();
+  return ok && !!M;
+}
+// Build M from local IndexedDB rows (no render). Returns true if data existed.
+async function renderFromLocalData(){
+  try{
+    const allRows=await dbGetAll();
+    if(!allRows.length)return false;
+    let maxLU=0; try{ maxLU=allRows.reduce((m,r)=>{const d=new Date(r.LastUpdatedDate);return(!isNaN(d)&&d.getTime()>m)?d.getTime():m;},0); window._dbMaxLastUpdated=maxLU; }catch(e){}
+    M=computeMetrics(allRows);M.totalStored=allRows.length;
+    return true;
+  }catch(e){return false;}
+}
+// Fetch the full live dataset from the server, store it, build M (no render).
+async function refreshFromServerData(){
+  const shared=await loadLiveQuarter();
+  if(!shared)return false;
+  try{ await dbClear(); await dbPutAll(shared.tickets); }catch(e){}
+  try{ await metaSet('liveCache',{quarter:LIVE_QUARTER?LIVE_QUARTER.quarter:null,publishedAt:shared.updatedAt||null}); }catch(e){}
+  return await renderFromLocalData();
+}
+
+function nav(view){
+  currentView=view;destroyCharts();
+  if(view==='dashboard'){ renderDashboardChunked(); return; }
+  // Other views need the full array — load it first if we don't have M yet.
+  if(M){ _navRender(view); return; }
+  ensureFullData().then(ok=>{ if(ok)_navRender(view); else renderDashboardChunked(); });
+}
+function _navRender(view){
+  if(view==='groups')renderGroups();else if(view==='previous-week')renderPreviousWeek();else if(view==='shift-report')renderShiftReport();else renderDashboardChunked();
+}
 
 function renderUpload(){
   document.getElementById('app').innerHTML=`
@@ -524,8 +566,16 @@ function attachNewFileHandler(){
 
 // Let the shared upload module refresh the dashboard in-place after a successful upload (app.html).
 window.PHDRefreshLive=async function(){
+  // A new publish happened. Bust the version memo + per-chunk load state + cached full dataset so
+  // the chunked dashboard re-fetches everything against the new live version.
+  try{ if(window.PHDAuth)window.PHDAuth._liveVerCache=undefined; }catch(e){}
+  DASH_VERSION=undefined;
+  Object.keys(DASH_LOADED).forEach(k=>{ delete DASH_LOADED[k]; });
+  M=null; // other views will reload full data on demand
   try{ await metaSet('liveCache',null); }catch(e){}
-  try{ await refreshFromServer(false); }catch(e){}
+  // Re-render the chunked dashboard (summary re-fetches; cards reload on next expand).
+  if((currentView||'dashboard')==='dashboard'){ renderDashboardChunked(); }
+  else { nav(currentView); }
 };
 
 // Expose the dashboard's cached version (b) as "<quarter>|<publishedAt>" so the Refresh button can
@@ -1402,6 +1452,231 @@ function renderDashboard(){
   }
 }
 
+// ============================================================================
+// CHUNKED DASHBOARD (lazy per-card loading + version-first caching)
+// The summary KPIs load + cache on entry; each chart/table card is COLLAPSED by
+// default and fetches its own /api/dash/<chunk> slice only when first expanded,
+// caching it against the live version (busts automatically on a new upload).
+// Other views (groups / previous-week / shift-report) + ticket popups still use
+// the full tickets array (M) — loaded on demand, see ensureFullData().
+// ============================================================================
+const DASH_LOADED = {};   // chunk key -> true once fetched this page-load
+let DASH_VERSION = undefined; // A.liveVersion() for this page-load (fetched once)
+
+async function dashVersion(){
+  if(DASH_VERSION!==undefined)return DASH_VERSION;
+  try{ DASH_VERSION = (window.PHDAuth&&window.PHDAuth.liveVersion)?await window.PHDAuth.liveVersion():null; }
+  catch(e){ DASH_VERSION=null; }
+  return DASH_VERSION;
+}
+
+// Fetch one dashboard chunk with version-first SWR caching. onData(data) renders it.
+async function loadDashChunk(chunk, onData, opts){
+  opts=opts||{};
+  const A=window.PHDAuth;
+  const version=await dashVersion();
+  return A.swrLoad({
+    key:'dash-'+chunk,
+    version:version,
+    fetch:()=>A.api('GET','/api/dash/'+chunk),
+    onData:(data)=>{ try{ onData(data); }catch(e){} },
+    // Only the summary shows the shared banner; card expands are silent to avoid banner spam.
+    refreshMsg:opts.silent?undefined:undefined,
+    updatedMsg:opts.silent?undefined:undefined,
+    upToDateMsg:opts.silent?undefined:undefined,
+  });
+}
+
+// A collapsible card for the chunked dashboard. Collapsed by default; the body holds a
+// spinner until its chunk loads on first expand. `chunk` is the /api/dash/<chunk> name.
+function dashCard(chunk, iconName, title, bodyId, extra){
+  const sp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
+  return '<div class="section collapsible collapsed" data-chunk="'+chunk+'">'+
+    '<h2 onclick="toggleDashCard(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">▾</span></h2>'+
+    '<div class="sec-body">'+(extra||'')+'<div id="'+bodyId+'" class="dash-chunk-slot">'+sp+'</div></div>'+
+  '</div>';
+}
+
+// Expand/collapse a chunked card. On FIRST expand, fetch + render that card's chunk.
+function toggleDashCard(h2){
+  const sec=h2.closest('.section');if(!sec)return;
+  const nowCollapsed=sec.classList.toggle('collapsed');
+  if(nowCollapsed)return; // collapsing -> nothing to load
+  const chunk=sec.getAttribute('data-chunk');
+  if(chunk && !DASH_LOADED[chunk]){
+    DASH_LOADED[chunk]=true;
+    renderDashChunkInto(chunk);
+  } else {
+    // Already loaded -> just resize any charts that were laid out while hidden.
+    setTimeout(()=>{try{charts.forEach(c=>{if(sec.contains(c.canvas))c.resize();});}catch(e){}},30);
+  }
+}
+window.toggleDashCard=toggleDashCard;
+
+// Fetch a chunk and render it into its card body.
+function renderDashChunkInto(chunk){
+  const renderers={
+    age:renderAgeChunk, queue:renderQueueChunk, daily7:renderDaily7Chunk,
+    weekly:renderWeeklyChunk, 'sla-weekly':renderSlaWeeklyChunk,
+    incidents:renderIncidentsChunk, hi:renderHiChunk,
+  };
+  const fn=renderers[chunk]; if(!fn)return;
+  loadDashChunk(chunk,fn,{silent:true}).catch(()=>{
+    // On failure, show a small retry message so the card isn't a stuck spinner.
+    const slot=document.querySelector('.section[data-chunk="'+chunk+'"] .dash-chunk-slot');
+    if(slot)slot.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section. <a href="#" onclick="retryDashChunk(\''+chunk+'\');return false;" style="color:#ff9900">Retry</a></p>';
+  });
+}
+function retryDashChunk(chunk){ DASH_LOADED[chunk]=true; renderDashChunkInto(chunk); }
+window.retryDashChunk=retryDashChunk;
+
+// ---- Per-card renderers (fill the card body from the chunk payload) ----
+function renderAgeChunk(d){
+  const slot=document.getElementById('dashAgeBody');if(!slot)return;
+  const tile=(color,icon,name,range,val)=>'<div class="kpi-card age-tile" style="border-top-color:'+color+'"><div class="value" style="color:'+color+'">'+val+'</div><div class="age-name">'+ic(icon,14)+' '+name+'</div><div class="age-range">'+range+'</div></div>';
+  slot.innerHTML='<p class="meta-info">Open tickets classified by age. Full ticket-level detail is on the Live Dashboard once loaded.</p>'+
+    '<div class="kpi-grid">'+
+      tile('#4ade80','check-circle','GREEN','(0-96 hrs / 0-4 days)',d.green)+
+      tile('#fbbf24','clock','YELLOW','(96-168 hrs / 4-7 days)',d.yellow)+
+      tile('#ff5252','alert','RED','(168-240 hrs / 7-10 days)',d.red)+
+      tile('#888','flame','BLACK','(&gt;240 hrs / &gt;10 days)',d.black)+
+      tile('#a78bfa','reopen','PURPLE','(Reopened)',d.purple)+
+    '</div>';
+}
+function renderQueueChunk(d){
+  const slot=document.getElementById('dashQueueBody');if(!slot)return;
+  const order=['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'];
+  const li=(k,v)=>'<li><span>'+k+'</span><span class="val">'+v+'</span></li>';
+  slot.innerHTML='<div class="handoff-grid">'+
+    '<div class="handoff-box"><h3>Ticket Count by Status</h3><ul>'+order.map(k=>li(k,d.counts[k])).join('')+'</ul></div>'+
+    '<div class="handoff-box"><h3>Status Distribution (%)</h3><ul>'+order.map(k=>li(k,d.pct[k]+'%')).join('')+'</ul></div>'+
+  '</div>';
+}
+function renderDaily7Chunk(d){
+  const slot=document.getElementById('dashDaily7Body');if(!slot)return;
+  slot.innerHTML='<div class="pair-grid">'+
+    '<div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>'+
+    '<div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>'+
+  '</div>';
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  makeChart('c2a',{type:'bar',data:{labels:d.labels,datasets:[{label:'Created',data:d.created,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:_barOpts()});
+  makeChart('c2b',{type:'bar',data:{labels:d.labels,datasets:[{label:'Resolved',data:d.resolved,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:_barOpts()});
+}
+function renderWeeklyChunk(d){
+  const slot=document.getElementById('dashWeeklyBody');if(!slot)return;
+  slot.innerHTML='<div class="pair-grid">'+
+    '<div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>'+
+    '<div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>'+
+  '</div>';
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  makeChart('c4a',{type:'bar',data:{labels:d.labels,datasets:[{label:'Created',data:d.created,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:_barOpts()});
+  makeChart('c4b',{type:'bar',data:{labels:d.labels,datasets:[{label:'Resolved',data:d.resolved,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:_barOpts()});
+}
+function renderSlaWeeklyChunk(d){
+  const slot=document.getElementById('dashSlaBody');if(!slot)return;
+  const weeks=d.weeks||[];
+  const slaQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.label:'this quarter';
+  slot.innerHTML='<p class="meta-info" style="margin:-8px 0 16px">Percentage of each week\'s resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date and drawn as each week passes.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>';
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  makeChart('cSlaWave',{type:'line',data:{labels:weeks.map(w=>w.week),datasets:[{label:'SLA % (≤240h)',data:weeks.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=weeks[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
+}
+function renderIncidentsChunk(d){
+  const slot=document.getElementById('dashIncidentsBody');if(!slot)return;
+  const types=d.types||[];const max=types.length?types[0].count:1;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  slot.innerHTML='<p class="meta-info">Incident types across the live quarter, ranked by volume.</p>'+
+    '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>'+
+    types.map((t,i)=>'<tr><td style="color:#ff9900;font-weight:700">'+(i+1)+'</td><td><strong>'+esc(t.type)+'</strong></td><td>'+t.count+'</td><td>'+t.pct+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:'+(t.count/max*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
+    '</tbody></table></div>';
+}
+function renderHiChunk(d){
+  const slot=document.getElementById('dashHiBody');if(!slot)return;
+  const total=d.total||0;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const subTable=(list,accent)=>{
+    if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
+    const mx=list[0].count;
+    return '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>'+
+      list.map((r,i)=>'<tr><td style="color:'+accent+';font-weight:700">'+(i+1)+'</td><td><strong>'+esc(r.rootCause)+'</strong></td><td>'+r.count+'</td><td>'+(total?(r.count/total*100).toFixed(1):0)+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+accent+';width:'+(r.count/mx*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
+      '</tbody></table></div>';
+  };
+  slot.innerHTML=
+    '<div style="background:#000;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:18px">'+
+      '<p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">'+total+'</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">'+d.petPct+'%</strong> are driven by <strong>pet/animal incidents</strong>.</p>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">'+
+        '<div style="background:#0a0a0a;border:1px solid rgba(167,139,250,.35);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#a78bfa">'+d.pet+' <span style="font-size:.55em;color:#879596">('+d.petPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI due to pet / animal incidents</div></div>'+
+        '<div style="background:#0a0a0a;border:1px solid rgba(255,153,0,.3);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#ff9900">'+d.nonPet+' <span style="font-size:.55em;color:#879596">('+d.nonPetPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI NOT related to pet incidents</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">🐾 Involving pet / animal incidents — '+d.pet+' ('+d.petPct+'% of all HI)</h3>'+
+    subTable(d.petBreakdown,'#a78bfa')+
+    '<h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — '+d.nonPet+' ('+d.nonPetPct+'% of all HI)</h3>'+
+    subTable(d.nonPetBreakdown,'#ff9900');
+}
+function _barOpts(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}};}
+
+// Render the summary KPI groups from a /api/dash/summary payload.
+function renderSummaryInto(d){
+  // Persist the live version so the topbar Refresh button's "already up to date" check works,
+  // and keep LIVE_QUARTER's label in sync for the SLA-per-week card.
+  try{
+    if(d&&d.quarter){
+      LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:d.quarter,label:d.label||d.quarter});
+      metaSet('liveCache',{quarter:d.quarter,publishedAt:d.publishedAt||null});
+    }
+  }catch(e){}
+  const g1=document.getElementById('dashSumTotals'),g2=document.getElementById('dashSumAvg'),g3=document.getElementById('dashSumRepeat');
+  if(g1)g1.innerHTML=
+    '<div class="kpi-card accent"><div class="value">'+d.total.toLocaleString()+'</div><div class="label">'+ic('ticket',14)+' Total Tickets <span title="Total number of tickets stored in the dashboard" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
+    '<div class="kpi-card success"><div class="value">'+d.resolved.toLocaleString()+' ('+d.resolvedPct+'%)</div><div class="label">'+ic('check-circle',14)+' Resolved <span title="Tickets in Resolved or Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
+    '<div class="kpi-card warning"><div class="value">'+d.unresolved.toLocaleString()+' ('+d.unresolvedPct+'%)</div><div class="label">'+ic('hourglass',14)+' Unresolved Tickets <span title="Tickets not in Resolved/Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>';
+  if(g2)g2.innerHTML=
+    '<div class="kpi-card"><div class="value">'+d.avgResolutionHrs+' hrs ('+d.avgResolutionPct+'%)</div><div class="label">Avg Resolution Time <span title="Average resolution time. Percentage = avg / 240hr SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
+    '<div class="kpi-card" style="border-top-color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'"><div class="value" style="color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'">'+d.slaPct+'%</div><div class="label">SLA Compliance (≤240 hrs) <span title="'+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
+    '<div class="kpi-card"><div class="value">'+d.autosim.toLocaleString()+' ('+d.autosimPct+'%)</div><div class="label">'+ic('bolt',14)+' AutoSIM Resolved <span title="Tickets auto-resolved by AutoSIM" style="cursor:help;opacity:.7">&#9432;</span></div></div>';
+  if(g3)g3.innerHTML=
+    '<div class="kpi-card accent"><div class="value">'+d.repeatIncidents.toLocaleString()+'</div><div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0) <span title="Tickets with Historical Incident / Cnt > 0" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
+    '<div class="kpi-card" style="border-top-color:#a78bfa"><div class="value" style="color:#a78bfa">'+d.hiPet.toLocaleString()+'</div><div class="label">'+ic('paw',14)+' HI involving pet incidents <span title="Repeat incidents whose root cause is an unsecured animal / pet" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
+    '<div class="kpi-card" style="border-top-color:#a78bfa"><div class="value" style="color:#a78bfa">'+d.hiPetPct+'%</div><div class="label">'+ic('paw',14)+' % of HI involving pet incidents</div></div>'+
+    '<div class="kpi-card"><div class="value">'+d.hiNonPet.toLocaleString()+'</div><div class="label">'+ic('repeat',14)+' HI involving non-pet incidents</div></div>'+
+    '<div class="kpi-card"><div class="value">'+d.hiNonPetPct+'%</div><div class="label">'+ic('repeat',14)+' % of HI involving non-pet incidents</div></div>'+
+    '<div class="kpi-card '+(d.hiGap>=0?'warning':'success')+'"><div class="value">'+(d.hiGap>=0?'+':'')+d.hiGap+'%</div><div class="label">'+ic('bar-chart',14)+' Pet vs non-pet gap in HI <span title="Percentage-point difference" style="cursor:help;opacity:.7">&#9432;</span></div></div>';
+}
+
+// The chunked dashboard view. Summary loads immediately (cached); the 7 cards below are
+// collapsed and load lazily on first expand.
+function renderDashboardChunked(){
+  stopScramble();
+  destroyCharts();
+  const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
+  const sp='<span class="num-spinner"></span>';
+  const kpiSpin=(cls,label,tip)=>'<div class="kpi-card '+(cls||'')+'"><div class="value">'+sp+'</div><div class="label">'+label+(tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'')+'</div></div>';
+  const headerRight=loggedIn?('<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">'+ic('alert',15)+' Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>'+((window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?('<button type="button" class="btn sec" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">'):'')+'<a class="btn sec" href="data-log.html">'+ic('history',15)+' Uploaded data log</a></span>'):'';
+  document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
+    '<div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">'+
+      '<h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>'+headerRight+
+    '</div>'+
+    '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>'+
+    '<div class="kpi-grid" id="dashSumTotals" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('ticket',14)+' Total Tickets')+kpiSpin('success',ic('check-circle',14)+' Resolved')+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets')+'</div>'+
+    '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>'+
+    '<div class="kpi-grid" id="dashSumAvg" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('','Avg Resolution Time')+kpiSpin('','SLA Compliance (≤240 hrs)')+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved')+'</div>'+
+    '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>'+
+    '<div class="kpi-grid" id="dashSumRepeat" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)')+kpiSpin('',ic('paw',14)+' HI involving pet incidents')+kpiSpin('',ic('paw',14)+' % of HI involving pet incidents')+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents')+kpiSpin('',ic('repeat',14)+' % of HI involving non-pet incidents')+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI')+'</div>'+
+    dashCard('age','clock','Ticket Age Classification','dashAgeBody')+
+    dashCard('queue','grid','Queue Status','dashQueueBody')+
+    dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
+    dashCard('weekly','bar-chart','Weekly Volume','dashWeeklyBody')+
+    dashCard('sla-weekly','check-circle','SLA Compliance per Week (≤240 hrs)','dashSlaBody')+
+    dashCard('incidents','alert','Incident Types','dashIncidentsBody')+
+    dashCard('hi','repeat','Historical Incidents (Cnt > 0)','dashHiBody')+
+  '</div>';
+  attachNewFileHandler();
+  refreshHelpAlertCount();
+  // Load the summary (cached, version-first). Everything else waits for a card expand.
+  loadDashChunk('summary',renderSummaryInto,{silent:false}).catch(()=>{});
+}
+
 function renderGroups(){
   const m=M;const sorted=[...m.agents.filter(a=>a.group==='A1').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='A2').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='B').sort((a,b)=>b.resolved-a.resolved)];
   const gc={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'};const tc={A1:'tag-a1',A2:'tag-a2',B:'tag-b'};
@@ -1729,7 +2004,7 @@ async function fetchLiveQuarterVersion(){
 // view immediately, instead of rendering the dashboard first and switching afterward.
 function renderCurrentOrView(){
   const v=initialViewParam();
-  if(v && M){ nav(v); } else { renderDashboard(); }
+  if(v){ nav(v); } else { renderDashboardChunked(); }
 }
 
 // Render the dashboard from whatever is currently in the local tickets store.
@@ -1831,72 +2106,36 @@ async function maybeHandlePendingUpload(){
   return true;
 }
 
-// ========= INIT ========= (stale-while-revalidate: instant from cache, refresh only if changed)
+// ========= INIT ========= (chunked dashboard: summary loads+caches immediately; each
+// chart card lazy-loads on first expand. Other views load the full array on demand.)
 (async function init(){
-  // Cross-page upload handoff runs first (needs a full fetch + upload confirm, no cache shortcut).
-  // Peek at the flag synchronously before painting anything.
+  // Cross-page upload handoff runs first (needs a full fetch + upload confirm).
   let uploadHandoff=false;
   try{ uploadHandoff=new URLSearchParams(location.search).get('upload')==='1' && !!sessionStorage.getItem('phdPendingUpload'); }catch(e){}
 
-  // ---- INSTANT PATH ----
-  // Whenever we have ANY local data, render it immediately with NO spinner — before we touch the
-  // network or even the user roster. The header/avatar re-render themselves once roles resolve.
-  let paintedFromCache=false;
-  if(!uploadHandoff){
-    try{
-      const localCount=await dbCount();
-      if(localCount>0){
-        const cache=await metaGet('liveCache');
-        paintedFromCache=await renderFromLocal(cache?cache.publishedAt:null);
-      }
-    }catch(e){}
-  }
-  // Nothing cached to paint -> show the shell/spinner so the screen is never blank.
-  if(!paintedFromCache)paintInitialLoading();
-  // Painted stale cache -> show the "fetching the latest" banner while we version-check + refresh.
-  if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.show();
+  const deepLink=initialViewParam(); // groups | previous-week | shift-report | ''
 
-  // Fetch the role roster + my profile (avatar) so the header renders correctly. If we already
-  // painted from cache, re-render the top bar once these resolve (avatar/role badge/nav gating).
+  // Paint immediately so the screen is never blank. Deep-linked views show a neutral spinner
+  // (full data loads next); otherwise render the chunked dashboard right away.
+  if(!uploadHandoff){
+    if(deepLink){ paintInitialLoading(); }
+    else{ renderDashboardChunked(); }
+  }
+
+  // Role roster + profile (avatar) so the header renders correctly; re-render the top bar after.
   await loadUserRoles();
   if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
-  if(paintedFromCache){ try{ if(window.PHDNav&&window.PHDNav.refreshRight)window.PHDNav.refreshRight(); }catch(e){} }
-  // Start background help-request notifications for admins/owner (no-op if not logged in / not admin).
+  try{ if(window.PHDNav&&window.PHDNav.refreshRight)window.PHDNav.refreshRight(); }catch(e){}
   startHelpNotificationPolling();
+
   // Cross-page upload handoff: a standalone page stashed a CSV and sent us here with ?upload=1.
   if(await maybeHandlePendingUpload())return;
-  try{
-    const cache=await metaGet('liveCache');           // {quarter, publishedAt} from last successful load
-    const localCount=await dbCount();
-    const version=await fetchLiveQuarterVersion();     // cheap server check (id + publishedAt)
 
-    if(version){
-      const fresh=cache && localCount>0 && cache.quarter===version.liveId && (cache.publishedAt||null)===(version.publishedAt||null);
-      if(fresh){
-        // Nothing changed since last visit (a === b). If we already painted from cache, we're done.
-        if(!paintedFromCache)await renderFromLocal(version.publishedAt);
-        if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.upToDate('Your data is already up to date \u2014 checked against the latest upload.'); // reassure
-        applyInitialView();
-        return;
-      }
-      // Cache is stale or empty. If we already painted stale cache, refresh silently in the
-      // background (no shimmer) and swap in the fresh render; otherwise fetch with the shimmer.
-      const ok=await refreshFromServer(/*showShimmer*/ !paintedFromCache);
-      if(!ok && !paintedFromCache)renderUpload();
-      if(paintedFromCache&&window.PHDRefreshBanner){ ok?window.PHDRefreshBanner.updated('Dashboard updated with the latest data.'):window.PHDRefreshBanner.hide(); }
-      applyInitialView();
-      return;
-    }
-
-    // Version check failed (offline / server unreachable): keep whatever we painted from cache.
-    if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide();
-    if(paintedFromCache || localCount>0){ if(!paintedFromCache)await renderFromLocal(cache?cache.publishedAt:null); applyInitialView(); return; }
-    // No cache and no server -> last resort: try a full fetch with shimmer, else upload screen.
-    const ok=await refreshFromServer(true);
-    if(!ok)renderUpload(); else applyInitialView();
-  }catch(e){
-    if(paintedFromCache){ if(window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); applyInitialView(); return; }
-    try{ if(await renderFromLocal(null))return; }catch(_){}
-    renderUpload();
+  // Deep-linked to a non-dashboard view -> load the full dataset then render that view.
+  if(deepLink){
+    const ok=await ensureFullData();
+    if(ok){ nav(deepLink); } else { renderDashboardChunked(); }
+    return;
   }
+  // Dashboard already rendered (chunked). Nothing else to do — each card caches itself on expand.
 })();
