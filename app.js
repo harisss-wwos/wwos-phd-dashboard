@@ -1215,6 +1215,60 @@ function startScramble(){
 }
 function stopScramble(){ if(_scrambleTimer){clearInterval(_scrambleTimer);_scrambleTimer=null;} }
 
+// ---- Summary-KPI scramble (matches the archive/Q2 "Summary Statistics" animation) ----
+// While /api/dash/summary loads, flicker random numbers in every .scramble-kpi slot so the
+// KPI cards look alive instead of showing a static spinner. Stopped when real values land.
+let _kpiScrTimer=null;
+function startKpiScramble(){
+  stopKpiScramble();
+  const tick=function(){
+    const els=document.querySelectorAll('.scramble-kpi');
+    if(!els.length){stopKpiScramble();return;}
+    els.forEach(function(el){
+      const max=parseInt(el.getAttribute('data-scr-max'),10)||100;
+      const pct=el.getAttribute('data-scr-pct')==='1';
+      const n=Math.random()*max;
+      el.textContent=pct?(n.toFixed(1)+'%'):Math.floor(n).toLocaleString();
+    });
+  };
+  tick();
+  _kpiScrTimer=setInterval(tick,70);
+}
+function stopKpiScramble(){ if(_kpiScrTimer){clearInterval(_kpiScrTimer);_kpiScrTimer=null;} }
+
+// Animate a KPI element from a brief scramble into its real value via a quick ease-out count-up.
+// `raw` is the final display string (e.g. "7,918 (97%)", "45 hrs (18.9%)", "99.2%", "+49%").
+// Only the FIRST number in the string is animated; the rest of the label is appended verbatim.
+function countUpKpi(el,raw){
+  if(!el)return;
+  const raf=window.requestAnimationFrame||function(cb){return setTimeout(function(){cb(Date.now());},16);};
+  try{
+    const m=String(raw).match(/-?[\d,]*\.?\d+/); // first numeric token
+    if(!m){ el.textContent=raw; return; }
+    const numStr=m[0];
+    const before=raw.slice(0,m.index), after=raw.slice(m.index+numStr.length);
+    const isPct=/^\s*%/.test(after);
+    const dec=(numStr.match(/\.(\d+)/)||[])[1];
+    const decimals=dec?dec.length:0;
+    const target=parseFloat(numStr.replace(/,/g,''));
+    if(isNaN(target)){ el.textContent=raw; return; }
+    const fmt=function(n){ const s=(decimals>0)?n.toFixed(decimals):Math.round(n).toLocaleString(); return before+s+after; };
+    const SCRAMBLE_MS=150, COUNT_MS=650; let start=null;
+    const scrMax=Math.max(10,isPct?100:Math.abs(target)*1.3);
+    const sign=target<0?-1:1;
+    const step=function(ts){
+      try{
+        if(start===null)start=ts;
+        const t=ts-start;
+        if(t<SCRAMBLE_MS){ el.textContent=fmt(sign*Math.random()*scrMax); raf(step); }
+        else if(t<SCRAMBLE_MS+COUNT_MS){ const p=(t-SCRAMBLE_MS)/COUNT_MS; el.textContent=fmt(target*(1-Math.pow(1-p,3))); raf(step); }
+        else { el.textContent=raw; }
+      }catch(err){ el.textContent=raw; }
+    };
+    raf(step);
+  }catch(err){ el.textContent=raw; }
+}
+
 // once the ticket data is loaded + computed. Mirrors renderDashboard()'s layout so there's no jump.
 function renderDashboardShell(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
@@ -1626,22 +1680,29 @@ function renderSummaryInto(d){
       metaSet('liveCache',{quarter:d.quarter,publishedAt:d.publishedAt||null});
     }
   }catch(e){}
+  stopKpiScramble(); // real values are in — halt the flicker before the count-up
   const g1=document.getElementById('dashSumTotals'),g2=document.getElementById('dashSumAvg'),g3=document.getElementById('dashSumRepeat');
+  // Each KPI value carries its final display string in data-kpi-val; the .value starts blank and
+  // is animated by countUpKpi (scramble -> ease-out count-up -> lands exactly on the real number).
+  const val=(raw,style)=>'<div class="value kpi-anim" data-kpi-val="'+String(raw).replace(/"/g,'&quot;')+'"'+(style?(' style="'+style+'"'):'')+'></div>';
+  const info=(tip)=>tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'';
   if(g1)g1.innerHTML=
-    '<div class="kpi-card accent"><div class="value">'+d.total.toLocaleString()+'</div><div class="label">'+ic('ticket',14)+' Total Tickets <span title="Total number of tickets stored in the dashboard" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
-    '<div class="kpi-card success"><div class="value">'+d.resolved.toLocaleString()+' ('+d.resolvedPct+'%)</div><div class="label">'+ic('check-circle',14)+' Resolved <span title="Tickets in Resolved or Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
-    '<div class="kpi-card warning"><div class="value">'+d.unresolved.toLocaleString()+' ('+d.unresolvedPct+'%)</div><div class="label">'+ic('hourglass',14)+' Unresolved Tickets <span title="Tickets not in Resolved/Closed status" style="cursor:help;opacity:.7">&#9432;</span></div></div>';
+    '<div class="kpi-card accent">'+val(d.total.toLocaleString())+'<div class="label">'+ic('ticket',14)+' Total Tickets'+info('Total number of tickets stored in the dashboard')+'</div></div>'+
+    '<div class="kpi-card success">'+val(d.resolved.toLocaleString()+' ('+d.resolvedPct+'%)')+'<div class="label">'+ic('check-circle',14)+' Resolved'+info('Tickets in Resolved or Closed status')+'</div></div>'+
+    '<div class="kpi-card warning">'+val(d.unresolved.toLocaleString()+' ('+d.unresolvedPct+'%)')+'<div class="label">'+ic('hourglass',14)+' Unresolved Tickets'+info('Tickets not in Resolved/Closed status')+'</div></div>';
   if(g2)g2.innerHTML=
-    '<div class="kpi-card"><div class="value">'+d.avgResolutionHrs+' hrs ('+d.avgResolutionPct+'%)</div><div class="label">Avg Resolution Time <span title="Average resolution time. Percentage = avg / 240hr SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
-    '<div class="kpi-card" style="border-top-color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'"><div class="value" style="color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'">'+d.slaPct+'%</div><div class="label">SLA Compliance (≤240 hrs) <span title="'+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
-    '<div class="kpi-card"><div class="value">'+d.autosim.toLocaleString()+' ('+d.autosimPct+'%)</div><div class="label">'+ic('bolt',14)+' AutoSIM Resolved <span title="Tickets auto-resolved by AutoSIM" style="cursor:help;opacity:.7">&#9432;</span></div></div>';
+    '<div class="kpi-card">'+val(d.avgResolutionHrs+' hrs ('+d.avgResolutionPct+'%)')+'<div class="label">Avg Resolution Time'+info('Average resolution time. Percentage = avg / 240hr SLA')+'</div></div>'+
+    '<div class="kpi-card" style="border-top-color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'">'+val(d.slaPct+'%','color:'+(d.slaPct>=90?'#4ade80':'#ff5252'))+'<div class="label">SLA Compliance (≤240 hrs)'+info(d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs')+'</div></div>'+
+    '<div class="kpi-card">'+val(d.autosim.toLocaleString()+' ('+d.autosimPct+'%)')+'<div class="label">'+ic('bolt',14)+' AutoSIM Resolved'+info('Tickets auto-resolved by AutoSIM')+'</div></div>';
   if(g3)g3.innerHTML=
-    '<div class="kpi-card accent"><div class="value">'+d.repeatIncidents.toLocaleString()+'</div><div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0) <span title="Tickets with Historical Incident / Cnt > 0" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
-    '<div class="kpi-card" style="border-top-color:#a78bfa"><div class="value" style="color:#a78bfa">'+d.hiPet.toLocaleString()+'</div><div class="label">'+ic('paw',14)+' HI involving pet incidents <span title="Repeat incidents whose root cause is an unsecured animal / pet" style="cursor:help;opacity:.7">&#9432;</span></div></div>'+
-    '<div class="kpi-card" style="border-top-color:#a78bfa"><div class="value" style="color:#a78bfa">'+d.hiPetPct+'%</div><div class="label">'+ic('paw',14)+' % of HI involving pet incidents</div></div>'+
-    '<div class="kpi-card"><div class="value">'+d.hiNonPet.toLocaleString()+'</div><div class="label">'+ic('repeat',14)+' HI involving non-pet incidents</div></div>'+
-    '<div class="kpi-card"><div class="value">'+d.hiNonPetPct+'%</div><div class="label">'+ic('repeat',14)+' % of HI involving non-pet incidents</div></div>'+
-    '<div class="kpi-card '+(d.hiGap>=0?'warning':'success')+'"><div class="value">'+(d.hiGap>=0?'+':'')+d.hiGap+'%</div><div class="label">'+ic('bar-chart',14)+' Pet vs non-pet gap in HI <span title="Percentage-point difference" style="cursor:help;opacity:.7">&#9432;</span></div></div>';
+    '<div class="kpi-card accent">'+val(d.repeatIncidents.toLocaleString())+'<div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0)'+info('Tickets with Historical Incident / Cnt > 0')+'</div></div>'+
+    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPet.toLocaleString(),'color:#a78bfa')+'<div class="label">'+ic('paw',14)+' HI involving pet incidents'+info('Repeat incidents whose root cause is an unsecured animal / pet')+'</div></div>'+
+    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPetPct+'%','color:#a78bfa')+'<div class="label">'+ic('paw',14)+' % of HI involving pet incidents</div></div>'+
+    '<div class="kpi-card">'+val(d.hiNonPet.toLocaleString())+'<div class="label">'+ic('repeat',14)+' HI involving non-pet incidents</div></div>'+
+    '<div class="kpi-card">'+val(d.hiNonPetPct+'%')+'<div class="label">'+ic('repeat',14)+' % of HI involving non-pet incidents</div></div>'+
+    '<div class="kpi-card '+(d.hiGap>=0?'warning':'success')+'">'+val((d.hiGap>=0?'+':'')+d.hiGap+'%')+'<div class="label">'+ic('bar-chart',14)+' Pet vs non-pet gap in HI'+info('Percentage-point difference')+'</div></div>';
+  // Animate every KPI value from a brief scramble into its real number.
+  document.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
 
 // The chunked dashboard view. Summary loads immediately (cached); the 7 cards below are
@@ -1650,19 +1711,20 @@ function renderDashboardChunked(){
   stopScramble();
   destroyCharts();
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
-  const sp='<span class="num-spinner"></span>';
-  const kpiSpin=(cls,label,tip)=>'<div class="kpi-card '+(cls||'')+'"><div class="value">'+sp+'</div><div class="label">'+label+(tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'')+'</div></div>';
+  // KPI slot with the archive-style scramble animation while /api/dash/summary loads.
+  // scrMax = plausible flicker upper bound; pct=true renders a % during the scramble.
+  const kpiSpin=(cls,label,scrMax,pct)=>'<div class="kpi-card '+(cls||'')+'"><div class="value scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</div><div class="label">'+label+'</div></div>';
   const headerRight=loggedIn?('<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">'+ic('alert',15)+' Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>'+((window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?('<button type="button" class="btn sec" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">'):'')+'<a class="btn sec" href="data-log.html">'+ic('history',15)+' Uploaded data log</a></span>'):'';
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     '<div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">'+
       '<h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>'+headerRight+
     '</div>'+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>'+
-    '<div class="kpi-grid" id="dashSumTotals" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('ticket',14)+' Total Tickets')+kpiSpin('success',ic('check-circle',14)+' Resolved')+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets')+'</div>'+
+    '<div class="kpi-grid" id="dashSumTotals" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('ticket',14)+' Total Tickets',9000)+kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets',500)+'</div>'+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>'+
-    '<div class="kpi-grid" id="dashSumAvg" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('','Avg Resolution Time')+kpiSpin('','SLA Compliance (≤240 hrs)')+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved')+'</div>'+
+    '<div class="kpi-grid" id="dashSumAvg" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000)+'</div>'+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>'+
-    '<div class="kpi-grid" id="dashSumRepeat" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)')+kpiSpin('',ic('paw',14)+' HI involving pet incidents')+kpiSpin('',ic('paw',14)+' % of HI involving pet incidents')+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents')+kpiSpin('',ic('repeat',14)+' % of HI involving non-pet incidents')+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI')+'</div>'+
+    '<div class="kpi-grid" id="dashSumRepeat" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('paw',14)+' % of HI involving pet incidents',100,true)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100)+kpiSpin('',ic('repeat',14)+' % of HI involving non-pet incidents',100,true)+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI',100,true)+'</div>'+
     dashCard('age','clock','Ticket Age Classification','dashAgeBody')+
     dashCard('queue','grid','Queue Status','dashQueueBody')+
     dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
@@ -1673,8 +1735,12 @@ function renderDashboardChunked(){
   '</div>';
   attachNewFileHandler();
   refreshHelpAlertCount();
+  startKpiScramble(); // flicker the summary KPI numbers while /api/dash/summary loads
   // Load the summary (cached, version-first). Everything else waits for a card expand.
-  loadDashChunk('summary',renderSummaryInto,{silent:false}).catch(()=>{});
+  loadDashChunk('summary',renderSummaryInto,{silent:false}).then(function(r){
+    // If nothing painted (fetch failed + no cache), stop the flicker and show a dash so it isn't stuck.
+    if(!r||(!r.painted&&!r.ok)){ stopKpiScramble(); document.querySelectorAll('.scramble-kpi').forEach(function(el){el.textContent='—';}); }
+  }).catch(function(){ stopKpiScramble(); document.querySelectorAll('.scramble-kpi').forEach(function(el){el.textContent='—';}); });
 }
 
 function renderGroups(){
