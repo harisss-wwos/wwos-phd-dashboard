@@ -1986,175 +1986,276 @@ async function liveTicketsWithMeta() {
   return { tickets, publishedAt };
 }
 
-// ---- Summary (the 9 KPIs across Total / Average / Repeat-Incident) ----
-function dashSummary(tickets) {
-  const T = tickets.length;
-  const statuses = {};
-  tickets.forEach(t => { statuses[t.Status] = (statuses[t.Status] || 0) + 1; });
-  const asgn = statuses['Assigned'] || 0, pend = statuses['Pending'] || 0, wip = statuses['Work In Progress'] || 0,
-    res = statuses['Resolved'] || 0, researching = statuses['Researching'] || 0, closed = statuses['Closed'] || 0;
-  const inQ = asgn + pend + wip + researching;
-  const autosim = tickets.filter(t => t.ResolvedByIdentity && t.ResolvedByIdentity.includes('AutoSIM')).length;
-  // Avg resolution time + SLA (Resolved only, both dates, hours >= 0)
-  const rTimes = [];
-  tickets.forEach(t => { if (t.Status === 'Resolved' && t.CreateDate && t.ResolvedDate) { const h = (new Date(t.ResolvedDate) - new Date(t.CreateDate)) / 36e5; if (h >= 0) rTimes.push(h); } });
-  const avgR = _avg(rTimes);
-  const slaCompliant = rTimes.filter(h => h <= 240).length;
-  const slaPct = rTimes.length ? +((slaCompliant / rTimes.length) * 100).toFixed(1) : 0;
-  // Repeat incidents (HI>0), split pet vs non-pet (pet = RootCause contains 'unsecured animal')
-  let hi = 0, pet = 0, nonPet = 0;
-  tickets.forEach(t => {
-    if (hiCount(t) > 0) {
-      hi++;
-      if (String(t.RootCause || '').toLowerCase().includes('unsecured animal')) pet++; else nonPet++;
-    }
-  });
-  const petPct = hi ? +(pet / hi * 100).toFixed(1) : 0;
-  const nonPetPct = hi ? +(nonPet / hi * 100).toFixed(1) : 0;
-  const gap = +(petPct - nonPetPct).toFixed(1);
+// ============================================================================
+// FAST PATH: compute each chunk INSIDE Atlas via an aggregation pipeline.
+// The quarter doc embeds ~8k tickets (several MB); a findOne ships the whole blob
+// to the server on every request (~60s on the free tier). Instead we $unwind the
+// tickets array in the database and return only small aggregates (a few hundred
+// bytes), so nothing large ever crosses the wire. Each chunk gets its own pipeline.
+// ============================================================================
+
+// Just the live-quarter version stamp (tiny — no tickets shipped).
+async function liveMeta() {
+  const coll = await getCollection(COLLECTIONS.quarters);
+  const doc = await coll.findOne({ _id: currentQuarter() }, { projection: { 'meta.publishedAt': 1, 'data.updatedAt': 1 } });
+  return { publishedAt: (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null };
+}
+
+// Run an aggregation over the live quarter's tickets. `stages` are applied AFTER the
+// initial match + unwind, receiving each unwound ticket as the root document under `t`.
+async function aggLive(stages) {
+  const coll = await getCollection(COLLECTIONS.quarters);
+  const qid = currentQuarter();
+  const pipeline = [
+    { $match: { _id: qid } },
+    { $project: { t: '$data.tickets' } },
+    { $unwind: '$t' },
+  ].concat(stages);
+  return coll.aggregate(pipeline, { allowDiskUse: true }).toArray();
+}
+
+// Safely convert a (possibly empty/invalid) string field to a Date; null if unparseable.
+// $toDate throws on bad input, so we use $convert with onError/onNull -> null.
+function _safeDate(field) {
+  return { $convert: { input: field, to: 'date', onError: null, onNull: null } };
+}
+
+// Reusable pipeline expressions (mirror app.js). All operate on fields of `$t`.
+const AGG = {
+  // resolution hours = (ResolvedDate - CreateDate) / 3.6e6, only when both parse (else null).
+  resHours: {
+    $let: {
+      vars: { rd: { $convert: { input: '$t.ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$t.CreateDate', to: 'date', onError: null, onNull: null } } },
+      in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] },
+    },
+  },
+  isResolved: { $in: ['$t.Status', ['Resolved', 'Closed']] },
+  isAutoSim: { $regexMatch: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] }, regex: 'AutoSIM' } },
+  // HI count: parse "Cnt: N" or "Historical Incident: N" from RootCauseDetails.
+  hiCountExpr: {
+    $let: {
+      vars: { m: { $regexFind: { input: { $ifNull: ['$t.RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } },
+      in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] },
+    },
+  },
+  isPet: { $regexMatch: { input: { $toLower: { $ifNull: ['$t.RootCause', ''] } }, regex: 'unsecured animal' } },
+};
+
+const pct1 = (n, d) => d ? +((n / d) * 100).toFixed(1) : 0; // one-decimal percentage helper
+
+// ---- Summary (9 KPIs) — computed entirely in Atlas ----
+async function dashSummary() {
+  const rows = await aggLive([
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+        resolved: { $sum: { $cond: [{ $in: ['$t.Status', ['Resolved', 'Closed']] }, 1, 0] } },
+        unresolved: { $sum: { $cond: [{ $in: ['$t.Status', ['Assigned', 'Pending', 'Work In Progress', 'Researching']] }, 1, 0] } },
+        autosim: { $sum: { $cond: [AGG.isAutoSim, 1, 0] } },
+        // Resolution-time stats: only Status==Resolved with valid hours >= 0
+        rtSum: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }] }, AGG.resHours, 0] } },
+        rtCount: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }] }, 1, 0] } },
+        slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }, { $lte: [AGG.resHours, 240] }] }, 1, 0] } },
+        // Repeat incidents (HI>0), split pet vs non-pet
+        hi: { $sum: { $cond: [{ $gt: [AGG.hiCountExpr, 0] }, 1, 0] } },
+        hiPet: { $sum: { $cond: [{ $and: [{ $gt: [AGG.hiCountExpr, 0] }, AGG.isPet] }, 1, 0] } },
+      },
+    },
+  ]);
+  const r = rows[0] || {};
+  const T = r.total || 0, res = r.resolved || 0, inQ = r.unresolved || 0;
+  const avgR = r.rtCount ? (r.rtSum / r.rtCount) : 0;
+  const hi = r.hi || 0, pet = r.hiPet || 0, nonPet = hi - pet;
+  const petPct = pct1(pet, hi), nonPetPct = pct1(nonPet, hi);
   return {
-    total: T, resolved: res + closed, unresolved: inQ,
-    resolvedPct: T ? +(((res + closed) / T) * 100).toFixed(1) : 0,
-    unresolvedPct: T ? +((inQ / T) * 100).toFixed(1) : 0,
+    total: T, resolved: res, unresolved: inQ,
+    resolvedPct: pct1(res, T), unresolvedPct: pct1(inQ, T),
     avgResolutionHrs: +avgR.toFixed(0), avgResolutionPct: +((avgR / 240) * 100).toFixed(1),
-    slaPct, slaCompliant, slaBase: rTimes.length,
-    autosim, autosimPct: T ? +((autosim / T) * 100).toFixed(1) : 0,
-    repeatIncidents: hi, hiPet: pet, hiNonPet: nonPet, hiPetPct: petPct, hiNonPetPct: nonPetPct, hiGap: gap,
+    slaPct: pct1(r.slaWithin || 0, r.rtCount || 0), slaCompliant: r.slaWithin || 0, slaBase: r.rtCount || 0,
+    autosim: r.autosim || 0, autosimPct: pct1(r.autosim || 0, T),
+    repeatIncidents: hi, hiPet: pet, hiNonPet: nonPet, hiPetPct: petPct, hiNonPetPct: nonPetPct, hiGap: +(petPct - nonPetPct).toFixed(1),
   };
 }
 
-// ---- Ticket Age Classification (open tickets only) ----
-function dashAge(tickets) {
-  const now = _now();
-  const c = { green: 0, yellow: 0, red: 0, black: 0, purple: 0 };
-  tickets.forEach(t => {
-    if (t.Status === 'Resolved' || t.Status === 'Closed') return;
-    const cd = _num(t.CreateDate); const ageHrs = cd ? _hBetween(cd, now) : 0;
-    const hasResolvedDate = t.ResolvedDate && String(t.ResolvedDate).trim() !== '';
-    if (t._reopened || hasResolvedDate) c.purple++;
-    else if (ageHrs <= 96) c.green++;
-    else if (ageHrs <= 168) c.yellow++;
-    else if (ageHrs <= 240) c.red++;
-    else c.black++;
-  });
-  return c;
+// ---- Ticket Age Classification (open tickets only) — computed in Atlas ----
+async function dashAge() {
+  const now = new Date();
+  // Age in hours from CreateDate to now; if CreateDate is unparseable, treat age as 0 (green-ish),
+  // mirroring app.js where an invalid date yields ageHrs computed against an Invalid Date -> falls to green path.
+  const ageHrs = { $let: { vars: { cd: _safeDate('$t.CreateDate') }, in: { $cond: [{ $ne: ['$$cd', null] }, { $divide: [{ $subtract: [now, '$$cd'] }, 3600000] }, 0] } } };
+  const hasResolved = { $ne: [{ $trim: { input: { $ifNull: ['$t.ResolvedDate', ''] } } }, ''] };
+  const rows = await aggLive([
+    { $match: { 't.Status': { $nin: ['Resolved', 'Closed'] } } },
+    {
+      $group: {
+        _id: null,
+        purple: { $sum: { $cond: [{ $or: [{ $eq: ['$t._reopened', true] }, hasResolved] }, 1, 0] } },
+        green: { $sum: { $cond: [{ $and: [{ $not: [{ $or: [{ $eq: ['$t._reopened', true] }, hasResolved] }] }, { $lte: [ageHrs, 96] }] }, 1, 0] } },
+        yellow: { $sum: { $cond: [{ $and: [{ $not: [{ $or: [{ $eq: ['$t._reopened', true] }, hasResolved] }] }, { $gt: [ageHrs, 96] }, { $lte: [ageHrs, 168] }] }, 1, 0] } },
+        red: { $sum: { $cond: [{ $and: [{ $not: [{ $or: [{ $eq: ['$t._reopened', true] }, hasResolved] }] }, { $gt: [ageHrs, 168] }, { $lte: [ageHrs, 240] }] }, 1, 0] } },
+        black: { $sum: { $cond: [{ $and: [{ $not: [{ $or: [{ $eq: ['$t._reopened', true] }, hasResolved] }] }, { $gt: [ageHrs, 240] }] }, 1, 0] } },
+      },
+    },
+  ]);
+  const r = rows[0] || {};
+  return { green: r.green || 0, yellow: r.yellow || 0, red: r.red || 0, black: r.black || 0, purple: r.purple || 0 };
 }
 
-// ---- Queue Status (counts + % by status) ----
-function dashQueue(tickets) {
-  const T = tickets.length;
-  const s = {};
-  tickets.forEach(t => { s[t.Status] = (s[t.Status] || 0) + 1; });
-  const counts = {
-    Assigned: s['Assigned'] || 0, 'Work In Progress': s['Work In Progress'] || 0,
-    Researching: s['Researching'] || 0, Pending: s['Pending'] || 0,
-    Resolved: s['Resolved'] || 0, Closed: s['Closed'] || 0,
-  };
-  const pct = {};
-  Object.keys(counts).forEach(k => { pct[k] = T ? +((counts[k] / T) * 100).toFixed(1) : 0; });
+// ---- Queue Status (counts + % by status) — computed in Atlas ----
+async function dashQueue() {
+  const rows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }]);
+  const s = {}; let T = 0;
+  rows.forEach(r => { s[r._id] = r.n; T += r.n; });
+  const order = ['Assigned', 'Work In Progress', 'Researching', 'Pending', 'Resolved', 'Closed'];
+  const counts = {}, pct = {};
+  order.forEach(k => { counts[k] = s[k] || 0; pct[k] = pct1(counts[k], T); });
   return { total: T, counts, pct };
 }
 
-// ---- Daily Tickets (Last 7 Days), created + resolved, keyed off maxCreate ----
-function dashDaily7(tickets) {
-  const maxDate = _maxCreate(tickets);
-  const labels = [], created = [], resolved = [];
-  for (let i = 6; i >= 0; i--) {
-    const ds = new Date(maxDate); ds.setDate(ds.getDate() - i); ds.setHours(0, 0, 0, 0);
-    const de = new Date(ds); de.setDate(de.getDate() + 1);
-    labels.push(ds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    created.push(tickets.filter(t => { const cd = _num(t.CreateDate); return cd && cd >= ds && cd < de; }).length);
-    resolved.push(tickets.filter(t => { const rd = _num(t.ResolvedDate); return rd && rd >= ds && rd < de; }).length);
-  }
-  return { labels, created, resolved };
+// ---- Daily Tickets (Last 7 Days) — buckets computed server-side off maxCreate ----
+async function dashDaily7() {
+  // Need the max CreateDate first (tiny aggregation), then count per day in Atlas.
+  const mx = await aggLive([{ $group: { _id: null, m: { $max: _safeDate('$t.CreateDate') } } }]);
+  const maxDate = (mx[0] && mx[0].m) ? new Date(mx[0].m) : new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) { const ds = new Date(maxDate); ds.setDate(ds.getDate() - i); ds.setHours(0, 0, 0, 0); const de = new Date(ds); de.setDate(de.getDate() + 1); days.push({ ds, de }); }
+  const rows = await aggLive([
+    { $project: { cd: _safeDate('$t.CreateDate'), rd: _safeDate('$t.ResolvedDate') } },
+    { $project: {
+      ci: { $switch: { branches: days.map((d, i) => ({ case: { $and: [{ $ne: ['$cd', null] }, { $gte: ['$cd', d.ds] }, { $lt: ['$cd', d.de] }] }, then: i })), default: -1 } },
+      ri: { $switch: { branches: days.map((d, i) => ({ case: { $and: [{ $ne: ['$rd', null] }, { $gte: ['$rd', d.ds] }, { $lt: ['$rd', d.de] }] }, then: i })), default: -1 } },
+    } },
+    { $facet: {
+      created: [{ $match: { ci: { $gte: 0 } } }, { $group: { _id: '$ci', n: { $sum: 1 } } }],
+      resolved: [{ $match: { ri: { $gte: 0 } } }, { $group: { _id: '$ri', n: { $sum: 1 } } }],
+    } },
+  ]);
+  const f = rows[0] || { created: [], resolved: [] };
+  const created = new Array(7).fill(0), resolved = new Array(7).fill(0);
+  (f.created || []).forEach(x => { created[x._id] = x.n; });
+  (f.resolved || []).forEach(x => { resolved[x._id] = x.n; });
+  return { labels: days.map(d => d.ds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), created, resolved };
 }
 
-// ---- Weekly Volume (created + resolved) using app.js's week numbering ----
-function dashWeekly(tickets) {
-  const wk = (d) => { const j4 = new Date(d.getFullYear(), 0, 4); const dy = Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 864e5); return Math.ceil((dy + j4.getDay()) / 7); };
+// ---- Weekly Volume (created + resolved) — week label built in Atlas to match app.js ----
+// app.js week = ceil((dayOfYear + jan4.getDay()) / 7). We reproduce it with $dayOfYear + jan4 weekday.
+function _weekExpr(dateField) {
+  return {
+    $let: {
+      vars: { d: { $convert: { input: dateField, to: 'date', onError: null, onNull: null } } },
+      in: {
+        $cond: [{ $eq: ['$$d', null] }, null, {
+          $let: {
+            vars: {
+              doy: { $dayOfYear: '$$d' },
+              jan4dow: { $subtract: [{ $dayOfWeek: { $dateFromParts: { year: { $year: '$$d' }, month: 1, day: 4 } } }, 1] }, // 0=Sun..6=Sat (app.js getDay())
+            },
+            in: { $ceil: { $divide: [{ $add: ['$$doy', '$$jan4dow'] }, 7] } },
+          },
+        }],
+      },
+    },
+  };
+}
+async function dashWeekly() {
+  const rows = await aggLive([
+    { $facet: {
+      created: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } }, { $group: { _id: _weekExpr('$t.CreateDate'), n: { $sum: 1 } } }],
+      resolved: [{ $match: { 't.ResolvedDate': { $ne: null, $ne: '' } } }, { $group: { _id: _weekExpr('$t.ResolvedDate'), n: { $sum: 1 } } }],
+    } },
+  ]);
+  const f = rows[0] || { created: [], resolved: [] };
   const wb = {}, wbR = {};
-  tickets.forEach(t => { const d = _num(t.CreateDate); if (d) { const k = 'W' + wk(d); wb[k] = (wb[k] || 0) + 1; } });
-  tickets.forEach(t => { const d = _num(t.ResolvedDate); if (d) { const k = 'W' + wk(d); wbR[k] = (wbR[k] || 0) + 1; } });
+  (f.created || []).forEach(x => { if (x._id != null) wb['W' + x._id] = x.n; });
+  (f.resolved || []).forEach(x => { if (x._id != null) wbR['W' + x._id] = x.n; });
   const labels = Object.keys(wb).sort();
   return { labels, created: labels.map(k => wb[k]), resolved: labels.map(k => wbR[k] || 0) };
 }
 
-// ---- SLA Compliance per Week (<=240h), 13 buckets from quarter start (mirrors app.js) ----
-function dashSlaWeekly(tickets) {
-  const maxDate = _maxCreate(tickets);
+// ---- SLA Compliance per Week (<=240h), 13 buckets from quarter start ----
+async function dashSlaWeekly() {
+  const mx = await aggLive([{ $group: { _id: null, m: { $max: _safeDate('$t.CreateDate') } } }]);
+  const maxDate = (mx[0] && mx[0].m) ? new Date(mx[0].m) : new Date();
   const qStart = new Date(maxDate.getFullYear(), Math.floor(maxDate.getMonth() / 3) * 3, 1);
   const isoWeekNum = (d) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - ys) / 864e5 + 1) / 7); };
   const weekIndexOf = (d) => { const days = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - qStart) / 864e5); if (days < 0) return -1; const idx = Math.floor(days / 7); return idx > 12 ? -1 : idx; };
-  const resolvedWk = new Array(13).fill(0), withinWk = new Array(13).fill(0);
   const currentWeekIdx = weekIndexOf(maxDate);
-  tickets.forEach(t => {
-    const rd = _num(t.ResolvedDate); const cd = _num(t.CreateDate);
-    if (!rd || !cd) return;
-    const wi = weekIndexOf(rd); if (wi < 0) return;
-    const h = (rd - cd) / 36e5; if (h < 0) return;
-    resolvedWk[wi]++; if (h <= 240) withinWk[wi]++;
-  });
+  // week index by resolved-date, computed in Atlas via day-difference from qStart.
+  const rows = await aggLive([
+    { $project: { rd: _safeDate('$t.ResolvedDate'), h: AGG.resHours } },
+    { $match: { rd: { $ne: null }, h: { $ne: null, $gte: 0 } } },
+    { $project: { wi: { $floor: { $divide: [{ $floor: { $divide: [{ $subtract: [{ $dateTrunc: { date: '$rd', unit: 'day' } }, qStart] }, 86400000] } }, 7] } }, h: '$h' } },
+    { $match: { wi: { $gte: 0, $lte: 12 } } },
+    { $group: { _id: '$wi', resolved: { $sum: 1 }, within: { $sum: { $cond: [{ $lte: ['$h', 240] }, 1, 0] } } } },
+  ]);
+  const resolvedWk = new Array(13).fill(0), withinWk = new Array(13).fill(0);
+  rows.forEach(r => { if (r._id >= 0 && r._id < 13) { resolvedWk[r._id] = r.resolved; withinWk[r._id] = r.within; } });
   const out = [];
   for (let i = 0; i < 13; i++) {
     const dt = new Date(qStart.getFullYear(), qStart.getMonth(), qStart.getDate() + i * 7);
     const label = 'W' + String(isoWeekNum(dt)).padStart(2, '0');
     const inRange = (currentWeekIdx < 0) || (i <= currentWeekIdx);
-    const pct = (inRange && resolvedWk[i]) ? +(withinWk[i] / resolvedWk[i] * 100).toFixed(1) : null;
-    out.push({ week: label, resolved: inRange ? resolvedWk[i] : 0, within: inRange ? withinWk[i] : 0, pct });
+    const p = (inRange && resolvedWk[i]) ? +(withinWk[i] / resolvedWk[i] * 100).toFixed(1) : null;
+    out.push({ week: label, resolved: inRange ? resolvedWk[i] : 0, within: inRange ? withinWk[i] : 0, pct: p });
   }
   return { weeks: out };
 }
 
-// ---- Incident Types (RootCause with the pet special-casing) ----
-function _incidentType(t) {
-  const details = t.RootCauseDetails || '';
-  const rootCause = String(t.RootCause || '').replace(/^\s*-\s*/, '').trim();
-  if (rootCause && rootCause.length > 1) {
-    if (rootCause.toLowerCase().includes('unsecured animal')) {
-      const cc = (t.ClosureCode || '').trim();
-      const isImmAuto = (cc === 'Immediately Resolved' || cc === 'Automatically Closed');
-      if (isImmAuto && (t.AssigneeIdentity || '').trim() !== '') return 'First Time Pet Incident (Immediately Resolved / No Action Taken)';
-      return details.trim() !== '' ? 'Pet Incident (HI>0)' : 'Pet Incident (Resolved by AUTO-SIM)';
-    }
-    let tp = rootCause; if (tp.length > 80) tp = tp.substring(0, 80); return tp;
-  }
-  return 'No Root Cause';
-}
-function dashIncidents(tickets) {
-  const T = tickets.length;
-  const m = {};
-  tickets.forEach(t => { const tp = _incidentType(t); m[tp] = (m[tp] || 0) + 1; });
-  const labels = Object.keys(m).sort((a, b) => m[b] - m[a]);
-  return { total: T, types: labels.map(k => ({ type: k, count: m[k], pct: T ? +((m[k] / T) * 100).toFixed(1) : 0 })) };
+// Incident-type expression (mirrors app.js _incidentType) built as a Mongo $switch.
+const AGG_INCIDENT_TYPE = {
+  $let: {
+    vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$t.RootCause', ''] }, find: '- ', replacement: '' } } } } }, // approximate leading "- " strip
+    in: {
+      $switch: {
+        branches: [
+          { case: { $lte: [{ $strLenCP: '$$rc' }, 1] }, then: 'No Root Cause' },
+          { case: AGG.isPet, then: {
+            $switch: {
+              branches: [
+                { case: { $and: [{ $in: [{ $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } }, ['Immediately Resolved', 'Automatically Closed']] }, { $ne: [{ $trim: { input: { $ifNull: ['$t.AssigneeIdentity', ''] } } }, ''] }] }, then: 'First Time Pet Incident (Immediately Resolved / No Action Taken)' },
+                { case: { $ne: [{ $trim: { input: { $ifNull: ['$t.RootCauseDetails', ''] } } }, ''] }, then: 'Pet Incident (HI>0)' },
+              ],
+              default: 'Pet Incident (Resolved by AUTO-SIM)',
+            },
+          } },
+        ],
+        default: { $substrCP: ['$$rc', 0, 80] },
+      },
+    },
+  },
+};
+// ---- Incident Types — grouped in Atlas ----
+async function dashIncidents() {
+  const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }]);
+  const T = rows.reduce((s, r) => s + r.count, 0);
+  return { total: T, types: rows.map(r => ({ type: r._id, count: r.count, pct: pct1(r.count, T) })) };
 }
 
-// ---- Historical Incidents (Cnt > 0), pet vs non-pet + root-cause breakdown ----
-function dashHi(tickets) {
-  const cases = [];
-  tickets.forEach(t => {
-    const n = hiCount(t);
-    if (n > 0) {
-      const rc = String(t.RootCause || '').replace(/^\s*-\s*/, '').trim();
-      cases.push({ id: t.ShortId || t.IssueId, cnt: n, rootCause: rc || 'Unknown', isAnimal: String(t.RootCause || '').toLowerCase().includes('unsecured animal') });
-    }
+// ---- Historical Incidents (Cnt > 0), pet vs non-pet + root-cause breakdown — grouped in Atlas ----
+async function dashHi() {
+  const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$t.RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
+  const rows = await aggLive([
+    { $project: { hi: AGG.hiCountExpr, isPet: AGG.isPet, rc: rcExpr } },
+    { $match: { hi: { $gt: 0 } } },
+    { $group: { _id: { rc: '$rc', isPet: '$isPet' }, count: { $sum: 1 } } },
+  ]);
+  let total = 0, pet = 0, nonPet = 0; const petMap = {}, nonPetMap = {};
+  rows.forEach(r => {
+    total += r.count;
+    if (r._id.isPet) { pet += r.count; petMap[r._id.rc] = (petMap[r._id.rc] || 0) + r.count; }
+    else { nonPet += r.count; nonPetMap[r._id.rc] = (nonPetMap[r._id.rc] || 0) + r.count; }
   });
-  const total = cases.length;
-  const petCases = cases.filter(c => c.isAnimal), nonPetCases = cases.filter(c => !c.isAnimal);
-  const byRootCause = (list) => {
-    const b = {}; list.forEach(c => { b[c.rootCause] = (b[c.rootCause] || 0) + 1; });
-    return Object.entries(b).sort((a, x) => x[1] - a[1]).map(([rootCause, count]) => ({ rootCause, count }));
-  };
+  const toList = (m) => Object.entries(m).sort((a, b) => b[1] - a[1]).map(([rootCause, count]) => ({ rootCause, count }));
   return {
-    total,
-    pet: petCases.length, nonPet: nonPetCases.length,
-    petPct: total ? +(petCases.length / total * 100).toFixed(1) : 0,
-    nonPetPct: total ? +(nonPetCases.length / total * 100).toFixed(1) : 0,
-    petBreakdown: byRootCause(petCases), nonPetBreakdown: byRootCause(nonPetCases),
+    total, pet, nonPet,
+    petPct: pct1(pet, total), nonPetPct: pct1(nonPet, total),
+    petBreakdown: toList(petMap), nonPetBreakdown: toList(nonPetMap),
   };
 }
 
-// Register all chunk endpoints (public read, matching /api/live-quarter). Each returns
-// { quarter, publishedAt, ...slice } so the client can cache it against the live version.
+// Register all chunk endpoints (public read). Each is an async aggregation that returns
+// { quarter, label, publishedAt, ...slice }. The version stamp is fetched cheaply in parallel.
 const DASH_CHUNKS = {
   summary: dashSummary, age: dashAge, queue: dashQueue, daily7: dashDaily7,
   weekly: dashWeekly, 'sla-weekly': dashSlaWeekly, incidents: dashIncidents, hi: dashHi,
@@ -2162,9 +2263,8 @@ const DASH_CHUNKS = {
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
     try {
-      const { tickets, publishedAt } = await liveTicketsWithMeta();
-      const slice = DASH_CHUNKS[name](tickets);
-      res.json(Object.assign({ quarter: currentQuarter(), label: quarterLabel(currentQuarter()), publishedAt }, slice));
+      const [slice, meta] = await Promise.all([DASH_CHUNKS[name](), liveMeta()]);
+      res.json(Object.assign({ quarter: currentQuarter(), label: quarterLabel(currentQuarter()), publishedAt: meta.publishedAt }, slice));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
     }
