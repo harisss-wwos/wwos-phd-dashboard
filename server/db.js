@@ -31,6 +31,7 @@ const COLLECTIONS = {
   importantCasesLog: 'important_cases_log', // audit log of mark/update actions on unique cases
   helpRequests: 'help_requests', // editor "ask for help" threads
   activityLog: 'activity_log', // account activity (e.g. password changes) — owner-visible, never stores secrets
+  dashRollups: 'dash_rollups', // precomputed dashboard chunks per quarter { _id, publishedAt, chunks:{...} } — recomputed on each publish
 };
 
 let clientPromise = null;

@@ -553,6 +553,8 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
     }
 
     res.json({ ok: true, liveQuarter: liveQ, written, undated });
+    // Refresh the precomputed dashboard rollup so /api/dash/* stays instant (best-effort).
+    recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
   } catch (e) {
     res.status(500).json({ error: 'Could not publish quarter data.' });
   }
@@ -649,6 +651,8 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
     }
 
     res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
+    // Refresh the precomputed dashboard rollup so /api/dash/* stays instant (best-effort).
+    recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
   } catch (e) {
     res.status(500).json({ error: 'Could not apply the delta publish.' });
   }
@@ -2001,11 +2005,12 @@ async function liveMeta() {
   return { publishedAt: (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null };
 }
 
-// Run an aggregation over the live quarter's tickets. `stages` are applied AFTER the
-// initial match + unwind, receiving each unwound ticket as the root document under `t`.
-async function aggLive(stages) {
+// Run an aggregation over a quarter's tickets. `stages` are applied AFTER the initial
+// match + unwind, receiving each unwound ticket as the root document under `t`.
+// `qid` defaults to the current live quarter.
+async function aggLive(stages, qid) {
   const coll = await getCollection(COLLECTIONS.quarters);
-  const qid = currentQuarter();
+  qid = qid || currentQuarter();
   const pipeline = [
     { $match: { _id: qid } },
     { $project: { t: '$data.tickets' } },
@@ -2044,7 +2049,7 @@ const AGG = {
 const pct1 = (n, d) => d ? +((n / d) * 100).toFixed(1) : 0; // one-decimal percentage helper
 
 // ---- Summary (9 KPIs) — computed entirely in Atlas ----
-async function dashSummary() {
+async function dashSummary(qid) {
   const rows = await aggLive([
     {
       $group: {
@@ -2062,7 +2067,7 @@ async function dashSummary() {
         hiPet: { $sum: { $cond: [{ $and: [{ $gt: [AGG.hiCountExpr, 0] }, AGG.isPet] }, 1, 0] } },
       },
     },
-  ]);
+  ], qid);
   const r = rows[0] || {};
   const T = r.total || 0, res = r.resolved || 0, inQ = r.unresolved || 0;
   const avgR = r.rtCount ? (r.rtSum / r.rtCount) : 0;
@@ -2079,7 +2084,7 @@ async function dashSummary() {
 }
 
 // ---- Ticket Age Classification (open tickets only) — computed in Atlas ----
-async function dashAge() {
+async function dashAge(qid) {
   const now = new Date();
   // Age in hours from CreateDate to now; if CreateDate is unparseable, treat age as 0 (green-ish),
   // mirroring app.js where an invalid date yields ageHrs computed against an Invalid Date -> falls to green path.
@@ -2097,14 +2102,14 @@ async function dashAge() {
         black: { $sum: { $cond: [{ $and: [{ $not: [{ $or: [{ $eq: ['$t._reopened', true] }, hasResolved] }] }, { $gt: [ageHrs, 240] }] }, 1, 0] } },
       },
     },
-  ]);
+  ], qid);
   const r = rows[0] || {};
   return { green: r.green || 0, yellow: r.yellow || 0, red: r.red || 0, black: r.black || 0, purple: r.purple || 0 };
 }
 
 // ---- Queue Status (counts + % by status) — computed in Atlas ----
-async function dashQueue() {
-  const rows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }]);
+async function dashQueue(qid) {
+  const rows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }], qid);
   const s = {}; let T = 0;
   rows.forEach(r => { s[r._id] = r.n; T += r.n; });
   const order = ['Assigned', 'Work In Progress', 'Researching', 'Pending', 'Resolved', 'Closed'];
@@ -2114,9 +2119,9 @@ async function dashQueue() {
 }
 
 // ---- Daily Tickets (Last 7 Days) — buckets computed server-side off maxCreate ----
-async function dashDaily7() {
+async function dashDaily7(qid) {
   // Need the max CreateDate first (tiny aggregation), then count per day in Atlas.
-  const mx = await aggLive([{ $group: { _id: null, m: { $max: _safeDate('$t.CreateDate') } } }]);
+  const mx = await aggLive([{ $group: { _id: null, m: { $max: _safeDate('$t.CreateDate') } } }], qid);
   const maxDate = (mx[0] && mx[0].m) ? new Date(mx[0].m) : new Date();
   const days = [];
   for (let i = 6; i >= 0; i--) { const ds = new Date(maxDate); ds.setDate(ds.getDate() - i); ds.setHours(0, 0, 0, 0); const de = new Date(ds); de.setDate(de.getDate() + 1); days.push({ ds, de }); }
@@ -2130,7 +2135,7 @@ async function dashDaily7() {
       created: [{ $match: { ci: { $gte: 0 } } }, { $group: { _id: '$ci', n: { $sum: 1 } } }],
       resolved: [{ $match: { ri: { $gte: 0 } } }, { $group: { _id: '$ri', n: { $sum: 1 } } }],
     } },
-  ]);
+  ], qid);
   const f = rows[0] || { created: [], resolved: [] };
   const created = new Array(7).fill(0), resolved = new Array(7).fill(0);
   (f.created || []).forEach(x => { created[x._id] = x.n; });
@@ -2158,13 +2163,13 @@ function _weekExpr(dateField) {
     },
   };
 }
-async function dashWeekly() {
+async function dashWeekly(qid) {
   const rows = await aggLive([
     { $facet: {
       created: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } }, { $group: { _id: _weekExpr('$t.CreateDate'), n: { $sum: 1 } } }],
       resolved: [{ $match: { 't.ResolvedDate': { $ne: null, $ne: '' } } }, { $group: { _id: _weekExpr('$t.ResolvedDate'), n: { $sum: 1 } } }],
     } },
-  ]);
+  ], qid);
   const f = rows[0] || { created: [], resolved: [] };
   const wb = {}, wbR = {};
   (f.created || []).forEach(x => { if (x._id != null) wb['W' + x._id] = x.n; });
@@ -2174,8 +2179,8 @@ async function dashWeekly() {
 }
 
 // ---- SLA Compliance per Week (<=240h), 13 buckets from quarter start ----
-async function dashSlaWeekly() {
-  const mx = await aggLive([{ $group: { _id: null, m: { $max: _safeDate('$t.CreateDate') } } }]);
+async function dashSlaWeekly(qid) {
+  const mx = await aggLive([{ $group: { _id: null, m: { $max: _safeDate('$t.CreateDate') } } }], qid);
   const maxDate = (mx[0] && mx[0].m) ? new Date(mx[0].m) : new Date();
   const qStart = new Date(maxDate.getFullYear(), Math.floor(maxDate.getMonth() / 3) * 3, 1);
   const isoWeekNum = (d) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - ys) / 864e5 + 1) / 7); };
@@ -2188,7 +2193,7 @@ async function dashSlaWeekly() {
     { $project: { wi: { $floor: { $divide: [{ $floor: { $divide: [{ $subtract: [{ $dateTrunc: { date: '$rd', unit: 'day' } }, qStart] }, 86400000] } }, 7] } }, h: '$h' } },
     { $match: { wi: { $gte: 0, $lte: 12 } } },
     { $group: { _id: '$wi', resolved: { $sum: 1 }, within: { $sum: { $cond: [{ $lte: ['$h', 240] }, 1, 0] } } } },
-  ]);
+  ], qid);
   const resolvedWk = new Array(13).fill(0), withinWk = new Array(13).fill(0);
   rows.forEach(r => { if (r._id >= 0 && r._id < 13) { resolvedWk[r._id] = r.resolved; withinWk[r._id] = r.within; } });
   const out = [];
@@ -2226,20 +2231,20 @@ const AGG_INCIDENT_TYPE = {
   },
 };
 // ---- Incident Types — grouped in Atlas ----
-async function dashIncidents() {
-  const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }]);
+async function dashIncidents(qid) {
+  const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }], qid);
   const T = rows.reduce((s, r) => s + r.count, 0);
   return { total: T, types: rows.map(r => ({ type: r._id, count: r.count, pct: pct1(r.count, T) })) };
 }
 
 // ---- Historical Incidents (Cnt > 0), pet vs non-pet + root-cause breakdown — grouped in Atlas ----
-async function dashHi() {
+async function dashHi(qid) {
   const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$t.RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
   const rows = await aggLive([
     { $project: { hi: AGG.hiCountExpr, isPet: AGG.isPet, rc: rcExpr } },
     { $match: { hi: { $gt: 0 } } },
     { $group: { _id: { rc: '$rc', isPet: '$isPet' }, count: { $sum: 1 } } },
-  ]);
+  ], qid);
   let total = 0, pet = 0, nonPet = 0; const petMap = {}, nonPetMap = {};
   rows.forEach(r => {
     total += r.count;
@@ -2254,17 +2259,59 @@ async function dashHi() {
   };
 }
 
-// Register all chunk endpoints (public read). Each is an async aggregation that returns
-// { quarter, label, publishedAt, ...slice }. The version stamp is fetched cheaply in parallel.
 const DASH_CHUNKS = {
   summary: dashSummary, age: dashAge, queue: dashQueue, daily7: dashDaily7,
   weekly: dashWeekly, 'sla-weekly': dashSlaWeekly, incidents: dashIncidents, hi: dashHi,
 };
+
+// ============================================================================
+// MATERIALIZED ROLLUP: precompute all 8 chunks once per publish and store them in a
+// single tiny doc { _id: quarter, publishedAt, chunks:{...} }. Reads then become a
+// single findOne (~ms) instead of re-aggregating 8k tickets on every request.
+// ============================================================================
+
+// Recompute every chunk for a quarter and upsert the rollup doc. Best-effort: on error
+// it throws so callers can log, but publish flows must never block on it.
+async function recomputeRollup(qid) {
+  qid = qid || currentQuarter();
+  const names = Object.keys(DASH_CHUNKS);
+  // Run all chunk aggregations for this quarter (in parallel).
+  const results = await Promise.all(names.map(n => DASH_CHUNKS[n](qid)));
+  const chunks = {};
+  names.forEach((n, i) => { chunks[n] = results[i]; });
+  const meta = await liveMetaFor(qid);
+  const rollColl = await getCollection(COLLECTIONS.dashRollups);
+  await rollColl.updateOne(
+    { _id: qid },
+    { $set: { publishedAt: meta.publishedAt, computedAt: new Date().toISOString(), chunks } },
+    { upsert: true }
+  );
+  return { quarter: qid, publishedAt: meta.publishedAt };
+}
+
+// Version stamp for a specific quarter (tiny projection).
+async function liveMetaFor(qid) {
+  const coll = await getCollection(COLLECTIONS.quarters);
+  const doc = await coll.findOne({ _id: qid }, { projection: { 'meta.publishedAt': 1, 'data.updatedAt': 1 } });
+  return { publishedAt: (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null };
+}
+
+// Register all chunk endpoints (public read). Serves from the precomputed rollup when it's
+// current; otherwise falls back to a live aggregation and kicks off a background recompute.
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
+    const qid = currentQuarter();
     try {
-      const [slice, meta] = await Promise.all([DASH_CHUNKS[name](), liveMeta()]);
-      res.json(Object.assign({ quarter: currentQuarter(), label: quarterLabel(currentQuarter()), publishedAt: meta.publishedAt }, slice));
+      const [meta, rollColl] = await Promise.all([liveMeta(), getCollection(COLLECTIONS.dashRollups)]);
+      const roll = await rollColl.findOne({ _id: qid });
+      // Rollup is current (matches the live publishedAt) and has this chunk -> serve it instantly.
+      if (roll && roll.chunks && roll.chunks[name] && (roll.publishedAt || null) === (meta.publishedAt || null)) {
+        return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, roll.chunks[name]));
+      }
+      // Missing/stale rollup -> compute this chunk live now, and refresh the whole rollup in the background.
+      const slice = await DASH_CHUNKS[name](qid);
+      res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: false }, slice));
+      recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
     }
@@ -2272,4 +2319,19 @@ Object.keys(DASH_CHUNKS).forEach(name => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('PHD API listening on port ' + PORT));
+app.listen(PORT, () => {
+  console.log('PHD API listening on port ' + PORT);
+  // Backfill the current live quarter's dashboard rollup on boot if it's missing/stale, so the
+  // first visitor after a (re)deploy gets instant chunks without waiting for the next upload.
+  (async () => {
+    try {
+      const qid = currentQuarter();
+      const [meta, rollColl] = await Promise.all([liveMetaFor(qid), getCollection(COLLECTIONS.dashRollups)]);
+      const roll = await rollColl.findOne({ _id: qid }, { projection: { publishedAt: 1 } });
+      if (!roll || (roll.publishedAt || null) !== (meta.publishedAt || null)) {
+        await recomputeRollup(qid);
+        console.log('Dashboard rollup backfilled for ' + qid);
+      }
+    } catch (e) { console.error('rollup backfill failed:', e && e.message); }
+  })();
+});
