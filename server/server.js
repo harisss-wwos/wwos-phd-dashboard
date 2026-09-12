@@ -412,7 +412,11 @@ app.post('/api/live-data', requireRole('admin'), async (req, res) => {
 app.get('/api/quarters', async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.quarters);
-    const docs = await coll.find({}, { projection: { tickets: 0 } }).toArray();
+    // Only pull the tiny meta fields — NEVER the (multi-MB) data.tickets arrays. Using an
+    // inclusion projection guarantees the ticket payload is never shipped, no matter how it's
+    // nested. (The old { tickets: 0 } excluded a top-level field that doesn't exist — tickets
+    // live at data.tickets — so it returned every quarter's full ticket array = ~minutes/502.)
+    const docs = await coll.find({}, { projection: { 'meta.count': 1, 'meta.publishedAt': 1 } }).toArray();
     const live = currentQuarter();
     res.json({
       liveQuarter: live,
