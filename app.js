@@ -541,8 +541,8 @@ function startHelpNotificationPolling(){
   if(window._helpPollTimer)return; // already running
   if(!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser()))return; // logged-in only
   ensureNotifyPermission();
-  // Poll every 45s. The badge/notifications update regardless of which view is showing.
-  window._helpPollTimer=setInterval(refreshHelpAlertCount,45000);
+  // Poll every 10 minutes. The badge/notifications update regardless of which view is showing.
+  window._helpPollTimer=setInterval(refreshHelpAlertCount,600000);
 }
 function stopHelpNotificationPolling(){if(window._helpPollTimer){clearInterval(window._helpPollTimer);window._helpPollTimer=null;}}
 
