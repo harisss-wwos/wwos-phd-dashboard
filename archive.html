@@ -22,15 +22,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .content{padding:24px;max-width:1600px;margin:0 auto}
 .page-title{margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
-.page-title h1{font-size:1.8em;color:#fff;font-weight:700}
-.page-title p{color:var(--tm);margin-top:4px;font-size:.9em}
+.page-title h1{font-size:1.8em;color:#fff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.page-title p{color:var(--tm);margin-top:4px;font-size:.9em;overflow:hidden;text-overflow:ellipsis}
+.page-title p span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
 .kpi-card{background:var(--s);border-radius:8px;padding:18px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
 .kpi-card .value{font-size:1.7em;font-weight:700;color:#fff;margin-bottom:4px}
 .kpi-card .label{font-size:.75em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
 .kpi-card.accent .value{color:var(--o)}.kpi-card.success .value{color:var(--gl)}.kpi-card.warning .value{color:var(--ol)}.kpi-card.info .value{color:var(--bll)}
 .section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
-.section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
+.section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
+.section h2>span,.section h2{white-space:nowrap;text-overflow:ellipsis}
 .section h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
 /* Small inline spinner for KPI numbers while they "load" */
 .num-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
@@ -39,14 +41,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Hover cue while collapsed so users know the header is clickable to expand */
 .collapsible:not(.open) .collapse-head:hover{background:rgba(255,153,0,.10)}
 .collapsible.open .collapse-head{margin-bottom:18px}
-.collapse-title{display:flex;align-items:center;gap:8px}
+.collapse-title{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.collapse-head{min-width:0}
 .collapse-caret{color:var(--tm);transition:transform .18s;font-size:.8em}
 .collapsible.open .collapse-caret{transform:rotate(180deg)}
 .collapse-body{display:none}
 .collapsible.open .collapse-body{display:block}
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
 .chart-box{background:var(--s);border-radius:8px;padding:20px;border:1px solid var(--bd)}
-.chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}
+.chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chart-wrap{position:relative;height:320px}
 .chart-wrap.tall{height:480px}
 /* Chart-loading spinner overlay (DB-backed quarter reports) */
@@ -59,7 +62,18 @@ tr:hover{background:rgba(255,153,0,.03)}
 .spinner{width:48px;height:48px;border:4px solid var(--bd);border-top:4px solid var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:60px auto}
 @keyframes spin{100%{transform:rotate(360deg)}}
 .phd-badge{display:inline-block;margin-left:6px;padding:1px 6px;background:rgba(255,153,0,.15);color:var(--o);border-radius:3px;font-size:.7em;font-weight:600}
-@media(max-width:768px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.content{padding:16px}}
+/* Program History title prefix: full on desktop, abbreviated "PH:" on mobile */
+.ph-short{display:none}
+/* Header action buttons (Update data log / Upload-merge) — right-aligned group on desktop */
+.pt-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-left:auto;max-width:100%}
+.pt-btn{max-width:100%;min-width:0}
+.pt-btn .btn-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.content{padding:16px}
+  .ph-full{display:none}.ph-short{display:inline}
+  /* Header stacks on mobile: title/range block on top, action buttons full-width below it, equal size */
+  .page-title{flex-direction:column;align-items:stretch}
+  .pt-actions{margin-left:0;width:100%;flex-wrap:nowrap}
+  .pt-actions .pt-btn{flex:1 1 0;justify-content:center}}
 /* Root-cause grouped table */
 .rc-table{width:100%;border-collapse:collapse;font-size:.9em}
 .rc-table thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd)}

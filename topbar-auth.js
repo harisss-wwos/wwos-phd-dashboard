@@ -193,9 +193,11 @@
     var isOwner = atLeast('owner');
     var hideAttr = (document.body.getAttribute('data-nav-hide') || '').toLowerCase();
     var hide = {}; hideAttr.split(',').forEach(function (k) { k = k.trim(); if (k) hide[k] = true; });
+    // Groups / Shift Report / Previous Week are dashboard views. Render them as real anchor links
+    // (app.html?view=key) on EVERY page — including inside app.html — so they support right-click /
+    // "open in new tab" and shareable URLs like every other menu item. app.js reads ?view= on load.
     function view(key, lbl, icon) {
       var cls = 'tb-menuitem' + (active === key ? ' active' : '');
-      if (inApp) return '<button class="' + cls + '" onclick="tbCloseMenu();nav(\'' + key + '\')">' + ic(icon) + ' ' + lbl + '</button>';
       var href = 'app.html?view=' + key;
       return '<a class="' + cls + '" href="' + href + '">' + ic(icon) + ' ' + lbl + '</a>';
     }
@@ -209,6 +211,7 @@
     var mob = '<div class="tb-menu-mobile"><div class="tb-menu-label">Quick actions</div>';
     mob += '<a class="tb-menuitem" href="app.html">' + ic('bolt') + ' Q3 2026 · LIVE</a>';
     mob += '<a class="tb-menuitem" href="archive.html?ds=quarter&qid=2026-Q2">' + ic('calendar') + ' Q2 2026</a>';
+    mob += '<a class="tb-menuitem" href="archive.html?ds=archive">' + ic('inbox') + ' Program History</a>';
     if (isAdmin) mob += '<button type="button" class="tb-menuitem" onclick="tbCloseMenu();tbUploadIntro(\'' + (inApp ? 'app' : 'standalone') + '\')">' + ic('upload') + ' Upload new data</button>';
     if (li) mob += '<a class="tb-menuitem" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
     mob += '<div class="tb-menu-divider"></div><div class="tb-menu-label">Navigate</div></div>';
@@ -624,7 +627,7 @@
         '<div class="tb-pass-wrap"><input type="password" id="tbPass" autocomplete="current-password">' +
           '<button type="button" class="tb-pass-eye" id="tbPassEye" onclick="tbTogglePass()" aria-label="Show password" title="Show password">' + ic('eye') + '</button>' +
         '</div>' +
-        '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:#879596"><input type="checkbox" id="tbRemember" style="width:auto"> Keep me signed in</label>' +
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:#879596"><input type="checkbox" id="tbRemember" style="width:auto" checked> Keep me signed in</label>' +
         '<div class="tb-err" id="tbErr"></div>' +
         '<div class="tb-modal-actions"><button class="tb-mbtn sec" onclick="tbCloseLogin()">Cancel</button><button class="tb-mbtn" id="tbLoginBtn" onclick="tbDoLogin()">Log in</button></div>' +
       '</div>';
@@ -722,16 +725,36 @@
       seen[k] = true; others.push(x);
     });
     others = others.slice(0, 8);
-    var linkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v2H6v12h12v-5h2v7H4z"/><path d="M14 4h6v6"/><path d="M20 4l-8 8"/></svg>';
     var html = '<div class="tb-hist-title">Recently visited</div>';
     if (!others.length) {
       html += '<div class="tb-hist-empty">No other pages visited yet.</div>';
     } else {
       html += others.map(function (x) {
-        return '<a class="tb-hist-item" href="' + tbEsc(x.href) + '" title="' + tbEsc(x.title) + '">' + linkIcon + '<span class="tb-hist-name">' + tbEsc(x.title) + '</span></a>';
+        return '<a class="tb-hist-item" href="' + tbEsc(x.href) + '" title="' + tbEsc(x.title) + '">' + tbPageIcon(x.href) + '<span class="tb-hist-name">' + tbEsc(x.title) + '</span></a>';
       }).join('');
     }
     pop.innerHTML = html;
+  }
+  // Pick a relevant icon for a page (by filename + ?view=) so the recent list is easy to scan.
+  function tbPageIcon(href) {
+    var path = String(href || '').split('?')[0];
+    var file = (path.split('/').pop() || '').toLowerCase();
+    var view = ''; try { view = (new URLSearchParams(String(href).split('?')[1] || '')).get('view') || ''; } catch (e) {}
+    var key = 'grid'; // sensible default
+    var map = {
+      'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
+      'agent-analytics.html': 'bar-chart', 'last24.html': 'clock', 'help-activity.html': 'alert',
+      'alerts.html': 'alert', 'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
+      'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
+      'important-cases.html': 'target', 'unique-cases.html': 'target', 'unique-cases-log.html': 'history',
+      'users.html': 'users-gear', 'db-health.html': 'database', 'profile.html': 'users',
+      'data-log.html': 'history', 'blurb-log.html': 'history', 'hashtag-log.html': 'history',
+      'paging-log.html': 'history', 'archive.html': 'calendar', 'admin-guide.html': 'book',
+      'add-archive.html': 'plus'
+    };
+    if (file === 'app.html' && view) { key = ({ groups: 'users', 'shift-report': 'clipboard', 'previous-week': 'clock-rewind' })[view] || 'bolt'; }
+    else if (map[file]) { key = map[file]; }
+    return ic(key);
   }
 
   // ---- Standalone-page auto-mount: replace the page's .top-bar with the shared toolbar ----

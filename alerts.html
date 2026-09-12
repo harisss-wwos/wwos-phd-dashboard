@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alerts · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--bll:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+/* Keep the static fallback bar's box (no layout jump) but invisible, so the shared toolbar (with the
+   hamburger, injected by topbar-auth.js) is the only bar the user sees — no hamburger-less flash. */
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.wrap{width:88%;max-width:1000px;margin:0 auto;padding:36px 24px 80px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:center;gap:10px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.btn.mini{padding:6px 12px;font-size:.8em}
+.count-pill{background:rgba(251,191,36,.16);color:var(--yl);border-radius:20px;padding:2px 11px;font-size:.6em;font-weight:700;vertical-align:middle}
+.thread{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.thread-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.thread-who{font-size:.88em}
+.thread-who b{color:#44b9d6}
+.thread-when{color:#5f6b6c;font-size:.85em}
+.pill{padding:2px 9px;border-radius:20px;font-weight:700;font-size:.7em}
+.pill.open{background:rgba(251,191,36,.15);color:#fbbf24}
+.q{color:#fff;font-size:.9em;white-space:pre-wrap;margin:6px 0 8px}
+.q .lbl{color:var(--yl);font-weight:600}
+.reply{border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.85em}
+.reply .who{color:#4ade80;font-weight:600}
+.reply .meta{color:#5f6b6c}
+.reply .txt{color:var(--t);white-space:pre-wrap;margin-top:2px}
+.noreply{border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.8em;color:#5f6b6c;font-style:italic}
+.reply-box{margin-top:10px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.reply-box textarea{flex:1;min-width:200px;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical}
+.thread-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:220px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||16):'';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Alerts</h1><p>'+esc(msg)+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function fmtWhen(iso){if(!iso)return '';try{return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+
+let OPEN=[]; // current open help requests
+
+function threadHtml(h){
+  const canReply=A.atLeast&&A.atLeast('admin');
+  const ticket=h.ticketUrl?('<a href="'+esc(h.ticketUrl)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(h.shortId)+'</a>'):esc(h.shortId);
+  const replies=(h.replies||[]).length
+    ? h.replies.map(r=>'<div class="reply"><span class="who">'+esc(r.by)+'</span> <span class="meta">('+esc(r.role)+')</span><div class="txt">'+esc(r.text)+'</div></div>').join('')
+    : '<div class="noreply">No reply yet</div>';
+  return '<div class="thread">'
+    +'<div class="thread-head"><div class="thread-who"><b>'+esc(h.requester)+'</b> asked on '+ticket+' <span class="thread-when">· '+fmtWhen(h.createdAt)+'</span></div><span class="pill open">OPEN</span></div>'
+    +'<div class="q"><span class="lbl">Q ·</span> '+esc(h.doubt)+'</div>'
+    +'<div>'+replies+'</div>'
+    +(canReply?('<div class="reply-box"><textarea id="reply-'+esc(h.id)+'" placeholder="Reply / suggestion…"></textarea><button class="btn mini" onclick="submitReply(\''+esc(h.id)+'\')">Reply</button></div>'):'')
+  +'</div>';
+}
+
+function render(list){
+  OPEN=Array.isArray(list)?list:[];
+  const canReply=A.atLeast&&A.atLeast('admin');
+  let html='<h1>'+ic('alert',20)+' Alerts <span class="count-pill">'+OPEN.length+' open</span></h1>';
+  html+='<p class="sub">Open "ask for help" requests from editors.'+(canReply?' You can reply or mark them as received.':' Admins and the owner can reply to these.')+'</p>';
+  if(!OPEN.length){html+='<div class="empty">No open help requests right now. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
+  html+=OPEN.map(threadHtml).join('');
+  document.getElementById('wrap').innerHTML=html;
+}
+
+async function submitReply(id){
+  const el=document.getElementById('reply-'+id);
+  const text=(el&&el.value||'').trim();
+  if(!text){toast('Enter a reply first.');return;}
+  const r=await A.api('POST','/api/help/'+id+'/reply',{text});
+  if(r.ok){toast('Reply sent');load();}
+  else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in first.');return;}
+  // Cache (time-based): help alerts change in real time, so paint cache instantly then refresh.
+  const res=await A.swrLoad({
+    key:'alerts',
+    fetch:()=>A.api('GET','/api/help/open'),
+    onData:(rows)=>render(Array.isArray(rows)?rows:[])
+  });
+  if(!res.painted){
+    if(res.status===401){gate('Session expired. Please log in again.');return;}
+    gate('Could not load alerts (HTTP '+res.status+').');
+  }
+}
+load();
+</script>
+</body>
+</html>

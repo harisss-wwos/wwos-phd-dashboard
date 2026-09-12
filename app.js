@@ -478,7 +478,7 @@ function applyHelpOpenList(list){
           tag:'help-'+h.id, // collapses duplicates for the same request
           icon:'gsoc-logo.svg'
         });
-        note.onclick=()=>{try{window.focus();}catch(e){}showHelpAlerts();try{note.close();}catch(e){}};
+        note.onclick=()=>{try{window.focus();}catch(e){}location.href='alerts.html';try{note.close();}catch(e){}};
       }catch(e){/* notification failed silently */}
     }
   });
@@ -504,50 +504,8 @@ function startHelpNotificationPolling(){
 }
 function stopHelpNotificationPolling(){if(window._helpPollTimer){clearInterval(window._helpPollTimer);window._helpPollTimer=null;}}
 
-async function showHelpAlerts(){
-  closeAllPopups();
-  ensureNotifyPermission(); // clicking Alerts is a user gesture — good moment to ask for notification permission
-  const canReply=window.PHDAuth.atLeast('admin'); // admin/manager/owner
-  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const r=await window.PHDAuth.api('GET','/api/help/open');
-  const list=(r.ok&&Array.isArray(r.data))?r.data:[];
-  const threads=list.length?list.map(h=>{
-    const replies=(h.replies||[]).map(rp=>`<div style="border-top:1px solid rgba(255,255,255,.06);padding:6px 0;font-size:.85em"><b style="color:#d5dbdb">${esc(rp.by)}</b> <span style="color:#5f6b6c">(${esc(rp.role)})</span><div style="color:#d5dbdb;white-space:pre-wrap;margin-top:2px">${esc(rp.text)}</div></div>`).join('')||'<div style="color:#5f6b6c;font-size:.82em;font-style:italic;padding:4px 0">No reply yet</div>';
-    return `<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-        <div><b style="color:#44b9d6">${esc(h.requester)}</b> asked on <a href="${esc(h.ticketUrl)}" target="_blank" rel="noopener" style="color:#44b9d6">${esc(h.shortId)}</a></div>
-        <div style="color:#5f6b6c;font-size:.78em">${new Date(h.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
-      </div>
-      <div style="color:#fff;font-size:.9em;white-space:pre-wrap;margin-bottom:6px">Q: ${esc(h.doubt)}</div>
-      <div>${replies}</div>
-      ${canReply?`<div style="margin-top:10px;display:flex;gap:8px;align-items:flex-start">
-        <textarea id="reply-${h.id}" placeholder="Reply / suggestion…" style="flex:1;min-height:52px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical"></textarea>
-        <button class="btn mini" onclick="submitHelpReply('${h.id}')">Reply</button>
-      </div>`:''}
-    </div>`;
-  }).join(''):'<div style="text-align:center;color:#879596;padding:30px">No open help requests right now. 🎉</div>';
-  const overlay=document.createElement('div');overlay.id='incPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:680px;width:100%;max-height:85vh;overflow:auto;padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="color:#fbbf24;font-size:1.2em">Help Requests (${list.length})</h2>
-      <button class="btn danger" onclick="closeAllPopups()">Close</button>
-    </div>
-    ${canReply?'':'<p style="color:#879596;font-size:.82em;margin-bottom:12px">Admins and the owner can reply to these requests.</p>'}
-    ${threads}
-  </div>`;
-  document.body.appendChild(overlay);
-}
-
-async function submitHelpReply(id){
-  const el=document.getElementById('reply-'+id);
-  const text=(el&&el.value||'').trim();
-  if(!text){showToast('Enter a reply first.');return;}
-  const r=await window.PHDAuth.api('POST','/api/help/'+id+'/reply',{text});
-  if(r.ok){showToast('Reply sent');showHelpAlerts();}
-  else{showToast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
-}
+// The "Alerts" button now navigates to the standalone alerts.html page (with back + recent-history),
+// replacing the old in-dashboard popup. The badge count is still driven by refreshHelpAlertCount().
 
 // Handle a chosen CSV from the "Upload new data" input.
 function onUploadFileChange(e){
@@ -1215,7 +1173,7 @@ function renderDashboardShell(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1311,7 +1269,7 @@ function renderDashboard(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sec" id="alertBtn" onclick="showHelpAlerts()" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></button><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1386,10 +1344,10 @@ function renderDashboard(){
       <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
     </div>
   </div></div>
-  ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section"><h2>SLA Compliance per Week (&le;240 hrs)</h2>
+  ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section collapsible"><h2 onclick="toggleSection(this)">SLA Compliance per Week (&le;240 hrs) <span class="sec-caret">▾</span></h2><div class="sec-body">
     <p class="meta-info" style="margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA, for ${LIVE_QUARTER?LIVE_QUARTER.label:'this quarter'}. Weeks are bucketed by resolved date and drawn as each week passes.</p>
     <div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>
-  </div>`:''}
+  </div></div>`:''}
   <div class="section collapsible"><h2 onclick="toggleSection(this)">Incident Types <span class="sec-caret">▾</span></h2><div class="sec-body"><p class="meta-info">Click any incident type to view agent breakdown</p>
     <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>
     ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${type}</strong></td><td>${count}</td><td>${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
@@ -1529,7 +1487,7 @@ function showLoginModal(){
     <input type="text" id="loginUser" autocomplete="username" style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.9em">
     <label style="display:block;color:#879596;font-size:.85em;margin:12px 0 6px">Password</label>
     <input type="password" id="loginPass" autocomplete="current-password" style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.9em">
-    <label style="display:flex;align-items:center;gap:8px;color:#879596;font-size:.82em;margin-top:12px;cursor:pointer"><input type="checkbox" id="loginRemember"> Keep me logged in on this device</label>
+    <label style="display:flex;align-items:center;gap:8px;color:#879596;font-size:.82em;margin-top:12px;cursor:pointer"><input type="checkbox" id="loginRemember" checked> Keep me logged in on this device</label>
     <div class="err" id="loginErr" style="color:#ff5252;font-size:.85em;margin-top:12px;display:none"></div>
     <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
@@ -1760,6 +1718,14 @@ async function fetchLiveQuarterVersion(){
   return null;
 }
 
+// Render either the deep-linked view (app.html?view=groups|previous-week|shift-report) or the
+// dashboard. Making this authoritative at render time means a ?view= deep link shows the right
+// view immediately, instead of rendering the dashboard first and switching afterward.
+function renderCurrentOrView(){
+  const v=initialViewParam();
+  if(v && M){ nav(v); } else { renderDashboard(); }
+}
+
 // Render the dashboard from whatever is currently in the local tickets store.
 async function renderFromLocal(uploadTimeIso){
   // Fast path: reuse previously-computed metrics for this exact dataset version so we skip the
@@ -1771,7 +1737,7 @@ async function renderFromLocal(uploadTimeIso){
       if(cachedM){
         M=cachedM;
         try{ if(cachedM._dbMaxLastUpdated!=null)window._dbMaxLastUpdated=cachedM._dbMaxLastUpdated; }catch(e){}
-        renderDashboard();
+        renderCurrentOrView();
         return true;
       }
     }catch(e){}
@@ -1787,7 +1753,7 @@ async function renderFromLocal(uploadTimeIso){
   if(metricsKey){
     try{ const toStore=Object.assign({},M,{_dbMaxLastUpdated:maxLU}); await metaSet('metrics:'+metricsKey,toStore); }catch(e){}
   }
-  renderDashboard();
+  renderCurrentOrView();
   return true;
 }
 

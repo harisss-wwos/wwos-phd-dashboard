@@ -103,6 +103,14 @@ function toggleCollapse(headEl){
   const sec=headEl.closest('.collapsible');if(!sec)return;
   const isOpen=sec.classList.toggle('open');
   headEl.setAttribute('aria-expanded',isOpen?'true':'false');
+  // When expanding, resize any Chart.js canvas inside (a chart laid out while hidden has 0 size).
+  if(isOpen){
+    setTimeout(function(){
+      sec.querySelectorAll('canvas').forEach(function(cv){
+        try{ var ch=(window.Chart&&window.Chart.getChart)?window.Chart.getChart(cv):null; if(ch)ch.resize(); }catch(e){}
+      });
+    },30);
+  }
 }
 
 // Replace KPI number spinners with their real values after a short delay (mimics a DB fetch).
@@ -200,12 +208,14 @@ function render(metrics,name,ds){
   const loggedIn=quarterMode && window.PHDAuth && window.PHDAuth.getUser && window.PHDAuth.getUser();
   const canMerge=quarterMode && window.PHDAuth && window.PHDAuth.atLeast && window.PHDAuth.atLeast('admin');
   const qid=quarterMode?qparam('qid'):'';
-  const logBtn=loggedIn?`<a class="btn sec" href="data-log.html?qid=${encodeURIComponent(qid)}">${ic('history')} Update data log</a>`:'';
-  const mergeBtn=canMerge?`<label class="btn" style="cursor:pointer">${ic('upload')} Upload / merge into this quarter<input type="file" accept=".csv" id="qMergeFile" style="display:none"></label>`:'';
-  const actions=(logBtn||mergeBtn)?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-left:auto">${logBtn}${mergeBtn}</div>`:'';
+  const logBtn=loggedIn?`<a class="btn sec pt-btn" href="data-log.html?qid=${encodeURIComponent(qid)}" title="Update data log">${ic('history')}<span class="btn-label">Update data log</span></a>`:'';
+  const mergeBtn=canMerge?`<label class="btn pt-btn" style="cursor:pointer" title="Upload / merge into this quarter">${ic('upload')}<span class="btn-label">Upload / merge into this quarter</span><input type="file" accept=".csv" id="qMergeFile" style="display:none"></label>`:'';
+  const actions=(logBtn||mergeBtn)?`<div class="pt-actions">${logBtn}${mergeBtn}</div>`:'';
   document.getElementById('app').innerHTML=`<div class="content">
-    <div class="page-title" style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
-      <div style="flex:1;min-width:240px"><h1>${name}</h1><p>Data range: ${rangeText} · ${m.total.toLocaleString()} total tickets${quarterMode?'':' · Read-only archive'}</p></div>
+    <div class="page-title" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px"><h1>${quarterMode ? name : 'Program History: Jan 2021 – Mar 2026'.replace('Program History:', '<span class="ph-full">Program History:</span><span class="ph-short">PH:</span>')}</h1>${quarterMode
+        ? `<p style="line-height:1.6"><span style="display:block">Data range: ${rangeText}</span><span style="display:block">${m.total.toLocaleString()} total tickets</span></p>`
+        : `<p style="line-height:1.6"><span style="display:block">Data range: ${rangeText}</span><span style="display:block">${m.total.toLocaleString()} total tickets · Read-only archive</span></p>`}</div>
       ${actions}
     </div>
 
@@ -218,52 +228,62 @@ function render(metrics,name,ds){
       <div class="kpi-card warning"><div class="value kpi-num" data-val="${m.hiRepeatPct}%"><span class="num-spinner"></span></div><div class="label">${ic('repeat',13)} Repeat Offenders (HI>0)</div></div>
     </div></div>
 
-    <div class="charts-grid">
-      <div class="chart-box"${isQ2?' style="grid-column:1/-1"':''}><h3>Resolution Type</h3><div class="chart-wrap${isQ2?' tall':''}">${cspin()}<canvas id="${isQ2?'cResBar':'cResType'}"></canvas></div></div>
-      <div class="chart-box"${isQ2?' style="grid-column:1/-1"':''}><h3>Incident Types${isQ2?' <span style="font-size:.7em;color:#879596;font-weight:400">(click a bar for agent breakdown)</span>':' (from Issue field)'}</h3><div class="chart-wrap tall">${cspin()}<canvas id="cIncident"></canvas></div></div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-      <div class="section" style="margin-bottom:0"><h2>${ic('globe',18)} Geography / Region — Count</h2>
-      <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Region</th><th>Number of Cases</th></tr></thead><tbody>
-      ${m.regions.map(([k,v],i)=>`<tr><td>${i+1}</td><td><strong>${k}</strong></td><td>${v.toLocaleString()}</td></tr>`).join('')}
-      </tbody></table></div></div>
-      <div class="section" style="margin-bottom:0"><h2>${ic('users',18)} Resolver Volume — PHD Team (WWOS)</h2>
-      <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>
-      ${phdRes.map(([k,v],i)=>`<tr><td>${i+1}</td><td><strong>${k}</strong><span class="phd-badge">PHD</span></td><td>${v}</td></tr>`).join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>'}
-      </tbody></table></div></div>
-    </div>
-    <div style="margin-bottom:24px"></div>
+    ${isQ2?`
+    ${collapsible(ic('bar-chart',18)+' Resolution Type',
+      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cResBar"></canvas></div></div>', true)}
+    ${collapsible(ic('bar-chart',18)+' Incident Types',
+      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cIncident"></canvas></div></div>', true)}
+    ${collapsible(ic('globe',18)+' Geography / Region — Count',
+      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Region</th><th>Number of Cases</th></tr></thead><tbody>'+
+      m.regions.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong></td><td>'+v.toLocaleString()+'</td></tr>').join('')+
+      '</tbody></table></div>', true)}
+    ${collapsible(ic('users',18)+' Resolver Volume — PHD Team (WWOS)',
+      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>'+
+      (phdRes.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td>'+v+'</td></tr>').join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>')+
+      '</tbody></table></div>', true)}
+    `:`
+    ${collapsible(ic('bar-chart',18)+' Resolution Type',
+      '<div class="chart-box"><div class="chart-wrap">'+cspin()+'<canvas id="cResType"></canvas></div></div>', true)}
+    ${collapsible(ic('bar-chart',18)+' Incident Types <span style="font-size:.72em;color:#879596;font-weight:400">(from Issue field)</span>',
+      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cIncident"></canvas></div></div>', true)}
+    ${collapsible(ic('globe',18)+' Geography / Region — Count',
+      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Region</th><th>Number of Cases</th></tr></thead><tbody>'+
+      m.regions.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong></td><td>'+v.toLocaleString()+'</td></tr>').join('')+
+      '</tbody></table></div>', true)}
+    ${collapsible(ic('users',18)+' Resolver Volume — PHD Team (WWOS)',
+      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>'+
+      (phdRes.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td>'+v+'</td></tr>').join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>')+
+      '</tbody></table></div>', true)}
+    `}
 
     ${isQ2?`
       ${collapsible(ic('bar-chart',18)+' Weekly Trends ('+windowText+')',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cCreatedWeek"></canvas></div></div>'+
         '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cResolvedWeek"></canvas></div></div></div>', true)}
-      <div class="charts-grid">
-      <div class="chart-box" style="grid-column:1/-1"><h3>Created vs Resolved per Week (Backlog Trend)</h3><div class="chart-wrap">${cspin()}<canvas id="cCvRWeek"></canvas></div></div>
-    </div>`:`
+      ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Week (Backlog Trend)',
+        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><div class="chart-wrap">'+cspin()+'<canvas id="cCvRWeek"></canvas></div></div></div>', true)}
+    `:`
       ${collapsible(ic('bar-chart',18)+' Yearly Trends',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Year</h3><div class="chart-wrap"><canvas id="cCreatedYear"></canvas></div></div>'+
         '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Year</h3><div class="chart-wrap"><canvas id="cResolvedYear"></canvas></div></div></div>', true)}
       ${collapsible(ic('bar-chart',18)+' Quarterly Trends',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Quarter</h3><div class="chart-wrap"><canvas id="cCreatedQ"></canvas></div></div>'+
         '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Quarter</h3><div class="chart-wrap"><canvas id="cResolvedQ"></canvas></div></div></div>', true)}
-      ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Month (Backlog Trend)',
+      ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Month',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><div class="chart-wrap"><canvas id="cCvR"></canvas></div></div></div>', true)}
     `}
 
     ${isQ2?'':collapsible(ic('bar-chart',18)+' Year-over-Year Growth',
-      '<div style="overflow-x:auto"><table><thead><tr><th>Year</th><th>Tickets Created</th><th>YoY Growth %</th></tr></thead><tbody>'+
+      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>Year</th><th>Tickets Created</th><th>YoY Growth %</th></tr></thead><tbody>'+
       m.yoy.map(y=>`<tr><td><strong>${y.year}</strong></td><td>${y.count.toLocaleString()}</td><td style="color:${y.growth===null?'#879596':parseFloat(y.growth)>=0?'#ff5252':'#4ade80'}">${y.growth===null?'—':(parseFloat(y.growth)>=0?'+':'')+y.growth+'%'}</td></tr>`).join('')+
       '</tbody></table></div>', false)}
 
-    ${isQ2&&m.slaByWeek?`<div class="section"><h2>${ic('check-circle',18)} SLA Compliance per Week (≤240 hrs)</h2>
-      <p style="color:var(--tm);font-size:.85em;margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date.</p>
-      <div class="chart-wrap tall">${cspin()}<canvas id="cSlaWave"></canvas></div>
-    </div>`:''}
+    ${isQ2&&m.slaByWeek?collapsible(ic('check-circle',18)+' SLA Compliance per Week (≤240 hrs)',
+      '<p style="color:var(--tm);font-size:.85em;margin:0 0 16px">Percentage of each week\'s resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date.</p>'+
+      '<div class="chart-wrap tall">'+cspin()+'<canvas id="cSlaWave"></canvas></div>', true):''}
 
     ${isQ2
-      ?`<div class="section"><h2>${ic('repeat',18)} Root Causes by Group</h2><div id="rcGroups" class="rc-accordion"></div></div>`
+      ?collapsible(ic('repeat',18)+' Root Causes by Group','<div id="rcGroups" class="rc-accordion"></div>', true)
       :collapsible(ic('repeat',18)+' Root Cause × Region (Cross-Tab)','<div style="overflow-x:auto" id="rcRegionTable"></div>', false)}
   </div>`;
 
@@ -366,6 +386,18 @@ function render(metrics,name,ds){
   }
   // Charts have drawn — remove the chart-loading spinner overlays (Q2/quarter reports).
   clearChartSpinners();
+  // Give every title/heading a hover tooltip with its full text (in case it's truncated).
+  addHeadingTitles();
+}
+
+// Set a title="" (hover tooltip) on all headings/collapsible titles so truncated text stays readable.
+function addHeadingTitles(){
+  try{
+    document.querySelectorAll('.content h1, .content h2, .content h3, .collapse-title, .page-title p span').forEach(function(el){
+      var t=(el.textContent||'').replace(/\s+/g,' ').trim();
+      if(t && !el.getAttribute('title'))el.setAttribute('title',t);
+    });
+  }catch(e){}
 }
 
 // ===== Admin: upload/merge a CSV into THIS (past, non-live) quarter =====
