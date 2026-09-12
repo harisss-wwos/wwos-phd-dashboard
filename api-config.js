@@ -33,16 +33,14 @@ window.PHDAuth = {
   // current one (we tie quarter-derived pages to the live quarter's publishedAt, so a new upload
   // transparently busts every user's cache on their next visit). Time-based pages omit `version`.
   _liveVerCache: undefined, // in-memory memo for this page load
-  // Cheap live-quarter version (id + publishedAt) via /api/quarters (no ticket payload). Memoized.
+  // Cheap live-quarter version (id + publishedAt) via /api/live-version — ONLY the current quarter,
+  // no ticket payload and no other quarters. Memoized for this page load.
   liveVersion: async function () {
     if (this._liveVerCache !== undefined) return this._liveVerCache;
     try {
-      var r = await this.api('GET', '/api/quarters');
-      if (r.ok && r.data) {
-        var liveId = r.data.liveQuarter;
-        var arr = r.data.quarters || [];
-        var q = null; for (var i = 0; i < arr.length; i++) { if (arr[i]._id === liveId || arr[i].quarter === liveId) { q = arr[i]; break; } }
-        this._liveVerCache = liveId + '|' + ((q && (q.publishedAt || (q.meta && q.meta.publishedAt))) || '');
+      var r = await this.api('GET', '/api/live-version');
+      if (r.ok && r.data && r.data.quarter) {
+        this._liveVerCache = r.data.quarter + '|' + (r.data.publishedAt || '');
         return this._liveVerCache;
       }
     } catch (e) {}

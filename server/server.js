@@ -434,6 +434,25 @@ app.get('/api/quarters', async (req, res) => {
   }
 });
 
+// Cheap version check: ONLY the current live quarter's id + label + publishedAt (one findOne,
+// no ticket payload, no other quarters). This is what the live dashboard's cache uses to decide
+// "is my data current?" — so it never needs the full /api/quarters catalog on load.
+app.get('/api/live-version', async (req, res) => {
+  try {
+    const qid = currentQuarter();
+    const coll = await getCollection(COLLECTIONS.quarters);
+    const doc = await coll.findOne({ _id: qid }, { projection: { 'meta.publishedAt': 1, 'meta.count': 1, 'data.updatedAt': 1 } });
+    res.json({
+      quarter: qid,
+      label: quarterLabel(qid),
+      publishedAt: (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null,
+      count: (doc && doc.meta && doc.meta.count) != null ? doc.meta.count : null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not read live version.' });
+  }
+});
+
 // Public read: the current live quarter's dataset (tickets computed in the browser).
 app.get('/api/live-quarter', async (req, res) => {
   try {

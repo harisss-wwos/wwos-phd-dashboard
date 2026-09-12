@@ -2053,13 +2053,12 @@ function isRegisteredUser(name){
 // Cheap "is it stale?" check: returns the live quarter's id + publishedAt without the ticket payload.
 async function fetchLiveQuarterVersion(){
   try{
-    const r=await window.PHDAuth.api('GET','/api/quarters');
-    if(r.ok&&r.data){
-      const liveId=r.data.liveQuarter;
-      const q=(r.data.quarters||[]).find(x=>x.id===liveId);
+    const r=await window.PHDAuth.api('GET','/api/live-version'); // only the current quarter (no catalog)
+    if(r.ok&&r.data&&r.data.quarter){
+      const liveId=r.data.quarter;
       // Keep LIVE_QUARTER label in sync even on a cache hit.
-      if(liveId)LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:liveId,label:(r.data.liveLabel||liveId)});
-      return {liveId,publishedAt:q?(q.publishedAt||null):null};
+      LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:liveId,label:(r.data.label||liveId)});
+      return {liveId,publishedAt:r.data.publishedAt||null};
     }
   }catch(e){}
   return null;
