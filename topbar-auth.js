@@ -4,7 +4,7 @@
 // Section 1 (top bar): logo + "Q<label> · LIVE" badge on the left; Users (owner-only) + avatar
 //   (Login when logged out / Profile when logged in) on the right.
 // Section 2 (nav): a single flex row of Dashboard, Groups, Previous Week, Shift Report,
-//   Agent Analytics, Last 24 Hours, Upload new data, My Tickets, Update data log, PHD Tools —
+//   Admin & Operations Guide, Last 24 Hours, Upload new data, My Tickets, Update data log, PHD Tools —
 //   role-gated, with the active item highlighted.
 //
 // Requires api-config.js (window.PHDAuth) and icons.js (window.icon) loaded first.
@@ -199,7 +199,7 @@
   }
 
   // ---- Hamburger menu contents (role-gated). Rendered inside the collapsible dropdown. ----
-  // active: one of 'groups','previous-week','shift-report','agent-analytics','last24',
+  // active: one of 'groups','previous-week','shift-report','admin-guide','last24',
   //   'help-activity','tools','unique-cases','users' (or '' for none).
   // inApp: true inside app.html (view buttons call nav()); false = standalone (links to app.html?view=).
   function navHtml(active, inApp) {
@@ -230,7 +230,7 @@
     if (li) mob += '<a class="tb-menuitem" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
     mob += '<div class="tb-menu-divider"></div><div class="tb-menu-label">Navigate</div></div>';
     html += mob;
-    if (isAdmin) html += link('agent-analytics', 'Agent Analytics', 'bar-chart', 'agent-analytics.html');
+    if (isAdmin) html += link('admin-guide', 'Admin &amp; Operations Guide', 'book', 'admin-guide.html');
     if (li) {
       html += view('groups', 'Groups', 'users');
       html += view('shift-report', 'Shift Report', 'clipboard');

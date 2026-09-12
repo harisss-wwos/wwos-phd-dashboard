@@ -1,61 +1,78 @@
-// Home page quarter cards.
-// The Q2 (past) and Q3 (live) card SHELLS are hardcoded in index.html — only the ticket COUNT
-// is dynamic. This function fills each .q-count from /api/quarters (a small spinner shows until
-// then, so there's no full-card shimmer). Any additional quarters the API reports that aren't
-// already on the page are appended after the hardcoded ones.
+// Home page quarter cards, grouped into collapsible YEAR sections (newest year first).
+// The Admin Guide + Program History cards stay hardcoded in index.html (#cardGrid). Every
+// quarter REPORT card is rendered here from /api/quarters, grouped under a collapsible header
+// per year (2026, 2025, ... 2021). The year that contains the live quarter is expanded by
+// default; all others start collapsed. A shimmer skeleton shows while /api/quarters loads.
 
 function fmtCount(n){return (typeof n==='number')?n.toLocaleString():'';}
+function icH(n,s){return window.icon?window.icon(n,s||22):'';}
+
+// Expand/collapse a year section.
+function toggleYearSection(btn){
+  const sec=btn.closest('.year-section');
+  if(!sec)return;
+  const open=sec.classList.toggle('open');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+}
+window.toggleYearSection=toggleYearSection;
+
+// Build one quarter report card's HTML.
+function quarterCardHtml(q,isLive){
+  const countTxt=q.count!=null?(fmtCount(q.count)+' tickets'+(isLive?'':' · Archived')):(isLive?'Live':'Archived');
+  const href=isLive?'app.html':('archive.html?ds=quarter&qid='+encodeURIComponent(q.id));
+  const head=isLive
+    ? '<div class="card-head"><span class="card-ic">'+icH('grid')+'</span><h2>'+q.label+' Report</h2><span class="live-pill">● LIVE</span></div>'
+      +'<p>Current quarter — live operations dashboard. Authorized users upload &amp; merge the latest CSV; everyone sees the published data.</p>'
+    : '<div class="card-head"><span class="card-ic">'+icH('bar-chart')+'</span><h2>'+q.label+' Report</h2></div>'
+      +'<p>WWOS-managed incident data for '+q.label+'. Read-only snapshot.</p>';
+  return '<a class="card '+(isLive?'live':'')+'" id="qcard-'+q.id+'" href="'+href+'">'+head+'<span class="tag">'+countTxt+'</span></a>';
+}
 
 async function renderQuarterCards(){
-  const grid=document.getElementById('cardGrid');
-  if(!grid||!window.PHDAuth)return;
+  const host=document.getElementById('yearSections');
+  if(!host||!window.PHDAuth)return;
 
   let info;
   try{
     const r=await window.PHDAuth.api('GET','/api/quarters');
-    if(!r.ok||!r.data)return; // leave hardcoded cards as-is (spinner stays); no crash
+    if(!r.ok||!r.data){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">Could not load quarter reports.</p>'; return; }
     info=r.data;
-  }catch(e){return;}
+  }catch(e){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">Could not load quarter reports.</p>'; return; }
 
   const liveId=info.liveQuarter;
   const quarters=(info.quarters||[]).slice();
   const seen={};quarters.forEach(q=>{seen[q.id]=true;});
-  if(liveId && !seen[liveId]){quarters.push({id:liveId,label:info.liveLabel,count:undefined,isLive:true});seen[liveId]=true;}
+  if(liveId && !seen[liveId]){quarters.push({id:liveId,label:info.liveLabel||liveId,count:undefined,isLive:true});seen[liveId]=true;}
 
-  const byId={};quarters.forEach(q=>{byId[q.id]=q;});
-
-  // 1) Fill counts for the hardcoded cards already on the page.
-  document.querySelectorAll('.q-count[data-qid]').forEach(function(el){
-    const qid=el.getAttribute('data-qid');
-    const q=byId[qid];
-    const isLive=(qid===liveId);
-    if(q&&q.count!=null){ el.textContent=fmtCount(q.count)+' tickets'+(isLive?'':' · Archived'); }
-    else { el.textContent=isLive?'Live':'Archived'; } // no count available -> fall back to a label
+  // Group by year (id looks like "2026-Q3").
+  const byYear={};
+  quarters.forEach(q=>{
+    const m=/^(\d{4})-Q([1-4])$/.exec(q.id||'');
+    if(!m)return;
+    const yr=m[1]; const qn=parseInt(m[2],10);
+    (byYear[yr]=byYear[yr]||[]).push(Object.assign({},q,{_q:qn}));
   });
+  const years=Object.keys(byYear).sort((a,b)=>b.localeCompare(a)); // newest year first
+  if(!years.length){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">No quarter reports available.</p>'; return; }
 
-  // 2) Append any EXTRA quarters returned by the API that aren't hardcoded on the page.
-  const ic=(n,s)=>window.icon?window.icon(n,s||22):'';
-  const extra=quarters
-    .filter(q=>!document.getElementById('qcard-'+q.id))
-    .sort((a,b)=>a.id.localeCompare(b.id));
-  extra.forEach(function(q){
-    const isLive=q.id===liveId;
-    const a=document.createElement('a');
-    a.id='qcard-'+q.id;
-    a.href=isLive?'app.html':('archive.html?ds=quarter&qid='+encodeURIComponent(q.id));
-    a.className='card '+(isLive?'live':'');
-    const countTxt=q.count!=null?(fmtCount(q.count)+' tickets'):(isLive?'Live':'Archived');
-    if(isLive){
-      a.innerHTML='<div class="card-head"><span class="card-ic">'+ic('grid')+'</span><h2>'+q.label+' Report</h2><span class="live-pill">● LIVE</span></div>'
-        +'<p>Current quarter — live operations dashboard. Authorized users upload &amp; merge the latest CSV; everyone sees the published data.</p>'
-        +'<span class="tag">'+countTxt+'</span>';
-    }else{
-      a.innerHTML='<div class="card-head"><span class="card-ic">'+ic('bar-chart')+'</span><h2>'+q.label+' Report</h2></div>'
-        +'<p>WWOS-managed incident data for '+q.label+'. Read-only snapshot.</p>'
-        +'<span class="tag">'+countTxt+'</span>';
-    }
-    grid.appendChild(a);
-  });
+  const liveYear=liveId?(/^(\d{4})-Q[1-4]$/.exec(liveId)||[])[1]:null;
+
+  host.innerHTML=years.map(function(yr){
+    const list=byYear[yr].slice().sort((a,b)=>b._q-a._q); // Q4..Q1 within the year
+    const total=list.reduce((s,q)=>s+((typeof q.count==='number')?q.count:0),0);
+    const hasLive=(yr===liveYear);
+    const cards=list.map(q=>quarterCardHtml(q,q.id===liveId)).join('');
+    const metaTxt=(total>0?fmtCount(total)+' tickets · ':'')+list.length+' quarter'+(list.length===1?'':'s');
+    return ''+
+    '<div class="year-section'+(hasLive?' open':'')+'">'+
+      '<button type="button" class="year-head" aria-expanded="'+(hasLive?'true':'false')+'" onclick="toggleYearSection(this)">'+
+        '<span class="year-title">'+icH('calendar',20)+' '+yr+(hasLive?' <span class="year-live-badge">LIVE</span>':'')+'</span>'+
+        '<span class="year-meta">'+metaTxt+'</span>'+
+        '<span class="year-caret" aria-hidden="true">▾</span>'+
+      '</button>'+
+      '<div class="year-body"><div class="grid">'+cards+'</div></div>'+
+    '</div>';
+  }).join('');
 }
 
 renderQuarterCards();
