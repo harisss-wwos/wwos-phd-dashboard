@@ -691,7 +691,7 @@ window.toggleSection=toggleSection;
 // Ticket-level detail is restricted to logged-in users.
 function requireLoginForTickets(){
   const user=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
-  if(user)return true;
+  if(user){ try{ if(window.loadUserAvatars)loadUserAvatars(); }catch(e){} return true; } // warm avatars for the drill-down
   showTicketAccessPrompt();
   return false;
 }
@@ -2033,10 +2033,34 @@ async function loadUserRoles(){
       const set=new Set();const profiles={};
       r.data.forEach(u=>{const un=(u.username||'').toLowerCase();if(allowedRoles.has(u.role))set.add(un);profiles[un]=u;});
       window.PURPLE_ALLOWED_SET=set;
-      window.USER_PROFILES=profiles; // lowercase username -> {username,role,displayName,avatar}
+      window.USER_PROFILES=profiles; // lowercase username -> {username,role,displayName} (avatar merged in later)
     }
   }catch(e){/* leave null -> purple only blinks on Unassigned */}
 }
+
+// Lazily fetch avatars (username -> base64) and merge them into USER_PROFILES so drill-down popups
+// show pictures. Kept OUT of loadUserRoles so the roster load stays tiny; runs once in the
+// background (or on demand before a popup). Cached for the page load.
+let _avatarsLoaded=false, _avatarsLoading=null;
+function loadUserAvatars(){
+  if(_avatarsLoaded)return Promise.resolve();
+  if(_avatarsLoading)return _avatarsLoading;
+  if(!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser()))return Promise.resolve();
+  _avatarsLoading=(async()=>{
+    try{
+      const r=await window.PHDAuth.api('GET','/api/user-avatars');
+      if(r.ok&&r.data&&typeof r.data==='object'){
+        const profiles=window.USER_PROFILES||{};
+        Object.keys(r.data).forEach(un=>{const k=un.toLowerCase();if(!profiles[k])profiles[k]={username:un};profiles[k].avatar=r.data[un];});
+        window.USER_PROFILES=profiles;
+        _avatarsLoaded=true;
+      }
+    }catch(e){/* avatars are optional — popups fall back to initials */}
+    finally{_avatarsLoading=null;}
+  })();
+  return _avatarsLoading;
+}
+window.loadUserAvatars=loadUserAvatars;
 // Look up a person's profile (for avatars) by assignee identity/username.
 function profileFor(name){
   const p=(window.USER_PROFILES||{})[String(name||'').toLowerCase()];
@@ -2192,6 +2216,9 @@ async function maybeHandlePendingUpload(){
   if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
   try{ if(window.PHDNav&&window.PHDNav.refreshRight)window.PHDNav.refreshRight(); }catch(e){}
   startHelpNotificationPolling();
+  // Warm avatars in the background (non-blocking) so drill-down popups show pictures without a
+  // per-open fetch. The roster itself no longer carries the heavy base64 images.
+  setTimeout(loadUserAvatars, 1200);
 
   // Cross-page upload handoff: a standalone page stashed a CSV and sent us here with ?upload=1.
   if(await maybeHandlePendingUpload())return;

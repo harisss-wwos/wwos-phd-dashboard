@@ -102,15 +102,32 @@ app.post('/api/change-password', requireRole('user'), async (req, res) => {
   }
 });
 
-// Lightweight roster (username + role + displayName + avatar) for any logged-in user — used by the
-// dashboard for the purple-ticket policy check and to show avatars/display names next to people.
+// Lightweight roster (username + role + displayName) for any logged-in user — used by the
+// dashboard for the purple-ticket policy check and display names. Avatars are fetched separately
+// (see /api/user-avatars) so this stays small.
 app.get('/api/user-roles', requireRole('user'), async (req, res) => {
   try {
     const users = await getCollection(COLLECTIONS.users);
-    const list = await users.find({}, { projection: { username: 1, role: 1, displayName: 1, avatar: 1 } }).toArray();
-    res.json(list.map(u => ({ username: u.username, role: u.role, displayName: u.displayName || '', avatar: u.avatar || '' })));
+    // Slim: NO avatar (base64 images bloat this to hundreds of KB). Avatars load lazily via
+    // /api/user-avatars only when the UI actually needs them (drill-down popups).
+    const list = await users.find({}, { projection: { username: 1, role: 1, displayName: 1 } }).toArray();
+    res.json(list.map(u => ({ username: u.username, role: u.role, displayName: u.displayName || '' })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load user roles.' });
+  }
+});
+
+// Avatars only (username -> base64), for the users who have one. Fetched lazily/in the background
+// so the roster load stays small. Logged-in only.
+app.get('/api/user-avatars', requireRole('user'), async (req, res) => {
+  try {
+    const users = await getCollection(COLLECTIONS.users);
+    const list = await users.find({ avatar: { $exists: true, $ne: '' } }, { projection: { username: 1, avatar: 1 } }).toArray();
+    const out = {};
+    list.forEach(u => { if (u.avatar) out[u.username] = u.avatar; });
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load user avatars.' });
   }
 });
 
