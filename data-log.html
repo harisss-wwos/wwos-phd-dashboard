@@ -45,14 +45,18 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .log-session.open .log-caret{transform:rotate(180deg)}
 .log-session-body{padding:16px 20px;display:none;flex-direction:column;gap:14px}
 .log-session.open .log-session-body{display:flex}
-/* Multi-upload days get a coloured left accent + subtle tinted background so they stand out. */
-.log-session.log-day-0{border-left:4px solid #4ade80;background:rgba(74,222,128,.06)}
-.log-session.log-day-1{border-left:4px solid #60a5fa;background:rgba(96,165,250,.06)}
-.log-session.log-day-2{border-left:4px solid #f472b6;background:rgba(244,114,182,.06)}
-.log-session.log-day-3{border-left:4px solid #fbbf24;background:rgba(251,191,36,.06)}
-.log-session.log-day-4{border-left:4px solid #a78bfa;background:rgba(167,139,250,.06)}
-.log-session.log-day-5{border-left:4px solid #22d3ee;background:rgba(34,211,238,.06)}
+/* Multi-upload days get a FULL gradient background (whole card) so they stand out at a glance. */
+.log-session.log-day-0{border-left:4px solid #4ade80;background:linear-gradient(135deg,rgba(74,222,128,.22),rgba(74,222,128,.05) 70%)}
+.log-session.log-day-1{border-left:4px solid #60a5fa;background:linear-gradient(135deg,rgba(96,165,250,.22),rgba(96,165,250,.05) 70%)}
+.log-session.log-day-2{border-left:4px solid #f472b6;background:linear-gradient(135deg,rgba(244,114,182,.22),rgba(244,114,182,.05) 70%)}
+.log-session.log-day-3{border-left:4px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,.22),rgba(251,191,36,.05) 70%)}
+.log-session.log-day-4{border-left:4px solid #a78bfa;background:linear-gradient(135deg,rgba(167,139,250,.22),rgba(167,139,250,.05) 70%)}
+.log-session.log-day-5{border-left:4px solid #22d3ee;background:linear-gradient(135deg,rgba(34,211,238,.22),rgba(34,211,238,.05) 70%)}
 .log-session[class*="log-day-"]>.log-head{background:transparent}
+.log-session[class*="log-day-"]>.log-head:hover{background:rgba(255,255,255,.04)}
+/* Load-more button block */
+.log-more{text-align:center;margin:22px 0 4px}
+.log-more-note{color:var(--tm);font-size:.8em;margin-top:8px}
 /* Uploaded-file details row */
 .log-file{display:flex;align-items:center;gap:10px;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 14px}
 .log-file-icon{font-size:1.1em;flex-shrink:0}
@@ -227,6 +231,12 @@ function render(entries){
       '<div class="log-session-body">'+fileMeta+items.map(quarterBlock).join('')+'</div>'+
     '</div>';
   }).join('');
+  // "Load more" — only when the server signalled there are older days beyond the current window.
+  if(HAS_MORE && !qid){
+    html+='<div class="log-more"><button type="button" id="logLoadMore" class="btn" onclick="loadMoreDays()">'+
+      (typeof ic==='function'?ic('history',15)+' ':'')+'Load 2 more days</button>'+
+      '<p class="log-more-note">Showing the last '+DAYS_LOADED+' day'+(DAYS_LOADED===1?'':'s')+' of uploads.</p></div>';
+  }
   wrap.innerHTML=html;
 }
 
@@ -236,7 +246,7 @@ async function delSession(idsJson){
   if(!ids.length)return;
   if(!confirm('Delete this data-log entry? This cannot be undone.'))return;
   for(const id of ids){ try{await A.api('DELETE','/api/data-log/'+id);}catch(e){} }
-  load();
+  load(DAYS_LOADED); // reload the same window
 }
 
 // Expand/collapse a session card.
@@ -249,15 +259,31 @@ function toggleSession(btn){
 
 let MY_TZ='IST'; // logged-in user's preferred timezone (IST|MST)
 const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
-async function load(){
+let DAYS_LOADED=3;   // how many distinct upload-days we're currently showing (starts at 3)
+let HAS_MORE=false;  // does the server have older days beyond what we've loaded?
+let _tzFetched=false;
+
+// Load the most-recent `days` distinct upload-days. "Load more" bumps this by 2.
+async function load(days){
+  DAYS_LOADED=days||3;
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
-  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
-  const r=await A.api('GET','/api/data-log');
+  if(!_tzFetched){ try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){} _tzFetched=true; }
+  const r=await A.api('GET','/api/data-log?days='+DAYS_LOADED);
   if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
   if(!r.ok){gate('Could not load the data log (HTTP '+r.status+').');return;}
-  render(Array.isArray(r.data)?r.data:[]);
+  // New paginated shape { days, hasMore, entries }. (Tolerate the old bare-array shape too.)
+  const data=r.data||{};
+  const entries=Array.isArray(data)?data:(data.entries||[]);
+  HAS_MORE=Array.isArray(data)?false:!!data.hasMore;
+  render(entries);
 }
-load();
+// "Load more" — pull 2 additional days.
+function loadMoreDays(){
+  const btn=document.getElementById('logLoadMore');
+  if(btn){ btn.disabled=true; btn.textContent='Loading…'; }
+  load(DAYS_LOADED+2);
+}
+load(3);
 </script>
 </body>
 </html>

@@ -775,23 +775,58 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
 app.get('/api/data-log', requireRole('user'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.dataLog);
-    const entries = await logColl.find({}).sort({ at: -1 }).limit(200).toArray();
-    res.json(entries.map(e => ({
-      id: String(e._id),
-      user: e.user,
-      role: e.role,
-      at: e.at,
-      liveQuarter: e.liveQuarter,
-      pastQuarterMerge: !!e.pastQuarterMerge,
-      publishedAt: e.publishedAt || null,
-      written: e.written || [],
-      changeSummary: e.changeSummary || null,
-      changedTickets: e.changedTickets || null,
-      fileName: e.fileName || '',
-      fileSize: e.fileSize || 0,
-      fileType: e.fileType || '',
-      totalTickets: e.totalTickets,
-    })));
+    // Day-windowed pagination: return only entries from the most-recent N DISTINCT upload days
+    // (in the requesting user's timezone). The client asks for more days via ?days=N ("Load more").
+    // Keeps the payload small instead of shipping the whole history every time.
+    let days = parseInt(req.query.days, 10);
+    if (!Number.isFinite(days) || days < 1) days = 3;
+    if (days > 3650) days = 3650; // sanity cap
+
+    // Resolve the user's timezone (IST/MST) so day boundaries match what they see.
+    let tz = DEFAULT_TZ;
+    try {
+      const users = await getCollection(COLLECTIONS.users);
+      const u = await users.findOne({ username: req.user.username }, { projection: { timezone: 1 } });
+      if (u && u.timezone) tz = normTz(u.timezone);
+    } catch (e) { /* default tz */ }
+    const zone = tz === 'MST' ? 'America/Denver' : 'Asia/Kolkata';
+    const dayKey = (iso) => { try { return new Date(iso).toLocaleDateString('en-CA', { timeZone: zone }); } catch (e) { return null; } };
+
+    // Pull newest-first; walk until we've collected `days` distinct day-keys, then note if more remain.
+    const all = await logColl.find({}).sort({ at: -1 }).toArray();
+    const seenDays = new Set();
+    const kept = [];
+    let hasMore = false;
+    for (const e of all) {
+      const dk = dayKey(e.at);
+      if (dk && !seenDays.has(dk)) {
+        if (seenDays.size >= days) { hasMore = true; break; } // this entry starts a day beyond the window
+        seenDays.add(dk);
+      }
+      kept.push(e);
+    }
+
+    res.json({
+      days,
+      daysReturned: seenDays.size,
+      hasMore,
+      entries: kept.map(e => ({
+        id: String(e._id),
+        user: e.user,
+        role: e.role,
+        at: e.at,
+        liveQuarter: e.liveQuarter,
+        pastQuarterMerge: !!e.pastQuarterMerge,
+        publishedAt: e.publishedAt || null,
+        written: e.written || [],
+        changeSummary: e.changeSummary || null,
+        changedTickets: e.changedTickets || null,
+        fileName: e.fileName || '',
+        fileSize: e.fileSize || 0,
+        fileType: e.fileType || '',
+        totalTickets: e.totalTickets,
+      })),
+    });
   } catch (e) {
     res.status(500).json({ error: 'Could not load data log.' });
   }
