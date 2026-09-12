@@ -67,6 +67,9 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 /* Load-more button block */
 .log-more{text-align:center;margin:22px 0 4px}
 .log-more-note{color:var(--tm);font-size:.8em;margin-top:8px}
+/* Loading skeleton: shimmer rows shaped like collapsed date-section headers */
+.log-skeleton{display:flex;flex-direction:column;gap:16px}
+.sk-date-row{height:58px;border-radius:12px}
 /* Uploaded-file details row */
 .log-file{display:flex;align-items:center;gap:10px;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 14px}
 .log-file-icon{font-size:1.1em;flex-shrink:0}
@@ -102,7 +105,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><h1>Update Data Log</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">History of data uploads — who, when, and what changed.</p><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+<div class="wrap" id="wrap"><h1>Update Data Log</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">History of data uploads to the live dashboard — who uploaded, when (IST), and what changed. Latest first.</p><div class="log-skeleton"><div class="shimmer sk-date-row"></div><div class="shimmer sk-date-row"></div><div class="shimmer sk-date-row"></div></div></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
@@ -246,9 +249,10 @@ function render(entries){
     const isToday=(k===todayKey);
     const cnt=dGroups.length;
     const colorCls=' log-day-'+dayColorIdx[k];
+    // All date sections start COLLAPSED (including today); today keeps its badge.
     return ''+
-    '<div class="log-date-section'+(isToday?' open':'')+colorCls+'">'+
-      '<button type="button" class="log-date-head" aria-expanded="'+(isToday?'true':'false')+'" onclick="toggleDateSection(this)">'+
+    '<div class="log-date-section'+colorCls+'">'+
+      '<button type="button" class="log-date-head" aria-expanded="false" onclick="toggleDateSection(this)">'+
         '<span class="log-date-title">'+esc(dayLabel(dGroups[0].at))+(isToday?' <span class="log-today-badge">TODAY</span>':'')+'</span>'+
         '<span class="log-date-meta">'+cnt+' upload'+(cnt===1?'':'s')+'</span>'+
         '<span class="log-caret" aria-hidden="true">▾</span>'+
