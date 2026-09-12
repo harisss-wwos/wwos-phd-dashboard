@@ -717,7 +717,7 @@ function showColorPopup(color,tickets){
   closeAllPopups();
   const colorNames={green:'GREEN (0-96 hrs)',yellow:'YELLOW (96-168 hrs)',red:'RED (168-240 hrs)',black:'BLACK (>240 hrs)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
-  const tix=M.colorTickets[color];
+  const tix=colorTicketsFor(color);
   // Group by agent
   const byAgent={};tix.forEach(r=>{const a=r.AssigneeIdentity||'Unassigned';if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
   const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
@@ -755,7 +755,7 @@ function showAgentDrilldown(color,agentName){
   if(!requireLoginForTickets())return;
   closeAllPopups();
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
-  const tix=M.colorTickets[color].filter(r=>(r.AssigneeIdentity||'Unassigned')===agentName);
+  const tix=colorTicketsFor(color).filter(r=>(r.AssigneeIdentity||'Unassigned')===agentName);
   // Sort by CreateDate ascending (oldest first, newest at the bottom)
   tix.sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate));
   const now=new Date();const dn=displayName(agentName);
@@ -809,7 +809,7 @@ async function fillLatestComments(overlay,shortIds){
   }catch(e){setAll('Could not load comments','#ff5252',true);}
 }
 function downloadColorCSV(color){
-  const tickets=M.colorTickets[color];
+  const tickets=colorTicketsFor(color);
   let csv='ShortId,Assignee,CreateDate,Status,Title\n';
   tickets.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
   const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
@@ -1516,6 +1516,15 @@ function renderDashboard(){
 // ============================================================================
 const DASH_LOADED = {};   // chunk key -> true once fetched this page-load
 let DASH_VERSION = undefined; // A.liveVersion() for this page-load (fetched once)
+// Per-colour open-ticket arrays from /api/dash/age-detail (for the color popups + drill-down + CSV),
+// so the chunked dashboard doesn't need the full ~8k-ticket dataset just to power those popups.
+let DASH_COLOR_TICKETS = null;
+// The tickets for a colour: prefer the full dataset (M) when it's loaded (other views), else the
+// chunked age-detail payload.
+function colorTicketsFor(color){
+  if(typeof M!=='undefined' && M && M.colorTickets && M.colorTickets[color]) return M.colorTickets[color];
+  return (DASH_COLOR_TICKETS && DASH_COLOR_TICKETS[color]) || [];
+}
 
 async function dashVersion(){
   if(DASH_VERSION!==undefined)return DASH_VERSION;
@@ -1528,6 +1537,13 @@ async function dashVersion(){
 async function loadDashChunk(chunk, onData, opts){
   opts=opts||{};
   const A=window.PHDAuth;
+  // Time-sensitive chunks (age-detail) must NOT be version-cached — a cached copy would show
+  // stale colours. Fetch fresh every time (payload is small).
+  if(opts.noCache){
+    const r=await A.api('GET','/api/dash/'+chunk);
+    if(r&&r.ok){ try{ onData(r.data); }catch(e){} return {painted:true,ok:true,fromCache:false,data:r.data}; }
+    return {painted:false,ok:false,status:r?r.status:0};
+  }
   const version=await dashVersion();
   return A.swrLoad({
     key:'dash-'+chunk,
@@ -1548,6 +1564,15 @@ function dashCard(chunk, iconName, title, bodyId, extra){
   return '<div class="section collapsible collapsed" data-chunk="'+chunk+'">'+
     '<h2 onclick="toggleDashCard(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">▾</span></h2>'+
     '<div class="sec-body">'+(extra||'')+'<div id="'+bodyId+'" class="dash-chunk-slot">'+sp+'</div></div>'+
+  '</div>';
+}
+// A NON-collapsible dashboard section (always visible, no expand/collapse). Used for the Ticket
+// Age Classification card, which loads eagerly on page load alongside the summary.
+function dashStaticCard(iconName, title, bodyId, extra){
+  const sp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
+  return '<div class="section">'+
+    '<h2>'+ic(iconName,16)+' '+title+'</h2>'+
+    (extra||'')+'<div id="'+bodyId+'" class="dash-chunk-slot">'+sp+'</div>'+
   '</div>';
 }
 
@@ -1587,14 +1612,35 @@ window.retryDashChunk=retryDashChunk;
 // ---- Per-card renderers (fill the card body from the chunk payload) ----
 function renderAgeChunk(d){
   const slot=document.getElementById('dashAgeBody');if(!slot)return;
-  const tile=(color,icon,name,range,val)=>'<div class="kpi-card age-tile" style="border-top-color:'+color+'"><div class="value" style="color:'+color+'">'+val+'</div><div class="age-name">'+ic(icon,14)+' '+name+'</div><div class="age-range">'+range+'</div></div>';
-  slot.innerHTML='<p class="meta-info">Open tickets classified by age. Full ticket-level detail is on the Live Dashboard once loaded.</p>'+
+  // d is the /api/dash/age-detail payload: per-colour arrays of slim tickets. Cache them so the
+  // color popups + agent drill-down + CSV work without loading the full dataset.
+  DASH_COLOR_TICKETS={
+    green:d.green||[], yellow:d.yellow||[], red:d.red||[], black:d.black||[], purple:d.purple||[],
+  };
+  const ct=DASH_COLOR_TICKETS;
+  // BLACK blinks whenever there are any (>240h) tickets.
+  const blackBlink=ct.black.length>0;
+  // PURPLE blinks if any reopened ticket is Unassigned OR assigned to someone NOT owner/manager/admin.
+  const allowed=window.PURPLE_ALLOWED_SET; // Set of lowercase usernames, or null if roster unknown
+  const purpleBlink=ct.purple.length>0 && ct.purple.some(function(r){
+    const a=(r.AssigneeIdentity||'').trim().toLowerCase();
+    if(!a)return true;            // Unassigned -> not allowed -> blink
+    if(!allowed)return false;     // roster not loaded yet -> don't false-blink
+    return !allowed.has(a);       // assigned outside owner/manager/admin -> blink
+  });
+  const tile=(color,cls,icon,name,range,list,blink,warn)=>
+    '<div class="kpi-card age-tile'+(blink?' blink-alert':'')+'" style="border-top-color:'+color+';cursor:pointer" onclick="showColorPopup(\''+cls+'\')">'+
+      '<div class="value" style="color:'+color+'">'+list.length+'</div>'+
+      '<div class="age-name">'+ic(icon,14)+' '+name+(warn?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':'')+'</div>'+
+      '<div class="age-range">'+range+'</div>'+
+    '</div>';
+  slot.innerHTML='<p class="meta-info">Open tickets classified by age. Click any tile to see which agents hold those tickets.</p>'+
     '<div class="kpi-grid">'+
-      tile('#4ade80','check-circle','GREEN','(0-96 hrs / 0-4 days)',d.green)+
-      tile('#fbbf24','clock','YELLOW','(96-168 hrs / 4-7 days)',d.yellow)+
-      tile('#ff5252','alert','RED','(168-240 hrs / 7-10 days)',d.red)+
-      tile('#888','flame','BLACK','(&gt;240 hrs / &gt;10 days)',d.black)+
-      tile('#a78bfa','reopen','PURPLE','(Reopened)',d.purple)+
+      tile('#4ade80','green','check-circle','GREEN','(0-96 hrs / 0-4 days)',ct.green,false,false)+
+      tile('#fbbf24','yellow','clock','YELLOW','(96-168 hrs / 4-7 days)',ct.yellow,false,false)+
+      tile('#ff5252','red','alert','RED','(168-240 hrs / 7-10 days)',ct.red,false,false)+
+      tile('#888','black','flame','BLACK','(&gt;240 hrs / &gt;10 days)',ct.black,blackBlink,false)+
+      tile('#a78bfa','purple','reopen','PURPLE','(Reopened)',ct.purple,purpleBlink,purpleBlink)+
     '</div>';
 }
 function renderQueueChunk(d){
@@ -1725,7 +1771,7 @@ function renderDashboardChunked(){
     '<div class="kpi-grid" id="dashSumAvg" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000)+'</div>'+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>'+
     '<div class="kpi-grid" id="dashSumRepeat" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('paw',14)+' % of HI involving pet incidents',100,true)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100)+kpiSpin('',ic('repeat',14)+' % of HI involving non-pet incidents',100,true)+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI',100,true)+'</div>'+
-    dashCard('age','clock','Ticket Age Classification','dashAgeBody')+
+    dashStaticCard('clock','Ticket Age Classification','dashAgeBody')+
     dashCard('queue','grid','Queue Status','dashQueueBody')+
     dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
     dashCard('weekly','bar-chart','Weekly Volume','dashWeeklyBody')+
@@ -1736,7 +1782,14 @@ function renderDashboardChunked(){
   attachNewFileHandler();
   refreshHelpAlertCount();
   startKpiScramble(); // flicker the summary KPI numbers while /api/dash/summary loads
-  // Load the summary (cached, version-first). Everything else waits for a card expand.
+  // Ticket Age Classification loads EAGERLY (always visible, not collapsible). age-detail is
+  // time-sensitive so it's not version-cached — always fetched fresh (small payload).
+  loadDashChunk('age-detail',renderAgeChunk,{silent:true,noCache:true}).then(function(r){
+    if(!r||!r.ok){ const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>'; }
+  }).catch(function(){
+    const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
+  });
+  // Load the summary (cached, version-first). The remaining cards load lazily on first expand.
   loadDashChunk('summary',renderSummaryInto,{silent:false}).then(function(r){
     // If nothing painted (fetch failed + no cache), stop the flicker and show a dash so it isn't stuck.
     if(!r||(!r.painted&&!r.ok)){ stopKpiScramble(); document.querySelectorAll('.scramble-kpi').forEach(function(el){el.textContent='—';}); }

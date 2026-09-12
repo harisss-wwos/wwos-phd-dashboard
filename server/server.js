@@ -2147,6 +2147,37 @@ async function dashAge(qid) {
   return { green: r.green || 0, yellow: r.yellow || 0, red: r.red || 0, black: r.black || 0, purple: r.purple || 0 };
 }
 
+// ---- Ticket Age Classification WITH per-color ticket detail (open tickets only) ----
+// Returns { green:[...], yellow:[...], red:[...], black:[...], purple:[...] } where each ticket
+// is a slim { ShortId, AssigneeIdentity, CreateDate, Status, Title } — enough for the color popups,
+// agent drill-down, blink logic, and CSV export. Classification mirrors dashAge/app.js.
+async function dashAgeDetail(qid) {
+  const now = new Date();
+  const ageHrs = { $let: { vars: { cd: _safeDate('$t.CreateDate') }, in: { $cond: [{ $ne: ['$$cd', null] }, { $divide: [{ $subtract: [now, '$$cd'] }, 3600000] }, 0] } } };
+  const hasResolved = { $ne: [{ $trim: { input: { $ifNull: ['$t.ResolvedDate', ''] } } }, ''] };
+  const isPurple = { $or: [{ $eq: ['$t._reopened', true] }, hasResolved] };
+  const rows = await aggLive([
+    { $match: { 't.Status': { $nin: ['Resolved', 'Closed'] } } },
+    { $project: {
+      ShortId: { $ifNull: ['$t.ShortId', '$t.IssueId'] },
+      AssigneeIdentity: { $ifNull: ['$t.AssigneeIdentity', ''] },
+      CreateDate: '$t.CreateDate',
+      Status: '$t.Status',
+      Title: { $ifNull: ['$t.Title', ''] },
+      color: { $switch: { branches: [
+        { case: isPurple, then: 'purple' },
+        { case: { $lte: [ageHrs, 96] }, then: 'green' },
+        { case: { $lte: [ageHrs, 168] }, then: 'yellow' },
+        { case: { $lte: [ageHrs, 240] }, then: 'red' },
+      ], default: 'black' } },
+    } },
+    { $group: { _id: '$color', tickets: { $push: { ShortId: '$ShortId', AssigneeIdentity: '$AssigneeIdentity', CreateDate: '$CreateDate', Status: '$Status', Title: '$Title' } } } },
+  ], qid);
+  const out = { green: [], yellow: [], red: [], black: [], purple: [] };
+  rows.forEach(r => { if (out[r._id]) out[r._id] = r.tickets; });
+  return out;
+}
+
 // ---- Queue Status (counts + % by status) — computed in Atlas ----
 async function dashQueue(qid) {
   const rows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }], qid);
@@ -2300,7 +2331,7 @@ async function dashHi(qid) {
 }
 
 const DASH_CHUNKS = {
-  summary: dashSummary, age: dashAge, queue: dashQueue, daily7: dashDaily7,
+  summary: dashSummary, age: dashAge, 'age-detail': dashAgeDetail, queue: dashQueue, daily7: dashDaily7,
   weekly: dashWeekly, 'sla-weekly': dashSlaWeekly, incidents: dashIncidents, hi: dashHi,
 };
 
@@ -2314,7 +2345,8 @@ const DASH_CHUNKS = {
 // it throws so callers can log, but publish flows must never block on it.
 async function recomputeRollup(qid) {
   qid = qid || currentQuarter();
-  const names = Object.keys(DASH_CHUNKS);
+  // Skip time-sensitive chunks (age/age-detail) — they always compute live, so caching them is pointless.
+  const names = Object.keys(DASH_CHUNKS).filter(n => !ALWAYS_LIVE_CHUNKS.has(n));
   // Run all chunk aggregations for this quarter (in parallel).
   const results = await Promise.all(names.map(n => DASH_CHUNKS[n](qid)));
   const chunks = {};
@@ -2338,20 +2370,27 @@ async function liveMetaFor(qid) {
 
 // Register all chunk endpoints (public read). Serves from the precomputed rollup when it's
 // current; otherwise falls back to a live aggregation and kicks off a background recompute.
+// Age chunks depend on the CURRENT clock (a ticket's colour changes as hours pass), so they are
+// NOT served from the (publish-time) rollup — they always compute live. Everything else is cacheable.
+const ALWAYS_LIVE_CHUNKS = new Set(['age', 'age-detail']);
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
     const qid = currentQuarter();
     try {
-      const [meta, rollColl] = await Promise.all([liveMeta(), getCollection(COLLECTIONS.dashRollups)]);
-      const roll = await rollColl.findOne({ _id: qid });
-      // Rollup is current (matches the live publishedAt) and has this chunk -> serve it instantly.
-      if (roll && roll.chunks && roll.chunks[name] && (roll.publishedAt || null) === (meta.publishedAt || null)) {
-        return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, roll.chunks[name]));
+      const meta = await liveMeta();
+      if (!ALWAYS_LIVE_CHUNKS.has(name)) {
+        const rollColl = await getCollection(COLLECTIONS.dashRollups);
+        const roll = await rollColl.findOne({ _id: qid });
+        // Rollup is current (matches the live publishedAt) and has this chunk -> serve it instantly.
+        if (roll && roll.chunks && roll.chunks[name] && (roll.publishedAt || null) === (meta.publishedAt || null)) {
+          return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, roll.chunks[name]));
+        }
       }
-      // Missing/stale rollup -> compute this chunk live now, and refresh the whole rollup in the background.
+      // Always-live chunk, or missing/stale rollup -> compute live now.
       const slice = await DASH_CHUNKS[name](qid);
       res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: false }, slice));
-      recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
+      // Refresh the (cacheable) rollup in the background when we had to compute a cacheable chunk live.
+      if (!ALWAYS_LIVE_CHUNKS.has(name)) recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
     }
