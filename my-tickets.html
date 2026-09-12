@@ -249,7 +249,7 @@ async function load(){
 
   // New data (a !== b) or no cache -> fetch. Show the "fetching the latest" bar if we had cache.
   if(paintedFromCache && window.PHDRefreshBanner)window.PHDRefreshBanner.show();
-  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
+  try{MY_TZ=await A.myTimezone();}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
   if(r.status===401){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Session expired. Please log in again.'); return; }
   if(!r.ok){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Could not load your tickets (HTTP '+r.status+').'); return; }

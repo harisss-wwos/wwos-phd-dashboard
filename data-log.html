@@ -303,7 +303,7 @@ let _tzFetched=false;
 async function load(days){
   DAYS_LOADED=days||3;
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
-  if(!_tzFetched){ try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){} _tzFetched=true; }
+  if(!_tzFetched){ try{MY_TZ=await A.myTimezone();}catch(e){} _tzFetched=true; }
   const r=await A.api('GET','/api/data-log?days='+DAYS_LOADED);
   if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
   if(!r.ok){gate('Could not load the data log (HTTP '+r.status+').');return;}

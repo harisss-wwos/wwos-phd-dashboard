@@ -198,7 +198,7 @@ async function saveProfile(){
   const btn=document.getElementById('saveProfBtn');btn.disabled=true;btn.textContent='Saving…';
   const r=await A.api('POST','/api/me/profile',body);
   btn.disabled=false;btn.textContent='Save changes';
-  if(r.ok){A._myProfile=r.data;PENDING_AVATAR=undefined;ok.textContent='Profile updated.';ok.style.display='block';render();setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='block';setTimeout(()=>o.style.display='none',1500);}},30);}
+  if(r.ok){A.setMyProfile?A.setMyProfile(r.data):(A._myProfile=r.data);PENDING_AVATAR=undefined;ok.textContent='Profile updated.';ok.style.display='block';render();setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='block';setTimeout(()=>o.style.display='none',1500);}},30);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 

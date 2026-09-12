@@ -179,7 +179,7 @@ function closeBucket(){document.getElementById('bucketModal').style.display='non
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
   if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
-  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
+  try{MY_TZ=await A.myTimezone();}catch(e){}
   // Version-stamped cache: instant from cache, refresh in background; a new upload busts it.
   const version=await A.liveVersion();
   const res=await A.swrLoad({

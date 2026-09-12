@@ -252,7 +252,7 @@ async function completeMarking(){
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   if(!(A.atLeast&&A.atLeast('admin'))){gate('This page is for admins and above. Your role: '+(A.role?A.role():'user')+'.');return;}
-  try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
+  try{MY_TZ=await A.myTimezone();}catch(e){}
   renderSearch();
 }
 load();

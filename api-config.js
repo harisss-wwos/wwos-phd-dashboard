@@ -20,6 +20,8 @@ window.PHDAuth = {
     store.setItem(this.USER_KEY, JSON.stringify(user));
   },
   clear: function () {
+    try { this._storeClear(); } catch (e) {}       // drop cached me/profile for this user
+    this._me = null; this._myProfile = null; this._liveVerCache = undefined;
     sessionStorage.removeItem(this.TOKEN_KEY); sessionStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.TOKEN_KEY); localStorage.removeItem(this.USER_KEY);
   },
@@ -176,12 +178,64 @@ window.PHDAuth = {
     var fs = Math.round(size * 0.46);
     return '<span class="phd-avatar" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + col + ';color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:' + fs + 'px;line-height:1;flex-shrink:0">' + esc(ch) + '</span>';
   },
+  // ---- Small localStorage-backed store for per-user values that rarely change ----
+  // Caches /api/me (username, role, timezone) and /api/me/profile (displayName, avatar) so every
+  // page doesn't re-fetch them on load. Values are served instantly from cache, then revalidated
+  // in the BACKGROUND (stale-while-revalidate). Cache is per-user and cleared on logout.
+  STORE_TTL_MS: 30 * 60 * 1000, // consider a cached value "fresh enough" to skip even the bg fetch for 30 min
+  _storeKey: function (key) { var u = this.getUser(); return 'phd_store_' + key + '_' + ((u && u.username) || 'anon'); },
+  _storeRead: function (key) { try { var raw = localStorage.getItem(this._storeKey(key)); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } },
+  _storeWrite: function (key, data) { try { localStorage.setItem(this._storeKey(key), JSON.stringify({ at: Date.now(), data: data })); } catch (e) {} },
+  _storeClear: function () {
+    try {
+      var u = this.getUser(); var uname = (u && u.username) || 'anon';
+      ['me', 'profile'].forEach(function (k) {
+        try { localStorage.removeItem('phd_store_' + k + '_' + uname); } catch (e) {}
+      });
+    } catch (e) {}
+  },
+
+  // GET /api/me (username, role, timezone), cache-first + background revalidate.
+  // Returns the cached value immediately if present; otherwise awaits the fetch.
+  _me: null,
+  getMe: async function () {
+    if (!this.getUser()) return null;
+    var cached = this._storeRead('me');
+    if (cached && cached.data) {
+      this._me = cached.data;
+      // Fresh within TTL -> skip the network entirely. Stale -> revalidate quietly in the background.
+      if ((Date.now() - (cached.at || 0)) > this.STORE_TTL_MS) this._refreshMe();
+      return this._me;
+    }
+    return await this._refreshMe();
+  },
+  _refreshMe: async function () {
+    var self = this;
+    try { var r = await this.api('GET', '/api/me'); if (r.ok && r.data) { self._me = r.data; self._storeWrite('me', r.data); return r.data; } } catch (e) {}
+    return self._me;
+  },
+  // Convenience: the user's timezone (IST/MST) from the cached /api/me. Falls back to 'IST'.
+  myTimezone: async function () { var me = await this.getMe(); return (me && me.timezone) || 'IST'; },
+
   // Cache + fetch the logged-in user's profile (displayName/avatar). Used by the toolbar avatar.
+  // Cache-first + background revalidate so the avatar shows instantly across pages.
   _myProfile: null,
   loadMyProfile: async function () {
     if (!this.getUser()) return null;
-    try { var r = await this.api('GET', '/api/me/profile'); if (r.ok && r.data) { this._myProfile = r.data; return r.data; } } catch (e) {}
-    return null;
+    var cached = this._storeRead('profile');
+    if (cached && cached.data) {
+      this._myProfile = cached.data;
+      if ((Date.now() - (cached.at || 0)) > this.STORE_TTL_MS) this._refreshProfile();
+      return this._myProfile;
+    }
+    return await this._refreshProfile();
   },
+  _refreshProfile: async function () {
+    var self = this;
+    try { var r = await this.api('GET', '/api/me/profile'); if (r.ok && r.data) { self._myProfile = r.data; self._storeWrite('profile', r.data); return r.data; } } catch (e) {}
+    return self._myProfile;
+  },
+  // Overwrite the cached profile after the user edits it (profile.html save).
+  setMyProfile: function (data) { this._myProfile = data; this._storeWrite('profile', data); },
   myProfile: function () { return this._myProfile || this.getUser(); },
 };
