@@ -26,6 +26,15 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
 .card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:24px;margin-bottom:22px}
 .card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+/* Collapsible cards: the h2 is the click target; a caret shows state. */
+.card>h2{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:margin .15s}
+.card>h2 .card-caret{color:var(--tm);font-size:.9em;transition:transform .2s;flex-shrink:0}
+.card.collapsed>h2{margin-bottom:0}
+.card.collapsed>h2 .card-caret{transform:rotate(-90deg)}
+.card-h{display:inline-flex;align-items:center;gap:9px;min-width:0}
+.card-h svg{width:18px;height:18px;flex-shrink:0;color:var(--o)}
+/* When collapsed, hide everything in the card except its h2 header. */
+.card.collapsed>*:not(h2){display:none!important}
 table{width:100%;border-collapse:collapse}
 th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
 td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
@@ -69,6 +78,8 @@ const ROLES=['user','editor','admin','manager'];// owner not assignable
 // Section display order for grouping accounts.
 const ROLE_ORDER=['owner','manager','admin','editor','user'];
 const ROLE_TITLE={owner:'Owner',manager:'Managers',admin:'Admins',editor:'Editors',user:'Users'};
+const ROLE_ICON={owner:'shield',manager:'users-gear',admin:'users-gear',editor:'ticket',user:'users'};
+const ic=(n,s)=>window.icon?window.icon(n,s||18):'';
 
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>User Management</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
 
@@ -86,6 +97,7 @@ async function load(){
     if(res.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
     gate('Could not load users (HTTP '+res.status+').');return;
   }
+  loadUploadActivity();
   loadActivity();
   loadBlurbCopies();
   loadHashtagCopies();
@@ -135,6 +147,42 @@ async function loadBlurbCopies(){
     rows.map(e=>'<tr><td class="user">'+esc(e.user||'')+' '+badge(e.role||'user')+'</td>'
       +'<td>'+esc(e.blurbTitle||e.blurbId||'')+'</td>'
       +'<td style="font-weight:700;color:var(--o)">'+(e.count||0)+'</td></tr>').join('')+
+    '</tbody></table>';
+}
+
+// Fetch the data-upload/publish log and render it as "Upload Activity".
+async function loadUploadActivity(){
+  const box=document.getElementById('uploadActivityBox');
+  if(!box)return;
+  const r=await A.api('GET','/api/data-log');
+  if(!r.ok){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">Could not load upload activity ('+r.status+').</p>';return;}
+  const rows=Array.isArray(r.data)?r.data:[];
+  if(!rows.length){box.innerHTML='<p style="color:#5f6b6c;font-size:.85em">No uploads recorded yet.</p>';return;}
+  // Summarise each entry: which quarter(s) it touched + added/updated counts.
+  const summary=(e)=>{
+    const w=Array.isArray(e.written)?e.written:[];
+    const parts=w.map(x=>esc(x.label||x.quarter||'')+(typeof x.count==='number'?(' ('+x.count.toLocaleString()+')'):''));
+    let s=parts.length?('Published to '+parts.join(', ')):(e.pastQuarterMerge?'Merged into past quarter':'Published');
+    const cs=e.changeSummary;
+    if(cs&&(typeof cs.added==='number'||typeof cs.updated==='number')){
+      s+=' — <span style="color:#4ade80">+'+(cs.added||0)+' added</span>, <span style="color:#fbbf24">'+(cs.updated||0)+' updated</span>';
+    }
+    return s;
+  };
+  // Version stamp "a" for a live-quarter publish = the live quarter's publishedAt. Older entries
+  // predate this tracking, so show "—" when no value exists.
+  const versionStamp=(e)=>{
+    const w=Array.isArray(e.written)?e.written:[];
+    const live=w.find(x=>x&&x.isLive);
+    const v=(live&&(live.publishedAt||live.updatedAt))||e.publishedAt||null;
+    return v?fmtTZ(v,'Asia/Kolkata'):'—';
+  };
+  box.innerHTML='<table><thead><tr><th>User</th><th>Upload activity</th><th>Cached version (a)</th><th>When (IST)</th><th>When (MST)</th></tr></thead><tbody>'+
+    rows.map(e=>'<tr><td class="user">'+esc(e.user||'')+' '+badge(e.role||'user')+'</td>'
+      +'<td style="font-size:.88em">'+summary(e)+'</td>'
+      +'<td style="color:var(--tm);font-size:.85em">'+versionStamp(e)+'</td>'
+      +'<td style="color:var(--tm);font-size:.85em">'+fmtTZ(e.at,'Asia/Kolkata')+'</td>'
+      +'<td style="color:var(--tm);font-size:.85em">'+fmtTZ(e.at,'America/Denver')+'</td></tr>').join('')+
     '</tbody></table>';
 }
 
@@ -199,7 +247,7 @@ function renderList(users){
     const group=(byRole[role]||[]).sort((a,b)=>a.username.localeCompare(b.username));
     if(!group.length)return;
     sectionsHtml+=`<div class="card">
-      <h2>${ROLE_TITLE[role]||role} (${group.length})</h2>
+      <h2><span class="card-h">${ic(ROLE_ICON[role]||'users')} ${ROLE_TITLE[role]||role} (${group.length})</span></h2>
       <table><thead><tr><th>Username</th><th>Role</th><th>Timezone</th><th></th></tr></thead><tbody>${group.map(rowFor).join('')}</tbody></table>
     </div>`;
   });
@@ -208,9 +256,8 @@ function renderList(users){
     <p class="sub">Owner only. Accounts are grouped by role. The owner account cannot be changed or removed.</p>
     <div class="msg err" id="listErr"></div>
     <div class="msg ok" id="listOk"></div>
-    ${sectionsHtml}
-    <div class="card">
-      <h2>Add User</h2>
+    <div class="card" id="addUserCard">
+      <h2><span class="card-h">${ic('plus')} Add User</span></h2>
       <div class="form-row">
         <div class="fld"><label>Username</label><input type="text" id="nUser" autocomplete="off"></div>
         <div class="fld"><label>Temporary password</label><input type="text" id="nPass" autocomplete="off"></div>
@@ -226,26 +273,47 @@ function renderList(users){
       <div class="msg ok" id="addOk"></div>
       <p style="color:#5f6b6c;font-size:.78em;margin-top:12px">Tell the new user their temporary password; they can change it on their Profile page.</p>
     </div>
+    ${sectionsHtml}
     <div class="card">
-      <h2>Account Activity</h2>
+      <h2><span class="card-h">${ic('history')} Upload Activity</span></h2>
+      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Every data upload / publish — who, when, and what changed. Newest first.</p>
+      <div id="uploadActivityBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
+    </div>
+    <div class="card">
+      <h2><span class="card-h">${ic('lock')} Account Activity</span></h2>
       <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Password changes are recorded here — who and when (never the password). Newest first.</p>
       <div id="activityBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
     </div>
     <div class="card">
-      <h2>Blurb Copy Activity</h2>
+      <h2><span class="card-h">${ic('clipboard')} Blurb Copy Activity</span></h2>
       <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which blurb, and how many times. Most-copied first.</p>
       <div id="blurbCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
     </div>
     <div class="card">
-      <h2>Hashtag Copy Activity</h2>
+      <h2><span class="card-h">${ic('hash')} Hashtag Copy Activity</span></h2>
       <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which hashtag, and how many times. Most-copied first.</p>
       <div id="hashtagCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
     </div>
     <div class="card">
-      <h2>Paging Copy Activity</h2>
+      <h2><span class="card-h">${ic('mail')} Paging Copy Activity</span></h2>
       <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which paging email, and how many times. Most-copied first.</p>
       <div id="pagingCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
     </div>`;
+  wireCollapsibleCards();
+}
+
+// Make every .card collapsible: add a caret to its h2 and toggle .collapsed on click.
+// All start COLLAPSED by default except the Add User card (#addUserCard).
+function wireCollapsibleCards(){
+  document.querySelectorAll('#wrap .card').forEach(function(card){
+    var h2=card.querySelector('h2'); if(!h2||h2.querySelector('.card-caret'))return;
+    var caret=document.createElement('span'); caret.className='card-caret'; caret.textContent='▾'; caret.setAttribute('aria-hidden','true');
+    h2.appendChild(caret);
+    h2.setAttribute('role','button'); h2.setAttribute('tabindex','0');
+    h2.addEventListener('click',function(){ card.classList.toggle('collapsed'); });
+    h2.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.classList.toggle('collapsed'); } });
+    if(card.id!=='addUserCard')card.classList.add('collapsed');   // collapse all except Add User
+  });
 }
 
 function flash(id,msg,kind){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},4000);}

@@ -528,6 +528,12 @@ window.PHDRefreshLive=async function(){
   try{ await refreshFromServer(false); }catch(e){}
 };
 
+// Expose the dashboard's cached version (b) as "<quarter>|<publishedAt>" so the Refresh button can
+// version-check (a vs b) before doing a heavy refresh. Matches PHDAuth.liveVersion()'s format.
+window.PHDGetCachedVersion=async function(){
+  try{ const c=await metaGet('liveCache'); if(!c||!c.quarter)return null; return c.quarter+'|'+(c.publishedAt||''); }catch(e){ return null; }
+};
+
 // Which quarter does a CreateDate fall in? e.g. "2026-Q3". Returns null if unparseable.
 function quarterOf(createDate){
   const d=new Date(createDate);
@@ -1173,7 +1179,7 @@ function renderDashboardShell(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1269,7 +1275,7 @@ function renderDashboard(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a><a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1867,9 +1873,9 @@ async function maybeHandlePendingUpload(){
     if(version){
       const fresh=cache && localCount>0 && cache.quarter===version.liveId && (cache.publishedAt||null)===(version.publishedAt||null);
       if(fresh){
-        // Nothing changed since last visit. If we already painted from cache, we're done.
+        // Nothing changed since last visit (a === b). If we already painted from cache, we're done.
         if(!paintedFromCache)await renderFromLocal(version.publishedAt);
-        if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); // cache was current
+        if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.upToDate('Your data is already up to date \u2014 checked against the latest upload.'); // reassure
         applyInitialView();
         return;
       }

@@ -82,6 +82,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Top-bar auth controls (login button / avatar / logout) — override the modal .btn top margin */
 #homeAuth .btn{margin-top:0;margin-right:0;padding:8px 16px;font-size:.85em}
 #homeAuth .btn.sec{margin-right:0}
+.home-profile-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:4px 6px 4px 12px;border:1px solid var(--bd);border-radius:999px;background:#151b24;color:var(--t);max-width:220px}
+.home-profile-btn:hover{border-color:var(--o)}
+.home-profile-name{font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .pass-wrap{position:relative}
 .pass-wrap input{padding-right:44px!important}
 .pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:var(--tm);cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}
@@ -212,10 +215,14 @@ function renderHomeAuth(){
     return;
   }
   var prof = (A.myProfile && A.myProfile()) || user;
-  var avatar = A.avatarHtml ? A.avatarHtml(prof, 32) : '';
+  var avatar = A.avatarHtml ? A.avatarHtml(prof, 30) : '';
+  var esc = function(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});};
+  var name = (prof && (prof.displayName || prof.username)) || 'Profile';
+  // Combined profile button (name + avatar). Logout lives only on the profile page now.
   slot.innerHTML =
-    '<a href="profile.html" title="Profile" style="display:inline-flex;align-items:center;text-decoration:none">'+avatar+'</a>'+
-    '<button class="btn sec" onclick="homeLogout()">'+ic('log-out')+' Logout</button>';
+    '<a class="home-profile-btn" href="profile.html" title="'+esc(name)+' — Profile">'+
+      '<span class="home-profile-name">'+esc(name)+'</span>'+avatar+
+    '</a>';
 }
 function openLoginModal(){ document.getElementById('loginModal').style.display='flex'; setTimeout(function(){var u=document.getElementById('hLoginUser'); if(u) u.focus();},40); }
 function closeLoginModal(){ document.getElementById('loginModal').style.display='none'; }

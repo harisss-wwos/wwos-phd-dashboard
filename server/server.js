@@ -507,7 +507,7 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
         try {
           await logColl.insertOne({
             user: req.user.username, role: req.user.role, at: publishedAt,
-            liveQuarter: q, pastQuarterMerge: false,
+            liveQuarter: q, pastQuarterMerge: false, publishedAt,
             written: [{ quarter: q, label: quarterLabel(q), count: arr.length, isLive: true }],
             changeSummary: body.changeSummary || null,
             totalTickets: arr.length,
@@ -601,7 +601,7 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
     try {
       await logColl.insertOne({
         user: req.user.username, role: req.user.role, at: publishedAt,
-        liveQuarter: liveQ, pastQuarterMerge: false,
+        liveQuarter: liveQ, pastQuarterMerge: false, publishedAt,
         written: [{ quarter: liveQ, label: quarterLabel(liveQ), count: mergedLive.length, isLive: true }],
         changeSummary: body.changeSummary || null,
         totalTickets: mergedLive.length,

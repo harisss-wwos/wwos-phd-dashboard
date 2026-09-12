@@ -15,7 +15,7 @@ async function quarterRevalidate(qid,cacheKey,cachedPublishedAt){
     const r=await window.PHDAuth.api('GET','/api/quarter/'+encodeURIComponent(qid));
     if(!r.ok||!r.data){ if(banner)banner.hide(); return; }
     const publishedAt=(r.data.meta&&r.data.meta.publishedAt)||null;
-    if((publishedAt||null)===(cachedPublishedAt||null)){ if(banner)banner.hide(); return; } // unchanged -> keep the instant cache
+    if((publishedAt||null)===(cachedPublishedAt||null)){ if(banner)banner.upToDate(); return; } // unchanged (a===b) -> reassure, keep cache
     const tickets=(r.data.data&&r.data.data.tickets)||[];
     const metrics=window.QuarterMetrics.compute(tickets,r.data.range||null);
     const name=(r.data.label||qid);

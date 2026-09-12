@@ -53,38 +53,60 @@ window.PHDAuth = {
   _cacheRead: function (key) { try { var raw = localStorage.getItem(this._cacheKey(key)); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } },
   _cacheWrite: function (key, version, data) { try { localStorage.setItem(this._cacheKey(key), JSON.stringify({ version: version, at: Date.now(), data: data })); } catch (e) {} },
   // Stale-while-revalidate loader.
-  //   opts: { key, fetch:()->{ok,data}, onData:(data,fromCache)->void, version?:string|null, ttlMs?:number }
-  // - Paints cached data immediately (if valid) via onData(data,true).
-  // - Fetches fresh; on success re-caches and calls onData(data,false) when it changed.
-  // - version: when provided, a cache entry is only served if its stored version matches.
-  // - ttlMs: for versionless pages, cache is served instantly regardless, but always refreshed.
+  //   opts: { key, fetch:()->{ok,data}, onData:(data,fromCache)->void, version?:string|null,
+  //           refreshMsg?:string, updatedMsg?:string, upToDateMsg?:string }
+  //
+  // VERSION-FIRST (opts.version is a string, e.g. the live quarter's publishedAt = timestamp "a"):
+  //   - cached.version === version  -> the cache is current: serve it, flash "up to date", NO fetch.
+  //   - version === null (couldn't check, e.g. cold start) -> serve cache SILENTLY, skip fetch.
+  //   - cached exists but version differs -> a new upload happened: serve cache, show the "fetching
+  //     the latest…" bar, fetch fresh, re-cache with the new version, then flash "Updated".
+  //   - no cache -> fetch fresh (with the bar), cache it.
+  // VERSIONLESS (opts.version omitted, non-upload pages): serve cache instantly, refresh quietly in
+  //   the background, NEVER show a banner.
   swrLoad: async function (opts) {
-    var self = this;
     var cached = this._cacheRead(opts.key);
-    var painted = false;
-    var curVersion = (typeof opts.version === 'undefined') ? undefined : opts.version;
+    var hasCache = !!(cached && cached.data != null);
+    var versioned = (typeof opts.version !== 'undefined');
+    var version = versioned ? opts.version : undefined;
     var banner = window.PHDRefreshBanner;
-    // Serve cache instantly when: no version required, OR the stored version still matches.
-    if (cached && cached.data != null) {
-      var versionOk = (typeof curVersion === 'undefined') || curVersion === null || cached.version === curVersion;
-      if (versionOk) {
-        try { opts.onData(cached.data, true); painted = true; } catch (e) {}
-        // We painted stale cache -> tell the user we're fetching the latest.
-        if (painted && banner) { try { banner.show(opts.refreshMsg); } catch (e) {} }
+
+    // ---- VERSION-FIRST path ----
+    if (versioned) {
+      // Cache is current (a === b): serve it, reassure, and skip the heavy fetch entirely.
+      if (hasCache && version !== null && cached.version === version) {
+        try { opts.onData(cached.data, true); } catch (e) {}
+        if (banner) { try { banner.upToDate(opts.upToDateMsg); } catch (e) {} }
+        return { painted: true, ok: true, fromCache: true, upToDate: true, status: 200, data: cached.data };
       }
+      // Couldn't determine the version (offline / cold start): show cache silently, don't fetch/nag.
+      if (hasCache && version === null) {
+        try { opts.onData(cached.data, true); } catch (e) {}
+        return { painted: true, ok: true, fromCache: true, upToDate: false, status: 0, data: cached.data };
+      }
+      // New data (a !== b) or no cache -> fetch. Paint stale cache first (if any) + show the wait bar.
+      var painted = false;
+      if (hasCache) { try { opts.onData(cached.data, true); painted = true; } catch (e) {} }
+      if (banner) { try { banner.show(opts.refreshMsg); } catch (e) {} }
+      var res;
+      try { res = await opts.fetch(); } catch (e) { res = null; }
+      if (!res || !res.ok) { if (banner) { try { banner.hide(); } catch (e) {} } return { painted: painted, ok: false, status: res ? res.status : 0, data: res ? res.data : null }; }
+      this._cacheWrite(opts.key, version, res.data);           // b := a
+      try { opts.onData(res.data, false); } catch (e) {}
+      if (banner) { try { banner.updated(opts.updatedMsg); } catch (e) {} }
+      return { painted: true, ok: true, fromCache: false, status: res.status, data: res.data };
     }
-    // Background refresh.
-    var res;
-    try { res = await opts.fetch(); } catch (e) { res = null; }
-    if (!res || !res.ok) { if (painted && banner) { try { banner.hide(); } catch (e) {} } return { painted: painted, ok: false, status: res ? res.status : 0, data: res ? res.data : null }; }
-    var fresh = res.data;
-    var ver = (typeof curVersion === 'undefined') ? (cached && cached.version) || null : curVersion;
-    this._cacheWrite(opts.key, ver, fresh);
-    var changed = !cached || JSON.stringify(cached.data) !== JSON.stringify(fresh);
-    if (!painted || changed) { try { opts.onData(fresh, false); } catch (e) {} }
-    // Resolve the banner: flash "Updated" if the data changed, else just clear it.
-    if (painted && banner) { try { changed ? banner.updated(opts.updatedMsg) : banner.hide(); } catch (e) {} }
-    return { painted: true, ok: true, status: res.status, data: fresh };
+
+    // ---- VERSIONLESS path (silent, no banner) ----
+    var painted2 = false;
+    if (hasCache) { try { opts.onData(cached.data, true); painted2 = true; } catch (e) {} }
+    var r2;
+    try { r2 = await opts.fetch(); } catch (e) { r2 = null; }
+    if (!r2 || !r2.ok) { return { painted: painted2, ok: false, status: r2 ? r2.status : 0, data: r2 ? r2.data : null }; }
+    var changed = !cached || JSON.stringify(cached.data) !== JSON.stringify(r2.data);
+    this._cacheWrite(opts.key, null, r2.data);
+    if (!painted2 || changed) { try { opts.onData(r2.data, false); } catch (e) {} }
+    return { painted: true, ok: true, status: r2.status, data: r2.data };
   },
   // ---- Loading shimmer skeletons (shown while fetching from Atlas) ----
   // Full live-dashboard skeleton matching the current UI: 2-row header (title bar + toolbar),

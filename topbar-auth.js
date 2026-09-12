@@ -22,6 +22,9 @@
       + '.tb-topbar{background:#121820;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100}'
       + '.tb-hamburger{display:inline-flex;flex-direction:column;justify-content:center;gap:4px;width:38px;height:34px;padding:8px 9px;background:transparent;border:1px solid #2a2a2a;border-radius:6px;cursor:pointer;flex-shrink:0}'
       + '.tb-hamburger:hover{border-color:#ff9900}'
+      + '.tb-hamburger:disabled{opacity:.4;cursor:not-allowed}'
+      + '.tb-hamburger:disabled:hover{border-color:#2a2a2a}'
+      + '.tb-hamburger:disabled:hover span{background:#d5dbdb}'
       + '.tb-hamburger span{display:block;height:2px;width:100%;background:#d5dbdb;border-radius:2px;transition:background .15s,transform .28s ease,opacity .2s ease}'
       + '.tb-hamburger:hover span{background:#ff9900}'
       // animate to an X when the menu is open
@@ -40,6 +43,12 @@
       + '.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}'
       + '.tb-avatar{display:inline-flex;align-items:center;text-decoration:none}'
       + '.tb-avatar img,.tb-avatar .avatar-initial{border-radius:50%}'
+      // one combined profile button: name + avatar
+      + '.tb-profile-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:4px 6px 4px 12px;border:1px solid #2a2a2a;border-radius:999px;background:#151b24;color:#d5dbdb;max-width:220px;transition:border-color .15s,background .15s}'
+      + '.tb-profile-btn:hover{border-color:#ff9900;background:#1a222d}'
+      + '.tb-profile-name{font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}'
+      // refresh button spins its icon while a refresh is in flight
+      + '.tb-refresh-btn.spinning svg{animation:tbspin .8s linear infinite}'
       // role badge (pill) shown to the LEFT of the avatar for logged-in users
       + '.tb-role{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;line-height:1;border:1px solid #2a2a2a;background:#1a2230;color:#9fb0c3;white-space:nowrap}'
       + '.tb-role-owner{background:#2a1d10;color:#f0b45a;border-color:#5a3d18}'
@@ -164,21 +173,25 @@
     var li = loggedIn();
     var isAdmin = atLeast('admin');
     var inApp = document.body.getAttribute('data-app') === 'live';
-    // Upload new data (admin+) — same in-place pipeline; app vs standalone input id.
-    if (isAdmin) {
-      if (inApp) html += '<button type="button" class="tb-btn tb-movable" onclick="tbUploadIntro(\'app\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
-      else html += '<button type="button" class="tb-btn tb-movable" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
+    // Upload new data (admin+, standalone pages only). On the live dashboard (app.html) the Upload
+    // button lives in the page-title row between Alerts and Uploaded data log, so it's omitted here.
+    if (isAdmin && !inApp) {
+      html += '<button type="button" class="tb-btn tb-movable" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
     }
     if (li) html += '<a class="tb-btn tb-movable" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
+    // Refresh: fetch the latest data on demand (logged-in only).
+    if (li) html += '<button type="button" class="tb-btn tb-refresh-btn" onclick="tbRefreshData(this)" title="Fetch the latest data">' + ic('refresh') + ' Refresh</button>';
     if (!li) {
       html += '<button class="tb-btn" onclick="tbOpenLogin()">' + ic('key') + ' Login</button>';
     } else {
       var prof = (A.myProfile && A.myProfile()) || A.getUser();
-      // Role badge to the LEFT of the avatar. Editors are shown as "User"; everyone else uses their own role name.
-      var rl = (A.role && A.role()) || 'user';
-      var rlLabel = (rl === 'editor') ? 'User' : (rl.charAt(0).toUpperCase() + rl.slice(1));
-      html += '<span class="tb-role tb-role-' + rl + '">' + rlLabel + '</span>';
-      html += '<a class="tb-avatar" href="profile.html" title="Profile">' + (A.avatarHtml ? A.avatarHtml(prof, 32) : '') + '</a>';
+      // One profile button: display name (or Login ID if none) + avatar. Links to the profile page.
+      var name = (prof && (prof.displayName || prof.username)) || 'Profile';
+      var esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); };
+      html += '<a class="tb-profile-btn" href="profile.html" title="' + esc(name) + ' — Profile">'
+        + '<span class="tb-profile-name">' + esc(name) + '</span>'
+        + '<span class="tb-avatar">' + (A.avatarHtml ? A.avatarHtml(prof, 30) : '') + '</span>'
+        + '</a>';
     }
     return html;
   }
@@ -212,7 +225,6 @@
     mob += '<a class="tb-menuitem" href="app.html">' + ic('bolt') + ' Q3 2026 · LIVE</a>';
     mob += '<a class="tb-menuitem" href="archive.html?ds=quarter&qid=2026-Q2">' + ic('calendar') + ' Q2 2026</a>';
     mob += '<a class="tb-menuitem" href="archive.html?ds=archive">' + ic('inbox') + ' Program History</a>';
-    if (isAdmin) mob += '<button type="button" class="tb-menuitem" onclick="tbCloseMenu();tbUploadIntro(\'' + (inApp ? 'app' : 'standalone') + '\')">' + ic('upload') + ' Upload new data</button>';
     if (li) mob += '<a class="tb-menuitem" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
     mob += '<div class="tb-menu-divider"></div><div class="tb-menu-label">Navigate</div></div>';
     html += mob;
@@ -240,9 +252,11 @@
       + '<a class="tb-qbtn" href="archive.html?ds=quarter&qid=2026-Q2" title="Q2 2026 report">Q2 2026</a>';
     // Menu items live in a collapsible dropdown behind the hamburger (unless noNav).
     var menu = opts.noNav ? '' : ('<div class="tb-menu" id="tbMenu"><div class="tb-menu-inner">' + navHtml(active, !!opts.inApp) + '</div></div>');
+    // Hamburger is ALWAYS shown (keeps the layout identical), but disabled when logged out.
+    var hamDisabled = loggedIn() ? '' : ' disabled aria-disabled="true"';
     return ''
       + '<div class="tb-topbar">'
-        + '<button type="button" class="tb-hamburger" id="tbHamburger" aria-label="Menu" aria-expanded="false" title="Menu" onclick="tbToggleMenu()"><span></span><span></span><span></span></button>'
+        + '<button type="button" class="tb-hamburger" id="tbHamburger" aria-label="Menu" aria-expanded="false" title="' + (loggedIn() ? 'Menu' : 'Log in to use the menu') + '" onclick="tbToggleMenu()"' + hamDisabled + '><span></span><span></span><span></span></button>'
         + '<span class="tb-logo"><a class="tb-logo-link" href="index.html" title="Home"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD</span></a>' + live + '</span>'
         + '<div class="tb-right" id="tbAuth">' + rightControlsHtml() + '</div>'
       + '</div>'
@@ -251,6 +265,7 @@
 
   // ---- Hamburger menu open/close ----
   window.tbToggleMenu = function () {
+    var h = document.getElementById('tbHamburger'); if (h && h.disabled) return; // disabled when logged out
     var m = document.getElementById('tbMenu'); if (!m) return;
     var open = m.classList.toggle('open');
     var h = document.getElementById('tbHamburger'); if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -271,6 +286,39 @@
     buildToolbarHtml: buildToolbarHtml,
     rightControlsHtml: rightControlsHtml,
     refreshRight: function () { var s = document.getElementById('tbAuth'); if (s) s.innerHTML = rightControlsHtml(); }
+  };
+
+  // Refresh button: fetch the latest data on demand. On the live dashboard it refreshes in place
+  // (PHDRefreshLive re-pulls the live quarter); on other pages it reloads so the page re-runs its
+  // own data load. Spins the icon briefly for feedback.
+  window.tbRefreshData = async function (btn) {
+    var banner = window.PHDRefreshBanner;
+    try { if (btn) btn.classList.add('spinning'); } catch (e) {}
+    if (banner) { try { banner.show('Checking for new data since the latest upload\u2026'); } catch (e) {} }
+    try {
+      // Version-check first (a vs b): only do the heavy refresh if a new upload happened.
+      var a = (A && A.liveVersion) ? await A.liveVersion() : null;   // live version (a)
+      var b = null;                                                  // our cached version (b)
+      try { if (window.PHDGetCachedVersion) b = await window.PHDGetCachedVersion(); } catch (e) {}
+      if (a && b && a === b) {
+        // Already current — reassure, no heavy fetch.
+        if (banner) { try { banner.upToDate('Your data is already up to date \u2014 checked against the latest upload.'); } catch (e) {} }
+        if (btn) btn.classList.remove('spinning');
+        return;
+      }
+      // New data (or can't tell) -> fetch it.
+      if (banner) { try { banner.show('New data found — fetching the latest\u2026'); } catch (e) {} }
+      if (typeof window.PHDRefreshLive === 'function') {
+        await window.PHDRefreshLive();               // in-place refresh on the live dashboard
+        if (banner) { try { banner.updated('Updated with the latest data.'); } catch (e) {} }
+        if (btn) btn.classList.remove('spinning');
+      } else {
+        location.reload();                            // other pages: reload to re-fetch (version-first init handles the rest)
+      }
+    } catch (e) {
+      if (btn) btn.classList.remove('spinning');
+      if (banner) { try { banner.hide(); } catch (e2) {} }
+    }
   };
 
   // ---- Shared "refreshing cached data" banner (just under the top bar) ----
@@ -313,6 +361,17 @@
           + '<span class="tb-rf-msg">' + (msg || 'Updated with the latest data.') + '</span>';
         if (_hideTimer) clearTimeout(_hideTimer);
         _hideTimer = setTimeout(function () { window.PHDRefreshBanner.hide(); }, 2600);
+      },
+      // Nothing changed since last visit: briefly reassure the user, then fade. No heavy fetch ran.
+      upToDate: function (msg) {
+        if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
+        var e = el();
+        e.classList.add('done');
+        e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _checkIc + '</span>'
+          + '<span class="tb-rf-msg">' + (msg || 'Data is up to date.') + '</span>';
+        void e.offsetWidth;
+        e.classList.add('show');
+        _hideTimer = setTimeout(function () { window.PHDRefreshBanner.hide(); }, 2500);
       },
       hide: function () {
         var e = document.getElementById('tbRefreshBar');
@@ -434,16 +493,33 @@
     reader.readAsText(file);
   });
 
+  // Wind a countdown element's number down from `from` to 0 (quick, ~40ms/step) so it lands cleanly.
+  async function tbCountdownToZero(from, elId) {
+    var el = document.getElementById(elId);
+    var n = Math.max(0, from | 0);
+    while (n > 0) {
+      n -= 1;
+      if (el) el.textContent = String(n);
+      await new Promise(function (r) { setTimeout(r, 40); });
+    }
+  }
+
   // Step A: validate columns, then assess.
   function tbBeginUpload(csvText) {
     var missing = tbMissingColumns(csvText);
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
     tbFlowOverlay('tbAssess',
-      '<div style="text-align:center">' +
+      '<div style="text-align:center;max-width:420px">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
-        '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">The file is being assessed for new data, please wait…</p>' +
-        '<p style="color:#879596;margin-top:8px;font-size:.9em">Comparing against the live data. This may take a moment.</p>' +
+        '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
+        '<p style="color:#879596;margin-top:6px;font-size:.9em" id="tbAssessSub">Comparing against the live data. This may take a moment.</p>' +
+        // Countdown timer (shown during the live-data fetch)
+        '<div id="tbAssessTimerWrap" style="display:none;margin-top:16px">' +
+          '<div style="font-size:2.2em;font-weight:800;color:#4ade80;line-height:1;font-variant-numeric:tabular-nums" id="tbAssessTimer">60</div>' +
+          '<p style="color:#879596;margin-top:6px;font-size:.8em">seconds — please wait</p>' +
+          '<p id="tbAssessApology" style="color:#fbbf24;margin-top:8px;font-size:.82em;display:none">Taking a little longer than expected — apologies, still working on it…</p>' +
+        '</div>' +
         '<button class="tb-mbtn sec" id="tbAssessCancel" style="margin-top:18px">Cancel</button>' +
       '</div>');
     document.getElementById('tbAssessCancel').onclick = function () { tbAssessAborted = true; tbRemove('tbAssess'); };
@@ -458,9 +534,30 @@
     catch (err) { tbRemove('tbAssess'); alert('Could not read the CSV file.'); return; }
     if (!rows.length) { tbRemove('tbAssess'); alert('No tickets with a ShortId/IssueId were found in the file.'); return; }
 
+    // Parsed the file — show how many rows we read, then fetch the live dataset to compare against.
+    (function () {
+      var t = document.getElementById('tbAssessTitle'); if (t) t.textContent = 'Loading live data to compare…';
+      var s = document.getElementById('tbAssessSub'); if (s) s.textContent = 'Read ' + rows.length.toLocaleString() + ' tickets from your file. Fetching the current live data…';
+      var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'block';
+    })();
+    // Countdown timer: start at 60s and tick down while the data loads. If it reaches 1s, add
+    // another 30s and show an apology — repeat until the fetch resolves.
+    var _timeLeft = 60;
+    var _timerEl = document.getElementById('tbAssessTimer');
+    var _apologyEl = document.getElementById('tbAssessApology');
+    if (_timerEl) _timerEl.textContent = String(_timeLeft);
+    var _timer = setInterval(function () {
+      _timeLeft -= 1;
+      if (_timeLeft <= 1) { _timeLeft = 30; if (_apologyEl) _apologyEl.style.display = 'block'; } // top up + apologise
+      if (_timerEl) _timerEl.textContent = String(_timeLeft);
+    }, 1000);
     // Fetch the current live-quarter dataset to compare against.
     var live;
     try { live = await A.api('GET', '/api/live-quarter'); } catch (e) { live = null; }
+    clearInterval(_timer);                                    // data is here — stop the countdown
+    // Quickly wind the timer down to 0 so it lands cleanly (instead of vanishing at some number).
+    await tbCountdownToZero(_timeLeft, 'tbAssessTimer');
+    (function () { var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'none'; })();
     if (tbAssessAborted) return;
     if (!live || !live.ok || !live.data) { tbRemove('tbAssess'); alert('Could not load the live dataset to compare. Try again.'); return; }
     var liveQ = live.data.quarter;
@@ -473,6 +570,7 @@
     var xNewer = 0, yUpdated = 0, zNew = 0;
     var lud = function (v) { var d = new Date(v); return isNaN(d) ? null : d.getTime(); };
 
+    // Compare each file row against the stored live data (fast, synchronous — no progress loader).
     rows.forEach(function (nr) {
       var q = tbQuarterOf(nr.CreateDate);
       if (q && liveQ && q !== liveQ) { nonLive.push(nr); return; }
@@ -500,7 +598,6 @@
 
   // Step C: confirmation popup with the counts. On confirm -> delta publish.
   function tbShowConfirm(res) {
-    var nonLiveNote = res.nonLive.length ? ('<p style="color:#fbbf24;font-size:.82em;margin-top:10px">' + res.nonLive.length + ' ticket(s) from past quarters will be merged into their own quarter dashboards.</p>') : '';
     // No newer data at all (0 tickets with a changed LastUpdatedDate) and no new tickets/past-quarter
     // rows -> tell the user there are no new changes and let them close the upload.
     if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
@@ -521,7 +618,7 @@
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Tickets with newer data</span><span style="color:#44b9d6;font-weight:700">' + res.xNewer + '</span></div>' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Will be updated (field changes)</span><span style="color:#fbbf24;font-weight:700">' + res.yUpdated + '</span></div>' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#879596">New tickets to add</span><span style="color:#4ade80;font-weight:700">' + res.zNew + '</span></div>' +
-        '</div>' + nonLiveNote +
+        '</div>' +
         '<p style="color:#879596;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
         '<div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">' +
           '<button class="tb-mbtn sec" id="tbConfirmCancel">Cancel</button>' +
@@ -535,14 +632,31 @@
   // Step D: delta publish (only changed/new + non-live). Stays on the current page.
   async function tbPublish(res) {
     tbFlowOverlay('tbPush',
-      '<div style="text-align:center">' +
+      '<div style="text-align:center;max-width:420px">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
         '<p style="color:#879596;margin-top:8px;font-size:.9em">Saving to the shared database. This may take a moment.</p>' +
+        '<div style="margin-top:16px">' +
+          '<div style="font-size:2.2em;font-weight:800;color:#4ade80;line-height:1;font-variant-numeric:tabular-nums" id="tbPushTimer">60</div>' +
+          '<p style="color:#879596;margin-top:6px;font-size:.8em">seconds — please wait</p>' +
+          '<p id="tbPushApology" style="color:#fbbf24;margin-top:8px;font-size:.82em;display:none">Taking a little longer than expected — apologies, still saving…</p>' +
+        '</div>' +
       '</div>');
+    // Countdown: start at 60s, tick down; if it hits 1s, top up +30s with an apology, until saved.
+    var _pTime = 60;
+    var _pTimerEl = document.getElementById('tbPushTimer');
+    var _pApology = document.getElementById('tbPushApology');
+    if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
+    var _pTimer = setInterval(function () {
+      _pTime -= 1;
+      if (_pTime <= 1) { _pTime = 30; if (_pApology) _pApology.style.display = 'block'; }
+      if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
+    }, 1000);
     try {
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated } };
       var r = await A.api('POST', '/api/live-quarter/patch', body);
+      clearInterval(_pTimer);
+      await tbCountdownToZero(_pTime, 'tbPushTimer');   // wind down to 0 cleanly
       if (!r.ok) {
         // Fallback: if there is no live doc yet, a delta can't apply — inform (rare; live quarter exists).
         throw new Error((r.data && r.data.error) || ('Upload failed (HTTP ' + r.status + ')'));
@@ -561,6 +675,7 @@
         if (typeof window.PHDRefreshLive === 'function') { try { window.PHDRefreshLive(); } catch (e) {} }
       };
     } catch (err) {
+      try { clearInterval(_pTimer); } catch (e) {}
       tbRemove('tbPush');
       tbFlowOverlay('tbErr',
         '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:460px;width:100%;padding:26px;text-align:center">' +

@@ -224,8 +224,7 @@ function remaining(deadlineIso){
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
 
-  // INSTANT PATH: if we have a cached copy for this user, render it immediately (no spinner)
-  // while we refresh in the background below.
+  // INSTANT PATH: if we have a cached copy for this user, render it immediately (no spinner).
   let paintedFromCache=false;
   const cached=readCache();
   if(cached&&Array.isArray(cached.tickets)){
@@ -234,29 +233,36 @@ async function load(){
     MY_HELP=cached.help||{};
     render();
     paintedFromCache=true;
-    // Painted stale cache -> show the "fetching the latest" banner while we refresh below.
-    if(window.PHDRefreshBanner)window.PHDRefreshBanner.show();
   }
 
-  // BACKGROUND REFRESH: pull fresh data from the server.
-  // Load the user's preferred timezone (IST/MST) first so the table renders in one zone.
+  // VERSION CHECK FIRST (a vs b): my-tickets is derived from the live quarter, so tie it to the
+  // quarter's publishedAt. If unchanged since we cached, skip the heavy /api/my-tickets fetch.
+  const version=await A.liveVersion();               // timestamp "a" (null if unavailable/cold)
+  if(paintedFromCache && version && cached && cached.version===version){
+    // render() (during the instant paint above) already refreshed comments/activity via fillLatestComments.
+    if(window.PHDRefreshBanner)window.PHDRefreshBanner.upToDate('Your tickets are up to date.');
+    return;
+  }
+  if(paintedFromCache && version===null){            // cold/offline: keep cache silently, don't nag
+    return;
+  }
+
+  // New data (a !== b) or no cache -> fetch. Show the "fetching the latest" bar if we had cache.
+  if(paintedFromCache && window.PHDRefreshBanner)window.PHDRefreshBanner.show();
   try{const me=await A.api('GET','/api/me');if(me.ok&&me.data&&me.data.timezone)MY_TZ=me.data.timezone;}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
   if(r.status===401){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Session expired. Please log in again.'); return; }
   if(!r.ok){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Could not load your tickets (HTTP '+r.status+').'); return; }
   TICKETS=(r.data&&r.data.tickets)||[];
-  // Load my help requests (for editors) to show inline threads + statuses.
   MY_HELP={};
   if(isEditor()){
     try{const hr=await A.api('GET','/api/help/mine');if(hr.ok&&Array.isArray(hr.data)){hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(MY_HELP[k]=MY_HELP[k]||[]).push(h);});}}catch(e){}
   }
-  // Save the fresh copy for next time, then (re-)render. Skip a redundant re-render only when the
-  // freshly fetched data is identical to what we already painted from cache.
-  const fresh={tz:MY_TZ,tickets:TICKETS,help:MY_HELP,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
+  // Save the fresh copy (stamp b := a) then (re-)render.
+  const fresh={version:version||(cached&&cached.version)||null,tz:MY_TZ,tickets:TICKETS,help:MY_HELP,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
   const changed=!cached||JSON.stringify(cached.tickets)!==JSON.stringify(TICKETS)||JSON.stringify(cached.help||{})!==JSON.stringify(MY_HELP)||cached.tz!==MY_TZ;
   writeCache(fresh);
   if(!paintedFromCache||changed)render();
-  // Resolve the banner: flash "Updated" if something changed, else clear it.
   if(paintedFromCache&&window.PHDRefreshBanner){ changed?window.PHDRefreshBanner.updated('Your tickets are up to date.'):window.PHDRefreshBanner.hide(); }
 }
 
