@@ -45,15 +45,25 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .log-session.open .log-caret{transform:rotate(180deg)}
 .log-session-body{padding:16px 20px;display:none;flex-direction:column;gap:14px}
 .log-session.open .log-session-body{display:flex}
-/* Multi-upload days get a FULL gradient background (whole card) so they stand out at a glance. */
-.log-session.log-day-0{border-left:4px solid #4ade80;background:linear-gradient(135deg,rgba(74,222,128,.22),rgba(74,222,128,.05) 70%)}
-.log-session.log-day-1{border-left:4px solid #60a5fa;background:linear-gradient(135deg,rgba(96,165,250,.22),rgba(96,165,250,.05) 70%)}
-.log-session.log-day-2{border-left:4px solid #f472b6;background:linear-gradient(135deg,rgba(244,114,182,.22),rgba(244,114,182,.05) 70%)}
-.log-session.log-day-3{border-left:4px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,.22),rgba(251,191,36,.05) 70%)}
-.log-session.log-day-4{border-left:4px solid #a78bfa;background:linear-gradient(135deg,rgba(167,139,250,.22),rgba(167,139,250,.05) 70%)}
-.log-session.log-day-5{border-left:4px solid #22d3ee;background:linear-gradient(135deg,rgba(34,211,238,.22),rgba(34,211,238,.05) 70%)}
-.log-session[class*="log-day-"]>.log-head{background:transparent}
-.log-session[class*="log-day-"]>.log-head:hover{background:rgba(255,255,255,.04)}
+/* ---- Date sections: each upload day is one collapsible section with a full gradient bg ---- */
+.log-date-section{border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.log-date-section.log-day-0{border-left:4px solid #4ade80;background:linear-gradient(135deg,rgba(74,222,128,.20),rgba(74,222,128,.04) 75%)}
+.log-date-section.log-day-1{border-left:4px solid #60a5fa;background:linear-gradient(135deg,rgba(96,165,250,.20),rgba(96,165,250,.04) 75%)}
+.log-date-section.log-day-2{border-left:4px solid #f472b6;background:linear-gradient(135deg,rgba(244,114,182,.20),rgba(244,114,182,.04) 75%)}
+.log-date-section.log-day-3{border-left:4px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,.20),rgba(251,191,36,.04) 75%)}
+.log-date-section.log-day-4{border-left:4px solid #a78bfa;background:linear-gradient(135deg,rgba(167,139,250,.20),rgba(167,139,250,.04) 75%)}
+.log-date-section.log-day-5{border-left:4px solid #22d3ee;background:linear-gradient(135deg,rgba(34,211,238,.20),rgba(34,211,238,.04) 75%)}
+.log-date-head{display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.log-date-head:hover{background:rgba(255,255,255,.05)}
+.log-date-title{color:#fff;font-weight:700;font-size:1.05em}
+.log-today-badge{color:#4ade80;background:rgba(74,222,128,.15);font-size:.62em;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle;letter-spacing:.5px}
+.log-date-meta{margin-left:auto;color:var(--tm);font-size:.82em}
+.log-date-section>.log-date-head .log-caret{transition:transform .18s}
+.log-date-section.open>.log-date-head .log-caret{transform:rotate(180deg)}
+.log-date-body{display:none;flex-direction:column;gap:12px;padding:0 20px 18px}
+.log-date-section.open>.log-date-body{display:flex}
+/* Sessions inside a date section: plain cards (the section already carries the day colour) */
+.log-date-body .log-session{background:rgba(0,0,0,.35)}
 /* Load-more button block */
 .log-more{text-align:center;margin:22px 0 4px}
 .log-more-note{color:var(--tm);font-size:.8em;margin-top:8px}
@@ -202,33 +212,48 @@ function render(entries){
     '</div>';
   }
 
-  // Assign a background colour per upload DAY (in the user's timezone). Days that have MORE THAN ONE
-  // upload session get a coloured background so multi-upload days stand out; single-upload days stay plain.
+  // Group sessions by upload DAY (in the user's timezone). Each day becomes a collapsible SECTION.
   const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
   const dayKey=(iso)=>{try{return new Date(iso).toLocaleDateString('en-CA',{timeZone:zone});}catch(e){return 'x';}};
-  const dayCounts={}; groups.forEach(g=>{const k=dayKey(g.at);dayCounts[k]=(dayCounts[k]||0)+1;});
-  const dayColorIdx={}; let ci=0;
-  groups.forEach(g=>{const k=dayKey(g.at);if(dayCounts[k]>1&&dayColorIdx[k]===undefined){dayColorIdx[k]=(ci++%6);}});
+  const todayKey=(()=>{try{return new Date().toLocaleDateString('en-CA',{timeZone:zone});}catch(e){return '';}})();
+  // Pretty day label, e.g. "11th Sep 2026".
+  const ord=(n)=>{const s=['th','st','nd','rd'];const v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);};
+  const dayLabel=(iso)=>{try{const d=new Date(iso);const parts=new Intl.DateTimeFormat('en-US',{timeZone:zone,day:'numeric',month:'short',year:'numeric'}).formatToParts(d);const get=(t)=>{const p=parts.find(x=>x.type===t);return p?p.value:'';};return ord(parseInt(get('day'),10))+' '+get('month')+' '+get('year');}catch(e){return iso;}};
 
-  html+=groups.map((g,gi)=>{
-    // Put the live-quarter entry first, then past quarters.
+  // Order days newest-first, preserving the (already newest-first) group order.
+  const dayOrder=[]; const dayGroups={};
+  groups.forEach(g=>{const k=dayKey(g.at);if(!dayGroups[k]){dayGroups[k]=[];dayOrder.push(k);}dayGroups[k].push(g);});
+  // Colour index per day (rotates) — used for the gradient background on the whole date section.
+  const dayColorIdx={}; dayOrder.forEach((k,i)=>{dayColorIdx[k]=i%6;});
+
+  // One upload session card (inside a date section).
+  function sessionCard(g){
     const items=g.items.slice().sort((a,b)=>(a.pastQuarterMerge?1:0)-(b.pastQuarterMerge?1:0));
-    const open=(gi===0); // only the latest session is expanded by default
-    const ids=items.map(it=>it.id).filter(Boolean);
-    const k=dayKey(g.at);
-    const dayCls=(dayCounts[k]>1)?(' log-day-'+dayColorIdx[k]):'';
-    // File metadata (captured at upload, if present on any item in the session).
     const fileMeta=fileMetaHtml(items);
     return ''+
-    '<div class="log-session'+(open?' open':'')+dayCls+'">'+
-      '<button type="button" class="log-head" aria-expanded="'+(open?'true':'false')+'" onclick="toggleSession(this)">'+
+    '<div class="log-session">'+
+      '<button type="button" class="log-head" aria-expanded="false" onclick="toggleSession(this)">'+
         '<span class="log-user">'+esc(g.user)+'<span class="log-role">'+esc(g.role||'')+'</span></span>'+
-        '<span class="log-when">'+
-          '<b>'+esc(MY_TZ)+':</b> '+fmtTZ(g.at,zone)+
-        '</span>'+
+        '<span class="log-when"><b>'+esc(MY_TZ)+':</b> '+fmtTZ(g.at,zone)+'</span>'+
         '<span class="log-caret" aria-hidden="true">▾</span>'+
       '</button>'+
       '<div class="log-session-body">'+fileMeta+items.map(quarterBlock).join('')+'</div>'+
+    '</div>';
+  }
+
+  html+=dayOrder.map(k=>{
+    const dGroups=dayGroups[k];
+    const isToday=(k===todayKey);
+    const cnt=dGroups.length;
+    const colorCls=' log-day-'+dayColorIdx[k];
+    return ''+
+    '<div class="log-date-section'+(isToday?' open':'')+colorCls+'">'+
+      '<button type="button" class="log-date-head" aria-expanded="'+(isToday?'true':'false')+'" onclick="toggleDateSection(this)">'+
+        '<span class="log-date-title">'+esc(dayLabel(dGroups[0].at))+(isToday?' <span class="log-today-badge">TODAY</span>':'')+'</span>'+
+        '<span class="log-date-meta">'+cnt+' upload'+(cnt===1?'':'s')+'</span>'+
+        '<span class="log-caret" aria-hidden="true">▾</span>'+
+      '</button>'+
+      '<div class="log-date-body">'+dGroups.map(sessionCard).join('')+'</div>'+
     '</div>';
   }).join('');
   // "Load more" — only when the server signalled there are older days beyond the current window.
@@ -254,6 +279,13 @@ function toggleSession(btn){
   const card=btn.closest('.log-session');
   if(!card)return;
   const isOpen=card.classList.toggle('open');
+  btn.setAttribute('aria-expanded',isOpen?'true':'false');
+}
+// Expand/collapse a whole date section.
+function toggleDateSection(btn){
+  const sec=btn.closest('.log-date-section');
+  if(!sec)return;
+  const isOpen=sec.classList.toggle('open');
   btn.setAttribute('aria-expanded',isOpen?'true':'false');
 }
 
