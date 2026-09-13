@@ -397,10 +397,15 @@ async function startFresh(){await dbClear();M=null;destroyCharts();renderUpload(
 // Load it on demand so the dashboard stays lightweight. Shows a spinner while loading.
 async function ensureFullData(){
   if(M)return true;
-  try{
-    // Paint a neutral spinner so the switch isn't blank while ~8k rows load.
-    document.getElementById('app').innerHTML=topBar(currentView||'dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div><p style="color:#879596;margin-top:16px">Loading full dataset…</p></div>';
-  }catch(e){}
+  // If a section skeleton (e.g. the Shift Report shimmer) is already on screen, keep it instead of
+  // flashing a blank full-page spinner over it.
+  const hasSkeleton=!!document.querySelector('.sr .sk-blk');
+  if(!hasSkeleton){
+    try{
+      // Paint a neutral spinner so the switch isn't blank while ~8k rows load.
+      document.getElementById('app').innerHTML=topBar(currentView||'dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div><p style="color:#879596;margin-top:16px">Loading full dataset…</p></div>';
+    }catch(e){}
+  }
   // Prefer whatever is already in IndexedDB; else fetch from the server.
   try{ const c=await metaGet('liveCache'); if(await renderFromLocalData())return !!M; }catch(e){}
   const ok=await refreshFromServerData();
@@ -915,73 +920,83 @@ function renderShiftReport(){
   addToAgent(ct.purple,'purple');addToAgent(ct.black,'black');addToAgent(ct.red,'red');addToAgent(ct.yellow,'yellow');addToAgent(ct.green,'green');
   const agentSorted=Object.entries(agentColors).sort((a,b)=>b[1].total-a[1].total);
   window._takeoverAgents=agentSorted;
-  document.getElementById('app').innerHTML=topBar('shift-report')+`<div class="content">
-  <div class="page-title"><h1>Shift Takeover Report</h1></div>
-  <div class="section">
-    <div style="color:var(--t);font-size:.95em;line-height:1.7">
-      Hello Team,<br>
-      Our queue currently stands at <strong style="color:var(--o)">${inQueue}</strong> unresolved tickets, with statuses:<br>
-      <span style="display:inline-block;margin-left:16px">• PURPLE (Reopened): <strong>${ct.purple.length}</strong></span><br>
-      <span style="display:inline-block;margin-left:16px">• BLACK (&gt;240 hrs / &gt;10 days): <strong>${black}</strong></span><br>
-      <span style="display:inline-block;margin-left:16px">• RED (168-240 hrs / 7-10 days): <strong>${red}</strong></span><br>
-      <span style="display:inline-block;margin-left:16px">• YELLOW (96-168 hrs / 4-7 days): <strong>${ct.yellow.length}</strong></span><br>
-      <span style="display:inline-block;margin-left:16px">• GREEN (0-96 hrs / 0-4 days): <strong>${ct.green.length}</strong></span><br>
-      Please prioritize the above.
+  const pct=(v)=>(v/openTotal*100||0).toFixed(1);
+  // Number cell that animates in (tally): shows a small spinner placeholder, then scrambles -> counts up.
+  const nT=(v,cls)=>`<span class="sr-v ${cls||''} tally-ph" data-tally="${v}">\u2014</span>`;
+  const colorTile=(cls,label,val,range)=>`<div class="sr-color sr-${cls}"><div class="sr-color-dot"></div><div class="sr-color-v">${nT(val)}</div><div class="sr-color-l">${label}</div><div class="sr-color-r">${range}</div></div>`;
+  document.getElementById('app').innerHTML=topBar('shift-report')+`<div class="content sr">
+  <div class="sr-hero">
+    <div class="sr-hero-txt">
+      <span class="sr-eyebrow">Queue snapshot · ${dateStr}</span>
+      <h1>Shift Report</h1>
+      <p class="sr-lead">Queue health for handoff — <strong>${inQueue}</strong> unresolved tickets in queue. Prioritise oldest (Black/Red) and reopened (Purple) first.</p>
     </div>
-    <div class="chart-box" style="margin-top:20px;background:linear-gradient(160deg,#0f0f0f,#000);box-shadow:0 8px 32px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);border:1px solid #333"><h3 style="letter-spacing:.5px">Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px"><canvas id="takeoverChart"></canvas></div></div>
-    <button class="btn" style="margin-top:18px" onclick="exportTakeover()">Export Takeover Report</button>
+    <div class="sr-hero-badge"><div class="sr-hero-num">${nT(inQueue)}</div><div class="sr-hero-cap">In queue</div></div>
   </div>
 
-  <div class="page-title" style="margin-top:12px"><h1>Shift Handoff Report</h1></div>
-  <div class="section" id="shiftContent">
-    <div id="shiftHeader" style="margin-bottom:20px">
-      <p style="color:var(--t);font-size:.95em;line-height:1.9">
-        <strong>Date/Time:</strong> <span id="shiftDate">${dateStr}</span> 19:00 <span id="shiftTz">IST</span><br>
-        <strong>Timeframe Collected:</strong> 7:00 AM <span class="shiftTz2">IST</span> - 7:00 PM <span class="shiftTz2">IST</span><br>
-        <strong>Handoff:</strong> <span id="shiftHandoff">IND → AMER</span>
-      </p>
+  <section class="sr-sec">
+    <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2>
+      <button class="btn sec sr-exp" onclick="exportTakeover()">${ic('copy',14)} Export takeover</button></div>
+    <div class="sr-colors">
+      ${colorTile('purple','Reopened',ct.purple.length,'Purple')}
+      ${colorTile('black','&gt; 10 days',black,'Black · &gt;240h')}
+      ${colorTile('red','7–10 days',red,'Red · 168–240h')}
+      ${colorTile('yellow','4–7 days',ct.yellow.length,'Yellow · 96–168h')}
+      ${colorTile('green','0–4 days',ct.green.length,'Green · 0–96h')}
     </div>
-    <div class="handoff-grid">
-      <div class="handoff-box"><h3>Ticket Health Status</h3><ul>
-        <li><span>&gt;10 Days Not Closed (BLACK)</span><span class="val">${black}</span></li>
-        <li><span>Pending &gt;72 Hours (RED)</span><span class="val">${red}</span></li>
-        <li><span>Created in Last 12 Hours</span><span class="val">${m.last12Created}</span></li>
-        <li><span>Created in Last 24 Hours</span><span class="val">${m.last24Created}</span></li>
+    <div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px"><canvas id="takeoverChart"></canvas></div></div>
+  </section>
+
+  <section class="sr-sec" id="shiftContent">
+    <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2>
+      <button class="btn sr-exp" onclick="showExportRegionModal()">${ic('copy',14)} Export handoff</button></div>
+    <div class="sr-meta">
+      <span class="sr-chip">${ic('clock',13)} <b><span id="shiftDate">${dateStr}</span> 19:00 <span id="shiftTz">IST</span></b></span>
+      <span class="sr-chip">Timeframe: <b>7:00 AM <span class="shiftTz2">IST</span> – 7:00 PM <span class="shiftTz2">IST</span></b></span>
+      <span class="sr-chip">Handoff: <b><span id="shiftHandoff">IND → AMER</span></b></span>
+    </div>
+    <div class="sr-cards">
+      <div class="sr-card"><h3>Ticket Health</h3><ul>
+        <li><span>&gt;10 Days Not Closed <em>(Black)</em></span>${nT(black)}</li>
+        <li><span>Pending &gt;72 Hours <em>(Red)</em></span>${nT(red)}</li>
+        <li><span>Created in Last 12 Hours</span>${nT(m.last12Created)}</li>
+        <li><span>Created in Last 24 Hours</span>${nT(m.last24Created)}</li>
       </ul></div>
-      <div class="handoff-box"><h3>Last 12 Hours Activity</h3><ul>
-        <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
-        <li><span>Pending</span><span class="val">${m.pend}</span></li>
-        <li><span>WIP</span><span class="val">${m.wip}</span></li>
-        <li><span>Resolved</span><span class="val">${m.last12Resolved}</span></li>
+      <div class="sr-card"><h3>Last 12 Hours Activity</h3><ul>
+        <li><span>Assigned</span>${nT(m.asgn)}</li>
+        <li><span>Pending</span>${nT(m.pend)}</li>
+        <li><span>Work In Progress</span>${nT(m.wip)}</li>
+        <li><span>Resolved</span>${nT(m.last12Resolved)}</li>
       </ul></div>
-      <div class="handoff-box"><h3>Ticket Count by Status</h3><ul>
-        <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
-        <li><span>Work In Progress</span><span class="val">${m.wip}</span></li>
-        <li><span>Researching</span><span class="val">${m.researching}</span></li>
-        <li><span>Pending</span><span class="val">${m.pend}</span></li>
-        <li><span>Resolved</span><span class="val">${m.res}</span></li>
+      <div class="sr-card"><h3>Ticket Count by Status</h3><ul>
+        <li><span>Assigned</span>${nT(m.asgn)}</li>
+        <li><span>Work In Progress</span>${nT(m.wip)}</li>
+        <li><span>Researching</span>${nT(m.researching)}</li>
+        <li><span>Pending</span>${nT(m.pend)}</li>
+        <li><span>Resolved</span>${nT(m.res)}</li>
       </ul></div>
-      <div class="handoff-box"><h3>Status Distribution (%)</h3><ul>
-        <li><span>Assigned</span><span class="val">${(m.asgn/openTotal*100||0).toFixed(1)}%</span></li>
-        <li><span>Work In Progress</span><span class="val">${(m.wip/openTotal*100||0).toFixed(1)}%</span></li>
-        <li><span>Researching</span><span class="val">${(m.researching/openTotal*100||0).toFixed(1)}%</span></li>
-        <li><span>Pending</span><span class="val">${(m.pend/openTotal*100||0).toFixed(1)}%</span></li>
-        <li><span>Resolved</span><span class="val">${(m.res/openTotal*100||0).toFixed(1)}%</span></li>
+      <div class="sr-card"><h3>Status Distribution</h3><ul>
+        <li><span>Assigned</span><b class="sr-pct" data-pct="${pct(m.asgn)}">0%</b></li>
+        <li><span>Work In Progress</span><b class="sr-pct" data-pct="${pct(m.wip)}">0%</b></li>
+        <li><span>Researching</span><b class="sr-pct" data-pct="${pct(m.researching)}">0%</b></li>
+        <li><span>Pending</span><b class="sr-pct" data-pct="${pct(m.pend)}">0%</b></li>
+        <li><span>Resolved</span><b class="sr-pct" data-pct="${pct(m.res)}">0%</b></li>
       </ul></div>
     </div>
-    <div style="margin-top:20px;padding:16px;background:#0a0a0a;border:1px solid var(--bd);border-radius:8px">
-      <strong style="color:var(--o)">Current Amount of Tickets In Queue:</strong> <span style="color:#fff;font-size:1.1em;font-weight:700">${inQueue}</span>
+    <div class="sr-notes">
+      <label for="shiftNotes">${ic('message',13)} Notes for the incoming shift</label>
+      <textarea id="shiftNotes" placeholder="Add your notes here — one per line…"></textarea>
     </div>
-    <div style="margin-top:20px">
-      <h3 style="color:var(--o);font-size:.9em;text-transform:uppercase;margin-bottom:8px">Notes</h3>
-      <textarea id="shiftNotes" placeholder="Add your notes here..." style="width:100%;min-height:100px;padding:12px;background:#0a0a0a;border:1px solid var(--bd);border-radius:8px;color:#fff;font-family:inherit;font-size:.9em;resize:vertical"></textarea>
-    </div>
-  </div>
-  <div style="margin-bottom:40px">
-    <button class="btn" onclick="showExportRegionModal()">Export Handoff Report</button>
-  </div>
+  </section>
   </div>`;
   attachNewFileHandler();
+  // Tally-animate every DB-derived number (spinner placeholder -> scramble -> count-up), then the %s.
+  try{
+    const root=document.querySelector('.sr');
+    if(window.PHDAuth&&window.PHDAuth.tallyAll) window.PHDAuth.tallyAll(root);
+    // Percentages: count up to their 1-dp value and append "%".
+    root.querySelectorAll('.sr-pct[data-pct]').forEach(function(el){ srTallyPct(el, parseFloat(el.getAttribute('data-pct'))||0); });
+  }catch(e){}
   // Render takeover stacked bar chart
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   const labels=agentSorted.map(e=>e[0]);
@@ -1008,6 +1023,14 @@ function renderShiftReport(){
   plugins:[shadowPlugin]});
 }
 
+// Count up a percentage element to `target` (1-dp) with a trailing "%" (mirrors the tally feel).
+function srTallyPct(el,target){
+  if(!el)return; el.classList.remove('tally-ph');
+  const raf=window.requestAnimationFrame||function(cb){return setTimeout(function(){cb(Date.now());},16);};
+  const DUR=600;let start=null;
+  const step=function(ts){ if(start===null)start=ts; const p=Math.min(1,(ts-start)/DUR); const v=(target*(1-Math.pow(1-p,3))); el.textContent=v.toFixed(1)+'%'; if(p<1)raf(step); else el.textContent=target.toFixed(1)+'%'; };
+  raf(step);
+}
 function showExportRegionModal(){
   closeAllPopups();
   const overlay=document.createElement('div');overlay.id='incPopup';
@@ -2285,11 +2308,39 @@ function initialViewParam(){
   try{const v=new URLSearchParams(location.search).get('view');return (['groups','previous-week','shift-report'].includes(v))?v:'';}catch(e){return '';}
 }
 function paintInitialLoading(){
-  if(initialViewParam()){
-    document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>';
+  const v=initialViewParam();
+  if(v==='shift-report'){
+    // Paint the Shift Report layout with shimmer placeholders immediately (no blank full-page spinner).
+    try{ document.getElementById('app').innerHTML=topBar('shift-report')+shiftReportSkeleton(); }
+    catch(e){ document.getElementById('app').innerHTML=topBar('shift-report')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>'; }
+  }else if(v){
+    document.getElementById('app').innerHTML=topBar(v)+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>';
   }else{
     renderDashboardShell();
   }
+}
+
+// Shift Report loading skeleton — same layout as the real report, with shimmer blocks where the
+// numbers/chart will land. Shown instantly on deep-link so the page is never a blank spinner.
+function shiftReportSkeleton(){
+  const colorTile=(cls)=>`<div class="sr-color sr-${cls}"><div class="sr-color-dot"></div><div class="sk-blk sk-num" style="margin:0 auto"></div><div class="sk-blk sk-lbl" style="margin:8px auto 0"></div><div class="sk-blk sk-sub" style="margin:5px auto 0"></div></div>`;
+  const cardRows=(n)=>{let s='';for(let i=0;i<n;i++)s+=`<li><span class="sk-blk sk-row-l"></span><span class="sk-blk sk-row-v"></span></li>`;return s;};
+  const card=(n)=>`<div class="sr-card"><div class="sk-blk sk-h3"></div><ul>${cardRows(n)}</ul></div>`;
+  return `<div class="content sr">
+  <div class="sr-hero">
+    <div class="sr-hero-txt"><span class="sr-eyebrow">Queue snapshot</span><h1>Shift Report</h1><p class="sr-lead">Loading queue health for handoff…</p></div>
+    <div class="sr-hero-badge"><div class="sr-hero-num"><span class="sk-blk sk-num"></span></div><div class="sr-hero-cap">In queue</div></div>
+  </div>
+  <section class="sr-sec">
+    <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2></div>
+    <div class="sr-colors">${colorTile('purple')}${colorTile('black')}${colorTile('red')}${colorTile('yellow')}${colorTile('green')}</div>
+    <div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px;position:relative"><div class="sk-blk" style="position:absolute;inset:0;border-radius:10px"></div></div></div>
+  </section>
+  <section class="sr-sec">
+    <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2></div>
+    <div class="sr-cards">${card(4)}${card(4)}${card(5)}${card(5)}</div>
+  </section>
+  </div>`;
 }
 
 // If we arrived from a standalone page's "Upload new data" (sessionStorage handoff + ?upload=1),

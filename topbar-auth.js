@@ -3,7 +3,7 @@
 //
 // Section 1 (top bar): logo + "Q<label> · LIVE" badge on the left; Users (owner-only) + avatar
 //   (Login when logged out / Profile when logged in) on the right.
-// Section 2 (nav): a single flex row of Groups, Shift Report, Previous Week, Last 24 Hours,
+// Section 2 (nav): a single flex row of Shift Report, Agent and Group Analytics,
 //   Help Activity, PHD Tools, Unique cases, Users, Database health — role-gated, active highlighted.
 //   (My Tickets + Upload live in the top-bar right controls, not the menu.)
 //
@@ -235,11 +235,10 @@
     // My Tickets moved to the top-bar right controls. So the menu is just the "Navigate" list.
     html += '<div class="tb-menu-label">Navigate</div>';
     if (li) {
-      html += view('groups', 'Groups', 'users');
+      // Groups moved to the Analytics page (agent-analytics.html); no longer a dashboard view here.
       html += view('shift-report', 'Shift Report', 'clipboard');
-      html += view('previous-week', 'Previous Week', 'clock-rewind');
     }
-    if (isAdmin) html += link('last24', 'Last 24 Hours', 'clock', 'last24.html');
+    if (isAdmin) html += link('agent-analytics', 'Agent and Group Analytics', 'bar-chart', 'agent-analytics.html');
     if (li) html += link('help-activity', 'Help Activity', 'alert', 'help-activity.html');
     if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
     if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html');

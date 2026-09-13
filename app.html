@@ -96,6 +96,63 @@ tr:hover{background:rgba(255,153,0,.03)}
 .handoff-box li:last-child{border-bottom:none}
 .handoff-box .val{color:var(--o);font-weight:600}
 .meta-info{color:var(--tm);font-size:.85em;margin-bottom:16px}
+/* ================= Shift Report (redesigned) ================= */
+.sr{max-width:1200px}
+.sr-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:linear-gradient(135deg,rgba(255,153,0,.12),#0a0a0a 55%);border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:16px;padding:22px 24px;margin-bottom:26px}
+.sr-eyebrow{color:var(--o);font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.sr-hero-txt h1{color:#fff;font-size:1.7em;font-weight:800;margin:6px 0 8px}
+.sr-lead{color:var(--tm);font-size:.92em;max-width:620px;line-height:1.6}
+.sr-lead strong{color:#fff}
+.sr-hero-badge{text-align:center;background:#000;border:1px solid var(--bd);border-radius:14px;padding:16px 26px;flex-shrink:0}
+.sr-hero-num{font-size:2.4em;font-weight:800;color:var(--o);line-height:1}
+.sr-hero-cap{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
+.sr-sec{margin-bottom:30px}
+.sr-sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.sr-sec-head h2{color:#fff;font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:9px}
+.sr-sec-head h2 .ic{color:var(--o)}
+.sr-exp{white-space:nowrap}
+/* Age-colour queue tiles */
+.sr-colors{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.sr-color{position:relative;background:#000;border:1px solid var(--bd);border-radius:12px;padding:16px 12px 14px;text-align:center;overflow:hidden}
+.sr-color::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc)}
+.sr-color-dot{width:10px;height:10px;border-radius:50%;background:var(--sc);margin:0 auto 8px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 22%,transparent)}
+.sr-color-v{font-size:1.9em;font-weight:800;color:#fff;line-height:1}
+.sr-color-l{color:#fff;font-size:.82em;font-weight:600;margin-top:6px}
+.sr-color-r{color:var(--tm);font-size:.68em;margin-top:3px}
+.sr-purple{--sc:#a78bfa}.sr-black{--sc:#8a8a8a}.sr-red{--sc:#ff5252}.sr-yellow{--sc:#fbbf24}.sr-green{--sc:#4ade80}
+.sr-chart-card{background:linear-gradient(160deg,#0f0f0f,#000);border:1px solid #333;border-radius:14px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.sr-chart-card h3{color:#fff;font-size:.95em;font-weight:600;text-align:center;letter-spacing:.4px;margin-bottom:14px}
+/* Handoff meta chips + cards */
+.sr-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.sr-chip{background:#0a0a0a;border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-size:.82em;color:var(--tm);display:inline-flex;align-items:center;gap:6px}
+.sr-chip b{color:#fff;font-weight:600}
+.sr-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.sr-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px}
+.sr-card h3{color:var(--o);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.sr-card ul{list-style:none;padding:0;margin:0}
+.sr-card li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.9em}
+.sr-card li:last-child{border-bottom:none}
+.sr-card li span{color:var(--t)}
+.sr-card li em{color:var(--tm);font-style:normal;font-size:.85em}
+.sr-card li b{color:#fff;font-weight:800;font-size:1.05em}
+/* Tally value inside stat cards (renders as the bold number). Inside colour tiles it inherits the big size. */
+.sr-card li .sr-v{color:#fff;font-weight:800;font-size:1.05em;flex-shrink:0}
+.sr-pct{color:#fff;font-weight:800;font-size:1.05em}
+.sr-notes{margin-top:20px}
+.sr-notes label{display:flex;align-items:center;gap:6px;color:var(--tm);font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.sr-notes textarea{width:100%;min-height:110px;padding:12px 14px;background:#0a0a0a;border:1px solid var(--bd);border-radius:10px;color:#fff;font-family:inherit;font-size:.9em;resize:vertical}
+.sr-notes textarea:focus{outline:none;border-color:var(--o)}
+@media(max-width:760px){.sr-colors{grid-template-columns:repeat(2,1fr)}.sr-hero-badge{flex:1 1 100%}}
+/* Shift Report shimmer skeleton blocks */
+.sk-blk{position:relative;overflow:hidden;background:#141414;border-radius:6px;display:inline-block}
+.sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:skmove 1.3s infinite}
+@keyframes skmove{100%{left:150%}}
+.sk-num{width:52px;height:30px}
+.sk-lbl{width:70px;height:12px}
+.sk-sub{width:96px;height:10px}
+.sk-h3{width:150px;height:13px;margin-bottom:14px}
+.sr-card li .sk-row-l{width:55%;height:12px}
+.sr-card li .sk-row-v{width:26px;height:16px}
 .tag{display:inline-block;padding:2px 10px;border-radius:4px;font-size:.72em;font-weight:600}
 .tag-a1{background:rgba(125,211,252,.15);color:var(--a1)}.tag-a2{background:rgba(251,191,36,.15);color:var(--a2)}.tag-b{background:rgba(74,222,128,.15);color:var(--b)}
 .upload-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
