@@ -3,9 +3,9 @@
 //
 // Section 1 (top bar): logo + "Q<label> · LIVE" badge on the left; Users (owner-only) + avatar
 //   (Login when logged out / Profile when logged in) on the right.
-// Section 2 (nav): a single flex row of Dashboard, Groups, Previous Week, Shift Report,
-//   Admin & Operations Guide, Last 24 Hours, Upload new data, My Tickets, Update data log, PHD Tools —
-//   role-gated, with the active item highlighted.
+// Section 2 (nav): a single flex row of Groups, Shift Report, Previous Week, Last 24 Hours,
+//   Help Activity, PHD Tools, Unique cases, Users, Database health — role-gated, active highlighted.
+//   (My Tickets + Upload live in the top-bar right controls, not the menu.)
 //
 // Requires api-config.js (window.PHDAuth) and icons.js (window.icon) loaded first.
 (function () {
@@ -72,8 +72,11 @@
       + '.tb-menu-mobile{display:flex;flex-direction:column;align-items:center;gap:4px}'  // shown in the menu at all sizes
       + '.tb-menu-label{color:#5f6b6c;font-size:.68em;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:6px 14px 2px}'
       + '.tb-menu-divider{height:1px;background:#2a2a2a;margin:6px 8px}'
-      + '.tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit}'
+      + '.tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit;white-space:nowrap}'
       + '.tb-btn:hover{border-color:#ff9900;color:#ff9900}'
+      + '.tb-btn svg{flex-shrink:0}'
+      // When the bar gets tight, buttons collapse to icon-only (label hidden; title gives the tooltip).
+      + '@media(max-width:1024px){.tb-btn .tb-btn-label{display:none}.tb-btn{padding:8px 10px;gap:0}}'
       // login modal
       + '.tb-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}'
       + '.tb-modal{background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px}'
@@ -175,14 +178,20 @@
     var li = loggedIn();
     var isAdmin = atLeast('admin');
     var inApp = document.body.getAttribute('data-app') === 'live';
+    // Which page are we on? (used to hide page-irrelevant controls, e.g. Refresh on profile).
+    var page = (location.pathname.split('/').pop() || '').toLowerCase();
+    var onProfile = page === 'profile.html';
+    // Each .tb-btn carries a `title` so it stays meaningful when it collapses to icon-only on
+    // narrow screens (see the responsive rule that hides .tb-btn-label).
     // Upload new data (admin+, standalone pages only). On the live dashboard (app.html) the Upload
     // button lives in the page-title row between Alerts and Uploaded data log, so it's omitted here.
     if (isAdmin && !inApp) {
-      html += '<button type="button" class="tb-btn tb-movable" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + ' Upload new data</button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
+      html += '<button type="button" class="tb-btn tb-movable" title="Upload new data" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + '<span class="tb-btn-label"> Upload new data</span></button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
     }
-    if (li) html += '<a class="tb-btn tb-movable" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
-    // Refresh: fetch the latest data on demand (logged-in only).
-    if (li) html += '<button type="button" class="tb-btn tb-refresh-btn" onclick="tbRefreshData(this)" title="Fetch the latest data">' + ic('refresh') + ' Refresh</button>';
+    if (li) html += '<a class="tb-btn tb-movable" href="my-tickets.html" title="My Tickets">' + ic('ticket') + '<span class="tb-btn-label"> My Tickets</span></a>';
+    // Refresh: fetch the latest data on demand (logged-in only). Hidden on the profile page — it
+    // shows your own profile, which has nothing live to refresh.
+    if (li && !onProfile) html += '<button type="button" class="tb-btn tb-refresh-btn" onclick="tbRefreshData(this)" title="Fetch the latest data">' + ic('refresh') + '<span class="tb-btn-label"> Refresh</span></button>';
     if (!li) {
       html += '<button class="tb-btn" onclick="tbOpenLogin()">' + ic('key') + ' Login</button>';
     } else {
@@ -199,7 +208,7 @@
   }
 
   // ---- Hamburger menu contents (role-gated). Rendered inside the collapsible dropdown. ----
-  // active: one of 'groups','previous-week','shift-report','admin-guide','last24',
+  // active: one of 'groups','previous-week','shift-report','last24',
   //   'help-activity','tools','unique-cases','users' (or '' for none).
   // inApp: true inside app.html (view buttons call nav()); false = standalone (links to app.html?view=).
   function navHtml(active, inApp) {
@@ -222,15 +231,9 @@
     }
     var html = '';
     // MOBILE ONLY: the top-bar quick actions (Q3 LIVE, Q2, Upload, My Tickets) move into the menu.
-    // Hidden on desktop via CSS (.tb-menu-mobile{display:none} until <=768px).
-    var mob = '<div class="tb-menu-mobile"><div class="tb-menu-label">Quick actions</div>';
-    mob += '<a class="tb-menuitem" href="app.html">' + ic('bolt') + ' Q3 2026 · LIVE</a>';
-    mob += '<a class="tb-menuitem" href="archive.html?ds=quarter&qid=2026-Q2">' + ic('calendar') + ' Q2 2026</a>';
-    mob += '<a class="tb-menuitem" href="archive.html?ds=archive">' + ic('inbox') + ' Program History</a>';
-    if (li) mob += '<a class="tb-menuitem" href="my-tickets.html">' + ic('ticket') + ' My Tickets</a>';
-    mob += '<div class="tb-menu-divider"></div><div class="tb-menu-label">Navigate</div></div>';
-    html += mob;
-    if (isAdmin) html += link('admin-guide', 'Admin &amp; Operations Guide', 'book', 'admin-guide.html');
+    // Quick-action shortcuts (Q3/Q2/Program History) were removed — the home page provides those.
+    // My Tickets moved to the top-bar right controls. So the menu is just the "Navigate" list.
+    html += '<div class="tb-menu-label">Navigate</div>';
     if (li) {
       html += view('groups', 'Groups', 'users');
       html += view('shift-report', 'Shift Report', 'clipboard');

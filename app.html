@@ -41,6 +41,21 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .page-title{margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
 .page-title h1{font-size:1.8em;color:#fff;font-weight:700}
 .page-title p{color:var(--tm);margin-top:4px;font-size:.9em}
+/* Dashboard title row: Q3 (left) + LIVE (right), plus Alerts/Upload/data-log actions. */
+.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.dash-title-h1{font-size:1.8em;color:#fff;font-weight:700;margin:0;display:inline-flex;align-items:center;gap:12px;flex:1 1 auto;justify-content:space-between}
+.dash-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dash-act{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.dash-act svg{flex-shrink:0}
+/* When the row is tight, action buttons collapse to icon-only (label hidden; title = tooltip)
+   and spread evenly across the full width. */
+@media(max-width:900px){
+  .dash-act .dash-act-label{display:none}
+  .dash-act{padding:8px 10px;justify-content:center}
+  .dash-title-h1{flex:1 1 100%;justify-content:space-between}
+  .dash-actions{width:100%;justify-content:space-between;gap:8px}
+  .dash-actions .dash-act{flex:1 1 auto}
+}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
 .kpi-card{background:var(--s);border-radius:8px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
 .kpi-card .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
@@ -95,6 +110,18 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* Ticket Age tiles: count / COLOR / (range) stacked on separate lines */
 .age-tile .age-name{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:.9em;letter-spacing:.5px;margin-top:6px;color:#fff}
 .age-tile .age-range{color:var(--tm);font-size:.72em;margin-top:4px}
+/* The 5 age tiles ALWAYS spread across the full width (equal columns that shrink together),
+   so they never leave a half-empty row on narrow screens. Use .kpi-grid.age-grid for higher
+   specificity than the generic .kpi-grid mobile rules below (which would otherwise override). */
+.kpi-grid.age-grid{grid-template-columns:repeat(5,1fr)}
+@media(max-width:640px){
+  .kpi-grid.age-grid{grid-template-columns:1fr 1fr 1fr}   /* 3 across, still full width */
+  .age-tile{padding:14px 8px}
+  .age-tile .age-range{font-size:.68em}
+}
+@media(max-width:400px){
+  .kpi-grid.age-grid{grid-template-columns:1fr 1fr}        /* 2 across on very small phones */
+}
 .btn .ic,.btn svg.ic{margin-right:2px}
 .ic{opacity:.9}
 /* Wide tables scroll horizontally instead of breaking the layout on small screens */
@@ -120,6 +147,52 @@ tr:hover{background:rgba(255,153,0,.03)}
   .kpi-grid{grid-template-columns:1fr}
   .toolbar-nav,.toolbar-actions{width:100%}
   .kpi-card .value{font-size:1.6em}
+}
+/* ---- Ticket/agent popups (color popup + agent drill-down): responsive, full-width on mobile ---- */
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+/* flex:1 1 100% (not just width:100%) so the card actually fills the overlay up to its max-width;
+   a plain flex child can otherwise shrink to its content and only use ~half the width. */
+.popup-card{background:#111;border:1px solid #333;border-radius:12px;flex:1 1 100%;width:100%;max-height:82vh;overflow:auto;padding:24px}
+.popup-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.popup-head h2{font-size:1.2em;margin:0}
+.popup-actions{display:flex;gap:10px;flex-shrink:0}
+.pc-subcount{color:var(--tm);font-size:.82em;margin-top:4px}
+.pt-default{margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em;vertical-align:middle}
+.pc-none{color:#5f6b6c;font-size:.85em;font-style:italic;margin:4px 0 0}
+/* ---- Section headers (Registered / Non-registered) ---- */
+.pc-section{margin-top:20px}
+.pc-section-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pc-section-title{font-weight:700;font-size:.95em;display:inline-flex;align-items:center;gap:6px}
+.pc-section-meta{color:#5f6b6c;font-size:.8em}
+.pc-section-note{color:#879596;font-size:.78em;margin:-4px 0 10px}
+/* ---- Agent cards (color popup): responsive grid, avatar + name + count pill ---- */
+.pc-agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.pc-agent{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:#0d1420;border:1px solid var(--bd);border-radius:10px;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
+.pc-agent:hover{border-color:var(--o);background:#141d2b}
+.pc-agent-av{flex-shrink:0;display:inline-flex}
+.pc-agent-name{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 auto}
+.pc-agent-name strong{font-size:.95em;overflow-wrap:anywhere}
+.pc-agent-sub{color:#5f6b6c;font-size:.74em}
+.pc-agent-count{flex-shrink:0;font-weight:800;font-size:1.5em;line-height:1;min-width:34px;text-align:right}
+/* ---- Ticket cards (agent drill-down): stacked list ---- */
+.pc-tk-list{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.pc-tk{background:#0d1420;border:1px solid var(--bd);border-radius:10px;padding:12px 14px}
+.pc-tk-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pc-tk-id{color:#44b9d6;font-weight:700;font-size:.92em;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.pc-tk-id:hover{text-decoration:underline}
+.pc-tk-status{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border:1px solid;border-radius:20px;padding:3px 10px;background:rgba(255,255,255,.03)}
+.pc-tk-meta{color:#879596;font-size:.82em;margin-top:8px;display:inline-flex;align-items:center;gap:6px}
+.pc-tk-age{color:#5f6b6c}
+.pc-tk-cmt{color:#879596;font-size:.83em;margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd);display:flex;gap:6px;line-height:1.5}
+.pc-tk-cmt svg{flex-shrink:0;margin-top:2px}
+@media(max-width:600px){
+  .popup-overlay{padding:8px}
+  .popup-card{padding:16px;max-height:92vh;border-radius:10px}
+  .popup-head{flex-direction:column;align-items:stretch;gap:12px}
+  .popup-head h2{font-size:1.1em;line-height:1.3}
+  .popup-actions{width:100%}
+  .popup-actions .btn{flex:1 1 auto;justify-content:center;text-align:center}
+  .pc-agent-grid{grid-template-columns:1fr}
 }
 </style>
 </head>

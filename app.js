@@ -724,28 +724,37 @@ function showColorPopup(color,tickets){
   // Split into registered (accounts in our DB) vs non-registered (unknown logins / LM-CAP / AutoSIM / Unassigned).
   const registered=agentList.filter(([name])=>isRegisteredUser(name));
   const nonRegistered=agentList.filter(([name])=>!isRegisteredUser(name));
-  const rowFor=([name,tickets])=>{const dn=displayName(name);const style=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#44b9d6';const pic=window.PHDAuth&&window.PHDAuth.avatarHtml?window.PHDAuth.avatarHtml(profileFor(name),30):'';return`<tr style="cursor:pointer" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')"><td style="width:44px">${pic}</td><td><strong style="${style}">${dn}</strong>${isLMCAP(name)?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:${colorHex[color]};font-weight:700;font-size:1.1em">${tickets.length}</td></tr>`;};
+  // Each agent is a clickable "row card": avatar + name (+ role/DEFAULT tag) on the left, a big
+  // ticket-count pill on the right. Cards flow in a responsive grid (1 col mobile, 2 col wide).
+  const cardFor=([name,tickets])=>{
+    const dn=displayName(name);
+    const nameStyle=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#fff';
+    const pic=window.PHDAuth&&window.PHDAuth.avatarHtml?window.PHDAuth.avatarHtml(profileFor(name),38):'';
+    return `<button type="button" class="pc-agent" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')">`+
+      `<span class="pc-agent-av">${pic}</span>`+
+      `<span class="pc-agent-name"><strong style="${nameStyle}">${dn}</strong>${isLMCAP(name)?'<span class="pt-default">DEFAULT</span>':''}<span class="pc-agent-sub">${tickets.length} ticket${tickets.length===1?'':'s'}</span></span>`+
+      `<span class="pc-agent-count" style="color:${colorHex[color]}">${tickets.length}</span>`+
+    `</button>`;
+  };
   const sumTix=(list)=>list.reduce((s,[,t])=>s+t.length,0);
-  const sectionTable=(list)=>`<table><thead><tr><th></th><th>Agent</th><th>Tickets</th></tr></thead><tbody>${list.map(rowFor).join('')}</tbody></table>`;
+  const grid=(list)=>`<div class="pc-agent-grid">${list.map(cardFor).join('')}</div>`;
   const overlay=document.createElement('div');
-  overlay.id='colorPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  const regSection=`<div style="margin-bottom:22px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:#4ade80;font-weight:700;font-size:.95em">${ic('check-circle',15)} Registered users</span><span style="color:#5f6b6c;font-size:.8em">${registered.length} agent${registered.length===1?'':'s'} · ${sumTix(registered)} tickets</span></div>
-      ${registered.length?sectionTable(registered):'<p style="color:#5f6b6c;font-size:.85em;font-style:italic;margin:4px 0 0">None.</p>'}
+  const regSection=`<div class="pc-section">
+      <div class="pc-section-head"><span class="pc-section-title" style="color:#4ade80">${ic('check-circle',15)} Registered users</span><span class="pc-section-meta">${registered.length} agent${registered.length===1?'':'s'} · ${sumTix(registered)} tickets</span></div>
+      ${registered.length?grid(registered):'<p class="pc-none">None.</p>'}
     </div>`;
-  const nonRegSection=`<div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="color:#ff9900;font-weight:700;font-size:.95em">${ic('alert',15)} Non-registered logins</span><span style="color:#5f6b6c;font-size:.8em">${nonRegistered.length} agent${nonRegistered.length===1?'':'s'} · ${sumTix(nonRegistered)} tickets</span></div>
-      <p style="color:#879596;font-size:.78em;margin:0 0 8px">These assignees are not accounts in our database (unknown login, default queue, or unassigned).</p>
-      ${nonRegistered.length?sectionTable(nonRegistered):'<p style="color:#5f6b6c;font-size:.85em;font-style:italic;margin:4px 0 0">None.</p>'}
+  const nonRegSection=`<div class="pc-section">
+      <div class="pc-section-head"><span class="pc-section-title" style="color:#ff9900">${ic('alert',15)} Non-registered logins</span><span class="pc-section-meta">${nonRegistered.length} agent${nonRegistered.length===1?'':'s'} · ${sumTix(nonRegistered)} tickets</span></div>
+      <p class="pc-section-note">These assignees are not accounts in our database (unknown login, default queue, or unassigned).</p>
+      ${nonRegistered.length?grid(nonRegistered):'<p class="pc-none">None.</p>'}
     </div>`;
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="color:${colorHex[color]};font-size:1.2em">${colorNames[color]} — ${tix.length} tickets</h2>
-      <div style="display:flex;gap:10px"><button class="btn" onclick="downloadColorCSV('${color}')">Download All CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+  overlay.innerHTML=`<div class="popup-card" style="max-width:820px">
+    <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
+      <div><h2 style="color:${colorHex[color]}">${colorNames[color]}</h2><div class="pc-subcount">${tix.length} open ticket${tix.length===1?'':'s'} · click an agent to view theirs</div></div>
+      <div class="popup-actions"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <p style="color:#879596;font-size:.85em;margin-bottom:16px">Click an agent to view their tickets</p>
     ${regSection}
     ${nonRegSection}</div>`;
   document.body.appendChild(overlay);
@@ -762,51 +771,59 @@ function showAgentDrilldown(color,agentName){
   // Latest-comment column is shown only for red / black / purple sections.
   const showComments=(color==='red'||color==='black'||color==='purple');
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Each ticket is a row-card: ShortId link + status pill on top, created date + age below,
+  // and (for red/black/purple) the latest comment underneath. Oldest first, newest at the bottom.
+  const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
   const rows=tix.map(r=>{
     const cd=new Date(r.CreateDate);
     const daysAgo=Math.floor((now-cd)/(864e5));
     const daysText=daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;
     const sid=r.ShortId||'';
-    const commentCell=showComments?`<td class="cmt-col" data-sid="${esc(sid)}" style="color:#879596;font-style:italic">Loading…</td>`:'';
-    return`<tr><td><a href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" style="color:#44b9d6">${esc(sid)}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${esc(r.Status)}</td>${commentCell}</tr>`;
+    const st=esc(r.Status||'');
+    const commentRow=showComments?`<div class="pc-tk-cmt" data-sid="${esc(sid)}">${ic('message',13)} <span class="pc-tk-cmt-txt">Loading latest comment…</span></div>`:'';
+    return`<div class="pc-tk">`+
+      `<div class="pc-tk-top">`+
+        `<a class="pc-tk-id" href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" rel="noopener">${ic('ticket',14)} ${esc(sid)}</a>`+
+        `<span class="pc-tk-status" style="color:${statusColor(r.Status)};border-color:${statusColor(r.Status)}">${st}</span>`+
+      `</div>`+
+      `<div class="pc-tk-meta">${ic('calendar',13)} ${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span class="pc-tk-age">· ${daysText}</span></div>`+
+      commentRow+
+    `</div>`;
   }).join('');
   const overlay=document.createElement('div');
-  overlay.id='colorPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  const head=`<tr><th>Ticket ID</th><th>Created</th><th>Status</th>${showComments?'<th>Latest comment</th>':''}</tr>`;
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:${showComments?'1100px':'1000px'};width:100%;max-height:80vh;overflow:auto;padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="color:${colorHex[color]};font-size:1.1em">${dn} — ${tix.length} tickets</h2>
-      <div style="display:flex;gap:10px"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+  overlay.innerHTML=`<div class="popup-card" style="max-width:760px">
+    <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
+      <div><h2 style="color:${colorHex[color]}">${dn}</h2><div class="pc-subcount">${tix.length} ticket${tix.length===1?'':'s'} · oldest first</div></div>
+      <div class="popup-actions"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <table><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
+    <div class="pc-tk-list">${rows||'<p class="pc-none">No tickets.</p>'}</div></div>`;
   document.body.appendChild(overlay);
   // Fetch latest comments for the shown tickets (red/black/purple only) and fill the column.
   if(showComments){fillLatestComments(overlay,tix.map(r=>r.ShortId).filter(Boolean));}
 }
 
-// Batch-fetch the latest comment per ticket and populate the "Latest comment" cells.
+// Batch-fetch the latest comment per ticket and populate each ticket card's comment row.
 async function fillLatestComments(overlay,shortIds){
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const setAll=(text,color,italic)=>{overlay.querySelectorAll('.cmt-col').forEach(td=>{td.innerHTML=text;td.style.color=color||'#879596';td.style.fontStyle=italic?'italic':'normal';});};
-  if(!window.PHDAuth||!window.PHDAuth.getUser||!window.PHDAuth.getUser()){setAll('Login to view comments','#879596',true);return;}
+  const setTxt=(row,html,muted)=>{const t=row.querySelector('.pc-tk-cmt-txt');if(t)t.innerHTML=html;row.style.color=muted?'#5f6b6c':'#d5dbdb';};
+  const rows=overlay.querySelectorAll('.pc-tk-cmt');
+  if(!window.PHDAuth||!window.PHDAuth.getUser||!window.PHDAuth.getUser()){rows.forEach(row=>setTxt(row,'Login to view comments',true));return;}
   try{
     const r=await window.PHDAuth.api('POST','/api/comments/latest',{shortIds});
     const map=(r.ok&&r.data)?r.data:{};
-    overlay.querySelectorAll('.cmt-col').forEach(td=>{
-      const sid=td.getAttribute('data-sid');
+    rows.forEach(row=>{
+      const sid=row.getAttribute('data-sid');
       const c=map[sid];
       if(c&&c.text){
         const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-        td.style.color='#d5dbdb';td.style.fontStyle='normal';
-        td.innerHTML=`<div style="max-width:360px">${esc(c.text)}</div><div style="color:#5f6b6c;font-size:.72em;margin-top:3px">— ${esc(c.user)}${when?(' · '+when):''}</div>`;
+        setTxt(row,esc(c.text)+' <span style="color:#5f6b6c">— '+esc(c.user)+(when?(' · '+when):'')+'</span>',false);
       }else{
-        td.style.color='#5f6b6c';td.style.fontStyle='italic';
-        td.textContent='No comment made by user';
+        setTxt(row,'No comment made by user',true);
       }
     });
-  }catch(e){setAll('Could not load comments','#ff5252',true);}
+  }catch(e){rows.forEach(row=>setTxt(row,'Could not load comments',true));}
 }
 function downloadColorCSV(color){
   const tickets=colorTicketsFor(color);
@@ -1568,11 +1585,13 @@ function dashCard(chunk, iconName, title, bodyId, extra){
 }
 // A NON-collapsible dashboard section (always visible, no expand/collapse). Used for the Ticket
 // Age Classification card, which loads eagerly on page load alongside the summary.
-function dashStaticCard(iconName, title, bodyId, extra){
+// bodyHtml: initial body content (defaults to a spinner). Pass a static skeleton to paint the
+// full structure immediately, with only the data-driven bits waiting on the fetch.
+function dashStaticCard(iconName, title, bodyId, bodyHtml){
   const sp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
   return '<div class="section">'+
     '<h2>'+ic(iconName,16)+' '+title+'</h2>'+
-    (extra||'')+'<div id="'+bodyId+'" class="dash-chunk-slot">'+sp+'</div>'+
+    '<div id="'+bodyId+'" class="dash-chunk-slot">'+(bodyHtml||sp)+'</div>'+
   '</div>';
 }
 
@@ -1609,9 +1628,36 @@ function renderDashChunkInto(chunk){
 function retryDashChunk(chunk){ DASH_LOADED[chunk]=true; renderDashChunkInto(chunk); }
 window.retryDashChunk=retryDashChunk;
 
+// The 5 age tiles are 100% static (colour, name, range, icon) EXCEPT the count — so the whole
+// structure is hardcoded and painted immediately; only the number waits on the DB.
+const AGE_TILES=[
+  {cls:'green', color:'#4ade80', icon:'check-circle', name:'GREEN',  range:'(0-96 hrs / 0-4 days)'},
+  {cls:'yellow',color:'#fbbf24', icon:'clock',        name:'YELLOW', range:'(96-168 hrs / 4-7 days)'},
+  {cls:'red',   color:'#ff5252', icon:'alert',        name:'RED',    range:'(168-240 hrs / 7-10 days)'},
+  {cls:'black', color:'#888',    icon:'flame',        name:'BLACK',  range:'(&gt;240 hrs / &gt;10 days)'},
+  {cls:'purple',color:'#a78bfa', icon:'reopen',       name:'PURPLE', range:'(Reopened)'},
+];
+// Static skeleton for the Ticket Age Classification card: intro + all 5 tiles with a spinner in
+// the count slot. No data needed — rendered eagerly. renderAgeChunk() later fills the counts.
+function ageCardSkeletonHtml(){
+  const tiles=AGE_TILES.map(function(t){
+    return '<div class="kpi-card age-tile" id="ageTile-'+t.cls+'" style="border-top-color:'+t.color+'">'+
+      '<div class="value" id="ageCount-'+t.cls+'" style="color:'+t.color+'"><span class="num-spinner"></span></div>'+
+      '<div class="age-name" id="ageName-'+t.cls+'">'+ic(t.icon,14)+' '+t.name+'</div>'+
+      '<div class="age-range">'+t.range+'</div>'+
+    '</div>';
+  }).join('');
+  return '<p class="meta-info">Open tickets classified by age. Click any tile to see which agents hold those tickets.</p>'+
+    '<div class="kpi-grid age-grid">'+tiles+'</div>';
+}
+
 // ---- Per-card renderers (fill the card body from the chunk payload) ----
+// Fills ONLY the dynamic bits of the (already-painted) age card: the counts, click handlers, and
+// blink state. The tiles/labels/ranges/colours were rendered statically by ageCardSkeletonHtml().
 function renderAgeChunk(d){
   const slot=document.getElementById('dashAgeBody');if(!slot)return;
+  // If the static skeleton isn't there yet (edge case), paint it first.
+  if(!document.getElementById('ageCount-green')) slot.innerHTML=ageCardSkeletonHtml();
   // d is the /api/dash/age-detail payload: per-colour arrays of slim tickets. Cache them so the
   // color popups + agent drill-down + CSV work without loading the full dataset.
   DASH_COLOR_TICKETS={
@@ -1628,22 +1674,23 @@ function renderAgeChunk(d){
     if(!allowed)return false;     // roster not loaded yet -> don't false-blink
     return !allowed.has(a);       // assigned outside owner/manager/admin -> blink
   });
-  const tile=(color,cls,icon,name,range,list,blink,warn)=>
-    '<div class="kpi-card age-tile'+(blink?' blink-alert':'')+'" style="border-top-color:'+color+';cursor:pointer" onclick="showColorPopup(\''+cls+'\')">'+
-      '<div class="value kpi-anim" data-kpi-val="'+list.length+'" style="color:'+color+'"></div>'+
-      '<div class="age-name">'+ic(icon,14)+' '+name+(warn?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':'')+'</div>'+
-      '<div class="age-range">'+range+'</div>'+
-    '</div>';
-  slot.innerHTML='<p class="meta-info">Open tickets classified by age. Click any tile to see which agents hold those tickets.</p>'+
-    '<div class="kpi-grid">'+
-      tile('#4ade80','green','check-circle','GREEN','(0-96 hrs / 0-4 days)',ct.green,false,false)+
-      tile('#fbbf24','yellow','clock','YELLOW','(96-168 hrs / 4-7 days)',ct.yellow,false,false)+
-      tile('#ff5252','red','alert','RED','(168-240 hrs / 7-10 days)',ct.red,false,false)+
-      tile('#888','black','flame','BLACK','(&gt;240 hrs / &gt;10 days)',ct.black,blackBlink,false)+
-      tile('#a78bfa','purple','reopen','PURPLE','(Reopened)',ct.purple,purpleBlink,purpleBlink)+
-    '</div>';
-  // Animate each tile number from a brief scramble into its real value (same effect as the summary KPIs).
-  slot.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
+  AGE_TILES.forEach(function(t){
+    const list=ct[t.cls]||[];
+    const tile=document.getElementById('ageTile-'+t.cls);
+    if(tile){
+      tile.style.cursor='pointer';
+      tile.onclick=function(){ showColorPopup(t.cls); };
+      const blink=(t.cls==='black')?blackBlink:(t.cls==='purple')?purpleBlink:false;
+      tile.classList.toggle('blink-alert',!!blink);
+      if(t.cls==='purple'){
+        const nm=document.getElementById('ageName-purple');
+        if(nm) nm.innerHTML=ic(t.icon,14)+' '+t.name+(purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':'');
+      }
+    }
+    // Fill + animate the count.
+    const cel=document.getElementById('ageCount-'+t.cls);
+    if(cel){ cel.classList.add('kpi-anim'); countUpKpi(cel, String(list.length)); }
+  });
 }
 function renderQueueChunk(d){
   const slot=document.getElementById('dashQueueBody');if(!slot)return;
@@ -1753,6 +1800,28 @@ function renderSummaryInto(d){
   document.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
 
+// Shared dashboard page-title row: "Q3 2026" on the left, "LIVE" badge on the right, and the
+// Alerts / Upload / Uploaded-data-log action buttons. On narrow widths the action buttons collapse
+// to icon-only (the label is hidden; the button's title provides a hover tooltip) and spread
+// across the available width. Returns the full <div class="dash-title-row"> HTML.
+function dashPageTitleRow(){
+  const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
+  const isAdmin=window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin');
+  let actions='';
+  if(loggedIn){
+    // Alerts (with its live badge + id).
+    actions='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label"> Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
+    if(isAdmin){
+      actions+='<button type="button" class="btn sec dash-act" title="Upload new data" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+'<span class="dash-act-label"> Upload new data</span></button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
+    }
+    actions+='<a class="btn sec dash-act" href="data-log.html" title="Uploaded data log">'+ic('history',15)+'<span class="dash-act-label"> Uploaded data log</span></a>';
+  }
+  return '<div class="dash-title-row">'+
+      '<h1 class="dash-title-h1">Q3 2026 <span class="live-badge">LIVE</span></h1>'+
+      (loggedIn?('<span class="dash-actions">'+actions+'</span>'):'')+
+    '</div>';
+}
+
 // The chunked dashboard view. Summary loads immediately (cached); the 7 cards below are
 // collapsed and load lazily on first expand.
 function renderDashboardChunked(){
@@ -1762,18 +1831,15 @@ function renderDashboardChunked(){
   // KPI slot with the archive-style scramble animation while /api/dash/summary loads.
   // scrMax = plausible flicker upper bound; pct=true renders a % during the scramble.
   const kpiSpin=(cls,label,scrMax,pct)=>'<div class="kpi-card '+(cls||'')+'"><div class="value scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</div><div class="label">'+label+'</div></div>';
-  const headerRight=loggedIn?('<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">'+ic('alert',15)+' Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>'+((window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?('<button type="button" class="btn sec" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+' Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">'):'')+'<a class="btn sec" href="data-log.html">'+ic('history',15)+' Uploaded data log</a></span>'):'';
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
-    '<div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">'+
-      '<h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>'+headerRight+
-    '</div>'+
+    dashPageTitleRow()+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>'+
     '<div class="kpi-grid" id="dashSumTotals" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('ticket',14)+' Total Tickets',9000)+kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets',500)+'</div>'+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>'+
     '<div class="kpi-grid" id="dashSumAvg" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000)+'</div>'+
     '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>'+
     '<div class="kpi-grid" id="dashSumRepeat" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('paw',14)+' % of HI involving pet incidents',100,true)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100)+kpiSpin('',ic('repeat',14)+' % of HI involving non-pet incidents',100,true)+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI',100,true)+'</div>'+
-    dashStaticCard('clock','Ticket Age Classification','dashAgeBody')+
+    dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
     dashCard('queue','grid','Queue Status','dashQueueBody')+
     dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
     dashCard('weekly','bar-chart','Weekly Volume','dashWeeklyBody')+
