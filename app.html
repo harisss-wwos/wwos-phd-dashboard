@@ -64,12 +64,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
 .section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
 .section h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
-/* Collapsible sections */
+/* Collapsible sections — animated via grid-template-rows (0fr<->1fr) so height eases smoothly. */
+.section.collapsible{display:grid;grid-template-rows:auto 1fr;transition:grid-template-rows .3s ease}
 .section.collapsible>h2{cursor:pointer;user-select:none;justify-content:space-between}
-.section.collapsible>h2 .sec-caret{margin-left:auto;color:var(--tm);transition:transform .2s;font-size:.8em}
+.section.collapsible>h2 .sec-caret{margin-left:auto;color:var(--tm);transition:transform .3s ease;font-size:.8em}
+.section.collapsible>.sec-body{overflow:hidden;min-height:0;transition:opacity .3s ease}
+.section.collapsible.collapsed{grid-template-rows:auto 0fr}
 .section.collapsible.collapsed>h2{margin-bottom:0}
 .section.collapsible.collapsed>h2 .sec-caret{transform:rotate(-90deg)}
-.section.collapsible.collapsed>.sec-body{display:none}
+.section.collapsible.collapsed>.sec-body{opacity:0}
 /* Grouped chart pair section: two charts side by side, stacked on mobile */
 .section .pair-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
 @media(max-width:920px){.section .pair-grid{grid-template-columns:1fr}}

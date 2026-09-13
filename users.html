@@ -27,14 +27,17 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:24px;margin-bottom:22px}
 .card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
 /* Collapsible cards: the h2 is the click target; a caret shows state. */
-.card>h2{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:margin .15s}
-.card>h2 .card-caret{color:var(--tm);font-size:.9em;transition:transform .2s;flex-shrink:0}
+.card>h2{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:margin .3s ease}
+.card>h2 .card-caret{color:var(--tm);font-size:.9em;transition:transform .3s ease;flex-shrink:0}
 .card.collapsed>h2{margin-bottom:0}
 .card.collapsed>h2 .card-caret{transform:rotate(-90deg)}
 .card-h{display:inline-flex;align-items:center;gap:9px;min-width:0}
 .card-h svg{width:18px;height:18px;flex-shrink:0;color:var(--o)}
-/* When collapsed, hide everything in the card except its h2 header. */
-.card.collapsed>*:not(h2){display:none!important}
+/* Collapsible cards animate height via grid-template-rows (auto 1fr <-> auto 0fr), ~300ms.
+   The card content (everything after the h2) is wrapped in .card-body by wireCollapsibleCards(). */
+.card{display:grid;grid-template-rows:auto 1fr;transition:grid-template-rows .3s ease}
+.card.collapsed{grid-template-rows:auto 0fr}
+.card-body{overflow:hidden;min-height:0}
 table{width:100%;border-collapse:collapse}
 th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
 td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
@@ -62,7 +65,7 @@ input:focus{outline:none;border-color:var(--o)}
 </style>
 </head>
 <body data-nav-active="users" data-back-href="index.html" data-back-label="Home">
-<div class="top-bar">
+<div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
@@ -310,6 +313,10 @@ function wireCollapsibleCards(){
     var caret=document.createElement('span'); caret.className='card-caret'; caret.textContent='▾'; caret.setAttribute('aria-hidden','true');
     h2.appendChild(caret);
     h2.setAttribute('role','button'); h2.setAttribute('tabindex','0');
+    // Wrap everything after the h2 into a .card-body so the card can animate its height (grid-rows).
+    var body=document.createElement('div'); body.className='card-body';
+    var n=h2.nextSibling; while(n){ var next=n.nextSibling; body.appendChild(n); n=next; }
+    card.appendChild(body);
     h2.addEventListener('click',function(){ card.classList.toggle('collapsed'); });
     h2.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.classList.toggle('collapsed'); } });
     if(card.id!=='addUserCard')card.classList.add('collapsed');   // collapse all except Add User

@@ -43,10 +43,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .collapsible.open .collapse-head{margin-bottom:18px}
 .collapse-title{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .collapse-head{min-width:0}
-.collapse-caret{color:var(--tm);transition:transform .18s;font-size:.8em}
+.collapse-caret{color:var(--tm);transition:transform .3s ease;font-size:.8em}
 .collapsible.open .collapse-caret{transform:rotate(180deg)}
-.collapse-body{display:none}
-.collapsible.open .collapse-body{display:block}
+/* Animated via grid-template-rows (auto 0fr <-> auto 1fr), ~300ms. */
+.section.collapsible{display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
+.section.collapsible.open{grid-template-rows:auto 1fr}
+.collapse-body{overflow:hidden;min-height:0;transition:opacity .3s ease;opacity:0}
+.collapsible.open .collapse-body{opacity:1}
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
 .chart-box{background:var(--s);border-radius:8px;padding:20px;border:1px solid var(--bd)}
 .chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -129,7 +132,7 @@ tr:hover{background:rgba(255,153,0,.03)}
 </style>
 </head>
 <body data-nav-active="" data-nav-hide="home,dashboard,tools" data-back-href="index.html" data-back-label="All Dashboards">
-<div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a></div>
+<div class="top-bar" style="visibility:hidden"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a></div>
 <div id="app"><div class="spinner"></div></div>
 
 <div class="inc-modal-bg" id="incModalBg" onclick="if(event.target===this)closeIncidentModal()">

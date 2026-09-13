@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Profile · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
+.mini-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+.av-spinner{width:64px;height:64px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{width:90%;margin:0 auto;padding:32px 20px}
+.back{color:var(--tm);font-size:.85em;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:22px}
+.back:hover{color:var(--o)}
+/* Compact profile header: avatar | name/@login | role badge + timezone (right) */
+.prof-card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.prof-av{width:64px;height:64px;display:inline-flex;flex-shrink:0}
+.prof-av .phd-avatar,.prof-av img,.prof-av .avatar-initial{width:64px!important;height:64px!important;font-size:26px!important}
+.prof-id-col{display:flex;flex-direction:column;gap:2px;min-width:0}
+.prof-name{color:#fff;font-size:1.25em;font-weight:700;line-height:1.2}
+.prof-id{color:var(--tm);font-size:.85em}
+.prof-meta{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.prof-role{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border-radius:20px;padding:4px 11px;border:1px solid #2a2a2a;background:#1a2230;color:#9fb0c3}
+.prof-role.role-owner{background:#2a1d10;color:#f0b45a;border-color:#5a3d18}
+.prof-role.role-admin{background:#101f2a;color:#57b6e6;border-color:#1c3d52}
+.prof-role.role-manager{background:#1a1030;color:#b087f0;border-color:#392561}
+.prof-role.role-editor{background:#0f1f14;color:#4ade80;border-color:#1c4029}
+.prof-tz{display:inline-flex;align-items:center;gap:5px;color:var(--tm);font-size:.82em}
+/* Even spacing down the page: active-cases section + overview list share the same top gap */
+#activeCasesSec{margin-top:14px}
+.gate{text-align:center;padding:60px 20px}
+.gate h1{color:#fff;font-size:1.5em;margin-bottom:10px}
+.gate p{color:var(--tm);margin-bottom:20px}
+/* Collapsible overview sections (gradient background, expand/collapse) */
+.ov-list{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+/* Animated via grid-template-rows (auto 0fr collapsed <-> auto 1fr open), ~300ms. */
+.ov-sec{border:1px solid var(--bd);border-left:4px solid var(--o);border-radius:12px;overflow:hidden;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
+.ov-sec.open{grid-template-rows:auto 1fr}
+.ov-head{display:flex;align-items:center;gap:12px;width:100%;padding:16px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ov-head:hover{background:rgba(255,255,255,.05)}
+.ov-title{color:#fff;font-weight:700;font-size:1.02em;display:inline-flex;align-items:center;gap:10px}
+.ov-caret{margin-left:auto;color:var(--tm);transition:transform .3s ease;flex-shrink:0}
+.ov-sec.open .ov-caret{transform:rotate(180deg)}
+.ov-body{overflow:hidden;min-height:0;padding:0 20px;transition:opacity .3s ease,padding .3s ease;opacity:0}
+.ov-sec.open .ov-body{opacity:1;padding:4px 20px 20px}
+.ov-empty{color:var(--tm);font-size:.9em;font-style:italic}
+/* Nicer empty-state block for SLA / RootCause when there's nothing in the window. */
+.ov-none{display:flex;align-items:center;gap:8px;color:var(--tm);font-size:.85em;background:#000;border:1px dashed var(--bd);border-radius:10px;padding:12px 14px}
+.ov-none .dot{width:7px;height:7px;border-radius:50%;background:var(--tm);flex-shrink:0}
+/* Active cases: total line, sub-headings, and count tiles */
+.ac-total{color:#fff;font-weight:700;font-size:1.05em;margin:6px 0 14px}
+.ac-sub{color:#cfd6d6;font-size:.75em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+.ac-sub::before{content:"";width:3px;height:.95em;background:var(--o);border-radius:2px;flex-shrink:0}
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.ac-tile{background:#000;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:8px;padding:14px 10px;text-align:center}
+.ac-num{font-size:1.7em;font-weight:800;color:#fff;line-height:1}
+.ac-lbl{color:var(--tm);font-size:.76em;margin-top:6px;line-height:1.3;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;overflow-wrap:anywhere}
+/* Multi-line labels (with explicit <br> breaks) stack normally instead of clamping to one box. */
+.ac-lbl-multi{display:block;-webkit-line-clamp:none;line-clamp:none;overflow:visible}
+/* Date/time range caption under an overview section title. */
+.ov-range{color:var(--tm);font-size:.82em;margin:2px 0 6px}
+/* Overview closure-code tiles: lay out in a single horizontal row (equal width, wrap on narrow screens). */
+.ac-grid-row{display:flex;flex-wrap:wrap;gap:10px}
+.ac-grid-row .ac-tile{flex:1 1 0;min-width:120px}
+/* RootCause breakdown: ranked rows, count pill, label with a subtle relative bar. */
+.rc-kinds{color:var(--tm);font-weight:400;text-transform:none;letter-spacing:0;font-size:.9em}
+.rc-list{display:flex;flex-direction:column;gap:6px}
+.rc-list-scroll{max-height:360px;overflow-y:auto;padding-right:4px}
+.rc-list-scroll::-webkit-scrollbar{width:8px}
+.rc-list-scroll::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:6px}
+.rc-row{display:flex;align-items:center;gap:12px;background:#000;border:1px solid var(--bd);border-radius:8px;padding:8px 12px;transition:border-color .15s,background .15s}
+.rc-row:hover{border-color:#3a3a3a;background:#080808}
+.rc-rank{color:#5f6b6c;font-size:.72em;font-weight:700;min-width:1.6em;text-align:right;flex-shrink:0}
+.rc-count{font-weight:800;color:#000;background:var(--o);font-size:.9em;min-width:2em;height:2em;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;flex-shrink:0;padding:0 6px}
+.rc-label{color:var(--t);font-size:.9em;overflow-wrap:anywhere;position:relative;flex:1;padding-bottom:5px}
+.rc-bar{position:absolute;left:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--o),transparent);border-radius:2px;opacity:.55}
+/* SLA compliance card with a progress bar. */
+.ac-sub-note{text-transform:none;letter-spacing:0;font-weight:400}
+.sla-card{background:#000;border:1px solid var(--bd);border-radius:10px;padding:14px 16px}
+.sla-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.sla-pct{font-size:2em;font-weight:800;line-height:1}
+.sla-unit{font-size:.5em;font-weight:700;margin-left:2px}
+.sla-detail{color:var(--tm);font-size:.85em}
+.sla-track{height:8px;background:#161616;border-radius:6px;overflow:hidden}
+.sla-fill{display:block;height:100%;border-radius:6px;transition:width .6s ease}
+/* Rolling/Calendar mode toggle. */
+.ov-mode{display:inline-flex;border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin:2px 0 8px}
+.ov-mode-btn{background:transparent;border:none;color:var(--tm);font:inherit;font-size:.8em;font-weight:600;padding:5px 14px;cursor:pointer}
+.ov-mode-btn+.ov-mode-btn{border-left:1px solid var(--bd)}
+.ov-mode-btn:hover{color:var(--t)}
+.ov-mode-btn.on{background:var(--o);color:#000}
+/* Quarterly per-quarter blocks — each a collapsible card (collapsed by default). */
+.ov-qblock{border:1px solid var(--bd);border-radius:10px;margin-bottom:12px;background:rgba(255,255,255,.02);overflow:hidden;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
+.ov-qblock.open{grid-template-rows:auto 1fr}
+.ov-qblock:last-child{margin-bottom:0}
+.ov-qhead{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ov-qhead:hover{background:rgba(255,255,255,.04)}
+.ov-qname{color:#fff;font-weight:800;font-size:1.0em}
+.ov-qtot{color:var(--tm);font-weight:600;font-size:.85em}
+.ov-qblock.open .ov-caret{transform:rotate(180deg)}
+.ov-qbody{overflow:hidden;min-height:0}
+.ov-qbody-in{padding:0 14px 14px}
+/* Quarterly loading shimmer cards. */
+.ov-qsk .ov-qhead{cursor:default}
+.ov-qsk .ov-caret{opacity:.35}
+.qsk-name{position:relative;overflow:hidden;display:inline-block;height:1.05em;width:140px;background:#161616;border-radius:6px}
+.qsk-name::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:rcShimmer 1.3s infinite}
+/* Shimmer skeleton row (shown while the window's data loads). */
+.rc-row.rc-sk{position:relative;overflow:hidden;background:#0f0f0f}
+.rc-row.rc-sk::after{content:'';position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:rcShimmer 1.3s infinite}
+.rc-sk .rc-count,.rc-sk .rc-label{background:#1a1a1a;border-radius:6px;color:transparent}
+.rc-sk .rc-count{width:2.2em;height:1em}
+.rc-sk .rc-label{height:1em;flex:1}
+@keyframes rcShimmer{100%{left:150%}}
+/* Editor bucket popup (ported from Agent Analytics). */
+.btn.mini{padding:5px 12px;font-size:.78em}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:820px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px}
+.modal-head h2{color:var(--o);font-size:1.1em;font-weight:700;text-transform:none;letter-spacing:0}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#fff}
+.bk-sub{color:var(--tm);font-size:.85em;margin-bottom:16px}
+.bk-tk{background:#000;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:10px;padding:14px 16px;margin-bottom:14px;text-align:left}
+.bk-tk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.bk-id{color:#44b9d6;font-weight:700;text-decoration:none}.bk-id:hover{text-decoration:underline}
+.bk-title{color:var(--t);font-size:.9em;margin-bottom:10px;line-height:1.5}
+.bk-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm);margin-bottom:10px}
+.bk-meta b{color:#fff;font-weight:600}
+.bk-rem{font-weight:700}.bk-rem.ok{color:var(--gl)}.bk-rem.warn{color:var(--yl)}.bk-rem.over{color:var(--rl)}
+.bk-cmts{border-top:1px solid rgba(255,255,255,.08);padding-top:10px}
+.bk-cmts-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px}
+.bk-cmt{background:#0a0a0a;border:1px solid var(--bd);border-radius:8px;padding:8px 11px;margin-bottom:7px}
+.bk-cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.72em;color:#5f6b6c;margin-bottom:3px}
+.bk-cmt-meta b{color:#d5dbdb}
+.bk-cmt-text{color:var(--t);font-size:.85em;white-space:pre-wrap;line-height:1.5}
+.bk-nocmt{color:#5f6b6c;font-size:.82em;font-style:italic}
+.bk-empty{text-align:center;color:var(--tm);padding:30px;border:1px dashed var(--bd);border-radius:10px}
+.ac-bucket-btn{margin-left:12px}
+</style>
+</head>
+<body data-nav-active="agent-analytics" data-back-href="agent-analytics.html" data-back-label="Agent Analytics">
+<!-- Hidden until topbar-auth.js swaps in the full toolbar (prevents a logo-only flash on load). -->
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:220px"><div class="spinner"></div></div>
+</div>
+
+<!-- Editor bucket popup (same as Agent Analytics) -->
+<div class="modal-bg" id="bucketModal" onclick="if(event.target===this)closeBucket()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="bucketTitle">Bucket</h2><button class="modal-close" onclick="closeBucket()" aria-label="Close">&times;</button></div>
+    <p class="bk-sub" id="bucketSub"></p>
+    <div id="bucketBody"></div>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Agent Profile</h1><p>'+msg+'</p><a class="btn" href="agent-analytics.html">Back to Agent Analytics</a></div>';}
+
+// ---- Editor "Check bucket" popup (open live tickets + comments), same as Agent Analytics ----
+let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
+A.myTimezone && A.myTimezone().then(function(tz){ if(tz) MY_TZ=tz; }).catch(function(){});
+function fmtTZ(iso){if(!iso)return '\u2014';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
+function slaRem(deadlineIso){
+  if(!deadlineIso)return {cls:'',txt:'\u2014'};
+  const ms=new Date(deadlineIso)-new Date();
+  const over=ms<=0;const abs=Math.abs(ms);
+  const d=Math.floor(abs/86400000),h=Math.floor((abs%86400000)/3600000);
+  const span=(d>0?d+'d ':'')+h+'h';
+  if(over)return {cls:'over',txt:'Overdue by '+span};
+  return {cls:(ms<=48*3600000?'warn':'ok'),txt:span+' left'};
+}
+function ageText(ageHours){
+  if(ageHours==null)return '\u2014';
+  const d=Math.floor(ageHours/24),h=Math.floor(ageHours%24);
+  return (d>0?d+'d ':'')+h+'h';
+}
+async function openBucket(username){
+  document.getElementById('bucketTitle').textContent='Bucket \u00b7 '+username;
+  document.getElementById('bucketSub').textContent='Open (live) tickets assigned to '+username+'. Times in '+MY_TZ+'.';
+  document.getElementById('bucketBody').innerHTML='<div style="display:flex;justify-content:center;padding:30px"><div class="spinner"></div></div>';
+  document.getElementById('bucketModal').style.display='flex';
+  const r=await A.api('GET','/api/agent-bucket?username='+encodeURIComponent(username));
+  const body=document.getElementById('bucketBody');
+  if(!r.ok){body.innerHTML='<p style="color:var(--rl)">Could not load bucket (HTTP '+r.status+').</p>';return;}
+  const tix=(r.data&&r.data.tickets)||[];
+  if(!tix.length){body.innerHTML='<div class="bk-empty">No open tickets assigned to '+esc(username)+' right now. \ud83c\udf89</div>';return;}
+  body.innerHTML=tix.map(function(t){
+    const rem=slaRem(t.deadline);
+    const cmts=(t.comments||[]);
+    const cmtHtml=cmts.length
+      ? cmts.map(function(c){return '<div class="bk-cmt"><div class="bk-cmt-meta"><span>by <b>'+esc(c.user)+'</b></span><span>'+fmtTZ(c.at)+'</span></div><div class="bk-cmt-text">'+esc(c.text)+'</div></div>';}).join('')
+      : '<div class="bk-nocmt">No comments on this ticket yet.</div>';
+    return '<div class="bk-tk">'+
+      '<div class="bk-tk-head"><a class="bk-id" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId)+'</a>'+
+        '<span class="bk-rem '+rem.cls+'">'+rem.txt+'</span></div>'+
+      (t.title?('<div class="bk-title">'+esc(t.title)+'</div>'):'')+
+      '<div class="bk-meta"><span>Created: <b>'+fmtTZ(t.createDate)+'</b></span><span>Age: <b>'+ageText(t.ageHours)+'</b></span><span>Status: <b>'+esc(t.status||'')+'</b></span></div>'+
+      '<div class="bk-cmts"><div class="bk-cmts-t">Comments ('+cmts.length+')</div>'+cmtHtml+'</div>'+
+    '</div>';
+  }).join('');
+}
+function closeBucket(){document.getElementById('bucketModal').style.display='none';}
+window.openBucket=openBucket;window.closeBucket=closeBucket;
+
+function loginFromUrl(){ try{ return (new URLSearchParams(location.search).get('user')||'').trim(); }catch(e){ return ''; } }
+
+const ROLE_LABEL={owner:'Owner',admin:'Admin',manager:'Manager',editor:'Editor',user:'User'};
+
+// Animate a number element from a brief scramble into its real value (ease-out count-up).
+// "tally" = the shared number-reveal animation (placeholder -> scramble -> count-up). Defined in
+// api-config.js as A.tally / A.tallyPlaceholder; countUp is kept as a thin local alias.
+function countUp(el,target){ A.tally(el,target); }
+
+// Static skeleton for the whole page — everything that does NOT come from the DB is hardcoded and
+// painted immediately (header shell, all tile labels, overview sections). Only the numbers +
+// avatar/name/role/tz are filled in by the fetches, with a scramble animation on the counts.
+function pageSkeletonHtml(login){
+  const active=
+    '<div class="ov-sec open" id="activeCasesSec" style="border-left-color:#4ade80;background:linear-gradient(135deg,#4ade8026,#4ade800d 45%,#0a0a0a 100%)">'+
+      '<button type="button" class="ov-head" aria-expanded="true" onclick="toggleOverview(this)">'+
+        '<span class="ov-title">'+(window.icon?window.icon('ticket',16):'')+'<span>Active cases handled (<span id="acTotal" class="tally-ph"></span>)</span></span>'+
+        '<span id="acBucketBtn" class="ac-bucket-btn"></span>'+
+        '<span class="ov-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="ov-body"><div id="acBody">'+
+        '<div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div>'+
+      '</div></div>'+
+    '</div>';
+  return '<a class="back" href="agent-analytics.html">'+(window.icon?window.icon('grid',14):'')+' Back to Agent Analytics</a>'+
+    '<div class="prof-card">'+
+      '<div class="prof-av" id="profAv"><div class="av-spinner"></div></div>'+
+      '<div class="prof-id-col">'+
+        '<div class="prof-name" id="profName"><span class="mini-spinner"></span></div>'+
+        '<div class="prof-id">@'+esc(login)+'</div>'+
+      '</div>'+
+      '<div class="prof-meta" id="profMeta"><span class="mini-spinner"></span></div>'+
+    '</div>'+
+    active+
+    overviewSectionsHtml();
+}
+
+function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  // Agent profiles are viewable by admin and above (same as Agent Analytics).
+  if(!(A.atLeast&&A.atLeast('admin'))){gate('Admin, manager, or owner access required. Your role: '+(A.role?A.role():'user')+'.');return;}
+  const login=loginFromUrl();
+  if(!login){gate('No agent specified.');return;}
+  PROFILE_LOGIN=login;
+
+  // Paint the full static structure IMMEDIATELY (no full-page spinner).
+  document.getElementById('wrap').innerHTML=pageSkeletonHtml(login);
+  // Fill the data bits in the background.
+  fillHeader(login);
+  loadActiveCases(login);
+}
+
+// Fill avatar + display name + role/timezone (best-effort; header already shows the login).
+async function fillHeader(login){
+  let displayName='',avatar='';
+  try{
+    const r=await A.api('GET','/api/user-roles');
+    if(r.ok&&Array.isArray(r.data)){ const u=r.data.find(x=>(x.username||'').toLowerCase()===login.toLowerCase()); if(u)displayName=u.displayName||''; }
+  }catch(e){}
+  try{
+    const r=await A.api('GET','/api/user-avatars');
+    if(r.ok&&r.data&&typeof r.data==='object'){ const key=Object.keys(r.data).find(k=>k.toLowerCase()===login.toLowerCase()); if(key)avatar=r.data[key]; }
+  }catch(e){}
+  const av=document.getElementById('profAv');
+  if(av) av.innerHTML=A.avatarHtml?A.avatarHtml({username:login,displayName:displayName,avatar:avatar},64):'';
+  const nm=document.getElementById('profName'); if(nm) nm.textContent=displayName||login; // clear spinner -> name (or login)
+}
+
+async function loadActiveCases(login){
+  let d=null;
+  try{ const r=await A.api('GET','/api/agent-summary?username='+encodeURIComponent(login)); if(r.ok&&r.data)d=r.data; }catch(e){}
+  // Header meta (role badge + default timezone) — always clear the spinner.
+  const meta=document.getElementById('profMeta');
+  if(meta){
+    const roleTxt=(d&&d.role)?(ROLE_LABEL[d.role]||d.role):'';
+    const tz=(d&&d.timezone)||'';
+    meta.innerHTML=(roleTxt?('<span class="prof-role role-'+esc((d&&d.role)||'')+'">'+esc(roleTxt)+'</span>'):'')+
+      (tz?('<span class="prof-tz">'+(window.icon?window.icon('clock',13):'')+' '+esc(tz)+'</span>'):'');
+  }
+  // "Check bucket" — only for EDITOR agents (their open assigned tickets + comments). Rendered as a
+  // span (role=button) since it sits inside the section-header <button>; stopPropagation avoids toggling.
+  const bb=document.getElementById('acBucketBtn');
+  if(bb){
+    if(d&&d.role==='editor'){
+      bb.innerHTML='<span class="btn sec mini" role="button" tabindex="0" onclick="event.stopPropagation();openBucket(\''+esc(login)+'\')">Check bucket</span>';
+    } else { bb.innerHTML=''; }
+  }
+  if(!d){ // fetch failed
+    const total=document.getElementById('acTotal'); if(total){ total.classList.remove('tally-ph'); total.textContent='0'; }
+    const acb=document.getElementById('acBody'); if(acb) acb.innerHTML='<p class="ov-empty">Could not load active cases.</p>';
+    return;
+  }
+  const sc=d.statusCounts||{}, c=d.colors||{};
+  // Build the tile grid now that data has arrived (a big spinner showed until this point).
+  const statTile=function(v,label){ return '<div class="ac-tile"><div class="ac-num tally-ph" data-v="'+(v||0)+'">\u2014</div><div class="ac-lbl">'+label+'</div></div>'; };
+  const colorTile=function(v,label,color){ return '<div class="ac-tile" style="border-top-color:'+color+'"><div class="ac-num tally-ph" data-v="'+(v||0)+'" style="color:'+color+'">\u2014</div><div class="ac-lbl">'+label+'</div></div>'; };
+  const acb=document.getElementById('acBody');
+  if(acb){
+    acb.innerHTML=
+      '<div class="ac-sub">By status</div><div class="ac-grid">'+
+        statTile(sc['Assigned'],'Assigned')+statTile(sc['Work In Progress'],'Work In Progress')+statTile(sc['Pending'],'Pending')+statTile(sc['Researching'],'Researching')+
+      '</div>'+
+      '<div class="ac-sub">By age colour</div><div class="ac-grid">'+
+        colorTile(c.green,'Green','#4ade80')+colorTile(c.yellow,'Yellow','#fbbf24')+colorTile(c.red,'Red','#ff5252')+colorTile(c.black,'Black','#888')+colorTile(c.purple,'Purple','#a78bfa')+
+      '</div>';
+    acb.querySelectorAll('.ac-num[data-v]').forEach(function(el){ A.tally(el, el.getAttribute('data-v')); });
+  }
+  countUp(document.getElementById('acTotal'),d.open||0);   // title total
+}
+
+// Collapsible "overview" sections (content TBD). Each gets a gradient background + a caret.
+const OVERVIEWS=[
+  {key:'12h',      icon:'clock',    title:'12 Hour Overview',   grad:'#44b9d6'},
+  {key:'daily',    icon:'calendar', title:'Daily Overview',     grad:'#4ade80'},
+  {key:'weekly',   icon:'calendar', title:'Weekly Overview',    grad:'#fbbf24'},
+  {key:'monthly',  icon:'calendar', title:'Monthly Overview',   grad:'#a78bfa'},
+  {key:'quarterly',icon:'bar-chart',title:'Quarterly Overview', grad:'#ff9900'},
+  {key:'ytd',      icon:'bar-chart',title:'Year-to-Date Overview',grad:'#f472b6'},
+];
+function overviewSectionsHtml(){
+  return '<div class="ov-list">'+OVERVIEWS.map(function(o){
+    return '<div class="ov-sec" data-ov="'+o.key+'" style="border-left-color:'+o.grad+';background:linear-gradient(135deg,'+o.grad+'26,'+o.grad+'0d 45%,#0a0a0a 100%)">'+
+      '<button type="button" class="ov-head" aria-expanded="false" onclick="toggleOverview(this)">'+
+        '<span class="ov-title">'+(window.icon?window.icon(o.icon,16):'')+'<span>'+esc(o.title)+'<span id="ovTitleTotal-'+o.key+'"></span></span></span>'+
+        '<span class="ov-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="ov-body"><div id="ovBody-'+o.key+'"><p class="ov-empty">Content coming soon.</p></div></div>'+
+    '</div>';
+  }).join('')+'</div>';
+}
+function toggleOverview(btn){
+  const sec=btn.closest('.ov-sec'); if(!sec)return;
+  const open=sec.classList.toggle('open');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  // On FIRST expand of a section that has a loader, fetch its data (then cache).
+  const key=sec.getAttribute('data-ov');
+  if(open&&key&&OV_LOADERS[key]&&!OV_LOADED[key]){ OV_LOADED[key]=true; OV_LOADERS[key](); }
+}
+window.toggleOverview=toggleOverview;
+
+// ---- Lazy-loaded overview sections: fetch on first expand, cache the response ----
+let PROFILE_LOGIN='';
+const OV_LOADED={};   // key -> true once fetched this page-load
+const OV_CACHE={};    // key -> response data (cache so re-expand doesn't re-fetch)
+
+// Build the ordered list of display items for an overview window from its raw closure-code counts
+// (+ the windowed 1st Pet incident count). Items are SORTED BY COUNT (highest first); the fixed
+// priority list below breaks ties. "No Plan to Fix" / "No Issue" are hidden when their count is 0.
+//   priority: Successful, 1st Pet incident (handled by PHD), Auto/Immediate Resolve,
+//             Duplicate, Successful with Problems, Unsuccessful, No Plan to Fix, No Issue
+function overviewDisplayItems(d){
+  const c=d.counts||{};
+  const items=[
+    {label:'Successful',                      value:c['Successful']||0,                                                     color:'#4ade80'},
+    {label:'1st Pet incident (handled by PHD)',value:d.pet||0,                                                              color:'#f59e0b'},
+    {label:'Automatically/Immediately', labelHtml:'Automatically/<br>Immediately', value:(c['Automatically Closed']||0)+(c['Immediately Resolved']||0), color:'#44b9d6'},
+    {label:'Duplicate',                       value:c['Duplicate']||0,                                                     color:'#a78bfa'},
+    {label:'Successful with Problems',        value:c['Successful with Problems']||0,                                      color:'#fbbf24'},
+    {label:'Unsuccessful',                    value:c['Unsuccessful']||0,                                                  color:'#ff5252'},
+    {label:'No Plan to Fix',                  value:c['No Plan to Fix']||0,   hideIfZero:true,                             color:'#888'},
+    {label:'No Issue',                        value:c['No Issue']||0,         hideIfZero:true,                             color:'#888'},
+  ];
+  // Stable index = fixed priority (used as tie-breaker), then filter hidden, then sort by count desc.
+  return items
+    .map(function(it,i){ it._p=i; return it; })
+    .filter(function(it){ return !(it.hideIfZero && it.value===0); })
+    .sort(function(a,b){ return (b.value-a.value) || (a._p-b._p); });
+}
+
+// Per-section fetch mode (rolling vs calendar) and human label per key. 12h has no natural calendar
+// snap, so it isn't offered a toggle (rolling only).
+const OV_MODE={};   // key -> 'rolling' | 'calendar'
+const OV_TOGGLEABLE={ 'daily':1, 'weekly':1, 'monthly':1 };   // sections that offer the mode switch
+function ovTz(){ return new Date().getTimezoneOffset(); }
+// Format a server-provided [from,to] ms range into a caption in the viewer's local time.
+function formatRange(fromMs, toMs){
+  const opt={month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'};
+  const fmt=function(ms){ try{ return new Date(ms).toLocaleString(undefined,opt); }catch(e){ return String(new Date(ms)); } };
+  return fmt(fromMs)+' \u2013 '+fmt(toMs)+' (your local time)';
+}
+function rcShimmerRows(n){
+  var row='<div class="rc-row rc-sk"><span class="rc-count"></span><span class="rc-label"></span></div>';
+  var s=''; for(var i=0;i<(n||5);i++) s+=row; return s;
+}
+// Shimmer placeholder cards for the Quarterly section (mirror the collapsed quarter-card look).
+function qShimmerCards(n){
+  var card='<div class="ov-qblock ov-qsk"><div class="ov-qhead"><span class="qsk-name"></span><span class="ov-caret" aria-hidden="true">\u25be</span></div></div>';
+  var s=''; for(var i=0;i<(n||3);i++) s+=card; return s;
+}
+// Rolling/Calendar toggle for a section (only for toggleable keys). Reflects the current OV_MODE.
+function modeToggleHtml(key){
+  if(!OV_TOGGLEABLE[key]) return '';
+  const m=OV_MODE[key]||'rolling';
+  const btn=function(mode,txt){ return '<button type="button" class="ov-mode-btn'+(m===mode?' on':'')+'" onclick="setOverviewMode(\''+key+'\',\''+mode+'\')">'+txt+'</button>'; };
+  return '<div class="ov-mode">'+btn('rolling','Rolling')+btn('calendar','Calendar')+'</div>';
+}
+function setOverviewMode(key, mode){
+  if((OV_MODE[key]||'rolling')===mode) return;
+  OV_MODE[key]=mode;
+  loadOverviewWindow(key);   // re-fetch this section in the new mode (cached per key+mode)
+}
+window.setOverviewMode=setOverviewMode;
+
+// Render one window's data (tiles + SLA + RootCause) into a container element. Shared by the single
+// windows and each Quarterly block so the UI is identical everywhere.
+function renderOverviewInto(container, key, d){
+  const items=overviewDisplayItems(d);
+  const tiles=items.map(function(it){
+    var lblCls=it.labelHtml?'ac-lbl ac-lbl-multi':'ac-lbl';
+    return '<div class="ac-tile" style="border-top-color:'+it.color+'"><div class="ac-num tally-ph" data-v="'+it.value+'" style="color:'+it.color+'">\u2014</div><div class="'+lblCls+'" title="'+esc(it.label)+'">'+(it.labelHtml||esc(it.label))+'</div></div>';
+  }).join('');
+  container.innerHTML=
+    '<div class="ac-sub">By closure code</div><div class="ac-grid ac-grid-row">'+tiles+'</div>'+
+    slaSectionHtml(key,d)+
+    rootCausesSectionHtml(d);
+  container.querySelectorAll('.ac-num[data-v],.rc-count[data-v]').forEach(function(el){ A.tally(el, el.getAttribute('data-v')); });
+  // Animate the SLA progress bar from 0 -> its width once painted.
+  const fill=container.querySelector('.sla-fill');
+  if(fill){ const w=fill.style.width; fill.style.width='0%'; requestAnimationFrame(function(){ requestAnimationFrame(function(){ fill.style.width=w; }); }); }
+}
+
+// Generic single-window loader: fetch /api/agent-overview/<key> (with mode+tz), render into the body,
+// put the total in the section title, cache per key+mode.
+async function loadOverviewWindow(key){
+  const body=document.getElementById('ovBody-'+key); if(!body)return;
+  const mode=OV_MODE[key]||'rolling';
+  // Loading skeleton: toggle + spinner for tiles + shimmer rows for RootCause (no layout jump on load).
+  body.innerHTML=modeToggleHtml(key)+'<p class="ov-range">Loading\u2026</p>'+
+    '<div style="display:flex;justify-content:center;padding:16px"><div class="spinner"></div></div>'+
+    '<div class="ac-sub">Types of incident resolved (RootCause)</div><div class="rc-list">'+rcShimmerRows(6)+'</div>';
+  const cacheKey=key+'|'+mode;
+  let d=OV_CACHE[cacheKey];
+  if(!d){
+    try{ const r=await A.api('GET','/api/agent-overview/'+key+'?username='+encodeURIComponent(PROFILE_LOGIN)+'&mode='+mode+'&tz='+ovTz()); if(r.ok&&r.data)d=OV_CACHE[cacheKey]=r.data; }catch(e){}
+  }
+  if(!d){ body.innerHTML=modeToggleHtml(key)+'<p class="ov-empty">Could not load this overview.</p>'; return; }
+  const range=(d.from!=null&&d.to!=null)?formatRange(d.from,d.to):'';
+  body.innerHTML=modeToggleHtml(key)+'<p class="ov-range">'+esc(range)+'</p><div class="ov-render"></div>';
+  renderOverviewInto(body.querySelector('.ov-render'), key, d);
+  const tt=document.getElementById('ovTitleTotal-'+key);
+  if(tt){ tt.textContent=' ('+(d.total||0)+')'; }
+}
+
+// Quarterly loader: one block per non-empty calendar quarter of the current year.
+async function loadOverviewQuarterly(){
+  const key='quarterly';
+  const body=document.getElementById('ovBody-'+key); if(!body)return;
+  // Loading: shimmer placeholder cards matching the collapsed quarter-card layout (no layout jump).
+  body.innerHTML=qShimmerCards(3);
+  let d=OV_CACHE[key];
+  if(!d){
+    try{ const r=await A.api('GET','/api/agent-overview/quarterly?username='+encodeURIComponent(PROFILE_LOGIN)+'&tz='+ovTz()); if(r.ok&&r.data)d=OV_CACHE[key]=r.data; }catch(e){}
+  }
+  if(!d){ body.innerHTML='<p class="ov-empty">Could not load the quarterly overview.</p>'; return; }
+  const blocks=(d.blocks||[]);
+  if(!blocks.length){ body.innerHTML='<div class="ov-none"><span class="dot"></span>No resolved tickets in any quarter this year.</div>'; return; }
+  // Show most-recent quarter first (Q3, Q2, Q1). Each is its own collapsible card, collapsed by default.
+  const ordered=blocks.slice().sort(function(a,b){ return (b.quarter||'').localeCompare(a.quarter||''); });
+  body.innerHTML=ordered.map(function(b){
+    return '<div class="ov-qblock" data-q="'+esc(b.quarter)+'">'+
+      '<button type="button" class="ov-qhead" aria-expanded="false" onclick="toggleQBlock(this)">'+
+        '<span class="ov-qname">'+esc(b.label)+' <span class="ov-qtot">('+(b.total||0)+')</span></span>'+
+        '<span class="ov-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="ov-qbody"><div class="ov-qbody-in">'+
+        '<p class="ov-range">'+esc(formatRange(b.from,b.to))+'</p>'+
+        '<div class="ov-render" data-q="'+esc(b.quarter)+'"></div>'+
+      '</div></div>'+
+    '</div>';
+  }).join('');
+  // Render each quarter's content (reusing the shared renderer) even while collapsed, so the
+  // numbers/tally are ready the moment a card is expanded.
+  ordered.forEach(function(b){
+    const el=body.querySelector('.ov-render[data-q="'+b.quarter+'"]'); if(el) renderOverviewInto(el, key, b);
+  });
+  const tt=document.getElementById('ovTitleTotal-'+key);
+  if(tt){ tt.textContent=' ('+blocks.length+(blocks.length===1?' quarter':' quarters')+')'; }
+}
+// Expand/collapse a single quarter card.
+function toggleQBlock(btn){
+  const blk=btn.closest('.ov-qblock'); if(!blk)return;
+  const open=blk.classList.toggle('open');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+}
+window.toggleQBlock=toggleQBlock;
+
+// SLA sub-section: a compliance % with a progress bar (compliant / eligible), excluding
+// Auto/Immediate closure codes. Colour thresholds: >=95 green, >=80 amber, else red.
+function slaSectionHtml(key,d){
+  const sla=d.sla||{eligible:0,compliant:0,pct:null};
+  const hasData=sla.eligible>0 && sla.pct!=null;
+  const col=!hasData?'var(--tm)':(sla.pct>=95?'#4ade80':(sla.pct>=80?'#fbbf24':'#ff5252'));
+  const inner=hasData
+    ? '<div class="sla-top"><span class="sla-pct" style="color:'+col+'">'+sla.pct+'<span class="sla-unit">%</span></span>'+
+        '<span class="sla-detail">'+sla.compliant+' of '+sla.eligible+' resolved within 240h</span></div>'+
+      '<div class="sla-track"><span class="sla-fill" style="width:'+Math.min(100,sla.pct)+'%;background:'+col+'"></span></div>'
+    : '';
+  const heading='<div class="ac-sub">SLA compliance <span class="ac-sub-note">(excludes 1st Pet incident &amp; Auto/Immediate)</span></div>';
+  if(!hasData) return heading+'<div class="ov-none"><span class="dot"></span>No SLA-eligible tickets in this window.</div>';
+  return heading+'<div class="sla-card" style="border-color:'+col+'33">'+inner+'</div>';
+}
+
+// Normalize a RootCause label so equivalent values merge: strip a leading "- " (older archive
+// quarters stored causes with that prefix), collapse inner whitespace, blank -> "(blank)".
+// Spreadsheet error artifacts (e.g. "#NAME?", "#VALUE!", "#REF!") are shown as "RootCause Unknown".
+function normRootCause(k){
+  var s=String(k==null?'':k).replace(/^\s*-\s*/,'').replace(/\s+/g,' ').trim();
+  if(!s.length) return '(blank)';
+  if(/^#(NAME\?|VALUE!|REF!|N\/A|DIV\/0!|NULL!|NUM!)$/i.test(s)) return 'RootCause Unknown';
+  return s;
+}
+// RootCause breakdown sub-section: RootCause -> count, normalized + merged, sorted by count desc.
+// Long lists (e.g. YTD) scroll inside a capped box. Each row shows a rank, a count pill and the label.
+function rootCausesSectionHtml(d){
+  const rc=d.rootCauses||{};
+  const merged={};
+  Object.keys(rc).forEach(function(k){ const n=normRootCause(k); merged[n]=(merged[n]||0)+rc[k]; });
+  const entries=Object.keys(merged).map(function(k){return {label:k,value:merged[k]};})
+    .sort(function(a,b){return b.value-a.value || a.label.localeCompare(b.label);});
+  const head='<div class="ac-sub">Types of incident resolved (RootCause)'+(entries.length?' <span class="rc-kinds">'+entries.length+' type'+(entries.length===1?'':'s')+'</span>':'')+'</div>';
+  if(!entries.length) return head+'<div class="ov-none"><span class="dot"></span>No incidents resolved in this window.</div>';
+  const max=entries[0].value||1;
+  const rows=entries.map(function(e,i){
+    const w=Math.max(4,Math.round((e.value/max)*100));   // relative bar width
+    return '<div class="rc-row">'+
+      '<span class="rc-rank">'+(i+1)+'</span>'+
+      '<span class="rc-count tally-ph" data-v="'+e.value+'">\u2014</span>'+
+      '<span class="rc-label" title="'+esc(e.label)+'">'+esc(e.label)+'<span class="rc-bar" style="width:'+w+'%"></span></span>'+
+    '</div>';
+  }).join('');
+  const scrollCls=entries.length>12?' rc-list-scroll':'';
+  return head+'<div class="rc-list'+scrollCls+'">'+rows+'</div>';
+}
+// Map of section key -> loader. All six windows are wired now.
+const OV_LOADERS={
+  '12h':      function(){ loadOverviewWindow('12h'); },
+  'daily':    function(){ loadOverviewWindow('daily'); },
+  'weekly':   function(){ loadOverviewWindow('weekly'); },
+  'monthly':  function(){ loadOverviewWindow('monthly'); },
+  'quarterly':function(){ loadOverviewQuarterly(); },
+  'ytd':      function(){ loadOverviewWindow('ytd'); },
+};
+
+load();
+</script>
+</body>
+</html>

@@ -103,13 +103,13 @@ function toggleCollapse(headEl){
   const sec=headEl.closest('.collapsible');if(!sec)return;
   const isOpen=sec.classList.toggle('open');
   headEl.setAttribute('aria-expanded',isOpen?'true':'false');
-  // When expanding, resize any Chart.js canvas inside (a chart laid out while hidden has 0 size).
+  // When expanding, resize any Chart.js canvas inside AFTER the ~300ms expand animation.
   if(isOpen){
     setTimeout(function(){
       sec.querySelectorAll('canvas').forEach(function(cv){
         try{ var ch=(window.Chart&&window.Chart.getChart)?window.Chart.getChart(cv):null; if(ch)ch.resize(); }catch(e){}
       });
-    },30);
+    },340);
   }
 }
 

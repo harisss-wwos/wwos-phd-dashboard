@@ -72,17 +72,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.6}}
 /* Collapsible year sections (quarter report cards grouped by year) */
 #yearSections{width:80vw;max-width:1200px;margin-left:50%;transform:translateX(-50%);margin-top:24px}
-.year-section{border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden;background:#0a0a0a}
+.year-section{border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden;background:#0a0a0a;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
+.year-section.open{grid-template-rows:auto 1fr}
 .year-head{display:flex;align-items:center;gap:14px;width:100%;padding:16px 22px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .year-head:hover{background:rgba(255,255,255,.04)}
 .year-title{color:#fff;font-weight:700;font-size:1.15em;display:inline-flex;align-items:center;gap:10px}
 .year-title .card-ic{color:var(--o);display:inline-flex}
 .year-live-badge{color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);font-size:.6em;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.5px}
 .year-meta{margin-left:auto;color:var(--tm);font-size:.82em}
-.year-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
+.year-caret{color:var(--tm);transition:transform .3s ease;flex-shrink:0}
 .year-section.open .year-caret{transform:rotate(180deg)}
-.year-body{display:none;padding:4px 22px 20px}
-.year-section.open .year-body{display:block}
+.year-body{overflow:hidden;min-height:0;padding:0 22px;transition:padding .3s ease}
+.year-section.open .year-body{padding:4px 22px 20px}
 /* The card grid inside a year section (reuses .card styling, full-width within the section) */
 .year-body .grid{width:100%;max-width:none;margin:0;transform:none;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 /* Year-sections loading skeleton */
@@ -127,7 +128,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   #yearSections{margin:18px 0 0}
   .card{padding:20px}
   .year-head{padding:14px 16px}
-  .year-body{padding:4px 14px 16px}
+  .year-body{padding:0 14px}
+  .year-section.open .year-body{padding:4px 14px 16px}
 }
 </style>
 </head>

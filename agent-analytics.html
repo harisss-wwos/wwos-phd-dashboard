@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agent Analytics · WWOS-GSOC PHD Dashboard</title>
+<title>Analytics · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shimmer.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--pu:#a78bfa;--tl:#44b9d6}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--pu:#a78bfa;--tl:#44b9d6;--a1:#7dd3fc;--a2:#fbbf24;--b:#4ade80;--s:#000}
 .spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{100%{transform:rotate(360deg)}}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -66,13 +67,117 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .bk-cmt-text{color:var(--t);font-size:.85em;white-space:pre-wrap;line-height:1.5}
 .bk-nocmt{color:#5f6b6c;font-size:.82em;font-style:italic}
 .bk-empty{text-align:center;color:var(--tm);padding:30px;border:1px dashed var(--bd);border-radius:10px}
+/* ---- Teams (Alpha/Beta/Gamma) group cards with large avatars ---- */
+.ga-page-head{margin-bottom:22px}
+.ga-page-head h1{margin-bottom:4px}
+.ga-page-sub{color:var(--tm);font-size:.9em}
+.ga-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.ga-group{position:relative;background:linear-gradient(160deg,color-mix(in srgb,var(--gc) 13%,#0a0a0a),#0a0a0a 62%);border:1px solid var(--bd);border-radius:16px;padding:20px 18px 22px;overflow:hidden}
+.ga-group::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--gc)}
+.ga-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.ga-group-name{display:flex;align-items:center;gap:9px;font-size:1.2em;font-weight:800;letter-spacing:.4px;color:#fff}
+.ga-dot{width:11px;height:11px;border-radius:50%;background:var(--gc);box-shadow:0 0 0 4px color-mix(in srgb,var(--gc) 25%,transparent)}
+.ga-group-count{color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 35%,transparent);font-size:.74em;font-weight:700;border-radius:20px;padding:3px 11px}
+/* Team KPI strip (Resolved / Open totals). */
+.ga-team-kpis{display:flex;gap:10px;margin-bottom:16px}
+.ga-kpi{flex:1;background:rgba(0,0,0,.35);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;text-align:center}
+.ga-kpi-v{display:block;font-size:1.5em;font-weight:800;color:var(--gc);line-height:1}
+.ga-kpi-l{color:var(--tm);font-size:.68em;text-transform:uppercase;letter-spacing:.4px;margin-top:4px;display:block}
+.ga-mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.ga-mem{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:14px 8px 12px;border:1px solid var(--bd);border-radius:12px;text-decoration:none;background:rgba(0,0,0,.25);transition:transform .14s,background .14s,border-color .14s}
+.ga-mem:hover{transform:translateY(-3px);background:rgba(255,255,255,.04);border-color:color-mix(in srgb,var(--gc) 55%,var(--bd))}
+.ga-mem-av{width:60px;height:60px;display:inline-flex;border-radius:50%;box-shadow:0 0 0 2px color-mix(in srgb,var(--gc) 55%,transparent),0 4px 12px rgba(0,0,0,.4);transition:box-shadow .14s}
+.ga-mem:hover .ga-mem-av{box-shadow:0 0 0 3px var(--gc),0 6px 16px rgba(0,0,0,.5)}
+.ga-mem-av .phd-avatar,.ga-mem-av img,.ga-mem-av .avatar-initial{width:60px!important;height:60px!important;font-size:24px!important}
+.ga-mem-name{color:#fff;font-size:.86em;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.ga-mem:hover .ga-mem-name{color:var(--gc)}
+.ga-mem-id{color:var(--tm);font-size:.72em}
+.ga-mem-stats{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center}
+.ga-chip{font-size:.66em;color:var(--tm);background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:20px;padding:2px 8px;display:inline-flex;gap:4px;align-items:center}
+.ga-chip b{color:#fff;font-weight:800}
+.ga-chip-r b{color:#4ade80}
+.ga-chip-o b{color:var(--o)}
+@media(max-width:600px){
+  .ga-mem-grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:9px}
+  .ga-mem-av{width:54px;height:54px}
+  .ga-mem-av .phd-avatar,.ga-mem-av img,.ga-mem-av .avatar-initial{width:54px!important;height:54px!important;font-size:22px!important}
+}
+/* Stat tiles (shared look with the agent profile) — used by the 1st Pet incidents totals. */
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.ac-tile{background:#000;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:8px;padding:16px 12px;text-align:center}
+.ac-num{font-size:1.9em;font-weight:800;color:#fff;line-height:1}
+.ac-lbl{color:var(--tm);font-size:.8em;margin-top:6px}
+/* ---- Ported Groups view (KPIs, charts, tables) ---- */
+.gv-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.gv-kpi{background:var(--s);border-radius:8px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
+.gv-kpi .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
+.gv-kpi .label{font-size:.78em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+.gv-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
+.gv-chart{background:var(--s);border-radius:8px;padding:20px;border:1px solid var(--bd)}
+.gv-chart h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}
+.gv-wrap{position:relative;height:300px}
+.gv-sec{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
+.gv-sec h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
+.gv-sec h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
+.gv-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gv-scroll table{min-width:760px}
+.gv-sec table{width:100%;border-collapse:collapse;margin-top:12px}
+.gv-sec th,.gv-sec td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd);font-size:.88em}
+.gv-sec th{background:#0a0a0a;color:var(--tm);font-weight:600;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
+.gv-sec tr:hover{background:rgba(255,153,0,.03)}
+.gv-badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.78em;font-weight:700;background:rgba(62,207,74,.2);color:#3ecf4a}
+.gv-tag{display:inline-block;padding:2px 10px;border-radius:4px;font-size:.72em;font-weight:600}
+.gv-tag.a1{background:rgba(125,211,252,.15);color:var(--a1)}
+.gv-tag.a2{background:rgba(251,191,36,.15);color:var(--a2)}
+.gv-tag.b{background:rgba(74,222,128,.15);color:var(--b)}
+.gv-legend{display:flex;gap:24px;flex-wrap:wrap;background:var(--s);border:1px solid var(--bd);border-radius:8px;padding:16px 20px;margin-bottom:24px;font-size:.9em}
+.gv-legend span{display:flex;align-items:center;gap:8px}
+.gv-legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
+@media(max-width:1024px){.gv-charts{grid-template-columns:1fr}}
+@media(max-width:768px){.gv-kpi-grid{grid-template-columns:repeat(2,1fr)}.gv-wrap{height:260px}}
+@media(max-width:480px){.gv-kpi-grid{grid-template-columns:1fr}}
+.gv-wrap.tall{height:400px}
+/* Collapsible Group Analytics sections (collapsed by default; fetch on first expand). */
+.gv-list{display:flex;flex-direction:column;gap:14px}
+.gv-card{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#0a0a0a;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
+.gv-card.open{grid-template-rows:auto 1fr}
+.gv-card-head{display:flex;align-items:center;gap:12px;width:100%;padding:16px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.gv-card-head:hover{background:rgba(255,255,255,.04)}
+.gv-card-title{color:#fff;font-weight:700;font-size:1em}
+.gv-caret{margin-left:auto;color:var(--tm);transition:transform .3s ease;flex-shrink:0}
+.gv-card.open .gv-caret{transform:rotate(180deg)}
+.gv-card-body{overflow:hidden;min-height:0}
+.gv-card-body>div{padding:0 20px 20px}
+/* Inside a collapsible card the charts/tables shouldn't add their own card chrome or bottom gap. */
+.gv-card-body .gv-chart,.gv-card-body .gv-sec{border:none;background:transparent;padding:0;margin:0}
+.gv-card-body .gv-charts{margin-bottom:0}
+/* ---- Page layout: title + evenly spaced, clearly labelled sections ---- */
+.an-head{margin-bottom:28px}
+.an-head h1{font-size:1.7em;margin-bottom:6px}
+.an-sub{color:var(--tm);font-size:.92em}
+.an-sec{margin:0 0 34px}
+.an-sec:last-child{margin-bottom:0}
+.an-sec-head{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.an-sec-head h2{color:#fff;font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.an-sec-head h2 .ic{color:var(--o)}
+.an-sec-desc{color:var(--tm);font-size:.86em;line-height:1.5;max-width:900px}
+.an-sec-desc b{color:var(--t);font-weight:600}
+/* ---- Shimmer skeleton for the Group Analytics section ---- */
+.sk{position:relative;overflow:hidden;background:#0f0f0f;border-radius:8px}
+.sk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:skmove 1.3s infinite}
+@keyframes skmove{100%{left:150%}}
+.sk-h3{height:16px;width:180px;margin:0 auto 16px}
+.sk-h2{height:20px;width:240px;margin-bottom:16px}
+.sk-fill{position:absolute;inset:0;border-radius:8px}
+.sk-row{height:34px;margin-bottom:8px;border-radius:6px}
+.gv-wrap{background:transparent}
 </style>
 </head>
 <body data-nav-active="agent-analytics" data-back-href="app.html" data-back-label="Dashboard">
-<div class="top-bar">
+<div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap"><h1>Agent Analytics</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">Per-agent ticket performance for the live quarter.</p><div style="display:flex;align-items:center;justify-content:center;min-height:220px;border:1px solid var(--bd,#2a2a2a);border-radius:12px"><div class="spinner"></div></div></div>
+<div class="wrap" id="wrap"><h1>Analytics</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">Team &amp; agent performance for the live quarter.</p></div>
 
 <!-- Editor bucket popup -->
 <div class="modal-bg" id="bucketModal" onclick="if(event.target===this)closeBucket()">
@@ -91,7 +196,7 @@ const A=window.PHDAuth;
 const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Agent Analytics</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Analytics</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
 let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
 
@@ -179,28 +284,272 @@ function closeBucket(){document.getElementById('bucketModal').style.display='non
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
   if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
+  // Paint the full layout IMMEDIATELY (hardcoded labels + shimmer for the data bits) — no full-page spinner.
+  render();
   try{MY_TZ=await A.myTimezone();}catch(e){}
-  // Version-stamped cache: instant from cache, refresh in background; a new upload busts it.
-  const version=await A.liveVersion();
-  const res=await A.swrLoad({
-    key:'agent-analytics',
-    version:version,
-    fetch:()=>A.api('GET','/api/agent-analytics'),
-    onData:(d)=>render(d)
+  try{
+    const version=await A.liveVersion();
+    const res=await A.swrLoad({
+      key:'agent-analytics',
+      version:version,
+      fetch:()=>A.api('GET','/api/agent-analytics'),
+      onData:(d)=>applyStats(d)
+    });
+    if(!res.painted && res.status===403){ /* still shows the static team layout */ }
+  }catch(e){}
+}
+// login -> per-agent stats from /api/agent-analytics.
+let AGENT_STATS={};
+function applyStats(d){
+  AGENT_STATS={};
+  [].concat(d&&d.leads||[], d&&d.editors||[]).forEach(function(s){ AGENT_STATS[(s.username||'').toLowerCase()]=s; });
+  fillTeamStats();
+}
+// ---- Group membership (Alpha / Beta / Gamma). Login IDs; display names/avatars fetched below. ----
+const GROUPS=[
+  {name:'Alpha',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
+  {name:'Beta', color:'#4ade80',members:['mbozied','nobregak','mellanej']},
+  {name:'Gamma',color:'#fbbf24',members:['tanviroo','urmahala','obalasut','shaavhad','chousoud','dbiswamb']},
+];
+let GROUP_PROFILES={}; // lowercased login -> { username, displayName, avatar }
+
+// Fetch display names (/api/user-roles) + avatars (/api/user-avatars) once, then render groups.
+async function loadGroupProfiles(){
+  try{
+    const r=await A.api('GET','/api/user-roles');
+    if(r.ok&&Array.isArray(r.data)) r.data.forEach(u=>{GROUP_PROFILES[(u.username||'').toLowerCase()]={username:u.username,displayName:u.displayName||''};});
+  }catch(e){}
+  try{
+    const r=await A.api('GET','/api/user-avatars');
+    if(r.ok&&r.data&&typeof r.data==='object') Object.keys(r.data).forEach(un=>{const k=un.toLowerCase();if(!GROUP_PROFILES[k])GROUP_PROFILES[k]={username:un};GROUP_PROFILES[k].avatar=r.data[un];});
+  }catch(e){}
+}
+
+function memberCard(login){
+  const key=String(login).toLowerCase();
+  const p=GROUP_PROFILES[key]||{username:login};
+  const avatar=(A.avatarHtml)?A.avatarHtml(Object.assign({username:login},p),60):'';
+  const dn=p.displayName||login;
+  const href='agent-profile.html?user='+encodeURIComponent(login);
+  // The whole card links to that agent's profile. Resolved/Open chips fill in once stats load.
+  return '<a class="ga-mem" href="'+href+'" title="View '+esc(dn)+'\u2019s profile">'+
+    '<span class="ga-mem-av">'+avatar+'</span>'+
+    '<span class="ga-mem-name">'+esc(dn)+'</span>'+
+    '<span class="ga-mem-id">@'+esc(login)+'</span>'+
+  '</a>';
+}
+function groupsSectionHtml(){
+  return '<div class="ga-groups">'+GROUPS.map(g=>
+      '<div class="ga-group" data-team="'+esc(g.name)+'" style="--gc:'+g.color+'">'+
+        '<div class="ga-group-head">'+
+          '<span class="ga-group-name"><span class="ga-dot"></span>'+esc(g.name)+'</span>'+
+          '<span class="ga-group-count">'+g.members.length+' member'+(g.members.length===1?'':'s')+'</span>'+
+        '</div>'+
+        '<div class="ga-team-kpis">'+
+          '<div class="ga-kpi"><span class="ga-kpi-v tally-ph" data-team-stat="resolved" data-team="'+esc(g.name)+'">\u2014</span><span class="ga-kpi-l">Resolved this quarter</span></div>'+
+          '<div class="ga-kpi"><span class="ga-kpi-v tally-ph" data-team-stat="open" data-team="'+esc(g.name)+'">\u2014</span><span class="ga-kpi-l">Open now</span></div>'+
+        '</div>'+
+        '<div class="ga-mem-grid">'+g.members.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase())).map(memberCard).join('')+'</div>'+
+      '</div>').join('')+
+    '</div>';
+}
+// Fill per-member + per-team resolved/open numbers (tally) once AGENT_STATS is loaded.
+function fillTeamStats(){
+  // Per-team totals (sum of members).
+  GROUPS.forEach(function(g){
+    let r=0,o=0;
+    g.members.forEach(function(m){ const s=AGENT_STATS[m.toLowerCase()]; if(s){ r+=s.resolvedInQuarter||0; o+=s.open||0; } });
+    const rv=document.querySelector('.ga-kpi-v[data-team-stat="resolved"][data-team="'+g.name+'"]');
+    const ov=document.querySelector('.ga-kpi-v[data-team-stat="open"][data-team="'+g.name+'"]');
+    if(rv) A.tally(rv, r);
+    if(ov) A.tally(ov, o);
   });
-  if(!res.painted){
-    if(res.status===403){gate('Admin, manager, or owner access required.');return;}
-    gate('Could not load analytics (HTTP '+res.status+').');
-  }
 }
-function render(d){
+
+// Quarter-wide "1st Pet incident" totals: PHD-handled vs AUTO-SIM (tally-animated).
+function petTotalsSectionHtml(){
+  const tile=(id,color,label)=>'<div class="ac-tile" style="border-top-color:'+color+'"><div class="ac-num tally-ph" id="'+id+'" style="color:'+color+'">\u2014</div><div class="ac-lbl">'+label+'</div></div>';
+  return '<div class="section" id="petSection"><h2>'+(window.icon?window.icon('paw',18):'')+' 1st Pet incidents (this quarter)</h2>'+
+    '<div class="ac-grid" style="margin-top:6px">'+
+      tile('petPhd','#f59e0b','Handled by PHD')+
+      tile('petAuto','#7dd3fc','Handled by AUTO-SIM')+
+      tile('petAll','#4ade80','Total')+
+    '</div></div>';
+}
+async function loadPetTotals(){
+  let d=null;
+  try{ const r=await A.api('GET','/api/pet-totals'); if(r.ok&&r.data)d=r.data; }catch(e){}
+  const set=(id,v)=>{const el=document.getElementById(id); if(!el)return; if(d)A.tally(el,v); else {el.classList.remove('tally-ph');el.textContent='0';}};
+  set('petPhd', d?d.phd:0); set('petAuto', d?d.autosim:0); set('petAll', d?d.total:0);
+}
+
+function render(){
   document.getElementById('wrap').innerHTML=`
-    <h1>Agent Analytics</h1>
-    <p class="sub">Per-agent performance in the current live quarter (<b style="color:#fff">${esc(d.quarter||'')}</b>). Sorted by tickets resolved (highest first). 12h/24h are relative to now.</p>
-    <div class="section"><h2>Owner, Admins &amp; Managers</h2>${tableFor(d.leads||[],false)}</div>
-    <div class="section"><h2>Editors</h2>${tableFor(d.editors||[],true)}</div>`;
+    <div class="an-head">
+      <h1>Analytics</h1>
+      <p class="an-sub">Team &amp; agent performance for the live quarter. All figures come from the live dataset.</p>
+    </div>
+
+    <section class="an-sec">
+      <div class="an-sec-head">
+        <h2>${ic('users',18)} Teams &amp; Agents</h2>
+        <p class="an-sec-desc">The three PHD teams (Alpha, Beta, Gamma) and their members. Each tile shows an agent — click to open that agent's individual analytics profile. Team tiles above show each team's combined <b>Resolved this quarter</b> and <b>Open now</b>.</p>
+      </div>
+      ${groupsSectionHtml()}
+    </section>
+
+    <section class="an-sec">
+      <div class="an-sec-head">
+        <h2>${ic('bar-chart',18)} Group Analytics</h2>
+        <p class="an-sec-desc">Quarter-wide comparison <b>across the three teams</b> — resolution volume, speed, workload split and daily trend, plus per-agent breakdowns and group totals.</p>
+      </div>
+      <div id="groupsView">${groupsSectionsHtml()}</div>
+    </section>`;
+  // If stats already loaded (revisit/cache), fill immediately.
+  if(Object.keys(AGENT_STATS).length) fillTeamStats();
 }
-load();
+// ============================================================================
+// Ported "Groups" view (charts + tables), same output as app.html?view=groups.
+// Loads the full live-quarter tickets via /api/live-quarter, computes metrics locally,
+// and renders KPIs + 6 charts + the two tables into #groupsView.
+// ============================================================================
+const PHD_AGENTS=['harisss','shaavhad','flofalgu','punithsd','dbiswamb','arunkzn','tanviroo','obalasut','mellanej','chousoud','mbozied','urmahala','nobregak'];
+const GA1=['harisss','punithsd','arunkzn','flofalgu'];
+const GA2=['tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb'];
+const GB=['mbozied','nobregak','mellanej'];
+function getGroup(n){ if(GA1.includes(n))return 'A1'; if(GA2.includes(n))return 'A2'; if(GB.includes(n))return 'B'; return null; }
+function gvAvg(a){ return a.length?a.reduce((s,v)=>s+v,0)/a.length:0; }
+const GV_CHARTS=[];
+function gvMakeChart(id,config){ const ctx=document.getElementById(id); if(ctx){ GV_CHARTS.push(new Chart(ctx,config)); } }
+function gvDestroyCharts(){ GV_CHARTS.forEach(c=>{try{c.destroy();}catch(e){}}); GV_CHARTS.length=0; }
+
+// Compute just the group/agent metrics renderGroupsView needs (subset of app.js computeMetrics).
+function gvComputeMetrics(data){
+  const allDates=data.map(r=>new Date(r.CreateDate)).filter(d=>!isNaN(d));
+  const maxDate=allDates.length?new Date(Math.max(...allDates)):new Date();
+  // Per-agent maps
+  const aRes={},aTm={},aOpen={},aAsgn={};
+  data.forEach(r=>{ if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!r.ResolvedByIdentity.includes('AutoSIM')){ const x=r.ResolvedByIdentity; aRes[x]=(aRes[x]||0)+1; if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5; if(h>=0){(aTm[x]=aTm[x]||[]).push(h);}} } });
+  data.filter(r=>r.Status!=='Resolved'&&r.Status!=='Closed').forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aOpen[r.AssigneeIdentity]=(aOpen[r.AssigneeIdentity]||0)+1; });
+  data.forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aAsgn[r.AssigneeIdentity]=(aAsgn[r.AssigneeIdentity]||0)+1; });
+  const aStatus={}; PHD_AGENTS.forEach(n=>{aStatus[n]={Assigned:0,'Work In Progress':0,Researching:0,Pending:0,Resolved:0,Closed:0};});
+  data.forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity)&&aStatus[r.AssigneeIdentity][r.Status]!==undefined){ aStatus[r.AssigneeIdentity][r.Status]++; } });
+  const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?gvAvg(aTm[n]):0,group:getGroup(n),statuses:aStatus[n]}));
+  // Group tallies
+  let a1R=0,a2R=0,bR=0,a1O=0,a2O=0,bO=0;
+  data.forEach(r=>{ if(r.Status==='Resolved'){const g=getGroup(r.ResolvedByIdentity); if(g==='A1')a1R++;else if(g==='A2')a2R++;else if(g==='B')bR++;} if(r.Status!=='Resolved'){const g=getGroup(r.AssigneeIdentity); if(g==='A1')a1O++;else if(g==='A2')a2O++;else if(g==='B')bO++;} });
+  const a1T=[],a2T=[],bT=[];
+  data.forEach(r=>{ if(r.Status==='Resolved'&&r.ResolvedByIdentity&&r.CreateDate&&r.ResolvedDate){const g=getGroup(r.ResolvedByIdentity);const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5; if(h>=0){ if(g==='A1')a1T.push(h);else if(g==='A2')a2T.push(h);else if(g==='B')bT.push(h);}} });
+  let a1As=0,a2As=0,bAs=0;
+  data.forEach(r=>{ const g=getGroup(r.AssigneeIdentity); if(g==='A1')a1As++;else if(g==='A2')a2As++;else if(g==='B')bAs++; });
+  const dL=[],dgA1=[],dgA2=[],dgB=[];
+  for(let i=6;i>=0;i--){ const ds=new Date(maxDate);ds.setDate(ds.getDate()-i);ds.setHours(0,0,0,0);const de=new Date(ds);de.setDate(de.getDate()+1); dL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'})); let x=0,y=0,z=0; data.forEach(r=>{ if(r.ResolvedDate){const rd=new Date(r.ResolvedDate); if(rd>=ds&&rd<de){const g=getGroup(r.ResolvedByIdentity); if(g==='A1')x++;else if(g==='A2')y++;else if(g==='B')z++;}} }); dgA1.push(x);dgA2.push(y);dgB.push(z); }
+  return { agents, a1R,a2R,bR,a1O,a2O,bO, a1Avg:gvAvg(a1T),a2Avg:gvAvg(a2T),bAvg:gvAvg(bT), a1As,a2As,bAs, dL,dgA1,dgA2,dgB };
+}
+
+// Group Analytics is split into collapsible sections that each fetch ONLY when first expanded.
+// They all share ONE /api/live-quarter fetch (the heavy ~8k-ticket blob) — loaded lazily on the
+// first expand and cached, so nothing loads on page open and later sections reuse the same data.
+const GN={A1:'Alpha',A2:'Gamma',B:'Beta'}, GC={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'}, GTC={A1:'a1',A2:'a2',B:'b'};
+const GV_LOADED={};          // section key -> true once rendered
+
+// The 6 collapsible sections. `render` = which per-section renderer to call once data is ready.
+const GV_SECTIONS=[
+  {key:'ro',    title:'Resolved vs Open · Avg Resolution Time'},
+  {key:'wl',    title:'Workload Distribution · Daily Group Trend (Last 7 Days)'},
+  {key:'par',   title:'Per-Agent Resolved (by Group)'},
+  {key:'arv',   title:'Agent Resolution Volume'},
+  {key:'iap',   title:'Individual Agent Performance'},
+  {key:'gts',   title:'Group Totals Summary'},
+];
+function groupsSectionsHtml(){
+  return '<div class="gv-list">'+GV_SECTIONS.map(function(s){
+    return '<div class="gv-card" data-gv="'+s.key+'">'+
+      '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGvSection(this)">'+
+        '<span class="gv-card-title">'+esc(s.title)+'</span>'+
+        '<span class="gv-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="gv-card-body"><div id="gvBody-'+s.key+'"></div></div>'+
+    '</div>';
+  }).join('')+'</div>';
+}
+function toggleGvSection(btn){
+  const card=btn.closest('.gv-card'); if(!card)return;
+  const open=card.classList.toggle('open');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  const key=card.getAttribute('data-gv');
+  if(open && !GV_LOADED[key]){ GV_LOADED[key]=true; loadGvSection(key); }
+}
+window.toggleGvSection=toggleGvSection;
+
+async function loadGvSection(key){
+  const body=document.getElementById('gvBody-'+key); if(!body)return;
+  body.innerHTML='<div style="display:flex;justify-content:center;padding:30px"><div class="spinner"></div></div>';
+  // Each section fires its OWN request to its own endpoint (small payload).
+  let m=null;
+  try{ const r=await A.api('GET','/api/group-analytics/'+key); if(r.ok&&r.data)m=r.data; }catch(e){}
+  if(!m){ GV_LOADED[key]=false; body.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this section. Try expanding again.</div>'; return; }
+  Chart.defaults.color='#879596'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  GV_RENDER[key](m, body);
+}
+
+// Per-section renderers. Each draws into its own body element.
+const GV_RENDER={
+  ro:function(m,body){
+    body.innerHTML='<div class="gv-charts">'+
+      '<div class="gv-chart"><h3>Resolved vs Open</h3><div class="gv-wrap"><canvas id="gvc1"></canvas></div></div>'+
+      '<div class="gv-chart"><h3>Avg Resolution Time (Hours)</h3><div class="gv-wrap"><canvas id="gvc2"></canvas></div></div>'+
+    '</div>';
+    gvMakeChart('gvc1',{type:'bar',data:{labels:[GN.A1,GN.A2,GN.B],datasets:[{label:'Resolved',data:[m.a1R,m.a2R,m.bR],backgroundColor:['rgba(125,211,252,.8)','rgba(251,191,36,.8)','rgba(74,222,128,.8)'],borderRadius:3},{label:'Open',data:[m.a1O,m.a2O,m.bO],backgroundColor:['rgba(125,211,252,.3)','rgba(251,191,36,.3)','rgba(74,222,128,.3)'],borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{display:false}}}}});
+    gvMakeChart('gvc2',{type:'bar',data:{labels:[GN.A1,GN.A2,GN.B],datasets:[{data:[m.a1Avg,m.a2Avg,m.bAvg],backgroundColor:['rgba(125,211,252,.8)','rgba(251,191,36,.8)','rgba(74,222,128,.8)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{display:false}}}}});
+  },
+  wl:function(m,body){
+    body.innerHTML='<div class="gv-charts">'+
+      '<div class="gv-chart"><h3>Workload Distribution</h3><div class="gv-wrap"><canvas id="gvc3"></canvas></div></div>'+
+      '<div class="gv-chart"><h3>Daily Group Trend (Last 7 Days)</h3><div class="gv-wrap"><canvas id="gvc4"></canvas></div></div>'+
+    '</div>';
+    gvMakeChart('gvc3',{type:'pie',data:{labels:[GN.A1+'('+m.a1As+')',GN.A2+'('+m.a2As+')',GN.B+'('+m.bAs+')'],datasets:[{data:[m.a1As,m.a2As,m.bAs],backgroundColor:['rgba(125,211,252,.85)','rgba(251,191,36,.85)','rgba(74,222,128,.85)'],borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#d5dbdb'}}}}});
+    gvMakeChart('gvc4',{type:'line',data:{labels:m.dL,datasets:[{label:GN.A1,data:m.dgA1,borderColor:'#7dd3fc',backgroundColor:'rgba(125,211,252,.08)',fill:true,tension:.4,pointRadius:4},{label:GN.A2,data:m.dgA2,borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.08)',fill:true,tension:.4,pointRadius:4},{label:GN.B,data:m.dgB,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{color:'rgba(255,255,255,.04)'}}}}});
+  },
+  par:function(m,body){
+    const sorted=gvSortedByGroup(m);
+    body.innerHTML='<div class="gv-chart"><div class="gv-wrap" style="height:400px"><canvas id="gvc5"></canvas></div></div>';
+    gvMakeChart('gvc5',{type:'bar',data:{labels:sorted.map(a=>a.name),datasets:[{label:'Resolved',data:sorted.map(a=>a.resolved),backgroundColor:sorted.map(a=>GC[a.group]),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}});
+  },
+  arv:function(m,body){
+    const sortedByRes=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
+    body.innerHTML='<div class="gv-chart"><div class="gv-wrap" style="height:350px"><canvas id="gvc6"></canvas></div></div>';
+    gvMakeChart('gvc6',{type:'bar',data:{labels:sortedByRes.map(a=>a.name),datasets:[{label:'Resolved',data:sortedByRes.map(a=>a.resolved),backgroundColor:'rgba(74,222,128,.75)',borderRadius:2},{label:'Open',data:sortedByRes.map(a=>a.open),backgroundColor:'rgba(255,153,0,.75)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
+  },
+  iap:function(m,body){
+    const sorted=gvSortedByGroup(m);
+    body.innerHTML='<div class="gv-scroll"><table><thead><tr><th>Agent</th><th>Group</th><th>Assigned</th><th>WIP</th><th>Researching</th><th>Pending</th><th>Resolved</th><th>Closed</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>'+
+      sorted.map(a=>'<tr><td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a></td><td><span class="gv-tag '+GTC[a.group]+'">'+(GN[a.group]||a.group)+'</span></td><td>'+(a.statuses?a.statuses['Assigned']:0)+'</td><td>'+(a.statuses?a.statuses['Work In Progress']:0)+'</td><td>'+(a.statuses?a.statuses['Researching']:0)+'</td><td>'+(a.statuses?a.statuses['Pending']:0)+'</td><td><span class="gv-badge">'+(a.statuses?a.statuses['Resolved']:0)+'</span></td><td>'+(a.statuses?a.statuses['Closed']:0)+'</td><td>'+a.avgTime.toFixed(1)+'</td><td>'+(a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0)+'%</td></tr>').join('')+
+    '</tbody></table></div>';
+  },
+  gts:function(m,body){
+    body.innerHTML='<div class="gv-scroll"><table><thead><tr><th>Group</th><th>Members</th><th>Assigned</th><th>Resolved</th><th>Open</th><th>Avg Hrs</th><th>Res/Member</th><th>Rate</th></tr></thead><tbody>'+
+      '<tr><td><span class="gv-tag a1">'+GN.A1+'</span></td><td>4</td><td>'+m.a1As+'</td><td>'+m.a1R+'</td><td>'+m.a1O+'</td><td>'+m.a1Avg.toFixed(1)+'</td><td>'+(m.a1R/4).toFixed(1)+'</td><td>'+(m.a1R+m.a1O>0?((m.a1R/(m.a1R+m.a1O))*100).toFixed(1):0)+'%</td></tr>'+
+      '<tr><td><span class="gv-tag a2">'+GN.A2+'</span></td><td>6</td><td>'+m.a2As+'</td><td>'+m.a2R+'</td><td>'+m.a2O+'</td><td>'+m.a2Avg.toFixed(1)+'</td><td>'+(m.a2R/6).toFixed(1)+'</td><td>'+(m.a2R+m.a2O>0?((m.a2R/(m.a2R+m.a2O))*100).toFixed(1):0)+'%</td></tr>'+
+      '<tr><td><span class="gv-tag b">'+GN.B+'</span></td><td>3</td><td>'+m.bAs+'</td><td>'+m.bR+'</td><td>'+m.bO+'</td><td>'+m.bAvg.toFixed(1)+'</td><td>'+(m.bR/3).toFixed(1)+'</td><td>'+(m.bR+m.bO>0?((m.bR/(m.bR+m.bO))*100).toFixed(1):0)+'%</td></tr>'+
+    '</tbody></table></div>';
+  },
+};
+function gvSortedByGroup(m){
+  return [...m.agents.filter(a=>a.group==='A1').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='A2').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='B').sort((a,b)=>b.resolved-a.resolved)];
+}
+
+(async function init(){
+  // Paint the layout first (initials for avatars), then load profiles/avatars and refresh member tiles.
+  await load();
+  await loadGroupProfiles();
+  // Re-render just the team member grids now that display names + avatars are available.
+  document.querySelectorAll('.ga-group').forEach(function(card){
+    const team=card.getAttribute('data-team'); const g=GROUPS.find(x=>x.name===team); if(!g)return;
+    const grid=card.querySelector('.ga-mem-grid');
+    if(grid) grid.innerHTML=g.members.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase())).map(memberCard).join('');
+  });
+})();
 </script>
 </body>
 </html>

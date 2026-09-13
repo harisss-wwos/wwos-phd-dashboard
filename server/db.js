@@ -32,6 +32,8 @@ const COLLECTIONS = {
   helpRequests: 'help_requests', // editor "ask for help" threads
   activityLog: 'activity_log', // account activity (e.g. password changes) — owner-visible, never stores secrets
   dashRollups: 'dash_rollups', // precomputed dashboard chunks per quarter { _id, publishedAt, chunks:{...} } — recomputed on each publish
+  agentRollups: 'agent_rollups', // precomputed per-agent open-ticket summaries per quarter { _id, publishedAt, agents:{login:{statusCounts, openTix:[...]}} } — recomputed on each publish
+  groupRollups: 'group_rollups', // precomputed Alpha/Gamma/Beta group metrics per quarter { _id, publishedAt, metrics:{...} } — recomputed on each publish
 };
 
 let clientPromise = null;

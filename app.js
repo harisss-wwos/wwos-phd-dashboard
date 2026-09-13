@@ -682,8 +682,8 @@ function toggleSection(h2){
   const sec=h2.closest('.section');if(!sec)return;
   const nowCollapsed=sec.classList.toggle('collapsed');
   if(!nowCollapsed){
-    // Re-expanded: resize any Chart.js canvases that were hidden so they render at full width.
-    setTimeout(()=>{try{charts.forEach(c=>{if(sec.contains(c.canvas))c.resize();});}catch(e){}},30);
+    // Re-expanded: resize any Chart.js canvases AFTER the ~300ms expand animation finishes.
+    setTimeout(()=>{try{charts.forEach(c=>{if(sec.contains(c.canvas))c.resize();});}catch(e){}},340);
   }
 }
 window.toggleSection=toggleSection;
@@ -1605,8 +1605,8 @@ function toggleDashCard(h2){
     DASH_LOADED[chunk]=true;
     renderDashChunkInto(chunk);
   } else {
-    // Already loaded -> just resize any charts that were laid out while hidden.
-    setTimeout(()=>{try{charts.forEach(c=>{if(sec.contains(c.canvas))c.resize();});}catch(e){}},30);
+    // Already loaded -> resize charts AFTER the ~300ms expand animation finishes.
+    setTimeout(()=>{try{charts.forEach(c=>{if(sec.contains(c.canvas))c.resize();});}catch(e){}},340);
   }
 }
 window.toggleDashCard=toggleDashCard;

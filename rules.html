@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rules & Definitions · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--yl:#fbbf24;--rl:#ff5252;--pu:#a78bfa;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{width:92%;max-width:1000px;margin:0 auto;padding:32px 20px 60px}
+h1{color:#fff;font-size:1.7em;margin-bottom:4px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:8px}
+.disclaimer{color:var(--yl);font-size:.82em;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:10px 14px;margin:14px 0 28px}
+.sec{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+.sec h2{color:var(--o);font-size:1.05em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;margin-bottom:6px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--bd);text-align:left;font-size:.9em;vertical-align:top}
+th{color:var(--tm);font-size:.74em;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+td b{color:#fff}
+ul{list-style:none}
+li{padding:7px 0;border-bottom:1px solid #161616;font-size:.92em;line-height:1.55}
+li:last-child{border-bottom:none}
+li b{color:#fff}
+code{background:#1a1a1a;color:#ffcf8a;border-radius:4px;padding:1px 6px;font-size:.85em;font-family:ui-monospace,Menlo,Consolas,monospace}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:middle}
+.d-green{background:#4ade80}.d-yellow{background:#fbbf24}.d-red{background:#ff5252}.d-black{background:#888}.d-purple{background:#a78bfa}
+.pill{display:inline-block;font-size:.72em;font-weight:700;border-radius:20px;padding:2px 9px;border:1px solid}
+</style>
+</head>
+<body data-nav-hide="dashboard" data-back-href="index.html" data-back-label="All Dashboards">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap">
+  <h1>Rules &amp; Definitions</h1>
+  <p class="sub">Reference for the hierarchy, ticket statuses, resolve types, age colours, SLA, and incident rules used across the dashboard. Reflects the live code.</p>
+
+  <div class="sec">
+    <h2>1. Role Hierarchy</h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">Higher rank = more privilege. Access is gated by <code>atLeast(role)</code>. (<code>manager</code> and <code>admin</code> share the same rank.)</p>
+    <table>
+      <thead><tr><th>Role</th><th>Rank</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><b>user</b></td><td>0</td><td>Base / logged-in.</td></tr>
+        <tr><td><b>editor</b></td><td>1</td><td>Can comment / log on tickets ("touched").</td></tr>
+        <tr><td><b>admin</b></td><td>2</td><td>Can publish / upload data.</td></tr>
+        <tr><td><b>manager</b></td><td>2</td><td>Same access level as admin, but <b>cannot manage users</b>.</td></tr>
+        <tr><td><b>owner</b></td><td>3</td><td>Full access (user management, DB health, delete log entries).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec">
+    <h2>2. Ticket Statuses</h2>
+    <ul>
+      <li><b>Open / in-queue</b> (<code>OPEN_STATUSES</code> / <code>OPEN_SET</code>): Assigned, Work In Progress, Pending, Researching</li>
+      <li><b>Resolved</b> (<code>isResolved</code>): Resolved <b>or</b> Closed</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>3. Resolve / Closure Types</h2>
+    <ul>
+      <li><b>Successful</b> — <code>ClosureCode === 'Successful'</code> (counted as "Successful" in Agent Analytics).</li>
+      <li><b>Immediate / Auto</b> (<code>IMMEDIATE_AUTO</code>): Immediately Resolved, Automatically Closed.</li>
+      <li><b>AutoSIM resolved</b> — <code>ResolvedByIdentity</code> contains <code>"AutoSIM"</code> (resolved by the bot, not an agent).</li>
+      <li><b>Agent resolved</b> — resolved by a real agent (the non-AutoSIM remainder).</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>4. Ticket Age Colours <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(open tickets only)</span></h2>
+    <ul>
+      <li><span class="dot d-green"></span><b>Green</b> — &le; 96 hrs (0–4 days)</li>
+      <li><span class="dot d-yellow"></span><b>Yellow</b> — 96–168 hrs (4–7 days)</li>
+      <li><span class="dot d-red"></span><b>Red</b> — 168–240 hrs (7–10 days)</li>
+      <li><span class="dot d-black"></span><b>Black</b> — &gt; 240 hrs (&gt; 10 days)</li>
+      <li><span class="dot d-purple"></span><b>Purple</b> — Reopened (<code>_reopened</code> flag OR has a <code>ResolvedDate</code> while still open)</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>5. SLA Rule</h2>
+    <ul>
+      <li><b><code>SLA_HOURS = 240</code></b> (10 days). "SLA compliant" = resolution time &le; 240 hrs from create date. Weekly SLA % is bucketed by <b>resolved date</b>.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>6. Repeat / Historical Incidents (HI)</h2>
+    <ul>
+      <li><b>HI count</b> parsed from <code>RootCauseDetails</code> via <code>Cnt: N</code> or <code>Historical Incident: N</code>. <b>Repeat incident = HI count &gt; 0.</b></li>
+      <li><b>Pet vs non-pet</b> split: pet = <code>RootCause</code> contains <code>"unsecured animal"</code>.</li>
+      <li><b>Incident-type pet special-casing:</b>
+        <ul style="margin-top:6px;padding-left:16px">
+          <li>Immediately Resolved / Automatically Closed <b>+ has an assignee</b> → <b>"First Time Pet Incident (Immediately Resolved / No Action Taken)"</b></li>
+          <li>else has <code>RootCauseDetails</code> → <b>"Pet Incident (HI&gt;0)"</b></li>
+          <li>else → <b>"Pet Incident (Resolved by AUTO-SIM)"</b></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>7. 1st Pet Incident <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(tracked metric)</span></h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">A resolved ticket is a <b>"1st Pet incident"</b> when <b>both</b> conditions below hold. The two categories differ only by <b>who</b> resolved it (<code>ResolvedByIdentity</code>).</p>
+    <ul>
+      <li><b>Condition A — ClosureCode</b> is one of:
+        <ul style="margin-top:6px;padding-left:16px">
+          <li><code>Automatically Closed</code></li>
+          <li><code>Immediately Resolved</code></li>
+        </ul>
+      </li>
+      <li><b>Condition B — RootCause</b> is one of:
+        <ul style="margin-top:6px;padding-left:16px">
+          <li><code>NOT APPLICABLE/No Further Action Required</code></li>
+          <li><code>Unsecured Animal Attack (CX Pet)</code></li>
+          <li><code>Unsecured Animal Attack (Non-CX Pet/ Other)</code></li>
+          <li><code>Unsecured Animal Evasion (CX Pet)</code></li>
+          <li><code>Unsecured Animal Evasion (Non-CX Pet/ Other)</code></li>
+        </ul>
+      </li>
+      <li style="margin-top:4px"><b>1st Pet incident (handled by PHD)</b> — Condition A &amp; B, and <code>ResolvedByIdentity</code> is one of our registered agent logins. Attributed to that agent (shown on their profile) and summed into the team total on Agent Analytics.</li>
+      <li><b>1st Pet incident (handled by AUTO-SIM)</b> — Condition A &amp; B, and <code>ResolvedByIdentity</code> is exactly <code>arn:aws:sts::511128310777:assumed-role/AutoSIM/AutoSIM</code>. Counted only in the quarter-wide AUTO-SIM total on Agent Analytics.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>8. Time Windows <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(Agent Analytics / Last-24)</span></h2>
+    <ul>
+      <li><b>Resolved 12h / 24h</b> — resolved within the last 12 / 24 hrs relative to now.</li>
+      <li><b>Crossing 240h next 24h</b> — open tickets currently aged 216–240 hrs.</li>
+    </ul>
+  </div>
+
+  <div style="margin-top:8px"><a class="btn sec" href="index.html">&larr; Back to All Dashboards</a></div>
+</div>
+</body>
+</html>

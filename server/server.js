@@ -593,8 +593,10 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
     }
 
     res.json({ ok: true, liveQuarter: liveQ, written, undated });
-    // Refresh the precomputed dashboard rollup so /api/dash/* stays instant (best-effort).
+    // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
+    recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message));
+    recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after publish failed:', e && e.message));
   } catch (e) {
     res.status(500).json({ error: 'Could not publish quarter data.' });
   }
@@ -691,8 +693,10 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
     }
 
     res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
-    // Refresh the precomputed dashboard rollup so /api/dash/* stays instant (best-effort).
+    // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
+    recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message));
+    recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after patch failed:', e && e.message));
   } catch (e) {
     res.status(500).json({ error: 'Could not apply the delta publish.' });
   }
@@ -1933,6 +1937,364 @@ app.get('/api/agent-analytics', requireRole('admin'), async (req, res) => {
   }
 });
 
+// Per-agent "active cases" summary (logged-in): counts of their OPEN tickets in the live quarter,
+// broken down by status (Assigned / Work In Progress / Pending / Researching) and by age colour
+// (green/yellow/red/black/purple). Used by the agent profile page.
+app.get('/api/agent-summary', requireRole('admin'), async (req, res) => {
+  try {
+    const username = String(req.query.username || '').trim().toLowerCase();
+    if (!username) return res.status(400).json({ error: 'A username is required.' });
+    const qid = currentQuarter();
+
+    // This agent's role / display name / timezone (tiny query).
+    let role = '', displayName = '', timezone = DEFAULT_TZ;
+    try {
+      const users = await getCollection(COLLECTIONS.users);
+      const u = await users.findOne({ username }, { projection: { role: 1, displayName: 1, timezone: 1 } });
+      if (u) { role = u.role || ''; displayName = u.displayName || ''; timezone = normTz(u.timezone); }
+    } catch (e) { /* profile fields optional */ }
+
+    // FAST PATH: read the precomputed per-agent rollup (one small findOne, no ticket blob).
+    const meta = await liveMetaFor(qid);
+    const rollColl = await getCollection(COLLECTIONS.agentRollups);
+    const roll = await rollColl.findOne({ _id: qid });
+    if (roll && roll.agents && (roll.publishedAt || null) === (meta.publishedAt || null)) {
+      const a = roll.agents[username] || { statusCounts: { 'Assigned': 0, 'Work In Progress': 0, 'Pending': 0, 'Researching': 0 }, openTix: [] };
+      const colors = agentColorsFromOpenTix(a.openTix);
+      return res.json({ username, role, displayName, timezone, quarter: qid, cached: true, open: (a.openTix || []).length, statusCounts: a.statusCounts, colors });
+    }
+
+    // FALLBACK: rollup missing/stale -> compute this agent live once, then refresh the rollup in bg.
+    const tickets = await liveTickets();
+    const now = Date.now();
+    const mine = tickets.filter(t => String(t.AssigneeIdentity || '').toLowerCase() === username && OPEN_SET.includes(t.Status));
+    const statusCounts = { 'Assigned': 0, 'Work In Progress': 0, 'Pending': 0, 'Researching': 0 };
+    const colors = { green: 0, yellow: 0, red: 0, black: 0, purple: 0 };
+    mine.forEach(t => {
+      if (statusCounts[t.Status] != null) statusCounts[t.Status]++;
+      const c = ticketColor(t, now); if (colors[c] != null) colors[c]++;
+    });
+    res.json({ username, role, displayName, timezone, quarter: qid, cached: false, open: mine.length, statusCounts, colors });
+    recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the agent summary.' });
+  }
+});
+
+// The 8 ClosureCodes we report on the agent overview sections.
+const OVERVIEW_CLOSURE_CODES = ['Successful', 'Successful with Problems', 'Unsuccessful', 'No Plan to Fix', 'No Issue', 'Duplicate', 'Automatically Closed', 'Immediately Resolved'];
+
+// ---- "1st Pet incident" rule --------------------------------------------------------------------
+// A resolved ticket is a "1st Pet incident" when BOTH:
+//   ClosureCode is one of PET_CLOSURE_CODES, AND RootCause is one of PET_ROOT_CAUSES.
+// It is then attributed by ResolvedByIdentity:
+//   - handled by AUTO-SIM  -> ResolvedByIdentity === PET_AUTOSIM_IDENTITY
+//   - handled by PHD       -> any other (registered-agent) ResolvedByIdentity
+const PET_CLOSURE_CODES = new Set(['Automatically Closed', 'Immediately Resolved']);
+const PET_ROOT_CAUSES = new Set([
+  'NOT APPLICABLE/No Further Action Required',
+  'Unsecured Animal Attack (CX Pet)',
+  'Unsecured Animal Attack (Non-CX Pet/ Other)',
+  'Unsecured Animal Evasion (CX Pet)',
+  'Unsecured Animal Evasion (Non-CX Pet/ Other)',
+]);
+const PET_AUTOSIM_IDENTITY = 'arn:aws:sts::511128310777:assumed-role/AutoSIM/AutoSIM';
+// True when a ticket qualifies as a 1st Pet incident (ignores who resolved it).
+function isPetIncident(t) {
+  return PET_CLOSURE_CODES.has(String(t.ClosureCode || '').trim()) &&
+         PET_ROOT_CAUSES.has(String(t.RootCause || '').trim());
+}
+
+// Agent overview endpoints (admin+): tickets the agent RESOLVED (ResolvedByIdentity) within a rolling
+// time window, grouped by ClosureCode (the 8 listed above). Counts only. All windows read the tiny
+// agent rollup's resolved-events and filter at READ time (moving window), falling back to a one-off
+// live scan + background rebuild if the rollup is missing/stale. Register one route per window.
+// Rolling short-window overviews (12h/daily/weekly). Supports mode=rolling (last N hours from now,
+// default) or mode=calendar (snapped to local day/week boundaries). All read per-quarter agent
+// rollups via gatherResolvedAcrossQuarters (so a calendar week that crosses a quarter boundary is
+// still correct), then compute counts/SLA/RootCause over the range. `hours` = rolling length,
+// `calKind` = the calendarRange kind to use in calendar mode.
+function registerAgentOverview(windowKey, hours, calKind, label) {
+  app.get('/api/agent-overview/' + windowKey, requireRole('admin'), async (req, res) => {
+    try {
+      const { username, mode, tz } = overviewParams(req);
+      if (!username) return res.status(400).json({ error: 'A username is required.' });
+      const range = mode === 'calendar' ? calendarRange(calKind, tz) : rollingRange(hours);
+      await respondOverviewRange(res, username, windowKey, mode, range.from, range.to);
+    } catch (e) {
+      res.status(500).json({ error: 'Could not load the ' + label + ' overview.' });
+    }
+  });
+}
+registerAgentOverview('12h', 12, '12h', '12-hour');       // 12 Hour Overview
+registerAgentOverview('daily', 24, 'daily', 'daily');     // Daily Overview (last 24 hours)
+registerAgentOverview('weekly', 24 * 7, 'weekly', 'weekly'); // Weekly Overview (last 7 days)
+
+// ---- Group Analytics (Alpha/Gamma/Beta) — computed server-side, one small endpoint PER section ----
+const GRP_A1 = ['harisss', 'punithsd', 'arunkzn', 'flofalgu'];               // Alpha
+const GRP_A2 = ['tanviroo', 'urmahala', 'chousoud', 'obalasut', 'shaavhad', 'dbiswamb']; // Gamma
+const GRP_B = ['mbozied', 'nobregak', 'mellanej'];                          // Beta
+const GRP_ALL = GRP_A1.concat(GRP_A2, GRP_B);
+function grpOf(login) { const n = String(login || '').toLowerCase(); if (GRP_A1.includes(n)) return 'A1'; if (GRP_A2.includes(n)) return 'A2'; if (GRP_B.includes(n)) return 'B'; return null; }
+function grpAvg(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
+
+// Compute the full group-metrics object from the live tickets (mirrors the client gvComputeMetrics).
+async function computeGroupMetrics() {
+  const data = await liveTickets();
+  const allDates = data.map(r => new Date(r.CreateDate)).filter(d => !isNaN(d));
+  const maxDate = allDates.length ? new Date(Math.max(...allDates)) : new Date();
+  const aRes = {}, aTm = {}, aOpen = {}, aAsgn = {};
+  const aStatus = {}; GRP_ALL.forEach(n => { aStatus[n] = { Assigned: 0, 'Work In Progress': 0, Researching: 0, Pending: 0, Resolved: 0, Closed: 0 }; });
+  data.forEach(r => {
+    const rby = String(r.ResolvedByIdentity || '').toLowerCase();
+    if ((r.Status === 'Resolved' || r.Status === 'Closed') && rby && !rby.includes('autosim')) {
+      aRes[rby] = (aRes[rby] || 0) + 1;
+      if (r.CreateDate && r.ResolvedDate) { const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5; if (h >= 0) (aTm[rby] = aTm[rby] || []).push(h); }
+    }
+    const asg = String(r.AssigneeIdentity || '').toLowerCase();
+    if (asg && GRP_ALL.includes(asg)) {
+      aAsgn[asg] = (aAsgn[asg] || 0) + 1;
+      if (r.Status !== 'Resolved' && r.Status !== 'Closed') aOpen[asg] = (aOpen[asg] || 0) + 1;
+      if (aStatus[asg] && aStatus[asg][r.Status] !== undefined) aStatus[asg][r.Status]++;
+    }
+  });
+  const agents = GRP_ALL.map(n => ({ name: n, assigned: aAsgn[n] || 0, resolved: aRes[n] || 0, open: aOpen[n] || 0, avgTime: aTm[n] ? grpAvg(aTm[n]) : 0, group: grpOf(n), statuses: aStatus[n] }));
+  let a1R = 0, a2R = 0, bR = 0, a1O = 0, a2O = 0, bO = 0;
+  data.forEach(r => {
+    if (r.Status === 'Resolved') { const g = grpOf(r.ResolvedByIdentity); if (g === 'A1') a1R++; else if (g === 'A2') a2R++; else if (g === 'B') bR++; }
+    if (r.Status !== 'Resolved') { const g = grpOf(r.AssigneeIdentity); if (g === 'A1') a1O++; else if (g === 'A2') a2O++; else if (g === 'B') bO++; }
+  });
+  const a1T = [], a2T = [], bT = [];
+  data.forEach(r => { if (r.Status === 'Resolved' && r.ResolvedByIdentity && r.CreateDate && r.ResolvedDate) { const g = grpOf(r.ResolvedByIdentity); const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5; if (h >= 0) { if (g === 'A1') a1T.push(h); else if (g === 'A2') a2T.push(h); else if (g === 'B') bT.push(h); } } });
+  let a1As = 0, a2As = 0, bAs = 0;
+  data.forEach(r => { const g = grpOf(r.AssigneeIdentity); if (g === 'A1') a1As++; else if (g === 'A2') a2As++; else if (g === 'B') bAs++; });
+  const dL = [], dgA1 = [], dgA2 = [], dgB = [];
+  for (let i = 6; i >= 0; i--) {
+    const ds = new Date(maxDate); ds.setDate(ds.getDate() - i); ds.setHours(0, 0, 0, 0);
+    const de = new Date(ds); de.setDate(de.getDate() + 1);
+    dL.push(ds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    let x = 0, y = 0, z = 0;
+    data.forEach(r => { if (r.ResolvedDate) { const rd = new Date(r.ResolvedDate); if (rd >= ds && rd < de) { const g = grpOf(r.ResolvedByIdentity); if (g === 'A1') x++; else if (g === 'A2') y++; else if (g === 'B') z++; } } });
+    dgA1.push(x); dgA2.push(y); dgB.push(z);
+  }
+  return { agents, a1R, a2R, bR, a1O, a2O, bO, a1Avg: grpAvg(a1T), a2Avg: grpAvg(a2T), bAvg: grpAvg(bT), a1As, a2As, bAs, dL, dgA1, dgA2, dgB };
+}
+
+// Materialize the group metrics into a tiny per-quarter doc so the section endpoints read a small
+// findOne (~ms) instead of scanning the ~8k-ticket blob on every request.
+async function recomputeGroupRollup(qid) {
+  qid = qid || currentQuarter();
+  const meta = await liveMetaFor(qid);
+  const metrics = await computeGroupMetrics();
+  const coll = await getCollection(COLLECTIONS.groupRollups);
+  await coll.updateOne({ _id: qid }, { $set: { publishedAt: meta.publishedAt || null, computedAt: new Date().toISOString(), metrics } }, { upsert: true });
+  return { quarter: qid, publishedAt: meta.publishedAt || null };
+}
+// Read the group metrics for the live quarter: serve the rollup when it's current; otherwise compute
+// live this once and refresh the rollup in the background.
+async function getGroupMetrics() {
+  const qid = currentQuarter();
+  const meta = await liveMeta();
+  const coll = await getCollection(COLLECTIONS.groupRollups);
+  const roll = await coll.findOne({ _id: qid });
+  if (roll && roll.metrics && (roll.publishedAt || null) === (meta.publishedAt || null)) return roll.metrics;
+  const metrics = await computeGroupMetrics();                          // stale/missing -> compute live once
+  recomputeGroupRollup(qid).catch(e => console.error('group rollup recompute (bg) failed:', e && e.message));
+  return metrics;
+}
+
+// One endpoint per Group Analytics section (admin+). Each computes the full metrics then returns
+// ONLY that section's slice, so every section is its own small request. `section` selects the slice.
+function grpSlice(section, m) {
+  const groupTotals = { a1R: m.a1R, a2R: m.a2R, bR: m.bR, a1O: m.a1O, a2O: m.a2O, bO: m.bO, a1As: m.a1As, a2As: m.a2As, bAs: m.bAs, a1Avg: m.a1Avg, a2Avg: m.a2Avg, bAvg: m.bAvg };
+  if (section === 'ro') return { a1R: m.a1R, a2R: m.a2R, bR: m.bR, a1O: m.a1O, a2O: m.a2O, bO: m.bO, a1Avg: m.a1Avg, a2Avg: m.a2Avg, bAvg: m.bAvg };
+  if (section === 'wl') return { a1As: m.a1As, a2As: m.a2As, bAs: m.bAs, dL: m.dL, dgA1: m.dgA1, dgA2: m.dgA2, dgB: m.dgB };
+  if (section === 'par' || section === 'arv') return { agents: m.agents.map(a => ({ name: a.name, resolved: a.resolved, open: a.open, group: a.group })) };
+  if (section === 'iap') return { agents: m.agents };
+  if (section === 'gts') return groupTotals;
+  return {};
+}
+['ro', 'wl', 'par', 'arv', 'iap', 'gts'].forEach(section => {
+  app.get('/api/group-analytics/' + section, requireRole('admin'), async (req, res) => {
+    try {
+      const m = await getGroupMetrics();
+      res.json(Object.assign({ section, quarter: currentQuarter() }, grpSlice(section, m)));
+    } catch (e) {
+      res.status(500).json({ error: 'Could not compute group analytics (' + section + ').' });
+    }
+  });
+});
+
+// Per-agent "1st Pet incident (handled by PHD)" count for the live quarter (admin+). Reads the
+// agent rollup; falls back to a one-off live scan + background rebuild if missing/stale.
+app.get('/api/agent-overview/pet', requireRole('admin'), async (req, res) => {
+  try {
+    const username = String(req.query.username || '').trim().toLowerCase();
+    if (!username) return res.status(400).json({ error: 'A username is required.' });
+    const qid = currentQuarter();
+    const meta = await liveMeta();
+    const rollColl = await getCollection(COLLECTIONS.agentRollups);
+    const roll = await rollColl.findOne({ _id: qid });
+    const fresh = roll && (roll.publishedAt || null) === (meta.publishedAt || null) && (roll.rollupVersion || 0) >= AGENT_ROLLUP_VERSION;
+    const usable = roll && (roll.rollupVersion || 0) >= AGENT_ROLLUP_VERSION;
+    if (usable && roll.agents && roll.agents[username]) {
+      const total = petCountFromResolved(roll.agents[username].resolved);
+      res.json({ username, quarter: qid, category: '1st Pet incident (handled by PHD)', total, cached: true });
+      if (!fresh) recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
+      return;
+    }
+    if (usable && fresh) return res.json({ username, quarter: qid, category: '1st Pet incident (handled by PHD)', total: 0, cached: true });
+    // Fallback: live scan this once, then rebuild.
+    const tickets = await liveTickets();
+    let total = 0;
+    tickets.forEach(t => { if (String(t.ResolvedByIdentity || '').toLowerCase() === username && isPetIncident(t)) total++; });
+    res.json({ username, quarter: qid, category: '1st Pet incident (handled by PHD)', total, cached: false });
+    recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the pet-incident count.' });
+  }
+});
+
+// Quarter-wide "1st Pet incident" totals: handled by PHD (all registered agents) vs AUTO-SIM (admin+).
+app.get('/api/pet-totals', requireRole('admin'), async (req, res) => {
+  try {
+    const qid = currentQuarter();
+    const meta = await liveMeta();
+    const rollColl = await getCollection(COLLECTIONS.agentRollups);
+    const roll = await rollColl.findOne({ _id: qid }, { projection: { petTotals: 1, publishedAt: 1, rollupVersion: 1 } });
+    const fresh = roll && (roll.publishedAt || null) === (meta.publishedAt || null) && (roll.rollupVersion || 0) >= AGENT_ROLLUP_VERSION;
+    if (roll && roll.petTotals && (roll.rollupVersion || 0) >= AGENT_ROLLUP_VERSION) {
+      const p = roll.petTotals;
+      res.json({ quarter: qid, phd: p.phd || 0, autosim: p.autosim || 0, total: (p.phd || 0) + (p.autosim || 0), cached: true });
+      if (!fresh) recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
+      return;
+    }
+    // Fallback: live scan this once, then rebuild.
+    const tickets = await liveTickets();
+    const autosimLc = PET_AUTOSIM_IDENTITY.toLowerCase();
+    let phd = 0, autosim = 0;
+    tickets.forEach(t => {
+      if (!isPetIncident(t)) return;
+      const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
+      if (rby === autosimLc) autosim++; else if (rby) phd++;
+    });
+    res.json({ quarter: qid, phd, autosim, total: phd + autosim, cached: false });
+    recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the pet-incident totals.' });
+  }
+});
+
+// ---- Calendar-boundary helpers (timezone-aware) -------------------------------------------------
+// The client passes tz = Date.prototype.getTimezoneOffset() in minutes for the VIEWER (e.g. IST=-330).
+// Local wall-clock time = UTC + (-tz) minutes. We compute Y/M/D in the viewer's local time, then map
+// the desired local midnight / end-of-day back to a UTC epoch-ms for filtering the stored events.
+function tzParts(ms, tz) {                       // civil (local) date parts for a UTC ms at offset tz
+  const d = new Date(ms - tz * 60000);           // shift so getUTC* yields local wall-clock
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() };
+}
+function localMidnightMs(y, m, d, tz) {          // UTC ms of local 00:00:00.000 for a Y/M/D
+  return Date.UTC(y, m, d, 0, 0, 0, 0) + tz * 60000;
+}
+// Calendar ranges in the viewer's local time. Returns { from, to } inclusive ms.
+function calendarRange(kind, tz, opts) {
+  const now = Date.now();
+  const p = tzParts(now, tz);
+  if (kind === 'weekly') {                        // the local day 6 days ago 00:00 -> end of today
+    const startMid = localMidnightMs(p.y, p.m, p.d, tz) - 6 * 864e5;
+    const endMs = localMidnightMs(p.y, p.m, p.d, tz) + 864e5 - 1;
+    return { from: startMid, to: endMs };
+  }
+  if (kind === 'daily') {                          // today 00:00 -> now-end-of-day
+    return { from: localMidnightMs(p.y, p.m, p.d, tz), to: localMidnightMs(p.y, p.m, p.d, tz) + 864e5 - 1 };
+  }
+  if (kind === '12h') {                            // no natural calendar snap; treat as today so far
+    return { from: localMidnightMs(p.y, p.m, p.d, tz), to: now };
+  }
+  if (kind === 'monthly') {                        // 1st of this month 00:00 -> end of today
+    return { from: localMidnightMs(p.y, p.m, 1, tz), to: localMidnightMs(p.y, p.m, p.d, tz) + 864e5 - 1 };
+  }
+  if (kind === 'quarter') {                        // a specific calendar quarter (opts.qStartMonth, opts.year)
+    const from = localMidnightMs(opts.year, opts.qStartMonth, 1, tz);
+    const to = localMidnightMs(opts.year, opts.qStartMonth + 3, 1, tz) - 1;   // end of last day of quarter
+    return { from, to };
+  }
+  if (kind === 'ytd') {                            // Jan 1 this year 00:00 -> now
+    return { from: localMidnightMs(p.y, 0, 1, tz), to: now };
+  }
+  return { from: now, to: now };
+}
+// Rolling ranges (last N hours from now).
+function rollingRange(hours) { const now = Date.now(); return { from: now - hours * 36e5, to: now }; }
+
+// Shared responder for a cross-quarter overview window over an explicit [from,to] range. Reads
+// per-quarter agent rollups (no ticket blob). If a needed quarter's rollup is missing/stale it
+// triggers a background recompute and reports partial=true.
+async function respondOverviewRange(res, username, windowKey, mode, from, to, extra) {
+  const gathered = await gatherResolvedAcrossQuarters(username, from, to);
+  const out = overviewCountsInRange(gathered.resolved, from, to);
+  gathered.missing.forEach(q => recomputeAgentRollups(q).catch(e => console.error('agent rollup recompute (bg) failed for ' + q + ':', e && e.message)));
+  res.json(Object.assign({
+    username, window: windowKey, mode, from, to,
+    total: out.total, counts: out.counts, pet: out.pet, sla: out.sla, rootCauses: out.rootCauses,
+    partial: gathered.missing.length > 0, cached: gathered.missing.length === 0,
+  }, extra || {}));
+}
+// Parse the shared query params for a cross-quarter window: username, mode (rolling|calendar), tz.
+function overviewParams(req) {
+  const username = String(req.query.username || '').trim().toLowerCase();
+  const mode = String(req.query.mode || 'rolling').toLowerCase() === 'calendar' ? 'calendar' : 'rolling';
+  const tz = Number.isFinite(+req.query.tz) ? parseInt(req.query.tz, 10) : new Date().getTimezoneOffset();
+  return { username, mode, tz };
+}
+
+// Monthly overview (admin+): rolling last 30 days, or the current calendar month (mode=calendar).
+app.get('/api/agent-overview/monthly', requireRole('admin'), async (req, res) => {
+  try {
+    const { username, mode, tz } = overviewParams(req);
+    if (!username) return res.status(400).json({ error: 'A username is required.' });
+    const range = mode === 'calendar' ? calendarRange('monthly', tz) : rollingRange(24 * 30);
+    await respondOverviewRange(res, username, 'monthly', mode, range.from, range.to);
+  } catch (e) { res.status(500).json({ error: 'Could not load the monthly overview.' }); }
+});
+
+// Year-to-Date overview (admin+): Jan 1 of the current year -> now. (Always calendar-anchored.)
+app.get('/api/agent-overview/ytd', requireRole('admin'), async (req, res) => {
+  try {
+    const { username, mode, tz } = overviewParams(req);
+    if (!username) return res.status(400).json({ error: 'A username is required.' });
+    const range = calendarRange('ytd', tz);
+    await respondOverviewRange(res, username, 'ytd', 'calendar', range.from, range.to);
+  } catch (e) { res.status(500).json({ error: 'Could not load the year-to-date overview.' }); }
+});
+
+// Quarterly overview (admin+): one block per calendar quarter of the current year that has ANY
+// resolves for this agent (empty quarters omitted). Each block is a full range summary.
+app.get('/api/agent-overview/quarterly', requireRole('admin'), async (req, res) => {
+  try {
+    const { username, tz } = overviewParams(req);
+    if (!username) return res.status(400).json({ error: 'A username is required.' });
+    const year = tzParts(Date.now(), tz).y;
+    const now = Date.now();
+    const blocks = [];
+    let anyMissing = false;
+    for (let q = 1; q <= 4; q++) {
+      const qStartMonth = (q - 1) * 3;
+      const qStartMs = localMidnightMs(year, qStartMonth, 1, tz);
+      if (qStartMs > now) continue;                         // future quarter hasn't started
+      const range = calendarRange('quarter', tz, { year, qStartMonth });
+      const to = Math.min(range.to, now);                   // don't count past "now" for the live quarter
+      const gathered = await gatherResolvedAcrossQuarters(username, range.from, to);
+      if (gathered.missing.length) { anyMissing = true; gathered.missing.forEach(m => recomputeAgentRollups(m).catch(() => {})); }
+      const out = overviewCountsInRange(gathered.resolved, range.from, to);
+      if (out.total === 0 && Object.keys(out.rootCauses).length === 0) continue;   // omit empty quarters
+      blocks.push({ quarter: year + '-Q' + q, label: 'Q' + q + ' ' + year, from: range.from, to,
+        total: out.total, counts: out.counts, pet: out.pet, sla: out.sla, rootCauses: out.rootCauses });
+    }
+    res.json({ username, window: 'quarterly', year, blocks, partial: anyMissing, cached: !anyMissing });
+  } catch (e) { res.status(500).json({ error: 'Could not load the quarterly overview.' }); }
+});
+
 // An editor's live "bucket" (admin+): their still-open tickets in the live quarter, with all comments.
 app.get('/api/agent-bucket', requireRole('admin'), async (req, res) => {
   try {
@@ -2403,6 +2765,155 @@ async function liveMetaFor(qid) {
   return { publishedAt: (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null };
 }
 
+// Precompute a per-agent OPEN-ticket summary for a quarter and store it in one small doc, so the
+// agent profile page reads instantly (no ~8k-ticket blob, no per-request scan). We store each
+// agent's status counts + a slim list of their open tickets ({ c: CreateDate, p: isPurple }) so
+// the (time-sensitive) age-colour counts can be derived at read time from just those few dates.
+// We also store each agent's resolved-events ({ r: epoch-ms, k: closureCode }) so the time-window
+// overviews (12h/daily/...) can be filtered at read time. We also flag qualifying "1st Pet incident"
+// resolved-events (pet:1) and store quarter-wide petTotals { phd, autosim }. Bump AGENT_ROLLUP_VERSION
+// whenever the stored shape changes, so boot backfills stale-shaped rollups even when publishedAt is unchanged.
+const AGENT_ROLLUP_VERSION = 4;
+async function recomputeAgentRollups(qid) {
+  qid = qid || currentQuarter();
+  const coll = await getCollection(COLLECTIONS.quarters);
+  const doc = await coll.findOne({ _id: qid });
+  const tickets = (doc && doc.data && doc.data.tickets) || [];
+  const publishedAt = (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null;
+  const agents = {};
+  const ensure = (login) => {
+    let a = agents[login];
+    if (!a) a = agents[login] = { statusCounts: { 'Assigned': 0, 'Work In Progress': 0, 'Pending': 0, 'Researching': 0 }, openTix: [], resolved: [] };
+    return a;
+  };
+  const OVERVIEW_CODE_SET = new Set(OVERVIEW_CLOSURE_CODES);
+  const autosimLc = PET_AUTOSIM_IDENTITY.toLowerCase();
+  // Quarter-wide "1st Pet incident" totals: handled by PHD (registered agents) vs handled by AUTO-SIM.
+  const petTotals = { phd: 0, autosim: 0 };
+  tickets.forEach(t => {
+    // Open tickets -> status counts + slim open list (keyed by ASSIGNEE), for the "Active cases" summary.
+    if (OPEN_SET.includes(t.Status)) {
+      const asg = String(t.AssigneeIdentity || '').trim().toLowerCase();
+      if (asg) {
+        const a = ensure(asg);
+        if (a.statusCounts[t.Status] != null) a.statusCounts[t.Status]++;
+        const isPurple = (t._reopened === true) || (t.ResolvedDate && String(t.ResolvedDate).trim() !== '');
+        a.openTix.push({ c: t.CreateDate || '', p: isPurple ? 1 : 0 });
+      }
+    }
+    // Resolved events (keyed by RESOLVER), for the time-window overviews. We store EVERY ticket the
+    // agent resolved (any closure code) as { r: resolvedAt-ms, k: closureCode, rc: rootCause, c: createAt-ms }
+    // (+ pet:1 when it qualifies as a 1st Pet incident). The moving window is applied at READ time.
+    // - closure-code counts use only the 8 tracked codes (counts[e.k] guards that at read time);
+    // - SLA uses c/r and excludes Auto/Immediate codes; the RootCause breakdown uses rc across all codes.
+    const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
+    const pet = isPetIncident(t);
+    if (rby) {
+      const cc = String(t.ClosureCode || '').trim();
+      const rd = t.ResolvedDate ? new Date(t.ResolvedDate) : null;
+      if (rd && !isNaN(rd)) {
+        const cdt = t.CreateDate ? new Date(t.CreateDate) : null;
+        const ev = { r: rd.getTime(), k: cc, rc: String(t.RootCause || '').trim() };
+        if (cdt && !isNaN(cdt)) ev.c = cdt.getTime();
+        if (pet) ev.pet = 1;
+        ensure(rby).resolved.push(ev);
+      }
+    }
+    // Quarter-wide pet totals (independent of the window/overview logic; counts every qualifying ticket).
+    if (pet) { if (rby === autosimLc) petTotals.autosim++; else if (rby) petTotals.phd++; }
+  });
+  const rollColl = await getCollection(COLLECTIONS.agentRollups);
+  await rollColl.updateOne(
+    { _id: qid },
+    { $set: { publishedAt, computedAt: new Date().toISOString(), rollupVersion: AGENT_ROLLUP_VERSION, petTotals, agents } },
+    { upsert: true }
+  );
+  return { quarter: qid, publishedAt, agentCount: Object.keys(agents).length };
+}
+// Derive age-colour counts for an agent's stored open tickets, at READ time (age depends on now).
+function agentColorsFromOpenTix(openTix) {
+  const now = Date.now();
+  const colors = { green: 0, yellow: 0, red: 0, black: 0, purple: 0 };
+  (openTix || []).forEach(o => {
+    if (o.p) { colors.purple++; return; }
+    const cd = new Date(o.c); const ageH = isNaN(cd) ? 0 : (now - cd.getTime()) / 36e5;
+    if (ageH <= 96) colors.green++;
+    else if (ageH <= 168) colors.yellow++;
+    else if (ageH <= 240) colors.red++;
+    else colors.black++;
+  });
+  return colors;
+}
+
+// Count an agent's stored resolved-events (from the rollup) that fall within the last `hours`
+// hours of now, grouped by the 8 tracked ClosureCodes. Returns { total, counts }.
+// Rolling window: last `hours` from now. Thin wrapper over the range version.
+function overviewCountsFromResolved(resolved, hours) {
+  const now = Date.now();
+  return overviewCountsInRange(resolved, now - hours * 36e5, now);
+}
+// Count an agent's stored resolved-events within an explicit [from, to] ms range (inclusive),
+// grouped by closure code, plus windowed SLA + RootCause breakdown. Used by every overview window.
+function overviewCountsInRange(resolved, from, to) {
+  const counts = {}; OVERVIEW_CLOSURE_CODES.forEach(c => { counts[c] = 0; });
+  let total = 0, pet = 0;         // pet = qualifying "1st Pet incident" resolved-events in this window
+  let slaEligible = 0, slaCompliant = 0;   // SLA over tickets NOT closed Auto/Immediate
+  const rootCauses = {};          // RootCause -> count (across ALL closure codes; blanks -> "(blank)")
+  (resolved || []).forEach(e => {
+    if (e.r < from || e.r > to) return;   // resolved within [from, to]
+    if (counts[e.k] != null) { counts[e.k]++; total++; }   // one of the 8 tracked closure codes
+    if (e.pet) pet++;
+    // SLA: exclude Auto Closed / Immediately Resolved; need a create time. Compliant = resolved <= 240h after create.
+    if (!PET_CLOSURE_CODES.has(e.k) && e.c != null) {
+      slaEligible++;
+      if ((e.r - e.c) <= SLA_HOURS * 36e5) slaCompliant++;
+    }
+    // RootCause breakdown across all resolved tickets in the window (blanks bucketed as "(blank)").
+    const rc = e.rc && e.rc.length ? e.rc : '(blank)';
+    rootCauses[rc] = (rootCauses[rc] || 0) + 1;
+  });
+  const slaPct = slaEligible ? Math.round((slaCompliant / slaEligible) * 1000) / 10 : null;   // 1-dp %, null if none eligible
+  return { total, counts, pet, sla: { eligible: slaEligible, compliant: slaCompliant, pct: slaPct }, rootCauses };
+}
+
+// Which quarter ids overlap a [from, to] ms range (e.g. a rolling 30-day month can span two quarters,
+// YTD spans up to 4). Returns quarter ids like "2026-Q1".. that intersect the range.
+function quartersOverlapping(fromMs, toMs) {
+  const out = [];
+  const startY = new Date(fromMs).getFullYear(), endY = new Date(toMs).getFullYear();
+  for (let y = startY; y <= endY; y++) {
+    for (let q = 1; q <= 4; q++) {
+      const r = quarterRange(`${y}-Q${q}`);
+      if (!r) continue;
+      // overlap if quarter [start, endExclusive) intersects [fromMs, toMs]
+      if (r.start.getTime() <= toMs && r.endExclusive.getTime() > fromMs) out.push(`${y}-Q${q}`);
+    }
+  }
+  return out;
+}
+
+// Gather an agent's resolved-events across all quarter rollups overlapping [fromMs, toMs].
+// Reads the small per-quarter agent_rollups docs (never the ticket blob). Also reports which of the
+// needed quarters were missing/stale so the caller can decide to fall back / trigger a recompute.
+async function gatherResolvedAcrossQuarters(username, fromMs, toMs) {
+  const rollColl = await getCollection(COLLECTIONS.agentRollups);
+  const qids = quartersOverlapping(fromMs, toMs);
+  let resolved = [];
+  const missing = [];
+  for (const qid of qids) {
+    const roll = await rollColl.findOne({ _id: qid }, { projection: { agents: 1, rollupVersion: 1 } });
+    if (!roll || (roll.rollupVersion || 0) < AGENT_ROLLUP_VERSION) { missing.push(qid); continue; }
+    const a = roll.agents && roll.agents[username];
+    if (a && a.resolved && a.resolved.length) resolved = resolved.concat(a.resolved);
+  }
+  return { resolved, quarters: qids, missing };
+}
+
+// Count an agent's stored "1st Pet incident" resolved-events (pet:1). Quarter-wide (no time window).
+function petCountFromResolved(resolved) {
+  let n = 0; (resolved || []).forEach(e => { if (e.pet) n++; }); return n;
+}
+
 // Register all chunk endpoints (public read). Serves from the precomputed rollup when it's
 // current; otherwise falls back to a live aggregation and kicks off a background recompute.
 // Age chunks depend on the CURRENT clock (a ticket's colour changes as hours pass), so they are
@@ -2440,11 +2951,45 @@ app.listen(PORT, () => {
   (async () => {
     try {
       const qid = currentQuarter();
-      const [meta, rollColl] = await Promise.all([liveMetaFor(qid), getCollection(COLLECTIONS.dashRollups)]);
+      const meta = await liveMetaFor(qid);
+      // Dashboard chunk rollup
+      const rollColl = await getCollection(COLLECTIONS.dashRollups);
       const roll = await rollColl.findOne({ _id: qid }, { projection: { publishedAt: 1 } });
       if (!roll || (roll.publishedAt || null) !== (meta.publishedAt || null)) {
         await recomputeRollup(qid);
         console.log('Dashboard rollup backfilled for ' + qid);
+      }
+      // Per-agent rollup for the LIVE quarter
+      const agColl = await getCollection(COLLECTIONS.agentRollups);
+      const agRoll = await agColl.findOne({ _id: qid }, { projection: { publishedAt: 1, rollupVersion: 1 } });
+      if (!agRoll || (agRoll.publishedAt || null) !== (meta.publishedAt || null) || (agRoll.rollupVersion || 0) < AGENT_ROLLUP_VERSION) {
+        await recomputeAgentRollups(qid);
+        console.log('Agent rollup backfilled for ' + qid);
+      }
+      // Group (Alpha/Gamma/Beta) rollup
+      const grColl = await getCollection(COLLECTIONS.groupRollups);
+      const grRoll = await grColl.findOne({ _id: qid }, { projection: { publishedAt: 1 } });
+      if (!grRoll || (grRoll.publishedAt || null) !== (meta.publishedAt || null)) {
+        await recomputeGroupRollup(qid);
+        console.log('Group rollup backfilled for ' + qid);
+      }
+      // Per-agent rollups for the OTHER quarters of the CURRENT YEAR (past quarters are immutable, so
+      // we only (re)compute when a rollup is missing or on an older shape version). Needed for the
+      // Monthly (boundary-spanning), Quarterly (per-quarter) and YTD (Jan1->now) overviews. We scope to
+      // the current year — the pre-2026 archive quarters aren't used by these year-based overviews.
+      const curYear = new Date().getFullYear();
+      const qColl = await getCollection(COLLECTIONS.quarters);
+      const otherQids = (await qColl.find({}, { projection: { _id: 1 } }).toArray())
+        .map(d => d._id).filter(id => id && id !== qid && new RegExp('^' + curYear + '-Q[1-4]$').test(id));
+      for (const oqid of otherQids) {
+        try {
+          const ometa = await liveMetaFor(oqid);
+          const oRoll = await agColl.findOne({ _id: oqid }, { projection: { publishedAt: 1, rollupVersion: 1 } });
+          if (!oRoll || (oRoll.publishedAt || null) !== (ometa.publishedAt || null) || (oRoll.rollupVersion || 0) < AGENT_ROLLUP_VERSION) {
+            await recomputeAgentRollups(oqid);
+            console.log('Agent rollup backfilled for ' + oqid);
+          }
+        } catch (e) { console.error('agent rollup backfill failed for ' + oqid + ':', e && e.message); }
       }
     } catch (e) { console.error('rollup backfill failed:', e && e.message); }
   })();

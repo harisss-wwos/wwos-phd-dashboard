@@ -238,4 +238,61 @@ window.PHDAuth = {
   // Overwrite the cached profile after the user edits it (profile.html save).
   setMyProfile: function (data) { this._myProfile = data; this._storeWrite('profile', data); },
   myProfile: function () { return this._myProfile || this.getUser(); },
+
+  // ---- "tally" animation (shared) ----------------------------------------------------------
+  // The number-reveal animation used for DB-backed counts across the app:
+  //   loading placeholder (dim pulsing dash)  ->  brief scramble  ->  ease-out count-up to value.
+  // Usage:
+  //   A.tallyPlaceholder(el)   // put a tile into the loading state (call in the static skeleton)
+  //   A.tally(el, value)       // once the data lands, animate el up to `value`
+  //   A.tallyAll(root)         // shortcut: run A.tally on every [data-tally] under root using its data-tally value
+  // Any element given class "tally-ph" gets the pulsing placeholder look (CSS injected once below).
+  _tallyCssInjected: false,
+  _ensureTallyCss: function () {
+    if (this._tallyCssInjected || typeof document === 'undefined') return;
+    this._tallyCssInjected = true;
+    var s = document.createElement('style');
+    // A small self-contained loading spinner (own keyframe so it works on any page), shown in place
+    // of a number until its data arrives. Any element with class "tally-ph" hides its own text and
+    // renders the spinner via ::before, so existing markup (e.g. a placeholder dash) needs no change.
+    // Sized in em so it scales with the number's font-size.
+    s.textContent =
+      '.tally-ph{color:transparent!important;display:inline-flex;align-items:center;justify-content:center;min-width:1em;height:1em;vertical-align:-.15em;line-height:1}' +
+      '.tally-ph::before{content:"";display:inline-block;width:.7em;height:.7em;border:2px solid var(--bd,#2a2a2a);border-top-color:var(--o,#ff9900);border-radius:50%;animation:tallySpin .8s linear infinite}' +
+      '@keyframes tallySpin{100%{transform:rotate(360deg)}}';
+    document.head.appendChild(s);
+  },
+  // Put an element into the loading placeholder state (a small spinner).
+  tallyPlaceholder: function (el) {
+    if (!el) return;
+    this._ensureTallyCss();
+    el.classList.add('tally-ph');
+    if (!el.textContent) el.textContent = '\u2014'; // give ::before something to size against
+  },
+  // Animate a number element from a brief scramble into its real value (ease-out count-up).
+  // Clears the loading placeholder (spinner) first so it stops the moment real data arrives.
+  tally: function (el, target) {
+    if (!el) return;
+    el.classList.remove('tally-ph');
+    target = Number(target) || 0;
+    var raf = window.requestAnimationFrame || function (cb) { return setTimeout(function () { cb(Date.now()); }, 16); };
+    var SCRAMBLE_MS = 140, COUNT_MS = 600, scrMax = Math.max(10, target * 1.3), start = null;
+    var step = function (ts) {
+      if (start === null) start = ts;
+      var t = ts - start;
+      if (t < SCRAMBLE_MS) { el.textContent = Math.floor(Math.random() * scrMax); raf(step); }
+      else if (t < SCRAMBLE_MS + COUNT_MS) { var p = (t - SCRAMBLE_MS) / COUNT_MS; el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))); raf(step); }
+      else { el.textContent = target; }
+    };
+    raf(step);
+  },
+  // Convenience: tally every element carrying a data-tally="<value>" attribute under `root`.
+  tallyAll: function (root) {
+    var self = this; root = root || document;
+    root.querySelectorAll('[data-tally]').forEach(function (el) { self.tally(el, el.getAttribute('data-tally')); });
+  },
 };
+
+// Inject the tally CSS immediately on load so any static "tally-ph" placeholder in a page's initial
+// markup shows the spinner right away (before the first A.tally* call).
+try { window.PHDAuth._ensureTallyCss(); } catch (e) {}
