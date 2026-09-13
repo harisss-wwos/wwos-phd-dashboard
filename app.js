@@ -1868,7 +1868,7 @@ function renderGroups(){
   const m=M;const sorted=[...m.agents.filter(a=>a.group==='A1').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='A2').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='B').sort((a,b)=>b.resolved-a.resolved)];
   const gc={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'};const tc={A1:'tag-a1',A2:'tag-a2',B:'tag-b'};
   // Display names for the groups (internal keys A1/A2/B stay unchanged in the metrics engine).
-  const gn={A1:'Apollo',A2:'Nova',B:'Orbit'};
+  const gn={A1:'Alpha',A2:'Gamma',B:'Beta'};
   document.getElementById('app').innerHTML=topBar('groups')+`<div class="content">
   <div class="section" style="display:flex;gap:24px;flex-wrap:wrap">
     <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:3px;background:#7dd3fc;display:inline-block"></span> ${gn.A1}: harisss, punithsd, arunkzn, flofalgu</span>
