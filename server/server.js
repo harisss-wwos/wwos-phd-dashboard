@@ -349,11 +349,13 @@ app.get('/api/db-health', requireRole('owner'), async (req, res) => {
     const quarters = [];
     try {
       const qColl = await getCollection(COLLECTIONS.quarters);
-      const qDocs = await qColl.find({}).toArray();
+      const tColl = await getCollection(COLLECTIONS.ticketDocs);
+      const qDocs = await qColl.find({}, { projection: { meta: 1, 'data.updatedAt': 1, 'data.count': 1, 'data.tickets': 1 } }).toArray();
       const DOC_LIMIT = 16 * 1024 * 1024;
       for (const doc of qDocs) {
-        const tickets = (doc.data && Array.isArray(doc.data.tickets)) ? doc.data.tickets.length : 0;
-        // Approximate document size (JSON byte length) to gauge headroom against the 16MB cap.
+        // Ticket count: prefer live per-ticket count; fall back to legacy array length / stored count.
+        let tickets = await tColl.countDocuments({ q: doc._id });
+        if (!tickets) tickets = (doc.data && Array.isArray(doc.data.tickets)) ? doc.data.tickets.length : ((doc.data && doc.data.count) || 0);
         let approxBytes = 0;
         try { approxBytes = Buffer.byteLength(JSON.stringify(doc)); } catch (e) {}
         quarters.push({
@@ -476,13 +478,14 @@ app.get('/api/live-quarter', async (req, res) => {
     const qid = currentQuarter();
     const range = quarterRange(qid);
     const coll = await getCollection(COLLECTIONS.quarters);
-    const doc = await coll.findOne({ _id: qid });
+    const doc = await coll.findOne({ _id: qid }, { projection: { meta: 1, 'data.updatedAt': 1, 'data.count': 1 } });
+    const tickets = await loadQuarterTickets(qid);   // reassembled from ticket_docs (or legacy fallback)
     res.json({
       quarter: qid,
       label: quarterLabel(qid),
       range: range ? { start: range.start.toISOString(), endExclusive: range.endExclusive.toISOString() } : null,
       isLive: true,
-      data: doc ? doc.data : null,
+      data: { tickets, updatedAt: (doc && doc.data && doc.data.updatedAt) || null, count: tickets.length },
       meta: doc ? doc.meta : null,
     });
   } catch (e) {
@@ -496,9 +499,10 @@ app.get('/api/quarter/:qid', async (req, res) => {
     const qid = req.params.qid;
     if (!/^\d{4}-Q[1-4]$/.test(qid)) return res.status(400).json({ error: 'Invalid quarter id.' });
     const coll = await getCollection(COLLECTIONS.quarters);
-    const doc = await coll.findOne({ _id: qid });
-    if (!doc) return res.json({ quarter: qid, label: quarterLabel(qid), data: null, meta: null, isLive: qid === currentQuarter() });
-    res.json({ quarter: qid, label: quarterLabel(qid), data: doc.data, meta: doc.meta, isLive: qid === currentQuarter() });
+    const doc = await coll.findOne({ _id: qid }, { projection: { meta: 1, 'data.updatedAt': 1, 'data.count': 1 } });
+    const tickets = await loadQuarterTickets(qid);
+    if (!doc && !tickets.length) return res.json({ quarter: qid, label: quarterLabel(qid), data: null, meta: null, isLive: qid === currentQuarter() });
+    res.json({ quarter: qid, label: quarterLabel(qid), data: { tickets, updatedAt: (doc && doc.data && doc.data.updatedAt) || null, count: tickets.length }, meta: doc ? doc.meta : null, isLive: qid === currentQuarter() });
   } catch (e) {
     res.status(500).json({ error: 'Could not load quarter.' });
   }
@@ -539,9 +543,11 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
     for (const [q, arr] of Object.entries(byQuarter)) {
       const isLive = (q === liveQ);
       if (isLive) {
+        // Live bucket: client already merged locally -> replace this quarter's tickets in ticket_docs
+        // (diffed, only changes written). Keep only meta on the quarters doc (no giant array).
+        await replaceQuarterTickets(q, arr);
         const meta = { publishedBy: req.user.username, publishedAt, count: arr.length };
-        const payload = { updatedAt: publishedAt, count: arr.length, tickets: arr };
-        await coll.updateOne({ _id: q }, { $set: { data: payload, meta } }, { upsert: true });
+        await coll.updateOne({ _id: q }, { $set: { meta, 'data.updatedAt': publishedAt, 'data.count': arr.length }, $unset: { 'data.tickets': '' } }, { upsert: true });
         written.push({ quarter: q, label: quarterLabel(q), count: arr.length, isLive: true });
         // Live-quarter data-log entry (uses the client's browser merge report).
         try {
@@ -554,36 +560,34 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
           });
         } catch (logErr) { /* never block publish */ }
       } else {
-        // Merge by ShortId into the existing non-live quarter doc.
-        const existingDoc = await coll.findOne({ _id: q });
-        const existingTickets = (existingDoc && existingDoc.data && existingDoc.data.tickets) || [];
+        // Merge by ShortId into the existing non-live quarter — write ONLY the changed rows to ticket_docs.
+        const existingTickets = await loadQuarterTickets(q);
         const map = new Map();
         existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
         const dbBefore = map.size;
         let added = 0, updated = 0, unchanged = 0;
-        const addedIds = [], updatedIds = [];
+        const addedIds = [], updatedIds = [], changedTix = [];
         for (const t of arr) {
           if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
           const id = String(t.ShortId || '').trim(); if (!id) continue;
           const existing = map.get(id);
-          if (!existing) { added++; addedIds.push(id); map.set(id, t); }
-          else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); } // real change -> uploaded wins
+          if (!existing) { added++; addedIds.push(id); map.set(id, t); changedTix.push(t); }
+          else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); changedTix.push(t); } // real change -> uploaded wins
           else { unchanged++; } // identical -> keep stored, don't log as updated
         }
-        const merged = Array.from(map.values());
-        const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
-        const meta = { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary: qSummary };
-        const payload = { updatedAt: publishedAt, count: merged.length, tickets: merged };
-        await coll.updateOne({ _id: q }, { $set: { data: payload, meta } }, { upsert: true });
-        written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
+        const total = await bulkUpsertTickets(q, changedTix, []);   // only added/updated rows written
+        const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total };
+        const meta = { publishedBy: req.user.username, publishedAt, count: total, changeSummary: qSummary };
+        await coll.updateOne({ _id: q }, { $set: { meta, 'data.updatedAt': publishedAt, 'data.count': total }, $unset: { 'data.tickets': '' } }, { upsert: true });
+        written.push({ quarter: q, label: quarterLabel(q), count: total, isLive: false, merged: true });
         // Non-live (past) quarter data-log entry — only when something actually changed.
         if (added > 0 || updated > 0) try {
           const logDoc = {
             user: req.user.username, role: req.user.role, at: publishedAt,
             liveQuarter: q, pastQuarterMerge: true,
-            written: [{ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false }],
+            written: [{ quarter: q, label: quarterLabel(q), count: total, isLive: false }],
             changeSummary: qSummary,
-            totalTickets: merged.length,
+            totalTickets: total,
           };
           // Only for 2026-Q2: record which ShortIds were added/updated.
           if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
@@ -597,6 +601,7 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message));
     recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after publish failed:', e && e.message));
+    recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after publish failed:', e && e.message));
   } catch (e) {
     res.status(500).json({ error: 'Could not publish quarter data.' });
   }
@@ -623,43 +628,41 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
     const logColl = await getCollection(COLLECTIONS.dataLog);
     const publishedAt = new Date().toISOString();
 
-    // Live quarter must already exist for a delta; otherwise tell client to do a full replace.
-    const liveDoc = await coll.findOne({ _id: liveQ });
-    if (!liveDoc || !liveDoc.data || !Array.isArray(liveDoc.data.tickets)) {
+    // Live quarter must already have tickets for a delta; otherwise tell client to do a full replace.
+    const tColl = await getCollection(COLLECTIONS.ticketDocs);
+    const liveDoc = await coll.findOne({ _id: liveQ }, { projection: { 'data.count': 1, 'meta.count': 1, 'data.tickets': 1 } });
+    const hasTicketDocs = (await tColl.countDocuments({ q: liveQ }, { limit: 1 })) > 0;
+    const hasLegacy = !!(liveDoc && liveDoc.data && Array.isArray(liveDoc.data.tickets) && liveDoc.data.tickets.length);
+    if (!hasTicketDocs && !hasLegacy) {
       return res.status(409).json({ error: 'No live dataset to patch — do a full publish.', needFull: true });
     }
+    // If this live quarter is still legacy (big array, not yet split), migrate it now so the delta writes small.
+    if (!hasTicketDocs && hasLegacy) { await backfillTicketDocs(liveQ); }
 
-    // Apply the delta by ShortId onto the existing live tickets.
-    const map = new Map();
-    liveDoc.data.tickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
+    // Apply the delta directly to ticket_docs — write ONLY the changed/removed rows (a few KB), never
+    // the whole ~8k array. This is the fix for the multi-minute publish.
     let applied = 0;
-    for (const t of changed) {
-      if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
-      const id = String(t.ShortId || '').trim(); if (!id) continue;
-      map.set(id, t); applied++;
-    }
-    let removedCount = 0;
-    for (const id of removed) { if (map.delete(String(id).trim())) removedCount++; }
+    for (const t of changed) { if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId; if (String(t.ShortId || '').trim()) applied++; }
+    const total = await bulkUpsertTickets(liveQ, changed, removed);
+    let removedCount = 0; for (const id of removed) { if (String(id).trim()) removedCount++; }
 
-    const mergedLive = Array.from(map.values());
-    const meta = { publishedBy: req.user.username, publishedAt, count: mergedLive.length };
-    const payload = { updatedAt: publishedAt, count: mergedLive.length, tickets: mergedLive };
-    await coll.updateOne({ _id: liveQ }, { $set: { data: payload, meta } }, { upsert: true });
+    const meta = { publishedBy: req.user.username, publishedAt, count: total };
+    await coll.updateOne({ _id: liveQ }, { $set: { meta, 'data.updatedAt': publishedAt, 'data.count': total }, $unset: { 'data.tickets': '' } }, { upsert: true });
 
-    const written = [{ quarter: liveQ, label: quarterLabel(liveQ), count: mergedLive.length, isLive: true }];
+    const written = [{ quarter: liveQ, label: quarterLabel(liveQ), count: total, isLive: true }];
     // Live-quarter data-log entry (browser merge report).
     try {
       await logColl.insertOne({
         user: req.user.username, role: req.user.role, at: publishedAt,
         liveQuarter: liveQ, pastQuarterMerge: false, publishedAt,
-        written: [{ quarter: liveQ, label: quarterLabel(liveQ), count: mergedLive.length, isLive: true }],
+        written: [{ quarter: liveQ, label: quarterLabel(liveQ), count: total, isLive: true }],
         changeSummary: body.changeSummary || null,
         fileName: fileMeta.fileName, fileSize: fileMeta.fileSize, fileType: fileMeta.fileType,
-        totalTickets: mergedLive.length,
+        totalTickets: total,
       });
     } catch (logErr) { /* never block */ }
 
-    // Merge any non-live rows into their own quarter docs (same rules as the full endpoint).
+    // Merge any non-live rows into their own quarters — write ONLY changed rows to ticket_docs.
     const byQuarter = {};
     for (const t of nonLive) {
       const q = quarterOf(t.CreateDate) || liveQ;
@@ -667,26 +670,25 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
       (byQuarter[q] = byQuarter[q] || []).push(t);
     }
     for (const [q, arr] of Object.entries(byQuarter)) {
-      const existingDoc = await coll.findOne({ _id: q });
-      const existingTickets = (existingDoc && existingDoc.data && existingDoc.data.tickets) || [];
+      const existingTickets = await loadQuarterTickets(q);
       const qmap = new Map();
       existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) qmap.set(id, t); });
       const dbBefore = qmap.size;
-      let added = 0, updated = 0, unchanged = 0; const addedIds = [], updatedIds = [];
+      let added = 0, updated = 0, unchanged = 0; const addedIds = [], updatedIds = [], changedTix = [];
       for (const t of arr) {
         if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
         const id = String(t.ShortId || '').trim(); if (!id) continue;
         const existing = qmap.get(id);
-        if (!existing) { added++; addedIds.push(id); qmap.set(id, t); }
-        else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); qmap.set(id, t); } // real change only
+        if (!existing) { added++; addedIds.push(id); qmap.set(id, t); changedTix.push(t); }
+        else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); qmap.set(id, t); changedTix.push(t); } // real change only
         else { unchanged++; } // identical -> preserved, not logged as updated
       }
-      const merged = Array.from(qmap.values());
-      const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total: merged.length };
-      await coll.updateOne({ _id: q }, { $set: { data: { updatedAt: publishedAt, count: merged.length, tickets: merged }, meta: { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary: qSummary } } }, { upsert: true });
-      written.push({ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false, merged: true });
+      const mtotal = await bulkUpsertTickets(q, changedTix, []);
+      const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total: mtotal };
+      await coll.updateOne({ _id: q }, { $set: { meta: { publishedBy: req.user.username, publishedAt, count: mtotal, changeSummary: qSummary }, 'data.updatedAt': publishedAt, 'data.count': mtotal }, $unset: { 'data.tickets': '' } }, { upsert: true });
+      written.push({ quarter: q, label: quarterLabel(q), count: mtotal, isLive: false, merged: true });
       if (added > 0 || updated > 0) try {
-        const logDoc = { user: req.user.username, role: req.user.role, at: publishedAt, liveQuarter: q, pastQuarterMerge: true, written: [{ quarter: q, label: quarterLabel(q), count: merged.length, isLive: false }], changeSummary: qSummary, totalTickets: merged.length };
+        const logDoc = { user: req.user.username, role: req.user.role, at: publishedAt, liveQuarter: q, pastQuarterMerge: true, written: [{ quarter: q, label: quarterLabel(q), count: mtotal, isLive: false }], changeSummary: qSummary, totalTickets: mtotal };
         if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
         await logColl.insertOne(logDoc);
       } catch (logErr) { /* never block */ }
@@ -697,6 +699,7 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message));
     recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after patch failed:', e && e.message));
+    recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after patch failed:', e && e.message));
   } catch (e) {
     res.status(500).json({ error: 'Could not apply the delta publish.' });
   }
@@ -717,39 +720,37 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
     if (!data || !Array.isArray(data.tickets)) return res.status(400).json({ error: 'No tickets provided.' });
 
     const coll = await getCollection(COLLECTIONS.quarters);
-    const existingDoc = await coll.findOne({ _id: qid });
-    const existingTickets = (existingDoc && existingDoc.data && existingDoc.data.tickets) || [];
+    const existingTickets = await loadQuarterTickets(qid);
 
-    // Merge by ShortId: start with existing, then apply uploaded (uploaded wins).
+    // Merge by ShortId: start with existing, then apply uploaded (uploaded wins). Write ONLY changes.
     const map = new Map();
     existingTickets.forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) map.set(id, t); });
     const dbBefore = map.size;
 
     let added = 0, updated = 0, unchanged = 0, skippedNoId = 0;
-    const addedIds = [], updatedIds = [];
+    const addedIds = [], updatedIds = [], changedTix = [];
     for (const t of data.tickets) {
       if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
       const id = String(t.ShortId || '').trim();
       if (!id) { skippedNoId++; continue; }
       const existing = map.get(id);
-      if (!existing) { added++; addedIds.push(id); map.set(id, t); }
-      else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); } // real change only
+      if (!existing) { added++; addedIds.push(id); map.set(id, t); changedTix.push(t); }
+      else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); changedTix.push(t); } // real change only
       else { unchanged++; } // identical -> preserved, not logged as updated
     }
-    const merged = Array.from(map.values());
     const publishedAt = new Date().toISOString();
+    const total = await bulkUpsertTickets(qid, changedTix, []);
     const changeSummary = {
       added,                          // tickets not previously in this quarter
       updated,                        // existing tickets with a real field change
       unchanged,                      // uploaded but identical -> not overwritten
       preserved: dbBefore - updated,  // existing tickets kept (not changed / not in the upload)
       uploaded: data.tickets.length,
-      total: merged.length,
+      total,
     };
 
-    const meta = { publishedBy: req.user.username, publishedAt, count: merged.length, changeSummary };
-    const payload = { updatedAt: publishedAt, count: merged.length, tickets: merged };
-    await coll.updateOne({ _id: qid }, { $set: { data: payload, meta } }, { upsert: true });
+    const meta = { publishedBy: req.user.username, publishedAt, count: total, changeSummary };
+    await coll.updateOne({ _id: qid }, { $set: { meta, 'data.updatedAt': publishedAt, 'data.count': total }, $unset: { 'data.tickets': '' } }, { upsert: true });
 
     // Audit-log entry (mirrors the live-quarter publish log shape; marks this as a past-quarter merge).
     try {
@@ -760,9 +761,9 @@ app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
         at: publishedAt,
         liveQuarter: qid,             // the quarter this action targeted
         pastQuarterMerge: true,       // flag so the data log can label it
-        written: [{ quarter: qid, label: quarterLabel(qid), count: merged.length, isLive: false }],
+        written: [{ quarter: qid, label: quarterLabel(qid), count: total, isLive: false }],
         changeSummary,
-        totalTickets: merged.length,
+        totalTickets: total,
       };
       // Only for 2026-Q2: record which ShortIds were added/updated.
       if (qid === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
@@ -1359,9 +1360,12 @@ const SLA_HOURS = 240;
 
 // Helper: find a ticket in the current live quarter by ShortId. Returns the raw ticket or null.
 async function findLiveTicket(shortId) {
-  const coll = await getCollection(COLLECTIONS.quarters);
-  const doc = await coll.findOne({ _id: currentQuarter() });
-  const tickets = (doc && doc.data && doc.data.tickets) || [];
+  const qid = currentQuarter();
+  // Fast: direct per-ticket lookup by _id; fall back to scanning the (legacy) array.
+  const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  const hit = await tColl.findOne({ _id: ticketDocId(qid, String(shortId)) });
+  if (hit) { const t = Object.assign({}, hit); delete t._id; delete t.q; return t; }
+  const tickets = await loadQuarterTickets(qid);
   return tickets.find(t => String(t.ShortId || t.IssueId || '') === String(shortId)) || null;
 }
 
@@ -1370,15 +1374,21 @@ app.get('/api/ticket-search', requireRole('admin'), async (req, res) => {
   try {
     const shortId = String((req.query.shortId || '')).trim();
     if (!shortId) return res.status(400).json({ error: 'A ticket ShortId is required.' });
-    const coll = await getCollection(COLLECTIONS.quarters);
-    // Pull every quarter's tickets (small enough — a handful of quarters).
-    const docs = await coll.find({}).toArray();
     let hit = null, hitQuarter = null;
-    const target = shortId.toLowerCase();
-    for (const d of docs) {
-      const tickets = (d.data && d.data.tickets) || [];
-      const found = tickets.find(t => String(t.ShortId || t.IssueId || '').toLowerCase() === target);
-      if (found) { hit = found; hitQuarter = d._id; break; }
+    // Fast: direct per-ticket lookup in ticket_docs by ShortId (indexed).
+    const tColl = await getCollection(COLLECTIONS.ticketDocs);
+    const found = await tColl.findOne({ ShortId: shortId });
+    if (found) { hit = found; hitQuarter = found.q; }
+    else {
+      // Fallback: scan any legacy (un-migrated) quarter docs still holding data.tickets.
+      const coll = await getCollection(COLLECTIONS.quarters);
+      const docs = await coll.find({ 'data.tickets': { $exists: true } }).toArray();
+      const target = shortId.toLowerCase();
+      for (const d of docs) {
+        const tickets = (d.data && d.data.tickets) || [];
+        const f = tickets.find(t => String(t.ShortId || t.IssueId || '').toLowerCase() === target);
+        if (f) { hit = f; hitQuarter = d._id; break; }
+      }
     }
     if (!hit) return res.json({ found: false, shortId });
     // Country: prefer the Country field. Otherwise take a SHORT leading token of the Title
@@ -1430,15 +1440,27 @@ app.get('/api/important-cases', requireRole('admin'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.importantCases);
     const rows = await coll.find({}).sort({ updatedAt: -1, at: -1 }).toArray();
-    // Build a ShortId -> {title,status} lookup across all quarters (once).
-    const qColl = await getCollection(COLLECTIONS.quarters);
-    const docs = await qColl.find({}).toArray();
+    // Build a ShortId -> {title,status} lookup for ONLY the marked tickets (targeted query, not a full scan).
+    const wantIds = [...new Set(rows.map(r => String(r.shortId)).filter(Boolean))];
     const info = {};
-    for (const d of docs) {
-      const tickets = (d.data && d.data.tickets) || [];
-      for (const t of tickets) {
+    if (wantIds.length) {
+      const tColl = await getCollection(COLLECTIONS.ticketDocs);
+      const hits = await tColl.find({ ShortId: { $in: wantIds } }).toArray();
+      for (const t of hits) {
         const sid = String(t.ShortId || t.IssueId || '');
         if (sid && !info[sid]) info[sid] = { title: t.Title || '', status: t.Status || '', url: t.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid) };
+      }
+      // Fallback for any not found in ticket_docs (legacy un-migrated quarters).
+      const missing = wantIds.filter(id => !info[id]);
+      if (missing.length) {
+        const qColl = await getCollection(COLLECTIONS.quarters);
+        const docs = await qColl.find({ 'data.tickets': { $exists: true } }).toArray();
+        for (const d of docs) {
+          for (const t of ((d.data && d.data.tickets) || [])) {
+            const sid = String(t.ShortId || t.IssueId || '');
+            if (sid && missing.includes(sid) && !info[sid]) info[sid] = { title: t.Title || '', status: t.Status || '', url: t.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid) };
+          }
+        }
       }
     }
     res.json(rows.map(r => {
@@ -1571,9 +1593,7 @@ app.delete('/api/unique-cases-log/:id', requireRole('owner'), async (req, res) =
 app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   try {
     const me = req.user.username;
-    const coll = await getCollection(COLLECTIONS.quarters);
-    const doc = await coll.findOne({ _id: currentQuarter() });
-    const tickets = (doc && doc.data && doc.data.tickets) || [];
+    const tickets = await loadQuarterTickets(currentQuarter());
     const mine = tickets.filter(t =>
       String(t.AssigneeIdentity || '').toLowerCase() === String(me).toLowerCase() &&
       OPEN_STATUSES.includes(t.Status)
@@ -1881,10 +1901,79 @@ function ticketColor(t, now) {
   if (ageH <= 240) return 'red';
   return 'black';
 }
-async function liveTickets() {
-  const coll = await getCollection(COLLECTIONS.quarters);
-  const doc = await coll.findOne({ _id: currentQuarter() });
+// ============================================================================
+// PER-TICKET STORAGE (ticket_docs) — so a publish writes only the CHANGED tickets
+// (a bulkWrite of a few KB) instead of rewriting the whole ~6MB quarter doc.
+// Each ticket -> one doc { _id: "<qid>|<ShortId>", q: qid, ...all ticket fields }.
+// The `quarters` doc keeps ONLY meta (publishedAt/count) — data.tickets is dropped
+// once a quarter is migrated. loadQuarterTickets() reassembles the array on read,
+// with a fallback to the legacy data.tickets for any not-yet-migrated quarter.
+// ============================================================================
+function shortIdOf(t) { return String((t && (t.ShortId || t.IssueId)) || '').trim(); }
+function ticketDocId(qid, shortId) { return qid + '|' + String(shortId); }
+let _ticketIndexesReady = false;
+async function ensureTicketIndexes() {
+  if (_ticketIndexesReady) return;
+  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
+}
+// Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
+// fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
+async function loadQuarterTickets(qid) {
+  qid = qid || currentQuarter();
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const docs = await coll.find({ q: qid }).toArray();
+  if (docs.length) return docs.map(d => { const t = Object.assign({}, d); delete t._id; delete t.q; return t; });
+  // Fallback: legacy big-doc quarter that hasn't been split into ticket_docs yet.
+  const qColl = await getCollection(COLLECTIONS.quarters);
+  const doc = await qColl.findOne({ _id: qid });
   return (doc && doc.data && doc.data.tickets) || [];
+}
+// Apply a delta to a quarter's ticket_docs: upsert `changed` tickets, delete `removed` ShortIds.
+// Only the changed/removed rows are written (bulkWrite) — never the whole array. Returns new count.
+async function bulkUpsertTickets(qid, changed, removed) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  await ensureTicketIndexes();
+  const ops = [];
+  (changed || []).forEach(t => {
+    if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
+    const sid = shortIdOf(t); if (!sid) return;
+    const doc = Object.assign({}, t, { q: qid });
+    ops.push({ replaceOne: { filter: { _id: ticketDocId(qid, sid) }, replacement: Object.assign({ _id: ticketDocId(qid, sid) }, doc), upsert: true } });
+  });
+  (removed || []).forEach(id => { const sid = String(id).trim(); if (sid) ops.push({ deleteOne: { filter: { _id: ticketDocId(qid, sid) } } }); });
+  if (ops.length) { for (let i = 0; i < ops.length; i += 500) await coll.bulkWrite(ops.slice(i, i + 500), { ordered: false }); }
+  return await coll.countDocuments({ q: qid });
+}
+// Replace ALL of a quarter's tickets in ticket_docs with the given array (used by full publish of the
+// live bucket, where the client already merged locally). Diff against existing so we only write changes.
+async function replaceQuarterTickets(qid, tickets) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  await ensureTicketIndexes();
+  const existingIds = new Set((await coll.find({ q: qid }, { projection: { ShortId: 1 } }).toArray()).map(d => String(d.ShortId || '')));
+  const incomingIds = new Set();
+  const changed = [];
+  (tickets || []).forEach(t => { if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId; const sid = shortIdOf(t); if (!sid) return; incomingIds.add(sid); changed.push(t); });
+  const removed = [...existingIds].filter(id => !incomingIds.has(id));
+  return await bulkUpsertTickets(qid, changed, removed);
+}
+// One-time backfill: split a legacy quarters.data.tickets array into ticket_docs, then drop the
+// giant array from the quarters doc (keeping meta). Idempotent — skips if already migrated.
+async function backfillTicketDocs(qid) {
+  const qColl = await getCollection(COLLECTIONS.quarters);
+  const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  const existing = await tColl.countDocuments({ q: qid });
+  if (existing > 0) return { quarter: qid, migrated: false, reason: 'already in ticket_docs' };
+  const doc = await qColl.findOne({ _id: qid });
+  const tickets = (doc && doc.data && doc.data.tickets) || [];
+  if (!tickets.length) return { quarter: qid, migrated: false, reason: 'no legacy tickets' };
+  await replaceQuarterTickets(qid, tickets);
+  // Drop the heavy array; keep meta + a count. (Leave data.updatedAt for legacy version fallback.)
+  await qColl.updateOne({ _id: qid }, { $unset: { 'data.tickets': '' }, $set: { 'data.count': tickets.length } });
+  return { quarter: qid, migrated: true, count: tickets.length };
+}
+
+async function liveTickets() {
+  return await loadQuarterTickets(currentQuarter());
 }
 
 // Agent analytics (admin+). Per-user stats grouped into leads (owner/admin/manager) and editors.
@@ -2123,6 +2212,84 @@ function grpSlice(section, m) {
       res.status(500).json({ error: 'Could not compute group analytics (' + section + ').' });
     }
   });
+});
+
+// ---- Shift Report data (materialized) --------------------------------------------------------
+// The Shift Report page needs: a slim list of OPEN tickets (for the age-colour queue + per-agent
+// takeover chart + drill-down) and a few frozen counts (status counts + last-12/24h activity).
+// We store only OPEN tickets ({ id, c: createDate, s: status, a: assignee-display, p: isPurple }) —
+// a few hundred rows, a few KB — plus publish-time-stable counts, so the endpoint never ships the
+// ~8k-ticket blob. Age COLOUR is derived at READ time (age depends on "now").
+function shiftDisplayName(n) {
+  if (n === '0d1616c8-bcb7-4450-8bc5-f0a296bc01d1') return 'LM-CAP';
+  if (n && String(n).includes('AutoSIM')) return 'AutoSIM';
+  return n || 'Unassigned';
+}
+async function recomputeShiftRollup(qid) {
+  qid = qid || currentQuarter();
+  const meta = await liveMetaFor(qid);
+  const data = await liveTickets();
+  // Activity window: relative to the latest CreateDate in the data (mirrors app.js computeMetrics).
+  const createTimes = data.map(r => new Date(r.CreateDate).getTime()).filter(t => !isNaN(t));
+  const refNow = createTimes.length ? Math.max(...createTimes) : Date.now();
+  const t12 = refNow - 12 * 36e5, t24 = refNow - 24 * 36e5;
+  const counts = { Assigned: 0, 'Work In Progress': 0, Researching: 0, Pending: 0, Resolved: 0, Closed: 0, T: data.length, last12Created: 0, last24Created: 0, last12Resolved: 0, refNow };
+  const openTix = [];
+  data.forEach(t => {
+    if (counts[t.Status] !== undefined) counts[t.Status]++;   // known statuses only
+    const cd = new Date(t.CreateDate).getTime();
+    if (!isNaN(cd)) { if (cd >= t12 && cd <= refNow) counts.last12Created++; if (cd >= t24 && cd <= refNow) counts.last24Created++; }
+    const rd = t.ResolvedDate ? new Date(t.ResolvedDate).getTime() : NaN;
+    if (!isNaN(rd) && rd >= t12 && rd <= refNow) counts.last12Resolved++;
+    if (!isResolved(t)) {
+      const isPurple = (t._reopened === true) || (t.ResolvedDate && String(t.ResolvedDate).trim() !== '');
+      openTix.push({ id: t.ShortId || t.IssueId || '', c: t.CreateDate || '', s: t.Status || '', a: shiftDisplayName(t.AssigneeIdentity), p: isPurple ? 1 : 0 });
+    }
+  });
+  const coll = await getCollection(COLLECTIONS.shiftRollups);
+  await coll.updateOne({ _id: qid }, { $set: { publishedAt: meta.publishedAt || null, computedAt: new Date().toISOString(), openTix, counts } }, { upsert: true });
+  return { quarter: qid, openCount: openTix.length };
+}
+// Read the shift-report rollup (fast) or compute live once (fallback) + background refresh.
+async function getShiftRollup() {
+  const qid = currentQuarter();
+  const meta = await liveMeta();
+  const coll = await getCollection(COLLECTIONS.shiftRollups);
+  const roll = await coll.findOne({ _id: qid });
+  if (roll && roll.openTix && (roll.publishedAt || null) === (meta.publishedAt || null)) return roll;
+  await recomputeShiftRollup(qid);                                       // stale/missing -> build now
+  return await coll.findOne({ _id: qid });
+}
+// Assemble the Shift Report response: derive age-colours at read time, build the per-agent colour
+// breakdown for the takeover chart (with slim ticket lists for the drill-down), and return counts.
+app.get('/api/shift-report', requireRole('admin'), async (req, res) => {
+  try {
+    const roll = await getShiftRollup();
+    const now = Date.now();
+    const colorOf = (o) => { if (o.p) return 'purple'; const cd = new Date(o.c).getTime(); if (isNaN(cd)) return 'green'; const h = (now - cd) / 36e5; if (h <= 96) return 'green'; if (h <= 168) return 'yellow'; if (h <= 240) return 'red'; return 'black'; };
+    const colors = { purple: 0, black: 0, red: 0, yellow: 0, green: 0 };
+    const agents = {};   // agent -> { purple,black,red,yellow,green,total, tix:{color:[{id,c,s}]} }
+    (roll.openTix || []).forEach(o => {
+      const col = colorOf(o);
+      colors[col]++;
+      const a = agents[o.a] || (agents[o.a] = { purple: 0, black: 0, red: 0, yellow: 0, green: 0, total: 0, tix: { purple: [], black: [], red: [], yellow: [], green: [] } });
+      a[col]++; a.total++;
+      a.tix[col].push({ id: o.id, c: o.c, s: o.s });
+    });
+    const c = roll.counts || {};
+    const inQ = (c.Assigned || 0) + (c['Work In Progress'] || 0) + (c.Pending || 0) + (c.Researching || 0);
+    res.json({
+      quarter: currentQuarter(), colors, agents,
+      counts: {
+        Assigned: c.Assigned || 0, 'Work In Progress': c['Work In Progress'] || 0, Researching: c.Researching || 0,
+        Pending: c.Pending || 0, Resolved: c.Resolved || 0, Closed: c.Closed || 0, T: c.T || 0,
+        last12Created: c.last12Created || 0, last24Created: c.last24Created || 0, last12Resolved: c.last12Resolved || 0,
+        inQ, openTotal: (c.T || 0) - (c.Closed || 0),
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the shift report.' });
+  }
 });
 
 // Per-agent "1st Pet incident (handled by PHD)" count for the live quarter (admin+). Reads the
@@ -2446,8 +2613,16 @@ async function liveMeta() {
 // match + unwind, receiving each unwound ticket as the root document under `t`.
 // `qid` defaults to the current live quarter.
 async function aggLive(stages, qid) {
-  const coll = await getCollection(COLLECTIONS.quarters);
   qid = qid || currentQuarter();
+  const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  const hasDocs = (await tColl.countDocuments({ q: qid }, { limit: 1 })) > 0;
+  if (hasDocs) {
+    // Per-ticket collection: each doc IS a ticket; wrap as { t: <doc> } so `$t.Field` stages work.
+    const pipeline = [{ $match: { q: qid } }, { $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
+    return tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
+  }
+  // Legacy fallback: quarter still stored as one big doc with data.tickets.
+  const coll = await getCollection(COLLECTIONS.quarters);
   const pipeline = [
     { $match: { _id: qid } },
     { $project: { t: '$data.tickets' } },
@@ -2776,10 +2951,8 @@ async function liveMetaFor(qid) {
 const AGENT_ROLLUP_VERSION = 4;
 async function recomputeAgentRollups(qid) {
   qid = qid || currentQuarter();
-  const coll = await getCollection(COLLECTIONS.quarters);
-  const doc = await coll.findOne({ _id: qid });
-  const tickets = (doc && doc.data && doc.data.tickets) || [];
-  const publishedAt = (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null;
+  const tickets = await loadQuarterTickets(qid);
+  const publishedAt = (await liveMetaFor(qid)).publishedAt;
   const agents = {};
   const ensure = (login) => {
     let a = agents[login];
@@ -2951,6 +3124,20 @@ app.listen(PORT, () => {
   (async () => {
     try {
       const qid = currentQuarter();
+      // Migrate CURRENT-YEAR quarters still stored as one big data.tickets array into per-ticket docs
+      // (once). Older archive quarters are migrated lazily on first access (loadQuarterTickets falls
+      // back to the legacy array), so boot never triggers a huge one-time write storm.
+      try {
+        await ensureTicketIndexes();
+        const curYear0 = new Date().getFullYear();
+        const qColl0 = await getCollection(COLLECTIONS.quarters);
+        const legacy = (await qColl0.find({ 'data.tickets': { $exists: true } }, { projection: { _id: 1 } }).toArray())
+          .filter(d => new RegExp('^' + curYear0 + '-Q[1-4]$').test(d._id));
+        for (const d of legacy) {
+          try { const r = await backfillTicketDocs(d._id); if (r.migrated) console.log('ticket_docs backfilled for ' + d._id + ' (' + r.count + ')'); }
+          catch (e) { console.error('ticket_docs backfill failed for ' + d._id + ':', e && e.message); }
+        }
+      } catch (e) { console.error('ticket_docs backfill scan failed:', e && e.message); }
       const meta = await liveMetaFor(qid);
       // Dashboard chunk rollup
       const rollColl = await getCollection(COLLECTIONS.dashRollups);
@@ -2972,6 +3159,13 @@ app.listen(PORT, () => {
       if (!grRoll || (grRoll.publishedAt || null) !== (meta.publishedAt || null)) {
         await recomputeGroupRollup(qid);
         console.log('Group rollup backfilled for ' + qid);
+      }
+      // Shift Report rollup
+      const shColl = await getCollection(COLLECTIONS.shiftRollups);
+      const shRoll = await shColl.findOne({ _id: qid }, { projection: { publishedAt: 1 } });
+      if (!shRoll || (shRoll.publishedAt || null) !== (meta.publishedAt || null)) {
+        await recomputeShiftRollup(qid);
+        console.log('Shift rollup backfilled for ' + qid);
       }
       // Per-agent rollups for the OTHER quarters of the CURRENT YEAR (past quarters are immutable, so
       // we only (re)compute when a rollup is missing or on an older shape version). Needed for the

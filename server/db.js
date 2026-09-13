@@ -34,6 +34,8 @@ const COLLECTIONS = {
   dashRollups: 'dash_rollups', // precomputed dashboard chunks per quarter { _id, publishedAt, chunks:{...} } — recomputed on each publish
   agentRollups: 'agent_rollups', // precomputed per-agent open-ticket summaries per quarter { _id, publishedAt, agents:{login:{statusCounts, openTix:[...]}} } — recomputed on each publish
   groupRollups: 'group_rollups', // precomputed Alpha/Gamma/Beta group metrics per quarter { _id, publishedAt, metrics:{...} } — recomputed on each publish
+  shiftRollups: 'shift_rollups', // precomputed shift-report data per quarter { _id, publishedAt, openTix:[...], counts:{...} } — recomputed on each publish
+  ticketDocs: 'ticket_docs', // ONE doc per ticket { _id: "<qid>|<ShortId>", q: qid, ShortId, ...all ticket fields } — lets publishes bulk-write only changed tickets instead of rewriting the whole ~6MB quarter doc
 };
 
 let clientPromise = null;

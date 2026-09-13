@@ -433,6 +433,8 @@ async function refreshFromServerData(){
 function nav(view){
   currentView=view;destroyCharts();
   if(view==='dashboard'){ renderDashboardChunked(); return; }
+  // Shift Report has its own tiny aggregate endpoint — no full-dataset load needed.
+  if(view==='shift-report'){ renderShiftReport(); return; }
   // Other views need the full array — load it first if we don't have M yet.
   if(M){ _navRender(view); return; }
   ensureFullData().then(ok=>{ if(ok)_navRender(view); else renderDashboardChunked(); });
@@ -905,21 +907,31 @@ function showHIUnresolvedPopup(){
   document.body.appendChild(overlay);
 }
 
-function renderShiftReport(){
-  const m=M;const ct=m.colorTickets;
+// Per-agent colour breakdown + slim ticket lists from /api/shift-report, for the takeover drill-down.
+let SR_DATA=null;      // agents map { agent: {purple,black,...,total, tix:{color:[{id,c,s}]}} }
+let SR_COUNTS=null;    // status/activity counts
+let SR_COLORS=null;    // queue-by-colour counts
+async function renderShiftReport(){
+  // Show the shimmer skeleton immediately (in case we weren't deep-linked), then fetch the tiny
+  // aggregate payload — NOT the full ~8k-ticket blob. This makes the page load in ~1s.
+  try{ if(!document.querySelector('.sr .sk-blk')) document.getElementById('app').innerHTML=topBar('shift-report')+shiftReportSkeleton(); }catch(e){}
+  let d=null;
+  try{ const r=await window.PHDAuth.api('GET','/api/shift-report'); if(r.ok&&r.data)d=r.data; }catch(e){}
+  if(!d){ document.getElementById('app').innerHTML=topBar('shift-report')+'<div class="content sr"><div class="sr-hero"><div class="sr-hero-txt"><h1>Shift Report</h1><p class="sr-lead">Could not load the shift report. Please refresh.</p></div></div></div>'; attachNewFileHandler(); return; }
+  const cc=d.counts||{}, colors=d.colors||{};
+  SR_COUNTS=cc; SR_COLORS=colors;
   const today=new Date();
   const dateStr=today.toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
-  const black=ct.black.length;const red=ct.red.length;
-  const inQueue=m.inQ;
-  // open statuses (exclude Closed)
-  const openStatuses=[['Assigned',m.asgn],['Work In Progress',m.wip],['Researching',m.researching],['Pending',m.pend],['Resolved',m.res]];
-  const openTotal=m.T-m.closed;
-  // Per-agent color breakdown for the takeover chart
-  const agentColors={};
-  const addToAgent=(list,color)=>{list.forEach(r=>{const a=displayName(r.AssigneeIdentity||'Unassigned');if(!agentColors[a])agentColors[a]={purple:0,black:0,red:0,yellow:0,green:0,total:0};agentColors[a][color]++;agentColors[a].total++;});};
-  addToAgent(ct.purple,'purple');addToAgent(ct.black,'black');addToAgent(ct.red,'red');addToAgent(ct.yellow,'yellow');addToAgent(ct.green,'green');
-  const agentSorted=Object.entries(agentColors).sort((a,b)=>b[1].total-a[1].total);
+  const black=colors.black||0, red=colors.red||0;
+  const inQueue=cc.inQ||0;
+  const openTotal=cc.openTotal||0;
+  // Per-agent colour breakdown for the takeover chart (already computed server-side).
+  SR_DATA=d.agents||{};
+  const agentSorted=Object.entries(SR_DATA).sort((a,b)=>b[1].total-a[1].total);
   window._takeoverAgents=agentSorted;
+  // Shim so the rest of the render (built for M) reads from the aggregate payload.
+  const m={ inQ:inQueue, asgn:cc.Assigned||0, wip:cc['Work In Progress']||0, researching:cc.Researching||0, pend:cc.Pending||0, res:cc.Resolved||0, closed:cc.Closed||0, T:cc.T||0, last12Created:cc.last12Created||0, last24Created:cc.last24Created||0, last12Resolved:cc.last12Resolved||0 };
+  const ct={ purple:{length:colors.purple||0}, black:{length:colors.black||0}, red:{length:colors.red||0}, yellow:{length:colors.yellow||0}, green:{length:colors.green||0} };
   const pct=(v)=>(v/openTotal*100||0).toFixed(1);
   // Number cell that animates in (tally): shows a small spinner placeholder, then scrambles -> counts up.
   const nT=(v,cls)=>`<span class="sr-v ${cls||''} tally-ph" data-tally="${v}">\u2014</span>`;
@@ -1049,14 +1061,16 @@ function showExportRegionModal(){
 }
 
 function applyRegion(region){
-  const m=M;const ct=m.colorTickets;
+  const cc=SR_COUNTS||{}, col=SR_COLORS||{};
+  const m={ inQ:cc.inQ||0, asgn:cc.Assigned||0, wip:cc['Work In Progress']||0, researching:cc.Researching||0, pend:cc.Pending||0, res:cc.Resolved||0, last12Resolved:cc.last12Resolved||0, last12Created:cc.last12Created||0, last24Created:cc.last24Created||0 };
+  const ct={ purple:{length:col.purple||0}, black:{length:col.black||0}, red:{length:col.red||0}, yellow:{length:col.yellow||0}, green:{length:col.green||0} };
   const tz=region==='IN'?'IST':'MST';
   const handoff=region==='IN'?'IND → AMER':'AMER → IND';
   document.getElementById('shiftTz').textContent=tz;
   document.querySelectorAll('.shiftTz2').forEach(el=>el.textContent=tz);
   document.getElementById('shiftHandoff').textContent=handoff;
   const today=new Date().toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'});
-  const openTotal=m.T-m.closed;
+  const openTotal=(cc.openTotal!=null?cc.openTotal:((cc.T||0)-(cc.Closed||0)));
   const rawNotes=(document.getElementById('shiftNotes')||{}).value||'';
   const notes=rawNotes.split(/\r?\n/).filter(l=>l.trim()!=='').map(l=>'    • '+l.trim()).join('\n');
   const txt=`Shift Handoff Report
@@ -1103,16 +1117,17 @@ ${notes}`;
 }
 
 async function exportTakeover(){
-  const m=M;const ct=m.colorTickets;
+  const cc=SR_COUNTS||{}, col=SR_COLORS||{};
+  const inQ=cc.inQ||0, ct={purple:{length:col.purple||0},black:{length:col.black||0},red:{length:col.red||0},yellow:{length:col.yellow||0},green:{length:col.green||0}};
   const linesHtml=`Hello Team,<br>
-Our queue currently stands at <b>${m.inQ}</b> unresolved tickets, with statuses:<br>
+Our queue currently stands at <b>${inQ}</b> unresolved tickets, with statuses:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;PURPLE (Reopened): <b>${ct.purple.length}</b><br>
 &nbsp;&nbsp;&nbsp;&nbsp;BLACK (&gt;240 hrs / &gt;10 days): <b>${ct.black.length}</b><br>
 &nbsp;&nbsp;&nbsp;&nbsp;RED (168-240 hrs / 7-10 days): <b>${ct.red.length}</b><br>
 &nbsp;&nbsp;&nbsp;&nbsp;YELLOW (96-168 hrs / 4-7 days): <b>${ct.yellow.length}</b><br>
 &nbsp;&nbsp;&nbsp;&nbsp;GREEN (0-96 hrs / 0-4 days): <b>${ct.green.length}</b><br>
 Please prioritize the above.`;
-  const txt=`Hello Team,\nOur queue currently stands at ${m.inQ} unresolved tickets, with statuses:\n    PURPLE (Reopened): ${ct.purple.length}\n    BLACK (>240 hrs / >10 days): ${ct.black.length}\n    RED (168-240 hrs / 7-10 days): ${ct.red.length}\n    YELLOW (96-168 hrs / 4-7 days): ${ct.yellow.length}\n    GREEN (0-96 hrs / 0-4 days): ${ct.green.length}\nPlease prioritize the above.`;
+  const txt=`Hello Team,\nOur queue currently stands at ${inQ} unresolved tickets, with statuses:\n    PURPLE (Reopened): ${ct.purple.length}\n    BLACK (>240 hrs / >10 days): ${ct.black.length}\n    RED (168-240 hrs / 7-10 days): ${ct.red.length}\n    YELLOW (96-168 hrs / 4-7 days): ${ct.yellow.length}\n    GREEN (0-96 hrs / 0-4 days): ${ct.green.length}\nPlease prioritize the above.`;
   // Get chart image
   const canvas=document.getElementById('takeoverChart');
   try{
@@ -1135,11 +1150,12 @@ function showTakeoverAgentColorPopup(agentName,colorKey){
   closeAllPopups();
   const colorNames={green:'GREEN (0-96 hrs / 0-4 days)',yellow:'YELLOW (96-168 hrs / 4-7 days)',red:'RED (168-240 hrs / 7-10 days)',black:'BLACK (>240 hrs / >10 days)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
-  // Filter tickets in that color that belong to this agent, sorted oldest -> newest
-  const tix=(M.colorTickets[colorKey]||[]).filter(r=>displayName(r.AssigneeIdentity||'Unassigned')===agentName)
-    .sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate));
+  // Tickets in that colour for this agent, from the shift-report payload (sorted oldest -> newest).
+  const src=((SR_DATA&&SR_DATA[agentName]&&SR_DATA[agentName].tix&&SR_DATA[agentName].tix[colorKey])||[]).slice()
+    .sort((a,b)=>new Date(a.c)-new Date(b.c));
+  const tix=src;
   const now=new Date();
-  const rows=tix.map(r=>{const cd=new Date(r.CreateDate);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.ShortId}" target="_blank" style="color:#44b9d6">${r.ShortId}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.Status}</td></tr>`;}).join('');
+  const rows=tix.map(r=>{const cd=new Date(r.c);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.id}" target="_blank" style="color:#44b9d6">${r.id}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.s}</td></tr>`;}).join('');
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
@@ -2397,7 +2413,9 @@ async function maybeHandlePendingUpload(){
   // Cross-page upload handoff: a standalone page stashed a CSV and sent us here with ?upload=1.
   if(await maybeHandlePendingUpload())return;
 
-  // Deep-linked to a non-dashboard view -> load the full dataset then render that view.
+  // Shift Report fetches its own tiny aggregate endpoint — no need to load the full ~8k blob.
+  if(deepLink==='shift-report'){ currentView='shift-report'; renderShiftReport(); return; }
+  // Other deep-linked views (groups/previous-week) still need the full dataset.
   if(deepLink){
     const ok=await ensureFullData();
     if(ok){ nav(deepLink); } else { renderDashboardChunked(); }
