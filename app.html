@@ -61,6 +61,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .kpi-card .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
 .kpi-card .label{font-size:.78em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
 .kpi-card.accent .value{color:var(--o)}.kpi-card.success .value{color:var(--gl)}.kpi-card.warning .value{color:var(--ol)}.kpi-card.danger .value{color:var(--rl)}
+/* Compact KPI strip used by the collapsible summary cards (Queue/Total/Average/Repeat). Smaller
+   tiles that sit in a single row; the explicit column count is set inline per section. */
+.kpi-section{padding:16px 20px}
+.kpi-section>h2{margin-bottom:0}
+.kpi-section:not(.collapsed)>h2{margin-bottom:16px}
+.kpi-grid-compact{gap:10px;margin-bottom:0}
+.kpi-grid-compact .kpi-card{padding:12px 10px;border-top-width:2px}
+.kpi-grid-compact .kpi-card{min-width:0;overflow:hidden}
+.kpi-grid-compact .kpi-card .value{font-size:1.25em;margin-bottom:3px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* Label truncates to a single line (ellipsis) as the card narrows, instead of wrapping. The
+   inline-flex layout is dropped for `display:block` so the whole label (icon + text) clips cleanly. */
+.kpi-grid-compact .kpi-card .label{display:block;font-size:.66em;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.kpi-grid-compact .kpi-card .label .ic,.kpi-grid-compact .kpi-card .label svg{vertical-align:middle;margin-right:3px}
+@media(max-width:900px){
+  .kpi-grid.kpi-grid-compact{grid-template-columns:repeat(3,1fr)!important}
+}
+@media(max-width:520px){
+  .kpi-grid.kpi-grid-compact{grid-template-columns:repeat(2,1fr)!important}
+  .kpi-grid-compact .kpi-card .value{font-size:1.1em}
+}
 .section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
 .section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
 .section h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}

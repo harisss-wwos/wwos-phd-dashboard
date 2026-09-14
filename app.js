@@ -1731,6 +1731,25 @@ function renderAgeChunk(d){
     if(cel){ cel.classList.add('kpi-anim'); countUpKpi(cel, String(list.length)); }
   });
 }
+// Fill the "Queue Status Data" KPI cards (top of the dashboard) from the queue chunk
+// ({counts,pct}). One card per status + a Total, animated with the same count-up as the summary.
+function renderQueueKpis(d){
+  const grid=document.getElementById('dashQueueKpis'); if(!grid||!d||!d.counts)return;
+  const c=d.counts, p=d.pct||{};
+  const total=(d.total!=null)?d.total:['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'].reduce(function(s,k){return s+(c[k]||0);},0);
+  const info=(tip)=>tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'';
+  const val=(raw,style)=>'<div class="value kpi-anim" data-kpi-val="'+String(raw).replace(/"/g,'&quot;')+'"'+(style?(' style="'+style+'"'):'')+'></div>';
+  const num=(k)=>((c[k]||0).toLocaleString()+(p[k]!=null?(' ('+p[k]+'%)'):''));
+  grid.innerHTML=
+    '<div class="kpi-card accent">'+val(total.toLocaleString())+'<div class="label">'+ic('grid',14)+' Total Tickets'+info('All tickets in the live quarter (every status)')+'</div></div>'+
+    '<div class="kpi-card">'+val(num('Assigned'))+'<div class="label">'+ic('inbox',14)+' Assigned</div></div>'+
+    '<div class="kpi-card">'+val(num('Work In Progress'))+'<div class="label">'+ic('tool',14)+' Work In Progress</div></div>'+
+    '<div class="kpi-card">'+val(num('Researching'))+'<div class="label">'+ic('eye',14)+' Researching</div></div>'+
+    '<div class="kpi-card">'+val(num('Pending'))+'<div class="label">'+ic('hourglass',14)+' Pending</div></div>'+
+    '<div class="kpi-card success">'+val(num('Resolved'))+'<div class="label">'+ic('check-circle',14)+' Resolved</div></div>'+
+    '<div class="kpi-card success">'+val(num('Closed'))+'<div class="label">'+ic('check-circle',14)+' Closed</div></div>';
+  grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
+}
 function renderQueueChunk(d){
   const slot=document.getElementById('dashQueueBody');if(!slot)return;
   const order=['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'];
@@ -1830,10 +1849,8 @@ function renderSummaryInto(d){
     '<div class="kpi-card">'+val(d.autosim.toLocaleString()+' ('+d.autosimPct+'%)')+'<div class="label">'+ic('bolt',14)+' AutoSIM Resolved'+info('Tickets auto-resolved by AutoSIM')+'</div></div>';
   if(g3)g3.innerHTML=
     '<div class="kpi-card accent">'+val(d.repeatIncidents.toLocaleString())+'<div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0)'+info('Tickets with Historical Incident / Cnt > 0')+'</div></div>'+
-    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPet.toLocaleString(),'color:#a78bfa')+'<div class="label">'+ic('paw',14)+' HI involving pet incidents'+info('Repeat incidents whose root cause is an unsecured animal / pet')+'</div></div>'+
-    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPetPct+'%','color:#a78bfa')+'<div class="label">'+ic('paw',14)+' % of HI involving pet incidents</div></div>'+
-    '<div class="kpi-card">'+val(d.hiNonPet.toLocaleString())+'<div class="label">'+ic('repeat',14)+' HI involving non-pet incidents</div></div>'+
-    '<div class="kpi-card">'+val(d.hiNonPetPct+'%')+'<div class="label">'+ic('repeat',14)+' % of HI involving non-pet incidents</div></div>'+
+    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)','color:#a78bfa')+'<div class="label">'+ic('paw',14)+' HI involving pet incidents'+info('Repeat incidents whose root cause is an unsecured animal / pet')+'</div></div>'+
+    '<div class="kpi-card">'+val(d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)')+'<div class="label">'+ic('repeat',14)+' HI involving non-pet incidents'+info('Repeat incidents whose root cause is NOT a pet/animal')+'</div></div>'+
     '<div class="kpi-card '+(d.hiGap>=0?'warning':'success')+'">'+val((d.hiGap>=0?'+':'')+d.hiGap+'%')+'<div class="label">'+ic('bar-chart',14)+' Pet vs non-pet gap in HI'+info('Percentage-point difference')+'</div></div>';
   // Animate every KPI value from a brief scramble into its real number.
   document.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
@@ -1872,14 +1889,27 @@ function renderDashboardChunked(){
   // KPI slot with the archive-style scramble animation while /api/dash/summary loads.
   // scrMax = plausible flicker upper bound; pct=true renders a % during the scramble.
   const kpiSpin=(cls,label,scrMax,pct)=>'<div class="kpi-card '+(cls||'')+'"><div class="value scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</div><div class="label">'+label+'</div></div>';
+  // Compact, collapsible summary cards (expanded by default). Each section's KPI tiles sit in
+  // a single row (kpi-grid-compact) so they read as a tidy strip instead of oversized blocks.
+  const kpiSection=(title,iconName,gridId,cols,tiles)=>
+    '<div class="section collapsible kpi-section"><h2 onclick="toggleSection(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">\u25be</span></h2>'+
+    '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:repeat('+cols+',1fr)">'+tiles+'</div></div></div>';
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
-    '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>'+
-    '<div class="kpi-grid" id="dashSumTotals" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('ticket',14)+' Total Tickets',9000)+kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets',500)+'</div>'+
-    '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>'+
-    '<div class="kpi-grid" id="dashSumAvg" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000)+'</div>'+
-    '<h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Repeat Incident Data</h3>'+
-    '<div class="kpi-grid" id="dashSumRepeat" style="grid-template-columns:repeat(3,1fr)">'+kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('paw',14)+' % of HI involving pet incidents',100,true)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100)+kpiSpin('',ic('repeat',14)+' % of HI involving non-pet incidents',100,true)+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI',100,true)+'</div>'+
+    kpiSection('Queue Status Data','grid','dashQueueKpis',7,
+      kpiSpin('accent',ic('grid',14)+' Total',9000)+
+      kpiSpin('',ic('inbox',14)+' Assigned',200)+
+      kpiSpin('',ic('tool',14)+' Work In Progress',300)+
+      kpiSpin('',ic('eye',14)+' Researching',100)+
+      kpiSpin('',ic('hourglass',14)+' Pending',100)+
+      kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+
+      kpiSpin('success',ic('check-circle',14)+' Closed',9000))+
+    kpiSection('Total Tickets Data','ticket','dashSumTotals',3,
+      kpiSpin('accent',ic('ticket',14)+' Total Tickets',9000)+kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets',500))+
+    kpiSection('Average Data','clock','dashSumAvg',3,
+      kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000))+
+    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',4,
+      kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100)+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI',100,true))+
     dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
     dashCard('queue','grid','Queue Status','dashQueueBody')+
     dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
@@ -1898,6 +1928,11 @@ function renderDashboardChunked(){
   }).catch(function(){
     const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
   });
+  // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk (also fills the collapsible
+  // Queue Status card below via renderQueueChunk). Per-status counts + total.
+  loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true}).then(function(r){
+    if(!r||!r.ok){ document.querySelectorAll('#dashQueueKpis .scramble-kpi').forEach(function(el){el.classList.remove('scramble-kpi');el.textContent='—';}); }
+  }).catch(function(){ document.querySelectorAll('#dashQueueKpis .scramble-kpi').forEach(function(el){el.classList.remove('scramble-kpi');el.textContent='—';}); });
   // Load the summary (cached, version-first). The remaining cards load lazily on first expand.
   loadDashChunk('summary',renderSummaryInto,{silent:false}).then(function(r){
     // If nothing painted (fetch failed + no cache), stop the flicker and show a dash so it isn't stuck.
