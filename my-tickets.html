@@ -146,6 +146,76 @@ tbody tr{transition:background .12s}
 .sk-blk{position:relative;overflow:hidden;background:#161616;border-radius:6px;display:inline-block;vertical-align:middle}
 .sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:mtsh 1.3s infinite}
 @keyframes mtsh{100%{left:150%}}
+/* ================= Expandable ticket cards ================= */
+.mt-toolbar{display:flex;align-items:center;gap:12px;margin:18px 0 12px;flex-wrap:wrap}
+.mt-toolbar-lbl{color:var(--tm);font-size:.76em;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.mt-toolbar .sort-th{border:1px solid var(--bd);border-radius:20px;padding:5px 14px;font-size:.8em;text-transform:none;letter-spacing:0}
+.mt-toolbar .sort-th.active{border-color:var(--o);color:var(--o)}
+.mt-cards{display:flex;flex-direction:column;gap:10px}
+.tk-card{background:#0a0a0a;border:none;border-radius:12px;overflow:hidden;transition:background .15s}
+.tk-card-head{padding:12px 16px;cursor:pointer;user-select:none}
+.tk-card-head:hover{background:rgba(255,255,255,.02)}
+/* Top strip: checkbox · status · ID · copy · created · time-left · chevron (single line) */
+.tk-head-top{display:flex;align-items:center;gap:10px}
+.tk-view{display:inline-flex;align-items:center;flex-shrink:0}
+.tk-view .view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o)}
+.tk-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
+.tk-idlink:hover{text-decoration:underline}
+.tk-head-top .tk-created{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--tm);font-weight:600;font-size:.82em;margin-left:auto}
+.tk-head-top .rem{flex-shrink:0}
+.tk-chev{background:transparent;border:1px solid var(--bd);border-radius:8px;color:var(--tm);cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding:5px 9px}
+.tk-chev:hover{color:var(--t);border-color:#3a4142}
+.tk-chev .chev{transition:transform .2s;display:inline-block}
+.tk-card.open .tk-chev .chev{transform:rotate(180deg)}
+/* Title: full-width, truncated to two lines with ellipsis */
+.tk-title-full{margin-top:9px;color:var(--t);font-size:.92em;line-height:1.4;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+/* Latest-comment preview line under the title */
+.tk-head-latest{margin-top:7px;font-size:.82em;color:var(--tm);display:flex;align-items:center;gap:10px;min-width:0}
+.tk-latest-text{color:var(--tm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.tk-latest-meta{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;color:#5f6b6c}
+.tk-latest-by{white-space:nowrap}
+.tk-latest-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
+/* Body slides open with a smooth height animation (grid-template-rows 0fr -> 1fr, ~0.6s). */
+.tk-card-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .6s cubic-bezier(.4,0,.2,1),opacity .5s ease,border-color .6s}
+.tk-card-body>.tk-body-inner{overflow:hidden;min-height:0;opacity:0;transition:opacity .5s ease .1s}
+.tk-card.open .tk-card-body{grid-template-rows:1fr;border-top:1px solid rgba(255,255,255,.06)}
+.tk-card.open .tk-card-body>.tk-body-inner{opacity:1}
+.tk-body-pad{padding:0 16px 16px}
+.tk-actions-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px}
+.tk-actions-row .btn{margin:0}
+.tk-temp-toggle{display:inline-flex;align-items:center;gap:8px;margin-left:auto;cursor:pointer;color:var(--tm);font-size:.82em}
+.tk-temp-lbl{white-space:nowrap}
+.tk-help{margin-top:14px}
+/* Inline comment thread */
+.tk-thread{margin-top:14px}
+.tk-thread-head{color:#cfd6d6;font-size:.76em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.tk-thread-count{background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700}
+.tk-thread-hint{color:#5f6b6c;font-size:.85em;font-style:italic;display:flex;align-items:center;gap:6px}
+.tk-thread-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+.tk-cmt{border:1px solid var(--bd);border-radius:8px;padding:9px 12px;background:#000}
+.tk-cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.74em;color:#5f6b6c;margin-bottom:5px;flex-wrap:wrap}
+.tk-cmt-who{display:inline-flex;align-items:center;gap:5px}
+.tk-cmt-who b{color:#d5dbdb}
+.tk-cmt-when{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.tk-cmt-text{white-space:pre-wrap;color:var(--t);font-size:.86em;line-height:1.5}
+/* Age-coloured card: solid age colour as the background, no border. */
+.tk-card.row-ok{border-color:transparent;background:rgba(74,222,128,.3)}
+.tk-card.row-warn{border-color:transparent;background:rgba(251,191,36,.32)}
+.tk-card.row-over{border-color:transparent;background:rgba(255,82,82,.32)}
+.tk-card.row-black{border-color:transparent;background:rgba(120,120,128,.42)}
+/* Viewed: deeper solid age colour so it reads as clearly "seen". */
+.tk-card.viewed.row-ok{background:rgba(74,222,128,.46)}
+.tk-card.viewed.row-warn{background:rgba(251,191,36,.48)}
+.tk-card.viewed.row-over{background:rgba(255,82,82,.48)}
+.tk-card.viewed.row-black{background:rgba(120,120,128,.6)}
+.tk-card.viewed{background:rgba(74,222,128,.46)} /* fallback (no age class) */
+/* Temp-resolved cards are dimmed. */
+.tk-card.temp{opacity:.72}
+.tk-card.temp:hover{opacity:1}
+@media(max-width:560px){
+  .tk-head-top{flex-wrap:wrap}
+  .tk-head-top .tk-created{margin-left:0}
+}
 /* Latest-comment cell loading shimmer */
 .latest-cmt.loading{color:transparent!important}
 /* Sortable column headers */
@@ -199,18 +269,13 @@ tbody tr.temp td.col-temp{opacity:1}
   <div class="mt-head">
     <div><h1>My Tickets</h1><p class="sub" style="margin:4px 0 0">Loading your open tickets, deadlines and comments…</p></div>
   </div>
-  <div class="tbl-card" style="margin-top:20px">
-    <table><thead><tr><th style="width:34px"></th><th>Created</th><th>Time left</th><th>Ticket</th><th>Actions</th><th>Latest comment</th></tr></thead>
-    <tbody id="mtSkeleton"></tbody></table>
-  </div>
-  <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var row='<tr>'+
-    '<td><span class="sk-blk" style="width:16px;height:16px;border-radius:3px"></span></td>'+
-    '<td><span class="sk-blk" style="width:70px;height:14px"></span></td>'+
-    '<td><span class="sk-blk" style="width:56px;height:22px;border-radius:20px"></span></td>'+
-    '<td><span class="sk-blk" style="width:120px;height:14px;display:block"></span><span class="sk-blk" style="width:80%;height:11px;display:block;margin-top:6px"></span></td>'+
-    '<td><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block"></span><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block;margin-top:8px"></span></td>'+
-    '<td><span class="sk-blk" style="width:80%;height:12px;display:block"></span><span class="sk-blk" style="width:55%;height:12px;display:block;margin-top:6px"></span></td>'+
-    '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
+  <div class="mt-cards" id="mtSkeleton" style="margin-top:20px"></div>
+  <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var card='<div class="tk-card"><div class="tk-card-head">'+
+    '<span class="sk-blk" style="width:16px;height:16px;border-radius:3px"></span>'+
+    '<span style="display:flex;flex-direction:column;gap:5px"><span class="sk-blk" style="width:70px;height:12px"></span><span class="sk-blk" style="width:56px;height:20px;border-radius:20px"></span></span>'+
+    '<span style="flex:1;min-width:0"><span class="sk-blk" style="width:180px;height:14px;display:block"></span><span class="sk-blk" style="width:70%;height:11px;display:block;margin-top:6px"></span><span class="sk-blk" style="width:45%;height:11px;display:block;margin-top:6px"></span></span>'+
+    '<span class="sk-blk" style="width:44px;height:30px;border-radius:8px"></span>'+
+    '</div></div>';var h='';for(var i=0;i<8;i++)h+=card;b.innerHTML=h;})();</script>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -330,7 +395,7 @@ function toggleViewed(sid, cb){
   sid=String(sid);
   if(cb.checked) VIEWED.add(sid); else VIEWED.delete(sid);
   saveViewed();
-  const tr=cb.closest('tr'); if(tr) tr.classList.toggle('viewed', cb.checked);
+  const card=cb.closest('.tk-card'); if(card) card.classList.toggle('viewed', cb.checked);
 }
 window.toggleViewed=toggleViewed;
 
@@ -359,6 +424,51 @@ function toggleTempSection(){
   try{ localStorage.setItem(tempOpenKey(), open?'1':'0'); }catch(e){}
 }
 window.toggleTempSection=toggleTempSection;
+
+// ---- Expand/collapse per-ticket cards (accordion: only ONE open at a time) ----
+let OPEN_CARD=null; // shortId of the currently-expanded card (session only)
+function toggleCard(sid, headEl){
+  sid=String(sid);
+  const card=headEl.closest('.tk-card'); if(!card)return;
+  const willOpen=!card.classList.contains('open');
+  // Accordion: collapse any other open cards first.
+  document.querySelectorAll('.tk-card.open').forEach(function(c){ if(c!==card) c.classList.remove('open'); });
+  card.classList.toggle('open', willOpen);
+  OPEN_CARD = willOpen ? sid : null;
+  if(willOpen){
+    // Load the comment thread the first time this card is expanded.
+    const thread=card.querySelector('.tk-thread');
+    if(thread && thread.getAttribute('data-loaded')!=='1'){
+      const idx=TICKETS.findIndex(t=>String(t.shortId)===sid);
+      if(idx>=0) loadThread(idx);
+    }
+  }
+}
+window.toggleCard=toggleCard;
+
+// Fetch and render the full comment thread (with date + time) into a card body.
+async function loadThread(i){
+  const t=TICKETS[i]; if(!t)return;
+  const box=document.getElementById('thread-'+i); if(!box)return;
+  box.setAttribute('data-loaded','1');
+  box.innerHTML='<div class="tk-thread-head">'+ic('message',13)+' Comments</div>'
+    +'<div class="tk-thread-list"><div class="tk-thread-hint">'+ic('clock',12)+' Loading comments\u2026</div></div>';
+  const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments');
+  const list=(r.ok&&Array.isArray(r.data))?r.data:[];
+  paintThread(i,list);
+}
+function paintThread(i,list){
+  const box=document.getElementById('thread-'+i); if(!box)return;
+  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const head='<div class="tk-thread-head">'+ic('message',13)+' Comments <span class="tk-thread-count">'+list.length+'</span></div>';
+  if(!list.length){ box.innerHTML=head+'<div class="tk-thread-hint">No comments yet on this ticket.</div>'; return; }
+  const items=list.map(function(c){
+    return '<div class="tk-cmt"><div class="tk-cmt-meta"><span class="tk-cmt-who">'+ic('users',12)+' <b>'+esc(c.user)+'</b></span>'
+      +'<span class="tk-cmt-when">'+ic('clock',11)+' '+esc(MY_TZ)+' '+fmtTZ(c.at,zone)+'</span></div>'
+      +'<div class="tk-cmt-text">'+esc(c.text)+'</div></div>';
+  }).join('');
+  box.innerHTML=head+'<div class="tk-thread-list">'+items+'</div>';
+}
 // "N days ago" from a create date (relative to now).
 function daysAgo(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '—';
@@ -382,6 +492,16 @@ function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleS
 // Show only the logged-in user's preferred timezone.
 function tzBlock(iso){const z=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;return '<div class="tz"><b>'+MY_TZ+':</b> '+fmtTZ(iso,z)+'</div>';}
 
+// Ticket age COLOUR from CreateDate (mirrors the dashboard: green<=96h, yellow<=168h, red<=240h, black>240h).
+// This drives the card background colour (distinct from the time-left pill below).
+function ageColor(createIso){
+  const cd=new Date(createIso); if(isNaN(cd)) return 'ok';
+  const ageH=(Date.now()-cd.getTime())/36e5;
+  if(ageH<=96)  return 'ok';    // green  (0-4 days)
+  if(ageH<=168) return 'warn';  // yellow (4-7 days)
+  if(ageH<=240) return 'over';  // red    (7-10 days)
+  return 'black';               // black  (>10 days)
+}
 // Time remaining / overdue relative to the 240h deadline.
 function remaining(deadlineIso){
   if(!deadlineIso)return {cls:'',txt:'—'};
@@ -492,60 +612,82 @@ function render(){
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
-  const colCount=editor?7:6; // view, created, time-left, ticket, actions, [help], latest, temp
-  const headRow=`<thead><tr>
-      <th class="col-view" title="Mark as viewed">${ic('check-circle',13)}</th>
-      <th><button type="button" class="sort-th${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</button></th>
-      <th><button type="button" class="sort-th${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</button></th>
-      <th>Ticket</th><th>Actions</th>${editor?'<th>Help</th>':''}<th>Latest comment</th>
-      <th class="col-temp" title="Temporarily resolve (working only \u2014 not saved to the database)">Temp Resolve</th>
-    </tr></thead>`;
-  // Split rows by temp-resolve state, preserving the original TICKETS index (i) so
+  // Sort toolbar (replaces the old table header sort buttons).
+  const toolbar=`<div class="mt-toolbar">
+      <span class="mt-toolbar-lbl">Sort by</span>
+      <button type="button" class="sort-th${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</button>
+      <button type="button" class="sort-th${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</button>
+    </div>`;
+  // Split cards by temp-resolve state, preserving the original TICKETS index (i) so
   // latest-comment cells and incident/comment buttons stay correctly wired.
-  const mainRows=[], tempRows=[];
-  TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempRows:mainRows).push(rowHtml(t,i,editor)); });
+  const mainCards=[], tempCards=[];
+  TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempCards:mainCards).push(cardHtml(t,i,editor)); });
 
-  html+=`<div class="tbl-card"><table>${headRow}<tbody>`
-      + (mainRows.length?mainRows.join(''):`<tr><td colspan="${colCount+1}" class="empty" style="padding:22px">All your tickets are temporarily resolved. 🎉</td></tr>`)
-      + `</tbody></table></div>`;
+  html+=toolbar+`<div class="mt-cards">`
+      + (mainCards.length?mainCards.join(''):`<div class="empty">All your tickets are temporarily resolved. 🎉</div>`)
+      + `</div>`;
 
-  // Collapsible "Temporarily Resolved" section below the main table.
+  // Collapsible "Temporarily Resolved" section below.
   let tempOpen='0'; try{ tempOpen=localStorage.getItem(tempOpenKey())||'0'; }catch(e){}
   html+=`<div id="tempSection" class="temp-section${tempOpen==='1'?' open':''}">
     <button type="button" class="temp-head" onclick="toggleTempSection()">
       <span class="temp-caret">${ic('bar-chart',14)}</span>
-      <span class="temp-title">Temporarily Resolved <span class="temp-count">${tempRows.length}</span></span>
+      <span class="temp-title">Temporarily Resolved <span class="temp-count">${tempCards.length}</span></span>
       <span class="temp-note">Working view only \u2014 the shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.</span>
       <span class="temp-chev">\u25be</span>
     </button>
-    <div class="temp-body"><div class="tbl-card"><table>${headRow}<tbody>`
-      + (tempRows.length?tempRows.join(''):`<tr><td colspan="${colCount+1}" class="empty" style="padding:22px">No temporarily resolved tickets. Flip a "Temp Resolve" toggle to move a ticket here.</td></tr>`)
-      + `</tbody></table></div></div>
+    <div class="temp-body"><div class="mt-cards">`
+      + (tempCards.length?tempCards.join(''):`<div class="empty">No temporarily resolved tickets. Flip a "Temp Resolve" toggle to move a ticket here.</div>`)
+      + `</div></div>
   </div>`;
 
   document.getElementById('wrap').innerHTML=html;
   // Tally the "My Tickets (N)" count (spinner placeholder -> scramble -> count-up).
   try{ if(A.tally) A.tally(document.querySelector('.mt-count'), n); }catch(e){}
   fillLatestComments();
+  // Reload the comment thread for the card that was left expanded (e.g. after a re-render).
+  if(OPEN_CARD){ const oi=TICKETS.findIndex(t=>String(t.shortId)===OPEN_CARD); if(oi>=0) loadThread(oi); }
 }
-// One ticket row. `i` is the index within TICKETS (kept stable across both tables).
-function rowHtml(t,i,editor){
+// One ticket CARD. `i` is the index within TICKETS (kept stable across both lists) so
+// latest-${i} / inc-btn-${i} / index-based onclick handlers stay valid.
+function cardHtml(t,i,editor){
   const rem=remaining(t.deadline);
   const st=String(t.status||'');
   const letter=st.trim().charAt(0).toUpperCase()||'?';
-  const viewed=VIEWED.has(String(t.shortId));
-  const temp=TEMP_RESOLVED.has(String(t.shortId));
-  const rowCls=rem.cls?(' row-'+rem.cls):''; // urgency gradient: ok=green, warn=yellow, over=red
-  return `<tr class="${viewed?'viewed':''}${temp?' temp':''}${rowCls}">
-        <td class="col-view"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(t.shortId)}',this)" aria-label="Mark ${esc(t.shortId)} as viewed"></td>
-        <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
-        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
-        <td class="tk-id"><div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a><button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(t.shortId)}" onclick="copyTicketId('${esc(t.shortId)}',this)">${ic('copy',13)}</button></div>${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}</td>
-        <td class="actions-cell"><button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
-        ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
-        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}"><span class="sk-blk" style="width:85%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>
-        <td class="col-temp"><label class="switch" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(t.shortId)}',this)" aria-label="Temp resolve ${esc(t.shortId)}"><span class="slider"></span></label></td>
-      </tr>`;
+  const sid=String(t.shortId);
+  const viewed=VIEWED.has(sid);
+  const temp=TEMP_RESOLVED.has(sid);
+  const rowCls=' row-'+ageColor(t.createDate); // card colour by ticket AGE: ok=green, warn=yellow, over=red, black=>10d
+  const openCls=(OPEN_CARD===sid)?' open':'';
+  return `<div class="tk-card${viewed?' viewed':''}${temp?' temp':''}${rowCls}${openCls}" data-sid="${esc(sid)}">
+    <div class="tk-card-head" onclick="toggleCard('${esc(sid)}',this)">
+      <div class="tk-head-top">
+        <label class="tk-view" title="Mark as viewed" onclick="event.stopPropagation()"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(sid)}',this)" aria-label="Mark ${esc(sid)} as viewed"></label>
+        <span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span>
+        <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a>
+        <button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button>
+        <span class="tk-created">${ic('clock',12)} Created: ${esc(daysAgo(t.createDate))}</span>
+        <span class="rem ${rem.cls}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
+        <button type="button" class="tk-chev" aria-label="Expand or collapse">${ic('bar-chart',15)}<span class="chev">\u25be</span></button>
+      </div>
+      <div class="tk-title-full" title="${esc(t.title||'')}">${t.title?esc(t.title):('<span style=\"color:#5f6b6c\">'+esc(sid)+'</span>')}</div>
+      <div class="tk-head-latest" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:40%;height:11px;display:block"></span></div>
+    </div>
+    <div class="tk-card-body">
+      <div class="tk-body-inner"><div class="tk-body-pad">
+        <div class="tk-actions-row">
+          <button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button>
+          <span id="inc-btn-${i}">${incidentBtnHtml(i)}</span>
+          <label class="tk-temp-toggle" title="${temp?'Move back to open':'Temporarily resolve (working only \u2014 not saved to the database)'}">
+            <span class="tk-temp-lbl">Temp resolve</span>
+            <span class="switch"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" aria-label="Temp resolve ${esc(sid)}"><span class="slider"></span></span>
+          </label>
+        </div>
+        ${editor?('<div class="tk-help">'+helpBlock(t)+'</div>'):''}
+        <div class="tk-thread" id="thread-${i}" data-loaded="0"><div class="tk-thread-hint">Expand to load the comment thread.</div></div>
+      </div></div>
+    </div>
+  </div>`;
 }
 
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.
@@ -601,19 +743,17 @@ function activityMetaHtml(shortId){
   return '<div class="latest-updated" title="When a comment or incident log was last added/edited (our reference — not the CSV data)">'+ic('clock',11)+' Updated '+when+' '+MY_TZ+'</div>';
 }
 
-// Render one Latest-comment cell from a {text,user,at,count} object (or falsy for none).
+// Render the compact latest-comment preview in the CARD HEAD from a {text,user,at,count} object.
+// The comment icon + count sits next to the preview; clicking the head expands the full thread.
 function paintLatestCell(i,c){
   const cell=document.getElementById('latest-'+i);if(!cell)return;
-  const t=TICKETS[i];
-  const updated=t?activityMetaHtml(t.shortId):'';
   if(c&&c.text){
     const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-    const countBadge='<span class="cmt-count" onclick="openCmt('+i+')" title="View all comments">'+ic('message',12)+' '+c.count+'</span>';
-    cell.style.color='var(--t)';cell.style.fontStyle='normal';
-    cell.innerHTML='<div class="latest-text">'+esc(c.text)+'</div><div class="latest-meta">— '+esc(c.user)+(when?(' · '+when):'')+' '+countBadge+'</div>'+updated;
+    const countBadge='<span class="cmt-count" title="'+c.count+' comment'+(c.count===1?'':'s')+'">'+ic('message',12)+' '+c.count+'</span>';
+    cell.innerHTML='<span class="tk-latest-text">'+esc(c.text)+'</span>'
+      +'<span class="tk-latest-meta">'+countBadge+' <span class="tk-latest-by">\u2014 '+esc(c.user)+(when?(' \u00b7 '+when):'')+'</span></span>';
   }else{
-    cell.style.color='#5f6b6c';cell.style.fontStyle='normal';
-    cell.innerHTML=updated?('<span style="color:#5f6b6c">-</span>'+updated):'-';
+    cell.innerHTML='<span class="tk-latest-none">'+ic('message',12)+' No comments yet</span>';
   }
 }
 
@@ -629,6 +769,9 @@ async function refreshLatestComment(i){
     if(ra.ok&&ra.data&&ra.data[t.shortId])ACTIVITY[t.shortId]=ra.data[t.shortId];
     if(rc.ok&&rc.data)paintLatestCell(i,rc.data[t.shortId]);
     if(rh.ok&&rh.data){ if(rh.data[t.shortId])HAS_LOG[String(t.shortId)]=true; else delete HAS_LOG[String(t.shortId)]; repaintIncidentBtn(i); var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c); }
+    // If this card's thread is already open/loaded, refresh it too (a new comment was just added).
+    var box=document.getElementById('thread-'+i);
+    if(box && box.getAttribute('data-loaded')==='1') loadThread(i);
   }catch(e){}
 }
 
