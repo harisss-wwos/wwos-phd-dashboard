@@ -136,7 +136,11 @@
       + '@keyframes tbrfpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}'
       + '@media(max-width:920px){.tb-refresh{top:52px;font-size:.8em;gap:9px;padding-left:12px;padding-right:12px}}'
       // ---- Shared responsive guard (kills x-axis scroll; applies on every page) ----
-      + 'html,body{max-width:100%;overflow-x:hidden}'
+      // NOTE: use overflow-x:clip (NOT hidden). `hidden` makes html/body a scroll container, which
+      // breaks `position:sticky` on the top bar (it detaches on scroll, leaving an empty gap where
+      // the hamburger/profile were while the fixed menu stays). `clip` prevents x-overflow the same
+      // way but does NOT create a scroll container, so sticky keeps working.
+      + 'html,body{max-width:100%;overflow-x:clip}'
       + '*{box-sizing:border-box}'
       + 'img,svg,canvas,video{max-width:100%;height:auto}'
       + 'pre{max-width:100%;overflow-x:auto;white-space:pre-wrap;word-break:break-word}'
@@ -188,7 +192,9 @@
     if (isAdmin && !inApp) {
       html += '<button type="button" class="tb-btn tb-movable" title="Upload new data" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + '<span class="tb-btn-label"> Upload new data</span></button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
     }
-    if (li) html += '<a class="tb-btn tb-movable" href="my-tickets.html" title="My Tickets">' + ic('ticket') + '<span class="tb-btn-label"> My Tickets</span></a>';
+    // My Tickets (logged-in). On the live dashboard (app.html) it lives in the page-title row next to
+    // Alerts / Upload / Uploaded data log, so it's omitted here to avoid a duplicate.
+    if (li && !inApp) html += '<a class="tb-btn tb-movable" href="my-tickets.html" title="My Tickets">' + ic('ticket') + '<span class="tb-btn-label"> My Tickets</span></a>';
     // Refresh: fetch the latest data on demand (logged-in only). Hidden on the profile page — it
     // shows your own profile, which has nothing live to refresh.
     if (li && !onProfile) html += '<button type="button" class="tb-btn tb-refresh-btn" onclick="tbRefreshData(this)" title="Fetch the latest data">' + ic('refresh') + '<span class="tb-btn-label"> Refresh</span></button>';
@@ -517,6 +523,38 @@
     reader.readAsText(file);
   });
 
+  // Format a seconds count as "Xm Ys" (or "Ys" under a minute) for the total-time readout.
+  function tbFmtDuration(secs) {
+    secs = Math.max(0, secs | 0);
+    if (secs < 60) return secs + ' sec';
+    var m = Math.floor(secs / 60), s = secs % 60;
+    return m + ' min' + (s ? ' ' + s + ' sec' : '');
+  }
+
+  // Rotating lines for the SAVE (delta publish) step — shown one every 30s while writing.
+  function tbSaveMessages(zNew, yUpdated) {
+    return [
+      'Sending ' + ((zNew || 0) + (yUpdated || 0)).toLocaleString() + ' changes to the shared database…',
+      'Writing the updated tickets — only the changes, not the whole quarter…',
+      'Refreshing the dashboard rollups so everyone sees the new numbers…',
+      'Almost done — committing the changes…',
+      'Thanks for waiting — finalising the save…',
+    ];
+  }
+
+  // Rotating "keep the user engaged" lines shown one every 30s during the (slow) live-data fetch.
+  // Ordered so each appears once; the last one holds until the response arrives.
+  function tbEngageMessages(fileRows) {
+    return [
+      'Comparing your ' + (fileRows ? fileRows.toLocaleString() + ' rows' : 'file') + ' against the live database…',
+      'Downloading the current live dataset (it\u2019s a large quarter)…',
+      'Matching tickets by ID and checking which fields changed…',
+      'Almost there — tallying new tickets and field updates…',
+      'Thanks for your patience — finalising the assessment…',
+      'Still working — large uploads can take a couple of minutes…',
+    ];
+  }
+
   // Wind a countdown element's number down from `from` to 0 (quick, ~40ms/step) so it lands cleanly.
   async function tbCountdownToZero(from, elId) {
     var el = document.getElementById(elId);
@@ -542,6 +580,7 @@
         '<div id="tbAssessTimerWrap" style="display:none;margin-top:16px">' +
           '<div style="font-size:2.2em;font-weight:800;color:#4ade80;line-height:1;font-variant-numeric:tabular-nums" id="tbAssessTimer">60</div>' +
           '<p style="color:#879596;margin-top:6px;font-size:.8em">seconds — please wait</p>' +
+          '<p id="tbAssessEngage" style="color:#9fb0b2;margin-top:12px;font-size:.85em;line-height:1.5;min-height:1.2em;transition:opacity .3s"></p>' +
           '<p id="tbAssessApology" style="color:#fbbf24;margin-top:8px;font-size:.82em;display:none">Taking a little longer than expected — apologies, still working on it…</p>' +
         '</div>' +
         '<button class="tb-mbtn sec" id="tbAssessCancel" style="margin-top:18px">Cancel</button>' +
@@ -564,21 +603,33 @@
       var s = document.getElementById('tbAssessSub'); if (s) s.textContent = 'Read ' + rows.length.toLocaleString() + ' tickets from your file. Fetching the current live data…';
       var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'block';
     })();
-    // Countdown timer: start at 60s and tick down while the data loads. If it reaches 1s, add
-    // another 30s and show an apology — repeat until the fetch resolves.
+    // Countdown timer: start at 60s and tick down while the data loads. If it reaches ~10s (data
+    // still not back), top up another 30s (repeat until the fetch resolves). Every 30s show a fresh
+    // reassuring line to keep the user engaged (rotates, no repeats).
+    var _t0 = Date.now();                                     // for the total-time readout
     var _timeLeft = 60;
     var _timerEl = document.getElementById('tbAssessTimer');
     var _apologyEl = document.getElementById('tbAssessApology');
+    var _engageEl = document.getElementById('tbAssessEngage');
+    var _engageMsgs = tbEngageMessages(rows.length);
+    var _engageIdx = 0, _elapsed = 0;
+    if (_engageEl && _engageMsgs.length) _engageEl.textContent = _engageMsgs[_engageIdx++];
     if (_timerEl) _timerEl.textContent = String(_timeLeft);
     var _timer = setInterval(function () {
-      _timeLeft -= 1;
-      if (_timeLeft <= 1) { _timeLeft = 30; if (_apologyEl) _apologyEl.style.display = 'block'; } // top up + apologise
+      _timeLeft -= 1; _elapsed += 1;
+      if (_timeLeft <= 10) { _timeLeft = 40; if (_apologyEl) _apologyEl.style.display = 'block'; } // top up +30 near the end
       if (_timerEl) _timerEl.textContent = String(_timeLeft);
+      // New engagement line every 30s (fade through the list, then hold on the last one).
+      if (_elapsed % 30 === 0 && _engageEl && _engageIdx < _engageMsgs.length) {
+        _engageEl.style.opacity = '0';
+        (function (msg) { setTimeout(function () { _engageEl.textContent = msg; _engageEl.style.opacity = '1'; }, 300); })(_engageMsgs[_engageIdx++]);
+      }
     }, 1000);
     // Fetch the current live-quarter dataset to compare against.
     var live;
     try { live = await A.api('GET', '/api/live-quarter'); } catch (e) { live = null; }
     clearInterval(_timer);                                    // data is here — stop the countdown
+    var _assessSecs = Math.round((Date.now() - _t0) / 1000);  // total time this fetch+compare took
     // Quickly wind the timer down to 0 so it lands cleanly (instead of vanishing at some number).
     await tbCountdownToZero(_timeLeft, 'tbAssessTimer');
     (function () { var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'none'; })();
@@ -617,7 +668,7 @@
 
     if (tbAssessAborted) return;
     tbRemove('tbAssess');
-    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {} });
+    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {}, assessSecs: _assessSecs });
   }
 
   // Step C: confirmation popup with the counts. On confirm -> delta publish.
@@ -643,6 +694,7 @@
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Will be updated (field changes)</span><span style="color:#fbbf24;font-weight:700">' + res.yUpdated + '</span></div>' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#879596">New tickets to add</span><span style="color:#4ade80;font-weight:700">' + res.zNew + '</span></div>' +
         '</div>' +
+        (res.assessSecs != null ? ('<p style="color:#5f6b6c;font-size:.78em;margin-top:10px;text-align:center">Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</p>') : '') +
         '<p style="color:#879596;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
         '<div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">' +
           '<button class="tb-mbtn sec" id="tbConfirmCancel">Cancel</button>' +
@@ -663,24 +715,37 @@
         '<div style="margin-top:16px">' +
           '<div style="font-size:2.2em;font-weight:800;color:#4ade80;line-height:1;font-variant-numeric:tabular-nums" id="tbPushTimer">60</div>' +
           '<p style="color:#879596;margin-top:6px;font-size:.8em">seconds — please wait</p>' +
+          '<p id="tbPushEngage" style="color:#9fb0b2;margin-top:12px;font-size:.85em;line-height:1.5;min-height:1.2em;transition:opacity .3s"></p>' +
           '<p id="tbPushApology" style="color:#fbbf24;margin-top:8px;font-size:.82em;display:none">Taking a little longer than expected — apologies, still saving…</p>' +
         '</div>' +
       '</div>');
-    // Countdown: start at 60s, tick down; if it hits 1s, top up +30s with an apology, until saved.
+    // Countdown: start at 60s, tick down; if it reaches ~10s (still saving), top up +30s with an
+    // apology (repeat until saved). New engagement line every 30s to keep the user informed.
+    var _pt0 = Date.now();
     var _pTime = 60;
     var _pTimerEl = document.getElementById('tbPushTimer');
     var _pApology = document.getElementById('tbPushApology');
+    var _pEngageEl = document.getElementById('tbPushEngage');
+    var _pMsgs = tbSaveMessages(res.zNew, res.yUpdated);
+    var _pIdx = 0, _pElapsed = 0;
+    if (_pEngageEl && _pMsgs.length) _pEngageEl.textContent = _pMsgs[_pIdx++];
     if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
     var _pTimer = setInterval(function () {
-      _pTime -= 1;
-      if (_pTime <= 1) { _pTime = 30; if (_pApology) _pApology.style.display = 'block'; }
+      _pTime -= 1; _pElapsed += 1;
+      if (_pTime <= 10) { _pTime = 40; if (_pApology) _pApology.style.display = 'block'; }
       if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
+      if (_pElapsed % 30 === 0 && _pEngageEl && _pIdx < _pMsgs.length) {
+        _pEngageEl.style.opacity = '0';
+        (function (msg) { setTimeout(function () { _pEngageEl.textContent = msg; _pEngageEl.style.opacity = '1'; }, 300); })(_pMsgs[_pIdx++]);
+      }
     }, 1000);
+    var _pushSecs = 0;
     try {
       var fm = res.fileMeta || {};
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
       var r = await A.api('POST', '/api/live-quarter/patch', body);
       clearInterval(_pTimer);
+      _pushSecs = Math.round((Date.now() - _pt0) / 1000);
       await tbCountdownToZero(_pTime, 'tbPushTimer');   // wind down to 0 cleanly
       if (!r.ok) {
         // Fallback: if there is no live doc yet, a delta can't apply — inform (rare; live quarter exists).
@@ -692,6 +757,7 @@
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#4ade80;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
           '<p style="color:#879596;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
+          (_pushSecs ? ('<p style="color:#5f6b6c;font-size:.78em;margin-top:8px">Saved in ' + tbFmtDuration(_pushSecs) + '</p>') : '') +
           '<div style="margin-top:18px"><button class="tb-mbtn" id="tbDoneClose">Done</button></div>' +
         '</div>');
       document.getElementById('tbDoneClose').onclick = function () {

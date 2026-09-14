@@ -95,13 +95,43 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .help-reply{color:var(--t);font-size:.82em;line-height:1.5;padding:4px 0;border-top:1px solid rgba(255,255,255,.05);white-space:normal}
 .help-none{color:#5f6b6c;font-size:.8em;font-style:italic}
 .help-hint{color:#879596;font-size:.78em;line-height:1.4;display:flex;gap:5px;align-items:flex-start}
+/* ---- Redesigned header + shimmer + polish ---- */
+.mt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.mt-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mt-title h1{margin:0;display:inline-flex;align-items:center;gap:10px}
+.mt-count{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:30px;padding:0 10px;border-radius:20px;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35);color:var(--o);font-weight:800;font-size:.7em}
+.mt-actions{display:flex;gap:10px;flex-wrap:wrap}
+.tbl-card{box-shadow:0 6px 24px rgba(0,0,0,.35)}
+thead th{position:sticky;top:0;z-index:1}
+tbody tr{transition:background .12s}
+/* Shimmer skeleton block */
+.sk-blk{position:relative;overflow:hidden;background:#161616;border-radius:6px;display:inline-block;vertical-align:middle}
+.sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:mtsh 1.3s infinite}
+@keyframes mtsh{100%{left:150%}}
+/* Latest-comment cell loading shimmer */
+.latest-cmt.loading{color:transparent!important}
 </style>
 </head>
 <body data-nav-active="my-tickets" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap"><h1>My Tickets</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">Your open tickets, deadlines, and comments.</p><div style="display:flex;align-items:center;justify-content:center;min-height:280px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+<div class="wrap" id="wrap">
+  <div class="mt-head">
+    <div><h1>My Tickets</h1><p class="sub" style="margin:4px 0 0">Loading your open tickets, deadlines and comments…</p></div>
+  </div>
+  <div class="tbl-card" style="margin-top:20px">
+    <table><thead><tr><th>Time left</th><th>Ticket</th><th>Latest comment</th><th>Add comment</th><th>Incident log</th></tr></thead>
+    <tbody id="mtSkeleton"></tbody></table>
+  </div>
+  <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var row='<tr>'+
+    '<td><span class="sk-blk" style="width:52px;height:14px"></span></td>'+
+    '<td><span class="sk-blk" style="width:130px;height:14px"></span></td>'+
+    '<td><span class="sk-blk" style="width:80%;height:12px;display:block"></span><span class="sk-blk" style="width:55%;height:12px;display:block;margin-top:6px"></span></td>'+
+    '<td><span class="sk-blk" style="width:96px;height:26px;border-radius:6px"></span></td>'+
+    '<td><span class="sk-blk" style="width:110px;height:26px;border-radius:6px"></span></td>'+
+    '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- Ask for help popup -->
@@ -296,8 +326,9 @@ function render(){
   const u=A.getUser();const editor=isEditor();
   const isAdmin=A.atLeast&&A.atLeast('admin');
   const isManager=(A.role&&A.role()==='manager');
-  let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">My Tickets ('+(TICKETS?TICKETS.length:0)+')</h1>'
-    +(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search ticket</a>':'')
+  const n=(TICKETS?TICKETS.length:0);
+  let html='<div class="mt-head"><div class="mt-title"><h1>'+ic('ticket',20)+' My Tickets <span class="mt-count tally-ph" data-tally="'+n+'">\u2014</span></h1></div>'
+    +'<div class="mt-actions">'+(isAdmin?'<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search ticket</a>':'')+'</div>'
     +'</div>';
   // Managers don't carry a personal ticket bucket — show a tailored panel instead of the table.
   if(isManager){
@@ -325,13 +356,15 @@ function render(){
       return `<tr>
         <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
         <td class="tk-id"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></td>
-        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}" style="color:#5f6b6c;font-style:italic;font-size:.85em">Loading…</td>
+        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}"><span class="sk-blk" style="width:85%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>
         <td><button class="btn mini" onclick="openAddComment(${i})">Add comment</button></td>
         ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
         <td class="incident-cell"><button class="btn sec mini" onclick="openIncidentLog(${i})">Add incident log</button><button class="btn sec mini" onclick="openViewIncident(${i})">View incident log</button></td>
       </tr>`;
     }).join('')+`</tbody></table></div>`;
   document.getElementById('wrap').innerHTML=html;
+  // Tally the "My Tickets (N)" count (spinner placeholder -> scramble -> count-up).
+  try{ if(A.tally) A.tally(document.querySelector('.mt-count'), n); }catch(e){}
   fillLatestComments();
 }
 

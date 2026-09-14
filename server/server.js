@@ -1593,8 +1593,9 @@ app.delete('/api/unique-cases-log/:id', requireRole('owner'), async (req, res) =
 app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   try {
     const me = req.user.username;
-    const tickets = await loadQuarterTickets(currentQuarter());
-    const mine = tickets.filter(t =>
+    // Query only MY open tickets from ticket_docs (not the whole ~8k array).
+    const rows = await queryQuarterTickets(currentQuarter(), { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } });
+    const mine = rows.filter(t =>
       String(t.AssigneeIdentity || '').toLowerCase() === String(me).toLowerCase() &&
       OPEN_STATUSES.includes(t.Status)
     );
@@ -1914,7 +1915,7 @@ function ticketDocId(qid, shortId) { return qid + '|' + String(shortId); }
 let _ticketIndexesReady = false;
 async function ensureTicketIndexes() {
   if (_ticketIndexesReady) return;
-  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
+  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
 }
 // Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
 // fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
@@ -1928,6 +1929,22 @@ async function loadQuarterTickets(qid) {
   const doc = await qColl.findOne({ _id: qid });
   return (doc && doc.data && doc.data.tickets) || [];
 }
+// Query a SUBSET of a quarter's tickets with a Mongo filter, so only matching rows cross the wire
+// (e.g. one agent's open tickets) instead of loading all ~8k. Falls back to filtering the legacy
+// array in memory for any not-yet-migrated quarter.
+async function queryQuarterTickets(qid, filter) {
+  qid = qid || currentQuarter();
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const has = (await coll.countDocuments({ q: qid }, { limit: 1 })) > 0;
+  if (has) {
+    const docs = await coll.find(Object.assign({ q: qid }, filter || {})).toArray();
+    return docs.map(d => { const t = Object.assign({}, d); delete t._id; delete t.q; return t; });
+  }
+  return await loadQuarterTickets(qid); // legacy: caller filters in memory
+}
+// Case-insensitive exact-match regex for an identity value (assignee/resolver).
+function ciExact(v) { return new RegExp('^' + String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'); }
+
 // Apply a delta to a quarter's ticket_docs: upsert `changed` tickets, delete `removed` ShortIds.
 // Only the changed/removed rows are written (bulkWrite) — never the whole array. Returns new count.
 async function bulkUpsertTickets(qid, changed, removed) {
@@ -2467,9 +2484,10 @@ app.get('/api/agent-bucket', requireRole('admin'), async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'A username is required.' });
-    const tickets = await liveTickets();
     const now = Date.now();
-    const mine = tickets.filter(t =>
+    // Query only THIS agent's open tickets from ticket_docs (not the whole ~8k array).
+    const rows = await queryQuarterTickets(currentQuarter(), { AssigneeIdentity: ciExact(username), Status: { $in: OPEN_STATUSES } });
+    const mine = rows.filter(t =>
       String(t.AssigneeIdentity || '').toLowerCase() === username &&
       OPEN_STATUSES.includes(t.Status)
     );

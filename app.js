@@ -1848,8 +1848,10 @@ function dashPageTitleRow(){
   const isAdmin=window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin');
   let actions='';
   if(loggedIn){
+    // My Tickets (any logged-in user) — sits alongside Alerts / Upload / Uploaded data log.
+    actions='<a class="btn sec dash-act" href="my-tickets.html" title="My Tickets">'+ic('ticket',15)+'<span class="dash-act-label"> My Tickets</span></a>';
     // Alerts (with its live badge + id).
-    actions='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label"> Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
+    actions+='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label"> Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
     if(isAdmin){
       actions+='<button type="button" class="btn sec dash-act" title="Upload new data" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+'<span class="dash-act-label"> Upload new data</span></button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
     }
