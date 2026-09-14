@@ -89,6 +89,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Overview closure-code tiles: lay out in a single horizontal row (equal width, wrap on narrow screens). */
 .ac-grid-row{display:flex;flex-wrap:wrap;gap:10px}
 .ac-grid-row .ac-tile{flex:1 1 0;min-width:120px}
+/* Fixed 4-per-row layout for the closure-code tiles (Successful … Duplicate + 1st Pet). Stays 4
+   across as the screen narrows; the label truncates to a single line (ellipsis) instead of wrapping. */
+.ac-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ac-grid-4 .ac-lbl{display:block;-webkit-line-clamp:none;line-clamp:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+/* Zero-count closure codes are shown "greyed out" (graded out) rather than hidden. */
+.ac-tile.zero{opacity:.5;border-top-color:#333!important;background:#050505}
+.ac-tile.zero .ac-lbl{color:#5a6162}
+/* 1st Pet incident tile: spans the full row so the "how it's counted" factors fit beside the count. */
+.ac-tile-pet{grid-column:1/-1;display:flex;align-items:center;gap:14px;text-align:left;padding:12px 16px}
+.ac-tile-pet .ac-num{flex-shrink:0}
+.ac-tile-pet .ac-lbl{margin-top:0;flex-shrink:0;white-space:nowrap;max-width:none;font-weight:700;color:#e5b567}
+.ac-tile-pet .ac-hint{color:var(--tm);font-size:.72em;line-height:1.35;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:1px solid var(--bd);padding-left:14px}
+@media(max-width:560px){.ac-tile-pet{gap:9px;padding:11px 12px}.ac-tile-pet .ac-hint{padding-left:9px}}
+@media(max-width:560px){.ac-grid-4{gap:7px}.ac-grid-4 .ac-tile{padding:11px 7px}.ac-grid-4 .ac-num{font-size:1.4em}.ac-grid-4 .ac-lbl{font-size:.68em}}
 /* RootCause breakdown: ranked rows, count pill, label with a subtle relative bar. */
 .rc-kinds{color:var(--tm);font-weight:400;text-transform:none;letter-spacing:0;font-size:.9em}
 .rc-list{display:flex;flex-direction:column;gap:6px}
@@ -432,21 +446,33 @@ const OV_CACHE={};    // key -> response data (cache so re-expand doesn't re-fet
 //             Duplicate, Successful with Problems, Unsuccessful, No Plan to Fix, No Issue
 function overviewDisplayItems(d){
   const c=d.counts||{};
-  const items=[
-    {label:'Successful',                      value:c['Successful']||0,                                                     color:'#4ade80'},
-    {label:'1st Pet incident (handled by PHD)',value:d.pet||0,                                                              color:'#f59e0b'},
-    {label:'Automatically/Immediately', labelHtml:'Automatically/<br>Immediately', value:(c['Automatically Closed']||0)+(c['Immediately Resolved']||0), color:'#44b9d6'},
-    {label:'Duplicate',                       value:c['Duplicate']||0,                                                     color:'#a78bfa'},
-    {label:'Successful with Problems',        value:c['Successful with Problems']||0,                                      color:'#fbbf24'},
-    {label:'Unsuccessful',                    value:c['Unsuccessful']||0,                                                  color:'#ff5252'},
-    {label:'No Plan to Fix',                  value:c['No Plan to Fix']||0,   hideIfZero:true,                             color:'#888'},
-    {label:'No Issue',                        value:c['No Issue']||0,         hideIfZero:true,                             color:'#888'},
+  // All 8 closure codes as their OWN tiles (Auto/Immediate are NOT merged). Sorted by count
+  // (highest first); the fixed priority below breaks ties. Zero-count tiles are shown greyed out
+  // (never hidden). The "1st Pet incident" tile is always appended LAST, after the 8 codes.
+  const codes=[
+    {label:'Successful',               value:c['Successful']||0,              color:'#4ade80'},
+    {label:'Successful with Problems', value:c['Successful with Problems']||0, color:'#fbbf24'},
+    {label:'Unsuccessful',             value:c['Unsuccessful']||0,            color:'#ff5252'},
+    {label:'Automatically Closed',     value:c['Automatically Closed']||0,    color:'#44b9d6'},
+    {label:'Immediately Resolved',     value:c['Immediately Resolved']||0,    color:'#38bdf8'},
+    {label:'No Plan to Fix',           value:c['No Plan to Fix']||0,          color:'#888'},
+    {label:'No Issue',                 value:c['No Issue']||0,                color:'#888'},
+    {label:'Duplicate',                value:c['Duplicate']||0,               color:'#a78bfa'},
   ];
-  // Stable index = fixed priority (used as tie-breaker), then filter hidden, then sort by count desc.
-  return items
+  // Stable index = fixed priority (tie-breaker), then sort by count desc. Nothing is filtered out.
+  const sorted=codes
     .map(function(it,i){ it._p=i; return it; })
-    .filter(function(it){ return !(it.hideIfZero && it.value===0); })
     .sort(function(a,b){ return (b.value-a.value) || (a._p-b._p); });
+  // Append the 1st Pet incident tile last (rule 7), on its own. `hint` documents the factors that
+  // qualify a resolved ticket as a "1st Pet incident (handled by PHD)".
+  sorted.push({
+    label:'1st Pet incident (handled by PHD)',
+    value:d.pet||0,
+    color:'#f59e0b',
+    isPet:true,
+    hint:'Closure code = Automatically Closed or Immediately Resolved, AND root cause is a pet cause (Unsecured Animal Attack/Evasion \u2013 CX or non-CX \u2013 or No Further Action Required), AND resolved by a PHD agent (not AutoSIM).'
+  });
+  return sorted;
 }
 
 // Per-section fetch mode (rolling vs calendar) and human label per key. 12h has no natural calendar
@@ -488,11 +514,14 @@ window.setOverviewMode=setOverviewMode;
 function renderOverviewInto(container, key, d){
   const items=overviewDisplayItems(d);
   const tiles=items.map(function(it){
-    var lblCls=it.labelHtml?'ac-lbl ac-lbl-multi':'ac-lbl';
-    return '<div class="ac-tile" style="border-top-color:'+it.color+'"><div class="ac-num tally-ph" data-v="'+it.value+'" style="color:'+it.color+'">\u2014</div><div class="'+lblCls+'" title="'+esc(it.label)+'">'+(it.labelHtml||esc(it.label))+'</div></div>';
+    var zero=(!it.value||it.value===0)?' zero':'';
+    var numColor=zero?'#4a5152':it.color;
+    var petCls=it.isPet?' ac-tile-pet':'';
+    var hint=it.hint?('<div class="ac-hint" title="'+esc(it.hint)+'">'+esc(it.hint)+'</div>'):'';
+    return '<div class="ac-tile'+zero+petCls+'" style="border-top-color:'+(zero?'#333':it.color)+'"><div class="ac-num tally-ph" data-v="'+it.value+'" style="color:'+numColor+'">\u2014</div><div class="ac-lbl" title="'+esc(it.label)+'">'+esc(it.label)+'</div>'+hint+'</div>';
   }).join('');
   container.innerHTML=
-    '<div class="ac-sub">By closure code</div><div class="ac-grid ac-grid-row">'+tiles+'</div>'+
+    '<div class="ac-sub">By closure code</div><div class="ac-grid ac-grid-4">'+tiles+'</div>'+
     slaSectionHtml(key,d)+
     rootCausesSectionHtml(d);
   container.querySelectorAll('.ac-num[data-v],.rc-count[data-v]').forEach(function(el){ A.tally(el, el.getAttribute('data-v')); });
