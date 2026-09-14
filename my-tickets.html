@@ -30,32 +30,45 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
 .tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow-x:auto}
 table{width:100%;border-collapse:collapse;table-layout:auto}
-thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;text-align:left;padding:11px 14px;border-bottom:1px solid var(--bd);white-space:nowrap}
-tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;vertical-align:top}
+thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;text-align:left;padding:12px 16px;border-bottom:1px solid var(--bd);white-space:nowrap}
+tbody td{padding:16px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;vertical-align:top}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:rgba(255,153,0,.03)}
-.tk-id a{color:#44b9d6;text-decoration:none;font-weight:600}
+/* Created / Time left: compact, single-line, top-aligned */
+.tk-created{white-space:nowrap;color:var(--t);font-weight:600}
+.rem{display:inline-block;font-weight:700;white-space:nowrap;padding:3px 10px;border-radius:20px;font-size:.92em;border:1px solid transparent}
+.rem.ok{color:var(--gl);background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.25)}
+.rem.warn{color:var(--yl);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3)}
+.rem.over{color:var(--rl);background:rgba(255,82,82,.1);border-color:rgba(255,82,82,.3)}
+/* Ticket cell: ID row + wrapped title */
+.tk-id{min-width:240px;max-width:360px}
+.tk-id-row{display:flex;align-items:center;gap:8px}
+.tk-id a{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-id a:hover{text-decoration:underline}
+.tk-title{color:var(--tm);font-size:.84em;line-height:1.45;margin-top:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .tk-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
-.tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:.72em;font-weight:800;background:rgba(255,153,0,.16);color:var(--o);vertical-align:middle;cursor:default}
+.tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:.72em;font-weight:800;background:rgba(255,153,0,.16);color:var(--o);flex-shrink:0;cursor:default}
 .tz{line-height:1.5;white-space:nowrap}.tz b{color:#d5dbdb}.tz .z{color:var(--tm);font-size:.85em}
-.rem{font-weight:700;white-space:nowrap}
-.rem.ok{color:var(--gl)}.rem.warn{color:var(--yl)}.rem.over{color:var(--rl)}
 /* Latest-comment column */
-.latest-cmt{min-width:180px;vertical-align:top}
-.incident-cell{white-space:nowrap}
-.incident-cell .btn{display:block;margin-bottom:6px}
-.incident-cell .btn:last-child{margin-bottom:0}
+.latest-cmt{min-width:200px;max-width:320px;vertical-align:top}
+/* Merged Actions column: Add comment + Add/View incident log, stacked full-width */
+.actions-cell{white-space:nowrap;min-width:170px}
+.actions-cell .btn{display:flex;width:100%;justify-content:center;margin-bottom:8px}
+.actions-cell>span:last-child .btn,.actions-cell .btn:last-child{margin-bottom:0}
+.actions-cell #inc-btn-0,.actions-cell span{display:block}
 /* Incident log list in popup */
 .ilog-item{background:#000;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:10px}
-.ilog-meta{display:flex;justify-content:space-between;gap:10px;font-size:.74em;color:#5f6b6c;margin-bottom:6px}
-.ilog-meta b{color:#d5dbdb}
+.ilog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.ilog-who{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.76em;color:#8b9698}
+.ilog-who b{color:#d5dbdb}
+.ilog-when{display:inline-flex;align-items:center;gap:4px;margin-left:8px;color:#5f6b6c}
 .ilog-text{color:var(--t);white-space:pre-wrap;font-size:.88em;line-height:1.55}
-.ilog-actions{display:flex;gap:8px;margin-top:8px}
+.ilog-actions{display:flex;gap:8px;flex-shrink:0}
+.ilog-actions .btn{display:inline-flex;align-items:center;gap:5px}
 .ilog-empty{color:var(--tm);text-align:center;padding:24px;font-style:italic}
-.latest-text{color:var(--t);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:1.4}
-.latest-meta{color:#5f6b6c;font-size:.72em;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.latest-updated{color:#6b7a7b;font-size:.7em;margin-top:3px;display:inline-flex;align-items:center;gap:4px}
+.latest-text{color:var(--t);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:1.45}
+.latest-meta{color:#5f6b6c;font-size:.74em;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.latest-updated{color:#6b7a7b;font-size:.72em;margin-top:5px;display:inline-flex;align-items:center;gap:4px}
 .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700;cursor:pointer}
 .cmt-count:hover{background:rgba(68,185,214,.25)}
 .cmt-cell{min-width:240px}
@@ -110,6 +123,17 @@ tbody tr{transition:background .12s}
 @keyframes mtsh{100%{left:150%}}
 /* Latest-comment cell loading shimmer */
 .latest-cmt.loading{color:transparent!important}
+/* Sortable column headers */
+.sort-th{background:transparent;border:none;color:var(--tm);font:inherit;font-size:1em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
+.sort-th:hover{color:var(--t)}
+.sort-th.active{color:var(--o)}
+/* Viewed checkbox column + row tint */
+.col-view{width:34px;text-align:center;color:var(--tm)}
+.view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o);vertical-align:middle}
+tbody tr.viewed td{background:rgba(74,222,128,.16)}
+tbody tr.viewed:hover td{background:rgba(74,222,128,.22)}
+tbody tr.viewed td:first-child{box-shadow:inset 3px 0 0 var(--gl)}
+tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
 </style>
 </head>
 <body data-nav-active="my-tickets" data-back-href="app.html" data-back-label="Dashboard">
@@ -121,15 +145,16 @@ tbody tr{transition:background .12s}
     <div><h1>My Tickets</h1><p class="sub" style="margin:4px 0 0">Loading your open tickets, deadlines and comments…</p></div>
   </div>
   <div class="tbl-card" style="margin-top:20px">
-    <table><thead><tr><th>Time left</th><th>Ticket</th><th>Latest comment</th><th>Add comment</th><th>Incident log</th></tr></thead>
+    <table><thead><tr><th style="width:34px"></th><th>Created</th><th>Time left</th><th>Ticket</th><th>Actions</th><th>Latest comment</th></tr></thead>
     <tbody id="mtSkeleton"></tbody></table>
   </div>
   <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var row='<tr>'+
-    '<td><span class="sk-blk" style="width:52px;height:14px"></span></td>'+
-    '<td><span class="sk-blk" style="width:130px;height:14px"></span></td>'+
+    '<td><span class="sk-blk" style="width:16px;height:16px;border-radius:3px"></span></td>'+
+    '<td><span class="sk-blk" style="width:70px;height:14px"></span></td>'+
+    '<td><span class="sk-blk" style="width:56px;height:22px;border-radius:20px"></span></td>'+
+    '<td><span class="sk-blk" style="width:120px;height:14px;display:block"></span><span class="sk-blk" style="width:80%;height:11px;display:block;margin-top:6px"></span></td>'+
+    '<td><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block"></span><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block;margin-top:8px"></span></td>'+
     '<td><span class="sk-blk" style="width:80%;height:12px;display:block"></span><span class="sk-blk" style="width:55%;height:12px;display:block;margin-top:6px"></span></td>'+
-    '<td><span class="sk-blk" style="width:96px;height:26px;border-radius:6px"></span></td>'+
-    '<td><span class="sk-blk" style="width:110px;height:26px;border-radius:6px"></span></td>'+
     '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
 </div>
 <div class="toast" id="toast"></div>
@@ -175,10 +200,10 @@ tbody tr{transition:background .12s}
 <div class="modal-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
   <div class="modal modal-wide">
     <div class="modal-head">
-      <h2 id="viewIncidentTitle">Incident log</h2>
+      <h2 id="viewIncidentTitle"><span id="viewIncidentIcon" style="vertical-align:-2px"></span> <span id="viewIncidentTitleText">Incident log</span></h2>
       <div style="display:flex;align-items:center;gap:8px">
-        <button class="btn sec mini" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none">Copy all</button>
-        <button class="modal-close" onclick="closeViewIncident()" aria-label="Close">&times;</button>
+        <button class="btn sec mini" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none"><span class="ilog-copy-ic"></span> Copy</button>
+        <button class="btn danger mini" onclick="closeViewIncident()"><span class="ilog-close-ic"></span> Close</button>
       </div>
     </div>
     <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Entries you added on this ticket. You can edit or delete your own.</p>
@@ -223,6 +248,43 @@ const isEditor=()=>A.role&&A.role()==='editor';
 let TICKETS=[];
 let MY_HELP={}; // shortId(lower) -> [ {id,doubt,status,createdAt,replies} ]
 
+// ---- Sorting (one active column at a time; default = Created ascending -> newest ticket at bottom) ----
+let SORT_KEY='created';    // 'timeleft' | 'created'
+let SORT_DIR='asc';        // 'asc' | 'desc'  (created asc = oldest first, latest-created last/bottom)
+function setSort(key){
+  if(SORT_KEY===key){ SORT_DIR=(SORT_DIR==='desc')?'asc':'desc'; }  // same column -> flip direction
+  else { SORT_KEY=key; SORT_DIR='desc'; }                            // new column -> default desc
+  render();
+}
+window.setSort=setSort;
+// Sort TICKETS in place by the active key/dir. created = CreateDate; timeleft = ms until deadline.
+function sortTickets(){
+  const dir=(SORT_DIR==='asc')?1:-1;
+  const key=(t)=> SORT_KEY==='created' ? (new Date(t.createDate).getTime()||0)
+                                       : (new Date(t.deadline).getTime()||0);   // time-left order == deadline order
+  TICKETS.sort((a,b)=>(key(a)-key(b))*dir);
+}
+function sortArrow(key){ return SORT_KEY===key ? (SORT_DIR==='desc'?' \u25be':' \u25b4') : ''; }
+
+// ---- "Viewed" marks (UI-only, persisted per-user in localStorage) ----
+let VIEWED=new Set();
+function viewedKey(){ var u=A.getUser(); return 'phd_mytickets_viewed_'+((u&&u.username)||'anon'); }
+function loadViewed(){ try{ var raw=localStorage.getItem(viewedKey()); VIEWED=new Set(raw?JSON.parse(raw):[]); }catch(e){ VIEWED=new Set(); } }
+function saveViewed(){ try{ localStorage.setItem(viewedKey(), JSON.stringify([...VIEWED])); }catch(e){} }
+function toggleViewed(sid, cb){
+  sid=String(sid);
+  if(cb.checked) VIEWED.add(sid); else VIEWED.delete(sid);
+  saveViewed();
+  const tr=cb.closest('tr'); if(tr) tr.classList.toggle('viewed', cb.checked);
+}
+window.toggleViewed=toggleViewed;
+// "N days ago" from a create date (relative to now).
+function daysAgo(iso){
+  const cd=new Date(iso); if(isNaN(cd)) return '—';
+  const d=Math.floor((Date.now()-cd.getTime())/864e5);
+  return d<=0?'Today':(d===1?'1 day ago':d+' days ago');
+}
+
 // ---- Instant-load cache (stale-while-revalidate) ----
 // The slow part of this page is GET /api/my-tickets (scans the big quarter doc + Render cold start).
 // We cache the rendered inputs per-user in localStorage so repeat visits paint instantly, then
@@ -253,6 +315,7 @@ function remaining(deadlineIso){
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  loadViewed();   // restore per-user "viewed" marks (UI-only, localStorage)
 
   // INSTANT PATH: if we have a cached copy for this user, render it immediately (no spinner).
   let paintedFromCache=false;
@@ -346,20 +409,26 @@ function render(){
   }
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
+  sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
   html+=`<div class="tbl-card"><table>
     <thead><tr>
-      <th>Time left</th><th>Ticket</th><th>Latest comment</th><th>Add comment</th>${editor?'<th>Help</th>':''}<th>Incident log</th>
+      <th class="col-view" title="Mark as viewed">${ic('check-circle',13)}</th>
+      <th><button type="button" class="sort-th${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</button></th>
+      <th><button type="button" class="sort-th${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</button></th>
+      <th>Ticket</th><th>Actions</th>${editor?'<th>Help</th>':''}<th>Latest comment</th>
     </tr></thead><tbody>`+TICKETS.map((t,i)=>{
       const rem=remaining(t.deadline);
       const st=String(t.status||'');
       const letter=st.trim().charAt(0).toUpperCase()||'?';
-      return `<tr>
+      const viewed=VIEWED.has(String(t.shortId));
+      return `<tr class="${viewed?'viewed':''}">
+        <td class="col-view"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(t.shortId)}',this)" aria-label="Mark ${esc(t.shortId)} as viewed"></td>
+        <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
         <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
-        <td class="tk-id"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></td>
-        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}"><span class="sk-blk" style="width:85%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>
-        <td><button class="btn mini" onclick="openAddComment(${i})">Add comment</button></td>
+        <td class="tk-id"><div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></div>${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}</td>
+        <td class="actions-cell"><button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
         ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
-        <td class="incident-cell"><button class="btn sec mini" onclick="openIncidentLog(${i})">Add incident log</button><button class="btn sec mini" onclick="openViewIncident(${i})">View incident log</button></td>
+        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}"><span class="sk-blk" style="width:85%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>
       </tr>`;
     }).join('')+`</tbody></table></div>`;
   document.getElementById('wrap').innerHTML=html;
@@ -373,6 +442,14 @@ function render(){
 // { shortId: { at, by, type } }. Separate from the CSV LastUpdated* fields.
 let ACTIVITY={};
 let LATEST={}; // shortId -> {text,user,at,count}
+let HAS_LOG={}; // shortId -> true if the ticket already has >=1 incident log
+// The incident-log button for row i: "View" if a log exists, else "Add".
+function incidentBtnHtml(i){
+  const t=TICKETS[i]; const has=t&&HAS_LOG[String(t.shortId)];
+  return has
+    ? '<button class="btn sec mini" onclick="openViewIncident('+i+')">'+ic('clipboard',13)+' View incident log</button>'
+    : '<button class="btn sec mini" onclick="openIncidentLog('+i+')">'+ic('plus',13)+' Add incident log</button>';
+}
 async function fillLatestComments(){
   const ids=TICKETS.map(t=>t.shortId).filter(Boolean);
   if(!ids.length)return;
@@ -383,21 +460,27 @@ async function fillLatestComments(){
     if(cached.activity)ACTIVITY=cached.activity;
     if(cached.latest||cached.activity)TICKETS.forEach((t,i)=>paintLatestCell(i,LATEST[t.shortId]));
   }
+  // Paint incident buttons from cached HAS_LOG first (instant), then refresh below.
+  if(cached&&cached.hasLog){ HAS_LOG=cached.hasLog; TICKETS.forEach((t,i)=>repaintIncidentBtn(i)); }
   let map={};
-  // Fetch latest comments and last-activity timestamps in parallel.
+  // Fetch latest comments, last-activity timestamps, and incident-log existence in parallel.
   try{
-    const [rc,ra]=await Promise.all([
+    const [rc,ra,rh]=await Promise.all([
       A.api('POST','/api/comments/latest',{shortIds:ids}),
-      A.api('POST','/api/tickets/activity',{shortIds:ids})
+      A.api('POST','/api/tickets/activity',{shortIds:ids}),
+      A.api('POST','/api/incident-logs/exists',{shortIds:ids})
     ]);
     if(rc.ok&&rc.data)map=rc.data;
     if(ra.ok&&ra.data)ACTIVITY=ra.data;
+    if(rh.ok&&rh.data)HAS_LOG=rh.data;
   }catch(e){}
   LATEST=map;
-  TICKETS.forEach((t,i)=>paintLatestCell(i,map[t.shortId]));
-  // Persist the comment/activity maps alongside the tickets cache.
-  const c=readCache()||{};c.latest=LATEST;c.activity=ACTIVITY;writeCache(c);
+  TICKETS.forEach((t,i)=>{ paintLatestCell(i,map[t.shortId]); repaintIncidentBtn(i); });
+  // Persist the comment/activity/incident-log maps alongside the tickets cache.
+  const c=readCache()||{};c.latest=LATEST;c.activity=ACTIVITY;c.hasLog=HAS_LOG;writeCache(c);
 }
+// Swap the incident-log button (View vs Add) for row i based on HAS_LOG.
+function repaintIncidentBtn(i){ const s=document.getElementById('inc-btn-'+i); if(s) s.innerHTML=incidentBtnHtml(i); }
 
 // "Updated ..." line = our reference timestamp of the last comment/log activity, in the user's TZ.
 function activityMetaHtml(shortId){
@@ -427,12 +510,14 @@ function paintLatestCell(i,c){
 async function refreshLatestComment(i){
   const t=TICKETS[i];if(!t)return;
   try{
-    const [rc,ra]=await Promise.all([
+    const [rc,ra,rh]=await Promise.all([
       A.api('POST','/api/comments/latest',{shortIds:[t.shortId]}),
-      A.api('POST','/api/tickets/activity',{shortIds:[t.shortId]})
+      A.api('POST','/api/tickets/activity',{shortIds:[t.shortId]}),
+      A.api('POST','/api/incident-logs/exists',{shortIds:[t.shortId]})
     ]);
     if(ra.ok&&ra.data&&ra.data[t.shortId])ACTIVITY[t.shortId]=ra.data[t.shortId];
     if(rc.ok&&rc.data)paintLatestCell(i,rc.data[t.shortId]);
+    if(rh.ok&&rh.data){ if(rh.data[t.shortId])HAS_LOG[String(t.shortId)]=true; else delete HAS_LOG[String(t.shortId)]; repaintIncidentBtn(i); var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c); }
   }catch(e){}
 }
 
@@ -497,7 +582,7 @@ async function submitIncidentLog(){
   const idx=INCIDENT_INDEX;
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});
   btn.disabled=false;btn.textContent='Save incident log';
-  if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);refreshLatestComment(idx);}
+  if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);HAS_LOG[String(t.shortId)]=true;repaintIncidentBtn(idx);var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c);refreshLatestComment(idx);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
@@ -512,11 +597,15 @@ async function openViewIncident(i){
   // Only entries the current user added.
   const mine=list.filter(e=>e.mine);
   const copyBtn=document.getElementById('viewIncidentCopyBtn');
+  // Fill the head icons (clipboard title, copy, close) — static HTML can't call ic().
+  (function(){ var a=document.getElementById('viewIncidentIcon'); if(a)a.innerHTML=ic('clipboard',16);
+    document.querySelectorAll('.ilog-copy-ic').forEach(function(s){s.innerHTML=ic('copy',12);});
+    document.querySelectorAll('.ilog-close-ic').forEach(function(s){s.innerHTML=ic('close',12)||'\u2715';}); })();
   if(!mine.length){
     // No log exists for this user -> inform via popup.
     VIEW_INC_ITEMS=[];
     if(copyBtn)copyBtn.style.display='none';
-    document.getElementById('viewIncidentTitle').textContent='Incident log · '+t.shortId;
+    var tt=document.getElementById('viewIncidentTitleText'); if(tt) tt.textContent='Incident log · '+t.shortId;
     document.getElementById('viewIncidentList').innerHTML='<div class="ilog-empty">No incident log exists for this ticket.</div>';
     document.getElementById('viewIncidentModal').style.display='flex';
     return;
@@ -528,11 +617,9 @@ async function openViewIncident(i){
 // Copy every incident-log entry in the open popup as plain text.
 async function copyIncidentLog(){
   if(!VIEW_INC_ITEMS.length){toast('Nothing to copy');return;}
-  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
-  const text=VIEW_INC_ITEMS.map(function(e,n){
-    const when=e.at?(fmtTZ(e.at,zone)+' '+MY_TZ):'';
-    return '['+(n+1)+'] '+(when?when+' — ':'')+'by '+(e.user||'')+'\n'+(e.text||'');
-  }).join('\n\n');
+  // Copy the incident text EXACTLY as authored — nothing extra, same format.
+  // Multiple entries are separated by a single blank line.
+  const text=VIEW_INC_ITEMS.map(function(e){return e.text||'';}).join('\n\n');
   try{
     await navigator.clipboard.writeText(text);
     toast('Copied '+VIEW_INC_ITEMS.length+' incident log entr'+(VIEW_INC_ITEMS.length===1?'y':'ies'));
@@ -545,14 +632,19 @@ async function copyIncidentLog(){
 }
 function renderIncidentList(shortId,items){
   VIEW_INC_ITEMS=items||[];
-  document.getElementById('viewIncidentTitle').textContent='Incident log · '+shortId;
+  var tt=document.getElementById('viewIncidentTitleText'); if(tt) tt.textContent='Incident log · '+shortId;
   document.getElementById('viewIncidentList').innerHTML=items.map(e=>{
     const when=e.at?(fmtTZ(e.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'';
     return '<div class="ilog-item" data-id="'+esc(e.id)+'">'+
-      '<div class="ilog-meta"><span>by <b>'+esc(e.user)+'</b></span><span>'+when+'</span></div>'+
+      // Header row: author + timestamp on the left, Edit/Delete actions on the TOP-right.
+      '<div class="ilog-head">'+
+        '<div class="ilog-who">'+ic('users',13)+' by <b>'+esc(e.user)+'</b>'+(when?('<span class="ilog-when">'+ic('clock',11)+' '+when+'</span>'):'')+'</div>'+
+        '<div class="ilog-actions">'+
+          '<button class="btn sec mini" onclick="openEditIncident(\''+esc(e.id)+'\')">'+ic('edit',12)+' Edit</button>'+
+          '<button class="btn danger mini" onclick="deleteIncident(\''+esc(e.id)+'\')">'+ic('trash',12)+' Delete</button>'+
+        '</div>'+
+      '</div>'+
       '<div class="ilog-text">'+esc(e.text)+'</div>'+
-      '<div class="ilog-actions"><button class="btn sec mini" onclick="openEditIncident(\''+esc(e.id)+'\')">Edit</button>'+
-        '<button class="btn danger mini" onclick="deleteIncident(\''+esc(e.id)+'\')">Delete</button></div>'+
     '</div>';
   }).join('');
 }

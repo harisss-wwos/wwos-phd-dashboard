@@ -1734,6 +1734,24 @@ app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, 
   }
 });
 
+// Which of a set of tickets have >=1 incident log (logged-in). Body: { shortIds: [...] }.
+// Returns { shortId: true } only for tickets that have at least one incident-log entry — used by
+// My Tickets to show "View incident log" vs "Add incident log" per row.
+app.post('/api/incident-logs/exists', requireRole('user'), async (req, res) => {
+  try {
+    let ids = (req.body && req.body.shortIds) || [];
+    if (!Array.isArray(ids)) ids = [];
+    ids = ids.map(String).slice(0, 1000);
+    if (!ids.length) return res.json({});
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    const present = await coll.distinct('shortId', { shortId: { $in: ids } });
+    const out = {}; present.forEach(s => { out[String(s)] = true; });
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not check incident logs.' });
+  }
+});
+
 // GET the incident-log history for a ticket (logged-in). Oldest first.
 app.get('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, res) => {
   try {
