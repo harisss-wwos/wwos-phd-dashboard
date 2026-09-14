@@ -45,6 +45,9 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .tk-id-row{display:flex;align-items:center;gap:8px}
 .tk-id a{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-id a:hover{text-decoration:underline}
+.tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
+.tk-copy:hover{color:#44b9d6;border-color:#44b9d6}
+.tk-copy.copied{color:var(--gl);border-color:var(--gl)}
 .tk-title{color:var(--tm);font-size:.84em;line-height:1.45;margin-top:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .tk-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
 .tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:.72em;font-weight:800;background:rgba(255,153,0,.16);color:var(--o);flex-shrink:0;cursor:default}
@@ -134,6 +137,30 @@ tbody tr.viewed td{background:rgba(74,222,128,.16)}
 tbody tr.viewed:hover td{background:rgba(74,222,128,.22)}
 tbody tr.viewed td:first-child{box-shadow:inset 3px 0 0 var(--gl)}
 tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
+/* Temp-resolve sliding switch + column */
+.col-temp{width:110px;text-align:center;white-space:nowrap}
+.switch{position:relative;display:inline-block;width:42px;height:22px;cursor:pointer;vertical-align:middle}
+.switch input{opacity:0;width:0;height:0}
+.switch .slider{position:absolute;inset:0;background:#2a2f30;border:1px solid var(--bd);border-radius:22px;transition:.18s}
+.switch .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:2px;background:#8b9698;border-radius:50%;transition:.18s}
+.switch input:checked+.slider{background:rgba(74,222,128,.35);border-color:var(--gl)}
+.switch input:checked+.slider:before{transform:translateX(20px);background:var(--gl)}
+.switch input:focus-visible+.slider{outline:2px solid #44b9d6;outline-offset:2px}
+tbody tr.temp td{opacity:.72}
+tbody tr.temp td.col-temp{opacity:1}
+/* Collapsible "Temporarily Resolved" section */
+.temp-section{margin-top:22px}
+.temp-head{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-radius:10px;padding:12px 16px;color:var(--t);cursor:pointer;font-family:inherit}
+.temp-head:hover{border-color:#3a4142}
+.temp-caret{color:var(--gl);display:inline-flex}
+.temp-title{font-weight:700;font-size:.98em;white-space:nowrap}
+.temp-count{display:inline-block;min-width:20px;text-align:center;background:rgba(74,222,128,.16);color:var(--gl);border-radius:20px;padding:1px 8px;font-size:.82em;margin-left:4px}
+.temp-note{color:var(--tm);font-size:.76em;line-height:1.4;flex:1}
+.temp-chev{color:var(--tm);transition:transform .18s;flex-shrink:0}
+.temp-section.open .temp-chev{transform:rotate(180deg)}
+.temp-body{display:none;margin-top:12px}
+.temp-section.open .temp-body{display:block}
+@media(max-width:760px){.temp-note{display:none}}
 </style>
 </head>
 <body data-nav-active="my-tickets" data-back-href="app.html" data-back-label="Dashboard">
@@ -212,10 +239,10 @@ tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
 </div>
 
 <!-- Edit-incident-log popup -->
-<div class="modal-bg" id="editIncidentModal" onclick="if(event.target===this)closeEditIncident()">
-  <div class="modal">
+<div class="modal-bg" id="editIncidentModal" onclick="if(event.target===this)closeEditIncident()" data-edit-modal>
+  <div class="modal modal-wide">
     <div class="modal-head"><h2>Edit incident log</h2><button class="modal-close" onclick="closeEditIncident()" aria-label="Close">&times;</button></div>
-    <textarea id="editIncidentText" maxlength="5000" style="width:100%;min-height:150px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
+    <textarea id="editIncidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
     <div class="msg err" id="editIncidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeEditIncident()">Cancel</button>
@@ -226,10 +253,10 @@ tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
 
 <!-- Add-incident-log popup -->
 <div class="modal-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-head"><h2 id="incidentTitle">Add incident log</h2><button class="modal-close" onclick="closeIncidentLog()" aria-label="Close">&times;</button></div>
     <p style="color:#9aa7a8;font-size:.82em;margin-bottom:12px;line-height:1.55">Capture your <b style="color:#fff">final mitigation</b> and any relevant <b style="color:#44b9d6">#hashtags</b> for this incident so it can be tracked and referenced later.</p>
-    <textarea id="incidentText" maxlength="5000" style="width:100%;min-height:150px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
+    <textarea id="incidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
     <div class="msg err" id="incidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeIncidentLog()">Cancel</button>
@@ -278,6 +305,32 @@ function toggleViewed(sid, cb){
   const tr=cb.closest('tr'); if(tr) tr.classList.toggle('viewed', cb.checked);
 }
 window.toggleViewed=toggleViewed;
+
+// ---- "Temp Resolve" marks (UI-only working state, persisted per-user in localStorage) ----
+// Moves a ticket into a separate "Temporarily Resolved" section below. Never touches the
+// shared database/CSV — when a re-uploaded CSV still has the ticket open, it stays open.
+let TEMP_RESOLVED=new Set();
+function tempKey(){ var u=A.getUser(); return 'phd_mytickets_tempresolved_'+((u&&u.username)||'anon'); }
+function loadTempResolved(){ try{ var raw=localStorage.getItem(tempKey()); TEMP_RESOLVED=new Set(raw?JSON.parse(raw):[]); }catch(e){ TEMP_RESOLVED=new Set(); } }
+function saveTempResolved(){ try{ localStorage.setItem(tempKey(), JSON.stringify([...TEMP_RESOLVED])); }catch(e){} }
+function toggleTempResolve(sid, cb){
+  sid=String(sid);
+  if(cb.checked) TEMP_RESOLVED.add(sid); else TEMP_RESOLVED.delete(sid);
+  saveTempResolved();
+  // Re-render to move the row between the main table and the temp section
+  // (keeps the TICKETS index stable so latest-comment / incident buttons stay wired).
+  render();
+  fillLatestComments();
+}
+window.toggleTempResolve=toggleTempResolve;
+// Expand/collapse the temp-resolved section (persisted per-user).
+function tempOpenKey(){ var u=A.getUser(); return 'phd_mytickets_tempopen_'+((u&&u.username)||'anon'); }
+function toggleTempSection(){
+  const sec=document.getElementById('tempSection'); if(!sec)return;
+  const open=sec.classList.toggle('open');
+  try{ localStorage.setItem(tempOpenKey(), open?'1':'0'); }catch(e){}
+}
+window.toggleTempSection=toggleTempSection;
 // "N days ago" from a create date (relative to now).
 function daysAgo(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '—';
@@ -316,6 +369,7 @@ function remaining(deadlineIso){
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   loadViewed();   // restore per-user "viewed" marks (UI-only, localStorage)
+  loadTempResolved(); // restore per-user "temp resolve" working marks (UI-only, localStorage)
 
   // INSTANT PATH: if we have a cached copy for this user, render it immediately (no spinner).
   let paintedFromCache=false;
@@ -410,31 +464,59 @@ function render(){
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
-  html+=`<div class="tbl-card"><table>
-    <thead><tr>
+  const colCount=editor?7:6; // view, created, time-left, ticket, actions, [help], latest, temp
+  const headRow=`<thead><tr>
       <th class="col-view" title="Mark as viewed">${ic('check-circle',13)}</th>
       <th><button type="button" class="sort-th${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</button></th>
       <th><button type="button" class="sort-th${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</button></th>
       <th>Ticket</th><th>Actions</th>${editor?'<th>Help</th>':''}<th>Latest comment</th>
-    </tr></thead><tbody>`+TICKETS.map((t,i)=>{
-      const rem=remaining(t.deadline);
-      const st=String(t.status||'');
-      const letter=st.trim().charAt(0).toUpperCase()||'?';
-      const viewed=VIEWED.has(String(t.shortId));
-      return `<tr class="${viewed?'viewed':''}">
-        <td class="col-view"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(t.shortId)}',this)" aria-label="Mark ${esc(t.shortId)} as viewed"></td>
-        <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
-        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
-        <td class="tk-id"><div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a></div>${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}</td>
-        <td class="actions-cell"><button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
-        ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
-        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}"><span class="sk-blk" style="width:85%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>
-      </tr>`;
-    }).join('')+`</tbody></table></div>`;
+      <th class="col-temp" title="Temporarily resolve (working only \u2014 not saved to the database)">Temp Resolve</th>
+    </tr></thead>`;
+  // Split rows by temp-resolve state, preserving the original TICKETS index (i) so
+  // latest-comment cells and incident/comment buttons stay correctly wired.
+  const mainRows=[], tempRows=[];
+  TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempRows:mainRows).push(rowHtml(t,i,editor)); });
+
+  html+=`<div class="tbl-card"><table>${headRow}<tbody>`
+      + (mainRows.length?mainRows.join(''):`<tr><td colspan="${colCount+1}" class="empty" style="padding:22px">All your tickets are temporarily resolved. 🎉</td></tr>`)
+      + `</tbody></table></div>`;
+
+  // Collapsible "Temporarily Resolved" section below the main table.
+  let tempOpen='0'; try{ tempOpen=localStorage.getItem(tempOpenKey())||'0'; }catch(e){}
+  html+=`<div id="tempSection" class="temp-section${tempOpen==='1'?' open':''}">
+    <button type="button" class="temp-head" onclick="toggleTempSection()">
+      <span class="temp-caret">${ic('bar-chart',14)}</span>
+      <span class="temp-title">Temporarily Resolved <span class="temp-count">${tempRows.length}</span></span>
+      <span class="temp-note">Working view only \u2014 the shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.</span>
+      <span class="temp-chev">\u25be</span>
+    </button>
+    <div class="temp-body"><div class="tbl-card"><table>${headRow}<tbody>`
+      + (tempRows.length?tempRows.join(''):`<tr><td colspan="${colCount+1}" class="empty" style="padding:22px">No temporarily resolved tickets. Flip a "Temp Resolve" toggle to move a ticket here.</td></tr>`)
+      + `</tbody></table></div></div>
+  </div>`;
+
   document.getElementById('wrap').innerHTML=html;
   // Tally the "My Tickets (N)" count (spinner placeholder -> scramble -> count-up).
   try{ if(A.tally) A.tally(document.querySelector('.mt-count'), n); }catch(e){}
   fillLatestComments();
+}
+// One ticket row. `i` is the index within TICKETS (kept stable across both tables).
+function rowHtml(t,i,editor){
+  const rem=remaining(t.deadline);
+  const st=String(t.status||'');
+  const letter=st.trim().charAt(0).toUpperCase()||'?';
+  const viewed=VIEWED.has(String(t.shortId));
+  const temp=TEMP_RESOLVED.has(String(t.shortId));
+  return `<tr class="${viewed?'viewed':''}${temp?' temp':''}">
+        <td class="col-view"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(t.shortId)}',this)" aria-label="Mark ${esc(t.shortId)} as viewed"></td>
+        <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
+        <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
+        <td class="tk-id"><div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.shortId)}</a><button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(t.shortId)}" onclick="copyTicketId('${esc(t.shortId)}',this)">${ic('copy',13)}</button></div>${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}</td>
+        <td class="actions-cell"><button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
+        ${editor?('<td class="help-col">'+helpBlock(t)+'</td>'):''}
+        <td class="latest-cmt" id="latest-${i}" data-sid="${esc(t.shortId)}"><span class="sk-blk" style="width:85%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>
+        <td class="col-temp"><label class="switch" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(t.shortId)}',this)" aria-label="Temp resolve ${esc(t.shortId)}"><span class="slider"></span></label></td>
+      </tr>`;
 }
 
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.
@@ -613,6 +695,17 @@ async function openViewIncident(i){
   if(copyBtn)copyBtn.style.display='';
   renderIncidentList(t.shortId,mine);
   document.getElementById('viewIncidentModal').style.display='flex';
+}
+// Copy just the ticket ID (e.g. "V2356785823") as plain text.
+async function copyTicketId(id,btn){
+  try{ await navigator.clipboard.writeText(id); }
+  catch(e){
+    const ta=document.createElement('textarea');ta.value=id;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(ta);
+  }
+  toast('Copied '+id);
+  if(btn){ btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',13);
+    setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=prev;},1200); }
 }
 // Copy every incident-log entry in the open popup as plain text.
 async function copyIncidentLog(){
