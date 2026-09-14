@@ -203,12 +203,35 @@ tbody tr{transition:background .12s}
 .tk-card.row-warn{border-color:transparent;background:rgba(251,191,36,.32)}
 .tk-card.row-over{border-color:transparent;background:rgba(255,82,82,.32)}
 .tk-card.row-black{border-color:transparent;background:rgba(120,120,128,.42)}
-/* Viewed: deeper solid age colour so it reads as clearly "seen". */
-.tk-card.viewed.row-ok{background:rgba(74,222,128,.46)}
-.tk-card.viewed.row-warn{background:rgba(251,191,36,.48)}
-.tk-card.viewed.row-over{background:rgba(255,82,82,.48)}
-.tk-card.viewed.row-black{background:rgba(120,120,128,.6)}
-.tk-card.viewed{background:rgba(74,222,128,.46)} /* fallback (no age class) */
+/* Viewed: pure WHITE card with BLACK text so it reads as clearly "seen/done". */
+.tk-card.viewed,
+.tk-card.viewed.row-ok,
+.tk-card.viewed.row-warn,
+.tk-card.viewed.row-over,
+.tk-card.viewed.row-black{background:#fff!important}
+.tk-card.viewed .tk-card-head:hover{background:rgba(0,0,0,.04)}
+.tk-card.viewed .tk-title-full,
+.tk-card.viewed .tk-created,
+.tk-card.viewed .tk-idlink,
+.tk-card.viewed .tk-latest-text,
+.tk-card.viewed .tk-latest-meta,
+.tk-card.viewed .tk-latest-by,
+.tk-card.viewed .tk-latest-none,
+.tk-card.viewed .tk-copy,
+.tk-card.viewed .tk-chev{color:#000}
+.tk-card.viewed .tk-copy,.tk-card.viewed .tk-chev{border-color:rgba(0,0,0,.3)}
+.tk-card.viewed .tk-chev:hover{border-color:#000}
+/* Viewed card BODY (when expanded): keep white bg + black text readable. */
+.tk-card.viewed .tk-card-body{border-top-color:rgba(0,0,0,.12)}
+.tk-card.viewed .tk-thread-head,
+.tk-card.viewed .tk-thread-hint,
+.tk-card.viewed .tk-cmt-text,
+.tk-card.viewed .tk-cmt-who,
+.tk-card.viewed .tk-cmt-who b,
+.tk-card.viewed .tk-cmt-when,
+.tk-card.viewed .tk-temp-toggle,
+.tk-card.viewed .tk-temp-lbl{color:#000}
+.tk-card.viewed .tk-cmt{background:#f4f6f7;border-color:rgba(0,0,0,.15)}
 /* Temp-resolved cards are dimmed. */
 .tk-card.temp{opacity:.72}
 .tk-card.temp:hover{opacity:1}
@@ -647,6 +670,16 @@ function render(){
   fillLatestComments();
   // Reload the comment thread for the card that was left expanded (e.g. after a re-render).
   if(OPEN_CARD){ const oi=TICKETS.findIndex(t=>String(t.shortId)===OPEN_CARD); if(oi>=0) loadThread(oi); }
+  syncCardStates();
+}
+// Guarantee every card's viewed/temp class matches the current state Sets — defends against any
+// background re-render dropping a class the user just toggled (the "white then black" flash).
+function syncCardStates(){
+  document.querySelectorAll('.tk-card[data-sid]').forEach(function(card){
+    var sid=card.getAttribute('data-sid');
+    card.classList.toggle('viewed', VIEWED.has(sid));
+    card.classList.toggle('temp', TEMP_RESOLVED.has(sid));
+  });
 }
 // One ticket CARD. `i` is the index within TICKETS (kept stable across both lists) so
 // latest-${i} / inc-btn-${i} / index-based onclick handlers stay valid.
