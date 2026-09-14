@@ -161,6 +161,11 @@ tbody tr{transition:background .12s}
 .tk-view .view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o)}
 .tk-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-idlink:hover{text-decoration:underline}
+/* Incident-log indicator in the card header (only present when a log exists). */
+.tk-logflag{display:inline-flex;align-items:center}
+.tk-logflag-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid rgba(68,185,214,.4);border-radius:6px;background:rgba(68,185,214,.14);color:#44b9d6;cursor:pointer;line-height:0}
+.tk-logflag-btn:hover{background:rgba(68,185,214,.28);border-color:#44b9d6}
+.tk-card.viewed .tk-logflag-btn{color:#0b5f74;border-color:rgba(0,0,0,.3);background:rgba(0,0,0,.06)}
 .tk-head-top .tk-created{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--tm);font-weight:600;font-size:.82em;margin-left:auto}
 .tk-head-top .rem{flex-shrink:0}
 .tk-chev{background:transparent;border:1px solid var(--bd);border-radius:8px;color:var(--tm);cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding:5px 9px}
@@ -169,11 +174,15 @@ tbody tr{transition:background .12s}
 .tk-card.open .tk-chev .chev{transform:rotate(180deg)}
 /* Title: full-width, truncated to two lines with ellipsis */
 .tk-title-full{margin-top:9px;color:var(--t);font-size:.92em;line-height:1.4;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-/* Latest-comment preview line under the title */
-.tk-head-latest{margin-top:7px;font-size:.82em;color:var(--tm);display:flex;align-items:center;gap:10px;min-width:0}
-.tk-latest-text{color:var(--tm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
-.tk-latest-meta{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;color:#5f6b6c}
+/* Latest-comment preview line under the title — highlighted strip so it stands out. */
+.tk-head-latest{margin-top:8px;font-size:.82em;color:var(--t);display:flex;align-items:center;gap:10px;min-width:0;
+  background:rgba(68,185,214,.1);border:1px solid rgba(68,185,214,.28);border-left:3px solid #44b9d6;border-radius:6px;padding:6px 10px}
+.tk-latest-text{color:var(--t);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.tk-latest-meta{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;color:#8b9698}
+.tk-latest-meta .cmt-count{background:rgba(68,185,214,.22);color:#5ecdec}
 .tk-latest-by{white-space:nowrap}
+/* "No comments yet" stays subtle (no highlight). */
+.tk-head-latest:has(.tk-latest-none){background:transparent;border-color:transparent;border-left-color:transparent;padding:0;margin-top:7px}
 .tk-latest-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
 /* Body slides open with a smooth height animation (grid-template-rows 0fr -> 1fr, ~0.6s). */
 .tk-card-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .6s cubic-bezier(.4,0,.2,1),opacity .5s ease,border-color .6s}
@@ -221,6 +230,9 @@ tbody tr{transition:background .12s}
 .tk-card.viewed .tk-chev{color:#000}
 .tk-card.viewed .tk-copy,.tk-card.viewed .tk-chev{border-color:rgba(0,0,0,.3)}
 .tk-card.viewed .tk-chev:hover{border-color:#000}
+/* Viewed card: recolour the highlighted latest-comment strip for the white background. */
+.tk-card.viewed .tk-head-latest{background:rgba(11,95,116,.1);border-color:rgba(11,95,116,.3);border-left-color:#0b5f74}
+.tk-card.viewed .tk-latest-meta .cmt-count{background:rgba(11,95,116,.18);color:#0b5f74}
 /* Viewed card BODY (when expanded): keep white bg + black text readable. */
 .tk-card.viewed .tk-card-body{border-top-color:rgba(0,0,0,.12)}
 .tk-card.viewed .tk-thread-head,
@@ -485,7 +497,9 @@ function paintThread(i,list){
   const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
   const head='<div class="tk-thread-head">'+ic('message',13)+' Comments <span class="tk-thread-count">'+list.length+'</span></div>';
   if(!list.length){ box.innerHTML=head+'<div class="tk-thread-hint">No comments yet on this ticket.</div>'; return; }
-  const items=list.map(function(c){
+  // Server returns oldest-first; show LATEST first in the thread.
+  const ordered=list.slice().reverse();
+  const items=ordered.map(function(c){
     return '<div class="tk-cmt"><div class="tk-cmt-meta"><span class="tk-cmt-who">'+ic('users',12)+' <b>'+esc(c.user)+'</b></span>'
       +'<span class="tk-cmt-when">'+ic('clock',11)+' '+esc(MY_TZ)+' '+fmtTZ(c.at,zone)+'</span></div>'
       +'<div class="tk-cmt-text">'+esc(c.text)+'</div></div>';
@@ -699,6 +713,7 @@ function cardHtml(t,i,editor){
         <span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span>
         <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a>
         <button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button>
+        <span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span>
         <span class="tk-created">${ic('clock',12)} Created: ${esc(daysAgo(t.createDate))}</span>
         <span class="rem ${rem.cls}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
         <button type="button" class="tk-chev" aria-label="Expand or collapse">${ic('bar-chart',15)}<span class="chev">\u25be</span></button>
@@ -736,6 +751,13 @@ function incidentBtnHtml(i){
     ? '<button class="btn sec mini" onclick="openViewIncident('+i+')">'+ic('clipboard',13)+' View incident log</button>'
     : '<button class="btn sec mini" onclick="openIncidentLog('+i+')">'+ic('plus',13)+' Add incident log</button>';
 }
+// Small header indicator: shown only when the ticket already has an incident log. Clicking it
+// opens the incident-log viewer (without expanding/collapsing the card).
+function incidentFlagHtml(i){
+  const t=TICKETS[i]; const has=t&&HAS_LOG[String(t.shortId)];
+  if(!has) return '';
+  return '<button type="button" class="tk-logflag-btn" title="This ticket has an incident log \u2014 click to view" aria-label="View incident log" onclick="event.stopPropagation();openViewIncident('+i+')">'+ic('clipboard',13)+'</button>';
+}
 async function fillLatestComments(){
   const ids=TICKETS.map(t=>t.shortId).filter(Boolean);
   if(!ids.length)return;
@@ -766,7 +788,7 @@ async function fillLatestComments(){
   const c=readCache()||{};c.latest=LATEST;c.activity=ACTIVITY;c.hasLog=HAS_LOG;writeCache(c);
 }
 // Swap the incident-log button (View vs Add) for row i based on HAS_LOG.
-function repaintIncidentBtn(i){ const s=document.getElementById('inc-btn-'+i); if(s) s.innerHTML=incidentBtnHtml(i); }
+function repaintIncidentBtn(i){ const s=document.getElementById('inc-btn-'+i); if(s) s.innerHTML=incidentBtnHtml(i); const f=document.getElementById('inc-flag-'+i); if(f) f.innerHTML=incidentFlagHtml(i); }
 
 // "Updated ..." line = our reference timestamp of the last comment/log activity, in the user's TZ.
 function activityMetaHtml(shortId){
