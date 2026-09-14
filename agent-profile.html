@@ -24,6 +24,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .wrap{width:90%;margin:0 auto;padding:32px 20px}
 .back{color:var(--tm);font-size:.85em;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:22px}
+/* Top bar: Back link (left) + group-mate avatar links (right) */
+.prof-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.prof-topbar .back{margin-bottom:0}
+.mates{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mates-lbl{color:var(--tm);font-size:.78em;margin-right:2px;white-space:nowrap}
+.mate{position:relative;display:inline-flex;text-decoration:none;border-radius:50%;transition:transform .12s}
+.mate:hover{transform:translateY(-2px)}
+.mate .phd-avatar,.mate img,.mate .avatar-initial{width:38px!important;height:38px!important;font-size:15px!important;border:2px solid var(--bd);border-radius:50%;box-sizing:border-box}
+.mate:hover .phd-avatar,.mate:hover img,.mate:hover .avatar-initial{border-color:var(--gc,#44b9d6)}
+.mate .mate-tip{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--bd);color:var(--t);font-size:.74em;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5}
+.mate:hover .mate-tip{opacity:1}
+/* Shimmer placeholder circles for the mate avatars while they load. */
+.mate-sk{position:relative;overflow:hidden;width:38px;height:38px;border-radius:50%;background:#161616;border:2px solid var(--bd);box-sizing:border-box;display:inline-block}
+.mate-sk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.07) 50%,transparent 100%);animation:rcShimmer 1.3s infinite}
 .back:hover{color:var(--o)}
 /* Compact profile header: avatar | name/@login | role badge + timezone (right) */
 .prof-card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -228,6 +242,26 @@ function loginFromUrl(){ try{ return (new URLSearchParams(location.search).get('
 
 const ROLE_LABEL={owner:'Owner',admin:'Admin',manager:'Manager',editor:'Editor',user:'User'};
 
+// PHD teams (mirror of the GROUPS list in agent-analytics.html) — used to show the current
+// agent's group mates as avatar links in the top-right corner.
+const GROUPS=[
+  {name:'Alpha',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
+  {name:'Beta', color:'#4ade80',members:['mbozied','nobregak','mellanej']},
+  {name:'Gamma',color:'#fbbf24',members:['tanviroo','urmahala','obalasut','shaavhad','chousoud','dbiswamb']},
+];
+function findGroup(login){ const k=String(login).toLowerCase(); return GROUPS.find(g=>g.members.some(m=>m.toLowerCase()===k))||null; }
+// Shimmer placeholders for the group-mate avatars while roles/avatars load.
+// The team + member count are known instantly from the URL login, so we can size it right.
+function matesSkeletonHtml(login){
+  const g=findGroup(login);
+  if(!g) return '';
+  const count=g.members.filter(m=>m.toLowerCase()!==String(login).toLowerCase()).length;
+  if(!count) return '';
+  let s='<span class="mates-lbl">'+esc(g.name)+' team</span>';
+  for(let i=0;i<count;i++) s+='<span class="mate-sk sk"></span>';
+  return s;
+}
+
 // Animate a number element from a brief scramble into its real value (ease-out count-up).
 // "tally" = the shared number-reveal animation (placeholder -> scramble -> count-up). Defined in
 // api-config.js as A.tally / A.tallyPlaceholder; countUp is kept as a thin local alias.
@@ -248,7 +282,10 @@ function pageSkeletonHtml(login){
         '<div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div>'+
       '</div></div>'+
     '</div>';
-  return '<a class="back" href="agent-analytics.html">'+(window.icon?window.icon('grid',14):'')+' Back to Agent Analytics</a>'+
+  return '<div class="prof-topbar">'+
+      '<a class="back" href="agent-analytics.html">'+(window.icon?window.icon('grid',14):'')+' Back to Agent Analytics</a>'+
+      '<div class="mates" id="profMates" aria-label="Group mates">'+matesSkeletonHtml(login)+'</div>'+
+    '</div>'+
     '<div class="prof-card">'+
       '<div class="prof-av" id="profAv"><div class="av-spinner"></div></div>'+
       '<div class="prof-id-col">'+
@@ -277,19 +314,38 @@ function load(){
 }
 
 // Fill avatar + display name + role/timezone (best-effort; header already shows the login).
+// Also renders the group-mates avatar strip in the top-right from the same fetched maps.
 async function fillHeader(login){
-  let displayName='',avatar='';
+  const roles={}, avatars={}; // lowercased login -> displayName / avatar
   try{
     const r=await A.api('GET','/api/user-roles');
-    if(r.ok&&Array.isArray(r.data)){ const u=r.data.find(x=>(x.username||'').toLowerCase()===login.toLowerCase()); if(u)displayName=u.displayName||''; }
+    if(r.ok&&Array.isArray(r.data)) r.data.forEach(u=>{ if(u&&u.username) roles[u.username.toLowerCase()]={displayName:u.displayName||''}; });
   }catch(e){}
   try{
     const r=await A.api('GET','/api/user-avatars');
-    if(r.ok&&r.data&&typeof r.data==='object'){ const key=Object.keys(r.data).find(k=>k.toLowerCase()===login.toLowerCase()); if(key)avatar=r.data[key]; }
+    if(r.ok&&r.data&&typeof r.data==='object') Object.keys(r.data).forEach(un=>{ avatars[un.toLowerCase()]=r.data[un]; });
   }catch(e){}
+  const key=login.toLowerCase();
+  const displayName=(roles[key]&&roles[key].displayName)||'';
   const av=document.getElementById('profAv');
-  if(av) av.innerHTML=A.avatarHtml?A.avatarHtml({username:login,displayName:displayName,avatar:avatar},64):'';
+  if(av) av.innerHTML=A.avatarHtml?A.avatarHtml({username:login,displayName:displayName,avatar:avatars[key]||''},64):'';
   const nm=document.getElementById('profName'); if(nm) nm.textContent=displayName||login; // clear spinner -> name (or login)
+  renderMates(login,roles,avatars);
+}
+
+// Group-mate avatars (top-right) — each links to that teammate's profile page.
+function renderMates(login,roles,avatars){
+  const box=document.getElementById('profMates'); if(!box)return;
+  const g=findGroup(login);
+  const mates=g?g.members.filter(m=>m.toLowerCase()!==login.toLowerCase()):[];
+  if(!mates.length){ box.innerHTML=''; return; }
+  box.style.setProperty('--gc', g.color);
+  box.innerHTML='<span class="mates-lbl">'+esc(g.name)+' team</span>'+mates.map(function(m){
+    const k=m.toLowerCase();
+    const dn=(roles[k]&&roles[k].displayName)||m;
+    const av=A.avatarHtml?A.avatarHtml({username:m,displayName:dn,avatar:avatars[k]||''},38):'';
+    return '<a class="mate" href="agent-profile.html?user='+encodeURIComponent(m)+'" title="'+esc(dn)+'">'+av+'<span class="mate-tip">'+esc(dn)+'</span></a>';
+  }).join('');
 }
 
 async function loadActiveCases(login){
