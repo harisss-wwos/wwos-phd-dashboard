@@ -40,6 +40,28 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .rem.ok{color:var(--gl);background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.25)}
 .rem.warn{color:var(--yl);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3)}
 .rem.over{color:var(--rl);background:rgba(255,82,82,.1);border-color:rgba(255,82,82,.3)}
+/* Per-row urgency border (matches the Time-left pill colour): green ok / yellow warn / red overdue.
+   A coloured outline is drawn around the WHOLE row. Borders are applied per-td (top+bottom on every
+   cell, left on the first cell, right on the last) so together they form a smooth border on all sides. */
+/* Use separated borders + a small row gap so each coloured outline reads as its own rounded card. */
+table{border-collapse:separate;border-spacing:0 8px}
+tbody td{border-bottom:none!important}          /* drop the default per-cell divider (spacing gives separation) */
+tbody tr:last-child td{border-bottom:none}
+tbody tr[class*="row-"] td{border-top:1.5px solid transparent;border-bottom:1.5px solid transparent}
+tbody tr[class*="row-"] td:first-child{border-left:1.5px solid transparent;border-top-left-radius:10px;border-bottom-left-radius:10px}
+tbody tr[class*="row-"] td:last-child{border-right:1.5px solid transparent;border-top-right-radius:10px;border-bottom-right-radius:10px}
+tbody tr.row-ok td{border-top-color:rgba(74,222,128,.5);border-bottom-color:rgba(74,222,128,.5)}
+tbody tr.row-ok td:first-child{border-left-color:rgba(74,222,128,.5)}
+tbody tr.row-ok td:last-child{border-right-color:rgba(74,222,128,.5)}
+tbody tr.row-warn td{border-top-color:rgba(251,191,36,.55);border-bottom-color:rgba(251,191,36,.55)}
+tbody tr.row-warn td:first-child{border-left-color:rgba(251,191,36,.55)}
+tbody tr.row-warn td:last-child{border-right-color:rgba(251,191,36,.55)}
+tbody tr.row-over td{border-top-color:rgba(255,82,82,.6);border-bottom-color:rgba(255,82,82,.6)}
+tbody tr.row-over td:first-child{border-left-color:rgba(255,82,82,.6)}
+tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
+tbody tr.row-ok:hover td{border-color:var(--gl)}
+tbody tr.row-warn:hover td{border-color:var(--yl)}
+tbody tr.row-over:hover td{border-color:var(--rl)}
 /* Ticket cell: ID row + wrapped title */
 .tk-id{min-width:240px;max-width:360px}
 .tk-id-row{display:flex;align-items:center;gap:8px}
@@ -133,9 +155,15 @@ tbody tr{transition:background .12s}
 /* Viewed checkbox column + row tint */
 .col-view{width:34px;text-align:center;color:var(--tm)}
 .view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o);vertical-align:middle}
-tbody tr.viewed td{background:rgba(74,222,128,.16)}
+/* When a row is marked viewed, tint its background with the row's AGE colour (not a standard green). */
+tbody tr.viewed td{background:rgba(74,222,128,.16)}                 /* fallback (no age class) */
 tbody tr.viewed:hover td{background:rgba(74,222,128,.22)}
-tbody tr.viewed td:first-child{box-shadow:inset 3px 0 0 var(--gl)}
+tbody tr.viewed.row-ok td{background:rgba(74,222,128,.16)}
+tbody tr.viewed.row-ok:hover td{background:rgba(74,222,128,.22)}
+tbody tr.viewed.row-warn td{background:rgba(251,191,36,.16)}
+tbody tr.viewed.row-warn:hover td{background:rgba(251,191,36,.22)}
+tbody tr.viewed.row-over td{background:rgba(255,82,82,.16)}
+tbody tr.viewed.row-over:hover td{background:rgba(255,82,82,.22)}
 tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
 /* Temp-resolve sliding switch + column */
 .col-temp{width:110px;text-align:center;white-space:nowrap}
@@ -507,7 +535,8 @@ function rowHtml(t,i,editor){
   const letter=st.trim().charAt(0).toUpperCase()||'?';
   const viewed=VIEWED.has(String(t.shortId));
   const temp=TEMP_RESOLVED.has(String(t.shortId));
-  return `<tr class="${viewed?'viewed':''}${temp?' temp':''}">
+  const rowCls=rem.cls?(' row-'+rem.cls):''; // urgency gradient: ok=green, warn=yellow, over=red
+  return `<tr class="${viewed?'viewed':''}${temp?' temp':''}${rowCls}">
         <td class="col-view"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(t.shortId)}',this)" aria-label="Mark ${esc(t.shortId)} as viewed"></td>
         <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
         <td><span class="rem ${rem.cls}">${rem.txt}</span></td>
