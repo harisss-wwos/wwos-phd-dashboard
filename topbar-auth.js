@@ -572,16 +572,20 @@
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
     tbFlowOverlay('tbAssess',
-      '<div style="text-align:center;max-width:420px">' +
+      '<div style="text-align:center;width:50%;max-width:820px;min-width:300px">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
-        '<p style="color:#879596;margin-top:6px;font-size:.9em" id="tbAssessSub">Comparing against the live data. This may take a moment.</p>' +
-        // Countdown timer (shown during the live-data fetch)
-        '<div id="tbAssessTimerWrap" style="display:none;margin-top:16px">' +
-          '<div style="font-size:2.2em;font-weight:800;color:#4ade80;line-height:1;font-variant-numeric:tabular-nums" id="tbAssessTimer">60</div>' +
-          '<p style="color:#879596;margin-top:6px;font-size:.8em">seconds — please wait</p>' +
-          '<p id="tbAssessEngage" style="color:#9fb0b2;margin-top:12px;font-size:.85em;line-height:1.5;min-height:1.2em;transition:opacity .3s"></p>' +
-          '<p id="tbAssessApology" style="color:#fbbf24;margin-top:8px;font-size:.82em;display:none">Taking a little longer than expected — apologies, still working on it…</p>' +
+        '<p style="color:#879596;margin-top:6px;font-size:.9em" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
+        // Progress bar + ticket ticker (shown while the live data loads).
+        '<div id="tbAssessTimerWrap" style="display:none;margin-top:20px">' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<div style="flex:1;height:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;overflow:hidden">' +
+              '<div id="tbAssessBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:20px;transition:width .35s ease"></div>' +
+            '</div>' +
+            '<div id="tbAssessPct" style="font-size:.95em;font-weight:800;color:#4ade80;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
+          '</div>' +
+          '<p id="tbAssessTicker" style="color:#5ecdec;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
+          '<p style="color:#5f6b6c;margin-top:2px;font-size:.72em">Scanning all the tickets…</p>' +
         '</div>' +
         '<button class="tb-mbtn sec" id="tbAssessCancel" style="margin-top:18px">Cancel</button>' +
       '</div>');
@@ -597,41 +601,77 @@
     catch (err) { tbRemove('tbAssess'); alert('Could not read the CSV file.'); return; }
     if (!rows.length) { tbRemove('tbAssess'); alert('No tickets with a ShortId/IssueId were found in the file.'); return; }
 
-    // Parsed the file — show how many rows we read, then fetch the live dataset to compare against.
+    // Parsed the file — show the processing message + progress bar, then fetch the live dataset.
     (function () {
-      var t = document.getElementById('tbAssessTitle'); if (t) t.textContent = 'Loading live data to compare…';
-      var s = document.getElementById('tbAssessSub'); if (s) s.textContent = 'Read ' + rows.length.toLocaleString() + ' tickets from your file. Fetching the current live data…';
+      var t = document.getElementById('tbAssessTitle'); if (t) t.textContent = 'Processing…';
+      var s = document.getElementById('tbAssessSub'); if (s) s.textContent = 'The data file is being processed, Please wait...';
       var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'block';
     })();
-    // Countdown timer: start at 60s and tick down while the data loads. If it reaches ~10s (data
-    // still not back), top up another 30s (repeat until the fetch resolves). Every 30s show a fresh
-    // reassuring line to keep the user engaged (rotates, no repeats).
     var _t0 = Date.now();                                     // for the total-time readout
-    var _timeLeft = 60;
-    var _timerEl = document.getElementById('tbAssessTimer');
-    var _apologyEl = document.getElementById('tbAssessApology');
-    var _engageEl = document.getElementById('tbAssessEngage');
-    var _engageMsgs = tbEngageMessages(rows.length);
-    var _engageIdx = 0, _elapsed = 0;
-    if (_engageEl && _engageMsgs.length) _engageEl.textContent = _engageMsgs[_engageIdx++];
-    if (_timerEl) _timerEl.textContent = String(_timeLeft);
-    var _timer = setInterval(function () {
-      _timeLeft -= 1; _elapsed += 1;
-      if (_timeLeft <= 10) { _timeLeft = 40; if (_apologyEl) _apologyEl.style.display = 'block'; } // top up +30 near the end
-      if (_timerEl) _timerEl.textContent = String(_timeLeft);
-      // New engagement line every 30s (fade through the list, then hold on the last one).
-      if (_elapsed % 30 === 0 && _engageEl && _engageIdx < _engageMsgs.length) {
-        _engageEl.style.opacity = '0';
-        (function (msg) { setTimeout(function () { _engageEl.textContent = msg; _engageEl.style.opacity = '1'; }, 300); })(_engageMsgs[_engageIdx++]);
+    // Progress bar staging (~2 min 19 s of runway before it parks at 98%):
+    //   0->60% @1.25s/step (75s), 60->80% @1.5s (30s), 80->90% @1.75s (17.5s), 90->98% @2s (16s).
+    // Each stage swaps the sub-line message; at 98% it holds and rotates "almost done" every 3s.
+    var _barEl = document.getElementById('tbAssessBar');
+    var _pctEl = document.getElementById('tbAssessPct');
+    var _msgEl = document.getElementById('tbAssessSub');       // reuse the sub-line for stage messages
+    var _pct = 0;
+    var _setPct = function (p) { _pct = p; if (_barEl) _barEl.style.width = p + '%'; if (_pctEl) _pctEl.textContent = p + '%'; };
+    var _setMsg = function (m) { if (_msgEl) _msgEl.textContent = m; };
+    // Per-stage: [ceiling %, sec/step, message-shown-when-entering-this-stage].
+    var _stages = [
+      { to: 60, delay: 1250, msg: 'Tickets are being processed…' },
+      { to: 80, delay: 1500, msg: 'Apologies for the delay, still processing…' },
+      { to: 90, delay: 1750, msg: 'Seems like it\u2019s taking longer than expected, apologies…' },
+      { to: 98, delay: 2000, msg: 'The processing is almost done…' },
+    ];
+    // "Almost done" reassurance lines rotated (every 3s) once the bar holds at 98%.
+    var _almostMsgs = [
+      'Almost done — finalising the assessment…',
+      'Nearly there, we promise — just wrapping up…',
+      'Hang tight — any moment now…',
+      'Thanks for your patience — almost there…',
+    ];
+    var _almostIdx = 0;
+    var _almostTimer = null;
+    var _progTimer = null;
+    var _stageShown = -1;
+    var _scheduleProg = function () {
+      // Find the active stage for the current %.
+      var si = 0; while (si < _stages.length && _pct >= _stages[si].to) si++;
+      if (si >= _stages.length) {
+        // Reached 98% — hold and rotate the "almost done" line every 3s until data arrives.
+        if (!_almostTimer) {
+          _setMsg(_almostMsgs[_almostIdx++ % _almostMsgs.length]);
+          _almostTimer = setInterval(function () { _setMsg(_almostMsgs[_almostIdx++ % _almostMsgs.length]); }, 3000);
+        }
+        return;
       }
-    }, 1000);
-    // Fetch the current live-quarter dataset to compare against.
+      if (si !== _stageShown) { _setMsg(_stages[si].msg); _stageShown = si; }  // announce the stage
+      _progTimer = setTimeout(function () { _setPct(_pct + 1); _scheduleProg(); }, _stages[si].delay);
+    };
+    _setMsg(_stages[0].msg); _stageShown = 0;
+    _scheduleProg();
+    // Ticket ticker: a fresh random ShortId every 500ms (2 per second) to keep the user engaged.
+    var _tickerEl = document.getElementById('tbAssessTicker');
+    var _randTicket = function () { var s = ''; for (var i = 0; i < 10; i++) s += Math.floor(Math.random() * 10); return 'V' + s; };
+    var _ticker = setInterval(function () {
+      if (!_tickerEl) return;
+      _tickerEl.style.opacity = '0';
+      setTimeout(function () { _tickerEl.textContent = _randTicket(); _tickerEl.style.opacity = '1'; }, 90);
+    }, 500);
+    if (_tickerEl) _tickerEl.textContent = _randTicket();
+    // Fetch the current live-quarter dataset to compare against. Cache-bust so the browser can't
+    // answer with a 304 (empty body) — we need the full ticket payload to run the comparison.
     var live;
-    try { live = await A.api('GET', '/api/live-quarter'); } catch (e) { live = null; }
-    clearInterval(_timer);                                    // data is here — stop the countdown
+    try { live = await A.api('GET', '/api/live-quarter?ts=' + Date.now()); } catch (e) { live = null; }
+    clearTimeout(_progTimer); clearInterval(_ticker);         // data is here — stop the animations
+    if (_almostTimer) clearInterval(_almostTimer);
     var _assessSecs = Math.round((Date.now() - _t0) / 1000);  // total time this fetch+compare took
-    // Quickly wind the timer down to 0 so it lands cleanly (instead of vanishing at some number).
-    await tbCountdownToZero(_timeLeft, 'tbAssessTimer');
+    // Data arrived — fill the bar straight to 100%.
+    _setPct(100);
+    _setMsg('Done — preparing your results…');
+    if (_tickerEl) _tickerEl.textContent = 'Done';
+    await new Promise(function (r) { setTimeout(r, 400); });  // brief beat so 100% is visible
     (function () { var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'none'; })();
     if (tbAssessAborted) return;
     if (!live || !live.ok || !live.data) { tbRemove('tbAssess'); alert('Could not load the live dataset to compare. Try again.'); return; }
@@ -708,45 +748,75 @@
   // Step D: delta publish (only changed/new + non-live). Stays on the current page.
   async function tbPublish(res) {
     tbFlowOverlay('tbPush',
-      '<div style="text-align:center;max-width:420px">' +
+      '<div style="text-align:center;width:50%;max-width:820px;min-width:300px">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
-        '<p style="color:#879596;margin-top:8px;font-size:.9em">Saving to the shared database. This may take a moment.</p>' +
-        '<div style="margin-top:16px">' +
-          '<div style="font-size:2.2em;font-weight:800;color:#4ade80;line-height:1;font-variant-numeric:tabular-nums" id="tbPushTimer">60</div>' +
-          '<p style="color:#879596;margin-top:6px;font-size:.8em">seconds — please wait</p>' +
-          '<p id="tbPushEngage" style="color:#9fb0b2;margin-top:12px;font-size:.85em;line-height:1.5;min-height:1.2em;transition:opacity .3s"></p>' +
-          '<p id="tbPushApology" style="color:#fbbf24;margin-top:8px;font-size:.82em;display:none">Taking a little longer than expected — apologies, still saving…</p>' +
+        '<p style="color:#879596;margin-top:8px;font-size:.9em" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
+        '<div style="margin-top:20px">' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<div style="flex:1;height:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;overflow:hidden">' +
+              '<div id="tbPushBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:20px;transition:width .35s ease"></div>' +
+            '</div>' +
+            '<div id="tbPushPct" style="font-size:.95em;font-weight:800;color:#4ade80;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
+          '</div>' +
+          '<p id="tbPushTicker" style="color:#5ecdec;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
+          '<p style="color:#5f6b6c;margin-top:2px;font-size:.72em">Writing tickets to the database…</p>' +
         '</div>' +
       '</div>');
-    // Countdown: start at 60s, tick down; if it reaches ~10s (still saving), top up +30s with an
-    // apology (repeat until saved). New engagement line every 30s to keep the user informed.
     var _pt0 = Date.now();
-    var _pTime = 60;
-    var _pTimerEl = document.getElementById('tbPushTimer');
-    var _pApology = document.getElementById('tbPushApology');
-    var _pEngageEl = document.getElementById('tbPushEngage');
-    var _pMsgs = tbSaveMessages(res.zNew, res.yUpdated);
-    var _pIdx = 0, _pElapsed = 0;
-    if (_pEngageEl && _pMsgs.length) _pEngageEl.textContent = _pMsgs[_pIdx++];
-    if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
-    var _pTimer = setInterval(function () {
-      _pTime -= 1; _pElapsed += 1;
-      if (_pTime <= 10) { _pTime = 40; if (_pApology) _pApology.style.display = 'block'; }
-      if (_pTimerEl) _pTimerEl.textContent = String(_pTime);
-      if (_pElapsed % 30 === 0 && _pEngageEl && _pIdx < _pMsgs.length) {
-        _pEngageEl.style.opacity = '0';
-        (function (msg) { setTimeout(function () { _pEngageEl.textContent = msg; _pEngageEl.style.opacity = '1'; }, 300); })(_pMsgs[_pIdx++]);
+    // Progress bar staging (~2 min 19 s runway before it parks at 98%), same as the assess step:
+    //   0->60% @1.25s, 60->80% @1.5s, 80->90% @1.75s, 90->98% @2s; hold at 98% w/ rotating lines.
+    var _pBarEl = document.getElementById('tbPushBar');
+    var _pPctEl = document.getElementById('tbPushPct');
+    var _pMsgEl = document.getElementById('tbPushSub');
+    var _pPct = 0;
+    var _pSetPct = function (p) { _pPct = p; if (_pBarEl) _pBarEl.style.width = p + '%'; if (_pPctEl) _pPctEl.textContent = p + '%'; };
+    var _pSetMsg = function (m) { if (_pMsgEl) _pMsgEl.textContent = m; };
+    var _pStages = [
+      { to: 60, delay: 1250, msg: 'Adding new tickets to the database for a proper fetch…' },
+      { to: 80, delay: 1500, msg: 'Updating the changes in the existing tickets…' },
+      { to: 90, delay: 1750, msg: 'Oh wow — the changes are more than expected, hang on…' },
+      { to: 98, delay: 2000, msg: 'The database update is almost done…' },
+    ];
+    var _pAlmost = [
+      'Almost done — committing the changes…',
+      'Nearly there, we promise — finalising the save…',
+      'Hang tight — writing the last records…',
+      'Thanks for your patience — almost saved…',
+    ];
+    var _pAlmostIdx = 0, _pAlmostTimer = null, _pProgTimer = null, _pStageShown = -1;
+    var _pSchedule = function () {
+      var si = 0; while (si < _pStages.length && _pPct >= _pStages[si].to) si++;
+      if (si >= _pStages.length) {
+        if (!_pAlmostTimer) {
+          _pSetMsg(_pAlmost[_pAlmostIdx++ % _pAlmost.length]);
+          _pAlmostTimer = setInterval(function () { _pSetMsg(_pAlmost[_pAlmostIdx++ % _pAlmost.length]); }, 3000);
+        }
+        return;
       }
-    }, 1000);
+      if (si !== _pStageShown) { _pSetMsg(_pStages[si].msg); _pStageShown = si; }
+      _pProgTimer = setTimeout(function () { _pSetPct(_pPct + 1); _pSchedule(); }, _pStages[si].delay);
+    };
+    _pSetMsg(_pStages[0].msg); _pStageShown = 0;
+    _pSchedule();
+    // Random ticket ticker (2 per second) to keep the user engaged during the save.
+    var _pTickerEl = document.getElementById('tbPushTicker');
+    var _pRandTicket = function () { var s = ''; for (var i = 0; i < 10; i++) s += Math.floor(Math.random() * 10); return 'V' + s; };
+    var _pTicker = setInterval(function () {
+      if (!_pTickerEl) return;
+      _pTickerEl.style.opacity = '0';
+      setTimeout(function () { _pTickerEl.textContent = _pRandTicket(); _pTickerEl.style.opacity = '1'; }, 90);
+    }, 500);
+    if (_pTickerEl) _pTickerEl.textContent = _pRandTicket();
     var _pushSecs = 0;
     try {
       var fm = res.fileMeta || {};
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
       var r = await A.api('POST', '/api/live-quarter/patch', body);
-      clearInterval(_pTimer);
+      clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer);
       _pushSecs = Math.round((Date.now() - _pt0) / 1000);
-      await tbCountdownToZero(_pTime, 'tbPushTimer');   // wind down to 0 cleanly
+      _pSetPct(100); _pSetMsg('Done — saved to the shared database.'); if (_pTickerEl) _pTickerEl.textContent = 'Done';
+      await new Promise(function (rr) { setTimeout(rr, 400); });   // brief beat so 100% is visible
       if (!r.ok) {
         // Fallback: if there is no live doc yet, a delta can't apply — inform (rare; live quarter exists).
         throw new Error((r.data && r.data.error) || ('Upload failed (HTTP ' + r.status + ')'));
@@ -766,7 +836,7 @@
         if (typeof window.PHDRefreshLive === 'function') { try { window.PHDRefreshLive(); } catch (e) {} }
       };
     } catch (err) {
-      try { clearInterval(_pTimer); } catch (e) {}
+      try { clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
       tbRemove('tbPush');
       tbFlowOverlay('tbErr',
         '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:460px;width:100%;padding:26px;text-align:center">' +
