@@ -2339,7 +2339,6 @@ app.get('/api/group-quarter/:qid', requireRole('admin'), async (req, res) => {
     const qid = req.params.qid;
     const range = quarterRange(qid);
     if (!range) return res.status(400).json({ error: 'Invalid quarter id.' });
-    const tickets = await loadQuarterTickets(qid);
     let fromMs = null, toMs = null;
     const mParam = req.query.month;
     if (mParam !== undefined && mParam !== '') {
@@ -2349,32 +2348,35 @@ app.get('/api/group-quarter/:qid', requireRole('admin'), async (req, res) => {
       fromMs = new Date(y, sm + mi, 1).getTime();
       toMs = new Date(y, sm + mi + 1, 1).getTime();
     }
-    const m = computeClosureMetrics(tickets, fromMs, toMs);
+    const m = await aggClosureMetrics({ q: qid, fromMs: fromMs, toMs: toMs });
     res.json(Object.assign({ quarter: qid, month: (mParam !== undefined ? mParam : null) }, m));
   } catch (e) {
     res.status(500).json({ error: 'Could not compute quarter analytics.' });
   }
 });
 
-// Overall (whole database, all quarters): closure/SLA metrics across EVERY ticket, computed with a
-// single Mongo aggregation over the whole ticket_docs collection (grouped by resolver) — never loads
-// the ~70k tickets into Node. Only tracked agents (GRP_ALL) are kept.
-async function computeOverallClosureMetrics() {
+// Per-agent + per-group closure/SLA/avg metrics computed with a SINGLE Mongo aggregation over
+// ticket_docs (grouped by resolver + closure code) — never loads raw tickets into Node.
+//   opts.q     -> restrict to one quarter (omit for whole DB / all quarters)
+//   opts.fromMs / opts.toMs -> restrict to tickets RESOLVED within [from, to) (by ResolvedDate)
+async function aggClosureMetrics(opts) {
+  opts = opts || {};
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
   const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
-  const rows = await tColl.aggregate([
-    { $addFields: { _rby: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } }, _cc: { $trim: { input: { $ifNull: ['$ClosureCode', ''] } } }, _rh: resHrs } },
-    { $match: { _rby: { $in: GRP_ALL } } },
-    { $group: {
-        _id: { rby: '$_rby', cc: '$_cc' },
-        n: { $sum: 1 },
-        rtSum: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, '$_rh', 0] } },
-        rtCount: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, 1, 0] } },
-        slaElig: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }] }, 1, 0] } },
-        slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }, { $lte: ['$_rh', 240] }] }, 1, 0] } },
-    } },
-  ], { allowDiskUse: true }).toArray();
-  // Assemble per-agent structures from the grouped rows.
+  const pipeline = [];
+  if (opts.q) pipeline.push({ $match: { q: opts.q } });                 // index-backed quarter filter
+  pipeline.push({ $addFields: { _rby: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } }, _cc: { $trim: { input: { $ifNull: ['$ClosureCode', ''] } } }, _rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, _rh: resHrs } });
+  pipeline.push({ $match: { _rby: { $in: GRP_ALL } } });
+  if (opts.fromMs != null) pipeline.push({ $match: { _rd: { $gte: new Date(opts.fromMs), $lt: new Date(opts.toMs) } } });
+  pipeline.push({ $group: {
+      _id: { rby: '$_rby', cc: '$_cc' },
+      n: { $sum: 1 },
+      rtSum: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, '$_rh', 0] } },
+      rtCount: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, 1, 0] } },
+      slaElig: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }] }, 1, 0] } },
+      slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }, { $lte: ['$_rh', 240] }] }, 1, 0] } },
+  } });
+  const rows = await tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
   const aClosure = {}, aRt = {}, aSla = {};
   GRP_ALL.forEach(n => { aClosure[n] = {}; WINDOW_CLOSURE_CODES.forEach(c => { aClosure[n][c] = 0; }); aRt[n] = { sum: 0, count: 0 }; aSla[n] = { eligible: 0, within: 0 }; });
   rows.forEach(r => {
@@ -2393,7 +2395,7 @@ async function computeOverallClosureMetrics() {
 }
 app.get('/api/group-overall', requireRole('admin'), async (req, res) => {
   try {
-    const m = await computeOverallClosureMetrics();
+    const m = await aggClosureMetrics({});
     res.json(Object.assign({ scope: 'overall' }, m));
   } catch (e) {
     res.status(500).json({ error: 'Could not compute overall analytics.' });
@@ -2405,7 +2407,9 @@ const WINDOW_HOURS = { '12h': 12, '24h': 24, '7d': 168 };
 Object.keys(WINDOW_HOURS).forEach(win => {
   app.get('/api/group-window/' + win, requireRole('admin'), async (req, res) => {
     try {
-      const m = await computeWindowMetrics(WINDOW_HOURS[win]);
+      // Fast path: aggregate on the live quarter, filtered to ResolvedDate within the rolling window.
+      const now = Date.now();
+      const m = await aggClosureMetrics({ q: currentQuarter(), fromMs: now - WINDOW_HOURS[win] * 36e5, toMs: now });
       res.json(Object.assign({ window: win, quarter: currentQuarter() }, m));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute windowed analytics (' + win + ').' });

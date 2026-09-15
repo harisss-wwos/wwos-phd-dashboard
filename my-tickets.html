@@ -25,7 +25,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.mini{padding:5px 12px;font-size:.78em}
 .btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
-.wrap{width:96%;max-width:1600px;margin:0 auto;padding:36px 24px}
+.wrap{width:90%;max-width:none;margin:0 auto;padding:36px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
 .tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow-x:auto}
@@ -147,56 +147,67 @@ tbody tr{transition:background .12s}
 .sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:mtsh 1.3s infinite}
 @keyframes mtsh{100%{left:150%}}
 /* ================= Expandable ticket cards ================= */
-.mt-toolbar{display:flex;align-items:center;gap:12px;margin:18px 0 12px;flex-wrap:wrap}
-.mt-toolbar-lbl{color:var(--tm);font-size:.76em;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
-.mt-toolbar .sort-th{border:1px solid var(--bd);border-radius:20px;padding:5px 14px;font-size:.8em;text-transform:none;letter-spacing:0}
-.mt-toolbar .sort-th.active{border-color:var(--o);color:var(--o)}
-.mt-cards{display:flex;flex-direction:column;gap:10px}
-.tk-card{background:#0a0a0a;border:none;border-radius:12px;overflow:hidden;transition:background .15s}
-.tk-card-head{padding:12px 16px;cursor:pointer;user-select:none}
-.tk-card-head:hover{background:rgba(255,255,255,.02)}
-/* Top strip: checkbox · status · ID · copy · created · time-left · chevron (single line) */
-.tk-head-top{display:flex;align-items:center;gap:10px}
-.tk-view{display:inline-flex;align-items:center;flex-shrink:0}
-.tk-view .view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o)}
+/* ================= My Tickets — Excel-sheet table ================= */
+.tbl-wrap{overflow-x:auto;margin-top:16px;border-radius:10px}
+.mt-table{width:100%;border-collapse:collapse;min-width:900px;font-size:.88em}
+.mt-table.xls{border:1px solid #2f3a45}
+.mt-table.xls th,.mt-table.xls td{border:1px solid #2f3a45;padding:9px 12px;text-align:left;vertical-align:middle}
+.mt-table thead th{background:#111820;color:var(--tm);text-transform:uppercase;font-size:.72em;letter-spacing:.5px;font-weight:700;white-space:nowrap}
+.mt-table th.sortable{cursor:pointer;user-select:none}
+.mt-table th.sortable:hover{color:var(--t)}
+.mt-table th.sortable.active{color:var(--o)}
+.mt-col-view{width:38px;text-align:center!important}
+.mt-col-view .view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o)}
+.mt-col-temp{width:96px;text-align:center!important;white-space:nowrap}
+.mt-row{cursor:pointer;transition:background .12s}
+.mt-row:hover td{background:rgba(255,255,255,.03)}
+.tk-created{white-space:nowrap;color:var(--t);font-weight:600}
+.mt-ticket{min-width:240px;max-width:360px}
+.tk-id-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tk-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-idlink:hover{text-decoration:underline}
-/* Incident-log indicator in the card header (only present when a log exists). */
+.tk-title{color:var(--tm);font-size:.86em;line-height:1.45;margin-top:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:rgba(255,153,0,.16);color:var(--o);font-weight:700;font-size:.78em;flex-shrink:0}
+.tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
+.tk-copy:hover{color:#44b9d6;border-color:#44b9d6}
+.tk-copy.copied{color:var(--gl);border-color:var(--gl)}
+/* Incident-log indicator */
 .tk-logflag{display:inline-flex;align-items:center}
 .tk-logflag-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid rgba(68,185,214,.4);border-radius:6px;background:rgba(68,185,214,.14);color:#44b9d6;cursor:pointer;line-height:0}
 .tk-logflag-btn:hover{background:rgba(68,185,214,.28);border-color:#44b9d6}
-.tk-card.viewed .tk-logflag-btn{color:#0b5f74;border-color:rgba(0,0,0,.3);background:rgba(0,0,0,.06)}
-.tk-head-top .tk-created{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--tm);font-weight:600;font-size:.82em;margin-left:auto}
-.tk-head-top .rem{flex-shrink:0}
-.tk-chev{background:transparent;border:1px solid var(--bd);border-radius:8px;color:var(--tm);cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding:5px 9px}
-.tk-chev:hover{color:var(--t);border-color:#3a4142}
-.tk-chev .chev{transition:transform .2s;display:inline-block}
-.tk-card.open .tk-chev .chev{transform:rotate(180deg)}
-/* Title: full-width, truncated to two lines with ellipsis */
-.tk-title-full{margin-top:9px;color:var(--t);font-size:.92em;line-height:1.4;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-/* Latest-comment preview line under the title — highlighted strip so it stands out. */
-.tk-head-latest{margin-top:8px;font-size:.82em;color:var(--t);display:flex;align-items:center;gap:10px;min-width:0;
-  background:rgba(68,185,214,.1);border:1px solid rgba(68,185,214,.28);border-left:3px solid #44b9d6;border-radius:6px;padding:6px 10px}
-.tk-latest-text{color:var(--t);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
-.tk-latest-meta{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;color:#8b9698}
-.tk-latest-meta .cmt-count{background:rgba(68,185,214,.22);color:#5ecdec}
+/* Latest-comment cell */
+.latest-cmt{min-width:220px;max-width:340px;color:var(--tm);font-size:.9em}
+.tk-latest-text{color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
+.tk-latest-meta{display:inline-flex;align-items:center;gap:6px;color:#8b9698;margin-top:4px;font-size:.92em}
+.tk-latest-meta .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#5ecdec;border-radius:20px;padding:0 7px;font-weight:700}
 .tk-latest-by{white-space:nowrap}
-/* "No comments yet" stays subtle (no highlight). */
-.tk-head-latest:has(.tk-latest-none){background:transparent;border-color:transparent;border-left-color:transparent;padding:0;margin-top:7px}
 .tk-latest-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
-/* Body slides open with a smooth height animation (grid-template-rows 0fr -> 1fr, ~0.6s). */
-.tk-card-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .6s cubic-bezier(.4,0,.2,1),opacity .5s ease,border-color .6s}
-.tk-card-body>.tk-body-inner{overflow:hidden;min-height:0;opacity:0;transition:opacity .5s ease .1s}
-.tk-card.open .tk-card-body{grid-template-rows:1fr;border-top:1px solid rgba(255,255,255,.06)}
-.tk-card.open .tk-card-body>.tk-body-inner{opacity:1}
-.tk-body-pad{padding:0 16px 16px}
-.tk-actions-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px}
-.tk-actions-row .btn{margin:0}
-.tk-temp-toggle{display:inline-flex;align-items:center;gap:8px;margin-left:auto;cursor:pointer;color:var(--tm);font-size:.82em}
-.tk-temp-lbl{white-space:nowrap}
-.tk-help{margin-top:14px}
-/* Inline comment thread */
-.tk-thread{margin-top:14px}
+/* Actions cell — both buttons EXACTLY the same width + height, stacked with a tight gap. */
+.mt-actions{white-space:nowrap;min-width:190px}
+.mt-actions>span{display:block}
+.mt-actions .btn{display:flex;width:100%;box-sizing:border-box;justify-content:center;align-items:center;gap:6px;height:34px;padding:0 12px;margin:0 0 4px;border:none}
+.mt-actions>span:last-child .btn,.mt-actions>.btn:last-child{margin-bottom:0}
+/* Center the Created / Time left / Latest comment columns. Column order: view(1) created(2) time-left(3) ticket(4) latest(5) ... */
+.mt-table.xls td:nth-child(2),.mt-table.xls th:nth-child(2),
+.mt-table.xls td:nth-child(3),.mt-table.xls th:nth-child(3),
+.mt-table.xls td:nth-child(5),.mt-table.xls th:nth-child(5){text-align:center}
+.mt-table.xls td.latest-cmt .tk-latest-meta{justify-content:center}
+.mt-table.xls td.latest-cmt .tk-latest-text{text-align:center}
+/* No rounded corners anywhere in the My Tickets table (EXCEPT the temp-resolve switch). */
+.tbl-wrap,.mt-table,.mt-table th,.mt-table td,
+.mt-table .btn,.mt-table .rem,.mt-table .tk-status-badge,.mt-table .tk-copy,
+.mt-table .tk-logflag-btn,.mt-table .cmt-count,
+.mt-table .tk-cmt,.mt-table .tk-thread-count{border-radius:0!important}
+/* Temp-resolve switch stays a rounded pill. */
+.mt-table .switch .slider{border-radius:22px!important}
+/* Detail row (comment thread) — expands under the summary row. */
+.mt-detail>td{padding:0!important;border-top:none!important}
+.mt-detail .mt-detail-inner{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.4,0,.2,1)}
+.mt-detail .mt-detail-pad{overflow:hidden;min-height:0}
+.mt-detail.open .mt-detail-inner{grid-template-rows:1fr}
+.mt-detail.open>td{padding:0 14px 14px!important}
+/* Comment thread */
+.tk-thread{padding-top:6px}
 .tk-thread-head{color:#cfd6d6;font-size:.76em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:10px}
 .tk-thread-count{background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700}
 .tk-thread-hint{color:#5f6b6c;font-size:.85em;font-style:italic;display:flex;align-items:center;gap:6px}
@@ -207,71 +218,30 @@ tbody tr{transition:background .12s}
 .tk-cmt-who b{color:#d5dbdb}
 .tk-cmt-when{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .tk-cmt-text{white-space:pre-wrap;color:var(--t);font-size:.86em;line-height:1.5}
-/* Age-coloured card: solid age colour as the background, no border. */
-.tk-card.row-ok{border-color:transparent;background:rgba(74,222,128,.3)}
-.tk-card.row-warn{border-color:transparent;background:rgba(251,191,36,.32)}
-.tk-card.row-over{border-color:transparent;background:rgba(255,82,82,.32)}
-.tk-card.row-black{border-color:transparent;background:rgba(120,120,128,.42)}
-/* Viewed: pure WHITE card with BLACK text so it reads as clearly "seen/done". */
-.tk-card.viewed,
-.tk-card.viewed.row-ok,
-.tk-card.viewed.row-warn,
-.tk-card.viewed.row-over,
-.tk-card.viewed.row-black{background:#fff!important}
-.tk-card.viewed .tk-card-head:hover{background:rgba(0,0,0,.04)}
-.tk-card.viewed .tk-title-full,
-.tk-card.viewed .tk-created,
-.tk-card.viewed .tk-idlink,
-.tk-card.viewed .tk-latest-text,
-.tk-card.viewed .tk-latest-meta,
-.tk-card.viewed .tk-latest-by,
-.tk-card.viewed .tk-latest-none,
-.tk-card.viewed .tk-copy,
-.tk-card.viewed .tk-chev{color:#000}
-.tk-card.viewed .tk-copy,.tk-card.viewed .tk-chev{border-color:rgba(0,0,0,.3)}
-.tk-card.viewed .tk-chev:hover{border-color:#000}
-/* Viewed card: recolour the highlighted latest-comment strip for the white background. */
-.tk-card.viewed .tk-head-latest{background:rgba(11,95,116,.1);border-color:rgba(11,95,116,.3);border-left-color:#0b5f74}
-.tk-card.viewed .tk-latest-meta .cmt-count{background:rgba(11,95,116,.18);color:#0b5f74}
-/* Viewed card BODY (when expanded): keep white bg + black text readable. */
-.tk-card.viewed .tk-card-body{border-top-color:rgba(0,0,0,.12)}
-.tk-card.viewed .tk-thread-head,
-.tk-card.viewed .tk-thread-hint,
-.tk-card.viewed .tk-cmt-text,
-.tk-card.viewed .tk-cmt-who,
-.tk-card.viewed .tk-cmt-who b,
-.tk-card.viewed .tk-cmt-when,
-.tk-card.viewed .tk-temp-toggle,
-.tk-card.viewed .tk-temp-lbl{color:#000}
-.tk-card.viewed .tk-cmt{background:#f4f6f7;border-color:rgba(0,0,0,.15)}
-/* Temp-resolved cards are dimmed. */
-.tk-card.temp{opacity:.72}
-.tk-card.temp:hover{opacity:1}
-@media(max-width:560px){
-  .tk-head-top{flex-wrap:wrap}
-  .tk-head-top .tk-created{margin-left:0}
-}
-/* Latest-comment cell loading shimmer */
-.latest-cmt.loading{color:transparent!important}
-/* Sortable column headers */
-.sort-th{background:transparent;border:none;color:var(--tm);font:inherit;font-size:1em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
-.sort-th:hover{color:var(--t)}
-.sort-th.active{color:var(--o)}
-/* Viewed checkbox column + row tint */
-.col-view{width:34px;text-align:center;color:var(--tm)}
-.view-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--o);vertical-align:middle}
-/* When a row is marked viewed, tint its background with the row's AGE colour (not a standard green). */
-tbody tr.viewed td{background:rgba(74,222,128,.16)}                 /* fallback (no age class) */
-tbody tr.viewed:hover td{background:rgba(74,222,128,.22)}
-tbody tr.viewed.row-ok td{background:rgba(74,222,128,.16)}
-tbody tr.viewed.row-ok:hover td{background:rgba(74,222,128,.22)}
-tbody tr.viewed.row-warn td{background:rgba(251,191,36,.16)}
-tbody tr.viewed.row-warn:hover td{background:rgba(251,191,36,.22)}
-tbody tr.viewed.row-over td{background:rgba(255,82,82,.16)}
-tbody tr.viewed.row-over:hover td{background:rgba(255,82,82,.22)}
-tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
-/* Temp-resolve sliding switch + column */
-.col-temp{width:110px;text-align:center;white-space:nowrap}
+/* Age-coloured row: left accent bar + subtle tint on the summary row's cells. */
+.mt-row.row-ok td:first-child{box-shadow:inset 4px 0 0 var(--gl)}
+.mt-row.row-warn td:first-child{box-shadow:inset 4px 0 0 var(--yl)}
+.mt-row.row-over td:first-child{box-shadow:inset 4px 0 0 var(--rl)}
+.mt-row.row-black td:first-child{box-shadow:inset 4px 0 0 #888}
+.mt-row.row-ok td{background:rgba(74,222,128,.07)}
+.mt-row.row-warn td{background:rgba(251,191,36,.08)}
+.mt-row.row-over td{background:rgba(255,82,82,.08)}
+.mt-row.row-black td{background:rgba(120,120,128,.1)}
+.mt-row.row-ok:hover td{background:rgba(74,222,128,.13)}
+.mt-row.row-warn:hover td{background:rgba(251,191,36,.14)}
+.mt-row.row-over:hover td{background:rgba(255,82,82,.14)}
+.mt-row.row-black:hover td{background:rgba(120,120,128,.16)}
+/* Viewed row: white background + black text (marks it "seen/done"). */
+.mt-row.viewed td,.mt-row.viewed:hover td{background:#fff!important;color:#000}
+.mt-row.viewed .tk-created,.mt-row.viewed .tk-title,.mt-row.viewed .tk-latest-text,.mt-row.viewed .tk-latest-meta,.mt-row.viewed .tk-latest-by,.mt-row.viewed .tk-latest-none{color:#000}
+.mt-row.viewed .tk-idlink{color:#0b5f74}
+.mt-row.viewed .tk-copy,.mt-row.viewed .tk-logflag-btn{color:#0b5f74;border-color:rgba(0,0,0,.3)}
+/* Viewed: strike through the ticket ID + title to show it's "done". */
+.mt-row.viewed .tk-idlink,.mt-row.viewed .tk-title{text-decoration:line-through}
+/* Temp-resolved rows dimmed. */
+.mt-row.temp td{opacity:.72}
+.mt-row.temp td.mt-col-temp{opacity:1}
+/* Temp-resolve sliding switch */
 .switch{position:relative;display:inline-block;width:42px;height:22px;cursor:pointer;vertical-align:middle}
 .switch input{opacity:0;width:0;height:0}
 .switch .slider{position:absolute;inset:0;background:#2a2f30;border:1px solid var(--bd);border-radius:22px;transition:.18s}
@@ -279,8 +249,6 @@ tbody tr.viewed td.tk-created,tbody tr.viewed .tk-id a{opacity:.9}
 .switch input:checked+.slider{background:rgba(74,222,128,.35);border-color:var(--gl)}
 .switch input:checked+.slider:before{transform:translateX(20px);background:var(--gl)}
 .switch input:focus-visible+.slider{outline:2px solid #44b9d6;outline-offset:2px}
-tbody tr.temp td{opacity:.72}
-tbody tr.temp td.col-temp{opacity:1}
 /* Collapsible "Temporarily Resolved" section */
 .temp-section{margin-top:22px}
 .temp-head{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-radius:10px;padding:12px 16px;color:var(--t);cursor:pointer;font-family:inherit}
@@ -304,13 +272,20 @@ tbody tr.temp td.col-temp{opacity:1}
   <div class="mt-head">
     <div><h1>My Tickets</h1><p class="sub" style="margin:4px 0 0">Loading your open tickets, deadlines and comments…</p></div>
   </div>
-  <div class="mt-cards" id="mtSkeleton" style="margin-top:20px"></div>
-  <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var card='<div class="tk-card"><div class="tk-card-head">'+
-    '<span class="sk-blk" style="width:16px;height:16px;border-radius:3px"></span>'+
-    '<span style="display:flex;flex-direction:column;gap:5px"><span class="sk-blk" style="width:70px;height:12px"></span><span class="sk-blk" style="width:56px;height:20px;border-radius:20px"></span></span>'+
-    '<span style="flex:1;min-width:0"><span class="sk-blk" style="width:180px;height:14px;display:block"></span><span class="sk-blk" style="width:70%;height:11px;display:block;margin-top:6px"></span><span class="sk-blk" style="width:45%;height:11px;display:block;margin-top:6px"></span></span>'+
-    '<span class="sk-blk" style="width:44px;height:30px;border-radius:8px"></span>'+
-    '</div></div>';var h='';for(var i=0;i<8;i++)h+=card;b.innerHTML=h;})();</script>
+  <div class="tbl-wrap" style="margin-top:20px">
+    <table class="mt-table xls"><thead><tr>
+      <th class="mt-col-view"></th><th>Created</th><th>Time left</th><th>Ticket</th><th>Latest comment</th><th>Actions</th><th class="mt-col-temp">Temp Resolve</th>
+    </tr></thead><tbody id="mtSkeleton"></tbody></table>
+  </div>
+  <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var row='<tr>'+
+    '<td><span class="sk-blk" style="width:16px;height:16px;border-radius:3px"></span></td>'+
+    '<td><span class="sk-blk" style="width:70px;height:13px"></span></td>'+
+    '<td><span class="sk-blk" style="width:56px;height:22px;border-radius:20px"></span></td>'+
+    '<td><span class="sk-blk" style="width:150px;height:14px;display:block"></span><span class="sk-blk" style="width:80%;height:11px;display:block;margin-top:6px"></span></td>'+
+    '<td><span class="sk-blk" style="width:80%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>'+
+    '<td><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block"></span><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block;margin-top:8px"></span></td>'+
+    '<td><span class="sk-blk" style="width:42px;height:22px;border-radius:20px"></span></td>'+
+    '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -430,7 +405,7 @@ function toggleViewed(sid, cb){
   sid=String(sid);
   if(cb.checked) VIEWED.add(sid); else VIEWED.delete(sid);
   saveViewed();
-  const card=cb.closest('.tk-card'); if(card) card.classList.toggle('viewed', cb.checked);
+  const row=cb.closest('.mt-row'); if(row) row.classList.toggle('viewed', cb.checked);
 }
 window.toggleViewed=toggleViewed;
 
@@ -460,19 +435,21 @@ function toggleTempSection(){
 }
 window.toggleTempSection=toggleTempSection;
 
-// ---- Expand/collapse per-ticket cards (accordion: only ONE open at a time) ----
-let OPEN_CARD=null; // shortId of the currently-expanded card (session only)
-function toggleCard(sid, headEl){
+// ---- Expand/collapse a ticket row's detail (accordion: only ONE open at a time) ----
+let OPEN_CARD=null; // shortId of the currently-expanded row (session only)
+function toggleCard(sid, rowEl){
   sid=String(sid);
-  const card=headEl.closest('.tk-card'); if(!card)return;
-  const willOpen=!card.classList.contains('open');
-  // Accordion: collapse any other open cards first.
-  document.querySelectorAll('.tk-card.open').forEach(function(c){ if(c!==card) c.classList.remove('open'); });
-  card.classList.toggle('open', willOpen);
+  const row=rowEl.closest('.mt-row'); if(!row)return;
+  const willOpen=!row.classList.contains('open');
+  // Accordion: collapse any other open rows + their detail rows.
+  document.querySelectorAll('.mt-row.open,.mt-detail.open').forEach(function(el){ el.classList.remove('open'); });
+  row.classList.toggle('open', willOpen);
+  // The matching detail row is the next sibling (same data-sid).
+  const detail=row.nextElementSibling;
+  if(detail && detail.classList.contains('mt-detail')) detail.classList.toggle('open', willOpen);
   OPEN_CARD = willOpen ? sid : null;
-  if(willOpen){
-    // Load the comment thread the first time this card is expanded.
-    const thread=card.querySelector('.tk-thread');
+  if(willOpen && detail){
+    const thread=detail.querySelector('.tk-thread');
     if(thread && thread.getAttribute('data-loaded')!=='1'){
       const idx=TICKETS.findIndex(t=>String(t.shortId)===sid);
       if(idx>=0) loadThread(idx);
@@ -649,33 +626,37 @@ function render(){
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
-  // Sort toolbar (replaces the old table header sort buttons).
-  const toolbar=`<div class="mt-toolbar">
-      <span class="mt-toolbar-lbl">Sort by</span>
-      <button type="button" class="sort-th${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</button>
-      <button type="button" class="sort-th${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</button>
-    </div>`;
-  // Split cards by temp-resolve state, preserving the original TICKETS index (i) so
-  // latest-comment cells and incident/comment buttons stay correctly wired.
-  const mainCards=[], tempCards=[];
-  TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempCards:mainCards).push(cardHtml(t,i,editor)); });
+  const colCount=editor?8:7;   // view, created, time-left, ticket, latest, actions, temp (+help)
+  const headRow=`<thead><tr>
+      <th class="mt-col-view" title="Mark as viewed">${ic('check-circle',13)}</th>
+      <th class="sortable${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</th>
+      <th class="sortable${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</th>
+      <th>Ticket</th>
+      <th>Latest comment</th>
+      ${editor?'<th>Help</th>':''}
+      <th>Actions</th>
+      <th class="mt-col-temp" title="Temporarily resolve (working only)">Temp Resolve</th>
+    </tr></thead>`;
+  // Split rows by temp-resolve state, preserving the TICKETS index (i) so latest-${i}/inc-btn-${i} wiring holds.
+  const mainRows=[], tempRows=[];
+  TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempRows:mainRows).push(rowHtml(t,i,editor)); });
 
-  html+=toolbar+`<div class="mt-cards">`
-      + (mainCards.length?mainCards.join(''):`<div class="empty">All your tickets are temporarily resolved. 🎉</div>`)
-      + `</div>`;
+  html+=`<div class="tbl-wrap"><table class="mt-table xls">${headRow}<tbody>`
+      + (mainRows.length?mainRows.join(''):`<tr><td colspan="${colCount}" class="empty" style="padding:22px">All your tickets are temporarily resolved. 🎉</td></tr>`)
+      + `</tbody></table></div>`;
 
   // Collapsible "Temporarily Resolved" section below.
   let tempOpen='0'; try{ tempOpen=localStorage.getItem(tempOpenKey())||'0'; }catch(e){}
   html+=`<div id="tempSection" class="temp-section${tempOpen==='1'?' open':''}">
     <button type="button" class="temp-head" onclick="toggleTempSection()">
       <span class="temp-caret">${ic('bar-chart',14)}</span>
-      <span class="temp-title">Temporarily Resolved <span class="temp-count">${tempCards.length}</span></span>
+      <span class="temp-title">Temporarily Resolved <span class="temp-count">${tempRows.length}</span></span>
       <span class="temp-note">Working view only \u2014 the shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.</span>
       <span class="temp-chev">\u25be</span>
     </button>
-    <div class="temp-body"><div class="mt-cards">`
-      + (tempCards.length?tempCards.join(''):`<div class="empty">No temporarily resolved tickets. Flip a "Temp Resolve" toggle to move a ticket here.</div>`)
-      + `</div></div>
+    <div class="temp-body"><div class="tbl-wrap"><table class="mt-table xls">${headRow}<tbody>`
+      + (tempRows.length?tempRows.join(''):`<tr><td colspan="${colCount}" class="empty" style="padding:22px">No temporarily resolved tickets. Flip a "Temp Resolve" toggle to move a ticket here.</td></tr>`)
+      + `</tbody></table></div></div>
   </div>`;
 
   document.getElementById('wrap').innerHTML=html;
@@ -689,53 +670,44 @@ function render(){
 // Guarantee every card's viewed/temp class matches the current state Sets — defends against any
 // background re-render dropping a class the user just toggled (the "white then black" flash).
 function syncCardStates(){
-  document.querySelectorAll('.tk-card[data-sid]').forEach(function(card){
-    var sid=card.getAttribute('data-sid');
-    card.classList.toggle('viewed', VIEWED.has(sid));
-    card.classList.toggle('temp', TEMP_RESOLVED.has(sid));
+  document.querySelectorAll('.mt-row[data-sid]').forEach(function(row){
+    var sid=row.getAttribute('data-sid');
+    row.classList.toggle('viewed', VIEWED.has(sid));
+    row.classList.toggle('temp', TEMP_RESOLVED.has(sid));
   });
 }
-// One ticket CARD. `i` is the index within TICKETS (kept stable across both lists) so
-// latest-${i} / inc-btn-${i} / index-based onclick handlers stay valid.
-function cardHtml(t,i,editor){
+// One ticket = a SUMMARY <tr> + a hidden DETAIL <tr> (comment thread + help). `i` is the TICKETS
+// index (kept stable across both lists) so latest-${i} / inc-btn-${i} handlers stay valid.
+function rowHtml(t,i,editor){
   const rem=remaining(t.deadline);
   const st=String(t.status||'');
   const letter=st.trim().charAt(0).toUpperCase()||'?';
   const sid=String(t.shortId);
   const viewed=VIEWED.has(sid);
   const temp=TEMP_RESOLVED.has(sid);
-  const rowCls=' row-'+ageColor(t.createDate); // card colour by ticket AGE: ok=green, warn=yellow, over=red, black=>10d
-  const openCls=(OPEN_CARD===sid)?' open':'';
-  return `<div class="tk-card${viewed?' viewed':''}${temp?' temp':''}${rowCls}${openCls}" data-sid="${esc(sid)}">
-    <div class="tk-card-head" onclick="toggleCard('${esc(sid)}',this)">
-      <div class="tk-head-top">
-        <label class="tk-view" title="Mark as viewed" onclick="event.stopPropagation()"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(sid)}',this)" aria-label="Mark ${esc(sid)} as viewed"></label>
-        <span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span>
-        <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a>
-        <button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button>
-        <span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span>
-        <span class="tk-created">${ic('clock',12)} Created: ${esc(daysAgo(t.createDate))}</span>
-        <span class="rem ${rem.cls}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
-        <button type="button" class="tk-chev" aria-label="Expand or collapse">${ic('bar-chart',15)}<span class="chev">\u25be</span></button>
-      </div>
-      <div class="tk-title-full" title="${esc(t.title||'')}">${t.title?esc(t.title):('<span style=\"color:#5f6b6c\">'+esc(sid)+'</span>')}</div>
-      <div class="tk-head-latest" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:40%;height:11px;display:block"></span></div>
-    </div>
-    <div class="tk-card-body">
-      <div class="tk-body-inner"><div class="tk-body-pad">
-        <div class="tk-actions-row">
-          <button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button>
-          <span id="inc-btn-${i}">${incidentBtnHtml(i)}</span>
-          <label class="tk-temp-toggle" title="${temp?'Move back to open':'Temporarily resolve (working only \u2014 not saved to the database)'}">
-            <span class="tk-temp-lbl">Temp resolve</span>
-            <span class="switch"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" aria-label="Temp resolve ${esc(sid)}"><span class="slider"></span></span>
-          </label>
-        </div>
-        ${editor?('<div class="tk-help">'+helpBlock(t)+'</div>'):''}
-        <div class="tk-thread" id="thread-${i}" data-loaded="0"><div class="tk-thread-hint">Expand to load the comment thread.</div></div>
-      </div></div>
-    </div>
-  </div>`;
+  const rowCls=' row-'+ageColor(t.createDate); // row age colour: ok=green, warn=yellow, over=red, black=>10d
+  const open=(OPEN_CARD===sid);
+  const colCount=editor?8:7;
+  return `<tr class="mt-row${viewed?' viewed':''}${temp?' temp':''}${rowCls}${open?' open':''}" data-sid="${esc(sid)}" onclick="toggleCard('${esc(sid)}',this)">
+      <td class="mt-col-view" onclick="event.stopPropagation()"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(sid)}',this)" aria-label="Mark ${esc(sid)} as viewed"></td>
+      <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
+      <td><span class="rem ${rem.cls}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span></td>
+      <td class="mt-ticket">
+        <div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a><button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button><span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span></div>
+        ${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}
+      </td>
+      <td class="latest-cmt" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:70%;height:11px;display:block"></span></td>
+      ${editor?('<td class="mt-help">'+helpBlock(t)+'</td>'):''}
+      <td class="mt-actions" onclick="event.stopPropagation()"><button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
+      <td class="mt-col-temp" onclick="event.stopPropagation()"><label class="switch" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" aria-label="Temp resolve ${esc(sid)}"><span class="slider"></span></label></td>
+    </tr>
+    <tr class="mt-detail${open?' open':''}" data-sid="${esc(sid)}">
+      <td colspan="${colCount}">
+        <div class="mt-detail-inner"><div class="mt-detail-pad">
+          <div class="tk-thread" id="thread-${i}" data-loaded="0"><div class="tk-thread-hint">Expand to load the comment thread.</div></div>
+        </div></div>
+      </td>
+    </tr>`;
 }
 
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.

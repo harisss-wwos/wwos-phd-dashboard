@@ -1814,7 +1814,7 @@ function renderIncidentsChunk(d){
   const types=d.types||[];const max=types.length?types[0].count:1;
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   slot.innerHTML='<p class="meta-info">Incident types across the live quarter, ranked by volume.</p>'+
-    '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>'+
+    '<div style="overflow-x:auto"><table class="xls-table"><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>'+
     types.map((t,i)=>'<tr><td style="color:#ff9900;font-weight:700">'+(i+1)+'</td><td><strong>'+esc(t.type)+'</strong></td><td>'+t.count+'</td><td>'+t.pct+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:'+(t.count/max*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
     '</tbody></table></div>';
 }
@@ -1825,7 +1825,7 @@ function renderHiChunk(d){
   const subTable=(list,accent)=>{
     if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
     const mx=list[0].count;
-    return '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>'+
+    return '<div style="overflow-x:auto"><table class="xls-table"><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>'+
       list.map((r,i)=>'<tr><td style="color:'+accent+';font-weight:700">'+(i+1)+'</td><td><strong>'+esc(r.rootCause)+'</strong></td><td>'+r.count+'</td><td>'+(total?(r.count/total*100).toFixed(1):0)+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+accent+';width:'+(r.count/mx*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
       '</tbody></table></div>';
   };

@@ -134,6 +134,9 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 /* Individual Agent Performance: Excel-sheet style — gridlines on every cell, no group borders. */
 .iap-hint{color:#879596;font-size:.8em;margin:0 0 10px;display:flex;align-items:center;gap:6px}
 .iap-hint svg{color:var(--o);flex-shrink:0}
+/* Small in-cell spinner shown while a table's numbers load (header + names paint instantly). */
+.cell-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+.iap-table.xls td.loading{color:#4a5560}
 .gv-scroll .iap-table{min-width:1000px}
 .iap-table.xls{border-collapse:collapse;border:1px solid #2f3a45}
 .iap-table.xls th,.iap-table.xls td{white-space:nowrap;border:1px solid #2f3a45;padding:8px 12px}
@@ -586,12 +589,42 @@ window.toggleGvSection=toggleGvSection;
 
 // Load a leaf scope's data ONCE then render iap + gts tables via the shared windowed renderers.
 async function loadGvScope(sid){
-  ['iap','gts'].forEach(function(k){ var b=document.getElementById('gvBody-'+sid+'-'+k); if(b) b.innerHTML='<div style="display:flex;justify-content:center;padding:20px"><div class="spinner"></div></div>'; });
+  ['iap','gts'].forEach(function(k){ var b=document.getElementById('gvBody-'+sid+'-'+k); if(b) b.innerHTML=tableSkeleton(k); });
   let d=null;
   try{ const r=await A.api('GET', gvScopeUrl(sid)); if(r.ok&&r.data)d=r.data; }catch(e){}
   if(!d){ GV_LOADED[sid]=false; ['iap','gts'].forEach(function(k){ var b=document.getElementById('gvBody-'+sid+'-'+k); if(b) b.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this section. Try expanding again.</div>'; }); return; }
   SCOPE_STATE[sid]={ data:d, iapSort:{key:'Successful',dir:'desc'}, gtsSort:{key:'Successful',dir:'desc'} };
   scopeRenderIap(sid); scopeRenderGts(sid);
+}
+// Alphabetical agent + group name lists (for instant skeletons before data arrives).
+const AGENTS_ALPHA=[...PHD_AGENTS].sort(function(a,b){return a.localeCompare(b);});
+const GROUP_ROWS_ALPHA=[['A1','a1'],['B','b'],['A2','a2']];   // Alpha, Beta, Gamma (already alphabetical by name)
+// Paint a table skeleton: hardcoded header row + first column (names, alphabetical) + spinner cells.
+// `kind` = 'iap' (agent rows) or 'gts' (group rows). Header uses IAP_COLS/GTS-style labels.
+function tableSkeleton(kind){
+  const isGts=(kind==='gts');
+  const cols=isGts
+    ? [{label:'Group',short:'Group',key:'name'}].concat(IAP_CC_ORDER.map(function(c){return {label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c};})).concat([{label:'Total',short:'Total'},{label:'SLA',short:'SLA'}])
+    : IAP_COLS.map(function(c){return {label:c.label,short:c.short,succ:(c.key==='Successful')};});
+  // For gts we don't have the .succ flag; add manually for the Successful column.
+  const head='<tr>'+cols.map(function(c,i){ const kc=(c.succ||(isGts&&c.label==='Successful'))?' col-key':''; return '<th class="iap-sort'+kc+'"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
+  const ncols=cols.length;
+  var bodyRows;
+  if(isGts){
+    bodyRows=GROUP_ROWS_ALPHA.map(function(r){
+      var cells='<td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>';
+      for(var i=1;i<ncols;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
+      return '<tr>'+cells+'</tr>';
+    }).join('');
+  } else {
+    bodyRows=AGENTS_ALPHA.map(function(n){
+      var grp=(GA1.indexOf(n)>=0?'A1':(GA2.indexOf(n)>=0?'A2':(GB.indexOf(n)>=0?'B':null)));
+      var cells='<td><a href="agent-profile.html?user='+encodeURIComponent(n)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(n)+'</a> <span class="gv-tag '+GTC[grp]+'" style="font-size:.7em">'+(GN[grp]||grp||'')+'</span></td>';
+      for(var i=1;i<ncols;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
+      return '<tr>'+cells+'</tr>';
+    }).join('');
+  }
+  return '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+bodyRows+'</tbody></table></div>';
 }
 // Shared per-scope sortable renderers (used by By-Quarters/Overall leaves). Bodies: gvBody-<sid>-iap/-gts.
 const SCOPE_STATE={};
@@ -763,9 +796,22 @@ const Q_COLS=[
   {key:'yellow', label:'Yellow', short:'Yellow', type:'num', val:function(a){return (a.colors&&a.colors.yellow)||0;}, dot:'#fbbf24'},
   {key:'green',  label:'Green',  short:'Green',  type:'num', val:function(a){return (a.colors&&a.colors.green)||0;},  dot:'#4ade80'}
 ];
+// Skeleton for the Agent Queue table: hardcoded header + agent names (alphabetical) + spinner cells.
+function queueSkeleton(){
+  const head='<tr>'+Q_COLS.map(function(c){ const dot=c.dot?('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c.dot+';margin-right:5px;vertical-align:middle"></span>'):''; return '<th class="iap-sort">'+dot+'<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
+  const rows=AGENTS_ALPHA.map(function(n){
+    var grp=(GA1.indexOf(n)>=0?'A1':(GA2.indexOf(n)>=0?'A2':(GB.indexOf(n)>=0?'B':null)));
+    var cells='<td><a href="agent-profile.html?user='+encodeURIComponent(n)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(n)+'</a> <span class="gv-tag '+GTC[grp]+'" style="font-size:.7em">'+(GN[grp]||grp||'')+'</span></td>';
+    for(var i=1;i<Q_COLS.length;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
+    return '<tr>'+cells+'</tr>';
+  }).join('');
+  return '<p class="iap-hint">'+ic('bar-chart',13)+' Tip: click any column header to sort \u2014 click again to switch between lowest\u2194highest.</p>'+
+    '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
 async function loadQueueTable(){
   const body=document.getElementById('queueTableBody'); if(!body)return;
   if(Q_AGENTS){ qRenderTable(); return; }
+  body.innerHTML=queueSkeleton();
   let agents=null;
   try{ const r=await A.api('GET','/api/group-analytics/iap'); if(r.ok&&r.data&&Array.isArray(r.data.agents))agents=r.data.agents; }catch(e){}
   if(!agents){ body.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load the queue table.</div>'; return; }
@@ -853,7 +899,7 @@ window.toggleWindowCard=toggleWindowCard;
 async function loadWindow(win){
   const st=WIN_STATE[win]||(WIN_STATE[win]={iapSort:{key:'Successful',dir:'desc'},gtsSort:{key:'Successful',dir:'desc'}});
   if(st.data){ winRenderIap(win); winRenderGts(win); return; }
-  ['winIap-','winGts-'].forEach(function(p){ var el=document.getElementById(p+win); if(el)el.innerHTML='<div style="display:flex;justify-content:center;padding:20px"><div class="spinner"></div></div>'; });
+  { var _i=document.getElementById('winIap-'+win); if(_i)_i.innerHTML=tableSkeleton('iap'); var _g=document.getElementById('winGts-'+win); if(_g)_g.innerHTML=tableSkeleton('gts'); }
   let d=null;
   try{ const r=await A.api('GET','/api/group-window/'+win); if(r.ok&&r.data)d=r.data; }catch(e){}
   if(!d){ ['winIap-','winGts-'].forEach(function(p){ var el=document.getElementById(p+win); if(el)el.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this window.</div>'; }); return; }
