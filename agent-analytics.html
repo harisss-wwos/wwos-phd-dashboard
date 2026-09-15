@@ -22,7 +22,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
-.wrap{width:94%;max-width:1400px;margin:0 auto;padding:32px 20px}
+.wrap{width:80%;max-width:none;margin:0 auto;padding:32px 20px}
+@media(max-width:768px){.wrap{width:90%}}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
 .section{margin-bottom:30px}
@@ -130,6 +131,39 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .gv-tag.a1{background:rgba(125,211,252,.15);color:var(--a1)}
 .gv-tag.a2{background:rgba(251,191,36,.15);color:var(--a2)}
 .gv-tag.b{background:rgba(74,222,128,.15);color:var(--b)}
+/* Individual Agent Performance: Excel-sheet style — gridlines on every cell, no group borders. */
+.iap-hint{color:#879596;font-size:.8em;margin:0 0 10px;display:flex;align-items:center;gap:6px}
+.iap-hint svg{color:var(--o);flex-shrink:0}
+.gv-scroll .iap-table{min-width:1000px}
+.iap-table.xls{border-collapse:collapse;border:1px solid #2f3a45}
+.iap-table.xls th,.iap-table.xls td{white-space:nowrap;border:1px solid #2f3a45;padding:8px 12px}
+.iap-table.xls thead th{background:#111820}
+.iap-table.xls tbody tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.iap-table.xls tbody tr:hover td{background:rgba(255,153,0,.06)}
+/* "Successful" is the key column — subtle highlight so it stands out. */
+.iap-table.xls .col-key{background:rgba(74,222,128,.1)!important;font-weight:700;color:#eafff0}
+.iap-table.xls thead th.col-key{background:rgba(74,222,128,.16)!important;color:#4ade80}
+/* Sortable headers */
+.iap-table.xls th.iap-sort{cursor:pointer;user-select:none}
+.iap-table.xls th.iap-sort:hover{background:#18222c}
+.iap-table.xls th.iap-sort.sorted{color:var(--o)}
+.iap-table.xls th.iap-sort.col-key.sorted{color:#4ade80}
+/* Zero values are greyed out so non-zero numbers stand out. */
+.iap-table.xls td.zero{color:#4a5560}
+.iap-table.xls td.zero .zero,.iap-table.xls .zero{color:#4a5560}
+.iap-table.xls td.col-key.zero{color:#4a5560;font-weight:400}
+/* Total column — subtle highlight. */
+.iap-table.xls .col-total{background:rgba(68,185,214,.1)!important;color:#cfeffb}
+.iap-table.xls td.col-total.zero{color:#4a5560}
+/* Header labels: full by default, short/abbreviated forms on narrow screens. Truncate if still tight. */
+.iap-table.xls th .th-full{display:inline-block;overflow:hidden;text-overflow:ellipsis;max-width:130px;vertical-align:middle}
+.iap-table.xls th .th-short{display:none;overflow:hidden;text-overflow:ellipsis;max-width:90px;vertical-align:middle}
+.iap-table.xls th .th-arrow{white-space:nowrap}
+@media(max-width:900px){
+  .iap-table.xls th .th-full{display:none}
+  .iap-table.xls th .th-short{display:inline-block}
+  .iap-table.xls th,.iap-table.xls td{padding:6px 8px;font-size:.82em}
+}
 .gv-legend{display:flex;gap:24px;flex-wrap:wrap;background:var(--s);border:1px solid var(--bd);border-radius:8px;padding:16px 20px;margin-bottom:24px;font-size:.9em}
 .gv-legend span{display:flex;align-items:center;gap:8px}
 .gv-legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
@@ -151,6 +185,16 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 /* Inside a collapsible card the charts/tables shouldn't add their own card chrome or bottom gap. */
 .gv-card-body .gv-chart,.gv-card-body .gv-sec{border:none;background:transparent;padding:0;margin:0}
 .gv-card-body .gv-charts{margin-bottom:0}
+/* Nested collapsible hierarchy (By Quarters -> quarter -> Complete/months; window cards). */
+.gv-nested{margin-top:2px}
+.gv-mid>.gv-card-head .gv-card-title{color:#e5eaea}
+.gv-leaf{background:#0c1218}
+.gv-leaf>.gv-card-head .gv-card-title{font-weight:600;font-size:.94em;color:#cfd6d6}
+.gv-sub-range{color:var(--tm);font-weight:400;font-size:.82em;margin-left:6px}
+/* Two always-open blocks (Individual Agent Performance + Group Totals Summary) inside a scope card. */
+.gv-blocks{display:flex;flex-direction:column;gap:22px}
+.gv-block-title{color:#cfd6d6;font-size:.82em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.gv-block-title::before{content:'';width:3px;height:.95em;background:var(--o);border-radius:2px;flex-shrink:0}
 /* ---- Page layout: title + evenly spaced, clearly labelled sections ---- */
 .an-head{margin-bottom:28px}
 .an-head h1{font-size:1.7em;margin-bottom:6px}
@@ -391,11 +435,15 @@ function render(){
     </div>
 
     <section class="an-sec">
-      <div class="an-sec-head">
-        <h2>${ic('users',18)} Teams &amp; Agents</h2>
-        <p class="an-sec-desc">The three PHD teams (Alpha, Beta, Gamma) and their members. Each tile shows an agent — click to open that agent's individual analytics profile. Team tiles above show each team's combined <b>Resolved this quarter</b> and <b>Open now</b>.</p>
+      <div class="gv-list">
+        <div class="gv-card open" id="queueCard">
+          <button type="button" class="gv-card-head" aria-expanded="true" onclick="toggleQueueCard(this)">
+            <span class="gv-card-title">${ic('inbox',16)} Agent Queue (Open Tickets)</span><span class="gv-caret" aria-hidden="true">\u25be</span>
+          </button>
+          <div class="gv-card-body"><div><div id="queueTableBody"><div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div></div></div></div>
+        </div>
+        ${windowSectionsHtml()}
       </div>
-      ${groupsSectionHtml()}
     </section>
 
     <section class="an-sec">
@@ -405,8 +453,7 @@ function render(){
       </div>
       <div id="groupsView">${groupsSectionsHtml()}</div>
     </section>`;
-  // If stats already loaded (revisit/cache), fill immediately.
-  if(Object.keys(AGENT_STATS).length) fillTeamStats();
+  loadQueueTable();   // Agent Queue is expanded by default -> load now. Window sections load lazily on expand.
 }
 // ============================================================================
 // Ported "Groups" view (charts + tables), same output as app.html?view=groups.
@@ -434,7 +481,10 @@ function gvComputeMetrics(data){
   data.forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aAsgn[r.AssigneeIdentity]=(aAsgn[r.AssigneeIdentity]||0)+1; });
   const aStatus={}; PHD_AGENTS.forEach(n=>{aStatus[n]={Assigned:0,'Work In Progress':0,Researching:0,Pending:0,Resolved:0,Closed:0};});
   data.forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity)&&aStatus[r.AssigneeIdentity][r.Status]!==undefined){ aStatus[r.AssigneeIdentity][r.Status]++; } });
-  const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?gvAvg(aTm[n]):0,group:getGroup(n),statuses:aStatus[n]}));
+  // Per-agent ClosureCode tally for the resolver (Immediately Resolved / Automatically Closed).
+  const aClosure={}; PHD_AGENTS.forEach(n=>{aClosure[n]={'Immediately Resolved':0,'Automatically Closed':0};});
+  data.forEach(r=>{ const rby=r.ResolvedByIdentity; if(rby&&PHD_AGENTS.includes(rby)&&aClosure[rby]){ const cc=String(r.ClosureCode||'').trim(); if(aClosure[rby][cc]!==undefined) aClosure[rby][cc]++; } });
+  const agents=PHD_AGENTS.map(n=>({name:n,assigned:aAsgn[n]||0,resolved:aRes[n]||0,open:aOpen[n]||0,avgTime:aTm[n]?gvAvg(aTm[n]):0,group:getGroup(n),statuses:aStatus[n],closure:aClosure[n]}));
   // Group tallies
   let a1R=0,a2R=0,bR=0,a1O=0,a2O=0,bO=0;
   data.forEach(r=>{ if(r.Status==='Resolved'){const g=getGroup(r.ResolvedByIdentity); if(g==='A1')a1R++;else if(g==='A2')a2R++;else if(g==='B')bR++;} if(r.Status!=='Resolved'){const g=getGroup(r.AssigneeIdentity); if(g==='A1')a1O++;else if(g==='A2')a2O++;else if(g==='B')bO++;} });
@@ -453,44 +503,144 @@ function gvComputeMetrics(data){
 const GN={A1:'Alpha',A2:'Gamma',B:'Beta'}, GC={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'}, GTC={A1:'a1',A2:'a2',B:'b'};
 const GV_LOADED={};          // section key -> true once rendered
 
-// The 6 collapsible sections. `render` = which per-section renderer to call once data is ready.
-const GV_SECTIONS=[
-  {key:'ro',    title:'Resolved vs Open · Avg Resolution Time'},
-  {key:'wl',    title:'Workload Distribution · Daily Group Trend (Last 7 Days)'},
-  {key:'par',   title:'Per-Agent Resolved (by Group)'},
-  {key:'arv',   title:'Agent Resolution Volume'},
-  {key:'iap',   title:'Individual Agent Performance'},
-  {key:'gts',   title:'Group Totals Summary'},
+// ---- Group Analytics: By Quarters (Q3/Q2/Q1 -> Complete + 3 months) + Overall Performance ----
+// Each leaf is a "scope" with a unique id + a data source (an /api endpoint). Both iap & gts tables
+// render from one fetch. Nested collapsible cards; each leaf lazy-loads on first expand.
+// Quarter months (index within the quarter -> label). Q1=Jan/Feb/Mar, Q2=Apr/May/Jun, Q3=Jul/Aug/Sep.
+const GV_QUARTERS=[
+  {qid:'2026-Q3', title:'Quarter Q3 (Live) — July 1st to September', months:['July','August','September']},
+  {qid:'2026-Q2', title:'Quarter Q2 — April 1st to June 30th',       months:['April','May','June']},
+  {qid:'2026-Q1', title:'Quarter Q1 — January 1st to March 31st',    months:['January','February','March']},
 ];
+// A leaf scope: { sid, url }. Build one per Complete-quarter, per-month, and Overall.
+function gvScopeUrl(sid){ return GV_SCOPE_URL[sid]; }
+const GV_SCOPE_URL={};   // sid -> api url
+// Build the nested Group Analytics HTML.
 function groupsSectionsHtml(){
-  return '<div class="gv-list">'+GV_SECTIONS.map(function(s){
-    return '<div class="gv-card" data-gv="'+s.key+'">'+
+  // A leaf card = one scope with the two tables inside (Individual Agent Performance + Group Totals Summary).
+  function leaf(sid, title){
+    return '<div class="gv-card gv-leaf" data-scope="'+esc(sid)+'">'+
       '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGvSection(this)">'+
-        '<span class="gv-card-title">'+esc(s.title)+'</span>'+
-        '<span class="gv-caret" aria-hidden="true">\u25be</span>'+
+        '<span class="gv-card-title">'+esc(title)+'</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+
       '</button>'+
-      '<div class="gv-card-body"><div id="gvBody-'+s.key+'"></div></div>'+
+      '<div class="gv-card-body"><div class="gv-blocks">'+
+        '<div class="gv-block"><h4 class="gv-block-title">Individual Agent Performance</h4><div id="gvBody-'+esc(sid)+'-iap"></div></div>'+
+        '<div class="gv-block"><h4 class="gv-block-title">Group Totals Summary</h4><div id="gvBody-'+esc(sid)+'-gts"></div></div>'+
+      '</div></div>'+
     '</div>';
-  }).join('')+'</div>';
+  }
+  // By Quarters (outer collapsible), containing each quarter (mid collapsible) -> Complete + 3 months (leaves).
+  var quartersHtml=GV_QUARTERS.map(function(q){
+    var completeSid='q_'+q.qid+'_all'; GV_SCOPE_URL[completeSid]='/api/group-quarter/'+q.qid;
+    var leaves=leaf(completeSid,'Complete Quarter');
+    leaves+=q.months.map(function(mn,mi){ var sid='q_'+q.qid+'_m'+mi; GV_SCOPE_URL[sid]='/api/group-quarter/'+q.qid+'?month='+mi; return leaf(sid,mn); }).join('');
+    return '<div class="gv-card gv-mid" data-static>'+
+      '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGvStatic(this)">'+
+        '<span class="gv-card-title">'+esc(q.title)+'</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="gv-card-body"><div class="gv-list gv-nested">'+leaves+'</div></div>'+
+    '</div>';
+  }).join('');
+  GV_SCOPE_URL['overall']='/api/group-overall';
+  return '<div class="gv-list">'+
+    '<div class="gv-card gv-mid" data-static>'+
+      '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGvStatic(this)">'+
+        '<span class="gv-card-title">By Quarters</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="gv-card-body"><div class="gv-list gv-nested">'+quartersHtml+'</div></div>'+
+    '</div>'+
+    leaf('overall','Overall Performance (from complete database)')+
+  '</div>';
 }
+// Accordion: collapse every OTHER open .gv-card that is a direct sibling of `card` (same .gv-list),
+// so only one section at each nesting level is open at a time.
+function gvAccordion(card){
+  const list=card.parentElement; if(!list)return;
+  Array.prototype.forEach.call(list.children, function(sib){
+    if(sib!==card && sib.classList && sib.classList.contains('gv-card') && sib.classList.contains('open')){
+      sib.classList.remove('open');
+      var h=sib.querySelector(':scope > .gv-card-head'); if(h) h.setAttribute('aria-expanded','false');
+    }
+  });
+}
+// Toggle a purely-structural (no data) card — just expand/collapse, no fetch.
+function toggleGvStatic(btn){
+  const card=btn.closest('.gv-card'); if(!card)return;
+  const willOpen=!card.classList.contains('open');
+  if(willOpen) gvAccordion(card);
+  card.classList.toggle('open', willOpen);
+  btn.setAttribute('aria-expanded',willOpen?'true':'false');
+}
+window.toggleGvStatic=toggleGvStatic;
+// Toggle a leaf scope card — lazy-loads its data on first expand.
 function toggleGvSection(btn){
   const card=btn.closest('.gv-card'); if(!card)return;
-  const open=card.classList.toggle('open');
-  btn.setAttribute('aria-expanded',open?'true':'false');
-  const key=card.getAttribute('data-gv');
-  if(open && !GV_LOADED[key]){ GV_LOADED[key]=true; loadGvSection(key); }
+  const willOpen=!card.classList.contains('open');
+  if(willOpen) gvAccordion(card);
+  card.classList.toggle('open', willOpen);
+  btn.setAttribute('aria-expanded',willOpen?'true':'false');
+  const sid=card.getAttribute('data-scope');
+  if(willOpen && !GV_LOADED[sid]){ GV_LOADED[sid]=true; loadGvScope(sid); }
 }
 window.toggleGvSection=toggleGvSection;
 
-async function loadGvSection(key){
-  const body=document.getElementById('gvBody-'+key); if(!body)return;
-  body.innerHTML='<div style="display:flex;justify-content:center;padding:30px"><div class="spinner"></div></div>';
-  // Each section fires its OWN request to its own endpoint (small payload).
-  let m=null;
-  try{ const r=await A.api('GET','/api/group-analytics/'+key); if(r.ok&&r.data)m=r.data; }catch(e){}
-  if(!m){ GV_LOADED[key]=false; body.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this section. Try expanding again.</div>'; return; }
-  Chart.defaults.color='#879596'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
-  GV_RENDER[key](m, body);
+// Load a leaf scope's data ONCE then render iap + gts tables via the shared windowed renderers.
+async function loadGvScope(sid){
+  ['iap','gts'].forEach(function(k){ var b=document.getElementById('gvBody-'+sid+'-'+k); if(b) b.innerHTML='<div style="display:flex;justify-content:center;padding:20px"><div class="spinner"></div></div>'; });
+  let d=null;
+  try{ const r=await A.api('GET', gvScopeUrl(sid)); if(r.ok&&r.data)d=r.data; }catch(e){}
+  if(!d){ GV_LOADED[sid]=false; ['iap','gts'].forEach(function(k){ var b=document.getElementById('gvBody-'+sid+'-'+k); if(b) b.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this section. Try expanding again.</div>'; }); return; }
+  SCOPE_STATE[sid]={ data:d, iapSort:{key:'Successful',dir:'desc'}, gtsSort:{key:'Successful',dir:'desc'} };
+  scopeRenderIap(sid); scopeRenderGts(sid);
+}
+// Shared per-scope sortable renderers (used by By-Quarters/Overall leaves). Bodies: gvBody-<sid>-iap/-gts.
+const SCOPE_STATE={};
+function scopeSort(sid,which,key){
+  const st=SCOPE_STATE[sid]; if(!st)return;
+  const k=(which==='iap')?'iapSort':'gtsSort';
+  if(st[k].key===key){ st[k].dir=(st[k].dir==='desc')?'asc':'desc'; } else { st[k]={key:key,dir:(key==='name'?'asc':'desc')}; }
+  if(which==='iap') scopeRenderIap(sid); else scopeRenderGts(sid);
+}
+window.scopeSort=scopeSort;
+function scopeRenderIap(sid){
+  const st=SCOPE_STATE[sid]; const body=document.getElementById('gvBody-'+sid+'-iap'); if(!st||!st.data||!body)return;
+  const cols=IAP_COLS, sort=st.iapSort;
+  const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
+  const dir=(sort.dir==='asc')?1:-1;
+  const sorted=[...st.data.agents].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||a.name.localeCompare(b.name); });
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="scopeSort(\''+esc(sid)+'\',\'iap\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const rows=sorted.map(function(a){
+    const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
+    const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
+    return '<tr><td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> <span class="gv-tag '+GTC[a.group]+'" style="font-size:.7em">'+(GN[a.group]||a.group)+'</span></td>'+
+      IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
+      '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
+      '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
+      '<td'+(avg===0?' class="zero"':'')+'>'+avg.toFixed(1)+'</td></tr>';
+  }).join('');
+  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
+function scopeRenderGts(sid){
+  const st=SCOPE_STATE[sid]; const body=document.getElementById('gvBody-'+sid+'-gts'); if(!st||!st.data||!body)return;
+  const groups=st.data.groups||{closure:{},sla:{}}; const sort=st.gtsSort;
+  const rows0=[['A1','a1'],['B','b'],['A2','a2']];
+  const cloOf=function(r){return (groups.closure&&groups.closure[r[0]])||{};};
+  const slaOf=function(r){return (groups.sla&&groups.sla[r[0]])||null;};
+  const cols=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}}]
+    .concat(IAP_CC_ORDER.map(function(c){return {key:c,label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c,type:'num',val:function(r){return cloOf(r)[c]||0;}};}))
+    .concat([{key:'__total',label:'Total',short:'Total',type:'num',val:function(r){return iapTotal(cloOf(r));}},
+             {key:'__sla',label:'SLA',short:'SLA',type:'num',val:function(r){var s=slaOf(r);return (s&&s.pct!=null)?s.pct:-1;}}]);
+  const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
+  const dir=(sort.dir==='asc')?1:-1;
+  const rows=[...rows0].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||(GN[a[0]]||'').localeCompare(GN[b[0]]||''); });
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="scopeSort(\''+esc(sid)+'\',\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const trs=rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
+    return '<tr><td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>'+
+      IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
+      '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
+      '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';
+  }).join('');
+  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>';
 }
 
 // Per-section renderers. Each draws into its own body element.
@@ -519,22 +669,292 @@ const GV_RENDER={
   arv:function(m,body){
     const sortedByRes=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
     body.innerHTML='<div class="gv-chart"><div class="gv-wrap" style="height:350px"><canvas id="gvc6"></canvas></div></div>';
-    gvMakeChart('gvc6',{type:'bar',data:{labels:sortedByRes.map(a=>a.name),datasets:[{label:'Resolved',data:sortedByRes.map(a=>a.resolved),backgroundColor:'rgba(74,222,128,.75)',borderRadius:2},{label:'Open',data:sortedByRes.map(a=>a.open),backgroundColor:'rgba(255,153,0,.75)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
+    // Wavy (smooth filled area) line chart: Resolved (green) + Open (orange) per agent.
+    const gvWave=function(label,data,color,rgba){return {label:label,data:data,borderColor:color,pointBackgroundColor:color,pointRadius:3,borderWidth:2,tension:.45,fill:true,spanGaps:true,backgroundColor:function(ctx){const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,350);g.addColorStop(0,rgba+'.32)');g.addColorStop(1,rgba+'.02)');return g;}};};
+    gvMakeChart('gvc6',{type:'line',data:{labels:sortedByRes.map(a=>a.name),datasets:[
+      gvWave('Resolved',sortedByRes.map(a=>a.resolved),'#4ade80','rgba(74,222,128,'),
+      gvWave('Open',sortedByRes.map(a=>a.open),'#ff9900','rgba(255,153,0,')
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#d5dbdb',usePointStyle:true,boxWidth:8}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
   },
   iap:function(m,body){
-    const sorted=gvSortedByGroup(m);
-    body.innerHTML='<div class="gv-scroll"><table><thead><tr><th>Agent</th><th>Group</th><th>Assigned</th><th>WIP</th><th>Researching</th><th>Pending</th><th>Resolved</th><th>Closed</th><th>Avg Res (hrs)</th><th>Rate</th></tr></thead><tbody>'+
-      sorted.map(a=>'<tr><td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a></td><td><span class="gv-tag '+GTC[a.group]+'">'+(GN[a.group]||a.group)+'</span></td><td>'+(a.statuses?a.statuses['Assigned']:0)+'</td><td>'+(a.statuses?a.statuses['Work In Progress']:0)+'</td><td>'+(a.statuses?a.statuses['Researching']:0)+'</td><td>'+(a.statuses?a.statuses['Pending']:0)+'</td><td><span class="gv-badge">'+(a.statuses?a.statuses['Resolved']:0)+'</span></td><td>'+(a.statuses?a.statuses['Closed']:0)+'</td><td>'+a.avgTime.toFixed(1)+'</td><td>'+(a.resolved+a.open>0?((a.resolved/(a.resolved+a.open))*100).toFixed(1):0)+'%</td></tr>').join('')+
-    '</tbody></table></div>';
+    IAP_M=m; IAP_BODY=body;
+    // Default sort: Successful, descending.
+    if(!IAP_SORT){ IAP_SORT={key:'Successful',dir:'desc'}; }
+    iapRenderTable();
   },
   gts:function(m,body){
-    body.innerHTML='<div class="gv-scroll"><table><thead><tr><th>Group</th><th>Members</th><th>Assigned</th><th>Resolved</th><th>Open</th><th>Avg Hrs</th><th>Res/Member</th><th>Rate</th></tr></thead><tbody>'+
-      '<tr><td><span class="gv-tag a1">'+GN.A1+'</span></td><td>4</td><td>'+m.a1As+'</td><td>'+m.a1R+'</td><td>'+m.a1O+'</td><td>'+m.a1Avg.toFixed(1)+'</td><td>'+(m.a1R/4).toFixed(1)+'</td><td>'+(m.a1R+m.a1O>0?((m.a1R/(m.a1R+m.a1O))*100).toFixed(1):0)+'%</td></tr>'+
-      '<tr><td><span class="gv-tag a2">'+GN.A2+'</span></td><td>6</td><td>'+m.a2As+'</td><td>'+m.a2R+'</td><td>'+m.a2O+'</td><td>'+m.a2Avg.toFixed(1)+'</td><td>'+(m.a2R/6).toFixed(1)+'</td><td>'+(m.a2R+m.a2O>0?((m.a2R/(m.a2R+m.a2O))*100).toFixed(1):0)+'%</td></tr>'+
-      '<tr><td><span class="gv-tag b">'+GN.B+'</span></td><td>3</td><td>'+m.bAs+'</td><td>'+m.bR+'</td><td>'+m.bO+'</td><td>'+m.bAvg.toFixed(1)+'</td><td>'+(m.bR/3).toFixed(1)+'</td><td>'+(m.bR+m.bO>0?((m.bR/(m.bR+m.bO))*100).toFixed(1):0)+'%</td></tr>'+
-    '</tbody></table></div>';
+    GTS_M=m; GTS_BODY=body;
+    if(!GTS_SORT){ GTS_SORT={key:'Successful',dir:'desc'}; }
+    gtsRenderTable();
   },
 };
+// The 8 ClosureCodes shown in the Q3 tables + short header labels to keep columns compact.
+const GV_CLOSURE_CODES=['Successful','Successful with Problems','Unsuccessful','Automatically Closed','Immediately Resolved','No Plan to Fix','No Issue','Duplicate'];
+const GV_CC_SHORT={'Successful':'Successful','Successful with Problems':'Success w/ Problems','Unsuccessful':'Unsuccessful','Automatically Closed':'Auto Closed','Immediately Resolved':'Imm. Resolved','No Plan to Fix':'No Plan to Fix','No Issue':'No Issue','Duplicate':'Duplicate'};
+// Individual Agent Performance: sortable-table state + renderer.
+let IAP_M=null, IAP_BODY=null, IAP_SORT=null;
+// Column defs (in display order): key = sort id, label (+ short label for narrow screens), value accessor.
+// Closure-code order requested: Successful, Imm. Resolved, Auto Closed, Duplicate, Success w/ Problems,
+// Unsuccessful, No Plan to Fix, No Issue — then SLA, Avg Res (hrs).
+const IAP_CC_ORDER=['Successful','Immediately Resolved','Automatically Closed','Duplicate','Successful with Problems','Unsuccessful','No Plan to Fix','No Issue'];
+const IAP_CC_ABBR={'Successful':'Succ','Immediately Resolved':'Imm.Res','Automatically Closed':'Auto','Duplicate':'Dup','Successful with Problems':'Succ w/P','Unsuccessful':'Unsucc','No Plan to Fix':'No Plan','No Issue':'No Iss'};
+// Total = sum of all 8 closure codes for a closure map.
+function iapTotal(clo){ clo=clo||{}; var t=0; IAP_CC_ORDER.forEach(function(c){t+=clo[c]||0;}); return t; }
+const IAP_COLS=[{key:'name',label:'Agent',short:'Agent',type:'str',val:function(a){return a.name;}}]
+  .concat(IAP_CC_ORDER.map(function(c){return {key:c,label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c,type:'num',val:function(a){return (a.closure&&a.closure[c])||0;}};}))
+  .concat([
+    {key:'__total',label:'Total',short:'Total',type:'num',val:function(a){return iapTotal(a.closure);}},
+    {key:'__sla',label:'SLA',short:'SLA',type:'num',val:function(a){return (a.sla&&a.sla.pct!=null)?a.sla.pct:-1;}},
+    {key:'__avg',label:'Avg Res (hrs)',short:'Avg h',type:'num',val:function(a){return a.avgTime||0;}}
+  ]);
+function iapSort(key){
+  if(IAP_SORT&&IAP_SORT.key===key){ IAP_SORT.dir=(IAP_SORT.dir==='desc')?'asc':'desc'; }
+  else { IAP_SORT={key:key, dir:(key==='name'?'asc':'desc')}; }   // text defaults asc, numbers desc
+  iapRenderTable();
+}
+window.iapSort=iapSort;
+function iapArrow(key){ return (IAP_SORT&&IAP_SORT.key===key)?(IAP_SORT.dir==='desc'?' \u25be':' \u25b4'):''; }
+function iapRenderTable(){
+  const m=IAP_M, body=IAP_BODY; if(!m||!body)return;
+  const col=IAP_COLS.find(function(c){return c.key===(IAP_SORT&&IAP_SORT.key);})||IAP_COLS[1];
+  const dir=(IAP_SORT&&IAP_SORT.dir==='asc')?1:-1;
+  const sorted=[...m.agents].sort(function(a,b){
+    let r; if(col.type==='str') r=String(col.val(a)).localeCompare(String(col.val(b)));
+    else r=(col.val(a)-col.val(b));
+    return (r*dir) || a.name.localeCompare(b.name);   // stable tie-break by name
+  });
+  const head='<tr>'+IAP_COLS.map(function(c){
+    const keyCls=(c.key==='Successful')?' col-key':'';
+    const activeCls=(IAP_SORT&&IAP_SORT.key===c.key)?' sorted':'';
+    return '<th class="iap-sort'+keyCls+activeCls+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="iapSort(\''+esc(c.key)+'\')">'+
+      '<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span>'+
+      '<span class="th-arrow">'+iapArrow(c.key)+'</span></th>';
+  }).join('')+'</tr>';
+  const rows=sorted.map(function(a){
+    const clo=a.closure||{};
+    const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014';
+    const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
+    const avg=(a.avgTime||0);
+    return '<tr>'+
+      '<td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> <span class="gv-tag '+GTC[a.group]+'" style="font-size:.7em">'+(GN[a.group]||a.group)+'</span></td>'+
+      IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
+      '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
+      '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
+      '<td'+(avg===0?' class="zero"':'')+'>'+avg.toFixed(1)+'</td>'+
+    '</tr>';
+  }).join('');
+  body.innerHTML='<p class="iap-hint">'+ic('bar-chart',13)+' Tip: click any column header to sort \u2014 click again to switch between lowest\u2194highest.</p>'+
+    '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ---- Agent Queue table (open tickets by status + age colour) ----
+let Q_AGENTS=null, Q_SORT=null;
+const Q_INQUEUE=function(a){var s=a.statuses||{};return (s['Assigned']||0)+(s['Work In Progress']||0)+(s['Pending']||0)+(s['Researching']||0);};
+const Q_COLS=[
+  {key:'name',   label:'Agent',      short:'Agent', type:'str', val:function(a){return a.name;}},
+  {key:'__inq',  label:'In Queue',   short:'Queue', type:'num', val:function(a){return Q_INQUEUE(a);}, cls:'col-total'},
+  {key:'Assigned',          label:'Assigned',   short:'Asg',  type:'num', val:function(a){return (a.statuses&&a.statuses['Assigned'])||0;}},
+  {key:'Work In Progress',  label:'WIP',        short:'WIP',  type:'num', val:function(a){return (a.statuses&&a.statuses['Work In Progress'])||0;}},
+  {key:'Pending',           label:'Pending',    short:'Pend', type:'num', val:function(a){return (a.statuses&&a.statuses['Pending'])||0;}},
+  {key:'Researching',       label:'Researching',short:'Res',  type:'num', val:function(a){return (a.statuses&&a.statuses['Researching'])||0;}},
+  {key:'purple', label:'Purple', short:'Purple', type:'num', val:function(a){return (a.colors&&a.colors.purple)||0;}, dot:'#a78bfa'},
+  {key:'black',  label:'Black',  short:'Black',  type:'num', val:function(a){return (a.colors&&a.colors.black)||0;},  dot:'#888'},
+  {key:'red',    label:'Red',    short:'Red',    type:'num', val:function(a){return (a.colors&&a.colors.red)||0;},    dot:'#ff5252'},
+  {key:'yellow', label:'Yellow', short:'Yellow', type:'num', val:function(a){return (a.colors&&a.colors.yellow)||0;}, dot:'#fbbf24'},
+  {key:'green',  label:'Green',  short:'Green',  type:'num', val:function(a){return (a.colors&&a.colors.green)||0;},  dot:'#4ade80'}
+];
+async function loadQueueTable(){
+  const body=document.getElementById('queueTableBody'); if(!body)return;
+  if(Q_AGENTS){ qRenderTable(); return; }
+  let agents=null;
+  try{ const r=await A.api('GET','/api/group-analytics/iap'); if(r.ok&&r.data&&Array.isArray(r.data.agents))agents=r.data.agents; }catch(e){}
+  if(!agents){ body.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load the queue table.</div>'; return; }
+  Q_AGENTS=agents; if(!Q_SORT)Q_SORT={key:'__inq',dir:'desc'};
+  qRenderTable();
+}
+function qSort(key){
+  if(Q_SORT&&Q_SORT.key===key){ Q_SORT.dir=(Q_SORT.dir==='desc')?'asc':'desc'; }
+  else { Q_SORT={key:key, dir:(key==='name'?'asc':'desc')}; }
+  qRenderTable();
+}
+window.qSort=qSort;
+function qArrow(key){ return (Q_SORT&&Q_SORT.key===key)?(Q_SORT.dir==='desc'?' \u25be':' \u25b4'):''; }
+function qRenderTable(){
+  const body=document.getElementById('queueTableBody'); if(!body||!Q_AGENTS)return;
+  const col=Q_COLS.find(function(c){return c.key===(Q_SORT&&Q_SORT.key);})||Q_COLS[1];
+  const dir=(Q_SORT&&Q_SORT.dir==='asc')?1:-1;
+  const sorted=[...Q_AGENTS].sort(function(a,b){
+    let r; if(col.type==='str') r=String(col.val(a)).localeCompare(String(col.val(b)));
+    else r=(col.val(a)-col.val(b));
+    return (r*dir) || a.name.localeCompare(b.name);
+  });
+  const head='<tr>'+Q_COLS.map(function(c){
+    const activeCls=(Q_SORT&&Q_SORT.key===c.key)?' sorted':'';
+    const dot=c.dot?('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c.dot+';margin-right:5px;vertical-align:middle"></span>'):'';
+    return '<th class="iap-sort'+activeCls+'" onclick="qSort(\''+esc(c.key)+'\')">'+dot+
+      '<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span>'+
+      '<span class="th-arrow">'+qArrow(c.key)+'</span></th>';
+  }).join('')+'</tr>';
+  const rows=sorted.map(function(a){
+    return '<tr>'+Q_COLS.map(function(c){
+      if(c.key==='name') return '<td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> <span class="gv-tag '+GTC[a.group]+'" style="font-size:.7em">'+(GN[a.group]||a.group)+'</span></td>';
+      var v=c.val(a);
+      return '<td class="'+(c.cls||'')+((v===0)?' zero':'')+'">'+((c.cls==='col-total')?('<b>'+v+'</b>'):v)+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+  body.innerHTML='<p class="iap-hint">'+ic('bar-chart',13)+' Tip: click any column header to sort \u2014 click again to switch between lowest\u2194highest.</p>'+
+    '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ---- Time-windowed sections (last 12h / 24h / 7d): collapsible, lazy-load on first expand ----
+function last7DaysRange(){
+  var to=new Date(); var from=new Date(to.getTime()-7*864e5);
+  var f=function(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});};
+  return f(from)+' \u2013 '+f(to);
+}
+const WIN_DEFS=[
+  {win:'12h',title:'Last 12 Hours'},
+  {win:'24h',title:'Last 24 Hours'},
+  {win:'7d', title:'Last 7 Days'}
+];
+const WIN_STATE={};   // win -> { data, loaded, iapSort, gtsSort }
+function windowSectionsHtml(){
+  return WIN_DEFS.map(function(w){
+    var sub=(w.win==='7d')?(' <span class="gv-sub-range">('+esc(last7DaysRange())+')</span>'):'';
+    return '<div class="gv-card" data-win="'+w.win+'">'+
+      '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleWindowCard(this)">'+
+        '<span class="gv-card-title">'+ic('clock',16)+' '+esc(w.title)+sub+'</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="gv-card-body"><div class="gv-blocks">'+
+        '<div class="gv-block"><h4 class="gv-block-title">Individual Agent Performance</h4><div id="winIap-'+w.win+'"></div></div>'+
+        '<div class="gv-block"><h4 class="gv-block-title">Group Totals Summary</h4><div id="winGts-'+w.win+'"></div></div>'+
+      '</div></div>'+
+    '</div>';
+  }).join('');
+}
+function toggleQueueCard(btn){
+  const card=btn.closest('.gv-card'); if(!card)return;
+  const willOpen=!card.classList.contains('open');
+  if(willOpen) gvAccordion(card);
+  card.classList.toggle('open', willOpen);
+  btn.setAttribute('aria-expanded',willOpen?'true':'false');
+}
+window.toggleQueueCard=toggleQueueCard;
+function toggleWindowCard(btn){
+  const card=btn.closest('.gv-card'); if(!card)return;
+  const willOpen=!card.classList.contains('open');
+  if(willOpen) gvAccordion(card);
+  card.classList.toggle('open', willOpen);
+  btn.setAttribute('aria-expanded',willOpen?'true':'false');
+  const win=card.getAttribute('data-win');
+  if(willOpen && !(WIN_STATE[win]&&WIN_STATE[win].data)) loadWindow(win);
+}
+window.toggleWindowCard=toggleWindowCard;
+async function loadWindow(win){
+  const st=WIN_STATE[win]||(WIN_STATE[win]={iapSort:{key:'Successful',dir:'desc'},gtsSort:{key:'Successful',dir:'desc'}});
+  if(st.data){ winRenderIap(win); winRenderGts(win); return; }
+  ['winIap-','winGts-'].forEach(function(p){ var el=document.getElementById(p+win); if(el)el.innerHTML='<div style="display:flex;justify-content:center;padding:20px"><div class="spinner"></div></div>'; });
+  let d=null;
+  try{ const r=await A.api('GET','/api/group-window/'+win); if(r.ok&&r.data)d=r.data; }catch(e){}
+  if(!d){ ['winIap-','winGts-'].forEach(function(p){ var el=document.getElementById(p+win); if(el)el.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this window.</div>'; }); return; }
+  st.data=d;
+  winRenderIap(win); winRenderGts(win);
+}
+// Generic sortable renderer for the windowed IAP table (Agent | 8 closure codes | Total | SLA | Avg Res).
+function winRenderIap(win){
+  const st=WIN_STATE[win]; const body=document.getElementById('winIap-'+win); if(!st||!st.data||!body)return;
+  const cols=IAP_COLS; const sort=st.iapSort;
+  const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
+  const dir=(sort.dir==='asc')?1:-1;
+  const sorted=[...st.data.agents].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||a.name.localeCompare(b.name); });
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="winSort(\''+win+'\',\'iap\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const rows=sorted.map(function(a){
+    const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
+    const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
+    return '<tr><td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> <span class="gv-tag '+GTC[a.group]+'" style="font-size:.7em">'+(GN[a.group]||a.group)+'</span></td>'+
+      IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
+      '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
+      '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
+      '<td'+(avg===0?' class="zero"':'')+'>'+avg.toFixed(1)+'</td></tr>';
+  }).join('');
+  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
+function winRenderGts(win){
+  const st=WIN_STATE[win]; const body=document.getElementById('winGts-'+win); if(!st||!st.data||!body)return;
+  const groups=st.data.groups||{closure:{},sla:{}}; const sort=st.gtsSort;
+  const rows0=[['A1','a1'],['B','b'],['A2','a2']];
+  const cloOf=function(r){return (groups.closure&&groups.closure[r[0]])||{};};
+  const slaOf=function(r){return (groups.sla&&groups.sla[r[0]])||null;};
+  // columns: Group | 8 codes | Total | SLA
+  const cols=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}}]
+    .concat(IAP_CC_ORDER.map(function(c){return {key:c,label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c,type:'num',val:function(r){return cloOf(r)[c]||0;}};}))
+    .concat([{key:'__total',label:'Total',short:'Total',type:'num',val:function(r){return iapTotal(cloOf(r));}},
+             {key:'__sla',label:'SLA',short:'SLA',type:'num',val:function(r){var s=slaOf(r);return (s&&s.pct!=null)?s.pct:-1;}}]);
+  const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
+  const dir=(sort.dir==='asc')?1:-1;
+  const rows=[...rows0].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||(GN[a[0]]||'').localeCompare(GN[b[0]]||''); });
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="winSort(\''+win+'\',\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const trs=rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
+    return '<tr><td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>'+
+      IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
+      '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
+      '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';
+  }).join('');
+  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>';
+}
+function winSort(win,which,key){
+  const st=WIN_STATE[win]; if(!st)return;
+  const k=(which==='iap')?'iapSort':'gtsSort';
+  if(st[k].key===key){ st[k].dir=(st[k].dir==='desc')?'asc':'desc'; } else { st[k]={key:key,dir:(key==='name'?'asc':'desc')}; }
+  if(which==='iap') winRenderIap(win); else winRenderGts(win);
+}
+window.winSort=winSort;
+
+// Group Totals Summary: same column arrangement + sortable headers (no Avg Res — not computed per group).
+let GTS_M=null, GTS_BODY=null, GTS_SORT=null;
+const GTS_ROWS=[['A1','a1'],['B','b'],['A2','a2']];   // Alpha, Beta, Gamma
+const GTS_COLS=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}}]
+  .concat(IAP_CC_ORDER.map(function(c){return {key:c,label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c,type:'num',val:function(r){return (GTS_CLO(r)[c])||0;}};}))
+  .concat([
+    {key:'__total',label:'Total',short:'Total',type:'num',val:function(r){return iapTotal(GTS_CLO(r));}},
+    {key:'__sla',label:'SLA',short:'SLA',type:'num',val:function(r){var s=GTS_SLA(r);return (s&&s.pct!=null)?s.pct:-1;}}
+  ]);
+function GTS_CLO(r){ return (GTS_M&&GTS_M.groups&&GTS_M.groups.closure&&GTS_M.groups.closure[r[0]])||{}; }
+function GTS_SLA(r){ return (GTS_M&&GTS_M.groups&&GTS_M.groups.sla&&GTS_M.groups.sla[r[0]])||null; }
+function gtsSort(key){
+  if(GTS_SORT&&GTS_SORT.key===key){ GTS_SORT.dir=(GTS_SORT.dir==='desc')?'asc':'desc'; }
+  else { GTS_SORT={key:key, dir:(key==='name'?'asc':'desc')}; }
+  gtsRenderTable();
+}
+window.gtsSort=gtsSort;
+function gtsArrow(key){ return (GTS_SORT&&GTS_SORT.key===key)?(GTS_SORT.dir==='desc'?' \u25be':' \u25b4'):''; }
+function gtsRenderTable(){
+  const m=GTS_M, body=GTS_BODY; if(!m||!body)return;
+  const col=GTS_COLS.find(function(c){return c.key===(GTS_SORT&&GTS_SORT.key);})||GTS_COLS[1];
+  const dir=(GTS_SORT&&GTS_SORT.dir==='asc')?1:-1;
+  const rows=[...GTS_ROWS].sort(function(a,b){
+    let r; if(col.type==='str') r=String(col.val(a)).localeCompare(String(col.val(b)));
+    else r=(col.val(a)-col.val(b));
+    return (r*dir) || (GN[a[0]]||'').localeCompare(GN[b[0]]||'');
+  });
+  const head='<tr>'+GTS_COLS.map(function(c){
+    const keyCls=(c.key==='Successful')?' col-key':'';
+    const activeCls=(GTS_SORT&&GTS_SORT.key===c.key)?' sorted':'';
+    return '<th class="iap-sort'+keyCls+activeCls+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gtsSort(\''+esc(c.key)+'\')">'+
+      '<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span>'+
+      '<span class="th-arrow">'+gtsArrow(c.key)+'</span></th>';
+  }).join('')+'</tr>';
+  const trs=rows.map(function(r){
+    const g=r[0], tag=r[1], clo=GTS_CLO(r), s=GTS_SLA(r);
+    const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
+    return '<tr><td><span class="gv-tag '+tag+'">'+(GN[g]||g)+'</span></td>'+
+      IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
+      '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
+      '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';
+  }).join('');
+  body.innerHTML='<p class="iap-hint">'+ic('bar-chart',13)+' Tip: click any column header to sort \u2014 click again to switch between lowest\u2194highest.</p>'+
+    '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>';
+}
 function gvSortedByGroup(m){
   return [...m.agents.filter(a=>a.group==='A1').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='A2').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='B').sort((a,b)=>b.resolved-a.resolved)];
 }

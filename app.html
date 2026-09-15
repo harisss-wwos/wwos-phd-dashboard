@@ -133,10 +133,18 @@ tr:hover{background:rgba(255,153,0,.03)}
 .sr-hero-num{font-size:2.4em;font-weight:800;color:var(--o);line-height:1}
 .sr-hero-cap{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
 .sr-sec{margin-bottom:30px}
-.sr-sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
-.sr-sec-head h2{color:#fff;font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:9px}
+.sr-sec-head{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.sr-sec-head h2{color:#fff;font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+.sr-sec-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}
 .sr-sec-head h2 .ic{color:var(--o)}
 .sr-exp{white-space:nowrap}
+/* Bordered shift-report sections (Takeover / Handoff) — card look, no collapse. */
+.sr-sec.sr-card-sec{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:18px 20px}
+@media(max-width:560px){
+  .sr-sec-head{flex-wrap:wrap}
+  .sr-sec-head h2{flex-basis:auto}
+  .sr-exp{font-size:.8em}
+}
 /* Age-colour queue tiles */
 .sr-colors{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
 .sr-color{position:relative;background:#000;border:1px solid var(--bd);border-radius:12px;padding:16px 12px 14px;text-align:center;overflow:hidden}

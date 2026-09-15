@@ -2169,20 +2169,44 @@ async function computeGroupMetrics() {
   const maxDate = allDates.length ? new Date(Math.max(...allDates)) : new Date();
   const aRes = {}, aTm = {}, aOpen = {}, aAsgn = {};
   const aStatus = {}; GRP_ALL.forEach(n => { aStatus[n] = { Assigned: 0, 'Work In Progress': 0, Researching: 0, Pending: 0, Resolved: 0, Closed: 0 }; });
+  // Per-agent age-colour counts for OPEN tickets (by assignee): purple/black/red/yellow/green.
+  const aColor = {}; GRP_ALL.forEach(n => { aColor[n] = { purple: 0, black: 0, red: 0, yellow: 0, green: 0 }; });
+  const _now = Date.now();
+  // Per-agent ClosureCode tally across ALL 8 tracked codes, keyed by resolver.
+  const GRP_CLOSURE_CODES = ['Successful', 'Successful with Problems', 'Unsuccessful', 'Automatically Closed', 'Immediately Resolved', 'No Plan to Fix', 'No Issue', 'Duplicate'];
+  const aClosure = {}; GRP_ALL.forEach(n => { aClosure[n] = {}; GRP_CLOSURE_CODES.forEach(c => { aClosure[n][c] = 0; }); });
+  // Per-agent SLA: of tickets the agent resolved (Status='Resolved') with a valid resolution time,
+  // how many were within 240h. { eligible, within }.
+  const aSla = {}; GRP_ALL.forEach(n => { aSla[n] = { eligible: 0, within: 0 }; });
   data.forEach(r => {
     const rby = String(r.ResolvedByIdentity || '').toLowerCase();
     if ((r.Status === 'Resolved' || r.Status === 'Closed') && rby && !rby.includes('autosim')) {
       aRes[rby] = (aRes[rby] || 0) + 1;
       if (r.CreateDate && r.ResolvedDate) { const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5; if (h >= 0) (aTm[rby] = aTm[rby] || []).push(h); }
     }
+    if (rby && aClosure[rby]) { const cc = String(r.ClosureCode || '').trim(); if (aClosure[rby][cc] !== undefined) aClosure[rby][cc]++; }
+    // SLA base = Status==='Resolved' with a valid resolution time, attributed to the resolver.
+    if (r.Status === 'Resolved' && rby && aSla[rby] && r.CreateDate && r.ResolvedDate) {
+      const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5;
+      if (h >= 0) { aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; }
+    }
     const asg = String(r.AssigneeIdentity || '').toLowerCase();
     if (asg && GRP_ALL.includes(asg)) {
       aAsgn[asg] = (aAsgn[asg] || 0) + 1;
-      if (r.Status !== 'Resolved' && r.Status !== 'Closed') aOpen[asg] = (aOpen[asg] || 0) + 1;
+      if (r.Status !== 'Resolved' && r.Status !== 'Closed') {
+        aOpen[asg] = (aOpen[asg] || 0) + 1;
+        const col = ticketColor(r, _now); if (aColor[asg][col] !== undefined) aColor[asg][col]++;
+      }
       if (aStatus[asg] && aStatus[asg][r.Status] !== undefined) aStatus[asg][r.Status]++;
     }
   });
-  const agents = GRP_ALL.map(n => ({ name: n, assigned: aAsgn[n] || 0, resolved: aRes[n] || 0, open: aOpen[n] || 0, avgTime: aTm[n] ? grpAvg(aTm[n]) : 0, group: grpOf(n), statuses: aStatus[n] }));
+  const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
+  const agents = GRP_ALL.map(n => ({ name: n, assigned: aAsgn[n] || 0, resolved: aRes[n] || 0, open: aOpen[n] || 0, avgTime: aTm[n] ? grpAvg(aTm[n]) : 0, group: grpOf(n), statuses: aStatus[n], closure: aClosure[n], colors: aColor[n], sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
+  // Per-GROUP closure-code totals + SLA (sum of the group's agents).
+  const groupClosure = { A1: {}, A2: {}, B: {} }; const groupSla = { A1: { eligible: 0, within: 0 }, A2: { eligible: 0, within: 0 }, B: { eligible: 0, within: 0 } };
+  ['A1', 'A2', 'B'].forEach(g => { GRP_CLOSURE_CODES.forEach(c => { groupClosure[g][c] = 0; }); });
+  agents.forEach(a => { const g = a.group; if (!g) return; GRP_CLOSURE_CODES.forEach(c => { groupClosure[g][c] += a.closure[c] || 0; }); groupSla[g].eligible += aSla[a.name].eligible; groupSla[g].within += aSla[a.name].within; });
+  const groups = { closure: groupClosure, sla: { A1: { eligible: groupSla.A1.eligible, within: groupSla.A1.within, pct: slaPctOf(groupSla.A1.eligible, groupSla.A1.within) }, A2: { eligible: groupSla.A2.eligible, within: groupSla.A2.within, pct: slaPctOf(groupSla.A2.eligible, groupSla.A2.within) }, B: { eligible: groupSla.B.eligible, within: groupSla.B.within, pct: slaPctOf(groupSla.B.eligible, groupSla.B.within) } } };
   let a1R = 0, a2R = 0, bR = 0, a1O = 0, a2O = 0, bO = 0;
   data.forEach(r => {
     if (r.Status === 'Resolved') { const g = grpOf(r.ResolvedByIdentity); if (g === 'A1') a1R++; else if (g === 'A2') a2R++; else if (g === 'B') bR++; }
@@ -2201,9 +2225,12 @@ async function computeGroupMetrics() {
     data.forEach(r => { if (r.ResolvedDate) { const rd = new Date(r.ResolvedDate); if (rd >= ds && rd < de) { const g = grpOf(r.ResolvedByIdentity); if (g === 'A1') x++; else if (g === 'A2') y++; else if (g === 'B') z++; } } });
     dgA1.push(x); dgA2.push(y); dgB.push(z);
   }
-  return { agents, a1R, a2R, bR, a1O, a2O, bO, a1Avg: grpAvg(a1T), a2Avg: grpAvg(a2T), bAvg: grpAvg(bT), a1As, a2As, bAs, dL, dgA1, dgA2, dgB };
+  return { agents, groups, a1R, a2R, bR, a1O, a2O, bO, a1Avg: grpAvg(a1T), a2Avg: grpAvg(a2T), bAvg: grpAvg(bT), a1As, a2As, bAs, dL, dgA1, dgA2, dgB };
 }
 
+// Bump when the stored group-metrics shape changes (e.g. added per-agent `closure`), so a stale
+// rollup is recomputed even when publishedAt is unchanged.
+const GROUP_ROLLUP_VERSION = 4;
 // Materialize the group metrics into a tiny per-quarter doc so the section endpoints read a small
 // findOne (~ms) instead of scanning the ~8k-ticket blob on every request.
 async function recomputeGroupRollup(qid) {
@@ -2211,7 +2238,7 @@ async function recomputeGroupRollup(qid) {
   const meta = await liveMetaFor(qid);
   const metrics = await computeGroupMetrics();
   const coll = await getCollection(COLLECTIONS.groupRollups);
-  await coll.updateOne({ _id: qid }, { $set: { publishedAt: meta.publishedAt || null, computedAt: new Date().toISOString(), metrics } }, { upsert: true });
+  await coll.updateOne({ _id: qid }, { $set: { publishedAt: meta.publishedAt || null, computedAt: new Date().toISOString(), rollupVersion: GROUP_ROLLUP_VERSION, metrics } }, { upsert: true });
   return { quarter: qid, publishedAt: meta.publishedAt || null };
 }
 // Read the group metrics for the live quarter: serve the rollup when it's current; otherwise compute
@@ -2221,7 +2248,7 @@ async function getGroupMetrics() {
   const meta = await liveMeta();
   const coll = await getCollection(COLLECTIONS.groupRollups);
   const roll = await coll.findOne({ _id: qid });
-  if (roll && roll.metrics && (roll.publishedAt || null) === (meta.publishedAt || null)) return roll.metrics;
+  if (roll && roll.metrics && (roll.publishedAt || null) === (meta.publishedAt || null) && (roll.rollupVersion || 0) >= GROUP_ROLLUP_VERSION) return roll.metrics;
   const metrics = await computeGroupMetrics();                          // stale/missing -> compute live once
   recomputeGroupRollup(qid).catch(e => console.error('group rollup recompute (bg) failed:', e && e.message));
   return metrics;
@@ -2235,7 +2262,7 @@ function grpSlice(section, m) {
   if (section === 'wl') return { a1As: m.a1As, a2As: m.a2As, bAs: m.bAs, dL: m.dL, dgA1: m.dgA1, dgA2: m.dgA2, dgB: m.dgB };
   if (section === 'par' || section === 'arv') return { agents: m.agents.map(a => ({ name: a.name, resolved: a.resolved, open: a.open, group: a.group })) };
   if (section === 'iap') return { agents: m.agents };
-  if (section === 'gts') return groupTotals;
+  if (section === 'gts') return Object.assign({}, groupTotals, { groups: m.groups });
   return {};
 }
 ['ro', 'wl', 'par', 'arv', 'iap', 'gts'].forEach(section => {
@@ -2245,6 +2272,143 @@ function grpSlice(section, m) {
       res.json(Object.assign({ section, quarter: currentQuarter() }, grpSlice(section, m)));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute group analytics (' + section + ').' });
+    }
+  });
+});
+
+// ---- Windowed agent/group metrics (last 12h / 24h / 7d) ------------------------------------------
+// Same per-agent closure-code + SLA + avg-resolution shape as computeGroupMetrics, but restricted to
+// tickets RESOLVED within the last `hours` (by ResolvedDate). Returns { agents:[...], groups:{closure,sla} }.
+const WINDOW_CLOSURE_CODES = ['Successful', 'Successful with Problems', 'Unsuccessful', 'Automatically Closed', 'Immediately Resolved', 'No Plan to Fix', 'No Issue', 'Duplicate'];
+async function computeWindowMetrics(hours) {
+  const data = await liveTickets();
+  const now = Date.now();
+  const from = now - hours * 36e5;
+  const aClosure = {}, aTm = {}, aSla = {};
+  GRP_ALL.forEach(n => { aClosure[n] = {}; WINDOW_CLOSURE_CODES.forEach(c => { aClosure[n][c] = 0; }); aTm[n] = []; aSla[n] = { eligible: 0, within: 0 }; });
+  data.forEach(r => {
+    const rby = String(r.ResolvedByIdentity || '').toLowerCase();
+    if (!rby || !aClosure[rby]) return;                       // resolver must be a tracked agent
+    const rd = r.ResolvedDate ? new Date(r.ResolvedDate) : null;
+    if (!rd || isNaN(rd)) return;
+    const rt = rd.getTime();
+    if (rt < from || rt > now) return;                        // resolved within the window
+    const cc = String(r.ClosureCode || '').trim();
+    if (aClosure[rby][cc] !== undefined) aClosure[rby][cc]++;
+    if (r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) aTm[rby].push(h); }
+    if (r.Status === 'Resolved' && r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) { aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; } }
+  });
+  const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
+  const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), closure: aClosure[n], avgTime: aTm[n].length ? grpAvg(aTm[n]) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
+  const gClo = { A1: {}, A2: {}, B: {} }, gSla = { A1: { eligible: 0, within: 0 }, A2: { eligible: 0, within: 0 }, B: { eligible: 0, within: 0 } };
+  ['A1', 'A2', 'B'].forEach(g => WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] = 0; }));
+  agents.forEach(a => { const g = a.group; if (!g) return; WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] += a.closure[c] || 0; }); gSla[g].eligible += aSla[a.name].eligible; gSla[g].within += aSla[a.name].within; });
+  const groups = { closure: gClo, sla: { A1: { pct: slaPctOf(gSla.A1.eligible, gSla.A1.within) }, A2: { pct: slaPctOf(gSla.A2.eligible, gSla.A2.within) }, B: { pct: slaPctOf(gSla.B.eligible, gSla.B.within) } } };
+  return { agents, groups };
+}
+// Per-agent + per-group closure-code + SLA + avg-resolution metrics over a set of tickets, optionally
+// restricted to tickets RESOLVED within [fromMs, toMs] (by ResolvedDate). Shared by quarter/month/overall.
+function computeClosureMetrics(tickets, fromMs, toMs) {
+  const aClosure = {}, aTm = {}, aSla = {};
+  GRP_ALL.forEach(n => { aClosure[n] = {}; WINDOW_CLOSURE_CODES.forEach(c => { aClosure[n][c] = 0; }); aTm[n] = []; aSla[n] = { eligible: 0, within: 0 }; });
+  (tickets || []).forEach(r => {
+    const rby = String(r.ResolvedByIdentity || '').toLowerCase();
+    if (!rby || !aClosure[rby]) return;
+    const rd = r.ResolvedDate ? new Date(r.ResolvedDate) : null;
+    if (!rd || isNaN(rd)) return;
+    const rt = rd.getTime();
+    if (fromMs != null && (rt < fromMs || rt >= toMs)) return;   // resolved within [from,to) when a range is given
+    const cc = String(r.ClosureCode || '').trim();
+    if (aClosure[rby][cc] !== undefined) aClosure[rby][cc]++;
+    if (r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) aTm[rby].push(h); }
+    if (r.Status === 'Resolved' && r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) { aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; } }
+  });
+  const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
+  const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), closure: aClosure[n], avgTime: aTm[n].length ? grpAvg(aTm[n]) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
+  const gClo = { A1: {}, A2: {}, B: {} }, gSla = { A1: { eligible: 0, within: 0 }, A2: { eligible: 0, within: 0 }, B: { eligible: 0, within: 0 } };
+  ['A1', 'A2', 'B'].forEach(g => WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] = 0; }));
+  agents.forEach(a => { const g = a.group; if (!g) return; WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] += a.closure[c] || 0; }); gSla[g].eligible += aSla[a.name].eligible; gSla[g].within += aSla[a.name].within; });
+  const groups = { closure: gClo, sla: { A1: { pct: slaPctOf(gSla.A1.eligible, gSla.A1.within) }, A2: { pct: slaPctOf(gSla.A2.eligible, gSla.A2.within) }, B: { pct: slaPctOf(gSla.B.eligible, gSla.B.within) } } };
+  return { agents, groups };
+}
+
+// Per-quarter (optionally per-month) closure/SLA metrics. qid like "2026-Q3"; month = 0|1|2 within
+// the quarter, or omitted for the whole quarter.
+app.get('/api/group-quarter/:qid', requireRole('admin'), async (req, res) => {
+  try {
+    const qid = req.params.qid;
+    const range = quarterRange(qid);
+    if (!range) return res.status(400).json({ error: 'Invalid quarter id.' });
+    const tickets = await loadQuarterTickets(qid);
+    let fromMs = null, toMs = null;
+    const mParam = req.query.month;
+    if (mParam !== undefined && mParam !== '') {
+      const mi = parseInt(mParam, 10);
+      if (!(mi >= 0 && mi <= 2)) return res.status(400).json({ error: 'month must be 0, 1 or 2.' });
+      const y = range.start.getFullYear(); const sm = range.start.getMonth();
+      fromMs = new Date(y, sm + mi, 1).getTime();
+      toMs = new Date(y, sm + mi + 1, 1).getTime();
+    }
+    const m = computeClosureMetrics(tickets, fromMs, toMs);
+    res.json(Object.assign({ quarter: qid, month: (mParam !== undefined ? mParam : null) }, m));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute quarter analytics.' });
+  }
+});
+
+// Overall (whole database, all quarters): closure/SLA metrics across EVERY ticket, computed with a
+// single Mongo aggregation over the whole ticket_docs collection (grouped by resolver) — never loads
+// the ~70k tickets into Node. Only tracked agents (GRP_ALL) are kept.
+async function computeOverallClosureMetrics() {
+  const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
+  const rows = await tColl.aggregate([
+    { $addFields: { _rby: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } }, _cc: { $trim: { input: { $ifNull: ['$ClosureCode', ''] } } }, _rh: resHrs } },
+    { $match: { _rby: { $in: GRP_ALL } } },
+    { $group: {
+        _id: { rby: '$_rby', cc: '$_cc' },
+        n: { $sum: 1 },
+        rtSum: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, '$_rh', 0] } },
+        rtCount: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, 1, 0] } },
+        slaElig: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }] }, 1, 0] } },
+        slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }, { $lte: ['$_rh', 240] }] }, 1, 0] } },
+    } },
+  ], { allowDiskUse: true }).toArray();
+  // Assemble per-agent structures from the grouped rows.
+  const aClosure = {}, aRt = {}, aSla = {};
+  GRP_ALL.forEach(n => { aClosure[n] = {}; WINDOW_CLOSURE_CODES.forEach(c => { aClosure[n][c] = 0; }); aRt[n] = { sum: 0, count: 0 }; aSla[n] = { eligible: 0, within: 0 }; });
+  rows.forEach(r => {
+    const n = r._id.rby; if (!aClosure[n]) return;
+    if (aClosure[n][r._id.cc] !== undefined) aClosure[n][r._id.cc] += r.n;
+    aRt[n].sum += r.rtSum || 0; aRt[n].count += r.rtCount || 0;
+    aSla[n].eligible += r.slaElig || 0; aSla[n].within += r.slaWithin || 0;
+  });
+  const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
+  const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), closure: aClosure[n], avgTime: aRt[n].count ? (aRt[n].sum / aRt[n].count) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
+  const gClo = { A1: {}, A2: {}, B: {} }, gSla = { A1: { eligible: 0, within: 0 }, A2: { eligible: 0, within: 0 }, B: { eligible: 0, within: 0 } };
+  ['A1', 'A2', 'B'].forEach(g => WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] = 0; }));
+  agents.forEach(a => { const g = a.group; if (!g) return; WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] += a.closure[c] || 0; }); gSla[g].eligible += aSla[a.name].eligible; gSla[g].within += aSla[a.name].within; });
+  const groups = { closure: gClo, sla: { A1: { pct: slaPctOf(gSla.A1.eligible, gSla.A1.within) }, A2: { pct: slaPctOf(gSla.A2.eligible, gSla.A2.within) }, B: { pct: slaPctOf(gSla.B.eligible, gSla.B.within) } } };
+  return { agents, groups };
+}
+app.get('/api/group-overall', requireRole('admin'), async (req, res) => {
+  try {
+    const m = await computeOverallClosureMetrics();
+    res.json(Object.assign({ scope: 'overall' }, m));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute overall analytics.' });
+  }
+});
+
+// window key -> hours. (Computed live per request; small scan, no rollup — windows are time-sensitive.)
+const WINDOW_HOURS = { '12h': 12, '24h': 24, '7d': 168 };
+Object.keys(WINDOW_HOURS).forEach(win => {
+  app.get('/api/group-window/' + win, requireRole('admin'), async (req, res) => {
+    try {
+      const m = await computeWindowMetrics(WINDOW_HOURS[win]);
+      res.json(Object.assign({ window: win, quarter: currentQuarter() }, m));
+    } catch (e) {
+      res.status(500).json({ error: 'Could not compute windowed analytics (' + win + ').' });
     }
   });
 });

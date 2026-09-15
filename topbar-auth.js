@@ -936,14 +936,25 @@
 
   // ---- Recent-history quick-swap (bottom-left FAB) ----
   var TB_HISTORY_KEY = 'phd_recent_pages';
-  // A friendly title for the CURRENT page: prefer document.title (trimmed of the site suffix),
-  // else the nav-active label, else the filename.
-  function tbPageTitle() {
-    var t = (document.title || '').split('·')[0].split('|')[0].trim();
-    if (t) return t;
-    var f = (location.pathname.split('/').pop() || '').replace(/\.html?$/i, '');
+  // app.html hosts several views via ?view= — map each to a friendly title.
+  var TB_APP_VIEW_TITLES = { '': 'Q3 Live Dashboard', dashboard: 'Q3 Live Dashboard', 'shift-report': 'Shift Report', groups: 'Groups', 'previous-week': 'Previous Week' };
+  function tbViewOf(href) {
+    try { return (new URLSearchParams(String(href).split('?')[1] || '')).get('view') || ''; } catch (e) { return ''; }
+  }
+  function tbIsAppPage(href) { return /(^|\/)app\.html$/i.test(String(href || '').split('?')[0]); }
+  // Identity key for dedupe: app.html views are distinguished by their ?view=; every other page by path.
+  function tbPageKey(href) {
+    var path = String(href || '').split('?')[0];
+    return tbIsAppPage(href) ? (path + '?view=' + (tbViewOf(href) || 'dashboard')) : path;
+  }
+  // A friendly title for a page. For app.html use the view map; otherwise document.title / filename.
+  function tbTitleFor(href, useDocTitle) {
+    if (tbIsAppPage(href)) return TB_APP_VIEW_TITLES[tbViewOf(href)] || 'Q3 Live Dashboard';
+    if (useDocTitle) { var t = (document.title || '').split('·')[0].split('|')[0].trim(); if (t) return t; }
+    var f = (String(href).split('?')[0].split('/').pop() || '').replace(/\.html?$/i, '');
     return f ? f.replace(/[-_]/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : 'Page';
   }
+  function tbPageTitle() { return tbTitleFor(location.pathname + location.search, true); }
   // Record the current page (path + search) at the front of the recent list; dedupe, cap at 5.
   function tbTrackHistory() {
     try {
@@ -952,12 +963,12 @@
       var list = [];
       try { list = JSON.parse(localStorage.getItem(TB_HISTORY_KEY) || '[]'); } catch (e) { list = []; }
       if (!Array.isArray(list)) list = [];
-      // Drop ANY existing entry for this page (dedupe by path, ignoring query) so it never repeats,
+      // Drop ANY existing entry for this page (dedupe by page key — app.html views count as distinct),
       // then put the current page at the front.
-      var norm = function (h) { return String(h || '').split('?')[0]; };
-      list = list.filter(function (x) { return x && norm(x.href) !== norm(here); });
+      var hk = tbPageKey(here);
+      list = list.filter(function (x) { return x && tbPageKey(x.href) !== hk; });
       list.unshift({ href: here, title: title, at: Date.now() });
-      list = list.slice(0, 12); // keep extra so the popup can still show 8 OTHER pages
+      list = list.slice(0, 20); // keep extra so the popup can show all unique pages
       localStorage.setItem(TB_HISTORY_KEY, JSON.stringify(list));
     } catch (e) { /* history is best-effort */ }
   }
@@ -991,19 +1002,17 @@
   }
   function tbRenderHistory(pop) {
     var here = location.pathname + location.search;
+    var hereKey = tbPageKey(here);
     var list = [];
     try { list = JSON.parse(localStorage.getItem(TB_HISTORY_KEY) || '[]'); } catch (e) { list = []; }
     if (!Array.isArray(list)) list = [];
-    var norm = function (h) { return String(h || '').split('?')[0]; };
-    // Current page's title: prefer the stored history entry for this page, else the document title.
-    var hereTitle = '';
-    for (var i = 0; i < list.length; i++) { if (list[i] && norm(list[i].href) === norm(here)) { hereTitle = list[i].title; break; } }
-    if (!hereTitle) hereTitle = String(document.title || '').split('·')[0].split('—')[0].trim() || 'Current page';
-    // ALL unique pages OTHER than the current one (deduped by path, most-recent first, no cap).
-    var seen = {}; seen[norm(here)] = true; var others = [];
+    // Current page's title — derive it directly (handles app.html views correctly).
+    var hereTitle = tbTitleFor(here, true);
+    // ALL unique pages OTHER than the current one (deduped by page key, most-recent first, no cap).
+    var seen = {}; seen[hereKey] = true; var others = [];
     list.forEach(function (x) {
       if (!x || !x.href) return;
-      var k = norm(x.href);
+      var k = tbPageKey(x.href);
       if (seen[k]) return;
       seen[k] = true; others.push(x);
     });
@@ -1012,7 +1021,8 @@
     html += '<a class="tb-hist-item tb-hist-current" href="' + tbEsc(here) + '" title="' + tbEsc(hereTitle) + '">' + tbPageIcon(here) + '<span class="tb-hist-name">' + tbEsc(hereTitle) + '</span><span class="tb-hist-badge">Current</span></a>';
     if (others.length) {
       html += others.map(function (x) {
-        return '<a class="tb-hist-item" href="' + tbEsc(x.href) + '" title="' + tbEsc(x.title) + '">' + tbPageIcon(x.href) + '<span class="tb-hist-name">' + tbEsc(x.title) + '</span></a>';
+        var t = tbTitleFor(x.href, false) || x.title;   // always show the correct label (esp. app.html views)
+        return '<a class="tb-hist-item" href="' + tbEsc(x.href) + '" title="' + tbEsc(t) + '">' + tbPageIcon(x.href) + '<span class="tb-hist-name">' + tbEsc(t) + '</span></a>';
       }).join('');
     } else {
       html += '<div class="tb-hist-empty">No other pages visited yet.</div>';

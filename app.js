@@ -946,9 +946,10 @@ async function renderShiftReport(){
     <div class="sr-hero-badge"><div class="sr-hero-num">${nT(inQueue)}</div><div class="sr-hero-cap">In queue</div></div>
   </div>
 
-  <section class="sr-sec">
+  <section class="sr-sec sr-card-sec">
     <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2>
-      <button class="btn sec sr-exp" onclick="exportTakeover()">${ic('copy',14)} Export takeover</button></div>
+      <div class="sr-sec-actions"><button class="btn sec sr-exp" onclick="exportTakeover()">${ic('copy',14)} Export takeover</button></div></div>
+    <div class="sr-sec-body">
     <div class="sr-colors">
       ${colorTile('purple','Reopened',ct.purple.length,'Purple')}
       ${colorTile('black','&gt; 10 days',black,'Black · &gt;240h')}
@@ -957,11 +958,13 @@ async function renderShiftReport(){
       ${colorTile('green','0–4 days',ct.green.length,'Green · 0–96h')}
     </div>
     <div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px"><canvas id="takeoverChart"></canvas></div></div>
+    </div>
   </section>
 
-  <section class="sr-sec" id="shiftContent">
+  <section class="sr-sec sr-card-sec" id="shiftContent">
     <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2>
-      <button class="btn sr-exp" onclick="showExportRegionModal()">${ic('copy',14)} Export handoff</button></div>
+      <div class="sr-sec-actions"><button class="btn sr-exp" onclick="showExportRegionModal()">${ic('copy',14)} Export handoff</button></div></div>
+    <div class="sr-sec-body">
     <div class="sr-meta">
       <span class="sr-chip">${ic('clock',13)} <b><span id="shiftDate">${dateStr}</span> 19:00 <span id="shiftTz">IST</span></b></span>
       <span class="sr-chip">Timeframe: <b>7:00 AM <span class="shiftTz2">IST</span> – 7:00 PM <span class="shiftTz2">IST</span></b></span>
@@ -998,6 +1001,7 @@ async function renderShiftReport(){
     <div class="sr-notes">
       <label for="shiftNotes">${ic('message',13)} Notes for the incoming shift</label>
       <textarea id="shiftNotes" placeholder="Add your notes here — one per line…"></textarea>
+    </div>
     </div>
   </section>
   </div>`;
@@ -2407,12 +2411,12 @@ function shiftReportSkeleton(){
     <div class="sr-hero-txt"><span class="sr-eyebrow">Queue snapshot</span><h1>Shift Report</h1><p class="sr-lead">Loading queue health for handoff…</p></div>
     <div class="sr-hero-badge"><div class="sr-hero-num"><span class="sk-blk sk-num"></span></div><div class="sr-hero-cap">In queue</div></div>
   </div>
-  <section class="sr-sec">
+  <section class="sr-sec sr-card-sec">
     <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2></div>
     <div class="sr-colors">${colorTile('purple')}${colorTile('black')}${colorTile('red')}${colorTile('yellow')}${colorTile('green')}</div>
     <div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px;position:relative"><div class="sk-blk" style="position:absolute;inset:0;border-radius:10px"></div></div></div>
   </section>
-  <section class="sr-sec">
+  <section class="sr-sec sr-card-sec">
     <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2></div>
     <div class="sr-cards">${card(4)}${card(4)}${card(5)}${card(5)}</div>
   </section>
