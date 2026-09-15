@@ -107,13 +107,16 @@
       + '.tb-hist-fab{position:fixed;left:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,background .15s,border-color .15s}'
       + '.tb-hist-fab:hover{background:#222d3a;border-color:#ff9900;transform:translateY(-2px)}'
       + '.tb-hist-fab svg{width:22px;height:22px}'
-      + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:260px;max-width:calc(100vw - 44px);background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
+      + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
       + '.tb-hist-pop.open{display:flex}'
-      + '.tb-hist-title{color:#879596;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px 8px}'
+      + '.tb-hist-title{color:#879596;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px 8px;position:sticky;top:-8px;background:#121820}'
       + '.tb-hist-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       + '.tb-hist-item:hover{background:#1b2430;color:#fff}'
       + '.tb-hist-item svg{width:15px;height:15px;flex-shrink:0;color:#879596}'
-      + '.tb-hist-item .tb-hist-name{overflow:hidden;text-overflow:ellipsis}'
+      + '.tb-hist-item .tb-hist-name{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}'
+      + '.tb-hist-current{background:#1a2430;color:#fff}'
+      + '.tb-hist-current svg{color:#ff9900}'
+      + '.tb-hist-badge{flex-shrink:0;font-size:.62em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.4);border-radius:20px;padding:2px 7px}'
       + '.tb-hist-empty{color:#5f6b6c;font-size:.82em;font-style:italic;padding:8px 10px}'
       // ---- "Refreshing cached data" banner (just under the top bar; slides in) ----
       + '.tb-refresh{position:sticky;top:53px;z-index:95;display:flex;align-items:center;gap:12px;justify-content:center;'
@@ -991,23 +994,28 @@
     var list = [];
     try { list = JSON.parse(localStorage.getItem(TB_HISTORY_KEY) || '[]'); } catch (e) { list = []; }
     if (!Array.isArray(list)) list = [];
-    // Show up to 8 recent pages OTHER than the current one (deduped by path).
     var norm = function (h) { return String(h || '').split('?')[0]; };
-    var seen = {}; var others = [];
+    // Current page's title: prefer the stored history entry for this page, else the document title.
+    var hereTitle = '';
+    for (var i = 0; i < list.length; i++) { if (list[i] && norm(list[i].href) === norm(here)) { hereTitle = list[i].title; break; } }
+    if (!hereTitle) hereTitle = String(document.title || '').split('·')[0].split('—')[0].trim() || 'Current page';
+    // ALL unique pages OTHER than the current one (deduped by path, most-recent first, no cap).
+    var seen = {}; seen[norm(here)] = true; var others = [];
     list.forEach(function (x) {
       if (!x || !x.href) return;
       var k = norm(x.href);
-      if (k === norm(here) || seen[k]) return;
+      if (seen[k]) return;
       seen[k] = true; others.push(x);
     });
-    others = others.slice(0, 8);
     var html = '<div class="tb-hist-title">Recently visited</div>';
-    if (!others.length) {
-      html += '<div class="tb-hist-empty">No other pages visited yet.</div>';
-    } else {
+    // Current page pinned at the top.
+    html += '<a class="tb-hist-item tb-hist-current" href="' + tbEsc(here) + '" title="' + tbEsc(hereTitle) + '">' + tbPageIcon(here) + '<span class="tb-hist-name">' + tbEsc(hereTitle) + '</span><span class="tb-hist-badge">Current</span></a>';
+    if (others.length) {
       html += others.map(function (x) {
         return '<a class="tb-hist-item" href="' + tbEsc(x.href) + '" title="' + tbEsc(x.title) + '">' + tbPageIcon(x.href) + '<span class="tb-hist-name">' + tbEsc(x.title) + '</span></a>';
       }).join('');
+    } else {
+      html += '<div class="tb-hist-empty">No other pages visited yet.</div>';
     }
     pop.innerHTML = html;
   }

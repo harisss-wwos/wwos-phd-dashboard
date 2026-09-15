@@ -69,6 +69,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .kpi-grid-compact{gap:10px;margin-bottom:0}
 .kpi-grid-compact .kpi-card{padding:12px 10px;border-top-width:2px}
 .kpi-grid-compact .kpi-card{min-width:0;overflow:hidden}
+/* Highlighted open-status tiles in Queue Status Data (Assigned/WIP/Researching/Pending). */
+.kpi-card.qhl{background:linear-gradient(160deg,#14202b,#0f171f);border:1px solid #223243;border-top:3px solid #44b9d6}
+.kpi-card.qhl .value{color:#5ecdec}
+.kpi-card.qhl .label{color:#9fb8c4}
+/* Visible per-tile definition text (Average Data). */
+.kpi-grid-compact .kpi-card .kpi-desc{margin-top:8px;font-size:.66em;line-height:1.45;color:var(--tm);text-transform:none;letter-spacing:0;white-space:normal;font-weight:400}
 .kpi-grid-compact .kpi-card .value{font-size:1.25em;margin-bottom:3px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* Label truncates to a single line (ellipsis) as the card narrows, instead of wrapping. The
    inline-flex layout is dropped for `display:block` so the whole label (icon + text) clips cleanly. */
@@ -193,7 +199,7 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* The 5 age tiles ALWAYS spread across the full width (equal columns that shrink together),
    so they never leave a half-empty row on narrow screens. Use .kpi-grid.age-grid for higher
    specificity than the generic .kpi-grid mobile rules below (which would otherwise override). */
-.kpi-grid.age-grid{grid-template-columns:repeat(5,1fr)}
+.kpi-grid.age-grid{grid-template-columns:repeat(5,1fr);margin-bottom:0}
 @media(max-width:640px){
   .kpi-grid.age-grid{grid-template-columns:1fr 1fr 1fr}   /* 3 across, still full width */
   .age-tile{padding:14px 8px}

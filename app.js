@@ -1737,15 +1737,21 @@ function renderQueueKpis(d){
   const grid=document.getElementById('dashQueueKpis'); if(!grid||!d||!d.counts)return;
   const c=d.counts, p=d.pct||{};
   const total=(d.total!=null)?d.total:['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'].reduce(function(s,k){return s+(c[k]||0);},0);
+  // "In Queue" = the 4 open statuses (Assigned + Work In Progress + Researching + Pending).
+  const inQueue=['Assigned','Work In Progress','Researching','Pending'].reduce(function(s,k){return s+(c[k]||0);},0);
+  const inQueuePct=total?(Math.round(inQueue/total*1000)/10):0;
   const info=(tip)=>tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'';
   const val=(raw,style)=>'<div class="value kpi-anim" data-kpi-val="'+String(raw).replace(/"/g,'&quot;')+'"'+(style?(' style="'+style+'"'):'')+'></div>';
   const num=(k)=>((c[k]||0).toLocaleString()+(p[k]!=null?(' ('+p[k]+'%)'):''));
   grid.innerHTML=
+    // Row 1: the four open statuses (highlighted).
+    '<div class="kpi-card qhl">'+val(num('Assigned'))+'<div class="label">'+ic('inbox',14)+' Assigned</div></div>'+
+    '<div class="kpi-card qhl">'+val(num('Work In Progress'))+'<div class="label">'+ic('tool',14)+' Work In Progress</div></div>'+
+    '<div class="kpi-card qhl">'+val(num('Researching'))+'<div class="label">'+ic('eye',14)+' Researching</div></div>'+
+    '<div class="kpi-card qhl">'+val(num('Pending'))+'<div class="label">'+ic('hourglass',14)+' Pending</div></div>'+
+    // Row 2: totals / in-queue / resolved / closed.
     '<div class="kpi-card accent">'+val(total.toLocaleString())+'<div class="label">'+ic('grid',14)+' Total Tickets'+info('All tickets in the live quarter (every status)')+'</div></div>'+
-    '<div class="kpi-card">'+val(num('Assigned'))+'<div class="label">'+ic('inbox',14)+' Assigned</div></div>'+
-    '<div class="kpi-card">'+val(num('Work In Progress'))+'<div class="label">'+ic('tool',14)+' Work In Progress</div></div>'+
-    '<div class="kpi-card">'+val(num('Researching'))+'<div class="label">'+ic('eye',14)+' Researching</div></div>'+
-    '<div class="kpi-card">'+val(num('Pending'))+'<div class="label">'+ic('hourglass',14)+' Pending</div></div>'+
+    '<div class="kpi-card warning">'+val(inQueue.toLocaleString()+' ('+inQueuePct+'%)')+'<div class="label">'+ic('inbox',14)+' In Queue'+info('Open tickets: Assigned + Work In Progress + Researching + Pending')+'</div></div>'+
     '<div class="kpi-card success">'+val(num('Resolved'))+'<div class="label">'+ic('check-circle',14)+' Resolved</div></div>'+
     '<div class="kpi-card success">'+val(num('Closed'))+'<div class="label">'+ic('check-circle',14)+' Closed</div></div>';
   grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
@@ -1761,23 +1767,34 @@ function renderQueueChunk(d){
 }
 function renderDaily7Chunk(d){
   const slot=document.getElementById('dashDaily7Body');if(!slot)return;
-  slot.innerHTML='<div class="pair-grid">'+
-    '<div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>'+
-    '<div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>'+
-  '</div>';
+  slot.innerHTML='<div class="chart-box"><div class="chart-wrap tall"><canvas id="cDaily7Wave"></canvas></div></div>';
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
-  makeChart('c2a',{type:'bar',data:{labels:d.labels,datasets:[{label:'Created',data:d.created,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:_barOpts()});
-  makeChart('c2b',{type:'bar',data:{labels:d.labels,datasets:[{label:'Resolved',data:d.resolved,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:_barOpts()});
+  makeChart('cDaily7Wave',{type:'line',data:{labels:d.labels,datasets:[
+    _waveDataset('Created',d.created,'#ff9900','rgba(255,153,0,'),
+    _waveDataset('Resolved',d.resolved,'#4ade80','rgba(74,222,128,')
+  ]},options:_waveOpts('Tickets')});
 }
 function renderWeeklyChunk(d){
   const slot=document.getElementById('dashWeeklyBody');if(!slot)return;
-  slot.innerHTML='<div class="pair-grid">'+
-    '<div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>'+
-    '<div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>'+
-  '</div>';
+  slot.innerHTML='<div class="chart-box"><div class="chart-wrap tall"><canvas id="cWeeklyWave"></canvas></div></div>';
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
-  makeChart('c4a',{type:'bar',data:{labels:d.labels,datasets:[{label:'Created',data:d.created,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:_barOpts()});
-  makeChart('c4b',{type:'bar',data:{labels:d.labels,datasets:[{label:'Resolved',data:d.resolved,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:_barOpts()});
+  makeChart('cWeeklyWave',{type:'line',data:{labels:d.labels,datasets:[
+    _waveDataset('Created',d.created,'#ff9900','rgba(255,153,0,'),
+    _waveDataset('Resolved',d.resolved,'#4ade80','rgba(74,222,128,')
+  ]},options:_waveOpts('Tickets')});
+}
+// A smooth "wave" (filled area) line dataset. `rgbaPrefix` like 'rgba(255,153,0,' — fill fades out.
+function _waveDataset(label,data,color,rgbaPrefix){
+  return {label:label,data:data,borderColor:color,pointBackgroundColor:color,pointRadius:3,
+    borderWidth:2,tension:.45,fill:true,spanGaps:true,
+    backgroundColor:function(ctx){var c=ctx.chart.ctx;var g=c.createLinearGradient(0,0,0,340);
+      g.addColorStop(0,rgbaPrefix+'.32)');g.addColorStop(1,rgbaPrefix+'.02)');return g;}};
+}
+function _waveOpts(yTitle){
+  return {responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
+    scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:yTitle||'',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:12}}},
+      x:{grid:{display:false},ticks:{font:{size:11}}}}};
 }
 function renderSlaWeeklyChunk(d){
   const slot=document.getElementById('dashSlaBody');if(!slot)return;
@@ -1843,15 +1860,20 @@ function renderSummaryInto(d){
     '<div class="kpi-card accent">'+val(d.total.toLocaleString())+'<div class="label">'+ic('ticket',14)+' Total Tickets'+info('Total number of tickets stored in the dashboard')+'</div></div>'+
     '<div class="kpi-card success">'+val(d.resolved.toLocaleString()+' ('+d.resolvedPct+'%)')+'<div class="label">'+ic('check-circle',14)+' Resolved'+info('Tickets in Resolved or Closed status')+'</div></div>'+
     '<div class="kpi-card warning">'+val(d.unresolved.toLocaleString()+' ('+d.unresolvedPct+'%)')+'<div class="label">'+ic('hourglass',14)+' Unresolved Tickets'+info('Tickets not in Resolved/Closed status')+'</div></div>';
-  if(g2)g2.innerHTML=
-    '<div class="kpi-card">'+val(d.avgResolutionHrs+' hrs ('+d.avgResolutionPct+'%)')+'<div class="label">Avg Resolution Time'+info('Average resolution time. Percentage = avg / 240hr SLA')+'</div></div>'+
-    '<div class="kpi-card" style="border-top-color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'">'+val(d.slaPct+'%','color:'+(d.slaPct>=90?'#4ade80':'#ff5252'))+'<div class="label">SLA Compliance (≤240 hrs)'+info(d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs')+'</div></div>'+
-    '<div class="kpi-card">'+val(d.autosim.toLocaleString()+' ('+d.autosimPct+'%)')+'<div class="label">'+ic('bolt',14)+' AutoSIM Resolved'+info('Tickets auto-resolved by AutoSIM')+'</div></div>';
-  if(g3)g3.innerHTML=
-    '<div class="kpi-card accent">'+val(d.repeatIncidents.toLocaleString())+'<div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0)'+info('Tickets with Historical Incident / Cnt > 0')+'</div></div>'+
-    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)','color:#a78bfa')+'<div class="label">'+ic('paw',14)+' HI involving pet incidents'+info('Repeat incidents whose root cause is an unsecured animal / pet')+'</div></div>'+
-    '<div class="kpi-card">'+val(d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)')+'<div class="label">'+ic('repeat',14)+' HI involving non-pet incidents'+info('Repeat incidents whose root cause is NOT a pet/animal')+'</div></div>'+
-    '<div class="kpi-card '+(d.hiGap>=0?'warning':'success')+'">'+val((d.hiGap>=0?'+':'')+d.hiGap+'%')+'<div class="label">'+ic('bar-chart',14)+' Pet vs non-pet gap in HI'+info('Percentage-point difference')+'</div></div>';
+  if(g2){
+    var desc=function(t){return '<div class="kpi-desc">'+t+'</div>';};
+    g2.innerHTML=
+    '<div class="kpi-card">'+val(d.avgResolutionHrs+' hrs')+'<div class="label">Avg Resolution Time</div>'+desc('Average time taken to resolve a ticket (from create to resolve).')+'</div>'+
+    '<div class="kpi-card" style="border-top-color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'">'+val(d.slaPct+'%','color:'+(d.slaPct>=90?'#4ade80':'#ff5252'))+'<div class="label">SLA Compliance (≤240 hrs)</div>'+desc('Share of resolved tickets closed within the 240-hour SLA window. Green if \u2265 90%, red otherwise. Currently '+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs.')+'</div>'+
+    '<div class="kpi-card">'+val(d.autosim.toLocaleString()+' ('+d.autosimPct+'%)')+'<div class="label">'+ic('bolt',14)+' AutoSIM Resolved</div>'+desc('How many tickets were auto-resolved by AutoSIM, and what percentage of the total that represents.')+'</div>';
+  }
+  if(g3){
+    var descR=function(t){return '<div class="kpi-desc">'+t+'</div>';};
+    g3.innerHTML=
+    '<div class="kpi-card accent">'+val(d.repeatIncidents.toLocaleString())+'<div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0)</div>'+descR('Tickets that are repeat incidents — a Historical Incident count (Cnt) greater than 0.')+'</div>'+
+    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)','color:#a78bfa')+'<div class="label">'+ic('paw',14)+' HI involving pet incidents</div>'+descR('Of those repeat incidents, how many have a pet/animal root cause, and their share of all repeat incidents.')+'</div>'+
+    '<div class="kpi-card">'+val(d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)')+'<div class="label">'+ic('repeat',14)+' HI involving non-pet incidents</div>'+descR('Of those repeat incidents, how many are NOT pet-related, and their share of all repeat incidents.')+'</div>';
+  }
   // Animate every KPI value from a brief scramble into its real number.
   document.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
@@ -1896,27 +1918,28 @@ function renderDashboardChunked(){
     '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:repeat('+cols+',1fr)">'+tiles+'</div></div></div>';
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
-    kpiSection('Queue Status Data','grid','dashQueueKpis',7,
-      kpiSpin('accent',ic('grid',14)+' Total',9000)+
-      kpiSpin('',ic('inbox',14)+' Assigned',200)+
-      kpiSpin('',ic('tool',14)+' Work In Progress',300)+
-      kpiSpin('',ic('eye',14)+' Researching',100)+
-      kpiSpin('',ic('hourglass',14)+' Pending',100)+
+    kpiSection('Queue Status Data','grid','dashQueueKpis',4,
+      kpiSpin('qhl',ic('inbox',14)+' Assigned',200)+
+      kpiSpin('qhl',ic('tool',14)+' Work In Progress',300)+
+      kpiSpin('qhl',ic('eye',14)+' Researching',100)+
+      kpiSpin('qhl',ic('hourglass',14)+' Pending',100)+
+      kpiSpin('accent',ic('grid',14)+' Total Tickets',9000)+
+      kpiSpin('warning',ic('inbox',14)+' In Queue',400)+
       kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+
       kpiSpin('success',ic('check-circle',14)+' Closed',9000))+
-    kpiSection('Total Tickets Data','ticket','dashSumTotals',3,
-      kpiSpin('accent',ic('ticket',14)+' Total Tickets',9000)+kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+kpiSpin('warning',ic('hourglass',14)+' Unresolved Tickets',500))+
+    // Ticket Age Classification sits right below Queue Status Data.
+    dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
     kpiSection('Average Data','clock','dashSumAvg',3,
       kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000))+
-    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',4,
-      kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100)+kpiSpin('',ic('bar-chart',14)+' Pet vs non-pet gap in HI',100,true))+
-    dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
-    dashCard('queue','grid','Queue Status','dashQueueBody')+
-    dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
-    dashCard('weekly','bar-chart','Weekly Volume','dashWeeklyBody')+
-    dashCard('sla-weekly','check-circle','SLA Compliance per Week (≤240 hrs)','dashSlaBody')+
+    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',3,
+      kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100))+
+    // Incident Types + Historical Incidents follow Repeat Incident Data.
     dashCard('incidents','alert','Incident Types','dashIncidentsBody')+
     dashCard('hi','repeat','Historical Incidents (Cnt > 0)','dashHiBody')+
+    // SLA compliance sits above the Daily/Weekly volume charts.
+    dashCard('sla-weekly','check-circle','SLA Compliance per Week (≤240 hrs)','dashSlaBody')+
+    dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
+    dashCard('weekly','bar-chart','Weekly Volume','dashWeeklyBody')+
   '</div>';
   attachNewFileHandler();
   refreshHelpAlertCount();
