@@ -177,6 +177,15 @@ tr:hover{background:rgba(255,153,0,.03)}
 .sr-card li b{color:#fff;font-weight:800;font-size:1.05em}
 /* Tally value inside stat cards (renders as the bold number). Inside colour tiles it inherits the big size. */
 .sr-card li .sr-v{color:#fff;font-weight:800;font-size:1.05em;flex-shrink:0}
+/* Handoff Report sections rendered as tables (one table per card). */
+.sr-table{width:100%;border-collapse:collapse;font-size:.9em}
+.sr-table td{padding:8px 10px;border:1px solid rgba(255,255,255,.09);vertical-align:middle}
+.sr-table td:first-child{color:var(--t)}
+.sr-table td.sr-v{text-align:right;white-space:nowrap;color:#fff;font-weight:800;font-size:1.02em;width:1%}
+.sr-table td em{color:var(--tm);font-style:normal;font-size:.85em}
+.sr-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.sr-table .sr-pct{color:#fff;font-weight:800}
+.sr-table .sk-row-v{width:26px;height:16px}
 .sr-pct{color:#fff;font-weight:800;font-size:1.05em}
 .sr-notes{margin-top:20px}
 .sr-notes label{display:flex;align-items:center;gap:6px;color:var(--tm);font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}

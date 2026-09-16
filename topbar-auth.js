@@ -119,25 +119,9 @@
       + '.tb-hist-badge{flex-shrink:0;font-size:.62em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.4);border-radius:20px;padding:2px 7px}'
       + '.tb-hist-empty{color:#5f6b6c;font-size:.82em;font-style:italic;padding:8px 10px}'
       // ---- "Refreshing cached data" banner (just under the top bar; slides in) ----
-      + '.tb-refresh{position:sticky;top:53px;z-index:95;display:flex;align-items:center;gap:12px;justify-content:center;'
-        + 'padding:10px 18px;font-size:.86em;font-weight:600;color:#ffcf8a;'
-        + 'background:linear-gradient(90deg,rgba(255,153,0,.14),rgba(255,153,0,.07));'
-        + 'border-bottom:1px solid rgba(255,153,0,.35);'
-        + 'max-height:0;padding-top:0;padding-bottom:0;overflow:hidden;opacity:0;'
-        + 'transition:max-height .3s ease,opacity .25s ease,padding .3s ease,color .3s ease,background .3s ease}'
-      + '.tb-refresh.show{max-height:64px;padding-top:10px;padding-bottom:10px;opacity:1}'
-      + '.tb-refresh .tb-rf-ic{width:18px;height:18px;flex-shrink:0;display:inline-flex}'
-      + '.tb-refresh .tb-rf-ic svg{width:18px;height:18px;animation:tbrfspin 1s linear infinite}'
-      + '.tb-refresh .tb-rf-dot{width:9px;height:9px;border-radius:50%;background:#ff9900;box-shadow:0 0 8px #ff9900;animation:tbrfpulse 1.1s ease-in-out infinite;flex-shrink:0}'
-      + '.tb-refresh .tb-rf-msg{line-height:1.3}'
-      + '.tb-refresh .tb-rf-timer{flex-shrink:0;font-variant-numeric:tabular-nums;font-weight:800;background:rgba(255,153,0,.18);color:#ffcf8a;border-radius:20px;padding:2px 10px;font-size:.92em}'
-      + '.tb-refresh.done .tb-rf-timer{display:none}'
-      + '.tb-refresh.done{color:#4ade80;background:linear-gradient(90deg,rgba(74,222,128,.16),rgba(74,222,128,.06));border-bottom-color:rgba(74,222,128,.4)}'
-      + '.tb-refresh.done .tb-rf-ic svg{animation:none}'
-      + '.tb-refresh.done .tb-rf-dot{background:#4ade80;box-shadow:0 0 8px #4ade80;animation:none}'
-      + '@keyframes tbrfspin{100%{transform:rotate(360deg)}}'
-      + '@keyframes tbrfpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}'
-      + '@media(max-width:920px){.tb-refresh{top:52px;font-size:.8em;gap:9px;padding-left:12px;padding-right:12px}}'
+      // Refresh button loading state: icon spins + turns green, label reads "Refreshing…".
+      + '.tb-refresh-btn.refreshing{color:#4ade80;border-color:rgba(74,222,128,.5)}'
+      + '.tb-refresh-btn.refreshing svg{color:#4ade80}'
       // ---- Shared responsive guard (kills x-axis scroll; applies on every page) ----
       // NOTE: use overflow-x:clip (NOT hidden). `hidden` makes html/body a scroll container, which
       // breaks `position:sticky` on the top bar (it detaches on scroll, leaving an empty gap where
@@ -304,112 +288,50 @@
   // Refresh button: fetch the latest data on demand. On the live dashboard it refreshes in place
   // (PHDRefreshLive re-pulls the live quarter); on other pages it reloads so the page re-runs its
   // own data load. Spins the icon briefly for feedback.
+  // Put the refresh button into its loading state: spin + green icon, label -> "Refreshing…".
+  function _refreshBtnStart(btn) {
+    if (!btn) return;
+    btn.classList.add('spinning', 'refreshing');
+    var lbl = btn.querySelector('.tb-btn-label');
+    if (lbl) { if (!btn._origLabel) btn._origLabel = lbl.textContent; lbl.textContent = ' Refreshing\u2026'; }
+  }
+  function _refreshBtnStop(btn) {
+    if (!btn) return;
+    btn.classList.remove('spinning', 'refreshing');
+    var lbl = btn.querySelector('.tb-btn-label');
+    if (lbl && btn._origLabel) lbl.textContent = btn._origLabel;
+  }
   window.tbRefreshData = async function (btn) {
-    var banner = window.PHDRefreshBanner;
-    try { if (btn) btn.classList.add('spinning'); } catch (e) {}
-    if (banner) { try { banner.show('Checking for new data since the latest upload\u2026'); } catch (e) {} }
+    try { _refreshBtnStart(btn); } catch (e) {}
     try {
       // Version-check first (a vs b): only do the heavy refresh if a new upload happened.
       var a = (A && A.liveVersion) ? await A.liveVersion() : null;   // live version (a)
       var b = null;                                                  // our cached version (b)
       try { if (window.PHDGetCachedVersion) b = await window.PHDGetCachedVersion(); } catch (e) {}
       if (a && b && a === b) {
-        // Already current — reassure, no heavy fetch.
-        if (banner) { try { banner.upToDate('Your data is already up to date \u2014 checked against the latest upload.'); } catch (e) {} }
-        if (btn) btn.classList.remove('spinning');
+        // Already current — no heavy fetch. The spinning icon already signalled the check.
+        _refreshBtnStop(btn);
         return;
       }
       // New data (or can't tell) -> fetch it.
-      if (banner) { try { banner.show('New data found — fetching the latest\u2026'); } catch (e) {} }
       if (typeof window.PHDRefreshLive === 'function') {
         await window.PHDRefreshLive();               // in-place refresh on the live dashboard
-        if (banner) { try { banner.updated('Updated with the latest data.'); } catch (e) {} }
-        if (btn) btn.classList.remove('spinning');
+        _refreshBtnStop(btn);
       } else {
         location.reload();                            // other pages: reload to re-fetch (version-first init handles the rest)
       }
     } catch (e) {
-      if (btn) btn.classList.remove('spinning');
-      if (banner) { try { banner.hide(); } catch (e2) {} }
+      _refreshBtnStop(btn);
     }
   };
 
-  // ---- Shared "refreshing cached data" banner (just under the top bar) ----
-  // Pages that paint from cache call show() immediately, then updated() (data changed) or hide()
-  // (nothing changed / not from cache) once the background refresh resolves.
+  // ---- Refresh feedback (banner removed) ----
+  // The old "refreshing cached data" banner under the top bar has been removed. Refresh feedback
+  // now lives entirely on the Refresh button (spinning green icon + "Refreshing…" label).
+  // PHDRefreshBanner is kept as a no-op so existing callers (e.g. my-tickets) don't break.
   (function () {
-    var _syncIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
-    var _checkIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-    var _hideTimer = null;
-    var _countTimer = null, _countLeft = 60;
-    function stopCountdown() { if (_countTimer) { clearInterval(_countTimer); _countTimer = null; } }
-    function el() {
-      var e = document.getElementById('tbRefreshBar');
-      if (e) return e;
-      e = document.createElement('div');
-      e.id = 'tbRefreshBar';
-      e.className = 'tb-refresh';
-      e.setAttribute('role', 'status');
-      e.setAttribute('aria-live', 'polite');
-      // Insert right after the top bar so it sits directly beneath the title bar.
-      var bar = document.querySelector('.tb-topbar');
-      if (bar && bar.parentNode) bar.parentNode.insertBefore(e, bar.nextSibling);
-      else document.body.insertBefore(e, document.body.firstChild);
-      return e;
-    }
-    window.PHDRefreshBanner = {
-      show: function (msg) {
-        if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
-        stopCountdown();
-        var e = el();
-        e.classList.remove('done');
-        e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _syncIc + '</span>'
-          + '<span class="tb-rf-msg">' + (msg || 'Showing your last saved view \u2014 fetching the latest data. Please hold on a moment\u2026') + '</span>'
-          + '<span class="tb-rf-timer" id="tbRfTimer">60s</span>';
-        // force reflow so the transition plays
-        void e.offsetWidth;
-        e.classList.add('show');
-        // Countdown: 60s down; on reaching 1s, top up +30s and append an apology, until resolved.
-        _countLeft = 60;
-        var apologised = false;
-        _countTimer = setInterval(function () {
-          _countLeft -= 1;
-          if (_countLeft <= 1) {
-            _countLeft = 30;
-            if (!apologised) { apologised = true; var m = document.querySelector('#tbRefreshBar .tb-rf-msg'); if (m) m.textContent = 'Still fetching — apologies, this is taking a little longer…'; }
-          }
-          var t = document.getElementById('tbRfTimer'); if (t) t.textContent = _countLeft + 's';
-        }, 1000);
-      },
-      updated: function (msg) {
-        stopCountdown();
-        var e = document.getElementById('tbRefreshBar');
-        if (!e) return;
-        e.classList.add('done');
-        e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _checkIc + '</span>'
-          + '<span class="tb-rf-msg">' + (msg || 'Updated with the latest data.') + '</span>';
-        if (_hideTimer) clearTimeout(_hideTimer);
-        _hideTimer = setTimeout(function () { window.PHDRefreshBanner.hide(); }, 2600);
-      },
-      // Nothing changed since last visit: briefly reassure the user, then fade. No heavy fetch ran.
-      upToDate: function (msg) {
-        if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
-        stopCountdown();
-        var e = el();
-        e.classList.add('done');
-        e.innerHTML = '<span class="tb-rf-dot"></span><span class="tb-rf-ic">' + _checkIc + '</span>'
-          + '<span class="tb-rf-msg">' + (msg || 'Data is up to date.') + '</span>';
-        void e.offsetWidth;
-        e.classList.add('show');
-        _hideTimer = setTimeout(function () { window.PHDRefreshBanner.hide(); }, 2500);
-      },
-      hide: function () {
-        stopCountdown();
-        var e = document.getElementById('tbRefreshBar');
-        if (!e) return;
-        e.classList.remove('show');
-      }
-    };
+    var noop = function () {};
+    window.PHDRefreshBanner = { show: noop, updated: noop, upToDate: noop, hide: noop };
   })();
 
   // Full-page loader (reuses .tb-loader). msg optional.

@@ -971,32 +971,32 @@ async function renderShiftReport(){
       <span class="sr-chip">Handoff: <b><span id="shiftHandoff">IND → AMER</span></b></span>
     </div>
     <div class="sr-cards">
-      <div class="sr-card"><h3>Ticket Health</h3><ul>
-        <li><span>&gt;10 Days Not Closed <em>(Black)</em></span>${nT(black)}</li>
-        <li><span>Pending &gt;72 Hours <em>(Red)</em></span>${nT(red)}</li>
-        <li><span>Created in Last 12 Hours</span>${nT(m.last12Created)}</li>
-        <li><span>Created in Last 24 Hours</span>${nT(m.last24Created)}</li>
-      </ul></div>
-      <div class="sr-card"><h3>Last 12 Hours Activity</h3><ul>
-        <li><span>Assigned</span>${nT(m.asgn)}</li>
-        <li><span>Pending</span>${nT(m.pend)}</li>
-        <li><span>Work In Progress</span>${nT(m.wip)}</li>
-        <li><span>Resolved</span>${nT(m.last12Resolved)}</li>
-      </ul></div>
-      <div class="sr-card"><h3>Ticket Count by Status</h3><ul>
-        <li><span>Assigned</span>${nT(m.asgn)}</li>
-        <li><span>Work In Progress</span>${nT(m.wip)}</li>
-        <li><span>Researching</span>${nT(m.researching)}</li>
-        <li><span>Pending</span>${nT(m.pend)}</li>
-        <li><span>Resolved</span>${nT(m.res)}</li>
-      </ul></div>
-      <div class="sr-card"><h3>Status Distribution</h3><ul>
-        <li><span>Assigned</span><b class="sr-pct" data-pct="${pct(m.asgn)}">0%</b></li>
-        <li><span>Work In Progress</span><b class="sr-pct" data-pct="${pct(m.wip)}">0%</b></li>
-        <li><span>Researching</span><b class="sr-pct" data-pct="${pct(m.researching)}">0%</b></li>
-        <li><span>Pending</span><b class="sr-pct" data-pct="${pct(m.pend)}">0%</b></li>
-        <li><span>Resolved</span><b class="sr-pct" data-pct="${pct(m.res)}">0%</b></li>
-      </ul></div>
+      <div class="sr-card"><h3>Ticket Health</h3><table class="sr-table"><tbody>
+        <tr><td>&gt;10 Days Not Closed <em>(Black)</em></td><td class="sr-v">${nT(black)}</td></tr>
+        <tr><td>Pending &gt;72 Hours <em>(Red)</em></td><td class="sr-v">${nT(red)}</td></tr>
+        <tr><td>Created in Last 12 Hours</td><td class="sr-v">${nT(m.last12Created)}</td></tr>
+        <tr><td>Created in Last 24 Hours</td><td class="sr-v">${nT(m.last24Created)}</td></tr>
+      </tbody></table></div>
+      <div class="sr-card"><h3>Last 12 Hours Activity</h3><table class="sr-table"><tbody>
+        <tr><td>Assigned</td><td class="sr-v">${nT(m.asgn)}</td></tr>
+        <tr><td>Pending</td><td class="sr-v">${nT(m.pend)}</td></tr>
+        <tr><td>Work In Progress</td><td class="sr-v">${nT(m.wip)}</td></tr>
+        <tr><td>Resolved</td><td class="sr-v">${nT(m.last12Resolved)}</td></tr>
+      </tbody></table></div>
+      <div class="sr-card"><h3>Ticket Count by Status</h3><table class="sr-table"><tbody>
+        <tr><td>Assigned</td><td class="sr-v">${nT(m.asgn)}</td></tr>
+        <tr><td>Work In Progress</td><td class="sr-v">${nT(m.wip)}</td></tr>
+        <tr><td>Researching</td><td class="sr-v">${nT(m.researching)}</td></tr>
+        <tr><td>Pending</td><td class="sr-v">${nT(m.pend)}</td></tr>
+        <tr><td>Resolved</td><td class="sr-v">${nT(m.res)}</td></tr>
+      </tbody></table></div>
+      <div class="sr-card"><h3>Status Distribution</h3><table class="sr-table"><tbody>
+        <tr><td>Assigned</td><td class="sr-v"><b class="sr-pct" data-pct="${pct(m.asgn)}">0%</b></td></tr>
+        <tr><td>Work In Progress</td><td class="sr-v"><b class="sr-pct" data-pct="${pct(m.wip)}">0%</b></td></tr>
+        <tr><td>Researching</td><td class="sr-v"><b class="sr-pct" data-pct="${pct(m.researching)}">0%</b></td></tr>
+        <tr><td>Pending</td><td class="sr-v"><b class="sr-pct" data-pct="${pct(m.pend)}">0%</b></td></tr>
+        <tr><td>Resolved</td><td class="sr-v"><b class="sr-pct" data-pct="${pct(m.res)}">0%</b></td></tr>
+      </tbody></table></div>
     </div>
     <div class="sr-notes">
       <label for="shiftNotes">${ic('message',13)} Notes for the incoming shift</label>
@@ -1515,7 +1515,7 @@ function renderDashboard(){
     </div>
   </div></div>
   ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section collapsible"><h2 onclick="toggleSection(this)">SLA Compliance per Week (&le;240 hrs) <span class="sec-caret">▾</span></h2><div class="sec-body">
-    <p class="meta-info" style="margin:-8px 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA, for ${LIVE_QUARTER?LIVE_QUARTER.label:'this quarter'}. Weeks are bucketed by resolved date and drawn as each week passes.</p>
+    <p class="meta-info" style="margin:0 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA, for ${LIVE_QUARTER?LIVE_QUARTER.label:'this quarter'}. Weeks are bucketed by resolved date and drawn as each week passes.</p>
     <div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>
   </div></div>`:''}
   <div class="section collapsible"><h2 onclick="toggleSection(this)">Incident Types <span class="sec-caret">▾</span></h2><div class="sec-body"><p class="meta-info">Click any incident type to view agent breakdown</p>
@@ -1804,7 +1804,7 @@ function renderSlaWeeklyChunk(d){
   const slot=document.getElementById('dashSlaBody');if(!slot)return;
   const weeks=d.weeks||[];
   const slaQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.label:'this quarter';
-  slot.innerHTML='<p class="meta-info" style="margin:-8px 0 16px">Percentage of each week\'s resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date and drawn as each week passes.</p>'+
+  slot.innerHTML='<p class="meta-info" style="margin:0 0 16px">Percentage of each week\'s resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date and drawn as each week passes.</p>'+
     '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>';
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('cSlaWave',{type:'line',data:{labels:weeks.map(w=>w.week),datasets:[{label:'SLA % (≤240h)',data:weeks.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=weeks[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
@@ -2404,8 +2404,8 @@ function paintInitialLoading(){
 // numbers/chart will land. Shown instantly on deep-link so the page is never a blank spinner.
 function shiftReportSkeleton(){
   const colorTile=(cls)=>`<div class="sr-color sr-${cls}"><div class="sr-color-dot"></div><div class="sk-blk sk-num" style="margin:0 auto"></div><div class="sk-blk sk-lbl" style="margin:8px auto 0"></div><div class="sk-blk sk-sub" style="margin:5px auto 0"></div></div>`;
-  const cardRows=(n)=>{let s='';for(let i=0;i<n;i++)s+=`<li><span class="sk-blk sk-row-l"></span><span class="sk-blk sk-row-v"></span></li>`;return s;};
-  const card=(n)=>`<div class="sr-card"><div class="sk-blk sk-h3"></div><ul>${cardRows(n)}</ul></div>`;
+  const cardRows=(n)=>{let s='';for(let i=0;i<n;i++)s+=`<tr><td><span class="sk-blk sk-row-l"></span></td><td class="sr-v"><span class="sk-blk sk-row-v"></span></td></tr>`;return s;};
+  const card=(n)=>`<div class="sr-card"><div class="sk-blk sk-h3"></div><table class="sr-table"><tbody>${cardRows(n)}</tbody></table></div>`;
   return `<div class="content sr">
   <div class="sr-hero">
     <div class="sr-hero-txt"><span class="sr-eyebrow">Queue snapshot</span><h1>Shift Report</h1><p class="sr-lead">Loading queue health for handoff…</p></div>

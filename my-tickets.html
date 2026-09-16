@@ -23,9 +23,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:5px 12px;font-size:.78em}
+/* Actions-cell buttons: amber font, tinted background, distinct color per button.
+   On hover a white background appears -> switch text to a dark shade so it stays readable. */
+td.mt-actions .btn,td.mt-actions .btn.sec{background:rgba(255,153,0,.12);border:1px solid rgba(255,153,0,.4);color:var(--o);font-weight:600}
+td.mt-actions .btn:hover{background:#fff;color:#b45309;border-color:#fff}
+/* Incident-log button (the second, .sec) gets a distinct cyan accent. */
+td.mt-actions .btn.sec{background:rgba(68,185,214,.12);border-color:rgba(68,185,214,.45);color:#44b9d6}
+td.mt-actions .btn.sec:hover{background:#fff;color:#0b5f74;border-color:#fff}
 .btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
-.wrap{width:90%;max-width:none;margin:0 auto;padding:36px 24px}
+.wrap{width:95%;max-width:none;margin:0 auto;padding:36px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
 .tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow-x:auto}
@@ -59,9 +66,7 @@ tbody tr.row-warn td:last-child{border-right-color:rgba(251,191,36,.55)}
 tbody tr.row-over td{border-top-color:rgba(255,82,82,.6);border-bottom-color:rgba(255,82,82,.6)}
 tbody tr.row-over td:first-child{border-left-color:rgba(255,82,82,.6)}
 tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
-tbody tr.row-ok:hover td{border-color:var(--gl)}
-tbody tr.row-warn:hover td{border-color:var(--yl)}
-tbody tr.row-over:hover td{border-color:var(--rl)}
+/* (Row-hover border-color changes removed — hovering a ticket no longer alters its borders.) */
 /* Ticket cell: ID row + wrapped title */
 .tk-id{min-width:240px;max-width:360px}
 .tk-id-row{display:flex;align-items:center;gap:8px}
@@ -182,11 +187,21 @@ tbody tr{transition:background .12s}
 .tk-latest-meta .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#5ecdec;border-radius:20px;padding:0 7px;font-weight:700}
 .tk-latest-by{white-space:nowrap}
 .tk-latest-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
-/* Actions cell — both buttons EXACTLY the same width + height, stacked with a tight gap. */
-.mt-actions{white-space:nowrap;min-width:190px}
-.mt-actions>span{display:block}
-.mt-actions .btn{display:flex;width:100%;box-sizing:border-box;justify-content:center;align-items:center;gap:6px;height:34px;padding:0 12px;margin:0 0 4px;border:none}
-.mt-actions>span:last-child .btn,.mt-actions>.btn:last-child{margin-bottom:0}
+/* Actions cell (table td) — both buttons SIDE BY SIDE, equal width + height. On narrow screens
+   they collapse to icon-only (label hidden) so they still fit next to each other.
+   Scoped to td.mt-actions so it doesn't affect the page-header .mt-actions container. */
+td.mt-actions{white-space:nowrap;min-width:150px;display:flex;align-items:stretch;gap:8px;border-bottom:none!important}
+td.mt-actions>span{display:flex;flex:1 1 0;min-width:0}
+td.mt-actions>.btn{flex:1 1 0}
+td.mt-actions .btn{display:inline-flex;width:100%;box-sizing:border-box;justify-content:center;align-items:center;gap:6px;height:34px;padding:0 12px;margin:0;border:none}
+td.mt-actions .btn .btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Compact / narrow screens: hide the text, keep the icon (buttons become square). */
+@media(max-width:1080px){
+  td.mt-actions{min-width:0;gap:6px}
+  td.mt-actions .btn{width:34px;flex:0 0 34px;padding:0}
+  td.mt-actions .btn .btn-txt{display:none}
+  td.mt-actions>span{flex:0 0 34px}
+}
 /* Center the Created / Time left / Latest comment columns. Column order: view(1) created(2) time-left(3) ticket(4) latest(5) ... */
 .mt-table.xls td:nth-child(2),.mt-table.xls th:nth-child(2),
 .mt-table.xls td:nth-child(3),.mt-table.xls th:nth-child(3),
@@ -698,7 +713,7 @@ function rowHtml(t,i,editor){
       </td>
       <td class="latest-cmt" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:70%;height:11px;display:block"></span></td>
       ${editor?('<td class="mt-help">'+helpBlock(t)+'</td>'):''}
-      <td class="mt-actions" onclick="event.stopPropagation()"><button class="btn mini" onclick="openAddComment(${i})">${ic('message',13)} Add comment</button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
+      <td class="mt-actions" onclick="event.stopPropagation()"><button class="btn mini" title="Add comment" onclick="openAddComment(${i})">${ic('message',13)}<span class="btn-txt">Add comment</span></button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
       <td class="mt-col-temp" onclick="event.stopPropagation()"><label class="switch" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" aria-label="Temp resolve ${esc(sid)}"><span class="slider"></span></label></td>
     </tr>
     <tr class="mt-detail${open?' open':''}" data-sid="${esc(sid)}">
@@ -720,8 +735,8 @@ let HAS_LOG={}; // shortId -> true if the ticket already has >=1 incident log
 function incidentBtnHtml(i){
   const t=TICKETS[i]; const has=t&&HAS_LOG[String(t.shortId)];
   return has
-    ? '<button class="btn sec mini" onclick="openViewIncident('+i+')">'+ic('clipboard',13)+' View incident log</button>'
-    : '<button class="btn sec mini" onclick="openIncidentLog('+i+')">'+ic('plus',13)+' Add incident log</button>';
+    ? '<button class="btn sec mini" title="View incident log" onclick="openViewIncident('+i+')">'+ic('clipboard',13)+'<span class="btn-txt">View incident log</span></button>'
+    : '<button class="btn sec mini" title="Add incident log" onclick="openIncidentLog('+i+')">'+ic('plus',13)+'<span class="btn-txt">Add incident log</span></button>';
 }
 // Small header indicator: shown only when the ticket already has an incident log. Clicking it
 // opens the incident-log viewer (without expanding/collapsing the card).
