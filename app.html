@@ -57,6 +57,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   .dash-actions .dash-act{flex:1 1 auto}
 }
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+/* KPI summary sections rendered as tables (Queue Status / Average / Repeat Incident). */
+.kpi-table{width:100%;border-collapse:collapse;font-size:.9em}
+.kpi-table th,.kpi-table td{padding:10px 14px;border:1px solid #223040;vertical-align:top;text-align:left}
+.kpi-table thead th{background:#111820;color:var(--tm);text-transform:uppercase;font-size:.72em;letter-spacing:.5px;font-weight:700}
+.kpi-table td.kt-metric{color:var(--t);font-weight:600;white-space:nowrap}
+.kpi-table td.kt-metric .ic,.kpi-table td.kt-metric svg{vertical-align:middle;margin-right:6px;opacity:.85}
+.kpi-table td.kt-value{color:#fff;font-weight:800;font-size:1.05em;white-space:nowrap;text-align:right;width:1%}
+.kpi-table td.kt-desc{color:var(--tm);font-size:.82em;line-height:1.45;font-weight:400}
+.kpi-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
 .kpi-card{background:var(--s);border-radius:8px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
 .kpi-card .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
 .kpi-card .label{font-size:.78em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}

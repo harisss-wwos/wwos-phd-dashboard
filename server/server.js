@@ -3028,16 +3028,36 @@ function _weekExpr(dateField) {
 async function dashWeekly(qid) {
   const rows = await aggLive([
     { $facet: {
-      created: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } }, { $group: { _id: _weekExpr('$t.CreateDate'), n: { $sum: 1 } } }],
-      resolved: [{ $match: { 't.ResolvedDate': { $ne: null, $ne: '' } } }, { $group: { _id: _weekExpr('$t.ResolvedDate'), n: { $sum: 1 } } }],
+      // Created per week + the actual date span of that week (min/max CreateDate) for x-axis labels.
+      created: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
+        { $project: { w: _weekExpr('$t.CreateDate'), cd: _safeDate('$t.CreateDate') } },
+        { $group: { _id: '$w', n: { $sum: 1 }, first: { $min: '$cd' }, last: { $max: '$cd' } } }],
+      resolved: [{ $match: { 't.ResolvedDate': { $ne: null, $ne: '' } } },
+        { $group: { _id: _weekExpr('$t.ResolvedDate'), n: { $sum: 1 } } }],
+      // SLA per week: bucket by RESOLVED week (same _weekExpr), count resolved-with-hours + within 240h.
+      sla: [{ $project: { w: _weekExpr('$t.ResolvedDate'), h: AGG.resHours } },
+        { $match: { w: { $ne: null }, h: { $ne: null, $gte: 0 } } },
+        { $group: { _id: '$w', res: { $sum: 1 }, within: { $sum: { $cond: [{ $lte: ['$h', 240] }, 1, 0] } } } }],
     } },
   ], qid);
-  const f = rows[0] || { created: [], resolved: [] };
-  const wb = {}, wbR = {};
-  (f.created || []).forEach(x => { if (x._id != null) wb['W' + x._id] = x.n; });
+  const f = rows[0] || { created: [], resolved: [], sla: [] };
+  const wb = {}, wbR = {}, wSpan = {}, wSla = {};
+  (f.created || []).forEach(x => { if (x._id != null) { wb['W' + x._id] = x.n; wSpan['W' + x._id] = { first: x.first, last: x.last }; } });
   (f.resolved || []).forEach(x => { if (x._id != null) wbR['W' + x._id] = x.n; });
+  (f.sla || []).forEach(x => { if (x._id != null) wSla['W' + x._id] = { res: x.res, within: x.within }; });
   const labels = Object.keys(wb).sort();
-  return { labels, created: labels.map(k => wb[k]), resolved: labels.map(k => wbR[k] || 0) };
+  const iso = (d) => { try { return d ? new Date(d).toISOString() : null; } catch (e) { return null; } };
+  return {
+    labels,
+    created: labels.map(k => wb[k]),
+    resolved: labels.map(k => wbR[k] || 0),
+    // Per-week SLA % (within 240h / resolved-with-hours), null when no resolutions that week.
+    slaPct: labels.map(k => { const s = wSla[k]; return (s && s.res) ? +(s.within / s.res * 100).toFixed(1) : null; }),
+    slaWithin: labels.map(k => (wSla[k] ? wSla[k].within : 0)),
+    slaResolved: labels.map(k => (wSla[k] ? wSla[k].res : 0)),
+    // ISO date span per week label (min/max CreateDate that fell in the week) for x-axis ranges.
+    span: labels.map(k => ({ first: iso(wSpan[k] && wSpan[k].first), last: iso(wSpan[k] && wSpan[k].last) })),
+  };
 }
 
 // ---- SLA Compliance per Week (<=240h), 13 buckets from quarter start ----

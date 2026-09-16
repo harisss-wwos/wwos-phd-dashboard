@@ -1737,27 +1737,48 @@ function renderAgeChunk(d){
 }
 // Fill the "Queue Status Data" KPI cards (top of the dashboard) from the queue chunk
 // ({counts,pct}). One card per status + a Total, animated with the same count-up as the summary.
+// Build a KPI section as a table. rows = [{metric, value, valColor, desc}]. `withDesc` adds a
+// Definition column (used by Average / Repeat Incident sections). When withDesc is true the Value
+// column is centered; otherwise it's right-aligned.
+function kpiTableHtml(rows, withDesc){
+  const valAlign=withDesc?'center':'right';
+  const head='<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th>'+(withDesc?'<th>Definition</th>':'')+'</tr>';
+  const body=rows.map(function(r){
+    const vStyle=' style="text-align:'+valAlign+(r.valColor?(';color:'+r.valColor):'')+'"';
+    const raw=(r.value==null?'\u2014':String(r.value));
+    const cell='<span class="kpi-anim" data-kpi-val="'+raw.replace(/"/g,'&quot;')+'"></span>';
+    return '<tr><td class="kt-metric">'+(r.metric||'')+'</td>'+
+      '<td class="kt-value"'+vStyle+'>'+cell+'</td>'+
+      (withDesc?('<td class="kt-desc">'+(r.desc||'')+'</td>'):'')+'</tr>';
+  }).join('');
+  return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+}
 function renderQueueKpis(d){
   const grid=document.getElementById('dashQueueKpis'); if(!grid||!d||!d.counts)return;
   const c=d.counts, p=d.pct||{};
   const total=(d.total!=null)?d.total:['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'].reduce(function(s,k){return s+(c[k]||0);},0);
-  // "In Queue" = the 4 open statuses (Assigned + Work In Progress + Researching + Pending).
   const inQueue=['Assigned','Work In Progress','Researching','Pending'].reduce(function(s,k){return s+(c[k]||0);},0);
   const inQueuePct=total?(Math.round(inQueue/total*1000)/10):0;
-  const info=(tip)=>tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'';
-  const val=(raw,style)=>'<div class="value kpi-anim" data-kpi-val="'+String(raw).replace(/"/g,'&quot;')+'"'+(style?(' style="'+style+'"'):'')+'></div>';
   const num=(k)=>((c[k]||0).toLocaleString()+(p[k]!=null?(' ('+p[k]+'%)'):''));
-  grid.innerHTML=
-    // Row 1: the four open statuses (highlighted).
-    '<div class="kpi-card qhl">'+val(num('Assigned'))+'<div class="label">'+ic('inbox',14)+' Assigned</div></div>'+
-    '<div class="kpi-card qhl">'+val(num('Work In Progress'))+'<div class="label">'+ic('tool',14)+' Work In Progress</div></div>'+
-    '<div class="kpi-card qhl">'+val(num('Researching'))+'<div class="label">'+ic('eye',14)+' Researching</div></div>'+
-    '<div class="kpi-card qhl">'+val(num('Pending'))+'<div class="label">'+ic('hourglass',14)+' Pending</div></div>'+
-    // Row 2: totals / in-queue / resolved / closed.
-    '<div class="kpi-card accent">'+val(total.toLocaleString())+'<div class="label">'+ic('grid',14)+' Total Tickets'+info('All tickets in the live quarter (every status)')+'</div></div>'+
-    '<div class="kpi-card warning">'+val(inQueue.toLocaleString()+' ('+inQueuePct+'%)')+'<div class="label">'+ic('inbox',14)+' In Queue'+info('Open tickets: Assigned + Work In Progress + Researching + Pending')+'</div></div>'+
-    '<div class="kpi-card success">'+val(num('Resolved'))+'<div class="label">'+ic('check-circle',14)+' Resolved</div></div>'+
-    '<div class="kpi-card success">'+val(num('Closed'))+'<div class="label">'+ic('check-circle',14)+' Closed</div></div>';
+  // Two metric/value pairs per row: left = summary totals, right = the four open statuses.
+  const left=[
+    {m:ic('inbox',14)+' In Queue', v:inQueue.toLocaleString()+' ('+inQueuePct+'%)', col:'#fbbf24'},
+    {m:ic('grid',14)+' Total Tickets', v:total.toLocaleString()},
+    {m:ic('check-circle',14)+' Resolved', v:num('Resolved'), col:'#4ade80'},
+    {m:ic('check-circle',14)+' Closed', v:num('Closed'), col:'#4ade80'}
+  ];
+  const right=[
+    {m:ic('inbox',14)+' Assigned', v:num('Assigned')},
+    {m:ic('tool',14)+' Work In Progress', v:num('Work In Progress')},
+    {m:ic('eye',14)+' Researching', v:num('Researching')},
+    {m:ic('hourglass',14)+' Pending', v:num('Pending')}
+  ];
+  const cell=function(x){ if(!x) return '<td></td><td></td>'; const raw=String(x.v).replace(/"/g,'&quot;'); return '<td class="kt-metric">'+x.m+'</td><td class="kt-value"'+(x.col?(' style="color:'+x.col+'"'):'')+'><span class="kpi-anim" data-kpi-val="'+raw+'"></span></td>'; };
+  let rows='';
+  for(let i=0;i<Math.max(left.length,right.length);i++){ rows+='<tr>'+cell(left[i])+cell(right[i])+'</tr>'; }
+  grid.innerHTML='<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+
+    '<tr><th>Metric</th><th style="text-align:right">Value</th><th>Metric</th><th style="text-align:right">Value</th></tr>'+
+    '</thead><tbody>'+rows+'</tbody></table></div>';
   grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
 function renderQueueChunk(d){
@@ -1780,12 +1801,58 @@ function renderDaily7Chunk(d){
 }
 function renderWeeklyChunk(d){
   const slot=document.getElementById('dashWeeklyBody');if(!slot)return;
-  slot.innerHTML='<div class="chart-box"><div class="chart-wrap tall"><canvas id="cWeeklyWave"></canvas></div></div>';
+  const slaQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.label:'this quarter';
+  slot.innerHTML='<p class="meta-info" style="margin:0 0 16px">Weekly <b style="color:#ff9900">Created</b> vs <b style="color:#4ade80">Resolved</b> volume, overlaid with the <b style="color:#a78bfa">SLA compliance %</b> (\u2264240h) for each week of '+slaQ+'. SLA reads on the right axis.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cWeeklyWave"></canvas></div></div>';
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
-  makeChart('cWeeklyWave',{type:'line',data:{labels:d.labels,datasets:[
-    _waveDataset('Created',d.created,'#ff9900','rgba(255,153,0,'),
-    _waveDataset('Resolved',d.resolved,'#4ade80','rgba(74,222,128,')
-  ]},options:_waveOpts('Tickets')});
+  drawWeeklyCombined(d);
+}
+// Combined weekly chart: Created + Resolved (left axis, tickets, filled waves) + SLA % (right axis,
+// solid straight purple line). All three come from ONE payload keyed by the same week buckets.
+function drawWeeklyCombined(d){
+  const wk=d.labels||[];
+  const span=d.span||[];
+  // Format a week label as "W26 (Jun 23 – Jun 29)" using the observed date span for that week.
+  const fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+  const labels=wk.map(function(l,i){ var s=span[i]||{}; var a=fmtD(s.first), b=fmtD(s.last); return (a&&b)?(l+' ('+a+' \u2013 '+b+')'):l; });
+  const slaData=d.slaPct||[];
+  const hasSla=slaData.some(function(v){ return v!=null; });
+  // Created + Resolved as grouped BARS (left axis) — easier to compare per week than overlapping waves.
+  const bar=function(label,data,color){ return {type:'bar',label:label,data:data,yAxisID:'y',backgroundColor:color,borderColor:color,borderWidth:0,borderRadius:4,maxBarThickness:26,order:2}; };
+  const datasets=[
+    bar('Created',d.created,'rgba(255,153,0,.85)'),
+    bar('Resolved',d.resolved,'rgba(74,222,128,.85)')
+  ];
+  if(hasSla){
+    // SLA compliance: a clear STRAIGHT solid line drawn ON TOP of the bars, on the right axis.
+    datasets.push({type:'line',label:'SLA % (\u2264240h)',data:slaData,yAxisID:'ySla',borderColor:'#a78bfa',
+      pointBackgroundColor:'#a78bfa',pointBorderColor:'#fff',pointBorderWidth:1,pointRadius:4,pointHoverRadius:6,
+      borderWidth:3,tension:0,fill:false,spanGaps:true,order:0});
+  }
+  // Right axis range: zoom to where the SLA values actually sit so weekly variation is visible
+  // (like the reference chart's ~87–97% band) instead of being flattened against 0–100.
+  var slaMin=100; slaData.forEach(function(v){ if(v!=null&&v<slaMin) slaMin=v; });
+  var slaLo=hasSla?Math.max(0,Math.floor((slaMin-2))):0;
+  // Inline plugin: print the SLA % just above each line point (no external dependency).
+  var slaLabelPlugin={ id:'slaLabels', afterDatasetsDraw:function(chart){
+    var ds=chart.data.datasets.findIndex(function(x){return x.yAxisID==='ySla';}); if(ds<0)return;
+    var meta=chart.getDatasetMeta(ds); if(!meta||meta.hidden)return; var ctx=chart.ctx;
+    ctx.save(); ctx.font='700 11px Inter, sans-serif'; ctx.fillStyle='#c9b6f5'; ctx.textAlign='center';
+    meta.data.forEach(function(pt,i){ var v=chart.data.datasets[ds].data[i]; if(v==null||!pt)return; ctx.fillText(v+'%', pt.x, pt.y-9); });
+    ctx.restore();
+  }};
+  const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    layout:{padding:{top:16}},
+    plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
+      tooltip:{callbacks:{label:function(c){
+        if(c.dataset.yAxisID==='ySla'){ return 'SLA: '+(c.raw==null?'\u2014':(c.raw+'%'))+((d.slaResolved&&d.slaResolved[c.dataIndex])?(' ('+d.slaWithin[c.dataIndex]+'/'+d.slaResolved[c.dataIndex]+')'):''); }
+        return c.dataset.label+': '+c.raw;
+      }}}},
+    scales:{
+      y:{beginAtZero:true,position:'left',grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Tickets',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:12}}},
+      ySla:{min:slaLo,max:100,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'SLA % (\u2264240 hrs)',color:'#a78bfa',font:{size:12}},ticks:{color:'#a78bfa',callback:function(v){return v+'%';}},display:hasSla},
+      x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}};
+  makeChart('cWeeklyWave',{type:'bar',data:{labels:labels,datasets:datasets},options:opts,plugins:[slaLabelPlugin]});
 }
 // A smooth "wave" (filled area) line dataset. `rgbaPrefix` like 'rgba(255,153,0,' — fill fades out.
 function _waveDataset(label,data,color,rgbaPrefix){
@@ -1856,30 +1923,31 @@ function renderSummaryInto(d){
   }catch(e){}
   stopKpiScramble(); // real values are in — halt the flicker before the count-up
   const g1=document.getElementById('dashSumTotals'),g2=document.getElementById('dashSumAvg'),g3=document.getElementById('dashSumRepeat');
-  // Each KPI value carries its final display string in data-kpi-val; the .value starts blank and
-  // is animated by countUpKpi (scramble -> ease-out count-up -> lands exactly on the real number).
-  const val=(raw,style)=>'<div class="value kpi-anim" data-kpi-val="'+String(raw).replace(/"/g,'&quot;')+'"'+(style?(' style="'+style+'"'):'')+'></div>';
-  const info=(tip)=>tip?' <span title="'+tip+'" style="cursor:help;opacity:.7">&#9432;</span>':'';
-  if(g1)g1.innerHTML=
-    '<div class="kpi-card accent">'+val(d.total.toLocaleString())+'<div class="label">'+ic('ticket',14)+' Total Tickets'+info('Total number of tickets stored in the dashboard')+'</div></div>'+
-    '<div class="kpi-card success">'+val(d.resolved.toLocaleString()+' ('+d.resolvedPct+'%)')+'<div class="label">'+ic('check-circle',14)+' Resolved'+info('Tickets in Resolved or Closed status')+'</div></div>'+
-    '<div class="kpi-card warning">'+val(d.unresolved.toLocaleString()+' ('+d.unresolvedPct+'%)')+'<div class="label">'+ic('hourglass',14)+' Unresolved Tickets'+info('Tickets not in Resolved/Closed status')+'</div></div>';
+  // Each section renders as a table; values carry their final string in data-kpi-val and are
+  // animated by countUpKpi (scramble -> ease-out count-up -> lands exactly on the real number).
+  if(g1){
+    g1.innerHTML=kpiTableHtml([
+      {metric:ic('ticket',14)+' Total Tickets', value:d.total.toLocaleString()},
+      {metric:ic('check-circle',14)+' Resolved', value:d.resolved.toLocaleString()+' ('+d.resolvedPct+'%)', valColor:'#4ade80'},
+      {metric:ic('hourglass',14)+' Unresolved Tickets', value:d.unresolved.toLocaleString()+' ('+d.unresolvedPct+'%)', valColor:'#fbbf24'}
+    ], false);
+  }
   if(g2){
-    var desc=function(t){return '<div class="kpi-desc">'+t+'</div>';};
-    g2.innerHTML=
-    '<div class="kpi-card">'+val(d.avgResolutionHrs+' hrs')+'<div class="label">Avg Resolution Time</div>'+desc('Average time taken to resolve a ticket (from create to resolve).')+'</div>'+
-    '<div class="kpi-card" style="border-top-color:'+(d.slaPct>=90?'#4ade80':'#ff5252')+'">'+val(d.slaPct+'%','color:'+(d.slaPct>=90?'#4ade80':'#ff5252'))+'<div class="label">SLA Compliance (≤240 hrs)</div>'+desc('Share of resolved tickets closed within the 240-hour SLA window. Green if \u2265 90%, red otherwise. Currently '+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs.')+'</div>'+
-    '<div class="kpi-card">'+val(d.autosim.toLocaleString()+' ('+d.autosimPct+'%)')+'<div class="label">'+ic('bolt',14)+' AutoSIM Resolved</div>'+desc('How many tickets were auto-resolved by AutoSIM, and what percentage of the total that represents.')+'</div>';
+    g2.innerHTML=kpiTableHtml([
+      {metric:'Avg Resolution Time', value:d.avgResolutionHrs+' hrs', desc:'Average time taken to resolve a ticket (from create to resolve).'},
+      {metric:'SLA Compliance (\u2264240 hrs)', value:d.slaPct+'%', valColor:(d.slaPct>=90?'#4ade80':'#ff5252'), desc:'Share of resolved tickets closed within the 240-hour SLA window. Green if \u2265 90%, red otherwise. Currently '+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs.'},
+      {metric:ic('bolt',14)+' AutoSIM Resolved', value:d.autosim.toLocaleString()+' ('+d.autosimPct+'%)', desc:'How many tickets were auto-resolved by AutoSIM, and what percentage of the total that represents.'}
+    ], true);
   }
   if(g3){
-    var descR=function(t){return '<div class="kpi-desc">'+t+'</div>';};
-    g3.innerHTML=
-    '<div class="kpi-card accent">'+val(d.repeatIncidents.toLocaleString())+'<div class="label">'+ic('repeat',14)+' Repeat Incidents (HI&gt;0)</div>'+descR('Tickets that are repeat incidents — a Historical Incident count (Cnt) greater than 0.')+'</div>'+
-    '<div class="kpi-card" style="border-top-color:#a78bfa">'+val(d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)','color:#a78bfa')+'<div class="label">'+ic('paw',14)+' HI involving pet incidents</div>'+descR('Of those repeat incidents, how many have a pet/animal root cause, and their share of all repeat incidents.')+'</div>'+
-    '<div class="kpi-card">'+val(d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)')+'<div class="label">'+ic('repeat',14)+' HI involving non-pet incidents</div>'+descR('Of those repeat incidents, how many are NOT pet-related, and their share of all repeat incidents.')+'</div>';
+    g3.innerHTML=kpiTableHtml([
+      {metric:ic('repeat',14)+' Repeat Incidents (HI&gt;0)', value:d.repeatIncidents.toLocaleString(), desc:'Tickets that are repeat incidents — a Historical Incident count (Cnt) greater than 0.'},
+      {metric:ic('paw',14)+' HI involving pet incidents', value:d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)', valColor:'#a78bfa', desc:'Of those repeat incidents, how many have a pet/animal root cause, and their share of all repeat incidents.'},
+      {metric:ic('repeat',14)+' HI involving non-pet incidents', value:d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)', desc:'Of those repeat incidents, how many are NOT pet-related, and their share of all repeat incidents.'}
+    ], true);
   }
-  // Animate every KPI value from a brief scramble into its real number.
-  document.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
+  // Animate every table value from a brief scramble into its real number.
+  [g1,g2,g3].forEach(function(g){ if(g) g.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); }); });
 }
 
 // Shared dashboard page-title row: "Q3 2026" on the left, "LIVE" badge on the right, and the
@@ -1912,38 +1980,37 @@ function renderDashboardChunked(){
   stopScramble();
   destroyCharts();
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
-  // KPI slot with the archive-style scramble animation while /api/dash/summary loads.
-  // scrMax = plausible flicker upper bound; pct=true renders a % during the scramble.
-  const kpiSpin=(cls,label,scrMax,pct)=>'<div class="kpi-card '+(cls||'')+'"><div class="value scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</div><div class="label">'+label+'</div></div>';
-  // Compact, collapsible summary cards (expanded by default). Each section's KPI tiles sit in
-  // a single row (kpi-grid-compact) so they read as a tidy strip instead of oversized blocks.
-  const kpiSection=(title,iconName,gridId,cols,tiles)=>
+  // A scrambling value cell for the table skeletons (flickers via startKpiScramble until data lands).
+  const scrCell=(scrMax,pct)=>'<span class="scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</span>';
+  // Table skeleton for a metric/value(/definition) section that matches the final rendered table.
+  const kpiTblSkel=(rows,withDesc)=>{
+    const head='<tr><th>Metric</th><th style="text-align:'+(withDesc?'center':'right')+'">Value</th>'+(withDesc?'<th>Definition</th>':'')+'</tr>';
+    const body=rows.map(function(r){ return '<tr><td class="kt-metric">'+r.m+'</td><td class="kt-value" style="text-align:'+(withDesc?'center':'right')+'">'+scrCell(r.s,r.p)+'</td>'+(withDesc?'<td class="kt-desc">\u2026</td>':'')+'</tr>'; }).join('');
+    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+  };
+  // Paired (4-col) queue skeleton: left = totals, right = open statuses.
+  const queueSkel=function(){
+    const L=[{m:ic('inbox',14)+' In Queue',s:400},{m:ic('grid',14)+' Total Tickets',s:9000},{m:ic('check-circle',14)+' Resolved',s:9000},{m:ic('check-circle',14)+' Closed',s:9000}];
+    const R=[{m:ic('inbox',14)+' Assigned',s:200},{m:ic('tool',14)+' Work In Progress',s:300},{m:ic('eye',14)+' Researching',s:100},{m:ic('hourglass',14)+' Pending',s:100}];
+    let rows='';
+    for(let i=0;i<4;i++){ rows+='<tr><td class="kt-metric">'+L[i].m+'</td><td class="kt-value" style="text-align:right">'+scrCell(L[i].s)+'</td><td class="kt-metric">'+R[i].m+'</td><td class="kt-value" style="text-align:right">'+scrCell(R[i].s)+'</td></tr>'; }
+    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead><tr><th>Metric</th><th style="text-align:right">Value</th><th>Metric</th><th style="text-align:right">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  };
+  const kpiSection=(title,iconName,gridId,skel)=>
     '<div class="section collapsible kpi-section"><h2 onclick="toggleSection(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">\u25be</span></h2>'+
-    '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:repeat('+cols+',1fr)">'+tiles+'</div></div></div>';
+    '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:1fr">'+skel+'</div></div></div>';
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
-    kpiSection('Queue Status Data','grid','dashQueueKpis',4,
-      kpiSpin('qhl',ic('inbox',14)+' Assigned',200)+
-      kpiSpin('qhl',ic('tool',14)+' Work In Progress',300)+
-      kpiSpin('qhl',ic('eye',14)+' Researching',100)+
-      kpiSpin('qhl',ic('hourglass',14)+' Pending',100)+
-      kpiSpin('accent',ic('grid',14)+' Total Tickets',9000)+
-      kpiSpin('warning',ic('inbox',14)+' In Queue',400)+
-      kpiSpin('success',ic('check-circle',14)+' Resolved',9000)+
-      kpiSpin('success',ic('check-circle',14)+' Closed',9000))+
+    kpiSection('Queue Status Data','grid','dashQueueKpis',queueSkel())+
     // Ticket Age Classification sits right below Queue Status Data.
     dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
-    kpiSection('Average Data','clock','dashSumAvg',3,
-      kpiSpin('','Avg Resolution Time',200)+kpiSpin('','SLA Compliance (≤240 hrs)',100,true)+kpiSpin('',ic('bolt',14)+' AutoSIM Resolved',3000))+
-    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',3,
-      kpiSpin('accent',ic('repeat',14)+' Repeat Incidents (HI&gt;0)',300)+kpiSpin('',ic('paw',14)+' HI involving pet incidents',200)+kpiSpin('',ic('repeat',14)+' HI involving non-pet incidents',100))+
+    kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000}],true))+
+    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true))+
     // Incident Types + Historical Incidents follow Repeat Incident Data.
     dashCard('incidents','alert','Incident Types','dashIncidentsBody')+
     dashCard('hi','repeat','Historical Incidents (Cnt > 0)','dashHiBody')+
-    // SLA compliance sits above the Daily/Weekly volume charts.
-    dashCard('sla-weekly','check-circle','SLA Compliance per Week (≤240 hrs)','dashSlaBody')+
-    dashCard('daily7','calendar','Daily Tickets (Last 7 Days)','dashDaily7Body')+
-    dashCard('weekly','bar-chart','Weekly Volume','dashWeeklyBody')+
+    // Weekly Volume (Created + Resolved) combined with SLA Compliance % on a second axis.
+    dashCard('weekly','bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody')+
   '</div>';
   attachNewFileHandler();
   refreshHelpAlertCount();
