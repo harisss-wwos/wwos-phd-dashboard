@@ -2377,6 +2377,21 @@ async function aggClosureMetrics(opts) {
       slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }, { $lte: ['$_rh', 240] }] }, 1, 0] } },
   } });
   const rows = await tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
+  // Second pass: per-agent ASSIGNED counts (by AssigneeIdentity), scoped by LastAssignedDate.
+  // "Assigned" = how many tickets were assigned to the agent within the selected quarter/window,
+  // based on WHEN the ticket was last assigned (LastAssignedDate) - NOT ResolvedDate.
+  const asgPipe = [];
+  asgPipe.push({ $addFields: { _asg: { $toLower: { $ifNull: ['$AssigneeIdentity', ''] } }, _lad: { $convert: { input: '$LastAssignedDate', to: 'date', onError: null, onNull: null } } } });
+  asgPipe.push({ $match: { _asg: { $in: GRP_ALL }, _lad: { $ne: null } } });
+  if (opts.q) {                                   // quarter scope: LastAssignedDate within the quarter window
+    const qr = quarterRange(opts.q);
+    if (qr) asgPipe.push({ $match: { _lad: { $gte: qr.start, $lt: qr.endExclusive } } });
+  }
+  if (opts.fromMs != null) asgPipe.push({ $match: { _lad: { $gte: new Date(opts.fromMs), $lt: new Date(opts.toMs) } } });
+  asgPipe.push({ $group: { _id: '$_asg', n: { $sum: 1 } } });
+  const asgRows = await tColl.aggregate(asgPipe, { allowDiskUse: true }).toArray();
+  const aAsg = {}; GRP_ALL.forEach(n => { aAsg[n] = 0; }); asgRows.forEach(r => { if (aAsg[r._id] !== undefined) aAsg[r._id] = r.n; });
+
   const aClosure = {}, aRt = {}, aSla = {};
   GRP_ALL.forEach(n => { aClosure[n] = {}; WINDOW_CLOSURE_CODES.forEach(c => { aClosure[n][c] = 0; }); aRt[n] = { sum: 0, count: 0 }; aSla[n] = { eligible: 0, within: 0 }; });
   rows.forEach(r => {
@@ -2386,11 +2401,11 @@ async function aggClosureMetrics(opts) {
     aSla[n].eligible += r.slaElig || 0; aSla[n].within += r.slaWithin || 0;
   });
   const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
-  const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), closure: aClosure[n], avgTime: aRt[n].count ? (aRt[n].sum / aRt[n].count) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
-  const gClo = { A1: {}, A2: {}, B: {} }, gSla = { A1: { eligible: 0, within: 0 }, A2: { eligible: 0, within: 0 }, B: { eligible: 0, within: 0 } };
+  const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), assigned: aAsg[n] || 0, closure: aClosure[n], avgTime: aRt[n].count ? (aRt[n].sum / aRt[n].count) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
+  const gClo = { A1: {}, A2: {}, B: {} }, gSla = { A1: { eligible: 0, within: 0 }, A2: { eligible: 0, within: 0 }, B: { eligible: 0, within: 0 } }, gAsg = { A1: 0, A2: 0, B: 0 };
   ['A1', 'A2', 'B'].forEach(g => WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] = 0; }));
-  agents.forEach(a => { const g = a.group; if (!g) return; WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] += a.closure[c] || 0; }); gSla[g].eligible += aSla[a.name].eligible; gSla[g].within += aSla[a.name].within; });
-  const groups = { closure: gClo, sla: { A1: { pct: slaPctOf(gSla.A1.eligible, gSla.A1.within) }, A2: { pct: slaPctOf(gSla.A2.eligible, gSla.A2.within) }, B: { pct: slaPctOf(gSla.B.eligible, gSla.B.within) } } };
+  agents.forEach(a => { const g = a.group; if (!g) return; WINDOW_CLOSURE_CODES.forEach(c => { gClo[g][c] += a.closure[c] || 0; }); gSla[g].eligible += aSla[a.name].eligible; gSla[g].within += aSla[a.name].within; gAsg[g] += a.assigned || 0; });
+  const groups = { closure: gClo, assigned: gAsg, sla: { A1: { pct: slaPctOf(gSla.A1.eligible, gSla.A1.within) }, A2: { pct: slaPctOf(gSla.A2.eligible, gSla.A2.within) }, B: { pct: slaPctOf(gSla.B.eligible, gSla.B.within) } } };
   return { agents, groups };
 }
 app.get('/api/group-overall', requireRole('admin'), async (req, res) => {
