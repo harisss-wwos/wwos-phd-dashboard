@@ -2904,6 +2904,19 @@ async function dashSummary(qid) {
   const avgR = r.rtCount ? (r.rtSum / r.rtCount) : 0;
   const hi = r.hi || 0, pet = r.hiPet || 0, nonPet = hi - pet;
   const petPct = pct1(pet, hi), nonPetPct = pct1(nonPet, hi);
+  // Weeks elapsed so far this quarter = distinct CreateDate week buckets that have tickets. Used to
+  // average the repeat-incident (HI Cnt>0) tickets created per week.
+  let weeksElapsed = 0;
+  try {
+    const wr = await aggLive([
+      { $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
+      { $group: { _id: _weekExpr('$t.CreateDate') } },
+      { $match: { _id: { $ne: null } } },
+      { $count: 'weeks' },
+    ], qid);
+    weeksElapsed = (wr[0] && wr[0].weeks) || 0;
+  } catch (e) { weeksElapsed = 0; }
+  const avgHiPerWeek = weeksElapsed ? +(hi / weeksElapsed).toFixed(1) : 0;
   return {
     total: T, resolved: res, unresolved: inQ,
     resolvedPct: pct1(res, T), unresolvedPct: pct1(inQ, T),
@@ -2911,6 +2924,7 @@ async function dashSummary(qid) {
     slaPct: pct1(r.slaWithin || 0, r.rtCount || 0), slaCompliant: r.slaWithin || 0, slaBase: r.rtCount || 0,
     autosim: r.autosim || 0, autosimPct: pct1(r.autosim || 0, T),
     repeatIncidents: hi, hiPet: pet, hiNonPet: nonPet, hiPetPct: petPct, hiNonPetPct: nonPetPct, hiGap: +(petPct - nonPetPct).toFixed(1),
+    avgHiPerWeek: avgHiPerWeek, weeksElapsed: weeksElapsed,
   };
 }
 
@@ -3038,13 +3052,19 @@ async function dashWeekly(qid) {
       sla: [{ $project: { w: _weekExpr('$t.ResolvedDate'), h: AGG.resHours } },
         { $match: { w: { $ne: null }, h: { $ne: null, $gte: 0 } } },
         { $group: { _id: '$w', res: { $sum: 1 }, within: { $sum: { $cond: [{ $lte: ['$h', 240] }, 1, 0] } } } }],
+      // Repeat incidents CREATED per week: tickets whose HI count (Cnt) > 0, bucketed by CreateDate week.
+      hi: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
+        { $project: { w: _weekExpr('$t.CreateDate'), hc: AGG.hiCountExpr } },
+        { $match: { hc: { $gt: 0 } } },
+        { $group: { _id: '$w', n: { $sum: 1 } } }],
     } },
   ], qid);
-  const f = rows[0] || { created: [], resolved: [], sla: [] };
-  const wb = {}, wbR = {}, wSpan = {}, wSla = {};
+  const f = rows[0] || { created: [], resolved: [], sla: [], hi: [] };
+  const wb = {}, wbR = {}, wSpan = {}, wSla = {}, wHi = {};
   (f.created || []).forEach(x => { if (x._id != null) { wb['W' + x._id] = x.n; wSpan['W' + x._id] = { first: x.first, last: x.last }; } });
   (f.resolved || []).forEach(x => { if (x._id != null) wbR['W' + x._id] = x.n; });
   (f.sla || []).forEach(x => { if (x._id != null) wSla['W' + x._id] = { res: x.res, within: x.within }; });
+  (f.hi || []).forEach(x => { if (x._id != null) wHi['W' + x._id] = x.n; });
   const labels = Object.keys(wb).sort();
   const iso = (d) => { try { return d ? new Date(d).toISOString() : null; } catch (e) { return null; } };
   return {
@@ -3055,6 +3075,8 @@ async function dashWeekly(qid) {
     slaPct: labels.map(k => { const s = wSla[k]; return (s && s.res) ? +(s.within / s.res * 100).toFixed(1) : null; }),
     slaWithin: labels.map(k => (wSla[k] ? wSla[k].within : 0)),
     slaResolved: labels.map(k => (wSla[k] ? wSla[k].res : 0)),
+    // Per-week count of repeat incidents (HI Cnt > 0) CREATED that week.
+    hiCreated: labels.map(k => (wHi[k] || 0)),
     // ISO date span per week label (min/max CreateDate that fell in the week) for x-axis ranges.
     span: labels.map(k => ({ first: iso(wSpan[k] && wSpan[k].first), last: iso(wSpan[k] && wSpan[k].last) })),
   };

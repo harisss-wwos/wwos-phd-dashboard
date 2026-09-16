@@ -1658,11 +1658,13 @@ window.toggleDashCard=toggleDashCard;
 function renderDashChunkInto(chunk){
   const renderers={
     age:renderAgeChunk, queue:renderQueueChunk, daily7:renderDaily7Chunk,
-    weekly:renderWeeklyChunk, 'sla-weekly':renderSlaWeeklyChunk,
+    weekly:renderWeeklyChunk, 'sla-weekly':renderSlaWeeklyChunk, 'weekly-hi':renderWeeklyHiChunk,
     incidents:renderIncidentsChunk, hi:renderHiChunk,
   };
   const fn=renderers[chunk]; if(!fn)return;
-  loadDashChunk(chunk,fn,{silent:true}).catch(()=>{
+  // 'weekly-hi' reuses the same /api/dash/weekly payload (SWR-cached) as the volume+SLA chart.
+  const source=(chunk==='weekly-hi')?'weekly':chunk;
+  loadDashChunk(source,fn,{silent:true}).catch(()=>{
     // On failure, show a small retry message so the card isn't a stuck spinner.
     const slot=document.querySelector('.section[data-chunk="'+chunk+'"] .dash-chunk-slot');
     if(slot)slot.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section. <a href="#" onclick="retryDashChunk(\''+chunk+'\');return false;" style="color:#ff9900">Retry</a></p>';
@@ -1854,6 +1856,54 @@ function drawWeeklyCombined(d){
       x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}};
   makeChart('cWeeklyWave',{type:'bar',data:{labels:labels,datasets:datasets},options:opts,plugins:[slaLabelPlugin]});
 }
+// Weekly Volume + Repeat Incidents (HI Cnt>0) created. Same Created/Resolved bars, plus a purple
+// line = count of repeat-incident tickets CREATED each week. All on the left (tickets) axis.
+function renderWeeklyHiChunk(d){
+  const slot=document.getElementById('dashWeeklyHiBody');if(!slot)return;
+  const slaQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.label:'this quarter';
+  slot.innerHTML='<p class="meta-info" style="margin:0 0 16px">Weekly <b style="color:#ff9900">Created</b> vs <b style="color:#4ade80">Resolved</b> volume, overlaid with the number of <b style="color:#a78bfa">repeat incidents (HI Cnt&gt;0)</b> created each week of '+slaQ+'.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cWeeklyHi"></canvas></div></div>';
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  drawWeeklyHi(d);
+}
+function drawWeeklyHi(d){
+  const wk=d.labels||[];
+  const span=d.span||[];
+  const fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+  const labels=wk.map(function(l,i){ var s=span[i]||{}; var a=fmtD(s.first), b=fmtD(s.last); return (a&&b)?(l+' ('+a+' \u2013 '+b+')'):l; });
+  const hiData=d.hiCreated||[];
+  const hasHi=hiData.some(function(v){ return v!=null; });
+  const bar=function(label,data,color){ return {type:'bar',label:label,data:data,yAxisID:'y',backgroundColor:color,borderColor:color,borderWidth:0,borderRadius:4,maxBarThickness:26,order:2}; };
+  const datasets=[
+    bar('Created',d.created,'rgba(255,153,0,.85)'),
+    bar('Resolved',d.resolved,'rgba(74,222,128,.85)')
+  ];
+  if(hasHi){
+    // HI line on its own RIGHT axis so its scale is independent of the volume bars.
+    datasets.push({type:'line',label:'Repeat Incidents (HI Cnt>0)',data:hiData,yAxisID:'yHi',borderColor:'#a78bfa',
+      pointBackgroundColor:'#a78bfa',pointBorderColor:'#fff',pointBorderWidth:1,pointRadius:4,pointHoverRadius:6,
+      borderWidth:3,tension:0,fill:false,spanGaps:true,order:0});
+  }
+  // HI right-axis max: fixed 0–50, bumped to 0–100 if any week exceeds 50.
+  var hiMax=50; hiData.forEach(function(v){ if(v!=null&&v>50) hiMax=100; });
+  // Inline plugin: print the HI count just above each line point.
+  var hiLabelPlugin={ id:'hiLabels', afterDatasetsDraw:function(chart){
+    var ds=chart.data.datasets.findIndex(function(x){return x.type==='line';}); if(ds<0)return;
+    var meta=chart.getDatasetMeta(ds); if(!meta||meta.hidden)return; var ctx=chart.ctx;
+    ctx.save(); ctx.font='700 11px Inter, sans-serif'; ctx.fillStyle='#c9b6f5'; ctx.textAlign='center';
+    meta.data.forEach(function(pt,i){ var v=chart.data.datasets[ds].data[i]; if(v==null||!pt)return; ctx.fillText(String(v), pt.x, pt.y-9); });
+    ctx.restore();
+  }};
+  const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    layout:{padding:{top:16}},
+    plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
+      tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+c.raw; }}}},
+    scales:{
+      y:{beginAtZero:true,position:'left',grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Tickets',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:12}}},
+      yHi:{beginAtZero:true,min:0,max:hiMax,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Repeat Incidents (HI Cnt>0)',color:'#a78bfa',font:{size:12}},ticks:{color:'#a78bfa',stepSize:hiMax/5},display:hasHi},
+      x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}};
+  makeChart('cWeeklyHi',{type:'bar',data:{labels:labels,datasets:datasets},options:opts,plugins:[hiLabelPlugin]});
+}
 // A smooth "wave" (filled area) line dataset. `rgbaPrefix` like 'rgba(255,153,0,' — fill fades out.
 function _waveDataset(label,data,color,rgbaPrefix){
   return {label:label,data:data,borderColor:color,pointBackgroundColor:color,pointRadius:3,
@@ -1936,12 +1986,13 @@ function renderSummaryInto(d){
     g2.innerHTML=kpiTableHtml([
       {metric:'Avg Resolution Time', value:d.avgResolutionHrs+' hrs', desc:'Average time taken to resolve a ticket (from create to resolve).'},
       {metric:'SLA Compliance (\u2264240 hrs)', value:d.slaPct+'%', valColor:(d.slaPct>=90?'#4ade80':'#ff5252'), desc:'Share of resolved tickets closed within the 240-hour SLA window. Green if \u2265 90%, red otherwise. Currently '+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs.'},
-      {metric:ic('bolt',14)+' AutoSIM Resolved', value:d.autosim.toLocaleString()+' ('+d.autosimPct+'%)', desc:'How many tickets were auto-resolved by AutoSIM, and what percentage of the total that represents.'}
+      {metric:ic('bolt',14)+' AutoSIM Resolved', value:d.autosim.toLocaleString()+' ('+d.autosimPct+'%)', desc:'How many tickets were auto-resolved by AutoSIM, and what percentage of the total that represents.'},
+      {metric:ic('repeat',14)+' Avg Repeat Incidents / Week', value:Math.round(d.avgHiPerWeek||0), valColor:'#a78bfa', desc:'Avg repeat-incident tickets (HI Cnt &gt; 0) created per week this quarter ('+(d.repeatIncidents!=null?d.repeatIncidents.toLocaleString():'0')+' \u00f7 '+(d.weeksElapsed||0)+' weeks).'}
     ], true);
   }
   if(g3){
     g3.innerHTML=kpiTableHtml([
-      {metric:ic('repeat',14)+' Repeat Incidents (HI&gt;0)', value:d.repeatIncidents.toLocaleString(), desc:'Tickets that are repeat incidents — a Historical Incident count (Cnt) greater than 0.'},
+      {metric:ic('repeat',14)+' Repeat Incidents (HI&gt;0)', value:d.repeatIncidents.toLocaleString()+(d.total?(' ('+(Math.round(d.repeatIncidents/d.total*1000)/10)+'%)'):''), desc:'Tickets that are repeat incidents — a Historical Incident count (Cnt) greater than 0. Percentage is of all tickets this quarter.'},
       {metric:ic('paw',14)+' HI involving pet incidents', value:d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)', valColor:'#a78bfa', desc:'Of those repeat incidents, how many have a pet/animal root cause, and their share of all repeat incidents.'},
       {metric:ic('repeat',14)+' HI involving non-pet incidents', value:d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)', desc:'Of those repeat incidents, how many are NOT pet-related, and their share of all repeat incidents.'}
     ], true);
@@ -2004,13 +2055,15 @@ function renderDashboardChunked(){
     kpiSection('Queue Status Data','grid','dashQueueKpis',queueSkel())+
     // Ticket Age Classification sits right below Queue Status Data.
     dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
-    kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000}],true))+
+    kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true))+
     kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true))+
     // Incident Types + Historical Incidents follow Repeat Incident Data.
     dashCard('incidents','alert','Incident Types','dashIncidentsBody')+
     dashCard('hi','repeat','Historical Incidents (Cnt > 0)','dashHiBody')+
     // Weekly Volume (Created + Resolved) combined with SLA Compliance % on a second axis.
     dashCard('weekly','bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody')+
+    // Weekly Volume (Created + Resolved) combined with Repeat Incidents (HI Cnt>0) created per week.
+    dashCard('weekly-hi','repeat','Weekly Volume & Repeat Incidents','dashWeeklyHiBody')+
   '</div>';
   attachNewFileHandler();
   refreshHelpAlertCount();
