@@ -28,15 +28,36 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .about ul{margin:0 0 10px;padding-left:20px}
 .about li{color:var(--t);font-size:.88em;line-height:1.65;margin-bottom:5px}
 .about li b{color:#fff}
+/* Carousel for the program details (workflow/scope + tenets/coverage). Gradient panel to highlight. */
+.about-carousel{position:relative;margin:14px 0;padding:20px 58px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(255,153,0,.14),rgba(255,153,0,.03) 45%,rgba(68,185,214,.10));
+  border:1px solid rgba(255,153,0,.28);box-shadow:0 6px 22px -8px rgba(0,0,0,.6)}
+.ac-viewport{overflow:hidden}
+.ac-track{display:flex;transition:transform .4s ease}
+.ac-slide{flex:0 0 100%;min-width:100%;box-sizing:border-box;padding:2px}
+.ac-slide h4:first-child{margin-top:0}
+/* Carousel nav arrows: RECTANGULAR, in the outer gutters, vertically centered — outside the text. */
+.ac-arrow{position:absolute;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:32px;height:64px;border-radius:8px;background:#131c25;border:1px solid var(--o);color:var(--o);cursor:pointer;font-size:1.3em;line-height:1;transition:background .15s,color .15s;z-index:2}
+.ac-arrow:hover{background:var(--o);color:#141414}
+.ac-arrow.ac-next{right:12px}
+.ac-arrow.ac-prev{left:12px}
 .wiki-btn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;text-decoration:none}
 .wiki-btn:hover{background:var(--oh)}
-.cmp-table{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:.88em}
-.cmp-table th,.cmp-table td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--bd)}
-.cmp-table th{background:#000;color:var(--tm);font-size:.78em;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.cmp-table td:first-child{font-weight:600;color:#fff}
-.cmp-table .before{color:#ff9d6b}
-.cmp-table .after{color:#4ade80;font-weight:600}
-.cmp-table .change{color:#44b9d6;font-weight:700}
+/* Before/After GSOC comparison — Excel-sheet styling with a mini trend sparkline column. */
+.cmp-wrap{overflow-x:auto;margin-bottom:22px;border-radius:10px;border:1px solid #2f3a45}
+.cmp-table.xls{width:100%;border-collapse:collapse;font-size:.86em;min-width:760px;background:#0b0f14}
+.cmp-table.xls th,.cmp-table.xls td{border:1px solid #2f3a45;padding:10px 14px;text-align:center;vertical-align:middle}
+.cmp-table.xls thead th{background:#111820;color:#c9d3d4;font-size:.74em;text-transform:uppercase;letter-spacing:.5px;font-weight:700;line-height:1.4}
+.cmp-table.xls .cmp-sub{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--tm);font-size:.85em;margin-top:2px}
+.cmp-table.xls tbody tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.cmp-table.xls tbody tr:hover td{background:rgba(255,153,0,.06)}
+.cmp-table.xls td.cmp-metric{text-align:center;font-weight:600;color:#fff;white-space:nowrap}
+.cmp-table.xls .before{color:#ff9d6b;font-weight:600}
+.cmp-table.xls .after{color:#fbbf24;font-weight:600}
+.cmp-table.xls .q3{color:#4ade80;font-weight:800}
+.cmp-table.xls .cmp-u{color:var(--tm);font-weight:400;font-size:.82em;margin-left:3px}
+.cmp-table.xls td.cmp-spark{padding:6px 8px;width:240px;min-width:220px}
+.cmp-table.xls td.cmp-spark svg{display:block;width:100%;height:72px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;width:90vw;max-width:none;margin-left:50%;transform:translateX(-50%)}
 .card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:28px;cursor:pointer;transition:transform .15s,border-color .2s;text-decoration:none;display:block}
 .card:hover{transform:translateY(-3px);border-color:var(--o)}
@@ -84,20 +105,38 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .year-section.open .year-caret{transform:rotate(180deg)}
 .year-body{overflow:hidden;min-height:0;padding:0 22px;transition:padding .3s ease}
 .year-section.open .year-body{padding:4px 22px 20px}
-/* The card grid inside a year section (reuses .card styling, full-width within the section).
-   Single column so quarter report cards stack one below the other. */
-.year-body .grid{width:100%;max-width:none;margin:0;transform:none;grid-template-columns:1fr;gap:10px}
-/* Compact single-line quarter cards: icon + title (left), description (middle, ellipsized),
-   ticket count (right) all on one row so each card is short. */
-.year-body .card{display:flex;align-items:center;gap:14px;padding:12px 18px;border-top-width:1px;border-left:3px solid var(--o)}
-.year-body .card.live{border-top-color:var(--bd);border-left-color:#4ade80}
-.year-body .card:hover{transform:none}
-.year-body .card .card-head{margin-bottom:0;flex:0 0 auto;gap:8px}
-.year-body .card .card-head h2{font-size:1.02em;white-space:nowrap}
-.year-body .card .live-pill{margin-left:0}
-.year-body .card p{flex:1 1 auto;margin:0;font-size:.82em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.year-body .card .tag{margin-top:0;flex:0 0 auto;white-space:nowrap}
-@media(max-width:640px){ .year-body .card p{display:none} }
+/* Quarter report tiles: responsive gallery grid inside each year section, centered as a group. */
+.year-body .grid{width:100%;max-width:none;margin:0;transform:none;
+  grid-template-columns:repeat(auto-fit,minmax(200px,220px));gap:14px;justify-content:center}
+/* Poster-style quarter tile. */
+.qcard{position:relative;display:flex;flex-direction:column;gap:12px;text-decoration:none;
+  background:linear-gradient(160deg,#121820,#0c1015);border:1px solid #23303c;border-radius:14px;
+  padding:16px 16px 14px;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.qcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--o),rgba(255,153,0,.2))}
+.qcard:hover{transform:translateY(-4px);border-color:var(--o);box-shadow:0 10px 26px -12px rgba(255,153,0,.5)}
+.qc-top{display:flex;align-items:baseline;gap:8px}
+.qc-q{color:#fff;font-size:1.25em;font-weight:800;letter-spacing:.3px}
+.qc-yr{color:var(--tm);font-size:.9em;font-weight:600}
+.qc-pill{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:.62em;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;color:var(--tm);background:rgba(255,255,255,.05);
+  border:1px solid var(--bd);border-radius:20px;padding:3px 9px;white-space:nowrap}
+.qc-pill svg{width:12px;height:12px}
+.qc-count{display:flex;align-items:baseline;gap:6px;line-height:1}
+.qc-count b{color:#fff;font-size:1.9em;font-weight:800;letter-spacing:-.5px}
+.qc-count span{color:var(--tm);font-size:.78em;font-weight:500}
+.qc-foot{display:flex;align-items:center;gap:6px;color:var(--tm);font-size:.76em;font-weight:500;margin-top:2px}
+.qc-arrow{display:inline-block;font-weight:700;transition:transform .18s ease}
+.qcard:hover .qc-foot{color:var(--o)}
+.qcard:hover .qc-arrow{transform:translateX(4px)}
+/* Live quarter tile: green accent + pulsing LIVE pill. */
+.qcard-live{background:linear-gradient(160deg,#0f1d16,#0b120e);border-color:#1f4a30}
+.qcard-live::before{background:linear-gradient(90deg,#4ade80,rgba(74,222,128,.2))}
+.qcard-live:hover{border-color:#4ade80;box-shadow:0 10px 26px -12px rgba(74,222,128,.5)}
+.qcard-live .qc-q{color:#eafff1}
+.qc-pill.qc-live{color:#0b120e;background:#4ade80;border-color:#4ade80;animation:livepulse 2s ease-in-out infinite}
+.qcard-live:hover .qc-foot{color:#4ade80}
+@media(max-width:520px){ .year-body .grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;justify-content:stretch} .qc-count b{font-size:1.6em} }
 /* Year-sections loading skeleton */
 .year-skeleton{display:flex;flex-direction:column;gap:16px}
 .yr-sk-row{height:60px;border-radius:12px}
@@ -178,48 +217,73 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <div class="hero">
     <div class="about">
       <h3>About the PHD Program</h3>
-      <p>The Potential Harm to Drivers (PHD) program is a security risk mitigation function within Worldwide Operations Security (WWOS), operating under the GSOC. It protects Last Mile delivery transporters from violence, threats, and harassment originating from customers or identifiable Persons of Interest (POI), focusing on reducing repeat incidents that could cause physical, mental, or emotional harm.</p>
 
-      <h4>How it functions (the workflow)</h4>
-      <ul>
-        <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
-        <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
-        <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
-        <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
-        <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
-        <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
-      </ul>
+      <div class="about-carousel" id="aboutCarousel">
+        <div class="ac-viewport">
+          <div class="ac-track" id="acTrack">
+            <div class="ac-slide">
+              <p>The Potential Harm to Drivers (PHD) program is a security risk mitigation function within Worldwide Operations Security (WWOS), operating under the GSOC. It protects Last Mile delivery transporters from violence, threats, and harassment originating from customers or identifiable Persons of Interest (POI), focusing on reducing repeat incidents that could cause physical, mental, or emotional harm.</p>
+              <h4>How it functions (the workflow)</h4>
+              <ul>
+                <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
+                <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
+                <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
+                <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
+                <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
+                <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
+              </ul>
+              <h4>Geographic coverage</h4>
+              <ul>
+                <li><b>AMER:</b> Brazil, Canada, Mexico, Puerto Rico, US</li>
+                <li><b>EMEA:</b> EU, South Africa, UK</li>
+                <li><b>APAC:</b> Australia, India, Japan, Singapore</li>
+              </ul>
+            </div>
+            <div class="ac-slide">
+              <h4>How it functions (the workflow)</h4>
+              <ul>
+                <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
+                <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
+                <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
+                <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
+                <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
+                <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
+              </ul>
+              <h4>Scope</h4>
+              <ul>
+                <li><b>In scope:</b> violence/threats/harassment with harm potential, incidents from identifiable customers/POI, pet incidents (pet as weapon, EMS transport, repeats), and on-road detrimental behavior (assault, theft, impeding egress, intimidation, etc.)</li>
+                <li><b>Out of scope:</b> unidentifiable POI, collisions/non-behavioral safety, package theft when transporter absent, vandalism where transporter isn't the direct victim</li>
+              </ul>
+              <h4>Guiding principles (tenets)</h4>
+              <p>Transporter safety over package delivery; safety is transporter-agnostic; robust but flexible processes; prioritize risk frameworks over opinion; consider the totality of risk (location + POI history); evidence-driven, unbiased assessments.</p>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="ac-arrow ac-prev" id="acPrev" aria-label="Previous slide" onclick="acGo(-1)">&#8249;</button>
+        <button type="button" class="ac-arrow ac-next" id="acNext" aria-label="Next slide" onclick="acGo(1)">&#8250;</button>
+      </div>
 
-      <h4>Scope</h4>
-      <ul>
-        <li><b>In scope:</b> violence/threats/harassment with harm potential, incidents from identifiable customers/POI, pet incidents (pet as weapon, EMS transport, repeats), and on-road detrimental behavior (assault, theft, impeding egress, intimidation, etc.)</li>
-        <li><b>Out of scope:</b> unidentifiable POI, collisions/non-behavioral safety, package theft when transporter absent, vandalism where transporter isn't the direct victim</li>
-      </ul>
-
-      <h4>Guiding principles (tenets)</h4>
-      <p>Transporter safety over package delivery; safety is transporter-agnostic; robust but flexible processes; prioritize risk frameworks over opinion; consider the totality of risk (location + POI history); evidence-driven, unbiased assessments.</p>
-
-      <h4>Geographic coverage</h4>
-      <ul>
-        <li><b>AMER:</b> Brazil, Canada, Mexico, Puerto Rico, US</li>
-        <li><b>EMEA:</b> EU, South Africa, UK</li>
-        <li><b>APAC:</b> Australia, India, Japan, Singapore</li>
-      </ul>
-
-      <table class="cmp-table">
-        <thead><tr><th>Metric</th><th>Before GSOC<br><span style="font-weight:400;text-transform:none">(Jan 2021 – Mar 2026)</span></th><th>After GSOC<br><span style="font-weight:400;text-transform:none">(Q2 2026)</span></th><th>Change</th></tr></thead>
+      <div class="cmp-wrap">
+      <table class="cmp-table xls">
+        <thead><tr>
+          <th>Metric</th>
+          <th>Before GSOC<br><span class="cmp-sub">Jan 2021 – Mar 2026</span></th>
+          <th>After GSOC<br><span class="cmp-sub">Q2 2026</span></th>
+          <th>Q3 2026<br><span class="cmp-sub">Live</span></th>
+          <th>Trend</th>
+        </tr></thead>
         <tbody>
-          <tr><td>Ticket volume / month</td><td class="before">~898/mo (5-yr avg)</td><td class="after">~2,367/mo</td><td class="change">~2.6× more volume</td></tr>
-          <tr><td>Avg resolution time</td><td class="before">367.9 hrs</td><td class="after">103.9 hrs</td><td class="change">72% faster</td></tr>
-          <tr><td>Median resolution time</td><td class="before">229.9 hrs</td><td class="after">69.3 hrs</td><td class="change">70% faster</td></tr>
-          <tr><td>SLA compliance (≤240 hrs)</td><td class="before">51.7%</td><td class="after">88.7%</td><td class="change">+37 points</td></tr>
+          <tr><td class="cmp-metric">Ticket volume / month</td><td class="before">~898<span class="cmp-u">/mo</span></td><td class="after">~2,367<span class="cmp-u">/mo</span></td><td class="q3">~2,882<span class="cmp-u">/mo</span></td><td class="cmp-spark" data-vals="898,2367,2882" data-dir="up"></td></tr>
+          <tr><td class="cmp-metric">Avg resolution time</td><td class="before">367.9<span class="cmp-u">hrs</span></td><td class="after">103.9<span class="cmp-u">hrs</span></td><td class="q3">49<span class="cmp-u">hrs</span></td><td class="cmp-spark" data-vals="367.9,103.9,49" data-dir="down"></td></tr>
+          <tr><td class="cmp-metric">Median resolution time</td><td class="before">229.9<span class="cmp-u">hrs</span></td><td class="after">69.3<span class="cmp-u">hrs</span></td><td class="q3">2.6<span class="cmp-u">hrs</span></td><td class="cmp-spark" data-vals="229.9,69.3,2.6" data-dir="down"></td></tr>
+          <tr><td class="cmp-metric">SLA compliance (&le;240 hrs)</td><td class="before">51.7%</td><td class="after">88.7%</td><td class="q3">99.1%</td><td class="cmp-spark" data-vals="51.7,88.7,99.1" data-dir="up"></td></tr>
         </tbody>
       </table>
+      </div>
 
-      <div style="margin-top:24px;padding:20px 24px;background:linear-gradient(135deg,rgba(255,153,0,.12),rgba(255,153,0,.03));border:1px solid rgba(255,153,0,.3);border-radius:12px;text-align:center">
-        <p style="color:#fff;font-size:1.05em;font-weight:600;margin-bottom:6px">📚 Want the full picture?</p>
-        <p style="color:var(--tm);font-size:.9em;margin-bottom:16px;line-height:1.6">Dive deeper into the PHD program — origin story, detailed processes, severity frameworks, tenets, and everything the team does to keep transporters safe. It's all on the official wiki.</p>
-        <a class="wiki-btn" href="https://w.amazon.com/bin/view/GSOC/PHD#Attachments" target="_blank" rel="noopener" style="font-size:.95em;padding:11px 24px">📖 Explore the PHD Wiki →</a>
+      <div style="margin-top:24px;padding:14px 20px;background:linear-gradient(135deg,rgba(255,153,0,.12),rgba(255,153,0,.03));border:1px solid rgba(255,153,0,.3);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <p style="color:#fff;font-size:.95em;font-weight:600;margin:0">📚 Want the full picture? Dive deeper into the PHD program on the official wiki.</p>
+        <a class="wiki-btn" href="https://w.amazon.com/bin/view/GSOC/PHD#Attachments" target="_blank" rel="noopener" style="font-size:.9em;padding:9px 20px;white-space:nowrap;margin:0;flex-shrink:0">📖 Explore the PHD Wiki →</a>
       </div>
     </div>
   </div>
@@ -257,6 +321,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script>
 // Fill any static icon placeholders (<span class="card-ic" data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 22); });
+
+// ---- About carousel: two slides. Manual only — Next (right) on slide A, Prev (left) on slide B. ----
+(function(){
+  var track=document.getElementById('acTrack'); if(!track)return;
+  var slides=track.children.length; var idx=0;
+  var prev=document.getElementById('acPrev'), next=document.getElementById('acNext');
+  function sync(){ if(prev)prev.style.display=(idx>0)?'inline-flex':'none'; if(next)next.style.display=(idx<slides-1)?'inline-flex':'none'; }
+  window.acGo=function(step){ idx=Math.max(0,Math.min(slides-1,idx+step)); track.style.transform='translateX(-'+(idx*100)+'%)'; sync(); };
+  sync();
+})();
 
 // ===== Homepage auth (Login button / avatar + Logout) =====
 var A = window.PHDAuth;

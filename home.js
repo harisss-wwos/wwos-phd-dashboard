@@ -16,16 +16,22 @@ function toggleYearSection(btn){
 }
 window.toggleYearSection=toggleYearSection;
 
-// Build one quarter report card's HTML.
+// Build one quarter report card's HTML. Compact, poster-style tile: quarter label + big ticket
+// count + status pill. Live quarter gets a green treatment + pulsing LIVE badge.
 function quarterCardHtml(q,isLive){
-  const countTxt=q.count!=null?(fmtCount(q.count)+' tickets'+(isLive?'':' · Archived')):(isLive?'Live':'Archived');
+  const m=/^(\d{4})-Q([1-4])$/.exec(q.id||'');
+  const qn=m?('Q'+m[2]):(q.label||q.id);
+  const yr=m?m[1]:'';
   const href=isLive?'app.html':('archive.html?ds=quarter&qid='+encodeURIComponent(q.id));
-  const head=isLive
-    ? '<div class="card-head"><span class="card-ic">'+icH('grid')+'</span><h2>'+q.label+' Report</h2><span class="live-pill">● LIVE</span></div>'
-      +'<p>Current quarter — live operations dashboard. Authorized users upload &amp; merge the latest CSV; everyone sees the published data.</p>'
-    : '<div class="card-head"><span class="card-ic">'+icH('bar-chart')+'</span><h2>'+q.label+' Report</h2></div>'
-      +'<p>WWOS-managed incident data for '+q.label+'. Read-only snapshot.</p>';
-  return '<a class="card '+(isLive?'live':'')+'" id="qcard-'+q.id+'" href="'+href+'">'+head+'<span class="tag">'+countTxt+'</span></a>';
+  const countNum=(typeof q.count==='number')?fmtCount(q.count):(isLive?'—':'—');
+  const status=isLive
+    ? '<span class="qc-pill qc-live">'+icH('grid',13)+' LIVE</span>'
+    : '<span class="qc-pill">'+icH('lock',12)+' Archived</span>';
+  return '<a class="qcard'+(isLive?' qcard-live':'')+'" id="qcard-'+q.id+'" href="'+href+'" title="'+q.label+' Report">'+
+    '<div class="qc-top"><span class="qc-q">'+qn+'</span><span class="qc-yr">'+yr+'</span>'+status+'</div>'+
+    '<div class="qc-count"><b>'+countNum+'</b><span>tickets</span></div>'+
+    '<div class="qc-foot">'+(isLive?'Live dashboard':'Read-only snapshot')+' <span class="qc-arrow">\u2192</span></div>'+
+  '</a>';
 }
 
 async function renderQuarterCards(){
@@ -76,3 +82,48 @@ async function renderQuarterCards(){
 }
 
 renderQuarterCards();
+
+// ---- Comparison-table mini charts: labeled 3-point trend (Before -> Q2 -> Q3) per row. ----
+// Plots the REAL metric values with a Y axis (min/mid/max ticks) and an X axis (Before/Q2/Q3), so
+// the numbers are readable. Line is green when the metric improves over time, red if it worsens.
+// `data-dir="up"` = higher is better; `data-dir="down"` = lower is better.
+(function(){
+  var cells=document.querySelectorAll('.cmp-spark[data-vals]'); if(!cells.length)return;
+  var W=220, H=80, L=22, R=22, T=16, B=12;            // small margins so value labels aren't clipped
+  var XL=['Before','Q2','Q3'];
+  var fmt=function(v){ v=Math.round(v*10)/10; return (v>=1000)?Math.round(v).toLocaleString():String(v); };
+  cells.forEach(function(td){
+    var vals=(td.getAttribute('data-vals')||'').split(',').map(function(v){return parseFloat(v);}).filter(function(v){return !isNaN(v);});
+    if(vals.length<2)return;
+    var dir=td.getAttribute('data-dir')||'up';
+    var n=vals.length;
+    // Improvement? up-metrics: last>first; down-metrics: last<first.
+    var improved=(dir==='down')?(vals[n-1]<vals[0]):(vals[n-1]>vals[0]);
+    var C=improved?'#4ade80':'#ff5252';
+    // Y scale over the real values with a little headroom.
+    var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    if(mn===mx){ mn=mn*0.9; mx=mx*1.1||1; }
+    var pad=(mx-mn)*0.12; var lo=Math.max(0,mn-pad), hi=mx+pad, rng=(hi-lo)||1;
+    var innerW=W-L-R, innerH=H-T-B;
+    var X=function(i){ return L+innerW*(i/(n-1)); };
+    var Y=function(v){ return T+innerH*(1-((v-lo)/rng)); };
+    var pts=vals.map(function(v,i){ return [X(i),Y(v)]; });
+    var line=pts.map(function(p,i){ return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }).join(' ');
+    var area=line+' L'+pts[n-1][0].toFixed(1)+' '+(T+innerH)+' L'+pts[0][0].toFixed(1)+' '+(T+innerH)+' Z';
+    var gid='spg'+Math.random().toString(36).slice(2,8);
+    // No axis lines/gridlines/tick labels — just the value label above (or below) each point.
+    var vlab='';
+    pts.forEach(function(p,i){
+      var above=(p[1]>T+12); vlab+='<text x="'+p[0].toFixed(1)+'" y="'+((above?p[1]-6:p[1]+12)).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+C+'">'+fmt(vals[i])+'</text>';
+    });
+    var dots=pts.map(function(p,i){ var last=(i===n-1); return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(last?3.2:2.6)+'" fill="'+(last?C:'#0b0f14')+'" stroke="'+C+'" stroke-width="1.5"/>'; }).join('');
+    td.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="trend Before to Q3">'+
+      '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0" stop-color="'+C+'" stop-opacity=".24"/><stop offset="1" stop-color="'+C+'" stop-opacity="0"/>'+
+      '</linearGradient></defs>'+
+      '<path d="'+area+'" fill="url(#'+gid+')"/>'+
+      '<path d="'+line+'" fill="none" stroke="'+C+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+      dots+vlab+
+    '</svg>';
+  });
+})();
