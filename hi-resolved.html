@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolved Repeat Incidents · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shimmer.css">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
+.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite;margin:40px auto}
+@keyframes spin{100%{transform:rotate(360deg)}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{max-width:1200px;margin:0 auto;padding:36px 24px 80px}
+h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:center;gap:10px}
+.sub{color:var(--tm);font-size:.9em;margin-bottom:22px;line-height:1.6}
+/* Summary chips */
+.hr-counts{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+.hr-chip{display:flex;flex-direction:column;gap:3px;min-width:120px;background:#0b0f14;border:1px solid #23303c;border-radius:10px;padding:12px 16px}
+.hr-chip .n{color:#fff;font-size:1.5em;font-weight:800;line-height:1}
+.hr-chip .l{color:var(--tm);font-size:.7em;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.hr-chip.total{border-color:var(--o)}
+.hr-chip.pet .n{color:#a78bfa}
+.hr-chip.nonpet .n{color:#ff9900}
+/* Date-range sections (top level, collapsible). */
+.hr-range{border:1px solid #33414f;border-radius:12px;margin-bottom:18px;overflow:hidden;background:#080c11}
+.hr-range-head{display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:linear-gradient(180deg,#111a23,#0c1218);border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.hr-range-head:hover{background:#131d27}
+.hr-range-title{color:#fff;font-weight:700;font-size:1.12em}
+.hr-range-meta{margin-left:auto;color:var(--tm);font-size:.84em}
+.hr-range-body{max-height:0;overflow:hidden;transition:max-height .35s ease;padding:0 16px}
+.hr-range.open .hr-range-body{max-height:20000px;padding:16px}
+.hr-range.open>.hr-range-head .hr-caret{transform:rotate(180deg)}
+/* Agent accordion */
+.hr-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
+.hr-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.hr-agent-head:hover{background:rgba(255,255,255,.03)}
+.hr-agent-name{color:#fff;font-weight:700;font-size:1.1em}
+.hr-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
+.hr-agent-meta{margin-left:auto;display:inline-flex;align-items:center;gap:8px}
+.hr-agent-count{font-weight:800;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:20px;padding:4px 14px;font-size:1em}
+.hr-agent-pet{font-size:.78em;color:#a78bfa;font-weight:600}
+.hr-caret{color:var(--tm);transition:transform .25s ease;flex-shrink:0;font-size:1.1em}
+.hr-agent.open .hr-caret{transform:rotate(180deg)}
+.hr-agent-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.hr-agent.open .hr-agent-body{max-height:6000px}
+.hr-scroll{overflow-x:auto}
+.hr-tbl{width:100%;border-collapse:collapse;font-size:.92em}
+.hr-tbl th,.hr-tbl td{border-top:1px solid #1b2530;padding:10px 14px;text-align:left;vertical-align:middle}
+.hr-tbl thead th{background:#0d1319;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;white-space:nowrap}
+.hr-tbl tbody tr:hover td{background:rgba(255,153,0,.05)}
+.hr-tbl .hr-id{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap}
+.hr-tbl .hr-id:hover{text-decoration:underline}
+.hr-tbl .hr-st{font-weight:600;white-space:nowrap}
+.hr-tbl .hr-cnt{text-align:center;font-weight:800;color:#ff9900}
+.hr-tbl .hr-rc{max-width:280px}
+.hr-pill{display:inline-flex;align-items:center;gap:5px;font-size:.78em;font-weight:700;padding:2px 9px;border-radius:20px}
+.hr-pill.pet{color:#a78bfa;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.35)}
+.hr-pill.nonpet{color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35)}
+.hr-search{margin-bottom:16px}
+.hr-search input{width:100%;max-width:360px;background:#0b0f14;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:9px 12px;font-family:inherit}
+.empty{text-align:center;color:var(--tm);padding:36px;font-size:.9em}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+/* Global: main content spans full width with a 15px gutter each side. */
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+</style>
+</head>
+<body data-nav-active="hi-resolved" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+
+<div class="wrap" id="wrap">
+  <h1>Resolved Repeat Incidents</h1>
+  <p class="sub">Tickets resolved with a Historical Incident count (Cnt) greater than 0, across the whole database, grouped by the agent who resolved them.</p>
+  <div class="spinner"></div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+let HR_DATA=null;
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Resolved Repeat Incidents</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
+function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function fmtHrs(h){ if(h==null||isNaN(h))return '—'; if(h<48)return h.toFixed(1)+' hrs'; return (h/24).toFixed(1)+' days'; }
+
+function counts(d){
+  return '<div class="hr-counts">'+
+    '<div class="hr-chip total"><span class="n">'+(d.totalTickets||0)+'</span><span class="l">Resolved HI tickets</span></div>'+
+    '<div class="hr-chip"><span class="n">'+(d.totalAgents||0)+'</span><span class="l">Agents</span></div>'+
+    '<div class="hr-chip pet"><span class="n">'+(d.totalPet||0)+'</span><span class="l">Pet / animal</span></div>'+
+    '<div class="hr-chip nonpet"><span class="n">'+(d.totalNonPet||0)+'</span><span class="l">Non-pet</span></div>'+
+  '</div>';
+}
+
+function agentBlock(a){
+  const rows=(a.tickets||[]).map(function(t){
+    const sid=t.shortId||'';
+    return '<tr>'+
+      '<td><a class="hr-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+(window.icon?window.icon('ticket',13):'')+' '+esc(sid)+'</a></td>'+
+      '<td class="hr-st" style="color:'+statusColor(t.status)+'">'+esc(t.status||'—')+'</td>'+
+      '<td class="hr-cnt">'+(t.hi||0)+'</td>'+
+      '<td class="hr-rc">'+esc(t.rootCause||'Unknown')+'</td>'+
+      '<td>'+(t.isPet?'<span class="hr-pill pet">'+(window.icon?window.icon('paw',12):'')+' Pet</span>':'<span class="hr-pill nonpet">Non-pet</span>')+'</td>'+
+      '<td style="white-space:nowrap">'+fmtDate(t.resolvedDate)+'</td>'+
+      '<td style="white-space:nowrap">'+fmtHrs(t.resHrs)+'</td>'+
+    '</tr>';
+  }).join('');
+  return '<div class="hr-agent" data-agent="'+esc(String(a.agent).toLowerCase())+'">'+
+    '<button type="button" class="hr-agent-head" onclick="hrToggle(this)">'+
+      '<span class="hr-agent-name">'+esc(a.agent)+'<span class="sub">@'+esc(a.agent)+'</span></span>'+
+      '<span class="hr-agent-meta"><span class="hr-agent-pet">'+(window.icon?window.icon('paw',12):'')+' '+a.pet+' pet · '+a.nonPet+' non-pet</span>'+
+        '<span class="hr-agent-count">'+a.count+'</span></span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-agent-body"><div class="hr-scroll"><table class="hr-tbl"><thead><tr>'+
+      '<th>Ticket</th><th>Status</th><th style="text-align:center">HI Cnt</th><th>Root cause</th><th>Type</th><th>Resolved</th><th>Resolution time</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+  '</div>';
+}
+
+// One date-range section: collapsible, with its own summary chips + agent accordion.
+function rangeSection(key,label,d,openByDefault){
+  const agents=d.agents||[];
+  const inner=agents.length?agents.map(function(a){return agentBlock(a,key);}).join(''):'<div class="empty">No resolved repeat-incident tickets in this range.</div>';
+  return '<div class="hr-range'+(openByDefault?' open':'')+'" data-range="'+key+'">'+
+    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-title">'+esc(label)+'</span>'+
+      '<span class="hr-range-meta">'+(d.totalTickets||0)+' tickets · '+(d.totalAgents||0)+' agents · '+(d.totalPet||0)+' pet</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-range-body">'+
+      counts(d)+
+      (agents.length?'<div class="hr-search"><input placeholder="Filter agents…" oninput="hrFilter(this,\''+key+'\')"></div>':'')+
+      '<div class="hr-list" data-range="'+key+'">'+inner+'</div>'+
+    '</div>'+
+  '</div>';
+}
+function render(d){
+  HR_DATA=d;
+  const R=d.ranges||{};
+  let sections=
+    rangeSection('after',(R.after&&R.after.label)||'Created on/after 1 Apr 2026', d.after||{}, true)+
+    rangeSection('mid',(R.mid&&R.mid.label)||'Created 1 Sep 2025 – 31 Mar 2026', d.mid||{}, false)+
+    rangeSection('before',(R.before&&R.before.label)||'Created before 1 Sep 2025', d.before||{}, false);
+  if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown, false); }
+  document.getElementById('wrap').innerHTML=
+    '<h1>Resolved Repeat Incidents</h1>'+
+    '<p class="sub">Tickets resolved with a Historical Incident count (Cnt) greater than 0, across the whole database, grouped by the agent who resolved them, and split by ticket creation date. Agents are ordered by count (highest first).</p>'+
+    '<div id="hrRanges">'+sections+'</div>';
+}
+
+// Accordion: only one agent open at a time WITHIN a range section.
+function hrToggle(btn){
+  const s=btn.closest('.hr-agent'); if(!s)return;
+  const willOpen=!s.classList.contains('open');
+  const scope=s.closest('.hr-range')||document;
+  scope.querySelectorAll('.hr-agent.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
+  s.classList.toggle('open', willOpen);
+}
+window.hrToggle=hrToggle;
+// Expand/collapse a whole date-range section.
+function hrRangeToggle(btn){ const s=btn.closest('.hr-range'); if(s) s.classList.toggle('open'); }
+window.hrRangeToggle=hrRangeToggle;
+function hrFilter(inp,key){
+  const q=String(inp.value||'').trim().toLowerCase();
+  document.querySelectorAll('.hr-list[data-range="'+key+'"] .hr-agent').forEach(function(el){
+    el.style.display=(!q||el.getAttribute('data-agent').indexOf(q)>=0)?'':'none';
+  });
+}
+window.hrFilter=hrFilter;
+
+(async function init(){
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ gate('This page is for logged-in admins. Please log in from the home page.'); return; }
+  if(!A.atLeast||!A.atLeast('admin')){ gate('This page requires admin access.'); return; }
+  const r=await A.api('GET','/api/hi-resolved');
+  if(r.status===401){ gate('Your session has expired. Please log in again.'); return; }
+  if(!r.ok||!r.data){ document.getElementById('wrap').innerHTML='<div class="gate"><h1>Resolved Repeat Incidents</h1><p>Could not load the data. Please try again.</p><a class="btn" href="app.html">Back to Dashboard</a></div>'; return; }
+  render(r.data);
+})();
+</script>
+</body>
+</html>

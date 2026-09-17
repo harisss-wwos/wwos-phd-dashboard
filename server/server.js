@@ -137,6 +137,130 @@ app.get('/api/ticket-events', requireRole('admin'), async (req, res) => {
   }
 });
 
+// ---- Resolved Repeat-Incident (HI Cnt>0) tickets, ALL-TIME, grouped by resolver (admin) ----
+// Aggregates over ticket_docs (flat schema): Status in Resolved/Closed, HI count (Cnt) > 0.
+// Returns per-agent (ResolvedByIdentity) groups sorted highest->lowest, each with its tickets.
+app.get('/api/hi-resolved', requireRole('admin'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // HI count parsed from RootCauseDetails ("Cnt: N" or "Historical Incident: N").
+    const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
+    const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
+    // Bucket each ticket by CreateDate into 3 non-overlapping ranges (via a boundary expr).
+    const B1 = new Date('2025-09-01T00:00:00.000Z');   // < B1 = "before Sep 2025"
+    const B2 = new Date('2026-04-01T00:00:00.000Z');   // [B1, B2) = "Sep 2025 - Mar 2026"; >= B2 = "Apr 2026+"
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const bucketExpr = { $let: { vars: { cd: cdExpr }, in: { $cond: [ { $eq: ['$$cd', null] }, 'unknown', { $cond: [ { $lt: ['$$cd', B1] }, 'before', { $cond: [ { $lt: ['$$cd', B2] }, 'mid', 'after' ] } ] } ] } } };
+    const rows = await coll.aggregate([
+      { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
+      { $project: {
+        ShortId: 1, Status: 1, ResolvedDate: 1, CreateDate: 1, RootCause: 1,
+        resolver: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } },
+        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
+        hi: hiExpr, isPet: isPetExpr, rc: rcExpr, resHrs: resHrs, bucket: bucketExpr,
+      } },
+      { $match: { hi: { $gt: 0 }, resolver: { $nin: ['', null] }, resolverRaw: { $not: /autosim/i } } },
+      { $sort: { ResolvedDate: -1 } },
+      { $group: {
+        _id: { bucket: '$bucket', resolver: '$resolver' },
+        agent: { $first: '$resolverRaw' },
+        count: { $sum: 1 },
+        pet: { $sum: { $cond: ['$isPet', 1, 0] } },
+        tickets: { $push: { shortId: '$ShortId', status: '$Status', hi: '$hi', rootCause: '$rc', isPet: '$isPet', createDate: '$CreateDate', resolvedDate: '$ResolvedDate', resHrs: '$resHrs' } },
+      } },
+      { $sort: { count: -1 } },
+    ], { allowDiskUse: true }).toArray();
+    // Assemble per-bucket agent lists (already sorted by count desc from the pipeline).
+    const buckets = { before: [], mid: [], after: [], unknown: [] };
+    rows.forEach(r => {
+      const b = (r._id && r._id.bucket) || 'unknown';
+      (buckets[b] || buckets.unknown).push({ agent: r.agent || r._id.resolver, count: r.count, pet: r.pet, nonPet: r.count - r.pet, tickets: (r.tickets || []).slice(0, 500) });
+    });
+    const summarize = (list) => {
+      const totalTickets = list.reduce((s, a) => s + a.count, 0);
+      const totalPet = list.reduce((s, a) => s + a.pet, 0);
+      return { totalTickets, totalAgents: list.length, totalPet, totalNonPet: totalTickets - totalPet, agents: list };
+    };
+    res.json({
+      ranges: {
+        before: { label: 'Created before 1 Sep 2025', boundary: '< 2025-09-01' },
+        mid: { label: 'Created 1 Sep 2025 – 31 Mar 2026', boundary: '2025-09-01 to 2026-03-31' },
+        after: { label: 'Created on/after 1 Apr 2026', boundary: '>= 2026-04-01' },
+      },
+      before: summarize(buckets.before),
+      mid: summarize(buckets.mid),
+      after: summarize(buckets.after),
+      unknown: summarize(buckets.unknown),
+      grandTotal: buckets.before.concat(buckets.mid, buckets.after, buckets.unknown).reduce((s, a) => s + a.count, 0),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load resolved HI tickets.' });
+  }
+});
+
+// ---- SLA-breach tickets (resolution time > 240h), ALL-TIME, grouped by resolver (admin) ----
+// Aggregates over ticket_docs (flat schema): Status in Resolved/Closed, resolution hours > 240.
+// Split by CreateDate into the same 3 ranges as /api/hi-resolved.
+app.get('/api/sla-breach', requireRole('admin'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
+    const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
+    const B1 = new Date('2025-09-01T00:00:00.000Z');
+    const B2 = new Date('2026-04-01T00:00:00.000Z');
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const bucketExpr = { $let: { vars: { cd: cdExpr }, in: { $cond: [ { $eq: ['$$cd', null] }, 'unknown', { $cond: [ { $lt: ['$$cd', B1] }, 'before', { $cond: [ { $lt: ['$$cd', B2] }, 'mid', 'after' ] } ] } ] } } };
+    const rows = await coll.aggregate([
+      { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
+      { $project: {
+        ShortId: 1, Status: 1, ResolvedDate: 1, CreateDate: 1, RootCause: 1,
+        resolver: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } },
+        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
+        isPet: isPetExpr, rc: rcExpr, resHrs: resHrs, bucket: bucketExpr,
+      } },
+      { $match: { resHrs: { $gt: 240 }, resolver: { $nin: ['', null] }, resolverRaw: { $not: /autosim/i } } },
+      { $group: {
+        _id: { bucket: '$bucket', resolver: '$resolver' },
+        agent: { $first: '$resolverRaw' },
+        count: { $sum: 1 },
+        pet: { $sum: { $cond: ['$isPet', 1, 0] } },
+        tickets: { $push: { shortId: '$ShortId', status: '$Status', rootCause: '$rc', isPet: '$isPet', createDate: '$CreateDate', resolvedDate: '$ResolvedDate', resHrs: '$resHrs' } },
+      } },
+      { $sort: { count: -1 } },
+    ], { allowDiskUse: true }).toArray();
+    const buckets = { before: [], mid: [], after: [], unknown: [] };
+    rows.forEach(r => {
+      const b = (r._id && r._id.bucket) || 'unknown';
+      // Sort this agent's tickets by resolution time (worst breach first) in Node, then cap.
+      const tix = (r.tickets || []).sort((x, y) => (y.resHrs || 0) - (x.resHrs || 0)).slice(0, 500);
+      (buckets[b] || buckets.unknown).push({ agent: r.agent || r._id.resolver, count: r.count, pet: r.pet, nonPet: r.count - r.pet, tickets: tix });
+    });
+    const summarize = (list) => {
+      const totalTickets = list.reduce((s, a) => s + a.count, 0);
+      const totalPet = list.reduce((s, a) => s + a.pet, 0);
+      return { totalTickets, totalAgents: list.length, totalPet, totalNonPet: totalTickets - totalPet, agents: list };
+    };
+    res.json({
+      ranges: {
+        before: { label: 'Created before 1 Sep 2025', boundary: '< 2025-09-01' },
+        mid: { label: 'Created 1 Sep 2025 – 31 Mar 2026', boundary: '2025-09-01 to 2026-03-31' },
+        after: { label: 'Created on/after 1 Apr 2026', boundary: '>= 2026-04-01' },
+      },
+      before: summarize(buckets.before),
+      mid: summarize(buckets.mid),
+      after: summarize(buckets.after),
+      unknown: summarize(buckets.unknown),
+      grandTotal: buckets.before.concat(buckets.mid, buckets.after, buckets.unknown).reduce((s, a) => s + a.count, 0),
+    });
+  } catch (e) {
+    console.error('sla-breach error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load SLA-breach tickets.' });
+  }
+});
+
 // Admin utility: clear the isolated tracker (states + events). Handy while testing. Owner/admin only.
 app.post('/api/ticket-events/clear', requireRole('admin'), async (req, res) => {
   try {

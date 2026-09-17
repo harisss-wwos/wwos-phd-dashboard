@@ -236,6 +236,8 @@
     if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
     if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html');
     if (isAdmin) html += link('event-log', 'Live Ticket Movements', 'clock-rewind', 'event-log.html');
+    if (isAdmin) html += link('hi-resolved', 'Resolved Repeat Incidents', 'repeat', 'hi-resolved.html');
+    if (isAdmin) html += link('sla-breach', 'SLA Breaches (>240h)', 'clock', 'sla-breach.html');
     if (isOwner) html += link('users', 'Users', 'users-gear', 'users.html');
     if (isOwner) html += link('db-health', 'Database health', 'database', 'db-health.html');
     return html;
