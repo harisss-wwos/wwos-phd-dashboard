@@ -237,6 +237,57 @@ tr:hover{background:rgba(255,153,0,.03)}
   .age-tile{padding:14px 8px}
   .age-tile .age-range{font-size:.68em}
 }
+/* ---- Ticket Age Classification as an Excel-style table ---- */
+.age-xls-wrap{overflow-x:auto;border:1px solid #2f3a45;border-radius:10px;margin-top:6px}
+.age-xls{width:100%;border-collapse:collapse;font-size:.9em;min-width:520px}
+.age-xls th,.age-xls td{border:1px solid #2f3a45;padding:11px 14px;text-align:center;vertical-align:middle}
+.age-xls thead th{background:#111820;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:700;border-top:none}
+.age-xls tbody tr:hover td{background:rgba(255,153,0,.05)}
+.age-xls .age-swatch{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:800;letter-spacing:.4px}
+.age-xls .age-swatch .dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.age-xls .age-rng{color:var(--tm);font-size:.85em}
+.age-xls td.age-agents{text-align:center;font-weight:800;color:#fff}
+.age-xls td.age-cnt{text-align:center;font-weight:800}
+.age-xls .age-view{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;font-size:.8em;font-weight:600;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--t);cursor:pointer;font-family:inherit;transition:border-color .12s,color .12s}
+.age-xls .age-view:hover{border-color:var(--o);color:var(--o)}
+.age-xls tr.blink-alert td:first-child{box-shadow:inset 4px 0 0 var(--rl)}
+/* ---- Color popup: agent accordion + per-agent Excel ticket table ---- */
+.ap-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
+.ap-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.ap-agent-head:hover{background:rgba(255,255,255,.03)}
+.ap-agent-name{color:#fff;font-weight:700;font-size:1.12em}
+.ap-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
+.ap-agent-count{margin-left:auto;font-weight:800;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:20px;padding:4px 14px;font-size:1em}
+.ap-caret{color:var(--tm);transition:transform .25s ease;flex-shrink:0;font-size:1.1em}
+.ap-agent.open .ap-caret{transform:rotate(180deg)}
+.ap-agent-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.ap-agent.open .ap-agent-body{max-height:3000px}
+.ap-scroll{overflow-x:auto}
+.ap-tbl{width:100%;border-collapse:collapse;font-size:1em}
+.ap-tbl th,.ap-tbl td{border-top:1px solid #1b2530;padding:11px 16px;text-align:left;white-space:nowrap;vertical-align:middle}
+.ap-tbl thead th{background:#0d1319;color:var(--tm);font-size:.8em;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.ap-tbl tbody tr:hover td{background:rgba(255,153,0,.05)}
+.ap-tbl .ap-id{color:#44b9d6;text-decoration:none;font-weight:700}
+.ap-tbl .ap-id:hover{text-decoration:underline}
+.ap-tbl .ap-st{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.ap-tbl .ap-left-ok{color:#4ade80;font-weight:700}
+.ap-tbl .ap-left-warn{color:#fbbf24;font-weight:700}
+.ap-tbl .ap-left-over{color:#ff5252;font-weight:800}
+.ap-tbl td.ap-cmt{white-space:normal;max-width:340px;color:#c9d3d4;font-size:.9em;line-height:1.45}
+.ap-tbl td.ap-cmt .pc-tk-cmt-txt{color:inherit}
+.ap-add-cmt{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;font-size:.9em;font-weight:600;border:1px solid var(--o);border-radius:6px;background:rgba(255,153,0,.1);color:var(--o);cursor:pointer;font-family:inherit}
+.ap-add-cmt:hover{background:var(--o);color:#141414}
+.ap-cmt-input{width:100%;min-width:200px;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.95em;padding:7px 9px;font-family:inherit;line-height:1.4;resize:vertical}
+.ap-cmt-actions{display:flex;gap:8px;margin-top:6px}
+.ap-cmt-save,.ap-cmt-cancel{padding:4px 12px;font-size:.85em;font-weight:600;border-radius:6px;cursor:pointer;font-family:inherit;border:1px solid var(--bd)}
+.ap-cmt-save{background:var(--o);color:#141414;border-color:var(--o)}
+.ap-cmt-cancel{background:transparent;color:var(--t)}
+.ap-cmt-cancel:hover{border-color:var(--o);color:var(--o)}
+/* Historical Incidents: text/stat cells (left) + pet-vs-nonpet doughnut (right). */
+.hi-split{display:grid;grid-template-columns:1fr 220px;gap:18px;align-items:center}
+.hi-split-left{min-width:0}
+.hi-split-chart{position:relative;height:180px}
+@media(max-width:640px){.hi-split{grid-template-columns:1fr}.hi-split-chart{height:200px;max-width:280px;margin:0 auto}}
 @media(max-width:400px){
   .kpi-grid.age-grid{grid-template-columns:1fr 1fr}        /* 2 across on very small phones */
 }
@@ -314,7 +365,7 @@ tr:hover{background:rgba(255,153,0,.03)}
 }
 
 /* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:90%!important;max-width:none!important;margin-left:auto!important;margin-right:auto!important}
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 </head>
 <body data-app="live" data-back-href="index.html" data-back-label="All Dashboards">

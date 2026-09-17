@@ -722,50 +722,79 @@ function showTicketAccessPrompt(){
 function showColorPopup(color,tickets){
   if(!requireLoginForTickets())return;
   closeAllPopups();
-  const colorNames={green:'GREEN (0-96 hrs)',yellow:'YELLOW (96-168 hrs)',red:'RED (168-240 hrs)',black:'BLACK (>240 hrs)',purple:'PURPLE (Reopened)'};
+  const colorNames={green:'GREEN (0-96 hrs / 0-4 days)',yellow:'YELLOW (96-168 hrs / 4-7 days)',red:'RED (168-240 hrs / 7-10 days)',black:'BLACK (>240 hrs / >10 days)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
   const tix=colorTicketsFor(color);
-  // Group by agent
-  const byAgent={};tix.forEach(r=>{const a=r.AssigneeIdentity||'Unassigned';if(!byAgent[a])byAgent[a]=[];byAgent[a].push(r);});
+  const me=(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser())?String(window.PHDAuth.getUser().username||'').toLowerCase():'';
+  // Group by agent, then sort agents by ticket count (highest -> lowest).
+  const byAgent={}; tix.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
   const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
-  // Split into registered (accounts in our DB) vs non-registered (unknown logins / LM-CAP / AutoSIM / Unassigned).
-  const registered=agentList.filter(([name])=>isRegisteredUser(name));
-  const nonRegistered=agentList.filter(([name])=>!isRegisteredUser(name));
-  // Each agent is a clickable "row card": avatar + name (+ role/DEFAULT tag) on the left, a big
-  // ticket-count pill on the right. Cards flow in a responsive grid (1 col mobile, 2 col wide).
-  const cardFor=([name,tickets])=>{
+  const now=new Date();
+  // One expandable agent section: header (name + count) + an Excel table of their tickets.
+  const agentBlock=([name,tickets],idx)=>{
     const dn=displayName(name);
-    const nameStyle=isLMCAP(name)?'color:#f97316;font-style:italic':'color:#fff';
-    const pic=window.PHDAuth&&window.PHDAuth.avatarHtml?window.PHDAuth.avatarHtml(profileFor(name),38):'';
-    return `<button type="button" class="pc-agent" onclick="showAgentDrilldown('${color}','${name.replace(/'/g,"\\'")}')">`+
-      `<span class="pc-agent-av">${pic}</span>`+
-      `<span class="pc-agent-name"><strong style="${nameStyle}">${dn}</strong>${isLMCAP(name)?'<span class="pt-default">DEFAULT</span>':''}<span class="pc-agent-sub">${tickets.length} ticket${tickets.length===1?'':'s'}</span></span>`+
-      `<span class="pc-agent-count" style="color:${colorHex[color]}">${tickets.length}</span>`+
-    `</button>`;
+    const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
+    // Tickets oldest-first (most urgent at top).
+    const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
+      const cd=new Date(r.CreateDate);
+      const validCd=!isNaN(cd);
+      const daysAgo=validCd?Math.floor((now-cd)/864e5):0;
+      const daysAgoTxt=daysAgo<=0?'Today':(daysAgo===1?'1 day ago':daysAgo+' days ago');
+      // "Days left" until the 10-day (240h) black threshold. <=0 means already overdue.
+      const left=10-daysAgo;
+      const leftCls=left>3?'ap-left-ok':(left>0?'ap-left-warn':'ap-left-over');
+      const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
+      const sid=r.ShortId||'';
+      const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      // "Mine" = ticket assigned to the logged-in user -> can add a comment (server enforces this too).
+      const mine=(me && String(name).toLowerCase()===me)?'1':'0';
+      return '<tr>'+
+        '<td><a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a></td>'+
+        '<td><span class="ap-st" style="color:'+statusColor(r.Status)+'">'+esc(r.Status||'—')+'</span></td>'+
+        '<td>'+esc(created)+'</td>'+
+        '<td>'+daysAgoTxt+'</td>'+
+        '<td class="'+leftCls+'">'+leftTxt+'</td>'+
+        '<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+mine+'"><span class="pc-tk-cmt-txt">Loading…</span></td>'+
+      '</tr>';
+    }).join('');
+    return '<div class="ap-agent">'+
+      '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
+        '<span class="ap-agent-name">'+esc(dn)+nmeta+'<span class="sub">@'+esc(name)+'</span></span>'+
+        '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
+        '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl"><thead><tr>'+
+        '<th>Ticket</th><th>Status</th><th>Created</th><th>Age</th><th>Time left</th><th>Last comment</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+    '</div>';
   };
-  const sumTix=(list)=>list.reduce((s,[,t])=>s+t.length,0);
-  const grid=(list)=>`<div class="pc-agent-grid">${list.map(cardFor).join('')}</div>`;
+  const body=agentList.length?agentList.map(agentBlock).join(''):'<p class="pc-none">No open tickets in this category.</p>';
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  const regSection=`<div class="pc-section">
-      <div class="pc-section-head"><span class="pc-section-title" style="color:#4ade80">${ic('check-circle',15)} Registered users</span><span class="pc-section-meta">${registered.length} agent${registered.length===1?'':'s'} · ${sumTix(registered)} tickets</span></div>
-      ${registered.length?grid(registered):'<p class="pc-none">None.</p>'}
-    </div>`;
-  const nonRegSection=`<div class="pc-section">
-      <div class="pc-section-head"><span class="pc-section-title" style="color:#ff9900">${ic('alert',15)} Non-registered logins</span><span class="pc-section-meta">${nonRegistered.length} agent${nonRegistered.length===1?'':'s'} · ${sumTix(nonRegistered)} tickets</span></div>
-      <p class="pc-section-note">These assignees are not accounts in our database (unknown login, default queue, or unassigned).</p>
-      ${nonRegistered.length?grid(nonRegistered):'<p class="pc-none">None.</p>'}
-    </div>`;
-  overlay.innerHTML=`<div class="popup-card" style="max-width:820px">
+  overlay.innerHTML=`<div class="popup-card" style="max-width:75vw;width:75vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
-      <div><h2 style="color:${colorHex[color]}">${colorNames[color]}</h2><div class="pc-subcount">${tix.length} open ticket${tix.length===1?'':'s'} · click an agent to view theirs</div></div>
+      <div><h2 style="color:${colorHex[color]};font-size:1.45em">${colorNames[color]}</h2><div class="pc-subcount" style="font-size:.95em">${tix.length} open ticket${tix.length===1?'':'s'} · ${agentList.length} agent${agentList.length===1?'':'s'} · highest first</div></div>
       <div class="popup-actions"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    ${regSection}
-    ${nonRegSection}</div>`;
+    <div style="margin-top:16px">${body}</div></div>`;
   document.body.appendChild(overlay);
+  // Fetch the latest comment for every ticket shown (all agents) and fill the "Last comment" column.
+  fillLatestComments(overlay, tix.map(r=>r.ShortId).filter(Boolean));
 }
+// Expand/collapse one agent section in the color popup — accordion: only one open at a time.
+function apToggleAgent(btn){
+  const s=btn.closest('.ap-agent'); if(!s)return;
+  const willOpen=!s.classList.contains('open');
+  // Collapse every other open agent section in this popup.
+  const scope=s.closest('.popup-card')||document;
+  scope.querySelectorAll('.ap-agent.open').forEach(function(other){ if(other!==s) other.classList.remove('open'); });
+  s.classList.toggle('open', willOpen);
+}
+window.apToggleAgent=apToggleAgent;
+window.showColorPopup=showColorPopup;
 
 function showAgentDrilldown(color,agentName){
   if(!requireLoginForTickets())return;
@@ -826,12 +855,51 @@ async function fillLatestComments(overlay,shortIds){
       if(c&&c.text){
         const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
         setTxt(row,esc(c.text)+' <span style="color:#5f6b6c">— '+esc(c.user)+(when?(' · '+when):'')+'</span>',false);
+      }else if(row.getAttribute('data-mine')==='1'){
+        // No comment yet AND this ticket is assigned to me -> offer an inline "Add comment" action.
+        setTxt(row,'<button type="button" class="ap-add-cmt" onclick="apAddComment(this,\''+esc(sid)+'\')">'+ic('plus',12)+' Add comment</button>',true);
       }else{
-        setTxt(row,'No comment made by user',true);
+        setTxt(row,'No comment yet',true);
       }
     });
   }catch(e){rows.forEach(row=>setTxt(row,'Could not load comments',true));}
 }
+// Inline "add comment" from the color popup (only shown for the logged-in user's own tickets).
+function apAddComment(btn, shortId){
+  const cell=btn.closest('.pc-tk-cmt'); if(!cell)return;
+  const txtWrap=cell.querySelector('.pc-tk-cmt-txt')||cell;
+  txtWrap.innerHTML='<textarea class="ap-cmt-input" maxlength="2000" placeholder="Add a comment on '+shortId+'\u2026"></textarea>'+
+    '<div class="ap-cmt-actions"><button type="button" class="ap-cmt-save" onclick="apSaveComment(this,\''+shortId.replace(/'/g,"\\'")+'\')">Save</button>'+
+    '<button type="button" class="ap-cmt-cancel" onclick="apCancelComment(this)">Cancel</button></div>';
+  const ta=txtWrap.querySelector('textarea'); if(ta) ta.focus();
+}
+window.apAddComment=apAddComment;
+function apCancelComment(btn){
+  const cell=btn.closest('.pc-tk-cmt'); const sid=cell?cell.getAttribute('data-sid'):'';
+  const txtWrap=cell?cell.querySelector('.pc-tk-cmt-txt'):null;
+  if(txtWrap) txtWrap.innerHTML='<button type="button" class="ap-add-cmt" onclick="apAddComment(this,\''+String(sid).replace(/'/g,"\\'")+'\')">'+ic('plus',12)+' Add comment</button>';
+}
+window.apCancelComment=apCancelComment;
+async function apSaveComment(btn, shortId){
+  const cell=btn.closest('.pc-tk-cmt'); if(!cell)return;
+  const ta=cell.querySelector('textarea'); const text=(ta&&ta.value||'').trim();
+  if(!text){ if(ta) ta.focus(); return; }
+  btn.disabled=true; btn.textContent='Saving\u2026';
+  try{
+    const r=await window.PHDAuth.api('POST','/api/tickets/'+encodeURIComponent(shortId)+'/comments',{text});
+    const txtWrap=cell.querySelector('.pc-tk-cmt-txt')||cell;
+    if(r.ok&&r.data){
+      const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const when=r.data.at?new Date(r.data.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      txtWrap.innerHTML=esc(text)+' <span style="color:#5f6b6c">\u2014 '+esc(r.data.user||'')+(when?(' \u00b7 '+when):'')+'</span>';
+      cell.style.color='#d5dbdb';
+    }else{
+      btn.disabled=false; btn.textContent='Save';
+      alert((r.data&&r.data.error)||'Could not add the comment.');
+    }
+  }catch(e){ btn.disabled=false; btn.textContent='Save'; alert('Could not add the comment.'); }
+}
+window.apSaveComment=apSaveComment;
 function downloadColorCSV(color){
   const tickets=colorTicketsFor(color);
   let csv='ShortId,Assignee,CreateDate,Status,Title\n';
@@ -1684,16 +1752,24 @@ const AGE_TILES=[
 ];
 // Static skeleton for the Ticket Age Classification card: intro + all 5 tiles with a spinner in
 // the count slot. No data needed — rendered eagerly. renderAgeChunk() later fills the counts.
+// Row order for the age table (per request): PURPLE, BLACK, RED, YELLOW, GREEN.
+const AGE_ROW_ORDER=['purple','black','red','yellow','green'];
+function ageTileByCls(cls){ return AGE_TILES.find(function(t){return t.cls===cls;})||{}; }
 function ageCardSkeletonHtml(){
-  const tiles=AGE_TILES.map(function(t){
-    return '<div class="kpi-card age-tile" id="ageTile-'+t.cls+'" style="border-top-color:'+t.color+'">'+
-      '<div class="value" id="ageCount-'+t.cls+'" style="color:'+t.color+'"><span class="num-spinner"></span></div>'+
-      '<div class="age-name" id="ageName-'+t.cls+'">'+ic(t.icon,14)+' '+t.name+'</div>'+
-      '<div class="age-range">'+t.range+'</div>'+
-    '</div>';
+  const rows=AGE_ROW_ORDER.map(function(cls){
+    const t=ageTileByCls(cls);
+    return '<tr id="ageRow-'+cls+'">'+
+      '<td><span class="age-swatch" style="color:'+t.color+'"><span class="dot" style="background:'+t.color+'"></span>'+t.name+'</span></td>'+
+      '<td class="age-rng">'+t.range+'</td>'+
+      '<td class="age-agents" id="ageAgents-'+cls+'"><span class="num-spinner"></span></td>'+
+      '<td class="age-cnt" id="ageCount-'+cls+'" style="color:'+t.color+'"><span class="num-spinner"></span></td>'+
+      '<td style="text-align:center"><button type="button" class="age-view" id="ageView-'+cls+'" onclick="showColorPopup(\''+cls+'\')">'+ic('eye',13)+' View tickets</button></td>'+
+    '</tr>';
   }).join('');
-  return '<p class="meta-info">Open tickets classified by age. Click any tile to see which agents hold those tickets.</p>'+
-    '<div class="kpi-grid age-grid">'+tiles+'</div>';
+  return '<p class="meta-info">Open tickets classified by age. Click <b>View tickets</b> on any row to see which agents hold them.</p>'+
+    '<div class="age-xls-wrap"><table class="age-xls"><thead><tr>'+
+      '<th>Color</th><th>Age range</th><th style="text-align:center">Agents</th><th style="text-align:center">Tickets</th><th style="text-align:center">Details</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 // ---- Per-card renderers (fill the card body from the chunk payload) ----
@@ -1721,18 +1797,16 @@ function renderAgeChunk(d){
   });
   AGE_TILES.forEach(function(t){
     const list=ct[t.cls]||[];
-    const tile=document.getElementById('ageTile-'+t.cls);
-    if(tile){
-      tile.style.cursor='pointer';
-      tile.onclick=function(){ showColorPopup(t.cls); };
+    // Distinct agents holding tickets of this color (AssigneeIdentity; blank -> "Unassigned").
+    const agentSet={}; list.forEach(function(r){ const a=(r.AssigneeIdentity||'Unassigned'); agentSet[a]=1; });
+    const agentCount=Object.keys(agentSet).length;
+    const row=document.getElementById('ageRow-'+t.cls);
+    if(row){
       const blink=(t.cls==='black')?blackBlink:(t.cls==='purple')?purpleBlink:false;
-      tile.classList.toggle('blink-alert',!!blink);
-      if(t.cls==='purple'){
-        const nm=document.getElementById('ageName-purple');
-        if(nm) nm.innerHTML=ic(t.icon,14)+' '+t.name+(purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':'');
-      }
+      row.classList.toggle('blink-alert',!!blink);
     }
-    // Fill + animate the count.
+    const ael=document.getElementById('ageAgents-'+t.cls);
+    if(ael){ ael.classList.add('kpi-anim'); countUpKpi(ael, String(agentCount)); }
     const cel=document.getElementById('ageCount-'+t.cls);
     if(cel){ cel.classList.add('kpi-anim'); countUpKpi(cel, String(list.length)); }
   });
@@ -1744,16 +1818,25 @@ function renderAgeChunk(d){
 // column is centered; otherwise it's right-aligned.
 function kpiTableHtml(rows, withDesc){
   const valAlign=withDesc?'center':'right';
-  const head='<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th>'+(withDesc?'<th>Definition</th>':'')+'</tr>';
+  // 3-column (with Definition): fixed widths Metric 20% / Value 15% / Definition 65%, all centered.
+  const head=withDesc
+    ? '<tr><th style="text-align:center;width:20%">Metric</th><th style="text-align:center;width:15%">Value</th><th style="text-align:center;width:65%">Definition</th></tr>'
+    : '<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th></tr>';
   const body=rows.map(function(r){
-    const vStyle=' style="text-align:'+valAlign+(r.valColor?(';color:'+r.valColor):'')+'"';
     const raw=(r.value==null?'\u2014':String(r.value));
     const cell='<span class="kpi-anim" data-kpi-val="'+raw.replace(/"/g,'&quot;')+'"></span>';
+    if(withDesc){
+      const vStyle=' style="text-align:center'+(r.valColor?(';color:'+r.valColor):'')+'"';
+      return '<tr><td class="kt-metric" style="text-align:center">'+(r.metric||'')+'</td>'+
+        '<td class="kt-value"'+vStyle+'>'+cell+'</td>'+
+        '<td class="kt-desc" style="text-align:center">'+(r.desc||'')+'</td></tr>';
+    }
+    const vStyle=' style="text-align:'+valAlign+(r.valColor?(';color:'+r.valColor):'')+'"';
     return '<tr><td class="kt-metric">'+(r.metric||'')+'</td>'+
-      '<td class="kt-value"'+vStyle+'>'+cell+'</td>'+
-      (withDesc?('<td class="kt-desc">'+(r.desc||'')+'</td>'):'')+'</tr>';
+      '<td class="kt-value"'+vStyle+'>'+cell+'</td></tr>';
   }).join('');
-  return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+  const tblStyle=withDesc?' style="width:100%;table-layout:fixed"':'';
+  return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"'+tblStyle+'><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
 }
 function renderQueueKpis(d){
   const grid=document.getElementById('dashQueueKpis'); if(!grid||!d||!d.counts)return;
@@ -1775,11 +1858,11 @@ function renderQueueKpis(d){
     {m:ic('eye',14)+' Researching', v:num('Researching')},
     {m:ic('hourglass',14)+' Pending', v:num('Pending')}
   ];
-  const cell=function(x){ if(!x) return '<td></td><td></td>'; const raw=String(x.v).replace(/"/g,'&quot;'); return '<td class="kt-metric">'+x.m+'</td><td class="kt-value"'+(x.col?(' style="color:'+x.col+'"'):'')+'><span class="kpi-anim" data-kpi-val="'+raw+'"></span></td>'; };
+  const cell=function(x){ if(!x) return '<td></td><td></td>'; const raw=String(x.v).replace(/"/g,'&quot;'); return '<td class="kt-metric" style="text-align:center">'+x.m+'</td><td class="kt-value" style="text-align:center'+(x.col?(';color:'+x.col):'')+'"><span class="kpi-anim" data-kpi-val="'+raw+'"></span></td>'; };
   let rows='';
   for(let i=0;i<Math.max(left.length,right.length);i++){ rows+='<tr>'+cell(left[i])+cell(right[i])+'</tr>'; }
-  grid.innerHTML='<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+
-    '<tr><th>Metric</th><th style="text-align:right">Value</th><th>Metric</th><th style="text-align:right">Value</th></tr>'+
+  grid.innerHTML='<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table" style="width:100%;table-layout:fixed"><thead>'+
+    '<tr><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th></tr>'+
     '</thead><tbody>'+rows+'</tbody></table></div>';
   grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
@@ -1948,16 +2031,23 @@ function renderHiChunk(d){
   };
   slot.innerHTML=
     '<div style="background:#000;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:18px">'+
-      '<p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">'+total+'</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">'+d.petPct+'%</strong> are driven by <strong>pet/animal incidents</strong>.</p>'+
-      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">'+
-        '<div style="background:#0a0a0a;border:1px solid rgba(167,139,250,.35);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#a78bfa">'+d.pet+' <span style="font-size:.55em;color:#879596">('+d.petPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI due to pet / animal incidents</div></div>'+
-        '<div style="background:#0a0a0a;border:1px solid rgba(255,153,0,.3);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#ff9900">'+d.nonPet+' <span style="font-size:.55em;color:#879596">('+d.nonPetPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI NOT related to pet incidents</div></div>'+
+      '<div class="hi-split">'+
+        '<div class="hi-split-left">'+
+          '<p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">'+total+'</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">'+d.petPct+'%</strong> are driven by <strong>pet/animal incidents</strong>.</p>'+
+          '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">'+
+            '<div style="background:#0a0a0a;border:1px solid rgba(167,139,250,.35);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#a78bfa">'+d.pet+' <span style="font-size:.55em;color:#879596">('+d.petPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI due to pet / animal incidents</div></div>'+
+            '<div style="background:#0a0a0a;border:1px solid rgba(255,153,0,.3);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#ff9900">'+d.nonPet+' <span style="font-size:.55em;color:#879596">('+d.nonPetPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI NOT related to pet incidents</div></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="hi-split-chart"><canvas id="cHiSplit"></canvas></div>'+
       '</div>'+
     '</div>'+
     '<h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">🐾 Involving pet / animal incidents — '+d.pet+' ('+d.petPct+'% of all HI)</h3>'+
     subTable(d.petBreakdown,'#a78bfa')+
     '<h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — '+d.nonPet+' ('+d.nonPetPct+'% of all HI)</h3>'+
     subTable(d.nonPetBreakdown,'#ff9900');
+  // Doughnut: pet vs non-pet share of repeat incidents.
+  makeChart('cHiSplit',{type:'doughnut',data:{labels:['Pet / animal ('+d.petPct+'%)','Non-pet ('+d.nonPetPct+'%)'],datasets:[{data:[d.pet,d.nonPet],backgroundColor:['#a78bfa','#ff9900'],borderColor:'#000',borderWidth:2,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#d5dbdb',font:{size:11},usePointStyle:true,boxWidth:8,padding:12}},tooltip:{callbacks:{label:function(c){return c.label.replace(/\s*\(\d.*/,'')+': '+c.raw+' ('+(total?Math.round(c.raw/total*100):0)+'%)';}}}}}});
 }
 function _barOpts(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}};}
 
@@ -2035,17 +2125,26 @@ function renderDashboardChunked(){
   const scrCell=(scrMax,pct)=>'<span class="scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</span>';
   // Table skeleton for a metric/value(/definition) section that matches the final rendered table.
   const kpiTblSkel=(rows,withDesc)=>{
-    const head='<tr><th>Metric</th><th style="text-align:'+(withDesc?'center':'right')+'">Value</th>'+(withDesc?'<th>Definition</th>':'')+'</tr>';
-    const body=rows.map(function(r){ return '<tr><td class="kt-metric">'+r.m+'</td><td class="kt-value" style="text-align:'+(withDesc?'center':'right')+'">'+scrCell(r.s,r.p)+'</td>'+(withDesc?'<td class="kt-desc">\u2026</td>':'')+'</tr>'; }).join('');
-    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+    // Mirror kpiTableHtml: 3-col (with Definition) = fixed 20/15/65, all centered; 2-col = right-aligned value.
+    const head=withDesc
+      ? '<tr><th style="text-align:center;width:20%">Metric</th><th style="text-align:center;width:15%">Value</th><th style="text-align:center;width:65%">Definition</th></tr>'
+      : '<tr><th>Metric</th><th style="text-align:right">Value</th></tr>';
+    const body=rows.map(function(r){
+      if(withDesc){
+        return '<tr><td class="kt-metric" style="text-align:center">'+r.m+'</td><td class="kt-value" style="text-align:center">'+scrCell(r.s,r.p)+'</td><td class="kt-desc" style="text-align:center">\u2026</td></tr>';
+      }
+      return '<tr><td class="kt-metric">'+r.m+'</td><td class="kt-value" style="text-align:right">'+scrCell(r.s,r.p)+'</td></tr>';
+    }).join('');
+    const tblStyle=withDesc?' style="width:100%;table-layout:fixed"':'';
+    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"'+tblStyle+'><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
   };
   // Paired (4-col) queue skeleton: left = totals, right = open statuses.
   const queueSkel=function(){
     const L=[{m:ic('inbox',14)+' In Queue',s:400},{m:ic('grid',14)+' Total Tickets',s:9000},{m:ic('check-circle',14)+' Resolved',s:9000},{m:ic('check-circle',14)+' Closed',s:9000}];
     const R=[{m:ic('inbox',14)+' Assigned',s:200},{m:ic('tool',14)+' Work In Progress',s:300},{m:ic('eye',14)+' Researching',s:100},{m:ic('hourglass',14)+' Pending',s:100}];
     let rows='';
-    for(let i=0;i<4;i++){ rows+='<tr><td class="kt-metric">'+L[i].m+'</td><td class="kt-value" style="text-align:right">'+scrCell(L[i].s)+'</td><td class="kt-metric">'+R[i].m+'</td><td class="kt-value" style="text-align:right">'+scrCell(R[i].s)+'</td></tr>'; }
-    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead><tr><th>Metric</th><th style="text-align:right">Value</th><th>Metric</th><th style="text-align:right">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    for(let i=0;i<4;i++){ rows+='<tr><td class="kt-metric" style="text-align:center">'+L[i].m+'</td><td class="kt-value" style="text-align:center">'+scrCell(L[i].s)+'</td><td class="kt-metric" style="text-align:center">'+R[i].m+'</td><td class="kt-value" style="text-align:center">'+scrCell(R[i].s)+'</td></tr>'; }
+    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table" style="width:100%;table-layout:fixed"><thead><tr><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   };
   const kpiSection=(title,iconName,gridId,skel)=>
     '<div class="section collapsible kpi-section"><h2 onclick="toggleSection(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">\u25be</span></h2>'+
