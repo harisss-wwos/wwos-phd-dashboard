@@ -47,6 +47,107 @@ app.use(attachUser);
 // ---- Health / wake ----
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
+// ============================================================================
+// ISOLATED ticket-movement tracker (LM-HUB webhook -> ticket_events collection).
+// Completely separate from the live dashboard / ticket_docs. LM-HUB fires this on every ticket
+// create + status change; we append an event row and keep a per-ticket "current state". A separate
+// admin page (event-log.html) reads it. Nothing here touches quarters / ticket_docs / rollups.
+// ============================================================================
+const HOOK_SECRET = process.env.HOOK_SECRET || 'phd-dev-hook-secret';   // set a real value in prod env
+const TRACKED_STATUSES = ['Open', 'Assigned', 'Work In Progress', 'Researching', 'Pending', 'Resolved', 'Closed'];
+// Constant-time-ish secret compare (avoids trivial timing leak; secrets are short so this is fine).
+function hookSecretOk(req) {
+  const got = String(req.headers['x-hook-secret'] || (req.body && req.body.secret) || '');
+  const want = String(HOOK_SECRET);
+  if (got.length !== want.length) return false;
+  let diff = 0; for (let i = 0; i < want.length; i++) diff |= got.charCodeAt(i) ^ want.charCodeAt(i);
+  return diff === 0;
+}
+// Normalize an incoming LM-HUB payload into our event shape (tolerant of field-name variants).
+function normalizeTicketEvent(b) {
+  b = b || {};
+  const pick = (...keys) => { for (const k of keys) { if (b[k] != null && String(b[k]).trim() !== '') return String(b[k]).trim(); } return ''; };
+  const shortId = pick('shortId', 'ShortId', 'trackingId', 'issueId', 'IssueId', 'id');
+  const status = pick('status', 'Status');
+  const at = pick('at', 'updatedDate', 'lastUpdatedDate', 'LastUpdatedDate', 'timestamp') || new Date().toISOString();
+  return {
+    shortId,
+    status,
+    title: pick('title', 'Title'),
+    assignee: pick('assignee', 'AssigneeIdentity', 'assigneeIdentity').replace(/^kerberos:/i, '').replace(/@ANT\.AMAZON\.COM$/i, ''),
+    requester: pick('requester', 'requesterIdentity', 'RequesterIdentity').replace(/^kerberos:/i, '').replace(/@ANT\.AMAZON\.COM$/i, ''),
+    severity: pick('severity', 'Severity', 'severityLevel'),
+    at,
+    receivedAt: new Date().toISOString(),
+  };
+}
+
+// Public webhook (secret-header auth, NO login): LM-HUB posts a ticket create/status-change here.
+app.post('/api/hook/ticket-event', async (req, res) => {
+  try {
+    if (!hookSecretOk(req)) return res.status(401).json({ error: 'Bad or missing hook secret.' });
+    const ev = normalizeTicketEvent(req.body);
+    if (!ev.shortId) return res.status(400).json({ error: 'Missing ticket id (shortId).' });
+    if (!ev.status) return res.status(400).json({ error: 'Missing status.' });
+    const events = await getCollection(COLLECTIONS.ticketEvents);
+    // Ensure indexes once (best-effort) for fast reads by ticket + time.
+    try { await events.createIndex({ shortId: 1, receivedAt: -1 }); await events.createIndex({ kind: 1, receivedAt: -1 }); } catch (e) {}
+    // 1) Append the immutable event row.
+    await events.insertOne(Object.assign({ kind: 'event' }, ev));
+    // 2) Upsert the per-ticket "current state" (kind:'state', _id = state|<shortId>) — but only move
+    //    forward: ignore an event older than the state we already have (out-of-order/duplicate guard).
+    const stateId = 'state|' + ev.shortId;
+    const prev = await events.findOne({ _id: stateId });
+    const evMs = Date.parse(ev.at) || Date.parse(ev.receivedAt) || Date.now();
+    const prevMs = prev ? (Date.parse(prev.at) || Date.parse(prev.updatedAt) || 0) : -1;
+    if (!prev || evMs >= prevMs) {
+      await events.updateOne(
+        { _id: stateId },
+        { $set: { kind: 'state', shortId: ev.shortId, status: ev.status, title: ev.title, assignee: ev.assignee, requester: ev.requester, severity: ev.severity, at: ev.at, updatedAt: ev.receivedAt },
+          $setOnInsert: { firstSeen: ev.receivedAt } },
+        { upsert: true }
+      );
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not record ticket event.' });
+  }
+});
+
+// Admin read: current per-ticket states + a recent event timeline. Powers event-log.html.
+app.get('/api/ticket-events', requireRole('admin'), async (req, res) => {
+  try {
+    const events = await getCollection(COLLECTIONS.ticketEvents);
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 200));
+    const states = await events.find({ kind: 'state' }).sort({ updatedAt: -1 }).toArray();
+    const timeline = await events.find({ kind: 'event' }).sort({ receivedAt: -1 }).limit(limit).toArray();
+    // Per-status counts across current states.
+    const counts = {}; TRACKED_STATUSES.forEach(s => { counts[s] = 0; });
+    states.forEach(s => { if (counts[s.status] != null) counts[s.status]++; else counts[s.status] = (counts[s.status] || 0) + 1; });
+    res.json({
+      tracked: TRACKED_STATUSES,
+      counts,
+      totalTickets: states.length,
+      totalEvents: await events.countDocuments({ kind: 'event' }),
+      states: states.map(s => ({ shortId: s.shortId, status: s.status, title: s.title, assignee: s.assignee, severity: s.severity, at: s.at, updatedAt: s.updatedAt })),
+      timeline: timeline.map(e => ({ shortId: e.shortId, status: e.status, title: e.title, assignee: e.assignee, at: e.at, receivedAt: e.receivedAt })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load ticket events.' });
+  }
+});
+
+// Admin utility: clear the isolated tracker (states + events). Handy while testing. Owner/admin only.
+app.post('/api/ticket-events/clear', requireRole('admin'), async (req, res) => {
+  try {
+    const events = await getCollection(COLLECTIONS.ticketEvents);
+    const r = await events.deleteMany({});
+    res.json({ ok: true, deleted: r.deletedCount || 0 });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not clear ticket events.' });
+  }
+});
+
 // ---- Auth ----
 app.post('/api/login', async (req, res) => {
   try {

@@ -235,6 +235,7 @@
     if (li) html += link('help-activity', 'Help Activity', 'alert', 'help-activity.html');
     if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
     if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html');
+    if (isAdmin) html += link('event-log', 'Live Ticket Movements', 'clock-rewind', 'event-log.html');
     if (isOwner) html += link('users', 'Users', 'users-gear', 'users.html');
     if (isOwner) html += link('db-health', 'Database health', 'database', 'db-health.html');
     return html;

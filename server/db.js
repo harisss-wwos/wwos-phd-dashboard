@@ -36,6 +36,7 @@ const COLLECTIONS = {
   groupRollups: 'group_rollups', // precomputed Alpha/Gamma/Beta group metrics per quarter { _id, publishedAt, metrics:{...} } — recomputed on each publish
   shiftRollups: 'shift_rollups', // precomputed shift-report data per quarter { _id, publishedAt, openTix:[...], counts:{...} } — recomputed on each publish
   ticketDocs: 'ticket_docs', // ONE doc per ticket { _id: "<qid>|<ShortId>", q: qid, ShortId, ...all ticket fields } — lets publishes bulk-write only changed tickets instead of rewriting the whole ~6MB quarter doc
+  ticketEvents: 'ticket_events', // ISOLATED live-movement log from LM-HUB: one doc per status change { shortId, status, at, ... }. Separate from ticket_docs — never affects the live dashboard.
 };
 
 let clientPromise = null;
