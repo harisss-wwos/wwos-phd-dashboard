@@ -1583,6 +1583,14 @@ app.delete('/api/paging-log/:id', requireRole('owner'), async (req, res) => {
 const OPEN_STATUSES = ['Assigned', 'Work In Progress', 'Pending', 'Researching'];
 const SLA_HOURS = 240;
 
+// "Priority" labels: a ticket flagged as important when its Labels field contains
+// "Station Request" OR "Address Exclusion" (case-insensitive). "Address Exclusion"
+// also matches the "Pending Address Exclusion" variant. EITHER label qualifies.
+function hasPriorityLabel(labels) {
+  const s = String(labels || '').toLowerCase();
+  return s.includes('station request') || s.includes('address exclusion');
+}
+
 // Helper: find a ticket in the current live quarter by ShortId. Returns the raw ticket or null.
 async function findLiveTicket(shortId) {
   const qid = currentQuarter();
@@ -1836,6 +1844,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
         status: t.Status || '',
         createDate: created,
         deadline,
+        priority: hasPriorityLabel(t.Labels),
       };
     }).sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
     res.json({ quarter: currentQuarter(), slaHours: SLA_HOURS, tickets: out });
@@ -3091,7 +3100,12 @@ const AGG = {
     },
   },
   isResolved: { $in: ['$t.Status', ['Resolved', 'Closed']] },
-  isAutoSim: { $regexMatch: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] }, regex: 'AutoSIM' } },
+  // AutoSIM-resolved: ResolvedByIdentity contains "AutoSIM" OR Tags contains the auto-resolve marker
+  // "pet_incident_auto_resolved" (case-insensitive). Either signal qualifies the ticket.
+  isAutoSim: { $or: [
+    { $regexMatch: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] }, regex: 'AutoSIM', options: 'i' } },
+    { $regexMatch: { input: { $ifNull: ['$t.Tags', ''] }, regex: 'pet_incident_auto_resolved', options: 'i' } },
+  ] },
   // HI count: parse "Cnt: N" or "Historical Incident: N" from RootCauseDetails.
   hiCountExpr: {
     $let: {
@@ -3179,7 +3193,7 @@ async function dashAge(qid) {
 
 // ---- Ticket Age Classification WITH per-color ticket detail (open tickets only) ----
 // Returns { green:[...], yellow:[...], red:[...], black:[...], purple:[...] } where each ticket
-// is a slim { ShortId, AssigneeIdentity, CreateDate, Status, Title } — enough for the color popups,
+// is a slim { ShortId, AssigneeIdentity, CreateDate, Status, Title, Labels } — enough for the color popups,
 // agent drill-down, blink logic, and CSV export. Classification mirrors dashAge/app.js.
 async function dashAgeDetail(qid) {
   const now = new Date();
@@ -3194,6 +3208,7 @@ async function dashAgeDetail(qid) {
       CreateDate: '$t.CreateDate',
       Status: '$t.Status',
       Title: { $ifNull: ['$t.Title', ''] },
+      Labels: { $ifNull: ['$t.Labels', ''] },
       color: { $switch: { branches: [
         { case: isPurple, then: 'purple' },
         { case: { $lte: [ageHrs, 96] }, then: 'green' },
@@ -3201,7 +3216,7 @@ async function dashAgeDetail(qid) {
         { case: { $lte: [ageHrs, 240] }, then: 'red' },
       ], default: 'black' } },
     } },
-    { $group: { _id: '$color', tickets: { $push: { ShortId: '$ShortId', AssigneeIdentity: '$AssigneeIdentity', CreateDate: '$CreateDate', Status: '$Status', Title: '$Title' } } } },
+    { $group: { _id: '$color', tickets: { $push: { ShortId: '$ShortId', AssigneeIdentity: '$AssigneeIdentity', CreateDate: '$CreateDate', Status: '$Status', Title: '$Title', Labels: '$Labels' } } } },
   ], qid);
   const out = { green: [], yellow: [], red: [], black: [], purple: [] };
   rows.forEach(r => { if (out[r._id]) out[r._id] = r.tickets; });
@@ -3277,19 +3292,20 @@ async function dashWeekly(qid) {
       sla: [{ $project: { w: _weekExpr('$t.ResolvedDate'), h: AGG.resHours } },
         { $match: { w: { $ne: null }, h: { $ne: null, $gte: 0 } } },
         { $group: { _id: '$w', res: { $sum: 1 }, within: { $sum: { $cond: [{ $lte: ['$h', 240] }, 1, 0] } } } }],
-      // Repeat incidents CREATED per week: tickets whose HI count (Cnt) > 0, bucketed by CreateDate week.
+      // Repeat incidents CREATED per week: tickets whose HI count (Cnt) > 0, bucketed by CreateDate
+      // week, split into pet vs non-pet (pet = RootCause ~ "unsecured animal").
       hi: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
-        { $project: { w: _weekExpr('$t.CreateDate'), hc: AGG.hiCountExpr } },
+        { $project: { w: _weekExpr('$t.CreateDate'), hc: AGG.hiCountExpr, pet: AGG.isPet } },
         { $match: { hc: { $gt: 0 } } },
-        { $group: { _id: '$w', n: { $sum: 1 } } }],
+        { $group: { _id: '$w', n: { $sum: 1 }, pet: { $sum: { $cond: ['$pet', 1, 0] } }, nonPet: { $sum: { $cond: ['$pet', 0, 1] } } } }],
     } },
   ], qid);
   const f = rows[0] || { created: [], resolved: [], sla: [], hi: [] };
-  const wb = {}, wbR = {}, wSpan = {}, wSla = {}, wHi = {};
+  const wb = {}, wbR = {}, wSpan = {}, wSla = {}, wHi = {}, wHiPet = {}, wHiNon = {};
   (f.created || []).forEach(x => { if (x._id != null) { wb['W' + x._id] = x.n; wSpan['W' + x._id] = { first: x.first, last: x.last }; } });
   (f.resolved || []).forEach(x => { if (x._id != null) wbR['W' + x._id] = x.n; });
   (f.sla || []).forEach(x => { if (x._id != null) wSla['W' + x._id] = { res: x.res, within: x.within }; });
-  (f.hi || []).forEach(x => { if (x._id != null) wHi['W' + x._id] = x.n; });
+  (f.hi || []).forEach(x => { if (x._id != null) { wHi['W' + x._id] = x.n; wHiPet['W' + x._id] = x.pet || 0; wHiNon['W' + x._id] = x.nonPet || 0; } });
   const labels = Object.keys(wb).sort();
   const iso = (d) => { try { return d ? new Date(d).toISOString() : null; } catch (e) { return null; } };
   return {
@@ -3300,8 +3316,10 @@ async function dashWeekly(qid) {
     slaPct: labels.map(k => { const s = wSla[k]; return (s && s.res) ? +(s.within / s.res * 100).toFixed(1) : null; }),
     slaWithin: labels.map(k => (wSla[k] ? wSla[k].within : 0)),
     slaResolved: labels.map(k => (wSla[k] ? wSla[k].res : 0)),
-    // Per-week count of repeat incidents (HI Cnt > 0) CREATED that week.
+    // Per-week count of repeat incidents (HI Cnt > 0) CREATED that week (total + pet/non-pet split).
     hiCreated: labels.map(k => (wHi[k] || 0)),
+    hiPetCreated: labels.map(k => (wHiPet[k] || 0)),
+    hiNonPetCreated: labels.map(k => (wHiNon[k] || 0)),
     // ISO date span per week label (min/max CreateDate that fell in the week) for x-axis ranges.
     span: labels.map(k => ({ first: iso(wSpan[k] && wSpan[k].first), last: iso(wSpan[k] && wSpan[k].last) })),
   };
@@ -3360,10 +3378,34 @@ const AGG_INCIDENT_TYPE = {
   },
 };
 // ---- Incident Types — grouped in Atlas ----
+// Returns the overall list (types) PLUS two resolver-split lists over RESOLVED/CLOSED tickets only:
+//   autosimTypes  — resolved by AutoSIM (ResolvedByIdentity ~ "AutoSIM" OR Tags ~ pet_incident_auto_resolved)
+//   phdTypes      — resolved by a human PHD agent (any other resolver)
+// Each split list's pct is relative to that split's own total.
 async function dashIncidents(qid) {
   const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }], qid);
   const T = rows.reduce((s, r) => s + r.count, 0);
-  return { total: T, types: rows.map(r => ({ type: r._id, count: r.count, pct: pct1(r.count, T) })) };
+
+  // Resolver split: only resolved/closed tickets with a non-empty resolver, grouped by incident type.
+  const splitRows = await aggLive([
+    { $project: { type: AGG_INCIDENT_TYPE, isResolved: AGG.isResolved, isAutoSim: AGG.isAutoSim,
+      rby: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } } } },
+    { $match: { isResolved: true, $or: [ { isAutoSim: true }, { rby: { $nin: ['', null] } } ] } },
+    { $group: { _id: { type: '$type', autosim: '$isAutoSim' }, count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ], qid);
+  const autosimMap = {}, phdMap = {};
+  let autosimT = 0, phdT = 0;
+  splitRows.forEach(r => {
+    if (r._id.autosim) { autosimMap[r._id.type] = (autosimMap[r._id.type] || 0) + r.count; autosimT += r.count; }
+    else { phdMap[r._id.type] = (phdMap[r._id.type] || 0) + r.count; phdT += r.count; }
+  });
+  const toList = (m, tot) => Object.entries(m).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count, pct: pct1(count, tot) }));
+  return {
+    total: T, types: rows.map(r => ({ type: r._id, count: r.count, pct: pct1(r.count, T) })),
+    autosimTotal: autosimT, phdTotal: phdT,
+    autosimTypes: toList(autosimMap, autosimT), phdTypes: toList(phdMap, phdT),
+  };
 }
 
 // ---- Historical Incidents (Cnt > 0), pet vs non-pet + root-cause breakdown — grouped in Atlas ----
@@ -3600,6 +3642,71 @@ Object.keys(DASH_CHUNKS).forEach(name => {
       res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
     }
   });
+});
+
+// Per-incident-type agent breakdown (for the Incident Types row-click popup). Resolved/closed
+// tickets of the given incident type, grouped by resolver identity, with counts. Optional
+// ?resolver=autosim|phd narrows to one subsection (matching the two split tables).
+app.get('/api/dash/incident-agents', async (req, res) => {
+  try {
+    const type = String(req.query.type || '').trim();
+    if (!type) return res.status(400).json({ error: 'An incident type is required.' });
+    const resolverFilter = String(req.query.resolver || '').trim().toLowerCase(); // '', 'autosim', 'phd'
+    const qid = currentQuarter();
+    const rows = await aggLive([
+      { $project: {
+        type: AGG_INCIDENT_TYPE, isResolved: AGG.isResolved, isAutoSim: AGG.isAutoSim,
+        rby: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } },
+      } },
+      { $match: { type: type, isResolved: true, $or: [ { isAutoSim: true }, { rby: { $nin: ['', null] } } ] } },
+      { $group: { _id: { rby: '$rby', autosim: '$isAutoSim' }, count: { $sum: 1 } } },
+    ], qid);
+    // Collapse all AutoSIM identities under a single "AutoSIM" label; keep human resolvers as-is.
+    const byAgent = {};
+    let total = 0;
+    rows.forEach(r => {
+      if (resolverFilter === 'autosim' && !r._id.autosim) return;
+      if (resolverFilter === 'phd' && r._id.autosim) return;
+      const key = r._id.autosim ? 'AutoSIM' : (r._id.rby || 'Unassigned');
+      byAgent[key] = (byAgent[key] || 0) + r.count;
+      total += r.count;
+    });
+    const agents = Object.entries(byAgent).sort((a, b) => b[1] - a[1]).map(([agent, count]) => ({ agent, count }));
+    res.json({ quarter: qid, type, total, agents });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute incident-type agent breakdown.' });
+  }
+});
+
+// Slim ticket rows for one agent (or "AutoSIM") who resolved a given incident type — powers the
+// agent-row drill-down inside the Incident Types popup. Resolved/closed tickets only.
+app.get('/api/dash/incident-tickets', async (req, res) => {
+  try {
+    const type = String(req.query.type || '').trim();
+    const agent = String(req.query.agent || '').trim();
+    if (!type || !agent) return res.status(400).json({ error: 'type and agent are required.' });
+    const qid = currentQuarter();
+    const isAutoSimAgent = agent.toLowerCase() === 'autosim';
+    const rows = await aggLive([
+      { $project: {
+        type: AGG_INCIDENT_TYPE, isResolved: AGG.isResolved, isAutoSim: AGG.isAutoSim,
+        rby: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } },
+        ShortId: { $ifNull: ['$t.ShortId', '$t.IssueId'] },
+        Status: { $ifNull: ['$t.Status', ''] },
+        CreateDate: '$t.CreateDate', ResolvedDate: '$t.ResolvedDate',
+        Title: { $ifNull: ['$t.Title', ''] },
+      } },
+      { $match: Object.assign(
+        { type: type, isResolved: true },
+        isAutoSimAgent ? { isAutoSim: true } : { isAutoSim: false, rby: agent }
+      ) },
+      { $project: { _id: 0, ShortId: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, Title: 1 } },
+    ], qid);
+    rows.sort((a, b) => new Date(b.ResolvedDate || 0) - new Date(a.ResolvedDate || 0));
+    res.json({ quarter: qid, type, agent, count: rows.length, tickets: rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load incident-type tickets.' });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

@@ -421,7 +421,7 @@ function archiveOverlay(html){
   const o=document.createElement('div');
   o.className='inc-modal-bg';o.style.display='flex';
   o.onclick=(e)=>{if(e.target===o)o.remove();};
-  o.innerHTML=`<div class="inc-modal" style="max-width:520px"><div class="inc-modal-body" style="padding:22px">${html}</div></div>`;
+  o.innerHTML=`<div class="inc-modal" style="max-width:90vw;width:90vw"><div class="inc-modal-body" style="padding:22px">${html}</div></div>`;
   document.body.appendChild(o);
   return o;
 }

@@ -12,7 +12,11 @@ const COLORS = ['#ff9900','#2074d5','#1d8102','#d13212','#1b9cb0','#8c6bb1','#44
 const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4,'Resolved':5,'Closed':6};
 
 // ===== Upload validation: the CSV header MUST contain all of these columns =====
-const REQUIRED_COLUMNS=['IssueId','IssueUrl','ShortId','Title','Status','CreateDate','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails','AssignedGroup','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
+// All columns are mandatory (the upload is blocked unless every one is present).
+// Listed alphabetically. Columns added beyond the original 18 are tagged "new" in the popup.
+const REQUIRED_COLUMNS=['Age','AssignedGroup','AssigneeIdentity','ClosureCode','CreateDate','IssueId','IssueUrl','Labels','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate','RequesterIdentity','ResolvedByIdentity','ResolvedDate','RootCause','RootCauseDetails','Severity','ShortId','Status','Tags','Title'];
+// Columns that are newly required (added after the original 18) — flagged with a "new" tag.
+const NEW_COLUMNS=new Set(['Labels','RequesterIdentity','Tags']);
 
 // Parse only the header row of a CSV (respects quoted commas), returns trimmed header names.
 function parseCSVHeaders(text){
@@ -37,7 +41,7 @@ function isNewer(a,b){
 
 // Merge rule: the 3 activity timestamps that trigger an update, and the data fields to overwrite.
 const TIMESTAMP_FIELDS=['LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
-const MERGE_FIELDS=['Title','Status','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails'];
+const MERGE_FIELDS=['Title','Status','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails','Labels','RequesterIdentity','Tags'];
 // Normalize a timestamp for equality: same instant => equal; blank/invalid both => equal ('').
 function tsNorm(v){ const d=new Date(v); return isNaN(d)?String(v==null?'':v).trim():String(d.getTime()); }
 // Did ANY of the 3 activity timestamps change between the incoming row and the stored ticket?
@@ -53,22 +57,24 @@ function validateColumns(csvText){
   return { ok: missing.length===0, missing };
 }
 
-// Popup: mandatory-columns error. Lists all 18; highlights the missing ones. No upload happens.
+// Popup: mandatory-columns error. Lists every required column (alphabetical, "new" ones tagged);
+// highlights the missing ones. No upload happens.
 function showColumnError(missing){
   closeAllPopups();
   const miss=new Set(missing);
   const listHtml=REQUIRED_COLUMNS.map(c=>{
     const bad=miss.has(c);
+    const newTag=NEW_COLUMNS.has(c)?' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>':'';
     return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:'+(bad?'#ff5252':'#4ade80')+'">'
-      +(bad?'✗':'✓')+' <span style="font-family:monospace;font-size:.9em">'+c+'</span>'+(bad?' <span style="color:#ff5252;font-size:.78em">(missing)</span>':'')+'</li>';
+      +(bad?'✗':'✓')+' <span style="font-family:monospace;font-size:.9em">'+c+'</span>'+newTag+(bad?' <span style="color:#ff5252;font-size:.78em">(missing)</span>':'')+'</li>';
   }).join('');
   const overlay=document.createElement('div');
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">
     <h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
-    <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All 18 columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>
+    <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>
     <ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">${listHtml}</ul>
     <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeAllPopups()">Close</button></div>
   </div>`;
@@ -369,7 +375,7 @@ function showMergeReport(rep,crossInfo){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:700px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="color:#4ade80;font-size:1.2em">Upload Complete</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -658,7 +664,7 @@ function assessAndPreview(csvText){
     overlay.id='incPopup';
     overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
     overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-    overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+    overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">
       <h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">${ic('upload',18)} Confirm upload</h2>
       <p style="color:#879596;font-size:.88em;margin-bottom:16px">This file has <b style="color:#fff">${rows.length.toLocaleString()}</b> ticket${rows.length===1?'':'s'}. Here's how they'll be routed by quarter:</p>
       <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px 12px">${rowsHtml}</div>
@@ -707,7 +713,7 @@ function showTicketAccessPrompt(){
   const overlay=document.createElement('div');overlay.id='colorPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:440px;width:100%;padding:28px;text-align:center">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px;text-align:center">
     <div style="font-size:2em;margin-bottom:8px">🔒</div>
     <h2 style="color:#fff;font-size:1.2em;margin-bottom:10px">Login required</h2>
     <p style="color:#879596;font-size:.9em;line-height:1.6;margin-bottom:20px">Ticket-level details are available to logged-in users only. Please log in to view tickets, or for access reach out to <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener" style="color:#ff9900;font-weight:600;text-decoration:none">@harisss</a>.</p>
@@ -722,7 +728,7 @@ function showTicketAccessPrompt(){
 function showColorPopup(color,tickets){
   if(!requireLoginForTickets())return;
   closeAllPopups();
-  const colorNames={green:'GREEN (0-96 hrs / 0-4 days)',yellow:'YELLOW (96-168 hrs / 4-7 days)',red:'RED (168-240 hrs / 7-10 days)',black:'BLACK (>240 hrs / >10 days)',purple:'PURPLE (Reopened)'};
+  const colorNames={green:'GREEN (0-4 days)',yellow:'YELLOW (4-7 days)',red:'RED (7-10 days)',black:'BLACK (>10 days)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
@@ -736,6 +742,9 @@ function showColorPopup(color,tickets){
   const agentBlock=([name,tickets],idx)=>{
     const dn=displayName(name);
     const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
+    // How many of this agent's tickets carry a Station Request / Address Exclusion label.
+    const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
+    const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">\uD83D\uDC51 '+prioCount+'</span>':'';
     // Tickets oldest-first (most urgent at top).
     const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
       const cd=new Date(r.CreateDate);
@@ -750,8 +759,11 @@ function showColorPopup(color,tickets){
       const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       // "Mine" = ticket assigned to the logged-in user -> can add a comment (server enforces this too).
       const mine=(me && String(name).toLowerCase()===me)?'1':'0';
-      return '<tr>'+
-        '<td><a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a></td>'+
+      // Crown next to the ticket id when this ticket carries a Station Request / Address Exclusion label.
+      const isPrio=hasPriorityLabel(r.Labels);
+      const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">\uD83D\uDC51</span>':'';
+      return '<tr'+(isPrio?' class="ap-row-prio"':'')+'>'+
+        '<td><a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+'</td>'+
         '<td><span class="ap-st" style="color:'+statusColor(r.Status)+'">'+esc(r.Status||'—')+'</span></td>'+
         '<td>'+esc(created)+'</td>'+
         '<td>'+daysAgoTxt+'</td>'+
@@ -761,11 +773,13 @@ function showColorPopup(color,tickets){
     }).join('');
     return '<div class="ap-agent">'+
       '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
-        '<span class="ap-agent-name">'+esc(dn)+nmeta+'<span class="sub">@'+esc(name)+'</span></span>'+
+        '<span class="ap-agent-name">'+esc(dn)+nmeta+prioBadge+'<span class="sub">@'+esc(name)+'</span></span>'+
         '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
         '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
       '</button>'+
-      '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl"><thead><tr>'+
+      '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl">'+
+        '<colgroup><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:10%"><col style="width:10%"><col style="width:45%"></colgroup>'+
+        '<thead><tr>'+
         '<th>Ticket</th><th>Status</th><th>Created</th><th>Age</th><th>Time left</th><th>Last comment</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
     '</div>';
@@ -774,7 +788,7 @@ function showColorPopup(color,tickets){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div class="popup-card" style="max-width:75vw;width:75vw">
+  overlay.innerHTML=`<div class="popup-card" style="max-width:90vw;width:90vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
       <div><h2 style="color:${colorHex[color]};font-size:1.45em">${colorNames[color]}</h2><div class="pc-subcount" style="font-size:.95em">${tix.length} open ticket${tix.length===1?'':'s'} · ${agentList.length} agent${agentList.length===1?'':'s'} · highest first</div></div>
       <div class="popup-actions"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -817,9 +831,11 @@ function showAgentDrilldown(color,agentName){
     const sid=r.ShortId||'';
     const st=esc(r.Status||'');
     const commentRow=showComments?`<div class="pc-tk-cmt" data-sid="${esc(sid)}">${ic('message',13)} <span class="pc-tk-cmt-txt">Loading latest comment…</span></div>`:'';
-    return`<div class="pc-tk">`+
+    const isPrio=hasPriorityLabel(r.Labels);
+    const prio=isPrio?` <span class="ap-crown" title="Station Request / Address Exclusion">\uD83D\uDC51</span>`:'';
+    return`<div class="pc-tk${isPrio?' pc-tk-prio':''}">`+
       `<div class="pc-tk-top">`+
-        `<a class="pc-tk-id" href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" rel="noopener">${ic('ticket',14)} ${esc(sid)}</a>`+
+        `<a class="pc-tk-id" href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" rel="noopener">${ic('ticket',14)} ${esc(sid)}</a>${prio}`+
         `<span class="pc-tk-status" style="color:${statusColor(r.Status)};border-color:${statusColor(r.Status)}">${st}</span>`+
       `</div>`+
       `<div class="pc-tk-meta">${ic('calendar',13)} ${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span class="pc-tk-age">· ${daysText}</span></div>`+
@@ -829,7 +845,7 @@ function showAgentDrilldown(color,agentName){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div class="popup-card" style="max-width:760px">
+  overlay.innerHTML=`<div class="popup-card" style="max-width:90vw;width:90vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
       <div><h2 style="color:${colorHex[color]}">${dn}</h2><div class="pc-subcount">${tix.length} ticket${tix.length===1?'':'s'} · oldest first</div></div>
       <div class="popup-actions"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -871,13 +887,15 @@ function apAddComment(btn, shortId){
   txtWrap.innerHTML='<textarea class="ap-cmt-input" maxlength="2000" placeholder="Add a comment on '+shortId+'\u2026"></textarea>'+
     '<div class="ap-cmt-actions"><button type="button" class="ap-cmt-save" onclick="apSaveComment(this,\''+shortId.replace(/'/g,"\\'")+'\')">Save</button>'+
     '<button type="button" class="ap-cmt-cancel" onclick="apCancelComment(this)">Cancel</button></div>';
+  // The wrapper span is inline (shrink-to-fit); force it block so the editor spans the full cell.
+  txtWrap.style.display='block'; txtWrap.style.width='100%';
   const ta=txtWrap.querySelector('textarea'); if(ta) ta.focus();
 }
 window.apAddComment=apAddComment;
 function apCancelComment(btn){
   const cell=btn.closest('.pc-tk-cmt'); const sid=cell?cell.getAttribute('data-sid'):'';
   const txtWrap=cell?cell.querySelector('.pc-tk-cmt-txt'):null;
-  if(txtWrap) txtWrap.innerHTML='<button type="button" class="ap-add-cmt" onclick="apAddComment(this,\''+String(sid).replace(/'/g,"\\'")+'\')">'+ic('plus',12)+' Add comment</button>';
+  if(txtWrap){ txtWrap.style.display=''; txtWrap.style.width=''; txtWrap.innerHTML='<button type="button" class="ap-add-cmt" onclick="apAddComment(this,\''+String(sid).replace(/'/g,"\\'")+'\')">'+ic('plus',12)+' Add comment</button>'; }
 }
 window.apCancelComment=apCancelComment;
 async function apSaveComment(btn, shortId){
@@ -891,6 +909,7 @@ async function apSaveComment(btn, shortId){
     if(r.ok&&r.data){
       const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       const when=r.data.at?new Date(r.data.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      txtWrap.style.display=''; txtWrap.style.width='';
       txtWrap.innerHTML=esc(text)+' <span style="color:#5f6b6c">\u2014 '+esc(r.data.user||'')+(when?(' \u00b7 '+when):'')+'</span>';
       cell.style.color='#d5dbdb';
     }else{
@@ -920,7 +939,7 @@ function showIncidentPopup(type){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showIncidentAgentDrilldown('${type.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="color:#ff9900;font-size:1.1em">${type} — ${tickets.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -945,7 +964,7 @@ function showIncidentAgentDrilldown(type,agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${type})</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -969,7 +988,7 @@ function showHIUnresolvedPopup(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="color:#ffb84d;font-size:1.1em">Unresolved Repeat Incidents (HI>0) — ${tix.length} tickets</h2><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     <table><thead><tr><th>Ticket ID</th><th>HI Cnt</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
@@ -1120,7 +1139,7 @@ function showExportRegionModal(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px">
     <h2 style="color:#fff;font-size:1.2em;margin-bottom:8px">Export Shift Report</h2>
     <p style="color:#879596;font-size:.9em;margin-bottom:20px">Which region is this report for?</p>
     <div style="display:flex;gap:12px">
@@ -1220,7 +1239,7 @@ Please prioritize the above.`;
 
 function showTakeoverAgentColorPopup(agentName,colorKey){
   closeAllPopups();
-  const colorNames={green:'GREEN (0-96 hrs / 0-4 days)',yellow:'YELLOW (96-168 hrs / 4-7 days)',red:'RED (168-240 hrs / 7-10 days)',black:'BLACK (>240 hrs / >10 days)',purple:'PURPLE (Reopened)'};
+  const colorNames={green:'GREEN (0-4 days)',yellow:'YELLOW (4-7 days)',red:'RED (7-10 days)',black:'BLACK (>10 days)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
   // Tickets in that colour for this agent, from the shift-report payload (sorted oldest -> newest).
   const src=((SR_DATA&&SR_DATA[agentName]&&SR_DATA[agentName].tix&&SR_DATA[agentName].tix[colorKey])||[]).slice()
@@ -1231,7 +1250,7 @@ function showTakeoverAgentColorPopup(agentName,colorKey){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[colorKey]};font-size:1.1em">${agentName} — ${colorNames[colorKey]} — ${tix.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -1264,7 +1283,7 @@ function showAgentTicketsPopup(agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:1000px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="color:#44b9d6;font-size:1.2em">${agentName} — Open Tickets (${tickets.length})</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -1290,7 +1309,7 @@ function showHIPopup(rootCause){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showHIAgentDrilldown('${rootCause.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="color:#ff9900;font-size:1.1em">${rootCause} — ${tickets.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -1315,7 +1334,7 @@ function showHIAgentDrilldown(rootCause,agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${rootCause})</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showHIPopup('${rootCause.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -1441,10 +1460,10 @@ function renderDashboardShell(){
   <div class="section"><h2>Ticket Age Classification</h2>
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
-      ${ageTile('#4ade80',ic('check-circle',14)+' GREEN','(0-96 hrs / 0-4 days)',200)}
-      ${ageTile('#fbbf24',ic('clock',14)+' YELLOW','(96-168 hrs / 4-7 days)',80)}
-      ${ageTile('#ff5252',ic('alert',14)+' RED','(168-240 hrs / 7-10 days)',15)}
-      ${ageTile('#888',ic('flame',14)+' BLACK','(&gt;240 hrs / &gt;10 days)',8)}
+      ${ageTile('#4ade80',ic('check-circle',14)+' GREEN','(0-4 days)',200)}
+      ${ageTile('#fbbf24',ic('clock',14)+' YELLOW','(4-7 days)',80)}
+      ${ageTile('#ff5252',ic('alert',14)+' RED','(7-10 days)',15)}
+      ${ageTile('#888',ic('flame',14)+' BLACK','(&gt;10 days)',8)}
       ${ageTile('#a78bfa',ic('reopen',14)+' PURPLE','(Reopened)',12)}
     </div></div>
 
@@ -1540,17 +1559,17 @@ function renderDashboard(){
     </div>`;
   })()}
 
-  <div class="section collapsible"><h2 onclick="toggleSection(this)">Ticket Age Classification <span class="sec-caret">▾</span></h2><div class="sec-body">
+  <div class="section"><h2>Ticket Age Classification</h2><div class="sec-body">
     <p class="meta-info">Click any color segment to view tickets. Download individual segments as CSV.</p>
     <div class="kpi-grid">
-      <div class="kpi-card age-tile" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="age-name">${ic('check-circle',14)} GREEN</div><div class="age-range">(0-96 hrs / 0-4 days)</div></div>
-      <div class="kpi-card age-tile" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="age-name">${ic('clock',14)} YELLOW</div><div class="age-range">(96-168 hrs / 4-7 days)</div></div>
-      <div class="kpi-card age-tile" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="age-name">${ic('alert',14)} RED</div><div class="age-range">(168-240 hrs / 7-10 days)</div></div>
-      <div class="kpi-card age-tile${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="age-name">${ic('flame',14)} BLACK</div><div class="age-range">(&gt;240 hrs / &gt;10 days)</div></div>
+      <div class="kpi-card age-tile" style="border-top-color:#4ade80;cursor:pointer" onclick="showColorPopup('green',M.colorTickets.green)"><div class="value" style="color:#4ade80">${ct.green.length}</div><div class="age-name">${ic('check-circle',14)} GREEN</div><div class="age-range">(0-4 days)</div></div>
+      <div class="kpi-card age-tile" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="age-name">${ic('clock',14)} YELLOW</div><div class="age-range">(4-7 days)</div></div>
+      <div class="kpi-card age-tile" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="age-name">${ic('alert',14)} RED</div><div class="age-range">(7-10 days)</div></div>
+      <div class="kpi-card age-tile${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="age-name">${ic('flame',14)} BLACK</div><div class="age-range">(&gt;10 days)</div></div>
       <div class="kpi-card age-tile${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="age-name">${ic('reopen',14)} PURPLE${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':''}</div><div class="age-range">(Reopened)</div></div>
     </div></div></div>
 
-  <div class="section collapsible"><h2 onclick="toggleSection(this)">Queue Status <span class="sec-caret">▾</span></h2><div class="sec-body">
+  <div class="section"><h2>Queue Status</h2><div class="sec-body">
     <div class="handoff-grid">
       <div class="handoff-box"><h3>Ticket Count by Status</h3><ul>
         <li><span>Assigned</span><span class="val">${m.asgn}</span></li>
@@ -1570,25 +1589,25 @@ function renderDashboard(){
       </ul></div>
     </div></div></div>
 
-  <div class="section collapsible"><h2 onclick="toggleSection(this)">Daily Tickets (Last 7 Days) <span class="sec-caret">▾</span></h2><div class="sec-body">
+  <div class="section"><h2>Daily Tickets (Last 7 Days)</h2><div class="sec-body">
     <div class="pair-grid">
       <div class="chart-box"><h3>Daily Tickets Created (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2a"></canvas></div></div>
       <div class="chart-box"><h3>Daily Tickets Resolved (Last 7 Days)</h3><div class="chart-wrap"><canvas id="c2b"></canvas></div></div>
     </div>
   </div></div>
-  <div class="section collapsible"><h2 onclick="toggleSection(this)">Weekly Volume <span class="sec-caret">▾</span></h2><div class="sec-body">
+  <div class="section"><h2>Weekly Volume</h2><div class="sec-body">
     <div class="pair-grid">
       <div class="chart-box"><h3>Weekly Volume: Created</h3><div class="chart-wrap"><canvas id="c4a"></canvas></div></div>
       <div class="chart-box"><h3>Weekly Volume: Resolved</h3><div class="chart-wrap"><canvas id="c4b"></canvas></div></div>
     </div>
   </div></div>
-  ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section collapsible"><h2 onclick="toggleSection(this)">SLA Compliance per Week (&le;240 hrs) <span class="sec-caret">▾</span></h2><div class="sec-body">
+  ${(m.slaByWeek&&m.slaByWeek.length)?`<div class="section"><h2>SLA Compliance per Week (&le;240 hrs)</h2><div class="sec-body">
     <p class="meta-info" style="margin:0 0 16px">Percentage of each week's resolved tickets that met the 240-hour (10-day) SLA, for ${LIVE_QUARTER?LIVE_QUARTER.label:'this quarter'}. Weeks are bucketed by resolved date and drawn as each week passes.</p>
     <div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>
   </div></div>`:''}
-  <div class="section collapsible"><h2 onclick="toggleSection(this)">Incident Types <span class="sec-caret">▾</span></h2><div class="sec-body"><p class="meta-info">Click any incident type to view agent breakdown</p>
-    <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>
-    ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700">${i+1}</td><td><strong>${type}</strong></td><td>${count}</td><td>${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
+  <div class="section"><h2>Incident Types</h2><div class="sec-body"><p class="meta-info">Click any incident type to view agent breakdown</p>
+    <div style="overflow-x:auto"><table style="width:100%;table-layout:auto"><thead><tr><th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:1%;white-space:nowrap">Incident Type</th><th style="text-align:center;width:1%;white-space:nowrap">Count</th><th style="text-align:center;width:1%;white-space:nowrap">% of Total</th><th style="width:auto">Volume</th></tr></thead><tbody>
+    ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700;text-align:center">${i+1}</td><td style="white-space:nowrap"><strong>${type}</strong></td><td style="text-align:center">${count}</td><td style="text-align:center">${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
     </tbody></table></div></div></div>
   ${m.hiCases.length>0?(()=>{
     const totalHI=m.hiCases.length;
@@ -1605,7 +1624,7 @@ function renderDashboard(){
         +sorted.map(([rc,count],i)=>`<tr style="cursor:pointer" onclick="showHIPopup('${rc.replace(/'/g,"\\'")}')"><td style="color:${accent};font-weight:700">${i+1}</td><td><strong>${rc}</strong></td><td>${count}</td><td>${(count/totalHI*100).toFixed(1)}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:${accent};width:${(count/mx*100).toFixed(0)}%;min-width:4px"></div></div></td></tr>`).join('')
         +`</tbody></table></div>`;
     };
-    return `<div class="section collapsible"><h2 onclick="toggleSection(this)">Historical Incidents (Cnt &gt; 0) <span class="sec-caret">▾</span></h2><div class="sec-body">
+    return `<div class="section"><h2>Historical Incidents (Cnt &gt; 0)</h2><div class="sec-body">
     <div style="background:#000;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:18px">
       <p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">${totalHI}</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">${petPct}%</strong> are driven by <strong>pet/animal incidents</strong>. Pet incidents are the primary reason the HI&gt;0 count is elevated — handling them accounts for the majority of repeat cases.</p>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
@@ -1674,7 +1693,9 @@ async function loadDashChunk(chunk, onData, opts){
   }
   const version=await dashVersion();
   return A.swrLoad({
-    key:'dash-'+chunk,
+    // Bump the cache key when a chunk's response SHAPE changes (not just its data), so stale-shaped
+    // entries cached under the old key are ignored even when the dataset version is unchanged.
+    key:(opts.cacheKey||('dash-'+chunk)),
     version:version,
     fetch:()=>A.api('GET','/api/dash/'+chunk),
     onData:(data)=>{ try{ onData(data); }catch(e){} },
@@ -1690,7 +1711,7 @@ async function loadDashChunk(chunk, onData, opts){
 function dashCard(chunk, iconName, title, bodyId, extra){
   const sp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
   return '<div class="section collapsible collapsed" data-chunk="'+chunk+'">'+
-    '<h2 onclick="toggleDashCard(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">▾</span></h2>'+
+    '<h2 onclick="toggleDashCard(this)">'+ic(iconName,16)+' '+title+'</h2>'+
     '<div class="sec-body">'+(extra||'')+'<div id="'+bodyId+'" class="dash-chunk-slot">'+sp+'</div></div>'+
   '</div>';
 }
@@ -1726,13 +1747,16 @@ window.toggleDashCard=toggleDashCard;
 function renderDashChunkInto(chunk){
   const renderers={
     age:renderAgeChunk, queue:renderQueueChunk, daily7:renderDaily7Chunk,
-    weekly:renderWeeklyChunk, 'sla-weekly':renderSlaWeeklyChunk, 'weekly-hi':renderWeeklyHiChunk,
+    weekly:renderWeeklyChunk, 'sla-weekly':renderSlaWeeklyChunk,
     incidents:renderIncidentsChunk, hi:renderHiChunk,
   };
   const fn=renderers[chunk]; if(!fn)return;
-  // 'weekly-hi' reuses the same /api/dash/weekly payload (SWR-cached) as the volume+SLA chart.
-  const source=(chunk==='weekly-hi')?'weekly':chunk;
-  loadDashChunk(source,fn,{silent:true}).catch(()=>{
+  const source=chunk;
+  // Bump the client cache key when a chunk's response SHAPE changed, so stale-shaped cached entries
+  // (from before the change) are ignored even though the dataset version is unchanged.
+  const CHUNK_CACHE_KEY={ incidents:'dash-incidents-v2' };
+  const opts={silent:true}; if(CHUNK_CACHE_KEY[source]) opts.cacheKey=CHUNK_CACHE_KEY[source];
+  loadDashChunk(source,fn,opts).catch(()=>{
     // On failure, show a small retry message so the card isn't a stuck spinner.
     const slot=document.querySelector('.section[data-chunk="'+chunk+'"] .dash-chunk-slot');
     if(slot)slot.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section. <a href="#" onclick="retryDashChunk(\''+chunk+'\');return false;" style="color:#ff9900">Retry</a></p>';
@@ -1744,31 +1768,106 @@ window.retryDashChunk=retryDashChunk;
 // The 5 age tiles are 100% static (colour, name, range, icon) EXCEPT the count — so the whole
 // structure is hardcoded and painted immediately; only the number waits on the DB.
 const AGE_TILES=[
-  {cls:'green', color:'#4ade80', icon:'check-circle', name:'GREEN',  range:'(0-96 hrs / 0-4 days)'},
-  {cls:'yellow',color:'#fbbf24', icon:'clock',        name:'YELLOW', range:'(96-168 hrs / 4-7 days)'},
-  {cls:'red',   color:'#ff5252', icon:'alert',        name:'RED',    range:'(168-240 hrs / 7-10 days)'},
-  {cls:'black', color:'#888',    icon:'flame',        name:'BLACK',  range:'(&gt;240 hrs / &gt;10 days)'},
+  {cls:'green', color:'#4ade80', icon:'check-circle', name:'GREEN',  range:'(0-4 days)'},
+  {cls:'yellow',color:'#fbbf24', icon:'clock',        name:'YELLOW', range:'(4-7 days)'},
+  {cls:'red',   color:'#ff5252', icon:'alert',        name:'RED',    range:'(7-10 days)'},
+  {cls:'black', color:'#888',    icon:'flame',        name:'BLACK',  range:'(&gt;10 days)'},
   {cls:'purple',color:'#a78bfa', icon:'reopen',       name:'PURPLE', range:'(Reopened)'},
 ];
 // Static skeleton for the Ticket Age Classification card: intro + all 5 tiles with a spinner in
 // the count slot. No data needed — rendered eagerly. renderAgeChunk() later fills the counts.
 // Row order for the age table (per request): PURPLE, BLACK, RED, YELLOW, GREEN.
 const AGE_ROW_ORDER=['purple','black','red','yellow','green'];
+// A ticket is "priority" when its Labels contain "Station Request" OR "Address Exclusion"
+// (case-insensitive; also catches "Pending Address Exclusion"). Mirrors server hasPriorityLabel().
+function hasPriorityLabel(labels){
+  const s=String(labels||'').toLowerCase();
+  return s.indexOf('station request')>=0 || s.indexOf('address exclusion')>=0;
+}
+// Roster split for the priority-column profile icon color (lowercase usernames).
+const PRIO_ICON_YELLOW=new Set(['dbiswamb','tanviroo','urmahala','shaavhad','chousoud','obalasut']);
+const PRIO_ICON_BLUE=new Set(['harisss','flofalgu','arunkzn','nobregak','mellanej','punithsd','mbozied']);
+// Icon color for an agent: yellow / blue by roster, gray if unlisted or unassigned.
+function prioIconColor(agent){
+  const a=String(agent||'').trim().toLowerCase();
+  if(PRIO_ICON_YELLOW.has(a))return '#fbbf24';
+  if(PRIO_ICON_BLUE.has(a))return '#44b9d6';
+  return '#8b98a5';
+}
+// Build the priority-cell contents: one profile icon per agent holding priority tickets in this
+// color, colored by roster, followed by that agent's count. Sorted highest-count first.
+function prioAgentIconsHtml(list){
+  const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  const by={};
+  list.forEach(function(r){
+    if(!hasPriorityLabel(r.Labels))return;
+    const a=(r.AssigneeIdentity||'').trim()||'Unassigned';
+    by[a]=(by[a]||0)+1;
+  });
+  const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
+  if(!agents.length)return '<span class="age-prio-zero">0</span>';
+  return '<span class="prio-icons">'+agents.map(function(a){
+    return prioAgentChipHtml(a,by[a],esc);
+  }).join('')+'</span>';
+}
+// One agent chip for the SR/Addr-Excl & No-EMT cells: the agent's avatar (photo or colored initial
+// circle via PHDAuth.avatarHtml, with initials fallback) ringed in the roster color, then the count.
+function prioAgentChipHtml(agent,count,esc){
+  esc=esc||function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  const col=prioIconColor(agent);
+  const label=(agent==='Unassigned')?'Unassigned':agent;
+  let ava;
+  if(agent==='Unassigned'){
+    ava='<span class="prio-ava-fallback" style="color:'+col+'">'+ic('user',15)+'</span>';
+  }else if(window.PHDAuth&&window.PHDAuth.avatarHtml){
+    ava=window.PHDAuth.avatarHtml(profileFor(agent),22);
+  }else{
+    ava='<span class="prio-ava-fallback" style="color:'+col+'">'+ic('user',15)+'</span>';
+  }
+  return '<span class="prio-agent" title="'+esc(label)+' \u2014 '+count+' ticket'+(count===1?'':'s')+'">'+
+    '<span class="prio-ava" style="box-shadow:0 0 0 2px '+col+'">'+ava+'</span>'+
+    '<span class="prio-n">'+count+'</span></span>';
+}
+// A ticket is "No EMT" when its Title OR Labels contain one of these whole-word phrases
+// (case-insensitive): "No EMT" (separator between No & EMT optional: space(s)/hyphen/underscore/none),
+// "Without EMT", or "EMT not required". Bare "EMT" alone does NOT count, and matches must be whole
+// words (so "Casino EMT" / "Reno-EMTech" are not matched).
+const NO_EMT_RE=/\bno[\s_-]*emt\b|\bwithout\s+emt\b|\bemt\s+not\s+required\b/i;
+function hasNoEmt(title,labels){
+  return NO_EMT_RE.test(String(title||'')+' '+String(labels||''));
+}
+// Build the No-EMT cell contents: one profile icon per agent holding No-EMT tickets in this color,
+// colored by the same roster as the priority column, followed by that agent's count. Highest first.
+function noEmtAgentIconsHtml(list){
+  const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  const by={};
+  list.forEach(function(r){
+    if(!hasNoEmt(r.Title,r.Labels))return;
+    const a=(r.AssigneeIdentity||'').trim()||'Unassigned';
+    by[a]=(by[a]||0)+1;
+  });
+  const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
+  if(!agents.length)return '<span class="age-prio-zero">0</span>';
+  return '<span class="prio-icons">'+agents.map(function(a){
+    return prioAgentChipHtml(a,by[a],esc);
+  }).join('')+'</span>';
+}
 function ageTileByCls(cls){ return AGE_TILES.find(function(t){return t.cls===cls;})||{}; }
 function ageCardSkeletonHtml(){
   const rows=AGE_ROW_ORDER.map(function(cls){
     const t=ageTileByCls(cls);
-    return '<tr id="ageRow-'+cls+'">'+
+    return '<tr id="ageRow-'+cls+'" class="age-clickrow" onclick="showColorPopup(\''+cls+'\')" title="View '+t.name+' tickets">'+
       '<td><span class="age-swatch" style="color:'+t.color+'"><span class="dot" style="background:'+t.color+'"></span>'+t.name+'</span></td>'+
       '<td class="age-rng">'+t.range+'</td>'+
       '<td class="age-agents" id="ageAgents-'+cls+'"><span class="num-spinner"></span></td>'+
       '<td class="age-cnt" id="ageCount-'+cls+'" style="color:'+t.color+'"><span class="num-spinner"></span></td>'+
-      '<td style="text-align:center"><button type="button" class="age-view" id="ageView-'+cls+'" onclick="showColorPopup(\''+cls+'\')">'+ic('eye',13)+' View tickets</button></td>'+
+      '<td class="age-cnt age-prio" id="agePrio-'+cls+'" title="Open tickets with a Station Request / Address Exclusion label"><span class="num-spinner"></span></td>'+
+      '<td class="age-cnt age-prio age-noemt" id="ageNoEmt-'+cls+'" title="Open tickets whose Title or Labels mention No EMT / No-EMT"><span class="num-spinner"></span></td>'+
     '</tr>';
   }).join('');
-  return '<p class="meta-info">Open tickets classified by age. Click <b>View tickets</b> on any row to see which agents hold them.</p>'+
+  return '<p class="meta-info">Open tickets classified by age. Click any row to see which agents hold them.</p>'+
     '<div class="age-xls-wrap"><table class="age-xls"><thead><tr>'+
-      '<th>Color</th><th>Age range</th><th style="text-align:center">Agents</th><th style="text-align:center">Tickets</th><th style="text-align:center">Details</th>'+
+      '<th>Color</th><th>Age range</th><th style="text-align:center">Agents</th><th style="text-align:center">Tickets</th><th style="text-align:center" title="Open tickets labelled Station Request or Address Exclusion">\uD83D\uDC51 SR / Addr Excl</th><th style="text-align:center" title="Open tickets whose Title or Labels mention No EMT / No-EMT">No EMT</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
@@ -1809,6 +1908,31 @@ function renderAgeChunk(d){
     if(ael){ ael.classList.add('kpi-anim'); countUpKpi(ael, String(agentCount)); }
     const cel=document.getElementById('ageCount-'+t.cls);
     if(cel){ cel.classList.add('kpi-anim'); countUpKpi(cel, String(list.length)); }
+    // Priority column: one profile icon per agent holding this color's priority tickets
+    // (Station Request / Address Exclusion), colored by roster, with each agent's count.
+    const prioCount=list.reduce(function(n,r){ return n+(hasPriorityLabel(r.Labels)?1:0); },0);
+    const pel=document.getElementById('agePrio-'+t.cls);
+    if(pel){ pel.classList.toggle('has-prio',prioCount>0); pel.innerHTML=prioAgentIconsHtml(list); }
+    // No-EMT column: one profile icon per agent holding this color's tickets whose Title or Labels
+    // mention "No EMT" / "No-EMT", colored by the same roster, with each agent's count.
+    const noEmtCount=list.reduce(function(n,r){ return n+(hasNoEmt(r.Title,r.Labels)?1:0); },0);
+    const nel=document.getElementById('ageNoEmt-'+t.cls);
+    if(nel){ nel.classList.toggle('has-prio',noEmtCount>0); nel.innerHTML=noEmtAgentIconsHtml(list); }
+  });
+  // The chips show agent avatars; if avatars aren't loaded yet, warm them and repaint the two
+  // columns once they arrive (the first paint falls back to initials/icon meanwhile).
+  if(!_avatarsLoaded && window.loadUserAvatars){ try{ loadUserAvatars().then(repaintAgePrioCells); }catch(e){} }
+}
+// Re-fill ONLY the SR/Addr-Excl + No-EMT cells from the cached age-detail tickets. Used after the
+// user avatars finish loading so the chips upgrade from initials to real photos without a full re-render.
+function repaintAgePrioCells(){
+  const ct=DASH_COLOR_TICKETS; if(!ct)return;
+  AGE_TILES.forEach(function(t){
+    const list=ct[t.cls]||[];
+    const pel=document.getElementById('agePrio-'+t.cls);
+    if(pel) pel.innerHTML=prioAgentIconsHtml(list);
+    const nel=document.getElementById('ageNoEmt-'+t.cls);
+    if(nel) nel.innerHTML=noEmtAgentIconsHtml(list);
   });
 }
 // Fill the "Queue Status Data" KPI cards (top of the dashboard) from the queue chunk
@@ -1818,24 +1942,25 @@ function renderAgeChunk(d){
 // column is centered; otherwise it's right-aligned.
 function kpiTableHtml(rows, withDesc){
   const valAlign=withDesc?'center':'right';
-  // 3-column (with Definition): fixed widths Metric 20% / Value 15% / Definition 65%, all centered.
+  // 3-column (with Definition): Metric + Value are fit-to-content (nowrap + width:1%), Definition
+  // absorbs the remaining width. Metric/Value centered, Definition left-aligned for readability.
   const head=withDesc
-    ? '<tr><th style="text-align:center;width:20%">Metric</th><th style="text-align:center;width:15%">Value</th><th style="text-align:center;width:65%">Definition</th></tr>'
+    ? '<tr><th style="text-align:center;width:1%;white-space:nowrap">Metric</th><th style="text-align:center;width:1%;white-space:nowrap">Value</th><th style="text-align:left">Definition</th></tr>'
     : '<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th></tr>';
   const body=rows.map(function(r){
     const raw=(r.value==null?'\u2014':String(r.value));
     const cell='<span class="kpi-anim" data-kpi-val="'+raw.replace(/"/g,'&quot;')+'"></span>';
     if(withDesc){
-      const vStyle=' style="text-align:center'+(r.valColor?(';color:'+r.valColor):'')+'"';
-      return '<tr><td class="kt-metric" style="text-align:center">'+(r.metric||'')+'</td>'+
+      const vStyle=' style="text-align:center;white-space:nowrap'+(r.valColor?(';color:'+r.valColor):'')+'"';
+      return '<tr><td class="kt-metric" style="text-align:center;white-space:nowrap">'+(r.metric||'')+'</td>'+
         '<td class="kt-value"'+vStyle+'>'+cell+'</td>'+
-        '<td class="kt-desc" style="text-align:center">'+(r.desc||'')+'</td></tr>';
+        '<td class="kt-desc" style="text-align:left">'+(r.desc||'')+'</td></tr>';
     }
     const vStyle=' style="text-align:'+valAlign+(r.valColor?(';color:'+r.valColor):'')+'"';
     return '<tr><td class="kt-metric">'+(r.metric||'')+'</td>'+
       '<td class="kt-value"'+vStyle+'>'+cell+'</td></tr>';
   }).join('');
-  const tblStyle=withDesc?' style="width:100%;table-layout:fixed"':'';
+  const tblStyle=withDesc?' style="width:100%;table-layout:auto"':'';
   return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"'+tblStyle+'><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
 }
 function renderQueueKpis(d){
@@ -2011,12 +2136,180 @@ function renderSlaWeeklyChunk(d){
 }
 function renderIncidentsChunk(d){
   const slot=document.getElementById('dashIncidentsBody');if(!slot)return;
-  const types=d.types||[];const max=types.length?types[0].count:1;
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  slot.innerHTML='<p class="meta-info">Incident types across the live quarter, ranked by volume.</p>'+
-    '<div style="overflow-x:auto"><table class="xls-table"><thead><tr><th>#</th><th>Incident Type</th><th>Count</th><th>% of Total</th><th>Volume</th></tr></thead><tbody>'+
-    types.map((t,i)=>'<tr><td style="color:#ff9900;font-weight:700">'+(i+1)+'</td><td><strong>'+esc(t.type)+'</strong></td><td>'+t.count+'</td><td>'+t.pct+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:'+(t.count/max*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
+  // One incident-types table (5 cols): # / Incident Type / Count / % of Total / Volume. `pct` is
+  // relative to the passed list's own total; the Volume bar is relative to the list's top count.
+  // resolverKey: 'autosim' | 'phd' — passed to the row-click popup so it shows only that side's agents.
+  const incTable=(list,barColor,resolverKey)=>{
+    if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
+    const max=list[0].count||1;
+    const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">#</th>'+
+      '<th style="width:1%;white-space:nowrap">Incident Type</th>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">Count</th>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">% of Total</th>'+
+      '<th style="width:auto">Volume</th>'+
+    '</tr></thead><tbody>'+
+    list.map((t,i)=>'<tr class="inc-clickrow" title="View agents who resolved '+esc(t.type)+'" onclick="showIncidentAgentsPopup(\''+q(t.type)+'\',\''+resolverKey+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="white-space:nowrap"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+barColor+';width:'+(t.count/max*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
     '</tbody></table></div>';
+  };
+  const autosim=d.autosimTypes||[], phd=d.phdTypes||[];
+  const autosimT=(d.autosimTotal!=null)?d.autosimTotal:autosim.reduce((s,t)=>s+t.count,0);
+  const phdT=(d.phdTotal!=null)?d.phdTotal:phd.reduce((s,t)=>s+t.count,0);
+  slot.innerHTML='<p class="meta-info">Incident types across the live quarter (resolved tickets), split by who resolved them.</p>'+
+    '<h3 class="inc-sub-h">'+ic('bolt',15)+' Resolved by AutoSIM <span class="inc-sub-n">'+autosimT.toLocaleString()+'</span></h3>'+
+    incTable(autosim,'#a78bfa','autosim')+
+    '<h3 class="inc-sub-h" style="margin-top:22px">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n">'+phdT.toLocaleString()+'</span></h3>'+
+    incTable(phd,'#ff9900','phd');
+}
+// Row-click popup for an incident type: agents who resolved that type + how many each, like the
+// Ticket Age Classification popup. Fetches the per-type agent breakdown from the server on demand.
+async function showIncidentAgentsPopup(type,resolverKey){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  try{ if(window.loadUserAvatars) loadUserAvatars(); }catch(e){}
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const subLabel=resolverKey==='autosim'?'Resolved by AutoSIM':(resolverKey==='phd'?'Resolved by PHD agents':'Resolved');
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#ff9900;font-size:1.3em">'+esc(type)+'</h2><div class="pc-subcount" id="incAgLoad">'+subLabel+' \u00b7 loading\u2026</div></div>'+
+      '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div id="incAgBody" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div></div></div>';
+  document.body.appendChild(overlay);
+  let data=null;
+  try{
+    const r=await window.PHDAuth.api('GET','/api/dash/incident-agents?type='+encodeURIComponent(type)+'&resolver='+encodeURIComponent(resolverKey||''));
+    if(r&&r.ok) data=r.data;
+  }catch(e){}
+  const body=document.getElementById('incAgBody'); const load=document.getElementById('incAgLoad');
+  if(!data||!data.agents){ if(body)body.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load agent breakdown.</p>'; return; }
+  const agents=data.agents||[];
+  if(load) load.textContent=subLabel+' \u00b7 '+data.total.toLocaleString()+' ticket'+(data.total===1?'':'s')+' \u00b7 '+agents.length+' agent'+(agents.length===1?'':'s')+' \u00b7 highest first';
+  if(!agents.length){ if(body)body.innerHTML='<p class="pc-none">No resolved tickets of this type.</p>'; return; }
+  const max=agents[0].count||1;
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const isPhd=(resolverKey==='phd');
+  const rows=agents.map((a,i)=>{
+    const isBot=(a.agent==='AutoSIM');
+    const dn=isBot?'AutoSIM':displayName(a.agent);
+    const ava=isBot?('<span class="inc-ava-fallback">'+ic('bolt',16)+'</span>')
+      :((window.PHDAuth&&window.PHDAuth.avatarHtml)?window.PHDAuth.avatarHtml(profileFor(a.agent),28):('<span class="inc-ava-fallback">'+ic('user',16)+'</span>'));
+    return '<tr class="inc-clickrow" title="View '+esc(dn)+"'s "+esc(type)+' tickets" onclick="showIncidentTicketsDrilldown(\''+q(type)+'\',\''+q(a.agent)+'\',\''+q(resolverKey||'')+'\')">'+
+      '<td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+      '<td><span class="inc-ag-cell">'+ava+'<span class="inc-ag-name">'+esc(dn)+(isBot?'':'<span class="inc-ag-sub">@'+esc(a.agent)+'</span>')+'</span></span></td>'+
+      '<td style="text-align:center;font-weight:800;color:#fff">'+a.count+'</td>'+
+    '</tr>';
+  }).join('');
+  // AutoSIM: 3-col table, no Volume (single bot row — a bar is pointless).
+  // PHD: same 3-col table, but the freed space shows a horizontal bar chart of per-agent counts.
+  const tableHtml='<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+    '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:auto;white-space:nowrap">Agent</th><th style="text-align:center;width:1%;white-space:nowrap">Tickets</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  if(isPhd){
+    body.innerHTML='<p class="meta-info" style="margin:0 0 10px">Click an agent to view their tickets.</p>'+
+      '<div class="inc-ag-split">'+
+        '<div class="inc-ag-tbl">'+tableHtml+'</div>'+
+        '<div class="inc-ag-chart"><div class="chart-wrap" style="height:'+Math.max(240,agents.length*30)+'px"><canvas id="incAgChart"></canvas></div></div>'+
+      '</div>';
+    // Horizontal bar chart of per-agent resolved counts (highest first, matching the table order).
+    const labels=agents.map(a=>displayName(a.agent));
+    const counts=agents.map(a=>a.count);
+    try{
+      makeChart('incAgChart',{type:'bar',data:{labels:labels,datasets:[{data:counts,backgroundColor:'#ff9900',borderRadius:3}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>c.raw.toLocaleString()+' ticket'+(c.raw===1?'':'s')}}},
+          scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:11}},title:{display:true,text:'Tickets resolved',color:'#d5dbdb',font:{size:12}}},
+            y:{grid:{display:false},ticks:{font:{size:11},autoSkip:false}}}}});
+    }catch(e){}
+  }else{
+    body.innerHTML='<p class="meta-info" style="margin:0 0 10px">Click the row to view the tickets.</p>'+tableHtml;
+  }
+}
+window.showIncidentAgentsPopup=showIncidentAgentsPopup;
+// Drill-down: the actual resolved tickets for one agent (or AutoSIM) of a given incident type.
+// Ticket / Status / Created / Resolved. "Back" returns to the agent-breakdown popup.
+async function showIncidentTicketsDrilldown(type,agent,resolverKey){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const isBot=(String(agent).toLowerCase()==='autosim');
+  const dn=isBot?'AutoSIM':displayName(agent);
+  const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#ff9900;font-size:1.2em">'+esc(dn)+' \u2014 '+esc(type)+'</h2><div class="pc-subcount" id="incTkLoad">loading\u2026</div></div>'+
+      '<div class="popup-actions"><button class="btn" onclick="showIncidentAgentsPopup(\''+q(type)+'\',\''+q(resolverKey||'')+'\')">\u2190 Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div id="incTkBody" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div></div></div>';
+  document.body.appendChild(overlay);
+  let data=null;
+  try{
+    const r=await window.PHDAuth.api('GET','/api/dash/incident-tickets?type='+encodeURIComponent(type)+'&agent='+encodeURIComponent(agent));
+    if(r&&r.ok) data=r.data;
+  }catch(e){}
+  const body=document.getElementById('incTkBody'); const load=document.getElementById('incTkLoad');
+  if(!data||!data.tickets){ if(body)body.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load tickets.</p>'; return; }
+  const tix=data.tickets||[];
+  if(load) load.textContent=tix.length.toLocaleString()+' ticket'+(tix.length===1?'':'s')+' \u00b7 newest resolved first';
+  if(!tix.length){ if(body)body.innerHTML='<p class="pc-none">No tickets.</p>'; return; }
+  // Stash the tickets so the sortable Created/Resolved headers can re-sort in place (no re-fetch).
+  // Default sort: Created, newest first.
+  _INC_TK={ tickets:tix, sortField:'CreateDate', sortDir:'desc' };
+  renderIncTkTable();
+}
+window.showIncidentTicketsDrilldown=showIncidentTicketsDrilldown;
+// Current incident-tickets drill-down state (for in-place sorting).
+let _INC_TK=null;
+// Sort toggle from a clickable Created/Resolved header. Same field -> flip direction; new field ->
+// start descending (newest first).
+function incTkSort(field){
+  if(!_INC_TK)return;
+  if(_INC_TK.sortField===field){ _INC_TK.sortDir=(_INC_TK.sortDir==='desc'?'asc':'desc'); }
+  else { _INC_TK.sortField=field; _INC_TK.sortDir='desc'; }
+  renderIncTkTable();
+}
+window.incTkSort=incTkSort;
+// (Re)render the incident-tickets table body from _INC_TK, applying the current sort.
+function renderIncTkTable(){
+  const body=document.getElementById('incTkBody'); if(!body||!_INC_TK)return;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
+  const fmt=(d)=>{const x=new Date(d);return isNaN(x)?'\u2014':x.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+  const field=_INC_TK.sortField, dir=_INC_TK.sortDir;
+  const tix=_INC_TK.tickets.slice().sort(function(a,b){
+    const ta=new Date(a[field]||0).getTime()||0, tb=new Date(b[field]||0).getTime()||0;
+    return dir==='desc' ? (tb-ta) : (ta-tb);
+  });
+  const arrow=(f)=>{ if(_INC_TK.sortField!==f) return ' <span class="inc-sort-ar" style="opacity:.35">\u21c5</span>'; return _INC_TK.sortDir==='desc'?' <span class="inc-sort-ar">\u2193</span>':' <span class="inc-sort-ar">\u2191</span>'; };
+  const rows=tix.map(function(t){
+    const sid=t.ShortId||'';
+    return '<tr>'+
+      '<td style="white-space:nowrap;text-align:center"><a class="ap-id inc-tk-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+esc(sid)+'</a></td>'+
+      '<td style="white-space:nowrap;text-align:center"><span style="color:'+statusColor(t.Status)+';font-weight:600">'+esc(t.Status||'\u2014')+'</span></td>'+
+      '<td style="white-space:nowrap;text-align:center">'+esc(fmt(t.CreateDate))+'</td>'+
+      '<td style="white-space:nowrap;text-align:center">'+esc(fmt(t.ResolvedDate))+'</td>'+
+      '<td class="inc-tk-title" title="'+esc(t.Title||'')+'">'+esc(t.Title||'')+'</td>'+
+    '</tr>';
+  }).join('');
+  body.innerHTML='<div style="overflow-x:auto"><table class="xls-table inc-tk-table" style="width:100%;table-layout:auto"><thead><tr>'+
+    '<th style="width:1%;white-space:nowrap;text-align:center"><span style="display:inline-flex;align-items:center;gap:5px;justify-content:center">'+ic('ticket',13)+' Ticket</span></th>'+
+    '<th style="width:1%;white-space:nowrap;text-align:center">Status</th>'+
+    '<th class="inc-sort-th" onclick="incTkSort(\'CreateDate\')" title="Sort by Created" style="width:1%;white-space:nowrap;text-align:center;cursor:pointer">Created'+arrow('CreateDate')+'</th>'+
+    '<th class="inc-sort-th" onclick="incTkSort(\'ResolvedDate\')" title="Sort by Resolved" style="width:1%;white-space:nowrap;text-align:center;cursor:pointer">Resolved'+arrow('ResolvedDate')+'</th>'+
+    '<th style="width:auto">Title</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  // Keep the subtitle in sync with the active sort.
+  const load=document.getElementById('incTkLoad');
+  if(load){ const fld=(field==='CreateDate'?'Created':'Resolved'); const ord=(dir==='desc'?'newest first':'oldest first'); load.textContent=_INC_TK.tickets.length.toLocaleString()+' ticket'+(_INC_TK.tickets.length===1?'':'s')+' \u00b7 '+fld+' '+ord; }
 }
 function renderHiChunk(d){
   const slot=document.getElementById('dashHiBody');if(!slot)return;
@@ -2025,29 +2318,43 @@ function renderHiChunk(d){
   const subTable=(list,accent)=>{
     if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
     const mx=list[0].count;
-    return '<div style="overflow-x:auto"><table class="xls-table"><thead><tr><th>#</th><th>Root Cause</th><th>Count</th><th>% of Total HI</th><th>Volume</th></tr></thead><tbody>'+
-      list.map((r,i)=>'<tr><td style="color:'+accent+';font-weight:700">'+(i+1)+'</td><td><strong>'+esc(r.rootCause)+'</strong></td><td>'+r.count+'</td><td>'+(total?(r.count/total*100).toFixed(1):0)+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+accent+';width:'+(r.count/mx*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
+    return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+        '<th style="width:1%;white-space:nowrap;text-align:center">#</th>'+
+        '<th style="width:1%;white-space:nowrap;text-align:center">Root Cause</th>'+
+        '<th style="width:26%;text-align:center">Count</th>'+
+        '<th style="width:26%;text-align:center">% of Total HI</th>'+
+        '<th style="width:26%;text-align:center">Volume</th>'+
+      '</tr></thead><tbody>'+
+      list.map((r,i)=>'<tr><td style="color:'+accent+';font-weight:700;text-align:center;white-space:nowrap">'+(i+1)+'</td><td style="text-align:center;white-space:nowrap"><strong>'+esc(r.rootCause)+'</strong></td><td style="text-align:center">'+r.count+'</td><td style="text-align:center">'+(total?(r.count/total*100).toFixed(1):0)+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+accent+';width:'+(r.count/mx*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
       '</tbody></table></div>';
   };
   slot.innerHTML=
-    '<div style="background:#000;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;margin-bottom:18px">'+
-      '<div class="hi-split">'+
-        '<div class="hi-split-left">'+
-          '<p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">'+total+'</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">'+d.petPct+'%</strong> are driven by <strong>pet/animal incidents</strong>.</p>'+
-          '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">'+
-            '<div style="background:#0a0a0a;border:1px solid rgba(167,139,250,.35);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#a78bfa">'+d.pet+' <span style="font-size:.55em;color:#879596">('+d.petPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI due to pet / animal incidents</div></div>'+
-            '<div style="background:#0a0a0a;border:1px solid rgba(255,153,0,.3);border-radius:8px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#ff9900">'+d.nonPet+' <span style="font-size:.55em;color:#879596">('+d.nonPetPct+'%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI NOT related to pet incidents</div></div>'+
-          '</div>'+
-        '</div>'+
-        '<div class="hi-split-chart"><canvas id="cHiSplit"></canvas></div>'+
-      '</div>'+
-    '</div>'+
-    '<h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">🐾 Involving pet / animal incidents — '+d.pet+' ('+d.petPct+'% of all HI)</h3>'+
+    // Weekly pet vs non-pet repeat incidents (HI Cnt>0), created per week — sits above the tables.
+    '<h3 style="color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">Repeat incidents per week \u2014 pet vs non-pet</h3>'+
+    '<p class="meta-info" style="margin:0 0 12px">Repeat-incident tickets (HI Cnt&gt;0) created each week, split into <b style="color:#a78bfa">pet / animal</b> vs <b style="color:#ff9900">non-pet</b>.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cHiWeekly"></canvas></div></div>'+
+    '<h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:24px 0 8px">🐾 Involving pet / animal incidents — '+d.pet+' ('+d.petPct+'% of all HI)</h3>'+
     subTable(d.petBreakdown,'#a78bfa')+
     '<h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — '+d.nonPet+' ('+d.nonPetPct+'% of all HI)</h3>'+
     subTable(d.nonPetBreakdown,'#ff9900');
-  // Doughnut: pet vs non-pet share of repeat incidents.
-  makeChart('cHiSplit',{type:'doughnut',data:{labels:['Pet / animal ('+d.petPct+'%)','Non-pet ('+d.nonPetPct+'%)'],datasets:[{data:[d.pet,d.nonPet],backgroundColor:['#a78bfa','#ff9900'],borderColor:'#000',borderWidth:2,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#d5dbdb',font:{size:11},usePointStyle:true,boxWidth:8,padding:12}},tooltip:{callbacks:{label:function(c){return c.label.replace(/\s*\(\d.*/,'')+': '+c.raw+' ('+(total?Math.round(c.raw/total*100):0)+'%)';}}}}}});
+  // Weekly pet/non-pet chart pulls from the (SWR-cached) /api/dash/weekly payload.
+  loadDashChunk('weekly',drawHiWeekly,{silent:true,cacheKey:'dash-weekly-hisplit'}).catch(function(){});
+}
+// Wave (filled-area line) chart: pet vs non-pet repeat incidents (HI Cnt>0) created per week.
+function drawHiWeekly(w){
+  if(!w||!w.labels||!document.getElementById('cHiWeekly'))return;
+  const labels=w.labels.map(function(l,i){ const s=(w.span&&w.span[i])||{}; if(s.first){ const df=new Date(s.first); return l+' ('+df.toLocaleDateString('en-US',{month:'short',day:'numeric'})+')'; } return l; });
+  const pet=w.hiPetCreated||[], nonPet=w.hiNonPetCreated||[];
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  makeChart('cHiWeekly',{type:'line',
+    data:{labels:labels,datasets:[
+      _waveDataset('Pet / animal',pet,'#a78bfa','rgba(167,139,250,'),
+      _waveDataset('Non-pet',nonPet,'#ff9900','rgba(255,153,0,'),
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Repeat incidents (HI Cnt>0)',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:11}}},
+        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}}});
 }
 function _barOpts(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}};}
 
@@ -2125,17 +2432,18 @@ function renderDashboardChunked(){
   const scrCell=(scrMax,pct)=>'<span class="scramble-kpi" data-scr-max="'+(scrMax||9000)+'" data-scr-pct="'+(pct?1:0)+'">0</span>';
   // Table skeleton for a metric/value(/definition) section that matches the final rendered table.
   const kpiTblSkel=(rows,withDesc)=>{
-    // Mirror kpiTableHtml: 3-col (with Definition) = fixed 20/15/65, all centered; 2-col = right-aligned value.
+    // Mirror kpiTableHtml: 3-col (with Definition) = Metric/Value fit-to-content, Definition fills
+    // the rest (auto layout); 2-col = right-aligned value.
     const head=withDesc
-      ? '<tr><th style="text-align:center;width:20%">Metric</th><th style="text-align:center;width:15%">Value</th><th style="text-align:center;width:65%">Definition</th></tr>'
+      ? '<tr><th style="text-align:center;width:1%;white-space:nowrap">Metric</th><th style="text-align:center;width:1%;white-space:nowrap">Value</th><th style="text-align:left">Definition</th></tr>'
       : '<tr><th>Metric</th><th style="text-align:right">Value</th></tr>';
     const body=rows.map(function(r){
       if(withDesc){
-        return '<tr><td class="kt-metric" style="text-align:center">'+r.m+'</td><td class="kt-value" style="text-align:center">'+scrCell(r.s,r.p)+'</td><td class="kt-desc" style="text-align:center">\u2026</td></tr>';
+        return '<tr><td class="kt-metric" style="text-align:center;white-space:nowrap">'+r.m+'</td><td class="kt-value" style="text-align:center;white-space:nowrap">'+scrCell(r.s,r.p)+'</td><td class="kt-desc" style="text-align:left">\u2026</td></tr>';
       }
       return '<tr><td class="kt-metric">'+r.m+'</td><td class="kt-value" style="text-align:right">'+scrCell(r.s,r.p)+'</td></tr>';
     }).join('');
-    const tblStyle=withDesc?' style="width:100%;table-layout:fixed"':'';
+    const tblStyle=withDesc?' style="width:100%;table-layout:auto"':'';
     return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"'+tblStyle+'><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
   };
   // Paired (4-col) queue skeleton: left = totals, right = open statuses.
@@ -2146,8 +2454,53 @@ function renderDashboardChunked(){
     for(let i=0;i<4;i++){ rows+='<tr><td class="kt-metric" style="text-align:center">'+L[i].m+'</td><td class="kt-value" style="text-align:center">'+scrCell(L[i].s)+'</td><td class="kt-metric" style="text-align:center">'+R[i].m+'</td><td class="kt-value" style="text-align:center">'+scrCell(R[i].s)+'</td></tr>'; }
     return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table" style="width:100%;table-layout:fixed"><thead><tr><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   };
+  // ---- Fixed skeletons for the always-open cards (match the new layouts; numbers tally via scramble). ----
+  const shimmerBar=(w)=>'<div class="shimmer" style="height:8px;border-radius:4px;width:'+w+'%"></div>';
+  // Incident Types: two resolver subsections, each a 5-col table (#, Incident Type, Count, %, Volume).
+  const incTypesSkel=function(){
+    const rowsFor=(n,widths)=>{ let s=''; for(let i=0;i<n;i++){ s+='<tr>'+
+      '<td style="color:#ff9900;font-weight:700;text-align:center;white-space:nowrap">'+(i+1)+'</td>'+
+      '<td style="white-space:nowrap"><div class="shimmer" style="height:12px;width:'+(140-i*8)+'px;border-radius:4px"></div></td>'+
+      '<td style="text-align:center">'+scrCell(widths[i]||30)+'</td>'+
+      '<td style="text-align:center"><span class="scramble-kpi" data-scr-max="90" data-scr-pct="1">0</span></td>'+
+      '<td>'+shimmerBar(widths[i]?Math.max(6,Math.round(widths[i]/(widths[0]||1)*100)):20)+'</td>'+
+    '</tr>'; } return s; };
+    const tbl=(rows)=>'<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:1%;white-space:nowrap">Incident Type</th><th style="text-align:center;width:1%;white-space:nowrap">Count</th><th style="text-align:center;width:1%;white-space:nowrap">% of Total</th><th style="width:auto">Volume</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<p class="meta-info">Incident types across the live quarter (resolved tickets), split by who resolved them.</p>'+
+      '<h3 class="inc-sub-h">'+ic('bolt',15)+' Resolved by AutoSIM <span class="inc-sub-n"><span class="scramble-kpi" data-scr-max="3000">0</span></span></h3>'+
+      tbl(rowsFor(4,[2800,60,40,20]))+
+      '<h3 class="inc-sub-h" style="margin-top:22px">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n"><span class="scramble-kpi" data-scr-max="6000">0</span></span></h3>'+
+      tbl(rowsFor(6,[1500,1200,600,400,120,90]));
+  };
+  // Historical Incidents: weekly wave chart on top, then two root-cause subsection tables.
+  const hiSkel=function(){
+    const rc=(accent,n)=>{ let s=''; for(let i=0;i<n;i++){ s+='<tr>'+
+      '<td style="color:'+accent+';font-weight:700;text-align:center;white-space:nowrap">'+(i+1)+'</td>'+
+      '<td style="text-align:center;white-space:nowrap"><div class="shimmer" style="height:12px;width:'+(160-i*10)+'px;border-radius:4px;margin:0 auto"></div></td>'+
+      '<td style="text-align:center;width:26%">'+scrCell(120-i*15)+'</td>'+
+      '<td style="text-align:center;width:26%"><span class="scramble-kpi" data-scr-max="90" data-scr-pct="1">0</span></td>'+
+      '<td style="width:26%">'+shimmerBar(90-i*14)+'</td>'+
+    '</tr>'; } return s; };
+    const tbl=(rows)=>'<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+      '<th style="width:1%;white-space:nowrap;text-align:center">#</th><th style="width:1%;white-space:nowrap;text-align:center">Root Cause</th><th style="width:26%;text-align:center">Count</th><th style="width:26%;text-align:center">% of Total HI</th><th style="width:26%;text-align:center">Volume</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<h3 style="color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">Repeat incidents per week \u2014 pet vs non-pet</h3>'+
+      '<p class="meta-info" style="margin:0 0 12px">Repeat-incident tickets (HI Cnt&gt;0) created each week, split into <b style="color:#a78bfa">pet / animal</b> vs <b style="color:#ff9900">non-pet</b>.</p>'+
+      '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>'+
+      '<h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:24px 0 8px">\uD83D\uDC3E Involving pet / animal incidents</h3>'+
+      tbl(rc('#a78bfa',5))+
+      '<h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents</h3>'+
+      tbl(rc('#ff9900',5));
+  };
+  // Weekly Volume & SLA: a single tall chart.
+  const weeklySkel=function(){
+    return '<p class="meta-info" style="margin:0 0 16px">Weekly Created vs Resolved volume, with SLA compliance % on a second axis.</p>'+
+      '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
+  };
   const kpiSection=(title,iconName,gridId,skel)=>
-    '<div class="section collapsible kpi-section"><h2 onclick="toggleSection(this)">'+ic(iconName,16)+' '+title+' <span class="sec-caret">\u25be</span></h2>'+
+    '<div class="section kpi-section"><h2>'+ic(iconName,16)+' '+title+'</h2>'+
     '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:1fr">'+skel+'</div></div></div>';
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
@@ -2156,13 +2509,12 @@ function renderDashboardChunked(){
     dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
     kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true))+
     kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true))+
-    // Incident Types + Historical Incidents follow Repeat Incident Data.
-    dashCard('incidents','alert','Incident Types','dashIncidentsBody')+
-    dashCard('hi','repeat','Historical Incidents (Cnt > 0)','dashHiBody')+
+    // All sections are always visible (no expand/collapse) and load eagerly. Each is painted with a
+    // fixed skeleton matching its final layout, so there's no jump when the data lands.
+    dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel())+
+    dashStaticCard('repeat','Historical Incidents (Cnt > 0)','dashHiBody',hiSkel())+
     // Weekly Volume (Created + Resolved) combined with SLA Compliance % on a second axis.
-    dashCard('weekly','bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody')+
-    // Weekly Volume (Created + Resolved) combined with Repeat Incidents (HI Cnt>0) created per week.
-    dashCard('weekly-hi','repeat','Weekly Volume & Repeat Incidents','dashWeeklyHiBody')+
+    dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel())+
   '</div>';
   attachNewFileHandler();
   refreshHelpAlertCount();
@@ -2174,6 +2526,20 @@ function renderDashboardChunked(){
   }).catch(function(){
     const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
   });
+  // Incident Types loads EAGERLY (always visible, no expand/collapse). Uses the bumped cache key
+  // so the older-shaped cached entry is ignored.
+  loadDashChunk('incidents',renderIncidentsChunk,{silent:true,cacheKey:'dash-incidents-v2'}).then(function(r){
+    if(!r||!r.ok){ const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load incident types.</p>'; }
+  }).catch(function(){
+    const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load incident types.</p>';
+  });
+  // Historical Incidents + Weekly Volume load EAGERLY now (always visible, no expand/collapse).
+  loadDashChunk('hi',renderHiChunk,{silent:true}).then(function(r){
+    if(!r||!r.ok){ const s=document.getElementById('dashHiBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load historical incidents.</p>'; }
+  }).catch(function(){ const s=document.getElementById('dashHiBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load historical incidents.</p>'; });
+  loadDashChunk('weekly',renderWeeklyChunk,{silent:true}).then(function(r){
+    if(!r||!r.ok){ const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load weekly volume.</p>'; }
+  }).catch(function(){ const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load weekly volume.</p>'; });
   // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk (also fills the collapsible
   // Queue Status card below via renderQueueChunk). Per-status counts + total.
   loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true}).then(function(r){
@@ -2272,7 +2638,7 @@ function showLoginModal(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Log in</h2>
     <p style="color:#879596;font-size:.85em;margin-bottom:18px;line-height:1.5">Viewing the dashboard needs no login. Log in to publish or manage data.</p>
     <label style="display:block;color:#879596;font-size:.85em;margin-bottom:6px">Username</label>
@@ -2338,7 +2704,7 @@ function showPublishModal(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;padding:28px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Publish Data to Everyone</h2>
     <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This saves the current dashboard data to the shared database so all viewers see it. No token needed — you're already logged in.</p>
     <div class="err" id="pubErr" style="color:#ff5252;font-size:.85em;margin-top:4px;display:none"></div>
@@ -2443,7 +2809,7 @@ function showUploadResult(written,liveSummary){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:26px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:6px">${ic('check-circle',18)} Upload complete</h2>
     <p style="color:#879596;font-size:.88em;margin-bottom:14px">Tickets were routed to their quarters. Each quarter's own update log records its changes.</p>
     <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:2px 16px 6px">${rowsHtml}</div>

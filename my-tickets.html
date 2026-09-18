@@ -171,6 +171,8 @@ tbody tr{transition:background .12s}
 .tk-id-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tk-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-idlink:hover{text-decoration:underline}
+/* Crown = priority ticket (Labels contain Station Request / Address Exclusion). */
+.tk-crown{font-size:.95em;line-height:1;flex-shrink:0;cursor:default;filter:drop-shadow(0 0 2px rgba(251,191,36,.55))}
 .tk-title{color:var(--tm);font-size:.86em;line-height:1.45;margin-top:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:rgba(255,153,0,.16);color:var(--o);font-weight:700;font-size:.78em;flex-shrink:0}
 .tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
@@ -711,7 +713,7 @@ function rowHtml(t,i,editor){
       <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
       <td><span class="rem ${rem.cls}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span></td>
       <td class="mt-ticket">
-        <div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a><button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button><span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span></div>
+        <div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a>${t.priority?'<span class="tk-crown" title="Station Request / Address Exclusion \u2014 priority label" aria-label="Priority label">\uD83D\uDC51</span>':''}<button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button><span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span></div>
         ${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}
       </td>
       <td class="latest-cmt" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:70%;height:11px;display:block"></span></td>

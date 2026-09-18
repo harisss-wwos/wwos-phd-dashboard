@@ -79,7 +79,7 @@
       + '@media(max-width:1024px){.tb-btn .tb-btn-label{display:none}.tb-btn{padding:8px 10px;gap:0}}'
       // login modal
       + '.tb-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}'
-      + '.tb-modal{background:#111;border:1px solid #333;border-radius:12px;max-width:420px;width:100%;padding:28px}'
+      + '.tb-modal{background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px}'
       + '.tb-modal h2{color:#fff;font-size:1.2em;margin:0 0 6px}'
       + '.tb-modal p.sub{color:#879596;font-size:.85em;margin:0 0 14px;line-height:1.5}'
       + '.tb-modal label{display:block;color:#879596;font-size:.85em;margin:14px 0 6px}'
@@ -347,7 +347,11 @@
   window.tbHideLoader = function () { var l = document.getElementById('tbLoader'); if (l) l.style.display = 'none'; };
 
   // Required CSV columns (kept in sync with app.js REQUIRED_COLUMNS). Standalone upload validates here.
-  var TB_REQUIRED_COLUMNS = ['IssueId','IssueUrl','ShortId','Title','Status','CreateDate','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails','AssignedGroup','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
+  // All columns are mandatory (upload blocked unless every one is present). Alphabetical order;
+  // columns added beyond the original 18 are tagged "new". Kept in sync with app.js REQUIRED_COLUMNS.
+  var TB_REQUIRED_COLUMNS = ['Age','AssignedGroup','AssigneeIdentity','ClosureCode','CreateDate','IssueId','IssueUrl','Labels','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate','RequesterIdentity','ResolvedByIdentity','ResolvedDate','RootCause','RootCauseDetails','Severity','ShortId','Status','Tags','Title'];
+  var TB_NEW_COLUMNS = { 'Labels': true, 'RequesterIdentity': true, 'Tags': true };
+  function tbNewTag(c) { return TB_NEW_COLUMNS[c] ? ' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>' : ''; }
   function tbMissingColumns(text) {
     var cells = [], cur = '', inQ = false;
     for (var i = 0; i < text.length; i++) { var ch = text[i];
@@ -359,17 +363,18 @@
     var have = {}; cells.forEach(function (h) { have[String(h || '').trim().toLowerCase()] = true; });
     return TB_REQUIRED_COLUMNS.filter(function (c) { return !have[c.toLowerCase()]; });
   }
-  // Pre-upload intro popup: lists the 18 mandatory columns; Proceed opens the file picker.
+  // Pre-upload intro popup: lists every mandatory column (alphabetical, "new" ones tagged);
+  // Proceed opens the file picker.
   window.tbUploadIntro = function (target) {
     var inputId = (target === 'standalone') ? 'uploadFileStandalone' : 'uploadFile';
     var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
-      return '<li style="padding:3px 0;color:#d5dbdb"><span style="color:#4ade80">•</span> <span style="font-family:monospace;font-size:.9em">' + c + '</span></li>';
+      return '<li style="padding:3px 0;color:#d5dbdb"><span style="color:#4ade80">•</span> <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + tbNewTag(c) + '</li>';
     }).join('');
     var ov = document.createElement('div');
     ov.id = 'tbUploadIntro';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:580px;width:100%;max-height:88vh;overflow:auto;padding:26px">' +
+    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">' +
       '<h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
       '<p style="color:#879596;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#fff">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
@@ -389,14 +394,14 @@
   function tbShowColumnError(missing) {
     var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
       var bad = missing.indexOf(c) !== -1;
-      return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:' + (bad ? '#ff5252' : '#4ade80') + '">' + (bad ? '✗' : '✓') + ' <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + (bad ? ' <span style="color:#ff5252;font-size:.78em">(missing)</span>' : '') + '</li>';
+      return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:' + (bad ? '#ff5252' : '#4ade80') + '">' + (bad ? '✗' : '✓') + ' <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + tbNewTag(c) + (bad ? ' <span style="color:#ff5252;font-size:.78em">(missing)</span>' : '') + '</li>';
     }).join('');
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:26px">' +
+    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">' +
       '<h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
-      '<p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All 18 columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
+      '<p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
       '<div style="margin-top:20px;text-align:right"><button class="tb-mbtn" onclick="this.closest(\'div[style*=fixed]\').remove()">Close</button></div>' +
       '</div>';
@@ -405,7 +410,7 @@
 
   // ---- In-place "Upload new data" pipeline (runs on ANY page; the page is retained) ----
   // Fields whose change (on a ticket with a newer LastUpdatedDate) triggers an update.
-  var TB_MERGE_FIELDS = ['Title','Status','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails'];
+  var TB_MERGE_FIELDS = ['Title','Status','Severity','AssigneeIdentity','ResolvedDate','Age','ClosureCode','ResolvedByIdentity','RootCause','RootCauseDetails','Labels','RequesterIdentity','Tags'];
   var TB_TS_FIELDS = ['LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate'];
   var tbAssessAborted = false;
 
@@ -500,7 +505,7 @@
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
     tbFlowOverlay('tbAssess',
-      '<div style="text-align:center;width:50%;max-width:820px;min-width:300px">' +
+      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
         '<p style="color:#879596;margin-top:6px;font-size:.9em" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
@@ -645,7 +650,7 @@
     // rows -> tell the user there are no new changes and let them close the upload.
     if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
       tbFlowOverlay('tbConfirm',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:480px;width:100%;padding:26px;text-align:center">' +
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px;text-align:center">' +
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#fff;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
           '<p style="color:#879596;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#d5dbdb">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
@@ -655,7 +660,7 @@
       return;
     }
     tbFlowOverlay('tbConfirm',
-      '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:520px;width:100%;padding:26px">' +
+      '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px">' +
         '<h2 style="color:#fff;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
         '<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px">' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Tickets with newer data</span><span style="color:#44b9d6;font-weight:700">' + res.xNewer + '</span></div>' +
@@ -676,7 +681,7 @@
   // Step D: delta publish (only changed/new + non-live). Stays on the current page.
   async function tbPublish(res) {
     tbFlowOverlay('tbPush',
-      '<div style="text-align:center;width:50%;max-width:820px;min-width:300px">' +
+      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
         '<p style="color:#879596;margin-top:8px;font-size:.9em" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
@@ -751,7 +756,7 @@
       }
       tbRemove('tbPush');
       tbFlowOverlay('tbDone',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:460px;width:100%;padding:26px;text-align:center">' +
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px;text-align:center">' +
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#4ade80;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
           '<p style="color:#879596;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
@@ -767,7 +772,7 @@
       try { clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
       tbRemove('tbPush');
       tbFlowOverlay('tbErr',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:460px;width:100%;padding:26px;text-align:center">' +
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px;text-align:center">' +
           '<h2 style="color:#ff5252;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
           '<p style="color:#879596;font-size:.9em">' + tbEsc(err.message) + '</p>' +
           '<div style="margin-top:18px"><button class="tb-mbtn" id="tbErrClose">Close</button></div>' +
