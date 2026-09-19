@@ -3530,13 +3530,17 @@ const AGG_INCIDENT_TYPE = {
       $switch: {
         branches: [
           { case: { $lte: [{ $strLenCP: '$$rc' }, 1] }, then: 'No Root Cause' },
+          // AutoSIM auto-resolves (strict 4-part rule) collapse to a single clean pet bucket.
+          { case: AGG.isAutoSim, then: 'Pet Incident (Auto-resolved)' },
+          // Raw RootCause that literally spells the first-time-pet label (any casing) -> merge it into
+          // the synthetic bucket below so we don't get a casing-duplicate row.
+          { case: { $regexMatch: { input: '$$rc', regex: '^first time pet incident', options: 'i' } }, then: 'First Time Pet Incident (Immediately Resolved / No Action Taken)' },
           { case: AGG.isPet, then: {
             $switch: {
               branches: [
                 { case: { $and: [{ $in: [{ $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } }, ['Immediately Resolved', 'Automatically Closed']] }, { $ne: [{ $trim: { input: { $ifNull: ['$t.AssigneeIdentity', ''] } } }, ''] }] }, then: 'First Time Pet Incident (Immediately Resolved / No Action Taken)' },
-                { case: { $ne: [{ $trim: { input: { $ifNull: ['$t.RootCauseDetails', ''] } } }, ''] }, then: 'Pet Incident (HI>0)' },
               ],
-              default: 'Pet Incident (Resolved by AUTO-SIM)',
+              default: 'Pet Incident (HI>0)',
             },
           } },
         ],

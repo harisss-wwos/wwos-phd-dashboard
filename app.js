@@ -186,22 +186,21 @@ function computeMetrics(data){
   const ANALYSTS=['arunkzn','flofalgu','harisss','punithsd','mbozied','mellanej','nobregak','chousoud','dbiswamb','obalasut','shaavhad','tanviroo','urmahala'];
   data.forEach(r=>{
     let tp='Other';const details=r.RootCauseDetails||'';const rootCause=(r.RootCause||'').replace(/^\s*-\s*/,'').trim();const title=r.Title||'';const resolver=r.ResolvedByIdentity||'';
-    if(rootCause&&rootCause.length>1){
-      // Check if animal/pet
+    // AutoSIM auto-resolves (strict 4-part rule) collapse to ONE clean bucket, regardless of RootCause.
+    if(isAutoSimResolved(r)){
+      tp='Pet Incident (Auto-resolved)';
+    } else if(/^first time pet incident/i.test(rootCause)){
+      // Raw RootCause that literally spells the first-time-pet label -> merge into the synthetic bucket.
+      tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
+    } else if(rootCause&&rootCause.length>1){
       if(rootCause.toLowerCase().includes('unsecured animal')){
-        // AUTO-SIM auto-resolve is the strict 4-part rule (ARN + auto closure + empty details + tag).
-        if(isAutoSimResolved(r)){
-          tp='Pet Incident (Resolved by AUTO-SIM)';
+        // Non-AutoSIM pet: first-time (Imm/Auto closed WITH an assignee) vs HI>0.
+        const cc=(r.ClosureCode||'').trim();
+        const isImmAuto=(cc==='Immediately Resolved'||cc==='Automatically Closed');
+        if(isImmAuto&&(r.AssigneeIdentity||'').trim()!==''){
+          tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
         } else {
-          // Pet tickets closed as Immediately Resolved / Automatically Closed WITH an assignee are
-          // treated as first-time pet incidents (no action taken) — clubbed under one bucket.
-          const cc=(r.ClosureCode||'').trim();
-          const isImmAuto=(cc==='Immediately Resolved'||cc==='Automatically Closed');
-          if(isImmAuto&&(r.AssigneeIdentity||'').trim()!==''){
-            tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
-          } else {
-            tp='Pet Incident (HI>0)';
-          }
+          tp='Pet Incident (HI>0)';
         }
       } else {
         tp=rootCause;
