@@ -103,6 +103,20 @@ async function dbCount(){const db=await openDB();return new Promise((resolve,rej
 
 function getGroup(n){if(GA1.includes(n))return'A1';if(GA2.includes(n))return'A2';if(GB.includes(n))return'B';return null;}
 function displayName(n){if(n==='0d1616c8-bcb7-4450-8bc5-f0a296bc01d1')return'LM-CAP';if(n&&n.includes('AutoSIM'))return'AutoSIM';return n;}
+// AUTHORITATIVE AutoSIM-resolved rule (ALL FOUR must hold): RootCauseDetails empty; ClosureCode is
+// Immediately Resolved / Automatically Closed; ResolvedByIdentity is exactly the AutoSIM ARN; Tags
+// contains 'pet_incident_auto_resolved'. Analyst-resolved tickets are NOT AutoSIM even if tagged.
+const AUTOSIM_ARN='arn:aws:sts::511128310777:assumed-role/AutoSIM/AutoSIM';
+function isAutoSimResolved(r){
+  if(!r)return false;
+  const rcdEmpty=String(r.RootCauseDetails||'').trim()==='';
+  const cc=String(r.ClosureCode||'').trim();
+  const ccOk=(cc==='Immediately Resolved'||cc==='Automatically Closed');
+  const arnOk=String(r.ResolvedByIdentity||'').trim()===AUTOSIM_ARN;
+  const tags=Array.isArray(r.Tags)?r.Tags.join(','):String(r.Tags||'');
+  const tagOk=tags.toLowerCase().includes('pet_incident_auto_resolved');
+  return rcdEmpty&&ccOk&&arnOk&&tagOk;
+}
 function isLMCAP(n){return n==='0d1616c8-bcb7-4450-8bc5-f0a296bc01d1';}
 function hBetween(d1,d2){return Math.abs(d2-d1)/(1000*60*60);}
 function avg(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0;}
@@ -132,7 +146,7 @@ function computeMetrics(data){
   const statuses={};data.forEach(r=>{statuses[r.Status]=(statuses[r.Status]||0)+1;});
   const asgn=statuses['Assigned']||0,pend=statuses['Pending']||0,wip=statuses['Work In Progress']||0,res=statuses['Resolved']||0,researching=statuses['Researching']||0,closed=statuses['Closed']||0;
   const inQ=asgn+pend+wip+researching;
-  const autosim=data.filter(r=>r.ResolvedByIdentity&&r.ResolvedByIdentity.includes('AutoSIM')).length;
+  const autosim=data.filter(r=>isAutoSimResolved(r)).length;
   // Ticket Color Classification
   const now=new Date();
   const colorTickets={green:[],yellow:[],red:[],black:[],purple:[]};
@@ -175,16 +189,19 @@ function computeMetrics(data){
     if(rootCause&&rootCause.length>1){
       // Check if animal/pet
       if(rootCause.toLowerCase().includes('unsecured animal')){
-        // Pet tickets closed as Immediately Resolved / Automatically Closed WITH an assignee are
-        // treated as first-time pet incidents (no action taken) — clubbed under one bucket.
-        const cc=(r.ClosureCode||'').trim();
-        const isImmAuto=(cc==='Immediately Resolved'||cc==='Automatically Closed');
-        if(isImmAuto&&(r.AssigneeIdentity||'').trim()!==''){
-          tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
+        // AUTO-SIM auto-resolve is the strict 4-part rule (ARN + auto closure + empty details + tag).
+        if(isAutoSimResolved(r)){
+          tp='Pet Incident (Resolved by AUTO-SIM)';
         } else {
-          const hasDetails=details.trim()!=='';
-          if(hasDetails){tp='Pet Incident (HI>0)';}
-          else{tp='Pet Incident (Resolved by AUTO-SIM)';}
+          // Pet tickets closed as Immediately Resolved / Automatically Closed WITH an assignee are
+          // treated as first-time pet incidents (no action taken) — clubbed under one bucket.
+          const cc=(r.ClosureCode||'').trim();
+          const isImmAuto=(cc==='Immediately Resolved'||cc==='Automatically Closed');
+          if(isImmAuto&&(r.AssigneeIdentity||'').trim()!==''){
+            tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
+          } else {
+            tp='Pet Incident (HI>0)';
+          }
         }
       } else {
         tp=rootCause;
@@ -201,7 +218,7 @@ function computeMetrics(data){
   // Slim incTickets for storage
   const incTicketsSlim={};iL.forEach(k=>{incTicketsSlim[k]=incTickets[k].map(r=>({ShortId:r.ShortId,AssigneeIdentity:r.AssigneeIdentity,ResolvedByIdentity:r.ResolvedByIdentity,CreateDate:r.CreateDate,Status:r.Status,Title:r.Title}));});
   // Agents (Resolved/Closed = resolved, rest = open)
-  const aRes={},aTm={};data.forEach(r=>{if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!r.ResolvedByIdentity.includes('AutoSIM')){const x=r.ResolvedByIdentity;aRes[x]=(aRes[x]||0)+1;if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5;if(h>=0){if(!aTm[x])aTm[x]=[];aTm[x].push(h);}}}});
+  const aRes={},aTm={};data.forEach(r=>{if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!isAutoSimResolved(r)){const x=r.ResolvedByIdentity;aRes[x]=(aRes[x]||0)+1;if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5;if(h>=0){if(!aTm[x])aTm[x]=[];aTm[x].push(h);}}}});
   const aOpen={},aAsgn={};data.filter(r=>r.Status!=='Resolved'&&r.Status!=='Closed').forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aOpen[r.AssigneeIdentity]=(aOpen[r.AssigneeIdentity]||0)+1;});
   data.forEach(r=>{if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aAsgn[r.AssigneeIdentity]=(aAsgn[r.AssigneeIdentity]||0)+1;});
   // Per-agent status counts
@@ -238,9 +255,9 @@ function computeMetrics(data){
   const pwE=new Date(maxDate);pwE.setDate(pwE.getDate()-2);pwE.setHours(0,0,0,0);const pwS=new Date(pwE);pwS.setDate(pwS.getDate()-6);const pwEF=new Date(pwE);pwEF.setDate(pwEF.getDate()+1);
   const pwC=data.filter(r=>{const cd=new Date(r.CreateDate);return cd>=pwS&&cd<pwEF;});
   const pwR=data.filter(r=>{if(r.ResolvedDate){const rd=new Date(r.ResolvedDate);return rd>=pwS&&rd<pwEF;}return false;});
-  const pwAuto=pwR.filter(r=>r.ResolvedByIdentity&&r.ResolvedByIdentity.includes('AutoSIM')).length;
-  const pwRC={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';pwRC[x]=(pwRC[x]||0)+1;});
-  const pwAn={};pwR.forEach(r=>{let x=r.ResolvedByIdentity||'Unknown';if(x.includes('AutoSIM'))x='AutoSIM';if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
+  const pwAuto=pwR.filter(r=>isAutoSimResolved(r)).length;
+  const pwRC={};pwR.forEach(r=>{let x=isAutoSimResolved(r)?'AutoSIM':(r.ResolvedByIdentity||'Unknown');pwRC[x]=(pwRC[x]||0)+1;});
+  const pwAn={};pwR.forEach(r=>{let x=isAutoSimResolved(r)?'AutoSIM':(r.ResolvedByIdentity||'Unknown');if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
   // ---- SLA compliance per week (≤240h), bucketed by RESOLVED date, for the current quarter ----

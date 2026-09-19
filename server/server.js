@@ -2503,6 +2503,25 @@ function isPetIncident(t) {
   return PET_CLOSURE_CODES.has(String(t.ClosureCode || '').trim()) &&
          PET_ROOT_CAUSES.has(String(t.RootCause || '').trim());
 }
+// The AUTO-SIM auto-resolve marker that must be present in the ticket's Tags.
+const AUTOSIM_TAG = 'pet_incident_auto_resolved';
+// Normalize a Tags field (array or delimited string) to a lowercased string for substring checks.
+function tagsToStr(tg) { return (Array.isArray(tg) ? tg.join(',') : String(tg || '')).toLowerCase(); }
+// AUTHORITATIVE AutoSIM-resolved rule (ALL FOUR must hold):
+//   1) RootCauseDetails is empty
+//   2) ClosureCode is 'Immediately Resolved' or 'Automatically Closed'
+//   3) ResolvedByIdentity is exactly the AutoSIM assumed-role ARN
+//   4) Tags contains 'pet_incident_auto_resolved'
+// Any analyst-resolved ticket (real ResolvedByIdentity, non-empty details, or non-auto closure)
+// is NOT AutoSIM even if it carries the pet auto-resolve tag.
+function isAutoSimResolved(t) {
+  if (!t) return false;
+  const rcdEmpty = String(t.RootCauseDetails || '').trim() === '';
+  const ccOk = IMMEDIATE_AUTO.includes(String(t.ClosureCode || '').trim());
+  const arnOk = String(t.ResolvedByIdentity || '').trim() === PET_AUTOSIM_IDENTITY;
+  const tagOk = tagsToStr(t.Tags).includes(AUTOSIM_TAG);
+  return rcdEmpty && ccOk && arnOk && tagOk;
+}
 
 // Agent overview endpoints (admin+): tickets the agent RESOLVED (ResolvedByIdentity) within a rolling
 // time window, grouped by ClosureCode (the 8 listed above). Counts only. All windows read the tiny
@@ -2555,7 +2574,7 @@ async function computeGroupMetrics() {
   const aSla = {}; GRP_ALL.forEach(n => { aSla[n] = { eligible: 0, within: 0 }; });
   data.forEach(r => {
     const rby = String(r.ResolvedByIdentity || '').toLowerCase();
-    if ((r.Status === 'Resolved' || r.Status === 'Closed') && rby && !rby.includes('autosim')) {
+    if ((r.Status === 'Resolved' || r.Status === 'Closed') && rby && !isAutoSimResolved(r)) {
       aRes[rby] = (aRes[rby] || 0) + 1;
       if (r.CreateDate && r.ResolvedDate) { const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5; if (h >= 0) (aTm[rby] = aTm[rby] || []).push(h); }
     }
@@ -2605,7 +2624,7 @@ async function computeGroupMetrics() {
 
 // Bump when the stored group-metrics shape changes (e.g. added per-agent `closure`), so a stale
 // rollup is recomputed even when publishedAt is unchanged.
-const GROUP_ROLLUP_VERSION = 4;
+const GROUP_ROLLUP_VERSION = 5;
 // Materialize the group metrics into a tiny per-quarter doc so the section endpoints read a small
 // findOne (~ms) instead of scanning the ~8k-ticket blob on every request.
 async function recomputeGroupRollup(qid) {
@@ -2907,7 +2926,7 @@ app.get('/api/agent-overview/pet', requireRole('user'), async (req, res) => {
     // Fallback: live scan this once, then rebuild.
     const tickets = await liveTickets();
     let total = 0;
-    tickets.forEach(t => { if (String(t.ResolvedByIdentity || '').toLowerCase() === username && isPetIncident(t)) total++; });
+    tickets.forEach(t => { if (String(t.ResolvedByIdentity || '').toLowerCase() === username && isPetIncident(t) && !isAutoSimResolved(t)) total++; });
     res.json({ username, quarter: qid, category: '1st Pet incident (handled by PHD)', total, cached: false });
     recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
   } catch (e) {
@@ -2929,14 +2948,13 @@ app.get('/api/pet-totals', requireRole('admin'), async (req, res) => {
       if (!fresh) recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
       return;
     }
-    // Fallback: live scan this once, then rebuild.
+    // Fallback: live scan this once, then rebuild. AUTO-SIM pet = isAutoSimResolved (4-part rule);
+    // PHD pet = a 1st-pet incident resolved by a real agent (not AutoSIM).
     const tickets = await liveTickets();
-    const autosimLc = PET_AUTOSIM_IDENTITY.toLowerCase();
     let phd = 0, autosim = 0;
     tickets.forEach(t => {
-      if (!isPetIncident(t)) return;
-      const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
-      if (rby === autosimLc) autosim++; else if (rby) phd++;
+      if (isAutoSimResolved(t)) { autosim++; return; }
+      if (isPetIncident(t)) { const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase(); if (rby) phd++; }
     });
     res.json({ quarter: qid, phd, autosim, total: phd + autosim, cached: false });
     recomputeAgentRollups(qid).catch(e => console.error('agent rollup recompute (bg) failed:', e && e.message));
@@ -3121,7 +3139,7 @@ app.get('/api/last24', requireRole('admin'), async (req, res) => {
     // Immediately Resolved / Automatically Closed in last 24h, split by resolver:
     // AUTO-SIM (ResolvedByIdentity contains 'AutoSIM') vs agents (everyone else).
     const immediateAutoTickets = resolvedLast24.filter(t => IMMEDIATE_AUTO.includes(t.ClosureCode || ''));
-    const immediateAutoAutoSim24 = immediateAutoTickets.filter(t => String(t.ResolvedByIdentity || '').includes('AutoSIM')).length;
+    const immediateAutoAutoSim24 = immediateAutoTickets.filter(t => isAutoSimResolved(t)).length;
     const immediateAutoAgents24 = immediateAutoTickets.length - immediateAutoAutoSim24;
     // open tickets crossing 240h in the next 24h (age currently 216-240h)
     const crossing = tickets.filter(t => {
@@ -3246,11 +3264,15 @@ const AGG = {
     },
   },
   isResolved: { $in: ['$t.Status', ['Resolved', 'Closed']] },
-  // AutoSIM-resolved: ResolvedByIdentity contains "AutoSIM" OR Tags contains the auto-resolve marker
-  // "pet_incident_auto_resolved" (case-insensitive). Either signal qualifies the ticket.
-  isAutoSim: { $or: [
-    { $regexMatch: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] }, regex: 'AutoSIM', options: 'i' } },
-    { $regexMatch: { input: { $ifNull: ['$t.Tags', ''] }, regex: 'pet_incident_auto_resolved', options: 'i' } },
+  // AUTHORITATIVE AutoSIM-resolved rule (ALL FOUR): RootCauseDetails empty, ClosureCode is
+  // Immediately Resolved / Automatically Closed, ResolvedByIdentity is exactly the AutoSIM ARN,
+  // AND Tags contains 'pet_incident_auto_resolved'. Mirrors isAutoSimResolved(t). Tags may be an
+  // array or a string; $toString handles both for the substring check.
+  isAutoSim: { $and: [
+    { $eq: [ { $trim: { input: { $ifNull: ['$t.RootCauseDetails', ''] } } }, '' ] },
+    { $in: [ { $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } }, IMMEDIATE_AUTO ] },
+    { $eq: [ { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } }, PET_AUTOSIM_IDENTITY ] },
+    { $regexMatch: { input: { $toString: { $ifNull: ['$t.Tags', ''] } }, regex: AUTOSIM_TAG, options: 'i' } },
   ] },
   // HI count: parse "Cnt: N" or "Historical Incident: N" from RootCauseDetails.
   hiCountExpr: {
@@ -3622,7 +3644,7 @@ async function liveMetaFor(qid) {
 // overviews (12h/daily/...) can be filtered at read time. We also flag qualifying "1st Pet incident"
 // resolved-events (pet:1) and store quarter-wide petTotals { phd, autosim }. Bump AGENT_ROLLUP_VERSION
 // whenever the stored shape changes, so boot backfills stale-shaped rollups even when publishedAt is unchanged.
-const AGENT_ROLLUP_VERSION = 4;
+const AGENT_ROLLUP_VERSION = 5;
 async function recomputeAgentRollups(qid) {
   qid = qid || currentQuarter();
   const tickets = await loadQuarterTickets(qid);
@@ -3634,7 +3656,6 @@ async function recomputeAgentRollups(qid) {
     return a;
   };
   const OVERVIEW_CODE_SET = new Set(OVERVIEW_CLOSURE_CODES);
-  const autosimLc = PET_AUTOSIM_IDENTITY.toLowerCase();
   // Quarter-wide "1st Pet incident" totals: handled by PHD (registered agents) vs handled by AUTO-SIM.
   const petTotals = { phd: 0, autosim: 0 };
   tickets.forEach(t => {
@@ -3654,7 +3675,9 @@ async function recomputeAgentRollups(qid) {
     // - closure-code counts use only the 8 tracked codes (counts[e.k] guards that at read time);
     // - SLA uses c/r and excludes Auto/Immediate codes; the RootCause breakdown uses rc across all codes.
     const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
-    const pet = isPetIncident(t);
+    const autoSim = isAutoSimResolved(t);
+    // PHD-handled 1st pet incident = a pet incident that is NOT an AutoSIM auto-resolve.
+    const pet = isPetIncident(t) && !autoSim;
     if (rby) {
       const cc = String(t.ClosureCode || '').trim();
       const rd = t.ResolvedDate ? new Date(t.ResolvedDate) : null;
@@ -3666,8 +3689,9 @@ async function recomputeAgentRollups(qid) {
         ensure(rby).resolved.push(ev);
       }
     }
-    // Quarter-wide pet totals (independent of the window/overview logic; counts every qualifying ticket).
-    if (pet) { if (rby === autosimLc) petTotals.autosim++; else if (rby) petTotals.phd++; }
+    // Quarter-wide pet totals: AUTO-SIM via the strict 4-part rule; PHD = pet incident by a real agent.
+    if (autoSim) petTotals.autosim++;
+    else if (pet && rby) petTotals.phd++;
   });
   const rollColl = await getCollection(COLLECTIONS.agentRollups);
   await rollColl.updateOne(

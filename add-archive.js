@@ -2,6 +2,18 @@
 if(sessionStorage.getItem('phd_authed')!=='1'){window.location.href='index.html';}
 
 const PHD_RESOLVERS=['arunkzn','flofalgu','harisss','punithsd','mbozied','mellanej','nobregak','chousoud','dbiswamb','obalasut','shaavhad','tanviroo','urmahala'];
+// AUTHORITATIVE AutoSIM-resolved rule (ALL FOUR): empty RootCauseDetails; ClosureCode Immediately
+// Resolved / Automatically Closed; ResolvedByIdentity == AutoSIM ARN; Tags has the auto-resolve marker.
+const AUTOSIM_ARN='arn:aws:sts::511128310777:assumed-role/AutoSIM/AutoSIM';
+function isAutoSimResolved(r){
+  if(!r)return false;
+  const cc=String(r.ClosureCode||'').trim();
+  const tags=Array.isArray(r.Tags)?r.Tags.join(','):String(r.Tags||'');
+  return String(r.RootCauseDetails||'').trim()===''
+    &&(cc==='Immediately Resolved'||cc==='Automatically Closed')
+    &&String(r.ResolvedByIdentity||'').trim()===AUTOSIM_ARN
+    &&tags.toLowerCase().includes('pet_incident_auto_resolved');
+}
 const REGIONS=['US','UK','CA','AU','BR','JP','IN','DE','SG','IT','FR','MX','AE','ES','NL','PL','TR','SA','EG'];
 const DB_NAME='phd_archive_db',STORE='archives';
 
@@ -42,7 +54,7 @@ function compute(data){
     if(r.Severity)severities[r.Severity]=(severities[r.Severity]||0)+1;
     if(r.RootCause)rootCauses[r.RootCause]=(rootCauses[r.RootCause]||0)+1;
     if(r.AssigneeIdentity){assignees[r.AssigneeIdentity]=(assignees[r.AssigneeIdentity]||0)+1;uniqAssignees.add(r.AssigneeIdentity);}
-    if(r.ResolvedByIdentity){const rb=r.ResolvedByIdentity.includes('AutoSIM')?'AutoSIM':r.ResolvedByIdentity;resolvers[rb]=(resolvers[rb]||0)+1;uniqResolvers.add(rb);}
+    if(r.ResolvedByIdentity){const rb=isAutoSimResolved(r)?'AutoSIM':r.ResolvedByIdentity;resolvers[rb]=(resolvers[rb]||0)+1;uniqResolvers.add(rb);}
     const region=getRegion(r.Title||'');regions[region]=(regions[region]||0)+1;
     const dt=normDriver(getField(r.RootCauseDetails,'Driver Type'));if(dt)driverTypes[dt]=(driverTypes[dt]||0)+1;
     const res=getField(r.RootCauseDetails,'Resolution');if(res)resolutionTypes[res]=(resolutionTypes[res]||0)+1;

@@ -504,6 +504,18 @@ const GA2=['tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb'];
 const GB=['mbozied','nobregak','mellanej'];
 function getGroup(n){ if(GA1.includes(n))return 'A1'; if(GA2.includes(n))return 'A2'; if(GB.includes(n))return 'B'; return null; }
 function gvAvg(a){ return a.length?a.reduce((s,v)=>s+v,0)/a.length:0; }
+// AUTHORITATIVE AutoSIM-resolved rule (ALL FOUR): empty RootCauseDetails; ClosureCode Immediately
+// Resolved / Automatically Closed; ResolvedByIdentity == AutoSIM ARN; Tags has the auto-resolve marker.
+const AUTOSIM_ARN='arn:aws:sts::511128310777:assumed-role/AutoSIM/AutoSIM';
+function isAutoSimResolved(r){
+  if(!r)return false;
+  const cc=String(r.ClosureCode||'').trim();
+  const tags=Array.isArray(r.Tags)?r.Tags.join(','):String(r.Tags||'');
+  return String(r.RootCauseDetails||'').trim()===''
+    &&(cc==='Immediately Resolved'||cc==='Automatically Closed')
+    &&String(r.ResolvedByIdentity||'').trim()===AUTOSIM_ARN
+    &&tags.toLowerCase().includes('pet_incident_auto_resolved');
+}
 const GV_CHARTS=[];
 function gvMakeChart(id,config){ const ctx=document.getElementById(id); if(ctx){ GV_CHARTS.push(new Chart(ctx,config)); } }
 function gvDestroyCharts(){ GV_CHARTS.forEach(c=>{try{c.destroy();}catch(e){}}); GV_CHARTS.length=0; }
@@ -514,7 +526,7 @@ function gvComputeMetrics(data){
   const maxDate=allDates.length?new Date(Math.max(...allDates)):new Date();
   // Per-agent maps
   const aRes={},aTm={},aOpen={},aAsgn={};
-  data.forEach(r=>{ if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!r.ResolvedByIdentity.includes('AutoSIM')){ const x=r.ResolvedByIdentity; aRes[x]=(aRes[x]||0)+1; if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5; if(h>=0){(aTm[x]=aTm[x]||[]).push(h);}} } });
+  data.forEach(r=>{ if((r.Status==='Resolved'||r.Status==='Closed')&&r.ResolvedByIdentity&&!isAutoSimResolved(r)){ const x=r.ResolvedByIdentity; aRes[x]=(aRes[x]||0)+1; if(r.CreateDate&&r.ResolvedDate){const h=(new Date(r.ResolvedDate)-new Date(r.CreateDate))/36e5; if(h>=0){(aTm[x]=aTm[x]||[]).push(h);}} } });
   data.filter(r=>r.Status!=='Resolved'&&r.Status!=='Closed').forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aOpen[r.AssigneeIdentity]=(aOpen[r.AssigneeIdentity]||0)+1; });
   data.forEach(r=>{ if(r.AssigneeIdentity&&PHD_AGENTS.includes(r.AssigneeIdentity))aAsgn[r.AssigneeIdentity]=(aAsgn[r.AssigneeIdentity]||0)+1; });
   const aStatus={}; PHD_AGENTS.forEach(n=>{aStatus[n]={Assigned:0,'Work In Progress':0,Researching:0,Pending:0,Resolved:0,Closed:0};});
