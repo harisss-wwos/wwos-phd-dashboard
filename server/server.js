@@ -1590,6 +1590,12 @@ function hasPriorityLabel(labels) {
   const s = String(labels || '').toLowerCase();
   return s.includes('station request') || s.includes('address exclusion');
 }
+// A ticket is "No EMT" when its Title OR Labels contain "No EMT" (separator optional), "Without EMT",
+// or "EMT not required" (whole-word, case-insensitive). Mirrors the client NO_EMT_RE in app.js.
+const NO_EMT_RE = /\bno[\s_-]*emt\b|\bwithout\s+emt\b|\bemt\s+not\s+required\b/i;
+function hasNoEmt(title, labels) {
+  return NO_EMT_RE.test(String(title || '') + ' ' + String(labels || ''));
+}
 
 // Helper: find a ticket in the current live quarter by ShortId. Returns the raw ticket or null.
 async function findLiveTicket(shortId) {
@@ -1845,6 +1851,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
         createDate: created,
         deadline,
         priority: hasPriorityLabel(t.Labels),
+        noEmt: hasNoEmt(t.Title, t.Labels),
       };
     }).sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
     res.json({ quarter: currentQuarter(), slaHours: SLA_HOURS, tickets: out });

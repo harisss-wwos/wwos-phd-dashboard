@@ -79,7 +79,7 @@
       + '@media(max-width:1024px){.tb-btn .tb-btn-label{display:none}.tb-btn{padding:8px 10px;gap:0}}'
       // login modal
       + '.tb-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}'
-      + '.tb-modal{background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px}'
+      + '.tb-modal{background:#111;border:1px solid #333;border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:28px}'
       + '.tb-modal h2{color:#fff;font-size:1.2em;margin:0 0 6px}'
       + '.tb-modal p.sub{color:#879596;font-size:.85em;margin:0 0 14px;line-height:1.5}'
       + '.tb-modal label{display:block;color:#879596;font-size:.85em;margin:14px 0 6px}'
@@ -104,9 +104,49 @@
       + '.tb-back-fab:hover{background:#ec7211;transform:translateY(-2px)}'
       + '.tb-back-fab svg{width:22px;height:22px}'
       // floating circular RECENT-HISTORY button (bottom-left) + its popup of recently visited pages
-      + '.tb-hist-fab{position:fixed;left:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,background .15s,border-color .15s}'
-      + '.tb-hist-fab:hover{background:#222d3a;border-color:#ff9900;transform:translateY(-2px)}'
-      + '.tb-hist-fab svg{width:22px;height:22px}'
+      + '.tb-hist-fab{position:fixed;left:22px;bottom:22px;z-index:900;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;max-width:52px;font-family:inherit;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
+      + '.tb-hist-fab .tb-hist-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-hist-fab .tb-hist-ic svg{width:22px;height:22px}'
+      + '.tb-hist-fab .tb-hist-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
+      + '.tb-hist-fab:hover{max-width:320px;background:#222d3a;border-color:#ff9900;transform:translateY(-2px)}'
+      + '.tb-hist-fab:hover .tb-hist-label{opacity:1;padding-right:18px}'
+      // Vertically-centered left-edge FAB column: holds Live + Analytics + page-nav FABs (NOT the
+      // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
+      // pill grows rightward on hover from the same left edge.
+      + '.tb-fab-col{position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:900;display:flex;flex-direction:column;align-items:flex-start;gap:12px;max-height:calc(100vh - 130px);pointer-events:none}'
+      + '.tb-fab-col>*{pointer-events:auto}'
+      // Agent & Group Analytics FAB. Circular; expands on hover to reveal its label. Admin-gated
+      // disabled state = greyed + inert. Lives inside the centered FAB column.
+      + '.tb-an-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#44b9d6;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
+      + '.tb-an-fab .tb-an-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-an-fab .tb-an-ic svg{width:22px;height:22px}'
+      + '.tb-an-fab .tb-an-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
+      + '.tb-an-fab:hover{max-width:320px;border-color:#44b9d6;transform:translateY(-2px)}'
+      + '.tb-an-fab:hover .tb-an-label{opacity:1;padding-right:18px}'
+      + '.tb-an-fab.tb-an-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
+      // Live-quarter FAB. Blinks to signal "LIVE" and links to the live dashboard (app.html).
+      // Expands on hover to reveal the quarter label. Lives inside the centered FAB column.
+      + '.tb-live-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#12261a;color:#4ade80;border:1px solid #2f7a4a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s;animation:tbLiveGlow 1.6s ease-in-out infinite}'
+      + '.tb-live-fab .tb-live-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
+      + '.tb-live-fab .tb-live-dot{width:12px;height:12px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;animation:tbLiveBlink 1s steps(1,end) infinite}'
+      + '.tb-live-fab .tb-live-label{white-space:nowrap;font-size:.86em;font-weight:700;letter-spacing:.3px;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
+      + '.tb-live-fab:hover{max-width:320px;border-color:#4ade80;transform:translateY(-2px)}'
+      + '.tb-live-fab:hover .tb-live-label{opacity:1;padding-right:18px}'
+      // Disabled (logged out): greyed + inert, and stop the blink/glow so it reads as inactive.
+      + '.tb-live-fab.tb-live-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none;animation:none}'
+      + '.tb-live-fab.tb-live-disabled .tb-live-dot{background:#8b98a5;box-shadow:none;animation:none}'
+      + '@keyframes tbLiveBlink{0%,50%{opacity:1}51%,100%{opacity:.15}}'
+      + '@keyframes tbLiveGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(74,222,128,.0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 6px rgba(74,222,128,.16)}}'
+      // Page-navigation FABs — same expand-on-hover pill. Live inside the centered FAB column.
+      + '.tb-nav-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#cdd7de;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
+      + '.tb-nav-fab .tb-nav-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-nav-fab .tb-nav-ic svg{width:21px;height:21px}'
+      + '.tb-nav-fab .tb-nav-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
+      + '.tb-nav-fab:hover{max-width:340px;background:#222d3a;border-color:#ff9900;color:#fff;transform:translateY(-2px)}'
+      + '.tb-nav-fab:hover .tb-nav-label{opacity:1;padding-right:18px}'
+      + '.tb-nav-fab.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
+      // On short screens shrink the FAB column (smaller pills + tighter gap) so it still fits centered.
+      + '@media(max-height:760px){.tb-fab-col{gap:8px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:44px;max-width:44px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:44px;width:44px;height:44px}.tb-hist-fab{height:44px}.tb-hist-fab .tb-hist-ic{flex-basis:44px;width:44px;height:44px}}'
       + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
       + '.tb-hist-pop.open{display:flex}'
       + '.tb-hist-title{color:#879596;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px 8px;position:sticky;top:-8px;background:#121820}'
@@ -149,6 +189,10 @@
       // any data table sits in a scroll container instead of pushing the page wider
       + '.tbl-card{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}'
       + 'table{max-width:100%}'
+      // The vertically-centered FAB column hugs the left edge (~74px). Shift the main page content
+      // right so those buttons don't overlap it. Applied to the common content wrappers on wider
+      // screens; reset inside the ≤920px block where the column shrinks and wrappers go full-width.
+      + '.content,.wrap,.tools-subnav{padding-left:88px}'
       + '@media(max-width:920px){'
         + '.tb-topbar{padding:10px 12px;gap:8px;flex-wrap:wrap}'
         + '.tb-logo{flex-wrap:wrap;gap:6px}'
@@ -161,6 +205,8 @@
         + '.tb-avatar img,.tb-avatar .avatar-initial{width:28px!important;height:28px!important}'
         // page wrappers: full width with small gutters (overrides fixed 80% / 80vw / big max-widths)
         + '.wrap{width:auto!important;max-width:100%!important;margin:0!important;padding:20px 14px!important}'
+        // FAB column shrinks/relocates on narrow screens -> drop the content-shift padding.
+        + '.content,.tools-subnav{padding-left:14px!important}'
         // the index.html centering trick (80vw + translateX) overflows on mobile -> neutralize
         + '.about,.grid{width:auto!important;max-width:100%!important;left:auto!important;margin-left:0!important;transform:none!important}'
         // collapse multi-column grids to a single column
@@ -184,9 +230,6 @@
     var li = loggedIn();
     var isAdmin = atLeast('admin');
     var inApp = document.body.getAttribute('data-app') === 'live';
-    // Which page are we on? (used to hide page-irrelevant controls, e.g. Refresh on profile).
-    var page = (location.pathname.split('/').pop() || '').toLowerCase();
-    var onProfile = page === 'profile.html';
     // Each .tb-btn carries a `title` so it stays meaningful when it collapses to icon-only on
     // narrow screens (see the responsive rule that hides .tb-btn-label).
     // Upload new data (admin+, standalone pages only). On the live dashboard (app.html) the Upload
@@ -197,9 +240,11 @@
     // My Tickets (logged-in). On the live dashboard (app.html) it lives in the page-title row next to
     // Alerts / Upload / Uploaded data log, so it's omitted here to avoid a duplicate.
     if (li && !inApp) html += '<a class="tb-btn tb-movable" href="my-tickets.html" title="My Tickets">' + ic('ticket') + '<span class="tb-btn-label"> My Tickets</span></a>';
-    // Refresh: fetch the latest data on demand (logged-in only). Hidden on the profile page — it
-    // shows your own profile, which has nothing live to refresh.
-    if (li && !onProfile) html += '<button type="button" class="tb-btn tb-refresh-btn" onclick="tbRefreshData(this)" title="Fetch the latest data">' + ic('refresh') + '<span class="tb-btn-label"> Refresh</span></button>';
+    // Users + Database health (owner-only) sit here in the top-right, just left of the avatar.
+    var isOwner = atLeast('owner');
+    if (isOwner) html += '<a class="tb-btn" href="users.html" title="Users">' + ic('users-gear') + '<span class="tb-btn-label"> Users</span></a>';
+    if (isOwner) html += '<a class="tb-btn" href="db-health.html" title="Database health">' + ic('database') + '<span class="tb-btn-label"> Database health</span></a>';
+    // (Refresh button removed from the top bar per design.)
     if (!li) {
       html += '<button class="tb-btn" onclick="tbOpenLogin()">' + ic('key') + ' Login</button>';
     } else {
@@ -238,21 +283,9 @@
       return '<a class="' + cls + '" href="' + href + '">' + ic(icon) + ' ' + lbl + '</a>';
     }
     var html = '';
-    // MOBILE ONLY: the top-bar quick actions (Q3 LIVE, Q2, Upload, My Tickets) move into the menu.
-    // Quick-action shortcuts (Q3/Q2/Program History) were removed — the home page provides those.
-    // My Tickets moved to the top-bar right controls. So the menu is just the "Navigate" list.
+    // The page-navigation links now live in the bottom-left FAB stack (buildNavFabs). The menu
+    // dropdown is intentionally trimmed to just the two owner-only admin destinations.
     html += '<div class="tb-menu-label">Navigate</div>';
-    if (li) {
-      // Groups moved to the Analytics page (agent-analytics.html); no longer a dashboard view here.
-      html += view('shift-report', 'Shift Report', 'clipboard');
-    }
-    if (isAdmin) html += link('agent-analytics', 'Agent and Group Analytics', 'bar-chart', 'agent-analytics.html');
-    if (li) html += link('help-activity', 'Help Activity', 'alert', 'help-activity.html');
-    if (li && !hide.tools) html += link('tools', 'PHD Tools', 'tool', 'tools.html');
-    if (isAdmin) html += link('unique-cases', 'Unique cases', 'bar-chart', 'important-cases.html');
-    if (isAdmin) html += link('event-log', 'Live Ticket Movements', 'clock-rewind', 'event-log.html');
-    if (isAdmin) html += link('hi-resolved', 'Resolved Repeat Incidents', 'repeat', 'hi-resolved.html');
-    if (isAdmin) html += link('sla-breach', 'SLA Breaches (>240h)', 'clock', 'sla-breach.html');
     if (isOwner) html += link('users', 'Users', 'users-gear', 'users.html');
     if (isOwner) html += link('db-health', 'Database health', 'database', 'db-health.html');
     return html;
@@ -265,31 +298,18 @@
     // Hardcoded quarter buttons (regular button look): Q3 live + Q2 report.
     var live = '<a class="tb-qbtn" href="app.html" title="Go to the live dashboard">Q3 2026 · LIVE</a>'
       + '<a class="tb-qbtn" href="archive.html?ds=quarter&qid=2026-Q2" title="Q2 2026 report">Q2 2026</a>';
-    // Menu items live in a collapsible dropdown behind the hamburger (unless noNav).
-    var menu = opts.noNav ? '' : ('<div class="tb-menu" id="tbMenu"><div class="tb-menu-inner">' + navHtml(active, !!opts.inApp) + '</div></div>');
-    // Hamburger is ALWAYS shown (keeps the layout identical), but disabled when logged out.
-    var hamDisabled = loggedIn() ? '' : ' disabled aria-disabled="true"';
+    // Hamburger menu removed: navigation lives in the left FAB stack + top-right controls now.
     return ''
       + '<div class="tb-topbar">'
-        + '<button type="button" class="tb-hamburger" id="tbHamburger" aria-label="Menu" aria-expanded="false" title="' + (loggedIn() ? 'Menu' : 'Log in to use the menu') + '" onclick="tbToggleMenu()"' + hamDisabled + '><span></span><span></span><span></span></button>'
         + '<span class="tb-logo"><a class="tb-logo-link" href="index.html" title="Home"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD</span></a>' + live + '</span>'
         + '<div class="tb-right" id="tbAuth">' + rightControlsHtml() + '</div>'
-      + '</div>'
-      + menu;
+      + '</div>';
   }
 
-  // ---- Hamburger menu open/close ----
-  window.tbToggleMenu = function () {
-    var h = document.getElementById('tbHamburger'); if (h && h.disabled) return; // disabled when logged out
-    var m = document.getElementById('tbMenu'); if (!m) return;
-    var open = m.classList.toggle('open');
-    var h = document.getElementById('tbHamburger'); if (h) h.setAttribute('aria-expanded', open ? 'true' : 'false');
-  };
-  window.tbCloseMenu = function () {
-    var m = document.getElementById('tbMenu'); if (m) m.classList.remove('open');
-    var h = document.getElementById('tbHamburger'); if (h) h.setAttribute('aria-expanded', 'false');
-  };
-  // Close the menu when clicking outside it (but not on the hamburger).
+  // ---- Hamburger menu removed: keep no-op stubs so any stray onclick references don't error. ----
+  window.tbToggleMenu = function () {};
+  window.tbCloseMenu = function () {};
+  // (No hamburger close-on-outside-click listener needed anymore.)
   document.addEventListener('click', function (e) {
     var m = document.getElementById('tbMenu'); if (!m || !m.classList.contains('open')) return;
     var h = document.getElementById('tbHamburger');
@@ -917,68 +937,163 @@
       localStorage.setItem(TB_HISTORY_KEY, JSON.stringify(list));
     } catch (e) { /* history is best-effort */ }
   }
-  // Build the bottom-left history FAB + popup listing up to 5 recently visited OTHER pages.
-  function buildHistoryButton() {
-    if (document.querySelector('.tb-hist-fab')) return;
+  // Recent Activity FAB REMOVED (no longer needed). Kept as a no-op so existing callers don't break;
+  // page-visit tracking (tbTrackHistory) still runs harmlessly in the background.
+  function buildHistoryButton() { /* recent-activity FAB removed */ }
+  // Get (or create) the vertically-centered left-edge FAB column that holds Live + Analytics + nav
+  // FABs. Order inside the column, top -> bottom: nav FABs, Live, Analytics.
+  function tbFabCol() {
+    var col = document.getElementById('tbFabCol');
+    if (!col) { col = document.createElement('div'); col.id = 'tbFabCol'; col.className = 'tb-fab-col'; document.body.appendChild(col); }
+    return col;
+  }
+  // Build the vertically-centered Agent & Group Analytics FAB. Admin-gated:
+  // clickable for admins, greyed + inert otherwise. Runs on EVERY page.
+  function buildAnalyticsButton() {
+    if (document.querySelector('.tb-an-fab')) return;
+    // Don't duplicate the home page's own hardcoded analytics FAB if it's present.
+    if (document.getElementById('analyticsFab')) return;
+    var A = window.PHDAuth;
+    var isAdmin = A && A.atLeast && A.atLeast('admin');
+    var fab = document.createElement('a');
+    fab.className = 'tb-an-fab' + (isAdmin ? '' : ' tb-an-disabled');
+    fab.setAttribute('aria-label', 'Agent & Group Analytics');
+    // bar-chart icon (matches icons.js 'bar-chart').
+    fab.innerHTML = '<span class="tb-an-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>'
+      + '<span class="tb-an-label">Agent &amp; Group Analytics</span>';
+    if (isAdmin) {
+      fab.href = 'agent-analytics.html';
+      fab.title = 'Agent & Group Analytics';
+    } else {
+      fab.setAttribute('aria-disabled', 'true');
+      var li = loggedIn();
+      fab.title = li ? 'Agent & Group Analytics — admin access required' : 'Log in as admin to view Agent & Group Analytics';
+    }
+    tbFabCol().appendChild(fab); // analytics sits at the BOTTOM of the centered column
+  }
+  // Build the LIVE-QUARTER FAB (sits just above Analytics in the centered column). Blinks to signal
+  // the live quarter and links to the live dashboard (app.html). Shown on EVERY page.
+  function buildLiveButton() {
+    if (document.querySelector('.tb-live-fab')) return;
+    // The live quarter label (e.g. "Q3 2026") — from the page attribute if set, else the default.
+    var label = document.body.getAttribute('data-live-label') || 'Q3 2026';
     var li = loggedIn();
-    var fab = document.createElement('button');
-    fab.type = 'button';
-    fab.className = 'tb-hist-fab' + (li ? '' : ' tb-fab-disabled');
-    fab.title = li ? 'Recently visited pages' : 'Log in to view recent activity';
-    fab.setAttribute('aria-label', 'Recently visited pages');
-    if (!li) { fab.disabled = true; fab.setAttribute('aria-disabled', 'true'); }
-    // clock-with-arrow (history) icon
-    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>';
-    var pop = document.createElement('div');
-    pop.className = 'tb-hist-pop';
-    pop.id = 'tbHistPop';
-    fab.onclick = function (e) {
-      e.stopPropagation();
-      if (fab.disabled) return; // logged out -> inert
-      if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
-      tbRenderHistory(pop);
-      pop.classList.add('open');
-    };
-    document.body.appendChild(fab);
-    document.body.appendChild(pop);
-    // Close the popup when clicking elsewhere.
-    document.addEventListener('click', function (e) {
-      if (!pop.classList.contains('open')) return;
-      if (pop.contains(e.target) || fab.contains(e.target)) return;
-      pop.classList.remove('open');
+    var fab = document.createElement('a');
+    fab.className = 'tb-live-fab' + (li ? '' : ' tb-live-disabled');
+    fab.setAttribute('aria-label', 'Live quarter dashboard — ' + label);
+    fab.innerHTML = '<span class="tb-live-ic"><span class="tb-live-dot"></span></span>'
+      + '<span class="tb-live-label">' + label + ' &middot; LIVE</span>';
+    if (li) {
+      fab.href = 'app.html';
+      fab.title = 'Go to the live quarter dashboard (' + label + ')';
+    } else {
+      fab.setAttribute('aria-disabled', 'true');
+      fab.title = 'Log in to view the live quarter dashboard';
+    }
+    // Insert above Analytics if it's already there; otherwise just append.
+    var col = tbFabCol(); var an = col.querySelector('.tb-an-fab');
+    if (an) col.insertBefore(fab, an); else col.appendChild(fab);
+  }
+  // Build the PAGE-NAVIGATION FABs at the TOP of the centered column (above Live + Analytics). Each
+  // is an expand-on-hover pill linking to a page. Role-gated: admin-only items greyed + inert.
+  function buildNavFabs() {
+    if (document.querySelector('.tb-nav-fab')) return;
+    var li = loggedIn();
+    var isAdmin = atLeast('admin');
+    // Order top -> bottom within the nav group. need: 'li' | 'admin' | true.
+    var items = [
+      { key: 'shift-report', label: 'Shift Report',              icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
+      { key: 'help-activity', label: 'Help Activity',            icon: 'alert',        href: 'help-activity.html',         need: 'li' },
+      { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' },
+      { key: 'hi-resolved',   label: 'Resolved Repeat Incidents', icon: 'repeat',      href: 'hi-resolved.html',           need: 'admin' },
+      { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'admin' },
+      { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'li' },
+      { key: 'unique-cases',  label: 'Unique cases',              icon: 'hash',        href: 'important-cases.html',       need: 'admin' }
+    ];
+    var col = tbFabCol();
+    var anchor = col.querySelector('.tb-live-fab') || col.querySelector('.tb-an-fab'); // insert above these
+    items.forEach(function (it) {
+      var enabled = (it.need === true) || (it.need === 'li' && li) || (it.need === 'admin' && isAdmin);
+      var fab = document.createElement('a');
+      fab.className = 'tb-nav-fab' + (enabled ? '' : ' tb-nav-disabled');
+      fab.setAttribute('aria-label', it.label);
+      fab.setAttribute('data-need', it.need === true ? 'any' : it.need);
+      fab.setAttribute('data-href', it.href);
+      fab.innerHTML = '<span class="tb-nav-ic">' + ic(it.icon) + '</span>'
+        + '<span class="tb-nav-label">' + it.label + '</span>';
+      if (enabled) {
+        fab.href = it.href;
+        fab.title = it.label;
+      } else {
+        fab.setAttribute('aria-disabled', 'true');
+        fab.title = li ? (it.label + ' — admin access required') : ('Log in to view ' + it.label);
+      }
+      // Keep list order by inserting each new item just before the anchor (Live/Analytics).
+      if (anchor) col.insertBefore(fab, anchor); else col.appendChild(fab);
     });
+  }
+  // Re-apply the nav FABs' role-gated state after a background profile load (so they enable without reload).
+  function applyNavFabsState() {
+    var li = loggedIn();
+    var isAdmin = atLeast('admin');
+    document.querySelectorAll('.tb-nav-fab').forEach(function (fab) {
+      var need = fab.getAttribute('data-need');
+      if (!need) return;
+      var enabled = (need === 'any') || (need === 'li' && li) || (need === 'admin' && isAdmin);
+      var href = fab.getAttribute('data-href') || '';
+      var label = fab.getAttribute('aria-label') || '';
+      if (enabled) {
+        fab.classList.remove('tb-nav-disabled');
+        fab.removeAttribute('aria-disabled');
+        if (href) fab.href = href;
+        fab.title = label;
+      } else {
+        fab.classList.add('tb-nav-disabled');
+        fab.setAttribute('aria-disabled', 'true');
+        fab.removeAttribute('href');
+        fab.title = li ? (label + ' — admin access required') : ('Log in to view ' + label);
+      }
+    });
+    // Live FAB: enabled once logged in, disabled + inert (no blink) when logged out.
+    var liveFab = document.querySelector('.tb-live-fab');
+    if (liveFab) {
+      var lbl = document.body.getAttribute('data-live-label') || 'Q3 2026';
+      if (li) {
+        liveFab.classList.remove('tb-live-disabled');
+        liveFab.removeAttribute('aria-disabled');
+        liveFab.href = 'app.html';
+        liveFab.title = 'Go to the live quarter dashboard (' + lbl + ')';
+      } else {
+        liveFab.classList.add('tb-live-disabled');
+        liveFab.setAttribute('aria-disabled', 'true');
+        liveFab.removeAttribute('href');
+        liveFab.title = 'Log in to view the live quarter dashboard';
+      }
+    }
+  }
+  // Re-apply the analytics FAB's admin-gated state (after a background profile load / auth change),
+  // so it becomes clickable without needing a page reload. No-op on the home page (own FAB).
+  function applyAnalyticsFabState() {
+    var fab = document.querySelector('.tb-an-fab');
+    if (!fab) return;
+    var A = window.PHDAuth;
+    var isAdmin = A && A.atLeast && A.atLeast('admin');
+    if (isAdmin) {
+      fab.classList.remove('tb-an-disabled');
+      fab.removeAttribute('aria-disabled');
+      fab.href = 'agent-analytics.html';
+      fab.title = 'Agent & Group Analytics';
+    } else {
+      fab.classList.add('tb-an-disabled');
+      fab.setAttribute('aria-disabled', 'true');
+      fab.removeAttribute('href');
+      fab.title = loggedIn() ? 'Agent & Group Analytics — admin access required' : 'Log in as admin to view Agent & Group Analytics';
+    }
   }
   // Home-page MENU fab: a floating button that opens the same Navigate links as the toolbar
-  // hamburger. Shown always, but disabled (greyed, inert) until the user logs in.
-  function buildMenuButton() {
-    if (document.querySelector('.tb-menu-fab')) return;
-    var li = loggedIn();
-    var fab = document.createElement('button');
-    fab.type = 'button';
-    fab.className = 'tb-menu-fab' + (li ? '' : ' tb-fab-disabled');
-    fab.title = li ? 'Menu' : 'Log in to use the menu';
-    fab.setAttribute('aria-label', 'Menu');
-    if (!li) { fab.disabled = true; fab.setAttribute('aria-disabled', 'true'); }
-    // hamburger (three lines) icon
-    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>';
-    var pop = document.createElement('div');
-    pop.className = 'tb-menu-pop';
-    pop.id = 'tbMenuFabPop';
-    fab.onclick = function (e) {
-      e.stopPropagation();
-      if (fab.disabled) return; // logged out -> inert
-      if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
-      pop.innerHTML = '<div class="tb-hist-title">Navigate</div>' + navHtml('', false);
-      pop.classList.add('open');
-    };
-    document.body.appendChild(fab);
-    document.body.appendChild(pop);
-    document.addEventListener('click', function (e) {
-      if (!pop.classList.contains('open')) return;
-      if (pop.contains(e.target) || fab.contains(e.target)) return;
-      pop.classList.remove('open');
-    });
-  }
+  // hamburger. REMOVED: the hamburger menu is gone; navigation lives in the left FAB stack and the
+  // top-right controls now. Kept as a no-op so existing callers don't break.
+  function buildMenuButton() { /* hamburger menu removed */ }
   function tbRenderHistory(pop) {
     var here = location.pathname + location.search;
     var hereKey = tbPageKey(here);
@@ -987,7 +1102,7 @@
     if (!Array.isArray(list)) list = [];
     // Current page's title — derive it directly (handles app.html views correctly).
     var hereTitle = tbTitleFor(here, true);
-    // ALL unique pages OTHER than the current one (deduped by page key, most-recent first, no cap).
+    // Unique pages OTHER than the current one (deduped by page key, most-recent first), capped at 10.
     var seen = {}; seen[hereKey] = true; var others = [];
     list.forEach(function (x) {
       if (!x || !x.href) return;
@@ -995,6 +1110,7 @@
       if (seen[k]) return;
       seen[k] = true; others.push(x);
     });
+    others = others.slice(0, 10);
     var html = '<div class="tb-hist-title">Recently visited</div>';
     // Current page pinned at the top.
     html += '<a class="tb-hist-item tb-hist-current" href="' + tbEsc(here) + '" title="' + tbEsc(hereTitle) + '">' + tbPageIcon(here) + '<span class="tb-hist-name">' + tbEsc(hereTitle) + '</span><span class="tb-hist-badge">Current</span></a>';
@@ -1019,7 +1135,8 @@
       'agent-analytics.html': 'bar-chart', 'last24.html': 'clock', 'help-activity.html': 'alert',
       'alerts.html': 'alert', 'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
-      'important-cases.html': 'target', 'unique-cases.html': 'target', 'unique-cases-log.html': 'history',
+      'important-cases.html': 'hash', 'unique-cases.html': 'hash', 'unique-cases-log.html': 'history',
+      'station-request.html': 'map-pin',
       'users.html': 'users-gear', 'db-health.html': 'database', 'profile.html': 'users',
       'data-log.html': 'history', 'blurb-log.html': 'history', 'hashtag-log.html': 'history',
       'paging-log.html': 'history', 'archive.html': 'calendar', 'admin-guide.html': 'book',
@@ -1038,8 +1155,8 @@
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
     // recent-history quick-swap button so the feature is on EVERY page.
-    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildMenuButton(); buildHistoryButton(); return; }
-    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); return; } // app.html: back + history FABs only
+    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); return; }
+    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); return; } // app.html: back + history + analytics + live + nav FABs
 
     var oldBar = document.querySelector('.top-bar');
     var active = document.body.getAttribute('data-nav-active') || '';
@@ -1058,6 +1175,9 @@
 
     buildBackButton(); // floating back button if data-back-href is set
     buildHistoryButton(); // floating recent-history quick-swap button (bottom-left)
+    buildAnalyticsButton(); // floating Agent & Group Analytics FAB (bottom-left, above history)
+    buildLiveButton(); // floating blinking live-quarter FAB (bottom-left, above analytics)
+    buildNavFabs(); // floating page-navigation FABs (bottom-left, above the live FAB)
 
     // Right controls are already rendered from the cached user (rightControlsHtml uses A.getUser()),
     // so the avatar/role badge show immediately with NO spinner flash. Load the full profile
@@ -1067,6 +1187,8 @@
       try { if (A.loadMyProfile) await A.loadMyProfile(); } catch (e) {}
       // Only re-render if the fetched profile differs from what we already painted.
       if (A._myProfile !== beforeProfile) window.PHDNav.refreshRight();
+      applyAnalyticsFabState(); // reflect admin role on the analytics FAB once the profile is in
+      applyNavFabsState();      // reflect role gating on the nav FABs once the profile is in
     }
 
     // Quarter buttons are hardcoded in buildToolbarHtml (Q3 live + Q2), no dynamic fetch needed.

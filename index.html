@@ -215,16 +215,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:var(--tm);cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}
 .pass-eye:hover{color:var(--o)}
 #homeAuth .avatar-initial,#homeAuth img{border-radius:50%}
-/* Agent & Group Analytics FAB (bottom-left, above the recent-activity button at 22px). Circular;
-   expands to reveal the full label on hover. Admin-gated disabled state = greyed + inert. */
-.analytics-fab{position:fixed;left:22px;bottom:84px;z-index:900;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#44b9d6;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}
-.analytics-fab .analytics-fab-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}
-.analytics-fab .analytics-fab-ic svg{width:22px;height:22px}
-.analytics-fab .analytics-fab-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}
-.analytics-fab:hover{max-width:320px;border-color:#44b9d6;transform:translateY(-2px)}
-.analytics-fab:hover .analytics-fab-label{opacity:1;padding-right:18px}
-/* Disabled (non-admin / logged out): visible but muted + inert. */
-.analytics-fab.disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}
+/* (The Agent & Group Analytics FAB is provided by topbar-auth.js now — styles live there.) */
 /* Mobile: make the About block, the top card grid, and the year sections the SAME width and
    centering so they align, and tighten the vertical spacing. */
 @media (max-width:700px){
@@ -248,12 +239,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <body data-no-toolbar="true">
 <div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a><div id="homeAuth" style="margin-left:auto;display:flex;align-items:center;gap:10px"></div></div>
 
-<!-- Agent & Group Analytics quick-access FAB (bottom-left, above the recent-activity button).
-     Admin-gated: disabled (greyed) for non-admins / logged-out. Full name shows on hover. -->
-<a id="analyticsFab" class="analytics-fab" href="agent-analytics.html" aria-label="Agent & Group Analytics">
-  <span class="analytics-fab-ic" data-ic="bar-chart"></span>
-  <span class="analytics-fab-label">Agent &amp; Group Analytics</span>
-</a>
+<!-- The Agent & Group Analytics FAB is now injected by topbar-auth.js into the shared centered
+     left-edge FAB column (same as every other page), so it's no longer hardcoded here. -->
 
 <!-- Login modal (shared styles with the rest of the page) -->
 <div class="modal-bg" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
