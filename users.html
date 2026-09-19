@@ -11,43 +11,42 @@
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+/* One font everywhere: force all form controls (buttons/inputs/selects/textarea) to use the page font. */
+button,input,select,textarea{font-family:inherit}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
-.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);padding:5px 10px;font-size:.78em}
+/* All buttons use amber (var(--o)) text on a transparent/outlined base. */
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.btn:hover{background:rgba(255,153,0,.12)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--o)}
+.btn.sec:hover{border-color:var(--o);background:rgba(255,153,0,.1)}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--o);padding:5px 10px;font-size:.78em}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
 .wrap{max-width:920px;margin:0 auto;padding:44px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
 .card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:24px;margin-bottom:22px}
 .card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
-/* Collapsible cards: the h2 is the click target; a caret shows state. */
-.card>h2{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:margin .3s ease}
-.card>h2 .card-caret{color:var(--tm);font-size:.9em;transition:transform .3s ease;flex-shrink:0}
-.card.collapsed>h2{margin-bottom:0}
-.card.collapsed>h2 .card-caret{transform:rotate(-90deg)}
+.card>h2{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .card-h{display:inline-flex;align-items:center;gap:9px;min-width:0}
 .card-h svg{width:18px;height:18px;flex-shrink:0;color:var(--o)}
-/* Collapsible cards animate height via grid-template-rows (auto 1fr <-> auto 0fr), ~300ms.
-   The card content (everything after the h2) is wrapped in .card-body by wireCollapsibleCards(). */
-.card{display:grid;grid-template-rows:auto 1fr;transition:grid-template-rows .3s ease}
-.card.collapsed{grid-template-rows:auto 0fr}
-.card-body{overflow:hidden;min-height:0}
 table{width:100%;border-collapse:collapse}
 th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
 td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
 td.user{color:#fff;font-weight:600}
-.u-cell{display:flex;align-items:center;gap:10px}
+.u-cell{display:flex;align-items:center;justify-content:flex-start;gap:10px;text-align:left}
+.u-avatar-wrap{flex-shrink:0;display:inline-flex}
+.u-uname{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:600}
+/* Analyst group tag: colored outline pill using the group's accent color. */
+.u-group{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 45%,transparent)}
 .u-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--bd)}
 .u-avatar-ph{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.16);color:var(--o);font-weight:800;font-size:.9em}
 .u-name{display:flex;flex-direction:column;line-height:1.25}
 .u-dn{color:var(--tm);font-weight:400;font-size:.78em}
-select{background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;padding:6px 10px;font-size:.85em}
+select{background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;padding:6px 10px;font-size:.85em;text-align:center;text-align-last:center}
+select option{text-align:center}
 select:focus{outline:none;border-color:var(--o)}
 .badge{padding:2px 10px;border-radius:20px;font-size:.75em;text-transform:uppercase;font-weight:700}
 .badge.owner{background:rgba(167,139,250,.15);color:#a78bfa}
@@ -63,6 +62,97 @@ input:focus{outline:none;border-color:var(--o)}
 .msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 
+/* ---- Users table + per-user flag controls ---- */
+/* Card wrapper gets no inner padding so the table can go edge-to-edge. */
+.users-card{padding:0;overflow:hidden}
+.users-card>h2{padding:18px 22px;margin:0;border-bottom:1px solid var(--bd)}
+.users-scroll{overflow-x:auto}
+.users-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.9em;min-width:820px}
+.users-table th,.users-table td{padding:14px 16px;text-align:center;vertical-align:middle}
+.users-table thead th{position:sticky;top:0;background:#0d0d0d;color:var(--tm);font-size:.7em;text-transform:uppercase;letter-spacing:.5px;font-weight:700;white-space:nowrap;border-bottom:2px solid var(--bd);z-index:1}
+/* Keep the select controls from stretching full-width now that cells are centered. */
+.users-table td select{margin:0 auto}
+/* User column stays left-aligned; every other column is centered. */
+.users-table th:first-child,.users-table td:first-child{text-align:left}
+.users-table tbody td{border-bottom:1px solid rgba(255,255,255,.05)}
+.users-table tbody tr{transition:background .12s}
+.users-table tbody tr:hover{background:rgba(255,255,255,.025)}
+.users-table tbody tr:last-child td{border-bottom:none}
+/* Owner row gets a subtle accent bar on the left. */
+.users-table tbody tr.is-owner td:first-child{box-shadow:inset 3px 0 0 var(--o)}
+.users-table td.col-access{text-align:center}
+.users-table select{padding:7px 10px;max-width:130px;width:100%}
+.u-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:20px;font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.u-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.u-badge.blue{background:rgba(68,185,214,.14);color:#44b9d6}
+.u-badge.yellow{background:rgba(251,191,36,.14);color:#fbbf24}
+.u-yes{display:inline-flex;align-items:center;gap:6px;color:#4ade80;font-weight:700;font-size:.85em}
+.u-yes::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ade80}
+.u-no{display:inline-flex;align-items:center;gap:6px;color:#5f6b6c;font-weight:600;font-size:.85em}
+.u-no::before{content:"";width:7px;height:7px;border-radius:50%;background:#5f6b6c}
+.u-owner-tag{display:inline-flex;align-items:center;gap:7px;color:var(--o);font-size:.78em;font-weight:600}
+.u-owner-tag svg{width:14px;height:14px}
+.u-row-actions{display:flex;gap:8px;flex-wrap:nowrap;justify-content:center}
+/* Compact per-row action buttons (icon + label), nicer than the generic .btn. */
+.u-act{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:.78em;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s,transform .1s}
+.u-act svg{width:14px;height:14px;flex-shrink:0}
+.u-act:active{transform:translateY(1px)}
+.u-act.reset{background:rgba(255,255,255,.04);border-color:#33404d;color:var(--o)}
+.u-act.reset:hover{background:rgba(255,153,0,.1);border-color:var(--o);color:var(--o)}
+.u-act.remove{background:rgba(255,82,82,.08);border-color:rgba(255,82,82,.35);color:var(--o)}
+.u-act.remove:hover{background:rgba(255,82,82,.18);border-color:var(--rl);color:var(--o)}
+/* Toggle switch (button-driven) */
+.u-toggle{display:inline-flex;align-items:center;width:46px;height:26px;border-radius:20px;background:#242e39;border:1px solid #3a4655;cursor:pointer;padding:2px;transition:background .18s,border-color .18s}
+.u-toggle:hover{border-color:#4a5768}
+.u-toggle .u-knob{width:20px;height:20px;border-radius:50%;background:#8b98a5;transition:transform .2s cubic-bezier(.4,0,.2,1),background .18s;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.u-toggle.on{background:rgba(74,222,128,.22);border-color:#4ade80}
+.u-toggle.on:hover{border-color:#6ee7a0}
+.u-toggle.on .u-knob{transform:translateX(20px);background:#4ade80}
+/* Disabled toggle (non-owner viewer): greyed, inert, no hover reaction. */
+.u-toggle.disabled{cursor:not-allowed;opacity:.45;background:#242e39;border-color:#33404d}
+.u-toggle.disabled:hover{border-color:#33404d}
+.u-toggle.disabled.on{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.35)}
+.u-toggle.disabled .u-knob{background:#5f6b6c}
+/* Disabled action buttons (non-owner viewer). */
+.u-act.disabled{cursor:not-allowed;opacity:.4;pointer-events:none}
+/* Create-user modal */
+.cu-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.cu-modal-bg[style*="flex"]{display:flex}
+.cu-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:14px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:26px}
+.cu-modal h2{color:var(--o);font-size:1.15em;margin-bottom:4px}
+.cu-modal .cu-sub{color:#5f6b6c;font-size:.82em;margin-bottom:18px}
+.cu-fld{margin-bottom:14px}
+.cu-fld label{margin-bottom:6px}
+.cu-fld .cu-hint{color:#5f6b6c;font-size:.76em;margin-top:5px}
+.cu-row{display:flex;gap:14px;flex-wrap:wrap}
+.cu-row .cu-fld{flex:1;min-width:150px}
+.cu-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #1b2530}
+.cu-toggle-row .cu-tl{color:var(--t);font-size:.9em;font-weight:600}
+.cu-toggle-row .cu-hint{color:#5f6b6c;font-size:.76em;margin-top:3px}
+.cu-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+/* Reuse the toggle look for the modal switches (checkbox-driven). */
+.cu-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
+.cu-switch input{opacity:0;width:0;height:0}
+.cu-switch .cu-slider{position:absolute;inset:0;background:#2b3742;border:1px solid #3a4655;border-radius:20px;cursor:pointer;transition:background .15s,border-color .15s}
+.cu-switch .cu-slider::before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#8b98a5;transition:transform .18s,background .15s}
+.cu-switch input:checked + .cu-slider{background:rgba(74,222,128,.25);border-color:#4ade80}
+.cu-switch input:checked + .cu-slider::before{transform:translateX(20px);background:#4ade80}
+/* Disabled (owner-only) access toggles in the create modal for non-owner creators. */
+.cu-switch input:disabled + .cu-slider{opacity:.4;cursor:not-allowed}
+.cu-locked{opacity:.6}
+.cu-locked .cu-tl::after{content:" (owner only)";color:#5f6b6c;font-weight:500;font-size:.85em}
+/* Confirmation modal */
+.confirm-modal{max-width:440px}
+.confirm-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.confirm-head h2{margin:0;color:#fff;font-size:1.15em}
+.confirm-icon{flex-shrink:0;width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.14);color:var(--o)}
+.confirm-icon svg{width:20px;height:20px}
+.confirm-body{color:var(--t);font-size:.92em;line-height:1.55;margin:0}
+.confirm-body b{color:#fff}
+/* Danger variant (Remove): red icon + red confirm button. */
+.confirm-modal.danger .confirm-icon{background:rgba(255,82,82,.14);color:var(--rl)}
+.confirm-modal.danger #confirmOk{border-color:var(--rl);color:var(--rl)}
+.confirm-modal.danger #confirmOk:hover{background:rgba(255,82,82,.14)}
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
@@ -73,14 +163,85 @@ input:focus{outline:none;border-color:var(--o)}
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
+<!-- Create user modal -->
+<div class="cu-modal-bg" id="createUserModal" onclick="if(event.target===this)closeCreateUser()">
+  <div class="cu-modal">
+    <h2>Create user</h2>
+    <p class="cu-sub">Set the new account's details and access.</p>
+    <div class="cu-row">
+      <div class="cu-fld"><label>Username</label><input type="text" id="cuUser" autocomplete="off" placeholder="e.g. jsmith"></div>
+      <div class="cu-fld"><label>Temporary password</label><input type="text" id="cuPass" autocomplete="off" placeholder="Share with the user"></div>
+    </div>
+    <div class="cu-row">
+      <div class="cu-fld"><label>Timezone</label>
+        <select id="cuTz"><option value="IST" selected>IST</option><option value="MST">MST</option></select>
+      </div>
+      <div class="cu-fld"><label>Badge</label>
+        <select id="cuBadge"><option value="blue" selected>Blue</option><option value="yellow">Yellow</option></select>
+      </div>
+      <div class="cu-fld"><label>Analyst</label>
+        <select id="cuAnalyst"><option value="no" selected>No</option><option value="yes">Yes</option></select>
+        <div class="cu-hint">An Analyst is a person who works on PHD tickets.</div>
+      </div>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">Has access to upload new data</div><div class="cu-hint">If off, the Upload new data button is disabled for them.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuUpload"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">Can create other users</div><div class="cu-hint">If off, the Users page is disabled for them; if on, they can manage users.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuCreate"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">Has access to the Database page</div><div class="cu-hint">If off, the Database button is disabled for them; if on, they can open Database health.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuDatabase"><span class="cu-slider"></span></label>
+    </div>
+    <div class="msg err" id="cuErr" style="display:none"></div>
+    <div class="cu-actions">
+      <button class="btn sec" onclick="closeCreateUser()">Cancel</button>
+      <button class="btn" onclick="submitCreateUser()">Create user</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reusable confirmation modal (replaces native confirm()) -->
+<div class="cu-modal-bg" id="confirmModal" onclick="if(event.target===this)confirmResolve(false)">
+  <div class="cu-modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="confirm-head"><span class="confirm-icon" id="confirmIcon"></span><h2 id="confirmTitle">Confirm</h2></div>
+    <p class="confirm-body" id="confirmBody"></p>
+    <div class="cu-actions">
+      <button class="btn sec" id="confirmCancel" onclick="confirmResolve(false)">Cancel</button>
+      <button class="btn" id="confirmOk" onclick="confirmResolve(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
+// Analyst groups (display names only for analysts). Keys map to a display name + accent color.
+// Group by lowercased login. Anyone not listed (or not an analyst) has no group tag.
+const USER_GROUPS=[
+  {name:'AZA',color:'#4ade80',members:['mbozied','nobregak','mellanej']},
+  {name:'BLR',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
+  {name:'WFH',color:'#fbbf24',members:['tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb']},
+];
+// Return the group object for a username, or null if none.
+function groupOf(username){
+  const k=String(username||'').toLowerCase();
+  return USER_GROUPS.find(g=>g.members.some(m=>m.toLowerCase()===k))||null;
+}
+// Alphabetical rank of a user's group for sorting (users with no group sort last).
+function groupRank(username){
+  const g=groupOf(username);
+  if(!g)return USER_GROUPS.length; // no group -> after all groups
+  return USER_GROUPS.findIndex(x=>x.name===g.name);
+}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
-const ROLES=['user','editor','admin','manager'];// owner not assignable
+// Roles are retired — access is driven by per-user flags (badge / analyst / canUpload / canCreateUsers).
 // Section display order for grouping accounts.
 const ROLE_ORDER=['owner','manager','admin','editor','user'];
 const ROLE_TITLE={owner:'Owner',manager:'Managers',admin:'Admins',editor:'Editors',user:'Users'};
@@ -92,7 +253,7 @@ function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate">
 async function load(){
   const user=A.getUser();
   if(!user||!A.getToken()){gate('You are not logged in. Log in from the Live Dashboard first.');return;}
-  if(A.role()!=='owner'){gate('Only the owner can manage users. Your role: '+A.role()+'.');return;}
+  if(!(A.canManageUsers&&A.canManageUsers())){gate('You do not have access to manage users.');return;}
   // Cache (time-based): paint the roster instantly from cache, then refresh in the background.
   const res=await A.swrLoad({
     key:'users',
@@ -103,11 +264,7 @@ async function load(){
     if(res.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
     gate('Could not load users (HTTP '+res.status+').');return;
   }
-  loadUploadActivity();
-  loadActivity();
-  loadBlurbCopies();
-  loadHashtagCopies();
-  loadPagingCopies();
+  // Activity sections removed from this page.
 }
 
 // Owner-only: which user copied which hashtag, how many times.
@@ -217,132 +374,150 @@ function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
 
 function renderList(users){
   const wrap=document.getElementById('wrap');
+  // Managers (canCreateUsers) can create/reset/remove users and edit Timezone/Badge/Analyst.
+  // GRANTING page access (the three access toggles) is OWNER-ONLY. Server enforces the same.
+  const iAmOwner=!!(A.isOwner&&A.isOwner());
+  const canManage=!!(A.canManageUsers&&A.canManageUsers()); // owner or canCreateUsers
   // Avatar cell: uploaded pic if present, else an initials circle. Username shown beside it.
   const userCell=(u)=>{
     const initial=String(u.username||'?').charAt(0).toUpperCase();
     const pic=u.avatar
       ? '<img class="u-avatar" src="'+esc(u.avatar)+'" alt="">'
       : '<span class="u-avatar u-avatar-ph">'+esc(initial)+'</span>';
-    const name=esc(u.username)+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
-    return '<div class="u-cell">'+pic+'<span class="u-name">'+name+'</span></div>';
+    // Group tag shows only for analysts (group names are analyst-only).
+    const g=(u.analyst)?groupOf(u.username):null;
+    const tag=g?('<span class="u-group" style="--gc:'+g.color+'">'+esc(g.name)+'</span>'):'';
+    const name='<span class="u-uname">'+esc(u.username)+tag+'</span>'+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
+    return '<div class="u-cell"><span class="u-avatar-wrap">'+pic+'</span><span class="u-name">'+name+'</span></div>';
   };
-  // Row builder for a single user.
-  const tzSelect=(u)=>{
-    const tz=(u.timezone==='MST')?'MST':'IST';
-    return '<select onchange="changeTz(\''+u.id+'\',this.value,\''+u.username+'\')">'
-      +'<option value="IST"'+(tz==='IST'?' selected':'')+'>IST</option>'
-      +'<option value="MST"'+(tz==='MST'?' selected':'')+'>MST</option></select>';
+  const tzSelect=(u)=>'<select onchange="changeTz(\''+u.id+'\',this.value,\''+u.username+'\')">'
+      +'<option value="IST"'+(u.timezone!=='MST'?' selected':'')+'>IST</option>'
+      +'<option value="MST"'+(u.timezone==='MST'?' selected':'')+'>MST</option></select>';
+  const badgePill=(b)=>'<span class="u-badge '+(b==='yellow'?'yellow':'blue')+'">'+(b==='yellow'?'Yellow':'Blue')+'</span>';
+  const yesNo=(v)=>v?'<span class="u-yes">Yes</span>':'<span class="u-no">No</span>';
+  // A small on/off pill toggle for a flag. Only the owner can flip access flags; for non-owners the
+  // toggle renders disabled (greyed, no handler) with a tooltip.
+  const toggle=(u,flag)=>{
+    if(!iAmOwner){
+      return '<span class="u-toggle disabled'+(u[flag]?' on':'')+'" title="Only the owner can change page access." aria-disabled="true"><span class="u-knob"></span></span>';
+    }
+    return '<button type="button" class="u-toggle'+(u[flag]?' on':'')+'" onclick="changeFlag(\''+u.id+'\',\''+flag+'\','+(!u[flag])+',\''+u.username+'\')" aria-pressed="'+(!!u[flag])+'"><span class="u-knob"></span></button>';
   };
+  const badgeSelect=(u)=>'<select onchange="changeBadge(\''+u.id+'\',this.value,\''+u.username+'\')">'
+      +'<option value="blue"'+(u.badge!=='yellow'?' selected':'')+'>Blue</option>'
+      +'<option value="yellow"'+(u.badge==='yellow'?' selected':'')+'>Yellow</option></select>';
+  const analystSelect=(u)=>'<select onchange="changeAnalyst(\''+u.id+'\',this.value,\''+u.username+'\')">'
+      +'<option value="yes"'+(u.analyst?' selected':'')+'>Yes</option>'
+      +'<option value="no"'+(!u.analyst?' selected':'')+'>No</option></select>';
   const rowFor=(u)=>{
     if(u.role==='owner'){
-      return '<tr><td class="user">'+userCell(u)+'</td><td>'+badge('owner')+'</td><td>'+tzSelect(u)+'</td><td style="color:#5f6b6c;font-size:.82em">Owner — cannot be changed</td></tr>';
+      return '<tr class="is-owner"><td>'+userCell(u)+'</td><td>'+tzSelect(u)+'</td><td>'+badgePill(u.badge)+'</td>'
+        +'<td>'+yesNo(u.analyst)+'</td>'
+        +'<td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td>'
+        +'<td><span class="u-owner-tag">'+ic('shield',14)+'Full access</span></td></tr>';
     }
-    const opts=ROLES.map(r=>'<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+r+'</option>').join('');
-    return '<tr><td class="user">'+userCell(u)+'</td>'
-      +'<td><select onchange="changeRole(\''+u.id+'\',this.value,\''+u.username+'\')">'+opts+'</select></td>'
+    return '<tr><td>'+userCell(u)+'</td>'
       +'<td>'+tzSelect(u)+'</td>'
-      +'<td style="display:flex;gap:8px;flex-wrap:wrap">'
-        +'<button class="btn sec" style="padding:5px 10px;font-size:.78em" onclick="resetPw(\''+u.id+'\',\''+u.username+'\')">Reset password</button>'
-        +'<button class="btn danger" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">Remove</button>'
+      +'<td>'+badgeSelect(u)+'</td>'
+      +'<td>'+analystSelect(u)+'</td>'
+      +'<td class="col-access">'+toggle(u,'canUpload')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canCreateUsers')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canDatabase')+'</td>'
+      +'<td>'+(iAmOwner
+        ? '<div class="u-row-actions">'
+          +'<button type="button" class="u-act reset" onclick="resetPw(\''+u.id+'\',\''+u.username+'\')">'+ic('key',14)+'Reset password</button>'
+          +'<button type="button" class="u-act remove" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">'+ic('trash',14)+'Remove</button>'
+          +'</div>'
+        : '<div class="u-row-actions"><span class="u-act reset disabled" title="Only the owner can reset passwords." aria-disabled="true">'+ic('key',14)+'Reset password</span>'
+          +'<span class="u-act remove disabled" title="Only the owner can remove users." aria-disabled="true">'+ic('trash',14)+'Remove</span></div>')
       +'</td></tr>';
   };
-  // Group users by role and render a section per role in ROLE_ORDER.
-  const byRole={};users.forEach(u=>{(byRole[u.role]=byRole[u.role]||[]).push(u);});
-  let sectionsHtml='';
-  ROLE_ORDER.forEach(role=>{
-    const group=(byRole[role]||[]).sort((a,b)=>a.username.localeCompare(b.username));
-    if(!group.length)return;
-    sectionsHtml+=`<div class="card">
-      <h2><span class="card-h">${ic(ROLE_ICON[role]||'users')} ${ROLE_TITLE[role]||role} (${group.length})</span></h2>
-      <table><thead><tr><th>Username</th><th>Role</th><th>Timezone</th><th></th></tr></thead><tbody>${group.map(rowFor).join('')}</tbody></table>
-    </div>`;
+  // Single Users section: owner first, then analysts grouped by team (groups alphabetical: AZA, BLR,
+  // WFH), then everyone without a group. Within a group, sort by username.
+  const sorted=users.slice().sort((a,b)=>{
+    if(a.role==='owner')return -1;
+    if(b.role==='owner')return 1;
+    const ra=groupRank(a.analyst?a.username:''), rb=groupRank(b.analyst?b.username:'');
+    if(ra!==rb)return ra-rb;
+    return a.username.localeCompare(b.username);
   });
+  const rows=sorted.map(rowFor).join('');
   wrap.innerHTML=`
-    <h1>User Management</h1>
-    <p class="sub">Owner only. Accounts are grouped by role. The owner account cannot be changed or removed.</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <h1 style="margin:0">User Management</h1>
+      ${canManage
+        ? `<button class="btn" onclick="openCreateUser()">${ic('plus',15)} Create user</button>`
+        : `<button class="btn" disabled title="You do not have access to create users." style="opacity:.5;cursor:not-allowed">${ic('plus',15)} Create user</button>`}
+    </div>
+    <p class="sub">${iAmOwner
+      ? 'Manage accounts and their access. The owner account cannot be changed or removed.'
+      : 'Create users and edit timezone, badge and analyst. Only the owner can grant page access or reset and remove users.'}</p>
     <div class="msg err" id="listErr"></div>
     <div class="msg ok" id="listOk"></div>
-    <div class="card" id="addUserCard">
-      <h2><span class="card-h">${ic('plus')} Add User</span></h2>
-      <div class="form-row">
-        <div class="fld"><label>Username</label><input type="text" id="nUser" autocomplete="off"></div>
-        <div class="fld"><label>Temporary password</label><input type="text" id="nPass" autocomplete="off"></div>
-        <div class="fld" style="max-width:150px"><label>Role</label>
-          <select id="nRole">${ROLES.map(r=>'<option value="'+r+'"'+(r==='admin'?' selected':'')+'>'+r+'</option>').join('')}</select>
-        </div>
-        <div class="fld" style="max-width:130px"><label>Timezone</label>
-          <select id="nTz"><option value="IST" selected>IST</option><option value="MST">MST</option></select>
-        </div>
-        <button class="btn" onclick="addUser()">Add</button>
-      </div>
-      <div class="msg err" id="addErr"></div>
-      <div class="msg ok" id="addOk"></div>
-      <p style="color:#5f6b6c;font-size:.78em;margin-top:12px">Tell the new user their temporary password; they can change it on their Profile page.</p>
-    </div>
-    ${sectionsHtml}
-    <div class="card">
-      <h2><span class="card-h">${ic('history')} Upload Activity</span></h2>
-      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Every data upload / publish — who, when, and what changed. Newest first.</p>
-      <div id="uploadActivityBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
-    </div>
-    <div class="card">
-      <h2><span class="card-h">${ic('lock')} Account Activity</span></h2>
-      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Password changes are recorded here — who and when (never the password). Newest first.</p>
-      <div id="activityBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
-    </div>
-    <div class="card">
-      <h2><span class="card-h">${ic('clipboard')} Blurb Copy Activity</span></h2>
-      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which blurb, and how many times. Most-copied first.</p>
-      <div id="blurbCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
-    </div>
-    <div class="card">
-      <h2><span class="card-h">${ic('hash')} Hashtag Copy Activity</span></h2>
-      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which hashtag, and how many times. Most-copied first.</p>
-      <div id="hashtagCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
-    </div>
-    <div class="card">
-      <h2><span class="card-h">${ic('mail')} Paging Copy Activity</span></h2>
-      <p style="color:#5f6b6c;font-size:.8em;margin:-8px 0 14px">Which user copied which paging email, and how many times. Most-copied first.</p>
-      <div id="pagingCopyBox"><p style="color:#5f6b6c;font-size:.85em">Loading…</p></div>
+    <div class="card users-card">
+      <h2><span class="card-h">${ic('users')} Users (${users.length})</span></h2>
+      <div class="users-scroll"><table class="users-table"><thead><tr>
+        <th>User</th><th>Timezone</th><th>Badge</th><th>Analyst</th>
+        <th class="col-access">Upload access</th><th class="col-access">Create users</th><th class="col-access">Database page</th>
+        <th>Actions</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>
     </div>`;
-  wireCollapsibleCards();
-}
-
-// Make every .card collapsible: add a caret to its h2 and toggle .collapsed on click.
-// All start COLLAPSED by default except the Add User card (#addUserCard).
-function wireCollapsibleCards(){
-  document.querySelectorAll('#wrap .card').forEach(function(card){
-    var h2=card.querySelector('h2'); if(!h2||h2.querySelector('.card-caret'))return;
-    var caret=document.createElement('span'); caret.className='card-caret'; caret.textContent='▾'; caret.setAttribute('aria-hidden','true');
-    h2.appendChild(caret);
-    h2.setAttribute('role','button'); h2.setAttribute('tabindex','0');
-    // Wrap everything after the h2 into a .card-body so the card can animate its height (grid-rows).
-    var body=document.createElement('div'); body.className='card-body';
-    var n=h2.nextSibling; while(n){ var next=n.nextSibling; body.appendChild(n); n=next; }
-    card.appendChild(body);
-    h2.addEventListener('click',function(){ card.classList.toggle('collapsed'); });
-    h2.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.classList.toggle('collapsed'); } });
-    if(card.id!=='addUserCard')card.classList.add('collapsed');   // collapse all except Add User
-  });
 }
 
 function flash(id,msg,kind){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},4000);}
 
-async function changeRole(id,role,username){
-  const r=await A.api('PATCH','/api/users/'+id+'/role',{role});
-  if(r.ok)flash('listOk',username+' is now '+role+'.','ok');
-  else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');load();}
+// ---- Reusable confirmation modal (promise-based; replaces native confirm()) ----
+let _confirmCb=null, _confirmKeyHandler=null;
+// opts: { title, body (HTML allowed), okLabel, danger:bool, icon:iconName }. Resolves true/false.
+function uiConfirm(opts){
+  opts=opts||{};
+  const modal=document.getElementById('confirmModal');
+  const box=modal.querySelector('.confirm-modal');
+  document.getElementById('confirmTitle').textContent=opts.title||'Confirm';
+  document.getElementById('confirmBody').innerHTML=opts.body||'Are you sure?';
+  document.getElementById('confirmIcon').innerHTML=(window.icon?window.icon(opts.icon||'shield',20):'');
+  const ok=document.getElementById('confirmOk');
+  ok.textContent=opts.okLabel||'Confirm';
+  box.classList.toggle('danger',!!opts.danger);
+  modal.style.display='flex';
+  setTimeout(function(){ ok.focus(); },40);
+  // Esc cancels, Enter confirms.
+  _confirmKeyHandler=function(e){ if(e.key==='Escape')confirmResolve(false); else if(e.key==='Enter'){e.preventDefault();confirmResolve(true);} };
+  document.addEventListener('keydown',_confirmKeyHandler);
+  return new Promise(function(resolve){ _confirmCb=resolve; });
 }
+function confirmResolve(val){
+  const modal=document.getElementById('confirmModal');
+  if(modal)modal.style.display='none';
+  if(_confirmKeyHandler){document.removeEventListener('keydown',_confirmKeyHandler);_confirmKeyHandler=null;}
+  const cb=_confirmCb; _confirmCb=null;
+  if(cb)cb(!!val);
+}
+window.confirmResolve=confirmResolve;
+
 async function delUser(id,username){
-  if(!confirm('Remove user "'+username+'"? This cannot be undone.'))return;
+  const ok=await uiConfirm({
+    title:'Remove user',
+    body:'Remove user <b>'+esc(username)+'</b>? This cannot be undone.',
+    okLabel:'Remove',
+    danger:true,
+    icon:'trash'
+  });
+  if(!ok)return;
   const r=await A.api('DELETE','/api/users/'+id);
   if(r.ok){flash('listOk','Removed '+username+'.','ok');load();}
   else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
 }
 async function resetPw(id,username){
-  if(!confirm('Reset password for "'+username+'" to "'+username+'@123"? They should change it after logging in.'))return;
+  const ok=await uiConfirm({
+    title:'Reset password',
+    body:'Reset password for <b>'+esc(username)+'</b> to <b>'+esc(username)+'@123</b>? They should change it after logging in.',
+    okLabel:'Reset password',
+    icon:'key'
+  });
+  if(!ok)return;
   const r=await A.api('POST','/api/users/'+id+'/reset-password',{});
-  if(r.ok){flash('listOk','Password for '+username+' reset to '+username+'@123.','ok');loadActivity();}
+  if(r.ok){flash('listOk','Password for '+username+' reset to '+username+'@123.','ok');}
   else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
 }
 async function changeTz(id,timezone,username){
@@ -350,16 +525,66 @@ async function changeTz(id,timezone,username){
   if(r.ok)flash('listOk',username+"'s timezone is now "+timezone+'.','ok');
   else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');load();}
 }
-async function addUser(){
-  const username=document.getElementById('nUser').value.trim();
-  const password=document.getElementById('nPass').value;
-  const role=document.getElementById('nRole').value;
-  const timezone=document.getElementById('nTz').value;
-  if(!username||!password){flash('addErr','Enter username and password.','err');return;}
-  const r=await A.api('POST','/api/users',{username,password,role,timezone});
-  if(r.ok){flash('addOk','Created '+username+' ('+role+', '+timezone+').','ok');document.getElementById('nUser').value='';document.getElementById('nPass').value='';load();}
-  else flash('addErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+// ---- Per-user flag edits (badge / analyst / canUpload / canCreateUsers) ----
+async function patchFlags(id,body,username,okMsg){
+  const r=await A.api('PATCH','/api/users/'+id+'/flags',body);
+  if(r.ok)flash('listOk',okMsg,'ok');
+  else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');}
+  load();
 }
+function changeBadge(id,badge,username){ patchFlags(id,{badge},username,username+"'s badge is now "+badge+'.'); }
+function changeAnalyst(id,val,username){ const analyst=(val==='yes'); patchFlags(id,{analyst},username,username+(analyst?' is now an Analyst.':' is no longer an Analyst.')); }
+function changeFlag(id,flag,value,username){
+  const label=(flag==='canUpload')?'upload access':(flag==='canDatabase')?'Database page access':'user-management access';
+  patchFlags(id,{[flag]:value},username,username+(value?' now has ':' no longer has ')+label+'.');
+}
+window.changeBadge=changeBadge; window.changeAnalyst=changeAnalyst; window.changeFlag=changeFlag;
+
+// ---- Create-user modal ----
+function openCreateUser(){
+  // Requires canCreateUsers. Guard against direct invocation without access.
+  if(!(A.canManageUsers&&A.canManageUsers())){ flash('listErr','You do not have access to create users.','err'); return; }
+  // Granting access is owner-only: for non-owner creators, the three access toggles are disabled
+  // (they can create a user, but can't grant Upload / Create users / Database access).
+  const ownerCreating=!!(A.isOwner&&A.isOwner());
+  ['cuUpload','cuCreate','cuDatabase'].forEach(function(id){
+    const el=document.getElementById(id); if(!el)return;
+    el.disabled=!ownerCreating; el.checked=false;
+    const row=el.closest('.cu-toggle-row'); if(row)row.classList.toggle('cu-locked',!ownerCreating);
+  });
+  document.getElementById('cuErr').style.display='none';
+  document.getElementById('cuUser').value='';
+  document.getElementById('cuPass').value='';
+  document.getElementById('cuTz').value='IST';
+  document.getElementById('cuBadge').value='blue';
+  document.getElementById('cuAnalyst').value='no';
+  document.getElementById('cuUpload').checked=false;
+  document.getElementById('cuUpload').setAttribute('aria-pressed','false');
+  document.getElementById('cuCreate').checked=false;
+  document.getElementById('cuCreate').setAttribute('aria-pressed','false');
+  document.getElementById('cuDatabase').checked=false;
+  document.getElementById('cuDatabase').setAttribute('aria-pressed','false');
+  document.getElementById('createUserModal').style.display='flex';
+  setTimeout(function(){document.getElementById('cuUser').focus();},40);
+}
+function closeCreateUser(){document.getElementById('createUserModal').style.display='none';}
+window.openCreateUser=openCreateUser; window.closeCreateUser=closeCreateUser;
+async function submitCreateUser(){
+  const username=document.getElementById('cuUser').value.trim();
+  const password=document.getElementById('cuPass').value;
+  const timezone=document.getElementById('cuTz').value;
+  const badge=document.getElementById('cuBadge').value;
+  const analyst=(document.getElementById('cuAnalyst').value==='yes');
+  const canUpload=document.getElementById('cuUpload').checked;
+  const canCreateUsers=document.getElementById('cuCreate').checked;
+  const canDatabase=document.getElementById('cuDatabase').checked;
+  const err=document.getElementById('cuErr');
+  if(!username||!password){err.textContent='Username and temporary password are required.';err.style.display='block';return;}
+  const r=await A.api('POST','/api/users',{username,password,timezone,badge,analyst,canUpload,canCreateUsers,canDatabase});
+  if(r.ok){closeCreateUser();flash('listOk','Created '+username+'.','ok');load();}
+  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+}
+window.submitCreateUser=submitCreateUser;
 load();
 </script>
 </body>

@@ -14,24 +14,23 @@
 @keyframes spin{100%{transform:rotate(360deg)}}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+/* One font everywhere: force all form controls to use the page font. */
+button,input,select,textarea{font-family:inherit}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
+/* All buttons use amber (var(--o)) text on a transparent/outlined base. */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.btn:hover{background:rgba(255,153,0,.12)}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--o)}
+.btn.sec:hover{border-color:var(--o);color:var(--o);background:rgba(255,153,0,.1)}
 .btn.mini{padding:5px 12px;font-size:.78em}
-/* Actions-cell buttons: amber font, tinted background, distinct color per button.
-   On hover a white background appears -> switch text to a dark shade so it stays readable. */
+/* Actions-cell buttons: amber font on a tinted amber base. Hover deepens the tint (text stays amber). */
 td.mt-actions .btn,td.mt-actions .btn.sec{background:rgba(255,153,0,.12);border:1px solid rgba(255,153,0,.4);color:var(--o);font-weight:600}
-td.mt-actions .btn:hover{background:#fff;color:#b45309;border-color:#fff}
-/* Incident-log button (the second, .sec) gets a distinct cyan accent. */
-td.mt-actions .btn.sec{background:rgba(68,185,214,.12);border-color:rgba(68,185,214,.45);color:#44b9d6}
-td.mt-actions .btn.sec:hover{background:#fff;color:#0b5f74;border-color:#fff}
-.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
-.btn.danger:hover{background:rgba(255,82,82,.12)}
+td.mt-actions .btn:hover,td.mt-actions .btn.sec:hover{background:rgba(255,153,0,.22);color:var(--o);border-color:var(--o)}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--o)}
+.btn.danger:hover{background:rgba(255,82,82,.12);color:var(--o)}
 .wrap{width:95%;max-width:none;margin:0 auto;padding:36px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}

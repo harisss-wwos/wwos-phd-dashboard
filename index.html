@@ -211,8 +211,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .home-profile-btn:hover{border-color:var(--o);transform:translateY(-1px)}
 @keyframes tbFabGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 /* Users / Database health buttons on the home bar — matched to the shared .tb-btn but disabled. */
-.home-tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--bd);border-radius:6px;font-size:.82em;font-weight:600;white-space:nowrap}
-.home-tb-btn.disabled{color:#5f6b6c;background:#101720;border-color:#242e39;cursor:not-allowed;opacity:.75}
+.home-tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid var(--bd);border-radius:6px;font-size:.82em;font-weight:600;white-space:nowrap;color:var(--t);text-decoration:none;transition:border-color .15s,color .15s}
+.home-tb-btn:hover{border-color:var(--o);color:var(--o)}
+.home-tb-btn.disabled,.home-tb-btn.disabled:hover{color:#5f6b6c;background:#101720;border-color:#242e39;cursor:not-allowed;opacity:.75}
 @media(max-width:920px){.home-tb-btn .home-tb-lbl{display:none}.home-tb-btn{padding:8px 10px}}
 .home-profile-name{font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .pass-wrap{position:relative}
@@ -399,8 +400,8 @@ function ic(n,s){ return (typeof window.icon==='function') ? window.icon(n,s||15
 function applyAgentCardState(){
   var fab = document.getElementById('analyticsFab');
   if(!fab || !A) return;
-  var isAdmin = A.atLeast && A.atLeast('admin');
-  if(isAdmin){
+  var loggedIn = A.getUser && A.getUser();
+  if(loggedIn){
     fab.classList.remove('disabled');
     fab.removeAttribute('aria-disabled');
     fab.setAttribute('href','agent-analytics.html');
@@ -409,8 +410,7 @@ function applyAgentCardState(){
     fab.classList.add('disabled');
     fab.setAttribute('aria-disabled','true');
     fab.removeAttribute('href'); // not navigable
-    var loggedIn = A.getUser && A.getUser();
-    fab.setAttribute('title', loggedIn ? 'Agent & Group Analytics — admin access required' : 'Log in as admin to view Agent & Group Analytics');
+    fab.setAttribute('title', 'Log in to view Agent & Group Analytics');
   }
 }
 function renderHomeAuth(){
@@ -426,12 +426,21 @@ function renderHomeAuth(){
   var avatar = A.avatarHtml ? A.avatarHtml(prof, 44) : '';
   var esc = function(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});};
   var name = (prof && (prof.displayName || prof.username)) || 'Profile';
-  // Users + Database health are shown here (matching the shared top bar) but DISABLED on the home
-  // page — not navigable from here. The profile button (name + avatar) follows.
-  var disReason='Not allowed to access from the home page for now.';
+  // Access-flag-driven buttons. Users -> canManageUsers(); Database health -> canDatabase() (owner always).
+  // Both are enabled when allowed, otherwise greyed with a "no access" tooltip. When logged out the flag
+  // helpers return false, so both render disabled. (Upload was removed from the home bar per design.)
+  var canUsers  = A.canManageUsers && A.canManageUsers();
+  var canDb     = A.canDatabase && A.canDatabase();
+  var noUsrMsg = 'You do not have access to manage users.';
+  var noDbMsg  = 'You do not have access to Database health.';
+  var usersBtn = canUsers
+    ? '<a class="home-tb-btn" href="users.html" title="Users">'+ic('users-gear',15)+'<span class="home-tb-lbl"> Users</span></a>'
+    : '<span class="home-tb-btn disabled" title="'+noUsrMsg+'" aria-disabled="true">'+ic('users-gear',15)+'<span class="home-tb-lbl"> Users</span></span>';
+  var dbBtn = canDb
+    ? '<a class="home-tb-btn" href="db-health.html" title="Database health">'+ic('database',15)+'<span class="home-tb-lbl"> Database health</span></a>'
+    : '<span class="home-tb-btn disabled" title="'+noDbMsg+'" aria-disabled="true">'+ic('database',15)+'<span class="home-tb-lbl"> Database health</span></span>';
   slot.innerHTML =
-    '<span class="home-tb-btn disabled" title="'+disReason+'" aria-disabled="true">'+ic('users-gear',15)+'<span class="home-tb-lbl"> Users</span></span>'+
-    '<span class="home-tb-btn disabled" title="'+disReason+'" aria-disabled="true">'+ic('database',15)+'<span class="home-tb-lbl"> Database health</span></span>'+
+    usersBtn + dbBtn +
     '<a class="home-profile-btn" href="profile.html" title="'+esc(name)+' — Profile">'+
       '<span class="home-profile-name">'+esc(name)+'</span>'+avatar+
     '</a>';
@@ -479,6 +488,8 @@ async function homeDoLogin(){
   var loggedIn=A && A.getUser && A.getUser();
   if(loggedIn && slot){ slot.innerHTML='<span class="avatar-spinner" title="Loading profile…"></span>'; }
   try{ if(loggedIn && A.loadMyProfile) await A.loadMyProfile(); }catch(e){}
+  // Pull fresh /api/me so access flags (canUpload/canCreateUsers) are current even for older sessions.
+  try{ if(loggedIn && A._refreshMe) await A._refreshMe(); }catch(e){}
   renderHomeAuth();
 })();
 // Allow Enter to submit the login form.

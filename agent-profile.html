@@ -262,9 +262,9 @@ const ROLE_LABEL={owner:'Owner',admin:'Admin',manager:'Manager',editor:'Editor',
 // PHD teams (mirror of the GROUPS list in agent-analytics.html) — used to show the current
 // agent's group mates as avatar links in the top-right corner.
 const GROUPS=[
-  {name:'Alpha',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
-  {name:'Beta', color:'#4ade80',members:['mbozied','nobregak','mellanej']},
-  {name:'Gamma',color:'#fbbf24',members:['tanviroo','urmahala','obalasut','shaavhad','chousoud','dbiswamb']},
+  {name:'BLR',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
+  {name:'AZA', color:'#4ade80',members:['mbozied','nobregak','mellanej']},
+  {name:'WFH',color:'#fbbf24',members:['tanviroo','urmahala','obalasut','shaavhad','chousoud','dbiswamb']},
 ];
 function findGroup(login){ const k=String(login).toLowerCase(); return GROUPS.find(g=>g.members.some(m=>m.toLowerCase()===k))||null; }
 // Shimmer placeholders for the group-mate avatars while roles/avatars load.
@@ -317,8 +317,6 @@ function pageSkeletonHtml(login){
 
 function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
-  // Agent profiles are viewable by admin and above (same as Agent Analytics).
-  if(!(A.atLeast&&A.atLeast('admin'))){gate('Admin, manager, or owner access required. Your role: '+(A.role?A.role():'user')+'.');return;}
   const login=loginFromUrl();
   if(!login){gate('No agent specified.');return;}
   PROFILE_LOGIN=login;

@@ -75,6 +75,9 @@
       + '.tb-menu-divider{height:1px;background:#2a2a2a;margin:6px 8px}'
       + '.tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit;white-space:nowrap}'
       + '.tb-btn:hover{border-color:#ff9900;color:#ff9900}'
+      // Disabled top-bar button (shown to everyone, but not accessible): greyed + inert.
+      + '.tb-btn-disabled{color:#5f6b6c;background:#101720;border-color:#242e39;cursor:not-allowed;opacity:.7}'
+      + '.tb-btn-disabled:hover{color:#5f6b6c;border-color:#242e39}'
       + '.tb-btn svg{flex-shrink:0}'
       // When the bar gets tight, buttons collapse to icon-only (label hidden; title gives the tooltip).
       + '@media(max-width:1024px){.tb-btn .tb-btn-label{display:none}.tb-btn{padding:8px 10px;gap:0}}'
@@ -244,16 +247,24 @@
     // narrow screens (see the responsive rule that hides .tb-btn-label).
     // Upload new data (admin+, standalone pages only). On the live dashboard (app.html) the Upload
     // button lives in the page-title row between Alerts and Uploaded data log, so it's omitted here.
-    if (isAdmin && !inApp) {
+    // Upload new data — gated by the per-user canUpload flag (owner always allowed). Standalone pages only.
+    var canUpload = A.canUpload && A.canUpload();
+    var canManageUsers = A.canManageUsers && A.canManageUsers();
+    if (canUpload && !inApp) {
       html += '<button type="button" class="tb-btn tb-movable" title="Upload new data" onclick="tbUploadIntro(\'standalone\')">' + ic('upload') + '<span class="tb-btn-label"> Upload new data</span></button><input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">';
     }
     // My Tickets (logged-in). On the live dashboard (app.html) it lives in the page-title row next to
     // Alerts / Upload / Uploaded data log, so it's omitted here to avoid a duplicate.
     if (li && !inApp) html += '<a class="tb-btn tb-movable" href="my-tickets.html" title="My Tickets">' + ic('ticket') + '<span class="tb-btn-label"> My Tickets</span></a>';
-    // Users + Database health (owner-only) sit here in the top-right, just left of the avatar.
-    var isOwner = atLeast('owner');
-    if (isOwner) html += '<a class="tb-btn" href="users.html" title="Users">' + ic('users-gear') + '<span class="tb-btn-label"> Users</span></a>';
-    if (isOwner) html += '<a class="tb-btn" href="db-health.html" title="Database health">' + ic('database') + '<span class="tb-btn-label"> Database health</span></a>';
+    // Users + Database health are shown to EVERY logged-in user, but only enabled for those allowed.
+    // Users -> canManageUsers flag; Database health -> canDatabase flag (owner always). Others see a disabled (greyed) button.
+    var canDatabase = A.canDatabase && A.canDatabase();
+    if (li) {
+      if (canManageUsers) html += '<a class="tb-btn" href="users.html" title="Users">' + ic('users-gear') + '<span class="tb-btn-label"> Users</span></a>';
+      else html += '<span class="tb-btn tb-btn-disabled" title="You do not have access to manage users." aria-disabled="true">' + ic('users-gear') + '<span class="tb-btn-label"> Users</span></span>';
+      if (canDatabase) html += '<a class="tb-btn" href="db-health.html" title="Database health">' + ic('database') + '<span class="tb-btn-label"> Database health</span></a>';
+      else html += '<span class="tb-btn tb-btn-disabled" title="You do not have access to Database health." aria-disabled="true">' + ic('database') + '<span class="tb-btn-label"> Database health</span></span>';
+    }
     // (Refresh button removed from the top bar per design.)
     if (!li) {
       html += '<button class="tb-btn" onclick="tbOpenLogin()">' + ic('key') + ' Login</button>';
@@ -296,8 +307,8 @@
     // The page-navigation links now live in the bottom-left FAB stack (buildNavFabs). The menu
     // dropdown is intentionally trimmed to just the two owner-only admin destinations.
     html += '<div class="tb-menu-label">Navigate</div>';
-    if (isOwner) html += link('users', 'Users', 'users-gear', 'users.html');
-    if (isOwner) html += link('db-health', 'Database health', 'database', 'db-health.html');
+    if (A.canManageUsers && A.canManageUsers()) html += link('users', 'Users', 'users-gear', 'users.html');
+    if (A.canDatabase && A.canDatabase()) html += link('db-health', 'Database health', 'database', 'db-health.html');
     return html;
   }
 
@@ -964,20 +975,19 @@
     // Don't duplicate the home page's own hardcoded analytics FAB if it's present.
     if (document.getElementById('analyticsFab')) return;
     var A = window.PHDAuth;
-    var isAdmin = A && A.atLeast && A.atLeast('admin');
+    var li = loggedIn();
     var fab = document.createElement('a');
-    fab.className = 'tb-an-fab' + (isAdmin ? '' : ' tb-an-disabled');
+    fab.className = 'tb-an-fab' + (li ? '' : ' tb-an-disabled');
     fab.setAttribute('aria-label', 'Agent & Group Analytics');
     // bar-chart icon (matches icons.js 'bar-chart').
     fab.innerHTML = '<span class="tb-an-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>'
       + '<span class="tb-an-label">Agent &amp; Group Analytics</span>';
-    if (isAdmin) {
+    if (li) {
       fab.href = 'agent-analytics.html';
       fab.title = 'Agent & Group Analytics';
     } else {
       fab.setAttribute('aria-disabled', 'true');
-      var li = loggedIn();
-      fab.title = li ? 'Agent & Group Analytics — admin access required' : 'Log in as admin to view Agent & Group Analytics';
+      fab.title = 'Log in to view Agent & Group Analytics';
     }
     tbFabCol().appendChild(fab); // analytics sits at the BOTTOM of the centered column
   }
@@ -1015,10 +1025,10 @@
       { key: 'shift-report', label: 'Shift Report',              icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
       { key: 'help-activity', label: 'Alerts and Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' },
       { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' },
-      { key: 'hi-resolved',   label: 'Resolved Repeat Incidents', icon: 'repeat',      href: 'hi-resolved.html',           need: 'admin' },
-      { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'admin' },
+      { key: 'hi-resolved',   label: 'Resolved Repeat Incidents', icon: 'repeat',      href: 'hi-resolved.html',           need: 'li' },
+      { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'li' },
       { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'li' },
-      { key: 'unique-cases',  label: 'Unique cases',              icon: 'hash',        href: 'important-cases.html',       need: 'admin' },
+      { key: 'unique-cases',  label: 'Unique cases',              icon: 'hash',        href: 'important-cases.html',       need: 'li' },
       { key: 'archive',       label: 'Program History (Archive)', icon: 'calendar',    href: 'archive.html',               need: 'li' }
     ];
     var col = tbFabCol();
@@ -1106,9 +1116,7 @@
   function applyAnalyticsFabState() {
     var fab = document.querySelector('.tb-an-fab');
     if (!fab) return;
-    var A = window.PHDAuth;
-    var isAdmin = A && A.atLeast && A.atLeast('admin');
-    if (isAdmin) {
+    if (loggedIn()) {
       fab.classList.remove('tb-an-disabled');
       fab.removeAttribute('aria-disabled');
       fab.href = 'agent-analytics.html';
@@ -1117,7 +1125,7 @@
       fab.classList.add('tb-an-disabled');
       fab.setAttribute('aria-disabled', 'true');
       fab.removeAttribute('href');
-      fab.title = loggedIn() ? 'Agent & Group Analytics — admin access required' : 'Log in as admin to view Agent & Group Analytics';
+      fab.title = 'Log in to view Agent & Group Analytics';
     }
   }
   // Home-page MENU fab: a floating button that opens the same Navigate links as the toolbar
@@ -1230,8 +1238,11 @@
     if (loggedIn()) {
       var beforeProfile = A._myProfile;
       try { if (A.loadMyProfile) await A.loadMyProfile(); } catch (e) {}
-      // Only re-render if the fetched profile differs from what we already painted.
-      if (A._myProfile !== beforeProfile) window.PHDNav.refreshRight();
+      // Refresh /api/me so the per-user access flags (canUpload/canCreateUsers) are current even for
+      // sessions cached before the flags existed. Then re-render the controls + FABs so the Upload /
+      // Users buttons enable without needing a re-login.
+      try { if (A._refreshMe) await A._refreshMe(); else if (A.getMe) await A.getMe(); } catch (e) {}
+      window.PHDNav.refreshRight();
       applyAnalyticsFabState(); // reflect admin role on the analytics FAB once the profile is in
       applyNavFabsState();      // reflect role gating on the nav FABs once the profile is in
     }

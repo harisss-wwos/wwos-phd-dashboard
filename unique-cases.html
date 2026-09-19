@@ -406,7 +406,6 @@ window.doDelete=doDelete;
 // ================= Boot =================
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
-  if(!(A.atLeast&&A.atLeast('admin'))){gate('This page is for admins and above. Your role: '+(A.role?A.role():'user')+'.');return;}
   try{MY_TZ=await A.myTimezone();}catch(e){}
   document.getElementById('wrap').innerHTML=pageShell();
   renderCasesTab(); // default tab

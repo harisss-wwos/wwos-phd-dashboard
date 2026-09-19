@@ -363,8 +363,7 @@ async function openBucket(username){
 function closeBucket(){document.getElementById('bucketModal').style.display='none';}
 
 async function load(){
-  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in admins. Log in from the Live Dashboard first.');return;}
-  if(!A.atLeast('admin')){gate('Admin, manager, or owner access required. Your role: '+A.role()+'.');return;}
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   // Paint the full layout IMMEDIATELY (hardcoded labels + shimmer for the data bits) — no full-page spinner.
   render();
   try{MY_TZ=await A.myTimezone();}catch(e){}
@@ -388,9 +387,9 @@ function applyStats(d){
 }
 // ---- Group membership (Alpha / Beta / Gamma). Login IDs; display names/avatars fetched below. ----
 const GROUPS=[
-  {name:'Alpha',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
-  {name:'Beta', color:'#4ade80',members:['mbozied','nobregak','mellanej']},
-  {name:'Gamma',color:'#fbbf24',members:['tanviroo','urmahala','obalasut','shaavhad','chousoud','dbiswamb']},
+  {name:'BLR',color:'#7dd3fc',members:['harisss','punithsd','arunkzn','flofalgu']},
+  {name:'AZA', color:'#4ade80',members:['mbozied','nobregak','mellanej']},
+  {name:'WFH',color:'#fbbf24',members:['tanviroo','urmahala','obalasut','shaavhad','chousoud','dbiswamb']},
 ];
 let GROUP_PROFILES={}; // lowercased login -> { username, displayName, avatar }
 
@@ -478,7 +477,7 @@ function render(){
           </button>
           <div class="gv-card-body"><div>
             <div class="ga-filters ga-center">
-              <div class="ga-fgroup ga-inline"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">${[['A1','Alpha (A)'],['B','Beta (B)'],['A2','Gamma (G)']].map(g=>`<label class="ga-opt checked"><input type="checkbox" name="qGroup" value="${g[0]}" checked onchange="qOnGroupChange()"> ${g[1]}</label>`).join('')}</div></div>
+              <div class="ga-fgroup ga-inline"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">${[['A1','BLR'],['B','AZA'],['A2','WFH']].map(g=>`<label class="ga-opt checked"><input type="checkbox" name="qGroup" value="${g[0]}" checked onchange="qOnGroupChange()"> ${g[1]}</label>`).join('')}</div></div>
             </div>
             <div id="queueTableBody"><div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div></div>
           </div></div>
@@ -539,9 +538,9 @@ function gvComputeMetrics(data){
 // Group Analytics is split into collapsible sections that each fetch ONLY when first expanded.
 // They all share ONE /api/live-quarter fetch (the heavy ~8k-ticket blob) — loaded lazily on the
 // first expand and cached, so nothing loads on page open and later sections reuse the same data.
-const GN={A1:'Alpha',A2:'Gamma',B:'Beta'}, GC={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'}, GTC={A1:'a1',A2:'a2',B:'b'};
-// Short one-letter codes for the inline tag next to an agent name: Alpha->A, Gamma->G, Beta->B.
-const GN_SHORT={A1:'A',A2:'G',B:'B'};
+const GN={A1:'BLR',A2:'WFH',B:'AZA'}, GC={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'}, GTC={A1:'a1',A2:'a2',B:'b'};
+// Short codes for the inline tag next to an agent name: BLR / WFH / AZA.
+const GN_SHORT={A1:'BLR',A2:'WFH',B:'AZA'};
 function gtag(grp){ return '<span class="gv-tag '+(GTC[grp]||'')+'" style="font-size:.7em" title="'+(GN[grp]||grp||'')+'">('+(GN_SHORT[grp]||grp||'')+')</span>'; }
 
 // ---- Group Analytics: By Quarters (Q3/Q2/Q1 -> Complete + 3 months) + Overall Performance ----
@@ -566,7 +565,7 @@ function groupsSectionsHtml(){
     GV_QUARTERS.map(function(q){ var live=/\(Live\)/.test(q.title)?' (Live)':''; var lbl=q.qid.replace('2026-','')+live; return '<label class="ga-opt"><input type="radio" name="gaScope" value="'+esc(q.qid)+'" onchange="gaOnScopeChange()"> '+esc(lbl)+'</label>'; }).join('');
   // Month checkboxes: 3 slots; labels get set per selected quarter. Disabled while Overall is active.
   var monthOpts=[0,1,2].map(function(mi){ return '<label class="ga-opt disabled" id="gaMonthOpt'+mi+'"><input type="checkbox" value="'+mi+'" onchange="gaOnMonthChange()" disabled> <span id="gaMonthLbl'+mi+'">Month '+(mi+1)+'</span></label>'; }).join('');
-  var groupOpts=[['A1','Alpha (A)'],['B','Beta (B)'],['A2','Gamma (G)']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gaGroup" value="'+g[0]+'" checked onchange="gaOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
+  var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gaGroup" value="'+g[0]+'" checked onchange="gaOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
   return '<div class="ga-filters ga-spread">'+
       '<div class="ga-fgroup"><span class="ga-flabel">Scope</span><div class="ga-fopts ga-radio">'+scopeOpts+'</div></div>'+
       '<div class="ga-fgroup ga-months disabled" id="gaMonthsGroup"><span class="ga-flabel">Months (refine quarter)</span><div class="ga-fopts ga-checks">'+monthOpts+'</div></div>'+
@@ -828,14 +827,14 @@ const GV_CC_SHORT={'Successful':'Successful','Successful with Problems':'Success
 // Assigned-vs-Resolved gap. Gamma works from a shared assignment queue, so many tickets they
 // RESOLVE were assigned to a queue identity (not the person) -> low "Assigned", high "Total".
 const GAMMA_NOTE='<p class="gamma-note">'+
-  '<b>Note on Gamma (G) agents \u2014 Assigned is lower than Total (Resolved):</b> '+
-  'Unlike Alpha (A) and Beta (B), whose tickets are assigned directly to the individual, most Gamma '+
-  'tickets were assigned to a shared team queue rather than to the person. Gamma agents then picked up '+
+  '<b>Note on WFH agents \u2014 Assigned is lower than Total (Resolved):</b> '+
+  'Unlike BLR and AZA, whose tickets are assigned directly to the individual, most WFH '+
+  'tickets were assigned to a shared team queue rather than to the person. WFH agents then picked up '+
   'and <b>resolved</b> those tickets, so they count toward <b>Total (Resolved)</b> but not toward '+
   '<b>Assigned</b> (which counts tickets whose assignee is the agent). '+
-  'Across the dataset, <b>4,070</b> tickets resolved by Gamma agents had no personal assignee '+
+  'Across the dataset, <b>4,070</b> tickets resolved by WFH agents had no personal assignee '+
   '(mostly a shared queue identity), <b>resolved between 15 Oct 2025 and 6 Jul 2026</b>. '+
-  'From early July 2026 onward, Gamma tickets began being assigned directly to the person, so recent '+
+  'From early July 2026 onward, WFH tickets began being assigned directly to the person, so recent '+
   'periods show Assigned and Total much closer together.</p>';
 // Individual Agent Performance: sortable-table state + renderer.
 let IAP_M=null, IAP_BODY=null, IAP_SORT=null;
@@ -989,7 +988,7 @@ const WIN_DEFS=[
 // Group checkboxes, and ONE Individual Agent Performance table + ONE Group Totals Summary table.
 function windowSectionsHtml(){
   var winOpts=WIN_DEFS.map(function(w,i){ return '<label class="ga-opt'+(i===0?' checked':'')+'"><input type="radio" name="gwWin" value="'+w.win+'"'+(i===0?' checked':'')+' onchange="gwOnWinChange()"> '+esc(w.title)+'</label>'; }).join('');
-  var groupOpts=[['A1','Alpha (A)'],['B','Beta (B)'],['A2','Gamma (G)']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gwGroup" value="'+g[0]+'" checked onchange="gwOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
+  var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gwGroup" value="'+g[0]+'" checked onchange="gwOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
   return '<div class="gv-card" id="recentCard">'+
     '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleRecentCard(this)">'+
       '<span class="gv-card-title">'+ic('clock',16)+' Recent Activity</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+

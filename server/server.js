@@ -140,7 +140,7 @@ app.get('/api/ticket-events', requireRole('admin'), async (req, res) => {
 // ---- Resolved Repeat-Incident (HI Cnt>0) tickets, ALL-TIME, grouped by resolver (admin) ----
 // Aggregates over ticket_docs (flat schema): Status in Resolved/Closed, HI count (Cnt) > 0.
 // Returns per-agent (ResolvedByIdentity) groups sorted highest->lowest, each with its tickets.
-app.get('/api/hi-resolved', requireRole('admin'), async (req, res) => {
+app.get('/api/hi-resolved', requireRole('user'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.ticketDocs);
     // HI count parsed from RootCauseDetails ("Cnt: N" or "Historical Incident: N").
@@ -203,7 +203,7 @@ app.get('/api/hi-resolved', requireRole('admin'), async (req, res) => {
 // ---- SLA-breach tickets (resolution time > 240h), ALL-TIME, grouped by resolver (admin) ----
 // Aggregates over ticket_docs (flat schema): Status in Resolved/Closed, resolution hours > 240.
 // Split by CreateDate into the same 3 ranges as /api/hi-resolved.
-app.get('/api/sla-breach', requireRole('admin'), async (req, res) => {
+app.get('/api/sla-breach', requireRole('user'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.ticketDocs);
     const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
@@ -283,7 +283,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
     const token = issueToken(user);
-    res.json({ token, user: { username: user.username, role: user.role } });
+    res.json({ token, user: Object.assign({ username: user.username, role: user.role }, userFlags(user)) });
   } catch (e) {
     res.status(500).json({ error: 'Login failed.' });
   }
@@ -295,14 +295,49 @@ const VALID_TZ = ['IST', 'MST'];
 const DEFAULT_TZ = 'IST';
 function normTz(tz) { tz = String(tz || '').trim().toUpperCase(); return VALID_TZ.includes(tz) ? tz : DEFAULT_TZ; }
 
+// ---- Per-user access flags (replace the old role-based gating for these two actions) ----
+// badge: 'blue' | 'yellow'. analyst / canUpload / canCreateUsers: booleans.
+// The OWNER always has full access regardless of stored flags.
+const VALID_BADGES = ['blue', 'yellow'];
+function normBadge(b) { b = String(b || '').trim().toLowerCase(); return VALID_BADGES.includes(b) ? b : 'blue'; }
+function toBool(v) { return v === true || v === 'true' || v === 1 || v === '1' || v === 'yes'; }
+// Public view of a user's flags (owner is force-true on both access flags).
+function userFlags(u) {
+  const isOwner = u && u.role === 'owner';
+  return {
+    badge: normBadge(u && u.badge),
+    analyst: !!(u && u.analyst),
+    canUpload: isOwner ? true : !!(u && u.canUpload),
+    canCreateUsers: isOwner ? true : !!(u && u.canCreateUsers),
+    canDatabase: isOwner ? true : !!(u && u.canDatabase),
+  };
+}
+// Middleware factory: require a specific access flag (reads the fresh flag from the DB, since the
+// JWT only carries username/role). Owner always passes. 401 if not logged in, 403 if flag is false.
+function requireFlag(flag) {
+  return async (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Login required.' });
+    try {
+      const users = await getCollection(COLLECTIONS.users);
+      const u = await users.findOne({ username: req.user.username }, { projection: { role: 1, canUpload: 1, canCreateUsers: 1, canDatabase: 1 } });
+      if (!u) return res.status(401).json({ error: 'Login required.' });
+      if (u.role === 'owner' || !!u[flag]) return next();
+      return res.status(403).json({ error: 'You do not have access to this action.' });
+    } catch (e) {
+      return res.status(500).json({ error: 'Access check failed.' });
+    }
+  };
+}
+
 app.get('/api/me', requireRole('user'), async (req, res) => {
   let timezone = DEFAULT_TZ;
+  let flags = { badge: 'blue', analyst: false, canUpload: false, canCreateUsers: false, canDatabase: false };
   try {
     const users = await getCollection(COLLECTIONS.users);
-    const u = await users.findOne({ username: req.user.username }, { projection: { timezone: 1 } });
-    if (u && u.timezone) timezone = normTz(u.timezone);
-  } catch (e) { /* fall back to default */ }
-  res.json({ username: req.user.username, role: req.user.role, timezone });
+    const u = await users.findOne({ username: req.user.username }, { projection: { timezone: 1, role: 1, badge: 1, analyst: 1, canUpload: 1, canCreateUsers: 1, canDatabase: 1 } });
+    if (u) { if (u.timezone) timezone = normTz(u.timezone); flags = userFlags(u); }
+  } catch (e) { /* fall back to defaults */ }
+  res.json(Object.assign({ username: req.user.username, role: req.user.role, timezone }, flags));
 });
 
 app.post('/api/change-password', requireRole('user'), async (req, res) => {
@@ -405,49 +440,77 @@ app.post('/api/me/profile', requireRole('user'), async (req, res) => {
 });
 
 // ---- User management (owner only) ----
-app.get('/api/users', requireRole('owner'), async (req, res) => {
+app.get('/api/users', requireFlag('canCreateUsers'), async (req, res) => {
   const users = await getCollection(COLLECTIONS.users);
-  const list = await users.find({}, { projection: { passwordHash: 0 } }).sort({ role: -1, username: 1 }).toArray();
-  res.json(list.map(u => ({ id: String(u._id), username: u.username, role: u.role, timezone: normTz(u.timezone), displayName: u.displayName || '', avatar: u.avatar || '' })));
+  const list = await users.find({}, { projection: { passwordHash: 0 } }).sort({ username: 1 }).toArray();
+  res.json(list.map(u => Object.assign(
+    { id: String(u._id), username: u.username, role: u.role, timezone: normTz(u.timezone), displayName: u.displayName || '', avatar: u.avatar || '' },
+    userFlags(u)
+  )));
 });
 
-app.post('/api/users', requireRole('owner'), async (req, res) => {
+// Creating a user (which sets access flags) is OWNER-ONLY. Non-owner managers can view the page
+// Creating accounts requires canCreateUsers. But GRANTING page access is OWNER-ONLY: a non-owner
+// creator cannot set canUpload / canCreateUsers / canDatabase — those are forced off and only the
+// owner can flip them afterward from the table.
+app.post('/api/users', requireFlag('canCreateUsers'), async (req, res) => {
   try {
-    let { username, password, role, timezone } = req.body || {};
+    let { username, password, timezone, badge, analyst, canUpload, canCreateUsers, canDatabase } = req.body || {};
     username = String(username || '').trim().toLowerCase();
-    role = String(role || 'user');
     const tz = normTz(timezone);
     if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
-    if (!VALID_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role.' });
-    if (role === 'owner') return res.status(403).json({ error: 'Cannot create another owner.' });
+    const isOwner = req.user && req.user.role === 'owner';
     const users = await getCollection(COLLECTIONS.users);
     if (await users.findOne({ username })) return res.status(409).json({ error: 'Username already exists.' });
-    const doc = { username, passwordHash: await hashPassword(password), role, timezone: tz, createdAt: new Date() };
+    // Roles are retired: every created account is a plain 'user'; access is driven by the flags.
+    // Non-owner creators cannot grant page access, so the three access flags are forced false for them.
+    const doc = {
+      username, passwordHash: await hashPassword(password), role: 'user', timezone: tz,
+      badge: normBadge(badge), analyst: toBool(analyst),
+      canUpload: isOwner ? toBool(canUpload) : false,
+      canCreateUsers: isOwner ? toBool(canCreateUsers) : false,
+      canDatabase: isOwner ? toBool(canDatabase) : false,
+      createdAt: new Date(),
+    };
     const r = await users.insertOne(doc);
-    res.status(201).json({ id: String(r.insertedId), username, role, timezone: tz });
+    res.status(201).json(Object.assign({ id: String(r.insertedId), username, timezone: tz }, userFlags(doc)));
   } catch (e) {
     res.status(500).json({ error: 'Could not create user.' });
   }
 });
 
-app.patch('/api/users/:id/role', requireRole('owner'), async (req, res) => {
+// Edit a user's access flags (badge / analyst / canUpload / canCreateUsers / canDatabase).
+// Body may include any subset. The owner's flags are locked (owner always has full access).
+// GRANTING ACCESS is OWNER-ONLY: only the owner can change canUpload / canCreateUsers / canDatabase.
+// Non-owner managers may still adjust the non-sensitive fields (badge / analyst).
+app.patch('/api/users/:id/flags', requireFlag('canCreateUsers'), async (req, res) => {
   try {
-    const role = String((req.body || {}).role || '');
-    if (!VALID_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role.' });
-    if (role === 'owner') return res.status(403).json({ error: 'Cannot assign the owner role.' });
+    const body = req.body || {};
+    const isOwner = req.user && req.user.role === 'owner';
     const users = await getCollection(COLLECTIONS.users);
     const target = await users.findOne({ _id: new ObjectId(req.params.id) });
     if (!target) return res.status(404).json({ error: 'User not found.' });
-    if (target.role === 'owner') return res.status(403).json({ error: 'Cannot change the owner.' });
-    await users.updateOne({ _id: target._id }, { $set: { role, updatedAt: new Date() } });
-    res.json({ id: String(target._id), username: target.username, role });
+    if (target.role === 'owner') return res.status(403).json({ error: "The owner's access cannot be changed." });
+    // Reject any attempt by a non-owner to change access-granting flags.
+    if (!isOwner && (body.canUpload !== undefined || body.canCreateUsers !== undefined || body.canDatabase !== undefined)) {
+      return res.status(403).json({ error: 'Only the owner can grant page access.' });
+    }
+    const set = { updatedAt: new Date() };
+    if (body.badge !== undefined) set.badge = normBadge(body.badge);
+    if (body.analyst !== undefined) set.analyst = toBool(body.analyst);
+    if (isOwner && body.canUpload !== undefined) set.canUpload = toBool(body.canUpload);
+    if (isOwner && body.canCreateUsers !== undefined) set.canCreateUsers = toBool(body.canCreateUsers);
+    if (isOwner && body.canDatabase !== undefined) set.canDatabase = toBool(body.canDatabase);
+    await users.updateOne({ _id: target._id }, { $set: set });
+    const u = await users.findOne({ _id: target._id });
+    res.json(Object.assign({ id: String(u._id), username: u.username }, userFlags(u)));
   } catch (e) {
-    res.status(500).json({ error: 'Could not change role.' });
+    res.status(500).json({ error: 'Could not update user access.' });
   }
 });
 
-// Change a user's preferred timezone (owner only). Body: { timezone: 'IST' | 'MST' }.
-app.patch('/api/users/:id/timezone', requireRole('owner'), async (req, res) => {
+// Change a user's preferred timezone. Body: { timezone: 'IST' | 'MST' }.
+app.patch('/api/users/:id/timezone', requireFlag('canCreateUsers'), async (req, res) => {
   try {
     const timezone = normTz((req.body || {}).timezone);
     const users = await getCollection(COLLECTIONS.users);
@@ -460,6 +523,7 @@ app.patch('/api/users/:id/timezone', requireRole('owner'), async (req, res) => {
   }
 });
 
+// Deleting a user is OWNER-ONLY.
 app.delete('/api/users/:id', requireRole('owner'), async (req, res) => {
   try {
     const users = await getCollection(COLLECTIONS.users);
@@ -473,7 +537,7 @@ app.delete('/api/users/:id', requireRole('owner'), async (req, res) => {
   }
 });
 
-// Reset a user's password to "<username>@123" (owner only). Cannot reset the owner's own password.
+// Reset a user's password to "<username>@123". OWNER-ONLY. Cannot reset the owner's own password.
 app.post('/api/users/:id/reset-password', requireRole('owner'), async (req, res) => {
   try {
     const users = await getCollection(COLLECTIONS.users);
@@ -547,9 +611,9 @@ app.get('/api/activity-log', requireRole('owner'), async (req, res) => {
   }
 });
 
-// ---- Database health (owner only) ----
+// ---- Database health (owner or users with canDatabase) ----
 // Returns overall DB size + per-collection stats + a per-quarter ticket breakdown. Read-only.
-app.get('/api/db-health', requireRole('owner'), async (req, res) => {
+app.get('/api/db-health', requireFlag('canDatabase'), async (req, res) => {
   try {
     const db = await getDb();
     const dbStats = await db.command({ dbStats: 1, scale: 1 });
@@ -630,7 +694,7 @@ app.get('/api/live-data', async (req, res) => {
 });
 
 // Publish: admin or owner only. Stores the merged dataset as the single "current" document.
-app.post('/api/live-data', requireRole('admin'), async (req, res) => {
+app.post('/api/live-data', requireFlag('canUpload'), async (req, res) => {
   try {
     const { data } = req.body || {};
     if (data == null) return res.status(400).json({ error: 'No data provided.' });
@@ -738,7 +802,7 @@ app.get('/api/quarter/:qid', async (req, res) => {
 // merged locally). Non-live buckets are MERGED by ShortId into their own quarter doc (uploaded
 // wins, existing preserved). Each quarter touched gets its OWN data-log entry. The client shows
 // the per-quarter breakdown + Upload/Cancel before calling this, so no server-side 409 is needed.
-app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
+app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
   try {
     const body = req.body || {};
     const data = body.data;
@@ -836,7 +900,7 @@ app.post('/api/live-quarter', requireRole('admin'), async (req, res) => {
 // by ShortId, instead of replacing the entire dataset. Much smaller payload + faster write.
 // Body: { changed: [ ...live tickets ], removed: [ shortId ], nonLive: [ ...rows ], changeSummary }.
 // If the live quarter doc doesn't exist yet, respond 409 so the client falls back to full replace.
-app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
+app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) => {
   try {
     const body = req.body || {};
     const changed = Array.isArray(body.changed) ? body.changed : [];
@@ -933,7 +997,7 @@ app.post('/api/live-quarter/patch', requireRole('admin'), async (req, res) => {
 // Merge an uploaded ticket set INTO a specific PAST (non-live) quarter, by ShortId (admin+).
 // Newly uploaded tickets win on conflict; existing tickets not in the upload are preserved.
 // Records a data-log entry. Body: { data: { tickets: [...] } }.
-app.post('/api/quarter/:qid/merge', requireRole('admin'), async (req, res) => {
+app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) => {
   try {
     const qid = req.params.qid;
     if (!/^\d{4}-Q[1-4]$/.test(qid)) return res.status(400).json({ error: 'Invalid quarter id.' });
@@ -1609,7 +1673,7 @@ async function findLiveTicket(shortId) {
 }
 
 // Search any ticket across ALL quarters by ShortId (admin+). Used by the "Unique cases" page.
-app.get('/api/ticket-search', requireRole('admin'), async (req, res) => {
+app.get('/api/ticket-search', requireRole('user'), async (req, res) => {
   try {
     const shortId = String((req.query.shortId || '')).trim();
     if (!shortId) return res.status(400).json({ error: 'A ticket ShortId is required.' });
@@ -1675,7 +1739,7 @@ async function getImportantMarking(shortId) {
 
 // List ALL marked "important" tickets (admin+), newest first. For the leadership Unique Cases page.
 // Joins each ticket's title/status from the quarter data when available.
-app.get('/api/important-cases', requireRole('admin'), async (req, res) => {
+app.get('/api/important-cases', requireRole('user'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.importantCases);
     const rows = await coll.find({}).sort({ updatedAt: -1, at: -1 }).toArray();
@@ -1723,8 +1787,8 @@ app.get('/api/important-cases', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Get the important marking for a ticket (admin+).
-app.get('/api/important-cases/:shortId', requireRole('admin'), async (req, res) => {
+// Get the important marking for a ticket (logged-in users).
+app.get('/api/important-cases/:shortId', requireRole('user'), async (req, res) => {
   try {
     const marking = await getImportantMarking(String(req.params.shortId));
     res.json({ shortId: String(req.params.shortId), important: marking });
@@ -1803,7 +1867,7 @@ app.delete('/api/important-cases/:shortId', requireRole('admin'), async (req, re
 });
 
 // Unique Cases change log (admin+): every mark/update action, newest first.
-app.get('/api/unique-cases-log', requireRole('admin'), async (req, res) => {
+app.get('/api/unique-cases-log', requireRole('user'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.importantCasesLog);
     const rows = await logColl.find({}).sort({ at: -1 }).limit(500).toArray();
@@ -2323,7 +2387,7 @@ async function liveTickets() {
 }
 
 // Agent analytics (admin+). Per-user stats grouped into leads (owner/admin/manager) and editors.
-app.get('/api/agent-analytics', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-analytics', requireRole('user'), async (req, res) => {
   try {
     const tickets = await liveTickets();
     const now = Date.now();
@@ -2375,7 +2439,7 @@ app.get('/api/agent-analytics', requireRole('admin'), async (req, res) => {
 // Per-agent "active cases" summary (logged-in): counts of their OPEN tickets in the live quarter,
 // broken down by status (Assigned / Work In Progress / Pending / Researching) and by age colour
 // (green/yellow/red/black/purple). Used by the agent profile page.
-app.get('/api/agent-summary', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-summary', requireRole('user'), async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'A username is required.' });
@@ -2450,7 +2514,7 @@ function isPetIncident(t) {
 // still correct), then compute counts/SLA/RootCause over the range. `hours` = rolling length,
 // `calKind` = the calendarRange kind to use in calendar mode.
 function registerAgentOverview(windowKey, hours, calKind, label) {
-  app.get('/api/agent-overview/' + windowKey, requireRole('admin'), async (req, res) => {
+  app.get('/api/agent-overview/' + windowKey, requireRole('user'), async (req, res) => {
     try {
       const { username, mode, tz } = overviewParams(req);
       if (!username) return res.status(400).json({ error: 'A username is required.' });
@@ -2577,7 +2641,7 @@ function grpSlice(section, m) {
   return {};
 }
 ['ro', 'wl', 'par', 'arv', 'iap', 'gts'].forEach(section => {
-  app.get('/api/group-analytics/' + section, requireRole('admin'), async (req, res) => {
+  app.get('/api/group-analytics/' + section, requireRole('user'), async (req, res) => {
     try {
       const m = await getGroupMetrics();
       res.json(Object.assign({ section, quarter: currentQuarter() }, grpSlice(section, m)));
@@ -2645,7 +2709,7 @@ function computeClosureMetrics(tickets, fromMs, toMs) {
 
 // Per-quarter (optionally per-month) closure/SLA metrics. qid like "2026-Q3"; month = 0|1|2 within
 // the quarter, or omitted for the whole quarter.
-app.get('/api/group-quarter/:qid', requireRole('admin'), async (req, res) => {
+app.get('/api/group-quarter/:qid', requireRole('user'), async (req, res) => {
   try {
     const qid = req.params.qid;
     const range = quarterRange(qid);
@@ -2719,7 +2783,7 @@ async function aggClosureMetrics(opts) {
   const groups = { closure: gClo, assigned: gAsg, sla: { A1: { pct: slaPctOf(gSla.A1.eligible, gSla.A1.within) }, A2: { pct: slaPctOf(gSla.A2.eligible, gSla.A2.within) }, B: { pct: slaPctOf(gSla.B.eligible, gSla.B.within) } } };
   return { agents, groups };
 }
-app.get('/api/group-overall', requireRole('admin'), async (req, res) => {
+app.get('/api/group-overall', requireRole('user'), async (req, res) => {
   try {
     const m = await aggClosureMetrics({});
     res.json(Object.assign({ scope: 'overall' }, m));
@@ -2731,7 +2795,7 @@ app.get('/api/group-overall', requireRole('admin'), async (req, res) => {
 // window key -> hours. (Computed live per request; small scan, no rollup — windows are time-sensitive.)
 const WINDOW_HOURS = { '12h': 12, '24h': 24, '7d': 168 };
 Object.keys(WINDOW_HOURS).forEach(win => {
-  app.get('/api/group-window/' + win, requireRole('admin'), async (req, res) => {
+  app.get('/api/group-window/' + win, requireRole('user'), async (req, res) => {
     try {
       // Fast path: aggregate on the live quarter, filtered to ResolvedDate within the rolling window.
       const now = Date.now();
@@ -2823,7 +2887,7 @@ app.get('/api/shift-report', requireRole('admin'), async (req, res) => {
 
 // Per-agent "1st Pet incident (handled by PHD)" count for the live quarter (admin+). Reads the
 // agent rollup; falls back to a one-off live scan + background rebuild if missing/stale.
-app.get('/api/agent-overview/pet', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-overview/pet', requireRole('user'), async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'A username is required.' });
@@ -2945,7 +3009,7 @@ function overviewParams(req) {
 }
 
 // Monthly overview (admin+): rolling last 30 days, or the current calendar month (mode=calendar).
-app.get('/api/agent-overview/monthly', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-overview/monthly', requireRole('user'), async (req, res) => {
   try {
     const { username, mode, tz } = overviewParams(req);
     if (!username) return res.status(400).json({ error: 'A username is required.' });
@@ -2955,7 +3019,7 @@ app.get('/api/agent-overview/monthly', requireRole('admin'), async (req, res) =>
 });
 
 // Year-to-Date overview (admin+): Jan 1 of the current year -> now. (Always calendar-anchored.)
-app.get('/api/agent-overview/ytd', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-overview/ytd', requireRole('user'), async (req, res) => {
   try {
     const { username, mode, tz } = overviewParams(req);
     if (!username) return res.status(400).json({ error: 'A username is required.' });
@@ -2966,7 +3030,7 @@ app.get('/api/agent-overview/ytd', requireRole('admin'), async (req, res) => {
 
 // Quarterly overview (admin+): one block per calendar quarter of the current year that has ANY
 // resolves for this agent (empty quarters omitted). Each block is a full range summary.
-app.get('/api/agent-overview/quarterly', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-overview/quarterly', requireRole('user'), async (req, res) => {
   try {
     const { username, tz } = overviewParams(req);
     if (!username) return res.status(400).json({ error: 'A username is required.' });
@@ -2992,7 +3056,7 @@ app.get('/api/agent-overview/quarterly', requireRole('admin'), async (req, res) 
 });
 
 // An editor's live "bucket" (admin+): their still-open tickets in the live quarter, with all comments.
-app.get('/api/agent-bucket', requireRole('admin'), async (req, res) => {
+app.get('/api/agent-bucket', requireRole('user'), async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'A username is required.' });

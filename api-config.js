@@ -28,6 +28,22 @@ window.PHDAuth = {
   role: function () { var u = this.getUser(); return u ? u.role : 'user'; },
   rank: function (role) { return ({ user: 0, editor: 1, admin: 2, manager: 2, owner: 3 })[role] != null ? ({ user: 0, editor: 1, admin: 2, manager: 2, owner: 3 })[role] : -1; },
   atLeast: function (role) { return this.rank(this.role()) >= this.rank(role); },
+  isOwner: function () { return this.role() === 'owner'; },
+  // ---- Per-user access flags (roles retired for these two actions). Owner always allowed. ----
+  // Read a flag from the freshest source that has it: the in-memory /api/me (_me), the localStorage
+  // "me" cache, then the login session user (getUser). This self-heals for users whose session was
+  // cached BEFORE the flags existed (their login object lacks them, but /api/me now returns them).
+  _flag: function (name) {
+    var srcs = [];
+    try { srcs.push(this._me); } catch (e) {}
+    try { var s = this._storeRead('me'); if (s && s.data) srcs.push(s.data); } catch (e) {}
+    try { srcs.push(this.getUser()); } catch (e) {}
+    for (var i = 0; i < srcs.length; i++) { var o = srcs[i]; if (o && o[name] !== undefined) return !!o[name]; }
+    return false;
+  },
+  canUpload: function () { return this.isOwner() || this._flag('canUpload'); },
+  canManageUsers: function () { return this.isOwner() || this._flag('canCreateUsers'); },
+  canDatabase: function () { return this.isOwner() || this._flag('canDatabase'); },
 
   // ---- Shared page cache (stale-while-revalidate, version-stamped) ----
   // Lets standalone pages paint instantly from localStorage, then refresh in the background.

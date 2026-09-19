@@ -220,8 +220,7 @@ function hrFilter(inp,key){
 window.hrFilter=hrFilter;
 
 (async function init(){
-  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ gate('This page is for logged-in admins. Please log in from the home page.'); return; }
-  if(!A.atLeast||!A.atLeast('admin')){ gate('This page requires admin access.'); return; }
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ gate('This page is for logged-in users. Please log in from the home page.'); return; }
   const r=await A.api('GET','/api/hi-resolved');
   if(r.status===401){ gate('Your session has expired. Please log in again.'); return; }
   if(!r.ok||!r.data){ document.getElementById('wrap').innerHTML='<div class="gate"><h1>Resolved Repeat Incidents</h1><p>Could not load the data. Please try again.</p><a class="btn" href="app.html">Back to Dashboard</a></div>'; return; }

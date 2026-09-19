@@ -70,7 +70,7 @@ tr:hover td{background:#0d0d0d}
 <script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
-const isOwner=()=>A.atLeast&&A.atLeast('owner');
+const canDatabase=()=>A.canDatabase&&A.canDatabase();
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 // Human-friendly bytes.
 function fmtBytes(b){
@@ -85,8 +85,10 @@ function num(n){return (Number(n)||0).toLocaleString();}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Database Health</h1><p>'+esc(msg)+'</p><a class="btn" href="index.html">Go to Home</a></div>';}
 
 async function load(){
-  if(!A.getUser()||!A.getToken()){gate('This page is for the owner only. Please log in.');return;}
-  if(!isOwner()){gate('This page is restricted to the owner.');return;}
+  if(!A.getUser()||!A.getToken()){gate('Please log in to view Database health.');return;}
+  // Refresh /api/me so a session cached before the flag existed still sees the latest access.
+  try{ if(A._refreshMe) await A._refreshMe(); }catch(e){}
+  if(!canDatabase()){gate('You do not have access to Database health.');return;}
   // Cache (time-based): paint instantly from cache, then refresh in the background.
   const res=await A.swrLoad({
     key:'db-health',
@@ -95,7 +97,7 @@ async function load(){
   });
   if(!res.painted){
     if(res.status===401){gate('Session expired. Please log in again.');return;}
-    if(res.status===403){gate('This page is restricted to the owner.');return;}
+    if(res.status===403){gate('You do not have access to Database health.');return;}
     document.getElementById('wrap').innerHTML='<h1>Database Health</h1><p class="sub" style="color:#ff5252">Could not load database health (HTTP '+res.status+').</p>';
   }
 }

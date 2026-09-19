@@ -1437,7 +1437,7 @@ function renderDashboardShell(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload())?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1533,7 +1533,7 @@ function renderDashboard(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'))?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload())?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -2447,15 +2447,15 @@ function renderSummaryInto(d,target){
 // across the available width. Returns the full <div class="dash-title-row"> HTML.
 function dashPageTitleRow(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
-  const isAdmin=window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin');
+  const canUpload=window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload();
   if(!loggedIn) return '<div class="dash-title-row"></div>';
   // LEFT group: personal navigation (My Tickets, Alerts).
   let left='';
   left+='<a class="btn sec dash-act" href="my-tickets.html" title="My Tickets">'+ic('ticket',15)+'<span class="dash-act-label">My Tickets</span></a>';
   left+='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label">Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
-  // RIGHT group: data management (Upload — admin only, Uploaded data log).
+  // RIGHT group: data management (Upload — gated by canUpload flag, Uploaded data log).
   let right='';
-  if(isAdmin){
+  if(canUpload){
     right+='<button type="button" class="btn sec dash-act" title="Upload new data" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+'<span class="dash-act-label">Upload new data</span></button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
   }
   right+='<a class="btn sec dash-act" href="data-log.html" title="Uploaded data log">'+ic('history',15)+'<span class="dash-act-label">Uploaded data log</span></a>';
@@ -2671,7 +2671,7 @@ function renderGroups(){
   const m=M;const sorted=[...m.agents.filter(a=>a.group==='A1').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='A2').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='B').sort((a,b)=>b.resolved-a.resolved)];
   const gc={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'};const tc={A1:'tag-a1',A2:'tag-a2',B:'tag-b'};
   // Display names for the groups (internal keys A1/A2/B stay unchanged in the metrics engine).
-  const gn={A1:'Alpha',A2:'Gamma',B:'Beta'};
+  const gn={A1:'BLR',A2:'WFH',B:'AZA'};
   document.getElementById('app').innerHTML=topBar('groups')+`<div class="content">
   <div class="section" style="display:flex;gap:24px;flex-wrap:wrap">
     <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:3px;background:#7dd3fc;display:inline-block"></span> ${gn.A1}: harisss, punithsd, arunkzn, flofalgu</span>
