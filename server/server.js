@@ -3527,28 +3527,65 @@ const AGG_INCIDENT_TYPE = {
   $let: {
     vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$t.RootCause', ''] }, find: '- ', replacement: '' } } } } }, // approximate leading "- " strip
     in: {
-      $switch: {
-        branches: [
-          { case: { $lte: [{ $strLenCP: '$$rc' }, 1] }, then: 'No Root Cause' },
-          // AutoSIM auto-resolves (strict 4-part rule) collapse to a single clean pet bucket.
-          { case: AGG.isAutoSim, then: 'Pet Incident (Auto-resolved)' },
-          // Raw RootCause that literally spells the first-time-pet label (any casing) -> merge it into
-          // the synthetic bucket below so we don't get a casing-duplicate row.
-          { case: { $regexMatch: { input: '$$rc', regex: '^first time pet incident', options: 'i' } }, then: 'First Time Pet Incident (Immediately Resolved / No Action Taken)' },
-          { case: AGG.isPet, then: {
-            $switch: {
-              branches: [
-                { case: { $and: [{ $in: [{ $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } }, ['Immediately Resolved', 'Automatically Closed']] }, { $ne: [{ $trim: { input: { $ifNull: ['$t.AssigneeIdentity', ''] } } }, ''] }] }, then: 'First Time Pet Incident (Immediately Resolved / No Action Taken)' },
-              ],
-              default: 'Pet Incident (HI>0)',
-            },
-          } },
-        ],
-        default: { $substrCP: ['$$rc', 0, 80] },
-      },
+      // Incident Type = the raw RootCause value (leading "- " stripped above), or "No Root Cause"
+      // when it's empty. No synthetic pet/AutoSIM labels — grouping is done via the incident-types
+      // grouping tool. (The AutoSIM-vs-PHD resolver split elsewhere is independent of this label.)
+      $cond: [{ $lte: [{ $strLenCP: '$$rc' }, 1] }, 'No Root Cause', '$$rc'],
     },
   },
 };
+// ============================================================================
+// INCIDENT-TYPE DISPLAY GROUPING (owner-defined, applied at READ time)
+// The owner can combine several raw incident-type labels into ONE display name (e.g. merge a few
+// root causes into "Pet Incidents"). This NEVER changes ticket data — it relabels the aggregated
+// Incident Types output before it's sent, so edits reflect for everyone on next load without any
+// rollup rebuild. Stored as one doc: { _id:'live', version, groups:[{ name, members:[rawType,...] }] }.
+// ============================================================================
+let _incMapCache = null, _incMapCacheAt = 0;
+// Load the mapping (cached ~10s to avoid a findOne on every dashboard chunk read).
+async function getIncidentMap(force) {
+  const now = Date.now();
+  if (!force && _incMapCache && (now - _incMapCacheAt) < 10000) return _incMapCache;
+  let doc = null;
+  try { const coll = await getCollection(COLLECTIONS.incidentGroups); doc = await coll.findOne({ _id: 'live' }); } catch (e) { doc = null; }
+  const groups = (doc && Array.isArray(doc.groups)) ? doc.groups : [];
+  // Build a fast lookup: rawType -> groupName. Later groups win on conflict (shouldn't overlap).
+  const lookup = {};
+  groups.forEach(g => {
+    const name = String((g && g.name) || '').trim();
+    if (!name || !Array.isArray(g.members)) return;
+    g.members.forEach(m => { const raw = String(m || '').trim(); if (raw) lookup[raw] = name; });
+  });
+  _incMapCache = { version: (doc && doc.version) || 0, groups, lookup };
+  _incMapCacheAt = now;
+  return _incMapCache;
+}
+// Map a raw incident-type label to its display name (group name if grouped, else unchanged).
+function mapIncidentType(rawType, lookup) { return (lookup && lookup[rawType]) || rawType; }
+// Re-aggregate a [{type,count,pct}] list after relabeling via the mapping. `tot` = the split total
+// used to recompute pct. Preserves count-desc order.
+function regroupTypeList(list, lookup, tot) {
+  const m = {};
+  (list || []).forEach(it => { const name = mapIncidentType(it.type, lookup); m[name] = (m[name] || 0) + (it.count || 0); });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count, pct: pct1(count, tot) }));
+}
+// Apply the mapping to a full dashIncidents() result object (types + both split lists).
+function applyIncidentMapToChunk(chunk, lookup) {
+  if (!chunk || !lookup) return chunk;
+  return Object.assign({}, chunk, {
+    types: regroupTypeList(chunk.types, lookup, chunk.total || 0),
+    autosimTypes: regroupTypeList(chunk.autosimTypes, lookup, chunk.autosimTotal || 0),
+    phdTypes: regroupTypeList(chunk.phdTypes, lookup, chunk.phdTotal || 0),
+  });
+}
+// Expand a display name back to the raw incident-type labels it covers (for drill-down $match).
+// If `name` is a group, returns its members; otherwise returns [name] (an ungrouped raw type).
+function expandIncidentGroup(name, groups) {
+  const g = (groups || []).find(x => String((x && x.name) || '').trim() === String(name || '').trim());
+  if (g && Array.isArray(g.members) && g.members.length) return g.members.map(m => String(m || '').trim()).filter(Boolean);
+  return [String(name || '')];
+}
+
 // ---- Incident Types — grouped in Atlas ----
 // Returns the overall list (types) PLUS two resolver-split lists over RESOLVED/CLOSED tickets only:
 //   autosimTypes  — resolved by AutoSIM (ResolvedByIdentity ~ "AutoSIM" OR Tags ~ pet_incident_auto_resolved)
@@ -3804,16 +3841,20 @@ Object.keys(DASH_CHUNKS).forEach(name => {
     const isLiveScope = (qid === liveQ);
     try {
       const meta = await liveMeta();
+      // Incident Types get the owner's display grouping applied at READ time (never baked into the
+      // rollup), so mapping edits reflect for everyone immediately with no rebuild.
+      const incMap = (name === 'incidents') ? await getIncidentMap() : null;
+      const finalize = (payload) => (name === 'incidents' && incMap) ? applyIncidentMapToChunk(payload, incMap.lookup) : payload;
       // Serve from the (publish-time) rollup ONLY for the live quarter's own cacheable chunks.
       if (isLiveScope && !ALWAYS_LIVE_CHUNKS.has(name)) {
         const rollColl = await getCollection(COLLECTIONS.dashRollups);
         const roll = await rollColl.findOne({ _id: qid });
         if (roll && roll.chunks && roll.chunks[name] && (roll.publishedAt || null) === (meta.publishedAt || null)) {
-          return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, roll.chunks[name]));
+          return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, finalize(roll.chunks[name])));
         }
       }
       // Any non-live scope (Q2 / Overall), always-live chunk, or missing/stale rollup -> compute now.
-      const slice = await DASH_CHUNKS[name](qid);
+      const slice = finalize(await DASH_CHUNKS[name](qid));
       const label = (qid === 'all') ? 'Overall' : quarterLabel(qid);
       res.json(Object.assign({ quarter: qid, label: label, publishedAt: meta.publishedAt, cached: false }, slice));
       // Only the live quarter has a cacheable rollup to refresh.
@@ -3833,12 +3874,16 @@ app.get('/api/dash/incident-agents', async (req, res) => {
     if (!type) return res.status(400).json({ error: 'An incident type is required.' });
     const resolverFilter = String(req.query.resolver || '').trim().toLowerCase(); // '', 'autosim', 'phd'
     const qid = currentQuarter();
+    // `type` is a DISPLAY name — expand it to the raw incident-type label(s) it covers (a group may
+    // combine several) so the aggregation matches all of them.
+    const incMap = await getIncidentMap();
+    const rawTypes = expandIncidentGroup(type, incMap.groups);
     const rows = await aggLive([
       { $project: {
         type: AGG_INCIDENT_TYPE, isResolved: AGG.isResolved, isAutoSim: AGG.isAutoSim,
         rby: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } },
       } },
-      { $match: { type: type, isResolved: true, $or: [ { isAutoSim: true }, { rby: { $nin: ['', null] } } ] } },
+      { $match: { type: { $in: rawTypes }, isResolved: true, $or: [ { isAutoSim: true }, { rby: { $nin: ['', null] } } ] } },
       { $group: { _id: { rby: '$rby', autosim: '$isAutoSim' }, count: { $sum: 1 } } },
     ], qid);
     // Collapse all AutoSIM identities under a single "AutoSIM" label; keep human resolvers as-is.
@@ -3867,6 +3912,9 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
     if (!type || !agent) return res.status(400).json({ error: 'type and agent are required.' });
     const qid = currentQuarter();
     const isAutoSimAgent = agent.toLowerCase() === 'autosim';
+    // Expand the display name to its raw incident-type label(s).
+    const incMap = await getIncidentMap();
+    const rawTypes = expandIncidentGroup(type, incMap.groups);
     const rows = await aggLive([
       { $project: {
         type: AGG_INCIDENT_TYPE, isResolved: AGG.isResolved, isAutoSim: AGG.isAutoSim,
@@ -3877,7 +3925,7 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
         Title: { $ifNull: ['$t.Title', ''] },
       } },
       { $match: Object.assign(
-        { type: type, isResolved: true },
+        { type: { $in: rawTypes }, isResolved: true },
         isAutoSimAgent ? { isAutoSim: true } : { isAutoSim: false, rby: agent }
       ) },
       { $project: { _id: 0, ShortId: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, Title: 1 } },
@@ -3886,6 +3934,67 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
     res.json({ quarter: qid, type, agent, count: rows.length, tickets: rows });
   } catch (e) {
     res.status(500).json({ error: 'Could not load incident-type tickets.' });
+  }
+});
+
+// ---- Incident-type display grouping (owner tool) --------------------------------------------
+// Distinct RAW incident-type labels (the exact labels the dashboard buckets by) for the live
+// quarter, with counts — the source list the owner groups from. Owner-only.
+app.get('/api/incident-types/raw', requireRole('owner'), async (req, res) => {
+  try {
+    const qid = currentQuarter();
+    const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }], qid);
+    res.json({ quarter: qid, types: rows.map(r => ({ type: r._id, count: r.count })) });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load raw incident types.' });
+  }
+});
+
+// Read the current display grouping. PUBLIC (logged-in) — the dashboard + tool both read it.
+app.get('/api/incident-groups', requireRole('user'), async (req, res) => {
+  try {
+    const m = await getIncidentMap(true);
+    res.json({ version: m.version, groups: m.groups });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load incident groups.' });
+  }
+});
+
+// Save (publish) the display grouping. OWNER-ONLY. Body: { groups:[{ name, members:[rawType,...] }] }.
+// Validates names/members, drops empties, and rejects a raw type mapped to more than one group.
+app.put('/api/incident-groups', requireRole('owner'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawGroups = Array.isArray(body.groups) ? body.groups : [];
+    const seenMembers = {}; const seenNames = {};
+    const groups = [];
+    for (const g of rawGroups) {
+      const name = String((g && g.name) || '').trim();
+      if (!name) return res.status(400).json({ error: 'Every group needs a name.' });
+      if (name.length > 80) return res.status(400).json({ error: 'Group names must be 80 characters or fewer.' });
+      const key = name.toLowerCase();
+      if (seenNames[key]) return res.status(400).json({ error: 'Duplicate group name: ' + name });
+      seenNames[key] = true;
+      const members = [...new Set((Array.isArray(g.members) ? g.members : []).map(m => String(m || '').trim()).filter(Boolean))];
+      if (!members.length) return res.status(400).json({ error: 'Group "' + name + '" has no incident types.' });
+      for (const m of members) {
+        if (seenMembers[m]) return res.status(400).json({ error: 'Incident type "' + m + '" is in more than one group.' });
+        seenMembers[m] = true;
+      }
+      groups.push({ name, members });
+    }
+    const coll = await getCollection(COLLECTIONS.incidentGroups);
+    const existing = await coll.findOne({ _id: 'live' });
+    const version = ((existing && existing.version) || 0) + 1;
+    await coll.updateOne(
+      { _id: 'live' },
+      { $set: { version, groups, updatedBy: req.user.username, updatedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    _incMapCache = null; // bust the in-process cache so the change is live immediately
+    res.json({ ok: true, version, groups });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not save incident groups.' });
   }
 });
 

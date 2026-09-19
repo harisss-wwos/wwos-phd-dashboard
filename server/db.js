@@ -37,6 +37,7 @@ const COLLECTIONS = {
   shiftRollups: 'shift_rollups', // precomputed shift-report data per quarter { _id, publishedAt, openTix:[...], counts:{...} } — recomputed on each publish
   ticketDocs: 'ticket_docs', // ONE doc per ticket { _id: "<qid>|<ShortId>", q: qid, ShortId, ...all ticket fields } — lets publishes bulk-write only changed tickets instead of rewriting the whole ~6MB quarter doc
   ticketEvents: 'ticket_events', // ISOLATED live-movement log from LM-HUB: one doc per status change { shortId, status, at, ... }. Separate from ticket_docs — never affects the live dashboard.
+  incidentGroups: 'incident_groups', // owner-defined display grouping of raw incident types (RootCause labels) into combined names. Applied at READ time to Incident Types; never changes ticket data. { _id:'live', version, groups:[{name, members:[rawType]}], updatedAt }
 };
 
 let clientPromise = null;

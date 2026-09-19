@@ -186,29 +186,9 @@ function computeMetrics(data){
   const ANALYSTS=['arunkzn','flofalgu','harisss','punithsd','mbozied','mellanej','nobregak','chousoud','dbiswamb','obalasut','shaavhad','tanviroo','urmahala'];
   data.forEach(r=>{
     let tp='Other';const details=r.RootCauseDetails||'';const rootCause=(r.RootCause||'').replace(/^\s*-\s*/,'').trim();const title=r.Title||'';const resolver=r.ResolvedByIdentity||'';
-    // AutoSIM auto-resolves (strict 4-part rule) collapse to ONE clean bucket, regardless of RootCause.
-    if(isAutoSimResolved(r)){
-      tp='Pet Incident (Auto-resolved)';
-    } else if(/^first time pet incident/i.test(rootCause)){
-      // Raw RootCause that literally spells the first-time-pet label -> merge into the synthetic bucket.
-      tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
-    } else if(rootCause&&rootCause.length>1){
-      if(rootCause.toLowerCase().includes('unsecured animal')){
-        // Non-AutoSIM pet: first-time (Imm/Auto closed WITH an assignee) vs HI>0.
-        const cc=(r.ClosureCode||'').trim();
-        const isImmAuto=(cc==='Immediately Resolved'||cc==='Automatically Closed');
-        if(isImmAuto&&(r.AssigneeIdentity||'').trim()!==''){
-          tp='First Time Pet Incident (Immediately Resolved / No Action Taken)';
-        } else {
-          tp='Pet Incident (HI>0)';
-        }
-      } else {
-        tp=rootCause;
-      }
-    } else {
-      tp='No Root Cause';
-    }
-    if(tp.length>80)tp=tp.substring(0,80);
+    // Incident Type = the raw RootCause value (leading "- " already stripped), or "No Root Cause"
+    // when empty. Grouping/relabeling is handled separately by the incident-types grouping tool.
+    tp=(rootCause&&rootCause.length>1)?rootCause:'No Root Cause';
     incM[tp]=(incM[tp]||0)+1;
     if(!incTickets[tp])incTickets[tp]=[];
     incTickets[tp].push({ShortId:r.ShortId||r.IssueId,AssigneeIdentity:r.AssigneeIdentity,ResolvedByIdentity:resolver,CreateDate:r.CreateDate,Status:r.Status,Title:title});
@@ -1629,8 +1609,8 @@ function renderDashboard(){
     <div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>
   </div></div>`:''}
   <div class="section"><h2>Incident Types</h2><div class="sec-body"><p class="meta-info">Click any incident type to view agent breakdown</p>
-    <div style="overflow-x:auto"><table style="width:100%;table-layout:auto"><thead><tr><th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:1%;white-space:nowrap">Incident Type</th><th style="text-align:center;width:1%;white-space:nowrap">Count</th><th style="text-align:center;width:1%;white-space:nowrap">% of Total</th><th style="width:auto">Volume</th></tr></thead><tbody>
-    ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);const barW=(count/m.iD[0]*100).toFixed(0);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700;text-align:center">${i+1}</td><td style="white-space:nowrap"><strong>${type}</strong></td><td style="text-align:center">${count}</td><td style="text-align:center">${pct}%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:#ff9900;width:${barW}%;min-width:4px"></div></div></td></tr>`;}).join('')}
+    <div style="overflow-x:auto"><table style="width:100%;table-layout:fixed"><thead><tr><th style="text-align:center;width:10%">#</th><th style="width:50%">Incident Type</th><th style="text-align:center;width:20%">Count</th><th style="text-align:center;width:20%">% of Total</th></tr></thead><tbody>
+    ${m.iL.map((type,i)=>{const count=m.iD[i];const pct=(count/m.T*100).toFixed(1);return`<tr style="cursor:pointer" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')"><td style="color:#ff9900;font-weight:700;text-align:center">${i+1}</td><td style="word-break:break-word"><strong>${type}</strong></td><td style="text-align:center">${count}</td><td style="text-align:center">${pct}%</td></tr>`;}).join('')}
     </tbody></table></div></div></div>
   ${m.hiCases.length>0?(()=>{
     const totalHI=m.hiCases.length;
@@ -2187,16 +2167,14 @@ function renderIncidentsChunk(d){
   // resolverKey: 'autosim' | 'phd' — passed to the row-click popup so it shows only that side's agents.
   const incTable=(list,barColor,resolverKey)=>{
     if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
-    const max=list[0].count||1;
     const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
-      '<th style="text-align:center;width:1%;white-space:nowrap">#</th>'+
-      '<th style="width:1%;white-space:nowrap">Incident Type</th>'+
-      '<th style="text-align:center;width:1%;white-space:nowrap">Count</th>'+
-      '<th style="text-align:center;width:1%;white-space:nowrap">% of Total</th>'+
-      '<th style="width:auto">Volume</th>'+
+    return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
+      '<th style="text-align:center;width:10%">#</th>'+
+      '<th style="width:50%">Incident Type</th>'+
+      '<th style="text-align:center;width:20%">Count</th>'+
+      '<th style="text-align:center;width:20%">% of Total</th>'+
     '</tr></thead><tbody>'+
-    list.map((t,i)=>'<tr class="inc-clickrow" title="View agents who resolved '+esc(t.type)+'" onclick="showIncidentAgentsPopup(\''+q(t.type)+'\',\''+resolverKey+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="white-space:nowrap"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+barColor+';width:'+(t.count/max*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
+    list.map((t,i)=>'<tr class="inc-clickrow" title="View agents who resolved '+esc(t.type)+'" onclick="showIncidentAgentsPopup(\''+q(t.type)+'\',\''+resolverKey+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="word-break:break-word"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>').join('')+
     '</tbody></table></div>';
   };
   const autosim=d.autosimTypes||[], phd=d.phdTypes||[];
@@ -2589,14 +2567,13 @@ function renderDashboardChunked(){
   // Incident Types: two resolver subsections, each a 5-col table (#, Incident Type, Count, %, Volume).
   const incTypesSkel=function(){
     const rowsFor=(n,widths)=>{ let s=''; for(let i=0;i<n;i++){ s+='<tr>'+
-      '<td style="color:#ff9900;font-weight:700;text-align:center;white-space:nowrap">'+(i+1)+'</td>'+
-      '<td style="white-space:nowrap"><div class="shimmer" style="height:12px;width:'+(140-i*8)+'px;border-radius:4px"></div></td>'+
+      '<td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+      '<td><div class="shimmer" style="height:12px;width:'+(140-i*8)+'px;border-radius:4px"></div></td>'+
       '<td style="text-align:center">'+scrCell(widths[i]||30)+'</td>'+
       '<td style="text-align:center"><span class="scramble-kpi" data-scr-max="90" data-scr-pct="1">0</span></td>'+
-      '<td>'+shimmerBar(widths[i]?Math.max(6,Math.round(widths[i]/(widths[0]||1)*100)):20)+'</td>'+
     '</tr>'; } return s; };
-    const tbl=(rows)=>'<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
-      '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:1%;white-space:nowrap">Incident Type</th><th style="text-align:center;width:1%;white-space:nowrap">Count</th><th style="text-align:center;width:1%;white-space:nowrap">% of Total</th><th style="width:auto">Volume</th>'+
+    const tbl=(rows)=>'<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
+      '<th style="text-align:center;width:10%">#</th><th style="width:50%">Incident Type</th><th style="text-align:center;width:20%">Count</th><th style="text-align:center;width:20%">% of Total</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>';
     return '<p class="meta-info">Incident types across the live quarter (resolved tickets), split by who resolved them.</p>'+
       '<h3 class="inc-sub-h">'+ic('bolt',15)+' Resolved by AutoSIM <span class="inc-sub-n"><span class="scramble-kpi" data-scr-max="3000">0</span></span></h3>'+
