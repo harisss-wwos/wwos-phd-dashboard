@@ -1860,6 +1860,76 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   }
 });
 
+// ---- Station Request analysis (admin+) ------------------------------------------------------
+// Scans ALL ticket_docs across every quarter, keeps only tickets CREATED on/after 1 Apr 2026,
+// and buckets them by two independent signals:
+//   labelled  = Labels contains "Station Request" OR "Address Exclusion" (case-insensitive)
+//   fulfilled = RootCauseDetails contains the word "address" (case-insensitive)
+// into three sections:
+//   1) raisedNotFulfilled : labelled && !fulfilled  (raised but not fulfilled)
+//   2) raisedFulfilled    : labelled &&  fulfilled  (raised and fulfilled)
+//   3) notRaisedFulfilled : !labelled && fulfilled  (not raised but still fulfilled)
+// Tickets that are neither labelled nor fulfilled are ignored.
+const STATION_REQ_FROM = new Date('2026-04-01T00:00:00.000Z');
+// The three sections and their Mongo match conditions on the two signals:
+//   labelled  = Labels contains "Station Request"/"Address Exclusion"
+//   fulfilled = RootCauseDetails contains "address"
+// Each is computed by ITS OWN request (?section=...) so the page can load the 3 sections in
+// parallel and fill in progressively, instead of waiting on one combined response.
+const STATION_REQ_SECTIONS = {
+  // 1) Raised but NOT fulfilled: labelled && !fulfilled
+  'raised-not-fulfilled': { labelled: true, fulfilled: false },
+  // 2) Raised and fulfilled: labelled && fulfilled
+  'raised-fulfilled': { labelled: true, fulfilled: true },
+  // 3) Not raised, still fulfilled: !labelled && fulfilled
+  'not-raised-fulfilled': { labelled: false, fulfilled: true },
+};
+app.get('/api/station-requests', requireRole('admin'), async (req, res) => {
+  try {
+    const section = String(req.query.section || '').trim();
+    const spec = STATION_REQ_SECTIONS[section];
+    if (!spec) return res.status(400).json({ error: 'Unknown or missing section. Use section=raised-not-fulfilled | raised-fulfilled | not-raised-fulfilled.' });
+
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // Compute the two flags in-pipeline, filter to CreateDate >= 1 Apr 2026 AND this section's
+    // exact (labelled, fulfilled) combination, so only the matching rows cross the wire.
+    const labelledExpr = {
+      $regexMatch: { input: { $toLower: { $ifNull: ['$Labels', ''] } }, regex: 'station request|address exclusion' },
+    };
+    const fulfilledExpr = {
+      $regexMatch: { input: { $toLower: { $ifNull: ['$RootCauseDetails', ''] } }, regex: 'address' },
+    };
+    const rows = await coll.aggregate([
+      { $project: {
+        _id: 0,
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
+        AssigneeIdentity: 1, q: 1,
+        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+        labelled: labelledExpr,
+        fulfilled: fulfilledExpr,
+      } },
+      { $match: { cd: { $gte: STATION_REQ_FROM }, labelled: spec.labelled, fulfilled: spec.fulfilled } },
+    ], { allowDiskUse: true }).toArray();
+
+    const tickets = rows.map(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      return {
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        title: t.Title || '',
+        status: t.Status || '',
+        createDate: t.CreateDate || '',
+        assignee: t.AssigneeIdentity || '',
+        quarter: t.q || '',
+      };
+    }).sort((a, b) => new Date(b.createDate) - new Date(a.createDate)); // newest first
+
+    res.json({ section, from: STATION_REQ_FROM.toISOString().slice(0, 10), count: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load station requests.' });
+  }
+});
+
 // Record when a ticket last had app-side activity (a comment or incident-log add/edit/delete).
 // This is OUR OWN reference timestamp — distinct from the CSV-imported LastUpdated* fields.
 // Stored in a small keyed-by-shortId collection so it survives quarter re-publishes.
