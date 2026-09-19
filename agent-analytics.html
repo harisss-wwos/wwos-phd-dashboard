@@ -411,13 +411,12 @@ function memberCard(login){
   const p=GROUP_PROFILES[key]||{username:login};
   const avatar=(A.avatarHtml)?A.avatarHtml(Object.assign({username:login},p),60):'';
   const dn=p.displayName||login;
-  const href='agent-profile.html?user='+encodeURIComponent(login);
-  // The whole card links to that agent's profile. Resolved/Open chips fill in once stats load.
-  return '<a class="ga-mem" href="'+href+'" title="View '+esc(dn)+'\u2019s profile">'+
+  // Agent profile page is retired — render the member card as a non-navigating span.
+  return '<span class="ga-mem" title="'+esc(dn)+'">'+
     '<span class="ga-mem-av">'+avatar+'</span>'+
     '<span class="ga-mem-name">'+esc(dn)+'</span>'+
     '<span class="ga-mem-id">@'+esc(login)+'</span>'+
-  '</a>';
+  '</span>';
 }
 function groupsSectionHtml(){
   return '<div class="ga-groups">'+GROUPS.map(g=>
@@ -713,7 +712,7 @@ function tableSkeleton(kind){
   } else {
     bodyRows=AGENTS_ALPHA.map(function(n){
       var grp=(GA1.indexOf(n)>=0?'A1':(GA2.indexOf(n)>=0?'A2':(GB.indexOf(n)>=0?'B':null)));
-      var cells='<td><a href="agent-profile.html?user='+encodeURIComponent(n)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(n)+'</a> '+gtag(grp)+'</td>';
+      var cells='<td><span style="color:#44b9d6;font-weight:700">'+esc(n)+'</span> '+gtag(grp)+'</td>';
       for(var i=1;i<ncols;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
       return '<tr>'+cells+'</tr>';
     }).join('');
@@ -739,7 +738,7 @@ function gaRenderIap(){
   const rows=sorted.length?sorted.map(function(a){
     const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
-    return '<tr><td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> '+gtag(a.group)+'</td>'+
+    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>'+
       cell(a.assigned||0)+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
@@ -884,7 +883,7 @@ function iapRenderTable(){
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
     const avg=(a.avgTime||0);
     return '<tr>'+
-      '<td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> '+gtag(a.group)+'</td>'+
+      '<td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>'+
       cell(a.assigned||0)+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
@@ -923,7 +922,7 @@ function queueSkeleton(){
   const head='<tr>'+Q_COLS.map(function(c){ const dot=c.dot?('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c.dot+';margin-right:5px;vertical-align:middle"></span>'):''; return '<th class="iap-sort">'+dot+'<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
   const rows=AGENTS_ALPHA.map(function(n){
     var grp=(GA1.indexOf(n)>=0?'A1':(GA2.indexOf(n)>=0?'A2':(GB.indexOf(n)>=0?'B':null)));
-    var cells='<td><a href="agent-profile.html?user='+encodeURIComponent(n)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(n)+'</a> '+gtag(grp)+'</td>';
+    var cells='<td><span style="color:#44b9d6;font-weight:700">'+esc(n)+'</span> '+gtag(grp)+'</td>';
     for(var i=1;i<Q_COLS.length;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
     return '<tr>'+cells+'</tr>';
   }).join('');
@@ -966,7 +965,7 @@ function qRenderTable(){
   }).join('')+'</tr>';
   const rows=sorted.length?sorted.map(function(a){
     return '<tr>'+Q_COLS.map(function(c){
-      if(c.key==='name') return '<td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> '+gtag(a.group)+'</td>';
+      if(c.key==='name') return '<td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>';
       var v=c.val(a);
       return '<td class="'+(c.cls||'')+((v===0)?' zero':'')+'">'+((c.cls==='col-total')?('<b>'+v+'</b>'):v)+'</td>';
     }).join('')+'</tr>';
@@ -1078,7 +1077,7 @@ function gwRenderIap(){
   const rows=sorted.length?sorted.map(function(a){
     const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
-    return '<tr><td><a href="agent-profile.html?user='+encodeURIComponent(a.name)+'" style="color:#44b9d6;font-weight:700;text-decoration:none">'+esc(a.name)+'</a> '+gtag(a.group)+'</td>'+
+    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>'+
       cell(a.assigned||0)+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+

@@ -1,5 +1,5 @@
 // Add-archive page: gate check, parse CSV, compute metrics in-browser, save to IndexedDB, allow export
-if(sessionStorage.getItem('phd_authed')!=='1'){window.location.href='home.html';}
+if(sessionStorage.getItem('phd_authed')!=='1'){window.location.href='index.html';}
 
 const PHD_RESOLVERS=['arunkzn','flofalgu','harisss','punithsd','mbozied','mellanej','nobregak','chousoud','dbiswamb','obalasut','shaavhad','tanviroo','urmahala'];
 const REGIONS=['US','UK','CA','AU','BR','JP','IN','DE','SG','IT','FR','MX','AE','ES','NL','PL','TR','SA','EG'];

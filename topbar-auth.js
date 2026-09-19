@@ -42,10 +42,11 @@
       + '.tb-qbtn,.tb-movable{display:none!important}'
       + '.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}'
       + '.tb-avatar{display:inline-flex;align-items:center;text-decoration:none}'
-      + '.tb-avatar img,.tb-avatar .avatar-initial{border-radius:50%}'
+      + '.tb-avatar img,.tb-avatar .avatar-initial{border-radius:50%;width:44px!important;height:44px!important}'
       // one combined profile button: name + avatar
-      + '.tb-profile-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:4px 6px 4px 12px;border:1px solid #2a2a2a;border-radius:999px;background:#151b24;color:#d5dbdb;max-width:220px;transition:border-color .15s,background .15s}'
-      + '.tb-profile-btn:hover{border-color:#ff9900;background:#1a222d}'
+      // Profile button: matches the left FAB buttons — same 52px round height + animated gradient.
+      + '.tb-profile-btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;padding:3px 6px 3px 16px;border:1px solid #2a2a2a;border-radius:999px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;max-width:240px;height:52px;transition:border-color .15s,transform .15s}'
+      + '.tb-profile-btn:hover{border-color:#ff9900;transform:translateY(-1px)}'
       + '.tb-profile-name{font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}'
       // refresh button spins its icon while a refresh is in flight
       + '.tb-refresh-btn.spinning svg{animation:tbspin .8s linear infinite}'
@@ -115,9 +116,13 @@
       // pill grows rightward on hover from the same left edge.
       + '.tb-fab-col{position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:900;display:flex;flex-direction:column;align-items:flex-start;gap:12px;max-height:calc(100vh - 130px);pointer-events:none}'
       + '.tb-fab-col>*{pointer-events:auto}'
+      // Shared live animated-gradient background for the FAB buttons — a slow moving sheen so the
+      // whole left column feels alive. Applied to nav/analytics/history FABs (Live keeps its green).
+      + '@keyframes tbFabGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}'
+      + '.tb-fab-grad{background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite}'
       // Agent & Group Analytics FAB. Circular; expands on hover to reveal its label. Admin-gated
       // disabled state = greyed + inert. Lives inside the centered FAB column.
-      + '.tb-an-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#44b9d6;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
+      + '.tb-an-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#7fdfff;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,border-color .15s,transform .15s}'
       + '.tb-an-fab .tb-an-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-an-fab .tb-an-ic svg{width:22px;height:22px}'
       + '.tb-an-fab .tb-an-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
@@ -138,9 +143,13 @@
       + '@keyframes tbLiveBlink{0%,50%{opacity:1}51%,100%{opacity:.15}}'
       + '@keyframes tbLiveGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(74,222,128,.0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 6px rgba(74,222,128,.16)}}'
       // Page-navigation FABs — same expand-on-hover pill. Live inside the centered FAB column.
-      + '.tb-nav-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#cdd7de;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
-      + '.tb-nav-fab .tb-nav-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-nav-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,border-color .15s,transform .15s}'
+      + '.tb-nav-fab .tb-nav-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
       + '.tb-nav-fab .tb-nav-ic svg{width:21px;height:21px}'
+      // Count badge (e.g. open alerts) pinned to the top-right of the FAB icon.
+      + '.tb-nav-badge{display:none;position:absolute;top:6px;right:6px;min-width:17px;height:17px;padding:0 4px;border-radius:20px;background:#ff5252;color:#fff;font-size:.62em;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #1b2430}'
+      + '.tb-nav-badge.show{display:block}'
+      + '.tb-nav-badge.zero{background:#3a4655;color:#cdd7de}'
       + '.tb-nav-fab .tb-nav-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-nav-fab:hover{max-width:340px;background:#222d3a;border-color:#ff9900;color:#fff;transform:translateY(-2px)}'
       + '.tb-nav-fab:hover .tb-nav-label{opacity:1;padding-right:18px}'
@@ -202,7 +211,8 @@
         + '.tb-right{gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}'
         + '.tb-btn,.tb-qbtn{padding:6px 10px;font-size:.76em;gap:4px}'
         + '.tb-menu{left:0;right:0;top:52px}'
-        + '.tb-avatar img,.tb-avatar .avatar-initial{width:28px!important;height:28px!important}'
+        + '.tb-avatar img,.tb-avatar .avatar-initial{width:36px!important;height:36px!important}'
+        + '.tb-profile-btn{height:44px;padding:3px 5px 3px 12px}'
         // page wrappers: full width with small gutters (overrides fixed 80% / 80vw / big max-widths)
         + '.wrap{width:auto!important;max-width:100%!important;margin:0!important;padding:20px 14px!important}'
         // FAB column shrinks/relocates on narrow screens -> drop the content-shift padding.
@@ -254,7 +264,7 @@
       var esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); };
       html += '<a class="tb-profile-btn" href="profile.html" title="' + esc(name) + ' — Profile">'
         + '<span class="tb-profile-name">' + esc(name) + '</span>'
-        + '<span class="tb-avatar">' + (A.avatarHtml ? A.avatarHtml(prof, 30) : '') + '</span>'
+        + '<span class="tb-avatar">' + (A.avatarHtml ? A.avatarHtml(prof, 44) : '') + '</span>'
         + '</a>';
     }
     return html;
@@ -1003,12 +1013,13 @@
     // Order top -> bottom within the nav group. need: 'li' | 'admin' | true.
     var items = [
       { key: 'shift-report', label: 'Shift Report',              icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
-      { key: 'help-activity', label: 'Help Activity',            icon: 'alert',        href: 'help-activity.html',         need: 'li' },
+      { key: 'help-activity', label: 'Alerts and Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' },
       { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' },
       { key: 'hi-resolved',   label: 'Resolved Repeat Incidents', icon: 'repeat',      href: 'hi-resolved.html',           need: 'admin' },
       { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'admin' },
       { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'li' },
-      { key: 'unique-cases',  label: 'Unique cases',              icon: 'hash',        href: 'important-cases.html',       need: 'admin' }
+      { key: 'unique-cases',  label: 'Unique cases',              icon: 'hash',        href: 'important-cases.html',       need: 'admin' },
+      { key: 'archive',       label: 'Program History (Archive)', icon: 'calendar',    href: 'archive.html',               need: 'li' }
     ];
     var col = tbFabCol();
     var anchor = col.querySelector('.tb-live-fab') || col.querySelector('.tb-an-fab'); // insert above these
@@ -1019,7 +1030,9 @@
       fab.setAttribute('aria-label', it.label);
       fab.setAttribute('data-need', it.need === true ? 'any' : it.need);
       fab.setAttribute('data-href', it.href);
-      fab.innerHTML = '<span class="tb-nav-ic">' + ic(it.icon) + '</span>'
+      // Optional count badge on the icon (e.g. open-alert count on the Alerts nav FAB).
+      var badgeHtml = it.badge ? '<span class="tb-nav-badge" id="navBadge-' + it.badge + '">0</span>' : '';
+      fab.innerHTML = '<span class="tb-nav-ic">' + ic(it.icon) + badgeHtml + '</span>'
         + '<span class="tb-nav-label">' + it.label + '</span>';
       if (enabled) {
         fab.href = it.href;
@@ -1031,6 +1044,22 @@
       // Keep list order by inserting each new item just before the anchor (Live/Analytics).
       if (anchor) col.insertBefore(fab, anchor); else col.appendChild(fab);
     });
+    // Fetch the open-alert count and show it on the Alerts nav FAB (logged-in only).
+    if (li) refreshAlertBadge();
+  }
+  // Fetch /api/help/open and paint the count onto the Alerts nav FAB badge.
+  // Always visible (shows 0 when there are none) so the count is always readable.
+  function refreshAlertBadge() {
+    var badge = document.getElementById('navBadge-alerts');
+    if (!badge || !A || !A.api) return;
+    badge.classList.add('show'); // always show the number, even when 0
+    A.api('GET', '/api/help/open').then(function (r) {
+      if (!r || !r.ok || !Array.isArray(r.data)) return;
+      var n = r.data.length;
+      badge.textContent = n > 99 ? '99+' : n;
+      badge.classList.add('show');
+      badge.classList.toggle('zero', n === 0); // grey when none, red when there are alerts
+    }).catch(function () {});
   }
   // Re-apply the nav FABs' role-gated state after a background profile load (so they enable without reload).
   function applyNavFabsState() {
@@ -1054,6 +1083,7 @@
         fab.title = li ? (label + ' — admin access required') : ('Log in to view ' + label);
       }
     });
+    if (li) refreshAlertBadge(); // refresh the open-alert count once auth is confirmed
     // Live FAB: enabled once logged in, disabled + inert (no blink) when logged out.
     var liveFab = document.querySelector('.tb-live-fab');
     if (liveFab) {
@@ -1132,14 +1162,14 @@
     var key = 'grid'; // sensible default
     var map = {
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
-      'agent-analytics.html': 'bar-chart', 'last24.html': 'clock', 'help-activity.html': 'alert',
+      'agent-analytics.html': 'bar-chart', 'help-activity.html': 'alert',
       'alerts.html': 'alert', 'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
-      'important-cases.html': 'hash', 'unique-cases.html': 'hash', 'unique-cases-log.html': 'history',
+      'important-cases.html': 'hash', 'unique-cases.html': 'hash',
       'station-request.html': 'map-pin',
       'users.html': 'users-gear', 'db-health.html': 'database', 'profile.html': 'users',
       'data-log.html': 'history', 'blurb-log.html': 'history', 'hashtag-log.html': 'history',
-      'paging-log.html': 'history', 'archive.html': 'calendar', 'admin-guide.html': 'book',
+      'paging-log.html': 'history', 'archive.html': 'calendar',
       'add-archive.html': 'plus'
     };
     if (file === 'app.html' && view) { key = ({ groups: 'users', 'shift-report': 'clipboard', 'previous-week': 'clock-rewind' })[view] || 'bolt'; }
@@ -1150,6 +1180,21 @@
   // ---- Standalone-page auto-mount: replace the page's .top-bar with the shared toolbar ----
   // Reads data-nav-active on <body> for the active highlight. Skipped on app.html (it builds its own).
   (async function () {
+    // EMBEDDED MODE: when a page is loaded inside an iframe with ?embed=1 (e.g. the tool tabs on
+    // tools.html), suppress the shared toolbar, the .tools-subnav, and all floating FABs — the parent
+    // page already provides the chrome. The embedded page then renders only its own content.
+    var isEmbedded = false;
+    try { isEmbedded = /[?&]embed=1\b/.test(location.search) || window.self !== window.top; } catch (e) { isEmbedded = /[?&]embed=1\b/.test(location.search); }
+    if (isEmbedded) {
+      injectStyles();
+      var hideCss = document.createElement('style');
+      hideCss.textContent = '.top-bar,.tools-subnav{display:none!important}'
+        + '.tb-topbar,.tb-menu,.tb-back-fab,.tb-hist-fab,.tb-fab-col,#tbFabCol,.tb-menu-fab{display:none!important}'
+        + 'body{padding:0!important}.wrap{padding-top:16px!important}';
+      document.head.appendChild(hideCss);
+      document.body.setAttribute('data-embedded', 'true');
+      return; // no toolbar / FAB build in embedded mode
+    }
     injectStyles();
     buildModalAndLoader();
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)

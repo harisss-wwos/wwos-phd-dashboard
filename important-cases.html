@@ -243,7 +243,7 @@ async function load(){
 function render(rows){
   CASES=rows; // stash for the edit popup
   let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">Unique Cases</h1>'
-    +'<a class="btn sec" href="unique-cases-log.html">'+(window.icon?window.icon('history',15):'')+' Unique cases log</a>'
+    +'<a class="btn sec" href="unique-cases.html">'+(window.icon?window.icon('history',15):'')+' Unique cases log</a>'
     +'</div>'
     +'<p class="sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</p>';
   if(!rows.length){html+='<div class="empty">No unique cases marked yet. Mark tickets via Search ticket on the My Tickets page.</div>';document.getElementById('wrap').innerHTML=html;return;}

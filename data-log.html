@@ -181,7 +181,8 @@ function changedTicketsBlock(ct){
   return h;
 }
 
-const isOwner=()=>A.role&&A.role()==='owner';
+// Delete access opened to admins and above (was owner-only). Name kept for existing callers.
+const isOwner=()=>A.atLeast&&A.atLeast('admin');
 function render(entries){
   const wrap=document.getElementById('wrap');
   const owner=isOwner();

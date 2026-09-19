@@ -25,22 +25,43 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .wrap{max-width:1200px;margin:0 auto;padding:36px 24px 80px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:center;gap:10px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:22px;line-height:1.6}
-/* Summary chips */
-.hr-counts{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:22px}
-.hr-chip{display:flex;flex-direction:column;gap:3px;min-width:120px;background:#0b0f14;border:1px solid #23303c;border-radius:10px;padding:12px 16px}
-.hr-chip .n{color:#fff;font-size:1.5em;font-weight:800;line-height:1}
-.hr-chip .l{color:var(--tm);font-size:.7em;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+/* Summary chips + filter — all on ONE line. */
+.hr-counts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px}
+.hr-chip{display:inline-flex;align-items:center;gap:8px;background:#0b0f14;border:1px solid #23303c;border-radius:10px;padding:9px 14px}
+.hr-chip .n{color:#fff;font-size:1.05em;font-weight:800;line-height:1}
+.hr-chip .l{display:inline-flex;align-items:center;gap:6px;color:var(--tm);font-size:.78em;font-weight:600;white-space:nowrap}
+.hr-chip .l svg{opacity:.85;flex-shrink:0}
 .hr-chip.total{border-color:var(--o)}
 .hr-chip.pet .n{color:#a78bfa}
+.hr-chip.pet .l svg{color:#a78bfa}
 .hr-chip.nonpet .n{color:#ff9900}
-/* Date-range sections (top level, collapsible). */
-.hr-range{border:1px solid #33414f;border-radius:12px;margin-bottom:18px;overflow:hidden;background:#080c11}
-.hr-range-head{display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;background:linear-gradient(180deg,#111a23,#0c1218);border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.hr-range-head:hover{background:#131d27}
+.hr-chip.nonpet .l svg{color:#ff9900}
+/* Inline agent filter, sits at the end of the same row. */
+.hr-filter{display:inline-flex;align-items:center;gap:6px;background:#0b0f14;border:1px solid var(--bd);border-radius:10px;padding:5px 10px;flex:1;min-width:200px}
+.hr-filter-ic{display:inline-flex;color:var(--tm);flex-shrink:0}
+.hr-filter input{flex:1;min-width:0;background:transparent;border:none;color:#fff;font-size:.88em;font-family:inherit;padding:4px 2px}
+.hr-filter input:focus{outline:none}
+/* Date-range sections (top level, collapsible) — colorful gradient top border + header icon chip. */
+.hr-range{position:relative;border:1px solid #23303c;border-radius:14px;margin-bottom:16px;overflow:hidden;background:#0a0a0a}
+.hr-range::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--rc1),var(--rc2))}
+.hr-range-head{display:flex;align-items:center;gap:14px;width:100%;padding:18px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.hr-range-head:hover{background:rgba(255,255,255,.03)}
+.hr-range-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--rc-bg);color:var(--rc2)}
+.hr-range-ic svg{width:18px;height:18px}
 .hr-range-title{color:#fff;font-weight:700;font-size:1.12em}
-.hr-range-meta{margin-left:auto;color:var(--tm);font-size:.84em}
-.hr-range-body{max-height:0;overflow:hidden;transition:max-height .35s ease;padding:0 16px}
-.hr-range.open .hr-range-body{max-height:20000px;padding:16px}
+.hr-range-meta{margin-left:auto;color:var(--tm);font-size:.84em;white-space:nowrap}
+/* Per-range accent colors (set as CSS vars on the .hr-range element). */
+.hr-range.rng-after{--rc1:#44b9d6;--rc2:#7fdfff;--rc-bg:rgba(68,185,214,.16)}
+.hr-range.rng-mid{--rc1:#f0a020;--rc2:#fbbf24;--rc-bg:rgba(251,191,36,.16)}
+.hr-range.rng-before{--rc1:#8b5cf6;--rc2:#a78bfa;--rc-bg:rgba(167,139,250,.16)}
+.hr-range.rng-unknown{--rc1:#5f6b6c;--rc2:#8b98a5;--rc-bg:rgba(139,152,165,.16)}
+/* Skeleton shimmer for the collapsed-card loading state. */
+.sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+.sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
+#hrSkel .hr-range-ic{background:var(--rc-bg)}
+@keyframes sksh{100%{transform:translateX(100%)}}
+.hr-range-body{display:none;padding:0 16px}
+.hr-range.open .hr-range-body{display:block;padding:16px}
 .hr-range.open>.hr-range-head .hr-caret{transform:rotate(180deg)}
 /* Agent accordion */
 .hr-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
@@ -53,8 +74,8 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-agent-pet{font-size:.78em;color:#a78bfa;font-weight:600}
 .hr-caret{color:var(--tm);transition:transform .25s ease;flex-shrink:0;font-size:1.1em}
 .hr-agent.open .hr-caret{transform:rotate(180deg)}
-.hr-agent-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
-.hr-agent.open .hr-agent-body{max-height:6000px}
+.hr-agent-body{display:none}
+.hr-agent.open .hr-agent-body{display:block}
 .hr-scroll{overflow-x:auto}
 .hr-tbl{width:100%;border-collapse:collapse;font-size:.92em}
 .hr-tbl th,.hr-tbl td{border-top:1px solid #1b2530;padding:10px 14px;text-align:left;vertical-align:middle}
@@ -84,7 +105,11 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 <div class="wrap" id="wrap">
   <h1>Resolved Repeat Incidents</h1>
   <p class="sub">Tickets resolved with a Historical Incident count (Cnt) greater than 0, across the whole database, grouped by the agent who resolved them.</p>
-  <div class="spinner"></div>
+  <div id="hrSkel">
+    <div class="hr-range rng-after"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:280px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:180px;height:12px"></span><span class="hr-caret">▾</span></div></div>
+    <div class="hr-range rng-mid"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:320px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:180px;height:12px"></span><span class="hr-caret">▾</span></div></div>
+    <div class="hr-range rng-before"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:320px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:180px;height:12px"></span><span class="hr-caret">▾</span></div></div>
+  </div>
 </div>
 
 <script src="icons.js"></script>
@@ -100,12 +125,16 @@ const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44
 function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function fmtHrs(h){ if(h==null||isNaN(h))return '—'; if(h<48)return h.toFixed(1)+' hrs'; return (h/24).toFixed(1)+' days'; }
 
-function counts(d){
+function ic(n,s){return window.icon?window.icon(n,s||14):'';}
+// Summary chips + the agent filter, all on ONE line. `key` wires the filter to this range's list.
+function counts(d,key){
+  var filter=(d.agents&&d.agents.length)?('<div class="hr-filter"><span class="hr-filter-ic">'+ic('user',14)+'</span><input placeholder="Filter agents…" oninput="hrFilter(this,\''+key+'\')"></div>'):'';
   return '<div class="hr-counts">'+
-    '<div class="hr-chip total"><span class="n">'+(d.totalTickets||0)+'</span><span class="l">Resolved HI tickets</span></div>'+
-    '<div class="hr-chip"><span class="n">'+(d.totalAgents||0)+'</span><span class="l">Agents</span></div>'+
-    '<div class="hr-chip pet"><span class="n">'+(d.totalPet||0)+'</span><span class="l">Pet / animal</span></div>'+
-    '<div class="hr-chip nonpet"><span class="n">'+(d.totalNonPet||0)+'</span><span class="l">Non-pet</span></div>'+
+    '<div class="hr-chip total"><span class="l">'+ic('repeat',13)+' Resolved HI tickets</span><span class="n">'+(d.totalTickets||0)+'</span></div>'+
+    '<div class="hr-chip"><span class="l">'+ic('users',13)+' Agents</span><span class="n">'+(d.totalAgents||0)+'</span></div>'+
+    '<div class="hr-chip pet"><span class="l">'+ic('paw',13)+' Pet / animal</span><span class="n">'+(d.totalPet||0)+'</span></div>'+
+    '<div class="hr-chip nonpet"><span class="l">'+ic('alert',13)+' Non-pet</span><span class="n">'+(d.totalNonPet||0)+'</span></div>'+
+    filter+
   '</div>';
 }
 
@@ -135,19 +164,22 @@ function agentBlock(a){
   '</div>';
 }
 
-// One date-range section: collapsible, with its own summary chips + agent accordion.
-function rangeSection(key,label,d,openByDefault){
+// Per-range header icon.
+const RANGE_ICON={after:'bolt',mid:'clock-rewind',before:'calendar',unknown:'alert'};
+// One date-range section: collapsible (closed by default), colorful border + icon, summary + agents.
+function rangeSection(key,label,d){
   const agents=d.agents||[];
   const inner=agents.length?agents.map(function(a){return agentBlock(a,key);}).join(''):'<div class="empty">No resolved repeat-incident tickets in this range.</div>';
-  return '<div class="hr-range'+(openByDefault?' open':'')+'" data-range="'+key+'">'+
+  const ico=(window.icon?window.icon(RANGE_ICON[key]||'calendar',18):'');
+  return '<div class="hr-range rng-'+key+'" data-range="'+key+'">'+
     '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-ic">'+ico+'</span>'+
       '<span class="hr-range-title">'+esc(label)+'</span>'+
       '<span class="hr-range-meta">'+(d.totalTickets||0)+' tickets · '+(d.totalAgents||0)+' agents · '+(d.totalPet||0)+' pet</span>'+
       '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
     '</button>'+
     '<div class="hr-range-body">'+
-      counts(d)+
-      (agents.length?'<div class="hr-search"><input placeholder="Filter agents…" oninput="hrFilter(this,\''+key+'\')"></div>':'')+
+      counts(d,key)+
       '<div class="hr-list" data-range="'+key+'">'+inner+'</div>'+
     '</div>'+
   '</div>';
@@ -155,11 +187,12 @@ function rangeSection(key,label,d,openByDefault){
 function render(d){
   HR_DATA=d;
   const R=d.ranges||{};
+  // All sections collapsed by default.
   let sections=
-    rangeSection('after',(R.after&&R.after.label)||'Created on/after 1 Apr 2026', d.after||{}, true)+
-    rangeSection('mid',(R.mid&&R.mid.label)||'Created 1 Sep 2025 – 31 Mar 2026', d.mid||{}, false)+
-    rangeSection('before',(R.before&&R.before.label)||'Created before 1 Sep 2025', d.before||{}, false);
-  if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown, false); }
+    rangeSection('after','Incidents reported on or after 1 Apr 2026', d.after||{})+
+    rangeSection('mid','Incidents reported between 1 Sep 2025 – 31 Mar 2026', d.mid||{})+
+    rangeSection('before','Incidents reported between 1 Jan 2021 – 30 Sept 2025', d.before||{});
+  if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown); }
   document.getElementById('wrap').innerHTML=
     '<h1>Resolved Repeat Incidents</h1>'+
     '<p class="sub">Tickets resolved with a Historical Incident count (Cnt) greater than 0, across the whole database, grouped by the agent who resolved them, and split by ticket creation date. Agents are ordered by count (highest first).</p>'+

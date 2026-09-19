@@ -8,31 +8,35 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--tl:#44b9d6}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
-.logo{display:flex;align-items:center;gap:10px}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
-.wrap{max-width:1000px;margin:0 auto;padding:50px 24px}
-.hero{text-align:center;margin-bottom:44px}
-.hero h1{font-size:2.2em;color:#fff;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:12px}
-.hero p{color:var(--tm);font-size:1em}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
-.card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--tl);border-radius:12px;padding:28px;cursor:pointer;transition:transform .15s,border-color .2s;text-decoration:none;display:block}
-.card:hover{transform:translateY(-3px);border-color:var(--tl)}
-.card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.card-icon{font-size:1.6em;line-height:1}
-.card h2{color:#fff;font-size:1.2em;font-weight:600}
-.card-ic{color:var(--tl);display:inline-flex}
-.card p{color:var(--tm);font-size:.9em;line-height:1.5}
+.wrap{padding:32px 24px 8px}
 
-/* Global: main content spans 90% of the viewport at all sizes. */
+/* ---- Tab toggle (same look as Unique Cases): selected = orange bg, others = transparent ---- */
+.uc-tabs{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.uc-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid transparent;background:transparent;color:var(--tm);font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.uc-tab:hover{color:#e6edf0}
+.uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#000;border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.35)}
+.uc-tab svg{flex-shrink:0}
+
+/* ---- Embedded-tool frame + skeleton ---- */
+.tool-frame-wrap{position:relative;min-height:520px}
+.tool-frame{width:100%;border:0;display:block;min-height:calc(100vh - 190px)}
+.tool-skel{position:absolute;inset:0;background:#000;padding:8px 0}
+.tool-skel.hidden{display:none}
+.sk{position:relative;overflow:hidden;background:#141a20;border-radius:8px;display:block}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
+@keyframes sksh{100%{transform:translateX(100%)}}
+.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;text-decoration:none;font-family:inherit}
+.btn:hover{background:var(--oh)}
+
+/* Global: main content spans the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 </head>
@@ -40,33 +44,72 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap">
-  <div class="hero">
-    <h1>🛠️ PHD Tools</h1>
-    <p>Quick-access toolkit for the PHD team.</p>
-  </div>
-  <div class="grid">
-    <a class="card" href="tool-blurbs.html">
-      <div class="card-head"><span class="card-ic" data-ic="clipboard"></span><h2>Common Blurbs</h2></div>
-      <p>Reusable canned responses and standard message templates.</p>
-    </a>
-    <a class="card" href="tool-hashtags.html">
-      <div class="card-head"><span class="card-ic" data-ic="hash"></span><h2>Hashtags</h2></div>
-      <p>Standard hashtags used for tagging and categorizing tickets.</p>
-    </a>
-    <a class="card" href="tool-paging.html">
-      <div class="card-head"><span class="card-ic" data-ic="mail"></span><h2>Paging Contacts</h2></div>
-      <p>Escalation and on-call contacts for paging during incidents.</p>
-    </a>
-    <a class="card" href="tool-prompts.html">
-      <div class="card-head"><span class="card-ic" data-ic="message"></span><h2>Prompt</h2></div>
-      <p>Prompt templates and quick-reference text for common tasks.</p>
-    </a>
-  </div>
-</div>
+<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
+
 <script src="icons.js"></script>
-<script>document.querySelectorAll('[data-ic]').forEach(function(el){if(window.icon)el.innerHTML=window.icon(el.getAttribute('data-ic'),24);});</script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
+
+// Each tab embeds its existing tool page in an iframe (?embed=1 hides that page's own toolbar/FABs),
+// so every tool keeps its full behaviour (copy counts, add/edit/delete modals, caching) with zero
+// cross-tab collisions. Prompts is the WIP page, embedded the same way.
+const TABS=[
+  { id:'blurbs',   label:'Common Blurbs',   icon:'clipboard', src:'tool-blurbs.html' },
+  { id:'hashtags', label:'Hashtags',        icon:'hash',      src:'tool-hashtags.html' },
+  { id:'paging',   label:'Paging Contacts', icon:'mail',      src:'tool-paging.html' },
+  { id:'prompts',  label:'Prompts',         icon:'message',   src:'tool-prompts.html' },
+];
+let ACTIVE='blurbs';
+const LOADED={}; // id -> true once its iframe has been created (kept alive so re-clicks are instant)
+
+function skeleton(){
+  var bars='<div class="sk" style="height:26px;width:240px;margin:6px 0 14px"></div>'+
+    '<div class="sk" style="height:14px;width:60%;margin-bottom:22px"></div>';
+  for(var i=0;i<4;i++){ bars+='<div class="sk" style="height:96px;margin-bottom:14px"></div>'; }
+  return '<div class="tool-skel" id="skel-'+ACTIVE+'">'+bars+'</div>';
+}
+
+function pageShell(){
+  var tabs=TABS.map(function(t){
+    return '<button class="uc-tab'+(ACTIVE===t.id?' active':'')+'" id="tab-'+t.id+'" onclick="switchTab(\''+t.id+'\')">'+ic(t.icon,15)+' '+t.label+'</button>';
+  }).join('');
+  return '<div class="uc-tabs">'+tabs+'</div><div id="tabBody"></div>';
+}
+
+// Show a tab: create its iframe once (with a skeleton overlay until it loads), then just show/hide
+// the frames on subsequent clicks so state is preserved and switching is instant.
+function switchTab(id){
+  ACTIVE=id;
+  TABS.forEach(function(t){ var b=document.getElementById('tab-'+t.id); if(b) b.classList.toggle('active',t.id===id); });
+  const body=document.getElementById('tabBody');
+  // Hide all existing frame-wraps.
+  Array.prototype.forEach.call(body.querySelectorAll('.tool-frame-wrap'),function(w){ w.style.display=(w.getAttribute('data-id')===id)?'':'none'; });
+  if(LOADED[id]) return; // already built -> just revealed above
+  // Build this tab's frame + skeleton on first open.
+  const tab=TABS.find(function(t){return t.id===id;});
+  const wrap=document.createElement('div');
+  wrap.className='tool-frame-wrap'; wrap.setAttribute('data-id',id);
+  wrap.innerHTML=skeleton()+'<iframe class="tool-frame" id="frame-'+id+'" title="'+tab.label+'" src="'+tab.src+(tab.src.indexOf('?')>=0?'&':'?')+'embed=1"></iframe>';
+  body.appendChild(wrap);
+  const frame=wrap.querySelector('iframe');
+  frame.addEventListener('load',function(){ const s=document.getElementById('skel-'+id); if(s) s.classList.add('hidden'); });
+  LOADED[id]=true;
+}
+window.switchTab=switchTab;
+
+function load(){
+  // Tools are viewable by any logged-in user (edit actions inside each tool are admin-gated there).
+  if(!A.getUser()||!A.getToken()){
+    document.getElementById('wrap').innerHTML='<div class="gate"><h1 style="color:#fff">PHD Tools</h1><p>This page is for logged-in users. Log in from the Live Dashboard first.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
+    return;
+  }
+  document.getElementById('wrap').innerHTML=pageShell();
+  switchTab(ACTIVE); // default tab
+}
+load();
+</script>
 </body>
 </html>

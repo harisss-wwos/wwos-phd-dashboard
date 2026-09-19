@@ -93,7 +93,8 @@ function bodyFor(e){
   return '<div class="single"><pre>'+fmtContact(c)+'</pre></div>';
 }
 
-const isOwner=()=>A.role&&A.role()==='owner';
+// Delete access opened to admins and above (was owner-only). Name kept for existing callers.
+const isOwner=()=>A.atLeast&&A.atLeast('admin');
 const ACT_LABEL={create:'Created',edit:'Edited',delete:'Deleted'};
 const ACT_CLASS={create:'create',edit:'edit',delete:'delete'};
 
@@ -101,7 +102,7 @@ function render(entries){
   const wrap=document.getElementById('wrap');
   const owner=isOwner();
   let html='<div style="margin-bottom:14px"><a class="btn sec" href="tool-paging.html">← Back to Paging Contacts</a></div>'
-    +'<h1>Paging Change Log</h1><p class="sub">Who added, edited, or deleted which paging contact, when (IST &amp; MST). Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
+    +'<h1>Paging Change Log</h1><p class="sub">Who added, edited, or deleted which paging contact, when (IST &amp; MST). Latest first.'+(owner?' As an admin, you can delete log entries.':'')+'</p>';
   if(!entries.length){html+='<div class="empty">No paging changes recorded yet.</div>';wrap.innerHTML=html;return;}
   html+=entries.map((e,i)=>`
     <div class="entry${i===0?' open':''}">

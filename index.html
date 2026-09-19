@@ -12,10 +12,10 @@
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;gap:12px}
+.top-bar{background:#121820;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px}
 .logo{display:flex;align-items:center;gap:10px}
-.logo img{height:30px;width:auto;display:block}
-.logo span{font-size:1.2em;font-weight:700;color:#fff;line-height:1}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.12em;font-weight:700;color:#fff;line-height:1}
 .wrap{max-width:1000px;margin:0 auto;padding:28px 24px}
 .hero{text-align:center;margin-bottom:24px}
 .hero h1{font-size:2.4em;color:#fff;font-weight:700;margin-bottom:10px}
@@ -207,14 +207,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Top-bar auth controls (login button / avatar / logout) — override the modal .btn top margin */
 #homeAuth .btn{margin-top:0;margin-right:0;padding:8px 16px;font-size:.85em}
 #homeAuth .btn.sec{margin-right:0}
-.home-profile-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:4px 6px 4px 12px;border:1px solid var(--bd);border-radius:999px;background:#151b24;color:var(--t);max-width:220px}
-.home-profile-btn:hover{border-color:var(--o)}
+.home-profile-btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;padding:3px 6px 3px 16px;border:1px solid var(--bd);border-radius:999px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:var(--t);max-width:240px;height:52px;transition:border-color .15s,transform .15s}
+.home-profile-btn:hover{border-color:var(--o);transform:translateY(-1px)}
+@keyframes tbFabGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+/* Users / Database health buttons on the home bar — matched to the shared .tb-btn but disabled. */
+.home-tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--bd);border-radius:6px;font-size:.82em;font-weight:600;white-space:nowrap}
+.home-tb-btn.disabled{color:#5f6b6c;background:#101720;border-color:#242e39;cursor:not-allowed;opacity:.75}
+@media(max-width:920px){.home-tb-btn .home-tb-lbl{display:none}.home-tb-btn{padding:8px 10px}}
 .home-profile-name{font-size:.85em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .pass-wrap{position:relative}
 .pass-wrap input{padding-right:44px!important}
 .pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:var(--tm);cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}
 .pass-eye:hover{color:var(--o)}
 #homeAuth .avatar-initial,#homeAuth img{border-radius:50%}
+#homeAuth .phd-avatar,#homeAuth .home-profile-btn img,#homeAuth .home-profile-btn .avatar-initial{width:44px!important;height:44px!important}
 /* (The Agent & Group Analytics FAB is provided by topbar-auth.js now — styles live there.) */
 /* Mobile: make the About block, the top card grid, and the year sections the SAME width and
    centering so they align, and tighten the vertical spacing. */
@@ -417,11 +423,15 @@ function renderHomeAuth(){
     return;
   }
   var prof = (A.myProfile && A.myProfile()) || user;
-  var avatar = A.avatarHtml ? A.avatarHtml(prof, 30) : '';
+  var avatar = A.avatarHtml ? A.avatarHtml(prof, 44) : '';
   var esc = function(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});};
   var name = (prof && (prof.displayName || prof.username)) || 'Profile';
-  // Combined profile button (name + avatar). Logout lives only on the profile page now.
+  // Users + Database health are shown here (matching the shared top bar) but DISABLED on the home
+  // page — not navigable from here. The profile button (name + avatar) follows.
+  var disReason='Not allowed to access from the home page for now.';
   slot.innerHTML =
+    '<span class="home-tb-btn disabled" title="'+disReason+'" aria-disabled="true">'+ic('users-gear',15)+'<span class="home-tb-lbl"> Users</span></span>'+
+    '<span class="home-tb-btn disabled" title="'+disReason+'" aria-disabled="true">'+ic('database',15)+'<span class="home-tb-lbl"> Database health</span></span>'+
     '<a class="home-profile-btn" href="profile.html" title="'+esc(name)+' — Profile">'+
       '<span class="home-profile-name">'+esc(name)+'</span>'+avatar+
     '</a>';

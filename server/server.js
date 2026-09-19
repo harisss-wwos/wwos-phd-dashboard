@@ -1063,7 +1063,7 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
 });
 
 // Delete a data-log entry (owner only).
-app.delete('/api/data-log/:id', requireRole('owner'), async (req, res) => {
+app.delete('/api/data-log/:id', requireRole('admin'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.dataLog);
     const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });
@@ -1281,7 +1281,7 @@ app.get('/api/blurb-log', requireRole('user'), async (req, res) => {
 });
 
 // Delete a blurb-log entry (owner only).
-app.delete('/api/blurb-log/:id', requireRole('owner'), async (req, res) => {
+app.delete('/api/blurb-log/:id', requireRole('admin'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.blurbLog);
     const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });
@@ -1424,7 +1424,7 @@ app.get('/api/hashtag-log', requireRole('user'), async (req, res) => {
 });
 
 // Delete a hashtag-log entry (owner only).
-app.delete('/api/hashtag-log/:id', requireRole('owner'), async (req, res) => {
+app.delete('/api/hashtag-log/:id', requireRole('admin'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.hashtagLog);
     const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });
@@ -1568,7 +1568,7 @@ app.get('/api/paging-log', requireRole('user'), async (req, res) => {
 });
 
 // Delete a paging-log entry (owner only).
-app.delete('/api/paging-log/:id', requireRole('owner'), async (req, res) => {
+app.delete('/api/paging-log/:id', requireRole('admin'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.pagingLog);
     const r = await logColl.deleteOne({ _id: new ObjectId(req.params.id) });

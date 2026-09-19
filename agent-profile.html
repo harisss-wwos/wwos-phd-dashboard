@@ -361,7 +361,7 @@ function renderMates(login,roles,avatars){
     const k=m.toLowerCase();
     const dn=(roles[k]&&roles[k].displayName)||m;
     const av=A.avatarHtml?A.avatarHtml({username:m,displayName:dn,avatar:avatars[k]||''},38):'';
-    return '<a class="mate" href="agent-profile.html?user='+encodeURIComponent(m)+'" title="'+esc(dn)+'">'+av+'<span class="mate-tip">'+esc(dn)+'</span></a>';
+    return '<span class="mate" title="'+esc(dn)+'">'+av+'<span class="mate-tip">'+esc(dn)+'</span></span>';
   }).join('');
 }
 

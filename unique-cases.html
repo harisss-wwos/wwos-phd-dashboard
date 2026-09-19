@@ -20,9 +20,21 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn:disabled{opacity:.6;cursor:default}
-.wrap{max-width:820px;margin:0 auto;padding:44px 24px}
+.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
+.btn.danger:hover{background:rgba(255,82,82,.12)}
+.btn.mini{padding:5px 12px;font-size:.78em}
+.wrap{max-width:1000px;margin:0 auto;padding:40px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
+
+/* ---- Two-tab toggle: Unique cases (left) | Log (right) ---- */
+.uc-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px;flex-wrap:wrap}
+.uc-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid transparent;background:transparent;color:var(--tm);font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.uc-tab:hover{color:#e6edf0}
+.uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#000;border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.35)}
+.uc-tab svg{flex-shrink:0}
+
+/* ---- Search / Unique Cases view ---- */
 .search-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
 .search-row input{flex:1;min-width:220px;padding:11px 14px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.95em}
 .search-row input:focus{outline:none;border-color:var(--o)}
@@ -47,12 +59,50 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .hint{color:#5f6b6c;font-size:.82em;margin-top:8px}
 .card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
 .marked-badge{color:var(--yl);font-weight:700;font-size:.85em}
-/* Modal */
+
+/* ---- Log view ---- */
+.entry{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid transparent;cursor:pointer;transition:background .12s}
+.entry-head:hover{background:#0d0d0d}
+.entry.open .entry-head{border-bottom-color:var(--bd)}
+.entry-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
+.entry.open .entry-caret{transform:rotate(180deg)}
+.entry-body{display:none;padding:12px 18px}
+.entry.open .entry-body{display:block}
+.act{padding:2px 10px;border-radius:20px;font-size:.72em;font-weight:700;text-transform:uppercase}
+.act.mark{background:rgba(74,222,128,.15);color:var(--gl)}
+.act.update{background:rgba(251,191,36,.15);color:#fbbf24}
+.act.unmark{background:rgba(255,82,82,.15);color:var(--rl)}
+.entry-id{color:#44b9d6;font-weight:700}
+.entry-user{color:var(--tm);font-size:.85em}
+.entry-user b{color:#d5dbdb}.entry-role{color:var(--o);text-transform:uppercase;font-size:.72em;font-weight:700;margin-left:4px}
+.entry-when{margin-left:auto;text-align:right;font-size:.8em;color:var(--tm);line-height:1.5}
+.entry-when b{color:#d5dbdb}
+.blk-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin:10px 0 6px}
+.info-box{white-space:pre-wrap;color:var(--t);font-size:.88em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 12px}
+.links{display:flex;flex-direction:column;gap:6px}
+.link-item{background:#000;border:1px solid var(--bd);border-radius:8px;padding:7px 11px}
+.link-item a{color:#44b9d6;text-decoration:none;font-size:.84em;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.link-item a:hover{text-decoration:underline}
+.none{color:#5f6b6c;font-size:.84em;font-style:italic}
+.meta-row{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm)}
+.meta-row b{color:#fff;font-weight:600}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+
+/* ---- Skeleton shimmer (per-tab, shown until data loads) ---- */
+.sk{position:relative;overflow:hidden;background:#141a20;border-radius:6px;display:block}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
+@keyframes sksh{100%{transform:translateX(100%)}}
+
+/* Mark important modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bg[style*="flex"]{display:flex}
 .modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal-sm{max-width:440px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .modal-head h2{color:var(--o);font-size:1.1em;font-weight:700}
+.modal.modal-sm h2{color:var(--rl);font-size:1.05em;margin-bottom:10px}
+.modal.modal-sm p{color:var(--t);font-size:.9em;line-height:1.6}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
 .modal-close:hover{color:#fff}
 .mark-ticket{background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:16px}
@@ -76,7 +126,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 </head>
-<body data-nav-active="my-tickets" data-back-href="my-tickets.html" data-back-label="My Tickets">
+<body data-nav-active="unique-cases" data-back-href="my-tickets.html" data-back-label="My Tickets">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
@@ -100,6 +150,19 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
     </div>
   </div>
 </div>
+
+<!-- Delete-log-entry confirm popup -->
+<div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal modal-sm">
+    <h2>Delete log entry?</h2>
+    <p>This permanently removes this entry from the unique cases log. This cannot be undone.</p>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn sec" onclick="closeConfirm()">Cancel</button>
+      <button class="btn danger" onclick="doDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="icons.js"></script>
@@ -110,26 +173,47 @@ const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Unique Cases</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 // Timezone: fetched from /api/me (IST/MST). Falls back to IST.
 let MY_TZ='IST';
 const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
+function fmtTZz(iso,zone){try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
 
-// Remaining time until the 240h SLA from creation (for still-open tickets).
+// ================= Page shell + tab switching =================
+let ACTIVE_TAB='cases';   // 'cases' | 'log'
+let LOG_LOADED=false;     // fetch the log only on first Log-tab open, then cache in memory
+let LOG_ENTRIES=null;
+
+function pageShell(){
+  return '<div class="uc-tabs">'+
+    '<button class="uc-tab'+(ACTIVE_TAB==='cases'?' active':'')+'" id="tabCases" onclick="switchTab(\'cases\')">'+ic('bar-chart',15)+' Unique cases</button>'+
+    '<button class="uc-tab'+(ACTIVE_TAB==='log'?' active':'')+'" id="tabLog" onclick="switchTab(\'log\')">'+ic('history',15)+' Log</button>'+
+  '</div>'+
+  '<div id="tabBody"></div>';
+}
+function switchTab(tab){
+  if(ACTIVE_TAB===tab && document.getElementById('tabBody').innerHTML) { /* re-click same tab: no-op */ }
+  ACTIVE_TAB=tab;
+  document.getElementById('tabCases').classList.toggle('active',tab==='cases');
+  document.getElementById('tabLog').classList.toggle('active',tab==='log');
+  if(tab==='cases') renderCasesTab();
+  else renderLogTab();
+}
+window.switchTab=switchTab;
+
+// ================= Tab 1: Unique cases (search + mark) =================
 function slaRemaining(createIso,slaHours){
   const cd=new Date(createIso);if(isNaN(cd))return null;
   const deadline=cd.getTime()+ (slaHours||240)*3600*1000;
   const ms=deadline-Date.now();
-  const over=ms<=0;
-  const abs=Math.abs(ms);
+  const over=ms<=0; const abs=Math.abs(ms);
   const d=Math.floor(abs/86400000), h=Math.floor((abs%86400000)/3600000);
   return {over, txt:(d>0?d+'d ':'')+h+'h'};
 }
-
-function renderSearch(){
-  document.getElementById('wrap').innerHTML=
-    '<h1>Unique Cases</h1>'+
+function renderCasesTab(){
+  document.getElementById('tabBody').innerHTML=
     '<p class="sub">Search any ticket across all quarters (live and past). Enter a ticket ShortId and click Search.</p>'+
     '<div class="search-row">'+
       '<input type="text" id="q" placeholder="e.g. V2346261846" autocomplete="off">'+
@@ -137,10 +221,8 @@ function renderSearch(){
     '</div>'+
     '<div id="result"></div>';
   const input=document.getElementById('q');
-  input.focus();
-  input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+  if(input){ input.focus(); input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();}); }
 }
-
 async function doSearch(){
   const q=document.getElementById('q').value.trim();
   const box=document.getElementById('result');
@@ -157,9 +239,9 @@ async function doSearch(){
   }
   renderResult(d);
 }
+window.doSearch=doSearch;
 
-let CURRENT=null; // the currently displayed ticket result (for the marking popup)
-
+let CURRENT=null;
 function ticketDetailRows(d){
   let resolvedRow;
   if(d.resolvedDate){
@@ -175,7 +257,6 @@ function ticketDetailRows(d){
     '<div class="detail"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>'+
     '<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
 }
-
 function renderResult(d){
   CURRENT=d;
   const marked=!!(d.important&&(d.important.info||(d.important.links&&d.important.links.length)));
@@ -193,10 +274,6 @@ function renderResult(d){
       '</div>'+
     '</div>';
 }
-
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-
-// Append a link input row (URL only). Existing value pre-filled; full URL shown on hover (title).
 function addLinkInput(val){
   const wrap=document.getElementById('markLinks');
   const row=document.createElement('div');
@@ -210,17 +287,15 @@ function addLinkInput(val){
   row.appendChild(inp);row.appendChild(rm);
   wrap.appendChild(row);
 }
-
+window.addLinkInput=addLinkInput;
 function openMark(){
   if(!CURRENT)return;
   const d=CURRENT;
   document.getElementById('markTitle').textContent='Mark important · '+d.shortId;
-  // Ticket details up top.
   document.getElementById('markTicket').innerHTML=
     '<span class="mt-id">'+esc(d.shortId)+'</span>'+
     (d.title?('<div class="tk-title" style="margin-bottom:10px">'+esc(d.title)+'</div>'):'')+
     ticketDetailRows(d);
-  // Pre-fill existing marking if present.
   const imp=d.important||{};
   document.getElementById('markInfo').value=imp.info||'';
   const links=(imp.links&&imp.links.length)?imp.links:[''];
@@ -230,8 +305,9 @@ function openMark(){
   document.getElementById('markModal').style.display='flex';
   setTimeout(()=>document.getElementById('markInfo').focus(),40);
 }
+window.openMark=openMark;
 function closeMark(){document.getElementById('markModal').style.display='none';}
-
+window.closeMark=closeMark;
 async function completeMarking(){
   if(!CURRENT)return;
   const info=document.getElementById('markInfo').value.trim();
@@ -246,17 +322,94 @@ async function completeMarking(){
     CURRENT.important=(r.data&&r.data.important)||{info,links};
     closeMark();
     toast('Marked '+CURRENT.shortId+' as important');
-    renderResult(CURRENT); // refresh card (badge + Edit label)
+    renderResult(CURRENT);
+    LOG_LOADED=false; // a new marking was recorded -> the log is now stale
   }else{
     err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';
   }
 }
+window.completeMarking=completeMarking;
 
+// ================= Tab 2: Log =================
+const isOwner=()=>A.role&&A.role()==='owner';
+const ACT_LABEL={mark:'Marked',update:'Updated',unmark:'Unmarked'};
+function logSkeleton(){
+  var cards='';
+  for(var i=0;i<4;i++) cards+='<div class="sk" style="height:58px;margin-bottom:14px;border-radius:12px"></div>';
+  return '<p class="sub">Every time an admin marked or updated a case, with the notes and links at that moment. Latest first.</p>'+cards;
+}
+function linkRow(url){const u=esc(url);return '<div class="link-item"><a href="'+u+'" target="_blank" rel="noopener" title="'+u+'">'+u+'</a></div>';}
+function bodyFor(e){
+  const links=(e.links&&e.links.length)?('<div class="links">'+e.links.map(linkRow).join('')+'</div>'):'<div class="none">No links.</div>';
+  return '<div class="meta-row">'+
+      '<span>Ticket: <b><a href="https://t.corp.amazon.com/issues/'+encodeURIComponent(e.shortId)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(e.shortId)+'</a></b></span>'+
+      (e.quarter?('<span>Quarter: <b>'+esc(e.quarter)+'</b></span>'):'')+
+    '</div>'+
+    '<div class="blk-t">Information</div>'+(e.info?('<div class="info-box">'+esc(e.info)+'</div>'):'<div class="none">No notes.</div>')+
+    '<div class="blk-t">Links</div>'+links;
+}
+function renderLogEntries(entries){
+  const owner=isOwner();
+  const body=document.getElementById('tabBody');
+  let html='<p class="sub">Every time an admin marked or updated a case, with the notes and links at that moment. Latest first.'+(owner?' As the owner, you can delete log entries.':'')+'</p>';
+  if(!entries.length){html+='<div class="empty">No unique-case markings recorded yet.</div>';body.innerHTML=html;return;}
+  html+=entries.map((e,i)=>`
+    <div class="entry${i===0?' open':''}">
+      <div class="entry-head" onclick="toggleEntry(this)">
+        <span class="act ${e.action==='unmark'?'unmark':(e.action==='update'?'update':'mark')}">${ACT_LABEL[e.action]||e.action}</span>
+        <span class="entry-id">${esc(e.shortId)}</span>
+        <span class="entry-user">by <b>${esc(e.user)}</b><span class="entry-role">${esc(e.role||'')}</span></span>
+        <span class="entry-when"><b>IST:</b> ${fmtTZz(e.at,'Asia/Kolkata')}<br><b>MST:</b> ${fmtTZz(e.at,'America/Denver')}</span>
+        ${owner?`<button class="btn danger mini" onclick="event.stopPropagation();confirmDelete('${e.id}')">Delete</button>`:''}
+        <span class="entry-caret">▾</span>
+      </div>
+      <div class="entry-body">${bodyFor(e)}</div>
+    </div>`).join('');
+  body.innerHTML=html;
+}
+function renderLogTab(){
+  const body=document.getElementById('tabBody');
+  // Already have entries cached in memory -> paint instantly.
+  if(LOG_LOADED && LOG_ENTRIES){ renderLogEntries(LOG_ENTRIES); return; }
+  // Otherwise show the skeleton and fetch.
+  body.innerHTML=logSkeleton();
+  loadLog();
+}
+async function loadLog(){
+  const r=await A.api('GET','/api/unique-cases-log');
+  // If the user switched away while loading, don't clobber the other tab.
+  if(ACTIVE_TAB!=='log') return;
+  if(r.status===401){ document.getElementById('tabBody').innerHTML='<div class="empty">Session expired. Please log in again.</div>'; return; }
+  if(!r.ok){ document.getElementById('tabBody').innerHTML='<div class="empty">Could not load the unique cases log (HTTP '+r.status+'). <a href="#" onclick="renderLogTab();return false;" style="color:var(--o)">Retry</a></div>'; return; }
+  LOG_ENTRIES=Array.isArray(r.data)?r.data:[];
+  LOG_LOADED=true;
+  renderLogEntries(LOG_ENTRIES);
+}
+window.renderLogTab=renderLogTab;
+function toggleEntry(head){var en=head.closest('.entry');if(en)en.classList.toggle('open');}
+window.toggleEntry=toggleEntry;
+
+let DEL_ID=null;
+function confirmDelete(id){DEL_ID=id;document.getElementById('confirmModal').style.display='flex';}
+window.confirmDelete=confirmDelete;
+function closeConfirm(){document.getElementById('confirmModal').style.display='none';DEL_ID=null;}
+window.closeConfirm=closeConfirm;
+async function doDelete(){
+  if(!DEL_ID)return;
+  const r=await A.api('DELETE','/api/unique-cases-log/'+DEL_ID);
+  closeConfirm();
+  if(r.ok){ LOG_LOADED=false; renderLogTab(); }
+  else{ alert((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')')); }
+}
+window.doDelete=doDelete;
+
+// ================= Boot =================
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   if(!(A.atLeast&&A.atLeast('admin'))){gate('This page is for admins and above. Your role: '+(A.role?A.role():'user')+'.');return;}
   try{MY_TZ=await A.myTimezone();}catch(e){}
-  renderSearch();
+  document.getElementById('wrap').innerHTML=pageShell();
+  renderCasesTab(); // default tab
 }
 load();
 </script>

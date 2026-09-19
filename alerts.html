@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alerts · WWOS-GSOC PHD Dashboard</title>
+<title>Alerts & Help Activity · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -11,15 +11,13 @@
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--bll:#44b9d6}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-/* Keep the static fallback bar's box (no layout jump) but invisible, so the shared toolbar (with the
-   hamburger, injected by topbar-auth.js) is the only bar the user sees — no hamburger-less flash. */
 .top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
 .spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{100%{transform:rotate(360deg)}}
-.wrap{width:88%;max-width:1000px;margin:0 auto;padding:36px 24px 80px}
+.wrap{padding:32px 24px 80px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:center;gap:10px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
@@ -29,6 +27,20 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:6px 12px;font-size:.8em}
 .count-pill{background:rgba(251,191,36,.16);color:var(--yl);border-radius:20px;padding:2px 11px;font-size:.6em;font-weight:700;vertical-align:middle}
+
+/* ---- Two-tab toggle (same look as Unique Cases): selected=orange, others transparent) ---- */
+.uc-tabs{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.uc-tab{position:relative;display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid transparent;background:transparent;color:var(--tm);font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.uc-tab:hover{color:#e6edf0}
+.uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#000;border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.35)}
+.uc-tab svg{flex-shrink:0}
+/* Alert-count badge on the Alerts tab. */
+.uc-tab .tab-badge{display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;font-size:.72em;font-weight:800;background:#ff5252;color:#fff}
+.uc-tab .tab-badge.show{display:inline-flex}
+.uc-tab .tab-badge.zero{background:#3a4655;color:#cdd7de}
+.uc-tab.active .tab-badge{background:#000;color:#ff9f2e}
+
+/* ---- Alerts (open help requests) ---- */
 .thread{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:14px}
 .thread-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .thread-who{font-size:.88em}
@@ -36,6 +48,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .thread-when{color:#5f6b6c;font-size:.85em}
 .pill{padding:2px 9px;border-radius:20px;font-weight:700;font-size:.7em}
 .pill.open{background:rgba(251,191,36,.15);color:#fbbf24}
+.pill.ok{background:rgba(74,222,128,.15);color:#4ade80}
 .q{color:#fff;font-size:.9em;white-space:pre-wrap;margin:6px 0 8px}
 .q .lbl{color:var(--yl);font-weight:600}
 .reply{border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.85em}
@@ -45,8 +58,25 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .noreply{border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.8em;color:#5f6b6c;font-style:italic}
 .reply-box{margin-top:10px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
 .reply-box textarea{flex:1;min-width:200px;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical}
-.thread-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+
+/* ---- Help Activity (day-grouped history) ---- */
+.day-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.day-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:#050505;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.day-head:hover{background:#0d0d0d}
+.day-title{color:#fff;font-weight:700;font-size:1em;display:flex;align-items:center;gap:10px}
+.day-count{color:var(--tm);font-size:.8em;font-weight:600}
+.day-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
+.day-card.open .day-caret{transform:rotate(180deg)}
+.day-body{display:none;flex-direction:column;gap:12px;padding:16px 20px}
+.day-card.open .day-body{display:flex}
+.day-card .thread{background:#000}
+
+/* ---- Skeleton shimmer (per tab) ---- */
+.sk{position:relative;overflow:hidden;background:#141a20;border-radius:10px;display:block}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
+@keyframes sksh{100%{transform:translateX(100%)}}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
 .toast.show{opacity:1}
 
@@ -54,7 +84,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 </head>
-<body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
+<body data-nav-active="help-activity" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
@@ -71,12 +101,47 @@ const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||16):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Alerts</h1><p>'+esc(msg)+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Alerts &amp; Help Activity</h1><p>'+esc(msg)+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+
+// Default tab: help-activity.html opens on the Help Activity tab; alerts.html (or anything else) on Alerts.
+const PAGE=(location.pathname.split('/').pop()||'').toLowerCase();
+let ACTIVE_TAB=(PAGE==='help-activity.html')?'help':'alerts';
+let ALERTS_LOADED=false, ALERTS_DATA=null;
+let HELP_LOADED=false, HELP_DATA=null;
+
+function pageShell(){
+  return '<div class="uc-tabs">'+
+    '<button class="uc-tab'+(ACTIVE_TAB==='alerts'?' active':'')+'" id="tabAlerts" onclick="switchTab(\'alerts\')">'+ic('alert',15)+' Alerts <span class="tab-badge" id="alertTabBadge">0</span></button>'+
+    '<button class="uc-tab'+(ACTIVE_TAB==='help'?' active':'')+'" id="tabHelp" onclick="switchTab(\'help\')">'+ic('history',15)+' Help Activity</button>'+
+  '</div>'+
+  '<div id="tabBody"></div>';
+}
+function switchTab(tab){
+  ACTIVE_TAB=tab;
+  document.getElementById('tabAlerts').classList.toggle('active',tab==='alerts');
+  document.getElementById('tabHelp').classList.toggle('active',tab==='help');
+  if(tab==='alerts') renderAlertsTab(); else renderHelpTab();
+}
+window.switchTab=switchTab;
+
+function skeleton(){
+  var s='<div class="sk" style="height:14px;width:55%;margin-bottom:22px"></div>';
+  for(var i=0;i<3;i++) s+='<div class="sk" style="height:120px;margin-bottom:14px"></div>';
+  return s;
+}
 function fmtWhen(iso){if(!iso)return '';try{return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
 
-let OPEN=[]; // current open help requests
+// Update the Alerts-tab badge with the open-request count.
+function setAlertBadge(n){
+  const b=document.getElementById('alertTabBadge');
+  if(!b)return;
+  b.textContent=n;
+  b.classList.add('show');          // always show the number (even 0)
+  b.classList.toggle('zero',n===0); // grey when none, red when there are alerts
+}
 
-function threadHtml(h){
+// ================= Tab 1: Alerts (open help requests) =================
+function alertThreadHtml(h){
   const canReply=A.atLeast&&A.atLeast('admin');
   const ticket=h.ticketUrl?('<a href="'+esc(h.ticketUrl)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(h.shortId)+'</a>'):esc(h.shortId);
   const replies=(h.replies||[]).length
@@ -89,37 +154,109 @@ function threadHtml(h){
     +(canReply?('<div class="reply-box"><textarea id="reply-'+esc(h.id)+'" placeholder="Reply / suggestion…"></textarea><button class="btn mini" onclick="submitReply(\''+esc(h.id)+'\')">Reply</button></div>'):'')
   +'</div>';
 }
-
-function render(list){
-  OPEN=Array.isArray(list)?list:[];
+function paintAlerts(list){
+  ALERTS_DATA=Array.isArray(list)?list:[];
+  setAlertBadge(ALERTS_DATA.length);
+  if(ACTIVE_TAB!=='alerts')return; // don't clobber the other tab if user switched
   const canReply=A.atLeast&&A.atLeast('admin');
-  let html='<h1>'+ic('alert',20)+' Alerts <span class="count-pill">'+OPEN.length+' open</span></h1>';
-  html+='<p class="sub">Open "ask for help" requests from editors.'+(canReply?' You can reply or mark them as received.':' Admins and the owner can reply to these.')+'</p>';
-  if(!OPEN.length){html+='<div class="empty">No open help requests right now. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
-  html+=OPEN.map(threadHtml).join('');
-  document.getElementById('wrap').innerHTML=html;
+  const body=document.getElementById('tabBody');
+  let html='<p class="sub">Open "ask for help" requests from editors.'+(canReply?' You can reply or mark them as received.':' Admins and the owner can reply to these.')+' <span class="count-pill">'+ALERTS_DATA.length+' open</span></p>';
+  if(!ALERTS_DATA.length){ body.innerHTML=html+'<div class="empty">No open help requests right now. 🎉</div>'; return; }
+  body.innerHTML=html+ALERTS_DATA.map(alertThreadHtml).join('');
 }
-
+function renderAlertsTab(){
+  const body=document.getElementById('tabBody');
+  if(ALERTS_LOADED && ALERTS_DATA){ paintAlerts(ALERTS_DATA); return; }
+  body.innerHTML=skeleton();
+  loadAlerts();
+}
+async function loadAlerts(){
+  const res=await A.swrLoad({ key:'alerts', fetch:()=>A.api('GET','/api/help/open'), onData:(rows)=>{ ALERTS_LOADED=true; paintAlerts(Array.isArray(rows)?rows:[]); } });
+  if(!res.painted && ACTIVE_TAB==='alerts'){
+    const body=document.getElementById('tabBody');
+    body.innerHTML=(res.status===401)?'<div class="empty">Session expired. Please log in again.</div>':'<div class="empty">Could not load alerts (HTTP '+res.status+'). <a href="#" onclick="renderAlertsTab();return false;" style="color:var(--o)">Retry</a></div>';
+  }
+}
+window.renderAlertsTab=renderAlertsTab;
 async function submitReply(id){
   const el=document.getElementById('reply-'+id);
   const text=(el&&el.value||'').trim();
   if(!text){toast('Enter a reply first.');return;}
   const r=await A.api('POST','/api/help/'+id+'/reply',{text});
-  if(r.ok){toast('Reply sent');load();}
+  if(r.ok){ toast('Reply sent'); ALERTS_LOADED=false; HELP_LOADED=false; renderAlertsTab(); }
   else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
 }
-async function load(){
-  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in first.');return;}
-  // Cache (time-based): help alerts change in real time, so paint cache instantly then refresh.
-  const res=await A.swrLoad({
-    key:'alerts',
-    fetch:()=>A.api('GET','/api/help/open'),
-    onData:(rows)=>render(Array.isArray(rows)?rows:[])
-  });
-  if(!res.painted){
-    if(res.status===401){gate('Session expired. Please log in again.');return;}
-    gate('Could not load alerts (HTTP '+res.status+').');
+window.submitReply=submitReply;
+
+// ================= Tab 2: Help Activity (day-grouped history) =================
+function istParts(iso){
+  try{
+    const d=new Date(iso);
+    const key=d.toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
+    const label=d.toLocaleDateString('en-US',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'long',year:'numeric'});
+    return {key,label};
+  }catch(e){return {key:'unknown',label:'Unknown date'};}
+}
+function fmtTime(iso){if(!iso)return '';try{return new Date(iso).toLocaleString('en-US',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})+' IST';}catch(e){return '';}}
+function helpThreadHtml(it){
+  const resolved=it.status==='resolved';
+  const pill='<span class="pill '+(resolved?'ok':'open')+'">'+(resolved?'RESOLVED':'OPEN')+'</span>';
+  const ticket=it.ticketUrl?('<a href="'+esc(it.ticketUrl)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(it.shortId)+'</a>'):esc(it.shortId);
+  const replies=(it.replies||[]).length
+    ? it.replies.map(r=>'<div class="reply"><span class="who">A · '+esc(r.by)+'</span> <span class="meta">('+esc(r.role)+') · '+fmtTime(r.at)+'</span><div class="txt">'+esc(r.text)+'</div></div>').join('')
+    : '<div class="noreply">No reply yet</div>';
+  return '<div class="thread">'
+    +'<div class="thread-head"><div class="thread-who"><b>'+esc(it.requester)+'</b> asked on '+ticket+' <span class="thread-when">· '+fmtTime(it.createdAt)+'</span></div>'+pill+'</div>'
+    +'<div class="q"><span class="lbl">Q ·</span> '+esc(it.doubt)+'</div>'
+    +'<div>'+replies+'</div>'
+  +'</div>';
+}
+function toggleDay(btn){var c=btn.closest('.day-card');if(c){c.classList.toggle('open');}}
+window.toggleDay=toggleDay;
+function paintHelp(items){
+  HELP_DATA=Array.isArray(items)?items:[];
+  if(ACTIVE_TAB!=='help')return;
+  const body=document.getElementById('tabBody');
+  let html='<p class="sub">Full history of help requests and replies, grouped by day (IST). Latest day on top.</p>';
+  if(!HELP_DATA.length){ body.innerHTML=html+'<div class="empty">No help activity yet.</div>'; return; }
+  const groups={};const order=[];
+  HELP_DATA.forEach(it=>{const {key,label}=istParts(it.createdAt);if(!groups[key]){groups[key]={label,items:[]};order.push(key);}groups[key].items.push(it);});
+  order.sort((a,b)=>b.localeCompare(a));
+  html+=order.map((key,gi)=>{
+    const g=groups[key]; const open=(gi===0);
+    const threads=g.items.map(helpThreadHtml).join('');
+    return '<div class="day-card'+(open?' open':'')+'">'
+      +'<button type="button" class="day-head" onclick="toggleDay(this)">'
+        +'<span class="day-title">'+ic('calendar',16)+esc(g.label)+'</span>'
+        +'<span style="display:flex;align-items:center;gap:12px"><span class="day-count">'+g.items.length+' request'+(g.items.length===1?'':'s')+'</span><span class="day-caret">▾</span></span>'
+      +'</button>'
+      +'<div class="day-body">'+threads+'</div>'
+    +'</div>';
+  }).join('');
+  body.innerHTML=html;
+}
+function renderHelpTab(){
+  const body=document.getElementById('tabBody');
+  if(HELP_LOADED && HELP_DATA){ paintHelp(HELP_DATA); return; }
+  body.innerHTML=skeleton();
+  loadHelp();
+}
+async function loadHelp(){
+  const res=await A.swrLoad({ key:'help-activity', fetch:()=>A.api('GET','/api/help/all'), onData:(rows)=>{ HELP_LOADED=true; paintHelp(Array.isArray(rows)?rows:[]); } });
+  if(!res.painted && ACTIVE_TAB==='help'){
+    const body=document.getElementById('tabBody');
+    body.innerHTML=(res.status===401)?'<div class="empty">Session expired. Please log in again.</div>':'<div class="empty">Could not load help activity (HTTP '+res.status+'). <a href="#" onclick="renderHelpTab();return false;" style="color:var(--o)">Retry</a></div>';
   }
+}
+window.renderHelpTab=renderHelpTab;
+
+// ================= Boot =================
+function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in first.');return;}
+  document.getElementById('wrap').innerHTML=pageShell();
+  // Prime the alert badge count even when the default tab is Help Activity.
+  if(ACTIVE_TAB!=='alerts'){ A.api('GET','/api/help/open').then(r=>{ if(r&&r.ok&&Array.isArray(r.data)){ ALERTS_LOADED=true; ALERTS_DATA=r.data; setAlertBadge(r.data.length); } }).catch(()=>{}); }
+  if(ACTIVE_TAB==='alerts') renderAlertsTab(); else renderHelpTab();
 }
 load();
 </script>
