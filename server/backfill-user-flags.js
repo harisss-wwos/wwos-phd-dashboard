@@ -8,8 +8,11 @@ require('dotenv').config();
 const { getCollection, COLLECTIONS } = require('./db');
 const { hashPassword } = require('./auth');
 
-// badge: 'blue' | 'yellow'; analyst / canUpload / canCreateUsers: booleans.
+// badge: 'blue' | 'yellow'; analyst / canUpload / canCreateUsers / canDatabase: booleans.
 const SPEC = [
+  // Owner (harisss): analyst + BLR group. Access flags are force-true for the owner at read time
+  // regardless, but set them true here for consistency.
+  { username: 'harisss',  badge: 'blue',   analyst: true,  canUpload: true,  canCreateUsers: true,  canDatabase: true },
   { username: 'ashamzon', badge: 'blue',   analyst: false, canUpload: true,  canCreateUsers: false },
   { username: 'wehnermi', badge: 'blue',   analyst: false, canUpload: true,  canCreateUsers: false },
   { username: 'arunkzn',  badge: 'blue',   analyst: true,  canUpload: true,  canCreateUsers: true  },
