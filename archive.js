@@ -82,6 +82,93 @@ async function loadMetrics(){
 // Inline-SVG icon helper (icons.js). Returns '' if unavailable so markup stays clean.
 function ic(name,size){return (typeof window.icon==='function')?window.icon(name,size||15):'';}
 
+// ===== Program History quarter selection (checkbox tree) — aggregate selected quarters =====
+// The pre-WWOS era, grouped era -> year -> quarter. Only these quarters exist in ARCHIVE_QUARTERS.
+const PH_TREE=[
+  { year:'2025', quarters:['2025-Q3','2025-Q2','2025-Q1'] },
+  { year:'2024', quarters:['2024-Q4','2024-Q3','2024-Q2','2024-Q1'] },
+  { year:'2023', quarters:['2023-Q4','2023-Q3','2023-Q2','2023-Q1'] },
+  { year:'2022', quarters:['2022-Q4','2022-Q3','2022-Q2','2022-Q1'] },
+  { year:'2021', quarters:['2021-Q4','2021-Q3','2021-Q2','2021-Q1'] },
+];
+const PH_ALL_QIDS=PH_TREE.reduce(function(a,y){return a.concat(y.quarters);},[]);
+let PH_SELECTED=PH_ALL_QIDS.slice(); // default: Program History (all quarters) selected
+
+// Merge helpers for the metrics shape (mirrors gaSumData in agent-analytics).
+function _mergeEntryList(target,list){ (list||[]).forEach(function(e){ target[e[0]]=(target[e[0]]||0)+e[1]; }); }
+function _entriesSorted(map,limit){ var a=Object.entries(map).sort(function(x,y){return y[1]-x[1];}); return limit?a.slice(0,limit):a; }
+function _entriesByKey(map){ return Object.entries(map).sort(function(x,y){return x[0].localeCompare(y[0]);}); }
+function _deepMergeXtab(target,src){ Object.keys(src||{}).forEach(function(row){ target[row]=target[row]||{}; Object.keys(src[row]).forEach(function(col){ target[row][col]=(target[row][col]||0)+src[row][col]; }); }); }
+
+// Sum a set of quarter-metrics objects into ONE combined metrics object matching render()'s needs.
+function sumQuarterMetrics(qids){
+  const src=(window.ARCHIVE_QUARTERS)||{};
+  const list=qids.map(function(q){return src[q];}).filter(Boolean);
+  if(!list.length) return null;
+
+  let total=0,resolvedClosed=0,open=0,reopen=0,hiTotal=0,hiRepeat=0;
+  // Weighted accumulators for averages we can't exactly reconstruct (avgRes/median) — approximate
+  // avg via total-weighting; median across quarters isn't exact, so approximate with a weighted avg
+  // of medians. slaPct recomputed from resolved-with-hours counts is exact-ish; we use slaByWeek sums.
+  let avgResSum=0,avgResN=0;
+  const statuses={},closureCodes={},severities={},rootCauses={},assignees={},resolvers={},regions={},driverTypes={},resolutionTypes={},incidentTypes={},parties={};
+  const createdByYear={},resolvedByYear={},createdByMonth={},resolvedByMonth={},createdByQuarter={},resolvedByQuarter={};
+  const hiDist={'0':0,'1':0,'2':0,'3+':0};
+  const rcXregion={},driverXincident={},regionXincident={},incidentAgents={};
+  let slaResolved=0,slaWithin=0;
+  let dmin=null,dmax=null;
+  let phdResolvers=[];
+
+  list.forEach(function(m){
+    total+=m.total||0; resolvedClosed+=m.resolvedClosed||0; open+=m.open||0; reopen+=m.reopen||0;
+    hiTotal+=m.hiTotal||0; hiRepeat+=m.hiRepeat||0;
+    if(m.avgRes&&m.total){ avgResSum+=m.avgRes*m.total; avgResN+=m.total; }
+    _mergeEntryList(statuses,m.statuses); _mergeEntryList(closureCodes,m.closureCodes); _mergeEntryList(severities,m.severities);
+    _mergeEntryList(rootCauses,m.rootCauses); _mergeEntryList(assignees,m.assignees); _mergeEntryList(resolvers,m.resolvers);
+    _mergeEntryList(regions,m.regions); _mergeEntryList(driverTypes,m.driverTypes); _mergeEntryList(resolutionTypes,m.resolutionTypes);
+    _mergeEntryList(incidentTypes,m.incidentTypes); _mergeEntryList(parties,m.parties);
+    _mergeEntryList(createdByYear,m.createdByYear); _mergeEntryList(resolvedByYear,m.resolvedByYear);
+    _mergeEntryList(createdByMonth,m.createdByMonth); _mergeEntryList(resolvedByMonth,m.resolvedByMonth);
+    _mergeEntryList(createdByQuarter,m.createdByQuarter); _mergeEntryList(resolvedByQuarter,m.resolvedByQuarter);
+    if(m.hiDist){ ['0','1','2','3+'].forEach(function(k){ hiDist[k]+=(m.hiDist[k]||0); }); }
+    _deepMergeXtab(rcXregion,m.rcXregion); _deepMergeXtab(driverXincident,m.driverXincident); _deepMergeXtab(regionXincident,m.regionXincident);
+    // Incident-agent drill-down: bucket -> agent -> [tickets]; concat lists.
+    Object.keys(m.incidentAgents||{}).forEach(function(b){ incidentAgents[b]=incidentAgents[b]||{}; Object.keys(m.incidentAgents[b]).forEach(function(ag){ incidentAgents[b][ag]=(incidentAgents[b][ag]||[]).concat(m.incidentAgents[b][ag]); }); });
+    // SLA: sum weekly resolved/within across quarters (each quarter has its own 13-week buckets).
+    (m.slaByWeek||[]).forEach(function(w){ slaResolved+=w.resolved||0; slaWithin+=w.within||0; });
+    if(m.dateRange){ if(m.dateRange[0]&&(!dmin||m.dateRange[0]<dmin))dmin=m.dateRange[0]; if(m.dateRange[1]&&(!dmax||m.dateRange[1]>dmax))dmax=m.dateRange[1]; }
+    if(m.phdResolvers&&m.phdResolvers.length>phdResolvers.length)phdResolvers=m.phdResolvers;
+  });
+
+  const createdByYearE=_entriesByKey(createdByYear);
+  const years=createdByYearE.map(function(e){return e[0];});
+  const yoy=years.map(function(y,i){ if(i===0)return{year:y,count:createdByYear[y],growth:null}; var prev=createdByYear[years[i-1]]; return {year:y,count:createdByYear[y],growth:prev?(((createdByYear[y]-prev)/prev)*100).toFixed(1):null}; });
+
+  return {
+    total:total, resolvedClosed:resolvedClosed, open:open, reopen:reopen,
+    resolutionRate: total?+(resolvedClosed/total*100).toFixed(1):0,
+    avgRes: avgResN?+(avgResSum/avgResN).toFixed(1):0,
+    medianRes: 0, minRes:0, maxRes:0, avgAge:0, medianAge:0,
+    slaHrs:240, slaPct: slaResolved?+(slaWithin/slaResolved*100).toFixed(1):0,
+    hiTotal:hiTotal, hiRepeat:hiRepeat, hiRepeatPct: hiTotal?+(hiRepeat/hiTotal*100).toFixed(1):0, hiDist:hiDist,
+    dateRange:[dmin||'',dmax||''],
+    statuses:_entriesSorted(statuses), closureCodes:_entriesSorted(closureCodes), severities:_entriesSorted(severities),
+    rootCauses:_entriesSorted(rootCauses,20), assignees:_entriesSorted(assignees,25), resolvers:_entriesSorted(resolvers),
+    regions:_entriesSorted(regions), driverTypes:_entriesSorted(driverTypes,12), resolutionTypes:_entriesSorted(resolutionTypes,15),
+    incidentTypes:_entriesSorted(incidentTypes,20), parties:_entriesSorted(parties), phdResolvers:phdResolvers,
+    createdByYear:createdByYearE, resolvedByYear:_entriesByKey(resolvedByYear),
+    createdByMonth:_entriesByKey(createdByMonth), resolvedByMonth:_entriesByKey(resolvedByMonth),
+    createdByQuarter:_entriesByKey(createdByQuarter), resolvedByQuarter:_entriesByKey(resolvedByQuarter),
+    yoy:yoy, rcXregion:rcXregion, driverXincident:driverXincident, regionXincident:regionXincident, incidentAgents:incidentAgents,
+    // weekly buckets aren't meaningful across multiple quarters -> leave empty (archive layout doesn't use them)
+    createdByWeek:[], resolvedByWeek:[], slaByWeek:[], sevByYear:{}, resTrendLabels:[], resTrendData:[],
+    uniqAssignees:0, uniqResolvers:0, uniqStations:0
+  };
+}
+
+// Destroy all Chart.js instances (render() rebuilds #app on every toggle; avoid leaking charts).
+function destroyArchiveCharts(){ try{ charts.forEach(function(c){ try{c.destroy();}catch(e){} }); charts.length=0; }catch(e){} }
+
 // Chart-loading spinner overlay — only for DB-backed quarter reports (ds=quarter). Placed inside
 // a .chart-wrap; removed by clearChartSpinners() once charts have drawn.
 function cspin(){return (qparam('ds')==='quarter')?'<div class="chart-spin"><div class="spinner"></div></div>':'';}
@@ -99,8 +186,23 @@ function collapsible(titleHtml,bodyHtml,open){
     '<div class="collapse-body">'+bodyHtml+'</div>'+
   '</div>';
 }
+// Two sub-tables side by side inside one big section (stacks on narrow screens).
+function phTwoCol(titleA,htmlA,titleB,htmlB){
+  return '<div class="ph-2col">'+
+    '<div class="ph-col"><h3 class="ph-col-title">'+titleA+'</h3>'+htmlA+'</div>'+
+    '<div class="ph-col"><h3 class="ph-col-title">'+titleB+'</h3>'+htmlB+'</div>'+
+  '</div>';
+}
 function toggleCollapse(headEl){
   const sec=headEl.closest('.collapsible');if(!sec)return;
+  const willOpen=!sec.classList.contains('open');
+  // Accordion: close every OTHER collapsible section so only one is open at a time.
+  if(willOpen){
+    var scope=sec.parentElement||document;
+    scope.querySelectorAll('.section.collapsible.open').forEach(function(other){
+      if(other!==sec){ other.classList.remove('open'); var h=other.querySelector('.collapse-head'); if(h)h.setAttribute('aria-expanded','false'); }
+    });
+  }
   const isOpen=sec.classList.toggle('open');
   headEl.setAttribute('aria-expanded',isOpen?'true':'false');
   // When expanding, resize any Chart.js canvas inside AFTER the ~300ms expand animation.
@@ -185,9 +287,14 @@ function barCfg(entries,horizontal){
   };
 }
 
-function render(metrics,name,ds){
+function render(metrics,name,ds,targetId){
   stopKpiScramble(); // shell scramble handed off to the real count-up below
+  destroyArchiveCharts(); // clear any prior Chart.js instances (archive filter re-renders repeatedly)
   const m=metrics;
+  const TARGET=targetId||'app';
+  // Program History: hide the cross-period trend sections (Yearly/Quarterly/Monthly/YoY) when a
+  // SINGLE quarter is selected — a lone quarter has no meaningful multi-period trend.
+  const multiPeriod=(ds!=='archive')||(typeof PH_SELECTED!=='undefined'&&PH_SELECTED.length>1);
   // "Q2-style" (weekly charts, root-cause groups, incident agent drill-down, resolution merge)
   // applies to the static Q2 dataset AND any dynamic non-live quarter.
   const isQ2=(ds==='q2'||ds==='quarter');
@@ -211,7 +318,7 @@ function render(metrics,name,ds){
   const logBtn=loggedIn?`<a class="btn sec pt-btn" href="data-log.html?qid=${encodeURIComponent(qid)}" title="Update data log">${ic('history')}<span class="btn-label">Update data log</span></a>`:'';
   const mergeBtn=canMerge?`<label class="btn pt-btn" style="cursor:pointer" title="Upload / merge into this quarter">${ic('upload')}<span class="btn-label">Upload / merge into this quarter</span><input type="file" accept=".csv" id="qMergeFile" style="display:none"></label>`:'';
   const actions=(logBtn||mergeBtn)?`<div class="pt-actions">${logBtn}${mergeBtn}</div>`:'';
-  document.getElementById('app').innerHTML=`<div class="content">
+  document.getElementById(TARGET).innerHTML=`<div class="content">
     <div class="page-title" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:220px"><h1>${quarterMode ? name : 'Program History: Jan 2021 – Mar 2026'.replace('Program History:', '<span class="ph-full">Program History:</span><span class="ph-short">PH:</span>')}</h1>${quarterMode
         ? `<p style="line-height:1.6"><span style="display:block">Data range: ${rangeText}</span><span style="display:block">${m.total.toLocaleString()} total tickets</span></p>`
@@ -241,50 +348,33 @@ function render(metrics,name,ds){
       '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>'+
       (phdRes.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td>'+v+'</td></tr>').join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>')+
       '</tbody></table></div>', true)}
-    `:`
-    ${collapsible(ic('bar-chart',18)+' Resolution Type',
-      '<div class="chart-box"><div class="chart-wrap">'+cspin()+'<canvas id="cResType"></canvas></div></div>', true)}
-    ${collapsible(ic('bar-chart',18)+' Incident Types <span style="font-size:.72em;color:#879596;font-weight:400">(from Issue field)</span>',
-      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cIncident"></canvas></div></div>', true)}
-    ${collapsible(ic('globe',18)+' Geography / Region — Count',
-      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Region</th><th>Number of Cases</th></tr></thead><tbody>'+
-      m.regions.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong></td><td>'+v.toLocaleString()+'</td></tr>').join('')+
-      '</tbody></table></div>', true)}
-    ${collapsible(ic('users',18)+' Resolver Volume — PHD Team (WWOS)',
-      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>'+
-      (phdRes.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td>'+v+'</td></tr>').join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>')+
-      '</tbody></table></div>', true)}
-    `}
-
-    ${isQ2?`
-      ${collapsible(ic('bar-chart',18)+' Weekly Trends ('+windowText+')',
+    ${collapsible(ic('bar-chart',18)+' Weekly Trends ('+windowText+')',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cCreatedWeek"></canvas></div></div>'+
         '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cResolvedWeek"></canvas></div></div></div>', true)}
-      ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Week (Backlog Trend)',
+    ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Week (Backlog Trend)',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><div class="chart-wrap">'+cspin()+'<canvas id="cCvRWeek"></canvas></div></div></div>', true)}
-    `:`
-      ${collapsible(ic('bar-chart',18)+' Yearly Trends',
-        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Year</h3><div class="chart-wrap"><canvas id="cCreatedYear"></canvas></div></div>'+
-        '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Year</h3><div class="chart-wrap"><canvas id="cResolvedYear"></canvas></div></div></div>', true)}
-      ${collapsible(ic('bar-chart',18)+' Quarterly Trends',
-        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Quarter</h3><div class="chart-wrap"><canvas id="cCreatedQ"></canvas></div></div>'+
-        '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Quarter</h3><div class="chart-wrap"><canvas id="cResolvedQ"></canvas></div></div></div>', true)}
-      ${collapsible(ic('bar-chart',18)+' Created vs Resolved per Month',
-        '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><div class="chart-wrap"><canvas id="cCvR"></canvas></div></div></div>', true)}
-    `}
-
-    ${isQ2?'':collapsible(ic('bar-chart',18)+' Year-over-Year Growth',
-      '<div class="tbl-card"><table style="width:100%"><thead><tr><th>Year</th><th>Tickets Created</th><th>YoY Growth %</th></tr></thead><tbody>'+
-      m.yoy.map(y=>`<tr><td><strong>${y.year}</strong></td><td>${y.count.toLocaleString()}</td><td style="color:${y.growth===null?'#879596':parseFloat(y.growth)>=0?'#ff5252':'#4ade80'}">${y.growth===null?'—':(parseFloat(y.growth)>=0?'+':'')+y.growth+'%'}</td></tr>`).join('')+
-      '</tbody></table></div>', false)}
-
-    ${isQ2&&m.slaByWeek?collapsible(ic('check-circle',18)+' SLA Compliance per Week (≤240 hrs)',
+    ${m.slaByWeek?collapsible(ic('check-circle',18)+' SLA Compliance per Week (≤240 hrs)',
       '<p style="color:var(--tm);font-size:.85em;margin:0 0 16px">Percentage of each week\'s resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date.</p>'+
       '<div class="chart-wrap tall">'+cspin()+'<canvas id="cSlaWave"></canvas></div>', true):''}
-
-    ${isQ2
-      ?collapsible(ic('repeat',18)+' Root Causes by Group','<div id="rcGroups" class="rc-accordion"></div>', true)
-      :collapsible(ic('repeat',18)+' Root Cause × Region (Cross-Tab)','<div style="overflow-x:auto" id="rcRegionTable"></div>', false)}
+    ${collapsible(ic('repeat',18)+' Root Causes by Group','<div id="rcGroups" class="rc-accordion"></div>', true)}
+    `:`
+    ${multiPeriod?collapsible(ic('bar-chart',18)+' Trends',
+      phTwoCol('Yearly Trends &amp; Growth', xlsYearlyTable(m.createdByYear,m.resolvedByYear,m.yoy),
+               'Quarterly Trends', xlsTrendTable(m.createdByQuarter,m.resolvedByQuarter,'Quarter')), true):''}
+    ${collapsible(ic('bar-chart',18)+' Analytics Breakdown',
+      phTwoCol('Resolution Type', xlsRankTable(m.resolutionTypes,'Resolution Type'),
+               'Incident Types <span style="font-size:.78em;color:#879596;font-weight:400">(from Issue field)</span>', xlsRankTable(m.incidentTypes,'Incident Type')), true)}
+    ${collapsible(ic('globe',18)+' Geography &amp; Root Cause',
+      phTwoCol('Geography / Region — Count',
+        '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr><th style="width:1%;white-space:nowrap;text-align:center">#</th><th>Region</th><th style="text-align:right">Number of Cases</th></tr></thead><tbody>'+
+        m.regions.map(([k,v],i)=>'<tr><td style="text-align:center">'+(i+1)+'</td><td><strong>'+k+'</strong></td><td style="text-align:right">'+v.toLocaleString()+'</td></tr>').join('')+
+        '</tbody></table></div>',
+        'Root Cause × Region (Cross-Tab)', '<div style="overflow-x:auto" id="rcRegionTable"></div>'), true)}
+    ${(phdRes&&phdRes.length)?collapsible(ic('users',18)+' Resolver Volume — PHD Team (WWOS)',
+      '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr><th style="width:1%;white-space:nowrap;text-align:center">#</th><th>Resolver</th><th style="text-align:right">Tickets Resolved</th></tr></thead><tbody>'+
+      phdRes.map(([k,v],i)=>'<tr><td style="text-align:center">'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td style="text-align:right">'+v+'</td></tr>').join('')+
+      '</tbody></table></div>', true):''}
+    `}
   </div>`;
 
   // Data is here — hand the scrambling numbers straight into a count-up that lands on real values.
@@ -298,7 +388,7 @@ function render(metrics,name,ds){
     (m.resolutionTypes||[]).forEach(([k,v])=>{const name=canonResolutionType(k);merged[name]=(merged[name]||0)+v;});
     resTypeEntries=Object.entries(merged).sort((a,b)=>b[1]-a[1]);
   }
-  if(!isQ2)mkChart('cResType',pieCfg(resTypeEntries));// Q2 uses horizontal bar instead (built below)
+  // (Program History Resolution Type is now an Excel table; Q2 uses a horizontal bar built below.)
   // Q2: fixed Incident Types list — Pet Incident split into handled (591) vs first-time auto/immediate (18).
   // Pet total 609 (Pet Incident 559 + Attack w/ Pet 50) minus 18 first-time resolutions.
   const Q2_INCIDENT_TYPES=[
@@ -339,9 +429,8 @@ function render(metrics,name,ds){
         scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false},ticks:{font:{size:11},autoSkip:false}}}
       }
     });
-  }else{
-    mkChart('cIncident',barCfg(m.incidentTypes,true));
   }
+  // (Program History Incident Types is now an Excel table — no chart.)
   if(isQ2){
     // Weekly charts (Q2 only) — buckets are week-start dates spanning Apr 1 – Jun 30, 2026
     mkChart('cCreatedWeek',{type:'bar',data:{labels:(m.createdByWeek||[]).map(e=>e[0]),datasets:[{label:'Created',data:(m.createdByWeek||[]).map(e=>e[1]),backgroundColor:'rgba(255,153,0,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label}}},scales:{y:{beginAtZero:true,title:{display:true,text:'No. of tickets created',color:'#d5dbdb',font:{size:12}}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+windowText+')',color:'#d5dbdb',font:{size:12}}}}}});
@@ -361,18 +450,8 @@ function render(metrics,name,ds){
     }
 
     renderResolutionAlternatives(resTypeEntries);
-  }else{
-  // Time series
-  mkChart('cCreatedYear',{type:'bar',data:{labels:m.createdByYear.map(e=>e[0]),datasets:[{label:'Created',data:m.createdByYear.map(e=>e[1]),backgroundColor:'rgba(255,153,0,.8)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-  mkChart('cResolvedYear',{type:'bar',data:{labels:m.resolvedByYear.map(e=>e[0]),datasets:[{label:'Resolved',data:m.resolvedByYear.map(e=>e[1]),backgroundColor:'rgba(74,222,128,.8)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-  mkChart('cCreatedQ',{type:'bar',data:{labels:m.createdByQuarter.map(e=>e[0]),datasets:[{label:'Created',data:m.createdByQuarter.map(e=>e[1]),backgroundColor:'rgba(255,153,0,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true},x:{ticks:{font:{size:9}}}}}});
-  mkChart('cResolvedQ',{type:'bar',data:{labels:m.resolvedByQuarter.map(e=>e[0]),datasets:[{label:'Resolved',data:m.resolvedByQuarter.map(e=>e[1]),backgroundColor:'rgba(74,222,128,.8)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true},x:{ticks:{font:{size:9}}}}}});
-  // Created vs Resolved overlay by month
-  const allMonths=[...new Set([...m.createdByMonth.map(e=>e[0]),...m.resolvedByMonth.map(e=>e[0])])].sort();
-  const cMap=Object.fromEntries(m.createdByMonth),rMap=Object.fromEntries(m.resolvedByMonth);
-  mkChart('cCvR',{type:'line',data:{labels:allMonths,datasets:[{label:'Created',data:allMonths.map(mo=>cMap[mo]||0),borderColor:'#ff9900',backgroundColor:'rgba(255,153,0,.06)',fill:true,tension:.3,pointRadius:0},{label:'Resolved',data:allMonths.map(mo=>rMap[mo]||0),borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.06)',fill:true,tension:.3,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true},x:{ticks:{font:{size:8},maxTicksLimit:20}}}}});
-  // (Severity Trend Over Time chart removed per request.)
   }
+  // (Program History: Yearly/Quarterly/Monthly trends are all Excel tables now — no charts.)
   if(isQ2){
     renderRootCauseGroups('rcGroups',m.rcXregion);
   }else{
@@ -625,11 +704,60 @@ function renderResolutionAlternatives(entries){
   mkChart('cResBar',{type:'bar',data:{labels,datasets:[{data,backgroundColor:palette,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.raw.toLocaleString()} (${(c.raw/grand*100).toFixed(1)}%)`}}},scales:{x:{beginAtZero:true,title:{display:true,text:'Tickets',color:'#d5dbdb'}},y:{ticks:{font:{size:10},autoSkip:false}}}}});
 }
 
+// Excel-style ranked table for [label,count] entry lists: # | <label> | Count | % of Total.
+function xlsRankTable(entries,labelHead){
+  const list=entries||[];
+  const grand=list.reduce(function(s,e){return s+e[1];},0)||1;
+  return '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr>'+
+    '<th style="width:1%;white-space:nowrap;text-align:center">#</th>'+
+    '<th>'+labelHead+'</th>'+
+    '<th style="width:1%;white-space:nowrap;text-align:right">Count</th>'+
+    '<th style="width:1%;white-space:nowrap;text-align:right">% of Total</th>'+
+    '</tr></thead><tbody>'+
+    (list.length?list.map(function(e,i){return '<tr><td style="text-align:center">'+(i+1)+'</td><td><strong>'+e[0]+'</strong></td><td style="text-align:right">'+e[1].toLocaleString()+'</td><td style="text-align:right">'+(e[1]/grand*100).toFixed(1)+'%</td></tr>';}).join('')
+      :'<tr><td colspan="4" style="color:#879596">No data.</td></tr>')+
+    '</tbody></table></div>';
+}
+// Excel-style paired trend table: <period> | Created | Resolved, aligned by period key.
+function xlsTrendTable(createdEntries,resolvedEntries,periodHead){
+  const rMap=Object.fromEntries(resolvedEntries||[]);
+  const cMap=Object.fromEntries(createdEntries||[]);
+  const keys=Array.from(new Set([].concat((createdEntries||[]).map(function(e){return e[0];}),(resolvedEntries||[]).map(function(e){return e[0];})))).sort();
+  return '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr>'+
+    '<th>'+periodHead+'</th>'+
+    '<th style="text-align:right">Tickets Created</th>'+
+    '<th style="text-align:right">Tickets Resolved</th>'+
+    '</tr></thead><tbody>'+
+    (keys.length?keys.map(function(k){return '<tr><td><strong>'+k+'</strong></td><td style="text-align:right">'+(cMap[k]||0).toLocaleString()+'</td><td style="text-align:right">'+(rMap[k]||0).toLocaleString()+'</td></tr>';}).join('')
+      :'<tr><td colspan="3" style="color:#879596">No data.</td></tr>')+
+    '</tbody></table></div>';
+}
+// Combined yearly table: Year | Tickets Created | Tickets Resolved | YoY Growth % (created-based).
+function xlsYearlyTable(createdEntries,resolvedEntries,yoy){
+  const rMap=Object.fromEntries(resolvedEntries||[]);
+  const cMap=Object.fromEntries(createdEntries||[]);
+  const gMap={}; (yoy||[]).forEach(function(y){ gMap[y.year]=y.growth; });
+  const keys=Array.from(new Set([].concat((createdEntries||[]).map(function(e){return e[0];}),(resolvedEntries||[]).map(function(e){return e[0];})))).sort();
+  return '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr>'+
+    '<th>Year</th>'+
+    '<th style="text-align:right">Tickets Created</th>'+
+    '<th style="text-align:right">Tickets Resolved</th>'+
+    '<th style="text-align:right">YoY Growth %</th>'+
+    '</tr></thead><tbody>'+
+    (keys.length?keys.map(function(k){
+      var g=gMap[k];
+      var gTxt=(g===null||g===undefined)?'\u2014':((parseFloat(g)>=0?'+':'')+g+'%');
+      var gCol=(g===null||g===undefined)?'#879596':(parseFloat(g)>=0?'#ff5252':'#4ade80');
+      return '<tr><td><strong>'+k+'</strong></td><td style="text-align:right">'+(cMap[k]||0).toLocaleString()+'</td><td style="text-align:right">'+(rMap[k]||0).toLocaleString()+'</td><td style="text-align:right;color:'+gCol+'">'+gTxt+'</td></tr>';
+    }).join('')
+      :'<tr><td colspan="4" style="color:#879596">No data.</td></tr>')+
+    '</tbody></table></div>';
+}
 function renderCrossTab(elId,data,colKeys,maxRows,maxCols){
   const rows=Object.entries(data).map(([k,v])=>[k,Object.values(v).reduce((s,x)=>s+x,0),v]).sort((a,b)=>b[1]-a[1]).slice(0,maxRows);
   let cols=colKeys;
   if(!cols){const colTotals={};rows.forEach(([k,t,v])=>{Object.entries(v).forEach(([c,n])=>{colTotals[c]=(colTotals[c]||0)+n;});});cols=Object.entries(colTotals).sort((a,b)=>b[1]-a[1]).slice(0,maxCols||8).map(e=>e[0]);}
-  let html='<table><thead><tr><th></th>'+cols.map(c=>`<th>${c.substring(0,20)}</th>`).join('')+'<th>Total</th></tr></thead><tbody>';
+  let html='<table class="xls-table"><thead><tr><th></th>'+cols.map(c=>`<th>${c.substring(0,20)}</th>`).join('')+'<th>Total</th></tr></thead><tbody>';
   rows.forEach(([k,total,v])=>{html+=`<tr><td><strong>${k}</strong></td>`+cols.map(c=>{const n=v[c]||0;const intensity=total?Math.min(n/total,1):0;return`<td style="background:rgba(255,153,0,${(intensity*0.5).toFixed(2)})">${n||''}</td>`;}).join('')+`<td><strong>${total}</strong></td></tr>`;});
   html+='</tbody></table>';
   document.getElementById(elId).innerHTML=html;
@@ -671,6 +799,112 @@ function renderQuarterShell(qid){
   startKpiScramble(); // animate the KPI numbers from the start, while the DB data loads
 }
 
+// ===== Program History with quarter-selection checkbox tree (ds=archive) =====
+// Owns #app: a persistent filter panel (era -> year -> quarter) + a #phBody that holds the analytics.
+// Toggling a box recomputes the summed metrics from PH_SELECTED and re-renders #phBody.
+function phQuarterLabel(qid){ var m=/^(\d{4})-Q([1-4])$/.exec(qid); return m?('Q'+m[2]+' '+m[1]):qid; }
+function renderProgramHistory(){
+  const el=document.getElementById('app'); if(!el)return;
+  // Master (whole era) checkbox + per-year groups with per-quarter checkboxes.
+  const allChecked=PH_SELECTED.length===PH_ALL_QIDS.length;
+  const yearBlock=function(y,idx){
+    const yChecked=y.quarters.every(function(q){return PH_SELECTED.indexOf(q)>=0;});
+    const yPartial=!yChecked&&y.quarters.some(function(q){return PH_SELECTED.indexOf(q)>=0;});
+    const qs=y.quarters.map(function(q){
+      const on=PH_SELECTED.indexOf(q)>=0;
+      return '<label class="ph-opt'+(on?' checked':'')+'"><input type="checkbox" data-q="'+q+'" '+(on?'checked':'')+' onchange="phToggleQuarter(\''+q+'\')"> '+phQuarterLabel(q)+'</label>';
+    }).join('');
+    return '<div class="ph-year ph-year-'+(idx%5)+'">'+
+      '<label class="ph-opt ph-year-head'+(yChecked?' checked':'')+(yPartial?' partial':'')+'"><input type="checkbox" '+(yChecked?'checked':'')+' onchange="phToggleYear(\''+y.year+'\')"> '+y.year+'</label>'+
+      '<div class="ph-qs">'+qs+'</div>'+
+    '</div>';
+  };
+  el.innerHTML='<div class="content">'+
+    '<div class="page-title"><h1><span class="ph-full">Program History:</span><span class="ph-short">PH:</span> 1st Jan 2021 \u2013 30th Sep 2025</h1>'+
+      '<p style="line-height:1.6;color:#879596">Pre-WWOS era. Tick one or more quarters (or a whole year) to view combined analytics. Read-only archive.</p></div>'+
+    '<div class="ph-filter">'+
+      '<div class="ph-filter-head">'+
+        '<label class="ph-opt ph-master'+(allChecked?' checked':'')+'"><input type="checkbox" '+(allChecked?'checked':'')+' onchange="phToggleAll()"> '+ic('inbox',15)+' Program History (From 1st January 2021 to 30th September 2025)</label>'+
+        '<button type="button" class="ph-clear" onclick="phClear()">Clear</button>'+
+      '</div>'+
+      '<div class="ph-tree">'+PH_TREE.map(yearBlock).join('')+'</div>'+
+    '</div>'+
+    '<div id="phBody"></div>'+
+  '</div>';
+  phRenderBody();
+}
+// Render the analytics body from the current selection (empty state if nothing checked).
+function phRenderBody(){
+  const body=document.getElementById('phBody'); if(!body)return;
+  destroyArchiveCharts();
+  if(!PH_SELECTED.length){
+    body.innerHTML='<div class="section" style="text-align:center;padding:48px 20px">'+
+      '<div style="font-size:2em;margin-bottom:8px;opacity:.5">\uD83D\uDCC2</div>'+
+      '<h2 style="border:0;justify-content:center">No quarters selected</h2>'+
+      '<p style="color:#879596">Tick a quarter or a year above to view its combined analytics.</p></div>';
+    return;
+  }
+  const m=sumQuarterMetrics(PH_SELECTED);
+  if(!m){ body.innerHTML='<div class="section"><p style="color:#879596">No data for this selection.</p></div>'; return; }
+  // Reuse the full archive renderer, targeting #phBody. It rebuilds the analytics + charts.
+  render(m,'Program History',(qparam('ds')||'archive'),'phBody');
+  // render() writes a full .page-title (Program History header + count); the panel already shows the
+  // title, so hide the duplicate inner page-title inside #phBody.
+  var dup=body.querySelector('.page-title'); if(dup) dup.style.display='none';
+}
+// Toggle handlers -> update PH_SELECTED, sync UI, re-render body.
+function phToggleQuarter(q){ var i=PH_SELECTED.indexOf(q); if(i>=0)PH_SELECTED.splice(i,1); else PH_SELECTED.push(q); renderProgramHistory(); }
+function phToggleYear(year){ var y=PH_TREE.find(function(x){return x.year===year;}); if(!y)return; var all=y.quarters.every(function(q){return PH_SELECTED.indexOf(q)>=0;}); if(all){ PH_SELECTED=PH_SELECTED.filter(function(q){return y.quarters.indexOf(q)<0;}); } else { y.quarters.forEach(function(q){ if(PH_SELECTED.indexOf(q)<0)PH_SELECTED.push(q); }); } renderProgramHistory(); }
+function phToggleAll(){ PH_SELECTED=(PH_SELECTED.length===PH_ALL_QIDS.length)?[]:PH_ALL_QIDS.slice(); renderProgramHistory(); }
+function phClear(){ PH_SELECTED=[]; renderProgramHistory(); }
+window.phToggleQuarter=phToggleQuarter; window.phToggleYear=phToggleYear; window.phToggleAll=phToggleAll; window.phClear=phClear;
+
+// ===== After moving under WWOS (ds=moving): fixed combined view of Q4 2025 + Q1 2026 =====
+// Same Excel-style layout as Program History, with a Combined + Q4 2025 + Q1 2026 checkbox filter.
+const MOVING_QIDS=['2025-Q4','2026-Q1'];       // chronological order for display
+let MOVING_SELECTED=MOVING_QIDS.slice();        // default: both (Combined)
+function movingQLabel(qid){ var m=/^(\d{4})-Q([1-4])$/.exec(qid); return m?('Q'+m[2]+' '+m[1]):qid; }
+function renderMovingCombined(){
+  const el=document.getElementById('app'); if(!el)return;
+  const bothChecked=MOVING_SELECTED.length===MOVING_QIDS.length;
+  const qOpts=MOVING_QIDS.map(function(q){
+    const on=MOVING_SELECTED.indexOf(q)>=0;
+    return '<label class="ph-opt'+(on?' checked':'')+'"><input type="checkbox" '+(on?'checked':'')+' onchange="movingToggle(\''+q+'\')"> '+movingQLabel(q)+'</label>';
+  }).join('');
+  el.innerHTML='<div class="content">'+
+    '<div class="page-title"><h1>Under WWOS - 1st October 2025 to 31st March 2026</h1>'+
+      '<p style="line-height:1.6;color:#879596">Transition period. Pick Combined, or a single quarter. Read-only.</p></div>'+
+    '<div class="ph-filter">'+
+      '<div class="ph-filter-head" style="border-bottom:0;margin-bottom:0;padding-bottom:0">'+
+        '<label class="ph-opt ph-master'+(bothChecked?' checked':'')+'"><input type="checkbox" '+(bothChecked?'checked':'')+' onchange="movingToggleAll()"> '+ic('calendar',15)+' Combined (Q4 2025 &amp; Q1 2026)</label>'+
+        '<div class="ph-tree" style="margin-left:auto"><div class="ph-year ph-year-1"><div class="ph-qs">'+qOpts+'</div></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="phBody"></div>'+
+  '</div>';
+  movingRenderBody();
+}
+function movingRenderBody(){
+  const body=document.getElementById('phBody'); if(!body)return;
+  destroyArchiveCharts();
+  if(!MOVING_SELECTED.length){
+    body.innerHTML='<div class="section" style="text-align:center;padding:48px 20px">'+
+      '<div style="font-size:2em;margin-bottom:8px;opacity:.5">\uD83D\uDCC2</div>'+
+      '<h2 style="border:0;justify-content:center">Nothing selected</h2>'+
+      '<p style="color:#879596">Tick Combined or a single quarter above to view its analytics.</p></div>';
+    return;
+  }
+  // Sync PH_SELECTED so render()'s multiPeriod flag (>1 => show Trends) is correct.
+  PH_SELECTED=MOVING_SELECTED.slice();
+  const m=sumQuarterMetrics(MOVING_SELECTED);
+  if(!m){ body.innerHTML='<div class="section"><p style="color:#879596">No data for this selection.</p></div>'; return; }
+  render(m,'After moving under WWOS','archive','phBody');
+  var dup=body.querySelector('.page-title'); if(dup) dup.style.display='none';
+}
+function movingToggle(q){ var i=MOVING_SELECTED.indexOf(q); if(i>=0)MOVING_SELECTED.splice(i,1); else MOVING_SELECTED.push(q); renderMovingCombined(); }
+function movingToggleAll(){ MOVING_SELECTED=(MOVING_SELECTED.length===MOVING_QIDS.length)?[]:MOVING_QIDS.slice(); renderMovingCombined(); }
+window.renderMovingCombined=renderMovingCombined; window.movingToggle=movingToggle; window.movingToggleAll=movingToggleAll;
+
 (async function(){
   // Show a loading shimmer immediately (esp. for DB-backed quarters which may hit Render cold start).
   // The Program History archive (ds=archive) loads from a static file and renders its own KPI
@@ -679,11 +913,23 @@ function renderQuarterShell(qid){
   if(ds==='quarter'){
     // Paint the shell (structure + spinners) instantly; render() fills it after the DB fetch.
     renderQuarterShell(qparam('qid'));
-  }else if(ds==='archive'){
-    // Program History (static file) renders its own KPI spinners; show just a light spinner.
+  }else if(ds==='archive'||ds==='moving'){
+    // Static, per-quarter-metrics-backed views render their own body; show just a light spinner.
     document.getElementById('app').innerHTML='<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>';
   }else if(window.PHDAuth&&window.PHDAuth.skeletonDashboard){
     document.getElementById('app').innerHTML=window.PHDAuth.skeletonDashboard('Loading report…');
+  }
+  // Program History (ds=archive): quarter-selection checkbox tree over hardcoded per-quarter metrics.
+  if(ds==='archive'){
+    if(!window.ARCHIVE_QUARTERS){document.getElementById('app').innerHTML='<div class="content"><div class="section"><h2>Program History unavailable</h2><p style="color:#879596">Per-quarter data failed to load.</p></div></div>';return;}
+    renderProgramHistory();
+    return;
+  }
+  // After moving under WWOS (ds=moving): fixed combined view of Q4 2025 + Q1 2026 (no tree).
+  if(ds==='moving'){
+    if(!window.ARCHIVE_QUARTERS){document.getElementById('app').innerHTML='<div class="content"><div class="section"><h2>Report unavailable</h2><p style="color:#879596">Per-quarter data failed to load.</p></div></div>';return;}
+    renderMovingCombined();
+    return;
   }
   try{
     const result=await loadMetrics();

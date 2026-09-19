@@ -742,9 +742,12 @@ function showColorPopup(color,tickets){
   const agentBlock=([name,tickets],idx)=>{
     const dn=displayName(name);
     const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
-    // How many of this agent's tickets carry a Station Request / Address Exclusion label.
+    // How many of this agent's tickets carry a Station Request / Address Exclusion label (map-pin badge)
+    // and how many are No-EMT (no-entry badge).
     const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
-    const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">\uD83D\uDC51 '+prioCount+'</span>':'';
+    const noEmtCount=tickets.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
+    const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">'+ic('map-pin',13)+' '+prioCount+'</span>':'';
+    const noEmtBadge=noEmtCount>0?' <span class="ap-agent-prio ap-agent-noemt" title="'+noEmtCount+' No EMT ticket'+(noEmtCount===1?'':'s')+'">'+ic('no-entry',13)+' '+noEmtCount+'</span>':'';
     // Tickets oldest-first (most urgent at top).
     const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
       const cd=new Date(r.CreateDate);
@@ -759,11 +762,13 @@ function showColorPopup(color,tickets){
       const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       // "Mine" = ticket assigned to the logged-in user -> can add a comment (server enforces this too).
       const mine=(me && String(name).toLowerCase()===me)?'1':'0';
-      // Crown next to the ticket id when this ticket carries a Station Request / Address Exclusion label.
+      // Markers next to the ticket id: map-pin = Station Request / Address Exclusion, no-entry = No EMT.
       const isPrio=hasPriorityLabel(r.Labels);
-      const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">\uD83D\uDC51</span>':'';
+      const isNoEmt=hasNoEmt(r.Title,r.Labels);
+      const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'';
+      const noEmt=isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT">'+ic('no-entry',13)+'</span>':'';
       return '<tr'+(isPrio?' class="ap-row-prio"':'')+'>'+
-        '<td><a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+'</td>'+
+        '<td><a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+noEmt+'</td>'+
         '<td><span class="ap-st" style="color:'+statusColor(r.Status)+'">'+esc(r.Status||'—')+'</span></td>'+
         '<td>'+esc(created)+'</td>'+
         '<td>'+daysAgoTxt+'</td>'+
@@ -773,7 +778,7 @@ function showColorPopup(color,tickets){
     }).join('');
     return '<div class="ap-agent">'+
       '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
-        '<span class="ap-agent-name">'+esc(dn)+nmeta+prioBadge+'<span class="sub">@'+esc(name)+'</span></span>'+
+        '<span class="ap-agent-name">'+esc(dn)+nmeta+prioBadge+noEmtBadge+'<span class="sub">@'+esc(name)+'</span></span>'+
         '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
         '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
       '</button>'+
@@ -832,10 +837,12 @@ function showAgentDrilldown(color,agentName){
     const st=esc(r.Status||'');
     const commentRow=showComments?`<div class="pc-tk-cmt" data-sid="${esc(sid)}">${ic('message',13)} <span class="pc-tk-cmt-txt">Loading latest comment…</span></div>`:'';
     const isPrio=hasPriorityLabel(r.Labels);
-    const prio=isPrio?` <span class="ap-crown" title="Station Request / Address Exclusion">\uD83D\uDC51</span>`:'';
+    const isNoEmt=hasNoEmt(r.Title,r.Labels);
+    const prio=isPrio?` <span class="ap-crown" title="Station Request / Address Exclusion">${ic('map-pin',13)}</span>`:'';
+    const noEmt=isNoEmt?` <span class="ap-crown ap-noemt" title="No EMT">${ic('no-entry',13)}</span>`:'';
     return`<div class="pc-tk${isPrio?' pc-tk-prio':''}">`+
       `<div class="pc-tk-top">`+
-        `<a class="pc-tk-id" href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" rel="noopener">${ic('ticket',14)} ${esc(sid)}</a>${prio}`+
+        `<a class="pc-tk-id" href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" rel="noopener">${ic('ticket',14)} ${esc(sid)}</a>${prio}${noEmt}`+
         `<span class="pc-tk-status" style="color:${statusColor(r.Status)};border-color:${statusColor(r.Status)}">${st}</span>`+
       `</div>`+
       `<div class="pc-tk-meta">${ic('calendar',13)} ${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span class="pc-tk-age">· ${daysText}</span></div>`+
@@ -1684,10 +1691,18 @@ async function dashVersion(){
 async function loadDashChunk(chunk, onData, opts){
   opts=opts||{};
   const A=window.PHDAuth;
+  // Scope resolution (per-section): an explicit opts.scope wins; otherwise fall back to the section
+  // scope for this chunk. Non-live scopes (Overall / Q2) append ?q= and bypass the version cache.
+  const CHUNK_SECTION={ summary:'avg', incidents:'incidents', hi:'hi', weekly:'weekly' };
+  let scopeVal=opts.scope;
+  if(scopeVal==null){ const sec=CHUNK_SECTION[chunk]; scopeVal=sec?DASH_SECTION_SCOPE[sec]:'live'; }
+  const scopeQ=scopeToParam(scopeVal);
+  const url='/api/dash/'+chunk+scopeQ;
+  const nonLiveScope=!!scopeQ;
   // Time-sensitive chunks (age-detail) must NOT be version-cached — a cached copy would show
-  // stale colours. Fetch fresh every time (payload is small).
-  if(opts.noCache){
-    const r=await A.api('GET','/api/dash/'+chunk);
+  // stale colours. Fetch fresh every time (payload is small). Non-live scopes also bypass the cache.
+  if(opts.noCache||nonLiveScope){
+    const r=await A.api('GET',url);
     if(r&&r.ok){ try{ onData(r.data); }catch(e){} return {painted:true,ok:true,fromCache:false,data:r.data}; }
     return {painted:false,ok:false,status:r?r.status:0};
   }
@@ -1697,7 +1712,7 @@ async function loadDashChunk(chunk, onData, opts){
     // entries cached under the old key are ignored even when the dataset version is unchanged.
     key:(opts.cacheKey||('dash-'+chunk)),
     version:version,
-    fetch:()=>A.api('GET','/api/dash/'+chunk),
+    fetch:()=>A.api('GET',url),
     onData:(data)=>{ try{ onData(data); }catch(e){} },
     // Only the summary shows the shared banner; card expands are silent to avoid banner spam.
     refreshMsg:opts.silent?undefined:undefined,
@@ -1719,10 +1734,12 @@ function dashCard(chunk, iconName, title, bodyId, extra){
 // Age Classification card, which loads eagerly on page load alongside the summary.
 // bodyHtml: initial body content (defaults to a spinner). Pass a static skeleton to paint the
 // full structure immediately, with only the data-driven bits waiting on the fetch.
-function dashStaticCard(iconName, title, bodyId, bodyHtml){
+function dashStaticCard(iconName, title, bodyId, bodyHtml, scopeSection){
   const sp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
+  // When scopeSection is given, the header shows a right-aligned Q3(Live)|Q2|Overall selector.
+  const sel=scopeSection?sectionScopeSelector(scopeSection):'';
   return '<div class="section">'+
-    '<h2>'+ic(iconName,16)+' '+title+'</h2>'+
+    '<div class="sec-head"><h2>'+ic(iconName,16)+' '+title+'</h2>'+sel+'</div>'+
     '<div id="'+bodyId+'" class="dash-chunk-slot">'+(bodyHtml||sp)+'</div>'+
   '</div>';
 }
@@ -1867,7 +1884,7 @@ function ageCardSkeletonHtml(){
   }).join('');
   return '<p class="meta-info">Open tickets classified by age. Click any row to see which agents hold them.</p>'+
     '<div class="age-xls-wrap"><table class="age-xls"><thead><tr>'+
-      '<th>Color</th><th>Age range</th><th style="text-align:center">Agents</th><th style="text-align:center">Tickets</th><th style="text-align:center" title="Open tickets labelled Station Request or Address Exclusion">\uD83D\uDC51 SR / Addr Excl</th><th style="text-align:center" title="Open tickets whose Title or Labels mention No EMT / No-EMT">No EMT</th>'+
+      '<th>Color</th><th>Age range</th><th style="text-align:center">Agents</th><th style="text-align:center">Tickets</th><th style="text-align:center" title="Open tickets labelled Station Request or Address Exclusion"><span class="age-th-lbl">'+ic('map-pin',14)+'Station Request Tickets</span></th><th style="text-align:center" title="Open tickets whose Title or Labels mention No EMT / No-EMT"><span class="age-th-lbl">'+ic('no-entry',14)+'No EMT Tickets</span></th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
@@ -2022,16 +2039,17 @@ function renderWeeklyChunk(d){
 function drawWeeklyCombined(d){
   const wk=d.labels||[];
   const span=d.span||[];
-  // Format a week label as "W26 (Jun 23 – Jun 29)" using the observed date span for that week.
   const fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
-  const labels=wk.map(function(l,i){ var s=span[i]||{}; var a=fmtD(s.first), b=fmtD(s.last); return (a&&b)?(l+' ('+a+' \u2013 '+b+')'):l; });
+  // X-axis shows ONLY the week code (e.g. "W26"); the date range is surfaced in the tooltip title.
+  const labels=wk.slice();
+  const spanText=wk.map(function(l,i){ var s=span[i]||{}; var a=fmtD(s.first), b=fmtD(s.last); return (a&&b)?(a+' \u2013 '+b):''; });
   const slaData=d.slaPct||[];
   const hasSla=slaData.some(function(v){ return v!=null; });
-  // Created + Resolved as grouped BARS (left axis) — easier to compare per week than overlapping waves.
-  const bar=function(label,data,color){ return {type:'bar',label:label,data:data,yAxisID:'y',backgroundColor:color,borderColor:color,borderWidth:0,borderRadius:4,maxBarThickness:26,order:2}; };
+  // Created + Resolved as THICK LINES (left axis) instead of bars.
+  const tline=function(label,data,color){ return {type:'line',label:label,data:data,yAxisID:'y',borderColor:color,backgroundColor:color,pointBackgroundColor:color,pointRadius:3,pointHoverRadius:5,borderWidth:4,tension:.35,fill:false,spanGaps:true,order:2}; };
   const datasets=[
-    bar('Created',d.created,'rgba(255,153,0,.85)'),
-    bar('Resolved',d.resolved,'rgba(74,222,128,.85)')
+    tline('Created',d.created,'#ff9900'),
+    tline('Resolved',d.resolved,'#4ade80')
   ];
   if(hasSla){
     // SLA compliance: a clear STRAIGHT solid line drawn ON TOP of the bars, on the right axis.
@@ -2052,17 +2070,22 @@ function drawWeeklyCombined(d){
     ctx.restore();
   }};
   const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    layout:{padding:{top:16}},
+    layout:{padding:{top:24}},
     plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
-      tooltip:{callbacks:{label:function(c){
+      tooltip:{callbacks:{
+        // Tooltip title = "W26  (Jun 23 – Jun 29)" using this week's observed date span.
+        title:function(items){ var i=items[0]?items[0].dataIndex:0; var sp=spanText[i]; return labels[i]+(sp?('  ('+sp+')'):''); },
+        label:function(c){
         if(c.dataset.yAxisID==='ySla'){ return 'SLA: '+(c.raw==null?'\u2014':(c.raw+'%'))+((d.slaResolved&&d.slaResolved[c.dataIndex])?(' ('+d.slaWithin[c.dataIndex]+'/'+d.slaResolved[c.dataIndex]+')'):''); }
         return c.dataset.label+': '+c.raw;
       }}}},
     scales:{
       y:{beginAtZero:true,position:'left',grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Tickets',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:12}}},
-      ySla:{min:slaLo,max:100,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'SLA % (\u2264240 hrs)',color:'#a78bfa',font:{size:12}},ticks:{color:'#a78bfa',callback:function(v){return v+'%';}},display:hasSla},
-      x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}};
-  makeChart('cWeeklyWave',{type:'bar',data:{labels:labels,datasets:datasets},options:opts,plugins:[slaLabelPlugin]});
+      // Give the SLA axis headroom above 100 so the "100%" point label isn't clipped at the top.
+      ySla:{min:slaLo,max:108,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'SLA % (\u2264240 hrs)',color:'#a78bfa',font:{size:12}},ticks:{color:'#a78bfa',stepSize:10,callback:function(v){return v>100?'':(v+'%');}},display:hasSla},
+      // Short "W#" labels: keep them horizontal; thin them out automatically when a scope has many weeks.
+      x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,minRotation:0,autoSkip:true,autoSkipPadding:8}}}};
+  makeChart('cWeeklyWave',{type:'line',data:{labels:labels,datasets:datasets},options:opts,plugins:[slaLabelPlugin]});
 }
 // Weekly Volume + Repeat Incidents (HI Cnt>0) created. Same Created/Resolved bars, plus a purple
 // line = count of repeat-incident tickets CREATED each week. All on the left (tickets) axis.
@@ -2078,8 +2101,10 @@ function drawWeeklyHi(d){
   const wk=d.labels||[];
   const span=d.span||[];
   const fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
-  const labels=wk.map(function(l,i){ var s=span[i]||{}; var a=fmtD(s.first), b=fmtD(s.last); return (a&&b)?(l+' ('+a+' \u2013 '+b+')'):l; });
-  const hiData=d.hiCreated||[];
+  // X-axis shows ONLY the week code (e.g. "W26"). The week's date range is surfaced in the tooltip title.
+  const labels=wk.slice();
+  const spanText=wk.map(function(l,i){ var s=span[i]||{}; var a=fmtD(s.first), b=fmtD(s.last); return (a&&b)?(a+' \u2013 '+b):''; });
+  const hiData=d.hiCreated||[];              // total repeat incidents = pet + non-pet combined
   const hasHi=hiData.some(function(v){ return v!=null; });
   const bar=function(label,data,color){ return {type:'bar',label:label,data:data,yAxisID:'y',backgroundColor:color,borderColor:color,borderWidth:0,borderRadius:4,maxBarThickness:26,order:2}; };
   const datasets=[
@@ -2087,8 +2112,9 @@ function drawWeeklyHi(d){
     bar('Resolved',d.resolved,'rgba(74,222,128,.85)')
   ];
   if(hasHi){
-    // HI line on its own RIGHT axis so its scale is independent of the volume bars.
-    datasets.push({type:'line',label:'Repeat Incidents (HI Cnt>0)',data:hiData,yAxisID:'yHi',borderColor:'#a78bfa',
+    // Combined (pet + non-pet) repeat-incident count as a STRAIGHT line (tension:0), on its own
+    // RIGHT axis so its scale is independent of the volume bars.
+    datasets.push({type:'line',label:'Repeat Incidents (pet + non-pet combined)',data:hiData,yAxisID:'yHi',borderColor:'#a78bfa',
       pointBackgroundColor:'#a78bfa',pointBorderColor:'#fff',pointBorderWidth:1,pointRadius:4,pointHoverRadius:6,
       borderWidth:3,tension:0,fill:false,spanGaps:true,order:0});
   }
@@ -2105,11 +2131,14 @@ function drawWeeklyHi(d){
   const opts={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
     layout:{padding:{top:16}},
     plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
-      tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+c.raw; }}}},
+      tooltip:{callbacks:{
+        // Tooltip title = "W26  (Jun 23 – Jun 29)" using this week's observed date span.
+        title:function(items){ var i=items[0]?items[0].dataIndex:0; var sp=spanText[i]; return labels[i]+(sp?('  ('+sp+')'):''); },
+        label:function(c){ return c.dataset.label+': '+c.raw; }}}},
     scales:{
       y:{beginAtZero:true,position:'left',grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Tickets',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:12}}},
       yHi:{beginAtZero:true,min:0,max:hiMax,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Repeat Incidents (HI Cnt>0)',color:'#a78bfa',font:{size:12}},ticks:{color:'#a78bfa',stepSize:hiMax/5},display:hasHi},
-      x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}};
+      x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,minRotation:0,autoSkip:false}}}};
   makeChart('cWeeklyHi',{type:'bar',data:{labels:labels,datasets:datasets},options:opts,plugins:[hiLabelPlugin]});
 }
 // A smooth "wave" (filled area) line dataset. `rgbaPrefix` like 'rgba(255,153,0,' — fill fades out.
@@ -2343,33 +2372,47 @@ function renderHiChunk(d){
 // Wave (filled-area line) chart: pet vs non-pet repeat incidents (HI Cnt>0) created per week.
 function drawHiWeekly(w){
   if(!w||!w.labels||!document.getElementById('cHiWeekly'))return;
-  const labels=w.labels.map(function(l,i){ const s=(w.span&&w.span[i])||{}; if(s.first){ const df=new Date(s.first); return l+' ('+df.toLocaleDateString('en-US',{month:'short',day:'numeric'})+')'; } return l; });
+  // X axis shows just the week code (W26). Full "W26 (start – end)" appears in the hover tooltip title.
+  const labels=w.labels.slice();
+  const span=w.span||[];
+  const fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
   const pet=w.hiPetCreated||[], nonPet=w.hiNonPetCreated||[];
+  const combined=pet.map(function(v,i){ return (v||0)+((nonPet[i])||0); });
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('cHiWeekly',{type:'line',
     data:{labels:labels,datasets:[
       _waveDataset('Pet / animal',pet,'#a78bfa','rgba(167,139,250,'),
       _waveDataset('Non-pet',nonPet,'#ff9900','rgba(255,153,0,'),
+      // Combined (pet + non-pet): a clear STRAIGHT solid line, no fill, drawn on top.
+      {label:'Combined',data:combined,borderColor:'#4ade80',backgroundColor:'#4ade80',pointBackgroundColor:'#4ade80',pointRadius:3,pointHoverRadius:5,borderWidth:3,tension:0,fill:false,spanGaps:true,order:0},
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
+      plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
+        tooltip:{callbacks:{title:function(items){ var i=items&&items[0]?items[0].dataIndex:-1; var s=(i>=0?span[i]:null)||{}; var a=fmtD(s.first), b=fmtD(s.last); return labels[i]+((a&&b)?(' ('+a+' \u2013 '+b+')'):''); }}}},
       scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Repeat incidents (HI Cnt>0)',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:11}}},
-        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40,minRotation:0}}}}});
+        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,minRotation:0,autoSkip:false}}}}});
 }
 function _barOpts(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}};}
 
 // Render the summary KPI groups from a /api/dash/summary payload.
-function renderSummaryInto(d){
+// `target` (optional): 'avg' or 'repeat' repaints only that grid (used by a scoped section reload);
+// omitted repaints all grids (initial page load).
+function renderSummaryInto(d,target){
   // Persist the live version so the topbar Refresh button's "already up to date" check works,
-  // and keep LIVE_QUARTER's label in sync for the SLA-per-week card.
-  try{
-    if(d&&d.quarter){
-      LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:d.quarter,label:d.label||d.quarter});
-      metaSet('liveCache',{quarter:d.quarter,publishedAt:d.publishedAt||null});
-    }
-  }catch(e){}
+  // and keep LIVE_QUARTER's label in sync for the SLA-per-week card. Only on the initial (untargeted,
+  // live) load — a scoped Q2/Overall summary fetch must NOT clobber the live quarter reference.
+  if(!target){
+    try{
+      if(d&&d.quarter){
+        LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:d.quarter,label:d.label||d.quarter});
+        metaSet('liveCache',{quarter:d.quarter,publishedAt:d.publishedAt||null});
+      }
+    }catch(e){}
+  }
   stopKpiScramble(); // real values are in — halt the flicker before the count-up
-  const g1=document.getElementById('dashSumTotals'),g2=document.getElementById('dashSumAvg'),g3=document.getElementById('dashSumRepeat');
+  const g1=(!target)?document.getElementById('dashSumTotals'):null;
+  const g2=(!target||target==='avg')?document.getElementById('dashSumAvg'):null;
+  const g3=(!target||target==='repeat')?document.getElementById('dashSumRepeat'):null;
   // Each section renders as a table; values carry their final string in data-kpi-val and are
   // animated by countUpKpi (scramble -> ease-out count-up -> lands exactly on the real number).
   if(g1){
@@ -2405,22 +2448,93 @@ function renderSummaryInto(d){
 function dashPageTitleRow(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
   const isAdmin=window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin');
-  let actions='';
-  if(loggedIn){
-    // My Tickets (any logged-in user) — sits alongside Alerts / Upload / Uploaded data log.
-    actions='<a class="btn sec dash-act" href="my-tickets.html" title="My Tickets">'+ic('ticket',15)+'<span class="dash-act-label"> My Tickets</span></a>';
-    // Alerts (with its live badge + id).
-    actions+='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label"> Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
-    if(isAdmin){
-      actions+='<button type="button" class="btn sec dash-act" title="Upload new data" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+'<span class="dash-act-label"> Upload new data</span></button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
-    }
-    actions+='<a class="btn sec dash-act" href="data-log.html" title="Uploaded data log">'+ic('history',15)+'<span class="dash-act-label"> Uploaded data log</span></a>';
+  if(!loggedIn) return '<div class="dash-title-row"></div>';
+  // LEFT group: personal navigation (My Tickets, Alerts).
+  let left='';
+  left+='<a class="btn sec dash-act" href="my-tickets.html" title="My Tickets">'+ic('ticket',15)+'<span class="dash-act-label">My Tickets</span></a>';
+  left+='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label">Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
+  // RIGHT group: data management (Upload — admin only, Uploaded data log).
+  let right='';
+  if(isAdmin){
+    right+='<button type="button" class="btn sec dash-act" title="Upload new data" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+'<span class="dash-act-label">Upload new data</span></button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
   }
+  right+='<a class="btn sec dash-act" href="data-log.html" title="Uploaded data log">'+ic('history',15)+'<span class="dash-act-label">Uploaded data log</span></a>';
+  // Split toolbar: personal nav on the left, data actions on the right.
   return '<div class="dash-title-row">'+
-      '<h1 class="dash-title-h1">Q3 2026 <span class="live-badge">LIVE</span></h1>'+
-      (loggedIn?('<span class="dash-actions">'+actions+'</span>'):'')+
+      '<span class="dash-actions dash-actions-left">'+left+'</span>'+
+      '<span class="dash-actions dash-actions-right">'+right+'</span>'+
     '</div>';
 }
+// Per-section scope. Each dashboard section picks its own scope INDEPENDENTLY, so switching
+// e.g. "Incident Types" to Q2 only reloads that section — the rest stay on their own scope.
+// Scope values: 'live' (Q3, the default — omits ?q=), 'all' (Overall), '2026-Q2' (Q2).
+const DASH_SECTION_SCOPE={ avg:'live', repeat:'live', incidents:'live', hi:'live', weekly:'live' };
+// Map a scope value to the ?q= param for /api/dash/* (live => omit; else the qid/'all').
+function scopeToParam(scope){ return (!scope||scope==='live')?'':('?q='+encodeURIComponent(scope)); }
+// Legacy shim: chunk -> its section-scope param (used by loadDashChunk when no explicit scope passed).
+function dashScopeParamFor(section){ return scopeToParam(DASH_SECTION_SCOPE[section]); }
+
+// Build the 3-way scope selector shown on a section header's top-right: Q3 (Live) | Q2 | Overall.
+// `section` is the key in DASH_SECTION_SCOPE; picking an option reloads only that section.
+function sectionScopeSelector(section){
+  const cur=DASH_SECTION_SCOPE[section]||'live';
+  const opt=(val,label,live)=>'<label class="dsc-opt'+(cur===val?' checked':'')+'">'+
+    '<input type="radio" name="dsc-'+section+'" value="'+val+'" '+(cur===val?'checked':'')+
+    ' onchange="setSectionScope(\''+section+'\',\''+val+'\')"> '+label+(live?' <span class="dsc-live"></span>':'')+'</label>';
+  return '<div class="dash-scope-sec" data-scope-sec="'+section+'">'+
+    opt('live','Q3 (Live)',true)+opt('2026-Q2','Q2',false)+opt('all','Overall',false)+
+  '</div>';
+}
+// Reload ONE section under a newly chosen scope, without touching the others.
+function setSectionScope(section,val){
+  if(DASH_SECTION_SCOPE[section]===val)return;
+  DASH_SECTION_SCOPE[section]=val;
+  // Move the orange "checked" highlight to the chosen chip (the header isn't re-rendered on reload).
+  const bar=document.querySelector('.dash-scope-sec[data-scope-sec="'+section+'"]');
+  if(bar){ bar.querySelectorAll('.dsc-opt').forEach(function(l){
+    const inp=l.querySelector('input'); l.classList.toggle('checked', !!inp && inp.value===val);
+  }); }
+  reloadDashSection(section);
+}
+window.setSectionScope=setSectionScope;
+
+// Re-fetch + re-render a single section body for its current scope. Paints a spinner first.
+function reloadDashSection(section){
+  const scope=DASH_SECTION_SCOPE[section]||'live';
+  const spin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
+  const fail=(id,msg)=>{ const s=document.getElementById(id); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">'+msg+'</p>'; };
+  if(section==='avg' || section==='repeat'){
+    // Both come from the summary chunk; repaint only the requested grid.
+    const gridId=(section==='avg')?'dashSumAvg':'dashSumRepeat';
+    const g=document.getElementById(gridId); if(g)g.innerHTML=spin;
+    loadDashChunk('summary',function(d){ renderSummaryInto(d,section); },{silent:true,scope:scope,noCache:true})
+      .then(function(r){ if(!r||!r.ok){ if(g)g.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section.</p>'; } })
+      .catch(function(){ if(g)g.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section.</p>'; });
+    return;
+  }
+  if(section==='incidents'){
+    const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML=spin;
+    loadDashChunk('incidents',renderIncidentsChunk,{silent:true,cacheKey:'dash-incidents-v2',scope:scope,noCache:true})
+      .then(function(r){ if(!r||!r.ok)fail('dashIncidentsBody','Could not load incident types.'); })
+      .catch(function(){ fail('dashIncidentsBody','Could not load incident types.'); });
+    return;
+  }
+  if(section==='hi'){
+    const s=document.getElementById('dashHiBody'); if(s)s.innerHTML=spin;
+    loadDashChunk('hi',renderHiChunk,{silent:true,scope:scope,noCache:true})
+      .then(function(r){ if(!r||!r.ok)fail('dashHiBody','Could not load historical incidents.'); })
+      .catch(function(){ fail('dashHiBody','Could not load historical incidents.'); });
+    return;
+  }
+  if(section==='weekly'){
+    const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML=spin;
+    loadDashChunk('weekly',renderWeeklyChunk,{silent:true,scope:scope,noCache:true})
+      .then(function(r){ if(!r||!r.ok)fail('dashWeeklyBody','Could not load weekly volume.'); })
+      .catch(function(){ fail('dashWeeklyBody','Could not load weekly volume.'); });
+    return;
+  }
+}
+window.reloadDashSection=reloadDashSection;
 
 // The chunked dashboard view. Summary loads immediately (cached); the 7 cards below are
 // collapsed and load lazily on first expand.
@@ -2499,22 +2613,24 @@ function renderDashboardChunked(){
     return '<p class="meta-info" style="margin:0 0 16px">Weekly Created vs Resolved volume, with SLA compliance % on a second axis.</p>'+
       '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
   };
-  const kpiSection=(title,iconName,gridId,skel)=>
-    '<div class="section kpi-section"><h2>'+ic(iconName,16)+' '+title+'</h2>'+
+  const kpiSection=(title,iconName,gridId,skel,scopeSection)=>
+    '<div class="section kpi-section"><div class="sec-head"><h2>'+ic(iconName,16)+' '+title+'</h2>'+(scopeSection?sectionScopeSelector(scopeSection):'')+'</div>'+
     '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:1fr">'+skel+'</div></div></div>';
+  // Queue Status + Ticket Age reflect CURRENT open tickets (no scope selector — always live/current).
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
     kpiSection('Queue Status Data','grid','dashQueueKpis',queueSkel())+
     // Ticket Age Classification sits right below Queue Status Data.
     dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
-    kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true))+
-    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true))+
+    // Each of the five scoped sections carries its own Q3(Live)|Q2|Overall selector on its header.
+    kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true),'avg')+
+    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true),'repeat')+
     // All sections are always visible (no expand/collapse) and load eagerly. Each is painted with a
     // fixed skeleton matching its final layout, so there's no jump when the data lands.
-    dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel())+
-    dashStaticCard('repeat','Historical Incidents (Cnt > 0)','dashHiBody',hiSkel())+
+    dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel(),'incidents')+
+    dashStaticCard('repeat','Historical Incidents (Cnt > 0)','dashHiBody',hiSkel(),'hi')+
     // Weekly Volume (Created + Resolved) combined with SLA Compliance % on a second axis.
-    dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel())+
+    dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel(),'weekly')+
   '</div>';
   attachNewFileHandler();
   refreshHelpAlertCount();
@@ -2540,8 +2656,7 @@ function renderDashboardChunked(){
   loadDashChunk('weekly',renderWeeklyChunk,{silent:true}).then(function(r){
     if(!r||!r.ok){ const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load weekly volume.</p>'; }
   }).catch(function(){ const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load weekly volume.</p>'; });
-  // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk (also fills the collapsible
-  // Queue Status card below via renderQueueChunk). Per-status counts + total.
+  // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk (always live/current).
   loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true}).then(function(r){
     if(!r||!r.ok){ document.querySelectorAll('#dashQueueKpis .scramble-kpi').forEach(function(el){el.classList.remove('scramble-kpi');el.textContent='—';}); }
   }).catch(function(){ document.querySelectorAll('#dashQueueKpis .scramble-kpi').forEach(function(el){el.classList.remove('scramble-kpi');el.textContent='—';}); });

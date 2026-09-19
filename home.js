@@ -50,35 +50,72 @@ async function renderQuarterCards(){
   const seen={};quarters.forEach(q=>{seen[q.id]=true;});
   if(liveId && !seen[liveId]){quarters.push({id:liveId,label:info.liveLabel||liveId,count:undefined,isLive:true});seen[liveId]=true;}
 
-  // Group by year (id looks like "2026-Q3").
-  const byYear={};
+  // Assign each quarter to one of three ERAS (a quarter's numeric key = year*10 + Q):
+  //   after   = "After WWOS (complete take over by WWOS)"  -> Q2 2026, Q3 2026 (>= 2026-Q2)
+  //   moving  = "After moving under WWOS"                  -> Q4 2025, Q1 2026 (Oct 2025 - Mar 2026)
+  //   (The pre-WWOS "Before WWOS" era is represented by the Program History card, not listed here.)
+  function qKey(id){ const m=/^(\d{4})-Q([1-4])$/.exec(id||''); return m?(parseInt(m[1],10)*10+parseInt(m[2],10)):0; }
+  const eras=[
+    { key:'after',  title:'After WWOS \u2014 complete take over by WWOS', min:20262, max:99999 },
+    { key:'moving', title:'After moving under WWOS',                       min:20254, max:20261 },
+  ];
+  const byEra={ after:[], moving:[] };
   quarters.forEach(q=>{
-    const m=/^(\d{4})-Q([1-4])$/.exec(q.id||'');
-    if(!m)return;
-    const yr=m[1]; const qn=parseInt(m[2],10);
-    (byYear[yr]=byYear[yr]||[]).push(Object.assign({},q,{_q:qn}));
+    const m=/^(\d{4})-Q([1-4])$/.exec(q.id||''); if(!m)return;
+    const k=qKey(q.id);
+    const era=eras.find(e=>k>=e.min&&k<=e.max);
+    if(era) byEra[era.key].push(Object.assign({},q,{_k:k}));
   });
-  const years=Object.keys(byYear).sort((a,b)=>b.localeCompare(a)); // newest year first
-  if(!years.length){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">No quarter reports available.</p>'; return; }
+  if(!byEra.after.length&&!byEra.moving.length){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">No quarter reports available.</p>'; return; }
 
-  const liveYear=liveId?(/^(\d{4})-Q[1-4]$/.exec(liveId)||[])[1]:null;
-
-  host.innerHTML=years.map(function(yr){
-    const list=byYear[yr].slice().sort((a,b)=>b._q-a._q); // Q4..Q1 within the year
+  const eraSectionHtml=function(era){
+    const list=byEra[era.key].slice().sort((a,b)=>b._k-a._k); // newest quarter first
+    if(!list.length)return '';
     const total=list.reduce((s,q)=>s+((typeof q.count==='number')?q.count:0),0);
-    const hasLive=(yr===liveYear);
+    const hasLive=list.some(q=>q.id===liveId);
     const cards=list.map(q=>quarterCardHtml(q,q.id===liveId)).join('');
     const metaTxt=(total>0?fmtCount(total)+' tickets · ':'')+list.length+' quarter'+(list.length===1?'':'s');
     return ''+
     '<div class="year-section'+(hasLive?' open':'')+'">'+
       '<button type="button" class="year-head" aria-expanded="'+(hasLive?'true':'false')+'" onclick="toggleYearSection(this)">'+
-        '<span class="year-title">'+icH('calendar',20)+' '+yr+(hasLive?' <span class="year-live-badge">LIVE</span>':'')+'</span>'+
+        '<span class="year-title">'+icH('calendar',20)+' '+era.title+(hasLive?' <span class="year-live-badge">LIVE</span>':'')+'</span>'+
         '<span class="year-meta">'+metaTxt+'</span>'+
         '<span class="year-caret" aria-hidden="true">▾</span>'+
       '</button>'+
       '<div class="year-body"><div class="grid">'+cards+'</div></div>'+
     '</div>';
-  }).join('');
+  };
+  // ---- Three era buttons: Program History | Moved under WWOS | Complete take over (Live) ----
+  // Structured card: title, date range (calendar icon), description, ticket count (ticket icon).
+  const eraCard=function(opts){
+    return '<a class="card era-card'+(opts.live?' live':'')+'" href="'+opts.href+'" style="margin:0">'+
+      '<div class="era-title"><span class="card-ic">'+icH(opts.icon,22)+'</span><h2>'+opts.title+'</h2>'+(opts.live?'<span class="live-pill">LIVE</span>':'')+'</div>'+
+      '<div class="era-date">'+icH('calendar',14)+' <span>'+opts.date+'</span></div>'+
+      '<p class="era-desc">'+opts.desc+'</p>'+
+      '<div class="era-count">'+icH('ticket',14)+' <span>'+opts.count+'</span></div>'+
+    '</a>';
+  };
+  const programHistoryCard=eraCard({
+    href:'archive.html?ds=archive', icon:'inbox', title:'Program History',
+    date:'1st Jan 2021 – 30th Sept 2025', desc:'Complete incident analytics before WWOS take over.',
+    count:'56,578 tickets · Archived'
+  });
+  const movingCard=eraCard({
+    href:'archive.html?ds=moving', icon:'clock-rewind', title:'Moved under WWOS',
+    date:'1st Oct 2025 – 31st Mar 2026', desc:'Combined analytics for the transition period by WWOS.',
+    count:'8,148 tickets · 2 quarters combined'
+  });
+  const takeoverCard=eraCard({
+    href:'app.html', icon:'bolt', title:'Complete take over by WWOS', live:true,
+    date:'From 1st April 2026', desc:'Combined live analytics under WWOS.',
+    count:'15,915 tickets'
+  });
+  host.innerHTML=
+    '<div class="ph-row ph-row-3">'+
+      '<div class="ph-row-cell">'+programHistoryCard+'</div>'+
+      '<div class="ph-row-cell">'+movingCard+'</div>'+
+      '<div class="ph-row-cell">'+takeoverCard+'</div>'+
+    '</div>';
 }
 
 renderQuarterCards();
@@ -90,7 +127,7 @@ renderQuarterCards();
 (function(){
   var cells=document.querySelectorAll('.cmp-spark[data-vals]'); if(!cells.length)return;
   var W=220, H=80, L=22, R=22, T=16, B=12;            // small margins so value labels aren't clipped
-  var XL=['Before','Q2','Q3'];
+  var XL=['Before','WWOS','Q2','Q3'];
   var fmt=function(v){ v=Math.round(v*10)/10; return (v>=1000)?Math.round(v).toLocaleString():String(v); };
   cells.forEach(function(td){
     var vals=(td.getAttribute('data-vals')||'').split(',').map(function(v){return parseFloat(v);}).filter(function(v){return !isNaN(v);});

@@ -3068,6 +3068,11 @@ async function liveMeta() {
 async function aggLive(stages, qid) {
   qid = qid || currentQuarter();
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  // "all" (Overall scope): aggregate across EVERY quarter's ticket_docs (no q filter).
+  if (qid === 'all') {
+    const pipeline = [{ $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
+    return tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
+  }
   const hasDocs = (await tColl.countDocuments({ q: qid }, { limit: 1 })) > 0;
   if (hasDocs) {
     // Per-ticket collection: each doc IS a ticket; wrap as { t: <doc> } so `$t.Field` stages work.
@@ -3622,22 +3627,28 @@ function petCountFromResolved(resolved) {
 const ALWAYS_LIVE_CHUNKS = new Set(['age', 'age-detail']);
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
-    const qid = currentQuarter();
+    const liveQ = currentQuarter();
+    // Optional scope: ?q=all (Overall, every quarter) | ?q=<YYYY-Qn> | omitted => live quarter.
+    const qReq = String(req.query.q || '').trim();
+    const isValidQ = /^\d{4}-Q[1-4]$/.test(qReq);
+    const qid = (qReq === 'all') ? 'all' : (isValidQ ? qReq : liveQ);
+    const isLiveScope = (qid === liveQ);
     try {
       const meta = await liveMeta();
-      if (!ALWAYS_LIVE_CHUNKS.has(name)) {
+      // Serve from the (publish-time) rollup ONLY for the live quarter's own cacheable chunks.
+      if (isLiveScope && !ALWAYS_LIVE_CHUNKS.has(name)) {
         const rollColl = await getCollection(COLLECTIONS.dashRollups);
         const roll = await rollColl.findOne({ _id: qid });
-        // Rollup is current (matches the live publishedAt) and has this chunk -> serve it instantly.
         if (roll && roll.chunks && roll.chunks[name] && (roll.publishedAt || null) === (meta.publishedAt || null)) {
           return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, roll.chunks[name]));
         }
       }
-      // Always-live chunk, or missing/stale rollup -> compute live now.
+      // Any non-live scope (Q2 / Overall), always-live chunk, or missing/stale rollup -> compute now.
       const slice = await DASH_CHUNKS[name](qid);
-      res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: false }, slice));
-      // Refresh the (cacheable) rollup in the background when we had to compute a cacheable chunk live.
-      if (!ALWAYS_LIVE_CHUNKS.has(name)) recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
+      const label = (qid === 'all') ? 'Overall' : quarterLabel(qid);
+      res.json(Object.assign({ quarter: qid, label: label, publishedAt: meta.publishedAt, cached: false }, slice));
+      // Only the live quarter has a cacheable rollup to refresh.
+      if (isLiveScope && !ALWAYS_LIVE_CHUNKS.has(name)) recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
     }

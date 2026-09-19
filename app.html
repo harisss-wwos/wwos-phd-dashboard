@@ -42,19 +42,52 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .page-title h1{font-size:1.8em;color:#fff;font-weight:700}
 .page-title p{color:var(--tm);margin-top:4px;font-size:.9em}
 /* Dashboard title row: Q3 (left) + LIVE (right), plus Alerts/Upload/data-log actions. */
-.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+/* Split toolbar: personal nav pinned left, data actions pinned right. */
+.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+.dash-title-row:not(:empty){margin-bottom:20px}
 .dash-title-h1{font-size:1.8em;color:#fff;font-weight:700;margin:0;display:inline-flex;align-items:center;gap:12px;flex:1 1 auto;justify-content:space-between}
-.dash-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.dash-act{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.dash-act svg{flex-shrink:0}
-/* When the row is tight, action buttons collapse to icon-only (label hidden; title = tooltip)
-   and spread evenly across the full width. */
-@media(max-width:900px){
+/* Each group is a segmented pill container so its buttons read as one cohesive control. */
+.dash-actions{display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;background:#0e141b;border:1px solid #2f3a45;border-radius:12px;padding:4px}
+.dash-actions-left{margin-right:auto}
+.dash-actions-right{margin-left:auto}
+.dash-act{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid transparent!important;background:transparent!important;color:#cdd7de!important;border-radius:9px;padding:8px 14px;font-size:.88em;font-weight:600;box-shadow:none!important;transition:background .14s,color .14s}
+.dash-act:hover{background:rgba(255,255,255,.06)!important;color:#fff!important}
+.dash-act svg{flex-shrink:0;opacity:.9}
+/* Upload = the one primary/accent action (admins). */
+.dash-actions-right button.dash-act{color:#ff9f2e!important}
+.dash-actions-right button.dash-act:hover{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important}
+/* Scope selector (Overall / Q3 live / Q2) — centered chip radios replacing the old title. */
+.dash-scope{flex:1 1 auto;display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+.dash-scope-opt{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:999px;font-size:.9em;font-weight:600;color:#aab7c2;cursor:pointer;user-select:none;border:1px solid #2f3a45;background:#0e141b;transition:background .15s,color .15s,border-color .15s}
+.dash-scope-opt input{position:absolute;opacity:0;width:0;height:0}
+.dash-scope-opt:hover{color:#e6edf0;border-color:#3d566a}
+.dash-scope-opt.checked{color:#fff;background:linear-gradient(180deg,#ff9f2e,#f07d0a);border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.35)}
+.dash-scope-live{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:liveblink 1s steps(1,end) infinite}
+.dash-scope-opt.checked .dash-scope-live{background:#fff;box-shadow:0 0 6px #fff}
+@media(max-width:700px){.dash-scope{flex:1 1 100%;order:-1}}
+/* Section header row: title on the left, its own scope selector on the right. */
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sec-head h2{margin:0}
+/* Per-section scope selector (Q3 Live | Q2 | Overall) — compact chip radios on the section header. */
+.dash-scope-sec{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dsc-opt{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:.8em;font-weight:600;color:#aab7c2;cursor:pointer;user-select:none;border:1px solid #2f3a45;background:#0e141b;transition:background .15s,color .15s,border-color .15s}
+.dsc-opt input{position:absolute;opacity:0;width:0;height:0}
+.dsc-opt:hover{color:#e6edf0;border-color:#3d566a}
+.dsc-opt.checked{color:#fff;background:linear-gradient(180deg,#ff9f2e,#f07d0a);border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.3)}
+.dsc-live{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:liveblink 1s steps(1,end) infinite}
+.dsc-opt.checked .dsc-live{background:#fff;box-shadow:0 0 6px #fff}
+@media(max-width:600px){.dash-scope-sec{flex:1 1 100%}.dsc-opt{flex:1 1 auto;justify-content:center}}
+/* When the row is tight, both groups take full width and their buttons spread evenly.
+   Labels stay visible as long as they fit; collapse to icon-only on the smallest screens. */
+@media(max-width:760px){
+  .dash-title-row{flex-direction:column;align-items:stretch}
+  .dash-actions{width:100%;justify-content:space-between}
+  .dash-actions-left,.dash-actions-right{margin:0}
+  .dash-actions .dash-act{flex:1 1 auto;justify-content:center}
+}
+@media(max-width:460px){
   .dash-act .dash-act-label{display:none}
-  .dash-act{padding:8px 10px;justify-content:center}
-  .dash-title-h1{flex:1 1 100%;justify-content:space-between}
-  .dash-actions{width:100%;justify-content:space-between;gap:8px}
-  .dash-actions .dash-act{flex:1 1 auto}
+  .dash-act{padding:9px 12px}
 }
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
 /* KPI summary sections rendered as tables (Queue Status / Average / Repeat Incident). */
@@ -280,6 +313,9 @@ tr:hover{background:rgba(255,153,0,.03)}
 .age-xls th:nth-child(5),.age-xls td:nth-child(5),
 .age-xls th:nth-child(6),.age-xls td:nth-child(6){width:auto}
 .age-xls thead th{background:#111820;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+/* Icon + label in the SR / No-EMT header cells: center them together with a consistent gap. */
+.age-xls thead th .age-th-lbl{display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1}
+.age-xls thead th .age-th-lbl svg{flex-shrink:0}
 .age-xls tbody tr:hover td{background:rgba(255,153,0,.05)}
 /* Whole-row click target (replaces the old Details "View tickets" button). */
 .age-xls tbody tr.age-clickrow{cursor:pointer}
@@ -290,14 +326,16 @@ tr:hover{background:rgba(255,153,0,.03)}
 .age-xls td.age-agents{text-align:center;font-weight:800;color:#fff}
 .age-xls td.age-cnt{text-align:center;font-weight:800}
 /* Priority-label column (Station Request / Address Exclusion): one profile icon per agent. */
-.age-xls td.age-prio{text-align:center;font-weight:800;color:var(--tm)}
-.age-xls td.age-prio .prio-icons{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px}
-.age-xls td.age-prio .prio-agent{display:inline-flex;align-items:center;gap:5px;cursor:default}
+.age-xls td.age-prio{text-align:center;font-weight:800;color:var(--tm);padding:9px 12px}
+.age-xls td.age-prio .prio-icons{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+/* Each agent reads as one pill: avatar + count on a subtle rounded chip, so they don't blur together. */
+.age-xls td.age-prio .prio-agent{display:inline-flex;align-items:center;gap:6px;cursor:default;background:rgba(255,255,255,.04);border:1px solid #2b3742;border-radius:999px;padding:3px 10px 3px 3px;transition:border-color .12s,background .12s}
+.age-xls td.age-prio .prio-agent:hover{background:rgba(255,255,255,.08);border-color:#3d566a}
 /* Avatar chip: a circular ring (roster-colored via inline box-shadow) around the 22px avatar. */
 .age-xls td.age-prio .prio-ava{display:inline-flex;align-items:center;justify-content:center;line-height:0;border-radius:50%}
 .age-xls td.age-prio .prio-ava .phd-avatar{width:22px!important;height:22px!important;font-size:10px!important}
 .age-xls td.age-prio .prio-ava-fallback{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px}
-.age-xls td.age-prio .prio-n{font-weight:800;color:#fff;font-size:.95em}
+.age-xls td.age-prio .prio-n{font-weight:800;color:#fff;font-size:.9em;min-width:8px;text-align:center}
 .age-xls td.age-prio .age-prio-zero{color:#5f6b6c;font-weight:800}
 .age-xls .age-view{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;font-size:.8em;font-weight:600;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--t);cursor:pointer;font-family:inherit;transition:border-color .12s,color .12s}
 .age-xls .age-view:hover{border-color:var(--o);color:var(--o)}
@@ -309,9 +347,13 @@ tr:hover{background:rgba(255,153,0,.03)}
 .ap-agent-name{color:#fff;font-weight:700;font-size:1.12em}
 .ap-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
 /* Crown badge next to an agent's name = count of Station Request / Address Exclusion tickets. */
-.ap-agent-prio{display:inline-flex;align-items:center;gap:3px;margin-left:10px;font-size:.82em;font-weight:800;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);border-radius:20px;padding:1px 9px;vertical-align:middle;cursor:default}
-/* Crown next to a ticket id (expanded agent table + per-agent drill-down cards). */
-.ap-crown{font-size:.95em;cursor:default;margin-left:2px}
+.ap-agent-prio{display:inline-flex;align-items:center;gap:4px;margin-left:10px;font-size:.82em;font-weight:800;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);border-radius:20px;padding:1px 9px;vertical-align:middle;cursor:default}
+.ap-agent-prio svg{flex-shrink:0}
+/* No-EMT badge next to an agent's name = count of No-EMT tickets (red no-entry mark). */
+.ap-agent-noemt{color:#ff8080;background:rgba(255,82,82,.12);border-color:rgba(255,82,82,.4)}
+/* Marker icon next to a ticket id (expanded agent table + per-agent drill-down cards). */
+.ap-crown{display:inline-flex;align-items:center;cursor:default;margin-left:4px;color:#fbbf24;vertical-align:middle}
+.ap-noemt{color:#ff8080}
 /* Highlight priority ticket rows (Station Request / Address Exclusion) with a soft amber wash. */
 .ap-tbl tr.ap-row-prio td{background:linear-gradient(180deg,rgba(251,191,36,.10),rgba(251,191,36,.05))}
 .ap-tbl tr.ap-row-prio:hover td{background:linear-gradient(180deg,rgba(251,191,36,.16),rgba(251,191,36,.09))}

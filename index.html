@@ -45,14 +45,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .wiki-btn:hover{background:var(--oh)}
 /* Before/After GSOC comparison — Excel-sheet styling with a mini trend sparkline column. */
 .cmp-wrap{overflow-x:auto;margin-bottom:22px;border-radius:10px;border:1px solid #2f3a45}
-.cmp-table.xls{width:100%;border-collapse:collapse;font-size:.86em;min-width:760px;background:#0b0f14}
+.cmp-table.xls{width:100%;border-collapse:collapse;font-size:.86em;min-width:900px;background:#0b0f14}
 .cmp-table.xls th,.cmp-table.xls td{border:1px solid #2f3a45;padding:10px 14px;text-align:center;vertical-align:middle}
+/* Metric column = fit-content; the other 5 columns split the remaining width equally. */
+.cmp-table.xls th:first-child,.cmp-table.xls td:first-child{width:1%;white-space:nowrap}
+.cmp-table.xls th:not(:first-child){width:19.8%}
 .cmp-table.xls thead th{background:#111820;color:#c9d3d4;font-size:.74em;text-transform:uppercase;letter-spacing:.5px;font-weight:700;line-height:1.4}
 .cmp-table.xls .cmp-sub{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--tm);font-size:.85em;margin-top:2px}
 .cmp-table.xls tbody tr:nth-child(even) td{background:rgba(255,255,255,.02)}
 .cmp-table.xls tbody tr:hover td{background:rgba(255,153,0,.06)}
 .cmp-table.xls td.cmp-metric{text-align:center;font-weight:600;color:#fff;white-space:nowrap}
 .cmp-table.xls .before{color:#ff9d6b;font-weight:600}
+.cmp-table.xls .wwos{color:#44b9d6;font-weight:600}
 .cmp-table.xls .after{color:#fbbf24;font-weight:600}
 .cmp-table.xls .q3{color:#4ade80;font-weight:800}
 .cmp-table.xls .cmp-u{color:var(--tm);font-weight:400;font-size:.82em;margin-left:3px}
@@ -91,6 +95,50 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .card.live .card-ic{color:#4ade80}
 .live-pill{margin-left:auto;font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 10px;animation:livepulse 2s ease-in-out infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.6}}
+/* Program History card + "After moving under WWOS" section: 50/50 side by side (stacks on narrow). */
+.ph-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:16px}
+.ph-row.ph-row-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.ph-row.ph-row-3{grid-template-columns:1fr}}
+/* Era cards: title row, date row, description, ticket-count row. */
+.era-card{display:flex;flex-direction:column;gap:10px}
+.era-card .era-title{display:flex;align-items:center;gap:10px;margin:0}
+.era-card .era-title h2{margin:0;font-size:1.15em;color:#fff;font-weight:600}
+.era-card .era-date{display:flex;align-items:center;gap:7px;color:var(--o);font-size:.9em;font-weight:600}
+.era-card .era-date svg{flex-shrink:0}
+.era-card .era-desc{color:var(--tm);font-size:.9em;line-height:1.5;margin:0;flex:1}
+.era-card .era-count{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:600;color:var(--o);background:rgba(255,153,0,.12);border-radius:20px;padding:5px 12px;align-self:flex-start}
+.era-card .era-count svg{flex-shrink:0}
+.era-card.live .era-date{color:#4ade80}
+.era-card.live .era-count{color:#4ade80;background:rgba(74,222,128,.12)}
+/* Live era card: cool animated diagonal gradient (green/teal) + glowing green edge. */
+.era-card.live{position:relative;overflow:hidden;border-top-color:#4ade80;border-color:rgba(74,222,128,.35);
+  background:linear-gradient(135deg,#0c1a12 0%,#0a1512 40%,#0b1a1e 100%);
+  box-shadow:0 0 0 1px rgba(74,222,128,.12),0 8px 30px -12px rgba(74,222,128,.35)}
+.era-card.live::before{content:'';position:absolute;inset:0;z-index:0;opacity:.55;
+  background:linear-gradient(120deg,rgba(74,222,128,.16),rgba(68,185,214,.05) 35%,transparent 60%,rgba(74,222,128,.12));
+  background-size:200% 200%;animation:eraLiveShift 6s ease-in-out infinite}
+.era-card.live>*{position:relative;z-index:1}
+.era-card.live:hover{border-color:#4ade80;box-shadow:0 0 0 1px rgba(74,222,128,.3),0 12px 34px -12px rgba(74,222,128,.5)}
+@keyframes eraLiveShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+/* Blinking dot inside the LIVE pill. */
+.era-card.live .live-pill{display:inline-flex;align-items:center;gap:6px}
+.era-card.live .live-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:liveBlink 1.2s ease-in-out infinite}
+@keyframes liveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(74,222,128,.7)}70%{opacity:.35;box-shadow:0 0 0 6px rgba(74,222,128,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+/* Era-card loading skeleton (3 card placeholders matching the layout). */
+.era-skeleton{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.era-sk-card{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid #1e2830;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:12px}
+.era-sk-title{display:flex;align-items:center;gap:10px}
+.era-sk-ic{width:24px;height:24px;border-radius:6px}
+.era-sk-h{height:16px;width:60%;border-radius:5px}
+.era-sk-date{height:12px;width:70%;border-radius:5px}
+.era-sk-line{height:11px;width:100%;border-radius:5px}
+.era-sk-line.short{width:75%}
+.era-sk-pill{height:22px;width:120px;border-radius:20px;margin-top:4px}
+@media(max-width:900px){.era-skeleton{grid-template-columns:1fr}}
+.ph-row .ph-row-cell{min-width:0}
+.ph-row .ph-row-cell .year-section{margin-bottom:0}
+.ph-row .card{height:100%}
+@media(max-width:820px){.ph-row{grid-template-columns:1fr}}
 /* Collapsible year sections (quarter report cards grouped by year) */
 #yearSections{width:90vw;max-width:none;margin-left:50%;transform:translateX(-50%);margin-top:24px}
 .year-section{border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden;background:#0a0a0a;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
@@ -167,6 +215,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:var(--tm);cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}
 .pass-eye:hover{color:var(--o)}
 #homeAuth .avatar-initial,#homeAuth img{border-radius:50%}
+/* Agent & Group Analytics FAB (bottom-left, above the recent-activity button at 22px). Circular;
+   expands to reveal the full label on hover. Admin-gated disabled state = greyed + inert. */
+.analytics-fab{position:fixed;left:22px;bottom:84px;z-index:900;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#44b9d6;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}
+.analytics-fab .analytics-fab-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}
+.analytics-fab .analytics-fab-ic svg{width:22px;height:22px}
+.analytics-fab .analytics-fab-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}
+.analytics-fab:hover{max-width:320px;border-color:#44b9d6;transform:translateY(-2px)}
+.analytics-fab:hover .analytics-fab-label{opacity:1;padding-right:18px}
+/* Disabled (non-admin / logged out): visible but muted + inert. */
+.analytics-fab.disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}
 /* Mobile: make the About block, the top card grid, and the year sections the SAME width and
    centering so they align, and tighten the vertical spacing. */
 @media (max-width:700px){
@@ -189,6 +247,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </head>
 <body data-no-toolbar="true">
 <div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a><div id="homeAuth" style="margin-left:auto;display:flex;align-items:center;gap:10px"></div></div>
+
+<!-- Agent & Group Analytics quick-access FAB (bottom-left, above the recent-activity button).
+     Admin-gated: disabled (greyed) for non-admins / logged-out. Full name shows on hover. -->
+<a id="analyticsFab" class="analytics-fab" href="agent-analytics.html" aria-label="Agent & Group Analytics">
+  <span class="analytics-fab-ic" data-ic="bar-chart"></span>
+  <span class="analytics-fab-label">Agent &amp; Group Analytics</span>
+</a>
 
 <!-- Login modal (shared styles with the rest of the page) -->
 <div class="modal-bg" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
@@ -267,16 +332,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <table class="cmp-table xls">
         <thead><tr>
           <th>Metric</th>
-          <th>Before GSOC<br><span class="cmp-sub">Jan 2021 – Mar 2026</span></th>
-          <th>After GSOC<br><span class="cmp-sub">Q2 2026</span></th>
-          <th>Q3 2026<br><span class="cmp-sub">Live</span></th>
+          <th>Before WWOS<br><span class="cmp-sub">1st Jan 2021 – 30th Sep 2025</span></th>
+          <th>Moved under WWOS<br><span class="cmp-sub">1st Oct 2025 – 31st Mar 2026</span></th>
+          <th>After WWOS Takeover<br><span class="cmp-sub">Q2 2026</span></th>
+          <th>After WWOS Takeover<br><span class="cmp-sub">Q3 2026 · Live</span></th>
           <th>Trend</th>
         </tr></thead>
         <tbody>
-          <tr><td class="cmp-metric">Ticket volume / month</td><td class="before">~898<span class="cmp-u">/mo</span></td><td class="after">~2,367<span class="cmp-u">/mo</span></td><td class="q3">~2,882<span class="cmp-u">/mo</span></td><td class="cmp-spark" data-vals="898,2367,2882" data-dir="up"></td></tr>
-          <tr><td class="cmp-metric">Avg resolution time</td><td class="before">367.9<span class="cmp-u">hrs</span></td><td class="after">103.9<span class="cmp-u">hrs</span></td><td class="q3">49<span class="cmp-u">hrs</span></td><td class="cmp-spark" data-vals="367.9,103.9,49" data-dir="down"></td></tr>
-          <tr><td class="cmp-metric">Median resolution time</td><td class="before">229.9<span class="cmp-u">hrs</span></td><td class="after">69.3<span class="cmp-u">hrs</span></td><td class="q3">2.6<span class="cmp-u">hrs</span></td><td class="cmp-spark" data-vals="229.9,69.3,2.6" data-dir="down"></td></tr>
-          <tr><td class="cmp-metric">SLA compliance (&le;240 hrs)</td><td class="before">51.7%</td><td class="after">88.7%</td><td class="q3">99.1%</td><td class="cmp-spark" data-vals="51.7,88.7,99.1" data-dir="up"></td></tr>
+          <tr><td class="cmp-metric">Ticket volume / month</td><td class="before">~835<span class="cmp-u">/mo</span></td><td class="wwos">~1,358<span class="cmp-u">/mo</span></td><td class="after">~2,367<span class="cmp-u">/mo</span></td><td class="q3">~2,882<span class="cmp-u">/mo</span></td><td class="cmp-spark" data-vals="835,1358,2367,2882" data-dir="up"></td></tr>
+          <tr><td class="cmp-metric">Avg resolution time</td><td class="before">386.0<span class="cmp-u">hrs</span></td><td class="wwos">259.7<span class="cmp-u">hrs</span></td><td class="after">103.9<span class="cmp-u">hrs</span></td><td class="q3">49<span class="cmp-u">hrs</span></td><td class="cmp-spark" data-vals="386,259.7,103.9,49" data-dir="down"></td></tr>
+          <tr><td class="cmp-metric">SLA compliance (&le;240 hrs)</td><td class="before">49.8%</td><td class="wwos">63.1%</td><td class="after">88.7%</td><td class="q3">99.1%</td><td class="cmp-spark" data-vals="49.8,63.1,88.7,99.1" data-dir="up"></td></tr>
         </tbody>
       </table>
       </div>
@@ -287,29 +352,31 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       </div>
     </div>
   </div>
-  <!-- Top cards: Agent Analytics (admin-gated) + Program History (static). Quarter report cards
-       are grouped into collapsible year sections below (#yearSections), rendered by home.js. -->
-  <div class="grid" id="cardGrid">
-    <!-- Agent Analytics: admin+ only. Disabled (not clickable) for non-admins / logged-out users. -->
-    <a class="card agent" id="agentAnalyticsCard" href="agent-analytics.html">
-      <div class="card-head"><span class="card-ic" data-ic="bar-chart"></span><h2>Agent &amp; Group Analytics</h2></div>
-      <p>Team and per-agent performance for the live quarter — teams and their members, resolved vs open workload, SLA compliance, root-cause breakdowns, and cross-team group comparisons. Helps leads track and balance the whole PHD team.</p>
-      <span class="tag" id="agentAnalyticsTag">Admin access required</span>
-    </a>
-    <a class="card" href="archive.html?ds=archive">
-      <div class="card-head"><span class="card-ic" data-ic="inbox"></span><h2>Program History: Jan 2021 – Mar 2026</h2></div>
-      <p>Complete incident analytics from the program's first era (handled by the prior team until 31 Mar 2026). Read-only archive.</p>
-      <span class="tag">56,578 tickets · Archived</span>
-    </a>
-  </div>
+  <!-- Program History card + quarter-report era sections are rendered by home.js into #yearSections
+       (the Program History card sits 50/50 beside the "After moving under WWOS" section). -->
   <!-- Quarter report cards grouped into collapsible YEAR sections (newest year first).
        Rendered by home.js from /api/quarters. The year containing the live quarter is
        expanded by default; others start collapsed. A shimmer skeleton shows while loading. -->
   <div id="yearSections">
-    <div class="year-skeleton">
-      <div class="shimmer yr-sk-row"></div>
-      <div class="shimmer yr-sk-row"></div>
-      <div class="shimmer yr-sk-row"></div>
+    <div class="era-skeleton">
+      <div class="era-sk-card">
+        <div class="era-sk-title"><span class="shimmer era-sk-ic"></span><span class="shimmer era-sk-h"></span></div>
+        <span class="shimmer era-sk-date"></span>
+        <span class="shimmer era-sk-line"></span><span class="shimmer era-sk-line short"></span>
+        <span class="shimmer era-sk-pill"></span>
+      </div>
+      <div class="era-sk-card">
+        <div class="era-sk-title"><span class="shimmer era-sk-ic"></span><span class="shimmer era-sk-h"></span></div>
+        <span class="shimmer era-sk-date"></span>
+        <span class="shimmer era-sk-line"></span><span class="shimmer era-sk-line short"></span>
+        <span class="shimmer era-sk-pill"></span>
+      </div>
+      <div class="era-sk-card">
+        <div class="era-sk-title"><span class="shimmer era-sk-ic"></span><span class="shimmer era-sk-h"></span></div>
+        <span class="shimmer era-sk-date"></span>
+        <span class="shimmer era-sk-line"></span><span class="shimmer era-sk-line short"></span>
+        <span class="shimmer era-sk-pill"></span>
+      </div>
     </div>
   </div>
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
@@ -335,23 +402,22 @@ document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.
 // ===== Homepage auth (Login button / avatar + Logout) =====
 var A = window.PHDAuth;
 function ic(n,s){ return (typeof window.icon==='function') ? window.icon(n,s||15) : ''; }
-// Agent Analytics needs admin+; disable the card (visible but not clickable) otherwise.
+// Agent Analytics needs admin+; disable the FAB (visible but not clickable) otherwise.
 function applyAgentCardState(){
-  var card = document.getElementById('agentAnalyticsCard');
-  if(!card || !A) return;
+  var fab = document.getElementById('analyticsFab');
+  if(!fab || !A) return;
   var isAdmin = A.atLeast && A.atLeast('admin');
-  var tag = document.getElementById('agentAnalyticsTag');
   if(isAdmin){
-    card.classList.remove('disabled');
-    card.removeAttribute('aria-disabled');
-    card.setAttribute('href','agent-analytics.html');
-    if(tag) tag.textContent = 'Per-agent performance';
+    fab.classList.remove('disabled');
+    fab.removeAttribute('aria-disabled');
+    fab.setAttribute('href','agent-analytics.html');
+    fab.setAttribute('title','Agent & Group Analytics');
   }else{
-    card.classList.add('disabled');
-    card.setAttribute('aria-disabled','true');
-    card.removeAttribute('href'); // not navigable
+    fab.classList.add('disabled');
+    fab.setAttribute('aria-disabled','true');
+    fab.removeAttribute('href'); // not navigable
     var loggedIn = A.getUser && A.getUser();
-    if(tag) tag.textContent = loggedIn ? 'Admin access required' : 'Log in as admin to view';
+    fab.setAttribute('title', loggedIn ? 'Agent & Group Analytics — admin access required' : 'Log in as admin to view Agent & Group Analytics');
   }
 }
 function renderHomeAuth(){

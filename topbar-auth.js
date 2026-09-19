@@ -118,6 +118,21 @@
       + '.tb-hist-current svg{color:#ff9900}'
       + '.tb-hist-badge{flex-shrink:0;font-size:.62em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.4);border-radius:20px;padding:2px 7px}'
       + '.tb-hist-empty{color:#5f6b6c;font-size:.82em;font-style:italic;padding:8px 10px}'
+      // ---- Home-page MENU fab (bottom-RIGHT; history fab is bottom-left) + its nav popup ----
+      + '.tb-menu-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,background .15s,border-color .15s}'
+      + '.tb-menu-fab:hover{background:#222d3a;border-color:#ff9900;transform:translateY(-2px)}'
+      + '.tb-menu-fab svg{width:22px;height:22px}'
+      + '.tb-menu-pop{position:fixed;right:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
+      + '.tb-menu-pop.open{display:flex}'
+      // Menu-item links inside the home MENU popup (left-aligned list, like the history popup).
+      + '.tb-menu-pop .tb-menuitem{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:transparent;border:none;font-family:inherit;width:100%}'
+      + '.tb-menu-pop .tb-menuitem:hover{background:#1b2430;color:#fff}'
+      + '.tb-menu-pop .tb-menuitem.active{background:#1a2430;color:#ff9900}'
+      + '.tb-menu-pop .tb-menuitem svg{width:15px;height:15px;flex-shrink:0;color:#879596}'
+      + '.tb-menu-pop .tb-menu-label{display:none}'
+      // Disabled FAB (logged out): clearly VISIBLE but muted + not clickable. Popups stay closed.
+      + '.tb-fab-disabled{cursor:not-allowed;background:#232d3a;color:#8b98a5;border:1px solid #3a4655;box-shadow:0 4px 12px rgba(0,0,0,.4)}'
+      + '.tb-fab-disabled:hover{background:#232d3a;border-color:#3a4655;transform:none}'
       // ---- "Refreshing cached data" banner (just under the top bar; slides in) ----
       // Refresh button loading state: icon spins + turns green, label reads "Refreshing…".
       + '.tb-refresh-btn.refreshing{color:#4ade80;border-color:rgba(74,222,128,.5)}'
@@ -905,11 +920,13 @@
   // Build the bottom-left history FAB + popup listing up to 5 recently visited OTHER pages.
   function buildHistoryButton() {
     if (document.querySelector('.tb-hist-fab')) return;
+    var li = loggedIn();
     var fab = document.createElement('button');
     fab.type = 'button';
-    fab.className = 'tb-hist-fab';
-    fab.title = 'Recently visited pages';
+    fab.className = 'tb-hist-fab' + (li ? '' : ' tb-fab-disabled');
+    fab.title = li ? 'Recently visited pages' : 'Log in to view recent activity';
     fab.setAttribute('aria-label', 'Recently visited pages');
+    if (!li) { fab.disabled = true; fab.setAttribute('aria-disabled', 'true'); }
     // clock-with-arrow (history) icon
     fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>';
     var pop = document.createElement('div');
@@ -917,6 +934,7 @@
     pop.id = 'tbHistPop';
     fab.onclick = function (e) {
       e.stopPropagation();
+      if (fab.disabled) return; // logged out -> inert
       if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
       tbRenderHistory(pop);
       pop.classList.add('open');
@@ -924,6 +942,37 @@
     document.body.appendChild(fab);
     document.body.appendChild(pop);
     // Close the popup when clicking elsewhere.
+    document.addEventListener('click', function (e) {
+      if (!pop.classList.contains('open')) return;
+      if (pop.contains(e.target) || fab.contains(e.target)) return;
+      pop.classList.remove('open');
+    });
+  }
+  // Home-page MENU fab: a floating button that opens the same Navigate links as the toolbar
+  // hamburger. Shown always, but disabled (greyed, inert) until the user logs in.
+  function buildMenuButton() {
+    if (document.querySelector('.tb-menu-fab')) return;
+    var li = loggedIn();
+    var fab = document.createElement('button');
+    fab.type = 'button';
+    fab.className = 'tb-menu-fab' + (li ? '' : ' tb-fab-disabled');
+    fab.title = li ? 'Menu' : 'Log in to use the menu';
+    fab.setAttribute('aria-label', 'Menu');
+    if (!li) { fab.disabled = true; fab.setAttribute('aria-disabled', 'true'); }
+    // hamburger (three lines) icon
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>';
+    var pop = document.createElement('div');
+    pop.className = 'tb-menu-pop';
+    pop.id = 'tbMenuFabPop';
+    fab.onclick = function (e) {
+      e.stopPropagation();
+      if (fab.disabled) return; // logged out -> inert
+      if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+      pop.innerHTML = '<div class="tb-hist-title">Navigate</div>' + navHtml('', false);
+      pop.classList.add('open');
+    };
+    document.body.appendChild(fab);
+    document.body.appendChild(pop);
     document.addEventListener('click', function (e) {
       if (!pop.classList.contains('open')) return;
       if (pop.contains(e.target) || fab.contains(e.target)) return;
@@ -989,7 +1038,7 @@
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
     // recent-history quick-swap button so the feature is on EVERY page.
-    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildHistoryButton(); return; }
+    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildMenuButton(); buildHistoryButton(); return; }
     if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); return; } // app.html: back + history FABs only
 
     var oldBar = document.querySelector('.top-bar');
