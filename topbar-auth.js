@@ -103,12 +103,35 @@
       + '.tb-loader{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}'
       + '.tb-loader .sp{width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite}'
       + '.tb-loader p{color:#fff;font-weight:600}'
-      // floating circular back button (bottom-right)
-      + '.tb-back-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;transition:transform .15s,background .15s}'
-      + '.tb-back-fab:hover{background:#ec7211;transform:translateY(-2px)}'
-      + '.tb-back-fab svg{width:22px;height:22px}'
+      // The old sticky title bar is retired: navigation lives in the left rail and the profile avatar
+      // floats top-right. Hide the bar and drop the top padding pages reserved for it.
+      + '.tb-topbar{display:none!important}'
+      // Floating top-right control cluster: data-action buttons (Upload / data log) + the profile pill,
+      // pinned to the same right edge (22px) as the back button. Laid out right-to-left so the profile
+      // sits on the far right and the data actions sit to its left.
+      + '.tb-top-right{position:absolute;right:20px;top:16px;z-index:901;display:flex;align-items:center;gap:10px;flex-direction:row}'
+      // Profile pill. Round 46px avatar on the right; the name is a label that slides IN from the LEFT
+      // on hover. overflow:hidden clips the label until hover; the label sits BEFORE the avatar in the
+      // DOM so the pill grows leftward (right edge stays fixed).
+      + '.tb-avatar-fab{display:inline-flex;flex-direction:row;align-items:center;justify-content:flex-end;height:46px;max-width:46px;border-radius:23px;background:#0b1420;border:2px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;transition:max-width .28s ease}'
+      + '.tb-avatar-fab:hover{max-width:280px}'
+      + '.tb-avatar-fab .tb-av-label{white-space:nowrap;font-size:.86em;font-weight:600;color:#e6edf0;opacity:0;padding-left:0;transition:opacity .2s ease,padding-left .2s ease}'
+      + '.tb-avatar-fab:hover .tb-av-label{opacity:1;padding-left:16px}'
+      + '.tb-avatar-fab .tb-av-ic{flex:0 0 42px;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden}'
+      + '.tb-avatar-fab .tb-av-ic img,.tb-avatar-fab .tb-av-ic .avatar-initial{border-radius:50%;width:42px!important;height:42px!important;display:block}'
+      + '.tb-avatar-fab.tb-avatar-login{background:#1b2430}'
+      + '.tb-avatar-fab.tb-avatar-login .tb-av-ic{color:#ff9900}'
+      + '.tb-avatar-fab.tb-avatar-login .tb-av-ic svg{width:20px;height:20px}'
+      // Data-action buttons that live to the LEFT of the profile pill (Upload new data / Uploaded data
+      // log). Same 46px height as the rail buttons + profile, vertically centered.
+      + '.tb-data-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 16px;border-radius:23px;background:#141c28;color:#d5dbdb;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.35);text-decoration:none;font-family:inherit;font-size:.84em;font-weight:600;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,transform .15s}'
+      + '.tb-data-btn:hover{border-color:#ff9900;color:#fff;transform:translateY(-2px)}'
+      + '.tb-data-btn svg{width:16px;height:16px;flex-shrink:0}'
+      // floating circular back button (bottom-right) — same 46px size as the left rail buttons
+      + '.tb-back-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:46px;height:46px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none}'
+      + '.tb-back-fab svg{width:20px;height:20px}'
       // floating circular RECENT-HISTORY button (bottom-left) + its popup of recently visited pages
-      + '.tb-hist-fab{position:fixed;left:22px;bottom:22px;z-index:900;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;max-width:52px;font-family:inherit;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
+      + '.tb-hist-fab{position:fixed;left:5px;bottom:18px;z-index:902;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;max-width:52px;font-family:inherit;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
       + '.tb-hist-fab .tb-hist-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-hist-fab .tb-hist-ic svg{width:22px;height:22px}'
       + '.tb-hist-fab .tb-hist-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
@@ -117,25 +140,28 @@
       // Vertically-centered left-edge FAB column: holds Live + Analytics + page-nav FABs (NOT the
       // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
       // pill grows rightward on hover from the same left edge.
-      + '.tb-fab-col{position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:900;display:flex;flex-direction:column;align-items:flex-start;gap:12px;max-height:calc(100vh - 130px);pointer-events:none}'
+      + '.tb-fab-col{position:fixed;left:0;top:0;bottom:0;width:66px;z-index:900;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;padding:14px 10px;overflow:visible;box-sizing:border-box;border-right:1px solid #1e2a3a;background:linear-gradient(160deg,#05080d,#0b1420,#071018,#0d0a18,#05080d);background-size:300% 300%;animation:tbFabGrad 16s ease infinite;box-shadow:2px 0 18px rgba(0,0,0,.5);pointer-events:auto}'
       + '.tb-fab-col>*{pointer-events:auto}'
+      // Layout: [66px rail] | 20px gap | content (fills the rest) | 20px right gap.
+      // position:relative anchors the (now non-fixed) top-right cluster to the document top-right.
+      + 'body{position:relative!important;padding-left:86px!important;padding-right:20px!important;box-sizing:border-box!important}'
       // Shared live animated-gradient background for the FAB buttons — a slow moving sheen so the
       // whole left column feels alive. Applied to nav/analytics/history FABs (Live keeps its green).
       + '@keyframes tbFabGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}'
       + '.tb-fab-grad{background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite}'
       // Agent & Group Analytics FAB. Circular; expands on hover to reveal its label. Admin-gated
       // disabled state = greyed + inert. Lives inside the centered FAB column.
-      + '.tb-an-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#7fdfff;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,border-color .15s,transform .15s}'
-      + '.tb-an-fab .tb-an-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
-      + '.tb-an-fab .tb-an-ic svg{width:22px;height:22px}'
+      + '.tb-an-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#7fdfff;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,border-color .15s,transform .15s}'
+      + '.tb-an-fab .tb-an-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-an-fab .tb-an-ic svg{width:20px;height:20px}'
       + '.tb-an-fab .tb-an-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-an-fab:hover{max-width:320px;border-color:#44b9d6;transform:translateY(-2px)}'
       + '.tb-an-fab:hover .tb-an-label{opacity:1;padding-right:18px}'
       + '.tb-an-fab.tb-an-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
       // Live-quarter FAB. Blinks to signal "LIVE" and links to the live dashboard (app.html).
       // Expands on hover to reveal the quarter label. Lives inside the centered FAB column.
-      + '.tb-live-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#12261a;color:#4ade80;border:1px solid #2f7a4a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s;animation:tbLiveGlow 1.6s ease-in-out infinite}'
-      + '.tb-live-fab .tb-live-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
+      + '.tb-live-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:#12261a;color:#4ade80;border:1px solid #2f7a4a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s;animation:tbLiveGlow 1.6s ease-in-out infinite}'
+      + '.tb-live-fab .tb-live-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
       + '.tb-live-fab .tb-live-dot{width:12px;height:12px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;animation:tbLiveBlink 1s steps(1,end) infinite}'
       + '.tb-live-fab .tb-live-label{white-space:nowrap;font-size:.86em;font-weight:700;letter-spacing:.3px;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-live-fab:hover{max-width:320px;border-color:#4ade80;transform:translateY(-2px)}'
@@ -146,19 +172,34 @@
       + '@keyframes tbLiveBlink{0%,50%{opacity:1}51%,100%{opacity:.15}}'
       + '@keyframes tbLiveGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(74,222,128,.0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 6px rgba(74,222,128,.16)}}'
       // Page-navigation FABs — same expand-on-hover pill. Live inside the centered FAB column.
-      + '.tb-nav-fab{position:relative;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:52px;transition:max-width .28s ease,border-color .15s,transform .15s}'
-      + '.tb-nav-fab .tb-nav-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
-      + '.tb-nav-fab .tb-nav-ic svg{width:21px;height:21px}'
+      + '.tb-nav-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease}'
+      + '.tb-nav-fab .tb-nav-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
+      + '.tb-nav-fab .tb-nav-ic svg{width:19px;height:19px}'
+      // Custom PNG icon (e.g. Unique cases -> important.png). Fit inside the 46px icon slot.
+      + '.tb-nav-fab .tb-nav-img{width:22px;height:22px;object-fit:contain;display:block}'
+      // The Upload FAB is a <button>; reset the default button chrome so it matches the <a> pills.
+      + 'button.tb-nav-fab{font-family:inherit;cursor:pointer;text-align:left}'
+      // Upload FAB is highlighted (accent orange) so it stands out as the "add new data" action.
+      + '.tb-nav-fab.tb-nav-upload{background:linear-gradient(120deg,#ff9f2e,#f07d0a,#ff9f2e);background-size:220% 220%;animation:tbFabGrad 6s ease infinite;color:#1a1206;border-color:#ffb454}'
+      + '.tb-nav-fab.tb-nav-upload .tb-nav-label{color:#1a1206;font-weight:700}'
+      + '.tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#1a1206}'
+      + '.tb-nav-fab.tb-nav-upload.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655}'
+      + '.tb-nav-fab.tb-nav-upload.tb-nav-disabled .tb-nav-label,.tb-nav-fab.tb-nav-upload.tb-nav-disabled .tb-nav-ic svg{color:#8b98a5}'
+      // Drag-and-drop: grab cursor + a lifted, semi-transparent look while dragging a pill.
+      + '.tb-nav-fab{cursor:grab}'
+      + '.tb-nav-fab.tb-nav-disabled{cursor:not-allowed}'
+      + '.tb-nav-fab.tb-nav-dragging{opacity:.55;cursor:grabbing;max-width:46px!important}'
+      + '.tb-nav-fab.tb-nav-dragging .tb-nav-label{opacity:0!important;padding-right:0!important}'
       // Count badge (e.g. open alerts) pinned to the top-right of the FAB icon.
       + '.tb-nav-badge{display:none;position:absolute;top:6px;right:6px;min-width:17px;height:17px;padding:0 4px;border-radius:20px;background:#ff5252;color:#fff;font-size:.62em;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #1b2430}'
       + '.tb-nav-badge.show{display:block}'
       + '.tb-nav-badge.zero{background:#3a4655;color:#cdd7de}'
       + '.tb-nav-fab .tb-nav-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
-      + '.tb-nav-fab:hover{max-width:340px;background:#222d3a;border-color:#ff9900;color:#fff;transform:translateY(-2px)}'
+      + '.tb-nav-fab:hover{max-width:340px}'
       + '.tb-nav-fab:hover .tb-nav-label{opacity:1;padding-right:18px}'
       + '.tb-nav-fab.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
       // On short screens shrink the FAB column (smaller pills + tighter gap) so it still fits centered.
-      + '@media(max-height:760px){.tb-fab-col{gap:8px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:44px;max-width:44px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:44px;width:44px;height:44px}.tb-hist-fab{height:44px}.tb-hist-fab .tb-hist-ic{flex-basis:44px;width:44px;height:44px}}'
+      + '@media(max-height:820px){.tb-fab-col{gap:6px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:40px;max-width:40px;border-radius:20px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:40px;width:40px;height:40px}.tb-nav-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg{width:18px;height:18px}.tb-hist-fab{height:40px}.tb-hist-fab .tb-hist-ic{flex-basis:40px;width:40px;height:40px}}'
       + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
       + '.tb-hist-pop.open{display:flex}'
       + '.tb-hist-title{color:#879596;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px 8px;position:sticky;top:-8px;background:#121820}'
@@ -201,10 +242,10 @@
       // any data table sits in a scroll container instead of pushing the page wider
       + '.tbl-card{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}'
       + 'table{max-width:100%}'
-      // The vertically-centered FAB column hugs the left edge (~74px). Shift the main page content
-      // right so those buttons don't overlap it. Applied to the common content wrappers on wider
-      // screens; reset inside the ≤920px block where the column shrinks and wrappers go full-width.
-      + '.content,.wrap,.tools-subnav{padding-left:88px}'
+      // Layout: [rail] | 20px | content (full remaining width) | 20px. The body handles the rail
+      // offset + side gaps (padding-left 86px, padding-right 20px), so the content wrappers just fill
+      // the space edge-to-edge: drop their max-width caps and auto side margins.
+      + '.content,.wrap{max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important}'
       + '@media(max-width:920px){'
         + '.tb-topbar{padding:10px 12px;gap:8px;flex-wrap:wrap}'
         + '.tb-logo{flex-wrap:wrap;gap:6px}'
@@ -216,10 +257,9 @@
         + '.tb-menu{left:0;right:0;top:52px}'
         + '.tb-avatar img,.tb-avatar .avatar-initial{width:36px!important;height:36px!important}'
         + '.tb-profile-btn{height:44px;padding:3px 5px 3px 12px}'
-        // page wrappers: full width with small gutters (overrides fixed 80% / 80vw / big max-widths)
-        + '.wrap{width:auto!important;max-width:100%!important;margin:0!important;padding:20px 14px!important}'
-        // FAB column shrinks/relocates on narrow screens -> drop the content-shift padding.
-        + '.content,.tools-subnav{padding-left:14px!important}'
+        // page wrappers: full width (body still provides the rail offset + 20px gaps).
+        + '.wrap{width:auto!important;max-width:100%!important;margin:0!important;padding:20px 0!important}'
+        + '.tools-subnav{padding-left:0!important}'
         // the index.html centering trick (80vw + translateX) overflows on mobile -> neutralize
         + '.about,.grid{width:auto!important;max-width:100%!important;left:auto!important;margin-left:0!important;transform:none!important}'
         // collapse multi-column grids to a single column
@@ -341,7 +381,7 @@
   window.PHDNav = {
     buildToolbarHtml: buildToolbarHtml,
     rightControlsHtml: rightControlsHtml,
-    refreshRight: function () { var s = document.getElementById('tbAuth'); if (s) s.innerHTML = rightControlsHtml(); }
+    refreshRight: function () { var s = document.getElementById('tbAuth'); if (s) s.innerHTML = rightControlsHtml(); paintProfileAvatar(); }
   };
 
   // Refresh button: fetch the latest data on demand. On the live dashboard it refreshes in place
@@ -920,6 +960,48 @@
     document.body.appendChild(fab);
   }
 
+  // Floating top-right control cluster — the only survivor of the retired title bar. Holds (right to
+  // left): the profile pill, then the Uploaded data log button to its LEFT. (Upload new data now
+  // lives in the left FAB rail.) The profile pill expands leftward on hover (name/Login text slides
+  // in). Re-rendered by refreshProfileAvatar() once the full profile loads in the background.
+  function buildProfileAvatar() {
+    if (document.getElementById('tbTopRight')) return;
+    var cluster = document.createElement('div');
+    cluster.id = 'tbTopRight';
+    cluster.className = 'tb-top-right';
+    document.body.appendChild(cluster);
+    paintProfileAvatar();
+  }
+  // Escape helper for user-provided strings placed into markup.
+  function tbEsc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function paintProfileAvatar() {
+    var cluster = document.getElementById('tbTopRight');
+    if (!cluster) return;
+    var li = loggedIn();
+    var html = '';
+    // Uploaded data log sits to the LEFT of the profile pill (logged-in only). DOM order = visual
+    // left-to-right: [Uploaded data log] [profile pill]. (Upload new data moved to the left rail.)
+    if (li) {
+      html += '<a class="tb-data-btn" href="data-log.html" title="Uploaded data log">' + ic('history', 16) + '<span>Uploaded data log</span></a>';
+    }
+    // Profile pill (far right). Logged in -> avatar + name; logged out -> key icon + "Login".
+    if (li) {
+      var prof = (A.myProfile && A.myProfile()) || A.getUser();
+      var name = (prof && (prof.displayName || prof.username)) || 'Profile';
+      html += '<a class="tb-avatar-fab" href="profile.html" title="' + tbEsc(name) + ' — Profile" aria-label="' + tbEsc(name) + ' — Profile">'
+        + '<span class="tb-av-label">' + tbEsc(name) + '</span>'
+        + '<span class="tb-av-ic">' + (A.avatarHtml ? A.avatarHtml(prof, 42) : '') + '</span>'
+        + '</a>';
+    } else {
+      html += '<a class="tb-avatar-fab tb-avatar-login" title="Log in" aria-label="Log in" style="cursor:pointer" onclick="if(window.tbOpenLogin)tbOpenLogin()">'
+        + '<span class="tb-av-label">Login</span>'
+        + '<span class="tb-av-ic">' + ic('key', 20) + '</span>'
+        + '</a>';
+    }
+    cluster.innerHTML = html;
+  }
+  function refreshProfileAvatar() { paintProfileAvatar(); }
+
   // ---- Recent-history quick-swap (bottom-left FAB) ----
   var TB_HISTORY_KEY = 'phd_recent_pages';
   // app.html hosts several views via ?view= — map each to a friendly title.
@@ -1020,42 +1102,123 @@
     if (document.querySelector('.tb-nav-fab')) return;
     var li = loggedIn();
     var isAdmin = atLeast('admin');
-    // Order top -> bottom within the nav group. need: 'li' | 'admin' | true.
+    var isOwner = atLeast('owner');
+    // Order top -> bottom within the nav group. need: 'li' | 'admin' | 'owner' | true.
     var items = [
+      { key: 'my-tickets',    label: 'My Tickets',                icon: 'ticket',      href: 'my-tickets.html',            need: 'li' },
+      { key: 'upload',        label: 'Upload new data',           icon: 'upload',      type: 'upload',                     need: 'upload' },
       { key: 'shift-report', label: 'Shift Report',              icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
       { key: 'help-activity', label: 'Alerts and Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' },
       { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' },
-      { key: 'hi-resolved',   label: 'Resolved Repeat Incidents', icon: 'repeat',      href: 'hi-resolved.html',           need: 'li' },
+      { key: 'hi-resolved',   label: 'Repeat Incidents',          icon: 'repeat',      href: 'hi-resolved.html',           need: 'li' },
       { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'li' },
       { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'li' },
-      { key: 'unique-cases',  label: 'Unique cases',              icon: 'hash',        href: 'important-cases.html',       need: 'li' },
-      { key: 'archive',       label: 'Program History (Archive)', icon: 'calendar',    href: 'archive.html',               need: 'li' }
+      { key: 'unique-cases',  label: 'Unique cases',              img: 'important.png', href: 'important-cases.html',      need: 'li' },
+      { key: 'archive',       label: 'Program History (Archive)', icon: 'calendar',    href: 'archive.html',               need: 'li' },
+      { key: 'users',         label: 'Users',                     icon: 'users-gear',  href: 'users.html',                 need: 'admin' },
+      { key: 'groups-page',   label: 'Grouping Page',             icon: 'copy',        href: 'groups-page.html',           need: 'owner' }
     ];
+    // Restore any saved custom order (drag-and-drop). Unknown/new keys keep their default position.
+    items = tbApplyNavOrder(items);
     var col = tbFabCol();
     var anchor = col.querySelector('.tb-live-fab') || col.querySelector('.tb-an-fab'); // insert above these
+    var canUpload = A.canUpload && A.canUpload();
     items.forEach(function (it) {
-      var enabled = (it.need === true) || (it.need === 'li' && li) || (it.need === 'admin' && isAdmin);
-      var fab = document.createElement('a');
-      fab.className = 'tb-nav-fab' + (enabled ? '' : ' tb-nav-disabled');
+      var enabled = (it.need === true) || (it.need === 'li' && li) || (it.need === 'admin' && isAdmin)
+        || (it.need === 'owner' && isOwner) || (it.need === 'upload' && canUpload);
+      // Upload is a button (opens the in-place CSV picker); everything else is a link.
+      var isUpload = it.type === 'upload';
+      var fab = document.createElement(isUpload ? 'button' : 'a');
+      fab.className = 'tb-nav-fab' + (isUpload ? ' tb-nav-upload' : '') + (enabled ? '' : ' tb-nav-disabled');
       fab.setAttribute('aria-label', it.label);
       fab.setAttribute('data-need', it.need === true ? 'any' : it.need);
-      fab.setAttribute('data-href', it.href);
+      fab.setAttribute('data-key', it.key);
+      if (it.href) fab.setAttribute('data-href', it.href);
+      fab.setAttribute('draggable', 'true'); // part 7: drag-and-drop reordering
+      // Icon: a custom PNG when `img` is set, otherwise an inline SVG icon.
+      var iconHtml = it.img ? '<img class="tb-nav-img" src="' + it.img + '" alt="">' : ic(it.icon);
       // Optional count badge on the icon (e.g. open-alert count on the Alerts nav FAB).
       var badgeHtml = it.badge ? '<span class="tb-nav-badge" id="navBadge-' + it.badge + '">0</span>' : '';
-      fab.innerHTML = '<span class="tb-nav-ic">' + ic(it.icon) + badgeHtml + '</span>'
+      fab.innerHTML = '<span class="tb-nav-ic">' + iconHtml + badgeHtml + '</span>'
         + '<span class="tb-nav-label">' + it.label + '</span>';
-      if (enabled) {
+      if (isUpload) {
+        fab.type = 'button';
+        if (enabled) { fab.title = it.label; fab.onclick = function () { if (window.tbUploadIntro) tbUploadIntro('app'); }; }
+        else { fab.setAttribute('aria-disabled', 'true'); fab.title = li ? (it.label + ' — you do not have upload access') : ('Log in to ' + it.label); }
+      } else if (enabled) {
         fab.href = it.href;
         fab.title = it.label;
       } else {
         fab.setAttribute('aria-disabled', 'true');
-        fab.title = li ? (it.label + ' — admin access required') : ('Log in to view ' + it.label);
+        var needRole = it.need === 'owner' ? 'owner' : 'admin';
+        fab.title = li ? (it.label + ' — ' + needRole + ' access required') : ('Log in to view ' + it.label);
       }
       // Keep list order by inserting each new item just before the anchor (Live/Analytics).
       if (anchor) col.insertBefore(fab, anchor); else col.appendChild(fab);
     });
+    // Hidden file input the Upload FAB feeds (the in-place pipeline binds a delegated #uploadFile listener).
+    if (!document.getElementById('uploadFile')) {
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = '.csv'; inp.id = 'uploadFile'; inp.style.display = 'none';
+      document.body.appendChild(inp);
+    }
+    tbEnableNavDnD(col); // part 7: wire up drag-and-drop reordering
     // Fetch the open-alert count and show it on the Alerts nav FAB (logged-in only).
     if (li) refreshAlertBadge();
+  }
+  // ---- Drag-and-drop reordering of the left nav column (persisted in localStorage) ----
+  var TB_NAV_ORDER_KEY = 'phdNavFabOrder';
+  // Read the saved key order (array of item keys) or null if none/invalid.
+  function tbReadNavOrder() {
+    try { var v = JSON.parse(localStorage.getItem(TB_NAV_ORDER_KEY)); return Array.isArray(v) ? v : null; } catch (e) { return null; }
+  }
+  // Reorder `items` to match the saved order; unknown keys keep their relative default position.
+  function tbApplyNavOrder(items) {
+    var order = tbReadNavOrder();
+    if (!order) return items;
+    var byKey = {}; items.forEach(function (it) { byKey[it.key] = it; });
+    var out = [], seen = {};
+    order.forEach(function (k) { if (byKey[k] && !seen[k]) { out.push(byKey[k]); seen[k] = true; } });
+    items.forEach(function (it) { if (!seen[it.key]) out.push(it); }); // append any new/unsaved items
+    return out;
+  }
+  // Persist the current DOM order of the nav FABs as an array of their data-key values.
+  function tbSaveNavOrder(col) {
+    var keys = [];
+    col.querySelectorAll('.tb-nav-fab').forEach(function (f) { var k = f.getAttribute('data-key'); if (k) keys.push(k); });
+    try { localStorage.setItem(TB_NAV_ORDER_KEY, JSON.stringify(keys)); } catch (e) {}
+  }
+  // Wire drag events on every nav FAB in the column. Dragging a pill drops it above/below a sibling.
+  function tbEnableNavDnD(col) {
+    if (col._navDnd) return; col._navDnd = true; // bind the container listeners once
+    var dragging = null;
+    col.addEventListener('dragstart', function (e) {
+      var fab = e.target.closest && e.target.closest('.tb-nav-fab');
+      if (!fab || col !== fab.parentNode) return;
+      dragging = fab; fab.classList.add('tb-nav-dragging');
+      try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', fab.getAttribute('data-key') || ''); } catch (x) {}
+    });
+    col.addEventListener('dragend', function () {
+      if (dragging) dragging.classList.remove('tb-nav-dragging');
+      dragging = null; tbSaveNavOrder(col);
+    });
+    col.addEventListener('dragover', function (e) {
+      if (!dragging) return;
+      e.preventDefault(); // allow drop
+      try { e.dataTransfer.dropEffect = 'move'; } catch (x) {}
+      var after = tbNavDropTarget(col, e.clientY);
+      if (after == null) col.insertBefore(dragging, col.querySelector('.tb-live-fab, .tb-an-fab'));
+      else if (after !== dragging) col.insertBefore(dragging, after);
+    });
+  }
+  // Find the nav FAB that the pointer is currently above (the one to insert BEFORE), by vertical midpoint.
+  function tbNavDropTarget(col, y) {
+    var fabs = Array.prototype.slice.call(col.querySelectorAll('.tb-nav-fab:not(.tb-nav-dragging)'));
+    for (var i = 0; i < fabs.length; i++) {
+      var r = fabs[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) return fabs[i];
+    }
+    return null; // below all nav FABs -> drop at the end of the nav group
   }
   // Fetch /api/help/open and paint the count onto the Alerts nav FAB badge.
   // Always visible (shows 0 when there are none) so the count is always readable.
@@ -1075,22 +1238,28 @@
   function applyNavFabsState() {
     var li = loggedIn();
     var isAdmin = atLeast('admin');
+    var isOwner = atLeast('owner');
+    var canUpload = A.canUpload && A.canUpload();
     document.querySelectorAll('.tb-nav-fab').forEach(function (fab) {
       var need = fab.getAttribute('data-need');
       if (!need) return;
-      var enabled = (need === 'any') || (need === 'li' && li) || (need === 'admin' && isAdmin);
+      var enabled = (need === 'any') || (need === 'li' && li) || (need === 'admin' && isAdmin)
+        || (need === 'owner' && isOwner) || (need === 'upload' && canUpload);
       var href = fab.getAttribute('data-href') || '';
       var label = fab.getAttribute('aria-label') || '';
+      var isBtn = fab.tagName === 'BUTTON'; // the Upload FAB is a button (no href)
       if (enabled) {
         fab.classList.remove('tb-nav-disabled');
         fab.removeAttribute('aria-disabled');
-        if (href) fab.href = href;
+        if (href && !isBtn) fab.href = href;
         fab.title = label;
       } else {
         fab.classList.add('tb-nav-disabled');
         fab.setAttribute('aria-disabled', 'true');
-        fab.removeAttribute('href');
-        fab.title = li ? (label + ' — admin access required') : ('Log in to view ' + label);
+        if (!isBtn) fab.removeAttribute('href');
+        var reason = need === 'upload' ? (li ? ' — you do not have upload access' : '')
+          : (' — ' + (need === 'owner' ? 'owner' : 'admin') + ' access required');
+        fab.title = li ? (label + reason) : ('Log in to ' + (need === 'upload' ? label : ('view ' + label)));
       }
     });
     if (li) refreshAlertBadge(); // refresh the open-alert count once auth is confirmed
@@ -1208,8 +1377,8 @@
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
     // recent-history quick-swap button so the feature is on EVERY page.
-    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); return; }
-    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); return; } // app.html: back + history + analytics + live + nav FABs
+    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildProfileAvatar(); return; }
+    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildProfileAvatar(); return; } // app.html: back + history + analytics + live + nav FABs + profile avatar
 
     var oldBar = document.querySelector('.top-bar');
     var active = document.body.getAttribute('data-nav-active') || '';
@@ -1231,6 +1400,7 @@
     buildAnalyticsButton(); // floating Agent & Group Analytics FAB (bottom-left, above history)
     buildLiveButton(); // floating blinking live-quarter FAB (bottom-left, above analytics)
     buildNavFabs(); // floating page-navigation FABs (bottom-left, above the live FAB)
+    buildProfileAvatar(); // floating profile avatar (top-right) — the only survivor of the old title bar
 
     // Right controls are already rendered from the cached user (rightControlsHtml uses A.getUser()),
     // so the avatar/role badge show immediately with NO spinner flash. Load the full profile
@@ -1243,6 +1413,7 @@
       // Users buttons enable without needing a re-login.
       try { if (A._refreshMe) await A._refreshMe(); else if (A.getMe) await A.getMe(); } catch (e) {}
       window.PHDNav.refreshRight();
+      refreshProfileAvatar();   // repaint the top-right avatar with the full profile (photo/name)
       applyAnalyticsFabState(); // reflect admin role on the analytics FAB once the profile is in
       applyNavFabsState();      // reflect role gating on the nav FABs once the profile is in
     }

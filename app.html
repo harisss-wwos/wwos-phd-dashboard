@@ -31,6 +31,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .nav-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 /* Priority blink for BLACK / out-of-policy PURPLE ticket sections */
 .blink-alert{animation:blinkAlert 1s ease-in-out infinite;border:1px solid rgba(255,82,82,.55)!important}
+/* KPI value cell blink (e.g. Repeat Incident % above threshold): red text pulse. */
+.kt-value.kpi-blink-alert{color:#ff5252!important;font-weight:800;animation:kpiBlinkText 1s ease-in-out infinite}
+@keyframes kpiBlinkText{0%,100%{opacity:1;text-shadow:0 0 8px rgba(255,82,82,.6)}50%{opacity:.45;text-shadow:none}}
 @keyframes blinkAlert{0%,100%{box-shadow:0 0 0 0 rgba(255,82,82,0);background:#0a0a0a}50%{box-shadow:0 0 14px 2px rgba(255,82,82,.5);background:rgba(255,82,82,.09)}}
 .btn{display:inline-flex;align-items:center;padding:7px 16px;background:var(--o);color:#000;border-radius:4px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
@@ -43,14 +46,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .page-title p{color:var(--tm);margin-top:4px;font-size:.9em}
 /* Dashboard title row: Q3 (left) + LIVE (right), plus Alerts/Upload/data-log actions. */
 /* Split toolbar: personal nav pinned left, data actions pinned right. */
-.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+/* Title row sits in the header band. Reserve space on the right for the floating top-right cluster
+   (Uploaded data log + avatar) so the title never tucks underneath it. */
+.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;min-height:46px;padding-right:240px}
 .dash-title-row:not(:empty){margin-bottom:20px}
+@media(max-width:760px){.dash-title-row{padding-right:0}}
 .dash-title-h1{font-size:1.8em;color:#fff;font-weight:700;margin:0;display:inline-flex;align-items:center;gap:12px;flex:1 1 auto;justify-content:space-between}
+/* Dashboard title label (replaces the old My Tickets button in this row). */
+.dash-title-name{font-size:1.5em;color:#fff;font-weight:700;letter-spacing:.3px}
 /* Each group is a segmented pill container so its buttons read as one cohesive control. */
 .dash-actions{display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;background:#0e141b;border:1px solid #2f3a45;border-radius:12px;padding:4px}
 .dash-actions-left{margin-right:auto}
 .dash-actions-right{margin-left:auto}
-.dash-act{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid transparent!important;background:transparent!important;color:#cdd7de!important;border-radius:9px;padding:8px 14px;font-size:.88em;font-weight:600;box-shadow:none!important;transition:background .14s,color .14s}
+.dash-act{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:46px;box-sizing:border-box;white-space:nowrap;border:1px solid transparent!important;background:transparent!important;color:#cdd7de!important;border-radius:9px;padding:0 16px;font-size:.88em;font-weight:600;box-shadow:none!important;transition:background .14s,color .14s}
 .dash-act:hover{background:rgba(255,255,255,.06)!important;color:#fff!important}
 .dash-act svg{flex-shrink:0;opacity:.9}
 /* Upload = the one primary/accent action (admins). */
@@ -132,6 +140,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   .kpi-grid-compact .kpi-card .value{font-size:1.1em}
 }
 .section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
+/* Average Data + Repeat Incident Data shown side by side (stack on narrow screens). */
+.kpi-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.kpi-pair>.section{margin-bottom:24px}
+@media(max-width:900px){.kpi-pair{grid-template-columns:1fr}}
 .section h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
 .section h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
 /* Collapsible sections — animated via grid-template-rows (0fr<->1fr) so height eases smoothly. */
@@ -165,6 +177,13 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* Clickable incident-type rows -> agent-breakdown popup. */
 .xls-table tr.inc-clickrow{cursor:pointer}
 .xls-table tr.inc-clickrow:hover td{background:rgba(255,153,0,.08)}
+/* Grouped PHD incident rows (a published grouping) — purple highlight + name colour. */
+.xls-table tr.inc-grouped td{background:rgba(167,139,250,.08)}
+.xls-table tr.inc-grouped td:nth-child(2) strong{color:#a78bfa}
+/* "View types" button on a grouped row — opens the member-list popup. */
+.inc-grp-btn{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 9px;font-size:.72em;font-weight:700;color:#a78bfa;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.45);border-radius:20px;cursor:pointer;vertical-align:middle}
+.inc-grp-btn:hover{background:rgba(167,139,250,.24);color:#c4b5fd}
+.inc-grp-btn svg{width:12px;height:12px}
 /* PHD agent popup: table on the left, per-agent bar chart on the right (uses the old Volume space).
    The chart column is vertically centered against the table's height. */
 .inc-ag-split{display:grid;grid-template-columns:minmax(320px,1fr) 1.3fr;gap:20px;align-items:center}

@@ -38,6 +38,7 @@ const COLLECTIONS = {
   ticketDocs: 'ticket_docs', // ONE doc per ticket { _id: "<qid>|<ShortId>", q: qid, ShortId, ...all ticket fields } — lets publishes bulk-write only changed tickets instead of rewriting the whole ~6MB quarter doc
   ticketEvents: 'ticket_events', // ISOLATED live-movement log from LM-HUB: one doc per status change { shortId, status, at, ... }. Separate from ticket_docs — never affects the live dashboard.
   incidentGroups: 'incident_groups', // owner-defined display grouping of raw incident types (RootCause labels) into combined names. Applied at READ time to Incident Types; never changes ticket data. { _id:'live', version, groups:[{name, members:[rawType]}], updatedAt }
+  resolutionGroups: 'resolution_groups', // owner-defined display grouping of raw Resolution values (from RootCauseDetails) into combined names. Owner-tool only for now. { _id:'live', version, groups:[{name, members:[rawValue]}], updatedAt }
 };
 
 let clientPromise = null;

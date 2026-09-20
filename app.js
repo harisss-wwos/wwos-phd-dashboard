@@ -1683,6 +1683,19 @@ async function dashVersion(){
   return DASH_VERSION;
 }
 
+// The Incident Types display grouping is published separately (its own version, NOT tied to the
+// quarter's publishedAt). Fold that version into the incidents chunk's client cache key so publishing
+// a new grouping busts the browser cache and the relabeled list shows on next load — for everyone.
+let INC_GROUPS_VER=undefined;
+async function incidentGroupsVersion(){
+  if(INC_GROUPS_VER!==undefined)return INC_GROUPS_VER;
+  try{ const r=await window.PHDAuth.api('GET','/api/incident-groups'); INC_GROUPS_VER=(r&&r.ok&&r.data&&r.data.version)||0; }
+  catch(e){ INC_GROUPS_VER=0; }
+  return INC_GROUPS_VER;
+}
+// Cache key for the incidents chunk, versioned by the grouping version so a publish invalidates it.
+async function incidentsCacheKey(){ return 'dash-incidents-v2-g'+(await incidentGroupsVersion()); }
+
 // Fetch one dashboard chunk with version-first SWR caching. onData(data) renders it.
 async function loadDashChunk(chunk, onData, opts){
   opts=opts||{};
@@ -1965,8 +1978,9 @@ function kpiTableHtml(rows, withDesc){
     const cell='<span class="kpi-anim" data-kpi-val="'+raw.replace(/"/g,'&quot;')+'"></span>';
     if(withDesc){
       const vStyle=' style="text-align:center;white-space:nowrap'+(r.valColor?(';color:'+r.valColor):'')+'"';
+      const vCls='kt-value'+(r.blink?' kpi-blink-alert':'');
       return '<tr><td class="kt-metric" style="text-align:center;white-space:nowrap">'+(r.metric||'')+'</td>'+
-        '<td class="kt-value"'+vStyle+'>'+cell+'</td>'+
+        '<td class="'+vCls+'"'+vStyle+'>'+cell+'</td>'+
         '<td class="kt-desc" style="text-align:left">'+(r.desc||'')+'</td></tr>';
     }
     const vStyle=' style="text-align:'+valAlign+(r.valColor?(';color:'+r.valColor):'')+'"';
@@ -2159,13 +2173,22 @@ function renderSlaWeeklyChunk(d){
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('cSlaWave',{type:'line',data:{labels:weeks.map(w=>w.week),datasets:[{label:'SLA % (≤240h)',data:weeks.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=weeks[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
 }
+// Current scope of the Incident Types chunk (from d.quarter), so row-click popups query the same scope.
+// Maps the chunk's quarter value to a ?q= param: live quarter => '' (omit); else '?q=<value>'.
+let INCIDENTS_SCOPE_Q='';
 function renderIncidentsChunk(d){
   const slot=document.getElementById('dashIncidentsBody');if(!slot)return;
+  // Derive the scope param for drill-down popups. d.quarter is 'q2q3' | 'all' | '<YYYY-Qn>' | live qid.
+  try{
+    const liveQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.qid:null;
+    INCIDENTS_SCOPE_Q=(d&&d.quarter&&d.quarter!==liveQ)?('&q='+encodeURIComponent(d.quarter)):'';
+  }catch(e){ INCIDENTS_SCOPE_Q=''; }
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   // One incident-types table (5 cols): # / Incident Type / Count / % of Total / Volume. `pct` is
   // relative to the passed list's own total; the Volume bar is relative to the list's top count.
   // resolverKey: 'autosim' | 'phd' — passed to the row-click popup so it shows only that side's agents.
-  const incTable=(list,barColor,resolverKey)=>{
+  // groupedMap (PHD side only): { groupName: [{type,count},...] } — used to tag grouped rows + hover.
+  const incTable=(list,barColor,resolverKey,groupedMap)=>{
     if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
     const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
@@ -2174,7 +2197,18 @@ function renderIncidentsChunk(d){
       '<th style="text-align:center;width:20%">Count</th>'+
       '<th style="text-align:center;width:20%">% of Total</th>'+
     '</tr></thead><tbody>'+
-    list.map((t,i)=>'<tr class="inc-clickrow" title="View agents who resolved '+esc(t.type)+'" onclick="showIncidentAgentsPopup(\''+q(t.type)+'\',\''+resolverKey+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="word-break:break-word"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>').join('')+
+    list.map((t,i)=>{
+      const members=(groupedMap&&groupedMap[t.type])?groupedMap[t.type]:null;
+      const isG=!!members;
+      if(isG){
+        // Grouped row: NOT a click-through to agents. A "View types" button opens the member-list popup.
+        const btn='<button type="button" class="inc-grp-btn" onclick="event.stopPropagation();showGroupMembersPopup(\''+q(t.type)+'\',this.getAttribute(\'data-m\'))" data-m="'+esc(JSON.stringify(members))+'">'+ic('copy',12)+' View types</button>';
+        return '<tr class="inc-grouped"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+          '<td style="word-break:break-word"><strong>'+esc(t.type)+'</strong> <span style="color:#a78bfa;font-size:.7em;font-weight:700">(grouped)</span> '+btn+'</td>'+
+          '<td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
+      }
+      return '<tr class="inc-clickrow" title="View agents who resolved '+esc(t.type)+'" onclick="showIncidentAgentsPopup(\''+q(t.type)+'\',\''+resolverKey+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="word-break:break-word"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
+    }).join('')+
     '</tbody></table></div>';
   };
   const autosim=d.autosimTypes||[], phd=d.phdTypes||[];
@@ -2184,8 +2218,167 @@ function renderIncidentsChunk(d){
     '<h3 class="inc-sub-h">'+ic('bolt',15)+' Resolved by AutoSIM <span class="inc-sub-n">'+autosimT.toLocaleString()+'</span></h3>'+
     incTable(autosim,'#a78bfa','autosim')+
     '<h3 class="inc-sub-h" style="margin-top:22px">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n">'+phdT.toLocaleString()+'</span></h3>'+
-    incTable(phd,'#ff9900','phd');
+    incTable(phd,'#ff9900','phd',d.phdGrouped||null);
 }
+// Popup 1: the incident types combined into a grouped PHD row, each with its ticket count (scope-aware).
+// Each member row is clickable -> the existing agent-breakdown popup (Popup 2) for that raw type.
+function showGroupMembersPopup(groupName, membersJson){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  let members=[]; try{ members=JSON.parse(membersJson||'[]'); }catch(e){}
+  const total=members.reduce((s,x)=>s+(x.count||0),0);
+  const rows=members.length?members.map((m,i)=>
+    '<tr class="inc-clickrow" title="View agents who resolved '+esc(m.type)+'" onclick="showIncidentAgentsPopup(\''+q(m.type)+'\',\'phd\')">'+
+      '<td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+      '<td style="word-break:break-word"><strong>'+esc(m.type)+'</strong></td>'+
+      '<td style="text-align:center;font-weight:800;color:#fff">'+(m.count||0).toLocaleString()+'</td>'+
+    '</tr>').join(''):'<tr><td colspan="3" style="text-align:center;color:#5f6b6c;padding:16px">No incident types in this scope.</td></tr>';
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:720px;width:90vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#a78bfa;font-size:1.3em">'+esc(groupName)+'</h2><div class="pc-subcount">Grouped incident types \u00b7 '+total.toLocaleString()+' ticket'+(total===1?'':'s')+' \u00b7 '+members.length+' type'+(members.length===1?'':'s')+' \u00b7 click a type for its agents</div></div>'+
+      '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div style="margin-top:16px;overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:auto">Incident Type</th><th style="text-align:center;width:1%;white-space:nowrap">Tickets</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  document.body.appendChild(overlay);
+}
+window.showGroupMembersPopup=showGroupMembersPopup;
+
+// ===================== RESOLUTIONS section (live dashboard, PHD-only) =====================
+let RES_SCOPE_Q=''; // scope param for resolution drill-down popups (mirrors INCIDENTS_SCOPE_Q)
+function renderResolutionsChunk(d){
+  const slot=document.getElementById('dashResolutionsBody');if(!slot)return;
+  try{
+    const liveQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.qid:null;
+    RES_SCOPE_Q=(d&&d.quarter&&d.quarter!==liveQ)?('&q='+encodeURIComponent(d.quarter)):'';
+  }catch(e){ RES_SCOPE_Q=''; }
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const list=d.phdTypes||[]; const groupedMap=d.phdGrouped||null; const total=d.phdTotal||0;
+  const rowsHtml=!list.length?'<p class="meta-info" style="margin:6px 0 0">None.</p>':(
+    '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
+      '<th style="text-align:center;width:10%">#</th><th style="width:50%">Resolution</th><th style="text-align:center;width:20%">Count</th><th style="text-align:center;width:20%">% of Total</th>'+
+    '</tr></thead><tbody>'+
+    list.map((t,i)=>{
+      const members=(groupedMap&&groupedMap[t.type])?groupedMap[t.type]:null;
+      if(members){
+        const btn='<button type="button" class="inc-grp-btn" onclick="event.stopPropagation();showResGroupMembersPopup(\''+q(t.type)+'\',this.getAttribute(\'data-m\'))" data-m="'+esc(JSON.stringify(members))+'">'+ic('copy',12)+' View types</button>';
+        return '<tr class="inc-grouped"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+          '<td style="word-break:break-word"><strong>'+esc(t.type)+'</strong> <span style="color:#a78bfa;font-size:.7em;font-weight:700">(grouped)</span> '+btn+'</td>'+
+          '<td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
+      }
+      return '<tr class="inc-clickrow" title="View agents who used '+esc(t.type)+'" onclick="showResolutionAgentsPopup(\''+q(t.type)+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="word-break:break-word"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
+    }).join('')+
+    '</tbody></table></div>');
+  slot.innerHTML='<p class="meta-info">Resolutions recorded by PHD agents (resolved/closed tickets carrying a Resolution value).</p>'+
+    '<h3 class="inc-sub-h">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n">'+total.toLocaleString()+'</span></h3>'+
+    rowsHtml;
+}
+
+// Popup 1 for a grouped resolution: member resolution values + counts; click -> agents popup.
+function showResGroupMembersPopup(groupName, membersJson){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  let members=[]; try{ members=JSON.parse(membersJson||'[]'); }catch(e){}
+  const total=members.reduce((s,x)=>s+(x.count||0),0);
+  const rows=members.length?members.map((m,i)=>
+    '<tr class="inc-clickrow" title="View agents who used '+esc(m.type)+'" onclick="showResolutionAgentsPopup(\''+q(m.type)+'\')">'+
+      '<td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+      '<td style="word-break:break-word"><strong>'+esc(m.type)+'</strong></td>'+
+      '<td style="text-align:center;font-weight:800;color:#fff">'+(m.count||0).toLocaleString()+'</td>'+
+    '</tr>').join(''):'<tr><td colspan="3" style="text-align:center;color:#5f6b6c;padding:16px">No resolutions in this scope.</td></tr>';
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:720px;width:90vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#a78bfa;font-size:1.3em">'+esc(groupName)+'</h2><div class="pc-subcount">Grouped resolutions \u00b7 '+total.toLocaleString()+' ticket'+(total===1?'':'s')+' \u00b7 '+members.length+' type'+(members.length===1?'':'s')+' \u00b7 click a resolution for its agents</div></div>'+
+      '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div style="margin-top:16px;overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:auto">Resolution</th><th style="text-align:center;width:1%;white-space:nowrap">Tickets</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  document.body.appendChild(overlay);
+}
+window.showResGroupMembersPopup=showResGroupMembersPopup;
+
+// Popup 2 for a resolution value/group: agents who used it + counts; click an agent -> tickets.
+async function showResolutionAgentsPopup(value){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  try{ if(window.loadUserAvatars) loadUserAvatars(); }catch(e){}
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#ff9900;font-size:1.3em">'+esc(value)+'</h2><div class="pc-subcount" id="resAgLoad">loading\u2026</div></div>'+
+      '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div id="resAgBody" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div></div></div>';
+  document.body.appendChild(overlay);
+  let data=null;
+  try{ const r=await window.PHDAuth.api('GET','/api/dash/resolution-agents?value='+encodeURIComponent(value)+RES_SCOPE_Q); if(r&&r.ok)data=r.data; }catch(e){}
+  const body=document.getElementById('resAgBody'); const load=document.getElementById('resAgLoad');
+  if(!data||!data.agents){ if(body)body.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load agent breakdown.</p>'; return; }
+  const agents=data.agents||[];
+  if(load) load.textContent=data.total.toLocaleString()+' ticket'+(data.total===1?'':'s')+' \u00b7 '+agents.length+' agent'+(agents.length===1?'':'s')+' \u00b7 highest first';
+  if(!agents.length){ if(body)body.innerHTML='<p class="pc-none">No tickets.</p>'; return; }
+  const rows=agents.map((a,i)=>{
+    const dn=displayName(a.agent);
+    const ava=(window.PHDAuth&&window.PHDAuth.avatarHtml)?window.PHDAuth.avatarHtml(profileFor(a.agent),28):('<span class="inc-ava-fallback">'+ic('user',16)+'</span>');
+    return '<tr class="inc-clickrow" title="View '+esc(dn)+"'s tickets\" onclick=\"showResolutionTicketsDrilldown('"+q(value)+"','"+q(a.agent)+"')\">"+
+      '<td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+      '<td><span class="inc-ag-cell">'+ava+'<span class="inc-ag-name">'+esc(dn)+'<span class="inc-ag-sub">@'+esc(a.agent)+'</span></span></span></td>'+
+      '<td style="text-align:center;font-weight:800;color:#fff">'+a.count+'</td>'+
+    '</tr>';
+  }).join('');
+  body.innerHTML='<p class="meta-info" style="margin:0 0 10px">Click an agent to view their tickets.</p>'+
+    '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
+      '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:auto">Agent</th><th style="text-align:center;width:1%;white-space:nowrap">Tickets</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+window.showResolutionAgentsPopup=showResolutionAgentsPopup;
+
+// Drill-down: one agent's tickets for a resolution value/group. Reuses the shared _INC_TK table.
+async function showResolutionTicketsDrilldown(value,agent){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const dn=displayName(agent);
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#ff9900;font-size:1.2em">'+esc(dn)+' \u2014 '+esc(value)+'</h2><div class="pc-subcount" id="incTkLoad">loading\u2026</div></div>'+
+      '<div class="popup-actions"><button class="btn" onclick="showResolutionAgentsPopup(\''+q(value)+'\')">\u2190 Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div id="incTkBody" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div></div></div>';
+  document.body.appendChild(overlay);
+  let data=null;
+  try{ const r=await window.PHDAuth.api('GET','/api/dash/resolution-tickets?value='+encodeURIComponent(value)+'&agent='+encodeURIComponent(agent)+RES_SCOPE_Q); if(r&&r.ok)data=r.data; }catch(e){}
+  const body=document.getElementById('incTkBody'); const load=document.getElementById('incTkLoad');
+  if(!data||!data.tickets){ if(body)body.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load tickets.</p>'; return; }
+  const tix=(data.tickets||[]).map(t=>({ShortId:t.shortId,IssueUrl:t.url,Status:t.status,CreateDate:t.createDate,ResolvedDate:t.resolvedDate,Title:t.title}));
+  if(load) load.textContent=tix.length.toLocaleString()+' ticket'+(tix.length===1?'':'s')+' \u00b7 newest resolved first';
+  if(!tix.length){ if(body)body.innerHTML='<p class="pc-none">No tickets.</p>'; return; }
+  // Back button on the shared table renderer should return to the RESOLUTION agents popup.
+  _INC_TK={ tickets:tix, sortField:'CreateDate', sortDir:'desc' };
+  renderIncTkTable();
+}
+window.showResolutionTicketsDrilldown=showResolutionTicketsDrilldown;
 // Row-click popup for an incident type: agents who resolved that type + how many each, like the
 // Ticket Age Classification popup. Fetches the per-type agent breakdown from the server on demand.
 async function showIncidentAgentsPopup(type,resolverKey){
@@ -2206,7 +2399,7 @@ async function showIncidentAgentsPopup(type,resolverKey){
   document.body.appendChild(overlay);
   let data=null;
   try{
-    const r=await window.PHDAuth.api('GET','/api/dash/incident-agents?type='+encodeURIComponent(type)+'&resolver='+encodeURIComponent(resolverKey||''));
+    const r=await window.PHDAuth.api('GET','/api/dash/incident-agents?type='+encodeURIComponent(type)+'&resolver='+encodeURIComponent(resolverKey||'')+INCIDENTS_SCOPE_Q);
     if(r&&r.ok) data=r.data;
   }catch(e){}
   const body=document.getElementById('incAgBody'); const load=document.getElementById('incAgLoad');
@@ -2276,7 +2469,7 @@ async function showIncidentTicketsDrilldown(type,agent,resolverKey){
   document.body.appendChild(overlay);
   let data=null;
   try{
-    const r=await window.PHDAuth.api('GET','/api/dash/incident-tickets?type='+encodeURIComponent(type)+'&agent='+encodeURIComponent(agent));
+    const r=await window.PHDAuth.api('GET','/api/dash/incident-tickets?type='+encodeURIComponent(type)+'&agent='+encodeURIComponent(agent)+INCIDENTS_SCOPE_Q);
     if(r&&r.ok) data=r.data;
   }catch(e){}
   const body=document.getElementById('incTkBody'); const load=document.getElementById('incTkLoad');
@@ -2418,17 +2611,18 @@ function renderSummaryInto(d,target){
   }
   if(g2){
     g2.innerHTML=kpiTableHtml([
-      {metric:'Avg Resolution Time', value:d.avgResolutionHrs+' hrs', desc:'Average time taken to resolve a ticket (from create to resolve).'},
-      {metric:'SLA Compliance (\u2264240 hrs)', value:d.slaPct+'%', valColor:(d.slaPct>=90?'#4ade80':'#ff5252'), desc:'Share of resolved tickets closed within the 240-hour SLA window. Green if \u2265 90%, red otherwise. Currently '+d.slaCompliant+' of '+d.slaBase+' resolved within 240 hrs.'},
-      {metric:ic('bolt',14)+' AutoSIM Resolved', value:d.autosim.toLocaleString()+' ('+d.autosimPct+'%)', desc:'How many tickets were auto-resolved by AutoSIM, and what percentage of the total that represents.'},
-      {metric:ic('repeat',14)+' Avg Repeat Incidents / Week', value:Math.round(d.avgHiPerWeek||0), valColor:'#a78bfa', desc:'Avg repeat-incident tickets (HI Cnt &gt; 0) created per week this quarter ('+(d.repeatIncidents!=null?d.repeatIncidents.toLocaleString():'0')+' \u00f7 '+(d.weeksElapsed||0)+' weeks).'}
+      {metric:'Avg Resolution Time', value:d.avgResolutionHrs+' hrs', desc:'Avg create\u2192resolve time.'},
+      {metric:'SLA Compliance (\u2264240 hrs)', value:d.slaPct+'%', valColor:(d.slaPct>=90?'#4ade80':'#ff5252'), desc:'Resolved within 240 hrs ('+d.slaCompliant+'/'+d.slaBase+').'},
+      {metric:ic('bolt',14)+' AutoSIM Resolved', value:d.autosim.toLocaleString()+' ('+d.autosimPct+'%)', desc:'Auto-resolved by AutoSIM.'},
+      {metric:ic('repeat',14)+' Avg Repeat Incidents / Week', value:Math.round(d.avgHiPerWeek||0), valColor:'#a78bfa', desc:'Repeat incidents (Cnt&gt;0) per week ('+(d.repeatIncidents!=null?d.repeatIncidents.toLocaleString():'0')+'\u00f7'+(d.weeksElapsed||0)+').'}
     ], true);
   }
   if(g3){
     g3.innerHTML=kpiTableHtml([
-      {metric:ic('repeat',14)+' Repeat Incidents (HI&gt;0)', value:d.repeatIncidents.toLocaleString()+(d.total?(' ('+(Math.round(d.repeatIncidents/d.total*1000)/10)+'%)'):''), desc:'Tickets that are repeat incidents — a Historical Incident count (Cnt) greater than 0. Percentage is of all tickets this quarter.'},
-      {metric:ic('paw',14)+' HI involving pet incidents', value:d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)', valColor:'#a78bfa', desc:'Of those repeat incidents, how many have a pet/animal root cause, and their share of all repeat incidents.'},
-      {metric:ic('repeat',14)+' HI involving non-pet incidents', value:d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)', desc:'Of those repeat incidents, how many are NOT pet-related, and their share of all repeat incidents.'}
+      {metric:ic('repeat',14)+' Total Repeat Incidents', value:d.repeatIncidents.toLocaleString(), desc:'Tickets with HI count (Cnt) &gt; 0.'},
+      (function(){ var pct=d.total?(Math.round(d.repeatIncidents/d.total*1000)/10):0; var hot=pct>1; return {metric:ic('repeat',14)+' Repeat Incident %', value:pct+'%', valColor:(hot?'#ff5252':undefined), blink:hot, desc:'Share of all tickets that are repeat incidents. Blinks red above 1%.'}; })(),
+      {metric:ic('paw',14)+' HI involving pet incidents', value:d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)', valColor:'#a78bfa', desc:'Repeat incidents with a pet/animal root cause.'},
+      {metric:ic('repeat',14)+' HI involving non-pet incidents', value:d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)', desc:'Repeat incidents that are not pet-related.'}
     ], true);
   }
   // Animate every table value from a brief scramble into its real number.
@@ -2443,26 +2637,16 @@ function dashPageTitleRow(){
   const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
   const canUpload=window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload();
   if(!loggedIn) return '<div class="dash-title-row"></div>';
-  // LEFT group: personal navigation (My Tickets, Alerts).
-  let left='';
-  left+='<a class="btn sec dash-act" href="my-tickets.html" title="My Tickets">'+ic('ticket',15)+'<span class="dash-act-label">My Tickets</span></a>';
-  left+='<a class="btn sec dash-act" id="alertBtn" href="alerts.html" title="Alerts" style="position:relative">'+ic('alert',15)+'<span class="dash-act-label">Alerts</span><span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:20px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>';
-  // RIGHT group: data management (Upload — gated by canUpload flag, Uploaded data log).
-  let right='';
-  if(canUpload){
-    right+='<button type="button" class="btn sec dash-act" title="Upload new data" onclick="tbUploadIntro(\'app\')">'+ic('upload',15)+'<span class="dash-act-label">Upload new data</span></button><input type="file" accept=".csv" id="uploadFile" style="display:none">';
-  }
-  right+='<a class="btn sec dash-act" href="data-log.html" title="Uploaded data log">'+ic('history',15)+'<span class="dash-act-label">Uploaded data log</span></a>';
-  // Split toolbar: personal nav on the left, data actions on the right.
+  // My Tickets + Upload + Alerts now live in the left FAB rail (topbar-auth.js); Uploaded data log +
+  // profile live in the floating top-right cluster. This row now just carries the dashboard title.
   return '<div class="dash-title-row">'+
-      '<span class="dash-actions dash-actions-left">'+left+'</span>'+
-      '<span class="dash-actions dash-actions-right">'+right+'</span>'+
+      '<span class="dash-title-name">WWOS-PHD Dashboard</span>'+
     '</div>';
 }
 // Per-section scope. Each dashboard section picks its own scope INDEPENDENTLY, so switching
 // e.g. "Incident Types" to Q2 only reloads that section — the rest stay on their own scope.
-// Scope values: 'live' (Q3, the default — omits ?q=), 'all' (Overall), '2026-Q2' (Q2).
-const DASH_SECTION_SCOPE={ avg:'live', repeat:'live', incidents:'live', hi:'live', weekly:'live' };
+// Scope values: 'live' (Q3, the default — omits ?q=), '2026-Q2' (Q2), 'q2q3' (Q2 + Q3 combined).
+const DASH_SECTION_SCOPE={ avg:'live', repeat:'live', incidents:'live', resolutions:'live', hi:'live', weekly:'live' };
 // Map a scope value to the ?q= param for /api/dash/* (live => omit; else the qid/'all').
 function scopeToParam(scope){ return (!scope||scope==='live')?'':('?q='+encodeURIComponent(scope)); }
 // Legacy shim: chunk -> its section-scope param (used by loadDashChunk when no explicit scope passed).
@@ -2476,7 +2660,7 @@ function sectionScopeSelector(section){
     '<input type="radio" name="dsc-'+section+'" value="'+val+'" '+(cur===val?'checked':'')+
     ' onchange="setSectionScope(\''+section+'\',\''+val+'\')"> '+label+(live?' <span class="dsc-live"></span>':'')+'</label>';
   return '<div class="dash-scope-sec" data-scope-sec="'+section+'">'+
-    opt('live','Q3 (Live)',true)+opt('2026-Q2','Q2',false)+opt('all','Overall',false)+
+    opt('live','Q3 (Live)',true)+opt('2026-Q2','Q2',false)+opt('q2q3','Q2 + Q3',false)+
   '</div>';
 }
 // Reload ONE section under a newly chosen scope, without touching the others.
@@ -2511,6 +2695,13 @@ function reloadDashSection(section){
     loadDashChunk('incidents',renderIncidentsChunk,{silent:true,cacheKey:'dash-incidents-v2',scope:scope,noCache:true})
       .then(function(r){ if(!r||!r.ok)fail('dashIncidentsBody','Could not load incident types.'); })
       .catch(function(){ fail('dashIncidentsBody','Could not load incident types.'); });
+    return;
+  }
+  if(section==='resolutions'){
+    const s=document.getElementById('dashResolutionsBody'); if(s)s.innerHTML=spin;
+    loadDashChunk('resolutions',renderResolutionsChunk,{silent:true,scope:scope,noCache:true})
+      .then(function(r){ if(!r||!r.ok)fail('dashResolutionsBody','Could not load resolutions.'); })
+      .catch(function(){ fail('dashResolutionsBody','Could not load resolutions.'); });
     return;
   }
   if(section==='hi'){
@@ -2581,6 +2772,20 @@ function renderDashboardChunked(){
       '<h3 class="inc-sub-h" style="margin-top:22px">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n"><span class="scramble-kpi" data-scr-max="6000">0</span></span></h3>'+
       tbl(rowsFor(6,[1500,1200,600,400,120,90]));
   };
+  // Resolutions: single PHD table skeleton (# / Resolution / Count / % of Total).
+  const resSkel=function(){
+    let rows=''; for(let i=0;i<7;i++){ rows+='<tr>'+
+      '<td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
+      '<td><div class="shimmer" style="height:12px;width:'+(150-i*9)+'px;border-radius:4px"></div></td>'+
+      '<td style="text-align:center">'+scrCell(1400-i*160)+'</td>'+
+      '<td style="text-align:center"><span class="scramble-kpi" data-scr-max="90" data-scr-pct="1">0</span></td>'+
+    '</tr>'; }
+    return '<p class="meta-info">Resolutions recorded by PHD agents (resolved/closed tickets that carry a Resolution value).</p>'+
+      '<h3 class="inc-sub-h">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n"><span class="scramble-kpi" data-scr-max="6000">0</span></span></h3>'+
+      '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
+        '<th style="text-align:center;width:10%">#</th><th style="width:50%">Resolution</th><th style="text-align:center;width:20%">Count</th><th style="text-align:center;width:20%">% of Total</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  };
   // Historical Incidents: weekly wave chart on top, then two root-cause subsection tables.
   const hiSkel=function(){
     const rc=(accent,n)=>{ let s=''; for(let i=0;i<n;i++){ s+='<tr>'+
@@ -2616,11 +2821,15 @@ function renderDashboardChunked(){
     // Ticket Age Classification sits right below Queue Status Data.
     dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
     // Each of the five scoped sections carries its own Q3(Live)|Q2|Overall selector on its header.
-    kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true),'avg')+
-    kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true),'repeat')+
+    // Average Data + Repeat Incident Data sit SIDE BY SIDE (stack on narrow screens).
+    '<div class="kpi-pair">'+
+      kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true),'avg')+
+      kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true),'repeat')+
+    '</div>'+
     // All sections are always visible (no expand/collapse) and load eagerly. Each is painted with a
     // fixed skeleton matching its final layout, so there's no jump when the data lands.
     dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel(),'incidents')+
+    dashStaticCard('check-circle','Resolutions','dashResolutionsBody',resSkel(),'resolutions')+
     dashStaticCard('repeat','Historical Incidents (Cnt > 0)','dashHiBody',hiSkel(),'hi')+
     // Weekly Volume (Created + Resolved) combined with SLA Compliance % on a second axis.
     dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel(),'weekly')+
@@ -2635,12 +2844,19 @@ function renderDashboardChunked(){
   }).catch(function(){
     const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
   });
-  // Incident Types loads EAGERLY (always visible, no expand/collapse). Uses the bumped cache key
-  // so the older-shaped cached entry is ignored.
-  loadDashChunk('incidents',renderIncidentsChunk,{silent:true,cacheKey:'dash-incidents-v2'}).then(function(r){
+  // Incident Types loads EAGERLY (always visible, no expand/collapse). ALWAYS fetch fresh (noCache):
+  // the display grouping is published independently of the quarter version, so a browser-cached copy
+  // could show a stale/ungrouped list. The chunk is served from a cheap server rollup, so this is fine.
+  loadDashChunk('incidents',renderIncidentsChunk,{silent:true,noCache:true}).then(function(r){
     if(!r||!r.ok){ const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load incident types.</p>'; }
   }).catch(function(){
     const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load incident types.</p>';
+  });
+  // Resolutions section (PHD-only). Always fresh (grouping-dependent, no browser cache).
+  loadDashChunk('resolutions',renderResolutionsChunk,{silent:true,noCache:true}).then(function(r){
+    if(!r||!r.ok){ const s=document.getElementById('dashResolutionsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load resolutions.</p>'; }
+  }).catch(function(){
+    const s=document.getElementById('dashResolutionsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load resolutions.</p>';
   });
   // Historical Incidents + Weekly Volume load EAGERLY now (always visible, no expand/collapse).
   loadDashChunk('hi',renderHiChunk,{silent:true}).then(function(r){

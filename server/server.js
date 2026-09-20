@@ -3227,9 +3227,14 @@ async function liveMeta() {
 async function aggLive(stages, qid) {
   qid = qid || currentQuarter();
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
-  // "all" (Overall scope): aggregate across EVERY quarter's ticket_docs (no q filter).
+  // "all" (complete database, used by Group Analytics): aggregate across EVERY quarter (no q filter).
   if (qid === 'all') {
     const pipeline = [{ $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
+    return tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
+  }
+  // "q2q3" (dashboard combined scope): only Q2 + Q3 2026.
+  if (qid === 'q2q3') {
+    const pipeline = [{ $match: { q: { $in: ['2026-Q2', '2026-Q3'] } } }, { $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
     return tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
   }
   const hasDocs = (await tColl.countDocuments({ q: qid }, { limit: 1 })) > 0;
@@ -3560,6 +3565,31 @@ async function getIncidentMap(force) {
   _incMapCacheAt = now;
   return _incMapCache;
 }
+// Same, for the published RESOLUTION grouping (relabels raw resolution values into combined names).
+let _resMapCache = null, _resMapCacheAt = 0;
+async function getResolutionMap(force) {
+  const now = Date.now();
+  if (!force && _resMapCache && (now - _resMapCacheAt) < 10000) return _resMapCache;
+  let doc = null;
+  try { const coll = await getCollection(COLLECTIONS.resolutionGroups); doc = await coll.findOne({ _id: 'live' }); } catch (e) { doc = null; }
+  const groups = (doc && Array.isArray(doc.groups)) ? doc.groups : [];
+  const lookup = {};
+  groups.forEach(g => {
+    const name = String((g && g.name) || '').trim();
+    if (!name || !Array.isArray(g.members)) return;
+    g.members.forEach(m => { const raw = String(m || '').trim(); if (raw) lookup[raw] = name; });
+  });
+  _resMapCache = { version: (doc && doc.version) || 0, groups, lookup };
+  _resMapCacheAt = now;
+  return _resMapCache;
+}
+// Resolve a dashboard scope value to the list of quarter ids to scan (Node-side, for resolutions
+// which are computed in JS not Mongo $group). 'all' => every quarter; 'q2q3' => Q2+Q3; else one qid.
+async function quartersForScope(qid) {
+  if (qid === 'all') { try { const t = await getCollection(COLLECTIONS.ticketDocs); return (await t.distinct('q')).filter(Boolean); } catch (e) { return [currentQuarter()]; } }
+  if (qid === 'q2q3') return ['2026-Q2', '2026-Q3'];
+  return [qid || currentQuarter()];
+}
 // Map a raw incident-type label to its display name (group name if grouped, else unchanged).
 function mapIncidentType(rawType, lookup) { return (lookup && lookup[rawType]) || rawType; }
 // Re-aggregate a [{type,count,pct}] list after relabeling via the mapping. `tot` = the split total
@@ -3572,10 +3602,20 @@ function regroupTypeList(list, lookup, tot) {
 // Apply the mapping to a full dashIncidents() result object (types + both split lists).
 function applyIncidentMapToChunk(chunk, lookup) {
   if (!chunk || !lookup) return chunk;
+  // Per-group member breakdown for the PHD side (for the dashboard hover tooltip). For each group
+  // NAME, list the raw member types present in THIS scope with their counts, sorted desc.
+  const phdGrouped = {};
+  (chunk.phdTypes || []).forEach(it => {
+    const g = lookup[it.type];
+    if (!g) return;                          // ungrouped raw type -> no breakdown
+    (phdGrouped[g] = phdGrouped[g] || []).push({ type: it.type, count: it.count || 0 });
+  });
+  Object.keys(phdGrouped).forEach(g => phdGrouped[g].sort((a, b) => b.count - a.count));
   return Object.assign({}, chunk, {
     types: regroupTypeList(chunk.types, lookup, chunk.total || 0),
     autosimTypes: regroupTypeList(chunk.autosimTypes, lookup, chunk.autosimTotal || 0),
     phdTypes: regroupTypeList(chunk.phdTypes, lookup, chunk.phdTotal || 0),
+    phdGrouped: phdGrouped,                  // { groupName: [{type,count},...] } — PHD side only
   });
 }
 // Expand a display name back to the raw incident-type labels it covers (for drill-down $match).
@@ -3834,10 +3874,10 @@ const ALWAYS_LIVE_CHUNKS = new Set(['age', 'age-detail']);
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
     const liveQ = currentQuarter();
-    // Optional scope: ?q=all (Overall, every quarter) | ?q=<YYYY-Qn> | omitted => live quarter.
+    // Optional scope: ?q=all (every quarter) | ?q=q2q3 (Q2+Q3) | ?q=<YYYY-Qn> | omitted => live quarter.
     const qReq = String(req.query.q || '').trim();
     const isValidQ = /^\d{4}-Q[1-4]$/.test(qReq);
-    const qid = (qReq === 'all') ? 'all' : (isValidQ ? qReq : liveQ);
+    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (isValidQ ? qReq : liveQ);
     const isLiveScope = (qid === liveQ);
     try {
       const meta = await liveMeta();
@@ -3855,7 +3895,7 @@ Object.keys(DASH_CHUNKS).forEach(name => {
       }
       // Any non-live scope (Q2 / Overall), always-live chunk, or missing/stale rollup -> compute now.
       const slice = finalize(await DASH_CHUNKS[name](qid));
-      const label = (qid === 'all') ? 'Overall' : quarterLabel(qid);
+      const label = (qid === 'all') ? 'Overall' : (qid === 'q2q3') ? 'Q2 + Q3' : quarterLabel(qid);
       res.json(Object.assign({ quarter: qid, label: label, publishedAt: meta.publishedAt, cached: false }, slice));
       // Only the live quarter has a cacheable rollup to refresh.
       if (isLiveScope && !ALWAYS_LIVE_CHUNKS.has(name)) recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
@@ -3873,7 +3913,9 @@ app.get('/api/dash/incident-agents', async (req, res) => {
     const type = String(req.query.type || '').trim();
     if (!type) return res.status(400).json({ error: 'An incident type is required.' });
     const resolverFilter = String(req.query.resolver || '').trim().toLowerCase(); // '', 'autosim', 'phd'
-    const qid = currentQuarter();
+    // Scope: ?q=all | q2q3 | <YYYY-Qn> | omitted => live quarter (mirrors /api/dash/:name).
+    const qReq = String(req.query.q || '').trim();
+    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
     // `type` is a DISPLAY name — expand it to the raw incident-type label(s) it covers (a group may
     // combine several) so the aggregation matches all of them.
     const incMap = await getIncidentMap();
@@ -3910,7 +3952,8 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
     const type = String(req.query.type || '').trim();
     const agent = String(req.query.agent || '').trim();
     if (!type || !agent) return res.status(400).json({ error: 'type and agent are required.' });
-    const qid = currentQuarter();
+    const qReq = String(req.query.q || '').trim();
+    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
     const isAutoSimAgent = agent.toLowerCase() === 'autosim';
     // Expand the display name to its raw incident-type label(s).
     const incMap = await getIncidentMap();
@@ -3937,16 +3980,191 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
   }
 });
 
+// ======================= RESOLUTIONS on the live dashboard (PHD-only) =======================
+// Resolutions are the "Res"/"Resolution" value inside RootCauseDetails (analyst-entered), so they
+// exist only on human-resolved tickets. Computed in Node (regex extraction), scope-aware, resolved/
+// closed only, and relabeled via the published resolution grouping (mirrors the Incident Types PHD
+// table). Scope: ?q=all | q2q3 | <YYYY-Qn> | omitted => live quarter.
+function _scopeQid(qReq) { qReq = String(qReq || '').trim(); return (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter()); }
+
+// The resolutions list (display-grouped) + phdGrouped member breakdown, for the dashboard section.
+app.get('/api/dash/resolutions', async (req, res) => {
+  try {
+    const qid = _scopeQid(req.query.q);
+    const quarters = await quartersForScope(qid);
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const docs = await coll.find({ q: { $in: quarters } }, { projection: { RootCauseDetails: 1, Status: 1 } }).toArray();
+    // Tally raw resolution values over resolved/closed tickets that have one.
+    const rawTally = {};
+    docs.forEach(d => { if (!isResolvedClosed(d)) return; const v = extractResolution(d.RootCauseDetails); if (v) rawTally[v] = (rawTally[v] || 0) + 1; });
+    const map = await getResolutionMap();
+    const lookup = map.lookup;
+    // Relabel raw -> group name; build the grouped list + per-group member breakdown.
+    const grouped = {}; const phdGrouped = {};
+    Object.entries(rawTally).forEach(([raw, count]) => {
+      const name = lookup[raw] || raw;
+      grouped[name] = (grouped[name] || 0) + count;
+      if (lookup[raw]) (phdGrouped[name] = phdGrouped[name] || []).push({ type: raw, count });
+    });
+    Object.keys(phdGrouped).forEach(g => phdGrouped[g].sort((a, b) => b.count - a.count));
+    const total = Object.values(grouped).reduce((s, n) => s + n, 0);
+    const phdTypes = Object.entries(grouped).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count, pct: pct1(count, total) }));
+    res.json({ quarter: qid, phdTotal: total, phdTypes, phdGrouped });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute resolutions.' });
+  }
+});
+
+// Agents who resolved tickets carrying a given resolution VALUE or GROUP (scope-aware). Resolved/closed.
+app.get('/api/dash/resolution-agents', async (req, res) => {
+  try {
+    const value = String(req.query.value || '').trim();
+    if (!value) return res.status(400).json({ error: 'A resolution value is required.' });
+    const qid = _scopeQid(req.query.q);
+    const quarters = await quartersForScope(qid);
+    // Expand a group name to its member raw resolution values (or [value] if ungrouped).
+    const map = await getResolutionMap();
+    const g = (map.groups || []).find(x => String((x && x.name) || '').trim() === value);
+    const rawSet = new Set((g && g.members && g.members.length) ? g.members.map(m => String(m || '').trim()) : [value]);
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const docs = await coll.find({ q: { $in: quarters } }, { projection: { RootCauseDetails: 1, Status: 1, ResolvedByIdentity: 1 } }).toArray();
+    const byAgent = {}; let total = 0;
+    docs.forEach(d => {
+      if (!isResolvedClosed(d)) return;
+      const rv = extractResolution(d.RootCauseDetails);
+      if (!rv || !rawSet.has(rv)) return;
+      const a = String(d.ResolvedByIdentity || '').trim() || 'Unassigned';
+      byAgent[a] = (byAgent[a] || 0) + 1; total++;
+    });
+    const agents = Object.entries(byAgent).sort((a, b) => b[1] - a[1]).map(([agent, count]) => ({ agent, count }));
+    res.json({ quarter: qid, value, total, agents });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute resolution agent breakdown.' });
+  }
+});
+
+// Tickets one agent resolved carrying a given resolution VALUE or GROUP (scope-aware). Resolved/closed.
+app.get('/api/dash/resolution-tickets', async (req, res) => {
+  try {
+    const value = String(req.query.value || '').trim();
+    const agent = String(req.query.agent || '').trim();
+    if (!value || !agent) return res.status(400).json({ error: 'value and agent are required.' });
+    const qid = _scopeQid(req.query.q);
+    const quarters = await quartersForScope(qid);
+    const map = await getResolutionMap();
+    const g = (map.groups || []).find(x => String((x && x.name) || '').trim() === value);
+    const rawSet = new Set((g && g.members && g.members.length) ? g.members.map(m => String(m || '').trim()) : [value]);
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const docs = await coll.find({ q: { $in: quarters } }, { projection: { ShortId: 1, IssueId: 1, IssueUrl: 1, CreateDate: 1, ResolvedDate: 1, RootCauseDetails: 1, Status: 1, ResolvedByIdentity: 1 } }).toArray();
+    const tickets = docs.filter(d => {
+      if (!isResolvedClosed(d)) return false;
+      if (String(d.ResolvedByIdentity || '').trim() !== agent) return false;
+      const rv = extractResolution(d.RootCauseDetails);
+      return rv && rawSet.has(rv);
+    }).map(d => {
+      const sid = String(d.ShortId || d.IssueId || '');
+      return { shortId: sid, url: d.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''), createDate: d.CreateDate || '', resolvedDate: d.ResolvedDate || '', status: d.Status || '', title: '' };
+    }).sort((a, b) => new Date(b.resolvedDate || 0) - new Date(a.resolvedDate || 0));
+    res.json({ quarter: qid, value, agent, count: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load resolution tickets.' });
+  }
+});
+
 // ---- Incident-type display grouping (owner tool) --------------------------------------------
 // Distinct RAW incident-type labels (the exact labels the dashboard buckets by) for the live
 // quarter, with counts — the source list the owner groups from. Owner-only.
 app.get('/api/incident-types/raw', requireRole('owner'), async (req, res) => {
   try {
-    const qid = currentQuarter();
+    // ?q=all | <YYYY-Qn> | omitted => live quarter. Lets the tool list any quarter's raw types.
+    const qReq = String(req.query.q || '').trim();
+    const qid = (qReq === 'all') ? 'all' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
     const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }], qid);
     res.json({ quarter: qid, types: rows.map(r => ({ type: r._id, count: r.count })) });
   } catch (e) {
     res.status(500).json({ error: 'Could not load raw incident types.' });
+  }
+});
+
+// All tickets of a given RAW incident-type label across one or more quarters (owner tool). Used by
+// the Groups Page preview row-click popup. Returns slim rows { shortId, url, createDate, resolvedDate }
+// sorted by CreateDate desc. ?type=<label> (required), ?q=2026-Q2,2026-Q3 (comma list; default live).
+app.get('/api/incident-types/tickets', requireRole('owner'), async (req, res) => {
+  try {
+    const type = String(req.query.type || '').trim();
+    if (!type) return res.status(400).json({ error: 'An incident type is required.' });
+    const qList = String(req.query.q || '').split(',').map(s => s.trim()).filter(s => /^\d{4}-Q[1-4]$/.test(s));
+    const quarters = qList.length ? qList : [currentQuarter()];
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const rows = await coll.aggregate([
+      { $match: { q: { $in: quarters } } },
+      { $replaceRoot: { newRoot: { t: '$$ROOT' } } },
+      { $project: { type: AGG_INCIDENT_TYPE, isResolved: AGG.isResolved, ShortId: { $ifNull: ['$t.ShortId', '$t.IssueId'] }, IssueUrl: { $ifNull: ['$t.IssueUrl', ''] }, CreateDate: '$t.CreateDate', ResolvedDate: '$t.ResolvedDate', cd: { $convert: { input: '$t.CreateDate', to: 'date', onError: null, onNull: null } } } },
+      // Only RESOLVED/CLOSED tickets — never active/open cases.
+      { $match: { type: type, isResolved: true } },
+      { $sort: { cd: -1 } },
+    ], { allowDiskUse: true }).toArray();
+    const tickets = rows.map(t => {
+      const sid = String(t.ShortId || '');
+      return { shortId: sid, url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''), createDate: t.CreateDate || '', resolvedDate: t.ResolvedDate || '' };
+    });
+    res.json({ type, quarters, count: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load tickets for this incident type.' });
+  }
+});
+
+// ---- Resolutions (owner tool) --------------------------------------------------------------
+// The "Resolution" (aka "Res") value recorded inside RootCauseDetails, e.g. a line like
+// "Resolution: Customer Reassurance" or "Res: Driver Follow-up". We extract the value EXACTLY as
+// written (no normalization). Only RESOLVED/CLOSED tickets that HAVE such a line are counted.
+// Matches a "Res"/"Resolution(s)" key (case-insensitive) at a line start, captures the rest of the line.
+const RES_VALUE_RE = /(?:^|\n)\s*res(?:olutions?)?\s*[-]?\s*[:=]\s*([^\n\r]*)/i;
+function extractResolution(rcd) {
+  const m = RES_VALUE_RE.exec(String(rcd || ''));
+  if (!m) return '';
+  return String(m[1] || '').trim();
+}
+function isResolvedClosed(t) { return t && (t.Status === 'Resolved' || t.Status === 'Closed'); }
+
+// Distinct resolution VALUES (exact) across Q2+Q3 resolved/closed tickets, with counts. Owner-only.
+app.get('/api/resolutions/raw', requireRole('owner'), async (req, res) => {
+  try {
+    const qList = String(req.query.q || '').split(',').map(s => s.trim()).filter(s => /^\d{4}-Q[1-4]$/.test(s));
+    const quarters = qList.length ? qList : [currentQuarter()];
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const docs = await coll.find({ q: { $in: quarters } }, { projection: { RootCauseDetails: 1, Status: 1 } }).toArray();
+    const tally = {};
+    docs.forEach(d => {
+      if (!isResolvedClosed(d)) return;                 // resolved/closed only
+      const v = extractResolution(d.RootCauseDetails);  // omit tickets with no Res/Resolution line
+      if (!v) return;
+      tally[v] = (tally[v] || 0) + 1;
+    });
+    const types = Object.entries(tally).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count }));
+    res.json({ quarters, types });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load resolutions.' });
+  }
+});
+
+// Tickets for a given resolution VALUE (exact match) across Q2+Q3 resolved/closed. Owner-only.
+// Returns slim rows { shortId, url, createDate, resolvedDate } sorted by CreateDate desc.
+app.get('/api/resolutions/tickets', requireRole('owner'), async (req, res) => {
+  try {
+    const value = String(req.query.value || '').trim();
+    if (!value) return res.status(400).json({ error: 'A resolution value is required.' });
+    const qList = String(req.query.q || '').split(',').map(s => s.trim()).filter(s => /^\d{4}-Q[1-4]$/.test(s));
+    const quarters = qList.length ? qList : [currentQuarter()];
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const docs = await coll.find({ q: { $in: quarters } }, { projection: { ShortId: 1, IssueId: 1, IssueUrl: 1, CreateDate: 1, ResolvedDate: 1, RootCauseDetails: 1, Status: 1 } }).toArray();
+    const tickets = docs.filter(d => isResolvedClosed(d) && extractResolution(d.RootCauseDetails) === value).map(d => {
+      const sid = String(d.ShortId || d.IssueId || '');
+      return { shortId: sid, url: d.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''), createDate: d.CreateDate || '', resolvedDate: d.ResolvedDate || '' };
+    }).sort((a, b) => new Date(b.createDate || 0) - new Date(a.createDate || 0));
+    res.json({ value, quarters, count: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load tickets for this resolution.' });
   }
 });
 
@@ -3995,6 +4213,55 @@ app.put('/api/incident-groups', requireRole('owner'), async (req, res) => {
     res.json({ ok: true, version, groups });
   } catch (e) {
     res.status(500).json({ error: 'Could not save incident groups.' });
+  }
+});
+
+// ---- Resolution display grouping (owner tool; independent of incident groups) ----
+// Read the current resolution grouping. Owner-only (only the groups-page tool uses it for now).
+app.get('/api/resolution-groups', requireRole('owner'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.resolutionGroups);
+    const doc = await coll.findOne({ _id: 'live' });
+    res.json({ version: (doc && doc.version) || 0, groups: (doc && Array.isArray(doc.groups)) ? doc.groups : [] });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load resolution groups.' });
+  }
+});
+
+// Save (publish) the resolution grouping. OWNER-ONLY. Body: { groups:[{ name, members:[rawValue,...] }] }.
+app.put('/api/resolution-groups', requireRole('owner'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawGroups = Array.isArray(body.groups) ? body.groups : [];
+    const seenMembers = {}; const seenNames = {};
+    const groups = [];
+    for (const g of rawGroups) {
+      const name = String((g && g.name) || '').trim();
+      if (!name) return res.status(400).json({ error: 'Every group needs a name.' });
+      if (name.length > 80) return res.status(400).json({ error: 'Group names must be 80 characters or fewer.' });
+      const key = name.toLowerCase();
+      if (seenNames[key]) return res.status(400).json({ error: 'Duplicate group name: ' + name });
+      seenNames[key] = true;
+      const members = [...new Set((Array.isArray(g.members) ? g.members : []).map(m => String(m || '').trim()).filter(Boolean))];
+      if (!members.length) return res.status(400).json({ error: 'Group "' + name + '" has no resolutions.' });
+      for (const m of members) {
+        if (seenMembers[m]) return res.status(400).json({ error: 'Resolution "' + m + '" is in more than one group.' });
+        seenMembers[m] = true;
+      }
+      groups.push({ name, members });
+    }
+    const coll = await getCollection(COLLECTIONS.resolutionGroups);
+    const existing = await coll.findOne({ _id: 'live' });
+    const version = ((existing && existing.version) || 0) + 1;
+    await coll.updateOne(
+      { _id: 'live' },
+      { $set: { version, groups, updatedBy: req.user.username, updatedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    _resMapCache = null; // bust the in-process cache so the dashboard reflects it immediately
+    res.json({ ok: true, version, groups });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not save resolution groups.' });
   }
 });
 
