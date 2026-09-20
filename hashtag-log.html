@@ -49,7 +49,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:440px;width:100%;padding:24px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:24px}
 .modal h2{color:var(--rl);font-size:1.05em;margin-bottom:10px}
 .modal p{color:var(--t);font-size:.9em;line-height:1.6}
 @media(max-width:640px){.diff{grid-template-columns:1fr}}
@@ -107,7 +107,7 @@ async function doDelete(){
   if(!DEL_ID)return;
   const r=await A.api('DELETE','/api/hashtag-log/'+DEL_ID);
   closeConfirm();
-  if(r.ok){load();}else{alert((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')'));}
+  if(r.ok){load();}else{window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')')});}
 }
 
 function render(entries){

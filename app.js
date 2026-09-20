@@ -72,7 +72,7 @@ function showColumnError(missing){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">
     <h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
     <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>
     <ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">${listHtml}</ul>
@@ -371,7 +371,7 @@ function showMergeReport(rep,crossInfo){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="color:#4ade80;font-size:1.2em">Upload Complete</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -664,7 +664,7 @@ function assessAndPreview(csvText){
     overlay.id='incPopup';
     overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
     overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-    overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">
+    overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">
       <h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">${ic('upload',18)} Confirm upload</h2>
       <p style="color:#879596;font-size:.88em;margin-bottom:16px">This file has <b style="color:#fff">${rows.length.toLocaleString()}</b> ticket${rows.length===1?'':'s'}. Here's how they'll be routed by quarter:</p>
       <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px 12px">${rowsHtml}</div>
@@ -713,7 +713,7 @@ function showTicketAccessPrompt(){
   const overlay=document.createElement('div');overlay.id='colorPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px;text-align:center">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:50vw;width:50vw;min-width:min(92vw,420px);padding:28px;text-align:center">
     <div style="font-size:2em;margin-bottom:8px">🔒</div>
     <h2 style="color:#fff;font-size:1.2em;margin-bottom:10px">Login required</h2>
     <p style="color:#879596;font-size:.9em;line-height:1.6;margin-bottom:20px">Ticket-level details are available to logged-in users only. Please log in to view tickets, or for access reach out to <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener" style="color:#ff9900;font-weight:600;text-decoration:none">@harisss</a>.</p>
@@ -793,7 +793,7 @@ function showColorPopup(color,tickets){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div class="popup-card" style="max-width:90vw;width:90vw">
+  overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
       <div><h2 style="color:${colorHex[color]};font-size:1.45em">${colorNames[color]}</h2><div class="pc-subcount" style="font-size:.95em">${tix.length} open ticket${tix.length===1?'':'s'} · ${agentList.length} agent${agentList.length===1?'':'s'} · highest first</div></div>
       <div class="popup-actions"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -852,7 +852,7 @@ function showAgentDrilldown(color,agentName){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div class="popup-card" style="max-width:90vw;width:90vw">
+  overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
       <div><h2 style="color:${colorHex[color]}">${dn}</h2><div class="pc-subcount">${tix.length} ticket${tix.length===1?'':'s'} · oldest first</div></div>
       <div class="popup-actions"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -921,9 +921,9 @@ async function apSaveComment(btn, shortId){
       cell.style.color='#d5dbdb';
     }else{
       btn.disabled=false; btn.textContent='Save';
-      alert((r.data&&r.data.error)||'Could not add the comment.');
+      window.PHDAlert&&window.PHDAlert({title:'Could not save',body:(r.data&&r.data.error)||'Could not add the comment.'});
     }
-  }catch(e){ btn.disabled=false; btn.textContent='Save'; alert('Could not add the comment.'); }
+  }catch(e){ btn.disabled=false; btn.textContent='Save'; window.PHDAlert&&window.PHDAlert({title:'Could not save',body:'Could not add the comment.'}); }
 }
 window.apSaveComment=apSaveComment;
 function downloadColorCSV(color){
@@ -946,7 +946,7 @@ function showIncidentPopup(type){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showIncidentAgentDrilldown('${type.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="color:#ff9900;font-size:1.1em">${type} — ${tickets.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -971,7 +971,7 @@ function showIncidentAgentDrilldown(type,agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${type})</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -995,7 +995,7 @@ function showHIUnresolvedPopup(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="color:#ffb84d;font-size:1.1em">Unresolved Repeat Incidents (HI>0) — ${tix.length} tickets</h2><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     <table><thead><tr><th>Ticket ID</th><th>HI Cnt</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
@@ -1146,7 +1146,7 @@ function showExportRegionModal(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:50vw;width:50vw;min-width:min(92vw,420px);padding:28px">
     <h2 style="color:#fff;font-size:1.2em;margin-bottom:8px">Export Shift Report</h2>
     <p style="color:#879596;font-size:.9em;margin-bottom:20px">Which region is this report for?</p>
     <div style="display:flex;gap:12px">
@@ -1257,7 +1257,7 @@ function showTakeoverAgentColorPopup(agentName,colorKey){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[colorKey]};font-size:1.1em">${agentName} — ${colorNames[colorKey]} — ${tix.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -1290,7 +1290,7 @@ function showAgentTicketsPopup(agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="color:#44b9d6;font-size:1.2em">${agentName} — Open Tickets (${tickets.length})</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -1316,7 +1316,7 @@ function showHIPopup(rootCause){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showHIAgentDrilldown('${rootCause.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="color:#ff9900;font-size:1.1em">${rootCause} — ${tickets.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
@@ -1341,7 +1341,7 @@ function showHIAgentDrilldown(rootCause,agentName){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${rootCause})</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="showHIPopup('${rootCause.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
@@ -2242,7 +2242,7 @@ function showGroupMembersPopup(groupName, membersJson){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML='<div class="popup-card" style="max-width:720px;width:90vw">'+
+  overlay.innerHTML='<div class="popup-card" style="max-width:80vw;width:80vw">'+
     '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
       '<div><h2 style="color:#a78bfa;font-size:1.3em">'+esc(groupName)+'</h2><div class="pc-subcount">Grouped incident types \u00b7 '+total.toLocaleString()+' ticket'+(total===1?'':'s')+' \u00b7 '+members.length+' type'+(members.length===1?'':'s')+' \u00b7 click a type for its agents</div></div>'+
       '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
@@ -2302,7 +2302,7 @@ function showResGroupMembersPopup(groupName, membersJson){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML='<div class="popup-card" style="max-width:720px;width:90vw">'+
+  overlay.innerHTML='<div class="popup-card" style="max-width:80vw;width:80vw">'+
     '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
       '<div><h2 style="color:#a78bfa;font-size:1.3em">'+esc(groupName)+'</h2><div class="pc-subcount">Grouped resolutions \u00b7 '+total.toLocaleString()+' ticket'+(total===1?'':'s')+' \u00b7 '+members.length+' type'+(members.length===1?'':'s')+' \u00b7 click a resolution for its agents</div></div>'+
       '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
@@ -2324,7 +2324,7 @@ async function showResolutionAgentsPopup(value){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+  overlay.innerHTML='<div class="popup-card" style="max-width:80vw;width:80vw">'+
     '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
       '<div><h2 style="color:#ff9900;font-size:1.3em">'+esc(value)+'</h2><div class="pc-subcount" id="resAgLoad">loading\u2026</div></div>'+
       '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
@@ -2364,7 +2364,7 @@ async function showResolutionTicketsDrilldown(value,agent){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+  overlay.innerHTML='<div class="popup-card" style="max-width:80vw;width:80vw">'+
     '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
       '<div><h2 style="color:#ff9900;font-size:1.2em">'+esc(dn)+' \u2014 '+esc(value)+'</h2><div class="pc-subcount" id="incTkLoad">loading\u2026</div></div>'+
       '<div class="popup-actions"><button class="btn" onclick="showResolutionAgentsPopup(\''+q(value)+'\')">\u2190 Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
@@ -2394,7 +2394,7 @@ async function showIncidentAgentsPopup(type,resolverKey){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+  overlay.innerHTML='<div class="popup-card" style="max-width:80vw;width:80vw">'+
     '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
       '<div><h2 style="color:#ff9900;font-size:1.3em">'+esc(type)+'</h2><div class="pc-subcount" id="incAgLoad">'+subLabel+' \u00b7 loading\u2026</div></div>'+
       '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
@@ -2464,7 +2464,7 @@ async function showIncidentTicketsDrilldown(type,agent,resolverKey){
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML='<div class="popup-card" style="max-width:90vw;width:90vw">'+
+  overlay.innerHTML='<div class="popup-card" style="max-width:80vw;width:80vw">'+
     '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
       '<div><h2 style="color:#ff9900;font-size:1.2em">'+esc(dn)+' \u2014 '+esc(type)+'</h2><div class="pc-subcount" id="incTkLoad">loading\u2026</div></div>'+
       '<div class="popup-actions"><button class="btn" onclick="showIncidentAgentsPopup(\''+q(type)+'\',\''+q(resolverKey||'')+'\')">\u2190 Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
@@ -2965,7 +2965,7 @@ function showLoginModal(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:28px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Log in</h2>
     <p style="color:#879596;font-size:.85em;margin-bottom:18px;line-height:1.5">Viewing the dashboard needs no login. Log in to publish or manage data.</p>
     <label style="display:block;color:#879596;font-size:.85em;margin-bottom:6px">Username</label>
@@ -3031,7 +3031,7 @@ function showPublishModal(){
   const overlay=document.createElement('div');overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:28px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:28px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Publish Data to Everyone</h2>
     <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This saves the current dashboard data to the shared database so all viewers see it. No token needed — you're already logged in.</p>
     <div class="err" id="pubErr" style="color:#ff5252;font-size:.85em;margin-top:4px;display:none"></div>
@@ -3136,7 +3136,7 @@ function showUploadResult(written,liveSummary){
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">
+  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:6px">${ic('check-circle',18)} Upload complete</h2>
     <p style="color:#879596;font-size:.88em;margin-bottom:14px">Tickets were routed to their quarters. Each quarter's own update log records its changes.</p>
     <div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:2px 16px 6px">${rowsHtml}</div>

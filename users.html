@@ -127,7 +127,7 @@ input:focus{outline:none;border-color:var(--o)}
 /* Create-user modal */
 .cu-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .cu-modal-bg[style*="flex"]{display:flex}
-.cu-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:14px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:26px}
+.cu-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:14px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:90vh;overflow:auto;padding:26px}
 .cu-modal h2{color:var(--o);font-size:1.15em;margin-bottom:4px}
 .cu-modal .cu-sub{color:#5f6b6c;font-size:.82em;margin-bottom:18px}
 .cu-fld{margin-bottom:14px}
@@ -151,7 +151,7 @@ input:focus{outline:none;border-color:var(--o)}
 .cu-locked{opacity:.6}
 .cu-locked .cu-tl::after{content:" (owner only)";color:#5f6b6c;font-weight:500;font-size:.85em}
 /* Confirmation modal */
-.confirm-modal{max-width:440px}
+.confirm-modal{width:50vw;max-width:50vw;min-width:min(92vw,420px)}
 .confirm-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .confirm-head h2{margin:0;color:#fff;font-size:1.15em}
 .confirm-icon{flex-shrink:0;width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.14);color:var(--o)}

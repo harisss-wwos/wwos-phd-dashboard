@@ -279,7 +279,7 @@ function render(entries){
 async function delSession(idsJson){
   let ids;try{ids=JSON.parse(idsJson);}catch(e){ids=[];}
   if(!ids.length)return;
-  if(!confirm('Delete this data-log entry? This cannot be undone.'))return;
+  if(!await window.PHDConfirm({title:'Delete data-log entry',body:'Delete this data-log entry? This cannot be undone.',okLabel:'Delete',danger:true}))return;
   for(const id of ids){ try{await A.api('DELETE','/api/data-log/'+id);}catch(e){} }
   load(DAYS_LOADED); // reload the same window
 }

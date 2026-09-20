@@ -106,7 +106,7 @@ th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;
 .clickable-row:hover{background:rgba(255,153,0,.08)}
 /* Tickets popup (Excel-style) */
 .tk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:5000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
-.tk-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:100%;max-width:820px;padding:18px 18px 14px}
+.tk-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:80vw;max-width:80vw;padding:18px 18px 14px}
 .tk-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
 .tk-head h2{color:var(--o);font-size:1.1em;display:flex;align-items:baseline;gap:10px}
 .tk-count{color:var(--tm);font-size:.7em;font-weight:600}
@@ -423,7 +423,7 @@ function rAssignSelected(){
 function rRenameGroup(i,val){ if(RGROUPS[i]){RGROUPS[i].name=val; saveRDraft(); paintResolutions();paintRPreview();} }
 function rRemoveMember(i,t){ if(RGROUPS[i]){RGROUPS[i].members=RGROUPS[i].members.filter(m=>m!==t); saveRDraft(); paintRGroups();paintResolutions();paintRPreview();} }
 function rRemoveGroup(i){ RGROUPS.splice(i,1); saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); }
-function rClearAll(){ if(!RGROUPS.length)return; if(!confirm('Remove all resolution groups? (Not published until you click Publish.)'))return; RGROUPS=[]; saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); }
+async function rClearAll(){ if(!RGROUPS.length)return; if(!await window.PHDConfirm({title:'Remove all resolution groups',body:'Remove all resolution groups? (Not published until you click Publish.)',okLabel:'Remove all',danger:true}))return; RGROUPS=[]; saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); }
 
 function paintRGroups(){
   const box=document.getElementById('rGrpList'); if(!box)return;
@@ -481,7 +481,7 @@ async function rPublish(){
   }else rFlash('err',(r.data&&r.data.error)||('Publish failed (HTTP '+r.status+').'));
 }
 async function rReloadFromServer(){
-  if(!confirm('Discard your unsaved resolution draft and restore the last published grouping?'))return;
+  if(!await window.PHDConfirm({title:'Discard resolution draft',body:'Discard your unsaved resolution draft and restore the last published grouping?',okLabel:'Discard'}))return;
   const r=await A.api('GET','/api/resolution-groups');
   if(r.ok){
     RGROUPS=((r.data&&r.data.groups)||[]).map(g=>({name:g.name,members:(g.members||[]).slice()}));
@@ -532,7 +532,7 @@ function assignSelected(){
 function renameGroup(i,val){ if(GROUPS[i]){GROUPS[i].name=val; saveDraft(); paintSourceList();paintPreview();} }
 function removeMember(i,t){ if(GROUPS[i]){GROUPS[i].members=GROUPS[i].members.filter(m=>m!==t); saveDraft(); paintGroups();paintSourceList();paintPreview();} }
 function removeGroup(i){ GROUPS.splice(i,1); saveDraft(); paintGroups();paintSourceList();paintPreview(); }
-function clearAll(){ if(!GROUPS.length)return; if(!confirm('Remove all groups? (Not published until you click Publish.)'))return; GROUPS=[]; saveDraft(); paintGroups();paintSourceList();paintPreview(); }
+async function clearAll(){ if(!GROUPS.length)return; if(!await window.PHDConfirm({title:'Remove all groups',body:'Remove all groups? (Not published until you click Publish.)',okLabel:'Remove all',danger:true}))return; GROUPS=[]; saveDraft(); paintGroups();paintSourceList();paintPreview(); }
 
 function paintGroups(){
   const box=document.getElementById('grpList');
@@ -676,7 +676,7 @@ async function publish(){
 }
 
 async function reloadFromServer(){
-  if(!confirm('Discard your unsaved draft and restore the last published grouping?'))return;
+  if(!await window.PHDConfirm({title:'Discard draft',body:'Discard your unsaved draft and restore the last published grouping?',okLabel:'Discard'}))return;
   const r=await A.api('GET','/api/incident-groups');
   if(r.ok){
     GROUPS=((r.data&&r.data.groups)||[]).map(g=>({name:g.name,members:(g.members||[]).slice()}));

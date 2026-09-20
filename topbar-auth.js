@@ -99,6 +99,8 @@
       + '.tb-mbtn:hover{background:#ec7211}'
       + '.tb-mbtn.sec{background:transparent;border:1px solid #2a2a2a;color:#d5dbdb}'
       + '.tb-mbtn.sec:hover{border-color:#ff9900;color:#ff9900}'
+      + '.tb-mbtn.tb-mbtn-danger{background:#ff5252;color:#fff}'
+      + '.tb-mbtn.tb-mbtn-danger:hover{background:#e03e3e}'
       // login loader
       + '.tb-loader{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}'
       + '.tb-loader .sp{width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite}'
@@ -494,7 +496,7 @@
     ov.id = 'tbUploadIntro';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">' +
+    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">' +
       '<h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
       '<p style="color:#879596;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#fff">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
@@ -519,7 +521,7 @@
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;max-height:88vh;overflow:auto;padding:26px">' +
+    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">' +
       '<h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
       '<p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
@@ -572,7 +574,7 @@
     var fileMeta = { fileName: file.name || '', fileSize: file.size || 0, fileType: file.type || '' };
     var reader = new FileReader();
     reader.onload = function (ev) { tbBeginUpload(String(ev.target.result || ''), fileMeta); };
-    reader.onerror = function () { alert('Could not read the file.'); };
+    reader.onerror = function () { window.PHDAlert({ title: 'Could not read file', body: 'Could not read the file.' }); };
     reader.readAsText(file);
   });
 
@@ -651,8 +653,8 @@
   async function tbAssess(csvText, fileMeta) {
     var rows;
     try { rows = tbParseCSV(csvText).filter(function (r) { return r.ShortId || r.IssueId; }).map(function (r) { if (!r.ShortId && r.IssueId) r.ShortId = r.IssueId; return r; }); }
-    catch (err) { tbRemove('tbAssess'); alert('Could not read the CSV file.'); return; }
-    if (!rows.length) { tbRemove('tbAssess'); alert('No tickets with a ShortId/IssueId were found in the file.'); return; }
+    catch (err) { tbRemove('tbAssess'); window.PHDAlert({ title: 'Invalid CSV', body: 'Could not read the CSV file.' }); return; }
+    if (!rows.length) { tbRemove('tbAssess'); window.PHDAlert({ title: 'No tickets found', body: 'No tickets with a ShortId/IssueId were found in the file.' }); return; }
 
     // Parsed the file — show the processing message + progress bar, then fetch the live dataset.
     (function () {
@@ -727,7 +729,7 @@
     await new Promise(function (r) { setTimeout(r, 400); });  // brief beat so 100% is visible
     (function () { var w = document.getElementById('tbAssessTimerWrap'); if (w) w.style.display = 'none'; })();
     if (tbAssessAborted) return;
-    if (!live || !live.ok || !live.data) { tbRemove('tbAssess'); alert('Could not load the live dataset to compare. Try again.'); return; }
+    if (!live || !live.ok || !live.data) { tbRemove('tbAssess'); window.PHDAlert({ title: 'Could not load data', body: 'Could not load the live dataset to compare. Try again.' }); return; }
     var liveQ = live.data.quarter;
     var storedTix = (live.data.data && live.data.data.tickets) || [];
     var storedMap = {}; storedTix.forEach(function (t) { var id = String(t.ShortId || t.IssueId || ''); if (id) storedMap[id] = t; });
@@ -770,7 +772,7 @@
     // rows -> tell the user there are no new changes and let them close the upload.
     if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
       tbFlowOverlay('tbConfirm',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px;text-align:center">' +
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center">' +
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#fff;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
           '<p style="color:#879596;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#d5dbdb">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
@@ -780,7 +782,7 @@
       return;
     }
     tbFlowOverlay('tbConfirm',
-      '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px">' +
+      '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px">' +
         '<h2 style="color:#fff;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
         '<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px">' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Tickets with newer data</span><span style="color:#44b9d6;font-weight:700">' + res.xNewer + '</span></div>' +
@@ -876,7 +878,7 @@
       }
       tbRemove('tbPush');
       tbFlowOverlay('tbDone',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px;text-align:center">' +
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center">' +
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#4ade80;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
           '<p style="color:#879596;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
@@ -892,7 +894,7 @@
       try { clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
       tbRemove('tbPush');
       tbFlowOverlay('tbErr',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:90vw;width:90vw;padding:26px;text-align:center">' +
+        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center">' +
           '<h2 style="color:#ff5252;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
           '<p style="color:#879596;font-size:.9em">' + tbEsc(err.message) + '</p>' +
           '<div style="margin-top:18px"><button class="tb-mbtn" id="tbErrClose">Close</button></div>' +
@@ -900,6 +902,45 @@
       document.getElementById('tbErrClose').onclick = function () { tbRemove('tbErr'); };
     }
   }
+
+  // ---- Shared styled pop-ups: PHDConfirm (OK/Cancel) + PHDAlert (single OK) ----
+  // Promise-based replacements for the native confirm()/alert(). Reuse the .tb-modal look. Esc =
+  // cancel/close; Enter = OK. opts: { title, body(HTML allowed), okLabel, cancelLabel, danger:bool }.
+  function tbPopupEsc(x) { return String(x == null ? '' : x); }
+  function tbShowPopup(opts, withCancel) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var bg = document.createElement('div');
+      bg.className = 'tb-modal-bg'; bg.style.display = 'flex';
+      var okLabel = opts.okLabel || (withCancel ? 'Confirm' : 'OK');
+      var okCls = 'tb-mbtn' + (opts.danger ? ' tb-mbtn-danger' : '');
+      var cancelBtn = withCancel ? ('<button class="tb-mbtn sec" data-act="cancel">' + tbPopupEsc(opts.cancelLabel || 'Cancel') + '</button>') : '';
+      bg.innerHTML = '<div class="tb-modal" role="dialog" aria-modal="true">' +
+        '<h2>' + tbPopupEsc(opts.title || (withCancel ? 'Please confirm' : 'Notice')) + '</h2>' +
+        '<p class="sub" style="margin:0 0 4px">' + tbPopupEsc(opts.body || '') + '</p>' +
+        '<div class="tb-modal-actions">' + cancelBtn +
+          '<button class="' + okCls + '" data-act="ok">' + tbPopupEsc(okLabel) + '</button>' +
+        '</div></div>';
+      document.body.appendChild(bg);
+      function done(val) {
+        document.removeEventListener('keydown', onKey);
+        if (bg.parentNode) bg.parentNode.removeChild(bg);
+        resolve(val);
+      }
+      function onKey(e) { if (e.key === 'Escape') done(withCancel ? false : true); else if (e.key === 'Enter') { e.preventDefault(); done(true); } }
+      bg.addEventListener('click', function (e) {
+        var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+        if (act === 'ok') done(true);
+        else if (act === 'cancel') done(false);
+        else if (e.target === bg && withCancel) done(false); // backdrop click cancels (confirm only)
+      });
+      document.addEventListener('keydown', onKey);
+      setTimeout(function () { var b = bg.querySelector('[data-act="ok"]'); if (b) b.focus(); }, 40);
+    });
+  }
+  // Public API: await PHDConfirm({title,body,okLabel,danger}) -> true/false; await PHDAlert({title,body}) -> true.
+  window.PHDConfirm = function (opts) { return tbShowPopup(opts, true); };
+  window.PHDAlert = function (opts) { return tbShowPopup(typeof opts === 'string' ? { body: opts } : opts, false); };
 
   // ---- Login modal + loader ----
   window.tbOpenLogin = function () {

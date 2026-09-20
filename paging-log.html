@@ -38,7 +38,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
 .btn.mini{padding:5px 12px;font-size:.78em}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:440px;width:100%;padding:24px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:24px}
 .modal h2{color:var(--rl);font-size:1.05em;margin-bottom:10px}
 .modal p{color:var(--t);font-size:.9em;line-height:1.6}
 .entry-title{color:#fff;font-weight:700}
@@ -128,7 +128,7 @@ async function doDelete(){
   const r=await A.api('DELETE','/api/paging-log/'+DEL_ID);
   closeConfirm();
   if(r.ok){load();}
-  else{alert((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')'));}
+  else{window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')')});}
 }
 
 async function load(){

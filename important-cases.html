@@ -50,7 +50,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
 /* Edit popup */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:80vw;max-width:80vw;max-height:88vh;overflow:auto;padding:24px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .modal-head h2{color:var(--o);font-size:1.1em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
@@ -103,7 +103,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 
 <!-- Remove importance confirm popup -->
 <div class="modal-bg" id="unmarkModal" onclick="if(event.target===this)closeUnmark()">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="width:50vw;max-width:50vw;min-width:min(92vw,420px)">
     <div class="modal-head"><h2 style="color:var(--rl)">Remove importance?</h2><button class="modal-close" onclick="closeUnmark()" aria-label="Close">&times;</button></div>
     <p id="unmarkText" style="color:var(--t);font-size:.9em;line-height:1.6"></p>
     <div class="msg-err" id="unmarkErr"></div>

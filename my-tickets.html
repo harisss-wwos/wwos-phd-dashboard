@@ -112,8 +112,8 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .mgr-panel p{color:var(--tm);font-size:.95em;line-height:1.7;max-width:480px;margin:0 auto 8px}
 .mgr-actions{margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;max-width:600px;width:100%;max-height:85vh;overflow:auto;padding:24px}
-.modal.modal-wide{max-width:860px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:80vw;max-width:80vw;max-height:85vh;overflow:auto;padding:24px}
+.modal.modal-wide{width:80vw;max-width:80vw}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
@@ -991,10 +991,10 @@ async function submitEditIncident(){
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 async function deleteIncident(id){
-  if(!confirm('Delete this incident log entry? This cannot be undone.'))return;
+  if(!await window.PHDConfirm({title:'Delete incident log',body:'Delete this incident log entry? This cannot be undone.',okLabel:'Delete',danger:true}))return;
   const r=await A.api('DELETE','/api/incident-log/'+id);
   if(r.ok){toast('Incident log deleted');if(VIEW_INC_INDEX!=null){refreshLatestComment(VIEW_INC_INDEX);openViewIncident(VIEW_INC_INDEX);}}
-  else{alert((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+  else{window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Failed (HTTP '+r.status+')')});}
 }
 
 async function submitAddComment(){
