@@ -434,15 +434,19 @@ async function refreshFromServerData(){
 
 function nav(view){
   currentView=view;destroyCharts();
+  // Move the top-right cluster back to <body> before wiping #app, so a re-render can't destroy it
+  // (it may currently live inside the dashboard header row). The target render re-anchors it.
+  try{ var _tr=document.getElementById('tbTopRight'); if(_tr&&_tr.parentNode!==document.body){document.body.appendChild(_tr);_tr.classList.remove('tb-top-right-inrow');} }catch(e){}
   if(view==='dashboard'){ renderDashboardChunked(); return; }
   // Shift Report has its own tiny aggregate endpoint — no full-dataset load needed.
-  if(view==='shift-report'){ renderShiftReport(); return; }
+  if(view==='shift-report'){ renderShiftReport(); if(window.PHDPlaceTopRight)window.PHDPlaceTopRight(); return; }
   // Other views need the full array — load it first if we don't have M yet.
   if(M){ _navRender(view); return; }
   ensureFullData().then(ok=>{ if(ok)_navRender(view); else renderDashboardChunked(); });
 }
 function _navRender(view){
   if(view==='groups')renderGroups();else if(view==='previous-week')renderPreviousWeek();else if(view==='shift-report')renderShiftReport();else renderDashboardChunked();
+  if(window.PHDPlaceTopRight)window.PHDPlaceTopRight(); // keep the header cluster present on every view
 }
 
 function renderUpload(){
@@ -2634,12 +2638,10 @@ function renderSummaryInto(d,target){
 // to icon-only (the label is hidden; the button's title provides a hover tooltip) and spread
 // across the available width. Returns the full <div class="dash-title-row"> HTML.
 function dashPageTitleRow(){
-  const loggedIn=window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser();
-  const canUpload=window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload();
-  if(!loggedIn) return '<div class="dash-title-row"></div>';
-  // My Tickets + Upload + Alerts now live in the left FAB rail (topbar-auth.js); Uploaded data log +
-  // profile live in the floating top-right cluster. This row now just carries the dashboard title.
-  return '<div class="dash-title-row">'+
+  // One header div: title on the left, the top-right cluster (Uploaded data log + profile) is moved
+  // in as the right-side child by topbar-auth.js (PHDPlaceTopRight). Rendered even when logged out so
+  // the header (and floating Login) still show.
+  return '<div class="dash-title-row js-header-row">'+
       '<span class="dash-title-name">WWOS-PHD Dashboard</span>'+
     '</div>';
 }
@@ -2835,6 +2837,7 @@ function renderDashboardChunked(){
     dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel(),'weekly')+
   '</div>';
   attachNewFileHandler();
+  if(window.PHDPlaceTopRight) window.PHDPlaceTopRight(); // move the top-right cluster into the header row
   refreshHelpAlertCount();
   startKpiScramble(); // flicker the summary KPI numbers while /api/dash/summary loads
   // Ticket Age Classification loads EAGERLY (always visible, not collapsible). age-detail is

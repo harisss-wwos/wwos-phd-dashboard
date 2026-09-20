@@ -140,7 +140,7 @@ app.get('/api/ticket-events', requireRole('admin'), async (req, res) => {
 // ---- Resolved Repeat-Incident (HI Cnt>0) tickets, ALL-TIME, grouped by resolver (admin) ----
 // Aggregates over ticket_docs (flat schema): Status in Resolved/Closed, HI count (Cnt) > 0.
 // Returns per-agent (ResolvedByIdentity) groups sorted highest->lowest, each with its tickets.
-app.get('/api/hi-resolved', requireRole('user'), async (req, res) => {
+app.get('/api/hi-resolved', requireFlag('canViewRepeat'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.ticketDocs);
     // HI count parsed from RootCauseDetails ("Cnt: N" or "Historical Incident: N").
@@ -203,7 +203,7 @@ app.get('/api/hi-resolved', requireRole('user'), async (req, res) => {
 // ---- SLA-breach tickets (resolution time > 240h), ALL-TIME, grouped by resolver (admin) ----
 // Aggregates over ticket_docs (flat schema): Status in Resolved/Closed, resolution hours > 240.
 // Split by CreateDate into the same 3 ranges as /api/hi-resolved.
-app.get('/api/sla-breach', requireRole('user'), async (req, res) => {
+app.get('/api/sla-breach', requireFlag('canViewSLA'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.ticketDocs);
     const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
@@ -310,6 +310,13 @@ function userFlags(u) {
     canUpload: isOwner ? true : !!(u && u.canUpload),
     canCreateUsers: isOwner ? true : !!(u && u.canCreateUsers),
     canDatabase: isOwner ? true : !!(u && u.canDatabase),
+    // New per-user access flags. Owner is force-true. Default false for everyone else.
+    canEditTools: isOwner ? true : !!(u && u.canEditTools),
+    canViewSR: isOwner ? true : !!(u && u.canViewSR),
+    canViewRepeat: isOwner ? true : !!(u && u.canViewRepeat),
+    canViewUnique: isOwner ? true : !!(u && u.canViewUnique),
+    canViewSLA: isOwner ? true : !!(u && u.canViewSLA),
+    canGroupingPage: isOwner ? true : !!(u && u.canGroupingPage),
   };
 }
 // Middleware factory: require a specific access flag (reads the fresh flag from the DB, since the
@@ -319,7 +326,7 @@ function requireFlag(flag) {
     if (!req.user) return res.status(401).json({ error: 'Login required.' });
     try {
       const users = await getCollection(COLLECTIONS.users);
-      const u = await users.findOne({ username: req.user.username }, { projection: { role: 1, canUpload: 1, canCreateUsers: 1, canDatabase: 1 } });
+      const u = await users.findOne({ username: req.user.username }, { projection: { role: 1, canUpload: 1, canCreateUsers: 1, canDatabase: 1, canEditTools: 1, canViewSR: 1, canViewRepeat: 1, canViewUnique: 1, canViewSLA: 1, canGroupingPage: 1 } });
       if (!u) return res.status(401).json({ error: 'Login required.' });
       if (u.role === 'owner' || !!u[flag]) return next();
       return res.status(403).json({ error: 'You do not have access to this action.' });
@@ -331,10 +338,10 @@ function requireFlag(flag) {
 
 app.get('/api/me', requireRole('user'), async (req, res) => {
   let timezone = DEFAULT_TZ;
-  let flags = { badge: 'blue', analyst: false, canUpload: false, canCreateUsers: false, canDatabase: false };
+  let flags = { badge: 'blue', analyst: false, canUpload: false, canCreateUsers: false, canDatabase: false, canEditTools: false, canViewSR: false, canViewRepeat: false, canViewUnique: false, canViewSLA: false, canGroupingPage: false };
   try {
     const users = await getCollection(COLLECTIONS.users);
-    const u = await users.findOne({ username: req.user.username }, { projection: { timezone: 1, role: 1, badge: 1, analyst: 1, canUpload: 1, canCreateUsers: 1, canDatabase: 1 } });
+    const u = await users.findOne({ username: req.user.username }, { projection: { timezone: 1, role: 1, badge: 1, analyst: 1, canUpload: 1, canCreateUsers: 1, canDatabase: 1, canEditTools: 1, canViewSR: 1, canViewRepeat: 1, canViewUnique: 1, canViewSLA: 1, canGroupingPage: 1 } });
     if (u) { if (u.timezone) timezone = normTz(u.timezone); flags = userFlags(u); }
   } catch (e) { /* fall back to defaults */ }
   res.json(Object.assign({ username: req.user.username, role: req.user.role, timezone }, flags));
@@ -455,7 +462,7 @@ app.get('/api/users', requireFlag('canCreateUsers'), async (req, res) => {
 // owner can flip them afterward from the table.
 app.post('/api/users', requireFlag('canCreateUsers'), async (req, res) => {
   try {
-    let { username, password, timezone, badge, analyst, canUpload, canCreateUsers, canDatabase } = req.body || {};
+    let { username, password, timezone, badge, analyst, canUpload, canCreateUsers, canDatabase, canEditTools, canViewSR, canViewRepeat, canViewUnique, canViewSLA, canGroupingPage } = req.body || {};
     username = String(username || '').trim().toLowerCase();
     const tz = normTz(timezone);
     if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
@@ -470,6 +477,12 @@ app.post('/api/users', requireFlag('canCreateUsers'), async (req, res) => {
       canUpload: isOwner ? toBool(canUpload) : false,
       canCreateUsers: isOwner ? toBool(canCreateUsers) : false,
       canDatabase: isOwner ? toBool(canDatabase) : false,
+      canEditTools: isOwner ? toBool(canEditTools) : false,
+      canViewSR: isOwner ? toBool(canViewSR) : false,
+      canViewRepeat: isOwner ? toBool(canViewRepeat) : false,
+      canViewUnique: isOwner ? toBool(canViewUnique) : false,
+      canViewSLA: isOwner ? toBool(canViewSLA) : false,
+      canGroupingPage: isOwner ? toBool(canGroupingPage) : false,
       createdAt: new Date(),
     };
     const r = await users.insertOne(doc);
@@ -492,7 +505,9 @@ app.patch('/api/users/:id/flags', requireFlag('canCreateUsers'), async (req, res
     if (!target) return res.status(404).json({ error: 'User not found.' });
     if (target.role === 'owner') return res.status(403).json({ error: "The owner's access cannot be changed." });
     // Reject any attempt by a non-owner to change access-granting flags.
-    if (!isOwner && (body.canUpload !== undefined || body.canCreateUsers !== undefined || body.canDatabase !== undefined)) {
+    if (!isOwner && (body.canUpload !== undefined || body.canCreateUsers !== undefined || body.canDatabase !== undefined
+      || body.canEditTools !== undefined || body.canViewSR !== undefined || body.canViewRepeat !== undefined
+      || body.canViewUnique !== undefined || body.canViewSLA !== undefined || body.canGroupingPage !== undefined)) {
       return res.status(403).json({ error: 'Only the owner can grant page access.' });
     }
     const set = { updatedAt: new Date() };
@@ -501,6 +516,12 @@ app.patch('/api/users/:id/flags', requireFlag('canCreateUsers'), async (req, res
     if (isOwner && body.canUpload !== undefined) set.canUpload = toBool(body.canUpload);
     if (isOwner && body.canCreateUsers !== undefined) set.canCreateUsers = toBool(body.canCreateUsers);
     if (isOwner && body.canDatabase !== undefined) set.canDatabase = toBool(body.canDatabase);
+    if (isOwner && body.canEditTools !== undefined) set.canEditTools = toBool(body.canEditTools);
+    if (isOwner && body.canViewSR !== undefined) set.canViewSR = toBool(body.canViewSR);
+    if (isOwner && body.canViewRepeat !== undefined) set.canViewRepeat = toBool(body.canViewRepeat);
+    if (isOwner && body.canViewUnique !== undefined) set.canViewUnique = toBool(body.canViewUnique);
+    if (isOwner && body.canViewSLA !== undefined) set.canViewSLA = toBool(body.canViewSLA);
+    if (isOwner && body.canGroupingPage !== undefined) set.canGroupingPage = toBool(body.canGroupingPage);
     await users.updateOne({ _id: target._id }, { $set: set });
     const u = await users.findOne({ _id: target._id });
     res.json(Object.assign({ id: String(u._id), username: u.username }, userFlags(u)));
@@ -1249,8 +1270,8 @@ app.post('/api/blurbs/:id/copy', requireRole('user'), async (req, res) => {
   }
 });
 
-// Create a blurb (admin+). Records a blurb-log entry.
-app.post('/api/blurbs', requireRole('admin'), async (req, res) => {
+// Create a blurb (canEditTools). Records a blurb-log entry.
+app.post('/api/blurbs', requireFlag('canEditTools'), async (req, res) => {
   try {
     let { title, text } = req.body || {};
     title = String(title || '').trim();
@@ -1275,8 +1296,8 @@ app.post('/api/blurbs', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Edit a blurb (admin+). Records a blurb-log entry with before/after.
-app.put('/api/blurbs/:id', requireRole('admin'), async (req, res) => {
+// Edit a blurb (canEditTools). Records a blurb-log entry with before/after.
+app.put('/api/blurbs/:id', requireFlag('canEditTools'), async (req, res) => {
   try {
     let { title, text } = req.body || {};
     title = String(title || '').trim();
@@ -1300,8 +1321,8 @@ app.put('/api/blurbs/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Delete a blurb (admin+). Records a blurb-log entry.
-app.delete('/api/blurbs/:id', requireRole('admin'), async (req, res) => {
+// Delete a blurb (canEditTools). Records a blurb-log entry.
+app.delete('/api/blurbs/:id', requireFlag('canEditTools'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.blurbs);
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
@@ -1400,8 +1421,8 @@ app.post('/api/hashtags/:id/copy', requireRole('user'), async (req, res) => {
   }
 });
 
-// Create a hashtag (admin+). Records a hashtag-log entry.
-app.post('/api/hashtags', requireRole('admin'), async (req, res) => {
+// Create a hashtag (canEditTools). Records a hashtag-log entry.
+app.post('/api/hashtags', requireFlag('canEditTools'), async (req, res) => {
   try {
     let { tag, desc } = req.body || {};
     tag = String(tag || '').trim().replace(/^#/, ''); // store without leading '#'
@@ -1425,8 +1446,8 @@ app.post('/api/hashtags', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Edit a hashtag (admin+). Records a hashtag-log entry with before/after.
-app.put('/api/hashtags/:id', requireRole('admin'), async (req, res) => {
+// Edit a hashtag (canEditTools). Records a hashtag-log entry with before/after.
+app.put('/api/hashtags/:id', requireFlag('canEditTools'), async (req, res) => {
   try {
     let { tag, desc } = req.body || {};
     tag = String(tag || '').trim().replace(/^#/, '');
@@ -1450,8 +1471,8 @@ app.put('/api/hashtags/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Delete a hashtag (admin+). Records a hashtag-log entry.
-app.delete('/api/hashtags/:id', requireRole('admin'), async (req, res) => {
+// Delete a hashtag (canEditTools). Records a hashtag-log entry.
+app.delete('/api/hashtags/:id', requireFlag('canEditTools'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.hashtags);
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
@@ -1537,8 +1558,8 @@ app.post('/api/paging/:id/copy', requireRole('user'), async (req, res) => {
   }
 });
 
-// Add a paging contact (admin+). All three fields required. Records a paging-log entry.
-app.post('/api/paging', requireRole('admin'), async (req, res) => {
+// Add a paging contact (canEditTools). All three fields required. Records a paging-log entry.
+app.post('/api/paging', requireFlag('canEditTools'), async (req, res) => {
   try {
     let { country, code, email } = req.body || {};
     country = String(country || '').trim();
@@ -1563,8 +1584,8 @@ app.post('/api/paging', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Edit a paging contact (admin+). Records a paging-log entry with before/after.
-app.put('/api/paging/:id', requireRole('admin'), async (req, res) => {
+// Edit a paging contact (canEditTools). Records a paging-log entry with before/after.
+app.put('/api/paging/:id', requireFlag('canEditTools'), async (req, res) => {
   try {
     let { country, code, email } = req.body || {};
     country = String(country || '').trim();
@@ -1593,8 +1614,8 @@ app.put('/api/paging/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Delete a paging contact (admin+). Records a paging-log entry.
-app.delete('/api/paging/:id', requireRole('admin'), async (req, res) => {
+// Delete a paging contact (canEditTools). Records a paging-log entry.
+app.delete('/api/paging/:id', requireFlag('canEditTools'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.paging);
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
@@ -1739,7 +1760,7 @@ async function getImportantMarking(shortId) {
 
 // List ALL marked "important" tickets (admin+), newest first. For the leadership Unique Cases page.
 // Joins each ticket's title/status from the quarter data when available.
-app.get('/api/important-cases', requireRole('user'), async (req, res) => {
+app.get('/api/important-cases', requireFlag('canViewUnique'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.importantCases);
     const rows = await coll.find({}).sort({ updatedAt: -1, at: -1 }).toArray();
@@ -1948,7 +1969,7 @@ const STATION_REQ_SECTIONS = {
   // 3) Not raised, still fulfilled: !labelled && fulfilled
   'not-raised-fulfilled': { labelled: false, fulfilled: true },
 };
-app.get('/api/station-requests', requireRole('admin'), async (req, res) => {
+app.get('/api/station-requests', requireFlag('canViewSR'), async (req, res) => {
   try {
     const section = String(req.query.section || '').trim();
     const spec = STATION_REQ_SECTIONS[section];
@@ -4180,7 +4201,7 @@ app.get('/api/incident-groups', requireRole('user'), async (req, res) => {
 
 // Save (publish) the display grouping. OWNER-ONLY. Body: { groups:[{ name, members:[rawType,...] }] }.
 // Validates names/members, drops empties, and rejects a raw type mapped to more than one group.
-app.put('/api/incident-groups', requireRole('owner'), async (req, res) => {
+app.put('/api/incident-groups', requireFlag('canGroupingPage'), async (req, res) => {
   try {
     const body = req.body || {};
     const rawGroups = Array.isArray(body.groups) ? body.groups : [];
@@ -4218,7 +4239,7 @@ app.put('/api/incident-groups', requireRole('owner'), async (req, res) => {
 
 // ---- Resolution display grouping (owner tool; independent of incident groups) ----
 // Read the current resolution grouping. Owner-only (only the groups-page tool uses it for now).
-app.get('/api/resolution-groups', requireRole('owner'), async (req, res) => {
+app.get('/api/resolution-groups', requireFlag('canGroupingPage'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.resolutionGroups);
     const doc = await coll.findOne({ _id: 'live' });
@@ -4229,7 +4250,7 @@ app.get('/api/resolution-groups', requireRole('owner'), async (req, res) => {
 });
 
 // Save (publish) the resolution grouping. OWNER-ONLY. Body: { groups:[{ name, members:[rawValue,...] }] }.
-app.put('/api/resolution-groups', requireRole('owner'), async (req, res) => {
+app.put('/api/resolution-groups', requireFlag('canGroupingPage'), async (req, res) => {
   try {
     const body = req.body || {};
     const rawGroups = Array.isArray(body.groups) ? body.groups : [];

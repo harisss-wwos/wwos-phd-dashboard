@@ -44,6 +44,12 @@ window.PHDAuth = {
   canUpload: function () { return this.isOwner() || this._flag('canUpload'); },
   canManageUsers: function () { return this.isOwner() || this._flag('canCreateUsers'); },
   canDatabase: function () { return this.isOwner() || this._flag('canDatabase'); },
+  canEditTools: function () { return this.isOwner() || this._flag('canEditTools'); },
+  canViewSR: function () { return this.isOwner() || this._flag('canViewSR'); },
+  canViewRepeat: function () { return this.isOwner() || this._flag('canViewRepeat'); },
+  canViewUnique: function () { return this.isOwner() || this._flag('canViewUnique'); },
+  canViewSLA: function () { return this.isOwner() || this._flag('canViewSLA'); },
+  canGroupingPage: function () { return this.isOwner() || this._flag('canGroupingPage'); },
 
   // ---- Shared page cache (stale-while-revalidate, version-stamped) ----
   // Lets standalone pages paint instantly from localStorage, then refresh in the background.

@@ -13,11 +13,18 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#121820;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px}
+/* The homepage title bar is retired: navigation lives in the left rail + the floating top-right
+   cluster (avatar / Login, Uploaded data log) injected by topbar-auth.js. Hide it on every state. */
+.top-bar{display:none!important}
+/* One header div mirroring the app dashboard: title on the left; the top-right cluster (Uploaded
+   data log + avatar) is moved in as the right-side child by topbar-auth.js (PHDPlaceTopRight). */
+.home-title-row{display:flex;align-items:center;gap:14px;min-height:46px;margin-bottom:10px}
+.home-title-name{font-size:1.2em;color:#fff;font-weight:700;letter-spacing:.3px;line-height:1}
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.12em;font-weight:700;color:#fff;line-height:1}
 .wrap{max-width:1000px;margin:0 auto;padding:28px 24px}
-.hero{text-align:center;margin-bottom:24px}
+.hero{text-align:center;margin-bottom:0}
 .hero h1{font-size:2.4em;color:#fff;font-weight:700;margin-bottom:10px}
 .hero p{color:var(--tm);font-size:1.05em}
 .gsoc-logo{max-width:220px;width:100%;height:auto;margin:0 auto 24px;display:block}
@@ -239,8 +246,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   .year-section.open .year-body{padding:4px 14px 16px}
 }
 
-/* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Layout: [left rail] | 20px | content (full remaining width) | 20px. The body (topbar-auth.js)
+   provides the rail offset + side gaps (padding-left 86px, padding-right 20px). Neutralize the old
+   90vw + translateX(-50%) viewport-centering trick so every wrapper just fills the content area. */
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;padding-top:10px!important}
+.about,.grid,#yearSections{width:auto!important;max-width:none!important;margin-left:0!important;margin-right:0!important;transform:none!important;left:auto!important}
 </style>
 </head>
 <body data-no-toolbar="true">
@@ -273,6 +283,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <p style="color:#fff;font-weight:600">Signing you in…</p>
 </div>
 <div class="wrap">
+  <!-- Compact header row: title on the left (buttons/avatar are the floating top-right cluster). -->
+  <div class="home-title-row js-header-row"><span class="home-title-name">WWOS-PHD Dashboard</span></div>
   <div class="hero">
     <div class="about">
       <h3>About the PHD Program</h3>

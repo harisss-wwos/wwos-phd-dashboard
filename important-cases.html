@@ -230,6 +230,7 @@ async function doUnmark(){
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  if(!(A.canViewUnique&&A.canViewUnique())){gate('You do not have access to Unique Cases.');return;}
   try{MY_TZ=await A.myTimezone();}catch(e){}
   // Cache (time-based): paint instantly from cache, then refresh in the background.
   const res=await A.swrLoad({

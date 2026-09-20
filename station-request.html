@@ -189,8 +189,8 @@ function reloadSection(id){
 window.reloadSection=reloadSection;
 
 function load(){
-  if(!A.getUser()||!A.getToken()){ gate('This page is for logged-in admins. Log in from the Live Dashboard first.'); return; }
-  if(!(A.atLeast&&A.atLeast('admin'))){ gate('Admin access is required to view Station Request analysis.'); return; }
+  if(!A.getUser()||!A.getToken()){ gate('This page is for logged-in users. Log in from the Live Dashboard first.'); return; }
+  if(!(A.canViewSR&&A.canViewSR())){ gate('You do not have access to Station Request Tickets.'); return; }
   // 1) Paint the hardcoded skeleton (header + 3 section shells) INSTANTLY.
   var html='<div class="sr-head"><h1>'+ic('map-pin',22)+' Station Request Tickets</h1></div>'+
     '<p class="sr-sub">For now this page contains incidents that involve <b>Station Request / Address Exclusion</b> after the complete take over by WWOS.'+

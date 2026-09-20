@@ -17,7 +17,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:26px;width:auto;display:block}
 .logo span{font-size:1.05em;font-weight:700;color:#fff}
-.wrap{width:92%;max-width:1400px;margin:0 auto;padding:34px 20px}
+.wrap{width:auto;max-width:none;margin:0;padding:20px 0}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 /* Top-level collapsible section cards (Incident type / Resolutions). */
 .section-card{margin-bottom:20px}
@@ -129,17 +129,14 @@ th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;
 .bar-cell>div{height:8px;border-radius:4px;background:#ff9900;min-width:4px}
 </style>
 </head>
-<body>
-<div class="top-bar">
-  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>Groups Page</span></a>
-  <a class="btn sec" href="app.html">Live Dashboard</a>
-</div>
+<body data-no-toolbar="true">
 <div class="wrap" id="wrap">
   <div class="spinner"></div>
 </div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script>
 const A=window.PHDAuth;
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -198,7 +195,7 @@ function clearRDraft(){ try{ localStorage.removeItem(RDRAFT_KEY); }catch(e){} }
 
 async function boot(){
   if(!A.getUser()||!A.getToken()){gate('Please log in to use this tool.');return;}
-  if(!isOwner()){gate('This tool is for the owner only.');return;}
+  if(!(A.canGroupingPage&&A.canGroupingPage())){gate('You do not have access to the Grouping Page.');return;}
   try{
     const [q2R,q3R,resR,grpR,rgrpR]=await Promise.all([
       A.api('GET','/api/incident-types/raw?q=2026-Q2'),
@@ -230,7 +227,6 @@ async function boot(){
 function render(){
   const wrap=document.getElementById('wrap');
   wrap.innerHTML=`
-    <h1>Groups Page</h1>
     <p class="sub">Combine raw values into one display name. This only relabels what's shown — the underlying ticket data is never changed. Publish to save. Each section below expands/collapses independently.</p>
     <div class="warn-banner">${ic('alert',15)} Owner-only. This page isn't linked anywhere. Changes are saved only when you click a <b>&nbsp;Publish</b> button.</div>
 

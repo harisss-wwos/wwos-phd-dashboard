@@ -40,20 +40,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.danger{background:var(--r);color:#fff}
-.content{padding:24px;max-width:1600px;margin:0 auto}
+.content{padding:10px 24px 24px;max-width:1600px;margin:0 auto}
 .page-title{margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
 .page-title h1{font-size:1.8em;color:#fff;font-weight:700}
 .page-title p{color:var(--tm);margin-top:4px;font-size:.9em}
 /* Dashboard title row: Q3 (left) + LIVE (right), plus Alerts/Upload/data-log actions. */
 /* Split toolbar: personal nav pinned left, data actions pinned right. */
-/* Title row sits in the header band. Reserve space on the right for the floating top-right cluster
-   (Uploaded data log + avatar) so the title never tucks underneath it. */
-.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;min-height:46px;padding-right:240px}
-.dash-title-row:not(:empty){margin-bottom:20px}
-@media(max-width:760px){.dash-title-row{padding-right:0}}
+/* One header div: title on the left; the top-right cluster (Uploaded data log + avatar) is moved in
+   as the right-side child by topbar-auth.js (PHDPlaceTopRight). */
+.dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+.dash-title-row:not(:empty){margin-bottom:10px}
 .dash-title-h1{font-size:1.8em;color:#fff;font-weight:700;margin:0;display:inline-flex;align-items:center;gap:12px;flex:1 1 auto;justify-content:space-between}
 /* Dashboard title label (replaces the old My Tickets button in this row). */
-.dash-title-name{font-size:1.5em;color:#fff;font-weight:700;letter-spacing:.3px}
+.dash-title-name{font-size:1.2em;color:#fff;font-weight:700;letter-spacing:.3px;line-height:1}
 /* Each group is a segmented pill container so its buttons read as one cohesive control. */
 .dash-actions{display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;background:#0e141b;border:1px solid #2f3a45;border-radius:12px;padding:4px}
 .dash-actions-left{margin-right:auto}

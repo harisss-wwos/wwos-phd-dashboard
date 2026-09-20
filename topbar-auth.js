@@ -109,7 +109,13 @@
       // Floating top-right control cluster: data-action buttons (Upload / data log) + the profile pill,
       // pinned to the same right edge (22px) as the back button. Laid out right-to-left so the profile
       // sits on the far right and the data actions sit to its left.
-      + '.tb-top-right{position:absolute;right:20px;top:16px;z-index:901;display:flex;align-items:center;gap:10px;flex-direction:row}'
+      + '.tb-top-right{position:absolute;right:20px;top:10px;z-index:901;display:flex;align-items:center;gap:10px;flex-direction:row}'
+      // When moved inside a page header row, the cluster sits statically as the row\'s right-side child.
+      + '.tb-top-right.tb-top-right-inrow{position:static;right:auto;top:auto;margin-left:auto}'
+      // Universal header row (injected on pages that do not render their own .js-header-row): title on
+      // the left, cluster on the right. Same slim style as the app dashboard header.
+      + '.tb-header-row{display:flex;align-items:center;gap:14px;min-height:46px;padding:10px 0 0;margin-bottom:10px}'
+      + '.tb-header-name{font-size:1.2em;color:#fff;font-weight:700;letter-spacing:.3px;line-height:1}'
       // Profile pill. Round 46px avatar on the right; the name is a label that slides IN from the LEFT
       // on hover. overflow:hidden clips the label until hover; the label sits BEFORE the avatar in the
       // DOM so the pill grows leftward (right edge stays fixed).
@@ -237,6 +243,17 @@
       // way but does NOT create a scroll container, so sticky keeps working.
       + 'html,body{max-width:100%;overflow-x:clip}'
       + '*{box-sizing:border-box}'
+      // App-wide: any disabled control shows the not-allowed cursor. Covers native [disabled],
+      // aria-disabled, and the app\'s disabled-state classes. Applied on every page (this stylesheet
+      // is injected everywhere). Use pointer-events:auto so the cursor is actually visible on hover.
+      + 'button[disabled],input[disabled],select[disabled],textarea[disabled],fieldset[disabled],'
+      + '[aria-disabled="true"],.disabled,.tb-nav-disabled,.tb-btn-disabled,.tb-live-disabled,.tb-an-disabled'
+      + '{cursor:not-allowed!important}'
+      // The rail/toolbar FABs previously set pointer-events:none (which hides the cursor). They are
+      // already inert when disabled (no href / no onclick / aria-disabled), so re-enabling pointer
+      // events here just lets the not-allowed cursor show without making them actionable. NOTE: this
+      // deliberately excludes generic .disabled / index cards, which rely on pointer-events:none.
+      + '.tb-nav-disabled,.tb-btn-disabled,.tb-live-disabled,.tb-an-disabled{pointer-events:auto!important}'
       + 'img,svg,canvas,video{max-width:100%;height:auto}'
       + 'pre{max-width:100%;overflow-x:auto;white-space:pre-wrap;word-break:break-word}'
       // any data table sits in a scroll container instead of pushing the page wider
@@ -245,7 +262,14 @@
       // Layout: [rail] | 20px | content (full remaining width) | 20px. The body handles the rail
       // offset + side gaps (padding-left 86px, padding-right 20px), so the content wrappers just fill
       // the space edge-to-edge: drop their max-width caps and auto side margins.
-      + '.content,.wrap{max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important}'
+      // Fill the content area edge-to-edge (drop max-width caps + auto side margins + side padding),
+      // and zero the TOP padding so the ONLY top gap comes from the header row (padding-top:10px +
+      // margin-bottom:10px). This makes the header->content gap identical on every page. Bottom
+      // padding is preserved for breathing room at the end of the page.
+      + '.content,.wrap{max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;padding-top:0!important}'
+      // Every header row (page-provided .dash-title-row/.home-title-row or the injected .tb-header-row)
+      // gets the SAME top+bottom spacing so the gap to content matches everywhere.
+      + '.js-header-row{padding-top:10px!important;margin-bottom:10px!important;margin-top:0!important}'
       + '@media(max-width:920px){'
         + '.tb-topbar{padding:10px 12px;gap:8px;flex-wrap:wrap}'
         + '.tb-logo{flex-wrap:wrap;gap:6px}'
@@ -965,13 +989,56 @@
   // lives in the left FAB rail.) The profile pill expands leftward on hover (name/Login text slides
   // in). Re-rendered by refreshProfileAvatar() once the full profile loads in the background.
   function buildProfileAvatar() {
-    if (document.getElementById('tbTopRight')) return;
-    var cluster = document.createElement('div');
-    cluster.id = 'tbTopRight';
-    cluster.className = 'tb-top-right';
-    document.body.appendChild(cluster);
-    paintProfileAvatar();
+    tbPlaceTopRight(); // creates the cluster if missing, paints it, and anchors it (row or floating)
   }
+  // Ensure EVERY page shows the same header div: "WWOS-PHD Dashboard" title on the left + the
+  // top-right cluster (Uploaded data log + avatar) on the right. If the page already renders its own
+  // header row (.js-header-row — e.g. app.html dashboard, index.html), we reuse it. Otherwise we
+  // inject a universal header (#tbHeaderRow) as the first element of <body> so it's constant across
+  // every page. Returns the header row element (or null if none/should float).
+  function tbEnsureHeaderRow() {
+    // A page-provided header row (NOT our injected one) always wins — keep the page's own title.
+    var page = null, all = document.querySelectorAll('.js-header-row');
+    for (var i = 0; i < all.length; i++) { if (all[i].id !== 'tbHeaderRow') { page = all[i]; break; } }
+    var universal = document.getElementById('tbHeaderRow');
+    if (page) {
+      // A real page header exists -> drop any stale universal header so the title isn't duplicated.
+      if (universal) universal.remove();
+      return page;
+    }
+    // Otherwise build (once) a universal header row pinned to the top of the content.
+    if (!universal) {
+      universal = document.createElement('div');
+      universal.id = 'tbHeaderRow';
+      universal.className = 'tb-header-row js-header-row';
+      universal.innerHTML = '<span class="tb-header-name">WWOS-PHD Dashboard</span>';
+      document.body.insertBefore(universal, document.body.firstChild);
+    }
+    return universal;
+  }
+  // Unify the header into ONE div: put the cluster INTO the header row (page-provided or the
+  // universal one) as the right-side child so title + buttons live in a single flex row. app.js calls
+  // this again after it re-renders the dashboard title row (the cluster is a body-level singleton).
+  function tbPlaceTopRight() {
+    var cluster = document.getElementById('tbTopRight');
+    // If a page re-render wiped the cluster (it lived inside #app), rebuild it from current state.
+    if (!cluster) {
+      cluster = document.createElement('div');
+      cluster.id = 'tbTopRight';
+      cluster.className = 'tb-top-right';
+      document.body.appendChild(cluster);
+      paintProfileAvatar();
+    }
+    var row = tbEnsureHeaderRow();
+    if (row) {
+      if (cluster.parentNode !== row) row.appendChild(cluster);
+      cluster.classList.add('tb-top-right-inrow'); // static, sits inside the flex row
+    } else {
+      if (cluster.parentNode !== document.body) document.body.appendChild(cluster);
+      cluster.classList.remove('tb-top-right-inrow'); // float absolute top-right
+    }
+  }
+  window.PHDPlaceTopRight = tbPlaceTopRight; // let pages re-anchor the cluster after re-rendering the header
   // Escape helper for user-provided strings placed into markup.
   function tbEsc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function paintProfileAvatar() {
@@ -1096,6 +1163,25 @@
     var col = tbFabCol(); var an = col.querySelector('.tb-an-fab');
     if (an) col.insertBefore(fab, an); else col.appendChild(fab);
   }
+  // Evaluate whether a nav item's `need` token is satisfied. Central place so buildNavFabs and
+  // applyNavFabsState stay in sync. Owner passes every flag (the flag helpers force-true for owner).
+  function tbNeedMet(need, li, isAdmin, isOwner) {
+    switch (need) {
+      case true: case 'any': return true;
+      case 'li': return li;
+      case 'admin': return isAdmin;
+      case 'owner': return isOwner;
+      case 'upload': return !!(A.canUpload && A.canUpload());
+      case 'database': return !!(A.canDatabase && A.canDatabase());
+      case 'edittools': return !!(A.canEditTools && A.canEditTools());
+      case 'sr': return !!(A.canViewSR && A.canViewSR());
+      case 'repeat': return !!(A.canViewRepeat && A.canViewRepeat());
+      case 'unique': return !!(A.canViewUnique && A.canViewUnique());
+      case 'sla': return !!(A.canViewSLA && A.canViewSLA());
+      case 'grouping': return !!(A.canGroupingPage && A.canGroupingPage());
+      default: return false;
+    }
+  }
   // Build the PAGE-NAVIGATION FABs at the TOP of the centered column (above Live + Analytics). Each
   // is an expand-on-hover pill linking to a page. Role-gated: admin-only items greyed + inert.
   function buildNavFabs() {
@@ -1110,13 +1196,14 @@
       { key: 'shift-report', label: 'Shift Report',              icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
       { key: 'help-activity', label: 'Alerts and Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' },
       { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' },
-      { key: 'hi-resolved',   label: 'Repeat Incidents',          icon: 'repeat',      href: 'hi-resolved.html',           need: 'li' },
-      { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'li' },
-      { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'li' },
-      { key: 'unique-cases',  label: 'Unique cases',              img: 'important.png', href: 'important-cases.html',      need: 'li' },
+      { key: 'hi-resolved',   label: 'Repeat Incidents',          icon: 'repeat',      href: 'hi-resolved.html',           need: 'repeat' },
+      { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'sla' },
+      { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'sr' },
+      { key: 'unique-cases',  label: 'Unique cases',              img: 'important.png', href: 'important-cases.html',      need: 'unique' },
       { key: 'archive',       label: 'Program History (Archive)', icon: 'calendar',    href: 'archive.html',               need: 'li' },
       { key: 'users',         label: 'Users',                     icon: 'users-gear',  href: 'users.html',                 need: 'admin' },
-      { key: 'groups-page',   label: 'Grouping Page',             icon: 'copy',        href: 'groups-page.html',           need: 'owner' }
+      { key: 'groups-page',   label: 'Grouping Page',             icon: 'copy',        href: 'groups-page.html',           need: 'grouping' },
+      { key: 'db-health',     label: 'Database health',           icon: 'database',    href: 'db-health.html',             need: 'database' }
     ];
     // Restore any saved custom order (drag-and-drop). Unknown/new keys keep their default position.
     items = tbApplyNavOrder(items);
@@ -1124,8 +1211,7 @@
     var anchor = col.querySelector('.tb-live-fab') || col.querySelector('.tb-an-fab'); // insert above these
     var canUpload = A.canUpload && A.canUpload();
     items.forEach(function (it) {
-      var enabled = (it.need === true) || (it.need === 'li' && li) || (it.need === 'admin' && isAdmin)
-        || (it.need === 'owner' && isOwner) || (it.need === 'upload' && canUpload);
+      var enabled = tbNeedMet(it.need, li, isAdmin, isOwner);
       // Upload is a button (opens the in-place CSV picker); everything else is a link.
       var isUpload = it.type === 'upload';
       var fab = document.createElement(isUpload ? 'button' : 'a');
@@ -1150,8 +1236,7 @@
         fab.title = it.label;
       } else {
         fab.setAttribute('aria-disabled', 'true');
-        var needRole = it.need === 'owner' ? 'owner' : 'admin';
-        fab.title = li ? (it.label + ' — ' + needRole + ' access required') : ('Log in to view ' + it.label);
+        fab.title = li ? (it.label + ' — you do not have access') : ('Log in to view ' + it.label);
       }
       // Keep list order by inserting each new item just before the anchor (Live/Analytics).
       if (anchor) col.insertBefore(fab, anchor); else col.appendChild(fab);
@@ -1243,8 +1328,7 @@
     document.querySelectorAll('.tb-nav-fab').forEach(function (fab) {
       var need = fab.getAttribute('data-need');
       if (!need) return;
-      var enabled = (need === 'any') || (need === 'li' && li) || (need === 'admin' && isAdmin)
-        || (need === 'owner' && isOwner) || (need === 'upload' && canUpload);
+      var enabled = tbNeedMet(need, li, isAdmin, isOwner);
       var href = fab.getAttribute('data-href') || '';
       var label = fab.getAttribute('aria-label') || '';
       var isBtn = fab.tagName === 'BUTTON'; // the Upload FAB is a button (no href)
@@ -1257,9 +1341,7 @@
         fab.classList.add('tb-nav-disabled');
         fab.setAttribute('aria-disabled', 'true');
         if (!isBtn) fab.removeAttribute('href');
-        var reason = need === 'upload' ? (li ? ' — you do not have upload access' : '')
-          : (' — ' + (need === 'owner' ? 'owner' : 'admin') + ' access required');
-        fab.title = li ? (label + reason) : ('Log in to ' + (need === 'upload' ? label : ('view ' + label)));
+        fab.title = li ? (label + ' — you do not have access') : ('Log in to view ' + label);
       }
     });
     if (li) refreshAlertBadge(); // refresh the open-alert count once auth is confirmed

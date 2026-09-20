@@ -153,7 +153,7 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 <script>
 const A=window.PHDAuth;
 let CONTACTS=[];
-const canAdd=()=>A.atLeast&&A.atLeast('admin');
+const canAdd=()=>A.canEditTools&&A.canEditTools();
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 

@@ -115,6 +115,15 @@ input:focus{outline:none;border-color:var(--o)}
 .u-toggle.disabled .u-knob{background:#5f6b6c}
 /* Disabled action buttons (non-owner viewer). */
 .u-act.disabled{cursor:not-allowed;opacity:.4;pointer-events:none}
+/* The toggle currently being saved: knob pulses + a subtle ring while we wait for the server. */
+.u-toggle.busy{position:relative}
+.u-toggle.busy .u-knob{animation:uKnobPulse .7s ease-in-out infinite}
+@keyframes uKnobPulse{0%,100%{opacity:1}50%{opacity:.45}}
+/* Page-wide busy state while a flag save is in flight: block interaction + show a top progress bar. */
+.users-busy{position:relative;pointer-events:none}
+.users-busy .users-table{opacity:.6;transition:opacity .15s}
+.users-busy::after{content:'';position:absolute;left:0;top:0;height:3px;width:40%;background:linear-gradient(90deg,transparent,var(--o),transparent);border-radius:3px;animation:usersBar 1s linear infinite;z-index:5}
+@keyframes usersBar{0%{left:-40%}100%{left:100%}}
 /* Create-user modal */
 .cu-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .cu-modal-bg[style*="flex"]{display:flex}
@@ -191,6 +200,30 @@ input:focus{outline:none;border-color:var(--o)}
     <div class="cu-toggle-row">
       <div><div class="cu-tl">Can create other users</div><div class="cu-hint">If off, the Users page is disabled for them; if on, they can manage users.</div></div>
       <label class="cu-switch"><input type="checkbox" id="cuCreate"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">Edit Tools</div><div class="cu-hint">Allows adding/editing blurbs, hashtags and paging contacts.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuEditTools"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">View SR</div><div class="cu-hint">Access to the Station Request Tickets page.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuViewSR"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">View Repeat</div><div class="cu-hint">Access to the Repeat Incidents page.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuViewRepeat"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">View Unique</div><div class="cu-hint">Access to the Unique cases page.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuViewUnique"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">View SLA</div><div class="cu-hint">Access to the SLA Breaches page.</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuViewSLA"><span class="cu-slider"></span></label>
+    </div>
+    <div class="cu-toggle-row">
+      <div><div class="cu-tl">Grouping Page</div><div class="cu-hint">Access to the Grouping Page (owner tool).</div></div>
+      <label class="cu-switch"><input type="checkbox" id="cuGroupingPage"><span class="cu-slider"></span></label>
     </div>
     <div class="cu-toggle-row">
       <div><div class="cu-tl">Has access to the Database page</div><div class="cu-hint">If off, the Database button is disabled for them; if on, they can open Database health.</div></div>
@@ -413,7 +446,9 @@ function renderList(users){
     if(u.role==='owner'){
       return '<tr class="is-owner"><td>'+userCell(u)+'</td><td>'+tzSelect(u)+'</td><td>'+badgePill(u.badge)+'</td>'
         +'<td>'+yesNo(u.analyst)+'</td>'
-        +'<td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td>'
+        +'<td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td>'
+        +'<td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td>'
+        +'<td class="col-access">'+yesNo(true)+'</td>'
         +'<td><span class="u-owner-tag">'+ic('shield',14)+'Full access</span></td></tr>';
     }
     return '<tr><td>'+userCell(u)+'</td>'
@@ -422,6 +457,12 @@ function renderList(users){
       +'<td>'+analystSelect(u)+'</td>'
       +'<td class="col-access">'+toggle(u,'canUpload')+'</td>'
       +'<td class="col-access">'+toggle(u,'canCreateUsers')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canEditTools')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canViewSR')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canViewRepeat')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canViewUnique')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canViewSLA')+'</td>'
+      +'<td class="col-access">'+toggle(u,'canGroupingPage')+'</td>'
       +'<td class="col-access">'+toggle(u,'canDatabase')+'</td>'
       +'<td>'+(iAmOwner
         ? '<div class="u-row-actions">'
@@ -444,21 +485,25 @@ function renderList(users){
   const rows=sorted.map(rowFor).join('');
   wrap.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <h1 style="margin:0">User Management</h1>
+      <div>
+        <h1 style="margin:0">User Management</h1>
+        <p class="sub" style="margin:4px 0 0;padding-bottom:5px">${iAmOwner
+          ? 'Manage accounts and their access. The owner account cannot be changed or removed.'
+          : 'Create users and edit timezone, badge and analyst. Only the owner can grant page access or reset and remove users.'}</p>
+      </div>
       ${canManage
         ? `<button class="btn" onclick="openCreateUser()">${ic('plus',15)} Create user</button>`
         : `<button class="btn" disabled title="You do not have access to create users." style="opacity:.5;cursor:not-allowed">${ic('plus',15)} Create user</button>`}
     </div>
-    <p class="sub">${iAmOwner
-      ? 'Manage accounts and their access. The owner account cannot be changed or removed.'
-      : 'Create users and edit timezone, badge and analyst. Only the owner can grant page access or reset and remove users.'}</p>
     <div class="msg err" id="listErr"></div>
     <div class="msg ok" id="listOk"></div>
     <div class="card users-card">
       <h2><span class="card-h">${ic('users')} Users (${users.length})</span></h2>
       <div class="users-scroll"><table class="users-table"><thead><tr>
         <th>User</th><th>Timezone</th><th>Badge</th><th>Analyst</th>
-        <th class="col-access">Upload access</th><th class="col-access">Create users</th><th class="col-access">Database page</th>
+        <th class="col-access">Upload access</th><th class="col-access">Create users</th>
+        <th class="col-access">Edit Tools</th><th class="col-access">View SR</th><th class="col-access">View Repeat</th><th class="col-access">View Unique</th><th class="col-access">View SLA</th><th class="col-access">Grouping Page</th>
+        <th class="col-access">Database page</th>
         <th>Actions</th>
       </tr></thead><tbody>${rows}</tbody></table></div>
     </div>`;
@@ -525,17 +570,37 @@ async function changeTz(id,timezone,username){
   if(r.ok)flash('listOk',username+"'s timezone is now "+timezone+'.','ok');
   else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');load();}
 }
-// ---- Per-user flag edits (badge / analyst / canUpload / canCreateUsers) ----
+// Fetch the roster FRESH (bypassing the SWR cache), re-render, and refresh the cache. Used after a
+// flag/badge/analyst change so the table reflects the just-saved value (the cache would be stale).
+async function reloadFresh(){
+  const r=await A.api('GET','/api/users');
+  if(r.ok&&Array.isArray(r.data)){
+    renderList(r.data);
+    try{ A._cacheWrite('users',undefined,r.data); }catch(e){}
+  } else {
+    // Fall back to the cached SWR path if the fresh fetch failed.
+    load();
+  }
+}
+// Toggle the page-wide busy state (dims table + top progress bar + blocks clicks) while a save runs.
+function setUsersBusy(on){ const c=document.querySelector('.users-card'); if(c) c.classList.toggle('users-busy',!!on); }
+// ---- Per-user flag edits (badge / analyst / access flags) ----
 async function patchFlags(id,body,username,okMsg){
+  setUsersBusy(true);
   const r=await A.api('PATCH','/api/users/'+id+'/flags',body);
-  if(r.ok)flash('listOk',okMsg,'ok');
-  else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');}
-  load();
+  // Success is shown by the toggle state itself (no confirmation line). Only surface failures.
+  if(!r.ok) flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+  await reloadFresh();   // re-render from the server so the change is reflected (cache would be stale)
+  setUsersBusy(false);
 }
 function changeBadge(id,badge,username){ patchFlags(id,{badge},username,username+"'s badge is now "+badge+'.'); }
 function changeAnalyst(id,val,username){ const analyst=(val==='yes'); patchFlags(id,{analyst},username,username+(analyst?' is now an Analyst.':' is no longer an Analyst.')); }
 function changeFlag(id,flag,value,username){
-  const label=(flag==='canUpload')?'upload access':(flag==='canDatabase')?'Database page access':'user-management access';
+  const LBL={canUpload:'upload access',canDatabase:'Database page access',canCreateUsers:'user-management access',canEditTools:'Edit Tools access',canViewSR:'View SR access',canViewRepeat:'View Repeat access',canViewUnique:'View Unique access',canViewSLA:'View SLA access',canGroupingPage:'Grouping Page access'};
+  const label=LBL[flag]||'access';
+  // Optimistic feedback: flip + mark the clicked toggle busy immediately so it animates during the wait.
+  var btn=(typeof event!=='undefined'&&event)?(event.currentTarget||event.target):null;
+  if(btn&&btn.classList){ btn.classList.add('busy'); btn.classList.toggle('on',!!value); btn.setAttribute('aria-pressed',String(!!value)); }
   patchFlags(id,{[flag]:value},username,username+(value?' now has ':' no longer has ')+label+'.');
 }
 window.changeBadge=changeBadge; window.changeAnalyst=changeAnalyst; window.changeFlag=changeFlag;
@@ -547,7 +612,7 @@ function openCreateUser(){
   // Granting access is owner-only: for non-owner creators, the three access toggles are disabled
   // (they can create a user, but can't grant Upload / Create users / Database access).
   const ownerCreating=!!(A.isOwner&&A.isOwner());
-  ['cuUpload','cuCreate','cuDatabase'].forEach(function(id){
+  ['cuUpload','cuCreate','cuDatabase','cuEditTools','cuViewSR','cuViewRepeat','cuViewUnique','cuViewSLA','cuGroupingPage'].forEach(function(id){
     const el=document.getElementById(id); if(!el)return;
     el.disabled=!ownerCreating; el.checked=false;
     const row=el.closest('.cu-toggle-row'); if(row)row.classList.toggle('cu-locked',!ownerCreating);
@@ -578,9 +643,16 @@ async function submitCreateUser(){
   const canUpload=document.getElementById('cuUpload').checked;
   const canCreateUsers=document.getElementById('cuCreate').checked;
   const canDatabase=document.getElementById('cuDatabase').checked;
+  // New flags are disabled in the modal for now, so they submit as false. Sent so the server stores them.
+  const canEditTools=document.getElementById('cuEditTools').checked;
+  const canViewSR=document.getElementById('cuViewSR').checked;
+  const canViewRepeat=document.getElementById('cuViewRepeat').checked;
+  const canViewUnique=document.getElementById('cuViewUnique').checked;
+  const canViewSLA=document.getElementById('cuViewSLA').checked;
+  const canGroupingPage=document.getElementById('cuGroupingPage').checked;
   const err=document.getElementById('cuErr');
   if(!username||!password){err.textContent='Username and temporary password are required.';err.style.display='block';return;}
-  const r=await A.api('POST','/api/users',{username,password,timezone,badge,analyst,canUpload,canCreateUsers,canDatabase});
+  const r=await A.api('POST','/api/users',{username,password,timezone,badge,analyst,canUpload,canCreateUsers,canDatabase,canEditTools,canViewSR,canViewRepeat,canViewUnique,canViewSLA,canGroupingPage});
   if(r.ok){closeCreateUser();flash('listOk','Created '+username+'.','ok');load();}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
