@@ -1693,6 +1693,24 @@ async function findLiveTicket(shortId) {
   return tickets.find(t => String(t.ShortId || t.IssueId || '') === String(shortId)) || null;
 }
 
+// Attach live-ticket fields (title, ticketStatus, createDate) to a list of help docs by ShortId,
+// in ONE query. Powers the richer Alerts card (title + ticket status + created date/days-left).
+async function enrichHelpWithTicket(list) {
+  const ids = Array.from(new Set(list.map(h => String(h.shortId)).filter(Boolean)));
+  const byId = {};
+  if (ids.length) {
+    try {
+      const tColl = await getCollection(COLLECTIONS.ticketDocs);
+      const rows = await tColl.find({ q: currentQuarter(), ShortId: { $in: ids } }, { projection: { ShortId: 1, Title: 1, Status: 1, CreateDate: 1 } }).toArray();
+      rows.forEach(t => { byId[String(t.ShortId)] = t; });
+    } catch (e) { /* enrichment is best-effort */ }
+  }
+  return list.map(h => {
+    const t = byId[String(h.shortId)] || {};
+    return Object.assign({}, h, { title: t.Title || '', ticketStatus: t.Status || '', createDate: t.CreateDate || '' });
+  });
+}
+
 // Search any ticket across ALL quarters by ShortId (admin+). Used by the "Unique cases" page.
 app.get('/api/ticket-search', requireRole('user'), async (req, res) => {
   try {
@@ -2053,7 +2071,8 @@ app.get('/api/tickets/:shortId/comments', requireRole('user'), async (req, res) 
   try {
     const coll = await getCollection(COLLECTIONS.comments);
     const list = await coll.find({ shortId: String(req.params.shortId) }).sort({ at: 1 }).toArray();
-    res.json(list.map(c => ({ id: String(c._id), text: c.text, user: c.user, role: c.role, at: c.at })));
+    const me = String(req.user.username || '').toLowerCase();
+    res.json(list.map(c => ({ id: String(c._id), text: c.text, user: c.user, role: c.role, at: c.at, mine: String(c.user || '').toLowerCase() === me })));
   } catch (e) {
     res.status(500).json({ error: 'Could not load comments.' });
   }
@@ -2102,6 +2121,26 @@ app.post('/api/tickets/:shortId/comments', requireRole('user'), async (req, res)
     res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not add comment.' });
+  }
+});
+
+// Delete a comment (author only). A user can remove a comment they posted on their own ticket.
+app.delete('/api/tickets/:shortId/comments/:id', requireRole('user'), async (req, res) => {
+  try {
+    const shortId = String(req.params.shortId);
+    const coll = await getCollection(COLLECTIONS.comments);
+    let existing;
+    try { existing = await coll.findOne({ _id: new ObjectId(req.params.id) }); }
+    catch (e) { return res.status(400).json({ error: 'Invalid comment id.' }); }
+    if (!existing || String(existing.shortId) !== shortId) return res.status(404).json({ error: 'Comment not found.' });
+    if (String(existing.user || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'You can only delete your own comments.' });
+    }
+    await coll.deleteOne({ _id: existing._id });
+    await recordTicketActivity(shortId, req.user.username, 'comment-delete');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the comment.' });
   }
 });
 
@@ -2231,7 +2270,8 @@ app.get('/api/help/open', requireRole('user'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.helpRequests);
     const list = await coll.find({ status: 'open' }).sort({ createdAt: -1 }).toArray();
-    res.json(list.map(h => ({ id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '', requester: h.requester, doubt: h.doubt, createdAt: h.createdAt, replies: h.replies || [] })));
+    const base = list.map(h => ({ id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '', requester: h.requester, doubt: h.doubt, status: 'open', createdAt: h.createdAt, replies: h.replies || [] }));
+    res.json(await enrichHelpWithTicket(base));
   } catch (e) {
     res.status(500).json({ error: 'Could not load help requests.' });
   }
@@ -2242,12 +2282,13 @@ app.get('/api/help/all', requireRole('user'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.helpRequests);
     const list = await coll.find({}).sort({ createdAt: -1 }).toArray();
-    res.json(list.map(h => ({
+    const base = list.map(h => ({
       id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '',
       requester: h.requester, doubt: h.doubt, status: h.status,
       createdAt: h.createdAt, resolvedAt: h.resolvedAt || null,
       replies: (h.replies || []).map(rp => ({ by: rp.by, role: rp.role, text: rp.text, at: rp.at })),
-    })));
+    }));
+    res.json(await enrichHelpWithTicket(base));
   } catch (e) {
     res.status(500).json({ error: 'Could not load help activity.' });
   }
@@ -2274,7 +2315,14 @@ app.post('/api/help/:id/reply', requireRole('admin'), async (req, res) => {
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
     if (!existing) return res.status(404).json({ error: 'Help request not found.' });
     const reply = { by: req.user.username, role: req.user.role, text, at: new Date().toISOString() };
-    await coll.updateOne({ _id: existing._id }, { $push: { replies: reply } });
+    // The FIRST admin reply auto-closes the request (badge = "still unanswered" queue). Admins can
+    // keep adding replies afterwards; those just append and don't change the already-resolved status.
+    const isFirstReply = !(existing.replies && existing.replies.length);
+    const update = { $push: { replies: reply } };
+    if (isFirstReply && existing.status === 'open') {
+      update.$set = { status: 'resolved', resolvedAt: reply.at, resolvedBy: req.user.username };
+    }
+    await coll.updateOne({ _id: existing._id }, update);
     res.status(201).json(reply);
   } catch (e) {
     res.status(500).json({ error: 'Could not add reply.' });
@@ -2294,6 +2342,18 @@ app.post('/api/help/:id/resolve', requireRole('editor'), async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not resolve help request.' });
+  }
+});
+
+// Delete a whole help request (question + all replies). OWNER-ONLY.
+app.delete('/api/help/:id', requireRole('owner'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.helpRequests);
+    const r = await coll.deleteOne({ _id: new ObjectId(req.params.id) });
+    if (!r.deletedCount) return res.status(404).json({ error: 'Help request not found.' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete help request.' });
   }
 });
 

@@ -64,6 +64,23 @@ input:focus{outline:none;border-color:var(--o)}
 /* My Profile: constrain the content to 50% of the viewport width, centered. */
 .wrap{width:50vw!important;max-width:50vw!important;min-width:min(94vw,420px)!important;margin-left:auto!important;margin-right:auto!important}
 @media(max-width:760px){.wrap{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}}
+/* ===== Profile banner (Amazon-smile arc) ===== */
+.pbanner{position:relative;border-radius:14px;background:#161616;overflow:hidden;border:1px solid #2a2a2a;margin-bottom:22px}
+.pbanner-top{position:relative;height:76px;background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454);background-size:220% 100%;animation:pbGrad 8s ease infinite}
+@keyframes pbGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.pbanner-arc{position:absolute;right:14px;top:0;height:76px;width:60%;pointer-events:none}
+.pbanner-body{position:relative;padding:0 20px 16px 128px;min-height:56px}
+.pbanner-av{position:absolute;left:22px;top:-38px;width:80px;height:80px;border-radius:50%;background:#161616;padding:4px;box-sizing:border-box}
+.pbanner-av img,.pbanner-av .avatar-initial{width:72px!important;height:72px!important;border-radius:50%!important;display:block}
+.pbanner-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:12px}
+.pbanner-name{color:#fff;font-size:1.15em;font-weight:700}
+.pbanner-handle{color:#9aa7a8;font-weight:400;font-size:.9em}
+.pbanner-badge{color:#cdd7de;font-size:.85em;font-weight:700;white-space:nowrap}
+.pbanner-row2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
+.pbanner-title{color:#879596;font-size:.85em}
+.pbanner-links a{color:#ff9f2e;font-size:.85em;font-weight:600;text-decoration:none}
+.pbanner-links a:hover{text-decoration:underline}
+.pbanner-links span{color:#3a4655;margin:0 6px}
 </style>
 </head>
 <body data-nav-active="profile" data-back-href="app.html" data-back-label="Dashboard">
@@ -96,6 +113,7 @@ input:focus{outline:none;border-color:var(--o)}
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // True once the DB-backed profile (displayName/avatar) has been fetched at least once.
 let PROFILE_LOADED=false;
 function render(){
@@ -116,8 +134,30 @@ function render(){
     ? `<input type="text" id="displayName" maxlength="40" value="${(prof.displayName||'').replace(/"/g,'&quot;')}" placeholder="How your name appears to others">`
     : `<div class="field-loading" id="displayNameLoading"><span class="pspin sm"></span>Loading…</div>`;
   const removeBtn=(PROFILE_LOADED&&prof.avatar)?('<button class="btn sec mini" onclick="removeAvatar()">'+ic('trash')+' Remove photo</button>'):'';
+  const bName=(prof.displayName||user.username||'Profile');
+  const bAv=PROFILE_LOADED?(A.avatarHtml?A.avatarHtml(prof,72):''):'<div class="avatar-loading" style="width:72px;height:72px"><span class="pspin"></span></div>';
+  const banner=`
+    <div class="pbanner">
+      <div class="pbanner-top">
+        <svg class="pbanner-arc" viewBox="0 0 300 76" preserveAspectRatio="none" fill="none">
+          <path d="M20 44 q150 40 268 -10" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+          <path d="M278 30 l14 8 -8 14" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+        </svg>
+      </div>
+      <div class="pbanner-body">
+        <div class="pbanner-av" id="bannerAv">${bAv}</div>
+        <div class="pbanner-row">
+          <span class="pbanner-name">${esc(bName)} <span class="pbanner-handle">${esc(user.username)}@</span></span>
+          <span class="pbanner-badge">${esc(user.role)}</span>
+        </div>
+        <div class="pbanner-row2">
+          <span class="pbanner-title">WWOS-GSOC PHD</span>
+          <span class="pbanner-links"><a href="#" onclick="document.getElementById('avatarFile').click();return false;">Edit photo</a><span>|</span><a href="app.html">Dashboard</a></span>
+        </div>
+      </div>
+    </div>`;
   wrap.innerHTML=`
-    <h1>My Profile</h1>
+    ${banner}
     <p class="sub">Manage your account. Your display name and photo are visible to other users.</p>
     <div class="card">
       <h2>Account</h2>

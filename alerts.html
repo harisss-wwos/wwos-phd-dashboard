@@ -42,6 +42,28 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 
 /* ---- Alerts (open help requests) ---- */
 .thread{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+/* OPEN (unanswered) = white "needs attention" card with dark text. */
+.thread.thread-open,.day-card .thread.thread-open{background:#fff;border-color:#e2e2e2}
+/* Equal vertical gap between every row of the open card. */
+.thread.thread-open{display:flex;flex-direction:column;gap:10px;min-height:200px}
+.thread.thread-open .thread-head,.thread.thread-open .tk-meta-title,.thread.thread-open .tk-meta-row,.thread.thread-open .q.q-big,.thread.thread-open .reply-actions{margin:0}
+/* One uniform font (family + size) across the whole open alert. */
+.thread.thread-open,.thread.thread-open .thread-who,.thread.thread-open .thread-when,.thread.thread-open .tk-meta-title,.thread.thread-open .tk-meta-title-lbl,.thread.thread-open .tk-meta-chip,.thread.thread-open .tk-meta-chip b,.thread.thread-open .q.q-big,.thread.thread-open .btn{font-family:'Inter',-apple-system,sans-serif;font-size:.95rem;line-height:1.5}
+/* Push the reply action to the bottom so every card is the same effective height. */
+.thread.thread-open .reply-actions{margin-top:auto}
+.thread.thread-open .thread-who,.thread.thread-open .thread-who b{color:#0b3d91}
+.thread.thread-open .thread-when{color:#5f6b6c}
+.thread.thread-open .q{color:#111}
+.thread.thread-open .q .lbl{color:#b8860b}
+.thread.thread-open .reply .who{color:#111}
+.thread.thread-open .reply .meta{color:#5f6b6c}
+.thread.thread-open .reply .txt{color:#222}
+.thread.thread-open .noreply{color:#6b7280;border-top-color:rgba(0,0,0,.1)}
+.thread.thread-open .reply-box textarea{background:#f5f5f5;border-color:#cfcfcf;color:#111}
+/* CLOSED (answered) = transparent card (blends into the page). */
+.thread.thread-closed,.day-card .thread.thread-closed{background:transparent;border-color:#242a31;opacity:.85}
+.thread.thread-closed .q{color:#aab2b8}
+.thread.thread-closed .thread-who b{color:#6c8fb3}
 .thread-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .thread-who{font-size:.88em}
 .thread-who b{color:#44b9d6}
@@ -49,13 +71,43 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .pill{padding:2px 9px;border-radius:20px;font-weight:700;font-size:.7em}
 .pill.open{background:rgba(251,191,36,.15);color:#fbbf24}
 .pill.ok{background:rgba(74,222,128,.15);color:#4ade80}
+/* Owner-only delete button on a help thread. */
+.thread-del{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:transparent;border:1px solid rgba(255,82,82,.4);color:#ff5252;cursor:pointer;padding:0}
+.thread-del:hover{background:rgba(255,82,82,.14);border-color:#ff5252}
+.thread.thread-open .thread-del{border-color:rgba(200,40,40,.5);color:#c22}
+.thread.thread-open .thread-del:hover{background:rgba(200,40,40,.12)}
+/* Ticket meta chips (ticket status, help status, created + days left). */
+.tk-meta-title{font-size:.86em;margin:2px 0 6px;color:#e6edf0}
+.tk-meta-title-lbl{color:#5f6b6c}
+.thread.thread-open .tk-meta-title{color:#111}
+.thread.thread-open .tk-meta-title-lbl{color:#4b5563}
+.tk-meta-row{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
+.tk-meta-chip{font-size:.78em;color:#9aa7a8;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:20px;padding:2px 10px}
+.tk-meta-chip b{color:#d5dbdb;font-weight:700}
+.thread.thread-open .tk-meta-chip{color:#4b5563;background:rgba(0,0,0,.05);border-color:#d8d8d8}
+.thread.thread-open .tk-meta-chip b{color:#111}
 .q{color:#fff;font-size:.9em;white-space:pre-wrap;margin:6px 0 8px}
 .q .lbl{color:var(--yl);font-weight:600}
+/* Big question on the Open Alerts card. */
+.q.q-big{font-size:1.25em;font-weight:700;line-height:1.4;margin:10px 0 12px}
+.thread.thread-open .q.q-big{color:#111}
+.thread.thread-open .q.q-big .lbl{color:#b8860b}
 .reply{border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.85em}
 .reply .who{color:#4ade80;font-weight:600}
 .reply .meta{color:#5f6b6c}
 .reply .txt{color:var(--t);white-space:pre-wrap;margin-top:2px}
 .noreply{border-top:1px solid rgba(255,255,255,.06);padding:7px 0;font-size:.8em;color:#5f6b6c;font-style:italic}
+.reply-actions{margin-top:10px;display:flex;justify-content:flex-end}
+.thread.thread-open .reply-actions .btn{background:rgba(240,125,10,.12);color:#b8860b;border-color:rgba(240,125,10,.5)}
+/* Reply pop-up */
+.reply-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}
+.reply-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:22px}
+.reply-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.reply-modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
+.reply-modal-close{background:transparent;border:none;color:var(--tm);font-size:1.4em;cursor:pointer;line-height:1}
+.reply-modal-close:hover{color:#fff}
+.reply-modal textarea{width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+.reply-modal-actions{margin-top:14px;display:flex;gap:10px;justify-content:flex-end}
 .reply-box{margin-top:10px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
 .reply-box textarea{flex:1;min-width:200px;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
@@ -93,6 +145,18 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- Reply pop-up (admin) -->
+<div class="reply-modal-bg" id="replyModal" onclick="if(event.target===this)closeReply()">
+  <div class="reply-modal">
+    <div class="reply-modal-head"><h2>Reply to help request</h2><button class="reply-modal-close" onclick="closeReply()" aria-label="Close">&times;</button></div>
+    <textarea id="replyModalText" maxlength="4000" placeholder="Type your reply / suggestion…"></textarea>
+    <div class="reply-modal-actions">
+      <button class="btn sec" onclick="closeReply()">Cancel</button>
+      <button class="btn" id="replyModalSend" onclick="sendReplyFromModal()">Send reply</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js"></script>
@@ -105,19 +169,26 @@ function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate">
 
 // Default tab: help-activity.html opens on the Help Activity tab; alerts.html (or anything else) on Alerts.
 const PAGE=(location.pathname.split('/').pop()||'').toLowerCase();
-let ACTIVE_TAB=(PAGE==='help-activity.html')?'help':'alerts';
+const _tabParam=(new URLSearchParams(location.search).get('tab')||'').toLowerCase();
+let ACTIVE_TAB=(PAGE==='help-activity.html'||_tabParam==='help')?'help':'alerts';
 let ALERTS_LOADED=false, ALERTS_DATA=null;
 let HELP_LOADED=false, HELP_DATA=null;
 
 function pageShell(){
   return '<div class="uc-tabs">'+
-    '<button class="uc-tab'+(ACTIVE_TAB==='alerts'?' active':'')+'" id="tabAlerts" onclick="switchTab(\'alerts\')">'+ic('alert',15)+' Alerts <span class="tab-badge" id="alertTabBadge">0</span></button>'+
-    '<button class="uc-tab'+(ACTIVE_TAB==='help'?' active':'')+'" id="tabHelp" onclick="switchTab(\'help\')">'+ic('history',15)+' Help Activity</button>'+
+    '<button class="uc-tab'+(ACTIVE_TAB==='alerts'?' active':'')+'" id="tabAlerts" onclick="switchTab(\'alerts\')">'+ic('alert',15)+' Open Alerts <span class="tab-badge" id="alertTabBadge">0</span></button>'+
+    '<button class="uc-tab'+(ACTIVE_TAB==='help'?' active':'')+'" id="tabHelp" onclick="switchTab(\'help\')">'+ic('history',15)+' Resolved Alerts</button>'+
   '</div>'+
   '<div id="tabBody"></div>';
 }
 function switchTab(tab){
   ACTIVE_TAB=tab;
+  // Persist the active tab in the URL so a refresh stays on the same page.
+  try{
+    const url=new URL(location.href);
+    url.searchParams.set('tab',tab==='help'?'help':'alerts');
+    history.replaceState(null,'',url);
+  }catch(e){}
   document.getElementById('tabAlerts').classList.toggle('active',tab==='alerts');
   document.getElementById('tabHelp').classList.toggle('active',tab==='help');
   if(tab==='alerts') renderAlertsTab(); else renderHelpTab();
@@ -130,6 +201,29 @@ function skeleton(){
   return s;
 }
 function fmtWhen(iso){if(!iso)return '';try{return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+// Created date + time left against the 240h (10-day) deadline.
+function fmtCreated(iso){if(!iso)return '—';try{const d=new Date(iso);if(isNaN(d))return '—';return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return '—';}}
+function daysLeftHtml(createIso){
+  try{
+    const cd=new Date(createIso); if(isNaN(cd)) return '';
+    const deadline=cd.getTime()+240*3600*1000; const ms=deadline-Date.now();
+    if(ms<=0){ const over=Math.ceil(-ms/86400000); return '<span style="color:#ff5252;font-weight:700">'+over+'d overdue</span>'; }
+    const days=Math.floor(ms/86400000), hrs=Math.floor((ms%86400000)/3600000);
+    const col=days<1?'#ff9900':(days<4?'#fbbf24':'#4ade80');
+    return '<span style="color:'+col+';font-weight:700">'+(days>0?days+'d ':'')+hrs+'h left</span>';
+  }catch(e){return '';}
+}
+// A clear meta line: ticket title, ticket STATUS, help STATUS (separate), created date + days left.
+// mode: 'open' (Open Alerts tab) = Status + Created only, no Help chip. 'resolved' (Resolved Alerts)
+// keeps the fuller meta incl. the Help status chip.
+function ticketMetaHtml(h,mode){
+  const title=h.title?('<div class="tk-meta-title"><span class="tk-meta-title-lbl">Title:</span> '+esc(h.title)+'</div>'):'';
+  const tStatus=h.ticketStatus?('<span class="tk-meta-chip">Status: <b>'+esc(h.ticketStatus)+'</b></span>'):'';
+  const created=h.createDate?('<span class="tk-meta-chip">Created: <b>'+fmtCreated(h.createDate)+'</b> · '+daysLeftHtml(h.createDate)+'</span>'):'';
+  if(mode==='open'){ return title+'<div class="tk-meta-row">'+tStatus+created+'</div>'; }
+  const hStatus='<span class="tk-meta-chip">Help: <b style="color:#4ade80">Answered</b></span>';
+  return title+'<div class="tk-meta-row">'+tStatus+hStatus+created+'</div>';
+}
 
 // Update the Alerts-tab badge with the open-request count.
 function setAlertBadge(n){
@@ -144,14 +238,14 @@ function setAlertBadge(n){
 function alertThreadHtml(h){
   const canReply=A.atLeast&&A.atLeast('admin');
   const ticket=h.ticketUrl?('<a href="'+esc(h.ticketUrl)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(h.shortId)+'</a>'):esc(h.shortId);
-  const replies=(h.replies||[]).length
-    ? h.replies.map(r=>'<div class="reply"><span class="who">'+esc(r.by)+'</span> <span class="meta">('+esc(r.role)+')</span><div class="txt">'+esc(r.text)+'</div></div>').join('')
-    : '<div class="noreply">No reply yet</div>';
-  return '<div class="thread">'
-    +'<div class="thread-head"><div class="thread-who"><b>'+esc(h.requester)+'</b> asked on '+ticket+' <span class="thread-when">· '+fmtWhen(h.createdAt)+'</span></div><span class="pill open">OPEN</span></div>'
-    +'<div class="q"><span class="lbl">Q ·</span> '+esc(h.doubt)+'</div>'
-    +'<div>'+replies+'</div>'
-    +(canReply?('<div class="reply-box"><textarea id="reply-'+esc(h.id)+'" placeholder="Reply / suggestion…"></textarea><button class="btn mini" onclick="submitReply(\''+esc(h.id)+'\')">Reply</button></div>'):'')
+  const delBtn=(A.isOwner&&A.isOwner())?('<button class="thread-del" title="Delete this help request" onclick="deleteHelp(\''+esc(h.id)+'\')">'+ic('trash',13)+'</button>'):'';
+  // Open Alerts = unanswered requests -> white "needs attention" card. No OPEN pill, no "no reply yet",
+  // no Help chip; the question is shown large.
+  return '<div class="thread thread-open">'
+    +'<div class="thread-head"><div class="thread-who"><b>'+esc(h.requester)+'</b> asked on '+ticket+' <span class="thread-when">· '+fmtWhen(h.createdAt)+'</span></div>'+(delBtn?('<span style="display:inline-flex;align-items:center;gap:8px">'+delBtn+'</span>'):'')+'</div>'
+    +ticketMetaHtml(h,'open')
+    +'<div class="q q-big"><span class="lbl">Q ·</span> '+esc(h.doubt)+'</div>'
+    +(canReply?('<div class="reply-actions"><button class="btn mini" onclick="openReply(\''+esc(h.id)+'\')">Reply</button></div>'):'')
   +'</div>';
 }
 function paintAlerts(list){
@@ -160,8 +254,8 @@ function paintAlerts(list){
   if(ACTIVE_TAB!=='alerts')return; // don't clobber the other tab if user switched
   const canReply=A.atLeast&&A.atLeast('admin');
   const body=document.getElementById('tabBody');
-  let html='<p class="sub">Open "ask for help" requests from editors.'+(canReply?' You can reply or mark them as received.':' Admins and the owner can reply to these.')+' <span class="count-pill">'+ALERTS_DATA.length+' open</span></p>';
-  if(!ALERTS_DATA.length){ body.innerHTML=html+'<div class="empty">No open help requests right now. 🎉</div>'; return; }
+  let html='<p class="sub">Unanswered help requests from editors.'+(canReply?' Reply to close one.':' Admins and the owner can reply to these.')+' <span class="count-pill">'+ALERTS_DATA.length+' open</span></p>';
+  if(!ALERTS_DATA.length){ body.innerHTML=html+'<div class="empty">No open alerts right now. 🎉</div>'; return; }
   body.innerHTML=html+ALERTS_DATA.map(alertThreadHtml).join('');
 }
 function renderAlertsTab(){
@@ -179,14 +273,37 @@ async function loadAlerts(){
 }
 window.renderAlertsTab=renderAlertsTab;
 async function submitReply(id){
-  const el=document.getElementById('reply-'+id);
+  // Read the reply text from the pop-up modal (opened via openReply).
+  const el=document.getElementById('replyModalText');
   const text=(el&&el.value||'').trim();
   if(!text){toast('Enter a reply first.');return;}
+  const btn=document.getElementById('replyModalSend'); if(btn){btn.disabled=true;btn.textContent='Sending…';}
   const r=await A.api('POST','/api/help/'+id+'/reply',{text});
-  if(r.ok){ toast('Reply sent'); ALERTS_LOADED=false; HELP_LOADED=false; renderAlertsTab(); }
+  if(btn){btn.disabled=false;btn.textContent='Send reply';}
+  if(r.ok){ closeReply(); toast('Reply sent'); ALERTS_LOADED=false; HELP_LOADED=false; if(ACTIVE_TAB==='alerts') renderAlertsTab(); else renderHelpTab(); }
   else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
 }
 window.submitReply=submitReply;
+// Reply pop-up: a small modal with the input field (replaces the inline reply box).
+function openReply(id){
+  const m=document.getElementById('replyModal'); if(!m)return;
+  m.setAttribute('data-id',id);
+  const ta=document.getElementById('replyModalText'); if(ta)ta.value='';
+  m.style.display='flex';
+  setTimeout(()=>{const t=document.getElementById('replyModalText'); if(t)t.focus();},40);
+}
+function closeReply(){ const m=document.getElementById('replyModal'); if(m)m.style.display='none'; }
+function sendReplyFromModal(){ const m=document.getElementById('replyModal'); const id=m&&m.getAttribute('data-id'); if(id)submitReply(id); }
+window.openReply=openReply; window.closeReply=closeReply; window.sendReplyFromModal=sendReplyFromModal;
+// Owner-only: delete an entire help request (question + all replies).
+async function deleteHelp(id){
+  const ok=window.PHDConfirm?await window.PHDConfirm({title:'Delete help request',body:'Delete this help request and all its replies? This cannot be undone.',okLabel:'Delete',danger:true}):confirm('Delete this help request and all its replies?');
+  if(!ok)return;
+  const r=await A.api('DELETE','/api/help/'+id);
+  if(r.ok){ toast('Help request deleted'); ALERTS_LOADED=false; HELP_LOADED=false; if(ACTIVE_TAB==='alerts') renderAlertsTab(); else renderHelpTab(); }
+  else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+window.deleteHelp=deleteHelp;
 
 // ================= Tab 2: Help Activity (day-grouped history) =================
 function istParts(iso){
@@ -200,25 +317,33 @@ function istParts(iso){
 function fmtTime(iso){if(!iso)return '';try{return new Date(iso).toLocaleString('en-US',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})+' IST';}catch(e){return '';}}
 function helpThreadHtml(it){
   const resolved=it.status==='resolved';
-  const pill='<span class="pill '+(resolved?'ok':'open')+'">'+(resolved?'RESOLVED':'OPEN')+'</span>';
+  const canReply=A.atLeast&&A.atLeast('admin');
+  const pill='<span class="pill '+(resolved?'ok':'open')+'">'+(resolved?'ANSWERED':'OPEN')+'</span>';
+  const delBtn=(A.isOwner&&A.isOwner())?('<button class="thread-del" title="Delete this help request" onclick="deleteHelp(\''+esc(it.id)+'\')">'+ic('trash',13)+'</button>'):'';
   const ticket=it.ticketUrl?('<a href="'+esc(it.ticketUrl)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(it.shortId)+'</a>'):esc(it.shortId);
   const replies=(it.replies||[]).length
     ? it.replies.map(r=>'<div class="reply"><span class="who">A · '+esc(r.by)+'</span> <span class="meta">('+esc(r.role)+') · '+fmtTime(r.at)+'</span><div class="txt">'+esc(r.text)+'</div></div>').join('')
     : '<div class="noreply">No reply yet</div>';
-  return '<div class="thread">'
-    +'<div class="thread-head"><div class="thread-who"><b>'+esc(it.requester)+'</b> asked on '+ticket+' <span class="thread-when">· '+fmtTime(it.createdAt)+'</span></div>'+pill+'</div>'
+  // Open (unanswered) = white "needs attention" card; resolved = muted grey. Admins can still reply
+  // to a resolved thread (adds another comment without reopening it).
+  return '<div class="thread '+(resolved?'thread-closed':'thread-open')+'">'
+    +'<div class="thread-head"><div class="thread-who"><b>'+esc(it.requester)+'</b> asked on '+ticket+' <span class="thread-when">· '+fmtTime(it.createdAt)+'</span></div><span style="display:inline-flex;align-items:center;gap:8px">'+pill+delBtn+'</span></div>'
+    +ticketMetaHtml(it,resolved?'resolved':'open')
     +'<div class="q"><span class="lbl">Q ·</span> '+esc(it.doubt)+'</div>'
     +'<div>'+replies+'</div>'
+    +(canReply?('<div class="reply-actions"><button class="btn mini" onclick="openReply(\''+esc(it.id)+'\')">Reply</button></div>'):'')
   +'</div>';
 }
 function toggleDay(btn){var c=btn.closest('.day-card');if(c){c.classList.toggle('open');}}
 window.toggleDay=toggleDay;
 function paintHelp(items){
-  HELP_DATA=Array.isArray(items)?items:[];
+  // Resolved Alerts page: only show alerts that are resolved (answered). Open ones live on the Open Alerts tab.
+  const all=Array.isArray(items)?items:[];
+  HELP_DATA=all.filter(it=>it&&it.status==='resolved');
   if(ACTIVE_TAB!=='help')return;
   const body=document.getElementById('tabBody');
-  let html='<p class="sub">Full history of help requests and replies, grouped by day (IST). Latest day on top.</p>';
-  if(!HELP_DATA.length){ body.innerHTML=html+'<div class="empty">No help activity yet.</div>'; return; }
+  let html='<p class="sub">Resolved alerts and their replies, grouped by day (IST). Latest day on top.</p>';
+  if(!HELP_DATA.length){ body.innerHTML=html+'<div class="empty">No resolved alerts yet.</div>'; return; }
   const groups={};const order=[];
   HELP_DATA.forEach(it=>{const {key,label}=istParts(it.createdAt);if(!groups[key]){groups[key]={label,items:[]};order.push(key);}groups[key].items.push(it);});
   order.sort((a,b)=>b.localeCompare(a));

@@ -225,10 +225,11 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-mark{display:inline-flex;align-items:center;justify-content:center;line-height:0}
 .mt-mark.mt-mark-sr{color:#fbbf24}
 .mt-mark.mt-mark-noemt{color:#ff8080}
-/* Latest comment stays centered. */
-.mt-table.xls td.latest-cmt{text-align:center}
-.mt-table.xls td.latest-cmt .tk-latest-meta{justify-content:center}
-.mt-table.xls td.latest-cmt .tk-latest-text{text-align:center}
+/* Conversation cell: left-aligned preview + meta (reads better than centered for a thread). */
+.mt-table.xls td.latest-cmt{text-align:left}
+.mt-table.xls td.latest-cmt .cv-cell-meta{justify-content:flex-start}
+.mt-table.xls td.latest-cmt .cv-cell-text{text-align:left}
+.mt-table.xls td.cv-cell{min-width:260px;max-width:420px}
 /* No rounded corners anywhere in the My Tickets table (EXCEPT the temp-resolve switch). */
 .tbl-wrap,.mt-table,.mt-table th,.mt-table td,
 .mt-table .btn,.mt-table .rem,.mt-table .tk-status-badge,.mt-table .tk-copy,
@@ -256,6 +257,65 @@ td.mt-actions .btn svg{flex-shrink:0}
 .tk-cmt-who b{color:#d5dbdb}
 .tk-cmt-when{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .tk-cmt-text{white-space:pre-wrap;color:var(--t);font-size:.86em;line-height:1.5}
+
+/* ============================================================================
+   Unified CONVERSATION thread — comments + help Q&A/replies in one timeline.
+   Chat-style bubbles: comment = neutral, help question = amber (left/you),
+   admin reply = green (right/them). Composer + Ask-for-help live in the panel.
+   ============================================================================ */
+.cv{padding-top:4px}
+.cv-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.cv-head .cv-title{color:#cfd6d6;font-size:.78em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:inline-flex;align-items:center;gap:7px}
+.cv-chip{display:inline-flex;align-items:center;gap:5px;font-size:.72em;font-weight:700;border-radius:20px;padding:2px 9px}
+.cv-chip.cmt{background:rgba(68,185,214,.14);color:#5ecdec}
+.cv-chip.help-wait{background:rgba(251,191,36,.15);color:var(--yl)}
+.cv-chip.help-ok{background:rgba(74,222,128,.15);color:var(--gl)}
+.cv-timeline{display:flex;flex-direction:column;gap:14px;max-height:420px;overflow:auto;padding:2px 2px 4px}
+/* A single message row: avatar + bubble. Help replies (admin) align to the right. */
+.cv-msg{display:flex;gap:10px;align-items:flex-start;max-width:78%}
+.cv-msg.right{margin-left:auto;flex-direction:row-reverse}
+.cv-av{flex-shrink:0;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8em;font-weight:800;color:#0a0a0a}
+.cv-av.cmt{background:#5ecdec}
+.cv-av.help{background:var(--yl)}
+.cv-av.reply{background:var(--gl)}
+.cv-bubble{border:1px solid var(--bd);border-radius:12px;padding:9px 13px;background:#0d1117;min-width:0}
+.cv-msg.right .cv-bubble{background:#0e1a12;border-color:rgba(74,222,128,.3)}
+.cv-bubble.cmt{background:#0d1117;border-color:#233}
+.cv-bubble.help{background:#1a1608;border-color:rgba(251,191,36,.35)}
+.cv-meta{display:flex;align-items:center;gap:8px;font-size:.72em;color:#8b9698;margin-bottom:4px;flex-wrap:wrap}
+.cv-meta b{color:#e6edf0;font-weight:700}
+.cv-meta .cv-kind{font-size:.9em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:0 6px;border-radius:20px}
+.cv-meta .cv-kind.cmt{background:rgba(68,185,214,.16);color:#5ecdec}
+.cv-meta .cv-kind.help{background:rgba(251,191,36,.16);color:var(--yl)}
+.cv-meta .cv-kind.reply{background:rgba(74,222,128,.16);color:var(--gl)}
+.cv-when{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;color:#5f6b6c}
+.cv-text{white-space:pre-wrap;color:var(--t);font-size:.86em;line-height:1.55;overflow-wrap:anywhere}
+/* Delete button on the author's own comment bubble. */
+.cv-del{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:transparent;border:1px solid rgba(255,82,82,.35);color:#ff5252;cursor:pointer;padding:0;line-height:0;flex-shrink:0}
+.cv-del:hover{background:rgba(255,82,82,.14);border-color:#ff5252}
+.cv-empty{color:#5f6b6c;font-size:.85em;font-style:italic;display:flex;align-items:center;gap:6px;padding:10px 2px}
+/* Composer at the bottom of the panel: comment box + ask-for-help. */
+.cv-composer{margin-top:14px;border-top:1px solid var(--bd);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.cv-composer-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.cv-composer textarea{flex:1;min-width:220px;min-height:46px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.86em;padding:9px 11px;font-family:inherit;line-height:1.5;resize:vertical}
+.cv-composer textarea:focus{outline:none;border-color:#44b9d6}
+.cv-composer-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cv-hint{color:#5f6b6c;font-size:.74em}
+/* Ask-for-help control shown in the composer. */
+.cv-help-btn{background:#fbbf24;color:#000;border:none}
+.cv-help-btn:hover{background:#e6ab1f;background:#fbbf24}
+.cv-help-lock{background:#3a3320;color:#fbbf24;border:1px solid rgba(251,191,36,.4);cursor:not-allowed;opacity:.9}
+/* Compact conversation cell in the summary row (last activity + counts + help status). */
+.cv-cell{width:auto}
+.cv-cell .cv-cell-text{color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
+.cv-cell .cv-cell-meta{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}
+.cv-cell .cv-cell-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
+.cv-cell .cv-cnt{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:0 7px;font-weight:700;font-size:.92em}
+.cv-cell .cv-cnt.cmt{background:rgba(68,185,214,.14);color:#5ecdec}
+.cv-cell .cv-cnt.help-wait{background:rgba(251,191,36,.15);color:var(--yl)}
+.cv-cell .cv-cnt.help-ok{background:rgba(74,222,128,.15);color:var(--gl)}
+/* Keep bubbles readable on a viewed (white) row. */
+.mt-row.viewed .cv-text,.mt-row.viewed .cv-meta b{color:#000}
 /* Age-coloured row: left accent bar + subtle tint on the summary row's cells. */
 .mt-row.row-ok td:first-child{box-shadow:inset 4px 0 0 var(--gl)}
 .mt-row.row-warn td:first-child{box-shadow:inset 4px 0 0 var(--yl)}
@@ -332,7 +392,7 @@ td.mt-actions .btn svg{flex-shrink:0}
     <div class="msg err" id="helpErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeHelp()">Cancel</button>
-      <button class="btn" onclick="submitHelp()">Send help request</button>
+      <button class="btn" id="helpSubmitBtn" onclick="submitHelp()">Send help request</button>
     </div>
   </div>
 </div>
@@ -341,7 +401,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <div class="modal-bg" id="cmtModal" onclick="if(event.target===this)closeCmt()">
   <div class="modal">
     <div class="modal-head"><h2 id="cmtTitle">Comments</h2><button class="modal-close" onclick="closeCmt()" aria-label="Close">&times;</button></div>
-    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Append-only history — comments cannot be edited or deleted.</p>
+    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Comments can't be edited, but you can delete your own from the ticket's conversation.</p>
     <div id="cmtList"></div>
   </div>
 </div>
@@ -350,7 +410,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <div class="modal-bg" id="addCmtModal" onclick="if(event.target===this)closeAddComment()">
   <div class="modal">
     <div class="modal-head"><h2 id="addCmtTitle">Add comment</h2><button class="modal-close" onclick="closeAddComment()" aria-label="Close">&times;</button></div>
-    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:10px">Comments are append-only — they can't be edited or deleted after posting.</p>
+    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:10px">Comments can't be edited after posting, but you can delete your own.</p>
     <textarea id="addCmtText" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Add a comment on this ticket…"></textarea>
     <div class="msg err" id="addCmtErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
@@ -491,7 +551,7 @@ function toggleCard(sid, rowEl){
   if(detail && detail.classList.contains('mt-detail')) detail.classList.toggle('open', willOpen);
   OPEN_CARD = willOpen ? sid : null;
   if(willOpen && detail){
-    const thread=detail.querySelector('.tk-thread');
+    const thread=detail.querySelector('.cv');
     if(thread && thread.getAttribute('data-loaded')!=='1'){
       const idx=TICKETS.findIndex(t=>String(t.shortId)===sid);
       if(idx>=0) loadThread(idx);
@@ -500,31 +560,120 @@ function toggleCard(sid, rowEl){
 }
 window.toggleCard=toggleCard;
 
-// Fetch and render the full comment thread (with date + time) into a card body.
+// Fetch and render the unified CONVERSATION (comments + help Q&A/replies) into a card body.
 async function loadThread(i){
   const t=TICKETS[i]; if(!t)return;
   const box=document.getElementById('thread-'+i); if(!box)return;
   box.setAttribute('data-loaded','1');
-  box.innerHTML='<div class="tk-thread-head">'+ic('message',13)+' Comments</div>'
-    +'<div class="tk-thread-list"><div class="tk-thread-hint">'+ic('clock',12)+' Loading comments\u2026</div></div>';
+  box.innerHTML='<div class="cv-head"><span class="cv-title">'+ic('message',13)+' Conversation</span></div>'
+    +'<div class="cv-timeline"><div class="cv-empty">'+ic('clock',12)+' Loading conversation\u2026</div></div>';
   const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments');
   const list=(r.ok&&Array.isArray(r.data))?r.data:[];
   paintThread(i,list);
 }
+// Build a single chronological timeline from comments + help requests (question + admin replies).
+function buildConversation(i,comments){
+  const t=TICKETS[i];
+  const msgs=[];
+  (comments||[]).forEach(function(c){
+    msgs.push({kind:'cmt',user:c.user,text:c.text,at:c.at,id:c.id,mine:!!c.mine});
+  });
+  const hlist=(t&&MY_HELP[String(t.shortId).toLowerCase()])||[];
+  hlist.forEach(function(h){
+    msgs.push({kind:'help',user:h.requester||(A.getUser()&&A.getUser().username)||'You',text:h.doubt,at:h.createdAt});
+    (h.replies||[]).forEach(function(rp){
+      msgs.push({kind:'reply',user:rp.by,role:rp.role,text:rp.text,at:rp.at});
+    });
+  });
+  // Oldest first (chat order). Undated items sink to the top.
+  msgs.sort(function(a,b){ return new Date(a.at||0)-new Date(b.at||0); });
+  return msgs;
+}
+function msgHtml(m,zone,i){
+  const right=(m.kind==='reply');
+  const avCls=m.kind==='reply'?'reply':(m.kind==='help'?'help':'cmt');
+  const initial=(String(m.user||'?').trim().charAt(0)||'?').toUpperCase();
+  const kindLbl=m.kind==='reply'?'<span class="cv-kind reply">reply</span>'
+    :(m.kind==='help'?'<span class="cv-kind help">help</span>':'<span class="cv-kind cmt">comment</span>');
+  const when=m.at?(esc(MY_TZ)+' '+fmtTZ(m.at,zone)):'';
+  const roleTag=m.role?(' <span style="color:#5f6b6c">('+esc(m.role)+')</span>'):'';
+  // Author can delete their own comment (help questions/replies are not deletable here).
+  const delBtn=(m.kind==='cmt'&&m.mine&&m.id)
+    ? '<button class="cv-del" title="Delete this comment" onclick="deleteComment('+i+',\''+esc(m.id)+'\')">'+ic('trash',12)+'</button>'
+    : '';
+  return '<div class="cv-msg'+(right?' right':'')+'">'
+    +'<div class="cv-av '+avCls+'">'+esc(initial)+'</div>'
+    +'<div class="cv-bubble '+avCls+'">'
+      +'<div class="cv-meta">'+kindLbl+' <b>'+esc(m.user)+'</b>'+roleTag+(when?(' <span class="cv-when">'+ic('clock',11)+' '+when+'</span>'):'')+delBtn+'</div>'
+      +'<div class="cv-text">'+esc(m.text)+'</div>'
+    +'</div></div>';
+}
 function paintThread(i,list){
   const box=document.getElementById('thread-'+i); if(!box)return;
+  const t=TICKETS[i]; if(!t)return;
   const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
-  const head='<div class="tk-thread-head">'+ic('message',13)+' Comments <span class="tk-thread-count">'+list.length+'</span></div>';
-  if(!list.length){ box.innerHTML=head+'<div class="tk-thread-hint">No comments yet on this ticket.</div>'; return; }
-  // Server returns oldest-first; show LATEST first in the thread.
-  const ordered=list.slice().reverse();
-  const items=ordered.map(function(c){
-    return '<div class="tk-cmt"><div class="tk-cmt-meta"><span class="tk-cmt-who">'+ic('users',12)+' <b>'+esc(c.user)+'</b></span>'
-      +'<span class="tk-cmt-when">'+ic('clock',11)+' '+esc(MY_TZ)+' '+fmtTZ(c.at,zone)+'</span></div>'
-      +'<div class="tk-cmt-text">'+esc(c.text)+'</div></div>';
-  }).join('');
-  box.innerHTML=head+'<div class="tk-thread-list">'+items+'</div>';
+  const editor=isEditor();
+  const msgs=buildConversation(i,list);
+  const cmtN=(list||[]).length;
+  const hlist=(t&&MY_HELP[String(t.shortId).toLowerCase()])||[];
+  const hasWaiting=hlist.some(h=>h.status==='open');
+  // Header with counts + help status chip.
+  let head='<div class="cv-head"><span class="cv-title">'+ic('message',13)+' Conversation</span>'
+    +'<span class="cv-chip cmt">'+ic('message',12)+' '+cmtN+' comment'+(cmtN===1?'':'s')+'</span>';
+  if(hlist.length){
+    head+=hasWaiting
+      ? '<span class="cv-chip help-wait">'+ic('info',12)+' Help waiting</span>'
+      : '<span class="cv-chip help-ok">'+ic('check-circle',12)+' Help answered</span>';
+  }
+  head+='</div>';
+  // Timeline.
+  const timeline=msgs.length
+    ? '<div class="cv-timeline">'+msgs.map(function(m){return msgHtml(m,zone,i);}).join('')+'</div>'
+    : '<div class="cv-timeline"><div class="cv-empty">'+ic('message',12)+' No comments or help yet. Start the conversation below.</div></div>';
+  // Composer: inline comment box + Ask-for-help (editors only).
+  let composer='';
+  if(editor){
+    const askCtl=hasWaiting
+      ? '<button class="btn mini cv-help-lock" disabled title="Help request in action">'+ic('info')+' Help request in action</button>'
+      : '<button class="btn mini cv-help-btn" onclick="openHelp(\''+esc(t.shortId)+'\')">'+ic('message')+' Ask for help</button>';
+    composer='<div class="cv-composer">'
+      +'<div class="cv-composer-row">'
+        +'<textarea id="cvInput-'+i+'" maxlength="2000" placeholder="Write a comment on this ticket\u2026"></textarea>'
+      +'</div>'
+      +'<div class="cv-composer-actions">'
+        +'<button class="btn mini" id="cvSend-'+i+'" onclick="sendInlineComment('+i+')">'+ic('message',13)+' Add comment</button>'
+        +askCtl
+        +'<span class="cv-hint">You can delete your own comments. A help request pings the admins.</span>'
+      +'</div>'
+    +'</div>';
+  }
+  box.innerHTML=head+timeline+composer;
 }
+// Post a comment straight from the inline composer in the conversation panel.
+async function sendInlineComment(i){
+  const t=TICKETS[i]; if(!t)return;
+  const ta=document.getElementById('cvInput-'+i); if(!ta)return;
+  const text=(ta.value||'').trim();
+  if(!text){toast('Write a comment first.');return;}
+  const btn=document.getElementById('cvSend-'+i); if(btn){btn.disabled=true;btn.textContent='Adding\u2026';}
+  const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text});
+  if(btn){btn.disabled=false;btn.innerHTML=ic('message',13)+' Add comment';}
+  if(r.ok){ ta.value=''; toast('Comment added to '+t.shortId); refreshLatestComment(i); }
+  else{ toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')')); }
+}
+window.sendInlineComment=sendInlineComment;
+// Delete one of the current user's own comments on their ticket.
+async function deleteComment(i,id){
+  const t=TICKETS[i]; if(!t||!id)return;
+  const ok=window.PHDConfirm
+    ? await window.PHDConfirm({title:'Delete comment',body:'Delete this comment? This cannot be undone.',okLabel:'Delete',danger:true})
+    : confirm('Delete this comment? This cannot be undone.');
+  if(!ok)return;
+  const r=await A.api('DELETE','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments/'+encodeURIComponent(id));
+  if(r.ok){ toast('Comment deleted'); refreshLatestComment(i); }
+  else{ toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')')); }
+}
+window.deleteComment=deleteComment;
 // "N days ago" from a create date (relative to now).
 function daysAgo(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '—';
@@ -591,10 +740,14 @@ async function load(){
   const version=await A.liveVersion();               // timestamp "a" (null if unavailable/cold)
   if(paintedFromCache && version && cached && cached.version===version){
     // render() (during the instant paint above) already refreshed comments/activity via fillLatestComments.
+    // Help requests/replies are NOT tied to the quarter version — an admin reply doesn't bump it.
+    // So refresh help separately even when ticket data is unchanged, or replies never show here.
+    await refreshHelp(cached);
     if(window.PHDRefreshBanner)window.PHDRefreshBanner.upToDate('Your tickets are up to date.');
     return;
   }
   if(paintedFromCache && version===null){            // cold/offline: keep cache silently, don't nag
+    await refreshHelp(cached);                        // still try to pick up new replies if the API answers
     return;
   }
 
@@ -617,31 +770,28 @@ async function load(){
   if(paintedFromCache&&window.PHDRefreshBanner){ changed?window.PHDRefreshBanner.updated('Your tickets are up to date.'):window.PHDRefreshBanner.hide(); }
 }
 
-// Inline help thread block for a ticket (editor view).
-function helpBlock(t){
-  const list=MY_HELP[String(t.shortId).toLowerCase()]||[];
-  const hasOpen=list.some(h=>h.status==='open');
-  let inner='';
-  if(list.length){
-    inner=list.map(h=>{
-      const replies=(h.replies||[]).map(r=>`<div class="help-reply"><b>${esc(r.by)}</b> <span style="color:#5f6b6c">(${esc(r.role)})</span>: ${esc(r.text)}</div>`).join('')||'<div class="help-none">No reply yet</div>';
-      const resolved=h.status==='resolved';
-      return `<div class="help-thread ${resolved?'resolved':''}">
-        <div class="help-q">Q: ${esc(h.doubt)} ${resolved?'<span class="help-tag ok">resolved</span>':'<span class="help-tag open">open</span>'}</div>
-        <div class="help-replies">${replies}</div>
-        ${resolved?'':`<button class="btn sec mini" onclick="resolveHelp('${h.id}')">${ic('check-circle')} Help received</button>`}
-      </div>`;
-    }).join('');
-  }
-  // Only one open request per ticket: show "Ask for help" only when none is open.
-  const askBtn=hasOpen
-    ? `<div class="help-hint">${ic('info')} Close the open question with "Help received" to ask another.</div>`
-    : `<button class="btn mini" style="background:#fbbf24;color:#000" onclick="openHelp('${esc(t.shortId)}')">${ic('message')} Ask for help</button>`;
-  return `<div class="help-cell">
-    ${askBtn}
-    ${inner}
-  </div>`;
+// Refresh just the help requests/replies (independent of the quarter version) and re-render if they
+// changed. Called on the cache-hit fast paths so an admin's reply reflects here without a hard reload.
+async function refreshHelp(cached){
+  if(!isEditor())return;
+  try{
+    const hr=await A.api('GET','/api/help/mine');
+    if(!(hr.ok&&Array.isArray(hr.data)))return;
+    const next={};
+    hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(next[k]=next[k]||[]).push(h);});
+    if(JSON.stringify(MY_HELP)===JSON.stringify(next))return; // no change, skip re-render
+    MY_HELP=next;
+    render();
+    // Persist the refreshed help into the existing cache so a later paint stays current.
+    try{
+      const base=cached||readCache()||{};
+      writeCache(Object.assign({},base,{help:MY_HELP,at:Date.now()}));
+    }catch(e){}
+  }catch(e){}
 }
+
+// (Help is now shown inside the unified conversation panel — the old inline help column/helpBlock
+//  was removed. Ask-for-help lives in the conversation composer; see paintThread.)
 
 function render(){
   const u=A.getUser();const editor=isEditor();
@@ -668,7 +818,7 @@ function render(){
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
-  const colCount=editor?10:9;   // view, created, time-left, SR, no-emt, ticket, latest, actions, temp (+help)
+  const colCount=9;   // view, created, time-left, SR, no-emt, ticket, conversation, actions, temp
   const headRow=`<thead><tr>
       <th class="mt-col-view" title="Mark as viewed">${ic('check-circle',13)}</th>
       <th class="sortable${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</th>
@@ -676,8 +826,7 @@ function render(){
       <th class="mt-col-mark" title="Station Request / Address Exclusion">SR</th>
       <th class="mt-col-mark" title="No EMT">No EMT</th>
       <th>Ticket</th>
-      <th>Latest comment</th>
-      ${editor?'<th>Help</th>':''}
+      <th>Conversation</th>
       <th class="mt-col-actions">Actions</th>
       <th class="mt-col-temp" title="Temporarily resolve (working only)">Temp Resolve</th>
     </tr></thead>`;
@@ -745,7 +894,7 @@ function rowHtml(t,i,editor){
   const temp=TEMP_RESOLVED.has(sid);
   const rowCls=' row-'+ageColor(t.createDate); // row age colour: ok=green, warn=yellow, over=red, black=>10d
   const open=(OPEN_CARD===sid);
-  const colCount=editor?8:7;
+  const colCount=9;   // detail row spans ALL summary columns: view, created, time-left, SR, no-emt, ticket, conversation, actions, temp
   return `<tr class="mt-row${viewed?' viewed':''}${temp?' temp':''}${rowCls}${open?' open':''}" data-sid="${esc(sid)}" onclick="toggleCard('${esc(sid)}',this)">
       <td class="mt-col-view" onclick="event.stopPropagation()"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(sid)}',this)" aria-label="Mark ${esc(sid)} as viewed"></td>
       <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
@@ -756,15 +905,14 @@ function rowHtml(t,i,editor){
         <div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a><button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button><span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span></div>
         ${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}
       </td>
-      <td class="latest-cmt" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:70%;height:11px;display:block"></span></td>
-      ${editor?('<td class="mt-help">'+helpBlock(t)+'</td>'):''}
+      <td class="latest-cmt cv-cell" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:70%;height:11px;display:block"></span></td>
       <td class="mt-actions" onclick="event.stopPropagation()"><div class="mt-actions-in"><button class="btn mini" title="Add comment" onclick="openAddComment(${i})">${ic('message',13)}<span class="btn-txt">Add comment</span></button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></div></td>
       <td class="mt-col-temp" onclick="event.stopPropagation()"><label class="switch" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" aria-label="Temp resolve ${esc(sid)}"><span class="slider"></span></label></td>
     </tr>
     <tr class="mt-detail${open?' open':''}" data-sid="${esc(sid)}">
       <td colspan="${colCount}">
         <div class="mt-detail-inner"><div class="mt-detail-pad">
-          <div class="tk-thread" id="thread-${i}" data-loaded="0"><div class="tk-thread-hint">Expand to load the comment thread.</div></div>
+          <div class="cv" id="thread-${i}" data-loaded="0"><div class="cv-empty">Expand to load the conversation.</div></div>
         </div></div>
       </td>
     </tr>`;
@@ -834,13 +982,26 @@ function activityMetaHtml(shortId){
 // The comment icon + count sits next to the preview; clicking the head expands the full thread.
 function paintLatestCell(i,c){
   const cell=document.getElementById('latest-'+i);if(!cell)return;
+  const t=TICKETS[i];
+  // Help summary for this ticket (from MY_HELP): count + whether the newest one is answered/waiting.
+  const hlist=(t&&MY_HELP[String(t.shortId).toLowerCase()])||[];
+  const hasWaiting=hlist.some(h=>h.status==='open');
+  let helpChip='';
+  if(hlist.length){
+    helpChip=hasWaiting
+      ? '<span class="cv-cnt help-wait" title="Help request waiting for a reply">'+ic('info',12)+' Help: waiting</span>'
+      : '<span class="cv-cnt help-ok" title="Help answered">'+ic('check-circle',12)+' Help: answered</span>';
+  }
   if(c&&c.text){
     const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-    const countBadge='<span class="cmt-count" title="'+c.count+' comment'+(c.count===1?'':'s')+'">'+ic('message',12)+' '+c.count+'</span>';
-    cell.innerHTML='<span class="tk-latest-text">'+esc(c.text)+'</span>'
-      +'<span class="tk-latest-meta">'+countBadge+' <span class="tk-latest-by">\u2014 '+esc(c.user)+(when?(' \u00b7 '+when):'')+'</span></span>';
+    const cmtCnt='<span class="cv-cnt cmt" title="'+c.count+' comment'+(c.count===1?'':'s')+'">'+ic('message',12)+' '+c.count+'</span>';
+    cell.innerHTML='<span class="cv-cell-text">'+esc(c.text)+'</span>'
+      +'<span class="cv-cell-meta">'+cmtCnt+helpChip+' <span class="tk-latest-by">\u2014 '+esc(c.user)+(when?(' \u00b7 '+when):'')+'</span></span>';
+  }else if(hlist.length){
+    cell.innerHTML='<span class="cv-cell-text" style="color:#8b9698">No comments yet \u00b7 has a help request</span>'
+      +'<span class="cv-cell-meta">'+helpChip+'</span>';
   }else{
-    cell.innerHTML='<span class="tk-latest-none">'+ic('message',12)+' No comments yet</span>';
+    cell.innerHTML='<span class="cv-cell-none">'+ic('message',12)+' No conversation yet</span>';
   }
 }
 
@@ -877,14 +1038,12 @@ async function submitHelp(){
   const doubt=document.getElementById('helpDoubt').value.trim();
   const err=document.getElementById('helpErr');
   if(!doubt){err.textContent='Please describe your question.';err.style.display='block';return;}
+  const btn=document.getElementById('helpSubmitBtn');
+  if(btn){btn.disabled=true;btn.textContent='Sending help request…';}
   const r=await A.api('POST','/api/help',{shortId,doubt});
   if(r.ok){closeHelp();toast('Help request sent for '+shortId);await load();}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
-}
-async function resolveHelp(id){
-  const r=await A.api('POST','/api/help/'+id+'/resolve',{});
-  if(r.ok){toast('Marked as help received');await load();}
-  else{toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+  if(btn){btn.disabled=false;btn.textContent='Send help request';}
 }
 
 let ADD_CMT_INDEX=null;

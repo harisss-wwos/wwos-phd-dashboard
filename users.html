@@ -41,6 +41,8 @@ td.user{color:#fff;font-weight:600}
 .u-uname{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:600}
 /* Analyst group tag: colored outline pill using the group's accent color. */
 .u-group{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 45%,transparent)}
+/* ADMIN tag — upload-access users are treated as admins. */
+.u-admin-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--o);background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.45)}
 .u-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--bd)}
 .u-avatar-ph{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.16);color:var(--o);font-weight:800;font-size:.9em}
 .u-name{display:flex;flex-direction:column;line-height:1.25}
@@ -420,7 +422,9 @@ function renderList(users){
     // Group tag shows only for analysts (group names are analyst-only).
     const g=(u.analyst)?groupOf(u.username):null;
     const tag=g?('<span class="u-group" style="--gc:'+g.color+'">'+esc(g.name)+'</span>'):'';
-    const name='<span class="u-uname">'+esc(u.username)+tag+'</span>'+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
+    // ADMIN tag: anyone with upload access is treated as an admin (owner excluded — has its own tag).
+    const adminTag=(u.role!=='owner'&&u.canUpload)?'<span class="u-admin-tag">ADMIN</span>':'';
+    const name='<span class="u-uname">'+esc(u.username)+tag+adminTag+'</span>'+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
     return '<div class="u-cell"><span class="u-avatar-wrap">'+pic+'</span><span class="u-name">'+name+'</span></div>';
   };
   const tzSelect=(u)=>'<select onchange="changeTz(\''+u.id+'\',this.value,\''+u.username+'\')">'
