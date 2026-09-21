@@ -1,0 +1,157 @@
+/* ============================================================================
+   theme.css — shared visual system for the WWOS-GSOC PHD Dashboard.
+
+   HOW IT WORKS
+   - Linked LAST on every page (after each page's inline <style>) so it layers on
+     top and enhances the shared primitives the pages already use:
+       :root tokens (--o --t --tm --bd --gl --rl --yl --tl),
+       .btn (+ .sec/.danger/.mini), .card, .wrap, .sub, h1, table/th/td,
+       .uc-tab, .badge, input/select/textarea, .modal / .modal-bg, .gate.
+   - It re-skins by TARGETING THOSE EXISTING CLASSES — no markup changes needed.
+   - Edit the tokens in :root below to re-skin the entire app in one place.
+
+   Everything here is pure CSS. No build step, no dependencies.
+   ============================================================================ */
+
+/* ---- Design tokens (override/extend the per-page :root) ------------------ */
+:root{
+  --thm-accent:#ff9900;        /* primary amber (matches --o) */
+  --thm-accent-2:#f07d0a;
+  --thm-cyan:#5ecdec;
+  --thm-cyan-2:#7fdcf0;
+  --thm-green:#4ade80;
+  --thm-amber:#fbbf24;
+  --thm-red:#ff6b6b;
+  --thm-panel:#0f1115;         /* card body */
+  --thm-panel-2:#15181d;       /* card top of gradient */
+  --thm-border:#232830;
+  --thm-border-hi:#2d343f;
+  --thm-radius:16px;
+  --thm-radius-sm:12px;
+  --thm-radius-pill:999px;
+  --thm-shadow:0 16px 38px -18px rgba(0,0,0,.75);
+  --thm-shadow-hi:0 26px 52px -22px rgba(0,0,0,.85);
+  --thm-ease:cubic-bezier(.2,.7,.2,1);
+}
+
+/* ---- Page canvas: layered gradient mesh over near-black --------------------
+   Applied with a soft alpha so it lifts the flat #000 without hiding content. */
+body{
+  background:
+    radial-gradient(1000px 540px at 88% -8%, rgba(94,205,236,.07), transparent 60%),
+    radial-gradient(880px 480px at -6% 108%, rgba(251,191,36,.055), transparent 58%),
+    radial-gradient(760px 520px at 50% 40%, rgba(74,222,128,.025), transparent 62%),
+    #06070a !important;
+  background-attachment:fixed !important;
+}
+
+/* Custom scrollbars — subtle, on-brand. */
+*{scrollbar-width:thin;scrollbar-color:#2b323b transparent}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#252b33;border:2px solid transparent;background-clip:padding-box;border-radius:20px}
+*::-webkit-scrollbar-thumb:hover{background:#333b45;background-clip:padding-box}
+
+/* Selection + focus rings tuned to the accent. */
+::selection{background:rgba(255,153,0,.28);color:#fff}
+
+/* ---- Headings ------------------------------------------------------------- */
+h1{letter-spacing:-.4px}
+
+/* ---- Cards: depth + hover lift + inset highlight -------------------------- */
+.card{
+  background:linear-gradient(180deg,var(--thm-panel-2),var(--thm-panel)) !important;
+  border:1px solid var(--thm-border) !important;
+  border-radius:var(--thm-radius) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset, var(--thm-shadow);
+  transition:transform .2s var(--thm-ease), box-shadow .25s, border-color .25s;
+}
+.card:hover{
+  border-color:var(--thm-border-hi) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset, var(--thm-shadow-hi);
+}
+
+/* ---- Buttons: pill shape, gradient primary, ghost secondary --------------- */
+.btn{
+  border-radius:var(--thm-radius-pill) !important;
+  transition:transform .16s, box-shadow .2s, background .18s, border-color .18s, color .18s;
+  position:relative;overflow:hidden;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+/* Primary (solid amber on either the transparent or filled per-page variants). */
+.btn:not(.sec):not(.danger):not(.mini):not(.tb-btn){
+  background:linear-gradient(180deg,#ffb43a,var(--thm-accent-2)) !important;
+  color:#151206 !important;border:none !important;
+  box-shadow:0 6px 18px -8px rgba(255,153,0,.55);
+}
+.btn:not(.sec):not(.danger):not(.mini):not(.tb-btn):hover{filter:brightness(1.06)}
+/* Secondary / ghost */
+.btn.sec{border-radius:var(--thm-radius-pill) !important}
+/* Danger keeps its red intent but gains the pill + hover lift. */
+.btn.danger{border-radius:var(--thm-radius-pill) !important}
+.btn.mini{border-radius:var(--thm-radius-pill) !important}
+
+/* Tab toggles get a smoother active gradient + soft shadow. */
+.uc-tab{border-radius:var(--thm-radius-sm) !important;transition:background .16s,color .16s,border-color .16s,transform .16s}
+.uc-tab:hover{transform:translateY(-1px)}
+.uc-tab.active{box-shadow:0 6px 18px -8px rgba(240,125,10,.5) !important}
+
+/* ---- Tables: calm, readable, hover row highlight -------------------------- */
+thead th{letter-spacing:.5px}
+tbody tr{transition:background .12s}
+tbody tr:hover td{background:rgba(255,255,255,.03)}
+
+/* ---- Inputs / selects / textareas: glassy, accent focus ring -------------- */
+input,select,textarea{
+  border-radius:10px !important;
+  transition:border-color .15s, box-shadow .15s, background .15s;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none !important;
+  border-color:var(--thm-accent) !important;
+  box-shadow:0 0 0 3px rgba(255,153,0,.14) !important;
+}
+
+/* ---- Badges / pills: keep colors, add rounded polish ---------------------- */
+.badge,.u-badge,.u-group,.u-admin-tag{border-radius:var(--thm-radius-pill) !important}
+
+/* ---- Modals: deeper backdrop + lifted panel ------------------------------- */
+.modal-bg,.tb-modal-bg{backdrop-filter:blur(4px)}
+.modal,.tb-modal{
+  border-radius:var(--thm-radius) !important;
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.05) inset !important;
+}
+
+/* ---- Toasts --------------------------------------------------------------- */
+.toast{border-radius:12px !important;box-shadow:0 10px 30px -10px rgba(0,0,0,.7)}
+
+/* ---- Profile pill in the floating cluster: a touch more polish ------------ */
+.tb-profile-btn{box-shadow:0 8px 22px -12px rgba(0,0,0,.7)}
+
+/* ============================================================================
+   OPT-IN MOTION UTILITIES  (add these classes where you want the flourish)
+   ============================================================================ */
+/* Fade + rise entrance (stagger by wrapping several with .thm-rise). */
+.thm-in{opacity:0;transform:translateY(12px);animation:thmIn .5s var(--thm-ease) forwards}
+@keyframes thmIn{to{opacity:1;transform:none}}
+
+/* Breathing amber glow — for "needs attention" cards. */
+.thm-glow{animation:thmBreathe 3.4s ease-in-out infinite}
+@keyframes thmBreathe{
+  0%,100%{box-shadow:0 0 0 1px rgba(251,191,36,.12),0 0 30px -8px rgba(251,191,36,.22),var(--thm-shadow)}
+  50%{box-shadow:0 0 0 1px rgba(251,191,36,.24),0 0 46px -6px rgba(251,191,36,.4),var(--thm-shadow)}
+}
+
+/* Sheen sweep — for hero/primary buttons (add .thm-sheen). */
+.thm-sheen{position:relative;overflow:hidden}
+.thm-sheen::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:skewX(-20deg);animation:thmSheen 3.5s ease-in-out infinite}
+@keyframes thmSheen{0%,60%{left:-60%}80%,100%{left:120%}}
+
+/* Reduced-motion: respect the user's preference. */
+@media (prefers-reduced-motion: reduce){
+  .thm-in,.thm-glow,.thm-sheen::after{animation:none !important}
+  .card,.btn,.uc-tab{transition:none !important}
+}
