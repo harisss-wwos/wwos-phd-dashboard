@@ -26,9 +26,12 @@ button,input,select,textarea{font-family:inherit}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--o)}
 .btn.sec:hover{border-color:var(--o);color:var(--o);background:rgba(255,153,0,.1)}
 .btn.mini{padding:5px 12px;font-size:.78em}
-/* Actions-cell buttons: amber font on a tinted amber base. Hover deepens the tint (text stays amber). */
-td.mt-actions .btn,td.mt-actions .btn.sec{background:rgba(255,153,0,.12);border:1px solid rgba(255,153,0,.4);color:var(--o);font-weight:600}
-td.mt-actions .btn:hover,td.mt-actions .btn.sec:hover{background:rgba(255,153,0,.22);color:var(--o);border-color:var(--o)}
+/* Actions-cell buttons: clean outlined pills. Comment = neutral, incident-log = amber accent. */
+td.mt-actions .btn,td.mt-actions .btn.sec{background:transparent;border:1px solid #3a4655;color:#cdd7de;font-weight:600;border-radius:8px!important;transition:background .14s,border-color .14s,color .14s}
+td.mt-actions .btn:hover,td.mt-actions .btn.sec:hover{background:rgba(255,255,255,.06);border-color:#57697d;color:#fff}
+/* The incident-log button (2nd action) gets the amber accent so it stands out. */
+td.mt-actions>span .btn{border-color:rgba(255,153,0,.45);color:var(--o)}
+td.mt-actions>span .btn:hover{background:rgba(255,153,0,.14);border-color:var(--o);color:var(--o)}
 .btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--o)}
 .btn.danger:hover{background:rgba(255,82,82,.12);color:var(--o)}
 .wrap{width:95%;max-width:none;margin:0 auto;padding:36px 24px}
@@ -79,7 +82,7 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:.72em;font-weight:800;background:rgba(255,153,0,.16);color:var(--o);flex-shrink:0;cursor:default}
 .tz{line-height:1.5;white-space:nowrap}.tz b{color:#d5dbdb}.tz .z{color:var(--tm);font-size:.85em}
 /* Latest-comment column */
-.latest-cmt{min-width:200px;max-width:320px;vertical-align:top}
+.latest-cmt{width:auto;vertical-align:top}
 /* Merged Actions column: Add comment + Add/View incident log, stacked full-width */
 .actions-cell{white-space:nowrap;min-width:170px}
 .actions-cell .btn{display:flex;width:100%;justify-content:center;margin-bottom:8px}
@@ -166,7 +169,7 @@ tbody tr{transition:background .12s}
 .mt-row{cursor:pointer;transition:background .12s}
 .mt-row:hover td{background:rgba(255,255,255,.03)}
 .tk-created{white-space:nowrap;color:var(--t);font-weight:600}
-.mt-ticket{min-width:240px;max-width:360px}
+.mt-ticket{width:auto}
 .tk-id-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tk-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-idlink:hover{text-decoration:underline}
@@ -185,7 +188,7 @@ tbody tr{transition:background .12s}
 .tk-logflag-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid rgba(68,185,214,.4);border-radius:6px;background:rgba(68,185,214,.14);color:#44b9d6;cursor:pointer;line-height:0}
 .tk-logflag-btn:hover{background:rgba(68,185,214,.28);border-color:#44b9d6}
 /* Latest-comment cell */
-.latest-cmt{min-width:220px;max-width:340px;color:var(--tm);font-size:.9em}
+.latest-cmt{width:auto;color:var(--tm);font-size:.9em}
 .tk-latest-text{color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
 .tk-latest-meta{display:inline-flex;align-items:center;gap:6px;color:#8b9698;margin-top:4px;font-size:.92em}
 .tk-latest-meta .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#5ecdec;border-radius:20px;padding:0 7px;font-weight:700}
@@ -194,22 +197,36 @@ tbody tr{transition:background .12s}
 /* Actions cell (table td) — both buttons SIDE BY SIDE, equal width + height. On narrow screens
    they collapse to icon-only (label hidden) so they still fit next to each other.
    Scoped to td.mt-actions so it doesn't affect the page-header .mt-actions container. */
-td.mt-actions{white-space:nowrap;min-width:150px;display:flex;align-items:stretch;gap:8px;border-bottom:none!important}
-td.mt-actions>span{display:flex;flex:1 1 0;min-width:0}
-td.mt-actions>.btn{flex:1 1 0}
-td.mt-actions .btn{display:inline-flex;width:100%;box-sizing:border-box;justify-content:center;align-items:center;gap:6px;height:34px;padding:0 12px;margin:0;border:none}
+/* Actions column: fixed 300px; the two buttons split it evenly so there's never leftover gap. */
+.mt-col-actions{width:300px}
+td.mt-actions{width:300px;vertical-align:middle}
+.mt-actions-in{display:flex;align-items:center;gap:8px;width:100%}
+.mt-actions-in>span{flex:1 1 0;min-width:0}
+.mt-actions-in>.btn{flex:1 1 0;min-width:0}
+.mt-actions-in>span{display:inline-flex}
+td.mt-actions .btn{display:inline-flex;box-sizing:border-box;width:100%;justify-content:center;align-items:center;gap:6px;height:32px;padding:0 12px;margin:0;font-size:.8em;font-weight:600;white-space:nowrap}
 td.mt-actions .btn .btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Compact / narrow screens: hide the text, keep the icon (buttons become square). */
-@media(max-width:1080px){
-  td.mt-actions{min-width:0;gap:6px}
-  td.mt-actions .btn{width:34px;flex:0 0 34px;padding:0}
+td.mt-actions .btn svg{flex-shrink:0}
+/* When the screen squeezes: hide the labels, keep the icons (buttons become 32px squares) and let
+   the Actions column shrink to fit the two icon buttons instead of holding the full 310px. */
+@media(max-width:1100px){
+  .mt-col-actions,td.mt-actions{width:1%;min-width:0}
+  .mt-actions-in{width:auto}
+  .mt-actions-in>span,.mt-actions-in>.btn{flex:0 0 auto}
+  td.mt-actions .btn{width:32px;padding:0}
   td.mt-actions .btn .btn-txt{display:none}
-  td.mt-actions>span{flex:0 0 34px}
 }
-/* Center the Created / Time left / Latest comment columns. Column order: view(1) created(2) time-left(3) ticket(4) latest(5) ... */
+/* Column order: view(1) created(2) time-left(3) SR(4) no-emt(5) ticket(6) latest(7) ... */
+/* Created + Time left: fit to content (no wasted width). */
 .mt-table.xls td:nth-child(2),.mt-table.xls th:nth-child(2),
-.mt-table.xls td:nth-child(3),.mt-table.xls th:nth-child(3),
-.mt-table.xls td:nth-child(5),.mt-table.xls th:nth-child(5){text-align:center}
+.mt-table.xls td:nth-child(3),.mt-table.xls th:nth-child(3){white-space:nowrap;width:1%;text-align:center}
+/* SR + No EMT marker columns: fixed 50px, centered. */
+.mt-col-mark{width:75px;min-width:75px;max-width:75px;white-space:nowrap;text-align:center!important}
+.mt-mark{display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.mt-mark.mt-mark-sr{color:#fbbf24}
+.mt-mark.mt-mark-noemt{color:#ff8080}
+/* Latest comment stays centered. */
+.mt-table.xls td.latest-cmt{text-align:center}
 .mt-table.xls td.latest-cmt .tk-latest-meta{justify-content:center}
 .mt-table.xls td.latest-cmt .tk-latest-text{text-align:center}
 /* No rounded corners anywhere in the My Tickets table (EXCEPT the temp-resolve switch). */
@@ -219,8 +236,10 @@ td.mt-actions .btn .btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:n
 .mt-table .tk-cmt,.mt-table .tk-thread-count{border-radius:0!important}
 /* Temp-resolve switch stays a rounded pill. */
 .mt-table .switch .slider{border-radius:22px!important}
-/* Detail row (comment thread) — expands under the summary row. */
-.mt-detail>td{padding:0!important;border-top:none!important}
+/* Detail row (comment thread) — expands under the summary row. Collapsed = no border/box at all
+   (avoids the thin blank outline under each ticket); the border shows only when open. */
+.mt-detail>td{padding:0!important;border:none!important}
+.mt-detail.open>td{border:1px solid #2f3a45!important;border-top:none!important}
 .mt-detail .mt-detail-inner{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.4,0,.2,1)}
 .mt-detail .mt-detail-pad{overflow:hidden;min-height:0}
 .mt-detail.open .mt-detail-inner{grid-template-rows:1fr}
@@ -242,14 +261,7 @@ td.mt-actions .btn .btn-txt{overflow:hidden;text-overflow:ellipsis;white-space:n
 .mt-row.row-warn td:first-child{box-shadow:inset 4px 0 0 var(--yl)}
 .mt-row.row-over td:first-child{box-shadow:inset 4px 0 0 var(--rl)}
 .mt-row.row-black td:first-child{box-shadow:inset 4px 0 0 #888}
-.mt-row.row-ok td{background:rgba(74,222,128,.07)}
-.mt-row.row-warn td{background:rgba(251,191,36,.08)}
-.mt-row.row-over td{background:rgba(255,82,82,.08)}
-.mt-row.row-black td{background:rgba(120,120,128,.1)}
-.mt-row.row-ok:hover td{background:rgba(74,222,128,.13)}
-.mt-row.row-warn:hover td{background:rgba(251,191,36,.14)}
-.mt-row.row-over:hover td{background:rgba(255,82,82,.14)}
-.mt-row.row-black:hover td{background:rgba(120,120,128,.16)}
+/* Age is shown by the coloured left accent bar only — no full-row background tint. */
 /* Viewed row: white background + black text (marks it "seen/done"). */
 .mt-row.viewed td,.mt-row.viewed:hover td{background:#fff!important;color:#000}
 .mt-row.viewed .tk-created,.mt-row.viewed .tk-title,.mt-row.viewed .tk-latest-text,.mt-row.viewed .tk-latest-meta,.mt-row.viewed .tk-latest-by,.mt-row.viewed .tk-latest-none{color:#000}
@@ -456,6 +468,14 @@ function toggleTempSection(){
   try{ localStorage.setItem(tempOpenKey(), open?'1':'0'); }catch(e){}
 }
 window.toggleTempSection=toggleTempSection;
+// Expand/collapse the main "Open Tickets" section (persisted per-user; defaults to open).
+function openOpenKey(){ var u=A.getUser(); return 'phd_mytickets_openopen_'+((u&&u.username)||'anon'); }
+function toggleOpenSection(){
+  const sec=document.getElementById('openSection'); if(!sec)return;
+  const open=sec.classList.toggle('open');
+  try{ localStorage.setItem(openOpenKey(), open?'1':'0'); }catch(e){}
+}
+window.toggleOpenSection=toggleOpenSection;
 
 // ---- Expand/collapse a ticket row's detail (accordion: only ONE open at a time) ----
 let OPEN_CARD=null; // shortId of the currently-expanded row (session only)
@@ -648,24 +668,36 @@ function render(){
   html+='<p class="sub">Open tickets assigned to <b style="color:#fff">'+esc(u.username)+'</b> in the current live quarter. Deadline is 240 hours (10 days) from creation. Times shown in '+esc(MY_TZ)+'.</p>';
   if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
   sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
-  const colCount=editor?8:7;   // view, created, time-left, ticket, latest, actions, temp (+help)
+  const colCount=editor?10:9;   // view, created, time-left, SR, no-emt, ticket, latest, actions, temp (+help)
   const headRow=`<thead><tr>
       <th class="mt-col-view" title="Mark as viewed">${ic('check-circle',13)}</th>
       <th class="sortable${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">Created${sortArrow('created')}</th>
       <th class="sortable${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">Time left${sortArrow('timeleft')}</th>
+      <th class="mt-col-mark" title="Station Request / Address Exclusion">SR</th>
+      <th class="mt-col-mark" title="No EMT">No EMT</th>
       <th>Ticket</th>
       <th>Latest comment</th>
       ${editor?'<th>Help</th>':''}
-      <th>Actions</th>
+      <th class="mt-col-actions">Actions</th>
       <th class="mt-col-temp" title="Temporarily resolve (working only)">Temp Resolve</th>
     </tr></thead>`;
   // Split rows by temp-resolve state, preserving the TICKETS index (i) so latest-${i}/inc-btn-${i} wiring holds.
   const mainRows=[], tempRows=[];
   TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempRows:mainRows).push(rowHtml(t,i,editor)); });
 
-  html+=`<div class="tbl-wrap"><table class="mt-table xls">${headRow}<tbody>`
+  // Collapsible "Open Tickets" section (defaults to OPEN). Same look as the temp section.
+  let openOpen='1'; try{ var _oo=localStorage.getItem(openOpenKey()); if(_oo!==null) openOpen=_oo; }catch(e){}
+  html+=`<div id="openSection" class="temp-section${openOpen==='1'?' open':''}" style="margin-top:6px">
+    <button type="button" class="temp-head" onclick="toggleOpenSection()">
+      <span class="temp-caret" style="color:var(--o)">${ic('inbox',14)}</span>
+      <span class="temp-title">Open Tickets <span class="temp-count">${mainRows.length}</span></span>
+      <span class="temp-note">Tickets assigned to you and still open in the live quarter.</span>
+      <span class="temp-chev">\u25be</span>
+    </button>
+    <div class="temp-body"><div class="tbl-wrap"><table class="mt-table xls">${headRow}<tbody>`
       + (mainRows.length?mainRows.join(''):`<tr><td colspan="${colCount}" class="empty" style="padding:22px">All your tickets are temporarily resolved. 🎉</td></tr>`)
-      + `</tbody></table></div>`;
+      + `</tbody></table></div></div>
+  </div>`;
 
   // Collapsible "Temporarily Resolved" section below.
   let tempOpen='0'; try{ tempOpen=localStorage.getItem(tempOpenKey())||'0'; }catch(e){}
@@ -718,13 +750,15 @@ function rowHtml(t,i,editor){
       <td class="mt-col-view" onclick="event.stopPropagation()"><input type="checkbox" class="view-cb" ${viewed?'checked':''} onchange="toggleViewed('${esc(sid)}',this)" aria-label="Mark ${esc(sid)} as viewed"></td>
       <td class="tk-created">${esc(daysAgo(t.createDate))}</td>
       <td><span class="rem ${rem.cls}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span></td>
+      <td class="mt-col-mark">${t.priority?'<span class="mt-mark mt-mark-sr" title="Station Request / Address Exclusion" aria-label="Station Request ticket">'+ic('map-pin',15)+'</span>':''}</td>
+      <td class="mt-col-mark">${ticketIsNoEmt(t)?'<span class="mt-mark mt-mark-noemt" title="No EMT ticket" aria-label="No EMT ticket">'+ic('no-entry',15)+'</span>':''}</td>
       <td class="mt-ticket">
-        <div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a>${t.priority?'<span class="tk-crown" title="Station Request / Address Exclusion" aria-label="Station Request ticket">'+ic('map-pin',14)+'</span>':''}${ticketIsNoEmt(t)?'<span class="tk-crown tk-noemt" title="No EMT ticket" aria-label="No EMT ticket">'+ic('no-entry',14)+'</span>':''}<button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button><span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span></div>
+        <div class="tk-id-row"><span class="tk-status-badge" title="${esc(st)}">${esc(letter)}</span> <a class="tk-idlink" href="${esc(t.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(sid)}</a><button class="tk-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="event.stopPropagation();copyTicketId('${esc(sid)}',this)">${ic('copy',13)}</button><span class="tk-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span></div>
         ${t.title?('<div class="tk-title" title="'+esc(t.title)+'">'+esc(t.title)+'</div>'):''}
       </td>
       <td class="latest-cmt" id="latest-${i}" data-sid="${esc(sid)}"><span class="sk-blk" style="width:70%;height:11px;display:block"></span></td>
       ${editor?('<td class="mt-help">'+helpBlock(t)+'</td>'):''}
-      <td class="mt-actions" onclick="event.stopPropagation()"><button class="btn mini" title="Add comment" onclick="openAddComment(${i})">${ic('message',13)}<span class="btn-txt">Add comment</span></button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></td>
+      <td class="mt-actions" onclick="event.stopPropagation()"><div class="mt-actions-in"><button class="btn mini" title="Add comment" onclick="openAddComment(${i})">${ic('message',13)}<span class="btn-txt">Add comment</span></button><span id="inc-btn-${i}">${incidentBtnHtml(i)}</span></div></td>
       <td class="mt-col-temp" onclick="event.stopPropagation()"><label class="switch" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" aria-label="Temp resolve ${esc(sid)}"><span class="slider"></span></label></td>
     </tr>
     <tr class="mt-detail${open?' open':''}" data-sid="${esc(sid)}">
