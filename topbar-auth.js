@@ -148,7 +148,7 @@
       // Vertically-centered left-edge FAB column: holds Live + Analytics + page-nav FABs (NOT the
       // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
       // pill grows rightward on hover from the same left edge.
-      + '.tb-fab-col{position:fixed;left:0;top:0;bottom:0;width:66px;z-index:900;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;padding:14px 10px;overflow:visible;box-sizing:border-box;border-right:1px solid #1e2a3a;background:linear-gradient(160deg,#05080d,#0b1420,#071018,#0d0a18,#05080d);background-size:300% 300%;animation:tbFabGrad 16s ease infinite;box-shadow:2px 0 18px rgba(0,0,0,.5);pointer-events:auto}'
+      + '.tb-fab-col{position:fixed;left:0;top:0;bottom:0;width:66px;z-index:900;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;padding:14px 10px;overflow:visible;box-sizing:border-box;background:transparent;pointer-events:auto}'
       + '.tb-fab-col>*{pointer-events:auto}'
       // Layout: [66px rail] | 20px gap | content (fills the rest) | 20px right gap.
       // position:relative anchors the (now non-fixed) top-right cluster to the document top-right.
