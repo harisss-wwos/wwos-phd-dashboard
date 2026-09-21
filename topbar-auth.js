@@ -198,6 +198,21 @@
       + '.tb-nav-fab.tb-nav-disabled{cursor:not-allowed}'
       + '.tb-nav-fab.tb-nav-dragging{opacity:.55;cursor:grabbing;max-width:46px!important}'
       + '.tb-nav-fab.tb-nav-dragging .tb-nav-label{opacity:0!important;padding-right:0!important}'
+      // ---- Reports fly-out (line-chart group) ----
+      // Wrapper is the drop anchor. The trigger is a 46px pill (line-chart) that never expands/drags.
+      + '.tb-flyout-wrap{position:relative;display:flex;align-items:center}'
+      + '.tb-flyout-fab{position:relative;height:46px;width:46px;flex:0 0 46px;display:inline-flex;align-items:center;justify-content:center;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}'
+      + '.tb-flyout-fab .tb-nav-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-flyout-fab .tb-nav-ic svg{width:19px;height:19px}'
+      + '.tb-flyout-wrap:hover .tb-flyout-fab{border-color:#ff9900;color:#fff}'
+      // The horizontal fly-out row: sits to the RIGHT of the trigger, hidden until the wrapper is hovered.
+      // It slides in (translateX) and reveals the report pills. gap between the 4 pills.
+      + '.tb-flyout{position:absolute;left:46px;top:50%;transform:translateY(-50%) translateX(-8px);display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-left:14px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .22s ease;z-index:905}'
+      // Invisible bridge so moving the cursor from the trigger to the items never crosses a dead gap.
+      + '.tb-flyout::before{content:"";position:absolute;left:0;top:0;bottom:0;width:16px}'
+      + '.tb-flyout-wrap:hover .tb-flyout,.tb-flyout:hover{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(-50%) translateX(0)}'
+      // Each fly-out pill is a normal expand-on-hover nav pill (label slides right on its own hover).
+      + '.tb-flyout-item{flex:0 0 auto}'
       // Count badge (e.g. open alerts) pinned to the top-right of the FAB icon.
       + '.tb-nav-badge{display:none;position:absolute;top:6px;right:6px;min-width:17px;height:17px;padding:0 4px;border-radius:20px;background:#ff5252;color:#fff;font-size:.62em;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #1b2430}'
       + '.tb-nav-badge.show{display:block}'
@@ -1169,8 +1184,8 @@
     var fab = document.createElement('a');
     fab.className = 'tb-an-fab' + (li ? '' : ' tb-an-disabled');
     fab.setAttribute('aria-label', 'Agent & Group Analytics');
-    // bar-chart icon (matches icons.js 'bar-chart').
-    fab.innerHTML = '<span class="tb-an-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>'
+    // group-chart icon (people + chart) for Agent & Group Analytics.
+    fab.innerHTML = '<span class="tb-an-ic">' + ic('group-chart', 20) + '</span>'
       + '<span class="tb-an-label">Agent &amp; Group Analytics</span>';
     if (li) {
       fab.href = 'agent-analytics.html';
@@ -1236,15 +1251,10 @@
       { key: 'upload',        label: 'Upload new data',           icon: 'upload',      type: 'upload',                     need: 'upload' },
       { key: 'shift-report', label: 'Shift Report',              icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
       { key: 'help-activity', label: 'Alerts and Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' },
-      { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' },
-      { key: 'hi-resolved',   label: 'Repeat Incidents',          icon: 'repeat',      href: 'hi-resolved.html',           need: 'repeat' },
-      { key: 'sla-breach',    label: 'SLA Breaches (>240h)',      icon: 'clock',       href: 'sla-breach.html',            need: 'sla' },
-      { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',     href: 'station-request.html',       need: 'sr' },
-      { key: 'unique-cases',  label: 'Unique cases',              img: 'important.png', href: 'important-cases.html',      need: 'unique' },
-      { key: 'archive',       label: 'Program History (Archive)', icon: 'calendar',    href: 'archive.html',               need: 'li' },
-      { key: 'users',         label: 'Users',                     icon: 'users-gear',  href: 'users.html',                 need: 'admin' },
-      { key: 'groups-page',   label: 'Grouping Page',             icon: 'copy',        href: 'groups-page.html',           need: 'grouping' },
-      { key: 'db-health',     label: 'Database health',           icon: 'database',    href: 'db-health.html',             need: 'database' }
+      { key: 'tools',         label: 'PHD Tools',                 icon: 'tool',        href: 'tools.html',                 need: 'li' }
+      // Repeat Incidents / SLA Breaches / Station Requests / Unique cases now live in the line-chart
+      // "Reports" fly-out; Program History (Before WWOS / Moved under WWOS) lives in the calendar
+      // fly-out; Users / Database health / Grouping Page live in the user-shield "Admin" fly-out.
     ];
     // Restore any saved custom order (drag-and-drop). Unknown/new keys keep their default position.
     items = tbApplyNavOrder(items);
@@ -1288,9 +1298,64 @@
       inp.type = 'file'; inp.accept = '.csv'; inp.id = 'uploadFile'; inp.style.display = 'none';
       document.body.appendChild(inp);
     }
+    // Fly-out groups: a single trigger FAB whose hover slides out a vertical stack of pages to the
+    // right. Each item is a normal expand-on-hover pill and is flag-gated. Triggers aren't draggable.
+    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+      id: 'reports', triggerIcon: 'line-chart', triggerLabel: 'Reports', items: [
+        { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    icon: 'clock',        href: 'sla-breach.html',      need: 'sla' },
+        { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',      href: 'station-request.html', need: 'sr' },
+        { key: 'hi-resolved',     label: 'Repeat Incidents',        icon: 'repeat',       href: 'hi-resolved.html',     need: 'repeat' },
+        { key: 'unique-cases',    label: 'Unique cases',            img: 'important.png', href: 'important-cases.html', need: 'unique' }
+      ]
+    });
+    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+      id: 'history', triggerIcon: 'calendar', triggerLabel: 'Program History', items: [
+        { key: 'archive-before', label: 'Before WWOS',      icon: 'clock-rewind', href: 'archive.html?ds=archive', need: 'li' },
+        { key: 'archive-moving', label: 'Moved under WWOS',  icon: 'repeat',       href: 'archive.html?ds=moving',  need: 'li' }
+      ]
+    });
+    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+      id: 'admin', triggerIcon: 'user-shield', triggerLabel: 'Admin', items: [
+        { key: 'users',       label: 'Users',           icon: 'users-gear', href: 'users.html',       need: 'admin' },
+        { key: 'db-health',   label: 'Database health',  icon: 'database',   href: 'db-health.html',   need: 'database' },
+        { key: 'groups-page', label: 'Grouping Page',    icon: 'copy',       href: 'groups-page.html', need: 'grouping' }
+      ]
+    });
     tbEnableNavDnD(col); // part 7: wire up drag-and-drop reordering
     // Fetch the open-alert count and show it on the Alerts nav FAB (logged-in only).
     if (li) refreshAlertBadge();
+  }
+  // Build a fly-out group: a single trigger FAB in the rail; hovering it slides out a vertical stack
+  // of pages to its right. Each fly-out item is a normal expand-on-hover pill (label slides right on
+  // hover) and is flag-gated (disabled + greyed when the viewer lacks access). Not draggable.
+  function buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, opts) {
+    if (col.querySelector('.tb-flyout-fab[data-group="' + opts.id + '"]')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'tb-flyout-wrap';
+    var trigger = document.createElement('div');
+    trigger.className = 'tb-flyout-fab';
+    trigger.setAttribute('data-group', opts.id);
+    trigger.setAttribute('aria-label', opts.triggerLabel);
+    trigger.title = opts.triggerLabel;
+    trigger.innerHTML = '<span class="tb-nav-ic">' + ic(opts.triggerIcon) + '</span>';
+    var flyout = document.createElement('div');
+    flyout.className = 'tb-flyout';
+    opts.items.forEach(function (it) {
+      var enabled = tbNeedMet(it.need, li, isAdmin, isOwner);
+      var el = document.createElement('a');
+      el.className = 'tb-nav-fab tb-flyout-item' + (enabled ? '' : ' tb-nav-disabled');
+      el.setAttribute('aria-label', it.label);
+      el.setAttribute('data-need', it.need);
+      if (it.href) el.setAttribute('data-href', it.href);
+      var iconHtml = it.img ? '<img class="tb-nav-img" src="' + it.img + '" alt="">' : ic(it.icon);
+      el.innerHTML = '<span class="tb-nav-ic">' + iconHtml + '</span><span class="tb-nav-label">' + it.label + '</span>';
+      if (enabled) { el.href = it.href; el.title = it.label; }
+      else { el.setAttribute('aria-disabled', 'true'); el.title = li ? (it.label + ' — you do not have access') : ('Log in to view ' + it.label); }
+      flyout.appendChild(el);
+    });
+    wrap.appendChild(trigger);
+    wrap.appendChild(flyout);
+    if (anchor) col.insertBefore(wrap, anchor); else col.appendChild(wrap);
   }
   // ---- Drag-and-drop reordering of the left nav column (persisted in localStorage) ----
   var TB_NAV_ORDER_KEY = 'phdNavFabOrder';
@@ -1311,7 +1376,7 @@
   // Persist the current DOM order of the nav FABs as an array of their data-key values.
   function tbSaveNavOrder(col) {
     var keys = [];
-    col.querySelectorAll('.tb-nav-fab').forEach(function (f) { var k = f.getAttribute('data-key'); if (k) keys.push(k); });
+    col.querySelectorAll('.tb-nav-fab:not(.tb-flyout-item)').forEach(function (f) { var k = f.getAttribute('data-key'); if (k) keys.push(k); });
     try { localStorage.setItem(TB_NAV_ORDER_KEY, JSON.stringify(keys)); } catch (e) {}
   }
   // Wire drag events on every nav FAB in the column. Dragging a pill drops it above/below a sibling.
@@ -1339,7 +1404,7 @@
   }
   // Find the nav FAB that the pointer is currently above (the one to insert BEFORE), by vertical midpoint.
   function tbNavDropTarget(col, y) {
-    var fabs = Array.prototype.slice.call(col.querySelectorAll('.tb-nav-fab:not(.tb-nav-dragging)'));
+    var fabs = Array.prototype.slice.call(col.querySelectorAll('.tb-nav-fab:not(.tb-nav-dragging):not(.tb-flyout-item)'));
     for (var i = 0; i < fabs.length; i++) {
       var r = fabs[i].getBoundingClientRect();
       if (y < r.top + r.height / 2) return fabs[i];
