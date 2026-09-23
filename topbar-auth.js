@@ -138,6 +138,9 @@
       // floating circular back button (bottom-right) — same 46px size as the left rail buttons
       + '.tb-back-fab{position:fixed;right:calc(5vw - 29px);bottom:22px;z-index:900;width:58px;height:58px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none}'
       + '.tb-back-fab svg{width:25px;height:25px}'
+      // Disabled back button (home page): greyed + inert, so the rail keeps its bottom anchor.
+      + '.tb-back-fab.tb-back-disabled{background:#232d3a;color:#6b7681;cursor:not-allowed;box-shadow:none;font-family:inherit}'
+      + '.tb-back-fab.tb-back-disabled:hover{transform:none}'
       // Back button when it lives INSIDE the right rail (bottom): drop the fixed positioning so it
       // flows in the column, keep the orange circle look.
       + '.tb-fab-col-right .tb-back-fab{position:static;right:auto;bottom:auto;flex:0 0 58px}'
@@ -1160,17 +1163,34 @@
     });
   }
 
-  // Floating circular back button (bottom-right) when a page sets data-back-href. Works on any page.
+  // Floating circular back button, pinned to the BOTTOM of the right rail. A page sets data-back-href
+  // to make it navigate; on pages WITHOUT a back target (e.g. the home page) it still renders but as a
+  // DISABLED button — so the right rail keeps its bottom anchor and the flyouts don't drop to the floor.
   function buildBackButton() {
+    if (document.querySelector('.tb-back-fab')) return;
     var backHref = document.body.getAttribute('data-back-href');
-    if (!backHref || document.querySelector('.tb-back-fab')) return;
+    var disabled = !backHref;
     var lbl = document.body.getAttribute('data-back-label') || 'Back';
-    var fab = document.createElement('a');
-    fab.className = 'tb-back-fab';
-    fab.href = backHref;
-    fab.title = 'Back to ' + lbl;
-    fab.setAttribute('aria-label', 'Back to ' + lbl);
-    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
+    var svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
+    var fab;
+    if (disabled) {
+      fab = document.createElement('button');
+      fab.type = 'button';
+      fab.className = 'tb-back-fab tb-back-disabled';
+      fab.setAttribute('aria-disabled', 'true');
+      fab.disabled = true;
+      fab.title = 'Nowhere to go back to';
+      fab.setAttribute('aria-label', 'Back (unavailable)');
+      fab.innerHTML = svg;
+      lbl = 'Back';
+    } else {
+      fab = document.createElement('a');
+      fab.className = 'tb-back-fab';
+      fab.href = backHref;
+      fab.title = 'Back to ' + lbl;
+      fab.setAttribute('aria-label', 'Back to ' + lbl);
+      fab.innerHTML = svg;
+    }
     // Back button lives at the BOTTOM of the RIGHT rail (opposite the LIVE button on the left rail),
     // wrapped as a captioned rail item. The .tb-fab-col-right override drops its fixed positioning.
     var item = document.createElement('div');
