@@ -1011,7 +1011,7 @@ async function renderShiftReport(){
   try{ if(!document.querySelector('.sr .sk-blk')) document.getElementById('app').innerHTML=topBar('shift-report')+shiftReportSkeleton(); }catch(e){}
   let d=null;
   try{ const r=await window.PHDAuth.api('GET','/api/shift-report'); if(r.ok&&r.data)d=r.data; }catch(e){}
-  if(!d){ document.getElementById('app').innerHTML=topBar('shift-report')+'<div class="content sr"><div class="sr-hero"><div class="sr-hero-txt"><h1>Shift Report</h1><p class="sr-lead">Could not load the shift report. Please refresh.</p></div></div></div>'; attachNewFileHandler(); return; }
+  if(!d){ document.getElementById('app').innerHTML=topBar('shift-report')+'<div class="content sr"><div class="sr-hero"><div class="sr-hero-txt"><span class="sr-eyebrow">Queue snapshot</span><h1>'+ic('clipboard',24)+' Shift Report</h1><p class="sr-lead">Could not load the shift report. Please refresh.</p></div></div></div>'; attachNewFileHandler(); return; }
   const cc=d.counts||{}, colors=d.colors||{};
   SR_COUNTS=cc; SR_COLORS=colors;
   const today=new Date();
@@ -1033,14 +1033,14 @@ async function renderShiftReport(){
   document.getElementById('app').innerHTML=topBar('shift-report')+`<div class="content sr">
   <div class="sr-hero">
     <div class="sr-hero-txt">
-      <span class="sr-eyebrow">Queue snapshot · ${dateStr}</span>
-      <h1>Shift Report</h1>
+      <span class="sr-eyebrow">${ic('clock',12)} Queue snapshot · ${dateStr}</span>
+      <h1>${ic('clipboard',24)} Shift Report</h1>
       <p class="sr-lead">Queue health for handoff — <strong>${inQueue}</strong> unresolved tickets in queue. Prioritise oldest (Black/Red) and reopened (Purple) first.</p>
     </div>
     <div class="sr-hero-badge"><div class="sr-hero-num">${nT(inQueue)}</div><div class="sr-hero-cap">In queue</div></div>
   </div>
 
-  <section class="sr-sec sr-card-sec">
+  <section class="sr-sec sr-card-sec sr-sec-takeover">
     <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2>
       <div class="sr-sec-actions"><button class="btn sec sr-exp" onclick="exportTakeover()">${ic('copy',14)} Export takeover</button></div></div>
     <div class="sr-sec-body">
@@ -1055,7 +1055,7 @@ async function renderShiftReport(){
     </div>
   </section>
 
-  <section class="sr-sec sr-card-sec" id="shiftContent">
+  <section class="sr-sec sr-card-sec sr-sec-handoff" id="shiftContent">
     <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2>
       <div class="sr-sec-actions"><button class="btn sr-exp" onclick="showExportRegionModal()">${ic('copy',14)} Export handoff</button></div></div>
     <div class="sr-sec-body">
@@ -3351,15 +3351,15 @@ function shiftReportSkeleton(){
   const card=(n)=>`<div class="sr-card"><div class="sk-blk sk-h3"></div><table class="sr-table"><tbody>${cardRows(n)}</tbody></table></div>`;
   return `<div class="content sr">
   <div class="sr-hero">
-    <div class="sr-hero-txt"><span class="sr-eyebrow">Queue snapshot</span><h1>Shift Report</h1><p class="sr-lead">Loading queue health for handoff…</p></div>
+    <div class="sr-hero-txt"><span class="sr-eyebrow">${ic('clock',12)} Queue snapshot</span><h1>${ic('clipboard',24)} Shift Report</h1><p class="sr-lead">Loading queue health for handoff…</p></div>
     <div class="sr-hero-badge"><div class="sr-hero-num"><span class="sk-blk sk-num"></span></div><div class="sr-hero-cap">In queue</div></div>
   </div>
-  <section class="sr-sec sr-card-sec">
+  <section class="sr-sec sr-card-sec sr-sec-takeover">
     <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2></div>
     <div class="sr-colors">${colorTile('purple')}${colorTile('black')}${colorTile('red')}${colorTile('yellow')}${colorTile('green')}</div>
     <div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px;position:relative"><div class="sk-blk" style="position:absolute;inset:0;border-radius:10px"></div></div></div>
   </section>
-  <section class="sr-sec sr-card-sec">
+  <section class="sr-sec sr-card-sec sr-sec-handoff">
     <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2></div>
     <div class="sr-cards">${card(4)}${card(4)}${card(5)}${card(5)}</div>
   </section>

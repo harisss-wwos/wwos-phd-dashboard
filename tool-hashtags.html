@@ -80,6 +80,31 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+
+/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
+.tool-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:78px;margin-bottom:8px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background-size:200% 100%;animation:toolBanner 9s ease infinite}
+@keyframes toolBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.tool-banner .tb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tool-banner .tb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1}
+.tool-banner .tb-title svg{flex-shrink:0}
+.tool-banner .tb-sub{font-size:.86em;font-weight:500;line-height:1.4;max-width:60ch}
+.tool-banner .page-head-actions{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tool-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:260px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
+.tool-banner .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.14)}
+.tool-banner .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.28)}
+.tool-banner .btn.sec{background:rgba(255,255,255,.14);color:#0e1013;border:1px solid rgba(255,255,255,.35);font-weight:700}
+.tool-banner .btn.sec:hover{background:rgba(255,255,255,.24);color:#0e1013}
+/* Hashtags — blue gradient, dark-ink title, hash/tag illustration. */
+.tool-banner.tb-hashtags{background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb)}
+.tool-banner.tb-hashtags .tb-title,.tool-banner.tb-hashtags .tb-title svg{color:#0b1f4a}
+.tool-banner.tb-hashtags .tb-sub{color:rgba(11,31,74,.78)}
+.tool-banner.tb-hashtags::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M40 20L34 60M62 20L56 60M28 32h40M26 48h40"/><path d="M78 34a12 12 0 1 1 8 20l-6 6"/><circle cx="82" cy="42" r="2.4"/></svg>')}
+@media(max-width:640px){.tool-banner .tb-title{font-size:1.25em}.tool-banner::after{opacity:.22}}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -196,11 +221,17 @@ function render(){
   const editor=canEdit();
   const copyIcon='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   // Header: title left, actions (Add + edit log) right.
-  let html='<div class="page-head"><h1>Hashtags</h1><div class="page-head-actions">'
-    +(editor?'<button class="btn" onclick="openAddModal()">➕ Add New Hashtag</button>':'')
-    +'<a class="btn sec" href="hashtag-log.html">'+(window.icon?window.icon('history',15):'')+' Hashtag edit log</a>'
-    +'</div></div>';
-  html+='<p class="sub">Copy a hashtag with one click.'+(editor?' As an admin you can edit any hashtag or add a new one.':'')+'</p>';
+  // Illustrated gradient banner header (title + sub on the left, actions on the right).
+  let html='<div class="tool-banner tb-hashtags">'
+    +'<div class="tb-left">'
+      +'<h1 class="tb-title">'+(window.icon?window.icon('hash',24):'')+' Hashtags</h1>'
+      +'<div class="tb-sub">Copy a hashtag with one click.'+(editor?' As an admin you can edit any hashtag or add a new one.':'')+'</div>'
+    +'</div>'
+    +'<div class="page-head-actions">'
+      +(editor?'<button class="btn" onclick="openAddModal()">➕ Add New Hashtag</button>':'')
+      +'<a class="btn sec" href="hashtag-log.html">'+(window.icon?window.icon('history',15):'')+' Hashtag edit log</a>'
+    +'</div>'
+  +'</div>';
   // Expandable, click-to-copy cards. Copies the # itself; hover reveals the meaning/description.
   html+=`<div class="tag-list">`+TAGS.map((h,i)=>`
     <div class="tag-card" id="tagcard-${i}">

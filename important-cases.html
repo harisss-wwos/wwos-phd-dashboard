@@ -72,6 +72,35 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 
+/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
+.uc-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:ucBanner 9s ease infinite}
+@keyframes ucBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.uc-banner .ub-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.uc-banner .ub-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
+.uc-banner .ub-title svg{flex-shrink:0;color:#241354}
+.uc-banner .ub-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:78ch;color:rgba(36,19,84,.82)}
+.uc-banner .ub-sub b{color:#180b40;font-weight:800}
+.uc-banner .ub-actions{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.uc-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:220px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.3;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M60 16l9 18 20 3-14 14 3 20-18-9-18 9 3-20-14-14 20-3z"/><circle cx="98" cy="24" r="3"/><circle cx="30" cy="60" r="3"/></svg>')}
+/* Banner buttons stay legible on the bright gradient. */
+.uc-banner .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.14)}
+.uc-banner .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.28)}
+.uc-banner .btn.sec{background:rgba(255,255,255,.18);color:#241354;border:1px solid rgba(255,255,255,.4);font-weight:700}
+.uc-banner .btn.sec:hover{background:rgba(255,255,255,.3);color:#241354}
+/* Redesigned primary "Search a ticket" action — a crisp frosted-white pill with purple ink. */
+.uc-banner .uc-search-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;
+  background:#fff;color:#4c2ea8;border:1px solid rgba(255,255,255,.9);font-weight:800;font-size:.9em;letter-spacing:.1px;
+  box-shadow:0 6px 16px -6px rgba(0,0,0,.4);transition:transform .14s,box-shadow .14s,background .14s}
+.uc-banner .uc-search-btn svg{color:#7c5cff}
+.uc-banner .uc-search-btn:hover{transform:translateY(-1px);background:#f3efff;box-shadow:0 10px 22px -8px rgba(0,0,0,.5)}
+@media(max-width:640px){.uc-banner .ub-title{font-size:1.25em}.uc-banner::after{opacity:.2}}
+
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
@@ -82,7 +111,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><h1>Unique Cases</h1><p class="sub">Loading…</p><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1><div class="ub-sub">Loading…</div></div></div><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
 
 <!-- Edit marking popup -->
 <div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
@@ -154,8 +183,12 @@ function caseCard(c,i){
       '</div>'+
       '<div><div class="blk-t">Information</div>'+(c.info?('<div class="case-info">'+esc(c.info)+'</div>'):'<div class="none">No notes added.</div>')+'</div>'+
       '<div><div class="blk-t">Links</div>'+links+'</div>'+
-      (mine?('<div class="case-actions"><button class="btn sec" onclick="openEdit('+i+')">'+(window.icon?window.icon('pencil',15):'')+' Edit</button>'+
-        '<button class="btn danger" onclick="askUnmark('+i+')">'+(window.icon?window.icon('trash',15):'')+' Remove importance</button></div>'):'')+
+      // Edit stays restricted to the person who marked it; Remove importance (delete) is allowed
+      // for any logged-in viewer.
+      ('<div class="case-actions">'+
+        (mine?('<button class="btn sec" onclick="openEdit('+i+')">'+(window.icon?window.icon('pencil',15):'')+' Edit</button>'):'')+
+        '<button class="btn danger" onclick="askUnmark('+i+')">'+(window.icon?window.icon('trash',15):'')+' Remove importance</button>'+
+      '</div>')+
     '</div>'+
   '</div>';
 }
@@ -243,11 +276,17 @@ async function load(){
 }
 function render(rows){
   CASES=rows; // stash for the edit popup
-  let html='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><h1 style="margin:0">Unique Cases</h1>'
-    +'<a class="btn sec" href="unique-cases.html">'+(window.icon?window.icon('history',15):'')+' Unique cases log</a>'
+  var isAdmin=A.atLeast&&A.atLeast('admin');
+  let html='<div class="uc-banner">'
+    +'<div class="ub-left">'
+      +'<h1 class="ub-title">'+(window.icon?window.icon('target',24):'')+' Unique Cases</h1>'
+      +'<div class="ub-sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</div>'
     +'</div>'
-    +'<p class="sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</p>';
-  if(!rows.length){html+='<div class="empty">No unique cases marked yet. Mark tickets via Search ticket on the My Tickets page.</div>';document.getElementById('wrap').innerHTML=html;return;}
+    +'<div class="ub-actions">'
+      +(isAdmin?'<a class="btn uc-search-btn" href="unique-cases.html">'+(window.icon?window.icon('bar-chart',16):'')+' Search a ticket</a>':'')
+    +'</div>'
+  +'</div>';
+  if(!rows.length){html+='<div class="empty">No unique cases marked yet. Use <b>Search a ticket</b> above to find a ticket and mark it important.</div>';document.getElementById('wrap').innerHTML=html;return;}
   html+=rows.map(caseCard).join('');
   document.getElementById('wrap').innerHTML=html;
 }

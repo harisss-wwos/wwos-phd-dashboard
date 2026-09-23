@@ -144,6 +144,11 @@ tr:hover{background:rgba(255,153,0,.03)}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Top gap so the page banner lines up with the GSOC logo / profile avatar in the rails (the shared
+   topbar-auth.js forces .content{padding-top:0!important}; this higher-specificity rule wins). */
+body .content{padding-top:14px!important}
+/* The nested .content inside #phBody must stay flush (no extra gap between filter and analytics). */
+body #phBody .content{padding-top:0!important}
 /* #phBody holds a nested .content (from render()); strip its gutters/padding so the analytics align
    flush with the filter panel and Summary Statistics above it (no double indent). */
 #phBody .content{margin:0!important;padding:0!important;width:auto!important}
@@ -152,27 +157,87 @@ tr:hover{background:rgba(255,153,0,.03)}
 .ph-filter-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #1e2830}
 .ph-clear{background:transparent;border:1px solid #3a4655;color:#879596;border-radius:6px;padding:5px 12px;font-size:.82em;font-weight:600;cursor:pointer;font-family:inherit}
 .ph-clear:hover{border-color:#ff9900;color:#ff9900}
-.ph-tree{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
-/* Each year is its own tinted pill-group: [Year] Q3 Q2 Q1 — kept together on one row. */
-.ph-year{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;border:1px solid transparent}
-.ph-qs{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
-.ph-year-head{margin-right:4px;font-weight:700}
-/* Distinct background + accent per year for easy differentiation. */
-.ph-year-0{background:rgba(255,153,0,.08);border-color:rgba(255,153,0,.28)}
-.ph-year-1{background:rgba(68,185,214,.08);border-color:rgba(68,185,214,.28)}
-.ph-year-2{background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.28)}
-.ph-year-3{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.28)}
-.ph-year-4{background:rgba(255,184,77,.08);border-color:rgba(255,184,77,.28)}
-/* Chip-style option (mirrors agent-analytics .ga-opt): hidden native input, styled label + square. */
-.ph-opt{display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:7px;font-size:.86em;font-weight:600;color:#aab7c2;cursor:pointer;user-select:none;transition:background .15s,color .15s;position:relative}
+/* Layout: 2025 centered on its own row, then 2024|2023, then 2022|2021 (2-col grid). */
+.ph-tree{display:grid;grid-template-columns:1fr 1fr;justify-items:center;align-items:stretch;gap:10px}
+.ph-tree>.ph-year:first-child{grid-column:1 / -1}
+@media(max-width:760px){.ph-tree{grid-template-columns:1fr}.ph-tree>.ph-year:first-child{grid-column:auto}}
+/* Each year is a calm neutral group: [Year] Q4 Q3 Q2 Q1 kept together, subtle left accent bar. */
+.ph-year{position:relative;display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;padding:6px 10px 6px 12px;border-radius:12px;
+  background:#0e151c;border:1px solid #223040}
+/* Slightly smaller chips inside the year groups so two years fit comfortably per row. */
+.ph-tree .ph-opt{padding:5px 10px;font-size:.8em}
+.ph-tree .ph-opt::before{width:13px;height:13px;background-size:10px 10px}
+.ph-year::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--ph-acc,#3a4655)}
+.ph-year-0{--ph-acc:#ff9f3a}.ph-year-1{--ph-acc:#5ecdec}.ph-year-2{--ph-acc:#4ade80}.ph-year-3{--ph-acc:#a78bfa}.ph-year-4{--ph-acc:#ffb454}
+.ph-qs{display:inline-flex;flex-wrap:wrap;align-items:center;gap:5px}
+/* The year-head chip is the separator between the year label and its quarters. */
+.ph-year-head{margin-right:6px;padding-right:12px;border-right:1px solid #223040}
+/* Chip option: hidden native input + a styled checkbox square + label. Calm default; subtle when checked. */
+.ph-opt{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:8px;font-size:.85em;font-weight:600;
+  color:#9fb0c3;cursor:pointer;user-select:none;position:relative;
+  background:#0b1219;border:1px solid #2a3846;transition:background .15s,color .15s,border-color .15s}
 .ph-opt input{position:absolute;opacity:0;width:0;height:0}
-.ph-opt::before{content:'';width:11px;height:11px;border-radius:3px;border:1.5px solid #4a5c6a;flex-shrink:0;transition:background .15s,border-color .15s}
-.ph-opt:hover{color:#e6edf0;background:rgba(255,255,255,.04)}
-.ph-opt.checked{color:#fff}
-.ph-opt.checked::before{background:var(--o);border-color:var(--o);box-shadow:0 0 0 2px rgba(255,153,0,.2)}
-.ph-opt.partial::before{background:rgba(255,153,0,.35);border-color:var(--o)}
-.ph-master{font-size:.95em;color:#fff}
-.ph-year-head{color:#cfd8df}
+.ph-opt::before{content:'';width:15px;height:15px;border-radius:5px;border:1.5px solid #56697a;flex-shrink:0;
+  background-position:center;background-repeat:no-repeat;background-size:11px 11px;transition:background .15s,border-color .15s}
+.ph-opt:hover{color:#e6edf0;border-color:#3d566a;background:#0f1822}
+/* Checked (quarter) = soft amber-tinted chip with an orange text + a filled orange check square. NOT a full solid fill. */
+.ph-opt.checked{color:#ffce8a;border-color:rgba(255,159,42,.55);background:rgba(255,159,42,.12)}
+.ph-opt.checked::before{background-color:var(--o);border-color:var(--o);box-shadow:0 0 0 2px rgba(255,153,0,.18);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231a1206" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')}
+.ph-opt.partial::before{background-color:rgba(255,159,42,.4);border-color:var(--o);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231a1206" stroke-width="4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>')}
+/* Year head + master are the emphasis chips: solid amber when checked so the hierarchy reads. */
+.ph-master{font-size:.92em;color:#c9d3d4;font-weight:700}
+.ph-year-head{color:#c9d3d4;font-weight:700}
+.ph-year-head.checked,.ph-master.checked{color:#1a1206;background:linear-gradient(180deg,#ffb454,#f07d0a);border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.3)}
+.ph-year-head.checked::before,.ph-master.checked::before{background-color:#fff;border-color:#fff;box-shadow:none;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f07d0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')}
+.ph-year-head.partial{color:#ffce8a;background:rgba(255,159,42,.14);border-color:rgba(255,159,42,.5)}
+.ph-year-head.partial::before{background-color:rgba(255,159,42,.4);border-color:var(--o);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231a1206" stroke-width="4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>')}
+
+/* ============ Illustrated gradient page banner (Program History / moving) ============ */
+@keyframes phBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.ph-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
+  border-radius:18px;padding:20px 26px;min-height:96px;margin-bottom:22px;
+  border:1px solid #242a31;box-shadow:0 14px 34px -22px rgba(0,0,0,.8);
+  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:phBanner 10s ease infinite}
+.ph-hero .phh-left{position:relative;z-index:1;min-width:0}
+.ph-hero .phh-title{margin:0;display:inline-flex;align-items:center;gap:12px;font-size:1.8em;font-weight:800;letter-spacing:-.5px;line-height:1.1;color:#241354;white-space:normal}
+.ph-hero .phh-title svg{flex-shrink:0;color:#241354}
+.ph-hero .phh-sub{margin-top:6px;font-size:.92em;font-weight:500;line-height:1.55;color:rgba(36,19,84,.82)}
+.ph-hero::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 108%;opacity:.3;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><rect x="24" y="20" width="46" height="44" rx="5"/><path d="M24 32h46M36 14v10M58 14v10"/><path d="M84 28a14 14 0 1 1-4 24"/><path d="M84 22v8h8"/></svg>')}
+@media(max-width:768px){.ph-hero .phh-title{font-size:1.35em}.ph-hero::after{opacity:.2}}
+
+/* ============ Illustrated gradient section-header banners ============ */
+/* Both the flat Summary Statistics <h2> and the collapsible .collapse-head <h2> become gradient bars
+   spanning the section's padding. Default = amber; per-section colors set via .sec-* classes. */
+.section>h2,.section .collapse-head{position:relative;overflow:hidden;margin:-24px -24px 18px !important;min-height:58px;
+  padding:0 22px !important;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:8px 8px 0 0;
+  background:linear-gradient(90deg,#f0a020,#ff9f2e 55%,#ffcf7a);background-size:200% 100%;animation:phBanner 10s ease infinite;
+  color:var(--sh-ink,#3a2405) !important;font-size:1.1em;font-weight:800}
+.section.collapsible:not(.open) .collapse-head{margin-bottom:-24px !important;border-radius:8px}
+/* Remove the old orange bar pseudo-element on section h2 (banner replaces it). */
+.section h2::before{display:none !important}
+.section>h2 svg,.section .collapse-title svg{color:var(--sh-ink,#3a2405)}
+.collapse-title{color:var(--sh-ink,#3a2405);position:relative;z-index:1}
+.section>h2>span:first-child,.section .collapse-title{font-weight:800}
+.collapse-head .collapse-caret{color:var(--sh-ink,#3a2405);position:relative;z-index:1;opacity:.8}
+.collapsible:not(.open) .collapse-head:hover{background:linear-gradient(90deg,#f0a020,#ff9f2e 55%,#ffcf7a);filter:brightness(1.05)}
+/* Watermark illustration on each section banner. */
+.section>h2::after,.section .collapse-head::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background-repeat:no-repeat;background-position:right center;background-size:auto 80%;opacity:.28;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="48" x2="18" y2="30"/><line x1="34" y1="48" x2="34" y2="18"/><line x1="50" y1="48" x2="50" y2="36"/><line x1="66" y1="48" x2="66" y2="24"/></svg>')}
+/* Per-section accent colors (class added in archive.js). */
+.section.sec-cyan>h2,.section.sec-cyan .collapse-head{background:linear-gradient(90deg,#0e7490,#22b8cf 55%,#7fe0ef);--sh-ink:#062e3a}
+.section.sec-green>h2,.section.sec-green .collapse-head{background:linear-gradient(90deg,#22c55e,#4ade80 55%,#86efac);--sh-ink:#0b3d1e}
+.section.sec-purple>h2,.section.sec-purple .collapse-head{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);--sh-ink:#241354}
+.section.sec-teal>h2,.section.sec-teal .collapse-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2);--sh-ink:#06322d}
+.section.sec-blue>h2,.section.sec-blue .collapse-head{background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb);--sh-ink:#0b1f4a}
+.section.sec-rose>h2,.section.sec-rose .collapse-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d);--sh-ink:#4a0d0f}
+.section.sec-cyan:not(.open) .collapse-head:hover,.section.sec-green:not(.open) .collapse-head:hover,.section.sec-purple:not(.open) .collapse-head:hover,.section.sec-teal:not(.open) .collapse-head:hover,.section.sec-blue:not(.open) .collapse-head:hover,.section.sec-rose:not(.open) .collapse-head:hover{filter:brightness(1.05)}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>

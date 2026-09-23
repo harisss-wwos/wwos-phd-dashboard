@@ -220,43 +220,77 @@ tr:hover{background:rgba(255,153,0,.03)}
 .meta-info{color:var(--tm);font-size:.85em;margin-bottom:16px}
 /* ================= Shift Report (redesigned) ================= */
 .sr{max-width:1200px}
-.sr-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:linear-gradient(135deg,rgba(255,153,0,.12),#0a0a0a 55%);border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:16px;padding:22px 24px;margin-bottom:26px}
-.sr-eyebrow{color:var(--o);font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
-.sr-hero-txt h1{color:#fff;font-size:1.7em;font-weight:800;margin:6px 0 8px}
-.sr-lead{color:var(--tm);font-size:.92em;max-width:620px;line-height:1.6}
-.sr-lead strong{color:#fff}
-.sr-hero-badge{text-align:center;background:#000;border:1px solid var(--bd);border-radius:14px;padding:16px 26px;flex-shrink:0}
-.sr-hero-num{font-size:2.4em;font-weight:800;color:var(--o);line-height:1}
-.sr-hero-cap{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
-.sr-sec{margin-bottom:30px}
-.sr-sec-head{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
-.sr-sec-head h2{color:#fff;font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:9px;flex:1;min-width:0}
-.sr-sec-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}
-.sr-sec-head h2 .ic{color:var(--o)}
+/* ============ Shift Report — illustrated gradient hero banner (matches the section banners) ============ */
+.sr{max-width:1200px}
+.sr-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  border:1px solid #242a31;border-radius:18px;padding:22px 26px;min-height:104px;margin-bottom:22px;
+  box-shadow:0 14px 34px -22px rgba(0,0,0,.8);
+  background:linear-gradient(90deg,#f07d0a,#ff9f2e 52%,#ffcf7a);background-size:200% 100%;animation:secBanner 10s ease infinite}
+.sr-hero-txt{position:relative;z-index:1;min-width:0}
+.sr-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#6a3d05;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
+.sr-hero-txt h1{color:#3a2405;font-size:1.9em;font-weight:800;letter-spacing:-.5px;margin:7px 0 8px;display:inline-flex;align-items:center;gap:11px}
+.sr-hero-txt h1 svg{color:#3a2405;flex-shrink:0}
+.sr-lead{color:rgba(58,36,5,.82);font-size:.92em;max-width:640px;line-height:1.6;font-weight:500}
+.sr-lead strong{color:#2a1a02;font-weight:800}
+/* In-queue badge: frosted white pill so the big number reads on the bright banner. */
+.sr-hero-badge{position:relative;z-index:1;text-align:center;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:16px;padding:14px 26px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
+.sr-hero-num{font-size:2.4em;font-weight:800;color:#c25e00;line-height:1}
+.sr-hero-cap{color:#8a5a1a;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
+/* Hero watermark: clipboard + handoff arrows line-art on the right. */
+.sr-hero::after{content:"";position:absolute;top:0;bottom:0;right:200px;width:200px;
+  background-repeat:no-repeat;background-position:center;background-size:auto 84%;opacity:.34;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="24" y="14" width="46" height="52" rx="6"/><rect x="38" y="9" width="18" height="9" rx="3"/><path d="M34 32h26M34 42h26M34 52h16"/><path d="M84 30h24M100 22l8 8-8 8"/><path d="M108 54H84M92 46l-8 8 8 8"/></svg>')}
+.sr-sec{margin-bottom:22px}
+/* Section head is now an illustrated gradient mini-banner (like the My Tickets section banners). */
+.sr-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;
+  border-radius:14px;padding:0 18px;height:62px;min-height:62px;margin:-18px -20px 18px;
+  background-size:200% 100%;animation:secBanner 10s ease infinite}
+.sr-sec-head h2{font-size:1.12em;font-weight:800;display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-sec-head h2 .ic,.sr-sec-head h2 svg{flex-shrink:0}
+.sr-sec-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:1}
 .sr-exp{white-space:nowrap}
-/* Bordered shift-report sections (Takeover / Handoff) — card look, no collapse. */
-.sr-sec.sr-card-sec{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:18px 20px}
+/* Section-head watermark. */
+.sr-sec-head::after{content:"";position:absolute;top:0;bottom:0;right:0;width:170px;background-repeat:no-repeat;background-position:right center;background-size:auto 96%;opacity:.32;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
+/* Takeover section = amber (needs attention). */
+.sr-sec-takeover .sr-sec-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)}
+.sr-sec-takeover .sr-sec-head h2,.sr-sec-takeover .sr-sec-head h2 svg{color:#4a0d0f}
+.sr-sec-takeover .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="40" r="22"/><path d="M52 28v12l9 6"/><path d="M84 20h24M84 60h24M88 20c0 12 16 14 16 20s-16 8-16 20M104 20c0 12-16 14-16 20s16 8 16 20"/></svg>')}
+/* Handoff section = teal/green (done, ready to hand over). */
+.sr-sec-handoff .sr-sec-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2)}
+.sr-sec-handoff .sr-sec-head h2,.sr-sec-handoff .sr-sec-head h2 svg{color:#06322d}
+.sr-sec-handoff .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><rect x="26" y="16" width="46" height="50" rx="6"/><rect x="40" y="11" width="18" height="9" rx="3"/><path d="M36 34h26M36 44h18"/><path d="M82 40h24M98 32l8 8-8 8"/></svg>')}
+/* Buttons on the bright section banner stay legible. */
+.sr-sec-head .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.16)}
+.sr-sec-head .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.3)}
+.sr-sec-head .btn.sec{background:rgba(255,255,255,.16);color:#0e1013;border:1px solid rgba(255,255,255,.4);font-weight:700}
+.sr-sec-head .btn.sec:hover{background:rgba(255,255,255,.28);color:#0e1013}
+/* Bordered shift-report sections (Takeover / Handoff) — glass card, no collapse. */
+.sr-sec.sr-card-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-radius:16px;padding:18px 20px;box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
 @media(max-width:560px){
-  .sr-sec-head{flex-wrap:wrap}
-  .sr-sec-head h2{flex-basis:auto}
+  .sr-sec-head{flex-wrap:wrap;height:auto;min-height:62px;padding:12px 16px}
+  .sr-sec-head h2{flex-basis:auto;white-space:normal}
   .sr-exp{font-size:.8em}
 }
-/* Age-colour queue tiles */
+/* Age-colour queue tiles (glass tiles with a colored top spine + soft glow). */
 .sr-colors{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.sr-color{position:relative;background:#000;border:1px solid var(--bd);border-radius:12px;padding:16px 12px 14px;text-align:center;overflow:hidden}
+.sr-color{position:relative;background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;padding:18px 12px 14px;text-align:center;overflow:hidden;transition:transform .16s,border-color .16s,box-shadow .16s}
+.sr-color:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--sc) 55%,#232830);box-shadow:0 14px 30px -18px color-mix(in srgb,var(--sc) 60%,#000)}
 .sr-color::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc)}
-.sr-color-dot{width:10px;height:10px;border-radius:50%;background:var(--sc);margin:0 auto 8px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 22%,transparent)}
-.sr-color-v{font-size:1.9em;font-weight:800;color:#fff;line-height:1}
+.sr-color-dot{width:11px;height:11px;border-radius:50%;background:var(--sc);margin:0 auto 8px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 22%,transparent)}
+.sr-color-v{font-size:1.95em;font-weight:800;color:#fff;line-height:1}
 .sr-color-l{color:#fff;font-size:.82em;font-weight:600;margin-top:6px}
 .sr-color-r{color:var(--tm);font-size:.68em;margin-top:3px}
 .sr-purple{--sc:#a78bfa}.sr-black{--sc:#8a8a8a}.sr-red{--sc:#ff5252}.sr-yellow{--sc:#fbbf24}.sr-green{--sc:#4ade80}
-.sr-chart-card{background:linear-gradient(160deg,#0f0f0f,#000);border:1px solid #333;border-radius:14px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.sr-chart-card{background:linear-gradient(160deg,#0f0f0f,#000);border:1px solid #232830;border-radius:14px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .sr-chart-card h3{color:#fff;font-size:.95em;font-weight:600;text-align:center;letter-spacing:.4px;margin-bottom:14px}
 /* Handoff meta chips + cards */
 .sr-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
 .sr-chip{background:#0a0a0a;border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-size:.82em;color:var(--tm);display:inline-flex;align-items:center;gap:6px}
 .sr-chip b{color:#fff;font-weight:600}
-.sr-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+/* Handoff cards: fixed 2×2 grid (Ticket Health | Last 12 Hours Activity / Ticket Count by Status | Status Distribution). Collapse to 1 column on narrow screens. */
+.sr-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.sr-cards{grid-template-columns:1fr}}
 .sr-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px}
 .sr-card h3{color:var(--o);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
 .sr-card ul{list-style:none;padding:0;margin:0}

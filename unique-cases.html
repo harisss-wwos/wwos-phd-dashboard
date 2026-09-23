@@ -122,6 +122,25 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 
+/* ---- Illustrated gradient banner header (matches the other pages) ---- */
+.uc-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;
+  border-radius:16px;padding:16px 22px;min-height:78px;margin-bottom:18px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:ucHero 9s ease infinite}
+@keyframes ucHero{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.uc-hero .uh-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.uc-hero .uh-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
+.uc-hero .uh-title svg{flex-shrink:0;color:#241354}
+.uc-hero .uh-sub{font-size:.86em;font-weight:500;line-height:1.45;max-width:70ch;color:rgba(36,19,84,.82)}
+.uc-hero::after{content:"";position:absolute;top:0;bottom:0;right:0;width:220px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.3;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="38" r="20"/><path d="M66 52l16 16"/><path d="M44 38h16M52 30v16"/></svg>')}
+@media(max-width:640px){.uc-hero .uh-title{font-size:1.25em}.uc-hero::after{opacity:.2}}
+/* Clear button next to Search — a neutral secondary. */
+.search-row .btn.clear{background:transparent;border:1px solid var(--bd);color:var(--tm)}
+.search-row .btn.clear:hover{border-color:var(--rl);color:var(--rl)}
+
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
@@ -188,7 +207,11 @@ let LOG_LOADED=false;     // fetch the log only on first Log-tab open, then cach
 let LOG_ENTRIES=null;
 
 function pageShell(){
-  return '<div class="uc-tabs">'+
+  return '<div class="uc-hero"><div class="uh-left">'+
+      '<h1 class="uh-title">'+ic('bar-chart',24)+' Unique Cases</h1>'+
+      '<div class="uh-sub">Search any ticket across all quarters (live and past) and mark it important for leadership.</div>'+
+    '</div></div>'+
+    '<div class="uc-tabs">'+
     '<button class="uc-tab'+(ACTIVE_TAB==='cases'?' active':'')+'" id="tabCases" onclick="switchTab(\'cases\')">'+ic('bar-chart',15)+' Unique cases</button>'+
     '<button class="uc-tab'+(ACTIVE_TAB==='log'?' active':'')+'" id="tabLog" onclick="switchTab(\'log\')">'+ic('history',15)+' Log</button>'+
   '</div>'+
@@ -219,6 +242,7 @@ function renderCasesTab(){
     '<div class="search-row">'+
       '<input type="text" id="q" placeholder="e.g. V2346261846" autocomplete="off">'+
       '<button class="btn" id="searchBtn" onclick="doSearch()">'+ic('bar-chart')+' Search</button>'+
+      '<button class="btn clear" id="clearBtn" onclick="clearSearch()" title="Clear the search and result">'+ic('close',15)+' Clear</button>'+
     '</div>'+
     '<div id="result"></div>';
   const input=document.getElementById('q');
@@ -241,6 +265,13 @@ async function doSearch(){
   renderResult(d);
 }
 window.doSearch=doSearch;
+// Clear the search box + any result, and refocus the input.
+function clearSearch(){
+  const q=document.getElementById('q'); if(q){ q.value=''; q.focus(); }
+  const box=document.getElementById('result'); if(box) box.innerHTML='';
+  CURRENT=null;
+}
+window.clearSearch=clearSearch;
 
 let CURRENT=null;
 function ticketDetailRows(d){

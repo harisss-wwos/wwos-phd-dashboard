@@ -250,6 +250,42 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .sk-row{height:34px;margin-bottom:8px;border-radius:6px}
 .gv-wrap{background:transparent}
 
+/* ============ Illustrated gradient section banners (agent-analytics) ============ */
+@keyframes anBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+/* Plain .section > h2 heads become gradient banner bars spanning the section padding. */
+.section{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-radius:16px;padding:0;overflow:hidden;box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
+.section>h2{position:relative;overflow:hidden;margin:0 0 0 !important;min-height:58px;padding:0 22px;display:flex;align-items:center;gap:10px;
+  text-transform:none !important;letter-spacing:-.2px !important;font-size:1.12em !important;font-weight:800 !important;color:#3a2405 !important;
+  background:linear-gradient(90deg,#f0a020,#ff9f2e 55%,#ffcf7a);background-size:200% 100%;animation:anBanner 10s ease infinite}
+.section>h2 .ic,.section>h2 svg{color:#3a2405 !important;position:relative;z-index:1}
+.section>h2::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background-repeat:no-repeat;background-position:right center;background-size:auto 78%;opacity:.28;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="48" x2="18" y2="30"/><line x1="34" y1="48" x2="34" y2="18"/><line x1="50" y1="48" x2="50" y2="36"/><line x1="66" y1="48" x2="66" y2="24"/></svg>')}
+/* The section body (everything after the h2 banner) gets inner padding. */
+.section>h2~*{margin-left:20px;margin-right:20px}
+.section>h2~*:last-child{margin-bottom:20px}
+.section>.ac-grid,.section>.gv-list{margin-top:16px}
+
+/* Top-level Group-Analytics collapsible cards become gradient banner heads. */
+.gv-list>.gv-card>.gv-card-head{position:relative;overflow:hidden;min-height:58px;
+  background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb);background-size:200% 100%;animation:anBanner 10s ease infinite;transition:filter .12s}
+.gv-list>.gv-card>.gv-card-head:hover{filter:brightness(1.05);background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb)}
+.gv-list>.gv-card>.gv-card-head .gv-card-title{color:#0b1f4a;font-weight:800;position:relative;z-index:1}
+.gv-list>.gv-card>.gv-card-head .gv-card-title svg{color:#0b1f4a}
+.gv-list>.gv-card>.gv-card-head .gv-caret{color:#0b1f4a;position:relative;z-index:1}
+.gv-list>.gv-card>.gv-card-head::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background-repeat:no-repeat;background-position:right center;background-size:auto 78%;opacity:.3;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="48" x2="18" y2="30"/><line x1="34" y1="48" x2="34" y2="18"/><line x1="50" y1="48" x2="50" y2="36"/><line x1="66" y1="48" x2="66" y2="24"/><circle cx="60" cy="16" r="4"/></svg>')}
+/* Per-card accent: Agent Queue = teal, Recent Activity = amber, Group Analytics = purple. */
+#queueCard>.gv-card-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2)}
+#queueCard>.gv-card-head .gv-card-title,#queueCard>.gv-card-head .gv-card-title svg,#queueCard>.gv-card-head .gv-caret{color:#06322d}
+#recentCard>.gv-card-head{background:linear-gradient(90deg,#f0a020,#ff9f2e 55%,#ffcf7a)}
+#recentCard>.gv-card-head .gv-card-title,#recentCard>.gv-card-head .gv-card-title svg,#recentCard>.gv-card-head .gv-caret{color:#3a2405}
+#groupAnalyticsCard>.gv-card-head{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff)}
+#groupAnalyticsCard>.gv-card-head .gv-card-title,#groupAnalyticsCard>.gv-card-head .gv-card-title svg,#groupAnalyticsCard>.gv-card-head .gv-caret{color:#241354}
+
+/* Pill-toggle checkmark for SCOPE/MONTHS/GROUPS checkboxes (matches the archive tree). */
+.ga-fopts.ga-checks .ga-opt.checked::before{background:#fff;border-color:#fff;box-shadow:0 0 0 2px rgba(255,153,0,.2);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f07d0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');background-size:7px 7px;background-position:center;background-repeat:no-repeat}
+
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>

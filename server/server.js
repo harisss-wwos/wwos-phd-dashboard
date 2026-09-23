@@ -1880,16 +1880,14 @@ app.post('/api/important-cases/:shortId', requireRole('admin'), async (req, res)
   }
 });
 
-// Unmark a ticket (admin+). Only the person who marked it may remove it. Logs an 'unmark' action.
+// Unmark a ticket (admin+). Any admin may remove any marking. Logs an 'unmark' action.
 app.delete('/api/important-cases/:shortId', requireRole('admin'), async (req, res) => {
   try {
     const shortId = String(req.params.shortId).trim();
     const coll = await getCollection(COLLECTIONS.importantCases);
     const existing = await coll.findOne({ shortId });
     if (!existing) return res.status(404).json({ error: 'Marking not found.' });
-    if (String(existing.markedBy || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
-      return res.status(403).json({ error: 'Only ' + (existing.markedBy || 'the marker') + ' can unmark this ticket.' });
-    }
+    // Any admin may remove a marking (not just the person who originally marked it).
     await coll.deleteOne({ shortId });
     try {
       const logColl = await getCollection(COLLECTIONS.importantCasesLog);

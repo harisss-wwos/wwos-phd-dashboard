@@ -43,24 +43,37 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-filter-ic{display:inline-flex;color:var(--tm);flex-shrink:0}
 .hr-filter input{flex:1;min-width:0;background:transparent;border:none;color:#fff;font-size:.88em;font-family:inherit;padding:4px 2px}
 .hr-filter input:focus{outline:none}
-/* Date-range sections (top level, collapsible) — colorful gradient top border + header icon chip. */
-.hr-range{position:relative;border:1px solid #23303c;border-radius:14px;margin-bottom:16px;overflow:hidden;background:#0a0a0a}
-.hr-range::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--rc1),var(--rc2))}
-.hr-range-head{display:flex;align-items:center;gap:14px;width:100%;padding:18px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
-.hr-range-head:hover{background:rgba(255,255,255,.03)}
-.hr-range-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--rc-bg);color:var(--rc2)}
+/* Date-range sections (top level, collapsible) — each header is an illustrated gradient banner. */
+.hr-range{position:relative;border:1px solid #242a31;border-radius:16px;margin-bottom:16px;overflow:hidden;background:linear-gradient(180deg,#15181d,#0f1115);box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
+.hr-range-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 20px;border:none;text-align:left;cursor:pointer;font:inherit;
+  background:linear-gradient(90deg,var(--rc1),var(--rc2) 60%,var(--rc3));background-size:200% 100%;animation:hrBanner 10s ease infinite;transition:filter .12s}
+.hr-range-head:hover{filter:brightness(1.04)}
+/* Round icon chip on the banner — frosted white so the glyph pops on the bright gradient. */
+.hr-range-ic{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.85);color:var(--rc-ink);box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .hr-range-ic svg{width:18px;height:18px}
-.hr-range-title{color:#fff;font-weight:700;font-size:1.12em}
-.hr-range-meta{margin-left:auto;color:var(--tm);font-size:.84em;white-space:nowrap}
-/* Per-range accent colors (set as CSS vars on the .hr-range element). */
-.hr-range.rng-after{--rc1:#ff5252;--rc2:#ff8080;--rc-bg:rgba(255,82,82,.16)}
-.hr-range.rng-mid{--rc1:#f0a020;--rc2:#fbbf24;--rc-bg:rgba(251,191,36,.16)}
-.hr-range.rng-before{--rc1:#8b5cf6;--rc2:#a78bfa;--rc-bg:rgba(167,139,250,.16)}
-.hr-range.rng-unknown{--rc1:#5f6b6c;--rc2:#8b98a5;--rc-bg:rgba(139,152,165,.16)}
+.hr-range-title{position:relative;z-index:1;color:var(--rc-ink);font-weight:800;font-size:1.12em;letter-spacing:-.2px}
+/* Meta pill on the right (breaches · agents · pet). */
+.hr-range-meta{position:relative;z-index:1;margin-left:auto;color:var(--rc-ink);font-size:.82em;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.72);border-radius:20px;padding:5px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.hr-range .hr-caret{position:relative;z-index:1;color:var(--rc-ink);flex-shrink:0;transition:transform .18s}
+/* Illustration watermark on the banner (per-range image set below). */
+.hr-range-head::after{content:"";position:absolute;top:0;bottom:0;right:210px;width:150px;background-repeat:no-repeat;background-position:center;background-size:auto 90%;opacity:.34;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
+/* Per-range gradient + dark-ink color + illustration. */
+.hr-range.rng-after{--rc1:#e5484d;--rc2:#ff6b6b;--rc3:#ff9d9d;--rc-ink:#4a0d0f}
+.hr-range.rng-after .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="40" cy="40" r="22"/><path d="M40 28v13l9 6"/><path d="M78 40a12 12 0 1 1 4 9"/><path d="M78 34v8h8"/></svg>')}
+.hr-range.rng-mid{--rc1:#f0a020;--rc2:#ff9f2e;--rc3:#ffcf7a;--rc-ink:#3a2405}
+.hr-range.rng-mid .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M40 20v6a20 20 0 0 0 8 16 20 20 0 0 1-8 16v6M72 20v6a20 20 0 0 1-8 16 20 20 0 0 0 8 16v6"/><path d="M36 20h40M36 66h40"/></svg>')}
+.hr-range.rng-before{--rc1:#7c5cff;--rc2:#a78bfa;--rc3:#cbb8ff;--rc-ink:#241354}
+.hr-range.rng-before .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><rect x="30" y="22" width="44" height="42" rx="5"/><path d="M30 34h44M42 16v10M62 16v10"/><path d="M84 34a13 13 0 1 1-4 22"/><path d="M84 30v8h8"/></svg>')}
+.hr-range.rng-unknown{--rc1:#4a5560;--rc2:#6b7681;--rc3:#95a1ac;--rc-ink:#161c22}
+.hr-range.rng-unknown .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="40" r="22"/><path d="M45 34a7 7 0 0 1 13 3c0 5-7 5-7 10M51 54h.01"/></svg>')}
+@media(max-width:640px){.hr-range-head{min-height:auto;padding:14px 16px;flex-wrap:wrap}.hr-range-meta{margin-left:0}.hr-range-head::after{opacity:.2}}
 /* Skeleton shimmer for the collapsed-card loading state. */
 .sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+/* On the bright gradient range-head banner, shimmer lines need a light base to be visible. */
+.hr-range-head .sk-line{background:rgba(255,255,255,.5)}
 .sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
-#hrSkel .hr-range-ic{background:var(--rc-bg)}
+
 @keyframes sksh{100%{transform:translateX(100%)}}
 .hr-range-body{display:none;padding:0 16px}
 .hr-range.open .hr-range-body{display:block;padding:16px}
@@ -95,6 +108,23 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-search input{width:100%;max-width:360px;background:#0b0f14;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:9px 12px;font-family:inherit}
 .empty{text-align:center;color:var(--tm);padding:36px;font-size:.9em}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
+/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
+.hr-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d);background-size:200% 100%;animation:hrBanner 9s ease infinite}
+@keyframes hrBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.hr-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.hr-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#4a0d0f}
+.hr-banner .hb-title svg{flex-shrink:0;color:#4a0d0f}
+.hr-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:78ch;color:rgba(74,13,15,.82)}
+.hr-banner .hb-sub b{color:#3a080a;font-weight:800}
+.hr-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="46" cy="40" r="22"/><path d="M46 28v13l9 6"/><path d="M84 24l24 0M84 56l24 0M88 24c0 12 16 14 16 20s-16 8-16 20M104 24c0 12-16 14-16 20s16 8 16 20"/></svg>')}
+@media(max-width:640px){.hr-banner .hb-title{font-size:1.25em}.hr-banner::after{opacity:.22}}
+
 /* Global: main content spans full width with a 15px gutter each side. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
@@ -106,8 +136,12 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 </div>
 
 <div class="wrap" id="wrap">
-  <h1>SLA Breaches (&gt;240h)</h1>
-  <p class="sub">Tickets that were resolved <b>after breaching the 240-hour (10-day) SLA</b>, across the whole database, grouped by the agent who resolved them.</p>
+  <div class="hr-banner">
+    <div class="hb-left">
+      <h1 class="hb-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> SLA Breaches (&gt;240h)</h1>
+      <div class="hb-sub">Tickets resolved <b>after breaching the 240-hour (10-day) SLA</b>, across the whole database, grouped by the agent who resolved them.</div>
+    </div>
+  </div>
   <div id="hrSkel">
     <div class="hr-range rng-after"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:280px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:190px;height:12px"></span><span class="hr-caret">▾</span></div></div>
     <div class="hr-range rng-mid"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:320px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:190px;height:12px"></span><span class="hr-caret">▾</span></div></div>
@@ -193,12 +227,14 @@ function render(d){
   // All sections collapsed by default.
   let sections=
     rangeSection('after','Incidents reported on or after 1 Apr 2026', d.after||{})+
-    rangeSection('mid','Incidents reported between 1 Sep 2025 – 31 Mar 2026', d.mid||{})+
+    rangeSection('mid','Incidents reported between 1 Oct 2025 – 31 Mar 2026', d.mid||{})+
     rangeSection('before','Incidents reported between 1 Jan 2021 – 30 Sept 2025', d.before||{});
   if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown); }
   document.getElementById('wrap').innerHTML=
-    '<h1>SLA Breaches (&gt;240h)</h1>'+
-    '<p class="sub">Tickets resolved <b>after breaching the 240-hour (10-day) SLA</b>, across the whole database, grouped by the agent who resolved them, and split by ticket creation date. Agents are ordered by breach count (highest first).</p>'+
+    '<div class="hr-banner"><div class="hb-left">'+
+      '<h1 class="hb-title">'+ic('clock',24)+' SLA Breaches (&gt;240h)</h1>'+
+      '<div class="hb-sub">Tickets resolved <b>after breaching the 240-hour (10-day) SLA</b>, across the whole database, grouped by the agent who resolved them, and split by ticket creation date. Agents are ordered by breach count (highest first).</div>'+
+    '</div></div>'+
     '<div id="hrRanges">'+sections+'</div>';
 }
 

@@ -1801,7 +1801,7 @@
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
     // recent-history quick-swap button so the feature is on EVERY page.
-    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); return; }
+    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildBackButton(); buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); return; }
     if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); return; } // app.html: back + history + analytics + live + nav FABs + logo + profile avatar
 
     var oldBar = document.querySelector('.top-bar');

@@ -35,6 +35,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+
+/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
+.tool-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:78px;margin-bottom:20px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background-size:200% 100%;animation:toolBanner 9s ease infinite}
+@keyframes toolBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.tool-banner .tb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tool-banner .tb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1}
+.tool-banner .tb-title svg{flex-shrink:0}
+.tool-banner .tb-sub{font-size:.86em;font-weight:500;line-height:1.4;max-width:60ch}
+.tool-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:260px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
+/* Prompts — purple gradient, dark-ink title, chat/message illustration. */
+.tool-banner.tb-prompts{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff)}
+.tool-banner.tb-prompts .tb-title,.tool-banner.tb-prompts .tb-title svg{color:#241354}
+.tool-banner.tb-prompts .tb-sub{color:rgba(36,19,84,.78)}
+.tool-banner.tb-prompts::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M28 22h44a5 5 0 0 1 5 5v20a5 5 0 0 1-5 5H44l-12 10V52h-4a5 5 0 0 1-5-5V27a5 5 0 0 1 5-5z"/><path d="M38 34h24M38 42h16"/><path d="M92 30l6 6-6 6M104 30l6 6-6 6"/></svg>')}
+@media(max-width:640px){.tool-banner .tb-title{font-size:1.25em}.tool-banner::after{opacity:.22}}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -49,6 +69,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <a href="tool-prompts.html" class="active">Prompt</a>
 </div>
 <div class="wrap">
+  <div class="tool-banner tb-prompts">
+    <div class="tb-left">
+      <h1 class="tb-title" id="promptsBannerTitle">Prompts</h1>
+      <div class="tb-sub">Prompt templates and quick-reference text for common PHD tasks.</div>
+    </div>
+  </div>
   <div class="wip">
     <div class="emoji">🚧</div>
     <div class="badge">Work in progress</div>
@@ -63,5 +89,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js"></script>
+<script>
+  // Prefix the banner title with the message icon (icons.js is loaded above).
+  (function(){var el=document.getElementById('promptsBannerTitle');
+    if(el&&window.icon){el.innerHTML=window.icon('message',24)+' Prompts';}})();
+</script>
 </body>
 </html>

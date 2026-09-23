@@ -69,6 +69,46 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .sr-gate h1{color:#fff;font-size:1.4em;margin-bottom:10px}
 .spinner{width:34px;height:34px;border:3px solid #2a2a2a;border-top-color:var(--o);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
 @keyframes spin{100%{transform:rotate(360deg)}}
+
+/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
+@keyframes srBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.sr-banner{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;
+  border-radius:16px;padding:18px 24px;min-height:92px;justify-content:center;margin-bottom:22px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2);background-size:200% 100%;animation:srBanner 9s ease infinite}
+.sr-banner .sb-title{position:relative;z-index:1;margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.55em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#06322d}
+.sr-banner .sb-title svg{flex-shrink:0;color:#06322d}
+.sr-banner .sb-sub{position:relative;z-index:1;font-size:.88em;font-weight:500;line-height:1.55;max-width:900px;color:rgba(6,50,45,.82)}
+.sr-banner .sb-sub b{color:#04241f;font-weight:800}
+.sr-banner .sb-from{display:inline-flex;align-items:center;gap:7px;margin-top:6px;color:#065f52;font-weight:700}
+.sr-banner .sb-from svg{flex-shrink:0}
+.sr-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:220px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.3;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M60 14s22 8 22 24c0 16-22 28-22 28s-22-12-22-28c0-16 22-24 22-24z"/><circle cx="60" cy="38" r="8"/><path d="M96 24l10 6-10 6"/></svg>')}
+@media(max-width:640px){.sr-banner .sb-title{font-size:1.25em}.sr-banner::after{opacity:.2}}
+
+/* Section heads become illustrated gradient mini-banners (one per section color). */
+.sr-sec-head{position:relative;overflow:hidden;min-height:62px;padding:0 20px !important;background-size:200% 100%;animation:srBanner 10s ease infinite;transition:filter .12s}
+.sr-sec-head:hover{background-image:inherit;filter:brightness(1.04)}
+.sr-sec-head>*{position:relative;z-index:1}
+.sr-sec-title{color:var(--sh-ink) !important;font-weight:800 !important}
+.sr-sec-title .sec-ic{background:rgba(255,255,255,.85) !important;color:var(--sh-ink) !important;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.sr-sec-head .sr-caret{color:var(--sh-ink)}
+.sr-sec-head::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:120px;background-repeat:no-repeat;background-position:center;background-size:auto 92%;opacity:.3;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
+/* Count pill on the bright banner: frosted white. */
+.sr-sec-head .sr-count{background:rgba(255,255,255,.85) !important;border:1px solid rgba(255,255,255,.9) !important;color:var(--sh-ink) !important;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+/* s1 = raised-but-refused (red), s2 = raised+fulfilled (green), s3 = not-raised-fulfilled (teal). */
+.sr-sec.s1 .sr-sec-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d);--sh-ink:#4a0d0f}
+.sr-sec.s1 .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="40" cy="40" r="26"/><line x1="22" y1="22" x2="58" y2="58"/></svg>')}
+.sr-sec.s2 .sr-sec-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2);--sh-ink:#06322d}
+.sr-sec.s2 .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="40" cy="40" r="26"/><path d="M28 40l8 8 16-18"/></svg>')}
+.sr-sec.s3 .sr-sec-head{background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb);--sh-ink:#0b1f4a}
+.sr-sec.s3 .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M40 16s16 6 16 18c0 12-16 22-16 22s-16-10-16-22c0-12 16-18 16-18z"/><circle cx="40" cy="34" r="6"/></svg>')}
+/* Give the section card the glass look + keep the colored top spine. */
+.sr-sec{background:linear-gradient(180deg,#15181d,#0f1115) !important;border:1px solid #242a31 !important;border-radius:16px !important}
+
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
@@ -177,7 +217,11 @@ async function loadSection(s){
     if(bodyEl){ bodyEl.innerHTML='<div class="sr-sec-err">Could not load this section. <a onclick="reloadSection(\''+s.id+'\')">Retry</a></div>'; }
     return;
   }
-  var tickets=r.data.tickets||[];
+  // Only consider Resolved / Closed tickets on this page.
+  var tickets=(r.data.tickets||[]).filter(function(t){
+    var s=String((t&&t.status)||'').trim().toLowerCase();
+    return s==='resolved'||s==='closed';
+  });
   if(countEl){ countEl.classList.remove('sk'); countEl.textContent=tickets.length; }
   if(bodyEl){ bodyEl.innerHTML=sectionTable(tickets); }
 }
@@ -193,9 +237,11 @@ function load(){
   if(!A.getUser()||!A.getToken()){ gate('This page is for logged-in users. Log in from the Live Dashboard first.'); return; }
   if(!(A.canViewSR&&A.canViewSR())){ gate('You do not have access to Station Request Tickets.'); return; }
   // 1) Paint the hardcoded skeleton (header + 3 section shells) INSTANTLY.
-  var html='<div class="sr-head"><h1>'+ic('map-pin',22)+' Station Request Tickets</h1></div>'+
-    '<p class="sr-sub">For now this page contains incidents that involve <b>Station Request / Address Exclusion</b> after the complete take over by WWOS.'+
-    '<br><span class="sr-from">'+ic('calendar',15)+' from 1st April 2026</span></p>'+
+  var html='<div class="sr-banner">'+
+      '<h1 class="sb-title">'+ic('map-pin',24)+' Station Request Tickets</h1>'+
+      '<div class="sb-sub">Resolved / closed incidents that involve <b>Station Request / Address Exclusion</b> after the complete take over by WWOS.'+
+      '<br><span class="sb-from">'+ic('calendar',15)+' from 1st April 2026 · resolved &amp; closed only</span></div>'+
+    '</div>'+
     SECTIONS.map(sectionShell).join('');
   document.getElementById('wrap').innerHTML=html;
   // 2) Fire all 3 section requests IN PARALLEL — each fills its own section as it returns.

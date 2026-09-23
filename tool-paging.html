@@ -75,6 +75,31 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+
+/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
+.tool-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:78px;margin-bottom:8px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background-size:200% 100%;animation:toolBanner 9s ease infinite}
+@keyframes toolBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.tool-banner .tb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tool-banner .tb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1}
+.tool-banner .tb-title svg{flex-shrink:0}
+.tool-banner .tb-sub{font-size:.86em;font-weight:500;line-height:1.4;max-width:60ch}
+.tool-banner .page-head-actions{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tool-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:260px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
+.tool-banner .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.14)}
+.tool-banner .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.28)}
+.tool-banner .btn.sec{background:rgba(255,255,255,.14);color:#0e1013;border:1px solid rgba(255,255,255,.35);font-weight:700}
+.tool-banner .btn.sec:hover{background:rgba(255,255,255,.24);color:#0e1013}
+/* Paging Contacts — teal/green gradient, dark-ink title, mail + globe illustration. */
+.tool-banner.tb-paging{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2)}
+.tool-banner.tb-paging .tb-title,.tool-banner.tb-paging .tb-title svg{color:#06322d}
+.tool-banner.tb-paging .tb-sub{color:rgba(6,50,45,.78)}
+.tool-banner.tb-paging::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="26" y="22" width="52" height="36" rx="5"/><path d="M26 26l26 18 26-18"/><circle cx="96" cy="40" r="15"/><path d="M81 40h30M96 25a24 24 0 0 1 0 30M96 25a24 24 0 0 0 0 30"/></svg>')}
+@media(max-width:640px){.tool-banner .tb-title{font-size:1.25em}.tool-banner::after{opacity:.22}}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -180,11 +205,17 @@ function render(){
   const admin=canAdd();
   const copyIcon='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   // Header: title left, actions (Add + edit log) right.
-  let html='<div class="page-head"><h1>Paging Contacts</h1><div class="page-head-actions">'
-    +(admin?'<button class="btn" onclick="openAddModal()">➕ Add Region</button>':'')
-    +'<a class="btn sec" href="paging-log.html">'+(window.icon?window.icon('history',15):'')+' Paging edit log</a>'
-    +'</div></div>';
-  html+='<p class="sub">SDS ECR paging contacts by region. Copy an email with one click.'+(admin?' As an admin you can add, edit, or delete a region.':'')+'</p>';
+  // Illustrated gradient banner header (title + sub on the left, actions on the right).
+  let html='<div class="tool-banner tb-paging">'
+    +'<div class="tb-left">'
+      +'<h1 class="tb-title">'+(window.icon?window.icon('mail',24):'')+' Paging Contacts</h1>'
+      +'<div class="tb-sub">SDS ECR paging contacts by region. Copy an email with one click.'+(admin?' As an admin you can add, edit, or delete a region.':'')+'</div>'
+    +'</div>'
+    +'<div class="page-head-actions">'
+      +(admin?'<button class="btn" onclick="openAddModal()">➕ Add Region</button>':'')
+      +'<a class="btn sec" href="paging-log.html">'+(window.icon?window.icon('history',15):'')+' Paging edit log</a>'
+    +'</div>'
+  +'</div>';
   // Expandable, click-to-copy cards. Copies the EMAIL; hover reveals the email detail.
   html+=`<div class="pg-list">`+CONTACTS.map((c,i)=>`
     <div class="pg-card" id="pgcard-${i}">

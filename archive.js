@@ -177,9 +177,9 @@ function clearChartSpinners(){document.querySelectorAll('.chart-spin').forEach(f
 // Collapsible section wrapper. titleHtml may include an icon; bodyHtml is the content.
 // open=true renders expanded; header is a button that toggles the body.
 let _collapseId=0;
-function collapsible(titleHtml,bodyHtml,open){
+function collapsible(titleHtml,bodyHtml,open,colorCls){
   const id='cs'+(++_collapseId);
-  return '<div class="section collapsible'+(open?' open':'')+'" id="'+id+'">'+
+  return '<div class="section collapsible'+(open?' open':'')+(colorCls?(' '+colorCls):'')+'" id="'+id+'">'+
     '<h2 class="collapse-head" role="button" tabindex="0" aria-expanded="'+(open?'true':'false')+'" onclick="toggleCollapse(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleCollapse(this);}">'+
       '<span class="collapse-title">'+titleHtml+'</span><span class="collapse-caret" aria-hidden="true">▾</span>'+
     '</h2>'+
@@ -326,7 +326,7 @@ function render(metrics,name,ds,targetId){
       ${actions}
     </div>
 
-    <div class="section"><h2>${ic('bar-chart',18)} Summary Statistics</h2>
+    <div class="section sec-purple"><h2>${ic('bar-chart',18)} Summary Statistics</h2>
     <div class="kpi-grid">
       <div class="kpi-card accent"><div class="value kpi-num" data-val="${m.total.toLocaleString()}"><span class="num-spinner"></span></div><div class="label">${ic('ticket',13)} Total Tickets</div></div>
       <div class="kpi-card success"><div class="value kpi-num" data-val="${m.resolvedClosed.toLocaleString()}"><span class="num-spinner"></span></div><div class="label">${ic('check-circle',13)} Resolved / Closed</div></div>
@@ -337,17 +337,17 @@ function render(metrics,name,ds,targetId){
 
     ${isQ2?`
     ${collapsible(ic('bar-chart',18)+' Resolution Type',
-      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cResBar"></canvas></div></div>', true)}
+      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cResBar"></canvas></div></div>', true, 'sec-blue')}
     ${collapsible(ic('bar-chart',18)+' Incident Types',
-      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cIncident"></canvas></div></div>', true)}
+      '<div class="chart-box"><div class="chart-wrap tall">'+cspin()+'<canvas id="cIncident"></canvas></div></div>', true, 'sec-rose')}
     ${collapsible(ic('globe',18)+' Geography / Region — Count',
       '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Region</th><th>Number of Cases</th></tr></thead><tbody>'+
       m.regions.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong></td><td>'+v.toLocaleString()+'</td></tr>').join('')+
-      '</tbody></table></div>', true)}
+      '</tbody></table></div>', true, 'sec-teal')}
     ${collapsible(ic('users',18)+' Resolver Volume — PHD Team (WWOS)',
       '<div class="tbl-card"><table style="width:100%"><thead><tr><th>#</th><th>Resolver</th><th>Tickets Resolved</th></tr></thead><tbody>'+
       (phdRes.map(([k,v],i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td>'+v+'</td></tr>').join('')||'<tr><td colspan="3" style="color:#879596">No PHD resolvers in this dataset</td></tr>')+
-      '</tbody></table></div>', true)}
+      '</tbody></table></div>', true, 'sec-green')}
     ${collapsible(ic('bar-chart',18)+' Weekly Trends ('+windowText+')',
         '<div class="charts-grid"><div class="chart-box" style="grid-column:1/-1"><h3>Tickets Created per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cCreatedWeek"></canvas></div></div>'+
         '<div class="chart-box" style="grid-column:1/-1"><h3>Tickets Resolved per Week</h3><div class="chart-wrap">'+cspin()+'<canvas id="cResolvedWeek"></canvas></div></div></div>', true)}
@@ -360,20 +360,20 @@ function render(metrics,name,ds,targetId){
     `:`
     ${multiPeriod?collapsible(ic('bar-chart',18)+' Trends',
       phTwoCol('Yearly Trends &amp; Growth', xlsYearlyTable(m.createdByYear,m.resolvedByYear,m.yoy),
-               'Quarterly Trends', xlsTrendTable(m.createdByQuarter,m.resolvedByQuarter,'Quarter')), true):''}
+               'Quarterly Trends', xlsTrendTable(m.createdByQuarter,m.resolvedByQuarter,'Quarter')), true, 'sec-cyan'):''}
     ${collapsible(ic('bar-chart',18)+' Analytics Breakdown',
       phTwoCol('Resolution Type', xlsRankTable(m.resolutionTypes,'Resolution Type'),
-               'Incident Types <span style="font-size:.78em;color:#879596;font-weight:400">(from Issue field)</span>', xlsRankTable(m.incidentTypes,'Incident Type')), true)}
+               'Incident Types <span style="font-size:.78em;color:#879596;font-weight:400">(from Issue field)</span>', xlsRankTable(m.incidentTypes,'Incident Type')), true, 'sec-blue')}
     ${collapsible(ic('globe',18)+' Geography &amp; Root Cause',
       phTwoCol('Geography / Region — Count',
         '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr><th style="width:1%;white-space:nowrap;text-align:center">#</th><th>Region</th><th style="text-align:right">Number of Cases</th></tr></thead><tbody>'+
         m.regions.map(([k,v],i)=>'<tr><td style="text-align:center">'+(i+1)+'</td><td><strong>'+k+'</strong></td><td style="text-align:right">'+v.toLocaleString()+'</td></tr>').join('')+
         '</tbody></table></div>',
-        'Root Cause × Region (Cross-Tab)', '<div style="overflow-x:auto" id="rcRegionTable"></div>'), true)}
+        'Root Cause × Region (Cross-Tab)', '<div style="overflow-x:auto" id="rcRegionTable"></div>'), true, 'sec-teal')}
     ${(phdRes&&phdRes.length)?collapsible(ic('users',18)+' Resolver Volume — PHD Team (WWOS)',
       '<div class="tbl-card"><table class="xls-table" style="width:100%"><thead><tr><th style="width:1%;white-space:nowrap;text-align:center">#</th><th>Resolver</th><th style="text-align:right">Tickets Resolved</th></tr></thead><tbody>'+
       phdRes.map(([k,v],i)=>'<tr><td style="text-align:center">'+(i+1)+'</td><td><strong>'+k+'</strong><span class="phd-badge">PHD</span></td><td style="text-align:right">'+v+'</td></tr>').join('')+
-      '</tbody></table></div>', true):''}
+      '</tbody></table></div>', true, 'sec-green'):''}
     `}
   </div>`;
 
@@ -820,8 +820,10 @@ function renderProgramHistory(){
     '</div>';
   };
   el.innerHTML='<div class="content">'+
-    '<div class="page-title"><h1><span class="ph-full">Program History:</span><span class="ph-short">PH:</span> 1st Jan 2021 \u2013 30th Sep 2025</h1>'+
-      '<p style="line-height:1.6;color:#879596">Pre-WWOS era. Tick one or more quarters (or a whole year) to view combined analytics. Read-only archive.</p></div>'+
+    '<div class="ph-hero"><div class="phh-left">'+
+      '<h1 class="phh-title">'+ic('calendar',26)+' <span><span class="ph-full">Program History:</span><span class="ph-short">PH:</span> 1st Jan 2021 \u2013 30th Sep 2025</span></h1>'+
+      '<div class="phh-sub">Pre-WWOS era. Tick one or more quarters (or a whole year) to view combined analytics. Read-only archive.</div>'+
+    '</div></div>'+
     '<div class="ph-filter">'+
       '<div class="ph-filter-head">'+
         '<label class="ph-opt ph-master'+(allChecked?' checked':'')+'"><input type="checkbox" '+(allChecked?'checked':'')+' onchange="phToggleAll()"> '+ic('inbox',15)+' Program History (From 1st January 2021 to 30th September 2025)</label>'+
@@ -872,8 +874,10 @@ function renderMovingCombined(){
     return '<label class="ph-opt'+(on?' checked':'')+'"><input type="checkbox" '+(on?'checked':'')+' onchange="movingToggle(\''+q+'\')"> '+movingQLabel(q)+'</label>';
   }).join('');
   el.innerHTML='<div class="content">'+
-    '<div class="page-title"><h1>Under WWOS - 1st October 2025 to 31st March 2026</h1>'+
-      '<p style="line-height:1.6;color:#879596">Transition period. Pick Combined, or a single quarter. Read-only.</p></div>'+
+    '<div class="ph-hero"><div class="phh-left">'+
+      '<h1 class="phh-title">'+ic('calendar',26)+' Under WWOS \u2014 1st October 2025 to 31st March 2026</h1>'+
+      '<div class="phh-sub">Transition period. Pick Combined, or a single quarter. Read-only.</div>'+
+    '</div></div>'+
     '<div class="ph-filter">'+
       '<div class="ph-filter-head" style="border-bottom:0;margin-bottom:0;padding-bottom:0">'+
         '<label class="ph-opt ph-master'+(bothChecked?' checked':'')+'"><input type="checkbox" '+(bothChecked?'checked':'')+' onchange="movingToggleAll()"> '+ic('calendar',15)+' Combined (Q4 2025 &amp; Q1 2026)</label>'+
