@@ -1835,17 +1835,17 @@ function prioAgentIconsHtml(list){
   });
   return idListHtml(by);
 }
-// Build a login-ID chip list: 3 chips per row × 2 rows (max 6 shown), then "+N" on the right.
+// Build a login-ID chip list: 2 chips per row × 2 rows (max 4 shown), then "+N" on the right.
 // No avatars — just the login id + its count.
 function idListHtml(by){
   const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
   if(!agents.length)return '<div class="idlist"><span class="none">None</span></div>';
-  const SHOW=8; // 2 rows of 4 chips
+  const SHOW=4; // 2 rows of 2 chips
   const shown=agents.slice(0,SHOW), extra=agents.length-shown.length;
   const chips=shown.map(function(a){ return idChipHtml(a,by[a],esc); }).join('');
   const more=extra>0?('<span class="more">+'+extra+'</span>'):'';
-  return '<div class="idlist"><div class="idchips idchips-4">'+chips+'</div>'+more+'</div>';
+  return '<div class="idlist"><div class="idchips idchips-2">'+chips+'</div>'+more+'</div>';
 }
 // One login-ID chip: login id + count badge (no avatar). Roster color tints the id text.
 function idChipHtml(agent,count,esc){
@@ -1978,6 +1978,7 @@ function kpiTableHtml(rows, withDesc){
   // withDesc (Average / Repeat Incident sections) -> combined "metric" cards: name + definition
   // stacked on the left, the animated value on the right, a colored accent spine per row.
   if(withDesc){
+    // 2 metric tiles per row (2×N grid). Each tile: name + definition on the left, value on the right.
     const spineCycle=['s-cy','s-gr','s-am','s-pu'];
     const cards=rows.map(function(r,i){
       const raw=(r.value==null?'\u2014':String(r.value));
@@ -1990,7 +1991,7 @@ function kpiTableHtml(rows, withDesc){
         '<div class="'+vCls+'"'+vStyle+'>'+cell+'</div>'+
       '</div>';
     }).join('');
-    return '<div class="metrics">'+cards+'</div>';
+    return '<div class="metrics metrics-2col">'+cards+'</div>';
   }
   const valAlign='right';
   const head='<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th></tr>';

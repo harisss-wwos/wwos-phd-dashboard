@@ -61,8 +61,10 @@ input:focus{outline:none;border-color:var(--o)}
 .avatar-loading{width:96px;height:96px;border-radius:50%;background:#000;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center}
 .field-loading{display:flex;align-items:center;color:var(--tm);font-size:.9em;padding:10px 12px;background:#000;border:1px solid var(--bd);border-radius:6px}
 
-/* My Profile: constrain the content to 50% of the viewport width, centered. */
-.wrap{width:50vw!important;max-width:50vw!important;min-width:min(94vw,420px)!important;margin-left:auto!important;margin-right:auto!important}
+/* My Profile: constrain the content to 50% of the viewport width, centered — but never wider than
+   the content band between the two nav rails (body has padding-left/right:10vw), so the wrap can't
+   overlap the rails. min-width caps at the available content width (100%) rather than 94vw. */
+.wrap{width:50vw!important;max-width:50vw!important;min-width:min(100%,420px)!important;margin-left:auto!important;margin-right:auto!important}
 @media(max-width:760px){.wrap{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}}
 /* ===== Profile banner (Amazon-smile arc) ===== */
 .pbanner{position:relative;border-radius:14px;background:#161616;overflow:hidden;border:1px solid #2a2a2a;margin-bottom:22px}

@@ -136,8 +136,11 @@
       + '.tb-data-btn:hover{border-color:#ff9900;color:#fff;transform:translateY(-2px)}'
       + '.tb-data-btn svg{width:16px;height:16px;flex-shrink:0}'
       // floating circular back button (bottom-right) — same 46px size as the left rail buttons
-      + '.tb-back-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:46px;height:46px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none}'
-      + '.tb-back-fab svg{width:20px;height:20px}'
+      + '.tb-back-fab{position:fixed;right:calc(5vw - 29px);bottom:22px;z-index:900;width:58px;height:58px;border-radius:50%;background:#ff9900;color:#000;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none}'
+      + '.tb-back-fab svg{width:25px;height:25px}'
+      // Back button when it lives INSIDE the right rail (bottom): drop the fixed positioning so it
+      // flows in the column, keep the orange circle look.
+      + '.tb-fab-col-right .tb-back-fab{position:static;right:auto;bottom:auto;flex:0 0 58px}'
       // floating circular RECENT-HISTORY button (bottom-left) + its popup of recently visited pages
       + '.tb-hist-fab{position:fixed;left:5px;bottom:18px;z-index:902;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;max-width:52px;font-family:inherit;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
       + '.tb-hist-fab .tb-hist-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
@@ -148,14 +151,30 @@
       // Vertically-centered left-edge FAB column: holds Live + Analytics + page-nav FABs (NOT the
       // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
       // pill grows rightward on hover from the same left edge.
-      + '.tb-fab-col{position:fixed;left:0;top:0;bottom:0;width:84px;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:10px;padding:14px 4px;overflow:visible;box-sizing:border-box;background:transparent;pointer-events:auto}'
-      // 3-zone layout: logo pinned TOP, nav group in the MIDDLE, profile pinned BOTTOM.
+      + '.tb-fab-col{position:fixed;left:0;top:0;bottom:0;width:10vw;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:10px;padding:14px 5px;overflow:visible;box-sizing:border-box;background:transparent;pointer-events:auto}'
+      // LEFT rail 3-zone layout: logo pinned TOP, nav group in the MIDDLE, LIVE pinned BOTTOM.
       + '.tb-rail-logo{margin-bottom:auto}'          // logo at top; pushes the rest down
-      + '.tb-fab-item-profile{margin-top:auto}'      // profile at bottom; pushes it down
+      + '.tb-fab-item-live{margin-top:auto}'         // LIVE at bottom of the LEFT rail; pushes it down
       + '.tb-fab-col>*{pointer-events:auto}'
+      // RIGHT rail: mirror of the left, pinned to the right edge. Holds profile (TOP) + flyout groups
+      // + Analytics in the MIDDLE + the back button (BOTTOM). Its hover labels slide out to the LEFT.
+      + '.tb-fab-col-right{position:fixed;right:0;top:0;bottom:0;width:10vw;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:10px;padding:14px 5px;overflow:visible;box-sizing:border-box;background:transparent;pointer-events:auto}'
+      + '.tb-fab-col-right>*{pointer-events:auto}'
+      // RIGHT rail 3-zone layout: profile pinned TOP, group in the MIDDLE, back button pinned BOTTOM.
+      + '.tb-fab-col-right .tb-fab-item-profile{margin-top:0;margin-bottom:auto}'  // profile at TOP of right rail
+      + '.tb-fab-col-right .tb-fab-item-back{margin-top:auto}'                     // back button at BOTTOM of right rail
+      // On the RIGHT rail the rail-badge hover label sits to the LEFT of the circle and slides in leftward.
+      + '.tb-fab-col-right .tb-rail-badge-label{left:auto;right:68px;transform:translateY(-50%) translateX(6px)}'
+      + '.tb-fab-col-right .tb-rail-badge:hover .tb-rail-badge-label{transform:translateY(-50%) translateX(0)}'
+      // RIGHT-rail fly-outs open to the LEFT of their trigger (mirrored).
+      + '.tb-fab-col-right .tb-flyout{left:auto;right:46px;align-items:flex-end;padding-left:0;padding-right:14px;transform:translateY(-50%) translateX(8px)}'
+      + '.tb-fab-col-right .tb-flyout::before{left:auto;right:0}'
+      + '.tb-fab-col-right .tb-flyout-wrap:hover .tb-flyout,.tb-fab-col-right .tb-flyout:hover{transform:translateY(-50%) translateX(0)}'
+      // Same short-screen shrink as the left rail.
+      + '@media(max-height:820px){.tb-fab-col-right{gap:6px}}'
       // Layout: [66px rail] | 20px gap | content (fills the rest) | 20px right gap.
       // position:relative anchors the (now non-fixed) top-right cluster to the document top-right.
-      + 'body{position:relative!important;padding-left:104px!important;padding-right:20px!important;box-sizing:border-box!important}'
+      + 'body{position:relative!important;padding-left:10vw!important;padding-right:10vw!important;box-sizing:border-box!important}'
       // Shared live animated-gradient background for the FAB buttons — a slow moving sheen so the
       // whole left column feels alive. Applied to nav/analytics/history FABs (Live keeps its green).
       + '@keyframes tbFabGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}'
@@ -163,8 +182,8 @@
       // Agent & Group Analytics FAB. Circular; expands on hover to reveal its label. Admin-gated
       // disabled state = greyed + inert. Lives inside the centered FAB column.
       + '.tb-an-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#7fdfff;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,border-color .15s,transform .15s}'
-      + '.tb-an-fab .tb-an-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center}'
-      + '.tb-an-fab .tb-an-ic svg{width:20px;height:20px}'
+      + '.tb-an-fab .tb-an-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-an-fab .tb-an-ic svg{width:25px;height:25px}'
       + '.tb-an-fab .tb-an-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-an-fab:hover{max-width:320px;border-color:#44b9d6;transform:translateY(-2px)}'
       + '.tb-an-fab:hover .tb-an-label{opacity:1;padding-right:18px}'
@@ -172,7 +191,9 @@
       // Live-quarter FAB. Blinks to signal "LIVE" and links to the live dashboard (app.html).
       // Expands on hover to reveal the quarter label. Lives inside the centered FAB column.
       + '.tb-live-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:#12261a;color:#4ade80;border:1px solid #2f7a4a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s;animation:tbLiveGlow 1.6s ease-in-out infinite}'
-      + '.tb-live-fab .tb-live-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
+      + '.tb-live-fab .tb-live-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
+      // Bump the Live + Analytics FAB outer size to match the enlarged 58px rail pills.
+      + '.tb-an-fab,.tb-live-fab{height:58px!important;max-width:58px!important;border-radius:29px!important}'
       + '.tb-live-fab .tb-live-dot{width:12px;height:12px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;animation:tbLiveBlink 1s steps(1,end) infinite}'
       + '.tb-live-fab .tb-live-label{white-space:nowrap;font-size:.86em;font-weight:700;letter-spacing:.3px;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-live-fab:hover{max-width:320px;border-color:#4ade80;transform:translateY(-2px)}'
@@ -183,11 +204,11 @@
       + '@keyframes tbLiveBlink{0%,50%{opacity:1}51%,100%{opacity:.15}}'
       + '@keyframes tbLiveGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(74,222,128,.0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 6px rgba(74,222,128,.16)}}'
       // Page-navigation FABs — same expand-on-hover pill. Live inside the centered FAB column.
-      + '.tb-nav-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease}'
-      + '.tb-nav-fab .tb-nav-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
-      + '.tb-nav-fab .tb-nav-ic svg{width:19px;height:19px}'
-      // Custom PNG icon (e.g. Unique cases -> important.png). Fit inside the 46px icon slot.
-      + '.tb-nav-fab .tb-nav-img{width:22px;height:22px;object-fit:contain;display:block}'
+      + '.tb-nav-fab{position:relative;height:58px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:29px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:58px;transition:max-width .28s ease}'
+      + '.tb-nav-fab .tb-nav-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
+      + '.tb-nav-fab .tb-nav-ic svg{width:24px;height:24px}'
+      // Custom PNG icon (e.g. Unique cases -> important.png). Fit inside the icon slot.
+      + '.tb-nav-fab .tb-nav-img{width:28px;height:28px;object-fit:contain;display:block}'
       // The Upload FAB is a <button>; reset the default button chrome so it matches the <a> pills.
       + 'button.tb-nav-fab{font-family:inherit;cursor:pointer;text-align:left}'
       // Upload FAB is highlighted (accent orange) so it stands out as the "add new data" action.
@@ -200,9 +221,9 @@
       // ---- Reports fly-out (line-chart group) ----
       // Wrapper is the drop anchor. The trigger is a 46px pill (line-chart) that never expands/drags.
       + '.tb-flyout-wrap{position:relative;display:flex;align-items:center}'
-      + '.tb-flyout-fab{position:relative;height:46px;width:46px;flex:0 0 46px;display:inline-flex;align-items:center;justify-content:center;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}'
-      + '.tb-flyout-fab .tb-nav-ic{flex:0 0 46px;width:46px;height:46px;display:inline-flex;align-items:center;justify-content:center}'
-      + '.tb-flyout-fab .tb-nav-ic svg{width:19px;height:19px}'
+      + '.tb-flyout-fab{position:relative;height:58px;width:58px;flex:0 0 58px;display:inline-flex;align-items:center;justify-content:center;border-radius:29px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}'
+      + '.tb-flyout-fab .tb-nav-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-flyout-fab .tb-nav-ic svg{width:24px;height:24px}'
       + '.tb-flyout-wrap:hover .tb-flyout-fab{border-color:#ff9900;color:#fff}'
       // The horizontal fly-out row: sits to the RIGHT of the trigger, hidden until the wrapper is hovered.
       // It slides in (translateX) and reveals the report pills. gap between the 4 pills.
@@ -220,14 +241,14 @@
       // centered column on hover. Keep the pill a fixed 46px circle and hide the slide-out label;
       // hover just gives a subtle background/lift instead.
       + '.tb-nav-fab .tb-nav-label{display:none!important}'
-      + '.tb-nav-fab:hover{max-width:46px;transform:translateY(-2px);border-color:#3a4f74}'
+      + '.tb-nav-fab:hover{max-width:58px;transform:translateY(-2px);border-color:#3a4f74}'
       // EXCEPT inside a fly-out panel: those items still expand on hover to reveal their label.
       + '.tb-flyout-item.tb-nav-fab .tb-nav-label{display:inline!important;white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-flyout-item.tb-nav-fab:hover{max-width:340px;transform:none}'
       + '.tb-flyout-item.tb-nav-fab:hover .tb-nav-label{opacity:1;padding-right:18px}'
       // Rail item = icon pill on top + an always-visible caption below.
       + '.tb-fab-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:6px 2px;border-radius:14px;transition:background .15s}'
-      + '.tb-fab-cap{font-size:9px;font-weight:600;line-height:1.12;color:#9fb0c3;text-align:center;max-width:76px;white-space:normal;word-break:break-word;letter-spacing:.2px;pointer-events:none;transition:transform .15s,color .15s}'
+      + '.tb-fab-cap{font-size:11px;font-weight:600;line-height:1.15;color:#9fb0c3;text-align:center;max-width:9vw;white-space:normal;word-break:break-word;letter-spacing:.2px;pointer-events:none;transition:transform .15s,color .15s}'
       + '.tb-fab-cap.is-disabled{color:#6b7681}'
       // Hover the whole item: subtle background + scale the caption up a touch.
       + '.tb-fab-item:hover{background:rgba(255,255,255,.06)}'
@@ -235,16 +256,16 @@
       // Rail badge (GSOC logo + profile avatar): a fixed 46px circle. Its label is ABSOLUTELY
       // positioned to the RIGHT of the circle and slides in on hover — so it escapes the narrow rail
       // to the right (never clipped) and never changes the column width or position.
-      + '.tb-rail-badge{position:relative;width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;overflow:visible;background:#0b1420;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;text-decoration:none;transition:border-color .15s,transform .15s}'
+      + '.tb-rail-badge{position:relative;width:58px;height:58px;flex:0 0 58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;overflow:visible;background:#0b1420;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;text-decoration:none;transition:border-color .15s,transform .15s}'
       + '.tb-rail-badge:hover{border-color:#ff9900;transform:translateY(-2px)}'
-      + '.tb-rail-badge-label{position:absolute;left:56px;top:50%;transform:translateY(-50%) translateX(-6px);white-space:nowrap;background:#121820;border:1px solid #2a3f63;color:#e6edf0;font-size:.82em;font-weight:700;padding:8px 14px;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20}'
+      + '.tb-rail-badge-label{position:absolute;left:68px;top:50%;transform:translateY(-50%) translateX(-6px);white-space:nowrap;background:#121820;border:1px solid #2a3f63;color:#e6edf0;font-size:.86em;font-weight:700;padding:9px 15px;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20}'
       + '.tb-rail-badge:hover .tb-rail-badge-label{opacity:1;transform:translateY(-50%) translateX(0)}'
       // GSOC logo image inside its badge.
-      + '.tb-rail-logo .tb-rail-logo-img{width:28px;height:28px;object-fit:contain;display:block}'
+      + '.tb-rail-logo .tb-rail-logo-img{width:36px;height:36px;object-fit:contain;display:block}'
       // Profile avatar fills its badge circle. The badge stays overflow:visible (so the hover label can
       // escape to the right); the AVATAR itself is clipped to a circle via its own inner wrapper.
-      + '.tb-rail-profile .tb-rail-av{width:44px;height:44px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center}'
-      + '.tb-rail-profile .tb-rail-av img,.tb-rail-profile .avatar-initial{width:44px!important;height:44px!important;border-radius:50%!important;object-fit:cover;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-rail-profile .tb-rail-av{width:54px;height:54px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center}'
+      + '.tb-rail-profile .tb-rail-av img,.tb-rail-profile .avatar-initial{width:54px!important;height:54px!important;border-radius:50%!important;object-fit:cover;display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-nav-fab.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
       // On short screens shrink the FAB column (smaller pills + tighter gap) so it still fits centered.
       + '@media(max-height:820px){.tb-fab-col{gap:6px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:40px;max-width:40px;border-radius:20px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:40px;width:40px;height:40px}.tb-nav-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg{width:18px;height:18px}.tb-hist-fab{height:40px}.tb-hist-fab .tb-hist-ic{flex-basis:40px;width:40px;height:40px}}'
@@ -304,11 +325,14 @@
       // Layout: [rail] | 20px | content (full remaining width) | 20px. The body handles the rail
       // offset + side gaps (padding-left 86px, padding-right 20px), so the content wrappers just fill
       // the space edge-to-edge: drop their max-width caps and auto side margins.
-      // Fill the content area edge-to-edge (drop max-width caps + auto side margins + side padding),
-      // and zero the TOP padding so the ONLY top gap comes from the header row (padding-top:10px +
-      // margin-bottom:10px). This makes the header->content gap identical on every page. Bottom
-      // padding is preserved for breathing room at the end of the page.
-      + '.content,.wrap{max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;padding-top:0!important}'
+      // Fill the content area edge-to-edge (drop max-width caps + auto side margins + side padding).
+      // .content pages (app.html / index.html) carry their own header row (.js-header-row) which
+      // supplies the top gap, so .content keeps padding-top:0. Plain pages use a bare .wrap with NO
+      // header row, so .wrap gets a 14px top gap that matches the rail logo/profile offset
+      // (rail padding is 14px) — this lines the first content block up with the GSOC + profile
+      // avatars on EVERY page. Pages that set their own .wrap padding-top (index.html) still win.
+      + '.content{max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;padding-top:0!important}'
+      + '.wrap{max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;padding-top:14px!important}'
       // Every header row (page-provided .dash-title-row/.home-title-row or the injected .tb-header-row)
       // gets the SAME top+bottom spacing so the gap to content matches everywhere.
       + '.js-header-row{padding-top:10px!important;margin-bottom:10px!important;margin-top:0!important}'
@@ -337,6 +361,28 @@
         + 'table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}'
         + '.tbl-card>table,.tbl-card table{display:table;overflow:visible}'
       + '}';
+    // ---- PHDBanner: full-width status bar at the top (blue = success/info, red = error) ----
+    css += ''
+      + '.phd-banner{position:fixed;top:0;left:0;right:0;z-index:4000;display:flex;align-items:center;gap:12px;'
+      +   'padding:11px 18px;font-family:inherit;font-size:.9em;font-weight:600;color:#fff;'
+      +   'transform:translateY(-100%);opacity:0;transition:transform .28s cubic-bezier(.2,.7,.2,1),opacity .2s;'
+      +   'box-shadow:0 6px 20px rgba(0,0,0,.4)}'
+      + '.phd-banner.show{transform:translateY(0);opacity:1}'
+      + '.phd-banner.ok{background:linear-gradient(90deg,#1668e3,#2f7ff0)}'      // blue (200/info)
+      + '.phd-banner.err{background:linear-gradient(90deg,#d92d3a,#e5484d)}'     // red (errors)
+      + '.phd-banner.warn{background:linear-gradient(90deg,#c9820a,#e0a020)}'    // amber (warnings)
+      + '.phd-banner .pb-ic{flex-shrink:0;display:inline-flex;align-items:center}'
+      + '.phd-banner .pb-ic svg{width:18px;height:18px}'
+      + '.phd-banner .pb-msg{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      + '.phd-banner .pb-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:tbspin .8s linear infinite;flex-shrink:0}'
+      + '.phd-banner .pb-action{flex-shrink:0;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.5);color:#fff;'
+      +   'border-radius:20px;padding:5px 14px;font-size:.9em;font-weight:700;cursor:pointer;font-family:inherit}'
+      + '.phd-banner .pb-action:hover{background:rgba(255,255,255,.28)}'
+      + '.phd-banner .pb-close{flex-shrink:0;background:transparent;border:none;color:#fff;font-size:1.3em;line-height:1;cursor:pointer;padding:0 4px;opacity:.85}'
+      + '.phd-banner .pb-close:hover{opacity:1}'
+      // Nudge the fixed left rail + page down while a banner is showing so it doesn\'t cover content.
+      + 'body.phd-banner-open{padding-top:46px!important}'
+      + 'body.phd-banner-open .tb-fab-col{top:46px}';
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
     st.textContent = css;
@@ -946,7 +992,70 @@
   // ---- Shared styled pop-ups: PHDConfirm (OK/Cancel) + PHDAlert (single OK) ----
   // Promise-based replacements for the native confirm()/alert(). Reuse the .tb-modal look. Esc =
   // cancel/close; Enter = OK. opts: { title, body(HTML allowed), okLabel, cancelLabel, danger:bool }.
-  function tbPopupEsc(x) { return String(x == null ? '' : x); }
+  // ========================================================================
+  // PHDBanner — full-width status bar at the top of the page.
+  //   PHDBanner.ok(msg, opts)    -> blue  (success / 2xx / info); auto-dismisses
+  //   PHDBanner.error(msg, opts) -> red   (errors); stays until dismissed
+  //   PHDBanner.warn(msg, opts)  -> amber (warnings)
+  //   PHDBanner.progress(msg, opts) -> blue w/ spinner; stays until you call hide()
+  //   PHDBanner.hide()           -> dismiss the current banner
+  // opts: { action:{label, onClick}, duration(ms, 0 = sticky), dismissible(bool) }
+  // ========================================================================
+  var _pbTimer = null;
+  function tbBannerIcon(type) {
+    if (type === 'err') return ic('alert', 18);
+    if (type === 'warn') return ic('alert', 18);
+    return ic('check-circle', 18); // ok/info
+  }
+  function tbShowBanner(type, msg, opts) {
+    opts = opts || {};
+    if (_pbTimer) { clearTimeout(_pbTimer); _pbTimer = null; }
+    var el = document.getElementById('phdBanner');
+    if (!el) { el = document.createElement('div'); el.id = 'phdBanner'; document.body.appendChild(el); }
+    el.className = 'phd-banner ' + type;
+    var lead = opts.progress ? '<span class="pb-spin"></span>' : ('<span class="pb-ic">' + tbBannerIcon(type) + '</span>');
+    var actionHtml = (opts.action && opts.action.label)
+      ? '<button class="pb-action" type="button">' + tbEsc(opts.action.label) + '</button>' : '';
+    var dismissible = (opts.dismissible !== false); // default dismissible except progress
+    if (opts.progress && opts.dismissible == null) dismissible = false;
+    var closeHtml = dismissible ? '<button class="pb-close" type="button" aria-label="Dismiss">&times;</button>' : '';
+    el.innerHTML = lead + '<span class="pb-msg">' + tbEsc(msg) + '</span>' + actionHtml + closeHtml;
+    // Wire the action + close.
+    var actBtn = el.querySelector('.pb-action');
+    if (actBtn) actBtn.onclick = function () { try { if (opts.action.onClick) opts.action.onClick(); } catch (e) {} };
+    var closeBtn = el.querySelector('.pb-close');
+    if (closeBtn) closeBtn.onclick = tbHideBanner;
+    // Show (next frame so the slide-in transition runs).
+    document.body.classList.add('phd-banner-open');
+    requestAnimationFrame(function () { el.classList.add('show'); });
+    // Auto-dismiss: default 3s for ok/info/warn; errors + progress stay unless duration given.
+    var dur = (opts.duration != null) ? opts.duration : (type === 'err' || opts.progress ? 0 : 3000);
+    if (dur > 0) _pbTimer = setTimeout(tbHideBanner, dur);
+    return { hide: tbHideBanner };
+  }
+  function tbHideBanner() {
+    if (_pbTimer) { clearTimeout(_pbTimer); _pbTimer = null; }
+    var el = document.getElementById('phdBanner');
+    if (!el) return;
+    el.classList.remove('show');
+    document.body.classList.remove('phd-banner-open');
+    setTimeout(function () { if (el && !el.classList.contains('show') && el.parentNode) el.parentNode.removeChild(el); }, 300);
+  }
+  window.PHDBanner = {
+    ok: function (msg, opts) { return tbShowBanner('ok', msg, opts); },
+    info: function (msg, opts) { return tbShowBanner('ok', msg, opts); },
+    error: function (msg, opts) { return tbShowBanner('err', msg, opts); },
+    warn: function (msg, opts) { return tbShowBanner('warn', msg, opts); },
+    progress: function (msg, opts) { opts = opts || {}; opts.progress = true; return tbShowBanner('ok', msg, opts); },
+    // Convenience: pass an API result {ok,status,data} -> auto blue/red with a sensible message.
+    fromResult: function (r, okMsg, errMsg) {
+      if (r && r.ok) return tbShowBanner('ok', okMsg || 'Done.', {});
+      var m = errMsg || (r && r.data && r.data.error) || ('Request failed' + (r && r.status ? ' (HTTP ' + r.status + ')' : ''));
+      return tbShowBanner('err', m, {});
+    },
+    hide: tbHideBanner
+  };
+
   function tbShowPopup(opts, withCancel) {
     opts = opts || {};
     return new Promise(function (resolve) {
@@ -1062,7 +1171,16 @@
     fab.title = 'Back to ' + lbl;
     fab.setAttribute('aria-label', 'Back to ' + lbl);
     fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
-    document.body.appendChild(fab);
+    // Back button lives at the BOTTOM of the RIGHT rail (opposite the LIVE button on the left rail),
+    // wrapped as a captioned rail item. The .tb-fab-col-right override drops its fixed positioning.
+    var item = document.createElement('div');
+    item.className = 'tb-fab-item tb-fab-item-back';
+    item.appendChild(fab);
+    var cap = document.createElement('div');
+    cap.className = 'tb-fab-cap';
+    cap.textContent = lbl;
+    item.appendChild(cap);
+    tbFabColRight().appendChild(item);
   }
 
   // Floating top-right control cluster — the only survivor of the retired title bar. Holds (right to
@@ -1189,6 +1307,13 @@
     if (!col) { col = document.createElement('div'); col.id = 'tbFabCol'; col.className = 'tb-fab-col'; document.body.appendChild(col); }
     return col;
   }
+  // The RIGHT-edge rail: profile (top) + Data/Reports/History/Admin fly-outs + Analytics (middle) +
+  // back button (bottom). Mirror of tbFabCol().
+  function tbFabColRight() {
+    var col = document.getElementById('tbFabColRight');
+    if (!col) { col = document.createElement('div'); col.id = 'tbFabColRight'; col.className = 'tb-fab-col-right'; document.body.appendChild(col); }
+    return col;
+  }
   // Build the vertically-centered Agent & Group Analytics FAB. Admin-gated:
   // clickable for admins, greyed + inert otherwise. Runs on EVERY page.
   function buildAnalyticsButton() {
@@ -1208,7 +1333,8 @@
       fab.setAttribute('aria-disabled', 'true');
       fab.title = 'Log in to view Agent & Group Analytics';
     }
-    // Wrap in a captioned column item (matches the nav rail). Sits at the bottom, above Live.
+    // Wrap in a captioned column item (matches the nav rail). Lives on the RIGHT rail, at the bottom
+    // of its flyout group (above the back button).
     var item = document.createElement('div');
     item.className = 'tb-fab-item tb-fab-item-an';
     item.appendChild(fab);
@@ -1216,7 +1342,9 @@
     cap.className = 'tb-fab-cap' + (li ? '' : ' is-disabled');
     cap.textContent = 'Agent & Group Analytics';
     item.appendChild(cap);
-    tbFabCol().appendChild(item);
+    var rcol = tbFabColRight();
+    var backItem = rcol.querySelector('.tb-fab-item-back');
+    if (backItem) rcol.insertBefore(item, backItem); else rcol.appendChild(item);
   }
   // Build the LIVE-QUARTER FAB (sits just above Analytics in the centered column). Blinks to signal
   // the live quarter and links to the live dashboard (app.html). Shown on EVERY page.
@@ -1235,7 +1363,7 @@
       fab.setAttribute('aria-disabled', 'true');
       fab.title = 'Log in to view the live quarter dashboard';
     }
-    // Wrap in a captioned column item; "LIVE" caption. Sits below Analytics, above the profile avatar.
+    // Wrap in a captioned column item; "LIVE" caption. Sits at the BOTTOM of the LEFT rail.
     var item = document.createElement('div');
     item.className = 'tb-fab-item tb-fab-item-live';
     item.appendChild(fab);
@@ -1244,7 +1372,7 @@
     cap.textContent = 'LIVE';
     item.appendChild(cap);
     tbFabCol().appendChild(item);
-    // Build the profile avatar rail item right after Live (bottom of the rail).
+    // Profile now lives at the TOP of the RIGHT rail (built separately by buildRailProfile).
     buildRailProfile();
   }
   // GSOC logo as the FIRST rail item (top). Hover slides out a "WWOS-PHD Dashboard" label. Links home.
@@ -1259,9 +1387,10 @@
       + '<span class="tb-rail-badge-label">WWOS-PHD Dashboard</span>';
     col.insertBefore(a, col.firstChild); // pin to the very top of the rail
   }
-  // Profile avatar as the LAST rail item (below Live). Logged in -> profile.html; else opens login.
+  // Profile avatar pinned to the TOP of the RIGHT rail (opposite the GSOC logo). Logged in ->
+  // profile.html; else a Login button whose label slides out to the LEFT on hover.
   function buildRailProfile() {
-    var col = tbFabCol();
+    var col = tbFabColRight();
     if (col.querySelector('.tb-fab-item-profile')) return;
     var li = loggedIn();
     var item = document.createElement('div');
@@ -1282,7 +1411,7 @@
     if (li) { pill.href = 'profile.html'; }
     else { pill.type = 'button'; pill.onclick = function () { if (window.tbOpenLogin) tbOpenLogin(); }; }
     item.appendChild(pill);
-    col.appendChild(item);
+    col.insertBefore(item, col.firstChild); // pin to the very TOP of the right rail
   }
   // Evaluate whether a nav item's `need` token is satisfied. Central place so buildNavFabs and
   // applyNavFabsState stay in sync. Owner passes every flag (the flag helpers force-true for owner).
@@ -1315,22 +1444,26 @@
       { key: 'my-tickets',    label: 'My Tickets',              icon: 'ticket',      href: 'my-tickets.html',            need: 'li' },
       { key: 'tools',         label: 'PHD Tools',               icon: 'tool',        href: 'tools.html',                 need: 'li' },
       { key: 'shift-report', label: 'Shift Report',            icon: 'clipboard',    href: 'app.html?view=shift-report', need: 'li' },
-      { key: 'help-activity', label: 'Alerts & Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' }
-      // Upload now lives in its OWN "Data" fly-out (Upload new data / View upload log) below.
+      { key: 'help-activity', label: 'Alerts & Help activity', icon: 'alert',        href: 'alerts.html',                need: 'li', badge: 'alerts' },
+      // WFH activity: placeholder button (group-of-people icon). No destination yet — inert for now.
+      { key: 'wfh-activity',  label: 'WFH activity',           icon: 'users',        href: '',                           need: 'li', placeholder: true }
+      // Upload now lives in its OWN "Data" fly-out (Upload new data / View upload log) — on the RIGHT rail.
       // Repeat Incidents / SLA Breaches / Station Requests / Unique cases now live in the line-chart
       // "Reports" fly-out; Program History (Before WWOS / Moved under WWOS) lives in the calendar
       // fly-out; Users / Database health / Grouping Page live in the user-shield "Admin" fly-out.
     ];
     // Rail order is fixed (drag-and-drop removed) — items stay in their defined order.
-    var col = tbFabCol();
-    // Nav items insert ABOVE the Analytics/Live/Profile wrapper items (which are appended at the bottom).
-    var anchor = col.querySelector('.tb-fab-item-an') || col.querySelector('.tb-fab-item-live') || col.querySelector('.tb-fab-item-profile'); // insert above these
+    var col = tbFabCol(); // LEFT rail
+    // Nav items insert ABOVE the LIVE wrapper item (which is pinned to the bottom of the left rail).
+    var anchor = col.querySelector('.tb-fab-item-live'); // insert above LIVE
     var canUpload = A.canUpload && A.canUpload();
     items.forEach(function (it) {
       var enabled = tbNeedMet(it.need, li, isAdmin, isOwner);
-      // Upload is a button (opens the in-place CSV picker); everything else is a link.
+      // Upload is a button (opens the in-place CSV picker); a placeholder is an inert button;
+      // everything else is a link.
       var isUpload = it.type === 'upload';
-      var fab = document.createElement(isUpload ? 'button' : 'a');
+      var isPlaceholder = !!it.placeholder;
+      var fab = document.createElement((isUpload || isPlaceholder) ? 'button' : 'a');
       fab.className = 'tb-nav-fab' + (isUpload ? ' tb-nav-upload' : '') + (enabled ? '' : ' tb-nav-disabled');
       fab.setAttribute('aria-label', it.label);
       fab.setAttribute('data-need', it.need === true ? 'any' : it.need);
@@ -1342,7 +1475,13 @@
       var badgeHtml = it.badge ? '<span class="tb-nav-badge" id="navBadge-' + it.badge + '">0</span>' : '';
       fab.innerHTML = '<span class="tb-nav-ic">' + iconHtml + badgeHtml + '</span>'
         + '<span class="tb-nav-label">' + it.label + '</span>';
-      if (isUpload) {
+      if (isPlaceholder) {
+        // Inert placeholder (e.g. WFH activity): a button that does nothing yet. No native tooltip;
+        // the always-visible caption names it. Kept clickable-looking but performs no action.
+        fab.type = 'button';
+        fab.setAttribute('data-placeholder', '1');
+        fab.onclick = function () { /* WFH activity: not wired up yet */ };
+      } else if (isUpload) {
         fab.type = 'button';
         // No title on enabled buttons — the always-visible caption already names them (avoids the
         // redundant native hover tooltip). Disabled state keeps a title explaining why.
@@ -1371,16 +1510,19 @@
       inp.type = 'file'; inp.accept = '.csv'; inp.id = 'uploadFile'; inp.style.display = 'none';
       document.body.appendChild(inp);
     }
-    // Fly-out groups: a single trigger FAB whose hover slides out a vertical stack of pages to the
-    // right. Each item is a normal expand-on-hover pill and is flag-gated. Triggers aren't draggable.
+    // Fly-out groups live on the RIGHT rail (below the profile, above Analytics / the back button).
+    // Each trigger FAB slides out a vertical stack of pages to its LEFT (mirrored). Flag-gated.
+    var rcol = tbFabColRight();
+    // Insert flyouts ABOVE Analytics (or the back button) so order is: profile, flyouts, Analytics, back.
+    var ranchor = rcol.querySelector('.tb-fab-item-an') || rcol.querySelector('.tb-fab-item-back');
     // Data fly-out: Upload new data (opens the CSV picker) + View upload log (data-log page).
-    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+    buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
       id: 'data', triggerIcon: 'upload', triggerLabel: 'Data', items: [
         { key: 'upload-new', label: 'Upload new data', icon: 'upload',   action: 'upload',        need: 'upload' },
         { key: 'upload-log', label: 'View upload log', icon: 'clipboard', href: 'data-log.html',  need: 'li' }
       ]
     });
-    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+    buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
       id: 'reports', triggerIcon: 'line-chart', triggerLabel: 'Reports', items: [
         { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    icon: 'clock',        href: 'sla-breach.html',      need: 'sla' },
         { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',      href: 'station-request.html', need: 'sr' },
@@ -1388,13 +1530,13 @@
         { key: 'unique-cases',    label: 'Unique cases',            img: 'important.png', href: 'important-cases.html', need: 'unique' }
       ]
     });
-    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+    buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
       id: 'history', triggerIcon: 'calendar', triggerLabel: 'Program History', items: [
         { key: 'archive-before', label: 'Before WWOS',      icon: 'clock-rewind', href: 'archive.html?ds=archive', need: 'li' },
         { key: 'archive-moving', label: 'Moved under WWOS',  icon: 'repeat',       href: 'archive.html?ds=moving',  need: 'li' }
       ]
     });
-    buildFlyoutGroup(col, anchor, li, isAdmin, isOwner, {
+    buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
       id: 'admin', triggerIcon: 'user-shield', triggerLabel: 'Admin', items: [
         { key: 'users',       label: 'Users',           icon: 'users-gear', href: 'users.html',       need: 'admin' },
         { key: 'db-health',   label: 'Database health',  icon: 'database',   href: 'db-health.html',   need: 'database' },

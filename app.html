@@ -501,10 +501,18 @@ tr:hover{background:rgba(255,153,0,.03)}
 .content .section+.section,.content .kpi-section+.section,.content .section+.kpi-section{margin-top:18px}
 /* Banner header bar: a solid animated gradient (like the profile banner top), title + scope selector.
    Top corners match the parent section's 16px radius; a themed illustration sits on the right. */
-.content .sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:nowrap;
-  min-height:52px;box-sizing:border-box;padding:0 20px;margin:0;border-bottom:1px solid rgba(0,0,0,.25);border-radius:16px 16px 0 0;background-size:200% 100%;animation:secBanner 9s ease infinite}
-/* Keep the pair of side-by-side sections top-aligned with equal-height banners. */
-.kpi-pair{align-items:start}
+.content .sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap!important;
+  height:56px;min-height:56px;max-height:56px;box-sizing:border-box;padding:0 18px;margin:0;border-bottom:1px solid rgba(0,0,0,.25);border-radius:16px 16px 0 0;background-size:200% 100%;animation:secBanner 9s ease infinite}
+/* Average Data + Repeat Incident Data now STACK (one below the other), each full width.
+   Match the 18px gap used between all other sections (kill the pair's extra gap/margins). */
+.content .kpi-pair{grid-template-columns:1fr!important;gap:18px!important;margin-top:18px!important;margin-bottom:0!important}
+.content .kpi-pair>.section,.content .kpi-pair>.kpi-section{margin:0!important}
+.content .kpi-pair+.section,.content .kpi-pair+.kpi-section{margin-top:18px!important}
+/* ---- 2 metric tiles per row (2×2 grid). Each section's 4 metrics => 2 rows.
+   !important + placed to beat the later `.metrics{display:flex}` rule (same element carries both). */
+.content .metrics.metrics-2col{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px;grid-column:1/-1}
+.content .metrics.metrics-2col .metric{min-height:72px}
+@media(max-width:720px){.content .metrics.metrics-2col{grid-template-columns:1fr!important}}
 @keyframes secBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 /* Section illustration: a themed SVG watermark on the banner's right, clipped to the rounded corner. */
 /* Illustration sits on the LEFT-of-center area of the banner (behind, between title and the scope
@@ -515,8 +523,17 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* Sections WITHOUT a scope selector (Queue Status, Ticket Age) — let the illustration use the right edge. */
 .content .kpi-section:has(#dashQueueKpis) .sec-head::after,.content .section:has(#dashAgeBody) .sec-head::after{right:0;width:200px;background-position:right center}
 .content .sec-head h2,.content .sec-head .dash-scope-sec{position:relative;z-index:1}
-.content .sec-head h2{margin:0!important;padding:0!important;border:none!important;font-size:1.05em;font-weight:800;display:flex;align-items:center;gap:9px;color:#0e1013}
-.content .sec-head h2 svg{color:#0e1013;opacity:.85}
+/* Title: single line, truncate if needed — never wrap (wrapping made the two paired banners unequal height). */
+.content .sec-head h2{margin:0!important;padding:0!important;border:none!important;font-size:1.02em;font-weight:800;display:flex;align-items:center;gap:9px;color:#0e1013;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
+.content .sec-head h2 svg{color:#0e1013;opacity:.85;flex-shrink:0}
+/* Scope selector: never wrap its chips; stays a single compact row on the banner's right. */
+.content .sec-head .dash-scope-sec{flex:0 0 auto;flex-wrap:nowrap!important;white-space:nowrap}
+.content .sec-head .dash-scope-sec .dsc-opt{white-space:nowrap}
+/* In the narrow side-by-side pair (Average / Repeat), the banner is tight: shrink the title font a
+   touch and the selector chips so title + selector both fit on ONE line (no wrap, no truncation). */
+.kpi-pair .sec-head h2{font-size:.92em}
+.kpi-pair .sec-head .dash-scope-sec{padding:2px 4px}
+.kpi-pair .sec-head .dash-scope-sec .dsc-opt{font-size:.82em;padding:3px 7px}
 /* Body below the banner. */
 .content .section .sec-body,.content .kpi-section .sec-body,.content .dash-chunk-slot{padding:16px 20px 20px}
 .content .dash-chunk-slot>.meta-info:first-child,.content .sec-body>.meta-info:first-child{margin-top:-4px;color:#9aa6b0}
@@ -563,7 +580,10 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* Main dashboard content spans 70% of the viewport, centered. High-specificity selector so it wins
    over the global .content auto-width rule AND any stylesheet the topbar injects at runtime.
    Top padding matches the GSOC logo's offset from the top of the rail so the first section lines up. */
-body[data-app="live"] .content{width:70vw!important;max-width:70vw!important;margin-left:auto!important;margin-right:auto!important;padding-left:0!important;padding-right:0!important;padding-top:14px!important}
+/* Live dashboard content fills the middle 80% of the viewport. The body already reserves 10vw on
+   each side (rail zone left, back-button zone right), so the content just fills that middle band
+   with a small 10px inner gap on each side. */
+body[data-app="live"] .content{width:auto!important;max-width:none!important;margin:0!important;padding-left:10px!important;padding-right:10px!important;padding-top:14px!important}
 
 /* ---- Queue Status: stat tiles ---- */
 .q-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;grid-column:1/-1}
@@ -613,6 +633,7 @@ body[data-app="live"] .content{width:70vw!important;max-width:70vw!important;mar
 .age.purple .tik{color:#c9b6ff}.age.red .tik{color:#ff8a8a}.age.yellow .tik{color:#ffcf5e}.age.green .tik{color:#7ef2a8}.age.black .tik{color:#8b96a0}
 .age .idlist{display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;width:100%}
 .age .idchips{display:grid;grid-template-columns:auto auto;gap:6px 8px;align-items:center}
+.age .idchips.idchips-2{grid-template-columns:auto auto}
 .age .idchips.idchips-3{grid-template-columns:auto auto auto}
 .age .idchips.idchips-4{grid-template-columns:auto auto auto auto}
 .age .idchip{display:inline-flex;align-items:center;gap:6px;background:#12161c;border:1px solid #232c36;border-radius:20px;padding:3px 8px 3px 3px;font-size:11px;color:#cfd7dd;white-space:nowrap}

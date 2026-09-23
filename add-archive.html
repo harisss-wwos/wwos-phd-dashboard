@@ -37,8 +37,8 @@ input:focus{outline:none;border-color:var(--o)}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
-<body>
-<div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a><a class="btn sec" href="index.html">← Home</a></div>
+<body data-nav-active="" data-back-href="index.html" data-back-label="All Dashboards">
+<div class="top-bar" style="visibility:hidden"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a></div>
 <div class="wrap">
   <h1>Add New Archive Dashboard</h1>
   <p>Authorized access confirmed. Upload a CSV and give the dashboard a name. It will be processed and saved to your browser so you can preview it immediately.</p>
@@ -56,6 +56,10 @@ input:focus{outline:none;border-color:var(--o)}
     <button class="btn" id="downloadBtn" style="margin-top:12px">Download metrics JSON</button>
   </div>
 </div>
+<!-- Shared nav rails + toolbar (same two-rail layout as every other page). -->
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
 <script src="add-archive.js"></script>
 </body>
 </html>
