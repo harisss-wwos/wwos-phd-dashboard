@@ -492,6 +492,191 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
+<link rel="stylesheet" href="theme.css">
+<!-- ===== Dashboard card UI (page-scoped, mirrors demo-metrics.html) ===== -->
+<style id="dash-theme">
+:root{--cy:#5ecdec;--cy2:#7fdcf0;--am:#fbbf24;--gr:#4ade80;--rd:#ff6b6b;--pu:#a78bfa}
+/* ---- Each section gets its own SOLID gradient banner header (profile-page style) ---- */
+.content .section,.content .kpi-section{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31!important;border-radius:16px!important;box-shadow:0 10px 26px -20px rgba(0,0,0,.7);overflow:hidden}
+.content .section+.section,.content .kpi-section+.section,.content .section+.kpi-section{margin-top:18px}
+/* Banner header bar: a solid animated gradient (like the profile banner top), title + scope selector.
+   Top corners match the parent section's 16px radius; a themed illustration sits on the right. */
+.content .sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:nowrap;
+  min-height:52px;box-sizing:border-box;padding:0 20px;margin:0;border-bottom:1px solid rgba(0,0,0,.25);border-radius:16px 16px 0 0;background-size:200% 100%;animation:secBanner 9s ease infinite}
+/* Keep the pair of side-by-side sections top-aligned with equal-height banners. */
+.kpi-pair{align-items:start}
+@keyframes secBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+/* Section illustration: a themed SVG watermark on the banner's right, clipped to the rounded corner. */
+/* Illustration sits on the LEFT-of-center area of the banner (behind, between title and the scope
+   selector) so it never collides with the Q3/Q2 selector on the right. */
+.content .sec-head::after{content:"";position:absolute;top:0;bottom:0;right:38%;width:150px;
+  background-repeat:no-repeat;background-position:center;background-size:auto 78%;opacity:.5;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
+/* Sections WITHOUT a scope selector (Queue Status, Ticket Age) — let the illustration use the right edge. */
+.content .kpi-section:has(#dashQueueKpis) .sec-head::after,.content .section:has(#dashAgeBody) .sec-head::after{right:0;width:200px;background-position:right center}
+.content .sec-head h2,.content .sec-head .dash-scope-sec{position:relative;z-index:1}
+.content .sec-head h2{margin:0!important;padding:0!important;border:none!important;font-size:1.05em;font-weight:800;display:flex;align-items:center;gap:9px;color:#0e1013}
+.content .sec-head h2 svg{color:#0e1013;opacity:.85}
+/* Body below the banner. */
+.content .section .sec-body,.content .kpi-section .sec-body,.content .dash-chunk-slot{padding:16px 20px 20px}
+.content .dash-chunk-slot>.meta-info:first-child,.content .sec-body>.meta-info:first-child{margin-top:-4px;color:#9aa6b0}
+
+/* Per-section banner colors (via :has() — the header is colored by the slot the section contains). */
+/* Queue Status — cyan */
+.content .kpi-section:has(#dashQueueKpis) .sec-head{background:linear-gradient(90deg,#5ecdec,#7fdcf0 55%,#a7e8f7)}
+/* Ticket Age — amber (Amazon arc) */
+.content .section:has(#dashAgeBody) .sec-head{background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454)}
+/* Average Data — green */
+.content .kpi-section:has(#dashSumAvg) .sec-head{background:linear-gradient(90deg,#22c55e,#4ade80 55%,#86efac)}
+/* Repeat Incident Data — purple */
+.content .kpi-section:has(#dashSumRepeat) .sec-head{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#c9b6ff)}
+/* Incident Types — rose/red */
+.content .section:has(#dashIncidentsBody) .sec-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)}
+/* Resolutions — teal */
+.content .section:has(#dashResolutionsBody) .sec-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#7ff0e0)}
+/* Historical Incidents — indigo/blue */
+.content .section:has(#dashHiBody) .sec-head{background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#9db8f7)}
+/* Weekly Volume & SLA — magenta/pink */
+.content .section:has(#dashWeeklyBody) .sec-head{background:linear-gradient(90deg,#c026d3,#e152f0 55%,#f4a7fb)}
+/* ---- Themed illustrations per section (white line-art SVG, right side of each banner) ---- */
+/* Queue Status — stacked inbox/queue trays */
+.content .kpi-section:has(#dashQueueKpis) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"><path d="M20 24h32l6 10h24"/><path d="M20 24v20a4 4 0 0 0 4 4h58a4 4 0 0 0 4-4V24"/><path d="M30 40h20l4 8h22"/><circle cx="96" cy="20" r="7"/></svg>')}
+/* Ticket Age — clock + hourglass */
+.content .section:has(#dashAgeBody) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"><circle cx="44" cy="40" r="22"/><path d="M44 28v12l9 6"/><path d="M78 20h24M78 60h24M82 20c0 12 16 14 16 20s-16 8-16 20M98 20c0 12-16 14-16 20s16 8 16 20"/></svg>')}
+/* Average Data — line/trend chart */
+.content .kpi-section:has(#dashSumAvg) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"><path d="M16 62h92M22 62V30M22 48l18-16 16 12 22-26 16 10"/><circle cx="40" cy="32" r="3.5"/><circle cx="56" cy="44" r="3.5"/><circle cx="78" cy="18" r="3.5"/></svg>')}
+/* Repeat Incident Data — repeat/refresh loop */
+.content .kpi-section:has(#dashSumRepeat) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"><path d="M40 28h34a14 14 0 0 1 14 14"/><path d="M74 18l14 10-14 10"/><path d="M84 56H50a14 14 0 0 1-14-14"/><path d="M50 66L36 56l14-10"/></svg>')}
+/* Incident Types — alert triangles */
+.content .section:has(#dashIncidentsBody) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"><path d="M52 16l26 44H26z"/><path d="M52 32v14M52 52v.5"/><path d="M88 40l16 24H72z"/><path d="M88 50v6"/></svg>')}
+/* Resolutions — check circles */
+.content .section:has(#dashResolutionsBody) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"><circle cx="50" cy="40" r="24"/><path d="M38 40l9 9 17-19"/><circle cx="92" cy="26" r="10"/><path d="M87 26l4 4 7-8"/></svg>')}
+/* Historical Incidents — bar chart / history */
+.content .section:has(#dashHiBody) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"><path d="M18 62h90"/><rect x="30" y="40" width="12" height="22"/><rect x="52" y="28" width="12" height="34"/><rect x="74" y="46" width="12" height="16"/><rect x="96" y="34" width="12" height="28"/></svg>')}
+/* Weekly Volume & SLA — wave + axis */
+.content .section:has(#dashWeeklyBody) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"><path d="M16 60h92M20 60V26"/><path d="M20 48c10 0 12-16 22-16s12 20 22 20 12-24 22-24 10 12 16 12"/></svg>')}
+
+/* Scope selector on the bright banner: wrap it in a dark translucent pill so Q3/Q2 stay legible. */
+.content .sec-head .dash-scope-sec{background:rgba(10,12,15,.55);border:1px solid rgba(0,0,0,.35);border-radius:20px;padding:3px 5px;backdrop-filter:blur(2px)}
+.content .sec-head .dash-scope-sec .dsc-opt{color:#e6edf0}
+.content .sec-head .dash-scope-sec .dsc-opt.checked{color:#fff}
+/* Main dashboard content spans 70% of the viewport, centered. High-specificity selector so it wins
+   over the global .content auto-width rule AND any stylesheet the topbar injects at runtime.
+   Top padding matches the GSOC logo's offset from the top of the rail so the first section lines up. */
+body[data-app="live"] .content{width:70vw!important;max-width:70vw!important;margin-left:auto!important;margin-right:auto!important;padding-left:0!important;padding-right:0!important;padding-top:14px!important}
+
+/* ---- Queue Status: stat tiles ---- */
+.q-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;grid-column:1/-1}
+.q-tile{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;padding:14px 16px;
+  box-shadow:0 10px 26px -18px rgba(0,0,0,.7);transition:transform .16s,border-color .16s}
+.q-tile:hover{transform:translateY(-2px);border-color:#2c333d}
+.q-tile .k{color:#8b96a0;font-size:11.5px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.q-tile .v{font-size:22px;font-weight:800;letter-spacing:-.3px;color:#eef2f4}
+.q-tile .v small{font-size:12px;font-weight:600;color:#8b96a0;margin-left:3px}
+.q-tile.cy .v{color:var(--cy2)}.q-tile.gr .v{color:#7ef2a8}.q-tile.am .v{color:#ffcf5e}.q-tile.gy .v{color:#9aa6b0}.q-tile.mut .v{color:#5f6b6c}
+@media(max-width:720px){.q-tiles{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- Ticket Age: color rows ---- */
+.age-grid{--age-cols:96px 108px 104px 1fr 1fr}
+.agehead{display:grid;grid-template-columns:var(--age-cols);gap:16px;align-items:end;justify-items:center;
+  padding:0 16px 10px;color:#6b7681;font-size:10px;font-weight:700;letter-spacing:.5px;line-height:1.35;text-align:center}
+.agehead span{white-space:nowrap}
+.agehead .hi{display:inline-block;vertical-align:-2px;margin-right:3px}
+.agerows{display:flex;flex-direction:column;gap:10px}
+.age{position:relative;display:grid;grid-template-columns:var(--age-cols);gap:16px;align-items:center;justify-items:center;overflow:hidden;
+  background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:13px;padding:14px 16px;
+  cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.age:hover{transform:translateY(-1px);box-shadow:0 12px 28px -18px rgba(0,0,0,.7)}
+.age::after{content:"";position:absolute;inset:0;z-index:0;opacity:0;pointer-events:none;transition:opacity .3s;
+  background:radial-gradient(120% 140% at 0% 50%, var(--glow-a), transparent 55%),radial-gradient(120% 140% at 100% 50%, var(--glow-b), transparent 55%);
+  background-size:200% 100%;background-position:0% 50%}
+.age:hover::after{opacity:1;animation:ageFlow 3.2s ease-in-out infinite}
+@keyframes ageFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.age>*{position:relative;z-index:1}
+.age:hover{border-color:var(--glow-bd)}
+.age.purple{--glow-a:rgba(167,139,250,.20);--glow-b:rgba(167,139,250,.08);--glow-bd:rgba(167,139,250,.55)}
+.age.black{--glow-a:rgba(139,150,160,.16);--glow-b:rgba(139,150,160,.06);--glow-bd:rgba(139,150,160,.5)}
+.age.red{--glow-a:rgba(255,107,107,.20);--glow-b:rgba(255,107,107,.08);--glow-bd:rgba(255,107,107,.55);border-color:#3a2323}
+.age.yellow{--glow-a:rgba(251,191,36,.20);--glow-b:rgba(251,191,36,.08);--glow-bd:rgba(251,191,36,.55)}
+.age.green{--glow-a:rgba(74,222,128,.20);--glow-b:rgba(74,222,128,.08);--glow-bd:rgba(74,222,128,.55)}
+.age::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;z-index:2}
+.age.purple::before{background:var(--pu)}.age.black::before{background:#8b96a0}.age.red::before{background:var(--rd)}.age.yellow::before{background:var(--am)}.age.green::before{background:var(--gr)}
+.age .band{display:flex;align-items:center;gap:11px;min-width:0;text-align:left}
+.age .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.age.purple .dot{background:var(--pu)}.age.black .dot{background:#5f6b6c}.age.red .dot{background:var(--rd)}.age.yellow .dot{background:var(--am)}.age.green .dot{background:var(--gr)}
+.age .band .lbl{line-height:1.25}
+.age .band .lbl b{display:block;color:#eef2f4;font-size:13px;font-weight:700;letter-spacing:.3px}
+.age .band .lbl span{color:#8b96a0;font-size:10.5px}
+.age .agents-count{font-size:18px;font-weight:800;color:#eef2f4}
+.age .agents-count.mut{color:#5f6b6c}
+.age .tik{font-size:18px;font-weight:800}
+.age.purple .tik{color:#c9b6ff}.age.red .tik{color:#ff8a8a}.age.yellow .tik{color:#ffcf5e}.age.green .tik{color:#7ef2a8}.age.black .tik{color:#8b96a0}
+.age .idlist{display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;width:100%}
+.age .idchips{display:grid;grid-template-columns:auto auto;gap:6px 8px;align-items:center}
+.age .idchips.idchips-3{grid-template-columns:auto auto auto}
+.age .idchips.idchips-4{grid-template-columns:auto auto auto auto}
+.age .idchip{display:inline-flex;align-items:center;gap:6px;background:#12161c;border:1px solid #232c36;border-radius:20px;padding:3px 8px 3px 3px;font-size:11px;color:#cfd7dd;white-space:nowrap}
+.age .idchip.idchip-noava{padding:3px 8px}
+.age .idchip .av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center}
+.age .idchip .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.age .idchip b{font-weight:700;color:#eef2f4}
+.age .idchip .ct{background:rgba(255,255,255,.08);border-radius:20px;padding:0 6px;font-size:9.5px;font-weight:800;color:#9aa6b0}
+.age .idlist .more{color:#6b7681;font-size:11px;font-weight:700;flex-shrink:0}
+.age .idlist .none{color:#5f6b6c;font-size:12px;font-style:italic}
+.age.blink-alert{animation:ageBlink 1.3s ease-in-out infinite}
+@keyframes ageBlink{50%{border-color:rgba(255,82,82,.6)}}
+@media(max-width:900px){.agehead{display:none}.age{grid-template-columns:1fr 1fr;gap:12px}.age .band{grid-column:1/-1}}
+
+/* ---- Incident / Resolution / Historical tables ---- */
+.tcard{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:16px;
+  overflow:hidden;box-shadow:0 12px 30px -18px rgba(0,0,0,.7);margin-bottom:18px}
+.tcard-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 20px;border-bottom:1px solid #1b2027;flex-wrap:wrap}
+.tcard-head .th-title{display:flex;align-items:center;gap:10px;color:#eef2f4;font-size:14px;font-weight:800}
+.tcard-head .th-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tcard-head .th-count{font-size:22px;font-weight:900;letter-spacing:-.4px;white-space:nowrap}
+.th-count.cy{color:var(--cy2)}.th-count.gr{color:#7ef2a8}.th-count.am{color:#ffcf5e}.th-count.pu{color:#c9b6ff}
+.itbl{width:100%;border-collapse:collapse}
+.itbl thead th{color:#6b7681;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;text-align:left;padding:10px 20px;background:#0d0f13}
+.itbl thead th.num{text-align:center;width:80px}
+.itbl thead th.pct{text-align:center;width:190px}
+.itbl tbody td{padding:11px 20px;border-top:1px solid rgba(255,255,255,.05);font-size:13px;vertical-align:middle}
+.itbl tbody tr{transition:background .12s}
+.itbl tbody tr.inc-clickrow,.itbl tbody tr.inc-grouped{cursor:pointer}
+.itbl tbody tr:hover{background:rgba(255,255,255,.03)}
+.itbl tbody tr.hidden-row{display:none}
+.itbl .it-name{color:#dfe6ea;font-weight:500}
+.itbl .it-name strong{font-weight:600}
+.itbl .it-count{text-align:center;color:#eef2f4;font-weight:800;font-variant-numeric:tabular-nums}
+.inc-grp-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.35);color:#c9b6ff;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:6px}
+.inc-grp-btn:hover{background:rgba(167,139,250,.22)}
+.pctwrap{display:flex;align-items:center;gap:10px;justify-content:center}
+.pctbar{flex:1;height:6px;border-radius:20px;background:rgba(255,255,255,.06);overflow:hidden;min-width:60px;max-width:120px}
+.pctbar>span{display:block;height:100%;border-radius:20px}
+.pctval{width:46px;text-align:right;font-size:11.5px;font-weight:700;color:#9aa6b0;font-variant-numeric:tabular-nums}
+.loadmore{display:flex;justify-content:center;padding:12px 20px;border-top:1px solid #1b2027}
+.loadmore button{display:inline-flex;align-items:center;gap:7px;background:#171b21;border:1px solid #2b323b;color:#c3ccd2;
+  border-radius:20px;padding:8px 18px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s}
+.loadmore button:hover{border-color:#3a4450;color:#eef2f4;transform:translateY(-1px)}
+.loadmore button .rem{color:#6b7681;font-weight:700}
+.loadmore.done{display:none}
+
+/* ---- Combined metric rows (Average / Repeat Incident) ---- */
+.metrics{display:flex;flex-direction:column;gap:10px;grid-column:1/-1}
+/* Fixed row height + vertically-centered content so rows line up across the two side-by-side cards. */
+.metric{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;min-height:64px;
+  background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;
+  padding:14px 18px;box-shadow:0 10px 26px -18px rgba(0,0,0,.7);transition:border-color .16s,transform .16s}
+.metric:hover{border-color:#2c333d;transform:translateY(-1px)}
+.metric::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cy)}
+.metric.s-cy::before{background:var(--cy)}.metric.s-gr::before{background:var(--gr)}.metric.s-am::before{background:var(--am)}.metric.s-rd::before{background:var(--rd)}.metric.s-pu::before{background:var(--pu)}
+.metric.s-rd{border-color:#3a2323}
+.metric .mbody{flex:1;min-width:0}
+.metric .mname{color:#eef2f4;font-size:13.5px;font-weight:700;line-height:1.3;display:flex;align-items:center;gap:6px}
+.metric .mdef{color:#8b96a0;font-size:11.5px;line-height:1.5;margin-top:4px}
+.metric .mval{flex-shrink:0;font-size:19px;font-weight:800;letter-spacing:-.3px;text-align:right;white-space:nowrap;color:#eef2f4}
+.metric .mval.blink{animation:mblink 1.2s ease-in-out infinite}
+@keyframes mblink{50%{opacity:.4}}
+</style>
 </head>
 <body data-app="live" data-back-href="index.html" data-back-label="All Dashboards">
 <div id="app"></div>

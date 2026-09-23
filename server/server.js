@@ -2269,7 +2269,12 @@ app.post('/api/help', requireRole('editor'), async (req, res) => {
 app.get('/api/help/open', requireRole('user'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.helpRequests);
-    const list = await coll.find({ status: 'open' }).sort({ createdAt: -1 }).toArray();
+    // "Open" = status open AND no admin reply yet. This is defensive: any request that already has
+    // a reply is treated as answered even if a legacy record was left marked open (see reply route).
+    const list = await coll.find({
+      status: 'open',
+      $or: [{ replies: { $exists: false } }, { replies: { $size: 0 } }]
+    }).sort({ createdAt: -1 }).toArray();
     const base = list.map(h => ({ id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '', requester: h.requester, doubt: h.doubt, status: 'open', createdAt: h.createdAt, replies: h.replies || [] }));
     res.json(await enrichHelpWithTicket(base));
   } catch (e) {
@@ -2315,11 +2320,12 @@ app.post('/api/help/:id/reply', requireRole('admin'), async (req, res) => {
     const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
     if (!existing) return res.status(404).json({ error: 'Help request not found.' });
     const reply = { by: req.user.username, role: req.user.role, text, at: new Date().toISOString() };
-    // The FIRST admin reply auto-closes the request (badge = "still unanswered" queue). Admins can
-    // keep adding replies afterwards; those just append and don't change the already-resolved status.
-    const isFirstReply = !(existing.replies && existing.replies.length);
+    // Any admin reply on an OPEN request auto-closes it (badge = the "still unanswered" queue).
+    // Once resolved, further replies just append without changing status. (Previously this only
+    // fired on the very first reply, so a request that already had a reply but was still marked
+    // open could never resolve — it stayed open forever.)
     const update = { $push: { replies: reply } };
-    if (isFirstReply && existing.status === 'open') {
+    if (existing.status === 'open') {
       update.$set = { status: 'resolved', resolvedAt: reply.at, resolvedBy: req.user.username };
     }
     await coll.updateOne({ _id: existing._id }, update);
@@ -4351,6 +4357,26 @@ app.listen(PORT, () => {
   console.log('PHD API listening on port ' + PORT);
   // Backfill the current live quarter's dashboard rollup on boot if it's missing/stale, so the
   // first visitor after a (re)deploy gets instant chunks without waiting for the next upload.
+  // One-time self-heal: any help request marked "open" that already has an admin reply is actually
+  // answered — flip it to "resolved" so it leaves the Open Alerts queue and shows under Resolved.
+  // (Guards against legacy records created before the reply route auto-closed on any reply.)
+  (async () => {
+    try {
+      const helpColl = await getCollection(COLLECTIONS.helpRequests);
+      const stuck = await helpColl.find({
+        status: 'open',
+        replies: { $exists: true, $not: { $size: 0 } }
+      }).toArray();
+      for (const h of stuck) {
+        const last = h.replies[h.replies.length - 1] || {};
+        await helpColl.updateOne(
+          { _id: h._id },
+          { $set: { status: 'resolved', resolvedAt: last.at || new Date().toISOString(), resolvedBy: last.by || 'system' } }
+        );
+      }
+      if (stuck.length) console.log('help_requests self-heal: ' + stuck.length + ' open-with-reply request(s) marked resolved');
+    } catch (e) { console.error('help_requests self-heal failed:', e && e.message); }
+  })();
   (async () => {
     try {
       const qid = currentQuarter();

@@ -1827,37 +1827,36 @@ function prioIconColor(agent){
 // Build the priority-cell contents: one profile icon per agent holding priority tickets in this
 // color, colored by roster, followed by that agent's count. Sorted highest-count first.
 function prioAgentIconsHtml(list){
-  const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   const by={};
   list.forEach(function(r){
     if(!hasPriorityLabel(r.Labels))return;
     const a=(r.AssigneeIdentity||'').trim()||'Unassigned';
     by[a]=(by[a]||0)+1;
   });
-  const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
-  if(!agents.length)return '<span class="age-prio-zero">0</span>';
-  return '<span class="prio-icons">'+agents.map(function(a){
-    return prioAgentChipHtml(a,by[a],esc);
-  }).join('')+'</span>';
+  return idListHtml(by);
 }
-// One agent chip for the SR/Addr-Excl & No-EMT cells: the agent's avatar (photo or colored initial
-// circle via PHDAuth.avatarHtml, with initials fallback) ringed in the roster color, then the count.
-function prioAgentChipHtml(agent,count,esc){
+// Build a login-ID chip list: 3 chips per row × 2 rows (max 6 shown), then "+N" on the right.
+// No avatars — just the login id + its count.
+function idListHtml(by){
+  const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
+  if(!agents.length)return '<div class="idlist"><span class="none">None</span></div>';
+  const SHOW=8; // 2 rows of 4 chips
+  const shown=agents.slice(0,SHOW), extra=agents.length-shown.length;
+  const chips=shown.map(function(a){ return idChipHtml(a,by[a],esc); }).join('');
+  const more=extra>0?('<span class="more">+'+extra+'</span>'):'';
+  return '<div class="idlist"><div class="idchips idchips-4">'+chips+'</div>'+more+'</div>';
+}
+// One login-ID chip: login id + count badge (no avatar). Roster color tints the id text.
+function idChipHtml(agent,count,esc){
   esc=esc||function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   const col=prioIconColor(agent);
   const label=(agent==='Unassigned')?'Unassigned':agent;
-  let ava;
-  if(agent==='Unassigned'){
-    ava='<span class="prio-ava-fallback" style="color:'+col+'">'+ic('user',15)+'</span>';
-  }else if(window.PHDAuth&&window.PHDAuth.avatarHtml){
-    ava=window.PHDAuth.avatarHtml(profileFor(agent),22);
-  }else{
-    ava='<span class="prio-ava-fallback" style="color:'+col+'">'+ic('user',15)+'</span>';
-  }
-  return '<span class="prio-agent" title="'+esc(label)+' \u2014 '+count+' ticket'+(count===1?'':'s')+'">'+
-    '<span class="prio-ava" style="box-shadow:0 0 0 2px '+col+'">'+ava+'</span>'+
-    '<span class="prio-n">'+count+'</span></span>';
+  return '<span class="idchip idchip-noava" title="'+esc(label)+' \u2014 '+count+' ticket'+(count===1?'':'s')+'">'+
+    '<b style="color:'+col+'">'+esc(label)+'</b><span class="ct">'+count+'</span></span>';
 }
+// Back-compat alias (some callers may reference the old name).
+function prioAgentChipHtml(agent,count,esc){ return idChipHtml(agent,count,esc); }
 // A ticket is "No EMT" when its Title OR Labels contain one of these whole-word phrases
 // (case-insensitive): "No EMT" (separator between No & EMT optional: space(s)/hyphen/underscore/none),
 // "Without EMT", or "EMT not required". Bare "EMT" alone does NOT count, and matches must be whole
@@ -1869,36 +1868,41 @@ function hasNoEmt(title,labels){
 // Build the No-EMT cell contents: one profile icon per agent holding No-EMT tickets in this color,
 // colored by the same roster as the priority column, followed by that agent's count. Highest first.
 function noEmtAgentIconsHtml(list){
-  const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   const by={};
   list.forEach(function(r){
     if(!hasNoEmt(r.Title,r.Labels))return;
     const a=(r.AssigneeIdentity||'').trim()||'Unassigned';
     by[a]=(by[a]||0)+1;
   });
-  const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
-  if(!agents.length)return '<span class="age-prio-zero">0</span>';
-  return '<span class="prio-icons">'+agents.map(function(a){
-    return prioAgentChipHtml(a,by[a],esc);
-  }).join('')+'</span>';
+  return idListHtml(by);
 }
 function ageTileByCls(cls){ return AGE_TILES.find(function(t){return t.cls===cls;})||{}; }
 function ageCardSkeletonHtml(){
+  // Band name shown without the surrounding parens for the sub-label.
+  const rng=function(t){ return String(t.range||'').replace(/^\(|\)$/g,''); };
   const rows=AGE_ROW_ORDER.map(function(cls){
     const t=ageTileByCls(cls);
-    return '<tr id="ageRow-'+cls+'" class="age-clickrow" onclick="showColorPopup(\''+cls+'\')" title="View '+t.name+' tickets">'+
-      '<td><span class="age-swatch" style="color:'+t.color+'"><span class="dot" style="background:'+t.color+'"></span>'+t.name+'</span></td>'+
-      '<td class="age-rng">'+t.range+'</td>'+
-      '<td class="age-agents" id="ageAgents-'+cls+'"><span class="num-spinner"></span></td>'+
-      '<td class="age-cnt" id="ageCount-'+cls+'" style="color:'+t.color+'"><span class="num-spinner"></span></td>'+
-      '<td class="age-cnt age-prio" id="agePrio-'+cls+'" title="Open tickets with a Station Request / Address Exclusion label"><span class="num-spinner"></span></td>'+
-      '<td class="age-cnt age-prio age-noemt" id="ageNoEmt-'+cls+'" title="Open tickets whose Title or Labels mention No EMT / No-EMT"><span class="num-spinner"></span></td>'+
-    '</tr>';
+    return '<div id="ageRow-'+cls+'" class="age '+cls+'" onclick="showColorPopup(\''+cls+'\')" title="View '+t.name+' tickets">'+
+      '<div class="band"><span class="dot"></span><span class="lbl"><b>'+t.name+'</b><span>'+rng(t)+'</span></span></div>'+
+      '<div class="agents-count" id="ageAgents-'+cls+'"><span class="num-spinner"></span></div>'+
+      '<div class="tik" id="ageCount-'+cls+'"><span class="num-spinner"></span></div>'+
+      '<div id="agePrio-'+cls+'" title="Open tickets with a Station Request / Address Exclusion label"><span class="num-spinner"></span></div>'+
+      '<div id="ageNoEmt-'+cls+'" title="Open tickets whose Title or Labels mention No EMT / No-EMT"><span class="num-spinner"></span></div>'+
+    '</div>';
   }).join('');
+  const srIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>';
+  const emtIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#ff6b6b" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>';
   return '<p class="meta-info">Open tickets classified by age. Click any row to see which agents hold them.</p>'+
-    '<div class="age-xls-wrap"><table class="age-xls"><thead><tr>'+
-      '<th>Color</th><th>Age range</th><th style="text-align:center">Agents</th><th style="text-align:center">Tickets</th><th style="text-align:center" title="Open tickets labelled Station Request or Address Exclusion"><span class="age-th-lbl">'+ic('map-pin',14)+'Station Request Tickets</span></th><th style="text-align:center" title="Open tickets whose Title or Labels mention No EMT / No-EMT"><span class="age-th-lbl">'+ic('no-entry',14)+'No EMT Tickets</span></th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="age-grid">'+
+      '<div class="agehead">'+
+        '<span>AGE RANGE</span>'+
+        '<span>AGENTS COUNT</span>'+
+        '<span>TICKETS COUNT</span>'+
+        '<span>'+srIcon+'TICKETS WITH STATION REQUESTS</span>'+
+        '<span>'+emtIcon+'TICKETS WITH NO EMT</span>'+
+      '</div>'+
+      '<div class="agerows">'+rows+'</div>'+
+    '</div>';
 }
 
 // ---- Per-card renderers (fill the card body from the chunk payload) ----
@@ -1971,28 +1975,33 @@ function repaintAgePrioCells(){
 // Definition column (used by Average / Repeat Incident sections). When withDesc is true the Value
 // column is centered; otherwise it's right-aligned.
 function kpiTableHtml(rows, withDesc){
-  const valAlign=withDesc?'center':'right';
-  // 3-column (with Definition): Metric + Value are fit-to-content (nowrap + width:1%), Definition
-  // absorbs the remaining width. Metric/Value centered, Definition left-aligned for readability.
-  const head=withDesc
-    ? '<tr><th style="text-align:center;width:1%;white-space:nowrap">Metric</th><th style="text-align:center;width:1%;white-space:nowrap">Value</th><th style="text-align:left">Definition</th></tr>'
-    : '<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th></tr>';
+  // withDesc (Average / Repeat Incident sections) -> combined "metric" cards: name + definition
+  // stacked on the left, the animated value on the right, a colored accent spine per row.
+  if(withDesc){
+    const spineCycle=['s-cy','s-gr','s-am','s-pu'];
+    const cards=rows.map(function(r,i){
+      const raw=(r.value==null?'\u2014':String(r.value));
+      const cell='<span class="kpi-anim" data-kpi-val="'+raw.replace(/"/g,'&quot;')+'"></span>';
+      const vStyle=r.valColor?(' style="color:'+r.valColor+'"'):'';
+      const vCls='mval'+(r.blink?' blink':'');
+      return '<div class="metric '+spineCycle[i%spineCycle.length]+'">'+
+        '<div class="mbody"><div class="mname">'+(r.metric||'')+'</div>'+
+          (r.desc?('<div class="mdef">'+r.desc+'</div>'):'')+'</div>'+
+        '<div class="'+vCls+'"'+vStyle+'>'+cell+'</div>'+
+      '</div>';
+    }).join('');
+    return '<div class="metrics">'+cards+'</div>';
+  }
+  const valAlign='right';
+  const head='<tr><th>Metric</th><th style="text-align:'+valAlign+'">Value</th></tr>';
   const body=rows.map(function(r){
     const raw=(r.value==null?'\u2014':String(r.value));
     const cell='<span class="kpi-anim" data-kpi-val="'+raw.replace(/"/g,'&quot;')+'"></span>';
-    if(withDesc){
-      const vStyle=' style="text-align:center;white-space:nowrap'+(r.valColor?(';color:'+r.valColor):'')+'"';
-      const vCls='kt-value'+(r.blink?' kpi-blink-alert':'');
-      return '<tr><td class="kt-metric" style="text-align:center;white-space:nowrap">'+(r.metric||'')+'</td>'+
-        '<td class="'+vCls+'"'+vStyle+'>'+cell+'</td>'+
-        '<td class="kt-desc" style="text-align:left">'+(r.desc||'')+'</td></tr>';
-    }
     const vStyle=' style="text-align:'+valAlign+(r.valColor?(';color:'+r.valColor):'')+'"';
     return '<tr><td class="kt-metric">'+(r.metric||'')+'</td>'+
       '<td class="kt-value"'+vStyle+'>'+cell+'</td></tr>';
   }).join('');
-  const tblStyle=withDesc?' style="width:100%;table-layout:auto"':'';
-  return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"'+tblStyle+'><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+  return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
 }
 function renderQueueKpis(d){
   const grid=document.getElementById('dashQueueKpis'); if(!grid||!d||!d.counts)return;
@@ -2000,26 +2009,26 @@ function renderQueueKpis(d){
   const total=(d.total!=null)?d.total:['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'].reduce(function(s,k){return s+(c[k]||0);},0);
   const inQueue=['Assigned','Work In Progress','Researching','Pending'].reduce(function(s,k){return s+(c[k]||0);},0);
   const inQueuePct=total?(Math.round(inQueue/total*1000)/10):0;
-  const num=(k)=>((c[k]||0).toLocaleString()+(p[k]!=null?(' ('+p[k]+'%)'):''));
-  // Two metric/value pairs per row: left = summary totals, right = the four open statuses.
-  const left=[
-    {m:ic('inbox',14)+' In Queue', v:inQueue.toLocaleString()+' ('+inQueuePct+'%)', col:'#fbbf24'},
-    {m:ic('grid',14)+' Total Tickets', v:total.toLocaleString()},
-    {m:ic('check-circle',14)+' Resolved', v:num('Resolved'), col:'#4ade80'},
-    {m:ic('check-circle',14)+' Closed', v:num('Closed'), col:'#4ade80'}
-  ];
-  const right=[
-    {m:ic('inbox',14)+' Assigned', v:num('Assigned')},
-    {m:ic('tool',14)+' Work In Progress', v:num('Work In Progress')},
-    {m:ic('eye',14)+' Researching', v:num('Researching')},
-    {m:ic('hourglass',14)+' Pending', v:num('Pending')}
-  ];
-  const cell=function(x){ if(!x) return '<td></td><td></td>'; const raw=String(x.v).replace(/"/g,'&quot;'); return '<td class="kt-metric" style="text-align:center">'+x.m+'</td><td class="kt-value" style="text-align:center'+(x.col?(';color:'+x.col):'')+'"><span class="kpi-anim" data-kpi-val="'+raw+'"></span></td>'; };
-  let rows='';
-  for(let i=0;i<Math.max(left.length,right.length);i++){ rows+='<tr>'+cell(left[i])+cell(right[i])+'</tr>'; }
-  grid.innerHTML='<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table" style="width:100%;table-layout:fixed"><thead>'+
-    '<tr><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th></tr>'+
-    '</thead><tbody>'+rows+'</tbody></table></div>';
+  // Demo stat tiles. The COUNT animates (countUpKpi); the % rides as a small suffix.
+  // tone: cy/gr/am/gy/mut drives the value color.
+  const tile=function(icon,label,count,pct,tone){
+    const raw=String(count).replace(/"/g,'&quot;');
+    const suffix=(pct!=null)?(' <small>'+pct+'%</small>'):'';
+    return '<div class="q-tile'+(tone?(' '+tone):'')+'">'+
+      '<div class="k">'+icon+' '+label+'</div>'+
+      '<div class="v"><span class="kpi-anim" data-kpi-val="'+raw+'">'+'</span>'+suffix+'</div>'+
+    '</div>';
+  };
+  grid.innerHTML='<div class="q-tiles">'+
+    tile(ic('inbox',13),'In Queue', inQueue.toLocaleString(), inQueuePct, 'am')+
+    tile(ic('grid',13),'Total Tickets', total.toLocaleString(), null, '')+
+    tile(ic('check-circle',13),'Resolved', (c['Resolved']||0).toLocaleString(), p['Resolved'], 'gr')+
+    tile(ic('check-circle',13),'Closed', (c['Closed']||0).toLocaleString(), p['Closed'], 'gy')+
+    tile(ic('inbox',13),'Assigned', (c['Assigned']||0).toLocaleString(), p['Assigned'], '')+
+    tile(ic('tool',13),'Work In Progress', (c['Work In Progress']||0).toLocaleString(), p['Work In Progress'], 'am')+
+    tile(ic('eye',13),'Researching', (c['Researching']||0).toLocaleString(), p['Researching'], 'mut')+
+    tile(ic('hourglass',13),'Pending', (c['Pending']||0).toLocaleString(), p['Pending'], '')+
+  '</div>';
   grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
 function renderQueueChunk(d){
@@ -2187,43 +2196,94 @@ function renderIncidentsChunk(d){
     const liveQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.qid:null;
     INCIDENTS_SCOPE_Q=(d&&d.quarter&&d.quarter!==liveQ)?('&q='+encodeURIComponent(d.quarter)):'';
   }catch(e){ INCIDENTS_SCOPE_Q=''; }
-  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  // One incident-types table (5 cols): # / Incident Type / Count / % of Total / Volume. `pct` is
-  // relative to the passed list's own total; the Volume bar is relative to the list's top count.
-  // resolverKey: 'autosim' | 'phd' — passed to the row-click popup so it shows only that side's agents.
-  // groupedMap (PHD side only): { groupName: [{type,count},...] } — used to tag grouped rows + hover.
-  const incTable=(list,barColor,resolverKey,groupedMap)=>{
-    if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
-    const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
-      '<th style="text-align:center;width:10%">#</th>'+
-      '<th style="width:50%">Incident Type</th>'+
-      '<th style="text-align:center;width:20%">Count</th>'+
-      '<th style="text-align:center;width:20%">% of Total</th>'+
-    '</tr></thead><tbody>'+
-    list.map((t,i)=>{
-      const members=(groupedMap&&groupedMap[t.type])?groupedMap[t.type]:null;
-      const isG=!!members;
-      if(isG){
-        // Grouped row: NOT a click-through to agents. A "View types" button opens the member-list popup.
-        const btn='<button type="button" class="inc-grp-btn" onclick="event.stopPropagation();showGroupMembersPopup(\''+q(t.type)+'\',this.getAttribute(\'data-m\'))" data-m="'+esc(JSON.stringify(members))+'">'+ic('copy',12)+' View types</button>';
-        return '<tr class="inc-grouped"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
-          '<td style="word-break:break-word"><strong>'+esc(t.type)+'</strong> <span style="color:#a78bfa;font-size:.7em;font-weight:700">(grouped)</span> '+btn+'</td>'+
-          '<td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
-      }
-      return '<tr class="inc-clickrow" title="View agents who resolved '+esc(t.type)+'" onclick="showIncidentAgentsPopup(\''+q(t.type)+'\',\''+resolverKey+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="word-break:break-word"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
-    }).join('')+
-    '</tbody></table></div>';
-  };
   const autosim=d.autosimTypes||[], phd=d.phdTypes||[];
   const autosimT=(d.autosimTotal!=null)?d.autosimTotal:autosim.reduce((s,t)=>s+t.count,0);
   const phdT=(d.phdTotal!=null)?d.phdTotal:phd.reduce((s,t)=>s+t.count,0);
-  slot.innerHTML='<p class="meta-info">Incident types across the live quarter (resolved tickets), split by who resolved them.</p>'+
-    '<h3 class="inc-sub-h">'+ic('bolt',15)+' Resolved by AutoSIM <span class="inc-sub-n">'+autosimT.toLocaleString()+'</span></h3>'+
-    incTable(autosim,'#a78bfa','autosim')+
-    '<h3 class="inc-sub-h" style="margin-top:22px">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n">'+phdT.toLocaleString()+'</span></h3>'+
-    incTable(phd,'#ff9900','phd',d.phdGrouped||null);
+  slot.innerHTML=
+    dashTcardHtml({title:'Resolved by AutoSIM',icon:ic('bolt',13),dot:'#5ecdec',countClass:'cy',total:autosimT,
+      barColor:'#5ecdec',nameCol:'Incident Type',hidePct:true, rows:autosim,
+      onRow:function(t,q){ return 'showIncidentAgentsPopup(\''+q(t.type)+'\',\'autosim\')'; }})+
+    dashTcardHtml({title:'Resolved by PHD agents',icon:ic('user',13),dot:'#ffcf5e',countClass:'am',total:phdT,
+      barColor:'#ff9900',nameCol:'Incident Type', rows:phd, grouped:d.phdGrouped||null, groupedLabel:'View Incident types group',
+      onRow:function(t,q){ return 'showIncidentAgentsPopup(\''+q(t.type)+'\',\'phd\')'; },
+      onGroup:function(t,q){ return 'showGroupMembersPopup(\''+q(t.type)+'\',this.getAttribute(\'data-m\'))'; }});
 }
+
+// Shared card-table renderer for Incident Types / Resolutions / Historical Incidents.
+// cfg: {title, icon, dot, countClass, total, barColor, nameCol, hidePct, rows:[{type,count,pct}],
+//       grouped:{name:[{type,count}]}, groupedLabel, onRow(t,q)->js, onGroup(t,q)->js }
+function dashTcardHtml(cfg){
+  const PAGE=10;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const list=cfg.rows||[];
+  const hidePct=!!cfg.hidePct;
+  const body=list.length?list.map(function(t,i){
+    const hidden=i>=PAGE?' hidden-row':'';
+    const pct=(t.pct!=null)?t.pct:0;
+    const members=(cfg.grouped&&cfg.grouped[t.type])?cfg.grouped[t.type]:null;
+    const pctCell=hidePct?'':'<td><div class="pctwrap"><div class="pctbar"><span style="width:'+Math.max(pct,1.5)+'%;background:'+cfg.barColor+'"></span></div><span class="pctval">'+pct+'%</span></div></td>';
+    if(members){
+      const gLabel=cfg.groupedLabel||'View types';
+      const btn='<button type="button" class="inc-grp-btn" onclick="event.stopPropagation();'+(cfg.onGroup?cfg.onGroup(t,q):'')+'" data-m="'+esc(JSON.stringify(members))+'">'+ic('copy',12)+' '+esc(gLabel)+'</button>';
+      return '<tr class="inc-grouped'+hidden+'"><td class="it-name"><strong>'+esc(t.type)+'</strong> <span style="color:#a78bfa;font-size:.72em;font-weight:700">(grouped)</span> '+btn+'</td>'+
+        '<td class="it-count">'+Number(t.count).toLocaleString()+'</td>'+pctCell+'</tr>';
+    }
+    const click=cfg.onRow?(' onclick="'+cfg.onRow(t,q)+'"'):'';
+    return '<tr class="inc-clickrow'+hidden+'" title="View agents"'+click+'><td class="it-name"><strong>'+esc(t.type)+'</strong></td>'+
+      '<td class="it-count">'+Number(t.count).toLocaleString()+'</td>'+pctCell+'</tr>';
+  }).join(''):'';
+  const extra=Math.max(list.length-PAGE,0);
+  const headCols='<th>'+esc(cfg.nameCol||'Incident Type')+'</th><th class="num">Count</th>'+(hidePct?'':'<th class="pct">% of Total</th>');
+  const tbl=list.length
+    ? '<table class="itbl"><thead><tr>'+headCols+'</tr></thead><tbody>'+body+'</tbody></table>'
+      +(extra>0?'<div class="loadmore"><button onclick="dashToggleMore(this)" data-shown="'+PAGE+'" data-mode="more">'+ic('caret-down',12)+' Load more <span class="rem">('+extra+' more)</span></button></div>':'')
+    : '<div style="padding:16px 20px"><p class="meta-info" style="margin:0">None.</p></div>';
+  return '<div class="tcard">'+
+    '<div class="tcard-head">'+
+      '<div class="th-title"><span class="th-dot" style="background:'+cfg.dot+'"></span>'+(cfg.icon||'')+' '+esc(cfg.title)+'</div>'+
+      '<div class="th-count '+(cfg.countClass||'cy')+'">'+Number(cfg.total||0).toLocaleString()+'</div>'+
+    '</div>'+tbl+'</div>';
+}
+// Reveal the next 10 rows of a card-table (shared by all dashboard .tcard tables).
+function dashLoadMore(btn){
+  // Back-compat: reveal the next 10 rows.
+  dashToggleMore(btn);
+}
+window.dashLoadMore=dashLoadMore;
+// Toggle a .tcard table between "Load more" (reveal +10) and "Show less" (collapse back to 10).
+// When everything is visible the button flips to "Show less"; clicking it re-hides rows past 10.
+const DASH_PAGE=10;
+function dashToggleMore(btn){
+  const card=btn.closest('.tcard'); if(!card)return;
+  const rows=card.querySelectorAll('tbody tr');
+  const mode=btn.getAttribute('data-mode')||'more';
+  if(mode==='less'){
+    // Collapse back to the default 10.
+    for(let i=DASH_PAGE;i<rows.length;i++){ rows[i].classList.add('hidden-row'); }
+    btn.setAttribute('data-shown',DASH_PAGE);
+    btn.setAttribute('data-mode','more');
+    const rem=rows.length-DASH_PAGE;
+    btn.innerHTML=(ic('caret-down',12)||'\u25be')+' Load more <span class="rem">('+rem+' more)</span>';
+    // Scroll the card back into view so the user isn't left far down the page.
+    try{ card.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(e){}
+    return;
+  }
+  // Reveal the next 10.
+  let shown=parseInt(btn.getAttribute('data-shown'),10)||DASH_PAGE;
+  const next=shown+DASH_PAGE;
+  for(let i=shown;i<next && i<rows.length;i++){ rows[i].classList.remove('hidden-row'); }
+  btn.setAttribute('data-shown',next);
+  const remaining=rows.length-next;
+  if(remaining<=0){
+    // Everything is now visible -> flip to "Show less".
+    btn.setAttribute('data-mode','less');
+    btn.innerHTML=(ic('caret-up',12)||'\u25b4')+' Show less';
+  } else {
+    const r=btn.querySelector('.rem'); if(r)r.textContent='('+remaining+' more)';
+  }
+}
+window.dashToggleMore=dashToggleMore;
 // Popup 1: the incident types combined into a grouped PHD row, each with its ticket count (scope-aware).
 // Each member row is clickable -> the existing agent-breakdown popup (Popup 2) for that raw type.
 function showGroupMembersPopup(groupName, membersJson){
@@ -2262,27 +2322,11 @@ function renderResolutionsChunk(d){
     const liveQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.qid:null;
     RES_SCOPE_Q=(d&&d.quarter&&d.quarter!==liveQ)?('&q='+encodeURIComponent(d.quarter)):'';
   }catch(e){ RES_SCOPE_Q=''; }
-  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const list=d.phdTypes||[]; const groupedMap=d.phdGrouped||null; const total=d.phdTotal||0;
-  const rowsHtml=!list.length?'<p class="meta-info" style="margin:6px 0 0">None.</p>':(
-    '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:fixed"><thead><tr>'+
-      '<th style="text-align:center;width:10%">#</th><th style="width:50%">Resolution</th><th style="text-align:center;width:20%">Count</th><th style="text-align:center;width:20%">% of Total</th>'+
-    '</tr></thead><tbody>'+
-    list.map((t,i)=>{
-      const members=(groupedMap&&groupedMap[t.type])?groupedMap[t.type]:null;
-      if(members){
-        const btn='<button type="button" class="inc-grp-btn" onclick="event.stopPropagation();showResGroupMembersPopup(\''+q(t.type)+'\',this.getAttribute(\'data-m\'))" data-m="'+esc(JSON.stringify(members))+'">'+ic('copy',12)+' View types</button>';
-        return '<tr class="inc-grouped"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td>'+
-          '<td style="word-break:break-word"><strong>'+esc(t.type)+'</strong> <span style="color:#a78bfa;font-size:.7em;font-weight:700">(grouped)</span> '+btn+'</td>'+
-          '<td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
-      }
-      return '<tr class="inc-clickrow" title="View agents who used '+esc(t.type)+'" onclick="showResolutionAgentsPopup(\''+q(t.type)+'\')"><td style="color:#ff9900;font-weight:700;text-align:center">'+(i+1)+'</td><td style="word-break:break-word"><strong>'+esc(t.type)+'</strong></td><td style="text-align:center">'+t.count+'</td><td style="text-align:center">'+t.pct+'%</td></tr>';
-    }).join('')+
-    '</tbody></table></div>');
-  slot.innerHTML='<p class="meta-info">Resolutions recorded by PHD agents (resolved/closed tickets carrying a Resolution value).</p>'+
-    '<h3 class="inc-sub-h">'+ic('user',15)+' Resolved by PHD agents <span class="inc-sub-n">'+total.toLocaleString()+'</span></h3>'+
-    rowsHtml;
+  slot.innerHTML=dashTcardHtml({title:'Resolved by PHD agents',icon:ic('user',13),dot:'#ffcf5e',countClass:'am',total:total,
+    barColor:'#fbbf24',nameCol:'Resolution', rows:list, grouped:groupedMap, groupedLabel:'View resolutions group',
+    onRow:function(t,q){ return 'showResolutionAgentsPopup(\''+q(t.type)+'\')'; },
+    onGroup:function(t,q){ return 'showResGroupMembersPopup(\''+q(t.type)+'\',this.getAttribute(\'data-m\'))'; }});
 }
 
 // Popup 1 for a grouped resolution: member resolution values + counts; click -> agents popup.
@@ -2534,29 +2578,19 @@ function renderIncTkTable(){
 function renderHiChunk(d){
   const slot=document.getElementById('dashHiBody');if(!slot)return;
   const total=d.total||0;
-  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const subTable=(list,accent)=>{
-    if(!list||!list.length)return '<p class="meta-info" style="margin:6px 0 0">None.</p>';
-    const mx=list[0].count;
-    return '<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
-        '<th style="width:1%;white-space:nowrap;text-align:center">#</th>'+
-        '<th style="width:1%;white-space:nowrap;text-align:center">Root Cause</th>'+
-        '<th style="width:26%;text-align:center">Count</th>'+
-        '<th style="width:26%;text-align:center">% of Total HI</th>'+
-        '<th style="width:26%;text-align:center">Volume</th>'+
-      '</tr></thead><tbody>'+
-      list.map((r,i)=>'<tr><td style="color:'+accent+';font-weight:700;text-align:center;white-space:nowrap">'+(i+1)+'</td><td style="text-align:center;white-space:nowrap"><strong>'+esc(r.rootCause)+'</strong></td><td style="text-align:center">'+r.count+'</td><td style="text-align:center">'+(total?(r.count/total*100).toFixed(1):0)+'%</td><td><div style="display:flex;align-items:center"><div style="height:8px;border-radius:4px;background:'+accent+';width:'+(r.count/mx*100).toFixed(0)+'%;min-width:4px"></div></div></td></tr>').join('')+
-      '</tbody></table></div>';
-  };
+  // Map an HI root-cause breakdown ({rootCause,count}) to the {type,count,pct} shape dashTcardHtml wants.
+  const hiRows=function(list){ return (list||[]).map(function(r){ const rc=String(r.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim(); return {type:rc,count:r.count,pct:total?+(r.count/total*100).toFixed(1):0}; }); };
   slot.innerHTML=
     // Weekly pet vs non-pet repeat incidents (HI Cnt>0), created per week — sits above the tables.
     '<h3 style="color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">Repeat incidents per week \u2014 pet vs non-pet</h3>'+
     '<p class="meta-info" style="margin:0 0 12px">Repeat-incident tickets (HI Cnt&gt;0) created each week, split into <b style="color:#a78bfa">pet / animal</b> vs <b style="color:#ff9900">non-pet</b>.</p>'+
     '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cHiWeekly"></canvas></div></div>'+
-    '<h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:24px 0 8px">🐾 Involving pet / animal incidents — '+d.pet+' ('+d.petPct+'% of all HI)</h3>'+
-    subTable(d.petBreakdown,'#a78bfa')+
-    '<h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — '+d.nonPet+' ('+d.nonPetPct+'% of all HI)</h3>'+
-    subTable(d.nonPetBreakdown,'#ff9900');
+    '<div style="margin-top:22px">'+
+    dashTcardHtml({title:'🐾 Involving pet / animal incidents',icon:'',dot:'#a78bfa',countClass:'pu',total:d.pet,
+      barColor:'#a78bfa',nameCol:'Root Cause', rows:hiRows(d.petBreakdown)})+
+    dashTcardHtml({title:'Non-pet incidents',icon:'',dot:'#ffcf5e',countClass:'am',total:d.nonPet,
+      barColor:'#fbbf24',nameCol:'Root Cause', rows:hiRows(d.nonPetBreakdown)})+
+    '</div>';
   // Weekly pet/non-pet chart pulls from the (SWR-cached) /api/dash/weekly payload.
   loadDashChunk('weekly',drawHiWeekly,{silent:true,cacheKey:'dash-weekly-hisplit'}).catch(function(){});
 }
@@ -2638,12 +2672,8 @@ function renderSummaryInto(d,target){
 // to icon-only (the label is hidden; the button's title provides a hover tooltip) and spread
 // across the available width. Returns the full <div class="dash-title-row"> HTML.
 function dashPageTitleRow(){
-  // One header div: title on the left, the top-right cluster (Uploaded data log + profile) is moved
-  // in as the right-side child by topbar-auth.js (PHDPlaceTopRight). Rendered even when logged out so
-  // the header (and floating Login) still show.
-  return '<div class="dash-title-row js-header-row">'+
-      '<span class="dash-title-name">WWOS-PHD Dashboard</span>'+
-    '</div>';
+  // No top banner. Each section carries its own banner-style header (see .sec-head styling).
+  return '';
 }
 // Per-section scope. Each dashboard section picks its own scope INDEPENDENTLY, so switching
 // e.g. "Incident Types" to Q2 only reloads that section — the rest stay on their own scope.

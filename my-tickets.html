@@ -361,6 +361,8 @@ td.mt-actions .btn svg{flex-shrink:0}
 <!-- ===== My Tickets: full-demo visual pass (page-scoped, wins by source order) ===== -->
 <style id="mt-theme">
 :root{--cy:#5ecdec;--cy2:#7fdcf0;--am:#fbbf24;--gr:#4ade80;--rd:#ff6b6b}
+/* Full page spans 80% of the viewport, centered (overrides the global auto-width rule). */
+.wrap{width:80vw!important;max-width:80vw!important;margin-left:auto!important;margin-right:auto!important}
 /* Layered gradient-mesh canvas instead of flat black. */
 body{
   background:
@@ -403,17 +405,20 @@ h1{letter-spacing:-.5px}
 /* Unanswered help = attention glow. */
 .mtc.has-help-waiting{border-color:rgba(251,191,36,.35);
   box-shadow:0 0 0 1px rgba(251,191,36,.15), 0 0 34px -6px rgba(251,191,36,.25), 0 16px 40px -16px rgba(0,0,0,.8)}
-/* Viewed = "seen/done": white card with dark text (matches the old row behavior). */
-.mtc.viewed{background:#f4f6f7 !important}
-.mtc.viewed .mtc-head,.mtc.viewed .mtc-bar{border-color:rgba(0,0,0,.08)}
-.mtc.viewed .mtc-ago{color:#0b0d10}
-.mtc.viewed .mtc-title{color:#33404a;text-decoration:line-through}
-.mtc.viewed .mtc-tid{-webkit-text-fill-color:#0b5f74;color:#0b5f74;text-decoration:line-through}
-.mtc.viewed .mtc-copy{color:#0b5f74;border-color:rgba(0,0,0,.25)}
-.mtc.viewed .mtc-zone.cmt,.mtc.viewed .mtc-zone.help{background:transparent}
-.mtc.viewed .mtc-b{background:#e7ebee;color:#20272d;border-color:rgba(0,0,0,.12)}
-.mtc.viewed .mtc-b.primary{background:linear-gradient(180deg,#ffcb52,#f7b21a);color:#151206}
-.mtc.viewed::before{opacity:.55}
+/* Viewed = "seen/done": muted/disabled grey card; all text greyed to match. */
+.mtc.viewed{background:linear-gradient(180deg,#141619,#0f1012) !important;border-color:#20242a !important}
+.mtc.viewed .mtc-head,.mtc.viewed .mtc-bar{border-color:rgba(255,255,255,.05)}
+.mtc.viewed .mtc-ago,.mtc.viewed .mtc-title,.mtc.viewed .mtc-head-last{color:#5f6b73 !important}
+.mtc.viewed .mtc-title,.mtc.viewed .mtc-tid{text-decoration:line-through}
+.mtc.viewed .mtc-tid{-webkit-text-fill-color:#5f7480;color:#5f7480 !important}
+.mtc.viewed .mtc-copy{color:#5f6b73;border-color:rgba(255,255,255,.12)}
+.mtc.viewed .mtc-sbadge{background:rgba(255,255,255,.06);color:#7a848c}
+.mtc.viewed .mtc-pill{opacity:.5;filter:grayscale(.4)}
+.mtc.viewed::before{opacity:.35;filter:grayscale(.6)}
+/* Viewed = "done": collapse the actions bar + panels with a smooth transition, keep the header. */
+.mtc-bar{overflow:hidden;max-height:120px;opacity:1;transition:max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s, padding .35s}
+.mtc.viewed .mtc-bar{max-height:0;opacity:0;pointer-events:none}
+.mtc.viewed .mtc-panel{grid-template-rows:0fr !important;opacity:0;pointer-events:none;transition:grid-template-rows .35s cubic-bezier(.4,0,.2,1), opacity .25s}
 .mtc.temp{opacity:.72}
 
 /* ---- Header line ---- */
@@ -454,16 +459,18 @@ h1{letter-spacing:-.5px}
 .mtc-logflag{display:inline-flex}
 .mtc-ilog{padding:6px 13px;border-radius:20px;border:1px solid rgba(255,153,0,.4);color:#ff9900;font-size:11px;font-weight:600;background:rgba(255,153,0,.05);white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .mtc-ilog:hover{background:rgba(255,153,0,.14)}
+/* Right-side header group: SR + No-EMT icons + toggle, pinned to the far right. */
+.mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:12px;flex-shrink:0}
 .mtc-toggle{width:42px;height:23px;border-radius:20px;background:#242b32;border:1px solid #2b323b;position:relative;flex-shrink:0;cursor:pointer;transition:.18s}
 .mtc-toggle i{position:absolute;top:2px;left:3px;width:16px;height:16px;border-radius:50%;background:#8b96a0;transition:.18s;pointer-events:none}
 .mtc-toggle.on{background:rgba(74,222,128,.35);border-color:var(--gr)}
 .mtc-toggle.on i{transform:translateX(19px);background:var(--gr)}
 
 /* ---- Actions bar (comments LEFT / help RIGHT) ---- */
-.mtc-bar{display:flex;align-items:stretch;border-top:1px solid #1b2027}
+.mtc-bar{display:flex;align-items:stretch;border-top:none}
 .mtc-zone{flex:1;display:flex;align-items:center;gap:10px;padding:13px 20px;flex-wrap:wrap}
-.mtc-zone.cmt{background:linear-gradient(90deg,rgba(94,205,236,.06),transparent)}
-.mtc-zone.help{background:linear-gradient(270deg,rgba(251,191,36,.06),transparent);justify-content:flex-end}
+.mtc-zone.cmt{background:transparent}
+.mtc-zone.help{background:transparent;justify-content:flex-end}
 .mtc-zlabel{font-size:10px;font-weight:800;letter-spacing:.8px;opacity:.8}
 .mtc-zone.cmt .mtc-zlabel{color:var(--cy)}.mtc-zone.help .mtc-zlabel{color:var(--am)}
 .mtc-b{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #2b323b;background:#171b21;color:#dfe6ea;transition:.15s;white-space:nowrap;font-family:inherit}
@@ -480,6 +487,16 @@ h1{letter-spacing:-.5px}
 .mtc-b.lock{background:#2f2b18;border-color:rgba(251,191,36,.4);color:var(--am);cursor:not-allowed}
 .mtc-caret{transition:transform .2s;display:inline-flex}
 .mtc-b.active-cmt .mtc-caret,.mtc-b.active-help .mtc-caret{transform:rotate(180deg)}
+/* Last-comment preview next to "View comments": italic + bold, truncated. */
+.mtc-last{font-style:italic;font-weight:700;color:#9aa6b0;font-size:12px;flex:0 0 60%;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mtc-last:empty{display:none}
+/* Comment preview occupies ~60% of its parent zone; keep the help zone compact. */
+.mtc-zone.cmt{flex:1 1 50%}
+.mtc-zone.help{flex:0 0 auto}
+/* Last comment shown IN THE HEADER only when the ticket is viewed (actions bar is collapsed then). */
+.mtc-head-last{display:none;font-style:italic;font-weight:700;color:#8b96a0;font-size:12px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mtc.viewed .mtc-head-last{display:inline-block}
+.mtc.viewed .mtc-title{max-width:280px}
 
 /* ---- Drop-down panels (animated, accordion per card) ---- */
 .mtc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s cubic-bezier(.4,0,.2,1);border-top:1px solid transparent}
@@ -498,9 +515,9 @@ h1{letter-spacing:-.5px}
 .mtc-av.c{background:linear-gradient(135deg,#7fdcf0,#5ecdec)}
 .mtc-av.h{background:linear-gradient(135deg,#ffd766,#fbbf24)}
 .mtc-av.r{background:linear-gradient(135deg,#86efac,#4ade80)}
-.mtc-bub{border-radius:14px;padding:9px 13px;border:1px solid #232c36;background:#12161c;min-width:0}
-.mtc-bub.h{background:#1a1608;border-color:rgba(251,191,36,.3)}
-.mtc-msg.right .mtc-bub{background:#0e1a12;border-color:rgba(74,222,128,.3)}
+.mtc-bub{border-radius:14px;padding:9px 13px;border:none;background:#12161c;min-width:0}
+.mtc-bub.h{background:#1a1608}
+.mtc-msg.right .mtc-bub{background:#0e1a12}
 .mtc-m{font-size:10.5px;color:#6b7681;margin-bottom:4px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .mtc-m .k{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:1px 7px;border-radius:20px}
 .mtc-m .k.c{background:rgba(94,205,236,.16);color:var(--cy2)}
@@ -798,7 +815,8 @@ window.deleteComment=deleteComment;
 // "N days ago" from a create date (relative to now).
 function daysAgo(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '—';
-  const d=Math.floor((Date.now()-cd.getTime())/864e5);
+  // Round to nearest day so "days ago" reconciles with the "time left" pill (both sum to ~10).
+  const d=Math.round((Date.now()-cd.getTime())/864e5);
   return d<=0?'Today':(d===1?'1 day ago':d+' days ago');
 }
 
@@ -942,7 +960,6 @@ function render(){
   // Sort controls (kept — they re-render the cards).
   const sortBar=`<div class="uc-tabs" style="gap:8px;margin:2px 0 4px">
       <button class="uc-tab${SORT_KEY==='created'?' active':''}" onclick="setSort('created')">${ic('calendar',14)} Created${sortArrow('created')}</button>
-      <button class="uc-tab${SORT_KEY==='timeleft'?' active':''}" onclick="setSort('timeleft')">${ic('clock',14)} Time left${sortArrow('timeleft')}</button>
     </div>`;
   // Split by temp-resolve state, preserving the TICKETS index (i) so latest-${i}/inc-btn-${i} wiring holds.
   const mainCards=[], tempCards=[];
@@ -1027,22 +1044,23 @@ function cardHtml(t,i,editor){
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
       <button class="mtc-copy" title="Copy ticket ID" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
       ${t.title?('<span class="mtc-title" title="'+esc(t.title)+'">'+esc(t.title)+'</span>'):'<span class="mtc-title"></span>'}
-      ${t.priority?`<span class="mtc-mk sr" title="Station Request / Address Exclusion">${ic('map-pin',14)}</span>`:''}
-      ${ticketIsNoEmt(t)?`<span class="mtc-mk emt" title="No EMT ticket">${ic('no-entry',14)}</span>`:''}
-      <span class="mtc-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span>
-      <span id="inc-btn-${i}">${incidentCardBtnHtml(i)}</span>
-      <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" style="display:none"><i></i></label>
+      <span class="mtc-head-last" id="chead-${i}"></span>
+      <span class="mtc-head-right">
+        ${t.priority?`<span class="mtc-mk sr" title="Station Request / Address Exclusion">${ic('map-pin',14)}</span>`:''}
+        ${ticketIsNoEmt(t)?`<span class="mtc-mk emt" title="No EMT ticket">${ic('no-entry',14)}</span>`:''}
+        <span class="mtc-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span>
+        <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" style="display:none"><i></i></label>
+      </span>
     </div>
     <div class="mtc-bar">
       <div class="mtc-zone cmt">
-        <span class="mtc-zlabel">COMMENTS</span>
-        <button class="mtc-b" onclick="openComments(${i},true)">${ic('plus',13)} Add comment</button>
         <button class="mtc-b cmt-cnt" id="cbtn-${i}" onclick="togglePanel(${i},'cmt')">${ic('message',13)} View comments <span class="cnt" id="cbadge-${i}">${cmtN}</span> <span class="mtc-caret">${ic('caret-down',12)||'\u25be'}</span></button>
+        <span class="mtc-last" id="clast-${i}"></span>
       </div>
       <div class="mtc-zone help">
-        <button class="mtc-b help-cnt" id="hbtn-${i}" onclick="togglePanel(${i},'help')">${ic('message',13)} View help history <span class="cnt">${helpN}</span> <span class="mtc-caret">${ic('caret-down',12)||'\u25be'}</span></button>
-        ${askCtl}
-        <span class="mtc-zlabel">HELP</span>
+        ${editor
+          ? `<button class="mtc-b help-cnt" id="hbtn-${i}" onclick="togglePanel(${i},'help')">${ic('message',13)} View help history <span class="cnt">${helpN}</span> <span class="mtc-caret">${ic('caret-down',12)||'\u25be'}</span></button>${askCtl}`
+          : `<span id="inc-btn-${i}">${incidentCardBtnHtml(i)}</span>`}
       </div>
     </div>
     <div class="mtc-panel" id="cpanel-${i}"><div class="mtc-panel-in"><div class="mtc-panel-pad" id="cbody-${i}" data-loaded="0">
@@ -1146,6 +1164,13 @@ function paintLatestCell(i,c){
   const t=TICKETS[i]; if(!t)return;
   const n=(c&&typeof c.count==='number')?c.count:0;
   const badge=document.getElementById('cbadge-'+i); if(badge) badge.textContent=n;
+  // Last-comment preview (italic bold) shown next to the "View comments" button.
+  const preview=(c&&c.text)?('\u201c'+c.text+'\u201d'):'';
+  const last=document.getElementById('clast-'+i);
+  if(last){ last.textContent=preview; if(c&&c.text)last.title=c.text; }
+  // Same preview shown in the header when the card is viewed (actions bar collapsed) — truncated, full on hover.
+  const head=document.getElementById('chead-'+i);
+  if(head){ head.textContent=preview; if(c&&c.text)head.title=c.text; }
 }
 
 // Re-fetch just one ticket's latest comment + count (and its activity ts) and repaint its cell.
