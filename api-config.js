@@ -14,10 +14,14 @@ window.PHDAuth = {
   USER_KEY: 'phd_user',
   getToken: function () { return sessionStorage.getItem(this.TOKEN_KEY) || localStorage.getItem(this.TOKEN_KEY) || ''; },
   getUser: function () { try { return JSON.parse(sessionStorage.getItem(this.USER_KEY) || localStorage.getItem(this.USER_KEY) || 'null'); } catch (e) { return null; } },
+  // Prolonged session: ALWAYS persist to localStorage so the login survives browser/tab restarts and
+  // stays active until the user explicitly logs out (or a new login replaces it). `remember` is kept
+  // for call-site compatibility but no longer downgrades to a tab-only sessionStorage session.
   setSession: function (token, user, remember) {
-    var store = remember ? localStorage : sessionStorage;
-    store.setItem(this.TOKEN_KEY, token);
-    store.setItem(this.USER_KEY, JSON.stringify(user));
+    // Clear any stale copy in the other store first, so there's a single source of truth.
+    try { sessionStorage.removeItem(this.TOKEN_KEY); sessionStorage.removeItem(this.USER_KEY); } catch (e) {}
+    localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   },
   clear: function () {
     try { this._storeClear(); } catch (e) {}       // drop cached me/profile for this user

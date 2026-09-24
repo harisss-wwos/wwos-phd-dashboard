@@ -1851,7 +1851,8 @@ function idListHtml(by){
 function idChipHtml(agent,count,esc){
   esc=esc||function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   const col=prioIconColor(agent);
-  const label=(agent==='Unassigned')?'Unassigned':agent;
+  // The LM-CAP identity ID (and any blank/unassigned value) shows as "Unassigned" here.
+  const label=(agent==='Unassigned'||!agent||(typeof isLMCAP==='function'&&isLMCAP(agent)))?'Unassigned':agent;
   return '<span class="idchip idchip-noava" title="'+esc(label)+' \u2014 '+count+' ticket'+(count===1?'':'s')+'">'+
     '<b style="color:'+col+'">'+esc(label)+'</b><span class="ct">'+count+'</span></span>';
 }

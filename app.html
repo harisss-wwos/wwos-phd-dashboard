@@ -533,6 +533,16 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* ---- Each section gets its own SOLID gradient banner header (profile-page style) ---- */
 .content .section,.content .kpi-section{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31!important;border-radius:16px!important;box-shadow:0 10px 26px -20px rgba(0,0,0,.7);overflow:hidden}
 .content .section+.section,.content .kpi-section+.section,.content .section+.kpi-section{margin-top:18px}
+/* Flush layout (no card padding around the banner) for these sections: Queue Status, Ticket Age,
+   Average Data, Repeat Incident Data, Incident Types, Resolutions, Historical Incidents, Weekly Volume & SLA. */
+.content .kpi-section:has(#dashQueueKpis),.content .section:has(#dashQueueKpis),
+.content .kpi-section:has(#dashAgeBody),.content .section:has(#dashAgeBody),
+.content .kpi-section:has(#dashSumAvg),.content .section:has(#dashSumAvg),
+.content .kpi-section:has(#dashSumRepeat),.content .section:has(#dashSumRepeat),
+.content .section:has(#dashIncidentsBody),.content .kpi-section:has(#dashIncidentsBody),
+.content .section:has(#dashResolutionsBody),.content .kpi-section:has(#dashResolutionsBody),
+.content .section:has(#dashHiBody),.content .kpi-section:has(#dashHiBody),
+.content .section:has(#dashWeeklyBody),.content .kpi-section:has(#dashWeeklyBody){padding:0!important}
 /* Banner header bar: a solid animated gradient (like the profile banner top), title + scope selector.
    Top corners match the parent section's 16px radius; a themed illustration sits on the right. */
 .content .sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap!important;

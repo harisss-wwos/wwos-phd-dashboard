@@ -8,7 +8,9 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-const TOKEN_TTL = process.env.JWT_TTL || '12h';
+// Sessions stay valid until the user explicitly logs out (or a new login replaces the token).
+// Default to an effectively-forever TTL (10 years); still overridable via JWT_TTL.
+const TOKEN_TTL = process.env.JWT_TTL || '3650d';
 
 // Role hierarchy (higher number = more privilege).
 // 'manager' has the same access level as 'admin' (can publish/upload; cannot manage users).

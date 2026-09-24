@@ -259,7 +259,8 @@
       // Rail badge (GSOC logo + profile avatar): a fixed 46px circle. Its label is ABSOLUTELY
       // positioned to the RIGHT of the circle and slides in on hover — so it escapes the narrow rail
       // to the right (never clipped) and never changes the column width or position.
-      + '.tb-rail-badge{position:relative;width:58px;height:58px;flex:0 0 58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;overflow:visible;background:#0b1420;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;text-decoration:none;transition:border-color .15s,transform .15s}'
+      + '.tb-rail-badge{position:relative;width:58px;height:58px;flex:0 0 58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;overflow:visible;background:#0b1420;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;text-decoration:none;transition:border-color .15s,transform .15s;padding:0;font-family:inherit}'
+      + 'button.tb-rail-badge{-webkit-appearance:none;appearance:none}'
       + '.tb-rail-badge:hover{border-color:#ff9900;transform:translateY(-2px)}'
       + '.tb-rail-badge-label{position:absolute;left:68px;top:50%;transform:translateY(-50%) translateX(-6px);white-space:nowrap;background:#121820;border:1px solid #2a3f63;color:#e6edf0;font-size:.86em;font-weight:700;padding:9px 15px;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20}'
       + '.tb-rail-badge:hover .tb-rail-badge-label{opacity:1;transform:translateY(-50%) translateX(0)}'
@@ -269,6 +270,11 @@
       // escape to the right); the AVATAR itself is clipped to a circle via its own inner wrapper.
       + '.tb-rail-profile .tb-rail-av{width:54px;height:54px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-rail-profile .tb-rail-av img,.tb-rail-profile .avatar-initial{width:54px!important;height:54px!important;border-radius:50%!important;object-fit:cover;display:inline-flex;align-items:center;justify-content:center}'
+      // Logged-out state: the "Log in" user icon (wrapped in .tb-nav-ic) needs its own sizing/color
+      // inside the rail badge — otherwise the SVG has no size and appears blank.
+      + '.tb-rail-profile .tb-nav-ic{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;color:#9fb0c3}'
+      + '.tb-rail-profile .tb-nav-ic svg{width:24px;height:24px}'
+      + '.tb-rail-profile:hover .tb-nav-ic{color:#ff9900}'
       + '.tb-nav-fab.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
       // On short screens shrink the FAB column (smaller pills + tighter gap) so it still fits centered.
       + '@media(max-height:820px){.tb-fab-col{gap:6px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:40px;max-width:40px;border-radius:20px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:40px;width:40px;height:40px}.tb-nav-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg{width:18px;height:18px}.tb-hist-fab{height:40px}.tb-hist-fab .tb-hist-ic{flex-basis:40px;width:40px;height:40px}}'
@@ -1059,6 +1065,9 @@
     hide: tbHideBanner
   };
 
+  // Escape helper for popup text (was referenced but never defined — caused PHDConfirm to throw,
+  // which silently broke the login-prompt flow). Reuses tbEsc.
+  function tbPopupEsc(x) { return tbEsc(x); }
   function tbShowPopup(opts, withCancel) {
     opts = opts || {};
     return new Promise(function (resolve) {
@@ -1100,6 +1109,17 @@
     setTimeout(function () { var u = document.getElementById('tbUser'); if (u) u.focus(); }, 40);
   };
   window.tbCloseLogin = function () { document.getElementById('tbLoginModal').style.display = 'none'; };
+  // Logged-out entry point: ask the user to log in FIRST (styled confirm). On "Log in" -> open the
+  // login modal; on Cancel/decline -> send them to the profile "not logged in" gate (profile.html).
+  window.tbPromptLogin = function () {
+    var ask = (window.PHDConfirm)
+      ? window.PHDConfirm({ title: 'Log in required', body: 'You need to be logged in to view this. Would you like to log in now?', okLabel: 'Log in', cancelLabel: 'Not now' })
+      : Promise.resolve(window.confirm('You need to be logged in. Log in now?'));
+    ask.then(function (ok) {
+      if (ok) { tbOpenLogin(); }
+      else { try { location.href = 'profile.html'; } catch (e) {} }
+    });
+  };
   // Toggle password visibility in the login modal (eye <-> eye-off).
   window.tbTogglePass = function () {
     var inp = document.getElementById('tbPass');
@@ -1372,23 +1392,20 @@
     if (document.querySelector('.tb-live-fab')) return;
     // The live quarter label (e.g. "Q3 2026") — from the page attribute if set, else the default.
     var label = document.body.getAttribute('data-live-label') || 'Q3 2026';
-    var li = loggedIn();
+    // LIVE is ALWAYS active (blinks + links to the live dashboard) regardless of login state — the
+    // live dashboard is viewable without logging in.
     var fab = document.createElement('a');
-    fab.className = 'tb-live-fab' + (li ? '' : ' tb-live-disabled');
+    fab.className = 'tb-live-fab';
     fab.setAttribute('aria-label', 'Live quarter dashboard — ' + label);
     fab.innerHTML = '<span class="tb-live-ic"><span class="tb-live-dot"></span></span>';
-    if (li) {
-      fab.href = 'app.html';
-    } else {
-      fab.setAttribute('aria-disabled', 'true');
-      fab.title = 'Log in to view the live quarter dashboard';
-    }
+    fab.href = 'app.html';
+    fab.title = 'Go to the live quarter dashboard (' + label + ')';
     // Wrap in a captioned column item; "LIVE" caption. Sits at the BOTTOM of the LEFT rail.
     var item = document.createElement('div');
     item.className = 'tb-fab-item tb-fab-item-live';
     item.appendChild(fab);
     var cap = document.createElement('div');
-    cap.className = 'tb-fab-cap' + (li ? '' : ' is-disabled');
+    cap.className = 'tb-fab-cap';
     cap.textContent = 'LIVE';
     item.appendChild(cap);
     tbFabCol().appendChild(item);
@@ -1425,11 +1442,11 @@
     var avatarHtml;
     try {
       if (li && A.avatarHtml) avatarHtml = '<span class="tb-rail-av">' + A.avatarHtml(prof, 38) + '</span>';
-      else avatarHtml = '<span class="tb-nav-ic">' + ic('user', 19) + '</span>';
-    } catch (e) { avatarHtml = '<span class="tb-nav-ic">' + ic('user', 19) + '</span>'; }
+      else avatarHtml = '<span class="tb-nav-ic">' + ic('key', 20) + '</span>'; // logged out -> login (key) icon
+    } catch (e) { avatarHtml = '<span class="tb-nav-ic">' + ic('key', 20) + '</span>'; }
     pill.innerHTML = avatarHtml + '<span class="tb-rail-badge-label">' + tbEsc(name) + '</span>';
     if (li) { pill.href = 'profile.html'; }
-    else { pill.type = 'button'; pill.onclick = function () { if (window.tbOpenLogin) tbOpenLogin(); }; }
+    else { pill.type = 'button'; pill.onclick = function () { if (window.tbPromptLogin) window.tbPromptLogin(); else if (window.tbOpenLogin) window.tbOpenLogin(); }; }
     item.appendChild(pill);
     col.insertBefore(item, col.firstChild); // pin to the very TOP of the right rail
   }
@@ -1707,21 +1724,14 @@
       }
     });
     if (li) refreshAlertBadge(); // refresh the open-alert count once auth is confirmed
-    // Live FAB: enabled once logged in, disabled + inert (no blink) when logged out.
+    // Live FAB is ALWAYS active (the live dashboard is viewable without logging in).
     var liveFab = document.querySelector('.tb-live-fab');
     if (liveFab) {
       var lbl = document.body.getAttribute('data-live-label') || 'Q3 2026';
-      if (li) {
-        liveFab.classList.remove('tb-live-disabled');
-        liveFab.removeAttribute('aria-disabled');
-        liveFab.href = 'app.html';
-        liveFab.title = 'Go to the live quarter dashboard (' + lbl + ')';
-      } else {
-        liveFab.classList.add('tb-live-disabled');
-        liveFab.setAttribute('aria-disabled', 'true');
-        liveFab.removeAttribute('href');
-        liveFab.title = 'Log in to view the live quarter dashboard';
-      }
+      liveFab.classList.remove('tb-live-disabled');
+      liveFab.removeAttribute('aria-disabled');
+      liveFab.href = 'app.html';
+      liveFab.title = 'Go to the live quarter dashboard (' + lbl + ')';
     }
   }
   // Re-apply the analytics FAB's admin-gated state (after a background profile load / auth change),
