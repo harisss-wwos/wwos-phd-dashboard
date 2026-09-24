@@ -295,7 +295,7 @@ function render(d){
   // All sections collapsed by default.
   let sections=
     rangeSection('after','Incidents reported on or after 1 Apr 2026', d.after||{})+
-    rangeSection('mid','Incidents reported between 1 Sep 2025 – 31 Mar 2026', d.mid||{})+
+    rangeSection('mid','Incidents reported between 1 Oct 2025 – 31 Mar 2026', d.mid||{})+
     rangeSection('before','Incidents reported between 1 Jan 2021 – 30 Sept 2025', d.before||{});
   if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown); }
   document.getElementById('wrap').innerHTML=
