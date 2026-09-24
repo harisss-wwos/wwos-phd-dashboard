@@ -1747,15 +1747,42 @@ function dashCard(chunk, iconName, title, bodyId, extra){
 // Age Classification card, which loads eagerly on page load alongside the summary.
 // bodyHtml: initial body content (defaults to a spinner). Pass a static skeleton to paint the
 // full structure immediately, with only the data-driven bits waiting on the fetch.
-function dashStaticCard(iconName, title, bodyId, bodyHtml, scopeSection){
+function dashStaticCard(iconName, title, bodyId, bodyHtml, scopeSection, collapsible, startCollapsed){
   const sp='<div style="display:flex;align-items:center;justify-content:center;min-height:140px"><div class="spinner"></div></div>';
   // When scopeSection is given, the header shows a right-aligned Q3(Live)|Q2|Overall selector.
   const sel=scopeSection?sectionScopeSelector(scopeSection):'';
-  return '<div class="section">'+
-    '<div class="sec-head"><h2>'+ic(iconName,16)+' '+title+'</h2>'+sel+'</div>'+
+  // Collapsible: clicking the banner toggles .collapsed (body height -> 0 with a transition).
+  const caret=collapsible?'<span class="sec-caret" aria-hidden="true">\u25be</span>':'';
+  const headClick=collapsible?' onclick="dashSectionToggle(this,event)" role="button" tabindex="0"':'';
+  // startCollapsed: render the section already collapsed (body hidden) on first paint.
+  const cls='section'+(collapsible?' dash-collapsible':'')+((collapsible&&startCollapsed)?' collapsed':'');
+  return '<div class="'+cls+'">'+
+    '<div class="sec-head"'+headClick+'><h2>'+ic(iconName,16)+' '+title+'</h2>'+sel+caret+'</div>'+
     '<div id="'+bodyId+'" class="dash-chunk-slot">'+(bodyHtml||sp)+'</div>'+
   '</div>';
 }
+// Toggle a dashboard section's collapsed state (banner stays; body animates to height 0).
+// Ignore clicks that land on the scope selector (Q3/Q2/Q2+Q3) so switching scope doesn't collapse.
+function dashSectionToggle(headEl,ev){
+  try{ if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.dash-scope-sec')) return; }catch(e){}
+  const sec=headEl.closest('.section'); if(!sec)return;
+  const nowCollapsed=sec.classList.toggle('collapsed');
+  if(!nowCollapsed){
+    // Accordion: if this section belongs to a .dash-accordion group, expanding it collapses every
+    // OTHER section in the same group (only one open at a time).
+    const group=sec.closest('.dash-accordion');
+    if(group){
+      group.querySelectorAll(':scope > .section').forEach(function(s){ if(s!==sec)s.classList.add('collapsed'); });
+      // Opening ANY Group B (accordion) section also collapses the ENTIRE Group A unified card,
+      // to give the opened section the full viewport focus.
+      document.querySelectorAll('.dash-group-a > .section').forEach(function(s){ s.classList.add('collapsed'); });
+    }
+    // Re-expanded: a chart drawn while the body was collapsed (max-height:0) sized its canvas to 0.
+    // Resize any Chart.js canvases inside this section AFTER the expand animation finishes.
+    setTimeout(function(){ try{ charts.forEach(function(c){ if(c.canvas&&sec.contains(c.canvas))c.resize(); }); }catch(e){} },340);
+  }
+}
+window.dashSectionToggle=dashSectionToggle;
 
 // Expand/collapse a chunked card. On FIRST expand, fetch + render that card's chunk.
 function toggleDashCard(h2){
@@ -2541,9 +2568,14 @@ function incTkSort(field){
   if(!_INC_TK)return;
   if(_INC_TK.sortField===field){ _INC_TK.sortDir=(_INC_TK.sortDir==='desc'?'asc':'desc'); }
   else { _INC_TK.sortField=field; _INC_TK.sortDir='desc'; }
+  _INC_TK.shown=30;
   renderIncTkTable();
 }
 window.incTkSort=incTkSort;
+// Reveal 20 more rows / collapse back to 30 (shared incident/resolution ticket table).
+function incTkShowMore(){ if(!_INC_TK)return; _INC_TK.shown=(_INC_TK.shown||30)+20; renderIncTkTable(); }
+function incTkShowLess(){ if(!_INC_TK)return; _INC_TK.shown=30; renderIncTkTable(); }
+window.incTkShowMore=incTkShowMore; window.incTkShowLess=incTkShowLess;
 // (Re)render the incident-tickets table body from _INC_TK, applying the current sort.
 function renderIncTkTable(){
   const body=document.getElementById('incTkBody'); if(!body||!_INC_TK)return;
@@ -2556,23 +2588,36 @@ function renderIncTkTable(){
     return dir==='desc' ? (tb-ta) : (ta-tb);
   });
   const arrow=(f)=>{ if(_INC_TK.sortField!==f) return ' <span class="inc-sort-ar" style="opacity:.35">\u21c5</span>'; return _INC_TK.sortDir==='desc'?' <span class="inc-sort-ar">\u2193</span>':' <span class="inc-sort-ar">\u2191</span>'; };
-  const rows=tix.map(function(t){
+  const totalRows=tix.length;
+  if(_INC_TK.shown==null)_INC_TK.shown=30;
+  const shown=Math.min(_INC_TK.shown, totalRows);
+  const pageTix=tix.slice(0, shown);
+  const rows=pageTix.map(function(t){
     const sid=t.ShortId||'';
     return '<tr>'+
-      '<td style="white-space:nowrap;text-align:center"><a class="ap-id inc-tk-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+esc(sid)+'</a></td>'+
-      '<td style="white-space:nowrap;text-align:center"><span style="color:'+statusColor(t.Status)+';font-weight:600">'+esc(t.Status||'\u2014')+'</span></td>'+
-      '<td style="white-space:nowrap;text-align:center">'+esc(fmt(t.CreateDate))+'</td>'+
-      '<td style="white-space:nowrap;text-align:center">'+esc(fmt(t.ResolvedDate))+'</td>'+
-      '<td class="inc-tk-title" title="'+esc(t.Title||'')+'">'+esc(t.Title||'')+'</td>'+
+      '<td class="tk-fit" style="text-align:center"><a class="tk-id-plain" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a></td>'+
+      '<td class="tk-fit" style="text-align:center"><span style="color:'+statusColor(t.Status)+';font-weight:600">'+esc(t.Status||'\u2014')+'</span></td>'+
+      '<td class="tk-fit" style="text-align:center">'+esc(fmt(t.CreateDate))+'</td>'+
+      '<td class="tk-fit" style="text-align:center">'+esc(fmt(t.ResolvedDate))+'</td>'+
+      '<td style="text-align:center">'+esc(t.Title||'')+'</td>'+
     '</tr>';
   }).join('');
-  body.innerHTML='<div style="overflow-x:auto"><table class="xls-table inc-tk-table" style="width:100%;table-layout:auto"><thead><tr>'+
-    '<th style="width:1%;white-space:nowrap;text-align:center"><span style="display:inline-flex;align-items:center;gap:5px;justify-content:center">'+ic('ticket',13)+' Ticket</span></th>'+
-    '<th style="width:1%;white-space:nowrap;text-align:center">Status</th>'+
-    '<th class="inc-sort-th" onclick="incTkSort(\'CreateDate\')" title="Sort by Created" style="width:1%;white-space:nowrap;text-align:center;cursor:pointer">Created'+arrow('CreateDate')+'</th>'+
-    '<th class="inc-sort-th" onclick="incTkSort(\'ResolvedDate\')" title="Sort by Resolved" style="width:1%;white-space:nowrap;text-align:center;cursor:pointer">Resolved'+arrow('ResolvedDate')+'</th>'+
-    '<th style="width:auto">Title</th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  // Load more / less footer.
+  const remaining=totalRows-shown;
+  let footer='';
+  if(totalRows>30){
+    footer='<div class="inc-tk-more">';
+    if(remaining>0){ footer+='<button onclick="incTkShowMore()">\u25be Load more <span class="tk-count">(+'+Math.min(20,remaining)+', '+remaining+' left)</span></button>'; }
+    if(shown>30){ footer+='<button onclick="incTkShowLess()">\u25b4 Load less</button>'; }
+    footer+='<span class="tk-count">Showing '+shown+' of '+totalRows+'</span></div>';
+  }
+  body.innerHTML='<div style="overflow-x:auto"><table class="xls-table inc-tk-table tk-clean" style="width:auto;min-width:100%;table-layout:auto"><thead><tr>'+
+    '<th class="tk-fit" style="text-align:center"><span style="display:inline-flex;align-items:center;gap:5px;justify-content:center">'+ic('ticket',13)+' Ticket</span></th>'+
+    '<th class="tk-fit" style="text-align:center">Status</th>'+
+    '<th class="tk-fit inc-sort-th" onclick="incTkSort(\'CreateDate\')" title="Sort by Created" style="text-align:center;cursor:pointer">Created'+arrow('CreateDate')+'</th>'+
+    '<th class="tk-fit inc-sort-th" onclick="incTkSort(\'ResolvedDate\')" title="Sort by Resolved" style="text-align:center;cursor:pointer">Resolved'+arrow('ResolvedDate')+'</th>'+
+    '<th style="width:auto;text-align:center">Title</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>'+footer;
   // Keep the subtitle in sync with the active sort.
   const load=document.getElementById('incTkLoad');
   if(load){ const fld=(field==='CreateDate'?'Created':'Resolved'); const ord=(dir==='desc'?'newest first':'oldest first'); load.textContent=_INC_TK.tickets.length.toLocaleString()+' ticket'+(_INC_TK.tickets.length===1?'':'s')+' \u00b7 '+fld+' '+ord; }
@@ -2593,8 +2638,12 @@ function renderHiChunk(d){
     dashTcardHtml({title:'Non-pet incidents',icon:'',dot:'#ffcf5e',countClass:'am',total:d.nonPet,
       barColor:'#fbbf24',nameCol:'Root Cause', rows:hiRows(d.nonPetBreakdown)})+
     '</div>';
-  // Weekly pet/non-pet chart pulls from the (SWR-cached) /api/dash/weekly payload.
-  loadDashChunk('weekly',drawHiWeekly,{silent:true,cacheKey:'dash-weekly-hisplit'}).catch(function(){});
+  // Weekly pet/non-pet chart pulls from /api/dash/weekly. This block now lives INSIDE the Repeat
+  // Incident Data section, so the chart must follow the REPEAT section's scope (Q3/Q2/Q2+Q3) —
+  // not the Weekly Volume section's scope. Pass that scope explicitly and cache per-scope so the
+  // week range (Q3 ~10-11 wks, Q2 ~12 wks, Q2+Q3 combined) changes when the chip changes.
+  const hiScope=(typeof DASH_SECTION_SCOPE!=='undefined' && DASH_SECTION_SCOPE.repeat) || 'live';
+  loadDashChunk('weekly',drawHiWeekly,{silent:true,scope:hiScope,cacheKey:'dash-weekly-hisplit-'+hiScope}).catch(function(){});
 }
 // Wave (filled-area line) chart: pet vs non-pet repeat incidents (HI Cnt>0) created per week.
 function drawHiWeekly(w){
@@ -2659,15 +2708,127 @@ function renderSummaryInto(d,target){
   }
   if(g3){
     g3.innerHTML=kpiTableHtml([
-      {metric:ic('repeat',14)+' Total Repeat Incidents', value:d.repeatIncidents.toLocaleString(), desc:'Tickets with HI count (Cnt) &gt; 0.'},
-      (function(){ var pct=d.total?(Math.round(d.repeatIncidents/d.total*1000)/10):0; var hot=pct>1; return {metric:ic('repeat',14)+' Repeat Incident %', value:pct+'%', valColor:(hot?'#ff5252':undefined), blink:hot, desc:'Share of all tickets that are repeat incidents. Blinks red above 1%.'}; })(),
+      {metric:ic('repeat',14)+' Total Repeat Incidents', value:d.repeatIncidents.toLocaleString(), desc:'Tickets with HI count (Cnt) &gt; 0 (reopens excluded). Click to view the tickets.'},
+      (function(){ var pct=d.total?(Math.round(d.repeatIncidents/d.total*1000)/10):0; var hot=pct>1; return {metric:ic('repeat',14)+' Repeat Incident %', value:pct+'%', valColor:(hot?'#ff5252':undefined), blink:hot, desc:'Share of all tickets ('+(d.repeatIncidents!=null?d.repeatIncidents.toLocaleString():'0')+'\u00f7'+(d.total!=null?d.total.toLocaleString():'0')+') that are repeat incidents. Blinks red above 1%.'}; })(),
       {metric:ic('paw',14)+' HI involving pet incidents', value:d.hiPet.toLocaleString()+' ('+d.hiPetPct+'%)', valColor:'#a78bfa', desc:'Repeat incidents with a pet/animal root cause.'},
       {metric:ic('repeat',14)+' HI involving non-pet incidents', value:d.hiNonPet.toLocaleString()+' ('+d.hiNonPetPct+'%)', desc:'Repeat incidents that are not pet-related.'}
     ], true);
+    // Make the whole Repeat section open the drill-down (tickets + SIM URLs + period trend).
+    // The withDesc layout renders .metric cards (not <tr> rows), so wire those.
+    g3.querySelectorAll('.metric, tr').forEach(function(el){
+      el.style.cursor='pointer';
+      el.title='View repeat-incident tickets + trend';
+      el.onclick=function(){ showRepeatIncidentsDrilldown(DASH_SECTION_SCOPE.repeat||'live'); };
+    });
   }
   // Animate every table value from a brief scramble into its real number.
   [g1,g2,g3].forEach(function(g){ if(g) g.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); }); });
 }
+
+// ===== Repeat Incident Data drill-down: ticket list (SIM URLs) + period trend (W/M/Q/Y) =====
+let _REPEAT_DD=null; // { data, gran, filter } — cached payload + current granularity + pet/non-pet filter
+function showRepeatIncidentsDrilldown(scope){
+  if(!requireLoginForTickets())return;
+  closeAllPopups();
+  const qParam=(!scope||scope==='live')?'':('?q='+encodeURIComponent(scope));
+  const scopeLbl=(scope==='2026-Q2')?'Q2 2026':(scope==='q2q3')?'Q2 + Q3 2026':(scope==='all')?'Overall':'Q3 2026 (Live)';
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML='<div class="popup-card" style="max-width:88vw;width:88vw">'+
+    '<div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">'+
+      '<div><h2 style="color:#a78bfa;font-size:1.3em">'+ic('repeat',20)+' Repeat Incidents \u2014 '+scopeLbl+'</h2>'+
+        '<div class="pc-subcount" id="repDdLoad">loading\u2026</div></div>'+
+      '<div class="popup-actions"><button class="btn danger" onclick="closeAllPopups()">Close</button></div>'+
+    '</div>'+
+    '<div id="repDdBody" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:center;min-height:160px"><div class="spinner"></div></div></div></div>';
+  document.body.appendChild(overlay);
+  window.PHDAuth.api('GET','/api/dash/repeat-tickets'+qParam).then(function(r){
+    if(!r||!r.ok||!r.data){ const b=document.getElementById('repDdBody'); if(b)b.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load repeat incidents.</p>'; return; }
+    // Default sort: HI Cnt, highest first. shown = current page size (starts at 30).
+    _REPEAT_DD={ data:r.data, filter:'all', sortField:'hi', sortDir:'desc', shown:30 };
+    renderRepeatDrilldown();
+  }).catch(function(){ const b=document.getElementById('repDdBody'); if(b)b.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load repeat incidents.</p>'; });
+}
+window.showRepeatIncidentsDrilldown=showRepeatIncidentsDrilldown;
+function repeatSetFilter(f){ if(!_REPEAT_DD)return; _REPEAT_DD.filter=f; _REPEAT_DD.shown=30; renderRepeatDrilldown(); }
+window.repeatSetFilter=repeatSetFilter;
+// Sort toggle from a clickable header. Same field -> flip direction; new field -> start descending.
+// Resets the page size back to 30 so the top of the new order is shown.
+function repeatSort(field){
+  if(!_REPEAT_DD)return;
+  if(_REPEAT_DD.sortField===field){ _REPEAT_DD.sortDir=(_REPEAT_DD.sortDir==='desc'?'asc':'desc'); }
+  else { _REPEAT_DD.sortField=field; _REPEAT_DD.sortDir='desc'; }
+  _REPEAT_DD.shown=30;
+  renderRepeatDrilldown();
+}
+window.repeatSort=repeatSort;
+// Reveal 20 more rows / collapse back to 30.
+function repeatShowMore(){ if(!_REPEAT_DD)return; _REPEAT_DD.shown+=20; renderRepeatDrilldown(); }
+function repeatShowLess(){ if(!_REPEAT_DD)return; _REPEAT_DD.shown=30; renderRepeatDrilldown(); }
+window.repeatShowMore=repeatShowMore; window.repeatShowLess=repeatShowLess;
+function renderRepeatDrilldown(){
+  const body=document.getElementById('repDdBody'); if(!body||!_REPEAT_DD)return;
+  const d=_REPEAT_DD.data, filter=_REPEAT_DD.filter;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
+  const fmt=(x)=>{const dt=new Date(x);return isNaN(dt)?'\u2014':dt.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+  // Filter the ticket list by pet / non-pet.
+  let tix=(d.tickets||[]).slice();
+  if(filter==='pet') tix=tix.filter(t=>t.isPet);
+  else if(filter==='nonpet') tix=tix.filter(t=>!t.isPet);
+  // Sort: HI Cnt (numeric) or Created (date), asc/desc. Default HI Cnt desc (highest first).
+  const field=_REPEAT_DD.sortField, dir=_REPEAT_DD.sortDir;
+  tix.sort(function(a,b){
+    let va,vb;
+    if(field==='hi'){ va=+(a.hi||0); vb=+(b.hi||0); }
+    else { va=new Date(a.CreateDate||0).getTime()||0; vb=new Date(b.CreateDate||0).getTime()||0; }
+    return dir==='desc' ? (vb-va) : (va-vb);
+  });
+  const totalRows=tix.length;
+  const shown=Math.min(_REPEAT_DD.shown, totalRows);
+  const pageTix=tix.slice(0, shown);
+  const load=document.getElementById('repDdLoad');
+  if(load){ const ord=(field==='hi'?('HI Cnt '+(dir==='desc'?'high\u2192low':'low\u2192high')):('Created '+(dir==='desc'?'newest first':'oldest first'))); load.textContent=(d.count||0).toLocaleString()+' repeat ticket'+((d.count===1)?'':'s')+' (reopens excluded) \u00b7 '+ord; }
+  // Pet / Non-pet / All filter chips.
+  const fbtn=(val,lbl)=>'<button class="btn'+(filter===val?'':' sec')+'" style="padding:5px 12px;font-size:.8em" onclick="repeatSetFilter(\''+val+'\')">'+lbl+'</button>';
+  const controls='<div style="display:flex;justify-content:flex-end;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">'+
+    '<span style="color:#879596;font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Show</span>'+fbtn('all','All')+fbtn('pet','Pet')+fbtn('nonpet','Non-pet')+
+  '</div>';
+  // Sort-arrow indicator for a sortable header.
+  const arrow=(f)=>{ if(field!==f) return ' <span class="inc-sort-ar" style="opacity:.35">\u21c5</span>'; return dir==='desc'?' <span class="inc-sort-ar">\u2193</span>':' <span class="inc-sort-ar">\u2191</span>'; };
+  // Rows for the ticket table (only the current page).
+  const rows=pageTix.map(function(t){
+    const sid=t.ShortId||'';
+    return '<tr>'+
+      '<td class="tk-fit" style="text-align:center"><a class="tk-id-plain" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a></td>'+
+      '<td class="tk-fit" style="text-align:center"><b style="color:'+(t.isPet?'#a78bfa':'#ffcf5e')+'">'+(t.hi||0)+'</b></td>'+
+      '<td class="tk-fit" style="text-align:center">'+(t.isPet?'<span style="color:#a78bfa">Pet</span>':'<span style="color:#ffcf5e">Non-pet</span>')+'</td>'+
+      '<td class="tk-fit" style="text-align:center"><span style="color:'+statusColor(t.Status)+';font-weight:600">'+esc(t.Status||'\u2014')+'</span></td>'+
+      '<td class="tk-fit" style="text-align:center">'+esc(fmt(t.CreateDate))+'</td>'+
+      '<td style="text-align:center">'+esc(t.RootCause||'\u2014')+'</td>'+
+    '</tr>';
+  }).join('');
+  // Load more / less footer.
+  const remaining=totalRows-shown;
+  let footer='';
+  if(totalRows>30){
+    footer='<div class="inc-tk-more">';
+    if(remaining>0){ footer+='<button onclick="repeatShowMore()">\u25be Load more <span class="tk-count">(+'+Math.min(20,remaining)+', '+remaining+' left)</span></button>'; }
+    if(shown>30){ footer+='<button onclick="repeatShowLess()">\u25b4 Load less</button>'; }
+    footer+='<span class="tk-count">Showing '+shown+' of '+totalRows+'</span></div>';
+  }
+  body.innerHTML=controls+
+    '<div style="overflow-x:auto"><table class="xls-table inc-tk-table tk-clean" style="width:auto;min-width:100%;table-layout:auto"><thead><tr>'+
+      '<th class="tk-fit" style="text-align:center">'+ic('ticket',13)+' Ticket</th>'+
+      '<th class="tk-fit inc-sort-th" onclick="repeatSort(\'hi\')" title="Sort by HI Cnt" style="text-align:center;cursor:pointer">HI Cnt'+arrow('hi')+'</th>'+
+      '<th class="tk-fit" style="text-align:center">Kind</th>'+
+      '<th class="tk-fit" style="text-align:center">Status</th>'+
+      '<th class="tk-fit inc-sort-th" onclick="repeatSort(\'CreateDate\')" title="Sort by Created" style="text-align:center;cursor:pointer">Created'+arrow('CreateDate')+'</th>'+
+      '<th style="width:auto;text-align:center">Root Cause</th>'+
+    '</tr></thead><tbody>'+(rows||'<tr><td colspan="6" style="color:#879596;text-align:center;padding:16px">No tickets.</td></tr>')+'</tbody></table></div>'+footer;
+}
+
 
 // Shared dashboard page-title row: "Q3 2026" on the left, "LIVE" badge on the right, and the
 // Alerts / Upload / Uploaded-data-log action buttons. On narrow widths the action buttons collapse
@@ -2722,6 +2883,15 @@ function reloadDashSection(section){
     loadDashChunk('summary',function(d){ renderSummaryInto(d,section); },{silent:true,scope:scope,noCache:true})
       .then(function(r){ if(!r||!r.ok){ if(g)g.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section.</p>'; } })
       .catch(function(){ if(g)g.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load this section.</p>'; });
+    // The Historical-Incidents detail (weekly chart + pet/non-pet tables) now lives INSIDE the
+    // Repeat section, so its scope must follow the Repeat chip too. Reload the 'hi' chunk into
+    // #dashHiBody using the same scope.
+    if(section==='repeat'){
+      const hi=document.getElementById('dashHiBody'); if(hi)hi.innerHTML=spin;
+      loadDashChunk('hi',renderHiChunk,{silent:true,scope:scope,noCache:true})
+        .then(function(r){ if(!r||!r.ok)fail('dashHiBody','Could not load historical incidents.'); })
+        .catch(function(){ fail('dashHiBody','Could not load historical incidents.'); });
+    }
     return;
   }
   if(section==='incidents'){
@@ -2845,28 +3015,38 @@ function renderDashboardChunked(){
     return '<p class="meta-info" style="margin:0 0 16px">Weekly Created vs Resolved volume, with SLA compliance % on a second axis.</p>'+
       '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
   };
-  const kpiSection=(title,iconName,gridId,skel,scopeSection)=>
-    '<div class="section kpi-section"><div class="sec-head"><h2>'+ic(iconName,16)+' '+title+'</h2>'+(scopeSection?sectionScopeSelector(scopeSection):'')+'</div>'+
-    '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:1fr">'+skel+'</div></div></div>';
+  const kpiSection=(title,iconName,gridId,skel,scopeSection,collapsible,extraBody,startCollapsed)=>{
+    const caret=collapsible?'<span class="sec-caret" aria-hidden="true">\u25be</span>':'';
+    const headClick=collapsible?' onclick="dashSectionToggle(this,event)" role="button" tabindex="0"':'';
+    const coll=(collapsible&&startCollapsed)?' collapsed':'';
+    return '<div class="section kpi-section'+(collapsible?' dash-collapsible':'')+coll+'"><div class="sec-head"'+headClick+'><h2>'+ic(iconName,16)+' '+title+'</h2>'+(scopeSection?sectionScopeSelector(scopeSection):'')+caret+'</div>'+
+    '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:1fr">'+skel+'</div>'+(extraBody||'')+'</div></div>';
+  };
   // Queue Status + Ticket Age reflect CURRENT open tickets (no scope selector — always live/current).
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
-    kpiSection('Queue Status Data','grid','dashQueueKpis',queueSkel())+
-    // Ticket Age Classification sits right below Queue Status Data.
-    dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml())+
-    // Each of the five scoped sections carries its own Q3(Live)|Q2|Overall selector on its header.
-    // Average Data + Repeat Incident Data sit SIDE BY SIDE (stack on narrow screens).
-    '<div class="kpi-pair">'+
-      kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true),'avg')+
-      kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true),'repeat')+
+    // ===== GROUP A: rendered as ONE unified card (dash-group-a wrapper). The three inner sections
+    //   (Queue Status Data, Ticket Age Classification, Average Data) drop their individual card
+    //   chrome via CSS and read as stacked sub-blocks separated by dividers. Each still collapses
+    //   independently (no accordion). All expanded by default. =====
+    '<div class="dash-group-a">'+
+      kpiSection('Queue Status Data','grid','dashQueueKpis',queueSkel(),null,true)+
+      dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml(),null,true)+
+      kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true),'avg',true)+
     '</div>'+
-    // All sections are always visible (no expand/collapse) and load eagerly. Each is painted with a
-    // fixed skeleton matching its final layout, so there's no jump when the data lands.
-    dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel(),'incidents')+
-    dashStaticCard('check-circle','Resolutions','dashResolutionsBody',resSkel(),'resolutions')+
-    dashStaticCard('repeat','Historical Incidents (Cnt > 0)','dashHiBody',hiSkel(),'hi')+
-    // Weekly Volume (Created + Resolved) combined with SLA Compliance % on a second axis.
-    dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel(),'weekly')+
+    // ===== GROUP B: accordion — only ONE section open at a time. Opening one closes the others. =====
+    //   Incident Types, Repeat Incident Data, Weekly Volume & SLA, Resolutions. All start collapsed.
+    //   data-accordion="b" marks the group so dashSectionToggle can close the siblings.
+    '<div class="dash-accordion" data-accordion="b">'+
+      dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel(),'weekly',true,true)+
+      dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel(),'incidents',true,true)+
+      kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true),'repeat',true,
+        // Historical-Incidents detail (weekly pet/non-pet chart + root-cause tables) now lives INSIDE
+        // this section, since both are about repeat incidents. renderHiChunk() fills #dashHiBody.
+        '<div id="dashHiBody" class="dash-chunk-slot" style="padding:16px 20px 20px;margin-top:8px;border-top:1px solid #242a31">'+hiSkel()+'</div>',
+        /* startCollapsed */ true)+
+      dashStaticCard('check-circle','Resolutions','dashResolutionsBody',resSkel(),'resolutions',true,true)+
+    '</div>'+
   '</div>';
   attachNewFileHandler();
   if(window.PHDPlaceTopRight) window.PHDPlaceTopRight(); // move the top-right cluster into the header row

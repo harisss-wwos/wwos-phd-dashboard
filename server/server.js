@@ -3372,7 +3372,22 @@ const AGG = {
     },
   },
   isPet: { $regexMatch: { input: { $toLower: { $ifNull: ['$t.RootCause', ''] } }, regex: 'unsecured animal' } },
+  // Reopened: flagged during merge OR carrying a prior ResolvedDate WHILE the ticket is NOT
+  // currently Resolved/Closed (i.e. it came back to an active status). This mirrors the client
+  // "purple" rule (app.js), which skips Resolved/Closed tickets before the hasResolvedDate check.
+  // WITHOUT the status guard, every resolved/closed ticket (all of Q2/historical) would be wrongly
+  // treated as a reopen and excluded from the repeat count — which zeroed the Q2/Q2+Q3 KPI tiles.
+  isReopened: { $or: [
+    { $eq: ['$t._reopened', true] },
+    { $and: [
+      { $ne: [{ $trim: { input: { $ifNull: ['$t.ResolvedDate', ''] } } }, ''] },
+      { $not: [{ $in: ['$t.Status', ['Resolved', 'Closed']] }] },
+    ] },
+  ] },
 };
+// A "repeat incident" for the dashboard = HI count (Cnt) > 0 AND the ticket is NOT a reopen.
+AGG.isRepeat = { $and: [{ $gt: [AGG.hiCountExpr, 0] }, { $not: [AGG.isReopened] }] };
+AGG.isRepeatPet = { $and: [AGG.isRepeat, AGG.isPet] };
 
 const pct1 = (n, d) => d ? +((n / d) * 100).toFixed(1) : 0; // one-decimal percentage helper
 
@@ -3390,9 +3405,9 @@ async function dashSummary(qid) {
         rtSum: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }] }, AGG.resHours, 0] } },
         rtCount: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }] }, 1, 0] } },
         slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }, { $lte: [AGG.resHours, 240] }] }, 1, 0] } },
-        // Repeat incidents (HI>0), split pet vs non-pet
-        hi: { $sum: { $cond: [{ $gt: [AGG.hiCountExpr, 0] }, 1, 0] } },
-        hiPet: { $sum: { $cond: [{ $and: [{ $gt: [AGG.hiCountExpr, 0] }, AGG.isPet] }, 1, 0] } },
+        // Repeat incidents (HI Cnt>0, reopens EXCLUDED), split pet vs non-pet
+        hi: { $sum: { $cond: [AGG.isRepeat, 1, 0] } },
+        hiPet: { $sum: { $cond: [AGG.isRepeatPet, 1, 0] } },
       },
     },
   ], qid);
@@ -3553,8 +3568,8 @@ async function dashWeekly(qid) {
       // Repeat incidents CREATED per week: tickets whose HI count (Cnt) > 0, bucketed by CreateDate
       // week, split into pet vs non-pet (pet = RootCause ~ "unsecured animal").
       hi: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
-        { $project: { w: _weekExpr('$t.CreateDate'), hc: AGG.hiCountExpr, pet: AGG.isPet } },
-        { $match: { hc: { $gt: 0 } } },
+        { $project: { w: _weekExpr('$t.CreateDate'), rep: AGG.isRepeat, pet: AGG.isPet } },
+        { $match: { rep: true } },
         { $group: { _id: '$w', n: { $sum: 1 }, pet: { $sum: { $cond: ['$pet', 1, 0] } }, nonPet: { $sum: { $cond: ['$pet', 0, 1] } } } }],
     } },
   ], qid);
@@ -3745,9 +3760,11 @@ async function dashIncidents(qid) {
 // ---- Historical Incidents (Cnt > 0), pet vs non-pet + root-cause breakdown — grouped in Atlas ----
 async function dashHi(qid) {
   const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$t.RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
+  // Match on AGG.isRepeat (HI Cnt>0 AND not reopened) — the SAME definition the summary KPI tiles
+  // and the weekly chart use — so the tiles, chart, and these root-cause tables always agree.
   const rows = await aggLive([
-    { $project: { hi: AGG.hiCountExpr, isPet: AGG.isPet, rc: rcExpr } },
-    { $match: { hi: { $gt: 0 } } },
+    { $project: { rep: AGG.isRepeat, isPet: AGG.isPet, rc: rcExpr } },
+    { $match: { rep: true } },
     { $group: { _id: { rc: '$rc', isPet: '$isPet' }, count: { $sum: 1 } } },
   ], qid);
   let total = 0, pet = 0, nonPet = 0; const petMap = {}, nonPetMap = {};
@@ -4062,6 +4079,75 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
     res.json({ quarter: qid, type, agent, count: rows.length, tickets: rows });
   } catch (e) {
     res.status(500).json({ error: 'Could not load incident-type tickets.' });
+  }
+});
+
+// ---- Repeat-incident drill-down + period trend (for the Repeat Incident Data section) ----
+// Returns the individual repeat tickets (HI Cnt>0, reopens EXCLUDED) with their SIM ticket id, plus
+// per-period buckets (week/month/quarter/year) of repeats vs total-created for the trend graph.
+// Scope-aware via ?q= (live | 2026-Q2 | q2q3 | all), matching the dashboard section's scope.
+app.get('/api/dash/repeat-tickets', async (req, res) => {
+  try {
+    const qReq = String(req.query.q || '').trim();
+    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
+    // Period bucket keys derived from CreateDate. week = ISO-ish "YYYY-Wnn" via _weekExpr; month =
+    // "YYYY-MM"; quarter = "YYYY-Qn"; year = "YYYY". Null CreateDate -> null (dropped).
+    const cd = _safeDate('$t.CreateDate');
+    const yearExpr = { $cond: [{ $eq: [cd, null] }, null, { $toString: { $year: cd } }] };
+    const monthExpr = { $cond: [{ $eq: [cd, null] }, null, { $concat: [{ $toString: { $year: cd } }, '-', { $cond: [{ $lt: [{ $month: cd }, 10] }, { $concat: ['0', { $toString: { $month: cd } }] }, { $toString: { $month: cd } }] }] }] };
+    const quarterExpr = { $cond: [{ $eq: [cd, null] }, null, { $concat: [{ $toString: { $year: cd } }, '-Q', { $toString: { $ceil: { $divide: [{ $month: cd }, 3] } } }] }] };
+    const weekExpr = _weekExpr('$t.CreateDate');
+
+    // (1) The repeat tickets themselves (slim rows for the drill-down table).
+    const tickets = await aggLive([
+      { $project: {
+        rep: AGG.isRepeat, pet: AGG.isPet, hc: AGG.hiCountExpr,
+        ShortId: { $ifNull: ['$t.ShortId', '$t.IssueId'] },
+        Status: { $ifNull: ['$t.Status', ''] },
+        CreateDate: '$t.CreateDate', ResolvedDate: '$t.ResolvedDate',
+        RootCause: { $ifNull: ['$t.RootCause', ''] },
+        Assignee: { $ifNull: ['$t.AssigneeIdentity', ''] },
+      } },
+      { $match: { rep: true } },
+      { $project: { _id: 0, ShortId: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, RootCause: 1, Assignee: 1, hi: '$hc', isPet: '$pet' } },
+    ], qid);
+    tickets.sort((a, b) => new Date(b.CreateDate || 0) - new Date(a.CreateDate || 0));
+
+    // (2) Per-period buckets: repeats + total created, for week / month / quarter / year.
+    const bucketFacet = (expr) => ([
+      { $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
+      { $project: { k: expr, rep: AGG.isRepeat, pet: AGG.isPet } },
+      { $match: { k: { $ne: null } } },
+      { $group: { _id: '$k', total: { $sum: 1 }, repeats: { $sum: { $cond: ['$rep', 1, 0] } },
+        pet: { $sum: { $cond: [{ $and: ['$rep', '$pet'] }, 1, 0] } } } },
+      { $sort: { _id: 1 } },
+    ]);
+    const facet = await aggLive([{ $facet: {
+      week: bucketFacet(weekExpr).concat([]),
+      month: bucketFacet(monthExpr),
+      quarter: bucketFacet(quarterExpr),
+      year: bucketFacet(yearExpr),
+    } }], qid);
+    const f = facet[0] || { week: [], month: [], quarter: [], year: [] };
+    const norm = (arr, isWeek) => (arr || []).map(x => ({
+      period: isWeek ? ('W' + x._id) : String(x._id),
+      total: x.total || 0, repeats: x.repeats || 0, pet: x.pet || 0, nonPet: (x.repeats || 0) - (x.pet || 0),
+      pct: (x.total ? +((x.repeats / x.total) * 100).toFixed(2) : 0),
+    }));
+
+    res.json({
+      quarter: qid,
+      count: tickets.length,
+      tickets: tickets.slice(0, 2000),
+      periods: {
+        week: norm(f.week, true),
+        month: norm(f.month, false),
+        quarter: norm(f.quarter, false),
+        year: norm(f.year, false),
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load repeat-incident tickets.' });
   }
 });
 

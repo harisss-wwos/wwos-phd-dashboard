@@ -202,12 +202,37 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* Ticket-ID link in the drill-down: brighter + larger for legibility (icon lives in the header). */
 .inc-tk-table .inc-tk-id{color:#5ecdec;font-weight:700;font-size:1em;letter-spacing:.2px;text-decoration:none}
 .inc-tk-table .inc-tk-id:hover{color:#8fe0f5;text-decoration:underline}
-/* Sortable Created/Resolved headers. */
+/* Plain (non-link-looking) ticket id: bold, inherits body text color, no underline. */
+.inc-tk-table .tk-id-plain{color:#e6ebec;font-weight:700;text-decoration:none;letter-spacing:.2px}
+.inc-tk-table .tk-id-plain:hover{color:#fff;text-decoration:none}
+/* Fit-to-content columns: shrink to their content width; the free-text column (last) absorbs the rest. */
+.inc-tk-table th.tk-fit,.inc-tk-table td.tk-fit{width:1%;white-space:nowrap}
+/* Sortable headers (Created / HI Cnt / etc.). */
 .inc-tk-table th.inc-sort-th:hover{color:#ff9900}
 .inc-tk-table th.inc-sort-th .inc-sort-ar{font-size:.9em;color:#ff9900}
+/* Load more / less footer under a drill-down table. */
+.inc-tk-more{display:flex;justify-content:center;gap:10px;align-items:center;padding:14px 0 2px}
+.inc-tk-more button{background:#1a2129;border:1px solid #2a323b;color:#d5dbdb;border-radius:8px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.inc-tk-more button:hover{background:#222b34;border-color:#3a444f;color:#fff}
+.inc-tk-more .tk-count{color:#879596;font-size:.8em}
 .xls-table thead th{background:#111820}
 .xls-table tbody tr:nth-child(even) td{background:rgba(255,255,255,.02)}
 .xls-table tbody tr:hover td{background:rgba(255,153,0,.06)}
+
+/* ---- Clean drill-down table (no Excel gridlines): row-per-line with a subtle divider, bold
+   labels, roomy padding. Mirrors the "list" presentation in the reference mock. Applied on TOP of
+   .xls-table so it overrides borders/zebra while keeping the fit/sort helpers from .inc-tk-table. */
+.xls-table.tk-clean,.xls-table.tk-clean th,.xls-table.tk-clean td{border:0!important}
+.xls-table.tk-clean{border-collapse:collapse;background:transparent}
+.xls-table.tk-clean thead th{background:transparent;color:#7f8c96;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:6px 16px 10px;border-bottom:1px solid #2a323b!important}
+.xls-table.tk-clean tbody td{padding:12px 16px;border-bottom:1px solid #1c232b!important;font-size:.9em}
+.xls-table.tk-clean tbody tr:nth-child(even) td{background:transparent}
+.xls-table.tk-clean tbody tr:hover td{background:rgba(255,255,255,.035)}
+.xls-table.tk-clean tbody tr:last-child td{border-bottom:0!important}
+/* Mini progress bar in the % column (orange fill on a dark track), like the reference. */
+.tk-bar{display:inline-block;vertical-align:middle;width:96px;max-width:22vw;height:7px;border-radius:4px;background:#2a323b;overflow:hidden;margin-right:10px}
+.tk-bar>span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#f0810a,#ff9f2e)}
+.tk-pct{color:#c9d3d4;font-weight:600;font-size:.92em}
 .badge-g{background:rgba(62,207,74,.2);color:#3ecf4a;font-weight:700}
 .badge-w{background:rgba(255,153,0,.15);color:var(--ol)}
 .handoff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
@@ -552,6 +577,23 @@ tr:hover{background:rgba(255,153,0,.03)}
 .content .kpi-pair{grid-template-columns:1fr!important;gap:18px!important;margin-top:18px!important;margin-bottom:0!important}
 .content .kpi-pair>.section,.content .kpi-pair>.kpi-section{margin:0!important}
 .content .kpi-pair+.section,.content .kpi-pair+.kpi-section{margin-top:18px!important}
+/* Group B accordion wrapper: plain vertical stack. Its child sections keep the standard 18px
+   inter-section gap so the group flows seamlessly under Group A (no double margins). */
+.content .dash-accordion{display:block}
+.content .dash-accordion>.section,.content .dash-accordion>.kpi-section{margin:0 0 18px 0!important}
+.content .dash-accordion>.section:last-child,.content .dash-accordion>.kpi-section:last-child{margin-bottom:0!important}
+
+/* ---- Group A as ONE unified card ---- */
+/* The wrapper carries the card look (background, border, radius). */
+.content .dash-group-a{background:var(--s);border:1px solid var(--bd);border-radius:16px;margin:18px 0 18px;overflow:hidden}
+/* Inner sections lose their own background/border/radius/margin, becoming flush sub-blocks. */
+.content .dash-group-a>.section,.content .dash-group-a>.kpi-section{background:transparent!important;border:0!important;border-radius:0!important;margin:0!important;padding:0!important}
+/* Thin divider between the stacked sub-blocks (not before the first one). */
+.content .dash-group-a>.section+.section,.content .dash-group-a>.kpi-section+.section,.content .dash-group-a>.section+.kpi-section,.content .dash-group-a>.kpi-section+.kpi-section{border-top:1px solid #242a31!important}
+/* Inner banners sit flush: square off their top corners (only the wrapper is rounded). */
+.content .dash-group-a .sec-head{border-radius:0!important}
+/* Round the very first inner banner's TOP corners to match the wrapper's top. */
+.content .dash-group-a>.section:first-child .sec-head,.content .dash-group-a>.kpi-section:first-child .sec-head{border-radius:16px 16px 0 0!important}
 /* ---- 2 metric tiles per row (2×2 grid). Each section's 4 metrics => 2 rows.
    !important + placed to beat the later `.metrics{display:flex}` rule (same element carries both). */
 .content .metrics.metrics-2col{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px;grid-column:1/-1}
@@ -580,6 +622,16 @@ tr:hover{background:rgba(255,153,0,.03)}
 .kpi-pair .sec-head .dash-scope-sec .dsc-opt{font-size:.82em;padding:3px 7px}
 /* Body below the banner. */
 .content .section .sec-body,.content .kpi-section .sec-body,.content .dash-chunk-slot{padding:16px 20px 20px}
+/* ---- Collapsible dashboard sections (Queue Status, Ticket Age): banner stays, body -> height 0 ---- */
+.content .dash-collapsible .sec-head{cursor:pointer}
+.content .dash-collapsible .sec-caret{position:relative;z-index:1;color:inherit;opacity:.75;font-size:.9em;transition:transform .3s ease;flex-shrink:0}
+.content .dash-collapsible.collapsed .sec-caret{transform:rotate(-90deg)}
+/* When collapsed, hide the Q3/Q2/Q2+Q3 scope selector (only the title + caret remain). */
+.content .dash-collapsible.collapsed .dash-scope-sec{display:none}
+/* The body wrapper animates its height. Target the direct body (.sec-body for Queue, .dash-chunk-slot for Age). */
+.content .dash-collapsible>.sec-body,.content .dash-collapsible>.dash-chunk-slot{
+  overflow:hidden;transition:max-height .32s ease,opacity .25s ease,padding .32s ease;max-height:4000px;opacity:1}
+.content .dash-collapsible.collapsed>.sec-body,.content .dash-collapsible.collapsed>.dash-chunk-slot{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
 .content .dash-chunk-slot>.meta-info:first-child,.content .sec-body>.meta-info:first-child{margin-top:-4px;color:#9aa6b0}
 
 /* Per-section banner colors (via :has() — the header is colored by the slot the section contains). */
