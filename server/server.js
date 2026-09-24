@@ -209,7 +209,11 @@ app.get('/api/sla-breach', requireFlag('canViewSLA'), async (req, res) => {
     const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
     const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
     const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
-    const B1 = new Date('2025-09-01T00:00:00.000Z');
+    // Range boundaries (match the client section labels):
+    //   before = CreateDate < 1 Oct 2025 (i.e. through 30 Sep 2025)
+    //   mid    = 1 Oct 2025 <= CreateDate < 1 Apr 2026 (the "1 Oct 2025 – 31 Mar 2026" section)
+    //   after  = CreateDate >= 1 Apr 2026
+    const B1 = new Date('2025-10-01T00:00:00.000Z');
     const B2 = new Date('2026-04-01T00:00:00.000Z');
     const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
     const bucketExpr = { $let: { vars: { cd: cdExpr }, in: { $cond: [ { $eq: ['$$cd', null] }, 'unknown', { $cond: [ { $lt: ['$$cd', B1] }, 'before', { $cond: [ { $lt: ['$$cd', B2] }, 'mid', 'after' ] } ] } ] } } };
@@ -245,8 +249,8 @@ app.get('/api/sla-breach', requireFlag('canViewSLA'), async (req, res) => {
     };
     res.json({
       ranges: {
-        before: { label: 'Created before 1 Sep 2025', boundary: '< 2025-09-01' },
-        mid: { label: 'Created 1 Sep 2025 – 31 Mar 2026', boundary: '2025-09-01 to 2026-03-31' },
+        before: { label: 'Created before 1 Oct 2025', boundary: '< 2025-10-01' },
+        mid: { label: 'Created 1 Oct 2025 – 31 Mar 2026', boundary: '2025-10-01 to 2026-03-31' },
         after: { label: 'Created on/after 1 Apr 2026', boundary: '>= 2026-04-01' },
       },
       before: summarize(buckets.before),

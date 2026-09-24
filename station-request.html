@@ -38,7 +38,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .sr-sec.open .sr-caret{transform:rotate(180deg)}
 /* Collapsible body: animate max-height for a smooth open/close. */
 .sr-sec-body{max-height:0;overflow:hidden;transition:max-height .28s ease;padding:0 22px}
-.sr-sec.open .sr-sec-body{max-height:4000px;padding:0 22px 8px}
+.sr-sec.open .sr-sec-body{max-height:4000px;padding:14px 22px 10px}
 .sr-sec-desc{color:var(--tm);font-size:.82em;line-height:1.5;margin:2px 0 14px;max-width:820px}
 .sr-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:30px;padding:0 12px;border-radius:20px;font-weight:800;font-size:.9em;flex-shrink:0}
 /* Per-section accents */
@@ -54,10 +54,49 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .sr-tbl tbody tr:hover td{background:rgba(255,153,0,.05)}
 .sr-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap}
 .sr-idlink:hover{text-decoration:underline}
-.sr-title{color:var(--t);max-width:520px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sr-title{color:var(--t)}
 .sr-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.82em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
 .sr-num{color:#879596;font-weight:700;text-align:center;white-space:nowrap}
 .sr-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
+/* Fit-to-content column (Ticket). */
+.sr-tbl th.sr-fit,.sr-tbl td.sr-fit{width:1%;white-space:nowrap}
+/* Sortable header: obvious hover + bold, clearly-visible sort arrow. */
+.sr-tbl th.sr-sort{user-select:none;cursor:pointer}
+.sr-tbl th.sr-sort:hover{color:#fff;background:#0d1319}
+.sr-sort-ar{display:inline-block;margin-left:7px;font-size:1em;font-weight:900;color:#ff9f2e;vertical-align:middle}
+.sr-sort-ar.idle{color:#7f8c96;opacity:.7;font-weight:700}
+/* C/R tag leading the title: C = Closed (green), R = Resolved (teal). */
+.sr-tag{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:.72em;font-weight:800;vertical-align:middle;line-height:1;flex-shrink:0}
+.sr-tag.c{color:#4ade80;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+.sr-tag.r{color:#2dd4bf;background:rgba(45,212,191,.15);border:1px solid rgba(45,212,191,.4)}
+.sr-tag.o{color:#879596;background:rgba(135,149,150,.15);border:1px solid rgba(135,149,150,.4)}
+/* Title cell: tag + truncated text on one line. */
+.sr-tbl td.sr-title{max-width:1px;width:100%}
+.sr-title-wrap{display:flex;align-items:center;gap:8px;min-width:0}
+.sr-title-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* Agent accordion (agents listed first; each expands to their tickets — like SLA Breaches). */
+.sr-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#0b0f14}
+.sr-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:13px 16px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.sr-agent-head:hover{background:rgba(255,255,255,.03)}
+.sr-agent-name{color:#fff;font-weight:700;font-size:1.02em}
+.sr-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
+.sr-agent-meta{margin-left:auto;display:inline-flex;align-items:center;gap:10px}
+.sr-agent-count{font-weight:800;background:rgba(255,153,0,.12);border:1px solid rgba(255,153,0,.35);color:var(--o);border-radius:20px;padding:3px 13px;font-size:.95em}
+.sr-agent .sr-a-caret{color:var(--tm);transition:transform .22s ease;flex-shrink:0}
+.sr-agent.open .sr-a-caret{transform:rotate(180deg)}
+.sr-agent-body{display:none}
+.sr-agent.open .sr-agent-body{display:block}
+/* Skeleton agent block: inert (no hover/pointer) while its section loads. */
+.sr-agent.sk-agent{pointer-events:none}
+.sr-agent.sk-agent .sr-agent-head{cursor:default}
+.sr-agent.sk-agent .sr-agent-head:hover{background:transparent}
+/* "PHD" tag next to a registered agent's name. */
+.sr-phd{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:20px;font-size:.62em;font-weight:800;letter-spacing:.5px;vertical-align:middle;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.45)}
+/* Load more / less footer under an agent's ticket table. */
+.sr-more{display:flex;justify-content:center;gap:10px;align-items:center;padding:12px 14px}
+.sr-more button{background:#141a20;border:1px solid #2a323b;color:#d5dbdb;border-radius:8px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer}
+.sr-more button:hover{background:#1c242d;border-color:#3a444f;color:#fff}
+.sr-more .sr-mcount{color:#879596;font-size:.8em}
 /* Skeleton shimmer (shown per-section until its request lands). */
 .sk{position:relative;overflow:hidden;background:#141a20;border-radius:5px;display:inline-block;vertical-align:middle}
 .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
@@ -129,6 +168,101 @@ const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="sr-gate"><h1>Station Request Tickets</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
 function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
+// C/R tag: C = Closed, R = Resolved, else first letter.
+function statusTag(s){
+  var v=String(s||'').toLowerCase();
+  if(v==='closed')return '<span class="sr-tag c" title="Closed">C</span>';
+  if(v==='resolved')return '<span class="sr-tag r" title="Resolved">R</span>';
+  return '<span class="sr-tag o" title="'+esc(s||'')+'">'+esc((s||'?').charAt(0).toUpperCase())+'</span>';
+}
+// Friendly display names for known service/identity IDs (raw GUIDs shown otherwise).
+var AGENT_ALIASES={
+  '2e149df1-1efd-4261-bca4-27184085f593':'PHD-IN-Support',
+  '0d1616c8-bcb7-4450-8bc5-f0a296bc01d1':'lm-cap'
+};
+function displayAgent(name){ var k=String(name==null?'':name).trim().toLowerCase(); return AGENT_ALIASES[k]||name; }
+// Registered PHD users (lowercase logins) from /api/user-roles — agents in this set get a PHD tag.
+var SR_USERS=null;
+function isPhdUser(name){ return !!(SR_USERS && SR_USERS.has(String(name||'').trim().toLowerCase())); }
+function phdTag(name){ return isPhdUser(name)?'<span class="sr-phd" title="Registered PHD user">PHD</span>':''; }
+// Per-agent pagination + sort state, keyed by a global index. shown starts at 20 (+10 each).
+var SR_AGENTS=[]; var SR_PAGE0=20, SR_STEP=10;
+function srArrow(a,field){
+  if(a.sortField!==field) return '<span class="sr-sort-ar idle">\u21c5</span>';
+  return a.sortDir==='desc'?'<span class="sr-sort-ar">\u25bc</span>':'<span class="sr-sort-ar">\u25b2</span>';
+}
+// Build one agent's ticket table (sortable Created + Show more/less) for agent #idx.
+function srAgentTableHtml(idx){
+  var a=SR_AGENTS[idx]; if(!a) return '';
+  var field=a.sortField||'created', dir=a.sortDir||'desc';
+  var tix=(a.tickets||[]).slice().sort(function(x,y){
+    var vx=new Date(x.createDate||0).getTime()||0, vy=new Date(y.createDate||0).getTime()||0;
+    return dir==='desc'?(vy-vx):(vx-vy);
+  });
+  var total=tix.length;
+  var shown=Math.min(a.shown||SR_PAGE0, total);
+  var rows=tix.slice(0,shown).map(function(t){
+    var sid=esc(t.shortId||'');
+    var link=t.url?('<a class="sr-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+sid+'</a>'):sid;
+    return '<tr>'+
+      '<td class="sr-fit" style="text-align:center">'+link+'</td>'+
+      '<td style="white-space:nowrap;text-align:center">'+fmtDate(t.createDate)+'</td>'+
+      '<td class="sr-title"><span class="sr-title-wrap">'+statusTag(t.status)+'<span class="sr-title-txt" title="'+esc(t.title)+'">'+esc(t.title||'—')+'</span></span></td>'+
+    '</tr>';
+  }).join('');
+  var remaining=total-shown;
+  var footer='';
+  if(total>SR_PAGE0){
+    footer='<div class="sr-more">';
+    if(remaining>0){ footer+='<button onclick="srShowMore('+idx+')">\u25be Show more <span class="sr-mcount">(+'+Math.min(SR_STEP,remaining)+', '+remaining+' left)</span></button>'; }
+    if(shown>SR_PAGE0){ footer+='<button onclick="srShowLess('+idx+')">\u25b4 Show less</button>'; }
+    footer+='<span class="sr-mcount">Showing '+shown+' of '+total+'</span></div>';
+  }
+  return '<div class="sr-tbl-wrap"><table class="sr-tbl" style="min-width:0"><thead><tr>'+
+      '<th class="sr-fit" style="text-align:center">Ticket</th>'+
+      '<th class="sr-sort" onclick="srSort('+idx+',\'created\')" title="Sort by Created" style="text-align:center">Created'+srArrow(a,'created')+'</th>'+
+      '<th>Title</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>'+footer;
+}
+function srRenderAgent(idx){ var el=document.getElementById('sr-agentbody-'+idx); if(el)el.innerHTML=srAgentTableHtml(idx); }
+function srShowMore(idx){ var a=SR_AGENTS[idx]; if(!a)return; a.shown=(a.shown||SR_PAGE0)+SR_STEP; srRenderAgent(idx); }
+function srShowLess(idx){ var a=SR_AGENTS[idx]; if(!a)return; a.shown=SR_PAGE0; srRenderAgent(idx); }
+function srSort(idx,field){ var a=SR_AGENTS[idx]; if(!a)return; if(a.sortField===field){a.sortDir=(a.sortDir==='desc'?'asc':'desc');}else{a.sortField=field;a.sortDir='desc';} a.shown=SR_PAGE0; srRenderAgent(idx); }
+window.srShowMore=srShowMore; window.srShowLess=srShowLess; window.srSort=srSort;
+// Accordion for the agent list inside a section: only ONE agent open at a time within that section.
+function srAgentToggle(btn){
+  var s=btn.closest('.sr-agent'); if(!s)return;
+  var willOpen=!s.classList.contains('open');
+  var scope=s.closest('.sr-sec-body')||document;
+  scope.querySelectorAll('.sr-agent.open').forEach(function(o){ if(o!==s)o.classList.remove('open'); });
+  s.classList.toggle('open', willOpen);
+}
+window.srAgentToggle=srAgentToggle;
+// Group a section's flat ticket list by assignee, register each agent for paginated rendering,
+// and return the agent-accordion HTML (agents ordered by ticket count, highest first — like SLA).
+function agentGroupedHtml(tickets){
+  var byAgent={};
+  (tickets||[]).forEach(function(t){
+    var key=(t.assignee&&String(t.assignee).trim())||'Unassigned';
+    if(!byAgent[key])byAgent[key]=[];
+    byAgent[key].push(t);
+  });
+  var agents=Object.keys(byAgent).map(function(name){ return { agent:name, tickets:byAgent[name] }; })
+    .sort(function(a,b){ return b.tickets.length-a.tickets.length; });
+  if(!agents.length) return '<div class="sr-empty">No tickets in this section.</div>';
+  return agents.map(function(a){
+    var idx=SR_AGENTS.length;
+    SR_AGENTS.push({ agent:a.agent, tickets:a.tickets, shown:SR_PAGE0, sortField:'created', sortDir:'desc' });
+    return '<div class="sr-agent" data-agent="'+esc(String(a.agent).toLowerCase())+'">'+
+      '<button type="button" class="sr-agent-head" onclick="srAgentToggle(this)">'+
+        '<span class="sr-agent-name">'+esc(a.agent)+phdTag(a.agent)+'<span class="sub">@'+esc(a.agent)+'</span></span>'+
+        '<span class="sr-agent-meta"><span class="sr-agent-count">'+a.tickets.length+'</span>'+
+          '<span class="sr-a-caret" aria-hidden="true">\u25be</span></span>'+
+      '</button>'+
+      '<div class="sr-agent-body"><div id="sr-agentbody-'+idx+'">'+srAgentTableHtml(idx)+'</div></div>'+
+    '</div>';
+  }).join('');
+}
 
 // The three sections: id = the ?section= value the server expects; sid = DOM id suffix.
 // Display order (top -> bottom): raised-not-fulfilled, not-raised-fulfilled, raised-fulfilled.
@@ -141,43 +275,23 @@ const SECTIONS=[
     desc:'Label has <b>"Station Request"</b> or <b>"Address Exclusion"</b>, and the root cause details <b>mention</b> an "address".', open:false },
 ];
 
-// The full ticket table for a loaded section.
-function sectionTable(rows){
-  if(!rows||!rows.length) return '<div class="sr-empty">No tickets in this section.</div>';
-  var body=rows.map(function(t,i){
-    var sid=esc(t.shortId||'');
-    var link=t.url?('<a class="sr-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+sid+'</a>'):sid;
-    return '<tr>'+
-      '<td class="sr-num">'+(i+1)+'</td>'+
-      '<td>'+link+'</td>'+
-      '<td class="sr-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
-      '<td><span class="sr-status">'+esc(t.status||'—')+'</span></td>'+
-      '<td style="white-space:nowrap">'+fmtDate(t.createDate)+'</td>'+
-      '<td>'+esc(t.assignee||'—')+'</td>'+
-    '</tr>';
-  }).join('');
-  return '<div class="sr-tbl-wrap"><table class="sr-tbl"><thead><tr>'+
-    '<th style="width:1%">#</th><th>Ticket</th><th>Title</th><th>Status</th><th>Created</th><th>Assignee</th>'+
-    '</tr></thead><tbody>'+body+'</tbody></table></div>';
-}
-
-// A skeleton table (fixed placeholder rows) shown until a section's own request lands.
+// Loading placeholder: a few collapsed "agent block" shells with shimmer, mirroring the real
+// agent list that lands after the fetch (a name bar + a count pill per row).
 function skeletonTable(){
-  var w=[160,120,90,60,110];
+  var widths=[150,120,168,104,134];
   var rows='';
-  for(var i=0;i<6;i++){
-    rows+='<tr>'+
-      '<td class="sr-num"><span class="sk" style="width:14px;height:12px"></span></td>'+
-      '<td><span class="sk" style="width:96px;height:12px"></span></td>'+
-      '<td><span class="sk" style="width:'+(360-i*30)+'px;max-width:60vw;height:12px"></span></td>'+
-      '<td><span class="sk" style="width:70px;height:20px;border-radius:20px"></span></td>'+
-      '<td><span class="sk" style="width:84px;height:12px"></span></td>'+
-      '<td><span class="sk" style="width:'+w[i%w.length]+'px;max-width:40vw;height:12px"></span></td>'+
-    '</tr>';
+  for(var i=0;i<4;i++){
+    rows+='<div class="sr-agent sk-agent">'+
+      '<div class="sr-agent-head">'+
+        '<span class="sr-agent-name"><span class="sk" style="width:'+widths[i%widths.length]+'px;height:15px;border-radius:6px"></span></span>'+
+        '<span class="sr-agent-meta">'+
+          '<span class="sk" style="width:48px;height:26px;border-radius:20px"></span>'+
+          '<span class="sk" style="width:14px;height:14px;border-radius:4px"></span>'+
+        '</span>'+
+      '</div>'+
+    '</div>';
   }
-  return '<div class="sr-tbl-wrap"><table class="sr-tbl"><thead><tr>'+
-    '<th style="width:1%">#</th><th>Ticket</th><th>Title</th><th>Status</th><th>Created</th><th>Assignee</th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  return rows;
 }
 
 // The section SHELL — hardcoded skeleton painted instantly; count + body fill in when the request lands.
@@ -188,7 +302,6 @@ function sectionShell(s){
       '<div class="sr-sec-head-right"><span class="sr-count sk" id="count-'+s.id+'">&nbsp;</span><span class="sr-caret">\u25be</span></div>'+
     '</div>'+
     '<div class="sr-sec-body">'+
-      '<div class="sr-sec-desc">'+s.desc+'</div>'+
       '<div id="body-'+s.id+'">'+skeletonTable()+'</div>'+
     '</div>'+
   '</div>';
@@ -223,7 +336,7 @@ async function loadSection(s){
     return s==='resolved'||s==='closed';
   });
   if(countEl){ countEl.classList.remove('sk'); countEl.textContent=tickets.length; }
-  if(bodyEl){ bodyEl.innerHTML=sectionTable(tickets); }
+  if(bodyEl){ bodyEl.innerHTML=agentGroupedHtml(tickets); }
 }
 function reloadSection(id){
   var s=SECTIONS.find(function(x){return x.id===id;}); if(!s) return;
@@ -233,10 +346,12 @@ function reloadSection(id){
 }
 window.reloadSection=reloadSection;
 
-function load(){
+async function load(){
   if(!A.getUser()||!A.getToken()){ gate('This page is for logged-in users. Log in from the Live Dashboard first.'); return; }
   if(!(A.canViewSR&&A.canViewSR())){ gate('You do not have access to Station Request Tickets.'); return; }
-  // 1) Paint the hardcoded skeleton (header + 3 section shells) INSTANTLY.
+  SR_AGENTS=[]; // reset the paginated-agent registry on each full render
+  // 1) Paint the header + 3 collapsed section shells INSTANTLY (no spinner) — like SLA Breaches.
+  //    Each shell shows a shimmer count pill + a skeleton agent list in its (collapsed) body.
   var html='<div class="sr-banner">'+
       '<h1 class="sb-title">'+ic('map-pin',24)+' Station Request Tickets</h1>'+
       '<div class="sb-sub">Resolved / closed incidents that involve <b>Station Request / Address Exclusion</b> after the complete take over by WWOS.'+
@@ -244,7 +359,12 @@ function load(){
     '</div>'+
     SECTIONS.map(sectionShell).join('');
   document.getElementById('wrap').innerHTML=html;
-  // 2) Fire all 3 section requests IN PARALLEL — each fills its own section as it returns.
+  // 2) Load the registered-user roster (for PHD tags), then fire the 3 section requests in parallel.
+  //    The roster is fetched BEFORE the sections so PHD tags are present on the first render.
+  try{
+    var ru=await A.api('GET','/api/user-roles');
+    if(ru&&ru.ok&&Array.isArray(ru.data)){ SR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();})); }
+  }catch(e){ SR_USERS=null; }
   SECTIONS.forEach(loadSection);
 }
 
