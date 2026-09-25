@@ -2038,6 +2038,75 @@ app.get('/api/station-requests', requireFlag('canViewSR'), async (req, res) => {
   }
 });
 
+// ---- Hashtags report (Hashtags page) ---------------------------------------------------------
+// Scans ALL ticket_docs across every quarter, keeps only tickets CREATED on/after 1 Apr 2026, and
+// extracts every "#tag" token from each ticket's Labels column (comma-separated string). Groups the
+// tickets into one section per distinct #tag. Because uploads write each ticket's Labels straight
+// into ticket_docs, this report is ALWAYS live — a newly uploaded file's hashtags appear here with
+// no extra step. A single ticket carrying multiple hashtags appears in each of its tag sections.
+// De-duplicated by ShortId within a tag so a ticket is counted once per section.
+const HASHTAGS_FROM = new Date('2026-04-01T00:00:00.000Z');
+const HASHTAG_TOKEN_RE = /#[a-z0-9][a-z0-9_-]*/gi;
+app.get('/api/hashtags-report', async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // Only pull the rows that actually carry a '#' in Labels and were created on/after the cutoff.
+    // Slim projection keeps the payload small even across ~70k tickets.
+    const rows = await coll.aggregate([
+      { $project: {
+        _id: 0,
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
+        AssigneeIdentity: 1, Labels: 1, q: 1,
+        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+        hasHash: { $regexMatch: { input: { $ifNull: ['$Labels', ''] }, regex: '#' } },
+      } },
+      { $match: { hasHash: true, cd: { $gte: HASHTAGS_FROM } } },
+    ], { allowDiskUse: true }).toArray();
+
+    // Group into sections keyed by lowercased #tag; dedupe ShortIds within a tag.
+    const sections = new Map(); // tag -> { tag, seen:Set, tickets:[] }
+    rows.forEach(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      const tags = String(t.Labels || '').match(HASHTAG_TOKEN_RE);
+      if (!tags) return;
+      const ticket = {
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        created: t.CreateDate || '',
+        assignee: t.AssigneeIdentity || '',
+        status: t.Status || '',
+        title: t.Title || '',
+      };
+      const uniqueTags = [...new Set(tags.map(x => x.toLowerCase()))];
+      uniqueTags.forEach(tag => {
+        let sec = sections.get(tag);
+        if (!sec) { sec = { tag, seen: new Set(), tickets: [] }; sections.set(tag, sec); }
+        if (sid && sec.seen.has(sid)) return; // already counted this ticket in this tag
+        if (sid) sec.seen.add(sid);
+        sec.tickets.push(ticket);
+      });
+    });
+
+    // Shape for the frontend: newest-first tickets, sections ordered by descending count.
+    const out = [...sections.values()]
+      .map(s => ({
+        tag: s.tag,
+        count: s.tickets.length,
+        tickets: s.tickets.sort((a, b) => new Date(b.created) - new Date(a.created)),
+      }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+
+    res.json({
+      generatedFrom: 'ticket_docs (live)',
+      generatedAt: new Date().toISOString(),
+      from: HASHTAGS_FROM.toISOString().slice(0, 10),
+      sections: out,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load hashtags report.' });
+  }
+});
+
 // Record when a ticket last had app-side activity (a comment or incident-log add/edit/delete).
 // This is OUR OWN reference timestamp — distinct from the CSV-imported LastUpdated* fields.
 // Stored in a small keyed-by-shortId collection so it survives quarter re-publishes.
@@ -3578,9 +3647,16 @@ async function dashWeekly(qid) {
         { $project: { w: _weekExpr('$t.CreateDate'), rep: AGG.isRepeat, pet: AGG.isPet } },
         { $match: { rep: true } },
         { $group: { _id: '$w', n: { $sum: 1 }, pet: { $sum: { $cond: ['$pet', 1, 0] } }, nonPet: { $sum: { $cond: ['$pet', 0, 1] } } } }],
+      // Same repeat incidents, but bucketed by DAY (YYYY-MM-DD) for the chart's daily view toggle.
+      hiDay: [{ $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
+        { $project: {
+            day: { $dateToString: { format: '%Y-%m-%d', date: _safeDate('$t.CreateDate') } },
+            rep: AGG.isRepeat, pet: AGG.isPet } },
+        { $match: { rep: true, day: { $ne: null } } },
+        { $group: { _id: '$day', n: { $sum: 1 }, pet: { $sum: { $cond: ['$pet', 1, 0] } }, nonPet: { $sum: { $cond: ['$pet', 0, 1] } } } }],
     } },
   ], qid);
-  const f = rows[0] || { created: [], resolved: [], sla: [], hi: [] };
+  const f = rows[0] || { created: [], resolved: [], sla: [], hi: [], hiDay: [] };
   const wb = {}, wbR = {}, wSpan = {}, wSla = {}, wHi = {}, wHiPet = {}, wHiNon = {};
   (f.created || []).forEach(x => { if (x._id != null) { wb['W' + x._id] = x.n; wSpan['W' + x._id] = { first: x.first, last: x.last }; } });
   (f.resolved || []).forEach(x => { if (x._id != null) wbR['W' + x._id] = x.n; });
@@ -3588,6 +3664,25 @@ async function dashWeekly(qid) {
   (f.hi || []).forEach(x => { if (x._id != null) { wHi['W' + x._id] = x.n; wHiPet['W' + x._id] = x.pet || 0; wHiNon['W' + x._id] = x.nonPet || 0; } });
   const labels = Object.keys(wb).sort();
   const iso = (d) => { try { return d ? new Date(d).toISOString() : null; } catch (e) { return null; } };
+  // ---- Daily repeat-incident buckets (for the chart's daily-view toggle) ----
+  // Build a CONTIGUOUS list of days between the first and last day that had a repeat incident, so
+  // gaps render as 0 (not skipped). Each day carries total / pet / non-pet counts.
+  const dMap = {};
+  (f.hiDay || []).forEach(x => { if (x._id) dMap[x._id] = { n: x.n, pet: x.pet || 0, nonPet: x.nonPet || 0 }; });
+  const dayKeys = Object.keys(dMap).sort();
+  let dailyLabels = [], hiDailyPet = [], hiDailyNon = [], daySpan = [];
+  if (dayKeys.length) {
+    const start = new Date(dayKeys[0] + 'T00:00:00.000Z');
+    const end = new Date(dayKeys[dayKeys.length - 1] + 'T00:00:00.000Z');
+    for (let dt = new Date(start); dt <= end; dt.setUTCDate(dt.getUTCDate() + 1)) {
+      const key = dt.toISOString().slice(0, 10);
+      const v = dMap[key] || { pet: 0, nonPet: 0 };
+      dailyLabels.push(key);
+      hiDailyPet.push(v.pet);
+      hiDailyNon.push(v.nonPet);
+      daySpan.push({ first: dt.toISOString(), last: dt.toISOString() });
+    }
+  }
   return {
     labels,
     created: labels.map(k => wb[k]),
@@ -3602,6 +3697,11 @@ async function dashWeekly(qid) {
     hiNonPetCreated: labels.map(k => (wHiNon[k] || 0)),
     // ISO date span per week label (min/max CreateDate that fell in the week) for x-axis ranges.
     span: labels.map(k => ({ first: iso(wSpan[k] && wSpan[k].first), last: iso(wSpan[k] && wSpan[k].last) })),
+    // DAILY repeat-incident split (contiguous days, gaps = 0) for the chart's day/week toggle.
+    hiDailyLabels: dailyLabels,     // 'YYYY-MM-DD'
+    hiDailyPet: hiDailyPet,
+    hiDailyNonPet: hiDailyNon,
+    hiDailySpan: daySpan,           // ISO date per daily label (for the tooltip)
   };
 }
 
@@ -3998,8 +4098,14 @@ Object.keys(DASH_CHUNKS).forEach(name => {
       if (isLiveScope && !ALWAYS_LIVE_CHUNKS.has(name)) {
         const rollColl = await getCollection(COLLECTIONS.dashRollups);
         const roll = await rollColl.findOne({ _id: qid });
-        if (roll && roll.chunks && roll.chunks[name] && (roll.publishedAt || null) === (meta.publishedAt || null)) {
-          return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, finalize(roll.chunks[name])));
+        const chunk = roll && roll.chunks && roll.chunks[name];
+        // Shape guard: a rollup baked BEFORE a chunk's payload shape changed would serve stale-shaped
+        // data. Detect known-required fields and, if missing, fall through to compute fresh (+ the
+        // background recompute below rebuilds the rollup). Here: the weekly chunk must carry the
+        // daily-buckets field added for the Day/Week toggle.
+        const shapeOk = (name !== 'weekly') || (chunk && Object.prototype.hasOwnProperty.call(chunk, 'hiDailyLabels'));
+        if (chunk && shapeOk && (roll.publishedAt || null) === (meta.publishedAt || null)) {
+          return res.json(Object.assign({ quarter: qid, label: quarterLabel(qid), publishedAt: meta.publishedAt, cached: true }, finalize(chunk)));
         }
       }
       // Any non-live scope (Q2 / Overall), always-live chunk, or missing/stale rollup -> compute now.

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hashtags · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
+/* Header */
+.hx-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.hx-head h1{margin:0;color:#fff;font-size:1.7em;font-weight:700;display:inline-flex;align-items:center;gap:10px}
+.hx-head h1 .hx-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,153,0,.16);color:var(--o);flex-shrink:0}
+.hx-sub{color:var(--tm);font-size:.9em;line-height:1.55;margin:6px 0 12px;max-width:900px}
+.hx-sub b{color:#fff}
+.hx-from{display:inline-flex;align-items:center;gap:7px;margin:0 0 22px;color:var(--tl);font-weight:600;font-size:.85em}
+.hx-from svg{flex-shrink:0}
+/* ---- Illustrated gradient banner header (matches the SLA Breaches page banner) ---- */
+.hx-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:14px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:hxBanner 9s ease infinite}
+@keyframes hxBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.hx-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.hx-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
+.hx-banner .hb-title svg{flex-shrink:0;color:#241354}
+.hx-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(36,19,84,.82)}
+.hx-banner .hb-sub b{color:#180d3a;font-weight:800}
+/* Total-count pill on the right side of the banner. */
+.hx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.72);border-radius:14px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#241354}
+.hx-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
+.hx-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
+.hx-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:210px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.32;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M40 20L32 60M62 20L54 60M26 34h44M22 50h44"/><circle cx="92" cy="30" r="12"/><path d="M92 24v6l4 3"/></svg>')}
+@media(max-width:640px){.hx-banner .hb-title{font-size:1.25em}.hx-banner::after{opacity:.2}.hx-banner .hb-total{margin-left:0}}
+/* Hashtag definition ("Use When") shown under each section's tag in the head bar. */
+.hx-sec-title-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;width:100%}
+.hx-def{color:var(--tm);font-size:.8em;font-weight:400;line-height:1.45;width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help}
+.hx-def.none{font-style:italic;opacity:.7}
+/* Zero-count section: dim the count pill so the "tracked but empty" tags read as secondary. */
+.hx-count.zero{background:rgba(135,149,150,.12);color:var(--tm);border-color:rgba(135,149,150,.3)}
+/* Empty-state shown inside a zero-count section body. */
+.hx-none-yet{display:flex;align-items:flex-start;gap:12px;padding:22px;color:var(--tm);font-size:.9em;line-height:1.5;background:rgba(255,255,255,.02);border:1px dashed #2a323b;border-radius:12px;margin:6px 0 4px}
+.hx-none-yet b{color:var(--t)}
+.hx-none-yet .hx-tag{color:var(--o)}
+.hx-none-yet svg{flex-shrink:0;margin-top:2px;color:var(--tm)}
+/* Section card (collapsible accordion — one open at a time) */
+.hx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid var(--o);border-radius:16px;margin-bottom:16px;overflow:hidden}
+.hx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
+.hx-sec-head:hover{background:rgba(255,255,255,.03)}
+/* Hashtag illustration watermark behind the head, right side (mask-faded so text stays readable). */
+.hx-sec-head::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:120px;background-repeat:no-repeat;background-position:center;background-size:auto 74%;opacity:.10;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 35%,#000 65%,transparent);mask-image:linear-gradient(90deg,transparent,#000 35%,#000 65%,transparent);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ff9900" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M46 18L38 62M74 18L66 62M28 34h60M24 50h60"/></svg>')}
+.hx-sec-title{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;color:#fff;font-size:1.08em;font-weight:700;min-width:0;flex:1 1 auto}
+.hx-tag{font-family:'Inter',monospace;color:var(--o)}
+.hx-sec-head-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.hx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:20px;font-weight:800;font-size:.88em;background:rgba(255,153,0,.14);color:var(--o);border:1px solid rgba(255,153,0,.35)}
+.hx-caret{color:var(--tm);display:inline-flex;transition:transform .2s ease}
+.hx-sec.open .hx-caret{transform:rotate(180deg)}
+.hx-sec-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 22px}
+.hx-sec.open .hx-sec-body{max-height:none;padding:8px 22px 14px}
+/* Per-section chart (styled like the Repeat Incident wave chart) */
+.hx-chart-title{color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 4px}
+.hx-chart-sub{color:var(--tm);font-size:.82em;line-height:1.5;margin:0 0 12px}
+.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:12px;padding:14px 14px 6px;margin-bottom:20px}
+.chart-wrap{position:relative;height:200px}
+.chart-wrap.tall{height:300px}
+/* Table (clean, borderless — no spreadsheet grid) */
+.hx-tbl-wrap{overflow-x:auto;margin-bottom:10px}
+.hx-tbl{width:100%;border-collapse:collapse;font-size:.88em}
+.hx-tbl th,.hx-tbl td{border:none;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 14px;text-align:left;vertical-align:middle}
+.hx-tbl thead th{background:transparent;color:var(--tm);text-transform:uppercase;font-size:.72em;letter-spacing:.5px;font-weight:700;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.12)}
+.hx-tbl tbody tr:hover td{background:rgba(255,153,0,.04)}
+.hx-tbl tbody tr:last-child td{border-bottom:none}
+.hx-fit{width:1%;white-space:nowrap}
+.hx-center{text-align:center}
+.hx-tbl th.hx-center,.hx-tbl td.hx-center{text-align:center}
+.hx-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap}
+.hx-idlink:hover{text-decoration:underline}
+.hx-num{color:#879596;font-weight:600;white-space:nowrap}
+.hx-assignee{color:var(--t);white-space:nowrap}
+/* C/R status tag */
+.hx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-weight:800;font-size:.78em}
+.hx-tag-s.c{background:rgba(74,222,128,.16);color:var(--gl)}
+.hx-tag-s.r{background:rgba(68,185,214,.16);color:var(--tl)}
+.hx-tag-s.o{background:rgba(255,153,0,.16);color:var(--o)}
+/* Truncated title */
+.hx-title{max-width:1px;width:100%}
+.hx-title-txt{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t)}
+/* Sort */
+.hx-sort{cursor:pointer;user-select:none}
+.hx-sort:hover{color:#fff}
+.hx-sort-ar{color:var(--o);font-weight:800;margin-left:4px}
+.hx-sort-ar.idle{color:#4a5560;font-weight:400}
+/* Show more/less */
+.hx-more{margin:2px 0 4px;display:flex;align-items:center;gap:12px}
+.hx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:8px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
+.hx-more button:hover{border-color:var(--o);color:#fff}
+.hx-mcount{color:var(--tm);font-size:.8em}
+.hx-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
+/* Loading skeleton — collapsed section-card shells with shimmer (no big spinner). */
+.hx-skel{margin-top:2px}
+.sk-banner{position:relative;overflow:hidden;border-radius:16px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
+  background:linear-gradient(90deg,#241a4d,#2c2359 55%,#3a2f6e);background-size:200% 100%;animation:hxBanner 9s ease infinite;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px}
+.sk-banner .sk-bl{display:flex;flex-direction:column;gap:9px}
+.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:16px;margin-bottom:16px;overflow:hidden}
+.sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
+.sk-ic{width:30px;height:30px;border-radius:50%;flex-shrink:0}
+.sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+.sk-banner .sk-line{background:rgba(255,255,255,.16)}
+.sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:hxSk 1.2s infinite}
+.sk-banner .sk-line::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+.sk-ic{background:#141a20;position:relative;overflow:hidden}
+.sk-ic::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:hxSk 1.2s infinite}
+@keyframes hxSk{100%{transform:translateX(100%)}}
+/* gate */
+.hx-gate{max-width:560px;margin:60px auto;text-align:center}
+.hx-gate h1{color:#fff;font-size:1.5em;margin-bottom:10px}
+.hx-gate p{color:var(--tm);line-height:1.55}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body data-nav-active="hashtags" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div class="hx-skel">
+    <div class="sk-banner">
+      <div class="sk-bl">
+        <span class="sk-line" style="width:180px;height:22px"></span>
+        <span class="sk-line" style="width:420px;height:12px"></span>
+      </div>
+      <span class="sk-line" style="width:96px;height:44px;border-radius:14px"></span>
+    </div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:220px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:300px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:260px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:200px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+  </div>
+</div>
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+// Hashtag definitions ("Use When"), keyed by the tag WITHOUT the leading '#', lowercased.
+// Spelling variants that appear in ticket Labels are aliased to the same definition so they resolve
+// regardless of how they were typed (e.g. unsuccessful vs unsucessful, geopin vs incorrect-geopin).
+var HX_DEFS={
+  'out-of-scope':'No further action required by PHD Team due to the incident being outside PHD purview',
+  'language-barrier':'Root cause of escalation likely involves a language barrier (ex. did not follow delivery instructions, Driver report is made in non-english language)',
+  'incorrect-geopin':'Incidents where the Geopin was incorrect and attributed to the root cause for the escalation',
+  'geopin':'Incidents where the Geopin was incorrect and attributed to the root cause for the escalation',
+  'da-misconduct':'The Root cause is found to be a driver false report/misconduct related',
+  'dp-misconduct':'The Root cause is found to be a driver false report/misconduct related',
+  'hubda-misconduct':'The Root cause is found to be a driver false report/misconduct related',
+  'contradictory-statement-no-proof':'Contradictory statements made by CX and DA/DP, no proof to determine the truth',
+  'unsuccessful-outreach':'Extensive outreach has been attempted on CX with no response',
+  'unsucessful-outreach':'Extensive outreach has been attempted on CX with no response',
+  'cx-verification-rejection':'CX is unwilling or unable to authenticate their account with LMIR/SDS, often due to the belief of the agent being a scammer',
+  'no-emt-attached':'Incidents that have been submitted into LM-HUB without an EMT attached',
+  'api-emt-miss':'An API EMT is identified unsubmitted to LMET/GSOC',
+  'appeal-review':'Customer is requesting an appeal be made to a mitigation action on their account/address',
+  'support-p-b':'Applicable when a support team states that an action was taken but was either incorrectly actioned or not at all.',
+  'address-employee':'When the incident involves Security/ Property Management/ Receptionist as the POI/Victim',
+  'mitigation-gap':'Used to document when a recommended mitigation is not currently available in this country/region; not an actionable resolution at this time',
+  'mst-action':'When support teams fail to action (approve or deny) requested PHD action. This can include action items or PHD SIM communications'
+};
+// Canonical display order + spelling for EVERY hashtag we track. These ALL render as sections even
+// when their live ticket count is 0, so the full taxonomy (tag + definition) is always visible.
+var HX_ORDER=[
+  '#out-of-scope',
+  '#language-barrier',
+  '#incorrect-geopin',
+  '#da-misconduct',
+  '#dp-misconduct',
+  '#hubda-misconduct',
+  '#contradictory-statement-no-proof',
+  '#unsuccessful-outreach',
+  '#cx-verification-rejection',
+  '#no-emt-attached',
+  '#api-emt-miss',
+  '#appeal-review',
+  '#support-p-b',
+  '#address-employee',
+  '#mitigation-gap',
+  '#mst-action'
+];
+// Some tags appear in ticket Labels under a variant spelling. Map any variant -> the canonical tag
+// in HX_ORDER, so live tickets land in the right (single) section regardless of how they were typed.
+var HX_ALIAS={
+  '#unsucessful-outreach':'#unsuccessful-outreach', // missing second 's'
+  '#geopin':'#incorrect-geopin',                    // short form of the geopin tag
+  '#support-f-r':'#support-p-b',                     // same definition, alt code
+  '#s-req':'#out-of-scope'                           // (removed/low-yield) — fold defensively
+};
+// Normalize a raw "#tag" to its canonical form (lowercased, alias-resolved).
+function hxCanon(tag){ var t='#'+String(tag||'').replace(/^#/,'').toLowerCase(); return HX_ALIAS[t]||t; }
+// Look up a definition for a "#tag" (or bare tag). Returns '' if unknown.
+function hxDefOf(tag){ var k=hxCanon(tag).replace(/^#/,''); return HX_DEFS[k]||''; }
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="hx-gate"><h1>Hashtags</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
+function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
+// C/R tag: C = Closed, R = Resolved, else first letter.
+function statusTag(s){
+  var v=String(s||'').toLowerCase();
+  if(v==='closed')return '<span class="hx-tag-s c" title="Closed">C</span>';
+  if(v==='resolved')return '<span class="hx-tag-s r" title="Resolved">R</span>';
+  return '<span class="hx-tag-s o" title="'+esc(s||'')+'">'+esc((s||'?').charAt(0).toUpperCase())+'</span>';
+}
+
+// Per-section pagination + sort state, keyed by index. shown starts at 20 (+10 each).
+var HX_SECS=[]; var HX_PAGE0=20, HX_STEP=10;
+var HX_CHARTS={}; // idx -> Chart instance
+
+// ISO week key (Mon-anchored) + a readable label for a date.
+function hxWeekStart(d){ var x=new Date(d.getTime()); var day=(x.getUTCDay()+6)%7; x.setUTCDate(x.getUTCDate()-day); x.setUTCHours(0,0,0,0); return x; }
+// Bucket a section's tickets by the week their CreateDate falls in (gaps filled with 0).
+function hxWeeklyBuckets(tickets){
+  var byKey={}, min=null, max=null;
+  (tickets||[]).forEach(function(t){
+    var d=new Date(t.created); if(isNaN(d)) return;
+    var ws=hxWeekStart(d); var k=ws.getTime();
+    byKey[k]=(byKey[k]||0)+1;
+    if(min===null||k<min)min=k; if(max===null||k>max)max=k;
+  });
+  var labels=[], data=[];
+  if(min===null){ return {labels:labels,data:data}; }
+  var WK=7*24*3600*1000;
+  for(var k=min;k<=max;k+=WK){
+    var dt=new Date(k);
+    labels.push(dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+    data.push(byKey[k]||0);
+  }
+  return {labels:labels,data:data};
+}
+// A filled "wave" area dataset (matches the Repeat Incident chart's look).
+function hxWave(label,data,color,rgbaPrefix){
+  return {label:label,data:data,borderColor:color,pointBackgroundColor:color,pointRadius:3,
+    borderWidth:2,tension:.45,fill:true,spanGaps:true,
+    backgroundColor:function(ctx){var c=ctx.chart.ctx;var g=c.createLinearGradient(0,0,0,300);
+      g.addColorStop(0,rgbaPrefix+'.32)');g.addColorStop(1,rgbaPrefix+'.02)');return g;}};
+}
+// Draw (or redraw) the per-section wave chart. Destroys any prior instance on the canvas.
+function hxDrawChart(idx){
+  if(typeof Chart==='undefined')return;
+  var a=HX_SECS[idx]; if(!a)return;
+  var cv=document.getElementById('hxCanvas'+idx); if(!cv)return;
+  var b=hxWeeklyBuckets(a.tickets);
+  if(HX_CHARTS[idx]){ try{HX_CHARTS[idx].destroy();}catch(e){} delete HX_CHARTS[idx]; }
+  Chart.defaults.color='#879596'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  HX_CHARTS[idx]=new Chart(cv,{type:'line',
+    data:{labels:b.labels,datasets:[hxWave(a.tag+' tickets',b.data,'#a78bfa','rgba(167,139,250,')]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Tickets created',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:11},precision:0}},
+        x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+}
+function hxArrow(a,field){
+  if(a.sortField!==field) return '<span class="hx-sort-ar idle">\u21c5</span>';
+  return a.sortDir==='desc'?'<span class="hx-sort-ar">\u25bc</span>':'<span class="hx-sort-ar">\u25b2</span>';
+}
+function hxSortVal(t,field){
+  if(field==='created') return new Date(t.created).getTime()||0;
+  if(field==='assignee') return String(t.assignee||'').toLowerCase();
+  if(field==='status') return String(t.status||'').toLowerCase();
+  if(field==='ticket') return String(t.shortId||'').toLowerCase();
+  return String(t.title||'').toLowerCase();
+}
+function hxSecTableHtml(idx){
+  var a=HX_SECS[idx]; if(!a) return '';
+  var field=a.sortField||'created', dir=a.sortDir||'desc';
+  var tix=(a.tickets||[]).slice().sort(function(x,y){
+    var vx=hxSortVal(x,field), vy=hxSortVal(y,field);
+    if(vx<vy) return dir==='desc'?1:-1;
+    if(vx>vy) return dir==='desc'?-1:1;
+    return 0;
+  });
+  var shown=Math.min(a.shown||HX_PAGE0, tix.length);
+  var rows='';
+  for(var i=0;i<shown;i++){
+    var t=tix[i];
+    var link=t.url?('<a class="hx-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId||'—')+'</a>'):esc(t.shortId||'—');
+    rows+='<tr>'
+      +'<td class="hx-fit hx-center">'+link+'</td>'
+      +'<td class="hx-fit hx-center hx-num">'+fmtDate(t.created)+'</td>'
+      +'<td class="hx-fit hx-assignee">'+esc(t.assignee||'—')+'</td>'
+      +'<td class="hx-fit hx-center">'+statusTag(t.status)+'</td>'
+      +'<td class="hx-title"><span class="hx-title-txt" title="'+esc(t.title||'')+'">'+esc(t.title||'—')+'</span></td>'
+      +'</tr>';
+  }
+  if(!tix.length) rows='<tr><td colspan="5" class="hx-empty">No tickets.</td></tr>';
+  var th=function(field,label,extra){
+    return '<th class="hx-sort '+(extra||'')+'" onclick="hxSort('+idx+',\''+field+'\')">'+label+hxArrow(a,field)+'</th>';
+  };
+  var head='<thead><tr>'
+    +th('ticket','Ticket ID','hx-fit hx-center')
+    +th('created','Created','hx-fit hx-center')
+    +th('assignee','Assignee','hx-fit')
+    +th('status','Status','hx-fit hx-center')
+    +th('title','Title')
+    +'</tr></thead>';
+  var more='';
+  if(tix.length>HX_PAGE0){
+    var canMore=shown<tix.length, canLess=shown>HX_PAGE0;
+    more='<div class="hx-more">'
+      +(canMore?'<button onclick="hxMore('+idx+')">Show more</button>':'')
+      +(canLess?'<button onclick="hxLess('+idx+')">Show less</button>':'')
+      +'<span class="hx-mcount">Showing '+shown+' of '+tix.length+'</span></div>';
+  }
+  return '<div class="hx-tbl-wrap"><table class="hx-tbl">'+head+'<tbody>'+rows+'</tbody></table></div>'+more;
+}
+function hxSort(idx,field){
+  var a=HX_SECS[idx]; if(!a) return;
+  if(a.sortField===field){ a.sortDir=(a.sortDir==='desc'?'asc':'desc'); }
+  else { a.sortField=field; a.sortDir=(field==='created'?'desc':'asc'); }
+  var body=document.getElementById('hxBody'+idx); if(body) body.innerHTML=hxSecTableHtml(idx);
+}
+function hxMore(idx){ var a=HX_SECS[idx]; if(!a)return; a.shown=Math.min((a.shown||HX_PAGE0)+HX_STEP,(a.tickets||[]).length); var b=document.getElementById('hxBody'+idx); if(b)b.innerHTML=hxSecTableHtml(idx); }
+function hxLess(idx){ var a=HX_SECS[idx]; if(!a)return; a.shown=HX_PAGE0; var b=document.getElementById('hxBody'+idx); if(b)b.innerHTML=hxSecTableHtml(idx); }
+// Accordion: only one section open at a time.
+function hxToggle(idx){
+  var sec=document.getElementById('hxSec'+idx); if(!sec) return;
+  var wasOpen=sec.classList.contains('open');
+  document.querySelectorAll('.hx-sec.open').forEach(function(s){ s.classList.remove('open'); });
+  if(!wasOpen){ sec.classList.add('open'); setTimeout(function(){ hxDrawChart(idx); },60); }
+}
+
+function render(data){
+  var secs=(data&&data.sections)||[];
+  // Fold the live sections into a map keyed by CANONICAL tag (alias-resolved), merging tickets so a
+  // variant spelling and its canonical tag collapse into one section (deduped by shortId).
+  var byTag={};
+  secs.forEach(function(s){
+    var canon=hxCanon(s.tag);
+    var cur=byTag[canon]||(byTag[canon]={ tag:canon, tickets:[], seen:{} });
+    (s.tickets||[]).forEach(function(t){
+      var id=String(t.shortId||'');
+      if(id&&cur.seen[id]) return;
+      if(id) cur.seen[id]=1;
+      cur.tickets.push(t);
+    });
+  });
+  // EVERY defined hashtag appears, even with 0 tickets. Start from the canonical taxonomy...
+  var used={};
+  HX_SECS=HX_ORDER.map(function(tag){
+    used[tag]=1;
+    var m=byTag[tag];
+    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
+  });
+  // ...then append any live tags not in the canonical list (so nothing from the data is dropped).
+  Object.keys(byTag).forEach(function(tag){
+    if(used[tag]) return;
+    HX_SECS.push({ tag:tag, count:byTag[tag].tickets.length, tickets:byTag[tag].tickets, shown:HX_PAGE0, sortField:'created', sortDir:'desc' });
+  });
+  // Order the sections by ticket count, highest first. Ties break by the canonical taxonomy order
+  // (then alphabetically) so the zero-count tags keep a stable, predictable sequence.
+  var orderIdx={}; HX_ORDER.forEach(function(t,i){ orderIdx[t]=i; });
+  HX_SECS.sort(function(a,b){
+    if(b.count!==a.count) return b.count-a.count;
+    var ai=(orderIdx[a.tag]==null?999:orderIdx[a.tag]), bi=(orderIdx[b.tag]==null?999:orderIdx[b.tag]);
+    if(ai!==bi) return ai-bi;
+    return a.tag.localeCompare(b.tag);
+  });
+  var rawSrc=(data&&data.generatedFrom)||'25th September 2026.csv';
+  var isLive=/live/i.test(rawSrc);
+  var src=isLive?('Live — all uploaded tickets (created on/after '+((data&&data.from)||'2026-04-01')+')'):rawSrc;
+  // Total tagged tickets across all sections (deduped per section already; this is the sum of counts).
+  var totalTagged=HX_SECS.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
+  var totalTags=HX_SECS.length;
+  // Inline clock SVG for the "Hashtags" banner glyph.
+  var hashGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>';
+  var html='<div class="hx-banner">'
+    +'<div class="hb-left">'
+      +'<h1 class="hb-title">'+hashGlyph+'Hashtags</h1>'
+      +'<div class="hb-sub">One section per hashtag found in the <b>Labels</b> column, with the definition of each. '
+        +'Updates automatically as files are uploaded. <b>'+esc(src)+'</b></div>'
+    +'</div>'
+    +'<div class="hb-total"><span class="n">'+totalTagged+'</span><span class="l">'+totalTags+' hashtags</span></div>'
+  +'</div>';
+  if(!HX_SECS.length){ html+='<div class="hx-empty">No hashtags found in the Labels column.</div>'; document.getElementById('wrap').innerHTML=html; return; }
+  HX_SECS.forEach(function(a,idx){
+    var def=hxDefOf(a.tag);
+    var defHtml=def
+      ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
+      : '<div class="hx-def none">No definition on file for this hashtag.</div>';
+    html+='<div class="hx-sec" id="hxSec'+idx+'">'
+      +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
+        +'<div class="hx-sec-title">'
+          +'<div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(a.tag)+'</span>'+defHtml+'</div>'
+        +'</div>'
+        +'<div class="hx-sec-head-right"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span><span class="hx-caret">\u25be</span></div>'
+      +'</div>'
+      +'<div class="hx-sec-body">'
+        +(a.count>0
+          ? '<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+            +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
+            +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
+            +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
+          : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
+      +'</div>'
+    +'</div>';
+  });
+  document.getElementById('wrap').innerHTML=html;
+  // All sections start collapsed; a chart is drawn only when its section is opened (hxToggle).
+}
+
+// Load order:
+//   1) Live API (/api/hashtags-report) — aggregates ticket_docs by #tag from the Labels column, so
+//      any uploaded file's hashtags show up automatically. This is the source of truth.
+//   2) Fallback to the static hashtags-data.json (e.g. API asleep on Render, or offline) so the
+//      page still renders something on GitHub Pages before the API wakes.
+(async function(){
+  var live=null;
+  try{
+    var r=await A.api('GET','/api/hashtags-report');
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)) live=r.data;
+  }catch(e){ live=null; }
+  if(live){ render(live); return; }
+  // Fallback: static snapshot bundled with the site.
+  try{
+    var fr=await fetch('hashtags-data.json',{cache:'no-store'});
+    if(fr.ok){ render(await fr.json()); return; }
+  }catch(e){}
+  gate('Could not load the hashtag data. Please try again.');
+})();
+</script>
+</body>
+</html>

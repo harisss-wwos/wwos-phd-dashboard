@@ -1563,6 +1563,7 @@
       id: 'reports', triggerIcon: 'line-chart', triggerLabel: 'Reports', items: [
         { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    icon: 'clock',        href: 'sla-breach.html',      need: 'sla' },
         { key: 'station-request', label: 'Station Request Tickets', icon: 'map-pin',      href: 'station-request.html', need: 'sr' },
+        { key: 'hashtags',        label: 'Hashtags',                icon: 'hash',         href: 'hashtags.html',        need: 'li' },
         { key: 'hi-resolved',     label: 'Repeat Incidents',        icon: 'repeat',       href: 'hi-resolved.html',     need: 'repeat' },
         { key: 'unique-cases',    label: 'Unique cases',            img: 'important.png', href: 'important-cases.html', need: 'unique' }
       ]
