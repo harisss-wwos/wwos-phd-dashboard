@@ -227,6 +227,15 @@ function statusTag(s){
   if(v==='resolved')return '<span class="hx-tag-s r" title="Resolved">R</span>';
   return '<span class="hx-tag-s o" title="'+esc(s||'')+'">'+esc((s||'?').charAt(0).toUpperCase())+'</span>';
 }
+// Display-only mapping for special assignee values. The underlying ticket data is untouched:
+//   - the LM-CAP service account (a UUID) shows as "LM-CAP"
+//   - a blank / missing assignee shows as "NO ASSIGNEE"
+var HX_ASSIGNEE_MAP={ '0d1616c8-bcb7-4450-8bc5-f0a296bc01d1':'LM-CAP' };
+function hxAssignee(a){
+  var raw=String(a==null?'':a).trim();
+  if(!raw) return 'NO ASSIGNEE';
+  return HX_ASSIGNEE_MAP[raw.toLowerCase()]||raw;
+}
 
 // Per-section pagination + sort state, keyed by index. shown starts at 20 (+10 each).
 var HX_SECS=[]; var HX_PAGE0=20, HX_STEP=10;
@@ -281,7 +290,7 @@ function hxArrow(a,field){
 }
 function hxSortVal(t,field){
   if(field==='created') return new Date(t.created).getTime()||0;
-  if(field==='assignee') return String(t.assignee||'').toLowerCase();
+  if(field==='assignee') return hxAssignee(t.assignee).toLowerCase();
   if(field==='status') return String(t.status||'').toLowerCase();
   if(field==='ticket') return String(t.shortId||'').toLowerCase();
   return String(t.title||'').toLowerCase();
@@ -303,7 +312,7 @@ function hxSecTableHtml(idx){
     rows+='<tr>'
       +'<td class="hx-fit hx-center">'+link+'</td>'
       +'<td class="hx-fit hx-center hx-num">'+fmtDate(t.created)+'</td>'
-      +'<td class="hx-fit hx-assignee">'+esc(t.assignee||'—')+'</td>'
+      +'<td class="hx-fit hx-assignee">'+esc(hxAssignee(t.assignee))+'</td>'
       +'<td class="hx-fit hx-center">'+statusTag(t.status)+'</td>'
       +'<td class="hx-title"><span class="hx-title-txt" title="'+esc(t.title||'')+'">'+esc(t.title||'—')+'</span></td>'
       +'</tr>';
