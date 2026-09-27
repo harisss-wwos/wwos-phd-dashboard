@@ -2055,7 +2055,7 @@ app.get('/api/hashtags-report', async (req, res) => {
     const rows = await coll.aggregate([
       { $project: {
         _id: 0,
-        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1,
         AssigneeIdentity: 1, Labels: 1, q: 1,
         cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
         hasHash: { $regexMatch: { input: { $ifNull: ['$Labels', ''] }, regex: '#' } },

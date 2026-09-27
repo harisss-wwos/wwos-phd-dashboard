@@ -685,7 +685,16 @@ function assessAndPreview(csvText){
 
 function makeChart(id,config){
   const ctx=document.getElementById(id);
-  if(ctx){const c=new Chart(ctx,config);charts.push(c);}
+  if(ctx){
+    // Destroy any existing chart bound to this canvas first — Chart.js refuses to create a second
+    // chart on the same <canvas>, so re-rendering (e.g. the Week/Day toggle) would otherwise be a
+    // silent no-op and the stale chart would remain.
+    try{
+      var prev=(Chart.getChart?Chart.getChart(ctx):null);
+      if(prev){ prev.destroy(); var pi=charts.indexOf(prev); if(pi>=0)charts.splice(pi,1); }
+    }catch(e){}
+    const c=new Chart(ctx,config);charts.push(c);
+  }
 }
 
 function closeAllPopups(){const p=document.getElementById('colorPopup');if(p)p.remove();const p2=document.getElementById('incPopup');if(p2)p2.remove();}
@@ -742,6 +751,17 @@ function showColorPopup(color,tickets){
   const agentBlock=([name,tickets],idx)=>{
     const dn=displayName(name);
     const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
+    // A holder is "unregistered" when it's Unassigned OR not a registered PHD user in the database
+    // (i.e. not in /api/user-roles). LM-CAP and other bots/anything-else count as unregistered too.
+    // Unregistered holders get a blinking red-gradient background so they stand out for follow-up.
+    // Guard: only judge NAMED agents once the roster is actually loaded, so a failed/slow roster
+    // load doesn't wrongly red-flag everyone. "Unassigned" is always unregistered.
+    const isUnassigned=(String(name).toLowerCase()==='unassigned'||!String(name).trim());
+    const rosterLoaded=!!window.USER_PROFILES;
+    const registered=!isUnassigned&&rosterLoaded&&isRegisteredUser(name);
+    const unregistered=isUnassigned||(rosterLoaded&&!isRegisteredUser(name));
+    // Registered PHD users get a small "PHD" tag next to their name.
+    const phdTag=registered?' <span class="ap-phd-tag" title="Registered PHD user">PHD</span>':'';
     // How many of this agent's tickets carry a Station Request / Address Exclusion label (map-pin badge)
     // and how many are No-EMT (no-entry badge).
     const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
@@ -776,9 +796,12 @@ function showColorPopup(color,tickets){
         '<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+mine+'"><span class="pc-tk-cmt-txt">Loading…</span></td>'+
       '</tr>';
     }).join('');
-    return '<div class="ap-agent">'+
+    // For unregistered/Unassigned rows: no "@login" shown (just the blinking row). Registered users
+    // keep their "@login" and get the PHD tag.
+    const loginSub=unregistered?'':'<span class="sub">@'+esc(name)+'</span>';
+    return '<div class="ap-agent'+(unregistered?' ap-unreg':'')+'">'+
       '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
-        '<span class="ap-agent-name">'+esc(dn)+nmeta+prioBadge+noEmtBadge+'<span class="sub">@'+esc(name)+'</span></span>'+
+        '<span class="ap-agent-name">'+esc(dn)+phdTag+nmeta+prioBadge+noEmtBadge+loginSub+'</span>'+
         '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
         '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
       '</button>'+
@@ -2231,6 +2254,13 @@ function renderIncidentsChunk(d){
   slot.innerHTML=
     dashTcardHtml({title:'Resolved by AutoSIM',icon:ic('bolt',13),dot:'#5ecdec',countClass:'cy',total:autosimT,
       barColor:'#5ecdec',nameCol:'Incident Type',hidePct:true, rows:autosim,
+      info:{title:'A ticket counts as AutoSIM-resolved when ALL of these are true:',points:[
+        'RootCauseDetails is empty (no root-cause detail filled in)',
+        'ClosureCode is "Immediately Resolved" or "Automatically Closed"',
+        'ResolvedByIdentity is exactly the AutoSIM role (arn:aws:sts::511128310777:assumed-role/AutoSIM/AutoSIM)',
+        'Tags include "pet_incident_auto_resolved"',
+        'Tickets resolved by a human analyst are never counted as AutoSIM, even if tagged.'
+      ]},
       onRow:function(t,q){ return 'showIncidentAgentsPopup(\''+q(t.type)+'\',\'autosim\')'; }})+
     dashTcardHtml({title:'Resolved by PHD agents',icon:ic('user',13),dot:'#ffcf5e',countClass:'am',total:phdT,
       barColor:'#ff9900',nameCol:'Incident Type', rows:phd, grouped:d.phdGrouped||null, groupedLabel:'View Incident types group',
@@ -2268,9 +2298,18 @@ function dashTcardHtml(cfg){
     ? '<table class="itbl"><thead><tr>'+headCols+'</tr></thead><tbody>'+body+'</tbody></table>'
       +(extra>0?'<div class="loadmore"><button onclick="dashToggleMore(this)" data-shown="'+PAGE+'" data-mode="more">'+ic('caret-down',12)+' Load more <span class="rem">('+extra+' more)</span></button></div>':'')
     : '<div style="padding:16px 20px"><p class="meta-info" style="margin:0">None.</p></div>';
+  // Optional info icon with a hover tooltip explaining how the card's number is calculated.
+  // cfg.info = { title, points:[...] } -> renders an (i) glyph; hover shows a styled tooltip.
+  let infoHtml='';
+  if(cfg.info){
+    const pts=(cfg.info.points||[]).map(function(p){return '<li>'+esc(p)+'</li>';}).join('');
+    infoHtml=' <span class="th-info" tabindex="0" role="button" aria-label="How this is calculated">'+ic('info',13)+
+      '<span class="th-info-pop"><span class="th-info-h">'+esc(cfg.info.title||'How this is calculated')+'</span>'+
+      (pts?'<ul>'+pts+'</ul>':'')+'</span></span>';
+  }
   return '<div class="tcard">'+
     '<div class="tcard-head">'+
-      '<div class="th-title"><span class="th-dot" style="background:'+cfg.dot+'"></span>'+(cfg.icon||'')+' '+esc(cfg.title)+'</div>'+
+      '<div class="th-title"><span class="th-dot" style="background:'+cfg.dot+'"></span>'+(cfg.icon||'')+' '+esc(cfg.title)+infoHtml+'</div>'+
       '<div class="th-count '+(cfg.countClass||'cy')+'">'+Number(cfg.total||0).toLocaleString()+'</div>'+
     '</div>'+tbl+'</div>';
 }
@@ -2628,9 +2667,18 @@ function renderHiChunk(d){
   // Map an HI root-cause breakdown ({rootCause,count}) to the {type,count,pct} shape dashTcardHtml wants.
   const hiRows=function(list){ return (list||[]).map(function(r){ const rc=String(r.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim(); return {type:rc,count:r.count,pct:total?+(r.count/total*100).toFixed(1):0}; }); };
   slot.innerHTML=
-    // Weekly pet vs non-pet repeat incidents (HI Cnt>0), created per week — sits above the tables.
-    '<h3 style="color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">Repeat incidents per week \u2014 pet vs non-pet</h3>'+
-    '<p class="meta-info" style="margin:0 0 12px">Repeat-incident tickets (HI Cnt&gt;0) created each week, split into <b style="color:#a78bfa">pet / animal</b> vs <b style="color:#ff9900">non-pet</b>.</p>'+
+    // Weekly/daily pet vs non-pet repeat incidents (HI Cnt>0) created per period — sits above tables.
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'+
+      '<div>'+
+        '<h3 id="hiChartTitle" style="color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">Repeat incidents per '+(_HI_GRAN==='day'?'day':'week')+' \u2014 pet vs non-pet</h3>'+
+        '<p id="hiChartSub" class="meta-info" style="margin:0 0 12px">Repeat-incident tickets (HI Cnt&gt;0) created each '+(_HI_GRAN==='day'?'day':'week')+', split into <b style="color:#a78bfa">pet / animal</b> vs <b style="color:#ff9900">non-pet</b>.</p>'+
+      '</div>'+
+      // Week / Day granularity toggle.
+      '<div class="hi-gran" role="group" aria-label="Chart granularity">'+
+        '<button type="button" class="hi-gran-btn'+(_HI_GRAN!=='day'?' on':'')+'" onclick="hiSetGran(\'week\')">Weekly</button>'+
+        '<button type="button" class="hi-gran-btn'+(_HI_GRAN==='day'?' on':'')+'" onclick="hiSetGran(\'day\')">Daily</button>'+
+      '</div>'+
+    '</div>'+
     '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cHiWeekly"></canvas></div></div>'+
     '<div style="margin-top:22px">'+
     dashTcardHtml({title:'🐾 Involving pet / animal incidents',icon:'',dot:'#a78bfa',countClass:'pu',total:d.pet,
@@ -2643,30 +2691,66 @@ function renderHiChunk(d){
   // not the Weekly Volume section's scope. Pass that scope explicitly and cache per-scope so the
   // week range (Q3 ~10-11 wks, Q2 ~12 wks, Q2+Q3 combined) changes when the chip changes.
   const hiScope=(typeof DASH_SECTION_SCOPE!=='undefined' && DASH_SECTION_SCOPE.repeat) || 'live';
-  loadDashChunk('weekly',drawHiWeekly,{silent:true,scope:hiScope,cacheKey:'dash-weekly-hisplit-'+hiScope}).catch(function(){});
+  // Always fetch FRESH (noCache): the live (Q3) scope otherwise goes through the version-cached SWR
+  // path, which — when the dataset version is unchanged — serves a previously cached copy and skips
+  // the network entirely. A copy cached before the daily-buckets fields were added would then have
+  // no hiDailyLabels, so the Daily toggle silently falls back to weekly (Q2/Q2+Q3 worked only
+  // because non-live scopes already bypass the cache). The payload is small, so fetching fresh here
+  // is cheap and guarantees the daily arrays are present.
+  loadDashChunk('weekly',drawHiWeekly,{silent:true,scope:hiScope,noCache:true,cacheKey:'dash-weekly-hisplit-v2-'+hiScope}).catch(function(){});
 }
 // Wave (filled-area line) chart: pet vs non-pet repeat incidents (HI Cnt>0) created per week.
-function drawHiWeekly(w){
-  if(!w||!w.labels||!document.getElementById('cHiWeekly'))return;
-  // X axis shows just the week code (W26). Full "W26 (start – end)" appears in the hover tooltip title.
-  const labels=w.labels.slice();
-  const span=w.span||[];
-  const fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
-  const pet=w.hiPetCreated||[], nonPet=w.hiNonPetCreated||[];
-  const combined=pet.map(function(v,i){ return (v||0)+((nonPet[i])||0); });
+// Repeat-incidents chart granularity ('week' | 'day') + the last /api/dash/weekly payload, so the
+// Week/Day toggle can redraw without re-fetching.
+let _HI_GRAN='week', _HI_WEEKLY=null;
+// Receives the /api/dash/weekly payload; caches it and draws at the current granularity.
+function drawHiWeekly(w){ if(!w)return; _HI_WEEKLY=w; drawHiChart(); }
+// Switch the chart between weekly and daily buckets (redraws from the cached payload).
+function hiSetGran(g){
+  if(g!=='day'&&g!=='week')return;
+  if(_HI_GRAN===g){ return; }
+  _HI_GRAN=g;
+  // Update the toggle buttons' active state + the title/subtitle wording.
+  document.querySelectorAll('.hi-gran-btn').forEach(function(b){ b.classList.remove('on'); });
+  var active=document.querySelector('.hi-gran-btn[onclick*="\''+g+'\'"]'); if(active)active.classList.add('on');
+  var t=document.getElementById('hiChartTitle'); if(t)t.textContent='Repeat incidents per '+(g==='day'?'day':'week')+' \u2014 pet vs non-pet';
+  var sub=document.getElementById('hiChartSub'); if(sub)sub.innerHTML='Repeat-incident tickets (HI Cnt&gt;0) created each '+(g==='day'?'day':'week')+', split into <b style="color:#a78bfa">pet / animal</b> vs <b style="color:#ff9900">non-pet</b>.';
+  drawHiChart();
+}
+window.hiSetGran=hiSetGran;
+// Draw the wave chart from the cached payload using the current granularity.
+function drawHiChart(){
+  var w=_HI_WEEKLY; if(!w||!document.getElementById('cHiWeekly'))return;
+  var daily=(_HI_GRAN==='day');
+  // Pick the label set + pet/non-pet series + per-point date span for the chosen granularity.
+  var labels, pet, nonPet, span, fmtLabel;
+  if(daily && (w.hiDailyLabels||[]).length){
+    labels=w.hiDailyLabels.slice(); pet=w.hiDailyPet||[]; nonPet=w.hiDailyNonPet||[]; span=w.hiDailySpan||[];
+    // X label: short 'Jul 2'. Tooltip title: full date.
+    fmtLabel=function(k){ var dt=new Date(k+'T00:00:00'); return isNaN(dt)?k:dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+  } else {
+    labels=(w.labels||[]).slice(); pet=w.hiPetCreated||[]; nonPet=w.hiNonPetCreated||[]; span=w.span||[];
+    fmtLabel=function(k){ return k; };
+  }
+  var xLabels=labels.map(fmtLabel);
+  var combined=pet.map(function(v,i){ return (v||0)+((nonPet[i])||0); });
+  var fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+  // Daily has many more points — thin the x-axis labels and drop the point dots so it stays readable.
+  var many=daily && xLabels.length>40;
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('cHiWeekly',{type:'line',
-    data:{labels:labels,datasets:[
+    data:{labels:xLabels,datasets:[
       _waveDataset('Pet / animal',pet,'#a78bfa','rgba(167,139,250,'),
       _waveDataset('Non-pet',nonPet,'#ff9900','rgba(255,153,0,'),
-      // Combined (pet + non-pet): a clear STRAIGHT solid line, no fill, drawn on top.
-      {label:'Combined',data:combined,borderColor:'#4ade80',backgroundColor:'#4ade80',pointBackgroundColor:'#4ade80',pointRadius:3,pointHoverRadius:5,borderWidth:3,tension:0,fill:false,spanGaps:true,order:0},
+      {label:'Combined',data:combined,borderColor:'#4ade80',backgroundColor:'#4ade80',pointBackgroundColor:'#4ade80',pointRadius:many?0:3,pointHoverRadius:5,borderWidth:many?2:3,tension:daily?.25:0,fill:false,spanGaps:true,order:0},
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
-        tooltip:{callbacks:{title:function(items){ var i=items&&items[0]?items[0].dataIndex:-1; var s=(i>=0?span[i]:null)||{}; var a=fmtD(s.first), b=fmtD(s.last); return labels[i]+((a&&b)?(' ('+a+' \u2013 '+b+')'):''); }}}},
+        tooltip:{callbacks:{title:function(items){ var i=items&&items[0]?items[0].dataIndex:-1;
+          if(daily){ var s=(i>=0?span[i]:null)||{}; var d=fmtD(s.first); return d||xLabels[i]; }
+          var s2=(i>=0?span[i]:null)||{}; var a=fmtD(s2.first), b=fmtD(s2.last); return xLabels[i]+((a&&b)?(' ('+a+' \u2013 '+b+')'):''); }}}},
       scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Repeat incidents (HI Cnt>0)',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:11}}},
-        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,minRotation:0,autoSkip:false}}}}});
+        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:many?60:0,minRotation:0,autoSkip:many,maxTicksLimit:many?18:undefined}}}}});
 }
 function _barOpts(){return {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}};}
 
@@ -3214,6 +3298,9 @@ async function doLogin(){
     // Refresh the role roster + my profile (avatar), then re-render so role-gated UI updates.
     await loadUserRoles();
     if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
+    // Repaint the right-rail avatar badge now that the profile (with photo) is loaded — the badge was
+    // mounted while logged out, so it needs an explicit rebuild to show the photo without a reload.
+    try{ if(window.PHDRefreshRailProfile)window.PHDRefreshRailProfile(); }catch(e){}
     startHelpNotificationPolling(); // begin desktop notifications for admins/owner
     hideLoginLoader();
     nav(currentView);

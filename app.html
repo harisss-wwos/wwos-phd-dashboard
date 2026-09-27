@@ -162,6 +162,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}
 .chart-wrap{position:relative;height:300px}
 .chart-wrap.tall{height:340px}
+/* Week / Day granularity toggle for the repeat-incidents chart. */
+.hi-gran{display:inline-flex;background:#11161d;border:1px solid #2a323b;border-radius:8px;padding:2px;flex-shrink:0}
+.hi-gran-btn{background:transparent;border:none;color:#879596;font:inherit;font-size:.8em;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .12s,color .12s}
+.hi-gran-btn:hover{color:#d5dbdb}
+.hi-gran-btn.on{background:#a78bfa;color:#0e1013}
 table{width:100%;border-collapse:collapse;margin-top:12px}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd);font-size:.88em}
 th{background:#0a0a0a;color:var(--tm);font-weight:600;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
@@ -423,6 +428,16 @@ tr:hover{background:rgba(255,153,0,.03)}
 .ap-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
 .ap-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .ap-agent-head:hover{background:rgba(255,255,255,.03)}
+/* Unregistered / Unassigned holder: a red gradient background on the WHOLE block, blinking.
+   Applied when the assignee is NOT a registered PHD user in the database (see isRegisteredUser). */
+.ap-agent.ap-unreg{border-color:rgba(255,82,82,.6);animation:apUnregBlink 1.25s ease-in-out infinite}
+.ap-agent.ap-unreg .ap-agent-head{background:transparent}
+@keyframes apUnregBlink{
+  0%,100%{background:linear-gradient(135deg,rgba(255,82,82,.06),rgba(200,20,20,.10));box-shadow:0 0 0 0 rgba(255,82,82,0)}
+  50%{background:linear-gradient(135deg,rgba(255,82,82,.28),rgba(180,10,10,.42));box-shadow:0 0 16px 2px rgba(255,82,82,.45)}
+}
+/* "PHD" tag next to a registered PHD user's name. */
+.ap-phd-tag{display:inline-block;margin-left:9px;font-size:.58em;font-weight:800;letter-spacing:.5px;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.5);border-radius:20px;padding:2px 8px;vertical-align:middle}
 .ap-agent-name{color:#fff;font-weight:700;font-size:1.12em}
 .ap-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
 /* Crown badge next to an agent's name = count of Station Request / Address Exclusion tickets. */
@@ -752,6 +767,29 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .tcard-head .th-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .tcard-head .th-count{font-size:22px;font-weight:900;letter-spacing:-.4px;white-space:nowrap}
 .th-count.cy{color:var(--cy2)}.th-count.gr{color:#7ef2a8}.th-count.am{color:#ffcf5e}.th-count.pu{color:#c9b6ff}
+/* Info icon + hover tooltip explaining how a card's number is calculated. */
+.th-info{position:relative;display:inline-flex;align-items:center;justify-content:center;color:#6b7681;cursor:help;outline:none;flex-shrink:0}
+.th-info:hover,.th-info:focus{color:#5ecdec}
+.th-info svg{display:block}
+.th-info-pop{position:absolute;top:calc(100% + 10px);left:0;z-index:2147483647;width:max-content;max-width:min(440px,78vw);
+  background:#0d1319;border:1px solid #2a3f52;border-radius:12px;padding:13px 15px;
+  box-shadow:0 16px 40px -12px rgba(0,0,0,.8);
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease,visibility .15s;
+  font-weight:400;text-align:left;white-space:normal;pointer-events:none}
+.th-info:hover .th-info-pop,.th-info:focus .th-info-pop{opacity:1;visibility:visible;transform:translateY(0)}
+/* little arrow pointing up to the icon */
+.th-info-pop::before{content:"";position:absolute;bottom:100%;left:14px;border:6px solid transparent;border-bottom-color:#2a3f52}
+.th-info-pop::after{content:"";position:absolute;bottom:100%;left:15px;border:5px solid transparent;border-bottom-color:#0d1319}
+.th-info-pop .th-info-h{display:block;color:#cfe8f2;font-size:11.5px;font-weight:800;line-height:1.4;margin-bottom:8px}
+.th-info-pop ul{margin:0;padding-left:16px;list-style:disc}
+.th-info-pop li{color:#aeb9c2;font-size:11.5px;font-weight:500;line-height:1.5;margin:0 0 5px;word-break:break-word}
+.th-info-pop li:last-child{margin-bottom:0}
+/* The card clips its content (overflow:hidden for rounded corners), which would cut off the
+   tooltip. While the info icon is hovered/focused, lift overflow on the card + header + title so
+   the popover can escape, and raise the card above its siblings. */
+.tcard:has(.th-info:hover),.tcard:has(.th-info:focus){overflow:visible;position:relative;z-index:2147483647}
+.tcard-head:has(.th-info:hover),.tcard-head:has(.th-info:focus),
+.th-title:has(.th-info:hover),.th-title:has(.th-info:focus){overflow:visible}
 .itbl{width:100%;border-collapse:collapse}
 .itbl thead th{color:#6b7681;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;text-align:left;padding:10px 20px;background:#0d0f13}
 .itbl thead th.num{text-align:center;width:80px}

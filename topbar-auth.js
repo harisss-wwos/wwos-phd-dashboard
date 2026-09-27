@@ -240,6 +240,10 @@
       + '.tb-nav-badge{display:none;position:absolute;top:6px;right:6px;min-width:17px;height:17px;padding:0 4px;border-radius:20px;background:#ff5252;color:#fff;font-size:.62em;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #1b2430}'
       + '.tb-nav-badge.show{display:block}'
       + '.tb-nav-badge.zero{background:#3a4655;color:#cdd7de}'
+      // Loading state: neutral grey pill with a tiny spinner instead of a premature "0".
+      + '.tb-nav-badge.loading{background:#3a4655;padding:0;display:flex;align-items:center;justify-content:center}'
+      + '.tb-nav-badge-spin{display:inline-block;width:9px;height:9px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:tbBadgeSpin .7s linear infinite}'
+      + '@keyframes tbBadgeSpin{100%{transform:rotate(360deg)}}'
       // Captions are always visible now, so the hover-expand label is redundant AND it shifted the
       // centered column on hover. Keep the pill a fixed 46px circle and hide the slide-out label;
       // hover just gives a subtle background/lift instead.
@@ -1450,6 +1454,30 @@
     item.appendChild(pill);
     col.insertBefore(item, col.firstChild); // pin to the very TOP of the right rail
   }
+  // Repaint the rail profile badge from the CURRENT profile. buildRailProfile() early-returns when
+  // the badge already exists, so after the profile (with its base64 avatar) loads we must remove the
+  // stale badge and rebuild it — otherwise it stays stuck on the initial-letter fallback until a full
+  // page reload. Called after login / profile load.
+  function rebuildRailProfile() {
+    var col = tbFabColRight();
+    var existing = col.querySelector('.tb-fab-item-profile');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    buildRailProfile();
+  }
+  window.PHDRefreshRailProfile = rebuildRailProfile;
+  // Load the full profile (photo + display name) in the background, then repaint the rail badge +
+  // role-gated FABs. Shared by every mount branch (app.html, no-toolbar pages, and the normal path)
+  // so the avatar photo shows without needing a full reload. Safe to call when logged out (no-op).
+  async function hydrateProfileAndRepaint() {
+    if (!loggedIn()) return;
+    try { if (A.loadMyProfile) await A.loadMyProfile(); } catch (e) {}
+    try { if (A._refreshMe) await A._refreshMe(); else if (A.getMe) await A.getMe(); } catch (e) {}
+    try { if (window.PHDNav && window.PHDNav.refreshRight) window.PHDNav.refreshRight(); } catch (e) {}
+    try { rebuildRailProfile(); } catch (e) {}          // repaint the right-rail avatar badge with the photo
+    try { if (typeof applyAnalyticsFabState === 'function') applyAnalyticsFabState(); } catch (e) {}
+    try { if (typeof applyNavFabsState === 'function') applyNavFabsState(); } catch (e) {}
+  }
+  window.PHDHydrateProfile = hydrateProfileAndRepaint;
   // Evaluate whether a nav item's `need` token is satisfied. Central place so buildNavFabs and
   // applyNavFabsState stay in sync. Owner passes every flag (the flag helpers force-true for owner).
   function tbNeedMet(need, li, isAdmin, isOwner) {
@@ -1509,7 +1537,9 @@
       // Icon: a custom PNG when `img` is set, otherwise an inline SVG icon.
       var iconHtml = it.img ? '<img class="tb-nav-img" src="' + it.img + '" alt="">' : ic(it.icon);
       // Optional count badge on the icon (e.g. open-alert count on the Alerts nav FAB).
-      var badgeHtml = it.badge ? '<span class="tb-nav-badge" id="navBadge-' + it.badge + '">0</span>' : '';
+      // Start in a "loading" state showing a tiny spinner (not a premature "0") until the real
+      // count is fetched by refreshAlertBadge().
+      var badgeHtml = it.badge ? '<span class="tb-nav-badge loading show" id="navBadge-' + it.badge + '"><span class="tb-nav-badge-spin"></span></span>' : '';
       fab.innerHTML = '<span class="tb-nav-ic">' + iconHtml + badgeHtml + '</span>'
         + '<span class="tb-nav-label">' + it.label + '</span>';
       if (isPlaceholder) {
@@ -1686,18 +1716,21 @@
     return null; // below all nav FABs -> drop at the end of the nav group
   }
   // Fetch /api/help/open and paint the count onto the Alerts nav FAB badge.
-  // Always visible (shows 0 when there are none) so the count is always readable.
+  // The badge starts in a "loading" state (a tiny spinner) and only shows a number once the real
+  // count arrives — so we never flash a premature "0". If the fetch fails, it keeps spinning rather
+  // than showing a wrong count. Always visible thereafter (grey when 0, red when there are alerts).
   function refreshAlertBadge() {
     var badge = document.getElementById('navBadge-alerts');
     if (!badge || !A || !A.api) return;
-    badge.classList.add('show'); // always show the number, even when 0
+    badge.classList.add('show'); // keep the pill visible (spinner while loading)
     A.api('GET', '/api/help/open').then(function (r) {
-      if (!r || !r.ok || !Array.isArray(r.data)) return;
+      if (!r || !r.ok || !Array.isArray(r.data)) return; // leave the spinner up on a bad response
       var n = r.data.length;
+      badge.classList.remove('loading');                 // stop the spinner — real data is in
       badge.textContent = n > 99 ? '99+' : n;
       badge.classList.add('show');
       badge.classList.toggle('zero', n === 0); // grey when none, red when there are alerts
-    }).catch(function () {});
+    }).catch(function () {}); // network error: keep the spinner, don't show a false 0
   }
   // Re-apply the nav FABs' role-gated state after a background profile load (so they enable without reload).
   function applyNavFabsState() {
@@ -1832,8 +1865,8 @@
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
     // recent-history quick-swap button so the feature is on EVERY page.
-    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildBackButton(); buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); return; }
-    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); return; } // app.html: back + history + analytics + live + nav FABs + logo + profile avatar
+    if (document.body.getAttribute('data-no-toolbar') === 'true') { buildBackButton(); buildMenuButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); hydrateProfileAndRepaint(); return; }
+    if (document.body.getAttribute('data-app') === 'live') { buildBackButton(); buildHistoryButton(); buildAnalyticsButton(); buildLiveButton(); buildNavFabs(); buildRailLogo(); buildProfileAvatar(); hydrateProfileAndRepaint(); return; } // app.html: back + history + analytics + live + nav FABs + logo + profile avatar + async profile hydrate
 
     var oldBar = document.querySelector('.top-bar');
     var active = document.body.getAttribute('data-nav-active') || '';
@@ -1869,7 +1902,8 @@
       // Users buttons enable without needing a re-login.
       try { if (A._refreshMe) await A._refreshMe(); else if (A.getMe) await A.getMe(); } catch (e) {}
       window.PHDNav.refreshRight();
-      refreshProfileAvatar();   // repaint the top-right avatar with the full profile (photo/name)
+      refreshProfileAvatar();   // (legacy no-op against retired #tbTopRight cluster)
+      rebuildRailProfile();     // repaint the RIGHT-rail avatar badge with the full profile (photo/name)
       applyAnalyticsFabState(); // reflect admin role on the analytics FAB once the profile is in
       applyNavFabsState();      // reflect role gating on the nav FABs once the profile is in
     }
