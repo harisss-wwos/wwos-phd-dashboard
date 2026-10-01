@@ -75,7 +75,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-type-head:hover{background:rgba(255,255,255,.03)}
 .iz-type-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--iz-acbg,rgba(240,138,29,.14));color:var(--iz-ac,#e08a1d);flex-shrink:0}
 .iz-type-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
-.iz-type-name{color:#eef1f4;font-size:.96em;font-weight:700}
+.iz-type-nrow{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.iz-type-name{color:#eef1f4;font-size:.96em;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Copy-name button — small, appears beside the type name; available to everyone. */
+.iz-copybtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:6px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;padding:0;transition:border-color .15s,color .15s,background .15s}
+.iz-copybtn:hover{border-color:#ff9900;color:#ff9900}
+.iz-copybtn.copied{border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,.12)}
+.iz-copybtn svg{width:13px;height:13px}
 .iz-type-desc{color:#8a94a2;font-size:.79em;font-style:italic;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iz-type-caret{color:var(--tm);display:inline-flex;transition:transform .22s ease;flex-shrink:0}
 .iz-type.open .iz-type-caret{transform:rotate(180deg)}
@@ -197,6 +203,8 @@ var ICO_EX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 var ICO_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 var ICO_DEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
 var ICO_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+var ICO_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+var ICO_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 
 // Loaded taxonomy: [{category, catIcon, catOrder, types:[{id,type,def,use,ex,color,icon,desc,...}]}]
 var IZ_CATS=[];
@@ -245,6 +253,32 @@ function izToggleCat(gi){
   var draw=function(){ if(done) return; done=true; izDrawWiresFor(grp); };
   last.addEventListener('animationend', draw, { once:true });
   setTimeout(draw, 650);
+}
+// Copy an incident type's NAME to the clipboard; briefly flash a check mark. Available to everyone.
+function izCopyType(gi,ti,btn,ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  var cat=IZ_CATS[gi]; if(!cat) return; var ty=cat.types[ti]; if(!ty) return;
+  var text=String(ty.type||'');
+  var done=function(ok){
+    if(!btn) return;
+    if(ok){
+      var orig=btn.innerHTML;
+      btn.innerHTML=ICO_CHECK; btn.classList.add('copied'); btn.title='Copied!';
+      setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); btn.title='Copy incident type name'; }, 1300);
+    }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ izCopyFallback(text,done); });
+  } else { izCopyFallback(text,done); }
+}
+// Fallback copy for insecure contexts / older browsers (uses a hidden textarea + execCommand).
+function izCopyFallback(text,done){
+  try{
+    var ta=document.createElement('textarea'); ta.value=text;
+    ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok);
+  }catch(e){ done(false); }
 }
 function izToggleType(gi,ti,ev){
   if(ev) ev.stopPropagation();
@@ -300,7 +334,9 @@ function render(){
       html+='<div class="iz-type" id="izType'+gi+'_'+ti+'" style="--iz-ac:'+ac+';--iz-acbg:'+izTint(ac)+';--d:'+(ti*55)+'ms">'
         +'<div class="iz-type-head" onclick="izToggleType('+gi+','+ti+',event)">'
           +'<span class="iz-type-ic">'+(ic(ty.icon,17)||'\u25cf')+'</span>'
-          +'<span class="iz-type-main"><span class="iz-type-name">'+esc(ty.type)+'</span>'
+          +'<span class="iz-type-main">'
+            +'<span class="iz-type-nrow"><span class="iz-type-name">'+esc(ty.type)+'</span>'
+              +'<button class="iz-copybtn" type="button" title="Copy incident type name" aria-label="Copy incident type name" onclick="izCopyType('+gi+','+ti+',this,event)">'+ICO_COPY+'</button></span>'
             +(ty.desc?'<span class="iz-type-desc">'+esc(ty.desc)+'</span>':'')+'</span>'
           +actions
           +'<span class="iz-type-caret">\u25be</span>'
