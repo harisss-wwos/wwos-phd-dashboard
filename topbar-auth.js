@@ -1599,10 +1599,12 @@
         { key: 'unique-cases',    label: 'Unique cases',            img: 'important.png', href: 'important-cases.html', need: 'unique' }
       ]
     });
-    // Issue Types fly-out: the governed incident-type taxonomy (27 types / 9 categories) report.
+    // Issue Types fly-out: the governed incident-type taxonomy reference. Open to EVERYONE (even
+    // logged-out) like the live dashboard — it's a read-only reference. Edit access is enforced
+    // separately inside issue-types.html + the server (only harisss / flofalgu can add/edit).
     buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
       id: 'issue-types', triggerIcon: 'clipboard', triggerLabel: 'Issue Types', items: [
-        { key: 'issue-types', label: 'Issue Type Standardization', icon: 'clipboard', href: 'issue-types.html', need: 'li' }
+        { key: 'issue-types', label: 'Issue Type Standardization', icon: 'clipboard', href: 'issue-types.html', need: 'any' }
       ]
     });
     buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
