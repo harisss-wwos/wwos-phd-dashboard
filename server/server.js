@@ -23,12 +23,15 @@ function ticketChanged(incoming, existing) {
 }
 
 // ---- "Live" quarter selection (decoupled from the calendar) --------------------------------------
-// The dashboard's "live" view = the NEWEST quarter that actually HAS tickets, not the calendar
-// quarter of today's date. This way a date rollover into an empty new quarter (e.g. Q4 before any
-// Q4 data is uploaded) never blanks the dashboard — it keeps showing the latest quarter with data.
-// Tickets are still STORED by their own CreateDate (quarterOf), so new quarters are created/filled
-// automatically as their data arrives; only the "which quarter do we display by default" choice
-// changes here. Falls back to the calendar quarter when the DB is empty (fresh install / first upload).
+// The dashboard's "live" view = the quarter that is the MAIN working quarter right now, chosen by
+// ticket volume rather than by the calendar. This avoids two failure modes:
+//   (a) a date rollover into an empty new quarter blanking the dashboard, and
+//   (b) a handful of early tickets for a brand-new quarter (e.g. 36 Q4 tickets) hijacking the view
+//       away from the real active quarter (e.g. 10k Q3 tickets).
+// Rule: pick the quarter with the HIGHEST ticket count; a newer quarter only becomes "live" once it
+// has genuinely taken over by volume. Ties break toward the NEWER quarter. Tickets are still STORED
+// by their own CreateDate (quarterOf) — new quarters are created/filled as data arrives; this only
+// changes which quarter is DISPLAYED by default. Falls back to the calendar quarter on an empty DB.
 // Cached briefly so a burst of read endpoints in one page load doesn't re-scan every request.
 let _liveQCache = { id: null, at: 0 };
 const LIVE_Q_TTL_MS = 15000;
@@ -37,21 +40,29 @@ async function liveQuarterId() {
   if (_liveQCache.id && (now - _liveQCache.at) < LIVE_Q_TTL_MS) return _liveQCache.id;
   let picked = null;
   try {
+    // Count tickets per quarter in ticket_docs; pick the quarter with the most tickets
+    // (ties -> newer quarter id).
     const tColl = await getCollection(COLLECTIONS.ticketDocs);
-    // Distinct quarter ids present in ticket_docs; pick the newest valid "YYYY-Qn" by id.
-    const qs = (await tColl.distinct('q')).filter(q => /^\d{4}-Q[1-4]$/.test(q));
-    if (qs.length) {
-      qs.sort(); // lexicographic sort works for "YYYY-Qn" (e.g. 2026-Q3 > 2026-Q2)
-      picked = qs[qs.length - 1];
-    }
-    // Legacy fallback: a quarters doc that still holds a non-empty data.tickets array (un-migrated).
-    if (!picked) {
+    const rows = await tColl.aggregate([
+      { $match: { q: { $regex: /^\d{4}-Q[1-4]$/ } } },
+      { $group: { _id: '$q', n: { $sum: 1 } } },
+    ]).toArray();
+    const counts = {};
+    rows.forEach(r => { counts[r._id] = r.n; });
+    // Legacy fallback: fold in any quarters doc that still holds a non-empty data.tickets array.
+    try {
       const qColl = await getCollection(COLLECTIONS.quarters);
       const docs = await qColl.find({}, { projection: { 'meta.count': 1, 'data.count': 1 } }).toArray();
-      const withData = docs
-        .filter(d => /^\d{4}-Q[1-4]$/.test(d._id) && (((d.meta && d.meta.count) || (d.data && d.data.count) || 0) > 0))
-        .map(d => d._id).sort();
-      if (withData.length) picked = withData[withData.length - 1];
+      docs.forEach(d => {
+        if (!/^\d{4}-Q[1-4]$/.test(d._id)) return;
+        const c = (d.meta && d.meta.count) || (d.data && d.data.count) || 0;
+        if (c > (counts[d._id] || 0)) counts[d._id] = c; // prefer the larger of the two sources
+      });
+    } catch (e) { /* best-effort */ }
+    const ids = Object.keys(counts).filter(id => counts[id] > 0);
+    if (ids.length) {
+      ids.sort((a, b) => (counts[b] - counts[a]) || b.localeCompare(a)); // most tickets, then newer id
+      picked = ids[0];
     }
   } catch (e) { /* fall through to calendar */ }
   if (!picked) picked = currentQuarter(); // empty DB -> keep current behaviour so the first upload works
@@ -2836,9 +2847,9 @@ const GRP_ALL = GRP_A1.concat(GRP_A2, GRP_B);
 function grpOf(login) { const n = String(login || '').toLowerCase(); if (GRP_A1.includes(n)) return 'A1'; if (GRP_A2.includes(n)) return 'A2'; if (GRP_B.includes(n)) return 'B'; return null; }
 function grpAvg(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
 
-// Compute the full group-metrics object from the live tickets (mirrors the client gvComputeMetrics).
-async function computeGroupMetrics() {
-  const data = await liveTickets();
+// Compute the full group-metrics object from a quarter's tickets (mirrors the client gvComputeMetrics).
+async function computeGroupMetrics(qid) {
+  const data = qid ? await loadQuarterTickets(qid) : await liveTickets();
   const allDates = data.map(r => new Date(r.CreateDate)).filter(d => !isNaN(d));
   const maxDate = allDates.length ? new Date(Math.max(...allDates)) : new Date();
   const aRes = {}, aTm = {}, aOpen = {}, aAsgn = {};
@@ -2908,9 +2919,9 @@ const GROUP_ROLLUP_VERSION = 5;
 // Materialize the group metrics into a tiny per-quarter doc so the section endpoints read a small
 // findOne (~ms) instead of scanning the ~8k-ticket blob on every request.
 async function recomputeGroupRollup(qid) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   const meta = await liveMetaFor(qid);
-  const metrics = await computeGroupMetrics();
+  const metrics = await computeGroupMetrics(qid);
   const coll = await getCollection(COLLECTIONS.groupRollups);
   await coll.updateOne({ _id: qid }, { $set: { publishedAt: meta.publishedAt || null, computedAt: new Date().toISOString(), rollupVersion: GROUP_ROLLUP_VERSION, metrics } }, { upsert: true });
   return { quarter: qid, publishedAt: meta.publishedAt || null };
@@ -3119,9 +3130,9 @@ function shiftDisplayName(n) {
   return n || 'Unassigned';
 }
 async function recomputeShiftRollup(qid) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   const meta = await liveMetaFor(qid);
-  const data = await liveTickets();
+  const data = await loadQuarterTickets(qid); // compute from THIS quarter's tickets, not the global live
   // Activity window: relative to the latest CreateDate in the data (mirrors app.js computeMetrics).
   const createTimes = data.map(r => new Date(r.CreateDate).getTime()).filter(t => !isNaN(t));
   const refNow = createTimes.length ? Math.max(...createTimes) : Date.now();
@@ -4022,7 +4033,7 @@ const DASH_CHUNKS = {
 // Recompute every chunk for a quarter and upsert the rollup doc. Best-effort: on error
 // it throws so callers can log, but publish flows must never block on it.
 async function recomputeRollup(qid) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   // Skip time-sensitive chunks (age/age-detail) — they always compute live, so caching them is pointless.
   const names = Object.keys(DASH_CHUNKS).filter(n => !ALWAYS_LIVE_CHUNKS.has(n));
   // Run all chunk aggregations for this quarter (in parallel).
@@ -4056,7 +4067,7 @@ async function liveMetaFor(qid) {
 // whenever the stored shape changes, so boot backfills stale-shaped rollups even when publishedAt is unchanged.
 const AGENT_ROLLUP_VERSION = 5;
 async function recomputeAgentRollups(qid) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   const tickets = await loadQuarterTickets(qid);
   const publishedAt = (await liveMetaFor(qid)).publishedAt;
   const agents = {};
