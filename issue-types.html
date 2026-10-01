@@ -48,8 +48,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 /* ================= Taxonomy WIRING diagram (reference) ================= */
 .iz-wire{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:16px;padding:20px 22px 24px}
-/* Fixed left column; width is measured in JS = widest category node (one-line names), applied to all. */
-.iz-wire{--iz-catw:300px}
+/* Category node column = 50% of the container width (the node fills it; the wires + types take the rest). */
+.iz-wire{--iz-catw:50%}
 .iz-grp{display:grid;grid-template-columns:var(--iz-catw) 1fr;gap:0;align-items:stretch;margin-top:12px;padding-top:12px;border-top:1px dashed #262b31}
 .iz-grp:first-of-type{border-top:none;margin-top:6px;padding-top:0}
 .iz-cat-col{display:flex;align-items:center;position:relative}
@@ -360,13 +360,8 @@ function render(){
   izFitCatWidth();
   setTimeout(izDrawAllWires, 30);
 }
-function izFitCatWidth(){
-  var wire=document.querySelector('.iz-wire'); if(!wire) return;
-  var nodes=wire.querySelectorAll('.iz-cat-node'); if(!nodes.length) return;
-  wire.style.setProperty('--iz-catw','max-content');
-  var max=0; nodes.forEach(function(n){ var w=n.getBoundingClientRect().width; if(w>max) max=w; });
-  wire.style.setProperty('--iz-catw', Math.min(Math.ceil(max)+2,420)+'px');
-}
+// Category column width is a fixed 50% (set in CSS via --iz-catw) — no measuring needed.
+function izFitCatWidth(){ /* fixed 50% width; nothing to compute */ }
 window.addEventListener('resize', function(){ izFitCatWidth(); izDrawAllWires(); });
 
 // ================= EDIT MODAL ==================================================================
