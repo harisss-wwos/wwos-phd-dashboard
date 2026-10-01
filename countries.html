@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Countries · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
+/* ---- Illustrated gradient banner header (globe theme: blue/teal) ---- */
+.cx-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:14px;
+  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#0ea5b7,#38bdf8 55%,#a5e8ff);background-size:200% 100%;animation:cxBanner 9s ease infinite}
+@keyframes cxBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.cx-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.cx-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#062a33}
+.cx-banner .hb-title svg{flex-shrink:0;color:#062a33}
+.cx-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(6,42,51,.82)}
+.cx-banner .hb-sub b{color:#04202a;font-weight:800}
+.cx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.78);border-radius:14px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#062a33}
+.cx-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
+.cx-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
+.cx-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:210px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.34;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="40" r="30"/><path d="M30 40h60M60 10c9 8 9 52 0 60M60 10c-9 8-9 52 0 60M36 22c14 8 34 8 48 0M36 58c14-8 34-8 48 0"/></svg>')}
+@media(max-width:640px){.cx-banner .hb-title{font-size:1.25em}.cx-banner::after{opacity:.22}.cx-banner .hb-total{margin-left:0}}
+/* Section card (collapsible accordion — one open at a time) */
+.cx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #38bdf8;border-radius:16px;margin-bottom:16px;overflow:hidden}
+.cx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
+.cx-sec-head:hover{background:rgba(255,255,255,.03)}
+/* Globe illustration watermark behind the head, right side (mask-faded so text stays readable). */
+.cx-sec-head::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:120px;background-repeat:no-repeat;background-position:center;background-size:auto 76%;opacity:.10;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 35%,#000 65%,transparent);mask-image:linear-gradient(90deg,transparent,#000 35%,#000 65%,transparent);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%2338bdf8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="40" r="28"/><path d="M32 40h56M60 12c8 8 8 48 0 56M60 12c-8 8-8 48 0 56"/></svg>')}
+.cx-sec-title{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;color:#fff;font-size:1.08em;font-weight:700;min-width:0;flex:1 1 auto}
+.cx-code{font-family:'Inter',monospace;color:#7dd3fc;letter-spacing:.5px}
+.cx-code-name{color:var(--tm);font-size:.8em;font-weight:400;line-height:1.4;width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-code-name.none{font-style:italic;opacity:.7}
+.cx-sec-head-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.cx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:20px;font-weight:800;font-size:.88em;background:rgba(56,189,248,.16);color:#7dd3fc;border:1px solid rgba(56,189,248,.4)}
+.cx-caret{color:var(--tm);display:inline-flex;transition:transform .2s ease}
+.cx-sec.open .cx-caret{transform:rotate(180deg)}
+.cx-sec-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 22px}
+.cx-sec.open .cx-sec-body{max-height:none;padding:8px 22px 14px}
+/* Four summary stat tiles at the top of each open section. */
+.cx-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0 18px}
+.cx-stat{background:#0b0d10;border:1px solid #1e242b;border-radius:12px;padding:14px 16px;border-top:3px solid #2a323b}
+.cx-stat-n{font-size:1.7em;font-weight:900;line-height:1;letter-spacing:-.5px;color:#fff}
+.cx-stat-l{margin-top:6px;font-size:.72em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tm)}
+.cx-stat.total{border-top-color:#38bdf8}.cx-stat.total .cx-stat-n{color:#7dd3fc}
+.cx-stat.pet{border-top-color:#a78bfa}.cx-stat.pet .cx-stat-n{color:#c4b5fd}
+.cx-stat.nonpet{border-top-color:#ff9f2e}.cx-stat.nonpet .cx-stat-n{color:#ffc879}
+.cx-stat.repeat{border-top-color:#4ade80}.cx-stat.repeat .cx-stat-n{color:#86efac}
+@media(max-width:720px){.cx-stats{grid-template-columns:repeat(2,1fr)}}
+/* Per-section chart */
+.cx-chart-title{color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 4px}
+.cx-chart-sub{color:var(--tm);font-size:.82em;line-height:1.5;margin:0 0 12px}
+.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:12px;padding:14px 14px 6px;margin-bottom:20px}
+.chart-wrap{position:relative;height:200px}
+.chart-wrap.tall{height:340px}
+/* Table (clean, borderless) */
+.cx-tbl-wrap{overflow-x:auto;margin-bottom:10px}
+.cx-tbl{width:100%;border-collapse:collapse;font-size:.88em}
+.cx-tbl th,.cx-tbl td{border:none;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 14px;text-align:left;vertical-align:middle}
+.cx-tbl thead th{background:transparent;color:var(--tm);text-transform:uppercase;font-size:.72em;letter-spacing:.5px;font-weight:700;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.12)}
+.cx-tbl tbody tr:hover td{background:rgba(56,189,248,.05)}
+.cx-tbl tbody tr:last-child td{border-bottom:none}
+.cx-fit{width:1%;white-space:nowrap}
+.cx-center{text-align:center}
+.cx-tbl th.cx-center,.cx-tbl td.cx-center{text-align:center}
+.cx-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap}
+.cx-idlink:hover{text-decoration:underline}
+.cx-num{color:#879596;font-weight:600;white-space:nowrap}
+.cx-assignee{color:var(--t);white-space:nowrap}
+.cx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-weight:800;font-size:.78em}
+.cx-tag-s.c{background:rgba(74,222,128,.16);color:var(--gl)}
+.cx-tag-s.r{background:rgba(68,185,214,.16);color:var(--tl)}
+.cx-tag-s.o{background:rgba(255,153,0,.16);color:var(--o)}
+.cx-title{max-width:1px;width:100%}
+.cx-title-txt{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t)}
+.cx-sort{cursor:pointer;user-select:none}
+.cx-sort:hover{color:#fff}
+.cx-sort-ar{color:#38bdf8;font-weight:800;margin-left:4px}
+.cx-sort-ar.idle{color:#4a5560;font-weight:400}
+.cx-more{margin:2px 0 4px;display:flex;align-items:center;gap:12px}
+.cx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:8px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
+.cx-more button:hover{border-color:#38bdf8;color:#fff}
+.cx-mcount{color:var(--tm);font-size:.8em}
+.cx-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
+/* Loading skeleton */
+.cx-skel{margin-top:2px}
+.sk-banner{position:relative;overflow:hidden;border-radius:16px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
+  background:linear-gradient(90deg,#0b3a45,#0e5566 55%,#1a7d92);background-size:200% 100%;animation:cxBanner 9s ease infinite;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px}
+.sk-banner .sk-bl{display:flex;flex-direction:column;gap:9px}
+.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:16px;margin-bottom:16px;overflow:hidden}
+.sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
+.sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+.sk-banner .sk-line{background:rgba(255,255,255,.16)}
+.sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:cxSk 1.2s infinite}
+.sk-banner .sk-line::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+@keyframes cxSk{100%{transform:translateX(100%)}}
+/* gate */
+.cx-gate{max-width:560px;margin:60px auto;text-align:center}
+.cx-gate h1{color:#fff;font-size:1.5em;margin-bottom:10px}
+.cx-gate p{color:var(--tm);line-height:1.55}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body data-nav-active="countries" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div class="cx-skel">
+    <div class="sk-banner">
+      <div class="sk-bl">
+        <span class="sk-line" style="width:170px;height:22px"></span>
+        <span class="sk-line" style="width:420px;height:12px"></span>
+      </div>
+      <span class="sk-line" style="width:96px;height:44px;border-radius:14px"></span>
+    </div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+  </div>
+</div>
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+// Friendly names for common leading codes (display only; the code is always shown). Covers real
+// country codes plus the US state codes / system tokens that appear as Title prefixes. Unknown
+// codes just show the code with no name.
+var CX_NAMES={
+  US:'United States',UK:'United Kingdom',GB:'United Kingdom',CA:'Canada',IN:'India',IT:'Italy',
+  DE:'Germany',AU:'Australia',JP:'Japan',FR:'France',ES:'Spain',MX:'Mexico',EG:'Egypt',BR:'Brazil',
+  SA:'Saudi Arabia',UAE:'United Arab Emirates',BE:'Belgium',NL:'Netherlands',IE:'Ireland',IL:'Israel',
+  SG:'Singapore',AT:'Austria',USA:'United States',PT:'Portugal',TR:'Turkey',UA:'Ukraine',CAN:'Canada',
+  ZA:'South Africa',NO:'Norway',EU:'European Union',
+  // US state codes sometimes used as prefixes
+  TX:'Texas (US state)',FL:'Florida (US state)',NY:'New York (US state)',GA:'Georgia (US state)',
+  NC:'North Carolina (US state)',NJ:'New Jersey (US state)',UT:'Utah (US state)',MD:'Maryland (US state)',
+  NE:'Nebraska (US state)',OH:'Ohio (US state)',TN:'Tennessee (US state)',WI:'Wisconsin (US state)',
+  MO:'Missouri (US state)',WV:'West Virginia (US state)',OK:'Oklahoma (US state)',AL:'Alabama (US state)',
+  PA:'Pennsylvania (US state)',ND:'North Dakota (US state)',MA:'Massachusetts (US state)',WA:'Washington (US state)',
+  NV:'Nevada (US state)',AZ:'Arizona (US state)',VA:'Virginia (US state)',MS:'Mississippi (US state)',
+  CO:'Colorado (US state)',LA:'Louisiana (US state)',ON:'Ontario (CA province)'
+};
+function cxNameOf(code){ return CX_NAMES[String(code||'').toUpperCase()]||''; }
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="cx-gate"><h1>Countries</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
+function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
+function statusTag(s){
+  var v=String(s||'').toLowerCase();
+  if(v==='closed')return '<span class="cx-tag-s c" title="Closed">C</span>';
+  if(v==='resolved')return '<span class="cx-tag-s r" title="Resolved">R</span>';
+  return '<span class="cx-tag-s o" title="'+esc(s||'')+'">'+esc((s||'?').charAt(0).toUpperCase())+'</span>';
+}
+// Display-only assignee mapping: LM-CAP service account UUID -> "LM-CAP"; blank -> "NO ASSIGNEE".
+var CX_ASSIGNEE_MAP={ '0d1616c8-bcb7-4450-8bc5-f0a296bc01d1':'LM-CAP' };
+function cxAssignee(a){ var raw=String(a==null?'':a).trim(); if(!raw) return 'NO ASSIGNEE'; return CX_ASSIGNEE_MAP[raw.toLowerCase()]||raw; }
+
+var CX_SECS=[]; var CX_PAGE0=20, CX_STEP=10;
+var CX_CHARTS={};
+
+function cxWeekStart(d){ var x=new Date(d.getTime()); var day=(x.getUTCDay()+6)%7; x.setUTCDate(x.getUTCDate()-day); x.setUTCHours(0,0,0,0); return x; }
+// Bucket a section's tickets by the week their CreateDate falls in, tracking FOUR weekly series:
+//   created  = all tickets created that week (left axis)
+//   repeat   = repeat incidents (t.hi) that week          (right axis) — combined
+//   pet      = repeat incidents that are pet/animal (t.pet) (right axis)
+//   nonpet   = repeat incidents that are NOT pet            (right axis)
+function cxWeeklyBuckets(tickets){
+  var created={}, repeat={}, pet={}, nonpet={}, min=null, max=null;
+  (tickets||[]).forEach(function(t){
+    var d=new Date(t.created); if(isNaN(d)) return;
+    var k=cxWeekStart(d).getTime();
+    created[k]=(created[k]||0)+1;
+    if(t.hi){ repeat[k]=(repeat[k]||0)+1; if(t.pet){ pet[k]=(pet[k]||0)+1; } else { nonpet[k]=(nonpet[k]||0)+1; } }
+    if(min===null||k<min)min=k; if(max===null||k>max)max=k;
+  });
+  var labels=[], cData=[], rData=[], pData=[], nData=[];
+  if(min===null){ return {labels:labels,created:cData,repeat:rData,pet:pData,nonpet:nData}; }
+  var WK=7*24*3600*1000;
+  for(var k=min;k<=max;k+=WK){
+    labels.push(new Date(k).toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+    cData.push(created[k]||0); rData.push(repeat[k]||0); pData.push(pet[k]||0); nData.push(nonpet[k]||0);
+  }
+  return {labels:labels,created:cData,repeat:rData,pet:pData,nonpet:nData};
+}
+// Presentation:
+//   Created  -> soft translucent BARS on the left axis (quiet background context).
+//   Repeat (combined) -> a single filled area on the right axis (the primary repeat signal).
+//   Pet / Non-pet -> thin clean lines on the right axis (no fill, tiny points on hover only).
+// Bars vs lines + separate axes keep the two scales visually distinct instead of four tangled waves.
+// Presentation:
+//   Created           -> soft translucent bars on the LEFT axis (quiet background context).
+//   Pet / Non-pet     -> coloured bars on the RIGHT axis (the requested "sticks").
+//   Repeat (combined) -> a single line on the RIGHT axis so the total reads over the bars.
+function cxBars(label,data,color,axis){
+  return {type:'bar',label:label,data:data,yAxisID:axis||'y',
+    backgroundColor:color,borderColor:color,borderWidth:0,borderRadius:3,order:3};
+}
+function cxLine(label,data,color){
+  return {type:'line',label:label,data:data,yAxisID:'yRepeat',order:1,
+    borderColor:color,pointRadius:0,pointHoverRadius:4,pointBackgroundColor:color,
+    borderWidth:2.5,tension:.4,fill:false,spanGaps:true};
+}
+function cxDrawChart(idx){
+  if(typeof Chart==='undefined')return;
+  var a=CX_SECS[idx]; if(!a)return;
+  var cv=document.getElementById('cxCanvas'+idx); if(!cv)return;
+  var b=cxWeeklyBuckets(a.tickets);
+  if(CX_CHARTS[idx]){ try{CX_CHARTS[idx].destroy();}catch(e){} delete CX_CHARTS[idx]; }
+  Chart.defaults.color='#879596'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  CX_CHARTS[idx]=new Chart(cv,{
+    data:{labels:b.labels,datasets:[
+      cxBars('Tickets created',b.created,'rgba(56,189,248,.28)','y'),
+      cxBars('Pet incidents',b.pet,'#a78bfa','yRepeat'),
+      cxBars('Non-pet incidents',b.nonpet,'#ff9f2e','yRepeat'),
+      cxLine('Repeat incidents (combined)',b.repeat,'#4ade80')
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,padding:14,font:{size:12}}},
+        tooltip:{backgroundColor:'rgba(10,12,16,.96)',borderColor:'#243', borderWidth:1,padding:10,cornerRadius:8,usePointStyle:true}},
+      scales:{
+        y:{stacked:false,beginAtZero:true,position:'left',grid:{color:'rgba(255,255,255,.05)'},border:{display:false},title:{display:true,text:'Tickets created',color:'#7dd3fc',font:{size:12}},ticks:{font:{size:11},precision:0}},
+        yRepeat:{stacked:false,beginAtZero:true,position:'right',grid:{drawOnChartArea:false},border:{display:false},title:{display:true,text:'Repeat incidents',color:'#4ade80',font:{size:12}},ticks:{font:{size:11},precision:0}},
+        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkip:true,maxTicksLimit:14}}}}});
+}
+// Compute the 4 summary stats for a country section from its tickets.
+function cxStats(tickets){
+  var total=0, pet=0, nonpet=0, repeat=0;
+  (tickets||[]).forEach(function(t){
+    total++;
+    if(t.hi){ repeat++; if(t.pet) pet++; else nonpet++; }
+  });
+  return { total:total, pet:pet, nonpet:nonpet, repeat:repeat };
+}
+// The 4 summary stat tiles shown at the top of each country section.
+function cxStatsHtml(tickets){
+  var s=cxStats(tickets);
+  var tile=function(cls,label,val){
+    return '<div class="cx-stat '+cls+'"><div class="cx-stat-n">'+Number(val).toLocaleString()+'</div>'
+      +'<div class="cx-stat-l">'+label+'</div></div>';
+  };
+  return '<div class="cx-stats">'
+    +tile('total','Total tickets',s.total)
+    +tile('pet','Pet incidents',s.pet)
+    +tile('nonpet','Non-pet incidents',s.nonpet)
+    +tile('repeat','Total repeat incidents',s.repeat)
+  +'</div>';
+}
+function cxArrow(a,field){
+  if(a.sortField!==field) return '<span class="cx-sort-ar idle">\u21c5</span>';
+  return a.sortDir==='desc'?'<span class="cx-sort-ar">\u25bc</span>':'<span class="cx-sort-ar">\u25b2</span>';
+}
+function cxSortVal(t,field){
+  if(field==='created') return new Date(t.created).getTime()||0;
+  if(field==='assignee') return cxAssignee(t.assignee).toLowerCase();
+  if(field==='status') return String(t.status||'').toLowerCase();
+  if(field==='ticket') return String(t.shortId||'').toLowerCase();
+  return String(t.title||'').toLowerCase();
+}
+function cxSecTableHtml(idx){
+  var a=CX_SECS[idx]; if(!a) return '';
+  var field=a.sortField||'created', dir=a.sortDir||'desc';
+  var tix=(a.tickets||[]).slice().sort(function(x,y){
+    var vx=cxSortVal(x,field), vy=cxSortVal(y,field);
+    if(vx<vy) return dir==='desc'?1:-1;
+    if(vx>vy) return dir==='desc'?-1:1;
+    return 0;
+  });
+  var shown=Math.min(a.shown||CX_PAGE0, tix.length);
+  var rows='';
+  for(var i=0;i<shown;i++){
+    var t=tix[i];
+    var link=t.url?('<a class="cx-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId||'—')+'</a>'):esc(t.shortId||'—');
+    rows+='<tr>'
+      +'<td class="cx-fit cx-center">'+link+'</td>'
+      +'<td class="cx-fit cx-center cx-num">'+fmtDate(t.created)+'</td>'
+      +'<td class="cx-fit cx-assignee">'+esc(cxAssignee(t.assignee))+'</td>'
+      +'<td class="cx-fit cx-center">'+statusTag(t.status)+'</td>'
+      +'<td class="cx-title"><span class="cx-title-txt" title="'+esc(t.title||'')+'">'+esc(t.title||'—')+'</span></td>'
+      +'</tr>';
+  }
+  if(!tix.length) rows='<tr><td colspan="5" class="cx-empty">No tickets.</td></tr>';
+  var th=function(field,label,extra){
+    return '<th class="cx-sort '+(extra||'')+'" onclick="cxSort('+idx+',\''+field+'\')">'+label+cxArrow(a,field)+'</th>';
+  };
+  var head='<thead><tr>'
+    +th('ticket','Ticket ID','cx-fit cx-center')
+    +th('created','Created','cx-fit cx-center')
+    +th('assignee','Assignee','cx-fit')
+    +th('status','Status','cx-fit cx-center')
+    +th('title','Title')
+    +'</tr></thead>';
+  var more='';
+  if(tix.length>CX_PAGE0){
+    var canMore=shown<tix.length, canLess=shown>CX_PAGE0;
+    more='<div class="cx-more">'
+      +(canMore?'<button onclick="cxMore('+idx+')">Show more</button>':'')
+      +(canLess?'<button onclick="cxLess('+idx+')">Show less</button>':'')
+      +'<span class="cx-mcount">Showing '+shown+' of '+tix.length+'</span></div>';
+  }
+  return '<div class="cx-tbl-wrap"><table class="cx-tbl">'+head+'<tbody>'+rows+'</tbody></table></div>'+more;
+}
+function cxSort(idx,field){
+  var a=CX_SECS[idx]; if(!a) return;
+  if(a.sortField===field){ a.sortDir=(a.sortDir==='desc'?'asc':'desc'); }
+  else { a.sortField=field; a.sortDir=(field==='created'?'desc':'asc'); }
+  var body=document.getElementById('cxBody'+idx); if(body) body.innerHTML=cxSecTableHtml(idx);
+}
+function cxMore(idx){ var a=CX_SECS[idx]; if(!a)return; a.shown=Math.min((a.shown||CX_PAGE0)+CX_STEP,(a.tickets||[]).length); var b=document.getElementById('cxBody'+idx); if(b)b.innerHTML=cxSecTableHtml(idx); }
+function cxLess(idx){ var a=CX_SECS[idx]; if(!a)return; a.shown=CX_PAGE0; var b=document.getElementById('cxBody'+idx); if(b)b.innerHTML=cxSecTableHtml(idx); }
+// Accordion: only one section open at a time.
+function cxToggle(idx){
+  var sec=document.getElementById('cxSec'+idx); if(!sec) return;
+  var wasOpen=sec.classList.contains('open');
+  document.querySelectorAll('.cx-sec.open').forEach(function(s){ s.classList.remove('open'); });
+  if(!wasOpen){ sec.classList.add('open'); setTimeout(function(){ cxDrawChart(idx); },60); }
+}
+
+function render(data){
+  var secs=(data&&data.sections)||[];
+  // Sections come pre-sorted by count desc from the API; keep that order (highest cases first).
+  CX_SECS=secs.map(function(s){ return { tag:s.tag, count:s.count, tickets:s.tickets||[], shown:CX_PAGE0, sortField:'created', sortDir:'desc' }; });
+  var from=(data&&data.from)||'2026-04-01';
+  var totalTix=CX_SECS.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
+  var totalCodes=CX_SECS.length;
+  var globeGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  var html='<div class="cx-banner">'
+    +'<div class="hb-left">'
+      +'<h1 class="hb-title">'+globeGlyph+'Countries</h1>'
+      +'<div class="hb-sub">One section per <b>country / region code</b> at the start of a ticket Title (e.g. US, UK, IN). '
+        +'Highest case count first. Live — tickets created on/after <b>'+esc(from)+'</b>.</div>'
+    +'</div>'
+    +'<div class="hb-total"><span class="n">'+totalTix+'</span><span class="l">'+totalCodes+' codes</span></div>'
+  +'</div>';
+  if(!CX_SECS.length){ html+='<div class="cx-empty">No country codes found in ticket titles.</div>'; document.getElementById('wrap').innerHTML=html; return; }
+  CX_SECS.forEach(function(a,idx){
+    var nm=cxNameOf(a.tag);
+    var nameHtml=nm
+      ? '<div class="cx-code-name" title="'+esc(nm)+'">'+esc(nm)+'</div>'
+      : '<div class="cx-code-name none">Unrecognised code — shown as-is from the ticket title.</div>';
+    html+='<div class="cx-sec" id="cxSec'+idx+'">'
+      +'<div class="cx-sec-head" onclick="cxToggle('+idx+')">'
+        +'<div class="cx-sec-title">'
+          +'<span class="cx-code">'+esc(a.tag)+'</span>'+nameHtml
+        +'</div>'
+        +'<div class="cx-sec-head-right"><span class="cx-count">'+a.count+'</span><span class="cx-caret">\u25be</span></div>'
+      +'</div>'
+      +'<div class="cx-sec-body">'
+        +cxStatsHtml(a.tickets)
+        +'<div class="cx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+        +'<div class="cx-chart-sub"><b style="color:#7dd3fc">'+esc(a.tag)+'</b> tickets created per week are the <b style="color:#7dd3fc">tall bars (left axis)</b>. <b style="color:#a78bfa">Pet</b> and <b style="color:#ff9f2e">non-pet</b> repeat incidents are bars, and <b style="color:#4ade80">combined repeat</b> is the line \u2014 all on the <b style="color:#4ade80">right axis</b>.</div>'
+        +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="cxCanvas'+idx+'"></canvas></div></div>'
+        +'<div id="cxBody'+idx+'">'+cxSecTableHtml(idx)+'</div>'
+      +'</div>'
+    +'</div>';
+  });
+  document.getElementById('wrap').innerHTML=html;
+  // All sections start collapsed; a chart is drawn only when its section is opened (cxToggle).
+}
+
+// Load from the live API. No static fallback file for this page — if the API is unreachable, show a gate.
+(async function(){
+  var live=null;
+  try{
+    var r=await A.api('GET','/api/countries-report');
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)) live=r.data;
+  }catch(e){ live=null; }
+  if(live){ render(live); return; }
+  gate('Could not load the countries report. The data service may be waking up — please try again in a moment.');
+})();
+</script>
+</body>
+</html>

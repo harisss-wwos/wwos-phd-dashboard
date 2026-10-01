@@ -22,6 +22,45 @@ function ticketChanged(incoming, existing) {
   return MERGE_DIFF_FIELDS.some(f => String(incoming[f] == null ? '' : incoming[f]) !== String(existing[f] == null ? '' : existing[f]));
 }
 
+// ---- "Live" quarter selection (decoupled from the calendar) --------------------------------------
+// The dashboard's "live" view = the NEWEST quarter that actually HAS tickets, not the calendar
+// quarter of today's date. This way a date rollover into an empty new quarter (e.g. Q4 before any
+// Q4 data is uploaded) never blanks the dashboard — it keeps showing the latest quarter with data.
+// Tickets are still STORED by their own CreateDate (quarterOf), so new quarters are created/filled
+// automatically as their data arrives; only the "which quarter do we display by default" choice
+// changes here. Falls back to the calendar quarter when the DB is empty (fresh install / first upload).
+// Cached briefly so a burst of read endpoints in one page load doesn't re-scan every request.
+let _liveQCache = { id: null, at: 0 };
+const LIVE_Q_TTL_MS = 15000;
+async function liveQuarterId() {
+  const now = Date.now();
+  if (_liveQCache.id && (now - _liveQCache.at) < LIVE_Q_TTL_MS) return _liveQCache.id;
+  let picked = null;
+  try {
+    const tColl = await getCollection(COLLECTIONS.ticketDocs);
+    // Distinct quarter ids present in ticket_docs; pick the newest valid "YYYY-Qn" by id.
+    const qs = (await tColl.distinct('q')).filter(q => /^\d{4}-Q[1-4]$/.test(q));
+    if (qs.length) {
+      qs.sort(); // lexicographic sort works for "YYYY-Qn" (e.g. 2026-Q3 > 2026-Q2)
+      picked = qs[qs.length - 1];
+    }
+    // Legacy fallback: a quarters doc that still holds a non-empty data.tickets array (un-migrated).
+    if (!picked) {
+      const qColl = await getCollection(COLLECTIONS.quarters);
+      const docs = await qColl.find({}, { projection: { 'meta.count': 1, 'data.count': 1 } }).toArray();
+      const withData = docs
+        .filter(d => /^\d{4}-Q[1-4]$/.test(d._id) && (((d.meta && d.meta.count) || (d.data && d.data.count) || 0) > 0))
+        .map(d => d._id).sort();
+      if (withData.length) picked = withData[withData.length - 1];
+    }
+  } catch (e) { /* fall through to calendar */ }
+  if (!picked) picked = currentQuarter(); // empty DB -> keep current behaviour so the first upload works
+  _liveQCache = { id: picked, at: now };
+  return picked;
+}
+// Invalidate the cache after a publish so the next read reflects a newly-created/filled quarter.
+function invalidateLiveQuarterCache() { _liveQCache = { id: null, at: 0 }; }
+
 const app = express();
 app.use(express.json({ limit: '15mb' })); // live dataset can be sizeable
 
@@ -753,7 +792,7 @@ app.get('/api/quarters', async (req, res) => {
     // nested. (The old { tickets: 0 } excluded a top-level field that doesn't exist — tickets
     // live at data.tickets — so it returned every quarter's full ticket array = ~minutes/502.)
     const docs = await coll.find({}, { projection: { 'meta.count': 1, 'meta.publishedAt': 1 } }).toArray();
-    const live = currentQuarter();
+    const live = await liveQuarterId();
     res.json({
       liveQuarter: live,
       liveLabel: quarterLabel(live),
@@ -775,7 +814,7 @@ app.get('/api/quarters', async (req, res) => {
 // "is my data current?" — so it never needs the full /api/quarters catalog on load.
 app.get('/api/live-version', async (req, res) => {
   try {
-    const qid = currentQuarter();
+    const qid = await liveQuarterId();
     const coll = await getCollection(COLLECTIONS.quarters);
     const doc = await coll.findOne({ _id: qid }, { projection: { 'meta.publishedAt': 1, 'meta.count': 1, 'data.updatedAt': 1 } });
     res.json({
@@ -792,7 +831,7 @@ app.get('/api/live-version', async (req, res) => {
 // Public read: the current live quarter's dataset (tickets computed in the browser).
 app.get('/api/live-quarter', async (req, res) => {
   try {
-    const qid = currentQuarter();
+    const qid = await liveQuarterId();
     const range = quarterRange(qid);
     const coll = await getCollection(COLLECTIONS.quarters);
     const doc = await coll.findOne({ _id: qid }, { projection: { meta: 1, 'data.updatedAt': 1, 'data.count': 1 } });
@@ -835,7 +874,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
     const body = req.body || {};
     const data = body.data;
     if (!data || !Array.isArray(data.tickets)) return res.status(400).json({ error: 'No tickets provided.' });
-    const liveQ = currentQuarter();
+    const liveQ = await liveQuarterId();
 
     // Bucket incoming tickets by their CreateDate quarter.
     const byQuarter = {};
@@ -914,6 +953,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
     }
 
     res.json({ ok: true, liveQuarter: liveQ, written, undated });
+    invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message));
@@ -940,7 +980,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
       fileSize: Number.isFinite(+body.fileSize) && +body.fileSize > 0 ? Math.round(+body.fileSize) : 0,
       fileType: String(body.fileType || '').slice(0, 120),
     };
-    const liveQ = currentQuarter();
+    const liveQ = await liveQuarterId();
     const coll = await getCollection(COLLECTIONS.quarters);
     const logColl = await getCollection(COLLECTIONS.dataLog);
     const publishedAt = new Date().toISOString();
@@ -1012,6 +1052,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     }
 
     res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
+    invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message));
@@ -1029,7 +1070,7 @@ app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) =
   try {
     const qid = req.params.qid;
     if (!/^\d{4}-Q[1-4]$/.test(qid)) return res.status(400).json({ error: 'Invalid quarter id.' });
-    if (qid === currentQuarter()) {
+    if (qid === (await liveQuarterId())) {
       return res.status(400).json({ error: 'This is the live quarter — use the live dashboard upload instead.' });
     }
     const body = req.body || {};
@@ -1691,7 +1732,7 @@ function hasNoEmt(title, labels) {
 
 // Helper: find a ticket in the current live quarter by ShortId. Returns the raw ticket or null.
 async function findLiveTicket(shortId) {
-  const qid = currentQuarter();
+  const qid = await liveQuarterId();
   // Fast: direct per-ticket lookup by _id; fall back to scanning the (legacy) array.
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
   const hit = await tColl.findOne({ _id: ticketDocId(qid, String(shortId)) });
@@ -1708,7 +1749,7 @@ async function enrichHelpWithTicket(list) {
   if (ids.length) {
     try {
       const tColl = await getCollection(COLLECTIONS.ticketDocs);
-      const rows = await tColl.find({ q: currentQuarter(), ShortId: { $in: ids } }, { projection: { ShortId: 1, Title: 1, Status: 1, CreateDate: 1 } }).toArray();
+      const rows = await tColl.find({ q: (await liveQuarterId()), ShortId: { $in: ids } }, { projection: { ShortId: 1, Title: 1, Status: 1, CreateDate: 1 } }).toArray();
       rows.forEach(t => { byId[String(t.ShortId)] = t; });
     } catch (e) { /* enrichment is best-effort */ }
   }
@@ -1941,7 +1982,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   try {
     const me = req.user.username;
     // Query only MY open tickets from ticket_docs (not the whole ~8k array).
-    const rows = await queryQuarterTickets(currentQuarter(), { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } });
+    const rows = await queryQuarterTickets((await liveQuarterId()), { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } });
     const mine = rows.filter(t =>
       String(t.AssigneeIdentity || '').toLowerCase() === String(me).toLowerCase() &&
       OPEN_STATUSES.includes(t.Status)
@@ -1962,7 +2003,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
         noEmt: hasNoEmt(t.Title, t.Labels),
       };
     }).sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
-    res.json({ quarter: currentQuarter(), slaHours: SLA_HOURS, tickets: out });
+    res.json({ quarter: (await liveQuarterId()), slaHours: SLA_HOURS, tickets: out });
   } catch (e) {
     res.status(500).json({ error: 'Could not load your tickets.' });
   }
@@ -2104,6 +2145,84 @@ app.get('/api/hashtags-report', async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load hashtags report.' });
+  }
+});
+
+// ---- Countries report (Countries page) -------------------------------------------------------
+// Scans ALL ticket_docs, keeps only tickets CREATED on/after 1 Apr 2026, and buckets them by the
+// leading 2-3 UPPERCASE-letter code at the start of the Title (e.g. "US ...", "UK-...", "IN: ...").
+// This is generally the country/region code (some are US state codes or system tokens — we keep
+// every distinct code as its own section, per requirement). One section per code, deduped by
+// ShortId. Because uploads write Title straight into ticket_docs, this report is always live.
+const COUNTRIES_FROM = new Date('2026-04-01T00:00:00.000Z');
+// Leading token of 2-3 uppercase letters at the very start of the Title, on a word boundary.
+const COUNTRY_CODE_RE = /^\s*([A-Z]{2,3})\b/;
+// Repeat-incident (HI) detection — matches the dashboard's rule (computeMetrics in app.js):
+// a ticket is a repeat incident when RootCauseDetails contains "Cnt: <n>" or "Historical Incident: <n>"
+// with n > 0. A repeat incident is a PET incident when RootCause contains "unsecured animal", else NON-PET.
+const HI_CNT_RE = /\bCnt\s*[:\s]\s*(\d+)/i;
+const HI_HIST_RE = /Historical Incident\s*:?\s*(\d+)/i;
+function hiCountOf(rootCauseDetails) {
+  const s = String(rootCauseDetails || '');
+  const m = s.match(HI_CNT_RE); if (m) return parseInt(m[1], 10) || 0;
+  const m2 = s.match(HI_HIST_RE); if (m2) return parseInt(m2[1], 10) || 0;
+  return 0;
+}
+app.get('/api/countries-report', async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const rows = await coll.aggregate([
+      { $project: {
+        _id: 0,
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
+        AssigneeIdentity: 1, RootCause: 1, RootCauseDetails: 1, q: 1,
+        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+      } },
+      { $match: { cd: { $gte: COUNTRIES_FROM } } },
+    ], { allowDiskUse: true }).toArray();
+
+    // Group by the leading code; dedupe ShortIds within a code.
+    const sections = new Map(); // code -> { tag, seen:Set, tickets:[] }
+    rows.forEach(t => {
+      const m = String(t.Title || '').match(COUNTRY_CODE_RE);
+      if (!m) return; // no leading code -> skip (title doesn't start with a 2-3 letter code)
+      const code = m[1];
+      const sid = t.ShortId || t.IssueId || '';
+      let sec = sections.get(code);
+      if (!sec) { sec = { tag: code, seen: new Set(), tickets: [] }; sections.set(code, sec); }
+      if (sid && sec.seen.has(sid)) return;
+      if (sid) sec.seen.add(sid);
+      // Repeat-incident flags (per the dashboard's HI rule). isPet = HI AND RootCause has "unsecured animal".
+      const hi = hiCountOf(t.RootCauseDetails) > 0;
+      const isPet = hi && /unsecured animal/i.test(String(t.RootCause || ''));
+      sec.tickets.push({
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        created: t.CreateDate || '',
+        assignee: t.AssigneeIdentity || '',
+        status: t.Status || '',
+        title: t.Title || '',
+        hi: hi,          // repeat incident (combined)
+        pet: isPet,      // repeat incident that is a pet/animal incident
+      });
+    });
+
+    const out = [...sections.values()]
+      .map(s => ({
+        tag: s.tag,
+        count: s.tickets.length,
+        tickets: s.tickets.sort((a, b) => new Date(b.created) - new Date(a.created)),
+      }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+
+    res.json({
+      generatedFrom: 'ticket_docs (live)',
+      generatedAt: new Date().toISOString(),
+      from: COUNTRIES_FROM.toISOString().slice(0, 10),
+      sections: out,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load countries report.' });
   }
 });
 
@@ -2474,7 +2593,7 @@ async function ensureTicketIndexes() {
 // Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
 // fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
 async function loadQuarterTickets(qid) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   const docs = await coll.find({ q: qid }).toArray();
   if (docs.length) return docs.map(d => { const t = Object.assign({}, d); delete t._id; delete t.q; return t; });
@@ -2487,7 +2606,7 @@ async function loadQuarterTickets(qid) {
 // (e.g. one agent's open tickets) instead of loading all ~8k. Falls back to filtering the legacy
 // array in memory for any not-yet-migrated quarter.
 async function queryQuarterTickets(qid, filter) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   const has = (await coll.countDocuments({ q: qid }, { limit: 1 })) > 0;
   if (has) {
@@ -2544,7 +2663,7 @@ async function backfillTicketDocs(qid) {
 }
 
 async function liveTickets() {
-  return await loadQuarterTickets(currentQuarter());
+  return await loadQuarterTickets(await liveQuarterId());
 }
 
 // Agent analytics (admin+). Per-user stats grouped into leads (owner/admin/manager) and editors.
@@ -2591,7 +2710,7 @@ app.get('/api/agent-analytics', requireRole('user'), async (req, res) => {
     });
     leads.sort((a, b) => b.resolvedInQuarter - a.resolvedInQuarter);
     editors.sort((a, b) => b.resolvedInQuarter - a.resolvedInQuarter);
-    res.json({ quarter: currentQuarter(), leads, editors });
+    res.json({ quarter: (await liveQuarterId()), leads, editors });
   } catch (e) {
     res.status(500).json({ error: 'Could not compute agent analytics.' });
   }
@@ -2604,7 +2723,7 @@ app.get('/api/agent-summary', requireRole('user'), async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'A username is required.' });
-    const qid = currentQuarter();
+    const qid = await liveQuarterId();
 
     // This agent's role / display name / timezone (tiny query).
     let role = '', displayName = '', timezone = DEFAULT_TZ;
@@ -2799,7 +2918,7 @@ async function recomputeGroupRollup(qid) {
 // Read the group metrics for the live quarter: serve the rollup when it's current; otherwise compute
 // live this once and refresh the rollup in the background.
 async function getGroupMetrics() {
-  const qid = currentQuarter();
+  const qid = await liveQuarterId();
   const meta = await liveMeta();
   const coll = await getCollection(COLLECTIONS.groupRollups);
   const roll = await coll.findOne({ _id: qid });
@@ -2824,7 +2943,7 @@ function grpSlice(section, m) {
   app.get('/api/group-analytics/' + section, requireRole('user'), async (req, res) => {
     try {
       const m = await getGroupMetrics();
-      res.json(Object.assign({ section, quarter: currentQuarter() }, grpSlice(section, m)));
+      res.json(Object.assign({ section, quarter: (await liveQuarterId()) }, grpSlice(section, m)));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute group analytics (' + section + ').' });
     }
@@ -2979,8 +3098,9 @@ Object.keys(WINDOW_HOURS).forEach(win => {
     try {
       // Fast path: aggregate on the live quarter, filtered to ResolvedDate within the rolling window.
       const now = Date.now();
-      const m = await aggClosureMetrics({ q: currentQuarter(), fromMs: now - WINDOW_HOURS[win] * 36e5, toMs: now });
-      res.json(Object.assign({ window: win, quarter: currentQuarter() }, m));
+      const _lq = await liveQuarterId();
+      const m = await aggClosureMetrics({ q: _lq, fromMs: now - WINDOW_HOURS[win] * 36e5, toMs: now });
+      res.json(Object.assign({ window: win, quarter: _lq }, m));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute windowed analytics (' + win + ').' });
     }
@@ -3025,7 +3145,7 @@ async function recomputeShiftRollup(qid) {
 }
 // Read the shift-report rollup (fast) or compute live once (fallback) + background refresh.
 async function getShiftRollup() {
-  const qid = currentQuarter();
+  const qid = await liveQuarterId();
   const meta = await liveMeta();
   const coll = await getCollection(COLLECTIONS.shiftRollups);
   const roll = await coll.findOne({ _id: qid });
@@ -3052,7 +3172,7 @@ app.get('/api/shift-report', requireRole('admin'), async (req, res) => {
     const c = roll.counts || {};
     const inQ = (c.Assigned || 0) + (c['Work In Progress'] || 0) + (c.Pending || 0) + (c.Researching || 0);
     res.json({
-      quarter: currentQuarter(), colors, agents,
+      quarter: (await liveQuarterId()), colors, agents,
       counts: {
         Assigned: c.Assigned || 0, 'Work In Progress': c['Work In Progress'] || 0, Researching: c.Researching || 0,
         Pending: c.Pending || 0, Resolved: c.Resolved || 0, Closed: c.Closed || 0, T: c.T || 0,
@@ -3071,7 +3191,7 @@ app.get('/api/agent-overview/pet', requireRole('user'), async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'A username is required.' });
-    const qid = currentQuarter();
+    const qid = await liveQuarterId();
     const meta = await liveMeta();
     const rollColl = await getCollection(COLLECTIONS.agentRollups);
     const roll = await rollColl.findOne({ _id: qid });
@@ -3098,7 +3218,7 @@ app.get('/api/agent-overview/pet', requireRole('user'), async (req, res) => {
 // Quarter-wide "1st Pet incident" totals: handled by PHD (all registered agents) vs AUTO-SIM (admin+).
 app.get('/api/pet-totals', requireRole('admin'), async (req, res) => {
   try {
-    const qid = currentQuarter();
+    const qid = await liveQuarterId();
     const meta = await liveMeta();
     const rollColl = await getCollection(COLLECTIONS.agentRollups);
     const roll = await rollColl.findOne({ _id: qid }, { projection: { petTotals: 1, publishedAt: 1, rollupVersion: 1 } });
@@ -3241,7 +3361,7 @@ app.get('/api/agent-bucket', requireRole('user'), async (req, res) => {
     if (!username) return res.status(400).json({ error: 'A username is required.' });
     const now = Date.now();
     // Query only THIS agent's open tickets from ticket_docs (not the whole ~8k array).
-    const rows = await queryQuarterTickets(currentQuarter(), { AssigneeIdentity: ciExact(username), Status: { $in: OPEN_STATUSES } });
+    const rows = await queryQuarterTickets((await liveQuarterId()), { AssigneeIdentity: ciExact(username), Status: { $in: OPEN_STATUSES } });
     const mine = rows.filter(t =>
       String(t.AssigneeIdentity || '').toLowerCase() === username &&
       OPEN_STATUSES.includes(t.Status)
@@ -3331,7 +3451,7 @@ app.get('/api/last24', requireRole('admin'), async (req, res) => {
       helpActivity.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } catch (e) { /* ignore */ }
 
-    res.json({ quarter: currentQuarter(), created24, resolved24, slaPct24, slaBase, hi24, immediateAutoAgents24, immediateAutoAutoSim24, crossing240Next24: crossing, helpActivity });
+    res.json({ quarter: (await liveQuarterId()), created24, resolved24, slaPct24, slaBase, hi24, immediateAutoAgents24, immediateAutoAutoSim24, crossing240Next24: crossing, helpActivity });
   } catch (e) {
     res.status(500).json({ error: 'Could not compute last-24h analytics.' });
   }
@@ -3361,7 +3481,7 @@ function _maxCreate(tickets) {
 // Live-quarter tickets + the doc's publishedAt (the cache version).
 async function liveTicketsWithMeta() {
   const coll = await getCollection(COLLECTIONS.quarters);
-  const doc = await coll.findOne({ _id: currentQuarter() });
+  const doc = await coll.findOne({ _id: await liveQuarterId() });
   const tickets = (doc && doc.data && doc.data.tickets) || [];
   const publishedAt = (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null;
   return { tickets, publishedAt };
@@ -3378,7 +3498,7 @@ async function liveTicketsWithMeta() {
 // Just the live-quarter version stamp (tiny — no tickets shipped).
 async function liveMeta() {
   const coll = await getCollection(COLLECTIONS.quarters);
-  const doc = await coll.findOne({ _id: currentQuarter() }, { projection: { 'meta.publishedAt': 1, 'data.updatedAt': 1 } });
+  const doc = await coll.findOne({ _id: await liveQuarterId() }, { projection: { 'meta.publishedAt': 1, 'data.updatedAt': 1 } });
   return { publishedAt: (doc && doc.meta && doc.meta.publishedAt) || (doc && doc.data && doc.data.updatedAt) || null };
 }
 
@@ -3386,7 +3506,7 @@ async function liveMeta() {
 // match + unwind, receiving each unwound ticket as the root document under `t`.
 // `qid` defaults to the current live quarter.
 async function aggLive(stages, qid) {
-  qid = qid || currentQuarter();
+  qid = qid || await liveQuarterId();
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
   // "all" (complete database, used by Group Analytics): aggregate across EVERY quarter (no q filter).
   if (qid === 'all') {
@@ -3793,9 +3913,9 @@ async function getResolutionMap(force) {
 // Resolve a dashboard scope value to the list of quarter ids to scan (Node-side, for resolutions
 // which are computed in JS not Mongo $group). 'all' => every quarter; 'q2q3' => Q2+Q3; else one qid.
 async function quartersForScope(qid) {
-  if (qid === 'all') { try { const t = await getCollection(COLLECTIONS.ticketDocs); return (await t.distinct('q')).filter(Boolean); } catch (e) { return [currentQuarter()]; } }
+  if (qid === 'all') { try { const t = await getCollection(COLLECTIONS.ticketDocs); return (await t.distinct('q')).filter(Boolean); } catch (e) { return [await liveQuarterId()]; } }
   if (qid === 'q2q3') return ['2026-Q2', '2026-Q3'];
-  return [qid || currentQuarter()];
+  return [qid || await liveQuarterId()];
 }
 // Map a raw incident-type label to its display name (group name if grouped, else unchanged).
 function mapIncidentType(rawType, lookup) { return (lookup && lookup[rawType]) || rawType; }
@@ -4082,7 +4202,7 @@ function petCountFromResolved(resolved) {
 const ALWAYS_LIVE_CHUNKS = new Set(['age', 'age-detail']);
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
-    const liveQ = currentQuarter();
+    const liveQ = await liveQuarterId();
     // Optional scope: ?q=all (every quarter) | ?q=q2q3 (Q2+Q3) | ?q=<YYYY-Qn> | omitted => live quarter.
     const qReq = String(req.query.q || '').trim();
     const isValidQ = /^\d{4}-Q[1-4]$/.test(qReq);
@@ -4130,7 +4250,7 @@ app.get('/api/dash/incident-agents', async (req, res) => {
     const resolverFilter = String(req.query.resolver || '').trim().toLowerCase(); // '', 'autosim', 'phd'
     // Scope: ?q=all | q2q3 | <YYYY-Qn> | omitted => live quarter (mirrors /api/dash/:name).
     const qReq = String(req.query.q || '').trim();
-    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
+    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : (await liveQuarterId()));
     // `type` is a DISPLAY name — expand it to the raw incident-type label(s) it covers (a group may
     // combine several) so the aggregation matches all of them.
     const incMap = await getIncidentMap();
@@ -4168,7 +4288,7 @@ app.get('/api/dash/incident-tickets', async (req, res) => {
     const agent = String(req.query.agent || '').trim();
     if (!type || !agent) return res.status(400).json({ error: 'type and agent are required.' });
     const qReq = String(req.query.q || '').trim();
-    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
+    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : (await liveQuarterId()));
     const isAutoSimAgent = agent.toLowerCase() === 'autosim';
     // Expand the display name to its raw incident-type label(s).
     const incMap = await getIncidentMap();
@@ -4269,12 +4389,12 @@ app.get('/api/dash/repeat-tickets', async (req, res) => {
 // exist only on human-resolved tickets. Computed in Node (regex extraction), scope-aware, resolved/
 // closed only, and relabeled via the published resolution grouping (mirrors the Incident Types PHD
 // table). Scope: ?q=all | q2q3 | <YYYY-Qn> | omitted => live quarter.
-function _scopeQid(qReq) { qReq = String(qReq || '').trim(); return (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter()); }
+async function _scopeQid(qReq) { qReq = String(qReq || '').trim(); return (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : (await liveQuarterId())); }
 
 // The resolutions list (display-grouped) + phdGrouped member breakdown, for the dashboard section.
 app.get('/api/dash/resolutions', async (req, res) => {
   try {
-    const qid = _scopeQid(req.query.q);
+    const qid = await _scopeQid(req.query.q);
     const quarters = await quartersForScope(qid);
     const coll = await getCollection(COLLECTIONS.ticketDocs);
     const docs = await coll.find({ q: { $in: quarters } }, { projection: { RootCauseDetails: 1, Status: 1 } }).toArray();
@@ -4304,7 +4424,7 @@ app.get('/api/dash/resolution-agents', async (req, res) => {
   try {
     const value = String(req.query.value || '').trim();
     if (!value) return res.status(400).json({ error: 'A resolution value is required.' });
-    const qid = _scopeQid(req.query.q);
+    const qid = await _scopeQid(req.query.q);
     const quarters = await quartersForScope(qid);
     // Expand a group name to its member raw resolution values (or [value] if ungrouped).
     const map = await getResolutionMap();
@@ -4333,7 +4453,7 @@ app.get('/api/dash/resolution-tickets', async (req, res) => {
     const value = String(req.query.value || '').trim();
     const agent = String(req.query.agent || '').trim();
     if (!value || !agent) return res.status(400).json({ error: 'value and agent are required.' });
-    const qid = _scopeQid(req.query.q);
+    const qid = await _scopeQid(req.query.q);
     const quarters = await quartersForScope(qid);
     const map = await getResolutionMap();
     const g = (map.groups || []).find(x => String((x && x.name) || '').trim() === value);
@@ -4362,7 +4482,7 @@ app.get('/api/incident-types/raw', requireRole('owner'), async (req, res) => {
   try {
     // ?q=all | <YYYY-Qn> | omitted => live quarter. Lets the tool list any quarter's raw types.
     const qReq = String(req.query.q || '').trim();
-    const qid = (qReq === 'all') ? 'all' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : currentQuarter());
+    const qid = (qReq === 'all') ? 'all' : (/^\d{4}-Q[1-4]$/.test(qReq) ? qReq : (await liveQuarterId()));
     const rows = await aggLive([{ $group: { _id: AGG_INCIDENT_TYPE, count: { $sum: 1 } } }, { $sort: { count: -1 } }], qid);
     res.json({ quarter: qid, types: rows.map(r => ({ type: r._id, count: r.count })) });
   } catch (e) {
