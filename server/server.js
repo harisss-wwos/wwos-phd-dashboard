@@ -2207,33 +2207,47 @@ app.delete('/api/unique-cases-log/:id', requireRole('owner'), async (req, res) =
   }
 });
 
-// GET my open tickets in the current live quarter (assigned to the logged-in user).
+// GET my open tickets assigned to the logged-in user — across EVERY quarter, not just the live one.
+// Rationale: a freshly-created ticket lands in the current calendar quarter (e.g. 2026-Q4), which is
+// not the "live" (highest-count) quarter, so quarter-scoped queries hid newly-assigned tickets. We
+// now query ticket_docs directly by assignee + open status with NO quarter filter, and dedupe by
+// ShortId so a ticket that appears under multiple quarter keys is counted once.
 app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   try {
     const me = req.user.username;
-    // Query only MY open tickets from ticket_docs (not the whole ~8k array).
-    const rows = await queryQuarterTickets((await liveQuarterId()), { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } });
-    const mine = rows.filter(t =>
-      String(t.AssigneeIdentity || '').toLowerCase() === String(me).toLowerCase() &&
-      OPEN_STATUSES.includes(t.Status)
-    );
-    const out = mine.map(t => {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // All my open tickets across all quarters. Index-friendly: AssigneeIdentity (ci) + Status.
+    const rows = await coll.find(
+      { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } },
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, Labels: 1, AssigneeIdentity: 1, q: 1 } }
+    ).toArray();
+    // Defensive re-filter (regex is anchored+ci, but guard against stray data) + dedupe by ShortId.
+    const seen = new Set();
+    const out = [];
+    rows.forEach(t => {
+      if (String(t.AssigneeIdentity || '').toLowerCase() !== String(me).toLowerCase()) return;
+      if (!OPEN_STATUSES.includes(t.Status)) return;
+      const sid = t.ShortId || t.IssueId || '';
+      if (sid && seen.has(sid)) return;
+      if (sid) seen.add(sid);
       const created = t.CreateDate || '';
       let deadline = null;
       const cd = new Date(created);
       if (!isNaN(cd)) deadline = new Date(cd.getTime() + SLA_HOURS * 3600 * 1000).toISOString();
-      return {
-        shortId: t.ShortId || t.IssueId || '',
+      out.push({
+        shortId: sid,
         url: t.IssueUrl || (t.ShortId ? ('https://t.corp.amazon.com/issues/' + t.ShortId) : ''),
         title: t.Title || '',
         status: t.Status || '',
         createDate: created,
+        quarter: t.q || '',
         deadline,
         priority: hasPriorityLabel(t.Labels),
         noEmt: hasNoEmt(t.Title, t.Labels),
-      };
-    }).sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
-    res.json({ quarter: (await liveQuarterId()), slaHours: SLA_HOURS, tickets: out });
+      });
+    });
+    out.sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
+    res.json({ quarter: 'all', slaHours: SLA_HOURS, tickets: out });
   } catch (e) {
     res.status(500).json({ error: 'Could not load your tickets.' });
   }

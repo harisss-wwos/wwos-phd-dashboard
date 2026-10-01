@@ -930,23 +930,14 @@ async function load(){
     paintedFromCache=true;
   }
 
-  // VERSION CHECK FIRST (a vs b): my-tickets is derived from the live quarter, so tie it to the
-  // quarter's publishedAt. If unchanged since we cached, skip the heavy /api/my-tickets fetch.
-  const version=await A.liveVersion();               // timestamp "a" (null if unavailable/cold)
-  if(paintedFromCache && version && cached && cached.version===version){
-    // render() (during the instant paint above) already refreshed comments/activity via fillLatestComments.
-    // Help requests/replies are NOT tied to the quarter version — an admin reply doesn't bump it.
-    // So refresh help separately even when ticket data is unchanged, or replies never show here.
-    await refreshHelp(cached);
-    if(window.PHDRefreshBanner)window.PHDRefreshBanner.upToDate('Your tickets are up to date.');
-    return;
-  }
-  if(paintedFromCache && version===null){            // cold/offline: keep cache silently, don't nag
-    await refreshHelp(cached);                        // still try to pick up new replies if the API answers
-    return;
-  }
+  // My Tickets now spans ALL quarters (a newly-assigned ticket may land in the current calendar
+  // quarter, which is not the "live"/highest-count quarter). So we can no longer skip the fetch
+  // based on the live quarter's publishedAt — a change to a non-live-quarter ticket wouldn't bump
+  // it. We paint instantly from cache (above) for perceived speed, then ALWAYS revalidate against
+  // the server so freshly-assigned tickets reliably appear.
+  const version=await A.liveVersion();               // kept only as a cache stamp (not a skip gate)
 
-  // New data (a !== b) or no cache -> fetch. Show the "fetching the latest" bar if we had cache.
+  // (No version short-circuit anymore — always fetch fresh below.) Show the refresh bar if cached.
   if(paintedFromCache && window.PHDRefreshBanner)window.PHDRefreshBanner.show();
   try{MY_TZ=await A.myTimezone();}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
