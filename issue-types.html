@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue Types · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn:hover{background:var(--oh)}
+.wrap{padding:32px 24px;width:auto;max-width:1200px;margin:0 auto}
+/* ---- Illustrated gradient banner header (standardization theme: amber/orange) ---- */
+.iz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+  border:1px solid #2a2117;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
+  background:linear-gradient(90deg,#b4530a,#f08a1d 55%,#ffd27a);background-size:200% 100%;animation:izBanner 9s ease infinite}
+@keyframes izBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.iz-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.iz-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#2a1706}
+.iz-banner .hb-title svg{flex-shrink:0;color:#2a1706}
+.iz-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:92ch;color:rgba(42,23,6,.84)}
+.iz-banner .hb-sub b{color:#1e1004;font-weight:800}
+.iz-banner .hb-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.80);border-radius:14px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#2a1706}
+.iz-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
+.iz-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
+.iz-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:200px;
+  background-repeat:no-repeat;background-position:right center;background-size:auto 112%;opacity:.30;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h40l14 14v46a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z"/><path d="M56 10v16h16"/><path d="M26 42l8 8 18-18"/></svg>')}
+@media(max-width:640px){.iz-banner .hb-title{font-size:1.25em}.iz-banner::after{opacity:.18}}
+/* Edit-mode buttons living in the banner (only shown to allowed editors). */
+.iz-ebtn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-weight:700;font-size:.82em;cursor:pointer;border:1px solid transparent;font-family:inherit;text-decoration:none;transition:transform .12s,filter .15s}
+.iz-ebtn:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.iz-ebtn svg{width:15px;height:15px}
+.iz-ebtn.primary{background:#1e1004;color:#ffd27a;border-color:rgba(42,23,6,.4)}
+.iz-ebtn.ghost{background:rgba(255,255,255,.82);color:#2a1706}
+.iz-edit-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(30,16,4,.72);color:#ffe3b0;font-size:.72em;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.3px}
+
+/* ================= Taxonomy WIRING diagram (reference) ================= */
+.iz-wire{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:16px;padding:20px 22px 24px}
+/* Fixed left column; width is measured in JS = widest category node (one-line names), applied to all. */
+.iz-wire{--iz-catw:300px}
+.iz-grp{display:grid;grid-template-columns:var(--iz-catw) 1fr;gap:0;align-items:stretch;margin-top:12px;padding-top:12px;border-top:1px dashed #262b31}
+.iz-grp:first-of-type{border-top:none;margin-top:6px;padding-top:0}
+.iz-cat-col{display:flex;align-items:center;position:relative}
+.iz-cat-node{display:flex;align-items:center;gap:12px;width:100%;background:linear-gradient(135deg,#163463,#0f2546);border:1px solid #244a7a;border-radius:14px;padding:12px 14px;box-shadow:0 8px 20px -14px rgba(0,0,0,.8);position:relative;z-index:2;cursor:pointer;user-select:none;transition:border-color .15s,transform .12s,box-shadow .15s}
+.iz-cat-node:hover{border-color:#3b7bd0;transform:translateY(-1px);box-shadow:0 10px 24px -14px rgba(0,0,0,.9)}
+.iz-grp.open .iz-cat-node{border-color:#4a86d8;box-shadow:0 10px 26px -12px rgba(30,80,150,.55)}
+.iz-cat-node .ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.08);color:#ffce8a;flex-shrink:0}
+.iz-cat-txt{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:3px}
+.iz-cat-name{display:block;color:#fff;font-size:.95em;font-weight:800;line-height:1.25;white-space:nowrap}
+.iz-cat-meta{display:block;color:#9fb6d6;font-size:.72em;font-weight:600;letter-spacing:.2px;white-space:nowrap}
+.iz-cat-caret{color:#9fb6d6;display:inline-flex;flex-shrink:0;transition:transform .22s ease;margin-left:4px}
+.iz-grp.open .iz-cat-caret{transform:rotate(90deg)}
+.iz-wire-area{position:relative;display:flex;align-items:stretch}
+.iz-wire-svg{position:absolute;left:0;top:0;width:46px;height:100%;overflow:visible;pointer-events:none;z-index:1;opacity:0;transition:opacity .25s ease}
+.iz-grp.open .iz-wire-svg{opacity:1}
+.iz-type-col{flex:1 1 auto;display:flex;flex-direction:column;gap:10px;padding-left:46px}
+.iz-grp:not(.open) .iz-wire-area{display:none}
+@keyframes izPop{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+.iz-grp.open .iz-type-col>.iz-type{animation:izPop .34s cubic-bezier(.25,.9,.3,1) both;animation-delay:var(--d,0ms)}
+.iz-type{background:#0f1317;border:1px solid #1e242b;border-left:4px solid var(--iz-ac,#e08a1d);border-radius:11px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.iz-type:hover{box-shadow:0 6px 18px -12px rgba(0,0,0,.9)}
+.iz-type-head{display:flex;align-items:center;gap:12px;padding:12px 15px;cursor:pointer;user-select:none;transition:background .15s}
+.iz-type-head:hover{background:rgba(255,255,255,.03)}
+.iz-type-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--iz-acbg,rgba(240,138,29,.14));color:var(--iz-ac,#e08a1d);flex-shrink:0}
+.iz-type-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.iz-type-name{color:#eef1f4;font-size:.96em;font-weight:700}
+.iz-type-desc{color:#8a94a2;font-size:.79em;font-style:italic;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iz-type-caret{color:var(--tm);display:inline-flex;transition:transform .22s ease;flex-shrink:0}
+.iz-type.open .iz-type-caret{transform:rotate(180deg)}
+.iz-type.open{border-color:var(--iz-ac,#e08a1d)}
+.iz-type-body{max-height:0;overflow:hidden;transition:max-height .32s ease;padding:0 15px}
+.iz-type.open .iz-type-body{max-height:520px;padding:2px 15px 15px}
+.iz-def{border-left:3px solid var(--iz-ac,#e08a1d);background:#0b0d10;border-radius:0 10px 10px 0;padding:4px 2px;margin-top:4px}
+.iz-def-row{display:grid;grid-template-columns:104px 1fr;gap:14px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.05)}
+.iz-def-row:last-child{border-bottom:none}
+.iz-def-k{display:inline-flex;align-items:center;gap:6px;color:#ffb454;font-size:.72em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding-top:2px}
+.iz-def-k svg{width:13px;height:13px}
+.iz-def-k.use{color:#7fe0a0}.iz-def-k.ex{color:#7fdfff}
+.iz-def-v{color:var(--t);font-size:.9em;line-height:1.6}
+.iz-def-v.ex{color:#c9d3dc;font-style:italic}
+/* Row-level edit/delete controls (editors only) */
+.iz-type-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-right:2px}
+.iz-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.iz-iconbtn:hover{border-color:#ff9900;color:#ff9900}
+.iz-iconbtn.del:hover{border-color:#ff5252;color:#ff5252}
+.iz-iconbtn svg{width:15px;height:15px}
+.iz-addtype{margin-top:6px;display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px dashed #3a4a5e;background:#101722;color:#9fd0ff;font-weight:600;font-size:.84em;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s}
+.iz-addtype:hover{border-color:#4a86d8;color:#cfe6ff}
+.iz-addtype svg{width:15px;height:15px}
+/* Modal */
+.iz-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:4000;display:none;align-items:center;justify-content:center;padding:20px}
+.iz-modal-bg.show{display:flex}
+.iz-modal{background:#11161c;border:1px solid #2a3340;border-radius:14px;width:560px;max-width:94vw;max-height:92vh;overflow:auto;padding:24px}
+.iz-modal h2{color:#fff;font-size:1.15em;margin:0 0 4px}
+.iz-modal .sub{color:var(--tm);font-size:.83em;margin:0 0 16px;line-height:1.5}
+.iz-field{margin-bottom:14px}
+.iz-field label{display:block;color:#cdd7de;font-size:.78em;font-weight:700;letter-spacing:.3px;margin-bottom:6px}
+.iz-field input,.iz-field textarea,.iz-field select{width:100%;padding:10px 12px;background:#0a0e12;border:1px solid #2a3340;border-radius:8px;color:#eef1f4;font-size:.9em;font-family:inherit}
+.iz-field input:focus,.iz-field textarea:focus,.iz-field select:focus{outline:none;border-color:#ff9900}
+.iz-field textarea{min-height:70px;resize:vertical;line-height:1.5}
+.iz-field .hint{color:#6b7681;font-size:.74em;margin-top:5px}
+.iz-modal-err{color:#ff6b6b;font-size:.84em;margin-top:10px;display:none}
+.iz-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.iz-mbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;font-weight:700;font-size:.86em;cursor:pointer;border:none;font-family:inherit}
+.iz-mbtn.primary{background:#ff9900;color:#000}.iz-mbtn.primary:hover{background:#ec7211}
+.iz-mbtn.sec{background:transparent;border:1px solid #2a3340;color:#cdd7de}.iz-mbtn.sec:hover{border-color:#ff9900;color:#ff9900}
+.iz-mbtn.danger{background:#ff5252;color:#fff}.iz-mbtn.danger:hover{background:#e03e3e}
+.iz-mbtn[disabled]{opacity:.5;cursor:not-allowed}
+@media(max-width:720px){
+  .iz-grp{grid-template-columns:1fr;gap:12px}
+  .iz-cat-col{align-items:stretch}.iz-cat-name,.iz-cat-meta{white-space:normal}
+  .iz-wire-svg{display:none}.iz-type-col{padding-left:0}
+  .iz-def-row{grid-template-columns:1fr;gap:3px}
+}
+.iz-gate{max-width:560px;margin:60px auto;text-align:center}
+.iz-gate h1{color:#fff;font-size:1.5em;margin-bottom:10px}
+.iz-gate p{color:var(--tm);line-height:1.55}
+.iz-loading{color:#6b7681;text-align:center;padding:50px 0;font-size:.9em}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body data-nav-active="issue-types" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"><div class="iz-loading">Loading taxonomy…</div></div>
+
+<!-- Add / Edit modal (editors only) -->
+<div class="iz-modal-bg" id="izModalBg">
+  <div class="iz-modal">
+    <h2 id="izModalTitle">Edit incident type</h2>
+    <p class="sub" id="izModalSub"></p>
+    <div class="iz-field" id="izFieldCat">
+      <label>Category</label>
+      <select id="izInCatSel"></select>
+    </div>
+    <div class="iz-field" id="izFieldNewCat" style="display:none">
+      <label>New category name</label>
+      <input type="text" id="izInNewCat" placeholder="e.g. Cyber / Online">
+    </div>
+    <div class="iz-field">
+      <label>Incident type name</label>
+      <input type="text" id="izInType" placeholder="e.g. Attack w/weapon">
+    </div>
+    <div class="iz-field">
+      <label>Short descriptor <span style="font-weight:400;color:#6b7681">(one line, shown under the name)</span></label>
+      <input type="text" id="izInDesc" placeholder="e.g. Weapon used/attempted on driver">
+    </div>
+    <div class="iz-field">
+      <label>Definition</label>
+      <textarea id="izInDef" placeholder="What this incident type means…"></textarea>
+    </div>
+    <div class="iz-field">
+      <label>Use when</label>
+      <textarea id="izInUse" placeholder="The trigger for choosing this type…"></textarea>
+    </div>
+    <div class="iz-field">
+      <label>Example</label>
+      <textarea id="izInEx" placeholder="A concrete example…"></textarea>
+    </div>
+    <div class="iz-modal-err" id="izModalErr"></div>
+    <div class="iz-modal-actions">
+      <button class="iz-mbtn sec" id="izModalCancel" type="button">Cancel</button>
+      <button class="iz-mbtn primary" id="izModalSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Edit access: only these two usernames (case-insensitive). No one else sees edit controls, and the
+// server enforces the same allow-list on every write.
+var IZ_EDITORS=['harisss','flofalgu'];
+function izCanEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && IZ_EDITORS.indexOf(String(u.username||'').toLowerCase())>=0); }
+
+// Inline icons for the def/use/example row markers.
+var ICO_DEF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 10h12M4 15h8"/><circle cx="19" cy="15" r="2"/></svg>';
+var ICO_USE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>';
+var ICO_EX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10c-.7.7-1 1.3-1 2H9c0-.7-.3-1.3-1-2a6 6 0 0 1 4-10z"/></svg>';
+var ICO_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+var ICO_DEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+var ICO_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+// Loaded taxonomy: [{category, catIcon, catOrder, types:[{id,type,def,use,ex,color,icon,desc,...}]}]
+var IZ_CATS=[];
+function izTotalTypes(){ return IZ_CATS.reduce(function(s,c){return s+c.types.length;},0); }
+function izTint(hex){
+  var m=/^#?([0-9a-f]{6})$/i.exec(String(hex||'').trim()); if(!m) return 'rgba(240,138,29,.14)';
+  var n=parseInt(m[1],16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+',.14)';
+}
+
+// ---- Wires -------------------------------------------------------------------------------------
+function izDrawWires(area){
+  var svg=area.querySelector('.iz-wire-svg'); if(!svg) return;
+  var col=area.querySelector('.iz-type-col'); if(!col) return;
+  if(!area.offsetHeight){ svg.innerHTML=''; return; }
+  var areaRect=area.getBoundingClientRect();
+  var H=area.offsetHeight, W=46, startX=0, startY=H/2, bendX=W*0.5;
+  var cards=col.querySelectorAll('.iz-type');
+  var paths='';
+  cards.forEach(function(card){
+    var r=card.getBoundingClientRect();
+    var cy=(r.top-areaRect.top)+card.offsetHeight/2;
+    var c2=getComputedStyle(card).getPropertyValue('--iz-ac').trim()||'#e08a1d';
+    paths+='<path d="M'+startX+' '+startY+' C'+bendX+' '+startY+' '+bendX+' '+cy+' '+W+' '+cy+'" fill="none" stroke="'+c2+'" stroke-width="2" opacity=".8"/>';
+    paths+='<circle cx="'+W+'" cy="'+cy+'" r="3" fill="'+c2+'"/>';
+  });
+  paths+='<circle cx="'+startX+'" cy="'+startY+'" r="3.5" fill="#4a79c0"/>';
+  svg.innerHTML=paths; svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.style.width=W+'px';
+}
+function izDrawAllWires(){ document.querySelectorAll('.iz-wire-area').forEach(izDrawWires); }
+function izDrawWiresFor(grp){ var area=grp.querySelector('.iz-wire-area'); if(area) izDrawWires(area); }
+
+// ---- Accordion (one category open; one type open within it) ------------------------------------
+function izToggleCat(gi){
+  var grp=document.getElementById('izGrp'+gi); if(!grp) return;
+  var wasOpen=grp.classList.contains('open');
+  document.querySelectorAll('.iz-grp.open').forEach(function(g){
+    g.classList.remove('open');
+    g.querySelectorAll('.iz-type.open').forEach(function(t){ t.classList.remove('open'); });
+    var s=g.querySelector('.iz-wire-svg'); if(s) s.innerHTML='';
+  });
+  if(wasOpen) return;
+  grp.classList.add('open');
+  var cards=grp.querySelectorAll('.iz-type-col > .iz-type');
+  if(!cards.length){ return; }
+  var last=cards[cards.length-1], done=false;
+  var draw=function(){ if(done) return; done=true; izDrawWiresFor(grp); };
+  last.addEventListener('animationend', draw, { once:true });
+  setTimeout(draw, 650);
+}
+function izToggleType(gi,ti,ev){
+  if(ev) ev.stopPropagation();
+  var grp=document.getElementById('izGrp'+gi); if(!grp) return;
+  var el=document.getElementById('izType'+gi+'_'+ti); if(!el) return;
+  var wasOpen=el.classList.contains('open');
+  grp.querySelectorAll('.iz-type.open').forEach(function(s){ s.classList.remove('open'); });
+  if(!wasOpen) el.classList.add('open');
+  setTimeout(function(){ izDrawWiresFor(grp); }, 20);
+  setTimeout(function(){ izDrawWiresFor(grp); }, 360);
+}
+
+// ---- Render ------------------------------------------------------------------------------------
+function render(){
+  var editor=izCanEdit();
+  var docGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 13l3 3 5-5"/></svg>';
+  var html='<div class="iz-banner">'
+    +'<div class="hb-left">'
+      +'<h1 class="hb-title">'+docGlyph+'Issue Type Standardization</h1>'
+      +'<div class="hb-sub">The governed taxonomy from the PHD SIM Issue Standardization doc. '
+        +'Click a <b>category</b> to reveal its <b>incident types</b>, then click a type for its definition, when to use it, and an example.'
+        +(editor?' You have <b>edit access</b> \u2014 add categories/types and edit definitions below.':'')+'</div>'
+    +'</div>'
+    +'<div class="hb-right">'
+      +(editor?('<span class="iz-edit-badge">'+ic('key',13)+' Edit access</span>'
+        +'<button class="iz-ebtn primary" onclick="izOpenAdd(null)" type="button">'+ICO_PLUS+'Add type</button>'
+        +'<button class="iz-ebtn ghost" onclick="izOpenAddCategory()" type="button">'+ICO_PLUS+'Add category</button>'):'')
+      +'<div class="hb-total"><span class="n">'+izTotalTypes()+'</span><span class="l">incident types</span></div>'
+    +'</div>'
+  +'</div>';
+  html+='<div class="iz-wire">';
+  IZ_CATS.forEach(function(cat,gi){
+    var n=cat.types.length;
+    var catIc=cat.catIcon||'alert';
+    html+='<div class="iz-grp" id="izGrp'+gi+'">'
+      +'<div class="iz-cat-col">'
+        +'<div class="iz-cat-node" onclick="izToggleCat('+gi+')" title="Show incident types">'
+          +'<span class="ic">'+(ic(catIc,20)||'\u25cf')+'</span>'
+          +'<span class="iz-cat-txt"><span class="iz-cat-name">'+esc(cat.category)+'</span>'
+            +'<span class="iz-cat-meta">'+n+' incident type'+(n===1?'':'s')+'</span></span>'
+          +'<span class="iz-cat-caret">\u25b8</span>'
+        +'</div>'
+      +'</div>'
+      +'<div class="iz-wire-area">'
+        +'<svg class="iz-wire-svg" preserveAspectRatio="none"></svg>'
+        +'<div class="iz-type-col">';
+    cat.types.forEach(function(ty,ti){
+      var ac=ty.color||'#e08a1d';
+      var actions=editor?('<span class="iz-type-actions">'
+        +'<button class="iz-iconbtn" title="Edit" onclick="izOpenEdit('+gi+','+ti+',event)">'+ICO_EDIT+'</button>'
+        +'<button class="iz-iconbtn del" title="Delete" onclick="izDeleteType('+gi+','+ti+',event)">'+ICO_DEL+'</button>'
+      +'</span>'):'';
+      html+='<div class="iz-type" id="izType'+gi+'_'+ti+'" style="--iz-ac:'+ac+';--iz-acbg:'+izTint(ac)+';--d:'+(ti*55)+'ms">'
+        +'<div class="iz-type-head" onclick="izToggleType('+gi+','+ti+',event)">'
+          +'<span class="iz-type-ic">'+(ic(ty.icon,17)||'\u25cf')+'</span>'
+          +'<span class="iz-type-main"><span class="iz-type-name">'+esc(ty.type)+'</span>'
+            +(ty.desc?'<span class="iz-type-desc">'+esc(ty.desc)+'</span>':'')+'</span>'
+          +actions
+          +'<span class="iz-type-caret">\u25be</span>'
+        +'</div>'
+        +'<div class="iz-type-body">'
+          +'<div class="iz-def">'
+            +'<div class="iz-def-row"><span class="iz-def-k">'+ICO_DEF+'Definition</span><span class="iz-def-v">'+esc(ty.def||'\u2014')+'</span></div>'
+            +'<div class="iz-def-row"><span class="iz-def-k use">'+ICO_USE+'Use when</span><span class="iz-def-v">'+esc(ty.use||'\u2014')+'</span></div>'
+            +'<div class="iz-def-row"><span class="iz-def-k ex">'+ICO_EX+'Example</span><span class="iz-def-v ex">'+esc(ty.ex||'\u2014')+'</span></div>'
+          +'</div>'
+        +'</div>'
+      +'</div>';
+    });
+    if(editor){
+      html+='<button class="iz-addtype" onclick="izOpenAdd('+gi+')" type="button">'+ICO_PLUS+'Add a type to '+esc(cat.category)+'</button>';
+    }
+    html+='</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('wrap').innerHTML=html;
+  izFitCatWidth();
+  setTimeout(izDrawAllWires, 30);
+}
+function izFitCatWidth(){
+  var wire=document.querySelector('.iz-wire'); if(!wire) return;
+  var nodes=wire.querySelectorAll('.iz-cat-node'); if(!nodes.length) return;
+  wire.style.setProperty('--iz-catw','max-content');
+  var max=0; nodes.forEach(function(n){ var w=n.getBoundingClientRect().width; if(w>max) max=w; });
+  wire.style.setProperty('--iz-catw', Math.min(Math.ceil(max)+2,420)+'px');
+}
+window.addEventListener('resize', function(){ izFitCatWidth(); izDrawAllWires(); });
+
+// ================= EDIT MODAL ==================================================================
+var IZ_MODE=null;      // 'add' | 'edit' | 'addcat'
+var IZ_EDIT_REF=null;  // {gi,ti} when editing
+function izModalEl(id){ return document.getElementById(id); }
+function izFillCatSelect(selectedCat){
+  var sel=izModalEl('izInCatSel'); sel.innerHTML='';
+  IZ_CATS.forEach(function(c){
+    var o=document.createElement('option'); o.value=c.category; o.textContent=c.category;
+    if(c.category===selectedCat) o.selected=true; sel.appendChild(o);
+  });
+  var o2=document.createElement('option'); o2.value='__new__'; o2.textContent='+ New category…'; sel.appendChild(o2);
+  sel.onchange=function(){ izModalEl('izFieldNewCat').style.display=(sel.value==='__new__')?'block':'none'; };
+  izModalEl('izFieldNewCat').style.display=(sel.value==='__new__')?'block':'none';
+}
+function izShowModal(){ izModalEl('izModalErr').style.display='none'; izModalEl('izModalBg').classList.add('show'); }
+function izCloseModal(){ izModalEl('izModalBg').classList.remove('show'); IZ_MODE=null; IZ_EDIT_REF=null; }
+// Add a type (gi = category index to preselect, or null for the first/any).
+function izOpenAdd(gi){
+  if(!izCanEdit()) return;
+  IZ_MODE='add'; IZ_EDIT_REF=null;
+  izModalEl('izModalTitle').textContent='Add incident type';
+  izModalEl('izModalSub').textContent='Create a new incident type under a category. Pick an existing category or add a new one.';
+  izModalEl('izFieldCat').style.display='block';
+  var preCat=(gi!=null && IZ_CATS[gi])?IZ_CATS[gi].category:(IZ_CATS[0]&&IZ_CATS[0].category);
+  izFillCatSelect(preCat);
+  izModalEl('izInNewCat').value='';
+  izModalEl('izInType').value=''; izModalEl('izInDesc').value='';
+  izModalEl('izInDef').value=''; izModalEl('izInUse').value=''; izModalEl('izInEx').value='';
+  izShowModal(); setTimeout(function(){ izModalEl('izInType').focus(); },30);
+}
+// Add a brand-new empty category (prompts for the category name; first type can be added after).
+function izOpenAddCategory(){
+  if(!izCanEdit()) return;
+  IZ_MODE='add'; IZ_EDIT_REF=null;
+  izModalEl('izModalTitle').textContent='Add category + first type';
+  izModalEl('izModalSub').textContent='A category is created by adding its first incident type. Enter the new category name and the first type.';
+  izModalEl('izFieldCat').style.display='block';
+  izFillCatSelect('__new__');
+  var sel=izModalEl('izInCatSel'); sel.value='__new__'; izModalEl('izFieldNewCat').style.display='block';
+  izModalEl('izInNewCat').value='';
+  izModalEl('izInType').value=''; izModalEl('izInDesc').value='';
+  izModalEl('izInDef').value=''; izModalEl('izInUse').value=''; izModalEl('izInEx').value='';
+  izShowModal(); setTimeout(function(){ izModalEl('izInNewCat').focus(); },30);
+}
+// Edit an existing type.
+function izOpenEdit(gi,ti,ev){
+  if(ev) ev.stopPropagation();
+  if(!izCanEdit()) return;
+  var cat=IZ_CATS[gi]; if(!cat) return; var ty=cat.types[ti]; if(!ty) return;
+  IZ_MODE='edit'; IZ_EDIT_REF={gi:gi,ti:ti,id:ty.id};
+  izModalEl('izModalTitle').textContent='Edit incident type';
+  izModalEl('izModalSub').textContent='Edit the definition, "use when", example, and details for this incident type.';
+  izModalEl('izFieldCat').style.display='block';
+  izFillCatSelect(cat.category);
+  izModalEl('izInNewCat').value='';
+  izModalEl('izInType').value=ty.type||''; izModalEl('izInDesc').value=ty.desc||'';
+  izModalEl('izInDef').value=ty.def||''; izModalEl('izInUse').value=ty.use||''; izModalEl('izInEx').value=ty.ex||'';
+  izShowModal(); setTimeout(function(){ izModalEl('izInDef').focus(); },30);
+}
+function izModalError(msg){ var e=izModalEl('izModalErr'); e.textContent=msg; e.style.display='block'; }
+async function izModalSave(){
+  if(!izCanEdit()) return;
+  var sel=izModalEl('izInCatSel');
+  var category=(sel.value==='__new__')?String(izModalEl('izInNewCat').value||'').trim():sel.value;
+  var type=String(izModalEl('izInType').value||'').trim();
+  var desc=String(izModalEl('izInDesc').value||'').trim();
+  var def=String(izModalEl('izInDef').value||'').trim();
+  var use=String(izModalEl('izInUse').value||'').trim();
+  var ex=String(izModalEl('izInEx').value||'').trim();
+  if(!category){ izModalError('Please choose or enter a category.'); return; }
+  if(!type){ izModalError('Please enter the incident-type name.'); return; }
+  var saveBtn=izModalEl('izModalSave'); saveBtn.disabled=true; saveBtn.textContent='Saving…';
+  try{
+    var r;
+    if(IZ_MODE==='edit' && IZ_EDIT_REF){
+      r=await A.api('PUT','/api/issue-types-taxonomy/'+IZ_EDIT_REF.id,{category:category,type:type,desc:desc,def:def,use:use,ex:ex});
+    } else {
+      r=await A.api('POST','/api/issue-types-taxonomy',{category:category,type:type,desc:desc,def:def,use:use,ex:ex});
+    }
+    if(r&&r.ok){ izCloseModal(); await loadTaxonomy(true); }
+    else { izModalError((r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').')); }
+  }catch(e){ izModalError('Save failed — network error.'); }
+  saveBtn.disabled=false; saveBtn.textContent='Save';
+}
+async function izDeleteType(gi,ti,ev){
+  if(ev) ev.stopPropagation();
+  if(!izCanEdit()) return;
+  var cat=IZ_CATS[gi]; if(!cat) return; var ty=cat.types[ti]; if(!ty) return;
+  if(!window.confirm('Delete the incident type "'+ty.type+'"?\nThis cannot be undone.')) return;
+  try{
+    var r=await A.api('DELETE','/api/issue-types-taxonomy/'+ty.id);
+    if(r&&r.ok){ await loadTaxonomy(true); }
+    else { alert((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').')); }
+  }catch(e){ alert('Delete failed — network error.'); }
+}
+izModalEl('izModalCancel').onclick=izCloseModal;
+izModalEl('izModalSave').onclick=izModalSave;
+izModalEl('izModalBg').addEventListener('click',function(e){ if(e.target===this) izCloseModal(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') izCloseModal(); });
+
+// ================= LOAD =========================================================================
+function gate(msg){ document.getElementById('wrap').innerHTML='<div class="iz-gate"><h1>Issue Types</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>'; }
+async function loadTaxonomy(keepOpen){
+  var openIdx=null;
+  if(keepOpen){ var o=document.querySelector('.iz-grp.open'); if(o) openIdx=parseInt(o.id.replace('izGrp',''),10); }
+  try{
+    var r=await A.api('GET','/api/issue-types-taxonomy');
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.categories)){
+      IZ_CATS=r.data.categories;
+      render();
+      if(openIdx!=null && IZ_CATS[openIdx]){ izToggleCat(openIdx); }
+      return;
+    }
+    gate('Could not load the taxonomy. The data service may be waking up — please try again in a moment.');
+  }catch(e){ gate('Could not load the taxonomy — network error.'); }
+}
+loadTaxonomy(false);
+</script>
+</body>
+</html>

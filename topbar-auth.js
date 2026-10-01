@@ -1599,6 +1599,12 @@
         { key: 'unique-cases',    label: 'Unique cases',            img: 'important.png', href: 'important-cases.html', need: 'unique' }
       ]
     });
+    // Issue Types fly-out: the governed incident-type taxonomy (27 types / 9 categories) report.
+    buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
+      id: 'issue-types', triggerIcon: 'clipboard', triggerLabel: 'Issue Types', items: [
+        { key: 'issue-types', label: 'Issue Type Standardization', icon: 'clipboard', href: 'issue-types.html', need: 'li' }
+      ]
+    });
     buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
       id: 'history', triggerIcon: 'calendar', triggerLabel: 'Program History', items: [
         { key: 'archive-before', label: 'Before WWOS',      icon: 'clock-rewind', href: 'archive.html?ds=archive', need: 'li' },

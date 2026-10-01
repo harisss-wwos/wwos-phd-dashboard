@@ -1579,6 +1579,225 @@ app.delete('/api/hashtag-log/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
+// ======================================================================================
+// Issue-Type TAXONOMY (editable governed taxonomy shown on issue-types.html)
+// --------------------------------------------------------------------------------------
+// One Mongo doc per incident TYPE: { category, type, def, use, ex, color, icon, desc, order, ... }.
+// Categories are derived by grouping docs by `category` (adding the first type under a new category
+// name creates that category/node). Edits are allowed ONLY for a fixed username allow-list.
+// This is a definitions reference — it is NOT linked to tickets or counts.
+const TAXONOMY_EDITORS = new Set(['harisss', 'flofalgu']);
+function requireTaxonomyEditor(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  const uname = String(req.user.username || '').toLowerCase();
+  if (TAXONOMY_EDITORS.has(uname)) return next();
+  return res.status(403).json({ error: 'You do not have edit access to the issue-type taxonomy.' });
+}
+// Seed content for the taxonomy, used ONCE when the collection is empty. Mirrors the reference the
+// static page shipped with (8 categories / 25 types) incl. the display colour/icon/short descriptor.
+const ISSUE_TAXONOMY_SEED = [
+  { category: 'Weapon & Robbery', catIcon: 'flame', types: [
+    { type: 'Robbery w/ weapon', icon: 'alert', color: '#d33b4e', desc: 'Property taken/attempted, with a weapon', def: 'POI robs the transporter \u2014 or attempts to \u2014 using/presenting a weapon posing a lethal threat, taking property (in the driver\u2019s custody or not). Package theft when the transporter is NOT present is out of scope.', use: 'Property taken/attempted by force WITH a weapon while the driver is present.', ex: 'Armed individuals take the DP\u2019s phone and packages at gunpoint.' },
+    { type: 'Robbery w/o weapon', icon: 'alert', color: '#d33b4e', desc: 'Property taken/attempted, no weapon', def: 'Purposeful robbery/theft \u2014 or attempt \u2014 of property (in custody or not), without a weapon and without critical injury. Package theft when the transporter is NOT present is out of scope.', use: 'Property taken/attempted by force or theft WITHOUT a weapon while the driver is present.', ex: 'A CM shoves the DP and grabs their phone or packages during the delivery.' },
+    { type: 'Attack w/weapon', icon: 'flame', color: '#d33b4e', desc: 'Weapon used/attempted on driver', def: 'POI uses or attempts to use a weapon against the driver, regardless of injury level \u2014 including injury, critical injury, or hospitalization (severity via SEV).', use: 'A weapon is actually used or attempted against the driver.', ex: 'A CM swings a metal pipe at the DP; a CX throws a bottle that strikes the driver.' },
+    { type: 'Weapon pointed at driver', icon: 'target', color: '#e0564a', desc: 'Weapon aimed at the driver', def: 'POI aims/directs a weapon at the driver, or draws/reveals a concealed weapon directing the threat at them, but does not use it.', use: 'A weapon is aimed at the driver but not used.', ex: 'A CX\u2019s spouse points a firearm at the DP and keeps it aimed until they leave.' },
+    { type: 'Armed w/weapon', icon: 'alert', color: '#e08a1d', desc: 'Weapon brandished to threaten, not used', def: 'POI holds/displays/brandishes a weapon to threaten, but does not aim it at the driver or use it; no critical injury.', use: 'A weapon is brandished to threaten, but not aimed or used.', ex: 'A CX holds a bat and threatens the DA but never swings it.' },
+    { type: 'Weapon present w/ no threat', icon: 'eye', color: '#2f9fb8', desc: 'Weapon only present, no threat', def: 'A weapon is visible/known but not held toward, aimed at, referenced, or used against the driver.', use: 'A weapon is merely seen/known, with no threatening gesture, aim, or words.', ex: 'A CX answers the door holding a rifle at their side; not aimed, no threat.' },
+    { type: 'Shots fired', icon: 'flame', color: '#d33b4e', desc: 'Firearm discharged near/at driver', def: 'Driver hears or sees shots (intentional or unintentional) fired of any kind.', use: 'A firearm is discharged near or at the driver.', ex: 'A resident fires a gun toward the DA\u2019s vehicle.' },
+  ]},
+  { category: 'Pet', catIcon: 'paw', types: [
+    { type: 'Attack w/pet', icon: 'paw', color: '#e08a1d', desc: 'POI commands pet to attack', def: 'POI intentionally uses or commands a pet to cause harm \u2014 pet deployed as a weapon.', use: 'The POI deliberately sets/commands the pet on the driver.', ex: 'A CX commands their dog to attack the DA.' },
+    { type: 'Unsecured pet - bite/injury', icon: 'paw', color: '#e08a1d', desc: 'Unsecured pet bites/contacts, injury', def: 'POI\u2019s unsecured pet bites/makes contact causing injury, without command.', use: 'An unsecured pet bites/contacts the driver causing injury (not commanded).', ex: 'A CX\u2019s loose dog bites the DA\u2019s leg, breaking skin.' },
+    { type: 'Unsecured pet - evasion injury', icon: 'paw', color: '#e08a1d', desc: 'Injured escaping the pet, no bite', def: 'Driver injured while escaping/avoiding a pet (fall, trip, strain), with no bite/contact.', use: 'The driver is hurt fleeing/avoiding a pet, with no bite/contact.', ex: 'The DA sprains a wrist tripping while fleeing a charging dog.' },
+    { type: 'Unsecured pet - no contact', icon: 'paw', color: '#e08a1d', desc: 'Aggressive pet, no contact/injury', def: 'POI\u2019s unsecured pet charges/chases aggressively with no contact and no injury.', use: 'An unsecured pet is aggressive but makes no contact/injury.', ex: 'A dog rushes out barking; the DP retreats to the vehicle; no contact.' },
+  ]},
+  { category: 'Physical / Severe Outcome', catIcon: 'alert', types: [
+    { type: 'Fatality from assault', icon: 'alert', color: '#d33b4e', desc: 'Driver died', def: 'Loss of life resulting from CX actions or a CX-location hazard.', use: 'The driver dies from a CX-caused act or CX-location hazard.', ex: 'The driver dies from injuries inflicted during an assault.' },
+    { type: 'Physical altercation \u2013 No Injury', icon: 'user', color: '#e08a1d', desc: 'Assault w/o weapon, no injury', def: 'Purposeful physical force/assault without a weapon and no injury to the driver.', use: 'The POI makes physical contact/assault without a weapon and no injury to the driver.', ex: 'The CX\u2019s partner punches the DA; a CX spits in the DA\u2019s face.' },
+    { type: 'Physical altercation w/ Injury', icon: 'alert', color: '#d33b4e', desc: 'Assault w/o weapon, causes injury', def: 'Purposeful physical force/assault without a weapon causing Injury (regardless of level of injury).', use: 'The POI makes physical contact/assault without a weapon causing injury to the driver.', ex: 'The CX punches the DA on the nose that causes bleeding.' },
+  ]},
+  { category: 'Threats', catIcon: 'message', types: [
+    { type: 'Threat of harm (verbal or written)', icon: 'message', color: '#e08a1d', desc: 'Threatens to harm the driver', def: 'Purposeful threat of physical harm to the driver, whether spoken (in person/any channel) or written (note handed over or left on the vehicle).', use: 'The POI threatens physical harm, verbally or in writing.', ex: '\u201cI\u2019ll shoot you if you come back\u201d; or a threatening note left on the vehicle.' },
+  ]},
+  { category: 'Detention / Impeding', catIcon: 'lock', types: [
+    { type: 'Kidnapping', icon: 'lock', color: '#e0564a', desc: 'Taken/moved to another location', def: 'POI forcibly seizes and takes/relocates the driver to another location under their control.', use: 'The driver is forcibly taken/moved to another location against their will.', ex: 'A POI forces the driver into a vehicle and drives them away.' },
+    { type: 'Impeding egress', icon: 'no-entry', color: '#e08a1d', desc: 'Blocked from leaving', def: 'POI temporarily blocks/obstructs the driver\u2019s exit or path, without confining or moving them, and without a weapon or critical injury.', use: 'The driver is blocked from leaving, but not locked in and not taken away.', ex: 'A CX parks their car to block the DA\u2019s van from leaving the driveway.' },
+  ]},
+  { category: 'Sexual', catIcon: 'shield', types: [
+    { type: 'Sexual assault (physical)', icon: 'alert', color: '#d33b4e', desc: 'Sexual physical contact/attempt', def: 'Purposeful sexual touching/attempt, kissing, sexually suggestive contact, or purposeful lewd exposure.', use: 'Sexual physical contact/attempt or intentional lewd exposure.', ex: 'A CX gropes the DP while handing over the package.' },
+    { type: 'Sexual harassment (verbal)', icon: 'message', color: '#2f9fb8', desc: 'Sexual comments/solicitation', def: 'Unwelcome verbal/written sexual comments, leering, or sexist/stereotypical remarks based on gender.', use: 'The POI makes unwelcome sexual or sexist remarks toward the driver.', ex: 'A CX makes sexually suggestive comments and solicits the DP.' },
+    { type: 'Indecent exposure', icon: 'eye', color: '#2f9fb8', desc: 'Nudity/exposure, no sexual intent', def: 'Exposure that makes the driver uncomfortable \u2014 full/partial nudity or any body part(s) \u2014 without sexual intent or lewd conduct (else use Sexual assault/harassment).', use: 'The customer is naked or exposes body parts uncomfortably, no sexual intent.', ex: 'A CX answers the door naked.' },
+  ]},
+  { category: 'Abuse, Intimidation & Discrimination', catIcon: 'users', types: [
+    { type: 'Name Calling', icon: 'message', color: '#e08a1d', desc: 'Slurs/name calling at driver (protected trait)', def: 'Discriminatory language, name calling or conduct directed at the driver \u2014 slurs, insults, abuse \u2014 targeting a protected characteristic. (Displayed symbols/signage \u2192 Signage/Paraphernalia.)', use: 'The POI directs discriminatory language/slurs/name calling at the driver.', ex: 'A CX directs racial or homophobic slurs at the DA.' },
+    { type: 'Intimidation', icon: 'user', color: '#e08a1d', desc: 'Physical intimidation causing fear', def: 'Purposeful physical intimidation causing fear/apprehension, without a weapon or critical injury.', use: 'The POI physically intimidates the driver causing fear.', ex: 'A CX films the DA up close and aggressively confronts them.' },
+    { type: 'Verbal abuse', icon: 'message', color: '#2f9fb8', desc: 'Yelling/profanity/harassing notes, no threat', def: 'Offensive/harassing language \u2014 yelling, profanity or harassing customer notes (written) \u2014 that is not discriminatory and not threatening.', use: 'The POI yells, curses, name-calls, or leaves harassing notes, no threat/discrimination.', ex: 'A CX curses and yells at the DP over a late delivery.' },
+    { type: 'Signage/Paraphernalia', icon: 'flame', color: '#2f9fb8', desc: 'Racist/threatening signage at property', def: 'Discriminatory, racist, or threatening symbols/signs/paraphernalia displayed at the property \u2014 not language directed at the driver.', use: 'The address displays racist/threatening/discriminatory signage or symbols.', ex: 'A racist symbol or threatening sign is posted at the delivery location.' },
+  ]},
+  { category: 'Property', catIcon: 'tool', types: [
+    { type: 'Vandalism', icon: 'tool', color: '#e08a1d', desc: 'Purposely damages vehicle/property', def: 'Purposeful defacement, damage, or destruction of property \u2014 whether in the driver\u2019s custody or not \u2014 including the vehicle or Amazon packages.', use: 'The POI purposely damages/defaces the driver\u2019s vehicle or packages.', ex: 'A CX strikes the DP\u2019s windshield; a resident throws a rock at the vehicle.' },
+  ]},
+];
+// Map a Mongo type-doc to the clean API shape the page consumes.
+function mapIssueType(d) {
+  return {
+    id: String(d._id), category: d.category || '', type: d.type || '',
+    def: d.def || '', use: d.use || '', ex: d.ex || '',
+    color: d.color || '#e08a1d', icon: d.icon || 'alert', catIcon: d.catIcon || '', desc: d.desc || '',
+    order: typeof d.order === 'number' ? d.order : 0,
+    catOrder: typeof d.catOrder === 'number' ? d.catOrder : 0,
+    updatedBy: d.updatedBy || d.createdBy || null, updatedAt: d.updatedAt || d.createdAt || null,
+  };
+}
+// Seed the collection from ISSUE_TAXONOMY_SEED if (and only if) it is currently empty.
+async function seedIssueTypesIfEmpty(coll) {
+  const n = await coll.countDocuments({});
+  if (n > 0) return;
+  const now = new Date().toISOString();
+  const docs = [];
+  ISSUE_TAXONOMY_SEED.forEach((cat, ci) => cat.types.forEach((t, ti) => {
+    docs.push({
+      category: cat.category, catIcon: cat.catIcon || '', catOrder: ci,
+      type: t.type, def: t.def, use: t.use, ex: t.ex, color: t.color, icon: t.icon, desc: t.desc,
+      order: ti, createdBy: 'system (seed)', createdAt: now, updatedBy: 'system (seed)', updatedAt: now,
+    });
+  }));
+  if (docs.length) await coll.insertMany(docs);
+}
+
+// Public: the full taxonomy, grouped into categories (seeds from the reference on first load).
+app.get('/api/issue-types-taxonomy', async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.issueTypes);
+    await seedIssueTypesIfEmpty(coll);
+    const rows = (await coll.find({}).toArray()).map(mapIssueType);
+    // Group by category, preserving catOrder then first-seen; types sorted by order then type.
+    const catMap = new Map();
+    rows.forEach(r => {
+      if (!catMap.has(r.category)) catMap.set(r.category, { category: r.category, catIcon: r.catIcon || '', catOrder: r.catOrder, types: [] });
+      const c = catMap.get(r.category);
+      if (r.catIcon && !c.catIcon) c.catIcon = r.catIcon;
+      if (typeof r.catOrder === 'number') c.catOrder = Math.min(c.catOrder, r.catOrder);
+      c.types.push(r);
+    });
+    const categories = [...catMap.values()].sort((a, b) => (a.catOrder - b.catOrder) || a.category.localeCompare(b.category));
+    categories.forEach(c => c.types.sort((a, b) => (a.order - b.order) || a.type.localeCompare(b.type)));
+    res.json({ generatedAt: new Date().toISOString(), categories });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the issue-type taxonomy.' });
+  }
+});
+
+// Create a TYPE (optionally under a brand-new category). Edit-list only. Audit-logged.
+app.post('/api/issue-types-taxonomy', requireTaxonomyEditor, async (req, res) => {
+  try {
+    let { category, type, def, use, ex, color, icon, catIcon, desc } = req.body || {};
+    category = String(category || '').trim();
+    type = String(type || '').trim();
+    def = String(def || '').trim();
+    use = String(use || '').trim();
+    ex = String(ex || '').trim();
+    color = String(color || '').trim() || '#e08a1d';
+    icon = String(icon || '').trim() || 'alert';
+    catIcon = String(catIcon || '').trim();
+    desc = String(desc || '').trim();
+    if (!category || !type) return res.status(400).json({ error: 'Category and incident-type name are required.' });
+    const coll = await getCollection(COLLECTIONS.issueTypes);
+    await seedIssueTypesIfEmpty(coll);
+    // Determine the category's order (reuse existing catOrder/catIcon, or append a new category).
+    const inCat = await coll.find({ category }).sort({ order: -1 }).limit(1).toArray();
+    let catOrder, nextOrder;
+    if (inCat.length) {
+      catOrder = typeof inCat[0].catOrder === 'number' ? inCat[0].catOrder : 0;
+      nextOrder = (typeof inCat[0].order === 'number' ? inCat[0].order : 0) + 1;
+      if (!catIcon) catIcon = inCat[0].catIcon || '';
+    } else {
+      const maxCat = await coll.find({}).sort({ catOrder: -1 }).limit(1).toArray();
+      catOrder = (maxCat.length && typeof maxCat[0].catOrder === 'number' ? maxCat[0].catOrder : -1) + 1;
+      nextOrder = 0;
+      if (!catIcon) catIcon = 'alert';
+    }
+    const now = new Date().toISOString();
+    const doc = { category, catIcon, catOrder, type, def, use, ex, color, icon, desc, order: nextOrder, createdBy: req.user.username, createdAt: now, updatedBy: req.user.username, updatedAt: now };
+    const r = await coll.insertOne(doc);
+    try {
+      const logColl = await getCollection(COLLECTIONS.issueTypeLog);
+      await logColl.insertOne({ action: 'create', issueTypeId: String(r.insertedId), type, category, user: req.user.username, role: req.user.role, at: now, after: { category, type, def, use, ex } });
+    } catch (logErr) { /* never block */ }
+    res.status(201).json(mapIssueType(Object.assign({ _id: r.insertedId }, doc)));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not create the incident type.' });
+  }
+});
+
+// Edit a TYPE (definition / use-when / example, and optionally name/category/colour/icon/desc).
+app.put('/api/issue-types-taxonomy/:id', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.issueTypes);
+    let existing;
+    try { existing = await coll.findOne({ _id: new ObjectId(req.params.id) }); }
+    catch (e) { return res.status(400).json({ error: 'Invalid id.' }); }
+    if (!existing) return res.status(404).json({ error: 'Incident type not found.' });
+    const b = req.body || {};
+    // Only overwrite fields that were actually provided; keep the rest.
+    const set = {};
+    if (b.type != null) { const v = String(b.type).trim(); if (!v) return res.status(400).json({ error: 'Type name cannot be empty.' }); set.type = v; }
+    if (b.category != null) { const v = String(b.category).trim(); if (!v) return res.status(400).json({ error: 'Category cannot be empty.' }); set.category = v; }
+    if (b.def != null) set.def = String(b.def).trim();
+    if (b.use != null) set.use = String(b.use).trim();
+    if (b.ex != null) set.ex = String(b.ex).trim();
+    if (b.color != null) set.color = String(b.color).trim() || existing.color || '#e08a1d';
+    if (b.icon != null) set.icon = String(b.icon).trim() || existing.icon || 'alert';
+    if (b.desc != null) set.desc = String(b.desc).trim();
+    const now = new Date().toISOString();
+    set.updatedBy = req.user.username; set.updatedAt = now;
+    await coll.updateOne({ _id: existing._id }, { $set: set });
+    try {
+      const logColl = await getCollection(COLLECTIONS.issueTypeLog);
+      await logColl.insertOne({
+        action: 'edit', issueTypeId: String(existing._id), type: set.type || existing.type, category: set.category || existing.category,
+        user: req.user.username, role: req.user.role, at: now,
+        before: { def: existing.def, use: existing.use, ex: existing.ex, type: existing.type, category: existing.category },
+        after: { def: set.def != null ? set.def : existing.def, use: set.use != null ? set.use : existing.use, ex: set.ex != null ? set.ex : existing.ex, type: set.type || existing.type, category: set.category || existing.category },
+      });
+    } catch (logErr) { /* never block */ }
+    const updated = await coll.findOne({ _id: existing._id });
+    res.json(mapIssueType(updated));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not update the incident type.' });
+  }
+});
+
+// Delete a TYPE. Edit-list only. Audit-logged.
+app.delete('/api/issue-types-taxonomy/:id', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.issueTypes);
+    let existing;
+    try { existing = await coll.findOne({ _id: new ObjectId(req.params.id) }); }
+    catch (e) { return res.status(400).json({ error: 'Invalid id.' }); }
+    if (!existing) return res.status(404).json({ error: 'Incident type not found.' });
+    await coll.deleteOne({ _id: existing._id });
+    try {
+      const logColl = await getCollection(COLLECTIONS.issueTypeLog);
+      await logColl.insertOne({ action: 'delete', issueTypeId: String(existing._id), type: existing.type, category: existing.category, user: req.user.username, role: req.user.role, at: new Date().toISOString(), before: { category: existing.category, type: existing.type, def: existing.def, use: existing.use, ex: existing.ex } });
+    } catch (logErr) { /* never block */ }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the incident type.' });
+  }
+});
+
+// Taxonomy audit log (logged-in users). Newest first.
+app.get('/api/issue-type-tax-log', requireRole('user'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.issueTypeLog);
+    const entries = await logColl.find({}).sort({ at: -1 }).limit(300).toArray();
+    res.json(entries.map(e => ({ id: String(e._id), action: e.action, issueTypeId: e.issueTypeId, type: e.type, category: e.category, user: e.user, role: e.role, at: e.at, before: e.before || null, after: e.after || null })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the taxonomy log.' });
+  }
+});
+
 // ---- Paging contacts ---- (no edit/delete by design)
 // Public: list all paging contacts (ordered).
 app.get('/api/paging', async (req, res) => {
@@ -2234,6 +2453,198 @@ app.get('/api/countries-report', async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load countries report.' });
+  }
+});
+
+// ======================================================================================
+// Issue Type Standardization report  (/api/issue-types-report)
+// --------------------------------------------------------------------------------------
+// Source doc: "PHD SIM Ticket Issue Standardization" (Florence Joseph). The "Issue" type is NOT
+// a governed field in the data — it lives in the free-text RootCause (222 raw / ~100 normalized
+// distinct values, with stray "- " prefixes + casing). This endpoint classifies each ticket's
+// RootCause onto the GOVERNED taxonomy of 27 incident types grouped into 9 categories, so the
+// program can finally trend by incident type. Anything we can't confidently map lands in an
+// "Unmapped / needs classification" bucket (never silently dropped).
+// Scope: tickets created on/after 2026-04-01 (same window as the Countries report).
+const ISSUE_TYPES_FROM = COUNTRIES_FROM; // 2026-04-01
+
+// The 9 governed categories, each with its ordered incident types (definition + "use when" from the
+// doc). `match` is a list of normalized RootCause strings (lowercased, "- " stripped) that map to
+// this type. Matching is EXACT on the normalized value first; a few types also take regex hints.
+const ISSUE_TAXONOMY = [
+  { category: 'Weapon & Robbery', types: [
+    { type: 'Robbery w/ weapon', def: 'POI robs the transporter \u2014 or attempts to \u2014 using/presenting a weapon posing a lethal threat, taking property (in the driver\u2019s custody or not). Package theft when the transporter is NOT present is out of scope.', use: 'Property taken/attempted by force WITH a weapon while the driver is present.', ex: 'Armed individuals take the DP\u2019s phone and packages at gunpoint.',
+      match: ['armed robbery', 'robbery w/ weapon', 'robbery with weapon'] },
+    { type: 'Robbery w/o weapon', def: 'Purposeful robbery/theft \u2014 or attempt \u2014 of property (in custody or not), without a weapon and without critical injury. Package theft when the transporter is NOT present is out of scope.', use: 'Property taken/attempted by force or theft WITHOUT a weapon while the driver is present.', ex: 'A CM shoves the DP and grabs their phone or packages during the delivery.',
+      match: ['robbery w/o weapon', 'robbery without weapon'] },
+    { type: 'Attack w/weapon', def: 'POI uses or attempts to use a weapon against the driver, regardless of injury level \u2014 including injury, critical injury, or hospitalization (severity via SEV).', use: 'A weapon is actually used or attempted against the driver.', ex: 'A CM swings a metal pipe at the DP; a CX throws a bottle that strikes the driver.',
+      match: ['attack w/ weapon', 'attack w/weapon', 'attack with weapon'] },
+    { type: 'Weapon pointed at driver', def: 'POI aims/directs a weapon at the driver, or draws/reveals a concealed weapon directing the threat at them, but does not use it.', use: 'A weapon is aimed at the driver but not used.', ex: 'A CX\u2019s spouse points a firearm at the DP and keeps it aimed until they leave.',
+      match: ['weapon pointed at driver'] },
+    { type: 'Armed w/weapon', def: 'POI holds/displays/brandishes a weapon to threaten, but does not aim it at the driver or use it; no critical injury.', use: 'A weapon is brandished to threaten, but not aimed or used.', ex: 'A CX holds a bat and threatens the DA but never swings it.',
+      match: ['armed w/ weapon', 'armed w/weapon', 'armed with weapon'] },
+    { type: 'Weapon present w/ no threat', def: 'A weapon is visible/known but not held toward, aimed at, referenced, or used against the driver.', use: 'A weapon is merely seen/known, with no threatening gesture, aim, or words.', ex: 'A CX answers the door holding a rifle at their side; not aimed, no threat.',
+      match: ['weapon present (no threat - 1st incident)', 'weapon present no threat', 'incidents: customer/3p - weapon display w/o use', 'weapon display w/o use'] },
+    { type: 'Shots fired', def: 'Driver hears or sees shots (intentional or unintentional) fired of any kind.', use: 'A firearm is discharged near or at the driver.', ex: 'A resident fires a gun toward the DA\u2019s vehicle.',
+      match: ['shots fired'] },
+  ] },
+  { category: 'Pet', types: [
+    { type: 'Attack w/pet', def: 'POI intentionally uses or commands a pet to cause harm \u2014 pet deployed as a weapon.', use: 'The POI deliberately sets/commands the pet on the driver.', ex: 'A CX commands their dog to attack the DA.',
+      match: ['attack w/ pet', 'attack w/pet', 'attack with pet'] },
+    { type: 'Unsecured pet - bite/injury', def: 'POI\u2019s unsecured pet bites/makes contact causing injury, without command.', use: 'An unsecured pet bites/contacts the driver causing injury (not commanded).', ex: 'A CX\u2019s loose dog bites the DA\u2019s leg, breaking skin.',
+      match: ['unsecured animal attack (cx pet)', 'unsecured animal attack (non-cx pet/ other)', 'unsecured animal (cx pet)', 'unsecured animal (non-cx pet/ other)', 'unsecured animal', 'dog bite first occurrence', 'dog bite repeat 2nd occurrence', 'dog bite repeat 3rd occurrence', 'dog bite repeat 4th+ occurrence'] },
+    { type: 'Unsecured pet - evasion injury', def: 'Driver injured while escaping/avoiding a pet (fall, trip, strain), with no bite/contact.', use: 'The driver is hurt fleeing/avoiding a pet, with no bite/contact.', ex: 'The DA sprains a wrist tripping while fleeing a charging dog.',
+      match: ['unsecured animal evasion (cx pet)', 'unsecured animal evasion (non-cx pet/ other)', 'dog evasion first occurrence', 'dog evasion repeat 2nd occurrence', 'dog evasion repeat 3rd occurrence', 'dog evasion repeat 4th+ occurrence'] },
+    { type: 'Unsecured pet - no contact', def: 'POI\u2019s unsecured pet charges/chases aggressively with no contact and no injury.', use: 'An unsecured pet is aggressive but makes no contact/injury.', ex: 'A dog rushes out barking; the DP retreats to the vehicle; no contact.',
+      match: ['first time pet incident (immediately resolved / no action taken)', 'repeat pet incident (2nd occurrence -not directed by cx)', 'repeat pet incident - incident 3rd+ occurrence', 'repeat pet incident - incident 4th+ occurrence'] },
+  ] },
+  { category: 'Physical / Severe Outcome', types: [
+    { type: 'Fatality from assault', def: 'Loss of life resulting from CX actions or a CX-location hazard.', use: 'The driver dies from a CX-caused act or CX-location hazard.', ex: 'The driver dies from injuries inflicted during an assault.',
+      match: ['fatality from assault', 'fatality'] },
+    { type: 'Physical altercation \u2013 No Injury', def: 'Purposeful physical force/assault without a weapon and no injury to the driver.', use: 'The POI makes physical contact/assault without a weapon and no injury to the driver.', ex: 'The CX\u2019s partner punches the DA; a CX spits in the DA\u2019s face.',
+      match: ['physical altercation'] },
+    { type: 'Physical altercation w/ Injury', def: 'Purposeful physical force/assault without a weapon causing Injury (regardless of level of injury).', use: 'The POI makes physical contact/assault without a weapon causing injury to the driver.', ex: 'The CX punches the DA on the nose that causes bleeding.',
+      match: ['critical injury'] },
+  ] },
+  { category: 'Threats', types: [
+    { type: 'Threat of harm (verbal or written)', def: 'Purposeful threat of physical harm to the driver, whether spoken (in person/any channel) or written (note handed over or left on the vehicle).', use: 'The POI threatens physical harm, verbally or in writing.', ex: '\u201cI\u2019ll shoot you if you come back\u201d; or a threatening note left on the vehicle.',
+      match: ['verbal threat', 'written threat'] },
+  ] },
+  { category: 'Detention / Impeding', types: [
+    { type: 'Kidnapping', def: 'POI forcibly seizes and takes/relocates the driver to another location under their control.', use: 'The driver is forcibly taken/moved to another location against their will.', ex: 'A POI forces the driver into a vehicle and drives them away.',
+      match: ['kidnapping'] },
+    { type: 'Impeding egress', def: 'POI temporarily blocks/obstructs the driver\u2019s exit or path, without confining or moving them, and without a weapon or critical injury.', use: 'The driver is blocked from leaving, but not locked in and not taken away.', ex: 'A CX parks their car to block the DA\u2019s van from leaving the driveway.',
+      match: ['impeding egress', 'blocking driveway', 'double parking', 'parking dispute'] },
+  ] },
+  { category: 'Sexual', types: [
+    { type: 'Sexual assault (physical)', def: 'Purposeful sexual touching/attempt, kissing, sexually suggestive contact, or purposeful lewd exposure.', use: 'Sexual physical contact/attempt or intentional lewd exposure.', ex: 'A CX gropes the DP while handing over the package.',
+      match: ['sexual assault (physical)', 'sexual assault'] },
+    { type: 'Sexual harassment (verbal)', def: 'Unwelcome verbal/written sexual comments, leering, or sexist/stereotypical remarks based on gender.', use: 'The POI makes unwelcome sexual or sexist remarks toward the driver.', ex: 'A CX makes sexually suggestive comments and solicits the DP.',
+      match: ['sexual harassment (verbal)', 'inappropriate sexual comments', 'sexual harassment'] },
+    { type: 'Indecent exposure', def: 'Exposure that makes the driver uncomfortable \u2014 full/partial nudity or any body part(s) \u2014 without sexual intent or lewd conduct (else use Sexual assault/harassment).', use: 'The customer is naked or exposes body parts uncomfortably, no sexual intent.', ex: 'A CX answers the door naked.',
+      match: ['indecent exposure'] },
+  ] },
+  { category: 'Abuse, Intimidation & Discrimination', types: [
+    { type: 'Name Calling', def: 'Discriminatory language, name calling or conduct directed at the driver \u2014 slurs, insults, abuse \u2014 targeting a protected characteristic. (Displayed symbols/signage \u2192 Signage/Paraphernalia.)', use: 'The POI directs discriminatory language/slurs/name calling at the driver.', ex: 'A CX directs racial or homophobic slurs at the DA.',
+      match: ['name calling', 'inappropriate racial comments', 'discriminatory harassment'] },
+    { type: 'Intimidation', def: 'Purposeful physical intimidation causing fear/apprehension, without a weapon or critical injury.', use: 'The POI physically intimidates the driver causing fear.', ex: 'A CX films the DA up close and aggressively confronts them.',
+      match: ['harassment/intimidation', 'aggressive cx (unprovoked)', 'aggressive cm (unprovoked)', 'transporter felt unsafe (no interaction)', 'transporter being followed', 'amazon/driver targeted', 'driver targeted', 'road rage'] },
+    { type: 'Verbal abuse', def: 'Offensive/harassing language \u2014 yelling, profanity or harassing customer notes (written) \u2014 that is not discriminatory and not threatening.', use: 'The POI yells, curses, name-calls, or leaves harassing notes, no threat/discrimination.', ex: 'A CX curses and yells at the DP over a late delivery.',
+      match: ['yelling/abusive behavior', 'inappropriate conduct', 'written harassment', 'customer service escalation', 'failure to de-escalate', 'inappropriate delivery notes'] },
+    { type: 'Signage/Paraphernalia', def: 'Discriminatory, racist, or threatening symbols/signs/paraphernalia displayed at the property \u2014 not language directed at the driver.', use: 'The address displays racist/threatening/discriminatory signage or symbols.', ex: 'A racist symbol or threatening sign is posted at the delivery location.',
+      match: ['signage/paraphernalia'] },
+  ] },
+  { category: 'Property', types: [
+    { type: 'Vandalism', def: 'Purposeful defacement, damage, or destruction of property \u2014 whether in the driver\u2019s custody or not \u2014 including the vehicle or Amazon packages.', use: 'The POI purposely damages/defaces the driver\u2019s vehicle or packages.', ex: 'A CX strikes the DP\u2019s windshield; a resident throws a rock at the vehicle.',
+      match: ['vandalism', 'property damage', 'minor property damage'] },
+  ] },
+  { category: 'Accidents (no POI) \u2014 out of PHD scope', types: [
+    { type: 'Accidental injury (no POI)', def: 'Transporter injury or medical event with no POI involvement \u2014 traffic collision, slip/fall, or medical emergency (severity via SEV).', use: 'The driver is injured with no POI involvement.', ex: 'A traffic collision injures the DA; the DA slips on icy stairs.',
+      match: ['vehicle collision', 'near miss'] },
+    { type: 'Property / vehicle damage only', def: 'Accidental damage to the vehicle/property with no injury and no purposeful POI act.', use: 'An accident damages the vehicle/property with no injury and no POI intent.', ex: 'A detached trailer strikes the DA\u2019s vehicle; no injuries.',
+      match: ['vehicle unsecured'] },
+  ] },
+];
+
+// Build a fast lookup: normalized RootCause string -> { category, type }. Also keep ordered lists
+// for building the response skeleton (so empty governed types still show, count 0).
+const ISSUE_MATCH_INDEX = (() => {
+  const idx = new Map();
+  ISSUE_TAXONOMY.forEach(cat => cat.types.forEach(t => {
+    (t.match || []).forEach(m => idx.set(String(m).toLowerCase(), { category: cat.category, type: t.type }));
+  }));
+  return idx;
+})();
+// Normalize a raw RootCause the same way the probe did: strip a leading "- ", trim, lowercase.
+function normRootCause(rc) { return String(rc || '').replace(/^\s*-\s*/, '').trim().toLowerCase(); }
+// Classify a ticket's RootCause onto a governed { category, type }, or null if unmapped.
+function classifyIssue(rootCause) {
+  const n = normRootCause(rootCause);
+  if (!n) return null;
+  return ISSUE_MATCH_INDEX.get(n) || null;
+}
+
+app.get('/api/issue-types-report', async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const rows = await coll.aggregate([
+      { $project: {
+        _id: 0,
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
+        AssigneeIdentity: 1, RootCause: 1, RootCauseDetails: 1, q: 1,
+        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+      } },
+      { $match: { cd: { $gte: ISSUE_TYPES_FROM } } },
+    ], { allowDiskUse: true }).toArray();
+
+    // Build the skeleton: every governed type present (even at 0), in doc order, keyed by type name.
+    const typeMap = new Map(); // typeName -> { category, type, def, use, seen:Set, tickets:[] }
+    ISSUE_TAXONOMY.forEach(cat => cat.types.forEach(t => {
+      typeMap.set(t.type, { category: cat.category, type: t.type, def: t.def, use: t.use, ex: t.ex || '', seen: new Set(), tickets: [] });
+    }));
+    // Catch-all bucket for RootCause values that don't map to a governed type.
+    const UNMAPPED = { category: 'Unmapped', type: 'Unmapped / needs classification',
+      def: 'Tickets whose free-text Root Cause does not map to a governed incident type yet. These are operational/handling root causes (routing, package handling, delivery instructions) or blanks — surfaced here so the taxonomy can be extended, never silently dropped.',
+      use: '', seen: new Set(), tickets: [] };
+
+    const dedupe = new Set();
+    rows.forEach(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      if (sid && dedupe.has(sid)) return;
+      if (sid) dedupe.add(sid);
+      const hi = hiCountOf(t.RootCauseDetails) > 0;
+      const isPet = hi && /unsecured animal/i.test(String(t.RootCause || ''));
+      const cls = classifyIssue(t.RootCause);
+      const bucket = cls ? typeMap.get(cls.type) : UNMAPPED;
+      bucket.tickets.push({
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        created: t.CreateDate || '',
+        assignee: t.AssigneeIdentity || '',
+        status: t.Status || '',
+        title: t.Title || '',
+        rootCause: t.RootCause || '',
+        hi: hi,
+        pet: isPet,
+      });
+    });
+
+    // Assemble categories in doc order; within each category, types sorted by count desc (highest
+    // cases first) but keeping zero-count governed types at the end in doc order.
+    const catOrder = ISSUE_TAXONOMY.map(c => c.category);
+    const byCat = new Map(); // category -> [typeEntry...]
+    catOrder.forEach(c => byCat.set(c, []));
+    ISSUE_TAXONOMY.forEach(cat => cat.types.forEach(t => {
+      const e = typeMap.get(t.type);
+      byCat.get(cat.category).push({
+        type: e.type, def: e.def, use: e.use, ex: e.ex, count: e.tickets.length,
+        tickets: e.tickets.sort((a, b) => new Date(b.created) - new Date(a.created)),
+      });
+    }));
+
+    const categories = catOrder.map(c => {
+      const types = byCat.get(c).slice().sort((a, b) => (b.count - a.count) || 0);
+      return { category: c, count: types.reduce((s, x) => s + x.count, 0), types };
+    });
+    // Append the Unmapped category last if it caught anything.
+    if (UNMAPPED.tickets.length) {
+      categories.push({ category: UNMAPPED.category, count: UNMAPPED.tickets.length, types: [{
+        type: UNMAPPED.type, def: UNMAPPED.def, use: UNMAPPED.use, count: UNMAPPED.tickets.length,
+        tickets: UNMAPPED.tickets.sort((a, b) => new Date(b.created) - new Date(a.created)),
+      }] });
+    }
+
+    const total = categories.reduce((s, c) => s + c.count, 0);
+    res.json({
+      generatedFrom: 'ticket_docs (live)',
+      generatedAt: new Date().toISOString(),
+      from: ISSUE_TYPES_FROM.toISOString().slice(0, 10),
+      total,
+      typeCount: ISSUE_TAXONOMY.reduce((s, c) => s + c.types.length, 0),
+      categories,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load issue-types report.' });
   }
 });
 
