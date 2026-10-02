@@ -1962,13 +1962,20 @@ function hasNoEmt(title, labels) {
 
 // Helper: find a ticket in the current live quarter by ShortId. Returns the raw ticket or null.
 async function findLiveTicket(shortId) {
+  const sid = String(shortId);
   const qid = await liveQuarterId();
-  // Fast: direct per-ticket lookup by _id; fall back to scanning the (legacy) array.
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
-  const hit = await tColl.findOne({ _id: ticketDocId(qid, String(shortId)) });
+  // Fast: direct per-ticket lookup by _id in the live quarter.
+  const hit = await tColl.findOne({ _id: ticketDocId(qid, sid) });
   if (hit) { const t = Object.assign({}, hit); delete t._id; delete t.q; return t; }
+  // Not in the live quarter — a ticket can live in ANY quarter (e.g. a freshly-created ticket in the
+  // current calendar quarter, which isn't the highest-count "live" quarter). Look it up by ShortId
+  // across all quarters so comments / incident logs work for every ticket a user actually owns.
+  const anyQ = await tColl.findOne({ $or: [{ ShortId: sid }, { IssueId: sid }] });
+  if (anyQ) { const t = Object.assign({}, anyQ); delete t._id; delete t.q; return t; }
+  // Legacy fallback: scan the live quarter's array form.
   const tickets = await loadQuarterTickets(qid);
-  return tickets.find(t => String(t.ShortId || t.IssueId || '') === String(shortId)) || null;
+  return tickets.find(t => String(t.ShortId || t.IssueId || '') === sid) || null;
 }
 
 // Attach live-ticket fields (title, ticketStatus, createDate) to a list of help docs by ShortId,
@@ -2737,9 +2744,9 @@ app.post('/api/tickets/:shortId/comments', requireRole('user'), async (req, res)
     text = String(text || '').trim();
     if (!text) return res.status(400).json({ error: 'Comment text is required.' });
     if (text.length > 2000) return res.status(400).json({ error: 'Comment must be 2000 characters or fewer.' });
-    // The ticket must exist in the live quarter AND be assigned to the requester.
+    // The ticket must exist (in any quarter) AND be assigned to the requester.
     const ticket = await findLiveTicket(shortId);
-    if (!ticket) return res.status(404).json({ error: 'Ticket not found in the live quarter.' });
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
     if (String(ticket.AssigneeIdentity || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
       return res.status(403).json({ error: 'You can only comment on tickets assigned to you.' });
     }
@@ -2782,9 +2789,9 @@ app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, 
     text = String(text || '').trim();
     if (!text) return res.status(400).json({ error: 'Incident log text is required.' });
     if (text.length > 5000) return res.status(400).json({ error: 'Incident log must be 5000 characters or fewer.' });
-    // The ticket must exist in the live quarter AND be assigned to the requester.
+    // The ticket must exist (in any quarter) AND be assigned to the requester.
     const ticket = await findLiveTicket(shortId);
-    if (!ticket) return res.status(404).json({ error: 'Ticket not found in the live quarter.' });
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
     if (String(ticket.AssigneeIdentity || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
       return res.status(403).json({ error: 'You can only add incident logs to tickets assigned to you.' });
     }
@@ -2873,9 +2880,9 @@ app.post('/api/help', requireRole('editor'), async (req, res) => {
     const doubt = String(body.doubt || '').trim();
     if (!shortId || !doubt) return res.status(400).json({ error: 'Ticket and your question are required.' });
     if (doubt.length > 2000) return res.status(400).json({ error: 'Question must be 2000 characters or fewer.' });
-    // Verify the ticket is in the live quarter and assigned to the requester.
+    // Verify the ticket exists (in any quarter) and is assigned to the requester.
     const ticket = await findLiveTicket(shortId);
-    if (!ticket) return res.status(404).json({ error: 'Ticket not found in the live quarter.' });
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
     if (String(ticket.AssigneeIdentity || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
       return res.status(403).json({ error: 'You can only ask for help on tickets assigned to you.' });
     }
