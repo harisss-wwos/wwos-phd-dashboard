@@ -87,29 +87,30 @@
       // When the bar gets tight, buttons collapse to icon-only (label hidden; title gives the tooltip).
       + '@media(max-width:1024px){.tb-btn .tb-btn-label{display:none}.tb-btn{padding:8px 10px;gap:0}}'
       // login modal
-      + '.tb-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}'
-      + '.tb-modal{background:#111;border:1px solid #333;border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:28px}'
-      + '.tb-modal h2{color:#fff;font-size:1.2em;margin:0 0 6px}'
-      + '.tb-modal p.sub{color:#879596;font-size:.85em;margin:0 0 14px;line-height:1.5}'
-      + '.tb-modal label{display:block;color:#879596;font-size:.85em;margin:14px 0 6px}'
-      + '.tb-modal input[type=text],.tb-modal input[type=password]{width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:6px;color:#fff;font-size:.95em}'
+      + '.tb-modal-bg{position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}'
+      + '.tb-modal{background:#fff;border:1px solid #e2e6ea;border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:28px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}'
+      + '.tb-modal h2{color:#1b2026;font-size:1.2em;margin:0 0 6px}'
+      + '.tb-modal p.sub{color:#5c6773;font-size:.85em;margin:0 0 14px;line-height:1.5}'
+      + '.tb-modal label{display:block;color:#5c6773;font-size:.85em;margin:14px 0 6px}'
+      + '.tb-modal input[type=text],.tb-modal input[type=password]{width:100%;padding:10px 12px;background:#fff;border:1px solid #d4dade;border-radius:6px;color:#1b2026;font-size:.95em}'
+      + '.tb-modal input::placeholder{color:#9aa6b1}'
       + '.tb-pass-wrap{position:relative}'
       + '.tb-pass-wrap input{padding-right:44px!important}'
-      + '.tb-pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:#879596;cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}'
-      + '.tb-pass-eye:hover{color:#ff9900}'
-      + '.tb-modal input:focus{outline:none;border-color:#ff9900}'
-      + '.tb-err{color:#ff5252;font-size:.85em;margin-top:12px;display:none}'
+      + '.tb-pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:#8a94a2;cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}'
+      + '.tb-pass-eye:hover{color:#ec7211}'
+      + '.tb-modal input:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
+      + '.tb-err{color:#dc2626;font-size:.85em;margin-top:12px;display:none}'
       + '.tb-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}'
-      + '.tb-mbtn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:#ff9900;color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;font-family:inherit}'
-      + '.tb-mbtn:hover{background:#ec7211}'
-      + '.tb-mbtn.sec{background:transparent;border:1px solid #2a2a2a;color:#d5dbdb}'
-      + '.tb-mbtn.sec:hover{border-color:#ff9900;color:#ff9900}'
-      + '.tb-mbtn.tb-mbtn-danger{background:#ff5252;color:#fff}'
-      + '.tb-mbtn.tb-mbtn-danger:hover{background:#e03e3e}'
+      + '.tb-mbtn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border-radius:6px;font-weight:700;font-size:.88em;cursor:pointer;border:none;font-family:inherit}'
+      + '.tb-mbtn:hover{filter:brightness(1.05)}'
+      + '.tb-mbtn.sec{background:#fff;border:1px solid #d4dade;color:#2a3340}'
+      + '.tb-mbtn.sec:hover{border-color:#ec7211;color:#ec7211}'
+      + '.tb-mbtn.tb-mbtn-danger{background:#fff;border:1px solid rgba(220,38,38,.4);color:#dc2626}'
+      + '.tb-mbtn.tb-mbtn-danger:hover{background:#fef2f2}'
       // login loader
-      + '.tb-loader{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}'
-      + '.tb-loader .sp{width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite}'
-      + '.tb-loader p{color:#fff;font-weight:600}'
+      + '.tb-loader{position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:3200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}'
+      + '.tb-loader .sp{width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite}'
+      + '.tb-loader p{color:#1b2026;font-weight:600}'
       // The old sticky title bar is retired: navigation lives in the left rail and the profile avatar
       // floats top-right. Hide the bar and drop the top padding pages reserved for it.
       + '.tb-topbar{display:none!important}'
@@ -582,6 +583,11 @@
       + '.tb-pp-mytickets:hover{transform:translateY(-1px);filter:brightness(1.02);box-shadow:0 5px 14px -5px rgba(0,0,0,.55)}'
       + '.tb-pp-mytickets svg{width:14px;height:14px}'
       + '.tb-pp-mytickets .tb-pp-ic-img{width:15px;height:15px;object-fit:contain}'
+      // Capital (Title) case for ALL toolbar-built buttons + nav links + rail captions, matching the
+      // app-wide default (the stylesheet capitalize rule can\'t reach these toolbar-only classes).
+      // Visual-only; !important so no per-class rule above wins. Does not touch role/badge pills that
+      // are intentionally UPPERCASE (those set their own text-transform:uppercase).
+      + '.tb-pp-link,.tb-pp-logout,.tb-pp-mytickets,.tb-pp-login-btn,.tb-fab-cap,.tb-nav-label,.tb-data-btn,.tb-btn,.tb-mbtn,.tb-menuitem,.tb-hist-item,.tb-hist-name,.tb-qbtn,.tb-profile-name,.tb-an-label,.tb-live-label,.tb-hist-label,.tb-av-label,.tb-rail-badge-label{text-transform:capitalize!important}'
       // Vertical stack of SEPARATE section cards.
       + '.tb-pp-stack{display:flex;flex-direction:column;gap:12px}'
       + '.tb-pp-card{background:#fff;border:1px solid #e2e6ea;border-radius:14px;box-shadow:0 1px 3px rgba(20,30,50,.06);overflow:hidden}'
@@ -1021,9 +1027,9 @@
     ov.id = 'tbUploadIntro';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">' +
-      '<h2 style="color:#fff;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
-      '<p style="color:#879596;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#fff">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
+    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+      '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
+      '<p style="color:#5c6773;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#1b2026">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
       '<div style="margin-top:22px;display:flex;gap:10px;justify-content:flex-end">' +
         '<button class="tb-mbtn sec" id="tbUploadCancel">Cancel</button>' +
@@ -1041,14 +1047,14 @@
   function tbShowColumnError(missing) {
     var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
       var bad = missing.indexOf(c) !== -1;
-      return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:' + (bad ? '#ff5252' : '#4ade80') + '">' + (bad ? '✗' : '✓') + ' <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + tbNewTag(c) + (bad ? ' <span style="color:#ff5252;font-size:.78em">(missing)</span>' : '') + '</li>';
+      return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:' + (bad ? '#dc2626' : '#1f9d57') + '">' + (bad ? '✗' : '✓') + ' <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + tbNewTag(c) + (bad ? ' <span style="color:#dc2626;font-size:.78em">(missing)</span>' : '') + '</li>';
     }).join('');
     var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">' +
-      '<h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
-      '<p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
+    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+      '<h2 style="color:#dc2626;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
+      '<p style="color:#5c6773;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#dc2626">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
       '<div style="margin-top:20px;text-align:right"><button class="tb-mbtn" onclick="this.closest(\'div[style*=fixed]\').remove()">Close</button></div>' +
       '</div>';
@@ -1084,7 +1090,7 @@
   // Small full-page overlay helpers for this flow.
   function tbFlowOverlay(id, inner, z) {
     var ov = document.createElement('div'); ov.id = id;
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:' + (z || 3400) + ';display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:' + (z || 3400) + ';display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML = inner; document.body.appendChild(ov); return ov;
   }
   function tbRemove(id) { var el = document.getElementById(id); if (el) el.remove(); }
@@ -1152,20 +1158,20 @@
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
     tbFlowOverlay('tbAssess',
-      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px">' +
-        '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
-        '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
-        '<p style="color:#879596;margin-top:6px;font-size:.9em" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
+      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:14px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+        '<div class="sp" style="width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
+        '<p style="color:#1b2026;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
+        '<p style="color:#5c6773;margin-top:6px;font-size:.9em" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
         // Progress bar + ticket ticker (shown while the live data loads).
         '<div id="tbAssessTimerWrap" style="display:none;margin-top:20px">' +
           '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div style="flex:1;height:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;overflow:hidden">' +
-              '<div id="tbAssessBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:20px;transition:width .35s ease"></div>' +
+            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:20px;overflow:hidden">' +
+              '<div id="tbAssessBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:20px;transition:width .35s ease"></div>' +
             '</div>' +
-            '<div id="tbAssessPct" style="font-size:.95em;font-weight:800;color:#4ade80;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
+            '<div id="tbAssessPct" style="font-size:.95em;font-weight:800;color:#1f9d57;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
           '</div>' +
-          '<p id="tbAssessTicker" style="color:#5ecdec;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
-          '<p style="color:#5f6b6c;margin-top:2px;font-size:.72em">Scanning all the tickets…</p>' +
+          '<p id="tbAssessTicker" style="color:#1577a0;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
+          '<p style="color:#8a94a2;margin-top:2px;font-size:.72em">Scanning all the tickets…</p>' +
         '</div>' +
         '<button class="tb-mbtn sec" id="tbAssessCancel" style="margin-top:18px">Cancel</button>' +
       '</div>');
@@ -1297,25 +1303,25 @@
     // rows -> tell the user there are no new changes and let them close the upload.
     if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
       tbFlowOverlay('tbConfirm',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center">' +
+        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
           '<div style="font-size:2em">✅</div>' +
-          '<h2 style="color:#fff;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
-          '<p style="color:#879596;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#d5dbdb">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
+          '<h2 style="color:#1b2026;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
+          '<p style="color:#5c6773;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#1b2026">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
           '<div style="margin-top:22px"><button class="tb-mbtn" id="tbConfirmClose">Close</button></div>' +
         '</div>');
       document.getElementById('tbConfirmClose').onclick = function () { tbRemove('tbConfirm'); };
       return;
     }
     tbFlowOverlay('tbConfirm',
-      '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px">' +
-        '<h2 style="color:#fff;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
-        '<div style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:10px;padding:6px 16px">' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Tickets with newer data</span><span style="color:#44b9d6;font-weight:700">' + res.xNewer + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #2a2a2a"><span style="color:#879596">Will be updated (field changes)</span><span style="color:#fbbf24;font-weight:700">' + res.yUpdated + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#879596">New tickets to add</span><span style="color:#4ade80;font-weight:700">' + res.zNew + '</span></div>' +
+      '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+        '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
+        '<div style="background:#f7f9fb;border:1px solid #e2e6ea;border-radius:10px;padding:6px 16px">' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets with newer data</span><span style="color:#1577a0;font-weight:700">' + res.xNewer + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Will be updated (field changes)</span><span style="color:#b5680c;font-weight:700">' + res.yUpdated + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#5c6773">New tickets to add</span><span style="color:#1f9d57;font-weight:700">' + res.zNew + '</span></div>' +
         '</div>' +
-        (res.assessSecs != null ? ('<p style="color:#5f6b6c;font-size:.78em;margin-top:10px;text-align:center">Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</p>') : '') +
-        '<p style="color:#879596;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
+        (res.assessSecs != null ? ('<p style="color:#8a94a2;font-size:.78em;margin-top:10px;text-align:center">Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</p>') : '') +
+        '<p style="color:#5c6773;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
         '<div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">' +
           '<button class="tb-mbtn sec" id="tbConfirmCancel">Cancel</button>' +
           '<button class="tb-mbtn" id="tbConfirmGo">Confirm &amp; upload</button>' +
@@ -1328,19 +1334,19 @@
   // Step D: delta publish (only changed/new + non-live). Stays on the current page.
   async function tbPublish(res) {
     tbFlowOverlay('tbPush',
-      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px">' +
-        '<div class="sp" style="width:46px;height:46px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
-        '<p style="color:#fff;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
-        '<p style="color:#879596;margin-top:8px;font-size:.9em" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
+      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:14px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+        '<div class="sp" style="width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
+        '<p style="color:#1b2026;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
+        '<p style="color:#5c6773;margin-top:8px;font-size:.9em" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
         '<div style="margin-top:20px">' +
           '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div style="flex:1;height:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;overflow:hidden">' +
-              '<div id="tbPushBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:20px;transition:width .35s ease"></div>' +
+            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:20px;overflow:hidden">' +
+              '<div id="tbPushBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:20px;transition:width .35s ease"></div>' +
             '</div>' +
-            '<div id="tbPushPct" style="font-size:.95em;font-weight:800;color:#4ade80;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
+            '<div id="tbPushPct" style="font-size:.95em;font-weight:800;color:#1f9d57;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
           '</div>' +
-          '<p id="tbPushTicker" style="color:#5ecdec;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
-          '<p style="color:#5f6b6c;margin-top:2px;font-size:.72em">Writing tickets to the database…</p>' +
+          '<p id="tbPushTicker" style="color:#1577a0;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
+          '<p style="color:#8a94a2;margin-top:2px;font-size:.72em">Writing tickets to the database…</p>' +
         '</div>' +
       '</div>');
     var _pt0 = Date.now();
@@ -1403,11 +1409,11 @@
       }
       tbRemove('tbPush');
       tbFlowOverlay('tbDone',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center">' +
+        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
           '<div style="font-size:2em">✅</div>' +
-          '<h2 style="color:#4ade80;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
-          '<p style="color:#879596;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
-          (_pushSecs ? ('<p style="color:#5f6b6c;font-size:.78em;margin-top:8px">Saved in ' + tbFmtDuration(_pushSecs) + '</p>') : '') +
+          '<h2 style="color:#1f9d57;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
+          '<p style="color:#5c6773;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
+          (_pushSecs ? ('<p style="color:#8a94a2;font-size:.78em;margin-top:8px">Saved in ' + tbFmtDuration(_pushSecs) + '</p>') : '') +
           '<div style="margin-top:18px"><button class="tb-mbtn" id="tbDoneClose">Done</button></div>' +
         '</div>');
       document.getElementById('tbDoneClose').onclick = function () {
@@ -1419,9 +1425,9 @@
       try { clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
       tbRemove('tbPush');
       tbFlowOverlay('tbErr',
-        '<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center">' +
-          '<h2 style="color:#ff5252;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
-          '<p style="color:#879596;font-size:.9em">' + tbEsc(err.message) + '</p>' +
+        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+          '<h2 style="color:#dc2626;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
+          '<p style="color:#5c6773;font-size:.9em">' + tbEsc(err.message) + '</p>' +
           '<div style="margin-top:18px"><button class="tb-mbtn" id="tbErrClose">Close</button></div>' +
         '</div>');
       document.getElementById('tbErrClose').onclick = function () { tbRemove('tbErr'); };

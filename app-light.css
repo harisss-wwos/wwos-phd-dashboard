@@ -84,6 +84,15 @@ input:focus,select:focus,textarea:focus{ border-color:#ec7211 !important; box-sh
 .modal h2,.modal label{ color:#1b2026 !important; }
 .modal-bg,.tb-modal-bg{ background:rgba(20,30,50,.45) !important; }
 
+/* ---- Capital (Title) case for buttons by default, app-wide ----
+   Visual-only (does not change the underlying label text; fully reversible). Covers .btn variants,
+   bare <button>s, the shared toolbar/modal buttons, and the tab toggles. Icon-only/symbol buttons
+   (× close, carets) are unaffected since they contain no letters. */
+.btn,button,.tb-btn,.tb-mbtn,.tb-pp-login-btn,.uc-tab,.bc-copy,.bc-view{ text-transform:capitalize; }
+/* Opt-outs: elements that use <button>/.btn but must keep their exact casing (acronyms, ticket IDs,
+   user-entered names, the × close glyph). */
+.modal-close,.reply-modal-close,.tb-pass-eye,.sort-btn,[data-keepcase]{ text-transform:none !important; }
+
 /* ---- Secondary / ghost buttons + misc chips ---- */
 .btn.sec{ color:#2a3340 !important; border:1px solid #d4dade !important; background:transparent !important; }
 .uc-tab{ color:#5c6773 !important; border-color:#d4dade !important; background:#f5f6f8 !important; }

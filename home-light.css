@@ -229,3 +229,8 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
 .home-tb-btn{ color:#2a3340 !important; border:1px solid #d4dade !important; }
 .home-tb-btn:hover{ border-color:#ec7211 !important; color:#ec7211 !important; }
 .home-tb-btn.disabled,.home-tb-btn.disabled:hover{ color:#9aa6b1 !important; background:#eef1f4 !important; border-color:#e2e6ea !important; }
+
+/* ---- Capital (Title) case for buttons by default (index.html) ----
+   Visual-only, reversible. Mirrors app-light.css so button casing is consistent app-wide. */
+.btn,button,.tb-btn,.tb-mbtn,.tb-pp-login-btn{ text-transform:capitalize; }
+.modal-close,.tb-pass-eye,[data-keepcase]{ text-transform:none !important; }

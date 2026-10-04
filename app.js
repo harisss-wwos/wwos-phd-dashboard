@@ -748,6 +748,10 @@ function showTicketAccessPrompt(){
 
 function showColorPopup(color,tickets){
   if(!requireLoginForTickets())return;
+  // Guard: while the age-band data is still loading (rows show spinners), don't open the popup — it
+  // would read an empty cache and wrongly show "0". Only applies when no explicit ticket array was
+  // passed in (the KPI tiles pass their own loaded array).
+  if(tickets===undefined && !colorTicketsLoaded()) return;
   closeAllPopups();
   const colorNames={green:'GREEN (0-4 days)',yellow:'YELLOW (4-7 days)',red:'RED (7-10 days)',black:'BLACK (>10 days)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
@@ -1714,6 +1718,12 @@ function colorTicketsFor(color){
   if(typeof M!=='undefined' && M && M.colorTickets && M.colorTickets[color]) return M.colorTickets[color];
   return (DASH_COLOR_TICKETS && DASH_COLOR_TICKETS[color]) || [];
 }
+// True once the per-colour ticket data is actually loaded (full dataset OR the chunked age-detail
+// payload). Until then the age rows show spinners and must NOT open a popup (it'd show a wrong 0).
+function colorTicketsLoaded(){
+  if(typeof M!=='undefined' && M && M.colorTickets) return true;
+  return DASH_COLOR_TICKETS !== null;
+}
 
 async function dashVersion(){
   if(DASH_VERSION!==undefined)return DASH_VERSION;
@@ -1961,7 +1971,7 @@ function ageCardSkeletonHtml(){
   const rng=function(t){ return String(t.range||'').replace(/^\(|\)$/g,''); };
   const rows=AGE_ROW_ORDER.map(function(cls){
     const t=ageTileByCls(cls);
-    return '<div id="ageRow-'+cls+'" class="age '+cls+'" onclick="showColorPopup(\''+cls+'\')" title="View '+t.name+' tickets">'+
+    return '<div id="ageRow-'+cls+'" class="age '+cls+' age-loading" onclick="showColorPopup(\''+cls+'\')" title="Loading '+t.name+' tickets…">'+
       '<div class="band"><span class="dot"></span><span class="lbl"><b>'+t.name+'</b><span>'+rng(t)+'</span></span></div>'+
       '<div class="agents-count" id="ageAgents-'+cls+'"><span class="num-spinner"></span></div>'+
       '<div class="tik" id="ageCount-'+cls+'"><span class="num-spinner"></span></div>'+
@@ -2015,6 +2025,9 @@ function renderAgeChunk(d){
     if(row){
       const blink=(t.cls==='black')?blackBlink:(t.cls==='purple')?purpleBlink:false;
       row.classList.toggle('blink-alert',!!blink);
+      // Data is in -> enable the row (clickable) and restore its hover title.
+      row.classList.remove('age-loading');
+      row.setAttribute('title','View '+t.name+' tickets');
     }
     const ael=document.getElementById('ageAgents-'+t.cls);
     if(ael){ ael.classList.add('kpi-anim'); countUpKpi(ael, String(agentCount)); }

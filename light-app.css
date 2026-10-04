@@ -293,3 +293,51 @@ body[data-profile-panel] .content .section.collapsed,
 body[data-profile-panel] .content .kpi-section.collapsed{
   background:linear-gradient(180deg,#eef1f5,#e6eaef)!important;
   box-shadow:0 1px 2px rgba(20,30,50,.05)!important}
+
+/* ---- Capital (Title) case for buttons by default (app.html) ----
+   Visual-only, reversible. Mirrors app-light.css so button casing is consistent app-wide. */
+.btn,button,.tb-btn,.tb-mbtn,.tb-pp-login-btn,.uc-tab{ text-transform:capitalize; }
+.modal-close,.popup-close,.tb-pass-eye,.sort-btn,[data-keepcase]{ text-transform:none !important; }
+
+/* ============================================================================================
+   POPUPS (color/status popup + per-agent drill-down + agent accordion). These were dark inline
+   (#111 / #0d1420 / #0b0f14) in app.html; relight them to white cards + dark text. Accent colours
+   (orange, cyan ids, amber crown, red no-EMT, status greens/ambers/reds) kept — they read on white.
+   ============================================================================================ */
+/* Overlay + card */
+.popup-overlay{ background:rgba(20,30,50,.5)!important }
+.popup-card{ background:#fff!important; border:1px solid var(--lt-border)!important; box-shadow:0 24px 60px -20px rgba(20,40,70,.5)!important; color:var(--lt-text)!important }
+.popup-head h2{ color:var(--lt-text)!important }
+.pc-subcount,.pc-section-meta{ color:var(--lt-text-2)!important }
+.pc-section-note{ color:#8a94a2!important }
+.pc-none{ color:#8a94a2!important }
+.pc-section-title{ color:var(--lt-text)!important }
+/* Agent cards */
+.pc-agent{ background:#fff!important; border:1px solid var(--lt-border)!important }
+.pc-agent:hover{ border-color:var(--lt-accent)!important; background:var(--lt-accent-soft)!important }
+.pc-agent-name strong{ color:var(--lt-text)!important }
+.pc-agent-sub{ color:var(--lt-text-2)!important }
+/* Ticket cards (drill-down) */
+.pc-tk{ background:#fff!important; border:1px solid var(--lt-border)!important }
+.pc-tk-id{ color:#1577a0!important }
+.pc-tk-meta{ color:var(--lt-text-2)!important }
+.pc-tk-age{ color:#8a94a2!important }
+.pc-tk-cmt{ color:var(--lt-text-2)!important; border-top-color:var(--lt-border)!important }
+.pc-tk-status{ background:#f7f9fb!important }
+/* Agent accordion (color popup) */
+.ap-agent{ background:#fff!important; border:1px solid var(--lt-border)!important }
+.ap-agent-head:hover{ background:#f7f9fb!important }
+.ap-agent-name{ color:var(--lt-text)!important }
+.ap-agent-name .sub{ color:var(--lt-text-2)!important }
+.ap-agent-count{ background:#f7f9fb!important; border:1px solid var(--lt-border)!important; color:var(--lt-text)!important }
+.ap-caret{ color:var(--lt-text-2)!important }
+.ap-tbl th,.ap-tbl td{ border-top-color:#eceff2!important; color:var(--lt-text)!important }
+.ap-tbl thead th{ background:#f7f9fb!important; color:var(--lt-text-2)!important }
+.ap-tbl tbody tr:hover td{ background:#fff6ec!important }
+.ap-tbl .ap-id{ color:#1577a0!important }
+.ap-tbl td.ap-cmt{ color:#2a3340!important }
+.ap-cmt-input,.ap-cmt-save,.ap-cmt-cancel{ font-family:inherit }
+.ap-cmt-input{ background:#fff!important; border:1px solid var(--lt-border-2)!important; color:var(--lt-text)!important }
+.ap-cmt-cancel{ color:#2a3340!important }
+/* Incident-type agent popup split */
+.inc-ag-cell{ color:var(--lt-text)!important }

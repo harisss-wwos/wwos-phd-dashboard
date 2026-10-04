@@ -798,6 +798,11 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 @keyframes ageFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .age>*{position:relative;z-index:1}
 .age:hover{border-color:var(--glow-bd)}
+/* While the counts are still loading, the row is not clickable (opening the popup now would show a
+   wrong 0). Disable the pointer + hover lift/glow until renderAgeChunk removes .age-loading. */
+.age.age-loading{cursor:default;pointer-events:none}
+.age.age-loading:hover{transform:none;box-shadow:none;border-color:#232830}
+.age.age-loading:hover::after{opacity:0;animation:none}
 .age.purple{--glow-a:rgba(167,139,250,.20);--glow-b:rgba(167,139,250,.08);--glow-bd:rgba(167,139,250,.55)}
 .age.black{--glow-a:rgba(139,150,160,.16);--glow-b:rgba(139,150,160,.06);--glow-bd:rgba(139,150,160,.5)}
 .age.red{--glow-a:rgba(255,107,107,.20);--glow-b:rgba(255,107,107,.08);--glow-bd:rgba(255,107,107,.55);border-color:#3a2323}
@@ -909,13 +914,13 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 @keyframes mblink{50%{opacity:.4}}
 </style>
 <!-- Light-mode preview (app.html only). Loaded last so it wins the cascade. Remove this line to revert. -->
-<link rel="stylesheet" href="light-app.css?v=29">
+<link rel="stylesheet" href="light-app.css?v=30">
 </head>
 <body data-app="live" data-profile-panel data-back-href="index.html" data-back-label="All Dashboards">
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=95"></script>
+<script src="topbar-auth.js?v=96"></script>
 <script src="app.js?v=53"></script>
 </body>
 </html>
