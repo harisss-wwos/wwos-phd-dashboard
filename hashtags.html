@@ -136,6 +136,55 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-gate p{color:var(--tm);line-height:1.55}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="hx-light">
+.hx-head h1{color:#1b2026!important}
+.hx-sub{color:#5c6773!important}.hx-sub b{color:#1b2026!important}
+/* Section cards white (keep purple hx-banner + orange sec-head top border). */
+.hx-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #ec7211!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.hx-sec-head:hover{background:#f7f9fb!important}
+.hx-sec-title{color:#1b2026!important}
+.hx-tag{color:#b5560c!important}
+.hx-def{color:#5c6773!important}
+.hx-count{background:#fff4e8!important;color:#b5560c!important;border:1px solid #f3d4b0!important}
+.hx-count.zero{background:#f0f3f6!important;color:#8793a0!important;border:1px solid #e2e6ea!important}
+.hx-caret{color:#9aa5b1!important}
+.hx-none-yet{background:#f7f9fb!important;border:1px dashed #d4dce4!important;color:#5c6773!important}
+.hx-none-yet b{color:#1b2026!important}
+.hx-none-yet .hx-tag{color:#b5560c!important}
+/* Chart box. */
+.hx-chart-title{color:#2a3340!important}
+.hx-chart-sub{color:#5c6773!important}
+.hx-chart-sub b[style*="#a78bfa"]{color:#7c5cff!important}
+.chart-box{background:#fff!important;border:1px solid #e6eaee!important}
+/* Table. */
+.hx-tbl th,.hx-tbl td{border-bottom:1px solid #eef1f4!important}
+.hx-tbl thead th{color:#5c6773!important;border-bottom:1px solid #e2e6ea!important}
+.hx-tbl tbody tr:hover td{background:#fff7ed!important}
+.hx-idlink{color:#1577a0!important}
+.hx-num{color:#5c6773!important}
+.hx-assignee{color:#2a3340!important}
+.hx-title-txt{color:#2a3340!important}
+.hx-sort:hover{color:#1b2026!important}
+.hx-sort-ar{color:#ec7211!important}.hx-sort-ar.idle{color:#aab4bd!important}
+.hx-tag-s.c{background:#eafaf0!important;color:#1f9d57!important}
+.hx-tag-s.r{background:#eaf4fb!important;color:#1577a0!important}
+.hx-tag-s.o{background:#fff4e8!important;color:#b5680c!important}
+/* Show more/less. */
+.hx-more button{background:#fff!important;border:1px solid #e2e6ea!important;color:#2a3340!important}
+.hx-more button:hover{border-color:#ec7211!important;color:#1b2026!important}
+.hx-mcount{color:#8793a0!important}
+.hx-empty{color:#8793a0!important}
+/* Skeleton. */
+.sk-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #cdd5dd!important}
+.sk-line,.sk-ic{background:#e8ebee!important}
+.sk-banner .sk-line{background:rgba(255,255,255,.5)!important}
+/* Gate + button. */
+.hx-gate h1{color:#1b2026!important}
+.hx-gate p{color:#5c6773!important}
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+</style>
 </head>
 <body data-nav-active="hashtags" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
@@ -276,12 +325,12 @@ function hxDrawChart(idx){
   var cv=document.getElementById('hxCanvas'+idx); if(!cv)return;
   var b=hxWeeklyBuckets(a.tickets);
   if(HX_CHARTS[idx]){ try{HX_CHARTS[idx].destroy();}catch(e){} delete HX_CHARTS[idx]; }
-  Chart.defaults.color='#879596'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,0.06)';
   HX_CHARTS[idx]=new Chart(cv,{type:'line',
-    data:{labels:b.labels,datasets:[hxWave(a.tag+' tickets',b.data,'#a78bfa','rgba(167,139,250,')]},
+    data:{labels:b.labels,datasets:[hxWave(a.tag+' tickets',b.data,'#7c5cff','rgba(124,92,255,')]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
-      scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:'Tickets created',color:'#d5dbdb',font:{size:12}},ticks:{font:{size:11},precision:0}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},title:{display:true,text:'Tickets created',color:'#2a3340',font:{size:12}},ticks:{font:{size:11},precision:0}},
         x:{grid:{display:false},ticks:{font:{size:11}}}}}});
 }
 function hxArrow(a,field){

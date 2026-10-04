@@ -288,8 +288,75 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+
+/* ============================================================================
+   LIGHT MODE OVERRIDE — appended last so it wins the cascade. Remaps the dark
+   palette + every dark surface (cards, tables, modals, filter bar) to light.
+   Section banners already use light gradients and are left as-is.
+   ============================================================================ */
+:root{--t:#2a3340!important;--tm:#5c6773!important;--bd:#e2e7eb!important;--s:#ffffff!important}
+body{background:#f3f5f7!important;color:#2a3340!important}
+.top-bar{background:#fff!important;border-bottom:1px solid #e2e7eb!important}
+.logo span{color:#1b2026!important}
+h1,.uname,.big,.gv-kpi .value,.gv-chart h3,.gv-sec h2,.ga-group-name,.ac-num,.gv-card-title,.an-sec-head h2 .big,.bk-cmt-meta b,.bk-meta b{color:#1b2026!important}
+.btn{color:#fff!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e7eb!important;color:#2a3340!important}
+/* Cards / surfaces */
+.tbl-card,.gv-card,.gv-leaf,.ac-tile,.gv-kpi,.gv-chart,.gv-sec,.gv-legend,.modal,.bk-cmt{background:#fff!important}
+.section{background:#fff!important;border:1px solid #e2e7eb!important;box-shadow:0 2px 12px -6px rgba(20,40,70,.12)!important}
+.gv-card{border:1px solid #e2e7eb!important}
+.ac-tile{background:#f7f9fb!important}
+.ga-group{background:linear-gradient(160deg,color-mix(in srgb,var(--gc) 10%,#fff),#fff 65%)!important;border:1px solid #e6eaee!important}
+.ga-kpi{background:#f7f9fb!important;border:1px solid #eef1f4!important}
+.ga-mem{background:#fff!important;border:1px solid #e6eaee!important}
+.ga-mem:hover{background:#faf9ff!important}
+.ga-mem-name{color:#1b2026!important}
+.ga-chip{background:#f0f3f6!important;border:1px solid #e2e7eb!important;color:#5c6773!important}
+.ga-chip b{color:#1b2026!important}
+.ac-grid .ac-num{color:#1b2026!important}
+/* Tables (base + gv-sec + iap xls) */
+thead th,.gv-sec th{background:#f7f9fb!important;color:#5c6773!important}
+tbody td,.gv-sec td{border-bottom:1px solid #eef1f4!important;color:#2a3340!important}
+tbody tr:hover,.gv-sec tr:hover{background:#f8fafb!important}
+.iap-table.xls,.iap-table.xls th,.iap-table.xls td{border-color:#e2e7eb!important}
+.iap-table.xls thead th{background:#f3f5f7!important;color:#5c6773!important}
+.iap-table.xls tbody tr:nth-child(even) td{background:#fafbfc!important}
+.iap-table.xls tbody tr:hover td{background:#fff4e8!important}
+.iap-table.xls th.iap-sort:hover{background:#eef1f4!important}
+.iap-table.xls .col-key{background:#eafaf0!important;color:#0f6b38!important}
+.iap-table.xls thead th.col-key{background:#d8f3e3!important;color:#1f9d57!important}
+.iap-table.xls .col-total{background:#eaf4fb!important;color:#1577a0!important}
+.iap-table.xls td.zero,.iap-table.xls td.col-key.zero,.iap-table.xls td.col-total.zero,.iap-table.xls td.loading{color:#aab3bd!important}
+/* Modals */
+.modal{border:1px solid #e2e7eb!important;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)!important}
+.modal-bg{background:rgba(20,30,45,.55)!important}
+.modal-head h2{color:#1b2026!important}
+.bk-tk{background:#f7f9fb!important;border:1px solid #e6eaee!important;border-left:3px solid var(--o)!important}
+.bk-cmt{background:#f7f9fb!important;border:1px solid #eef1f4!important}
+.bk-cmt-meta b{color:#2a3340!important}
+.bk-id{color:#2563eb!important}
+.bk-title,.bk-cmt-text{color:#2a3340!important}
+.bk-empty{border-color:#e2e7eb!important;color:#5c6773!important}
+/* Filter bar + segmented controls */
+.ga-filters{background:#fff!important;border:1px solid #e2e7eb!important;box-shadow:0 2px 10px rgba(20,40,70,.05)!important}
+.ga-fgroup>.ga-flabel{color:#5c6773!important}
+.ga-fopts{background:#f3f5f7!important;border:1px solid #e2e7eb!important}
+.ga-opt{color:#5c6773!important}
+.ga-opt:hover{color:#1b2026!important;background:rgba(0,0,0,.04)!important}
+.ga-opt.checked{color:#1b2026!important;background:#fff!important;box-shadow:inset 0 0 0 1px #d4dade,0 1px 4px rgba(20,40,70,.12)!important}
+.ga-fopts.ga-radio .ga-opt.checked{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important}
+.ga-fopts.ga-checks .ga-opt::before{border-color:#c6cdd4!important}
+.gv-card-head:hover{background:#f7f9fb!important}
+.gv-leaf{background:#fafbfc!important}
+.gv-mid>.gv-card-head .gv-card-title,.gv-leaf>.gv-card-head .gv-card-title,.gv-block-title,.gv-tbl-title,.ga-tbl-title{color:#1b2026!important}
+.an-sec-head h2{color:#1b2026!important}
+.an-sub,.an-sec-desc,.sub,.ga-page-sub{color:#5c6773!important}
+.an-sec-desc b{color:#1b2026!important}
+.sk{background:#eef1f4!important}
+.sk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent)!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=1">
 </head>
 <body data-nav-active="agent-analytics" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
@@ -554,6 +621,8 @@ function isAutoSimResolved(r){
     &&tags.toLowerCase().includes('pet_incident_auto_resolved');
 }
 const GV_CHARTS=[];
+// Light-theme Chart.js defaults: dark text/grid lines on white surfaces.
+try{ Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,.06)'; }catch(e){}
 function gvMakeChart(id,config){ const ctx=document.getElementById(id); if(ctx){ GV_CHARTS.push(new Chart(ctx,config)); } }
 function gvDestroyCharts(){ GV_CHARTS.forEach(c=>{try{c.destroy();}catch(e){}}); GV_CHARTS.length=0; }
 
@@ -597,7 +666,8 @@ function gtag(grp){ return '<span class="gv-tag '+(GTC[grp]||'')+'" style="font-
 // render from one fetch. Nested collapsible cards; each leaf lazy-loads on first expand.
 // Quarter months (index within the quarter -> label). Q1=Jan/Feb/Mar, Q2=Apr/May/Jun, Q3=Jul/Aug/Sep.
 const GV_QUARTERS=[
-  {qid:'2026-Q3', title:'Quarter Q3 (Live) — July 1st to September', months:['July','August','September']},
+  {qid:'2026-Q4', title:'Quarter Q4 — October 1st to December 31st', months:['October','November','December']},
+  {qid:'2026-Q3', title:'Quarter Q3 — July 1st to September',        months:['July','August','September']},
   {qid:'2026-Q2', title:'Quarter Q2 — April 1st to June 30th',       months:['April','May','June']},
   {qid:'2026-Q1', title:'Quarter Q1 — January 1st to March 31st',    months:['January','February','March']},
 ];
@@ -611,7 +681,7 @@ function gaUrlFor(qid, mi){
 // refine a quarter; multiple summed client-side), Groups (checkbox: Alpha/Beta/Gamma) applied to BOTH.
 function groupsSectionsHtml(){
   var scopeOpts='<label class="ga-opt checked"><input type="radio" name="gaScope" value="overall" checked onchange="gaOnScopeChange()"> Overall (complete database)</label>'+
-    GV_QUARTERS.map(function(q){ var live=/\(Live\)/.test(q.title)?' (Live)':''; var lbl=q.qid.replace('2026-','')+live; return '<label class="ga-opt"><input type="radio" name="gaScope" value="'+esc(q.qid)+'" onchange="gaOnScopeChange()"> '+esc(lbl)+'</label>'; }).join('');
+    GV_QUARTERS.map(function(q){ var lbl=q.qid.replace('2026-',''); return '<label class="ga-opt"><input type="radio" name="gaScope" value="'+esc(q.qid)+'" onchange="gaOnScopeChange()"> '+esc(lbl)+'</label>'; }).join('');
   // Month checkboxes: 3 slots; labels get set per selected quarter. Disabled while Overall is active.
   var monthOpts=[0,1,2].map(function(mi){ return '<label class="ga-opt disabled" id="gaMonthOpt'+mi+'"><input type="checkbox" value="'+mi+'" onchange="gaOnMonthChange()" disabled> <span id="gaMonthLbl'+mi+'">Month '+(mi+1)+'</span></label>'; }).join('');
   var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gaGroup" value="'+g[0]+'" checked onchange="gaOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
@@ -831,21 +901,21 @@ const GV_RENDER={
       '<div class="gv-chart"><h3>Resolved vs Open</h3><div class="gv-wrap"><canvas id="gvc1"></canvas></div></div>'+
       '<div class="gv-chart"><h3>Avg Resolution Time (Hours)</h3><div class="gv-wrap"><canvas id="gvc2"></canvas></div></div>'+
     '</div>';
-    gvMakeChart('gvc1',{type:'bar',data:{labels:[GN.A1,GN.A2,GN.B],datasets:[{label:'Resolved',data:[m.a1R,m.a2R,m.bR],backgroundColor:['rgba(125,211,252,.8)','rgba(251,191,36,.8)','rgba(74,222,128,.8)'],borderRadius:3},{label:'Open',data:[m.a1O,m.a2O,m.bO],backgroundColor:['rgba(125,211,252,.3)','rgba(251,191,36,.3)','rgba(74,222,128,.3)'],borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{display:false}}}}});
-    gvMakeChart('gvc2',{type:'bar',data:{labels:[GN.A1,GN.A2,GN.B],datasets:[{data:[m.a1Avg,m.a2Avg,m.bAvg],backgroundColor:['rgba(125,211,252,.8)','rgba(251,191,36,.8)','rgba(74,222,128,.8)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{display:false}}}}});
+    gvMakeChart('gvc1',{type:'bar',data:{labels:[GN.A1,GN.A2,GN.B],datasets:[{label:'Resolved',data:[m.a1R,m.a2R,m.bR],backgroundColor:['rgba(125,211,252,.8)','rgba(251,191,36,.8)','rgba(74,222,128,.8)'],borderRadius:3},{label:'Open',data:[m.a1O,m.a2O,m.bO],backgroundColor:['rgba(125,211,252,.3)','rgba(251,191,36,.3)','rgba(74,222,128,.3)'],borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#5c6773'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}});
+    gvMakeChart('gvc2',{type:'bar',data:{labels:[GN.A1,GN.A2,GN.B],datasets:[{data:[m.a1Avg,m.a2Avg,m.bAvg],backgroundColor:['rgba(125,211,252,.8)','rgba(251,191,36,.8)','rgba(74,222,128,.8)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}});
   },
   wl:function(m,body){
     body.innerHTML='<div class="gv-charts">'+
       '<div class="gv-chart"><h3>Workload Distribution</h3><div class="gv-wrap"><canvas id="gvc3"></canvas></div></div>'+
       '<div class="gv-chart"><h3>Daily Group Trend (Last 7 Days)</h3><div class="gv-wrap"><canvas id="gvc4"></canvas></div></div>'+
     '</div>';
-    gvMakeChart('gvc3',{type:'pie',data:{labels:[GN.A1+'('+m.a1As+')',GN.A2+'('+m.a2As+')',GN.B+'('+m.bAs+')'],datasets:[{data:[m.a1As,m.a2As,m.bAs],backgroundColor:['rgba(125,211,252,.85)','rgba(251,191,36,.85)','rgba(74,222,128,.85)'],borderColor:'#000',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#d5dbdb'}}}}});
-    gvMakeChart('gvc4',{type:'line',data:{labels:m.dL,datasets:[{label:GN.A1,data:m.dgA1,borderColor:'#7dd3fc',backgroundColor:'rgba(125,211,252,.08)',fill:true,tension:.4,pointRadius:4},{label:GN.A2,data:m.dgA2,borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.08)',fill:true,tension:.4,pointRadius:4},{label:GN.B,data:m.dgB,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#d5dbdb'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},x:{grid:{color:'rgba(255,255,255,.04)'}}}}});
+    gvMakeChart('gvc3',{type:'pie',data:{labels:[GN.A1+'('+m.a1As+')',GN.A2+'('+m.a2As+')',GN.B+'('+m.bAs+')'],datasets:[{data:[m.a1As,m.a2As,m.bAs],backgroundColor:['rgba(125,211,252,.85)','rgba(251,191,36,.85)','rgba(74,222,128,.85)'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#5c6773'}}}}});
+    gvMakeChart('gvc4',{type:'line',data:{labels:m.dL,datasets:[{label:GN.A1,data:m.dgA1,borderColor:'#7dd3fc',backgroundColor:'rgba(125,211,252,.08)',fill:true,tension:.4,pointRadius:4},{label:GN.A2,data:m.dgA2,borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.08)',fill:true,tension:.4,pointRadius:4},{label:GN.B,data:m.dgB,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.08)',fill:true,tension:.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#5c6773'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{color:'rgba(0,0,0,.05)'}}}}});
   },
   par:function(m,body){
     const sorted=gvSortedByGroup(m);
     body.innerHTML='<div class="gv-chart"><div class="gv-wrap" style="height:400px"><canvas id="gvc5"></canvas></div></div>';
-    gvMakeChart('gvc5',{type:'bar',data:{labels:sorted.map(a=>a.name),datasets:[{label:'Resolved',data:sorted.map(a=>a.resolved),backgroundColor:sorted.map(a=>GC[a.group]),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},y:{grid:{display:false}}}}});
+    gvMakeChart('gvc5',{type:'bar',data:{labels:sorted.map(a=>a.name),datasets:[{label:'Resolved',data:sorted.map(a=>a.resolved),backgroundColor:sorted.map(a=>GC[a.group]),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},y:{grid:{display:false}}}}});
   },
   arv:function(m,body){
     const sortedByRes=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
@@ -855,7 +925,7 @@ const GV_RENDER={
     gvMakeChart('gvc6',{type:'line',data:{labels:sortedByRes.map(a=>a.name),datasets:[
       gvWave('Resolved',sortedByRes.map(a=>a.resolved),'#4ade80','rgba(74,222,128,'),
       gvWave('Open',sortedByRes.map(a=>a.open),'#ff9900','rgba(255,153,0,')
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#d5dbdb',usePointStyle:true,boxWidth:8}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}});
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{color:'#5c6773',usePointStyle:true,boxWidth:8}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}}}}});
   },
   iap:function(m,body){
     IAP_M=m; IAP_BODY=body;

@@ -57,6 +57,39 @@ tr:hover td{background:#0d0d0d}
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="db-light">
+h1{color:#1b2026!important}
+.sub{color:#5c6773!important}
+.sub b{color:#1b2026!important}
+.section h2,.usage h2{color:#b5560c!important}
+/* KPI cards. */
+.kpi{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #ec7211!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.kpi .v{color:#1b2026!important}
+.kpi .l{color:#5c6773!important}
+.kpi .sm{color:#8793a0!important}
+/* Usage card + bar. */
+.usage{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.bar{background:#eef1f4!important;border:1px solid #e2e6ea!important}
+.usage .cap{color:#5c6773!important}
+/* Tables. */
+.tbl-card{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+th{color:#5c6773!important}
+td{color:#2a3340!important}
+th,td{border-bottom:1px solid #eef1f4!important}
+tr:hover td{background:#f7f9fb!important}
+.note{color:#8793a0!important}
+/* Status pills. */
+.pill.ok{background:#eafaf0!important;color:#1f9d57!important}
+.pill.warn{background:#fff3e0!important;color:#b5680c!important}
+.pill.bad{background:#fdeaea!important;color:#d33a3a!important}
+/* Buttons + error text. */
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.gate p{color:#5c6773!important}
+.sub[style*="#ff5252"]{color:#d33a3a!important}
+</style>
 </head>
 <body data-nav-active="db-health" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">

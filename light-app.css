@@ -1,0 +1,295 @@
+/* ============================================================================================
+   light-app.css  —  SCOPED light-mode preview for app.html ONLY.
+   Loaded LAST on app.html so it wins the cascade. Non-destructive: delete the <link> to revert.
+   Palette inspired by the Amazon A-to-Z UI: near-white page, white cards, soft gray borders,
+   dark slate text, Amazon-orange accent. Does NOT affect other pages (they don't load this file).
+   ============================================================================================ */
+
+:root{
+  /* Light palette */
+  --lt-page:#f5f6f8;        /* page background */
+  --lt-panel:#ffffff;       /* cards / sections / panels */
+  --lt-panel-2:#eef1f4;     /* secondary surfaces (headers, chips, inset) */
+  --lt-panel-3:#e7ebef;     /* hover / zebra */
+  --lt-border:#e2e6ea;      /* standard border */
+  --lt-border-2:#d4dade;    /* stronger border */
+  --lt-text:#1b2026;        /* primary text */
+  --lt-text-2:#5c6773;      /* muted text */
+  --lt-accent:#ec7211;      /* amazon orange (slightly darker for contrast on white) */
+  --lt-accent-soft:#fff4e8;
+
+  /* Remap the app's own semantic vars to light equivalents (used widely via var()). */
+  --t:#1b2026;              /* was light-on-dark; now dark text */
+  --tm:#5c6773;             /* muted */
+  --bd:#e2e6ea;             /* border */
+  --s:#ffffff;              /* "surface" used by .section/.kpi-card/.chart-box */
+}
+
+/* ---- Base ---- */
+html,body{background:var(--lt-page)!important;color:var(--lt-text)!important}
+/* 3-column layout: all three columns' first visible box must start at the same y (the 10px body top
+   gap). Reset the center column's top padding AND the top margin of its first child so the first
+   card/heading sits flush at 10px — matching the profile banner (profile-col) and the logo (nav-rail),
+   both of which already start at 10px with no top margin. */
+body[data-profile-panel] .content{padding-top:0!important}
+body[data-profile-panel] .content>*:first-child{margin-top:0!important}
+/* The dashboard's first row is a .page-title; drop its bottom border/large gap so the content below
+   doesn't look pushed down relative to the side columns. */
+body[data-profile-panel] .content>.page-title:first-child{margin-bottom:14px!important;padding-bottom:0!important;border-bottom:none!important}
+
+/* Headings / strong text that were forced #fff inline-via-class */
+.page-title h1,.dash-title-h1,.dash-title-name,.section h2,.chart-box h3,
+.kpi-card .value,.kpi-table td.kt-value,h1,h2,h3{color:var(--lt-text)!important}
+.page-title p,.kpi-card .label,.kpi-table td.kt-desc{color:var(--lt-text-2)!important}
+
+/* ---- Top bar + toolbar (sticky dark strips) ---- */
+.top-bar,.toolbar{background:var(--lt-panel)!important;border-bottom:1px solid var(--lt-border)!important}
+.toolbar-actions{border-top:1px solid var(--lt-border)!important}
+.logo span{color:var(--lt-text)!important}
+
+/* ---- Buttons ---- */
+.btn{background:var(--lt-accent)!important;color:#fff!important}
+.btn:hover{background:#d9630c!important}
+.btn.sec{background:var(--lt-panel)!important;border:1px solid var(--lt-border-2)!important;color:var(--lt-text)!important}
+.btn.sec:hover{border-color:var(--lt-accent)!important;color:var(--lt-accent)!important}
+
+/* Segmented action/scope pill groups */
+.dash-actions,.dash-scope-opt,.dsc-opt,.hi-gran,.inc-sub-h .inc-sub-n{
+  background:var(--lt-panel-2)!important;border-color:var(--lt-border-2)!important}
+.dash-act{color:var(--lt-text-2)!important}
+.dash-act:hover{background:rgba(0,0,0,.05)!important;color:var(--lt-text)!important}
+.dash-actions-right button.dash-act{color:var(--lt-accent)!important}
+.dash-scope-opt,.dsc-opt{color:var(--lt-text-2)!important}
+.dash-scope-opt:hover,.dsc-opt:hover{color:var(--lt-text)!important;border-color:#c3ccd4!important}
+/* Keep the selected scope chip orange (matches the dark theme's active state). */
+.dash-scope-opt.checked,.dsc-opt.checked{color:#fff!important;background:linear-gradient(180deg,#ff9f2e,#ec7211)!important;border-color:#ec7211!important}
+
+/* ---- Sections / cards / panels ---- */
+.section,.kpi-card,.chart-box{background:var(--lt-panel)!important;border:1px solid var(--lt-border)!important}
+.kpi-card{border-top:3px solid var(--lt-accent)!important}
+.section h2::before{background:var(--lt-accent)!important}
+.kpi-card.qhl{background:linear-gradient(160deg,#eaf6fb,#f3f9fc)!important;border:1px solid #cfe6ef!important;border-top:3px solid #2b9fbd!important}
+.kpi-card.qhl .value{color:#157d97!important}
+.kpi-card.qhl .label{color:#4e7a88!important}
+
+/* ---- Tables ---- */
+th,.kpi-table thead th{background:var(--lt-panel-2)!important;color:var(--lt-text-2)!important}
+td,th{border-color:var(--lt-border)!important}
+.kpi-table th,.kpi-table td{border-color:var(--lt-border)!important}
+.kpi-table td.kt-metric{color:var(--lt-text)!important}
+.kpi-table tr:nth-child(even) td{background:#fafbfc!important}
+tr:hover{background:#fff6ec!important}
+.xls-table,.xls-table th,.xls-table td{border-color:var(--lt-border-2)!important}
+.inc-sub-h{color:var(--lt-text)!important}
+.inc-sub-h .inc-sub-n{color:var(--lt-text)!important;background:var(--lt-panel-2)!important}
+.xls-table tr.inc-clickrow:hover td{background:#fff6ec!important}
+.inc-ag-name{color:var(--lt-text)!important}
+
+/* Blink-alert sections should flash on a light base, not black. */
+@keyframes blinkAlert{0%,100%{box-shadow:0 0 0 0 rgba(209,50,18,0);background:#fff}50%{box-shadow:0 0 14px 2px rgba(209,50,18,.25);background:#fdecea}}
+
+/* ============================================================================================
+   Injected rail / topbar / flyouts (from topbar-auth.js). Those use dark navy surfaces; lighten
+   them so the left + right rails read on the light page. Targeted by their tb- classes.
+   ============================================================================================ */
+.tb-fab-col,.tb-fab-col-right{background:transparent!important}
+.tb-fab-cap{color:var(--lt-text-2)!important}
+.tb-fab-item:hover{background:rgba(0,0,0,.05)!important}
+.tb-fab-item:hover .tb-fab-cap{color:var(--lt-text)!important}
+
+/* Logo + profile avatar badges go light. The NAV / FLYOUT / ANALYTICS pills keep their dark navy
+   chips (so their light icons stay visible) — they are NOT lightened here on purpose. */
+.tb-avatar-fab{
+  background:var(--lt-panel)!important;border:1px solid var(--lt-border-2)!important;
+  box-shadow:0 4px 14px -8px rgba(20,30,50,.35)!important;color:var(--lt-text)!important}
+/* Home (logo) button: a slight gray background that darkens on hover, with 2px inner padding. */
+.tb-rail-badge.tb-rail-logo{
+  background:#e9edf1!important;border:1px solid var(--lt-border-2)!important;padding:2px!important;
+  box-shadow:none!important;color:var(--lt-text)!important;transition:background .15s,border-color .15s!important}
+.tb-rail-badge.tb-rail-logo:hover{background:#d2d9e0!important;border-color:#b7c0c9!important;transform:none!important}
+/* Upload FAB stays accent-orange (it's the primary add-data action). */
+.tb-nav-fab.tb-nav-upload{background:linear-gradient(120deg,#ff9f2e,#ec7211)!important;color:#fff!important;border-color:#ec7211!important}
+.tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#fff!important}
+/* Live FAB keeps its green identity but on a light chip. */
+.tb-live-fab{background:#eafaf0!important;border:1px solid #9ad9b4!important;color:#1a8f4e!important}
+.tb-live-fab .tb-live-dot{background:#1aa85a!important;box-shadow:0 0 8px #1aa85a!important}
+/* Flyout styling (panel, items, icon colours, hover) is owned entirely by topbar-auth.js now — do
+   NOT restyle it here or the two will fight. We only recolour the standalone rail pill icons that
+   sit on the light page (the trigger pills + plain nav FABs keep their own dark-navy chips, so their
+   light icons stay legible; no override needed). */
+/* On the LIGHT page, the direct-link rail pills (My Tickets / PHD Tools / Shift Report / Alerts /
+   Analytics) are transparent at rest -> their icons must be DARK to show on the near-white page.
+   On hover the pill turns orange and the icon flips to near-black (handled in topbar-auth.js). */
+body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic,
+body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic svg,
+body .tb-fab-col .tb-an-fab .tb-an-ic,body .tb-fab-col .tb-an-fab .tb-an-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
+/* Hover flips to near-black on the orange chip. */
+body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab):hover .tb-nav-ic,
+body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab):hover .tb-nav-ic svg,
+body .tb-fab-col .tb-an-fab:hover .tb-an-ic,body .tb-fab-col .tb-an-fab:hover .tb-an-ic svg{color:#1a1206!important;stroke:#1a1206!important}
+.tb-rail-badge-label{background:var(--lt-panel)!important;color:var(--lt-text)!important;border-color:var(--lt-border-2)!important}
+/* Profile pill text. */
+.tb-profile-btn,.tb-profile-name,.tb-av-label{color:var(--lt-text)!important}
+.tb-avatar-fab .tb-av-label{color:var(--lt-text)!important}
+/* Back-to button keeps orange. */
+.tb-back-fab{background:var(--lt-accent)!important;color:#fff!important}
+.tb-back-fab.tb-back-disabled{background:#dde2e7!important;color:#9aa6b1!important}
+/* Recent-history FAB. */
+.tb-hist-fab{background:var(--lt-panel)!important;border:1px solid var(--lt-border-2)!important;color:var(--lt-accent)!important}
+
+/* Any element still painting a hard dark hex via inline style can't be reached from CSS; those are
+   rare on this page. The overrides above cover the structural surfaces, tables, cards, and rails. */
+
+/* ============================================================================================
+   Dashboard section HEADER banners (Queue Status Data, Ticket Age, Average Data, …): remove the
+   gradient background, the border, and the illustration watermark. Keep a plain light header with
+   just the title + icon + the plus/minus caret.
+   ============================================================================================ */
+.content .sec-head{
+  background:transparent!important;
+  background-image:none!important;
+  animation:none!important;
+  border:none!important;
+  border-bottom:none!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+/* Kill the per-section illustration watermark (::after) on every section header. */
+.content .sec-head::after{content:none!important;background-image:none!important;display:none!important}
+/* Title/text + icons on the now-plain header -> dark slate (they were white-on-gradient). */
+.content .sec-head h2,.content .sec-head h2 *{color:var(--lt-text)!important}
+.content .sec-head h2 .ic,.content .sec-head h2 svg{color:var(--lt-text)!important;stroke:currentColor!important}
+/* Drop the little coloured left spine before the title too. */
+.content .sec-head h2::before{display:none!important}
+
+/* ============================================================================================
+   Dashboard CARD surfaces: the dash-theme block paints every section/card with a DARK gradient
+   (#15181d->#0f1115) using !important, which beat the earlier .section override — that's why the
+   lower sections rendered black. Repaint them light here (high specificity + !important).
+   ============================================================================================ */
+body[data-profile-panel] .content .section,
+body[data-profile-panel] .content .kpi-section{
+  background:var(--lt-panel)!important;background-image:none!important;
+  border:1px solid var(--lt-border)!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+/* Grouped wrapper + its flush sub-blocks. */
+body[data-profile-panel] .content .dash-group-a{background:var(--lt-panel)!important;border:1px solid var(--lt-border)!important}
+body[data-profile-panel] .content .dash-group-a>.section+.section,
+body[data-profile-panel] .content .dash-group-a>.kpi-section+.section,
+body[data-profile-panel] .content .dash-group-a>.section+.kpi-section,
+body[data-profile-panel] .content .dash-group-a>.kpi-section+.kpi-section{border-top:1px solid var(--lt-border)!important}
+/* Inner cards/tiles that reuse the same dark gradient. */
+body[data-profile-panel] .content .tcard,
+body[data-profile-panel] .content .metric,
+body[data-profile-panel] .content .q-tile,
+body[data-profile-panel] .content .age,
+body[data-profile-panel] .content .chart-box,
+body[data-profile-panel] .content .sr-color{
+  background:var(--lt-panel)!important;background-image:none!important;
+  border:1px solid var(--lt-border)!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+/* Section/card titles + body text that were white -> dark slate. */
+body[data-profile-panel] .content .section h2,
+body[data-profile-panel] .content .section h3,
+body[data-profile-panel] .content .tcard-head,
+body[data-profile-panel] .content .metric,
+body[data-profile-panel] .content .q-tile,
+body[data-profile-panel] .content .age{color:var(--lt-text)!important}
+body[data-profile-panel] .content .section h2 *,
+body[data-profile-panel] .content .section h3 *{color:inherit!important}
+
+/* ============================================================================================
+   Light-mode dashboard contrast + color fills (tasks from the 8-image review).
+   ============================================================================================ */
+
+/* (1) Queue Status KPI tiles — the muted/non-accent values (Total Tickets, Assigned, Researching,
+   Pending) were light-gray on white. Make the tile labels + muted values BLACK so they're visible. */
+body[data-profile-panel] .content .q-tile .k{color:#1b2026!important}
+body[data-profile-panel] .content .q-tile .v{color:#1b2026!important}
+body[data-profile-panel] .content .q-tile .v small{color:#5c6773!important}
+body[data-profile-panel] .content .q-tile.gy .v,
+body[data-profile-panel] .content .q-tile.mut .v{color:#1b2026!important}
+/* keep the accent values coloured but darker for contrast on white */
+body[data-profile-panel] .content .q-tile.cy .v{color:#0e7490!important}
+body[data-profile-panel] .content .q-tile.gr .v{color:#15803d!important}
+body[data-profile-panel] .content .q-tile.am .v{color:#b45309!important}
+
+/* (2) Ticket Age rows — fill each row with a GRADIENT of its age colour + readable font.
+   purple / black(grey) / red / yellow / green. */
+body[data-profile-panel] .content .age{border:none!important;border-radius:5px!important;box-shadow:0 2px 6px rgba(20,30,50,.14)!important}
+/* No left colour spine either (the fill already carries the colour). */
+body[data-profile-panel] .content .age::before{display:none!important}
+body[data-profile-panel] .content .age.purple{background:linear-gradient(100deg,#a78bfa,#c4b5fd)!important}
+body[data-profile-panel] .content .age.black {background:linear-gradient(100deg,#6b7681,#aab4bf)!important}
+body[data-profile-panel] .content .age.red   {background:linear-gradient(100deg,#ef4444,#f88)!important}
+body[data-profile-panel] .content .age.yellow{background:linear-gradient(100deg,#f59e0b,#fcd34d)!important}
+body[data-profile-panel] .content .age.green {background:linear-gradient(100deg,#16a34a,#4ade80)!important}
+/* Row text: dark on the lighter (yellow/green) fills, white on the darker (purple/black/red) fills. */
+body[data-profile-panel] .content .age .band .lbl b,
+body[data-profile-panel] .content .age .band .lbl span,
+body[data-profile-panel] .content .age .agents-count,
+body[data-profile-panel] .content .age .tik{color:#111!important}
+body[data-profile-panel] .content .age.purple .band .lbl b,body[data-profile-panel] .content .age.purple .band .lbl span,body[data-profile-panel] .content .age.purple .agents-count,body[data-profile-panel] .content .age.purple .tik,
+body[data-profile-panel] .content .age.black .band .lbl b,body[data-profile-panel] .content .age.black .band .lbl span,body[data-profile-panel] .content .age.black .agents-count,body[data-profile-panel] .content .age.black .tik,
+body[data-profile-panel] .content .age.red .band .lbl b,body[data-profile-panel] .content .age.red .band .lbl span,body[data-profile-panel] .content .age.red .agents-count,body[data-profile-panel] .content .age.red .tik{color:#fff!important}
+/* the per-colour .tik overrides in the dark theme are !important too — re-assert for yellow/green dark text */
+body[data-profile-panel] .content .age.yellow .tik,body[data-profile-panel] .content .age.green .tik{color:#111!important}
+/* agent chips inside the row: keep their dark pill so they read on any fill */
+body[data-profile-panel] .content .age .idchip{background:#12161c!important;border-color:#2a3540!important;color:#eaeef2!important}
+body[data-profile-panel] .content .age .idchip b{color:#fff!important}
+body[data-profile-panel] .content .age .idlist .none{color:rgba(255,255,255,.75)!important}
+body[data-profile-panel] .content .age .idlist .more{color:#111!important}
+
+/* (3) Ticket Age Classification — on smaller screens, x-SCROLL instead of shrinking/wrapping.
+   Keep the fixed grid columns and let the whole table scroll horizontally. */
+body[data-profile-panel] .content .section:has(#dashAgeBody) .sec-body,
+body[data-profile-panel] .content .section:has(#dashAgeBody) .dash-chunk-slot{overflow-x:auto!important}
+body[data-profile-panel] .content .age-grid{min-width:760px}
+/* cancel the dark theme's mobile collapse that squished the rows into 2 columns */
+@media(max-width:900px){
+  body[data-profile-panel] .content .agehead{display:grid!important}
+  body[data-profile-panel] .content .age{grid-template-columns:var(--age-cols)!important}
+  body[data-profile-panel] .content .age .band{grid-column:auto!important}
+}
+
+/* (4) Average Data metric cards — fill each card with its left-border (spine) colour; readable text. */
+/* (6) Repeat Incident Data uses the same .metric cards -> same rule covers both. */
+body[data-profile-panel] .content .metric{border:none!important;border-radius:5px!important;box-shadow:0 2px 6px rgba(20,30,50,.14)!important}
+/* No left colour spine on the metric cards (the fill carries the colour). */
+body[data-profile-panel] .content .metric::before{display:none!important}
+body[data-profile-panel] .content .metric.s-cy{background:linear-gradient(100deg,#0e7490,#22a3bf)!important}
+body[data-profile-panel] .content .metric.s-gr{background:linear-gradient(100deg,#15803d,#22c55e)!important}
+body[data-profile-panel] .content .metric.s-am{background:linear-gradient(100deg,#b45309,#f59e0b)!important}
+body[data-profile-panel] .content .metric.s-rd{background:linear-gradient(100deg,#dc2626,#f87171)!important}
+body[data-profile-panel] .content .metric.s-pu{background:linear-gradient(100deg,#6d28d9,#a78bfa)!important}
+body[data-profile-panel] .content .metric .mname,
+body[data-profile-panel] .content .metric .mname *,
+body[data-profile-panel] .content .metric .mdef,
+body[data-profile-panel] .content .metric .mval{color:#fff!important}
+body[data-profile-panel] .content .metric .mval.blink{color:#fff!important}
+
+/* (5) Incident Types + (7) Resolutions tables — text was near-invisible on white. Force dark text. */
+body[data-profile-panel] .content .itbl thead th{color:#5c6773!important;background:#eef1f4!important}
+body[data-profile-panel] .content .itbl tbody td{border-top:1px solid var(--lt-border)!important}
+body[data-profile-panel] .content .itbl .it-name,
+body[data-profile-panel] .content .itbl .it-name strong{color:#1b2026!important}
+body[data-profile-panel] .content .itbl .it-count{color:#1b2026!important}
+body[data-profile-panel] .content .itbl .pctval{color:#5c6773!important}
+body[data-profile-panel] .content .itbl tbody tr:hover{background:rgba(0,0,0,.03)!important}
+/* The tcard header title + count on the light card. */
+body[data-profile-panel] .content .tcard-head{border-bottom:1px solid var(--lt-border)!important}
+body[data-profile-panel] .content .tcard-head .th-title,
+body[data-profile-panel] .content .tcard-head .th-title *{color:#1b2026!important}
+body[data-profile-panel] .content .th-count.am{color:#b45309!important}
+body[data-profile-panel] .content .th-count.cy{color:#0e7490!important}
+body[data-profile-panel] .content .th-count.gr{color:#15803d!important}
+body[data-profile-panel] .content .th-count.pu{color:#6d28d9!important}
+/* Load-more button on the light card. */
+body[data-profile-panel] .content .loadmore{border-top:1px solid var(--lt-border)!important}
+body[data-profile-panel] .content .loadmore button{background:#eef1f4!important;border:1px solid var(--lt-border-2)!important;color:#1b2026!important}
+body[data-profile-panel] .content .loadmore button .rem{color:#5c6773!important}
+
+/* Collapsed section cards: a slight graded-out (faded) background so they read as inactive, while
+   the expanded one stays bright white. */
+body[data-profile-panel] .content .section.collapsed,
+body[data-profile-panel] .content .kpi-section.collapsed{
+  background:linear-gradient(180deg,#eef1f5,#e6eaef)!important;
+  box-shadow:0 1px 2px rgba(20,30,50,.05)!important}

@@ -168,6 +168,101 @@ input:focus{outline:none;border-color:var(--o)}
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme + card redesign (loaded last, wins the cascade). No x-scroll. ===== -->
+<style id="users-light">
+h1{color:#1b2026!important}
+.sub{color:#5c6773!important}
+/* Primary + secondary buttons. */
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.btn:hover{filter:brightness(1.05)!important;background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.btn.sec:hover{border-color:#ec7211!important;background:#fff4e8!important;color:#ec7211!important}
+.msg.err{color:#d33a3a!important}.msg.ok{color:#1f9d57!important}
+.gate p{color:#5c6773!important}
+
+/* ---------- Users list header ---------- */
+.u-count{display:inline-flex;align-items:center;gap:9px;color:#1b2026;font-weight:800;font-size:.95em;margin:4px 0 14px}
+.u-count svg{color:#ec7211}
+/* ---------- User CARDS (replace the wide table) ---------- */
+.u-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.u-card{background:#fff;border:1px solid #e2e6ea;border-radius:14px;padding:16px 16px 14px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;flex-direction:column;gap:12px;min-width:0}
+.u-card.is-owner{border-color:#d9ccf7;box-shadow:0 0 0 1px rgba(124,92,255,.12),0 1px 3px rgba(20,30,50,.06)}
+.u-card.is-owner .u-card-head{border-left:3px solid #7c5cff;margin-left:-16px;padding-left:13px}
+.u-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.u-card-actions{flex:0 0 auto}
+/* identity cell */
+.u-card .u-cell{align-items:center}
+.u-card .u-uname{color:#1b2026!important}
+.u-card .u-dn{color:#5c6773!important}
+.u-card .u-avatar{border:1px solid #e2e6ea!important}
+.u-card .u-avatar-ph{background:#fff4e8!important;color:#b5560c!important}
+.u-admin-tag{color:#b5560c!important;background:#fff4e8!important;border:1px solid #f3d4b0!important}
+/* meta controls row (tz / badge / analyst) */
+.u-card-meta{display:flex;flex-wrap:wrap;gap:10px}
+.um-fld{display:flex;flex-direction:column;gap:5px;min-width:92px}
+.um-k{font-size:.66em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#8793a0}
+.u-card-meta select{text-align:left;text-align-last:left;padding:7px 10px;max-width:none;width:auto}
+/* access grid: wraps, never scrolls */
+.u-card-access{border-top:1px solid #eef1f4;padding-top:12px}
+.ua-head{display:flex;align-items:center;gap:7px;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#5c6773;margin-bottom:10px}
+.ua-head svg{color:#8793a0}
+.ua-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.ua-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f7f9fb;border:1px solid #eef1f4;border-radius:9px;padding:7px 10px}
+.ua-label{font-size:.76em;font-weight:600;color:#2a3340;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* selects / inputs light */
+select{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+select:focus{border-color:#ec7211!important}
+input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+label{color:#5c6773!important}
+/* badge pill + yes/no light */
+.u-badge.blue{background:#eaf4fb!important;color:#1577a0!important}
+.u-badge.yellow{background:#fff3e0!important;color:#b5680c!important}
+.u-yes{color:#1f9d57!important}.u-yes::before{background:#1f9d57!important}
+.u-no{color:#8793a0!important}.u-no::before{background:#8793a0!important}
+.u-owner-tag{color:#6b4bd8!important}
+.u-group{/* keeps its --gc accent via color-mix; readable on white */}
+/* toggles light */
+.u-toggle{background:#dfe4ea!important;border:1px solid #cdd5dd!important}
+.u-toggle:hover{border-color:#b7c0ca!important}
+.u-toggle .u-knob{background:#fff!important;box-shadow:0 1px 2px rgba(20,40,70,.25)!important}
+.u-toggle.on{background:rgba(31,157,87,.3)!important;border-color:#1f9d57!important}
+.u-toggle.on .u-knob{background:#1f9d57!important}
+.u-toggle.disabled{opacity:.5!important;background:#eef1f4!important;border-color:#e2e6ea!important}
+.u-toggle.disabled .u-knob{background:#aab4bd!important}
+/* row action buttons light */
+.u-act.reset{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.u-act.reset:hover{background:#fff4e8!important;border-color:#ec7211!important;color:#ec7211!important}
+.u-act.remove{background:#fff!important;border:1px solid rgba(220,38,38,.35)!important;color:#dc2626!important}
+.u-act.remove:hover{background:#fef2f2!important;border-color:#dc2626!important;color:#dc2626!important}
+/* ---------- Modals light ---------- */
+.cu-modal-bg{background:rgba(20,30,45,.55)!important}
+.cu-modal{background:#fff!important;border:1px solid #e2e6ea!important}
+.cu-modal h2{color:#1b2026!important}
+.cu-modal .cu-sub{color:#5c6773!important}
+.cu-fld .cu-hint,.cu-toggle-row .cu-hint{color:#8793a0!important}
+.cu-toggle-row{border-top:1px solid #eef1f4!important}
+.cu-toggle-row .cu-tl{color:#1b2026!important}
+.cu-switch .cu-slider{background:#dfe4ea!important;border:1px solid #cdd5dd!important}
+.cu-switch .cu-slider::before{background:#fff!important}
+.cu-switch input:checked + .cu-slider{background:rgba(31,157,87,.3)!important;border-color:#1f9d57!important}
+.cu-switch input:checked + .cu-slider::before{background:#1f9d57!important}
+.cu-locked .cu-tl::after{color:#8793a0!important}
+.confirm-head h2{color:#1b2026!important}
+.confirm-icon{background:#fff4e8!important;color:#ec7211!important}
+.confirm-body{color:#2a3340!important}
+.confirm-body b{color:#1b2026!important}
+.confirm-modal.danger .confirm-icon{background:#fdeaea!important;color:#dc2626!important}
+.confirm-modal.danger #confirmOk{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
+.confirm-modal.danger #confirmOk:hover{background:#fef2f2!important}
+/* copy-activity tables (owner sections, if present) light */
+.card{background:#fff!important;border:1px solid #e2e6ea!important}
+.card h2{color:#b5560c!important}
+th{color:#5c6773!important;border-bottom:1px solid #eef1f4!important}
+td{color:#2a3340!important;border-bottom:1px solid #eef1f4!important}
+td.user{color:#1b2026!important}
+@media(max-width:560px){.u-cards{grid-template-columns:1fr}}
+</style>
 </head>
 <body data-nav-active="users" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
@@ -447,39 +542,47 @@ function renderList(users){
   const analystSelect=(u)=>'<select onchange="changeAnalyst(\''+u.id+'\',this.value,\''+u.username+'\')">'
       +'<option value="yes"'+(u.analyst?' selected':'')+'>Yes</option>'
       +'<option value="no"'+(!u.analyst?' selected':'')+'>No</option></select>';
-  const rowFor=(u)=>{
-    if(u.role==='owner'){
-      return '<tr class="is-owner"><td>'+userCell(u)+'</td><td>'+tzSelect(u)+'</td><td>'+badgePill(u.badge)+'</td>'
-        +'<td>'+yesNo(u.analyst)+'</td>'
-        +'<td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td>'
-        +'<td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td><td class="col-access">'+yesNo(true)+'</td>'
-        +'<td class="col-access">'+yesNo(true)+'</td>'
-        +'<td><span class="u-owner-tag">'+ic('shield',14)+'Full access</span></td></tr>';
-    }
-    return '<tr><td>'+userCell(u)+'</td>'
-      +'<td>'+tzSelect(u)+'</td>'
-      +'<td>'+badgeSelect(u)+'</td>'
-      +'<td>'+analystSelect(u)+'</td>'
-      +'<td class="col-access">'+toggle(u,'canUpload')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canCreateUsers')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canEditTools')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canViewSR')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canViewRepeat')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canViewUnique')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canViewSLA')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canGroupingPage')+'</td>'
-      +'<td class="col-access">'+toggle(u,'canDatabase')+'</td>'
-      +'<td>'+(iAmOwner
-        ? '<div class="u-row-actions">'
-          +'<button type="button" class="u-act reset" onclick="resetPw(\''+u.id+'\',\''+u.username+'\')">'+ic('key',14)+'Reset password</button>'
-          +'<button type="button" class="u-act remove" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">'+ic('trash',14)+'Remove</button>'
-          +'</div>'
-        : '<div class="u-row-actions"><span class="u-act reset disabled" title="Only the owner can reset passwords." aria-disabled="true">'+ic('key',14)+'Reset password</span>'
-          +'<span class="u-act remove disabled" title="Only the owner can remove users." aria-disabled="true">'+ic('trash',14)+'Remove</span></div>')
-      +'</td></tr>';
+  // ---- Card-per-user layout (replaces the wide table — NO horizontal scroll). ----
+  // Access flags shown as a wrapping grid of labelled toggles so any number of flags flows onto new
+  // rows instead of forcing an x-scrollbar.
+  const ACCESS_FLAGS=[
+    ['canUpload','Upload'],['canCreateUsers','Create users'],['canEditTools','Edit Tools'],
+    ['canViewSR','View SR'],['canViewRepeat','View Repeat'],['canViewUnique','View Unique'],
+    ['canViewSLA','View SLA'],['canGroupingPage','Grouping Page'],['canDatabase','Database']
+  ];
+  // One access cell: label + toggle (owner = static "on" pill since owner always has full access).
+  const accessCell=(u,flag,label)=>{
+    const ctl = (u.role==='owner')
+      ? '<span class="u-toggle on disabled" aria-disabled="true" title="Owner always has full access"><span class="u-knob"></span></span>'
+      : toggle(u,flag);
+    return '<div class="ua-item"><span class="ua-label">'+esc(label)+'</span>'+ctl+'</div>';
   };
-  // Single Users section: owner first, then analysts grouped by team (groups alphabetical: AZA, BLR,
-  // WFH), then everyone without a group. Within a group, sort by username.
+  const cardFor=(u)=>{
+    const isOwnerRow=(u.role==='owner');
+    const metaControls = isOwnerRow
+      ? '<div class="um-fld"><span class="um-k">Timezone</span>'+tzSelect(u)+'</div>'
+        +'<div class="um-fld"><span class="um-k">Badge</span>'+badgePill(u.badge)+'</div>'
+        +'<div class="um-fld"><span class="um-k">Analyst</span>'+yesNo(u.analyst)+'</div>'
+      : '<div class="um-fld"><span class="um-k">Timezone</span>'+tzSelect(u)+'</div>'
+        +'<div class="um-fld"><span class="um-k">Badge</span>'+badgeSelect(u)+'</div>'
+        +'<div class="um-fld"><span class="um-k">Analyst</span>'+analystSelect(u)+'</div>';
+    const accessGrid='<div class="ua-grid">'+ACCESS_FLAGS.map(([f,l])=>accessCell(u,f,l)).join('')+'</div>';
+    const actions = isOwnerRow
+      ? '<span class="u-owner-tag">'+ic('shield',14)+'Full access</span>'
+      : (iAmOwner
+          ? '<div class="u-row-actions">'
+            +'<button type="button" class="u-act reset" onclick="resetPw(\''+u.id+'\',\''+u.username+'\')">'+ic('key',14)+'Reset password</button>'
+            +'<button type="button" class="u-act remove" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">'+ic('trash',14)+'Remove</button>'
+            +'</div>'
+          : '<div class="u-row-actions"><span class="u-act reset disabled" title="Only the owner can reset passwords." aria-disabled="true">'+ic('key',14)+'Reset password</span>'
+            +'<span class="u-act remove disabled" title="Only the owner can remove users." aria-disabled="true">'+ic('trash',14)+'Remove</span></div>');
+    return '<div class="u-card'+(isOwnerRow?' is-owner':'')+'">'
+      +'<div class="u-card-head">'+userCell(u)+'<div class="u-card-actions">'+actions+'</div></div>'
+      +'<div class="u-card-meta">'+metaControls+'</div>'
+      +'<div class="u-card-access"><div class="ua-head">'+ic('shield',13)+' Page access</div>'+accessGrid+'</div>'
+      +'</div>';
+  };
+  // Owner first, then analysts grouped by team (AZA, BLR, WFH alphabetical), then ungrouped. Sort by username within.
   const sorted=users.slice().sort((a,b)=>{
     if(a.role==='owner')return -1;
     if(b.role==='owner')return 1;
@@ -487,7 +590,7 @@ function renderList(users){
     if(ra!==rb)return ra-rb;
     return a.username.localeCompare(b.username);
   });
-  const rows=sorted.map(rowFor).join('');
+  const cards=sorted.map(cardFor).join('');
   wrap.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div>
@@ -502,16 +605,8 @@ function renderList(users){
     </div>
     <div class="msg err" id="listErr"></div>
     <div class="msg ok" id="listOk"></div>
-    <div class="card users-card">
-      <h2><span class="card-h">${ic('users')} Users (${users.length})</span></h2>
-      <div class="users-scroll"><table class="users-table"><thead><tr>
-        <th>User</th><th>Timezone</th><th>Badge</th><th>Analyst</th>
-        <th class="col-access">Upload access</th><th class="col-access">Create users</th>
-        <th class="col-access">Edit Tools</th><th class="col-access">View SR</th><th class="col-access">View Repeat</th><th class="col-access">View Unique</th><th class="col-access">View SLA</th><th class="col-access">Grouping Page</th>
-        <th class="col-access">Database page</th>
-        <th>Actions</th>
-      </tr></thead><tbody>${rows}</tbody></table></div>
-    </div>`;
+    <div class="u-count">${ic('users',15)} Users (${users.length})</div>
+    <div class="u-cards">${cards}</div>`;
 }
 
 function flash(id,msg,kind){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},4000);}

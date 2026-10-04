@@ -51,22 +51,23 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .wiki-btn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;text-decoration:none}
 .wiki-btn:hover{background:var(--oh)}
 /* Before/After GSOC comparison — Excel-sheet styling with a mini trend sparkline column. */
-.cmp-wrap{overflow-x:auto;margin-bottom:22px;border-radius:10px;border:1px solid #2f3a45}
-.cmp-table.xls{width:100%;border-collapse:collapse;font-size:.86em;min-width:900px;background:#0b0f14}
-.cmp-table.xls th,.cmp-table.xls td{border:1px solid #2f3a45;padding:10px 14px;text-align:center;vertical-align:middle}
-/* Metric column = fit-content; the other 5 columns split the remaining width equally. */
+/* Per-year comparison table — LIGHT MODE. Width matches the wide app.html content (90vw, centered). */
+.cmp-wrap{overflow-x:auto;margin:0 0 22px;border-radius:12px;border:1px solid #e2e6ea;background:#fff;box-shadow:0 1px 3px rgba(20,30,50,.06);width:90vw;max-width:none;margin-left:50%;transform:translateX(-50%)}
+.cmp-table.xls{width:100%;border-collapse:collapse;font-size:.86em;min-width:980px;background:#fff;color:#1b2026}
+.cmp-table.xls th,.cmp-table.xls td{border:1px solid #eceff2;padding:10px 14px;text-align:center;vertical-align:middle}
+/* Metric column = fit-content; the six year columns split the remaining width equally. */
 .cmp-table.xls th:first-child,.cmp-table.xls td:first-child{width:1%;white-space:nowrap}
-.cmp-table.xls th:not(:first-child){width:19.8%}
-.cmp-table.xls thead th{background:#111820;color:#c9d3d4;font-size:.74em;text-transform:uppercase;letter-spacing:.5px;font-weight:700;line-height:1.4}
-.cmp-table.xls .cmp-sub{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--tm);font-size:.85em;margin-top:2px}
-.cmp-table.xls tbody tr:nth-child(even) td{background:rgba(255,255,255,.02)}
-.cmp-table.xls tbody tr:hover td{background:rgba(255,153,0,.06)}
-.cmp-table.xls td.cmp-metric{text-align:center;font-weight:600;color:#fff;white-space:nowrap}
-.cmp-table.xls .before{color:#ff9d6b;font-weight:600}
-.cmp-table.xls .wwos{color:#44b9d6;font-weight:600}
-.cmp-table.xls .after{color:#fbbf24;font-weight:600}
-.cmp-table.xls .q3{color:#4ade80;font-weight:800}
-.cmp-table.xls .cmp-u{color:var(--tm);font-weight:400;font-size:.82em;margin-left:3px}
+.cmp-table.xls th:not(:first-child):not(:last-child){width:13%}
+.cmp-table.xls thead th{background:#f5f6f8;color:#5c6773;font-size:.74em;text-transform:uppercase;letter-spacing:.5px;font-weight:800;line-height:1.4}
+.cmp-table.xls thead th:last-child{color:#5c6773}
+.cmp-table.xls .cmp-sub{display:block;font-weight:600;text-transform:none;letter-spacing:0;color:#15803d;font-size:.82em;margin-top:2px}
+.cmp-table.xls tbody tr:nth-child(even) td{background:#fafbfc}
+.cmp-table.xls tbody tr:hover td{background:#fff7ed}
+.cmp-table.xls td.cmp-metric{text-align:left;font-weight:700;color:#1b2026;white-space:nowrap}
+/* Year value cells: neutral dark text; the live (2026) column highlighted green. */
+.cmp-table.xls td.yv{color:#2a3f63;font-weight:700}
+.cmp-table.xls td.yv-live{color:#15803d;font-weight:800;background:rgba(34,197,94,.06)}
+.cmp-table.xls .cmp-u{color:#8a94a2;font-weight:400;font-size:.82em;margin-left:3px}
 .cmp-table.xls td.cmp-spark{padding:6px 8px;width:240px;min-width:220px}
 .cmp-table.xls td.cmp-spark svg{display:block;width:100%;height:72px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;width:90vw;max-width:none;margin-left:50%;transform:translateX(-50%)}
@@ -105,7 +106,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Program History card + "After moving under WWOS" section: 50/50 side by side (stacks on narrow). */
 .ph-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:16px}
 .ph-row.ph-row-3{grid-template-columns:repeat(3,1fr)}
-@media(max-width:900px){.ph-row.ph-row-3{grid-template-columns:1fr}}
+.ph-row.ph-row-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1200px){.ph-row.ph-row-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.ph-row.ph-row-3{grid-template-columns:1fr}.ph-row.ph-row-4{grid-template-columns:1fr}}
 /* Era cards: title row, date row, description, ticket-count row. */
 .era-card{display:flex;flex-direction:column;gap:10px}
 .era-card .era-title{display:flex;align-items:center;gap:10px;margin:0}
@@ -253,8 +256,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .about,.grid,#yearSections{width:auto!important;max-width:none!important;margin-left:0!important;margin-right:0!important;transform:none!important;left:auto!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<!-- Light-mode override for the home page. Loaded LAST so it wins the cascade. -->
+<link rel="stylesheet" href="home-light.css?v=16">
 </head>
-<body data-no-toolbar="true">
+<body data-no-toolbar="true" data-profile-panel>
 <div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a><div id="homeAuth" style="margin-left:auto;display:flex;align-items:center;gap:10px"></div></div>
 
 <!-- The Agent & Group Analytics FAB is now injected by topbar-auth.js into the shared centered
@@ -284,8 +289,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <p style="color:#fff;font-weight:600">Signing you in…</p>
 </div>
 <div class="wrap">
-  <!-- Compact header row: title on the left (buttons/avatar are the floating top-right cluster). -->
-  <div class="home-title-row js-header-row"><span class="home-title-name">WWOS-PHD Dashboard</span></div>
+  <!-- Main-column header row: Amazon WWOS logo (left) + "PHD Dashboard" label with icon (right). -->
+  <div class="home-title-row js-header-row home-hdr">
+    <a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>
+    <span class="home-hdr-title"><span class="home-hdr-ic" data-ic="grid"></span>PHD Dashboard</span>
+  </div>
   <div class="hero">
     <div class="about">
       <h3>About the PHD Program</h3>
@@ -334,64 +342,82 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
         <button type="button" class="ac-arrow ac-prev" id="acPrev" aria-label="Previous slide" onclick="acGo(-1)">&#8249;</button>
         <button type="button" class="ac-arrow ac-next" id="acNext" aria-label="Next slide" onclick="acGo(1)">&#8250;</button>
       </div>
+      <!-- (Wiki link moved to its own card in the "Dashboards & reports" section below.) -->
+    </div>
+  </div>
 
+  <!-- ===== SECTION 2: Metric table (per-year trends) ===== -->
+  <section class="home-sec home-sec-metrics">
+    <h3 class="home-sec-h">Program metrics by year</h3>
       <div class="cmp-wrap">
-      <table class="cmp-table xls">
+      <!-- Per-YEAR comparison (2021-2026). Headers + cells are filled by home.js from /api/year-metrics. -->
+      <table class="cmp-table xls" id="yearCmpTable">
         <thead><tr>
           <th>Metric</th>
-          <th>Before WWOS<br><span class="cmp-sub">1st Jan 2021 – 30th Sep 2025</span></th>
-          <th>Moved under WWOS<br><span class="cmp-sub">1st Oct 2025 – 31st Mar 2026</span></th>
-          <th>After WWOS Takeover<br><span class="cmp-sub">Q2 2026</span></th>
-          <th>After WWOS Takeover<br><span class="cmp-sub">Q3 2026 · Live</span></th>
+          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2021</span></th>
+          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2022</span></th>
+          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2023</span></th>
+          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2024</span></th>
+          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2025</span></th>
+          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2026 <span class="cmp-live-dot" title="Live"></span></span></th>
           <th>Trend</th>
         </tr></thead>
         <tbody>
-          <tr><td class="cmp-metric">Ticket volume / month</td><td class="before">~835<span class="cmp-u">/mo</span></td><td class="wwos">~1,358<span class="cmp-u">/mo</span></td><td class="after">~2,367<span class="cmp-u">/mo</span></td><td class="q3">~2,882<span class="cmp-u">/mo</span></td><td class="cmp-spark" data-vals="835,1358,2367,2882" data-dir="up"></td></tr>
-          <tr><td class="cmp-metric">Avg resolution time</td><td class="before">386.0<span class="cmp-u">hrs</span></td><td class="wwos">259.7<span class="cmp-u">hrs</span></td><td class="after">103.9<span class="cmp-u">hrs</span></td><td class="q3">49<span class="cmp-u">hrs</span></td><td class="cmp-spark" data-vals="386,259.7,103.9,49" data-dir="down"></td></tr>
-          <tr><td class="cmp-metric">SLA compliance (&le;240 hrs)</td><td class="before">49.8%</td><td class="wwos">63.1%</td><td class="after">88.7%</td><td class="q3">99.1%</td><td class="cmp-spark" data-vals="49.8,63.1,88.7,99.1" data-dir="up"></td></tr>
+          <!-- 2021-2025 are HISTORICAL and never change -> hardcoded. Only 2026 (live) is filled from
+               /api/year-metrics (starts as a spinner). Sparkline data-vals carry the fixed years;
+               the 2026 value is appended by JS once it loads. -->
+          <tr data-metric="vol"><td class="cmp-metric">Ticket volume / month</td>
+            <td class="yv" data-y="2021">261<span class="cmp-u">/mo</span></td>
+            <td class="yv" data-y="2022">623<span class="cmp-u">/mo</span></td>
+            <td class="yv" data-y="2023">926<span class="cmp-u">/mo</span></td>
+            <td class="yv" data-y="2024">1,237<span class="cmp-u">/mo</span></td>
+            <td class="yv" data-y="2025">1,356<span class="cmp-u">/mo</span></td>
+            <td class="yv yv-live" data-y="2026"><span class="num-spinner"></span></td>
+            <td class="cmp-spark" data-dir="up" data-fixed="261,623,926,1237,1356"></td></tr>
+          <tr data-metric="res"><td class="cmp-metric">Avg resolution time</td>
+            <td class="yv" data-y="2021">695.7<span class="cmp-u">hrs</span></td>
+            <td class="yv" data-y="2022">703.8<span class="cmp-u">hrs</span></td>
+            <td class="yv" data-y="2023">289.5<span class="cmp-u">hrs</span></td>
+            <td class="yv" data-y="2024">246.4<span class="cmp-u">hrs</span></td>
+            <td class="yv" data-y="2025">341.2<span class="cmp-u">hrs</span></td>
+            <td class="yv yv-live" data-y="2026"><span class="num-spinner"></span></td>
+            <td class="cmp-spark" data-dir="down" data-fixed="695.7,703.8,289.5,246.4,341.2"></td></tr>
+          <tr data-metric="sla"><td class="cmp-metric">SLA compliance (&le;240 hrs)</td>
+            <td class="yv" data-y="2021">41.9%</td>
+            <td class="yv" data-y="2022">33.2%</td>
+            <td class="yv" data-y="2023">51.9%</td>
+            <td class="yv" data-y="2024">54.9%</td>
+            <td class="yv" data-y="2025">57.7%</td>
+            <td class="yv yv-live" data-y="2026"><span class="num-spinner"></span></td>
+            <td class="cmp-spark" data-dir="up" data-fixed="41.9,33.2,51.9,54.9,57.7"></td></tr>
         </tbody>
       </table>
       </div>
+  </section>
 
-      <div style="margin-top:24px;padding:14px 20px;background:linear-gradient(135deg,rgba(255,153,0,.12),rgba(255,153,0,.03));border:1px solid rgba(255,153,0,.3);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
-        <p style="color:#fff;font-size:.95em;font-weight:600;margin:0">📚 Want the full picture? Dive deeper into the PHD program on the official wiki.</p>
-        <a class="wiki-btn" href="https://w.amazon.com/bin/view/GSOC/PHD#Attachments" target="_blank" rel="noopener" style="font-size:.9em;padding:9px 20px;white-space:nowrap;margin:0;flex-shrink:0">📖 Explore the PHD Wiki →</a>
-      </div>
-    </div>
-  </div>
-  <!-- Program History card + quarter-report era sections are rendered by home.js into #yearSections
-       (the Program History card sits 50/50 beside the "After moving under WWOS" section). -->
-  <!-- Quarter report cards grouped into collapsible YEAR sections (newest year first).
-       Rendered by home.js from /api/quarters. The year containing the live quarter is
-       expanded by default; others start collapsed. A shimmer skeleton shows while loading. -->
+  <!-- ===== SECTION 3: Dashboards & reports (the era / quarter "buttons") ===== -->
+  <section class="home-sec home-sec-buttons">
+    <h3 class="home-sec-h">Dashboards &amp; reports</h3>
+  <!-- Program History / era cards + quarter-report year sections are rendered by home.js into
+       #yearSections. A shimmer skeleton shows while loading. -->
   <div id="yearSections">
-    <div class="era-skeleton">
-      <div class="era-sk-card">
-        <div class="era-sk-title"><span class="shimmer era-sk-ic"></span><span class="shimmer era-sk-h"></span></div>
-        <span class="shimmer era-sk-date"></span>
-        <span class="shimmer era-sk-line"></span><span class="shimmer era-sk-line short"></span>
-        <span class="shimmer era-sk-pill"></span>
-      </div>
-      <div class="era-sk-card">
-        <div class="era-sk-title"><span class="shimmer era-sk-ic"></span><span class="shimmer era-sk-h"></span></div>
-        <span class="shimmer era-sk-date"></span>
-        <span class="shimmer era-sk-line"></span><span class="shimmer era-sk-line short"></span>
-        <span class="shimmer era-sk-pill"></span>
-      </div>
-      <div class="era-sk-card">
-        <div class="era-sk-title"><span class="shimmer era-sk-ic"></span><span class="shimmer era-sk-h"></span></div>
-        <span class="shimmer era-sk-date"></span>
-        <span class="shimmer era-sk-line"></span><span class="shimmer era-sk-line short"></span>
-        <span class="shimmer era-sk-pill"></span>
-      </div>
+    <!-- Skeleton: 5 light placeholder tiles matching the .nav-tiles grid (icon chip + title + sub +
+         two desc lines + CTA). Replaced by home.js once /api/quarters loads. -->
+    <div class="nt-skeleton">
+      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
+      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
+      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
+      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
+      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
     </div>
   </div>
   <div class="dynamic-btns grid" id="dynamicBtns"></div>
+  </section>
 </div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js"></script>
+<script src="topbar-auth.js?v=95"></script>
 <script>
 // Fill any static icon placeholders (<span class="card-ic" data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 22); });
@@ -508,6 +534,6 @@ async function homeDoLogin(){
 // Allow Enter to submit the login form.
 document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
-<script src="home.js"></script>
+<script src="home.js?v=8"></script>
 </body>
 </html>

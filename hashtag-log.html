@@ -58,12 +58,44 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="pg-light">
+.entry{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.entry-head:hover{background:#f7f9fb!important}
+.entry.open .entry-head{border-bottom-color:#eef1f4!important}
+.entry-caret{color:#9aa5b1!important}
+.entry-title{color:#1577a0!important}
+.entry-user{color:#5c6773!important}
+.entry-user b{color:#1b2026!important}
+.entry-role{color:#b5560c!important}
+.entry-when{color:#5c6773!important}
+.entry-when b{color:#1b2026!important}
+.diff .col h4{color:#5c6773!important}
+.diff pre,.single pre{background:#f7f9fb!important;border:1px solid #e6eaee!important;color:#2a3340!important}
+.act.create{background:#eafaf0!important;color:#1f9d57!important}
+.act.edit{background:#fff3e0!important;color:#b5680c!important}
+.act.delete{background:#fdeaea!important;color:#d33a3a!important}
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.btn.sec:hover{border-color:#ec7211!important;color:#ec7211!important;background:#fff4e8!important}
+.btn.danger{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
+.btn.danger:hover{background:#fef2f2!important}
+.modal h2{color:#dc2626!important}
+.modal p{color:#2a3340!important}
+.empty{border-color:#d4dce4!important;color:#8793a0!important}
+</style>
 </head>
 <body data-nav-active="tools" data-back-href="tool-hashtags.html" data-back-label="Hashtags">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap"><div class="sk-wrap"><div class="shimmer sk-title"></div><div class="shimmer sk-sub"></div><div class="shimmer sk-card" style="min-height:100px;margin-bottom:14px"></div><div class="shimmer sk-card" style="min-height:100px"></div></div></div>
+<div class="wrap" id="wrap">
+  <div style="margin-bottom:14px"><a class="btn sec" href="tool-hashtags.html">← Back to Hashtags</a></div>
+  <h1>Hashtag Change Log</h1>
+  <p class="sub">Who added, edited, or deleted which hashtag, when (IST &amp; MST). Latest first.</p>
+  <div class="phd-load"><span class="phd-spin"></span> Loading change log…</div>
+</div>
 
 <div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()">
   <div class="modal">

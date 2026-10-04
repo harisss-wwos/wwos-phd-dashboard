@@ -168,6 +168,64 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="al-light">
+h1{color:#1b2026!important}
+.sub{color:#5c6773!important}
+/* Tabs. */
+.uc-tab{color:#5c6773!important;background:#fff!important;border:1px solid #e2e6ea!important}
+.uc-tab:hover{color:#1b2026!important;border-color:#d4dce4!important}
+.uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border-color:#f07d0a!important}
+.uc-tab.active .tab-badge{background:#fff!important;color:#b5560c!important}
+.uc-tab .tab-badge.zero{background:#e2e6ea!important;color:#5c6773!important}
+/* Default/closed threads -> white cards, dark text (OPEN threads are already white by design). */
+.thread{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.thread.thread-closed,.day-card .thread.thread-closed{background:#f7f9fb!important;border-color:#e6eaee!important;opacity:1!important}
+.thread.thread-closed .q{color:#5c6773!important}
+.thread.thread-closed .thread-who b{color:#1577a0!important}
+.thread-who{color:#5c6773!important}
+.thread-who b{color:#1577a0!important}
+.thread-when{color:#8793a0!important}
+.tk-meta-title{color:#2a3340!important}
+.tk-meta-title-lbl{color:#8793a0!important}
+.tk-meta-chip{color:#5c6773!important;background:#f0f3f6!important;border:1px solid #e2e6ea!important}
+.tk-meta-chip b{color:#1b2026!important}
+.q{color:#1b2026!important}
+.q .lbl{color:#b5680c!important}
+.reply{border-top:1px solid #eef1f4!important}
+.reply .who{color:#1f9d57!important}
+.reply .meta{color:#8793a0!important}
+.reply .txt{color:#2a3340!important}
+.noreply{color:#8793a0!important;border-top:1px solid #eef1f4!important}
+.pill.open{background:#fff3e0!important;color:#b5680c!important}
+.pill.ok{background:#eafaf0!important;color:#1f9d57!important}
+/* Day cards. */
+.day-card{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.day-head{background:#f7f9fb!important}
+.day-head:hover{background:#eef1f4!important}
+.day-title{color:#1b2026!important}
+.day-count{color:#5c6773!important}
+.day-caret{color:#9aa5b1!important}
+.day-card .thread{background:#fff!important}
+/* Reply modal. */
+.reply-modal-bg{background:rgba(20,30,45,.55)!important}
+.reply-modal{background:#fff!important;border:1px solid #e2e6ea!important}
+.reply-modal-head h2{color:#b5560c!important}
+.reply-modal-close{color:#5c6773!important}.reply-modal-close:hover{color:#1b2026!important}
+.reply-modal textarea,.reply-box textarea{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+/* Skeleton + empty + toast + buttons. */
+.sk{background:#e8ebee!important}
+.sk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent)!important}
+.empty{border-color:#d4dce4!important;color:#8793a0!important}
+.toast{background:#fff!important;border-color:#1f9d57!important;color:#1f9d57!important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35)!important}
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.btn.sec:hover{border-color:#ec7211!important;color:#ec7211!important;background:#fff4e8!important}
+.gate p{color:#5c6773!important}
+.thread-del{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
+.thread-del:hover{background:#fef2f2!important}
+</style>
 </head>
 <body data-nav-active="help-activity" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">

@@ -136,12 +136,65 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-loading{color:#6b7681;text-align:center;padding:50px 0;font-size:.9em}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="iz-light">
+/* Taxonomy wiring container -> white (keep the amber banner as-is). */
+.iz-wire{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #f08a1d!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.iz-grp{border-top:1px dashed #e2e6ea!important}
+/* Category node: keep a bold blue accent (white text) — a deliberate highlight, readable on light. */
+.iz-cat-node{background:linear-gradient(135deg,#1577a0,#0f5f80)!important;border:1px solid #1577a0!important;box-shadow:0 6px 16px -12px rgba(20,60,90,.5)!important}
+.iz-cat-node:hover{border-color:#0f5f80!important}
+.iz-grp.open .iz-cat-node{border-color:#0d526e!important}
+.iz-cat-node .ic{background:rgba(255,255,255,.18)!important;color:#fff!important}
+.iz-cat-name{color:#fff!important}
+.iz-cat-meta{color:#cfe6f2!important}
+.iz-cat-caret{color:#cfe6f2!important}
+/* Type cards. */
+.iz-type{background:#fff!important;border:1px solid #e6eaee!important;border-left:4px solid var(--iz-ac,#e08a1d)!important}
+.iz-type-head:hover{background:#f7f9fb!important}
+.iz-type-name{color:#1b2026!important}
+.iz-type-desc{color:#8793a0!important}
+.iz-type-caret{color:#9aa5b1!important}
+/* Definition panel. */
+.iz-def{background:#f7f9fb!important;border-left:3px solid var(--iz-ac,#e08a1d)!important}
+.iz-def-row{border-bottom:1px solid #eef1f4!important}
+.iz-def-k{color:#b5680c!important}
+.iz-def-k.use{color:#1f9d57!important}.iz-def-k.ex{color:#1577a0!important}
+.iz-def-v{color:#2a3340!important}
+.iz-def-v.ex{color:#5c6773!important}
+/* Copy + icon buttons. */
+.iz-copybtn,.iz-iconbtn{background:#fff!important;border:1px solid #d4dce4!important;color:#5c6773!important}
+.iz-copybtn:hover,.iz-iconbtn:hover{border-color:#ec7211!important;color:#ec7211!important}
+.iz-copybtn.copied{border-color:#1f9d57!important;color:#1f9d57!important;background:#eafaf0!important}
+.iz-iconbtn.del:hover{border-color:#dc2626!important;color:#dc2626!important}
+.iz-addtype{background:#eaf4fb!important;border:1px dashed #9fcbe0!important;color:#1577a0!important}
+.iz-addtype:hover{border-color:#1577a0!important;color:#0f5f80!important}
+/* Modal. */
+.iz-modal-bg{background:rgba(20,30,45,.55)!important}
+.iz-modal{background:#fff!important;border:1px solid #e2e6ea!important}
+.iz-modal h2{color:#1b2026!important}
+.iz-modal .sub{color:#5c6773!important}
+.iz-field label{color:#2a3340!important}
+.iz-field input,.iz-field textarea,.iz-field select{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+.iz-field input:focus,.iz-field textarea:focus,.iz-field select:focus{border-color:#ec7211!important}
+.iz-field .hint{color:#8793a0!important}
+.iz-modal-err{color:#d33a3a!important}
+.iz-mbtn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important}
+.iz-mbtn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.iz-mbtn.sec:hover{border-color:#ec7211!important;color:#ec7211!important}
+.iz-mbtn.danger{background:#dc2626!important;color:#fff!important}
+/* Gate + loading. */
+.iz-gate h1{color:#1b2026!important}
+.iz-gate p{color:#5c6773!important}
+.iz-loading{color:#5c6773!important}
+</style>
 </head>
 <body data-nav-active="issue-types" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap"><div class="iz-loading">Loading taxonomy…</div></div>
+<div class="wrap" id="wrap"><div class="phd-load"><span class="phd-spin"></span> Loading taxonomy…</div></div>
 
 <!-- Add / Edit modal (editors only) -->
 <div class="iz-modal-bg" id="izModalBg">

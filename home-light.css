@@ -1,0 +1,231 @@
+/* ============================================================================
+   home-light.css — LIGHT MODE for the home page (index.html).
+   Loaded LAST so it overrides the page's inline dark <style> + theme.css.
+   Scoped to the home page's own classes (.wrap/.hero/.about/.card/.era-card/
+   .qcard/.year-section/.cmp-table/modal/skeletons). Accent colours (orange/
+   green/teal/purple) are kept — they read fine on a light surface.
+   Mirrors the look of light-app.css used on app.html.
+   ============================================================================ */
+
+/* Page surface + base text. */
+body{ background:#f4f6f8 !important; color:#1b2026 !important; }
+
+/* Universal header title ("WWOS-PHD Dashboard") was white for the dark theme — darken it, or it's
+   invisible on the light background. */
+.tb-header-name{ color:#1b2026 !important; }
+.home-title-name{ color:#1b2026 !important; }
+
+/* ---- Top gap: the main content starts 10px from the top of the page (matching the profile panel
+   which is fixed at top:10px). The body provides a single 10px pad; the wrap and the header row add
+   NONE. These selectors are more specific than topbar-auth's injected .js-header-row !important rule
+   (which otherwise forces its own padding-top:10px, doubling the gap or fighting ours). ---- */
+body[data-profile-panel]{ padding-top:10px !important; }
+body[data-profile-panel] .wrap,body[data-profile-panel] .content{ padding-top:0 !important; margin-top:0 !important; }
+
+/* ---- Home page uses the SHARED layout (same as app.html). A small inner gutter on the content
+   gives the same breathing room app.html gets from its .content padding, so the main content isn't
+   flush against the profile column. ---- */
+body[data-profile-panel] .wrap{ padding-left:10px !important; padding-right:10px !important; }
+body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !important; padding-top:0 !important; }
+
+/* (The left-offset tightening now lives in the shared topbar-auth layout rule — 62px rail offset on
+   EVERY page — so the home-only override was removed for consistency.) */
+
+/* ---- Main-column header row: logo (left) + "PHD Dashboard" (right), both vertically centered on
+   one 48px line (mirrors the live-page title row). First element -> no extra top margin. ---- */
+.home-hdr{ display:flex !important; align-items:center !important; justify-content:space-between !important; gap:14px; height:48px; min-height:48px; margin:0 0 12px !important; padding:0 !important; }
+.home-hdr .home-hdr-logo{ display:flex; align-items:center; height:100%; text-decoration:none; flex:0 0 auto; }
+.home-hdr .home-hdr-logo img{ height:28px; width:auto; display:block; object-fit:contain; }   /* wordmark centered on the row */
+.home-hdr .home-hdr-title{ display:flex; align-items:center; gap:9px; height:100%; color:#1b2026; font-size:1.15em; font-weight:800; letter-spacing:.2px; white-space:nowrap; flex:0 0 auto; }
+.home-hdr .home-hdr-ic{ display:inline-flex; align-items:center; color:#ec7211; }
+.home-hdr .home-hdr-ic svg{ width:20px; height:20px; display:block; }
+
+/* ---- Rail buttons: light treatment (mirrors light-app.css) ---- */
+/* Home (logo) button: light-gray chip instead of the dark default. */
+.tb-rail-badge.tb-rail-logo{ background:#e9edf1 !important; border:1px solid #d4dade !important; box-shadow:none !important; color:#1b2026 !important; }
+.tb-rail-badge.tb-rail-logo:hover{ background:#d2d9e0 !important; border-color:#b7c0c9 !important; transform:none !important; }
+/* Live FAB: light-green chip (keeps its green identity). */
+.tb-live-fab{ background:#eafaf0 !important; border:1px solid #9ad9b4 !important; color:#1a8f4e !important; }
+.tb-live-fab .tb-live-dot{ background:#1aa85a !important; box-shadow:0 0 8px #1aa85a !important; }
+.tb-live-fab .tb-live-label{ color:#1a8f4e !important; }
+/* Rail captions (under each pill) were light-grey/blinking-orange for the dark rail — make them a
+   readable muted dark and stop the logo caption's orange blink so it doesn't look like it's bleeding. */
+.tb-fab-cap{ color:#5c6773 !important; }
+.tb-fab-item:hover .tb-fab-cap{ color:#1b2026 !important; }
+.tb-rail-logo-cap{ color:#5c6773 !important; animation:none !important; }
+
+/* ---- Width: keep ALL home content inside the main column band ----
+   The main band is defined by body[data-profile-panel] padding (rail on the left, profile panel on
+   the right). Several wrappers used a full-bleed 90vw + margin-left:50% + translateX(-50%) trick that
+   spills the content under the profile panel. Neutralize it so every block just fills the band. */
+.wrap,.content{ width:auto !important; max-width:none !important; margin-left:0 !important; margin-right:0 !important; }
+.about,.grid,#yearSections,.cmp-wrap,.ph-row{ width:auto !important; max-width:none !important; margin-left:0 !important; margin-right:0 !important; transform:none !important; left:auto !important; }
+
+/* Hero. */
+.hero h1{ color:#1b2026 !important; }
+.hero p{ color:#5c6773 !important; }
+
+/* ---- 3 SECTIONS: About / Metrics / Buttons. No outer white card, no padding — each section sits
+   directly on the page background with just a small heading. ---- */
+.hero{ margin:0 !important; }
+.about,.home-sec{ background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 0 26px !important; }
+/* Section heading (shared look across all three). */
+.about > h3,.home-sec-h{ color:#ec7211 !important; font-size:.95em !important; font-weight:800 !important; text-transform:uppercase !important; letter-spacing:.5px !important; margin:0 0 12px !important; }
+
+/* ============================================================================
+   NAV TILES (Dashboards & reports) — redesigned uniform cards.
+   Responsive auto-fit grid; each tile = icon chip + title/subtitle + description +
+   an action footer with an arrow. Per-tile accent tone colours the icon chip + the
+   top hover border. The Active tile gets a green gradient + pulsing ACTIVE pill.
+   ============================================================================ */
+.nav-tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+.nav-tile{
+  --nt-accent:#ec7211;
+  position:relative; display:flex; flex-direction:column; gap:12px;
+  background:#fff; border:1px solid #e4e8ec; border-radius:16px; padding:18px 18px 16px;
+  text-decoration:none; overflow:hidden; min-height:168px;
+  box-shadow:0 1px 3px rgba(20,30,50,.05);
+  transition:transform .16s ease, box-shadow .2s ease, border-color .16s ease;
+}
+.nav-tile::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--nt-accent); opacity:.9; }
+.nav-tile:hover{ transform:translateY(-3px); border-color:var(--nt-accent); box-shadow:0 14px 30px -16px rgba(20,30,50,.45); }
+/* Accent tones. */
+.nav-tile.nt-amber{ --nt-accent:#ec7211; }
+.nav-tile.nt-violet{ --nt-accent:#7c3aed; }
+.nav-tile.nt-teal{ --nt-accent:#0d9488; }
+.nav-tile.nt-blue{ --nt-accent:#2563eb; }
+.nav-tile.nt-live{ --nt-accent:#22c55e; }
+/* Top row: icon chip + (optional) ACTIVE pill. */
+.nav-tile .nt-top{ display:flex; align-items:center; justify-content:space-between; }
+.nav-tile .nt-ic{ display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:11px; background:#f3f5f8; color:var(--nt-accent); }
+.nav-tile.nt-amber .nt-ic{ background:#fff4e8; }
+.nav-tile.nt-violet .nt-ic{ background:#f3eeff; }
+.nav-tile.nt-teal .nt-ic{ background:#e6f6f4; }
+.nav-tile.nt-blue .nt-ic{ background:#eaf1ff; }
+.nav-tile.nt-live .nt-ic{ background:#dcfce7; }
+.nav-tile .nt-ic svg{ width:20px; height:20px; }
+.nav-tile .nt-pill{ display:inline-flex; align-items:center; gap:6px; font-size:.62em; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#15803d; background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.4); border-radius:999px; padding:3px 10px; }
+.nav-tile .nt-pill::before{ content:''; width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.6); animation:ntBlink 1.3s ease-in-out infinite; }
+@keyframes ntBlink{ 0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.6); opacity:1 } 70%{ box-shadow:0 0 0 6px rgba(34,197,94,0); opacity:.5 } }
+/* Body text. */
+.nav-tile .nt-body{ display:flex; flex-direction:column; gap:4px; flex:1; }
+.nav-tile .nt-title{ color:#1b2026; font-size:1.05em; font-weight:800; line-height:1.2; }
+.nav-tile .nt-sub{ color:var(--nt-accent); font-size:.74em; font-weight:700; letter-spacing:.2px; }
+.nav-tile .nt-desc{ color:#5c6773; font-size:.84em; line-height:1.45; margin-top:2px; }
+/* Action footer. */
+.nav-tile .nt-cta{ display:inline-flex; align-items:center; gap:6px; color:var(--nt-accent); font-size:.8em; font-weight:800; letter-spacing:.2px; margin-top:2px; }
+.nav-tile .nt-arrow{ transition:transform .16s ease; display:inline-block; }
+.nav-tile:hover .nt-arrow{ transform:translateX(4px); }
+/* Active tile: soft green gradient surface. */
+.nav-tile.nt-live{ background:linear-gradient(160deg,#eafff2,#f3fff8); border-color:#9be3b6; }
+.nav-tile.nt-live .nt-title{ color:#14532d; }
+@media(max-width:560px){ .nav-tiles{ grid-template-columns:1fr; } }
+
+/* ============================================================================
+   Nav-tiles loading skeleton — 5 light placeholder cards mirroring .nav-tiles.
+   Self-contained light shimmer (the shared .shimmer is dark); these override it.
+   ============================================================================ */
+.nt-skeleton{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+@media(max-width:560px){ .nt-skeleton{ grid-template-columns:1fr; } }
+.nt-sk-card{ background:#fff; border:1px solid #e6eaee; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:11px; box-shadow:0 2px 10px rgba(20,40,70,.05); }
+/* Each shimmer piece: light base + a sweeping highlight. !important beats the dark .shimmer base. */
+.nt-skeleton .shimmer{ background:#eef1f4 !important; border:none !important; border-radius:8px; }
+.nt-skeleton .shimmer::after{ background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.75) 50%,transparent 100%) !important; }
+.nt-sk-ic{ width:40px; height:40px; border-radius:11px !important; }
+.nt-sk-title{ width:62%; height:17px; margin-top:2px; }
+.nt-sk-sub{ width:40%; height:11px; }
+.nt-sk-line{ width:100%; height:11px; }
+.nt-sk-line.short{ width:72%; }
+.nt-sk-cta{ width:46%; height:13px; margin-top:6px; }
+
+.about h3{ color:#ec7211 !important; }
+.about h4{ color:#1b2026 !important; }
+.about p,.about li{ color:#2a3340 !important; }
+.about li b{ color:#1b2026 !important; }
+
+/* About carousel panel: soft tinted gradient on light. */
+.about-carousel{
+  background:linear-gradient(135deg,rgba(255,153,0,.10),rgba(255,153,0,.02) 45%,rgba(68,185,214,.08)) !important;
+  border:1px solid rgba(236,114,17,.28) !important;
+  box-shadow:0 6px 22px -14px rgba(20,30,50,.3) !important;
+}
+.ac-arrow{ background:#fff !important; border:1px solid #ec7211 !important; color:#ec7211 !important; box-shadow:0 1px 3px rgba(20,30,50,.1); }
+.ac-arrow:hover{ background:#ec7211 !important; color:#fff !important; }
+
+/* Dashboard / nav cards. */
+.card{ background:#fff !important; border:1px solid #e2e6ea !important; box-shadow:0 1px 3px rgba(20,30,50,.06); }
+.card:hover{ box-shadow:0 10px 26px -16px rgba(20,30,50,.4); }
+.card h2{ color:#1b2026 !important; }
+.card p{ color:#5c6773 !important; }
+.card.disabled{ filter:grayscale(.4) opacity(.6); }
+.card.disabled:hover{ border-color:#e2e6ea !important; }
+
+/* Era cards (Program History / Moved under WWOS / Issue standardization). */
+.era-card .era-title h2{ color:#1b2026 !important; }
+.era-card .era-desc{ color:#5c6773 !important; }
+/* Live era card: light green tint instead of the dark gradient. */
+.era-card.live{
+  background:linear-gradient(135deg,#eafff2 0%,#e9fbf1 40%,#eafaff 100%) !important;
+  border-color:rgba(34,197,94,.4) !important;
+  box-shadow:0 0 0 1px rgba(34,197,94,.14),0 8px 30px -16px rgba(34,197,94,.4) !important;
+}
+.era-card.live::before{
+  background:linear-gradient(120deg,rgba(34,197,94,.14),rgba(68,185,214,.05) 35%,transparent 60%,rgba(34,197,94,.1)) !important;
+}
+.era-card.live .era-title h2{ color:#14532d !important; }
+.era-card.live .era-desc{ color:#2f6b47 !important; }
+
+/* Quarter report tiles. */
+.qcard{ background:#fff !important; border:1px solid #e2e6ea !important; }
+.qcard:hover{ box-shadow:0 10px 26px -16px rgba(236,114,17,.45) !important; }
+.qc-q{ color:#1b2026 !important; }
+.qc-yr,.qc-count span,.qc-foot{ color:#5c6773 !important; }
+.qc-pill{ color:#5c6773 !important; background:#f5f6f8 !important; border:1px solid #e2e6ea !important; }
+.qc-count b{ color:#1b2026 !important; }
+.qcard-live{ background:linear-gradient(160deg,#eafff2,#f3fff8) !important; border-color:#9be3b6 !important; }
+.qcard-live .qc-q{ color:#14532d !important; }
+
+/* Year accordion sections. */
+.year-section{ background:#fff !important; border:1px solid #e2e6ea !important; }
+.year-head:hover{ background:#f7f9fb !important; }
+.year-title{ color:#1b2026 !important; }
+.year-meta,.year-caret{ color:#8a94a2 !important; }
+
+/* Comparison table (already light): make it FIT the main column band instead of its old 980px
+   min-width (which overflowed). Lower min-width, tighten padding/fonts, shrink the trend column. */
+.cmp-wrap{ overflow-x:auto; }
+.cmp-table.xls{ min-width:0 !important; width:100% !important; font-size:.8em !important; table-layout:auto !important; }
+.cmp-table.xls th,.cmp-table.xls td{ padding:9px 14px !important; text-align:center !important; }
+/* Metric + the 6 year columns fit their content (no fixed % width); the Trend column (last) absorbs
+   all remaining width. */
+.cmp-table.xls th:not(:last-child),.cmp-table.xls td:not(:last-child){ width:1% !important; white-space:nowrap !important; }
+.cmp-table.xls td.cmp-metric{ text-align:center !important; font-size:.95em !important; }
+.cmp-table.xls th:last-child,.cmp-table.xls td.cmp-spark{ width:auto !important; min-width:200px !important; padding:4px 10px !important; }
+.cmp-table.xls td.cmp-spark svg{ width:100% !important; height:60px !important; }
+/* Year column header: small "Year" label stacked over the big year number. */
+.cmp-table.xls thead th .cmp-yh{ display:block; font-size:.78em; font-weight:700; color:#8a94a2; letter-spacing:.5px; text-transform:uppercase; }
+.cmp-table.xls thead th .cmp-yn{ display:block; margin-top:2px; font-size:1.3em; font-weight:800; color:#1b2026; letter-spacing:.2px; }
+/* Green blinking "live" dot next to 2026. */
+.cmp-live-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; vertical-align:middle; box-shadow:0 0 0 0 rgba(34,197,94,.6); animation:cmpLiveBlink 1.3s ease-in-out infinite; }
+@keyframes cmpLiveBlink{ 0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,.6); opacity:1 } 70%{ box-shadow:0 0 0 6px rgba(34,197,94,0); opacity:.5 } }
+/* The 2026 cell spinner: dark track on the light background (the page default was white-on-dark). */
+.yv-live .num-spinner{ border:2px solid #cfd6de !important; border-top-color:#15803d !important; }
+
+/* Era-card + year skeleton placeholders -> light shimmer base. */
+.era-sk-card{ background:#fff !important; border:1px solid #e9edf1 !important; border-top:3px solid #e2e6ea !important; }
+
+/* Wiki call-to-action strip. */
+.wiki-btn{ color:#fff !important; }
+
+/* Login modal. */
+.modal{ background:#fff !important; border:1px solid #e2e6ea !important; }
+.modal h2{ color:#1b2026 !important; }
+.modal label{ color:#5c6773 !important; }
+.modal input{ background:#fff !important; border:1px solid #d4dade !important; color:#1b2026 !important; }
+.modal-bg{ background:rgba(20,30,50,.45) !important; }
+
+/* Secondary button + muted controls. */
+.btn.sec{ color:#2a3340 !important; border:1px solid #d4dade !important; }
+.home-tb-btn{ color:#2a3340 !important; border:1px solid #d4dade !important; }
+.home-tb-btn:hover{ border-color:#ec7211 !important; color:#ec7211 !important; }
+.home-tb-btn.disabled,.home-tb-btn.disabled:hover{ color:#9aa6b1 !important; background:#eef1f4 !important; border-color:#e2e6ea !important; }

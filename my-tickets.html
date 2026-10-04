@@ -358,6 +358,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=1">
 <!-- ===== My Tickets: full-demo visual pass (page-scoped, wins by source order) ===== -->
 <style id="mt-theme">
 :root{--cy:#5ecdec;--cy2:#7fdcf0;--am:#fbbf24;--gr:#4ade80;--rd:#ff6b6b}
@@ -592,6 +593,137 @@ h1{letter-spacing:-.5px}
 @media (prefers-reduced-motion: reduce){
   .mtc,.mtc-b.primary::after,.mtc-panel.open .mtc-msg{animation:none !important;opacity:1;transform:none}
 }
+</style>
+<!-- ===== My Tickets: LIGHT THEME override (loaded last, wins the cascade) ===== -->
+<style id="mt-light">
+:root{--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--o:#ec7211;--oh:#c85f0e}
+/* Page background: soft light mesh instead of near-black. */
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(94,205,236,.10), transparent 60%),
+    radial-gradient(1000px 500px at 0% 110%, rgba(251,191,36,.08), transparent 55%),
+    #f3f5f7 !important;
+  color:#2a3340 !important;
+}
+h1{color:#1b2026 !important}
+.sub{color:#5c6773 !important}
+/* ---- Ticket cards: white surfaces, light borders, dark text ---- */
+.mtc{background:#ffffff !important;border:1px solid #e2e7eb !important;
+  box-shadow:0 1px 2px rgba(20,40,70,.04), 0 10px 26px -18px rgba(20,40,70,.25) !important}
+.mtc:hover{border-color:#d4dce4 !important;
+  box-shadow:0 2px 4px rgba(20,40,70,.05), 0 16px 36px -18px rgba(20,40,70,.32) !important}
+.mtc.has-help-waiting{border-color:rgba(224,138,30,.5) !important;
+  box-shadow:0 0 0 1px rgba(224,138,30,.18), 0 0 30px -8px rgba(224,138,30,.3), 0 14px 34px -18px rgba(20,40,70,.3) !important}
+.mtc.viewed{background:#f4f6f8 !important;border-color:#e2e7eb !important}
+.mtc.viewed .mtc-head,.mtc.viewed .mtc-bar{border-color:#eef1f4 !important}
+.mtc.viewed .mtc-ago,.mtc.viewed .mtc-title,.mtc.viewed .mtc-head-last{color:#9aa5b1 !important}
+.mtc.viewed .mtc-tid{-webkit-text-fill-color:#8793a0;color:#8793a0 !important}
+.mtc.viewed .mtc-copy{color:#9aa5b1;border-color:#d4dce4}
+.mtc.viewed .mtc-sbadge{background:#eef1f4;color:#8793a0}
+/* Header line */
+.mtc-head{border-bottom:1px solid #f0f3f6}
+.mtc-cb{background:#fff;border:1.5px solid #c6cdd4}
+.mtc-cb.on{background:#1f9d57;border-color:#1f9d57}
+.mtc-ago{color:#1b2026 !important}
+.mtc-tid{background:none !important;-webkit-text-fill-color:#1577a0 !important;color:#1577a0 !important}
+.mtc-tid:hover{filter:none;text-decoration:underline}
+.mtc-copy{border:1px solid #d4dce4;color:#8793a0;background:#fff}
+.mtc-copy:hover{color:#1577a0;border-color:#1577a0}
+.mtc-copy.copied{color:#1f9d57;border-color:#1f9d57}
+.mtc-title{color:#5c6773 !important}
+.mtc-head-last{color:#8793a0 !important}
+/* Country/region badge: hidden normally; shown only when the card is VIEWED (checked). */
+.mtc-country{display:none;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.4px;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec;text-transform:uppercase}
+.mtc.viewed .mtc-country{display:inline-flex}
+/* When viewed: hide the full title, show the country + last comment instead. The comment TRUNCATES
+   with an ellipsis to a single line so a long comment never breaks the header layout. */
+.mtc.viewed .mtc-title{display:none !important}
+.mtc.viewed .mtc-head-last{display:block;flex:1 1 0;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mtc-sbadge{background:#fff4e8;color:#b5560c}
+.mtc-toggle{background:#dfe4ea;border:1px solid #cdd5dd}
+.mtc-toggle i{background:#fff;box-shadow:0 1px 2px rgba(20,40,70,.25)}
+.mtc-toggle.on{background:rgba(31,157,87,.3);border-color:#1f9d57}
+.mtc-toggle.on i{background:#1f9d57}
+/* Actions bar */
+.mtc-bar{border-top:1px solid #f0f3f6}
+.mtc-b{background:#f7f9fb;border:1px solid #e2e7eb;color:#2a3340}
+.mtc-b:hover{border-color:#cdd5dd;background:#eef1f4}
+.mtc-b.cmt-cnt .cnt{background:rgba(21,119,160,.14);color:#1577a0}
+.mtc-b.help-cnt .cnt{background:rgba(31,157,87,.16);color:#1f9d57}
+.mtc-b.active-cmt{background:#eaf4fb;border-color:#1577a0;color:#0f5f80}
+.mtc-b.active-help{background:#fff3e0;border-color:#e08a1e;color:#9a5a0a}
+.mtc-b.lock{background:#fdf3df;border-color:rgba(224,138,30,.45);color:#9a5a0a}
+.mtc-last{color:#8793a0 !important}
+/* Drop-down panels (comment / help thread) */
+.mtc-panel.open{border-top-color:#eef1f4}
+.mtc-panel-pad{background:#fafbfc}
+.mtc-phead{color:#5c6773}
+.mtc-bub{background:#f3f6f9 !important;border:1px solid #e6eaee !important}
+.mtc-bub.h{background:#fff7e6 !important;border-color:#f3e0b8 !important}
+.mtc-msg.right .mtc-bub{background:#eafaf0 !important;border-color:#cdeedb !important}
+.mtc-m{color:#8793a0}
+.mtc-m b{color:#1b2026}
+.mtc-t{color:#2a3340 !important}
+.mtc-composer input{background:#fff;border:1px solid #d4dce4;color:#1b2026}
+.mtc-composer input::placeholder{color:#9aa5b1}
+.mtc-composer input:focus{border-color:#1577a0}
+.mtc-empty{color:#8793a0}
+/* Sort control */
+.mt-sort-btn{background:#fff;border:1px solid #e2e7eb;color:#2a3340;box-shadow:0 1px 2px rgba(20,40,70,.05)}
+.mt-sort-btn:hover{border-color:#cdd5dd;background:#f7f9fb}
+.mt-sort-field{color:#1b2026}
+.mt-sort-sep{background:#e2e7eb}
+.mt-sort-dir{color:#5c6773}
+.mt-sort-label{color:#8793a0}
+.mt-sort-arrow{background:rgba(21,119,160,.14);color:#1577a0}
+/* Skeleton shimmer on light */
+.sk-blk{background:#e8ebee}
+.sk-blk::after{background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.7) 50%,transparent 100%)}
+/* Skeleton table (pre-card loading state) */
+.mt-table.xls{border-color:#e2e7eb}
+.mt-table.xls th,.mt-table.xls td{border-color:#eef1f4}
+.mt-table thead th{background:#f7f9fb;color:#5c6773}
+/* Modals + toast */
+.modal{background:#fff !important;border:1px solid #e2e7eb !important;box-shadow:0 24px 60px -20px rgba(20,40,70,.4) !important}
+.modal-bg{background:rgba(20,30,45,.55) !important}
+.modal-head h2{color:#1577a0 !important}
+.modal-close{color:#5c6773}.modal-close:hover{color:#1b2026}
+.cmt,.ilog-item{background:#f7f9fb !important;border-color:#e6eaee !important}
+.cmt-meta,.ilog-who{color:#5c6773 !important}
+.cmt-meta b,.ilog-who b{color:#1b2026 !important}
+.cmt-text,.ilog-text{color:#2a3340 !important}
+.cmt-input{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
+.ilog-empty{color:#8793a0 !important}
+/* Modal textareas carry inline dark styles (background:#000;color:#fff) — override by id. */
+#addCmtText,#editIncidentText,#incidentText,#helpDoubt{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
+#addCmtText::placeholder,#incidentText::placeholder,#helpDoubt::placeholder{color:#9aa5b1 !important}
+/* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
+.modal p{color:#5c6773 !important}
+.modal p b[style*="#fff"]{color:#1b2026 !important}
+.modal-head h2 span[style*="#fbbf24"],#helpTicket{color:#b5560c !important}
+.toast{background:#fff !important;border-color:#1f9d57 !important;color:#1f9d57 !important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35) !important}
+/* Manager panel (if shown) */
+.mgr-panel{background:#fff !important;border-color:#e2e7eb !important}
+.mgr-panel h2{color:#1b2026 !important}
+.mgr-panel p{color:#5c6773 !important}
+.mgr-icon{background:#fff4e8 !important;color:#ec7211 !important}
+/* Generic buttons used across modals/sections */
+.btn.sec{border-color:#e2e7eb;color:#b5560c}
+.btn.sec:hover{border-color:#ec7211;color:#ec7211;background:#fff4e8}
+.empty{border-color:#d4dce4;color:#8793a0}
+/* Legacy table / conversation classes (in case any are still rendered). */
+.cv-composer textarea{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
+.cv-composer textarea::placeholder{color:#9aa5b1 !important}
+.cv-bubble{background:#f3f6f9 !important;border-color:#e6eaee !important}
+.cv-bubble.help{background:#fff7e6 !important;border-color:#f3e0b8 !important}
+.cv-msg.right .cv-bubble{background:#eafaf0 !important;border-color:#cdeedb !important}
+.cv-text,.cv-meta b{color:#2a3340 !important}
+.tk-cmt,.help-thread{background:#f7f9fb !important;border-color:#e6eaee !important}
+.tk-cmt-text,.help-reply{color:#2a3340 !important}
+.tk-cmt-who b{color:#1b2026 !important}
+.help-q{color:#1b2026 !important}
+.help-hint,.tk-thread-hint,.help-none{color:#8793a0 !important}
+.tbl-card{background:#fff !important;border-color:#e2e7eb !important;box-shadow:0 2px 12px -6px rgba(20,40,70,.15) !important}
 </style>
 </head>
 <body data-nav-active="my-tickets" data-back-href="app.html" data-back-label="Dashboard">
@@ -1096,16 +1228,17 @@ function cardHtml(t,i,editor){
     <div class="mtc-head">
       <div class="mtc-cb${viewed?' on':''}" title="Mark as viewed" onclick="toggleViewed('${esc(sid)}',this)">${ic('check-circle',12)}</div>
       <span class="mtc-ago">${esc(daysAgo(t.createDate))}</span>
-      <span class="mtc-pill ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
       <span class="mtc-sbadge" title="${esc(st)}">${esc(letter)}</span>
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
       <button class="mtc-copy" title="Copy ticket ID" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
       ${t.title?('<span class="mtc-title" title="'+esc(t.title)+'">'+esc(t.title)+'</span>'):'<span class="mtc-title"></span>'}
+      ${t.country?('<span class="mtc-country" title="Country / region">'+esc(t.country)+'</span>'):''}
       <span class="mtc-head-last" id="chead-${i}"></span>
       <span class="mtc-head-right">
         ${t.priority?`<span class="mtc-mk sr" title="Station Request / Address Exclusion">${ic('map-pin',14)}</span>`:''}
         ${ticketIsNoEmt(t)?`<span class="mtc-mk emt" title="No EMT ticket">${ic('no-entry',14)}</span>`:''}
         <span class="mtc-logflag" id="inc-flag-${i}">${incidentFlagHtml(i)}</span>
+        <span class="mtc-pill ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
         <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" style="display:none"><i></i></label>
       </span>
     </div>

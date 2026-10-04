@@ -121,6 +121,61 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .cx-gate p{color:var(--tm);line-height:1.55}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="cx-light">
+/* Section cards white (keep the bright teal cx-banner + sec-head gradient top border). */
+.cx-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #38bdf8!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.cx-sec-head:hover{background:#f7f9fb!important}
+.cx-sec-title{color:#1b2026!important}
+.cx-code{color:#0f72a8!important}
+.cx-code-name{color:#5c6773!important}
+.cx-count{background:#eaf4fb!important;color:#1577a0!important;border:1px solid #bfe0ef!important}
+.cx-caret{color:#9aa5b1!important}
+/* Stat tiles. */
+.cx-stat{background:#f7f9fb!important;border:1px solid #e6eaee!important;border-top:3px solid #cdd5dd!important}
+.cx-stat-n{color:#1b2026!important}
+.cx-stat-l{color:#5c6773!important}
+.cx-stat.total{border-top-color:#38bdf8!important}.cx-stat.total .cx-stat-n{color:#1577a0!important}
+.cx-stat.pet{border-top-color:#a78bfa!important}.cx-stat.pet .cx-stat-n{color:#7c5cff!important}
+.cx-stat.nonpet{border-top-color:#ff9f2e!important}.cx-stat.nonpet .cx-stat-n{color:#b5680c!important}
+.cx-stat.repeat{border-top-color:#4ade80!important}.cx-stat.repeat .cx-stat-n{color:#1f9d57!important}
+/* Chart box. */
+.cx-chart-title{color:#2a3340!important}
+.cx-chart-sub{color:#5c6773!important}
+/* Inline legend-colour words in the chart caption: darken the faint ones for contrast on white. */
+.cx-chart-sub b[style*="#7dd3fc"]{color:#1577a0!important}
+.cx-chart-sub b[style*="#a78bfa"]{color:#7c5cff!important}
+.cx-chart-sub b[style*="#ff9f2e"]{color:#b5680c!important}
+.cx-chart-sub b[style*="#4ade80"]{color:#1f9d57!important}
+.chart-box{background:#fff!important;border:1px solid #e6eaee!important}
+/* Table. */
+.cx-tbl th,.cx-tbl td{border-bottom:1px solid #eef1f4!important}
+.cx-tbl thead th{color:#5c6773!important;border-bottom:1px solid #e2e6ea!important}
+.cx-tbl tbody tr:hover td{background:#eef7fc!important}
+.cx-idlink{color:#1577a0!important}
+.cx-num{color:#5c6773!important}
+.cx-assignee{color:#2a3340!important}
+.cx-title-txt{color:#2a3340!important}
+.cx-sort:hover{color:#1b2026!important}
+.cx-sort-ar{color:#1577a0!important}.cx-sort-ar.idle{color:#aab4bd!important}
+.cx-tag-s.c{background:#eafaf0!important;color:#1f9d57!important}
+.cx-tag-s.r{background:#eaf4fb!important;color:#1577a0!important}
+.cx-tag-s.o{background:#fff4e8!important;color:#b5680c!important}
+/* Show more/less. */
+.cx-more button{background:#fff!important;border:1px solid #e2e6ea!important;color:#2a3340!important}
+.cx-more button:hover{border-color:#38bdf8!important;color:#1b2026!important}
+.cx-mcount{color:#8793a0!important}
+.cx-empty{color:#8793a0!important}
+/* Skeleton. */
+.sk-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #cdd5dd!important}
+.sk-line{background:#e8ebee!important}
+.sk-banner .sk-line{background:rgba(255,255,255,.5)!important}
+/* Gate. */
+.cx-gate h1{color:#1b2026!important}
+.cx-gate p{color:#5c6773!important}
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+</style>
 </head>
 <body data-nav-active="countries" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
@@ -230,20 +285,20 @@ function cxDrawChart(idx){
   var cv=document.getElementById('cxCanvas'+idx); if(!cv)return;
   var b=cxWeeklyBuckets(a.tickets);
   if(CX_CHARTS[idx]){ try{CX_CHARTS[idx].destroy();}catch(e){} delete CX_CHARTS[idx]; }
-  Chart.defaults.color='#879596'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,0.06)';
   CX_CHARTS[idx]=new Chart(cv,{
     data:{labels:b.labels,datasets:[
-      cxBars('Tickets created',b.created,'rgba(56,189,248,.28)','y'),
+      cxBars('Tickets created',b.created,'rgba(56,189,248,.5)','y'),
       cxBars('Pet incidents',b.pet,'#a78bfa','yRepeat'),
       cxBars('Non-pet incidents',b.nonpet,'#ff9f2e','yRepeat'),
       cxLine('Repeat incidents (combined)',b.repeat,'#4ade80')
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,padding:14,font:{size:12}}},
-        tooltip:{backgroundColor:'rgba(10,12,16,.96)',borderColor:'#243', borderWidth:1,padding:10,cornerRadius:8,usePointStyle:true}},
+        tooltip:{backgroundColor:'rgba(20,24,30,.96)',borderColor:'#d4dce4', borderWidth:1,padding:10,cornerRadius:8,usePointStyle:true}},
       scales:{
-        y:{stacked:false,beginAtZero:true,position:'left',grid:{color:'rgba(255,255,255,.05)'},border:{display:false},title:{display:true,text:'Tickets created',color:'#7dd3fc',font:{size:12}},ticks:{font:{size:11},precision:0}},
-        yRepeat:{stacked:false,beginAtZero:true,position:'right',grid:{drawOnChartArea:false},border:{display:false},title:{display:true,text:'Repeat incidents',color:'#4ade80',font:{size:12}},ticks:{font:{size:11},precision:0}},
+        y:{stacked:false,beginAtZero:true,position:'left',grid:{color:'rgba(0,0,0,.05)'},border:{display:false},title:{display:true,text:'Tickets created',color:'#1577a0',font:{size:12}},ticks:{font:{size:11},precision:0}},
+        yRepeat:{stacked:false,beginAtZero:true,position:'right',grid:{drawOnChartArea:false},border:{display:false},title:{display:true,text:'Repeat incidents',color:'#1f9d57',font:{size:12}},ticks:{font:{size:11},precision:0}},
         x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkip:true,maxTicksLimit:14}}}}});
 }
 // Compute the 4 summary stats for a country section from its tickets.

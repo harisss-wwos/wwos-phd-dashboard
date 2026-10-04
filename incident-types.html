@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Types · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--ac:#7c5cf0;--ac2:#0d9488}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t);min-height:100vh}
+.top-bar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{padding:28px 24px 60px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
+/* Banner */
+.iz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-radius:16px;padding:18px 24px;margin-bottom:16px;background:linear-gradient(90deg,#7c3aed,#9d6bf5 55%,#c9b2fb);box-shadow:0 10px 26px -16px rgba(124,58,237,.6)}
+.iz-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;color:#fff}
+.iz-banner .hb-title svg{flex-shrink:0;color:#fff}
+.iz-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(255,255,255,.92);margin-top:5px}
+.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.9);border-radius:14px;padding:9px 18px;color:#3b1a78}
+.iz-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
+.iz-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.8}
+/* Controls */
+.iz-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.iz-scope{display:inline-flex;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:3px;gap:2px}
+.iz-scope button{border:none;background:transparent;color:var(--tm);font-weight:700;font-size:.8em;padding:7px 14px;border-radius:8px;cursor:pointer}
+.iz-scope button.on{background:var(--ac);color:#fff}
+.iz-reload{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--bd);border-radius:10px;color:var(--t);font-weight:700;font-size:.8em;padding:8px 14px;cursor:pointer}
+.iz-reload:hover{border-color:var(--o);color:var(--o)}
+.iz-reload svg{width:14px;height:14px}
+.iz-reload.spinning svg{animation:izspin .7s linear infinite}
+@keyframes izspin{to{transform:rotate(360deg)}}
+/* Two-column split tables */
+.iz-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:860px){.iz-grid{grid-template-columns:1fr}}
+.iz-card{background:#fff;border:1px solid var(--bd);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,70,.05)}
+.iz-card.full{grid-column:1 / -1}
+.iz-card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid #eef1f4}
+.iz-card-h .t{font-size:.98em;font-weight:700;color:#1b2026}
+.iz-card-h .sub{font-size:.74em;color:var(--tm);font-weight:500;margin-top:2px}
+.iz-card.phd{border-top:3px solid var(--ac2)}
+.iz-card.sim{border-top:3px solid #d9930a}
+.iz-card.all{border-top:3px solid var(--ac)}
+.iz-chip{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 11px;border-radius:20px;font-weight:800;font-size:.82em;background:#f0f3f6;color:#1b2026;border:1px solid #e2e7eb}
+.iz-tbl{width:100%;border-collapse:collapse;font-size:.88em}
+.iz-tbl th,.iz-tbl td{padding:9px 14px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle}
+.iz-tbl th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.iz-tbl td.type{color:#1b2026;max-width:1px;width:100%}
+.iz-tbl td.type span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iz-tbl td.n{text-align:right;font-weight:700;color:#1b2026;white-space:nowrap}
+.iz-tbl td.pct{text-align:right;color:var(--tm);font-weight:600;white-space:nowrap;width:1%}
+.iz-tbl tbody tr:last-child td{border-bottom:none}
+.iz-tbl tbody tr:hover td{background:#f7f9fb}
+.iz-barcell{width:120px}
+.iz-mini{height:6px;border-radius:4px;background:#eef1f4;overflow:hidden}
+.iz-mini>span{display:block;height:100%;border-radius:4px}
+.iz-card.all .iz-mini>span{background:linear-gradient(90deg,#7c3aed,#9d6bf5)}
+.iz-card.phd .iz-mini>span{background:linear-gradient(90deg,#0d9488,#2bb3a3)}
+.iz-card.sim .iz-mini>span{background:linear-gradient(90deg,#d9930a,#f0b429)}
+.iz-empty{color:#8a94a0;font-size:.86em;font-style:italic;padding:16px 18px}
+.iz-more{padding:10px 18px}
+.iz-more button{background:#fff;border:1px solid var(--bd);color:var(--t);border-radius:8px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
+.iz-more button:hover{border-color:var(--o);color:var(--o)}
+/* Loading / gate */
+.iz-sk{background:#fff;border:1px solid var(--bd);border-radius:14px;margin-bottom:14px;padding:16px 20px}
+.iz-sk-line{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,#eef1f4,#f6f8fa,#eef1f4);background-size:200% 100%;animation:izsk 1.2s linear infinite}
+@keyframes izsk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.iz-gate{max-width:560px;margin:60px auto;text-align:center}
+.iz-gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
+.iz-gate p{color:var(--tm);line-height:1.55}
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=1">
+</head>
+<body data-nav-active="incident-types" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div class="iz-sk"><span class="iz-sk-line" style="width:240px;height:22px"></span></div>
+  <div class="iz-sk"><span class="iz-sk-line" style="width:100%"></span></div>
+  <div class="iz-sk"><span class="iz-sk-line" style="width:88%"></span></div>
+  <div class="iz-sk"><span class="iz-sk-line" style="width:76%"></span></div>
+</div>
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+let IZ_SCOPE='live';     // 'live' | 'all'
+let IZ_DATA=null;        // last payload (for Show-more re-render without refetch)
+let IZ_SHOWN={all:30,phd:15,sim:15};   // per-table visible count
+const IZ_PAGE0={all:30,phd:15,sim:15}, IZ_STEP=15;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="iz-gate"><h1>Incident Types</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
+const reloadIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+const bugIc='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 6V3M5 9H2m3 4H2m3 4H3m16-8h3m-3 4h3m-3 4h2M9 6 7 3m8 3 2-3"/></svg>';
+
+// One table card. `tableKey` ties into IZ_SHOWN for paging. `rows` = [{type,count,pct}].
+function tableCard(cls,tableKey,title,sub,total,rows){
+  var maxC=rows.reduce(function(m,r){return Math.max(m,r.count||0);},0)||1;
+  var shown=Math.min(IZ_SHOWN[tableKey]||IZ_PAGE0[tableKey],rows.length);
+  var body;
+  if(!rows.length){
+    body='<div class="iz-empty">No incident types for this scope.</div>';
+  }else{
+    var trs='';
+    for(var i=0;i<shown;i++){
+      var r=rows[i], w=Math.round((r.count/maxC)*100);
+      trs+='<tr>'
+        +'<td class="type"><span title="'+esc(r.type)+'">'+esc(r.type)+'</span></td>'
+        +'<td class="iz-barcell"><div class="iz-mini"><span style="width:'+w+'%"></span></div></td>'
+        +'<td class="n">'+Number(r.count).toLocaleString()+'</td>'
+        +'<td class="pct">'+(r.pct!=null?r.pct:0)+'%</td>'
+      +'</tr>';
+    }
+    body='<table class="iz-tbl"><thead><tr><th>Incident type</th><th></th><th class="n">Count</th><th class="pct">%</th></tr></thead><tbody>'+trs+'</tbody></table>';
+    if(rows.length>IZ_PAGE0[tableKey]){
+      var canMore=shown<rows.length, canLess=shown>IZ_PAGE0[tableKey];
+      body+='<div class="iz-more">'
+        +(canMore?'<button onclick="izMore(\''+tableKey+'\')">Show more ('+(rows.length-shown)+' hidden)</button> ':'')
+        +(canLess?'<button onclick="izLess(\''+tableKey+'\')">Show less</button>':'')
+      +'</div>';
+    }
+  }
+  return '<div class="iz-card '+cls+'">'
+    +'<div class="iz-card-h"><div><div class="t">'+esc(title)+'</div><div class="sub">'+esc(sub)+'</div></div>'
+      +'<span class="iz-chip">'+Number(total).toLocaleString()+'</span></div>'
+    +body
+  +'</div>';
+}
+
+function render(){
+  var d=IZ_DATA||{};
+  var all=d.types||[], phd=d.phdTypes||[], sim=d.autosimTypes||[];
+  var total=d.total||0;
+  var scopeLabel=IZ_SCOPE==='all'?'all quarters':'the live quarter';
+  var html='<div class="iz-banner">'
+    +'<div class="hb-left">'
+      +'<h1 class="hb-title">'+bugIc+'Incident Types</h1>'
+      +'<div class="hb-sub">Every ticket bucketed by its <b>incident type</b>, plus a resolver split: types resolved by <b>AUTO-SIM</b> vs by a <b>PHD agent</b>. Showing <b>'+esc(scopeLabel)+'</b>.</div>'
+    +'</div>'
+    +'<div class="hb-total"><span class="n">'+Number(total).toLocaleString()+'</span><span class="l">tickets</span></div>'
+  +'</div>';
+  html+='<div class="iz-controls">'
+    +'<div class="iz-scope">'
+      +'<button class="'+(IZ_SCOPE==='live'?'on':'')+'" onclick="izSetScope(\'live\')">Live quarter</button>'
+      +'<button class="'+(IZ_SCOPE==='all'?'on':'')+'" onclick="izSetScope(\'all\')">All quarters</button>'
+    +'</div>'
+    +'<button class="iz-reload" id="izReload" onclick="izReload()">'+reloadIc+'<span>Reload</span></button>'
+  +'</div>';
+  // All incident types (full width), then the AutoSIM / PHD split side by side.
+  html+=tableCard('all','all','All incident types','Every ticket, by type',total,all);
+  html+='<div class="iz-grid">'
+    +tableCard('sim','sim','Resolved by AUTO-SIM','Resolved/closed by the bot',d.autosimTotal||0,sim)
+    +tableCard('phd','phd','Resolved by PHD agents','Resolved/closed by an agent',d.phdTotal||0,phd)
+  +'</div>';
+  document.getElementById('wrap').innerHTML=html;
+}
+
+function izMore(k){ IZ_SHOWN[k]=Math.min((IZ_SHOWN[k]||IZ_PAGE0[k])+IZ_STEP, 100000); render(); }
+function izLess(k){ IZ_SHOWN[k]=IZ_PAGE0[k]; render(); }
+window.izMore=izMore; window.izLess=izLess;
+
+function izSetScope(s){ if(s===IZ_SCOPE)return; IZ_SCOPE=s; IZ_SHOWN={all:IZ_PAGE0.all,phd:IZ_PAGE0.phd,sim:IZ_PAGE0.sim}; load(); }
+window.izSetScope=izSetScope;
+function izReload(){
+  var b=document.getElementById('izReload'); if(b)b.classList.add('spinning');
+  var stop=function(){ var x=document.getElementById('izReload'); if(x)x.classList.remove('spinning'); };
+  load().then(stop,stop);
+}
+window.izReload=izReload;
+
+function load(){
+  var q=IZ_SCOPE==='all'?'?q=all':'';
+  return A.api('GET','/api/dash/incidents'+q).then(function(r){
+    if(!r||!r.ok||!r.data){ gate('Could not load incident types.'); return; }
+    IZ_DATA=r.data; render();
+  }).catch(function(){ gate('Could not load incident types. The data service may be waking up — please try again in a moment.'); });
+}
+load();
+</script>
+</body>
+</html>

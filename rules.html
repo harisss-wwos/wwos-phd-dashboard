@@ -8,39 +8,40 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--yl:#fbbf24;--rl:#ff5252;--pu:#a78bfa;--tl:#44b9d6}
+:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--gl:#1f9d57;--yl:#d9930a;--rl:#dc2626;--pu:#7c5cf0;--tl:#2591ad}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t);min-height:100vh}
+.top-bar{background:#ffffff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
-.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .wrap{width:92%;max-width:1000px;margin:0 auto;padding:32px 20px 60px}
-h1{color:#fff;font-size:1.7em;margin-bottom:4px}
+h1{color:#1b2026;font-size:1.7em;margin-bottom:4px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:8px}
-.disclaimer{color:var(--yl);font-size:.82em;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:10px 14px;margin:14px 0 28px}
-.sec{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+.disclaimer{color:#8a5a00;font-size:.82em;background:rgba(217,147,10,.1);border:1px solid rgba(217,147,10,.35);border-radius:8px;padding:10px 14px;margin:14px 0 28px}
+.sec{background:#ffffff;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:0 2px 10px rgba(20,40,70,.05)}
 .sec h2{color:var(--o);font-size:1.05em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
 table{width:100%;border-collapse:collapse;margin-bottom:6px}
 th,td{padding:9px 12px;border-bottom:1px solid var(--bd);text-align:left;font-size:.9em;vertical-align:top}
 th{color:var(--tm);font-size:.74em;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
-td b{color:#fff}
+td b{color:#1b2026}
 ul{list-style:none}
-li{padding:7px 0;border-bottom:1px solid #161616;font-size:.92em;line-height:1.55}
+li{padding:7px 0;border-bottom:1px solid #eef1f4;font-size:.92em;line-height:1.55}
 li:last-child{border-bottom:none}
-li b{color:#fff}
-code{background:#1a1a1a;color:#ffcf8a;border-radius:4px;padding:1px 6px;font-size:.85em;font-family:ui-monospace,Menlo,Consolas,monospace}
+li b{color:#1b2026}
+code{background:#f0f3f6;color:#b5560c;border:1px solid #e2e7eb;border-radius:4px;padding:1px 6px;font-size:.85em;font-family:ui-monospace,Menlo,Consolas,monospace}
 .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:middle}
-.d-green{background:#4ade80}.d-yellow{background:#fbbf24}.d-red{background:#ff5252}.d-black{background:#888}.d-purple{background:#a78bfa}
+.d-green{background:#1f9d57}.d-yellow{background:#d9930a}.d-red{background:#dc2626}.d-black{background:#4a5563}.d-purple{background:#7c5cf0}
 .pill{display:inline-block;font-size:.72em;font-weight:700;border-radius:20px;padding:2px 9px;border:1px solid}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=1">
 </head>
 <body data-nav-hide="dashboard" data-back-href="index.html" data-back-label="All Dashboards">
 <div class="top-bar" style="visibility:hidden">
@@ -145,6 +146,82 @@ code{background:#1a1a1a;color:#ffcf8a;border-radius:4px;padding:1px 6px;font-siz
     <ul>
       <li><b>Resolved 12h / 24h</b> — resolved within the last 12 / 24 hrs relative to now.</li>
       <li><b>Crossing 240h next 24h</b> — open tickets currently aged 216–240 hrs.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>9. Nav Rail <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(left-hand icon rail, every page)</span></h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">The left rail is built by <code>topbar-auth.js</code> and has three zones: the <b>Home</b> logo pinned to the top, the <b>Active Dashboard</b> button pinned to the bottom, and the navigation icon group centered between them.</p>
+    <ul>
+      <li><b>Icons show only when logged in, centered</b> — every middle nav icon is login-gated. Logged-out guests see <b>only</b> the Home logo and the Active Dashboard button; the Reports and Program History fly-outs and the Analytics button are hidden entirely (not just greyed).</li>
+      <li><b>Home button</b> (top) — links to <code>index.html</code>; styled in <b>light theme</b> (white circle, light border, orange hover).</li>
+      <li><b>Active Dashboard</b> (bottom) — links to the live quarter dashboard (<code>app.html</code>); styled in <b>light theme</b> (light-green surface with a soft glow). Greyed and inert when logged out.</li>
+      <li><b>Access gating</b> — <b>Upload</b> requires the <code>canUpload</code> flag; other items are gated by role (<code>user</code> / <code>admin</code> / <code>owner</code>) or per-page flags (<code>sla</code>, <code>sr</code>, <code>repeat</code>, <code>unique</code>). When logged in but lacking access, an item shows greyed and inert rather than hidden.</li>
+      <li><b>Analytics</b> — admin-gated: clickable for admins, greyed and inert for everyone else.</li>
+      <li><b>Fixed order</b> — rail order is fixed (drag-and-drop reordering was removed).</li>
+      <li><b>Right rail</b> — a mirror of the left rail used only on pages without the profile panel; on <code>app.html</code> the right profile panel replaces it.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>10. Profile Column <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(right-hand panel, every page)</span></h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">The right profile column is built by <code>topbar-auth.js</code> and appears on every page (like the nav rail), on pages that opt into the 3-column layout. When logged out it shows a guest banner with an inline login form instead.</p>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:8px"><b>Sections &amp; their data requests</b> (each has its own <b>reload</b> button in the top-right corner that force-refreshes only that section):</p>
+    <ul>
+      <li><b>a) Avatar / banner</b> — <code>/api/me/profile</code> (display name + stored avatar image). Painted from cache first, then repainted with the real photo once the profile loads.</li>
+      <li><b>b) My open tickets</b> — <code>/api/profile-stats</code> (Assigned / WIP / Researching / Pending).</li>
+      <li><b>c) My tickets by age</b> — same <code>/api/profile-stats</code> call (Purple / Black / Red / Yellow / Green). Reloading <b>b</b> or <b>c</b> refreshes both, since they share one request.</li>
+      <li><b>d) Change in data due to last upload</b> — <code>/api/last-upload</code>.</li>
+      <li><b>e) Agents activity — Today</b> — <code>/api/agents-activity?window=today</code>.</li>
+      <li><b>f) Agents activity — Yesterday</b> — <code>/api/agents-activity?window=yesterday</code>.</li>
+      <li><b>g) Agents activity — Last week</b> — <code>/api/agents-activity?window=lastweek</code>.</li>
+    </ul>
+    <p style="color:var(--tm);font-size:.85em;margin:14px 0 8px"><b>Caching rules</b> (so the column doesn't re-request on every page):</p>
+    <ul>
+      <li><b>Fetch once, cache across pages</b> — each section's response is cached in <code>localStorage</code>, keyed per user. On navigation (clicking a link <b>or</b> a browser refresh) the column paints <b>from cache with no network call</b>, so the UI stays unchanged and instant.</li>
+      <li><b>How to get fresh data</b> — either click a section's <b>reload</b> button (force-refreshes just that section), or trigger a full data <b>upload</b>, which clears the profile cache and reloads the page so every section refetches.</li>
+      <li><b>Cache lifetimes (TTL)</b> — open tickets, tickets-by-age, and last-upload are cached for <b>6 hours</b> (they only change on upload); the three agents-activity windows use a short <b>7-minute</b> TTL because a day boundary flips the Today / Yesterday labels.</li>
+      <li><b>On upload</b> — a successful publish clears the profile cache (<code>PHDClearProfileCache</code>) so the post-upload page reload shows current numbers in every section.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>11. Eras <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(BC / AC — replacing the quarter concept)</span></h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">An <b>era</b> is a fixed date range based on a ticket's <code>CreateDate</code>. It is replacing the old per-quarter view: a new quarter or calendar year rolls over with <b>no code changes</b>, because the boundary is a fixed date, not a sliding quarter.</p>
+    <table>
+      <thead><tr><th>Era</th><th>Range (by CreateDate)</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><b>BC era</b></td><td>1 Jan 2021 &ndash; 31 Dec 2025</td><td>Historical, frozen data.</td></tr>
+        <tr><td><b>AC era</b></td><td>1 Jan 2026 onward</td><td>Current / active data. The <b>Active Dashboard</b> reads AC.</td></tr>
+      </tbody>
+    </table>
+    <ul style="margin-top:10px">
+      <li>The era is derived purely from <code>CreateDate</code> &mdash; <b>nothing is stored on the ticket</b>. Aggregations filter by the date range (AC = <code>CreateDate &ge; 2026-01-01</code>; BC = <code>2021-01-01 &le; CreateDate &lt; 2026-01-01</code>), with no quarter filter.</li>
+      <li><b>Active Dashboard = AC era.</b> Its sections count every 2026+ ticket, independent of any quarter.</li>
+      <li><b>Queue Status Data</b> (AC era) shows only the open / active work: <b>In Queue</b>, Assigned, Work In Progress, Researching, Pending. Resolved, Closed and Total Tickets were removed from this section (they span the whole era and aren't part of the live queue). Each active status's % is relative to In Queue.</li>
+      <li><b>Ticket Age Classification</b> (AC era) classifies all open AC-era tickets by age colour (Purple / Black / Red / Yellow / Green), always computed live against the current clock.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <h2>12. Performance Overview <span style="color:var(--tm);font-size:.7em;text-transform:none;letter-spacing:0">(Active Dashboard — period picker)</span></h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">The old <b>Average Data</b> and <b>Weekly Volume &amp; SLA Compliance</b> sections are merged into one <b>Performance Overview</b> card. It holds the resolution / SLA / AutoSIM / repeat KPIs <b>and</b> the weekly Created-vs-Resolved + SLA% chart, both driven by a single period picker. The old Q3 / Q2 / Q2+Q3 scope chips are gone.</p>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:8px"><b>Every period is a date range on <code>CreateDate</code></b> (half-open: <code>&ge; from</code>, <code>&lt; to</code>). Weeks run <b>Sunday&ndash;Saturday</b>. Six range types:</p>
+    <table>
+      <thead><tr><th>Option</th><th>Window</th></tr></thead>
+      <tbody>
+        <tr><td><b>From 1 Jan 2026</b> (default)</td><td>AC era to date (<code>CreateDate &ge; 2026-01-01</code>).</td></tr>
+        <tr><td><b>By month</b></td><td>A chosen 2026 month (Jan &hellip; current month).</td></tr>
+        <tr><td><b>By week</b></td><td>A Sun&ndash;Sat week within a chosen 2026 month.</td></tr>
+        <tr><td><b>Last 100 days</b></td><td>The 100 days ending today.</td></tr>
+        <tr><td><b>Last 12 weeks</b></td><td>The 12 most recent full Sun&ndash;Sat weeks.</td></tr>
+        <tr><td><b>By quarter</b></td><td>A 2026 quarter (Q1 &hellip; current quarter).</td></tr>
+      </tbody>
+    </table>
+    <ul style="margin-top:10px">
+      <li>The picker is <b>two levels</b>: a range-type dropdown, plus a second dropdown (month / week / quarter) that appears only when the type needs one.</li>
+      <li>Changing the period reloads <b>both</b> the KPIs and the weekly chart together, scoped to the chosen window &mdash; no quarter concept involved.</li>
+      <li>Because the boundary is a date, a new quarter or calendar year needs <b>no code change</b> &mdash; the options extend automatically (e.g. the Month / Quarter lists grow as 2026 progresses).</li>
     </ul>
   </div>
 

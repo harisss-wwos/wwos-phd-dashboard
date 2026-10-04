@@ -9,29 +9,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shimmer.css">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--gl:#1f9d57;--rl:#dc2626;--tl:#2591ad;--card:#fff;--cardh:#faf7f2;--inp:#fff}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t);min-height:100vh}
 /* Keep the static fallback bar's box (no layout jump) but invisible, so the shared toolbar (with the
    hamburger, injected by topbar-auth.js) is the only bar the user sees — no hamburger-less flash. */
-.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.top-bar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
-.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
 .nav-right{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:8px;font-weight:700;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
+.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:5px 12px;font-size:.78em}
-.tools-subnav{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:0 24px;display:flex;gap:4px;flex-wrap:wrap}
+.tools-subnav{background:#fff;border-bottom:1px solid var(--bd);padding:0 24px;display:flex;gap:4px;flex-wrap:wrap}
 .tools-subnav a{padding:12px 16px;color:var(--tm);text-decoration:none;font-size:.88em;font-weight:600;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
-.tools-subnav a:hover{color:#fff}
+.tools-subnav a:hover{color:#1b2026}
 .tools-subnav a.active{color:var(--o);border-bottom-color:var(--o)}
-.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
-.btn.danger:hover{background:rgba(255,82,82,.12)}
+.btn.danger{background:#fff;border:1px solid rgba(220,38,38,.4);color:var(--rl)}
+.btn.danger:hover{background:#fef2f2}
 .wrap{width:90%;max-width:1400px;margin:0 auto;padding:40px 24px}
-h1{color:#fff;font-size:1.7em;margin-bottom:6px}
+h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
 /* Header row: title left, actions right */
 .page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
@@ -40,46 +40,47 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 /* Stacked list of expandable, click-to-copy blurb cards */
 .blurb-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start}
 @media(max-width:760px){.blurb-list{grid-template-columns:1fr}}
-.blurb-card{position:relative;background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;padding:16px 18px;transition:border-color .15s,background .15s}
-.blurb-card:hover{border-color:var(--o);background:#0d0d0d}
+.blurb-card{position:relative;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:border-color .15s,background .15s,box-shadow .15s}
+.blurb-card:hover{border-color:var(--o);background:var(--cardh);box-shadow:0 4px 14px -6px rgba(236,114,17,.3)}
 /* View toggle button */
-.bc-view{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--bd);background:transparent;color:var(--t);flex-shrink:0}
+.bc-view{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--bd);background:#fff;color:var(--t);flex-shrink:0}
 .bc-view:hover{border-color:var(--o);color:var(--o)}
-.blurb-card.show .bc-view{border-color:var(--o);color:var(--o)}
+.blurb-card.show .bc-view{border-color:var(--o);color:var(--o);background:#fff4e8}
 .bc-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .bc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
-.bc-title{color:#fff;font-weight:600;font-size:1.02em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;flex:1}
+.bc-title{color:#1b2026;font-weight:700;font-size:1.02em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;flex:1}
 .bc-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.bc-count{display:inline-flex;align-items:center;gap:4px;background:rgba(255,153,0,.14);color:var(--o);border-radius:20px;padding:2px 9px;font-size:.72em;font-weight:700;flex-shrink:0}
+.bc-count{display:inline-flex;align-items:center;gap:4px;background:#fff4e8;color:var(--o);border:1px solid #f3d4b0;border-radius:20px;padding:2px 9px;font-size:.72em;font-weight:800;flex-shrink:0}
 .bc-count svg{width:12px;height:12px}
-.bc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--o);background:var(--o);color:#000;flex-shrink:0}
+.bc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--o);background:var(--o);color:#fff;flex-shrink:0}
 .bc-copy:hover{filter:brightness(1.08)}
-.bc-copy.copied{background:var(--gl);border-color:var(--gl);color:#000}
+.bc-copy.copied{background:var(--gl);border-color:var(--gl);color:#fff}
 /* Content: hidden by default, revealed only when the card is expanded via the View button (.show) */
 .bc-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease;margin-top:0}
 .blurb-card.show .bc-content{max-height:600px;opacity:1;margin-top:12px}
-.bc-content .bc-text{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;border-top:1px solid var(--bd);padding-top:12px}
-.bc-content .bc-hash{color:#44b9d6;font-size:.85em;margin-top:8px}
+.bc-content .bc-text{white-space:pre-wrap;color:#2a3340;font-size:.9em;line-height:1.6;border-top:1px solid #eef1f4;padding-top:12px}
+.bc-content .bc-hash{color:var(--tl);font-size:.85em;margin-top:8px}
 .bc-admin{display:flex;gap:8px;margin-top:12px}
 .bc-admin .btn.mini{flex:0 0 auto}
-.blurb-text{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;max-height:56vh;overflow:auto}
-.meta{color:#5f6b6c;font-size:.75em;margin-top:8px}
-.copied{color:var(--gl)!important;border-color:rgba(74,222,128,.5)!important}
+.blurb-text{white-space:pre-wrap;color:#2a3340;font-size:.9em;line-height:1.6;background:#f7f9fb;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;max-height:56vh;overflow:auto}
+.meta{color:#8b96a0;font-size:.75em;margin-top:8px}
+.copied{color:var(--gl)!important;border-color:rgba(31,157,87,.5)!important}
 /* editor */
 .edit-area{margin-top:10px}
-.edit-area input,.edit-area textarea{width:100%;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit}
+.edit-area input,.edit-area textarea{width:100%;background:var(--inp);border:1px solid var(--bd);border-radius:8px;color:#1b2026;font-size:.9em;padding:10px 12px;font-family:inherit}
+.edit-area input:focus,.edit-area textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .edit-area textarea{min-height:200px;line-height:1.6;resize:vertical}
-.edit-area label{display:block;color:var(--tm);font-size:.8em;margin:10px 0 6px}
+.edit-area label{display:block;color:var(--tm);font-size:.8em;font-weight:700;margin:10px 0 6px}
 .msg{font-size:.85em;margin-top:10px;display:none}.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
 /* Add-blurb modal */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:88vh;overflow:auto;padding:24px}
+.modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border:1px solid var(--bd);border-radius:14px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:88vh;overflow:auto;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
 .modal.modal-wide{width:50vw;max-width:50vw}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
+.modal-head h2{color:#1b2026;font-size:1.05em;font-weight:800}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#fff}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2000;opacity:0;transition:opacity .2s}
+.modal-close:hover{color:#1b2026}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:10px;font-size:.85em;z-index:2000;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
 .toast.show{opacity:1}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
@@ -113,6 +114,7 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 @media(max-width:640px){.tool-banner .tb-title{font-size:1.25em}.tool-banner::after{opacity:.22}}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
 </head>
 <body data-nav-active="tools" data-back-href="tools.html" data-back-label="PHD Tools">
 <div class="top-bar" style="visibility:hidden">
@@ -134,7 +136,7 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 <div class="modal-bg" id="viewModal" onclick="if(event.target===this)closeViewModal()">
   <div class="modal modal-wide">
     <div class="modal-head">
-      <h2 id="viewTitle" style="color:#fff"></h2>
+      <h2 id="viewTitle" style="color:#1b2026"></h2>
       <button class="modal-close" onclick="closeViewModal()" aria-label="Close">&times;</button>
     </div>
     <div id="viewRead">

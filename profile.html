@@ -6,89 +6,136 @@
 <title>Profile · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80}
+:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--gl:#1f9d57}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-/* Form controls (input/button/textarea/select) don't inherit the page font by default — force it
-   so the whole page uses the same Inter/Amazon-styled type instead of the browser default. */
 input,button,textarea,select{font-family:inherit}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:10px}
-.logo img{height:28px;width:auto;display:block}
-.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.88em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
-.wrap{max-width:520px;margin:0 auto;padding:50px 24px}
-h1{color:#fff;font-size:1.6em;margin-bottom:6px}
-.sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
-.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:26px;margin-bottom:20px}
-.card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
-.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.92em}
-.row:last-child{border-bottom:none}
-.row .k{color:var(--tm)}
-.row .v{color:#fff;font-weight:600}
-.badge{background:rgba(255,153,0,.14);color:var(--o);padding:2px 10px;border-radius:20px;font-size:.85em;text-transform:uppercase;font-weight:700}
-label{display:block;color:var(--tm);font-size:.85em;margin:14px 0 6px}
-input{width:100%;padding:10px 12px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.92em}
-input:focus{outline:none;border-color:var(--o)}
-.msg{font-size:.86em;margin-top:14px;display:none}
-.msg.err{color:#ff5252}
-.msg.ok{color:var(--gl)}
-.gate{text-align:center;padding:40px 0}
-.gate p{color:var(--tm);margin-bottom:18px}
-.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:#ff5252}
-.btn.danger:hover{background:rgba(255,82,82,.12)}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:24px}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
-.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#fff}
-.btn.mini{padding:5px 12px;font-size:.78em}
-.avatar-wrap{position:relative;width:96px;height:96px;margin:0 auto 12px}
-.avatar-wrap #avatarBox{width:96px;height:96px}
-.avatar-edit{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#000;border:2px solid #0a0a0a;cursor:pointer;font-size:.85em;display:flex;align-items:center;justify-content:center}
-.avatar-edit:hover{background:var(--oh)}
-/* Small inline spinners shown only where DB-backed data (avatar, display name) is still loading. */
-.pspin{display:inline-block;border:2px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:pspin .8s linear infinite}
-.pspin.big{width:40px;height:40px;border-width:3px}
-.pspin.sm{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t);min-height:100vh}
+.top-bar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto}
+.logo span{font-size:1.1em;font-weight:700;color:#1b2026}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--o);color:#fff;border-radius:9px;font-weight:700;font-size:.88em;cursor:pointer;border:none;text-decoration:none;transition:filter .14s,transform .12s}
+.btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o);filter:none}
+.btn.danger{background:#fff;border:1px solid rgba(220,38,38,.4);color:#dc2626}
+.btn.danger:hover{background:#fef2f2;filter:none}
+.btn.mini{padding:7px 13px;font-size:.8em}
+.btn svg{width:15px;height:15px}
+.wrap{padding:26px 24px 60px}
+.wrap,.content{width:auto!important;max-width:760px!important;margin-left:auto!important;margin-right:auto!important}
+/* ===== Hero ===== */
+.ph-hero{position:relative;overflow:hidden;border-radius:20px;padding:0;margin-bottom:20px;background:#fff;border:1px solid var(--bd);box-shadow:0 8px 26px -16px rgba(20,40,70,.35)}
+.ph-hero-top{height:92px;background:linear-gradient(100deg,#f0820f,#ff9f2e 52%,#ffc879);position:relative}
+.ph-hero-top::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 85% -10%,rgba(255,255,255,.4),transparent 42%)}
+.ph-hero-body{display:flex;align-items:flex-end;gap:18px;padding:0 24px 20px;margin-top:-44px;position:relative}
+.ph-hero-av{position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;background:#fff;padding:5px;box-shadow:0 6px 18px -6px rgba(20,40,70,.4)}
+.ph-hero-av #avatarBox,.ph-hero-av #avatarBox img,.ph-hero-av #avatarBox .avatar-initial,.ph-hero-av .avatar-loading{width:86px!important;height:86px!important;border-radius:50%!important;object-fit:cover;display:flex;align-items:center;justify-content:center}
+.ph-hero-cam{position:absolute;right:0;bottom:4px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#fff;border:3px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(20,40,70,.3)}
+.ph-hero-cam:hover{background:var(--oh)}
+.ph-hero-cam svg{width:14px;height:14px}
+.ph-hero-meta{flex:1;min-width:0;padding-bottom:4px}
+.ph-hero-name{font-size:1.5em;font-weight:800;color:#1b2026;letter-spacing:-.3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph-hero-badge{display:inline-flex;align-items:center;background:#fff4e8;color:#b5560c;border:1px solid #f3d4b0;font-size:.56em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.ph-hero-handle{color:var(--tm);font-size:.9em;font-weight:600;margin-top:3px}
+.ph-hero-actions{flex:0 0 auto;display:flex;gap:8px;padding-bottom:4px}
+@media(max-width:600px){.ph-hero-body{flex-direction:column;align-items:center;text-align:center}.ph-hero-actions{justify-content:center}.ph-hero-name{justify-content:center}}
+/* ===== Cards ===== */
+.ph-card{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:22px 24px;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05)}
+.ph-card-h{display:flex;align-items:center;gap:9px;font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#1b2026;margin-bottom:16px}
+.ph-card-h svg{width:15px;height:15px;color:var(--o)}
+label{display:block;color:var(--tm);font-size:.82em;font-weight:700;margin:14px 0 7px}
+input[type=text],input[type=password]{width:100%;padding:11px 13px;background:#fff;border:1px solid var(--bd);border-radius:10px;color:#1b2026;font-size:.92em;transition:border-color .14s,box-shadow .14s}
+input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.ph-kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.ph-kv .cell{background:#f7f9fb;border:1px solid #eef1f4;border-radius:12px;padding:12px 14px}
+.ph-kv .k{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tm)}
+.ph-kv .v{font-size:1em;font-weight:800;color:#1b2026;margin-top:4px;display:flex;align-items:center;gap:8px}
+.ph-badge{background:#fff4e8;color:#b5560c;border:1px solid #f3d4b0;padding:2px 10px;border-radius:999px;font-size:.72em;text-transform:uppercase;font-weight:800}
+.ph-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.ph-actions .btn{flex:1;min-width:150px;justify-content:center}
+.msg{font-size:.85em;margin-top:12px;display:none;font-weight:600}
+.msg.err{color:#dc2626}.msg.ok{color:var(--gl)}
+.gate{text-align:center;padding:60px 20px;background:#fff;border:1px solid var(--bd);border-radius:16px}
+.gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
+.gate p{color:var(--tm);margin-bottom:18px;line-height:1.55}
+/* spinners */
+.pspin{display:inline-block;border:2px solid #e2e7eb;border-top-color:var(--o);border-radius:50%;animation:pspin .8s linear infinite}
+.pspin.big{width:34px;height:34px;border-width:3px}
+.pspin.sm{width:15px;height:15px;vertical-align:-3px;margin-right:7px}
 @keyframes pspin{100%{transform:rotate(360deg)}}
-.avatar-loading{width:96px;height:96px;border-radius:50%;background:#000;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center}
-.field-loading{display:flex;align-items:center;color:var(--tm);font-size:.9em;padding:10px 12px;background:#000;border:1px solid var(--bd);border-radius:6px}
-
-/* My Profile: constrain the content to 50% of the viewport width, centered — but never wider than
-   the content band between the two nav rails (body has padding-left/right:10vw), so the wrap can't
-   overlap the rails. min-width caps at the available content width (100%) rather than 94vw. */
-.wrap{width:50vw!important;max-width:50vw!important;min-width:min(100%,420px)!important;margin-left:auto!important;margin-right:auto!important}
-@media(max-width:760px){.wrap{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}}
-/* ===== Profile banner (Amazon-smile arc) ===== */
-.pbanner{position:relative;border-radius:14px;background:#161616;overflow:hidden;border:1px solid #2a2a2a;margin-bottom:22px}
-.pbanner-top{position:relative;height:76px;background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454);background-size:220% 100%;animation:pbGrad 8s ease infinite}
-@keyframes pbGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.pbanner-arc{position:absolute;right:14px;top:0;height:76px;width:60%;pointer-events:none}
-.pbanner-body{position:relative;padding:0 20px 16px 128px;min-height:56px}
-.pbanner-av{position:absolute;left:22px;top:-38px;width:80px;height:80px;border-radius:50%;background:#161616;padding:4px;box-sizing:border-box}
-.pbanner-av img,.pbanner-av .avatar-initial{width:72px!important;height:72px!important;border-radius:50%!important;display:block}
-.pbanner-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:12px}
-.pbanner-name{color:#fff;font-size:1.15em;font-weight:700}
-.pbanner-handle{color:#9aa7a8;font-weight:400;font-size:.9em}
-.pbanner-badge{color:#cdd7de;font-size:.85em;font-weight:700;white-space:nowrap}
-.pbanner-row2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
-.pbanner-title{color:#879596;font-size:.85em}
-.pbanner-links a{color:#ff9f2e;font-size:.85em;font-weight:600;text-decoration:none}
-.pbanner-links a:hover{text-decoration:underline}
-.pbanner-links span{color:#3a4655;margin:0 6px}
+.avatar-loading{background:#eef1f4;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.field-loading{display:flex;align-items:center;color:var(--tm);font-size:.9em;padding:11px 13px;background:#fff;border:1px solid var(--bd);border-radius:10px}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border:1px solid var(--bd);border-radius:16px;width:440px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.modal-head h2{color:#1b2026;font-size:1.1em;font-weight:800}
+.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:#1b2026}
+/* ===== Weekly Performance Summary (managers + owners) ===== */
+.ws-card{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:0;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05);overflow:hidden}
+.ws-head{width:100%;display:flex;align-items:center;gap:12px;padding:16px 22px;background:linear-gradient(100deg,#fff6ec,#fff 70%);border:none;border-bottom:1px solid var(--bd);font:inherit;text-align:left;cursor:pointer}
+.ws-head:hover{background:linear-gradient(100deg,#fff1e0,#fbfbfb 70%)}
+.ws-head-meta{min-width:0;flex:1}
+.ws-caret{flex:0 0 auto;display:inline-flex;color:#9aa5b1;transition:transform .3s ease}
+.ws-card.open .ws-head{border-bottom-color:var(--bd)}
+.ws-card.open .ws-caret{transform:rotate(180deg)}
+.ws-collapse{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.ws-collapse>.ws-body{min-height:0;overflow:hidden;padding:0 22px}
+.ws-card.open .ws-collapse{grid-template-rows:1fr}
+.ws-card.open .ws-collapse>.ws-body{padding:20px 22px}
+.ws-card:not(.open) .ws-head{border-bottom:none}
+.ws-export{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:.72em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;padding:7px 13px;border:1px solid #f3d4b0;border-radius:9px;background:#fff;color:#b5560c;box-shadow:0 1px 3px rgba(20,40,70,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}
+.ws-export:hover{background:var(--o);border-color:var(--o);color:#fff;transform:translateY(-1px)}
+.ws-export.copied{background:#eafaf0;border-color:#c8efd8;color:#1f9d57}
+.ws-export svg{width:13px;height:13px}
+.ws-head .ws-ic{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:var(--o);color:#fff;display:flex;align-items:center;justify-content:center}
+.ws-head .ws-ic svg{width:17px;height:17px}
+.ws-head-meta{min-width:0}
+.ws-title{font-size:1.02em;font-weight:800;color:#1b2026;letter-spacing:-.2px}
+.ws-sub{font-size:.76em;font-weight:600;color:var(--tm);margin-top:2px}
+/* KPI grid */
+.ws-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.ws-kpi{background:#f7f9fb;border:1px solid #eef1f4;border-radius:12px;padding:12px 14px}
+.ws-kpi .k{font-size:.68em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tm)}
+.ws-kpi .vrow{display:flex;align-items:baseline;gap:8px;margin-top:5px;flex-wrap:wrap}
+.ws-kpi .v{font-size:1.35em;font-weight:800;color:#1b2026;line-height:1}
+.ws-kpi .note{font-size:.72em;font-weight:600;color:var(--tm);margin-top:5px}
+.ws-delta{display:inline-flex;align-items:center;gap:3px;font-size:.72em;font-weight:800;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.ws-delta.good{background:#eafaf0;color:#1f9d57;border:1px solid #c8efd8}
+.ws-delta.bad{background:#fdeaea;color:#d33a3a;border:1px solid #f6cccc}
+.ws-delta svg{width:11px;height:11px}
+/* Narrative sections */
+.ws-sec{margin-bottom:16px}
+.ws-sec:last-child{margin-bottom:0}
+.ws-sec-h{font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#1b2026;margin-bottom:6px}
+.ws-sec-b{font-size:.9em;line-height:1.6;color:var(--t)}
+/* Divider + sub-blocks */
+.ws-div{height:1px;background:var(--bd);margin:18px 0}
+.ws-block-h{font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#1b2026;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ws-rows{display:flex;flex-direction:column;gap:8px}
+.ws-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #eef1f4;background:#fafbfc}
+.ws-row.improving{border-left:3px solid #1f9d57}
+.ws-row.watch{border-left:3px solid #e08a1e}
+.ws-row-main{flex:1;min-width:0}
+.ws-row-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ws-row-label{font-size:.9em;font-weight:700;color:#1b2026}
+.ws-row-note{font-size:.82em;line-height:1.55;color:var(--tm);margin-top:5px}
+.ws-tag{font-size:.64em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 8px;border-radius:999px}
+.ws-tag.improving{background:#eafaf0;color:#1f9d57}
+.ws-tag.watch{background:#fff3e0;color:#b5680c}
+.ws-note-line{font-size:.82em;line-height:1.55;color:var(--tm);margin-top:12px;font-style:italic}
+@media(max-width:560px){.ws-kpis{grid-template-columns:repeat(2,1fr)}}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=1">
 </head>
 <body data-nav-active="profile" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
-  <a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
@@ -112,13 +159,14 @@ input:focus{outline:none;border-color:var(--o)}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js"></script>
+<script src="topbar-auth.js?v=95"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-// True once the DB-backed profile (displayName/avatar) has been fetched at least once.
 let PROFILE_LOADED=false;
+let PENDING_AVATAR=undefined; // undefined=no change, ''=remove, 'data:...'=new
+
 function render(){
   const user=A.getUser();
   const wrap=document.getElementById('wrap');
@@ -126,111 +174,271 @@ function render(){
     wrap.innerHTML='<div class="gate"><h1>Profile</h1><p>You are not logged in. Log in from the Live Dashboard to view your profile.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
     return;
   }
-  // Everything that doesn't need the DB renders instantly from the cached user (username, role,
-  // all headings/labels/buttons). The avatar + display name are DB-backed, so until the profile
-  // has loaded they show inline spinners instead of a full-page one.
   const prof=A._myProfile||user;
-  const avatarInner=PROFILE_LOADED
-    ? `<div id="avatarBox">${A.avatarHtml(prof,96)}</div>`
-    : `<div id="avatarBox"><div class="avatar-loading"><span class="pspin big"></span></div></div>`;
+  const name=(prof.displayName||user.username||'Profile');
+  const heroAv=PROFILE_LOADED
+    ? `<div id="avatarBox">${A.avatarHtml(prof,86)}</div>`
+    : `<div id="avatarBox"><div class="avatar-loading" style="width:86px;height:86px"><span class="pspin big"></span></div></div>`;
   const nameField=PROFILE_LOADED
     ? `<input type="text" id="displayName" maxlength="40" value="${(prof.displayName||'').replace(/"/g,'&quot;')}" placeholder="How your name appears to others">`
-    : `<div class="field-loading" id="displayNameLoading"><span class="pspin sm"></span>Loading…</div>`;
+    : `<div class="field-loading"><span class="pspin sm"></span>Loading…</div>`;
   const removeBtn=(PROFILE_LOADED&&prof.avatar)?('<button class="btn sec mini" onclick="removeAvatar()">'+ic('trash')+' Remove photo</button>'):'';
-  const bName=(prof.displayName||user.username||'Profile');
-  const bAv=PROFILE_LOADED?(A.avatarHtml?A.avatarHtml(prof,72):''):'<div class="avatar-loading" style="width:72px;height:72px"><span class="pspin"></span></div>';
-  const banner=`
-    <div class="pbanner">
-      <div class="pbanner-top">
-        <svg class="pbanner-arc" viewBox="0 0 300 76" preserveAspectRatio="none" fill="none">
-          <path d="M20 44 q150 40 268 -10" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
-          <path d="M278 30 l14 8 -8 14" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-        </svg>
-      </div>
-      <div class="pbanner-body">
-        <div class="pbanner-av" id="bannerAv">${bAv}</div>
-        <div class="pbanner-row">
-          <span class="pbanner-name">${esc(bName)} <span class="pbanner-handle">${esc(user.username)}@</span></span>
-          <span class="pbanner-badge">${esc(user.role)}</span>
-        </div>
-        <div class="pbanner-row2">
-          <span class="pbanner-title">WWOS-GSOC PHD</span>
-          <span class="pbanner-links"><a href="#" onclick="document.getElementById('avatarFile').click();return false;">Edit photo</a><span>|</span><a href="app.html">Dashboard</a></span>
-        </div>
-      </div>
-    </div>`;
+
   wrap.innerHTML=`
-    ${banner}
-    <p class="sub">Manage your account. Your display name and photo are visible to other users.</p>
-    <div class="card">
-      <h2>Account</h2>
-      <div class="avatar-wrap">
-        ${avatarInner}
-        <button class="avatar-edit" title="Change photo" onclick="document.getElementById('avatarFile').click()">✎</button>
-        <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">
-      </div>
-      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
-        <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Upload photo</button>
-        ${removeBtn}
-      </div>
-      <label>Display name</label>
-      ${nameField}
-      <div class="row" style="margin-top:16px"><span class="k">Login ID</span><span class="v">${user.username}</span></div>
-      <div class="row"><span class="k">Role</span><span class="v"><span class="badge">${user.role}</span></span></div>
-      <div class="msg err" id="profErr"></div>
-      <div class="msg ok" id="profOk"></div>
-      <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-        <button class="btn" id="saveProfBtn" onclick="saveProfile()"${PROFILE_LOADED?'':' disabled'}>Save changes</button>
+    <div class="ph-hero">
+      <div class="ph-hero-top"></div>
+      <div class="ph-hero-body">
+        <div class="ph-hero-av">
+          ${heroAv}
+          <button class="ph-hero-cam" title="Change photo" onclick="document.getElementById('avatarFile').click()">${ic('camera',14)}</button>
+          <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">
+        </div>
+        <div class="ph-hero-meta">
+          <div class="ph-hero-name">${esc(name)} <span class="ph-hero-badge">${esc(user.role)}</span></div>
+          <div class="ph-hero-handle">${esc(user.username)}@ · WWOS-GSOC PHD</div>
+        </div>
+        <div class="ph-hero-actions">
+          ${String(user.role||'').toLowerCase()==='manager'?'':`<a class="btn sec mini" href="my-tickets.html">${ic('ticket',14)} My Tickets</a>`}
+          <button class="btn danger mini" onclick="doLogout()">${ic('log-out',14)} Logout</button>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <h2>Security</h2>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn" style="flex:1;min-width:160px;justify-content:center" onclick="openPwModal()">${ic('lock')} Change Password</button>
-        <button class="btn danger" style="flex:1;min-width:160px;justify-content:center" onclick="doLogout()">${ic('log-out')} Logout</button>
+
+    <div id="weeklySummarySlot"></div>
+    <div id="monthlySummarySlot"></div>
+
+    <div class="ph-card">
+      <div class="ph-card-h">${ic('user',15)} Account</div>
+      <label>Display name</label>
+      ${nameField}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Change photo</button>
+        ${removeBtn}
       </div>
-    </div>`;
+      <div class="ph-kv">
+        <div class="cell"><div class="k">Login ID</div><div class="v">${esc(user.username)}</div></div>
+        <div class="cell"><div class="k">Role</div><div class="v"><span class="ph-badge">${esc(user.role)}</span></div></div>
+      </div>
+      <div class="msg err" id="profErr"></div>
+      <div class="msg ok" id="profOk"></div>
+      <div class="ph-actions" style="justify-content:flex-end">
+        <button class="btn" id="saveProfBtn" onclick="saveProfile()" style="flex:0 0 auto;min-width:150px"${PROFILE_LOADED?'':' disabled'}>${ic('check-circle')} Save changes</button>
+      </div>
+    </div>
+
+    <div class="ph-card">
+      <div class="ph-card-h">${ic('lock',15)} Security</div>
+      <div class="ph-actions">
+        <button class="btn sec" onclick="openPwModal()">${ic('lock')} Change Password</button>
+        <button class="btn danger" onclick="doLogout()">${ic('log-out')} Logout</button>
+      </div>
+    </div>
+    ${adminToolsCard()}`;
   if(PROFILE_LOADED)wireAvatarInput();
+  paintWeeklySummary();
 }
 
-// Pending avatar data URL (set after a successful resize; null = unchanged).
-let PENDING_AVATAR=undefined; // undefined=no change, ''=remove, 'data:...'=new
-
-function wireAvatarInput(){
-  const inp=document.getElementById('avatarFile');
-  if(inp)inp.onchange=(e)=>handleAvatarFile(e.target.files[0]);
+function adminToolsCard(){
+  const links=[
+    { show:(A.canManageUsers&&A.canManageUsers()),  icon:'users',    href:'users.html',       label:'Users' },
+    { show:(A.canDatabase&&A.canDatabase()),        icon:'database', href:'db-health.html',   label:'Database health' },
+    { show:(A.canGroupingPage&&A.canGroupingPage()),icon:'copy',     href:'groups-page.html', label:'Grouping Page' },
+  ].filter(x=>x.show);
+  if(!links.length) return '';
+  const btns=links.map(l=>`<a class="btn sec" href="${l.href}">${ic(l.icon)} ${esc(l.label)}</a>`).join('');
+  return `<div class="ph-card"><div class="ph-card-h">${ic('tool',15)} Admin tools</div><div class="ph-actions">${btns}</div></div>`;
 }
+
+// ---- Weekly + Monthly Performance Summary (managers + owners only) ----
+let WEEKLY_SUMMARY=undefined, MONTHLY_SUMMARY=undefined; // undefined=not fetched, null=unavailable, object=data
+
+function canSeeWeekly(){ return A.role()==='manager' || A.isOwner(); }
+
+// Signed delta -> a coloured chip. goodWhen ('up'|'down') decides green vs red; period = 'WoW'|'MoM'.
+function wsDelta(wow,goodWhen,period){
+  if(wow==null||isNaN(wow)) return '';
+  const up=wow>0;
+  const good=(goodWhen==='up'&&up)||(goodWhen==='down'&&!up);
+  const arrow=up?'arrow-up':'arrow-down';
+  const sign=up?'+':'';
+  return `<span class="ws-delta ${good?'good':'bad'}">${ic(arrow,11)}${sign}${wow}% ${period||'WoW'}</span>`;
+}
+
+// Previous FULL week (Sunday -> Saturday, app's Sunday-aligned bucket). Thu Oct 8 2026 -> "Sep 27 – Oct 3, 2026".
+function wsPrevFullWeekLabel(today){
+  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const t=today||new Date();
+  const d=new Date(t.getFullYear(),t.getMonth(),t.getDate());
+  const curStart=new Date(d); curStart.setDate(d.getDate()-d.getDay());  // this week's Sunday
+  const start=new Date(curStart); start.setDate(curStart.getDate()-7);   // previous Sunday
+  const end=new Date(start); end.setDate(start.getDate()+6);             // previous Saturday
+  const sameYear=start.getFullYear()===end.getFullYear();
+  const left=MON[start.getMonth()]+' '+start.getDate()+(sameYear?'':', '+start.getFullYear());
+  const right=MON[end.getMonth()]+' '+end.getDate()+', '+end.getFullYear();
+  return left+' \u2013 '+right;
+}
+function wsWeekLabel(d){ return (d&&d.week)?d.week:wsPrevFullWeekLabel(new Date()); }
+// Previous FULL calendar month. Oct 15 2026 -> "September 2026"; Jan 10 2026 -> "December 2025".
+function wsPrevFullMonthLabel(today){
+  const MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const t=today||new Date();
+  const d=new Date(t.getFullYear(),t.getMonth(),1); d.setMonth(d.getMonth()-1);
+  return MON[d.getMonth()]+' '+d.getFullYear();
+}
+function wsMonthLabel(d){ return (d&&d.month)?d.month:wsPrevFullMonthLabel(new Date()); }
+
+// Full narrative report text for clipboard export. period = 'WoW'|'MoM'; periodLabel = range/month.
+function reportText(d,period,periodLabel){
+  if(!d) return '';
+  period=period||'WoW';
+  const L=[];
+  const title=(d.title||'PHD Performance Summary');
+  L.push(title+(periodLabel?` (${periodLabel})`:''));
+  L.push('');
+  (d.sections||[]).forEach(s=>{ L.push(`${s.title}: ${s.body}`); L.push(''); });
+  const dc=d.defectCodes||{};
+  const imp=dc.improving||[], wat=dc.watch||[];
+  if(imp.length||wat.length){
+    L.push('Defect Code Trends:'); L.push('');
+    if(imp.length){
+      const names=imp.map(x=>`${x.label} (${x.wow>0?'+':''}${x.wow}% ${period})`);
+      L.push('• Improving: '+names.join(' and ')+' both showed meaningful improvement.');
+    }
+    wat.forEach(x=>{
+      let line='• Watch Item: '+x.label+' increased '+(x.wow>0?'+':'')+x.wow+'% '+period;
+      if(x.note) line+=' and '+x.note.charAt(0).toLowerCase()+x.note.slice(1);
+      L.push(line);
+    });
+    L.push('');
+  }
+  const addr=d.address||[];
+  if(d.addressSentence||addr.length){
+    const core=d.addressSentence||(addr.map(x=>`${x.v} ${x.k.toLowerCase()} (${x.wow>0?'+':''}${x.wow}% ${period})`).join(' alongside ')+'.');
+    let sentence='Address Exclusions & GEO Pins: '+core;
+    if(d.addressNote) sentence+=' '+d.addressNote;
+    L.push(sentence);
+  }
+  return L.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+async function wsCopy(text){
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); return true; } }catch(e){}
+  try{
+    const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.top='-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  }catch(e){ return false; }
+}
+async function wsExport(btn,text){
+  const ok=await wsCopy(text);
+  if(!btn) return;
+  btn.classList.add('copied');
+  btn.innerHTML=ok?`${ic('check-circle',13)} Copied`:'Copy failed';
+  setTimeout(()=>{ btn.classList.remove('copied'); btn.innerHTML=weeklyExportLabel(); },1600);
+}
+function weeklyExport(btn){ if(WEEKLY_SUMMARY) wsExport(btn,reportText(WEEKLY_SUMMARY,'WoW',wsWeekLabel(WEEKLY_SUMMARY))); }
+function monthlyExport(btn){ if(MONTHLY_SUMMARY) wsExport(btn,reportText(MONTHLY_SUMMARY,'MoM',wsMonthLabel(MONTHLY_SUMMARY))); }
+function weeklyExportLabel(){ return `${ic('copy',13)} Export`; }
+
+// Generic metrics-ONLY card. opts: {title, sub, period, exportFn, toggleFn}. Collapsed by default.
+function summaryCardHtml(d,opts){
+  if(!d) return '';
+  const kpis=(d.kpis||[]).map(x=>`
+    <div class="ws-kpi"><div class="k">${esc(x.k)}</div>
+      <div class="vrow"><span class="v">${esc(x.v)}</span>${wsDelta(x.wow,x.goodWhen,opts.period)}</div></div>`).join('');
+  const dc=d.defectCodes||{};
+  const improving=(dc.improving||[]).map(x=>`
+    <div class="ws-row improving"><div class="ws-row-main">
+      <div class="ws-row-top"><span class="ws-tag improving">Improving</span><span class="ws-row-label">${esc(x.label)}</span>${wsDelta(x.wow,'down',opts.period)}</div>
+    </div></div>`).join('');
+  const watch=(dc.watch||[]).map(x=>`
+    <div class="ws-row watch"><div class="ws-row-main">
+      <div class="ws-row-top"><span class="ws-tag watch">Watch</span><span class="ws-row-label">${esc(x.label)}</span>${wsDelta(x.wow,'down',opts.period)}</div>
+    </div></div>`).join('');
+  const defectBlock=(improving||watch)?`
+    <div class="ws-div"></div>
+    <div class="ws-block-h">${ic('alert-triangle',14)} Defect Code Trends</div>
+    <div class="ws-rows">${improving}${watch}</div>`:'';
+  const addr=(d.address||[]).map(x=>`
+    <div class="ws-kpi"><div class="k">${esc(x.k)}</div>
+      <div class="vrow"><span class="v">${esc(x.v)}</span>${wsDelta(x.wow,x.goodWhen,opts.period)}</div></div>`).join('');
+  const addrBlock=addr?`
+    <div class="ws-div"></div>
+    <div class="ws-block-h">${ic('map-pin',14)} Address Exclusions &amp; GEO Pins</div>
+    <div class="ws-kpis">${addr}</div>`:'';
+  const sub=opts.sub||'';
+  // Collapsed by default; the header row is the toggle. Export sits in the header (stops propagation).
+  return `
+    <div class="ws-card">
+      <button type="button" class="ws-head" aria-expanded="false" onclick="summaryToggle(this)">
+        <div class="ws-ic">${ic('bar-chart',17)}</div>
+        <div class="ws-head-meta">
+          <div class="ws-title">${esc(d.title||opts.title)}</div>
+          ${sub?`<div class="ws-sub">${sub}</div>`:''}
+        </div>
+        <span class="ws-export" role="button" tabindex="0" onclick="event.stopPropagation();${opts.exportFn}(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${opts.exportFn}(this);}" title="Copy full report to clipboard">${weeklyExportLabel()}</span>
+        <span class="ws-caret">${ic('chevron-down',18)}</span>
+      </button>
+      <div class="ws-collapse"><div class="ws-body">
+        ${kpis?`<div class="ws-kpis">${kpis}</div>`:''}
+        ${defectBlock}
+        ${addrBlock}
+      </div></div>
+    </div>`;
+}
+function weeklySummaryHtml(d){ return summaryCardHtml(d,{title:'Weekly Performance Summary',sub:wsWeekLabel(d),period:'WoW',exportFn:'weeklyExport',toggleFn:'summaryToggle'}); }
+function monthlySummaryHtml(d){ return summaryCardHtml(d,{title:'Monthly Performance Summary',sub:wsMonthLabel(d),period:'MoM',exportFn:'monthlyExport',toggleFn:'summaryToggle'}); }
+function summaryToggle(btn){
+  const card=btn.closest('.ws-card'); if(!card) return;
+  const open=card.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open?'true':'false');
+}
+
+// Paint the summaries into their slots. Called after each render() (slots recreated each time).
+function paintWeeklySummary(){
+  const ws=document.getElementById('weeklySummarySlot');
+  if(ws){ ws.innerHTML = (canSeeWeekly()&&WEEKLY_SUMMARY) ? weeklySummaryHtml(WEEKLY_SUMMARY) : ''; }
+  const ms=document.getElementById('monthlySummarySlot');
+  if(ms){ ms.innerHTML = (canSeeWeekly()&&MONTHLY_SUMMARY) ? monthlySummaryHtml(MONTHLY_SUMMARY) : ''; }
+}
+
+async function loadWeeklySummary(){
+  if(!canSeeWeekly()){ WEEKLY_SUMMARY=null; MONTHLY_SUMMARY=null; return; }
+  try{ const r=await fetch('weekly-summary.json?v='+Date.now(),{cache:'no-store'}); WEEKLY_SUMMARY = r.ok ? await r.json() : null; }catch(e){ WEEKLY_SUMMARY=null; }
+  try{ const r2=await fetch('monthly-summary.json?v='+Date.now(),{cache:'no-store'}); MONTHLY_SUMMARY = r2.ok ? await r2.json() : null; }catch(e){ MONTHLY_SUMMARY=null; }
+  paintWeeklySummary();
+}
+
+function wireAvatarInput(){ const inp=document.getElementById('avatarFile'); if(inp)inp.onchange=(e)=>handleAvatarFile(e.target.files[0]); }
 
 function removeAvatar(){
   PENDING_AVATAR='';
   const p=A.myProfile()||A.getUser();
-  document.getElementById('avatarBox').innerHTML=A.avatarHtml({displayName:document.getElementById('displayName').value,username:p.username},96);
-  const rm=document.querySelector('.avatar-wrap ~ div button[onclick="removeAvatar()"]');if(rm)rm.remove();
+  const dn=document.getElementById('displayName');
+  document.getElementById('avatarBox').innerHTML=A.avatarHtml({displayName:dn?dn.value:'',username:p.username},86);
+  render();
 }
 
-// Read an image file, resize to 128px on a canvas, produce a compressed JPEG data URL.
 function handleAvatarFile(file){
   const err=document.getElementById('profErr'),ok=document.getElementById('profOk');
   err.style.display='none';ok.style.display='none';
   if(!file)return;
-  if(!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)){err.textContent='Unsupported file. Please upload a different image (PNG, JPG, GIF, or WebP).';err.style.display='block';return;}
-  if(file.size>8*1024*1024){err.textContent='That image is too large. Please upload a smaller / different image.';err.style.display='block';return;}
+  if(!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)){err.textContent='Unsupported file. Please upload a PNG, JPG, GIF, or WebP image.';err.style.display='block';return;}
+  if(file.size>8*1024*1024){err.textContent='That image is too large. Please upload a smaller image.';err.style.display='block';return;}
   const reader=new FileReader();
   reader.onerror=()=>{err.textContent='Could not read that image. Please upload a different one.';err.style.display='block';};
   reader.onload=(ev)=>{
     const img=new Image();
-    img.onerror=()=>{err.textContent='That file is not a valid image. Please upload a different one.';err.style.display='block';};
+    img.onerror=()=>{err.textContent='That file is not a valid image.';err.style.display='block';};
     img.onload=()=>{
       const size=128;const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
       const ctx=canvas.getContext('2d');
-      // cover-crop to square
       const s=Math.min(img.width,img.height);const sx=(img.width-s)/2,sy=(img.height-s)/2;
       ctx.drawImage(img,sx,sy,s,s,0,0,size,size);
       let dataUrl=canvas.toDataURL('image/jpeg',0.82);
       if(dataUrl.length>200000){dataUrl=canvas.toDataURL('image/jpeg',0.6);}
       if(dataUrl.length>200000){err.textContent='Image is still too large after resizing. Please upload a different image.';err.style.display='block';return;}
       PENDING_AVATAR=dataUrl;
-      document.getElementById('avatarBox').innerHTML='<img class="phd-avatar" src="'+dataUrl+'" alt="avatar" style="width:96px;height:96px;border-radius:50%;object-fit:cover;display:block">';
+      document.getElementById('avatarBox').innerHTML='<img class="phd-avatar" src="'+dataUrl+'" alt="avatar" style="width:86px;height:86px;border-radius:50%;object-fit:cover;display:block">';
     };
     img.src=ev.target.result;
   };
@@ -244,15 +452,13 @@ async function saveProfile(){
   if(PENDING_AVATAR!==undefined)body.avatar=PENDING_AVATAR;
   const btn=document.getElementById('saveProfBtn');btn.disabled=true;btn.textContent='Saving…';
   const r=await A.api('POST','/api/me/profile',body);
-  btn.disabled=false;btn.textContent='Save changes';
-  if(r.ok){A.setMyProfile?A.setMyProfile(r.data):(A._myProfile=r.data);PENDING_AVATAR=undefined;ok.textContent='Profile updated.';ok.style.display='block';render();setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='block';setTimeout(()=>o.style.display='none',1500);}},30);}
+  btn.disabled=false;
+  if(r.ok){A.setMyProfile?A.setMyProfile(r.data):(A._myProfile=r.data);PENDING_AVATAR=undefined;render();setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='block';setTimeout(()=>{if(o)o.style.display='none';},1800);}},30);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
 function openPwModal(){
-  document.getElementById('curPw').value='';
-  document.getElementById('newPw').value='';
-  document.getElementById('newPw2').value='';
+  ['curPw','newPw','newPw2'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('msgErr').style.display='none';
   document.getElementById('msgOk').style.display='none';
   const btn=document.getElementById('saveBtn');btn.disabled=false;btn.textContent='Update Password';
@@ -260,8 +466,7 @@ function openPwModal(){
   setTimeout(()=>document.getElementById('curPw').focus(),40);
 }
 function closePwModal(){document.getElementById('pwModal').style.display='none';}
-
-function doLogout(){A.clear();location.href='index.html';}
+function doLogout(){ if(window.PHDConfirmLogout){window.PHDConfirmLogout();return;} if(confirm('Log out?')){A.clear();location.href='index.html';} }
 
 async function changePw(){
   const cur=document.getElementById('curPw').value;
@@ -275,18 +480,19 @@ async function changePw(){
   const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Updating…';
   const r=await A.api('POST','/api/change-password',{currentPassword:cur,newPassword:np});
   btn.disabled=false;btn.textContent='Update Password';
-  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='block';document.getElementById('curPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';setTimeout(closePwModal,1200);}
+  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='block';['curPw','newPw','newPw2'].forEach(id=>document.getElementById(id).value='');setTimeout(closePwModal,1200);}
   else if(r.status===401 && !A.getToken()){err.textContent='Session expired. Please log in again from the Live Dashboard.';err.style.display='block';setTimeout(()=>{closePwModal();render();},1500);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
-// Render the static structure immediately (no full-page spinner). The avatar + display name show
-// inline spinners until the DB-backed profile loads, then we re-render to fill them in.
+
 (async()=>{
   render();
   if(A.getUser()&&A.getToken()){
     try{ await A.loadMyProfile(); }catch(e){}
+    try{ if(A._refreshMe) await A._refreshMe(); else if(A.getMe) await A.getMe(); }catch(e){}
     PROFILE_LOADED=true;
     render();
+    loadWeeklySummary();   // managers + owners only; fills the slot once fetched
   }
 })();
 </script>

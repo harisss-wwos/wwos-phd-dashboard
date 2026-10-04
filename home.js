@@ -85,37 +85,48 @@ async function renderQuarterCards(){
       '<div class="year-body"><div class="grid">'+cards+'</div></div>'+
     '</div>';
   };
-  // ---- Three era buttons: Program History | Moved under WWOS | Complete take over (Live) ----
-  // Structured card: title, date range (calendar icon), description, ticket count (ticket icon).
-  const eraCard=function(opts){
-    return '<a class="card era-card'+(opts.live?' live':'')+'" href="'+opts.href+'" style="margin:0">'+
-      '<div class="era-title"><span class="card-ic">'+icH(opts.icon,22)+'</span><h2>'+opts.title+'</h2>'+(opts.live?'<span class="live-pill">LIVE</span>':'')+'</div>'+
-      '<div class="era-date">'+icH('calendar',14)+' <span>'+opts.date+'</span></div>'+
-      '<p class="era-desc">'+opts.desc+'</p>'+
-      '<div class="era-count">'+icH('ticket',14)+' <span>'+opts.count+'</span></div>'+
+  // ---- Redesigned "nav tiles": uniform cards with an icon chip, title + subtitle, description, and
+  // an action footer with an arrow. The Active tile keeps its green identity + pulsing ACTIVE pill.
+  // opts: { href, icon, title, sub, desc, action, live, external, tone }
+  const navTile=function(opts){
+    const ext=opts.external ? ' target="_blank" rel="noopener"' : '';
+    const pill=opts.live ? '<span class="nt-pill">ACTIVE</span>' : '';
+    const sub=opts.sub ? '<span class="nt-sub">'+opts.sub+'</span>' : '';
+    const action=opts.action ? ('<span class="nt-cta">'+opts.action+' <span class="nt-arrow">'+(opts.external?'↗':'→')+'</span></span>') : '';
+    return '<a class="nav-tile'+(opts.live?' nt-live':'')+(opts.tone?(' nt-'+opts.tone):'')+'" href="'+opts.href+'"'+ext+'>'+
+      '<span class="nt-top">'+
+        '<span class="nt-ic">'+icH(opts.icon,20)+'</span>'+pill+
+      '</span>'+
+      '<span class="nt-body">'+
+        '<span class="nt-title">'+opts.title+'</span>'+sub+
+        '<span class="nt-desc">'+opts.desc+'</span>'+
+      '</span>'+
+      action+
     '</a>';
   };
-  const programHistoryCard=eraCard({
-    href:'archive.html?ds=archive', icon:'inbox', title:'Program History',
-    date:'1st Jan 2021 – 30th Sept 2025', desc:'Complete incident analytics before WWOS take over.',
-    count:'56,578 tickets · Archived'
-  });
-  const movingCard=eraCard({
-    href:'archive.html?ds=moving', icon:'clock-rewind', title:'Moved under WWOS',
-    date:'1st Oct 2025 – 31st Mar 2026', desc:'Combined analytics for the transition period by WWOS.',
-    count:'8,148 tickets · 2 quarters combined'
-  });
-  const takeoverCard=eraCard({
-    href:'app.html', icon:'bolt', title:'Complete take over by WWOS', live:true,
-    date:'From 1st April 2026', desc:'Combined live analytics under WWOS.',
-    count:'15,915 tickets'
-  });
-  host.innerHTML=
-    '<div class="ph-row ph-row-3">'+
-      '<div class="ph-row-cell">'+programHistoryCard+'</div>'+
-      '<div class="ph-row-cell">'+movingCard+'</div>'+
-      '<div class="ph-row-cell">'+takeoverCard+'</div>'+
-    '</div>';
+  const tiles=[
+    // Program History — year-by-year archive, Q1 2021 -> Q4 2025.
+    navTile({ href:'archive.html?ds=archive', icon:'inbox', tone:'amber',
+      title:'Program History', sub:'Q1 2021 – Q4 2025',
+      desc:'Year-by-year incident analytics, quarter by quarter.', action:'View year-by-year' }),
+    // Active Dashboard — the live quarter (app.html). Green identity + ACTIVE pill.
+    navTile({ href:'app.html', icon:'bolt', live:true,
+      title:'Active Dashboard', sub:'From 1st Jan 2026',
+      desc:'Combined live analytics under WWOS.', action:'Open dashboard' }),
+    // Issue standardization — governed issue-type taxonomy reference.
+    navTile({ href:'issue-types.html', icon:'clipboard', tone:'violet',
+      title:'Issue Standardization', sub:'Reference guide',
+      desc:'Standard issue-type definitions, usage and examples.', action:'View issue types' }),
+    // PHD Wiki — external deep-dive.
+    navTile({ href:'https://w.amazon.com/bin/view/GSOC/PHD#Attachments', icon:'globe', tone:'blue', external:true,
+      title:'PHD Wiki', sub:'External resource',
+      desc:'Dive deeper into the PHD program on the official wiki.', action:'Explore the wiki' }),
+    // Rules — the scoring/SLA/classification rulebook. Kept LAST per request.
+    navTile({ href:'rules.html', icon:'book', tone:'teal',
+      title:'Rules & Definitions', sub:'How the numbers work',
+      desc:'SLA, severity, colour and classification rules behind the dashboard.', action:'Read the rules' }),
+  ];
+  host.innerHTML='<div class="nav-tiles">'+tiles.join('')+'</div>';
 }
 
 renderQuarterCards();
@@ -124,10 +135,9 @@ renderQuarterCards();
 // Plots the REAL metric values with a Y axis (min/mid/max ticks) and an X axis (Before/Q2/Q3), so
 // the numbers are readable. Line is green when the metric improves over time, red if it worsens.
 // `data-dir="up"` = higher is better; `data-dir="down"` = lower is better.
-(function(){
+function renderCmpSparks(){
   var cells=document.querySelectorAll('.cmp-spark[data-vals]'); if(!cells.length)return;
   var W=220, H=80, L=22, R=22, T=16, B=12;            // small margins so value labels aren't clipped
-  var XL=['Before','WWOS','Q2','Q3'];
   var fmt=function(v){ v=Math.round(v*10)/10; return (v>=1000)?Math.round(v).toLocaleString():String(v); };
   cells.forEach(function(td){
     var vals=(td.getAttribute('data-vals')||'').split(',').map(function(v){return parseFloat(v);}).filter(function(v){return !isNaN(v);});
@@ -153,14 +163,55 @@ renderQuarterCards();
     pts.forEach(function(p,i){
       var above=(p[1]>T+12); vlab+='<text x="'+p[0].toFixed(1)+'" y="'+((above?p[1]-6:p[1]+12)).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+C+'">'+fmt(vals[i])+'</text>';
     });
-    var dots=pts.map(function(p,i){ var last=(i===n-1); return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(last?3.2:2.6)+'" fill="'+(last?C:'#0b0f14')+'" stroke="'+C+'" stroke-width="1.5"/>'; }).join('');
-    td.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="trend Before to Q3">'+
+    var dots=pts.map(function(p,i){ var last=(i===n-1); return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(last?3.2:2.6)+'" fill="'+(last?C:'#fff')+'" stroke="'+C+'" stroke-width="1.5"/>'; }).join('');
+    td.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="year trend 2021 to 2026">'+
       '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
-        '<stop offset="0" stop-color="'+C+'" stop-opacity=".24"/><stop offset="1" stop-color="'+C+'" stop-opacity="0"/>'+
+        '<stop offset="0" stop-color="'+C+'" stop-opacity=".22"/><stop offset="1" stop-color="'+C+'" stop-opacity="0"/>'+
       '</linearGradient></defs>'+
       '<path d="'+area+'" fill="url(#'+gid+')"/>'+
       '<path d="'+line+'" fill="none" stroke="'+C+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
       dots+vlab+
     '</svg>';
   });
+}
+
+// Fetch /api/year-metrics and fill the per-year comparison table (2021-2026) + its sparklines.
+// Public endpoint; runs on the home page. Graceful no-op if the table or data is missing.
+(function(){
+  var table=document.getElementById('yearCmpTable'); if(!table)return;
+  var A=window.PHDAuth;
+  // 2021-2025 are hardcoded in the HTML (historical, never change). Only 2026 (live) is fetched.
+  var setLive=function(metric,html){
+    var row=table.querySelector('tr[data-metric="'+metric+'"]'); if(!row)return;
+    var td=row.querySelector('td.yv[data-y="2026"]'); if(td)td.innerHTML=html;
+  };
+  // Sparkline = the row's fixed 2021-2025 values (data-fixed) + the live 2026 value appended.
+  var sparkWith=function(metric,v2026){
+    var row=table.querySelector('tr[data-metric="'+metric+'"]'); if(!row)return;
+    var cell=row.querySelector('.cmp-spark'); if(!cell)return;
+    var fixed=(cell.getAttribute('data-fixed')||'').split(',').filter(Boolean);
+    if(v2026!=null) fixed.push(String(v2026));
+    cell.setAttribute('data-vals',fixed.join(','));
+  };
+  var put=function(){
+    (A&&A.api?A.api('GET','/api/year-metrics'):Promise.reject()).then(function(r){
+      if(!r||!r.ok||!r.data||!Array.isArray(r.data.years)) throw new Error('bad');
+      var d=null; r.data.years.forEach(function(y){ if(y.year===2026) d=y; });
+      d=d||{};
+      var vol=(d.volPerMonth!=null)?d.volPerMonth:null;
+      var res=(d.avgResHrs!=null)?d.avgResHrs:null;
+      var sla=(d.slaPct!=null)?d.slaPct:null;
+      setLive('vol', vol!=null?(vol.toLocaleString()+'<span class="cmp-u">/mo</span>'):'\u2014');
+      setLive('res', res!=null?(res+'<span class="cmp-u">hrs</span>'):'\u2014');
+      setLive('sla', sla!=null?(sla+'%'):'\u2014');
+      sparkWith('vol',vol); sparkWith('res',res); sparkWith('sla',sla);
+      renderCmpSparks();
+    }).catch(function(){
+      // Endpoint failed: show a dash for 2026 and draw the sparkline from the 5 fixed years only.
+      setLive('vol','\u2014'); setLive('res','\u2014'); setLive('sla','\u2014');
+      sparkWith('vol',null); sparkWith('res',null); sparkWith('sla',null);
+      renderCmpSparks();
+    });
+  };
+  put();
 })();

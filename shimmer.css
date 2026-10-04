@@ -1,15 +1,15 @@
-/* Loading shimmer / skeleton used while data is fetched from Atlas. */
+/* Loading shimmer / skeleton used while data is fetched from Atlas. LIGHT theme. */
 .shimmer{
   position:relative;
   overflow:hidden;
-  background:#0f0f0f;
-  border:1px solid var(--bd,#2a2a2a);
+  background:#e8ebee;
+  border:1px solid #e2e6ea;
   border-radius:10px;
 }
 .shimmer::after{
   content:'';
   position:absolute;top:0;left:-150%;height:100%;width:150%;
-  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.75) 50%,transparent 100%);
   animation:shimmermove 1.3s infinite;
 }
 @keyframes shimmermove{100%{left:150%}}
@@ -24,16 +24,16 @@
 .sk-card{height:150px;flex:1;min-width:300px}
 .sk-line{height:14px;border-radius:6px;margin:10px 0}
 .sk-pill{height:32px;border-radius:6px}
-.sk-topbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:12px 24px}
+.sk-topbar{background:#ffffff;border-bottom:1px solid #e2e6ea;padding:12px 24px}
 /* Two stacked rows to match the live-dashboard toolbar (nav on row 1, actions on row 2). */
-.sk-toolbar{background:#0a0a0a;border-bottom:1px solid var(--bd,#2a2a2a);padding:10px 24px;display:flex;flex-direction:column;gap:10px}
+.sk-toolbar{background:#ffffff;border-bottom:1px solid #e2e6ea;padding:10px 24px;display:flex;flex-direction:column;gap:10px}
 .sk-tb-left,.sk-tb-right{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.sk-tb-right{padding-top:10px;border-top:1px solid var(--bd,#2a2a2a)}
+.sk-tb-right{padding-top:10px;border-top:1px solid #e2e6ea}
 .sk-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
 .sk-title-row .sk-title{margin-bottom:0}
 .sk-alert{height:32px;width:110px;border-radius:6px}
 /* Stacked age-tile skeleton: count / name / range */
-.sk-age{flex:1;min-width:150px;background:#0a0a0a;border:1px solid var(--bd,#2a2a2a);border-radius:8px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.sk-age{flex:1;min-width:150px;background:#ffffff;border:1px solid #e2e6ea;border-radius:8px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .sk-age-val{height:30px;width:60px}
 .sk-age-name{height:14px;width:90px;opacity:.8}
 .sk-age-range{height:11px;width:130px;opacity:.6}

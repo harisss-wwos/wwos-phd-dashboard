@@ -1,0 +1,41 @@
+{
+  "title": "PHD Weekly Performance Summary",
+  "generated": "2026-08-03",
+  "kpis": [
+    { "k": "Reports Received", "v": "728", "wow": -11.3, "goodWhen": "down" },
+    { "k": "Resolved", "v": "718", "wow": -10.4, "goodWhen": "down" },
+    { "k": "Net to Backlog", "v": "10", "note": "50% reduction WoW", "goodWhen": "down" },
+    { "k": "SLA (within-week)", "v": "100%", "goodWhen": "up" },
+    { "k": "SLA (MTD)", "v": "98.9%", "goodWhen": "up" },
+    { "k": "Repeat Incidents", "v": "8", "wow": -46.7, "goodWhen": "down" }
+  ],
+  "sections": [
+    {
+      "title": "Volume & Throughput",
+      "body": "PHD received 728 incident reports (-11.3% WoW) and resolved 718 (-10.4% WoW), netting only 10 cases to the backlog — a 50% reduction WoW. SLA performance was 100% for cases created and resolved within the week, with MTD SLA at 98.9%."
+    },
+    {
+      "title": "Quality — Repeat Incidents",
+      "body": "Repeat incidents dropped to 8 (-46.7% WoW), signaling improved first-contact resolution."
+    }
+  ],
+  "defectCodes": {
+    "improving": [
+      { "label": "Contradictory Statement / No Proof", "wow": -28 },
+      { "label": "No EMT", "wow": -37 }
+    ],
+    "watch": [
+      {
+        "label": "Unsuccessful Outreach",
+        "wow": 33,
+        "note": "Remains an opportunity area. Customer and driver outreach — performed by LMIR — directly supports mitigating actions such as driver notes, delivery GEO pin updates, and parcel box instructions for low-severity incidents."
+      }
+    ]
+  },
+  "address": [
+    { "k": "Address Exclusions", "v": "12", "wow": -52, "goodWhen": "down" },
+    { "k": "GEO Pin Updates", "v": "4", "wow": 100, "goodWhen": "up" }
+  ],
+  "addressSentence": "12 address exclusions were processed (-52% WoW) alongside 4 GEO Pin updates (+100% WoW).",
+  "addressNote": "GEO Pins are critical to setting accurate Road Entry Points (REP) and delivery points, ensuring transporters can complete deliveries safely via the Rabbit app."
+}

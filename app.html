@@ -168,9 +168,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hi-gran-btn:hover{color:#d5dbdb}
 .hi-gran-btn.on{background:#a78bfa;color:#0e1013}
 table{width:100%;border-collapse:collapse;margin-top:12px}
-th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd);font-size:.88em}
-th{background:#0a0a0a;color:var(--tm);font-weight:600;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
-tr:hover{background:rgba(255,153,0,.03)}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eef1f4;font-size:.88em;color:#2a3340}
+th{background:#f7f9fb;color:#5c6773;font-weight:700;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
+tr:hover{background:#f8fafb}
 .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.78em;font-weight:600}
 /* Excel-sheet style tables (Incident Types / Historical Incidents): gridlines on every cell, header bg, zebra rows. */
 .xls-table{border:1px solid #2f3a45}
@@ -253,19 +253,19 @@ tr:hover{background:rgba(255,153,0,.03)}
 /* ============ Shift Report — illustrated gradient hero banner (matches the section banners) ============ */
 .sr{max-width:1200px}
 .sr-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  border:1px solid #242a31;border-radius:18px;padding:22px 26px;min-height:104px;margin-bottom:22px;
-  box-shadow:0 14px 34px -22px rgba(0,0,0,.8);
+  border:1px solid #242a31;border-radius:14px;padding:12px 22px;min-height:0;margin-bottom:18px;
+  box-shadow:0 10px 26px -20px rgba(0,0,0,.7);
   background:linear-gradient(90deg,#f07d0a,#ff9f2e 52%,#ffcf7a);background-size:200% 100%;animation:secBanner 10s ease infinite}
 .sr-hero-txt{position:relative;z-index:1;min-width:0}
-.sr-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#6a3d05;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
-.sr-hero-txt h1{color:#3a2405;font-size:1.9em;font-weight:800;letter-spacing:-.5px;margin:7px 0 8px;display:inline-flex;align-items:center;gap:11px}
+.sr-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#6a3d05;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
+.sr-hero-txt h1{color:#3a2405;font-size:1.45em;font-weight:800;letter-spacing:-.4px;margin:3px 0 3px;display:inline-flex;align-items:center;gap:10px}
 .sr-hero-txt h1 svg{color:#3a2405;flex-shrink:0}
-.sr-lead{color:rgba(58,36,5,.82);font-size:.92em;max-width:640px;line-height:1.6;font-weight:500}
+.sr-lead{color:rgba(58,36,5,.82);font-size:.84em;max-width:640px;line-height:1.45;font-weight:500}
 .sr-lead strong{color:#2a1a02;font-weight:800}
 /* In-queue badge: frosted white pill so the big number reads on the bright banner. */
-.sr-hero-badge{position:relative;z-index:1;text-align:center;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:16px;padding:14px 26px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
-.sr-hero-num{font-size:2.4em;font-weight:800;color:#c25e00;line-height:1}
-.sr-hero-cap{color:#8a5a1a;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
+.sr-hero-badge{position:relative;z-index:1;text-align:center;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:14px;padding:8px 20px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
+.sr-hero-num{font-size:1.8em;font-weight:800;color:#c25e00;line-height:1}
+.sr-hero-cap{color:#8a5a1a;font-size:.66em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
 /* Hero watermark: clipboard + handoff arrows line-art on the right. */
 .sr-hero::after{content:"";position:absolute;top:0;bottom:0;right:200px;width:200px;
   background-repeat:no-repeat;background-position:center;background-size:auto 84%;opacity:.34;pointer-events:none;z-index:0;
@@ -296,7 +296,7 @@ tr:hover{background:rgba(255,153,0,.03)}
 .sr-sec-head .btn.sec{background:rgba(255,255,255,.16);color:#0e1013;border:1px solid rgba(255,255,255,.4);font-weight:700}
 .sr-sec-head .btn.sec:hover{background:rgba(255,255,255,.28);color:#0e1013}
 /* Bordered shift-report sections (Takeover / Handoff) — glass card, no collapse. */
-.sr-sec.sr-card-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-radius:16px;padding:18px 20px;box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
+.sr-sec.sr-card-sec{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px -6px rgba(20,40,70,.12)}
 @media(max-width:560px){
   .sr-sec-head{flex-wrap:wrap;height:auto;min-height:62px;padding:12px 16px}
   .sr-sec-head h2{flex-basis:auto;white-space:normal}
@@ -304,51 +304,51 @@ tr:hover{background:rgba(255,153,0,.03)}
 }
 /* Age-colour queue tiles (glass tiles with a colored top spine + soft glow). */
 .sr-colors{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.sr-color{position:relative;background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;padding:18px 12px 14px;text-align:center;overflow:hidden;transition:transform .16s,border-color .16s,box-shadow .16s}
-.sr-color:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--sc) 55%,#232830);box-shadow:0 14px 30px -18px color-mix(in srgb,var(--sc) 60%,#000)}
+.sr-color{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:18px 12px 14px;text-align:center;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18);transition:transform .16s,border-color .16s,box-shadow .16s}
+.sr-color:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--sc) 55%,#e6eaee);box-shadow:0 14px 30px -16px color-mix(in srgb,var(--sc) 55%,#9aa6b0)}
 .sr-color::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc)}
-.sr-color-dot{width:11px;height:11px;border-radius:50%;background:var(--sc);margin:0 auto 8px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 22%,transparent)}
-.sr-color-v{font-size:1.95em;font-weight:800;color:#fff;line-height:1}
-.sr-color-l{color:#fff;font-size:.82em;font-weight:600;margin-top:6px}
-.sr-color-r{color:var(--tm);font-size:.68em;margin-top:3px}
-.sr-purple{--sc:#a78bfa}.sr-black{--sc:#8a8a8a}.sr-red{--sc:#ff5252}.sr-yellow{--sc:#fbbf24}.sr-green{--sc:#4ade80}
-.sr-chart-card{background:linear-gradient(160deg,#0f0f0f,#000);border:1px solid #232830;border-radius:14px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.sr-chart-card h3{color:#fff;font-size:.95em;font-weight:600;text-align:center;letter-spacing:.4px;margin-bottom:14px}
+.sr-color-dot{width:11px;height:11px;border-radius:50%;background:var(--sc);margin:0 auto 8px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 20%,transparent)}
+.sr-color-v{font-size:1.95em;font-weight:900;color:#1b2026;line-height:1}
+.sr-color-l{color:#2a3340;font-size:.82em;font-weight:700;margin-top:6px}
+.sr-color-r{color:#8b96a0;font-size:.68em;margin-top:3px}
+.sr-purple{--sc:#7c5cf0}.sr-black{--sc:#4a5563}.sr-red{--sc:#dc2626}.sr-yellow{--sc:#d9930a}.sr-green{--sc:#1f9d57}
+.sr-chart-card{background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:20px;box-shadow:0 2px 12px -6px rgba(20,40,70,.2)}
+.sr-chart-card h3{color:#1b2026;font-size:.95em;font-weight:700;text-align:center;letter-spacing:.4px;margin-bottom:14px}
 /* Handoff meta chips + cards */
 .sr-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
-.sr-chip{background:#0a0a0a;border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-size:.82em;color:var(--tm);display:inline-flex;align-items:center;gap:6px}
-.sr-chip b{color:#fff;font-weight:600}
+.sr-chip{background:#f7f9fb;border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-size:.82em;color:var(--tm);display:inline-flex;align-items:center;gap:6px}
+.sr-chip b{color:#1b2026;font-weight:700}
 /* Handoff cards: fixed 2×2 grid (Ticket Health | Last 12 Hours Activity / Ticket Count by Status | Status Distribution). Collapse to 1 column on narrow screens. */
 .sr-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:640px){.sr-cards{grid-template-columns:1fr}}
-.sr-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px}
-.sr-card h3{color:var(--o);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.sr-card{background:#fff;border:1px solid #e6eaee;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(20,30,50,.05)}
+.sr-card h3{color:var(--o);font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
 .sr-card ul{list-style:none;padding:0;margin:0}
-.sr-card li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.9em}
+.sr-card li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f4;font-size:.9em}
 .sr-card li:last-child{border-bottom:none}
-.sr-card li span{color:var(--t)}
+.sr-card li span{color:#2a3340}
 .sr-card li em{color:var(--tm);font-style:normal;font-size:.85em}
-.sr-card li b{color:#fff;font-weight:800;font-size:1.05em}
+.sr-card li b{color:#1b2026;font-weight:800;font-size:1.05em}
 /* Tally value inside stat cards (renders as the bold number). Inside colour tiles it inherits the big size. */
-.sr-card li .sr-v{color:#fff;font-weight:800;font-size:1.05em;flex-shrink:0}
+.sr-card li .sr-v{color:#1b2026;font-weight:800;font-size:1.05em;flex-shrink:0}
 /* Handoff Report sections rendered as tables (one table per card). */
 .sr-table{width:100%;border-collapse:collapse;font-size:.9em}
-.sr-table td{padding:8px 10px;border:1px solid rgba(255,255,255,.09);vertical-align:middle}
-.sr-table td:first-child{color:var(--t)}
-.sr-table td.sr-v{text-align:right;white-space:nowrap;color:#fff;font-weight:800;font-size:1.02em;width:1%}
+.sr-table td{padding:8px 10px;border:1px solid #eef1f4;vertical-align:middle}
+.sr-table td:first-child{color:#2a3340}
+.sr-table td.sr-v{text-align:right;white-space:nowrap;color:#1b2026;font-weight:800;font-size:1.02em;width:1%}
 .sr-table td em{color:var(--tm);font-style:normal;font-size:.85em}
-.sr-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
-.sr-table .sr-pct{color:#fff;font-weight:800}
+.sr-table tr:nth-child(even) td{background:#f8fafb}
+.sr-table .sr-pct{color:#1b2026;font-weight:800}
 .sr-table .sk-row-v{width:26px;height:16px}
-.sr-pct{color:#fff;font-weight:800;font-size:1.05em}
+.sr-pct{color:#1b2026;font-weight:800;font-size:1.05em}
 .sr-notes{margin-top:20px}
 .sr-notes label{display:flex;align-items:center;gap:6px;color:var(--tm);font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
-.sr-notes textarea{width:100%;min-height:110px;padding:12px 14px;background:#0a0a0a;border:1px solid var(--bd);border-radius:10px;color:#fff;font-family:inherit;font-size:.9em;resize:vertical}
-.sr-notes textarea:focus{outline:none;border-color:var(--o)}
+.sr-notes textarea{width:100%;min-height:110px;padding:12px 14px;background:#fff;border:1px solid var(--bd);border-radius:10px;color:#1b2026;font-family:inherit;font-size:.9em;resize:vertical}
+.sr-notes textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 @media(max-width:760px){.sr-colors{grid-template-columns:repeat(2,1fr)}.sr-hero-badge{flex:1 1 100%}}
 /* Shift Report shimmer skeleton blocks */
-.sk-blk{position:relative;overflow:hidden;background:#141414;border-radius:6px;display:inline-block}
-.sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:skmove 1.3s infinite}
+.sk-blk{position:relative;overflow:hidden;background:#e9edf1;border-radius:6px;display:inline-block}
+.sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.7) 50%,transparent 100%);animation:skmove 1.3s infinite}
 @keyframes skmove{100%{left:150%}}
 .sk-num{width:52px;height:30px}
 .sk-lbl{width:70px;height:12px}
@@ -643,17 +643,21 @@ tr:hover{background:rgba(255,153,0,.03)}
 .content .dash-collapsible.collapsed .sec-caret{transform:rotate(-90deg)}
 /* When collapsed, hide the Q3/Q2/Q2+Q3 scope selector (only the title + caret remain). */
 .content .dash-collapsible.collapsed .dash-scope-sec{display:none}
-/* The body wrapper animates its height. Target the direct body (.sec-body for Queue, .dash-chunk-slot for Age). */
-.content .dash-collapsible>.sec-body,.content .dash-collapsible>.dash-chunk-slot{
+/* The body wrapper animates its height. Target the direct body: .sec-body (legacy), .dash-chunk-slot
+   (Age), .lq-body (merged Live Queue), .perf-body (merged Performance Overview). */
+.content .dash-collapsible>.sec-body,.content .dash-collapsible>.dash-chunk-slot,.content .dash-collapsible>.lq-body,.content .dash-collapsible>.perf-body{
   overflow:hidden;transition:max-height .32s ease,opacity .25s ease,padding .32s ease;max-height:4000px;opacity:1}
-.content .dash-collapsible.collapsed>.sec-body,.content .dash-collapsible.collapsed>.dash-chunk-slot{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
+.content .dash-collapsible.collapsed>.sec-body,.content .dash-collapsible.collapsed>.dash-chunk-slot,.content .dash-collapsible.collapsed>.lq-body,.content .dash-collapsible.collapsed>.perf-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
 .content .dash-chunk-slot>.meta-info:first-child,.content .sec-body>.meta-info:first-child{margin-top:-4px;color:#9aa6b0}
 
 /* Per-section banner colors (via :has() — the header is colored by the slot the section contains). */
 /* Queue Status — cyan */
 .content .kpi-section:has(#dashQueueKpis) .sec-head{background:linear-gradient(90deg,#5ecdec,#7fdcf0 55%,#a7e8f7)}
 /* Ticket Age — amber (Amazon arc) */
-.content .section:has(#dashAgeBody) .sec-head{background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454)}
+/* Live Queue (merged Queue Status + Ticket Age) — blue banner. Must come BEFORE the #dashAgeBody
+   rule below so this section (which also contains #dashAgeBody) keeps its own colour. */
+.content .section:has(.lq-body) .sec-head{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)!important}
+.content .section:has(#dashAgeBody):not(:has(.lq-body)) .sec-head{background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454)}
 /* Average Data — green */
 .content .kpi-section:has(#dashSumAvg) .sec-head{background:linear-gradient(90deg,#22c55e,#4ade80 55%,#86efac)}
 /* Repeat Incident Data — purple */
@@ -696,8 +700,77 @@ tr:hover{background:rgba(255,153,0,.03)}
    with a small 10px inner gap on each side. */
 body[data-app="live"] .content{width:auto!important;max-width:none!important;margin:0!important;padding-left:10px!important;padding-right:10px!important;padding-top:14px!important}
 
+/* ---- Live Queue: merged Queue Status + Ticket Age ---- */
+.lq-head-note{font-size:.78em;color:#8b96a0;margin-left:12px;white-space:nowrap}
+.lq-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:18px}
+.lq-sub-h{display:flex;align-items:center;gap:8px;font-size:.9em;font-weight:700;color:#1b2026;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eef1f4}
+.lq-sub-h svg{color:#ec7211}
+
+/* ---- Performance Overview: period picker (segmented chips + optional sub-select) ---- */
+.perf-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.perf-picker{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+/* Segmented chip group: one rounded pill track, each range type a chip; active chip = white on orange. */
+.perf-chips{display:inline-flex;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
+.perf-chip{font-family:inherit;font-size:.76em;font-weight:700;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.perf-chip:hover{color:#1b2026}
+.perf-chip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
+/* Secondary select(s) for month / week / quarter — compact, appears only when needed. */
+.perf-sub{display:inline-flex;align-items:center;gap:6px}
+.perf-sel{font-family:inherit;font-size:.8em;font-weight:600;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:8px;padding:6px 10px;cursor:pointer;outline:none}
+.perf-sel:hover{border-color:#c2cad1}
+.perf-sel:focus{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.perf-body{padding:14px 18px 18px}
+/* ---- Performance KPIs: top-3 podium + colorful stat tiles ---- */
+.pf-section-h{display:flex;align-items:center;gap:7px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8b96a0;margin:2px 0 10px}
+.pf-section-h svg{width:13px;height:13px;color:#ec7211}
+.pf-podium-wrap{margin-bottom:18px}
+.pf-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
+.pf-medal{position:relative;border-radius:14px;padding:18px 14px 14px;text-align:center;color:#1b2026;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
+.pf-medal::before{content:"";position:absolute;inset:0 0 auto 0;height:4px}
+.pf-medal.pf-gold{background:linear-gradient(180deg,#fff8e6,#fff);} .pf-medal.pf-gold::before{background:linear-gradient(90deg,#f6c21a,#ffde7a)}
+.pf-medal.pf-silver{background:linear-gradient(180deg,#f4f7fa,#fff);} .pf-medal.pf-silver::before{background:linear-gradient(90deg,#aab6c2,#d9e1e8)}
+.pf-medal.pf-bronze{background:linear-gradient(180deg,#fbf0e6,#fff);} .pf-medal.pf-bronze::before{background:linear-gradient(90deg,#cd7f32,#e3a86a)}
+.pf-medal.pf-gold{transform:translateY(-6px)}            /* gold stands a touch taller, podium feel */
+/* medal emoji badge, top-right corner */
+.pf-medal-badge{position:absolute;top:8px;right:10px;font-size:1.25em;line-height:1}
+/* avatar: photo or coloured initial, centered */
+.pf-av{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#eef1f4;border:2px solid #fff;box-shadow:0 2px 6px rgba(20,40,70,.18)}
+.pf-av img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-av-i{font-weight:800;font-size:1.3em;color:#5c6773}
+.pf-medal.pf-gold .pf-av{border-color:#f6c21a}.pf-medal.pf-silver .pf-av{border-color:#c3ccd4}.pf-medal.pf-bronze .pf-av{border-color:#cd7f32}
+.pf-medal-id{font-size:.9em;font-weight:800;margin-top:8px;color:#1b2026;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-medal-metrics{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.pf-mm{font-size:.76em;color:#5c6773}
+.pf-mm b{color:#1b2026;font-size:1.05em}
+.pf-mm-avg{color:#8b96a0;font-size:.72em;margin-top:1px}
+.pf-mm-avg small{opacity:.8}
+/* Stat tiles — one accent colour each. */
+.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pf-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:13px 14px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
+.pf-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.pf-stat-top{display:flex;align-items:center;gap:7px;color:#5c6773}
+.pf-stat-top svg{width:15px;height:15px}
+.pf-stat-l{font-size:.72em;font-weight:700;letter-spacing:.2px;text-transform:uppercase}
+.pf-stat-v{font-size:1.5em;font-weight:900;letter-spacing:-.5px;color:#1b2026;margin-top:7px;line-height:1}
+.pf-stat-s{font-size:.72em;color:#8b96a0;margin-top:4px}
+.pf-created::before{background:#2563eb}.pf-created .pf-stat-top{color:#2563eb}
+.pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
+.pf-avgres::before{background:#0ea5b7}.pf-avgres .pf-stat-top{color:#0ea5b7}
+.pf-sla::before{background:#7c5cf0}.pf-sla .pf-stat-top{color:#7c5cf0}
+.pf-sla.ok .pf-stat-v{color:#1f9d57}.pf-sla.warn .pf-stat-v{color:#dc2626}
+.pf-autosim::before{background:#ec7211}.pf-autosim .pf-stat-top{color:#ec7211}
+.pf-repeat::before{background:#d9930a}.pf-repeat .pf-stat-top{color:#b5760a}
+.pf-avgrep::before{background:#db2777}.pf-avgrep .pf-stat-top{color:#db2777}
+.pf-pet::before{background:#0d9488}.pf-pet .pf-stat-top{color:#0d9488}
+@media(max-width:900px){.pf-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.pf-podium{grid-template-columns:1fr}.pf-medal.pf-gold{transform:none}}
+/* Spinner overlay centered on the chart plot while the series data loads (axes already drawn). */
+.perf-spin-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.perf-chart-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a94a0;font-size:.86em}
+@media(max-width:860px){.perf-head-right{width:100%;margin-left:0;justify-content:flex-start}.perf-chips{flex-wrap:wrap}}
+
 /* ---- Queue Status: stat tiles ---- */
-.q-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;grid-column:1/-1}
+.q-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;grid-column:1/-1}
 .q-tile{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;padding:14px 16px;
   box-shadow:0 10px 26px -18px rgba(0,0,0,.7);transition:transform .16s,border-color .16s}
 .q-tile:hover{transform:translateY(-2px);border-color:#2c333d}
@@ -747,8 +820,11 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .age .idchips.idchips-2{grid-template-columns:auto auto}
 .age .idchips.idchips-3{grid-template-columns:auto auto auto}
 .age .idchips.idchips-4{grid-template-columns:auto auto auto auto}
-.age .idchip{display:inline-flex;align-items:center;gap:6px;background:#12161c;border:1px solid #232c36;border-radius:20px;padding:3px 8px 3px 3px;font-size:11px;color:#cfd7dd;white-space:nowrap}
-.age .idchip.idchip-noava{padding:3px 8px}
+.age .idchip{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;background:#12161c;border:1px solid #232c36;border-radius:20px;padding:3px 8px 3px 3px;font-size:11px;color:#cfd7dd;white-space:nowrap;min-width:110px}
+.age .idchip.idchip-noava{padding:3px 10px}
+/* Push the login id to the LEFT and the count to the RIGHT corner of the chip. */
+.age .idchip b{margin-right:auto}
+.age .idchip .ct{margin-left:auto}
 .age .idchip .av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center}
 .age .idchip .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .age .idchip b{font-weight:700;color:#eef2f4}
@@ -832,12 +908,14 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .metric .mval.blink{animation:mblink 1.2s ease-in-out infinite}
 @keyframes mblink{50%{opacity:.4}}
 </style>
+<!-- Light-mode preview (app.html only). Loaded last so it wins the cascade. Remove this line to revert. -->
+<link rel="stylesheet" href="light-app.css?v=29">
 </head>
-<body data-app="live" data-back-href="index.html" data-back-label="All Dashboards">
+<body data-app="live" data-profile-panel data-back-href="index.html" data-back-label="All Dashboards">
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js"></script>
-<script src="app.js"></script>
+<script src="topbar-auth.js?v=95"></script>
+<script src="app.js?v=53"></script>
 </body>
 </html>

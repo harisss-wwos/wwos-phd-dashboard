@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resolutions · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--ac:#2563eb}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t);min-height:100vh}
+.top-bar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
+.btn.sec:hover{border-color:var(--o);color:var(--o)}
+.wrap{padding:28px 24px 60px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
+/* Banner */
+.rz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-radius:16px;padding:18px 24px;margin-bottom:16px;background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb);box-shadow:0 10px 26px -16px rgba(37,99,235,.6)}
+.rz-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;color:#fff}
+.rz-banner .hb-title svg{flex-shrink:0;color:#fff}
+.rz-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(255,255,255,.92);margin-top:5px}
+.rz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.9);border-radius:14px;padding:9px 18px;color:#0b2a5e}
+.rz-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
+.rz-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.8}
+/* Scope + reload control row */
+.rz-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.rz-scope{display:inline-flex;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:3px;gap:2px}
+.rz-scope button{border:none;background:transparent;color:var(--tm);font-weight:700;font-size:.8em;padding:7px 14px;border-radius:8px;cursor:pointer}
+.rz-scope button.on{background:var(--ac);color:#fff}
+.rz-reload{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--bd);border-radius:10px;color:var(--t);font-weight:700;font-size:.8em;padding:8px 14px;cursor:pointer}
+.rz-reload:hover{border-color:var(--o);color:var(--o)}
+.rz-reload svg{width:14px;height:14px}
+.rz-reload.spinning svg{animation:rzspin .7s linear infinite}
+@keyframes rzspin{to{transform:rotate(360deg)}}
+/* Section card */
+.rz-sec{background:#fff;border:1px solid var(--bd);border-top:3px solid var(--ac);border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,70,.05)}
+.rz-head{display:flex;align-items:center;gap:14px;padding:15px 20px;cursor:pointer;user-select:none;transition:background .15s}
+.rz-head:hover{background:#f7f9fb}
+.rz-head.no-toggle{cursor:default}
+.rz-title{flex:1 1 auto;min-width:0;color:#1b2026;font-size:1em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rz-head-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.rz-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:20px;font-weight:800;font-size:.86em;background:rgba(37,99,235,.12);color:var(--ac);border:1px solid rgba(37,99,235,.3)}
+.rz-pct{color:var(--tm);font-weight:700;font-size:.82em;min-width:48px;text-align:right}
+.rz-bar{height:7px;border-radius:5px;background:#eef1f4;overflow:hidden;margin:0 20px 14px}
+.rz-bar > span{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#4f8cf0);border-radius:5px}
+.rz-caret{color:var(--tm);display:inline-flex;transition:transform .2s ease}
+.rz-sec.open .rz-caret{transform:rotate(180deg)}
+.rz-body{display:none;padding:0 20px 16px}
+.rz-sec.open .rz-body{display:block}
+/* Member breakdown table */
+.rz-tbl{width:100%;border-collapse:collapse;font-size:.88em}
+.rz-tbl th,.rz-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4;text-align:left}
+.rz-tbl th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.rz-tbl td.n{text-align:right;color:#1b2026;font-weight:700;white-space:nowrap}
+.rz-tbl tbody tr:last-child td{border-bottom:none}
+.rz-members-note{color:var(--tm);font-size:.8em;font-style:italic;padding:12px 2px}
+/* Loading / gate */
+.rz-sk{background:#fff;border:1px solid var(--bd);border-radius:14px;margin-bottom:14px;padding:16px 20px}
+.rz-sk-line{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,#eef1f4,#f6f8fa,#eef1f4);background-size:200% 100%;animation:rzsk 1.2s linear infinite}
+@keyframes rzsk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.rz-gate{max-width:560px;margin:60px auto;text-align:center}
+.rz-gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
+.rz-gate p{color:var(--tm);line-height:1.55}
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=1">
+</head>
+<body data-nav-active="resolutions" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <div class="rz-sk"><span class="rz-sk-line" style="width:220px;height:22px"></span></div>
+  <div class="rz-sk"><span class="rz-sk-line" style="width:100%"></span></div>
+  <div class="rz-sk"><span class="rz-sk-line" style="width:90%"></span></div>
+  <div class="rz-sk"><span class="rz-sk-line" style="width:80%"></span></div>
+</div>
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js"></script>
+<script>
+const A=window.PHDAuth;
+let RZ_SCOPE='live';   // 'live' (default) | 'all'
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="rz-gate"><h1>Resolutions</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
+const reloadIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+const tagIc='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
+
+// Accordion: only one section open at a time. Sections with no member breakdown don't toggle.
+function rzToggle(idx){
+  var sec=document.getElementById('rzSec'+idx); if(!sec||sec.classList.contains('rz-no-members'))return;
+  var wasOpen=sec.classList.contains('open');
+  document.querySelectorAll('.rz-sec.open').forEach(function(s){s.classList.remove('open');});
+  if(!wasOpen)sec.classList.add('open');
+}
+window.rzToggle=rzToggle;
+
+function render(d){
+  var types=(d&&d.phdTypes)||[];
+  var grouped=(d&&d.phdGrouped)||{};
+  var total=(d&&d.phdTotal)||0;
+  var maxCount=types.reduce(function(m,t){return Math.max(m,t.count||0);},0)||1;
+  var scopeLabel=RZ_SCOPE==='all'?'all quarters':'the live quarter';
+  var html='<div class="rz-banner">'
+    +'<div class="hb-left">'
+      +'<h1 class="hb-title">'+tagIc+'Resolutions</h1>'
+      +'<div class="hb-sub">Resolved / closed tickets grouped by their <b>resolution value</b> (from RootCauseDetails), relabelled by the published resolution grouping. Showing <b>'+esc(scopeLabel)+'</b>. Click a row with grouped members to expand its breakdown.</div>'
+    +'</div>'
+    +'<div class="hb-total"><span class="n">'+Number(total).toLocaleString()+'</span><span class="l">resolved</span></div>'
+  +'</div>';
+  html+='<div class="rz-controls">'
+    +'<div class="rz-scope">'
+      +'<button class="'+(RZ_SCOPE==='live'?'on':'')+'" onclick="rzSetScope(\'live\')">Live quarter</button>'
+      +'<button class="'+(RZ_SCOPE==='all'?'on':'')+'" onclick="rzSetScope(\'all\')">All quarters</button>'
+    +'</div>'
+    +'<button class="rz-reload" id="rzReload" onclick="rzReload()">'+reloadIc+'<span>Reload</span></button>'
+  +'</div>';
+  if(!types.length){ html+='<div class="rz-members-note">No resolutions found for '+esc(scopeLabel)+'.</div>'; document.getElementById('wrap').innerHTML=html; return; }
+  types.forEach(function(t,idx){
+    var members=grouped[t.type]||[];
+    var hasMembers=members.length>0;
+    var pctW=Math.round((t.count/maxCount)*100);
+    html+='<div class="rz-sec'+(hasMembers?'':' rz-no-members')+'" id="rzSec'+idx+'">'
+      +'<div class="rz-head'+(hasMembers?'':' no-toggle')+'" onclick="rzToggle('+idx+')">'
+        +'<div class="rz-title" title="'+esc(t.type)+'">'+esc(t.type)+'</div>'
+        +'<div class="rz-head-right">'
+          +'<span class="rz-pct">'+(t.pct!=null?t.pct:0)+'%</span>'
+          +'<span class="rz-count">'+Number(t.count).toLocaleString()+'</span>'
+          +(hasMembers?'<span class="rz-caret">\u25be</span>':'')
+        +'</div>'
+      +'</div>'
+      +'<div class="rz-bar"><span style="width:'+pctW+'%"></span></div>';
+    if(hasMembers){
+      var rows=members.map(function(m){
+        return '<tr><td>'+esc(m.type)+'</td><td class="n">'+Number(m.count).toLocaleString()+'</td></tr>';
+      }).join('');
+      html+='<div class="rz-body">'
+        +'<table class="rz-tbl"><thead><tr><th>Member resolution value</th><th class="n">Count</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      +'</div>';
+    }
+    html+='</div>';
+  });
+  document.getElementById('wrap').innerHTML=html;
+}
+
+function rzSetScope(s){ if(s===RZ_SCOPE)return; RZ_SCOPE=s; load(); }
+window.rzSetScope=rzSetScope;
+function rzReload(){
+  var b=document.getElementById('rzReload'); if(b)b.classList.add('spinning');
+  var stop=function(){ var x=document.getElementById('rzReload'); if(x)x.classList.remove('spinning'); };
+  load().then(stop,stop);
+}
+window.rzReload=rzReload;
+
+function load(){
+  var q=RZ_SCOPE==='all'?'?q=all':'';
+  return A.api('GET','/api/dash/resolutions'+q).then(function(r){
+    if(!r||!r.ok||!r.data){ gate('Could not load resolutions.'); return; }
+    render(r.data);
+  }).catch(function(){ gate('Could not load resolutions. The data service may be waking up — please try again in a moment.'); });
+}
+load();
+</script>
+</body>
+</html>

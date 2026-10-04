@@ -17,6 +17,22 @@ const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4
 const REQUIRED_COLUMNS=['Age','AssignedGroup','AssigneeIdentity','ClosureCode','CreateDate','IssueId','IssueUrl','Labels','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate','RequesterIdentity','ResolvedByIdentity','ResolvedDate','RootCause','RootCauseDetails','Severity','ShortId','Status','Tags','Title'];
 // Columns that are newly required (added after the original 18) — flagged with a "new" tag.
 const NEW_COLUMNS=new Set(['Labels','RequesterIdentity','Tags']);
+// Friendly display name for each CSV field, matching the labels shown in the source export dialog's
+// "Select and order visible columns" list. Used to tell users which export toggles map to which CSV
+// field: we show "<Display name> (CSVField)".
+const COLUMN_DISPLAY_NAMES={
+  ShortId:'Short ID', IssueId:'Issue ID', IssueUrl:'Issue URL', Title:'Title', Status:'Status',
+  CreateDate:'Created', Severity:'Severity', AssigneeIdentity:'Assignee', ResolvedDate:'Resolved Date',
+  Age:'Age', ClosureCode:'Closure Code', ResolvedByIdentity:'Resolved By', RootCause:'Root Cause',
+  RootCauseDetails:'Root Cause Details', AssignedGroup:'Assigned Group', LastAssignedDate:'Last Assigned',
+  LastUpdatedConversationDate:'Last Comment Date', LastUpdatedDate:'Last Updated', Labels:'Labels',
+  RequesterIdentity:'Requester', Tags:'Tags'
+};
+// "<Display name> (CSVField)" for one required column.
+function columnPrettyLabel(csvField){
+  var disp=COLUMN_DISPLAY_NAMES[csvField]||csvField;
+  return disp+' ('+csvField+')';
+}
 
 // Parse only the header row of a CSV (respects quoted commas), returns trimmed header names.
 function parseCSVHeaders(text){
@@ -64,9 +80,11 @@ function showColumnError(missing){
   const miss=new Set(missing);
   const listHtml=REQUIRED_COLUMNS.map(c=>{
     const bad=miss.has(c);
+    const disp=COLUMN_DISPLAY_NAMES[c]||c;
     const newTag=NEW_COLUMNS.has(c)?' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>':'';
+    // Show the export-dialog label, with the actual CSV field in parentheses (monospace).
     return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:'+(bad?'#ff5252':'#4ade80')+'">'
-      +(bad?'✗':'✓')+' <span style="font-family:monospace;font-size:.9em">'+c+'</span>'+newTag+(bad?' <span style="color:#ff5252;font-size:.78em">(missing)</span>':'')+'</li>';
+      +(bad?'✗':'✓')+' <span style="font-weight:600">'+disp+'</span> <span style="font-family:monospace;font-size:.82em;opacity:.75">('+c+')</span>'+newTag+(bad?' <span style="color:#ff5252;font-size:.78em">(missing)</span>':'')+'</li>';
   }).join('');
   const overlay=document.createElement('div');
   overlay.id='incPopup';
@@ -74,7 +92,7 @@ function showColumnError(missing){
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">
     <h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
-    <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>
+    <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Each is shown by its name in the export dialog's "Select and order visible columns" list, with the actual CSV field in parentheses. Fix the export and try again — <b>no data was uploaded</b>.</p>
     <ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">${listHtml}</ul>
     <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeAllPopups()">Close</button></div>
   </div>`;
@@ -312,7 +330,8 @@ function handleUploadText(csvText,mode,autoPublish){
       const existing=await dbGetAll();
       const existingMap={};existing.forEach(r=>{existingMap[r.ShortId]=r;});
       const newMap={};newRows.forEach(r=>{newMap[r.ShortId]=r;});
-      let added=0,updated=0,unchanged=0,reopened=0,autoClosed=0;const missing=[];
+      let added=0,updated=0,unchanged=0,reopened=0,autoClosed=0,becameResolved=0;const missing=[];
+      const OPEN_ST=['Assigned','Work In Progress','Pending','Researching'];
       const toWrite=[];
       newRows.forEach(nr=>{
         const old=existingMap[nr.ShortId];
@@ -329,6 +348,8 @@ function handleUploadText(csvText,mode,autoPublish){
         const isReopen=(old.Status==='Resolved'||old.Status==='Closed')&&nr.Status==='Work In Progress';
         if(isReopen){ merged._reopened=true; reopened++; }
         else if(old._reopened&&(nr.Status==='Resolved'||nr.Status==='Closed')){ delete merged._reopened; }
+        // A LIVE (open) ticket that became Resolved/Closed with this upload.
+        if(OPEN_ST.indexOf(old.Status)>=0 && (nr.Status==='Resolved'||nr.Status==='Closed')){ becameResolved++; }
         toWrite.push(merged);updated++;
       });
       // Tickets in existing but NOT in new file
@@ -341,7 +362,7 @@ function handleUploadText(csvText,mode,autoPublish){
       });
       if(toWrite.length>0)await dbPutAll(toWrite);
       deltaLive=toWrite; // only the changed/new (+auto-closed) live tickets — the delta to publish
-      mergeReport={added,updated,reopened,autoClosed,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
+      mergeReport={added,updated,reopened,autoClosed,becameResolved,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
     }
     // Recompute from full merged LIVE set (local store holds live-quarter tickets only)
     const allRows=await dbGetAll();
@@ -461,18 +482,9 @@ function renderUpload(){
         <p style="color:#879596;font-size:.9em">or click to browse</p>
         <input type="file" accept=".csv" id="fileInput" style="display:none">
       </div>
-      <p style="color:#879596;font-size:.8em;margin-top:20px">Required columns in the CSV for a complete dashboard:</p>\
-      <ul style="color:#879596;font-size:.8em;margin-top:8px;list-style:none;padding:0;text-align:left;display:inline-block">\
-        <li style="padding:3px 0">• Status</li>\
-        <li style="padding:3px 0">• Created</li>\
-        <li style="padding:3px 0">• Severity</li>\
-        <li style="padding:3px 0">• Assignee</li>\
-        <li style="padding:3px 0">• Resolved Date</li>\
-        <li style="padding:3px 0">• Age</li>\
-        <li style="padding:3px 0">• Closure Code</li>\
-        <li style="padding:3px 0">• Resolved By</li>\
-        <li style="padding:3px 0">• Root Cause</li>\
-        <li style="padding:3px 0">• Root Cause Details</li>\
+      <p style="color:#879596;font-size:.8em;margin-top:20px">Required columns in the CSV for a complete dashboard. Names shown as they appear in the export dialog, with the CSV field in parentheses:</p>
+      <ul style="color:#879596;font-size:.8em;margin-top:8px;list-style:none;padding:0;text-align:left;display:inline-block">
+        ${REQUIRED_COLUMNS.map(function(c){return '<li style="padding:3px 0">\u2022 '+columnPrettyLabel(c)+'</li>';}).join('')}
       </ul>
     </div>
   </div>`;
@@ -1130,15 +1142,15 @@ async function renderShiftReport(){
     // Percentages: count up to their 1-dp value and append "%".
     root.querySelectorAll('.sr-pct[data-pct]').forEach(function(el){ srTallyPct(el, parseFloat(el.getAttribute('data-pct'))||0); });
   }catch(e){}
-  // Render takeover stacked bar chart
-  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  // Render takeover stacked bar chart (light theme)
+  Chart.defaults.color='#5c6773';Chart.defaults.borderColor='rgba(0,0,0,0.06)';
   const labels=agentSorted.map(e=>e[0]);
   const seg=(key)=>agentSorted.map(e=>e[1][key]);
   const canvasEl=document.getElementById('takeoverChart');
   // Vertical gradient helper for each series color
   const grad=(c1,c2)=>{const cx=canvasEl.getContext('2d');const g=cx.createLinearGradient(0,0,0,380);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;};
   // Soft drop-shadow plugin for bars
-  const shadowPlugin={id:'barShadow',beforeDatasetsDraw(chart){const cx=chart.ctx;cx.save();cx.shadowColor='rgba(0,0,0,.45)';cx.shadowBlur=10;cx.shadowOffsetX=0;cx.shadowOffsetY=4;},afterDatasetsDraw(chart){chart.ctx.restore();}};
+  const shadowPlugin={id:'barShadow',beforeDatasetsDraw(chart){const cx=chart.ctx;cx.save();cx.shadowColor='rgba(20,40,70,.18)';cx.shadowBlur=8;cx.shadowOffsetX=0;cx.shadowOffsetY=3;},afterDatasetsDraw(chart){chart.ctx.restore();}};
   makeChart('takeoverChart',{type:'bar',data:{labels,datasets:[
     {label:'Purple (Reopened)',data:seg('purple'),backgroundColor:grad('#c4b0fb','#8b5cf6')},
     {label:'Black (>10d)',data:seg('black'),backgroundColor:grad('#a3a3a3','#555')},
@@ -1149,10 +1161,10 @@ async function renderShiftReport(){
   options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:10}},
     onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
     onClick:(evt,els)=>{if(els.length>0){const el=els[0];const agent=labels[el.index];const colorKey=['purple','black','red','yellow','green'][el.datasetIndex];showTakeoverAgentColorPopup(agent,colorKey);}},
-    plugins:{legend:{position:'top',labels:{color:'#d5dbdb',font:{size:11},usePointStyle:true,pointStyle:'rectRounded',padding:16}},
-      tooltip:{backgroundColor:'rgba(10,10,10,.95)',borderColor:'#333',borderWidth:1,padding:12,cornerRadius:8,titleColor:'#fff',bodyColor:'#d5dbdb',usePointStyle:true}},
-    scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#d5dbdb',font:{size:11,weight:'500'}}},
-      y:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.05)',drawBorder:false},ticks:{font:{size:11}},border:{display:false}}}},
+    plugins:{legend:{position:'top',labels:{color:'#5c6773',font:{size:11},usePointStyle:true,pointStyle:'rectRounded',padding:16}},
+      tooltip:{backgroundColor:'rgba(20,24,30,.96)',borderColor:'#2a3340',borderWidth:1,padding:12,cornerRadius:8,titleColor:'#fff',bodyColor:'#e6edf0',usePointStyle:true}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#2a3340',font:{size:11,weight:'600'}}},
+      y:{stacked:true,beginAtZero:true,grid:{color:'rgba(0,0,0,.05)',drawBorder:false},ticks:{color:'#5c6773',font:{size:11}},border:{display:false}}}},
   plugins:[shadowPlugin]});
 }
 
@@ -1167,11 +1179,11 @@ function srTallyPct(el,target){
 function showExportRegionModal(){
   closeAllPopups();
   const overlay=document.createElement('div');overlay.id='incPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(20,30,45,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:50vw;width:50vw;min-width:min(92vw,420px);padding:28px">
-    <h2 style="color:#fff;font-size:1.2em;margin-bottom:8px">Export Shift Report</h2>
-    <p style="color:#879596;font-size:.9em;margin-bottom:20px">Which region is this report for?</p>
+  overlay.innerHTML=`<div style="background:#fff;border:1px solid #e2e7eb;border-radius:14px;max-width:50vw;width:50vw;min-width:min(92vw,420px);padding:28px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">
+    <h2 style="color:#1b2026;font-size:1.2em;margin-bottom:8px">Export Shift Report</h2>
+    <p style="color:#5c6773;font-size:.9em;margin-bottom:20px">Which region is this report for?</p>
     <div style="display:flex;gap:12px">
       <button class="btn" style="flex:1" onclick="applyRegion('IN')">India (IST)</button>
       <button class="btn" style="flex:1" onclick="applyRegion('US')">US (MST)</button>
@@ -1270,23 +1282,23 @@ Please prioritize the above.`;
 function showTakeoverAgentColorPopup(agentName,colorKey){
   closeAllPopups();
   const colorNames={green:'GREEN (0-4 days)',yellow:'YELLOW (4-7 days)',red:'RED (7-10 days)',black:'BLACK (>10 days)',purple:'PURPLE (Reopened)'};
-  const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
+  const colorHex={green:'#1f9d57',yellow:'#d9930a',red:'#dc2626',black:'#4a5563',purple:'#7c5cf0'};
   // Tickets in that colour for this agent, from the shift-report payload (sorted oldest -> newest).
   const src=((SR_DATA&&SR_DATA[agentName]&&SR_DATA[agentName].tix&&SR_DATA[agentName].tix[colorKey])||[]).slice()
     .sort((a,b)=>new Date(a.c)-new Date(b.c));
   const tix=src;
   const now=new Date();
-  const rows=tix.map(r=>{const cd=new Date(r.c);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.id}" target="_blank" style="color:#44b9d6">${r.id}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#879596;font-size:.8em">(${daysText})</span></td><td>${r.s}</td></tr>`;}).join('');
+  const rows=tix.map(r=>{const cd=new Date(r.c);const daysAgo=Math.floor((now-cd)/(864e5));const daysText=isNaN(daysAgo)?'':daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;return`<tr><td><a href="https://t.corp.amazon.com/issues/${r.id}" target="_blank" style="color:#2563eb;font-weight:700">${r.id}</a></td><td>${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span style="color:#8b96a0;font-size:.8em">(${daysText})</span></td><td>${r.s}</td></tr>`;}).join('');
   const overlay=document.createElement('div');overlay.id='incPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(20,30,45,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:12px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
+  overlay.innerHTML=`<div style="background:#fff;border:1px solid #e2e7eb;border-radius:14px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="color:${colorHex[colorKey]};font-size:1.1em">${agentName} — ${colorNames[colorKey]} — ${tix.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
     </div>
-    <p style="color:#879596;font-size:.85em;margin-bottom:8px">Sorted oldest → newest by creation date</p>
-    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:#879596">No tickets</td></tr>'}</tbody></table></div>`;
+    <p style="color:#8b96a0;font-size:.85em;margin-bottom:8px">Sorted oldest → newest by creation date</p>
+    <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:#8b96a0">No tickets</td></tr>'}</tbody></table></div>`;
   document.body.appendChild(overlay);
 }
 
@@ -1732,9 +1744,20 @@ async function loadDashChunk(chunk, onData, opts){
   const CHUNK_SECTION={ summary:'avg', incidents:'incidents', hi:'hi', weekly:'weekly' };
   let scopeVal=opts.scope;
   if(scopeVal==null){ const sec=CHUNK_SECTION[chunk]; scopeVal=sec?DASH_SECTION_SCOPE[sec]:'live'; }
-  const scopeQ=scopeToParam(scopeVal);
-  const url='/api/dash/'+chunk+scopeQ;
-  const nonLiveScope=!!scopeQ;
+  // A date WINDOW ({from,to}) wins over scope: builds ?from=&to= and always bypasses the cache
+  // (the Performance period picker uses this). Otherwise fall back to the ?q= scope param.
+  let url, nonLiveScope;
+  if(opts.window&&(opts.window.from||opts.window.to)){
+    const w=opts.window, parts=[];
+    if(w.from)parts.push('from='+encodeURIComponent(w.from));
+    if(w.to)parts.push('to='+encodeURIComponent(w.to));
+    url='/api/dash/'+chunk+'?'+parts.join('&');
+    nonLiveScope=true;
+  }else{
+    const scopeQ=scopeToParam(scopeVal);
+    url='/api/dash/'+chunk+scopeQ;
+    nonLiveScope=!!scopeQ;
+  }
   // Time-sensitive chunks (age-detail) must NOT be version-cached — a cached copy would show
   // stale colours. Fetch fresh every time (payload is small). Non-live scopes also bypass the cache.
   if(opts.noCache||nonLiveScope){
@@ -1795,17 +1818,22 @@ function dashSectionToggle(headEl,ev){
     // OTHER section in the same group (only one open at a time).
     const group=sec.closest('.dash-accordion');
     if(group){
+      // One-at-a-time: expanding a section collapses every OTHER section in the accordion.
       group.querySelectorAll(':scope > .section').forEach(function(s){ if(s!==sec)s.classList.add('collapsed'); });
-      // Opening ANY Group B (accordion) section also collapses the ENTIRE Group A unified card,
-      // to give the opened section the full viewport focus.
-      document.querySelectorAll('.dash-group-a > .section').forEach(function(s){ s.classList.add('collapsed'); });
+    }
+    // Performance Overview loads LAZILY on first expand (so the requests fire when you open it, and
+    // the chart sizes correctly instead of rendering into a collapsed 0-height body). Subsequent
+    // expands just resize. Period changes re-fetch via reloadPerfSection directly.
+    if(sec.hasAttribute('data-perf')){
+      if(!_PERF_LOADED){ _PERF_LOADED=true; reloadPerfSection(); return; }
     }
     // Re-expanded: a chart drawn while the body was collapsed (max-height:0) sized its canvas to 0.
     // Resize any Chart.js canvases inside this section AFTER the expand animation finishes.
-    setTimeout(function(){ try{ charts.forEach(function(c){ if(c.canvas&&sec.contains(c.canvas))c.resize(); }); }catch(e){} },340);
+    setTimeout(function(){ try{ charts.forEach(function(c){ if(c.canvas&&sec.contains(c.canvas))c.resize(); }); if(_PERF_CHART&&sec.contains(_PERF_CHART.canvas))_PERF_CHART.resize(); }catch(e){} },340);
   }
 }
 window.dashSectionToggle=dashSectionToggle;
+let _PERF_LOADED=false;   // Performance section fetched once (lazy, on first expand)
 
 // Expand/collapse a chunked card. On FIRST expand, fetch + render that card's chunk.
 function toggleDashCard(h2){
@@ -1943,8 +1971,7 @@ function ageCardSkeletonHtml(){
   }).join('');
   const srIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>';
   const emtIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#ff6b6b" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>';
-  return '<p class="meta-info">Open tickets classified by age. Click any row to see which agents hold them.</p>'+
-    '<div class="age-grid">'+
+  return '<div class="age-grid">'+
       '<div class="agehead">'+
         '<span>AGE RANGE</span>'+
         '<span>AGENTS COUNT</span>'+
@@ -2057,12 +2084,13 @@ function kpiTableHtml(rows, withDesc){
 }
 function renderQueueKpis(d){
   const grid=document.getElementById('dashQueueKpis'); if(!grid||!d||!d.counts)return;
-  const c=d.counts, p=d.pct||{};
-  const total=(d.total!=null)?d.total:['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'].reduce(function(s,k){return s+(c[k]||0);},0);
-  const inQueue=['Assigned','Work In Progress','Researching','Pending'].reduce(function(s,k){return s+(c[k]||0);},0);
-  const inQueuePct=total?(Math.round(inQueue/total*1000)/10):0;
-  // Demo stat tiles. The COUNT animates (countUpKpi); the % rides as a small suffix.
-  // tone: cy/gr/am/gy/mut drives the value color.
+  const c=d.counts;
+  // AC-era Queue shows ONLY the open/active work: In Queue + the four active statuses. Resolved,
+  // Closed and Total Tickets were removed (they spanned the whole era and don't belong here). Each
+  // active status's % is relative to IN QUEUE, so the four add up to 100%.
+  const inQueue=(d.inQueue!=null)?d.inQueue:['Assigned','Work In Progress','Researching','Pending'].reduce(function(s,k){return s+(c[k]||0);},0);
+  const pctOf=function(n){ return inQueue?(Math.round((n/inQueue)*1000)/10):0; };
+  // Stat tiles. The COUNT animates (countUpKpi); the % rides as a small suffix.
   const tile=function(icon,label,count,pct,tone){
     const raw=String(count).replace(/"/g,'&quot;');
     const suffix=(pct!=null)?(' <small>'+pct+'%</small>'):'';
@@ -2072,24 +2100,24 @@ function renderQueueKpis(d){
     '</div>';
   };
   grid.innerHTML='<div class="q-tiles">'+
-    tile(ic('inbox',13),'In Queue', inQueue.toLocaleString(), inQueuePct, 'am')+
-    tile(ic('grid',13),'Total Tickets', total.toLocaleString(), null, '')+
-    tile(ic('check-circle',13),'Resolved', (c['Resolved']||0).toLocaleString(), p['Resolved'], 'gr')+
-    tile(ic('check-circle',13),'Closed', (c['Closed']||0).toLocaleString(), p['Closed'], 'gy')+
-    tile(ic('inbox',13),'Assigned', (c['Assigned']||0).toLocaleString(), p['Assigned'], '')+
-    tile(ic('tool',13),'Work In Progress', (c['Work In Progress']||0).toLocaleString(), p['Work In Progress'], 'am')+
-    tile(ic('eye',13),'Researching', (c['Researching']||0).toLocaleString(), p['Researching'], 'mut')+
-    tile(ic('hourglass',13),'Pending', (c['Pending']||0).toLocaleString(), p['Pending'], '')+
+    tile(ic('inbox',13),'In Queue', inQueue.toLocaleString(), null, 'am')+
+    tile(ic('inbox',13),'Assigned', (c['Assigned']||0).toLocaleString(), pctOf(c['Assigned']||0), '')+
+    tile(ic('tool',13),'Work In Progress', (c['Work In Progress']||0).toLocaleString(), pctOf(c['Work In Progress']||0), 'am')+
+    tile(ic('eye',13),'Researching', (c['Researching']||0).toLocaleString(), pctOf(c['Researching']||0), 'mut')+
+    tile(ic('hourglass',13),'Pending', (c['Pending']||0).toLocaleString(), pctOf(c['Pending']||0), '')+
   '</div>';
   grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
 }
 function renderQueueChunk(d){
   const slot=document.getElementById('dashQueueBody');if(!slot)return;
-  const order=['Assigned','Work In Progress','Researching','Pending','Resolved','Closed'];
+  // Only the four ACTIVE statuses (open work). Resolved/Closed removed from the AC-era queue view.
+  const order=['Assigned','Work In Progress','Researching','Pending'];
+  const inQueue=(d.inQueue!=null)?d.inQueue:order.reduce(function(s,k){return s+((d.counts&&d.counts[k])||0);},0);
+  const pctOf=function(n){ return inQueue?(Math.round((n/inQueue)*1000)/10):0; };
   const li=(k,v)=>'<li><span>'+k+'</span><span class="val">'+v+'</span></li>';
   slot.innerHTML='<div class="handoff-grid">'+
-    '<div class="handoff-box"><h3>Ticket Count by Status</h3><ul>'+order.map(k=>li(k,d.counts[k])).join('')+'</ul></div>'+
-    '<div class="handoff-box"><h3>Status Distribution (%)</h3><ul>'+order.map(k=>li(k,d.pct[k]+'%')).join('')+'</ul></div>'+
+    '<div class="handoff-box"><h3>Ticket Count by Status</h3><ul>'+order.map(k=>li(k,d.counts[k]||0)).join('')+'</ul></div>'+
+    '<div class="handoff-box"><h3>Status Distribution (% of in-queue)</h3><ul>'+order.map(k=>li(k,pctOf(d.counts[k]||0)+'%')).join('')+'</ul></div>'+
   '</div>';
 }
 function renderDaily7Chunk(d){
@@ -2103,7 +2131,8 @@ function renderDaily7Chunk(d){
 }
 function renderWeeklyChunk(d){
   const slot=document.getElementById('dashWeeklyBody');if(!slot)return;
-  const slaQ=(typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.label:'this quarter';
+  // Label the range from the response (the period picker's window), not the live quarter.
+  const slaQ=(d&&d.label)?d.label:((typeof LIVE_QUARTER!=='undefined'&&LIVE_QUARTER)?LIVE_QUARTER.label:'this range');
   slot.innerHTML='<p class="meta-info" style="margin:0 0 16px">Weekly <b style="color:#ff9900">Created</b> vs <b style="color:#4ade80">Resolved</b> volume, overlaid with the <b style="color:#a78bfa">SLA compliance %</b> (\u2264240h) for each week of '+slaQ+'. SLA reads on the right axis.</p>'+
     '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cWeeklyWave"></canvas></div></div>';
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
@@ -2928,6 +2957,331 @@ function dashPageTitleRow(){
 const DASH_SECTION_SCOPE={ avg:'live', repeat:'live', incidents:'live', resolutions:'live', hi:'live', weekly:'live' };
 // Map a scope value to the ?q= param for /api/dash/* (live => omit; else the qid/'all').
 function scopeToParam(scope){ return (!scope||scope==='live')?'':('?q='+encodeURIComponent(scope)); }
+
+// ============================================================================
+// PERFORMANCE SECTION — period picker (merged Average Data + Weekly Volume/SLA)
+// Six range types, every one reduced to a half-open {from,to} CreateDate window:
+//   1) era     From 1 Jan 2026              -> {from:'2026-01-01', to:null}
+//   2) month   A given 2026 month           -> {from:1st, to:1st of next month}
+//   3) week    A Sun..Sat week in a month   -> {from:Sun, to:next Sun}
+//   4) days100 Last 100 days from today     -> {from:today-100, to:null}
+//   5) weeks12 Last 12 weeks                 -> {from:start of 12 full weeks ago, to:null}
+//   6) quarter A 2026 quarter (Q1..current)  -> {from:qStart, to:qStart of next}
+// All windows are CreateDate-based (consistent with the era + weekly chart). Default = era.
+const PERF={ type:'weeks12', month:null, week:0, quarter:null };   // current selection (default = last 12 weeks)
+function _ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// Previous (or this) Sunday at 00:00 for a given date.
+function _sundayOf(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-x.getDay()); return x; }
+// How many months of 2026 exist up to today (1..12), so the Month dropdown only offers real months.
+function _acMonthsCount(){ const now=new Date(); return (now.getFullYear()>2026)?12:(now.getFullYear()<2026?0:(now.getMonth()+1)); }
+// Current 2026 quarter index (1..4), capped at today; 0 if we're before 2026.
+function _acQuartersCount(){ const now=new Date(); if(now.getFullYear()<2026)return 0; if(now.getFullYear()>2026)return 4; return Math.floor(now.getMonth()/3)+1; }
+const _MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const _MON_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Year WEEK NUMBER matching the server's _weekExpr (so the picker's "W40" matches the chart x-axis):
+//   ceil((dayOfYear + jan4weekday) / 7), jan4weekday = getDay() of Jan 4 (0=Sun..6=Sat).
+function _weekNum(d){
+  const start=new Date(d.getFullYear(),0,1);
+  const doy=Math.floor((d-start)/86400000)+1;             // 1-based day of year
+  const jan4dow=new Date(d.getFullYear(),0,4).getDay();   // 0..6
+  return Math.ceil((doy+jan4dow)/7);
+}
+// Ordinal day: 1->1st, 2->2nd, 3->3rd, 27->27th ... for "27th Sept" style labels.
+function _ord(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+// "27th Sep to 3rd Oct" for a [startDate, endDateInclusive] pair.
+function _rangeWords(a,b){ return _ord(a.getDate())+' '+_MON_SHORT[a.getMonth()]+' to '+_ord(b.getDate())+' '+_MON_SHORT[b.getMonth()]; }
+// The Sun..Sat weeks that intersect a given 2026 month -> [{label, short, from, to, wnum}].
+// label (dropdown): "W40 \u00b7 27th Sep to 3rd Oct". A week is numbered by its SATURDAY (end of the
+// Sun..Sat span) so e.g. 27 Sep\u20133 Oct reads as W40, matching the weekly chart's dominant x-label.
+function _weeksInMonth(monthIdx){
+  const first=new Date(2026,monthIdx,1);
+  const nextMonth=new Date(2026,monthIdx+1,1);
+  const out=[];
+  let wStart=_sundayOf(first);
+  while(wStart<nextMonth){
+    const wEndExcl=new Date(wStart); wEndExcl.setDate(wEndExcl.getDate()+7);  // exclusive next Sunday
+    const wEndIncl=new Date(wEndExcl.getTime()-86400000);                     // Saturday (inclusive)
+    const wn=_weekNum(wEndIncl);                                              // number by the Saturday
+    out.push({ wnum:wn, short:'W'+wn, range:_rangeWords(wStart,wEndIncl),
+      label:'W'+wn+' \u00b7 '+_rangeWords(wStart,wEndIncl), from:_ymd(wStart), to:_ymd(wEndExcl) });
+    wStart=wEndExcl;
+  }
+  return out;
+}
+// Resolve the current PERF selection to a {from,to} window + a human label.
+function perfWindow(){
+  const now=new Date();
+  const todayWords=_ord(now.getDate())+' '+_MON_SHORT[now.getMonth()];
+  // Yearly: span the FULL calendar year (Jan..Dec) so the x-axis shows all 12 months; future months
+  // have no data and render as a gap (line stops at the current month).
+  if(PERF.type==='era'){ return { from:'2026-01-01', to:'2027-01-01', label:'From 1st Jan 2026' }; }
+  if(PERF.type==='days100'){ const f=new Date(now); f.setDate(f.getDate()-100); return { from:_ymd(f), to:null, label:'Last 100 days ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
+  if(PERF.type==='weeks12'){ const sun=_sundayOf(now); const f=new Date(sun); f.setDate(f.getDate()-7*11); return { from:_ymd(f), to:null, label:'Last 12 weeks ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
+  if(PERF.type==='month'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const f=new Date(2026,m,1); const t=new Date(2026,m+1,1); return { from:_ymd(f), to:_ymd(t), label:_MONTH_NAMES[m]+' 2026' }; }
+  if(PERF.type==='week'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const wks=_weeksInMonth(m); const wi=Math.min(PERF.week||0,wks.length-1); const w=wks[wi]||wks[0]; return { from:w.from, to:w.to, label:w.short+' ('+w.range+')' }; }
+  if(PERF.type==='quarter'){ const q=(PERF.quarter==null)?(_acQuartersCount()):PERF.quarter; const sm=(q-1)*3; const f=new Date(2026,sm,1); const t=new Date(2026,sm+3,1); return { from:_ymd(f), to:_ymd(t), label:'Q'+q+' 2026' }; }
+  return { from:'2026-01-01', to:null, label:'From 1st Jan 2026' };
+}
+// Chart bucket GRANULARITY per period type (drives /api/dash/timeseries ?bucket=).
+//   era -> month (Jan..current)      month -> day (1..last)     week -> day (Sun..Sat, 7)
+//   days100 -> step10 (10 points)    weeks12 -> week            quarter -> week
+function perfBucket(){
+  switch(PERF.type){
+    case 'era': return 'month';
+    case 'month': return 'day';
+    case 'week': return 'day';
+    case 'days100': return 'step10';
+    case 'weeks12': return 'week';
+    case 'quarter': return 'week';
+    default: return 'week';
+  }
+}
+// Build the x-axis LABEL + hover TOOLTIP title for one server bucket {start,end,...}, given the
+// bucket granularity and the overall period type.
+function perfBucketLabel(b){
+  const s=new Date(b.start), eExcl=new Date(b.end), eIncl=new Date(eExcl.getTime()-86400000);
+  const bucket=perfBucket();
+  if(bucket==='month') return _MON_SHORT[s.getMonth()];
+  if(bucket==='day'){
+    // Monthly -> day-of-month number; Weekly -> short weekday (Sun..Sat).
+    if(PERF.type==='week') return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.getDay()];
+    return String(s.getDate());
+  }
+  if(bucket==='step10') return _ord(s.getDate())+' '+_MON_SHORT[s.getMonth()];
+  // week -> W<num> (numbered by the Saturday, matching the Weekly picker + chart convention).
+  return 'W'+_weekNum(eIncl);
+}
+function perfBucketTip(b){
+  const s=new Date(b.start), eExcl=new Date(b.end), eIncl=new Date(eExcl.getTime()-86400000);
+  const bucket=perfBucket();
+  if(bucket==='month') return _MONTH_NAMES[s.getMonth()]+' 2026';
+  if(bucket==='day'){ const wd=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][s.getDay()]; return wd+', '+_ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]; }
+  if(bucket==='step10') return _ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]+' to '+_ord(eIncl.getDate())+' '+_MON_SHORT[eIncl.getMonth()];
+  return 'W'+_weekNum(eIncl)+' \u00b7 '+_ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]+' to '+_ord(eIncl.getDate())+' '+_MON_SHORT[eIncl.getMonth()];
+}
+// Build the picker UI: a segmented CHIP bar of the 6 range types, plus a compact secondary <select>
+// shown only when the chosen type needs one (month / week / quarter). Lives on the section header's
+// right side. Much cleaner than stacked native selects.
+function perfPickerHtml(){
+  const types=[
+    {v:'era',l:'From 1st Jan 2026'},{v:'month',l:'Monthly'},{v:'week',l:'Weekly'},
+    {v:'days100',l:'100 days'},{v:'weeks12',l:'12 weeks'},{v:'quarter',l:'Quarterly'}
+  ];
+  let chips='<div class="perf-chips" role="tablist">';
+  types.forEach(function(t){
+    chips+='<button type="button" class="perf-chip'+(PERF.type===t.v?' on':'')+'" role="tab" aria-selected="'+(PERF.type===t.v)+'" onclick="perfOnType(\''+t.v+'\')">'+t.l+'</button>';
+  });
+  chips+='</div>';
+  // Secondary control (only for month / week / quarter) as a compact select next to the chips.
+  const sel=(id,onchange,opts,cur)=>'<select class="perf-sel" id="'+id+'" onchange="'+onchange+'">'+
+    opts.map(o=>'<option value="'+o.v+'"'+(String(o.v)===String(cur)?' selected':'')+'>'+o.l+'</option>').join('')+'</select>';
+  let sub='';
+  const mCount=_acMonthsCount();
+  if(PERF.type==='month'||PERF.type==='week'){
+    const mOpts=[]; for(let i=0;i<mCount;i++)mOpts.push({v:i,l:_MONTH_NAMES[i]});
+    const curM=(PERF.month==null)?(mCount-1):PERF.month;
+    sub+=sel('perfMonth','perfOnMonth(this.value)',mOpts,curM);
+    if(PERF.type==='week'){
+      const wks=_weeksInMonth(curM); const wOpts=wks.map((w,i)=>({v:i,l:w.label}));
+      sub+=sel('perfWeek','perfOnWeek(this.value)',wOpts,Math.min(PERF.week||0,wks.length-1));
+    }
+  }else if(PERF.type==='quarter'){
+    const qCount=_acQuartersCount(); const qOpts=[]; for(let i=1;i<=qCount;i++)qOpts.push({v:i,l:'Q'+i+' 2026'});
+    sub+=sel('perfQuarter','perfOnQuarter(this.value)',qOpts,(PERF.quarter==null)?qCount:PERF.quarter);
+  }
+  return '<div class="perf-picker">'+chips+(sub?('<div class="perf-sub">'+sub+'</div>'):'')+'</div>';
+}
+// Picker change handlers: update PERF, re-render the header picker (so sub-dropdowns appear/update),
+// then reload the Performance section's data for the new window.
+function perfOnType(v){ PERF.type=v; if(v==='month'||v==='week'){ if(PERF.month==null)PERF.month=_acMonthsCount()-1; } if(v==='week')PERF.week=0; if(v==='quarter'&&PERF.quarter==null)PERF.quarter=_acQuartersCount(); perfRefreshPicker(); reloadPerfSection(); }
+function perfOnMonth(v){ PERF.month=+v; PERF.week=0; perfRefreshPicker(); reloadPerfSection(); }
+function perfOnWeek(v){ PERF.week=+v; reloadPerfSection(); }
+function perfOnQuarter(v){ PERF.quarter=+v; reloadPerfSection(); }
+window.perfOnType=perfOnType; window.perfOnMonth=perfOnMonth; window.perfOnWeek=perfOnWeek; window.perfOnQuarter=perfOnQuarter;
+function perfRefreshPicker(){ const h=document.getElementById('perfPickerWrap'); if(h)h.innerHTML=perfPickerHtml(); }
+// Reload BOTH the summary KPIs and the weekly chart for the current window.
+function reloadPerfSection(){
+  const win=perfWindow();
+  const bucket=perfBucket();
+  const spin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
+  const avg=document.getElementById('dashSumAvg'); if(avg)avg.innerHTML=spin;
+  // Draw the chart SKELETON immediately (axes + spinner). Wrapped so a skeleton/Chart.js hiccup can
+  // NEVER block the data fetches below — the spinner shell still shows and the real data lands.
+  try{ drawPerfSkeleton(win,bucket); }catch(e){ try{ perfChartShell(win); }catch(e2){} }
+  // KPIs come from the summary chunk over the same window -> the redesigned Performance KPI block.
+  loadDashChunk('summary',function(d){ renderPerfKpis(d); },{silent:true,window:win,noCache:true})
+    .then(function(r){ if(!r||!r.ok){ if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; } })
+    .catch(function(){ if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; });
+  // Chart comes from the granularity-aware timeseries endpoint (bucket depends on the period type).
+  const A=window.PHDAuth;
+  const parts=['from='+encodeURIComponent(win.from)]; if(win.to)parts.push('to='+encodeURIComponent(win.to)); parts.push('bucket='+bucket);
+  A.api('GET','/api/dash/timeseries?'+parts.join('&')).then(function(r){
+    if(r&&r.ok&&r.data){ renderPerfChart(r.data,win); }
+    else { perfChartError('Could not load the chart.'); }
+  }).catch(function(){ perfChartError('Could not load the chart.'); });
+}
+window.reloadPerfSection=reloadPerfSection;
+function perfChartError(msg){ const o=document.getElementById('perfSpinner'); if(o)o.outerHTML='<div class="perf-chart-msg">'+msg+'</div>'; }
+
+// Client-side bucket edge builder — mirrors the server's _tsEdges so the skeleton can label the
+// x-axis correctly BEFORE the DB responds. Returns [{start:Date,end:Date}].
+function _perfEdges(win,bucket){
+  const edges=[];
+  const parseLocal=(iso)=>{ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(iso); };
+  const from=parseLocal(win.from), to=win.to?parseLocal(win.to):new Date();
+  if(bucket==='month'){ let d=new Date(from.getFullYear(),from.getMonth(),1); while(d<to){ const nx=new Date(d.getFullYear(),d.getMonth()+1,1); edges.push({start:new Date(d),end:nx}); d=nx; } }
+  else if(bucket==='day'){ let d=new Date(from.getFullYear(),from.getMonth(),from.getDate()); while(d<to){ const nx=new Date(d); nx.setDate(nx.getDate()+1); edges.push({start:new Date(d),end:nx}); d=nx; } }
+  else if(bucket==='week'){ let d=new Date(from.getFullYear(),from.getMonth(),from.getDate()); d.setDate(d.getDate()-d.getDay()); while(d<to){ const nx=new Date(d); nx.setDate(nx.getDate()+7); edges.push({start:new Date(d),end:nx}); d=nx; } }
+  else if(bucket==='step10'){ const span=to-from, seg=span/10; for(let i=0;i<10;i++)edges.push({start:new Date(from.getTime()+seg*i),end:new Date(from.getTime()+seg*(i+1))}); }
+  return edges;
+}
+// Build the chart markup (header blurb + canvas) + a spinner overlay. Shared by skeleton & data.
+function perfChartShell(win){
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const wk=document.getElementById('dashWeeklyBody'); if(!wk)return;
+  wk.innerHTML='<p class="meta-info" style="margin:0 0 14px"><b style="color:#ff9900">Created</b> vs <b style="color:#4ade80">Resolved</b> volume, with <b style="color:#a78bfa">SLA %</b> (\u2264240h) on the right axis \u2014 for <b>'+esc(win.label)+'</b>.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall" style="position:relative"><canvas id="cPerfChart"></canvas>'+
+      '<div id="perfSpinner" class="perf-spin-overlay"><div class="spinner"></div></div>'+
+    '</div></div>';
+}
+// SKELETON: real axes + x-labels, empty series, spinner overlay. No DB needed (x-labels are computed).
+function drawPerfSkeleton(win,bucket){
+  perfChartShell(win);
+  if(typeof Chart==='undefined')return;
+  const edges=_perfEdges(win,bucket).map(e=>({start:e.start.toISOString(),end:e.end.toISOString()}));
+  const labels=edges.map(perfBucketLabel);
+  const empty=labels.map(()=>null);
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(0,0,0,0.06)';
+  if(_PERF_CHART){ try{_PERF_CHART.destroy();}catch(e){} _PERF_CHART=null; }
+  const cv=document.getElementById('cPerfChart'); if(!cv)return;
+  _PERF_CHART=new Chart(cv,{data:{labels:labels,datasets:[
+    {label:'Created',data:empty,yAxisID:'y',borderColor:'#ff9900',pointRadius:0},
+    {label:'Resolved',data:empty,yAxisID:'y',borderColor:'#4ade80',pointRadius:0},
+    {label:'SLA % (\u2264240h)',data:empty,yAxisID:'ySla',borderColor:'#a78bfa',pointRadius:0}
+  ]},options:perfChartOptions(labels.length,true)});
+}
+// Render the redesigned Performance KPI block into #dashSumAvg: a top-3 agent PODIUM (gold/silver/
+// bronze medals, login + successful resolves) + a colorful stat-tile grid (Avg Resolution, SLA %,
+// AutoSIM, Avg Repeat/Week, Created, Resolved, Repeat Incidents, First-time Pet by PHD).
+function renderPerfKpis(d){
+  const slot=document.getElementById('dashSumAvg'); if(!slot||!d)return;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const nf=(n)=>Number(n||0).toLocaleString();
+  const dn=(typeof displayName==='function')?displayName:(x=>x);
+  // ---- Top-3 podium ----
+  const medals=[{cls:'gold',ico:'\uD83E\uDD47',rank:1},{cls:'silver',ico:'\uD83E\uDD48',rank:2},{cls:'bronze',ico:'\uD83E\uDD49',rank:3}];
+  const agents=(d.topAgents||[]).slice(0,3);
+  const initial=(s)=>String(s||'?').trim().charAt(0).toUpperCase()||'?';
+  const avHtml=(a)=> a.avatar
+    ? '<span class="pf-av"><img src="'+esc(a.avatar)+'" alt=""></span>'
+    : '<span class="pf-av pf-av-i">'+esc(initial(a.name||a.login))+'</span>';
+  let podium='';
+  if(agents.length){
+    podium='<div class="pf-podium">'+agents.map(function(a,i){
+      const m=medals[i]||medals[2];
+      // Show the login ID ONCE (it was duplicated before). Avatar + medal above it.
+      const avg=(a.avgResHrs!=null)?(nf(a.avgResHrs)+' hrs'):'\u2014';
+      return '<div class="pf-medal pf-'+m.cls+'">'+
+        '<div class="pf-medal-badge">'+m.ico+'</div>'+
+        avHtml(a)+
+        '<div class="pf-medal-id" title="'+esc(a.login)+'">'+esc(a.login)+'</div>'+
+        '<div class="pf-medal-metrics">'+
+          '<span class="pf-mm"><b>'+nf(a.successful)+'</b> successful</span>'+
+          '<span class="pf-mm"><b>'+nf(a.immediate)+'</b> immediate</span>'+
+          '<span class="pf-mm pf-mm-avg">avg '+avg+'<small> (successful)</small></span>'+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div>';
+  }
+  // ---- Colorful stat tiles ----
+  const tile=(cls,icon,label,value,sub)=>'<div class="pf-stat pf-'+cls+'">'+
+    '<div class="pf-stat-top">'+icon+'<span class="pf-stat-l">'+label+'</span></div>'+
+    '<div class="pf-stat-v">'+value+'</div>'+(sub?('<div class="pf-stat-s">'+sub+'</div>'):'')+'</div>';
+  const slaColor=(d.slaPct>=90)?'ok':'warn';
+  const tiles='<div class="pf-stats">'+
+    tile('created',ic('ticket',15),'Created',nf(d.total),'tickets in period')+
+    tile('resolved',ic('check-circle',15),'Resolved',nf(d.resolved),(d.resolvedPct||0)+'% of created')+
+    tile('avgres',ic('clock',15),'Avg Resolution',nf(d.avgResolutionHrs)+' hrs','successful resolves only')+
+    tile('sla '+slaColor,ic('target',15),'SLA (\u2264240h)',(d.slaPct||0)+'%',nf(d.slaCompliant)+'/'+nf(d.slaBase)+' within')+
+    tile('autosim',ic('bolt',15),'AutoSIM Resolved',nf(d.autosim),(d.autosimPct||0)+'% of created')+
+    tile('repeat',ic('repeat',15),'Repeat Incidents',nf(d.repeatIncidents),'HI Cnt &gt; 0')+
+    tile('avgrep',ic('line-chart',15),'Avg Repeat / Week',nf(Math.round(d.avgHiPerWeek||0)),'over '+(d.weeksElapsed||0)+' wks')+
+    tile('pet',ic('paw',15),'1st Pet (by PHD)',nf(d.firstPetByPhd),'agent-resolved pet')+
+  '</div>';
+  slot.innerHTML=(podium?('<div class="pf-podium-wrap"><div class="pf-section-h">'+ic('target',13)+' Top performers \u2014 most successful resolves</div>'+podium+'</div>'):'')+tiles;
+}
+window.renderPerfKpis=renderPerfKpis;
+
+// Draw the Performance timeseries chart: Created + Resolved (left axis, tickets) + SLA% (right axis),
+// across the full period's buckets. Future buckets carry null -> drawn as gaps so the line stops at
+// "now". X-axis labels + tooltips vary by period type (months / days / weekdays / week numbers).
+let _PERF_CHART=null;
+// Shared chart options (same axes for skeleton + data so there's no layout jump). `tips` optional for
+// the tooltip titles; when omitted (skeleton) the SLA axis + a fixed Tickets scale still render.
+function perfChartOptions(labelCount,isSkeleton,tips,labels){
+  return {
+    responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    animation:isSkeleton?false:undefined,
+    layout:{padding:{right:22,left:4,bottom:2}},
+    plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,padding:14,font:{size:12}}},
+      tooltip:{enabled:!isSkeleton,backgroundColor:'rgba(20,24,30,.96)',borderColor:'#2a3340',borderWidth:1,padding:10,cornerRadius:8,usePointStyle:true,
+        callbacks:{ title:function(items){ const i=items&&items[0]?items[0].dataIndex:0; return (tips&&tips[i])||(labels&&labels[i])||''; },
+          label:function(c){ if(c.dataset.label.indexOf('SLA')>=0) return 'SLA %: '+(c.raw==null?'\u2014':c.raw+'%'); return c.dataset.label+': '+(c.raw==null?'\u2014':c.raw); } } }},
+    scales:{
+      // Left (Tickets): fixed 0..900 baseline grid for the skeleton; data mode adds ~10% headroom
+      // above the real peak. Topmost tick label hidden either way (headroom value isn't shown).
+      y:Object.assign({beginAtZero:true,position:'left',grid:{color:'rgba(0,0,0,.05)'},border:{display:false},title:{display:true,text:'Tickets',color:'#8b96a0',font:{size:12}},ticks:{font:{size:11},precision:0,callback:function(v,i,ticks){ return (i===ticks.length-1)?'':v; }}},
+        isSkeleton?{max:900}:{grace:'10%'}),
+      // SLA: scale to 110 so 100% sits below the top; ticks shown only up to 100%.
+      ySla:{display:true,beginAtZero:true,max:110,position:'right',grid:{drawOnChartArea:false},border:{display:false},title:{display:true,text:'SLA % (\u2264240h)',color:'#a78bfa',font:{size:11},padding:{top:0,bottom:2}},ticks:{font:{size:11},stepSize:10,callback:v=>(v>100?'':v+'%')}},
+      x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkip:true,maxTicksLimit:(labelCount>20?16:labelCount)}}}};
+}
+function renderPerfChart(d,win){
+  try{
+    const buckets=(d&&d.buckets)||[];
+    // Reuse the shell the skeleton already built when present; only (re)build if the canvas is gone
+    // (e.g. an error wiped it). This avoids destroying a freshly-drawn canvas mid-flight.
+    if(!document.getElementById('cPerfChart')) perfChartShell(win);
+    const sp=document.getElementById('perfSpinner'); if(sp&&sp.parentNode)sp.parentNode.removeChild(sp);  // data in -> drop spinner
+    if(typeof Chart==='undefined')return;
+    const labels=buckets.map(perfBucketLabel);
+    const tips=buckets.map(perfBucketTip);
+    const created=buckets.map(b=>b.created);     // null for future buckets -> gap
+    const resolved=buckets.map(b=>b.resolved);
+    const sla=buckets.map(b=>b.slaPct);
+    const tline=(label,data,color,axis)=>({type:'line',label:label,data:data,yAxisID:axis||'y',borderColor:color,backgroundColor:color,pointBackgroundColor:color,pointRadius:(labels.length>26?0:3),pointHoverRadius:5,borderWidth:3,tension:.35,fill:false,spanGaps:false,order:2});
+    const datasets=[tline('Created',created,'#ff9900','y'),tline('Resolved',resolved,'#4ade80','y'),
+      Object.assign(tline('SLA % (\u2264240h)',sla,'#a78bfa','ySla'),{borderDash:[5,4],pointRadius:(labels.length>26?0:3)})];
+    Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(0,0,0,0.06)';
+    if(_PERF_CHART){ try{_PERF_CHART.destroy();}catch(e){} _PERF_CHART=null; }
+    const cv=document.getElementById('cPerfChart'); if(!cv)return;
+    _PERF_CHART=new Chart(cv,{data:{labels:labels,datasets:datasets},options:perfChartOptions(labels.length,false,tips,labels)});
+  }catch(e){ perfChartError('Could not render the chart.'); }
+}
+window.renderPerfChart=renderPerfChart;
+// The merged Performance Overview section markup: collapsible banner (title + period picker on the
+// right), a range-label line, then the Average Data KPI grid (#dashSumAvg) and the Weekly Volume &
+// SLA chart (#dashWeeklyBody). Starts collapsed like the other secondary sections.
+function perfSectionHtml(){
+  // Self-contained skeletons (this is a top-level fn, so it can't reach renderDashboardChunked's
+  // local skeleton helpers). A simple shimmer for each body is enough; the real data lands fast.
+  const avgSkel='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
+  const wkSkel='<p class="meta-info" style="margin:0 0 16px">Weekly Created vs Resolved volume, with SLA compliance % on a second axis.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
+  return '<div class="section dash-collapsible collapsed" data-perf="1">'+
+    '<div class="sec-head" onclick="dashSectionToggle(this,event)" role="button" tabindex="0">'+
+      '<h2>'+ic('bar-chart',16)+' Performance Overview</h2>'+
+      '<div class="perf-head-right" onclick="event.stopPropagation()">'+
+        '<span id="perfPickerWrap">'+perfPickerHtml()+'</span>'+
+      '</div>'+
+      '<span class="sec-caret" aria-hidden="true">\u25be</span>'+
+    '</div>'+
+    '<div class="perf-body">'+
+      '<div id="dashSumAvg" class="dash-chunk-slot">'+avgSkel+'</div>'+
+      '<div id="dashWeeklyBody" class="dash-chunk-slot" style="margin-top:4px">'+wkSkel+'</div>'+
+    '</div>'+
+  '</div>';
+}
 // Legacy shim: chunk -> its section-scope param (used by loadDashChunk when no explicit scope passed).
 function dashScopeParamFor(section){ return scopeToParam(DASH_SECTION_SCOPE[section]); }
 
@@ -3034,12 +3388,24 @@ function renderDashboardChunked(){
     return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table"'+tblStyle+'><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
   };
   // Paired (4-col) queue skeleton: left = totals, right = open statuses.
+  // Queue skeleton = the SAME .q-tiles grid the loaded card uses (renderQueueKpis), with scrambling
+  // value placeholders — so there's no table->tiles layout swap when data lands.
   const queueSkel=function(){
-    const L=[{m:ic('inbox',14)+' In Queue',s:400},{m:ic('grid',14)+' Total Tickets',s:9000},{m:ic('check-circle',14)+' Resolved',s:9000},{m:ic('check-circle',14)+' Closed',s:9000}];
-    const R=[{m:ic('inbox',14)+' Assigned',s:200},{m:ic('tool',14)+' Work In Progress',s:300},{m:ic('eye',14)+' Researching',s:100},{m:ic('hourglass',14)+' Pending',s:100}];
-    let rows='';
-    for(let i=0;i<4;i++){ rows+='<tr><td class="kt-metric" style="text-align:center">'+L[i].m+'</td><td class="kt-value" style="text-align:center">'+scrCell(L[i].s)+'</td><td class="kt-metric" style="text-align:center">'+R[i].m+'</td><td class="kt-value" style="text-align:center">'+scrCell(R[i].s)+'</td></tr>'; }
-    return '<div style="overflow-x:auto;grid-column:1/-1"><table class="kpi-table" style="width:100%;table-layout:fixed"><thead><tr><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th><th style="text-align:center;width:25%">Metric</th><th style="text-align:center;width:25%">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    // [icon, label, scrambleMax, tone] — mirrors renderQueueKpis tile order/tones (AC-era: open work only).
+    const tiles=[
+      [ic('inbox',13),'In Queue',400,'am'],
+      [ic('inbox',13),'Assigned',200,''],
+      [ic('tool',13),'Work In Progress',300,'am'],
+      [ic('eye',13),'Researching',100,'mut'],
+      [ic('hourglass',13),'Pending',100,'']
+    ];
+    const tile=function(t){
+      return '<div class="q-tile'+(t[3]?(' '+t[3]):'')+'">'+
+        '<div class="k">'+t[0]+' '+t[1]+'</div>'+
+        '<div class="v">'+scrCell(t[2])+'</div>'+
+      '</div>';
+    };
+    return '<div class="q-tiles" style="grid-column:1/-1">'+tiles.map(tile).join('')+'</div>';
   };
   // ---- Fixed skeletons for the always-open cards (match the new layouts; numbers tally via scramble). ----
   const shimmerBar=(w)=>'<div class="shimmer" style="height:8px;border-radius:4px;width:'+w+'%"></div>';
@@ -3109,27 +3475,35 @@ function renderDashboardChunked(){
   // Queue Status + Ticket Age reflect CURRENT open tickets (no scope selector — always live/current).
   document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content">'+
     dashPageTitleRow()+
-    // ===== GROUP A: rendered as ONE unified card (dash-group-a wrapper). The three inner sections
-    //   (Queue Status Data, Ticket Age Classification, Average Data) drop their individual card
-    //   chrome via CSS and read as stacked sub-blocks separated by dividers. Each still collapses
-    //   independently (no accordion). All expanded by default. =====
-    '<div class="dash-group-a">'+
-      kpiSection('Queue Status Data','grid','dashQueueKpis',queueSkel(),null,true)+
-      dashStaticCard('clock','Ticket Age Classification','dashAgeBody',ageCardSkeletonHtml(),null,true)+
-      kpiSection('Average Data','clock','dashSumAvg',kpiTblSkel([{m:'Avg Resolution Time',s:200},{m:'SLA Compliance (\u2264240 hrs)',s:100,p:true},{m:ic('bolt',14)+' AutoSIM Resolved',s:3000},{m:ic('repeat',14)+' Avg Repeat Incidents / Week',s:30}],true),'avg',true)+
-    '</div>'+
-    // ===== GROUP B: accordion — only ONE section open at a time. Opening one closes the others. =====
-    //   Incident Types, Repeat Incident Data, Weekly Volume & SLA, Resolutions. All start collapsed.
-    //   data-accordion="b" marks the group so dashSectionToggle can close the siblings.
-    '<div class="dash-accordion" data-accordion="b">'+
-      dashStaticCard('bar-chart','Weekly Volume & SLA Compliance','dashWeeklyBody',weeklySkel(),'weekly',true,true)+
-      dashStaticCard('alert','Incident Types','dashIncidentsBody',incTypesSkel(),'incidents',true,true)+
-      kpiSection('Repeat Incident Data','repeat','dashSumRepeat',kpiTblSkel([{m:ic('repeat',14)+' Repeat Incidents (HI&gt;0)',s:300},{m:ic('paw',14)+' HI involving pet incidents',s:200},{m:ic('repeat',14)+' HI involving non-pet incidents',s:100}],true),'repeat',true,
-        // Historical-Incidents detail (weekly pet/non-pet chart + root-cause tables) now lives INSIDE
-        // this section, since both are about repeat incidents. renderHiChunk() fills #dashHiBody.
-        '<div id="dashHiBody" class="dash-chunk-slot" style="padding:16px 20px 20px;margin-top:8px;border-top:1px solid #242a31">'+hiSkel()+'</div>',
-        /* startCollapsed */ true)+
-      dashStaticCard('check-circle','Resolutions','dashResolutionsBody',resSkel(),'resolutions',true,true)+
+    // ===== All 7 sections are now SEPARATE cards in ONE accordion. Only Queue Status Data is
+    //   expanded by default; every other section starts collapsed. Opening any section closes the
+    //   others (one-at-a-time) — handled by dashSectionToggle via data-accordion="main". =====
+    '<div class="dash-accordion" data-accordion="main">'+
+      // MERGED "Live Queue" = Queue Status Data + Ticket Age Classification in ONE collapsible
+      // section (expanded by default). Both reflect CURRENT open AC-era tickets. Two labelled
+      // sub-blocks share one banner; their bodies (#dashQueueKpis, #dashAgeBody) load independently.
+      ('<div class="section dash-collapsible">'+
+        '<div class="sec-head" onclick="dashSectionToggle(this,event)" role="button" tabindex="0">'+
+          '<h2>'+ic('grid',16)+' Live Queue</h2>'+
+          '<span class="sec-caret" aria-hidden="true">\u25be</span>'+
+        '</div>'+
+        '<div class="lq-body">'+
+          '<div class="lq-sub"><div class="lq-sub-h">'+ic('inbox',14)+' Queue Status</div>'+
+            '<div class="kpi-grid kpi-grid-compact" id="dashQueueKpis" style="grid-template-columns:1fr">'+queueSkel()+'</div></div>'+
+          '<div class="lq-sub"><div class="lq-sub-h">'+ic('clock',14)+' Ticket Age Classification</div>'+
+            '<div id="dashAgeBody" class="dash-chunk-slot">'+ageCardSkeletonHtml()+'</div></div>'+
+        '</div>'+
+      '</div>')+
+      // MERGED "Performance Overview" = Average Data KPIs + Weekly Volume & SLA chart, driven by one
+      // period picker (6 date-range types). Custom markup (not kpiSection/dashStaticCard) because it
+      // holds two bodies + a header picker instead of the old Q3/Q2 scope chips.
+      perfSectionHtml()+
+      // Incident Types, Repeat Incident Data (+ its nested Historical Incidents detail), and
+      // Resolutions were MOVED off the dashboard to their own pages:
+      //   Incident Types  -> incident-types.html
+      //   Repeat Incident -> hi-resolved.html
+      //   Resolutions     -> resolutions.html
+      // (reachable from the Reports fly-out). Their eager loaders below are removed too.
     '</div>'+
   '</div>';
   attachNewFileHandler();
@@ -3138,41 +3512,31 @@ function renderDashboardChunked(){
   startKpiScramble(); // flicker the summary KPI numbers while /api/dash/summary loads
   // Ticket Age Classification loads EAGERLY (always visible, not collapsible). age-detail is
   // time-sensitive so it's not version-cached — always fetched fresh (small payload).
-  loadDashChunk('age-detail',renderAgeChunk,{silent:true,noCache:true}).then(function(r){
+  // AC era (all 2026+ tickets, no quarter) — Ticket Age Classification is live-only, era-scoped.
+  loadDashChunk('age-detail',renderAgeChunk,{silent:true,noCache:true,scope:'ac'}).then(function(r){
     if(!r||!r.ok){ const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>'; }
   }).catch(function(){
     const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
   });
-  // Incident Types loads EAGERLY (always visible, no expand/collapse). ALWAYS fetch fresh (noCache):
-  // the display grouping is published independently of the quarter version, so a browser-cached copy
-  // could show a stale/ungrouped list. The chunk is served from a cheap server rollup, so this is fine.
-  loadDashChunk('incidents',renderIncidentsChunk,{silent:true,noCache:true}).then(function(r){
-    if(!r||!r.ok){ const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load incident types.</p>'; }
-  }).catch(function(){
-    const s=document.getElementById('dashIncidentsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load incident types.</p>';
-  });
-  // Resolutions section (PHD-only). Always fresh (grouping-dependent, no browser cache).
-  loadDashChunk('resolutions',renderResolutionsChunk,{silent:true,noCache:true}).then(function(r){
-    if(!r||!r.ok){ const s=document.getElementById('dashResolutionsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load resolutions.</p>'; }
-  }).catch(function(){
-    const s=document.getElementById('dashResolutionsBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load resolutions.</p>';
-  });
-  // Historical Incidents + Weekly Volume load EAGERLY now (always visible, no expand/collapse).
-  loadDashChunk('hi',renderHiChunk,{silent:true}).then(function(r){
-    if(!r||!r.ok){ const s=document.getElementById('dashHiBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load historical incidents.</p>'; }
-  }).catch(function(){ const s=document.getElementById('dashHiBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load historical incidents.</p>'; });
-  loadDashChunk('weekly',renderWeeklyChunk,{silent:true}).then(function(r){
-    if(!r||!r.ok){ const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load weekly volume.</p>'; }
-  }).catch(function(){ const s=document.getElementById('dashWeeklyBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load weekly volume.</p>'; });
-  // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk (always live/current).
-  loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true}).then(function(r){
+  // (Incident Types, Resolutions, and Historical Incidents eager loaders removed — those sections
+  //  moved to incident-types.html / resolutions.html / hi-resolved.html.)
+  // PERFORMANCE OVERVIEW (merged Average Data + Weekly Volume & SLA) loads LAZILY on first expand
+  // (dashSectionToggle -> reloadPerfSection), so no request fires until the user opens it. Default
+  // period = last 12 weeks. Reset the loaded flag on each dashboard (re)render.
+  _PERF_LOADED=false;
+  // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk. noCache:true because the
+  // active-status counts now span ALL quarters and change between uploads — a version-cached copy
+  // (keyed on the live quarter's publishedAt) would show stale numbers until the next publish.
+  loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true,noCache:true,scope:'ac'}).then(function(r){
     if(!r||!r.ok){ document.querySelectorAll('#dashQueueKpis .scramble-kpi').forEach(function(el){el.classList.remove('scramble-kpi');el.textContent='—';}); }
   }).catch(function(){ document.querySelectorAll('#dashQueueKpis .scramble-kpi').forEach(function(el){el.classList.remove('scramble-kpi');el.textContent='—';}); });
-  // Load the summary (cached, version-first). The remaining cards load lazily on first expand.
-  loadDashChunk('summary',renderSummaryInto,{silent:false}).then(function(r){
-    // If nothing painted (fetch failed + no cache), stop the flicker and show a dash so it isn't stuck.
-    if(!r||(!r.painted&&!r.ok)){ stopKpiScramble(); document.querySelectorAll('.scramble-kpi').forEach(function(el){el.textContent='—';}); }
-  }).catch(function(){ stopKpiScramble(); document.querySelectorAll('.scramble-kpi').forEach(function(el){el.textContent='—';}); });
+  // Version sync for the topbar Refresh button: fetch the LIVE summary once (no DOM paint) and record
+  // its quarter/publishedAt. The Performance section itself renders from the era window above, so this
+  // call only keeps the "already up to date" check + LIVE_QUARTER label current.
+  loadDashChunk('summary',function(d){
+    try{ if(d&&d.quarter&&typeof d.quarter==='string'){ LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:d.quarter,label:d.label||d.quarter}); metaSet('liveCache',{quarter:d.quarter,publishedAt:d.publishedAt||null}); } }catch(e){}
+    stopKpiScramble();
+  },{silent:true}).catch(function(){ stopKpiScramble(); });
 }
 
 function renderGroups(){
@@ -3409,6 +3773,9 @@ async function doPublish(nonLiveRows,changeSummary,deltaLive){
     closeAllPopups();
     // Invalidate the local cache version so the next visit re-syncs to the server's publishedAt.
     try{await metaSet('liveCache',null);}catch(_){}
+    // Clear the cross-page profile-column cache so the post-upload full reload refetches every
+    // profile section (open tickets / age / last-upload / agents activity) instead of pre-upload data.
+    try{ if(window.PHDClearProfileCache) window.PHDClearProfileCache(); }catch(_){}
     showToast('Data published! Live for everyone now.');
     showUploadResult((r.data&&r.data.written)||[],changeSummary);
   }catch(e){
@@ -3607,7 +3974,9 @@ function paintInitialLoading(){
   }else if(v){
     document.getElementById('app').innerHTML=topBar(v)+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div></div>';
   }else{
-    renderDashboardShell();
+    // Dashboard skeleton = the SAME chunked/accordion layout the live page uses (7 separate section
+    // cards, only Queue Status expanded), so the skeleton matches the final layout with no jump.
+    renderDashboardChunked();
   }
 }
 

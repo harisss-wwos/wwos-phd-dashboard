@@ -1,0 +1,41 @@
+{
+  "title": "PHD Monthly Performance Summary",
+  "generated": "2026-08-03",
+  "kpis": [
+    { "k": "Reports Received", "v": "3,140", "wow": -6.8, "goodWhen": "down" },
+    { "k": "Resolved", "v": "3,122", "wow": -5.9, "goodWhen": "down" },
+    { "k": "Net to Backlog", "v": "18", "note": "40% reduction MoM", "goodWhen": "down" },
+    { "k": "SLA (within-month)", "v": "99.2%", "goodWhen": "up" },
+    { "k": "SLA (YTD)", "v": "97.6%", "goodWhen": "up" },
+    { "k": "Repeat Incidents", "v": "34", "wow": -28.1, "goodWhen": "down" }
+  ],
+  "sections": [
+    {
+      "title": "Volume & Throughput",
+      "body": "PHD received 3,140 incident reports (-6.8% MoM) and resolved 3,122 (-5.9% MoM), netting only 18 cases to the backlog — a 40% reduction MoM. SLA performance was 99.2% for cases created and resolved within the month, with YTD SLA at 97.6%."
+    },
+    {
+      "title": "Quality — Repeat Incidents",
+      "body": "Repeat incidents dropped to 34 (-28.1% MoM), reflecting sustained first-contact resolution gains across the month."
+    }
+  ],
+  "defectCodes": {
+    "improving": [
+      { "label": "Contradictory Statement / No Proof", "wow": -22 },
+      { "label": "No EMT", "wow": -31 }
+    ],
+    "watch": [
+      {
+        "label": "Unsuccessful Outreach",
+        "wow": 19,
+        "note": "Remains an opportunity area. Customer and driver outreach — performed by LMIR — directly supports mitigating actions such as driver notes, delivery GEO pin updates, and parcel box instructions for low-severity incidents."
+      }
+    ]
+  },
+  "address": [
+    { "k": "Address Exclusions", "v": "48", "wow": -34, "goodWhen": "down" },
+    { "k": "GEO Pin Updates", "v": "21", "wow": 62, "goodWhen": "up" }
+  ],
+  "addressSentence": "48 address exclusions were processed (-34% MoM) alongside 21 GEO Pin updates (+62% MoM).",
+  "addressNote": "GEO Pins are critical to setting accurate Road Entry Points (REP) and delivery points, ensuring transporters can complete deliveries safely via the Rabbit app."
+}

@@ -170,8 +170,91 @@ th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;
 .bar-cell>div{height:8px;border-radius:4px;background:#ff9900;min-width:4px}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="gp-light">
+h1,.section-title{color:#1b2026!important}
+.sub,.card .hint{color:#5c6773!important}
+/* Outer section cards: white (keep the bright gradient banner heads). */
+.section-card{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+/* Editor column cards + any inline background:#000 cards -> white. */
+.card,.cols>.card,.card[style*="background:#000"]{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.cols>.card>h2{color:#1b2026!important;border-bottom:1px solid #eef1f4!important}
+.cols>.card:nth-child(2)>h2{color:#6b4bd8!important}
+.card h2{color:#b5560c!important}
+.card .hint,.preview .hint{color:#8793a0!important}
+.inc-sub-h{color:#2a3340!important}
+.inc-sub-h .n{color:#1b2026!important;background:#f0f3f6!important;border:1px solid #e2e6ea!important}
+/* Source list + per-quarter sections. */
+.src-list,.sec-panel{border:1px solid #e2e6ea!important}
+.sec-head{background:#f7f9fb!important;color:#2a3340!important}
+.sec-head:hover{background:#eef1f4!important}
+.sec-title{color:#1b2026!important}
+.sec-meta{color:#5c6773!important}
+.sec-caret{color:#ec7211!important}
+.src-row{border-bottom:1px solid #eef1f4!important}
+.src-row:hover{background:#f7f9fb!important}
+.src-row .st-name{color:#1b2026!important}
+.src-row .st-count{color:#5c6773!important}
+.src-row .st-in{color:#6b4bd8!important}
+/* Inputs / selects. */
+.src-tools input,.assign-bar select,.grp-head input,.new-grp input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+.src-tools input:focus,.assign-bar select:focus,.grp-head input:focus,.new-grp input:focus{border-color:#ec7211!important}
+/* Groups + chips. */
+.grp{background:#f7f9fb!important;border:1px solid #e6eaee!important}
+.chip{background:#f1ecff!important;border:1px solid #d9ccf7!important;color:#6b4bd8!important}
+.chip button{color:#6b4bd8!important}
+.grp-empty{color:#8793a0!important}
+/* Preview table. */
+.xls-table{border:1px solid #e2e6ea!important}
+.xls-table th,.xls-table td{border:1px solid #eef1f4!important}
+th{color:#5c6773!important}
+.grouped-row{background:#f4f0ff!important}
+.grouped-row:hover{background:#ece4ff!important}
+.grouped-row td:nth-child(2){color:#6b4bd8!important}
+.clickable-row:hover{background:#fff7ed!important}
+/* Tooltip. */
+.grp-tip{background:#fff!important;border:1px solid #c9b8f5!important;box-shadow:0 8px 24px rgba(20,30,50,.25)!important}
+.grp-tip-h{color:#6b4bd8!important;border-bottom:1px solid #e4daf9!important}
+.grp-tip-h span{color:#1b2026!important}
+.grp-tip-t{color:#2a3340!important}
+.grp-tip-c{color:#5c6773!important}
+/* Tickets popup. */
+.tk-overlay{background:rgba(20,30,45,.55)!important}
+.tk-card{background:#fff!important;border:1px solid #e2e6ea!important}
+.tk-head h2{color:#b5560c!important}
+.tk-count{color:#5c6773!important}
+.tk-scroll{border:1px solid #e2e6ea!important}
+.tk-table th{background:#f7f9fb!important}
+.tk-table td,.tk-table th{border:1px solid #eef1f4!important}
+.tk-table a{color:#1577a0!important}
+.tk-pageinfo{color:#5c6773!important}
+/* Warn banner stays amber but light. */
+.warn-banner{background:#fff4e8!important;border:1px solid #f3d4b0!important;color:#b5560c!important}
+/* Buttons. */
+.btn{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.btn:hover{background:#fff4e8!important;border-color:#ec7211!important;color:#ec7211!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.btn.sec:hover{border-color:#ec7211!important;background:#fff4e8!important;color:#ec7211!important}
+.btn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;border:none!important;color:#fff!important}
+.btn.primary:hover{filter:brightness(1.05)!important;background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important}
+.btn.danger{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
+.btn.danger:hover{background:#fef2f2!important}
+.msg.err{color:#d33a3a!important}.msg.ok{color:#1f9d57!important}
+.gate p{color:#5c6773!important}
+/* 3-column shell narrows the center content, so collapse the editor's two columns based on the
+   CONTAINER width (not the viewport) — keeps Raw/Groups side-by-side when there's room, stacks when tight. */
+.card-body{container-type:inline-size}
+@container (max-width:640px){.cols{grid-template-columns:1fr!important}}
+/* Keep the assign-bar usable in the narrower column: let the select shrink and wrap its button under it. */
+.assign-bar select{min-width:0!important}
+</style>
 </head>
-<body data-no-toolbar="true" data-back-href="index.html" data-back-label="All Dashboards">
+<body data-nav-active="groups-page" data-back-href="index.html" data-back-label="All Dashboards">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+
 <div class="wrap" id="wrap">
   <div class="spinner"></div>
 </div>

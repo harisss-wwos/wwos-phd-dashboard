@@ -105,6 +105,58 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=3">
+<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
+<style id="uc-light">
+h1{color:#1b2026!important}
+.sub{color:#5c6773!important}
+/* Case cards. */
+.case{background:#fff!important;border:1px solid #e2e6ea!important;border-left:3px solid #ec7211!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.case-head:hover{background:#f7f9fb!important}
+.case-id{color:#1577a0!important}
+.case-title{color:#2a3340!important}
+.case-by{color:#5c6773!important}
+.case-caret{color:#9aa5b1!important}
+.case-meta{color:#5c6773!important}
+.case-meta b{color:#1b2026!important}
+.blk-t{color:#5c6773!important}
+.case-info{background:#f7f9fb!important;border:1px solid #e6eaee!important;color:#2a3340!important}
+.link-item{background:#f7f9fb!important;border:1px solid #e6eaee!important}
+.link-item a,.case-meta b a{color:#1577a0!important}
+.none{color:#8793a0!important}
+.case-actions{border-top:1px solid #eef1f4!important}
+/* Modals. */
+.modal-bg{background:rgba(20,30,45,.55)!important}
+.modal{background:#fff!important;border:1px solid #e2e6ea!important}
+.modal-head h2{color:#b5560c!important}
+.modal-close{color:#5c6773!important}.modal-close:hover{color:#1b2026!important}
+.edit-ticket{background:#f7f9fb!important;border:1px solid #e6eaee!important}
+.edit-ticket .mt-id{color:#1577a0!important}
+.edit-ticket .meta-line{color:#5c6773!important}.edit-ticket .meta-line b{color:#1b2026!important}
+.fld-label{color:#5c6773!important}
+#editInfo,.link-row input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+#editInfo:focus,.link-row input:focus{border-color:#ec7211!important}
+.link-row .rm{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
+.link-row .rm:hover{background:#fef2f2!important}
+.msg-err{color:#d33a3a!important}
+#unmarkText{color:#2a3340!important}
+#unmarkText b{color:#1b2026!important}
+.modal-head h2[style*="--rl"],.modal h2[style*="var(--rl)"]{color:#dc2626!important}
+/* Buttons (the banner's own buttons keep their on-gradient styling). */
+.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+.btn.sec:hover{border-color:#ec7211!important;color:#ec7211!important;background:#fff4e8!important}
+.btn.danger{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
+.btn.danger:hover{background:#fef2f2!important}
+/* Keep banner buttons as designed (dark pill / frosted) — re-assert over the generic .btn above. */
+.uc-banner .btn{background:rgba(10,12,15,.82)!important;color:#fff!important;border:1px solid rgba(255,255,255,.14)!important}
+.uc-banner .btn.sec{background:rgba(255,255,255,.18)!important;color:#241354!important;border:1px solid rgba(255,255,255,.4)!important}
+.uc-banner .uc-search-btn{background:#fff!important;color:#4c2ea8!important;border:1px solid rgba(255,255,255,.9)!important}
+.empty{border-color:#d4dce4!important;color:#8793a0!important}
+.empty b{color:#1b2026!important}
+.toast{background:#fff!important;border-color:#1f9d57!important;color:#1f9d57!important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35)!important}
+.gate p{color:#5c6773!important}
+</style>
 </head>
 <body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">

@@ -1,0 +1,112 @@
+/* ============================================================================================
+   app-light.css  —  SHARED light-mode override for the INNER pages (alerts, tools, reports,
+   archive, my-tickets, data-log, issue-types, rules, profile, etc.).
+   Loaded LAST (after each page's inline <style> AND theme.css) so it wins the cascade.
+   Mirrors light-app.css (app.html) / home-light.css (index.html): near-white page, white cards,
+   soft gray borders, dark slate text, Amazon-orange accent. Accent colours are kept.
+   Delete the <link> on a page to revert that page to dark.
+   ============================================================================================ */
+
+:root{
+  /* Remap the per-page semantic tokens (used widely via var()) to LIGHT values. */
+  --t:#1b2026 !important;        /* primary text (was light-on-dark) */
+  --tm:#5c6773 !important;       /* muted text */
+  --bd:#e2e6ea !important;       /* standard border */
+  --s:#ffffff !important;        /* "surface" */
+  /* Remap theme.css dark tokens to light. */
+  --thm-panel:#ffffff !important;
+  --thm-panel-2:#ffffff !important;
+  --thm-border:#e2e6ea !important;
+  --thm-border-hi:#d4dade !important;
+  --thm-shadow:0 10px 26px -18px rgba(20,30,50,.35) !important;
+  --thm-shadow-hi:0 16px 34px -18px rgba(20,30,50,.45) !important;
+}
+
+/* ---- Base canvas (override theme.css's dark gradient body) ---- */
+html,body{ background:#f4f6f8 !important; color:#1b2026 !important; }
+body{ background-image:none !important; }
+
+/* ---- Content band: on the 3-column layout, the main column (.wrap/.content) should FILL the band
+   left by the body padding, with a consistent inner gutter so it never butts against the profile
+   column. This overrides stale page-specific width rules (e.g. profile.html's .wrap{width:50vw}) that
+   predate the profile-panel layout and left the content either too narrow or flush against the panel. */
+body[data-profile-panel] .wrap,
+body[data-profile-panel] .content{
+  width:auto !important; max-width:none !important;
+  margin-left:0 !important; margin-right:0 !important;
+  padding-left:12px !important; padding-right:12px !important;
+}
+
+/* ---- Scrollbars: light ---- */
+*{ scrollbar-color:#c3ccd4 transparent !important; }
+*::-webkit-scrollbar-thumb{ background:#c3ccd4 !important; }
+*::-webkit-scrollbar-thumb:hover{ background:#aab4bd !important; }
+::selection{ background:rgba(236,114,17,.22) !important; color:#1b2026 !important; }
+
+/* ---- Headings + generic text ---- */
+h1,h2,h3,h4,h5{ color:#1b2026 !important; }
+.sub,.meta-info,.muted,small{ color:#5c6773 !important; }
+
+/* ---- Cards / sections / panels / wraps ---- */
+.card,.section,.kpi-section,.kpi-card,.chart-box,.panel,.wrap-card,
+.year-section,.qcard,.xls-table,.handoff-box,.sr-hero,.sr-sec,.tk-card,.mtc{
+  background:#ffffff !important;
+  border-color:#e2e6ea !important;
+  box-shadow:0 1px 3px rgba(20,30,50,.06) !important;
+  color:#1b2026 !important;
+}
+.card:hover,.section:hover{ border-color:#d4dade !important; }
+/* Gradient card bodies (theme.css linear-gradient) -> flat white. */
+.card,.section .sec-body,.kpi-section .sec-body{ background-image:none !important; }
+
+/* ---- Section headers / banners that were dark ---- */
+.section>h2,.kpi-section>h2,.collapse-head,.sec-head,.year-head{
+  color:#1b2026 !important;
+}
+.section>h2,.kpi-section>h2{ background:#f5f6f8 !important; }
+
+/* ---- Tables ---- */
+table,th,td{ color:#1b2026 !important; border-color:#eceff2 !important; }
+thead th,.xls-table th{ background:#f5f6f8 !important; color:#5c6773 !important; }
+tbody tr:nth-child(even) td{ background:#fafbfc !important; }
+tbody tr:hover td{ background:#fff7ed !important; }
+.xls-table td,.xls-table th{ border-color:#eceff2 !important; }
+
+/* ---- Inputs / selects / textareas ---- */
+input,select,textarea{
+  background:#ffffff !important; color:#1b2026 !important; border:1px solid #d4dade !important;
+}
+input::placeholder,textarea::placeholder{ color:#9aa6b1 !important; }
+input:focus,select:focus,textarea:focus{ border-color:#ec7211 !important; box-shadow:0 0 0 3px rgba(236,114,17,.14) !important; }
+
+/* ---- Modals ---- */
+.modal,.tb-modal{ background:#ffffff !important; border:1px solid #e2e6ea !important; color:#1b2026 !important; }
+.modal h2,.modal label{ color:#1b2026 !important; }
+.modal-bg,.tb-modal-bg{ background:rgba(20,30,50,.45) !important; }
+
+/* ---- Secondary / ghost buttons + misc chips ---- */
+.btn.sec{ color:#2a3340 !important; border:1px solid #d4dade !important; background:transparent !important; }
+.uc-tab{ color:#5c6773 !important; border-color:#d4dade !important; background:#f5f6f8 !important; }
+/* Active tab: white text sits on the orange gradient. The generic .uc-tab rule above is !important,
+   so the active state must also force its gradient background (and border) or the white text would
+   land on the light-gray base and read as invisible/white. */
+.uc-tab.active{ color:#fff !important; background:linear-gradient(180deg,#ff9f2e,#f07d0a) !important; border-color:#f07d0a !important; }
+
+/* ---- Common hardcoded dark backgrounds some inline styles use ---- */
+[style*="background:#000"],[style*="background:#0a0a0a"],[style*="background:#121820"]{ background:#ffffff !important; }
+[style*="color:#fff"]{ color:#1b2026 !important; }
+
+/* ---- Gate / empty-state panels ---- */
+.gate,.cx-gate,.hx-gate,.iz-loading,.empty,.no-data{ background:#ffffff !important; color:#5c6773 !important; border-color:#e2e6ea !important; }
+
+/* ---- Loading spinner track lightened ---- */
+.spinner{ border-color:#e2e6ea !important; border-top-color:#ec7211 !important; }
+
+/* ---- Shared data-loading spinner (hardcoded chrome + spinner-for-DB-data pattern) ----
+   Use <div class="phd-load"><span class="phd-spin"></span> Loading…</div> for a DB-backed region.
+   .phd-spin / .phd-spin.sm / .phd-spin.lg give small / default / large sizes. */
+.phd-load{ display:flex; align-items:center; justify-content:center; gap:12px; padding:48px 20px; color:#5c6773; font-size:.9em; font-weight:600; }
+.phd-spin{ display:inline-block; width:30px; height:30px; border:3px solid #e2e6ea; border-top-color:#ec7211; border-radius:50%; animation:phdspin .8s linear infinite; flex:0 0 auto; }
+.phd-spin.sm{ width:16px; height:16px; border-width:2px; }
+.phd-spin.lg{ width:46px; height:46px; border-width:4px; }
+@keyframes phdspin{ 100%{ transform:rotate(360deg); } }

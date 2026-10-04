@@ -72,6 +72,14 @@ h1{letter-spacing:-.4px}
 }
 
 /* ---- Buttons: pill shape, gradient primary, ghost secondary --------------- */
+/* Force every button + form control to use the page's Google font (Inter). Native <button>/<input>
+   elements default to the browser's UA font, so without this they render in a different typeface.
+   Covers .btn, bare <button>, the rail/toolbar/profile buttons, and inputs/selects/textareas. */
+button, .btn, input, select, textarea,
+.tb-btn, .tb-nav-fab, .tb-flyout-fab, .tb-pp-login-btn, .tb-pp-mytickets, .tb-pp-sl-btn, .tb-pp-ag-more{
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
 .btn{
   border-radius:var(--thm-radius-pill) !important;
   transition:transform .16s, box-shadow .2s, background .18s, border-color .18s, color .18s;

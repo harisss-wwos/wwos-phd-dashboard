@@ -14,6 +14,23 @@ const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./qua
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
 
+// ---- Era concept (replaces the quarter lens for the Active Dashboard) -----------------------
+// An era is a fixed CreateDate range, independent of the per-ticket `q` quarter field. No DB field
+// is stored for it; aggregations filter by CreateDate. New quarters / calendar years roll over with
+// zero code changes — only starting a brand-new era is a deliberate edit here.
+//   BC era: 2021-01-01 .. 2025-12-31 (historical, frozen).
+//   AC era: 2026-01-01 onward (current / active). The Active Dashboard reads AC.
+const ERA_AC_START = '2026-01-01T00:00:00.000Z';   // inclusive lower bound for AC
+const ERA_BC_START = '2021-01-01T00:00:00.000Z';   // inclusive lower bound for BC
+// Resolve an era token to a { start, endExclusive } ISO window. endExclusive null = open-ended.
+function eraRange(era) {
+  const e = String(era || '').toLowerCase();
+  if (e === 'bc') return { start: ERA_BC_START, endExclusive: ERA_AC_START };
+  // default + 'ac'
+  return { start: ERA_AC_START, endExclusive: null };
+}
+function isEraScope(s) { const e = String(s || '').toLowerCase(); return e === 'ac' || e === 'bc'; }
+
 // Fields that count as a real "change" when merging an uploaded ticket into a quarter doc. Used so a
 // re-uploaded past-quarter ticket with no actual difference is treated as preserved, not "updated".
 const MERGE_DIFF_FIELDS = ['Title', 'Status', 'Severity', 'AssigneeIdentity', 'ResolvedDate', 'Age', 'ClosureCode', 'ResolvedByIdentity', 'RootCause', 'RootCauseDetails', 'LastUpdatedDate'];
@@ -820,6 +837,61 @@ app.get('/api/quarters', async (req, res) => {
   }
 });
 
+// Per-calendar-year metrics (home-page comparison table). Public, like /api/quarters. For each year
+// (bucketed by the year of CreateDate), across EVERY quarter's tickets:
+//   created          = tickets created that year
+//   months           = distinct YYYY-MM with >=1 create that year (so partial years aren't understated)
+//   volPerMonth      = round(created / months)
+//   avgResHrs        = mean Create->Resolved hours over that year's tickets that have a valid (>=0) resolution
+//   slaBase          = that year's tickets with a valid resolution time (eligible)
+//   slaCompliant     = of those, how many resolved within 240h
+//   slaPct           = slaCompliant / slaBase * 100
+app.get('/api/year-metrics', async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const cd = _safeDate('$CreateDate');
+    const rd = _safeDate('$ResolvedDate');
+    const resHrs = { $let: { vars: { c: cd, r: rd }, in: { $cond: [{ $and: [{ $ne: ['$$c', null] }, { $ne: ['$$r', null] }] }, { $divide: [{ $subtract: ['$$r', '$$c'] }, 3600000] }, null] } } };
+    const rows = await coll.aggregate([
+      { $project: {
+        _id: 0,
+        yr: { $cond: [{ $eq: [cd, null] }, null, { $year: cd }] },
+        mo: { $cond: [{ $eq: [cd, null] }, null, { $dateToString: { format: '%Y-%m', date: cd } }] },
+        rh: resHrs,
+      } },
+      { $match: { yr: { $ne: null } } },
+      { $group: {
+        _id: '$yr',
+        created: { $sum: 1 },
+        months: { $addToSet: '$mo' },
+        resSum: { $sum: { $cond: [{ $and: [{ $ne: ['$rh', null] }, { $gte: ['$rh', 0] }] }, '$rh', 0] } },
+        resCnt: { $sum: { $cond: [{ $and: [{ $ne: ['$rh', null] }, { $gte: ['$rh', 0] }] }, 1, 0] } },
+        slaOk:  { $sum: { $cond: [{ $and: [{ $ne: ['$rh', null] }, { $gte: ['$rh', 0] }, { $lte: ['$rh', SLA_HOURS] }] }, 1, 0] } },
+      } },
+      { $sort: { _id: 1 } },
+    ]).toArray();
+
+    const years = rows.map(r => {
+      const months = (r.months || []).filter(Boolean).length || 1;
+      const avgResHrs = r.resCnt ? (r.resSum / r.resCnt) : null;
+      const slaPct = r.resCnt ? (Math.round((r.slaOk / r.resCnt) * 1000) / 10) : null;
+      return {
+        year: r._id,
+        created: r.created,
+        months: months,
+        volPerMonth: Math.round(r.created / months),
+        avgResHrs: (avgResHrs != null) ? Math.round(avgResHrs * 10) / 10 : null,
+        slaBase: r.resCnt,
+        slaCompliant: r.slaOk,
+        slaPct: slaPct,
+      };
+    });
+    res.json({ years });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute year metrics.' });
+  }
+});
+
 // Cheap version check: ONLY the current live quarter's id + label + publishedAt (one findOne,
 // no ticket payload, no other quarters). This is what the live dashboard's cache uses to decide
 // "is my data current?" — so it never needs the full /api/quarters catalog on load.
@@ -1203,6 +1275,56 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load data log.' });
+  }
+});
+
+// Compact "last upload" summary for the profile panel (logged-in). Aggregates the MOST RECENT upload
+// batch (there is one data-log entry per quarter touched, all sharing the same publishedAt):
+//   who, when, # added, # updated, # live tickets that became resolved, total tickets.
+app.get('/api/last-upload', requireRole('user'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.dataLog);
+    const latest = await logColl.find({}).sort({ at: -1 }).limit(1).toArray();
+    if (!latest.length) return res.json({ none: true });
+    const top = latest[0];
+    const stamp = top.publishedAt || top.at;
+    // Grab all entries from the SAME batch (same publishedAt), so a multi-quarter upload tallies once.
+    const batch = await logColl.find({ $or: [{ publishedAt: stamp }, { at: stamp }] }).toArray();
+    let added = 0, updated = 0, becameResolved = 0, total = 0;
+    batch.forEach(e => {
+      const cs = e.changeSummary || {};
+      added += Number(cs.added || 0);
+      updated += Number(cs.updated || 0);
+      becameResolved += Number(cs.becameResolved || 0); // only the live-quarter report carries this
+      total += Number(e.totalTickets || 0);
+    });
+
+    // Live aggregates reflecting the data AFTER this upload (whole live quarter):
+    //   slaPct = % of resolved tickets (valid resolution time) closed within 240h
+    //   petResolvedBySim = pet incidents auto-resolved by AutoSIM
+    let slaPct = null, petResolvedBySim = 0;
+    try {
+      const tickets = await liveTickets();
+      let elig = 0, within = 0;
+      tickets.forEach(t => {
+        if (t.Status === 'Resolved' && t.CreateDate && t.ResolvedDate) {
+          const h = (new Date(t.ResolvedDate) - new Date(t.CreateDate)) / 36e5;
+          if (h >= 0) { elig++; if (h <= 240) within++; }
+        }
+        if (isAutoSimResolved(t) && isPetIncident(t)) petResolvedBySim++;
+      });
+      slaPct = elig ? Math.round((within / elig) * 1000) / 10 : null;
+    } catch (e) { /* best-effort — leave slaPct null / petResolvedBySim 0 */ }
+
+    res.json({
+      none: false,
+      user: top.user || '',
+      at: stamp,
+      added, updated, becameResolved, total,
+      slaPct, petResolvedBySim,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load last-upload info.' });
   }
 });
 
@@ -2226,8 +2348,16 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
     // All my open tickets across all quarters. Index-friendly: AssigneeIdentity (ci) + Status.
     const rows = await coll.find(
       { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } },
-      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, Labels: 1, AssigneeIdentity: 1, q: 1 } }
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, Labels: 1, AssigneeIdentity: 1, q: 1, Country: 1 } }
     ).toArray();
+    // Country/region code for a ticket: prefer the Country field, else the leading 2-3 letter code
+    // at the start of the Title (e.g. "US ...", "IN: ...") — same convention as the Countries report.
+    const countryOf = (t) => {
+      const c = String(t.Country || '').trim();
+      if (c) return c.toUpperCase().slice(0, 3);
+      const m = String(t.Title || '').match(/^\s*([A-Za-z]{2,3})\b/);
+      return m ? m[1].toUpperCase() : '';
+    };
     // Defensive re-filter (regex is anchored+ci, but guard against stray data) + dedupe by ShortId.
     const seen = new Set();
     const out = [];
@@ -2245,6 +2375,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
         shortId: sid,
         url: t.IssueUrl || (t.ShortId ? ('https://t.corp.amazon.com/issues/' + t.ShortId) : ''),
         title: t.Title || '',
+        country: countryOf(t),
         status: t.Status || '',
         createDate: created,
         quarter: t.q || '',
@@ -2257,6 +2388,66 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
     res.json({ quarter: 'all', slaHours: SLA_HOURS, tickets: out });
   } catch (e) {
     res.status(500).json({ error: 'Could not load your tickets.' });
+  }
+});
+
+// ---- Profile panel stats (right rail) -------------------------------------------------------
+// Role-aware, driven by the user's `analyst` flag:
+//   analyst=true  -> MY stats only: open-status counts (Assigned/WIP/Researching/Pending),
+//                    my open-ticket AGE colours (purple/black/red/yellow/green), and MY resolved
+//                    counts in the last 12h / 24h (by ResolvedDate, across all quarters).
+//   analyst=false -> MANAGER view: ONLY team-wide resolved counts in the last 12h / 24h (everyone).
+// All resolved windows are time-based (ResolvedDate within the window), spanning every quarter.
+app.get('/api/profile-stats', requireRole('user'), async (req, res) => {
+  try {
+    const me = String(req.user.username || '').toLowerCase();
+    // Read the analyst flag (owner still follows its own flag, per request).
+    let isAnalyst = false;
+    try {
+      const users = await getCollection(COLLECTIONS.users);
+      const u = await users.findOne({ username: me }, { projection: { analyst: 1 } });
+      isAnalyst = !!(u && u.analyst);
+    } catch (e) { /* default: manager view */ }
+
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const now = Date.now();
+    const t12 = now - 12 * 36e5, t24 = now - 24 * 36e5;
+    const inWindow = (rd, from) => { const d = new Date(rd); return !isNaN(d) && d.getTime() >= from && d.getTime() <= now; };
+
+    if (!isAnalyst) {
+      // MANAGER: team-wide resolved in last 12h / 24h (everyone), across all quarters.
+      const rows = await coll.find(
+        { Status: { $in: ['Resolved', 'Closed'] } },
+        { projection: { _id: 0, ResolvedDate: 1 } }
+      ).toArray();
+      let r12 = 0, r24 = 0;
+      rows.forEach(t => { if (inWindow(t.ResolvedDate, t24)) { r24++; if (inWindow(t.ResolvedDate, t12)) r12++; } });
+      return res.json({ view: 'manager', username: me, resolved12: r12, resolved24: r24 });
+    }
+
+    // ANALYST: my open tickets (status + age colours) + my resolved in last 12h/24h.
+    // Open tickets (all quarters) assigned to me.
+    const openRows = await coll.find(
+      { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } },
+      { projection: { _id: 0, Status: 1, CreateDate: 1, ResolvedDate: 1, _reopened: 1 } }
+    ).toArray();
+    const statusCounts = { 'Assigned': 0, 'Work In Progress': 0, 'Researching': 0, 'Pending': 0 };
+    const colors = { purple: 0, black: 0, red: 0, yellow: 0, green: 0 };
+    openRows.forEach(t => {
+      if (statusCounts[t.Status] != null) statusCounts[t.Status]++;
+      const c = ticketColor(t, now); if (colors[c] != null) colors[c]++;
+    });
+    // My resolved tickets with ResolvedDate in the windows (all quarters).
+    const resRows = await coll.find(
+      { ResolvedByIdentity: ciExact(me), Status: { $in: ['Resolved', 'Closed'] } },
+      { projection: { _id: 0, ResolvedDate: 1 } }
+    ).toArray();
+    let r12 = 0, r24 = 0;
+    resRows.forEach(t => { if (inWindow(t.ResolvedDate, t24)) { r24++; if (inWindow(t.ResolvedDate, t12)) r12++; } });
+
+    res.json({ view: 'analyst', username: me, open: openRows.length, statusCounts, colors, resolved12: r12, resolved24: r24 });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load profile stats.' });
   }
 });
 
@@ -2702,6 +2893,168 @@ app.post('/api/tickets/activity', requireRole('user'), async (req, res) => {
   }
 });
 
+// ---- Presence (who is online on the dashboard) ----
+// How long after the last heartbeat a user is still considered ONLINE. Past this they drop off
+// the Agents-online list. 15 minutes per the dashboard "Agents activity" spec.
+const PRESENCE_ONLINE_MS = 15 * 60 * 1000;
+
+// Heartbeat: the dashboard pings this every ~30s while its tab is visible. We stamp the user's
+// lastSeen = now. One doc per user (keyed by username), upserted. Never blocks on failure.
+app.post('/api/presence/ping', requireRole('user'), async (req, res) => {
+  try {
+    const username = String(req.user.username || '').toLowerCase();
+    if (!username) return res.json({ ok: true });
+    const coll = await getCollection(COLLECTIONS.presence);
+    await coll.updateOne({ _id: username }, { $set: { lastSeen: new Date().toISOString(), username } }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: true }); // presence must never surface an error to the client
+  }
+});
+
+// Agents activity: a PRODUCTIVITY leaderboard (presence no longer gates it). Every agent is credited
+// for the work they did on THEIR OWN "today" — each agent's tickets/comments are bucketed by that
+// agent's own timezone day, NOT the viewer's. So if you (IST) roll past midnight into Oct 4 while
+// Kenny (MST) is still in his Oct 3, each of you keeps your own day's credit independently.
+//   successfulToday / immediateToday / commentedToday = counted in the AGENT'S own current day
+//   *Total = all-time within the live quarter (resolves) / distinct tickets (comments)
+// Any agent with ANY activity on their own today appears. ClosureCode split:
+//   SUCCESSFUL = 'Successful';  IMMEDIATE = 'Immediately Resolved' / 'Automatically Closed'.
+// Add/subtract whole days to a 'YYYY-MM-DD' key (UTC-noon math avoids DST edge cases).
+function shiftDayKey(key, deltaDays) {
+  const d = new Date(key + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+// For a given window + an agent's "today" key, return { keys:Set(dayKeys in window), label }.
+//   today     = [today]
+//   yesterday = [today-1]
+//   lastweek  = the previous COMPLETED Sun..Sat week relative to today
+function windowDayKeys(windowName, todayKey) {
+  if (!todayKey) return { keys: new Set(), label: '' };
+  if (windowName === 'yesterday') {
+    const y = shiftDayKey(todayKey, -1);
+    return { keys: new Set([y]), label: y };
+  }
+  if (windowName === 'lastweek') {
+    // Day-of-week of "today" (0=Sun). The CURRENT week's Sunday is today-dow; last week's Sunday is
+    // 7 days before that, running Sun..Sat (7 days).
+    const dow = new Date(todayKey + 'T12:00:00Z').getUTCDay();
+    const lastSun = shiftDayKey(todayKey, -(dow + 7));
+    const keys = new Set();
+    for (let i = 0; i < 7; i++) keys.add(shiftDayKey(lastSun, i));
+    const lastSat = shiftDayKey(lastSun, 6);
+    return { keys, label: lastSun + ' \u2192 ' + lastSat };
+  }
+  // default: today
+  return { keys: new Set([todayKey]), label: todayKey };
+}
+
+app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
+  try {
+    const windowName = ['today', 'yesterday', 'lastweek'].includes(String(req.query.window)) ? String(req.query.window) : 'today';
+    const usersColl = await getCollection(COLLECTIONS.users);
+
+    // The VIEWER's timezone — used only for the card's label, not for counting.
+    let viewerTz = DEFAULT_TZ;
+    try {
+      const meU = await usersColl.findOne({ username: String(req.user.username || '').toLowerCase() }, { projection: { timezone: 1 } });
+      if (meU && meU.timezone) viewerTz = normTz(meU.timezone);
+    } catch (e) { /* default */ }
+
+    const zoneOf = (tz) => (tz === 'MST' ? 'America/Denver' : 'Asia/Kolkata');
+    const dayKeyIn = (iso, zone) => { try { const d = new Date(iso); return isNaN(d) ? null : d.toLocaleDateString('en-CA', { timeZone: zone }); } catch (e) { return null; } };
+    const nowIso = new Date().toISOString();
+
+    // All users (every potential agent). Precompute, per agent, the set of day-keys (in THEIR OWN
+    // zone) that fall inside the requested window + a per-agent window label.
+    const uRows = await usersColl.find({}, { projection: { username: 1, displayName: 1, avatar: 1, timezone: 1 } }).toArray();
+    const agentMeta = {};   // login -> { name, avatar, tz, zone, winKeys:Set, winLabel }
+    uRows.forEach(u => {
+      const k = String(u.username || '').toLowerCase();
+      if (!k) return;
+      const tz = normTz(u.timezone);
+      const zone = zoneOf(tz);
+      const todayKey = dayKeyIn(nowIso, zone);
+      const win = windowDayKeys(windowName, todayKey);
+      agentMeta[k] = { name: u.displayName || '', avatar: u.avatar || '', tz, zone, winKeys: win.keys, winLabel: win.label };
+    });
+
+    // Per-agent counters: window counts (suc/imm/com) + all-time quarter totals.
+    const stat = {};
+    const ensure = (login) => (stat[login] || (stat[login] = { suc: 0, sucTotal: 0, imm: 0, immTotal: 0, com: 0, comSet: new Set() }));
+    const inWin = (meta, iso) => { const dk = dayKeyIn(iso, meta.zone); return !!(dk && meta.winKeys.has(dk)); };
+
+    // Resolves in the live quarter, bucketed by the RESOLVING agent's own window days.
+    const liveQid = await liveQuarterId();
+    const tColl = await getCollection(COLLECTIONS.ticketDocs);
+    const resRows = await tColl.find(
+      { q: liveQid, Status: { $in: ['Resolved', 'Closed'] } },
+      { projection: { _id: 0, ResolvedByIdentity: 1, ResolvedDate: 1, ClosureCode: 1 } }
+    ).toArray();
+    resRows.forEach(t => {
+      const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
+      const meta = agentMeta[rby];
+      if (!rby || !meta) return;                        // only registered agents (AutoSIM ARN won't match)
+      const cc = String(t.ClosureCode || '').trim();
+      const win = inWin(meta, t.ResolvedDate);
+      const s = ensure(rby);
+      if (cc === 'Successful') { s.sucTotal++; if (win) s.suc++; }
+      else if (IMMEDIATE_AUTO.includes(cc)) { s.immTotal++; if (win) s.imm++; }
+    });
+
+    // Comments, bucketed by the COMMENTING agent's own window days.
+    const commentsColl = await getCollection(COLLECTIONS.comments);
+    const cRows = await commentsColl.find({}, { projection: { _id: 0, user: 1, shortId: 1, at: 1 } }).toArray();
+    cRows.forEach(c => {
+      const u = String(c.user || '').toLowerCase();
+      const meta = agentMeta[u];
+      if (!u || !meta) return;
+      const s = ensure(u);
+      s.comSet.add(String(c.shortId));
+      if (inWin(meta, c.at)) s.com++;
+    });
+
+    // Board: agents with ANY activity in the window. Each carries its own window label.
+    const agents = Object.keys(stat).map(login => {
+      const s = stat[login], meta = agentMeta[login] || {};
+      return {
+        username: login,
+        name: meta.name || login,
+        avatar: meta.avatar || '',
+        tz: meta.tz || DEFAULT_TZ,
+        windowLabel: meta.winLabel || '',
+        successful: s.suc, successfulTotal: s.sucTotal,
+        immediate: s.imm, immediateTotal: s.immTotal,
+        commented: s.com, ticketsCommented: s.comSet.size,
+      };
+    }).filter(a => (a.successful + a.immediate + a.commented) > 0)
+      .sort((a, b) =>
+        (b.successful - a.successful) ||
+        (b.immediate - a.immediate) ||
+        (b.commented - a.commented) ||
+        String(a.name).localeCompare(String(b.name))
+      );
+    agents.forEach((a, i) => { a.rank = i + 1; });
+
+    const team = {
+      successful: agents.reduce((n, a) => n + a.successful, 0),
+      immediate: agents.reduce((n, a) => n + a.immediate, 0),
+      commented: agents.reduce((n, a) => n + a.commented, 0),
+    };
+
+    // Viewer-facing window label (viewer's zone) for the card header.
+    const viewerWin = windowDayKeys(windowName, dayKeyIn(nowIso, zoneOf(viewerTz)));
+
+    res.json({
+      agents, activeCount: agents.length, quarter: liveQid, tz: viewerTz,
+      window: windowName, windowLabel: viewerWin.label, team,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load agents activity.' });
+  }
+});
+
 // GET the comment log for a ticket (logged-in). Oldest first (append-only history).
 app.get('/api/tickets/:shortId/comments', requireRole('user'), async (req, res) => {
   try {
@@ -3031,7 +3384,7 @@ function ticketDocId(qid, shortId) { return qid + '|' + String(shortId); }
 let _ticketIndexesReady = false;
 async function ensureTicketIndexes() {
   if (_ticketIndexesReady) return;
-  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
+  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
 }
 // Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
 // fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
@@ -3297,13 +3650,15 @@ async function computeGroupMetrics(qid) {
   const aSla = {}; GRP_ALL.forEach(n => { aSla[n] = { eligible: 0, within: 0 }; });
   data.forEach(r => {
     const rby = String(r.ResolvedByIdentity || '').toLowerCase();
+    const isSuccessful = String(r.ClosureCode || '').trim() === 'Successful';
     if ((r.Status === 'Resolved' || r.Status === 'Closed') && rby && !isAutoSimResolved(r)) {
       aRes[rby] = (aRes[rby] || 0) + 1;
-      if (r.CreateDate && r.ResolvedDate) { const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5; if (h >= 0) (aTm[rby] = aTm[rby] || []).push(h); }
+      // Avg resolution time now counts ONLY successful resolves (not Immediate/Auto/other closures).
+      if (isSuccessful && r.CreateDate && r.ResolvedDate) { const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5; if (h >= 0) (aTm[rby] = aTm[rby] || []).push(h); }
     }
     if (rby && aClosure[rby]) { const cc = String(r.ClosureCode || '').trim(); if (aClosure[rby][cc] !== undefined) aClosure[rby][cc]++; }
-    // SLA base = Status==='Resolved' with a valid resolution time, attributed to the resolver.
-    if (r.Status === 'Resolved' && rby && aSla[rby] && r.CreateDate && r.ResolvedDate) {
+    // SLA base = ClosureCode==='Successful' with a valid resolution time, attributed to the resolver.
+    if (isSuccessful && rby && aSla[rby] && r.CreateDate && r.ResolvedDate) {
       const h = (new Date(r.ResolvedDate) - new Date(r.CreateDate)) / 36e5;
       if (h >= 0) { aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; }
     }
@@ -3347,7 +3702,7 @@ async function computeGroupMetrics(qid) {
 
 // Bump when the stored group-metrics shape changes (e.g. added per-agent `closure`), so a stale
 // rollup is recomputed even when publishedAt is unchanged.
-const GROUP_ROLLUP_VERSION = 5;
+const GROUP_ROLLUP_VERSION = 6;
 // Materialize the group metrics into a tiny per-quarter doc so the section endpoints read a small
 // findOne (~ms) instead of scanning the ~8k-ticket blob on every request.
 async function recomputeGroupRollup(qid) {
@@ -3412,8 +3767,8 @@ async function computeWindowMetrics(hours) {
     if (rt < from || rt > now) return;                        // resolved within the window
     const cc = String(r.ClosureCode || '').trim();
     if (aClosure[rby][cc] !== undefined) aClosure[rby][cc]++;
-    if (r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) aTm[rby].push(h); }
-    if (r.Status === 'Resolved' && r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) { aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; } }
+    // Avg resolution + SLA now consider ONLY successful resolves (ClosureCode === 'Successful').
+    if (cc === 'Successful' && r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) { aTm[rby].push(h); aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; } }
   });
   const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
   const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), closure: aClosure[n], avgTime: aTm[n].length ? grpAvg(aTm[n]) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
@@ -3437,8 +3792,8 @@ function computeClosureMetrics(tickets, fromMs, toMs) {
     if (fromMs != null && (rt < fromMs || rt >= toMs)) return;   // resolved within [from,to) when a range is given
     const cc = String(r.ClosureCode || '').trim();
     if (aClosure[rby][cc] !== undefined) aClosure[rby][cc]++;
-    if (r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) aTm[rby].push(h); }
-    if (r.Status === 'Resolved' && r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) { aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; } }
+    // Avg resolution + SLA now consider ONLY successful resolves (ClosureCode === 'Successful').
+    if (cc === 'Successful' && r.CreateDate) { const h = (rt - new Date(r.CreateDate)) / 36e5; if (h >= 0) { aTm[rby].push(h); aSla[rby].eligible++; if (h <= 240) aSla[rby].within++; } }
   });
   const slaPctOf = (e, w) => e ? Math.round((w / e) * 1000) / 10 : null;
   const agents = GRP_ALL.map(n => ({ name: n, group: grpOf(n), closure: aClosure[n], avgTime: aTm[n].length ? grpAvg(aTm[n]) : 0, sla: { eligible: aSla[n].eligible, within: aSla[n].within, pct: slaPctOf(aSla[n].eligible, aSla[n].within) } }));
@@ -3488,10 +3843,13 @@ async function aggClosureMetrics(opts) {
   pipeline.push({ $group: {
       _id: { rby: '$_rby', cc: '$_cc' },
       n: { $sum: 1 },
-      rtSum: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, '$_rh', 0] } },
-      rtCount: { $sum: { $cond: [{ $gte: ['$_rh', 0] }, 1, 0] } },
-      slaElig: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }] }, 1, 0] } },
-      slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$Status', 'Resolved'] }, { $gte: ['$_rh', 0] }, { $lte: ['$_rh', 240] }] }, 1, 0] } },
+      // Avg resolution + SLA now consider ONLY successful resolves (ClosureCode === 'Successful'),
+      // not Immediate/Automatically-Closed/other closures. rtSum/rtCount drive avgTime; slaElig/within
+      // drive SLA %. (The group is keyed by cc, so these are only non-zero on the Successful bucket.)
+      rtSum: { $sum: { $cond: [{ $and: [{ $eq: ['$_cc', 'Successful'] }, { $gte: ['$_rh', 0] }] }, '$_rh', 0] } },
+      rtCount: { $sum: { $cond: [{ $and: [{ $eq: ['$_cc', 'Successful'] }, { $gte: ['$_rh', 0] }] }, 1, 0] } },
+      slaElig: { $sum: { $cond: [{ $and: [{ $eq: ['$_cc', 'Successful'] }, { $gte: ['$_rh', 0] }] }, 1, 0] } },
+      slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$_cc', 'Successful'] }, { $gte: ['$_rh', 0] }, { $lte: ['$_rh', 240] }] }, 1, 0] } },
   } });
   const rows = await tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
   // Second pass: per-agent ASSIGNED counts (by AssigneeIdentity), scoped by LastAssignedDate.
@@ -3951,6 +4309,29 @@ async function liveMeta() {
 async function aggLive(stages, qid) {
   qid = qid || await liveQuarterId();
   const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  // DATE-WINDOW scope { from, to }: half-open [from, to) on CreateDate across the WHOLE collection
+  // (no q filter). `to` may be null for open-ended. Powers the Performance period picker.
+  // PERF: CreateDate is stored as an ISO-8601 string ("2026-01-01T..Z"), which sorts lexicographically
+  // in chronological order. So we match the RAW STRING against ISO bounds (plain $gte/$lt) instead of
+  // $expr+$toDate — that lets the planner use the { CreateDate: 1 } index (indexed range scan) rather
+  // than scanning + date-parsing all ~74k docs (which took ~8s per request).
+  if (qid && typeof qid === 'object' && (qid.from || qid.to)) {
+    const range = {};
+    if (qid.from) range.$gte = String(qid.from);                 // 'YYYY-MM-DD' <= any 'YYYY-MM-DDT..' same day
+    if (qid.to) range.$lt = String(qid.to);                      // half-open upper bound
+    const pipeline = [{ $match: { CreateDate: range } }, { $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
+    return tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
+  }
+  // ERA scope ('ac' | 'bc'): match by CreateDate range across the WHOLE collection (no q filter).
+  // CreateDate is stored as a string, so parse it to a date in a $match-able $expr window.
+  if (isEraScope(qid)) {
+    const { start, endExclusive } = eraRange(qid);
+    const cd = _safeDate('$CreateDate');   // raw doc here (before $replaceRoot wraps as `t`)
+    const conds = [{ $ne: [cd, null] }, { $gte: [cd, { $toDate: start }] }];
+    if (endExclusive) conds.push({ $lt: [cd, { $toDate: endExclusive }] });
+    const pipeline = [{ $match: { $expr: { $and: conds } } }, { $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
+    return tColl.aggregate(pipeline, { allowDiskUse: true }).toArray();
+  }
   // "all" (complete database, used by Group Analytics): aggregate across EVERY quarter (no q filter).
   if (qid === 'all') {
     const pipeline = [{ $replaceRoot: { newRoot: { t: '$$ROOT' } } }].concat(stages);
@@ -4030,7 +4411,28 @@ AGG.isRepeatPet = { $and: [AGG.isRepeat, AGG.isPet] };
 
 const pct1 = (n, d) => d ? +((n / d) * 100).toFixed(1) : 0; // one-decimal percentage helper
 
-// ---- Summary (9 KPIs) — computed entirely in Atlas ----
+// 1st-Pet-incident (handled by PHD) match expression for aggregations: pet closure + pet root cause,
+// resolved by a REAL agent (non-empty resolver that is NOT the AutoSIM ARN). Mirrors isPetIncident +
+// the PHD attribution used elsewhere.
+const PET_CLOSURE_ARR = ['Automatically Closed', 'Immediately Resolved'];
+const PET_ROOT_ARR = [
+  'NOT APPLICABLE/No Further Action Required',
+  'Unsecured Animal Attack (CX Pet)',
+  'Unsecured Animal Attack (Non-CX Pet/ Other)',
+  'Unsecured Animal Evasion (CX Pet)',
+  'Unsecured Animal Evasion (Non-CX Pet/ Other)',
+];
+AGG.isFirstPetPhd = { $let: {
+  vars: { rby: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } } },
+  in: { $and: [
+    { $in: [{ $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } }, PET_CLOSURE_ARR] },
+    { $in: [{ $trim: { input: { $ifNull: ['$t.RootCause', ''] } } }, PET_ROOT_ARR] },
+    { $ne: ['$$rby', ''] },
+    { $ne: ['$$rby', PET_AUTOSIM_IDENTITY] },
+  ] },
+} };
+
+// ---- Summary (KPIs + top agents) — computed in Atlas, window/era/quarter-scoped via aggLive ----
 async function dashSummary(qid) {
   const rows = await aggLive([
     {
@@ -4040,10 +4442,13 @@ async function dashSummary(qid) {
         resolved: { $sum: { $cond: [{ $in: ['$t.Status', ['Resolved', 'Closed']] }, 1, 0] } },
         unresolved: { $sum: { $cond: [{ $in: ['$t.Status', ['Assigned', 'Pending', 'Work In Progress', 'Researching']] }, 1, 0] } },
         autosim: { $sum: { $cond: [AGG.isAutoSim, 1, 0] } },
+        firstPetPhd: { $sum: { $cond: [AGG.isFirstPetPhd, 1, 0] } },
         // Resolution-time stats: only Status==Resolved with valid hours >= 0
-        rtSum: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }] }, AGG.resHours, 0] } },
-        rtCount: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }] }, 1, 0] } },
-        slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$t.Status', 'Resolved'] }, { $gte: [AGG.resHours, 0] }, { $lte: [AGG.resHours, 240] }] }, 1, 0] } },
+        // Avg Resolution + SLA now consider ONLY SUCCESSFUL resolves (ClosureCode === 'Successful'),
+        // excluding Immediate/Automatically-Closed (near-instant) resolves which skewed the average.
+        rtSum: { $sum: { $cond: [{ $and: [{ $eq: ['$t.ClosureCode', 'Successful'] }, { $gte: [AGG.resHours, 0] }] }, AGG.resHours, 0] } },
+        rtCount: { $sum: { $cond: [{ $and: [{ $eq: ['$t.ClosureCode', 'Successful'] }, { $gte: [AGG.resHours, 0] }] }, 1, 0] } },
+        slaWithin: { $sum: { $cond: [{ $and: [{ $eq: ['$t.ClosureCode', 'Successful'] }, { $gte: [AGG.resHours, 0] }, { $lte: [AGG.resHours, 240] }] }, 1, 0] } },
         // Repeat incidents (HI Cnt>0, reopens EXCLUDED), split pet vs non-pet
         hi: { $sum: { $cond: [AGG.isRepeat, 1, 0] } },
         hiPet: { $sum: { $cond: [AGG.isRepeatPet, 1, 0] } },
@@ -4068,6 +4473,48 @@ async function dashSummary(qid) {
     weeksElapsed = (wr[0] && wr[0].weeks) || 0;
   } catch (e) { weeksElapsed = 0; }
   const avgHiPerWeek = weeksElapsed ? +(hi / weeksElapsed).toFixed(1) : 0;
+
+  // Top 3 agents for the podium. SORTED by SUCCESSFUL resolves (ClosureCode === 'Successful'),
+  // excluding the AutoSIM ARN. For each we also carry: immediate = Immediately Resolved +
+  // Automatically Closed count, and avgResHrs = mean create->resolve hours over their SUCCESSFUL
+  // resolves only. Avatars are attached from the users collection afterward.
+  let topAgents = [];
+  try {
+    const ar = await aggLive([
+      { $project: {
+        rby: { $toLower: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } } },
+        cc: { $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } },
+        h: AGG.resHours,
+      } },
+      { $match: { rby: { $nin: ['', PET_AUTOSIM_IDENTITY.toLowerCase()] } } },
+      { $group: {
+        _id: '$rby',
+        successful: { $sum: { $cond: [{ $eq: ['$cc', 'Successful'] }, 1, 0] } },
+        immediate: { $sum: { $cond: [{ $in: ['$cc', PET_CLOSURE_ARR] }, 1, 0] } },  // Immediately Resolved + Automatically Closed
+        rtSum: { $sum: { $cond: [{ $and: [{ $eq: ['$cc', 'Successful'] }, { $gte: ['$h', 0] }] }, '$h', 0] } },
+        rtCount: { $sum: { $cond: [{ $and: [{ $eq: ['$cc', 'Successful'] }, { $gte: ['$h', 0] }] }, 1, 0] } },
+      } },
+      { $match: { successful: { $gt: 0 } } },
+      { $sort: { successful: -1 } },
+      { $limit: 3 },
+    ], qid);
+    topAgents = ar.map(x => ({
+      login: x._id,
+      successful: x.successful,
+      immediate: x.immediate || 0,
+      avgResHrs: x.rtCount ? Math.round(x.rtSum / x.rtCount) : null,
+      avatar: '',
+    }));
+    // Attach avatars (+ displayName) from the users collection for the top logins.
+    if (topAgents.length) {
+      const usersColl = await getCollection(COLLECTIONS.users);
+      const logins = topAgents.map(a => a.login);
+      const urows = await usersColl.find({ username: { $in: logins } }, { projection: { _id: 0, username: 1, displayName: 1, avatar: 1 } }).toArray();
+      const umap = {}; urows.forEach(u => { umap[String(u.username || '').toLowerCase()] = u; });
+      topAgents.forEach(a => { const u = umap[a.login]; if (u) { a.avatar = u.avatar || ''; a.name = u.displayName || ''; } });
+    }
+  } catch (e) { topAgents = []; }
+
   return {
     total: T, resolved: res, unresolved: inQ,
     resolvedPct: pct1(res, T), unresolvedPct: pct1(inQ, T),
@@ -4076,6 +4523,8 @@ async function dashSummary(qid) {
     autosim: r.autosim || 0, autosimPct: pct1(r.autosim || 0, T),
     repeatIncidents: hi, hiPet: pet, hiNonPet: nonPet, hiPetPct: petPct, hiNonPetPct: nonPetPct, hiGap: +(petPct - nonPetPct).toFixed(1),
     avgHiPerWeek: avgHiPerWeek, weeksElapsed: weeksElapsed,
+    firstPetByPhd: r.firstPetPhd || 0,
+    topAgents: topAgents,
   };
 }
 
@@ -4136,14 +4585,52 @@ async function dashAgeDetail(qid) {
 }
 
 // ---- Queue Status (counts + % by status) — computed in Atlas ----
+// The four ACTIVE statuses (Assigned/WIP/Researching/Pending) are counted across ALL quarters so the
+// "In Queue" figure reflects every active ticket, not just the live quarter's. Resolved/Closed and
+// the Total stay scoped to the live quarter (counting every historical Closed ticket would make the
+// Resolved/Closed tiles and their percentages meaningless).
+const QUEUE_ACTIVE_STATUSES = ['Assigned', 'Work In Progress', 'Researching', 'Pending'];
 async function dashQueue(qid) {
-  const rows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }], qid);
-  const s = {}; let T = 0;
-  rows.forEach(r => { s[r._id] = r.n; T += r.n; });
   const order = ['Assigned', 'Work In Progress', 'Researching', 'Pending', 'Resolved', 'Closed'];
   const counts = {}, pct = {};
-  order.forEach(k => { counts[k] = s[k] || 0; pct[k] = pct1(counts[k], T); });
-  return { total: T, counts, pct };
+
+  // ERA (or 'all') scope: EVERY status count — active + Resolved/Closed + the Total — comes from the
+  // SAME scope. The era IS the complete working set, so there's no quarter mix. Total = all tickets
+  // in the era.
+  if (isEraScope(qid) || qid === 'all') {
+    const rows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }], qid);
+    const byStatus = {}; let total = 0;
+    rows.forEach(r => { byStatus[r._id] = r.n; total += r.n; });
+    order.forEach(k => { counts[k] = byStatus[k] || 0; });
+    const inQueue = QUEUE_ACTIVE_STATUSES.reduce((s, k) => s + (counts[k] || 0), 0);
+    order.forEach(k => { pct[k] = pct1(counts[k] || 0, total); });
+    return { total, counts, pct, inQueue };
+  }
+
+  // LEGACY quarter scope: active statuses counted across ALL quarters; Resolved/Closed + Total from
+  // the given (live) quarter. Kept for any remaining quarter-scoped callers.
+  const liveRows = await aggLive([{ $group: { _id: '$t.Status', n: { $sum: 1 } } }], qid);
+  const live = {}; let liveT = 0;
+  liveRows.forEach(r => { live[r._id] = r.n; liveT += r.n; });
+
+  // All-quarter counts for the ACTIVE statuses only.
+  const activeRows = await aggLive([
+    { $match: { 't.Status': { $in: QUEUE_ACTIVE_STATUSES } } },
+    { $group: { _id: '$t.Status', n: { $sum: 1 } } },
+  ], 'all');
+  const active = {};
+  activeRows.forEach(r => { active[r._id] = r.n; });
+
+  // Active statuses -> all-quarter counts; Resolved/Closed -> live-quarter counts.
+  QUEUE_ACTIVE_STATUSES.forEach(k => { counts[k] = active[k] || 0; });
+  counts['Resolved'] = live['Resolved'] || 0;
+  counts['Closed'] = live['Closed'] || 0;
+
+  const inQueue = QUEUE_ACTIVE_STATUSES.reduce((s, k) => s + (counts[k] || 0), 0);
+  // Total = all active (every quarter) + live-quarter Resolved/Closed. Percentages ride this total.
+  const total = inQueue + counts['Resolved'] + counts['Closed'];
+  order.forEach(k => { pct[k] = pct1(counts[k] || 0, total); });
+  return { total, counts, pct, inQueue };
 }
 
 // ---- Daily Tickets (Last 7 Days) — buckets computed server-side off maxCreate ----
@@ -4266,6 +4753,86 @@ async function dashWeekly(qid) {
     hiDailyNonPet: hiDailyNon,
     hiDailySpan: daySpan,           // ISO date per daily label (for the tooltip)
   };
+}
+
+// ---- Generic bucketed timeseries for the Performance chart --------------------------------------
+// Buckets [from, to) into month | day | week (Sun..Sat) | step10 (10 equal segments) edges, then
+// counts, per bucket: tickets CREATED (by CreateDate), tickets RESOLVED (by ResolvedDate) + how many
+// of those resolved within 240h (for SLA %). Returns the FULL ordered bucket list so the x-axis spans
+// the whole period; buckets whose start is in the future carry null values (the client draws a gap,
+// so the line stops at "now"). All logic is date-driven — no quarter concept.
+function _tsEdges(fromISO, toISO, bucket) {
+  const edges = [];
+  // Parse a 'YYYY-MM-DD' as a LOCAL calendar date (not UTC) so edge math — which builds local-time
+  // month/day/week starts — compares consistently and doesn't drift by a timezone offset.
+  const _local = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(iso); };
+  const from = _local(fromISO);
+  // Open-ended windows (era / last-N) end at "now" for bucketing; the client caps future buckets.
+  const to = toISO ? _local(toISO) : new Date();
+  if (bucket === 'year') {
+    let d = new Date(from.getFullYear(), 0, 1);
+    while (d < to) { const nx = new Date(d.getFullYear() + 1, 0, 1); edges.push({ start: new Date(d), end: nx }); d = nx; }
+  } else if (bucket === 'month') {
+    let d = new Date(from.getFullYear(), from.getMonth(), 1);
+    while (d < to) { const nx = new Date(d.getFullYear(), d.getMonth() + 1, 1); edges.push({ start: new Date(d), end: nx }); d = nx; }
+  } else if (bucket === 'day') {
+    let d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    while (d < to) { const nx = new Date(d); nx.setDate(nx.getDate() + 1); edges.push({ start: new Date(d), end: nx }); d = nx; }
+  } else if (bucket === 'week') {
+    // Sunday-aligned weeks.
+    let d = new Date(from.getFullYear(), from.getMonth(), from.getDate()); d.setDate(d.getDate() - d.getDay());
+    while (d < to) { const nx = new Date(d); nx.setDate(nx.getDate() + 7); edges.push({ start: new Date(d), end: nx }); d = nx; }
+  } else if (bucket === 'step10') {
+    // 10 equal segments across [from, to).
+    const span = to - from, seg = span / 10;
+    for (let i = 0; i < 10; i++) edges.push({ start: new Date(from.getTime() + seg * i), end: new Date(from.getTime() + seg * (i + 1)) });
+  }
+  return edges;
+}
+async function dashTimeseries(fromISO, toISO, bucket) {
+  const edges = _tsEdges(fromISO, toISO, bucket);
+  if (!edges.length) return { buckets: [], created: [], resolved: [], within: [], resolvedBase: [] };
+  const now = Date.now();
+  const createdBranches = edges.map((e, i) => ({ case: { $and: [{ $ne: ['$cd', null] }, { $gte: ['$cd', e.start] }, { $lt: ['$cd', e.end] }] }, then: i }));
+  const resolvedBranches = edges.map((e, i) => ({ case: { $and: [{ $ne: ['$rd', null] }, { $gte: ['$rd', e.start] }, { $lt: ['$rd', e.end] }] }, then: i }));
+  // Window the aggregation to the full edge span so we don't scan the whole collection.
+  const spanFrom = edges[0].start, spanTo = edges[edges.length - 1].end;
+  const rows = await aggLive([
+    { $project: { cd: _safeDate('$t.CreateDate'), rd: _safeDate('$t.ResolvedDate'), h: AGG.resHours } },
+    { $project: {
+      ci: { $switch: { branches: createdBranches, default: -1 } },
+      ri: { $switch: { branches: resolvedBranches, default: -1 } },
+      within: { $cond: [{ $and: [{ $ne: ['$h', null] }, { $gte: ['$h', 0] }, { $lte: ['$h', 240] }] }, 1, 0] },
+      hasH: { $cond: [{ $and: [{ $ne: ['$h', null] }, { $gte: ['$h', 0] }] }, 1, 0] },
+    } },
+    { $facet: {
+      created: [{ $match: { ci: { $gte: 0 } } }, { $group: { _id: '$ci', n: { $sum: 1 } } }],
+      resolved: [{ $match: { ri: { $gte: 0 } } }, { $group: { _id: '$ri', n: { $sum: 1 } } }],
+      sla: [{ $match: { ri: { $gte: 0 }, hasH: 1 } }, { $group: { _id: '$ri', base: { $sum: 1 }, within: { $sum: '$within' } } }],
+    } },
+  ], { from: spanFrom.toISOString(), to: spanTo.toISOString() });
+  const f = rows[0] || { created: [], resolved: [], sla: [] };
+  const C = new Array(edges.length).fill(0), R = new Array(edges.length).fill(0), W = new Array(edges.length).fill(0), B = new Array(edges.length).fill(0);
+  (f.created || []).forEach(x => { if (x._id >= 0) C[x._id] = x.n; });
+  (f.resolved || []).forEach(x => { if (x._id >= 0) R[x._id] = x.n; });
+  (f.sla || []).forEach(x => { if (x._id >= 0) { B[x._id] = x.base; W[x._id] = x.within; } });
+  // Future buckets (start after now) -> null so the client draws a gap (line stops at today).
+  // Local-date 'YYYY-MM-DD' for the bucket start/end — tz-safe labels (ISO strings can drift a day
+  // across the UTC boundary). The client labels year/month/etc. from these.
+  const ymdLocal = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const buckets = edges.map((e, i) => {
+    const future = e.start.getTime() > now;
+    return {
+      start: e.start.toISOString(), end: e.end.toISOString(), future,
+      startLocal: ymdLocal(e.start), endLocal: ymdLocal(e.end), year: e.start.getFullYear(),
+      created: future ? null : C[i],
+      resolved: future ? null : R[i],
+      within: future ? null : W[i],
+      resolvedBase: future ? null : B[i],
+      slaPct: (future || !B[i]) ? null : +(W[i] / B[i] * 100).toFixed(1),
+    };
+  });
+  return { bucket, buckets };
 }
 
 // ---- SLA Compliance per Week (<=240h), 13 buckets from quarter start ----
@@ -4642,15 +5209,28 @@ function petCountFromResolved(resolved) {
 // current; otherwise falls back to a live aggregation and kicks off a background recompute.
 // Age chunks depend on the CURRENT clock (a ticket's colour changes as hours pass), so they are
 // NOT served from the (publish-time) rollup — they always compute live. Everything else is cacheable.
-const ALWAYS_LIVE_CHUNKS = new Set(['age', 'age-detail']);
+// 'queue' is also always-live: its active-status counts now span EVERY quarter (not just the live
+// one), so they change between publishes as other quarters gain/lose active tickets. Computing it
+// live each hit keeps "In Queue" accurate without waiting for a re-publish.
+const ALWAYS_LIVE_CHUNKS = new Set(['age', 'age-detail', 'queue']);
 Object.keys(DASH_CHUNKS).forEach(name => {
   app.get('/api/dash/' + name, async (req, res) => {
     const liveQ = await liveQuarterId();
-    // Optional scope: ?q=all (every quarter) | ?q=q2q3 (Q2+Q3) | ?q=<YYYY-Qn> | omitted => live quarter.
+    // DATE-WINDOW scope: ?from=<ISO>&to=<ISO> (half-open [from,to), CreateDate). `to` optional
+    // (open-ended). Takes precedence over ?q. Used by the Performance section's period picker.
+    const fromReq = String(req.query.from || '').trim();
+    const toReq = String(req.query.to || '').trim();
+    const isWindow = !!fromReq || !!toReq;
+    // Optional scope: ?q=ac | ?q=bc (era, CreateDate range, no quarter) | ?q=all (every quarter)
+    //   | ?q=q2q3 (Q2+Q3) | ?q=<YYYY-Qn> | omitted => live quarter.
     const qReq = String(req.query.q || '').trim();
+    const qLower = qReq.toLowerCase();
     const isValidQ = /^\d{4}-Q[1-4]$/.test(qReq);
-    const qid = (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (isValidQ ? qReq : liveQ);
-    const isLiveScope = (qid === liveQ);
+    const qid = isWindow
+      ? { from: fromReq || null, to: toReq || null }
+      : isEraScope(qLower) ? qLower : (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (isValidQ ? qReq : liveQ);
+    // Window + era + non-live scopes never use the (quarter-keyed, publish-time) rollup — compute live.
+    const isLiveScope = (!isWindow && qid === liveQ);
     try {
       const meta = await liveMeta();
       // Incident Types get the owner's display grouping applied at READ time (never baked into the
@@ -4673,14 +5253,34 @@ Object.keys(DASH_CHUNKS).forEach(name => {
       }
       // Any non-live scope (Q2 / Overall), always-live chunk, or missing/stale rollup -> compute now.
       const slice = finalize(await DASH_CHUNKS[name](qid));
-      const label = (qid === 'all') ? 'Overall' : (qid === 'q2q3') ? 'Q2 + Q3' : quarterLabel(qid);
-      res.json(Object.assign({ quarter: qid, label: label, publishedAt: meta.publishedAt, cached: false }, slice));
+      const label = isWindow ? 'Custom range'
+        : (qid === 'ac') ? 'AC era' : (qid === 'bc') ? 'BC era' : (qid === 'all') ? 'Overall' : (qid === 'q2q3') ? 'Q2 + Q3' : quarterLabel(qid);
+      // `quarter` echoes the scope; for a window send the from/to back so the client can confirm it.
+      const quarterEcho = isWindow ? qid : qid;
+      res.json(Object.assign({ quarter: quarterEcho, label: label, publishedAt: meta.publishedAt, cached: false }, slice));
       // Only the live quarter has a cacheable rollup to refresh.
       if (isLiveScope && !ALWAYS_LIVE_CHUNKS.has(name)) recomputeRollup(qid).catch(e => console.error('rollup recompute (bg) failed:', e && e.message));
     } catch (e) {
       res.status(500).json({ error: 'Could not compute dashboard chunk: ' + name });
     }
   });
+});
+
+// Granularity-aware timeseries for the Performance chart (public read). The client sends the window
+// + bucket type; the server returns an ordered bucket list (created/resolved/SLA per bucket) spanning
+// the whole period, with future buckets as null so the drawn line stops at "now".
+//   ?from=<ISO>&to=<ISO|empty>&bucket=month|day|week|step10
+app.get('/api/dash/timeseries', async (req, res) => {
+  try {
+    const from = String(req.query.from || '').trim();
+    const to = String(req.query.to || '').trim() || null;
+    const bucket = ['year', 'month', 'day', 'week', 'step10'].includes(String(req.query.bucket)) ? String(req.query.bucket) : 'week';
+    if (!from) return res.status(400).json({ error: 'from is required.' });
+    const out = await dashTimeseries(from, to, bucket);
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute timeseries.' });
+  }
 });
 
 // Per-incident-type agent breakdown (for the Incident Types row-click popup). Resolved/closed
