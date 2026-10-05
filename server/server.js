@@ -1291,12 +1291,14 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
     // Grab all entries from the SAME batch (same publishedAt), so a multi-quarter upload tallies once.
     const batch = await logColl.find({ $or: [{ publishedAt: stamp }, { at: stamp }] }).toArray();
     let added = 0, updated = 0, becameResolved = 0, total = 0;
+    let fileName = '';
     batch.forEach(e => {
       const cs = e.changeSummary || {};
       added += Number(cs.added || 0);
       updated += Number(cs.updated || 0);
       becameResolved += Number(cs.becameResolved || 0); // only the live-quarter report carries this
       total += Number(e.totalTickets || 0);
+      if (!fileName && e.fileName) fileName = String(e.fileName);  // uploaded file name (live-quarter entry carries it)
     });
 
     // Live aggregates reflecting the data AFTER this upload (whole live quarter):
@@ -1320,6 +1322,7 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
       none: false,
       user: top.user || '',
       at: stamp,
+      fileName,
       added, updated, becameResolved, total,
       slaPct, petResolvedBySim,
     });
@@ -2966,9 +2969,10 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
     const dayKeyIn = (iso, zone) => { try { const d = new Date(iso); return isNaN(d) ? null : d.toLocaleDateString('en-CA', { timeZone: zone }); } catch (e) { return null; } };
     const nowIso = new Date().toISOString();
 
-    // All users (every potential agent). Precompute, per agent, the set of day-keys (in THEIR OWN
-    // zone) that fall inside the requested window + a per-agent window label.
-    const uRows = await usersColl.find({}, { projection: { username: 1, displayName: 1, avatar: 1, timezone: 1 } }).toArray();
+    // ONLY analysts appear on the agents-activity board (users with analyst:true). Precompute, per
+    // analyst, the set of day-keys (in THEIR OWN zone) that fall inside the requested window + a
+    // per-agent window label.
+    const uRows = await usersColl.find({ analyst: true }, { projection: { username: 1, displayName: 1, avatar: 1, timezone: 1 } }).toArray();
     const agentMeta = {};   // login -> { name, avatar, tz, zone, winKeys:Set, winLabel }
     uRows.forEach(u => {
       const k = String(u.username || '').toLowerCase();
@@ -3015,9 +3019,11 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
       if (inWin(meta, c.at)) s.com++;
     });
 
-    // Board: agents with ANY activity in the window. Each carries its own window label.
-    const agents = Object.keys(stat).map(login => {
-      const s = stat[login], meta = agentMeta[login] || {};
+    // Board: EVERY registered agent, so agents with no resolves still appear (listed with 0). An
+    // agent's stats come from `stat` if they had any resolve/comment, else default to all-zeros.
+    const buildAgent = (login) => {
+      const s = stat[login] || { suc: 0, sucTotal: 0, imm: 0, immTotal: 0, com: 0, comSet: new Set() };
+      const meta = agentMeta[login] || {};
       return {
         username: login,
         name: meta.name || login,
@@ -3026,9 +3032,10 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
         windowLabel: meta.winLabel || '',
         successful: s.suc, successfulTotal: s.sucTotal,
         immediate: s.imm, immediateTotal: s.immTotal,
-        commented: s.com, ticketsCommented: s.comSet.size,
+        commented: s.com, ticketsCommented: (s.comSet ? s.comSet.size : 0),
       };
-    }).filter(a => (a.successful + a.immediate + a.commented) > 0)
+    };
+    const agents = Object.keys(agentMeta).map(buildAgent)
       .sort((a, b) =>
         (b.successful - a.successful) ||
         (b.immediate - a.immediate) ||
@@ -3036,6 +3043,9 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
         String(a.name).localeCompare(String(b.name))
       );
     agents.forEach((a, i) => { a.rank = i + 1; });
+    // "Active" = agents with ANY activity in the window (drives the "N active today" badge; the list
+    // itself now includes zero-activity agents too).
+    const activeCount = agents.filter(a => (a.successful + a.immediate + a.commented) > 0).length;
 
     const team = {
       successful: agents.reduce((n, a) => n + a.successful, 0),
@@ -3047,7 +3057,7 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
     const viewerWin = windowDayKeys(windowName, dayKeyIn(nowIso, zoneOf(viewerTz)));
 
     res.json({
-      agents, activeCount: agents.length, quarter: liveQid, tz: viewerTz,
+      agents, activeCount, quarter: liveQid, tz: viewerTz,
       window: windowName, windowLabel: viewerWin.label, team,
     });
   } catch (e) {

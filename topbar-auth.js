@@ -768,7 +768,7 @@
       + '.tb-pp-ag-row:last-of-type{border-bottom:none}'
       // Rows scroll INTERNALLY (capped height) so a long leaderboard never stretches the panel and
       // hides the banner. Thin orange scrollbar to match the panel.
-      + '.tb-pp-ag-rows{max-height:46vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#ff9900 transparent}'
+      + '.tb-pp-ag-rows{overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#ff9900 transparent}'
       + '.tb-pp-ag-rows::-webkit-scrollbar{width:4px}.tb-pp-ag-rows::-webkit-scrollbar-thumb{background:#ff9900;border-radius:4px}'
       // "Show all / Show top 7" toggle below the rows.
       + '.tb-pp-ag-more{display:block;width:100%;margin:7px 0 0;padding:6px 0;background:#f5f6f8;border:1px solid #e6eaef;border-radius:8px;color:#2563eb;font-size:.68em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;transition:background .14s,color .14s}'
@@ -781,7 +781,10 @@
       + '.tb-pp-ag-id{display:flex;align-items:center;gap:8px;min-width:0}'
       + '.tb-pp-ag-idtext{display:flex;flex-direction:column;min-width:0}'
       + '.tb-pp-ag-nm{color:#1b2026;font-size:.78em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}'
-      + '.tb-pp-ag-ago{color:#9aa6b1;font-size:.56em;font-weight:600;white-space:nowrap;letter-spacing:.2px}'
+      + '.tb-pp-ag-ago{color:#9aa6b1;font-size:.56em;font-weight:600;white-space:nowrap;letter-spacing:.2px;display:inline-flex;align-items:center;gap:5px}'
+      // Small green blinking dot next to the tz = analyst worked today (Today card only).
+      + '.tb-pp-ag-live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:tbAgLive 1.4s ease-in-out infinite;flex:0 0 auto}'
+      + '@keyframes tbAgLive{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.55)}50%{opacity:.45;box-shadow:0 0 0 4px rgba(34,197,94,0)}}'
       // Metric cell: a single CENTERED number filling its fixed grid column (centers under the header).
       + '.tb-pp-ag-row .tb-pp-ag-metric{display:flex;align-items:center;justify-content:center;text-align:center;color:#1b2026;font-size:.9em;font-weight:900;line-height:1}'
       // Team footer + the "reflects dashboard data" note.
@@ -2136,7 +2139,7 @@
       + '<div class="tb-pp-card-h"><span class="tb-pp-ic">' + izImg('upload-new-data', ic('upload', 15)) + '</span>'
       +   '<span class="tb-pp-card-t">Change in data due to last upload</span>' + uploadLogBtn + '</div>'
       + '<div class="tb-pp-card-b"><div class="tb-pp-up">'
-      + upRow('Uploaded by') + upRow('When') + upRow('Newly added') + upRow('Updated')
+      + upRow('Uploaded by') + upRow('File') + upRow('When') + upRow('Newly added') + upRow('Updated')
       + upRow('Live \u2192 resolved') + upRow('SLA %') + upRow('Pet resolved by SIM')
       + '</div></div></section>';
     // The last card is the SLIDER shell — same markup as the live layout so the prev/dots/next
@@ -2269,7 +2272,7 @@
       var upLoadRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v"><span class="tb-pp-mini-spin"></span></span></div>'; };
       var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Change in data due to last upload',
         '<div id="tbPpUploadBody"><div class="tb-pp-up">'
-        + upLoadRow('Uploaded by') + upLoadRow('When') + upLoadRow('Newly added') + upLoadRow('Updated')
+        + upLoadRow('Uploaded by') + upLoadRow('File') + upLoadRow('When') + upLoadRow('Newly added') + upLoadRow('Updated')
         + upLoadRow('Live \u2192 resolved') + upLoadRow('SLA %') + upLoadRow('Pet resolved by SIM')
         + '</div></div>', 'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
       // Three agent-activity windows: Today / Yesterday / Last week. Each is its own carousel slide,
@@ -2278,7 +2281,7 @@
         return tbProfileCard(izImg('group-analytics', ic('users', 15)), titleText,
           '<div id="' + bodyId + '">' + tbAgSkeleton() + '</div>', 'tb-pp-card-agents', tbPpReloadBtn(reloadId));
       };
-      var todayCard = agentSlide('tbPpAgToday', 'Agents activity for ' + tbEsc(tbAgTodayLabel()) + ' (Today)', 'tbPpReloadAgToday');
+      var todayCard = agentSlide('tbPpAgToday', 'Agents worked Today(' + tbEsc(tbAgTodayLabel()) + ')', 'tbPpReloadAgToday');
       var ydayCard = agentSlide('tbPpAgYesterday', 'Agents activity for ' + tbEsc(tbAgDayLabel(-1)) + ' (Yesterday)', 'tbPpReloadAgYday');
       var weekCard = agentSlide('tbPpAgLastWeek', 'Agents activity for ' + tbEsc(tbAgLastWeekLabel()) + ' (Last week)', 'tbPpReloadAgWeek');
 
@@ -2603,6 +2606,7 @@
       var slaTxt = (d.slaPct != null) ? (d.slaPct + '%') : '\u2014';
       body.innerHTML = '<div class="tb-pp-up">'
         + row('Uploaded by', tbEsc(d.user || '\u2014'))
+        + row('File', tbEsc(d.fileName || '\u2014'))
         + row('When', tbEsc(when || '\u2014'))
         + row('Newly added', (d.added != null ? d.added : 0))
         + row('Updated', (d.updated != null ? d.updated : 0))
@@ -2742,29 +2746,24 @@
     var tzOnly = function (a) { return a.tz || ''; };   // each row counted in the agent's own tz day
     var rowHtml = function (a) {
       var nm = a.name || a.username || '\u2014';
+      // On the Today card, a small green blinking dot next to the timezone marks an analyst who
+      // worked today (had any successful / immediate / commented activity).
+      var worked = ((a.successful || 0) + (a.immediate || 0) + (a.commented || 0)) > 0;
+      var workedDot = (isToday && worked) ? '<span class="tb-pp-ag-live" title="Worked today"></span>' : '';
       return '<div class="tb-pp-ag-row">'
         + '<span class="tb-pp-ag-id">' + tbAgAvatar(a)
         +   '<span class="tb-pp-ag-idtext"><span class="tb-pp-ag-nm">' + tbEsc(nm) + '</span>'
-        +   '<span class="tb-pp-ag-ago">' + tbEsc(tzOnly(a)) + '</span></span>'
+        +   '<span class="tb-pp-ag-ago">' + tbEsc(tzOnly(a)) + workedDot + '</span></span>'
         + '</span>'
         + '<span class="tb-pp-ag-metric">' + (a.commented || 0) + '</span>'
         + '<span class="tb-pp-ag-metric">' + (a.successful || 0) + '</span>'
         + '<span class="tb-pp-ag-metric">' + (a.immediate || 0) + '</span>'
         + '</div>';
     };
-    // PAGED view: show only PAGE_SIZE agents at a time. Page 0 = top 7; page 1 = the rest (bottom).
-    // The toggle flips between the two pages — never shows everyone at once.
-    var PAGE_SIZE = 7;
-    var hasBottom = agents.length > PAGE_SIZE;
-    var page = (st.page === 1 && hasBottom) ? 1 : 0;
-    var visible = (page === 1) ? agents.slice(PAGE_SIZE) : agents.slice(0, PAGE_SIZE);
-    var rows = visible.map(rowHtml).join('');
-    var bottomCount = agents.length - PAGE_SIZE;
-    var moreBtn = hasBottom
-      ? '<button type="button" class="tb-pp-ag-more" data-body="' + bodyId + '">'
-        + (page === 1 ? 'Show top ' + PAGE_SIZE + ' \u25B4' : 'Show bottom ' + bottomCount + ' \u25BE')
-        + '</button>'
-      : '';
+    // Show ALL agents (the profile column flows with the page, so no top-7/bottom paging). Rows live
+    // in a scrollable container as a safety cap for very long lists.
+    var rows = agents.map(rowHtml).join('');
+    var moreBtn = '';
 
     var tm = st.data.team || {};
     var periodWord = isToday ? 'Team today' : (st.window === 'yesterday' ? 'Team that day' : 'Team that week');
