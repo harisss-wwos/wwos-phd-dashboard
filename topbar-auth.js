@@ -2140,7 +2140,7 @@
       +   '<span class="tb-pp-card-t">Change in data due to last upload</span>' + uploadLogBtn + '</div>'
       + '<div class="tb-pp-card-b"><div class="tb-pp-up">'
       + upRow('Uploaded by') + upRow('File') + upRow('When') + upRow('Newly added') + upRow('Updated')
-      + upRow('Live \u2192 resolved') + upRow('SLA %') + upRow('Pet resolved by SIM')
+      + upRow('SLA %')
       + '</div></div></section>';
     // The last card is the SLIDER shell — same markup as the live layout so the prev/dots/next
     // control bar is present during loading (no layout jump when the real data swaps in). The
@@ -2188,11 +2188,9 @@
 
   // A small reload button for a profile-section card header (top-right). `onReload` is called when
   // clicked; it should re-fetch that section with force:true. Shows a spinning state until done.
-  function tbPpReloadBtn(id) {
-    return '<button type="button" class="tb-pp-reload" id="' + id + '" aria-label="Refresh this section" title="Refresh">'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'
-      + '</button>';
-  }
+  // Per-section reload buttons were removed from the profile column — each section now refreshes with
+  // the main page/column build instead. Return nothing so no reload button renders in any card header.
+  function tbPpReloadBtn(id) { return ''; }
   // Wire a reload button (by id) living inside `scope` (a card element or document). Spins while the
   // provided fetcher runs. The fetcher returns a Promise; the spin stops when it settles.
   function tbPpWireReload(scope, btnId, fetcher) {
@@ -2273,7 +2271,7 @@
       var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Change in data due to last upload',
         '<div id="tbPpUploadBody"><div class="tb-pp-up">'
         + upLoadRow('Uploaded by') + upLoadRow('File') + upLoadRow('When') + upLoadRow('Newly added') + upLoadRow('Updated')
-        + upLoadRow('Live \u2192 resolved') + upLoadRow('SLA %') + upLoadRow('Pet resolved by SIM')
+        + upLoadRow('SLA %')
         + '</div></div>', 'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
       // Three agent-activity windows: Today / Yesterday / Last week. Each is its own carousel slide,
       // with its own reload button in the card header.
@@ -2610,9 +2608,7 @@
         + row('When', tbEsc(when || '\u2014'))
         + row('Newly added', (d.added != null ? d.added : 0))
         + row('Updated', (d.updated != null ? d.updated : 0))
-        + row('Live \u2192 resolved', (d.becameResolved != null ? d.becameResolved : 0))
         + row('SLA %', slaTxt)
-        + row('Pet resolved by SIM', (d.petResolvedBySim != null ? d.petResolvedBySim : 0))
         + '</div>';
     };
     // Cache-first: paint instantly from cache (no network) unless forced.
