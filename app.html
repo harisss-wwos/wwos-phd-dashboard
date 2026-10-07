@@ -662,6 +662,22 @@ tr:hover{background:#f8fafb}
    rule below so this section (which also contains #dashAgeBody) keeps its own colour. */
 .content .section:has(.lq-body) .sec-head{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)!important}
 .content .section:has(#dashAgeBody):not(:has(.lq-body)) .sec-head{background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454)}
+/* ---- Live Queue + Performance Overview banners: state-aware flat color + WHITE font ----
+   Expanded = #0b63cf (AA white contrast). Collapsed = sky-blue #38bdf8. White title + icons. */
+.content .dash-collapsible:has(.lq-body) .sec-head,
+.content .dash-collapsible[data-perf] .sec-head{background:#0b63cf!important}
+.content .dash-collapsible.collapsed:has(.lq-body) .sec-head,
+.content .dash-collapsible.collapsed[data-perf] .sec-head{background:#38bdf8!important}
+/* White title text + caret on both banners (overrides the default dark #0e1013). */
+.content .dash-collapsible:has(.lq-body) .sec-head h2,
+.content .dash-collapsible:has(.lq-body) .sec-head h2 svg,
+.content .dash-collapsible:has(.lq-body) .sec-head .sec-caret,
+.content .dash-collapsible[data-perf] .sec-head h2,
+.content .dash-collapsible[data-perf] .sec-head h2 svg,
+.content .dash-collapsible[data-perf] .sec-head .sec-caret{color:#ffffff!important}
+/* The watermark illustration is a dark SVG; soften it so it reads on the blue (optional subtlety). */
+.content .dash-collapsible:has(.lq-body) .sec-head::after,
+.content .dash-collapsible[data-perf] .sec-head::after{opacity:.28}
 /* Average Data — green */
 .content .kpi-section:has(#dashSumAvg) .sec-head{background:linear-gradient(90deg,#22c55e,#4ade80 55%,#86efac)}
 /* Repeat Incident Data — purple */
@@ -918,13 +934,13 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 @keyframes mblink{50%{opacity:.4}}
 </style>
 <!-- Light-mode preview (app.html only). Loaded last so it wins the cascade. Remove this line to revert. -->
-<link rel="stylesheet" href="light-app.css?v=30">
+<link rel="stylesheet" href="light-app.css?v=31">
 </head>
 <body data-app="live" data-profile-panel data-back-href="index.html" data-back-label="All Dashboards">
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=108"></script>
+<script src="topbar-auth.js?v=109"></script>
 <script src="app.js?v=55"></script>
 </body>
 </html>

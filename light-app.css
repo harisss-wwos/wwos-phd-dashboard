@@ -7,7 +7,7 @@
 
 :root{
   /* Light palette */
-  --lt-page:#f5f6f8;        /* page background */
+  --lt-page:#f4f3ef;        /* page background */
   --lt-panel:#ffffff;       /* cards / sections / panels */
   --lt-panel-2:#eef1f4;     /* secondary surfaces (headers, chips, inset) */
   --lt-panel-3:#e7ebef;     /* hover / zebra */
@@ -217,11 +217,12 @@ body[data-profile-panel] .content .q-tile.am .v{color:#b45309!important}
 body[data-profile-panel] .content .age{border:none!important;border-radius:5px!important;box-shadow:0 2px 6px rgba(20,30,50,.14)!important}
 /* No left colour spine either (the fill already carries the colour). */
 body[data-profile-panel] .content .age::before{display:none!important}
-body[data-profile-panel] .content .age.purple{background:linear-gradient(100deg,#a78bfa,#c4b5fd)!important}
-body[data-profile-panel] .content .age.black {background:linear-gradient(100deg,#6b7681,#aab4bf)!important}
-body[data-profile-panel] .content .age.red   {background:linear-gradient(100deg,#ef4444,#f88)!important}
-body[data-profile-panel] .content .age.yellow{background:linear-gradient(100deg,#f59e0b,#fcd34d)!important}
-body[data-profile-panel] .content .age.green {background:linear-gradient(100deg,#16a34a,#4ade80)!important}
+/* SOLID fills (no gradient). Black is a deep near-black so it reads distinctly. */
+body[data-profile-panel] .content .age.purple{background:#a78bfa!important}
+body[data-profile-panel] .content .age.black {background:#15181c!important}
+body[data-profile-panel] .content .age.red   {background:#ef4444!important}
+body[data-profile-panel] .content .age.yellow{background:#f59e0b!important}
+body[data-profile-panel] .content .age.green {background:#16a34a!important}
 /* Row text: dark on the lighter (yellow/green) fills, white on the darker (purple/black/red) fills. */
 body[data-profile-panel] .content .age .band .lbl b,
 body[data-profile-panel] .content .age .band .lbl span,

@@ -565,9 +565,9 @@
       + '.tb-pp-av img,.tb-pp-av .avatar-initial{width:56px!important;height:56px!important;border-radius:50%!important;object-fit:cover}'
       + '.tb-pp-meta{min-width:0;display:flex;flex-direction:column;gap:2px}'
       + '.tb-pp-namerow{display:flex;align-items:center;gap:8px;min-width:0}'
-      + '.tb-pp-name{color:#2a1706;font-size:1.02em;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
-      + '.tb-pp-handle{color:rgba(42,23,6,.7);font-weight:600;font-size:.8em}'
-      + '.tb-pp-badge{flex:0 0 auto;display:inline-flex;align-items:center;background:rgba(42,23,6,.16);color:#2a1706;font-size:.66em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:2px 8px;border-radius:999px}'
+      + '.tb-pp-name{color:#ffffff;font-size:1.02em;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.tb-pp-handle{color:rgba(255,255,255,.9);font-weight:600;font-size:.8em}'
+      + '.tb-pp-badge{flex:0 0 auto;display:inline-flex;align-items:center;background:rgba(255,255,255,.22);color:#ffffff;font-size:.66em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:2px 8px;border-radius:999px}'
       // Hamburger toggle (replaces the old +/- chip). Pinned to the right of the top row; its 3 bars
       // animate into an X when the menu is open. Tinted for the orange banner.
       + '.tb-pp-ham{margin-left:auto;flex:0 0 auto;display:inline-flex;flex-direction:column;justify-content:center;gap:4px;width:36px;height:32px;padding:7px 8px;box-sizing:border-box;background:rgba(255,255,255,.26);border:1px solid rgba(255,255,255,.55);border-radius:5px;cursor:pointer;transition:background .14s,transform .12s}'

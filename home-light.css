@@ -8,7 +8,7 @@
    ============================================================================ */
 
 /* Page surface + base text. */
-body{ background:#f4f6f8 !important; color:#1b2026 !important; }
+body{ background:#f4f3ef !important; color:#1b2026 !important; }
 
 /* Universal header title ("WWOS-PHD Dashboard") was white for the dark theme — darken it, or it's
    invisible on the light background. */

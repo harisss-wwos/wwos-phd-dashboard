@@ -23,7 +23,7 @@
 }
 
 /* ---- Base canvas (override theme.css's dark gradient body) ---- */
-html,body{ background:#f4f6f8 !important; color:#1b2026 !important; }
+html,body{ background:#f4f3ef !important; color:#1b2026 !important; }
 body{ background-image:none !important; }
 
 /* ---- Content band: on the 3-column layout, the main column (.wrap/.content) should FILL the band

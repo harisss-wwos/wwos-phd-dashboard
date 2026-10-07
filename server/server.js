@@ -3621,6 +3621,28 @@ async function liveTickets() {
   return await loadQuarterTickets(await liveQuarterId());
 }
 
+// All AC-era tickets (CreateDate >= 2026-01-01) across EVERY quarter bucket, deduped by ShortId.
+// The Active Dashboard's working set is the AC era, not a single quarter — a freshly-created ticket
+// lands in the current calendar quarter (e.g. 2026-Q4), which is NOT the "live" (highest-count)
+// quarter, so quarter-scoped reads under-count open work. This loads the whole era and keeps one
+// row per ShortId (newest quarter bucket wins) so cross-quarter duplicates never double-count.
+async function acEraTickets() {
+  const { start } = eraRange('ac');
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  // CreateDate is an ISO string; a lexicographic >= on the era start is an index-friendly range scan.
+  const docs = await coll.find({ CreateDate: { $gte: start } }).toArray();
+  const byId = new Map();
+  docs.forEach(d => {
+    const t = Object.assign({}, d); const q = t.q; delete t._id; delete t.q;
+    const sid = String(t.ShortId || t.IssueId || '').trim();
+    if (!sid) { byId.set('__noid__' + Math.random(), t); return; }  // keep id-less rows individually
+    const prev = byId.get(sid);
+    // Prefer the copy in the later quarter bucket (that's the ticket's correct current home).
+    if (!prev || String(q || '') > String(prev.__q || '')) { t.__q = q; byId.set(sid, t); }
+  });
+  return [...byId.values()].map(t => { delete t.__q; return t; });
+}
+
 // Agent analytics (admin+). Per-user stats grouped into leads (owner/admin/manager) and editors.
 app.get('/api/agent-analytics', requireRole('user'), async (req, res) => {
   try {
@@ -4081,7 +4103,10 @@ function shiftDisplayName(n) {
 async function recomputeShiftRollup(qid) {
   qid = qid || await liveQuarterId();
   const meta = await liveMetaFor(qid);
-  const data = await loadQuarterTickets(qid); // compute from THIS quarter's tickets, not the global live
+  // Compute from the WHOLE AC era (all 2026+ tickets, deduped by ShortId), NOT just the single live
+  // quarter — otherwise open tickets created in a later calendar quarter (e.g. 2026-Q4) are missed,
+  // undercounting the queue. Matches the Live Queue / age chunks, which are AC-era scoped.
+  const data = await acEraTickets();
   // Activity window: relative to the latest CreateDate in the data (mirrors app.js computeMetrics).
   const createTimes = data.map(r => new Date(r.CreateDate).getTime()).filter(t => !isNaN(t));
   const refNow = createTimes.length ? Math.max(...createTimes) : Date.now();
