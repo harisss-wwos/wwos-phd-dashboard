@@ -15,7 +15,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{100%{transform:rotate(360deg)}}
@@ -23,7 +23,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
 /* Expand/collapse case cards */
-.case{background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.case{background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:5px;margin-bottom:14px;overflow:hidden}
 .case-head{display:flex;align-items:center;gap:14px;padding:16px 20px;width:100%;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .case-head:hover{background:#0d0d0d}
 .case-id{color:#44b9d6;font-weight:700;font-size:1.02em;flex-shrink:0}
@@ -36,45 +36,45 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .case-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm)}
 .case-meta b{color:#fff;font-weight:600}
 .blk-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px}
-.case-info{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:8px;padding:12px 14px}
+.case-info{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:5px;padding:12px 14px}
 .links{display:flex;flex-direction:column;gap:6px}
-.link-item{background:#000;border:1px solid var(--bd);border-radius:8px;padding:8px 12px}
+.link-item{background:#000;border:1px solid var(--bd);border-radius:5px;padding:8px 12px}
 .link-item a{color:#44b9d6;text-decoration:none;font-size:.85em;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .link-item a:hover{text-decoration:underline}
 .none{color:#5f6b6c;font-size:.85em;font-style:italic}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:5px}
 .case-actions{margin-top:6px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;flex-wrap:wrap}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
 /* Edit popup */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:80vw;max-width:80vw;max-height:88vh;overflow:auto;padding:24px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;max-height:88vh;overflow:auto;padding:24px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .modal-head h2{color:var(--o);font-size:1.1em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
 .modal-close:hover{color:#fff}
-.edit-ticket{background:#000;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+.edit-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:16px}
 .edit-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
 .edit-ticket .meta-line{color:var(--tm);font-size:.82em}.edit-ticket .meta-line b{color:#fff}
 .fld-label{display:block;color:var(--tm);font-size:.82em;margin:12px 0 6px;font-weight:600}
-#editInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+#editInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
 #editInfo:focus{outline:none;border-color:var(--o)}
 .link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
+.link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
 .link-row input:focus{outline:none;border-color:var(--o)}
-.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:8px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
+.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:5px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
 .link-row .rm:hover{background:rgba(255,82,82,.12)}
 .add-link{margin-top:2px;padding:7px 14px;font-size:.82em}
 .msg-err{color:var(--rl);font-size:.85em;margin-top:10px;display:none}
 .edit-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 
 /* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
 .uc-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:20px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:ucBanner 9s ease infinite}
 @keyframes ucBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -163,7 +163,7 @@ h1{color:#1b2026!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1><div class="ub-sub">Loading…</div></div></div><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div></div>
+<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1><div class="ub-sub">Loading…</div></div></div><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:5px"><div class="spinner"></div></div></div>
 
 <!-- Edit marking popup -->
 <div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
@@ -199,7 +199,7 @@ h1{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

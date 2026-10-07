@@ -15,24 +15,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .wrap{padding:28px 24px 60px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
 /* Banner */
-.iz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-radius:16px;padding:18px 24px;margin-bottom:16px;background:linear-gradient(90deg,#7c3aed,#9d6bf5 55%,#c9b2fb);box-shadow:0 10px 26px -16px rgba(124,58,237,.6)}
+.iz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-radius:5px;padding:18px 24px;margin-bottom:16px;background:linear-gradient(90deg,#7c3aed,#9d6bf5 55%,#c9b2fb);box-shadow:0 10px 26px -16px rgba(124,58,237,.6)}
 .iz-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;color:#fff}
 .iz-banner .hb-title svg{flex-shrink:0;color:#fff}
 .iz-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(255,255,255,.92);margin-top:5px}
-.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.9);border-radius:14px;padding:9px 18px;color:#3b1a78}
+.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.9);border-radius:5px;padding:9px 18px;color:#3b1a78}
 .iz-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
 .iz-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.8}
 /* Controls */
 .iz-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.iz-scope{display:inline-flex;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:3px;gap:2px}
-.iz-scope button{border:none;background:transparent;color:var(--tm);font-weight:700;font-size:.8em;padding:7px 14px;border-radius:8px;cursor:pointer}
+.iz-scope{display:inline-flex;background:#fff;border:1px solid var(--bd);border-radius:5px;padding:3px;gap:2px}
+.iz-scope button{border:none;background:transparent;color:var(--tm);font-weight:700;font-size:.8em;padding:7px 14px;border-radius:5px;cursor:pointer}
 .iz-scope button.on{background:var(--ac);color:#fff}
-.iz-reload{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--bd);border-radius:10px;color:var(--t);font-weight:700;font-size:.8em;padding:8px 14px;cursor:pointer}
+.iz-reload{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--bd);border-radius:5px;color:var(--t);font-weight:700;font-size:.8em;padding:8px 14px;cursor:pointer}
 .iz-reload:hover{border-color:var(--o);color:var(--o)}
 .iz-reload svg{width:14px;height:14px}
 .iz-reload.spinning svg{animation:izspin .7s linear infinite}
@@ -40,7 +40,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 /* Two-column split tables */
 .iz-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 @media(max-width:860px){.iz-grid{grid-template-columns:1fr}}
-.iz-card{background:#fff;border:1px solid var(--bd);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,70,.05)}
+.iz-card{background:#fff;border:1px solid var(--bd);border-radius:5px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,70,.05)}
 .iz-card.full{grid-column:1 / -1}
 .iz-card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid #eef1f4}
 .iz-card-h .t{font-size:.98em;font-weight:700;color:#1b2026}
@@ -48,7 +48,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .iz-card.phd{border-top:3px solid var(--ac2)}
 .iz-card.sim{border-top:3px solid #d9930a}
 .iz-card.all{border-top:3px solid var(--ac)}
-.iz-chip{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 11px;border-radius:20px;font-weight:800;font-size:.82em;background:#f0f3f6;color:#1b2026;border:1px solid #e2e7eb}
+.iz-chip{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;padding:0 11px;border-radius:5px;font-weight:800;font-size:.82em;background:#f0f3f6;color:#1b2026;border:1px solid #e2e7eb}
 .iz-tbl{width:100%;border-collapse:collapse;font-size:.88em}
 .iz-tbl th,.iz-tbl td{padding:9px 14px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle}
 .iz-tbl th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
@@ -59,18 +59,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .iz-tbl tbody tr:last-child td{border-bottom:none}
 .iz-tbl tbody tr:hover td{background:#f7f9fb}
 .iz-barcell{width:120px}
-.iz-mini{height:6px;border-radius:4px;background:#eef1f4;overflow:hidden}
-.iz-mini>span{display:block;height:100%;border-radius:4px}
+.iz-mini{height:6px;border-radius:5px;background:#eef1f4;overflow:hidden}
+.iz-mini>span{display:block;height:100%;border-radius:5px}
 .iz-card.all .iz-mini>span{background:linear-gradient(90deg,#7c3aed,#9d6bf5)}
 .iz-card.phd .iz-mini>span{background:linear-gradient(90deg,#0d9488,#2bb3a3)}
 .iz-card.sim .iz-mini>span{background:linear-gradient(90deg,#d9930a,#f0b429)}
 .iz-empty{color:#8a94a0;font-size:.86em;font-style:italic;padding:16px 18px}
 .iz-more{padding:10px 18px}
-.iz-more button{background:#fff;border:1px solid var(--bd);color:var(--t);border-radius:8px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
+.iz-more button{background:#fff;border:1px solid var(--bd);color:var(--t);border-radius:5px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
 .iz-more button:hover{border-color:var(--o);color:var(--o)}
 /* Loading / gate */
-.iz-sk{background:#fff;border:1px solid var(--bd);border-radius:14px;margin-bottom:14px;padding:16px 20px}
-.iz-sk-line{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,#eef1f4,#f6f8fa,#eef1f4);background-size:200% 100%;animation:izsk 1.2s linear infinite}
+.iz-sk{background:#fff;border:1px solid var(--bd);border-radius:5px;margin-bottom:14px;padding:16px 20px}
+.iz-sk-line{display:block;height:14px;border-radius:5px;background:linear-gradient(90deg,#eef1f4,#f6f8fa,#eef1f4);background-size:200% 100%;animation:izsk 1.2s linear infinite}
 @keyframes izsk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .iz-gate{max-width:560px;margin:60px auto;text-align:center}
 .iz-gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
@@ -92,7 +92,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 </div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 let IZ_SCOPE='live';     // 'live' | 'all'

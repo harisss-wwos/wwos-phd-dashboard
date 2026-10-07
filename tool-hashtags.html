@@ -19,7 +19,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
 .nav-right{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:8px;font-weight:700;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:5px;font-weight:700;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
@@ -40,19 +40,19 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 /* Stacked list of expandable, click-to-copy hashtag cards (copies the # itself) */
 .tag-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start}
 @media(max-width:760px){.tag-list{grid-template-columns:1fr}}
-.tag-card{position:relative;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--tl);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:border-color .15s,background .15s,box-shadow .15s}
+.tag-card{position:relative;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--tl);border-radius:5px;padding:16px 18px;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:border-color .15s,background .15s,box-shadow .15s}
 .tag-card:hover{border-color:var(--tl);background:var(--cardh);box-shadow:0 4px 14px -6px rgba(37,145,173,.3)}
 /* View toggle button */
-.tc-view{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--bd);background:#fff;color:var(--t);flex-shrink:0}
+.tc-view{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--bd);background:#fff;color:var(--t);flex-shrink:0}
 .tc-view:hover{border-color:var(--tl);color:var(--tl)}
 .tag-card.show .tc-view{border-color:var(--tl);color:var(--tl);background:#eef9fc}
 .tc-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .tc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
 .tc-title{color:#1577a0;font-weight:800;font-size:1.05em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;flex:1}
 .tc-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.tc-count{display:inline-flex;align-items:center;gap:4px;background:#eef9fc;color:#1577a0;border:1px solid #bfe3ee;border-radius:20px;padding:2px 9px;font-size:.7em;font-weight:800;flex-shrink:0}
+.tc-count{display:inline-flex;align-items:center;gap:4px;background:#eef9fc;color:#1577a0;border:1px solid #bfe3ee;border-radius:5px;padding:2px 9px;font-size:.7em;font-weight:800;flex-shrink:0}
 .tc-count svg{width:12px;height:12px}
-.tc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--tl);background:var(--tl);color:#fff;flex-shrink:0}
+.tc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--tl);background:var(--tl);color:#fff;flex-shrink:0}
 .tc-copy:hover{filter:brightness(1.08)}
 .tc-copy.copied{background:var(--gl);border-color:var(--gl);color:#fff}
 /* Meaning: hidden by default, revealed only when expanded via the View button (.show) */
@@ -60,23 +60,23 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .tag-card.show .tc-content{max-height:400px;opacity:1;margin-top:12px}
 .tc-content .tc-desc{white-space:pre-wrap;color:#2a3340;font-size:.9em;line-height:1.6;border-top:1px solid #eef1f4;padding-top:12px}
 .tc-admin{display:flex;gap:8px;margin-top:12px}
-.tag-text{white-space:pre-wrap;color:#2a3340;font-size:.92em;line-height:1.6;background:#f7f9fb;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;max-height:56vh;overflow:auto}
+.tag-text{white-space:pre-wrap;color:#2a3340;font-size:.92em;line-height:1.6;background:#f7f9fb;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;max-height:56vh;overflow:auto}
 .tag-name{color:#1577a0;font-weight:800;font-size:1.05em;margin-bottom:10px}
 .meta{color:#8b96a0;font-size:.75em;margin-top:8px}
 .copied{color:var(--gl)!important;border-color:rgba(31,157,87,.5)!important}
-.edit-area input,.edit-area textarea{width:100%;background:var(--inp);border:1px solid var(--bd);border-radius:8px;color:#1b2026;font-size:.9em;padding:10px 12px;font-family:inherit}
+.edit-area input,.edit-area textarea{width:100%;background:var(--inp);border:1px solid var(--bd);border-radius:5px;color:#1b2026;font-size:.9em;padding:10px 12px;font-family:inherit}
 .edit-area input:focus,.edit-area textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .edit-area textarea{min-height:140px;line-height:1.6;resize:vertical}
 .edit-area label{display:block;color:var(--tm);font-size:.8em;font-weight:700;margin:10px 0 6px}
 .msg{font-size:.85em;margin-top:10px;display:none}.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
 .modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#fff;border:1px solid var(--bd);border-radius:14px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:88vh;overflow:auto;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
+.modal{background:#fff;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:88vh;overflow:auto;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
 .modal.modal-wide{width:50vw;max-width:50vw}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#1b2026;font-size:1.05em;font-weight:800}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
 .modal-close:hover{color:#1b2026}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:10px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
 .toast.show{opacity:1}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
@@ -84,7 +84,7 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 
 /* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
 .tool-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:78px;margin-bottom:8px;
+  border-radius:5px;padding:16px 22px;min-height:78px;margin-bottom:8px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background-size:200% 100%;animation:toolBanner 9s ease infinite}
 @keyframes toolBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -191,7 +191,7 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 let TAGS=[];let VIEW_INDEX=null;

@@ -19,7 +19,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 /* ---- Tab toggle: selected = orange gradient pill, others = light outline ---- */
 .uc-tabs{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.uc-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid var(--bd);background:#fff;color:var(--tm);font-family:inherit;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:background .15s,color .15s,border-color .15s}
+.uc-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:5px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid var(--bd);background:#fff;color:var(--tm);font-family:inherit;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:background .15s,color .15s,border-color .15s}
 .uc-tab:hover{color:#1b2026;border-color:#c9d0d7}
 .uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border-color:#f07d0a;box-shadow:0 3px 10px -2px rgba(240,125,10,.45)}
 .uc-tab svg{flex-shrink:0}
@@ -32,11 +32,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .tool-frame{width:100%;border:0;display:block;min-height:300px;overflow:hidden}
 .tool-skel{position:absolute;inset:0;background:#f3f5f7;padding:8px 0}
 .tool-skel.hidden{display:none}
-.sk{position:relative;overflow:hidden;background:#e9edf1;border-radius:8px;display:block}
+.sk{position:relative;overflow:hidden;background:#e9edf1;border-radius:5px;display:block}
 .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:sksh 1.2s infinite}
 @keyframes sksh{100%{transform:translateX(100%)}}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#fff;border-radius:8px;font-weight:700;font-size:.88em;cursor:pointer;border:none;text-decoration:none;font-family:inherit}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#fff;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:none;text-decoration:none;font-family:inherit}
 .btn:hover{background:var(--oh)}
 
 /* Global: main content spans the viewport at all sizes. */
@@ -53,7 +53,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';

@@ -17,7 +17,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .wrap{width:90%;max-width:1200px;margin:0 auto;padding:40px 24px}
@@ -26,14 +26,14 @@ h1{color:#fff;font-size:1.7em;margin-bottom:6px}
 .gate{text-align:center;padding:60px 0}.gate p{color:var(--tm);margin-bottom:18px}
 /* KPI summary cards */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:28px}
-.kpi{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:12px;padding:18px 20px}
+.kpi{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:5px;padding:18px 20px}
 .kpi .v{color:#fff;font-size:1.6em;font-weight:700;line-height:1.1}
 .kpi .l{color:var(--tm);font-size:.8em;margin-top:6px;text-transform:uppercase;letter-spacing:.4px}
 .kpi .sm{color:#5f6b6c;font-size:.75em;margin-top:6px}
 /* Storage usage bar */
-.usage{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:18px 20px;margin-bottom:28px}
+.usage{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:18px 20px;margin-bottom:28px}
 .usage h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
-.bar{height:14px;background:#000;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.bar{height:14px;background:#000;border:1px solid var(--bd);border-radius:5px;overflow:hidden}
 .bar>span{display:block;height:100%;background:linear-gradient(90deg,#4ade80,#22c55e)}
 .usage .cap{display:flex;justify-content:space-between;color:var(--tm);font-size:.82em;margin-top:8px}
 .section{margin-bottom:28px}
@@ -44,8 +44,8 @@ th{color:var(--tm);font-weight:600;font-size:.82em;text-transform:uppercase;lett
 td{color:var(--t)}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:hover td{background:#0d0d0d}
-.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow:auto}
-.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;overflow:auto}
+.pill{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.72em;font-weight:700}
 .pill.ok{background:rgba(74,222,128,.14);color:var(--gl)}
 .pill.warn{background:rgba(251,191,36,.16);color:var(--yl)}
 .pill.bad{background:rgba(255,82,82,.16);color:var(--rl)}
@@ -101,7 +101,7 @@ tr:hover td{background:#f7f9fb!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const canDatabase=()=>A.canDatabase&&A.canDatabase();

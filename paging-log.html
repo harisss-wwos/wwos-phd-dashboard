@@ -16,13 +16,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .wrap{max-width:1000px;margin:0 auto;padding:40px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
-.entry{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.entry{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;margin-bottom:14px;overflow:hidden}
 .entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid transparent;cursor:pointer;transition:background .12s}
 .entry-head:hover{background:#0d0d0d}
 .entry.open .entry-head{border-bottom-color:var(--bd)}
@@ -30,7 +30,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .entry.open .entry-caret{transform:rotate(180deg)}
 .entry-body{display:none;padding:12px 18px}
 .entry.open .entry-body{display:block}
-.act{padding:2px 10px;border-radius:20px;font-size:.72em;font-weight:700;text-transform:uppercase}
+.act{padding:2px 10px;border-radius:5px;font-size:.72em;font-weight:700;text-transform:uppercase}
 .act.create{background:rgba(74,222,128,.15);color:var(--gl)}
 .act.edit{background:rgba(251,191,36,.15);color:#fbbf24}
 .act.delete{background:rgba(255,82,82,.15);color:var(--rl)}
@@ -38,7 +38,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .btn.danger:hover{background:rgba(255,82,82,.12)}
 .btn.mini{padding:5px 12px;font-size:.78em}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:24px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:24px}
 .modal h2{color:var(--rl);font-size:1.05em;margin-bottom:10px}
 .modal p{color:var(--t);font-size:.9em;line-height:1.6}
 .entry-title{color:#fff;font-weight:700}
@@ -48,10 +48,10 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .entry-when b{color:#d5dbdb}
 .diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .diff .col h4{font-size:.72em;text-transform:uppercase;letter-spacing:.5px;color:var(--tm);margin-bottom:6px}
-.diff pre{white-space:pre-wrap;font-family:inherit;font-size:.8em;line-height:1.5;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;max-height:200px;overflow:auto;color:var(--t)}
-.single pre{white-space:pre-wrap;font-family:inherit;font-size:.82em;line-height:1.5;background:#000;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;max-height:240px;overflow:auto;color:var(--t)}
+.diff pre{white-space:pre-wrap;font-family:inherit;font-size:.8em;line-height:1.5;background:#000;border:1px solid var(--bd);border-radius:5px;padding:10px 12px;max-height:200px;overflow:auto;color:var(--t)}
+.single pre{white-space:pre-wrap;font-family:inherit;font-size:.82em;line-height:1.5;background:#000;border:1px solid var(--bd);border-radius:5px;padding:10px 12px;max-height:240px;overflow:auto;color:var(--t)}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:5px}
 @media(max-width:640px){.diff{grid-template-columns:1fr}}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
@@ -115,7 +115,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 function fmtTZ(iso,zone){try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}

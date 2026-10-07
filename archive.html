@@ -16,18 +16,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto}
 .logo span{font-size:1.1em;font-weight:700;color:#1b2026}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:7px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#fff;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .wrap{padding:26px 24px 60px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
 /* ---- Hero banner (BC era: violet->indigo) ---- */
 .bc-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
-  border-radius:18px;padding:22px 26px;margin-bottom:18px;color:#fff;
+  border-radius:5px;padding:22px 26px;margin-bottom:18px;color:#fff;
   background:linear-gradient(100deg,#5b3fd6,#7c5cf0 50%,#a98bff);box-shadow:0 14px 34px -20px rgba(91,63,214,.7)}
 .bc-hero .hb-eyebrow{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;opacity:.85}
 .bc-hero .hb-title{font-size:1.75em;font-weight:800;letter-spacing:-.5px;margin:4px 0 0;display:flex;align-items:center;gap:12px}
 .bc-hero .hb-sub{font-size:.9em;font-weight:500;opacity:.92;margin-top:6px;max-width:70ch}
-.bc-hero .hb-badge{display:inline-flex;flex-direction:column;align-items:center;background:rgba(255,255,255,.92);border-radius:14px;padding:12px 20px;color:#3b1a78}
+.bc-hero .hb-badge{display:inline-flex;flex-direction:column;align-items:center;background:rgba(255,255,255,.92);border-radius:5px;padding:12px 20px;color:#3b1a78}
 .bc-hero .hb-badge .n{font-size:1.9em;font-weight:900;line-height:1}
 .bc-hero .hb-badge .l{font-size:.64em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.8;margin-top:3px}
 .bc-hero::after{content:"";position:absolute;top:0;bottom:0;right:0;width:220px;background-repeat:no-repeat;background-position:right center;background-size:auto 110%;opacity:.25;pointer-events:none;
@@ -36,15 +36,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 /* ---- Year checkpoints ---- */
 /* Year selector = ONE horizontal row: label | chips | Clear. flex + nowrap-ish; chips may wrap only
    if the viewport is truly narrow. !important guards against app-light.css forcing block display. */
-.bc-years{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid var(--bd);border-radius:14px;padding:12px 16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05)}
+.bc-years{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid var(--bd);border-radius:5px;padding:12px 16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05)}
 .bc-years-t{display:inline-flex;align-items:center;gap:7px;font-size:.8em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1b2026;white-space:nowrap;flex:0 0 auto}
 .bc-years-t svg{width:14px;height:14px;color:var(--ac)}
 .bc-year-chips{display:inline-flex!important;flex-wrap:wrap;gap:8px;align-items:center}
 .bc-years .bc-clear{margin-left:auto;flex:0 0 auto}
 /* Checkbox-style chip: a square box (with a check when selected) + the year label. */
-.bc-chip{display:inline-flex!important;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1.5px solid #dce1e7;background:#fff;color:#5c6773;font-weight:700;font-size:.86em;cursor:pointer;white-space:nowrap;transition:all .14s;width:auto}
+.bc-chip{display:inline-flex!important;align-items:center;gap:8px;padding:8px 14px;border-radius:5px;border:1.5px solid #dce1e7;background:#fff;color:#5c6773;font-weight:700;font-size:.86em;cursor:pointer;white-space:nowrap;transition:all .14s;width:auto}
 .bc-chip:hover{border-color:#b9a7f3;color:#1b2026;background:#faf9ff}
-.bc-box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;border:1.5px solid #c6cdd4;background:#fff;transition:all .14s}
+.bc-box{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;border:1.5px solid #c6cdd4;background:#fff;transition:all .14s}
 .bc-chk{width:13px;height:13px;color:#fff;opacity:0;transform:scale(.6);transition:opacity .14s,transform .14s}
 .bc-chip.on{border-color:#7c5cf0;color:#5b3fd6;background:#f3efff}
 .bc-chip.on .bc-box{background:linear-gradient(135deg,#7c5cf0,#9d7bf7);border-color:#7c5cf0}
@@ -53,13 +53,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .bc-chip-all.on{background:linear-gradient(120deg,#7c5cf0,#9d7bf7);border-color:#7c5cf0;color:#fff}
 .bc-chip-all.on .bc-box{background:#fff;border-color:#fff}
 .bc-chip-all.on .bc-chk{color:#7c5cf0}
-.bc-clear{background:transparent;border:1px solid var(--bd);color:var(--tm);border-radius:8px;padding:6px 13px;font-size:.8em;font-weight:700;cursor:pointer}
+.bc-clear{background:transparent;border:1px solid var(--bd);color:var(--tm);border-radius:5px;padding:6px 13px;font-size:.8em;font-weight:700;cursor:pointer}
 .bc-clear:hover{border-color:var(--o);color:var(--o)}
 /* ---- Stat tiles ---- */
 .bc-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
 @media(max-width:1100px){.bc-stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:620px){.bc-stats{grid-template-columns:repeat(2,1fr)}}
-.bc-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:14px 15px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
+.bc-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:14px 15px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
 .bc-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
 .bc-stat .top{display:flex;align-items:center;gap:7px;color:#5c6773}
 .bc-stat .top svg{width:15px;height:15px}
@@ -73,7 +73,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .bc-pet::before{background:#0d9488}.bc-pet .top{color:#0d9488}
 .bc-autosim::before{background:#ec7211}.bc-autosim .top{color:#ec7211}
 /* ---- Section card ---- */
-.bc-sec{background:#fff;border:1px solid var(--bd);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,70,.05)}
+.bc-sec{background:#fff;border:1px solid var(--bd);border-radius:5px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,70,.05)}
 .bc-sec-h{display:flex;align-items:center;gap:9px;padding:15px 20px;border-bottom:1px solid #eef1f4;font-size:1em;font-weight:800;color:#1b2026}
 .bc-sec-h svg{width:16px;height:16px;color:var(--ac)}
 .bc-sec-b{padding:16px 20px 20px}
@@ -94,7 +94,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 /* ---- Podium ---- */
 .bc-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch}
 @media(max-width:560px){.bc-podium{grid-template-columns:1fr}}
-.bc-medal{position:relative;display:flex;flex-direction:column;align-items:center;border-radius:14px;padding:18px 14px 16px;text-align:center;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
+.bc-medal{position:relative;display:flex;flex-direction:column;align-items:center;border-radius:5px;padding:18px 14px 16px;text-align:center;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
 .bc-medal::before{content:"";position:absolute;inset:0 0 auto 0;height:4px}
 .bc-medal.g{background:linear-gradient(180deg,#fff8e6,#fff)}.bc-medal.g::before{background:linear-gradient(90deg,#f6c21a,#ffde7a)}
 .bc-medal.s{background:linear-gradient(180deg,#f4f7fa,#fff)}.bc-medal.s::before{background:linear-gradient(90deg,#aab6c2,#d9e1e8)}
@@ -107,8 +107,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .bc-medal .m{font-size:.76em;color:#5c6773;margin-top:6px}
 .bc-medal .m b{color:#1b2026}
 /* loading / gate */
-.bc-sk{background:#fff;border:1px solid var(--bd);border-radius:14px;margin-bottom:14px;padding:16px 20px}
-.bc-sk-l{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,#eef1f4,#f6f8fa,#eef1f4);background-size:200% 100%;animation:bcsk 1.2s linear infinite}
+.bc-sk{background:#fff;border:1px solid var(--bd);border-radius:5px;margin-bottom:14px;padding:16px 20px}
+.bc-sk-l{display:block;height:14px;border-radius:5px;background:linear-gradient(90deg,#eef1f4,#f6f8fa,#eef1f4);background-size:200% 100%;animation:bcsk 1.2s linear infinite}
 @keyframes bcsk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .bc-spin{display:flex;align-items:center;justify-content:center;min-height:120px}
 .spinner{width:40px;height:40px;border:4px solid #e2e7eb;border-top-color:var(--ac);border-radius:50%;animation:spin 1s linear infinite}
@@ -130,7 +130,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 </div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script src="archive.js?v=18"></script>
 </body>
 </html>

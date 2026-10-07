@@ -16,7 +16,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .wrap{padding:32px 24px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
 /* Header */
@@ -29,7 +29,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-from svg{flex-shrink:0}
 /* ---- Illustrated gradient banner header (matches the SLA Breaches page banner) ---- */
 .hx-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:14px;
+  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:14px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:hxBanner 9s ease infinite}
 @keyframes hxBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -39,7 +39,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(36,19,84,.82)}
 .hx-banner .hb-sub b{color:#180d3a;font-weight:800}
 /* Total-count pill on the right side of the banner. */
-.hx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.72);border-radius:14px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#241354}
+.hx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.72);border-radius:5px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#241354}
 .hx-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
 .hx-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
 .hx-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:210px;
@@ -54,12 +54,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Zero-count section: dim the count pill so the "tracked but empty" tags read as secondary. */
 .hx-count.zero{background:rgba(135,149,150,.12);color:var(--tm);border-color:rgba(135,149,150,.3)}
 /* Empty-state shown inside a zero-count section body. */
-.hx-none-yet{display:flex;align-items:flex-start;gap:12px;padding:22px;color:var(--tm);font-size:.9em;line-height:1.5;background:rgba(255,255,255,.02);border:1px dashed #2a323b;border-radius:12px;margin:6px 0 4px}
+.hx-none-yet{display:flex;align-items:flex-start;gap:12px;padding:22px;color:var(--tm);font-size:.9em;line-height:1.5;background:rgba(255,255,255,.02);border:1px dashed #2a323b;border-radius:5px;margin:6px 0 4px}
 .hx-none-yet b{color:var(--t)}
 .hx-none-yet .hx-tag{color:var(--o)}
 .hx-none-yet svg{flex-shrink:0;margin-top:2px;color:var(--tm)}
 /* Section card (collapsible accordion — one open at a time) */
-.hx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid var(--o);border-radius:16px;margin-bottom:16px;overflow:hidden}
+.hx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid var(--o);border-radius:5px;margin-bottom:16px;overflow:hidden}
 .hx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
 .hx-sec-head:hover{background:rgba(255,255,255,.03)}
 /* Hashtag illustration watermark behind the head, right side (mask-faded so text stays readable). */
@@ -69,7 +69,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-sec-title{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;color:#fff;font-size:1.08em;font-weight:700;min-width:0;flex:1 1 auto}
 .hx-tag{font-family:'Inter',monospace;color:var(--o)}
 .hx-sec-head-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.hx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:20px;font-weight:800;font-size:.88em;background:rgba(255,153,0,.14);color:var(--o);border:1px solid rgba(255,153,0,.35)}
+.hx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:5px;font-weight:800;font-size:.88em;background:rgba(255,153,0,.14);color:var(--o);border:1px solid rgba(255,153,0,.35)}
 .hx-caret{color:var(--tm);display:inline-flex;transition:transform .2s ease}
 .hx-sec.open .hx-caret{transform:rotate(180deg)}
 .hx-sec-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 22px}
@@ -77,7 +77,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Per-section chart (styled like the Repeat Incident wave chart) */
 .hx-chart-title{color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 4px}
 .hx-chart-sub{color:var(--tm);font-size:.82em;line-height:1.5;margin:0 0 12px}
-.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:12px;padding:14px 14px 6px;margin-bottom:20px}
+.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:5px;padding:14px 14px 6px;margin-bottom:20px}
 .chart-wrap{position:relative;height:200px}
 .chart-wrap.tall{height:300px}
 /* Table (clean, borderless — no spreadsheet grid) */
@@ -95,7 +95,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-num{color:#879596;font-weight:600;white-space:nowrap}
 .hx-assignee{color:var(--t);white-space:nowrap}
 /* C/R status tag */
-.hx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-weight:800;font-size:.78em}
+.hx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-weight:800;font-size:.78em}
 .hx-tag-s.c{background:rgba(74,222,128,.16);color:var(--gl)}
 .hx-tag-s.r{background:rgba(68,185,214,.16);color:var(--tl)}
 .hx-tag-s.o{background:rgba(255,153,0,.16);color:var(--o)}
@@ -109,20 +109,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-sort-ar.idle{color:#4a5560;font-weight:400}
 /* Show more/less */
 .hx-more{margin:2px 0 4px;display:flex;align-items:center;gap:12px}
-.hx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:8px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
+.hx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:5px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
 .hx-more button:hover{border-color:var(--o);color:#fff}
 .hx-mcount{color:var(--tm);font-size:.8em}
 .hx-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
 /* Loading skeleton — collapsed section-card shells with shimmer (no big spinner). */
 .hx-skel{margin-top:2px}
-.sk-banner{position:relative;overflow:hidden;border-radius:16px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
+.sk-banner{position:relative;overflow:hidden;border-radius:5px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
   background:linear-gradient(90deg,#241a4d,#2c2359 55%,#3a2f6e);background-size:200% 100%;animation:hxBanner 9s ease infinite;
   display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px}
 .sk-banner .sk-bl{display:flex;flex-direction:column;gap:9px}
-.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:16px;margin-bottom:16px;overflow:hidden}
+.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:5px;margin-bottom:16px;overflow:hidden}
 .sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
 .sk-ic{width:30px;height:30px;border-radius:50%;flex-shrink:0}
-.sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+.sk-line{display:inline-block;border-radius:5px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
 .sk-banner .sk-line{background:rgba(255,255,255,.16)}
 .sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:hxSk 1.2s infinite}
@@ -197,17 +197,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
         <span class="sk-line" style="width:180px;height:22px"></span>
         <span class="sk-line" style="width:420px;height:12px"></span>
       </div>
-      <span class="sk-line" style="width:96px;height:44px;border-radius:14px"></span>
+      <span class="sk-line" style="width:96px;height:44px;border-radius:5px"></span>
     </div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:220px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:300px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:260px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:200px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:220px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:300px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:260px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:200px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
   </div>
 </div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';

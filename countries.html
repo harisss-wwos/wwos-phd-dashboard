@@ -16,12 +16,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .wrap{padding:32px 24px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
 /* ---- Illustrated gradient banner header (globe theme: blue/teal) ---- */
 .cx-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:14px;
+  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:14px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background:linear-gradient(90deg,#0ea5b7,#38bdf8 55%,#a5e8ff);background-size:200% 100%;animation:cxBanner 9s ease infinite}
 @keyframes cxBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -30,7 +30,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .cx-banner .hb-title svg{flex-shrink:0;color:#062a33}
 .cx-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(6,42,51,.82)}
 .cx-banner .hb-sub b{color:#04202a;font-weight:800}
-.cx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.78);border-radius:14px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#062a33}
+.cx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.78);border-radius:5px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#062a33}
 .cx-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
 .cx-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
 .cx-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:210px;
@@ -39,7 +39,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="40" r="30"/><path d="M30 40h60M60 10c9 8 9 52 0 60M60 10c-9 8-9 52 0 60M36 22c14 8 34 8 48 0M36 58c14-8 34-8 48 0"/></svg>')}
 @media(max-width:640px){.cx-banner .hb-title{font-size:1.25em}.cx-banner::after{opacity:.22}.cx-banner .hb-total{margin-left:0}}
 /* Section card (collapsible accordion — one open at a time) */
-.cx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #38bdf8;border-radius:16px;margin-bottom:16px;overflow:hidden}
+.cx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #38bdf8;border-radius:5px;margin-bottom:16px;overflow:hidden}
 .cx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
 .cx-sec-head:hover{background:rgba(255,255,255,.03)}
 /* Globe illustration watermark behind the head, right side (mask-faded so text stays readable). */
@@ -51,14 +51,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .cx-code-name{color:var(--tm);font-size:.8em;font-weight:400;line-height:1.4;width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cx-code-name.none{font-style:italic;opacity:.7}
 .cx-sec-head-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.cx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:20px;font-weight:800;font-size:.88em;background:rgba(56,189,248,.16);color:#7dd3fc;border:1px solid rgba(56,189,248,.4)}
+.cx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:5px;font-weight:800;font-size:.88em;background:rgba(56,189,248,.16);color:#7dd3fc;border:1px solid rgba(56,189,248,.4)}
 .cx-caret{color:var(--tm);display:inline-flex;transition:transform .2s ease}
 .cx-sec.open .cx-caret{transform:rotate(180deg)}
 .cx-sec-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 22px}
 .cx-sec.open .cx-sec-body{max-height:none;padding:8px 22px 14px}
 /* Four summary stat tiles at the top of each open section. */
 .cx-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0 18px}
-.cx-stat{background:#0b0d10;border:1px solid #1e242b;border-radius:12px;padding:14px 16px;border-top:3px solid #2a323b}
+.cx-stat{background:#0b0d10;border:1px solid #1e242b;border-radius:5px;padding:14px 16px;border-top:3px solid #2a323b}
 .cx-stat-n{font-size:1.7em;font-weight:900;line-height:1;letter-spacing:-.5px;color:#fff}
 .cx-stat-l{margin-top:6px;font-size:.72em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tm)}
 .cx-stat.total{border-top-color:#38bdf8}.cx-stat.total .cx-stat-n{color:#7dd3fc}
@@ -69,7 +69,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Per-section chart */
 .cx-chart-title{color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 4px}
 .cx-chart-sub{color:var(--tm);font-size:.82em;line-height:1.5;margin:0 0 12px}
-.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:12px;padding:14px 14px 6px;margin-bottom:20px}
+.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:5px;padding:14px 14px 6px;margin-bottom:20px}
 .chart-wrap{position:relative;height:200px}
 .chart-wrap.tall{height:340px}
 /* Table (clean, borderless) */
@@ -86,7 +86,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .cx-idlink:hover{text-decoration:underline}
 .cx-num{color:#879596;font-weight:600;white-space:nowrap}
 .cx-assignee{color:var(--t);white-space:nowrap}
-.cx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-weight:800;font-size:.78em}
+.cx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-weight:800;font-size:.78em}
 .cx-tag-s.c{background:rgba(74,222,128,.16);color:var(--gl)}
 .cx-tag-s.r{background:rgba(68,185,214,.16);color:var(--tl)}
 .cx-tag-s.o{background:rgba(255,153,0,.16);color:var(--o)}
@@ -97,19 +97,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .cx-sort-ar{color:#38bdf8;font-weight:800;margin-left:4px}
 .cx-sort-ar.idle{color:#4a5560;font-weight:400}
 .cx-more{margin:2px 0 4px;display:flex;align-items:center;gap:12px}
-.cx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:8px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
+.cx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:5px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
 .cx-more button:hover{border-color:#38bdf8;color:#fff}
 .cx-mcount{color:var(--tm);font-size:.8em}
 .cx-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
 /* Loading skeleton */
 .cx-skel{margin-top:2px}
-.sk-banner{position:relative;overflow:hidden;border-radius:16px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
+.sk-banner{position:relative;overflow:hidden;border-radius:5px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
   background:linear-gradient(90deg,#0b3a45,#0e5566 55%,#1a7d92);background-size:200% 100%;animation:cxBanner 9s ease infinite;
   display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px}
 .sk-banner .sk-bl{display:flex;flex-direction:column;gap:9px}
-.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:16px;margin-bottom:16px;overflow:hidden}
+.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:5px;margin-bottom:16px;overflow:hidden}
 .sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
-.sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+.sk-line{display:inline-block;border-radius:5px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
 .sk-banner .sk-line{background:rgba(255,255,255,.16)}
 .sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:cxSk 1.2s infinite}
@@ -188,17 +188,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
         <span class="sk-line" style="width:170px;height:22px"></span>
         <span class="sk-line" style="width:420px;height:12px"></span>
       </div>
-      <span class="sk-line" style="width:96px;height:44px;border-radius:14px"></span>
+      <span class="sk-line" style="width:96px;height:44px;border-radius:5px"></span>
     </div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:20px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
   </div>
 </div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';

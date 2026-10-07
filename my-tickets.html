@@ -21,13 +21,13 @@ button,input,select,textarea{font-family:inherit}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
 /* All buttons use amber (var(--o)) text on a transparent/outlined base. */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
 .btn:hover{background:rgba(255,153,0,.12)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--o)}
 .btn.sec:hover{border-color:var(--o);color:var(--o);background:rgba(255,153,0,.1)}
 .btn.mini{padding:5px 12px;font-size:.78em}
 /* Actions-cell buttons: clean outlined pills. Comment = neutral, incident-log = amber accent. */
-td.mt-actions .btn,td.mt-actions .btn.sec{background:transparent;border:1px solid #3a4655;color:#cdd7de;font-weight:600;border-radius:8px!important;transition:background .14s,border-color .14s,color .14s}
+td.mt-actions .btn,td.mt-actions .btn.sec{background:transparent;border:1px solid #3a4655;color:#cdd7de;font-weight:600;border-radius:5px!important;transition:background .14s,border-color .14s,color .14s}
 td.mt-actions .btn:hover,td.mt-actions .btn.sec:hover{background:rgba(255,255,255,.06);border-color:#57697d;color:#fff}
 /* The incident-log button (2nd action) gets the amber accent so it stands out. */
 td.mt-actions>span .btn{border-color:rgba(255,153,0,.45);color:var(--o)}
@@ -37,7 +37,7 @@ td.mt-actions>span .btn:hover{background:rgba(255,153,0,.14);border-color:var(--
 .wrap{width:95%;max-width:none;margin:0 auto;padding:36px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
-.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;overflow-x:auto}
+.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;overflow-x:auto}
 table{width:100%;border-collapse:collapse;table-layout:auto}
 thead th{background:#000;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;font-weight:600;text-align:left;padding:12px 16px;border-bottom:1px solid var(--bd);white-space:nowrap}
 tbody td{padding:16px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;vertical-align:top}
@@ -45,7 +45,7 @@ tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:rgba(255,153,0,.03)}
 /* Created / Time left: compact, single-line, top-aligned */
 .tk-created{white-space:nowrap;color:var(--t);font-weight:600}
-.rem{display:inline-block;font-weight:700;white-space:nowrap;padding:3px 10px;border-radius:20px;font-size:.92em;border:1px solid transparent}
+.rem{display:inline-block;font-weight:700;white-space:nowrap;padding:3px 10px;border-radius:5px;font-size:.92em;border:1px solid transparent}
 .rem.ok{color:var(--gl);background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.25)}
 .rem.warn{color:var(--yl);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3)}
 .rem.over{color:var(--rl);background:rgba(255,82,82,.1);border-color:rgba(255,82,82,.3)}
@@ -74,11 +74,11 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .tk-id-row{display:flex;align-items:center;gap:8px}
 .tk-id a{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.95em;letter-spacing:.2px}
 .tk-id a:hover{text-decoration:underline}
-.tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
+.tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
 .tk-copy:hover{color:#44b9d6;border-color:#44b9d6}
 .tk-copy.copied{color:var(--gl);border-color:var(--gl)}
 .tk-title{color:var(--tm);font-size:.84em;line-height:1.45;margin-top:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-.tk-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
+.tk-status{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.72em;font-weight:700;background:rgba(255,153,0,.14);color:var(--o);white-space:nowrap}
 .tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:.72em;font-weight:800;background:rgba(255,153,0,.16);color:var(--o);flex-shrink:0;cursor:default}
 .tz{line-height:1.5;white-space:nowrap}.tz b{color:#d5dbdb}.tz .z{color:var(--tm);font-size:.85em}
 /* Latest-comment column */
@@ -89,7 +89,7 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .actions-cell>span:last-child .btn,.actions-cell .btn:last-child{margin-bottom:0}
 .actions-cell #inc-btn-0,.actions-cell span{display:block}
 /* Incident log list in popup */
-.ilog-item{background:#000;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.ilog-item{background:#000;border:1px solid var(--bd);border-radius:5px;padding:12px 14px;margin-bottom:10px}
 .ilog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
 .ilog-who{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.76em;color:#8b9698}
 .ilog-who b{color:#d5dbdb}
@@ -101,39 +101,39 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .latest-text{color:var(--t);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-height:1.45}
 .latest-meta{color:#5f6b6c;font-size:.74em;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .latest-updated{color:#6b7a7b;font-size:.72em;margin-top:5px;display:inline-flex;align-items:center;gap:4px}
-.cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700;cursor:pointer}
+.cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#44b9d6;border-radius:5px;padding:1px 8px;font-weight:700;cursor:pointer}
 .cmt-count:hover{background:rgba(68,185,214,.25)}
 .cmt-cell{min-width:240px}
-.cmt-input{width:100%;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical;min-height:52px}
+.cmt-input{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical;min-height:52px}
 .cmt-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:5px}
 /* Manager panel (managers carry no personal bucket) */
-.mgr-panel{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:16px;padding:44px 36px;text-align:center;max-width:620px;margin:10px auto}
+.mgr-panel{background:#0a0a0a;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:5px;padding:44px 36px;text-align:center;max-width:620px;margin:10px auto}
 .mgr-icon{width:64px;height:64px;border-radius:50%;background:rgba(255,153,0,.14);color:var(--o);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
 .mgr-panel h2{color:#fff;font-size:1.3em;font-weight:700;margin-bottom:12px}
 .mgr-panel p{color:var(--tm);font-size:.95em;line-height:1.7;max-width:480px;margin:0 auto 8px}
 .mgr-actions{margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:80vw;max-width:80vw;max-height:85vh;overflow:auto;padding:24px}
+.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;max-height:85vh;overflow:auto;padding:24px}
 .modal.modal-wide{width:80vw;max-width:80vw}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
 .modal-close:hover{color:#fff}
-.cmt{border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#000}
+.cmt{border:1px solid var(--bd);border-radius:5px;padding:10px 12px;margin-bottom:10px;background:#000}
 .cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.75em;color:var(--tm);margin-bottom:6px}
 .cmt-meta b{color:#d5dbdb}
 .cmt-text{white-space:pre-wrap;color:var(--t);font-size:.88em;line-height:1.5}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
 .toast.show{opacity:1}
 .btn{display:inline-flex;align-items:center;gap:5px}
 .help-col{min-width:260px}
 .help-cell{display:flex;flex-direction:column;gap:8px}
-.help-thread{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;background:#000}
+.help-thread{border:1px solid var(--bd);border-radius:5px;padding:8px 10px;background:#000}
 .help-thread.resolved{opacity:.7}
 .help-q{color:#fff;font-size:.84em;margin-bottom:6px;white-space:normal}
-.help-tag{font-size:.68em;font-weight:700;text-transform:uppercase;padding:1px 7px;border-radius:20px;margin-left:6px}
+.help-tag{font-size:.68em;font-weight:700;text-transform:uppercase;padding:1px 7px;border-radius:5px;margin-left:6px}
 .help-tag.open{background:rgba(251,191,36,.15);color:var(--yl)}
 .help-tag.ok{background:rgba(74,222,128,.15);color:var(--gl)}
 .help-replies{margin:4px 0 8px}
@@ -144,18 +144,18 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .mt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .mt-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .mt-title h1{margin:0;display:inline-flex;align-items:center;gap:10px}
-.mt-count{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:30px;padding:0 10px;border-radius:20px;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35);color:var(--o);font-weight:800;font-size:.7em}
+.mt-count{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:30px;padding:0 10px;border-radius:5px;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35);color:var(--o);font-weight:800;font-size:.7em}
 .mt-actions{display:flex;gap:10px;flex-wrap:wrap}
 .tbl-card{box-shadow:0 6px 24px rgba(0,0,0,.35)}
 thead th{position:sticky;top:0;z-index:1}
 tbody tr{transition:background .12s}
 /* Shimmer skeleton block */
-.sk-blk{position:relative;overflow:hidden;background:#161616;border-radius:6px;display:inline-block;vertical-align:middle}
+.sk-blk{position:relative;overflow:hidden;background:#161616;border-radius:5px;display:inline-block;vertical-align:middle}
 .sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:mtsh 1.3s infinite}
 @keyframes mtsh{100%{left:150%}}
 /* ================= Expandable ticket cards ================= */
 /* ================= My Tickets — Excel-sheet table ================= */
-.tbl-wrap{overflow-x:auto;margin-top:16px;border-radius:10px}
+.tbl-wrap{overflow-x:auto;margin-top:16px;border-radius:5px}
 .mt-table{width:100%;border-collapse:collapse;min-width:900px;font-size:.88em}
 .mt-table.xls{border:1px solid #2f3a45}
 .mt-table.xls th,.mt-table.xls td{border:1px solid #2f3a45;padding:9px 12px;text-align:left;vertical-align:middle}
@@ -180,18 +180,18 @@ tbody tr{transition:background .12s}
 /* Ticket title: truncate to a single line with an ellipsis (full text on hover via title=""). */
 .tk-title{color:var(--tm);font-size:.86em;line-height:1.45;margin-top:5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
 .tk-status-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:rgba(255,153,0,.16);color:var(--o);font-weight:700;font-size:.78em;flex-shrink:0}
-.tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
+.tk-copy{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--tm);cursor:pointer;line-height:0;flex-shrink:0}
 .tk-copy:hover{color:#44b9d6;border-color:#44b9d6}
 .tk-copy.copied{color:var(--gl);border-color:var(--gl)}
 /* Incident-log indicator */
 .tk-logflag{display:inline-flex;align-items:center}
-.tk-logflag-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid rgba(68,185,214,.4);border-radius:6px;background:rgba(68,185,214,.14);color:#44b9d6;cursor:pointer;line-height:0}
+.tk-logflag-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px;border:1px solid rgba(68,185,214,.4);border-radius:5px;background:rgba(68,185,214,.14);color:#44b9d6;cursor:pointer;line-height:0}
 .tk-logflag-btn:hover{background:rgba(68,185,214,.28);border-color:#44b9d6}
 /* Latest-comment cell */
 .latest-cmt{width:auto;color:var(--tm);font-size:.9em}
 .tk-latest-text{color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
 .tk-latest-meta{display:inline-flex;align-items:center;gap:6px;color:#8b9698;margin-top:4px;font-size:.92em}
-.tk-latest-meta .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#5ecdec;border-radius:20px;padding:0 7px;font-weight:700}
+.tk-latest-meta .cmt-count{display:inline-flex;align-items:center;gap:4px;background:rgba(68,185,214,.14);color:#5ecdec;border-radius:5px;padding:0 7px;font-weight:700}
 .tk-latest-by{white-space:nowrap}
 .tk-latest-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
 /* Actions cell (table td) — both buttons SIDE BY SIDE, equal width + height. On narrow screens
@@ -236,7 +236,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-table .tk-logflag-btn,.mt-table .cmt-count,
 .mt-table .tk-cmt,.mt-table .tk-thread-count{border-radius:0!important}
 /* Temp-resolve switch stays a rounded pill. */
-.mt-table .switch .slider{border-radius:22px!important}
+.mt-table .switch .slider{border-radius:5px!important}
 /* Detail row (comment thread) — expands under the summary row. Collapsed = no border/box at all
    (avoids the thin blank outline under each ticket); the border shows only when open. */
 .mt-detail>td{padding:0!important;border:none!important}
@@ -248,10 +248,10 @@ td.mt-actions .btn svg{flex-shrink:0}
 /* Comment thread */
 .tk-thread{padding-top:6px}
 .tk-thread-head{color:#cfd6d6;font-size:.76em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:10px}
-.tk-thread-count{background:rgba(68,185,214,.14);color:#44b9d6;border-radius:20px;padding:1px 8px;font-weight:700}
+.tk-thread-count{background:rgba(68,185,214,.14);color:#44b9d6;border-radius:5px;padding:1px 8px;font-weight:700}
 .tk-thread-hint{color:#5f6b6c;font-size:.85em;font-style:italic;display:flex;align-items:center;gap:6px}
 .tk-thread-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
-.tk-cmt{border:1px solid var(--bd);border-radius:8px;padding:9px 12px;background:#000}
+.tk-cmt{border:1px solid var(--bd);border-radius:5px;padding:9px 12px;background:#000}
 .tk-cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.74em;color:#5f6b6c;margin-bottom:5px;flex-wrap:wrap}
 .tk-cmt-who{display:inline-flex;align-items:center;gap:5px}
 .tk-cmt-who b{color:#d5dbdb}
@@ -266,7 +266,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .cv{padding-top:4px}
 .cv-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .cv-head .cv-title{color:#cfd6d6;font-size:.78em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:inline-flex;align-items:center;gap:7px}
-.cv-chip{display:inline-flex;align-items:center;gap:5px;font-size:.72em;font-weight:700;border-radius:20px;padding:2px 9px}
+.cv-chip{display:inline-flex;align-items:center;gap:5px;font-size:.72em;font-weight:700;border-radius:5px;padding:2px 9px}
 .cv-chip.cmt{background:rgba(68,185,214,.14);color:#5ecdec}
 .cv-chip.help-wait{background:rgba(251,191,36,.15);color:var(--yl)}
 .cv-chip.help-ok{background:rgba(74,222,128,.15);color:var(--gl)}
@@ -278,26 +278,26 @@ td.mt-actions .btn svg{flex-shrink:0}
 .cv-av.cmt{background:#5ecdec}
 .cv-av.help{background:var(--yl)}
 .cv-av.reply{background:var(--gl)}
-.cv-bubble{border:1px solid var(--bd);border-radius:12px;padding:9px 13px;background:#0d1117;min-width:0}
+.cv-bubble{border:1px solid var(--bd);border-radius:5px;padding:9px 13px;background:#0d1117;min-width:0}
 .cv-msg.right .cv-bubble{background:#0e1a12;border-color:rgba(74,222,128,.3)}
 .cv-bubble.cmt{background:#0d1117;border-color:#233}
 .cv-bubble.help{background:#1a1608;border-color:rgba(251,191,36,.35)}
 .cv-meta{display:flex;align-items:center;gap:8px;font-size:.72em;color:#8b9698;margin-bottom:4px;flex-wrap:wrap}
 .cv-meta b{color:#e6edf0;font-weight:700}
-.cv-meta .cv-kind{font-size:.9em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:0 6px;border-radius:20px}
+.cv-meta .cv-kind{font-size:.9em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:0 6px;border-radius:5px}
 .cv-meta .cv-kind.cmt{background:rgba(68,185,214,.16);color:#5ecdec}
 .cv-meta .cv-kind.help{background:rgba(251,191,36,.16);color:var(--yl)}
 .cv-meta .cv-kind.reply{background:rgba(74,222,128,.16);color:var(--gl)}
 .cv-when{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;color:#5f6b6c}
 .cv-text{white-space:pre-wrap;color:var(--t);font-size:.86em;line-height:1.55;overflow-wrap:anywhere}
 /* Delete button on the author's own comment bubble. */
-.cv-del{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:transparent;border:1px solid rgba(255,82,82,.35);color:#ff5252;cursor:pointer;padding:0;line-height:0;flex-shrink:0}
+.cv-del{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:transparent;border:1px solid rgba(255,82,82,.35);color:#ff5252;cursor:pointer;padding:0;line-height:0;flex-shrink:0}
 .cv-del:hover{background:rgba(255,82,82,.14);border-color:#ff5252}
 .cv-empty{color:#5f6b6c;font-size:.85em;font-style:italic;display:flex;align-items:center;gap:6px;padding:10px 2px}
 /* Composer at the bottom of the panel: comment box + ask-for-help. */
 .cv-composer{margin-top:14px;border-top:1px solid var(--bd);padding-top:14px;display:flex;flex-direction:column;gap:10px}
 .cv-composer-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
-.cv-composer textarea{flex:1;min-width:220px;min-height:46px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.86em;padding:9px 11px;font-family:inherit;line-height:1.5;resize:vertical}
+.cv-composer textarea{flex:1;min-width:220px;min-height:46px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.86em;padding:9px 11px;font-family:inherit;line-height:1.5;resize:vertical}
 .cv-composer textarea:focus{outline:none;border-color:#44b9d6}
 .cv-composer-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .cv-hint{color:#5f6b6c;font-size:.74em}
@@ -310,7 +310,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .cv-cell .cv-cell-text{color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
 .cv-cell .cv-cell-meta{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}
 .cv-cell .cv-cell-none{color:#5f6b6c;display:inline-flex;align-items:center;gap:5px;font-style:italic}
-.cv-cell .cv-cnt{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:0 7px;font-weight:700;font-size:.92em}
+.cv-cell .cv-cnt{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:0 7px;font-weight:700;font-size:.92em}
 .cv-cell .cv-cnt.cmt{background:rgba(68,185,214,.14);color:#5ecdec}
 .cv-cell .cv-cnt.help-wait{background:rgba(251,191,36,.15);color:var(--yl)}
 .cv-cell .cv-cnt.help-ok{background:rgba(74,222,128,.15);color:var(--gl)}
@@ -335,18 +335,18 @@ td.mt-actions .btn svg{flex-shrink:0}
 /* Temp-resolve sliding switch */
 .switch{position:relative;display:inline-block;width:42px;height:22px;cursor:pointer;vertical-align:middle}
 .switch input{opacity:0;width:0;height:0}
-.switch .slider{position:absolute;inset:0;background:#2a2f30;border:1px solid var(--bd);border-radius:22px;transition:.18s}
+.switch .slider{position:absolute;inset:0;background:#2a2f30;border:1px solid var(--bd);border-radius:5px;transition:.18s}
 .switch .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:2px;background:#8b9698;border-radius:50%;transition:.18s}
 .switch input:checked+.slider{background:rgba(74,222,128,.35);border-color:var(--gl)}
 .switch input:checked+.slider:before{transform:translateX(20px);background:var(--gl)}
 .switch input:focus-visible+.slider{outline:2px solid #44b9d6;outline-offset:2px}
 /* Collapsible "Temporarily Resolved" section */
 .temp-section{margin-top:22px}
-.temp-head{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-radius:10px;padding:12px 16px;color:var(--t);cursor:pointer;font-family:inherit}
+.temp-head{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:12px 16px;color:var(--t);cursor:pointer;font-family:inherit}
 .temp-head:hover{border-color:#3a4142}
 .temp-caret{color:var(--gl);display:inline-flex}
 .temp-title{font-weight:700;font-size:.98em;white-space:nowrap}
-.temp-count{display:inline-block;min-width:20px;text-align:center;background:rgba(74,222,128,.16);color:var(--gl);border-radius:20px;padding:1px 8px;font-size:.82em;margin-left:4px}
+.temp-count{display:inline-block;min-width:20px;text-align:center;background:rgba(74,222,128,.16);color:var(--gl);border-radius:5px;padding:1px 8px;font-size:.82em;margin-left:4px}
 .temp-note{color:var(--tm);font-size:.76em;line-height:1.4;flex:1}
 .temp-chev{color:var(--tm);transition:transform .18s;flex-shrink:0}
 .temp-section.open .temp-chev{transform:rotate(180deg)}
@@ -377,7 +377,7 @@ h1{letter-spacing:-.5px}
 
 /* ---- Illustrated banner header (same style as the live-dashboard section banners) ---- */
 .mt-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  border-radius:16px;padding:0 22px;height:72px;min-height:72px;margin-bottom:20px;
+  border-radius:5px;padding:0 22px;height:72px;min-height:72px;margin-bottom:20px;
   background:linear-gradient(90deg,#5ecdec,#7fdcf0 55%,#a7e8f7);background-size:200% 100%;animation:mtBanner 9s ease infinite;
   border:1px solid #242a31;box-shadow:0 10px 26px -20px rgba(0,0,0,.7)}
 @keyframes mtBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -399,7 +399,7 @@ h1{letter-spacing:-.5px}
 /* Both section headers become bright gradient banners with their own SVG watermark, matching the
    page banner. High-specificity #wrap selectors so they win over the generic .temp-head glass card. */
 #wrap #openSection .temp-head,#wrap #tempSection .temp-head{
-  position:relative;overflow:hidden;border:1px solid #242a31 !important;border-radius:14px !important;
+  position:relative;overflow:hidden;border:1px solid #242a31 !important;border-radius:5px !important;
   padding:0 20px !important;height:60px;min-height:60px;background-size:200% 100% !important;
   animation:mtBanner 9s ease infinite;box-shadow:0 10px 26px -20px rgba(0,0,0,.7) !important;transition:transform .18s}
 #wrap #openSection .temp-head:hover,#wrap #tempSection .temp-head:hover{transform:translateY(-1px);border-color:#2d343f !important}
@@ -433,7 +433,7 @@ h1{letter-spacing:-.5px}
 /* ---- Section shells (Open Tickets / Temp Resolved) as glass cards ---- */
 .temp-head{
   background:linear-gradient(180deg,rgba(24,28,34,.92),rgba(14,16,20,.92)) !important;
-  border:1px solid #232830 !important;border-radius:14px !important;
+  border:1px solid #232830 !important;border-radius:5px !important;
   box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 30px -16px rgba(0,0,0,.7) !important;
   transition:border-color .2s, transform .18s, box-shadow .2s;
 }
@@ -444,7 +444,7 @@ h1{letter-spacing:-.5px}
    CARD LAYOUT (mirrors demo-my-tickets.html) — one rounded card per ticket.
    ============================================================================ */
 .mt-cards{display:flex;flex-direction:column;gap:16px;margin-top:14px}
-.mtc{position:relative;border-radius:18px;
+.mtc{position:relative;border-radius:5px;
   background:linear-gradient(180deg,#15181d,#0f1115);
   border:1px solid #232830;overflow:hidden;
   box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -12px rgba(0,0,0,.7);
@@ -506,7 +506,7 @@ h1{letter-spacing:-.5px}
 
 /* ---- Header line ---- */
 .mtc-head{display:flex;align-items:center;gap:12px;padding:16px 18px 14px 22px;flex-wrap:wrap}
-.mtc-cb{width:18px;height:18px;border-radius:6px;background:#0b0d10;border:1.5px solid #3b4550;flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:.15s}
+.mtc-cb{width:18px;height:18px;border-radius:5px;background:#0b0d10;border:1.5px solid #3b4550;flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:.15s}
 .mtc-cb.on{background:var(--gr);border-color:var(--gr)}
 .mtc-cb svg{opacity:0;transition:.15s}.mtc-cb.on svg{opacity:1}
 .mtc-ago{color:#eef2f4;font-weight:700;font-size:13.5px;white-space:nowrap}
@@ -515,12 +515,12 @@ h1{letter-spacing:-.5px}
 /* COLLAPSED (viewed): drop the age ("8 days ago"/"8D") AND the status badge ("W") — the row shows
    the ticket id + last comment instead. */
 .mtc.viewed .mtc-ago,.mtc.viewed .mtc-ago-short,.mtc.viewed .mtc-sbadge{display:none !important}
-.mtc-pill{padding:4px 11px;border-radius:8px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+.mtc-pill{padding:4px 11px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid transparent}
 /* ---- Redesigned "Created" sort control ---- */
 .mt-sortbar{display:flex;align-items:center;gap:10px;margin:2px 0 10px}
 .mt-sort-label{color:#7c8894;font-size:.78em;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .mt-sort-btn{display:inline-flex;align-items:center;gap:9px;height:36px;padding:0 6px 0 14px;
-  background:linear-gradient(180deg,#191d24,#12151b);border:1px solid #2b323b;border-radius:20px;
+  background:linear-gradient(180deg,#191d24,#12151b);border:1px solid #2b323b;border-radius:5px;
   color:#dfe6ec;font-family:inherit;font-size:.86em;font-weight:600;cursor:pointer;
   box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 6px 16px -10px rgba(0,0,0,.7);
   transition:border-color .16s,background .16s,transform .12s}
@@ -536,17 +536,17 @@ h1{letter-spacing:-.5px}
 .mtc-pill.ok{color:var(--gr);background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.28)}
 .mtc-pill.warn{color:var(--am);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
 .mtc-pill.over{color:var(--rd);background:rgba(255,82,82,.1);border-color:rgba(255,82,82,.32)}
-.mtc-sbadge{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#ff9900;background:rgba(255,153,0,.15);flex-shrink:0}
+.mtc-sbadge{width:24px;height:24px;border-radius:5px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#ff9900;background:rgba(255,153,0,.15);flex-shrink:0}
 .mtc-tid{font-size:15px;font-weight:800;letter-spacing:.2px;text-decoration:none;background:linear-gradient(90deg,#7fdcf0,#5ecdec);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mtc-tid:hover{filter:brightness(1.15)}
-.mtc-copy{width:24px;height:22px;border-radius:6px;border:1px solid #39424c;color:#6b7681;display:grid;place-items:center;cursor:pointer;background:transparent}
+.mtc-copy{width:24px;height:22px;border-radius:5px;border:1px solid #39424c;color:#6b7681;display:grid;place-items:center;cursor:pointer;background:transparent}
 .mtc-copy:hover{color:var(--cy);border-color:var(--cy)}
 .mtc-copy.copied{color:var(--gr);border-color:var(--gr)}
 .mtc-title{color:#c3ccd2;font-size:13px;flex:1;min-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mtc-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
 .mtc-mk.sr{background:rgba(251,191,36,.14);color:var(--am)}.mtc-mk.emt{background:rgba(255,82,82,.14);color:var(--rd)}
 .mtc-logflag{display:inline-flex}
-.mtc-ilog{padding:6px 13px;border-radius:20px;border:1px solid rgba(255,153,0,.4);color:#ff9900;font-size:11px;font-weight:600;background:rgba(255,153,0,.05);white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.mtc-ilog{padding:6px 13px;border-radius:5px;border:1px solid rgba(255,153,0,.4);color:#ff9900;font-size:11px;font-weight:600;background:rgba(255,153,0,.05);white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .mtc-ilog:hover{background:rgba(255,153,0,.14)}
 .mtc-ilog-ic{width:14px;height:14px;object-fit:contain;display:inline-block;vertical-align:middle}
 /* ---- Analyst-flag icons: Driver-trace / Reports-attached / EMT-updated / Mark-important ----
@@ -557,7 +557,7 @@ h1{letter-spacing:-.5px}
 /* In-bar flag set: pinned to the RIGHT corner of the actions bar (comments button is the left
    corner). No border/background wrapper. */
 .mtc-icons-bar{flex-wrap:wrap}
-.mtc-att{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:1px solid #2b323b;background:#171b21;cursor:pointer;transition:background .14s,border-color .14s,filter .14s,opacity .14s;line-height:0}
+.mtc-att{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid #2b323b;background:#171b21;cursor:pointer;transition:background .14s,border-color .14s,filter .14s,opacity .14s;line-height:0}
 .mtc-att-ic{width:17px;height:17px;object-fit:contain;display:block}
 /* OFF = greyed out (grayscale + dimmed). */
 .mtc-att:not(.on){filter:grayscale(1);opacity:.4}
@@ -566,7 +566,7 @@ h1{letter-spacing:-.5px}
 .mtc-att.on{filter:none;opacity:1;background:rgba(74,222,128,.16);border-color:var(--gr)}
 /* Right-side header group: SR + No-EMT icons + toggle, pinned to the far right. */
 .mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:12px;flex-shrink:0}
-.mtc-toggle{width:42px;height:23px;border-radius:20px;background:#242b32;border:1px solid #2b323b;position:relative;flex-shrink:0;cursor:pointer;transition:.18s}
+.mtc-toggle{width:42px;height:23px;border-radius:5px;background:#242b32;border:1px solid #2b323b;position:relative;flex-shrink:0;cursor:pointer;transition:.18s}
 .mtc-toggle i{position:absolute;top:2px;left:3px;width:16px;height:16px;border-radius:50%;background:#8b96a0;transition:.18s;pointer-events:none}
 .mtc-toggle.on{background:rgba(74,222,128,.35);border-color:var(--gr)}
 .mtc-toggle.on i{transform:translateX(19px);background:var(--gr)}
@@ -578,9 +578,9 @@ h1{letter-spacing:-.5px}
 .mtc-zone.help{background:transparent;justify-content:flex-end}
 .mtc-zlabel{font-size:10px;font-weight:800;letter-spacing:.8px;opacity:.8}
 .mtc-zone.cmt .mtc-zlabel{color:var(--cy)}.mtc-zone.help .mtc-zlabel{color:var(--am)}
-.mtc-b{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #2b323b;background:#171b21;color:#dfe6ea;transition:.15s;white-space:nowrap;font-family:inherit}
+.mtc-b{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #2b323b;background:#171b21;color:#dfe6ea;transition:.15s;white-space:nowrap;font-family:inherit}
 .mtc-b:hover{border-color:#3a4450;transform:translateY(-1px)}
-.mtc-b .cnt{min-width:19px;height:19px;padding:0 5px;border-radius:20px;font-size:10.5px;font-weight:800;display:grid;place-items:center}
+.mtc-b .cnt{min-width:19px;height:19px;padding:0 5px;border-radius:5px;font-size:10.5px;font-weight:800;display:grid;place-items:center}
 .mtc-b.cmt-cnt .cnt{background:rgba(94,205,236,.2);color:var(--cy2)}
 .mtc-b.help-cnt .cnt{background:rgba(74,222,128,.2);color:#7ef2a8}
 .mtc-b.primary{background:linear-gradient(180deg,#ffcb52,#f7b21a);color:#151206;border:none;box-shadow:0 4px 14px -4px rgba(251,191,36,.5);position:relative;overflow:hidden}
@@ -611,7 +611,7 @@ h1{letter-spacing:-.5px}
 .mtc-panel-in{overflow:hidden;min-height:0}
 .mtc-panel-pad{padding:16px 20px 20px;background:rgba(255,255,255,.012)}
 .mtc-phead{font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#aeb8c0;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.mtc-schip{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.mtc-schip{padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
 .mtc-schip.wait{background:rgba(251,191,36,.16);color:var(--am)}
 .mtc-schip.ok{background:rgba(74,222,128,.16);color:#7ef2a8}
 .mtc-msg{display:flex;gap:11px;margin-bottom:12px;max-width:74%}
@@ -622,20 +622,20 @@ h1{letter-spacing:-.5px}
 .mtc-av.c{background:linear-gradient(135deg,#7fdcf0,#5ecdec)}
 .mtc-av.h{background:linear-gradient(135deg,#ffd766,#fbbf24)}
 .mtc-av.r{background:linear-gradient(135deg,#86efac,#4ade80)}
-.mtc-bub{border-radius:14px;padding:9px 13px;border:none;background:#12161c;min-width:0}
+.mtc-bub{border-radius:5px;padding:9px 13px;border:none;background:#12161c;min-width:0}
 .mtc-bub.h{background:#1a1608}
 .mtc-msg.right .mtc-bub{background:#0e1a12}
 .mtc-m{font-size:10.5px;color:#6b7681;margin-bottom:4px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.mtc-m .k{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:1px 7px;border-radius:20px}
+.mtc-m .k{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:1px 7px;border-radius:5px}
 .mtc-m .k.c{background:rgba(94,205,236,.16);color:var(--cy2)}
 .mtc-m .k.h{background:rgba(251,191,36,.16);color:var(--am)}
 .mtc-m .k.r{background:rgba(74,222,128,.16);color:#7ef2a8}
 .mtc-m b{color:#eef2f4;font-weight:700}
-.mtc-del{margin-left:6px;width:20px;height:20px;border-radius:6px;border:1px solid rgba(255,82,82,.35);color:#ff5252;display:grid;place-items:center;cursor:pointer;background:transparent}
+.mtc-del{margin-left:6px;width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,82,82,.35);color:#ff5252;display:grid;place-items:center;cursor:pointer;background:transparent}
 .mtc-del:hover{background:rgba(255,82,82,.14)}
 .mtc-t{font-size:13px;color:#d5dbdb;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .mtc-composer{display:flex;gap:10px;margin-top:8px}
-.mtc-composer input{flex:1;background:#0b0d10;border:1px solid #232c36;border-radius:20px;color:#fff;font:inherit;font-size:12px;padding:9px 15px}
+.mtc-composer input{flex:1;background:#0b0d10;border:1px solid #232c36;border-radius:5px;color:#fff;font:inherit;font-size:12px;padding:9px 15px}
 .mtc-composer input:focus{outline:none;border-color:var(--cy)}
 .mtc-composer input::placeholder{color:#6b7681}
 .mtc-empty{color:#5f6b6c;font-size:12.5px;font-style:italic;padding:8px 2px;display:flex;align-items:center;gap:7px}
@@ -683,7 +683,7 @@ h1{color:#1b2026 !important}
 .mtc-title{color:#5c6773 !important}
 .mtc-head-last{color:#8793a0 !important}
 /* Country/region badge: hidden normally; shown only when the card is VIEWED (checked). */
-.mtc-country{display:none;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.4px;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec;text-transform:uppercase}
+.mtc-country{display:none;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.4px;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec;text-transform:uppercase}
 .mtc.viewed .mtc-country{display:inline-flex}
 /* When viewed: hide the full title, show the country + last comment instead. The comment TRUNCATES
    with an ellipsis to a single line so a long comment never breaks the header layout. */
@@ -802,13 +802,13 @@ h1{color:#1b2026 !important}
     </tr></thead><tbody id="mtSkeleton"></tbody></table>
   </div>
   <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var row='<tr>'+
-    '<td><span class="sk-blk" style="width:16px;height:16px;border-radius:3px"></span></td>'+
+    '<td><span class="sk-blk" style="width:16px;height:16px;border-radius:5px"></span></td>'+
     '<td><span class="sk-blk" style="width:70px;height:13px"></span></td>'+
-    '<td><span class="sk-blk" style="width:56px;height:22px;border-radius:20px"></span></td>'+
+    '<td><span class="sk-blk" style="width:56px;height:22px;border-radius:5px"></span></td>'+
     '<td><span class="sk-blk" style="width:150px;height:14px;display:block"></span><span class="sk-blk" style="width:80%;height:11px;display:block;margin-top:6px"></span></td>'+
     '<td><span class="sk-blk" style="width:80%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>'+
-    '<td><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block"></span><span class="sk-blk" style="width:150px;height:26px;border-radius:6px;display:block;margin-top:8px"></span></td>'+
-    '<td><span class="sk-blk" style="width:42px;height:22px;border-radius:20px"></span></td>'+
+    '<td><span class="sk-blk" style="width:150px;height:26px;border-radius:5px;display:block"></span><span class="sk-blk" style="width:150px;height:26px;border-radius:5px;display:block;margin-top:8px"></span></td>'+
+    '<td><span class="sk-blk" style="width:42px;height:22px;border-radius:5px"></span></td>'+
     '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
 </div>
 <div class="toast" id="toast"></div>
@@ -818,7 +818,7 @@ h1{color:#1b2026 !important}
   <div class="modal">
     <div class="modal-head"><h2>Ask for help · <span id="helpTicket" style="color:#fbbf24"></span></h2><button class="modal-close" onclick="closeHelp()" aria-label="Close">&times;</button></div>
     <p style="color:#879596;font-size:.82em;margin-bottom:10px">Describe your question. Admins/owner will see it in the live-dashboard alert and can reply. You can ask more than once.</p>
-    <textarea id="helpDoubt" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="What do you need help with on this ticket?"></textarea>
+    <textarea id="helpDoubt" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="What do you need help with on this ticket?"></textarea>
     <div class="msg err" id="helpErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeHelp()">Cancel</button>
@@ -841,7 +841,7 @@ h1{color:#1b2026 !important}
   <div class="modal">
     <div class="modal-head"><h2 id="addCmtTitle">Add comment</h2><button class="modal-close" onclick="closeAddComment()" aria-label="Close">&times;</button></div>
     <p style="color:#5f6b6c;font-size:.78em;margin-bottom:10px">Comments can't be edited after posting, but you can delete your own.</p>
-    <textarea id="addCmtText" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Add a comment on this ticket…"></textarea>
+    <textarea id="addCmtText" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Add a comment on this ticket…"></textarea>
     <div class="msg err" id="addCmtErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeAddComment()">Cancel</button>
@@ -869,7 +869,7 @@ h1{color:#1b2026 !important}
 <div class="modal-bg" id="editIncidentModal" onclick="if(event.target===this)closeEditIncident()" data-edit-modal>
   <div class="modal modal-wide">
     <div class="modal-head"><h2>Edit incident log</h2><button class="modal-close" onclick="closeEditIncident()" aria-label="Close">&times;</button></div>
-    <textarea id="editIncidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
+    <textarea id="editIncidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
     <div class="msg err" id="editIncidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeEditIncident()">Cancel</button>
@@ -883,7 +883,7 @@ h1{color:#1b2026 !important}
   <div class="modal modal-wide">
     <div class="modal-head"><h2 id="incidentTitle">Add incident log</h2><button class="modal-close" onclick="closeIncidentLog()" aria-label="Close">&times;</button></div>
     <p style="color:#9aa7a8;font-size:.82em;margin-bottom:12px;line-height:1.55">Capture your <b style="color:#fff">final mitigation</b> and any relevant <b style="color:#44b9d6">#hashtags</b> for this incident so it can be tracked and referenced later.</p>
-    <textarea id="incidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
+    <textarea id="incidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
     <div class="msg err" id="incidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeIncidentLog()">Cancel</button>
@@ -894,7 +894,7 @@ h1{color:#1b2026 !important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';

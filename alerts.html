@@ -21,27 +21,27 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:center;gap:10px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.9em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
 .btn.mini{padding:6px 12px;font-size:.8em}
-.count-pill{background:rgba(251,191,36,.16);color:var(--yl);border-radius:20px;padding:2px 11px;font-size:.6em;font-weight:700;vertical-align:middle}
+.count-pill{background:rgba(251,191,36,.16);color:var(--yl);border-radius:5px;padding:2px 11px;font-size:.6em;font-weight:700;vertical-align:middle}
 
 /* ---- Two-tab toggle (same look as Unique Cases): selected=orange, others transparent) ---- */
 .uc-tabs{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
-.uc-tab{position:relative;display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid transparent;background:transparent;color:var(--tm);font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.uc-tab{position:relative;display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:5px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid transparent;background:transparent;color:var(--tm);font-family:inherit;transition:background .15s,color .15s,border-color .15s}
 .uc-tab:hover{color:#e6edf0}
 .uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#000;border-color:#f07d0a;box-shadow:0 2px 8px rgba(240,125,10,.35)}
 .uc-tab svg{flex-shrink:0}
 /* Alert-count badge on the Alerts tab. */
-.uc-tab .tab-badge{display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;font-size:.72em;font-weight:800;background:#ff5252;color:#fff}
+.uc-tab .tab-badge{display:none;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:5px;font-size:.72em;font-weight:800;background:#ff5252;color:#fff}
 .uc-tab .tab-badge.show{display:inline-flex}
 .uc-tab .tab-badge.zero{background:#3a4655;color:#cdd7de}
 .uc-tab.active .tab-badge{background:#000;color:#ff9f2e}
 
 /* ---- Alerts (open help requests) ---- */
-.thread{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.thread{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:16px 18px;margin-bottom:14px}
 /* OPEN (unanswered) = white "needs attention" card with dark text. */
 .thread.thread-open,.day-card .thread.thread-open{background:#fff;border-color:#e2e2e2}
 /* Equal vertical gap between every row of the open card. */
@@ -68,11 +68,11 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .thread-who{font-size:.88em}
 .thread-who b{color:#44b9d6}
 .thread-when{color:#5f6b6c;font-size:.85em}
-.pill{padding:2px 9px;border-radius:20px;font-weight:700;font-size:.7em}
+.pill{padding:2px 9px;border-radius:5px;font-weight:700;font-size:.7em}
 .pill.open{background:rgba(251,191,36,.15);color:#fbbf24}
 .pill.ok{background:rgba(74,222,128,.15);color:#4ade80}
 /* Owner-only delete button on a help thread. */
-.thread-del{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:transparent;border:1px solid rgba(255,82,82,.4);color:#ff5252;cursor:pointer;padding:0}
+.thread-del{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;background:transparent;border:1px solid rgba(255,82,82,.4);color:#ff5252;cursor:pointer;padding:0}
 .thread-del:hover{background:rgba(255,82,82,.14);border-color:#ff5252}
 .thread.thread-open .thread-del{border-color:rgba(200,40,40,.5);color:#c22}
 .thread.thread-open .thread-del:hover{background:rgba(200,40,40,.12)}
@@ -82,7 +82,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .thread.thread-open .tk-meta-title{color:#111}
 .thread.thread-open .tk-meta-title-lbl{color:#4b5563}
 .tk-meta-row{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
-.tk-meta-chip{font-size:.78em;color:#9aa7a8;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:20px;padding:2px 10px}
+.tk-meta-chip{font-size:.78em;color:#9aa7a8;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:5px;padding:2px 10px}
 .tk-meta-chip b{color:#d5dbdb;font-weight:700}
 .thread.thread-open .tk-meta-chip{color:#4b5563;background:rgba(0,0,0,.05);border-color:#d8d8d8}
 .thread.thread-open .tk-meta-chip b{color:#111}
@@ -101,19 +101,19 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .thread.thread-open .reply-actions .btn{background:rgba(240,125,10,.12);color:#b8860b;border-color:rgba(240,125,10,.5)}
 /* Reply pop-up */
 .reply-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}
-.reply-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:22px}
+.reply-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:22px}
 .reply-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .reply-modal-head h2{color:var(--o);font-size:1.05em;font-weight:700}
 .reply-modal-close{background:transparent;border:none;color:var(--tm);font-size:1.4em;cursor:pointer;line-height:1}
 .reply-modal-close:hover{color:#fff}
-.reply-modal textarea{width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+.reply-modal textarea{width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
 .reply-modal-actions{margin-top:14px;display:flex;gap:10px;justify-content:flex-end}
 .reply-box{margin-top:10px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
-.reply-box textarea{flex:1;min-width:200px;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical}
-.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:12px}
+.reply-box textarea{flex:1;min-width:200px;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px;font-family:inherit;resize:vertical}
+.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:5px}
 
 /* ---- Help Activity (day-grouped history) ---- */
-.day-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.day-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;margin-bottom:16px;overflow:hidden}
 .day-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:#050505;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .day-head:hover{background:#0d0d0d}
 .day-title{color:#fff;font-weight:700;font-size:1em;display:flex;align-items:center;gap:10px}
@@ -125,16 +125,16 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .day-card .thread{background:#000}
 
 /* ---- Skeleton shimmer (per tab) ---- */
-.sk{position:relative;overflow:hidden;background:#141a20;border-radius:10px;display:block}
+.sk{position:relative;overflow:hidden;background:#141a20;border-radius:5px;display:block}
 .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
 @keyframes sksh{100%{transform:translateX(100%)}}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:8px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s}
 .toast.show{opacity:1}
 
 /* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
 .alert-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:78px;margin-bottom:18px;
+  border-radius:5px;padding:16px 22px;min-height:78px;margin-bottom:18px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background-size:200% 100%;animation:alertBanner 9s ease infinite}
 @keyframes alertBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -144,7 +144,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .alert-banner .ab-sub{font-size:.86em;font-weight:500;line-height:1.45;max-width:70ch}
 .alert-banner .ab-sub .count-pill{background:rgba(255,255,255,.85);color:#7a4a00;vertical-align:middle}
 /* Right-side count chip on the banner. */
-.alert-banner .ab-chip{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:20px;font-weight:800;font-size:.92em;
+.alert-banner .ab-chip{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:5px;font-weight:800;font-size:.92em;
   background:rgba(255,255,255,.85);box-shadow:0 2px 6px rgba(0,0,0,.15);white-space:nowrap}
 .alert-banner .ab-chip svg{flex-shrink:0}
 .alert-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:250px;
@@ -232,7 +232,7 @@ h1{color:#1b2026!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap">
-  <div style="display:flex;align-items:center;justify-content:center;min-height:220px;border:1px solid var(--bd);border-radius:12px"><div class="spinner"></div></div>
+  <div style="display:flex;align-items:center;justify-content:center;min-height:220px;border:1px solid var(--bd);border-radius:5px"><div class="spinner"></div></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -250,7 +250,7 @@ h1{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||16):'';

@@ -25,7 +25,7 @@
     var css = ''
       // top bar (section 1) — fixed at top, highlighted background
       + '.tb-topbar{background:#121820;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100}'
-      + '.tb-hamburger{display:inline-flex;flex-direction:column;justify-content:center;gap:4px;width:38px;height:34px;padding:8px 9px;background:transparent;border:1px solid #2a2a2a;border-radius:6px;cursor:pointer;flex-shrink:0}'
+      + '.tb-hamburger{display:inline-flex;flex-direction:column;justify-content:center;gap:4px;width:38px;height:34px;padding:8px 9px;background:transparent;border:1px solid #2a2a2a;border-radius:5px;cursor:pointer;flex-shrink:0}'
       + '.tb-hamburger:hover{border-color:#ff9900}'
       + '.tb-hamburger:disabled{opacity:.4;cursor:not-allowed}'
       + '.tb-hamburger:disabled:hover{border-color:#2a2a2a}'
@@ -41,7 +41,7 @@
       + '.tb-logo span{font-size:1.12em;font-weight:700;color:#fff;line-height:1}'
       // logo acts as a Home button on every page (-> index.html)
       + '.tb-logo-link{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}'
-      + '.tb-qbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.82em;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit;margin-left:8px;transition:border-color .15s,color .15s}'
+      + '.tb-qbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:5px;font-weight:600;font-size:.82em;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit;margin-left:8px;transition:border-color .15s,color .15s}'
       + '.tb-qbtn:hover{border-color:#ff9900;color:#ff9900}'
       // Quarter + Upload/My-Tickets buttons now live inside the hamburger menu (all sizes) -> hide from the bar
       + '.tb-qbtn,.tb-movable{display:none!important}'
@@ -71,14 +71,14 @@
       + '.tb-menu.open{max-height:85vh;pointer-events:auto;border-bottom-width:1px;box-shadow:0 10px 30px rgba(0,0,0,.5)}'
       // INNER: centered content column; the padding animates away with the bar so it collapses flush.
       + '.tb-menu-inner{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 16px}'
-      + '.tb-menu .tb-menuitem{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 18px;border-radius:6px;font-weight:600;font-size:.9em;cursor:pointer;border:none;background:transparent;color:#d5dbdb;text-decoration:none;font-family:inherit;text-align:center;width:100%;max-width:420px}'
+      + '.tb-menu .tb-menuitem{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 18px;border-radius:5px;font-weight:600;font-size:.9em;cursor:pointer;border:none;background:transparent;color:#d5dbdb;text-decoration:none;font-family:inherit;text-align:center;width:100%;max-width:420px}'
       + '.tb-menu .tb-menuitem:hover{background:#1a2430;color:#ff9900}'
       + '.tb-menu .tb-menuitem.active{background:#ff9900;color:#000}'
       + '.tb-menu .tb-menu-mobile,.tb-menu .tb-menu-label,.tb-menu .tb-menu-divider{width:100%;max-width:420px;text-align:center}'
       + '.tb-menu-mobile{display:flex;flex-direction:column;align-items:center;gap:4px}'  // shown in the menu at all sizes
       + '.tb-menu-label{color:#5f6b6c;font-size:.68em;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:6px 14px 2px}'
       + '.tb-menu-divider{height:1px;background:#2a2a2a;margin:6px 8px}'
-      + '.tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit;white-space:nowrap}'
+      + '.tb-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:transparent;border:1px solid #2a2a2a;color:#d5dbdb;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit;white-space:nowrap}'
       + '.tb-btn:hover{border-color:#ff9900;color:#ff9900}'
       // Disabled top-bar button (shown to everyone, but not accessible): greyed + inert.
       + '.tb-btn-disabled{color:#5f6b6c;background:#101720;border-color:#242e39;cursor:not-allowed;opacity:.7}'
@@ -88,20 +88,20 @@
       + '@media(max-width:1024px){.tb-btn .tb-btn-label{display:none}.tb-btn{padding:8px 10px;gap:0}}'
       // login modal
       + '.tb-modal-bg{position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}'
-      + '.tb-modal{background:#fff;border:1px solid #e2e6ea;border-radius:12px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:28px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}'
+      + '.tb-modal{background:#fff;border:1px solid #e2e6ea;border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:28px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}'
       + '.tb-modal h2{color:#1b2026;font-size:1.2em;margin:0 0 6px}'
       + '.tb-modal p.sub{color:#5c6773;font-size:.85em;margin:0 0 14px;line-height:1.5}'
       + '.tb-modal label{display:block;color:#5c6773;font-size:.85em;margin:14px 0 6px}'
-      + '.tb-modal input[type=text],.tb-modal input[type=password]{width:100%;padding:10px 12px;background:#fff;border:1px solid #d4dade;border-radius:6px;color:#1b2026;font-size:.95em}'
+      + '.tb-modal input[type=text],.tb-modal input[type=password]{width:100%;padding:10px 12px;background:#fff;border:1px solid #d4dade;border-radius:5px;color:#1b2026;font-size:.95em}'
       + '.tb-modal input::placeholder{color:#9aa6b1}'
       + '.tb-pass-wrap{position:relative}'
       + '.tb-pass-wrap input{padding-right:44px!important}'
-      + '.tb-pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:#8a94a2;cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:6px}'
+      + '.tb-pass-eye{position:absolute;top:50%;right:6px;transform:translateY(-50%);background:transparent;border:none;color:#8a94a2;cursor:pointer;padding:6px;display:inline-flex;align-items:center;border-radius:5px}'
       + '.tb-pass-eye:hover{color:#ec7211}'
       + '.tb-modal input:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
       + '.tb-err{color:#dc2626;font-size:.85em;margin-top:12px;display:none}'
       + '.tb-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}'
-      + '.tb-mbtn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border-radius:6px;font-weight:700;font-size:.88em;cursor:pointer;border:none;font-family:inherit}'
+      + '.tb-mbtn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:none;font-family:inherit}'
       + '.tb-mbtn:hover{filter:brightness(1.05)}'
       + '.tb-mbtn.sec{background:#fff;border:1px solid #d4dade;color:#2a3340}'
       + '.tb-mbtn.sec:hover{border-color:#ec7211;color:#ec7211}'
@@ -127,7 +127,7 @@
       // Profile pill. Round 46px avatar on the right; the name is a label that slides IN from the LEFT
       // on hover. overflow:hidden clips the label until hover; the label sits BEFORE the avatar in the
       // DOM so the pill grows leftward (right edge stays fixed).
-      + '.tb-avatar-fab{display:inline-flex;flex-direction:row;align-items:center;justify-content:flex-end;height:46px;max-width:46px;border-radius:23px;background:#0b1420;border:2px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;transition:max-width .28s ease}'
+      + '.tb-avatar-fab{display:inline-flex;flex-direction:row;align-items:center;justify-content:flex-end;height:46px;max-width:46px;border-radius:5px;background:#0b1420;border:2px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;transition:max-width .28s ease}'
       + '.tb-avatar-fab:hover{max-width:280px}'
       + '.tb-avatar-fab .tb-av-label{white-space:nowrap;font-size:.86em;font-weight:600;color:#e6edf0;opacity:0;padding-left:0;transition:opacity .2s ease,padding-left .2s ease}'
       + '.tb-avatar-fab:hover .tb-av-label{opacity:1;padding-left:16px}'
@@ -138,7 +138,7 @@
       + '.tb-avatar-fab.tb-avatar-login .tb-av-ic svg{width:20px;height:20px}'
       // Data-action buttons that live to the LEFT of the profile pill (Upload new data / Uploaded data
       // log). Same 46px height as the rail buttons + profile, vertically centered.
-      + '.tb-data-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 16px;border-radius:23px;background:#141c28;color:#d5dbdb;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.35);text-decoration:none;font-family:inherit;font-size:.84em;font-weight:600;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,transform .15s}'
+      + '.tb-data-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 16px;border-radius:5px;background:#141c28;color:#d5dbdb;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.35);text-decoration:none;font-family:inherit;font-size:.84em;font-weight:600;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,transform .15s}'
       + '.tb-data-btn:hover{border-color:#ff9900;color:#fff;transform:translateY(-2px)}'
       + '.tb-data-btn svg{width:16px;height:16px;flex-shrink:0}'
       // floating circular back button (bottom-right) — same 46px size as the left rail buttons
@@ -151,7 +151,7 @@
       // flows in the column, keep the orange circle look.
       + '.tb-fab-col-right .tb-back-fab{position:static;right:auto;bottom:auto;flex:0 0 58px}'
       // floating circular RECENT-HISTORY button (bottom-left) + its popup of recently visited pages
-      + '.tb-hist-fab{position:fixed;left:5px;bottom:18px;z-index:902;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:26px;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;max-width:52px;font-family:inherit;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
+      + '.tb-hist-fab{position:fixed;left:5px;bottom:18px;z-index:902;height:52px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:5px;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);overflow:hidden;max-width:52px;font-family:inherit;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s}'
       + '.tb-hist-fab .tb-hist-ic{flex:0 0 52px;width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-hist-fab .tb-hist-ic svg{width:22px;height:22px}'
       + '.tb-hist-fab .tb-hist-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
@@ -164,7 +164,7 @@
       // Thin ORANGE vertical scrollbar for the (now scrollable) left rail. overflow-x:clip above keeps
       // flyouts (position:fixed on hover) escaping while preventing a horizontal scrollbar.
       + '.tb-fab-col::-webkit-scrollbar{width:4px}'
-      + '.tb-fab-col::-webkit-scrollbar-thumb{background:#ff9900;border-radius:4px}'
+      + '.tb-fab-col::-webkit-scrollbar-thumb{background:#ff9900;border-radius:5px}'
       + '.tb-fab-col::-webkit-scrollbar-thumb:hover{background:#ec7211}'
       + '.tb-fab-col::-webkit-scrollbar-track{background:transparent}'
       // LEFT rail 3-ZONE layout: logo pinned TOP, nav group CENTERED in the middle, LIVE pinned
@@ -222,7 +222,7 @@
       + '.tb-fab-grad{background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite}'
       // Agent & Group Analytics FAB. Circular; expands on hover to reveal its label. Admin-gated
       // disabled state = greyed + inert. Lives inside the centered FAB column.
-      + '.tb-an-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#7fdfff;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,border-color .15s,transform .15s}'
+      + '.tb-an-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:5px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#7fdfff;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,border-color .15s,transform .15s}'
       + '.tb-an-fab .tb-an-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-an-fab .tb-an-ic svg{width:25px;height:25px}'
       + '.tb-an-fab .tb-an-label{white-space:nowrap;font-size:.86em;font-weight:600;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
@@ -231,10 +231,10 @@
       + '.tb-an-fab.tb-an-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
       // Live-quarter FAB. Blinks to signal "LIVE" and links to the live dashboard (app.html).
       // Expands on hover to reveal the quarter label. Lives inside the centered FAB column.
-      + '.tb-live-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:23px;background:#12261a;color:#4ade80;border:1px solid #2f7a4a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s;animation:tbLiveGlow 1.6s ease-in-out infinite}'
+      + '.tb-live-fab{position:relative;height:46px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:5px;background:#12261a;color:#4ade80;border:1px solid #2f7a4a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:46px;transition:max-width .28s ease,background .15s,border-color .15s,transform .15s;animation:tbLiveGlow 1.6s ease-in-out infinite}'
       + '.tb-live-fab .tb-live-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
       // Bump the Live + Analytics FAB outer size to match the enlarged 58px rail pills.
-      + '.tb-an-fab,.tb-live-fab{height:58px!important;max-width:58px!important;border-radius:29px!important}'
+      + '.tb-an-fab,.tb-live-fab{height:58px!important;max-width:58px!important;border-radius:5px!important}'
       + '.tb-live-fab .tb-live-dot{width:12px;height:12px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;animation:tbLiveBlink 1s steps(1,end) infinite}'
       + '.tb-live-fab .tb-live-label{white-space:nowrap;font-size:.86em;font-weight:700;letter-spacing:.3px;opacity:0;padding-right:0;transition:opacity .2s ease,padding-right .2s ease}'
       + '.tb-live-fab:hover{max-width:320px;border-color:#4ade80;transform:translateY(-2px)}'
@@ -245,7 +245,7 @@
       + '@keyframes tbLiveBlink{0%,50%{opacity:1}51%,100%{opacity:.15}}'
       + '@keyframes tbLiveGlow{0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 0 rgba(74,222,128,.0)}50%{box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 6px rgba(74,222,128,.16)}}'
       // Page-navigation FABs — same expand-on-hover pill. Live inside the centered FAB column.
-      + '.tb-nav-fab{position:relative;height:58px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:29px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:58px;transition:max-width .28s ease}'
+      + '.tb-nav-fab{position:relative;height:58px;display:inline-flex;align-items:center;gap:0;padding:0;border-radius:5px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);text-decoration:none;overflow:hidden;max-width:58px;transition:max-width .28s ease}'
       + '.tb-nav-fab .tb-nav-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center;position:relative}'
       + '.tb-nav-fab .tb-nav-ic svg{width:24px;height:24px}'
       // Custom PNG icon (e.g. Unique cases -> important.png). Fit inside the icon slot.
@@ -264,7 +264,7 @@
       + '.tb-flyout-wrap{position:relative;display:flex;align-items:center}'
       // Trigger pill (Data/Reports/Issue Types/Program History). Has its own flyout -> hover gives it a
       // SKY-BLUE background (per spec). Icon is light so it reads on the dark pill.
-      + '.tb-flyout-fab{position:relative;height:58px;width:58px;flex:0 0 58px;display:inline-flex;align-items:center;justify-content:center;border-radius:29px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}'
+      + '.tb-flyout-fab{position:relative;height:58px;width:58px;flex:0 0 58px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;background:linear-gradient(120deg,#12243a,#2a3f63,#153a4a,#3a2a63,#12243a);background-size:320% 320%;animation:tbFabGrad 6s ease infinite;color:#e6edf0;border:1px solid #2a2a2a;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}'
       // Trigger icon colour matches its border (#3a4f74) at rest (set via the override block below too).
       + '.tb-flyout-fab .tb-nav-ic{flex:0 0 58px;width:58px;height:58px;display:inline-flex;align-items:center;justify-content:center;color:#3a4f74}'
       + '.tb-flyout-fab .tb-nav-ic svg{width:24px;height:24px;color:#3a4f74;stroke:#3a4f74}'
@@ -280,7 +280,7 @@
       // item labels have space to sit beside their icons and wrap gracefully.
       // Width = FIT-TO-CONTENT, capped so a group with short labels stays compact and one with long
       // labels wraps instead of growing unbounded. (min keeps it from collapsing too narrow.)
-      + '.tb-flyout{position:absolute;left:44px;top:50%;transform:translateY(-50%) translateX(-8px);display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:6px;width:max-content;min-width:160px;max-width:240px;max-height:80vh;overflow-y:auto;background:#f5f6f8;border:1px solid #d4dade;border-radius:12px;box-shadow:0 16px 40px rgba(20,30,50,.28);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .22s ease;z-index:1200}'
+      + '.tb-flyout{position:absolute;left:44px;top:50%;transform:translateY(-50%) translateX(-8px);display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:6px;width:max-content;min-width:160px;max-width:240px;max-height:80vh;overflow-y:auto;background:#f5f6f8;border:1px solid #d4dade;border-radius:5px;box-shadow:0 16px 40px rgba(20,30,50,.28);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .22s ease;z-index:1200}'
       // Invisible bridge spanning the gap between the trigger and the panel so the hover never drops.
       + '.tb-flyout::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:18px}'
       // Show the flyout when hovering the whole button item (box + caption), the wrap, OR the flyout.
@@ -288,7 +288,7 @@
       // Each fly-out item: a ROW — CIRCULAR bordered icon chip on the LEFT, page name on the RIGHT
       // (always visible, wraps, no slide). Full-width rows in the panel; transparent at rest, ORANGE
       // on hover (it opens a page).
-      + '.tb-flyout .tb-flyout-item{flex:0 0 auto!important;display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px;width:100%!important;max-width:100%!important;height:auto!important;min-height:0;padding:3px 8px;border-radius:12px;background:#f5f6f8;border:1px solid transparent;box-shadow:none;overflow:visible;text-decoration:none;transition:background .14s,border-color .14s,color .14s}'
+      + '.tb-flyout .tb-flyout-item{flex:0 0 auto!important;display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px;width:100%!important;max-width:100%!important;height:auto!important;min-height:0;padding:3px 8px;border-radius:5px;background:#f5f6f8;border:1px solid transparent;box-shadow:none;overflow:visible;text-decoration:none;transition:background .14s,border-color .14s,color .14s}'
       // The circular icon chip (always bordered -> round button), fixed size so it stays a perfect circle.
       + '.tb-flyout .tb-flyout-item .tb-nav-ic{flex:0 0 36px!important;width:36px!important;height:36px!important;border-radius:50%!important;border:1px solid #c3ccd4;background:#fff;display:inline-flex!important;align-items:center;justify-content:center;color:#2a3f63}'
       + '.tb-flyout .tb-flyout-item .tb-nav-ic svg{width:18px!important;height:18px!important;color:#2a3f63;stroke:#2a3f63}'
@@ -311,7 +311,7 @@
       + '.tb-flyout .tb-flyout-item.tb-nav-fab:hover{max-width:none!important;transform:none!important}'
       // Count badge (e.g. open alerts) pinned to the top-right of the FAB icon. Auto-sizes to its
       // content (width:auto + no clipping) so a multi-digit count is shown in full, not hidden.
-      + '.tb-nav-badge{display:none;position:absolute;top:-5px;right:-5px;min-width:18px;width:auto;height:18px;padding:0 5px;border-radius:20px;background:#ff5252;color:#fff;font-size:.64em;font-weight:800;line-height:18px;text-align:center;white-space:nowrap;overflow:visible;box-sizing:border-box;box-shadow:0 0 0 2px #1b2430;z-index:3}'
+      + '.tb-nav-badge{display:none;position:absolute;top:-5px;right:-5px;min-width:18px;width:auto;height:18px;padding:0 5px;border-radius:5px;background:#ff5252;color:#fff;font-size:.64em;font-weight:800;line-height:18px;text-align:center;white-space:nowrap;overflow:visible;box-sizing:border-box;box-shadow:0 0 0 2px #1b2430;z-index:3}'
       + '.tb-nav-badge.show{display:block}'
       + '.tb-nav-badge.zero{background:#3a4655;color:#cdd7de}'
       // Loading state: neutral grey pill with a tiny spinner instead of a premature "0".
@@ -328,7 +328,7 @@
       + '.tb-flyout-item.tb-nav-fab:hover{max-width:340px;transform:none}'
       + '.tb-flyout-item.tb-nav-fab:hover .tb-nav-label{opacity:1;padding-right:18px}'
       // Rail item = icon pill on top + an always-visible caption below.
-      + '.tb-fab-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:6px 2px;border-radius:14px;transition:background .15s}'
+      + '.tb-fab-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:6px 2px;border-radius:5px;transition:background .15s}'
       + '.tb-fab-cap{font-size:11px;font-weight:600;line-height:1.15;color:#9fb0c3;text-align:center;max-width:9vw;white-space:normal;word-break:break-word;letter-spacing:.2px;pointer-events:none;transition:transform .15s,color .15s}'
       + '.tb-fab-cap.is-disabled{color:#6b7681}'
       // Hover the whole item: subtle background + scale the caption up a touch.
@@ -340,7 +340,7 @@
       + '.tb-rail-badge{position:relative;width:58px;height:58px;flex:0 0 58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;overflow:visible;background:#0b1420;border:1px solid #2a3f63;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;text-decoration:none;transition:border-color .15s,transform .15s;padding:0;font-family:inherit}'
       + 'button.tb-rail-badge{-webkit-appearance:none;appearance:none}'
       + '.tb-rail-badge:hover{border-color:#ff9900;transform:translateY(-2px)}'
-      + '.tb-rail-badge-label{position:absolute;left:68px;top:50%;transform:translateY(-50%) translateX(-6px);white-space:nowrap;background:#121820;border:1px solid #2a3f63;color:#e6edf0;font-size:.86em;font-weight:700;padding:9px 15px;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20}'
+      + '.tb-rail-badge-label{position:absolute;left:68px;top:50%;transform:translateY(-50%) translateX(-6px);white-space:nowrap;background:#121820;border:1px solid #2a3f63;color:#e6edf0;font-size:.86em;font-weight:700;padding:9px 15px;border-radius:5px;box-shadow:0 8px 22px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20}'
       + '.tb-rail-badge:hover .tb-rail-badge-label{opacity:1;transform:translateY(-50%) translateX(0)}'
       // GSOC logo image inside its badge.
       + '.tb-rail-logo .tb-rail-logo-img{width:36px;height:36px;object-fit:contain;display:block}'
@@ -355,26 +355,26 @@
       + '.tb-rail-profile:hover .tb-nav-ic{color:#ff9900}'
       + '.tb-nav-fab.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
       // On short screens shrink the FAB column (smaller pills + tighter gap) so it still fits centered.
-      + '@media(max-height:820px){.tb-fab-col{gap:6px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:40px;max-width:40px;border-radius:20px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:40px;width:40px;height:40px}.tb-nav-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg{width:18px;height:18px}.tb-hist-fab{height:40px}.tb-hist-fab .tb-hist-ic{flex-basis:40px;width:40px;height:40px}}'
-      + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
+      + '@media(max-height:820px){.tb-fab-col{gap:6px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:40px;max-width:40px;border-radius:5px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:40px;width:40px;height:40px}.tb-nav-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg{width:18px;height:18px}.tb-hist-fab{height:40px}.tb-hist-fab .tb-hist-ic{flex-basis:40px;width:40px;height:40px}}'
+      + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:5px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
       + '.tb-hist-pop.open{display:flex}'
       + '.tb-hist-title{color:#879596;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px 8px;position:sticky;top:-8px;background:#121820}'
-      + '.tb-hist-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.tb-hist-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:5px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       + '.tb-hist-item:hover{background:#1b2430;color:#fff}'
       + '.tb-hist-item svg{width:15px;height:15px;flex-shrink:0;color:#879596}'
       + '.tb-hist-item .tb-hist-name{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}'
       + '.tb-hist-current{background:#1a2430;color:#fff}'
       + '.tb-hist-current svg{color:#ff9900}'
-      + '.tb-hist-badge{flex-shrink:0;font-size:.62em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.4);border-radius:20px;padding:2px 7px}'
+      + '.tb-hist-badge{flex-shrink:0;font-size:.62em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.4);border-radius:5px;padding:2px 7px}'
       + '.tb-hist-empty{color:#5f6b6c;font-size:.82em;font-style:italic;padding:8px 10px}'
       // ---- Home-page MENU fab (bottom-RIGHT; history fab is bottom-left) + its nav popup ----
       + '.tb-menu-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:52px;height:52px;border-radius:50%;background:#1b2430;color:#ff9900;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .15s,background .15s,border-color .15s}'
       + '.tb-menu-fab:hover{background:#222d3a;border-color:#ff9900;transform:translateY(-2px)}'
       + '.tb-menu-fab svg{width:22px;height:22px}'
-      + '.tb-menu-pop{position:fixed;right:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
+      + '.tb-menu-pop{position:fixed;right:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:5px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
       + '.tb-menu-pop.open{display:flex}'
       // Menu-item links inside the home MENU popup (left-aligned list, like the history popup).
-      + '.tb-menu-pop .tb-menuitem{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:transparent;border:none;font-family:inherit;width:100%}'
+      + '.tb-menu-pop .tb-menuitem{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:5px;color:#d5dbdb;text-decoration:none;font-size:.86em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:transparent;border:none;font-family:inherit;width:100%}'
       + '.tb-menu-pop .tb-menuitem:hover{background:#1b2430;color:#fff}'
       + '.tb-menu-pop .tb-menuitem.active{background:#1a2430;color:#ff9900}'
       + '.tb-menu-pop .tb-menuitem svg{width:15px;height:15px;flex-shrink:0;color:#879596}'
@@ -463,7 +463,7 @@
       + '.phd-banner .pb-msg{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
       + '.phd-banner .pb-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:tbspin .8s linear infinite;flex-shrink:0}'
       + '.phd-banner .pb-action{flex-shrink:0;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.5);color:#fff;'
-      +   'border-radius:20px;padding:5px 14px;font-size:.9em;font-weight:700;cursor:pointer;font-family:inherit}'
+      +   'border-radius:5px;padding:5px 14px;font-size:.9em;font-weight:700;cursor:pointer;font-family:inherit}'
       + '.phd-banner .pb-action:hover{background:rgba(255,255,255,.28)}'
       + '.phd-banner .pb-close{flex-shrink:0;background:transparent;border:none;color:#fff;font-size:1.3em;line-height:1;cursor:pointer;padding:0 4px;opacity:.85}'
       + '.phd-banner .pb-close:hover{opacity:1}'
@@ -472,7 +472,7 @@
       + 'body.phd-banner-open .tb-fab-col{top:46px}'
       // ---- Smaller rail buttons (narrow 5vw rails). Scale every 58px pill/badge down to 44px and
       //      shrink their icons/captions to match. Appended last so it overrides the sizes above. ----
-      + '.tb-nav-fab,.tb-flyout-fab,.tb-rail-badge,.tb-an-fab,.tb-live-fab{height:44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;flex:0 0 44px!important;border-radius:22px!important;justify-content:center!important;transition:transform .15s ease,border-color .15s ease,background .15s ease!important}'
+      + '.tb-nav-fab,.tb-flyout-fab,.tb-rail-badge,.tb-an-fab,.tb-live-fab{height:44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;flex:0 0 44px!important;border-radius:5px!important;justify-content:center!important;transition:transform .15s ease,border-color .15s ease,background .15s ease!important}'
       // (Flyout-item icons are sized by the .tb-flyout block; exclude them here so the round chip holds.)
       + '.tb-nav-fab:not(.tb-flyout-item) .tb-nav-ic,.tb-flyout-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex:0 0 44px!important;width:44px!important;height:44px!important}'
       + '.tb-nav-fab:not(.tb-flyout-item) .tb-nav-ic svg,.tb-flyout-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg,.tb-rail-badge svg{width:19px!important;height:19px!important}'
@@ -557,8 +557,10 @@
       + '.tb-profile-panel{position:absolute;top:10px;right:4px;width:25vw;z-index:900;display:flex;flex-direction:column;gap:14px;padding:0;box-sizing:border-box;background:transparent;pointer-events:auto}'
       // Compact banner: orange gradient, rounded. ONE row — avatar + (name·role / handle) + links.
       // No group line, no decorative arc.
-      + '.tb-pp-banner{position:relative;overflow:hidden;border-radius:16px;border:1px solid #e2a24a;box-shadow:0 10px 26px -16px rgba(0,0,0,.5);background:linear-gradient(100deg,#f0820f,#ff9f2e 55%,#ffc879)}'
-      + '.tb-pp-body{display:flex;align-items:center;gap:13px;padding:14px 16px}'
+      + '.tb-pp-banner{position:relative;overflow:hidden;border-radius:5px;border:1px solid #e2a24a;box-shadow:0 10px 26px -16px rgba(0,0,0,.5);background:linear-gradient(100deg,#f0820f,#ff9f2e 55%,#ffc879)}'
+      + '.tb-pp-body{display:flex;flex-direction:column;gap:11px;padding:14px 16px}'
+      // Top row of the banner: avatar + handle on the left, hamburger toggle pinned right.
+      + '.tb-pp-head{display:flex;align-items:center;gap:13px}'
       + '.tb-pp-av{flex:0 0 auto;width:56px;height:56px;border-radius:50%;overflow:hidden;background:#fff;border:2px solid rgba(255,255,255,.85);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.25)}'
       + '.tb-pp-av img,.tb-pp-av .avatar-initial{width:56px!important;height:56px!important;border-radius:50%!important;object-fit:cover}'
       + '.tb-pp-meta{min-width:0;display:flex;flex-direction:column;gap:2px}'
@@ -566,20 +568,32 @@
       + '.tb-pp-name{color:#2a1706;font-size:1.02em;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       + '.tb-pp-handle{color:rgba(42,23,6,.7);font-weight:600;font-size:.8em}'
       + '.tb-pp-badge{flex:0 0 auto;display:inline-flex;align-items:center;background:rgba(42,23,6,.16);color:#2a1706;font-size:.66em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:2px 8px;border-radius:999px}'
-      // Links on the RIGHT of the banner: a top row of ghost chips (Profile + Logout) over the
-      // solid "My Tickets" pill. The column shrinks to the chip-row width; My Tickets stretches to it.
-      + '.tb-pp-links{margin-left:auto;flex:0 0 auto;display:inline-flex;flex-direction:column;align-items:stretch;gap:7px;width:max-content}'
-      // Ghost chips (Profile, Logout): translucent-white pill on the orange banner.
-      + '.tb-pp-link,.tb-pp-logout{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:.74em;font-weight:800;letter-spacing:.2px;text-decoration:none;cursor:pointer;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.22);color:#2a1706;border:1px solid rgba(255,255,255,.5);transition:background .14s,transform .12s}'
-      + '.tb-pp-link:hover,.tb-pp-logout:hover{background:rgba(255,255,255,.42);transform:translateY(-1px)}'
-      + '.tb-pp-link svg,.tb-pp-logout svg{width:12px;height:12px}'
-      // Logout gets a subtle red tint so it reads as the "exit" action.
-      + '.tb-pp-logout{background:rgba(176,32,32,.16);border-color:rgba(176,32,32,.3);color:#7a1414}'
-      + '.tb-pp-logout:hover{background:rgba(176,32,32,.28)}'
-      + '.tb-pp-links-top{display:inline-flex;align-items:center;gap:6px}'
-      // Solid "My Tickets" pill below the chips — stretches to the full links-column width (= the
-      // combined Profile + Logout chip-row width).
-      + '.tb-pp-mytickets{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;text-decoration:none;background:#fff;color:#b45309;font-weight:800;font-size:.8em;padding:7px 14px;border-radius:999px;box-shadow:0 3px 10px -4px rgba(0,0,0,.45);transition:transform .12s,filter .15s,box-shadow .15s;white-space:nowrap}'
+      // Hamburger toggle (replaces the old +/- chip). Pinned to the right of the top row; its 3 bars
+      // animate into an X when the menu is open. Tinted for the orange banner.
+      + '.tb-pp-ham{margin-left:auto;flex:0 0 auto;display:inline-flex;flex-direction:column;justify-content:center;gap:4px;width:36px;height:32px;padding:7px 8px;box-sizing:border-box;background:rgba(255,255,255,.26);border:1px solid rgba(255,255,255,.55);border-radius:5px;cursor:pointer;transition:background .14s,transform .12s}'
+      + '.tb-pp-ham:hover{background:rgba(255,255,255,.46);transform:translateY(-1px)}'
+      + '.tb-pp-ham span{display:block;height:2px;width:100%;background:#2a1706;border-radius:2px;transition:transform .28s ease,opacity .2s ease}'
+      + '.tb-pp-ham[aria-expanded="true"] span:nth-child(1){transform:translateY(5px) rotate(45deg)}'
+      + '.tb-pp-ham[aria-expanded="true"] span:nth-child(2){opacity:0}'
+      + '.tb-pp-ham[aria-expanded="true"] span:nth-child(3){transform:translateY(-5px) rotate(-45deg)}'
+      // The collapsible section: name + role + a VERTICAL stack of full-width buttons. Collapses to 0.
+      + '.tb-pp-links{display:flex;flex-direction:column;align-items:stretch;gap:9px;overflow:hidden;transition:max-height .3s ease,opacity .2s ease,margin-top .2s ease;max-height:320px;opacity:1}'
+      + '.tb-pp-links.collapsed{max-height:0;opacity:0;pointer-events:none;margin-top:-11px}'
+      // Name + role row inside the collapsible section.
+      + '.tb-pp-namerow2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}'
+      // The full-width button stack.
+      + '.tb-pp-links-stack{display:flex;flex-direction:column;align-items:stretch;gap:7px}'
+      // All three buttons: FULL WIDTH, centered label, pill shape.
+      + '.tb-pp-link,.tb-pp-logout,.tb-pp-mytickets{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;box-sizing:border-box;font-family:inherit;font-size:.78em;font-weight:800;letter-spacing:.2px;text-decoration:none;cursor:pointer;padding:8px 12px;border-radius:5px;transition:background .14s,transform .12s,filter .15s,box-shadow .15s;white-space:nowrap}'
+      // Ghost chips (Profile): translucent-white on the orange banner.
+      + '.tb-pp-link{background:rgba(255,255,255,.22);color:#2a1706;border:1px solid rgba(255,255,255,.5)}'
+      + '.tb-pp-link:hover{background:rgba(255,255,255,.42);transform:translateY(-1px)}'
+      + '.tb-pp-link svg,.tb-pp-logout svg{width:13px;height:13px}'
+      // Logout: subtle red tint so it reads as the "exit" action.
+      + '.tb-pp-logout{background:rgba(176,32,32,.16);border:1px solid rgba(176,32,32,.3);color:#7a1414}'
+      + '.tb-pp-logout:hover{background:rgba(176,32,32,.28);transform:translateY(-1px)}'
+      // Solid "My Tickets" pill.
+      + '.tb-pp-mytickets{background:#fff;color:#b45309;border:1px solid #fff;box-shadow:0 3px 10px -4px rgba(0,0,0,.45)}'
       + '.tb-pp-mytickets:hover{transform:translateY(-1px);filter:brightness(1.02);box-shadow:0 5px 14px -5px rgba(0,0,0,.55)}'
       + '.tb-pp-mytickets svg{width:14px;height:14px}'
       + '.tb-pp-mytickets .tb-pp-ic-img{width:15px;height:15px;object-fit:contain}'
@@ -590,9 +604,9 @@
       + '.tb-pp-link,.tb-pp-logout,.tb-pp-mytickets,.tb-pp-login-btn,.tb-fab-cap,.tb-nav-label,.tb-data-btn,.tb-btn,.tb-mbtn,.tb-menuitem,.tb-hist-item,.tb-hist-name,.tb-qbtn,.tb-profile-name,.tb-an-label,.tb-live-label,.tb-hist-label,.tb-av-label,.tb-rail-badge-label{text-transform:capitalize!important}'
       // Vertical stack of SEPARATE section cards.
       + '.tb-pp-stack{display:flex;flex-direction:column;gap:12px}'
-      + '.tb-pp-card{background:#fff;border:1px solid #e2e6ea;border-radius:14px;box-shadow:0 1px 3px rgba(20,30,50,.06);overflow:hidden}'
+      + '.tb-pp-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);overflow:hidden}'
       + '.tb-pp-card-h{display:flex;align-items:center;gap:9px;padding:11px 14px 0}'
-      + '.tb-pp-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:#fff4e8;color:#ec7211;flex-shrink:0}'
+      + '.tb-pp-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;background:#fff4e8;color:#ec7211;flex-shrink:0}'
       + '.tb-pp-ic svg{width:15px;height:15px}'
       + '.tb-pp-ic-img{width:16px;height:16px;object-fit:contain;display:block}'
       + '.tb-pp-ic .tb-pp-ic-fb{display:inline-flex;align-items:center;justify-content:center}'
@@ -613,12 +627,12 @@
       + '.tb-ws-collapse > *{min-height:0;overflow:hidden}'
       + '.tb-pp-card-weekly.open .tb-ws-collapse{grid-template-rows:1fr;padding:2px 14px 14px}'
       + '.tb-ws-sub{color:#5c6773;font-size:.72em;font-weight:700}'
-      + '.tb-ws-export{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:.66em;font-weight:800;letter-spacing:.2px;text-transform:uppercase;cursor:pointer;padding:5px 11px;border:1px solid #f3d4b0;border-radius:8px;background:#fff4e8;color:#b5560c;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}'
+      + '.tb-ws-export{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:.66em;font-weight:800;letter-spacing:.2px;text-transform:uppercase;cursor:pointer;padding:5px 11px;border:1px solid #f3d4b0;border-radius:5px;background:#fff4e8;color:#b5560c;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}'
       + '.tb-ws-export:hover{background:#ec7211;border-color:#ec7211;color:#fff;transform:translateY(-1px)}'
       + '.tb-ws-export.copied{background:#eafaf0;border-color:#c8efd8;color:#1f9d57}'
       + '.tb-ws-export svg{width:12px;height:12px;flex:0 0 auto}'
       + '.tb-ws-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}'
-      + '.tb-ws-kpi{background:#f7f9fb;border:1px solid #eef1f4;border-radius:10px;padding:9px 11px}'
+      + '.tb-ws-kpi{background:#f7f9fb;border:1px solid #eef1f4;border-radius:5px;padding:9px 11px}'
       + '.tb-ws-k{font-size:.64em;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:#5c6773}'
       + '.tb-ws-vrow{display:flex;align-items:baseline;gap:6px;margin-top:4px;flex-wrap:wrap}'
       + '.tb-ws-v{font-size:1.15em;font-weight:800;color:#1b2026;line-height:1}'
@@ -630,7 +644,7 @@
       + '.tb-ws-div{height:1px;background:#eef1f4;margin:14px 0}'
       + '.tb-ws-block-h{font-size:.7em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1b2026;margin-bottom:9px}'
       + '.tb-ws-rows{display:flex;flex-direction:column;gap:7px}'
-      + '.tb-ws-row{padding:9px 11px;border-radius:9px;border:1px solid #eef1f4;background:#fafbfc}'
+      + '.tb-ws-row{padding:9px 11px;border-radius:5px;border:1px solid #eef1f4;background:#fafbfc}'
       + '.tb-ws-row.improving{border-left:3px solid #1f9d57}'
       + '.tb-ws-row.watch{border-left:3px solid #e08a1e}'
       + '.tb-ws-row-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}'
@@ -644,16 +658,16 @@
       // ---- Logged-out (guest) panel: what-you-can-see list + a prominent login button ----
       + '.tb-pp-guest{display:flex;flex-direction:column;gap:9px}'
       + '.tb-pp-g-row{display:flex;align-items:flex-start;gap:9px;color:#2a3340;font-size:.8em;line-height:1.4}'
-      + '.tb-pp-g-ic{flex:0 0 24px;width:24px;height:24px;border-radius:7px;background:#f0f3f6;color:#2563eb;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}'
+      + '.tb-pp-g-ic{flex:0 0 24px;width:24px;height:24px;border-radius:5px;background:#f0f3f6;color:#2563eb;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}'
       + '.tb-pp-g-ic svg{width:14px;height:14px}'
-      + '.tb-pp-login-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;padding:11px 14px;border:none;border-radius:10px;background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;font-size:.86em;font-weight:800;letter-spacing:.2px;cursor:pointer;box-shadow:0 4px 12px -4px rgba(236,114,17,.6);transition:transform .12s,filter .15s}'
+      + '.tb-pp-login-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;padding:11px 14px;border:none;border-radius:5px;background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;font-size:.86em;font-weight:800;letter-spacing:.2px;cursor:pointer;box-shadow:0 4px 12px -4px rgba(236,114,17,.6);transition:transform .12s,filter .15s}'
       + '.tb-pp-login-btn:hover{transform:translateY(-1px);filter:brightness(1.04)}'
       + '.tb-pp-login-btn:disabled{opacity:.65;cursor:default;transform:none}'
       + '.tb-pp-login-btn svg{width:15px;height:15px}'
       // Inline login form (replaces the popup) inside the guest "Log in to do more" card.
       + '.tb-pp-login-form{display:flex;flex-direction:column;margin-top:12px;padding-top:12px;border-top:1px solid #eef1f4}'
       + '.tb-pp-lf-label{color:#5c6773;font-size:.72em;font-weight:700;margin:0 0 4px}'
-      + '.tb-pp-lf-input{width:100%;padding:9px 11px;margin-bottom:10px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#1b2026;font-size:.86em}'
+      + '.tb-pp-lf-input{width:100%;padding:9px 11px;margin-bottom:10px;border:1px solid #d4dade;border-radius:5px;background:#fff;color:#1b2026;font-size:.86em}'
       + '.tb-pp-lf-input:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
       + '.tb-pp-lf-remember{display:flex;align-items:center;gap:7px;color:#5c6773;font-size:.76em;font-weight:600;margin:2px 0 2px}'
       + '.tb-pp-lf-remember input{width:auto;margin:0}'
@@ -663,18 +677,18 @@
       + '.tb-pp-login-wrap.open{max-height:420px;opacity:1}'
       // Actions row (Cancel + Log in) at the bottom of the form.
       + '.tb-pp-lf-actions{display:flex;gap:8px;margin-top:12px}'
-      + '.tb-pp-lf-cancel{flex:0 0 auto;padding:11px 14px;border:1px solid #d4dade;border-radius:10px;background:#fff;color:#2a3340;font-weight:800;font-size:.86em;cursor:pointer;transition:background .15s,border-color .15s}'
+      + '.tb-pp-lf-cancel{flex:0 0 auto;padding:11px 14px;border:1px solid #d4dade;border-radius:5px;background:#fff;color:#2a3340;font-weight:800;font-size:.86em;cursor:pointer;transition:background .15s,border-color .15s}'
       + '.tb-pp-lf-cancel:hover{background:#f3f5f7;border-color:#c2cad1}'
       + '.tb-pp-lf-submit{flex:1;margin-top:0}'
       // "Upload log" BUTTON (icon + label) in the upload card header, right corner, vertically
       // centered with the title. The card header is align-items:center so it lines up with the title.
       + '.tb-pp-card-upload .tb-pp-card-t{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}'
-      + '.tb-pp-up-loglink{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:#2563eb;font-size:.66em;font-weight:800;letter-spacing:.2px;text-transform:uppercase;white-space:nowrap;padding:5px 11px;border:1px solid #cfe0f2;border-radius:8px;background:#eef5ff;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}'
+      + '.tb-pp-up-loglink{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:#2563eb;font-size:.66em;font-weight:800;letter-spacing:.2px;text-transform:uppercase;white-space:nowrap;padding:5px 11px;border:1px solid #cfe0f2;border-radius:5px;background:#eef5ff;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}'
       + '.tb-pp-up-loglink:hover{background:#2563eb;border-color:#2563eb;color:#fff;transform:translateY(-1px)}'
       + '.tb-pp-up-loglink svg{width:13px;height:13px;flex:0 0 auto}'
       // Per-section REFRESH button in a card header (top-right). A round icon-only button; the icon
       // spins while a reload is in flight (.spinning). Default margin-left:auto pins it to the right.
-      + '.tb-pp-reload{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid #e2e6ea;border-radius:8px;background:#fff;color:#5c6773;cursor:pointer;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .14s}'
+      + '.tb-pp-reload{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid #e2e6ea;border-radius:5px;background:#fff;color:#5c6773;cursor:pointer;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .14s}'
       + '.tb-pp-reload:hover{background:#fff4e8;border-color:#ec7211;color:#ec7211;transform:translateY(-1px)}'
       + '.tb-pp-reload svg{width:14px;height:14px;display:block}'
       + '.tb-pp-reload.spinning{pointer-events:none;color:#ec7211}'
@@ -690,7 +704,7 @@
       + '.tb-pp-grid-2{grid-template-columns:repeat(2,1fr)}'
       + '.tb-pp-grid-4{grid-template-columns:repeat(2,1fr)}'
       + '.tb-pp-grid-5{grid-template-columns:repeat(5,1fr)}'
-      + '.tb-pp-stat{background:#f5f6f8;border:1px solid #e6eaef;border-radius:10px;padding:9px 8px;text-align:center;min-width:0}'
+      + '.tb-pp-stat{background:#f5f6f8;border:1px solid #e6eaef;border-radius:5px;padding:9px 8px;text-align:center;min-width:0}'
       + '.tb-pp-stat-n{font-size:1.15em;font-weight:900;line-height:1;color:#1b2026}'
       + '.tb-pp-stat-l{margin-top:4px;font-size:.64em;font-weight:700;letter-spacing:.2px;text-transform:uppercase;color:#5c6773;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       + '.tb-pp-stat.res .tb-pp-stat-n{color:#15803d}'
@@ -709,13 +723,43 @@
       + '.tb-pp-pair-n{font-size:.9em;font-weight:900;line-height:1;color:#1b2026;margin-left:auto}'
       + '.tb-pp-pair.res .tb-pp-pair-n{color:#15803d}'
       + '.tb-pp-pair-sep{flex:0 0 auto;color:#cfd6de;font-weight:400}'
+      // Sub-section label + divider inside a clubbed card (e.g. "By age" group under the open-status
+      // pairs in the combined "My open tickets" card).
+      + '.tb-pp-subh{display:flex;align-items:center;gap:8px;margin:13px 0 9px;color:#5c6773;font-size:.62em;font-weight:800;letter-spacing:.5px;text-transform:uppercase}'
+      + '.tb-pp-subh::after{content:"";flex:1 1 auto;height:1px;background:#eef1f4}'
       // Upload-change key/value rows. Fill the full parent width; key + value share the row 50/50
       // so the value no longer flings to the far edge leaving a wide empty gap.
       + '.tb-pp-up{display:flex;flex-direction:column;width:100%}'
       + '.tb-pp-up-row{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:10px;width:100%;padding:7px 2px;border-bottom:1px solid #eef1f4}'
       + '.tb-pp-up-row:last-child{border-bottom:none}'
-      + '.tb-pp-up-k{color:#5c6773;font-size:.72em;font-weight:600}'
-      + '.tb-pp-up-v{color:#1b2026;font-size:.82em;font-weight:800;text-align:right}'
+      + '.tb-pp-up-k{min-width:0;color:#5c6773;font-size:.72em;font-weight:600}'
+      + '.tb-pp-up-v{min-width:0;color:#1b2026;font-size:.82em;font-weight:800;text-align:right}'
+      // Truncating cell (label OR value): single line with an ellipsis (full text in the title tooltip).
+      + '.tb-pp-up-trunc{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      // NOT ASSIGNED row — a highlighted red attention banner that softly blinks when > 0.
+      + '.tb-pp-na-row{border-bottom:none!important;margin:4px 0;padding:9px 11px!important;border-radius:5px;background:#fdeaea;border:1px solid #f6b8b8;box-shadow:0 0 0 0 rgba(220,38,38,.0)}'
+      + '.tb-pp-na-k{display:inline-flex;align-items:center;gap:6px;color:#dc2626!important;font-weight:900;letter-spacing:.3px}'
+      + '.tb-pp-na-k svg{width:12px;height:12px;flex:0 0 auto}'
+      + '.tb-pp-na-v{color:#dc2626!important;font-size:1em!important;font-weight:900}'
+      + '.tb-pp-na-row.blink{animation:tbNaBlink 1.3s ease-in-out infinite}'
+      + '@keyframes tbNaBlink{0%,100%{background:#fdeaea;border-color:#f6b8b8;box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{background:#fbd5d5;border-color:#ef9a9a;box-shadow:0 0 0 4px rgba(220,38,38,.14)}}'
+      // Per-analyst list: a small section header, then one row per analyst (name left, open + net right).
+      + '.tb-pp-analyst-head{margin-top:8px;padding:8px 2px 4px;border-top:1px solid #e2e6ea;color:#5c6773;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase}'
+      + '.tb-pp-analyst-row{padding:6px 2px}'
+      + '.tb-pp-analyst-name{color:#1b2026!important;font-size:.8em;font-weight:800;text-transform:capitalize}'
+      + '.tb-pp-analyst-v{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px}'
+      + '.tb-pp-analyst-open{color:#1b2026;font-size:1em;font-weight:900}'
+      // Orange net badge; the breakdown pops on hover/focus. A zero net is muted grey (no data yet).
+      + '.tb-pp-delta{position:relative;display:inline-flex;align-items:center;background:#fff4e8;color:#ec7211;border:1px solid #f6c998;border-radius:999px;padding:1px 9px;font-size:.78em;font-weight:800;cursor:help;outline:none}'
+      + '.tb-pp-delta.zero{background:#f0f3f6;color:#8a94a2;border-color:#e2e6ea}'
+      + '.tb-pp-delta-pop{position:absolute;bottom:calc(100% + 8px);right:0;z-index:50;min-width:150px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 12px 30px -10px rgba(20,40,70,.4);padding:9px 11px;display:none;flex-direction:column;gap:6px;text-align:left;cursor:default}'
+      + '.tb-pp-delta:hover .tb-pp-delta-pop,.tb-pp-delta:focus .tb-pp-delta-pop{display:flex}'
+      // Little arrow under the pop.
+      + '.tb-pp-delta-pop::after{content:"";position:absolute;top:100%;right:14px;border:6px solid transparent;border-top-color:#fff;filter:drop-shadow(0 1px 0 #e2e6ea)}'
+      + '.tb-pp-delta-row{display:flex;align-items:center;gap:7px;color:#2a3340;font-size:.9em;font-weight:700;white-space:nowrap}'
+      + '.tb-pp-delta-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}'
+      + '.tb-pp-delta-dot.res{background:#1f9d57}'   // resolved = green
+      + '.tb-pp-delta-dot.add{background:#ec7211}'   // newly added = orange
       // ---- Sliding carousel (upload card <-> agents-activity card), swaps every 3s ----
       // Two slides stacked in a relative box; slide B is offset down + hidden, slide A is in view.
       // Adding .show-b slides A up/out and B into place. The box height tracks the ACTIVE slide via
@@ -724,7 +768,7 @@
       // Only the ACTIVE slide is in the DOM flow, so the slider is exactly as tall as the current
       // slide (NOT the tallest). This prevents the panel/page from growing to fit the biggest slide.
       // Inactive slides are display:none; the active one animates in via a direction-based keyframe.
-      + '.tb-pp-slider{position:relative;overflow:hidden;border-radius:14px}'
+      + '.tb-pp-slider{position:relative;overflow:hidden;border-radius:5px}'
       + '.tb-pp-slide{display:none}'
       + '.tb-pp-slide.active{display:block}'
       + '.tb-pp-slider[data-dir="next"] .tb-pp-slide.active{animation:tbSlideFromRight .4s ease both}'
@@ -769,9 +813,9 @@
       // Rows scroll INTERNALLY (capped height) so a long leaderboard never stretches the panel and
       // hides the banner. Thin orange scrollbar to match the panel.
       + '.tb-pp-ag-rows{overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#ff9900 transparent}'
-      + '.tb-pp-ag-rows::-webkit-scrollbar{width:4px}.tb-pp-ag-rows::-webkit-scrollbar-thumb{background:#ff9900;border-radius:4px}'
+      + '.tb-pp-ag-rows::-webkit-scrollbar{width:4px}.tb-pp-ag-rows::-webkit-scrollbar-thumb{background:#ff9900;border-radius:5px}'
       // "Show all / Show top 7" toggle below the rows.
-      + '.tb-pp-ag-more{display:block;width:100%;margin:7px 0 0;padding:6px 0;background:#f5f6f8;border:1px solid #e6eaef;border-radius:8px;color:#2563eb;font-size:.68em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;transition:background .14s,color .14s}'
+      + '.tb-pp-ag-more{display:block;width:100%;margin:7px 0 0;padding:6px 0;background:#f5f6f8;border:1px solid #e6eaef;border-radius:5px;color:#2563eb;font-size:.68em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;transition:background .14s,color .14s}'
       + '.tb-pp-ag-more:hover{background:#eef5ff;color:#1d4ed8}'
       // Avatar chip.
       + '.tb-pp-ag-av{flex:0 0 28px;width:28px;height:28px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:#e9edf1}'
@@ -794,7 +838,7 @@
       + '.tb-pp-ag-loading{display:flex;align-items:center;justify-content:center;padding:16px 4px}'
       + '.tb-pp-ag-empty{color:#8a94a2;font-size:.78em;text-align:center;padding:14px 0;font-style:italic}'
       // Skeleton shimmer blocks.
-      + '.tb-pp-sk{display:inline-block;border-radius:6px;background:#e9edf1;position:relative;overflow:hidden;vertical-align:middle}'
+      + '.tb-pp-sk{display:inline-block;border-radius:5px;background:#e9edf1;position:relative;overflow:hidden;vertical-align:middle}'
       + '.tb-pp-sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:tbPpSk 1.2s infinite}'
       + '@keyframes tbPpSk{100%{transform:translateX(100%)}}'
       // Loader inside the "Change in data due to last upload" card (its data loads separately).
@@ -1007,7 +1051,7 @@
   // columns added beyond the original 18 are tagged "new". Kept in sync with app.js REQUIRED_COLUMNS.
   var TB_REQUIRED_COLUMNS = ['Age','AssignedGroup','AssigneeIdentity','ClosureCode','CreateDate','IssueId','IssueUrl','Labels','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate','RequesterIdentity','ResolvedByIdentity','ResolvedDate','RootCause','RootCauseDetails','Severity','ShortId','Status','Tags','Title'];
   var TB_NEW_COLUMNS = { 'Labels': true, 'RequesterIdentity': true, 'Tags': true };
-  function tbNewTag(c) { return TB_NEW_COLUMNS[c] ? ' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>' : ''; }
+  function tbNewTag(c) { return TB_NEW_COLUMNS[c] ? ' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>' : ''; }
   function tbMissingColumns(text) {
     var cells = [], cur = '', inQ = false;
     for (var i = 0; i < text.length; i++) { var ch = text[i];
@@ -1030,7 +1074,7 @@
     ov.id = 'tbUploadIntro';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
       '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
       '<p style="color:#5c6773;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#1b2026">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
@@ -1055,7 +1099,7 @@
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
       '<h2 style="color:#dc2626;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
       '<p style="color:#5c6773;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#dc2626">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
       '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
@@ -1161,15 +1205,15 @@
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
     tbFlowOverlay('tbAssess',
-      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:14px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#1b2026;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
         '<p style="color:#5c6773;margin-top:6px;font-size:.9em" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
         // Progress bar + ticket ticker (shown while the live data loads).
         '<div id="tbAssessTimerWrap" style="display:none;margin-top:20px">' +
           '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:20px;overflow:hidden">' +
-              '<div id="tbAssessBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:20px;transition:width .35s ease"></div>' +
+            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:5px;overflow:hidden">' +
+              '<div id="tbAssessBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:5px;transition:width .35s ease"></div>' +
             '</div>' +
             '<div id="tbAssessPct" style="font-size:.95em;font-weight:800;color:#1f9d57;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
           '</div>' +
@@ -1306,7 +1350,7 @@
     // rows -> tell the user there are no new changes and let them close the upload.
     if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
       tbFlowOverlay('tbConfirm',
-        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#1b2026;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
           '<p style="color:#5c6773;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#1b2026">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
@@ -1316,9 +1360,9 @@
       return;
     }
     tbFlowOverlay('tbConfirm',
-      '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+      '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
         '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
-        '<div style="background:#f7f9fb;border:1px solid #e2e6ea;border-radius:10px;padding:6px 16px">' +
+        '<div style="background:#f7f9fb;border:1px solid #e2e6ea;border-radius:5px;padding:6px 16px">' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets with newer data</span><span style="color:#1577a0;font-weight:700">' + res.xNewer + '</span></div>' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Will be updated (field changes)</span><span style="color:#b5680c;font-weight:700">' + res.yUpdated + '</span></div>' +
           '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#5c6773">New tickets to add</span><span style="color:#1f9d57;font-weight:700">' + res.zNew + '</span></div>' +
@@ -1337,14 +1381,14 @@
   // Step D: delta publish (only changed/new + non-live). Stays on the current page.
   async function tbPublish(res) {
     tbFlowOverlay('tbPush',
-      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:14px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
         '<div class="sp" style="width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
         '<p style="color:#1b2026;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
         '<p style="color:#5c6773;margin-top:8px;font-size:.9em" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
         '<div style="margin-top:20px">' +
           '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:20px;overflow:hidden">' +
-              '<div id="tbPushBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:20px;transition:width .35s ease"></div>' +
+            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:5px;overflow:hidden">' +
+              '<div id="tbPushBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:5px;transition:width .35s ease"></div>' +
             '</div>' +
             '<div id="tbPushPct" style="font-size:.95em;font-weight:800;color:#1f9d57;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
           '</div>' +
@@ -1412,7 +1456,7 @@
       }
       tbRemove('tbPush');
       tbFlowOverlay('tbDone',
-        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
           '<div style="font-size:2em">✅</div>' +
           '<h2 style="color:#1f9d57;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
           '<p style="color:#5c6773;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
@@ -1428,7 +1472,7 @@
       try { clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
       tbRemove('tbPush');
       tbFlowOverlay('tbErr',
-        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
+        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
           '<h2 style="color:#dc2626;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
           '<p style="color:#5c6773;font-size:.9em">' + tbEsc(err.message) + '</p>' +
           '<div style="margin-top:18px"><button class="tb-mbtn" id="tbErrClose">Close</button></div>' +
@@ -1947,24 +1991,28 @@
       var isManager = String(role).toLowerCase() === 'manager';
       var avatarHtml = '';
       try { avatarHtml = A.avatarHtml ? A.avatarHtml(prof, 56) : ''; } catch (e) { avatarHtml = ''; }
-      // Compact static banner: avatar + (name·role on one line, handle under it), with Profile + Logout
-      // chips (and My Tickets for non-managers) on the right. No expand/collapse.
+      // Banner header: avatar + handle on the left, a HAMBURGER toggle on the right. Tapping the
+      // hamburger expands/collapses the section below (name + role + full-width Profile/My Tickets/
+      // Logout buttons). Collapse state persists per-user.
       panel.innerHTML =
         '<div class="tb-pp-banner' + (isManager ? ' tb-pp-banner-notix' : '') + '">'
         + '<div class="tb-pp-body">'
-        +   '<span class="tb-pp-av">' + avatarHtml + '</span>'
-        +   '<span class="tb-pp-meta">'
-        +     '<span class="tb-pp-namerow"><span class="tb-pp-name">' + tbEsc(name) + '</span>'
-        +       (role ? '<span class="tb-pp-badge">' + tbEsc(role) + '</span>' : '') + '</span>'
-        +     (handle ? '<span class="tb-pp-handle">' + tbEsc(handle) + '@</span>' : '')
-        +   '</span>'
-        +   '<span class="tb-pp-links">'
-        +     '<span class="tb-pp-links-top">'
-        +       '<a class="tb-pp-link" href="profile.html">' + ic('user', 13) + 'Profile</a>'
-        +       '<button type="button" class="tb-pp-logout" id="tbPpLogout" title="Log out">' + ic('log-out', 13) + '<span>Logout</span></button>'
+        +   '<div class="tb-pp-head">'
+        +     '<span class="tb-pp-av">' + avatarHtml + '</span>'
+        +     '<span class="tb-pp-meta">'
+        +       (handle ? '<span class="tb-pp-handle">' + tbEsc(handle) + '@</span>' : '')
         +     '</span>'
-        +     (isManager ? '' : '<a class="tb-pp-mytickets" href="my-tickets.html">' + izImg('my-tickets', ic('ticket', 14)) + '<span>My Tickets</span></a>')
-        +   '</span>'
+        +     '<button type="button" class="tb-pp-ham" id="tbPpLinksToggle" aria-expanded="true" aria-label="Toggle menu" title="Menu"><span></span><span></span><span></span></button>'
+        +   '</div>'
+        +   '<div class="tb-pp-links" id="tbPpLinksStack">'
+        +     '<div class="tb-pp-namerow2"><span class="tb-pp-name">' + tbEsc(name) + '</span>'
+        +       (role ? '<span class="tb-pp-badge">' + tbEsc(role) + '</span>' : '') + '</div>'
+        +     '<div class="tb-pp-links-stack">'
+        +       '<a class="tb-pp-link" href="profile.html">' + ic('user', 13) + '<span>Profile</span></a>'
+        +       (isManager ? '' : '<a class="tb-pp-mytickets" href="my-tickets.html">' + izImg('my-tickets', ic('ticket', 14)) + '<span>My Tickets</span></a>')
+        +       '<button type="button" class="tb-pp-logout" id="tbPpLogout" title="Log out">' + ic('log-out', 13) + '<span>Logout</span></button>'
+        +     '</div>'
+        +   '</div>'
         + '</div>'
         + '</div>'
         // Stats container: filled with separate section cards; starts as a skeleton.
@@ -2066,6 +2114,28 @@
     // Logout button in the banner — confirm first, then clear the session and return home.
     var lo = document.getElementById('tbPpLogout');
     if (lo) lo.onclick = function () { tbConfirmLogout(); };
+    // Hamburger toggle: collapse/expand the section holding name + role + the stacked profile
+    // buttons. The 3 bars animate into an X via CSS keyed off aria-expanded. State persists per-user.
+    var lt = document.getElementById('tbPpLinksToggle');
+    if (lt) {
+      var LINKS_KEY = 'phd_pp_links_collapsed';
+      var linksWrap = document.getElementById('tbPpLinksStack');
+      var applyLinks = function (collapsed) {
+        if (!linksWrap) return;
+        linksWrap.classList.toggle('collapsed', collapsed);
+        lt.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        lt.setAttribute('aria-label', collapsed ? 'Open menu' : 'Close menu');
+        lt.setAttribute('title', collapsed ? 'Open menu' : 'Close menu');
+      };
+      // Default to COLLAPSED when the user has no stored preference yet.
+      var saved = true; try { var sv = localStorage.getItem(LINKS_KEY); saved = (sv === null) ? true : (sv === '1'); } catch (e) {}
+      applyLinks(saved);
+      lt.onclick = function () {
+        var nowCollapsed = !(linksWrap && linksWrap.classList.contains('collapsed'));
+        applyLinks(nowCollapsed);
+        try { localStorage.setItem(LINKS_KEY, nowCollapsed ? '1' : '0'); } catch (e) {}
+      };
+    }
     if (li) tbLoadProfileStats();   // fetch + render the role-aware stats card below the banner
   }
   window.PHDBuildProfilePanel = buildProfilePanel;
@@ -2077,15 +2147,15 @@
     var ov = document.createElement('div');
     ov.id = 'tbLogoutConfirm';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e7eb;border-radius:16px;width:400px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5);font-family:inherit">'
+    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e7eb;border-radius:5px;width:400px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5);font-family:inherit">'
       + '<div style="display:flex;align-items:center;gap:11px;margin-bottom:8px">'
       +   '<span style="flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#fef2f2;color:#dc2626;display:inline-flex;align-items:center;justify-content:center">' + ic('log-out', 18) + '</span>'
       +   '<h2 style="margin:0;color:#1b2026;font-size:1.1em;font-weight:800">Log out?</h2>'
       + '</div>'
       + '<p style="color:#5c6773;font-size:.9em;line-height:1.55;margin:0 0 18px">You\u2019ll need to log in again to access your tickets and tools.</p>'
       + '<div style="display:flex;gap:10px;justify-content:flex-end">'
-      +   '<button type="button" id="tbLogoutNo" style="font-family:inherit;font-weight:700;font-size:.86em;padding:9px 16px;border-radius:9px;border:1px solid #d4dade;background:#fff;color:#2a3340;cursor:pointer">No, stay</button>'
-      +   '<button type="button" id="tbLogoutYes" style="font-family:inherit;font-weight:800;font-size:.86em;padding:9px 18px;border-radius:9px;border:none;background:#dc2626;color:#fff;cursor:pointer">Yes, log out</button>'
+      +   '<button type="button" id="tbLogoutNo" style="font-family:inherit;font-weight:700;font-size:.86em;padding:9px 16px;border-radius:5px;border:1px solid #d4dade;background:#fff;color:#2a3340;cursor:pointer">No, stay</button>'
+      +   '<button type="button" id="tbLogoutYes" style="font-family:inherit;font-weight:800;font-size:.86em;padding:9px 18px;border-radius:5px;border:none;background:#dc2626;color:#fff;cursor:pointer">Yes, log out</button>'
       + '</div></div>';
     var close = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
     ov.onclick = function (e) { if (e.target === ov) close(); };
@@ -2126,12 +2196,14 @@
     // Upload key/value row: label hardcoded, value spinning.
     var upRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v">' + spin + '</span></div>'; };
 
+    // Clubbed skeleton: open-status pairs + "By age" tiles in a single card (matches the real render).
     var openCard = tbProfileCard(izImg('my-tickets', ic('ticket', 15)), 'My open tickets',
-      '<div class="tb-pp-pairs">' + pairRow('Assigned', 'WIP') + pairRow('Researching', 'Pending') + '</div>');
-    var ageCard = tbProfileCard(ICO_AGE, 'My tickets by age',
-      '<div class="tb-pp-grid tb-pp-grid-5">'
+      '<div class="tb-pp-pairs">' + pairRow('Assigned', 'WIP') + pairRow('Researching', 'Pending') + '</div>'
+      + '<div class="tb-pp-subh">By age</div>'
+      + '<div class="tb-pp-grid tb-pp-grid-5">'
       + tile('Purple', 'c-purple') + tile('Black', 'c-black') + tile('Red', 'c-red')
       + tile('Yellow', 'c-yellow') + tile('Green', 'c-green') + '</div>');
+    var ageCard = '';
     // Upload card built manually so its header can carry the "Upload log" button (same as the live
     // card), keeping the skeleton visually identical to the loaded state.
     var uploadLogBtn = '<a class="tb-pp-up-loglink" href="data-log.html" aria-label="View upload log">' + ic('history', 13) + '<span>Upload log</span></a>';
@@ -2139,8 +2211,7 @@
       + '<div class="tb-pp-card-h"><span class="tb-pp-ic">' + izImg('upload-new-data', ic('upload', 15)) + '</span>'
       +   '<span class="tb-pp-card-t">Change in data due to last upload</span>' + uploadLogBtn + '</div>'
       + '<div class="tb-pp-card-b"><div class="tb-pp-up">'
-      + upRow('Uploaded by') + upRow('File') + upRow('When') + upRow('Newly added') + upRow('Updated')
-      + upRow('SLA %')
+      + upRow('Uploaded by') + upRow('File') + upRow('When') + upRow('NOT ASSIGNED')
       + '</div></div></section>';
     // The last card is the SLIDER shell — same markup as the live layout so the prev/dots/next
     // control bar is present during loading (no layout jump when the real data swaps in). The
@@ -2252,16 +2323,18 @@
         // primary summary; no other default card in this branch.
       } else {
         var s = d.statusCounts || {}, c = d.colors || {};
+        // Clubbed card: "My open tickets" (status pairs) + "By age" (color tiles) in one section,
+        // separated by a sub-section divider.
         html += tbProfileCard(izImg('my-tickets', ic('ticket', 15)), 'My open tickets',
           '<div class="tb-pp-pairs">'
           + pairRow(pair('Assigned', s['Assigned'] || 0), pair('WIP', s['Work In Progress'] || 0))
           + pairRow(pair('Researching', s['Researching'] || 0), pair('Pending', s['Pending'] || 0))
-          + '</div>', null, tbPpReloadBtn('tbPpReloadOpen'));
-        html += tbProfileCard(ICO_AGE, 'My tickets by age',
-          '<div class="tb-pp-grid tb-pp-grid-5">'
+          + '</div>'
+          + '<div class="tb-pp-subh">By age</div>'
+          + '<div class="tb-pp-grid tb-pp-grid-5">'
           + tile('Purple', c.purple || 0, 'c-purple') + tile('Black', c.black || 0, 'c-black')
           + tile('Red', c.red || 0, 'c-red') + tile('Yellow', c.yellow || 0, 'c-yellow')
-          + tile('Green', c.green || 0, 'c-green') + '</div>', null, tbPpReloadBtn('tbPpReloadAge'));
+          + tile('Green', c.green || 0, 'c-green') + '</div>', null, tbPpReloadBtn('tbPpReloadOpen'));
         // "My resolved" (Last 12h / Last 24h) card removed per request.
       }
       // The last "card" is a SLIDING CAROUSEL that alternates between the upload-change card and the
@@ -2270,8 +2343,7 @@
       var upLoadRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v"><span class="tb-pp-mini-spin"></span></span></div>'; };
       var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Change in data due to last upload',
         '<div id="tbPpUploadBody"><div class="tb-pp-up">'
-        + upLoadRow('Uploaded by') + upLoadRow('File') + upLoadRow('When') + upLoadRow('Newly added') + upLoadRow('Updated')
-        + upLoadRow('SLA %')
+        + upLoadRow('Uploaded by') + upLoadRow('File') + upLoadRow('When') + upLoadRow('NOT ASSIGNED')
         + '</div></div>', 'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
       // Three agent-activity windows: Today / Yesterday / Last week. Each is its own carousel slide,
       // with its own reload button in the card header.
@@ -2601,14 +2673,46 @@
       var row = function (label, val) {
         return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + label + '</span><span class="tb-pp-up-v">' + val + '</span></div>';
       };
-      var slaTxt = (d.slaPct != null) ? (d.slaPct + '%') : '\u2014';
+      // Truncating row: each half takes 50% (grid 1fr 1fr); both the label AND the value get an
+      // ellipsis if they overflow, with the full text in a title tooltip.
+      var rowT = function (label, val) {
+        var safeL = tbEsc(label);
+        var safeV = tbEsc(val);
+        return '<div class="tb-pp-up-row"><span class="tb-pp-up-k tb-pp-up-trunc" title="' + safeL + '">' + safeL + '</span>'
+          + '<span class="tb-pp-up-v tb-pp-up-trunc" title="' + safeV + '">' + safeV + '</span></div>';
+      };
+      // NOT ASSIGNED: open live tickets whose assignee isn't one of the analysts. Highlighted with a
+      // red attention banner + a soft blink so it stands out.
+      var naN = (d.notAssigned != null ? d.notAssigned : 0);
+      var notAssignedRow = '<div class="tb-pp-up-row tb-pp-na-row' + (naN > 0 ? ' blink' : '') + '"><span class="tb-pp-up-k tb-pp-na-k">' + ic('alert', 12) + ' NOT ASSIGNED</span>'
+        + '<span class="tb-pp-up-v tb-pp-na-v">' + naN + '</span></div>';
+      // Per-analyst list (shown to EVERY logged-in user): one row per analyst — "<name>  <open> <+net>"
+      // sorted by open count desc (server-sorted). The orange +net badge, on hover, shows a small card
+      // with the resolved / newly-added breakdown. net is 0 when there's no delta data yet.
+      var analystRows = '';
+      var alist = Array.isArray(d.analysts) ? d.analysts : [];
+      if (alist.length) {
+        var rowsHtml = alist.map(function (a) {
+          var net = Number(a.net || 0);
+          var netStr = (net > 0 ? '+' : '') + net;   // +10, -3, 0
+          var badge = '<span class="tb-pp-delta' + (net === 0 ? ' zero' : '') + '" tabindex="0">' + tbEsc(netStr)
+            + '<span class="tb-pp-delta-pop">'
+            +   '<span class="tb-pp-delta-row"><span class="tb-pp-delta-dot res"></span>' + (a.resolved || 0) + ' resolved</span>'
+            +   '<span class="tb-pp-delta-row"><span class="tb-pp-delta-dot add"></span>' + (a.newlyAdded || 0) + ' newly added</span>'
+            + '</span></span>';
+          return '<div class="tb-pp-up-row tb-pp-analyst-row">'
+            + '<span class="tb-pp-up-k tb-pp-analyst-name">' + tbEsc(a.name || a.username || '') + '</span>'
+            + '<span class="tb-pp-up-v tb-pp-analyst-v"><b class="tb-pp-analyst-open">' + (a.open != null ? a.open : 0) + '</b>' + badge + '</span>'
+            + '</div>';
+        }).join('');
+        analystRows = '<div class="tb-pp-analyst-head">Open tickets by analyst</div>' + rowsHtml;
+      }
       body.innerHTML = '<div class="tb-pp-up">'
-        + row('Uploaded by', tbEsc(d.user || '\u2014'))
-        + row('File', tbEsc(d.fileName || '\u2014'))
-        + row('When', tbEsc(when || '\u2014'))
-        + row('Newly added', (d.added != null ? d.added : 0))
-        + row('Updated', (d.updated != null ? d.updated : 0))
-        + row('SLA %', slaTxt)
+        + rowT('Uploaded by', d.user || '\u2014')
+        + rowT('File', d.fileName || '\u2014')
+        + rowT('When', when || '\u2014')
+        + notAssignedRow
+        + analystRows
         + '</div>';
     };
     // Cache-first: paint instantly from cache (no network) unless forced.

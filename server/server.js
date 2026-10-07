@@ -1079,6 +1079,42 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     // If this live quarter is still legacy (big array, not yet split), migrate it now so the delta writes small.
     if (!hasTicketDocs && hasLegacy) { await backfillTicketDocs(liveQ); }
 
+    // ---- Per-analyst delta for this upload (used by the "Change in data" card subsection) ----
+    // Diff each incoming changed ticket against its PRIOR live-quarter state (before we upsert):
+    //   newlyAdded = ticket not previously in the live quarter
+    //   resolved   = was open before, now Resolved/Closed
+    // Bucket counts per assignee (lowercased). Also count how many incoming tickets are assigned to
+    // someone who is NOT one of the analysts (notAssignedAdded) — surfaced as "NOT ASSIGNED".
+    let analystDelta = {};        // login -> { newlyAdded, resolved }
+    let notAssignedAdded = 0;
+    try {
+      for (const t of changed) { if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId; }
+      const sids = changed.map(shortIdOf).filter(Boolean);
+      const priorDocs = sids.length
+        ? await tColl.find({ _id: { $in: sids.map(s => ticketDocId(liveQ, s)) } },
+            { projection: { _id: 0, ShortId: 1, IssueId: 1, Status: 1 } }).toArray()
+        : [];
+      const priorMap = {}; priorDocs.forEach(d => { const s = shortIdOf(d); if (s) priorMap[s] = d; });
+      // Analyst username set (for NOT-ASSIGNED detection).
+      const analystSet = new Set(
+        (await (await getCollection(COLLECTIONS.users)).find({ analyst: true }, { projection: { _id: 0, username: 1 } }).toArray())
+          .map(u => String(u.username || '').toLowerCase()).filter(Boolean)
+      );
+      const RESOLVED_SET = ['Resolved', 'Closed'];
+      changed.forEach(t => {
+        const sid = shortIdOf(t); if (!sid) return;
+        const assignee = String(t.AssigneeIdentity || '').trim().toLowerCase();
+        const prior = priorMap[sid];
+        const isNew = !prior;
+        const becameResolved = prior && OPEN_STATUSES.includes(String(prior.Status || '')) && RESOLVED_SET.includes(String(t.Status || ''));
+        if (isNew && assignee && !analystSet.has(assignee)) notAssignedAdded++;
+        if (!assignee) return;
+        const b = (analystDelta[assignee] = analystDelta[assignee] || { newlyAdded: 0, resolved: 0 });
+        if (isNew) b.newlyAdded++;
+        if (becameResolved) b.resolved++;
+      });
+    } catch (e) { analystDelta = {}; notAssignedAdded = 0; /* best-effort; never block publish */ }
+
     // Apply the delta directly to ticket_docs — write ONLY the changed/removed rows (a few KB), never
     // the whole ~8k array. This is the fix for the multi-minute publish.
     let applied = 0;
@@ -1099,6 +1135,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
         changeSummary: body.changeSummary || null,
         fileName: fileMeta.fileName, fileSize: fileMeta.fileSize, fileType: fileMeta.fileType,
         totalTickets: total,
+        analystDelta, notAssignedAdded,   // per-analyst upload deltas + non-analyst new-ticket count
       });
     } catch (logErr) { /* never block */ }
 
@@ -1292,6 +1329,8 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
     const batch = await logColl.find({ $or: [{ publishedAt: stamp }, { at: stamp }] }).toArray();
     let added = 0, updated = 0, becameResolved = 0, total = 0;
     let fileName = '';
+    let batchAnalystDelta = {};   // merged login -> { newlyAdded, resolved } across the batch
+    let notAssignedAddedBatch = 0;
     batch.forEach(e => {
       const cs = e.changeSummary || {};
       added += Number(cs.added || 0);
@@ -1299,12 +1338,30 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
       becameResolved += Number(cs.becameResolved || 0); // only the live-quarter report carries this
       total += Number(e.totalTickets || 0);
       if (!fileName && e.fileName) fileName = String(e.fileName);  // uploaded file name (live-quarter entry carries it)
+      if (e.analystDelta && typeof e.analystDelta === 'object') {
+        Object.keys(e.analystDelta).forEach(k => {
+          const d = e.analystDelta[k] || {};
+          const b = (batchAnalystDelta[k] = batchAnalystDelta[k] || { newlyAdded: 0, resolved: 0 });
+          b.newlyAdded += Number(d.newlyAdded || 0);
+          b.resolved += Number(d.resolved || 0);
+        });
+      }
+      notAssignedAddedBatch += Number(e.notAssignedAdded || 0);
     });
 
     // Live aggregates reflecting the data AFTER this upload (whole live quarter):
     //   slaPct = % of resolved tickets (valid resolution time) closed within 240h
     //   petResolvedBySim = pet incidents auto-resolved by AutoSIM
-    let slaPct = null, petResolvedBySim = 0;
+    //   notAssigned = OPEN live tickets whose AssigneeIdentity is NOT one of the analysts (the 13)
+    let slaPct = null, petResolvedBySim = 0, notAssigned = 0;
+    // Analysts (the "13"): username set (for NOT-ASSIGNED) + a login->displayName map (for the list).
+    let analystSet = new Set();
+    const analystName = {};   // login -> displayName (fallback to login)
+    try {
+      const arows = await (await getCollection(COLLECTIONS.users)).find({ analyst: true }, { projection: { _id: 0, username: 1, displayName: 1 } }).toArray();
+      arows.forEach(u => { const k = String(u.username || '').toLowerCase(); if (!k) return; analystSet.add(k); analystName[k] = u.displayName || u.username || k; });
+    } catch (e) { /* analystSet empty -> notAssigned stays 0 */ }
+    // SLA % + Pet-resolved-by-SIM are LIVE-QUARTER metrics (keep them scoped to the live quarter).
     try {
       const tickets = await liveTickets();
       let elig = 0, within = 0;
@@ -1316,7 +1373,38 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
         if (isAutoSimResolved(t) && isPetIncident(t)) petResolvedBySim++;
       });
       slaPct = elig ? Math.round((within / elig) * 1000) / 10 : null;
-    } catch (e) { /* best-effort — leave slaPct null / petResolvedBySim 0 */ }
+    } catch (e) { /* best-effort */ }
+
+    // Open-ticket counts are counted ACROSS ALL QUARTERS (an analyst's open tickets span quarters,
+    // just like the "My open tickets" card) — NOT just the live quarter. Aggregate ticket_docs by
+    // assignee for open statuses. NOT ASSIGNED = open tickets whose assignee isn't an analyst.
+    const analystOpen = {};   // login -> open-ticket count (all quarters)
+    try {
+      const tColl = await getCollection(COLLECTIONS.ticketDocs);
+      const grp = await tColl.aggregate([
+        { $match: { Status: { $in: OPEN_STATUSES } } },
+        { $group: { _id: { $toLower: { $trim: { input: { $ifNull: ['$AssigneeIdentity', ''] } } } }, n: { $sum: 1 } } },
+      ]).toArray();
+      grp.forEach(r => {
+        const a = String(r._id || '');
+        if (!a || !analystSet.has(a)) { notAssigned += Number(r.n || 0); }
+        else { analystOpen[a] = Number(r.n || 0); }
+      });
+    } catch (e) { /* best-effort */ }
+
+    // Per-analyst list (shown to EVERY logged-in user): one row per analyst with their current OPEN
+    // total + this upload's net change (newlyAdded - resolved). Sorted by open count DESC. When there's
+    // no delta data yet, net/resolved/newlyAdded are 0.
+    const analysts = Array.from(analystSet).map(login => {
+      const d = batchAnalystDelta[login] || { newlyAdded: 0, resolved: 0 };
+      const newlyAdded = Number(d.newlyAdded || 0), resolved = Number(d.resolved || 0);
+      return {
+        username: login,
+        name: analystName[login] || login,
+        open: analystOpen[login] || 0,
+        newlyAdded, resolved, net: newlyAdded - resolved,
+      };
+    }).sort((a, b) => (b.open - a.open) || String(a.name).localeCompare(String(b.name)));
 
     res.json({
       none: false,
@@ -1325,6 +1413,8 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
       fileName,
       added, updated, becameResolved, total,
       slaPct, petResolvedBySim,
+      notAssigned,
+      analysts,
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load last-upload info.' });
@@ -1909,6 +1999,65 @@ app.delete('/api/issue-types-taxonomy/:id', requireTaxonomyEditor, async (req, r
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete the incident type.' });
+  }
+});
+
+// Edit a CATEGORY: rename it and/or change its icon. Categories are derived from the `category`
+// (and `catIcon`) fields on every type doc, so this updates ALL docs under the old category name.
+// Edit-list only. Audit-logged. Body: { oldCategory, newCategory?, catIcon? }.
+app.patch('/api/issue-types-taxonomy/category', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const oldCategory = String(b.oldCategory || '').trim();
+    if (!oldCategory) return res.status(400).json({ error: 'oldCategory is required.' });
+    const coll = await getCollection(COLLECTIONS.issueTypes);
+    const docs = await coll.find({ category: oldCategory }).toArray();
+    if (!docs.length) return res.status(404).json({ error: 'Category not found.' });
+
+    const set = {};
+    let newCategory = oldCategory;
+    if (b.newCategory != null) {
+      const v = String(b.newCategory).trim();
+      if (!v) return res.status(400).json({ error: 'Category name cannot be empty.' });
+      // Block a rename that collides with a DIFFERENT existing category.
+      if (v.toLowerCase() !== oldCategory.toLowerCase()) {
+        const clash = await coll.findOne({ category: v });
+        if (clash) return res.status(409).json({ error: 'A category named "' + v + '" already exists.' });
+      }
+      set.category = v; newCategory = v;
+    }
+    if (b.catIcon != null) { const ic = String(b.catIcon).trim(); if (ic) set.catIcon = ic; }
+    if (!Object.keys(set).length) return res.status(400).json({ error: 'Nothing to update (provide newCategory and/or catIcon).' });
+
+    const now = new Date().toISOString();
+    set.updatedBy = req.user.username; set.updatedAt = now;
+    await coll.updateMany({ category: oldCategory }, { $set: set });
+    try {
+      const logColl = await getCollection(COLLECTIONS.issueTypeLog);
+      await logColl.insertOne({ action: 'edit-category', category: newCategory, user: req.user.username, role: req.user.role, at: now, before: { category: oldCategory }, after: { category: newCategory, catIcon: set.catIcon || null } });
+    } catch (logErr) { /* never block */ }
+    res.json({ ok: true, category: newCategory, catIcon: set.catIcon || (docs[0].catIcon || ''), updated: docs.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not update the category.' });
+  }
+});
+
+// Delete a CATEGORY and all its incident types. Edit-list only. Audit-logged.
+app.delete('/api/issue-types-taxonomy/category/:name', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const category = String(req.params.name || '').trim();
+    if (!category) return res.status(400).json({ error: 'Category name is required.' });
+    const coll = await getCollection(COLLECTIONS.issueTypes);
+    const docs = await coll.find({ category }).toArray();
+    if (!docs.length) return res.status(404).json({ error: 'Category not found.' });
+    await coll.deleteMany({ category });
+    try {
+      const logColl = await getCollection(COLLECTIONS.issueTypeLog);
+      await logColl.insertOne({ action: 'delete-category', category, user: req.user.username, role: req.user.role, at: new Date().toISOString(), before: { category, typeCount: docs.length, types: docs.map(d => d.type) } });
+    } catch (logErr) { /* never block */ }
+    res.json({ ok: true, deleted: docs.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the category.' });
   }
 });
 

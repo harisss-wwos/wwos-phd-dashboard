@@ -15,12 +15,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .wrap{padding:32px 24px;width:auto;max-width:1200px;margin:0 auto}
 /* ---- Illustrated gradient banner header (standardization theme: amber/orange) ---- */
 .iz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:20px;
   border:1px solid #2a2117;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background:linear-gradient(90deg,#b4530a,#f08a1d 55%,#ffd27a);background-size:200% 100%;animation:izBanner 9s ease infinite}
 @keyframes izBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -30,7 +30,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:92ch;color:rgba(42,23,6,.84)}
 .iz-banner .hb-sub b{color:#1e1004;font-weight:800}
 .iz-banner .hb-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.80);border-radius:14px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#2a1706}
+.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.80);border-radius:5px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#2a1706}
 .iz-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
 .iz-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
 .iz-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:200px;
@@ -39,7 +39,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h40l14 14v46a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z"/><path d="M56 10v16h16"/><path d="M26 42l8 8 18-18"/></svg>')}
 @media(max-width:640px){.iz-banner .hb-title{font-size:1.25em}.iz-banner::after{opacity:.18}}
 /* Edit-mode buttons living in the banner (only shown to allowed editors). */
-.iz-ebtn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-weight:700;font-size:.82em;cursor:pointer;border:1px solid transparent;font-family:inherit;text-decoration:none;transition:transform .12s,filter .15s}
+.iz-ebtn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:5px;font-weight:700;font-size:.82em;cursor:pointer;border:1px solid transparent;font-family:inherit;text-decoration:none;transition:transform .12s,filter .15s}
 .iz-ebtn:hover{transform:translateY(-1px);filter:brightness(1.06)}
 .iz-ebtn svg{width:15px;height:15px}
 .iz-ebtn.primary{background:#1e1004;color:#ffd27a;border-color:rgba(42,23,6,.4)}
@@ -47,20 +47,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-edit-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(30,16,4,.72);color:#ffe3b0;font-size:.72em;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.3px}
 
 /* ================= Taxonomy WIRING diagram (reference) ================= */
-.iz-wire{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:16px;padding:20px 22px 24px}
+.iz-wire{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:5px;padding:20px 22px 24px}
 /* Category node column = 50% of the container width (the node fills it; the wires + types take the rest). */
 .iz-wire{--iz-catw:50%}
 .iz-grp{display:grid;grid-template-columns:var(--iz-catw) 1fr;gap:0;align-items:stretch;margin-top:12px;padding-top:12px;border-top:1px dashed #262b31}
 .iz-grp:first-of-type{border-top:none;margin-top:6px;padding-top:0}
 .iz-cat-col{display:flex;align-items:center;position:relative}
-.iz-cat-node{display:flex;align-items:center;gap:12px;width:100%;background:linear-gradient(135deg,#163463,#0f2546);border:1px solid #244a7a;border-radius:14px;padding:12px 14px;box-shadow:0 8px 20px -14px rgba(0,0,0,.8);position:relative;z-index:2;cursor:pointer;user-select:none;transition:border-color .15s,transform .12s,box-shadow .15s}
+.iz-cat-node{display:flex;align-items:center;gap:12px;width:100%;background:linear-gradient(135deg,#163463,#0f2546);border:1px solid #244a7a;border-radius:5px;padding:12px 14px;box-shadow:0 8px 20px -14px rgba(0,0,0,.8);position:relative;z-index:2;cursor:pointer;user-select:none;transition:border-color .15s,transform .12s,box-shadow .15s}
 .iz-cat-node:hover{border-color:#3b7bd0;transform:translateY(-1px);box-shadow:0 10px 24px -14px rgba(0,0,0,.9)}
 .iz-grp.open .iz-cat-node{border-color:#4a86d8;box-shadow:0 10px 26px -12px rgba(30,80,150,.55)}
-.iz-cat-node .ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.08);color:#ffce8a;flex-shrink:0}
+.iz-cat-node .ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:5px;background:rgba(255,255,255,.08);color:#ffce8a;flex-shrink:0}
 .iz-cat-txt{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:3px}
 .iz-cat-name{display:block;color:#fff;font-size:.95em;font-weight:800;line-height:1.25;white-space:nowrap}
 .iz-cat-meta{display:block;color:#9fb6d6;font-size:.72em;font-weight:600;letter-spacing:.2px;white-space:nowrap}
 .iz-cat-caret{color:#9fb6d6;display:inline-flex;flex-shrink:0;transition:transform .22s ease;margin-left:4px}
+/* Category edit/delete controls (editors only) — sit on the blue category node, so light-on-blue. */
+.iz-cat-actions{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
+.iz-catbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.iz-catbtn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.6)}
+.iz-catbtn.del:hover{background:rgba(255,82,82,.9);border-color:#ff5252;color:#fff}
+.iz-catbtn svg{width:15px;height:15px}
 .iz-grp.open .iz-cat-caret{transform:rotate(90deg)}
 .iz-wire-area{position:relative;display:flex;align-items:stretch}
 .iz-wire-svg{position:absolute;left:0;top:0;width:46px;height:100%;overflow:visible;pointer-events:none;z-index:1;opacity:0;transition:opacity .25s ease}
@@ -69,16 +75,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-grp:not(.open) .iz-wire-area{display:none}
 @keyframes izPop{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
 .iz-grp.open .iz-type-col>.iz-type{animation:izPop .34s cubic-bezier(.25,.9,.3,1) both;animation-delay:var(--d,0ms)}
-.iz-type{background:#0f1317;border:1px solid #1e242b;border-left:4px solid var(--iz-ac,#e08a1d);border-radius:11px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.iz-type{background:#0f1317;border:1px solid #1e242b;border-left:4px solid var(--iz-ac,#e08a1d);border-radius:5px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .iz-type:hover{box-shadow:0 6px 18px -12px rgba(0,0,0,.9)}
 .iz-type-head{display:flex;align-items:center;gap:12px;padding:12px 15px;cursor:pointer;user-select:none;transition:background .15s}
 .iz-type-head:hover{background:rgba(255,255,255,.03)}
-.iz-type-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--iz-acbg,rgba(240,138,29,.14));color:var(--iz-ac,#e08a1d);flex-shrink:0}
+.iz-type-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;background:var(--iz-acbg,rgba(240,138,29,.14));color:var(--iz-ac,#e08a1d);flex-shrink:0}
 .iz-type-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
 .iz-type-nrow{display:inline-flex;align-items:center;gap:8px;min-width:0}
 .iz-type-name{color:#eef1f4;font-size:.96em;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Copy-name button — small, appears beside the type name; available to everyone. */
-.iz-copybtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:6px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;padding:0;transition:border-color .15s,color .15s,background .15s}
+.iz-copybtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;padding:0;transition:border-color .15s,color .15s,background .15s}
 .iz-copybtn:hover{border-color:#ff9900;color:#ff9900}
 .iz-copybtn.copied{border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,.12)}
 .iz-copybtn svg{width:13px;height:13px}
@@ -98,28 +104,34 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-def-v.ex{color:#c9d3dc;font-style:italic}
 /* Row-level edit/delete controls (editors only) */
 .iz-type-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-right:2px}
-.iz-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.iz-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
 .iz-iconbtn:hover{border-color:#ff9900;color:#ff9900}
 .iz-iconbtn.del:hover{border-color:#ff5252;color:#ff5252}
 .iz-iconbtn svg{width:15px;height:15px}
-.iz-addtype{margin-top:6px;display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px dashed #3a4a5e;background:#101722;color:#9fd0ff;font-weight:600;font-size:.84em;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s}
+.iz-addtype{margin-top:6px;display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:5px;border:1px dashed #3a4a5e;background:#101722;color:#9fd0ff;font-weight:600;font-size:.84em;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s}
 .iz-addtype:hover{border-color:#4a86d8;color:#cfe6ff}
 .iz-addtype svg{width:15px;height:15px}
 /* Modal */
 .iz-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:4000;display:none;align-items:center;justify-content:center;padding:20px}
+/* Category icon picker grid (edit-category modal). */
+.iz-icon-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.iz-icon-opt{display:inline-flex;align-items:center;justify-content:center;width:100%;height:40px;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.iz-icon-opt:hover{border-color:#4a86d8;color:#cfe6ff}
+.iz-icon-opt.sel{border-color:#4a86d8;background:#17314f;color:#cfe6ff;box-shadow:0 0 0 2px rgba(74,134,216,.35)}
+.iz-icon-opt svg{width:18px;height:18px}
 .iz-modal-bg.show{display:flex}
-.iz-modal{background:#11161c;border:1px solid #2a3340;border-radius:14px;width:560px;max-width:94vw;max-height:92vh;overflow:auto;padding:24px}
+.iz-modal{background:#11161c;border:1px solid #2a3340;border-radius:5px;width:560px;max-width:94vw;max-height:92vh;overflow:auto;padding:24px}
 .iz-modal h2{color:#fff;font-size:1.15em;margin:0 0 4px}
 .iz-modal .sub{color:var(--tm);font-size:.83em;margin:0 0 16px;line-height:1.5}
 .iz-field{margin-bottom:14px}
 .iz-field label{display:block;color:#cdd7de;font-size:.78em;font-weight:700;letter-spacing:.3px;margin-bottom:6px}
-.iz-field input,.iz-field textarea,.iz-field select{width:100%;padding:10px 12px;background:#0a0e12;border:1px solid #2a3340;border-radius:8px;color:#eef1f4;font-size:.9em;font-family:inherit}
+.iz-field input,.iz-field textarea,.iz-field select{width:100%;padding:10px 12px;background:#0a0e12;border:1px solid #2a3340;border-radius:5px;color:#eef1f4;font-size:.9em;font-family:inherit}
 .iz-field input:focus,.iz-field textarea:focus,.iz-field select:focus{outline:none;border-color:#ff9900}
 .iz-field textarea{min-height:70px;resize:vertical;line-height:1.5}
 .iz-field .hint{color:#6b7681;font-size:.74em;margin-top:5px}
 .iz-modal-err{color:#ff6b6b;font-size:.84em;margin-top:10px;display:none}
 .iz-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-.iz-mbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;font-weight:700;font-size:.86em;cursor:pointer;border:none;font-family:inherit}
+.iz-mbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:5px;font-weight:700;font-size:.86em;cursor:pointer;border:none;font-family:inherit}
 .iz-mbtn.primary{background:#ff9900;color:#000}.iz-mbtn.primary:hover{background:#ec7211}
 .iz-mbtn.sec{background:transparent;border:1px solid #2a3340;color:#cdd7de}.iz-mbtn.sec:hover{border-color:#ff9900;color:#ff9900}
 .iz-mbtn.danger{background:#ff5252;color:#fff}.iz-mbtn.danger:hover{background:#e03e3e}
@@ -170,6 +182,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-iconbtn.del:hover{border-color:#dc2626!important;color:#dc2626!important}
 .iz-addtype{background:#eaf4fb!important;border:1px dashed #9fcbe0!important;color:#1577a0!important}
 .iz-addtype:hover{border-color:#1577a0!important;color:#0f5f80!important}
+/* Category edit/delete buttons are on the blue node — keep them light (no override needed). */
+/* Category icon picker (light theme). */
+.iz-icon-opt{background:#f7f9fb!important;border:1px solid #d4dce4!important;color:#5c6773!important}
+.iz-icon-opt:hover{border-color:#1577a0!important;color:#0f5f80!important}
+.iz-icon-opt.sel{border-color:#1577a0!important;background:#eaf4fb!important;color:#0f5f80!important;box-shadow:0 0 0 2px rgba(21,119,160,.25)!important}
 /* Modal. */
 .iz-modal-bg{background:rgba(20,30,45,.55)!important}
 .iz-modal{background:#fff!important;border:1px solid #e2e6ea!important}
@@ -237,9 +254,30 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   </div>
 </div>
 
+<!-- Edit category modal (editors only): rename + choose icon -->
+<div class="iz-modal-bg" id="izCatModalBg">
+  <div class="iz-modal">
+    <h2>Edit category</h2>
+    <p class="sub">Rename this category and/or change its icon. The change applies to every incident type under it.</p>
+    <div class="iz-field">
+      <label>Category name</label>
+      <input type="text" id="izCatName" placeholder="e.g. Weapon &amp; Robbery">
+    </div>
+    <div class="iz-field">
+      <label>Icon</label>
+      <div class="iz-icon-grid" id="izCatIconGrid"></div>
+    </div>
+    <div class="iz-modal-err" id="izCatModalErr"></div>
+    <div class="iz-modal-actions">
+      <button class="iz-mbtn sec" id="izCatModalCancel" type="button">Cancel</button>
+      <button class="iz-mbtn primary" id="izCatModalSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -372,6 +410,10 @@ function render(){
           +'<span class="ic">'+(ic(catIc,20)||'\u25cf')+'</span>'
           +'<span class="iz-cat-txt"><span class="iz-cat-name">'+esc(cat.category)+'</span>'
             +'<span class="iz-cat-meta">'+n+' incident type'+(n===1?'':'s')+'</span></span>'
+          +(editor?('<span class="iz-cat-actions">'
+            +'<button class="iz-catbtn" title="Edit category (rename / icon)" onclick="izOpenEditCategory('+gi+',event)">'+ICO_EDIT+'</button>'
+            +'<button class="iz-catbtn del" title="Delete category" onclick="izDeleteCategory('+gi+',event)">'+ICO_DEL+'</button>'
+          +'</span>'):'')
           +'<span class="iz-cat-caret">\u25b8</span>'
         +'</div>'
       +'</div>'
@@ -516,6 +558,66 @@ izModalEl('izModalCancel').onclick=izCloseModal;
 izModalEl('izModalSave').onclick=izModalSave;
 izModalEl('izModalBg').addEventListener('click',function(e){ if(e.target===this) izCloseModal(); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') izCloseModal(); });
+
+// ================= CATEGORY EDIT / DELETE (editors only) ========================================
+// Curated icon choices for a category node (names resolved by the shared icon() helper).
+var IZ_CAT_ICONS=['alert','flame','paw','message','lock','shield','users','tool','map-pin','no-entry','eye','user','bolt','globe','clipboard','target'];
+var IZ_CAT_EDIT=null;   // { gi, oldCategory, icon }
+function izCatModalError(msg){ var e=izModalEl('izCatModalErr'); e.textContent=msg; e.style.display='block'; }
+function izCloseCatModal(){ izModalEl('izCatModalBg').classList.remove('show'); IZ_CAT_EDIT=null; }
+function izPaintCatIconGrid(selected){
+  var grid=izModalEl('izCatIconGrid'); if(!grid) return;
+  grid.innerHTML=IZ_CAT_ICONS.map(function(name){
+    return '<button type="button" class="iz-icon-opt'+(name===selected?' sel':'')+'" data-icon="'+name+'" title="'+name+'">'+(ic(name,18)||'\u25cf')+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(grid.querySelectorAll('.iz-icon-opt'),function(b){
+    b.onclick=function(){ if(IZ_CAT_EDIT) IZ_CAT_EDIT.icon=b.getAttribute('data-icon');
+      Array.prototype.forEach.call(grid.querySelectorAll('.iz-icon-opt'),function(x){ x.classList.remove('sel'); }); b.classList.add('sel'); };
+  });
+}
+function izOpenEditCategory(gi,ev){
+  if(ev) ev.stopPropagation();
+  if(!izCanEdit()) return;
+  var cat=IZ_CATS[gi]; if(!cat) return;
+  IZ_CAT_EDIT={ gi:gi, oldCategory:cat.category, icon:(cat.catIcon||'alert') };
+  izModalEl('izCatName').value=cat.category||'';
+  izModalEl('izCatModalErr').style.display='none';
+  izPaintCatIconGrid(IZ_CAT_EDIT.icon);
+  izModalEl('izCatModalBg').classList.add('show');
+  setTimeout(function(){ izModalEl('izCatName').focus(); },30);
+}
+async function izCatModalSave(){
+  if(!izCanEdit()||!IZ_CAT_EDIT) return;
+  var newName=String(izModalEl('izCatName').value||'').trim();
+  if(!newName){ izCatModalError('Category name cannot be empty.'); return; }
+  var btn=izModalEl('izCatModalSave'); btn.disabled=true; btn.textContent='Saving…';
+  try{
+    var r=await A.api('PATCH','/api/issue-types-taxonomy/category',{ oldCategory:IZ_CAT_EDIT.oldCategory, newCategory:newName, catIcon:IZ_CAT_EDIT.icon });
+    if(r&&r.ok){ izCloseCatModal(); await loadTaxonomy(true); }
+    else { izCatModalError((r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').')); }
+  }catch(e){ izCatModalError('Save failed — network error.'); }
+  btn.disabled=false; btn.textContent='Save';
+}
+async function izDeleteCategory(gi,ev){
+  if(ev) ev.stopPropagation();
+  if(!izCanEdit()) return;
+  var cat=IZ_CATS[gi]; if(!cat) return;
+  var n=cat.types.length;
+  var msg=n>0
+    ? 'Delete the category "'+cat.category+'" AND all '+n+' incident type'+(n===1?'':'s')+' under it?\nThis cannot be undone.'
+    : 'Delete the empty category "'+cat.category+'"?';
+  if(!window.confirm(msg)) return;
+  try{
+    var r=await A.api('DELETE','/api/issue-types-taxonomy/category/'+encodeURIComponent(cat.category));
+    if(r&&r.ok){ await loadTaxonomy(true); }
+    else { alert((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').')); }
+  }catch(e){ alert('Delete failed — network error.'); }
+}
+izModalEl('izCatModalCancel').onclick=izCloseCatModal;
+izModalEl('izCatModalSave').onclick=izCatModalSave;
+izModalEl('izCatModalBg').addEventListener('click',function(e){ if(e.target===this) izCloseCatModal(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') izCloseCatModal(); });
+window.izOpenEditCategory=izOpenEditCategory; window.izDeleteCategory=izDeleteCategory;
 
 // ================= LOAD =========================================================================
 function gate(msg){ document.getElementById('wrap').innerHTML='<div class="iz-gate"><h1>Issue Types</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>'; }

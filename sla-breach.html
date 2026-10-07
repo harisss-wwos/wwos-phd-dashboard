@@ -18,7 +18,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
@@ -27,7 +27,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .sub{color:var(--tm);font-size:.9em;margin-bottom:22px;line-height:1.6}
 /* Summary chips + filter — all on ONE line. */
 .hr-counts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px}
-.hr-chip{display:inline-flex;align-items:center;gap:8px;background:#0b0f14;border:1px solid #23303c;border-radius:10px;padding:9px 14px}
+.hr-chip{display:inline-flex;align-items:center;gap:8px;background:#0b0f14;border:1px solid #23303c;border-radius:5px;padding:9px 14px}
 .hr-chip .n{color:#fff;font-size:1.05em;font-weight:800;line-height:1}
 .hr-chip .l{display:inline-flex;align-items:center;gap:6px;color:var(--tm);font-size:.78em;font-weight:600;white-space:nowrap}
 .hr-chip .l svg{opacity:.85;flex-shrink:0}
@@ -39,12 +39,12 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-chip.nonpet .n{color:#ff9900}
 .hr-chip.nonpet .l svg{color:#ff9900}
 /* Inline agent filter, sits at the end of the same row. */
-.hr-filter{display:inline-flex;align-items:center;gap:6px;background:#0b0f14;border:1px solid var(--bd);border-radius:10px;padding:5px 10px;flex:1;min-width:200px}
+.hr-filter{display:inline-flex;align-items:center;gap:6px;background:#0b0f14;border:1px solid var(--bd);border-radius:5px;padding:5px 10px;flex:1;min-width:200px}
 .hr-filter-ic{display:inline-flex;color:var(--tm);flex-shrink:0}
 .hr-filter input{flex:1;min-width:0;background:transparent;border:none;color:#fff;font-size:.88em;font-family:inherit;padding:4px 2px}
 .hr-filter input:focus{outline:none}
 /* Date-range sections (top level, collapsible) — each header is an illustrated gradient banner. */
-.hr-range{position:relative;border:1px solid #242a31;border-radius:16px;margin-bottom:16px;overflow:hidden;background:linear-gradient(180deg,#15181d,#0f1115);box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
+.hr-range{position:relative;border:1px solid #242a31;border-radius:5px;margin-bottom:16px;overflow:hidden;background:linear-gradient(180deg,#15181d,#0f1115);box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
 .hr-range-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 20px;border:none;text-align:left;cursor:pointer;font:inherit;
   background:linear-gradient(90deg,var(--rc1),var(--rc2) 60%,var(--rc3));background-size:200% 100%;animation:hrBanner 10s ease infinite;transition:filter .12s}
 .hr-range-head:hover{filter:brightness(1.04)}
@@ -53,7 +53,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-range-ic svg{width:18px;height:18px}
 .hr-range-title{position:relative;z-index:1;color:var(--rc-ink);font-weight:800;font-size:1.12em;letter-spacing:-.2px}
 /* Meta pill on the right (breaches · agents · pet). */
-.hr-range-meta{position:relative;z-index:1;margin-left:auto;color:var(--rc-ink);font-size:.82em;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.72);border-radius:20px;padding:5px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.hr-range-meta{position:relative;z-index:1;margin-left:auto;color:var(--rc-ink);font-size:.82em;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.72);border-radius:5px;padding:5px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
 .hr-range .hr-caret{position:relative;z-index:1;color:var(--rc-ink);flex-shrink:0;transition:transform .18s}
 /* Illustration watermark on the banner (per-range image set below). */
 .hr-range-head::after{content:"";position:absolute;top:0;bottom:0;right:210px;width:150px;background-repeat:no-repeat;background-position:center;background-size:auto 90%;opacity:.34;pointer-events:none;z-index:0;
@@ -69,7 +69,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-range.rng-unknown .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="40" r="22"/><path d="M45 34a7 7 0 0 1 13 3c0 5-7 5-7 10M51 54h.01"/></svg>')}
 @media(max-width:640px){.hr-range-head{min-height:auto;padding:14px 16px;flex-wrap:wrap}.hr-range-meta{margin-left:0}.hr-range-head::after{opacity:.2}}
 /* Skeleton shimmer for the collapsed-card loading state. */
-.sk-line{display:inline-block;border-radius:6px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
+.sk-line{display:inline-block;border-radius:5px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
 /* On the bright gradient range-head banner, shimmer lines need a light base to be visible. */
 .hr-range-head .sk-line{background:rgba(255,255,255,.5)}
 .sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
@@ -79,15 +79,15 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-range.open .hr-range-body{display:block;padding:16px}
 .hr-range.open>.hr-range-head .hr-caret{transform:rotate(180deg)}
 /* Agent accordion */
-.hr-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
+.hr-agent{border:1px solid #2f3a45;border-radius:5px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
 .hr-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .hr-agent-head:hover{background:rgba(255,255,255,.03)}
 .hr-agent-name{color:#fff;font-weight:700;font-size:1.1em}
 .hr-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
 /* "PHD" tag for agents whose login is a registered user. */
-.hr-phd{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:20px;font-size:.6em;font-weight:800;letter-spacing:.5px;vertical-align:middle;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.45)}
+.hr-phd{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:5px;font-size:.6em;font-weight:800;letter-spacing:.5px;vertical-align:middle;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.45)}
 .hr-agent-meta{margin-left:auto;display:inline-flex;align-items:center;gap:8px}
-.hr-agent-count{font-weight:800;background:rgba(255,82,82,.12);border:1px solid rgba(255,82,82,.35);color:#ff5252;border-radius:20px;padding:4px 14px;font-size:1em}
+.hr-agent-count{font-weight:800;background:rgba(255,82,82,.12);border:1px solid rgba(255,82,82,.35);color:#ff5252;border-radius:5px;padding:4px 14px;font-size:1em}
 .hr-agent-pet{font-size:.78em;color:#a78bfa;font-weight:600}
 .hr-caret{color:var(--tm);transition:transform .25s ease;flex-shrink:0;font-size:1.1em}
 .hr-agent.open .hr-caret{transform:rotate(180deg)}
@@ -110,7 +110,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-tag.o{color:#879596;background:rgba(135,149,150,.15);border:1px solid rgba(135,149,150,.4)}
 /* Load more / less footer under an agent's ticket table. */
 .hr-more{display:flex;justify-content:center;gap:10px;align-items:center;padding:12px 14px}
-.hr-more button{background:#141a20;border:1px solid #2a323b;color:#d5dbdb;border-radius:8px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer}
+.hr-more button{background:#141a20;border:1px solid #2a323b;color:#d5dbdb;border-radius:5px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer}
 .hr-more button:hover{background:#1c242d;border-color:#3a444f;color:#fff}
 .hr-more .hr-count{color:#879596;font-size:.8em}
 /* Root cause: tag + truncated text on one line. The wrapper keeps the tag fixed while the text
@@ -124,16 +124,16 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-sort-ar{display:inline-block;margin-left:7px;font-size:1em;font-weight:900;color:#ff9f2e;vertical-align:middle}
 .hr-sort-ar.idle{color:#7f8c96;opacity:.7;font-weight:700}
 .hr-tbl .hr-over{color:#ff5252;font-weight:800;white-space:nowrap}
-.hr-pill{display:inline-flex;align-items:center;gap:5px;font-size:.78em;font-weight:700;padding:2px 9px;border-radius:20px}
+.hr-pill{display:inline-flex;align-items:center;gap:5px;font-size:.78em;font-weight:700;padding:2px 9px;border-radius:5px}
 .hr-pill.pet{color:#a78bfa;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.35)}
 .hr-pill.nonpet{color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35)}
 .hr-search{margin-bottom:16px}
-.hr-search input{width:100%;max-width:360px;background:#0b0f14;border:1px solid var(--bd);border-radius:8px;color:#fff;font-size:.9em;padding:9px 12px;font-family:inherit}
+.hr-search input{width:100%;max-width:360px;background:#0b0f14;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:9px 12px;font-family:inherit}
 .empty{text-align:center;color:var(--tm);padding:36px;font-size:.9em}
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 /* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
 .hr-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:16px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:20px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
   background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d);background-size:200% 100%;animation:hrBanner 9s ease infinite}
 @keyframes hrBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -212,7 +212,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 let HR_DATA=null;

@@ -19,7 +19,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo span{font-size:1.1em;font-weight:700;color:#fff;line-height:1}
 .logo-link{text-decoration:none;cursor:pointer;transition:opacity .15s}
 .logo-link:hover{opacity:.82}
-.live-badge{font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:20px;padding:3px 12px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;animation:livepulse 2s ease-in-out infinite}
+.live-badge{font-size:.7em;font-weight:700;letter-spacing:.5px;color:#4ade80;background:rgba(74,222,128,.14);border:1px solid rgba(74,222,128,.4);border-radius:5px;padding:3px 12px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;animation:livepulse 2s ease-in-out infinite}
 .live-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:liveblink 1s steps(1,end) infinite}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.62}}
 @keyframes liveblink{0%,49%{opacity:1;box-shadow:0 0 8px 2px #4ade80}50%,100%{opacity:.25;box-shadow:0 0 0 0 rgba(74,222,128,0)}}
@@ -35,7 +35,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .kt-value.kpi-blink-alert{color:#ff5252!important;font-weight:800;animation:kpiBlinkText 1s ease-in-out infinite}
 @keyframes kpiBlinkText{0%,100%{opacity:1;text-shadow:0 0 8px rgba(255,82,82,.6)}50%{opacity:.45;text-shadow:none}}
 @keyframes blinkAlert{0%,100%{box-shadow:0 0 0 0 rgba(255,82,82,0);background:#0a0a0a}50%{box-shadow:0 0 14px 2px rgba(255,82,82,.5);background:rgba(255,82,82,.09)}}
-.btn{display:inline-flex;align-items:center;padding:7px 16px;background:var(--o);color:#000;border-radius:4px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
+.btn{display:inline-flex;align-items:center;padding:7px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
 .btn.sec:hover{border-color:var(--o);color:var(--o)}
@@ -54,10 +54,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Dashboard title label (replaces the old My Tickets button in this row). */
 .dash-title-name{font-size:1.2em;color:#fff;font-weight:700;letter-spacing:.3px;line-height:1}
 /* Each group is a segmented pill container so its buttons read as one cohesive control. */
-.dash-actions{display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;background:#0e141b;border:1px solid #2f3a45;border-radius:12px;padding:4px}
+.dash-actions{display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;background:#0e141b;border:1px solid #2f3a45;border-radius:5px;padding:4px}
 .dash-actions-left{margin-right:auto}
 .dash-actions-right{margin-left:auto}
-.dash-act{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:46px;box-sizing:border-box;white-space:nowrap;border:1px solid transparent!important;background:transparent!important;color:#cdd7de!important;border-radius:9px;padding:0 16px;font-size:.88em;font-weight:600;box-shadow:none!important;transition:background .14s,color .14s}
+.dash-act{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:46px;box-sizing:border-box;white-space:nowrap;border:1px solid transparent!important;background:transparent!important;color:#cdd7de!important;border-radius:5px;padding:0 16px;font-size:.88em;font-weight:600;box-shadow:none!important;transition:background .14s,color .14s}
 .dash-act:hover{background:rgba(255,255,255,.06)!important;color:#fff!important}
 .dash-act svg{flex-shrink:0;opacity:.9}
 /* Upload = the one primary/accent action (admins). */
@@ -108,7 +108,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .kpi-table td.kt-value{color:#fff;font-weight:800;font-size:1.05em;white-space:nowrap;text-align:right;width:1%}
 .kpi-table td.kt-desc{color:var(--tm);font-size:.82em;line-height:1.45;font-weight:400}
 .kpi-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
-.kpi-card{background:var(--s);border-radius:8px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
+.kpi-card{background:var(--s);border-radius:5px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
 .kpi-card .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
 .kpi-card .label{font-size:.78em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
 .kpi-card.accent .value{color:var(--o)}.kpi-card.success .value{color:var(--gl)}.kpi-card.warning .value{color:var(--ol)}.kpi-card.danger .value{color:var(--rl)}
@@ -138,7 +138,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   .kpi-grid.kpi-grid-compact{grid-template-columns:repeat(2,1fr)!important}
   .kpi-grid-compact .kpi-card .value{font-size:1.1em}
 }
-.section{background:var(--s);border-radius:8px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
+.section{background:var(--s);border-radius:5px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
 /* Average Data + Repeat Incident Data shown side by side (stack on narrow screens). */
 .kpi-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
 .kpi-pair>.section{margin-bottom:24px}
@@ -158,26 +158,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .section .pair-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
 @media(max-width:920px){.section .pair-grid{grid-template-columns:1fr}}
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
-.chart-box{background:var(--s);border-radius:8px;padding:20px;border:1px solid var(--bd)}
+.chart-box{background:var(--s);border-radius:5px;padding:20px;border:1px solid var(--bd)}
 .chart-box h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}
 .chart-wrap{position:relative;height:300px}
 .chart-wrap.tall{height:340px}
 /* Week / Day granularity toggle for the repeat-incidents chart. */
-.hi-gran{display:inline-flex;background:#11161d;border:1px solid #2a323b;border-radius:8px;padding:2px;flex-shrink:0}
-.hi-gran-btn{background:transparent;border:none;color:#879596;font:inherit;font-size:.8em;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .12s,color .12s}
+.hi-gran{display:inline-flex;background:#11161d;border:1px solid #2a323b;border-radius:5px;padding:2px;flex-shrink:0}
+.hi-gran-btn{background:transparent;border:none;color:#879596;font:inherit;font-size:.8em;font-weight:700;padding:6px 14px;border-radius:5px;cursor:pointer;transition:background .12s,color .12s}
 .hi-gran-btn:hover{color:#d5dbdb}
 .hi-gran-btn.on{background:#a78bfa;color:#0e1013}
 table{width:100%;border-collapse:collapse;margin-top:12px}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eef1f4;font-size:.88em;color:#2a3340}
 th{background:#f7f9fb;color:#5c6773;font-weight:700;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
 tr:hover{background:#f8fafb}
-.badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.78em;font-weight:600}
+.badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:.78em;font-weight:600}
 /* Excel-sheet style tables (Incident Types / Historical Incidents): gridlines on every cell, header bg, zebra rows. */
 .xls-table{border:1px solid #2f3a45}
 .xls-table th,.xls-table td{border:1px solid #2f3a45;padding:8px 12px}
 /* Incident Types subsection headers (Resolved by AutoSIM / by PHD agents). */
 .inc-sub-h{display:flex;align-items:center;gap:8px;font-size:.95em;font-weight:700;color:#d5dbdb;margin:4px 0 8px}
-.inc-sub-h .inc-sub-n{font-weight:800;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:20px;padding:1px 10px;font-size:.85em}
+.inc-sub-h .inc-sub-n{font-weight:800;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:5px;padding:1px 10px;font-size:.85em}
 /* Clickable incident-type rows -> agent-breakdown popup. */
 .xls-table tr.inc-clickrow{cursor:pointer}
 .xls-table tr.inc-clickrow:hover td{background:rgba(255,153,0,.08)}
@@ -185,7 +185,7 @@ tr:hover{background:#f8fafb}
 .xls-table tr.inc-grouped td{background:rgba(167,139,250,.08)}
 .xls-table tr.inc-grouped td:nth-child(2) strong{color:#a78bfa}
 /* "View types" button on a grouped row — opens the member-list popup. */
-.inc-grp-btn{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 9px;font-size:.72em;font-weight:700;color:#a78bfa;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.45);border-radius:20px;cursor:pointer;vertical-align:middle}
+.inc-grp-btn{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 9px;font-size:.72em;font-weight:700;color:#a78bfa;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.45);border-radius:5px;cursor:pointer;vertical-align:middle}
 .inc-grp-btn:hover{background:rgba(167,139,250,.24);color:#c4b5fd}
 .inc-grp-btn svg{width:12px;height:12px}
 /* PHD agent popup: table on the left, per-agent bar chart on the right (uses the old Volume space).
@@ -217,7 +217,7 @@ tr:hover{background:#f8fafb}
 .inc-tk-table th.inc-sort-th .inc-sort-ar{font-size:.9em;color:#ff9900}
 /* Load more / less footer under a drill-down table. */
 .inc-tk-more{display:flex;justify-content:center;gap:10px;align-items:center;padding:14px 0 2px}
-.inc-tk-more button{background:#1a2129;border:1px solid #2a323b;color:#d5dbdb;border-radius:8px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.inc-tk-more button{background:#1a2129;border:1px solid #2a323b;color:#d5dbdb;border-radius:5px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .inc-tk-more button:hover{background:#222b34;border-color:#3a444f;color:#fff}
 .inc-tk-more .tk-count{color:#879596;font-size:.8em}
 .xls-table thead th{background:#111820}
@@ -235,13 +235,13 @@ tr:hover{background:#f8fafb}
 .xls-table.tk-clean tbody tr:hover td{background:rgba(255,255,255,.035)}
 .xls-table.tk-clean tbody tr:last-child td{border-bottom:0!important}
 /* Mini progress bar in the % column (orange fill on a dark track), like the reference. */
-.tk-bar{display:inline-block;vertical-align:middle;width:96px;max-width:22vw;height:7px;border-radius:4px;background:#2a323b;overflow:hidden;margin-right:10px}
-.tk-bar>span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#f0810a,#ff9f2e)}
+.tk-bar{display:inline-block;vertical-align:middle;width:96px;max-width:22vw;height:7px;border-radius:5px;background:#2a323b;overflow:hidden;margin-right:10px}
+.tk-bar>span{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#f0810a,#ff9f2e)}
 .tk-pct{color:#c9d3d4;font-weight:600;font-size:.92em}
 .badge-g{background:rgba(62,207,74,.2);color:#3ecf4a;font-weight:700}
 .badge-w{background:rgba(255,153,0,.15);color:var(--ol)}
 .handoff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.handoff-box{background:#0a0a0a;border-radius:6px;padding:16px;border:1px solid var(--bd)}
+.handoff-box{background:#0a0a0a;border-radius:5px;padding:16px;border:1px solid var(--bd)}
 .handoff-box h3{color:var(--o);margin-bottom:12px;font-size:.9em;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .handoff-box ul{list-style:none;padding:0}
 .handoff-box li{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;font-size:.9em}
@@ -253,7 +253,7 @@ tr:hover{background:#f8fafb}
 /* ============ Shift Report — illustrated gradient hero banner (matches the section banners) ============ */
 .sr{max-width:1200px}
 .sr-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  border:1px solid #242a31;border-radius:14px;padding:12px 22px;min-height:0;margin-bottom:18px;
+  border:1px solid #242a31;border-radius:5px;padding:12px 22px;min-height:0;margin-bottom:18px;
   box-shadow:0 10px 26px -20px rgba(0,0,0,.7);
   background:linear-gradient(90deg,#f07d0a,#ff9f2e 52%,#ffcf7a);background-size:200% 100%;animation:secBanner 10s ease infinite}
 .sr-hero-txt{position:relative;z-index:1;min-width:0}
@@ -263,7 +263,7 @@ tr:hover{background:#f8fafb}
 .sr-lead{color:rgba(58,36,5,.82);font-size:.84em;max-width:640px;line-height:1.45;font-weight:500}
 .sr-lead strong{color:#2a1a02;font-weight:800}
 /* In-queue badge: frosted white pill so the big number reads on the bright banner. */
-.sr-hero-badge{position:relative;z-index:1;text-align:center;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:14px;padding:8px 20px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
+.sr-hero-badge{position:relative;z-index:1;text-align:center;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:5px;padding:8px 20px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
 .sr-hero-num{font-size:1.8em;font-weight:800;color:#c25e00;line-height:1}
 .sr-hero-cap{color:#8a5a1a;font-size:.66em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
 /* Hero watermark: clipboard + handoff arrows line-art on the right. */
@@ -274,7 +274,7 @@ tr:hover{background:#f8fafb}
 .sr-sec{margin-bottom:22px}
 /* Section head is now an illustrated gradient mini-banner (like the My Tickets section banners). */
 .sr-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;
-  border-radius:14px;padding:0 18px;height:62px;min-height:62px;margin:-18px -20px 18px;
+  border-radius:5px;padding:0 18px;height:62px;min-height:62px;margin:-18px -20px 18px;
   background-size:200% 100%;animation:secBanner 10s ease infinite}
 .sr-sec-head h2{font-size:1.12em;font-weight:800;display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr-sec-head h2 .ic,.sr-sec-head h2 svg{flex-shrink:0}
@@ -296,7 +296,7 @@ tr:hover{background:#f8fafb}
 .sr-sec-head .btn.sec{background:rgba(255,255,255,.16);color:#0e1013;border:1px solid rgba(255,255,255,.4);font-weight:700}
 .sr-sec-head .btn.sec:hover{background:rgba(255,255,255,.28);color:#0e1013}
 /* Bordered shift-report sections (Takeover / Handoff) — glass card, no collapse. */
-.sr-sec.sr-card-sec{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px -6px rgba(20,40,70,.12)}
+.sr-sec.sr-card-sec{background:#fff;border:1px solid var(--bd);border-radius:5px;padding:18px 20px;box-shadow:0 2px 12px -6px rgba(20,40,70,.12)}
 @media(max-width:560px){
   .sr-sec-head{flex-wrap:wrap;height:auto;min-height:62px;padding:12px 16px}
   .sr-sec-head h2{flex-basis:auto;white-space:normal}
@@ -304,7 +304,7 @@ tr:hover{background:#f8fafb}
 }
 /* Age-colour queue tiles (glass tiles with a colored top spine + soft glow). */
 .sr-colors{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.sr-color{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:18px 12px 14px;text-align:center;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18);transition:transform .16s,border-color .16s,box-shadow .16s}
+.sr-color{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:18px 12px 14px;text-align:center;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18);transition:transform .16s,border-color .16s,box-shadow .16s}
 .sr-color:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--sc) 55%,#e6eaee);box-shadow:0 14px 30px -16px color-mix(in srgb,var(--sc) 55%,#9aa6b0)}
 .sr-color::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc)}
 .sr-color-dot{width:11px;height:11px;border-radius:50%;background:var(--sc);margin:0 auto 8px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 20%,transparent)}
@@ -312,16 +312,16 @@ tr:hover{background:#f8fafb}
 .sr-color-l{color:#2a3340;font-size:.82em;font-weight:700;margin-top:6px}
 .sr-color-r{color:#8b96a0;font-size:.68em;margin-top:3px}
 .sr-purple{--sc:#7c5cf0}.sr-black{--sc:#4a5563}.sr-red{--sc:#dc2626}.sr-yellow{--sc:#d9930a}.sr-green{--sc:#1f9d57}
-.sr-chart-card{background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:20px;box-shadow:0 2px 12px -6px rgba(20,40,70,.2)}
+.sr-chart-card{background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:20px;box-shadow:0 2px 12px -6px rgba(20,40,70,.2)}
 .sr-chart-card h3{color:#1b2026;font-size:.95em;font-weight:700;text-align:center;letter-spacing:.4px;margin-bottom:14px}
 /* Handoff meta chips + cards */
 .sr-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
-.sr-chip{background:#f7f9fb;border:1px solid var(--bd);border-radius:20px;padding:6px 14px;font-size:.82em;color:var(--tm);display:inline-flex;align-items:center;gap:6px}
+.sr-chip{background:#f7f9fb;border:1px solid var(--bd);border-radius:5px;padding:6px 14px;font-size:.82em;color:var(--tm);display:inline-flex;align-items:center;gap:6px}
 .sr-chip b{color:#1b2026;font-weight:700}
 /* Handoff cards: fixed 2×2 grid (Ticket Health | Last 12 Hours Activity / Ticket Count by Status | Status Distribution). Collapse to 1 column on narrow screens. */
 .sr-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:640px){.sr-cards{grid-template-columns:1fr}}
-.sr-card{background:#fff;border:1px solid #e6eaee;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(20,30,50,.05)}
+.sr-card{background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:16px 18px;box-shadow:0 1px 4px rgba(20,30,50,.05)}
 .sr-card h3{color:var(--o);font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
 .sr-card ul{list-style:none;padding:0;margin:0}
 .sr-card li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f4;font-size:.9em}
@@ -343,11 +343,11 @@ tr:hover{background:#f8fafb}
 .sr-pct{color:#1b2026;font-weight:800;font-size:1.05em}
 .sr-notes{margin-top:20px}
 .sr-notes label{display:flex;align-items:center;gap:6px;color:var(--tm);font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
-.sr-notes textarea{width:100%;min-height:110px;padding:12px 14px;background:#fff;border:1px solid var(--bd);border-radius:10px;color:#1b2026;font-family:inherit;font-size:.9em;resize:vertical}
+.sr-notes textarea{width:100%;min-height:110px;padding:12px 14px;background:#fff;border:1px solid var(--bd);border-radius:5px;color:#1b2026;font-family:inherit;font-size:.9em;resize:vertical}
 .sr-notes textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 @media(max-width:760px){.sr-colors{grid-template-columns:repeat(2,1fr)}.sr-hero-badge{flex:1 1 100%}}
 /* Shift Report shimmer skeleton blocks */
-.sk-blk{position:relative;overflow:hidden;background:#e9edf1;border-radius:6px;display:inline-block}
+.sk-blk{position:relative;overflow:hidden;background:#e9edf1;border-radius:5px;display:inline-block}
 .sk-blk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.7) 50%,transparent 100%);animation:skmove 1.3s infinite}
 @keyframes skmove{100%{left:150%}}
 .sk-num{width:52px;height:30px}
@@ -356,15 +356,19 @@ tr:hover{background:#f8fafb}
 .sk-h3{width:150px;height:13px;margin-bottom:14px}
 .sr-card li .sk-row-l{width:55%;height:12px}
 .sr-card li .sk-row-v{width:26px;height:16px}
-.tag{display:inline-block;padding:2px 10px;border-radius:4px;font-size:.72em;font-weight:600}
+.tag{display:inline-block;padding:2px 10px;border-radius:5px;font-size:.72em;font-weight:600}
 .tag-a1{background:rgba(125,211,252,.15);color:var(--a1)}.tag-a2{background:rgba(251,191,36,.15);color:var(--a2)}.tag-b{background:rgba(74,222,128,.15);color:var(--b)}
 .upload-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
-.drop-zone{border:2px dashed var(--bd);border-radius:12px;padding:50px 30px;cursor:pointer;text-align:center;max-width:500px;width:100%}
+.drop-zone{border:2px dashed var(--bd);border-radius:5px;padding:50px 30px;cursor:pointer;text-align:center;max-width:500px;width:100%}
 .drop-zone:hover{border-color:var(--o)}
 .spinner{width:48px;height:48px;border:4px solid var(--bd);border-top:4px solid var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 /* Small inline spinner for a loading number, and chart-area spinner overlay (shell -> DB fill) */
 .num-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+/* KPI loading spinner (replaces the old scramble-number flicker). Sized variants: default for table
+   value cells, .kpi-spin-lg for the big Queue Status tile numbers. Inherits the cell's text colour. */
+.kpi-spin{display:inline-block;width:15px;height:15px;border:2px solid var(--bd);border-top-color:currentColor;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+.kpi-spin-lg{width:24px;height:24px;border-width:3px;vertical-align:-4px}
 .chart-spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--s);z-index:2}
 .chart-spin .spinner{margin:0}
 .hidden{display:none}
@@ -405,7 +409,7 @@ tr:hover{background:#f8fafb}
 .age-xls tbody tr.age-clickrow{cursor:pointer}
 .age-xls tbody tr.age-clickrow:hover td{background:rgba(255,153,0,.09)}
 .age-xls .age-swatch{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:800;letter-spacing:.4px}
-.age-xls .age-swatch .dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.age-xls .age-swatch .dot{width:12px;height:12px;border-radius:5px;flex-shrink:0}
 .age-xls .age-rng{color:var(--tm);font-size:.85em}
 .age-xls td.age-agents{text-align:center;font-weight:800;color:#fff}
 .age-xls td.age-cnt{text-align:center;font-weight:800}
@@ -421,11 +425,11 @@ tr:hover{background:#f8fafb}
 .age-xls td.age-prio .prio-ava-fallback{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px}
 .age-xls td.age-prio .prio-n{font-weight:800;color:#fff;font-size:.9em;min-width:8px;text-align:center}
 .age-xls td.age-prio .age-prio-zero{color:#5f6b6c;font-weight:800}
-.age-xls .age-view{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;font-size:.8em;font-weight:600;border:1px solid var(--bd);border-radius:6px;background:transparent;color:var(--t);cursor:pointer;font-family:inherit;transition:border-color .12s,color .12s}
+.age-xls .age-view{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;font-size:.8em;font-weight:600;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--t);cursor:pointer;font-family:inherit;transition:border-color .12s,color .12s}
 .age-xls .age-view:hover{border-color:var(--o);color:var(--o)}
 .age-xls tr.blink-alert td:first-child{box-shadow:inset 4px 0 0 var(--rl)}
 /* ---- Color popup: agent accordion + per-agent Excel ticket table ---- */
-.ap-agent{border:1px solid #2f3a45;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
+.ap-agent{border:1px solid #2f3a45;border-radius:5px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
 .ap-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .ap-agent-head:hover{background:rgba(255,255,255,.03)}
 /* Unregistered / Unassigned holder: a red gradient background on the WHOLE block, blinking.
@@ -437,11 +441,11 @@ tr:hover{background:#f8fafb}
   50%{background:linear-gradient(135deg,rgba(255,82,82,.28),rgba(180,10,10,.42));box-shadow:0 0 16px 2px rgba(255,82,82,.45)}
 }
 /* "PHD" tag next to a registered PHD user's name. */
-.ap-phd-tag{display:inline-block;margin-left:9px;font-size:.58em;font-weight:800;letter-spacing:.5px;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.5);border-radius:20px;padding:2px 8px;vertical-align:middle}
+.ap-phd-tag{display:inline-block;margin-left:9px;font-size:.58em;font-weight:800;letter-spacing:.5px;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.5);border-radius:5px;padding:2px 8px;vertical-align:middle}
 .ap-agent-name{color:#fff;font-weight:700;font-size:1.12em}
 .ap-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
 /* Crown badge next to an agent's name = count of Station Request / Address Exclusion tickets. */
-.ap-agent-prio{display:inline-flex;align-items:center;gap:4px;margin-left:10px;font-size:.82em;font-weight:800;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);border-radius:20px;padding:1px 9px;vertical-align:middle;cursor:default}
+.ap-agent-prio{display:inline-flex;align-items:center;gap:4px;margin-left:10px;font-size:.82em;font-weight:800;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);border-radius:5px;padding:1px 9px;vertical-align:middle;cursor:default}
 .ap-agent-prio svg{flex-shrink:0}
 /* No-EMT badge next to an agent's name = count of No-EMT tickets (red no-entry mark). */
 .ap-agent-noemt{color:#ff8080;background:rgba(255,82,82,.12);border-color:rgba(255,82,82,.4)}
@@ -453,7 +457,7 @@ tr:hover{background:#f8fafb}
 .ap-tbl tr.ap-row-prio:hover td{background:linear-gradient(180deg,rgba(251,191,36,.16),rgba(251,191,36,.09))}
 /* Priority ticket card (per-agent drill-down): same soft amber wash. */
 .pc-tk.pc-tk-prio{background:linear-gradient(180deg,rgba(251,191,36,.10),rgba(251,191,36,.04))}
-.ap-agent-count{margin-left:auto;font-weight:800;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:20px;padding:4px 14px;font-size:1em}
+.ap-agent-count{margin-left:auto;font-weight:800;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:5px;padding:4px 14px;font-size:1em}
 .ap-caret{color:var(--tm);transition:transform .25s ease;flex-shrink:0;font-size:1.1em}
 .ap-agent.open .ap-caret{transform:rotate(180deg)}
 .ap-agent-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
@@ -471,14 +475,14 @@ tr:hover{background:#f8fafb}
 .ap-tbl .ap-left-over{color:#ff5252;font-weight:800}
 .ap-tbl td.ap-cmt{white-space:normal;color:#c9d3d4;font-size:.9em;line-height:1.45}
 .ap-tbl td.ap-cmt .pc-tk-cmt-txt{color:inherit}
-.ap-add-cmt{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;font-size:.9em;font-weight:600;border:1px solid var(--o);border-radius:6px;background:rgba(255,153,0,.1);color:var(--o);cursor:pointer;font-family:inherit}
+.ap-add-cmt{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;font-size:.9em;font-weight:600;border:1px solid var(--o);border-radius:5px;background:rgba(255,153,0,.1);color:var(--o);cursor:pointer;font-family:inherit}
 .ap-add-cmt:hover{background:var(--o);color:#141414}
 /* When the inline comment editor is open, the wrapping span must become a full-width block so the
    textarea + buttons can span the whole Last-comment cell (a span is shrink-to-fit by default). */
 .ap-cmt .pc-tk-cmt-txt:has(.ap-cmt-input){display:block;width:100%}
-.ap-cmt-input{display:block;width:100%;box-sizing:border-box;min-width:0;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.95em;padding:7px 9px;font-family:inherit;line-height:1.4;resize:vertical}
+.ap-cmt-input{display:block;width:100%;box-sizing:border-box;min-width:0;min-height:52px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.95em;padding:7px 9px;font-family:inherit;line-height:1.4;resize:vertical}
 .ap-cmt-actions{display:flex;gap:8px;margin-top:6px;width:100%}
-.ap-cmt-save,.ap-cmt-cancel{flex:1 1 0;box-sizing:border-box;text-align:center;padding:5px 12px;font-size:.85em;font-weight:600;border-radius:6px;cursor:pointer;font-family:inherit;border:1px solid var(--bd)}
+.ap-cmt-save,.ap-cmt-cancel{flex:1 1 0;box-sizing:border-box;text-align:center;padding:5px 12px;font-size:.85em;font-weight:600;border-radius:5px;cursor:pointer;font-family:inherit;border:1px solid var(--bd)}
 .ap-cmt-save{background:var(--o);color:#141414;border-color:var(--o)}
 .ap-cmt-cancel{background:transparent;color:var(--t)}
 .ap-cmt-cancel:hover{border-color:var(--o);color:var(--o)}
@@ -520,12 +524,12 @@ tr:hover{background:#f8fafb}
 .popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
 /* flex:1 1 100% (not just width:100%) so the card actually fills the overlay up to its max-width;
    a plain flex child can otherwise shrink to its content and only use ~half the width. */
-.popup-card{background:#111;border:1px solid #333;border-radius:12px;flex:1 1 100%;width:100%;max-height:82vh;overflow:auto;padding:24px}
+.popup-card{background:#111;border:1px solid #333;border-radius:5px;flex:1 1 100%;width:100%;max-height:82vh;overflow:auto;padding:24px}
 .popup-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .popup-head h2{font-size:1.2em;margin:0}
 .popup-actions{display:flex;gap:10px;flex-shrink:0}
 .pc-subcount{color:var(--tm);font-size:.82em;margin-top:4px}
-.pt-default{margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:3px;font-size:.7em;vertical-align:middle}
+.pt-default{margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:5px;font-size:.7em;vertical-align:middle}
 .pc-none{color:#5f6b6c;font-size:.85em;font-style:italic;margin:4px 0 0}
 /* ---- Section headers (Registered / Non-registered) ---- */
 .pc-section{margin-top:20px}
@@ -535,7 +539,7 @@ tr:hover{background:#f8fafb}
 .pc-section-note{color:#879596;font-size:.78em;margin:-4px 0 10px}
 /* ---- Agent cards (color popup): responsive grid, avatar + name + count pill ---- */
 .pc-agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
-.pc-agent{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:#0d1420;border:1px solid var(--bd);border-radius:10px;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
+.pc-agent{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:#0d1420;border:1px solid var(--bd);border-radius:5px;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
 .pc-agent:hover{border-color:var(--o);background:#141d2b}
 .pc-agent-av{flex-shrink:0;display:inline-flex}
 .pc-agent-name{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 auto}
@@ -544,18 +548,18 @@ tr:hover{background:#f8fafb}
 .pc-agent-count{flex-shrink:0;font-weight:800;font-size:1.5em;line-height:1;min-width:34px;text-align:right}
 /* ---- Ticket cards (agent drill-down): stacked list ---- */
 .pc-tk-list{display:flex;flex-direction:column;gap:10px;margin-top:18px}
-.pc-tk{background:#0d1420;border:1px solid var(--bd);border-radius:10px;padding:12px 14px}
+.pc-tk{background:#0d1420;border:1px solid var(--bd);border-radius:5px;padding:12px 14px}
 .pc-tk-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .pc-tk-id{color:#44b9d6;font-weight:700;font-size:.92em;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .pc-tk-id:hover{text-decoration:underline}
-.pc-tk-status{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border:1px solid;border-radius:20px;padding:3px 10px;background:rgba(255,255,255,.03)}
+.pc-tk-status{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border:1px solid;border-radius:5px;padding:3px 10px;background:rgba(255,255,255,.03)}
 .pc-tk-meta{color:#879596;font-size:.82em;margin-top:8px;display:inline-flex;align-items:center;gap:6px}
 .pc-tk-age{color:#5f6b6c}
 .pc-tk-cmt{color:#879596;font-size:.83em;margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd);display:flex;gap:6px;line-height:1.5}
 .pc-tk-cmt svg{flex-shrink:0;margin-top:2px}
 @media(max-width:600px){
   .popup-overlay{padding:8px}
-  .popup-card{padding:16px;max-height:92vh;border-radius:10px}
+  .popup-card{padding:16px;max-height:92vh;border-radius:5px}
   .popup-head{flex-direction:column;align-items:stretch;gap:12px}
   .popup-head h2{font-size:1.1em;line-height:1.3}
   .popup-actions{width:100%}
@@ -571,7 +575,7 @@ tr:hover{background:#f8fafb}
 <style id="dash-theme">
 :root{--cy:#5ecdec;--cy2:#7fdcf0;--am:#fbbf24;--gr:#4ade80;--rd:#ff6b6b;--pu:#a78bfa}
 /* ---- Each section gets its own SOLID gradient banner header (profile-page style) ---- */
-.content .section,.content .kpi-section{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31!important;border-radius:16px!important;box-shadow:0 10px 26px -20px rgba(0,0,0,.7);overflow:hidden}
+.content .section,.content .kpi-section{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31!important;border-radius:5px!important;box-shadow:0 10px 26px -20px rgba(0,0,0,.7);overflow:hidden}
 .content .section+.section,.content .kpi-section+.section,.content .section+.kpi-section{margin-top:18px}
 /* Flush layout (no card padding around the banner) for these sections: Queue Status, Ticket Age,
    Average Data, Repeat Incident Data, Incident Types, Resolutions, Historical Incidents, Weekly Volume & SLA. */
@@ -600,7 +604,7 @@ tr:hover{background:#f8fafb}
 
 /* ---- Group A as ONE unified card ---- */
 /* The wrapper carries the card look (background, border, radius). */
-.content .dash-group-a{background:var(--s);border:1px solid var(--bd);border-radius:16px;margin:18px 0 18px;overflow:hidden}
+.content .dash-group-a{background:var(--s);border:1px solid var(--bd);border-radius:5px;margin:18px 0 18px;overflow:hidden}
 /* Inner sections lose their own background/border/radius/margin, becoming flush sub-blocks. */
 .content .dash-group-a>.section,.content .dash-group-a>.kpi-section{background:transparent!important;border:0!important;border-radius:0!important;margin:0!important;padding:0!important}
 /* Thin divider between the stacked sub-blocks (not before the first one). */
@@ -689,7 +693,7 @@ tr:hover{background:#f8fafb}
 .content .section:has(#dashWeeklyBody) .sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%230e1013" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"><path d="M16 60h92M20 60V26"/><path d="M20 48c10 0 12-16 22-16s12 20 22 20 12-24 22-24 10 12 16 12"/></svg>')}
 
 /* Scope selector on the bright banner: wrap it in a dark translucent pill so Q3/Q2 stay legible. */
-.content .sec-head .dash-scope-sec{background:rgba(10,12,15,.55);border:1px solid rgba(0,0,0,.35);border-radius:20px;padding:3px 5px;backdrop-filter:blur(2px)}
+.content .sec-head .dash-scope-sec{background:rgba(10,12,15,.55);border:1px solid rgba(0,0,0,.35);border-radius:5px;padding:3px 5px;backdrop-filter:blur(2px)}
 .content .sec-head .dash-scope-sec .dsc-opt{color:#e6edf0}
 .content .sec-head .dash-scope-sec .dsc-opt.checked{color:#fff}
 /* Main dashboard content spans 70% of the viewport, centered. High-specificity selector so it wins
@@ -716,7 +720,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .perf-chip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
 /* Secondary select(s) for month / week / quarter — compact, appears only when needed. */
 .perf-sub{display:inline-flex;align-items:center;gap:6px}
-.perf-sel{font-family:inherit;font-size:.8em;font-weight:600;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:8px;padding:6px 10px;cursor:pointer;outline:none}
+.perf-sel{font-family:inherit;font-size:.8em;font-weight:600;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:5px;padding:6px 10px;cursor:pointer;outline:none}
 .perf-sel:hover{border-color:#c2cad1}
 .perf-sel:focus{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .perf-body{padding:14px 18px 18px}
@@ -725,7 +729,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .pf-section-h svg{width:13px;height:13px;color:#ec7211}
 .pf-podium-wrap{margin-bottom:18px}
 .pf-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
-.pf-medal{position:relative;border-radius:14px;padding:18px 14px 14px;text-align:center;color:#1b2026;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
+.pf-medal{position:relative;border-radius:5px;padding:18px 14px 14px;text-align:center;color:#1b2026;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
 .pf-medal::before{content:"";position:absolute;inset:0 0 auto 0;height:4px}
 .pf-medal.pf-gold{background:linear-gradient(180deg,#fff8e6,#fff);} .pf-medal.pf-gold::before{background:linear-gradient(90deg,#f6c21a,#ffde7a)}
 .pf-medal.pf-silver{background:linear-gradient(180deg,#f4f7fa,#fff);} .pf-medal.pf-silver::before{background:linear-gradient(90deg,#aab6c2,#d9e1e8)}
@@ -746,7 +750,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .pf-mm-avg small{opacity:.8}
 /* Stat tiles — one accent colour each. */
 .pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.pf-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:14px;padding:13px 14px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
+.pf-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:13px 14px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
 .pf-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
 .pf-stat-top{display:flex;align-items:center;gap:7px;color:#5c6773}
 .pf-stat-top svg{width:15px;height:15px}
@@ -771,7 +775,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 
 /* ---- Queue Status: stat tiles ---- */
 .q-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;grid-column:1/-1}
-.q-tile{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;padding:14px 16px;
+.q-tile{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:5px;padding:14px 16px;
   box-shadow:0 10px 26px -18px rgba(0,0,0,.7);transition:transform .16s,border-color .16s}
 .q-tile:hover{transform:translateY(-2px);border-color:#2c333d}
 .q-tile .k{color:#8b96a0;font-size:11.5px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
@@ -788,7 +792,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .agehead .hi{display:inline-block;vertical-align:-2px;margin-right:3px}
 .agerows{display:flex;flex-direction:column;gap:10px}
 .age{position:relative;display:grid;grid-template-columns:var(--age-cols);gap:16px;align-items:center;justify-items:center;overflow:hidden;
-  background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:13px;padding:14px 16px;
+  background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:5px;padding:14px 16px;
   cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
 .age:hover{transform:translateY(-1px);box-shadow:0 12px 28px -18px rgba(0,0,0,.7)}
 .age::after{content:"";position:absolute;inset:0;z-index:0;opacity:0;pointer-events:none;transition:opacity .3s;
@@ -825,7 +829,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .age .idchips.idchips-2{grid-template-columns:auto auto}
 .age .idchips.idchips-3{grid-template-columns:auto auto auto}
 .age .idchips.idchips-4{grid-template-columns:auto auto auto auto}
-.age .idchip{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;background:#12161c;border:1px solid #232c36;border-radius:20px;padding:3px 8px 3px 3px;font-size:11px;color:#cfd7dd;white-space:nowrap;min-width:110px}
+.age .idchip{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;background:#12161c;border:1px solid #232c36;border-radius:5px;padding:3px 8px 3px 3px;font-size:11px;color:#cfd7dd;white-space:nowrap;min-width:110px}
 .age .idchip.idchip-noava{padding:3px 10px}
 /* Push the login id to the LEFT and the count to the RIGHT corner of the chip. */
 .age .idchip b{margin-right:auto}
@@ -833,7 +837,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .age .idchip .av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center}
 .age .idchip .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .age .idchip b{font-weight:700;color:#eef2f4}
-.age .idchip .ct{background:rgba(255,255,255,.08);border-radius:20px;padding:0 6px;font-size:9.5px;font-weight:800;color:#9aa6b0}
+.age .idchip .ct{background:rgba(255,255,255,.08);border-radius:5px;padding:0 6px;font-size:9.5px;font-weight:800;color:#9aa6b0}
 .age .idlist .more{color:#6b7681;font-size:11px;font-weight:700;flex-shrink:0}
 .age .idlist .none{color:#5f6b6c;font-size:12px;font-style:italic}
 .age.blink-alert{animation:ageBlink 1.3s ease-in-out infinite}
@@ -841,7 +845,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 @media(max-width:900px){.agehead{display:none}.age{grid-template-columns:1fr 1fr;gap:12px}.age .band{grid-column:1/-1}}
 
 /* ---- Incident / Resolution / Historical tables ---- */
-.tcard{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:16px;
+.tcard{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:5px;
   overflow:hidden;box-shadow:0 12px 30px -18px rgba(0,0,0,.7);margin-bottom:18px}
 .tcard-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 20px;border-bottom:1px solid #1b2027;flex-wrap:wrap}
 .tcard-head .th-title{display:flex;align-items:center;gap:10px;color:#eef2f4;font-size:14px;font-weight:800}
@@ -853,7 +857,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .th-info:hover,.th-info:focus{color:#5ecdec}
 .th-info svg{display:block}
 .th-info-pop{position:absolute;top:calc(100% + 10px);left:0;z-index:2147483647;width:max-content;max-width:min(440px,78vw);
-  background:#0d1319;border:1px solid #2a3f52;border-radius:12px;padding:13px 15px;
+  background:#0d1319;border:1px solid #2a3f52;border-radius:5px;padding:13px 15px;
   box-shadow:0 16px 40px -12px rgba(0,0,0,.8);
   opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease,visibility .15s;
   font-weight:400;text-align:left;white-space:normal;pointer-events:none}
@@ -883,15 +887,15 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .itbl .it-name{color:#dfe6ea;font-weight:500}
 .itbl .it-name strong{font-weight:600}
 .itbl .it-count{text-align:center;color:#eef2f4;font-weight:800;font-variant-numeric:tabular-nums}
-.inc-grp-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.35);color:#c9b6ff;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:6px}
+.inc-grp-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.35);color:#c9b6ff;border-radius:5px;padding:2px 9px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:6px}
 .inc-grp-btn:hover{background:rgba(167,139,250,.22)}
 .pctwrap{display:flex;align-items:center;gap:10px;justify-content:center}
-.pctbar{flex:1;height:6px;border-radius:20px;background:rgba(255,255,255,.06);overflow:hidden;min-width:60px;max-width:120px}
-.pctbar>span{display:block;height:100%;border-radius:20px}
+.pctbar{flex:1;height:6px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden;min-width:60px;max-width:120px}
+.pctbar>span{display:block;height:100%;border-radius:5px}
 .pctval{width:46px;text-align:right;font-size:11.5px;font-weight:700;color:#9aa6b0;font-variant-numeric:tabular-nums}
 .loadmore{display:flex;justify-content:center;padding:12px 20px;border-top:1px solid #1b2027}
 .loadmore button{display:inline-flex;align-items:center;gap:7px;background:#171b21;border:1px solid #2b323b;color:#c3ccd2;
-  border-radius:20px;padding:8px 18px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s}
+  border-radius:5px;padding:8px 18px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s}
 .loadmore button:hover{border-color:#3a4450;color:#eef2f4;transform:translateY(-1px)}
 .loadmore button .rem{color:#6b7681;font-weight:700}
 .loadmore.done{display:none}
@@ -900,7 +904,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .metrics{display:flex;flex-direction:column;gap:10px;grid-column:1/-1}
 /* Fixed row height + vertically-centered content so rows line up across the two side-by-side cards. */
 .metric{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;min-height:64px;
-  background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:14px;
+  background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:5px;
   padding:14px 18px;box-shadow:0 10px 26px -18px rgba(0,0,0,.7);transition:border-color .16s,transform .16s}
 .metric:hover{border-color:#2c333d;transform:translateY(-1px)}
 .metric::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cy)}
@@ -920,7 +924,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
-<script src="app.js?v=53"></script>
+<script src="topbar-auth.js?v=108"></script>
+<script src="app.js?v=55"></script>
 </body>
 </html>

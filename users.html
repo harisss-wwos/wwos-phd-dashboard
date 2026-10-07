@@ -18,7 +18,7 @@ button,input,select,textarea{font-family:inherit}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
 /* All buttons use amber (var(--o)) text on a transparent/outlined base. */
-.btn{display:inline-flex;align-items:center;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.btn{display:inline-flex;align-items:center;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
 .btn:hover{background:rgba(255,153,0,.12)}
 .btn.sec{background:transparent;border:1px solid var(--bd);color:var(--o)}
 .btn.sec:hover{border-color:var(--o);background:rgba(255,153,0,.1)}
@@ -27,7 +27,7 @@ button,input,select,textarea{font-family:inherit}
 .wrap{max-width:920px;margin:0 auto;padding:44px 24px}
 h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
-.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;padding:24px;margin-bottom:22px}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:24px;margin-bottom:22px}
 .card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
 .card>h2{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .card-h{display:inline-flex;align-items:center;gap:9px;min-width:0}
@@ -40,17 +40,17 @@ td.user{color:#fff;font-weight:600}
 .u-avatar-wrap{flex-shrink:0;display:inline-flex}
 .u-uname{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:600}
 /* Analyst group tag: colored outline pill using the group's accent color. */
-.u-group{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 45%,transparent)}
+.u-group{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 45%,transparent)}
 /* ADMIN tag — upload-access users are treated as admins. */
-.u-admin-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--o);background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.45)}
+.u-admin-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--o);background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.45)}
 .u-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--bd)}
 .u-avatar-ph{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.16);color:var(--o);font-weight:800;font-size:.9em}
 .u-name{display:flex;flex-direction:column;line-height:1.25}
 .u-dn{color:var(--tm);font-weight:400;font-size:.78em}
-select{background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;padding:6px 10px;font-size:.85em;text-align:center;text-align-last:center}
+select{background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;padding:6px 10px;font-size:.85em;text-align:center;text-align-last:center}
 select option{text-align:center}
 select:focus{outline:none;border-color:var(--o)}
-.badge{padding:2px 10px;border-radius:20px;font-size:.75em;text-transform:uppercase;font-weight:700}
+.badge{padding:2px 10px;border-radius:5px;font-size:.75em;text-transform:uppercase;font-weight:700}
 .badge.owner{background:rgba(167,139,250,.15);color:#a78bfa}
 .badge.admin{background:rgba(255,153,0,.15);color:var(--o)}
 .badge.editor{background:rgba(68,185,214,.15);color:#44b9d6}
@@ -58,7 +58,7 @@ select:focus{outline:none;border-color:var(--o)}
 .form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .form-row .fld{flex:1;min-width:150px}
 label{display:block;color:var(--tm);font-size:.8em;margin-bottom:6px}
-input{width:100%;padding:9px 12px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.9em}
+input{width:100%;padding:9px 12px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em}
 input:focus{outline:none;border-color:var(--o)}
 .msg{font-size:.85em;margin-top:12px;display:none}
 .msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
@@ -84,7 +84,7 @@ input:focus{outline:none;border-color:var(--o)}
 .users-table tbody tr.is-owner td:first-child{box-shadow:inset 3px 0 0 var(--o)}
 .users-table td.col-access{text-align:center}
 .users-table select{padding:7px 10px;max-width:130px;width:100%}
-.u-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:20px;font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.u-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:5px;font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
 .u-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .u-badge.blue{background:rgba(68,185,214,.14);color:#44b9d6}
 .u-badge.yellow{background:rgba(251,191,36,.14);color:#fbbf24}
@@ -96,7 +96,7 @@ input:focus{outline:none;border-color:var(--o)}
 .u-owner-tag svg{width:14px;height:14px}
 .u-row-actions{display:flex;gap:8px;flex-wrap:nowrap;justify-content:center}
 /* Compact per-row action buttons (icon + label), nicer than the generic .btn. */
-.u-act{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:.78em;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s,transform .1s}
+.u-act{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:5px;font-size:.78em;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s,transform .1s}
 .u-act svg{width:14px;height:14px;flex-shrink:0}
 .u-act:active{transform:translateY(1px)}
 .u-act.reset{background:rgba(255,255,255,.04);border-color:#33404d;color:var(--o)}
@@ -104,7 +104,7 @@ input:focus{outline:none;border-color:var(--o)}
 .u-act.remove{background:rgba(255,82,82,.08);border-color:rgba(255,82,82,.35);color:var(--o)}
 .u-act.remove:hover{background:rgba(255,82,82,.18);border-color:var(--rl);color:var(--o)}
 /* Toggle switch (button-driven) */
-.u-toggle{display:inline-flex;align-items:center;width:46px;height:26px;border-radius:20px;background:#242e39;border:1px solid #3a4655;cursor:pointer;padding:2px;transition:background .18s,border-color .18s}
+.u-toggle{display:inline-flex;align-items:center;width:46px;height:26px;border-radius:5px;background:#242e39;border:1px solid #3a4655;cursor:pointer;padding:2px;transition:background .18s,border-color .18s}
 .u-toggle:hover{border-color:#4a5768}
 .u-toggle .u-knob{width:20px;height:20px;border-radius:50%;background:#8b98a5;transition:transform .2s cubic-bezier(.4,0,.2,1),background .18s;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 .u-toggle.on{background:rgba(74,222,128,.22);border-color:#4ade80}
@@ -124,12 +124,12 @@ input:focus{outline:none;border-color:var(--o)}
 /* Page-wide busy state while a flag save is in flight: block interaction + show a top progress bar. */
 .users-busy{position:relative;pointer-events:none}
 .users-busy .users-table{opacity:.6;transition:opacity .15s}
-.users-busy::after{content:'';position:absolute;left:0;top:0;height:3px;width:40%;background:linear-gradient(90deg,transparent,var(--o),transparent);border-radius:3px;animation:usersBar 1s linear infinite;z-index:5}
+.users-busy::after{content:'';position:absolute;left:0;top:0;height:3px;width:40%;background:linear-gradient(90deg,transparent,var(--o),transparent);border-radius:5px;animation:usersBar 1s linear infinite;z-index:5}
 @keyframes usersBar{0%{left:-40%}100%{left:100%}}
 /* Create-user modal */
 .cu-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .cu-modal-bg[style*="flex"]{display:flex}
-.cu-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:14px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:90vh;overflow:auto;padding:26px}
+.cu-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:90vh;overflow:auto;padding:26px}
 .cu-modal h2{color:var(--o);font-size:1.15em;margin-bottom:4px}
 .cu-modal .cu-sub{color:#5f6b6c;font-size:.82em;margin-bottom:18px}
 .cu-fld{margin-bottom:14px}
@@ -144,7 +144,7 @@ input:focus{outline:none;border-color:var(--o)}
 /* Reuse the toggle look for the modal switches (checkbox-driven). */
 .cu-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
 .cu-switch input{opacity:0;width:0;height:0}
-.cu-switch .cu-slider{position:absolute;inset:0;background:#2b3742;border:1px solid #3a4655;border-radius:20px;cursor:pointer;transition:background .15s,border-color .15s}
+.cu-switch .cu-slider{position:absolute;inset:0;background:#2b3742;border:1px solid #3a4655;border-radius:5px;cursor:pointer;transition:background .15s,border-color .15s}
 .cu-switch .cu-slider::before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#8b98a5;transition:transform .18s,background .15s}
 .cu-switch input:checked + .cu-slider{background:rgba(74,222,128,.25);border-color:#4ade80}
 .cu-switch input:checked + .cu-slider::before{transform:translateX(20px);background:#4ade80}
@@ -186,7 +186,7 @@ h1{color:#1b2026!important}
 .u-count svg{color:#ec7211}
 /* ---------- User CARDS (replace the wide table) ---------- */
 .u-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
-.u-card{background:#fff;border:1px solid #e2e6ea;border-radius:14px;padding:16px 16px 14px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;flex-direction:column;gap:12px;min-width:0}
+.u-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:16px 16px 14px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;flex-direction:column;gap:12px;min-width:0}
 .u-card.is-owner{border-color:#d9ccf7;box-shadow:0 0 0 1px rgba(124,92,255,.12),0 1px 3px rgba(20,30,50,.06)}
 .u-card.is-owner .u-card-head{border-left:3px solid #7c5cff;margin-left:-16px;padding-left:13px}
 .u-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -208,7 +208,7 @@ h1{color:#1b2026!important}
 .ua-head{display:flex;align-items:center;gap:7px;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#5c6773;margin-bottom:10px}
 .ua-head svg{color:#8793a0}
 .ua-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-.ua-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f7f9fb;border:1px solid #eef1f4;border-radius:9px;padding:7px 10px}
+.ua-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f7f9fb;border:1px solid #eef1f4;border-radius:5px;padding:7px 10px}
 .ua-label{font-size:.76em;font-weight:600;color:#2a3340;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* selects / inputs light */
 select{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
@@ -349,7 +349,7 @@ td.user{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 // Analyst groups (display names only for analysts). Keys map to a display name + accent color.

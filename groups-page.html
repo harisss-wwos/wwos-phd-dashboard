@@ -23,8 +23,8 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .section-card{margin-bottom:20px}
 .section-title{font-size:1.15em!important;color:#fff!important;text-transform:none!important;letter-spacing:0!important}
 .sub{color:var(--tm);font-size:.9em;margin-bottom:8px;line-height:1.5}
-.warn-banner{background:rgba(255,153,0,.1);border:1px solid rgba(255,153,0,.35);color:var(--o);border-radius:8px;padding:10px 14px;font-size:.82em;margin:14px 0 22px;display:flex;gap:8px;align-items:center}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:6px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.warn-banner{background:rgba(255,153,0,.1);border:1px solid rgba(255,153,0,.35);color:var(--o);border-radius:5px;padding:10px 14px;font-size:.82em;margin:14px 0 22px;display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
 .btn:hover{background:rgba(255,153,0,.12)}
 .btn.sec{color:var(--o);border-color:var(--bd)}
 .btn.sec:hover{border-color:var(--o);background:rgba(255,153,0,.1)}
@@ -40,7 +40,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
    align-items:start so a taller right column never stretches the left one, and both start flush. */
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px;align-items:start}
 @media(max-width:900px){.cols{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,#12161c,#0c0f14);border:1px solid #232a33;border-radius:14px;padding:18px;box-shadow:0 10px 26px -20px rgba(0,0,0,.7)}
+.card{background:linear-gradient(180deg,#12161c,#0c0f14);border:1px solid #232a33;border-radius:5px;padding:18px;box-shadow:0 10px 26px -20px rgba(0,0,0,.7)}
 /* Inner column cards (Raw / Groups) get a labelled header row with an accent bar + fill height. */
 .cols>.card{display:flex;flex-direction:column;min-height:100%;min-width:0}
 .cols>.card>h2{display:flex;align-items:center;gap:9px;color:#e6edf0;font-size:.82em;text-transform:uppercase;letter-spacing:.6px;font-weight:800;margin:0 0 10px;padding-bottom:10px;border-bottom:1px solid #202832}
@@ -55,7 +55,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 /* ============ Illustrated gradient page banner (Grouping page) ============ */
 @keyframes gpBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .gp-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
-  border-radius:18px;padding:20px 26px;min-height:96px;margin-bottom:18px;
+  border-radius:5px;padding:20px 26px;min-height:96px;margin-bottom:18px;
   border:1px solid #242a31;box-shadow:0 14px 34px -22px rgba(0,0,0,.8);
   background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:gpBanner 10s ease infinite}
 .gp-hero .gph-left{position:relative;z-index:1;min-width:0}
@@ -68,7 +68,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="26" r="9"/><circle cx="30" cy="54" r="9"/><circle cx="86" cy="40" r="11"/><path d="M39 26h20a8 8 0 0 1 8 8M39 54h20a8 8 0 0 0 8-8"/></svg>')}
 @media(max-width:768px){.gp-hero .gph-title{font-size:1.35em}.gp-hero::after{opacity:.2}}
 /* Top-level section cards (Incident type / Resolutions) become gradient banner heads. */
-.section-card{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31;border-radius:16px;overflow:hidden;box-shadow:0 12px 30px -22px rgba(0,0,0,.75);padding:0!important}
+.section-card{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31;border-radius:5px;overflow:hidden;box-shadow:0 12px 30px -22px rgba(0,0,0,.75);padding:0!important}
 .section-card>.section-title{position:relative;overflow:hidden;margin:0!important;min-height:56px;padding:0 20px!important;display:flex;align-items:center;gap:10px;
   background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2);background-size:200% 100%;animation:gpBanner 10s ease infinite;
   color:#06322d!important;font-weight:800!important}
@@ -84,14 +84,14 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .card.collapsed h2{margin-bottom:0!important}
 /* Source raw-type list */
 .src-tools{display:flex;gap:8px;margin-bottom:10px}
-.src-tools input{flex:1;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px}
+.src-tools input{flex:1;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px}
 .src-tools input:focus{outline:none;border-color:var(--o)}
 /* Source list grows naturally (no inner scrollbar); paged via Load more / Show less. */
-.src-list{border:1px solid #1b2530;border-radius:8px;overflow:hidden}
+.src-list{border:1px solid #1b2530;border-radius:5px;overflow:hidden}
 .src-more{display:flex;justify-content:center;gap:10px;padding:10px}
 .src-more .btn{padding:6px 14px;font-size:.8em}
 /* Collapsible per-quarter source section */
-.sec-panel{border:1px solid #1b2530;border-radius:8px;margin-bottom:10px;overflow:hidden}
+.sec-panel{border:1px solid #1b2530;border-radius:5px;margin-bottom:10px;overflow:hidden}
 .sec-head{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1620;border:none;color:var(--t);cursor:pointer;font-size:.88em;text-align:left}
 .sec-head:hover{background:#111e2b}
 .sec-caret{color:var(--o);font-size:.9em;width:14px;flex-shrink:0}
@@ -108,27 +108,27 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .src-row .st-count{color:var(--tm);font-variant-numeric:tabular-nums;font-size:.9em}
 .src-row .st-in{color:var(--pl);font-size:.72em;font-weight:700;white-space:nowrap}
 .assign-bar{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.assign-bar select{flex:1;min-width:140px;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px}
+.assign-bar select{flex:1;min-width:140px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px}
 /* Groups editor */
-.grp{border:1px solid #1b2530;border-radius:8px;padding:12px 14px;margin-bottom:12px;background:#000}
+.grp{border:1px solid #1b2530;border-radius:5px;padding:12px 14px;margin-bottom:12px;background:#000}
 .grp-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.grp-head input{flex:1;background:#0a0a0a;border:1px solid var(--bd);border-radius:6px;color:#fff;font-weight:600;font-size:.9em;padding:8px 10px}
+.grp-head input{flex:1;background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;color:#fff;font-weight:600;font-size:.9em;padding:8px 10px}
 .grp-head input:focus{outline:none;border-color:var(--o)}
 .grp-members{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
 /* Chips wrap within the card and long labels truncate with an ellipsis so nothing spills out. */
-.chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.4);color:var(--pl);border-radius:20px;padding:3px 10px;font-size:.76em}
+.chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.4);color:var(--pl);border-radius:5px;padding:3px 10px;font-size:.76em}
 .chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .chip button{background:none;border:none;color:var(--pl);cursor:pointer;font-size:1.1em;line-height:1;padding:0;flex-shrink:0}
 /* Group card + its header input must be allowed to shrink inside the grid column. */
 .grp{min-width:0}.grp-head input{min-width:0}
 .grp-empty{color:#5f6b6c;font-size:.78em;font-style:italic}
 .new-grp{display:flex;gap:8px;margin-top:6px}
-.new-grp input{flex:1;background:#000;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:.85em;padding:8px 10px}
+.new-grp input{flex:1;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px}
 .new-grp input:focus{outline:none;border-color:var(--o)}
 /* Preview */
 .preview{margin-top:24px}
 .inc-sub-h{display:flex;align-items:center;gap:8px;font-size:.95em;font-weight:700;color:#d5dbdb;margin:14px 0 8px}
-.inc-sub-h .n{font-weight:800;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:20px;padding:1px 10px;font-size:.85em}
+.inc-sub-h .n{font-weight:800;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:5px;padding:1px 10px;font-size:.85em}
 table{width:100%;border-collapse:collapse;font-size:.86em}
 .xls-table{border:1px solid #2f3a45}
 .xls-table th,.xls-table td{border:1px solid #2f3a45;padding:7px 11px}
@@ -137,7 +137,7 @@ th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;
 .grouped-row:hover{background:rgba(167,139,250,.16)}
 .grouped-row td:nth-child(2){color:var(--pl);font-weight:700}
 /* Hover tooltip listing a group's member types + counts (chart-style). */
-.grp-tip{position:fixed;z-index:4000;display:none;pointer-events:none;background:#0d1620;border:1px solid var(--pl);border-radius:8px;padding:8px 10px;width:fit-content;max-width:480px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:.82em}
+.grp-tip{position:fixed;z-index:4000;display:none;pointer-events:none;background:#0d1620;border:1px solid var(--pl);border-radius:5px;padding:8px 10px;width:fit-content;max-width:480px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:.82em}
 .grp-tip-h{color:var(--pl);font-weight:800;border-bottom:1px solid rgba(167,139,250,.35);padding-bottom:6px;margin-bottom:6px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .grp-tip-h span{color:#fff;font-variant-numeric:tabular-nums}
 .grp-tip-row{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
@@ -147,12 +147,12 @@ th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;
 .clickable-row:hover{background:rgba(255,153,0,.08)}
 /* Tickets popup (Excel-style) */
 .tk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:5000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
-.tk-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:12px;width:80vw;max-width:80vw;padding:18px 18px 14px}
+.tk-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;padding:18px 18px 14px}
 .tk-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
 .tk-head h2{color:var(--o);font-size:1.1em;display:flex;align-items:baseline;gap:10px}
 .tk-count{color:var(--tm);font-size:.7em;font-weight:600}
 .tk-loading{display:flex;justify-content:center;padding:40px}
-.tk-scroll{overflow-x:auto;max-height:60vh;overflow-y:auto;border:1px solid #2f3a45;border-radius:6px}
+.tk-scroll{overflow-x:auto;max-height:60vh;overflow-y:auto;border:1px solid #2f3a45;border-radius:5px}
 .tk-table{width:100%;border-collapse:collapse}
 .tk-table th{position:sticky;top:0;background:#0d1620;z-index:1}
 .tk-table td,.tk-table th{border:1px solid #2f3a45;padding:7px 11px;font-size:.86em}
@@ -167,7 +167,7 @@ th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;
 .msg{font-size:.85em;display:none}
 .msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
 .bar-cell{display:flex;align-items:center}
-.bar-cell>div{height:8px;border-radius:4px;background:#ff9900;min-width:4px}
+.bar-cell>div{height:8px;border-radius:5px;background:#ff9900;min-width:4px}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=4">
@@ -261,7 +261,7 @@ th{color:#5c6773!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=101"></script>
+<script src="topbar-auth.js?v=108"></script>
 <script>
 const A=window.PHDAuth;
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
