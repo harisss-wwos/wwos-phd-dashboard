@@ -83,18 +83,19 @@ function showColumnError(missing){
     const disp=COLUMN_DISPLAY_NAMES[c]||c;
     const newTag=NEW_COLUMNS.has(c)?' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>':'';
     // Show the export-dialog label, with the actual CSV field in parentheses (monospace).
-    return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:'+(bad?'#ff5252':'#4ade80')+'">'
-      +(bad?'✗':'✓')+' <span style="font-weight:600">'+disp+'</span> <span style="font-family:monospace;font-size:.82em;opacity:.75">('+c+')</span>'+newTag+(bad?' <span style="color:#ff5252;font-size:.78em">(missing)</span>':'')+'</li>';
+    // Light theme: present = green #16a34a, missing = red #dc2626, label slate #1b2026, CSV field muted #5c6773.
+    return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:'+(bad?'#dc2626':'#16a34a')+'">'
+      +(bad?'✗':'✓')+' <span style="font-weight:600;color:#1b2026">'+disp+'</span> <span style="font-family:monospace;font-size:.82em;color:#5c6773">('+c+')</span>'+newTag+(bad?' <span style="color:#dc2626;font-size:.78em;font-weight:700">(missing)</span>':'')+'</li>';
   }).join('');
   const overlay=document.createElement('div');
   overlay.id='incPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(20,30,50,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px">
-    <h2 style="color:#ff5252;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
-    <p style="color:#879596;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#ff5252">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Each is shown by its name in the export dialog's "Select and order visible columns" list, with the actual CSV field in parentheses. Fix the export and try again — <b>no data was uploaded</b>.</p>
+  overlay.innerHTML=`<div style="background:#fff;border:1px solid #e3e8ee;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5);color:#1b2026">
+    <h2 style="color:#dc2626;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
+    <p style="color:#5c6773;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#dc2626">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Each is shown by its name in the export dialog's "Select and order visible columns" list, with the actual CSV field in parentheses. Fix the export and try again — <b style="color:#1b2026">no data was uploaded</b>.</p>
     <ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">${listHtml}</ul>
-    <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeAllPopups()">Close</button></div>
+    <div style="margin-top:20px;text-align:right"><button class="btn" style="background:#f0820f;border:1px solid #f0820f;color:#fff;font-weight:700;border-radius:5px;padding:8px 18px;cursor:pointer" onclick="closeAllPopups()">Close</button></div>
   </div>`;
   document.body.appendChild(overlay);
 }
@@ -756,91 +757,132 @@ function showColorPopup(color,tickets){
   const colorNames={green:'GREEN (0-4 days)',yellow:'YELLOW (4-7 days)',red:'RED (7-10 days)',black:'BLACK (>10 days)',purple:'PURPLE (Reopened)'};
   const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const statusColor=(s)=>({'Resolved':'#4ade80','Closed':'#4ade80','Assigned':'#44b9d6','Work In Progress':'#fbbf24','Pending':'#ff9900','Researching':'#a78bfa'})[s]||'#879596';
+  // Status -> filled pill tag (background tint + text). Short label; full status in the title.
+  const ST_TAG={'Assigned':{t:'Assigned',c:'a'},'Work In Progress':{t:'WIP',c:'w'},'Pending':{t:'Pending',c:'p'},'Researching':{t:'Researching',c:'r'},'Resolved':{t:'Resolved',c:'ok'},'Closed':{t:'Closed',c:'ok'}};
+  const statusTag=(s)=>{const m=ST_TAG[s]||{t:(s||'—'),c:'x'};return '<span class="ap-sttag ap-sttag-'+m.c+'" title="'+esc(s||'')+'">'+esc(m.t)+'</span>';};
   const tix=colorTicketsFor(color);
   const me=(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser())?String(window.PHDAuth.getUser().username||'').toLowerCase():'';
-  // Group by agent, then sort agents by ticket count (highest -> lowest).
-  const byAgent={}; tix.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
-  const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
   const now=new Date();
-  // One expandable agent section: header (name + count) + an Excel table of their tickets.
-  const agentBlock=([name,tickets],idx)=>{
-    const dn=displayName(name);
-    const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
-    // A holder is "unregistered" when it's Unassigned OR not a registered PHD user in the database
-    // (i.e. not in /api/user-roles). LM-CAP and other bots/anything-else count as unregistered too.
-    // Unregistered holders get a blinking red-gradient background so they stand out for follow-up.
-    // Guard: only judge NAMED agents once the roster is actually loaded, so a failed/slow roster
-    // load doesn't wrongly red-flag everyone. "Unassigned" is always unregistered.
-    const isUnassigned=(String(name).toLowerCase()==='unassigned'||!String(name).trim());
-    const rosterLoaded=!!window.USER_PROFILES;
-    const registered=!isUnassigned&&rosterLoaded&&isRegisteredUser(name);
-    const unregistered=isUnassigned||(rosterLoaded&&!isRegisteredUser(name));
-    // Registered PHD users get a small "PHD" tag next to their name.
-    const phdTag=registered?' <span class="ap-phd-tag" title="Registered PHD user">PHD</span>':'';
-    // How many of this agent's tickets carry a Station Request / Address Exclusion label (map-pin badge)
-    // and how many are No-EMT (no-entry badge).
-    const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
-    const noEmtCount=tickets.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
-    const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">'+ic('map-pin',13)+' '+prioCount+'</span>':'';
-    const noEmtBadge=noEmtCount>0?' <span class="ap-agent-prio ap-agent-noemt" title="'+noEmtCount+' No EMT ticket'+(noEmtCount===1?'':'s')+'">'+ic('no-entry',13)+' '+noEmtCount+'</span>':'';
-    // Tickets oldest-first (most urgent at top).
-    const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
-      const cd=new Date(r.CreateDate);
-      const validCd=!isNaN(cd);
-      const daysAgo=validCd?Math.floor((now-cd)/864e5):0;
-      const daysAgoTxt=daysAgo<=0?'Today':(daysAgo===1?'1 day ago':daysAgo+' days ago');
-      // "Days left" until the 10-day (240h) black threshold. <=0 means already overdue.
-      const left=10-daysAgo;
-      const leftCls=left>3?'ap-left-ok':(left>0?'ap-left-warn':'ap-left-over');
-      const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
-      const sid=r.ShortId||'';
-      const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-      // "Mine" = ticket assigned to the logged-in user -> can add a comment (server enforces this too).
-      const mine=(me && String(name).toLowerCase()===me)?'1':'0';
-      // Markers next to the ticket id: map-pin = Station Request / Address Exclusion, no-entry = No EMT.
-      const isPrio=hasPriorityLabel(r.Labels);
-      const isNoEmt=hasNoEmt(r.Title,r.Labels);
-      const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'';
-      const noEmt=isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT">'+ic('no-entry',13)+'</span>':'';
-      return '<tr'+(isPrio?' class="ap-row-prio"':'')+'>'+
-        '<td><a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+noEmt+'</td>'+
-        '<td><span class="ap-st" style="color:'+statusColor(r.Status)+'">'+esc(r.Status||'—')+'</span></td>'+
-        '<td>'+esc(created)+'</td>'+
-        '<td>'+daysAgoTxt+'</td>'+
-        '<td class="'+leftCls+'">'+leftTxt+'</td>'+
-        '<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+mine+'"><span class="pc-tk-cmt-txt">Loading…</span></td>'+
+
+  // Shared per-ticket derived values (created string, time-left to the 10-day/240h threshold).
+  const tkParts=(r)=>{
+    const cd=new Date(r.CreateDate);
+    const validCd=!isNaN(cd);
+    const daysAgo=validCd?Math.floor((now-cd)/864e5):0;
+    const left=10-daysAgo;   // days left to the 240h (10-day) black threshold
+    const leftCls=left>3?'ap-left-ok':(left>0?'ap-left-warn':'ap-left-over');
+    const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
+    const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    const sid=r.ShortId||'';
+    const isPrio=hasPriorityLabel(r.Labels), isNoEmt=hasNoEmt(r.Title,r.Labels);
+    const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'';
+    const noEmt=isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT">'+ic('no-entry',13)+'</span>':'';
+    const idCell='<a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+noEmt;
+    const cmtCell=(mine)=>'<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+(mine?'1':'0')+'"><span class="pc-tk-cmt-txt">Loading…</span></td>';
+    return {validCd,leftCls,leftTxt,created,sid,isPrio,idCell,cmtCell,cd};
+  };
+
+  // ---------- BY ANALYSTS (grouped, accordion) ----------
+  const buildByAnalysts=()=>{
+    const byAgent={}; tix.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
+    const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
+    const agentBlock=([name,tickets])=>{
+      const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
+      const isUnassigned=(String(name).toLowerCase()==='unassigned'||!String(name).trim());
+      const rosterLoaded=!!window.USER_PROFILES;
+      const registered=!isUnassigned&&rosterLoaded&&isRegisteredUser(name);
+      const unregistered=isUnassigned||(rosterLoaded&&!isRegisteredUser(name));
+      const phdTag=registered?' <span class="ap-phd-tag" title="Registered PHD user">PHD</span>':'';
+      const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
+      const noEmtCount=tickets.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
+      const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">'+ic('map-pin',13)+' '+prioCount+'</span>':'';
+      const noEmtBadge=noEmtCount>0?' <span class="ap-agent-prio ap-agent-noemt" title="'+noEmtCount+' No EMT ticket'+(noEmtCount===1?'':'s')+'">'+ic('no-entry',13)+' '+noEmtCount+'</span>':'';
+      // Tickets oldest-first (most urgent at top).
+      const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
+        const p=tkParts(r);
+        const mine=(me && String(name).toLowerCase()===me);
+        return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
+          '<td>'+p.idCell+'</td>'+
+          '<td>'+statusTag(r.Status)+'</td>'+
+          '<td>'+esc(p.created)+'</td>'+
+          '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
+          p.cmtCell(mine)+
+        '</tr>';
+      }).join('');
+      // Header shows the LOGIN ID (not display name), with PHD tag + @login + count.
+      const idLabel=isUnassigned?'Unassigned':esc(name);
+      const loginSub=unregistered?'':'<span class="sub">@'+esc(name)+'</span>';
+      return '<div class="ap-agent'+(unregistered?' ap-unreg':'')+'">'+
+        '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
+          '<span class="ap-agent-name">'+idLabel+phdTag+nmeta+prioBadge+noEmtBadge+loginSub+'</span>'+
+          '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
+          '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
+        '</button>'+
+        '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl ap-tbl-ana">'+
+          '<colgroup><col style="width:140px"><col style="width:120px"><col style="width:180px"><col style="width:110px"><col></colgroup>'+
+          '<thead><tr><th>Ticket</th><th>Status</th><th>Created</th><th>Time left</th><th>Last comment</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody></table></div></div>'+
+      '</div>';
+    };
+    return agentList.length?agentList.map(agentBlock).join(''):'<p class="pc-none">No open tickets in this category.</p>';
+  };
+
+  // ---------- BY TICKETS (flat table, newest LAST) ----------
+  const buildByTickets=()=>{
+    if(!tix.length) return '<p class="pc-none">No open tickets in this category.</p>';
+    const sorted=tix.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)); // oldest first -> newest last
+    const rows=sorted.map(r=>{
+      const p=tkParts(r);
+      const agent=r.AssigneeIdentity||'';
+      const isUnassigned=!String(agent).trim()||String(agent).toLowerCase()==='unassigned';
+      const idLabel=isUnassigned?'Unassigned':esc(agent);
+      const mine=(me && String(agent).toLowerCase()===me);
+      return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
+        '<td>'+esc(p.created)+'</td>'+
+        '<td class="ap-login">'+idLabel+'</td>'+
+        '<td>'+p.idCell+'</td>'+
+        '<td>'+statusTag(r.Status)+'</td>'+
+        '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
+        p.cmtCell(mine)+
       '</tr>';
     }).join('');
-    // For unregistered/Unassigned rows: no "@login" shown (just the blinking row). Registered users
-    // keep their "@login" and get the PHD tag.
-    const loginSub=unregistered?'':'<span class="sub">@'+esc(name)+'</span>';
-    return '<div class="ap-agent'+(unregistered?' ap-unreg':'')+'">'+
-      '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
-        '<span class="ap-agent-name">'+esc(dn)+phdTag+nmeta+prioBadge+noEmtBadge+loginSub+'</span>'+
-        '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
-        '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
-      '</button>'+
-      '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl">'+
-        '<colgroup><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:10%"><col style="width:10%"><col style="width:45%"></colgroup>'+
-        '<thead><tr>'+
-        '<th>Ticket</th><th>Status</th><th>Created</th><th>Age</th><th>Time left</th><th>Last comment</th>'+
-      '</tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
-    '</div>';
+    return '<div class="ap-scroll"><table class="ap-tbl ap-tbl-tix">'+
+      // First 5 columns fit content (width:1%); Last comment takes the rest.
+      '<colgroup><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col></colgroup>'+
+      '<thead><tr><th>Created</th><th>Login ID</th><th>Ticket</th><th>Status</th><th>Time left</th><th>Last comment</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>';
   };
-  const body=agentList.length?agentList.map(agentBlock).join(''):'<p class="pc-none">No open tickets in this category.</p>';
+
   const overlay=document.createElement('div');
   overlay.id='colorPopup';overlay.className='popup-overlay';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
-      <div><h2 style="color:${colorHex[color]};font-size:1.45em">${colorNames[color]}</h2><div class="pc-subcount" style="font-size:.95em">${tix.length} open ticket${tix.length===1?'':'s'} · ${agentList.length} agent${agentList.length===1?'':'s'} · highest first</div></div>
+      <div class="pc-head-left">
+        <h2 style="color:${colorHex[color]};font-size:1.45em">${colorNames[color]}</h2>
+        <div class="pc-viewtoggle" role="radiogroup" aria-label="Group tickets by">
+          <button type="button" class="pc-vt" data-view="tickets" role="radio" aria-checked="false">${ic('ticket',13)} By Tickets</button>
+          <button type="button" class="pc-vt pc-vt-on" data-view="analysts" role="radio" aria-checked="true">${ic('users',13)} By Analysts</button>
+        </div>
+      </div>
       <div class="popup-actions"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
-    <div style="margin-top:16px">${body}</div></div>`;
+    <div class="pc-view-body" id="pcViewBody" style="margin-top:16px"></div></div>`;
   document.body.appendChild(overlay);
-  // Fetch the latest comment for every ticket shown (all agents) and fill the "Last comment" column.
-  fillLatestComments(overlay, tix.map(r=>r.ShortId).filter(Boolean));
+
+  const bodyEl=overlay.querySelector('#pcViewBody');
+  const render=(view)=>{
+    bodyEl.innerHTML=(view==='tickets')?buildByTickets():buildByAnalysts();
+    // (re)load comments for whatever rows are now visible (both views, all colors).
+    fillLatestComments(overlay, tix.map(r=>r.ShortId).filter(Boolean));
+  };
+  overlay.querySelectorAll('.pc-vt').forEach(function(btn){
+    btn.onclick=function(){
+      overlay.querySelectorAll('.pc-vt').forEach(function(b){ b.classList.toggle('pc-vt-on', b===btn); b.setAttribute('aria-checked', b===btn?'true':'false'); });
+      render(btn.getAttribute('data-view'));
+    };
+  });
+  render('analysts');   // default
 }
 // Expand/collapse one agent section in the color popup — accordion: only one open at a time.
 function apToggleAgent(btn){
@@ -921,7 +963,7 @@ async function fillLatestComments(overlay,shortIds){
         // No comment yet AND this ticket is assigned to me -> offer an inline "Add comment" action.
         setTxt(row,'<button type="button" class="ap-add-cmt" onclick="apAddComment(this,\''+esc(sid)+'\')">'+ic('plus',12)+' Add comment</button>',true);
       }else{
-        setTxt(row,'No comment yet',true);
+        setTxt(row,'<span class="pc-tk-cmt-none">No comment yet</span>',true);
       }
     });
   }catch(e){rows.forEach(row=>setTxt(row,'Could not load comments',true));}
@@ -1070,18 +1112,16 @@ async function renderShiftReport(){
   const nT=(v,cls)=>`<span class="sr-v ${cls||''} tally-ph" data-tally="${v}">\u2014</span>`;
   const colorTile=(cls,label,val,range)=>`<div class="sr-color sr-${cls}"><div class="sr-color-dot"></div><div class="sr-color-v">${nT(val)}</div><div class="sr-color-l">${label}</div><div class="sr-color-r">${range}</div></div>`;
   document.getElementById('app').innerHTML=topBar('shift-report')+`<div class="content sr">
-  <div class="sr-hero">
-    <div class="sr-hero-txt">
-      <span class="sr-eyebrow">${ic('clock',12)} Queue snapshot · ${dateStr}</span>
-      <h1>${ic('clipboard',24)} Shift Report</h1>
-      <p class="sr-lead">Queue health for handoff — <strong>${inQueue}</strong> unresolved tickets in queue. Prioritise oldest (Black/Red) and reopened (Purple) first.</p>
-    </div>
+  <div class="sr-hero sr-hero-compact">
+    <h1 class="sr-hero-title" title="Shift Report">${ic('clipboard',18)} Shift Report</h1>
+    <span class="sr-hero-sub">${ic('clock',12)} Queue snapshot · ${dateStr}</span>
     <div class="sr-hero-badge"><div class="sr-hero-num">${nT(inQueue)}</div><div class="sr-hero-cap">In queue</div></div>
   </div>
 
-  <section class="sr-sec sr-card-sec sr-sec-takeover">
-    <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2>
-      <div class="sr-sec-actions"><button class="btn sec sr-exp" onclick="exportTakeover()">${ic('copy',14)} Export takeover</button></div></div>
+  <section class="sr-sec sr-card-sec sr-sec-takeover sr-collapsible" id="srSecTakeover">
+    <div class="sr-sec-head" onclick="srSectionToggle(this,event)" role="button" tabindex="0"><h2 title="Takeover — Queue by Age">${ic('alert',18)} Takeover — Queue by Age</h2>
+      <div class="sr-sec-actions"><button class="btn sec sr-exp" onclick="exportTakeover()">${ic('copy',14)} Export takeover</button></div>
+      <span class="sr-sec-caret" aria-hidden="true">\u25be</span></div>
     <div class="sr-sec-body">
     <div class="sr-colors">
       ${colorTile('purple','Reopened',ct.purple.length,'Purple')}
@@ -1094,9 +1134,10 @@ async function renderShiftReport(){
     </div>
   </section>
 
-  <section class="sr-sec sr-card-sec sr-sec-handoff" id="shiftContent">
-    <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2>
-      <div class="sr-sec-actions"><button class="btn sr-exp" onclick="showExportRegionModal()">${ic('copy',14)} Export handoff</button></div></div>
+  <section class="sr-sec sr-card-sec sr-sec-handoff sr-collapsible collapsed" id="shiftContent">
+    <div class="sr-sec-head" onclick="srSectionToggle(this,event)" role="button" tabindex="0"><h2 title="Handoff Report">${ic('clipboard',18)} Handoff Report</h2>
+      <div class="sr-sec-actions"><button class="btn sec sr-exp" onclick="showExportRegionModal()">${ic('copy',14)} Export handoff</button></div>
+      <span class="sr-sec-caret" aria-hidden="true">\u25be</span></div>
     <div class="sr-sec-body">
     <div class="sr-meta">
       <span class="sr-chip">${ic('clock',13)} <b><span id="shiftDate">${dateStr}</span> 19:00 <span id="shiftTz">IST</span></b></span>
@@ -1252,6 +1293,25 @@ ${notes}`;
     showToast('Shift report copied to clipboard ('+region+' / '+tz+')');clearNotes();
   });
 }
+
+// Collapse/expand a Shift Report section (Takeover / Handoff). Accordion: only ONE open at a time,
+// mirroring the app.html Live Queue / Performance Overview behaviour. Clicks on the Export button
+// (which has its own handler) don't toggle.
+function srSectionToggle(head,ev){
+  try{
+    if(ev){ var t=ev.target; if(t&&t.closest&&t.closest('.sr-sec-actions')) return; }
+    var sec=head.closest('.sr-collapsible'); if(!sec) return;
+    var willOpen=sec.classList.contains('collapsed');
+    // Collapse every collapsible section first (one-open-at-a-time).
+    document.querySelectorAll('.sr-collapsible').forEach(function(s){ s.classList.add('collapsed'); });
+    if(willOpen){
+      sec.classList.remove('collapsed');
+      // A chart inside a just-expanded section needs a resize (it was 0-height while collapsed).
+      setTimeout(function(){ try{ window.dispatchEvent(new Event('resize')); }catch(e){} }, 320);
+    }
+  }catch(e){}
+}
+window.srSectionToggle=srSectionToggle;
 
 async function exportTakeover(){
   const cc=SR_COUNTS||{}, col=SR_COLORS||{};
@@ -3231,7 +3291,7 @@ function perfSectionHtml(){
     '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
   return '<div class="section dash-collapsible collapsed" data-perf="1">'+
     '<div class="sec-head" onclick="dashSectionToggle(this,event)" role="button" tabindex="0">'+
-      '<h2>'+ic('bar-chart',16)+' Performance Overview</h2>'+
+      '<h2 title="Performance Overview">'+ic('bar-chart',16)+' Performance Overview</h2>'+
       '<div class="perf-head-right" onclick="event.stopPropagation()">'+
         '<span id="perfPickerWrap">'+perfPickerHtml()+'</span>'+
       '</div>'+
@@ -3944,22 +4004,26 @@ function paintInitialLoading(){
 // Shift Report loading skeleton — same layout as the real report, with shimmer blocks where the
 // numbers/chart will land. Shown instantly on deep-link so the page is never a blank spinner.
 function shiftReportSkeleton(){
+  // Skeleton matches the REAL layout exactly (compact one-line hero; Takeover open with colour tiles
+  // + chart shimmer; Handoff collapsed to just its 56px banner) so there is NO layout jump when the
+  // real content swaps in.
   const colorTile=(cls)=>`<div class="sr-color sr-${cls}"><div class="sr-color-dot"></div><div class="sk-blk sk-num" style="margin:0 auto"></div><div class="sk-blk sk-lbl" style="margin:8px auto 0"></div><div class="sk-blk sk-sub" style="margin:5px auto 0"></div></div>`;
-  const cardRows=(n)=>{let s='';for(let i=0;i<n;i++)s+=`<tr><td><span class="sk-blk sk-row-l"></span></td><td class="sr-v"><span class="sk-blk sk-row-v"></span></td></tr>`;return s;};
-  const card=(n)=>`<div class="sr-card"><div class="sk-blk sk-h3"></div><table class="sr-table"><tbody>${cardRows(n)}</tbody></table></div>`;
   return `<div class="content sr">
-  <div class="sr-hero">
-    <div class="sr-hero-txt"><span class="sr-eyebrow">${ic('clock',12)} Queue snapshot</span><h1>${ic('clipboard',24)} Shift Report</h1><p class="sr-lead">Loading queue health for handoff…</p></div>
-    <div class="sr-hero-badge"><div class="sr-hero-num"><span class="sk-blk sk-num"></span></div><div class="sr-hero-cap">In queue</div></div>
+  <div class="sr-hero sr-hero-compact">
+    <h1 class="sr-hero-title">${ic('clipboard',18)} Shift Report</h1>
+    <span class="sr-hero-sub">${ic('clock',12)} Queue snapshot</span>
+    <div class="sr-hero-badge"><div class="sr-hero-num"><span class="sk-blk" style="width:34px;height:16px;border-radius:4px;display:inline-block"></span></div><div class="sr-hero-cap">In queue</div></div>
   </div>
-  <section class="sr-sec sr-card-sec sr-sec-takeover">
-    <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2></div>
+  <section class="sr-sec sr-card-sec sr-sec-takeover sr-collapsible">
+    <div class="sr-sec-head"><h2>${ic('alert',18)} Takeover — Queue by Age</h2><span class="sr-sec-caret" aria-hidden="true">\u25be</span></div>
+    <div class="sr-sec-body">
     <div class="sr-colors">${colorTile('purple')}${colorTile('black')}${colorTile('red')}${colorTile('yellow')}${colorTile('green')}</div>
     <div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="chart-wrap" style="height:380px;position:relative"><div class="sk-blk" style="position:absolute;inset:0;border-radius:5px"></div></div></div>
+    </div>
   </section>
-  <section class="sr-sec sr-card-sec sr-sec-handoff">
-    <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2></div>
-    <div class="sr-cards">${card(4)}${card(4)}${card(5)}${card(5)}</div>
+  <section class="sr-sec sr-card-sec sr-sec-handoff sr-collapsible collapsed">
+    <div class="sr-sec-head"><h2>${ic('clipboard',18)} Handoff Report</h2><span class="sr-sec-caret" aria-hidden="true">\u25be</span></div>
+    <div class="sr-sec-body"></div>
   </section>
   </div>`;
 }

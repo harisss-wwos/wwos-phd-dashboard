@@ -1378,31 +1378,45 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
     // Open-ticket counts are counted ACROSS ALL QUARTERS (an analyst's open tickets span quarters,
     // just like the "My open tickets" card) — NOT just the live quarter. Aggregate ticket_docs by
     // assignee for open statuses. NOT ASSIGNED = open tickets whose assignee isn't an analyst.
-    const analystOpen = {};   // login -> open-ticket count (all quarters)
+    const analystOpen = {};     // login -> total open-ticket count (all quarters)
+    const analystStatus = {};   // login -> { Assigned, 'Work In Progress', Pending, Researching }
     try {
       const tColl = await getCollection(COLLECTIONS.ticketDocs);
+      // Group by assignee AND status so each analyst carries a per-status breakdown (for the
+      // expandable W/A/P/R chips in the "Open tickets by analyst" list).
       const grp = await tColl.aggregate([
         { $match: { Status: { $in: OPEN_STATUSES } } },
-        { $group: { _id: { $toLower: { $trim: { input: { $ifNull: ['$AssigneeIdentity', ''] } } } }, n: { $sum: 1 } } },
+        { $group: {
+            _id: { a: { $toLower: { $trim: { input: { $ifNull: ['$AssigneeIdentity', ''] } } } }, s: '$Status' },
+            n: { $sum: 1 },
+        } },
       ]).toArray();
       grp.forEach(r => {
-        const a = String(r._id || '');
-        if (!a || !analystSet.has(a)) { notAssigned += Number(r.n || 0); }
-        else { analystOpen[a] = Number(r.n || 0); }
+        const a = String((r._id && r._id.a) || '');
+        const s = String((r._id && r._id.s) || '');
+        const n = Number(r.n || 0);
+        if (!a || !analystSet.has(a)) { notAssigned += n; return; }
+        analystOpen[a] = (analystOpen[a] || 0) + n;
+        (analystStatus[a] = analystStatus[a] || {})[s] = ((analystStatus[a] && analystStatus[a][s]) || 0) + n;
       });
     } catch (e) { /* best-effort */ }
 
     // Per-analyst list (shown to EVERY logged-in user): one row per analyst with their current OPEN
-    // total + this upload's net change (newlyAdded - resolved). Sorted by open count DESC. When there's
-    // no delta data yet, net/resolved/newlyAdded are 0.
+    // total + a per-status breakdown (Assigned/WIP/Pending/Researching) for the expandable chips.
+    // Sorted by open count DESC.
     const analysts = Array.from(analystSet).map(login => {
-      const d = batchAnalystDelta[login] || { newlyAdded: 0, resolved: 0 };
-      const newlyAdded = Number(d.newlyAdded || 0), resolved = Number(d.resolved || 0);
+      const st = analystStatus[login] || {};
       return {
         username: login,
         name: analystName[login] || login,
         open: analystOpen[login] || 0,
-        newlyAdded, resolved, net: newlyAdded - resolved,
+        // Per-status open counts (0 when the analyst has none in that status).
+        status: {
+          Assigned: Number(st['Assigned'] || 0),
+          'Work In Progress': Number(st['Work In Progress'] || 0),
+          Pending: Number(st['Pending'] || 0),
+          Researching: Number(st['Researching'] || 0),
+        },
       };
     }).sort((a, b) => (b.open - a.open) || String(a.name).localeCompare(String(b.name)));
 
@@ -2500,8 +2514,9 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
     // All my open tickets across all quarters. Index-friendly: AssigneeIdentity (ci) + Status.
     const rows = await coll.find(
       { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } },
-      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, Labels: 1, AssigneeIdentity: 1, q: 1, Country: 1 } }
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, _reopened: 1, Labels: 1, AssigneeIdentity: 1, q: 1, Country: 1 } }
     ).toArray();
+    const _nowMs = Date.now();
     // Country/region code for a ticket: prefer the Country field, else the leading 2-3 letter code
     // at the start of the Title (e.g. "US ...", "IN: ...") — same convention as the Countries report.
     const countryOf = (t) => {
@@ -2532,6 +2547,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
         createDate: created,
         quarter: t.q || '',
         deadline,
+        color: ticketColor(t, _nowMs),   // age colour (purple/black/red/yellow/green) — matches BY AGE tiles
         priority: hasPriorityLabel(t.Labels),
         noEmt: hasNoEmt(t.Title, t.Labels),
       });
@@ -2540,6 +2556,50 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
     res.json({ quarter: 'all', slaHours: SLA_HOURS, tickets: out });
   } catch (e) {
     res.status(500).json({ error: 'Could not load your tickets.' });
+  }
+});
+
+// GET all NOT-ASSIGNED open tickets (assignee is NOT one of the analysts, incl. blank/unassigned),
+// across every quarter, deduped by ShortId, sorted by CreateDate DESCENDING (newest first). Powers
+// the "NOT ASSIGNED" popup in the profile upload card.
+app.get('/api/not-assigned-tickets', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // The analyst set (the "13"): any ticket NOT assigned to one of these counts as NOT ASSIGNED.
+    const analystSet = new Set(
+      (await (await getCollection(COLLECTIONS.users)).find({ analyst: true }, { projection: { _id: 0, username: 1 } }).toArray())
+        .map(u => String(u.username || '').toLowerCase()).filter(Boolean)
+    );
+    const rows = await coll.find(
+      { Status: { $in: OPEN_STATUSES } },
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, AssigneeIdentity: 1 } }
+    ).toArray();
+    const seen = new Set();
+    const out = [];
+    rows.forEach(t => {
+      const assignee = String(t.AssigneeIdentity || '').trim().toLowerCase();
+      if (assignee && analystSet.has(assignee)) return;   // assigned to an analyst -> skip
+      const sid = t.ShortId || t.IssueId || '';
+      if (sid && seen.has(sid)) return;
+      if (sid) seen.add(sid);
+      const created = t.CreateDate || '';
+      let deadline = null;
+      const cd = new Date(created);
+      if (!isNaN(cd)) deadline = new Date(cd.getTime() + SLA_HOURS * 3600 * 1000).toISOString();
+      out.push({
+        shortId: sid,
+        url: t.IssueUrl || (t.ShortId ? ('https://t.corp.amazon.com/issues/' + t.ShortId) : ''),
+        title: t.Title || '',
+        status: t.Status || '',
+        assignee: t.AssigneeIdentity || '',
+        createDate: created,
+        deadline,
+      });
+    });
+    out.sort((a, b) => new Date(b.createDate) - new Date(a.createDate)); // NEWEST first (desc)
+    res.json({ slaHours: SLA_HOURS, count: out.length, tickets: out });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load unassigned tickets.' });
   }
 });
 
@@ -3578,14 +3638,45 @@ function ciExact(v) { return new RegExp('^' + String(v).replace(/[.*+?^${}()|[\]
 async function bulkUpsertTickets(qid, changed, removed) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   await ensureTicketIndexes();
+
+  // Normalise + collect the ShortIds we're about to write (the full "live" set, by era intent:
+  // one ShortId = one document, no matter which calendar quarter CreateDate falls in).
+  const writeSids = [];
+  (changed || []).forEach(t => { if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId; const sid = shortIdOf(t); if (sid) writeSids.push(sid); });
+
+  // ERA-DEDUPE: a ticket must exist in EXACTLY ONE bucket. Historically the _id was
+  // `<quarter>|<ShortId>`, so when a later upload re-bucketed the same ShortId into a different
+  // quarter (e.g. a 30-Sep-UTC CreateDate reading as Q4 in local time), the OLD-quarter copy was
+  // left behind and double-counted. Before writing, purge every stale copy of these ShortIds that
+  // lives under a DIFFERENT _id than the target bucket. This makes re-uploads self-healing — the
+  // "come back and fix the count" problem can't recur.
+  const dedupeOps = [];
+  if (writeSids.length) {
+    const targetIds = new Set(writeSids.map(s => ticketDocId(qid, s)));
+    const stale = await coll.find(
+      { $or: [{ ShortId: { $in: writeSids } }, { IssueId: { $in: writeSids } }] },
+      { projection: { _id: 1 } }
+    ).toArray();
+    stale.forEach(d => { if (!targetIds.has(d._id)) dedupeOps.push({ deleteOne: { filter: { _id: d._id } } }); });
+  }
+
+  // Removals: delete the ticket from EVERY bucket it might sit in (not just the target), so a
+  // removed/resolved ticket can't linger as a stale copy in another quarter.
+  (removed || []).forEach(id => {
+    const sid = String(id).trim();
+    if (sid) dedupeOps.push({ deleteMany: { filter: { $or: [{ ShortId: sid }, { IssueId: sid }] } } });
+  });
+
+  // Phase 1: run all cross-bucket cleanups FIRST (ordered) so no stale copy survives the write.
+  if (dedupeOps.length) { for (let i = 0; i < dedupeOps.length; i += 500) await coll.bulkWrite(dedupeOps.slice(i, i + 500), { ordered: false }); }
+
+  // Phase 2: upsert the incoming tickets into their target bucket.
   const ops = [];
   (changed || []).forEach(t => {
-    if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
     const sid = shortIdOf(t); if (!sid) return;
     const doc = Object.assign({}, t, { q: qid });
     ops.push({ replaceOne: { filter: { _id: ticketDocId(qid, sid) }, replacement: Object.assign({ _id: ticketDocId(qid, sid) }, doc), upsert: true } });
   });
-  (removed || []).forEach(id => { const sid = String(id).trim(); if (sid) ops.push({ deleteOne: { filter: { _id: ticketDocId(qid, sid) } } }); });
   if (ops.length) { for (let i = 0; i < ops.length; i += 500) await coll.bulkWrite(ops.slice(i, i + 500), { ordered: false }); }
   return await coll.countDocuments({ q: qid });
 }

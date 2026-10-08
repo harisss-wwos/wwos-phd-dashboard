@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Q3 Live Dashboard · WWOS-GSOC PHD Dashboard</title>
+<title>WWOS PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -252,44 +252,51 @@ tr:hover{background:#f8fafb}
 .sr{max-width:1200px}
 /* ============ Shift Report — illustrated gradient hero banner (matches the section banners) ============ */
 .sr{max-width:1200px}
-.sr-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  border:1px solid #242a31;border-radius:5px;padding:12px 22px;min-height:0;margin-bottom:18px;
-  box-shadow:0 10px 26px -20px rgba(0,0,0,.7);
+/* Compact one-line hero: title + snapshot date (left) + In-queue badge (right). Height matches the
+   profile-column banner / app.html section banners (56px). */
+.sr-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;flex-wrap:nowrap;
+  height:56px;min-height:56px;max-height:56px;box-sizing:border-box;
+  border:none;border-radius:5px;padding:0 18px;margin-bottom:18px;
+  box-shadow:0 6px 18px -8px rgba(236,114,17,.45),0 2px 6px rgba(20,30,50,.12);
   background:linear-gradient(90deg,#f07d0a,#ff9f2e 52%,#ffcf7a);background-size:200% 100%;animation:secBanner 10s ease infinite}
-.sr-hero-txt{position:relative;z-index:1;min-width:0}
-.sr-eyebrow{display:inline-flex;align-items:center;gap:7px;color:#6a3d05;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
-.sr-hero-txt h1{color:#3a2405;font-size:1.45em;font-weight:800;letter-spacing:-.4px;margin:3px 0 3px;display:inline-flex;align-items:center;gap:10px}
-.sr-hero-txt h1 svg{color:#3a2405;flex-shrink:0}
-.sr-lead{color:rgba(58,36,5,.82);font-size:.84em;max-width:640px;line-height:1.45;font-weight:500}
-.sr-lead strong{color:#2a1a02;font-weight:800}
-/* In-queue badge: frosted white pill so the big number reads on the bright banner. */
-.sr-hero-badge{position:relative;z-index:1;text-align:center;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:5px;padding:8px 20px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
-.sr-hero-num{font-size:1.8em;font-weight:800;color:#c25e00;line-height:1}
-.sr-hero-cap{color:#8a5a1a;font-size:.66em;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.sr-hero-title{position:relative;z-index:1;color:#3a2405;font-size:1.12em;font-weight:800;letter-spacing:-.2px;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.sr-hero-title svg{color:#3a2405;flex-shrink:0}
+.sr-hero-sub{position:relative;z-index:1;display:inline-flex;align-items:center;gap:6px;color:#6a3d05;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis}
+/* In-queue badge: compact frosted white pill, pinned to the right of the one-line hero. */
+.sr-hero-badge{position:relative;z-index:1;margin-left:auto;display:inline-flex;align-items:baseline;gap:6px;text-align:center;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.95);border-radius:5px;padding:4px 12px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
+.sr-hero-num{font-size:1.1em;font-weight:800;color:#c25e00;line-height:1}
+.sr-hero-cap{color:#8a5a1a;font-size:.6em;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+/* Hero watermark hidden on the compact one-line hero (not enough height for it to read well). */
+.sr-hero-compact::after{display:none!important}
 /* Hero watermark: clipboard + handoff arrows line-art on the right. */
 .sr-hero::after{content:"";position:absolute;top:0;bottom:0;right:200px;width:200px;
   background-repeat:no-repeat;background-position:center;background-size:auto 84%;opacity:.34;pointer-events:none;z-index:0;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="24" y="14" width="46" height="52" rx="6"/><rect x="38" y="9" width="18" height="9" rx="3"/><path d="M34 32h26M34 42h26M34 52h16"/><path d="M84 30h24M100 22l8 8-8 8"/><path d="M108 54H84M92 46l-8 8 8 8"/></svg>')}
 .sr-sec{margin-bottom:22px}
-/* Section head is now an illustrated gradient mini-banner (like the My Tickets section banners). */
-.sr-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;
-  border-radius:5px;padding:0 18px;height:62px;min-height:62px;margin:-18px -20px 18px;
-  background-size:200% 100%;animation:secBanner 10s ease infinite}
-.sr-sec-head h2{font-size:1.12em;font-weight:800;display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sr-sec-head h2 .ic,.sr-sec-head h2 svg{flex-shrink:0}
+/* Collapsible section head — a flat BLUE mini-banner matching the app.html Live Queue / Performance
+   Overview scheme: collapsed = sky-blue #38bdf8, expanded = #0b63cf, white font + caret. Fixed 56px. */
+.sr-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;cursor:pointer;
+  border-radius:5px;padding:0 18px;height:56px;min-height:56px;max-height:56px;box-sizing:border-box;margin:-18px -20px 18px;
+  background:#0b63cf;transition:background .15s}
+.sr-collapsible.collapsed .sr-sec-head{background:#38bdf8;margin-bottom:-18px}
+.sr-sec-head h2{font-size:1.08em;font-weight:800;display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff!important}
+.sr-sec-head h2 *{color:#fff!important}
+.sr-sec-head h2 .ic,.sr-sec-head h2 svg{flex-shrink:0;color:#fff!important}
 .sr-sec-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:1}
-.sr-exp{white-space:nowrap}
-/* Section-head watermark. */
-.sr-sec-head::after{content:"";position:absolute;top:0;bottom:0;right:0;width:170px;background-repeat:no-repeat;background-position:right center;background-size:auto 96%;opacity:.32;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
-/* Takeover section = amber (needs attention). */
-.sr-sec-takeover .sr-sec-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)}
-.sr-sec-takeover .sr-sec-head h2,.sr-sec-takeover .sr-sec-head h2 svg{color:#4a0d0f}
-.sr-sec-takeover .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="40" r="22"/><path d="M52 28v12l9 6"/><path d="M84 20h24M84 60h24M88 20c0 12 16 14 16 20s-16 8-16 20M104 20c0 12-16 14-16 20s16 8 16 20"/></svg>')}
-/* Handoff section = teal/green (done, ready to hand over). */
-.sr-sec-handoff .sr-sec-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2)}
-.sr-sec-handoff .sr-sec-head h2,.sr-sec-handoff .sr-sec-head h2 svg{color:#06322d}
-.sr-sec-handoff .sr-sec-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><rect x="26" y="16" width="46" height="50" rx="6"/><rect x="40" y="11" width="18" height="9" rx="3"/><path d="M36 34h26M36 44h18"/><path d="M82 40h24M98 32l8 8-8 8"/></svg>')}
+/* Export buttons: ORANGE bg, white UPPERCASE text, 5px radius (override base .btn / .btn.sec). */
+.sr-sec-head .sr-exp,.sr-sec-head .btn.sr-exp,.sr-sec-head .btn.sec.sr-exp{white-space:nowrap;text-transform:uppercase;border-radius:5px!important;background:#f0820f!important;border:1px solid #f0820f!important;color:#fff!important;font-weight:800;letter-spacing:.3px}
+.sr-sec-head .sr-exp:hover,.sr-sec-head .btn.sr-exp:hover,.sr-sec-head .btn.sec.sr-exp:hover{background:#d9730c!important;border-color:#d9730c!important;color:#fff!important}
+.sr-sec-head .sr-exp svg{color:#fff!important}
+/* Caret on the right; rotates when collapsed (mirrors app.html .sec-caret). */
+.sr-sec-caret{position:relative;z-index:1;color:#fff;opacity:.85;font-size:.9em;flex-shrink:0;transition:transform .3s ease}
+.sr-collapsible.collapsed .sr-sec-caret{transform:rotate(-90deg)}
+/* Body collapses to height 0 (one open at a time via the accordion JS). */
+.sr-collapsible>.sr-sec-body{overflow:hidden;transition:max-height .32s ease,opacity .25s ease,margin .32s ease;max-height:4000px;opacity:1}
+.sr-collapsible.collapsed>.sr-sec-body{max-height:0;opacity:0;margin-top:0;margin-bottom:0}
+/* When collapsed, the head's own bottom margin + the card padding should also close up so the
+   collapsed card is just the 56px banner (equal height for both sections). */
+.sr-collapsible.collapsed.sr-card-sec{padding-top:18px;padding-bottom:0}
 /* Buttons on the bright section banner stay legible. */
 .sr-sec-head .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.16)}
 .sr-sec-head .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.3)}
@@ -486,6 +493,60 @@ tr:hover{background:#f8fafb}
 .ap-cmt-save{background:var(--o);color:#141414;border-color:var(--o)}
 .ap-cmt-cancel{background:transparent;color:var(--t)}
 .ap-cmt-cancel:hover{border-color:var(--o);color:var(--o)}
+/* ---- Color-popup v2: view toggle (By Tickets / By Analysts) + status tags + truncated comment ---- */
+/* View toggle = segmented check-chips (like the BLR/AZA/WFH chips). */
+.pc-head-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pc-viewtoggle{display:inline-flex;gap:8px}
+.pc-vt{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #d4dade;border-radius:5px;background:#fff;color:#5c6773;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
+.pc-vt svg{width:13px;height:13px}
+.pc-vt:hover{border-color:#f0820f;color:#ec7211}
+.pc-vt.pc-vt-on{background:#fff4e8;border-color:#f0820f;color:#ec7211}
+.pc-vt.pc-vt-on::before{content:"\2713";font-weight:900;margin-right:1px}
+/* Status as a filled pill tag. */
+.ap-sttag{display:inline-block;padding:2px 10px;border-radius:5px;font-size:.78em;font-weight:800;border:1px solid transparent;white-space:nowrap}
+.ap-sttag-a{background:#e8f0ff;color:#2563eb;border-color:#bcd3fb}
+.ap-sttag-w{background:#fff4e3;color:#b7791f;border-color:#f3d08a}
+.ap-sttag-p{background:#fdeaea;color:#dc2626;border-color:#f6b8b8}
+.ap-sttag-r{background:#f1eaff;color:#7c3aed;border-color:#d6c2fb}
+.ap-sttag-ok{background:#e8f5ec;color:#1f9d57;border-color:#b7e4c7}
+.ap-sttag-x{background:#f0f3f6;color:#5c6773;border-color:#e2e6ea}
+/* Last-comment column: single line that fills the remaining width and ellipsizes if too long.
+   The cell itself clips; the inner text span truncates. (No max-width:0 — that collapsed it to
+   invisible under auto table-layout.) */
+.ap-tbl td.ap-cmt{white-space:nowrap!important;overflow:hidden}
+.ap-tbl td.ap-cmt .pc-tk-cmt-txt{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* When the inline comment editor opens, let the cell wrap again so the textarea fits. */
+.ap-tbl td.ap-cmt:has(.ap-cmt-input){white-space:normal!important;overflow:visible}
+.ap-login{font-weight:700;color:#2a3340}
+/* Popup action buttons: Download CSV = ORANGE, Close = RED. Uppercase, white text, 5px radius. */
+.popup-head .popup-actions .btn{text-transform:uppercase!important;border-radius:5px!important;font-weight:800!important;letter-spacing:.4px!important;color:#fff!important}
+.popup-head .popup-actions .btn:not(.danger){background:#f0820f!important;border:1px solid #f0820f!important}
+.popup-head .popup-actions .btn:not(.danger):hover{background:#d9730c!important;border-color:#d9730c!important}
+.popup-head .popup-actions .btn.danger{background:#dc2626!important;border:1px solid #dc2626!important}
+.popup-head .popup-actions .btn.danger:hover{background:#b91c1c!important;border-color:#b91c1c!important}
+/* Flat "By Tickets" table gets its own card frame (no agent accordion around it). FIXED layout so
+   the first 5 columns hold tidy fit-ish widths and the LAST (Last comment) absorbs the rest + truncates. */
+.ap-tbl-tix{border:1px solid #e2e6ea;border-radius:5px;overflow:hidden;table-layout:fixed;width:100%}
+.pc-view-body>.ap-scroll{border:1px solid #e2e6ea;border-radius:5px}
+/* First 5 columns: compact fit-ish widths, CENTERED; Last comment fills the rest (left). */
+.ap-tbl-tix col:nth-child(1){width:170px}
+.ap-tbl-tix col:nth-child(2){width:120px}
+.ap-tbl-tix col:nth-child(3){width:130px}
+.ap-tbl-tix col:nth-child(4){width:120px}
+.ap-tbl-tix col:nth-child(5){width:110px}
+.ap-tbl-tix th:nth-child(-n+5),.ap-tbl-tix td:nth-child(-n+5){white-space:nowrap;text-align:center}
+.ap-tbl-tix th:last-child,.ap-tbl-tix td:last-child{text-align:left}
+/* By Analysts table: first 4 columns (Ticket | Status | Created | Time left) fit-ish + CENTERED;
+   Last comment fills the rest (left). FIXED layout so the comment column truncates reliably. */
+.ap-tbl-ana{table-layout:fixed;width:100%}
+.ap-tbl-ana col:nth-child(1){width:150px}
+.ap-tbl-ana col:nth-child(2){width:130px}
+.ap-tbl-ana col:nth-child(3){width:180px}
+.ap-tbl-ana col:nth-child(4){width:110px}
+.ap-tbl-ana th:nth-child(-n+4),.ap-tbl-ana td:nth-child(-n+4){white-space:nowrap;text-align:center}
+.ap-tbl-ana th:last-child,.ap-tbl-ana td:last-child{text-align:left}
+/* "No comment yet" placeholder: muted grey italic. */
+.ap-cmt .pc-tk-cmt-none{color:#9aa6b1;font-style:italic}
 /* Historical Incidents: text/stat cells (left) + pet-vs-nonpet doughnut (right). */
 .hi-split{display:grid;grid-template-columns:1fr 220px;gap:18px;align-items:center}
 .hi-split-left{min-width:0}
@@ -645,8 +706,10 @@ tr:hover{background:#f8fafb}
 .content .dash-collapsible .sec-head{cursor:pointer}
 .content .dash-collapsible .sec-caret{position:relative;z-index:1;color:inherit;opacity:.75;font-size:.9em;transition:transform .3s ease;flex-shrink:0}
 .content .dash-collapsible.collapsed .sec-caret{transform:rotate(-90deg)}
-/* When collapsed, hide the Q3/Q2/Q2+Q3 scope selector (only the title + caret remain). */
-.content .dash-collapsible.collapsed .dash-scope-sec{display:none}
+/* When collapsed, hide the Q3/Q2/Q2+Q3 scope selector AND the Performance period picker — so the
+   collapsed banner is just title + caret, giving Live Queue & Performance Overview the SAME height. */
+.content .dash-collapsible.collapsed .dash-scope-sec,
+.content .dash-collapsible.collapsed .perf-head-right{display:none!important}
 /* The body wrapper animates its height. Target the direct body: .sec-body (legacy), .dash-chunk-slot
    (Age), .lq-body (merged Live Queue), .perf-body (merged Performance Overview). */
 .content .dash-collapsible>.sec-body,.content .dash-collapsible>.dash-chunk-slot,.content .dash-collapsible>.lq-body,.content .dash-collapsible>.perf-body{
@@ -727,10 +790,17 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .lq-sub-h svg{color:#ec7211}
 
 /* ---- Performance Overview: period picker (segmented chips + optional sub-select) ---- */
-.perf-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
-.perf-picker{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+/* Keep the whole picker on ONE line (never wrap -> never break the fixed 56px banner height). If it
+   genuinely can't fit, it scrolls horizontally instead of wrapping. The title truncates to yield room. */
+.content [data-perf] .sec-head{gap:12px}
+.content [data-perf] .sec-head>h2{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.perf-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.perf-head-right::-webkit-scrollbar{display:none}
+.perf-head-right>span{display:inline-flex}
+.perf-picker{display:inline-flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-end}
+.perf-sub{flex:0 0 auto}
 /* Segmented chip group: one rounded pill track, each range type a chip; active chip = white on orange. */
-.perf-chips{display:inline-flex;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
+.perf-chips{display:inline-flex;flex:0 0 auto;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
 .perf-chip{font-family:inherit;font-size:.76em;font-weight:700;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .perf-chip:hover{color:#1b2026}
 .perf-chip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
@@ -934,13 +1004,26 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 @keyframes mblink{50%{opacity:.4}}
 </style>
 <!-- Light-mode preview (app.html only). Loaded last so it wins the cascade. Remove this line to revert. -->
-<link rel="stylesheet" href="light-app.css?v=31">
+<link rel="stylesheet" href="light-app.css?v=39">
 </head>
 <body data-app="live" data-profile-panel data-back-href="index.html" data-back-label="All Dashboards">
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=109"></script>
-<script src="app.js?v=55"></script>
+<script src="topbar-auth.js?v=137"></script>
+<script src="app.js?v=68"></script>
+<script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -160,7 +160,10 @@
       // Vertically-centered left-edge FAB column: holds Live + Analytics + page-nav FABs (NOT the
       // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
       // pill grows rightward on hover from the same left edge.
-      + '.tb-fab-col{position:fixed;left:4px;top:10px;bottom:10px;width:5vw;min-width:58px;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:9px;padding:0 4px;overflow-y:auto;overflow-x:clip;scrollbar-width:thin;scrollbar-color:#ff9900 transparent;box-sizing:border-box;background:transparent;pointer-events:auto}'
+      + '.tb-fab-col{position:fixed;left:4px;top:10px;bottom:10px;width:5vw;min-width:58px;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:9px;padding:0 4px;overflow-y:auto;overflow-x:clip;scrollbar-width:thin;scrollbar-color:#ff9900 transparent;box-sizing:border-box;background:#ffffff;pointer-events:auto}'
+      // GUEST (logged out, on index.html): hide the left nav-rail entirely and reclaim its left gutter.
+      + 'body[data-guest] .tb-fab-col,body[data-guest] #tbFabCol{display:none!important}'
+      + 'body[data-guest]{padding-left:0!important}'
       // Thin ORANGE vertical scrollbar for the (now scrollable) left rail. overflow-x:clip above keeps
       // flyouts (position:fixed on hover) escaping while preventing a horizontal scrollbar.
       + '.tb-fab-col::-webkit-scrollbar{width:4px}'
@@ -270,9 +273,8 @@
       + '.tb-flyout-fab .tb-nav-ic svg{width:24px;height:24px;color:#3a4f74;stroke:#3a4f74}'
       // Flyout trigger -> SKY-BLUE on hover of the WHOLE item (box + caption), not just the icon.
       + '.tb-fab-col .tb-fab-item:hover .tb-flyout-fab,.tb-fab-col .tb-flyout-wrap:hover .tb-flyout-fab{border-color:#38bdf8!important;background:#0ea5e9!important;color:#06293a!important}'
-      + '.tb-fab-col .tb-fab-item:hover .tb-flyout-fab .tb-nav-ic,.tb-fab-col .tb-fab-item:hover .tb-flyout-fab .tb-nav-ic svg,.tb-fab-col .tb-flyout-wrap:hover .tb-flyout-fab .tb-nav-ic,.tb-fab-col .tb-flyout-wrap:hover .tb-flyout-fab .tb-nav-ic svg{color:#06293a!important;stroke:#06293a!important}'
-      // Caption darkens on the sky-blue trigger hover too.
-      + '.tb-fab-col .tb-fab-item:has(.tb-flyout-fab):hover .tb-fab-cap{color:#06293a!important}'
+      // Flyout trigger: no bg change on hover; icon keeps its resting tint, caption goes BLACK.
+      + '.tb-fab-col .tb-fab-item:has(.tb-flyout-fab):hover .tb-fab-cap{color:#000!important}'
       // The fly-out PANEL: sits to the RIGHT of the trigger. A real card now — dark background, border,
       // rounded, shadow, padding — holding its items as a horizontal row of icon-above-label cards.
       // The fly-out PANEL: a light (white/gray) card matching the page background, vertical column of
@@ -331,9 +333,9 @@
       + '.tb-fab-item{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:6px 2px;border-radius:5px;transition:background .15s}'
       + '.tb-fab-cap{font-size:11px;font-weight:600;line-height:1.15;color:#9fb0c3;text-align:center;max-width:9vw;white-space:normal;word-break:break-word;letter-spacing:.2px;pointer-events:none;transition:transform .15s,color .15s}'
       + '.tb-fab-cap.is-disabled{color:#6b7681}'
-      // Hover the whole item: subtle background + scale the caption up a touch.
-      + '.tb-fab-item:hover{background:rgba(255,255,255,.06)}'
-      + '.tb-fab-item:hover .tb-fab-cap{transform:scale(1.12);color:#e6edf0}'
+      // Hover the whole item: NO background on the padding; caption goes BLACK (no scale).
+      + '.tb-fab-item:hover{background:transparent}'
+      + '.tb-fab-item:hover .tb-fab-cap{color:#000!important}'
       // Rail badge (GSOC logo + profile avatar): a fixed 46px circle. Its label is ABSOLUTELY
       // positioned to the RIGHT of the circle and slides in on hover — so it escapes the narrow rail
       // to the right (never clipped) and never changes the column width or position.
@@ -512,18 +514,18 @@
       // + dark ink on the orange hover fill, which the shared hover rules below provide).
       + '.tb-fab-col .tb-nav-fab.tb-nav-upload{background:transparent!important;animation:none!important}'
       + '.tb-fab-col .tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#cfe0f2!important;stroke:#cfe0f2!important}'
-      + '.tb-fab-col .tb-fab-item:hover .tb-nav-fab.tb-nav-upload{background:#ff9900!important}'
-      + '.tb-fab-col .tb-fab-item:hover .tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#1a1206!important;stroke:#1a1206!important}'
+      // Upload pill: no orange fill on hover either — stays transparent (only the icon scales).
+      + '.tb-fab-col .tb-fab-item:hover .tb-nav-fab.tb-nav-upload{background:transparent!important}'
       // Flyout TRIGGER icons (Data/Reports/Issue Types/Program History) = their border colour (#3a4f74),
       // not white. (Hover turns the whole chip sky-blue + dark icon, handled above.)
       + '.tb-fab-col .tb-flyout-fab .tb-nav-ic,.tb-fab-col .tb-flyout-fab .tb-nav-ic svg{color:#3a4f74!important;stroke:#3a4f74!important}'
       + '.tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic,.tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic svg,.tb-fab-col .tb-an-fab .tb-an-ic,.tb-fab-col .tb-an-fab .tb-an-ic svg{color:#cfe0f2!important;stroke:#cfe0f2!important}'
-      // Hover the WHOLE item (padding + caption, not just the icon) -> orange pill. Driven by the
-      // parent .tb-fab-item:hover so the colour change fires anywhere over the button.
-      + '.tb-fab-col .tb-fab-item:hover .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab),.tb-fab-col .tb-fab-item:hover .tb-an-fab{background:#ff9900!important;border-color:#ff9900!important}'
-      + '.tb-fab-col .tb-fab-item:hover .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic,.tb-fab-col .tb-fab-item:hover .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic svg,.tb-fab-col .tb-fab-item:hover .tb-an-fab .tb-an-ic,.tb-fab-col .tb-fab-item:hover .tb-an-fab .tb-an-ic svg{color:#1a1206!important;stroke:#1a1206!important}'
-      // Caption also goes dark on the orange item hover.
-      + '.tb-fab-col .tb-fab-item:hover .tb-fab-cap{color:#1a1206!important}'
+      // Hover: NO background/padding colour on the pill — keep it transparent. Only the icon scales
+      // (1.25x, handled above) and the caption darkens (handled below).
+      + '.tb-fab-col .tb-fab-item:hover .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab),.tb-fab-col .tb-fab-item:hover .tb-an-fab{background:transparent!important;border-color:transparent!important}'
+      // Icon KEEPS its resting tint on hover (no dark-ink flip, since there is no orange fill now).
+      // Caption: grey at rest -> BLACK on hover, no scale.
+      + '.tb-fab-col .tb-fab-item:hover .tb-fab-cap{color:#000!important;transform:none!important}'
       // Profile + logo avatar images fill the smaller 44px badge.
       + '.tb-rail-logo .tb-rail-logo-img{width:28px!important;height:28px!important}'
       + '.tb-rail-profile .tb-rail-av{width:40px!important;height:40px!important}'
@@ -579,6 +581,8 @@
       // The collapsible section: name + role + a VERTICAL stack of full-width buttons. Collapses to 0.
       + '.tb-pp-links{display:flex;flex-direction:column;align-items:stretch;gap:9px;overflow:hidden;transition:max-height .3s ease,opacity .2s ease,margin-top .2s ease;max-height:320px;opacity:1}'
       + '.tb-pp-links.collapsed{max-height:0;opacity:0;pointer-events:none;margin-top:-11px}'
+      // First-paint guard: no transition so the section appears already-collapsed with no flash.
+      + '.tb-pp-links.tb-pp-noanim{transition:none!important}'
       // Name + role row inside the collapsible section.
       + '.tb-pp-namerow2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}'
       // The full-width button stack.
@@ -663,6 +667,40 @@
       + '.tb-pp-login-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;padding:11px 14px;border:none;border-radius:5px;background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;font-size:.86em;font-weight:800;letter-spacing:.2px;cursor:pointer;box-shadow:0 4px 12px -4px rgba(236,114,17,.6);transition:transform .12s,filter .15s}'
       + '.tb-pp-login-btn:hover{transform:translateY(-1px);filter:brightness(1.04)}'
       + '.tb-pp-login-btn:disabled{opacity:.65;cursor:default;transform:none}'
+      // ---- Guest banner: a clean WHITE welcome card (no gradient). Centered column: avatar on top,
+      // "Welcome!" + subtitle, then a full-width LOGIN button. ----
+      + '.tb-pp-banner:has(.tb-pp-guest-body){background:#ffffff!important;border:1px solid #efe6da!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}'
+      + '.tb-pp-guest-body{flex-direction:column!important;align-items:center!important;gap:12px!important;padding:22px 20px!important;text-align:center}'
+      // Avatar: larger soft-orange circle, centered.
+      + '.tb-pp-av-guest{flex:0 0 auto;width:64px!important;height:64px!important;background:#fff4e8!important;border:2px solid #f3c48a!important;box-shadow:0 4px 14px -6px rgba(236,114,17,.45)!important}'
+      + '.tb-pp-av-guest .tb-nav-ic,.tb-pp-av-guest svg{color:#ec7211!important}'
+      // Greeting block.
+      + '.tb-pp-guest-greet{display:flex;flex-direction:column;align-items:center;gap:3px}'
+      + '.tb-pp-guest-welcome{color:#1b2026;font-size:1.35em;font-weight:900;letter-spacing:.2px;line-height:1.1}'
+      + '.tb-pp-guest-sub{color:#8a94a2;font-size:.8em;font-weight:600}'
+      // Full-width LOGIN button: orange, uppercase, prominent.
+      + '.tb-pp-guest-login{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:4px;padding:11px 14px;border:none;border-radius:5px;background:#f0820f;color:#fff;font-family:inherit;font-size:.9em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 12px -4px rgba(236,114,17,.6);transition:background .14s,transform .12s,filter .15s}'
+      + '.tb-pp-guest-login:hover{background:#d9730c;transform:translateY(-1px);filter:brightness(1.02)}'
+      + '.tb-pp-guest-login svg{width:15px;height:15px}'
+      // ---- Guest info cards: match the clean WHITE welcome-card aesthetic (soft border/shadow,
+      // CENTERED header with a round orange icon, tidy rows with round orange icon chips). ----
+      + '.tb-pp-card-guest{border:1px solid #efe6da!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}'
+      // Centered card header: round orange icon chip above/left + orange title.
+      + '.tb-pp-card-guest .tb-pp-card-h{flex-direction:column;align-items:center;text-align:center;gap:8px;padding:16px 16px 4px}'
+      + '.tb-pp-card-guest .tb-pp-ic{width:40px;height:40px;border-radius:50%;background:#fff4e8;color:#ec7211;box-shadow:0 3px 10px -4px rgba(236,114,17,.4)}'
+      + '.tb-pp-card-guest .tb-pp-ic svg{width:19px;height:19px}'
+      + '.tb-pp-card-guest .tb-pp-card-t{color:#1b2026!important;font-size:.92em!important;font-weight:900!important}'
+      + '.tb-pp-card-guest .tb-pp-card-b{padding:8px 15px 15px}'
+      // Rows: round orange icon chip + text, soft divider, subtle hover. (No justified stretching.)
+      + '.tb-pp-guest-just{gap:0}'
+      + '.tb-pp-guest-just .tb-pp-g-row{align-items:flex-start;gap:12px;color:#394350;font-size:.82em;line-height:1.45;padding:10px 4px;transition:background .12s}'
+      + '.tb-pp-guest-just .tb-pp-g-row:hover{background:#fffaf4}'
+      + '.tb-pp-guest-just .tb-pp-g-row+.tb-pp-g-row{border-top:1px solid #f3f4f6}'
+      + '.tb-pp-guest-just .tb-pp-g-row>span:last-child{flex:1 1 auto;text-align:left}'
+      + '.tb-pp-guest-just .tb-pp-g-ic{flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:#fff4e8;color:#ec7211;box-shadow:0 2px 6px -3px rgba(236,114,17,.4)}'
+      + '.tb-pp-guest-just .tb-pp-g-ic svg{width:15px;height:15px}'
+      // Log in buttons: UPPERCASE.
+      + '.tb-pp-login-btn{text-transform:uppercase}'
       + '.tb-pp-login-btn svg{width:15px;height:15px}'
       // Inline login form (replaces the popup) inside the guest "Log in to do more" card.
       + '.tb-pp-login-form{display:flex;flex-direction:column;margin-top:12px;padding-top:12px;border-top:1px solid #eef1f4}'
@@ -682,7 +720,7 @@
       + '.tb-pp-lf-submit{flex:1;margin-top:0}'
       // "Upload log" BUTTON (icon + label) in the upload card header, right corner, vertically
       // centered with the title. The card header is align-items:center so it lines up with the title.
-      + '.tb-pp-card-upload .tb-pp-card-t{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}'
+      + '.tb-pp-card-upload .tb-pp-card-t{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
       + '.tb-pp-up-loglink{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:#2563eb;font-size:.66em;font-weight:800;letter-spacing:.2px;text-transform:uppercase;white-space:nowrap;padding:5px 11px;border:1px solid #cfe0f2;border-radius:5px;background:#eef5ff;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}'
       + '.tb-pp-up-loglink:hover{background:#2563eb;border-color:#2563eb;color:#fff;transform:translateY(-1px)}'
       + '.tb-pp-up-loglink svg{width:13px;height:13px;flex:0 0 auto}'
@@ -730,10 +768,11 @@
       // Upload-change key/value rows. Fill the full parent width; key + value share the row 50/50
       // so the value no longer flings to the far edge leaving a wide empty gap.
       + '.tb-pp-up{display:flex;flex-direction:column;width:100%}'
-      + '.tb-pp-up-row{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:10px;width:100%;padding:7px 2px;border-bottom:1px solid #eef1f4}'
+      // Label fits its content (pinned LEFT); value takes the rest, pinned to the RIGHT corner + truncates.
+      + '.tb-pp-up-row{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;width:100%;padding:7px 2px;border-bottom:1px solid #eef1f4}'
       + '.tb-pp-up-row:last-child{border-bottom:none}'
-      + '.tb-pp-up-k{min-width:0;color:#5c6773;font-size:.72em;font-weight:600}'
-      + '.tb-pp-up-v{min-width:0;color:#1b2026;font-size:.82em;font-weight:800;text-align:right}'
+      + '.tb-pp-up-k{min-width:0;color:#5c6773;font-size:.72em;font-weight:600;white-space:nowrap;justify-self:start}'
+      + '.tb-pp-up-v{min-width:0;color:#1b2026;font-size:.82em;font-weight:800;text-align:right;justify-self:end;max-width:100%}'
       // Truncating cell (label OR value): single line with an ellipsis (full text in the title tooltip).
       + '.tb-pp-up-trunc{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
       // NOT ASSIGNED row — a highlighted red attention banner that softly blinks when > 0.
@@ -743,23 +782,103 @@
       + '.tb-pp-na-v{color:#dc2626!important;font-size:1em!important;font-weight:900}'
       + '.tb-pp-na-row.blink{animation:tbNaBlink 1.3s ease-in-out infinite}'
       + '@keyframes tbNaBlink{0%,100%{background:#fdeaea;border-color:#f6b8b8;box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{background:#fbd5d5;border-color:#ef9a9a;box-shadow:0 0 0 4px rgba(220,38,38,.14)}}'
+      // Clickable NOT ASSIGNED row: pointer + a chevron that nudges on hover.
+      + '.tb-pp-na-click{cursor:pointer}'
+      + '.tb-pp-na-click:hover{filter:brightness(.98)}'
+      + '.tb-pp-na-chev{margin-left:7px;color:#dc2626;font-weight:900;display:inline-block;transition:transform .14s}'
+      + '.tb-pp-na-click:hover .tb-pp-na-chev{transform:translateX(3px)}'
+      // ---- NOT ASSIGNED popup (modal, 75vw, table layout) ----
+      + '.tb-na-pop-bg{position:fixed;inset:0;z-index:4000;background:rgba(20,30,50,.45);display:flex;align-items:center;justify-content:center;padding:20px;animation:tbNaFade .16s ease}'
+      + '@keyframes tbNaFade{from{opacity:0}to{opacity:1}}'
+      + '.tb-na-pop{width:75vw;max-width:75vw;max-height:84vh;display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 24px 60px -18px rgba(20,40,70,.5);overflow:hidden}'
+      + '.tb-na-pop-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;background:#fdeaea;border-bottom:1px solid #f6b8b8}'
+      + '.tb-na-pop-title{display:inline-flex;align-items:center;gap:8px;color:#dc2626;font-size:1em;font-weight:900}'
+      + '.tb-na-pop-title svg{width:16px;height:16px}'
+      + '.tb-na-pop-n{color:#b4232a;font-weight:800;font-size:.9em}'
+      + '.tb-na-pop-x{background:transparent;border:none;color:#b4232a;font-size:1.5em;line-height:1;cursor:pointer;padding:0 6px;border-radius:5px}'
+      + '.tb-na-pop-x:hover{background:rgba(220,38,38,.12)}'
+      // Header actions: Download CSV (orange) on the LEFT, Close on the right.
+      + '.tb-na-pop-actions{display:inline-flex;align-items:center;gap:12px}'
+      + '.tb-na-pop-csv{display:inline-flex;align-items:center;gap:6px;background:#f0820f;color:#fff;border:1px solid #f0820f;border-radius:5px;padding:6px 12px;font-family:inherit;font-size:.8em;font-weight:800;text-transform:uppercase;letter-spacing:.3px;cursor:pointer}'
+      + '.tb-na-pop-csv:hover{background:#d9730c;border-color:#d9730c}'
+      + '.tb-na-pop-csv svg{width:13px;height:13px}'
+      // Table shell: header stays put, body scrolls.
+      + '.tb-na-pop-table{display:flex;flex-direction:column;min-height:0;overflow:hidden}'
+      + '.tb-na-pop-body{overflow-y:auto;min-height:0}'
+      + '.tb-na-pop-empty{color:#5c6773;font-size:.9em;padding:40px 6px;text-align:center}'
+      // Pagination footer: count + Show next / Show less.
+      + '.tb-na-pop-foot{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px;border-top:1px solid #eef1f4}'
+      + '.tb-na-pop-foot:empty{display:none}'
+      + '.tb-na-foot-count{color:#8a94a2;font-size:.76em;font-weight:700}'
+      + '.tb-na-foot-btn{background:#fff;border:1px solid #d4dade;color:#2a3340;border-radius:5px;padding:6px 14px;font-family:inherit;font-size:.8em;font-weight:800;cursor:pointer;transition:background .14s,border-color .14s,color .14s}'
+      + '.tb-na-foot-btn:hover{background:#fff4e8;border-color:#f0820f;color:#ec7211}'
+      + '.tb-na-foot-less{color:#b4232a;border-color:#f6c6c6}'
+      + '.tb-na-foot-less:hover{background:#fdeaea;border-color:#dc2626;color:#dc2626}'
+      // Clickable BY AGE tile: pointer + subtle hover lift.
+      + '.tb-pp-stat-click{cursor:pointer;transition:transform .12s,box-shadow .12s}'
+      + '.tb-pp-stat-click:hover{transform:translateY(-1px);box-shadow:0 4px 12px -6px rgba(20,30,50,.4)}'
+      // Per-colour header tint for the "my <colour> tickets" popup (overrides the default red bar).
+      + '.tb-na-pop-head-purple{background:#f1eaff!important;border-bottom-color:#d6c2fb!important}.tb-na-pop-head-purple .tb-na-pop-title,.tb-na-pop-head-purple .tb-na-pop-title svg,.tb-na-pop-head-purple .tb-na-pop-n,.tb-na-pop-head-purple .tb-na-pop-x{color:#6d28d9!important}'
+      + '.tb-na-pop-head-black{background:#eceef1!important;border-bottom-color:#cfd4da!important}.tb-na-pop-head-black .tb-na-pop-title,.tb-na-pop-head-black .tb-na-pop-title svg,.tb-na-pop-head-black .tb-na-pop-n,.tb-na-pop-head-black .tb-na-pop-x{color:#374151!important}'
+      + '.tb-na-pop-head-red{background:#fdeaea!important;border-bottom-color:#f6b8b8!important}.tb-na-pop-head-red .tb-na-pop-title,.tb-na-pop-head-red .tb-na-pop-title svg,.tb-na-pop-head-red .tb-na-pop-n,.tb-na-pop-head-red .tb-na-pop-x{color:#dc2626!important}'
+      + '.tb-na-pop-head-yellow{background:#fff6e0!important;border-bottom-color:#f3d08a!important}.tb-na-pop-head-yellow .tb-na-pop-title,.tb-na-pop-head-yellow .tb-na-pop-title svg,.tb-na-pop-head-yellow .tb-na-pop-n,.tb-na-pop-head-yellow .tb-na-pop-x{color:#b45309!important}'
+      + '.tb-na-pop-head-green{background:#e8f5ec!important;border-bottom-color:#b7e4c7!important}.tb-na-pop-head-green .tb-na-pop-title,.tb-na-pop-head-green .tb-na-pop-title svg,.tb-na-pop-head-green .tb-na-pop-n,.tb-na-pop-head-green .tb-na-pop-x{color:#15803d!important}'
+      // Each table row: a SHARED fixed column template (header + body use the identical track sizes so
+      // columns line up). 4 fixed CENTERED columns (Ticket/Status/Created/Time left) + Title (1fr).
+      + '.tb-na-trow{display:grid;grid-template-columns:140px 90px 190px 110px 1fr;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid #eef1f4}'
+      // Center the first four columns (header + body); Title stays left and fills the rest.
+      + '.tb-na-trow>:nth-child(-n+4){justify-self:center;text-align:center;min-width:0}'
+      + '.tb-na-trow>.tb-na-c-title{justify-self:stretch;text-align:left;min-width:0}'
+      + '.tb-na-trow>.tb-na-sort{justify-self:center}'
+      + '.tb-na-thead{position:sticky;top:0;z-index:1;background:#f7f9fb;border-bottom:1px solid #e2e6ea;color:#5c6773;font-size:.68em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding-top:11px;padding-bottom:11px}'
+      + '.tb-na-pop-body .tb-na-trow:last-child{border-bottom:none}'
+      + '.tb-na-pop-body .tb-na-trow:hover{background:#fff7ed}'
+      // Sortable Created header (button styled as a header cell).
+      + '.tb-na-sort{display:inline-flex;align-items:center;gap:5px;background:transparent;border:none;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;font-weight:800;cursor:pointer;padding:0;text-align:left}'
+      + '.tb-na-sort:hover{color:#ec7211}'
+      + '.tb-na-sort-ic{font-size:.9em}'
+      // Column cells.
+      + '.tb-na-id{color:#1577a0;font-weight:800;font-size:.88em;text-decoration:none;white-space:nowrap}'
+      + '.tb-na-id:hover{text-decoration:underline}'
+      + '.tb-na-c-age{color:#5c6773;font-size:.82em;white-space:nowrap}'
+      + '.tb-na-c-age b{color:#1b2026;font-weight:900}'
+      + '.tb-na-left{font-size:.78em;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap}'
+      + '.tb-na-left.ok{background:#e8f5ec;color:#1f9d57}'
+      + '.tb-na-left.over{background:#fdeaea;color:#dc2626}'
+      + '.tb-na-c-title{color:#2a3340;font-size:.84em}'
+      // Title truncation: single line + ellipsis, full text in the title tooltip.
+      + '.tb-na-trunc{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      // Status tag chips (compact, tinted per status).
+      + '.tb-na-tag{display:inline-block;font-size:.7em;font-weight:900;letter-spacing:.3px;padding:2px 9px;border-radius:999px;border:1px solid transparent}'
+      + '.tb-na-tag-w{background:#fff4e3;color:#b7791f;border-color:#f3d08a}'
+      + '.tb-na-tag-a{background:#e8f0ff;color:#2563eb;border-color:#bcd3fb}'
+      + '.tb-na-tag-p{background:#fdeaea;color:#dc2626;border-color:#f6b8b8}'
+      + '.tb-na-tag-r{background:#f1eaff;color:#7c3aed;border-color:#d6c2fb}'
+      + '.tb-na-tag-x{background:#f0f3f6;color:#5c6773;border-color:#e2e6ea}'
+      // Shimmer skeleton bars for the loading rows.
+      + '.tb-na-sk{display:inline-block;height:12px;border-radius:5px}'
+      + '.tb-na-skrow{pointer-events:none}'
       // Per-analyst list: a small section header, then one row per analyst (name left, open + net right).
       + '.tb-pp-analyst-head{margin-top:8px;padding:8px 2px 4px;border-top:1px solid #e2e6ea;color:#5c6773;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase}'
-      + '.tb-pp-analyst-row{padding:6px 2px}'
-      + '.tb-pp-analyst-name{color:#1b2026!important;font-size:.8em;font-weight:800;text-transform:capitalize}'
-      + '.tb-pp-analyst-v{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px}'
-      + '.tb-pp-analyst-open{color:#1b2026;font-size:1em;font-weight:900}'
-      // Orange net badge; the breakdown pops on hover/focus. A zero net is muted grey (no data yet).
-      + '.tb-pp-delta{position:relative;display:inline-flex;align-items:center;background:#fff4e8;color:#ec7211;border:1px solid #f6c998;border-radius:999px;padding:1px 9px;font-size:.78em;font-weight:800;cursor:help;outline:none}'
-      + '.tb-pp-delta.zero{background:#f0f3f6;color:#8a94a2;border-color:#e2e6ea}'
-      + '.tb-pp-delta-pop{position:absolute;bottom:calc(100% + 8px);right:0;z-index:50;min-width:150px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 12px 30px -10px rgba(20,40,70,.4);padding:9px 11px;display:none;flex-direction:column;gap:6px;text-align:left;cursor:default}'
-      + '.tb-pp-delta:hover .tb-pp-delta-pop,.tb-pp-delta:focus .tb-pp-delta-pop{display:flex}'
-      // Little arrow under the pop.
-      + '.tb-pp-delta-pop::after{content:"";position:absolute;top:100%;right:14px;border:6px solid transparent;border-top-color:#fff;filter:drop-shadow(0 1px 0 #e2e6ea)}'
-      + '.tb-pp-delta-row{display:flex;align-items:center;gap:7px;color:#2a3340;font-size:.9em;font-weight:700;white-space:nowrap}'
-      + '.tb-pp-delta-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}'
-      + '.tb-pp-delta-dot.res{background:#1f9d57}'   // resolved = green
-      + '.tb-pp-delta-dot.add{background:#ec7211}'   // newly added = orange
+      + '.tb-pp-analyst-row{padding:6px 2px;overflow:hidden}'   // clip the chips while they slide
+      + '.tb-pp-analyst-name{color:#1b2026!important;font-size:.8em;font-weight:800;text-transform:none!important}'
+      + '.tb-pp-analyst-v{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;overflow:hidden}'
+      + '.tb-pp-analyst-open{color:#1b2026;font-size:1em;font-weight:900;flex:0 0 auto}'
+      // +/- toggle button that reveals the status chips. Small round chip; + when collapsed, - when open.
+      + '.tb-pp-stbtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#f0f3f6;color:#5c6773;border:1px solid #e2e6ea;cursor:pointer;font-family:inherit;font-size:.95em;font-weight:900;line-height:1;padding:0;transition:background .14s,color .14s,border-color .14s}'
+      + '.tb-pp-stbtn:hover{background:#fff4e8;color:#ec7211;border-color:#f6c998}'
+      + '.tb-pp-stbtn[aria-expanded="true"]{background:#ec7211;color:#fff;border-color:#ec7211}'
+      + '.tb-pp-stbtn-empty{visibility:hidden}'   // analysts with no open tickets: keep alignment, no button
+      // Status-chips track: slides in from the RIGHT. Collapsed = zero width + translated off to the right.
+      + '.tb-pp-stchips{display:inline-flex;align-items:center;gap:4px;overflow:hidden;max-width:0;opacity:0;transform:translateX(14px);transition:max-width .34s ease,opacity .26s ease,transform .34s ease;white-space:nowrap}'
+      + '.tb-pp-analyst-row.open .tb-pp-stchips{max-width:200px;opacity:1;transform:translateX(0)}'
+      // A single W/A/P/R tag: bold single letter + count, tinted per status.
+      + '.tb-pp-stchip{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:999px;font-size:.72em;font-weight:800;line-height:1.4;border:1px solid transparent}'
+      + '.tb-pp-stchip b{font-weight:900}'
+      + '.tb-pp-stchip-w{background:#fff4e3;color:#b7791f;border-color:#f3d08a}'   // WIP = amber
+      + '.tb-pp-stchip-a{background:#e8f0ff;color:#2563eb;border-color:#bcd3fb}'   // Assigned = blue
+      + '.tb-pp-stchip-p{background:#fdeaea;color:#dc2626;border-color:#f6b8b8}'   // Pending = red
+      + '.tb-pp-stchip-r{background:#f1eaff;color:#7c3aed;border-color:#d6c2fb}'   // Researching = purple
       // ---- Sliding carousel (upload card <-> agents-activity card), swaps every 3s ----
       // Two slides stacked in a relative box; slide B is offset down + hidden, slide A is in view.
       // Adding .show-b slides A up/out and B into place. The box height tracks the ACTIVE slide via
@@ -846,6 +965,11 @@
       + '.tb-pp-spin{display:inline-block;width:16px;height:16px;border:2px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin .8s linear infinite;flex-shrink:0}'
       // Small inline spinner that stands in for a single numeric VALUE while its data loads.
       + '.tb-pp-mini-spin{display:inline-block;width:12px;height:12px;border:2px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin .8s linear infinite;vertical-align:middle}'
+      // Self-contained SHIMMER bar (profile column + nav-rail skeletons work on every page, not just
+      // app.html which loads shimmer.css). A grey pill with a sweeping highlight.
+      + '.tb-shim{position:relative;display:inline-block;overflow:hidden;background:#e9edf1;border-radius:5px;vertical-align:middle}'
+      + '.tb-shim::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:tbShim 1.25s ease-in-out infinite}'
+      + '@keyframes tbShim{100%{transform:translateX(100%)}}'
       + '.tb-pp-up-empty{color:#8a94a2;font-size:.8em;text-align:center;padding:14px 0;font-style:italic}'
       + '@media(max-width:1100px){body[data-profile-panel]{padding-left:calc(4px + 5vw + 5px)!important;padding-right:5vw!important;padding-top:10px!important}body[data-profile-panel] .tb-profile-panel{display:none}body[data-profile-panel] .tb-fab-col-right{display:flex!important}}'
       // ===== Expand/collapse caret -> PLUS/MINUS icon (global, every page) =====
@@ -859,8 +983,8 @@
       // ===== LIGHT THEME for the HOME (logo) button + ACTIVE DASHBOARD (live) FAB =====
       // These two rail controls were dark; the rest of the app is light mode, so give them a light
       // surface. Placed LAST so they win the cascade over the dark base rules above.
-      // Home logo pill: white circle, light border, soft shadow (keeps the orange hover accent).
-      + '.tb-rail-logo.tb-rail-badge{background:#ffffff!important;border:1px solid #d4dade!important;box-shadow:0 4px 14px rgba(20,40,70,.12)!important}'
+      // Home logo pill: transparent (no white circle — the rail itself is white now), no border/shadow.
+      + '.tb-rail-logo.tb-rail-badge{background:transparent!important;border:none!important;box-shadow:none!important}'
       // Home button hover: no translateY lift — just scale the logo to 1.25x (keeps the orange accent).
       + '.tb-rail-logo.tb-rail-badge:hover{border-color:#ec7211!important;box-shadow:0 6px 18px rgba(236,114,17,.22)!important;transform:none!important}'
       + '.tb-rail-logo .tb-logo-swap{transition:transform .16s ease}'
@@ -874,6 +998,8 @@
       // Soften the live glow for the light surface (light-green ring instead of a dark box-shadow).
       + '@keyframes tbLiveGlowLight{0%,100%{box-shadow:0 4px 14px rgba(31,157,87,.16),0 0 0 0 rgba(31,157,87,0)}50%{box-shadow:0 4px 14px rgba(31,157,87,.16),0 0 0 6px rgba(31,157,87,.14)}}'
       + '.tb-live-fab:not(.tb-live-disabled){animation:tbLiveGlowLight 1.6s ease-in-out infinite!important}'
+      // The dynamic YEAR caption under the Live FAB: a small green pill with a 5px radius.
+      + '.tb-live-year{color:#1f9d57!important;font-weight:800!important}'
       ;
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
@@ -1051,6 +1177,16 @@
   // columns added beyond the original 18 are tagged "new". Kept in sync with app.js REQUIRED_COLUMNS.
   var TB_REQUIRED_COLUMNS = ['Age','AssignedGroup','AssigneeIdentity','ClosureCode','CreateDate','IssueId','IssueUrl','Labels','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate','RequesterIdentity','ResolvedByIdentity','ResolvedDate','RootCause','RootCauseDetails','Severity','ShortId','Status','Tags','Title'];
   var TB_NEW_COLUMNS = { 'Labels': true, 'RequesterIdentity': true, 'Tags': true };
+  // Friendly label shown in the export dialog's "Select and order visible columns" list, mapped to
+  // the actual CSV field. Popup shows "<Display name> (CSVField)" so users can match the toggles.
+  var TB_COLUMN_DISPLAY_NAMES = {
+    ShortId: 'Short ID', IssueId: 'Issue ID', IssueUrl: 'Issue URL', Title: 'Title', Status: 'Status',
+    CreateDate: 'Created', Severity: 'Severity', AssigneeIdentity: 'Assignee', ResolvedDate: 'Resolved Date',
+    Age: 'Age', ClosureCode: 'Closure Code', ResolvedByIdentity: 'Resolved By', RootCause: 'Root Cause',
+    RootCauseDetails: 'Root Cause Details', AssignedGroup: 'Assigned Group', LastAssignedDate: 'Last Assigned',
+    LastUpdatedConversationDate: 'Last Comment Date', LastUpdatedDate: 'Last Updated', Labels: 'Labels',
+    RequesterIdentity: 'Requester', Tags: 'Tags'
+  };
   function tbNewTag(c) { return TB_NEW_COLUMNS[c] ? ' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>' : ''; }
   function tbMissingColumns(text) {
     var cells = [], cur = '', inQ = false;
@@ -1068,11 +1204,16 @@
   window.tbUploadIntro = function (target) {
     var inputId = (target === 'standalone') ? 'uploadFileStandalone' : 'uploadFile';
     var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
-      return '<li style="padding:3px 0;color:#d5dbdb"><span style="color:#4ade80">•</span> <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + tbNewTag(c) + '</li>';
+      var disp = TB_COLUMN_DISPLAY_NAMES[c] || c;
+      return '<li style="padding:4px 0;color:#1b2026;display:flex;align-items:center;gap:8px">' +
+        '<span style="color:#16a34a">•</span>' +
+        '<span style="font-weight:600;color:#1b2026">' + disp + '</span>' +
+        '<span style="font-family:monospace;font-size:.82em;color:#5c6773">(' + c + ')</span>' +
+        tbNewTag(c) + '</li>';
     }).join('');
     var ov = document.createElement('div');
     ov.id = 'tbUploadIntro';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
     ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
       '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
@@ -1131,7 +1272,6 @@
     for (var r = 1; r < rows.length; r++) { var o = {}; for (var j = 0; j < H.length; j++) o[H[j]] = rows[r][j] || ''; data.push(o); }
     return data;
   }
-  function tbQuarterOf(d) { var x = new Date(d); return isNaN(x) ? null : (x.getFullYear() + '-Q' + (Math.floor(x.getMonth() / 3) + 1)); }
   function tbEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
 
   // Small full-page overlay helpers for this flow.
@@ -1313,17 +1453,16 @@
     var storedMap = {}; storedTix.forEach(function (t) { var id = String(t.ShortId || t.IssueId || ''); if (id) storedMap[id] = t; });
 
     // Split rows into live-quarter vs non-live (past quarters merged server-side by ShortId).
-    var changed = [];    // live tickets to write (field changes) OR new live tickets
-    var nonLive = [];
+    var changed = [];    // tickets to write (field changes) OR brand-new tickets
+    var nonLive = [];    // kept for the patch payload shape; always empty now (no quarter split)
     var xNewer = 0, yUpdated = 0, zNew = 0;
     var lud = function (v) { var d = new Date(v); return isNaN(d) ? null : d.getTime(); };
 
-    // Compare each file row against the stored live data (fast, synchronous — no progress loader).
+    // Compare every file row against the stored data. No quarter/era split — all AC-era tickets are
+    // one pool: a row we've never seen is a NEW add, a row with changed fields is an UPDATE.
     rows.forEach(function (nr) {
-      var q = tbQuarterOf(nr.CreateDate);
-      if (q && liveQ && q !== liveQ) { nonLive.push(nr); return; }
       var old = storedMap[String(nr.ShortId)];
-      if (!old) { changed.push(nr); zNew++; return; }        // new live ticket -> add whole
+      if (!old) { changed.push(nr); zNew++; return; }        // new ticket -> add whole
       // Not-older = file LastUpdatedDate >= stored. (Equal is allowed so a status change that didn't
       // bump the timestamp — e.g. a resolution — still applies. An OLDER file row is ignored.)
       var a = lud(nr.LastUpdatedDate), b = lud(old.LastUpdatedDate);
@@ -1341,14 +1480,14 @@
 
     if (tbAssessAborted) return;
     tbRemove('tbAssess');
-    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {}, assessSecs: _assessSecs });
+    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {}, assessSecs: _assessSecs, totalRows: rows.length });
   }
 
   // Step C: confirmation popup with the counts. On confirm -> delta publish.
   function tbShowConfirm(res) {
-    // No newer data at all (0 tickets with a changed LastUpdatedDate) and no new tickets/past-quarter
-    // rows -> tell the user there are no new changes and let them close the upload.
-    if (res.xNewer === 0 && res.zNew === 0 && res.nonLive.length === 0) {
+    // No newer data at all (0 tickets with a changed LastUpdatedDate) and no new tickets
+    // -> tell the user there are no new changes and let them close the upload.
+    if (res.xNewer === 0 && res.zNew === 0) {
       tbFlowOverlay('tbConfirm',
         '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
           '<div style="font-size:2em">✅</div>' +
@@ -1359,13 +1498,39 @@
       document.getElementById('tbConfirmClose').onclick = function () { tbRemove('tbConfirm'); };
       return;
     }
+    // Build a plain-language summary of what the analysis found. The raw counts stay below as a
+    // detail breakdown, but the headline tells the user we checked everything and what will happen.
+    var _total = (res.totalRows != null) ? res.totalRows : (res.xNewer + res.zNew + res.nonLive.length);
+    var _add = res.zNew;
+    var _upd = res.yUpdated;
+    var _touched = _add + _upd;
+    var _unchanged = Math.max(0, _total - _touched);
+    var _plural = function (n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); };
+    // Compose the parts of the summary sentence from whatever is non-zero.
+    var _parts = [];
+    if (_add > 0) _parts.push('<b style="color:#1f9d57">' + _plural(_add, 'new ticket') + '</b> will be added');
+    if (_upd > 0) _parts.push('<b style="color:#b5680c">' + _plural(_upd, 'ticket') + '</b> will be updated');
+    var _summary;
+    if (_parts.length) {
+      var _list = (_parts.length === 1) ? _parts[0]
+        : _parts.slice(0, -1).join(', ') + ' and ' + _parts[_parts.length - 1];
+      _summary = 'We checked all <b style="color:#1b2026">' + _plural(_total, 'ticket') + '</b> in your file against the live database. ' + _list + '.' +
+        (_unchanged > 0 ? ' The remaining <b style="color:#1b2026">' + _plural(_unchanged, 'ticket') + '</b> already match and need no change.' : '');
+    } else {
+      _summary = 'We checked all <b style="color:#1b2026">' + _plural(_total, 'ticket') + '</b> in your file against the live database. Everything already matches — nothing needs to change.';
+    }
     tbFlowOverlay('tbConfirm',
       '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-        '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:12px">Assessment complete</h2>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+          '<span style="font-size:1.4em">✅</span>' +
+          '<h2 style="color:#1b2026;font-size:1.2em;margin:0">Your file checked out</h2>' +
+        '</div>' +
+        '<p style="color:#3a4652;font-size:.95em;line-height:1.6;margin-bottom:16px">' + _summary + '</p>' +
         '<div style="background:#f7f9fb;border:1px solid #e2e6ea;border-radius:5px;padding:6px 16px">' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets with newer data</span><span style="color:#1577a0;font-weight:700">' + res.xNewer + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Will be updated (field changes)</span><span style="color:#b5680c;font-weight:700">' + res.yUpdated + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#5c6773">New tickets to add</span><span style="color:#1f9d57;font-weight:700">' + res.zNew + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets analyzed</span><span style="color:#1b2026;font-weight:700">' + _total + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">New tickets to add</span><span style="color:#1f9d57;font-weight:700">' + _add + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets to update (field changes)</span><span style="color:#b5680c;font-weight:700">' + _upd + '</span></div>' +
+          '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#5c6773">Already up to date</span><span style="color:#5c6773;font-weight:700">' + _unchanged + '</span></div>' +
         '</div>' +
         (res.assessSecs != null ? ('<p style="color:#8a94a2;font-size:.78em;margin-top:10px;text-align:center">Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</p>') : '') +
         '<p style="color:#5c6773;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
@@ -1889,12 +2054,45 @@
     item.appendChild(fab);
     var cap = document.createElement('div');
     cap.className = 'tb-fab-cap' + (li ? '' : ' is-disabled');
-    cap.textContent = 'Analytics';
+    cap.textContent = 'Team Analytics';
     item.appendChild(cap);
     var lcol = tbFabCol();
     var liveItem = lcol.querySelector('.tb-fab-item-live');
     if (liveItem) lcol.insertBefore(item, liveItem); else lcol.appendChild(item);
   }
+  // Current calendar year as seen in the ACCOUNT's timezone (not the browser's). E.g. at
+  // 1 Jan 2027 00:30 IST it's 2027 in India but still 2026 in MST — the badge reflects the
+  // account tz. `tz` is the account label ('IST'|'MST'); falls back to the cached /api/me tz,
+  // then to the browser's local year.
+  function tbCurrentYearInUserTz(tz) {
+    try {
+      if (!tz) {
+        // Try the cached /api/me timezone synchronously (A.getMe caches it); else browser-local.
+        var me = (A && A._me) || null;
+        tz = (me && me.timezone) || null;
+      }
+      var zone = (String(tz || '').toUpperCase() === 'MST') ? 'America/Denver'
+               : (String(tz || '').toUpperCase() === 'IST') ? 'Asia/Kolkata' : null;
+      if (zone) {
+        var parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric' }).formatToParts(new Date());
+        var y = (parts.find(function (p) { return p.type === 'year'; }) || {}).value;
+        if (y) return String(y);
+      }
+    } catch (e) {}
+    return String(new Date().getFullYear());   // fallback: browser-local year
+  }
+
+  // Set the browser tab/page title to "WWOS PHD Dashboard - <year>", where <year> is the current
+  // year in the account's timezone. Called by the live dashboard (app.html). The timezone loads
+  // async, so we refresh the title once /api/me tz is known (handles the 31-Dec IST vs MST edge).
+  window.tbSetDashboardTitle = function () {
+    var apply = function (tz) { document.title = 'WWOS PHD Dashboard - ' + tbCurrentYearInUserTz(tz); };
+    apply();   // immediate, with whatever tz is cached (or browser-local)
+    try {
+      if (A && A.myTimezone) { A.myTimezone().then(function (tz) { apply(tz); }).catch(function () {}); }
+    } catch (e) {}
+  };
+
   // Build the LIVE-QUARTER FAB (sits just above Analytics in the centered column). Blinks to signal
   // the live quarter and links to the live dashboard (app.html). Shown on EVERY page.
   function buildLiveButton() {
@@ -1914,10 +2112,20 @@
     item.className = 'tb-fab-item tb-fab-item-live';
     item.appendChild(fab);
     var cap = document.createElement('div');
-    cap.className = 'tb-fab-cap';
-    cap.textContent = '2026';
+    cap.className = 'tb-fab-cap tb-live-year';
+    cap.textContent = tbCurrentYearInUserTz();   // dynamic, computed in the account's timezone
     item.appendChild(cap);
     tbFabCol().appendChild(item);
+    // The account timezone loads async; once known, refresh the year (a 31-Dec IST / 2026-MST case
+    // can differ from the browser's local year).
+    try {
+      if (A && A.myTimezone) {
+        A.myTimezone().then(function (tz) {
+          var y = tbCurrentYearInUserTz(tz);
+          if (cap && cap.textContent !== y) cap.textContent = y;
+        }).catch(function () {});
+      }
+    } catch (e) {}
     // Profile now lives at the TOP of the RIGHT rail (built separately by buildRailProfile).
     buildRailProfile();
   }
@@ -1991,6 +2199,12 @@
       var isManager = String(role).toLowerCase() === 'manager';
       var avatarHtml = '';
       try { avatarHtml = A.avatarHtml ? A.avatarHtml(prof, 56) : ''; } catch (e) { avatarHtml = ''; }
+      // Resolve the hamburger section's collapsed state BEFORE painting, so it renders in its final
+      // state with NO transition (prevents the open->collapse flash on every page load). Default
+      // collapsed when the user has no stored preference. .tb-pp-noanim suppresses the first-paint
+      // animation; it's removed on the next frame so later toggles still animate.
+      var linksCollapsed = true;
+      try { var _lc = localStorage.getItem('phd_pp_links_collapsed'); linksCollapsed = (_lc === null) ? true : (_lc === '1'); } catch (e) {}
       // Banner header: avatar + handle on the left, a HAMBURGER toggle on the right. Tapping the
       // hamburger expands/collapses the section below (name + role + full-width Profile/My Tickets/
       // Logout buttons). Collapse state persists per-user.
@@ -2002,9 +2216,9 @@
         +     '<span class="tb-pp-meta">'
         +       (handle ? '<span class="tb-pp-handle">' + tbEsc(handle) + '@</span>' : '')
         +     '</span>'
-        +     '<button type="button" class="tb-pp-ham" id="tbPpLinksToggle" aria-expanded="true" aria-label="Toggle menu" title="Menu"><span></span><span></span><span></span></button>'
+        +     '<button type="button" class="tb-pp-ham" id="tbPpLinksToggle" aria-expanded="' + (linksCollapsed ? 'false' : 'true') + '" aria-label="Toggle menu" title="Menu"><span></span><span></span><span></span></button>'
         +   '</div>'
-        +   '<div class="tb-pp-links" id="tbPpLinksStack">'
+        +   '<div class="tb-pp-links tb-pp-noanim' + (linksCollapsed ? ' collapsed' : '') + '" id="tbPpLinksStack">'
         +     '<div class="tb-pp-namerow2"><span class="tb-pp-name">' + tbEsc(name) + '</span>'
         +       (role ? '<span class="tb-pp-badge">' + tbEsc(role) + '</span>' : '') + '</div>'
         +     '<div class="tb-pp-links-stack">'
@@ -2025,27 +2239,28 @@
       };
       panel.innerHTML =
         '<div class="tb-pp-banner">'
-        + '<div class="tb-pp-body">'
-        +   '<span class="tb-pp-av"><span class="tb-nav-ic">' + ic('user', 22) + '</span></span>'
-        +   '<span class="tb-pp-meta">'
-        +     '<span class="tb-pp-namerow"><span class="tb-pp-name">Welcome, Guest</span></span>'
-        +     '<span class="tb-pp-handle">Browsing as a visitor</span>'
-        +   '</span>'
-        +   '<span class="tb-pp-links"><a class="tb-pp-mytickets" href="#" id="tbPpLogin">' + ic('key', 14) + '<span>Log in</span></a></span>'
+        + '<div class="tb-pp-body tb-pp-guest-body">'
+        +   '<span class="tb-pp-av tb-pp-av-guest"><span class="tb-nav-ic">' + ic('user', 26) + '</span></span>'
+        +   '<div class="tb-pp-guest-greet">'
+        +     '<span class="tb-pp-guest-welcome">Welcome!</span>'
+        +     '<span class="tb-pp-guest-sub">Sign in to access the dashboard</span>'
+        +   '</div>'
+        +   '<button type="button" class="tb-pp-guest-login" id="tbPpBannerLogin">' + ic('key', 15) + '<span>Log in</span></button>'
         + '</div>'
         + '</div>'
         + '<div class="tb-pp-stack">'
-        // What a guest CAN see (no login needed).
-        + tbProfileCard(ic('eye', 15), 'You can explore \u2014 no login needed',
-            '<div class="tb-pp-guest">'
+        // Guests can't access anything until they log in — so the copy frames everything as
+        // "log in to unlock". Orange heading + justified black rows.
+        + tbProfileCard(ic('lock', 15), 'Log in to access the dashboard',
+            '<div class="tb-pp-guest tb-pp-guest-just">'
             + guestItem(ic('grid', 14), 'The live quarter dashboard \u2014 queue status, ticket age, SLA, incident types & resolutions')
             + guestItem(ic('bar-chart', 14), 'Program History & per-year trends (2021\u20132026)')
             + guestItem(ic('clipboard', 14), 'Issue-type standardization reference')
             + guestItem(ic('line-chart', 14), 'Reports: SLA breaches, repeat incidents, countries, hashtags')
-            + '</div>')
-        // What needs a login.
-        + tbProfileCard(ic('key', 15), 'Log in to do more',
-            '<div class="tb-pp-guest">'
+            + '</div>', 'tb-pp-card-guest')
+        // Account-only actions. Orange heading + justified black rows.
+        + tbProfileCard(ic('key', 15), 'And do more with an account',
+            '<div class="tb-pp-guest tb-pp-guest-just">'
             + guestItem(ic('upload', 14), 'Upload new data & manage the live dashboard')
             + guestItem(ic('ticket', 14), 'See & comment on your assigned tickets (My Tickets)')
             + guestItem(ic('alert', 14), 'Raise and answer help / alert requests')
@@ -2066,7 +2281,7 @@
             +       '<button type="submit" class="tb-pp-login-btn tb-pp-lf-submit" id="tbPpLoginSubmit">' + ic('key', 15) + '<span>Log in</span></button>'
             +     '</div>'
             +   '</form>'
-            + '</div>')
+            + '</div>', 'tb-pp-card-guest')
         + '</div>';
     }
     document.body.appendChild(panel);
@@ -2085,8 +2300,8 @@
       var toggle = document.getElementById('tbPpLoginToggle'); if (toggle) toggle.style.display = '';
       var errEl = document.getElementById('tbPpLoginErr'); if (errEl) errEl.style.display = 'none';
     };
-    // The banner "Log in" link + the "Log in to your account" button both EXPAND the form.
-    var lg = document.getElementById('tbPpLogin'); if (lg) lg.onclick = openInlineLogin;
+    // The banner "Log in" button + the "Log in to your account" button both EXPAND the form.
+    var lg = document.getElementById('tbPpBannerLogin'); if (lg) lg.onclick = openInlineLogin;
     var toggleBtn = document.getElementById('tbPpLoginToggle'); if (toggleBtn) toggleBtn.onclick = openInlineLogin;
     var cancelBtn = document.getElementById('tbPpLoginCancel'); if (cancelBtn) cancelBtn.onclick = closeInlineLogin;
     // Inline login form submit -> POST /api/login directly (mirrors tbDoLogin, no modal).
@@ -2122,14 +2337,19 @@
       var linksWrap = document.getElementById('tbPpLinksStack');
       var applyLinks = function (collapsed) {
         if (!linksWrap) return;
+        linksWrap.classList.remove('tb-pp-noanim');   // enable the transition for user-driven toggles
         linksWrap.classList.toggle('collapsed', collapsed);
         lt.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         lt.setAttribute('aria-label', collapsed ? 'Open menu' : 'Close menu');
         lt.setAttribute('title', collapsed ? 'Open menu' : 'Close menu');
       };
-      // Default to COLLAPSED when the user has no stored preference yet.
-      var saved = true; try { var sv = localStorage.getItem(LINKS_KEY); saved = (sv === null) ? true : (sv === '1'); } catch (e) {}
-      applyLinks(saved);
+      // The section is ALREADY painted in its correct state (collapsed class set in the markup with
+      // .tb-pp-noanim). Just sync the aria label and drop the no-anim guard on the NEXT frame so
+      // subsequent user toggles animate. No applyLinks() on init -> no open->collapse flash.
+      var initCollapsed = linksWrap.classList.contains('collapsed');
+      lt.setAttribute('aria-label', initCollapsed ? 'Open menu' : 'Close menu');
+      lt.setAttribute('title', initCollapsed ? 'Open menu' : 'Close menu');
+      requestAnimationFrame(function () { if (linksWrap) linksWrap.classList.remove('tb-pp-noanim'); });
       lt.onclick = function () {
         var nowCollapsed = !(linksWrap && linksWrap.classList.contains('collapsed'));
         applyLinks(nowCollapsed);
@@ -2187,14 +2407,15 @@
   // waits on gets a small inline spinner. This keeps all four cards visually consistent with the
   // upload card instead of mixing shimmer blocks with hardcoded rows.
   function tbProfileSkeleton() {
-    var spin = '<span class="tb-pp-mini-spin"></span>';   // the value placeholder while data loads
-    // Inline "LABEL ...... <spinner> | LABEL ...... <spinner>" pair (open tickets / resolved).
-    var pair = function (label) { return '<span class="tb-pp-pair"><span class="tb-pp-pair-l">' + label + '</span><span class="tb-pp-pair-n">' + spin + '</span></span>'; };
+    // Shimmer value placeholders (clean sweep, no jitter) sized per slot.
+    var shim = function (w, h) { return '<span class="tb-shim" style="width:' + w + ';height:' + (h || '12px') + '"></span>'; };
+    // Inline "LABEL ...... <shim> | LABEL ...... <shim>" pair (open tickets / resolved).
+    var pair = function (label) { return '<span class="tb-pp-pair"><span class="tb-pp-pair-l">' + label + '</span><span class="tb-pp-pair-n">' + shim('22px', '14px') + '</span></span>'; };
     var pairRow = function (a, b) { return '<div class="tb-pp-pair-row">' + pair(a) + '<span class="tb-pp-pair-sep">|</span>' + pair(b) + '</div>'; };
-    // A color-accent tile with the label hardcoded and the number spinning.
-    var tile = function (label, tone) { return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + '"><div class="tb-pp-stat-n">' + spin + '</div><div class="tb-pp-stat-l">' + label + '</div></div>'; };
-    // Upload key/value row: label hardcoded, value spinning.
-    var upRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v">' + spin + '</span></div>'; };
+    // A color-accent tile with the label hardcoded and the number shimmering.
+    var tile = function (label, tone) { return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + '"><div class="tb-pp-stat-n">' + shim('60%', '16px') + '</div><div class="tb-pp-stat-l">' + label + '</div></div>'; };
+    // Upload key/value row: label hardcoded, value shimmering.
+    var upRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v">' + shim('56px', '12px') + '</span></div>'; };
 
     // Clubbed skeleton: open-status pairs + "By age" tiles in a single card (matches the real render).
     var openCard = tbProfileCard(izImg('my-tickets', ic('ticket', 15)), 'My open tickets',
@@ -2211,7 +2432,7 @@
       + '<div class="tb-pp-card-h"><span class="tb-pp-ic">' + izImg('upload-new-data', ic('upload', 15)) + '</span>'
       +   '<span class="tb-pp-card-t">Change in data due to last upload</span>' + uploadLogBtn + '</div>'
       + '<div class="tb-pp-card-b"><div class="tb-pp-up">'
-      + upRow('Uploaded by') + upRow('File') + upRow('When') + upRow('NOT ASSIGNED')
+      + upRow('Uploaded by') + upRow('Filename') + upRow('When') + upRow('NOT ASSIGNED')
       + '</div></div></section>';
     // The last card is the SLIDER shell — same markup as the live layout so the prev/dots/next
     // control bar is present during loading (no layout jump when the real data swaps in). The
@@ -2297,8 +2518,13 @@
     // Render the stats cards + the upload/agents carousel from a /api/profile-stats payload `d`.
     function renderProfileStats(d) {
       var tile = function (label, val, tone) {
-        return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + '">'
-          + '<div class="tb-pp-stat-n">' + (val != null ? val : 0) + '</div>'
+        // color key from the tone class (c-purple -> purple); clickable when count > 0.
+        var color = String(tone || '').replace('c-', '');
+        var n = (val != null ? val : 0);
+        var clickable = (color && n > 0);
+        return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + (clickable ? ' tb-pp-stat-click' : '') + '"'
+          + (clickable ? ' role="button" tabindex="0" data-color="' + color + '" title="View my ' + label + ' tickets"' : '') + '>'
+          + '<div class="tb-pp-stat-n">' + n + '</div>'
           + '<div class="tb-pp-stat-l">' + label + '</div></div>';
       };
       // One inline "LABEL value" cell inside a pairs row (e.g. ASSIGNED 0 | WIP 12).
@@ -2343,7 +2569,7 @@
       var upLoadRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v"><span class="tb-pp-mini-spin"></span></span></div>'; };
       var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Change in data due to last upload',
         '<div id="tbPpUploadBody"><div class="tb-pp-up">'
-        + upLoadRow('Uploaded by') + upLoadRow('File') + upLoadRow('When') + upLoadRow('NOT ASSIGNED')
+        + upLoadRow('Uploaded by') + upLoadRow('Filename') + upLoadRow('When') + upLoadRow('NOT ASSIGNED')
         + '</div></div>', 'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
       // Three agent-activity windows: Today / Yesterday / Last week. Each is its own carousel slide,
       // with its own reload button in the card header.
@@ -2383,6 +2609,16 @@
       tbPpWireReload(slot, 'tbPpReloadAgToday', function () { return tbLoadAgentsActivity('today', 'tbPpAgToday', true); });
       tbPpWireReload(slot, 'tbPpReloadAgYday', function () { return tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday', true); });
       tbPpWireReload(slot, 'tbPpReloadAgWeek', function () { return tbLoadAgentsActivity('lastweek', 'tbPpAgLastWeek', true); });
+      // BY AGE tiles -> open the "my tickets of this colour" popup (replica of the NOT ASSIGNED one).
+      slot.addEventListener('click', function (ev) {
+        var tileEl = ev.target.closest ? ev.target.closest('.tb-pp-stat-click[data-color]') : null;
+        if (tileEl) tbOpenMyColorPopup(tileEl.getAttribute('data-color'));
+      });
+      slot.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        var tileEl = ev.target.closest ? ev.target.closest('.tb-pp-stat-click[data-color]') : null;
+        if (tileEl) { ev.preventDefault(); tbOpenMyColorPopup(tileEl.getAttribute('data-color')); }
+      });
     }
   }
   window.PHDLoadProfileStats = tbLoadProfileStats;
@@ -2678,42 +2914,91 @@
       var rowT = function (label, val) {
         var safeL = tbEsc(label);
         var safeV = tbEsc(val);
-        return '<div class="tb-pp-up-row"><span class="tb-pp-up-k tb-pp-up-trunc" title="' + safeL + '">' + safeL + '</span>'
+        // Label fits content (no truncation, pinned left); value fills the rest, right-aligned + truncates.
+        return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + safeL + '</span>'
           + '<span class="tb-pp-up-v tb-pp-up-trunc" title="' + safeV + '">' + safeV + '</span></div>';
       };
       // NOT ASSIGNED: open live tickets whose assignee isn't one of the analysts. Highlighted with a
       // red attention banner + a soft blink so it stands out.
       var naN = (d.notAssigned != null ? d.notAssigned : 0);
-      var notAssignedRow = '<div class="tb-pp-up-row tb-pp-na-row' + (naN > 0 ? ' blink' : '') + '"><span class="tb-pp-up-k tb-pp-na-k">' + ic('alert', 12) + ' NOT ASSIGNED</span>'
-        + '<span class="tb-pp-up-v tb-pp-na-v">' + naN + '</span></div>';
-      // Per-analyst list (shown to EVERY logged-in user): one row per analyst — "<name>  <open> <+net>"
-      // sorted by open count desc (server-sorted). The orange +net badge, on hover, shows a small card
-      // with the resolved / newly-added breakdown. net is 0 when there's no delta data yet.
+      // Clickable when > 0: opens a popup listing every unassigned open ticket.
+      var naClickable = (naN > 0);
+      var notAssignedRow = '<div class="tb-pp-up-row tb-pp-na-row' + (naN > 0 ? ' blink' : '') + (naClickable ? ' tb-pp-na-click' : '') + '"'
+        + (naClickable ? ' id="tbPpNaRow" role="button" tabindex="0" title="View unassigned tickets"' : '') + '>'
+        + '<span class="tb-pp-up-k tb-pp-na-k">' + ic('alert', 12) + ' NOT ASSIGNED</span>'
+        + '<span class="tb-pp-up-v tb-pp-na-v">' + naN + (naClickable ? '<span class="tb-pp-na-chev">\u203A</span>' : '') + '</span></div>';
+      // Per-analyst list (shown to EVERY logged-in user): one row per analyst — "<name>  <open> <+/->"
+      // sorted by open count desc (server-sorted). The +/- toggle reveals a right-to-left slide-in row
+      // of W/A/P/R status chips (only the non-zero statuses). Only ONE analyst is expanded at a time.
       var analystRows = '';
       var alist = Array.isArray(d.analysts) ? d.analysts : [];
       if (alist.length) {
-        var rowsHtml = alist.map(function (a) {
-          var net = Number(a.net || 0);
-          var netStr = (net > 0 ? '+' : '') + net;   // +10, -3, 0
-          var badge = '<span class="tb-pp-delta' + (net === 0 ? ' zero' : '') + '" tabindex="0">' + tbEsc(netStr)
-            + '<span class="tb-pp-delta-pop">'
-            +   '<span class="tb-pp-delta-row"><span class="tb-pp-delta-dot res"></span>' + (a.resolved || 0) + ' resolved</span>'
-            +   '<span class="tb-pp-delta-row"><span class="tb-pp-delta-dot add"></span>' + (a.newlyAdded || 0) + ' newly added</span>'
-            + '</span></span>';
-          return '<div class="tb-pp-up-row tb-pp-analyst-row">'
-            + '<span class="tb-pp-up-k tb-pp-analyst-name">' + tbEsc(a.name || a.username || '') + '</span>'
-            + '<span class="tb-pp-up-v tb-pp-analyst-v"><b class="tb-pp-analyst-open">' + (a.open != null ? a.open : 0) + '</b>' + badge + '</span>'
+        // Status -> single-letter tag + CSS tone class. (W=WIP, A=Assigned, P=Pending, R=Researching.)
+        var ST = [
+          { key: 'Work In Progress', tag: 'W', cls: 'w' },
+          { key: 'Assigned', tag: 'A', cls: 'a' },
+          { key: 'Pending', tag: 'P', cls: 'p' },
+          { key: 'Researching', tag: 'R', cls: 'r' },
+        ];
+        var rowsHtml = alist.map(function (a, i) {
+          var st = a.status || {};
+          // Build chips for ONLY the statuses with a count > 0.
+          var chips = ST.filter(function (s) { return Number(st[s.key] || 0) > 0; }).map(function (s) {
+            return '<span class="tb-pp-stchip tb-pp-stchip-' + s.cls + '" title="' + s.key + '">'
+              + '<b>' + s.tag + '</b>' + Number(st[s.key] || 0) + '</span>';
+          }).join('');
+          var hasChips = chips.length > 0;
+          var open = (a.open != null ? a.open : 0);
+          return '<div class="tb-pp-up-row tb-pp-analyst-row" data-ana="' + i + '">'
+            + '<span class="tb-pp-up-k tb-pp-analyst-name" title="' + tbEsc(a.name || '') + '">' + tbEsc(a.username || a.name || '') + '</span>'
+            + '<span class="tb-pp-up-v tb-pp-analyst-v">'
+            +   '<span class="tb-pp-stchips">' + chips + '</span>'
+            +   '<b class="tb-pp-analyst-open">' + open + '</b>'
+            +   (hasChips
+                  ? '<button type="button" class="tb-pp-stbtn" aria-expanded="false" aria-label="Show status breakdown" title="Status breakdown"><span class="tb-pp-stbtn-ic">+</span></button>'
+                  : '<span class="tb-pp-stbtn tb-pp-stbtn-empty" aria-hidden="true"></span>')
+            + '</span>'
             + '</div>';
         }).join('');
-        analystRows = '<div class="tb-pp-analyst-head">Open tickets by analyst</div>' + rowsHtml;
+        analystRows = '<div class="tb-pp-analyst-head">Open tickets by analyst</div><div class="tb-pp-analyst-list">' + rowsHtml + '</div>';
       }
       body.innerHTML = '<div class="tb-pp-up">'
         + rowT('Uploaded by', d.user || '\u2014')
-        + rowT('File', d.fileName || '\u2014')
+        + rowT('Filename', d.fileName || '\u2014')
         + rowT('When', when || '\u2014')
         + notAssignedRow
         + analystRows
         + '</div>';
+      // Wire the per-analyst +/- toggles. Expand ONE analyst's W/A/P/R chips at a time: opening one
+      // slides the previously-open one closed. Clicking an open row's button collapses it.
+      var list = body.querySelector('.tb-pp-analyst-list');
+      if (list) {
+        var setRow = function (row, open) {
+          row.classList.toggle('open', open);
+          var btn = row.querySelector('.tb-pp-stbtn');
+          if (btn && !btn.classList.contains('tb-pp-stbtn-empty')) {
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            var ic2 = btn.querySelector('.tb-pp-stbtn-ic');
+            if (ic2) ic2.textContent = open ? '\u2212' : '+';   // minus when open, plus when closed
+          }
+        };
+        list.addEventListener('click', function (ev) {
+          var btn = ev.target.closest ? ev.target.closest('.tb-pp-stbtn') : null;
+          if (!btn || btn.classList.contains('tb-pp-stbtn-empty')) return;
+          var row = btn.closest('.tb-pp-analyst-row');
+          if (!row) return;
+          var wasOpen = row.classList.contains('open');
+          // Collapse every row first (so only one is ever open), then open the clicked one if it wasn't.
+          list.querySelectorAll('.tb-pp-analyst-row.open').forEach(function (r) { setRow(r, false); });
+          if (!wasOpen) setRow(row, true);
+        });
+      }
+      // NOT ASSIGNED row -> open the unassigned-tickets popup.
+      var naRow = document.getElementById('tbPpNaRow');
+      if (naRow) {
+        naRow.onclick = function () { tbOpenNaPopup(); };
+        naRow.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tbOpenNaPopup(); } };
+      }
     };
     // Cache-first: paint instantly from cache (no network) unless forced.
     if (!force) {
@@ -2726,6 +3011,312 @@
       renderUpload(r.data);
     }).catch(function () { body.innerHTML = '<div class="tb-pp-up-empty">Could not load upload summary.</div>'; });
   }
+
+  // Status -> short single/double-letter tag + tone, for the compact ticket chips.
+  var TB_NA_STATUS = {
+    'Work In Progress': { tag: 'WIP', cls: 'w' },
+    'Assigned': { tag: 'A', cls: 'a' },
+    'Pending': { tag: 'P', cls: 'p' },
+    'Researching': { tag: 'R', cls: 'r' },
+  };
+  // Humanize an hours value into a compact "Xd Yh" / "Yh" / "Zm" string.
+  function tbHumanDur(hoursAbs) {
+    var mins = Math.round(hoursAbs * 60);
+    if (mins < 60) return mins + 'm';
+    var h = Math.floor(mins / 60), m = mins % 60;
+    if (h < 24) return h + 'h' + (m ? ' ' + m + 'm' : '');
+    var dd = Math.floor(h / 24), hh = h % 24;
+    return dd + 'd' + (hh ? ' ' + hh + 'h' : '');
+  }
+  // One shimmer skeleton row for the NOT ASSIGNED table (matches the 5 columns).
+  function tbNaSkelRows(n) {
+    var bar = function (w) { return '<span class="tb-na-sk shimmer" style="width:' + w + '"></span>'; };
+    var one = '<div class="tb-na-trow tb-na-skrow">'
+      + '<span class="tb-na-c-id">' + bar('70%') + '</span>'
+      + '<span class="tb-na-c-st">' + bar('70%') + '</span>'
+      + '<span class="tb-na-c-age">' + bar('85%') + '</span>'
+      + '<span class="tb-na-c-left">' + bar('75%') + '</span>'
+      + '<span class="tb-na-c-title">' + bar('92%') + '</span>'
+      + '</div>';
+    var out = ''; for (var i = 0; i < n; i++) out += one; return out;
+  }
+  // Open the "NOT ASSIGNED" popup: all unassigned open tickets in a table (link, status tag,
+  // age/created, time-left, title). Sortable by Created (newest-last by default). 75vw wide.
+  function tbOpenNaPopup() {
+    var existing = document.getElementById('tbNaPopBg');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var bg = document.createElement('div');
+    bg.id = 'tbNaPopBg';
+    bg.className = 'tb-na-pop-bg';
+    // Header row of the table (the Created column header is the sort toggle).
+    var headRow = '<div class="tb-na-trow tb-na-thead">'
+      + '<span class="tb-na-c-id">Ticket</span>'
+      + '<span class="tb-na-c-st">Status</span>'
+      + '<button type="button" class="tb-na-c-age tb-na-sort" id="tbNaSort">Created <span class="tb-na-sort-ic">\u25b2</span></button>'
+      + '<span class="tb-na-c-left">Time left</span>'
+      + '<span class="tb-na-c-title">Title</span>'
+      + '</div>';
+    bg.innerHTML =
+      '<div class="tb-na-pop" role="dialog" aria-label="Unassigned tickets">'
+      + '<div class="tb-na-pop-head">'
+      +   '<span class="tb-na-pop-title">' + ic('alert', 15) + ' Not assigned tickets <span class="tb-na-pop-n" id="tbNaPopN"></span></span>'
+      +   '<span class="tb-na-pop-actions">'
+      +     '<button type="button" class="tb-na-pop-csv" id="tbNaCsv">' + ic('arrow-down', 13) + ' Download CSV</button>'
+      +     '<button type="button" class="tb-na-pop-x" aria-label="Close">\u00d7</button>'
+      +   '</span>'
+      + '</div>'
+      + '<div class="tb-na-pop-table">'
+      +   headRow
+      +   '<div class="tb-na-pop-body" id="tbNaPopBody">' + tbNaSkelRows(10) + '</div>'
+      + '</div>'
+      + '<div class="tb-na-pop-foot" id="tbNaFoot"></div>'
+      + '</div>';
+    document.body.appendChild(bg);
+    var close = function () { if (bg.parentNode) bg.parentNode.removeChild(bg); document.removeEventListener('keydown', onKey); };
+    var onKey = function (e) { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+    bg.querySelector('.tb-na-pop-x').onclick = close;
+
+    var TIX = [];          // loaded tickets
+    var sortAsc = true;    // true = oldest first / newest LAST (default per request)
+    var PAGE0 = 20, STEP = 10;
+    var shown = PAGE0;     // how many rows are currently visible
+
+    // Sort the full set per the current direction (used by both the table and the CSV export).
+    var sortedTix = function () {
+      return TIX.slice().sort(function (a, b) {
+        var da = new Date(a.createDate).getTime() || 0, db = new Date(b.createDate).getTime() || 0;
+        return sortAsc ? (da - db) : (db - da);
+      });
+    };
+
+    // Pagination footer: "Show next N" while more remain; "Show less" once everything is shown.
+    var renderFoot = function () {
+      var foot = document.getElementById('tbNaFoot');
+      if (!foot) return;
+      var total = TIX.length;
+      if (total <= PAGE0) { foot.innerHTML = ''; return; }
+      var html = '<span class="tb-na-foot-count">Showing ' + Math.min(shown, total) + ' of ' + total + '</span>';
+      if (shown < total) {
+        var next = Math.min(STEP, total - shown);
+        html += '<button type="button" class="tb-na-foot-btn" id="tbNaMore">Show next ' + next + '</button>';
+      } else {
+        html += '<button type="button" class="tb-na-foot-btn tb-na-foot-less" id="tbNaLess">Show less</button>';
+      }
+      foot.innerHTML = html;
+      var moreB = document.getElementById('tbNaMore');
+      if (moreB) moreB.onclick = function () { shown = Math.min(total, shown + STEP); renderRows(); };
+      var lessB = document.getElementById('tbNaLess');
+      if (lessB) lessB.onclick = function () { shown = PAGE0; renderRows(); var b = document.getElementById('tbNaPopBody'); if (b) b.scrollTop = 0; };
+    };
+
+    var renderRows = function () {
+      var bodyEl = document.getElementById('tbNaPopBody');
+      if (!bodyEl) return;
+      if (!TIX.length) { bodyEl.innerHTML = '<div class="tb-na-pop-empty">No unassigned tickets. \uD83C\uDF89</div>'; renderFoot(); return; }
+      var now = Date.now();
+      var sorted = sortedTix().slice(0, shown);
+      bodyEl.innerHTML = sorted.map(function (t) {
+        var st = TB_NA_STATUS[t.status] || { tag: (t.status || '?').slice(0, 1).toUpperCase(), cls: 'x' };
+        var cd = t.createDate ? new Date(t.createDate) : null;
+        var cdValid = cd && !isNaN(cd);
+        // Full created date+time (no age).
+        var createdStr = cdValid ? cd.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '\u2014';
+        var leftHtml = '\u2014';
+        if (t.deadline) {
+          var dl = new Date(t.deadline).getTime();
+          if (!isNaN(dl)) {
+            var leftH = (dl - now) / 36e5;
+            leftHtml = (leftH >= 0)
+              ? '<span class="tb-na-left ok">' + tbHumanDur(leftH) + ' left</span>'
+              : '<span class="tb-na-left over">' + tbHumanDur(-leftH) + ' overdue</span>';
+          }
+        }
+        var link = t.url
+          ? '<a class="tb-na-id" href="' + t.url + '" target="_blank" rel="noopener">' + tbEsc(t.shortId || 'ticket') + '</a>'
+          : '<span class="tb-na-id">' + tbEsc(t.shortId || '\u2014') + '</span>';
+        var title = tbEsc(t.title || '\u2014');
+        return '<div class="tb-na-trow">'
+          + '<span class="tb-na-c-id">' + link + '</span>'
+          + '<span class="tb-na-c-st"><span class="tb-na-tag tb-na-tag-' + st.cls + '">' + st.tag + '</span></span>'
+          + '<span class="tb-na-c-age">' + createdStr + '</span>'
+          + '<span class="tb-na-c-left">' + leftHtml + '</span>'
+          + '<span class="tb-na-c-title tb-na-trunc" title="' + title + '">' + title + '</span>'
+          + '</div>';
+      }).join('');
+      renderFoot();
+    };
+
+    // Sort toggle: flip asc/desc, update the arrow, reset to the first page, re-render.
+    var sortBtn = bg.querySelector('#tbNaSort');
+    if (sortBtn) sortBtn.onclick = function () {
+      sortAsc = !sortAsc;
+      var icEl = sortBtn.querySelector('.tb-na-sort-ic');
+      if (icEl) icEl.textContent = sortAsc ? '\u25b2' : '\u25bc';   // ▲ oldest-first / ▼ newest-first
+      shown = PAGE0;
+      renderRows();
+    };
+
+    // Download CSV: exports ALL unassigned tickets in the current sort order (not just the shown page).
+    var csvBtn = bg.querySelector('#tbNaCsv');
+    if (csvBtn) csvBtn.onclick = function () {
+      var rows = sortedTix();
+      if (!rows.length) return;
+      var esc = function (v) { var s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      var now = Date.now();
+      var head = ['Ticket', 'Status', 'Assignee', 'Created', 'Time left', 'Title'];
+      var lines = [head.join(',')];
+      rows.forEach(function (t) {
+        var cd = t.createDate ? new Date(t.createDate) : null;
+        var createdStr = (cd && !isNaN(cd)) ? cd.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        var left = '';
+        if (t.deadline) { var dl = new Date(t.deadline).getTime(); if (!isNaN(dl)) { var lh = (dl - now) / 36e5; left = (lh >= 0 ? tbHumanDur(lh) + ' left' : tbHumanDur(-lh) + ' overdue'); } }
+        lines.push([t.shortId || '', t.status || '', t.assignee || '', createdStr, left, t.title || ''].map(esc).join(','));
+      });
+      var blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'not-assigned-tickets.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    };
+
+    A.api('GET', '/api/not-assigned-tickets').then(function (r) {
+      if (!document.getElementById('tbNaPopBody')) return;
+      if (!r || !r.ok || !r.data) { document.getElementById('tbNaPopBody').innerHTML = '<div class="tb-na-pop-empty">Could not load tickets.</div>'; return; }
+      TIX = Array.isArray(r.data.tickets) ? r.data.tickets : [];
+      shown = PAGE0;
+      var nEl = document.getElementById('tbNaPopN'); if (nEl) nEl.textContent = '(' + TIX.length + ')';
+      renderRows();
+    }).catch(function () {
+      var bodyEl = document.getElementById('tbNaPopBody');
+      if (bodyEl) bodyEl.innerHTML = '<div class="tb-na-pop-empty">Could not load tickets.</div>';
+    });
+  }
+  window.PHDOpenNaPopup = tbOpenNaPopup;
+
+  // Open the "my <colour> tickets" popup — an exact replica of the NOT ASSIGNED popup (same table,
+  // Created sort, 20 + Show next 10 / Show less pagination, Download CSV), filtered to the logged-in
+  // user's OPEN tickets of ONE age colour (purple/black/red/yellow/green).
+  var TB_COLOR_LABEL = { purple: 'Purple', black: 'Black', red: 'Red', yellow: 'Yellow', green: 'Green' };
+  function tbOpenMyColorPopup(color) {
+    color = String(color || '').toLowerCase();
+    var label = TB_COLOR_LABEL[color] || 'Tickets';
+    var existing = document.getElementById('tbNaPopBg');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var bg = document.createElement('div');
+    bg.id = 'tbNaPopBg';
+    bg.className = 'tb-na-pop-bg';
+    var headRow = '<div class="tb-na-trow tb-na-thead">'
+      + '<span class="tb-na-c-id">Ticket</span>'
+      + '<span class="tb-na-c-st">Status</span>'
+      + '<button type="button" class="tb-na-c-age tb-na-sort" id="tbNaSort">Created <span class="tb-na-sort-ic">\u25b2</span></button>'
+      + '<span class="tb-na-c-left">Time left</span>'
+      + '<span class="tb-na-c-title">Title</span>'
+      + '</div>';
+    bg.innerHTML =
+      '<div class="tb-na-pop" role="dialog" aria-label="' + label + ' tickets">'
+      + '<div class="tb-na-pop-head tb-na-pop-head-' + color + '">'
+      +   '<span class="tb-na-pop-title">' + ic('ticket', 15) + ' My ' + label + ' tickets <span class="tb-na-pop-n" id="tbNaPopN"></span></span>'
+      +   '<span class="tb-na-pop-actions">'
+      +     '<button type="button" class="tb-na-pop-csv" id="tbNaCsv">' + ic('arrow-down', 13) + ' Download CSV</button>'
+      +     '<button type="button" class="tb-na-pop-x" aria-label="Close">\u00d7</button>'
+      +   '</span>'
+      + '</div>'
+      + '<div class="tb-na-pop-table">'
+      +   headRow
+      +   '<div class="tb-na-pop-body" id="tbNaPopBody">' + tbNaSkelRows(10) + '</div>'
+      + '</div>'
+      + '<div class="tb-na-pop-foot" id="tbNaFoot"></div>'
+      + '</div>';
+    document.body.appendChild(bg);
+    var close = function () { if (bg.parentNode) bg.parentNode.removeChild(bg); document.removeEventListener('keydown', onKey); };
+    var onKey = function (e) { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+    bg.querySelector('.tb-na-pop-x').onclick = close;
+
+    var TIX = [];
+    var sortAsc = true;
+    var PAGE0 = 20, STEP = 10;
+    var shown = PAGE0;
+    var sortedTix = function () {
+      return TIX.slice().sort(function (a, b) {
+        var da = new Date(a.createDate).getTime() || 0, db = new Date(b.createDate).getTime() || 0;
+        return sortAsc ? (da - db) : (db - da);
+      });
+    };
+    var renderFoot = function () {
+      var foot = document.getElementById('tbNaFoot'); if (!foot) return;
+      var total = TIX.length;
+      if (total <= PAGE0) { foot.innerHTML = ''; return; }
+      var html = '<span class="tb-na-foot-count">Showing ' + Math.min(shown, total) + ' of ' + total + '</span>';
+      if (shown < total) { html += '<button type="button" class="tb-na-foot-btn" id="tbNaMore">Show next ' + Math.min(STEP, total - shown) + '</button>'; }
+      else { html += '<button type="button" class="tb-na-foot-btn tb-na-foot-less" id="tbNaLess">Show less</button>'; }
+      foot.innerHTML = html;
+      var moreB = document.getElementById('tbNaMore'); if (moreB) moreB.onclick = function () { shown = Math.min(total, shown + STEP); renderRows(); };
+      var lessB = document.getElementById('tbNaLess'); if (lessB) lessB.onclick = function () { shown = PAGE0; renderRows(); var b = document.getElementById('tbNaPopBody'); if (b) b.scrollTop = 0; };
+    };
+    var renderRows = function () {
+      var bodyEl = document.getElementById('tbNaPopBody'); if (!bodyEl) return;
+      if (!TIX.length) { bodyEl.innerHTML = '<div class="tb-na-pop-empty">No ' + label.toLowerCase() + ' tickets. \uD83C\uDF89</div>'; renderFoot(); return; }
+      var now = Date.now();
+      var sorted = sortedTix().slice(0, shown);
+      bodyEl.innerHTML = sorted.map(function (t) {
+        var st = TB_NA_STATUS[t.status] || { tag: (t.status || '?').slice(0, 1).toUpperCase(), cls: 'x' };
+        var cd = t.createDate ? new Date(t.createDate) : null;
+        var cdValid = cd && !isNaN(cd);
+        var createdStr = cdValid ? cd.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '\u2014';
+        var leftHtml = '\u2014';
+        if (t.deadline) { var dl = new Date(t.deadline).getTime(); if (!isNaN(dl)) { var lh = (dl - now) / 36e5; leftHtml = (lh >= 0) ? '<span class="tb-na-left ok">' + tbHumanDur(lh) + ' left</span>' : '<span class="tb-na-left over">' + tbHumanDur(-lh) + ' overdue</span>'; } }
+        var link = t.url ? '<a class="tb-na-id" href="' + t.url + '" target="_blank" rel="noopener">' + tbEsc(t.shortId || 'ticket') + '</a>' : '<span class="tb-na-id">' + tbEsc(t.shortId || '\u2014') + '</span>';
+        var title = tbEsc(t.title || '\u2014');
+        return '<div class="tb-na-trow">'
+          + '<span class="tb-na-c-id">' + link + '</span>'
+          + '<span class="tb-na-c-st"><span class="tb-na-tag tb-na-tag-' + st.cls + '">' + st.tag + '</span></span>'
+          + '<span class="tb-na-c-age">' + createdStr + '</span>'
+          + '<span class="tb-na-c-left">' + leftHtml + '</span>'
+          + '<span class="tb-na-c-title tb-na-trunc" title="' + title + '">' + title + '</span>'
+          + '</div>';
+      }).join('');
+      renderFoot();
+    };
+    var sortBtn = bg.querySelector('#tbNaSort');
+    if (sortBtn) sortBtn.onclick = function () { sortAsc = !sortAsc; var icEl = sortBtn.querySelector('.tb-na-sort-ic'); if (icEl) icEl.textContent = sortAsc ? '\u25b2' : '\u25bc'; shown = PAGE0; renderRows(); };
+    var csvBtn = bg.querySelector('#tbNaCsv');
+    if (csvBtn) csvBtn.onclick = function () {
+      var rows = sortedTix(); if (!rows.length) return;
+      var esc = function (v) { var s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      var now = Date.now();
+      var lines = [['Ticket', 'Status', 'Created', 'Time left', 'Title'].join(',')];
+      rows.forEach(function (t) {
+        var cd = t.createDate ? new Date(t.createDate) : null;
+        var createdStr = (cd && !isNaN(cd)) ? cd.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        var left = ''; if (t.deadline) { var dl = new Date(t.deadline).getTime(); if (!isNaN(dl)) { var lh = (dl - now) / 36e5; left = (lh >= 0 ? tbHumanDur(lh) + ' left' : tbHumanDur(-lh) + ' overdue'); } }
+        lines.push([t.shortId || '', t.status || '', createdStr, left, t.title || ''].map(esc).join(','));
+      });
+      var blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = 'my-' + color + '-tickets.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    };
+
+    A.api('GET', '/api/my-tickets').then(function (r) {
+      if (!document.getElementById('tbNaPopBody')) return;
+      if (!r || !r.ok || !r.data) { document.getElementById('tbNaPopBody').innerHTML = '<div class="tb-na-pop-empty">Could not load tickets.</div>'; return; }
+      var all = Array.isArray(r.data.tickets) ? r.data.tickets : [];
+      TIX = all.filter(function (t) { return String(t.color || '').toLowerCase() === color; });
+      shown = PAGE0;
+      var nEl = document.getElementById('tbNaPopN'); if (nEl) nEl.textContent = '(' + TIX.length + ')';
+      renderRows();
+    }).catch(function () {
+      var bodyEl = document.getElementById('tbNaPopBody');
+      if (bodyEl) bodyEl.innerHTML = '<div class="tb-na-pop-empty">Could not load tickets.</div>';
+    });
+  }
+  window.PHDOpenMyColorPopup = tbOpenMyColorPopup;
 
   // Avatar chip for an agent row: a round photo if present, else a coloured initial. The colour is
   // derived from the name so each agent keeps a stable chip colour.
@@ -2971,7 +3562,9 @@
     try { if (A._refreshMe) await A._refreshMe(); else if (A.getMe) await A.getMe(); } catch (e) {}
     try { if (window.PHDNav && window.PHDNav.refreshRight) window.PHDNav.refreshRight(); } catch (e) {}
     try { rebuildRailProfile(); } catch (e) {}          // repaint the right-rail avatar badge with the photo
-    try { buildProfilePanel(); } catch (e) {}           // repaint the right PROFILE PANEL with the real avatar/name
+    // Repaint ONLY the banner avatar/name IN PLACE — do NOT rebuild the whole panel (that re-ran the
+    // skeleton + re-initialised the hamburger section, causing a visible flash on every load).
+    try { tbRepaintProfileBanner(); } catch (e) {}
     try { if (typeof applyAnalyticsFabState === 'function') applyAnalyticsFabState(); } catch (e) {}
     try { if (typeof applyNavFabsState === 'function') applyNavFabsState(); } catch (e) {}
   }
@@ -3018,8 +3611,7 @@
       // picker on click. The "View upload log" link moved to the profile upload card's header.
       { key: 'upload-new',    label: 'Upload new data',         img: 'icons/upload-new-data.png', type: 'upload',                  need: 'upload' },
       { key: 'tools',         label: 'PHD Tools',               img: 'icons/phd-tools.png',    href: 'tools.html',                 need: 'li' },
-      { key: 'shift-report', label: 'Shift Report',            img: 'icons/shift-report.png', href: 'app.html?view=shift-report', need: 'li' },
-      { key: 'help-activity', label: 'Alerts',                 img: 'icons/alerts.png',       href: 'alerts.html',                need: 'li', badge: 'alerts' }
+      { key: 'shift-report', label: 'Shift Report',            img: 'icons/shift-report.png', href: 'app.html?view=shift-report', need: 'li' }
       // Repeat Incidents / SLA Breaches / Station Requests / Unique cases now live in the line-chart
       // "Reports" fly-out; Program History (Before WWOS / Moved under WWOS) lives in the calendar
       // fly-out; Users / Database health / Grouping Page live in the user-shield "Admin" fly-out.
@@ -3099,7 +3691,7 @@
     // Reports + Program History fly-outs are login-gated — HIDDEN entirely for logged-out guests.
     if (li) {
       buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
-        id: 'reports', triggerIcon: 'line-chart', triggerImg: 'icons/reports.png', triggerLabel: 'Reports', items: [
+        id: 'reports', triggerIcon: 'line-chart', triggerImg: 'icons/reports.png', triggerLabel: 'Statistics', items: [
           { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    img: 'icons/sla-breaches.png',    href: 'sla-breach.html',      need: 'sla' },
           { key: 'station-request', label: 'Station Request Tickets', img: 'icons/station-request.png', href: 'station-request.html', need: 'sr' },
           { key: 'hashtags',        label: 'Hashtags',                img: 'icons/hashtags.png',        href: 'hashtags.html',        need: 'li' },
@@ -3399,6 +3991,17 @@
       document.body.setAttribute('data-embedded', 'true');
       return; // no toolbar / FAB build in embedded mode
     }
+    // GUEST LOCKDOWN: a logged-out user may only see index.html. On any OTHER page, bounce them home
+    // immediately (before building any chrome, so no gated page flashes). index.html itself hides its
+    // nav-rail + disables the Dashboards&reports tiles for guests (handled below / in home.js).
+    try {
+      if (!loggedIn()) {
+        var _pg = (location.pathname.split('/').pop() || '').toLowerCase();
+        var _onIndex = (_pg === '' || _pg === 'index.html');
+        if (!_onIndex) { location.replace('index.html'); return; }
+        document.body.setAttribute('data-guest', 'true');   // index.html as a guest -> hide the rail
+      }
+    } catch (e) {}
     injectStyles();
     buildModalAndLoader();
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)

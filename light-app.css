@@ -92,24 +92,26 @@ tr:hover{background:#fff6ec!important}
    Injected rail / topbar / flyouts (from topbar-auth.js). Those use dark navy surfaces; lighten
    them so the left + right rails read on the light page. Targeted by their tb- classes.
    ============================================================================================ */
-.tb-fab-col,.tb-fab-col-right{background:transparent!important}
+.tb-fab-col{background:#ffffff!important;box-shadow:0 10px 26px -16px rgba(20,30,50,.5)!important;border-radius:5px!important}
+.tb-fab-col-right{background:transparent!important}
 .tb-fab-cap{color:var(--lt-text-2)!important}
-.tb-fab-item:hover{background:rgba(0,0,0,.05)!important}
-.tb-fab-item:hover .tb-fab-cap{color:var(--lt-text)!important}
+/* No padding/background colour on item hover; caption goes BLACK (no scale). */
+.tb-fab-item:hover{background:transparent!important}
+.tb-fab-item:hover .tb-fab-cap{color:#000!important;transform:none!important}
 
 /* Logo + profile avatar badges go light. The NAV / FLYOUT / ANALYTICS pills keep their dark navy
    chips (so their light icons stay visible) — they are NOT lightened here on purpose. */
 .tb-avatar-fab{
   background:var(--lt-panel)!important;border:1px solid var(--lt-border-2)!important;
   box-shadow:0 4px 14px -8px rgba(20,30,50,.35)!important;color:var(--lt-text)!important}
-/* Home (logo) button: a slight gray background that darkens on hover, with 2px inner padding. */
+/* Home (logo) button: transparent — no grey circle (the rail itself is white). */
 .tb-rail-badge.tb-rail-logo{
-  background:#e9edf1!important;border:1px solid var(--lt-border-2)!important;padding:2px!important;
-  box-shadow:none!important;color:var(--lt-text)!important;transition:background .15s,border-color .15s!important}
-.tb-rail-badge.tb-rail-logo:hover{background:#d2d9e0!important;border-color:#b7c0c9!important;transform:none!important}
-/* Upload FAB stays accent-orange (it's the primary add-data action). */
-.tb-nav-fab.tb-nav-upload{background:linear-gradient(120deg,#ff9f2e,#ec7211)!important;color:#fff!important;border-color:#ec7211!important}
-.tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#fff!important}
+  background:transparent!important;border:none!important;padding:2px!important;
+  box-shadow:none!important;color:var(--lt-text)!important;transition:transform .15s!important}
+.tb-rail-badge.tb-rail-logo:hover{background:transparent!important;transform:none!important}
+/* Upload FAB: no orange chip — transparent at rest like the other rail pills; icon tinted navy. */
+.tb-nav-fab.tb-nav-upload{background:transparent!important;color:#2a3f63!important;border:none!important}
+.tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
 /* Live FAB keeps its green identity but on a light chip. */
 .tb-live-fab{background:#eafaf0!important;border:1px solid #9ad9b4!important;color:#1a8f4e!important}
 .tb-live-fab .tb-live-dot{background:#1aa85a!important;box-shadow:0 0 8px #1aa85a!important}
@@ -123,10 +125,10 @@ tr:hover{background:#fff6ec!important}
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic,
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic svg,
 body .tb-fab-col .tb-an-fab .tb-an-ic,body .tb-fab-col .tb-an-fab .tb-an-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
-/* Hover flips to near-black on the orange chip. */
+/* No orange chip now -> icons KEEP their navy tint on hover (only the icon scales). */
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab):hover .tb-nav-ic,
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab):hover .tb-nav-ic svg,
-body .tb-fab-col .tb-an-fab:hover .tb-an-ic,body .tb-fab-col .tb-an-fab:hover .tb-an-ic svg{color:#1a1206!important;stroke:#1a1206!important}
+body .tb-fab-col .tb-an-fab:hover .tb-an-ic,body .tb-fab-col .tb-an-fab:hover .tb-an-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
 .tb-rail-badge-label{background:var(--lt-panel)!important;color:var(--lt-text)!important;border-color:var(--lt-border-2)!important}
 /* Profile pill text. */
 .tb-profile-btn,.tb-profile-name,.tb-av-label{color:var(--lt-text)!important}
@@ -217,27 +219,54 @@ body[data-profile-panel] .content .q-tile.am .v{color:#b45309!important}
 body[data-profile-panel] .content .age{border:none!important;border-radius:5px!important;box-shadow:0 2px 6px rgba(20,30,50,.14)!important}
 /* No left colour spine either (the fill already carries the colour). */
 body[data-profile-panel] .content .age::before{display:none!important}
-/* SOLID fills (no gradient). Black is a deep near-black so it reads distinctly. */
-body[data-profile-panel] .content .age.purple{background:#a78bfa!important}
+/* SOLID fills (no gradient). Chosen shades: purple #7c3aed, black #15181c, red #dc2626,
+   yellow #fcd34d (light -> dark text), green #16a34a. */
+body[data-profile-panel] .content .age.purple{background:#7c3aed!important}
 body[data-profile-panel] .content .age.black {background:#15181c!important}
-body[data-profile-panel] .content .age.red   {background:#ef4444!important}
-body[data-profile-panel] .content .age.yellow{background:#f59e0b!important}
+body[data-profile-panel] .content .age.red   {background:#dc2626!important}
+body[data-profile-panel] .content .age.yellow{background:#fcd34d!important}
 body[data-profile-panel] .content .age.green {background:#16a34a!important}
-/* Row text: dark on the lighter (yellow/green) fills, white on the darker (purple/black/red) fills. */
-body[data-profile-panel] .content .age .band .lbl b,
+
+/* ---- Fixed, equal row height; first 3 columns have tidy fixed widths (centered), SR + No-EMT
+   split the rest 50/50 ---- */
+body[data-profile-panel] .content .age-grid{--age-cols:110px 90px 90px 1fr 1fr!important}
+body[data-profile-panel] .content .age,
+body[data-profile-panel] .content .agehead{column-gap:10px!important}
+body[data-profile-panel] .content .age{min-height:90px!important;align-items:center!important}
+/* Remove the padding gutter around the age table (just the age slot, not the Queue Status block). */
+body[data-profile-panel] .content #dashAgeBody{padding:0!important}
+/* The color-NAME label is redundant (the row IS the color) — hide it; keep the age range and
+   promote it to the primary label size. */
+body[data-profile-panel] .content .age .band .lbl b{display:none!important}
+body[data-profile-panel] .content .age .band .dot{display:none!important}
+body[data-profile-panel] .content .age .band .lbl span{font-size:13px!important;font-weight:800!important}
+/* Center the first three columns' content (Age range / Agents / Tickets). */
+body[data-profile-panel] .content .age .band{justify-content:center!important;text-align:center!important;width:100%!important}
+body[data-profile-panel] .content .age .band .lbl{text-align:center!important}
+body[data-profile-panel] .content .agehead>span:nth-child(1),
+body[data-profile-panel] .content .agehead>span:nth-child(2),
+body[data-profile-panel] .content .agehead>span:nth-child(3){text-align:center!important}
+
+/* Row text: white on the dark fills (purple/black/red/green); dark only on the light yellow fill. */
 body[data-profile-panel] .content .age .band .lbl span,
 body[data-profile-panel] .content .age .agents-count,
-body[data-profile-panel] .content .age .tik{color:#111!important}
-body[data-profile-panel] .content .age.purple .band .lbl b,body[data-profile-panel] .content .age.purple .band .lbl span,body[data-profile-panel] .content .age.purple .agents-count,body[data-profile-panel] .content .age.purple .tik,
-body[data-profile-panel] .content .age.black .band .lbl b,body[data-profile-panel] .content .age.black .band .lbl span,body[data-profile-panel] .content .age.black .agents-count,body[data-profile-panel] .content .age.black .tik,
-body[data-profile-panel] .content .age.red .band .lbl b,body[data-profile-panel] .content .age.red .band .lbl span,body[data-profile-panel] .content .age.red .agents-count,body[data-profile-panel] .content .age.red .tik{color:#fff!important}
-/* the per-colour .tik overrides in the dark theme are !important too — re-assert for yellow/green dark text */
-body[data-profile-panel] .content .age.yellow .tik,body[data-profile-panel] .content .age.green .tik{color:#111!important}
-/* agent chips inside the row: keep their dark pill so they read on any fill */
-body[data-profile-panel] .content .age .idchip{background:#12161c!important;border-color:#2a3540!important;color:#eaeef2!important}
-body[data-profile-panel] .content .age .idchip b{color:#fff!important}
-body[data-profile-panel] .content .age .idlist .none{color:rgba(255,255,255,.75)!important}
-body[data-profile-panel] .content .age .idlist .more{color:#111!important}
+body[data-profile-panel] .content .age .tik{color:#fff!important}
+body[data-profile-panel] .content .age.yellow .band .lbl span,
+body[data-profile-panel] .content .age.yellow .agents-count,
+body[data-profile-panel] .content .age.yellow .tik{color:#3a2d06!important}
+
+/* ---- Agent chips: WHITE box (5px) + login id + ORANGE count tag. Same on every row. ---- */
+body[data-profile-panel] .content .age .idlist{align-items:center!important;gap:12px!important}
+body[data-profile-panel] .content .age .idchip{background:#ffffff!important;border:1px solid #e6e9ee!important;border-radius:5px!important;color:#1b2026!important;min-width:0!important}
+body[data-profile-panel] .content .age.yellow .idchip{border-color:#e8c23c!important}
+body[data-profile-panel] .content .age .idchip b{color:#1b2026!important;font-weight:800!important}
+/* Count as an ORANGE tag (5px). */
+body[data-profile-panel] .content .age .idchip .ct{background:#f0820f!important;color:#fff!important;border-radius:5px!important;padding:1px 7px!important;font-weight:900!important}
+/* "+N" overflow sits in a 3rd column to the right of the 2x2 chip grid: plain text, no background. */
+body[data-profile-panel] .content .age .idlist .more{color:#fff!important;font-weight:900!important;font-size:12px!important}
+body[data-profile-panel] .content .age.yellow .idlist .more{color:#3a2d06!important}
+body[data-profile-panel] .content .age .idlist .none{color:rgba(255,255,255,.8)!important}
+body[data-profile-panel] .content .age.yellow .idlist .none{color:rgba(58,45,6,.7)!important}
 
 /* (3) Ticket Age Classification — on smaller screens, x-SCROLL instead of shrinking/wrapping.
    Keep the fixed grid columns and let the whole table scroll horizontally. */

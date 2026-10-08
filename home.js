@@ -88,21 +88,29 @@ async function renderQuarterCards(){
   // ---- Redesigned "nav tiles": uniform cards with an icon chip, title + subtitle, description, and
   // an action footer with an arrow. The Active tile keeps its green identity + pulsing ACTIVE pill.
   // opts: { href, icon, title, sub, desc, action, live, external, tone }
+  // Logged out? The "Dashboards & reports" tiles are DISABLED (inert, greyed, not clickable) — a
+  // guest can only stay on index.html. Logged in -> normal clickable links.
+  const isGuest=!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser());
   const navTile=function(opts){
     const ext=opts.external ? ' target="_blank" rel="noopener"' : '';
     const pill=opts.live ? '<span class="nt-pill">ACTIVE</span>' : '';
     const sub=opts.sub ? '<span class="nt-sub">'+opts.sub+'</span>' : '';
     const action=opts.action ? ('<span class="nt-cta">'+opts.action+' <span class="nt-arrow">'+(opts.external?'↗':'→')+'</span></span>') : '';
-    return '<a class="nav-tile'+(opts.live?' nt-live':'')+(opts.tone?(' nt-'+opts.tone):'')+'" href="'+opts.href+'"'+ext+'>'+
+    const inner=
       '<span class="nt-top">'+
         '<span class="nt-ic">'+icH(opts.icon,20)+'</span>'+pill+
+        (isGuest?'<span class="nt-lock" title="Log in to access">'+icH('key',14)+'</span>':'')+
       '</span>'+
       '<span class="nt-body">'+
         '<span class="nt-title">'+opts.title+'</span>'+sub+
         '<span class="nt-desc">'+opts.desc+'</span>'+
       '</span>'+
-      action+
-    '</a>';
+      action;
+    if(isGuest){
+      // Inert tile: a <div> (no href), greyed + not clickable.
+      return '<div class="nav-tile nt-disabled'+(opts.live?' nt-live':'')+(opts.tone?(' nt-'+opts.tone):'')+'" aria-disabled="true" title="Log in to access">'+inner+'</div>';
+    }
+    return '<a class="nav-tile'+(opts.live?' nt-live':'')+(opts.tone?(' nt-'+opts.tone):'')+'" href="'+opts.href+'"'+ext+'>'+inner+'</a>';
   };
   const tiles=[
     // Program History — year-by-year archive, Q1 2021 -> Q4 2025.
