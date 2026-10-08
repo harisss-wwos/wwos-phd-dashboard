@@ -1,0 +1,18 @@
+# Workflow run artifacts (feature-pipeline / investigate etc.)
+.agents/
+
+# One-off dedup backups written by the server during era-dedupe
+server/_dedup-backup-*.json
+
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Environment / secrets
+.env
+server/.env
+
+# Logs & OS noise
+*.log
+.DS_Store
+Thumbs.db
