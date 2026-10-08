@@ -58,6 +58,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-none-yet b{color:var(--t)}
 .hx-none-yet .hx-tag{color:var(--o)}
 .hx-none-yet svg{flex-shrink:0;margin-top:2px;color:var(--tm)}
+/* Collapsible GROUP block (DEFECTS / PATTERNS), each wrapping a set of hashtag section cards. */
+.hx-group{margin-top:26px}
+.hx-group:first-of-type{margin-top:6px}
+.hx-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 12px;padding-bottom:8px;border-bottom:2px solid #e2e6ea;cursor:pointer;user-select:none}
+.hx-group-head:hover .hx-group-label{color:#5b3ff0}
+.hx-group-head:focus-visible{outline:2px solid #7c5cff;outline-offset:3px;border-radius:3px}
+.hx-group-label{font-size:1.02em;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#7c5cff}
+.hx-group-head-right{display:inline-flex;align-items:center;gap:12px}
+.hx-group-meta{font-size:.74em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8a94a2}
+.hx-group-caret{color:#7c5cff;font-size:.9em;transition:transform .25s ease;display:inline-flex}
+.hx-group.collapsed .hx-group-caret{transform:rotate(-90deg)}
+/* Group body animates open/closed. Collapsed = height 0 + hidden. */
+.hx-group-body{overflow:hidden;transition:max-height .34s ease,opacity .25s ease;max-height:200000px;opacity:1}
+.hx-group.collapsed .hx-group-body{max-height:0;opacity:0}
 /* Section card (collapsible accordion — one open at a time) */
 .hx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid var(--o);border-radius:5px;margin-bottom:16px;overflow:hidden}
 .hx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
@@ -207,7 +221,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=143"></script>
+<script src="topbar-auth.js?v=144"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -232,28 +246,67 @@ var HX_DEFS={
   'support-p-b':'Applicable when a support team states that an action was taken but was either incorrectly actioned or not at all.',
   'address-employee':'When the incident involves Security/ Property Management/ Receptionist as the POI/Victim',
   'mitigation-gap':'Used to document when a recommended mitigation is not currently available in this country/region; not an actionable resolution at this time',
-  'mst-action':'When support teams fail to action (approve or deny) requested PHD action. This can include action items or PHD SIM communications'
+  'mst-action':'When support teams fail to action (approve or deny) requested PHD action. This can include action items or PHD SIM communications',
+  // --- Newly added tags (DEFECTS group). Definitions are provisional — update with official wording. ---
+  'missing-auto-comms':'Expected automated communication to the customer/driver was not sent for the incident',
+  'duplicate-report':'The incident is a duplicate of another report already in scope',
+  'emt-defect':'A defect in the EMT (Escalation Management Tool) data or workflow for the incident',
+  'no-phd-created':'No PHD case was created for an incident that should have had one',
+  // --- Newly added tags (PATTERNS group). Definitions are provisional — update with official wording. ---
+  'hi-handled-by-phd':'Historical Incident for the POI that was handled by the PHD team',
+  'hi-not-handled-by-phd':'Historical Incident for the POI that was not handled by the PHD team',
+  'swa-order':'Incident associated with a SWA (Ship With Amazon) order',
+  // --- Second batch of added tags. Definitions are provisional — update with official wording. ---
+  'auto-resolve-defect':'A defect in the auto-resolve workflow caused an incident to be resolved incorrectly or without proper handling',
+  'geo-c-d':'Geo country/domain discrepancy identified for the incident',
+  'cx-acct-i-u':'Customer account was identified as invalid or unverified during the investigation',
+  'netradyne-audio-record-help':'Netradyne audio recording was requested/needed to assist the investigation',
+  'netradyne-rear-camera-help':'Netradyne rear-camera footage was requested/needed to assist the investigation',
+  'better-mitigation-needed':'The applied mitigation was insufficient; a stronger or more appropriate mitigation is needed'
 };
-// Canonical display order + spelling for EVERY hashtag we track. These ALL render as sections even
-// when their live ticket count is 0, so the full taxonomy (tag + definition) is always visible.
-var HX_ORDER=[
-  '#out-of-scope',
-  '#language-barrier',
-  '#incorrect-geopin',
-  '#da-misconduct',
-  '#dp-misconduct',
-  '#hubda-misconduct',
-  '#contradictory-statement-no-proof',
-  '#unsuccessful-outreach',
-  '#cx-verification-rejection',
-  '#no-emt-attached',
-  '#api-emt-miss',
-  '#appeal-review',
-  '#support-p-b',
-  '#address-employee',
-  '#mitigation-gap',
-  '#mst-action'
+// Canonical taxonomy split into TWO groups shown as separate sections on the page:
+//   DEFECTS  — process/system defects (missing comms, duplicates, EMT/geopin/scope issues, etc.)
+//   PATTERNS — behavioural / investigative patterns (misconduct, outreach, appeals, HI, etc.)
+// Every tag renders even with 0 live tickets, so the full taxonomy stays visible. Order within each
+// group is fixed (as listed) — groups are NOT re-sorted by ticket count.
+var HX_GROUPS=[
+  { key:'defects', label:'DEFECTS', tags:[
+    '#no-emt-attached',
+    '#api-emt-miss',
+    '#missing-auto-comms',
+    '#duplicate-report',
+    '#incorrect-geopin',
+    '#out-of-scope',
+    '#emt-defect',
+    '#no-phd-created',
+    '#auto-resolve-defect',
+    '#mst-action',
+    '#geo-c-d',
+    '#cx-acct-i-u'
+  ]},
+  { key:'patterns', label:'PATTERNS', tags:[
+    '#appeal-review',
+    '#contradictory-statement-no-proof',
+    '#unsuccessful-outreach',
+    '#language-barrier',
+    '#hi-handled-by-phd',
+    '#hi-not-handled-by-phd',
+    '#dp-misconduct',
+    '#hubda-misconduct',
+    '#da-misconduct',
+    '#cx-verification-rejection',
+    '#support-p-b',
+    '#address-employee',
+    '#mitigation-gap',
+    '#swa-order',
+    '#netradyne-audio-record-help',
+    '#netradyne-rear-camera-help',
+    '#better-mitigation-needed'
+  ]}
 ];
+// Flat ordered list derived from the two groups (defects first, then patterns). Used by the folding
+// map + canonical-order tie-break below, keeping the rest of the page's logic unchanged.
+var HX_ORDER=HX_GROUPS.reduce(function(acc,g){ return acc.concat(g.tags); },[]);
 // Some tags appear in ticket Labels under a variant spelling. Map any variant -> the canonical tag
 // in HX_ORDER, so live tickets land in the right (single) section regardless of how they were typed.
 var HX_ALIAS={
@@ -418,26 +471,21 @@ function render(data){
       cur.tickets.push(t);
     });
   });
-  // EVERY defined hashtag appears, even with 0 tickets. Start from the canonical taxonomy...
+  // Which group a canonical tag belongs to (defects / patterns), from HX_GROUPS.
+  var groupOf={}; HX_GROUPS.forEach(function(g){ g.tags.forEach(function(t){ groupOf[t]=g.key; }); });
+  // EVERY defined hashtag appears, even with 0 tickets. Build in the fixed group order (defects, then
+  // patterns), preserving each group's listed tag order — groups are NOT re-sorted by ticket count.
   var used={};
   HX_SECS=HX_ORDER.map(function(tag){
     used[tag]=1;
     var m=byTag[tag];
-    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
+    return { tag:tag, group:(groupOf[tag]||'other'), count:m?m.tickets.length:0, tickets:m?m.tickets:[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
   });
-  // ...then append any live tags not in the canonical list (so nothing from the data is dropped).
+  // ...then append any live tags not in the canonical taxonomy (so nothing from the data is dropped);
+  // these land in a trailing "OTHER" group.
   Object.keys(byTag).forEach(function(tag){
     if(used[tag]) return;
-    HX_SECS.push({ tag:tag, count:byTag[tag].tickets.length, tickets:byTag[tag].tickets, shown:HX_PAGE0, sortField:'created', sortDir:'desc' });
-  });
-  // Order the sections by ticket count, highest first. Ties break by the canonical taxonomy order
-  // (then alphabetically) so the zero-count tags keep a stable, predictable sequence.
-  var orderIdx={}; HX_ORDER.forEach(function(t,i){ orderIdx[t]=i; });
-  HX_SECS.sort(function(a,b){
-    if(b.count!==a.count) return b.count-a.count;
-    var ai=(orderIdx[a.tag]==null?999:orderIdx[a.tag]), bi=(orderIdx[b.tag]==null?999:orderIdx[b.tag]);
-    if(ai!==bi) return ai-bi;
-    return a.tag.localeCompare(b.tag);
+    HX_SECS.push({ tag:tag, group:'other', count:byTag[tag].tickets.length, tickets:byTag[tag].tickets, shown:HX_PAGE0, sortField:'created', sortDir:'desc' });
   });
   var rawSrc=(data&&data.generatedFrom)||'25th September 2026.csv';
   var isLive=/live/i.test(rawSrc);
@@ -456,7 +504,29 @@ function render(data){
     +'<div class="hb-total"><span class="n">'+totalTagged+'</span><span class="l">'+totalTags+' hashtags</span></div>'
   +'</div>';
   if(!HX_SECS.length){ html+='<div class="hx-empty">No hashtags found in the Labels column.</div>'; document.getElementById('wrap').innerHTML=html; return; }
+  // Group label + per-group tagged/tag counts for the group header rows.
+  var GROUP_LABEL={ defects:'DEFECTS', patterns:'PATTERNS', other:'OTHER' };
+  var lastGroup=null;
+  var groupSeq=-1;   // 0-based index of the group block, for the group toggle id
   HX_SECS.forEach(function(a,idx){
+    // Open a new collapsible GROUP block the first time a new group appears (sections are pre-ordered
+    // by group). The group head toggles its whole body (all hashtag cards within). DEFECTS (the first
+    // group) starts expanded; the rest start collapsed.
+    if(a.group!==lastGroup){
+      if(lastGroup!==null){ html+='</div></div>'; }   // close previous group body + group wrapper
+      lastGroup=a.group;
+      groupSeq++;
+      var inGroup=HX_SECS.filter(function(x){ return x.group===a.group; });
+      var gTagged=inGroup.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
+      var collapsed=(groupSeq>0);   // first group open, others collapsed
+      html+='<div class="hx-group'+(collapsed?' collapsed':'')+'" id="hxGroup'+groupSeq+'">'
+        +'<div class="hx-group-head" onclick="hxGroupToggle('+groupSeq+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();hxGroupToggle('+groupSeq+');}" role="button" tabindex="0">'
+          +'<span class="hx-group-label">'+esc(GROUP_LABEL[a.group]||a.group.toUpperCase())+'</span>'
+          +'<span class="hx-group-head-right"><span class="hx-group-meta">'+inGroup.length+' hashtags \u00b7 '+gTagged+' tagged</span>'
+          +'<span class="hx-group-caret">\u25be</span></span>'
+        +'</div>'
+        +'<div class="hx-group-body">';
+    }
     var def=hxDefOf(a.tag);
     var defHtml=def
       ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
@@ -478,8 +548,15 @@ function render(data){
       +'</div>'
     +'</div>';
   });
+  if(lastGroup!==null){ html+='</div></div>'; }   // close the last group body + wrapper
   document.getElementById('wrap').innerHTML=html;
-  // All sections start collapsed; a chart is drawn only when its section is opened (hxToggle).
+  // Hashtag cards start collapsed (chart drawn on open via hxToggle); DEFECTS group open, rest closed.
+}
+// Expand/collapse a whole GROUP block (DEFECTS / PATTERNS). Independent toggles (not an accordion) —
+// either group can be open or closed on its own.
+function hxGroupToggle(gi){
+  var g=document.getElementById('hxGroup'+gi); if(!g) return;
+  g.classList.toggle('collapsed');
 }
 
 // Load order:

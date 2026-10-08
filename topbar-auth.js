@@ -2527,9 +2527,10 @@
         return '<div class="tb-pp-pair-row">' + a + '<span class="tb-pp-pair-sep">|</span>' + b + '</div>';
       };
       var html = '';
-      // Weekly Performance Summary (managers + owners only). A placeholder card sits right below the
-      // name banner; tbLoadWeeklySummary() fills it from weekly-summary.json after render.
-      var canWeekly = (A.role && A.role() === 'manager') || atLeast('owner');
+      // Weekly + Monthly Performance Summary: shown to EVERY logged-in user (previously managers +
+      // owners only). A placeholder card sits right below the name banner; tbLoadSummaries() fills it
+      // from weekly-summary.json / monthly-summary.json after render.
+      var canWeekly = loggedIn();
       if (canWeekly) {
         html += '<div id="tbPpWbrMbr"></div>';   // WBR + MBR carousel (filled after their JSON loads)
       }

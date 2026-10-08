@@ -89,7 +89,12 @@ async function liveQuarterId() {
 // Invalidate the cache after a publish so the next read reflects a newly-created/filled quarter.
 function invalidateLiveQuarterCache() { _liveQCache = { id: null, at: 0 }; }
 
+const compression = require('compression');
 const app = express();
+// gzip every response. JSON compresses ~85-90%, so large payloads (e.g. the countries report, the
+// agents-activity windows) go over the wire far smaller with no data dropped. Must be registered
+// before the routes so their responses are compressed.
+app.use(compression());
 app.use(express.json({ limit: '15mb' })); // live dataset can be sizeable
 
 // CORS: allow the static site origins. Set ALLOWED_ORIGINS as comma-separated in env,
@@ -1037,6 +1042,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
 
     res.json({ ok: true, liveQuarter: liveQ, written, undated });
     invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
+    invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message));
@@ -1173,6 +1179,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
 
     res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
     invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
+    invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message));
@@ -2851,7 +2858,7 @@ app.get('/api/hashtags-report', async (req, res) => {
 // This is generally the country/region code (some are US state codes or system tokens — we keep
 // every distinct code as its own section, per requirement). One section per code, deduped by
 // ShortId. Because uploads write Title straight into ticket_docs, this report is always live.
-const COUNTRIES_FROM = new Date('2026-04-01T00:00:00.000Z');
+const COUNTRIES_FROM = new Date('2026-01-01T00:00:00.000Z'); // AC era: from 1 Jan 2026
 // Leading token of 2-3 uppercase letters at the very start of the Title, on a word boundary.
 const COUNTRY_CODE_RE = /^\s*([A-Z]{2,3})\b/;
 // Repeat-incident (HI) detection — matches the dashboard's rule (computeMetrics in app.js):
@@ -2865,17 +2872,40 @@ function hiCountOf(rootCauseDetails) {
   const m2 = s.match(HI_HIST_RE); if (m2) return parseInt(m2[1], 10) || 0;
   return 0;
 }
+// In-process cache for the full countries report. Reading ~21k docs from remote Atlas on every call
+// is the dominant cost; the data only changes on an upload. First call pays the DB cost; all callers
+// within the TTL (and until the next upload) get the prebuilt payload instantly. Invalidated by
+// invalidateCountriesReport() after publish/patch.
+let _countriesCache = { at: 0, payload: null };
+const COUNTRIES_TTL_MS = 10 * 60 * 1000; // 10 min safety TTL (upload also busts it explicitly)
+function invalidateCountriesReport() { _countriesCache = { at: 0, payload: null }; }
 app.get('/api/countries-report', async (req, res) => {
   try {
+    // Serve from the in-process cache when fresh (keeps all data; just avoids re-reading Atlas).
+    if (_countriesCache.payload && (Date.now() - _countriesCache.at) < COUNTRIES_TTL_MS) {
+      return res.json(_countriesCache.payload);
+    }
     const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // Pre-filter on the RAW CreateDate string FIRST so the { CreateDate: 1 } index is used (an ISO
+    // string sorts the same as its date, so a string >= works chronologically). This avoids the full
+    // collection scan + per-doc $convert that matching on a computed date field forced. The convert
+    // + cd match below stays as a correctness guard for any non-ISO/edge values.
+    const COUNTRIES_FROM_ISO = COUNTRIES_FROM.toISOString();
+    // Compute the repeat-incident (hi) + pet flags INSIDE the pipeline so Atlas doesn't have to ship
+    // the large RootCause / RootCauseDetails text for ~21k docs to Node. hi = RootCauseDetails has a
+    // positive "Cnt: <n>" OR "Historical Incident: <n>"; pet = hi AND RootCause has "unsecured animal".
     const rows = await coll.aggregate([
+      { $match: { CreateDate: { $gte: COUNTRIES_FROM_ISO } } },
+      { $addFields: {
+        _cntN: { $let: { vars: { mm: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:Cnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } },
+                         in: { $cond: [ { $gt: ['$$mm', null] }, { $toInt: { $arrayElemAt: ['$$mm.captures', 0] } }, 0 ] } } },
+      } },
       { $project: {
         _id: 0,
-        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
-        AssigneeIdentity: 1, RootCause: 1, RootCauseDetails: 1, q: 1,
-        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, AssigneeIdentity: 1,
+        hi: { $gt: ['$_cntN', 0] },
+        pet: { $and: [ { $gt: ['$_cntN', 0] }, { $regexMatch: { input: { $ifNull: ['$RootCause', ''] }, regex: /unsecured animal/i } } ] },
       } },
-      { $match: { cd: { $gte: COUNTRIES_FROM } } },
     ], { allowDiskUse: true }).toArray();
 
     // Group by the leading code; dedupe ShortIds within a code.
@@ -2889,9 +2919,7 @@ app.get('/api/countries-report', async (req, res) => {
       if (!sec) { sec = { tag: code, seen: new Set(), tickets: [] }; sections.set(code, sec); }
       if (sid && sec.seen.has(sid)) return;
       if (sid) sec.seen.add(sid);
-      // Repeat-incident flags (per the dashboard's HI rule). isPet = HI AND RootCause has "unsecured animal".
-      const hi = hiCountOf(t.RootCauseDetails) > 0;
-      const isPet = hi && /unsecured animal/i.test(String(t.RootCause || ''));
+      // hi / pet flags are precomputed in the aggregation pipeline (above).
       sec.tickets.push({
         shortId: sid,
         url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
@@ -2899,8 +2927,8 @@ app.get('/api/countries-report', async (req, res) => {
         assignee: t.AssigneeIdentity || '',
         status: t.Status || '',
         title: t.Title || '',
-        hi: hi,          // repeat incident (combined)
-        pet: isPet,      // repeat incident that is a pet/animal incident
+        hi: !!t.hi,       // repeat incident (combined)
+        pet: !!t.pet,     // repeat incident that is a pet/animal incident
       });
     });
 
@@ -2912,12 +2940,14 @@ app.get('/api/countries-report', async (req, res) => {
       }))
       .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 
-    res.json({
+    const payload = {
       generatedFrom: 'ticket_docs (live)',
       generatedAt: new Date().toISOString(),
       from: COUNTRIES_FROM.toISOString().slice(0, 10),
       sections: out,
-    });
+    };
+    _countriesCache = { at: Date.now(), payload };   // cache for subsequent loads (busted on upload)
+    res.json(payload);
   } catch (e) {
     res.status(500).json({ error: 'Could not load countries report.' });
   }
@@ -3205,6 +3235,31 @@ function windowDayKeys(windowName, todayKey) {
   return { keys: new Set([todayKey]), label: todayKey };
 }
 
+// Short-lived memo (per-process) for the two heavy reads the three agents-activity windows share.
+// TTL is small so a fresh upload/resolve shows up within seconds; it only de-dupes the burst of 3
+// window calls fired together on a page load.
+const AA_MEMO_TTL_MS = 15 * 1000;
+let _aaResCache = { key: null, at: 0, rows: null };
+let _aaComCache = { at: 0, rows: null };
+async function agentsActivityResRows(liveQid) {
+  const now = Date.now();
+  if (_aaResCache.rows && _aaResCache.key === liveQid && (now - _aaResCache.at) < AA_MEMO_TTL_MS) return _aaResCache.rows;
+  const tColl = await getCollection(COLLECTIONS.ticketDocs);
+  const rows = await tColl.find(
+    { q: liveQid, Status: { $in: ['Resolved', 'Closed'] } },
+    { projection: { _id: 0, ResolvedByIdentity: 1, ResolvedDate: 1, ClosureCode: 1 } }
+  ).toArray();
+  _aaResCache = { key: liveQid, at: now, rows };
+  return rows;
+}
+async function agentsActivityComments() {
+  const now = Date.now();
+  if (_aaComCache.rows && (now - _aaComCache.at) < AA_MEMO_TTL_MS) return _aaComCache.rows;
+  const commentsColl = await getCollection(COLLECTIONS.comments);
+  const rows = await commentsColl.find({}, { projection: { _id: 0, user: 1, shortId: 1, at: 1 } }).toArray();
+  _aaComCache = { at: now, rows };
+  return rows;
+}
 app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
   try {
     const windowName = ['today', 'yesterday', 'lastweek'].includes(String(req.query.window)) ? String(req.query.window) : 'today';
@@ -3243,11 +3298,11 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
 
     // Resolves in the live quarter, bucketed by the RESOLVING agent's own window days.
     const liveQid = await liveQuarterId();
-    const tColl = await getCollection(COLLECTIONS.ticketDocs);
-    const resRows = await tColl.find(
-      { q: liveQid, Status: { $in: ['Resolved', 'Closed'] } },
-      { projection: { _id: 0, ResolvedByIdentity: 1, ResolvedDate: 1, ClosureCode: 1 } }
-    ).toArray();
+    // The three agents-activity windows (today / yesterday / lastweek) fire within seconds of each
+    // other on every page load and each re-reads the SAME resolved tickets + ALL comments. Memoize
+    // those two heavy reads for a few seconds (keyed by live quarter) so only the FIRST call hits the
+    // DB; the 2nd/3rd reuse it. No data is dropped — same rows, just not re-queried per window.
+    const resRows = await agentsActivityResRows(liveQid);
     resRows.forEach(t => {
       const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
       const meta = agentMeta[rby];
@@ -3259,9 +3314,8 @@ app.get('/api/agents-activity', requireRole('user'), async (req, res) => {
       else if (IMMEDIATE_AUTO.includes(cc)) { s.immTotal++; if (win) s.imm++; }
     });
 
-    // Comments, bucketed by the COMMENTING agent's own window days.
-    const commentsColl = await getCollection(COLLECTIONS.comments);
-    const cRows = await commentsColl.find({}, { projection: { _id: 0, user: 1, shortId: 1, at: 1 } }).toArray();
+    // Comments, bucketed by the COMMENTING agent's own window days. (Memoized — see above.)
+    const cRows = await agentsActivityComments();
     cRows.forEach(c => {
       const u = String(c.user || '').toLowerCase();
       const meta = agentMeta[u];

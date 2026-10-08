@@ -19,7 +19,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
 .btn:hover{background:var(--oh)}
 .wrap{padding:32px 24px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
-/* ---- Illustrated gradient banner header (globe theme: blue/teal) ---- */
+/* ---- Shift Report-style ORANGE hero title bar (one-line banner, dark text, soft shadow) ---- */
+.cx-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:nowrap;
+  border-radius:5px;padding:0 22px;min-height:62px;margin-bottom:16px;border:none;
+  background:linear-gradient(90deg,#f0820f,#ff9f2e 55%,#ffc06a);
+  box-shadow:0 6px 18px -8px rgba(236,114,17,.45),0 2px 6px rgba(20,30,50,.12)}
+.cx-hero-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;color:#1b2026}
+.cx-hero-ic{display:inline-flex;align-items:center;color:#1b2026;flex-shrink:0}
+.cx-hero-title{font-size:1.3em;font-weight:800;letter-spacing:-.2px;color:#1b2026;white-space:nowrap;flex-shrink:0}
+.cx-hero-sub{font-size:.72em;font-weight:800;letter-spacing:.5px;color:#5a3410;background:rgba(255,255,255,.5);border-radius:5px;padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cx-hero-badge{display:inline-flex;flex-direction:column;align-items:center;gap:1px;background:#fff;border-radius:5px;padding:6px 16px;box-shadow:0 2px 6px rgba(20,30,50,.14);color:#1b2026;flex-shrink:0}
+.cx-hero-badge .n{font-size:1.3em;font-weight:900;line-height:1;color:#f0820f}
+.cx-hero-badge .l{font-size:.6em;font-weight:800;letter-spacing:.5px;color:#5c6773;white-space:nowrap}
+@media(max-width:640px){.cx-hero{flex-wrap:wrap;min-height:0;padding:12px 16px}.cx-hero-sub{flex-basis:100%}}
+/* ---- (legacy) Illustrated gradient banner header (globe theme: blue/teal) ---- */
 .cx-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
   border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:14px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
@@ -38,6 +51,25 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="40" r="30"/><path d="M30 40h60M60 10c9 8 9 52 0 60M60 10c-9 8-9 52 0 60M36 22c14 8 34 8 48 0M36 58c14-8 34-8 48 0"/></svg>')}
 @media(max-width:640px){.cx-banner .hb-title{font-size:1.25em}.cx-banner::after{opacity:.22}.cx-banner .hb-total{margin-left:0}}
+/* Collapsible REGION block (NA / LATAM / APAC / MENA / Europe / Others), wrapping its country cards. */
+.cx-region{margin-top:26px}
+.cx-region:first-of-type{margin-top:6px}
+.cx-region-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 12px;padding-bottom:8px;border-bottom:2px solid #e2e6ea;cursor:pointer;user-select:none}
+.cx-region-head:hover .cx-region-label{color:#0f72a8}
+.cx-region-head:focus-visible{outline:2px solid #38bdf8;outline-offset:3px;border-radius:3px}
+.cx-region-label-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cx-region-label{font-size:1.02em;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#0ea5b7}
+.cx-region-sub{font-size:.72em;font-weight:600;color:#8a94a2}
+.cx-region-head-right{display:inline-flex;align-items:center;gap:12px;flex-shrink:0}
+.cx-region-meta{font-size:.74em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8a94a2;white-space:nowrap}
+.cx-region-caret{color:#0ea5b7;font-size:.9em;transition:transform .25s ease;display:inline-flex}
+.cx-region.collapsed .cx-region-caret{transform:rotate(-90deg)}
+/* Clean-ups EXPORT CSV button in the region head (orange, uppercase, 5px) — matches the Shift Report export buttons. */
+.cx-exp{display:inline-flex;align-items:center;gap:6px;background:#f0820f;border:1px solid #f0820f;color:#fff;font-weight:800;font-size:.72em;letter-spacing:.4px;text-transform:uppercase;border-radius:5px;padding:6px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.cx-exp:hover{background:#d9730c;border-color:#d9730c}
+.cx-exp svg{flex-shrink:0}
+.cx-region-body{overflow:hidden;transition:max-height .34s ease,opacity .25s ease;max-height:200000px;opacity:1}
+.cx-region.collapsed .cx-region-body{max-height:0;opacity:0}
 /* Section card (collapsible accordion — one open at a time) */
 .cx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #38bdf8;border-radius:5px;margin-bottom:16px;overflow:hidden}
 .cx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
@@ -106,6 +138,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .sk-banner{position:relative;overflow:hidden;border-radius:5px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
   background:linear-gradient(90deg,#0b3a45,#0e5566 55%,#1a7d92);background-size:200% 100%;animation:cxBanner 9s ease infinite;
   display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px}
+/* Orange hero skeleton (matches the loaded .cx-hero). */
+.sk-hero{position:relative;overflow:hidden;border-radius:5px;min-height:62px;margin-bottom:16px;
+  background:linear-gradient(90deg,#f0820f,#ff9f2e 55%,#ffc06a);
+  box-shadow:0 6px 18px -8px rgba(236,114,17,.45),0 2px 6px rgba(20,30,50,.12);
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 22px}
+.sk-hero .sk-line{background:rgba(255,255,255,.45)}
+.sk-hero .sk-line::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)}
+/* Region-header skeleton row (mirrors .cx-region-head: flush, bottom divider, no card). */
+.sk-region{display:flex;align-items:center;gap:12px;margin:26px 2px 12px;padding-bottom:8px;border-bottom:2px solid #e2e6ea}
+.sk-region:first-of-type{margin-top:6px}
 .sk-banner .sk-bl{display:flex;flex-direction:column;gap:9px}
 .sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:5px;margin-bottom:16px;overflow:hidden}
 .sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
@@ -175,6 +217,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .cx-gate h1{color:#1b2026!important}
 .cx-gate p{color:#5c6773!important}
 .btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+/* Remove the outer page padding/margins around #wrap so content sits flush. Must match the shared
+   app-light.css selector specificity (body[data-profile-panel] .wrap sets padding-left/right:12px)
+   AND beat the inline .wrap padding — so target both selectors, all four sides, with !important. */
+.wrap,
+body[data-profile-panel] .wrap,
+body[data-profile-panel] #wrap.wrap{
+  padding:0!important;margin-left:0!important;margin-right:0!important;
+  padding-left:0!important;padding-right:0!important;padding-top:0!important;padding-bottom:0!important;
+}
 </style>
 </head>
 <body data-nav-active="countries" data-back-href="app.html" data-back-label="Dashboard">
@@ -183,22 +234,22 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 <div class="wrap" id="wrap">
   <div class="cx-skel">
-    <div class="sk-banner">
-      <div class="sk-bl">
-        <span class="sk-line" style="width:170px;height:22px"></span>
-        <span class="sk-line" style="width:420px;height:12px"></span>
-      </div>
-      <span class="sk-line" style="width:96px;height:44px;border-radius:5px"></span>
+    <div class="sk-hero">
+      <div class="sk-bl"><span class="sk-line" style="width:220px;height:20px"></span></div>
+      <span class="sk-line" style="width:84px;height:40px;border-radius:5px"></span>
     </div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-line" style="width:60px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <!-- Region-header shells (mirror the loaded collapsed region rows so there's no layout jump). -->
+    <div class="sk-region"><span class="sk-line" style="width:70px;height:15px"></span><span class="sk-line" style="margin-left:auto;width:150px;height:11px"></span><span class="sk-line" style="width:12px;height:12px;border-radius:3px"></span></div>
+    <div class="sk-region"><span class="sk-line" style="width:90px;height:15px"></span><span class="sk-line" style="margin-left:auto;width:140px;height:11px"></span><span class="sk-line" style="width:12px;height:12px;border-radius:3px"></span></div>
+    <div class="sk-region"><span class="sk-line" style="width:80px;height:15px"></span><span class="sk-line" style="margin-left:auto;width:150px;height:11px"></span><span class="sk-line" style="width:12px;height:12px;border-radius:3px"></span></div>
+    <div class="sk-region"><span class="sk-line" style="width:85px;height:15px"></span><span class="sk-line" style="margin-left:auto;width:140px;height:11px"></span><span class="sk-line" style="width:12px;height:12px;border-radius:3px"></span></div>
+    <div class="sk-region"><span class="sk-line" style="width:95px;height:15px"></span><span class="sk-line" style="margin-left:auto;width:150px;height:11px"></span><span class="sk-line" style="width:12px;height:12px;border-radius:3px"></span></div>
+    <div class="sk-region"><span class="sk-line" style="width:110px;height:15px"></span><span class="sk-line" style="margin-left:auto;width:150px;height:11px"></span><span class="sk-line" style="width:12px;height:12px;border-radius:3px"></span></div>
   </div>
 </div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=143"></script>
+<script src="topbar-auth.js?v=144"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -221,6 +272,34 @@ var CX_NAMES={
   CO:'Colorado (US state)',LA:'Louisiana (US state)',ON:'Ontario (CA province)'
 };
 function cxNameOf(code){ return CX_NAMES[String(code||'').toUpperCase()]||''; }
+// ---- Region grouping ----------------------------------------------------------------------------
+// Each country code maps to a region. Codes NOT listed here (US-state codes, system tokens like
+// CX/SDS/API, and anything unrecognised) fall into "others". Per request, TR and ZA sit in OTHERS,
+// not MENA. Regions render as collapsible blocks in this fixed order; countries within a region keep
+// the API's count-desc order.
+var CX_REGION_OF={
+  // NA
+  US:'na', CA:'na', USA:'na', CAN:'na',
+  // LATAM
+  MX:'latam', BR:'latam',
+  // APAC
+  IN:'apac', AU:'apac', JP:'apac', SG:'apac',
+  // MENA
+  EG:'mena', SA:'mena', UAE:'mena', IL:'mena',
+  // Europe
+  UK:'europe', GB:'europe', DE:'europe', IT:'europe', FR:'europe', ES:'europe',
+  PT:'europe', BE:'europe', NL:'europe', NO:'europe', IE:'europe', AT:'europe', UA:'europe', EU:'europe'
+  // TR, ZA and everything else -> 'others' (handled by the fallback below)
+};
+function cxRegionOf(code){ return CX_REGION_OF[String(code||'').toUpperCase()]||'others'; }
+// Fixed region order + display labels. "Others" always last.
+var CX_REGION_ORDER=['na','latam','apac','mena','europe','others'];
+var CX_REGION_LABEL={ na:'NA', latam:'LATAM', apac:'APAC', mena:'MENA', europe:'EUROPE', others:'CLEAN-UPS' };
+var CX_REGION_SUB={
+  na:'North America', latam:'Latin America', apac:'Asia-Pacific',
+  mena:'Middle East & North Africa', europe:'Europe',
+  others:'US state codes, unrecognised codes & other regions'
+};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="cx-gate"><h1>Countries</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
 function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
@@ -386,32 +465,182 @@ function cxSort(idx,field){
 }
 function cxMore(idx){ var a=CX_SECS[idx]; if(!a)return; a.shown=Math.min((a.shown||CX_PAGE0)+CX_STEP,(a.tickets||[]).length); var b=document.getElementById('cxBody'+idx); if(b)b.innerHTML=cxSecTableHtml(idx); }
 function cxLess(idx){ var a=CX_SECS[idx]; if(!a)return; a.shown=CX_PAGE0; var b=document.getElementById('cxBody'+idx); if(b)b.innerHTML=cxSecTableHtml(idx); }
+
+// ---- CLEAN-UPS: one consolidated table across every clean-up code, with a leading CODE column ----
+// Built from a flat list of {code, ...ticket} rows. Sortable (default: code asc, then created desc),
+// paginated like the per-code tables, and exportable to CSV.
+var CX_CLEAN={ rows:[], shown:CX_PAGE0, sortField:'code', sortDir:'asc' };
+function cxCleanSortVal(t,field){
+  if(field==='code') return String(t.code||'').toLowerCase();
+  if(field==='created') return new Date(t.created).getTime()||0;
+  if(field==='assignee') return cxAssignee(t.assignee).toLowerCase();
+  if(field==='status') return String(t.status||'').toLowerCase();
+  if(field==='ticket') return String(t.shortId||'').toLowerCase();
+  return String(t.title||'').toLowerCase();
+}
+function cxCleanSorted(){
+  var field=CX_CLEAN.sortField, dir=CX_CLEAN.sortDir;
+  return CX_CLEAN.rows.slice().sort(function(x,y){
+    var vx=cxCleanSortVal(x,field), vy=cxCleanSortVal(y,field);
+    if(vx<vy) return dir==='desc'?1:-1;
+    if(vx>vy) return dir==='desc'?-1:1;
+    // tie-break: keep rows of the same code together, newest first
+    var cx=String(x.code||'').toLowerCase(), cy=String(y.code||'').toLowerCase();
+    if(cx!==cy) return cx<cy?-1:1;
+    return (new Date(y.created).getTime()||0)-(new Date(x.created).getTime()||0);
+  });
+}
+function cxCleanArrow(field){
+  if(CX_CLEAN.sortField!==field) return '<span class="cx-sort-ar idle">\u21c5</span>';
+  return CX_CLEAN.sortDir==='desc'?'<span class="cx-sort-ar">\u25bc</span>':'<span class="cx-sort-ar">\u25b2</span>';
+}
+function cxCleanTableHtml(){
+  var tix=cxCleanSorted();
+  var shown=Math.min(CX_CLEAN.shown||CX_PAGE0, tix.length);
+  var rows='';
+  for(var i=0;i<shown;i++){
+    var t=tix[i];
+    var link=t.url?('<a class="cx-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId||'—')+'</a>'):esc(t.shortId||'—');
+    rows+='<tr>'
+      +'<td class="cx-fit cx-center"><span class="cx-code">'+esc(t.code||'—')+'</span></td>'
+      +'<td class="cx-fit cx-center">'+link+'</td>'
+      +'<td class="cx-fit cx-center cx-num">'+fmtDate(t.created)+'</td>'
+      +'<td class="cx-fit cx-assignee">'+esc(cxAssignee(t.assignee))+'</td>'
+      +'<td class="cx-fit cx-center">'+statusTag(t.status)+'</td>'
+      +'<td class="cx-title"><span class="cx-title-txt" title="'+esc(t.title||'')+'">'+esc(t.title||'—')+'</span></td>'
+      +'</tr>';
+  }
+  if(!tix.length) rows='<tr><td colspan="6" class="cx-empty">No tickets.</td></tr>';
+  var th=function(field,label,extra){
+    return '<th class="cx-sort '+(extra||'')+'" onclick="cxCleanSort(\''+field+'\')">'+label+cxCleanArrow(field)+'</th>';
+  };
+  var head='<thead><tr>'
+    +th('code','Code','cx-fit cx-center')
+    +th('ticket','Ticket ID','cx-fit cx-center')
+    +th('created','Created','cx-fit cx-center')
+    +th('assignee','Assignee','cx-fit')
+    +th('status','Status','cx-fit cx-center')
+    +th('title','Title')
+    +'</tr></thead>';
+  var more='';
+  if(tix.length>CX_PAGE0){
+    var canMore=shown<tix.length, canLess=shown>CX_PAGE0;
+    more='<div class="cx-more">'
+      +(canMore?'<button onclick="cxCleanMore()">Show more</button>':'')
+      +(canLess?'<button onclick="cxCleanLess()">Show less</button>':'')
+      +'<span class="cx-mcount">Showing '+shown+' of '+tix.length+'</span></div>';
+  }
+  return '<div class="cx-tbl-wrap"><table class="cx-tbl">'+head+'<tbody>'+rows+'</tbody></table></div>'+more;
+}
+function cxCleanRender(){ var b=document.getElementById('cxCleanBody'); if(b) b.innerHTML=cxCleanTableHtml(); }
+function cxCleanSort(field){
+  if(CX_CLEAN.sortField===field){ CX_CLEAN.sortDir=(CX_CLEAN.sortDir==='desc'?'asc':'desc'); }
+  else { CX_CLEAN.sortField=field; CX_CLEAN.sortDir=(field==='created'?'desc':'asc'); }
+  cxCleanRender();
+}
+function cxCleanMore(){ CX_CLEAN.shown=Math.min((CX_CLEAN.shown||CX_PAGE0)+CX_STEP, CX_CLEAN.rows.length); cxCleanRender(); }
+function cxCleanLess(){ CX_CLEAN.shown=CX_PAGE0; cxCleanRender(); }
+// Download every clean-up row (all codes, current sort) as CSV: Code,Ticket ID,Created,Assignee,Status,Title.
+function cxCleanExport(ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  var tix=cxCleanSorted(); if(!tix.length) return;
+  var q=function(v){ var s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  var lines=[['Code','Ticket ID','Created','Assignee','Status','Title'].join(',')];
+  tix.forEach(function(t){
+    lines.push([t.code||'', t.shortId||'', fmtDate(t.created), cxAssignee(t.assignee), t.status||'', t.title||''].map(q).join(','));
+  });
+  var blob=new Blob([lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download='clean-ups_tickets.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+}
 // Accordion: only one section open at a time.
 function cxToggle(idx){
   var sec=document.getElementById('cxSec'+idx); if(!sec) return;
   var wasOpen=sec.classList.contains('open');
   document.querySelectorAll('.cx-sec.open').forEach(function(s){ s.classList.remove('open'); });
-  if(!wasOpen){ sec.classList.add('open'); setTimeout(function(){ cxDrawChart(idx); },60); }
+  if(!wasOpen){
+    sec.classList.add('open');
+    // CLEAN-UPS cards have no chart (table only) — skip the chart draw for them.
+    var a=CX_SECS[idx];
+    if(a && a.region!=='others'){ setTimeout(function(){ cxDrawChart(idx); },60); }
+  }
 }
 
 function render(data){
   var secs=(data&&data.sections)||[];
-  // Sections come pre-sorted by count desc from the API; keep that order (highest cases first).
-  CX_SECS=secs.map(function(s){ return { tag:s.tag, count:s.count, tickets:s.tickets||[], shown:CX_PAGE0, sortField:'created', sortDir:'desc' }; });
-  var from=(data&&data.from)||'2026-04-01';
+  // Sections come pre-sorted by count desc from the API. Tag each with its region, then order by the
+  // fixed region sequence (NA, LATAM, APAC, MENA, Europe, Others); within a region keep count desc.
+  CX_SECS=secs.map(function(s){ return { tag:s.tag, region:cxRegionOf(s.tag), count:s.count, tickets:s.tickets||[], shown:CX_PAGE0, sortField:'created', sortDir:'desc' }; });
+  // Total ticket count per region, so regions are ordered by VOLUME (highest first). Clean-ups
+  // ('others') is always pinned LAST, ignored by the volume sort.
+  var regionTotal={}; CX_SECS.forEach(function(x){ regionTotal[x.region]=(regionTotal[x.region]||0)+(Number(x.count)||0); });
+  var regionRankByVol=function(r){ return r==='others' ? Infinity : -(regionTotal[r]||0); }; // smaller sorts first; others last
+  CX_SECS.sort(function(a,b){
+    var ra=regionRankByVol(a.region), rb=regionRankByVol(b.region);
+    if(ra!==rb) return ra-rb;              // regions by total ticket count desc (Clean-ups last)
+    if(a.region!==b.region) return a.region<b.region?-1:1;  // stable tie-break between equal-volume regions
+    if(b.count!==a.count) return b.count-a.count;   // within a region, codes by count desc
+    return String(a.tag).localeCompare(String(b.tag));
+  });
+  var from=(data&&data.from)||'2026-01-01';
   var totalTix=CX_SECS.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
   var totalCodes=CX_SECS.length;
-  var globeGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
-  var html='<div class="cx-banner">'
-    +'<div class="hb-left">'
-      +'<h1 class="hb-title">'+globeGlyph+'Countries</h1>'
-      +'<div class="hb-sub">One section per <b>country / region code</b> at the start of a ticket Title (e.g. US, UK, IN). '
-        +'Highest case count first. Live — tickets created on/after <b>'+esc(from)+'</b>.</div>'
+  // Pretty "1st Jan 2026" (ordinal day) from the ISO `from` date.
+  var fromPretty=(function(iso){ var d=new Date(iso); if(isNaN(d)) return esc(iso);
+    var day=d.getUTCDate(), mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()], yr=d.getUTCFullYear();
+    var s=(day%10==1&&day!=11)?'st':(day%10==2&&day!=12)?'nd':(day%10==3&&day!=13)?'rd':'th';
+    return day+s+' '+mon+' '+yr; })(from);
+  var globeGlyph='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  // Shift Report-style ORANGE hero title bar: icon + title left, a compact snapshot pill on the right.
+  var html='<div class="cx-hero">'
+    +'<div class="cx-hero-left">'
+      +'<span class="cx-hero-ic">'+globeGlyph+'</span>'
+      +'<span class="cx-hero-title">Incidents from each Country</span>'
+      +'<span class="cx-hero-sub" title="Live \u2014 tickets created on/after '+esc(fromPretty)+'">FROM '+esc(fromPretty).toUpperCase()+'</span>'
     +'</div>'
-    +'<div class="hb-total"><span class="n">'+totalTix+'</span><span class="l">'+totalCodes+' codes</span></div>'
+    +'<div class="cx-hero-badge"><span class="n">'+totalTix+'</span><span class="l">'+totalCodes+' CODES</span></div>'
   +'</div>';
   if(!CX_SECS.length){ html+='<div class="cx-empty">No country codes found in ticket titles.</div>'; document.getElementById('wrap').innerHTML=html; return; }
+  var lastRegion=null, regionSeq=-1;
   CX_SECS.forEach(function(a,idx){
+    // Open a new collapsible REGION block whenever the region changes (sections are pre-ordered by
+    // region). First region (NA) starts expanded; the rest start collapsed. Independent toggles.
+    if(a.region!==lastRegion){
+      if(lastRegion!==null){ html+='</div></div>'; }   // close previous region body + wrapper
+      lastRegion=a.region; regionSeq++;
+      var inRegion=CX_SECS.filter(function(x){ return x.region===a.region; });
+      var rTix=inRegion.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
+      var collapsed=(regionSeq>0);
+      var isClean=(a.region==='others');
+      // Clean-ups region header gets an Export CSV button (stops the click from toggling the region).
+      var exportBtn=isClean
+        ? '<button type="button" class="cx-exp" onclick="cxCleanExport(event)" title="Download all Clean-ups tickets as CSV">'+ic('arrow-down',13)+' EXPORT CSV</button>'
+        : '';
+      html+='<div class="cx-region'+(collapsed?' collapsed':'')+'" id="cxRegion'+regionSeq+'">'
+        +'<div class="cx-region-head" onclick="cxRegionToggle('+regionSeq+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();cxRegionToggle('+regionSeq+');}" role="button" tabindex="0">'
+          +'<span class="cx-region-label-wrap"><span class="cx-region-label">'+esc(CX_REGION_LABEL[a.region]||a.region.toUpperCase())+'</span>'
+            +'<span class="cx-region-sub">'+esc(CX_REGION_SUB[a.region]||'')+'</span></span>'
+          +'<span class="cx-region-head-right"><span class="cx-region-meta">'+inRegion.length+' code'+(inRegion.length===1?'':'s')+' \u00b7 '+rTix+' tickets</span>'
+          +exportBtn
+          +'<span class="cx-region-caret">\u25be</span></span>'
+        +'</div>'
+        +'<div class="cx-region-body">';
+      // CLEAN-UPS: render ONE consolidated table (CODE + the 5 columns) for every code in the region,
+      // instead of a card per code. Build the flat row list (each ticket tagged with its code).
+      if(isClean){
+        CX_CLEAN.rows=[]; CX_CLEAN.shown=CX_PAGE0; CX_CLEAN.sortField='code'; CX_CLEAN.sortDir='asc';
+        inRegion.forEach(function(sec){
+          (sec.tickets||[]).forEach(function(t){
+            CX_CLEAN.rows.push({ code:sec.tag, shortId:t.shortId, url:t.url, created:t.created, assignee:t.assignee, status:t.status, title:t.title });
+          });
+        });
+        html+='<div id="cxCleanBody">'+cxCleanTableHtml()+'</div>';
+      }
+    }
+    // CLEAN-UPS codes are already rendered in the single consolidated table above — skip per-code cards.
+    if(a.region==='others'){ return; }
     var nm=cxNameOf(a.tag);
     var nameHtml=nm
       ? '<div class="cx-code-name" title="'+esc(nm)+'">'+esc(nm)+'</div>'
@@ -424,16 +653,30 @@ function render(data){
         +'<div class="cx-sec-head-right"><span class="cx-count">'+a.count+'</span><span class="cx-caret">\u25be</span></div>'
       +'</div>'
       +'<div class="cx-sec-body">'
-        +cxStatsHtml(a.tickets)
-        +'<div class="cx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
-        +'<div class="cx-chart-sub"><b style="color:#7dd3fc">'+esc(a.tag)+'</b> tickets created per week are the <b style="color:#7dd3fc">tall bars (left axis)</b>. <b style="color:#a78bfa">Pet</b> and <b style="color:#ff9f2e">non-pet</b> repeat incidents are bars, and <b style="color:#4ade80">combined repeat</b> is the line \u2014 all on the <b style="color:#4ade80">right axis</b>.</div>'
-        +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="cxCanvas'+idx+'"></canvas></div></div>'
+        // CLEAN-UPS region: table only (no stat tiles, no "created per week" chart). Every other
+        // region keeps the full stats + weekly chart + table.
+        +(a.region==='others'
+            ? ''
+            : cxStatsHtml(a.tickets)
+              +'<div class="cx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+              +'<div class="cx-chart-sub"><b style="color:#7dd3fc">'+esc(a.tag)+'</b> tickets created per week are the <b style="color:#7dd3fc">tall bars (left axis)</b>. <b style="color:#a78bfa">Pet</b> and <b style="color:#ff9f2e">non-pet</b> repeat incidents are bars, and <b style="color:#4ade80">combined repeat</b> is the line \u2014 all on the <b style="color:#4ade80">right axis</b>.</div>'
+              +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="cxCanvas'+idx+'"></canvas></div></div>')
         +'<div id="cxBody'+idx+'">'+cxSecTableHtml(idx)+'</div>'
       +'</div>'
     +'</div>';
   });
+  if(lastRegion!==null){ html+='</div></div>'; }   // close the last region body + wrapper
   document.getElementById('wrap').innerHTML=html;
-  // All sections start collapsed; a chart is drawn only when its section is opened (cxToggle).
+  // Country cards start collapsed (chart drawn on open via cxToggle); NA region open, rest collapsed.
+}
+// Expand/collapse a whole REGION block (NA / LATAM / APAC / MENA / Europe / Clean-ups). Accordion:
+// only ONE region open at a time — opening one collapses all the others.
+function cxRegionToggle(ri){
+  var g=document.getElementById('cxRegion'+ri); if(!g) return;
+  var willOpen=g.classList.contains('collapsed');
+  // Collapse every region first, then open the clicked one if it was closed.
+  document.querySelectorAll('.cx-region').forEach(function(r){ r.classList.add('collapsed'); });
+  if(willOpen){ g.classList.remove('collapsed'); }
 }
 
 // Load from the live API. No static fallback file for this page — if the API is unreachable, show a gate.
