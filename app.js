@@ -3291,7 +3291,7 @@ function perfSectionHtml(){
     '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
   return '<div class="section dash-collapsible collapsed" data-perf="1">'+
     '<div class="sec-head" onclick="dashSectionToggle(this,event)" role="button" tabindex="0">'+
-      '<h2 title="Performance Overview">'+ic('bar-chart',16)+' Performance Overview</h2>'+
+      '<h2 title="Performance Overview" class="perf-h2-iconly">'+ic('bar-chart',16)+'</h2>'+
       '<div class="perf-head-right" onclick="event.stopPropagation()">'+
         '<span id="perfPickerWrap">'+perfPickerHtml()+'</span>'+
       '</div>'+
