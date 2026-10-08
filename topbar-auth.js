@@ -2360,7 +2360,10 @@
         try { localStorage.setItem(LINKS_KEY, nowCollapsed ? '1' : '0'); } catch (e) {}
       };
     }
-    if (li) tbLoadProfileStats();   // fetch + render the role-aware stats card below the banner
+    if (li) {
+      try { tbClearProfileCache(); } catch (e) {}   // purge any legacy phd_pp_* cache from before caching was removed
+      tbLoadProfileStats();                          // fetch + render the role-aware stats card below the banner (always fresh)
+    }
   }
   window.PHDBuildProfilePanel = buildProfilePanel;
 
@@ -2418,8 +2421,6 @@
     var pairRow = function (a, b) { return '<div class="tb-pp-pair-row">' + pair(a) + '<span class="tb-pp-pair-sep">|</span>' + pair(b) + '</div>'; };
     // A color-accent tile with the label hardcoded and the number shimmering.
     var tile = function (label, tone) { return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + '"><div class="tb-pp-stat-n">' + shim('60%', '16px') + '</div><div class="tb-pp-stat-l">' + label + '</div></div>'; };
-    // Upload key/value row: label hardcoded, value shimmering.
-    var upRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v">' + shim('56px', '12px') + '</span></div>'; };
 
     // Clubbed skeleton: open-status pairs + "By age" tiles in a single card (matches the real render).
     var openCard = tbProfileCard(izImg('my-tickets', ic('ticket', 15)), 'My open tickets',
@@ -2432,12 +2433,12 @@
     // Upload card built manually so its header can carry the "Upload log" button (same as the live
     // card), keeping the skeleton visually identical to the loaded state.
     var uploadLogBtn = '<a class="tb-pp-up-loglink" href="data-log.html" aria-label="View upload log">' + ic('history', 13) + '<span>Upload log</span></a>';
+    // Upload card loading state = ONE centered spinner for the whole body (matches the live render,
+    // which shows the same single spinner until /api/last-upload returns, then paints everything).
     var uploadCard = '<section class="tb-pp-card tb-pp-card-upload">'
       + '<div class="tb-pp-card-h"><span class="tb-pp-ic">' + izImg('upload-new-data', ic('upload', 15)) + '</span>'
       +   '<span class="tb-pp-card-t">Change in data due to last upload</span>' + uploadLogBtn + '</div>'
-      + '<div class="tb-pp-card-b"><div class="tb-pp-up">'
-      + upRow('Uploaded by') + upRow('Filename') + upRow('When') + upRow('NOT ASSIGNED')
-      + '</div></div></section>';
+      + '<div class="tb-pp-card-b"><div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div></div></section>';
     // The last card is the SLIDER shell — same markup as the live layout so the prev/dots/next
     // control bar is present during loading (no layout jump when the real data swaps in). The
     // control bar is inert in the skeleton (gets wired only when tbStartProfileSlider runs post-load).
@@ -2466,21 +2467,10 @@
   // on (1) a section's own reload button (force), or (2) a cache miss / expired entry. TTLs: the
   // stats + last-upload are long-lived (change only on upload); the 3 agents-activity windows are
   // time-sensitive so they use a short TTL (a day boundary flips the Today/Yesterday labels).
-  var TB_PP_TTL_LONG = 6 * 60 * 60 * 1000;   // 6h for open-tickets / tickets-by-age / last-upload
-  var TB_PP_TTL_SHORT = 7 * 60 * 1000;       // 7min for the agents-activity windows
-  function tbPpCacheKey(key) { var u = (A.getUser && A.getUser()) || {}; return 'phd_pp_' + key + '_' + (u.username || 'anon'); }
-  function tbPpCacheGet(key, ttl) {
-    try {
-      var raw = localStorage.getItem(tbPpCacheKey(key));
-      if (!raw) return null;
-      var o = JSON.parse(raw);
-      if (!o || !o.at || (Date.now() - o.at) > ttl) return null;  // expired -> treat as miss
-      return o.data;
-    } catch (e) { return null; }
-  }
-  function tbPpCacheSet(key, data) {
-    try { localStorage.setItem(tbPpCacheKey(key), JSON.stringify({ at: Date.now(), data: data })); } catch (e) {}
-  }
+  // Profile-column caching was REMOVED entirely: every section fetches fresh on each page load,
+  // exactly like the main column. A stale localStorage cache (6h TTL) was making the "last upload"
+  // card and the other sections show outdated data until the TTL expired. The old phd_pp_* entries,
+  // if any linger from a previous version, are purged once by tbClearProfileCache on panel build.
 
   // A small reload button for a profile-section card header (top-right). `onReload` is called when
   // clicked; it should re-fetch that section with force:true. Shows a spinning state until done.
@@ -2507,15 +2497,9 @@
   function tbLoadProfileStats(force) {
     var slot = document.getElementById('tbPpStats');
     if (!slot || !A || !A.api) return;
-    // Cache-first: paint instantly from the cached payload (no network) unless forced. On a cache
-    // hit we still render; on a miss (or force) we fetch, render, and cache.
-    if (!force) {
-      var cached = tbPpCacheGet('stats', TB_PP_TTL_LONG);
-      if (cached) { renderProfileStats(cached); return; }
-    }
+    // Always fetch fresh (no caching) — the profile column mirrors the main column.
     A.api('GET', '/api/profile-stats').then(function (r) {
       if (!r || !r.ok || !r.data) { slot.innerHTML = ''; tbLoadLastUpload(slot); return; }
-      tbPpCacheSet('stats', r.data);
       renderProfileStats(r.data);
     }).catch(function () { if (slot) { slot.innerHTML = ''; } });
 
@@ -2571,11 +2555,11 @@
       // The last "card" is a SLIDING CAROUSEL that alternates between the upload-change card and the
       // Agents-activity card every 3s. Both slides render their fixed labels immediately; the values
       // fill in from /api/last-upload and /api/agents-activity respectively.
-      var upLoadRow = function (k) { return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + k + '</span><span class="tb-pp-up-v"><span class="tb-pp-mini-spin"></span></span></div>'; };
+      // Loading state = ONE centered spinner for the whole card body (no label rows / per-row spinners).
+      // tbLoadLastUpload replaces the entire body with the real content once the data lands.
       var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Change in data due to last upload',
-        '<div id="tbPpUploadBody"><div class="tb-pp-up">'
-        + upLoadRow('Uploaded by') + upLoadRow('Filename') + upLoadRow('When') + upLoadRow('NOT ASSIGNED')
-        + '</div></div>', 'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
+        '<div id="tbPpUploadBody"><div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div></div>',
+        'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
       // Three agent-activity windows: Today / Yesterday / Last week. Each is its own carousel slide,
       // with its own reload button in the card header.
       var agentSlide = function (bodyId, titleText, reloadId) {
@@ -2936,7 +2920,10 @@
       // sorted by open count desc (server-sorted). The +/- toggle reveals a right-to-left slide-in row
       // of W/A/P/R status chips (only the non-zero statuses). Only ONE analyst is expanded at a time.
       var analystRows = '';
-      var alist = Array.isArray(d.analysts) ? d.analysts : [];
+      // Loaded list: by OPEN COUNT, descending (highest first). The payload already arrives
+      // count-sorted from the server; sort defensively here so the order is guaranteed.
+      var alist = Array.isArray(d.analysts) ? d.analysts.slice() : [];
+      alist.sort(function (a, b) { return (Number(b.open) || 0) - (Number(a.open) || 0); });
       if (alist.length) {
         // Status -> single-letter tag + CSS tone class. (W=WIP, A=Assigned, P=Pending, R=Researching.)
         var ST = [
@@ -3005,14 +2992,12 @@
         naRow.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tbOpenNaPopup(); } };
       }
     };
-    // Cache-first: paint instantly from cache (no network) unless forced.
-    if (!force) {
-      var cached = tbPpCacheGet('lastUpload', TB_PP_TTL_LONG);
-      if (cached) { renderUpload(cached); return Promise.resolve(); }
-    }
+    // Show a single centered spinner for the whole card while the data loads (also on a forced
+    // reload). The full content replaces it once /api/last-upload returns.
+    body.innerHTML = '<div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div>';
+    // Always fetch fresh (no caching) so a new upload shows immediately on refresh.
     return A.api('GET', '/api/last-upload').then(function (r) {
       if (!r || !r.ok || !r.data) { body.innerHTML = '<div class="tb-pp-up-empty">Could not load upload summary.</div>'; return; }
-      tbPpCacheSet('lastUpload', r.data);
       renderUpload(r.data);
     }).catch(function () { body.innerHTML = '<div class="tb-pp-up-empty">Could not load upload summary.</div>'; });
   }
@@ -3617,15 +3602,11 @@
     var body = document.getElementById(bodyId);
     if (!body || !A || !A.api) return Promise.resolve();
     tbAgState[bodyId] = { data: null, sort: 'successful', window: windowName, page: 0 };
-    if (!force) {
-      var cached = tbPpCacheGet('ag_' + windowName, TB_PP_TTL_SHORT);
-      if (cached) { tbAgState[bodyId].data = cached; tbRenderAgents(bodyId); return Promise.resolve(); }
-    }
     // A forced reload shows the skeleton again while the fresh data loads.
     if (force) body.innerHTML = tbAgSkeleton();
+    // Always fetch fresh (no caching).
     return A.api('GET', '/api/agents-activity?window=' + encodeURIComponent(windowName)).then(function (r) {
       if (!r || !r.ok || !r.data) { body.innerHTML = '<div class="tb-pp-ag-empty">Could not load agents activity.</div>'; return; }
-      tbPpCacheSet('ag_' + windowName, r.data);
       tbAgState[bodyId].data = r.data;
       tbRenderAgents(bodyId);
     }).catch(function () { body.innerHTML = '<div class="tb-pp-ag-empty">Could not load agents activity.</div>'; });
