@@ -815,8 +815,12 @@
       + '.tb-na-foot-less{color:#b4232a;border-color:#f6c6c6}'
       + '.tb-na-foot-less:hover{background:#fdeaea;border-color:#dc2626;color:#dc2626}'
       // Clickable BY AGE tile: pointer + subtle hover lift.
-      + '.tb-pp-stat-click{cursor:pointer;transition:transform .12s,box-shadow .12s}'
+      + '.tb-pp-stat-click{cursor:pointer;position:relative;transition:transform .12s,box-shadow .12s}'
       + '.tb-pp-stat-click:hover{transform:translateY(-1px);box-shadow:0 4px 12px -6px rgba(20,30,50,.4)}'
+      // "Open in new window" hint icon, top-right of each clickable BY AGE tile. Muted until hover/focus.
+      + '.tb-pp-stat-open{position:absolute;top:5px;right:5px;display:inline-flex;align-items:center;justify-content:center;color:#8b96a0;opacity:.55;transition:opacity .15s,color .15s;pointer-events:none}'
+      + '.tb-pp-stat-open svg{display:block}'
+      + '.tb-pp-stat-click:hover .tb-pp-stat-open,.tb-pp-stat-click:focus-visible .tb-pp-stat-open{opacity:1;color:#ec7211}'
       // Per-colour header tint for the "my <colour> tickets" popup (overrides the default red bar).
       + '.tb-na-pop-head-purple{background:#f1eaff!important;border-bottom-color:#d6c2fb!important}.tb-na-pop-head-purple .tb-na-pop-title,.tb-na-pop-head-purple .tb-na-pop-title svg,.tb-na-pop-head-purple .tb-na-pop-n,.tb-na-pop-head-purple .tb-na-pop-x{color:#6d28d9!important}'
       + '.tb-na-pop-head-black{background:#eceef1!important;border-bottom-color:#cfd4da!important}.tb-na-pop-head-black .tb-na-pop-title,.tb-na-pop-head-black .tb-na-pop-title svg,.tb-na-pop-head-black .tb-na-pop-n,.tb-na-pop-head-black .tb-na-pop-x{color:#374151!important}'
@@ -2524,6 +2528,7 @@
         var clickable = (color && n > 0);
         return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + (clickable ? ' tb-pp-stat-click' : '') + '"'
           + (clickable ? ' role="button" tabindex="0" data-color="' + color + '" title="View my ' + label + ' tickets"' : '') + '>'
+          + (clickable ? '<span class="tb-pp-stat-open" aria-hidden="true">' + ic('external-link', 11) + '</span>' : '')
           + '<div class="tb-pp-stat-n">' + n + '</div>'
           + '<div class="tb-pp-stat-l">' + label + '</div></div>';
       };
@@ -3317,6 +3322,128 @@
     });
   }
   window.PHDOpenMyColorPopup = tbOpenMyColorPopup;
+
+  // Open the "<Status> tickets" popup — same table/behaviour as the NOT ASSIGNED popup, but lists
+  // EVERY open ticket in one Queue-Status bucket (Assigned / Work In Progress / Researching /
+  // Pending) across ALL agents, assigned or not. Powered by /api/tickets-by-status.
+  var TB_STATUS_OK = { 'Assigned': 1, 'Work In Progress': 1, 'Researching': 1, 'Pending': 1 };
+  function tbOpenStatusPopup(status) {
+    status = String(status || '').trim();
+    if (!TB_STATUS_OK[status]) return;
+    var label = status;   // the title uses the status verbatim ("Work In Progress tickets", etc.)
+    var existing = document.getElementById('tbNaPopBg');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var bg = document.createElement('div');
+    bg.id = 'tbNaPopBg';
+    bg.className = 'tb-na-pop-bg';
+    var headRow = '<div class="tb-na-trow tb-na-thead">'
+      + '<span class="tb-na-c-id">Ticket</span>'
+      + '<span class="tb-na-c-st">Status</span>'
+      + '<button type="button" class="tb-na-c-age tb-na-sort" id="tbNaSort">Created <span class="tb-na-sort-ic">\u25b2</span></button>'
+      + '<span class="tb-na-c-left">Time left</span>'
+      + '<span class="tb-na-c-title">Title</span>'
+      + '</div>';
+    bg.innerHTML =
+      '<div class="tb-na-pop" role="dialog" aria-label="' + tbEsc(label) + ' tickets">'
+      + '<div class="tb-na-pop-head">'
+      +   '<span class="tb-na-pop-title">' + ic('inbox', 15) + ' ' + tbEsc(label) + ' tickets <span class="tb-na-pop-n" id="tbNaPopN"></span></span>'
+      +   '<span class="tb-na-pop-actions">'
+      +     '<button type="button" class="tb-na-pop-csv" id="tbNaCsv">' + ic('arrow-down', 13) + ' Download CSV</button>'
+      +     '<button type="button" class="tb-na-pop-x" aria-label="Close">\u00d7</button>'
+      +   '</span>'
+      + '</div>'
+      + '<div class="tb-na-pop-table">'
+      +   headRow
+      +   '<div class="tb-na-pop-body" id="tbNaPopBody">' + tbNaSkelRows(10) + '</div>'
+      + '</div>'
+      + '<div class="tb-na-pop-foot" id="tbNaFoot"></div>'
+      + '</div>';
+    document.body.appendChild(bg);
+    var close = function () { if (bg.parentNode) bg.parentNode.removeChild(bg); document.removeEventListener('keydown', onKey); };
+    var onKey = function (e) { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+    bg.querySelector('.tb-na-pop-x').onclick = close;
+
+    var TIX = [];
+    var sortAsc = true;
+    var PAGE0 = 20, STEP = 10;
+    var shown = PAGE0;
+    var sortedTix = function () {
+      return TIX.slice().sort(function (a, b) {
+        var da = new Date(a.createDate).getTime() || 0, db = new Date(b.createDate).getTime() || 0;
+        return sortAsc ? (da - db) : (db - da);
+      });
+    };
+    var renderFoot = function () {
+      var foot = document.getElementById('tbNaFoot'); if (!foot) return;
+      var total = TIX.length;
+      if (total <= PAGE0) { foot.innerHTML = ''; return; }
+      var html = '<span class="tb-na-foot-count">Showing ' + Math.min(shown, total) + ' of ' + total + '</span>';
+      if (shown < total) { html += '<button type="button" class="tb-na-foot-btn" id="tbNaMore">Show next ' + Math.min(STEP, total - shown) + '</button>'; }
+      else { html += '<button type="button" class="tb-na-foot-btn tb-na-foot-less" id="tbNaLess">Show less</button>'; }
+      foot.innerHTML = html;
+      var moreB = document.getElementById('tbNaMore'); if (moreB) moreB.onclick = function () { shown = Math.min(total, shown + STEP); renderRows(); };
+      var lessB = document.getElementById('tbNaLess'); if (lessB) lessB.onclick = function () { shown = PAGE0; renderRows(); var b = document.getElementById('tbNaPopBody'); if (b) b.scrollTop = 0; };
+    };
+    var renderRows = function () {
+      var bodyEl = document.getElementById('tbNaPopBody'); if (!bodyEl) return;
+      if (!TIX.length) { bodyEl.innerHTML = '<div class="tb-na-pop-empty">No ' + tbEsc(label.toLowerCase()) + ' tickets. \uD83C\uDF89</div>'; renderFoot(); return; }
+      var now = Date.now();
+      var sorted = sortedTix().slice(0, shown);
+      bodyEl.innerHTML = sorted.map(function (t) {
+        var st = TB_NA_STATUS[t.status] || { tag: (t.status || '?').slice(0, 1).toUpperCase(), cls: 'x' };
+        var cd = t.createDate ? new Date(t.createDate) : null;
+        var cdValid = cd && !isNaN(cd);
+        var createdStr = cdValid ? cd.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '\u2014';
+        var leftHtml = '\u2014';
+        if (t.deadline) { var dl = new Date(t.deadline).getTime(); if (!isNaN(dl)) { var lh = (dl - now) / 36e5; leftHtml = (lh >= 0) ? '<span class="tb-na-left ok">' + tbHumanDur(lh) + ' left</span>' : '<span class="tb-na-left over">' + tbHumanDur(-lh) + ' overdue</span>'; } }
+        var link = t.url ? '<a class="tb-na-id" href="' + t.url + '" target="_blank" rel="noopener">' + tbEsc(t.shortId || 'ticket') + '</a>' : '<span class="tb-na-id">' + tbEsc(t.shortId || '\u2014') + '</span>';
+        var title = tbEsc(t.title || '\u2014');
+        return '<div class="tb-na-trow">'
+          + '<span class="tb-na-c-id">' + link + '</span>'
+          + '<span class="tb-na-c-st"><span class="tb-na-tag tb-na-tag-' + st.cls + '">' + st.tag + '</span></span>'
+          + '<span class="tb-na-c-age">' + createdStr + '</span>'
+          + '<span class="tb-na-c-left">' + leftHtml + '</span>'
+          + '<span class="tb-na-c-title tb-na-trunc" title="' + title + '">' + title + '</span>'
+          + '</div>';
+      }).join('');
+      renderFoot();
+    };
+    var sortBtn = bg.querySelector('#tbNaSort');
+    if (sortBtn) sortBtn.onclick = function () { sortAsc = !sortAsc; var icEl = sortBtn.querySelector('.tb-na-sort-ic'); if (icEl) icEl.textContent = sortAsc ? '\u25b2' : '\u25bc'; shown = PAGE0; renderRows(); };
+    var csvBtn = bg.querySelector('#tbNaCsv');
+    if (csvBtn) csvBtn.onclick = function () {
+      var rows = sortedTix(); if (!rows.length) return;
+      var esc = function (v) { var s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      var now = Date.now();
+      var lines = [['Ticket', 'Status', 'Assignee', 'Created', 'Time left', 'Title'].join(',')];
+      rows.forEach(function (t) {
+        var cd = t.createDate ? new Date(t.createDate) : null;
+        var createdStr = (cd && !isNaN(cd)) ? cd.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        var left = ''; if (t.deadline) { var dl = new Date(t.deadline).getTime(); if (!isNaN(dl)) { var lh = (dl - now) / 36e5; left = (lh >= 0 ? tbHumanDur(lh) + ' left' : tbHumanDur(-lh) + ' overdue'); } }
+        lines.push([t.shortId || '', t.status || '', t.assignee || '', createdStr, left, t.title || ''].map(esc).join(','));
+      });
+      var blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = status.toLowerCase().replace(/\s+/g, '-') + '-tickets.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    };
+
+    A.api('GET', '/api/tickets-by-status?status=' + encodeURIComponent(status)).then(function (r) {
+      if (!document.getElementById('tbNaPopBody')) return;
+      if (!r || !r.ok || !r.data) { document.getElementById('tbNaPopBody').innerHTML = '<div class="tb-na-pop-empty">Could not load tickets.</div>'; return; }
+      TIX = Array.isArray(r.data.tickets) ? r.data.tickets : [];
+      shown = PAGE0;
+      var nEl = document.getElementById('tbNaPopN'); if (nEl) nEl.textContent = '(' + TIX.length + ')';
+      renderRows();
+    }).catch(function () {
+      var bodyEl = document.getElementById('tbNaPopBody');
+      if (bodyEl) bodyEl.innerHTML = '<div class="tb-na-pop-empty">Could not load tickets.</div>';
+    });
+  }
+  window.PHDOpenStatusPopup = tbOpenStatusPopup;
 
   // Avatar chip for an agent row: a round photo if present, else a coloured initial. The colour is
   // derived from the name so each agent keeps a stable chip colour.

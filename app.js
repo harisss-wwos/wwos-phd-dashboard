@@ -893,6 +893,167 @@ function apToggleAgent(btn){
   scope.querySelectorAll('.ap-agent.open').forEach(function(other){ if(other!==s) other.classList.remove('open'); });
   s.classList.toggle('open', willOpen);
 }
+
+// Queue-Status popup: SAME By Tickets / By Analysts UI as the age-colour popup (showColorPopup),
+// but lists every OPEN ticket in one status (Assigned / Work In Progress / Researching / Pending)
+// across ALL agents — assigned or unassigned. Fetches from /api/tickets-by-status so it doesn't
+// depend on the full in-memory dataset being loaded on the chunked dashboard.
+const STATUS_POPUP_META={
+  'Assigned':{label:'ASSIGNED',hex:'#2563eb'},
+  'Work In Progress':{label:'WORK IN PROGRESS',hex:'#b45309'},
+  'Researching':{label:'RESEARCHING',hex:'#0e7490'},
+  'Pending':{label:'PENDING',hex:'#6d28d9'}
+};
+function showStatusPopup(status){
+  if(!requireLoginForTickets())return;
+  status=String(status||'').trim();
+  const meta=STATUS_POPUP_META[status];
+  if(!meta)return;
+  closeAllPopups();
+  const hex=meta.hex;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const ST_TAG={'Assigned':{t:'Assigned',c:'a'},'Work In Progress':{t:'WIP',c:'w'},'Pending':{t:'Pending',c:'p'},'Researching':{t:'Researching',c:'r'}};
+  const statusTag=(s)=>{const m=ST_TAG[s]||{t:(s||'—'),c:'x'};return '<span class="ap-sttag ap-sttag-'+m.c+'" title="'+esc(s||'')+'">'+esc(m.t)+'</span>';};
+  const me=(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser())?String(window.PHDAuth.getUser().username||'').toLowerCase():'';
+  const now=new Date();
+  let TIX=[];   // mapped ticket rows (filled after fetch)
+
+  const tkParts=(r)=>{
+    const cd=new Date(r.CreateDate);
+    const validCd=!isNaN(cd);
+    const daysAgo=validCd?Math.floor((now-cd)/864e5):0;
+    const left=10-daysAgo;
+    const leftCls=left>3?'ap-left-ok':(left>0?'ap-left-warn':'ap-left-over');
+    const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
+    const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    const sid=r.ShortId||'';
+    const isPrio=hasPriorityLabel(r.Labels), isNoEmt=hasNoEmt(r.Title,r.Labels);
+    const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'';
+    const noEmt=isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT">'+ic('no-entry',13)+'</span>':'';
+    const idCell='<a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+noEmt;
+    const cmtCell=(mine)=>'<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+(mine?'1':'0')+'"><span class="pc-tk-cmt-txt">Loading…</span></td>';
+    return {validCd,leftCls,leftTxt,created,sid,isPrio,idCell,cmtCell,cd};
+  };
+
+  const buildByAnalysts=()=>{
+    const byAgent={}; TIX.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
+    const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
+    const agentBlock=([name,tickets])=>{
+      const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
+      const isUnassigned=(String(name).toLowerCase()==='unassigned'||!String(name).trim());
+      const rosterLoaded=!!window.USER_PROFILES;
+      const registered=!isUnassigned&&rosterLoaded&&isRegisteredUser(name);
+      const unregistered=isUnassigned||(rosterLoaded&&!isRegisteredUser(name));
+      const phdTag=registered?' <span class="ap-phd-tag" title="Registered PHD user">PHD</span>':'';
+      const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
+      const noEmtCount=tickets.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
+      const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">'+ic('map-pin',13)+' '+prioCount+'</span>':'';
+      const noEmtBadge=noEmtCount>0?' <span class="ap-agent-prio ap-agent-noemt" title="'+noEmtCount+' No EMT ticket'+(noEmtCount===1?'':'s')+'">'+ic('no-entry',13)+' '+noEmtCount+'</span>':'';
+      const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
+        const p=tkParts(r);
+        const mine=(me && String(name).toLowerCase()===me);
+        return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
+          '<td>'+p.idCell+'</td>'+
+          '<td>'+statusTag(r.Status)+'</td>'+
+          '<td>'+esc(p.created)+'</td>'+
+          '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
+          p.cmtCell(mine)+
+        '</tr>';
+      }).join('');
+      const idLabel=isUnassigned?'Unassigned':esc(name);
+      const loginSub=unregistered?'':'<span class="sub">@'+esc(name)+'</span>';
+      return '<div class="ap-agent'+(unregistered?' ap-unreg':'')+'">'+
+        '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
+          '<span class="ap-agent-name">'+idLabel+phdTag+nmeta+prioBadge+noEmtBadge+loginSub+'</span>'+
+          '<span class="ap-agent-count" style="color:'+hex+'">'+tickets.length+'</span>'+
+          '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
+        '</button>'+
+        '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl ap-tbl-ana">'+
+          '<colgroup><col style="width:140px"><col style="width:120px"><col style="width:180px"><col style="width:110px"><col></colgroup>'+
+          '<thead><tr><th>Ticket</th><th>Status</th><th>Created</th><th>Time left</th><th>Last comment</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody></table></div></div>'+
+      '</div>';
+    };
+    return agentList.length?agentList.map(agentBlock).join(''):'<p class="pc-none">No tickets in this status.</p>';
+  };
+
+  const buildByTickets=()=>{
+    if(!TIX.length) return '<p class="pc-none">No tickets in this status.</p>';
+    const sorted=TIX.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate));
+    const rows=sorted.map(r=>{
+      const p=tkParts(r);
+      const agent=r.AssigneeIdentity||'';
+      const isUnassigned=!String(agent).trim()||String(agent).toLowerCase()==='unassigned';
+      const idLabel=isUnassigned?'Unassigned':esc(agent);
+      const mine=(me && String(agent).toLowerCase()===me);
+      return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
+        '<td>'+esc(p.created)+'</td>'+
+        '<td class="ap-login">'+idLabel+'</td>'+
+        '<td>'+p.idCell+'</td>'+
+        '<td>'+statusTag(r.Status)+'</td>'+
+        '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
+        p.cmtCell(mine)+
+      '</tr>';
+    }).join('');
+    return '<div class="ap-scroll"><table class="ap-tbl ap-tbl-tix">'+
+      '<colgroup><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col></colgroup>'+
+      '<thead><tr><th>Created</th><th>Login ID</th><th>Ticket</th><th>Status</th><th>Time left</th><th>Last comment</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>';
+  };
+
+  const overlay=document.createElement('div');
+  overlay.id='colorPopup';overlay.className='popup-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
+  overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
+    <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
+      <div class="pc-head-left">
+        <h2 style="color:${hex};font-size:1.45em"><span id="scPopTitle">${meta.label}</span></h2>
+        <div class="pc-viewtoggle" role="radiogroup" aria-label="Group tickets by">
+          <button type="button" class="pc-vt" data-view="tickets" role="radio" aria-checked="false">${ic('ticket',13)} By Tickets</button>
+          <button type="button" class="pc-vt pc-vt-on" data-view="analysts" role="radio" aria-checked="true">${ic('users',13)} By Analysts</button>
+        </div>
+      </div>
+      <div class="popup-actions"><button class="btn" id="scPopCsv">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+    </div>
+    <div class="pc-view-body" id="pcViewBody" style="margin-top:16px"><p class="pc-none">Loading tickets…</p></div></div>`;
+  document.body.appendChild(overlay);
+
+  const bodyEl=overlay.querySelector('#pcViewBody');
+  let curView='analysts';
+  const render=(view)=>{
+    curView=view;
+    bodyEl.innerHTML=(view==='tickets')?buildByTickets():buildByAnalysts();
+    fillLatestComments(overlay, TIX.map(r=>r.ShortId).filter(Boolean));
+  };
+  overlay.querySelectorAll('.pc-vt').forEach(function(btn){
+    btn.onclick=function(){
+      overlay.querySelectorAll('.pc-vt').forEach(function(b){ b.classList.toggle('pc-vt-on', b===btn); b.setAttribute('aria-checked', b===btn?'true':'false'); });
+      render(btn.getAttribute('data-view'));
+    };
+  });
+  // CSV: all tickets in current status (not grouped), ShortId/Assignee/Created/Status/Title.
+  overlay.querySelector('#scPopCsv').onclick=function(){
+    if(!TIX.length)return;
+    let csv='ShortId,Assignee,CreateDate,Status,Title\n';
+    TIX.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
+    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=status.toLowerCase().replace(/\s+/g,'-')+'_tickets.csv';a.click();URL.revokeObjectURL(url);
+  };
+
+  // Fetch the tickets for this status and render.
+  window.PHDAuth.api('GET','/api/tickets-by-status?status='+encodeURIComponent(status)).then(function(r){
+    if(!document.getElementById('pcViewBody'))return;
+    if(!r||!r.ok||!r.data){ bodyEl.innerHTML='<p class="pc-none">Could not load tickets.</p>'; return; }
+    const list=Array.isArray(r.data.tickets)?r.data.tickets:[];
+    // Map API shape -> the field names tkParts/buildBy* expect.
+    TIX=list.map(function(t){ return { ShortId:t.shortId, AssigneeIdentity:t.assignee, Title:t.title, Labels:t.labels, CreateDate:t.createDate, Status:t.status }; });
+    const titleEl=overlay.querySelector('#scPopTitle'); if(titleEl)titleEl.textContent=meta.label+' ('+TIX.length+')';
+    render(curView);
+  }).catch(function(){
+    if(bodyEl)bodyEl.innerHTML='<p class="pc-none">Could not load tickets.</p>';
+  });
+}
+window.showStatusPopup=showStatusPopup;
 window.apToggleAgent=apToggleAgent;
 window.showColorPopup=showColorPopup;
 
@@ -2111,23 +2272,37 @@ function renderQueueKpis(d){
   // active status's % is relative to IN QUEUE, so the four add up to 100%.
   const inQueue=(d.inQueue!=null)?d.inQueue:['Assigned','Work In Progress','Researching','Pending'].reduce(function(s,k){return s+(c[k]||0);},0);
   const pctOf=function(n){ return inQueue?(Math.round((n/inQueue)*1000)/10):0; };
-  // Stat tiles. The COUNT animates (countUpKpi); the % rides as a small suffix.
-  const tile=function(icon,label,count,pct,tone){
+  // Stat tiles. The COUNT animates (countUpKpi); the % rides as a small suffix. When `statusKey` is
+  // given the tile becomes clickable -> opens the all-agents "<Status> tickets" popup.
+  const tile=function(icon,label,count,pct,tone,statusKey){
     const raw=String(count).replace(/"/g,'&quot;');
     const suffix=(pct!=null)?(' <small>'+pct+'%</small>'):'';
-    return '<div class="q-tile'+(tone?(' '+tone):'')+'">'+
+    const clickAttrs=statusKey
+      ? ' q-tile-click" data-status="'+statusKey.replace(/"/g,'&quot;')+'" role="button" tabindex="0" title="View all '+statusKey.replace(/"/g,'&quot;')+' tickets'
+      : '';
+    // Clickable tiles get an "open in new window" hint icon in the top-right corner.
+    const openIc=statusKey?('<span class="q-tile-open" aria-hidden="true">'+ic('external-link',13)+'</span>'):'';
+    return '<div class="q-tile'+(tone?(' '+tone):'')+clickAttrs+'">'+
+      openIc+
       '<div class="k">'+icon+' '+label+'</div>'+
       '<div class="v"><span class="kpi-anim" data-kpi-val="'+raw+'">'+'</span>'+suffix+'</div>'+
     '</div>';
   };
   grid.innerHTML='<div class="q-tiles">'+
     tile(ic('inbox',13),'In Queue', inQueue.toLocaleString(), null, 'am')+
-    tile(ic('inbox',13),'Assigned', (c['Assigned']||0).toLocaleString(), pctOf(c['Assigned']||0), '')+
-    tile(ic('tool',13),'Work In Progress', (c['Work In Progress']||0).toLocaleString(), pctOf(c['Work In Progress']||0), 'am')+
-    tile(ic('eye',13),'Researching', (c['Researching']||0).toLocaleString(), pctOf(c['Researching']||0), 'mut')+
-    tile(ic('hourglass',13),'Pending', (c['Pending']||0).toLocaleString(), pctOf(c['Pending']||0), '')+
+    tile(ic('inbox',13),'Assigned', (c['Assigned']||0).toLocaleString(), pctOf(c['Assigned']||0), '', 'Assigned')+
+    tile(ic('tool',13),'Work In Progress', (c['Work In Progress']||0).toLocaleString(), pctOf(c['Work In Progress']||0), 'am', 'Work In Progress')+
+    tile(ic('eye',13),'Researching', (c['Researching']||0).toLocaleString(), pctOf(c['Researching']||0), 'mut', 'Researching')+
+    tile(ic('hourglass',13),'Pending', (c['Pending']||0).toLocaleString(), pctOf(c['Pending']||0), '', 'Pending')+
   '</div>';
   grid.querySelectorAll('.kpi-anim[data-kpi-val]').forEach(function(el){ countUpKpi(el, el.getAttribute('data-kpi-val')); });
+  // Delegated click/keyboard: open the all-agents status popup for a clicked tile.
+  if(!grid._qStatusBound){
+    grid._qStatusBound=true;
+    const openFor=function(el){ const s=el&&el.getAttribute('data-status'); if(s&&window.showStatusPopup)window.showStatusPopup(s); };
+    grid.addEventListener('click',function(ev){ const el=ev.target.closest?ev.target.closest('.q-tile-click[data-status]'):null; if(el)openFor(el); });
+    grid.addEventListener('keydown',function(ev){ if(ev.key!=='Enter'&&ev.key!==' ')return; const el=ev.target.closest?ev.target.closest('.q-tile-click[data-status]'):null; if(el){ev.preventDefault();openFor(el);} });
+  }
 }
 function renderQueueChunk(d){
   const slot=document.getElementById('dashQueueBody');if(!slot)return;

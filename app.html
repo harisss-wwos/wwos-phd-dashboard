@@ -874,6 +874,17 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .q-tile{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #232830;border-radius:5px;padding:14px 16px;
   box-shadow:0 10px 26px -18px rgba(0,0,0,.7);transition:transform .16s,border-color .16s}
 .q-tile:hover{transform:translateY(-2px);border-color:#2c333d}
+/* Clickable status tiles (Assigned/WIP/Researching/Pending) open the all-agents status popup. */
+.q-tile-click{cursor:pointer;position:relative}
+.q-tile-click:hover{border-color:#ec7211}
+.q-tile-click:focus-visible{outline:2px solid #ec7211;outline-offset:2px}
+body[data-profile-panel] .content .q-tile-click:hover{border-color:#ec7211!important;box-shadow:0 6px 18px -10px rgba(236,114,17,.5)}
+/* "Open in new window" hint icon, top-right of each clickable tile. Muted until hover/focus. */
+.q-tile-open{position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;justify-content:center;color:#8b96a0;opacity:.6;transition:opacity .15s,color .15s}
+.q-tile-open svg{display:block}
+.q-tile-click:hover .q-tile-open,.q-tile-click:focus-visible .q-tile-open{opacity:1;color:#ec7211}
+body[data-profile-panel] .content .q-tile-open{color:#8b96a0}
+body[data-profile-panel] .content .q-tile-click:hover .q-tile-open{color:#ec7211!important;opacity:1}
 .q-tile .k{color:#8b96a0;font-size:11.5px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .q-tile .v{font-size:22px;font-weight:800;letter-spacing:-.3px;color:#eef2f4}
 .q-tile .v small{font-size:12px;font-weight:600;color:#8b96a0;margin-left:3px}
@@ -1020,8 +1031,8 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=137"></script>
-<script src="app.js?v=72"></script>
+<script src="topbar-auth.js?v=139"></script>
+<script src="app.js?v=75"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>

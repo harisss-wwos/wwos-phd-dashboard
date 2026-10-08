@@ -2603,6 +2603,49 @@ app.get('/api/not-assigned-tickets', requireRole('user'), async (req, res) => {
   }
 });
 
+// GET all open tickets in a given Status (?status=Assigned|Work In Progress|Researching|Pending),
+// across EVERY agent — assigned or unassigned alike — deduped by ShortId, sorted by CreateDate
+// DESCENDING. Powers the Queue Status KPI-tile popups on the live dashboard. Same payload shape as
+// /api/not-assigned-tickets so the popup renderer is shared.
+app.get('/api/tickets-by-status', requireRole('user'), async (req, res) => {
+  try {
+    const status = String(req.query.status || '').trim();
+    if (!OPEN_STATUSES.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be one of: ' + OPEN_STATUSES.join(', ') });
+    }
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const rows = await coll.find(
+      { Status: status },
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, AssigneeIdentity: 1, Labels: 1 } }
+    ).toArray();
+    const seen = new Set();
+    const out = [];
+    rows.forEach(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      if (sid && seen.has(sid)) return;
+      if (sid) seen.add(sid);
+      const created = t.CreateDate || '';
+      let deadline = null;
+      const cd = new Date(created);
+      if (!isNaN(cd)) deadline = new Date(cd.getTime() + SLA_HOURS * 3600 * 1000).toISOString();
+      out.push({
+        shortId: sid,
+        url: t.IssueUrl || (t.ShortId ? ('https://t.corp.amazon.com/issues/' + t.ShortId) : ''),
+        title: t.Title || '',
+        status: t.Status || '',
+        assignee: t.AssigneeIdentity || '',
+        labels: t.Labels || '',
+        createDate: created,
+        deadline,
+      });
+    });
+    out.sort((a, b) => new Date(b.createDate) - new Date(a.createDate)); // NEWEST first (desc)
+    res.json({ slaHours: SLA_HOURS, status, count: out.length, tickets: out });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load tickets for this status.' });
+  }
+});
+
 // ---- Profile panel stats (right rail) -------------------------------------------------------
 // Role-aware, driven by the user's `analyst` flag:
 //   analyst=true  -> MY stats only: open-status counts (Assigned/WIP/Researching/Pending),
