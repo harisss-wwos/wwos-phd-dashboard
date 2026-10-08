@@ -3035,13 +3035,13 @@ function perfWindow(){
   const todayWords=_ord(now.getDate())+' '+_MON_SHORT[now.getMonth()];
   // Yearly: span the FULL calendar year (Jan..Dec) so the x-axis shows all 12 months; future months
   // have no data and render as a gap (line stops at the current month).
-  if(PERF.type==='era'){ return { from:'2026-01-01', to:'2027-01-01', label:'From 1st Jan 2026' }; }
+  if(PERF.type==='era'){ return { from:'2026-01-01', to:'2027-01-01', label:'YTD 2026' }; }
   if(PERF.type==='days100'){ const f=new Date(now); f.setDate(f.getDate()-100); return { from:_ymd(f), to:null, label:'Last 100 days ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
   if(PERF.type==='weeks12'){ const sun=_sundayOf(now); const f=new Date(sun); f.setDate(f.getDate()-7*11); return { from:_ymd(f), to:null, label:'Last 12 weeks ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
   if(PERF.type==='month'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const f=new Date(2026,m,1); const t=new Date(2026,m+1,1); return { from:_ymd(f), to:_ymd(t), label:_MONTH_NAMES[m]+' 2026' }; }
   if(PERF.type==='week'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const wks=_weeksInMonth(m); const wi=Math.min(PERF.week||0,wks.length-1); const w=wks[wi]||wks[0]; return { from:w.from, to:w.to, label:w.short+' ('+w.range+')' }; }
   if(PERF.type==='quarter'){ const q=(PERF.quarter==null)?(_acQuartersCount()):PERF.quarter; const sm=(q-1)*3; const f=new Date(2026,sm,1); const t=new Date(2026,sm+3,1); return { from:_ymd(f), to:_ymd(t), label:'Q'+q+' 2026' }; }
-  return { from:'2026-01-01', to:null, label:'From 1st Jan 2026' };
+  return { from:'2026-01-01', to:null, label:'YTD 2026' };
 }
 // Chart bucket GRANULARITY per period type (drives /api/dash/timeseries ?bucket=).
 //   era -> month (Jan..current)      month -> day (1..last)     week -> day (Sun..Sat, 7)
@@ -3085,8 +3085,8 @@ function perfBucketTip(b){
 // right side. Much cleaner than stacked native selects.
 function perfPickerHtml(){
   const types=[
-    {v:'era',l:'From 1st Jan 2026'},{v:'month',l:'Monthly'},{v:'week',l:'Weekly'},
-    {v:'days100',l:'100 days'},{v:'weeks12',l:'12 weeks'},{v:'quarter',l:'Quarterly'}
+    {v:'era',l:'YTD 2026'},{v:'quarter',l:'Quarterly'},{v:'weeks12',l:'12 weeks'},
+    {v:'days100',l:'100 days'},{v:'month',l:'Monthly'},{v:'week',l:'Weekly'}
   ];
   let chips='<div class="perf-chips" role="tablist">';
   types.forEach(function(t){
@@ -3291,7 +3291,7 @@ function perfSectionHtml(){
     '<div class="chart-box"><div class="chart-wrap tall shimmer"></div></div>';
   return '<div class="section dash-collapsible collapsed" data-perf="1">'+
     '<div class="sec-head" onclick="dashSectionToggle(this,event)" role="button" tabindex="0">'+
-      '<h2 title="Performance Overview" class="perf-h2-iconly">'+ic('bar-chart',16)+'</h2>'+
+      '<h2 title="Performance Overview"><span class="perf-h2-ic">'+ic('bar-chart',16)+'</span><span class="perf-h2-txt">Performance Overview</span></h2>'+
       '<div class="perf-head-right" onclick="event.stopPropagation()">'+
         '<span id="perfPickerWrap">'+perfPickerHtml()+'</span>'+
       '</div>'+

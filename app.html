@@ -692,9 +692,6 @@ tr:hover{background:#f8fafb}
 /* Title: single line, truncate if needed — never wrap (wrapping made the two paired banners unequal height). */
 .content .sec-head h2{margin:0!important;padding:0!important;border:none!important;font-size:1.02em;font-weight:800;display:flex;align-items:center;gap:9px;color:#0e1013;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
 .content .sec-head h2 svg{color:#0e1013;opacity:.85;flex-shrink:0}
-/* Performance banner: icon-only title (no "Overview" text) — don't grow, just the icon, so the
-   period picker gets the full banner width. */
-.content .sec-head h2.perf-h2-iconly{flex:0 0 auto;gap:0}
 /* Scope selector: never wrap its chips; stays a single compact row on the banner's right. */
 .content .sec-head .dash-scope-sec{flex:0 0 auto;flex-wrap:nowrap!important;white-space:nowrap}
 .content .sec-head .dash-scope-sec .dsc-opt{white-space:nowrap}
@@ -796,7 +793,17 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 /* Keep the whole picker on ONE line (never wrap -> never break the fixed 56px banner height). If it
    genuinely can't fit, it scrolls horizontally instead of wrapping. The title truncates to yield room. */
 .content [data-perf] .sec-head{gap:12px}
-.content [data-perf] .sec-head>h2{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Title = icon + text. The icon never shrinks; the text truncates first to give the picker room, and
+   is hidden entirely on narrow banners (below) where even a truncated label would crowd the chips. */
+.content [data-perf] .sec-head>h2{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;gap:9px}
+.content [data-perf] .sec-head>h2 .perf-h2-ic{flex:0 0 auto;display:inline-flex;align-items:center}
+.content [data-perf] .sec-head>h2 .perf-h2-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Narrow viewport: the full picker (6 chips + up to 2 selects) needs the width — drop the title text,
+   keep just the icon. The hover tooltip still reads "Performance Overview". */
+@media(max-width:1150px){
+  .content [data-perf] .sec-head>h2 .perf-h2-txt{display:none}
+  .content [data-perf] .sec-head>h2{gap:0}
+}
 .perf-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 .perf-head-right::-webkit-scrollbar{display:none}
 .perf-head-right>span{display:inline-flex}
@@ -1014,7 +1021,7 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=137"></script>
-<script src="app.js?v=70"></script>
+<script src="app.js?v=72"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>
