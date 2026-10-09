@@ -46,35 +46,29 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-ebtn.ghost{background:rgba(255,255,255,.82);color:#2a1706}
 .iz-edit-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(30,16,4,.72);color:#ffe3b0;font-size:.72em;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.3px}
 
-/* ================= Taxonomy WIRING diagram (reference) ================= */
-.iz-wire{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:5px;padding:20px 22px 24px}
-/* Category node column = 50% of the container width (the node fills it; the wires + types take the rest). */
-.iz-wire{--iz-catw:50%}
-.iz-grp{display:grid;grid-template-columns:var(--iz-catw) 1fr;gap:0;align-items:stretch;margin-top:12px;padding-top:12px;border-top:1px dashed #262b31}
-.iz-grp:first-of-type{border-top:none;margin-top:6px;padding-top:0}
-.iz-cat-col{display:flex;align-items:center;position:relative}
-.iz-cat-node{display:flex;align-items:center;gap:12px;width:100%;background:linear-gradient(135deg,#163463,#0f2546);border:1px solid #244a7a;border-radius:5px;padding:12px 14px;box-shadow:0 8px 20px -14px rgba(0,0,0,.8);position:relative;z-index:2;cursor:pointer;user-select:none;transition:border-color .15s,transform .12s,box-shadow .15s}
-.iz-cat-node:hover{border-color:#3b7bd0;transform:translateY(-1px);box-shadow:0 10px 24px -14px rgba(0,0,0,.9)}
-.iz-grp.open .iz-cat-node{border-color:#4a86d8;box-shadow:0 10px 26px -12px rgba(30,80,150,.55)}
-.iz-cat-node .ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:5px;background:rgba(255,255,255,.08);color:#ffce8a;flex-shrink:0}
+/* ================= Taxonomy as a 2-COLUMN CARD GRID ================= */
+/* Masonry-style 2-column grid: each CATEGORY is a self-contained card that ALWAYS shows its header
+   + the list of its incident-type names. Only a type's DETAILS are hidden until the type is clicked.
+   columns layout keeps cards tight to their content (no equal-height stretching / big gaps). */
+.iz-wire{column-count:2;column-gap:16px}
+@media(max-width:860px){.iz-wire{column-count:1}}
+.iz-grp{display:flex;flex-direction:column;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin:0 0 16px;background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:5px;overflow:hidden;box-shadow:0 8px 20px -16px rgba(0,0,0,.8);transition:box-shadow .15s}
+.iz-grp:hover{box-shadow:0 10px 26px -14px rgba(0,0,0,.9)}
+/* Category header — static (not clickable); it just labels the card. */
+.iz-cat-col{display:flex}
+.iz-cat-node{display:flex;align-items:center;gap:12px;width:100%;background:rgba(255,255,255,.02);border:none;border-bottom:1px solid #22272e;border-radius:0;padding:14px 18px}
+.iz-cat-node .ic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:5px;background:rgba(240,138,29,.14);color:#ffce8a;flex-shrink:0}
 .iz-cat-txt{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:3px}
-.iz-cat-name{display:block;color:#fff;font-size:.95em;font-weight:800;line-height:1.25;white-space:nowrap}
-.iz-cat-meta{display:block;color:#9fb6d6;font-size:.72em;font-weight:600;letter-spacing:.2px;white-space:nowrap}
-.iz-cat-caret{color:#9fb6d6;display:inline-flex;flex-shrink:0;transition:transform .22s ease;margin-left:4px}
-/* Category edit/delete controls (editors only) — sit on the blue category node, so light-on-blue. */
+.iz-cat-name{display:block;color:#fff;font-size:1.02em;font-weight:800;line-height:1.25}
+.iz-cat-meta{display:block;color:#9fb6d6;font-size:.74em;font-weight:600;letter-spacing:.2px}
+/* Category edit/delete controls (editors only). */
 .iz-cat-actions{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
-.iz-catbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
-.iz-catbtn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.6)}
-.iz-catbtn.del:hover{background:rgba(255,82,82,.9);border-color:#ff5252;color:#fff}
+.iz-catbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.iz-catbtn:hover{background:rgba(255,255,255,.06);border-color:#ff9900;color:#ff9900}
+.iz-catbtn.del:hover{background:rgba(255,82,82,.14);border-color:#ff5252;color:#ff5252}
 .iz-catbtn svg{width:15px;height:15px}
-.iz-grp.open .iz-cat-caret{transform:rotate(90deg)}
-.iz-wire-area{position:relative;display:flex;align-items:stretch}
-.iz-wire-svg{position:absolute;left:0;top:0;width:46px;height:100%;overflow:visible;pointer-events:none;z-index:1;opacity:0;transition:opacity .25s ease}
-.iz-grp.open .iz-wire-svg{opacity:1}
-.iz-type-col{flex:1 1 auto;display:flex;flex-direction:column;gap:10px;padding-left:46px}
-.iz-grp:not(.open) .iz-wire-area{display:none}
-@keyframes izPop{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
-.iz-grp.open .iz-type-col>.iz-type{animation:izPop .34s cubic-bezier(.25,.9,.3,1) both;animation-delay:var(--d,0ms)}
+/* Type list — always visible inside the card. */
+.iz-type-col{display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px}
 .iz-type{background:#0f1317;border:1px solid #1e242b;border-left:4px solid var(--iz-ac,#e08a1d);border-radius:5px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .iz-type:hover{box-shadow:0 6px 18px -12px rgba(0,0,0,.9)}
 .iz-type-head{display:flex;align-items:center;gap:12px;padding:12px 15px;cursor:pointer;user-select:none;transition:background .15s}
@@ -137,9 +131,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-mbtn.danger{background:#ff5252;color:#fff}.iz-mbtn.danger:hover{background:#e03e3e}
 .iz-mbtn[disabled]{opacity:.5;cursor:not-allowed}
 @media(max-width:720px){
-  .iz-grp{grid-template-columns:1fr;gap:12px}
-  .iz-cat-col{align-items:stretch}.iz-cat-name,.iz-cat-meta{white-space:normal}
-  .iz-wire-svg{display:none}.iz-type-col{padding-left:0}
+  .iz-cat-name,.iz-cat-meta{white-space:normal}
   .iz-def-row{grid-template-columns:1fr;gap:3px}
 }
 .iz-gate{max-width:560px;margin:60px auto;text-align:center}
@@ -151,20 +143,23 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <link rel="stylesheet" href="app-light.css?v=5">
 <!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
 <style id="iz-light">
-/* Taxonomy wiring container -> white (keep the amber banner as-is). */
-.iz-wire{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #f08a1d!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.iz-grp{border-top:1px dashed #e2e6ea!important}
-/* Category node: keep a bold blue accent (white text) — a deliberate highlight, readable on light. */
-.iz-cat-node{background:linear-gradient(135deg,#1577a0,#0f5f80)!important;border:1px solid #1577a0!important;box-shadow:0 6px 16px -12px rgba(20,60,90,.5)!important}
-.iz-cat-node:hover{border-color:#0f5f80!important}
-.iz-grp.open .iz-cat-node{border-color:#0d526e!important}
-.iz-cat-node .ic{background:rgba(255,255,255,.18)!important;color:#fff!important}
-.iz-cat-name{color:#fff!important}
-.iz-cat-meta{color:#cfe6f2!important}
-.iz-cat-caret{color:#cfe6f2!important}
-/* Type cards. */
-.iz-type{background:#fff!important;border:1px solid #e6eaee!important;border-left:4px solid var(--iz-ac,#e08a1d)!important}
-.iz-type-head:hover{background:#f7f9fb!important}
+/* Grid container is transparent; each CATEGORY CARD gets its own pastel tint (--iz-cbg) + accent
+   (--iz-cac), set per-card inline, so adjacent categories are easy to differentiate. */
+.iz-wire{background:transparent!important;border:none!important;box-shadow:none!important}
+.iz-grp{background:var(--iz-cbg,#fff)!important;border:1px solid #e2e6ea!important;border-top:3px solid var(--iz-cac,#f08a1d)!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.iz-grp:hover{box-shadow:0 10px 26px -18px rgba(20,40,70,.45)!important}
+/* Category card head: slightly darker tint strip + accent-coloured icon tile. */
+.iz-cat-node{background:var(--iz-chd,#fbfcfd)!important;border:none!important;border-bottom:1px solid rgba(0,0,0,.06)!important;box-shadow:none!important}
+.iz-cat-node .ic{background:rgba(255,255,255,.6)!important;color:var(--iz-cac,#b5680c)!important}
+.iz-cat-name{color:#1b2026!important}
+.iz-cat-meta{color:#5c6773!important}
+/* Category edit/delete buttons on the white head. */
+.iz-catbtn{background:#fff!important;border:1px solid #d4dce4!important;color:#5c6773!important}
+.iz-catbtn:hover{border-color:#ec7211!important;color:#ec7211!important}
+.iz-catbtn.del:hover{border-color:#dc2626!important;color:#dc2626!important}
+/* Type cards (nested inside the tinted category card -> translucent white so they read on any tint). */
+.iz-type{background:rgba(255,255,255,.72)!important;border:1px solid rgba(0,0,0,.08)!important;border-left:4px solid var(--iz-ac,#e08a1d)!important}
+.iz-type-head:hover{background:rgba(255,255,255,.95)!important}
 .iz-type-name{color:#1b2026!important}
 .iz-type-desc{color:#8793a0!important}
 .iz-type-caret{color:#9aa5b1!important}
@@ -297,6 +292,21 @@ var ICO_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 var ICO_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 var ICO_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 
+// Soft pastel palette for category cards (rotates per category so each is easy to tell apart).
+// bg = card background tint, hd = slightly darker header strip, ac = top-border + icon accent.
+var IZ_PALETTE=[
+  { bg:'#fff4e9', hd:'#ffe9d4', ac:'#f0820f' }, // amber
+  { bg:'#eaf4fb', hd:'#d9ecf8', ac:'#1577a0' }, // blue
+  { bg:'#eafaf0', hd:'#d6f2e1', ac:'#1f9d57' }, // green
+  { bg:'#f3eefc', hd:'#e7dcfa', ac:'#7c5cf0' }, // purple
+  { bg:'#fdeef0', hd:'#fbdce0', ac:'#dc2626' }, // red/rose
+  { bg:'#eef7f9', hd:'#dcedf1', ac:'#0e9aa7' }, // teal
+  { bg:'#fdf6e3', hd:'#f8ecc5', ac:'#c99a06' }, // gold
+  { bg:'#f1f0fb', hd:'#e2e0f6', ac:'#5b5bd6' }, // indigo
+  { bg:'#fef0f7', hd:'#fbd9ec', ac:'#c026a6' }, // pink
+  { bg:'#eef6ee', hd:'#dcecdc', ac:'#4a8f4a' }  // sage
+];
+
 // Loaded taxonomy: [{category, catIcon, catOrder, types:[{id,type,def,use,ex,color,icon,desc,...}]}]
 var IZ_CATS=[];
 function izTotalTypes(){ return IZ_CATS.reduce(function(s,c){return s+c.types.length;},0); }
@@ -305,46 +315,8 @@ function izTint(hex){
   var n=parseInt(m[1],16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+',.14)';
 }
 
-// ---- Wires -------------------------------------------------------------------------------------
-function izDrawWires(area){
-  var svg=area.querySelector('.iz-wire-svg'); if(!svg) return;
-  var col=area.querySelector('.iz-type-col'); if(!col) return;
-  if(!area.offsetHeight){ svg.innerHTML=''; return; }
-  var areaRect=area.getBoundingClientRect();
-  var H=area.offsetHeight, W=46, startX=0, startY=H/2, bendX=W*0.5;
-  var cards=col.querySelectorAll('.iz-type');
-  var paths='';
-  cards.forEach(function(card){
-    var r=card.getBoundingClientRect();
-    var cy=(r.top-areaRect.top)+card.offsetHeight/2;
-    var c2=getComputedStyle(card).getPropertyValue('--iz-ac').trim()||'#e08a1d';
-    paths+='<path d="M'+startX+' '+startY+' C'+bendX+' '+startY+' '+bendX+' '+cy+' '+W+' '+cy+'" fill="none" stroke="'+c2+'" stroke-width="2" opacity=".8"/>';
-    paths+='<circle cx="'+W+'" cy="'+cy+'" r="3" fill="'+c2+'"/>';
-  });
-  paths+='<circle cx="'+startX+'" cy="'+startY+'" r="3.5" fill="#4a79c0"/>';
-  svg.innerHTML=paths; svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.style.width=W+'px';
-}
-function izDrawAllWires(){ document.querySelectorAll('.iz-wire-area').forEach(izDrawWires); }
-function izDrawWiresFor(grp){ var area=grp.querySelector('.iz-wire-area'); if(area) izDrawWires(area); }
-
-// ---- Accordion (one category open; one type open within it) ------------------------------------
-function izToggleCat(gi){
-  var grp=document.getElementById('izGrp'+gi); if(!grp) return;
-  var wasOpen=grp.classList.contains('open');
-  document.querySelectorAll('.iz-grp.open').forEach(function(g){
-    g.classList.remove('open');
-    g.querySelectorAll('.iz-type.open').forEach(function(t){ t.classList.remove('open'); });
-    var s=g.querySelector('.iz-wire-svg'); if(s) s.innerHTML='';
-  });
-  if(wasOpen) return;
-  grp.classList.add('open');
-  var cards=grp.querySelectorAll('.iz-type-col > .iz-type');
-  if(!cards.length){ return; }
-  var last=cards[cards.length-1], done=false;
-  var draw=function(){ if(done) return; done=true; izDrawWiresFor(grp); };
-  last.addEventListener('animationend', draw, { once:true });
-  setTimeout(draw, 650);
-}
+// Categories + their type names are ALWAYS shown. Only a type's DETAILS collapse. Within one
+// category card, only ONE type is expanded at a time (see izToggleType).
 // Copy an incident type's NAME to the clipboard; briefly flash a check mark. Available to everyone.
 function izCopyType(gi,ti,btn,ev){
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
@@ -371,6 +343,7 @@ function izCopyFallback(text,done){
     var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok);
   }catch(e){ done(false); }
 }
+// Within an open category card, only ONE incident type is expanded at a time.
 function izToggleType(gi,ti,ev){
   if(ev) ev.stopPropagation();
   var grp=document.getElementById('izGrp'+gi); if(!grp) return;
@@ -378,8 +351,6 @@ function izToggleType(gi,ti,ev){
   var wasOpen=el.classList.contains('open');
   grp.querySelectorAll('.iz-type.open').forEach(function(s){ s.classList.remove('open'); });
   if(!wasOpen) el.classList.add('open');
-  setTimeout(function(){ izDrawWiresFor(grp); }, 20);
-  setTimeout(function(){ izDrawWiresFor(grp); }, 360);
 }
 
 // ---- Render ------------------------------------------------------------------------------------
@@ -404,9 +375,12 @@ function render(){
   IZ_CATS.forEach(function(cat,gi){
     var n=cat.types.length;
     var catIc=cat.catIcon||'alert';
-    html+='<div class="iz-grp" id="izGrp'+gi+'">'
+    // Soft pastel background + matching accent per category, rotating through the palette so adjacent
+    // cards differ. {bg: card tint, hd: header strip, ac: top-border/icon accent}.
+    var pal=IZ_PALETTE[gi%IZ_PALETTE.length];
+    html+='<div class="iz-grp" id="izGrp'+gi+'" style="--iz-cbg:'+pal.bg+';--iz-chd:'+pal.hd+';--iz-cac:'+pal.ac+'">'
       +'<div class="iz-cat-col">'
-        +'<div class="iz-cat-node" onclick="izToggleCat('+gi+')" title="Show incident types">'
+        +'<div class="iz-cat-node">'
           +'<span class="ic">'+(ic(catIc,20)||'\u25cf')+'</span>'
           +'<span class="iz-cat-txt"><span class="iz-cat-name">'+esc(cat.category)+'</span>'
             +'<span class="iz-cat-meta">'+n+' incident type'+(n===1?'':'s')+'</span></span>'
@@ -414,12 +388,9 @@ function render(){
             +'<button class="iz-catbtn" title="Edit category (rename / icon)" onclick="izOpenEditCategory('+gi+',event)">'+ICO_EDIT+'</button>'
             +'<button class="iz-catbtn del" title="Delete category" onclick="izDeleteCategory('+gi+',event)">'+ICO_DEL+'</button>'
           +'</span>'):'')
-          +'<span class="iz-cat-caret">\u25b8</span>'
         +'</div>'
       +'</div>'
-      +'<div class="iz-wire-area">'
-        +'<svg class="iz-wire-svg" preserveAspectRatio="none"></svg>'
-        +'<div class="iz-type-col">';
+      +'<div class="iz-type-col">';
     cat.types.forEach(function(ty,ti){
       var ac=ty.color||'#e08a1d';
       var actions=editor?('<span class="iz-type-actions">'
@@ -448,16 +419,11 @@ function render(){
     if(editor){
       html+='<button class="iz-addtype" onclick="izOpenAdd('+gi+')" type="button">'+ICO_PLUS+'Add a type to '+esc(cat.category)+'</button>';
     }
-    html+='</div></div></div>';
+    html+='</div></div>';   // close .iz-type-col, .iz-grp
   });
   html+='</div>';
   document.getElementById('wrap').innerHTML=html;
-  izFitCatWidth();
-  setTimeout(izDrawAllWires, 30);
 }
-// Category column width is a fixed 50% (set in CSS via --iz-catw) — no measuring needed.
-function izFitCatWidth(){ /* fixed 50% width; nothing to compute */ }
-window.addEventListener('resize', function(){ izFitCatWidth(); izDrawAllWires(); });
 
 // ================= EDIT MODAL ==================================================================
 var IZ_MODE=null;      // 'add' | 'edit' | 'addcat'
@@ -622,14 +588,13 @@ window.izOpenEditCategory=izOpenEditCategory; window.izDeleteCategory=izDeleteCa
 // ================= LOAD =========================================================================
 function gate(msg){ document.getElementById('wrap').innerHTML='<div class="iz-gate"><h1>Issue Types</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>'; }
 async function loadTaxonomy(keepOpen){
-  var openIdx=null;
-  if(keepOpen){ var o=document.querySelector('.iz-grp.open'); if(o) openIdx=parseInt(o.id.replace('izGrp',''),10); }
+  // keepOpen is a no-op now: categories (and their type names) are always visible, so a reload after
+  // an edit just re-renders — nothing to reopen.
   try{
     var r=await A.api('GET','/api/issue-types-taxonomy');
     if(r&&r.ok&&r.data&&Array.isArray(r.data.categories)){
       IZ_CATS=r.data.categories;
       render();
-      if(openIdx!=null && IZ_CATS[openIdx]){ izToggleCat(openIdx); }
       return;
     }
     gate('Could not load the taxonomy. The data service may be waking up — please try again in a moment.');
