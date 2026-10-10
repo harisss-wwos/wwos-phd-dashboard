@@ -4100,6 +4100,27 @@
       document.body.setAttribute('data-embedded', 'true');
       return; // no toolbar / FAB build in embedded mode
     }
+    // SESSION VALIDATION ON LOAD: if a token is stored, verify it with the server on EVERY page load
+    // (handles the "came back after days with an expired/revoked token" case). /api/me is auth-gated,
+    // so a 401 means the token is no longer valid -> the api() wrapper clears the session, and we send
+    // the user to the home page. A NETWORK failure (offline / status 0) is NOT treated as logged-out,
+    // so a flaky connection never kicks a valid user out — only an explicit server rejection does.
+    try {
+      if (loggedIn() && A && A.api) {
+        var _meRes = await A.api('GET', '/api/me');
+        if (_meRes && _meRes.status === 401) {
+          try { A.clear(); } catch (e) {}                 // api() already clears, but be explicit
+          var _p = (location.pathname.split('/').pop() || '').toLowerCase();
+          if (!(_p === '' || _p === 'index.html')) { location.replace('index.html'); return; }
+          // already on index -> fall through to the guest branch below (renders the logged-out home)
+        } else if (_meRes && _meRes.ok && _meRes.data) {
+          // Valid token: warm the in-memory /api/me cache so downstream code skips a refetch.
+          try { A._me = _meRes.data; if (A._storeWrite) A._storeWrite('me', _meRes.data); } catch (e) {}
+        }
+        // Any other status (0 network error, 5xx, etc.) -> keep the cached session, proceed normally.
+      }
+    } catch (e) { /* network error -> do not log the user out */ }
+
     // GUEST LOCKDOWN: a logged-out user may only see index.html. On any OTHER page, bounce them home
     // immediately (before building any chrome, so no gated page flashes). index.html itself hides its
     // nav-rail + disables the Dashboards&reports tiles for guests (handled below / in home.js).
