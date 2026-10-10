@@ -28,28 +28,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hero h1{font-size:2.4em;color:#fff;font-weight:700;margin-bottom:10px}
 .hero p{color:var(--tm);font-size:1.05em}
 .gsoc-logo{max-width:220px;width:100%;height:auto;margin:0 auto 24px;display:block}
-.about{width:90vw;max-width:none;margin-left:50%;transform:translateX(-50%);margin-top:0;margin-bottom:24px;padding:26px 34px;background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;text-align:left}
-.about h3{color:var(--o);font-size:1.05em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
-.about h4{color:#fff;font-size:.95em;font-weight:600;margin:20px 0 8px}
-.about p{color:var(--t);font-size:.9em;line-height:1.7;margin:0 0 10px}
-.about ul{margin:0 0 10px;padding-left:20px}
-.about li{color:var(--t);font-size:.88em;line-height:1.65;margin-bottom:5px}
-.about li b{color:#fff}
-/* Carousel for the program details (workflow/scope + tenets/coverage). Gradient panel to highlight. */
-.about-carousel{position:relative;margin:14px 0;padding:20px 58px;border-radius:5px;
-  background:linear-gradient(135deg,rgba(255,153,0,.14),rgba(255,153,0,.03) 45%,rgba(68,185,214,.10));
-  border:1px solid rgba(255,153,0,.28);box-shadow:0 6px 22px -8px rgba(0,0,0,.6)}
-.ac-viewport{overflow:hidden}
-.ac-track{display:flex;transition:transform .4s ease}
-.ac-slide{flex:0 0 100%;min-width:100%;box-sizing:border-box;padding:2px}
-.ac-slide h4:first-child{margin-top:0}
-/* Carousel nav arrows: RECTANGULAR, in the outer gutters, vertically centered — outside the text. */
-.ac-arrow{position:absolute;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:32px;height:64px;border-radius:5px;background:#131c25;border:1px solid var(--o);color:var(--o);cursor:pointer;font-size:1.3em;line-height:1;transition:background .15s,color .15s;z-index:2}
-.ac-arrow:hover{background:var(--o);color:#141414}
-.ac-arrow.ac-next{right:12px}
-.ac-arrow.ac-prev{left:12px}
-.wiki-btn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:9px 18px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.9em;text-decoration:none}
-.wiki-btn:hover{background:var(--oh)}
+/* About section (static — replaces the old carousel). Readable on the light home theme. */
+.about-lead{color:#2a3340;font-size:.92em;line-height:1.7;margin:0 0 12px;max-width:120ch;text-align:justify}
+.about-h4{color:#1b2026;font-size:.95em;font-weight:800;margin:16px 0 8px}
+.about-ul{margin:0 0 12px;padding-left:20px;max-width:120ch}
+.about-ul li{color:#2a3340;font-size:.9em;line-height:1.65;margin-bottom:5px;text-align:justify}
+.about-ul li b{color:#1b2026;font-weight:800}
 /* Before/After GSOC comparison — Excel-sheet styling with a mini trend sparkline column. */
 /* Per-year comparison table — LIGHT MODE. Width matches the wide app.html content (90vw, centered). */
 .cmp-wrap{overflow-x:auto;margin:0 0 22px;border-radius:5px;border:1px solid #e2e6ea;background:#fff;box-shadow:0 1px 3px rgba(20,30,50,.06);width:90vw;max-width:none;margin-left:50%;transform:translateX(-50%)}
@@ -257,7 +241,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </style>
 <link rel="stylesheet" href="theme.css">
 <!-- Light-mode override for the home page. Loaded LAST so it wins the cascade. -->
-<link rel="stylesheet" href="home-light.css?v=19">
+<link rel="stylesheet" href="home-light.css?v=48">
 </head>
 <body data-no-toolbar="true" data-profile-panel>
 <div class="top-bar"><a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a><div id="homeAuth" style="margin-left:auto;display:flex;align-items:center;gap:10px"></div></div>
@@ -292,63 +276,46 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <!-- Main-column header row: Amazon WWOS logo (left) + "PHD Dashboard" label with icon (right). -->
   <div class="home-title-row js-header-row home-hdr">
     <a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>
-    <span class="home-hdr-title"><span class="home-hdr-ic" data-ic="grid"></span>PHD Dashboard</span>
+    <span class="home-hdr-title"><span class="home-hdr-ic" data-ic="calendar"></span><span id="homeYtd">YTD</span></span>
   </div>
-  <div class="hero">
-    <div class="about">
-      <h3>About the PHD Program</h3>
+  <!-- ===== SECTION 1: About the PHD Program (static section — collapsible) ===== -->
+  <section class="home-sec home-sec-about" id="aboutSec">
+    <h3 class="home-sec-h home-sec-toggle" role="button" tabindex="0" onclick="toggleAboutSec()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleAboutSec();}"><span class="home-sec-ic" data-ic="info" aria-hidden="true"></span>About the PHD Program<span class="home-sec-pm" aria-hidden="true"></span></h3>
+    <div class="home-sec-body">
+    <p class="about-lead">The Potential Harm to Drivers (PHD) program is a security risk mitigation function within Worldwide Operations Security (WWOS), operating under the GSOC. It protects Last Mile delivery transporters from violence, threats, and harassment originating from customers or identifiable Persons of Interest (POI), focusing on reducing repeat incidents that could cause physical, mental, or emotional harm.</p>
 
-      <div class="about-carousel" id="aboutCarousel">
-        <div class="ac-viewport">
-          <div class="ac-track" id="acTrack">
-            <div class="ac-slide">
-              <p>The Potential Harm to Drivers (PHD) program is a security risk mitigation function within Worldwide Operations Security (WWOS), operating under the GSOC. It protects Last Mile delivery transporters from violence, threats, and harassment originating from customers or identifiable Persons of Interest (POI), focusing on reducing repeat incidents that could cause physical, mental, or emotional harm.</p>
-              <h4>How it functions (the workflow)</h4>
-              <ul>
-                <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
-                <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
-                <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
-                <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
-                <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
-                <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
-              </ul>
-              <h4>Geographic coverage</h4>
-              <ul>
-                <li><b>AMER:</b> Brazil, Canada, Mexico, Puerto Rico, US</li>
-                <li><b>EMEA:</b> EU, South Africa, UK</li>
-                <li><b>APAC:</b> Australia, India, Japan, Singapore</li>
-              </ul>
-            </div>
-            <div class="ac-slide">
-              <h4>How it functions (the workflow)</h4>
-              <ul>
-                <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
-                <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
-                <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
-                <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
-                <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
-                <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
-              </ul>
-              <h4>Scope</h4>
-              <ul>
-                <li><b>In scope:</b> violence/threats/harassment with harm potential, incidents from identifiable customers/POI, pet incidents (pet as weapon, EMS transport, repeats), and on-road detrimental behavior (assault, theft, impeding egress, intimidation, etc.)</li>
-                <li><b>Out of scope:</b> unidentifiable POI, collisions/non-behavioral safety, package theft when transporter absent, vandalism where transporter isn't the direct victim</li>
-              </ul>
-              <h4>Guiding principles (tenets)</h4>
-              <p>Transporter safety over package delivery; safety is transporter-agnostic; robust but flexible processes; prioritize risk frameworks over opinion; consider the totality of risk (location + POI history); evidence-driven, unbiased assessments.</p>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="ac-arrow ac-prev" id="acPrev" aria-label="Previous slide" onclick="acGo(-1)">&#8249;</button>
-        <button type="button" class="ac-arrow ac-next" id="acNext" aria-label="Next slide" onclick="acGo(1)">&#8250;</button>
-      </div>
-      <!-- (Wiki link moved to its own card in the "Dashboards & reports" section below.) -->
-    </div>
-  </div>
+    <h4 class="about-h4">How it functions (the workflow)</h4>
+    <ul class="about-ul">
+      <li>Receives incident reports via EMT notifications and the LM-HUB ticketing system</li>
+      <li>Investigates using multiple evidence sources — video footage, route data, background checks, witness statements</li>
+      <li>Assesses risk using a severity framework (SEV1–SEV5)</li>
+      <li>Applies mitigations — address blocking, account actions, geo-routing updates, transporter support</li>
+      <li>Monitors repeat offenses, targeting a repeat known-POI offense rate below 1%</li>
+      <li>Coordinates with SDS, DSP Ops, Flex Safety, and Global Road Safety</li>
+    </ul>
 
-  <!-- ===== SECTION 2: Metric table (per-year trends) ===== -->
-  <section class="home-sec home-sec-metrics">
-    <h3 class="home-sec-h">Program metrics by year</h3>
+    <h4 class="about-h4">Geographic coverage</h4>
+    <ul class="about-ul">
+      <li><b>AMER:</b> Brazil, Canada, Mexico, Puerto Rico, US</li>
+      <li><b>EMEA:</b> EU, South Africa, UK</li>
+      <li><b>APAC:</b> Australia, India, Japan, Singapore</li>
+    </ul>
+
+    <h4 class="about-h4">Scope</h4>
+    <ul class="about-ul">
+      <li><b>In scope:</b> violence/threats/harassment with harm potential, incidents from identifiable customers/POI, pet incidents (pet as weapon, EMS transport, repeats), and on-road detrimental behavior (assault, theft, impeding egress, intimidation, etc.)</li>
+      <li><b>Out of scope:</b> unidentifiable POI, collisions/non-behavioral safety, package theft when transporter absent, vandalism where transporter isn't the direct victim</li>
+    </ul>
+
+    <h4 class="about-h4">Guiding principles (tenets)</h4>
+    <p class="about-lead">Transporter safety over package delivery; safety is transporter-agnostic; robust but flexible processes; prioritize risk frameworks over opinion; consider the totality of risk (location + POI history); evidence-driven, unbiased assessments.</p>
+    </div><!-- /.home-sec-body -->
+  </section>
+
+  <!-- ===== SECTION 2: Metric table (per-year trends) — white card, collapsible ===== -->
+  <section class="home-sec home-sec-metrics collapsed" id="metricsSec">
+    <h3 class="home-sec-h home-sec-toggle" role="button" tabindex="0" onclick="toggleMetricsSec()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleMetricsSec();}"><span class="home-sec-ic" data-ic="bar-chart" aria-hidden="true"></span>Program metrics by year<span class="home-sec-pm" aria-hidden="true"></span></h3>
+    <div class="home-sec-body">
       <div class="cmp-wrap">
       <!-- Per-YEAR comparison (2021-2026). Headers + cells are filled by home.js from /api/year-metrics. -->
       <table class="cmp-table xls" id="yearCmpTable">
@@ -393,44 +360,44 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
         </tbody>
       </table>
       </div>
+    </div><!-- /.home-sec-body -->
   </section>
 
-  <!-- ===== SECTION 3: Dashboards & reports (the era / quarter "buttons") ===== -->
-  <section class="home-sec home-sec-buttons">
-    <h3 class="home-sec-h">Dashboards &amp; reports</h3>
-  <!-- Program History / era cards + quarter-report year sections are rendered by home.js into
-       #yearSections. A shimmer skeleton shows while loading. -->
-  <div id="yearSections">
-    <!-- Skeleton: 5 light placeholder tiles matching the .nav-tiles grid (icon chip + title + sub +
-         two desc lines + CTA). Replaced by home.js once /api/quarters loads. -->
-    <div class="nt-skeleton">
-      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
-      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
-      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
-      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
-      <div class="nt-sk-card"><span class="shimmer nt-sk-ic"></span><span class="shimmer nt-sk-title"></span><span class="shimmer nt-sk-sub"></span><span class="shimmer nt-sk-line"></span><span class="shimmer nt-sk-line short"></span><span class="shimmer nt-sk-cta"></span></div>
+  <!-- ===== SECTION 3: Dashboards & reports — white card, collapsible ===== -->
+  <section class="home-sec home-sec-buttons collapsed" id="reportsSec">
+    <h3 class="home-sec-h home-sec-toggle" role="button" tabindex="0" onclick="toggleReportsSec()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReportsSec();}"><span class="home-sec-ic" data-ic="grid" aria-hidden="true"></span>Dashboards &amp; reports<span class="home-sec-pm" aria-hidden="true"></span></h3>
+    <div class="home-sec-body">
+      <!-- The nav cards are static text, painted synchronously by home.js (renderQuarterCards) — no shimmer. -->
+      <div id="yearSections"></div>
+      <div class="dynamic-btns grid" id="dynamicBtns"></div>
     </div>
-  </div>
-  <div class="dynamic-btns grid" id="dynamicBtns"></div>
   </section>
 </div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=145"></script>
+<script src="topbar-auth.js?v=167"></script>
 <script>
 // Fill any static icon placeholders (<span class="card-ic" data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 22); });
+// Header right label: "YTD <current year>" (year-to-date, live current calendar year).
+(function(){ var y=document.getElementById('homeYtd'); if(y) y.textContent='YTD '+new Date().getFullYear(); })();
 
-// ---- About carousel: two slides. Manual only — Next (right) on slide A, Prev (left) on slide B. ----
-(function(){
-  var track=document.getElementById('acTrack'); if(!track)return;
-  var slides=track.children.length; var idx=0;
-  var prev=document.getElementById('acPrev'), next=document.getElementById('acNext');
-  function sync(){ if(prev)prev.style.display=(idx>0)?'inline-flex':'none'; if(next)next.style.display=(idx<slides-1)?'inline-flex':'none'; }
-  window.acGo=function(step){ idx=Math.max(0,Math.min(slides-1,idx+step)); track.style.transform='translateX(-'+(idx*100)+'%)'; sync(); };
-  sync();
-})();
+// Accordion: only ONE of the three collapsible sections (About / Program metrics / Dashboards &
+// reports) is open at a time. Opening one collapses the others.
+var HOME_SECS=['aboutSec','metricsSec','reportsSec'];
+function homeSecToggle(openId){
+  var open=document.getElementById(openId); if(!open) return;
+  var willOpen=open.classList.contains('collapsed');   // currently collapsed -> we're opening it
+  HOME_SECS.forEach(function(id){ var s=document.getElementById(id); if(s) s.classList.add('collapsed'); }); // close all
+  if(willOpen) open.classList.remove('collapsed');     // then open the clicked one (if it was closed)
+}
+function toggleAboutSec(){ homeSecToggle('aboutSec'); }
+function toggleMetricsSec(){ homeSecToggle('metricsSec'); }
+function toggleReportsSec(){ homeSecToggle('reportsSec'); }
+window.toggleAboutSec=toggleAboutSec;
+window.toggleMetricsSec=toggleMetricsSec;
+window.toggleReportsSec=toggleReportsSec;
 
 // ===== Homepage auth (Login button / avatar + Logout) =====
 var A = window.PHDAuth;
@@ -534,6 +501,6 @@ async function homeDoLogin(){
 // Allow Enter to submit the login form.
 document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
-<script src="home.js?v=9"></script>
+<script src="home.js?v=11"></script>
 </body>
 </html>

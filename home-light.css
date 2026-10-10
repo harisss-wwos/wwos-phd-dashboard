@@ -20,6 +20,12 @@ body{ background:#f4f3ef !important; color:#1b2026 !important; }
    NONE. These selectors are more specific than topbar-auth's injected .js-header-row !important rule
    (which otherwise forces its own padding-top:10px, doubling the gap or fighting ours). ---- */
 body[data-profile-panel]{ padding-top:10px !important; }
+/* Pre-apply the rail side-padding (same 5vw topbar-auth.js injects via JS) in STATIC CSS so the
+   content renders in its final position on first paint. Without this, the body has no side padding
+   until the JS stylesheet loads, so content paints flush-left then visibly shifts right ("slides in
+   from the left") once the rail mounts. Setting it here removes that layout shift. The guest rule
+   (body[data-guest]{padding-left:0}) still wins for logged-out users with no rail. */
+body[data-profile-panel]{ padding-left:5vw; padding-right:5vw; box-sizing:border-box; }
 body[data-profile-panel] .wrap,body[data-profile-panel] .content{ padding-top:0 !important; margin-top:0 !important; }
 
 /* ---- Home page uses the SHARED layout (same as app.html). A small inner gutter on the content
@@ -36,7 +42,7 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
 .home-hdr{ display:flex !important; align-items:center !important; justify-content:space-between !important; gap:14px; height:48px; min-height:48px; margin:0 0 12px !important; padding:0 !important; }
 .home-hdr .home-hdr-logo{ display:flex; align-items:center; height:100%; text-decoration:none; flex:0 0 auto; }
 .home-hdr .home-hdr-logo img{ height:28px; width:auto; display:block; object-fit:contain; }   /* wordmark centered on the row */
-.home-hdr .home-hdr-title{ display:flex; align-items:center; gap:9px; height:100%; color:#1b2026; font-size:1.15em; font-weight:800; letter-spacing:.2px; white-space:nowrap; flex:0 0 auto; }
+.home-hdr .home-hdr-title{ display:flex; align-items:center; gap:9px; height:100%; color:#ec7211; font-size:1.15em; font-weight:800; letter-spacing:.2px; white-space:nowrap; flex:0 0 auto; text-transform:uppercase; }
 .home-hdr .home-hdr-ic{ display:inline-flex; align-items:center; color:#ec7211; }
 .home-hdr .home-hdr-ic svg{ width:20px; height:20px; display:block; }
 
@@ -69,6 +75,59 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
    directly on the page background with just a small heading. ---- */
 .hero{ margin:0 !important; }
 .about,.home-sec{ background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 0 26px !important; }
+/* The About + Metrics + Reports sections: shown on a WHITE card (overrides transparent).
+   Uniform 10px gap between all four stacked cards (header + 3 sections). */
+.home-sec-about,.home-sec-metrics,.home-sec-buttons{ background:#fff !important; border:1px solid #e2e6ea !important; border-radius:5px !important; box-shadow:0 1px 3px rgba(20,30,50,.06) !important; padding:0 !important; margin:0 0 10px !important; overflow:hidden !important; }
+.home-sec-buttons{ margin-bottom:0 !important; }   /* last card: no trailing gap */
+/* The header row ("Amazon WWOS" logo + "PHD Dashboard") on its own WHITE card. Higher-specificity
+   selector so it beats the body[data-profile-panel] .wrap > .home-hdr padding-top:0 rule above. */
+body[data-profile-panel] .wrap > .home-hdr.js-header-row,
+.home-hdr{ background:#fff !important; border:1px solid #e2e6ea !important; border-radius:5px !important; box-shadow:0 1px 3px rgba(20,30,50,.06) !important; padding:0 18px !important; margin:0 0 12px !important; height:56px !important; min-height:56px !important; box-sizing:border-box !important; }
+/* Collapsible section heads styled like the app.html Live Queue banners: a solid 56px BLUE bar with
+   a white title, flipping to sky-blue when collapsed, and a white +/- circle toggle on the right. */
+.home-sec-toggle{ display:flex !important; align-items:center !important; justify-content:space-between !important; gap:12px !important; cursor:pointer !important; user-select:none !important;
+  height:56px !important; min-height:56px !important; line-height:1 !important; box-sizing:border-box !important;
+  margin:0 !important; padding:0 18px !important; border-radius:0 !important;   /* flush banner at the card's top */
+  background:#0b63cf !important; color:#fff !important; transition:background .15s !important; }
+.home-sec.collapsed .home-sec-toggle{ background:#38bdf8 !important; border-radius:5px !important; }   /* collapsed: banner fills the whole rounded card */
+.home-sec:not(.collapsed) .home-sec-toggle{ border-radius:5px 5px 0 0 !important; }                     /* expanded: round only the top (body follows below) */
+/* Match the app.html banner title: Inter, 1.02em, weight 800, WHITE, sentence-case (no uppercase /
+   letter-spacing). Use .home-sec-h.home-sec-toggle (two classes) so WHITE beats the single-class
+   orange .home-sec-h{color:#ec7211} rule regardless of source order. */
+.home-sec-h.home-sec-toggle, .home-sec-h.home-sec-toggle *, .home-sec-toggle *{ color:#fff !important; }
+.home-sec-h.home-sec-toggle{ font-size:1.02em !important; font-weight:800 !important; text-transform:uppercase !important; letter-spacing:.4px !important; }
+/* Leading section icon: white, sized to the banner title, sitting just before the title text.
+   margin-right gives the gap to the title; the +/- circle is pushed to the far right (margin-left
+   auto below) so the icon + title stay grouped on the left. */
+/* Icon size (16px) + icon→title spacing (9px) copied from app.html's .sec-head h2 (gap:9px, ic 16). */
+.home-sec-ic{ display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; color:#fff !important; margin-right:9px; }
+.home-sec-ic svg{ width:16px; height:16px; display:block; }
+/* +/- toggle = a FILLED circle like app.html: RED with a white "−" when expanded, GREEN with a
+   white "+" when collapsed. Pinned to the far right. */
+.home-sec-pm{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; flex:0 0 auto; margin-left:auto; border:none; border-radius:50%; background:#dc2626; color:#fff; font-weight:800; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+.home-sec-pm::before{ content:'\2212'; font-size:1em; color:#fff; }   /* − (minus) = expanded, red circle */
+.home-sec-about.collapsed .home-sec-pm,
+.home-sec-metrics.collapsed .home-sec-pm,
+.home-sec-buttons.collapsed .home-sec-pm{ background:#16a34a; }        /* green circle when collapsed */
+.home-sec-about.collapsed .home-sec-pm::before,
+.home-sec-metrics.collapsed .home-sec-pm::before,
+.home-sec-buttons.collapsed .home-sec-pm::before{ content:'+'; }       /* + = collapsed */
+.home-sec-about .home-sec-body,
+.home-sec-metrics .home-sec-body,
+.home-sec-buttons .home-sec-body{ overflow:hidden; transition:max-height .34s ease,opacity .25s ease; max-height:4000px; opacity:1; padding:16px; }
+/* Collapsed: the card IS just the 56px banner. Drop the white card chrome (border/shadow/bg) so no
+   white strip shows below the banner; the banner carries the rounded corners + its own shadow.
+   Keep the SAME 10px bottom gap as the other bars so spacing stays uniform in any state. */
+.home-sec-about.collapsed,
+.home-sec-metrics.collapsed,
+.home-sec-buttons.collapsed{ border:none !important; box-shadow:none !important; background:transparent !important; margin:0 0 10px !important; }
+.home-sec-buttons.collapsed{ margin-bottom:0 !important; }
+.home-sec.collapsed .home-sec-toggle{ box-shadow:0 1px 3px rgba(20,30,50,.06) !important; }
+.home-sec-about.collapsed .home-sec-body,
+.home-sec-metrics.collapsed .home-sec-body,
+.home-sec-buttons.collapsed .home-sec-body{ display:none !important; padding:0 !important; }
+/* (Heading sizing is defined by the .home-sec-toggle banner rule below — 56px fixed, so all three
+   collapsed cards are identical height.) */
 /* Section heading (shared look across all three). */
 .about > h3,.home-sec-h{ color:#ec7211 !important; font-size:.95em !important; font-weight:800 !important; text-transform:uppercase !important; letter-spacing:.5px !important; margin:0 0 12px !important; }
 
@@ -82,7 +141,7 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
 .nav-tile{
   --nt-accent:#ec7211;
   position:relative; display:flex; flex-direction:column; gap:12px;
-  background:#fff; border:1px solid #e4e8ec; border-radius:16px; padding:18px 18px 16px;
+  background:#fff; border:1px solid #e4e8ec; border-radius:5px; padding:18px 18px 16px;
   text-decoration:none; overflow:hidden; min-height:168px;
   box-shadow:0 1px 3px rgba(20,30,50,.05);
   transition:transform .16s ease, box-shadow .2s ease, border-color .16s ease;
@@ -94,6 +153,7 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
 .nav-tile.nt-violet{ --nt-accent:#7c3aed; }
 .nav-tile.nt-teal{ --nt-accent:#0d9488; }
 .nav-tile.nt-blue{ --nt-accent:#2563eb; }
+.nav-tile.nt-rose{ --nt-accent:#db2777; }
 .nav-tile.nt-live{ --nt-accent:#22c55e; }
 /* Top row: icon chip + (optional) ACTIVE pill. */
 .nav-tile .nt-top{ display:flex; align-items:center; justify-content:space-between; }
@@ -102,6 +162,7 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
 .nav-tile.nt-violet .nt-ic{ background:#f3eeff; }
 .nav-tile.nt-teal .nt-ic{ background:#e6f6f4; }
 .nav-tile.nt-blue .nt-ic{ background:#eaf1ff; }
+.nav-tile.nt-rose .nt-ic{ background:#fdeaf3; }
 .nav-tile.nt-live .nt-ic{ background:#dcfce7; }
 .nav-tile .nt-ic svg{ width:20px; height:20px; }
 .nav-tile .nt-pill{ display:inline-flex; align-items:center; gap:6px; font-size:.62em; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#15803d; background:rgba(34,197,94,.14); border:1px solid rgba(34,197,94,.4); border-radius:999px; padding:3px 10px; }

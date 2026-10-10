@@ -161,9 +161,10 @@
       // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
       // pill grows rightward on hover from the same left edge.
       + '.tb-fab-col{position:fixed;left:4px;top:10px;bottom:10px;width:5vw;min-width:58px;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:9px;padding:0 4px;overflow-y:auto;overflow-x:clip;scrollbar-width:thin;scrollbar-color:#ff9900 transparent;box-sizing:border-box;background:#ffffff;pointer-events:auto}'
-      // GUEST (logged out, on index.html): hide the left nav-rail entirely and reclaim its left gutter.
-      + 'body[data-guest] .tb-fab-col,body[data-guest] #tbFabCol{display:none!important}'
-      + 'body[data-guest]{padding-left:0!important}'
+      // GUEST (logged out, on index.html): the left nav-rail stays VISIBLE but every item is shown
+      // disabled (greyed + not clickable) — see buildNavFabs, which renders login-gated items as
+      // tb-nav-disabled for guests instead of hiding them. The rail keeps its gutter (no padding
+      // reclaim) so the layout matches the logged-in view.
       // Thin ORANGE vertical scrollbar for the (now scrollable) left rail. overflow-x:clip above keeps
       // flyouts (position:fixed on hover) escaping while preventing a horizontal scrollbar.
       + '.tb-fab-col::-webkit-scrollbar{width:4px}'
@@ -356,6 +357,12 @@
       + '.tb-rail-profile .tb-nav-ic svg{width:24px;height:24px}'
       + '.tb-rail-profile:hover .tb-nav-ic{color:#ff9900}'
       + '.tb-nav-fab.tb-nav-disabled{background:#232d3a;color:#8b98a5;border-color:#3a4655;cursor:not-allowed;pointer-events:none}'
+      // On the LIGHT rail, disabled nav/analytics/live items (e.g. everything for a logged-out guest)
+      // read as disabled by DIMMING the whole captioned item + a not-allowed cursor. The transparent-
+      // background override above would otherwise make a disabled pill look identical to an enabled one.
+      + '.tb-fab-col .tb-fab-item:has(.tb-nav-disabled),.tb-fab-col .tb-fab-item:has(.tb-an-disabled),.tb-fab-col .tb-fab-item:has(.tb-live-disabled){opacity:.45;cursor:not-allowed}'
+      + '.tb-fab-col .tb-fab-item:has(.tb-nav-disabled):hover,.tb-fab-col .tb-fab-item:has(.tb-an-disabled):hover,.tb-fab-col .tb-fab-item:has(.tb-live-disabled):hover{opacity:.45}'
+      + '.tb-fab-col .tb-fab-item:has(.tb-nav-disabled) .tb-fab-cap,.tb-fab-col .tb-fab-item:has(.tb-an-disabled) .tb-fab-cap,.tb-fab-col .tb-fab-item:has(.tb-live-disabled) .tb-fab-cap{color:#8a94a2!important}'
       // On short screens shrink the FAB column (smaller pills + tighter gap) so it still fits centered.
       + '@media(max-height:820px){.tb-fab-col{gap:6px}.tb-nav-fab,.tb-live-fab,.tb-an-fab{height:40px;max-width:40px;border-radius:5px}.tb-nav-fab .tb-nav-ic,.tb-an-fab .tb-an-ic,.tb-live-fab .tb-live-ic{flex-basis:40px;width:40px;height:40px}.tb-nav-fab .tb-nav-ic svg,.tb-an-fab .tb-an-ic svg{width:18px;height:18px}.tb-hist-fab{height:40px}.tb-hist-fab .tb-hist-ic{flex-basis:40px;width:40px;height:40px}}'
       + '.tb-hist-pop{position:fixed;left:22px;bottom:84px;z-index:901;width:280px;max-width:calc(100vw - 44px);max-height:min(70vh,560px);overflow-y:auto;background:#121820;border:1px solid #2a2a2a;border-radius:5px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:8px;display:none;flex-direction:column;gap:2px}'
@@ -394,6 +401,11 @@
       // the hamburger/profile were while the fixed menu stays). `clip` prevents x-overflow the same
       // way but does NOT create a scroll container, so sticky keeps working.
       + 'html,body{max-width:100%;overflow-x:clip}'
+      // Always reserve the vertical scrollbar's gutter so the layout width NEVER changes between a
+      // short page (no scrollbar) and a tall one (scrollbar shown). Without this, the appearing
+      // scrollbar shrinks the viewport and the right-anchored profile column (+ all content) jumps
+      // left. scrollbar-gutter:stable keeps that gutter reserved at all times -> no shift.
+      + 'html{scrollbar-gutter:stable}'
       + '*{box-sizing:border-box}'
       // App-wide: any disabled control shows the not-allowed cursor. Covers native [disabled],
       // aria-disabled, and the app\'s disabled-state classes. Applied on every page (this stylesheet
@@ -583,8 +595,6 @@
       + '.tb-pp-links.collapsed{max-height:0;opacity:0;pointer-events:none;margin-top:-11px}'
       // First-paint guard: no transition so the section appears already-collapsed with no flash.
       + '.tb-pp-links.tb-pp-noanim{transition:none!important}'
-      // Name + role row inside the collapsible section.
-      + '.tb-pp-namerow2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}'
       // The full-width button stack.
       + '.tb-pp-links-stack{display:flex;flex-direction:column;align-items:stretch;gap:7px}'
       // All three buttons: FULL WIDTH, centered label, pill shape.
@@ -601,6 +611,43 @@
       + '.tb-pp-mytickets:hover{transform:translateY(-1px);filter:brightness(1.02);box-shadow:0 5px 14px -5px rgba(0,0,0,.55)}'
       + '.tb-pp-mytickets svg{width:14px;height:14px}'
       + '.tb-pp-mytickets .tb-pp-ic-img{width:15px;height:15px;object-fit:contain}'
+      // ---- Profile title bar: WHITE banner, 70px top row; expanded buttons = white w/ black border +
+      //      black font, flipping to orange bg + white font on hover. Overrides the orange-banner rules
+      //      above (placed later so these win without !important where possible). ----
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)){background:#ffffff;border:1px solid #e2e6ea;box-shadow:0 1px 3px rgba(20,30,50,.06)}'
+      // Always-visible top row = 70px tall (avatar + handle + hamburger), vertically centered.
+      // The always-visible top row IS the title bar. Make its OUTER height a true 60px to match
+      // app.html's .home-hdr: zero the body's vertical padding, put the 60px on the row, use the same
+      // 18px side padding, and shrink the avatar so it fits with breathing room in a 60px bar.
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-body{padding:0 18px}'
+      + '.tb-profile-panel .tb-pp-head{height:60px;min-height:60px;box-sizing:border-box}'
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-av{width:40px;height:40px}'
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-av img,.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-av .avatar-initial{width:40px!important;height:40px!important}'
+      // When the menu is EXPANDED, the links section needs the body padding back at the bottom so it
+      // isn\'t flush against the banner edge (the 60px rule only governs the collapsed title row).
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-links:not(.collapsed){padding-bottom:14px}'
+      // Dark text on the now-white banner.
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-handle{color:#5c6773}'
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-name{color:#1b2026}'
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-badge{background:#fff4e8;color:#b5560c}'
+      // Role badge now lives in the always-visible top row, pushed to the right so it sits just to the
+      // LEFT of the hamburger expand/collapse button (margin-left:auto takes the slack; the row\'s own
+      // 13px gap separates it from the hamburger, which no longer needs its own auto margin).
+      + '.tb-pp-head .tb-pp-badge-head{margin-left:auto}'
+      + '.tb-pp-head .tb-pp-badge-head + .tb-pp-ham{margin-left:0}'
+      // Avatar ring reads better as a soft grey border on white.
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-av{border-color:#e2e6ea;box-shadow:0 2px 8px rgba(20,30,50,.12)}'
+      // Hamburger: light-grey chip with dark bars on the white banner.
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-ham{background:#f3f5f7;border:1px solid #d7dde3}'
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-ham:hover{background:#e8ebef}'
+      + '.tb-profile-panel .tb-pp-banner:not(:has(.tb-pp-guest-body)) .tb-pp-ham span{background:#1b2026}'
+      // Expanded buttons (Profile / My Tickets / Logout): white bg, black border + font; orange on hover.
+      + '.tb-profile-panel .tb-pp-links-stack .tb-pp-link,.tb-profile-panel .tb-pp-links-stack .tb-pp-mytickets,.tb-profile-panel .tb-pp-links-stack .tb-pp-logout{background:#ffffff;color:#1878eb;border:1px solid #1878eb;box-shadow:none}'
+      + '.tb-profile-panel .tb-pp-links-stack .tb-pp-link svg,.tb-profile-panel .tb-pp-links-stack .tb-pp-mytickets svg,.tb-profile-panel .tb-pp-links-stack .tb-pp-logout svg,.tb-profile-panel .tb-pp-links-stack .tb-pp-mytickets .tb-pp-ic-img{color:#1878eb}'
+      + '.tb-profile-panel .tb-pp-links-stack .tb-pp-link:hover,.tb-profile-panel .tb-pp-links-stack .tb-pp-mytickets:hover,.tb-profile-panel .tb-pp-links-stack .tb-pp-logout:hover{background:#ec7211;color:#ffffff;border-color:#ec7211;filter:none;box-shadow:0 3px 10px -4px rgba(236,114,17,.5)}'
+      + '.tb-profile-panel .tb-pp-links-stack .tb-pp-link:hover svg,.tb-profile-panel .tb-pp-links-stack .tb-pp-mytickets:hover svg,.tb-profile-panel .tb-pp-links-stack .tb-pp-logout:hover svg{color:#ffffff}'
+      // Profile / My Tickets / Logout labels in UPPERCASE (overrides the global capitalize rule).
+      + '.tb-profile-panel .tb-pp-links-stack .tb-pp-link,.tb-profile-panel .tb-pp-links-stack .tb-pp-mytickets,.tb-profile-panel .tb-pp-links-stack .tb-pp-logout{text-transform:uppercase!important}'
       // Capital (Title) case for ALL toolbar-built buttons + nav links + rail captions, matching the
       // app-wide default (the stylesheet capitalize rule can\'t reach these toolbar-only classes).
       // Visual-only; !important so no per-class rule above wins. Does not touch role/badge pills that
@@ -658,6 +705,11 @@
       + '.tb-ws-tag.improving{background:#eafaf0;color:#1f9d57}'
       + '.tb-ws-tag.watch{background:#fff3e0;color:#b5680c}'
       + '.tb-ws-note-line{font-size:.74em;line-height:1.5;color:#5c6773;margin-top:10px;font-style:italic}'
+      // Summary rendered as a carousel SLIDE (not an accordion): the body is always visible. A top
+      // strip holds the period sub-label (left) + Export button (right); the KPI/defect blocks follow.
+      + '.tb-ws-slide-top{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:11px}'
+      + '.tb-ws-inner-open{display:block}'
+      + '.tb-pp-card-summ-slot .tb-pp-ic{background:#fff4e8;color:#ec7211}'
       + '.tb-pp-card-upload .tb-pp-ic{background:#eef5ff;color:#2563eb}'
       // ---- Logged-out (guest) panel: what-you-can-see list + a prominent login button ----
       + '.tb-pp-guest{display:flex;flex-direction:column;gap:9px}'
@@ -693,14 +745,24 @@
       + '.tb-pp-card-guest .tb-pp-card-b{padding:8px 15px 15px}'
       // Rows: round orange icon chip + text, soft divider, subtle hover. (No justified stretching.)
       + '.tb-pp-guest-just{gap:0}'
-      + '.tb-pp-guest-just .tb-pp-g-row{align-items:flex-start;gap:12px;color:#394350;font-size:.82em;line-height:1.45;padding:10px 4px;transition:background .12s}'
+      + '.tb-pp-guest-just .tb-pp-g-row{display:flex;align-items:center;gap:12px;color:#394350;font-size:.82em;line-height:1.45;padding:10px 4px;transition:background .12s}'
       + '.tb-pp-guest-just .tb-pp-g-row:hover{background:#fffaf4}'
       + '.tb-pp-guest-just .tb-pp-g-row+.tb-pp-g-row{border-top:1px solid #f3f4f6}'
       + '.tb-pp-guest-just .tb-pp-g-row>span:last-child{flex:1 1 auto;text-align:left}'
-      + '.tb-pp-guest-just .tb-pp-g-ic{flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:#fff4e8;color:#ec7211;box-shadow:0 2px 6px -3px rgba(236,114,17,.4)}'
+      + '.tb-pp-guest-just .tb-pp-g-ic{flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:#fff4e8;color:#ec7211;box-shadow:0 2px 6px -3px rgba(236,114,17,.4);display:inline-flex;align-items:center;justify-content:center}'
       + '.tb-pp-guest-just .tb-pp-g-ic svg{width:15px;height:15px}'
       // Log in buttons: UPPERCASE.
       + '.tb-pp-login-btn{text-transform:uppercase}'
+      // ---- Unified single guest card (welcome header + feature lists + one login button) ----
+      + '.tb-pp-guest-card{background:#fff;border:1px solid #efe6da;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);padding:20px 18px;display:flex;flex-direction:column;gap:4px}'
+      + '.tb-pp-guest-hdr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding-bottom:14px;margin-bottom:8px;border-bottom:1px solid #f3f4f6}'
+      + '.tb-pp-guest-card .tb-pp-guest-welcome{color:#1b2026;font-size:1.3em;font-weight:900;letter-spacing:.2px;line-height:1.1}'
+      + '.tb-pp-guest-card .tb-pp-guest-sub{color:#8a94a2;font-size:.8em;font-weight:600}'
+      // Small group sub-heading (orange, uppercase) separating the two feature lists.
+      + '.tb-pp-guest-grp-h{display:flex;align-items:center;gap:7px;color:#ec7211;font-size:.72em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin:12px 2px 2px}'
+      + '.tb-pp-guest-grp-h svg{width:13px;height:13px;flex:0 0 auto}'
+      // The single bottom login button spans the card width with a little top gap.
+      + '.tb-pp-guest-card .tb-pp-guest-login{margin-top:16px}'
       + '.tb-pp-login-btn svg{width:15px;height:15px}'
       // Inline login form (replaces the popup) inside the guest "Log in to do more" card.
       + '.tb-pp-login-form{display:flex;flex-direction:column;margin-top:12px;padding-top:12px;border-top:1px solid #eef1f4}'
@@ -724,6 +786,13 @@
       + '.tb-pp-up-loglink{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:#2563eb;font-size:.66em;font-weight:800;letter-spacing:.2px;text-transform:uppercase;white-space:nowrap;padding:5px 11px;border:1px solid #cfe0f2;border-radius:5px;background:#eef5ff;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .12s}'
       + '.tb-pp-up-loglink:hover{background:#2563eb;border-color:#2563eb;color:#fff;transform:translateY(-1px)}'
       + '.tb-pp-up-loglink svg{width:13px;height:13px;flex:0 0 auto}'
+      // Filename value row: truncated name + a small round download button pinned to the right.
+      + '.tb-pp-up-fname{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end;min-width:0}'
+      + '.tb-pp-dl{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:1px solid #cfe0f2;border-radius:5px;background:#eef5ff;color:#2563eb;cursor:pointer;transition:background .14s,color .14s,border-color .14s,transform .12s}'
+      + '.tb-pp-dl:hover{background:#2563eb;border-color:#2563eb;color:#fff;transform:translateY(-1px)}'
+      + '.tb-pp-dl:active{transform:none}'
+      + '.tb-pp-dl.busy{opacity:.6;pointer-events:none}'
+      + '.tb-pp-dl svg{width:13px;height:13px}'
       // Per-section REFRESH button in a card header (top-right). A round icon-only button; the icon
       // spins while a reload is in flight (.spinning). Default margin-left:auto pins it to the right.
       + '.tb-pp-reload{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid #e2e6ea;border-radius:5px;background:#fff;color:#5c6773;cursor:pointer;box-shadow:0 1px 2px rgba(20,30,50,.06);transition:background .14s,color .14s,border-color .14s,transform .14s}'
@@ -732,11 +801,11 @@
       + '.tb-pp-reload.spinning{pointer-events:none;color:#ec7211}'
       + '.tb-pp-reload.spinning svg{animation:tbPpSpin .7s linear infinite}'
       + '@keyframes tbPpSpin{to{transform:rotate(360deg)}}'
-      // In the upload + agents cards the reload button is the FIRST right-side element (it carries
-      // margin-left:auto), and the sibling that follows it (the Upload-log link or the "active today"
-      // badge) only needs a small gap, not its own auto-margin.
-      + '.tb-pp-card-upload .tb-pp-up-loglink{margin-left:8px}'
-      + '.tb-pp-card-agents .tb-pp-ag-active{margin-left:8px}'
+      // Per-section reload buttons are disabled (tbPpReloadBtn returns ''), so the Upload-log link /
+      // "active today" badge is the FIRST right-side element and must carry margin-left:auto itself to
+      // sit in the card's RIGHT corner (title stays in the left corner).
+      + '.tb-pp-card-upload .tb-pp-up-loglink{margin-left:auto}'
+      + '.tb-pp-card-agents .tb-pp-ag-active{margin-left:auto}'
       // Stat tile grids.
       + '.tb-pp-grid{display:grid;gap:8px}'
       + '.tb-pp-grid-2{grid-template-columns:repeat(2,1fr)}'
@@ -775,13 +844,22 @@
       + '.tb-pp-up-v{min-width:0;color:#1b2026;font-size:.82em;font-weight:800;text-align:right;justify-self:end;max-width:100%}'
       // Truncating cell (label OR value): single line with an ellipsis (full text in the title tooltip).
       + '.tb-pp-up-trunc{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-      // NOT ASSIGNED row — a highlighted red attention banner that softly blinks when > 0.
-      + '.tb-pp-na-row{border-bottom:none!important;margin:4px 0;padding:9px 11px!important;border-radius:5px;background:#fdeaea;border:1px solid #f6b8b8;box-shadow:0 0 0 0 rgba(220,38,38,.0)}'
-      + '.tb-pp-na-k{display:inline-flex;align-items:center;gap:6px;color:#dc2626!important;font-weight:900;letter-spacing:.3px}'
+      // NOT ASSIGNED row — attention banner that pulses between WHITE bg + red font and RED bg + white
+      // font when > 0 (static white/red when 0). The font color lives on the child spans, so they
+      // animate alongside the row background.
+      + '.tb-pp-na-row{border-bottom:none!important;margin:4px 0;padding:9px 11px!important;border-radius:5px;background:#ffffff;border:1px solid transparent;box-shadow:0 0 0 0 rgba(220,38,38,.0)}'
+      // NOTE: no !important on the text color — the two-class selector already beats the .tb-pp-up-k/-v
+      // defaults, and an !important here would stop the blink keyframe from recolouring the text
+      // (keyframe !important is ignored by browsers, so the static value would always win).
+      + '.tb-pp-na-k{display:inline-flex;align-items:center;gap:6px;color:#dc2626;font-weight:900;letter-spacing:.3px}'
       + '.tb-pp-na-k svg{width:12px;height:12px;flex:0 0 auto}'
-      + '.tb-pp-na-v{color:#dc2626!important;font-size:1em!important;font-weight:900}'
-      + '.tb-pp-na-row.blink{animation:tbNaBlink 1.3s ease-in-out infinite}'
-      + '@keyframes tbNaBlink{0%,100%{background:#fdeaea;border-color:#f6b8b8;box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{background:#fbd5d5;border-color:#ef9a9a;box-shadow:0 0 0 4px rgba(220,38,38,.14)}}'
+      + '.tb-pp-na-v{color:#dc2626;font-size:1em!important;font-weight:900}'
+      // Blink: white bg (red font, NO border) -> red bg (white font) and back, over 2s.
+      + '.tb-pp-na-row.blink{animation:tbNaBlink 2s ease-in-out infinite}'
+      + '.tb-pp-na-row.blink .tb-pp-na-k{animation:tbNaBlinkTxt 2s ease-in-out infinite}'
+      + '.tb-pp-na-row.blink .tb-pp-na-v{animation:tbNaBlinkTxt 2s ease-in-out infinite}'
+      + '@keyframes tbNaBlink{0%,100%{background:#ffffff;border-color:transparent;box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{background:#dc2626;border-color:#dc2626;box-shadow:0 0 0 4px rgba(220,38,38,.18)}}'
+      + '@keyframes tbNaBlinkTxt{0%,100%{color:#dc2626}50%{color:#ffffff}}'
       // Clickable NOT ASSIGNED row: pointer + a chevron that nudges on hover.
       + '.tb-pp-na-click{cursor:pointer}'
       + '.tb-pp-na-click:hover{filter:brightness(.98)}'
@@ -864,6 +942,14 @@
       + '.tb-na-skrow{pointer-events:none}'
       // Per-analyst list: a small section header, then one row per analyst (name left, open + net right).
       + '.tb-pp-analyst-head{margin-top:8px;padding:8px 2px 4px;border-top:1px solid #e2e6ea;color:#5c6773;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase}'
+      // Sortable column header row (Analysts | Count). Each column is a reset button; the left sits in
+      // the name column, the right in the value column (justify-self:end).
+      + '.tb-pp-analyst-colhead{padding:2px 2px 4px;border-bottom:1px solid #eef1f4}'
+      + '.tb-pp-colsort{display:inline-flex;align-items:center;gap:4px;background:none;border:none;padding:2px 0;margin:0;font-family:inherit;font-size:.64em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8a94a2;cursor:pointer;transition:color .14s}'
+      + '.tb-pp-colsort-count{justify-self:end}'
+      + '.tb-pp-colsort:hover{color:#1878eb}'
+      + '.tb-pp-colsort.active{color:#1b2026}'
+      + '.tb-pp-sort-ar{font-size:1.1em;line-height:1;font-weight:900;color:#1878eb;min-width:7px;display:inline-block}'
       + '.tb-pp-analyst-row{padding:6px 2px;overflow:hidden}'   // clip the chips while they slide
       + '.tb-pp-analyst-name{color:#1b2026!important;font-size:.8em;font-weight:800;text-transform:none!important}'
       + '.tb-pp-analyst-v{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;overflow:hidden}'
@@ -999,6 +1085,8 @@
       + '.tb-live-fab:hover{border-color:#1f9d57!important}'
       + '.tb-live-fab.tb-live-disabled{background:#eef1f4!important;color:#8b98a5!important;border-color:#d4dade!important;box-shadow:0 2px 8px rgba(20,40,70,.08)!important}'
       + '.tb-live-fab.tb-live-disabled .tb-live-dot{background:#8b98a5!important;box-shadow:none!important}'
+      // Analytics FAB disabled state on the LIGHT rail (guests): light-grey chip, no dark gradient/anim.
+      + '.tb-an-fab.tb-an-disabled{background:#eef1f4!important;color:#8b98a5!important;border-color:#d4dade!important;box-shadow:0 2px 8px rgba(20,40,70,.08)!important;animation:none!important}'
       // Soften the live glow for the light surface (light-green ring instead of a dark box-shadow).
       + '@keyframes tbLiveGlowLight{0%,100%{box-shadow:0 4px 14px rgba(31,157,87,.16),0 0 0 0 rgba(31,157,87,0)}50%{box-shadow:0 4px 14px rgba(31,157,87,.16),0 0 0 6px rgba(31,157,87,.14)}}'
       + '.tb-live-fab:not(.tb-live-disabled){animation:tbLiveGlowLight 1.6s ease-in-out infinite!important}'
@@ -1295,7 +1383,14 @@
     // Capture file metadata (name/size/type) up front — recorded on the upload log.
     var fileMeta = { fileName: file.name || '', fileSize: file.size || 0, fileType: file.type || '' };
     var reader = new FileReader();
-    reader.onload = function (ev) { tbBeginUpload(String(ev.target.result || ''), fileMeta); };
+    reader.onload = function (ev) {
+      var txt = String(ev.target.result || '');
+      // Keep the raw file text so the publish can persist it for later download. Only retain it when
+      // reasonably small (<= 12MB) to stay under the server's Mongo document limit; larger files skip
+      // the stored-copy (download icon simply won't show for them).
+      if (txt.length <= 12 * 1024 * 1024) fileMeta.fileText = txt;
+      tbBeginUpload(txt, fileMeta);
+    };
     reader.onerror = function () { window.PHDAlert({ title: 'Could not read file', body: 'Could not read the file.' }); };
     reader.readAsText(file);
   });
@@ -1614,6 +1709,7 @@
     try {
       var fm = res.fileMeta || {};
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
+      if (fm.fileText) body.fileText = fm.fileText;   // raw uploaded file, persisted for later download
       var r = await A.api('POST', '/api/live-quarter/patch', body);
       clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer);
       _pushSecs = Math.round((Date.now() - _pt0) / 1000);
@@ -2039,7 +2135,8 @@
     if (document.getElementById('analyticsFab')) return;
     var A = window.PHDAuth;
     var li = loggedIn();
-    if (!li) return;   // Analytics is HIDDEN for logged-out guests (login-gated).
+    // Logged-out: SHOW the Analytics FAB but render it DISABLED (greyed + inert) instead of hiding it,
+    // so the left rail looks the same for guests as for logged-in users.
     var fab = document.createElement('a');
     fab.className = 'tb-an-fab' + (li ? '' : ' tb-an-disabled');
     fab.setAttribute('aria-label', 'Agent & Group Analytics');
@@ -2101,16 +2198,16 @@
   // the live quarter and links to the live dashboard (app.html). Shown on EVERY page.
   function buildLiveButton() {
     if (document.querySelector('.tb-live-fab')) return;
-    // The "2026" dashboard button is LOGIN-GATED: hidden entirely for logged-out guests. The profile
-    // (right-rail avatar / panel) still builds regardless.
-    if (!loggedIn()) { buildRailProfile(); return; }
-    var label = document.body.getAttribute('data-live-label') || 'Q3 2026';
+    // The "2026" dashboard button is LOGIN-GATED: for logged-out guests it's SHOWN but DISABLED
+    // (greyed + inert) instead of hidden, so the left rail looks the same as when logged in. The
+    // profile (right-rail avatar / panel) builds regardless.
+    var li = loggedIn();
     var fab = document.createElement('a');
-    fab.className = 'tb-live-fab';
+    fab.className = 'tb-live-fab' + (li ? '' : ' tb-live-disabled');
     fab.setAttribute('aria-label', '2026 dashboard');
     fab.innerHTML = '<span class="tb-live-ic"><span class="tb-live-dot"></span></span>';
-    fab.href = 'app.html';
-    fab.title = 'Go to the 2026 dashboard';
+    if (li) { fab.href = 'app.html'; fab.title = 'Go to the 2026 dashboard'; }
+    else { fab.setAttribute('aria-disabled', 'true'); fab.title = 'Log in to view the 2026 dashboard'; }
     // Wrap in a captioned column item; "2026" caption. Sits at the BOTTOM of the LEFT rail.
     var item = document.createElement('div');
     item.className = 'tb-fab-item tb-fab-item-live';
@@ -2220,11 +2317,10 @@
         +     '<span class="tb-pp-meta">'
         +       (handle ? '<span class="tb-pp-handle">' + tbEsc(handle) + '@</span>' : '')
         +     '</span>'
+        +     (role ? '<span class="tb-pp-badge tb-pp-badge-head">' + tbEsc(role) + '</span>' : '')
         +     '<button type="button" class="tb-pp-ham" id="tbPpLinksToggle" aria-expanded="' + (linksCollapsed ? 'false' : 'true') + '" aria-label="Toggle menu" title="Menu"><span></span><span></span><span></span></button>'
         +   '</div>'
         +   '<div class="tb-pp-links tb-pp-noanim' + (linksCollapsed ? ' collapsed' : '') + '" id="tbPpLinksStack">'
-        +     '<div class="tb-pp-namerow2"><span class="tb-pp-name">' + tbEsc(name) + '</span>'
-        +       (role ? '<span class="tb-pp-badge">' + tbEsc(role) + '</span>' : '') + '</div>'
         +     '<div class="tb-pp-links-stack">'
         +       '<a class="tb-pp-link" href="profile.html">' + ic('user', 13) + '<span>Profile</span></a>'
         +       (isManager ? '' : '<a class="tb-pp-mytickets" href="my-tickets.html">' + izImg('my-tickets', ic('ticket', 14)) + '<span>My Tickets</span></a>')
@@ -2241,72 +2337,68 @@
       var guestItem = function (iconHtml, text) {
         return '<div class="tb-pp-g-row"><span class="tb-pp-g-ic">' + iconHtml + '</span><span>' + text + '</span></div>';
       };
+      // ONE unified guest card: welcome header + everything-you-get list + account-only list, then
+      // a single primary "Log in" button at the bottom that reveals the inline login form.
       panel.innerHTML =
-        '<div class="tb-pp-banner">'
-        + '<div class="tb-pp-body tb-pp-guest-body">'
+        '<div class="tb-pp-guest-card">'
+        // Header: centered avatar + welcome.
+        + '<div class="tb-pp-guest-hdr">'
         +   '<span class="tb-pp-av tb-pp-av-guest"><span class="tb-nav-ic">' + ic('user', 26) + '</span></span>'
-        +   '<div class="tb-pp-guest-greet">'
-        +     '<span class="tb-pp-guest-welcome">Welcome!</span>'
-        +     '<span class="tb-pp-guest-sub">Sign in to access the dashboard</span>'
-        +   '</div>'
-        +   '<button type="button" class="tb-pp-guest-login" id="tbPpBannerLogin">' + ic('key', 15) + '<span>Log in</span></button>'
+        +   '<span class="tb-pp-guest-welcome">Welcome!</span>'
+        +   '<span class="tb-pp-guest-sub">Log in to access the dashboard</span>'
         + '</div>'
+        // What you can access (view).
+        + '<div class="tb-pp-guest-grp-h">' + ic('lock', 13) + '<span>Log in to access</span></div>'
+        + '<div class="tb-pp-guest tb-pp-guest-just">'
+        +   guestItem(ic('grid', 14), 'The live quarter dashboard \u2014 queue status, ticket age, SLA, incident types & resolutions')
+        +   guestItem(ic('bar-chart', 14), 'Program History & per-year trends (2021\u20132026)')
+        +   guestItem(ic('clipboard', 14), 'Issue-type standardization reference')
+        +   guestItem(ic('line-chart', 14), 'Reports: SLA breaches, repeat incidents, countries, hashtags')
         + '</div>'
-        + '<div class="tb-pp-stack">'
-        // Guests can't access anything until they log in — so the copy frames everything as
-        // "log in to unlock". Orange heading + justified black rows.
-        + tbProfileCard(ic('lock', 15), 'Log in to access the dashboard',
-            '<div class="tb-pp-guest tb-pp-guest-just">'
-            + guestItem(ic('grid', 14), 'The live quarter dashboard \u2014 queue status, ticket age, SLA, incident types & resolutions')
-            + guestItem(ic('bar-chart', 14), 'Program History & per-year trends (2021\u20132026)')
-            + guestItem(ic('clipboard', 14), 'Issue-type standardization reference')
-            + guestItem(ic('line-chart', 14), 'Reports: SLA breaches, repeat incidents, countries, hashtags')
-            + '</div>', 'tb-pp-card-guest')
-        // Account-only actions. Orange heading + justified black rows.
-        + tbProfileCard(ic('key', 15), 'And do more with an account',
-            '<div class="tb-pp-guest tb-pp-guest-just">'
-            + guestItem(ic('upload', 14), 'Upload new data & manage the live dashboard')
-            + guestItem(ic('ticket', 14), 'See & comment on your assigned tickets (My Tickets)')
-            + guestItem(ic('alert', 14), 'Raise and answer help / alert requests')
-            + '</div>'
-            // Trigger button — visible by default. Clicking it EXPANDS the inline form below.
-            + '<button type="button" class="tb-pp-login-btn" id="tbPpLoginToggle">' + ic('key', 15) + '<span>Log in to your account</span></button>'
-            // Collapsible inline login form (hidden until the trigger is clicked). No popup.
-            + '<div class="tb-pp-login-wrap" id="tbPpLoginWrap">'
-            +   '<form class="tb-pp-login-form" id="tbPpLoginForm" autocomplete="on">'
-            +     '<label class="tb-pp-lf-label">Username</label>'
-            +     '<input class="tb-pp-lf-input" type="text" id="tbPpLoginUser" autocomplete="username" placeholder="username">'
-            +     '<label class="tb-pp-lf-label">Password</label>'
-            +     '<input class="tb-pp-lf-input" type="password" id="tbPpLoginPass" autocomplete="current-password" placeholder="password">'
-            +     '<label class="tb-pp-lf-remember"><input type="checkbox" id="tbPpLoginRemember" checked> Keep me signed in</label>'
-            +     '<div class="tb-pp-lf-err" id="tbPpLoginErr"></div>'
-            +     '<div class="tb-pp-lf-actions">'
-            +       '<button type="button" class="tb-pp-lf-cancel" id="tbPpLoginCancel">Cancel</button>'
-            +       '<button type="submit" class="tb-pp-login-btn tb-pp-lf-submit" id="tbPpLoginSubmit">' + ic('key', 15) + '<span>Log in</span></button>'
-            +     '</div>'
-            +   '</form>'
-            + '</div>', 'tb-pp-card-guest')
+        // Account-only actions.
+        + '<div class="tb-pp-guest-grp-h">' + ic('key', 13) + '<span>And do more with an account</span></div>'
+        + '<div class="tb-pp-guest tb-pp-guest-just">'
+        +   guestItem(ic('upload', 14), 'Upload new data & manage the live dashboard')
+        +   guestItem(ic('ticket', 14), 'See & comment on your assigned tickets (My Tickets)')
+        + '</div>'
+        // Collapsible inline login form (hidden until the single button below is clicked).
+        + '<div class="tb-pp-login-wrap" id="tbPpLoginWrap">'
+        +   '<form class="tb-pp-login-form" id="tbPpLoginForm" autocomplete="on">'
+        +     '<label class="tb-pp-lf-label">Username</label>'
+        +     '<input class="tb-pp-lf-input" type="text" id="tbPpLoginUser" autocomplete="username" placeholder="username">'
+        +     '<label class="tb-pp-lf-label">Password</label>'
+        +     '<input class="tb-pp-lf-input" type="password" id="tbPpLoginPass" autocomplete="current-password" placeholder="password">'
+        +     '<label class="tb-pp-lf-remember"><input type="checkbox" id="tbPpLoginRemember" checked> Keep me signed in</label>'
+        +     '<div class="tb-pp-lf-err" id="tbPpLoginErr"></div>'
+        +     '<div class="tb-pp-lf-actions">'
+        +       '<button type="button" class="tb-pp-lf-cancel" id="tbPpLoginCancel">Cancel</button>'
+        +       '<button type="submit" class="tb-pp-login-btn tb-pp-lf-submit" id="tbPpLoginSubmit">' + ic('key', 15) + '<span>Log in</span></button>'
+        +     '</div>'
+        +   '</form>'
+        + '</div>'
+        // THE single primary login button at the bottom (reveals the form above).
+        + '<button type="button" class="tb-pp-guest-login" id="tbPpBannerLogin">' + ic('key', 15) + '<span>Log in</span></button>'
         + '</div>';
     }
     document.body.appendChild(panel);
     try { panel.scrollTop = 0; } catch (e) {}        // always start at the top so the banner is visible
-    // Expand the collapsible inline login form + focus the username field.
+    // Expand the collapsible inline login form + focus the username field. Hide the single bottom
+    // "Log in" button while the form is open (the form has its own submit button).
     var openInlineLogin = function (e) {
       if (e) e.preventDefault();
       var wrap = document.getElementById('tbPpLoginWrap'); if (wrap) wrap.classList.add('open');
-      var toggle = document.getElementById('tbPpLoginToggle'); if (toggle) toggle.style.display = 'none';
+      var btn = document.getElementById('tbPpBannerLogin'); if (btn) btn.style.display = 'none';
       var u = document.getElementById('tbPpLoginUser');
       if (u) { setTimeout(function () { u.focus(); u.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60); }
     };
-    // Collapse the form back (Cancel).
+    // Collapse the form back (Cancel) and restore the bottom button.
     var closeInlineLogin = function () {
       var wrap = document.getElementById('tbPpLoginWrap'); if (wrap) wrap.classList.remove('open');
-      var toggle = document.getElementById('tbPpLoginToggle'); if (toggle) toggle.style.display = '';
+      var btn = document.getElementById('tbPpBannerLogin'); if (btn) btn.style.display = '';
       var errEl = document.getElementById('tbPpLoginErr'); if (errEl) errEl.style.display = 'none';
     };
-    // The banner "Log in" button + the "Log in to your account" button both EXPAND the form.
+    // The single bottom "Log in" button EXPANDS the form.
     var lg = document.getElementById('tbPpBannerLogin'); if (lg) lg.onclick = openInlineLogin;
-    var toggleBtn = document.getElementById('tbPpLoginToggle'); if (toggleBtn) toggleBtn.onclick = openInlineLogin;
     var cancelBtn = document.getElementById('tbPpLoginCancel'); if (cancelBtn) cancelBtn.onclick = closeInlineLogin;
     // Inline login form submit -> POST /api/login directly (mirrors tbDoLogin, no modal).
     var form = document.getElementById('tbPpLoginForm');
@@ -2414,13 +2506,13 @@
   // waits on gets a small inline spinner. This keeps all four cards visually consistent with the
   // upload card instead of mixing shimmer blocks with hardcoded rows.
   function tbProfileSkeleton() {
-    // Shimmer value placeholders (clean sweep, no jitter) sized per slot.
-    var shim = function (w, h) { return '<span class="tb-shim" style="width:' + w + ';height:' + (h || '12px') + '"></span>'; };
-    // Inline "LABEL ...... <shim> | LABEL ...... <shim>" pair (open tickets / resolved).
-    var pair = function (label) { return '<span class="tb-pp-pair"><span class="tb-pp-pair-l">' + label + '</span><span class="tb-pp-pair-n">' + shim('22px', '14px') + '</span></span>'; };
+    // Each server VALUE gets a small inline spinner; the FIXED labels are hardcoded.
+    var vspin = '<span class="tb-pp-mini-spin" aria-label="Loading"></span>';
+    // Inline "LABEL <spinner> | LABEL <spinner>" pair (open-ticket status counts).
+    var pair = function (label) { return '<span class="tb-pp-pair"><span class="tb-pp-pair-l">' + label + '</span><span class="tb-pp-pair-n">' + vspin + '</span></span>'; };
     var pairRow = function (a, b) { return '<div class="tb-pp-pair-row">' + pair(a) + '<span class="tb-pp-pair-sep">|</span>' + pair(b) + '</div>'; };
-    // A color-accent tile with the label hardcoded and the number shimmering.
-    var tile = function (label, tone) { return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + '"><div class="tb-pp-stat-n">' + shim('60%', '16px') + '</div><div class="tb-pp-stat-l">' + label + '</div></div>'; };
+    // A color-accent tile with the label hardcoded and the number spinning until it loads.
+    var tile = function (label, tone) { return '<div class="tb-pp-stat' + (tone ? ' ' + tone : '') + '"><div class="tb-pp-stat-n">' + vspin + '</div><div class="tb-pp-stat-l">' + label + '</div></div>'; };
 
     // Clubbed skeleton: open-status pairs + "By age" tiles in a single card (matches the real render).
     var openCard = tbProfileCard(izImg('my-tickets', ic('ticket', 15)), 'My open tickets',
@@ -2431,14 +2523,15 @@
       + tile('Yellow', 'c-yellow') + tile('Green', 'c-green') + '</div>');
     var ageCard = '';
     // Upload card built manually so its header can carry the "Upload log" button (same as the live
-    // card), keeping the skeleton visually identical to the loaded state.
+    // card), keeping the skeleton visually identical to the loaded state. The FIXED labels (Uploaded
+    // by / Filename / When / NOT ASSIGNED + the sort column headers + the A\u2192Z analyst names) render
+    // immediately; only the server VALUES get a small inline spinner. Shares tbUploadBodySkeleton()
+    // with the live loader so both look identical.
     var uploadLogBtn = '<a class="tb-pp-up-loglink" href="data-log.html" aria-label="View upload log">' + ic('history', 13) + '<span>Upload log</span></a>';
-    // Upload card loading state = ONE centered spinner for the whole body (matches the live render,
-    // which shows the same single spinner until /api/last-upload returns, then paints everything).
     var uploadCard = '<section class="tb-pp-card tb-pp-card-upload">'
       + '<div class="tb-pp-card-h"><span class="tb-pp-ic">' + izImg('upload-new-data', ic('upload', 15)) + '</span>'
-      +   '<span class="tb-pp-card-t">Change in data due to last upload</span>' + uploadLogBtn + '</div>'
-      + '<div class="tb-pp-card-b"><div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div></div></section>';
+      +   '<span class="tb-pp-card-t">Data due to Last Upload</span>' + uploadLogBtn + '</div>'
+      + '<div class="tb-pp-card-b">' + tbUploadBodySkeleton() + '</div></section>';
     // The last card is the SLIDER shell — same markup as the live layout so the prev/dots/next
     // control bar is present during loading (no layout jump when the real data swaps in). The
     // control bar is inert in the skeleton (gets wired only when tbStartProfileSlider runs post-load).
@@ -2527,18 +2620,17 @@
         return '<div class="tb-pp-pair-row">' + a + '<span class="tb-pp-pair-sep">|</span>' + b + '</div>';
       };
       var html = '';
-      // Weekly + Monthly Performance Summary: shown to EVERY logged-in user (previously managers +
-      // owners only). A placeholder card sits right below the name banner; tbLoadSummaries() fills it
-      // from weekly-summary.json / monthly-summary.json after render.
+      // Weekly + Monthly Performance Summary are shown to EVERY logged-in user. They are now the
+      // FIRST TWO slides of the single profile carousel (below); tbLoadSummaries() fills their slide
+      // bodies from weekly-summary.json / monthly-summary.json after render.
       var canWeekly = loggedIn();
-      if (canWeekly) {
-        html += '<div id="tbPpWbrMbr"></div>';   // WBR + MBR carousel (filled after their JSON loads)
-      }
-      if (d.view === 'manager') {
-        // "Resolved by everyone" card removed for managers per request. The WBR card (above) is their
-        // primary summary; no other default card in this branch.
-      } else {
-        var s = d.statusCounts || {}, c = d.colors || {};
+      // "My open tickets" shows for ANY user with tickets assigned to them (open > 0), regardless of
+      // the analyst/manager view — a manager who also carries a queue sees their own open tickets.
+      var s = d.statusCounts || {}, c = d.colors || {};
+      var myOpen = (d.open != null)
+        ? d.open
+        : ((s['Assigned'] || 0) + (s['Work In Progress'] || 0) + (s['Researching'] || 0) + (s['Pending'] || 0));
+      if (myOpen > 0) {
         // Clubbed card: "My open tickets" (status pairs) + "By age" (color tiles) in one section,
         // separated by a sub-section divider.
         html += tbProfileCard(izImg('my-tickets', ic('ticket', 15)), 'My open tickets',
@@ -2553,25 +2645,35 @@
           + tile('Green', c.green || 0, 'c-green') + '</div>', null, tbPpReloadBtn('tbPpReloadOpen'));
         // "My resolved" (Last 12h / Last 24h) card removed per request.
       }
-      // The last "card" is a SLIDING CAROUSEL that alternates between the upload-change card and the
-      // Agents-activity card every 3s. Both slides render their fixed labels immediately; the values
-      // fill in from /api/last-upload and /api/agents-activity respectively.
-      // Loading state = ONE centered spinner for the whole card body (no label rows / per-row spinners).
-      // tbLoadLastUpload replaces the entire body with the real content once the data lands.
-      var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Change in data due to last upload',
-        '<div id="tbPpUploadBody"><div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div></div>',
+      // The last "card" is a SLIDING CAROUSEL. The upload card renders its FIXED labels (Uploaded by /
+      // Filename / When / NOT ASSIGNED + the sort column headers) immediately; only the server VALUES
+      // show a small inline spinner. tbLoadLastUpload swaps in the real values once the data lands.
+      var uploadCard = tbProfileCard(izImg('upload-new-data', ic('upload', 15)), 'Data due to Last Upload',
+        '<div id="tbPpUploadBody">' + tbUploadBodySkeleton() + '</div>',
         'tb-pp-card-upload', tbPpReloadBtn('tbPpReloadUpload'));
-      // Three agent-activity windows: Today / Yesterday / Last week. Each is its own carousel slide,
-      // with its own reload button in the card header.
+      // Agent-activity windows: Yesterday / Last week. Each is its own carousel slide, with its own
+      // reload button in the card header. (The "worked Today" window was removed per request.)
       var agentSlide = function (bodyId, titleText, reloadId) {
         return tbProfileCard(izImg('group-analytics', ic('users', 15)), titleText,
           '<div id="' + bodyId + '">' + tbAgSkeleton() + '</div>', 'tb-pp-card-agents', tbPpReloadBtn(reloadId));
       };
-      var todayCard = agentSlide('tbPpAgToday', 'Agents worked Today(' + tbEsc(tbAgTodayLabel()) + ')', 'tbPpReloadAgToday');
       var ydayCard = agentSlide('tbPpAgYesterday', 'Agents activity for ' + tbEsc(tbAgDayLabel(-1)) + ' (Yesterday)', 'tbPpReloadAgYday');
       var weekCard = agentSlide('tbPpAgLastWeek', 'Agents activity for ' + tbEsc(tbAgLastWeekLabel()) + ' (Last week)', 'tbPpReloadAgWeek');
 
-      var slides = [uploadCard, todayCard, ydayCard, weekCard];
+      // Weekly + Monthly Performance Summary slide shells (filled async by tbLoadSummaries). Each has
+      // its own spinner until its JSON lands; shown only to logged-in users (otherwise omitted).
+      var summaryLoader = function (bodyId, title) {
+        return '<section class="tb-pp-card tb-pp-card-weekly tb-pp-card-summ-slot"><div class="tb-pp-card-h">'
+          + '<span class="tb-pp-ic">' + ic('bar-chart', 15) + '</span>'
+          + '<span class="tb-pp-card-t">' + title + '</span></div>'
+          + '<div class="tb-pp-card-b" id="' + bodyId + '"><div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div></div></section>';
+      };
+      // Order: Date-due-to-last-Upload, Yesterday, Last week, then Weekly + Monthly (logged-in only).
+      var slides = [uploadCard, ydayCard, weekCard];
+      if (canWeekly) {
+        slides.push(summaryLoader('tbPpWeeklySlot', 'Weekly Performance Summary'));
+        slides.push(summaryLoader('tbPpMonthlySlot', 'Monthly Performance Summary'));
+      }
       var dots = '';
       for (var si = 0; si < slides.length; si++) dots += '<span class="tb-pp-sl-dot" data-i="' + si + '"></span>';
       var slideDivs = slides.map(function (c, i) { return '<div class="tb-pp-slide" data-slide="' + i + '">' + c + '</div>'; }).join('');
@@ -2587,8 +2689,7 @@
       slot.innerHTML = html;
       if (canWeekly) tbLoadSummaries();                    // weekly + monthly carousel (managers + owners)
       tbLoadLastUpload();                                  // upload card
-      tbLoadAgentsActivity('today', 'tbPpAgToday');        // 3 agent windows
-      tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday');
+      tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday'); // 2 agent windows (Today window removed)
       tbLoadAgentsActivity('lastweek', 'tbPpAgLastWeek');
       tbStartProfileSlider();                              // manual N-slide carousel
       // Wire the per-section reload buttons. Open-tickets + tickets-by-age both come from the single
@@ -2596,7 +2697,6 @@
       tbPpWireReload(slot, 'tbPpReloadOpen', function () { return tbLoadProfileStats(true); });
       tbPpWireReload(slot, 'tbPpReloadAge', function () { return tbLoadProfileStats(true); });
       tbPpWireReload(slot, 'tbPpReloadUpload', function () { return tbLoadLastUpload(true); });
-      tbPpWireReload(slot, 'tbPpReloadAgToday', function () { return tbLoadAgentsActivity('today', 'tbPpAgToday', true); });
       tbPpWireReload(slot, 'tbPpReloadAgYday', function () { return tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday', true); });
       tbPpWireReload(slot, 'tbPpReloadAgWeek', function () { return tbLoadAgentsActivity('lastweek', 'tbPpAgLastWeek', true); });
       // BY AGE tiles -> open the "my tickets of this colour" popup (replica of the NOT ASSIGNED one).
@@ -2760,9 +2860,12 @@
   // Generic metrics-ONLY summary card (shared by weekly + monthly). opts: {cardClass, title, sub,
   // period ('WoW'|'MoM'), toggleFn, exportFn}. Collapsed by default; header is a role=button DIV
   // (NOT a <button>, which must not contain the Export <button>). Export stops propagation.
-  function tbSummaryCardHtml(d, opts) {
+  // Build ONLY the body (KPIs + defect-code trends + address block) of a summary, used both by the
+  // collapsible card (tbSummaryCardHtml) and by the carousel slide filler (tbLoadSummaries). Wraps
+  // in tbWithPeriod so the WoW/MoM delta suffix is correct regardless of the caller's context.
+  function tbSummaryBodyHtml(d, period) {
     if (!d) return '';
-    return tbWithPeriod(opts.period, function () {
+    return tbWithPeriod(period, function () {
       var kpis = (d.kpis || []).map(function (x) {
         return '<div class="tb-ws-kpi"><div class="tb-ws-k">' + tbEsc(x.k) + '</div>'
           + '<div class="tb-ws-vrow"><span class="tb-ws-v">' + tbEsc(x.v) + '</span>' + tbWsDelta(x.wow, x.goodWhen) + '</div></div>';
@@ -2785,8 +2888,14 @@
       var addrBlock = addr
         ? '<div class="tb-ws-div"></div><div class="tb-ws-block-h">Address Exclusions &amp; GEO Pins</div><div class="tb-ws-kpis">' + addr + '</div>'
         : '';
+      return (kpis ? '<div class="tb-ws-kpis">' + kpis + '</div>' : '') + defectBlock + addrBlock;
+    });
+  }
+  function tbSummaryCardHtml(d, opts) {
+    if (!d) return '';
+    return tbWithPeriod(opts.period, function () {
       var sub = opts.sub || '';
-      var body = (kpis ? '<div class="tb-ws-kpis">' + kpis + '</div>' : '') + defectBlock + addrBlock;
+      var body = tbSummaryBodyHtml(d, opts.period);
       // Collapsed by default; the header row toggles THIS card's own collapse. Export stops
       // propagation so it copies without toggling.
       var exportBtn = '<button type="button" class="tb-ws-export" data-label="Export" title="Copy full report to clipboard" onclick="event.stopPropagation();' + opts.exportFn + '(this)">' + tbExportLabel() + '</button>';
@@ -2838,19 +2947,63 @@
   // group: only one card is expanded at a time. Default = Weekly expanded. Each card keeps its header
   // + Export button. If a JSON is missing its card is skipped.
   function tbLoadSummaries() {
-    var box = document.getElementById('tbPpWbrMbr');
-    if (!box) return;
+    // Weekly + Monthly are now the first two SLIDES of the profile carousel. Fill each slide's body
+    // (#tbPpWeeklySlot / #tbPpMonthlySlot) with its summary body once the JSON lands. As slides (not
+    // an accordion) they render fully EXPANDED — no collapse toggle.
+    var wSlot = document.getElementById('tbPpWeeklySlot');
+    var mSlot = document.getElementById('tbPpMonthlySlot');
+    if (!wSlot && !mSlot) return;
     Promise.all([tbFetchJson('weekly-summary.json'), tbFetchJson('monthly-summary.json')]).then(function (res) {
-      var cards = [];
-      if (res[0]) cards.push(tbWeeklySummaryCardHtml(res[0]));   // Weekly FIRST
-      if (res[1]) cards.push(tbMonthlySummaryCardHtml(res[1]));  // Monthly SECOND
-      var b = document.getElementById('tbPpWbrMbr');
-      if (!b) return;
-      if (!cards.length) { b.innerHTML = ''; return; }
-      // Both cards start COLLAPSED by default. The accordion still enforces only-one-open once the
-      // user expands a card.
-      b.innerHTML = '<div class="tb-pp-summ-stack" id="tbPpSummStack">' + cards.join('') + '</div>';
+      // Fill a summary slide body with the KPI/defect/address blocks (header already painted by the
+      // slide shell). Builds the inner from the same data pieces as tbSummaryCardHtml, minus the
+      // collapsible chrome, plus an Export button pinned in the body.
+      var fill = function (slot, d, opts) {
+        if (!slot) return;
+        if (!d) { slot.innerHTML = '<div class="tb-pp-ag-empty">No ' + opts.title.toLowerCase() + ' yet.</div>'; return; }
+        var sub = opts.sub || '';
+        var exportBtn = '<button type="button" class="tb-ws-export" data-label="Export" title="Copy full report to clipboard" onclick="event.stopPropagation();' + opts.exportFn + '(this)">' + tbExportLabel() + '</button>';
+        slot.innerHTML = '<div class="tb-ws-slide-top">' + (sub ? '<span class="tb-ws-sub">' + sub + '</span>' : '<span></span>') + exportBtn + '</div>'
+          + '<div class="tb-ws-inner tb-ws-inner-open">' + tbSummaryBodyHtml(d, opts.period) + '</div>';
+      };
+      if (res[0]) TB_WEEKLY_DATA = res[0];
+      if (res[1]) TB_MONTHLY_DATA = res[1];
+      fill(document.getElementById('tbPpWeeklySlot'), res[0], { title: 'Weekly Performance Summary', sub: res[0] ? tbWeekLabel(res[0]) : '', period: 'WoW', exportFn: 'PHDWeeklyExport' });
+      fill(document.getElementById('tbPpMonthlySlot'), res[1], { title: 'Monthly Performance Summary', sub: res[1] ? tbMonthLabel(res[1]) : '', period: 'MoM', exportFn: 'PHDMonthlyExport' });
     });
+  }
+
+  // Known analyst roster, A\u2192Z — hardcoded so the upload card's analyst list can render its NAMES
+  // immediately (the default sort is A\u2192Z), with a spinner in each count slot until the real numbers
+  // land. tbLoadLastUpload replaces the whole list with the server data (which also updates the
+  // roster if it ever changes).
+  var TB_ANALYST_ROSTER = ['arunkzn', 'chousoud', 'dbiswamb', 'flofalgu', 'harisss', 'mbozied', 'mellanej', 'nobregak', 'obalasut', 'punithsd', 'shaavhad', 'tanviroo', 'urmahala'];
+
+  // The "Data due to Last Upload" body in its LOADING state: all fixed labels hardcoded, every
+  // server VALUE replaced by a small inline spinner. The analyst NAMES are hardcoded (A\u2192Z default),
+  // with a spinner where each open-ticket count will land.
+  function tbUploadBodySkeleton() {
+    var vspin = '<span class="tb-pp-mini-spin" aria-label="Loading"></span>';
+    var labelRow = function (label) {
+      return '<div class="tb-pp-up-row"><span class="tb-pp-up-k">' + label + '</span><span class="tb-pp-up-v">' + vspin + '</span></div>';
+    };
+    var anaRows = TB_ANALYST_ROSTER.map(function (name) {
+      return '<div class="tb-pp-up-row tb-pp-analyst-row">'
+        + '<span class="tb-pp-up-k tb-pp-analyst-name">' + tbEsc(name) + '</span>'
+        + '<span class="tb-pp-up-v tb-pp-analyst-v"><b class="tb-pp-analyst-open">' + vspin + '</b>'
+        +   '<span class="tb-pp-stbtn tb-pp-stbtn-empty" aria-hidden="true"></span></span>'
+        + '</div>';
+    }).join('');
+    return '<div class="tb-pp-up">'
+      + labelRow('Uploaded by')
+      + labelRow('Filename')
+      + labelRow('When')
+      + '<div class="tb-pp-up-row tb-pp-na-row"><span class="tb-pp-up-k tb-pp-na-k">' + ic('alert', 12) + ' NOT ASSIGNED</span><span class="tb-pp-up-v tb-pp-na-v">' + vspin + '</span></div>'
+      + '<div class="tb-pp-up-row tb-pp-analyst-colhead">'
+      +   '<span class="tb-pp-colsort active" data-dir="asc">Analysts<span class="tb-pp-sort-ar">\u2191</span></span>'
+      +   '<span class="tb-pp-colsort tb-pp-colsort-count">Open Tickets</span>'
+      + '</div>'
+      + '<div class="tb-pp-analyst-list">' + anaRows + '</div>'
+      + '</div>';
   }
 
   // Fetch /api/last-upload and fill the #tbPpUploadBody loader shell inside the upload card.
@@ -2921,49 +3074,66 @@
       // sorted by open count desc (server-sorted). The +/- toggle reveals a right-to-left slide-in row
       // of W/A/P/R status chips (only the non-zero statuses). Only ONE analyst is expanded at a time.
       var analystRows = '';
-      // Loaded list: by OPEN COUNT, descending (highest first). The payload already arrives
-      // count-sorted from the server; sort defensively here so the order is guaranteed.
       var alist = Array.isArray(d.analysts) ? d.analysts.slice() : [];
-      alist.sort(function (a, b) { return (Number(b.open) || 0) - (Number(a.open) || 0); });
-      if (alist.length) {
-        // Status -> single-letter tag + CSS tone class. (W=WIP, A=Assigned, P=Pending, R=Researching.)
-        var ST = [
-          { key: 'Work In Progress', tag: 'W', cls: 'w' },
-          { key: 'Assigned', tag: 'A', cls: 'a' },
-          { key: 'Pending', tag: 'P', cls: 'p' },
-          { key: 'Researching', tag: 'R', cls: 'r' },
-        ];
-        var rowsHtml = alist.map(function (a, i) {
-          var st = a.status || {};
-          // Build chips for ONLY the statuses with a count > 0.
-          var chips = ST.filter(function (s) { return Number(st[s.key] || 0) > 0; }).map(function (s) {
-            return '<span class="tb-pp-stchip tb-pp-stchip-' + s.cls + '" title="' + s.key + '">'
-              + '<b>' + s.tag + '</b>' + Number(st[s.key] || 0) + '</span>';
-          }).join('');
-          var hasChips = chips.length > 0;
-          var open = (a.open != null ? a.open : 0);
-          return '<div class="tb-pp-up-row tb-pp-analyst-row" data-ana="' + i + '">'
-            + '<span class="tb-pp-up-k tb-pp-analyst-name" title="' + tbEsc(a.name || '') + '">' + tbEsc(a.username || a.name || '') + '</span>'
-            + '<span class="tb-pp-up-v tb-pp-analyst-v">'
-            +   '<span class="tb-pp-stchips">' + chips + '</span>'
-            +   '<b class="tb-pp-analyst-open">' + open + '</b>'
-            +   (hasChips
-                  ? '<button type="button" class="tb-pp-stbtn" aria-expanded="false" aria-label="Show status breakdown" title="Status breakdown"><span class="tb-pp-stbtn-ic">+</span></button>'
-                  : '<span class="tb-pp-stbtn tb-pp-stbtn-empty" aria-hidden="true"></span>')
-            + '</span>'
-            + '</div>';
+      // Status -> single-letter tag + CSS tone class. (W=WIP, A=Assigned, P=Pending, R=Researching.)
+      var ST = [
+        { key: 'Work In Progress', tag: 'W', cls: 'w' },
+        { key: 'Assigned', tag: 'A', cls: 'a' },
+        { key: 'Pending', tag: 'P', cls: 'p' },
+        { key: 'Researching', tag: 'R', cls: 'r' },
+      ];
+      var anaName = function (a) { return String(a.username || a.name || ''); };
+      // Build the <row> HTML for one analyst (index i used only for the data attribute).
+      var anaRowHtml = function (a, i) {
+        var st = a.status || {};
+        var chips = ST.filter(function (s) { return Number(st[s.key] || 0) > 0; }).map(function (s) {
+          return '<span class="tb-pp-stchip tb-pp-stchip-' + s.cls + '" title="' + s.key + '">'
+            + '<b>' + s.tag + '</b>' + Number(st[s.key] || 0) + '</span>';
         }).join('');
-        analystRows = '<div class="tb-pp-analyst-head">Open tickets by analyst</div><div class="tb-pp-analyst-list">' + rowsHtml + '</div>';
+        var hasChips = chips.length > 0;
+        var open = (a.open != null ? a.open : 0);
+        return '<div class="tb-pp-up-row tb-pp-analyst-row" data-ana="' + i + '">'
+          + '<span class="tb-pp-up-k tb-pp-analyst-name" title="' + tbEsc(a.name || '') + '">' + tbEsc(anaName(a)) + '</span>'
+          + '<span class="tb-pp-up-v tb-pp-analyst-v">'
+          +   '<span class="tb-pp-stchips">' + chips + '</span>'
+          +   '<b class="tb-pp-analyst-open">' + open + '</b>'
+          +   (hasChips
+                ? '<button type="button" class="tb-pp-stbtn" aria-expanded="false" aria-label="Show status breakdown" title="Status breakdown"><span class="tb-pp-stbtn-ic">+</span></button>'
+                : '<span class="tb-pp-stbtn tb-pp-stbtn-empty" aria-hidden="true"></span>')
+          + '</span>'
+          + '</div>';
+      };
+      if (alist.length) {
+        // Two sortable column headers: Analysts (A\u2013Z / Z\u2013A) and Count (asc / desc). Default sort =
+        // Count descending (highest open count first). The list body is (re)painted by tbRenderAnaList.
+        var caret = '<span class="tb-pp-sort-ar" aria-hidden="true"></span>';
+        var headRow = '<div class="tb-pp-up-row tb-pp-analyst-colhead">'
+          + '<button type="button" class="tb-pp-colsort tb-pp-colsort-name" data-sort="name" title="Sort by analyst name">Analysts' + caret + '</button>'
+          + '<button type="button" class="tb-pp-colsort tb-pp-colsort-count" data-sort="count" title="Sort by open tickets">Open Tickets' + caret + '</button>'
+          + '</div>';
+        analystRows = headRow + '<div class="tb-pp-analyst-list"></div>';
       }
+      // Filename row — with a DOWNLOAD icon button on the right when a raw copy of the uploaded file
+      // was stored server-side (d.hasFile). Clicking it fetches /api/last-upload/file (auth) and saves
+      // the original file the analyst uploaded.
+      var fnameVal = tbEsc(d.fileName || '\u2014');
+      var dlBtn = d.hasFile
+        ? '<button type="button" class="tb-pp-dl" id="tbPpDlFile" title="Download the uploaded file" aria-label="Download the uploaded file">' + ic('download', 13) + '</button>'
+        : '';
+      var filenameRow = '<div class="tb-pp-up-row">'
+        + '<span class="tb-pp-up-k">Filename</span>'
+        + '<span class="tb-pp-up-v tb-pp-up-fname">'
+        +   '<span class="tb-pp-up-trunc" title="' + fnameVal + '">' + fnameVal + '</span>' + dlBtn
+        + '</span></div>';
       body.innerHTML = '<div class="tb-pp-up">'
         + rowT('Uploaded by', d.user || '\u2014')
-        + rowT('Filename', d.fileName || '\u2014')
+        + filenameRow
         + rowT('When', when || '\u2014')
         + notAssignedRow
         + analystRows
         + '</div>';
-      // Wire the per-analyst +/- toggles. Expand ONE analyst's W/A/P/R chips at a time: opening one
-      // slides the previously-open one closed. Clicking an open row's button collapses it.
+      // Per-analyst +/- toggle: expand ONE analyst's W/A/P/R chips at a time (opening one closes the
+      // previously-open one). Delegated once on the list container (survives list re-renders).
       var list = body.querySelector('.tb-pp-analyst-list');
       if (list) {
         var setRow = function (row, open) {
@@ -2981,10 +3151,58 @@
           var row = btn.closest('.tb-pp-analyst-row');
           if (!row) return;
           var wasOpen = row.classList.contains('open');
-          // Collapse every row first (so only one is ever open), then open the clicked one if it wasn't.
           list.querySelectorAll('.tb-pp-analyst-row.open').forEach(function (r) { setRow(r, false); });
           if (!wasOpen) setRow(row, true);
         });
+
+        // ---- Sortable columns: Analysts (name A\u2013Z / Z\u2013A) + Count (asc / desc) ----
+        // Sort state: the active key ('name' | 'count') and the direction for each key. Default =
+        // analyst name A\u2192Z.
+        var sortState = { key: 'name', dir: { name: 'asc', count: 'desc' } };
+        var paintList = function () {
+          var rows = alist.slice();
+          if (sortState.key === 'name') {
+            rows.sort(function (a, b) {
+              var r = anaName(a).toLowerCase().localeCompare(anaName(b).toLowerCase());
+              return sortState.dir.name === 'asc' ? r : -r;
+            });
+          } else {
+            rows.sort(function (a, b) {
+              var r = (Number(a.open) || 0) - (Number(b.open) || 0);
+              return sortState.dir.count === 'asc' ? r : -r;   // asc = increasing, desc = decreasing
+            });
+          }
+          list.innerHTML = rows.map(function (a, i) { return anaRowHtml(a, i); }).join('');
+          // Reflect the active sort on the column headers (active class + up/down arrow).
+          var colhead = body.querySelector('.tb-pp-analyst-colhead');
+          if (colhead) {
+            colhead.querySelectorAll('.tb-pp-colsort').forEach(function (btn) {
+              var k = btn.getAttribute('data-sort');
+              var active = (k === sortState.key);
+              btn.classList.toggle('active', active);
+              var dir = sortState.dir[k];
+              btn.setAttribute('data-dir', dir);
+              var ar = btn.querySelector('.tb-pp-sort-ar');
+              if (ar) ar.textContent = active ? (dir === 'asc' ? '\u2191' : '\u2193') : '';
+            });
+          }
+        };
+        var colhead = body.querySelector('.tb-pp-analyst-colhead');
+        if (colhead) {
+          colhead.addEventListener('click', function (ev) {
+            var btn = ev.target.closest ? ev.target.closest('.tb-pp-colsort') : null;
+            if (!btn) return;
+            var k = btn.getAttribute('data-sort');
+            if (sortState.key === k) {
+              // Same column clicked again -> flip that column's direction.
+              sortState.dir[k] = (sortState.dir[k] === 'asc') ? 'desc' : 'asc';
+            } else {
+              sortState.key = k;   // switch columns, keep each column's last direction
+            }
+            paintList();
+          });
+        }
+        paintList();   // initial render (analyst name A\u2192Z)
       }
       // NOT ASSIGNED row -> open the unassigned-tickets popup.
       var naRow = document.getElementById('tbPpNaRow');
@@ -2992,10 +3210,35 @@
         naRow.onclick = function () { tbOpenNaPopup(); };
         naRow.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tbOpenNaPopup(); } };
       }
+      // Download icon -> fetch the stored raw file (with the auth bearer token) and save it. We can't
+      // use a plain <a href> because the endpoint requires the Authorization header, so fetch -> blob
+      // -> a transient object-URL anchor click.
+      var dlEl = document.getElementById('tbPpDlFile');
+      if (dlEl) {
+        dlEl.onclick = function () {
+          if (dlEl.classList.contains('busy')) return;
+          dlEl.classList.add('busy');
+          var tok = (A.getToken && A.getToken()) || '';
+          var base = (window.PHD_API_BASE || '');
+          fetch(base + '/api/last-upload/file', { headers: tok ? { Authorization: 'Bearer ' + tok } : {} })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob().then(function (b) { return { b: b, r: r }; }); })
+            .then(function (o) {
+              // Prefer the server's Content-Disposition filename; fall back to the displayed one.
+              var name = d.fileName || 'upload.csv';
+              try { var cd = o.r.headers.get('Content-Disposition') || ''; var m = /filename="?([^"]+)"?/.exec(cd); if (m && m[1]) name = m[1]; } catch (e) {}
+              var url = URL.createObjectURL(o.b);
+              var a = document.createElement('a'); a.href = url; a.download = name;
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            })
+            .catch(function () { try { if (window.PHDAlert) window.PHDAlert({ title: 'Download failed', body: 'Could not download the uploaded file.' }); } catch (e) {} })
+            .then(function () { dlEl.classList.remove('busy'); });
+        };
+      }
     };
-    // Show a single centered spinner for the whole card while the data loads (also on a forced
-    // reload). The full content replaces it once /api/last-upload returns.
-    body.innerHTML = '<div class="tb-pp-up-loading"><span class="tb-pp-spin"></span> Loading\u2026</div>';
+    // Loading state: fixed labels hardcoded, a spinner in each server-value slot (also on a forced
+    // reload). The real values replace them once /api/last-upload returns.
+    body.innerHTML = tbUploadBodySkeleton();
     // Always fetch fresh (no caching) so a new upload shows immediately on refresh.
     return A.api('GET', '/api/last-upload').then(function (r) {
       if (!r || !r.ok || !r.data) { body.innerHTML = '<div class="tb-pp-up-empty">Could not load upload summary.</div>'; return; }
@@ -3732,9 +3975,9 @@
     var canUpload = A.canUpload && A.canUpload();
     items.forEach(function (it) {
       var enabled = tbNeedMet(it.need, li, isAdmin, isOwner);
-      // HIDE (don't just disable) any login-gated item when logged OUT. Items that need no login
-      // (need:true/'any') still show. All current nav FABs require login, so they vanish for guests.
-      if (!li && it.need !== true && it.need !== 'any') return;
+      // When logged OUT, SHOW every nav item but render it DISABLED (greyed + inert) rather than
+      // hiding it — tbNeedMet returns false for login-gated items when li=false, so `enabled` is
+      // already false here and the disabled-branch below styles + de-links it accordingly.
       // Upload is a button (opens the in-place CSV picker); a placeholder is an inert button;
       // everything else is a link.
       var isUpload = it.type === 'upload';
@@ -4082,6 +4325,11 @@
   // ---- Standalone-page auto-mount: replace the page's .top-bar with the shared toolbar ----
   // Reads data-nav-active on <body> for the active highlight. Skipped on app.html (it builds its own).
   (async function () {
+    // Inject our stylesheet + REVEAL the page FIRST — before the (awaited) /api/me session check and
+    // before the embedded branch. The anti-FOUC guard (html.tb-booting) hides the body only until our
+    // CSS is in the <head>; revealing here means the raw unstyled HTML never flashes AND the body is
+    // never left hidden across the /api/me round-trip. injectStyles() is idempotent.
+    try { injectStyles(); document.documentElement.classList.remove('tb-booting'); } catch (e) {}
     // EMBEDDED MODE: when a page is loaded inside an iframe with ?embed=1 (e.g. the tool tabs on
     // tools.html), suppress the shared toolbar, the .tools-subnav, and all floating FABs — the parent
     // page already provides the chrome. The embedded page then renders only its own content.
@@ -4089,6 +4337,7 @@
     try { isEmbedded = /[?&]embed=1\b/.test(location.search) || window.self !== window.top; } catch (e) { isEmbedded = /[?&]embed=1\b/.test(location.search); }
     if (isEmbedded) {
       injectStyles();
+      try { document.documentElement.classList.remove('tb-booting'); } catch (e) {}
       var hideCss = document.createElement('style');
       hideCss.textContent = '.top-bar,.tools-subnav{display:none!important}'
         + '.tb-topbar,.tb-menu,.tb-back-fab,.tb-hist-fab,.tb-fab-col,#tbFabCol,.tb-menu-fab{display:none!important}'
@@ -4105,21 +4354,26 @@
     // so a 401 means the token is no longer valid -> the api() wrapper clears the session, and we send
     // the user to the home page. A NETWORK failure (offline / status 0) is NOT treated as logged-out,
     // so a flaky connection never kicks a valid user out — only an explicit server rejection does.
+    // IMPORTANT: do NOT await this. For a user with a cached session we build the chrome (rail +
+    // profile panel) IMMEDIATELY and validate the token in the BACKGROUND. Awaiting here blocked the
+    // whole chrome build behind an /api/me round-trip, so on a slow reload the rail/profile wouldn't
+    // appear until the network answered. The 401 handling (clear + redirect for an expired token)
+    // still runs — just a moment later, from the .then() below — which is the correct trade-off.
     try {
       if (loggedIn() && A && A.api) {
-        var _meRes = await A.api('GET', '/api/me');
-        if (_meRes && _meRes.status === 401) {
-          try { A.clear(); } catch (e) {}                 // api() already clears, but be explicit
-          var _p = (location.pathname.split('/').pop() || '').toLowerCase();
-          if (!(_p === '' || _p === 'index.html')) { location.replace('index.html'); return; }
-          // already on index -> fall through to the guest branch below (renders the logged-out home)
-        } else if (_meRes && _meRes.ok && _meRes.data) {
-          // Valid token: warm the in-memory /api/me cache so downstream code skips a refetch.
-          try { A._me = _meRes.data; if (A._storeWrite) A._storeWrite('me', _meRes.data); } catch (e) {}
-        }
-        // Any other status (0 network error, 5xx, etc.) -> keep the cached session, proceed normally.
+        A.api('GET', '/api/me').then(function (_meRes) {
+          if (_meRes && _meRes.status === 401) {
+            try { A.clear(); } catch (e) {}               // api() already clears, but be explicit
+            var _p = (location.pathname.split('/').pop() || '').toLowerCase();
+            if (!(_p === '' || _p === 'index.html')) { location.replace('index.html'); }
+          } else if (_meRes && _meRes.ok && _meRes.data) {
+            // Valid token: warm the in-memory /api/me cache so downstream code skips a refetch.
+            try { A._me = _meRes.data; if (A._storeWrite) A._storeWrite('me', _meRes.data); } catch (e) {}
+          }
+          // Any other status (0 network error, 5xx, etc.) -> keep the cached session, proceed normally.
+        }).catch(function () { /* network error -> do not log the user out */ });
       }
-    } catch (e) { /* network error -> do not log the user out */ }
+    } catch (e) { /* never block the chrome build on the validation */ }
 
     // GUEST LOCKDOWN: a logged-out user may only see index.html. On any OTHER page, bounce them home
     // immediately (before building any chrome, so no gated page flashes). index.html itself hides its
@@ -4133,6 +4387,10 @@
       }
     } catch (e) {}
     injectStyles();
+    // Reveal the page now that our stylesheet is in the <head> — this clears the anti-FOUC guard
+    // (html.tb-booting -> body hidden) that pages set inline before first paint, so the raw unstyled
+    // HTML never flashes. The chrome (rail/profile panel) builds in the same tick right after.
+    try { document.documentElement.classList.remove('tb-booting'); } catch (e) {}
     buildModalAndLoader();
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
@@ -4161,15 +4419,30 @@
     if (document.body.getAttribute('data-no-profile-panel') !== 'true') {
       document.body.setAttribute('data-profile-panel', '');
     }
-    buildBackButton(); // floating back button if data-back-href is set
-    buildHistoryButton(); // floating recent-history quick-swap button (bottom-left)
-    buildLiveButton(); // LIVE FAB first so it exists as the bottom anchor for the items above it
-    buildNavFabs(); // page-navigation FABs + the moved flyout groups (Data/Reports/Issue Types/Program History/Admin), above LIVE
-    buildAnalyticsButton(); // Agent & Group Analytics FAB on the LEFT rail, just above LIVE
-    buildRailLogo(); // GSOC logo pinned to the very top of the rail (hover reveals the wordmark)
-    buildProfileAvatar(); // floating profile avatar (top-right) — the only survivor of the old title bar
-    buildProfilePanel(); // RIGHT profile column — now on every standard page (3-column layout)
+    // Build the standard-page chrome. Each builder is idempotent (early-returns if its element already
+    // exists), so this is safe to call more than once. Wrapped in try/catch per builder so one failing
+    // builder can never abort the rest (a page's own heavy render can throw mid-bootstrap otherwise).
+    function tbBuildStandardChrome() {
+      var steps = [buildBackButton, buildHistoryButton, buildLiveButton, buildNavFabs,
+                   buildAnalyticsButton, buildRailLogo, buildProfileAvatar, buildProfilePanel];
+      for (var i = 0; i < steps.length; i++) { try { steps[i](); } catch (e) { /* keep building the rest */ } }
+    }
+    tbBuildStandardChrome();
     tbStartPresenceHeartbeat(); // start the online-presence heartbeat (no-op when logged out)
+    // SAFETY NET: on heavy pages (e.g. agent-analytics) the page's own init runs concurrently and can
+    // interrupt the chrome build. After everything settles (window 'load'), re-assert the chrome if the
+    // left rail or the right profile panel went missing. Idempotent builders mean this is a no-op when
+    // the chrome is already present.
+    var tbReassertChrome = function () {
+      try {
+        var railMissing = !document.querySelector('.tb-fab-col .tb-fab-item, .tb-fab-col .tb-nav-fab');
+        var panelMissing = (document.body.getAttribute('data-profile-panel') === '' || document.body.hasAttribute('data-profile-panel'))
+                           && !document.querySelector('.tb-profile-panel');
+        if (railMissing || panelMissing) tbBuildStandardChrome();
+      } catch (e) {}
+    };
+    if (document.readyState === 'complete') { setTimeout(tbReassertChrome, 0); }
+    else { window.addEventListener('load', function () { setTimeout(tbReassertChrome, 0); }, { once: true }); }
 
     // Right controls are already rendered from the cached user (rightControlsHtml uses A.getUser()),
     // so the avatar/role badge show immediately with NO spinner flash. Load the full profile

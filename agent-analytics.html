@@ -138,7 +138,7 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .gamma-note{color:#9aa7a8;font-size:.8em;line-height:1.5;margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--g,#4ade80);background:rgba(74,222,128,.06);border-radius:0 6px 6px 0}
 .gamma-note b{color:#c9d3d4}
 /* Consolidated filter bar (Group Analytics + Windows). Segmented-pill controls, no harsh borders. */
-.ga-filters{display:flex;flex-wrap:wrap;gap:14px 30px;align-items:flex-start;background:linear-gradient(180deg,#111a23,#0d141b);border:1px solid #223040;border-radius:5px;padding:16px 18px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.ga-filters{display:flex;flex-wrap:wrap;gap:14px 30px;align-items:flex-start;background:linear-gradient(180deg,#111a23,#0d141b);border:1px solid #223040;border-radius:5px;padding:16px 18px;margin:5px 0;box-shadow:0 2px 10px rgba(0,0,0,.25)}
 /* Justification modifiers: spread pushes groups to left/center/right corners; center centers a single group. */
 .ga-filters.ga-spread{justify-content:space-between}
 .ga-filters.ga-center{justify-content:center}
@@ -206,7 +206,7 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 @media(max-width:480px){.gv-kpi-grid{grid-template-columns:1fr}}
 .gv-wrap.tall{height:400px}
 /* Collapsible Group Analytics sections (collapsed by default; fetch on first expand). */
-.gv-list{display:flex;flex-direction:column;gap:14px}
+.gv-list{display:flex;flex-direction:column;gap:10px}
 .gv-card{border:1px solid var(--bd);border-radius:5px;overflow:hidden;background:#0a0a0a;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
 .gv-card.open{grid-template-rows:auto 1fr}
 .gv-card-head{display:flex;align-items:center;gap:12px;width:100%;padding:16px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
@@ -230,8 +230,10 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .gv-block-title{color:#cfd6d6;font-size:.82em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .gv-block-title::before{content:'';width:3px;height:.95em;background:var(--o);border-radius:2px;flex-shrink:0}
 /* ---- Page layout: title + evenly spaced, clearly labelled sections ---- */
-.an-head{margin-bottom:28px}
-.an-head h1{font-size:1.7em;margin-bottom:6px}
+/* Title bar: WHITE card, 60px tall, 10px gap below. */
+.an-head{display:flex;align-items:center;height:60px;min-height:60px;box-sizing:border-box;margin:0 0 10px;padding:0 18px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
+.an-head h1{font-size:1.2em;font-weight:800;margin:0;display:inline-flex;align-items:center;gap:9px;color:#1b2026}
+.an-head h1 svg{color:#1b2026;flex-shrink:0}
 .an-sub{color:var(--tm);font-size:.92em}
 .an-sec{margin:0 0 34px}
 .an-sec:last-child{margin-bottom:0}
@@ -265,22 +267,36 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .section>h2~*:last-child{margin-bottom:20px}
 .section>.ac-grid,.section>.gv-list{margin-top:16px}
 
-/* Top-level Group-Analytics collapsible cards become gradient banner heads. */
-.gv-list>.gv-card>.gv-card-head{position:relative;overflow:hidden;min-height:58px;
-  background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb);background-size:200% 100%;animation:anBanner 10s ease infinite;transition:filter .12s}
-.gv-list>.gv-card>.gv-card-head:hover{filter:brightness(1.05);background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb)}
-.gv-list>.gv-card>.gv-card-head .gv-card-title{color:#0b1f4a;font-weight:800;position:relative;z-index:1}
-.gv-list>.gv-card>.gv-card-head .gv-card-title svg{color:#0b1f4a}
-.gv-list>.gv-card>.gv-card-head .gv-caret{color:#0b1f4a;position:relative;z-index:1}
-.gv-list>.gv-card>.gv-card-head::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background-repeat:no-repeat;background-position:right center;background-size:auto 78%;opacity:.3;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="48" x2="18" y2="30"/><line x1="34" y1="48" x2="34" y2="18"/><line x1="50" y1="48" x2="50" y2="36"/><line x1="66" y1="48" x2="66" y2="24"/><circle cx="60" cy="16" r="4"/></svg>')}
-/* Per-card accent: Agent Queue = teal, Recent Activity = amber, Group Analytics = purple. */
-#queueCard>.gv-card-head{background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2)}
-#queueCard>.gv-card-head .gv-card-title,#queueCard>.gv-card-head .gv-card-title svg,#queueCard>.gv-card-head .gv-caret{color:#06322d}
-#recentCard>.gv-card-head{background:linear-gradient(90deg,#f0a020,#ff9f2e 55%,#ffcf7a)}
-#recentCard>.gv-card-head .gv-card-title,#recentCard>.gv-card-head .gv-card-title svg,#recentCard>.gv-card-head .gv-caret{color:#3a2405}
-#groupAnalyticsCard>.gv-card-head{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff)}
-#groupAnalyticsCard>.gv-card-head .gv-card-title,#groupAnalyticsCard>.gv-card-head .gv-card-title svg,#groupAnalyticsCard>.gv-card-head .gv-caret{color:#241354}
+/* Top-level collapsible section banners (Agent Queue / Recent Activity / YTD Performance): a flat
+   56px bar — EXPANDED = #1878eb, COLLAPSED = #38bdf8 — with WHITE title/caret. */
+.gv-list>.gv-card>.gv-card-head{position:relative;overflow:hidden;height:56px;min-height:56px;box-sizing:border-box;
+  background:#38bdf8!important;animation:none!important;transition:background .15s}
+.gv-list>.gv-card.open>.gv-card-head{background:#1878eb!important}
+.gv-list>.gv-card>.gv-card-head:hover{filter:none}
+.gv-list>.gv-card>.gv-card-head .gv-card-title,
+.gv-list>.gv-card>.gv-card-head .gv-card-title svg,
+.gv-list>.gv-card>.gv-card-head .gv-caret{color:#fff!important;font-weight:800;position:relative;z-index:1}
+/* Drop the per-card watermark illustration (kept flat). */
+.gv-list>.gv-card>.gv-card-head::after{display:none!important}
+/* ---- YTD Performance controls (period chips + sub-dropdown + Groups checkboxes) — now INSIDE the
+   section body (white surface), as a right-aligned top row with a divider below it. ---- */
+.ga-head-ctrls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin:7px 0;padding:7px 0;border-bottom:1px solid #eef1f4}
+/* Segmented period chips on a light grey track. */
+.ga-pchips{display:inline-flex;flex:0 0 auto;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
+.ga-pchip{font-family:inherit;font-size:.74em;font-weight:800;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:5px 11px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.ga-pchip:hover{color:#1b2026}
+.ga-pchip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
+/* Secondary dropdown (quarter/month/week). */
+.ga-sub-wrap:empty{display:none}
+.ga-sub-sel{font-family:inherit;font-size:.78em;font-weight:700;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:5px;padding:5px 9px;cursor:pointer;outline:none}
+.ga-sub-sel:hover{border-color:#c2cad1}
+/* Groups checkboxes: light pill track, ORANGE label font. */
+.ga-head-groups{display:inline-flex;flex:0 0 auto;gap:4px;background:#f3f5f7;border:1px solid #e2e7eb;border-radius:5px;padding:4px}
+.ga-head-groups .ga-opt{color:#ec7211!important;font-size:.74em;font-weight:700;white-space:nowrap}
+.ga-head-groups .ga-opt.checked{color:#ec7211!important}
+.ga-head-groups .ga-opt::before{border-color:#f0b878!important}
+.ga-head-groups .ga-opt.checked::before{background:#ec7211!important;border-color:#ec7211!important;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')!important;background-size:7px 7px!important;background-position:center!important;background-repeat:no-repeat!important}
 
 /* Pill-toggle checkmark for SCOPE/MONTHS/GROUPS checkboxes (matches the archive tree). */
 .ga-fopts.ga-checks .ga-opt.checked::before{background:#fff;border-color:#fff;box-shadow:0 0 0 2px rgba(255,153,0,.2);
@@ -375,7 +391,7 @@ tbody tr:hover,.gv-sec tr:hover{background:#f8fafb!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=145"></script>
+<script src="topbar-auth.js?v=167"></script>
 <script>
 const A=window.PHDAuth;
 const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
@@ -569,8 +585,7 @@ async function loadPetTotals(){
 function render(){
   document.getElementById('wrap').innerHTML=`
     <div class="an-head">
-      <h1>Analytics</h1>
-      <p class="an-sub">Team &amp; agent performance for the live quarter. All figures come from the live dataset.</p>
+      <h1>${ic('group-chart',20)} Performance Analytics by Group &amp; Analysts</h1>
     </div>
 
     <section class="an-sec">
@@ -588,8 +603,8 @@ function render(){
         </div>
         ${windowSectionsHtml()}
         <div class="gv-card" id="groupAnalyticsCard">
-          <button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGroupAnalyticsCard(this)">
-            <span class="gv-card-title">${ic('bar-chart',16)} Group Analytics</span><span class="gv-caret" aria-hidden="true">\u25be</span>
+          <button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGroupAnalyticsCard(this,event)">
+            <span class="gv-card-title">${ic('bar-chart',16)} YTD Performance</span><span class="gv-caret" aria-hidden="true">\u25be</span>
           </button>
           <div class="gv-card-body"><div id="groupsView">${groupsSectionsHtml()}</div></div>
         </div>
@@ -679,17 +694,39 @@ function gaUrlFor(qid, mi){
 // Consolidated Group Analytics: a single filter bar + ONE Individual Agent Performance table and
 // ONE Group Totals Summary table. Filters: Scope (radio: Overall + each quarter), Months (checkbox,
 // refine a quarter; multiple summed client-side), Groups (checkbox: Alpha/Beta/Gamma) applied to BOTH.
+// Title-bar controls for the YTD Performance card: a chip PERIOD picker (YTD 2026 / Quarterly /
+// Monthly / Weekly) + a secondary dropdown (quarter|month|week, shown only when relevant) + the
+// Groups checkboxes (BLR/AZA/WFH). Clicks here must NOT toggle the card (handled in the toggle fn).
+function gaHeadControlsHtml(){
+  var chips=[['ytd','YTD 2026'],['quarter','Quarterly'],['month','Monthly'],['week','Weekly']]
+    .map(function(c){ return '<button type="button" class="ga-pchip'+(GA_FILTER.period===c[0]?' on':'')+'" data-period="'+c[0]+'" onclick="gaOnPeriodChip(\''+c[0]+'\')">'+esc(c[1])+'</button>'; }).join('');
+  var groupChips=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){
+    return '<label class="ga-opt'+(GA_FILTER.groups.indexOf(g[0])>=0?' checked':'')+'"><input type="checkbox" name="gaGroup" value="'+g[0]+'"'+(GA_FILTER.groups.indexOf(g[0])>=0?' checked':'')+' onchange="gaOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
+  return '<div class="ga-head-ctrls" onclick="event.stopPropagation()">'+
+      '<span class="ga-pchips">'+chips+'</span>'+
+      '<span id="gaSubWrap" class="ga-sub-wrap">'+gaSubSelectHtml()+'</span>'+
+      '<span class="ga-head-groups ga-fopts ga-checks">'+groupChips+'</span>'+
+    '</div>';
+}
+// The secondary dropdown depends on the active period: Quarterly -> quarter list, Monthly -> month
+// list (Jan..current), Weekly -> week list (Sun..Sat, up to now). YTD -> nothing.
+function gaSubSelectHtml(){
+  if(GA_FILTER.period==='quarter'){
+    var qs=GA_AC_QUARTERS().map(function(q){ return '<option value="'+q.idx+'"'+(GA_FILTER.quarter===q.idx?' selected':'')+'>Q'+q.idx+' 2026</option>'; }).join('');
+    return '<select class="ga-sub-sel" onchange="gaOnSubChange(this)">'+qs+'</select>';
+  }
+  if(GA_FILTER.period==='month'){
+    var ms=GA_AC_MONTHS().map(function(m){ return '<option value="'+m.idx+'"'+(GA_FILTER.month===m.idx?' selected':'')+'>'+esc(m.label)+'</option>'; }).join('');
+    return '<select class="ga-sub-sel" onchange="gaOnSubChange(this)">'+ms+'</select>';
+  }
+  if(GA_FILTER.period==='week'){
+    var ws=GA_AC_WEEKS().map(function(w,i){ return '<option value="'+i+'"'+(GA_FILTER.week===i?' selected':'')+'>'+esc(w.label)+'</option>'; }).join('');
+    return '<select class="ga-sub-sel" onchange="gaOnSubChange(this)">'+ws+'</select>';
+  }
+  return '';
+}
 function groupsSectionsHtml(){
-  var scopeOpts='<label class="ga-opt checked"><input type="radio" name="gaScope" value="overall" checked onchange="gaOnScopeChange()"> Overall (complete database)</label>'+
-    GV_QUARTERS.map(function(q){ var lbl=q.qid.replace('2026-',''); return '<label class="ga-opt"><input type="radio" name="gaScope" value="'+esc(q.qid)+'" onchange="gaOnScopeChange()"> '+esc(lbl)+'</label>'; }).join('');
-  // Month checkboxes: 3 slots; labels get set per selected quarter. Disabled while Overall is active.
-  var monthOpts=[0,1,2].map(function(mi){ return '<label class="ga-opt disabled" id="gaMonthOpt'+mi+'"><input type="checkbox" value="'+mi+'" onchange="gaOnMonthChange()" disabled> <span id="gaMonthLbl'+mi+'">Month '+(mi+1)+'</span></label>'; }).join('');
-  var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gaGroup" value="'+g[0]+'" checked onchange="gaOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
-  return '<div class="ga-filters ga-spread">'+
-      '<div class="ga-fgroup"><span class="ga-flabel">Scope</span><div class="ga-fopts ga-radio">'+scopeOpts+'</div></div>'+
-      '<div class="ga-fgroup ga-months disabled" id="gaMonthsGroup"><span class="ga-flabel">Months (refine quarter)</span><div class="ga-fopts ga-checks">'+monthOpts+'</div></div>'+
-      '<div class="ga-fgroup"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">'+groupOpts+'</div></div>'+
-    '</div>'+
+  return gaHeadControlsHtml()+
     '<p class="ga-scope-note" id="gaScopeNote"></p>'+
     '<div class="ga-tables">'+
       '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gaIapBody"></div></div>'+
@@ -710,36 +747,82 @@ function gvAccordion(card){
 // ---- Consolidated Group Analytics: filter state + data loading ----
 // GA_FILTER holds the current selection. GA_CACHE caches each fetched url's response.
 // GA_DATA is the currently displayed dataset (one scope, or months summed together).
-const GA_FILTER={ scope:'overall', months:[], groups:['A1','A2','B'] };
+// period: 'ytd' | 'quarter' | 'month' | 'week'. The secondary index (quarter/month/week) picks a
+// specific window within 2026; YTD = 1 Jan 2026 -> now (whole AC-era dataset).
+const GA_FILTER={ period:'ytd', quarter:null, month:null, week:0, groups:['A1','A2','B'] };
 const GA_CACHE={};   // url -> data
 const GA_SORT={ iap:{key:'Successful',dir:'desc'}, gts:{key:'Successful',dir:'desc'} };
 let GA_DATA=null, GA_LOADSEQ=0;
-const GA_MONTHS_FOR=function(qid){ var q=GV_QUARTERS.find(function(x){return x.qid===qid;}); return q?q.months:['Month 1','Month 2','Month 3']; };
 
-// Radio changed -> reset months, toggle the Months control enabled/disabled, reload.
-function gaOnScopeChange(){
-  var el=document.querySelector('input[name="gaScope"]:checked'); GA_FILTER.scope=el?el.value:'overall';
-  GA_FILTER.months=[];
-  var isQuarter=(GA_FILTER.scope!=='overall');
-  var grp=document.getElementById('gaMonthsGroup'); if(grp) grp.classList.toggle('disabled', !isQuarter);
-  var labels=isQuarter?GA_MONTHS_FOR(GA_FILTER.scope):['Month 1','Month 2','Month 3'];
-  [0,1,2].forEach(function(mi){
-    var opt=document.getElementById('gaMonthOpt'+mi), lbl=document.getElementById('gaMonthLbl'+mi), inp=opt&&opt.querySelector('input');
-    if(lbl) lbl.textContent=labels[mi]||('Month '+(mi+1));
-    if(inp){ inp.checked=false; inp.disabled=!isQuarter; }
-    if(opt) opt.classList.toggle('disabled', !isQuarter);
-    if(opt) opt.classList.remove('checked');
-  });
-  gaSyncOptChecked();
+// ---- AC-era (2026) period helpers: build the dropdown option lists + resolve a selection to a
+//      half-open {from,to} epoch-ms window (capped at "now"). The data is 2026-only. ----
+const GA_MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const GA_MON_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function GA_now(){ return new Date(); }
+// How many 2026 months exist up to today (1..12).
+function GA_monthsCount(){ var n=GA_now(); return (n.getFullYear()>2026)?12:(n.getFullYear()<2026?0:(n.getMonth()+1)); }
+function GA_quartersCount(){ var n=GA_now(); if(n.getFullYear()<2026)return 0; if(n.getFullYear()>2026)return 4; return Math.floor(n.getMonth()/3)+1; }
+function GA_AC_QUARTERS(){ var out=[]; for(var q=1;q<=GA_quartersCount();q++) out.push({idx:q}); return out; }
+function GA_AC_MONTHS(){ var out=[]; for(var m=0;m<GA_monthsCount();m++) out.push({idx:m,label:GA_MONTH_NAMES[m]+' 2026'}); return out; }
+// Sun..Sat weeks of 2026 up to today (newest last). label like "W40 · 27 Sep – 3 Oct".
+function GA_AC_WEEKS(){
+  var out=[]; var now=GA_now(); var end=(now.getFullYear()>2026)?new Date(2027,0,1):now;
+  var d=new Date(2026,0,1); d.setDate(d.getDate()-d.getDay());   // the Sunday on/just before 1 Jan 2026
+  var wn=1;
+  while(d<end){
+    var wEndExcl=new Date(d); wEndExcl.setDate(wEndExcl.getDate()+7);
+    var wEndIncl=new Date(wEndExcl.getTime()-86400000);
+    if(wEndExcl>new Date(2026,0,1)){   // only weeks that touch 2026
+      out.push({ idx:out.length, from:Math.max(d.getTime(), new Date(2026,0,1).getTime()), to:wEndExcl.getTime(),
+        label:'W'+wn+' · '+d.getDate()+' '+GA_MON_SHORT[d.getMonth()]+' – '+wEndIncl.getDate()+' '+GA_MON_SHORT[wEndIncl.getMonth()] });
+      wn++;
+    }
+    d=wEndExcl;
+  }
+  return out;
+}
+// Resolve the current GA_FILTER selection -> {url} to fetch (YTD uses the overall endpoint; the
+// others use /api/group-range with a from/to window). Also returns a human label for the note.
+function gaResolveSource(){
+  var nowMs=Date.now();
+  if(GA_FILTER.period==='ytd') return { url:'/api/group-overall', label:'YTD 2026 — 1 Jan 2026 to now (complete database).' };
+  if(GA_FILTER.period==='quarter'){
+    var q=GA_FILTER.quarter||GA_quartersCount(); var sm=(q-1)*3;
+    var from=new Date(2026,sm,1).getTime(), to=Math.min(new Date(2026,sm+3,1).getTime(), nowMs);
+    return { url:'/api/group-range?from='+from+'&to='+to, label:'Q'+q+' 2026.' };
+  }
+  if(GA_FILTER.period==='month'){
+    var mi=(GA_FILTER.month==null)?(GA_monthsCount()-1):GA_FILTER.month;
+    var mf=new Date(2026,mi,1).getTime(), mt=Math.min(new Date(2026,mi+1,1).getTime(), nowMs);
+    return { url:'/api/group-range?from='+mf+'&to='+mt, label:(GA_MONTH_NAMES[mi]||'')+' 2026.' };
+  }
+  // week
+  var wks=GA_AC_WEEKS(); var wi=Math.min(GA_FILTER.week||0, wks.length-1); var w=wks[wi]||wks[0];
+  if(!w) return { url:'/api/group-overall', label:'YTD 2026.' };
+  return { url:'/api/group-range?from='+w.from+'&to='+Math.min(w.to,nowMs), label:w.label+'.' };
+}
+// A period chip was clicked: switch period, default the secondary index to the latest option, rebuild
+// the sub-dropdown, and reload.
+function gaOnPeriodChip(p){
+  GA_FILTER.period=p;
+  if(p==='quarter') GA_FILTER.quarter=GA_quartersCount();
+  else if(p==='month') GA_FILTER.month=GA_monthsCount()-1;
+  else if(p==='week') GA_FILTER.week=GA_AC_WEEKS().length-1;
+  // reflect active chip
+  document.querySelectorAll('#groupAnalyticsCard .ga-pchip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-period')===p); });
+  var sub=document.getElementById('gaSubWrap'); if(sub) sub.innerHTML=gaSubSelectHtml();
   gaLoad();
 }
-window.gaOnScopeChange=gaOnScopeChange;
-function gaOnMonthChange(){
-  var checked=[]; [0,1,2].forEach(function(mi){ var opt=document.getElementById('gaMonthOpt'+mi), inp=opt&&opt.querySelector('input'); if(inp&&inp.checked) checked.push(mi); if(opt) opt.classList.toggle('checked', !!(inp&&inp.checked)); });
-  GA_FILTER.months=checked;
+window.gaOnPeriodChip=gaOnPeriodChip;
+// The secondary dropdown changed (quarter/month/week index).
+function gaOnSubChange(sel){
+  var v=parseInt(sel.value,10);
+  if(GA_FILTER.period==='quarter') GA_FILTER.quarter=v;
+  else if(GA_FILTER.period==='month') GA_FILTER.month=v;
+  else if(GA_FILTER.period==='week') GA_FILTER.week=v;
   gaLoad();
 }
-window.gaOnMonthChange=gaOnMonthChange;
+window.gaOnSubChange=gaOnSubChange;
 function gaOnGroupChange(){
   var g=[]; document.querySelectorAll('input[name="gaGroup"]').forEach(function(inp){ var opt=inp.closest('.ga-opt'); if(opt) opt.classList.toggle('checked', inp.checked); if(inp.checked) g.push(inp.value); });
   GA_FILTER.groups=g;
@@ -785,27 +868,21 @@ async function gaLoad(){
   const seq=++GA_LOADSEQ;
   var ib=document.getElementById('gaIapBody'), gb=document.getElementById('gaGtsBody');
   if(ib) ib.innerHTML=tableSkeleton('iap'); if(gb) gb.innerHTML=tableSkeleton('gts');
-  gaSetScopeNote();
-  let urls;
-  if(GA_FILTER.scope==='overall') urls=[gaUrlFor(null,null)];
-  else if(GA_FILTER.months.length) urls=GA_FILTER.months.map(function(mi){ return gaUrlFor(GA_FILTER.scope, mi); });
-  else urls=[gaUrlFor(GA_FILTER.scope, null)];
-  let datasets;
-  try{ datasets=await Promise.all(urls.map(gaFetch)); }catch(e){ datasets=null; }
+  var src=gaResolveSource();
+  gaSetScopeNote(src.label);
+  let data;
+  try{ data=await gaFetch(src.url); }catch(e){ data=null; }
   if(seq!==GA_LOADSEQ) return;   // a newer selection superseded this load
-  if(!datasets || datasets.some(function(d){return !d;})){
+  if(!data){
     if(ib) ib.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this selection. Try again.</div>';
     if(gb) gb.innerHTML=''; return;
   }
-  GA_DATA=gaSumData(datasets);
+  GA_DATA=data;
   gaRenderIap(); gaRenderGts();
 }
-function gaSetScopeNote(){
+function gaSetScopeNote(label){
   var el=document.getElementById('gaScopeNote'); if(!el)return;
-  var txt;
-  if(GA_FILTER.scope==='overall') txt='Showing: Overall — all quarters combined (complete database).';
-  else { var ms=GA_FILTER.months; var ml=GA_MONTHS_FOR(GA_FILTER.scope); txt='Showing: '+GA_FILTER.scope+(ms.length?(' — '+ms.map(function(mi){return ml[mi];}).join(', ')):' — complete quarter')+'.'; }
-  el.textContent=txt;
+  el.textContent='Showing: '+(label||'');
 }
 // Alphabetical agent + group name lists (for instant skeletons before data arrives).
 const AGENTS_ALPHA=[...PHD_AGENTS].sort(function(a,b){return a.localeCompare(b);});
@@ -816,7 +893,7 @@ function tableSkeleton(kind){
   const isGts=(kind==='gts');
   const cols=isGts
     ? [{label:'Group',short:'Group',key:'name'}].concat(IAP_CC_ORDER.map(function(c){return {label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c};})).concat([{label:'Total',short:'Total'},{label:'SLA',short:'SLA'}])
-    : IAP_COLS.map(function(c){return {label:c.label,short:c.short,succ:(c.key==='Successful')};});
+    : IAP_COLS.filter(function(c){return c.key!=='__assigned';}).map(function(c){return {label:c.label,short:c.short,succ:(c.key==='Successful')};});
   // For gts we don't have the .succ flag; add manually for the Successful column.
   const head='<tr>'+cols.map(function(c,i){ const kc=(c.succ||(isGts&&c.label==='Successful'))?' col-key':''; return '<th class="iap-sort'+kc+'"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
   const ncols=cols.length;
@@ -829,8 +906,7 @@ function tableSkeleton(kind){
     }).join('');
   } else {
     bodyRows=AGENTS_ALPHA.map(function(n){
-      var grp=(GA1.indexOf(n)>=0?'A1':(GA2.indexOf(n)>=0?'A2':(GB.indexOf(n)>=0?'B':null)));
-      var cells='<td><span style="color:#44b9d6;font-weight:700">'+esc(n)+'</span> '+gtag(grp)+'</td>';
+      var cells='<td><span style="color:#44b9d6;font-weight:700">'+esc(n)+'</span></td>';
       for(var i=1;i<ncols;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
       return '<tr>'+cells+'</tr>';
     }).join('');
@@ -847,7 +923,8 @@ function gaSort(which,key){
 window.gaSort=gaSort;
 function gaRenderIap(){
   const body=document.getElementById('gaIapBody'); if(!GA_DATA||!body)return;
-  const cols=IAP_COLS, sort=GA_SORT.iap;
+  // YTD IAP columns: NO Assigned column (removed per request). Agent + closure codes + Total/SLA/Avg.
+  const cols=IAP_COLS.filter(function(c){return c.key!=='__assigned';}), sort=GA_SORT.iap;
   const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
   const dir=(sort.dir==='asc')?1:-1;
   const agents=(GA_DATA.agents||[]).filter(function(a){ return GA_FILTER.groups.indexOf(a.group)>=0; });
@@ -856,8 +933,7 @@ function gaRenderIap(){
   const rows=sorted.length?sorted.map(function(a){
     const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
-    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>'+
-      cell(a.assigned||0)+
+    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span></td>'+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
@@ -874,8 +950,7 @@ function gaRenderGts(){
   const cloOf=function(r){return (groups.closure&&groups.closure[r[0]])||{};};
   const slaOf=function(r){return (groups.sla&&groups.sla[r[0]])||null;};
   const asgOf=function(r){return (groups.assigned&&groups.assigned[r[0]])||0;};
-  const cols=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}},
-    {key:'__assigned',label:'Assigned',short:'Asg',type:'num',val:function(r){return asgOf(r);}}]
+  const cols=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}}]
     .concat(IAP_CC_ORDER.map(function(c){return {key:c,label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c,type:'num',val:function(r){return cloOf(r)[c]||0;}};}))
     .concat([{key:'__total',label:'Total',short:'Total',type:'num',val:function(r){return iapTotal(cloOf(r));}},
              {key:'__sla',label:'SLA',short:'SLA',type:'num',val:function(r){var s=slaOf(r);return (s&&s.pct!=null)?s.pct:-1;}}]);
@@ -883,9 +958,8 @@ function gaRenderGts(){
   const dir=(sort.dir==='asc')?1:-1;
   const rows=[...rows0].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||(GN[a[0]]||'').localeCompare(GN[b[0]]||''); });
   const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gaSort(\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
-  const trs=rows.length?rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014'; const asg=asgOf(r);
+  const trs=rows.length?rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
     return '<tr><td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>'+
-      '<td'+(asg===0?' class="zero"':'')+'>'+asg+'</td>'+
       IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';
@@ -941,7 +1015,7 @@ const GV_RENDER={
 };
 // The 8 ClosureCodes shown in the Q3 tables + short header labels to keep columns compact.
 const GV_CLOSURE_CODES=['Successful','Successful with Problems','Unsuccessful','Automatically Closed','Immediately Resolved','No Plan to Fix','No Issue','Duplicate'];
-const GV_CC_SHORT={'Successful':'Successful','Successful with Problems':'Success w/ Problems','Unsuccessful':'Unsuccessful','Automatically Closed':'Auto Closed','Immediately Resolved':'Imm. Resolved','No Plan to Fix':'No Plan to Fix','No Issue':'No Issue','Duplicate':'Duplicate'};
+const GV_CC_SHORT={'Successful':'Success','Successful with Problems':'Success w/ Prob','Unsuccessful':'Unsuccess','Automatically Closed':'Auto Closed','Immediately Resolved':'Imm. Res','No Plan to Fix':'No Plan to Fix','No Issue':'No Issue','Duplicate':'Duplicate'};
 // Explanatory note appended under every analytics table (iap + gts) to clarify the Gamma
 // Assigned-vs-Resolved gap. Gamma works from a shared assignment queue, so many tickets they
 // RESOLVE were assigned to a queue identity (not the person) -> low "Assigned", high "Total".
@@ -960,8 +1034,8 @@ let IAP_M=null, IAP_BODY=null, IAP_SORT=null;
 // Column defs (in display order): key = sort id, label (+ short label for narrow screens), value accessor.
 // Closure-code order requested: Successful, Imm. Resolved, Auto Closed, Duplicate, Success w/ Problems,
 // Unsuccessful, No Plan to Fix, No Issue — then SLA, Avg Res (hrs).
-const IAP_CC_ORDER=['Successful','Immediately Resolved','Automatically Closed','Duplicate','Successful with Problems','Unsuccessful'];
-const IAP_CC_ABBR={'Successful':'Succ','Immediately Resolved':'Imm.Res','Automatically Closed':'Auto','Duplicate':'Dup','Successful with Problems':'Succ w/P','Unsuccessful':'Unsucc'};
+const IAP_CC_ORDER=['Successful','Immediately Resolved','Automatically Closed','Duplicate','Successful with Problems','Unsuccessful','No Plan to Fix','No Issue'];
+const IAP_CC_ABBR={'Successful':'Succ','Immediately Resolved':'Imm.Res','Automatically Closed':'Auto','Duplicate':'Dup','Successful with Problems':'Succ w/P','Unsuccessful':'Unsucc','No Plan to Fix':'No Plan','No Issue':'No Issue'};
 // Total = sum of the tracked closure codes for a closure map.
 function iapTotal(clo){ clo=clo||{}; var t=0; IAP_CC_ORDER.forEach(function(c){t+=clo[c]||0;}); return t; }
 const IAP_COLS=[{key:'name',label:'Agent',short:'Agent',type:'str',val:function(a){return a.name;}},
@@ -1141,7 +1215,10 @@ function toggleRecentCard(btn){
 }
 window.toggleRecentCard=toggleRecentCard;
 // Group Analytics card: collapsible, one-open-at-a-time, lazy-loads its default scope on first expand.
-function toggleGroupAnalyticsCard(btn){
+function toggleGroupAnalyticsCard(btn,ev){
+  // Clicks on the in-head controls (period chips / dropdown / group checkboxes) must NOT toggle the
+  // card. Those controls stop propagation themselves, but guard here too for safety.
+  if(ev){ var t=ev.target; if(t&&t.closest&&t.closest('.ga-head-ctrls')) return; }
   const card=btn.closest('.gv-card'); if(!card)return;
   const willOpen=!card.classList.contains('open');
   if(willOpen) gvAccordion(card);
@@ -1186,7 +1263,8 @@ function gwSort(which,key){
 window.gwSort=gwSort;
 function gwRenderIap(){
   const body=document.getElementById('gwIapBody'); if(!GW_DATA||!body)return;
-  const cols=IAP_COLS, sort=GW_SORT.iap;
+  // Columns match the YTD IAP table exactly: NO Assigned column, NO group tag on the agent name.
+  const cols=IAP_COLS.filter(function(c){return c.key!=='__assigned';}), sort=GW_SORT.iap;
   const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
   const dir=(sort.dir==='asc')?1:-1;
   const agents=(GW_DATA.agents||[]).filter(function(a){ return GW_FILTER.groups.indexOf(a.group)>=0; });
@@ -1195,8 +1273,7 @@ function gwRenderIap(){
   const rows=sorted.length?sorted.map(function(a){
     const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
-    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>'+
-      cell(a.assigned||0)+
+    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span></td>'+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
@@ -1213,8 +1290,7 @@ function gwRenderGts(){
   const cloOf=function(r){return (groups.closure&&groups.closure[r[0]])||{};};
   const slaOf=function(r){return (groups.sla&&groups.sla[r[0]])||null;};
   const asgOf=function(r){return (groups.assigned&&groups.assigned[r[0]])||0;};
-  const cols=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}},
-    {key:'__assigned',label:'Assigned',short:'Asg',type:'num',val:function(r){return asgOf(r);}}]
+  const cols=[{key:'name',label:'Group',short:'Group',type:'str',val:function(r){return GN[r[0]]||r[0];}}]
     .concat(IAP_CC_ORDER.map(function(c){return {key:c,label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c,type:'num',val:function(r){return cloOf(r)[c]||0;}};}))
     .concat([{key:'__total',label:'Total',short:'Total',type:'num',val:function(r){return iapTotal(cloOf(r));}},
              {key:'__sla',label:'SLA',short:'SLA',type:'num',val:function(r){var s=slaOf(r);return (s&&s.pct!=null)?s.pct:-1;}}]);
@@ -1222,9 +1298,8 @@ function gwRenderGts(){
   const dir=(sort.dir==='asc')?1:-1;
   const rows=[...rows0].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||(GN[a[0]]||'').localeCompare(GN[b[0]]||''); });
   const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gwSort(\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
-  const trs=rows.length?rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014'; const asg=asgOf(r);
+  const trs=rows.length?rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
     return '<tr><td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>'+
-      '<td'+(asg===0?' class="zero"':'')+'>'+asg+'</td>'+
       IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';

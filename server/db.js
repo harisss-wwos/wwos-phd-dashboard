@@ -14,6 +14,7 @@ const COLLECTIONS = {
   liveData: 'live_data',   // legacy single-doc store (kept for compatibility)
   quarters: 'quarters',    // per-quarter dataset docs: { _id: "2026-Q3", tickets: [...], meta: {...} }
   dataLog: 'data_log',     // audit log of uploads/publishes (who/when/what changed)
+  uploadFiles: 'upload_files', // raw uploaded file text kept for download: { _id: <publishedAt>, fileName, fileType, text, user, at }
   blurbs: 'blurbs',        // common blurbs (title + text) shown on the Blurbs tool page
   blurbLog: 'blurb_log',   // audit log of blurb create/edit actions
   blurbCopies: 'blurb_copies', // per-user tally of blurb copies (user+blurbId -> count)

@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC guard: hide the page while the chrome/styles boot (topbar-auth.js adds its <style>
+     and builds the rail/profile panel only after the body parses, so the raw HTML would flash
+     unstyled). We mark <html> as booting IMMEDIATELY (inline, before first paint) and reveal once
+     topbar-auth.js is ready — or after a 3s safety timeout so a script error can never leave the
+     page blank. -->
+<style id="tbBootGuard">html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},3000);</script>
 <title>WWOS PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +57,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
    as the right-side child by topbar-auth.js (PHDPlaceTopRight). */
 .dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
 .dash-title-row:not(:empty){margin-bottom:10px}
+/* Header title bar copied from index.html: Amazon WWOS wordmark (left) + "YTD <year>" calendar-icon
+   label (right) on a white card. */
+.home-hdr{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px;background:#fff!important;border:1px solid #e2e6ea!important;border-radius:5px!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;padding:5px 18px!important;margin:0 0 12px!important;height:60px!important;min-height:60px!important;box-sizing:border-box!important}
+/* The shared .js-header-row rule forces padding-top:10px!important; override it (higher specificity
+   with the extra .home-hdr class) so the bar's padding is 5px 18px 5px. */
+.home-hdr.js-header-row{padding-top:5px!important;padding-bottom:5px!important}
+.home-hdr .home-hdr-logo{display:flex;align-items:center;align-self:center;height:auto;text-decoration:none;flex:0 0 auto}
+.home-hdr .home-hdr-logo img{height:28px;width:auto;display:block;object-fit:contain}
+.home-hdr .home-hdr-title{display:flex;align-items:center;align-self:center;gap:9px;height:auto;line-height:1;color:#ec7211;font-size:1.15em;font-weight:800;letter-spacing:.2px;white-space:nowrap;flex:0 0 auto;text-transform:uppercase}
+.home-hdr .home-hdr-ic{display:inline-flex;align-items:center;color:#ec7211}
+.home-hdr .home-hdr-ic svg{width:20px;height:20px;display:block}
 .dash-title-h1{font-size:1.8em;color:#fff;font-weight:700;margin:0;display:inline-flex;align-items:center;gap:12px;flex:1 1 auto;justify-content:space-between}
 /* Dashboard title label (replaces the old My Tickets button in this row). */
 .dash-title-name{font-size:1.2em;color:#fff;font-weight:700;letter-spacing:.3px;line-height:1}
@@ -254,16 +272,17 @@ tr:hover{background:#f8fafb}
 .sr{max-width:1200px}
 /* Compact one-line hero: title + snapshot date (left) + In-queue badge (right). Height matches the
    profile-column banner / app.html section banners (56px). */
+/* Title bar: WHITE card, 60px tall. Title (left) + snapshot date + In-queue badge (right). */
 .sr-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;flex-wrap:nowrap;
-  height:56px;min-height:56px;max-height:56px;box-sizing:border-box;
-  border:none;border-radius:5px;padding:0 18px;margin-bottom:18px;
-  box-shadow:0 6px 18px -8px rgba(236,114,17,.45),0 2px 6px rgba(20,30,50,.12);
-  background:linear-gradient(90deg,#f07d0a,#ff9f2e 52%,#ffcf7a);background-size:200% 100%;animation:secBanner 10s ease infinite}
-.sr-hero-title{position:relative;z-index:1;color:#3a2405;font-size:1.12em;font-weight:800;letter-spacing:-.2px;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
-.sr-hero-title svg{color:#3a2405;flex-shrink:0}
-.sr-hero-sub{position:relative;z-index:1;display:inline-flex;align-items:center;gap:6px;color:#6a3d05;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis}
-/* In-queue badge: compact frosted white pill, pinned to the right of the one-line hero. */
-.sr-hero-badge{position:relative;z-index:1;margin-left:auto;display:inline-flex;align-items:baseline;gap:6px;text-align:center;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.95);border-radius:5px;padding:4px 12px;flex-shrink:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.35)}
+  height:60px;min-height:60px;max-height:60px;box-sizing:border-box;
+  border:1px solid #e2e6ea;border-radius:5px;padding:0 18px;margin-bottom:10px;
+  box-shadow:0 1px 3px rgba(20,30,50,.06);
+  background:#fff;animation:none}
+.sr-hero-title{position:relative;z-index:1;color:#1b2026;font-size:1.12em;font-weight:800;letter-spacing:-.2px;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.sr-hero-title svg{color:#1b2026;flex-shrink:0}
+.sr-hero-sub{position:relative;z-index:1;display:inline-flex;align-items:center;gap:6px;color:#5c6773;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis}
+/* In-queue badge: light pill (readable on the white bar), pinned to the right. */
+.sr-hero-badge{position:relative;z-index:1;margin-left:auto;display:inline-flex;align-items:baseline;gap:6px;text-align:center;background:#fff4e8;border:1px solid #f3d4b0;border-radius:5px;padding:4px 12px;flex-shrink:0;box-shadow:none}
 .sr-hero-num{font-size:1.1em;font-weight:800;color:#c25e00;line-height:1}
 .sr-hero-cap{color:#8a5a1a;font-size:.6em;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
 /* Hero watermark hidden on the compact one-line hero (not enough height for it to read well). */
@@ -273,30 +292,40 @@ tr:hover{background:#f8fafb}
   background-repeat:no-repeat;background-position:center;background-size:auto 84%;opacity:.34;pointer-events:none;z-index:0;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="24" y="14" width="46" height="52" rx="6"/><rect x="38" y="9" width="18" height="9" rx="3"/><path d="M34 32h26M34 42h26M34 52h16"/><path d="M84 30h24M100 22l8 8-8 8"/><path d="M108 54H84M92 46l-8 8 8 8"/></svg>')}
-.sr-sec{margin-bottom:22px}
+.sr-sec{margin-bottom:10px}
 /* Collapsible section head — a flat BLUE mini-banner matching the app.html Live Queue / Performance
    Overview scheme: collapsed = sky-blue #38bdf8, expanded = #0b63cf, white font + caret. Fixed 56px. */
 .sr-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;cursor:pointer;
   border-radius:5px;padding:0 18px;height:56px;min-height:56px;max-height:56px;box-sizing:border-box;margin:-18px -20px 18px;
   background:#0b63cf;transition:background .15s}
-.sr-collapsible.collapsed .sr-sec-head{background:#38bdf8;margin-bottom:-18px}
+.sr-collapsible.collapsed .sr-sec-head{background:#38bdf8}
 .sr-sec-head h2{font-size:1.08em;font-weight:800;display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff!important}
 .sr-sec-head h2 *{color:#fff!important}
 .sr-sec-head h2 .ic,.sr-sec-head h2 svg{flex-shrink:0;color:#fff!important}
 .sr-sec-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;z-index:1}
 /* Export buttons: ORANGE bg, white UPPERCASE text, 5px radius (override base .btn / .btn.sec). */
-.sr-sec-head .sr-exp,.sr-sec-head .btn.sr-exp,.sr-sec-head .btn.sec.sr-exp{white-space:nowrap;text-transform:uppercase;border-radius:5px!important;background:#f0820f!important;border:1px solid #f0820f!important;color:#fff!important;font-weight:800;letter-spacing:.3px}
+/* Both export buttons (Export takeover / Export handoff) share a FIXED width so they're identical,
+   with the icon+label centered. */
+.sr-sec-head .sr-exp,.sr-sec-head .btn.sr-exp,.sr-sec-head .btn.sec.sr-exp{white-space:nowrap;text-transform:uppercase;border-radius:5px!important;background:#f0820f!important;border:1px solid #f0820f!important;color:#fff!important;font-weight:800;letter-spacing:.3px;width:170px;flex:0 0 170px;justify-content:center;box-sizing:border-box}
 .sr-sec-head .sr-exp:hover,.sr-sec-head .btn.sr-exp:hover,.sr-sec-head .btn.sec.sr-exp:hover{background:#d9730c!important;border-color:#d9730c!important;color:#fff!important}
 .sr-sec-head .sr-exp svg{color:#fff!important}
-/* Caret on the right; rotates when collapsed (mirrors app.html .sec-caret). */
-.sr-sec-caret{position:relative;z-index:1;color:#fff;opacity:.85;font-size:.9em;flex-shrink:0;transition:transform .3s ease}
-.sr-collapsible.collapsed .sr-sec-caret{transform:rotate(-90deg)}
+/* +/- toggle on the right — same plus/minus PNG icons used by the app.html Live Queue sections.
+   Expanded = minus, collapsed = plus. The glyph text is hidden; the PNG is drawn as a background. */
+.sr-sec-caret{position:relative;z-index:1;flex-shrink:0;color:transparent!important;font-size:0!important;
+  width:18px!important;height:18px!important;display:inline-block!important;
+  background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;
+  transform:none!important;transition:none!important;
+  background-image:url("icons/minus.v3.png")!important}
+.sr-collapsible.collapsed .sr-sec-caret{transform:none!important;background-image:url("icons/plus.v3.png")!important}
 /* Body collapses to height 0 (one open at a time via the accordion JS). */
 .sr-collapsible>.sr-sec-body{overflow:hidden;transition:max-height .32s ease,opacity .25s ease,margin .32s ease;max-height:4000px;opacity:1}
 .sr-collapsible.collapsed>.sr-sec-body{max-height:0;opacity:0;margin-top:0;margin-bottom:0}
-/* When collapsed, the head's own bottom margin + the card padding should also close up so the
-   collapsed card is just the 56px banner (equal height for both sections). */
-.sr-collapsible.collapsed.sr-card-sec{padding-top:18px;padding-bottom:0}
+/* Collapsed card = JUST the 56px banner. Zero the card's own padding/border/shadow so the banner
+   (pulled to the edges by the head's negative margins) fully fills it, and the head's bottom margin
+   is 0 so nothing overflows below. The card's own margin-bottom:10px (.sr-sec) then gives a clean
+   10px gap to the next section. */
+.sr-collapsible.collapsed.sr-card-sec{padding:0!important;border:none!important;box-shadow:none!important;background:transparent!important}
+.sr-collapsible.collapsed .sr-sec-head{margin:0!important}
 /* Buttons on the bright section banner stay legible. */
 .sr-sec-head .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.16)}
 .sr-sec-head .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.3)}
@@ -820,6 +849,10 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .perf-sel:hover{border-color:#c2cad1}
 .perf-sel:focus{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .perf-body{padding:14px 18px 18px}
+/* Period picker moved INTO the body: a top row, right-aligned, with a divider + gap below it so it
+   separates cleanly from the KPI/chart content. Resets the banner-era margin-left:auto. */
+.perf-head-inbody{margin:0 0 14px!important;padding-bottom:14px;border-bottom:1px solid #eef1f4;justify-content:flex-end}
+@media(max-width:860px){.perf-head-inbody{justify-content:flex-start}}
 /* ---- Performance KPIs: top-3 podium + colorful stat tiles ---- */
 .pf-section-h{display:flex;align-items:center;gap:7px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8b96a0;margin:2px 0 10px}
 .pf-section-h svg{width:13px;height:13px;color:#ec7211}
@@ -1031,8 +1064,8 @@ body[data-profile-panel] .content .q-tile-click:hover .q-tile-open{color:#ec7211
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=145"></script>
-<script src="app.js?v=75"></script>
+<script src="topbar-auth.js?v=167"></script>
+<script src="app.js?v=77"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>

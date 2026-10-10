@@ -3144,8 +3144,12 @@ function renderRepeatDrilldown(){
 // to icon-only (the label is hidden; the button's title provides a hover tooltip) and spread
 // across the available width. Returns the full <div class="dash-title-row"> HTML.
 function dashPageTitleRow(){
-  // No top banner. Each section carries its own banner-style header (see .sec-head styling).
-  return '';
+  // Header title bar copied from index.html: Amazon WWOS wordmark (left) + "YTD <current year>"
+  // calendar-icon label (right) on a white card. Matches the home page .home-hdr look.
+  return '<div class="home-title-row js-header-row home-hdr">'+
+    '<a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>'+
+    '<span class="home-hdr-title"><span class="home-hdr-ic">'+ic('calendar',20)+'</span><span id="homeYtd">YTD '+new Date().getFullYear()+'</span></span>'+
+    '</div>';
 }
 // Per-section scope. Each dashboard section picks its own scope INDEPENDENTLY, so switching
 // e.g. "Incident Types" to Q2 only reloads that section — the rest stay on their own scope.
@@ -3467,12 +3471,13 @@ function perfSectionHtml(){
   return '<div class="section dash-collapsible collapsed" data-perf="1">'+
     '<div class="sec-head" onclick="dashSectionToggle(this,event)" role="button" tabindex="0">'+
       '<h2 title="Performance Overview"><span class="perf-h2-ic">'+ic('bar-chart',16)+'</span><span class="perf-h2-txt">Performance Overview</span></h2>'+
-      '<div class="perf-head-right" onclick="event.stopPropagation()">'+
-        '<span id="perfPickerWrap">'+perfPickerHtml()+'</span>'+
-      '</div>'+
       '<span class="sec-caret" aria-hidden="true">\u25be</span>'+
     '</div>'+
     '<div class="perf-body">'+
+      // Period picker now lives INSIDE the body (below the banner), not on the title bar.
+      '<div class="perf-head-right perf-head-inbody">'+
+        '<span id="perfPickerWrap">'+perfPickerHtml()+'</span>'+
+      '</div>'+
       '<div id="dashSumAvg" class="dash-chunk-slot">'+avgSkel+'</div>'+
       '<div id="dashWeeklyBody" class="dash-chunk-slot" style="margin-top:4px">'+wkSkel+'</div>'+
     '</div>'+

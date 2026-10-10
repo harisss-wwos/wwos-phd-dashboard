@@ -15,6 +15,7 @@
     'line-chart': '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
     'group-chart': '<path d="M8 20v-1.5a3 3 0 0 0-3-3H4a3 3 0 0 0-3 3V20"/><circle cx="4.5" cy="8" r="3"/><circle cx="15" cy="13" r="6.5"/><line x1="13" y1="15" x2="13" y2="12.5"/><line x1="15" y1="15" x2="15" y2="10.5"/><line x1="17" y1="15" x2="17" y2="13.5"/>',
     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     'users-gear': '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="19" cy="17" r="2.4"/>',
     'user-shield': '<path d="M10 15H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M18 21s3-1.5 3-4v-2l-3-1-3 1v2c0 2.5 3 4 3 4z"/>',
     history: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',

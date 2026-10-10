@@ -1145,6 +1145,21 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
       });
     } catch (logErr) { /* never block */ }
 
+    // Persist the RAW uploaded file text (if the client sent it and it's within a safe size) so it can
+    // be downloaded later from the "Data due to Last Upload" card. Stored in its own collection keyed
+    // by publishedAt so the data-log doc stays small. Best-effort; never blocks the publish.
+    try {
+      const rawText = typeof body.fileText === 'string' ? body.fileText : '';
+      if (rawText && rawText.length <= 12 * 1024 * 1024) {
+        const filesColl = await getCollection(COLLECTIONS.uploadFiles);
+        await filesColl.updateOne(
+          { _id: publishedAt },
+          { $set: { _id: publishedAt, fileName: fileMeta.fileName || 'upload.csv', fileType: fileMeta.fileType || 'text/csv', text: rawText, user: req.user.username, at: publishedAt } },
+          { upsert: true }
+        );
+      }
+    } catch (fileErr) { /* never block */ }
+
     // Merge any non-live rows into their own quarters — write ONLY changed rows to ticket_docs.
     const byQuarter = {};
     for (const t of nonLive) {
@@ -1427,11 +1442,20 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
       };
     }).sort((a, b) => (b.open - a.open) || String(a.name).localeCompare(String(b.name)));
 
+    // Does a downloadable raw copy of this upload's file exist? (Only present for uploads made after
+    // the download feature shipped and under the size cap.)
+    let hasFile = false;
+    try {
+      const filesColl = await getCollection(COLLECTIONS.uploadFiles);
+      hasFile = !!(await filesColl.findOne({ _id: stamp }, { projection: { _id: 1 } }));
+    } catch (e) { hasFile = false; }
+
     res.json({
       none: false,
       user: top.user || '',
       at: stamp,
       fileName,
+      hasFile,
       added, updated, becameResolved, total,
       slaPct, petResolvedBySim,
       notAssigned,
@@ -1439,6 +1463,28 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load last-upload info.' });
+  }
+});
+
+// Download the RAW uploaded file for the most recent upload (the one surfaced by /api/last-upload).
+// Streams the stored text back as an attachment. 404 if no stored copy exists (older uploads or
+// files over the size cap). Any logged-in user may download.
+app.get('/api/last-upload/file', requireRole('user'), async (req, res) => {
+  try {
+    const logColl = await getCollection(COLLECTIONS.dataLog);
+    const latest = await logColl.find({}).sort({ at: -1 }).limit(1).toArray();
+    if (!latest.length) return res.status(404).json({ error: 'No uploads yet.' });
+    const stamp = latest[0].publishedAt || latest[0].at;
+    const filesColl = await getCollection(COLLECTIONS.uploadFiles);
+    const doc = await filesColl.findOne({ _id: stamp });
+    if (!doc || !doc.text) return res.status(404).json({ error: 'No stored file for this upload.' });
+    // Sanitise the filename for the Content-Disposition header (strip control/quote chars).
+    const safeName = String(doc.fileName || 'upload.csv').replace(/[\r\n"\\]/g, '_').slice(0, 200) || 'upload.csv';
+    res.setHeader('Content-Type', (doc.fileType && /^text\//.test(doc.fileType)) ? doc.fileType : 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="' + safeName + '"');
+    res.send(doc.text);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not fetch the uploaded file.' });
   }
 });
 
@@ -2676,19 +2722,10 @@ app.get('/api/profile-stats', requireRole('user'), async (req, res) => {
     const t12 = now - 12 * 36e5, t24 = now - 24 * 36e5;
     const inWindow = (rd, from) => { const d = new Date(rd); return !isNaN(d) && d.getTime() >= from && d.getTime() <= now; };
 
-    if (!isAnalyst) {
-      // MANAGER: team-wide resolved in last 12h / 24h (everyone), across all quarters.
-      const rows = await coll.find(
-        { Status: { $in: ['Resolved', 'Closed'] } },
-        { projection: { _id: 0, ResolvedDate: 1 } }
-      ).toArray();
-      let r12 = 0, r24 = 0;
-      rows.forEach(t => { if (inWindow(t.ResolvedDate, t24)) { r24++; if (inWindow(t.ResolvedDate, t12)) r12++; } });
-      return res.json({ view: 'manager', username: me, resolved12: r12, resolved24: r24 });
-    }
-
-    // ANALYST: my open tickets (status + age colours) + my resolved in last 12h/24h.
-    // Open tickets (all quarters) assigned to me.
+    // Compute MY open tickets (status + age colours) for EVERY user, regardless of the analyst flag,
+    // so the "My open tickets" card shows for anyone who has tickets assigned to them (managers who
+    // also carry a queue included). The `view` field still reflects the analyst flag for any callers
+    // that branch on it, but the open-ticket payload is now always present.
     const openRows = await coll.find(
       { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } },
       { projection: { _id: 0, Status: 1, CreateDate: 1, ResolvedDate: 1, _reopened: 1 } }
@@ -2707,7 +2744,7 @@ app.get('/api/profile-stats', requireRole('user'), async (req, res) => {
     let r12 = 0, r24 = 0;
     resRows.forEach(t => { if (inWindow(t.ResolvedDate, t24)) { r24++; if (inWindow(t.ResolvedDate, t12)) r12++; } });
 
-    res.json({ view: 'analyst', username: me, open: openRows.length, statusCounts, colors, resolved12: r12, resolved24: r24 });
+    res.json({ view: isAnalyst ? 'analyst' : 'manager', username: me, open: openRows.length, statusCounts, colors, resolved12: r12, resolved24: r24 });
   } catch (e) {
     res.status(500).json({ error: 'Could not load profile stats.' });
   }
@@ -4258,6 +4295,25 @@ app.get('/api/group-overall', requireRole('user'), async (req, res) => {
     res.json(Object.assign({ scope: 'overall' }, m));
   } catch (e) {
     res.status(500).json({ error: 'Could not compute overall analytics.' });
+  }
+});
+
+// Per-agent + per-group closure/SLA/avg metrics for an ARBITRARY date window [from, to) — drives the
+// YTD-Performance period picker (YTD 2026 / Quarterly / Monthly / Weekly). `from`/`to` are epoch ms
+// (half-open). Omit `from` for an open-start, omit `to` for "up to now". Reuses aggClosureMetrics,
+// which already supports fromMs/toMs on ResolvedDate (+ LastAssignedDate for the Assigned column).
+app.get('/api/group-range', requireRole('user'), async (req, res) => {
+  try {
+    const parseMs = (v) => { if (v === undefined || v === '' || v === null) return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+    let fromMs = parseMs(req.query.from);
+    let toMs = parseMs(req.query.to);
+    if (fromMs == null) fromMs = new Date('2026-01-01T00:00:00Z').getTime();   // default start = AC era (1 Jan 2026)
+    if (toMs == null) toMs = Date.now();                                        // default end = now
+    if (toMs <= fromMs) return res.status(400).json({ error: 'to must be after from.' });
+    const m = await aggClosureMetrics({ fromMs: fromMs, toMs: toMs });
+    res.json(Object.assign({ scope: 'range', from: fromMs, to: toMs }, m));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not compute range analytics.' });
   }
 });
 

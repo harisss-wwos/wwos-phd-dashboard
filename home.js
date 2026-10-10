@@ -34,57 +34,12 @@ function quarterCardHtml(q,isLive){
   '</a>';
 }
 
-async function renderQuarterCards(){
+// The "Dashboards & reports" cards are 100% STATIC text (no server data), so render them
+// synchronously on load — no /api/quarters fetch, no shimmer wait. (The per-quarter tiles live on
+// the Program History / archive page, not here.)
+function renderQuarterCards(){
   const host=document.getElementById('yearSections');
-  if(!host||!window.PHDAuth)return;
-
-  let info;
-  try{
-    const r=await window.PHDAuth.api('GET','/api/quarters');
-    if(!r.ok||!r.data){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">Could not load quarter reports.</p>'; return; }
-    info=r.data;
-  }catch(e){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">Could not load quarter reports.</p>'; return; }
-
-  const liveId=info.liveQuarter;
-  const quarters=(info.quarters||[]).slice();
-  const seen={};quarters.forEach(q=>{seen[q.id]=true;});
-  if(liveId && !seen[liveId]){quarters.push({id:liveId,label:info.liveLabel||liveId,count:undefined,isLive:true});seen[liveId]=true;}
-
-  // Assign each quarter to one of three ERAS (a quarter's numeric key = year*10 + Q):
-  //   after   = "After WWOS (complete take over by WWOS)"  -> Q2 2026, Q3 2026 (>= 2026-Q2)
-  //   moving  = "After moving under WWOS"                  -> Q4 2025, Q1 2026 (Oct 2025 - Mar 2026)
-  //   (The pre-WWOS "Before WWOS" era is represented by the Program History card, not listed here.)
-  function qKey(id){ const m=/^(\d{4})-Q([1-4])$/.exec(id||''); return m?(parseInt(m[1],10)*10+parseInt(m[2],10)):0; }
-  const eras=[
-    { key:'after',  title:'After WWOS \u2014 complete take over by WWOS', min:20262, max:99999 },
-    { key:'moving', title:'After moving under WWOS',                       min:20254, max:20261 },
-  ];
-  const byEra={ after:[], moving:[] };
-  quarters.forEach(q=>{
-    const m=/^(\d{4})-Q([1-4])$/.exec(q.id||''); if(!m)return;
-    const k=qKey(q.id);
-    const era=eras.find(e=>k>=e.min&&k<=e.max);
-    if(era) byEra[era.key].push(Object.assign({},q,{_k:k}));
-  });
-  if(!byEra.after.length&&!byEra.moving.length){ host.innerHTML='<p style="color:var(--tm);text-align:center;padding:20px">No quarter reports available.</p>'; return; }
-
-  const eraSectionHtml=function(era){
-    const list=byEra[era.key].slice().sort((a,b)=>b._k-a._k); // newest quarter first
-    if(!list.length)return '';
-    const total=list.reduce((s,q)=>s+((typeof q.count==='number')?q.count:0),0);
-    const hasLive=list.some(q=>q.id===liveId);
-    const cards=list.map(q=>quarterCardHtml(q,q.id===liveId)).join('');
-    const metaTxt=(total>0?fmtCount(total)+' tickets · ':'')+list.length+' quarter'+(list.length===1?'':'s');
-    return ''+
-    '<div class="year-section'+(hasLive?' open':'')+'">'+
-      '<button type="button" class="year-head" aria-expanded="'+(hasLive?'true':'false')+'" onclick="toggleYearSection(this)">'+
-        '<span class="year-title">'+icH('calendar',20)+' '+era.title+(hasLive?' <span class="year-live-badge">LIVE</span>':'')+'</span>'+
-        '<span class="year-meta">'+metaTxt+'</span>'+
-        '<span class="year-caret" aria-hidden="true">▾</span>'+
-      '</button>'+
-      '<div class="year-body"><div class="grid">'+cards+'</div></div>'+
-    '</div>';
-  };
+  if(!host)return;
   // ---- Redesigned "nav tiles": uniform cards with an icon chip, title + subtitle, description, and
   // an action footer with an arrow. The Active tile keeps its green identity + pulsing ACTIVE pill.
   // opts: { href, icon, title, sub, desc, action, live, external, tone }
@@ -125,6 +80,10 @@ async function renderQuarterCards(){
     navTile({ href:'issue-types.html', icon:'clipboard', tone:'violet',
       title:'Issue Standardization', sub:'Reference guide',
       desc:'Standard issue-type definitions, usage and examples.', action:'View issue types' }),
+    // Ticket Sanitization Process — step-by-step guide + links (page designed later).
+    navTile({ href:'ticket-sanitization.html', icon:'check-circle', tone:'rose',
+      title:'Ticket Sanitization Process', sub:'Step-by-step guide',
+      desc:'Instructions and linked resources that walk you through sanitizing a ticket.', action:'Open the guide' }),
     // PHD Wiki — external deep-dive.
     navTile({ href:'https://w.amazon.com/bin/view/GSOC/PHD#Attachments', icon:'globe', tone:'blue', external:true,
       title:'PHD Wiki', sub:'External resource',
