@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLA Breaches (>240h) · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: keep the page hidden until topbar-auth.js has injected its styles AND built the
+     nav-rail + profile column, so the chrome is present on the FIRST paint (no flash-in). The class
+     is cleared by topbar-auth after the chrome builds; a failsafe timer clears it if the script
+     never runs (offline) so the page can never stay hidden. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -150,6 +157,9 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 
 /* Global: main content spans full width with a 15px gutter each side. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Remove the top padding, keep a 20px bottom. Use #wrap (ID) so it beats the
+   runtime .wrap{padding-top:14px} that topbar-auth.js injects into <head>. */
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -189,6 +199,29 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-phd{color:#1577a0!important}
 .sk-line{background:#e8ebee!important}
 .empty,.gate{color:#5c6773!important}
+/* ===== Report restyle overrides (win the cascade) ===== */
+/* (A) Title bar: 60px tall, white, flat. */
+.hr-banner{height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important;
+  background:#fff!important;animation:none!important;border:1px solid #e2e6ea!important;border-radius:5px!important;
+  box-shadow:0 1px 3px rgba(20,30,50,.06)!important;margin:0 0 10px!important;padding:0 22px!important}
+.hr-banner::after{display:none!important}
+.hr-banner .hb-title{color:#1b2026!important;font-size:1.15em!important}
+.hr-banner .hb-title svg{color:#1b2026!important}
+/* (C) Range head: 56px, flat blue (collapsed #38bdf8 / expanded #1878eb), white text, no border. */
+/* Range CARD = light surface (was a dark gradient) so the expanded body reads light, not black. */
+.hr-range{border:1px solid #e2e6ea!important;background:#fff!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;overflow:hidden!important}
+.hr-range-head{height:56px!important;min-height:56px!important;max-height:56px!important;box-sizing:border-box!important;
+  background:#38bdf8!important;background-image:none!important;animation:none!important;border:none!important}
+.hr-range.open>.hr-range-head{background:#1878eb!important;background-image:none!important}
+.hr-range-head::after{display:none!important}
+.hr-range-head .hr-range-title{color:#fff!important}
+.hr-range-head .hr-range-ic{background:rgba(255,255,255,.22)!important;color:#fff!important}
+.hr-range-head .hr-range-meta{background:rgba(255,255,255,.22)!important;color:#fff!important}
+/* (E) Plus/minus PNG caret on the RANGE head only (collapsed=plus, expanded=minus). */
+.hr-range>.hr-range-head .hr-caret{color:transparent!important;font-size:0!important;width:18px!important;height:18px!important;display:inline-block!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;transform:none!important;transition:none!important;background-image:url("icons/plus.v3.png")!important}
+.hr-range.open>.hr-range-head .hr-caret{transform:none!important;background-image:url("icons/minus.v3.png")!important}
+/* (F) 10px gap between range cards. */
+.hr-range{margin-bottom:10px!important}
 </style>
 </head>
 <body data-nav-active="sla-breach" data-back-href="app.html" data-back-label="Dashboard">
@@ -200,7 +233,6 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
   <div class="hr-banner">
     <div class="hb-left">
       <h1 class="hb-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> SLA Breaches (&gt;240h)</h1>
-      <div class="hb-sub">Tickets resolved <b>after breaching the 240-hour (10-day) SLA</b>, across the whole database, grouped by the agent who resolved them.</div>
     </div>
   </div>
   <div id="hrSkel">
@@ -358,7 +390,6 @@ function render(d){
   document.getElementById('wrap').innerHTML=
     '<div class="hr-banner"><div class="hb-left">'+
       '<h1 class="hb-title">'+ic('clock',24)+' SLA Breaches (&gt;240h)</h1>'+
-      '<div class="hb-sub">Tickets resolved <b>after breaching the 240-hour (10-day) SLA</b>, across the whole database, grouped by the agent who resolved them, and split by ticket creation date. Agents are ordered by breach count (highest first).</div>'+
     '</div></div>'+
     '<div id="hrRanges">'+sections+'</div>';
 }

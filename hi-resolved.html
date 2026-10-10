@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Resolved Repeat Incidents · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: keep the page hidden until topbar-auth.js has injected its styles AND built the
+     nav-rail + profile column, so the chrome is present on the FIRST paint (no flash-in). The class
+     is cleared by topbar-auth after the chrome builds; a failsafe timer clears it if the script
+     never runs (offline) so the page can never stay hidden. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -52,11 +59,93 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-banner .hb-title svg{flex-shrink:0;color:#241354}
 .hr-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:82ch;color:rgba(36,19,84,.82)}
 .hr-banner .hb-sub b{color:#180b40;font-weight:800}
+/* "YTD 2026" badge pinned to the right of the title bar. */
+.hr-banner .hb-right{position:relative;z-index:1;display:inline-flex;align-items:center;flex-shrink:0}
+.hr-ytd{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:.9em;letter-spacing:.3px;color:#ec7211;
+  background:rgba(236,114,17,.1);border:1px solid rgba(236,114,17,.35);border-radius:999px;padding:6px 14px;white-space:nowrap}
+.hr-ytd svg{color:#ec7211;flex-shrink:0}
 .hr-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;
   background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M42 26h30a12 12 0 0 1 12 12"/><path d="M72 16l12 10-12 10"/><path d="M78 54H48a12 12 0 0 1-12-12"/><path d="M48 64L36 54l12-10"/></svg>')}
 @media(max-width:640px){.hr-banner .hb-title{font-size:1.25em}.hr-banner::after{opacity:.22}}
+/* ---- Non-Pet Repeat incidents section (controls + views + tables) ---- */
+/* Controls row: segmented radio pills (left) + PHD/Non-PHD checkbox chips (right), all one line. */
+.np-controls{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+/* Segmented radio group — pill container with selected segment highlighted. */
+.np-seg{display:inline-flex;align-items:center;background:#0b0f14;border:1px solid var(--bd);border-radius:999px;padding:3px;gap:2px}
+.np-seg-opt{position:relative;display:inline-flex;align-items:center;cursor:pointer;user-select:none}
+.np-seg-opt input{position:absolute;opacity:0;width:0;height:0}
+.np-seg-opt span{display:inline-flex;align-items:center;padding:7px 16px;border-radius:999px;font-size:.85em;font-weight:700;color:#9fb2c4;white-space:nowrap;transition:background .14s,color .14s}
+.np-seg-opt:hover span{color:#d7dee6}
+.np-seg-opt input:checked+span{background:#ec7211;color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
+/* Checkbox chips (By Agents view). */
+.np-checks{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.np-chip{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:.82em;font-weight:700;
+  padding:7px 13px;border-radius:999px;border:1px solid var(--bd);background:#0b0f14;color:#9fb2c4;transition:border-color .14s,color .14s,background .14s}
+.np-chip input{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1.5px solid #5a6470;border-radius:4px;cursor:pointer;position:relative;flex-shrink:0;transition:background .14s,border-color .14s}
+.np-chip input:checked{background:#ec7211;border-color:#ec7211}
+.np-chip input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.np-chip:has(input:checked){border-color:#ec7211;color:#fff;background:rgba(236,114,17,.1)}
+/* Shimmer skeleton (shown while a section's data loads). */
+.np-sk-wrap{padding:4px 0}
+.np-sk-row{display:flex;align-items:center;gap:14px;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.np-sk{height:12px;border-radius:5px;background:#141a20;position:relative;overflow:hidden}
+.np-sk.b1{width:12%}.np-sk.b2{width:7%}.np-sk.b3{width:14%}.np-sk.b4{flex:1}.np-sk.b5{width:20%}
+.np-sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);animation:npShim 1.3s ease-in-out infinite}
+@keyframes npShim{100%{transform:translateX(100%)}}
+.np-body{min-height:40px}
+.np-load{display:flex;align-items:center;justify-content:center;gap:12px;min-height:120px;color:#8795a3;font-size:.9em;font-weight:600}
+.np-load .spinner{margin:0;width:26px;height:26px;border-width:3px}
+.np-ctry{margin-bottom:10px}
+.np-tablewrap{overflow-x:auto}
+/* All columns centered, single line, truncated with ellipsis (no wrapping). */
+.np-tbl{width:100%;border-collapse:collapse;font-size:.84em;table-layout:fixed}
+.np-tbl th,.np-tbl td{text-align:center;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:middle;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-tbl thead th{color:#8795a3;font-weight:700;text-transform:uppercase;font-size:.82em;letter-spacing:.4px;border-bottom:1px solid rgba(255,255,255,.14)}
+.np-tbl tbody tr:last-child td{border-bottom:none}
+.np-tbl td.np-c,.np-tbl th.np-c{font-weight:800}
+.np-id{color:#44b9d6;font-weight:700;text-decoration:none}
+.np-id:hover{text-decoration:underline}
+.np-by{color:#8795a3;font-size:.92em;margin-left:4px}
+.np-title{color:inherit}
+.np-rc{color:#aab6c2}
+.np-phd{color:#1577a0;background:rgba(68,185,214,.14);border:1px solid rgba(68,185,214,.35);border-radius:4px;font-size:.72em;font-weight:800;padding:1px 5px;margin-left:4px}
+/* ---- Monthly created-tickets trend chart (inside its collapsible range section) ---- */
+.hr-chart-legend{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;font-size:.82em;font-weight:700;margin-bottom:6px}
+.hr-chart-loading{display:flex;align-items:center;justify-content:center;gap:12px;min-height:220px;color:#8795a3;font-size:.9em;font-weight:600}
+.hr-chart-loading .spinner{margin:0;width:30px;height:30px;border-width:3px}
+.hr-lg{display:inline-flex;align-items:center;gap:6px;color:#aab6c2}
+.hr-lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.hr-lg.combined i{background:#38bdf8}
+.hr-lg.pet i{background:#a78bfa}
+.hr-lg.nonpet i{background:#ff9900}
+.hr-chart-wrap{position:relative;width:100%;overflow:visible}
+.hr-chart-svg{width:100%;height:auto;display:block;overflow:visible}
+.hr-chart-svg .grid{stroke:rgba(255,255,255,.07);stroke-width:1}
+.hr-chart-svg .axis{stroke:rgba(255,255,255,.18);stroke-width:1}
+.hr-chart-svg .axlbl{fill:#8795a3;font-size:11px;font-weight:600}
+.hr-chart-svg .ln{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.hr-chart-svg .ln.combined{stroke:#38bdf8}
+.hr-chart-svg .ln.pet{stroke:#a78bfa}
+.hr-chart-svg .ln.nonpet{stroke:#ff9900}
+.hr-chart-svg .pt{stroke:#0b0f14;stroke-width:2;cursor:pointer}
+.hr-chart-svg .pt.combined{fill:#38bdf8}
+.hr-chart-svg .pt.pet{fill:#a78bfa}
+.hr-chart-svg .pt.nonpet{fill:#ff9900}
+.hr-chart-svg .hit{fill:transparent;cursor:pointer}
+.hr-chart-svg .vline{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
+.hr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:190px;background:#0a0a0a;border:1px solid #2a323b;border-radius:7px;padding:11px 13px;box-shadow:0 14px 34px -16px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
+.hr-chart-tip.show{opacity:1;transform:translateY(0)}
+.hr-chart-tip .tt-m{font-weight:800;color:#fff;margin-bottom:7px;font-size:1.02em}
+.hr-chart-tip .tt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 0;color:#c4ccd4}
+.hr-chart-tip .tt-row .k{display:inline-flex;align-items:center;gap:6px}
+.hr-chart-tip .tt-row .k i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.hr-chart-tip .tt-row .v{font-weight:800;color:#fff}
+.hr-chart-tip .tt-sep{height:1px;background:rgba(255,255,255,.08);margin:7px 0}
+.hr-chart-tip .tt-pct{color:#9aa6b1;font-size:.95em}
+.hr-chart-tip .tt-pct b{color:#fff}
 /* Date-range sections (top level, collapsible) — each header is an illustrated gradient banner. */
 .hr-range{position:relative;border:1px solid #242a31;border-radius:5px;margin-bottom:16px;overflow:hidden;background:linear-gradient(180deg,#15181d,#0f1115);box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
 .hr-range-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 20px;border:none;text-align:left;cursor:pointer;font:inherit;
@@ -64,7 +153,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-range-head:hover{filter:brightness(1.04)}
 .hr-range-ic{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.85);color:var(--rc-ink);box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .hr-range-ic svg{width:18px;height:18px}
-.hr-range-title{position:relative;z-index:1;color:var(--rc-ink);font-weight:800;font-size:1.12em;letter-spacing:-.2px}
+.hr-range-title{position:relative;z-index:1;color:var(--rc-ink);font-weight:800;font-size:1.12em;letter-spacing:-.2px;flex:1;min-width:0}
 .hr-range-meta{position:relative;z-index:1;margin-left:auto;color:var(--rc-ink);font-size:.82em;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.72);border-radius:5px;padding:5px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
 .hr-range .hr-caret{position:relative;z-index:1;color:var(--rc-ink);flex-shrink:0;transition:transform .18s}
 .hr-range-head::after{content:"";position:absolute;top:0;bottom:0;right:210px;width:150px;background-repeat:no-repeat;background-position:center;background-size:auto 90%;opacity:.34;pointer-events:none;z-index:0;
@@ -88,6 +177,18 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-range-body{display:none;padding:0 16px}
 .hr-range.open .hr-range-body{display:block;padding:16px}
 .hr-range.open>.hr-range-head .hr-caret{transform:rotate(180deg)}
+/* PHD / Non-PHD sub-sections (nested inside a range) */
+.hr-sub{border:1px solid #2f3a45;border-radius:5px;margin-bottom:10px;overflow:hidden;background:#0b0f14}
+.hr-sub:last-child{margin-bottom:0}
+.hr-sub-head{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 16px;border:none;cursor:pointer;font:inherit;text-align:left;background:#141a22;color:#e6edf3;transition:background .12s}
+.hr-sub-head:hover{background:#17202a}
+.hr-sub-ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.08);color:#9fb2c4}
+.hr-sub-title{font-weight:700;font-size:.98em}
+.hr-sub-meta{margin-left:auto;font-size:.78em;font-weight:700;color:#9fb2c4;background:rgba(255,255,255,.06);border-radius:5px;padding:4px 10px;white-space:nowrap}
+.hr-sub .hr-caret{color:#9fb2c4;flex-shrink:0;transition:transform .18s}
+.hr-sub-body{display:none;padding:0 14px}
+.hr-sub.open .hr-sub-body{display:block;padding:14px}
+.hr-sub.open>.hr-sub-head .hr-caret{transform:rotate(180deg)}
 /* Agent accordion */
 .hr-agent{border:1px solid #2f3a45;border-radius:5px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
 .hr-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
@@ -142,6 +243,9 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
 /* Global: main content spans full width with a 15px gutter each side. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Remove the top padding, keep a 20px bottom. Use #wrap (ID) so it beats the
+   runtime .wrap{padding-top:14px} that topbar-auth.js injects into <head>. */
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -161,6 +265,48 @@ h1{color:#1b2026!important}
 .hr-filter input{color:#1b2026!important}
 /* Range section container (keep the bright gradient heads). */
 .hr-range{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+/* Non-Pet Repeat section — light theme. */
+.np-controls{border-bottom:1px solid #eef1f4!important}
+.np-seg{background:#f1f4f7!important;border:1px solid #e2e6ea!important}
+.np-seg-opt span{color:#5c6773!important}
+.np-seg-opt:hover span{color:#1b2026!important}
+.np-seg-opt input:checked+span{background:#ec7211!important;color:#fff!important}
+.np-chip{background:#fff!important;border:1px solid #e2e6ea!important;color:#5c6773!important}
+.np-chip input{border:1.5px solid #c4ccd4!important}
+.np-chip input:checked{background:#ec7211!important;border-color:#ec7211!important}
+.np-chip:has(input:checked){border-color:#ec7211!important;color:#1b2026!important;background:#fff7ef!important}
+.np-sk-row{border-bottom:1px solid #eef1f4!important}
+.np-sk{background:#e8ebee!important}
+.np-sk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)!important}
+.np-load{color:#8793a0!important}
+.np-tbl th,.np-tbl td{border-bottom:1px solid #eef1f4!important}
+.np-tbl thead th{color:#5c6773!important;border-bottom:1px solid #e2e6ea!important}
+.np-id{color:#1577a0!important}
+.np-by{color:#8793a0!important}
+.np-rc{color:#5c6773!important}
+.np-phd{color:#1577a0!important;background:#eaf4fb!important;border:1px solid #bfe0ef!important}
+/* Monthly trend chart — light theme. */
+.hr-chart-loading{color:#8793a0!important}
+.hr-lg{color:#5c6773!important}
+.hr-chart-svg .grid{stroke:#eef1f4!important}
+.hr-chart-svg .axis{stroke:#d4dce4!important}
+.hr-chart-svg .axlbl{fill:#8793a0!important}
+.hr-chart-svg .pt{stroke:#fff!important}
+.hr-chart-svg .vline{stroke:rgba(20,40,70,.22)!important}
+.hr-chart-tip{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 14px 34px -16px rgba(20,40,70,.35)!important}
+.hr-chart-tip .tt-m{color:#1b2026!important}
+.hr-chart-tip .tt-row{color:#5c6773!important}
+.hr-chart-tip .tt-row .v{color:#1b2026!important}
+.hr-chart-tip .tt-sep{background:#eef1f4!important}
+.hr-chart-tip .tt-pct{color:#5c6773!important}
+.hr-chart-tip .tt-pct b{color:#1b2026!important}
+/* PHD / Non-PHD sub-sections — light theme. */
+.hr-sub{background:#fff!important;border:1px solid #e4e9ee!important}
+.hr-sub-head{background:#f3f6f9!important;color:#1b2026!important}
+.hr-sub-head:hover{background:#eaeff5!important}
+.hr-sub-ic{background:#e7edf4!important;color:#5c6773!important}
+.hr-sub-meta{color:#5c6773!important;background:#eef1f4!important}
+.hr-sub .hr-caret{color:#9aa5b1!important}
 /* Agent accordion. */
 .hr-agent{background:#fff!important;border:1px solid #e6eaee!important}
 .hr-agent-head:hover{background:#f7f9fb!important}
@@ -198,6 +344,40 @@ h1{color:#1b2026!important}
 .gate p{color:#5c6773!important}
 .btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
 .btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
+/* ===== Report restyle overrides (win the cascade) ===== */
+/* (A) Title bar: 60px tall, white, flat. */
+.hr-banner{height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important;
+  background:#fff!important;animation:none!important;border:1px solid #e2e6ea!important;border-radius:5px!important;
+  box-shadow:0 1px 3px rgba(20,30,50,.06)!important;margin:0 0 10px!important;padding:0 22px!important}
+.hr-banner::after{display:none!important}
+.hr-banner .hb-title{color:#1b2026!important;font-size:1.15em!important}
+.hr-banner .hb-title svg{color:#1b2026!important}
+.hr-ytd{color:#ec7211!important;background:#fff4ea!important;border:1px solid #f3c99e!important}
+.hr-ytd svg{color:#ec7211!important}
+/* (C) Range head: 56px, flat blue (collapsed #38bdf8 / expanded #1878eb), white text, no border. */
+/* Range CARD = white rounded card that clips its header + body. Collapsed = just the blue header;
+   expanded = blue header + white body. Cards are separated by a 10px margin-bottom (below). */
+.hr-range{border:1px solid #e2e6ea!important;background:#fff!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;overflow:hidden!important;border-radius:5px!important}
+.hr-range-head{height:56px!important;min-height:56px!important;max-height:56px!important;box-sizing:border-box!important;
+  background:#38bdf8!important;background-image:none!important;animation:none!important;border:none!important}
+.hr-range.open>.hr-range-head{background:#1878eb!important;background-image:none!important}
+/* Body: white surface with padding (holds the chart / sub-rows). */
+.hr-range-body{background:#fff!important}
+.hr-range.open>.hr-range-body{padding:14px!important}
+.hr-range-head::after{display:none!important}
+.hr-range-head .hr-range-title{color:#fff!important}
+.hr-range-head .hr-range-ic{background:rgba(255,255,255,.22)!important;color:#fff!important}
+.hr-range-head .hr-range-meta{background:rgba(255,255,255,.22)!important;color:#fff!important}
+/* (E) Plus/minus PNG caret on the RANGE head only (collapsed=plus, expanded=minus). */
+.hr-range>.hr-range-head .hr-caret{color:transparent!important;font-size:0!important;width:18px!important;height:18px!important;display:inline-block!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;transform:none!important;transition:none!important;background-image:url("icons/plus.v3.png")!important}
+.hr-range.open>.hr-range-head .hr-caret{transform:none!important;background-image:url("icons/minus.v3.png")!important}
+/* (F) Main column: ONE flex column owns all vertical spacing. A 10px gap sits between the title
+   bar and each of the three sections (graph / non-pet / pet). Children carry no margin so the
+   flex gap is the single, uniform source of spacing — nothing can compete with it. */
+/* Gap between the title bar and each section card — simple margin-bottom pattern (same as
+   station-request.html). Cards are plain block siblings directly in .wrap. */
+.hr-banner{margin:0 0 10px!important}
+.hr-range{margin:0 0 10px!important}
 </style>
 </head>
 <body data-nav-active="hi-resolved" data-back-href="app.html" data-back-label="Dashboard">
@@ -209,13 +389,13 @@ h1{color:#1b2026!important}
   <div class="hr-banner">
     <div class="hb-left">
       <h1 class="hb-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Resolved Repeat Incidents</h1>
-      <div class="hb-sub">Tickets resolved with a Historical Incident count (Cnt) greater than 0, across the whole database, grouped by the agent who resolved them.</div>
     </div>
+    <div class="hb-right"><span class="hr-ytd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> YTD 2026</span></div>
   </div>
   <div id="hrSkel">
-    <div class="hr-range rng-after"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:280px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:180px;height:12px"></span><span class="hr-caret">▾</span></div></div>
-    <div class="hr-range rng-mid"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:320px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:180px;height:12px"></span><span class="hr-caret">▾</span></div></div>
-    <div class="hr-range rng-before"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:320px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:180px;height:12px"></span><span class="hr-caret">▾</span></div></div>
+    <div class="hr-range rng-chart open"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:260px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div><div class="hr-range-body"><div class="hr-chart-loading"><span class="spinner"></span><span>Loading monthly trend…</span></div></div></div>
+    <div class="hr-range rng-nonpet"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:230px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div></div>
+    <div class="hr-range rng-pet"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:200px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div></div>
   </div>
 </div>
 
@@ -225,6 +405,13 @@ h1{color:#1b2026!important}
 <script>
 const A=window.PHDAuth;
 let HR_DATA=null;
+let HR_MONTHLY=null; // { year, months:[{month,total,pet,nonPet,repeatPet,repeatNonPet}, ...] }
+let HR_NONPET=null;  // { total, tickets:[{shortId,url,country,resolvedBy,hi,title,rootCause}, ...] }
+let NP_VIEW='country'; // active radio in the Non-Pet Repeat section: country | hi | agent
+let NP_PHD=true, NP_NONPHD=true; // agent-view checkboxes (both on by default)
+let HR_PET=null;     // same shape as HR_NONPET, for the Pet Repeat section
+let PT_VIEW='country';
+let PT_PHD=true, PT_NONPHD=true;
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Resolved Repeat Incidents</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
@@ -296,18 +483,6 @@ function hrSort(idx,field){ var a=HR_AGENTS[idx]; if(!a)return; if(a.sortField==
 window.hrShowMore=hrShowMore; window.hrShowLess=hrShowLess; window.hrSort=hrSort;
 
 function ic(n,s){return window.icon?window.icon(n,s||14):'';}
-// Summary chips + the agent filter, all on ONE line. `key` wires the filter to this range's list.
-function counts(d,key){
-  var filter=(d.agents&&d.agents.length)?('<div class="hr-filter"><span class="hr-filter-ic">'+ic('user',14)+'</span><input placeholder="Filter agents…" oninput="hrFilter(this,\''+key+'\')"></div>'):'';
-  return '<div class="hr-counts">'+
-    '<div class="hr-chip total"><span class="l">'+ic('repeat',13)+' Resolved HI tickets</span><span class="n">'+(d.totalTickets||0)+'</span></div>'+
-    '<div class="hr-chip"><span class="l">'+ic('users',13)+' Agents</span><span class="n">'+(d.totalAgents||0)+'</span></div>'+
-    '<div class="hr-chip pet"><span class="l">'+ic('paw',13)+' Pet / animal</span><span class="n">'+(d.totalPet||0)+'</span></div>'+
-    '<div class="hr-chip nonpet"><span class="l">'+ic('alert',13)+' Non-pet</span><span class="n">'+(d.totalNonPet||0)+'</span></div>'+
-    filter+
-  '</div>';
-}
-
 function agentBlock(a){
   // Register this agent for paginated/sorted rendering; idx addresses it from the buttons.
   const idx=HR_AGENTS.length;
@@ -324,41 +499,387 @@ function agentBlock(a){
 }
 
 // Per-range header icon.
-const RANGE_ICON={after:'bolt',mid:'clock-rewind',before:'calendar',unknown:'alert'};
+const RANGE_ICON={after:'bolt',mid:'clock-rewind',before:'calendar',unknown:'alert',pet:'paw',nonpet:'alert'};
 // One date-range section: collapsible (closed by default), colorful border + icon, summary + agents.
+// Rebuild a range summary keeping only pet (wantPet=true) or only non-pet tickets. Each agent's
+// ticket list is filtered by isPet, counts are recomputed, and agents left with zero are dropped.
+// Agents stay ordered by their filtered count (highest first).
+function splitByPet(d, wantPet){
+  const out=(d.agents||[]).map(function(a){
+    const tickets=(a.tickets||[]).filter(function(t){ return !!t.isPet===!!wantPet; });
+    return { agent:a.agent, count:tickets.length,
+             pet:wantPet?tickets.length:0, nonPet:wantPet?0:tickets.length, tickets:tickets };
+  }).filter(function(a){ return a.count>0; })
+    .sort(function(x,y){ return y.count-x.count; });
+  const totalTickets=out.reduce(function(s,a){ return s+a.count; },0);
+  return { agents:out, totalTickets:totalTickets, totalAgents:out.length,
+           totalPet:wantPet?totalTickets:0, totalNonPet:wantPet?0:totalTickets };
+}
+
+// A nested sub-section: "Incidents handled by PHD agents" / "…Non-PHD agents". Collapsible, with its
+// own agent list + inline filter. `skey` is unique per (range, phd) so filters/accordion don't clash.
+function subGroup(skey, label, iconName, agents){
+  const list=agents.length
+    ? agents.map(function(a){return agentBlock(a,skey);}).join('')
+    : '<div class="empty">No repeat-incident tickets handled by these agents.</div>';
+  const tickets=agents.reduce(function(s,a){return s+a.count;},0);
+  const ico=(window.icon?window.icon(iconName,16):'');
+  return '<div class="hr-sub">'+
+    '<button type="button" class="hr-sub-head" onclick="hrSubToggle(this)">'+
+      '<span class="hr-sub-ic">'+ico+'</span>'+
+      '<span class="hr-sub-title">'+esc(label)+'</span>'+
+      '<span class="hr-sub-meta">'+tickets+' tickets</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-sub-body">'+
+      '<div class="hr-list" data-range="'+skey+'">'+list+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
 function rangeSection(key,label,d){
   const agents=d.agents||[];
-  const inner=agents.length?agents.map(function(a){return agentBlock(a,key);}).join(''):'<div class="empty">No resolved repeat-incident tickets in this range.</div>';
+  // Split the section's agents into PHD (registered with us) and Non-PHD (everyone else).
+  const phd=agents.filter(function(a){ return isPhdUser(a.agent); });
+  const nonPhd=agents.filter(function(a){ return !isPhdUser(a.agent); });
   const ico=(window.icon?window.icon(RANGE_ICON[key]||'calendar',18):'');
+  const body=agents.length
+    ? (subGroup(key+'-phd','Incidents handled by PHD agents','user-shield',phd)+
+       subGroup(key+'-nonphd','Incidents handled by Non-PHD agents','users',nonPhd))
+    : '<div class="empty">No resolved repeat-incident tickets in this range.</div>';
   return '<div class="hr-range rng-'+key+'" data-range="'+key+'">'+
     '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
       '<span class="hr-range-ic">'+ico+'</span>'+
       '<span class="hr-range-title">'+esc(label)+'</span>'+
-      '<span class="hr-range-meta">'+(d.totalTickets||0)+' tickets · '+(d.totalAgents||0)+' agents · '+(d.totalPet||0)+' pet</span>'+
       '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
     '</button>'+
-    '<div class="hr-range-body">'+
-      counts(d,key)+
-      '<div class="hr-list" data-range="'+key+'">'+inner+'</div>'+
-    '</div>'+
+    '<div class="hr-range-body">'+body+'</div>'+
   '</div>';
 }
 function render(d){
   HR_DATA=d;
   HR_AGENTS=[]; // reset the paginated-agent registry on each full render
-  const R=d.ranges||{};
-  // All sections collapsed by default.
-  let sections=
-    rangeSection('after','Incidents reported on or after 1 Apr 2026', d.after||{})+
-    rangeSection('mid','Incidents reported between 1 Oct 2025 – 31 Mar 2026', d.mid||{})+
-    rangeSection('before','Incidents reported between 1 Jan 2021 – 30 Sept 2025', d.before||{});
-  if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown); }
+  const after=d.after||{};
+  // Emit the title bar + sections directly into #wrap as plain block siblings (same proven pattern
+  // as station-request.html). Each .hr-range card carries a simple margin-bottom:10px for the gap.
+  const banner =
+    '<div class="hr-banner">'+
+      '<div class="hb-left">'+
+        '<h1 class="hb-title">'+ic('repeat',24)+' Resolved Repeat Incidents</h1>'+
+      '</div>'+
+      '<div class="hb-right"><span class="hr-ytd">'+ic('calendar',15)+' YTD 2026</span></div>'+
+    '</div>';
   document.getElementById('wrap').innerHTML=
-    '<div class="hr-banner"><div class="hb-left">'+
-      '<h1 class="hb-title">'+ic('repeat',24)+' Resolved Repeat Incidents</h1>'+
-      '<div class="hb-sub">Tickets resolved with a Historical Incident count (Cnt) greater than 0, across the whole database, grouped by the agent who resolved them, and split by ticket creation date. Agents are ordered by count (highest first).</div>'+
-    '</div></div>'+
-    '<div id="hrRanges">'+sections+'</div>';
+    banner+
+    monthlyChartHtml()+
+    nonPetSectionHtml()+
+    petSectionHtml();
+  // Draw the SVG trend chart once the container is in the DOM.
+  if(HR_MONTHLY) drawMonthlyChart(HR_MONTHLY);
+  // Paint the two Repeat-incident section bodies for their default (By Country) views.
+  renderNonPetView();
+  renderPetView();
+}
+
+// ================= "Non-Pet Repeat incidents" section =================
+// A collapsible white card. Body has 3 radio views (By Country / By HI count / By Agents) that
+// regroup the same flat HR_NONPET.tickets list. The section shell is built once; the view area
+// (#npBody) is (re)painted by renderNonPetView() whenever a radio/checkbox changes.
+function truncate(s, n){ s=String(s||''); return s.length>n ? (s.slice(0,n-1)+'…') : s; }
+
+function nonPetSectionHtml(){
+  // One controls row: a segmented radio-pill group (left) + the PHD/Non-PHD checkboxes (right,
+  // shown only in the "By Agents" view). Both live on the SAME line.
+  const seg=
+    '<div class="np-seg" role="radiogroup">'+
+      '<label class="np-seg-opt"><input type="radio" name="npView" value="country" checked onchange="npSetView(\'country\')"><span>By Country</span></label>'+
+      '<label class="np-seg-opt"><input type="radio" name="npView" value="hi" onchange="npSetView(\'hi\')"><span>By Highest HI count</span></label>'+
+      '<label class="np-seg-opt"><input type="radio" name="npView" value="agent" onchange="npSetView(\'agent\')"><span>By Agents</span></label>'+
+    '</div>';
+  const checks=
+    '<div class="np-checks" id="npChecks" style="display:none">'+
+      '<label class="np-chip"><input type="checkbox" id="npChkPhd" checked onchange="npToggleKind(\'phd\',this)"><span>PHD Analysts</span></label>'+
+      '<label class="np-chip"><input type="checkbox" id="npChkNon" checked onchange="npToggleKind(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
+    '</div>';
+  return '<div class="hr-range rng-nonpet" data-range="nonpet">'+
+    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-ic">'+(window.icon?window.icon('alert',18):'')+'</span>'+
+      '<span class="hr-range-title">Non-Pet Repeat incidents</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-range-body">'+
+      '<div class="np-controls">'+seg+checks+'</div>'+
+      '<div id="npBody" class="np-body"></div>'+
+    '</div>'+
+  '</div>';
+}
+// Radio switch.
+function npSetView(v){ NP_VIEW=v; renderNonPetView(); }
+window.npSetView=npSetView;
+// Agent-view checkbox toggle.
+function npToggleKind(which, cb){ if(which==='phd') NP_PHD=cb.checked; else NP_NONPHD=cb.checked; renderNonPetView(); }
+window.npToggleKind=npToggleKind;
+
+// Repaint the view area for the current radio selection.
+function renderNonPetView(){
+  const box=document.getElementById('npBody'); if(!box) return;
+  // Show the PHD/Non-PHD checkboxes only in the "By Agents" view.
+  const checks=document.getElementById('npChecks'); if(checks) checks.style.display=(NP_VIEW==='agent')?'flex':'none';
+  if(!HR_NONPET){ box.innerHTML=npSkeleton(6); return; }
+  const tickets=HR_NONPET.tickets||[];
+  if(!tickets.length){ box.innerHTML='<div class="empty">No non-pet repeat incidents.</div>'; return; }
+  if(NP_VIEW==='country')      box.innerHTML=npByCountry(tickets);
+  else if(NP_VIEW==='hi')      box.innerHTML=npByHi(tickets);
+  else                         box.innerHTML=npByAgent(tickets, NP_PHD, NP_NONPHD);
+}
+window.renderNonPetView=renderNonPetView;
+
+// A row link for the ticket id.
+function npIdLink(t){ return '<a class="np-id" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId)+'</a>'; }
+
+// Shimmer skeleton shown while a Repeat-incidents section's data is still loading.
+function npSkeleton(n){
+  var row='<div class="np-sk-row">'+
+    '<span class="np-sk b1"></span><span class="np-sk b2"></span><span class="np-sk b3"></span>'+
+    '<span class="np-sk b4"></span><span class="np-sk b5"></span></div>';
+  var out=''; for(var i=0;i<(n||6);i++) out+=row; return '<div class="np-sk-wrap">'+out+'</div>';
+}
+
+// ---- View 1: By Country — one sub-card per country code (count on the right), expand to a table. ----
+// Columns: ResolvedBy · HI Count (desc) · Title (truncated) · Root Cause.
+function npByCountry(tickets){
+  const groups={};
+  tickets.forEach(function(t){ (groups[t.country]=groups[t.country]||[]).push(t); });
+  // Country codes ordered by ticket count (desc).
+  const codes=Object.keys(groups).sort(function(a,b){ return groups[b].length-groups[a].length; });
+  return codes.map(function(code){
+    const list=groups[code].slice().sort(function(a,b){ return b.hi-a.hi; });
+    const rows=list.map(function(t){
+      return '<tr>'+
+        '<td>'+npIdLink(t)+'</td>'+
+        '<td>'+esc(t.resolvedBy||'—')+'</td>'+
+        '<td class="np-c">'+t.hi+'</td>'+
+        '<td class="np-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
+        '<td class="np-rc" title="'+esc(t.rootCause)+'">'+esc(t.rootCause)+'</td>'+
+      '</tr>';
+    }).join('');
+    return '<div class="hr-sub np-ctry">'+
+      '<button type="button" class="hr-sub-head" onclick="hrSubToggle(this)">'+
+        '<span class="hr-sub-ic">'+(window.icon?window.icon('globe',16):'')+'</span>'+
+        '<span class="hr-sub-title">'+esc(code)+'</span>'+
+        '<span class="hr-sub-meta">'+list.length+' tickets</span>'+
+        '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="hr-sub-body">'+
+        '<div class="np-tablewrap"><table class="np-tbl">'+
+          '<colgroup><col style="width:14%"><col style="width:16%"><col style="width:7%"><col style="width:38%"><col style="width:25%"></colgroup>'+
+          '<thead><tr><th>Ticket</th><th>Resolved By</th><th class="np-c">HI</th><th>Title</th><th>Root Cause</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody>'+
+        '</table></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ---- View 2: By Highest HI count — one flat table, HI desc. ----
+// Columns: HI Count (desc) · Country · ResolvedBy · Title (truncated) · Root Cause.
+function npByHi(tickets){
+  const list=tickets.slice().sort(function(a,b){ return b.hi-a.hi; });
+  return npFlatTable(list);
+}
+
+// ---- View 3: By Agents — PHD / Non-PHD checkboxes, agents ordered by volume (desc). ----
+// Columns: HI Count (desc) · Country · ResolvedBy · Title (truncated) · Root Cause.
+function npByAgent(tickets, wantPhd, wantNonPhd){
+  // The PHD / Non-PHD checkboxes live in the controls row. Keep tickets whose resolver matches a
+  // selected kind (flags passed in so both the Non-Pet and Pet sections can reuse this).
+  const filtered=tickets.filter(function(t){
+    const isPhd=isPhdUser(t.resolvedBy);
+    return (isPhd&&wantPhd)||(!isPhd&&wantNonPhd);
+  });
+  // Order rows so agents who handled the most appear first; within an agent, HI desc.
+  const perAgent={};
+  filtered.forEach(function(t){ (perAgent[t.resolvedBy]=perAgent[t.resolvedBy]||[]).push(t); });
+  const agents=Object.keys(perAgent).sort(function(a,b){ return perAgent[b].length-perAgent[a].length; });
+  const ordered=[];
+  agents.forEach(function(ag){ perAgent[ag].sort(function(a,b){ return b.hi-a.hi; }).forEach(function(t){ ordered.push(t); }); });
+  if(!ordered.length) return '<div class="empty">No incidents for the selected analyst type.</div>';
+  return npFlatTable(ordered, true);
+}
+
+// Shared flat table for the HI and Agent views. Columns: HI · Country · ResolvedBy · Title · Root Cause.
+function npFlatTable(list, showPhdTag){
+  const rows=list.map(function(t){
+    const by=esc(t.resolvedBy||'—')+(showPhdTag&&isPhdUser(t.resolvedBy)?' <span class="np-phd">PHD</span>':'');
+    return '<tr>'+
+      '<td>'+npIdLink(t)+'</td>'+
+      '<td class="np-c">'+t.hi+'</td>'+
+      '<td>'+esc(t.country||'—')+'</td>'+
+      '<td>'+by+'</td>'+
+      '<td class="np-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
+      '<td class="np-rc" title="'+esc(t.rootCause)+'">'+esc(t.rootCause)+'</td>'+
+    '</tr>';
+  }).join('');
+  return '<div class="np-tablewrap"><table class="np-tbl">'+
+    '<colgroup><col style="width:13%"><col style="width:6%"><col style="width:10%"><col style="width:17%"><col style="width:34%"><col style="width:20%"></colgroup>'+
+    '<thead><tr><th>Ticket</th><th class="np-c">HI</th><th>Country</th><th>Resolved By</th><th>Title</th><th>Root Cause</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+  '</table></div>';
+}
+
+// ================= "Pet Repeat incidents" section =================
+// Mirror of the Non-Pet section, backed by HR_PET and reusing npByCountry/npByHi/npByAgent.
+function petSectionHtml(){
+  const seg=
+    '<div class="np-seg" role="radiogroup">'+
+      '<label class="np-seg-opt"><input type="radio" name="ptView" value="country" checked onchange="ptSetView(\'country\')"><span>By Country</span></label>'+
+      '<label class="np-seg-opt"><input type="radio" name="ptView" value="hi" onchange="ptSetView(\'hi\')"><span>By Highest HI count</span></label>'+
+      '<label class="np-seg-opt"><input type="radio" name="ptView" value="agent" onchange="ptSetView(\'agent\')"><span>By Agents</span></label>'+
+    '</div>';
+  const checks=
+    '<div class="np-checks" id="ptChecks" style="display:none">'+
+      '<label class="np-chip"><input type="checkbox" id="ptChkPhd" checked onchange="ptToggleKind(\'phd\',this)"><span>PHD Analysts</span></label>'+
+      '<label class="np-chip"><input type="checkbox" id="ptChkNon" checked onchange="ptToggleKind(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
+    '</div>';
+  return '<div class="hr-range rng-pet" data-range="pet">'+
+    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-ic">'+(window.icon?window.icon('paw',18):'')+'</span>'+
+      '<span class="hr-range-title">Pet Repeat incidents</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-range-body">'+
+      '<div class="np-controls">'+seg+checks+'</div>'+
+      '<div id="ptBody" class="np-body"></div>'+
+    '</div>'+
+  '</div>';
+}
+function ptSetView(v){ PT_VIEW=v; renderPetView(); }
+window.ptSetView=ptSetView;
+function ptToggleKind(which, cb){ if(which==='phd') PT_PHD=cb.checked; else PT_NONPHD=cb.checked; renderPetView(); }
+window.ptToggleKind=ptToggleKind;
+function renderPetView(){
+  const box=document.getElementById('ptBody'); if(!box) return;
+  const checks=document.getElementById('ptChecks'); if(checks) checks.style.display=(PT_VIEW==='agent')?'flex':'none';
+  if(!HR_PET){ box.innerHTML=npSkeleton(6); return; }
+  const tickets=HR_PET.tickets||[];
+  if(!tickets.length){ box.innerHTML='<div class="empty">No pet repeat incidents.</div>'; return; }
+  if(PT_VIEW==='country')      box.innerHTML=npByCountry(tickets);
+  else if(PT_VIEW==='hi')      box.innerHTML=npByHi(tickets);
+  else                         box.innerHTML=npByAgent(tickets, PT_PHD, PT_NONPHD);
+}
+window.renderPetView=renderPetView;
+
+// ================= Monthly created-tickets trend chart (SVG, dependency-free) =================
+const MONTH_LBL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CHART_LAST_MONTH=10; // draw lines/points through October only (data fills in as the year goes).
+// The trend graph is a top-level collapsible section (part of the same accordion as the Non-pet /
+// Pet sections), EXPANDED by default. Shows a spinner until the monthly data arrives.
+function monthlyChartHtml(){
+  const inner = HR_MONTHLY
+    ? ('<div class="hr-chart-legend">'+
+         '<span class="hr-lg combined"><i></i>Combined</span>'+
+         '<span class="hr-lg nonpet"><i></i>Non-pet</span>'+
+         '<span class="hr-lg pet"><i></i>Pet</span>'+
+       '</div>'+
+       '<div class="hr-chart-wrap" id="hrChartWrap">'+
+         '<svg class="hr-chart-svg" id="hrChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tickets created per month in 2026"></svg>'+
+         '<div class="hr-chart-tip" id="hrChartTip"></div>'+
+       '</div>')
+    : '<div class="hr-chart-loading"><span class="spinner"></span><span>Loading monthly trend…</span></div>';
+  return '<div class="hr-range rng-chart open" data-range="chart">'+
+    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-ic">'+ic('line-chart',18)+'</span>'+
+      '<span class="hr-range-title">Tickets created per month · 2026</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-range-body">'+inner+'</div>'+
+  '</div>';
+}
+function drawMonthlyChart(data){
+  const svg=document.getElementById('hrChartSvg'); if(!svg) return;
+  const months=(data&&data.months)||[];
+  // Only draw Jan..Oct (indices 0..9); keep all 12 x labels on the axis.
+  const draw=months.slice(0, CHART_LAST_MONTH);
+  const W=920,H=320,padL=46,padR=20,padT=18,padB=36;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  // Y scale from the combined max (the tallest line), with a little headroom.
+  let maxV=0; draw.forEach(function(m){ if(m.total>maxV)maxV=m.total; });
+  maxV=Math.max(maxV,1);
+  const niceMax=niceCeil(maxV);
+  const xAt=function(i){ return padL + (plotW*(i/11)); };           // 12 slots across the full width
+  const yAt=function(v){ return padT + plotH - (plotH*(v/niceMax)); };
+  // Grid + y labels (5 bands).
+  let g='';
+  const bands=5;
+  for(let b=0;b<=bands;b++){
+    const v=Math.round(niceMax*b/bands); const y=yAt(v);
+    g+='<line class="grid" x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'"/>';
+    g+='<text class="axlbl" x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end">'+v+'</text>';
+  }
+  // X axis labels (all 12 months).
+  for(let i=0;i<12;i++){
+    g+='<text class="axlbl" x="'+xAt(i)+'" y="'+(H-padB+20)+'" text-anchor="middle">'+MONTH_LBL[i]+'</text>';
+  }
+  g+='<line class="axis" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'"/>';
+  // Build the 3 polylines.
+  const seriesPts=function(getter){ return draw.map(function(m,i){ return xAt(i)+','+yAt(getter(m)); }).join(' '); };
+  g+='<polyline class="ln combined" points="'+seriesPts(function(m){return m.total;})+'"/>';
+  g+='<polyline class="ln nonpet" points="'+seriesPts(function(m){return m.nonPet;})+'"/>';
+  g+='<polyline class="ln pet" points="'+seriesPts(function(m){return m.pet;})+'"/>';
+  // Hover vertical guide.
+  g+='<line class="vline" id="hrChartVLine" y1="'+padT+'" y2="'+(padT+plotH)+'"/>';
+  // Points for each series.
+  draw.forEach(function(m,i){
+    g+='<circle class="pt combined" cx="'+xAt(i)+'" cy="'+yAt(m.total)+'" r="4"/>';
+    g+='<circle class="pt nonpet" cx="'+xAt(i)+'" cy="'+yAt(m.nonPet)+'" r="4"/>';
+    g+='<circle class="pt pet" cx="'+xAt(i)+'" cy="'+yAt(m.pet)+'" r="4"/>';
+  });
+  // Transparent hit columns (one per drawn month) carry the hover.
+  const colW=plotW/11;
+  draw.forEach(function(m,i){
+    const cx=xAt(i);
+    g+='<rect class="hit" data-i="'+i+'" x="'+(cx-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>';
+  });
+  svg.innerHTML=g;
+  // Wire hover.
+  const tip=document.getElementById('hrChartTip');
+  const vline=document.getElementById('hrChartVLine');
+  const wrap=document.getElementById('hrChartWrap');
+  svg.querySelectorAll('.hit').forEach(function(rect){
+    rect.addEventListener('mouseenter', function(){
+      const i=+rect.getAttribute('data-i'); const m=draw[i]; if(!m) return;
+      const total=m.total||0;
+      const petPct = total? Math.round((m.repeatPet/total)*1000)/10 : 0;
+      const nonPct = total? Math.round((m.repeatNonPet/total)*1000)/10 : 0;
+      tip.innerHTML=
+        '<div class="tt-m">'+MONTH_LBL[i]+' 2026 · '+total+' created</div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#38bdf8"></i>Combined</span><span class="v">'+total+'</span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#ff9900"></i>Non-pet</span><span class="v">'+(m.nonPet||0)+'</span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#a78bfa"></i>Pet</span><span class="v">'+(m.pet||0)+'</span></div>'+
+        '<div class="tt-sep"></div>'+
+        '<div class="tt-pct">Repeat incidents (of '+total+' created):</div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#a78bfa"></i>Pet repeat</span><span class="v">'+(m.repeatPet||0)+' | <b>'+petPct+'%</b></span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#ff9900"></i>Non-pet repeat</span><span class="v">'+(m.repeatNonPet||0)+' | <b>'+nonPct+'%</b></span></div>';
+      // Position the vertical guide + tooltip relative to the wrap box.
+      const cx=xAt(i);
+      vline.setAttribute('x1',cx); vline.setAttribute('x2',cx); vline.style.visibility='visible';
+      // Convert SVG x (0..920) to pixel offset within the responsive wrap.
+      const box=svg.getBoundingClientRect();
+      const px=(cx/W)*box.width;
+      tip.classList.add('show');
+      const tipW=tip.offsetWidth||200;
+      let left=px+14; if(left+tipW>box.width) left=px-tipW-14; if(left<0) left=4;
+      tip.style.left=left+'px'; tip.style.top='8px';
+    });
+  });
+  wrap.addEventListener('mouseleave', function(){ tip.classList.remove('show'); if(vline) vline.style.visibility='hidden'; });
+}
+// Round up to a "nice" axis maximum (1-2-5 x 10^n).
+function niceCeil(v){
+  if(v<=5) return 5;
+  const exp=Math.floor(Math.log10(v)); const base=Math.pow(10,exp); const f=v/base;
+  const nf = f<=1?1 : f<=2?2 : f<=5?5 : 10;
+  return nf*base;
 }
 
 // Accordion: only one agent open at a time WITHIN a range section.
@@ -378,6 +899,15 @@ function hrRangeToggle(btn){
   s.classList.toggle('open', willOpen);
 }
 window.hrRangeToggle=hrRangeToggle;
+// Expand/collapse a PHD / Non-PHD sub-section — accordion scoped to its parent range.
+function hrSubToggle(btn){
+  const s=btn.closest('.hr-sub'); if(!s)return;
+  const willOpen=!s.classList.contains('open');
+  const scope=s.closest('.hr-range-body')||document;
+  scope.querySelectorAll('.hr-sub.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
+  s.classList.toggle('open', willOpen);
+}
+window.hrSubToggle=hrSubToggle;
 function hrFilter(inp,key){
   const q=String(inp.value||'').trim().toLowerCase();
   document.querySelectorAll('.hr-list[data-range="'+key+'"] .hr-agent').forEach(function(el){
@@ -394,6 +924,11 @@ window.hrFilter=hrFilter;
     const ru=await A.api('GET','/api/user-roles');
     if(ru&&ru.ok&&Array.isArray(ru.data)){ HR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();})); }
   }catch(e){ HR_USERS=null; }
+  // Monthly trend (for the chart) — fetched alongside the main data; failure just hides the chart.
+  try{ const mr=await A.api('GET','/api/hi-monthly'); if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)) HR_MONTHLY=mr.data; }catch(e){ HR_MONTHLY=null; }
+  // Non-pet + pet repeat tickets (flat lists for the two Repeat-incidents sections).
+  try{ const nr=await A.api('GET','/api/hi-nonpet'); if(nr&&nr.ok&&nr.data&&Array.isArray(nr.data.tickets)) HR_NONPET=nr.data; }catch(e){ HR_NONPET=null; }
+  try{ const pr=await A.api('GET','/api/hi-nonpet?pet=1'); if(pr&&pr.ok&&pr.data&&Array.isArray(pr.data.tickets)) HR_PET=pr.data; }catch(e){ HR_PET=null; }
   const r=await A.api('GET','/api/hi-resolved');
   if(r.status===401){ gate('Your session has expired. Please log in again.'); return; }
   if(!r.ok||!r.data){ document.getElementById('wrap').innerHTML='<div class="gate"><h1>Resolved Repeat Incidents</h1><p>Could not load the data. Please try again.</p><a class="btn" href="app.html">Back to Dashboard</a></div>'; return; }

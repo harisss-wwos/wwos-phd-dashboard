@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unique Cases · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: keep the page hidden until topbar-auth.js has injected its styles AND built the
+     nav-rail + profile column, so the chrome is present on the FIRST paint (no flash-in). The class
+     is cleared by topbar-auth after the chrome builds; a failsafe timer clears it if the script
+     never runs (offline) so the page can never stay hidden. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -35,6 +42,17 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .case.open .case-body{display:flex;padding:4px 20px 18px}
 .case-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm)}
 .case-meta b{color:#fff;font-weight:600}
+/* ---- Loading shimmer: a few collapsed-case placeholders ---- */
+.uc-skel .case.sk{pointer-events:none}
+.uc-skel .sk-head{display:flex;align-items:center;gap:14px;padding:16px 20px}
+.sk-bar{height:13px;border-radius:5px;background:#141a20;position:relative;overflow:hidden;flex-shrink:0}
+.sk-bar.id{width:120px}
+.sk-bar.title{flex:1;min-width:0;height:12px}
+.sk-bar.by{width:70px;height:11px}
+.sk-bar.caret{width:14px;height:14px;border-radius:50%}
+.sk-bar::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);animation:ucShim 1.3s ease-in-out infinite}
+@keyframes ucShim{100%{transform:translateX(100%)}}
 .blk-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px}
 .case-info{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:5px;padding:12px 14px}
 .links{display:flex;flex-direction:column;gap:6px}
@@ -73,18 +91,17 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .toast.show{opacity:1}
 
 /* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
-.uc-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:20px;
+.uc-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;gap:14px;flex-wrap:wrap;
+  border-radius:5px;padding:0 22px;height:60px;min-height:60px;margin-bottom:20px;
   border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
-  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:ucBanner 9s ease infinite}
-@keyframes ucBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.uc-banner .ub-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+  background:#fff}
+.uc-banner .ub-left{position:relative;z-index:1;display:flex;align-items:center;min-width:0}
 .uc-banner .ub-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
 .uc-banner .ub-title svg{flex-shrink:0;color:#241354}
 .uc-banner .ub-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:78ch;color:rgba(36,19,84,.82)}
 .uc-banner .ub-sub b{color:#180b40;font-weight:800}
 .uc-banner .ub-actions{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.uc-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:220px;
+.uc-banner::after{content:none;display:none;position:absolute;top:0;bottom:0;right:0;width:220px;
   background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.3;pointer-events:none;z-index:0;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M60 16l9 18 20 3-14 14 3 20-18-9-18 9 3-20-14-14 20-3z"/><circle cx="98" cy="24" r="3"/><circle cx="30" cy="60" r="3"/></svg>')}
@@ -101,8 +118,87 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .uc-banner .uc-search-btn:hover{transform:translateY(-1px);background:#f3efff;box-shadow:0 10px 22px -8px rgba(0,0,0,.5)}
 @media(max-width:640px){.uc-banner .ub-title{font-size:1.25em}.uc-banner::after{opacity:.2}}
 
+/* ---- Inline ticket search (copied from unique-cases.html) ---- */
+.search-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.search-row input{flex:1;min-width:220px;padding:11px 14px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.95em}
+.search-row input:focus{outline:none;border-color:var(--o)}
+.search-row .btn.clear{background:transparent;border:1px solid var(--bd);color:var(--tm)}
+.search-row .btn.clear:hover{border-color:var(--rl);color:var(--rl)}
+#result:not(:empty){margin-bottom:28px}
+.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:24px}
+.card.notfound{border-left:3px solid var(--rl)}
+.tk-title{color:var(--t);font-size:.92em;margin-bottom:18px;line-height:1.5}
+.detail{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.92em}
+.detail:last-child{border-bottom:none}
+.detail .k{color:var(--tm)}
+.detail .v{color:#fff;font-weight:600;text-align:right}
+.detail .v.open{color:var(--yl)}
+.detail .v.over{color:var(--rl)}
+.detail .v.resolved{color:var(--gl)}
+.sp-sm{width:20px;height:20px;border:3px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite;display:inline-block;vertical-align:middle}
+.hint{color:#5f6b6c;font-size:.82em;margin-top:8px}
+.marked-badge{color:var(--yl);font-weight:700;font-size:.85em}
+
+/* ===== Redesigned "ticket found" card ===== */
+.card.found.fc{padding:0;overflow:hidden;border-left:1px solid var(--bd);position:relative}
+.card.found.fc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#38bdf8,#1878eb)}
+.card.found.fc.is-marked::before{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
+.fc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding:20px 24px 18px;background:linear-gradient(135deg,rgba(56,189,248,.10),rgba(24,120,235,.04));
+  border-bottom:1px solid rgba(255,255,255,.07)}
+.card.found.fc.is-marked .fc-head{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.03))}
+.fc-head-main{min-width:0;flex:1}
+.fc-id{display:inline-flex;align-items:center;gap:6px;color:#44b9d6;font-weight:800;font-size:1.5em;
+  letter-spacing:.3px;text-decoration:none;line-height:1.1}
+.fc-id:hover{text-decoration:underline}
+.fc-ext{font-size:.6em;opacity:.65;transform:translateY(-2px)}
+.fc-title{color:var(--t);font-size:.95em;line-height:1.5;margin-top:8px;max-width:62ch}
+.fc-head-meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.fc-q{color:var(--tm);font-size:.72em;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  background:rgba(255,255,255,.07);padding:3px 10px;border-radius:999px}
+.fc-status{display:inline-flex;align-items:center;gap:7px;font-size:.78em;font-weight:700;
+  padding:5px 12px;border-radius:999px;border:1px solid transparent}
+.fc-status i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.fc-status.resolved{color:var(--gl);background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.3)}
+.fc-status.resolved i{background:var(--gl)}
+.fc-status.open{color:var(--yl);background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.3)}
+.fc-status.open i{background:var(--yl)}
+.fc-status.over{color:var(--rl);background:rgba(255,82,82,.12);border-color:rgba(255,82,82,.3)}
+.fc-status.over i{background:var(--rl);animation:fcpulse 1.4s ease-in-out infinite}
+@keyframes fcpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.fc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:16px 24px;
+  border-bottom:1px solid rgba(255,255,255,.06)}
+.fc-tile{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#111;border:1px solid var(--bd);
+  border-radius:9px;min-width:0}
+.fc-tile:last-child:nth-child(odd){grid-column:1 / -1}
+.fc-ic{flex-shrink:0;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:rgba(56,189,248,.1);color:#38bdf8}
+.fc-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fc-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fc-k{color:var(--tm);font-size:.72em;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.fc-v{color:#fff;font-weight:600;font-size:.95em;word-break:break-word}
+.fc-v.resolved{color:var(--gl)}
+.fc-v.open{color:var(--yl)}
+.fc-v.over{color:var(--rl)}
+.fc-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;letter-spacing:-.2px}
+.fc-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 24px;flex-wrap:wrap}
+.fc-foot-note{color:var(--tm);font-size:.82em;font-style:italic}
+.fc-mark{box-shadow:0 4px 14px -4px rgba(255,153,0,.5)}
+@media(max-width:640px){.fc-grid{grid-template-columns:1fr}.fc-tile:last-child:nth-child(odd){grid-column:auto}
+  .fc-head-meta{align-items:flex-start}}
+/* Mark important modal (search) */
+.mark-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:16px}
+.mark-ticket .detail{padding:8px 0}
+.mark-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
+#srchMarkInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+#srchMarkInfo:focus{outline:none;border-color:var(--o)}
+.mark-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Remove the top padding, keep a 20px bottom. Use #wrap (ID) so it beats the
+   runtime .wrap{padding-top:14px} that topbar-auth.js injects into <head>. */
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -117,6 +213,8 @@ h1{color:#1b2026!important}
 .case-title{color:#2a3340!important}
 .case-by{color:#5c6773!important}
 .case-caret{color:#9aa5b1!important}
+.sk-bar{background:#e8ebee!important}
+.sk-bar::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)!important}
 .case-meta{color:#5c6773!important}
 .case-meta b{color:#1b2026!important}
 .blk-t{color:#5c6773!important}
@@ -152,10 +250,52 @@ h1{color:#1b2026!important}
 .uc-banner .btn{background:rgba(10,12,15,.82)!important;color:#fff!important;border:1px solid rgba(255,255,255,.14)!important}
 .uc-banner .btn.sec{background:rgba(255,255,255,.18)!important;color:#241354!important;border:1px solid rgba(255,255,255,.4)!important}
 .uc-banner .uc-search-btn{background:#fff!important;color:#4c2ea8!important;border:1px solid rgba(255,255,255,.9)!important}
+/* White 60px title bar — light theme */
+.uc-banner{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.uc-banner .ub-title,.uc-banner .ub-title svg{color:#1b2026!important}
 .empty{border-color:#d4dce4!important;color:#8793a0!important}
 .empty b{color:#1b2026!important}
 .toast{background:#fff!important;border-color:#1f9d57!important;color:#1f9d57!important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35)!important}
 .gate p{color:#5c6773!important}
+/* Inline ticket search — light theme. */
+.search-row input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+.search-row input:focus{border-color:#ec7211!important}
+.search-row .btn.clear{background:#fff!important;border:1px solid #e2e6ea!important;color:#5c6773!important}
+.search-row .btn.clear:hover{border-color:#dc2626!important;color:#dc2626!important;background:#fef2f2!important}
+.card{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
+.card.notfound{border-left:3px solid #dc2626!important}
+.tk-title{color:#2a3340!important}
+.detail{border-bottom:1px solid #eef1f4!important}
+.detail .k{color:#5c6773!important}
+.detail .v{color:#1b2026!important}
+.detail .v.open{color:#b5560c!important}
+.detail .v.over{color:#dc2626!important}
+.detail .v.resolved{color:#1f9d57!important}
+.hint{color:#8793a0!important}
+.marked-badge{color:#b5560c!important}
+/* Redesigned found-card — light theme */
+.card.found.fc{border:1px solid #e2e6ea!important;border-left:1px solid #e2e6ea!important;box-shadow:0 6px 22px -14px rgba(20,40,70,.3)!important}
+.fc-head{background:linear-gradient(135deg,#eef6fe,#f7fbff)!important;border-bottom:1px solid #e6edf4!important}
+.card.found.fc.is-marked .fc-head{background:linear-gradient(135deg,#fff7e8,#fffdf7)!important}
+.fc-id{color:#1577a0!important}
+.fc-title{color:#2a3340!important}
+.fc-q{color:#5c6773!important;background:#eef1f4!important}
+.fc-status.resolved{color:#1f8a4c!important;background:#e8f7ee!important;border-color:#bfe6cd!important}
+.fc-status.open{color:#b5560c!important;background:#fdf3e5!important;border-color:#f3dcb8!important}
+.fc-status.over{color:#dc2626!important;background:#fdeeee!important;border-color:#f5c6c6!important}
+.fc-grid{background:transparent!important;border-bottom:1px solid #edf1f5!important}
+.fc-tile{background:#f8fafc!important;border:1px solid #e8edf2!important}
+.fc-ic{background:#eaf4fe!important;color:#1878eb!important}
+.fc-k{color:#6b7682!important}
+.fc-v{color:#1b2026!important}
+.fc-v.resolved{color:#1f8a4c!important}
+.fc-v.open{color:#b5560c!important}
+.fc-v.over{color:#dc2626!important}
+.fc-foot-note{color:#8793a0!important}
+.mark-ticket{background:#f7f9fb!important;border:1px solid #e6eaee!important}
+.mark-ticket .mt-id{color:#1577a0!important}
+#srchMarkInfo{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
+#srchMarkInfo:focus{border-color:#ec7211!important}
 </style>
 </head>
 <body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
@@ -163,7 +303,7 @@ h1{color:#1b2026!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1><div class="ub-sub">Loading…</div></div></div><div style="display:flex;align-items:center;justify-content:center;min-height:200px;border:1px solid var(--bd);border-radius:5px"><div class="spinner"></div></div></div>
+<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1></div></div><div class="uc-skel"><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div></div></div>
 
 <!-- Edit marking popup -->
 <div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
@@ -195,6 +335,24 @@ h1{color:#1b2026!important}
     </div>
   </div>
 </div>
+<!-- Mark important popup (inline search) -->
+<div class="modal-bg" id="srchMarkModal" onclick="if(event.target===this)closeMark()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="srchMarkTitle">Mark important</h2><button class="modal-close" onclick="closeMark()" aria-label="Close">&times;</button></div>
+    <div class="mark-ticket" id="srchMarkTicket"></div>
+    <label class="fld-label">Information about this ticket</label>
+    <textarea id="srchMarkInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
+    <label class="fld-label">Links</label>
+    <div id="srchMarkLinks"></div>
+    <button type="button" class="btn sec add-link" onclick="srchAddLinkInput('')">＋ Add another link</button>
+    <div class="msg-err" id="srchMarkErr"></div>
+    <div class="mark-actions">
+      <button class="btn sec" onclick="closeMark()">Cancel</button>
+      <button class="btn" id="srchMarkBtn" onclick="completeMarking()">Complete marking</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="icons.js"></script>
@@ -213,7 +371,7 @@ function linkRow(url){
 }
 
 function caseCard(c,i){
-  const open=(i===0); // newest expanded by default
+  const open=false; // all cards start collapsed (click a head to expand)
   const links=(c.links&&c.links.length)?('<div class="links">'+c.links.map(linkRow).join('')+'</div>'):'<div class="none">No links added.</div>';
   const when=c.updatedAt||c.at;
   // Only the person who marked it can edit/unmark.
@@ -318,6 +476,9 @@ async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   if(!(A.canViewUnique&&A.canViewUnique())){gate('You do not have access to Unique Cases.');return;}
   try{MY_TZ=await A.myTimezone();}catch(e){}
+  // Show shimmer placeholders immediately (banner + search + a few skeleton case rows) so a cold
+  // load isn't a bare spinner. swrLoad then paints real data over it (from cache or the network).
+  paintLoading();
   // Cache (time-based): paint instantly from cache, then refresh in the background.
   const res=await A.swrLoad({
     key:'unique-cases',
@@ -326,22 +487,233 @@ async function load(){
   });
   if(!res.painted)gate('Could not load unique cases (HTTP '+res.status+').');
 }
+// Loading view: the banner + (admin) search bar + a few shimmer case rows.
+function paintLoading(){
+  var isAdmin=A.atLeast&&A.atLeast('admin');
+  var html='<div class="uc-banner"><div class="ub-left">'
+    +'<h1 class="ub-title">'+(window.icon?window.icon('target',24):'')+' Unique Cases</h1>'
+    +'</div></div>';
+  if(isAdmin) html+=searchBlock();
+  html+=skeletonCards(4);
+  document.getElementById('wrap').innerHTML=html;
+  if(isAdmin) bindSearch();
+}
+// A few collapsed-case shimmer placeholders for the loading state.
+function skeletonCards(n){
+  var one='<div class="case sk"><div class="sk-head">'+
+    '<span class="sk-bar id"></span><span class="sk-bar title"></span>'+
+    '<span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div>';
+  var out=''; for(var i=0;i<(n||4);i++) out+=one; return '<div class="uc-skel">'+out+'</div>';
+}
+
 function render(rows){
   CASES=rows; // stash for the edit popup
   var isAdmin=A.atLeast&&A.atLeast('admin');
   let html='<div class="uc-banner">'
     +'<div class="ub-left">'
       +'<h1 class="ub-title">'+(window.icon?window.icon('target',24):'')+' Unique Cases</h1>'
-      +'<div class="ub-sub">Tickets flagged by admins as important for leadership. Click a card to expand. Newest first. Times in '+esc(MY_TZ)+'.</div>'
-    +'</div>'
-    +'<div class="ub-actions">'
-      +(isAdmin?'<a class="btn uc-search-btn" href="unique-cases.html">'+(window.icon?window.icon('bar-chart',16):'')+' Search a ticket</a>':'')
     +'</div>'
   +'</div>';
-  if(!rows.length){html+='<div class="empty">No unique cases marked yet. Use <b>Search a ticket</b> above to find a ticket and mark it important.</div>';document.getElementById('wrap').innerHTML=html;return;}
+  // Inline ticket search for admins (between the banner and the marked-cases list).
+  if(isAdmin) html+=searchBlock();
+  if(!rows.length){html+='<div class="empty">No unique cases marked yet. Use <b>Search a ticket</b> above to find a ticket and mark it important.</div>';document.getElementById('wrap').innerHTML=html;bindSearch();if(isAdmin){const q=document.getElementById('q');if(q)q.focus();}return;}
   html+=rows.map(caseCard).join('');
   document.getElementById('wrap').innerHTML=html;
+  bindSearch();
 }
+
+// ================= Inline ticket search (copied from unique-cases.html) =================
+const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
+function searchBlock(){
+  return '<p class="sub">Search any ticket across all quarters (live and past). Enter a ticket ShortId and click Search.</p>'+
+    '<div class="search-row">'+
+      '<input type="text" id="q" placeholder="e.g. V2346261846" autocomplete="off">'+
+      '<button class="btn" id="searchBtn" onclick="doSearch()">'+ic('search')+' Search</button>'+
+      '<button class="btn clear" id="clearBtn" onclick="clearSearch()" title="Clear the search and result">'+ic('close',15)+' Clear</button>'+
+    '</div>'+
+    '<div id="result"></div>';
+}
+function bindSearch(){
+  const input=document.getElementById('q');
+  if(input && !input.dataset.bound){ input.dataset.bound='1'; input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();}); }
+}
+function slaRemaining(createIso,slaHours){
+  const cd=new Date(createIso);if(isNaN(cd))return null;
+  const deadline=cd.getTime()+ (slaHours||240)*3600*1000;
+  const ms=deadline-Date.now();
+  const over=ms<=0; const abs=Math.abs(ms);
+  const d=Math.floor(abs/86400000), h=Math.floor((abs%86400000)/3600000);
+  return {over, txt:(d>0?d+'d ':'')+h+'h'};
+}
+async function doSearch(){
+  const q=document.getElementById('q').value.trim();
+  const box=document.getElementById('result');
+  if(!q){box.innerHTML='<p class="hint">Enter a ticket ShortId first.</p>';return;}
+  const btn=document.getElementById('searchBtn');btn.disabled=true;
+  box.innerHTML='<div class="card"><span class="sp-sm"></span> <span style="color:var(--tm)">Searching all quarters…</span></div>';
+  const r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(q));
+  btn.disabled=false;
+  if(!r.ok){box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Search failed (HTTP '+r.status+').</b></div>';return;}
+  const d=r.data||{};
+  if(!d.found){
+    box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Ticket not found.</b><p class="hint">No ticket matching <b>'+esc(q)+'</b> exists in any quarter.</p></div>';
+    return;
+  }
+  renderResult(d);
+}
+window.doSearch=doSearch;
+function clearSearch(){
+  const q=document.getElementById('q'); if(q){ q.value=''; q.focus(); }
+  const box=document.getElementById('result'); if(box) box.innerHTML='';
+  CURRENT=null;
+}
+window.clearSearch=clearSearch;
+
+let CURRENT=null;
+
+// Compact label/value rows reused inside the Mark-important modal.
+function ticketDetailRows(d){
+  let resolvedRow;
+  if(d.resolvedDate){
+    resolvedRow='<div class="detail"><span class="k">When resolved</span><span class="v resolved">'+fmtTZ(d.resolvedDate)+'</span></div>';
+  }else{
+    const rem=slaRemaining(d.createDate,d.slaHours);
+    const txt=rem?(rem.over?('Overdue by '+rem.txt+' past SLA'):(rem.txt+' remaining until SLA')):'—';
+    resolvedRow='<div class="detail"><span class="k">When resolved</span><span class="v '+(rem&&rem.over?'over':'open')+'">Still open · '+txt+'</span></div>';
+  }
+  return '<div class="detail"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>'+
+    '<div class="detail"><span class="k">When created</span><span class="v">'+fmtTZ(d.createDate)+'</span></div>'+
+    resolvedRow+
+    '<div class="detail"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>'+
+    '<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
+}
+
+// A single stat tile for the redesigned found-card grid.
+function fcTile(icon,label,value,cls){
+  return '<div class="fc-tile">'+
+    '<span class="fc-ic">'+icon+'</span>'+
+    '<span class="fc-wrap"><span class="fc-k">'+label+'</span>'+
+    '<span class="fc-v'+(cls?(' '+cls):'')+'">'+value+'</span></span>'+
+  '</div>';
+}
+
+function renderResult(d){
+  CURRENT=d;
+  const marked=!!(d.important&&(d.important.info||(d.important.links&&d.important.links.length)));
+
+  // Status chip — colour follows the resolution state.
+  let statusCls='open', statusTxt;
+  if(d.resolvedDate){ statusCls='resolved'; statusTxt=d.status?esc(d.status):'Resolved'; }
+  else{
+    const rem=slaRemaining(d.createDate,d.slaHours);
+    statusCls=(rem&&rem.over)?'over':'open';
+    statusTxt=d.status?esc(d.status):'Open';
+  }
+
+  // Resolved / SLA tile.
+  let resTile;
+  if(d.resolvedDate){
+    resTile=fcTile(ICN.check,'Resolved',fmtTZ(d.resolvedDate),'resolved');
+  }else{
+    const rem=slaRemaining(d.createDate,d.slaHours);
+    const txt=rem?(rem.over?('Overdue '+rem.txt):(rem.txt+' to SLA')):'Still open';
+    resTile=fcTile(ICN.clock,'SLA status',txt,(rem&&rem.over)?'over':'open');
+  }
+
+  const grid=
+    fcTile(ICN.user,'Requested by',d.requester?esc(d.requester):'—')+
+    fcTile(ICN.cal,'Created',fmtTZ(d.createDate))+
+    resTile+
+    fcTile(ICN.globe,'Country',d.country?esc(d.country):'—')+
+    fcTile(ICN.id,'Assigned to',d.assignee?('<span class="fc-mono">'+esc(d.assignee)+'</span>'):'—');
+
+  document.getElementById('result').innerHTML=
+    '<div class="card found fc'+(marked?' is-marked':'')+'">'+
+      '<div class="fc-head">'+
+        '<div class="fc-head-main">'+
+          '<a class="fc-id" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+
+            esc(d.shortId)+'<span class="fc-ext" aria-hidden="true">↗</span></a>'+
+          (d.title?('<div class="fc-title">'+esc(d.title)+'</div>'):'')+
+        '</div>'+
+        '<div class="fc-head-meta">'+
+          (d.quarter?('<span class="fc-q">'+esc(d.quarter)+'</span>'):'')+
+          '<span class="fc-status '+statusCls+'"><i></i>'+statusTxt+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="fc-grid">'+grid+'</div>'+
+      '<div class="fc-foot">'+
+        (marked?'<span class="marked-badge" id="markedBadge">★ Marked important</span>':'<span class="fc-foot-note">Not yet flagged for leadership</span>')+
+        '<button class="btn fc-mark" onclick="openMark()">★ '+(marked?'Edit marking':'Mark important')+'</button>'+
+      '</div>'+
+    '</div>';
+}
+window.renderResult=renderResult;
+
+// Small inline SVG icon set for the found-card tiles.
+const ICN={
+  user:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  globe:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+  id:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h7"/></svg>'
+};
+function srchAddLinkInput(val){
+  const wrap=document.getElementById('srchMarkLinks');
+  const row=document.createElement('div');
+  row.className='link-row';
+  const inp=document.createElement('input');
+  inp.type='text';inp.placeholder='https://…';inp.value=val||'';inp.title=val||'';
+  inp.addEventListener('input',()=>{inp.title=inp.value;});
+  const rm=document.createElement('button');
+  rm.type='button';rm.className='rm';rm.textContent='✕';rm.title='Remove this link';
+  rm.onclick=()=>{row.remove();if(!document.querySelectorAll('#srchMarkLinks .link-row').length)srchAddLinkInput('');};
+  row.appendChild(inp);row.appendChild(rm);
+  wrap.appendChild(row);
+}
+window.srchAddLinkInput=srchAddLinkInput;
+function openMark(){
+  if(!CURRENT)return;
+  const d=CURRENT;
+  document.getElementById('srchMarkTitle').textContent='Mark important · '+d.shortId;
+  document.getElementById('srchMarkTicket').innerHTML=
+    '<span class="mt-id">'+esc(d.shortId)+'</span>'+
+    (d.title?('<div class="tk-title" style="margin-bottom:10px">'+esc(d.title)+'</div>'):'')+
+    ticketDetailRows(d);
+  const imp=d.important||{};
+  document.getElementById('srchMarkInfo').value=imp.info||'';
+  const links=(imp.links&&imp.links.length)?imp.links:[''];
+  const box=document.getElementById('srchMarkLinks');box.innerHTML='';
+  links.forEach(l=>srchAddLinkInput(l));
+  document.getElementById('srchMarkErr').style.display='none';
+  document.getElementById('srchMarkModal').style.display='flex';
+  setTimeout(()=>document.getElementById('srchMarkInfo').focus(),40);
+}
+window.openMark=openMark;
+function closeMark(){document.getElementById('srchMarkModal').style.display='none';}
+window.closeMark=closeMark;
+async function completeMarking(){
+  if(!CURRENT)return;
+  const info=document.getElementById('srchMarkInfo').value.trim();
+  const links=[...document.querySelectorAll('#srchMarkLinks .link-row input')].map(i=>i.value.trim()).filter(Boolean);
+  const err=document.getElementById('srchMarkErr');
+  if(!info && !links.length){err.textContent='Add some information or at least one link.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('srchMarkBtn');btn.disabled=true;btn.textContent='Saving…';
+  const r=await A.api('POST','/api/important-cases/'+encodeURIComponent(CURRENT.shortId),{quarter:CURRENT.quarter,info,links});
+  btn.disabled=false;btn.textContent='Complete marking';
+  if(r.ok){
+    CURRENT.important=(r.data&&r.data.important)||{info,links};
+    closeMark();
+    toast('Marked '+CURRENT.shortId+' as important');
+    renderResult(CURRENT);
+    load(); // refresh the Unique Cases list so the newly-marked ticket appears
+  }else{
+    err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';
+  }
+}
+window.completeMarking=completeMarking;
+
 load();
 </script>
 </body>

@@ -117,6 +117,26 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;max-height:85vh;overflow:auto;padding:24px}
 .modal.modal-wide{width:80vw;max-width:80vw}
+/* ---- Mark-important modal (star flag -> Unique Cases) ---- */
+.mark-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:16px}
+.mark-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
+.mark-ticket .mt-title{color:var(--t);font-size:.92em;margin-bottom:10px;line-height:1.5}
+.mark-ticket .detail{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
+.mark-ticket .detail:last-child{border-bottom:none}
+.mark-ticket .detail .k{color:var(--tm)}
+.mark-ticket .detail .v{color:#fff;font-weight:600;text-align:right}
+.mark-ticket .detail .v.resolved{color:var(--gl)}
+.fld-label{display:block;color:var(--tm);font-size:.82em;margin:12px 0 6px;font-weight:600}
+#miInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
+#miInfo:focus{outline:none;border-color:var(--o)}
+.link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
+.link-row input:focus{outline:none;border-color:var(--o)}
+.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:5px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
+.link-row .rm:hover{background:rgba(255,82,82,.12)}
+.add-link{margin-top:2px;padding:7px 14px;font-size:.82em}
+.msg-err{color:var(--rl);font-size:.85em;margin-top:10px;display:none}
+.mark-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
@@ -731,6 +751,20 @@ h1{color:#1b2026 !important}
 /* Modals + toast */
 .modal{background:#fff !important;border:1px solid #e2e7eb !important;box-shadow:0 24px 60px -20px rgba(20,40,70,.4) !important}
 .modal-bg{background:rgba(20,30,45,.55) !important}
+/* Mark-important modal — light theme */
+.mark-ticket{background:#f7f9fb !important;border:1px solid #e6eaee !important}
+.mark-ticket .mt-id{color:#1577a0 !important}
+.mark-ticket .mt-title{color:#2a3340 !important}
+.mark-ticket .detail{border-bottom:1px solid #eef1f4 !important}
+.mark-ticket .detail .k{color:#5c6773 !important}
+.mark-ticket .detail .v{color:#1b2026 !important}
+.mark-ticket .detail .v.resolved{color:#1f9d57 !important}
+.fld-label{color:#5c6773 !important}
+#miInfo,.link-row input{background:#fff !important;border:1px solid #d4dce4 !important;color:#1b2026 !important}
+#miInfo:focus,.link-row input:focus{border-color:#ec7211 !important}
+.link-row .rm{background:#fff !important;border:1px solid rgba(220,38,38,.4) !important;color:#dc2626 !important}
+.link-row .rm:hover{background:#fef2f2 !important}
+.msg-err{color:#d33a3a !important}
 .modal-head h2{color:#1577a0 !important}
 .modal-close{color:#5c6773}.modal-close:hover{color:#1b2026}
 .cmt,.ilog-item{background:#f7f9fb !important;border-color:#e6eaee !important}
@@ -875,6 +909,24 @@ h1{color:#1b2026 !important}
   </div>
 </div>
 
+<!-- Mark important popup (opens from the star flag; persists to Unique Cases) -->
+<div class="modal-bg" id="miModal" onclick="if(event.target===this)closeMarkImportant()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="miTitle">Mark important</h2><button class="modal-close" onclick="closeMarkImportant()" aria-label="Close">&times;</button></div>
+    <div class="mark-ticket" id="miTicket"></div>
+    <label class="fld-label">Information about this ticket</label>
+    <textarea id="miInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
+    <label class="fld-label">Links</label>
+    <div id="miLinks"></div>
+    <button type="button" class="btn sec add-link" onclick="miAddLinkInput('')">＋ Add another link</button>
+    <div class="msg-err" id="miErr"></div>
+    <div class="mark-actions">
+      <button class="btn sec" onclick="closeMarkImportant()">Cancel</button>
+      <button class="btn" id="miBtn" onclick="completeMarkImportant()">Complete marking</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=167"></script>
@@ -988,6 +1040,119 @@ function toggleAttach(kind, sid, ev){
 window.toggleAttach=toggleAttach;
 // PNG icon helper for the analyst-flag icons (versioned to bust cache on re-replace).
 function attImg(name, cls){ return '<img class="'+(cls||'')+'" src="icons/'+name+'.v3.png" alt="" draggable="false">'; }
+
+// ============================================================================================
+// MARK IMPORTANT (star flag): opens the Mark-important popup and persists to Unique Cases.
+// Clicking the "important" flag no longer just toggles a local flag — it marks the ticket in the
+// shared importantCases store (POST /api/important-cases/:shortId), so it appears on the Unique
+// Cases page for leadership. The flag's green "on" state mirrors whether a marking exists.
+// ============================================================================================
+let MI_SID=null, MI_QUARTER='';
+function miFmtTZ(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso).toLocaleString('en-US',{timeZone:(MY_TZ==='MST'?'America/Denver':'Asia/Kolkata'),day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' '+(MY_TZ||'IST'); }
+  catch(e){ return String(iso); }
+}
+function miDetailRows(d){
+  var rows='';
+  rows+='<div class="detail"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>';
+  rows+='<div class="detail"><span class="k">When created</span><span class="v">'+miFmtTZ(d.createDate)+'</span></div>';
+  if(d.resolvedDate) rows+='<div class="detail"><span class="k">When resolved</span><span class="v resolved">'+miFmtTZ(d.resolvedDate)+'</span></div>';
+  rows+='<div class="detail"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>';
+  rows+='<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
+  return rows;
+}
+function miAddLinkInput(val){
+  var wrap=document.getElementById('miLinks');
+  var row=document.createElement('div'); row.className='link-row';
+  var inp=document.createElement('input');
+  inp.type='text'; inp.placeholder='https://…'; inp.value=val||''; inp.title=val||'';
+  inp.addEventListener('input',function(){ inp.title=inp.value; });
+  var rm=document.createElement('button');
+  rm.type='button'; rm.className='rm'; rm.textContent='✕'; rm.title='Remove this link';
+  rm.onclick=function(){ row.remove(); if(!document.querySelectorAll('#miLinks .link-row').length) miAddLinkInput(''); };
+  row.appendChild(inp); row.appendChild(rm); wrap.appendChild(row);
+}
+window.miAddLinkInput=miAddLinkInput;
+function closeMarkImportant(){ document.getElementById('miModal').style.display='none'; }
+window.closeMarkImportant=closeMarkImportant;
+// Open the Mark-important popup for a ticket. Fetches full ticket detail (quarter, requester,
+// dates, assignee) via the same /api/ticket-search the Unique Cases page uses, prefilling any
+// existing marking so an edit shows the current info/links.
+async function openMarkImportant(sid, ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  sid=String(sid);
+  if(!(A.atLeast&&A.atLeast('admin'))){ toast('Only admins can mark a ticket important.'); return; }
+  MI_SID=sid; MI_QUARTER='';
+  document.getElementById('miTitle').textContent='Mark important · '+sid;
+  var tbox=document.getElementById('miTicket');
+  tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span><div style="color:#8793a0;font-size:.85em">Loading ticket details…</div>';
+  document.getElementById('miInfo').value='';
+  document.getElementById('miLinks').innerHTML=''; miAddLinkInput('');
+  document.getElementById('miErr').style.display='none';
+  document.getElementById('miModal').style.display='flex';
+  // Fetch ticket detail + any existing marking from the shared search endpoint.
+  var r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(sid));
+  if(MI_SID!==sid) return; // a newer open replaced this one
+  var d=(r.ok&&r.data&&r.data.found)?r.data:null;
+  if(d){
+    MI_QUARTER=d.quarter||'';
+    tbox.innerHTML='<span class="mt-id">'+esc(d.shortId)+'</span>'+
+      (d.title?('<div class="mt-title">'+esc(d.title)+'</div>'):'')+
+      miDetailRows(d);
+    var imp=d.important||{};
+    document.getElementById('miInfo').value=imp.info||'';
+    var links=(imp.links&&imp.links.length)?imp.links:[''];
+    var lbox=document.getElementById('miLinks'); lbox.innerHTML=''; links.forEach(function(l){ miAddLinkInput(l); });
+  }else{
+    // Fall back to whatever we know locally so the user can still mark it.
+    var t=TICKETS.find(function(x){ return String(x.shortId)===sid; })||{};
+    tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span>'+(t.title?('<div class="mt-title">'+esc(t.title)+'</div>'):'')+
+      '<div class="detail"><span class="k">When created</span><span class="v">'+miFmtTZ(t.createDate)+'</span></div>'+
+      (t.country?'<div class="detail"><span class="k">Country</span><span class="v">'+esc(t.country)+'</span></div>':'');
+  }
+  setTimeout(function(){ var i=document.getElementById('miInfo'); if(i)i.focus(); },40);
+}
+window.openMarkImportant=openMarkImportant;
+async function completeMarkImportant(){
+  if(!MI_SID) return;
+  var info=document.getElementById('miInfo').value.trim();
+  var links=[].slice.call(document.querySelectorAll('#miLinks .link-row input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+  var err=document.getElementById('miErr');
+  if(!info && !links.length){ err.textContent='Add some information or at least one link.'; err.style.display='block'; return; }
+  err.style.display='none';
+  var btn=document.getElementById('miBtn'); btn.disabled=true; btn.textContent='Saving…';
+  var r=await A.api('POST','/api/important-cases/'+encodeURIComponent(MI_SID),{quarter:MI_QUARTER,info:info,links:links});
+  btn.disabled=false; btn.textContent='Complete marking';
+  if(r.ok){
+    // Reflect in the star flag (green "on") and remember it locally.
+    ATTACH_SETS.important.add(String(MI_SID)); saveAttachFlag('important');
+    var safe=String(MI_SID).replace(/"/g,'');
+    document.querySelectorAll('.mtc-att[data-kind="important"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.add('on'); });
+    closeMarkImportant();
+    toast('Marked '+MI_SID+' important · added to Unique Cases');
+  }else{
+    err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'); err.style.display='block';
+  }
+}
+window.completeMarkImportant=completeMarkImportant;
+// Reconcile the "important" star with the SHARED store so a ticket un-marked on the Unique Cases
+// page (DELETE /api/important-cases/:shortId) also loses its star here. We fetch the authoritative
+// list of marked ShortIds and rebuild ATTACH_SETS.important from it (adds the ones marked elsewhere,
+// drops the stale ones). Returns true if anything changed so the caller can re-render.
+async function syncImportantFromServer(){
+  if(!(A.atLeast&&A.atLeast('admin'))) return false;   // list endpoint is admin-gated
+  try{
+    const r=await A.api('GET','/api/important-cases');
+    if(!(r.ok&&Array.isArray(r.data))) return false;
+    const server=new Set(r.data.map(function(x){ return String(x.shortId); }));
+    const before=JSON.stringify([...ATTACH_SETS.important].sort());
+    ATTACH_SETS.important=server;
+    saveAttachFlag('important');
+    return before!==JSON.stringify([...server].sort());
+  }catch(e){ return false; }
+}
+window.syncImportantFromServer=syncImportantFromServer;
 
 // ---- Per-card accordion: comments panel + help panel (only one open per card) ----
 // Track which card index currently has a panel open, so a re-render can restore it.
@@ -1167,11 +1332,14 @@ async function load(){
   if(isEditor()){
     try{const hr=await A.api('GET','/api/help/mine');if(hr.ok&&Array.isArray(hr.data)){hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(MY_HELP[k]=MY_HELP[k]||[]).push(h);});}}catch(e){}
   }
+  // Reconcile the "important" star with the shared store (so an un-mark done on the Unique Cases
+  // page clears the star here too). Fold its result into the re-render decision below.
+  const impChanged=await syncImportantFromServer();
   // Save the fresh copy (stamp b := a) then (re-)render.
   const fresh={version:version||(cached&&cached.version)||null,tz:MY_TZ,tickets:TICKETS,help:MY_HELP,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
   const changed=!cached||JSON.stringify(cached.tickets)!==JSON.stringify(TICKETS)||JSON.stringify(cached.help||{})!==JSON.stringify(MY_HELP)||cached.tz!==MY_TZ;
   writeCache(fresh);
-  if(!paintedFromCache||changed)render();
+  if(!paintedFromCache||changed||impChanged)render();
   if(paintedFromCache&&window.PHDRefreshBanner){ changed?window.PHDRefreshBanner.updated('Your tickets are up to date.'):window.PHDRefreshBanner.hide(); }
 }
 
@@ -1363,7 +1531,12 @@ function ticketIconsHtml(i, mirror){
   const mk=mirror?' mtc-att-mirror':'';
   return ATTACH_FLAGS.map(function(f){
     const on=ATTACH_SETS[f.kind].has(sid)?' on':'';
-    return `<span class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)}" onclick="toggleAttach('${f.kind}','${sidAttr}',event)">${attImg(f.icon,'mtc-att-ic')}</span>`;
+    // The "important" flag opens the Mark-important popup (persists to Unique Cases); the other
+    // three stay as local on/off toggles.
+    const handler = f.kind==='important'
+      ? `openMarkImportant('${sidAttr}',event)`
+      : `toggleAttach('${f.kind}','${sidAttr}',event)`;
+    return `<span class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)}" onclick="${handler}">${attImg(f.icon,'mtc-att-ic')}</span>`;
   }).join('');
 }
 // Help panel body (question + admin replies as chat bubbles). Read-only here; Ask/reply live elsewhere.

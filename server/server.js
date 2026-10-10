@@ -222,10 +222,10 @@ app.get('/api/hi-resolved', requireFlag('canViewRepeat'), async (req, res) => {
     const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
     // Bucket each ticket by CreateDate into 3 non-overlapping ranges (via a boundary expr).
     //   before = < 1 Oct 2025 (through 30 Sep 2025)
-    //   mid    = [1 Oct 2025, 1 Apr 2026) = the "1 Oct 2025 – 31 Mar 2026" section
-    //   after  = >= 1 Apr 2026
+    //   mid    = [1 Oct 2025, 1 Jan 2026) = the "1 Oct 2025 – 31 Dec 2025" section
+    //   after  = >= 1 Jan 2026  (the only section the client shows)
     const B1 = new Date('2025-10-01T00:00:00.000Z');   // < B1 = "before 1 Oct 2025"
-    const B2 = new Date('2026-04-01T00:00:00.000Z');   // [B1, B2) = "1 Oct 2025 - 31 Mar 2026"; >= B2 = "Apr 2026+"
+    const B2 = new Date('2026-01-01T00:00:00.000Z');   // [B1, B2) = "1 Oct 2025 - 31 Dec 2025"; >= B2 = "Jan 2026+"
     const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
     const bucketExpr = { $let: { vars: { cd: cdExpr }, in: { $cond: [ { $eq: ['$$cd', null] }, 'unknown', { $cond: [ { $lt: ['$$cd', B1] }, 'before', { $cond: [ { $lt: ['$$cd', B2] }, 'mid', 'after' ] } ] } ] } } };
     const rows = await coll.aggregate([
@@ -261,8 +261,8 @@ app.get('/api/hi-resolved', requireFlag('canViewRepeat'), async (req, res) => {
     res.json({
       ranges: {
         before: { label: 'Created before 1 Oct 2025', boundary: '< 2025-10-01' },
-        mid: { label: 'Created 1 Oct 2025 – 31 Mar 2026', boundary: '2025-10-01 to 2026-03-31' },
-        after: { label: 'Created on/after 1 Apr 2026', boundary: '>= 2026-04-01' },
+        mid: { label: 'Created 1 Oct 2025 – 31 Dec 2025', boundary: '2025-10-01 to 2025-12-31' },
+        after: { label: 'Created on/after 1 Jan 2026', boundary: '>= 2026-01-01' },
       },
       before: summarize(buckets.before),
       mid: summarize(buckets.mid),
@@ -272,6 +272,131 @@ app.get('/api/hi-resolved', requireFlag('canViewRepeat'), async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load resolved HI tickets.' });
+  }
+});
+
+// ---- Monthly created-ticket trend for 2026 (for the hi-resolved line chart) ----
+// Counts tickets by MONTH of CreateDate in calendar year 2026. Per month returns:
+//   total / pet / nonPet  = tickets CREATED that month (by the "unsecured animal" pet flag)
+//   repeatPet / repeatNonPet = the subset of those that are REPEAT incidents (HI count > 0)
+// The client draws 3 lines (combined/pet/non-pet) and, on hover, shows each month's count plus the
+// pet-repeat% and non-pet-repeat% measured against the TOTAL tickets created that month.
+app.get('/api/hi-monthly', requireFlag('canViewRepeat'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const Y0 = new Date('2026-01-01T00:00:00.000Z');
+    const Y1 = new Date('2027-01-01T00:00:00.000Z');
+    const rows = await coll.aggregate([
+      { $project: { cd: cdExpr, isPet: isPetExpr, hi: hiExpr } },
+      { $match: { cd: { $gte: Y0, $lt: Y1 } } },
+      { $group: {
+        _id: { $month: '$cd' },                 // 1..12
+        total:        { $sum: 1 },
+        pet:          { $sum: { $cond: ['$isPet', 1, 0] } },
+        nonPet:       { $sum: { $cond: ['$isPet', 0, 1] } },
+        repeatPet:    { $sum: { $cond: [{ $and: ['$isPet',        { $gt: ['$hi', 0] }] }, 1, 0] } },
+        repeatNonPet: { $sum: { $cond: [{ $and: [{ $not: '$isPet' }, { $gt: ['$hi', 0] }] }, 1, 0] } },
+      } },
+    ], { allowDiskUse: true }).toArray();
+    const byMonth = {};
+    rows.forEach(r => { byMonth[r._id] = r; });
+    // 12 months, Jan..Dec. Missing months come back as zeros.
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      const r = byMonth[m] || {};
+      months.push({
+        month: m,
+        total: r.total || 0,
+        pet: r.pet || 0,
+        nonPet: r.nonPet || 0,
+        repeatPet: r.repeatPet || 0,
+        repeatNonPet: r.repeatNonPet || 0,
+      });
+    }
+    res.json({ year: 2026, months });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the monthly trend.' });
+  }
+});
+
+// ---- Non-pet REPEAT incidents, created on/after 1 Jan 2026 — a FLAT ticket list ----
+// Returns every non-pet repeat (HI count > 0) ticket created on/after 1 Jan 2026, each with the
+// fields the hi-resolved "Non-Pet Repeat incidents" section needs: country, resolvedBy, HI count,
+// title, root cause. The client regroups this list three ways (by country / by HI count / by agent).
+app.get('/api/hi-nonpet', requireFlag('canViewRepeat'), async (req, res) => {
+  try {
+    // ?pet=1 returns PET repeat incidents; default (no/other value) returns NON-PET. Same shape either way.
+    const wantPet = String(req.query.pet || '') === '1';
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const B2 = new Date('2026-01-01T00:00:00.000Z'); // created on/after 1 Jan 2026
+    const rows = await coll.aggregate([
+      { $project: {
+        ShortId: 1, Title: 1, Country: 1, IssueUrl: 1,
+        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
+        resolver: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } },
+        hi: hiExpr, isPet: isPetExpr, rc: rcExpr, cd: cdExpr,
+        Status: 1,
+      } },
+      { $match: {
+        Status: { $in: ['Resolved', 'Closed'] },
+        isPet: wantPet, hi: { $gt: 0 }, cd: { $gte: B2 },
+        resolver: { $nin: ['', null] }, resolverRaw: { $not: /autosim/i },
+      } },
+      { $sort: { hi: -1 } },
+      { $limit: 20000 },
+    ], { allowDiskUse: true }).toArray();
+    // Country code from the Title. Formats seen in the data:
+    //   "US Customer ...", "US - ...", "US  ..."   -> leading 2-3 letter code
+    //   "[US] ...", "[ US ] ...", "[UK] ..."         -> code inside brackets
+    //   "[Country Code e.x US] ..."                  -> the LAST token inside the brackets ("US")
+    //   "Canada ..."                                 -> mapped to CA
+    // Only recognised country codes are kept; anything else (ticket-type words like "Customer"/
+    // "Community"/"Driver", US-state codes, placeholders) resolves to "Unknown".
+    const COUNTRY_CODES = new Set(['US','UK','CA','IN','AU','MX','JP','DE','IT','FR','EG','ES','SA','BR','NL','ZA','PT','UAE','IE','SG','TR','PL','SE','BE','AT','CH','DK','NO','FI','GR','CZ']);
+    const NAME_TO_CODE = { CANADA:'CA', CANNADA:'CA', UNITEDKINGDOM:'UK', UNITEDSTATES:'US', INDIA:'IN', MEXICO:'MX', JAPAN:'JP', GERMANY:'DE', FRANCE:'FR', ITALY:'IT', SPAIN:'ES', BRAZIL:'BR', AUSTRALIA:'AU', EGYPT:'EG' };
+    const normCode = (raw) => {
+      if (!raw) return '';
+      const up = String(raw).toUpperCase().replace(/[^A-Z]/g, '');
+      if (COUNTRY_CODES.has(up)) return up;
+      if (NAME_TO_CODE[up]) return NAME_TO_CODE[up];
+      return '';
+    };
+    const countryOf = (t) => {
+      // 1) Explicit Country field wins if it's a known code/name.
+      const fromField = normCode(String(t.Country || '').trim());
+      if (fromField) return fromField;
+      const title = String(t.Title || '').trim();
+      // 2) Bracketed prefix "[...]": try the LAST 2-3 letter token inside (handles "[Country Code e.x US]").
+      const br = title.match(/^\[\s*([^\]]*?)\s*\]/);
+      if (br) {
+        const toks = (br[1].match(/[A-Za-z]{2,}/g) || []);
+        for (let i = toks.length - 1; i >= 0; i--) { const c = normCode(toks[i]); if (c) return c; }
+        return 'Unknown';
+      }
+      // 3) Leading token(s) before the ticket-type words.
+      const lead = title.match(/^([A-Za-z]{2,})\b/);
+      if (lead) { const c = normCode(lead[1]); if (c) return c; }
+      return 'Unknown';
+    };
+    const tickets = rows.map(t => ({
+      shortId: t.ShortId || '',
+      url: t.IssueUrl || (t.ShortId ? ('https://t.corp.amazon.com/issues/' + t.ShortId) : ''),
+      country: countryOf(t),
+      resolvedBy: t.resolverRaw || t.resolver || '',
+      hi: t.hi || 0,
+      title: t.Title || '',
+      rootCause: t.rc || 'Unknown',
+    }));
+    res.json({ total: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load non-pet repeat incidents.' });
   }
 });
 
@@ -2760,7 +2885,7 @@ app.get('/api/profile-stats', requireRole('user'), async (req, res) => {
 //   2) raisedFulfilled    : labelled &&  fulfilled  (raised and fulfilled)
 //   3) notRaisedFulfilled : !labelled && fulfilled  (not raised but still fulfilled)
 // Tickets that are neither labelled nor fulfilled are ignored.
-const STATION_REQ_FROM = new Date('2026-04-01T00:00:00.000Z');
+const STATION_REQ_FROM = new Date('2026-01-01T00:00:00.000Z');
 // The three sections and their Mongo match conditions on the two signals:
 //   labelled  = Labels contains "Station Request"/"Address Exclusion"
 //   fulfilled = RootCauseDetails contains "address"
