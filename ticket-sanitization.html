@@ -86,6 +86,28 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ts-sk-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid #eef1f4;border-radius:5px;background:#f9fafb}
 .ts-sk-item .ts-sk-dot{flex-shrink:0;width:22px;height:22px;border-radius:50%}
 .ts-sk-stack{display:flex;flex-direction:column;gap:8px}
+/* ---- Edit / delete modal popup ---- */
+.ts-modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.ts-modal-bg.show{display:flex}
+.ts-modal{background:#fff;border:1px solid #e2e6ea;border-radius:5px;width:min(560px,92vw);max-height:88vh;overflow:auto;padding:22px 24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.45)}
+.ts-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.ts-modal-head h2{margin:0;color:#1b2026;font-size:1.1em;font-weight:800}
+.ts-modal-danger .ts-modal-head h2{color:#dc2626}
+.ts-modal-x{background:transparent;border:none;color:#8793a0;font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.ts-modal-x:hover{color:#1b2026}
+.ts-modal textarea{width:100%;background:#fff;border:1px solid #d4dce4;border-radius:5px;color:#1b2026;font-size:.92em;font-family:inherit;line-height:1.5;padding:11px 13px;resize:vertical;min-height:84px}
+.ts-modal textarea:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.ts-modal-body{color:#2a3340;font-size:.92em;line-height:1.6;margin:0;background:#f7f9fb;border:1px solid #eef1f4;border-radius:5px;padding:12px 14px;word-break:break-word}
+.ts-modal-err{display:none;color:#dc2626;font-size:.84em;margin-top:10px}
+.ts-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.ts-mbtn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:5px;font-family:inherit;font-weight:700;font-size:.88em;cursor:pointer;border:1px solid transparent;transition:filter .15s,border-color .15s,background .15s,color .15s}
+.ts-mbtn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border:none}
+.ts-mbtn.primary:hover{filter:brightness(1.05)}
+.ts-mbtn.danger{background:#fff;border:1px solid rgba(220,38,38,.45);color:#dc2626}
+.ts-mbtn.danger:hover{background:#fef2f2;border-color:#dc2626}
+.ts-mbtn.sec{background:#fff;border:1px solid #e2e6ea;color:#5c6773}
+.ts-mbtn.sec:hover{border-color:#cdd5dd;background:#f7f9fb}
+.ts-mbtn:disabled{opacity:.6;cursor:default}
 /* gate (not logged in) */
 .ts-gate{max-width:560px;margin:60px auto;text-align:center}
 .ts-gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
@@ -116,6 +138,31 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:78%;height:12px"></span></div>
       <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:88%;height:12px"></span></div>
       <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:66%;height:12px"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit-line modal (editors) -->
+<div class="ts-modal-bg" id="tsEditModal" onclick="if(event.target===this)tsCloseEdit()">
+  <div class="ts-modal" role="dialog" aria-modal="true" aria-labelledby="tsEditTitle">
+    <div class="ts-modal-head"><h2 id="tsEditTitle">Edit checklist line</h2><button class="ts-modal-x" type="button" onclick="tsCloseEdit()" aria-label="Close">&times;</button></div>
+    <textarea id="tsEditText" maxlength="1000" rows="3" placeholder="Checklist line text\u2026"></textarea>
+    <div class="ts-modal-err" id="tsEditErr"></div>
+    <div class="ts-modal-actions">
+      <button class="ts-mbtn sec" type="button" onclick="tsCloseEdit()">Cancel</button>
+      <button class="ts-mbtn primary" id="tsEditSave" type="button" onclick="tsEditSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete-confirm modal (editors) -->
+<div class="ts-modal-bg" id="tsDelModal" onclick="if(event.target===this)tsCloseDel()">
+  <div class="ts-modal ts-modal-danger" role="dialog" aria-modal="true" aria-labelledby="tsDelTitle">
+    <div class="ts-modal-head"><h2 id="tsDelTitle">Delete checklist line?</h2><button class="ts-modal-x" type="button" onclick="tsCloseDel()" aria-label="Close">&times;</button></div>
+    <p class="ts-modal-body" id="tsDelBody"></p>
+    <div class="ts-modal-actions">
+      <button class="ts-mbtn sec" type="button" onclick="tsCloseDel()">Cancel</button>
+      <button class="ts-mbtn danger" id="tsDelConfirm" type="button" onclick="tsDelConfirm()">Delete</button>
     </div>
   </div>
 </div>
@@ -215,31 +262,60 @@ async function tsAdd(){
 }
 window.tsAdd=tsAdd;
 
-async function tsEdit(i){
+// ---- Edit via in-page modal (replaces window.prompt) ----
+var TS_EDIT_ID=null, TS_DEL_ID=null;
+function tsModalErr(id,msg){ var e=document.getElementById(id); if(e){ e.textContent=msg||''; e.style.display=msg?'block':'none'; } }
+
+function tsEdit(i){
   if(!tsCanEdit()) return;
   var it=TS_ITEMS[i]; if(!it) return;
-  var next=window.prompt('Edit checklist line:', it.text);
-  if(next==null) return;                 // cancelled
-  next=String(next).trim(); if(!next){ tsErr('Line cannot be empty.'); return; }
-  var r=await A.api('PUT','/api/sanitization-checklist/'+it.id,{text:next});
-  if(r&&r.ok){ await loadChecklist(); }
-  else tsErr((r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').'));
+  TS_EDIT_ID=it.id;
+  var ta=document.getElementById('tsEditText'); ta.value=it.text;
+  tsModalErr('tsEditErr','');
+  document.getElementById('tsEditModal').classList.add('show');
+  setTimeout(function(){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); },40);
 }
 window.tsEdit=tsEdit;
+function tsCloseEdit(){ document.getElementById('tsEditModal').classList.remove('show'); TS_EDIT_ID=null; }
+window.tsCloseEdit=tsCloseEdit;
+async function tsEditSave(){
+  if(!tsCanEdit()||!TS_EDIT_ID) return;
+  var text=String(document.getElementById('tsEditText').value||'').trim();
+  if(!text){ tsModalErr('tsEditErr','Line cannot be empty.'); return; }
+  var btn=document.getElementById('tsEditSave'); btn.disabled=true; btn.textContent='Saving\u2026';
+  var r=await A.api('PUT','/api/sanitization-checklist/'+TS_EDIT_ID,{text:text});
+  btn.disabled=false; btn.textContent='Save';
+  if(r&&r.ok){ tsCloseEdit(); await loadChecklist(); }
+  else tsModalErr('tsEditErr',(r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').'));
+}
+window.tsEditSave=tsEditSave;
 
-async function tsDelete(i){
+function tsDelete(i){
   if(!tsCanEdit()) return;
   var it=TS_ITEMS[i]; if(!it) return;
-  if(!window.confirm('Delete this checklist line?\n\n'+it.text)) return;
-  var r=await A.api('DELETE','/api/sanitization-checklist/'+it.id);
-  if(r&&r.ok){ await loadChecklist(); }
-  else tsErr((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').'));
+  TS_DEL_ID=it.id;
+  document.getElementById('tsDelBody').textContent=it.text;
+  document.getElementById('tsDelModal').classList.add('show');
 }
 window.tsDelete=tsDelete;
+function tsCloseDel(){ document.getElementById('tsDelModal').classList.remove('show'); TS_DEL_ID=null; }
+window.tsCloseDel=tsCloseDel;
+async function tsDelConfirm(){
+  if(!tsCanEdit()||!TS_DEL_ID) return;
+  var btn=document.getElementById('tsDelConfirm'); btn.disabled=true; btn.textContent='Deleting\u2026';
+  var r=await A.api('DELETE','/api/sanitization-checklist/'+TS_DEL_ID);
+  btn.disabled=false; btn.textContent='Delete';
+  if(r&&r.ok){ tsCloseDel(); await loadChecklist(); }
+  else { tsCloseDel(); tsErr((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').')); }
+}
+window.tsDelConfirm=tsDelConfirm;
 
 function gate(msg){
   document.getElementById('wrap').innerHTML='<div class="ts-gate"><h1>Ticket Sanitization</h1><p>'+esc(msg)+'</p><a class="btn" href="app.html">Back to the live dashboard</a></div>';
 }
+
+// Esc closes whichever modal is open.
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ tsCloseEdit(); tsCloseDel(); } });
 
 // Any logged-in user can view/copy. Only harisss/flofalgu see edit controls (server enforces too).
 (function(){
