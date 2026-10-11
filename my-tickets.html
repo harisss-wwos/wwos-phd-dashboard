@@ -117,26 +117,46 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;max-height:85vh;overflow:auto;padding:24px}
 .modal.modal-wide{width:80vw;max-width:80vw}
-/* ---- Mark-important modal (star flag -> Unique Cases) ---- */
-.mark-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:16px}
-.mark-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
-.mark-ticket .mt-title{color:var(--t);font-size:.92em;margin-bottom:10px;line-height:1.5}
-.mark-ticket .detail{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
-.mark-ticket .detail:last-child{border-bottom:none}
-.mark-ticket .detail .k{color:var(--tm)}
-.mark-ticket .detail .v{color:#fff;font-weight:600;text-align:right}
-.mark-ticket .detail .v.resolved{color:var(--gl)}
-.fld-label{display:block;color:var(--tm);font-size:.82em;margin:12px 0 6px;font-weight:600}
-#miInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
-#miInfo:focus{outline:none;border-color:var(--o)}
-.link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+/* ---- Mark-important modal (star flag -> Unique Cases) — redesigned ---- */
+.mi-modal{width:min(640px,92vw);max-width:min(640px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.mi-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
+.mi-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(251,191,36,.14);color:#fbbf24;display:inline-flex;align-items:center;justify-content:center;font-size:1.2em}
+.mi-head-tx{flex:1;min-width:0}
+.mi-head-tx h2{margin:0;color:#fff;font-size:1.1em;font-weight:800}
+.mi-head-sub{display:block;color:var(--tm);font-size:.8em;margin-top:3px}
+.mi-x{flex-shrink:0;background:transparent;border:none;color:var(--tm);font-size:1.5em;line-height:1;cursor:pointer;padding:0 2px;border-radius:5px}
+.mi-x:hover{color:#fff;background:rgba(255,255,255,.06)}
+.mi-body{padding:18px 22px;overflow:auto}
+/* Ticket summary card: title line + a 2-col grid of labelled stat tiles. */
+.mi-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:18px}
+.mi-ticket .mt-id{color:#44b9d6;font-weight:800;font-size:1.05em;margin-bottom:4px;display:block}
+.mi-ticket .mt-title{color:var(--t);font-size:.86em;margin-bottom:12px;line-height:1.5;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.mi-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mi-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:5px;padding:9px 11px;min-width:0}
+.mi-stat .k{display:block;color:var(--tm);font-size:.68em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.mi-stat .v{display:block;color:#fff;font-weight:700;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-stat .v.resolved{color:var(--gl)}
+.mi-stat.wide{grid-column:1/-1}
+.mi-label{display:flex;align-items:center;gap:7px;color:var(--t);font-size:.84em;margin:0 0 8px;font-weight:700}
+#miInfo{width:100%;min-height:100px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:11px 13px;font-family:inherit;line-height:1.55;resize:vertical;margin-bottom:18px}
+#miInfo:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.mi-links{display:flex;flex-direction:column;gap:9px;margin-bottom:10px}
+.link-row{display:flex;gap:8px;align-items:center}
 .link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
-.link-row input:focus{outline:none;border-color:var(--o)}
-.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:5px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
-.link-row .rm:hover{background:rgba(255,82,82,.12)}
-.add-link{margin-top:2px;padding:7px 14px;font-size:.82em}
-.msg-err{color:var(--rl);font-size:.85em;margin-top:10px;display:none}
-.mark-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.link-row input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.35);color:var(--rl);border-radius:5px;cursor:pointer;padding:8px 11px;font-size:.85em;line-height:1;flex-shrink:0;transition:background .15s,border-color .15s}
+.link-row .rm:hover{background:rgba(255,82,82,.14);border-color:var(--rl)}
+.mi-addlink{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px dashed var(--bd);color:var(--tm);border-radius:5px;padding:9px 15px;font-size:.84em;font-weight:600;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s,background .15s}
+.mi-addlink:hover{border-color:var(--o);color:var(--o);background:rgba(236,114,17,.06)}
+.mi-err{margin-top:14px}
+.mi-actions{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--bd);flex-shrink:0}
+.mi-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:filter .15s,background .15s,border-color .15s,color .15s}
+.mi-btn.primary{background:linear-gradient(180deg,#ffcb52,#f7b21a);color:#151206;box-shadow:0 4px 14px -4px rgba(251,191,36,.5)}
+.mi-btn.primary:hover{filter:brightness(1.05)}
+.mi-btn.primary:disabled{opacity:.6;cursor:default;filter:none}
+.mi-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
+.mi-btn.sec:hover{border-color:#8b96a0;color:#fff}
+/* Shared modal head/close (comment / incident-log modals — unrelated to Mark-important above). */
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
@@ -615,6 +635,8 @@ h1{letter-spacing:-.5px}
 .mtc-panel-in{overflow:hidden;min-height:0}
 .mtc-panel-pad{padding:16px 20px 20px;background:rgba(255,255,255,.012)}
 .mtc-phead{font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#aeb8c0;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+/* Reminder shown at the bottom-right of the expanded panel: SIM/EMT clear when "viewed" is unchecked. */
+.mtc-attnote{margin-top:12px;text-align:right;font-style:italic;font-size:11px;line-height:1.5;color:#8b96a0}
 .mtc-schip{padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
 .mtc-schip.wait{background:rgba(251,191,36,.16);color:var(--am)}
 .mtc-schip.ok{background:rgba(74,222,128,.16);color:#7ef2a8}
@@ -724,6 +746,7 @@ h1{color:#1b2026 !important}
 .mtc-panel.open{border-top-color:#eef1f4}
 .mtc-panel-pad{background:#fafbfc}
 .mtc-phead{color:#5c6773}
+.mtc-attnote{color:#8793a0}
 .mtc-bub{background:#f3f6f9 !important;border:1px solid #e6eaee !important}
 .mtc-bub.h{background:#fff7e6 !important;border-color:#f3e0b8 !important}
 .mtc-msg.right .mtc-bub{background:#eafaf0 !important;border-color:#cdeedb !important}
@@ -753,18 +776,29 @@ h1{color:#1b2026 !important}
 .modal{background:#fff !important;border:1px solid #e2e7eb !important;box-shadow:0 24px 60px -20px rgba(20,40,70,.4) !important}
 .modal-bg{background:rgba(20,30,45,.55) !important}
 /* Mark-important modal — light theme */
-.mark-ticket{background:#f7f9fb !important;border:1px solid #e6eaee !important}
-.mark-ticket .mt-id{color:#1577a0 !important}
-.mark-ticket .mt-title{color:#2a3340 !important}
-.mark-ticket .detail{border-bottom:1px solid #eef1f4 !important}
-.mark-ticket .detail .k{color:#5c6773 !important}
-.mark-ticket .detail .v{color:#1b2026 !important}
-.mark-ticket .detail .v.resolved{color:#1f9d57 !important}
-.fld-label{color:#5c6773 !important}
+.mi-head{border-bottom:1px solid #e6eaee !important}
+.mi-head-ic{background:rgba(217,119,6,.12) !important;color:#b45309 !important}
+.mi-head-tx h2{color:#1b2026 !important}
+.mi-head-sub{color:#5c6773 !important}
+.mi-x{color:#8793a0 !important}
+.mi-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
+.mi-ticket{background:#f7f9fb !important;border:1px solid #e6eaee !important}
+.mi-ticket .mt-id{color:#1577a0 !important}
+.mi-ticket .mt-title{color:#2a3340 !important;border-bottom:1px solid #eef1f4 !important}
+.mi-stat{background:#fff !important;border:1px solid #e6eaee !important}
+.mi-stat .k{color:#5c6773 !important}
+.mi-stat .v{color:#1b2026 !important}
+.mi-stat .v.resolved{color:#1f9d57 !important}
+.mi-label{color:#2a3340 !important}
 #miInfo,.link-row input{background:#fff !important;border:1px solid #d4dce4 !important;color:#1b2026 !important}
 #miInfo:focus,.link-row input:focus{border-color:#ec7211 !important}
 .link-row .rm{background:#fff !important;border:1px solid rgba(220,38,38,.4) !important;color:#dc2626 !important}
 .link-row .rm:hover{background:#fef2f2 !important}
+.mi-addlink{border-color:#d4dce4 !important;color:#5c6773 !important}
+.mi-addlink:hover{border-color:#ec7211 !important;color:#ec7211 !important;background:rgba(236,114,17,.06) !important}
+.mi-actions{border-top:1px solid #e6eaee !important}
+.mi-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
+.mi-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
 .msg-err{color:#d33a3a !important}
 .modal-head h2{color:#1577a0 !important}
 .modal-close{color:#5c6773}.modal-close:hover{color:#1b2026}
@@ -897,19 +931,25 @@ h1{color:#1b2026 !important}
 </div>
 
 <!-- Mark important popup (opens from the star flag; persists to Unique Cases) -->
-<div class="modal-bg" id="miModal" onclick="if(event.target===this)closeMarkImportant()">
-  <div class="modal">
-    <div class="modal-head"><h2 id="miTitle">Mark important</h2><button class="modal-close" onclick="closeMarkImportant()" aria-label="Close">&times;</button></div>
-    <div class="mark-ticket" id="miTicket"></div>
-    <label class="fld-label">Information about this ticket</label>
-    <textarea id="miInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
-    <label class="fld-label">Links</label>
-    <div id="miLinks"></div>
-    <button type="button" class="btn sec add-link" onclick="miAddLinkInput('')">＋ Add another link</button>
-    <div class="msg-err" id="miErr"></div>
-    <div class="mark-actions">
-      <button class="btn sec" onclick="closeMarkImportant()">Cancel</button>
-      <button class="btn" id="miBtn" onclick="completeMarkImportant()">Complete marking</button>
+<div class="modal-bg mi-bg" id="miModal" onclick="if(event.target===this)closeMarkImportant()">
+  <div class="modal mi-modal" role="dialog" aria-modal="true" aria-labelledby="miTitle">
+    <div class="mi-head">
+      <span class="mi-head-ic">★</span>
+      <div class="mi-head-tx"><h2 id="miTitle">Mark important</h2><span class="mi-head-sub">Flag this ticket for the Unique Cases board</span></div>
+      <button class="mi-x" onclick="closeMarkImportant()" aria-label="Close">&times;</button>
+    </div>
+    <div class="mi-body">
+      <div class="mi-ticket" id="miTicket"></div>
+      <label class="mi-label" for="miInfo">Why is this case important?</label>
+      <textarea id="miInfo" maxlength="5000" placeholder="Context, decisions, follow-ups…"></textarea>
+      <label class="mi-label">Supporting links</label>
+      <div id="miLinks" class="mi-links"></div>
+      <button type="button" class="mi-addlink" onclick="miAddLinkInput('')">+ Add another link</button>
+      <div class="msg-err mi-err" id="miErr"></div>
+    </div>
+    <div class="mi-actions">
+      <button class="mi-btn sec" onclick="closeMarkImportant()">Cancel</button>
+      <button class="mi-btn primary" id="miBtn" onclick="completeMarkImportant()">★ Complete marking</button>
     </div>
   </div>
 </div>
@@ -955,6 +995,9 @@ function toggleViewed(sid, cb){
   const el=cb.classList&&cb.classList.contains('mtc-cb')?cb:null;
   if(el) el.classList.toggle('on', on);
   const card=cb.closest('.mtc'); if(card) card.classList.toggle('viewed', on);
+  // Unchecking "Mark as viewed" clears the SIM + EMT selections for this ticket (ATTACH_SETS is
+  // declared further down the file but already initialized by load time, so this is safe to call).
+  if(!on){ clearAttach('reports',sid); clearAttach('emt',sid); }
 }
 window.toggleViewed=toggleViewed;
 
@@ -997,10 +1040,10 @@ window.toggleOpenSection=toggleOpenSection;
 //      dtrace = Driver trace attached · reports = Reports attached · emt = EMT updated ·
 //      important = Mark important. ----
 const ATTACH_FLAGS=[
-  { kind:'dtrace',    icon:'driver-trace',   label:'Driver trace attached',  title:'Select this if the Driver traced is attached in SIM' },
-  { kind:'reports',   icon:'reports-attached', label:'Reports attached',     title:'Select this if the reports/proofs of the incident is attached in SIM/EMT' },
-  { kind:'emt',       icon:'emt-updated',    label:'EMT updated',            title:'Select this if EMT is updated with Investigation, traces, proofs and documents' },
-  { kind:'important', icon:'mark-important', label:'Mark important',         title:'Select this if incident has something important to be addressed' },
+  { kind:'dtrace',    icon:'driver-trace',   label:'Transporter Trace icon',  title:'Select the icon only when a Driver Trace is attached in both SIM and EMT.' },
+  { kind:'reports',   icon:'reports-attached', label:'SIM icon',             title:'Choose this option once the SIM worklog/correspondence reflects your most current investigation updates.' },
+  { kind:'emt',       icon:'emt-updated-v3', label:'EMT icon',                title:'Choose this option once the EMT incident log reflects your most current investigation updates.' },
+  { kind:'important', icon:'mark-important', label:'Important icon',         title:'Use this icon exclusively to highlight an incident that stands out as important or unique.' },
 ];
 const ATTACH_SETS={ dtrace:new Set(), reports:new Set(), emt:new Set(), important:new Set() };
 function attachKey(kind){ var u=A.getUser(); return 'phd_mytickets_'+kind+'_'+((u&&u.username)||'anon'); }
@@ -1024,8 +1067,18 @@ function toggleAttach(kind, sid, ev){
   document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.toggle('on', on); });
 }
 window.toggleAttach=toggleAttach;
+// Force a given flag OFF for a ticket (used when unchecking "Mark as viewed" clears SIM + EMT).
+// No-op if the flag is already off, or if ATTACH_SETS[kind] doesn't exist for some reason.
+function clearAttach(kind, sid){
+  sid=String(sid);
+  const set=ATTACH_SETS[kind]; if(!set||!set.has(sid)) return;
+  set.delete(sid);
+  saveAttachFlag(kind);
+  var safe=sid.replace(/"/g,'');
+  document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.remove('on'); });
+}
 // PNG icon helper for the analyst-flag icons (versioned to bust cache on re-replace).
-function attImg(name, cls){ return '<img class="'+(cls||'')+'" src="icons/'+name+'.v3.png" alt="" draggable="false">'; }
+function attImg(name, cls){ return '<img class="'+(cls||'')+'" src="icons/'+name+'.v4.png" alt="" draggable="false">'; }
 
 // ============================================================================================
 // MARK IMPORTANT (star flag): opens the Mark-important popup and persists to Unique Cases.
@@ -1040,13 +1093,13 @@ function miFmtTZ(iso){
   catch(e){ return String(iso); }
 }
 function miDetailRows(d){
-  var rows='';
-  rows+='<div class="detail"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>';
-  rows+='<div class="detail"><span class="k">When created</span><span class="v">'+miFmtTZ(d.createDate)+'</span></div>';
-  if(d.resolvedDate) rows+='<div class="detail"><span class="k">When resolved</span><span class="v resolved">'+miFmtTZ(d.resolvedDate)+'</span></div>';
-  rows+='<div class="detail"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>';
-  rows+='<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
-  return rows;
+  var tiles='';
+  tiles+='<div class="mi-stat"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>';
+  tiles+='<div class="mi-stat"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
+  tiles+='<div class="mi-stat"><span class="k">When created</span><span class="v">'+miFmtTZ(d.createDate)+'</span></div>';
+  if(d.resolvedDate) tiles+='<div class="mi-stat"><span class="k">When resolved</span><span class="v resolved">'+miFmtTZ(d.resolvedDate)+'</span></div>';
+  tiles+='<div class="mi-stat"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>';
+  return '<div class="mi-stats">'+tiles+'</div>';
 }
 function miAddLinkInput(val){
   var wrap=document.getElementById('miLinks');
@@ -1094,8 +1147,8 @@ async function openMarkImportant(sid, ev){
     // Fall back to whatever we know locally so the user can still mark it.
     var t=TICKETS.find(function(x){ return String(x.shortId)===sid; })||{};
     tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span>'+(t.title?('<div class="mt-title">'+esc(t.title)+'</div>'):'')+
-      '<div class="detail"><span class="k">When created</span><span class="v">'+miFmtTZ(t.createDate)+'</span></div>'+
-      (t.country?'<div class="detail"><span class="k">Country</span><span class="v">'+esc(t.country)+'</span></div>':'');
+      '<div class="mi-stats"><div class="mi-stat"><span class="k">When created</span><span class="v">'+miFmtTZ(t.createDate)+'</span></div>'+
+      (t.country?'<div class="mi-stat"><span class="k">Country</span><span class="v">'+esc(t.country)+'</span></div>':'')+'</div>';
   }
   setTimeout(function(){ var i=document.getElementById('miInfo'); if(i)i.focus(); },40);
 }
@@ -1453,8 +1506,11 @@ function cardHtml(t,i,editor){
         <span class="mtc-icons mtc-icons-bar" id="ticons-${i}">${ticketIconsHtml(i)}</span>
       </div>
     </div>
-    <div class="mtc-panel" id="cpanel-${i}"><div class="mtc-panel-in"><div class="mtc-panel-pad" id="cbody-${i}" data-loaded="0">
-      <div class="mtc-empty">${ic('message',12)} Expand to load comments.</div>
+    <div class="mtc-panel" id="cpanel-${i}"><div class="mtc-panel-in"><div class="mtc-panel-pad">
+      <div id="cbody-${i}" data-loaded="0">
+        <div class="mtc-empty">${ic('message',12)} Expand to load comments.</div>
+      </div>
+      <div class="mtc-attnote">Unchecking "Mark as viewed" clears the SIM and EMT icons \u2014 a reminder to keep both the SIM and EMT updated with your latest investigation at all times.</div>
     </div></div></div>
   </div>`;
 }
