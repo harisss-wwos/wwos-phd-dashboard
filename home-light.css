@@ -82,7 +82,7 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row{ margin-top:0 !importan
 /* The header row ("Amazon WWOS" logo + "PHD Dashboard") on its own WHITE card. Higher-specificity
    selector so it beats the body[data-profile-panel] .wrap > .home-hdr padding-top:0 rule above. */
 body[data-profile-panel] .wrap > .home-hdr.js-header-row,
-.home-hdr{ background:#fff !important; border:1px solid #e2e6ea !important; border-radius:5px !important; box-shadow:0 1px 3px rgba(20,30,50,.06) !important; padding:0 18px !important; margin:0 0 12px !important; height:56px !important; min-height:56px !important; box-sizing:border-box !important; }
+.home-hdr{ background:#fff !important; border:1px solid #e2e6ea !important; border-radius:5px !important; box-shadow:0 1px 3px rgba(20,30,50,.06) !important; padding:0 18px !important; margin:0 0 12px !important; height:60px !important; min-height:60px !important; box-sizing:border-box !important; }
 /* Collapsible section heads styled like the app.html Live Queue banners: a solid 56px BLUE bar with
    a white title, flipping to sky-blue when collapsed, and a white +/- circle toggle on the right. */
 .home-sec-toggle{ display:flex !important; align-items:center !important; justify-content:space-between !important; gap:12px !important; cursor:pointer !important; user-select:none !important;

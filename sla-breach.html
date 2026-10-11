@@ -84,6 +84,73 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 @keyframes sksh{100%{transform:translateX(100%)}}
 .hr-range-body{display:none;padding:0 16px}
 .hr-range.open .hr-range-body{display:block;padding:16px}
+/* ===== Monthly trend chart ===== */
+.hr-chart-legend{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;font-size:.82em;font-weight:700;margin-bottom:6px}
+.sr-lg{display:inline-flex;align-items:center;gap:6px;color:#aab6c2}
+.sr-lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.sr-lg.l1 i{background:#44b9d6}.sr-lg.l2 i{background:#e5484d}
+.hr-chart-wrap{position:relative;width:100%;overflow:visible}
+.hr-chart-svg{width:100%;height:auto;display:block;overflow:visible}
+.hr-chart-svg .grid{stroke:rgba(255,255,255,.07);stroke-width:1}
+.hr-chart-svg .axis{stroke:rgba(255,255,255,.18);stroke-width:1}
+.hr-chart-svg .axlbl{fill:#8795a3;font-size:11px;font-weight:600}
+.hr-chart-svg .ln{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.hr-chart-svg .ln.l1{stroke:#44b9d6}.hr-chart-svg .ln.l2{stroke:#e5484d}
+.hr-chart-svg .pt{stroke:#0b0f14;stroke-width:2;cursor:pointer}
+.hr-chart-svg .pt.l1{fill:#44b9d6}.hr-chart-svg .pt.l2{fill:#e5484d}
+.hr-chart-svg .hit{fill:transparent;cursor:pointer}
+.hr-chart-svg .vline{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
+.hr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:200px;background:#0a0a0a;border:1px solid #2a323b;border-radius:7px;padding:11px 13px;box-shadow:0 14px 34px -16px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
+.hr-chart-tip.show{opacity:1;transform:translateY(0)}
+.hr-chart-tip .tt-m{font-weight:800;color:#fff;margin-bottom:7px}
+.hr-chart-tip .tt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 0;color:#c4ccd4}
+.hr-chart-tip .tt-row .k{display:inline-flex;align-items:center;gap:6px}
+.hr-chart-tip .tt-row .k i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.hr-chart-tip .tt-row .v{font-weight:800;color:#fff}
+.hr-chart-tip .tt-pct{color:#ff8a8a;font-weight:800}
+.hr-chart-tip .tt-sep{height:1px;background:rgba(255,255,255,.08);margin:7px 0}
+.hr-chart-sk-legend{display:flex;justify-content:flex-end;gap:14px;margin-bottom:14px}
+.hr-chart-sk-plot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:240px;padding:0 6px}
+.hr-chart-sk-bar{flex:1;border-radius:6px 6px 0 0;align-self:flex-end}
+/* ===== Country grouping (section 2) ===== */
+.np-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.np-checks{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.np-chip{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:.82em;font-weight:700;padding:7px 13px;border-radius:999px;border:1px solid var(--bd);background:#0b0f14;color:#9fb2c4}
+.np-chip input{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1.5px solid #5a6470;border-radius:4px;cursor:pointer;position:relative;flex-shrink:0}
+.np-chip input:checked{background:#ec7211;border-color:#ec7211}
+.np-chip input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.np-chip:has(input:checked){border-color:#ec7211;color:#fff;background:rgba(236,114,17,.1)}
+.hr-sub{border:1px solid #2f3a45;border-radius:5px;margin-bottom:10px;overflow:hidden;background:#0b0f14}
+.hr-sub:last-child{margin-bottom:0}
+.hr-sub-head{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:0 16px;border:none;cursor:pointer;font:inherit;text-align:left;background:#141a22;color:#e6edf3;transition:background .12s}
+.hr-sub-head:hover{background:#17202a}
+.hr-sub-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.08);color:#9fb2c4}
+.hr-sub-title{font-weight:700;font-size:.95em}
+.hr-sub-meta{margin-left:auto;font-size:.78em;font-weight:700;color:#9fb2c4;background:rgba(255,255,255,.06);border-radius:5px;padding:4px 10px;white-space:nowrap}
+.hr-sub .hr-caret{color:#9fb2c4;flex-shrink:0;transition:transform .18s}
+.hr-sub-body{display:none;padding:0 14px}
+.hr-sub.open>.hr-sub-body{display:block;padding:12px 14px}
+.hr-sub.open>.hr-sub-head .hr-caret{transform:rotate(180deg)}
+.np-tablewrap{overflow-x:auto}
+.np-tbl{width:100%;border-collapse:collapse;font-size:.84em;table-layout:fixed}
+.np-tbl th,.np-tbl td{text-align:center;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-tbl thead th{color:#8795a3;font-weight:700;text-transform:uppercase;font-size:.82em;letter-spacing:.4px;border-bottom:1px solid rgba(255,255,255,.14)}
+.np-tbl tbody tr:last-child td{border-bottom:none}
+.np-tbl td.np-c,.np-tbl th.np-c{font-weight:800}
+.np-breach{color:#ff6b6b;font-weight:800;white-space:nowrap}
+.np-sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.np-sortable:hover{color:#fff}
+.np-sort-ar{color:#ff9f2e;font-size:.9em;margin-left:3px}
+.np-id{color:#44b9d6;font-weight:700;text-decoration:none}
+.np-id:hover{text-decoration:underline}
+.np-title{color:#aab6c2}
+.np-phd{color:#1577a0;background:rgba(68,185,214,.14);border:1px solid rgba(68,185,214,.35);border-radius:4px;font-size:.72em;font-weight:800;padding:1px 5px;margin-left:4px}
+.np-sk-wrap{padding:4px 0}
+.np-sk-row{display:flex;align-items:center;gap:14px;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.np-sk{height:12px;border-radius:5px;background:#141a20;position:relative;overflow:hidden}
+.np-sk.b1{width:12%}.np-sk.b2{width:7%}.np-sk.b3{width:14%}.np-sk.b4{flex:1}.np-sk.b5{width:20%}
+.np-sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);animation:npShim 1.3s ease-in-out infinite}
+@keyframes npShim{100%{transform:translateX(100%)}}
 .hr-range.open>.hr-range-head .hr-caret{transform:rotate(180deg)}
 /* Agent accordion */
 .hr-agent{border:1px solid #2f3a45;border-radius:5px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
@@ -149,6 +216,11 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-banner .hb-title svg{flex-shrink:0;color:#4a0d0f}
 .hr-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:78ch;color:rgba(74,13,15,.82)}
 .hr-banner .hb-sub b{color:#3a080a;font-weight:800}
+/* "YTD 2026" badge pinned to the right of the title bar. */
+.hr-banner .hb-right{position:relative;z-index:1;display:inline-flex;align-items:center;flex-shrink:0}
+.hr-ytd{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:.9em;letter-spacing:.3px;color:#ec7211;
+  background:rgba(236,114,17,.1);border:1px solid rgba(236,114,17,.35);border-radius:999px;padding:6px 14px;white-space:nowrap}
+.hr-ytd svg{color:#ec7211;flex-shrink:0}
 .hr-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;
   background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
@@ -199,6 +271,41 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-phd{color:#1577a0!important}
 .sk-line{background:#e8ebee!important}
 .empty,.gate{color:#5c6773!important}
+/* New sections — light theme. */
+.hr-chart-legend .sr-lg{color:#5c6773!important}
+.hr-chart-svg .grid{stroke:#eef1f4!important}
+.hr-chart-svg .axis{stroke:#d4dce4!important}
+.hr-chart-svg .axlbl{fill:#8793a0!important}
+.hr-chart-svg .pt{stroke:#fff!important}
+.hr-chart-svg .vline{stroke:rgba(20,40,70,.22)!important}
+.hr-chart-tip{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 14px 34px -16px rgba(20,40,70,.35)!important}
+.hr-chart-tip .tt-m{color:#1b2026!important}
+.hr-chart-tip .tt-row{color:#5c6773!important}
+.hr-chart-tip .tt-row .v{color:#1b2026!important}
+.hr-chart-tip .tt-pct{color:#dc2626!important}
+.hr-chart-tip .tt-sep{background:#eef1f4!important}
+.np-controls{border-bottom:1px solid #eef1f4!important}
+.np-chip{background:#fff!important;border:1px solid #e2e6ea!important;color:#5c6773!important}
+.np-chip input{border:1.5px solid #c4ccd4!important}
+.np-chip input:checked{background:#ec7211!important;border-color:#ec7211!important}
+.np-chip:has(input:checked){border-color:#ec7211!important;color:#1b2026!important;background:#fff7ef!important}
+.hr-sub{background:#fff!important;border:1px solid #e4e9ee!important}
+.hr-sub-head{background:#f3f6f9!important;color:#1b2026!important}
+.hr-sub-head:hover{background:#eaeff5!important}
+.hr-sub-ic{background:#e7edf4!important;color:#5c6773!important}
+.hr-sub-meta{color:#5c6773!important;background:#eef1f4!important}
+.hr-sub .hr-caret{color:#9aa5b1!important}
+.np-tbl th,.np-tbl td{border-bottom:1px solid #eef1f4!important}
+.np-tbl thead th{color:#5c6773!important;border-bottom:1px solid #e2e6ea!important}
+.np-id{color:#1577a0!important}
+.np-title{color:#5c6773!important}
+.np-breach{color:#dc2626!important}
+.np-sortable:hover{color:#1b2026!important}
+.np-sort-ar{color:#ec7211!important}
+.np-phd{color:#1577a0!important;background:#eaf4fb!important;border:1px solid #bfe0ef!important}
+.np-sk-row{border-bottom:1px solid #eef1f4!important}
+.np-sk{background:#e8ebee!important}
+.np-sk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)!important}
 /* ===== Report restyle overrides (win the cascade) ===== */
 /* (A) Title bar: 60px tall, white, flat. */
 .hr-banner{height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important;
@@ -207,6 +314,8 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-banner::after{display:none!important}
 .hr-banner .hb-title{color:#1b2026!important;font-size:1.15em!important}
 .hr-banner .hb-title svg{color:#1b2026!important}
+.hr-ytd{color:#ec7211!important;background:#fff4ea!important;border:1px solid #f3c99e!important}
+.hr-ytd svg{color:#ec7211!important}
 /* (C) Range head: 56px, flat blue (collapsed #38bdf8 / expanded #1878eb), white text, no border. */
 /* Range CARD = light surface (was a dark gradient) so the expanded body reads light, not black. */
 .hr-range{border:1px solid #e2e6ea!important;background:#fff!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;overflow:hidden!important}
@@ -234,6 +343,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
     <div class="hb-left">
       <h1 class="hb-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> SLA Breaches (&gt;240h)</h1>
     </div>
+    <div class="hb-right"><span class="hr-ytd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> YTD 2026</span></div>
   </div>
   <div id="hrSkel">
     <div class="hr-range rng-after"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:280px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:190px;height:12px"></span><span class="hr-caret">▾</span></div></div>
@@ -377,61 +487,203 @@ function rangeSection(key,label,d){
     '</div>'+
   '</div>';
 }
-function render(d){
-  HR_DATA=d;
-  HR_AGENTS=[]; // reset the paginated-agent registry on each full render
-  const R=d.ranges||{};
-  // All sections collapsed by default.
-  let sections=
-    rangeSection('after','Incidents reported on or after 1 Apr 2026', d.after||{})+
-    rangeSection('mid','Incidents reported between 1 Oct 2025 – 31 Mar 2026', d.mid||{})+
-    rangeSection('before','Incidents reported between 1 Jan 2021 – 30 Sept 2025', d.before||{});
-  if(d.unknown&&d.unknown.totalTickets){ sections+=rangeSection('unknown','Created date unknown', d.unknown); }
-  document.getElementById('wrap').innerHTML=
-    '<div class="hr-banner"><div class="hb-left">'+
-      '<h1 class="hb-title">'+ic('clock',24)+' SLA Breaches (&gt;240h)</h1>'+
-    '</div></div>'+
-    '<div id="hrRanges">'+sections+'</div>';
-}
+function esc2(s){return esc(s);}
+function truncate(s,n){ s=String(s||''); return s.length>n?(s.slice(0,n-1)+'\u2026'):s; }
+function fmtCreated(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
+function displayAgent(name){ return name||'—'; }
+var SLA_COUNTRY_NAME={US:'United States',UK:'United Kingdom',CA:'Canada',IN:'India',AU:'Australia',MX:'Mexico',JP:'Japan',DE:'Germany',IT:'Italy',FR:'France',EG:'Egypt',ES:'Spain',SA:'Saudi Arabia',BR:'Brazil',NL:'Netherlands',ZA:'South Africa',PT:'Portugal',UAE:'United Arab Emirates',IE:'Ireland',SG:'Singapore',TR:'Turkey',PL:'Poland',SE:'Sweden',BE:'Belgium',AT:'Austria',CH:'Switzerland',DK:'Denmark',NO:'Norway',FI:'Finland',GR:'Greece',CZ:'Czechia'};
+function slaCountryLabel(code){ var n=SLA_COUNTRY_NAME[code]; return n?(esc(code)+' \u00b7 '+esc(n)):esc(code); }
 
-// Accordion: only one agent open at a time WITHIN a range section.
-function hrToggle(btn){
-  const s=btn.closest('.hr-agent'); if(!s)return;
-  const willOpen=!s.classList.contains('open');
-  const scope=s.closest('.hr-range')||document;
-  scope.querySelectorAll('.hr-agent.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
-  s.classList.toggle('open', willOpen);
-}
-window.hrToggle=hrToggle;
-// Expand/collapse a whole date-range section — accordion: only ONE range open at a time.
+// ================= Accordion =================
 function hrRangeToggle(btn){
   const s=btn.closest('.hr-range'); if(!s)return;
   const willOpen=!s.classList.contains('open');
-  // Close every other range first, then toggle this one.
   document.querySelectorAll('.hr-range.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
   s.classList.toggle('open', willOpen);
 }
 window.hrRangeToggle=hrRangeToggle;
-function hrFilter(inp,key){
-  const q=String(inp.value||'').trim().toLowerCase();
-  document.querySelectorAll('.hr-list[data-range="'+key+'"] .hr-agent').forEach(function(el){
-    el.style.display=(!q||el.getAttribute('data-agent').indexOf(q)>=0)?'':'none';
-  });
+function slaSubToggle(btn){
+  var s=btn.closest('.hr-sub'); if(!s)return;
+  var willOpen=!s.classList.contains('open');
+  var scope=s.parentNode||document;
+  Array.prototype.forEach.call(scope.children, function(o){ if(o!==s && o.classList && o.classList.contains('hr-sub')) o.classList.remove('open'); });
+  s.classList.toggle('open', willOpen);
 }
-window.hrFilter=hrFilter;
+window.slaSubToggle=slaSubToggle;
+
+// ================= SECTION 1: monthly trend chart (created vs SLA crossed) =================
+var SLA_MONTHLY=null;
+var SLA_MONTH_LBL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function slaChartInnerHtml(){
+  if(!SLA_MONTHLY){
+    var hs=[55,40,70,50,85,60,78,45,66,52,38,72], bars='';
+    for(var i=0;i<12;i++) bars+='<span class="sk-line hr-chart-sk-bar" style="height:'+hs[i]+'%"></span>';
+    return '<div class="hr-chart-sk"><div class="hr-chart-sk-legend"><span class="sk-line" style="width:140px;height:12px"></span><span class="sk-line" style="width:150px;height:12px"></span></div><div class="hr-chart-sk-plot">'+bars+'</div></div>';
+  }
+  return '<div class="hr-chart-legend">'+
+      '<span class="sr-lg l1"><i></i>Created</span>'+
+      '<span class="sr-lg l2"><i></i>SLA crossed</span>'+
+    '</div>'+
+    '<div class="hr-chart-wrap" id="slaChartWrap">'+
+      '<svg class="hr-chart-svg" id="slaChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet"></svg>'+
+      '<div class="hr-chart-tip" id="slaChartTip"></div>'+
+    '</div>';
+}
+function slaChartSectionHtml(){
+  return '<div class="hr-range rng-chart open" data-range="chart">'+
+    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-ic">'+ic('line-chart',18)+'</span>'+
+      '<span class="hr-range-title">Tickets created vs SLA crossed · 2026</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-range-body"><div id="slaChartBody">'+slaChartInnerHtml()+'</div></div>'+
+  '</div>';
+}
+function slaNiceCeil(v){ if(v<=5)return 5; var e=Math.floor(Math.log10(v)),b=Math.pow(10,e),f=v/b; var nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*b; }
+function drawSlaChart(data){
+  var svg=document.getElementById('slaChartSvg'); if(!svg)return;
+  var months=(data&&data.months)||[];
+  var W=920,H=320,padL=46,padR=20,padT=18,padB=36, plotW=W-padL-padR, plotH=H-padT-padB;
+  var maxV=0; months.forEach(function(m){ maxV=Math.max(maxV,m.created,m.slaCrossed); });
+  var niceMax=slaNiceCeil(Math.max(maxV,1));
+  var xAt=function(i){ return padL+(plotW*(i/11)); };
+  var yAt=function(v){ return padT+plotH-(plotH*(v/niceMax)); };
+  var g='';
+  for(var b=0;b<=5;b++){ var v=Math.round(niceMax*b/5), y=yAt(v);
+    g+='<line class="grid" x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'"/>';
+    g+='<text class="axlbl" x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end">'+v+'</text>'; }
+  for(var i=0;i<12;i++){ g+='<text class="axlbl" x="'+xAt(i)+'" y="'+(H-padB+20)+'" text-anchor="middle">'+SLA_MONTH_LBL[i]+'</text>'; }
+  g+='<line class="axis" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'"/>';
+  var pts=function(getter){ return months.map(function(m,i){ return xAt(i)+','+yAt(getter(m)); }).join(' '); };
+  g+='<polyline class="ln l1" points="'+pts(function(m){return m.created;})+'"/>';
+  g+='<polyline class="ln l2" points="'+pts(function(m){return m.slaCrossed;})+'"/>';
+  g+='<line class="vline" id="slaVLine" y1="'+padT+'" y2="'+(padT+plotH)+'"/>';
+  months.forEach(function(m,i){
+    g+='<circle class="pt l1" cx="'+xAt(i)+'" cy="'+yAt(m.created)+'" r="4"/>';
+    g+='<circle class="pt l2" cx="'+xAt(i)+'" cy="'+yAt(m.slaCrossed)+'" r="4"/>';
+  });
+  var colW=plotW/11;
+  months.forEach(function(m,i){ g+='<rect class="hit" data-i="'+i+'" x="'+(xAt(i)-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>'; });
+  svg.innerHTML=g;
+  var tip=document.getElementById('slaChartTip'), vline=document.getElementById('slaVLine'), wrap=document.getElementById('slaChartWrap');
+  svg.querySelectorAll('.hit').forEach(function(rect){
+    rect.addEventListener('mouseenter', function(){
+      var i=+rect.getAttribute('data-i'), m=months[i]; if(!m)return;
+      var pct=(m.created>0)?(Math.round((m.slaCrossed/m.created)*1000)/10):0;
+      tip.innerHTML='<div class="tt-m">'+SLA_MONTH_LBL[i]+' 2026</div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#44b9d6"></i>Created</span><span class="v">'+(m.created||0)+'</span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:#e5484d"></i>SLA crossed</span><span class="v">'+(m.slaCrossed||0)+' <b class="tt-pct">('+pct+'%)</b></span></div>'+
+        '<div class="tt-sep"></div>'+
+        '<div class="tt-row"><span class="k">Repeat</span><span class="v">'+(m.repeat||0)+'</span></div>'+
+        '<div class="tt-row"><span class="k">Pet</span><span class="v">'+(m.pet||0)+'</span></div>'+
+        '<div class="tt-row"><span class="k">Non-pet</span><span class="v">'+(m.nonPet||0)+'</span></div>';
+      var cx=xAt(i); vline.setAttribute('x1',cx); vline.setAttribute('x2',cx); vline.style.visibility='visible';
+      var box=svg.getBoundingClientRect(), px=(cx/W)*box.width; tip.classList.add('show');
+      var tw=tip.offsetWidth||220; var left=px+14; if(left+tw>box.width)left=px-tw-14; if(left<0)left=4;
+      tip.style.left=left+'px'; tip.style.top='8px';
+    });
+  });
+  wrap.addEventListener('mouseleave', function(){ tip.classList.remove('show'); if(vline)vline.style.visibility='hidden'; });
+}
+
+// ================= SECTION 2: SLA breaches by country =================
+var SLA_FLAT=null, SLA_PHD=true, SLA_NONPHD=true;
+var SLA_SORT_DIR='desc'; // SLA-breach-days column sort: desc (default, worst breach first) | asc
+function slaFiltered(tickets){ return (tickets||[]).filter(function(t){ var p=isPhdUser(t.resolvedBy); return (p&&SLA_PHD)||(!p&&SLA_NONPHD); }); }
+function slaToggleKind(which, cb){ if(which==='phd')SLA_PHD=cb.checked; else SLA_NONPHD=cb.checked; renderSlaCountryView(); }
+window.slaToggleKind=slaToggleKind;
+// Toggle the SLA-breach-days sort direction and re-render all country tables.
+function slaSortBreach(){ SLA_SORT_DIR=(SLA_SORT_DIR==='desc'?'asc':'desc'); renderSlaCountryView(); }
+window.slaSortBreach=slaSortBreach;
+// A country's ticket table. Columns: Ticket | SLA Breach (days, sortable) | Title | Assignee |
+// Resolved By | HI | Resolution. Sorted by breach days (default highest -> lowest).
+function slaTable(list){
+  var dir=SLA_SORT_DIR;
+  var sorted=list.slice().sort(function(a,b){
+    var va=(a.breachDays==null?-1:a.breachDays), vb=(b.breachDays==null?-1:b.breachDays);
+    return dir==='desc'?(vb-va):(va-vb);
+  });
+  var rows=sorted.map(function(t){
+    var link=t.url?('<a class="np-id" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId)+'</a>'):esc(t.shortId);
+    var by=esc(displayAgent(t.resolvedBy))+(isPhdUser(t.resolvedBy)?' <span class="np-phd">PHD</span>':'');
+    var bd=(t.breachDays==null?'—':(t.breachDays+'d'));
+    return '<tr>'+
+      '<td>'+link+'</td>'+
+      '<td class="np-c np-breach">'+bd+'</td>'+
+      '<td class="np-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
+      '<td title="'+esc(t.assignee)+'">'+esc(displayAgent(t.assignee))+'</td>'+
+      '<td>'+by+'</td>'+
+      '<td class="np-c">'+t.hi+'</td>'+
+      '<td class="np-title" title="'+esc(t.resolution)+'">'+esc(t.resolution)+'</td>'+
+    '</tr>';
+  }).join('');
+  var arrow=(dir==='desc'?'\u25bc':'\u25b2');
+  return '<div class="np-tablewrap"><table class="np-tbl">'+
+    '<colgroup><col style="width:11%"><col style="width:12%"><col style="width:25%"><col style="width:13%"><col style="width:13%"><col style="width:5%"><col style="width:21%"></colgroup>'+
+    '<thead><tr><th>Ticket</th>'+
+      '<th class="np-c np-sortable" onclick="slaSortBreach()" title="Sort by SLA breach length">SLA Breach <span class="np-sort-ar">'+arrow+'</span></th>'+
+      '<th>Title</th><th>Assignee</th><th>Resolved By</th><th class="np-c">HI</th><th>Resolution</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>';
+}
+function slaCountrySectionHtml(){
+  var checks=
+    '<div class="np-controls"><div style="flex:1"></div>'+
+      '<div class="np-checks">'+
+        '<label class="np-chip"><input type="checkbox" checked onchange="slaToggleKind(\'phd\',this)"><span>PHD Analysts</span></label>'+
+        '<label class="np-chip"><input type="checkbox" checked onchange="slaToggleKind(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
+      '</div>'+
+    '</div>';
+  return '<div class="hr-range rng-country" data-range="country">'+
+    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
+      '<span class="hr-range-ic">'+ic('globe',18)+'</span>'+
+      '<span class="hr-range-title">SLA Breaches by Country</span>'+
+      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+    '</button>'+
+    '<div class="hr-range-body">'+checks+'<div id="slaCountryBody"></div></div>'+
+  '</div>';
+}
+function renderSlaCountryView(){
+  var box=document.getElementById('slaCountryBody'); if(!box) return;
+  if(!SLA_FLAT){ box.innerHTML='<div class="np-sk-wrap">'+Array(6).join('<div class="np-sk-row"><span class="np-sk b1"></span><span class="np-sk b2"></span><span class="np-sk b3"></span><span class="np-sk b4"></span><span class="np-sk b5"></span></div>')+'</div>'; return; }
+  var tickets=slaFiltered(SLA_FLAT.tickets||[]);
+  if(!tickets.length){ box.innerHTML='<div class="empty">No SLA breaches for the selected analyst type.</div>'; return; }
+  var byCountry={}; tickets.forEach(function(t){ (byCountry[t.country]=byCountry[t.country]||[]).push(t); });
+  var codes=Object.keys(byCountry).sort(function(a,b){ return byCountry[b].length-byCountry[a].length; });
+  box.innerHTML=codes.map(function(code){
+    return '<div class="hr-sub">'+
+      '<button type="button" class="hr-sub-head" onclick="slaSubToggle(this)">'+
+        '<span class="hr-sub-ic">'+ic('globe',15)+'</span>'+
+        '<span class="hr-sub-title">'+slaCountryLabel(code)+'</span>'+
+        '<span class="hr-sub-meta">'+byCountry[code].length+' tickets</span>'+
+        '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
+      '</button>'+
+      '<div class="hr-sub-body">'+slaTable(byCountry[code])+'</div>'+
+    '</div>';
+  }).join('');
+}
+window.renderSlaCountryView=renderSlaCountryView;
+
+function paintSlaShell(){
+  document.getElementById('wrap').innerHTML=
+    '<div class="hr-banner"><div class="hb-left">'+
+      '<h1 class="hb-title">'+ic('clock',24)+' SLA Breaches (&gt;240h)</h1>'+
+    '</div>'+
+    '<div class="hb-right"><span class="hr-ytd">'+ic('calendar',15)+' YTD 2026</span></div>'+
+    '</div>'+
+    slaChartSectionHtml()+
+    slaCountrySectionHtml();
+  if(SLA_MONTHLY) drawSlaChart(SLA_MONTHLY);
+  renderSlaCountryView();
+}
 
 (async function init(){
-  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ gate('This page is for logged-in users. Please log in from the home page.'); return; }
-  if(!(A.canViewSLA&&A.canViewSLA())){ gate('You do not have access to SLA Breaches.'); return; }
-  // Load the registered-user roster (any logged-in user may read it) so we can tag PHD logins.
-  try{
-    const ru=await A.api('GET','/api/user-roles');
-    if(ru&&ru.ok&&Array.isArray(ru.data)){ HR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();})); }
-  }catch(e){ HR_USERS=null; }
-  const r=await A.api('GET','/api/sla-breach');
-  if(r.status===401){ gate('Your session has expired. Please log in again.'); return; }
-  if(!r.ok||!r.data){ document.getElementById('wrap').innerHTML='<div class="gate"><h1>SLA Breaches (&gt;240h)</h1><p>Could not load the data. Please try again.</p><a class="btn" href="app.html">Back to Dashboard</a></div>'; return; }
-  render(r.data);
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+  if(!(A.canViewSLA&&A.canViewSLA())){ location.replace('index.html'); return; }
+  paintSlaShell();
+  try{ const ru=await A.api('GET','/api/user-roles'); if(ru&&ru.ok&&Array.isArray(ru.data)){ HR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();})); } }catch(e){ HR_USERS=null; }
+  var pm=A.api('GET','/api/sla-monthly').then(function(mr){ if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)){ SLA_MONTHLY=mr.data; var b=document.getElementById('slaChartBody'); if(b){ b.innerHTML=slaChartInnerHtml(); drawSlaChart(SLA_MONTHLY); } } }).catch(function(){});
+  var pf=A.api('GET','/api/sla-flat').then(function(fr){ if(fr&&fr.ok&&fr.data&&Array.isArray(fr.data.tickets)){ SLA_FLAT=fr.data; renderSlaCountryView(); } }).catch(function(){});
+  await Promise.allSettled([pm,pf]);
 })();
 </script>
 </body>

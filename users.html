@@ -184,8 +184,20 @@ h1{color:#1b2026!important}
 /* ---------- Users list header ---------- */
 .u-count{display:inline-flex;align-items:center;gap:9px;color:#1b2026;font-weight:800;font-size:.95em;margin:4px 0 14px}
 .u-count svg{color:#ec7211}
-/* ---------- User CARDS (replace the wide table) ---------- */
-.u-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+/* ---------- Shared 60px white title bar (title left, Create-user action right) ---------- */
+.u-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 16px;margin-bottom:16px}
+.u-titlebar h1{margin:0!important;font-size:1.3em!important}
+@media(max-width:620px){.u-titlebar{height:auto;min-height:60px;flex-wrap:wrap;padding:10px 14px}}
+
+/* ---------- User CARDS: exactly 2 equal columns ---------- */
+.u-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+
+/* ---------- Expand/collapse: clicking a card's identity area toggles its body ---------- */
+.u-card-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;min-width:0}
+.u-card-caret{flex:0 0 auto;margin-left:auto;color:#8793a0;transition:transform .2s;display:inline-flex;align-self:center}
+.u-card.open .u-card-caret{transform:rotate(180deg)}
+.u-card-body{display:none;flex-direction:column;gap:12px}
+.u-card.open .u-card-body{display:flex}
 .u-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:16px 16px 14px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;flex-direction:column;gap:12px;min-width:0}
 .u-card.is-owner{border-color:#d9ccf7;box-shadow:0 0 0 1px rgba(124,92,255,.12),0 1px 3px rgba(20,30,50,.06)}
 .u-card.is-owner .u-card-head{border-left:3px solid #7c5cff;margin-left:-16px;padding-left:13px}
@@ -261,7 +273,7 @@ label{color:#5c6773!important}
 th{color:#5c6773!important;border-bottom:1px solid #eef1f4!important}
 td{color:#2a3340!important;border-bottom:1px solid #eef1f4!important}
 td.user{color:#1b2026!important}
-@media(max-width:560px){.u-cards{grid-template-columns:1fr}}
+@media(max-width:700px){.u-cards{grid-template-columns:1fr}}
 </style>
 </head>
 <body data-nav-active="users" data-back-href="index.html" data-back-label="Home">
@@ -576,10 +588,17 @@ function renderList(users){
             +'</div>'
           : '<div class="u-row-actions"><span class="u-act reset disabled" title="Only the owner can reset passwords." aria-disabled="true">'+ic('key',14)+'Reset password</span>'
             +'<span class="u-act remove disabled" title="Only the owner can remove users." aria-disabled="true">'+ic('trash',14)+'Remove</span></div>');
+    // Head: clicking the identity area (left) toggles expand/collapse; the actions (right) are
+    // outside the toggle so their own buttons/selects still work.
     return '<div class="u-card'+(isOwnerRow?' is-owner':'')+'">'
-      +'<div class="u-card-head">'+userCell(u)+'<div class="u-card-actions">'+actions+'</div></div>'
-      +'<div class="u-card-meta">'+metaControls+'</div>'
-      +'<div class="u-card-access"><div class="ua-head">'+ic('shield',13)+' Page access</div>'+accessGrid+'</div>'
+      +'<div class="u-card-head">'
+        +'<div class="u-card-toggle" onclick="toggleUserCard(this)">'+userCell(u)+'<span class="u-card-caret">'+ic('chevron-down',16)+'</span></div>'
+        +'<div class="u-card-actions">'+actions+'</div>'
+      +'</div>'
+      +'<div class="u-card-body">'
+        +'<div class="u-card-meta">'+metaControls+'</div>'
+        +'<div class="u-card-access"><div class="ua-head">'+ic('shield',13)+' Page access</div>'+accessGrid+'</div>'
+      +'</div>'
       +'</div>';
   };
   // Owner first, then analysts grouped by team (AZA, BLR, WFH alphabetical), then ungrouped. Sort by username within.
@@ -592,13 +611,8 @@ function renderList(users){
   });
   const cards=sorted.map(cardFor).join('');
   wrap.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <div>
-        <h1 style="margin:0">User Management</h1>
-        <p class="sub" style="margin:4px 0 0;padding-bottom:5px">${iAmOwner
-          ? 'Manage accounts and their access. The owner account cannot be changed or removed.'
-          : 'Create users and edit timezone, badge and analyst. Only the owner can grant page access or reset and remove users.'}</p>
-      </div>
+    <div class="u-titlebar">
+      <h1>User Management</h1>
       ${canManage
         ? `<button class="btn" onclick="openCreateUser()">${ic('plus',15)} Create user</button>`
         : `<button class="btn" disabled title="You do not have access to create users." style="opacity:.5;cursor:not-allowed">${ic('plus',15)} Create user</button>`}
@@ -608,6 +622,13 @@ function renderList(users){
     <div class="u-count">${ic('users',15)} Users (${users.length})</div>
     <div class="u-cards">${cards}</div>`;
 }
+
+// Expand/collapse a user card (click its identity area). Accordion-free: each toggles independently.
+function toggleUserCard(el){
+  const card=el.closest('.u-card');
+  if(card) card.classList.toggle('open');
+}
+window.toggleUserCard=toggleUserCard;
 
 function flash(id,msg,kind){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},4000);}
 

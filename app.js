@@ -510,71 +510,6 @@ function topBar(active){
 
 function doLogout(){window.PHDAuth.clear();location.reload();}
 
-// ===== Help alerts (editor "ask for help") =====
-// IDs of open requests we've already fired a desktop notification for (this tab's lifetime).
-window._notifiedHelpIds=window._notifiedHelpIds||new Set();
-window._helpPollTimer=window._helpPollTimer||null;
-let _helpNotifPrimed=false; // becomes true after the first fetch so we don't blast notifications for the existing backlog on load
-
-// Only admins/owner get desktop notifications (they're the ones who answer).
-function canGetHelpNotifications(){return !!(window.PHDAuth&&window.PHDAuth.atLeast&&window.PHDAuth.atLeast('admin'));}
-
-// Ask for OS notification permission once (called after login / on dashboard load for admins).
-function ensureNotifyPermission(){
-  if(!('Notification'in window))return;
-  if(!canGetHelpNotifications())return;
-  if(Notification.permission==='default'){try{Notification.requestPermission();}catch(e){}}
-}
-
-// Update the badge from a known open list, and fire desktop notifications for any newly-seen requests.
-function applyHelpOpenList(list){
-  const badge=document.getElementById('alertBadge');
-  const n=Array.isArray(list)?list.length:0;
-  if(badge){if(n>0){badge.textContent=n;badge.style.display='flex';}else{badge.style.display='none';}}
-  if(!canGetHelpNotifications()||!Array.isArray(list))return;
-  // On the very first fetch, just record the existing IDs so we don't notify for the backlog.
-  if(!_helpNotifPrimed){list.forEach(h=>window._notifiedHelpIds.add(h.id));_helpNotifPrimed=true;return;}
-  const canNotify=('Notification'in window)&&Notification.permission==='granted';
-  list.forEach(h=>{
-    if(window._notifiedHelpIds.has(h.id))return;
-    window._notifiedHelpIds.add(h.id);
-    if(canNotify){
-      try{
-        const body=(h.doubt||'').slice(0,140);
-        const note=new Notification('New help request — '+(h.requester||'someone'),{
-          body:(h.shortId?('Ticket '+h.shortId+': '):'')+body,
-          tag:'help-'+h.id, // collapses duplicates for the same request
-          icon:'gsoc-logo.svg'
-        });
-        note.onclick=()=>{try{window.focus();}catch(e){}location.href='alerts.html';try{note.close();}catch(e){}};
-      }catch(e){/* notification failed silently */}
-    }
-  });
-}
-
-// Fetch open requests, update badge + notifications. Used by the poller and after render.
-async function refreshHelpAlertCount(){
-  const badge=document.getElementById('alertBadge');
-  try{
-    const r=await window.PHDAuth.api('GET','/api/help/open');
-    const list=(r.ok&&Array.isArray(r.data))?r.data:[];
-    applyHelpOpenList(list);
-  }catch(e){if(badge)badge.style.display='none';}
-}
-
-// Start a background poll so admins get notified even when the dashboard tab is in the background.
-function startHelpNotificationPolling(){
-  if(window._helpPollTimer)return; // already running
-  if(!(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser()))return; // logged-in only
-  ensureNotifyPermission();
-  // Poll every 10 minutes. The badge/notifications update regardless of which view is showing.
-  window._helpPollTimer=setInterval(refreshHelpAlertCount,600000);
-}
-function stopHelpNotificationPolling(){if(window._helpPollTimer){clearInterval(window._helpPollTimer);window._helpPollTimer=null;}}
-
-// The "Alerts" button now navigates to the standalone alerts.html page (with back + recent-history),
-// replacing the old in-dashboard popup. The badge count is still driven by refreshHelpAlertCount().
-
 // Handle a chosen CSV from the "Upload new data" input.
 function onUploadFileChange(e){
   if(PUBLISHING){showToast('Upload in progress — please wait.');e.target.value='';return;}
@@ -1645,7 +1580,7 @@ function renderDashboardShell(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:5px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload())?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${(window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload())?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1741,7 +1676,7 @@ function renderDashboard(){
   document.getElementById('app').innerHTML=topBar('dashboard')+`<div class="content">
   <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <h1 style="margin:0;display:inline-flex;align-items:center;gap:12px">Q3 2026 <span class="live-badge">LIVE</span></h1>
-    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><a class="btn sec" id="alertBtn" href="alerts.html" style="position:relative">${ic('alert',15)} Alerts<span id="alertBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ff5252;color:#fff;border-radius:5px;min-width:18px;height:18px;font-size:.7em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px">0</span></a>${(window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload())?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
+    ${loggedIn?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${(window.PHDAuth&&window.PHDAuth.canUpload&&window.PHDAuth.canUpload())?`<button type="button" class="btn sec" onclick="tbUploadIntro('app')">${ic('upload',15)} Upload new data</button><input type="file" accept=".csv" id="uploadFile" style="display:none">`:''}<a class="btn sec" href="data-log.html">${ic('history',15)} Uploaded data log</a></span>`:''}
   </div>
 
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Total Tickets Data</h3>
@@ -1855,7 +1790,6 @@ function renderDashboard(){
     </div></div>`;
   })():''}</div>`;
   attachNewFileHandler();
-  refreshHelpAlertCount();
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('c2a',{type:'bar',data:{labels:m.dL,datasets:[{label:'Created',data:m.dC,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c2b',{type:'bar',data:{labels:m.dL,datasets:[{label:'Resolved',data:m.dD,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
@@ -3700,16 +3634,13 @@ function renderDashboardChunked(){
       // holds two bodies + a header picker instead of the old Q3/Q2 scope chips.
       perfSectionHtml()+
       // Incident Types, Repeat Incident Data (+ its nested Historical Incidents detail), and
-      // Resolutions were MOVED off the dashboard to their own pages:
-      //   Incident Types  -> incident-types.html
-      //   Repeat Incident -> hi-resolved.html
-      //   Resolutions     -> resolutions.html
-      // (reachable from the Reports fly-out). Their eager loaders below are removed too.
+      // Resolutions were moved off the eager dashboard load. Repeat Incidents lives on its own page
+      // (hi-resolved.html, reachable from the Reports fly-out); the former standalone Incident Types /
+      // Resolutions / Countries pages were removed. Their eager loaders below are gone too.
     '</div>'+
   '</div>';
   attachNewFileHandler();
   if(window.PHDPlaceTopRight) window.PHDPlaceTopRight(); // move the top-right cluster into the header row
-  refreshHelpAlertCount();
   startKpiScramble(); // flicker the summary KPI numbers while /api/dash/summary loads
   // Ticket Age Classification loads EAGERLY (always visible, not collapsible). age-detail is
   // time-sensitive so it's not version-cached — always fetched fresh (small payload).
@@ -3719,8 +3650,8 @@ function renderDashboardChunked(){
   }).catch(function(){
     const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
   });
-  // (Incident Types, Resolutions, and Historical Incidents eager loaders removed — those sections
-  //  moved to incident-types.html / resolutions.html / hi-resolved.html.)
+  // (Incident Types, Resolutions, and Historical Incidents eager loaders removed — Repeat Incidents
+  //  lives on hi-resolved.html; the standalone Incident Types / Resolutions pages were removed.)
   // PERFORMANCE OVERVIEW (merged Average Data + Weekly Volume & SLA) loads LAZILY on first expand
   // (dashSectionToggle -> reloadPerfSection), so no request fires until the user opens it. Default
   // period = last 12 weeks. Reset the loaded flag on each dashboard (re)render.
@@ -3866,7 +3797,6 @@ async function doLogin(){
     // Repaint the right-rail avatar badge now that the profile (with photo) is loaded — the badge was
     // mounted while logged out, so it needs an explicit rebuild to show the photo without a reload.
     try{ if(window.PHDRefreshRailProfile)window.PHDRefreshRailProfile(); }catch(e){}
-    startHelpNotificationPolling(); // begin desktop notifications for admins/owner
     hideLoginLoader();
     nav(currentView);
     showToast('Logged in as '+r.data.user.username+' ('+r.data.user.role+')');
@@ -4254,7 +4184,6 @@ async function maybeHandlePendingUpload(){
   await loadUserRoles();
   if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
   try{ if(window.PHDNav&&window.PHDNav.refreshRight)window.PHDNav.refreshRight(); }catch(e){}
-  startHelpNotificationPolling();
   // Warm avatars in the background (non-blocking) so drill-down popups show pictures without a
   // per-open fetch. The roster itself no longer carries the heavy base64 images.
   setTimeout(loadUserAvatars, 1200);

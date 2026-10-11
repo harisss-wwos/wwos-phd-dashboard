@@ -15,21 +15,45 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#1b2026;line-height:1}
-.wrap{padding:32px 24px 8px}
+.wrap{padding:0 0 8px}
 
-/* ---- Tab toggle: selected = orange gradient pill, others = light outline ---- */
-.uc-tabs{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.uc-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:5px;font-size:.92em;font-weight:700;cursor:pointer;user-select:none;border:1px solid var(--bd);background:#fff;color:var(--tm);font-family:inherit;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:background .15s,color .15s,border-color .15s}
-.uc-tab:hover{color:#1b2026;border-color:#c9d0d7}
-.uc-tab.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border-color:#f07d0a;box-shadow:0 3px 10px -2px rgba(240,125,10,.45)}
-.uc-tab svg{flex-shrink:0}
+/* ---- One padded column holds BOTH the title bar and the content. The 5px side gutter lives ONLY
+   here, and the title bar + the embedded card wrap each use ZERO side padding, so both fill this
+   column's content box with no per-child inset to drift. That makes their widths identical. ---- */
+.tool-pad{padding:0 5px}
+
+/* ---- Shared 60px white title bar: segmented radio (left) + per-tab actions (right) ---- */
+.tool-titlebar{width:100%;box-sizing:border-box;height:60px;background:#fff;border:1px solid var(--bd);border-radius:5px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 10px;position:sticky;top:0;z-index:40;flex-wrap:nowrap}
+@media(max-width:760px){.tool-titlebar{height:auto;min-height:60px;flex-wrap:wrap;padding:10px;gap:10px}}
+
+/* Stylish segmented radio control (iOS-style sliding pill) */
+.seg{position:relative;display:inline-flex;align-items:center;gap:2px;background:#f1f3f6;border:1px solid #e4e8ec;border-radius:10px;padding:4px}
+.seg-ind{position:absolute;top:4px;bottom:4px;border-radius:7px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);box-shadow:0 3px 10px -2px rgba(240,125,10,.5);transition:left .28s cubic-bezier(.4,.9,.3,1),width .28s cubic-bezier(.4,.9,.3,1);z-index:0}
+.seg-opt{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border:none;background:transparent;color:var(--tm);font-family:inherit;font-size:.9em;font-weight:700;cursor:pointer;border-radius:7px;white-space:nowrap;transition:color .2s}
+.seg-opt:hover{color:#1b2026}
+.seg-opt.active{color:#fff}
+.seg-opt svg{flex-shrink:0}
+@media(max-width:760px){.seg-opt{padding:7px 13px;font-size:.84em}.seg-opt .seg-txt{display:none}}
+
+/* Per-tab action buttons on the right of the title bar (switch with the radio) */
+.tb-actions{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+.tb-actions .btn,.tb-actions .btn.sec{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:7px;font-weight:700;font-size:.85em;cursor:pointer;border:1px solid transparent;text-decoration:none;font-family:inherit;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.tb-actions .btn{background:var(--o);color:#fff}
+.tb-actions .btn:hover{background:var(--oh)}
+.tb-actions .btn.sec{background:#fff;border-color:var(--bd);color:var(--t)}
+.tb-actions .btn.sec:hover{border-color:var(--o);color:var(--o)}
+.tb-actions svg{flex-shrink:0}
+@media(max-width:900px){.tb-actions .btn .tb-blabel{display:none}}
 
 /* ---- Embedded-tool frame + skeleton ---- */
 /* The iframe height is driven by JS (sizeFrame) to match its inner content, so the embedded tool
    flows with THIS page instead of scrolling inside its own fixed-height box. min-height just reserves
    room while the skeleton shows. overflow:hidden on the frame kills any residual inner scrollbar. */
-.tool-frame-wrap{position:relative;min-height:520px}
-.tool-frame{width:100%;border:0;display:block;min-height:300px;overflow:hidden}
+/* No fixed min-height on the wrap: the iframe height is driven by auto-size to match its content, so
+   the content FLOWS with this page (one page scrollbar, no inner iframe scrollbar, no reserved empty
+   gap below short/paginated pages). The skeleton overlays the iframe's own min-height while loading. */
+.tool-frame-wrap{position:relative;width:100%;box-sizing:border-box}
+.tool-frame{width:100%;max-width:100%;box-sizing:border-box;border:0;display:block;min-height:300px;overflow:hidden}
 .tool-skel{position:absolute;inset:0;background:#f3f5f7;padding:8px 0}
 .tool-skel.hidden{display:none}
 .sk{position:relative;overflow:hidden;background:#e9edf1;border-radius:5px;display:block}
@@ -41,6 +65,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 /* Global: main content spans the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Keep the OUTER #wrap on the standard content-band spacing (top gutter from topbar-auth, 12px side
+   gutters from app-light's data-profile-panel rule) so the title bar + cards sit in the same band as
+   every other page (Shift Report etc.). The INNER content wrap also carries class="wrap", so it would
+   otherwise ADD a second 12px side gutter and a top gutter on top of the band — zero those so the
+   cards line up flush with the title bar inside the one shared band. ID scope beats the !important
+   shared rules. */
+#wrap .tool-wrap{width:100%!important;box-sizing:border-box;padding-top:0!important;padding-left:0!important;padding-right:0!important;margin-left:0!important;margin-right:0!important}
+#wrap .tool-wrap #tabBody{width:100%;box-sizing:border-box}
+/* Zero ONLY the top gutter on the outer band (the 14px topbar-auth .wrap{padding-top} injection);
+   keep the 12px left/right gutters to the nav rail + profile column. ID scope beats the !important. */
+#wrap.wrap{padding-top:0!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -62,10 +97,9 @@ const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 // so every tool keeps its full behaviour (copy counts, add/edit/delete modals, caching) with zero
 // cross-tab collisions. Prompts is the WIP page, embedded the same way.
 const TABS=[
-  { id:'blurbs',   label:'Common Blurbs',   icon:'clipboard', src:'tool-blurbs.html' },
-  { id:'hashtags', label:'Hashtags',        icon:'hash',      src:'tool-hashtags.html' },
-  { id:'paging',   label:'Paging Contacts', icon:'mail',      src:'tool-paging.html' },
-  { id:'prompts',  label:'Prompts',         icon:'message',   src:'tool-prompts.html' },
+  { id:'blurbs',   label:'Common Blurbs',   icon:'clipboard', src:'tool-blurbs.html',  addLabel:'Add New Blurb',   logHref:'blurb-log.html',   logLabel:'Blurb edit log' },
+  { id:'hashtags', label:'Hashtags',        icon:'hash',      src:'tool-hashtags.html', addLabel:'Add New Hashtag', logHref:'hashtag-log.html', logLabel:'Hashtag edit log' },
+  { id:'paging',   label:'Paging Contacts', icon:'mail',      src:'tool-paging.html',   addLabel:'Add Region',      logHref:'paging-log.html',  logLabel:'Paging edit log' },
 ];
 let ACTIVE='blurbs';
 const LOADED={}; // id -> true once its iframe has been created (kept alive so re-clicks are instant)
@@ -77,18 +111,101 @@ function skeleton(){
   return '<div class="tool-skel" id="skel-'+ACTIVE+'">'+bars+'</div>';
 }
 
+const canEditTools=function(){ return !!(A.canEditTools&&A.canEditTools()); };
+
 function pageShell(){
-  var tabs=TABS.map(function(t){
-    return '<button class="uc-tab'+(ACTIVE===t.id?' active':'')+'" id="tab-'+t.id+'" onclick="switchTab(\''+t.id+'\')">'+ic(t.icon,15)+' '+t.label+'</button>';
+  var opts=TABS.map(function(t){
+    return '<button class="seg-opt'+(ACTIVE===t.id?' active':'')+'" id="tab-'+t.id+'" role="tab" aria-selected="'+(ACTIVE===t.id)+'" onclick="switchTab(\''+t.id+'\')">'+ic(t.icon,15)+'<span class="seg-txt">'+t.label+'</span></button>';
   }).join('');
-  return '<div class="uc-tabs">'+tabs+'</div><div id="tabBody"></div>';
+  return '<div class="tool-pad">'
+      +'<div class="tool-titlebar">'
+        +'<div class="seg" id="segCtl" role="tablist"><span class="seg-ind" id="segInd"></span>'+opts+'</div>'
+        +'<div class="tb-actions" id="tbActions"></div>'
+      +'</div>'
+      +'<div class="wrap tool-wrap"><div id="tabBody"></div></div>'
+    +'</div>';
+}
+
+// Slide the segmented-radio indicator pill under the active option.
+function moveSegIndicator(){
+  var ind=document.getElementById('segInd'); var opt=document.getElementById('tab-'+ACTIVE);
+  if(!ind||!opt) return;
+  ind.style.left=opt.offsetLeft+'px';
+  ind.style.width=opt.offsetWidth+'px';
+}
+
+// LOGVIEW[id] = true while that tab is showing its change log (inline, in the same iframe) instead
+// of the tool itself. The "edit log" button toggles this; in log mode it becomes a "Back" button.
+const LOGVIEW={};
+
+// Render the per-tab action buttons (right side of the title bar). Switches with the active tab.
+// Normal mode: "Add" (calls the embedded tool's own openAddModal) + "<Tool> edit log" (opens the log
+// inline in the same iframe). Log mode: a single "Back" button that restores the tool. Admin-gated.
+function renderActions(){
+  var el=document.getElementById('tbActions'); if(!el) return;
+  var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t){ el.innerHTML=''; return; }
+  var editor=canEditTools();
+  if(!editor){ el.innerHTML=''; return; }
+  var html='';
+  if(LOGVIEW[ACTIVE]){
+    html+='<button class="btn sec" onclick="closeLog()">'+ic('arrow-left',15)+'<span class="tb-blabel">Back</span></button>';
+  }else{
+    html+='<button class="btn" onclick="toolAdd()">'+ic('plus',15)+'<span class="tb-blabel">'+t.addLabel+'</span></button>';
+    html+='<button class="btn sec" onclick="openLog()">'+ic('history',15)+'<span class="tb-blabel">'+t.logLabel+'</span></button>';
+  }
+  el.innerHTML=html;
+}
+
+// Trigger the active embedded tool's own Add modal (same-origin iframe).
+function toolAdd(){
+  var frame=document.getElementById('frame-'+ACTIVE); if(!frame) return;
+  try{
+    var win=frame.contentWindow;
+    if(win&&typeof win.openAddModal==='function') win.openAddModal();
+  }catch(e){ /* not ready / cross-origin — ignore */ }
+}
+window.toolAdd=toolAdd;
+
+// Show the change log inline: swap the active iframe's src to the log page (embedded), re-skeleton
+// while it loads, and flip the title-bar button to "Back".
+function openLog(){
+  var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t) return;
+  LOGVIEW[ACTIVE]=true;
+  renderActions();
+  swapFrameSrc(ACTIVE, t.logHref);
+}
+window.openLog=openLog;
+
+// Restore the tool itself in place of the log.
+function closeLog(){
+  var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t) return;
+  LOGVIEW[ACTIVE]=false;
+  renderActions();
+  swapFrameSrc(ACTIVE, t.src);
+}
+window.closeLog=closeLog;
+
+// Point the given tab's iframe at a new page (always embedded) and show its skeleton until it loads.
+function swapFrameSrc(id, src){
+  var frame=document.getElementById('frame-'+id); if(!frame) return;
+  var s=document.getElementById('skel-'+id); if(s) s.classList.remove('hidden');
+  frame.style.height='300px'; // reset so auto-size re-measures the new document
+  frame.src=src+(src.indexOf('?')>=0?'&':'?')+'embed=1';
 }
 
 // Show a tab: create its iframe once (with a skeleton overlay until it loads), then just show/hide
 // the frames on subsequent clicks so state is preserved and switching is instant.
 function switchTab(id){
   ACTIVE=id;
-  TABS.forEach(function(t){ var b=document.getElementById('tab-'+t.id); if(b) b.classList.toggle('active',t.id===id); });
+  TABS.forEach(function(t){ var b=document.getElementById('tab-'+t.id); if(b){ b.classList.toggle('active',t.id===id); b.setAttribute('aria-selected',String(t.id===id)); } });
+  moveSegIndicator();
+  // If this tab was left showing its change log, restore the tool itself on re-entry.
+  if(LOGVIEW[id]){
+    LOGVIEW[id]=false;
+    var _t=TABS.find(function(x){return x.id===id;});
+    if(_t&&LOADED[id]) swapFrameSrc(id,_t.src);
+  }
+  renderActions();
   const body=document.getElementById('tabBody');
   // Hide all existing frame-wraps.
   Array.prototype.forEach.call(body.querySelectorAll('.tool-frame-wrap'),function(w){ w.style.display=(w.getAttribute('data-id')===id)?'':'none'; });
@@ -143,6 +260,10 @@ function load(){
   }
   document.getElementById('wrap').innerHTML=pageShell();
   switchTab(ACTIVE); // default tab
+  // Keep the sliding indicator aligned when the layout reflows (fonts load, window resize).
+  moveSegIndicator();
+  setTimeout(moveSegIndicator,120);
+  window.addEventListener('resize',moveSegIndicator);
 }
 load();
 </script>

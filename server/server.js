@@ -373,14 +373,18 @@ app.get('/api/hi-nonpet', requireFlag('canViewRepeat'), async (req, res) => {
       const fromField = normCode(String(t.Country || '').trim());
       if (fromField) return fromField;
       const title = String(t.Title || '').trim();
-      // 2) Bracketed prefix "[...]": try the LAST 2-3 letter token inside (handles "[Country Code e.x US]").
-      const br = title.match(/^\[\s*([^\]]*?)\s*\]/);
-      if (br) {
-        const toks = (br[1].match(/[A-Za-z]{2,}/g) || []);
+      // 2) Bracketed/parenthesised prefix "[...]" or "(...)": take the LAST valid code token inside
+      //    (handles "[US]", "(US)", "[Country Code e.x US]").
+      const wrap = title.match(/^[\[(]\s*([^\])]*?)\s*[\])]/);
+      if (wrap) {
+        const toks = (wrap[1].match(/[A-Za-z]{2,}/g) || []);
         for (let i = toks.length - 1; i >= 0; i--) { const c = normCode(toks[i]); if (c) return c; }
         return 'Unknown';
       }
-      // 3) Leading token(s) before the ticket-type words.
+      // 3) "Country XX ..." prefix -> the token right after the word "Country".
+      const ctry = title.match(/^Country\s+([A-Za-z]{2,})\b/i);
+      if (ctry) { const c = normCode(ctry[1]); if (c) return c; }
+      // 4) Leading token(s) before the ticket-type words.
       const lead = title.match(/^([A-Za-z]{2,})\b/);
       if (lead) { const c = normCode(lead[1]); if (c) return c; }
       return 'Unknown';
@@ -461,6 +465,104 @@ app.get('/api/sla-breach', requireFlag('canViewSLA'), async (req, res) => {
     });
   } catch (e) {
     console.error('sla-breach error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load SLA-breach tickets.' });
+  }
+});
+
+// ---- SLA: MONTHLY trend (section-1 chart) ----
+// Counts tickets CREATED each month of 2026 and, of those, how many crossed SLA (resolution >240h),
+// plus repeat / pet / non-pet splits for the hover checkpoint.
+app.get('/api/sla-monthly', requireFlag('canViewSLA'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: cdExpr }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
+    const Y0 = new Date('2026-01-01T00:00:00.000Z'), Y1 = new Date('2027-01-01T00:00:00.000Z');
+    const rows = await coll.aggregate([
+      { $project: { cd: cdExpr, isPet: isPetExpr, hi: hiExpr, resHrs } },
+      { $match: { cd: { $gte: Y0, $lt: Y1 } } },
+      { $project: { mo: { $month: '$cd' }, isPet: 1, hi: 1,
+        crossed: { $cond: [{ $and: [{ $ne: ['$resHrs', null] }, { $gt: ['$resHrs', 240] }] }, 1, 0] } } },
+      { $group: {
+        _id: '$mo',
+        created:    { $sum: 1 },
+        slaCrossed: { $sum: '$crossed' },
+        repeat:     { $sum: { $cond: [{ $gt: ['$hi', 0] }, 1, 0] } },
+        pet:        { $sum: { $cond: ['$isPet', 1, 0] } },
+        nonPet:     { $sum: { $cond: ['$isPet', 0, 1] } },
+      } },
+    ], { allowDiskUse: true }).toArray();
+    const byMonth = {}; rows.forEach(r => { byMonth[r._id] = r; });
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      const r = byMonth[m] || {};
+      months.push({ month: m,
+        created: r.created || 0, slaCrossed: r.slaCrossed || 0,
+        repeat: r.repeat || 0, pet: r.pet || 0, nonPet: r.nonPet || 0 });
+    }
+    res.json({ year: 2026, months });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the SLA monthly trend.' });
+  }
+});
+
+// ---- SLA: FLAT list of SLA-crossed tickets (>240h), created on/after 1 Jan 2026 ----
+// Grouped by country on the client. Each ticket: country, created, title, assignee, resolvedBy,
+// HI, resolution (root cause).
+app.get('/api/sla-flat', requireFlag('canViewSLA'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const rcExpr = { $let: { vars: { rc: { $trim: { input: { $replaceAll: { input: { $ifNull: ['$RootCause', ''] }, find: '- ', replacement: '' } } } } }, in: { $cond: [{ $eq: ['$$rc', ''] }, 'Unknown', '$$rc'] } } };
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: cdExpr }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
+    const B2 = new Date('2026-01-01T00:00:00.000Z');
+    const rows = await coll.aggregate([
+      { $project: {
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, CreateDate: 1,
+        assignee: { $ifNull: ['$AssigneeIdentity', ''] },
+        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
+        hi: hiExpr, isPet: isPetExpr, rc: rcExpr, cd: cdExpr, resHrs,
+      } },
+      { $match: { cd: { $gte: B2 }, resHrs: { $gt: 240 } } },
+      { $sort: { cd: 1 } },   // newest LAST (ascending)
+      { $limit: 20000 },
+    ], { allowDiskUse: true }).toArray();
+    const COUNTRY_CODES = new Set(['US','UK','CA','IN','AU','MX','JP','DE','IT','FR','EG','ES','SA','BR','NL','ZA','PT','UAE','IE','SG','TR','PL','SE','BE','AT','CH','DK','NO','FI','GR','CZ']);
+    const NAME_TO_CODE = { CANADA:'CA', CANNADA:'CA', UNITEDKINGDOM:'UK', UNITEDSTATES:'US', INDIA:'IN', MEXICO:'MX', JAPAN:'JP', GERMANY:'DE', FRANCE:'FR', ITALY:'IT', SPAIN:'ES', BRAZIL:'BR', AUSTRALIA:'AU', EGYPT:'EG' };
+    const normCode = (raw) => { if (!raw) return ''; const up = String(raw).toUpperCase().replace(/[^A-Z]/g, ''); if (COUNTRY_CODES.has(up)) return up; if (NAME_TO_CODE[up]) return NAME_TO_CODE[up]; return ''; };
+    const countryOf = (t) => {
+      const f = normCode(String(t.Country || '').trim()); if (f) return f;
+      const title = String(t.Title || '').trim();
+      const wrap = title.match(/^[\[(]\s*([^\])]*?)\s*[\])]/);
+      if (wrap) { const toks = (wrap[1].match(/[A-Za-z]{2,}/g) || []); for (let i = toks.length - 1; i >= 0; i--) { const c = normCode(toks[i]); if (c) return c; } return 'Unknown'; }
+      const ctry = title.match(/^Country\s+([A-Za-z]{2,})\b/i); if (ctry) { const c = normCode(ctry[1]); if (c) return c; }
+      const lead = title.match(/^([A-Za-z]{2,})\b/); if (lead) { const c = normCode(lead[1]); if (c) return c; }
+      return 'Unknown';
+    };
+    const tickets = rows.map(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      // SLA breach length in whole days = (ResolvedDate - CreateDate) rounded. resHrs is already the
+      // create->resolve hours; a breach ticket always has a valid resHrs (> 240).
+      const breachDays = (t.resHrs != null) ? Math.round(t.resHrs / 24) : null;
+      return {
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        country: countryOf(t),
+        createDate: t.CreateDate || '',
+        breachDays,
+        title: t.Title || '',
+        assignee: t.assignee || '',
+        resolvedBy: t.resolverRaw || '',
+        hi: t.hi || 0,
+        resolution: t.rc || 'Unknown',
+      };
+    });
+    res.json({ total: tickets.length, from: '2026-01-01', tickets });
+  } catch (e) {
     res.status(500).json({ error: 'Could not load SLA-breach tickets.' });
   }
 });
@@ -2444,24 +2546,6 @@ async function findLiveTicket(shortId) {
   return tickets.find(t => String(t.ShortId || t.IssueId || '') === sid) || null;
 }
 
-// Attach live-ticket fields (title, ticketStatus, createDate) to a list of help docs by ShortId,
-// in ONE query. Powers the richer Alerts card (title + ticket status + created date/days-left).
-async function enrichHelpWithTicket(list) {
-  const ids = Array.from(new Set(list.map(h => String(h.shortId)).filter(Boolean)));
-  const byId = {};
-  if (ids.length) {
-    try {
-      const tColl = await getCollection(COLLECTIONS.ticketDocs);
-      const rows = await tColl.find({ q: (await liveQuarterId()), ShortId: { $in: ids } }, { projection: { ShortId: 1, Title: 1, Status: 1, CreateDate: 1 } }).toArray();
-      rows.forEach(t => { byId[String(t.ShortId)] = t; });
-    } catch (e) { /* enrichment is best-effort */ }
-  }
-  return list.map(h => {
-    const t = byId[String(h.shortId)] || {};
-    return Object.assign({}, h, { title: t.Title || '', ticketStatus: t.Status || '', createDate: t.CreateDate || '' });
-  });
-}
-
 // Search any ticket across ALL quarters by ShortId (admin+). Used by the "Unique cases" page.
 app.get('/api/ticket-search', requireRole('user'), async (req, res) => {
   try {
@@ -2945,6 +3029,158 @@ app.get('/api/station-requests', requireFlag('canViewSR'), async (req, res) => {
   }
 });
 
+// US ZIP (first 3 digits) -> state code. Covers the standard ZIP-prefix ranges. Anything outside
+// these ranges (or a non-US / unparseable zip) is left to the caller to label "Unknown".
+function zipToState(zip) {
+  const z = String(zip || '').replace(/[^0-9]/g, '');
+  if (z.length < 3) return '';
+  const p = parseInt(z.slice(0, 3), 10);
+  if (isNaN(p)) return '';
+  // Ranges keyed by first-3-digit ZIP prefix (ZCTA convention).
+  const R = [
+    [[0,5],'CT'],[[6,6],'CT'],[[7,8],'NJ'],[[9,9],'PR'],[[10,27],'NY'],[[28,29],'NY'],
+    [[30,38],'MA'],[[39,49],'RI'],[[50,54],'NH'],[[55,59],'VT'],[[60,69],'MA'],
+    [[70,89],'NJ'],[[100,149],'NY'],[[150,196],'PA'],[[197,199],'DE'],
+    [[200,205],'DC'],[[206,219],'MD'],[[220,246],'VA'],[[247,268],'WV'],
+    [[270,289],'NC'],[[290,299],'SC'],[[300,319],'GA'],[[320,349],'FL'],
+    [[350,369],'AL'],[[370,385],'TN'],[[386,397],'MS'],[[398,399],'GA'],
+    [[400,427],'KY'],[[430,459],'OH'],[[460,479],'IN'],[[480,499],'MI'],
+    [[500,528],'IA'],[[530,549],'WI'],[[550,567],'MN'],[[570,577],'SD'],
+    [[580,588],'ND'],[[590,599],'MT'],[[600,629],'IL'],[[630,658],'MO'],
+    [[660,679],'KS'],[[680,693],'NE'],[[700,714],'LA'],[[716,729],'AR'],
+    [[730,749],'OK'],[[750,799],'TX'],[[800,816],'CO'],[[820,831],'WY'],
+    [[832,838],'ID'],[[840,847],'UT'],[[850,865],'AZ'],[[870,884],'NM'],
+    [[889,899],'NV'],[[900,961],'CA'],[[967,968],'HI'],[[970,979],'OR'],
+    [[980,994],'WA'],[[995,999],'AK'],
+  ];
+  for (const [[lo, hi], st] of R) { if (p >= lo && p <= hi) return st; }
+  return '';
+}
+// Extract Zip and SID (station) from a RootCauseDetails blob. Handles the field-label variants seen
+// in the data: "Zip:" / "Zip Code:", "SID:" / "Station ID:" (with or without spaces).
+function parseRcd(rcd) {
+  const s = String(rcd || '');
+  const zipM = s.match(/\bzip(?:\s*code)?\s*:?\s*([0-9]{5})(?:-[0-9]{4})?/i);
+  const sidM = s.match(/\b(?:SID|Station\s*ID)\s*:?\s*([A-Za-z0-9]{2,6})/i);
+  return { zip: zipM ? zipM[1] : '', sid: sidM ? sidM[1].toUpperCase() : '' };
+}
+
+// ---- Station-request: MONTHLY trend (section-1 chart) ----
+// Counts tickets CREATED each month of 2026, split into the three station-request categories:
+//   raisedNotFulfilled = labelled && !fulfilled   (raised but refused)
+//   notRaisedFulfilled = !labelled && fulfilled   (not raised but exclusion applied)
+//   raisedFulfilled    = labelled && fulfilled     (raised and aligned)
+app.get('/api/station-monthly', requireFlag('canViewSR'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const labelledExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$Labels', ''] } }, regex: 'station request|address exclusion' } };
+    const fulfilledExpr = { $regexMatch: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: 'address\\s*(exclusion|de-?prio?\\w*)|area\\s*exclusion', options: 'i' } };
+    const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const Y0 = new Date('2026-01-01T00:00:00.000Z'), Y1 = new Date('2027-01-01T00:00:00.000Z');
+    const rows = await coll.aggregate([
+      // Keep ALL tickets created in 2026 so `total` is the true monthly created count; the category
+      // counts use the labelled/fulfilled flags.
+      { $project: { cd: cdExpr, labelled: labelledExpr, fulfilled: fulfilledExpr, isPet: isPetExpr } },
+      { $match: { cd: { $gte: Y0, $lt: Y1 } } },
+      { $group: {
+        _id: { $month: '$cd' },
+        total:              { $sum: 1 },
+        raisedNotFulfilled: { $sum: { $cond: [{ $and: ['$labelled', { $not: '$fulfilled' }] }, 1, 0] } },
+        raisedFulfilled:    { $sum: { $cond: [{ $and: ['$labelled', '$fulfilled'] }, 1, 0] } },
+        notRaisedFulfilled: { $sum: { $cond: [{ $and: [{ $not: '$labelled' }, '$fulfilled'] }, 1, 0] } },
+        // Pet / non-pet among tickets whose resolution is an address-exclusion/depri type outcome.
+        fulfilledPet:       { $sum: { $cond: [{ $and: ['$fulfilled', '$isPet'] }, 1, 0] } },
+        fulfilledNonPet:    { $sum: { $cond: [{ $and: ['$fulfilled', { $not: '$isPet' }] }, 1, 0] } },
+      } },
+    ], { allowDiskUse: true }).toArray();
+    const byMonth = {}; rows.forEach(r => { byMonth[r._id] = r; });
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      const r = byMonth[m] || {};
+      months.push({ month: m,
+        total: r.total || 0,
+        raisedNotFulfilled: r.raisedNotFulfilled || 0,
+        notRaisedFulfilled: r.notRaisedFulfilled || 0,
+        raisedFulfilled: r.raisedFulfilled || 0,
+        fulfilledPet: r.fulfilledPet || 0,
+        fulfilledNonPet: r.fulfilledNonPet || 0 });
+    }
+    res.json({ year: 2026, months });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the station-request monthly trend.' });
+  }
+});
+
+// ---- Station-request: FLAT list for the Country -> State / Station grouping (section 2) ----
+// Every station-request ticket (labelled OR fulfilled) created on/after 1 Jan 2026, with the fields
+// the grouped view needs: country (from Title), zip + state (from RootCauseDetails), SID (station),
+// HI count, created date, resolvedBy, title.
+app.get('/api/station-flat', requireFlag('canViewSR'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+    const labelledExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$Labels', ''] } }, regex: 'station request|address exclusion' } };
+    // "Fulfilled" = the resolution/root-cause names an address-exclusion-type outcome. Matches the
+    // real variants: "Address Exclusion", "Address Deprio[ritization]", "Address De-prioritization",
+    // "Area Exclusion" (any capitalisation).
+    const fulfilledExpr = { $regexMatch: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: 'address\\s*(exclusion|de-?prio?\\w*)|area\\s*exclusion', options: 'i' } };
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const B2 = new Date('2026-01-01T00:00:00.000Z');
+    const rows = await coll.aggregate([
+      { $project: {
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, CreateDate: 1, RootCauseDetails: 1,
+        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
+        hi: hiExpr, cd: cdExpr, labelled: labelledExpr, fulfilled: fulfilledExpr,
+      } },
+      { $match: { cd: { $gte: B2 }, $or: [{ labelled: true }, { fulfilled: true }] } },
+      { $sort: { hi: -1 } },
+      { $limit: 20000 },
+    ], { allowDiskUse: true }).toArray();
+    // Country code — same logic as the hi-nonpet endpoint.
+    const COUNTRY_CODES = new Set(['US','UK','CA','IN','AU','MX','JP','DE','IT','FR','EG','ES','SA','BR','NL','ZA','PT','UAE','IE','SG','TR','PL','SE','BE','AT','CH','DK','NO','FI','GR','CZ']);
+    const NAME_TO_CODE = { CANADA:'CA', CANNADA:'CA', UNITEDKINGDOM:'UK', UNITEDSTATES:'US', INDIA:'IN', MEXICO:'MX', JAPAN:'JP', GERMANY:'DE', FRANCE:'FR', ITALY:'IT', SPAIN:'ES', BRAZIL:'BR', AUSTRALIA:'AU', EGYPT:'EG' };
+    const normCode = (raw) => { if (!raw) return ''; const up = String(raw).toUpperCase().replace(/[^A-Z]/g, ''); if (COUNTRY_CODES.has(up)) return up; if (NAME_TO_CODE[up]) return NAME_TO_CODE[up]; return ''; };
+    const countryOf = (t) => {
+      const f = normCode(String(t.Country || '').trim()); if (f) return f;
+      const title = String(t.Title || '').trim();
+      const wrap = title.match(/^[\[(]\s*([^\])]*?)\s*[\])]/);
+      if (wrap) { const toks = (wrap[1].match(/[A-Za-z]{2,}/g) || []); for (let i = toks.length - 1; i >= 0; i--) { const c = normCode(toks[i]); if (c) return c; } return 'Unknown'; }
+      const ctry = title.match(/^Country\s+([A-Za-z]{2,})\b/i); if (ctry) { const c = normCode(ctry[1]); if (c) return c; }
+      const lead = title.match(/^([A-Za-z]{2,})\b/); if (lead) { const c = normCode(lead[1]); if (c) return c; }
+      return 'Unknown';
+    };
+    const tickets = rows.map(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      const { zip, sid: station } = parseRcd(t.RootCauseDetails);
+      const country = countryOf(t);
+      // State only makes sense for US zips; non-US -> blank -> "Unknown" bucket on the client.
+      const state = (country === 'US') ? (zipToState(zip) || '') : '';
+      // Category for the left-corner radio filter:
+      //   declined = labelled && !fulfilled   (raised but refused)
+      //   aligned  = labelled && fulfilled      (raised and aligned)
+      //   raised   = !labelled && fulfilled     (not raised but exclusion applied)
+      const category = t.labelled ? (t.fulfilled ? 'aligned' : 'declined') : 'raised';
+      return {
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        country,
+        state,
+        zip,
+        station: station || '',
+        category,
+        hi: t.hi || 0,
+        createDate: t.CreateDate || '',
+        resolvedBy: t.resolverRaw || '',
+        title: t.Title || '',
+      };
+    });
+    res.json({ total: tickets.length, from: '2026-01-01', tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load station-request tickets.' });
+  }
+});
+
 // ---- Hashtags report (Hashtags page) ---------------------------------------------------------
 // Scans ALL ticket_docs across every quarter, keeps only tickets CREATED on/after 1 Apr 2026, and
 // extracts every "#tag" token from each ticket's Labels column (comma-separated string). Groups the
@@ -3011,6 +3247,90 @@ app.get('/api/hashtags-report', async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load hashtags report.' });
+  }
+});
+
+// ---- Out-of-Scope report (Hashtags page "#Out of Scope" section) ------------------------------
+// Two groups of pet incidents resolved as out-of-scope, scanned live from ticket_docs:
+//   (a) AUTO-SIM  — the AUTHORITATIVE AutoSIM-resolved rule (isAutoSimResolved): RootCauseDetails
+//       empty + ClosureCode Immediately Resolved/Automatically Closed + ResolvedByIdentity is the
+//       AutoSIM ARN + Tags contains 'pet_incident_auto_resolved'.
+//   (b) RULE (PHD agents) — resolved by one of the analysts (users.analyst=true) with the same
+//       auto/immediate closure code AND a pet-looking Title ("Attack w/ Pet", "Pet incident", …).
+//       RootCause is usually empty here (not required); a #out-of-scope label is a soft signal only.
+// Per-ticket payload matches the hashtags sections ({shortId,url,created,assignee,status,title}),
+// plus resolvedBy/closureCode so the UI can show attribution. Created on/after the hashtags cutoff.
+const PET_TITLE_RE = /\bpet\b|attack\s*w\/?\s*pet|unsecured\s+animal/i;
+app.get('/api/out-of-scope-report', async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // Analyst set (the PHD agents) — users flagged analyst:true, lowercased for comparison.
+    let analystSet = new Set();
+    try {
+      const arows = await (await getCollection(COLLECTIONS.users)).find({ analyst: true }, { projection: { _id: 0, username: 1 } }).toArray();
+      arows.forEach(u => { const k = String(u.username || '').toLowerCase(); if (k) analystSet.add(k); });
+    } catch (e) { /* analystSet empty -> RULE group simply yields nothing resolver-matched */ }
+
+    // Pull resolved/closed tickets (both branches require a resolution) created on/after the cutoff.
+    const rows = await coll.aggregate([
+      { $project: {
+        _id: 0,
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1,
+        AssigneeIdentity: 1, ResolvedByIdentity: 1, ClosureCode: 1, RootCause: 1, RootCauseDetails: 1,
+        Labels: 1, Tags: 1,
+        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+      } },
+      { $match: { Status: { $in: ['Resolved', 'Closed'] }, cd: { $gte: HASHTAGS_FROM } } },
+    ], { allowDiskUse: true }).toArray();
+
+    const ccOf = (t) => String(t.ClosureCode || '').trim();
+    const slim = (t) => {
+      const sid = t.ShortId || t.IssueId || '';
+      return {
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        created: t.CreateDate || '',
+        assignee: t.AssigneeIdentity || '',
+        resolvedBy: t.ResolvedByIdentity || '',
+        closureCode: ccOf(t),
+        status: t.Status || '',
+        title: t.Title || '',
+      };
+    };
+
+    const autosim = [], rule = [];
+    const seenA = new Set(), seenR = new Set();
+    rows.forEach(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      // (a) AUTO-SIM — authoritative four-point rule (reuse isAutoSimResolved).
+      if (isAutoSimResolved(t)) {
+        if (!(sid && seenA.has(sid))) { if (sid) seenA.add(sid); autosim.push(slim(t)); }
+        return; // an AutoSIM ticket is never also counted under RULE
+      }
+      // (b) RULE (PHD agents): auto/immediate closure + resolved by an analyst + pet-looking Title.
+      const rby = String(t.ResolvedByIdentity || '').trim().toLowerCase();
+      const ccOk = IMMEDIATE_AUTO.includes(ccOf(t));
+      const byAgent = rby && analystSet.has(rby);
+      const petTitle = PET_TITLE_RE.test(String(t.Title || ''));
+      if (ccOk && byAgent && petTitle) {
+        if (!(sid && seenR.has(sid))) { if (sid) seenR.add(sid); rule.push(slim(t)); }
+      }
+    });
+
+    const byNewest = (a, b) => new Date(b.created) - new Date(a.created);
+    autosim.sort(byNewest); rule.sort(byNewest);
+
+    res.json({
+      generatedFrom: 'ticket_docs (live)',
+      generatedAt: new Date().toISOString(),
+      from: HASHTAGS_FROM.toISOString().slice(0, 10),
+      groups: [
+        { key: 'autosim', label: 'Pet incidents resolved by AUTO-SIM', count: autosim.length, tickets: autosim },
+        { key: 'rule',    label: 'Pet incidents resolved by RULE (PHD agents)', count: rule.length, tickets: rule },
+      ],
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load out-of-scope report.' });
   }
 });
 
@@ -3699,134 +4019,6 @@ app.delete('/api/incident-log/:id', requireRole('user'), async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete the incident log.' });
-  }
-});
-
-// ---- Help requests (editor "ask for help") ----
-// Create a help request on a ticket (editor only; must be assigned to them). Multiple allowed.
-app.post('/api/help', requireRole('editor'), async (req, res) => {
-  try {
-    const body = req.body || {};
-    const shortId = String(body.shortId || '').trim();
-    const doubt = String(body.doubt || '').trim();
-    if (!shortId || !doubt) return res.status(400).json({ error: 'Ticket and your question are required.' });
-    if (doubt.length > 2000) return res.status(400).json({ error: 'Question must be 2000 characters or fewer.' });
-    // Verify the ticket exists (in any quarter) and is assigned to the requester.
-    const ticket = await findLiveTicket(shortId);
-    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
-    if (String(ticket.AssigneeIdentity || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
-      return res.status(403).json({ error: 'You can only ask for help on tickets assigned to you.' });
-    }
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    // Only one OPEN request per ticket at a time. Must resolve ("Help received") before asking again.
-    const openExisting = await coll.findOne({ shortId, status: 'open' });
-    if (openExisting) {
-      return res.status(409).json({ error: 'There is already an open help request on this ticket. Click "Help received" to close it before asking a new question.' });
-    }
-    const now = new Date().toISOString();
-    const doc = { shortId, ticketUrl: ticket.IssueUrl || (ticket.ShortId ? ('https://t.corp.amazon.com/issues/' + ticket.ShortId) : ''), requester: req.user.username, role: req.user.role, doubt, status: 'open', createdAt: now, replies: [] };
-    const r = await coll.insertOne(doc);
-    res.status(201).json({ id: String(r.insertedId), ...doc });
-  } catch (e) {
-    res.status(500).json({ error: 'Could not submit help request.' });
-  }
-});
-
-// All OPEN help requests (any logged-in user can view — powers the alert popup).
-app.get('/api/help/open', requireRole('user'), async (req, res) => {
-  try {
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    // "Open" = status open AND no admin reply yet. This is defensive: any request that already has
-    // a reply is treated as answered even if a legacy record was left marked open (see reply route).
-    const list = await coll.find({
-      status: 'open',
-      $or: [{ replies: { $exists: false } }, { replies: { $size: 0 } }]
-    }).sort({ createdAt: -1 }).toArray();
-    const base = list.map(h => ({ id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '', requester: h.requester, doubt: h.doubt, status: 'open', createdAt: h.createdAt, replies: h.replies || [] }));
-    res.json(await enrichHelpWithTicket(base));
-  } catch (e) {
-    res.status(500).json({ error: 'Could not load help requests.' });
-  }
-});
-
-// FULL help-request history (any logged-in user) — powers the Help Activity page. Newest first.
-app.get('/api/help/all', requireRole('user'), async (req, res) => {
-  try {
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    const list = await coll.find({}).sort({ createdAt: -1 }).toArray();
-    const base = list.map(h => ({
-      id: String(h._id), shortId: h.shortId, ticketUrl: h.ticketUrl || '',
-      requester: h.requester, doubt: h.doubt, status: h.status,
-      createdAt: h.createdAt, resolvedAt: h.resolvedAt || null,
-      replies: (h.replies || []).map(rp => ({ by: rp.by, role: rp.role, text: rp.text, at: rp.at })),
-    }));
-    res.json(await enrichHelpWithTicket(base));
-  } catch (e) {
-    res.status(500).json({ error: 'Could not load help activity.' });
-  }
-});
-
-// My help requests (requester = me), open + resolved, with replies — for the My Tickets page.
-app.get('/api/help/mine', requireRole('user'), async (req, res) => {
-  try {
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    const list = await coll.find({ requester: req.user.username }).sort({ createdAt: -1 }).toArray();
-    res.json(list.map(h => ({ id: String(h._id), shortId: h.shortId, doubt: h.doubt, status: h.status, createdAt: h.createdAt, resolvedAt: h.resolvedAt || null, replies: h.replies || [] })));
-  } catch (e) {
-    res.status(500).json({ error: 'Could not load your help requests.' });
-  }
-});
-
-// Reply to a help request (admin/owner only). Append-only.
-app.post('/api/help/:id/reply', requireRole('admin'), async (req, res) => {
-  try {
-    const text = String((req.body || {}).text || '').trim();
-    if (!text) return res.status(400).json({ error: 'Reply text is required.' });
-    if (text.length > 4000) return res.status(400).json({ error: 'Reply must be 4000 characters or fewer.' });
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
-    if (!existing) return res.status(404).json({ error: 'Help request not found.' });
-    const reply = { by: req.user.username, role: req.user.role, text, at: new Date().toISOString() };
-    // Any admin reply on an OPEN request auto-closes it (badge = the "still unanswered" queue).
-    // Once resolved, further replies just append without changing status. (Previously this only
-    // fired on the very first reply, so a request that already had a reply but was still marked
-    // open could never resolve — it stayed open forever.)
-    const update = { $push: { replies: reply } };
-    if (existing.status === 'open') {
-      update.$set = { status: 'resolved', resolvedAt: reply.at, resolvedBy: req.user.username };
-    }
-    await coll.updateOne({ _id: existing._id }, update);
-    res.status(201).json(reply);
-  } catch (e) {
-    res.status(500).json({ error: 'Could not add reply.' });
-  }
-});
-
-// Mark a help request resolved ("help received") — requester only. Kept for history.
-app.post('/api/help/:id/resolve', requireRole('editor'), async (req, res) => {
-  try {
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    const existing = await coll.findOne({ _id: new ObjectId(req.params.id) });
-    if (!existing) return res.status(404).json({ error: 'Help request not found.' });
-    if (String(existing.requester).toLowerCase() !== String(req.user.username).toLowerCase()) {
-      return res.status(403).json({ error: 'You can only resolve your own help requests.' });
-    }
-    await coll.updateOne({ _id: existing._id }, { $set: { status: 'resolved', resolvedAt: new Date().toISOString(), resolvedBy: req.user.username } });
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: 'Could not resolve help request.' });
-  }
-});
-
-// Delete a whole help request (question + all replies). OWNER-ONLY.
-app.delete('/api/help/:id', requireRole('owner'), async (req, res) => {
-  try {
-    const coll = await getCollection(COLLECTIONS.helpRequests);
-    const r = await coll.deleteOne({ _id: new ObjectId(req.params.id) });
-    if (!r.deletedCount) return res.status(404).json({ error: 'Help request not found.' });
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: 'Could not delete help request.' });
   }
 });
 
@@ -4784,28 +4976,7 @@ app.get('/api/last24', requireRole('admin'), async (req, res) => {
       return ageH >= 216 && ageH < 240;
     }).length;
 
-    // Help activity in the last 24h: requests asked and replies given.
-    let helpActivity = [];
-    try {
-      const helpColl = await getCollection(COLLECTIONS.helpRequests);
-      const all = await helpColl.find({}).toArray();
-      all.forEach(h => {
-        const askedRecent = h.createdAt && new Date(h.createdAt).getTime() >= t24;
-        const recentReplies = (h.replies || []).filter(rp => rp.at && new Date(rp.at).getTime() >= t24);
-        if (askedRecent || recentReplies.length) {
-          helpActivity.push({
-            shortId: h.shortId, ticketUrl: h.ticketUrl || '', requester: h.requester, doubt: h.doubt, status: h.status,
-            createdAt: h.createdAt, resolvedAt: h.resolvedAt || null, askedRecent: !!askedRecent,
-            repliedBy: [...new Set((h.replies || []).map(rp => rp.by))],
-            recentReplyCount: recentReplies.length,
-            replies: (h.replies || []).map(rp => ({ by: rp.by, role: rp.role, text: rp.text, at: rp.at })),
-          });
-        }
-      });
-      helpActivity.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } catch (e) { /* ignore */ }
-
-    res.json({ quarter: (await liveQuarterId()), created24, resolved24, slaPct24, slaBase, hi24, immediateAutoAgents24, immediateAutoAutoSim24, crossing240Next24: crossing, helpActivity });
+    res.json({ quarter: (await liveQuarterId()), created24, resolved24, slaPct24, slaBase, hi24, immediateAutoAgents24, immediateAutoAutoSim24, crossing240Next24: crossing });
   } catch (e) {
     res.status(500).json({ error: 'Could not compute last-24h analytics.' });
   }
@@ -6270,26 +6441,6 @@ app.listen(PORT, () => {
   console.log('PHD API listening on port ' + PORT);
   // Backfill the current live quarter's dashboard rollup on boot if it's missing/stale, so the
   // first visitor after a (re)deploy gets instant chunks without waiting for the next upload.
-  // One-time self-heal: any help request marked "open" that already has an admin reply is actually
-  // answered — flip it to "resolved" so it leaves the Open Alerts queue and shows under Resolved.
-  // (Guards against legacy records created before the reply route auto-closed on any reply.)
-  (async () => {
-    try {
-      const helpColl = await getCollection(COLLECTIONS.helpRequests);
-      const stuck = await helpColl.find({
-        status: 'open',
-        replies: { $exists: true, $not: { $size: 0 } }
-      }).toArray();
-      for (const h of stuck) {
-        const last = h.replies[h.replies.length - 1] || {};
-        await helpColl.updateOne(
-          { _id: h._id },
-          { $set: { status: 'resolved', resolvedAt: last.at || new Date().toISOString(), resolvedBy: last.by || 'system' } }
-        );
-      }
-      if (stuck.length) console.log('help_requests self-heal: ' + stuck.length + ' open-with-reply request(s) marked resolved');
-    } catch (e) { console.error('help_requests self-heal failed:', e && e.message); }
-  })();
   (async () => {
     try {
       const qid = currentQuarter();

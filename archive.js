@@ -75,7 +75,7 @@
     return '<div class="bc-hero">'
       + '<div class="hb-left">'
       + '<h1 class="hb-title">' + ic('clock-rewind', 24) + ' Program History</h1>'
-      + '<div class="hb-sub">Historical analytics for <b>1 Jan 2021 – 31 Dec 2025</b>. Pick one or more years below to view combined, read-only metrics. Showing <b>' + esc(rangeLabel) + '</b>.</div>'
+      + '<div class="hb-sub">Historical analytics for 1 Jan 2021 – 31 Dec 2025.</div>'
       + '</div>'
       + '<div class="hb-badge"><span class="n">' + nf(total) + '</span><span class="l">total tickets</span></div>'
       + '</div>';

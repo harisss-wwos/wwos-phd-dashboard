@@ -160,7 +160,7 @@
       // Vertically-centered left-edge FAB column: holds Live + Analytics + page-nav FABs (NOT the
       // Recent Activity FAB, which stays pinned to the bottom-left). align-items:flex-start so each
       // pill grows rightward on hover from the same left edge.
-      + '.tb-fab-col{position:fixed;left:4px;top:10px;bottom:10px;width:5vw;min-width:58px;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:9px;padding:0 4px;overflow-y:auto;overflow-x:clip;scrollbar-width:thin;scrollbar-color:#ff9900 transparent;box-sizing:border-box;background:#ffffff;pointer-events:auto}'
+      + '.tb-fab-col{position:fixed;left:4px;top:10px;bottom:10px;width:5vw;min-width:58px;z-index:900;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:9px;padding:0 4px;overflow-y:auto;overflow-x:clip;scrollbar-width:thin;scrollbar-color:#ff9900 transparent;box-sizing:border-box;background:#ffffff;border-radius:5px;pointer-events:auto}'
       // GUEST (logged out, on index.html): the left nav-rail stays VISIBLE but every item is shown
       // disabled (greyed + not clickable) — see buildNavFabs, which renders login-gated items as
       // tb-nav-disabled for guests instead of hiding them. The rail keeps its gutter (no padding
@@ -1145,7 +1145,7 @@
 
   // ---- Hamburger menu contents (role-gated). Rendered inside the collapsible dropdown. ----
   // active: one of 'groups','previous-week','shift-report','last24',
-  //   'help-activity','tools','unique-cases','users' (or '' for none).
+  //   'tools','unique-cases','users' (or '' for none).
   // inApp: true inside app.html (view buttons call nav()); false = standalone (links to app.html?view=).
   function navHtml(active, inApp) {
     var li = loggedIn();
@@ -2110,8 +2110,13 @@
     col.addEventListener('click', function (e) {
       var item = e.target.closest && e.target.closest('.tb-fab-item');
       if (!item || !col.contains(item)) return;
-      // If the real control (or something inside it) was clicked, let it handle itself.
-      var ctrl = item.querySelector('a.tb-nav-fab, button.tb-nav-fab, a.tb-rail-badge, button.tb-rail-badge, a.tb-an-fab, a.tb-live-fab');
+      // Fly-out GROUPS (e.g. "Statistics") have no activatable rail control — their trigger is a
+      // hover-only .tb-flyout-fab and the pages live in the hover panel. Clicking the trigger/caption
+      // must do NOTHING (not navigate to the first panel page), so bail out for flyout items.
+      if (item.querySelector('.tb-flyout-fab, .tb-flyout')) return;
+      // If the real control (or something inside it) was clicked, let it handle itself. Scope to the
+      // item's OWN direct rail control (exclude flyout-panel items, which are also .tb-nav-fab).
+      var ctrl = item.querySelector('a.tb-nav-fab:not(.tb-flyout-item), button.tb-nav-fab:not(.tb-flyout-item), a.tb-rail-badge, button.tb-rail-badge, a.tb-an-fab, a.tb-live-fab');
       if (!ctrl) return;                                   // flyout trigger / nothing to activate
       if (e.target === ctrl || ctrl.contains(e.target)) return; // native click already fired
       if (ctrl.getAttribute('aria-disabled') === 'true' || ctrl.disabled) return;
@@ -3990,9 +3995,7 @@
       if (it.href) fab.setAttribute('data-href', it.href);
       // Icon: a custom PNG when `img` is set, otherwise an inline SVG icon. ivURL -> .v3.png (new file).
       var iconHtml = it.img ? '<img class="tb-nav-img" src="' + ivURL(it.img) + '" alt="">' : ic(it.icon);
-      // Optional count badge on the icon (e.g. open-alert count on the Alerts nav FAB).
-      // Start in a "loading" state showing a tiny spinner (not a premature "0") until the real
-      // count is fetched by refreshAlertBadge().
+      // Optional count badge on the icon. (No nav item currently uses one.)
       var badgeHtml = it.badge ? '<span class="tb-nav-badge loading show" id="navBadge-' + it.badge + '"><span class="tb-nav-badge-spin"></span></span>' : '';
       fab.innerHTML = '<span class="tb-nav-ic">' + iconHtml + badgeHtml + '</span>'
         + '<span class="tb-nav-label">' + it.label + '</span>';
@@ -4047,9 +4050,6 @@
           { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    img: 'icons/sla-breaches.png',    href: 'sla-breach.html',      need: 'sla' },
           { key: 'station-request', label: 'Station Request Tickets', img: 'icons/station-request.png', href: 'station-request.html', need: 'sr' },
           { key: 'hashtags',        label: 'Hashtags',                img: 'icons/hashtags.png',        href: 'hashtags.html',        need: 'li' },
-          { key: 'countries',       label: 'Countries Statistics',    img: 'icons/countries.png',       href: 'countries.html',       need: 'li' },
-          { key: 'incident-types',  label: 'Incident Types',          icon: 'bolt',                     href: 'incident-types.html',  need: 'li' },
-          { key: 'resolutions',     label: 'Resolutions',             icon: 'target',                   href: 'resolutions.html',     need: 'li' },
           { key: 'hi-resolved',     label: 'Repeat Incidents',        img: 'icons/repeat-incidents.png',href: 'hi-resolved.html',     need: 'repeat' },
           { key: 'unique-cases',    label: 'Unique cases',            img: 'icons/unique-cases.png',    href: 'important-cases.html', need: 'unique' }
         ]
@@ -4060,8 +4060,6 @@
     // (Admin flyout removed from the rail — Users / Database health / Grouping Page now live on the
     //  profile page. See profile.html "Admin tools" section.)
     // (Drag-and-drop reordering removed — the rail order is now fixed.)
-    // Fetch the open-alert count and show it on the Alerts nav FAB (logged-in only).
-    if (li) refreshAlertBadge();
   }
   // Build a fly-out group: a single trigger FAB in the rail; hovering it slides out a vertical stack
   // of pages to its right. Each fly-out item is a normal expand-on-hover pill (label slides right on
@@ -4195,23 +4193,6 @@
     }
     return null; // below all nav FABs -> drop at the end of the nav group
   }
-  // Fetch /api/help/open and paint the count onto the Alerts nav FAB badge.
-  // The badge starts in a "loading" state (a tiny spinner) and only shows a number once the real
-  // count arrives — so we never flash a premature "0". If the fetch fails, it keeps spinning rather
-  // than showing a wrong count. Always visible thereafter (grey when 0, red when there are alerts).
-  function refreshAlertBadge() {
-    var badge = document.getElementById('navBadge-alerts');
-    if (!badge || !A || !A.api) return;
-    badge.classList.add('show'); // keep the pill visible (spinner while loading)
-    A.api('GET', '/api/help/open').then(function (r) {
-      if (!r || !r.ok || !Array.isArray(r.data)) return; // leave the spinner up on a bad response
-      var n = r.data.length;
-      badge.classList.remove('loading');                 // stop the spinner — real data is in
-      badge.textContent = n; // show the full count (badge auto-sizes; no longer capped/clipped)
-      badge.classList.add('show');
-      badge.classList.toggle('zero', n === 0); // grey when none, red when there are alerts
-    }).catch(function () {}); // network error: keep the spinner, don't show a false 0
-  }
   // Re-apply the nav FABs' role-gated state after a background profile load (so they enable without reload).
   function applyNavFabsState() {
     var li = loggedIn();
@@ -4237,7 +4218,6 @@
         fab.title = li ? (label + ' — you do not have access') : ('Log in to view ' + label);
       }
     });
-    if (li) refreshAlertBadge(); // refresh the open-alert count once auth is confirmed
     // Live FAB is ALWAYS active (the live dashboard is viewable without logging in).
     var liveFab = document.querySelector('.tb-live-fab');
     if (liveFab) {
@@ -4307,10 +4287,10 @@
     var key = 'grid'; // sensible default
     var map = {
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
-      'agent-analytics.html': 'bar-chart', 'help-activity.html': 'alert',
-      'alerts.html': 'alert', 'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
+      'agent-analytics.html': 'bar-chart',
+      'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
-      'important-cases.html': 'hash', 'unique-cases.html': 'hash',
+      'important-cases.html': 'hash',
       'station-request.html': 'map-pin',
       'users.html': 'users-gear', 'db-health.html': 'database', 'profile.html': 'users',
       'data-log.html': 'history', 'blurb-log.html': 'history', 'hashtag-log.html': 'history',

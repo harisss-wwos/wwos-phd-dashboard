@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Standalone-visit guard: this page is meant to live inside tools.html (iframe, ?embed=1). A direct
+     top-level visit bounces to tools.html (via replace, no history entry) so tools has one page. -->
+<script>(function(){try{var emb=/[?&]embed=1\b/.test(location.search);if(window.self===window.top&&!emb){location.replace('tools.html');}}catch(e){}})();</script>
 <title>Paging Contacts · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,7 +46,7 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .page-head h1{margin:0}
 .page-head-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 /* Stacked list of expandable, click-to-copy paging cards (copies the EMAIL) */
-.pg-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start}
+.pg-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
 @media(max-width:760px){.pg-list{grid-template-columns:1fr}}
 .pg-card{position:relative;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--tl);border-radius:5px;padding:16px 18px;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:border-color .15s,background .15s,box-shadow .15s}
 .pg-card:hover{border-color:var(--tl);background:var(--cardh);box-shadow:0 4px 14px -6px rgba(37,145,173,.3)}
@@ -101,6 +104,23 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .tool-banner.tb-paging .tb-sub{color:rgba(6,50,45,.78)}
 .tool-banner.tb-paging::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="26" y="22" width="52" height="36" rx="5"/><path d="M26 26l26 18 26-18"/><circle cx="96" cy="40" r="15"/><path d="M81 40h30M96 25a24 24 0 0 1 0 30M96 25a24 24 0 0 0 0 30"/></svg>')}
 @media(max-width:640px){.tool-banner .tb-title{font-size:1.25em}.tool-banner::after{opacity:.22}}
+/* Embedded in tools.html: the parent's shared title bar provides the title + Add/Edit-log actions,
+   so hide this page's own gradient banner to avoid a duplicate header. Also zero the content wrap's
+   side gutters (and the stray 15px auto-margins) so the cards fill the iframe edge-to-edge: the 16px
+   side gutter now lives on the parent's .tool-pad column, which wraps BOTH the title bar and this
+   iframe, so the cards line up EXACTLY with the title bar at the same width. */
+body[data-embedded="true"] .tool-banner{display:none!important}
+body[data-embedded="true"] .wrap{width:100%!important;padding-left:0!important;padding-right:0!important;margin-left:0!important;margin-right:-10px!important}
+
+/* ---- Pagination bar (7 rows x 2 cols per page) ---- */
+.tp-pager{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:18px 0 6px}
+.tp-pg{min-width:34px;height:34px;padding:0 10px;border:1px solid var(--bd);background:#fff;color:var(--t);border-radius:7px;font-family:inherit;font-size:.85em;font-weight:700;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.tp-pg:hover:not(:disabled):not(.active){border-color:var(--o);color:var(--o)}
+.tp-pg.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);border-color:#f07d0a;color:#fff;box-shadow:0 3px 10px -2px rgba(240,125,10,.4)}
+.tp-pg.nav{font-weight:600}
+.tp-pg:disabled{opacity:.45;cursor:default}
+.tp-count{margin-left:8px;color:var(--tm);font-size:.82em;font-weight:600}
+@media(max-width:560px){.tp-count{width:100%;text-align:center;margin:4px 0 0}}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -181,6 +201,8 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 <script>
 const A=window.PHDAuth;
 let CONTACTS=[];
+// Pagination: 7 rows x 2 columns = 14 cards per page.
+let PAGE=0; const PER_PAGE=14;
 const canAdd=()=>A.canEditTools&&A.canEditTools();
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
@@ -218,8 +240,13 @@ function render(){
       +'<a class="btn sec" href="paging-log.html">'+(window.icon?window.icon('history',15):'')+' Paging edit log</a>'
     +'</div>'
   +'</div>';
-  // Expandable, click-to-copy cards. Copies the EMAIL; hover reveals the email detail.
-  html+=`<div class="pg-list">`+CONTACTS.map((c,i)=>`
+  // Clamp the page in case the list shrank (edit/delete).
+  const pages=Math.max(1,Math.ceil(CONTACTS.length/PER_PAGE));
+  if(PAGE>pages-1)PAGE=pages-1; if(PAGE<0)PAGE=0;
+  const start=PAGE*PER_PAGE, end=start+PER_PAGE;
+  // Expandable, click-to-copy cards. Only the current page's 14 cards are rendered; onclick handlers
+  // keep the GLOBAL index i so copy/view/edit map to the right contact.
+  html+=`<div class="pg-list">`+CONTACTS.map((c,i)=>({c,i})).filter(x=>x.i>=start&&x.i<end).map(({c,i})=>`
     <div class="pg-card" id="pgcard-${i}">
       <div class="pg-headrow">
         <div class="pg-title"><span class="pg-count" id="count-${i}" title="Times copied">${copyIcon}<span class="pg-count-n">${c.copyCount||0}</span></span><span class="pg-country">${esc(c.country)}</span><span class="pg-code">${esc(c.code)}</span></div>
@@ -233,8 +260,32 @@ function render(){
         ${admin?`<div class="pg-admin"><button class="btn sec mini" onclick="event.stopPropagation();openEditModal(${i})">Edit</button></div>`:''}
       </div>
     </div>`).join('')+`</div>`;
+  html+=pagerHtml(CONTACTS.length);
   document.getElementById('wrap').innerHTML=html;
 }
+
+// ---- Pagination bar: Prev · up to 7 windowed page numbers · Next. ----
+function pagerHtml(total){
+  const pages=Math.max(1,Math.ceil(total/PER_PAGE));
+  if(pages<=1) return '';
+  const WIN=7; let s=Math.max(0,PAGE-Math.floor(WIN/2)); let e=Math.min(pages,s+WIN); s=Math.max(0,e-WIN);
+  let btns='';
+  for(let p=s;p<e;p++){ btns+='<button class="tp-pg'+(p===PAGE?' active':'')+'" onclick="goPage('+p+')">'+(p+1)+'</button>'; }
+  const from=PAGE*PER_PAGE+1, to=Math.min(total,(PAGE+1)*PER_PAGE);
+  return '<div class="tp-pager">'
+    +'<button class="tp-pg nav" '+(PAGE<=0?'disabled':'')+' onclick="goPage('+(PAGE-1)+')">‹ Prev</button>'
+    +btns
+    +'<button class="tp-pg nav" '+(PAGE>=pages-1?'disabled':'')+' onclick="goPage('+(PAGE+1)+')">Next ›</button>'
+    +'<span class="tp-count">'+from+'–'+to+' of '+total+'</span>'
+  +'</div>';
+}
+function goPage(p){
+  const pages=Math.max(1,Math.ceil(CONTACTS.length/PER_PAGE));
+  PAGE=Math.min(Math.max(0,p),pages-1);
+  render();
+  try{ window.scrollTo(0,0); }catch(e){}
+}
+window.goPage=goPage;
 
 // Expand/collapse a card's email via the View button. Accordion: only one open at a time.
 function toggleView(i,ev){

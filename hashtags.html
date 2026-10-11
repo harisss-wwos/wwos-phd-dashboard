@@ -61,13 +61,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Collapsible GROUP block (DEFECTS / PATTERNS), each wrapping a set of hashtag section cards. */
 .hx-group{margin-top:26px}
 .hx-group:first-of-type{margin-top:6px}
-.hx-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 12px;padding-bottom:8px;border-bottom:2px solid #e2e6ea;cursor:pointer;user-select:none}
-.hx-group-head:hover .hx-group-label{color:#5b3ff0}
-.hx-group-head:focus-visible{outline:2px solid #7c5cff;outline-offset:3px;border-radius:3px}
-.hx-group-label{font-size:1.02em;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#7c5cff}
+.hx-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:14px 18px;border-radius:5px;cursor:pointer;user-select:none}
+.hx-group-head:focus-visible{outline:2px solid #7c5cff;outline-offset:3px;border-radius:5px}
+.hx-group-label{display:inline-flex;align-items:center;gap:10px;font-size:1.02em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff}
+.hx-group-label svg{flex-shrink:0}
 .hx-group-head-right{display:inline-flex;align-items:center;gap:12px}
-.hx-group-meta{font-size:.74em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8a94a2}
-.hx-group-caret{color:#7c5cff;font-size:.9em;transition:transform .25s ease;display:inline-flex}
+.hx-group-meta{font-size:.74em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:rgba(255,255,255,.9)}
+.hx-group-caret{color:#fff;font-size:.9em;transition:transform .25s ease;display:inline-flex}
 .hx-group.collapsed .hx-group-caret{transform:rotate(-90deg)}
 /* Group body animates open/closed. Collapsed = height 0 + hidden. */
 .hx-group-body{overflow:hidden;transition:max-height .34s ease,opacity .25s ease;max-height:200000px;opacity:1}
@@ -129,20 +129,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
 /* Loading skeleton — collapsed section-card shells with shimmer (no big spinner). */
 .hx-skel{margin-top:2px}
-.sk-banner{position:relative;overflow:hidden;border-radius:5px;min-height:82px;margin-bottom:14px;border:1px solid #242a31;
-  background:linear-gradient(90deg,#241a4d,#2c2359 55%,#3a2f6e);background-size:200% 100%;animation:hxBanner 9s ease infinite;
-  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px}
-.sk-banner .sk-bl{display:flex;flex-direction:column;gap:9px}
 .sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:5px;margin-bottom:16px;overflow:hidden}
 .sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
 .sk-ic{width:30px;height:30px;border-radius:50%;flex-shrink:0}
 .sk-line{display:inline-block;border-radius:5px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
-.sk-banner .sk-line{background:rgba(255,255,255,.16)}
 .sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:hxSk 1.2s infinite}
-.sk-banner .sk-line::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);animation:hxSk 1.1s infinite}
 .sk-ic{background:#141a20;position:relative;overflow:hidden}
-.sk-ic::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:hxSk 1.2s infinite}
+.sk-ic::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);animation:hxSk 1.1s infinite}
 @keyframes hxSk{100%{transform:translateX(100%)}}
 /* gate */
 .hx-gate{max-width:560px;margin:60px auto;text-align:center}
@@ -155,9 +149,38 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <style id="hx-light">
 .hx-head h1{color:#1b2026!important}
 .hx-sub{color:#5c6773!important}.hx-sub b{color:#1b2026!important}
-/* Section cards white (keep purple hx-banner + orange sec-head top border). */
+/* Content column: no top gutter (kill topbar-auth's injected .wrap{padding-top:14px}); 12px sides
+   kept (app-light band gutter); bottom reduced to 20px. ID scope beats the shared !important rules. */
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
+/* ---- Title bar: white, 60px, black font (overrides the purple gradient banner). ---- */
+.hx-banner{background:#fff!important;border:1px solid #e2e6ea!important;min-height:60px!important;height:60px!important;padding:0 16px!important;margin-bottom:14px!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;animation:none!important;flex-wrap:nowrap!important}
+.hx-banner .hb-title,.hx-banner .hb-title svg{color:#1b2026!important}
+.hx-banner .hb-title{font-size:1.25em!important}
+.hx-banner .hb-sub{display:none!important}            /* subtitle hidden to fit the 60px bar */
+.hx-banner .hb-total{background:#fff4e8!important;color:#b5560c!important;box-shadow:none!important;border:1px solid #f3d4b0!important;padding:5px 14px!important}
+.hx-banner .hb-total .n{font-size:1.1em!important}
+.hx-banner::after{display:none!important}             /* drop the watermark illustration on the slim bar */
+/* Section cards white (keep orange sec-head top border). */
 .hx-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #ec7211!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
 .hx-sec-head:hover{background:#f7f9fb!important}
+/* ---- DEFECTS / PATTERNS / OTHER groups: each is a card (border + radius), with a FULL-WIDTH
+   COLORED HEADER BAR (white icon + title + caret) like a dashboard section on app.html. The header
+   is flush to the card edges (rounded top corners); the body holds the hashtag cards with padding. */
+.hx-group{background:#fff!important;border:1px solid #e2e6ea!important;border-radius:5px!important;box-shadow:0 10px 26px -20px rgba(20,30,50,.5)!important;padding:0!important;margin-top:18px!important;overflow:hidden!important}
+.hx-group:first-of-type{margin-top:6px!important}
+.hx-group-head{margin:0!important;border-radius:0!important}
+/* Per-group header colors (app.html palette): DEFECTS = blue, PATTERNS = purple, OTHER = sky-blue. */
+.hx-group-defects .hx-group-head{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)!important}
+.hx-group-patterns .hx-group-head{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#c9b6ff)!important}
+.hx-group-other .hx-group-head{background:linear-gradient(90deg,#38bdf8,#7dd3fc 55%,#bae6fd)!important}
+.hx-group-oos .hx-group-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)!important}
+/* OOS subsection cards: red left-accent top border + red tag text to match the group. */
+.hx-oos-sec{border-top:3px solid #e5484d!important}
+.hx-oos-sec .hx-tag{color:#c0323a!important;font-weight:800}
+.hx-group-head:hover{filter:brightness(1.03)!important}
+.hx-group-body{padding:14px 16px!important}
+.hx-group.collapsed .hx-group-body{padding-top:0!important;padding-bottom:0!important}
+.hx-group-body>.hx-sec:last-child{margin-bottom:0!important}
 .hx-sec-title{color:#1b2026!important}
 .hx-tag{color:#b5560c!important}
 .hx-def{color:#5c6773!important}
@@ -190,10 +213,22 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-more button:hover{border-color:#ec7211!important;color:#1b2026!important}
 .hx-mcount{color:#8793a0!important}
 .hx-empty{color:#8793a0!important}
-/* Skeleton. */
-.sk-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #cdd5dd!important}
-.sk-line,.sk-ic{background:#e8ebee!important}
-.sk-banner .sk-line{background:rgba(255,255,255,.5)!important}
+/* Skeleton — mirrors the loaded layout: white 60px title bar + colored group bars + white cards. */
+.sk-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px;margin-bottom:14px}
+.sk-group{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);overflow:hidden;margin-top:18px}
+.sk-group:first-of-type{margin-top:6px}
+.sk-grouphead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
+.sk-group-defects .sk-grouphead{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)}
+.sk-group-patterns .sk-grouphead{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#c9b6ff)}
+.sk-group-oos .sk-grouphead{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)}
+.sk-groupbody{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+/* Shimmer tones: a clearly visible light-grey fill on the white surfaces with a brighter moving
+   highlight; a clearly visible translucent-white sweep on the colored group header bars. */
+.sk-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #cdd5dd!important;margin-bottom:0!important}
+.sk-line,.sk-ic{background:#e3e7ec!important}
+.sk-line::after,.sk-ic::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)!important}
+.sk-glabel,.sk-gmeta{background:rgba(255,255,255,.5)!important}
+.sk-glabel::after,.sk-gmeta::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)!important}
 /* Gate + button. */
 .hx-gate h1{color:#1b2026!important}
 .hx-gate p{color:#5c6773!important}
@@ -206,17 +241,35 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 <div class="wrap" id="wrap">
   <div class="hx-skel">
-    <div class="sk-banner">
-      <div class="sk-bl">
-        <span class="sk-line" style="width:180px;height:22px"></span>
-        <span class="sk-line" style="width:420px;height:12px"></span>
-      </div>
-      <span class="sk-line" style="width:96px;height:44px;border-radius:5px"></span>
+    <!-- White 60px title-bar shell (matches .hx-banner). -->
+    <div class="sk-titlebar">
+      <span class="sk-line" style="width:150px;height:18px"></span>
+      <span class="sk-line sk-pill" style="width:92px;height:34px;border-radius:5px"></span>
     </div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:220px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:300px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:260px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-    <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:200px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+    <!-- Group shell: a colored header bar + a few white section-card rows inside. ×2 (DEFECTS/PATTERNS). -->
+    <div class="sk-group sk-group-defects">
+      <div class="sk-grouphead"><span class="sk-line sk-glabel" style="width:120px;height:13px"></span><span class="sk-line sk-gmeta" style="width:150px;height:11px"></span></div>
+      <div class="sk-groupbody">
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:220px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:300px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:260px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+      </div>
+    </div>
+    <div class="sk-group sk-group-patterns">
+      <div class="sk-grouphead"><span class="sk-line sk-glabel" style="width:120px;height:13px"></span><span class="sk-line sk-gmeta" style="width:150px;height:11px"></span></div>
+      <div class="sk-groupbody">
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:240px;height:15px"></span><span class="sk-line" style="width:320px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:200px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+      </div>
+    </div>
+    <!-- Third group shell (OUT OF SCOPE), red header bar — matches the real 3-group layout. -->
+    <div class="sk-group sk-group-oos">
+      <div class="sk-grouphead"><span class="sk-line sk-glabel" style="width:140px;height:13px"></span><span class="sk-line sk-gmeta" style="width:150px;height:11px"></span></div>
+      <div class="sk-groupbody">
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:210px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:180px;height:15px"></span><span class="sk-line" style="width:260px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
+      </div>
+    </div>
   </div>
 </div>
 <script src="icons.js"></script>
@@ -285,6 +338,7 @@ var HX_GROUPS=[
     '#cx-acct-i-u'
   ]},
   { key:'patterns', label:'PATTERNS', tags:[
+    '#cx-acct-l-u',
     '#appeal-review',
     '#contradictory-statement-no-proof',
     '#unsuccessful-outreach',
@@ -342,6 +396,9 @@ function hxAssignee(a){
 // Per-section pagination + sort state, keyed by index. shown starts at 20 (+10 each).
 var HX_SECS=[]; var HX_PAGE0=20, HX_STEP=10;
 var HX_CHARTS={}; // idx -> Chart instance
+var HX_OOS=null;  // /api/out-of-scope-report payload: { groups:[{key,label,count,tickets:[...]}] }
+var HX_OOS_SHOWN={}; // oos group key -> number of rows currently shown (pagination)
+var HX_OOS_CHARTS={}; // oos group key -> Chart instance
 
 // ISO week key (Mon-anchored) + a readable label for a date.
 function hxWeekStart(d){ var x=new Date(d.getTime()); var day=(x.getUTCDay()+6)%7; x.setUTCDate(x.getUTCDate()-day); x.setUTCHours(0,0,0,0); return x; }
@@ -506,57 +563,180 @@ function render(data){
   if(!HX_SECS.length){ html+='<div class="hx-empty">No hashtags found in the Labels column.</div>'; document.getElementById('wrap').innerHTML=html; return; }
   // Group label + per-group tagged/tag counts for the group header rows.
   var GROUP_LABEL={ defects:'DEFECTS', patterns:'PATTERNS', other:'OTHER' };
-  var lastGroup=null;
-  var groupSeq=-1;   // 0-based index of the group block, for the group toggle id
-  HX_SECS.forEach(function(a,idx){
-    // Open a new collapsible GROUP block the first time a new group appears (sections are pre-ordered
-    // by group). The group head toggles its whole body (all hashtag cards within). DEFECTS (the first
-    // group) starts expanded; the rest start collapsed.
-    if(a.group!==lastGroup){
-      if(lastGroup!==null){ html+='</div></div>'; }   // close previous group body + group wrapper
-      lastGroup=a.group;
-      groupSeq++;
-      var inGroup=HX_SECS.filter(function(x){ return x.group===a.group; });
-      var gTagged=inGroup.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
-      var collapsed=(groupSeq>0);   // first group open, others collapsed
-      html+='<div class="hx-group'+(collapsed?' collapsed':'')+'" id="hxGroup'+groupSeq+'">'
-        +'<div class="hx-group-head" onclick="hxGroupToggle('+groupSeq+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();hxGroupToggle('+groupSeq+');}" role="button" tabindex="0">'
-          +'<span class="hx-group-label">'+esc(GROUP_LABEL[a.group]||a.group.toUpperCase())+'</span>'
-          +'<span class="hx-group-head-right"><span class="hx-group-meta">'+inGroup.length+' hashtags \u00b7 '+gTagged+' tagged</span>'
-          +'<span class="hx-group-caret">\u25be</span></span>'
-        +'</div>'
-        +'<div class="hx-group-body">';
-    }
-    var def=hxDefOf(a.tag);
-    var defHtml=def
-      ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
-      : '<div class="hx-def none">No definition on file for this hashtag.</div>';
-    html+='<div class="hx-sec" id="hxSec'+idx+'">'
-      +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
-        +'<div class="hx-sec-title">'
-          +'<div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(a.tag)+'</span>'+defHtml+'</div>'
-        +'</div>'
-        +'<div class="hx-sec-head-right"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span><span class="hx-caret">\u25be</span></div>'
-      +'</div>'
-      +'<div class="hx-sec-body">'
-        +(a.count>0
-          ? '<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
-            +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
-            +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
-            +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
-          : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
-      +'</div>'
-    +'</div>';
+  // ---- Build each TOP-LEVEL group's INNER HTML (head + body, minus the id/seq-dependent wiring),
+  // along with its total ticket count, into a list of entries. We then sort the entries by total
+  // DESCENDING and assign the sequential group ids / toggle wiring in FINAL display order, so the
+  // accordion keeps working (unique seq per group, only one open). Section ids / canvas ids / body
+  // ids keep using the ORIGINAL HX_SECS index — only the GROUP blocks are reordered, not sections.
+  var entries=[];   // { kind:'hashtag'|'oos', order:number, total:number, build:function(seq,collapsed)->html }
+  // --- Hashtag groups (defects / patterns / other), in their fixed listed order. ---
+  var hashOrder={ defects:0, patterns:1, other:2 };
+  var seenGroup={};
+  HX_SECS.forEach(function(a){
+    if(seenGroup[a.group]) return;
+    seenGroup[a.group]=1;
+    var gKey=a.group;
+    var inGroup=[];   // [{a,idx}] preserving HX_SECS order
+    HX_SECS.forEach(function(x,ix){ if(x.group===gKey) inGroup.push({a:x,idx:ix}); });
+    var gTotal=inGroup.reduce(function(s,x){ return s+(Number(x.a.count)||0); },0);
+    entries.push({
+      kind:'hashtag',
+      order:(hashOrder[gKey]!=null?hashOrder[gKey]:3),
+      total:gTotal,
+      build:function(seq,collapsed){
+        var groupIcon={ defects:'alert-triangle', patterns:'bar-chart', other:'hash' }[gKey]||'hash';
+        var h='<div class="hx-group'+(collapsed?' collapsed':'')+' hx-group-'+esc(gKey)+'" id="hxGroup'+seq+'">'
+          +'<div class="hx-group-head" onclick="hxGroupToggle('+seq+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();hxGroupToggle('+seq+');}" role="button" tabindex="0">'
+            +'<span class="hx-group-label">'+ic(groupIcon,16)+'<span>'+esc(GROUP_LABEL[gKey]||gKey.toUpperCase())+'</span></span>'
+            +'<span class="hx-group-head-right"><span class="hx-group-meta">'+inGroup.length+' hashtags \u00b7 '+gTotal+' tagged</span>'
+            +'<span class="hx-group-caret">\u25be</span></span>'
+          +'</div>'
+          +'<div class="hx-group-body">';
+        inGroup.forEach(function(entry){
+          var a=entry.a, idx=entry.idx;
+          var def=hxDefOf(a.tag);
+          var defHtml=def
+            ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
+            : '<div class="hx-def none">No definition on file for this hashtag.</div>';
+          h+='<div class="hx-sec" id="hxSec'+idx+'">'
+            +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
+              +'<div class="hx-sec-title">'
+                +'<div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(a.tag)+'</span>'+defHtml+'</div>'
+              +'</div>'
+              +'<div class="hx-sec-head-right"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span><span class="hx-caret">\u25be</span></div>'
+            +'</div>'
+            +'<div class="hx-sec-body">'
+              +(a.count>0
+                ? '<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+                  +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
+                  +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
+                  +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
+                : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
+            +'</div>'
+          +'</div>';
+        });
+        h+='</div></div>';   // close group body + wrapper
+        return h;
+      }
+    });
   });
-  if(lastGroup!==null){ html+='</div></div>'; }   // close the last group body + wrapper
+  // --- The "#Out of Scope" group (if present), total = sum of its subsection counts. ---
+  if(HX_OOS&&Array.isArray(HX_OOS.groups)){
+    var oosTotal=HX_OOS.groups.reduce(function(s,g){ return s+(Number(g.count)||0); },0);
+    entries.push({ kind:'oos', order:3, total:oosTotal, build:function(seq,collapsed){ return hxOosGroupHtml(seq,collapsed); } });
+  }
+  // Sort by total DESCENDING; stable tie-break on the fixed order (defects<patterns<other<oos).
+  entries.sort(function(x,y){ return (y.total-x.total) || (x.order-y.order); });
+  // Emit in final order, assigning sequential seq ids 0,1,2,…; first group starts expanded.
+  entries.forEach(function(e,i){ html+=e.build(i, i>0); });
   document.getElementById('wrap').innerHTML=html;
-  // Hashtag cards start collapsed (chart drawn on open via hxToggle); DEFECTS group open, rest closed.
+  // Hashtag cards start collapsed (chart drawn on open via hxToggle); the FIRST group (by ticket
+  // count) starts open, the rest closed.
 }
-// Expand/collapse a whole GROUP block (DEFECTS / PATTERNS). Independent toggles (not an accordion) —
-// either group can be open or closed on its own.
+
+// ---- "#Out of Scope" group (two subsections: AUTO-SIM, RULE) --------------------------------------
+// Rendered from HX_OOS (/api/out-of-scope-report). Collapsed by default (part of the accordion).
+function hxOosGroupHtml(seq,collapsed){
+  if(!HX_OOS||!Array.isArray(HX_OOS.groups)) return '';
+  if(collapsed===undefined) collapsed=true;
+  var groups=HX_OOS.groups;
+  var total=groups.reduce(function(s,g){ return s+(Number(g.count)||0); },0);
+  var subs=groups.map(hxOosSubHtml).join('');
+  return '<div class="hx-group'+(collapsed?' collapsed':'')+' hx-group-oos" id="hxGroup'+seq+'">'
+    +'<div class="hx-group-head" onclick="hxGroupToggle('+seq+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();hxGroupToggle('+seq+');}" role="button" tabindex="0">'
+      +'<span class="hx-group-label">'+ic('no-entry',16)+'<span>#OUT OF SCOPE</span></span>'
+      +'<span class="hx-group-head-right"><span class="hx-group-meta">'+groups.length+' categories \u00b7 '+total+' tickets</span>'
+      +'<span class="hx-group-caret">\u25be</span></span>'
+    +'</div>'
+    +'<div class="hx-group-body">'+subs+'</div>'
+  +'</div>';
+}
+// One out-of-scope subsection card (AUTO-SIM or RULE): orange-topped card with a head (label + count)
+// and a ticket table. Starts collapsed; expands on head click (hxOosToggle).
+function hxOosSubHtml(g){
+  var tix=g.tickets||[];
+  var body = tix.length
+    ? '<div class="hx-chart-title">'+esc(g.label)+' \u2014 tickets resolved per week</div>'
+      +'<div class="hx-chart-sub">Tickets in this category bucketed by the week of their created date.</div>'
+      +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxOosCanvas-'+esc(g.key)+'"></canvas></div></div>'
+      +'<div id="hxOosBody-'+esc(g.key)+'">'+hxOosTableHtml(g)+'</div>'
+    : '<div class="hx-none-yet">'+ic('no-entry',16)+'<div><b>No tickets in this category yet.</b><br>Pet incidents matching this rule will appear here automatically after the next upload.</div></div>';
+  return '<div class="hx-sec hx-oos-sec" id="hxOosSec-'+esc(g.key)+'">'
+    +'<div class="hx-sec-head" onclick="hxOosToggle(\''+esc(g.key)+'\')">'
+      +'<div class="hx-sec-title"><div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(g.label)+'</span></div></div>'
+      +'<div class="hx-sec-head-right"><span class="hx-count'+(g.count>0?'':' zero')+'">'+g.count+'</span><span class="hx-caret">\u25be</span></div>'
+    +'</div>'
+    +'<div class="hx-sec-body">'+body+'</div>'
+  +'</div>';
+}
+// Table for an OOS subsection (Ticket | Created | Resolved by | Closure | Title). Paginated 20 +10.
+function hxOosTableHtml(g){
+  var tix=(g.tickets||[]).slice().sort(function(x,y){ return new Date(y.created)-new Date(x.created); });
+  var shown=Math.min(HX_OOS_SHOWN[g.key]||HX_PAGE0, tix.length);
+  var rows='';
+  for(var i=0;i<shown;i++){
+    var t=tix[i];
+    var link=t.url?('<a class="hx-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId||'\u2014')+'</a>'):esc(t.shortId||'\u2014');
+    rows+='<tr>'
+      +'<td class="hx-fit hx-center">'+link+'</td>'
+      +'<td class="hx-fit hx-center hx-num">'+fmtDate(t.created)+'</td>'
+      +'<td class="hx-fit hx-assignee">'+esc(hxAssignee(t.resolvedBy))+'</td>'
+      +'<td class="hx-fit hx-center hx-num">'+esc(t.closureCode||'\u2014')+'</td>'
+      +'<td class="hx-title"><span class="hx-title-txt" title="'+esc(t.title||'')+'">'+esc(t.title||'\u2014')+'</span></td>'
+      +'</tr>';
+  }
+  if(!tix.length) rows='<tr><td colspan="5" class="hx-empty">No tickets.</td></tr>';
+  var more='';
+  if(tix.length>shown){
+    more='<div class="hx-more"><button onclick="hxOosMore(\''+esc(g.key)+'\')">Show more</button>'
+      +'<span class="hx-mcount">Showing '+shown+' of '+tix.length+'</span></div>';
+  } else if(tix.length>HX_PAGE0){
+    more='<div class="hx-more"><span class="hx-mcount">Showing all '+tix.length+'</span></div>';
+  }
+  return '<div class="hx-tbl-wrap"><table class="hx-tbl"><thead><tr>'
+    +'<th class="hx-center">Ticket</th><th class="hx-center">Created</th><th>Resolved by</th>'
+    +'<th class="hx-center">Closure</th><th>Title</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+more;
+}
+// Draw (or redraw) an OOS subsection's per-week wave chart. Reuses hxWeeklyBuckets + hxWave; uses a
+// distinct red line to match the OOS group. Destroys any prior instance on the canvas first.
+function hxOosDrawChart(key){
+  if(typeof Chart==='undefined')return;
+  var g=(HX_OOS&&HX_OOS.groups||[]).filter(function(x){ return x.key===key; })[0];
+  if(!g||!(g.tickets&&g.tickets.length)) return;
+  var cv=document.getElementById('hxOosCanvas-'+key); if(!cv)return;
+  var b=hxWeeklyBuckets(g.tickets);
+  if(HX_OOS_CHARTS[key]){ try{HX_OOS_CHARTS[key].destroy();}catch(e){} delete HX_OOS_CHARTS[key]; }
+  Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,0.06)';
+  HX_OOS_CHARTS[key]=new Chart(cv,{type:'line',
+    data:{labels:b.labels,datasets:[hxWave(g.label+' tickets',b.data,'#e5484d','rgba(229,72,77,')]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},title:{display:true,text:'Tickets created',color:'#2a3340',font:{size:12}},ticks:{font:{size:11},precision:0}},
+        x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+}
+function hxOosToggle(key){
+  var sec=document.getElementById('hxOosSec-'+key); if(!sec) return;
+  var willOpen=!sec.classList.contains('open');
+  sec.classList.toggle('open');
+  if(willOpen){ setTimeout(function(){ hxOosDrawChart(key); },60); }
+}
+window.hxOosToggle=hxOosToggle;
+function hxOosMore(key){
+  HX_OOS_SHOWN[key]=(HX_OOS_SHOWN[key]||HX_PAGE0)+HX_STEP;
+  var body=document.getElementById('hxOosBody-'+key); if(!body) return;
+  var g=(HX_OOS&&HX_OOS.groups||[]).filter(function(x){ return x.key===key; })[0];
+  if(g) body.innerHTML=hxOosTableHtml(g);
+}
+window.hxOosMore=hxOosMore;
+// Expand/collapse a whole GROUP block (DEFECTS / PATTERNS / OTHER). ACCORDION — only one group open
+// at a time: opening one collapses the others; clicking an open group closes it (all can be closed).
 function hxGroupToggle(gi){
   var g=document.getElementById('hxGroup'+gi); if(!g) return;
-  g.classList.toggle('collapsed');
+  var willOpen=g.classList.contains('collapsed');
+  // Collapse every group first…
+  Array.prototype.forEach.call(document.querySelectorAll('.hx-group'),function(x){ x.classList.add('collapsed'); });
+  // …then open the clicked one if it was closed (if it was open, it stays collapsed = toggled shut).
+  if(willOpen) g.classList.remove('collapsed');
 }
 
 // Load order:
@@ -566,9 +746,16 @@ function hxGroupToggle(gi){
 //      page still renders something on GitHub Pages before the API wakes.
 (async function(){
   var live=null;
+  // Fetch the hashtags report + the out-of-scope report in parallel (the latter is best-effort:
+  // if it fails the page still renders the hashtag groups without the "#Out of Scope" group).
   try{
-    var r=await A.api('GET','/api/hashtags-report');
+    var pair=await Promise.all([
+      A.api('GET','/api/hashtags-report'),
+      A.api('GET','/api/out-of-scope-report').catch(function(){ return null; })
+    ]);
+    var r=pair[0], oos=pair[1];
     if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)) live=r.data;
+    if(oos&&oos.ok&&oos.data&&Array.isArray(oos.data.groups)) HX_OOS=oos.data;
   }catch(e){ live=null; }
   if(live){ render(live); return; }
   // Fallback: static snapshot bundled with the site.

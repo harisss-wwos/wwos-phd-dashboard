@@ -579,6 +579,7 @@ h1{letter-spacing:-.5px}
 .mtc-zone{flex:1;display:flex;align-items:center;gap:10px;padding:13px 20px;flex-wrap:wrap}
 .mtc-zone.cmt{background:transparent}
 .mtc-zone.help{background:transparent;justify-content:flex-end}
+.mtc-zone.end{background:transparent;justify-content:flex-end;flex:0 0 auto}
 .mtc-zlabel{font-size:10px;font-weight:800;letter-spacing:.8px;opacity:.8}
 .mtc-zone.cmt .mtc-zlabel{color:var(--cy)}.mtc-zone.help .mtc-zlabel{color:var(--am)}
 .mtc-b{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #2b323b;background:#171b21;color:#dfe6ea;transition:.15s;white-space:nowrap;font-family:inherit}
@@ -774,12 +775,12 @@ h1{color:#1b2026 !important}
 .cmt-input{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
 .ilog-empty{color:#8793a0 !important}
 /* Modal textareas carry inline dark styles (background:#000;color:#fff) — override by id. */
-#addCmtText,#editIncidentText,#incidentText,#helpDoubt{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
-#addCmtText::placeholder,#incidentText::placeholder,#helpDoubt::placeholder{color:#9aa5b1 !important}
+#addCmtText,#editIncidentText,#incidentText{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
+#addCmtText::placeholder,#incidentText::placeholder{color:#9aa5b1 !important}
 /* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
 .modal p{color:#5c6773 !important}
 .modal p b[style*="#fff"]{color:#1b2026 !important}
-.modal-head h2 span[style*="#fbbf24"],#helpTicket{color:#b5560c !important}
+.modal-head h2 span[style*="#fbbf24"]{color:#b5560c !important}
 .toast{background:#fff !important;border-color:#1f9d57 !important;color:#1f9d57 !important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35) !important}
 /* Manager panel (if shown) */
 .mgr-panel{background:#fff !important;border-color:#e2e7eb !important}
@@ -829,20 +830,6 @@ h1{color:#1b2026 !important}
     '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
 </div>
 <div class="toast" id="toast"></div>
-
-<!-- Ask for help popup -->
-<div class="modal-bg" id="helpModal" onclick="if(event.target===this)closeHelp()">
-  <div class="modal">
-    <div class="modal-head"><h2>Ask for help · <span id="helpTicket" style="color:#fbbf24"></span></h2><button class="modal-close" onclick="closeHelp()" aria-label="Close">&times;</button></div>
-    <p style="color:#879596;font-size:.82em;margin-bottom:10px">Describe your question. Admins/owner will see it in the live-dashboard alert and can reply. You can ask more than once.</p>
-    <textarea id="helpDoubt" maxlength="2000" style="width:100%;min-height:120px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="What do you need help with on this ticket?"></textarea>
-    <div class="msg err" id="helpErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
-    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeHelp()">Cancel</button>
-      <button class="btn" id="helpSubmitBtn" onclick="submitHelp()">Send help request</button>
-    </div>
-  </div>
-</div>
 
 <!-- Comment log popup -->
 <div class="modal-bg" id="cmtModal" onclick="if(event.target===this)closeCmt()">
@@ -935,7 +922,6 @@ const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 const isEditor=()=>A.role&&A.role()==='editor';
 let TICKETS=[];
-let MY_HELP={}; // shortId(lower) -> [ {id,doubt,status,createdAt,replies} ]
 
 // ---- Sorting (one active column at a time; default = Created ascending -> newest ticket at bottom) ----
 let SORT_KEY='created';    // 'timeleft' | 'created'
@@ -1159,19 +1145,17 @@ window.syncImportantFromServer=syncImportantFromServer;
 let OPEN_CARD=null;   // shortId of the card with an open panel (session only)
 let OPEN_WHICH=null;  // 'cmt' | 'help'
 function togglePanel(i,which){
-  const cp=document.getElementById('cpanel-'+i), hp=document.getElementById('hpanel-'+i);
-  const cb=document.getElementById('cbtn-'+i), hb=document.getElementById('hbtn-'+i);
-  if(!cp||!hp)return;
-  const openThis=which==='cmt'?cp:hp;
-  const wasOpen=openThis.classList.contains('open');
-  cp.classList.remove('open'); hp.classList.remove('open');
-  if(cb)cb.classList.remove('active-cmt'); if(hb)hb.classList.remove('active-help');
+  const cp=document.getElementById('cpanel-'+i);
+  const cb=document.getElementById('cbtn-'+i);
+  if(!cp)return;
+  const wasOpen=cp.classList.contains('open');
+  cp.classList.remove('open');
+  if(cb)cb.classList.remove('active-cmt');
   const t=TICKETS[i];
   if(!wasOpen){
-    openThis.classList.add('open');
-    if(which==='cmt'){ if(cb)cb.classList.add('active-cmt'); loadComments(i); }
-    else { if(hb)hb.classList.add('active-help'); }
-    OPEN_CARD=t?String(t.shortId):null; OPEN_WHICH=which;
+    cp.classList.add('open');
+    if(cb)cb.classList.add('active-cmt'); loadComments(i);
+    OPEN_CARD=t?String(t.shortId):null; OPEN_WHICH='cmt';
   } else {
     OPEN_CARD=null; OPEN_WHICH=null;
   }
@@ -1309,7 +1293,6 @@ async function load(){
   if(cached&&Array.isArray(cached.tickets)){
     if(cached.tz)MY_TZ=cached.tz;
     TICKETS=cached.tickets;
-    MY_HELP=cached.help||{};
     render();
     paintedFromCache=true;
   }
@@ -1328,43 +1311,16 @@ async function load(){
   if(r.status===401){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Session expired. Please log in again.'); return; }
   if(!r.ok){ if(paintedFromCache&&window.PHDRefreshBanner)window.PHDRefreshBanner.hide(); if(!paintedFromCache)gate('Could not load your tickets (HTTP '+r.status+').'); return; }
   TICKETS=(r.data&&r.data.tickets)||[];
-  MY_HELP={};
-  if(isEditor()){
-    try{const hr=await A.api('GET','/api/help/mine');if(hr.ok&&Array.isArray(hr.data)){hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(MY_HELP[k]=MY_HELP[k]||[]).push(h);});}}catch(e){}
-  }
   // Reconcile the "important" star with the shared store (so an un-mark done on the Unique Cases
   // page clears the star here too). Fold its result into the re-render decision below.
   const impChanged=await syncImportantFromServer();
   // Save the fresh copy (stamp b := a) then (re-)render.
-  const fresh={version:version||(cached&&cached.version)||null,tz:MY_TZ,tickets:TICKETS,help:MY_HELP,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
-  const changed=!cached||JSON.stringify(cached.tickets)!==JSON.stringify(TICKETS)||JSON.stringify(cached.help||{})!==JSON.stringify(MY_HELP)||cached.tz!==MY_TZ;
+  const fresh={version:version||(cached&&cached.version)||null,tz:MY_TZ,tickets:TICKETS,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
+  const changed=!cached||JSON.stringify(cached.tickets)!==JSON.stringify(TICKETS)||cached.tz!==MY_TZ;
   writeCache(fresh);
   if(!paintedFromCache||changed||impChanged)render();
   if(paintedFromCache&&window.PHDRefreshBanner){ changed?window.PHDRefreshBanner.updated('Your tickets are up to date.'):window.PHDRefreshBanner.hide(); }
 }
-
-// Refresh just the help requests/replies (independent of the quarter version) and re-render if they
-// changed. Called on the cache-hit fast paths so an admin's reply reflects here without a hard reload.
-async function refreshHelp(cached){
-  if(!isEditor())return;
-  try{
-    const hr=await A.api('GET','/api/help/mine');
-    if(!(hr.ok&&Array.isArray(hr.data)))return;
-    const next={};
-    hr.data.forEach(h=>{const k=String(h.shortId).toLowerCase();(next[k]=next[k]||[]).push(h);});
-    if(JSON.stringify(MY_HELP)===JSON.stringify(next))return; // no change, skip re-render
-    MY_HELP=next;
-    render();
-    // Persist the refreshed help into the existing cache so a later paint stays current.
-    try{
-      const base=cached||readCache()||{};
-      writeCache(Object.assign({},base,{help:MY_HELP,at:Date.now()}));
-    }catch(e){}
-  }catch(e){}
-}
-
-// (Help is now shown inside the unified conversation panel — the old inline help column/helpBlock
-//  was removed. Ask-for-help lives in the conversation composer; see paintThread.)
 
 function render(){
   const u=A.getUser();const editor=isEditor();
@@ -1382,8 +1338,7 @@ function render(){
         '<h2>You\u2019re a manager \u2014 no tickets in your bucket</h2>'+
         '<p>Managers don\u2019t get tickets assigned to them. You can still <b>search any ticket</b> across all quarters and <b>mark it important</b> to flag it for leadership discussion.</p>'+
         '<div class="mgr-actions">'+
-          '<a class="btn" href="unique-cases.html">'+ic('bar-chart')+' Search &amp; mark a ticket</a>'+
-          '<a class="btn sec" href="important-cases.html">'+ic('target')+' View unique cases</a>'+
+          '<a class="btn" href="important-cases.html">'+ic('target')+' Search &amp; mark a ticket · Unique Cases</a>'+
         '</div>'+
       '</div>';
     document.getElementById('wrap').innerHTML=html;return;
@@ -1469,15 +1424,7 @@ function cardHtml(t,i,editor){
   const viewed=VIEWED.has(sid);
   const temp=TEMP_RESOLVED.has(sid);
   let cls=' row-'+ageColor(t.createDate);
-  const hlist=MY_HELP[sid.toLowerCase()]||[];
-  const hasWaiting=hlist.some(h=>h.status==='open');
-  if(hasWaiting) cls+=' has-help-waiting';
-  const helpN=hlist.length;
   const cmtN=(LATEST[sid]&&LATEST[sid].count)||0;   // known count (filled by fillLatestComments); 0 until loaded
-  const askCtl=hasWaiting
-    ? `<button class="mtc-b lock" disabled title="Help request in action">${ic('info',13)} Help in action</button>`
-    : (editor?`<button class="mtc-b primary" onclick="openHelp('${esc(sid)}')">${ic('message',13)} Ask help</button>`:'');
-  const helpStatusChip=hasWaiting?'<span class="mtc-schip wait">Waiting</span>':(helpN?'<span class="mtc-schip ok">Answered</span>':'');
   return `<div class="mtc${viewed?' viewed':''}${temp?' temp':''}${cls}" id="card-${i}" data-sid="${esc(sid)}">
     <div class="mtc-head">
       <div class="mtc-cb${viewed?' on':''}" title="Mark as viewed" onclick="toggleViewed('${esc(sid)}',this)">${ic('check-circle',12)}</div>
@@ -1502,19 +1449,12 @@ function cardHtml(t,i,editor){
         <button class="mtc-b cmt-cnt" id="cbtn-${i}" onclick="togglePanel(${i},'cmt')" title="View comments" aria-label="View comments">${ic('message',13)} <span class="cnt" id="cbadge-${i}">${cmtN}</span> <span class="mtc-caret">${ic('caret-down',12)||'\u25be'}</span></button>
         <span class="mtc-last" id="clast-${i}"></span>
       </div>
-      <div class="mtc-zone help">
-        ${editor
-          ? `<button class="mtc-b help-cnt" id="hbtn-${i}" onclick="togglePanel(${i},'help')">${ic('message',13)} View help history <span class="cnt">${helpN}</span> <span class="mtc-caret">${ic('caret-down',12)||'\u25be'}</span></button>${askCtl}`
-          : ''}
+      <div class="mtc-zone end">
         <span class="mtc-icons mtc-icons-bar" id="ticons-${i}">${ticketIconsHtml(i)}</span>
       </div>
     </div>
     <div class="mtc-panel" id="cpanel-${i}"><div class="mtc-panel-in"><div class="mtc-panel-pad" id="cbody-${i}" data-loaded="0">
       <div class="mtc-empty">${ic('message',12)} Expand to load comments.</div>
-    </div></div></div>
-    <div class="mtc-panel" id="hpanel-${i}"><div class="mtc-panel-in"><div class="mtc-panel-pad">
-      <div class="mtc-phead">${ic('message',13)} HELP ${helpStatusChip}</div>
-      ${renderHelpBody(t,hlist)}
     </div></div></div>
   </div>`;
 }
@@ -1539,24 +1479,6 @@ function ticketIconsHtml(i, mirror){
     return `<span class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)}" onclick="${handler}">${attImg(f.icon,'mtc-att-ic')}</span>`;
   }).join('');
 }
-// Help panel body (question + admin replies as chat bubbles). Read-only here; Ask/reply live elsewhere.
-function renderHelpBody(t,hlist){
-  if(!hlist||!hlist.length) return `<div class="mtc-empty">${ic('message',12)} No help requested on this ticket yet.</div>`;
-  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
-  return hlist.map(function(h){
-    const qWho=h.requester||(A.getUser()&&A.getUser().username)||'You';
-    let out=`<div class="mtc-msg"><div class="mtc-av h">${esc((qWho[0]||'?').toUpperCase())}</div>`
-      +`<div class="mtc-bub h"><div class="mtc-m"><span class="k h">help</span> <b>${esc(qWho)}</b> · ${esc(fmtTZ(h.createdAt,zone))}</div>`
-      +`<div class="mtc-t">${esc(h.doubt)}</div></div></div>`;
-    (h.replies||[]).forEach(function(r){
-      out+=`<div class="mtc-msg right"><div class="mtc-av r">${esc((r.by[0]||'?').toUpperCase())}</div>`
-        +`<div class="mtc-bub"><div class="mtc-m"><span class="k r">reply</span> <b>${esc(r.by)}</b>${r.role?` (${esc(r.role)})`:''} · ${esc(fmtTZ(r.at,zone))}</div>`
-        +`<div class="mtc-t">${esc(r.text)}</div></div></div>`;
-    });
-    return out;
-  }).join('');
-}
-
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.
 // Per-ticket app-activity timestamp (our own reference: when a comment/log was last added/edited).
 // { shortId: { at, by, type } }. Separate from the CSV LastUpdated* fields.
@@ -1656,29 +1578,6 @@ async function refreshLatestComment(i){
     var body=document.getElementById('cbody-'+i);
     if(body && body.getAttribute('data-loaded')==='1') loadComments(i);
   }catch(e){}
-}
-
-// ---- Help request actions ----
-function openHelp(shortId){
-  document.getElementById('helpTicket').textContent=shortId;
-  document.getElementById('helpDoubt').value='';
-  document.getElementById('helpErr').style.display='none';
-  document.getElementById('helpModal').setAttribute('data-sid',shortId);
-  document.getElementById('helpModal').style.display='flex';
-  setTimeout(()=>document.getElementById('helpDoubt').focus(),40);
-}
-function closeHelp(){document.getElementById('helpModal').style.display='none';}
-async function submitHelp(){
-  const shortId=document.getElementById('helpModal').getAttribute('data-sid');
-  const doubt=document.getElementById('helpDoubt').value.trim();
-  const err=document.getElementById('helpErr');
-  if(!doubt){err.textContent='Please describe your question.';err.style.display='block';return;}
-  const btn=document.getElementById('helpSubmitBtn');
-  if(btn){btn.disabled=true;btn.textContent='Sending help request…';}
-  const r=await A.api('POST','/api/help',{shortId,doubt});
-  if(r.ok){closeHelp();toast('Help request sent for '+shortId);await load();}
-  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
-  if(btn){btn.disabled=false;btn.textContent='Send help request';}
 }
 
 let ADD_CMT_INDEX=null;

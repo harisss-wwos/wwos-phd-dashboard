@@ -116,6 +116,10 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-chart-legend{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;font-size:.82em;font-weight:700;margin-bottom:6px}
 .hr-chart-loading{display:flex;align-items:center;justify-content:center;gap:12px;min-height:220px;color:#8795a3;font-size:.9em;font-weight:600}
 .hr-chart-loading .spinner{margin:0;width:30px;height:30px;border-width:3px}
+/* Bar-shimmer chart placeholder. */
+.hr-chart-sk-legend{display:flex;justify-content:flex-end;gap:14px;margin-bottom:14px}
+.hr-chart-sk-plot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:240px;padding:0 6px}
+.hr-chart-sk-bar{flex:1;border-radius:6px 6px 0 0;align-self:flex-end}
 .hr-lg{display:inline-flex;align-items:center;gap:6px;color:#aab6c2}
 .hr-lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
 .hr-lg.combined i{background:#38bdf8}
@@ -393,7 +397,7 @@ h1{color:#1b2026!important}
     <div class="hb-right"><span class="hr-ytd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> YTD 2026</span></div>
   </div>
   <div id="hrSkel">
-    <div class="hr-range rng-chart open"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:260px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div><div class="hr-range-body"><div class="hr-chart-loading"><span class="spinner"></span><span>Loading monthly trend…</span></div></div></div>
+    <div class="hr-range rng-chart open"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:260px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div><div class="hr-range-body"><div class="hr-chart-sk"><div class="hr-chart-sk-legend"><span class="sk-line" style="width:120px;height:12px"></span><span class="sk-line" style="width:160px;height:12px"></span><span class="sk-line" style="width:130px;height:12px"></span></div><div class="hr-chart-sk-plot"><span class="sk-line hr-chart-sk-bar" style="height:55%"></span><span class="sk-line hr-chart-sk-bar" style="height:40%"></span><span class="sk-line hr-chart-sk-bar" style="height:70%"></span><span class="sk-line hr-chart-sk-bar" style="height:50%"></span><span class="sk-line hr-chart-sk-bar" style="height:85%"></span><span class="sk-line hr-chart-sk-bar" style="height:60%"></span><span class="sk-line hr-chart-sk-bar" style="height:78%"></span><span class="sk-line hr-chart-sk-bar" style="height:45%"></span><span class="sk-line hr-chart-sk-bar" style="height:66%"></span><span class="sk-line hr-chart-sk-bar" style="height:52%"></span><span class="sk-line hr-chart-sk-bar" style="height:38%"></span><span class="sk-line hr-chart-sk-bar" style="height:72%"></span></div></div></div></div>
     <div class="hr-range rng-nonpet"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:230px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div></div>
     <div class="hr-range rng-pet"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:200px;height:16px"></span><span style="flex:1"></span><span class="hr-caret">▾</span></div></div>
   </div>
@@ -586,6 +590,9 @@ function render(d){
 // regroup the same flat HR_NONPET.tickets list. The section shell is built once; the view area
 // (#npBody) is (re)painted by renderNonPetView() whenever a radio/checkbox changes.
 function truncate(s, n){ s=String(s||''); return s.length>n ? (s.slice(0,n-1)+'…') : s; }
+// Country-code -> full name, for friendly labels ("US · United States").
+var NP_COUNTRY_NAME={US:'United States',UK:'United Kingdom',CA:'Canada',IN:'India',AU:'Australia',MX:'Mexico',JP:'Japan',DE:'Germany',IT:'Italy',FR:'France',EG:'Egypt',ES:'Spain',SA:'Saudi Arabia',BR:'Brazil',NL:'Netherlands',ZA:'South Africa',PT:'Portugal',UAE:'United Arab Emirates',IE:'Ireland',SG:'Singapore',TR:'Turkey',PL:'Poland',SE:'Sweden',BE:'Belgium',AT:'Austria',CH:'Switzerland',DK:'Denmark',NO:'Norway',FI:'Finland',GR:'Greece',CZ:'Czechia'};
+function npCountryLabel(code){ var n=NP_COUNTRY_NAME[code]; return n?(esc(code)+' \u00b7 '+esc(n)):esc(code); }
 
 function nonPetSectionHtml(){
   // One controls row: a segmented radio-pill group (left) + the PHD/Non-PHD checkboxes (right,
@@ -666,7 +673,7 @@ function npByCountry(tickets){
     return '<div class="hr-sub np-ctry">'+
       '<button type="button" class="hr-sub-head" onclick="hrSubToggle(this)">'+
         '<span class="hr-sub-ic">'+(window.icon?window.icon('globe',16):'')+'</span>'+
-        '<span class="hr-sub-title">'+esc(code)+'</span>'+
+        '<span class="hr-sub-title">'+npCountryLabel(code)+'</span>'+
         '<span class="hr-sub-meta">'+list.length+' tickets</span>'+
         '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
       '</button>'+
@@ -772,8 +779,17 @@ window.renderPetView=renderPetView;
 // ================= Monthly created-tickets trend chart (SVG, dependency-free) =================
 const MONTH_LBL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CHART_LAST_MONTH=10; // draw lines/points through October only (data fills in as the year goes).
+// Bar-shimmer placeholder shown while the monthly trend data loads (shimmering legend + 12 bars).
+function hrChartSkeleton(){
+  var hs=[55,40,70,50,85,60,78,45,66,52,38,72], bars='';
+  for(var i=0;i<12;i++) bars+='<span class="sk-line hr-chart-sk-bar" style="height:'+hs[i]+'%"></span>';
+  return '<div class="hr-chart-sk">'+
+    '<div class="hr-chart-sk-legend"><span class="sk-line" style="width:120px;height:12px"></span><span class="sk-line" style="width:160px;height:12px"></span><span class="sk-line" style="width:130px;height:12px"></span></div>'+
+    '<div class="hr-chart-sk-plot">'+bars+'</div>'+
+  '</div>';
+}
 // The trend graph is a top-level collapsible section (part of the same accordion as the Non-pet /
-// Pet sections), EXPANDED by default. Shows a spinner until the monthly data arrives.
+// Pet sections), EXPANDED by default. Shows a bar shimmer until the monthly data arrives.
 function monthlyChartHtml(){
   const inner = HR_MONTHLY
     ? ('<div class="hr-chart-legend">'+
@@ -785,7 +801,7 @@ function monthlyChartHtml(){
          '<svg class="hr-chart-svg" id="hrChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tickets created per month in 2026"></svg>'+
          '<div class="hr-chart-tip" id="hrChartTip"></div>'+
        '</div>')
-    : '<div class="hr-chart-loading"><span class="spinner"></span><span>Loading monthly trend…</span></div>';
+    : hrChartSkeleton();
   return '<div class="hr-range rng-chart open" data-range="chart">'+
     '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
       '<span class="hr-range-ic">'+ic('line-chart',18)+'</span>'+
@@ -917,8 +933,10 @@ function hrFilter(inp,key){
 window.hrFilter=hrFilter;
 
 (async function init(){
-  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ gate('This page is for logged-in users. Please log in from the home page.'); return; }
-  if(!(A.canViewRepeat&&A.canViewRepeat())){ gate('You do not have access to Repeat Incidents.'); return; }
+  // Not logged in (or no token) -> send to the home page (same behavior as the guest lockdown).
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+  // Logged in but lacks access to Repeat Incidents -> home page.
+  if(!(A.canViewRepeat&&A.canViewRepeat())){ location.replace('index.html'); return; }
   // Load the registered-user roster (any logged-in user may read it) so we can tag PHD logins.
   try{
     const ru=await A.api('GET','/api/user-roles');
@@ -930,7 +948,8 @@ window.hrFilter=hrFilter;
   try{ const nr=await A.api('GET','/api/hi-nonpet'); if(nr&&nr.ok&&nr.data&&Array.isArray(nr.data.tickets)) HR_NONPET=nr.data; }catch(e){ HR_NONPET=null; }
   try{ const pr=await A.api('GET','/api/hi-nonpet?pet=1'); if(pr&&pr.ok&&pr.data&&Array.isArray(pr.data.tickets)) HR_PET=pr.data; }catch(e){ HR_PET=null; }
   const r=await A.api('GET','/api/hi-resolved');
-  if(r.status===401){ gate('Your session has expired. Please log in again.'); return; }
+  // Session expired -> clear + bounce to the home page (not a gate screen).
+  if(r.status===401){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
   if(!r.ok||!r.data){ document.getElementById('wrap').innerHTML='<div class="gate"><h1>Resolved Repeat Incidents</h1><p>Could not load the data. Please try again.</p><a class="btn" href="app.html">Back to Dashboard</a></div>'; return; }
   render(r.data);
 })();

@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Standalone-visit guard: the change log now lives inline inside tools.html (iframe, ?embed=1). A
+     direct top-level visit bounces to tools.html (via replace, no history entry). -->
+<script>(function(){try{var emb=/[?&]embed=1\b/.test(location.search);if(window.self===window.top&&!emb){location.replace('tools.html');}}catch(e){}})();</script>
 <title>Blurb Change Log · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,6 +58,12 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
 .empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:5px}
 @media(max-width:640px){.diff{grid-template-columns:1fr}}
 
+/* Embedded inside tools.html: the parent title bar provides the Back button + the page heading is
+   shown by the tab, so hide this page's own back-link row and the big H1/sub to avoid duplicates. */
+body[data-embedded="true"] .log-backrow{display:none!important}
+body[data-embedded="true"] #wrap>h1,body[data-embedded="true"] #wrap>.sub{display:none!important}
+body[data-embedded="true"] .wrap{padding-left:0!important;padding-right:0!important;margin-left:0!important;margin-right:0!important}
+
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
@@ -94,7 +103,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap">
-  <div style="margin-bottom:14px"><a class="btn sec" href="tool-blurbs.html">← Back to Common Blurbs</a></div>
+  <div class="log-backrow" style="margin-bottom:14px"><a class="btn sec" href="tool-blurbs.html">← Back to Common Blurbs</a></div>
   <h1>Blurb Change Log</h1>
   <p class="sub">Who added, edited, or deleted which blurb, when (IST &amp; MST). Latest first.</p>
   <div class="phd-load"><span class="phd-spin"></span> Loading change log…</div>
@@ -139,7 +148,7 @@ const ACT_CLASS={create:'create',edit:'edit',delete:'delete'};
 function render(entries){
   const wrap=document.getElementById('wrap');
   const owner=isOwner();
-  let html='<div style="margin-bottom:14px"><a class="btn sec" href="tool-blurbs.html">← Back to Common Blurbs</a></div>'
+  let html='<div class="log-backrow" style="margin-bottom:14px"><a class="btn sec" href="tool-blurbs.html">← Back to Common Blurbs</a></div>'
     +'<h1>Blurb Change Log</h1><p class="sub">Who added, edited, or deleted which blurb, when (IST &amp; MST). Latest first.'+(owner?' As an admin, you can delete log entries.':'')+'</p>';
   if(!entries.length){html+='<div class="empty">No blurb changes recorded yet.</div>';wrap.innerHTML=html;return;}
   html+=entries.map((e,i)=>`

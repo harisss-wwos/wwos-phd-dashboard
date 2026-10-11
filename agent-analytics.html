@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the nav rail / profile
+     column, so the chrome doesn't flash in on refresh. Cleared by topbar-auth after the chrome
+     builds; a failsafe timer clears it if the script never runs (offline) so it can't stay hidden. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <title>Analytics · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -231,9 +237,14 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .gv-block-title::before{content:'';width:3px;height:.95em;background:var(--o);border-radius:2px;flex-shrink:0}
 /* ---- Page layout: title + evenly spaced, clearly labelled sections ---- */
 /* Title bar: WHITE card, 60px tall, 10px gap below. */
-.an-head{display:flex;align-items:center;height:60px;min-height:60px;box-sizing:border-box;margin:0 0 10px;padding:0 18px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
+.an-head{display:flex;align-items:center;justify-content:space-between;gap:14px;height:60px;min-height:60px;box-sizing:border-box;margin:0 0 10px;padding:0 18px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
 .an-head h1{font-size:1.2em;font-weight:800;margin:0;display:inline-flex;align-items:center;gap:9px;color:#1b2026}
 .an-head h1 svg{color:#1b2026;flex-shrink:0}
+/* "YTD 2026" badge pinned to the right of the title bar (matches hi-resolved / station-request). */
+.an-ytd{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:.9em;letter-spacing:.3px;color:#ec7211;background:#fff4ea;border:1px solid #f3c99e;border-radius:999px;padding:6px 14px;white-space:nowrap;flex-shrink:0}
+.an-ytd svg{color:#ec7211;flex-shrink:0}
+/* Content column: kill the injected 14px top gutter; reduce bottom to 20px (keep 12px sides). */
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
 .an-sub{color:var(--tm);font-size:.92em}
 .an-sec{margin:0 0 34px}
 .an-sec:last-child{margin-bottom:0}
@@ -586,6 +597,7 @@ function render(){
   document.getElementById('wrap').innerHTML=`
     <div class="an-head">
       <h1>${ic('group-chart',20)} Performance Analytics by Group &amp; Analysts</h1>
+      <span class="an-ytd">${ic('calendar',15)} YTD 2026</span>
     </div>
 
     <section class="an-sec">
