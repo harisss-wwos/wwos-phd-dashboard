@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the nav rail / profile
+     column, so the chrome doesn't flash in on refresh. Cleared by topbar-auth after the chrome
+     builds; a failsafe timer clears it if the script never runs (offline) so it can't stay hidden. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<title>Ticket Sanitization · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<!-- ===== Light-theme page styles (loaded last, wins the cascade) ===== -->
+<style id="ts-light">
+/* Content column: kill the injected 14px top gutter (topbar-auth .wrap{padding-top}); 20px bottom. */
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
+/* ---- Title bar: white, 60px, black title ---- */
+.ts-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;gap:11px;padding:0 16px;margin-bottom:16px}
+.ts-titlebar .ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:5px;background:#fff4e8;color:#ec7211;flex-shrink:0}
+.ts-titlebar h1{margin:0;font-size:1.25em;font-weight:800;color:#1b2026;line-height:1.1}
+/* ---- Guide card ---- */
+.ts-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);padding:18px 22px;width:100%}
+.ts-card+.ts-card{margin-top:16px}
+/* The Link card is a single row (text left, button right). */
+.ts-card.ts-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ts-card .ts-ic{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:#eafaf0;color:#1f9d57;margin-bottom:14px}
+.ts-card h2{color:#1b2026;font-size:1.15em;font-weight:800;margin:0 0 8px}
+.ts-card p{color:#5c6773;font-size:.95em;line-height:1.6;margin:0;min-width:0}
+.ts-card p b{color:#1b2026}
+.ts-cta{flex-shrink:0}
+.ts-card p b{color:#1b2026}
+.ts-steps{list-style:none;margin:0 0 20px;padding:0;display:flex;flex-direction:column;gap:10px;max-width:70ch}
+.ts-steps li{display:flex;align-items:flex-start;gap:11px;color:#2a3340;font-size:.92em;line-height:1.55}
+.ts-steps .n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#fff4e8;color:#b5560c;font-weight:800;font-size:.78em;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+.ts-cta{display:inline-flex;align-items:center;gap:9px;padding:12px 20px;border-radius:5px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;font-weight:800;font-size:.95em;text-decoration:none;border:none;box-shadow:0 4px 14px -4px rgba(240,125,10,.5);transition:filter .15s,transform .1s}
+.ts-cta:hover{filter:brightness(1.05)}
+.ts-cta:active{transform:translateY(1px)}
+.ts-cta svg{flex-shrink:0}
+.ts-note{margin-top:14px;color:#8793a0;font-size:.82em;line-height:1.5;max-width:70ch}
+.ts-note code{background:#f3f5f7;border:1px solid #e2e6ea;border-radius:4px;padding:1px 6px;font-size:.92em;word-break:break-all;color:#5c6773}
+/* ---- Sanitization checklist card ---- */
+.ts-chead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.ts-chead h2{margin:0}
+.ts-copyall,.ts-mini,.ts-addbtn{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-weight:700;cursor:pointer;border-radius:5px;border:1px solid #e2e6ea;background:#fff;color:#b5560c;transition:border-color .15s,background .15s,color .15s}
+.ts-copyall{padding:8px 14px;font-size:.84em}
+.ts-copyall:hover{border-color:#ec7211;background:#fff4e8;color:#ec7211}
+.ts-copyall.copied,.ts-mini.copied{border-color:#1f9d57!important;background:#eafaf0!important;color:#1f9d57!important}
+.ts-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ts-item{display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border:1px solid #eef1f4;border-radius:5px;background:#f9fafb}
+.ts-item:hover{background:#f4f7fa;border-color:#e2e6ea}
+.ts-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#fff4e8;color:#b5560c;font-weight:800;font-size:.76em;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+.ts-text{flex:1 1 auto;min-width:0;color:#2a3340;font-size:.92em;line-height:1.55;word-break:break-word}
+.ts-item-actions{flex-shrink:0;display:inline-flex;align-items:center;gap:6px}
+.ts-mini{padding:5px 9px;font-size:.76em;color:#5c6773}
+.ts-mini:hover{border-color:#ec7211;background:#fff4e8;color:#ec7211}
+.ts-mini.del{color:#dc2626}
+.ts-mini.del:hover{border-color:#dc2626;background:#fef2f2;color:#dc2626}
+.ts-add-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.ts-add-row input{flex:1 1 320px;min-width:0;padding:9px 12px;border:1px solid #d4dce4;border-radius:5px;color:#1b2026;font-size:.9em;font-family:inherit;background:#fff}
+.ts-add-row input:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.ts-addbtn{padding:9px 15px;font-size:.85em;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;border:none}
+.ts-addbtn:hover{filter:brightness(1.05)}
+.ts-err{display:none;color:#dc2626;font-size:.84em;margin-top:8px}
+.ts-empty{color:#8793a0;font-size:.9em;font-style:italic;padding:10px 2px}
+/* ---- Loading shimmer (mirrors the loaded layout: title bar + Link card + checklist card) ---- */
+.ts-sk-title{height:60px;border-radius:5px}
+.ts-sk-line{position:relative;overflow:hidden;background:#e6eaef;border-radius:5px;display:block}
+.ts-sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent);animation:tsSk 1.15s infinite}
+@keyframes tsSk{100%{transform:translateX(100%)}}
+.ts-sk-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.ts-sk-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid #eef1f4;border-radius:5px;background:#f9fafb}
+.ts-sk-item .ts-sk-dot{flex-shrink:0;width:22px;height:22px;border-radius:50%}
+.ts-sk-stack{display:flex;flex-direction:column;gap:8px}
+/* gate (not logged in) */
+.ts-gate{max-width:560px;margin:60px auto;text-align:center}
+.ts-gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
+.ts-gate p{color:#5c6773;line-height:1.55;margin-bottom:16px}
+.ts-gate .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:5px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;font-weight:700;text-decoration:none}
+</style>
+</head>
+<body data-nav-active="ticket-sanitization" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap">
+  <!-- Loading shimmer (replaced by render()/gate() once the checklist loads). -->
+  <div class="ts-sk-line ts-sk-title" style="margin-bottom:16px"></div>
+  <div class="ts-card ts-sk-row" style="margin-bottom:16px">
+    <span class="ts-sk-line" style="width:min(60%,520px);height:14px"></span>
+    <span class="ts-sk-line" style="width:92px;height:40px;border-radius:5px"></span>
+  </div>
+  <div class="ts-card">
+    <div class="ts-sk-row" style="margin-bottom:14px">
+      <span class="ts-sk-line" style="width:180px;height:18px"></span>
+      <span class="ts-sk-line" style="width:92px;height:34px;border-radius:5px"></span>
+    </div>
+    <div class="ts-sk-stack">
+      <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:72%;height:12px"></span></div>
+      <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:84%;height:12px"></span></div>
+      <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:60%;height:12px"></span></div>
+      <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:78%;height:12px"></span></div>
+      <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:88%;height:12px"></span></div>
+      <div class="ts-sk-item"><span class="ts-sk-line ts-sk-dot"></span><span class="ts-sk-line" style="flex:1;max-width:66%;height:12px"></span></div>
+    </div>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js?v=167"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||18):'';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// The shared SharePoint sheet where each analyst finds their assigned tickets and sanitizes them.
+var TS_SHEET_URL='https://amazon-my.sharepoint.com/:x:/r/personal/flofalgu_amazon_com/_layouts/15/doc2.aspx?sourcedoc=%7B1C13EF24-F76D-41A3-A9A4-CE41C2550BA8%7D&file=Book.xlsx&action=editnew&mobileredirect=true';
+// Edit access: only these two usernames (case-insensitive). The server enforces the same allow-list.
+var TS_EDITORS=['harisss','flofalgu'];
+function tsCanEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && TS_EDITORS.indexOf(String(u.username||'').toLowerCase())>=0); }
+
+// Glyphs.
+var ICO_EXT='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+var ICO_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+var ICO_CHK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+var ICO_EDIT='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+var ICO_DEL='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+var ICO_PLUS='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+var TS_ITEMS=[];  // [{id,text,order}]
+
+function copyText(text,btn,label){
+  var done=function(ok){
+    if(!btn||!ok) return;
+    var orig=btn.innerHTML; btn.classList.add('copied');
+    btn.innerHTML=ICO_CHK+'<span>Copied</span>';
+    setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); }, 1300);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){done(true);},function(){copyFallback(text,done);}); }
+  else copyFallback(text,done);
+}
+function copyFallback(text,done){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok); }catch(e){ done(false); } }
+function tsCopyAll(btn){ copyText(TS_ITEMS.map(function(x){return x.text;}).join('\n'), btn); }
+window.tsCopyAll=tsCopyAll;
+function tsCopyOne(i,btn){ var it=TS_ITEMS[i]; if(it) copyText(it.text,btn); }
+window.tsCopyOne=tsCopyOne;
+
+function render(){
+  var editor=tsCanEdit();
+  var itemsHtml=TS_ITEMS.map(function(it,i){
+    return '<li class="ts-item" id="tsItem'+i+'">'
+      +'<span class="ts-num">'+(i+1)+'</span>'
+      +'<span class="ts-text">'+esc(it.text)+'</span>'
+      +(editor?('<span class="ts-item-actions">'
+        +'<button class="ts-mini edit" type="button" title="Edit line" onclick="tsEdit('+i+')">'+ICO_EDIT+'</button>'
+        +'<button class="ts-mini del" type="button" title="Delete line" onclick="tsDelete('+i+')">'+ICO_DEL+'</button>'
+      +'</span>'):'')
+    +'</li>';
+  }).join('');
+  var html=''
+    +'<div class="ts-titlebar">'
+      +'<span class="ic">'+(ic('check-circle',18)||'')+'</span>'
+      +'<h1>Ticket Sanitization</h1>'
+    +'</div>'
+    +'<div class="ts-card ts-row">'
+      +'<p>Use the link below to open the shared sheet, find <b>your assigned tickets</b>, and <b>sanitize</b> them.</p>'
+      +'<a class="ts-cta" href="'+esc(TS_SHEET_URL)+'" target="_blank" rel="noopener">'+ICO_EXT+' Link</a>'
+    +'</div>'
+    +'<div class="ts-card">'
+      +'<div class="ts-chead">'
+        +'<h2>Sanitization checklist</h2>'
+        +'<button class="ts-copyall" type="button" onclick="tsCopyAll(this)">'+ICO_COPY+'<span>Copy all</span></button>'
+      +'</div>'
+      +(TS_ITEMS.length?('<ol class="ts-list">'+itemsHtml+'</ol>'):'<div class="ts-empty">No checklist lines yet.</div>')
+      +(editor?('<div class="ts-add-row"><input type="text" id="tsNewLine" maxlength="1000" placeholder="Add a new checklist line\u2026" onkeydown="if(event.key===\'Enter\')tsAdd();">'
+        +'<button class="ts-addbtn" type="button" onclick="tsAdd()">'+ICO_PLUS+' Add line</button></div>'
+        +'<div class="ts-err" id="tsErr"></div>'):'')
+    +'</div>';
+  document.getElementById('wrap').innerHTML=html;
+}
+
+function tsErr(msg){ var e=document.getElementById('tsErr'); if(e){ e.textContent=msg||''; e.style.display=msg?'block':'none'; } }
+
+async function loadChecklist(){
+  try{
+    var r=await A.api('GET','/api/sanitization-checklist');
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.items)){ TS_ITEMS=r.data.items; render(); return; }
+    gate('Could not load the checklist (HTTP '+(r?r.status:'?')+').');
+  }catch(e){ gate('Could not load the checklist \u2014 network error.'); }
+}
+
+async function tsAdd(){
+  if(!tsCanEdit()) return;
+  var inp=document.getElementById('tsNewLine'); if(!inp) return;
+  var text=String(inp.value||'').trim(); if(!text){ tsErr('Enter a line first.'); return; }
+  tsErr('');
+  var r=await A.api('POST','/api/sanitization-checklist',{text:text});
+  if(r&&r.ok){ inp.value=''; await loadChecklist(); }
+  else tsErr((r&&r.data&&r.data.error)||('Add failed (HTTP '+(r?r.status:'?')+').'));
+}
+window.tsAdd=tsAdd;
+
+async function tsEdit(i){
+  if(!tsCanEdit()) return;
+  var it=TS_ITEMS[i]; if(!it) return;
+  var next=window.prompt('Edit checklist line:', it.text);
+  if(next==null) return;                 // cancelled
+  next=String(next).trim(); if(!next){ tsErr('Line cannot be empty.'); return; }
+  var r=await A.api('PUT','/api/sanitization-checklist/'+it.id,{text:next});
+  if(r&&r.ok){ await loadChecklist(); }
+  else tsErr((r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').'));
+}
+window.tsEdit=tsEdit;
+
+async function tsDelete(i){
+  if(!tsCanEdit()) return;
+  var it=TS_ITEMS[i]; if(!it) return;
+  if(!window.confirm('Delete this checklist line?\n\n'+it.text)) return;
+  var r=await A.api('DELETE','/api/sanitization-checklist/'+it.id);
+  if(r&&r.ok){ await loadChecklist(); }
+  else tsErr((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').'));
+}
+window.tsDelete=tsDelete;
+
+function gate(msg){
+  document.getElementById('wrap').innerHTML='<div class="ts-gate"><h1>Ticket Sanitization</h1><p>'+esc(msg)+'</p><a class="btn" href="app.html">Back to the live dashboard</a></div>';
+}
+
+// Any logged-in user can view/copy. Only harisss/flofalgu see edit controls (server enforces too).
+(function(){
+  if(!(A&&A.getUser&&A.getUser())){ gate('This page is for logged-in users. Log in from the Live Dashboard first.'); return; }
+  loadChecklist();
+})();
+</script>
+</body>
+</html>

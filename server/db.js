@@ -42,6 +42,7 @@ const COLLECTIONS = {
   issueTypeLog: 'issue_type_log',  // audit log of taxonomy create/edit/delete actions { action, issueTypeId, type, category, user, role, at, before, after }
   incidentGroups: 'incident_groups', // owner-defined display grouping of raw incident types (RootCause labels) into combined names. Applied at READ time to Incident Types; never changes ticket data. { _id:'live', version, groups:[{name, members:[rawType]}], updatedAt }
   resolutionGroups: 'resolution_groups', // owner-defined display grouping of raw Resolution values (from RootCauseDetails) into combined names. Owner-tool only for now. { _id:'live', version, groups:[{name, members:[rawValue]}], updatedAt }
+  sanitizationChecklist: 'sanitization_checklist', // editable copyable checklist shown on ticket-sanitization.html (one doc per line): { text, order, createdBy/updatedBy/at } — editable by harisss/flofalgu
 };
 
 let clientPromise = null;

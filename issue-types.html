@@ -143,6 +143,21 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <link rel="stylesheet" href="app-light.css?v=5">
 <!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
 <style id="iz-light">
+/* ---- Title bar: white, 60px, black title (overrides the orange gradient banner). ---- */
+.iz-banner{background:#fff!important;border:1px solid #e2e6ea!important;min-height:60px!important;height:60px!important;padding:0 16px!important;margin-bottom:16px!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;animation:none!important;flex-wrap:nowrap!important}
+.iz-banner .hb-title,.iz-banner .hb-title svg{color:#1b2026!important}
+.iz-banner .hb-title{font-size:1.25em!important}
+.iz-banner .hb-total{flex-direction:row!important;align-items:center!important;gap:6px!important;background:#fff4e8!important;color:#b5560c!important;box-shadow:none!important;border:1px solid #f3d4b0!important;padding:5px 14px!important;white-space:nowrap!important}
+.iz-banner .hb-total .n{font-size:1.1em!important}
+.iz-banner .hb-total .l{text-transform:none!important;letter-spacing:0!important}
+.iz-banner::after{display:none!important}             /* drop the watermark on the slim bar */
+/* Edit buttons readable on the white bar: orange primary, outlined ghost. */
+.iz-banner .iz-ebtn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.iz-banner .iz-ebtn.ghost{background:#fff!important;color:#b5560c!important;border:1px solid #e2e6ea!important}
+.iz-banner .iz-ebtn.ghost:hover{border-color:#ec7211!important;background:#fff4e8!important}
+/* Content column: kill the injected 14px top gutter (topbar-auth .wrap{padding-top}). */
+#wrap.wrap{padding-top:0!important}
+
 /* Grid container is transparent; each CATEGORY CARD gets its own pastel tint (--iz-cbg) + accent
    (--iz-cac), set per-card inline, so adjacent categories are easy to differentiate. */
 .iz-wire{background:transparent!important;border:none!important;box-shadow:none!important}
@@ -150,7 +165,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .iz-grp:hover{box-shadow:0 10px 26px -18px rgba(20,40,70,.45)!important}
 /* Category card head: slightly darker tint strip + accent-coloured icon tile. */
 .iz-cat-node{background:var(--iz-chd,#fbfcfd)!important;border:none!important;border-bottom:1px solid rgba(0,0,0,.06)!important;box-shadow:none!important}
-.iz-cat-node .ic{background:rgba(255,255,255,.6)!important;color:var(--iz-cac,#b5680c)!important}
+.iz-cat-node .ic{background:rgba(255,255,255,.6)!important;color:var(--iz-cac,#b5680c)!important;overflow:hidden}
+.iz-cat-node .ic .iz-cat-img{width:28px;height:28px;object-fit:contain;display:block}
 .iz-cat-name{color:#1b2026!important}
 .iz-cat-meta{color:#5c6773!important}
 /* Category edit/delete buttons on the white head. */
@@ -208,68 +224,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 <div class="wrap" id="wrap"><div class="phd-load"><span class="phd-spin"></span> Loading taxonomy…</div></div>
 
-<!-- Add / Edit modal (editors only) -->
-<div class="iz-modal-bg" id="izModalBg">
-  <div class="iz-modal">
-    <h2 id="izModalTitle">Edit incident type</h2>
-    <p class="sub" id="izModalSub"></p>
-    <div class="iz-field" id="izFieldCat">
-      <label>Category</label>
-      <select id="izInCatSel"></select>
-    </div>
-    <div class="iz-field" id="izFieldNewCat" style="display:none">
-      <label>New category name</label>
-      <input type="text" id="izInNewCat" placeholder="e.g. Cyber / Online">
-    </div>
-    <div class="iz-field">
-      <label>Incident type name</label>
-      <input type="text" id="izInType" placeholder="e.g. Attack w/weapon">
-    </div>
-    <div class="iz-field">
-      <label>Short descriptor <span style="font-weight:400;color:#6b7681">(one line, shown under the name)</span></label>
-      <input type="text" id="izInDesc" placeholder="e.g. Weapon used/attempted on driver">
-    </div>
-    <div class="iz-field">
-      <label>Definition</label>
-      <textarea id="izInDef" placeholder="What this incident type means…"></textarea>
-    </div>
-    <div class="iz-field">
-      <label>Use when</label>
-      <textarea id="izInUse" placeholder="The trigger for choosing this type…"></textarea>
-    </div>
-    <div class="iz-field">
-      <label>Example</label>
-      <textarea id="izInEx" placeholder="A concrete example…"></textarea>
-    </div>
-    <div class="iz-modal-err" id="izModalErr"></div>
-    <div class="iz-modal-actions">
-      <button class="iz-mbtn sec" id="izModalCancel" type="button">Cancel</button>
-      <button class="iz-mbtn primary" id="izModalSave" type="button">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Edit category modal (editors only): rename + choose icon -->
-<div class="iz-modal-bg" id="izCatModalBg">
-  <div class="iz-modal">
-    <h2>Edit category</h2>
-    <p class="sub">Rename this category and/or change its icon. The change applies to every incident type under it.</p>
-    <div class="iz-field">
-      <label>Category name</label>
-      <input type="text" id="izCatName" placeholder="e.g. Weapon &amp; Robbery">
-    </div>
-    <div class="iz-field">
-      <label>Icon</label>
-      <div class="iz-icon-grid" id="izCatIconGrid"></div>
-    </div>
-    <div class="iz-modal-err" id="izCatModalErr"></div>
-    <div class="iz-modal-actions">
-      <button class="iz-mbtn sec" id="izCatModalCancel" type="button">Cancel</button>
-      <button class="iz-mbtn primary" id="izCatModalSave" type="button">Save</button>
-    </div>
-  </div>
-</div>
-
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=167"></script>
@@ -277,18 +231,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-// Edit access: only these two usernames (case-insensitive). No one else sees edit controls, and the
-// server enforces the same allow-list on every write.
-var IZ_EDITORS=['harisss','flofalgu'];
-function izCanEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && IZ_EDITORS.indexOf(String(u.username||'').toLowerCase())>=0); }
 
 // Inline icons for the def/use/example row markers.
 var ICO_DEF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 10h12M4 15h8"/><circle cx="19" cy="15" r="2"/></svg>';
 var ICO_USE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>';
 var ICO_EX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10c-.7.7-1 1.3-1 2H9c0-.7-.3-1.3-1-2a6 6 0 0 1 4-10z"/></svg>';
-var ICO_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
-var ICO_DEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
-var ICO_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 var ICO_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 var ICO_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 
@@ -307,8 +254,139 @@ var IZ_PALETTE=[
   { bg:'#eef6ee', hd:'#dcecdc', ac:'#4a8f4a' }  // sage
 ];
 
-// Loaded taxonomy: [{category, catIcon, catOrder, types:[{id,type,def,use,ex,color,icon,desc,...}]}]
-var IZ_CATS=[];
+// Hardcoded taxonomy (read-only). Shape: [{category, catIcon, types:[{type,desc,def,use,ex,color,icon}]}]
+var IZ_CATS = [
+  { category:"Weapon & Robbery", catIcon:"flame", catImg:"icons/issue-types/weapon-robbery.png", types:[
+    { type:"Robbery w/ weapon", desc:"Property taken/attempted, with a weapon", color:"#d33b4e", icon:"alert",
+      def:"POI robs the transporter \u2014 or attempts to \u2014 using/presenting a weapon posing a lethal threat, taking property (in the driver\u2019s custody or not). Package theft when the transporter is NOT present is out of scope.",
+      use:"Property taken/attempted by force WITH a weapon while the driver is present.",
+      ex:"Armed individuals take the DP\u2019s phone and packages at gunpoint." },
+    { type:"Robbery w/o weapon", desc:"Property taken/attempted, no weapon", color:"#d33b4e", icon:"alert",
+      def:"Purposeful robbery/theft \u2014 or attempt \u2014 of property (in custody or not), without a weapon and without critical injury. Package theft when the transporter is NOT present is out of scope.",
+      use:"Property taken/attempted by force or theft WITHOUT a weapon while the driver is present.",
+      ex:"A CM shoves the DP and grabs their phone or packages during the delivery." },
+    { type:"Attack w/weapon", desc:"Weapon used/attempted on driver", color:"#d33b4e", icon:"flame",
+      def:"POI uses or attempts to use a weapon against the driver, regardless of injury level \u2014 including injury, critical injury, or hospitalization (severity via SEV).",
+      use:"A weapon is actually used or attempted against the driver.",
+      ex:"A CM swings a metal pipe at the DP; a CX throws a bottle that strikes the driver." },
+    { type:"Weapon pointed at driver", desc:"Weapon aimed at the driver", color:"#e0564a", icon:"target",
+      def:"POI aims/directs a weapon at the driver, or draws/reveals a concealed weapon directing the threat at them, but does not use it.",
+      use:"A weapon is aimed at the driver but not used.",
+      ex:"A CX\u2019s spouse points a firearm at the DP and keeps it aimed until they leave." },
+    { type:"Armed w/weapon", desc:"Weapon brandished to threaten, not used", color:"#e08a1d", icon:"alert",
+      def:"POI holds/displays/brandishes a weapon to threaten, but does not aim it at the driver or use it; no critical injury.",
+      use:"A weapon is brandished to threaten, but not aimed or used.",
+      ex:"A CX holds a bat and threatens the DA but never swings it." },
+    { type:"Weapon present w/ no threat", desc:"Weapon only present, no threat", color:"#2f9fb8", icon:"eye",
+      def:"A weapon is visible/known but not held toward, aimed at, referenced, or used against the driver.",
+      use:"A weapon is merely seen/known, with no threatening gesture, aim, or words.",
+      ex:"A CX answers the door holding a rifle at their side; not aimed, no threat." },
+    { type:"Shots fired", desc:"Firearm discharged near/at driver", color:"#d33b4e", icon:"flame",
+      def:"Driver hears or sees shots (intentional or unintentional) fired of any kind.",
+      use:"A firearm is discharged near or at the driver.",
+      ex:"A resident fires a gun toward the DA\u2019s vehicle." }
+  ]},
+  { category:"Pet", catIcon:"paw", catImg:"icons/issue-types/pet.png", types:[
+    { type:"Attack w/pet", desc:"POI commands pet to attack", color:"#e08a1d", icon:"paw",
+      def:"POI intentionally uses or commands a pet to cause harm \u2014 pet deployed as a weapon.",
+      use:"The POI deliberately sets/commands the pet on the driver.",
+      ex:"A CX commands their dog to attack the DA." },
+    { type:"Unsecured pet - bite/injury", desc:"Unsecured pet bites/contacts, injury", color:"#e08a1d", icon:"paw",
+      def:"POI\u2019s unsecured pet bites/makes contact causing injury, without command.",
+      use:"An unsecured pet bites/contacts the driver causing injury (not commanded).",
+      ex:"A CX\u2019s loose dog bites the DA\u2019s leg, breaking skin." },
+    { type:"Unsecured pet - evasion injury", desc:"Injured escaping the pet, no bite", color:"#e08a1d", icon:"paw",
+      def:"Driver injured while escaping/avoiding a pet (fall, trip, strain), with no bite/contact.",
+      use:"The driver is hurt fleeing/avoiding a pet, with no bite/contact.",
+      ex:"The DA sprains a wrist tripping while fleeing a charging dog." },
+    { type:"Unsecured pet - no contact", desc:"Aggressive pet, no contact/injury", color:"#e08a1d", icon:"paw",
+      def:"POI\u2019s unsecured pet charges/chases aggressively with no contact and no injury.",
+      use:"An unsecured pet is aggressive but makes no contact/injury.",
+      ex:"A dog rushes out barking; the DP retreats to the vehicle; no contact." }
+  ]},
+  { category:"Physical / Severe Outcome", catIcon:"alert", catImg:"icons/issue-types/physical-severe-outcome.png", types:[
+    { type:"Fatality from assault", desc:"Driver died", color:"#d33b4e", icon:"alert",
+      def:"Loss of life resulting from CX actions or a CX-location hazard.",
+      use:"The driver dies from a CX-caused act or CX-location hazard.",
+      ex:"The driver dies from injuries inflicted during an assault." },
+    { type:"Physical altercation \u2013 No Injury", desc:"Assault w/o weapon, no injury", color:"#e08a1d", icon:"user",
+      def:"Purposeful physical force/assault without a weapon and no injury to the driver.",
+      use:"The POI makes physical contact/assault without a weapon and no injury to the driver.",
+      ex:"The CX\u2019s partner punches the DA; a CX spits in the DA\u2019s face." },
+    { type:"Physical altercation w/ Injury", desc:"Assault w/o weapon, causes injury", color:"#d33b4e", icon:"alert",
+      def:"Purposeful physical force/assault without a weapon causing Injury (regardless of level of injury).",
+      use:"The POI makes physical contact/assault without a weapon causing injury to the driver.",
+      ex:"The CX punches the DA on the nose that causes bleeding." }
+  ]},
+  { category:"Threats", catIcon:"message", catImg:"icons/issue-types/threats.png", types:[
+    { type:"Threat of harm (verbal or written)", desc:"Threatens to harm the driver", color:"#e08a1d", icon:"message",
+      def:"Purposeful threat of physical harm to the driver, whether spoken (in person/any channel) or written (note handed over or left on the vehicle).",
+      use:"The POI threatens physical harm, verbally or in writing.",
+      ex:"\u201cI\u2019ll shoot you if you come back\u201d; or a threatening note left on the vehicle." }
+  ]},
+  { category:"Detention / Impeding", catIcon:"lock", catImg:"icons/issue-types/detention-impeding.png", types:[
+    { type:"Kidnapping", desc:"Taken/moved to another location", color:"#e0564a", icon:"lock",
+      def:"POI forcibly seizes and takes/relocates the driver to another location under their control.",
+      use:"The driver is forcibly taken/moved to another location against their will.",
+      ex:"A POI forces the driver into a vehicle and drives them away." },
+    { type:"Impeding egress", desc:"Blocked from leaving", color:"#e08a1d", icon:"no-entry",
+      def:"POI temporarily blocks/obstructs the driver\u2019s exit or path, without confining or moving them, and without a weapon or critical injury.",
+      use:"The driver is blocked from leaving, but not locked in and not taken away.",
+      ex:"A CX parks their car to block the DA\u2019s van from leaving the driveway." }
+  ]},
+  { category:"Sexual", catIcon:"shield", catImg:"icons/issue-types/sexual.png", types:[
+    { type:"Sexual assault (physical)", desc:"Sexual physical contact/attempt", color:"#d33b4e", icon:"alert",
+      def:"Purposeful sexual touching/attempt, kissing, sexually suggestive contact, or purposeful lewd exposure.",
+      use:"Sexual physical contact/attempt or intentional lewd exposure.",
+      ex:"A CX gropes the DP while handing over the package." },
+    { type:"Sexual harassment (verbal)", desc:"Sexual comments/solicitation", color:"#2f9fb8", icon:"message",
+      def:"Unwelcome verbal/written sexual comments, leering, or sexist/stereotypical remarks based on gender.",
+      use:"The POI makes unwelcome sexual or sexist remarks toward the driver.",
+      ex:"A CX makes sexually suggestive comments and solicits the DP." },
+    { type:"Indecent exposure", desc:"Nudity/exposure, no sexual intent", color:"#2f9fb8", icon:"eye",
+      def:"Exposure that makes the driver uncomfortable \u2014 full/partial nudity or any body part(s) \u2014 without sexual intent or lewd conduct (else use Sexual assault/harassment).",
+      use:"The customer is naked or exposes body parts uncomfortably, no sexual intent.",
+      ex:"A CX answers the door naked." }
+  ]},
+  { category:"Abuse, Intimidation & Discrimination", catIcon:"users", catImg:"icons/issue-types/abuse-intimidation-discrimination.png", types:[
+    { type:"Name Calling", desc:"Slurs/name calling at driver (protected trait)", color:"#e08a1d", icon:"message",
+      def:"Discriminatory language, name calling or conduct directed at the driver \u2014 slurs, insults, abuse \u2014 targeting a protected characteristic. (Displayed symbols/signage \u2192 Signage/Paraphernalia.)",
+      use:"The POI directs discriminatory language/slurs/name calling at the driver.",
+      ex:"A CX directs racial or homophobic slurs at the DA." },
+    { type:"Intimidation", desc:"Physical intimidation causing fear", color:"#e08a1d", icon:"user",
+      def:"Purposeful physical intimidation causing fear/apprehension, without a weapon or critical injury.",
+      use:"The POI physically intimidates the driver causing fear.",
+      ex:"A CX films the DA up close and aggressively confronts them." },
+    { type:"Verbal abuse", desc:"Yelling/profanity/harassing notes, no threat", color:"#2f9fb8", icon:"message",
+      def:"Offensive/harassing language \u2014 yelling, profanity or harassing customer notes (written) \u2014 that is not discriminatory and not threatening.",
+      use:"The POI yells, curses, name-calls, or leaves harassing notes, no threat/discrimination.",
+      ex:"A CX curses and yells at the DP over a late delivery." },
+    { type:"Signage/Paraphernalia", desc:"Racist/threatening signage at property", color:"#2f9fb8", icon:"flame",
+      def:"Discriminatory, racist, or threatening symbols/signs/paraphernalia displayed at the property \u2014 not language directed at the driver.",
+      use:"The address displays racist/threatening/discriminatory signage or symbols.",
+      ex:"A racist symbol or threatening sign is posted at the delivery location." }
+  ]},
+  { category:"Property", catIcon:"tool", catImg:"icons/issue-types/property.png", types:[
+    { type:"Vandalism", desc:"Purposely damages vehicle/property", color:"#e08a1d", icon:"tool",
+      def:"Purposeful defacement, damage, or destruction of property \u2014 whether in the driver\u2019s custody or not \u2014 including the vehicle or Amazon packages.",
+      use:"The POI purposely damages/defaces the driver\u2019s vehicle or packages.",
+      ex:"A CX strikes the DP\u2019s windshield; a resident throws a rock at the vehicle." }
+  ]},
+  { category:"Out of Scope of PHD", catIcon:"alert", catImg:"icons/issue-types/out-of-scope.png", types:[
+    { type:"Accidental injury (no POI)", desc:"Injury,no POI (collision/slip/medical)", color:"#e08a1d", icon:"alert",
+      def:"Transporter injury or medical event with no POI involvement \u2014 traffic collision, slip/fall, or medical emergency",
+      use:"The driver is injured with no POI involvement.",
+      ex:"A traffic collision injures the DA; the DA slips on icy stairs." },
+    { type:"Property / vehicle damage only", desc:"Damage only , no injury, no POI", color:"#e08a1d", icon:"alert",
+      def:"Accidental damage to the vehicle/property with no injury and no purposeful POI act.",
+      use:"An accident damages the vehicle/property with no injury and no POI intent.",
+      ex:"A detached trailer strikes the DA\u2019s vehicle; no injuries." },
+    { type:"Suspicious Following", desc:"unidentified POI follows", color:"#e08a1d", icon:"alert",
+      def:"An unidentified POI follows, trails, surveils, or positions themselves to monitor the driver during a delivery, with no verbal exchange, threat, weapon, or physical contact.",
+      use:"When a driver is followed, trailed, or watched by an unidentified party with no direct interaction, no threat, no weapon, and no contact, and the POI is not tied to a customer or address.",
+      ex:"The DP noticed an unknown vehicle that had earlier parked next to the DP's vehicle on arrival. The same vehicle followed the DP. The DP felt unsafe." }
+  ]}
+];
 function izTotalTypes(){ return IZ_CATS.reduce(function(s,c){return s+c.types.length;},0); }
 function izTint(hex){
   var m=/^#?([0-9a-f]{6})$/i.exec(String(hex||'').trim()); if(!m) return 'rgba(240,138,29,.14)';
@@ -355,19 +433,12 @@ function izToggleType(gi,ti,ev){
 
 // ---- Render ------------------------------------------------------------------------------------
 function render(){
-  var editor=izCanEdit();
   var docGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 13l3 3 5-5"/></svg>';
   var html='<div class="iz-banner">'
     +'<div class="hb-left">'
       +'<h1 class="hb-title">'+docGlyph+'Issue Type Standardization</h1>'
-      +'<div class="hb-sub">The governed taxonomy from the PHD SIM Issue Standardization doc. '
-        +'Click a <b>category</b> to reveal its <b>incident types</b>, then click a type for its definition, when to use it, and an example.'
-        +(editor?' You have <b>edit access</b> \u2014 add categories/types and edit definitions below.':'')+'</div>'
     +'</div>'
     +'<div class="hb-right">'
-      +(editor?('<span class="iz-edit-badge">'+ic('key',13)+' Edit access</span>'
-        +'<button class="iz-ebtn primary" onclick="izOpenAdd(null)" type="button">'+ICO_PLUS+'Add type</button>'
-        +'<button class="iz-ebtn ghost" onclick="izOpenAddCategory()" type="button">'+ICO_PLUS+'Add category</button>'):'')
       +'<div class="hb-total"><span class="n">'+izTotalTypes()+'</span><span class="l">incident types</span></div>'
     +'</div>'
   +'</div>';
@@ -381,22 +452,14 @@ function render(){
     html+='<div class="iz-grp" id="izGrp'+gi+'" style="--iz-cbg:'+pal.bg+';--iz-chd:'+pal.hd+';--iz-cac:'+pal.ac+'">'
       +'<div class="iz-cat-col">'
         +'<div class="iz-cat-node">'
-          +'<span class="ic">'+(ic(catIc,20)||'\u25cf')+'</span>'
+          +'<span class="ic">'+(cat.catImg?('<img class="iz-cat-img" src="'+esc(cat.catImg)+'" alt="">'):(ic(catIc,20)||'\u25cf'))+'</span>'
           +'<span class="iz-cat-txt"><span class="iz-cat-name">'+esc(cat.category)+'</span>'
             +'<span class="iz-cat-meta">'+n+' incident type'+(n===1?'':'s')+'</span></span>'
-          +(editor?('<span class="iz-cat-actions">'
-            +'<button class="iz-catbtn" title="Edit category (rename / icon)" onclick="izOpenEditCategory('+gi+',event)">'+ICO_EDIT+'</button>'
-            +'<button class="iz-catbtn del" title="Delete category" onclick="izDeleteCategory('+gi+',event)">'+ICO_DEL+'</button>'
-          +'</span>'):'')
         +'</div>'
       +'</div>'
       +'<div class="iz-type-col">';
     cat.types.forEach(function(ty,ti){
       var ac=ty.color||'#e08a1d';
-      var actions=editor?('<span class="iz-type-actions">'
-        +'<button class="iz-iconbtn" title="Edit" onclick="izOpenEdit('+gi+','+ti+',event)">'+ICO_EDIT+'</button>'
-        +'<button class="iz-iconbtn del" title="Delete" onclick="izDeleteType('+gi+','+ti+',event)">'+ICO_DEL+'</button>'
-      +'</span>'):'';
       html+='<div class="iz-type" id="izType'+gi+'_'+ti+'" style="--iz-ac:'+ac+';--iz-acbg:'+izTint(ac)+';--d:'+(ti*55)+'ms">'
         +'<div class="iz-type-head" onclick="izToggleType('+gi+','+ti+',event)">'
           +'<span class="iz-type-ic">'+(ic(ty.icon,17)||'\u25cf')+'</span>'
@@ -404,7 +467,6 @@ function render(){
             +'<span class="iz-type-nrow"><span class="iz-type-name">'+esc(ty.type)+'</span>'
               +'<button class="iz-copybtn" type="button" title="Copy incident type name" aria-label="Copy incident type name" onclick="izCopyType('+gi+','+ti+',this,event)">'+ICO_COPY+'</button></span>'
             +(ty.desc?'<span class="iz-type-desc">'+esc(ty.desc)+'</span>':'')+'</span>'
-          +actions
           +'<span class="iz-type-caret">\u25be</span>'
         +'</div>'
         +'<div class="iz-type-body">'
@@ -416,191 +478,15 @@ function render(){
         +'</div>'
       +'</div>';
     });
-    if(editor){
-      html+='<button class="iz-addtype" onclick="izOpenAdd('+gi+')" type="button">'+ICO_PLUS+'Add a type to '+esc(cat.category)+'</button>';
-    }
     html+='</div></div>';   // close .iz-type-col, .iz-grp
   });
   html+='</div>';
   document.getElementById('wrap').innerHTML=html;
 }
 
-// ================= EDIT MODAL ==================================================================
-var IZ_MODE=null;      // 'add' | 'edit' | 'addcat'
-var IZ_EDIT_REF=null;  // {gi,ti} when editing
-function izModalEl(id){ return document.getElementById(id); }
-function izFillCatSelect(selectedCat){
-  var sel=izModalEl('izInCatSel'); sel.innerHTML='';
-  IZ_CATS.forEach(function(c){
-    var o=document.createElement('option'); o.value=c.category; o.textContent=c.category;
-    if(c.category===selectedCat) o.selected=true; sel.appendChild(o);
-  });
-  var o2=document.createElement('option'); o2.value='__new__'; o2.textContent='+ New category…'; sel.appendChild(o2);
-  sel.onchange=function(){ izModalEl('izFieldNewCat').style.display=(sel.value==='__new__')?'block':'none'; };
-  izModalEl('izFieldNewCat').style.display=(sel.value==='__new__')?'block':'none';
-}
-function izShowModal(){ izModalEl('izModalErr').style.display='none'; izModalEl('izModalBg').classList.add('show'); }
-function izCloseModal(){ izModalEl('izModalBg').classList.remove('show'); IZ_MODE=null; IZ_EDIT_REF=null; }
-// Add a type (gi = category index to preselect, or null for the first/any).
-function izOpenAdd(gi){
-  if(!izCanEdit()) return;
-  IZ_MODE='add'; IZ_EDIT_REF=null;
-  izModalEl('izModalTitle').textContent='Add incident type';
-  izModalEl('izModalSub').textContent='Create a new incident type under a category. Pick an existing category or add a new one.';
-  izModalEl('izFieldCat').style.display='block';
-  var preCat=(gi!=null && IZ_CATS[gi])?IZ_CATS[gi].category:(IZ_CATS[0]&&IZ_CATS[0].category);
-  izFillCatSelect(preCat);
-  izModalEl('izInNewCat').value='';
-  izModalEl('izInType').value=''; izModalEl('izInDesc').value='';
-  izModalEl('izInDef').value=''; izModalEl('izInUse').value=''; izModalEl('izInEx').value='';
-  izShowModal(); setTimeout(function(){ izModalEl('izInType').focus(); },30);
-}
-// Add a brand-new empty category (prompts for the category name; first type can be added after).
-function izOpenAddCategory(){
-  if(!izCanEdit()) return;
-  IZ_MODE='add'; IZ_EDIT_REF=null;
-  izModalEl('izModalTitle').textContent='Add category + first type';
-  izModalEl('izModalSub').textContent='A category is created by adding its first incident type. Enter the new category name and the first type.';
-  izModalEl('izFieldCat').style.display='block';
-  izFillCatSelect('__new__');
-  var sel=izModalEl('izInCatSel'); sel.value='__new__'; izModalEl('izFieldNewCat').style.display='block';
-  izModalEl('izInNewCat').value='';
-  izModalEl('izInType').value=''; izModalEl('izInDesc').value='';
-  izModalEl('izInDef').value=''; izModalEl('izInUse').value=''; izModalEl('izInEx').value='';
-  izShowModal(); setTimeout(function(){ izModalEl('izInNewCat').focus(); },30);
-}
-// Edit an existing type.
-function izOpenEdit(gi,ti,ev){
-  if(ev) ev.stopPropagation();
-  if(!izCanEdit()) return;
-  var cat=IZ_CATS[gi]; if(!cat) return; var ty=cat.types[ti]; if(!ty) return;
-  IZ_MODE='edit'; IZ_EDIT_REF={gi:gi,ti:ti,id:ty.id};
-  izModalEl('izModalTitle').textContent='Edit incident type';
-  izModalEl('izModalSub').textContent='Edit the definition, "use when", example, and details for this incident type.';
-  izModalEl('izFieldCat').style.display='block';
-  izFillCatSelect(cat.category);
-  izModalEl('izInNewCat').value='';
-  izModalEl('izInType').value=ty.type||''; izModalEl('izInDesc').value=ty.desc||'';
-  izModalEl('izInDef').value=ty.def||''; izModalEl('izInUse').value=ty.use||''; izModalEl('izInEx').value=ty.ex||'';
-  izShowModal(); setTimeout(function(){ izModalEl('izInDef').focus(); },30);
-}
-function izModalError(msg){ var e=izModalEl('izModalErr'); e.textContent=msg; e.style.display='block'; }
-async function izModalSave(){
-  if(!izCanEdit()) return;
-  var sel=izModalEl('izInCatSel');
-  var category=(sel.value==='__new__')?String(izModalEl('izInNewCat').value||'').trim():sel.value;
-  var type=String(izModalEl('izInType').value||'').trim();
-  var desc=String(izModalEl('izInDesc').value||'').trim();
-  var def=String(izModalEl('izInDef').value||'').trim();
-  var use=String(izModalEl('izInUse').value||'').trim();
-  var ex=String(izModalEl('izInEx').value||'').trim();
-  if(!category){ izModalError('Please choose or enter a category.'); return; }
-  if(!type){ izModalError('Please enter the incident-type name.'); return; }
-  var saveBtn=izModalEl('izModalSave'); saveBtn.disabled=true; saveBtn.textContent='Saving…';
-  try{
-    var r;
-    if(IZ_MODE==='edit' && IZ_EDIT_REF){
-      r=await A.api('PUT','/api/issue-types-taxonomy/'+IZ_EDIT_REF.id,{category:category,type:type,desc:desc,def:def,use:use,ex:ex});
-    } else {
-      r=await A.api('POST','/api/issue-types-taxonomy',{category:category,type:type,desc:desc,def:def,use:use,ex:ex});
-    }
-    if(r&&r.ok){ izCloseModal(); await loadTaxonomy(true); }
-    else { izModalError((r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').')); }
-  }catch(e){ izModalError('Save failed — network error.'); }
-  saveBtn.disabled=false; saveBtn.textContent='Save';
-}
-async function izDeleteType(gi,ti,ev){
-  if(ev) ev.stopPropagation();
-  if(!izCanEdit()) return;
-  var cat=IZ_CATS[gi]; if(!cat) return; var ty=cat.types[ti]; if(!ty) return;
-  if(!window.confirm('Delete the incident type "'+ty.type+'"?\nThis cannot be undone.')) return;
-  try{
-    var r=await A.api('DELETE','/api/issue-types-taxonomy/'+ty.id);
-    if(r&&r.ok){ await loadTaxonomy(true); }
-    else { alert((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').')); }
-  }catch(e){ alert('Delete failed — network error.'); }
-}
-izModalEl('izModalCancel').onclick=izCloseModal;
-izModalEl('izModalSave').onclick=izModalSave;
-izModalEl('izModalBg').addEventListener('click',function(e){ if(e.target===this) izCloseModal(); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape') izCloseModal(); });
-
-// ================= CATEGORY EDIT / DELETE (editors only) ========================================
-// Curated icon choices for a category node (names resolved by the shared icon() helper).
-var IZ_CAT_ICONS=['alert','flame','paw','message','lock','shield','users','tool','map-pin','no-entry','eye','user','bolt','globe','clipboard','target'];
-var IZ_CAT_EDIT=null;   // { gi, oldCategory, icon }
-function izCatModalError(msg){ var e=izModalEl('izCatModalErr'); e.textContent=msg; e.style.display='block'; }
-function izCloseCatModal(){ izModalEl('izCatModalBg').classList.remove('show'); IZ_CAT_EDIT=null; }
-function izPaintCatIconGrid(selected){
-  var grid=izModalEl('izCatIconGrid'); if(!grid) return;
-  grid.innerHTML=IZ_CAT_ICONS.map(function(name){
-    return '<button type="button" class="iz-icon-opt'+(name===selected?' sel':'')+'" data-icon="'+name+'" title="'+name+'">'+(ic(name,18)||'\u25cf')+'</button>';
-  }).join('');
-  Array.prototype.forEach.call(grid.querySelectorAll('.iz-icon-opt'),function(b){
-    b.onclick=function(){ if(IZ_CAT_EDIT) IZ_CAT_EDIT.icon=b.getAttribute('data-icon');
-      Array.prototype.forEach.call(grid.querySelectorAll('.iz-icon-opt'),function(x){ x.classList.remove('sel'); }); b.classList.add('sel'); };
-  });
-}
-function izOpenEditCategory(gi,ev){
-  if(ev) ev.stopPropagation();
-  if(!izCanEdit()) return;
-  var cat=IZ_CATS[gi]; if(!cat) return;
-  IZ_CAT_EDIT={ gi:gi, oldCategory:cat.category, icon:(cat.catIcon||'alert') };
-  izModalEl('izCatName').value=cat.category||'';
-  izModalEl('izCatModalErr').style.display='none';
-  izPaintCatIconGrid(IZ_CAT_EDIT.icon);
-  izModalEl('izCatModalBg').classList.add('show');
-  setTimeout(function(){ izModalEl('izCatName').focus(); },30);
-}
-async function izCatModalSave(){
-  if(!izCanEdit()||!IZ_CAT_EDIT) return;
-  var newName=String(izModalEl('izCatName').value||'').trim();
-  if(!newName){ izCatModalError('Category name cannot be empty.'); return; }
-  var btn=izModalEl('izCatModalSave'); btn.disabled=true; btn.textContent='Saving…';
-  try{
-    var r=await A.api('PATCH','/api/issue-types-taxonomy/category',{ oldCategory:IZ_CAT_EDIT.oldCategory, newCategory:newName, catIcon:IZ_CAT_EDIT.icon });
-    if(r&&r.ok){ izCloseCatModal(); await loadTaxonomy(true); }
-    else { izCatModalError((r&&r.data&&r.data.error)||('Save failed (HTTP '+(r?r.status:'?')+').')); }
-  }catch(e){ izCatModalError('Save failed — network error.'); }
-  btn.disabled=false; btn.textContent='Save';
-}
-async function izDeleteCategory(gi,ev){
-  if(ev) ev.stopPropagation();
-  if(!izCanEdit()) return;
-  var cat=IZ_CATS[gi]; if(!cat) return;
-  var n=cat.types.length;
-  var msg=n>0
-    ? 'Delete the category "'+cat.category+'" AND all '+n+' incident type'+(n===1?'':'s')+' under it?\nThis cannot be undone.'
-    : 'Delete the empty category "'+cat.category+'"?';
-  if(!window.confirm(msg)) return;
-  try{
-    var r=await A.api('DELETE','/api/issue-types-taxonomy/category/'+encodeURIComponent(cat.category));
-    if(r&&r.ok){ await loadTaxonomy(true); }
-    else { alert((r&&r.data&&r.data.error)||('Delete failed (HTTP '+(r?r.status:'?')+').')); }
-  }catch(e){ alert('Delete failed — network error.'); }
-}
-izModalEl('izCatModalCancel').onclick=izCloseCatModal;
-izModalEl('izCatModalSave').onclick=izCatModalSave;
-izModalEl('izCatModalBg').addEventListener('click',function(e){ if(e.target===this) izCloseCatModal(); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape') izCloseCatModal(); });
-window.izOpenEditCategory=izOpenEditCategory; window.izDeleteCategory=izDeleteCategory;
-
-// ================= LOAD =========================================================================
-function gate(msg){ document.getElementById('wrap').innerHTML='<div class="iz-gate"><h1>Issue Types</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>'; }
-async function loadTaxonomy(keepOpen){
-  // keepOpen is a no-op now: categories (and their type names) are always visible, so a reload after
-  // an edit just re-renders — nothing to reopen.
-  try{
-    var r=await A.api('GET','/api/issue-types-taxonomy');
-    if(r&&r.ok&&r.data&&Array.isArray(r.data.categories)){
-      IZ_CATS=r.data.categories;
-      render();
-      return;
-    }
-    gate('Could not load the taxonomy. The data service may be waking up — please try again in a moment.');
-  }catch(e){ gate('Could not load the taxonomy — network error.'); }
-}
-loadTaxonomy(false);
+// ================= RENDER =======================================================================
+// Data is hardcoded and read-only, so just render the categories directly on load.
+render();
 </script>
 </body>
 </html>

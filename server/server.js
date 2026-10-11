@@ -2366,6 +2366,89 @@ app.get('/api/issue-type-tax-log', requireRole('user'), async (req, res) => {
   }
 });
 
+// ---- Ticket-sanitization checklist (ticket-sanitization.html) --------------------------------
+// A copyable, ordered checklist. One doc per line. Any logged-in user can VIEW/copy; only the same
+// taxonomy editor allow-list (harisss / flofalgu) can add/edit/delete lines. Seeds a default set the
+// first time the collection is empty so the page is never blank.
+const SANITIZATION_SEED = [
+  'Checked Issue field = exact governed incident type (one of the 27) - YES/NO',
+  'Checked SIM Title = <Region> Customer Incident Escalation - Severity <N> - <Incident Type> - YES/NO',
+  'Checked EMT link attached on the Overview tab - YES/NO',
+  'Checked If no EMT processed \u2192 Severity set to 5 (and Title updated to Severity 5) - YES/NO',
+  'Checked If outreach exhausted & no CX response \u2192 #unsuccessful-outreach added in Labels - YES/NO',
+  'Checked if it is a SWA package delivered through Amazon -> #swa-order added in Labels - YES/NO',
+];
+async function seedSanitizationIfEmpty(coll) {
+  const n = await coll.countDocuments({});
+  if (n > 0) return;
+  const now = new Date().toISOString();
+  await coll.insertMany(SANITIZATION_SEED.map((text, i) => ({ text, order: i, createdBy: 'system', updatedBy: 'system', at: now })));
+}
+function mapChecklistItem(d) { return { id: String(d._id), text: d.text || '', order: typeof d.order === 'number' ? d.order : 0 }; }
+
+// Public (logged-in): the ordered checklist. Seeds the defaults on first load.
+app.get('/api/sanitization-checklist', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.sanitizationChecklist);
+    await seedSanitizationIfEmpty(coll);
+    const rows = (await coll.find({}).sort({ order: 1, _id: 1 }).toArray()).map(mapChecklistItem);
+    res.json({ items: rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the sanitization checklist.' });
+  }
+});
+
+// Add a line (editor allow-list only). Appends to the end.
+app.post('/api/sanitization-checklist', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const text = String((req.body || {}).text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Line text is required.' });
+    if (text.length > 1000) return res.status(400).json({ error: 'Line must be 1000 characters or fewer.' });
+    const coll = await getCollection(COLLECTIONS.sanitizationChecklist);
+    await seedSanitizationIfEmpty(coll);
+    const last = await coll.find({}).sort({ order: -1 }).limit(1).toArray();
+    const order = last.length ? (Number(last[0].order || 0) + 1) : 0;
+    const now = new Date().toISOString();
+    const doc = { text, order, createdBy: req.user.username, updatedBy: req.user.username, at: now };
+    const r = await coll.insertOne(doc);
+    res.status(201).json(mapChecklistItem({ _id: r.insertedId, ...doc }));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not add the line.' });
+  }
+});
+
+// Edit a line's text (editor allow-list only).
+app.put('/api/sanitization-checklist/:id', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const text = String((req.body || {}).text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Line text is required.' });
+    if (text.length > 1000) return res.status(400).json({ error: 'Line must be 1000 characters or fewer.' });
+    const coll = await getCollection(COLLECTIONS.sanitizationChecklist);
+    let existing;
+    try { existing = await coll.findOne({ _id: new ObjectId(req.params.id) }); }
+    catch (e) { return res.status(400).json({ error: 'Invalid id.' }); }
+    if (!existing) return res.status(404).json({ error: 'Line not found.' });
+    await coll.updateOne({ _id: existing._id }, { $set: { text, updatedBy: req.user.username, at: new Date().toISOString() } });
+    res.json(mapChecklistItem({ ...existing, text }));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not save the line.' });
+  }
+});
+
+// Delete a line (editor allow-list only).
+app.delete('/api/sanitization-checklist/:id', requireTaxonomyEditor, async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.sanitizationChecklist);
+    let r;
+    try { r = await coll.deleteOne({ _id: new ObjectId(req.params.id) }); }
+    catch (e) { return res.status(400).json({ error: 'Invalid id.' }); }
+    if (!r.deletedCount) return res.status(404).json({ error: 'Line not found.' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the line.' });
+  }
+});
+
 // ---- Paging contacts ---- (no edit/delete by design)
 // Public: list all paging contacts (ordered).
 app.get('/api/paging', async (req, res) => {
