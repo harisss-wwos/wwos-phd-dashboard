@@ -966,14 +966,22 @@ app.get('/api/db-health', requireFlag('canDatabase'), async (req, res) => {
     try {
       const qColl = await getCollection(COLLECTIONS.quarters);
       const tColl = await getCollection(COLLECTIONS.ticketDocs);
-      const qDocs = await qColl.find({}, { projection: { meta: 1, 'data.updatedAt': 1, 'data.count': 1, 'data.tickets': 1 } }).toArray();
+      // IMPORTANT: never project 'data.tickets' here — on an un-migrated quarter that field can be
+      // a multi-MB array, and pulling it into Node just to measure its size (JSON.stringify below)
+      // is exactly the "ship the whole dataset" bug already fixed once for /api/quarters (see the
+      // comment there). Use Mongo's own $bsonSize via aggregation instead, which never leaves the DB.
+      const qDocs = await qColl.find({}, { projection: { meta: 1, 'data.updatedAt': 1, 'data.count': 1 } }).toArray();
+      const sizeAgg = await qColl.aggregate([
+        { $project: { approxBytes: { $bsonSize: '$$ROOT' }, legacyCount: { $size: { $ifNull: ['$data.tickets', []] } } } },
+      ]).toArray();
+      const sizeById = {}; sizeAgg.forEach(r => { sizeById[r._id] = r; });
       const DOC_LIMIT = 16 * 1024 * 1024;
       for (const doc of qDocs) {
         // Ticket count: prefer live per-ticket count; fall back to legacy array length / stored count.
         let tickets = await tColl.countDocuments({ q: doc._id });
-        if (!tickets) tickets = (doc.data && Array.isArray(doc.data.tickets)) ? doc.data.tickets.length : ((doc.data && doc.data.count) || 0);
-        let approxBytes = 0;
-        try { approxBytes = Buffer.byteLength(JSON.stringify(doc)); } catch (e) {}
+        const sz = sizeById[doc._id] || {};
+        if (!tickets) tickets = sz.legacyCount || (doc.data && doc.data.count) || 0;
+        const approxBytes = sz.approxBytes || 0;
         quarters.push({
           id: doc._id,
           tickets,
