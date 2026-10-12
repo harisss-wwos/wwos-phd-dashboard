@@ -2692,10 +2692,19 @@
         + '</div>'
         + '</div>';
       slot.innerHTML = html;
-      if (canWeekly) tbLoadSummaries();                    // weekly + monthly carousel (managers + owners)
-      tbLoadLastUpload();                                  // upload card
-      tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday'); // 2 agent windows (Today window removed)
-      tbLoadAgentsActivity('lastweek', 'tbPpAgLastWeek');
+      // Stagger these instead of firing all at once. The API lives on a Render free instance that
+      // spins down after 15 min idle: a cold boot takes 30-90s, and if every section's request lands
+      // in the same instant they ALL queue up behind that one boot and the later ones in the queue
+      // can get pushed past Render's own gateway timeout (502), even though the server did eventually
+      // respond. Spacing requests out means only the first one eats the full cold-start wait; by the
+      // time the later ones go out the instance is already awake, so they land fast instead of piling
+      // up. This doesn't remove the cold start itself (only a paid plan or a keep-alive ping would) —
+      // it just stops one slow boot from taking the whole profile panel down with it.
+      var tbPpStagger = function (fn, delayMs) { setTimeout(function () { try { fn(); } catch (e) {} }, delayMs); };
+      if (canWeekly) tbPpStagger(tbLoadSummaries, 0);                                                   // weekly + monthly carousel (managers + owners)
+      tbPpStagger(function () { tbLoadLastUpload(); }, 400);                                            // upload card
+      tbPpStagger(function () { tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday'); }, 1800);         // 2 agent windows (Today window removed)
+      tbPpStagger(function () { tbLoadAgentsActivity('lastweek', 'tbPpAgLastWeek'); }, 3200);
       tbStartProfileSlider();                              // manual N-slide carousel
       // Wire the per-section reload buttons. Open-tickets + tickets-by-age both come from the single
       // /api/profile-stats call, so either button force-refreshes that whole call (re-renders both).

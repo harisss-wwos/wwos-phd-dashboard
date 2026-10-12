@@ -746,14 +746,19 @@ function hxGroupToggle(gi){
 //      page still renders something on GitHub Pages before the API wakes.
 (async function(){
   var live=null;
-  // Fetch the hashtags report + the out-of-scope report in parallel (the latter is best-effort:
-  // if it fails the page still renders the hashtag groups without the "#Out of Scope" group).
+  // Fetch the hashtags report, then the out-of-scope report (the latter is best-effort: if it fails
+  // the page still renders the hashtag groups without the "#Out of Scope" group).
   try{
-    var pair=await Promise.all([
-      A.api('GET','/api/hashtags-report'),
-      A.api('GET','/api/out-of-scope-report').catch(function(){ return null; })
-    ]);
-    var r=pair[0], oos=pair[1];
+    // Staggered, not parallel: on a cold Render instance both requests would otherwise land in the
+    // same instant and queue up behind one 30-90s boot, risking a gateway timeout (502) on whichever
+    // one is served second. Firing out-of-scope-report ~1.5s after hashtags-report means it starts
+    // its own timeout clock once the instance is already awake, instead of racing the cold boot too.
+    var r=await A.api('GET','/api/hashtags-report');
+    var oos=await new Promise(function(resolve){
+      setTimeout(function(){
+        A.api('GET','/api/out-of-scope-report').then(resolve).catch(function(){ resolve(null); });
+      },1500);
+    });
     if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)) live=r.data;
     if(oos&&oos.ok&&oos.data&&Array.isArray(oos.data.groups)) HX_OOS=oos.data;
   }catch(e){ live=null; }
