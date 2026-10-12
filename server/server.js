@@ -215,6 +215,7 @@ app.get('/api/ticket-events', requireRole('admin'), async (req, res) => {
 app.get('/api/hi-resolved', requireFlag('canViewRepeat'), async (req, res) => {
   try {
     const coll = await getCollection(COLLECTIONS.ticketDocs);
+    await ensureTicketIndexes();
     // HI count parsed from RootCauseDetails ("Cnt: N" or "Historical Incident: N").
     const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
     const isPetExpr = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
@@ -3814,6 +3815,11 @@ function windowDayKeys(windowName, todayKey) {
 const AA_MEMO_TTL_MS = 15 * 1000;
 let _aaResCache = { key: null, at: 0, rows: null };
 let _aaComCache = { at: 0, rows: null };
+let _commentIndexesReady = false;
+async function ensureCommentIndexes(commentsColl) {
+  if (_commentIndexesReady) return;
+  try { await commentsColl.createIndex({ at: 1 }); await commentsColl.createIndex({ shortId: 1 }); _commentIndexesReady = true; } catch (e) { /* index best-effort */ }
+}
 async function agentsActivityResRows(liveQid) {
   const now = Date.now();
   if (_aaResCache.rows && _aaResCache.key === liveQid && (now - _aaResCache.at) < AA_MEMO_TTL_MS) return _aaResCache.rows;
@@ -3829,7 +3835,13 @@ async function agentsActivityComments() {
   const now = Date.now();
   if (_aaComCache.rows && (now - _aaComCache.at) < AA_MEMO_TTL_MS) return _aaComCache.rows;
   const commentsColl = await getCollection(COLLECTIONS.comments);
-  const rows = await commentsColl.find({}, { projection: { _id: 0, user: 1, shortId: 1, at: 1 } }).toArray();
+  await ensureCommentIndexes(commentsColl);
+  // The longest window (lastweek) can reach at most ~19 days back (today-dow-7..+6); 21 days gives a
+  // safe margin across agent timezones without ever scanning the FULL comments history. Previously
+  // this had no filter at all and re-read every comment ever made on every page load — the single
+  // biggest cost in this endpoint once the comments collection grew past a few thousand docs.
+  const sinceIso = new Date(now - 21 * 24 * 60 * 60 * 1000).toISOString();
+  const rows = await commentsColl.find({ at: { $gte: sinceIso } }, { projection: { _id: 0, user: 1, shortId: 1, at: 1 } }).toArray();
   _aaComCache = { at: now, rows };
   return rows;
 }
@@ -4145,7 +4157,7 @@ function ticketDocId(qid, shortId) { return qid + '|' + String(shortId); }
 let _ticketIndexesReady = false;
 async function ensureTicketIndexes() {
   if (_ticketIndexesReady) return;
-  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
+  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); await coll.createIndex({ Status: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
 }
 // Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
 // fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
