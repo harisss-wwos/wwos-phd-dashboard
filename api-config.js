@@ -8,6 +8,67 @@
   window.PHD_API_BASE = override || (isLocal ? 'http://127.0.0.1:3000' : 'https://wwos-phd-api.onrender.com');
 })();
 
+// ---- Session-expired modal ----
+// Shown whenever ANY API call comes back 401 (token invalid/expired/revoked), from any page, no
+// matter what the user was doing. Self-contained (injects its own styles) so it works regardless of
+// whether topbar-auth.js has run yet. Guarded so a burst of concurrent 401s (e.g. several requests
+// in flight when the session dies) only ever shows one modal, not one per request.
+window.PHDSessionExpiredModal = (function () {
+  var shown = false;
+  function injectCss() {
+    if (document.getElementById('phdSessExpStyles')) return;
+    var css = ''
+      + '@keyframes phdSxIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}'
+      + '@keyframes phdSxBgIn{from{opacity:0}to{opacity:1}}'
+      + '.phd-sx-bg{position:fixed;inset:0;background:rgba(16,24,38,.6);backdrop-filter:blur(2px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit;animation:phdSxBgIn .18s ease-out}'
+      + '.phd-sx-box{position:relative;background:#fff;color:#1b2026;border-radius:14px;width:min(400px,100%);box-shadow:0 28px 70px -24px rgba(16,24,38,.45),0 0 0 1px rgba(16,24,38,.04);overflow:hidden;animation:phdSxIn .22s cubic-bezier(.16,1,.3,1)}'
+      + '.phd-sx-accent{height:4px;background:linear-gradient(90deg,#f7b21a,#ec7211)}'
+      + '.phd-sx-head{display:flex;align-items:center;gap:10px;padding:20px 20px 4px}'
+      + '.phd-sx-head-ic{flex-shrink:0;width:36px;height:36px;border-radius:10px;background:linear-gradient(160deg,#fef3e2,#fde8c8);color:#b5690a;display:flex;align-items:center;justify-content:center}'
+      + '.phd-sx-head-ic svg{width:19px;height:19px}'
+      + '.phd-sx-title{font-size:1.08em;font-weight:800;color:#1b2026;letter-spacing:-.1px}'
+      + '.phd-sx-x{position:absolute;top:14px;right:14px;background:transparent;border:none;color:#aab2bc;font-size:1.3em;line-height:1;cursor:pointer;padding:4px;border-radius:6px;transition:background .15s,color .15s}'
+      + '.phd-sx-x:hover{color:#5c6773;background:#f1f3f5}'
+      + '.phd-sx-body{padding:12px 20px 22px 66px}'
+      + '.phd-sx-msg{font-size:.9em;line-height:1.6;color:#5c6773;margin:0}'
+      + '.phd-sx-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;background:#fafbfc;border-top:1px solid #eef1f4}'
+      + '.phd-sx-btn{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,#1a8bbd,#1577a0);color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:.88em;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px -2px rgba(21,119,160,.5);transition:filter .15s,box-shadow .15s,transform .1s}'
+      + '.phd-sx-btn svg{width:14px;height:14px}'
+      + '.phd-sx-btn:hover{filter:brightness(1.06);box-shadow:0 4px 12px -2px rgba(21,119,160,.6)}'
+      + '.phd-sx-btn:active{transform:translateY(1px)}';
+    var style = document.createElement('style');
+    style.id = 'phdSessExpStyles'; style.textContent = css;
+    document.head.appendChild(style);
+  }
+  // title/message are optional overrides; defaults cover the common "token expired" case. onRefresh
+  // defaults to a plain reload — the page's own guest/redirect logic (topbar-auth.js) takes it from
+  // there, same as a manual refresh would.
+  function show(opts) {
+    if (shown) return;             // de-dupe: a burst of concurrent 401s shows ONE modal
+    shown = true;
+    opts = opts || {};
+    injectCss();
+    var clockSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+    var refreshSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>';
+    var bg = document.createElement('div');
+    bg.className = 'phd-sx-bg';
+    bg.innerHTML = '<div class="phd-sx-box" role="dialog" aria-modal="true" aria-labelledby="phdSxTitle">'
+      + '<div class="phd-sx-accent"></div>'
+      + '<button type="button" class="phd-sx-x" id="phdSxClose" aria-label="Close">&times;</button>'
+      + '<div class="phd-sx-head"><span class="phd-sx-head-ic">' + clockSvg + '</span>'
+      + '<span class="phd-sx-title" id="phdSxTitle">' + (opts.title || 'Session expired') + '</span></div>'
+      + '<div class="phd-sx-body"><p class="phd-sx-msg">' + (opts.message || 'Your session has timed out for your security. Refresh the page and sign in again to pick up right where you left off.') + '</p></div>'
+      + '<div class="phd-sx-foot"><button type="button" class="phd-sx-btn" id="phdSxRefresh">' + refreshSvg + 'Refresh page</button></div>'
+      + '</div>';
+    document.body.appendChild(bg);
+    var doRefresh = opts.onRefresh || function () { location.reload(); };
+    var close = function () { try { bg.remove(); } catch (e) {} shown = false; };
+    document.getElementById('phdSxClose').onclick = close;
+    document.getElementById('phdSxRefresh').onclick = doRefresh;
+  }
+  return { show: show };
+})();
+
 // ---- Auth session helpers (shared across pages) ----
 window.PHDAuth = {
   TOKEN_KEY: 'phd_token',
@@ -178,7 +239,13 @@ window.PHDAuth = {
       body: body ? JSON.stringify(body) : undefined,
     });
     var data = null; try { data = await resp.json(); } catch (e) {}
-    if (resp.status === 401) { /* token invalid/expired */ this.clear(); }
+    if (resp.status === 401) {
+      /* token invalid/expired */ this.clear();
+      // Tell the user WHY, instead of silently clearing the session and (on the next load/redirect)
+      // bouncing them to the home page with no explanation. Shown from wherever the 401 happened —
+      // a background check or a user action — same modal either way.
+      try { if (window.PHDSessionExpiredModal) window.PHDSessionExpiredModal.show(); } catch (e) {}
+    }
     return { status: resp.status, ok: resp.ok, data: data };
   },
   // ---- Avatars ----

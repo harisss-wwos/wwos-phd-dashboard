@@ -4352,9 +4352,11 @@
       if (loggedIn() && A && A.api) {
         A.api('GET', '/api/me').then(function (_meRes) {
           if (_meRes && _meRes.status === 401) {
-            try { A.clear(); } catch (e) {}               // api() already clears, but be explicit
-            var _p = (location.pathname.split('/').pop() || '').toLowerCase();
-            if (!(_p === '' || _p === 'index.html')) { location.replace('index.html'); }
+            // api() already cleared the session AND showed the "session expired" modal (shared across
+            // the whole site — see api-config.js). Don't ALSO silently redirect here: that used to
+            // bounce the user to the home page with no explanation before they could read the modal.
+            // Its "Refresh" button reloads the page, which re-runs the guest-lockdown check below and
+            // sends them home at that point instead.
           } else if (_meRes && _meRes.ok && _meRes.data) {
             // Valid token: warm the in-memory /api/me cache so downstream code skips a refetch.
             try { A._me = _meRes.data; if (A._storeWrite) A._storeWrite('me', _meRes.data); } catch (e) {}
