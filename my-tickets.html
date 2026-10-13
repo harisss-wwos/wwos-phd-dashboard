@@ -156,7 +156,73 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .mi-btn.primary:disabled{opacity:.6;cursor:default;filter:none}
 .mi-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
 .mi-btn.sec:hover{border-color:#8b96a0;color:#fff}
-/* Shared modal head/close (comment / incident-log modals — unrelated to Mark-important above). */
+/* ---- Add-incident-log modal (icon on the card actions bar) — redesigned ---- */
+.ail-modal{width:min(620px,92vw);max-width:min(620px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
+.ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
+.ail-head-ic svg{width:18px;height:18px}
+.ail-head-tx{flex:1;min-width:0}
+.ail-head-tx h2{margin:0;color:#fff;font-size:1.1em;font-weight:800}
+.ail-head-sub{display:block;color:var(--tm);font-size:.8em;margin-top:3px}
+.ail-icbtn{flex-shrink:0;background:transparent;border:1px solid var(--bd);color:var(--tm);border-radius:6px;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s;margin-top:1px}
+.ail-icbtn svg{width:14px;height:14px}
+.ail-icbtn:hover{border-color:#44b9d6;color:#44b9d6;background:rgba(68,185,214,.08)}
+.ail-icbtn.copied{border-color:var(--gl);color:var(--gl)}
+.ail-x{flex-shrink:0;background:transparent;border:none;color:var(--tm);font-size:1.5em;line-height:1;cursor:pointer;padding:0 2px;border-radius:5px}
+.ail-x:hover{color:#fff;background:rgba(255,255,255,.06)}
+.ail-body{padding:18px 22px;overflow:auto;flex:1;min-height:0;display:flex;flex-direction:column}
+.ail-hint{color:var(--tm);font-size:.82em;line-height:1.55;margin:0 0 12px}
+.ail-hint b{color:#fff}
+.ail-hint-tag{color:#44b9d6;font-weight:700}
+.ail-ta{width:100%;flex:1;min-height:42vh;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:12px 14px;font-family:inherit;line-height:1.55;resize:vertical}
+.ail-ta:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.ail-foot-row{display:flex;justify-content:flex-end;margin-top:6px}
+.ail-count{color:var(--tm);font-size:.75em}
+.ail-err{margin-top:8px}
+.ail-actions{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--bd);flex-shrink:0}
+.ail-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:filter .15s,background .15s,border-color .15s,color .15s}
+.ail-btn.primary{background:linear-gradient(180deg,#ffcb52,#f7b21a);color:#151206;box-shadow:0 4px 14px -4px rgba(251,191,36,.5)}
+.ail-btn.primary:hover{filter:brightness(1.05)}
+.ail-btn.primary:disabled{opacity:.6;cursor:default;filter:none}
+.ail-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
+.ail-btn.sec:hover{border-color:#8b96a0;color:#fff}
+/* ---- View-incident-log modal (clipboard header icon -> openIncidentIcon) — redesigned ---- */
+/* Was a plain .modal-head: title + a 2-button group as flex children with no wrap guard, so a long
+   title ("Incident log · V2396279680") squeezed the Copy/Close buttons onto their own line below
+   it. Scoped vil-* classes fix the layout (icon + title can shrink/truncate, buttons stay put on
+   the right, never wrap) without touching .modal-head (still used by the comment/edit modals). */
+.vil-modal{width:min(640px,92vw);max-width:min(640px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.vil-head{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--bd)}
+.vil-head-ic{flex-shrink:0;width:32px;height:32px;border-radius:9px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
+.vil-head-tx{flex:1;min-width:0;margin:0;color:#fff;font-size:1.05em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vil-icbtn,.vil-x{flex-shrink:0;background:transparent;border:1px solid var(--bd);color:var(--tm);border-radius:6px;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
+.vil-icbtn:hover{border-color:#44b9d6;color:#44b9d6;background:rgba(68,185,214,.08)}
+.vil-x:hover{border-color:#ff6b6b;color:var(--rl);background:rgba(255,82,82,.08)}
+.vil-body{padding:16px 20px 20px;overflow:auto}
+.vil-hint{color:var(--tm);font-size:.78em;margin:0 0 12px}
+/* ---- Edit-incident-log modal (Edit button inside the view-list) — redesigned ---- */
+/* Same shared-.modal-head wrapping bug as the View-incident-log modal above: title + close button
+   as bare flex children with no wrap guard dropped the "x" onto its own line. Scoped eil-* fixes
+   it the same way. */
+.eil-modal{width:min(620px,92vw);max-width:min(620px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.eil-head{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--bd)}
+.eil-head-ic{flex-shrink:0;width:32px;height:32px;border-radius:9px;background:rgba(236,114,17,.14);color:var(--o);display:inline-flex;align-items:center;justify-content:center}
+.eil-head-tx{flex:1;min-width:0;margin:0;color:#fff;font-size:1.05em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eil-x{flex-shrink:0;background:transparent;border:none;color:var(--tm);font-size:1.5em;line-height:1;cursor:pointer;padding:0 2px;border-radius:5px}
+.eil-x:hover{color:#fff;background:rgba(255,255,255,.06)}
+.eil-body{padding:18px 20px;overflow:auto;flex:1;min-height:0;display:flex;flex-direction:column}
+.eil-ta{width:100%;flex:1;min-height:42vh;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:12px 14px;font-family:inherit;line-height:1.55;resize:vertical}
+.eil-ta:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.eil-err{margin-top:8px}
+.eil-actions{display:flex;gap:10px;justify-content:flex-end;padding:16px 20px;border-top:1px solid var(--bd);flex-shrink:0}
+.eil-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:filter .15s,background .15s,border-color .15s,color .15s}
+.eil-btn.primary{background:linear-gradient(180deg,#ffcb52,#f7b21a);color:#151206;box-shadow:0 4px 14px -4px rgba(251,191,36,.5)}
+.eil-btn.primary:hover{filter:brightness(1.05)}
+.eil-btn.primary:disabled{opacity:.6;cursor:default;filter:none}
+.eil-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
+.eil-btn.sec:hover{border-color:#8b96a0;color:#fff}
+/* Shared modal head/close (comment modals only now — the other three incident-log/mark-important
+   modals above have all been migrated to their own scoped ail-*/vil-*/eil-*/mi-* classes). */
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .modal-head h2{color:#44b9d6;font-size:1.05em;font-weight:700}
 .modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
@@ -799,6 +865,39 @@ h1{color:#1b2026 !important}
 .mi-actions{border-top:1px solid #e6eaee !important}
 .mi-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
 .mi-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
+/* Add-incident-log modal — light theme */
+.ail-head{border-bottom:1px solid #e6eaee !important}
+.ail-head-ic{background:rgba(21,119,160,.1) !important;color:#1577a0 !important}
+.ail-head-tx h2{color:#1b2026 !important}
+.ail-head-sub{color:#5c6773 !important}
+.ail-icbtn{border-color:#d4dce4 !important;color:#5c6773 !important}
+.ail-icbtn:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
+.ail-icbtn.copied{border-color:#1f9d57 !important;color:#1f9d57 !important}
+.ail-x{color:#8793a0 !important}
+.ail-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
+.ail-hint{color:#5c6773 !important}
+.ail-hint b{color:#1b2026 !important}
+.ail-count{color:#8793a0 !important}
+.ail-actions{border-top:1px solid #e6eaee !important}
+.ail-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
+.ail-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
+/* View-incident-log modal — light theme */
+.vil-head{border-bottom:1px solid #e6eaee !important}
+.vil-head-ic{background:rgba(21,119,160,.1) !important;color:#1577a0 !important}
+.vil-head-tx{color:#1b2026 !important}
+.vil-icbtn,.vil-x{border-color:#d4dce4 !important;color:#5c6773 !important}
+.vil-icbtn:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
+.vil-x:hover{border-color:#dc2626 !important;color:#dc2626 !important;background:#fef2f2 !important}
+.vil-hint{color:#5c6773 !important}
+/* Edit-incident-log modal — light theme */
+.eil-head{border-bottom:1px solid #e6eaee !important}
+.eil-head-ic{background:#fff4e8 !important;color:#ec7211 !important}
+.eil-head-tx{color:#1b2026 !important}
+.eil-x{color:#8793a0 !important}
+.eil-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
+.eil-actions{border-top:1px solid #e6eaee !important}
+.eil-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
+.eil-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
 .msg-err{color:#d33a3a !important}
 .modal-head h2{color:#1577a0 !important}
 .modal-close{color:#5c6773}.modal-close:hover{color:#1b2026}
@@ -889,43 +988,58 @@ h1{color:#1b2026 !important}
 </div>
 
 <!-- View-incident-log popup -->
-<div class="modal-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <h2 id="viewIncidentTitle"><span id="viewIncidentIcon" style="vertical-align:-2px"></span> <span id="viewIncidentTitleText">Incident log</span></h2>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="btn sec mini" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none"><span class="ilog-copy-ic"></span> Copy</button>
-        <button class="btn danger mini" onclick="closeViewIncident()"><span class="ilog-close-ic"></span> Close</button>
-      </div>
+<div class="modal-bg vil-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
+  <div class="modal vil-modal" role="dialog" aria-modal="true" aria-labelledby="viewIncidentTitleText">
+    <div class="vil-head">
+      <span class="vil-head-ic" id="viewIncidentIcon"></span>
+      <h2 class="vil-head-tx" id="viewIncidentTitle"><span id="viewIncidentTitleText">Incident log</span></h2>
+      <button type="button" class="vil-icbtn" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none" title="Copy all entries" aria-label="Copy all entries"><span class="ilog-copy-ic"></span></button>
+      <button type="button" class="vil-x" onclick="closeViewIncident()" aria-label="Close"><span class="ilog-close-ic"></span></button>
     </div>
-    <p style="color:#5f6b6c;font-size:.78em;margin-bottom:12px">Entries you added on this ticket. You can edit or delete your own.</p>
-    <div id="viewIncidentList"></div>
+    <div class="vil-body">
+      <p class="vil-hint">Entries you added on this ticket. You can edit or delete your own.</p>
+      <div id="viewIncidentList"></div>
+    </div>
   </div>
 </div>
 
 <!-- Edit-incident-log popup -->
-<div class="modal-bg" id="editIncidentModal" onclick="if(event.target===this)closeEditIncident()" data-edit-modal>
-  <div class="modal modal-wide">
-    <div class="modal-head"><h2>Edit incident log</h2><button class="modal-close" onclick="closeEditIncident()" aria-label="Close">&times;</button></div>
-    <textarea id="editIncidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical"></textarea>
-    <div class="msg err" id="editIncidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
-    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeEditIncident()">Cancel</button>
-      <button class="btn" id="editIncidentBtn" onclick="submitEditIncident()">Save changes</button>
+<div class="modal-bg eil-bg" id="editIncidentModal" onclick="if(event.target===this)closeEditIncident()" data-edit-modal>
+  <div class="modal eil-modal" role="dialog" aria-modal="true" aria-labelledby="editIncidentTitle">
+    <div class="eil-head">
+      <span class="eil-head-ic" id="editIncidentIcon"></span>
+      <h2 class="eil-head-tx" id="editIncidentTitle">Edit incident log</h2>
+      <button type="button" class="eil-x" onclick="closeEditIncident()" aria-label="Close">&times;</button>
+    </div>
+    <div class="eil-body">
+      <textarea id="editIncidentText" maxlength="5000" class="eil-ta"></textarea>
+      <div class="msg err eil-err" id="editIncidentErr" style="display:none"></div>
+    </div>
+    <div class="eil-actions">
+      <button class="eil-btn sec" onclick="closeEditIncident()">Cancel</button>
+      <button class="eil-btn primary" id="editIncidentBtn" onclick="submitEditIncident()">Save changes</button>
     </div>
   </div>
 </div>
 
 <!-- Add-incident-log popup -->
-<div class="modal-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">
-  <div class="modal modal-wide">
-    <div class="modal-head"><h2 id="incidentTitle">Add incident log</h2><button class="modal-close" onclick="closeIncidentLog()" aria-label="Close">&times;</button></div>
-    <p style="color:#9aa7a8;font-size:.82em;margin-bottom:12px;line-height:1.55">Capture your <b style="color:#fff">final mitigation</b> and any relevant <b style="color:#44b9d6">#hashtags</b> for this incident so it can be tracked and referenced later.</p>
-    <textarea id="incidentText" maxlength="5000" style="width:100%;min-height:52vh;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
-    <div class="msg err" id="incidentErr" style="color:var(--rl);font-size:.85em;margin-top:8px;display:none"></div>
-    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeIncidentLog()">Cancel</button>
-      <button class="btn" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
+<div class="modal-bg ail-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">
+  <div class="modal ail-modal" role="dialog" aria-modal="true" aria-labelledby="incidentTitle">
+    <div class="ail-head">
+      <span class="ail-head-ic" id="ailHeadIc"></span>
+      <div class="ail-head-tx"><h2 id="incidentTitle">Add incident log</h2><span class="ail-head-sub">Final mitigation + hashtags, saved to this ticket's log</span></div>
+      <button type="button" class="ail-icbtn" id="incidentCopyBtn" onclick="copyIncidentDraft()" title="Copy everything in this note" aria-label="Copy note content"><span id="ailCopyIc"></span></button>
+      <button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>
+    </div>
+    <div class="ail-body">
+      <p class="ail-hint">Capture your <b>final mitigation</b> and any relevant <span class="ail-hint-tag">#hashtags</span> for this incident so it can be tracked and referenced later.</p>
+      <textarea id="incidentText" maxlength="5000" class="ail-ta" oninput="updateIncidentCount()" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
+      <div class="ail-foot-row"><span class="ail-count" id="incidentCount">0 / 5000</span></div>
+      <div class="msg err ail-err" id="incidentErr" style="display:none"></div>
+    </div>
+    <div class="ail-actions">
+      <button class="ail-btn sec" onclick="closeIncidentLog()">Cancel</button>
+      <button class="ail-btn primary" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
     </div>
   </div>
 </div>
@@ -1044,6 +1158,11 @@ const ATTACH_FLAGS=[
   { kind:'reports',   icon:'reports-attached', label:'SIM icon',             title:'Choose this option once the SIM worklog/correspondence reflects your most current investigation updates.' },
   { kind:'emt',       icon:'emt-updated-v3', label:'EMT icon',                title:'Choose this option once the EMT incident log reflects your most current investigation updates.' },
   { kind:'important', icon:'mark-important', label:'Important icon',         title:'Use this icon exclusively to highlight an incident that stands out as important or unique.' },
+  // Incident log: NOT a local on/off toggle like the other four — "on" (green) means a log already
+  // exists for this ticket (mirrors HAS_LOG, kept server-side), and the click always opens the
+  // incident-log popup: the Add-note screen if none exists yet, or the existing entries (with
+  // Edit/Delete) if one does. See ticketIconsHtml()'s handler for the add-vs-view branch.
+  { kind:'ilog',      icon:'add-report',     label:'Incident log icon',       title:'Add or view this ticket\u2019s incident log (final mitigation + hashtags).' },
 ];
 const ATTACH_SETS={ dtrace:new Set(), reports:new Set(), emt:new Set(), important:new Set() };
 function attachKey(kind){ var u=A.getUser(); return 'phd_mytickets_'+kind+'_'+((u&&u.username)||'anon'); }
@@ -1526,11 +1645,14 @@ function ticketIconsHtml(i, mirror){
   const sid=String(t.shortId); const sidAttr=esc(sid);
   const mk=mirror?' mtc-att-mirror':'';
   return ATTACH_FLAGS.map(function(f){
-    const on=ATTACH_SETS[f.kind].has(sid)?' on':'';
-    // The "important" flag opens the Mark-important popup (persists to Unique Cases); the other
-    // three stay as local on/off toggles.
-    const handler = f.kind==='important'
-      ? `openMarkImportant('${sidAttr}',event)`
+    // The incident-log flag's "on" state mirrors whether a log already exists server-side
+    // (HAS_LOG), not a local toggle set like the other four.
+    const on=(f.kind==='ilog' ? !!HAS_LOG[sid] : ATTACH_SETS[f.kind].has(sid))?' on':'';
+    // The "important" flag opens the Mark-important popup (persists to Unique Cases); "ilog" opens
+    // the incident-log popup (add if none exists yet, else the view/edit/delete list); the other
+    // two stay as local on/off toggles.
+    const handler = f.kind==='important' ? `openMarkImportant('${sidAttr}',event)`
+      : f.kind==='ilog' ? `openIncidentIcon(${i},event)`
       : `toggleAttach('${f.kind}','${sidAttr}',event)`;
     return `<span class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)}" onclick="${handler}">${attImg(f.icon,'mtc-att-ic')}</span>`;
   }).join('');
@@ -1649,17 +1771,50 @@ function openAddComment(i){
 function closeAddComment(){document.getElementById('addCmtModal').style.display='none';ADD_CMT_INDEX=null;}
 
 // ---- Incident log ----
+// Entry point for the incident-log icon in the 4(+1)-icon row (actions bar + collapsed mirror).
+// No log yet -> straight to the Add-note popup. Already has one -> the view popup, which lists
+// every entry with Edit/Delete per entry (openEditIncident / deleteIncident, further below).
+function openIncidentIcon(i,ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  const t=TICKETS[i]; if(!t) return;
+  if(HAS_LOG[String(t.shortId)]) openViewIncident(i); else openIncidentLog(i);
+}
+window.openIncidentIcon=openIncidentIcon;
 let INCIDENT_INDEX=null;
 function openIncidentLog(i){
   INCIDENT_INDEX=i;
   const t=TICKETS[i];
+  var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
+  var cic=document.getElementById('ailCopyIc'); if(cic) cic.innerHTML=ic('copy',14);
   document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
   const ta=document.getElementById('incidentText');ta.value='';
+  updateIncidentCount();
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
   setTimeout(()=>ta.focus(),40);
 }
 function closeIncidentLog(){document.getElementById('incidentModal').style.display='none';INCIDENT_INDEX=null;}
+function updateIncidentCount(){
+  var ta=document.getElementById('incidentText'), cnt=document.getElementById('incidentCount');
+  if(ta&&cnt) cnt.textContent=ta.value.length+' / 5000';
+}
+// Copy EVERYTHING currently typed in the Add-incident-log textarea (the user's in-progress draft) —
+// handy for reusing the same mitigation/hashtags text elsewhere before saving.
+async function copyIncidentDraft(){
+  var ta=document.getElementById('incidentText'); if(!ta) return;
+  var text=ta.value;
+  if(!text.trim()){ toast('Nothing to copy yet'); return; }
+  var btn=document.getElementById('incidentCopyBtn');
+  try{ await navigator.clipboard.writeText(text); }
+  catch(e){
+    const tmp=document.createElement('textarea');tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
+    document.body.appendChild(tmp);tmp.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(tmp);
+  }
+  toast('Copied');
+  if(btn){ btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',14);
+    setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=prev;},1200); }
+}
+window.copyIncidentDraft=copyIncidentDraft;
 async function submitIncidentLog(){
   if(INCIDENT_INDEX==null)return;
   const t=TICKETS[INCIDENT_INDEX];
@@ -1754,6 +1909,7 @@ function closeViewIncident(){document.getElementById('viewIncidentModal').style.
 let EDIT_INC_ID=null;
 function openEditIncident(id){
   EDIT_INC_ID=id;
+  var hic=document.getElementById('editIncidentIcon'); if(hic) hic.innerHTML=ic('edit',16);
   const item=document.querySelector('#viewIncidentList .ilog-item[data-id="'+id+'"] .ilog-text');
   document.getElementById('editIncidentText').value=item?item.textContent:'';
   document.getElementById('editIncidentErr').style.display='none';
