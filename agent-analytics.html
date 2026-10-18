@@ -235,6 +235,78 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .gv-blocks{display:flex;flex-direction:column;gap:22px}
 .gv-block-title{color:#cfd6d6;font-size:.82em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .gv-block-title::before{content:'';width:3px;height:.95em;background:var(--o);border-radius:2px;flex-shrink:0}
+
+/* ---- Performance Overview (ported from the Live Dashboard) â€” period picker + KPI podium/tiles +
+   Created/Resolved/SLA chart. Lives inside a .gv-card body (light surface). ---- */
+.perf-body{padding:0}
+.dash-chunk-slot{min-height:0}
+/* Period picker: a right-aligned top row inside the card body, divider below. */
+.perf-head-right{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-end;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.perf-head-right::-webkit-scrollbar{display:none}
+.perf-head-right>span{display:inline-flex}
+.perf-head-inbody{margin:0 0 14px;padding-bottom:14px;border-bottom:1px solid #eef1f4;justify-content:flex-end}
+/* Merged YTD Performance tables, below the Performance Overview podium/KPIs/chart. */
+.perf-ytd-block{margin-top:26px;padding-top:22px;border-top:2px solid #eef1f4}
+@media(max-width:860px){.perf-head-inbody{justify-content:flex-start}}
+.perf-picker{display:inline-flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-end}
+.perf-sub{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
+/* Segmented chip group: one rounded pill track; active chip = white on orange. */
+.perf-chips{display:inline-flex;flex:0 0 auto;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
+.perf-chip{font-family:inherit;font-size:.76em;font-weight:700;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.perf-chip:hover{color:#1b2026}
+.perf-chip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
+.perf-sel{font-family:inherit;font-size:.8em;font-weight:600;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:5px;padding:6px 10px;cursor:pointer;outline:none}
+.perf-sel:hover{border-color:#c2cad1}
+.perf-sel:focus{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+/* Chart box (light surface version â€” app.html's is dark). */
+.perf-body .chart-box{background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:16px}
+.perf-body .chart-wrap{position:relative;height:300px}
+.perf-body .chart-wrap.tall{height:340px}
+.perf-body .meta-info{color:#5c6773;font-size:.86em;line-height:1.5}
+.perf-spin-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.perf-chart-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a94a0;font-size:.86em}
+/* Performance KPIs: top-3 podium + colorful stat tiles. */
+.pf-section-h{display:flex;align-items:center;gap:7px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8b96a0;margin:2px 0 10px}
+.pf-section-h svg{width:13px;height:13px;color:#ec7211}
+.pf-podium-wrap{margin-bottom:18px}
+.pf-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
+.pf-medal{position:relative;border-radius:5px;padding:18px 14px 14px;text-align:center;color:#1b2026;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
+.pf-medal::before{content:"";position:absolute;inset:0 0 auto 0;height:4px}
+.pf-medal.pf-gold{background:linear-gradient(180deg,#fff8e6,#fff);} .pf-medal.pf-gold::before{background:linear-gradient(90deg,#f6c21a,#ffde7a)}
+.pf-medal.pf-silver{background:linear-gradient(180deg,#f4f7fa,#fff);} .pf-medal.pf-silver::before{background:linear-gradient(90deg,#aab6c2,#d9e1e8)}
+.pf-medal.pf-bronze{background:linear-gradient(180deg,#fbf0e6,#fff);} .pf-medal.pf-bronze::before{background:linear-gradient(90deg,#cd7f32,#e3a86a)}
+.pf-medal.pf-gold{transform:translateY(-6px)}
+.pf-medal-badge{position:absolute;top:8px;right:10px;font-size:1.25em;line-height:1}
+.pf-av{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#eef1f4;border:2px solid #fff;box-shadow:0 2px 6px rgba(20,40,70,.18)}
+.pf-av img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-av-i{font-weight:800;font-size:1.3em;color:#5c6773}
+.pf-medal.pf-gold .pf-av{border-color:#f6c21a}.pf-medal.pf-silver .pf-av{border-color:#c3ccd4}.pf-medal.pf-bronze .pf-av{border-color:#cd7f32}
+.pf-medal-id{font-size:.9em;font-weight:800;margin-top:8px;color:#1b2026;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-medal-metrics{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.pf-mm{font-size:.76em;color:#5c6773}
+.pf-mm b{color:#1b2026;font-size:1.05em}
+.pf-mm-avg{color:#8b96a0;font-size:.72em;margin-top:1px}
+.pf-mm-avg small{opacity:.8}
+.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px}
+.pf-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:13px 14px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
+.pf-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.pf-stat-top{display:flex;align-items:center;gap:7px;color:#5c6773}
+.pf-stat-top svg{width:15px;height:15px}
+.pf-stat-l{font-size:.72em;font-weight:700;letter-spacing:.2px;text-transform:uppercase}
+.pf-stat-v{font-size:1.5em;font-weight:900;letter-spacing:-.5px;color:#1b2026;margin-top:7px;line-height:1}
+.pf-stat-s{font-size:.72em;color:#8b96a0;margin-top:4px}
+.pf-created::before{background:#2563eb}.pf-created .pf-stat-top{color:#2563eb}
+.pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
+.pf-avgres::before{background:#0ea5b7}.pf-avgres .pf-stat-top{color:#0ea5b7}
+.pf-sla::before{background:#7c5cf0}.pf-sla .pf-stat-top{color:#7c5cf0}
+.pf-sla.ok .pf-stat-v{color:#1f9d57}.pf-sla.warn .pf-stat-v{color:#dc2626}
+.pf-autosim::before{background:#ec7211}.pf-autosim .pf-stat-top{color:#ec7211}
+.pf-repeat::before{background:#d9930a}.pf-repeat .pf-stat-top{color:#b5760a}
+.pf-avgrep::before{background:#db2777}.pf-avgrep .pf-stat-top{color:#db2777}
+.pf-pet::before{background:#0d9488}.pf-pet .pf-stat-top{color:#0d9488}
+@media(max-width:900px){.pf-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.pf-podium{grid-template-columns:1fr}.pf-medal.pf-gold{transform:none}}
+
 /* ---- Page layout: title + evenly spaced, clearly labelled sections ---- */
 /* Title bar: WHITE card, 60px tall, 10px gap below. */
 .an-head{display:flex;align-items:center;justify-content:space-between;gap:14px;height:60px;min-height:60px;box-sizing:border-box;margin:0 0 10px;padding:0 18px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
@@ -278,7 +350,7 @@ tbody tr:hover{background:rgba(255,153,0,.03)}
 .section>h2~*:last-child{margin-bottom:20px}
 .section>.ac-grid,.section>.gv-list{margin-top:16px}
 
-/* Top-level collapsible section banners (Agent Queue / Recent Activity / YTD Performance): a flat
+/* Top-level collapsible section banners (Recent Activity / YTD Performance / Performance Overview): a flat
    56px bar â€” EXPANDED = #1878eb, COLLAPSED = #38bdf8 â€” with WHITE title/caret. */
 .gv-list>.gv-card>.gv-card-head{position:relative;overflow:hidden;height:56px;min-height:56px;box-sizing:border-box;
   background:#38bdf8!important;animation:none!important;transition:background .15s}
@@ -384,6 +456,113 @@ tbody tr:hover,.gv-sec tr:hover{background:#f8fafb!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
+<!-- ===== Redesigned Analytics UI — brand palette, loaded LAST so it wins the cascade ===== -->
+<style id="anRedesign">
+:root{
+  --an-orange:#ff6100; --an-orange-l:#fe9046; --an-page:#f4f3ef; --an-white:#ffffff;
+  --an-ink:#151d28; --an-ink2:#161d2d; --an-mut:#818284; --an-blue-bg:#e6f0fc;
+  --an-blue-ic:#c4def6; --an-blue:#2b66c1;
+}
+body{background:var(--an-page)!important;color:var(--an-ink)!important}
+
+/* ---- Title bar ---- */
+.an-head{background:var(--an-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important;
+  height:60px!important;box-shadow:0 1px 2px rgba(21,29,40,.05),0 8px 22px -18px rgba(21,29,40,.3)!important}
+.an-head h1,.an-head h1 svg{color:var(--an-ink)!important}
+.an-head h1 svg{color:var(--an-blue)!important}
+.an-ytd{color:#fff!important;background:var(--an-orange)!important;border:1px solid var(--an-orange)!important;border-radius:5px!important}
+.an-ytd svg{color:#fff!important}
+
+/* ---- Card shells ---- */
+.gv-list{display:flex;flex-direction:column;gap:12px}
+.gv-list>.gv-card{background:var(--an-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important;
+  overflow:hidden;box-shadow:0 1px 2px rgba(21,29,40,.05),0 8px 22px -18px rgba(21,29,40,.28)!important}
+/* Collapsible banner: collapsed = light blue surface w/ dark text, expanded = solid brand blue w/ white. */
+.gv-list>.gv-card>.gv-card-head{height:56px!important;min-height:56px!important;border:none!important;
+  background:var(--an-blue-bg)!important;transition:background .15s!important}
+.gv-list>.gv-card>.gv-card-head .gv-card-title,
+.gv-list>.gv-card>.gv-card-head .gv-card-title svg,
+.gv-list>.gv-card>.gv-card-head .gv-caret{color:var(--an-blue)!important;font-weight:800!important}
+.gv-list>.gv-card.open>.gv-card-head{background:var(--an-blue)!important}
+.gv-list>.gv-card.open>.gv-card-head .gv-card-title,
+.gv-list>.gv-card.open>.gv-card-head .gv-card-title svg,
+.gv-list>.gv-card.open>.gv-card-head .gv-caret{color:#fff!important}
+.gv-list>.gv-card>.gv-card-head:hover{filter:brightness(.98)}
+
+/* ---- Recent Activity fun loader: 70vh area, animated icon orb + rotating status line + dots ---- */
+.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
+/* Icon "orb": a spinning conic ring around a pulsing brand-blue icon badge. */
+.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(var(--an-blue),var(--an-blue-ic),var(--an-orange-l),var(--an-orange),var(--an-blue));
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  animation:gwSpin 1.1s linear infinite}
+.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:var(--an-blue-bg);color:var(--an-blue);
+  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
+.gw-orb-ic svg{width:30px;height:30px}
+@keyframes gwSpin{100%{transform:rotate(360deg)}}
+@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.gw-loader-msg{font-size:1.18em;font-weight:800;color:var(--an-ink);line-height:1.4;min-height:1.5em}
+.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
+@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+/* Bouncing dots under the message. */
+.gw-dots{display:flex;gap:7px}
+.gw-dots span{width:9px;height:9px;border-radius:50%;background:var(--an-orange);animation:gwDot 1.2s ease-in-out infinite}
+.gw-dots span:nth-child(2){background:var(--an-orange-l);animation-delay:.18s}
+.gw-dots span:nth-child(3){background:var(--an-blue);animation-delay:.36s}
+@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--an-blue);background:var(--an-blue-bg);border:1px solid var(--an-blue-ic);border-radius:999px;padding:4px 14px}
+/* Success state: green orb, stop the dots. */
+.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
+.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
+.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
+.gw-loader.gw-done .gw-dots{visibility:hidden}
+@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+
+/* ---- Performance Overview picker row: 10px gap above the selection tabs ---- */
+.perf-head-inbody{margin-top:10px!important}
+/* ---- Performance Overview period chips (active = orange) ---- */
+.perf-chips{background:#f0efe9!important;border:1px solid #e7e4dc!important}
+.perf-chip{color:var(--an-mut)!important}
+.perf-chip:hover{color:var(--an-ink)!important}
+.perf-chip.on{background:linear-gradient(120deg,var(--an-orange-l),var(--an-orange))!important;color:#fff!important;box-shadow:0 2px 8px -2px rgba(255,97,0,.6)!important}
+.perf-sel:focus{border-color:var(--an-orange)!important;box-shadow:0 0 0 3px rgba(255,97,0,.14)!important}
+
+/* ---- Group checkbox pills (BLR/AZA/WFH) — blue accent ---- */
+.perf-groups .ga-opt,.ga-head-groups .ga-opt{color:var(--an-blue)!important;font-weight:700}
+.perf-groups .ga-opt.checked,.ga-head-groups .ga-opt.checked{color:var(--an-blue)!important}
+.perf-groups .ga-opt::before{border-color:#a8c8ee!important}
+.perf-groups .ga-opt.checked::before,.ga-head-groups .ga-opt.checked::before{background:var(--an-blue)!important;border-color:var(--an-blue)!important;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')!important;background-size:7px 7px!important;background-position:center!important;background-repeat:no-repeat!important}
+
+/* ---- Recent Activity controls (radio = orange active, checks = blue) ---- */
+.ga-fopts.ga-radio .ga-opt.checked{background:linear-gradient(180deg,var(--an-orange-l),var(--an-orange))!important;color:#fff!important}
+.ga-filters{background:var(--an-white)!important;border:1px solid #e7e4dc!important}
+.ga-fopts{background:#f0efe9!important;border:1px solid #e7e4dc!important}
+
+/* ---- Performance Overview KPI stat tiles — unify accents to the brand palette ---- */
+.pf-created::before{background:var(--an-blue)}.pf-created .pf-stat-top{color:var(--an-blue)}
+.pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
+.pf-avgres::before{background:var(--an-blue)}.pf-avgres .pf-stat-top{color:var(--an-blue)}
+.pf-autosim::before{background:var(--an-orange)}.pf-autosim .pf-stat-top{color:var(--an-orange)}
+.pf-avgrep::before{background:var(--an-orange-l)}.pf-avgrep .pf-stat-top{color:#c25400}
+.pf-stat{border:1px solid #e7e4dc!important;border-radius:5px!important}
+.pf-section-h svg{color:var(--an-orange)}
+
+/* ---- Tables ---- */
+.iap-table.xls thead th{background:var(--an-blue-bg)!important;color:var(--an-ink2)!important}
+.iap-table.xls tbody tr:hover td{background:#fff5ee!important}
+.iap-table.xls .col-total{background:var(--an-blue-bg)!important;color:var(--an-blue)!important}
+.iap-table.xls thead th.col-total{background:var(--an-blue-ic)!important;color:var(--an-blue)!important}
+.ga-tbl-title,.gv-tbl-title{color:var(--an-ink)!important}
+.ga-tbl-title::before,.gv-tbl-title::before{background:var(--an-orange)!important}
+
+/* ---- Chart card surface + spinner ---- */
+.chart-box{background:var(--an-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important}
+.spinner{border:4px solid #dfe3e7!important;border-top-color:var(--an-blue)!important}
+</style>
 </head>
 <body data-nav-active="agent-analytics" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
@@ -402,7 +581,7 @@ tbody tr:hover,.gv-sec tr:hover{background:#f8fafb!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
 const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
@@ -595,34 +774,20 @@ async function loadPetTotals(){
 
 function render(){
   document.getElementById('wrap').innerHTML=`
-    <div class="an-head">
-      <h1>${ic('group-chart',20)} Performance Analytics by Group &amp; Analysts</h1>
-      <span class="an-ytd">${ic('calendar',15)} YTD 2026</span>
-    </div>
-
     <section class="an-sec">
       <div class="gv-list">
-        <div class="gv-card open" id="queueCard">
-          <button type="button" class="gv-card-head" aria-expanded="true" onclick="toggleQueueCard(this)">
-            <span class="gv-card-title">${ic('inbox',16)} Agent Queue (Open Tickets)</span><span class="gv-caret" aria-hidden="true">\u25be</span>
-          </button>
-          <div class="gv-card-body"><div>
-            <div class="ga-filters ga-center">
-              <div class="ga-fgroup ga-inline"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">${[['A1','BLR'],['B','AZA'],['A2','WFH']].map(g=>`<label class="ga-opt checked"><input type="checkbox" name="qGroup" value="${g[0]}" checked onchange="qOnGroupChange()"> ${g[1]}</label>`).join('')}</div></div>
-            </div>
-            <div id="queueTableBody"><div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div></div>
-          </div></div>
-        </div>
         ${windowSectionsHtml()}
-        <div class="gv-card" id="groupAnalyticsCard">
-          <button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleGroupAnalyticsCard(this,event)">
-            <span class="gv-card-title">${ic('bar-chart',16)} YTD Performance</span><span class="gv-caret" aria-hidden="true">\u25be</span>
+        <div class="gv-card" id="perfCard">
+          <button type="button" class="gv-card-head" aria-expanded="false" onclick="togglePerfCard(this)">
+            <span class="gv-card-title">${ic('bar-chart',16)} Performance Overview</span><span class="gv-caret" aria-hidden="true">\u25be</span>
           </button>
-          <div class="gv-card-body"><div id="groupsView">${groupsSectionsHtml()}</div></div>
+          <div class="gv-card-body"><div>${perfSectionBodyHtml()}</div></div>
         </div>
       </div>
     </section>`;
-  loadQueueTable();   // Agent Queue is expanded by default -> load now. Recent Activity + Group Analytics load lazily on first expand.
+  // Recent Activity is EXPANDED by default -> load its data now (one request, on first paint).
+  // Performance Overview still lazy-loads on first expand.
+  try{ gwLoad(); }catch(e){}
 }
 // ============================================================================
 // Ported "Groups" view (charts + tables), same output as app.html?view=groups.
@@ -738,8 +903,8 @@ function gaSubSelectHtml(){
   return '';
 }
 function groupsSectionsHtml(){
-  return gaHeadControlsHtml()+
-    '<p class="ga-scope-note" id="gaScopeNote"></p>'+
+  // No own controls — the TOP Performance Overview picker drives these tables (period + groups).
+  return '<p class="ga-scope-note" id="gaScopeNote"></p>'+
     '<div class="ga-tables">'+
       '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gaIapBody"></div></div>'+
       '<div><h4 class="ga-tbl-title">Group Totals Summary</h4><div id="gaGtsBody"></div></div>'+
@@ -793,25 +958,20 @@ function GA_AC_WEEKS(){
   }
   return out;
 }
-// Resolve the current GA_FILTER selection -> {url} to fetch (YTD uses the overall endpoint; the
-// others use /api/group-range with a from/to window). Also returns a human label for the note.
+// Resolve the YTD Performance tables' source from the TOP Performance Overview picker (PERF window),
+// so the tables track the same period as the podium/KPIs/chart. 'era' (YTD) uses the overall
+// endpoint (complete database); every other period maps to a /api/group-range {from,to} window.
+// The window bounds come from perfWindow() (ISO 'YYYY-MM-DD'); group-range takes ms timestamps.
 function gaResolveSource(){
-  var nowMs=Date.now();
-  if(GA_FILTER.period==='ytd') return { url:'/api/group-overall', label:'YTD 2026 â€” 1 Jan 2026 to now (complete database).' };
-  if(GA_FILTER.period==='quarter'){
-    var q=GA_FILTER.quarter||GA_quartersCount(); var sm=(q-1)*3;
-    var from=new Date(2026,sm,1).getTime(), to=Math.min(new Date(2026,sm+3,1).getTime(), nowMs);
-    return { url:'/api/group-range?from='+from+'&to='+to, label:'Q'+q+' 2026.' };
-  }
-  if(GA_FILTER.period==='month'){
-    var mi=(GA_FILTER.month==null)?(GA_monthsCount()-1):GA_FILTER.month;
-    var mf=new Date(2026,mi,1).getTime(), mt=Math.min(new Date(2026,mi+1,1).getTime(), nowMs);
-    return { url:'/api/group-range?from='+mf+'&to='+mt, label:(GA_MONTH_NAMES[mi]||'')+' 2026.' };
-  }
-  // week
-  var wks=GA_AC_WEEKS(); var wi=Math.min(GA_FILTER.week||0, wks.length-1); var w=wks[wi]||wks[0];
-  if(!w) return { url:'/api/group-overall', label:'YTD 2026.' };
-  return { url:'/api/group-range?from='+w.from+'&to='+Math.min(w.to,nowMs), label:w.label+'.' };
+  var win=perfWindow();
+  if(PERF.type==='era') return { url:'/api/group-overall', label:(win.label||'YTD 2026')+' â€” complete database.' };
+  var toMsExcl=function(iso){ // ISO date -> ms at local midnight
+    var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]).getTime():null;
+  };
+  var fromMs=toMsExcl(win.from);
+  var toMs=win.to?toMsExcl(win.to):Date.now();
+  var parts=[]; if(fromMs!=null)parts.push('from='+fromMs); if(toMs!=null)parts.push('to='+toMs);
+  return { url:'/api/group-range?'+parts.join('&'), label:(win.label||'')+'.' };
 }
 // A period chip was clicked: switch period, default the secondary index to the latest option, rebuild
 // the sub-dropdown, and reload.
@@ -821,7 +981,7 @@ function gaOnPeriodChip(p){
   else if(p==='month') GA_FILTER.month=GA_monthsCount()-1;
   else if(p==='week') GA_FILTER.week=GA_AC_WEEKS().length-1;
   // reflect active chip
-  document.querySelectorAll('#groupAnalyticsCard .ga-pchip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-period')===p); });
+  document.querySelectorAll('#perfCard .ga-pchip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-period')===p); });
   var sub=document.getElementById('gaSubWrap'); if(sub) sub.innerHTML=gaSubSelectHtml();
   gaLoad();
 }
@@ -1099,85 +1259,6 @@ function iapRenderTable(){
     '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'+GAMMA_NOTE;
 }
 
-// ---- Agent Queue table (open tickets by status + age colour) ----
-let Q_AGENTS=null, Q_SORT=null, Q_GROUPS=['A1','A2','B'];   // group filter (all on by default)
-function qOnGroupChange(){
-  var g=[]; document.querySelectorAll('input[name="qGroup"]').forEach(function(inp){ var opt=inp.closest('.ga-opt'); if(opt) opt.classList.toggle('checked', inp.checked); if(inp.checked) g.push(inp.value); });
-  Q_GROUPS=g;
-  if(Q_AGENTS) qRenderTable();
-}
-window.qOnGroupChange=qOnGroupChange;
-const Q_INQUEUE=function(a){var s=a.statuses||{};return (s['Assigned']||0)+(s['Work In Progress']||0)+(s['Pending']||0)+(s['Researching']||0);};
-const Q_COLS=[
-  {key:'name',   label:'Agent',      short:'Agent', type:'str', val:function(a){return a.name;}},
-  {key:'__inq',  label:'In Queue',   short:'Queue', type:'num', val:function(a){return Q_INQUEUE(a);}, cls:'col-total'},
-  {key:'Assigned',          label:'Assigned',   short:'Asg',  type:'num', val:function(a){return (a.statuses&&a.statuses['Assigned'])||0;}},
-  {key:'Work In Progress',  label:'WIP',        short:'WIP',  type:'num', val:function(a){return (a.statuses&&a.statuses['Work In Progress'])||0;}},
-  {key:'Pending',           label:'Pending',    short:'Pend', type:'num', val:function(a){return (a.statuses&&a.statuses['Pending'])||0;}},
-  {key:'Researching',       label:'Researching',short:'Res',  type:'num', val:function(a){return (a.statuses&&a.statuses['Researching'])||0;}},
-  {key:'purple', label:'Purple', short:'Purple', type:'num', val:function(a){return (a.colors&&a.colors.purple)||0;}, dot:'#a78bfa'},
-  {key:'black',  label:'Black',  short:'Black',  type:'num', val:function(a){return (a.colors&&a.colors.black)||0;},  dot:'#888'},
-  {key:'red',    label:'Red',    short:'Red',    type:'num', val:function(a){return (a.colors&&a.colors.red)||0;},    dot:'#ff5252'},
-  {key:'yellow', label:'Yellow', short:'Yellow', type:'num', val:function(a){return (a.colors&&a.colors.yellow)||0;}, dot:'#fbbf24'},
-  {key:'green',  label:'Green',  short:'Green',  type:'num', val:function(a){return (a.colors&&a.colors.green)||0;},  dot:'#4ade80'}
-];
-// Skeleton for the Agent Queue table: hardcoded header + agent names (alphabetical) + spinner cells.
-function queueSkeleton(){
-  const head='<tr>'+Q_COLS.map(function(c){ const dot=c.dot?('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c.dot+';margin-right:5px;vertical-align:middle"></span>'):''; return '<th class="iap-sort">'+dot+'<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
-  const rows=AGENTS_ALPHA.map(function(n){
-    var grp=(GA1.indexOf(n)>=0?'A1':(GA2.indexOf(n)>=0?'A2':(GB.indexOf(n)>=0?'B':null)));
-    var cells='<td><span style="color:#44b9d6;font-weight:700">'+esc(n)+'</span> '+gtag(grp)+'</td>';
-    for(var i=1;i<Q_COLS.length;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
-    return '<tr>'+cells+'</tr>';
-  }).join('');
-  return '<p class="iap-hint">'+ic('bar-chart',13)+' Tip: click any column header to sort \u2014 click again to switch between lowest\u2194highest.</p>'+
-    '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
-}
-async function loadQueueTable(){
-  const body=document.getElementById('queueTableBody'); if(!body)return;
-  if(Q_AGENTS){ qRenderTable(); return; }
-  body.innerHTML=queueSkeleton();
-  let agents=null;
-  try{ const r=await A.api('GET','/api/group-analytics/iap'); if(r.ok&&r.data&&Array.isArray(r.data.agents))agents=r.data.agents; }catch(e){}
-  if(!agents){ body.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load the queue table.</div>'; return; }
-  Q_AGENTS=agents; if(!Q_SORT)Q_SORT={key:'__inq',dir:'desc'};
-  qRenderTable();
-}
-function qSort(key){
-  if(Q_SORT&&Q_SORT.key===key){ Q_SORT.dir=(Q_SORT.dir==='desc')?'asc':'desc'; }
-  else { Q_SORT={key:key, dir:(key==='name'?'asc':'desc')}; }
-  qRenderTable();
-}
-window.qSort=qSort;
-function qArrow(key){ return (Q_SORT&&Q_SORT.key===key)?(Q_SORT.dir==='desc'?' \u25be':' \u25b4'):''; }
-function qRenderTable(){
-  const body=document.getElementById('queueTableBody'); if(!body||!Q_AGENTS)return;
-  const col=Q_COLS.find(function(c){return c.key===(Q_SORT&&Q_SORT.key);})||Q_COLS[1];
-  const dir=(Q_SORT&&Q_SORT.dir==='asc')?1:-1;
-  const filtered=Q_AGENTS.filter(function(a){ return Q_GROUPS.indexOf(a.group)>=0; });
-  const sorted=[...filtered].sort(function(a,b){
-    let r; if(col.type==='str') r=String(col.val(a)).localeCompare(String(col.val(b)));
-    else r=(col.val(a)-col.val(b));
-    return (r*dir) || a.name.localeCompare(b.name);
-  });
-  const head='<tr>'+Q_COLS.map(function(c){
-    const activeCls=(Q_SORT&&Q_SORT.key===c.key)?' sorted':'';
-    const dot=c.dot?('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c.dot+';margin-right:5px;vertical-align:middle"></span>'):'';
-    return '<th class="iap-sort'+activeCls+'" onclick="qSort(\''+esc(c.key)+'\')">'+dot+
-      '<span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span>'+
-      '<span class="th-arrow">'+qArrow(c.key)+'</span></th>';
-  }).join('')+'</tr>';
-  const rows=sorted.length?sorted.map(function(a){
-    return '<tr>'+Q_COLS.map(function(c){
-      if(c.key==='name') return '<td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span> '+gtag(a.group)+'</td>';
-      var v=c.val(a);
-      return '<td class="'+(c.cls||'')+((v===0)?' zero':'')+'">'+((c.cls==='col-total')?('<b>'+v+'</b>'):v)+'</td>';
-    }).join('')+'</tr>';
-  }).join(''):('<tr><td colspan="'+Q_COLS.length+'" style="text-align:center;color:#7f8c8d">No groups selected.</td></tr>');
-  body.innerHTML='<p class="iap-hint">'+ic('bar-chart',13)+' Tip: click any column header to sort \u2014 click again to switch between lowest\u2194highest.</p>'+
-    '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
-}
-
 // ---- Time-windowed sections (last 12h / 24h / 7d): collapsible, lazy-load on first expand ----
 function last7DaysRange(){
   var to=new Date(); var from=new Date(to.getTime()-7*864e5);
@@ -1194,23 +1275,127 @@ const WIN_DEFS=[
 function windowSectionsHtml(){
   var winOpts=WIN_DEFS.map(function(w,i){ return '<label class="ga-opt'+(i===0?' checked':'')+'"><input type="radio" name="gwWin" value="'+w.win+'"'+(i===0?' checked':'')+' onchange="gwOnWinChange()"> '+esc(w.title)+'</label>'; }).join('');
   var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gwGroup" value="'+g[0]+'" checked onchange="gwOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
-  return '<div class="gv-card" id="recentCard">'+
-    '<button type="button" class="gv-card-head" aria-expanded="false" onclick="toggleRecentCard(this)">'+
+  return '<div class="gv-card open" id="recentCard">'+
+    '<button type="button" class="gv-card-head" aria-expanded="true" onclick="toggleRecentCard(this)">'+
       '<span class="gv-card-title">'+ic('clock',16)+' Recent Activity</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+
     '</button>'+
     '<div class="gv-card-body"><div>'+
-      '<div class="ga-filters ga-spread">'+
-        '<div class="ga-fgroup"><span class="ga-flabel">Time window</span><div class="ga-fopts ga-radio">'+winOpts+'</div></div>'+
-        '<div class="ga-fgroup"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">'+groupOpts+'</div></div>'+
-      '</div>'+
-      '<p class="ga-scope-note" id="gwScopeNote"></p>'+
-      '<div class="ga-tables">'+
-        '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gwIapBody"></div></div>'+
-        '<div><h4 class="ga-tbl-title">Group Totals Summary</h4><div id="gwGtsBody"></div></div>'+
+      // Fun loading overlay (animated icon + big spinner + rotating status lines), shown while loading.
+      '<div id="gwLoader" class="gw-loader" style="display:none"><div class="gw-loader-in">'+
+        '<div class="gw-orb"><span class="gw-orb-ic" id="gwLoaderIc">'+ic('clock',30)+'</span></div>'+
+        '<div class="gw-loader-msg" id="gwLoaderMsg">Warming things up\u2026</div>'+
+        '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
+        '<div class="gw-loader-sub" id="gwLoaderSub">Recent Activity</div>'+
+      '</div></div>'+
+      '<div id="gwContent">'+
+        '<div class="ga-filters ga-spread">'+
+          '<div class="ga-fgroup"><span class="ga-flabel">Time window</span><div class="ga-fopts ga-radio">'+winOpts+'</div></div>'+
+          '<div class="ga-fgroup"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">'+groupOpts+'</div></div>'+
+        '</div>'+
+        '<p class="ga-scope-note" id="gwScopeNote"></p>'+
+        '<div class="ga-tables">'+
+          '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gwIapBody"></div></div>'+
+          '<div><h4 class="ga-tbl-title">Group Totals Summary</h4><div id="gwGtsBody"></div></div>'+
+        '</div>'+
       '</div>'+
     '</div></div>'+
   '</div>';
 }
+// ---- Recent Activity "fun loader": animated icon + rotating {icon, line} messages. Personalized
+// with the logged-in user, the selected time window, and agent names. Two message banks: PHASE 1
+// (20 lines, shown at 2s each = 40s) then PHASE 2 after an apology (10 lines, 3s each = 30s). Total
+// prepared coverage ~70s before it would loop. ----
+const GW_AGENTS_POOL=['harisss','punithsd','arunkzn','flofalgu','tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb','mbozied','nobregak','mellanej'];
+function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
+// Human label for the current window radio (drives the "Last 12 Hours…" line + the sub-pill).
+let _ldWinWords=null;   // override set by the Performance Overview loader; else use the RA radio
+function gwWinWords(){ if(_ldWinWords) return _ldWinWords; return { '12h':'last 12 hours', '24h':'last 24 hours', '7d':'last 7 days' }[GW_FILTER.win] || 'recent'; }
+function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+// PHASE 1 — 20 randomized lines, each with an icon. {ic, t}. General phrasing (no agent names).
+function gwPhase1(){
+  var me=gwFirstName(), win=gwWinWords();
+  var lines=[
+    ['clock',    'Pulling the '+win+' of data for you, '+me+' \u2728'],
+    ['inbox',    'Scanning the live queue for '+win+' activity\u2026'],
+    ['check-circle','Counting successful resolves across the team\u2026'],
+    ['target',   'Checking SLA compliance across the team\u2026'],
+    ['bolt',     'Tallying immediate resolves\u2026'],
+    ['copy',     'Crunching auto-closed + duplicate tickets\u2026'],
+    ['clock',    'Measuring average resolution times\u2026'],
+    ['user',     'Gathering per-agent ticket counts\u2026'],
+    ['users',    'Rolling up BLR \u00b7 AZA \u00b7 WFH group totals\u2026'],
+    ['check-circle','Verifying closure codes\u2026'],
+    ['bar-chart','Sorting agents by successful resolves\u2026'],
+    ['repeat',   'Reviewing repeat incidents and pet cases\u2026'],
+    ['target',   'Double-checking the SLA window ('+win+')\u2026'],
+    ['inbox',    'Fetching the freshest '+win+' tickets\u2026'],
+    ['bolt',     'Adding up immediate resolves\u2026'],
+    ['clock',    'Warming up the numbers, '+me+'\u2026'],
+    ['bar-chart','Building the Individual Agent Performance table\u2026'],
+    ['users',    'Summarising Group Totals ('+win+')\u2026'],
+    ['check-circle','Confirming resolution times\u2026'],
+    ['clock',    'Almost there \u2014 lining up the '+win+' view\u2026'],
+  ];
+  return gwShuffle(lines);
+}
+// PHASE 2 — shown after the apology, 10 lines at 3s each. General phrasing (no agent names).
+function gwPhase2(){
+  var me=gwFirstName(), win=gwWinWords();
+  var lines=[
+    ['clock',    'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
+    ['inbox',    'The server is taking a little longer than usual\u2026'],
+    ['bar-chart','Re-checking the '+win+' figures to be sure\u2026'],
+    ['target',   'Hang tight \u2014 verifying SLA compliance\u2026'],
+    ['user',     'Reconciling the ticket counts\u2026'],
+    ['bolt',     'Nearly ready \u2014 finalising the totals\u2026'],
+    ['users',    'Cross-checking group rollups ('+win+')\u2026'],
+    ['check-circle','Polishing the last few numbers\u2026'],
+    ['repeat',   'One more pass over repeat incidents\u2026'],
+    ['clock',    'Appreciate the wait \u2014 almost done\u2026'],
+  ];
+  return gwShuffle(lines);
+}
+// ---- Generic phased loader (reused by Recent Activity `gw` + Performance Overview `pf`). `pfx` is
+// the element-id prefix: '<pfx>Loader', '<pfx>LoaderIc', '<pfx>LoaderMsg', '<pfx>LoaderSub',
+// '<pfx>Content'. `subLabel` is the pill text. ----
+const _ldMsgTimers={};   // pfx -> interval id
+function _ldSetMsg(pfx,tuple){
+  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
+  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
+  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
+}
+function _ldStop(pfx){ if(_ldMsgTimers[pfx]){ clearInterval(_ldMsgTimers[pfx]); _ldMsgTimers[pfx]=null; } }
+// Phase 1 (20 lines @2s) -> apology -> Phase 2 (10 lines @3s, then loops). Never goes blank.
+function _ldStart(pfx,subLabel){
+  _ldStop(pfx);
+  var sub=document.getElementById(pfx+'LoaderSub'); if(sub&&subLabel) sub.textContent=subLabel;
+  var p1=gwPhase1(), i=0; _ldSetMsg(pfx,p1[0]);
+  _ldMsgTimers[pfx]=setInterval(function(){
+    i++;
+    if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
+    _ldStop(pfx);
+    _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your data\u2026']);
+    setTimeout(function(){
+      var p2=gwPhase2(), j=0; _ldSetMsg(pfx,p2[0]);
+      _ldMsgTimers[pfx]=setInterval(function(){ j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
+    },3000);
+  },2000);
+}
+function _ldShow(pfx,on,subLabel){
+  var l=document.getElementById(pfx+'Loader'), c=document.getElementById(pfx+'Content');
+  if(l){ l.style.display=on?'flex':'none'; if(on) l.classList.remove('gw-done'); }
+  if(c) c.style.display=on?'none':'';
+  if(on) _ldStart(pfx,subLabel); else _ldStop(pfx);
+}
+function _ldSuccess(pfx){
+  _ldStop(pfx);
+  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
+  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
+}
+// Recent Activity wrappers (clear the window-words override so it uses the RA radio).
+function gwShowLoader(on){ if(on)_ldWinWords=null; _ldShow('gw',on,GW_TITLE(GW_FILTER.win)); }
+function gwShowSuccess(){ _ldSuccess('gw'); }
 // ---- Consolidated Recent Activity: filter state + loading (mirrors the ga* pattern) ----
 const GW_FILTER={ win:'12h', groups:['A1','A2','B'] };
 const GW_CACHE={};   // win -> data
@@ -1226,19 +1411,339 @@ function toggleRecentCard(btn){
   if(willOpen && !GW_DATA) gwLoad();   // lazy-load on first expand
 }
 window.toggleRecentCard=toggleRecentCard;
-// Group Analytics card: collapsible, one-open-at-a-time, lazy-loads its default scope on first expand.
-function toggleGroupAnalyticsCard(btn,ev){
-  // Clicks on the in-head controls (period chips / dropdown / group checkboxes) must NOT toggle the
-  // card. Those controls stop propagation themselves, but guard here too for safety.
-  if(ev){ var t=ev.target; if(t&&t.closest&&t.closest('.ga-head-ctrls')) return; }
+// (YTD Performance card merged into Performance Overview — toggleGroupAnalyticsCard removed.)
+
+/* ===================== Performance Overview (ported from app.js) =====================
+   Self-contained: a period picker (6 range types -> {from,to} window + bucket), a KPI podium/tiles
+   block from /api/dash/summary, and a Created/Resolved/SLA chart from /api/dash/timeseries. Uses the
+   page's own A (PHDAuth), ic, esc, Chart.js (already loaded). Lazy-loads on first expand of #perfCard. */
+const PERF={ type:'weeks12', month:null, week:0, quarter:null };   // default = last 12 weeks
+// Group filter for Performance Overview (BLR=A1, AZA=B, WFH=A2). Default = all three selected.
+const PERF_GROUPS={ A1:true, B:true, A2:true };
+function perfGroupsParam(){
+  const keys=['A1','B','A2'].filter(function(k){ return PERF_GROUPS[k]; });
+  // All three (or none) selected -> omit the param (server treats as "no filter").
+  if(keys.length===0||keys.length>=3) return '';
+  return '&groups='+encodeURIComponent(keys.join(','));
+}
+function perfOnGroupChange(){
+  document.querySelectorAll('input[name="perfGroup"]').forEach(function(inp){
+    PERF_GROUPS[inp.value]=inp.checked;
+    var opt=inp.closest('.ga-opt'); if(opt) opt.classList.toggle('checked', inp.checked);
+  });
+  reloadPerfSection();
+  // Also update the merged YTD tables: their group filter is client-side, so just sync + re-render.
+  try{
+    GA_FILTER.groups=['A1','B','A2'].filter(function(k){ return PERF_GROUPS[k]; });
+    if(typeof GA_DATA!=='undefined' && GA_DATA){ gaRenderIap(); gaRenderGts(); }
+  }catch(e){}
+}
+window.perfOnGroupChange=perfOnGroupChange;
+function _ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _sundayOf(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-x.getDay()); return x; }
+function _acMonthsCount(){ const now=new Date(); return (now.getFullYear()>2026)?12:(now.getFullYear()<2026?0:(now.getMonth()+1)); }
+function _acQuartersCount(){ const now=new Date(); if(now.getFullYear()<2026)return 0; if(now.getFullYear()>2026)return 4; return Math.floor(now.getMonth()/3)+1; }
+const _MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const _MON_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _weekNum(d){ const start=new Date(d.getFullYear(),0,1); const doy=Math.floor((d-start)/86400000)+1; const jan4dow=new Date(d.getFullYear(),0,4).getDay(); return Math.ceil((doy+jan4dow)/7); }
+function _ord(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function _rangeWords(a,b){ return _ord(a.getDate())+' '+_MON_SHORT[a.getMonth()]+' to '+_ord(b.getDate())+' '+_MON_SHORT[b.getMonth()]; }
+function _weeksInMonth(monthIdx){
+  const first=new Date(2026,monthIdx,1);
+  const nextMonth=new Date(2026,monthIdx+1,1);
+  const out=[];
+  let wStart=_sundayOf(first);
+  while(wStart<nextMonth){
+    const wEndExcl=new Date(wStart); wEndExcl.setDate(wEndExcl.getDate()+7);
+    const wEndIncl=new Date(wEndExcl.getTime()-86400000);
+    const wn=_weekNum(wEndIncl);
+    out.push({ wnum:wn, short:'W'+wn, range:_rangeWords(wStart,wEndIncl),
+      label:'W'+wn+' \u00b7 '+_rangeWords(wStart,wEndIncl), from:_ymd(wStart), to:_ymd(wEndExcl) });
+    wStart=wEndExcl;
+  }
+  return out;
+}
+function perfWindow(){
+  const now=new Date();
+  const todayWords=_ord(now.getDate())+' '+_MON_SHORT[now.getMonth()];
+  if(PERF.type==='era'){ return { from:'2026-01-01', to:'2027-01-01', label:'YTD 2026' }; }
+  if(PERF.type==='days100'){ const f=new Date(now); f.setDate(f.getDate()-100); return { from:_ymd(f), to:null, label:'Last 100 days ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
+  if(PERF.type==='weeks12'){ const sun=_sundayOf(now); const f=new Date(sun); f.setDate(f.getDate()-7*11); return { from:_ymd(f), to:null, label:'Last 12 weeks ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
+  if(PERF.type==='month'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const f=new Date(2026,m,1); const t=new Date(2026,m+1,1); return { from:_ymd(f), to:_ymd(t), label:_MONTH_NAMES[m]+' 2026' }; }
+  if(PERF.type==='week'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const wks=_weeksInMonth(m); const wi=Math.min(PERF.week||0,wks.length-1); const w=wks[wi]||wks[0]; return { from:w.from, to:w.to, label:w.short+' ('+w.range+')' }; }
+  if(PERF.type==='quarter'){ const q=(PERF.quarter==null)?(_acQuartersCount()):PERF.quarter; const sm=(q-1)*3; const f=new Date(2026,sm,1); const t=new Date(2026,sm+3,1); return { from:_ymd(f), to:_ymd(t), label:'Q'+q+' 2026' }; }
+  return { from:'2026-01-01', to:null, label:'YTD 2026' };
+}
+function perfBucket(){
+  switch(PERF.type){
+    case 'era': return 'month';
+    case 'month': return 'day';
+    case 'week': return 'day';
+    case 'days100': return 'step10';
+    case 'weeks12': return 'week';
+    case 'quarter': return 'week';
+    default: return 'week';
+  }
+}
+function perfBucketLabel(b){
+  const s=new Date(b.start), eExcl=new Date(b.end), eIncl=new Date(eExcl.getTime()-86400000);
+  const bucket=perfBucket();
+  if(bucket==='month') return _MON_SHORT[s.getMonth()];
+  if(bucket==='day'){
+    if(PERF.type==='week') return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.getDay()];
+    return String(s.getDate());
+  }
+  if(bucket==='step10') return _ord(s.getDate())+' '+_MON_SHORT[s.getMonth()];
+  return 'W'+_weekNum(eIncl);
+}
+function perfBucketTip(b){
+  const s=new Date(b.start), eExcl=new Date(b.end), eIncl=new Date(eExcl.getTime()-86400000);
+  const bucket=perfBucket();
+  if(bucket==='month') return _MONTH_NAMES[s.getMonth()]+' 2026';
+  if(bucket==='day'){ const wd=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][s.getDay()]; return wd+', '+_ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]; }
+  if(bucket==='step10') return _ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]+' to '+_ord(eIncl.getDate())+' '+_MON_SHORT[eIncl.getMonth()];
+  return 'W'+_weekNum(eIncl)+' \u00b7 '+_ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]+' to '+_ord(eIncl.getDate())+' '+_MON_SHORT[eIncl.getMonth()];
+}
+function perfPickerHtml(){
+  const types=[
+    {v:'era',l:'YTD 2026'},{v:'quarter',l:'Quarterly'},{v:'weeks12',l:'12 weeks'},
+    {v:'days100',l:'100 days'},{v:'month',l:'Monthly'},{v:'week',l:'Weekly'}
+  ];
+  let chips='<div class="perf-chips" role="tablist">';
+  types.forEach(function(t){
+    chips+='<button type="button" class="perf-chip'+(PERF.type===t.v?' on':'')+'" role="tab" aria-selected="'+(PERF.type===t.v)+'" onclick="perfOnType(\''+t.v+'\')">'+t.l+'</button>';
+  });
+  chips+='</div>';
+  const sel=(id,onchange,opts,cur)=>'<select class="perf-sel" id="'+id+'" onchange="'+onchange+'">'+
+    opts.map(o=>'<option value="'+o.v+'"'+(String(o.v)===String(cur)?' selected':'')+'>'+o.l+'</option>').join('')+'</select>';
+  let sub='';
+  const mCount=_acMonthsCount();
+  if(PERF.type==='month'||PERF.type==='week'){
+    const mOpts=[]; for(let i=0;i<mCount;i++)mOpts.push({v:i,l:_MONTH_NAMES[i]});
+    const curM=(PERF.month==null)?(mCount-1):PERF.month;
+    sub+=sel('perfMonth','perfOnMonth(this.value)',mOpts,curM);
+    if(PERF.type==='week'){
+      const wks=_weeksInMonth(curM); const wOpts=wks.map((w,i)=>({v:i,l:w.label}));
+      sub+=sel('perfWeek','perfOnWeek(this.value)',wOpts,Math.min(PERF.week||0,wks.length-1));
+    }
+  }else if(PERF.type==='quarter'){
+    const qCount=_acQuartersCount(); const qOpts=[]; for(let i=1;i<=qCount;i++)qOpts.push({v:i,l:'Q'+i+' 2026'});
+    sub+=sel('perfQuarter','perfOnQuarter(this.value)',qOpts,(PERF.quarter==null)?qCount:PERF.quarter);
+  }
+  // Group checkboxes (BLR=A1 / AZA=B / WFH=A2) — same control YTD Performance uses. Scopes every KPI
+  // + the chart to tickets OWNED by the selected groups (AssigneeIdentity).
+  const groupChips=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){
+    const on=PERF_GROUPS[g[0]];
+    return '<label class="ga-opt'+(on?' checked':'')+'"><input type="checkbox" name="perfGroup" value="'+g[0]+'"'+(on?' checked':'')+' onchange="perfOnGroupChange()"> '+g[1]+'</label>';
+  }).join('');
+  const groups='<span class="perf-groups ga-fopts ga-checks">'+groupChips+'</span>';
+  return '<div class="perf-picker">'+chips+(sub?('<div class="perf-sub">'+sub+'</div>'):'')+groups+'</div>';
+}
+// The TOP picker drives BOTH the Overview (podium/KPIs/chart) AND the merged YTD tables. Wraps the
+// combined fetch in the fun phased loader (4s min, phased messages, 1s "Data fetched successfully").
+let _PERF_RELOAD_SEQ=0;
+async function perfReloadAll(){
+  const seq=++_PERF_RELOAD_SEQ;
+  GA_FILTER.groups=['A1','B','A2'].filter(function(k){ return PERF_GROUPS[k]; }); // sync table group filter
+  const win=(typeof perfWindow==='function')?perfWindow():{label:'Performance Overview'};
+  _ldWinWords=(win.label||'this period').toLowerCase();   // e.g. "last 12 weeks" / "ytd 2026"
+  _ldShow('perf',true,win.label||'Performance Overview');
+  const minDelay=_delay(4000);
+  // Kick off all data work in parallel (each renders into its own slot when done).
+  const work=Promise.all([
+    Promise.resolve().then(function(){ return reloadPerfSection(); }).catch(function(){}),
+    Promise.resolve().then(function(){ return gaLoad(); }).catch(function(){}),
+  ]);
+  await Promise.all([minDelay, work]);
+  if(seq!==_PERF_RELOAD_SEQ) return;   // a newer reload superseded this one
+  _ldSuccess('perf');
+  await _delay(1000);
+  if(seq!==_PERF_RELOAD_SEQ) return;
+  _ldShow('perf',false);
+}
+function perfOnType(v){ PERF.type=v; if(v==='month'||v==='week'){ if(PERF.month==null)PERF.month=_acMonthsCount()-1; } if(v==='week')PERF.week=0; if(v==='quarter'&&PERF.quarter==null)PERF.quarter=_acQuartersCount(); perfRefreshPicker(); perfReloadAll(); }
+function perfOnMonth(v){ PERF.month=+v; PERF.week=0; perfRefreshPicker(); perfReloadAll(); }
+function perfOnWeek(v){ PERF.week=+v; perfReloadAll(); }
+function perfOnQuarter(v){ PERF.quarter=+v; perfReloadAll(); }
+window.perfOnType=perfOnType; window.perfOnMonth=perfOnMonth; window.perfOnWeek=perfOnWeek; window.perfOnQuarter=perfOnQuarter;
+function perfRefreshPicker(){ const h=document.getElementById('perfPickerWrap'); if(h)h.innerHTML=perfPickerHtml(); }
+let _PERF_CHART=null;
+function reloadPerfSection(){
+  const win=perfWindow();
+  const bucket=perfBucket();
+  const spin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
+  const avg=document.getElementById('dashSumAvg'); if(avg)avg.innerHTML=spin;
+  try{ drawPerfSkeleton(win,bucket); }catch(e){ try{ perfChartShell(win); }catch(e2){} }
+  const gp=perfGroupsParam();   // '&groups=A1,B' or '' when all/none selected
+  // KPIs â€” direct /api/dash/summary call (no loadDashChunk SWR layer on this page).
+  const q=['from='+encodeURIComponent(win.from)]; if(win.to)q.push('to='+encodeURIComponent(win.to));
+  const kpiP=A.api('GET','/api/dash/summary?'+q.join('&')+gp).then(function(r){
+    if(r&&r.ok&&r.data){ renderPerfKpis(r.data); }
+    else { if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; }
+  }).catch(function(){ if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; });
+  // Chart â€” granularity-aware timeseries endpoint.
+  const parts=['from='+encodeURIComponent(win.from)]; if(win.to)parts.push('to='+encodeURIComponent(win.to)); parts.push('bucket='+bucket);
+  const chartP=A.api('GET','/api/dash/timeseries?'+parts.join('&')+gp).then(function(r){
+    if(r&&r.ok&&r.data){ renderPerfChart(r.data,win); }
+    else { perfChartError('Could not load the chart.'); }
+  }).catch(function(){ perfChartError('Could not load the chart.'); });
+  return Promise.all([kpiP,chartP]);   // so perfReloadAll can await both before hiding the loader
+}
+window.reloadPerfSection=reloadPerfSection;
+function perfChartError(msg){ const o=document.getElementById('perfSpinner'); if(o)o.outerHTML='<div class="perf-chart-msg">'+msg+'</div>'; }
+function _perfEdges(win,bucket){
+  const edges=[];
+  const parseLocal=(iso)=>{ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(iso); };
+  const from=parseLocal(win.from), to=win.to?parseLocal(win.to):new Date();
+  if(bucket==='month'){ let d=new Date(from.getFullYear(),from.getMonth(),1); while(d<to){ const nx=new Date(d.getFullYear(),d.getMonth()+1,1); edges.push({start:new Date(d),end:nx}); d=nx; } }
+  else if(bucket==='day'){ let d=new Date(from.getFullYear(),from.getMonth(),from.getDate()); while(d<to){ const nx=new Date(d); nx.setDate(nx.getDate()+1); edges.push({start:new Date(d),end:nx}); d=nx; } }
+  else if(bucket==='week'){ let d=new Date(from.getFullYear(),from.getMonth(),from.getDate()); d.setDate(d.getDate()-d.getDay()); while(d<to){ const nx=new Date(d); nx.setDate(nx.getDate()+7); edges.push({start:new Date(d),end:nx}); d=nx; } }
+  else if(bucket==='step10'){ const span=to-from, seg=span/10; for(let i=0;i<10;i++)edges.push({start:new Date(from.getTime()+seg*i),end:new Date(from.getTime()+seg*(i+1))}); }
+  return edges;
+}
+function perfChartShell(win){
+  const wk=document.getElementById('dashWeeklyBody'); if(!wk)return;
+  wk.innerHTML='<p class="meta-info" style="margin:0 0 14px"><b style="color:#ff9900">Created</b> vs <b style="color:#4ade80">Resolved</b> volume, with <b style="color:#a78bfa">SLA %</b> (\u2264240h) on the right axis \u2014 for <b>'+esc(win.label)+'</b>.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall" style="position:relative"><canvas id="cPerfChart"></canvas>'+
+      '<div id="perfSpinner" class="perf-spin-overlay"><div class="spinner"></div></div>'+
+    '</div></div>';
+}
+function drawPerfSkeleton(win,bucket){
+  perfChartShell(win);
+  if(typeof Chart==='undefined')return;
+  const edges=_perfEdges(win,bucket).map(e=>({start:e.start.toISOString(),end:e.end.toISOString()}));
+  const labels=edges.map(perfBucketLabel);
+  const empty=labels.map(()=>null);
+  Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(0,0,0,0.06)';
+  if(_PERF_CHART){ try{_PERF_CHART.destroy();}catch(e){} _PERF_CHART=null; }
+  const cv=document.getElementById('cPerfChart'); if(!cv)return;
+  _PERF_CHART=new Chart(cv,{data:{labels:labels,datasets:[
+    {label:'Created',data:empty,yAxisID:'y',borderColor:'#ff9900',pointRadius:0},
+    {label:'Resolved',data:empty,yAxisID:'y',borderColor:'#4ade80',pointRadius:0},
+    {label:'SLA % (\u2264240h)',data:empty,yAxisID:'ySla',borderColor:'#a78bfa',pointRadius:0}
+  ]},options:perfChartOptions(labels.length,true)});
+}
+function renderPerfKpis(d){
+  const slot=document.getElementById('dashSumAvg'); if(!slot||!d)return;
+  const nf=(n)=>Number(n||0).toLocaleString();
+  const medals=[{cls:'gold',ico:'\uD83E\uDD47',rank:1},{cls:'silver',ico:'\uD83E\uDD48',rank:2},{cls:'bronze',ico:'\uD83E\uDD49',rank:3}];
+  const agents=(d.topAgents||[]).slice(0,3);
+  const initial=(s)=>String(s||'?').trim().charAt(0).toUpperCase()||'?';
+  const avHtml=(a)=> a.avatar
+    ? '<span class="pf-av"><img src="'+esc(a.avatar)+'" alt=""></span>'
+    : '<span class="pf-av pf-av-i">'+esc(initial(a.name||a.login))+'</span>';
+  let podium='';
+  if(agents.length){
+    podium='<div class="pf-podium">'+agents.map(function(a,i){
+      const m=medals[i]||medals[2];
+      const avg=(a.avgResHrs!=null)?(nf(a.avgResHrs)+' hrs'):'\u2014';
+      return '<div class="pf-medal pf-'+m.cls+'">'+
+        '<div class="pf-medal-badge">'+m.ico+'</div>'+
+        avHtml(a)+
+        '<div class="pf-medal-id" title="'+esc(a.login)+'">'+esc(a.login)+'</div>'+
+        '<div class="pf-medal-metrics">'+
+          '<span class="pf-mm"><b>'+nf(a.successful)+'</b> successful</span>'+
+          '<span class="pf-mm"><b>'+nf(a.immediate)+'</b> immediate</span>'+
+          '<span class="pf-mm pf-mm-avg">avg '+avg+'<small> (successful)</small></span>'+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div>';
+  }
+  const tile=(cls,icon,label,value,sub)=>'<div class="pf-stat pf-'+cls+'">'+
+    '<div class="pf-stat-top">'+icon+'<span class="pf-stat-l">'+label+'</span></div>'+
+    '<div class="pf-stat-v">'+value+'</div>'+(sub?('<div class="pf-stat-s">'+sub+'</div>'):'')+'</div>';
+  const slaColor=(d.slaPct>=90)?'ok':'warn';
+  const tiles='<div class="pf-stats">'+
+    tile('created',ic('ticket',15),'Created',nf(d.total),'tickets in period')+
+    tile('resolved',ic('check-circle',15),'Resolved',nf(d.resolved),(d.resolvedPct||0)+'% of created')+
+    tile('avgres',ic('clock',15),'Avg Resolution',nf(d.avgResolutionHrs)+' hrs','successful resolves only')+
+    tile('sla '+slaColor,ic('target',15),'SLA (\u2264240h)',(d.slaPct||0)+'%',nf(d.slaCompliant)+'/'+nf(d.slaBase)+' within')+
+    tile('autosim',ic('bolt',15),'AutoSIM Resolved',nf(d.autosim),(d.autosimPct||0)+'% of created')+
+    tile('repeat',ic('repeat',15),'Repeat Incidents',nf(d.repeatIncidents),'HI Cnt &gt; 0')+
+    tile('avgrep',ic('line-chart',15),'Avg Repeat / Week',nf(Math.round(d.avgHiPerWeek||0)),'over '+(d.weeksElapsed||0)+' wks')+
+    tile('pet',ic('paw',15),'1st Pet (by PHD)',nf(d.firstPetByPhd),'agent-resolved pet')+
+  '</div>';
+  // KPI stat tiles stay up top (right under the picker); the ranking podium is moved BELOW the chart.
+  slot.innerHTML=tiles;
+  const podSlot=document.getElementById('dashPodium');
+  if(podSlot) podSlot.innerHTML=(podium?('<div class="pf-podium-wrap"><div class="pf-section-h">'+ic('target',13)+' Top performers \u2014 most successful resolves</div>'+podium+'</div>'):'');
+}
+window.renderPerfKpis=renderPerfKpis;
+function perfChartOptions(labelCount,isSkeleton,tips,labels){
+  return {
+    responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    animation:isSkeleton?false:undefined,
+    layout:{padding:{right:22,left:4,bottom:2}},
+    plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,padding:14,font:{size:12}}},
+      tooltip:{enabled:!isSkeleton,backgroundColor:'rgba(20,24,30,.96)',borderColor:'#2a3340',borderWidth:1,padding:10,cornerRadius:8,usePointStyle:true,
+        callbacks:{ title:function(items){ const i=items&&items[0]?items[0].dataIndex:0; return (tips&&tips[i])||(labels&&labels[i])||''; },
+          label:function(c){ if(c.dataset.label.indexOf('SLA')>=0) return 'SLA %: '+(c.raw==null?'\u2014':c.raw+'%'); return c.dataset.label+': '+(c.raw==null?'\u2014':c.raw); } } }},
+    scales:{
+      y:Object.assign({beginAtZero:true,position:'left',grid:{color:'rgba(0,0,0,.05)'},border:{display:false},title:{display:true,text:'Tickets',color:'#8b96a0',font:{size:12}},ticks:{font:{size:11},precision:0,callback:function(v,i,ticks){ return (i===ticks.length-1)?'':v; }}},
+        isSkeleton?{max:900}:{grace:'10%'}),
+      ySla:{display:true,beginAtZero:true,max:110,position:'right',grid:{drawOnChartArea:false},border:{display:false},title:{display:true,text:'SLA % (\u2264240h)',color:'#a78bfa',font:{size:11},padding:{top:0,bottom:2}},ticks:{font:{size:11},stepSize:10,callback:v=>(v>100?'':v+'%')}},
+      x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkip:true,maxTicksLimit:(labelCount>20?16:labelCount)}}}};
+}
+function renderPerfChart(d,win){
+  try{
+    const buckets=(d&&d.buckets)||[];
+    if(!document.getElementById('cPerfChart')) perfChartShell(win);
+    const sp=document.getElementById('perfSpinner'); if(sp&&sp.parentNode)sp.parentNode.removeChild(sp);
+    if(typeof Chart==='undefined')return;
+    const labels=buckets.map(perfBucketLabel);
+    const tips=buckets.map(perfBucketTip);
+    const created=buckets.map(b=>b.created);
+    const resolved=buckets.map(b=>b.resolved);
+    const sla=buckets.map(b=>b.slaPct);
+    const tline=(label,data,color,axis)=>({type:'line',label:label,data:data,yAxisID:axis||'y',borderColor:color,backgroundColor:color,pointBackgroundColor:color,pointRadius:(labels.length>26?0:3),pointHoverRadius:5,borderWidth:3,tension:.35,fill:false,spanGaps:false,order:2});
+    const datasets=[tline('Created',created,'#ff9900','y'),tline('Resolved',resolved,'#4ade80','y'),
+      Object.assign(tline('SLA % (\u2264240h)',sla,'#a78bfa','ySla'),{borderDash:[5,4],pointRadius:(labels.length>26?0:3)})];
+    Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(0,0,0,0.06)';
+    if(_PERF_CHART){ try{_PERF_CHART.destroy();}catch(e){} _PERF_CHART=null; }
+    const cv=document.getElementById('cPerfChart'); if(!cv)return;
+    _PERF_CHART=new Chart(cv,{data:{labels:labels,datasets:datasets},options:perfChartOptions(labels.length,false,tips,labels)});
+  }catch(e){ perfChartError('Could not render the chart.'); }
+}
+window.renderPerfChart=renderPerfChart;
+// Body markup for the Performance Overview card (picker + KPI slot + chart slot).
+function perfSectionBodyHtml(){
+  const avgSkel='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
+  const wkSkel='<p class="meta-info" style="margin:0 0 16px">Weekly Created vs Resolved volume, with SLA compliance % on a second axis.</p>'+
+    '<div class="chart-box"><div class="chart-wrap tall"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>';
+  return '<div class="perf-body">'+
+      // Picker stays visible (it drives the reloads); the loader overlays only the data area below.
+      '<div class="perf-head-right perf-head-inbody"><span id="perfPickerWrap">'+perfPickerHtml()+'</span></div>'+
+      '<div id="perfLoader" class="gw-loader" style="display:none"><div class="gw-loader-in">'+
+        '<div class="gw-orb"><span class="gw-orb-ic" id="perfLoaderIc">'+ic('bar-chart',30)+'</span></div>'+
+        '<div class="gw-loader-msg" id="perfLoaderMsg">Warming things up\u2026</div>'+
+        '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
+        '<div class="gw-loader-sub" id="perfLoaderSub">Performance Overview</div>'+
+      '</div></div>'+
+      '<div id="perfContent">'+
+        '<div id="dashSumAvg" class="dash-chunk-slot">'+avgSkel+'</div>'+
+        '<div id="dashWeeklyBody" class="dash-chunk-slot" style="margin-top:4px">'+wkSkel+'</div>'+
+        '<div id="dashPodium" class="dash-chunk-slot" style="margin-top:18px"></div>'+
+        '<div class="perf-ytd-block"><div id="groupsView">'+groupsSectionsHtml()+'</div></div>'+
+      '</div>'+
+    '</div>';
+}
+// Performance Overview card: collapsible, one-open-at-a-time, lazy-loads on first expand.
+let _PERF_LOADED=false;
+function togglePerfCard(btn){
   const card=btn.closest('.gv-card'); if(!card)return;
   const willOpen=!card.classList.contains('open');
   if(willOpen) gvAccordion(card);
   card.classList.toggle('open', willOpen);
   btn.setAttribute('aria-expanded',willOpen?'true':'false');
-  if(willOpen && !GA_DATA) gaLoad();
+  if(willOpen){
+    // First expand -> run the full load through the fun loader (Overview + YTD tables together).
+    if(!_PERF_LOADED){ _PERF_LOADED=true; try{ perfReloadAll(); }catch(e){} }
+    else if(_PERF_CHART){ setTimeout(function(){ try{ _PERF_CHART.resize(); }catch(e){} },340); }
+  }
 }
-window.toggleGroupAnalyticsCard=toggleGroupAnalyticsCard;
+window.togglePerfCard=togglePerfCard;
+/* =================== end Performance Overview =================== */
+
 function gwOnWinChange(){
   var el=document.querySelector('input[name="gwWin"]:checked'); GW_FILTER.win=el?el.value:'12h';
   document.querySelectorAll('input[name="gwWin"]').forEach(function(inp){ var opt=inp.closest('.ga-opt'); if(opt) opt.classList.toggle('checked', inp.checked); });
@@ -1256,14 +1761,31 @@ function gwSetNote(){
   var extra=(GW_FILTER.win==='7d')?(' ('+last7DaysRange()+')'):'';
   el.textContent='Showing: '+GW_TITLE(GW_FILTER.win)+extra+'.';
 }
+const _delay=(ms)=>new Promise(function(res){ setTimeout(res,ms); });
 async function gwLoad(){
   const seq=++GW_LOADSEQ;
-  var ib=document.getElementById('gwIapBody'), gb=document.getElementById('gwGtsBody');
-  if(ib) ib.innerHTML=tableSkeleton('iap'); if(gb) gb.innerHTML=tableSkeleton('gts');
-  gwSetNote();
+  // Show the fun loader (animated icon + big spinner + phased rotating messages).
+  const l=document.getElementById('gwLoader'); if(l) l.classList.remove('gw-done');
+  gwShowLoader(true);
+  // 4s MINIMUM so the lines are seen; the fetch runs in parallel. If the fetch takes longer, the
+  // loader stays and keeps cycling (Phase 1 @2s x20, apology, Phase 2 @3s x10 ~ 70s coverage).
+  const minDelay=_delay(4000);
   let d=GW_CACHE[GW_FILTER.win]||null;
-  if(!d){ try{ const r=await A.api('GET','/api/group-window/'+GW_FILTER.win); if(r.ok&&r.data){ d=r.data; GW_CACHE[GW_FILTER.win]=d; } }catch(e){} }
+  const fetchP=(async function(){
+    if(d) return d;
+    try{ const r=await A.api('GET','/api/group-window/'+GW_FILTER.win); if(r&&r.ok&&r.data){ GW_CACHE[GW_FILTER.win]=r.data; return r.data; } }catch(e){}
+    return null;
+  })();
+  const [, got]=await Promise.all([minDelay, fetchP]);
+  if(seq!==GW_LOADSEQ) return;   // a newer load (filter change) superseded this one
+  d=got;
+  // Response is in -> show "Data fetched successfully" for 1s, THEN reveal the data.
+  gwShowSuccess();
+  await _delay(1000);
   if(seq!==GW_LOADSEQ) return;
+  gwShowLoader(false);
+  var ib=document.getElementById('gwIapBody'), gb=document.getElementById('gwGtsBody');
+  gwSetNote();
   if(!d){ if(ib) ib.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this window.</div>'; if(gb) gb.innerHTML=''; return; }
   GW_DATA=d; gwRenderIap(); gwRenderGts();
 }
@@ -1319,15 +1841,6 @@ function gwRenderGts(){
   const note=(GW_FILTER.groups.indexOf('A2')>=0)?GAMMA_NOTE:'';
   body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>'+note;
 }
-function toggleQueueCard(btn){
-  const card=btn.closest('.gv-card'); if(!card)return;
-  const willOpen=!card.classList.contains('open');
-  if(willOpen) gvAccordion(card);
-  card.classList.toggle('open', willOpen);
-  btn.setAttribute('aria-expanded',willOpen?'true':'false');
-}
-window.toggleQueueCard=toggleQueueCard;
-
 // Group Totals Summary: same column arrangement + sortable headers (no Avg Res â€” not computed per group).
 let GTS_M=null, GTS_BODY=null, GTS_SORT=null;
 const GTS_ROWS=[['A1','a1'],['B','b'],['A2','a2']];   // Alpha, Beta, Gamma

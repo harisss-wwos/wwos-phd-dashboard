@@ -234,47 +234,125 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-gate p{color:#5c6773!important}
 .btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
 </style>
+<style id="hu-modal-css">
+/* ===== Upload-hashtag-CSV modal ===== */
+.hu-ov{position:fixed;inset:0;z-index:4000;background:rgba(10,15,22,.6);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;padding:70px 16px 24px;overflow:auto}
+.hu-ov.show{display:flex}
+.hu-modal{width:100%;max-width:560px;background:#fff;border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 30px 70px -20px rgba(20,30,50,.5);overflow:hidden;animation:huPop .18s ease}
+@keyframes huPop{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+.hu-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #eef1f4;background:linear-gradient(90deg,#7c5cff,#a78bfa 60%,#cbb8ff)}
+.hu-title{display:inline-flex;align-items:center;gap:10px;font-size:1.08em;font-weight:800;color:#241354}
+.hu-x{margin-left:auto;background:rgba(255,255,255,.4);border:none;color:#241354;width:30px;height:30px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.hu-x:hover{background:rgba(255,255,255,.7)}
+.hu-body{padding:20px}
+.hu-info{font-size:.86em;line-height:1.6;color:#5c6773}
+.hu-info b{color:#2a3340}
+.hu-info code{background:#fff4e8;border:1px solid #f3d4b0;border-radius:4px;padding:1px 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;color:#b5560c}
+.hu-drop{margin-top:16px;border:2px dashed #cdd5dd;border-radius:10px;padding:30px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.hu-drop:hover,.hu-drop.drag{border-color:#ec7211;background:#fff7ef}
+.hu-drop-ic{color:#9aa5b1;margin-bottom:9px}
+.hu-drop-main{font-weight:700;color:#1b2026}
+.hu-drop-sub{color:#8793a0;font-size:.82em;margin-top:5px}
+.hu-file-row{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px 15px;background:#f7f9fb;border:1px solid #e2e6ea;border-radius:8px}
+.hu-file-row .fr-ic{color:#1577a0;flex-shrink:0}
+.hu-file-row .fr-name{font-weight:700;color:#1b2026;font-size:.9em;word-break:break-all}
+.hu-file-row .fr-meta{color:#8793a0;font-size:.8em;margin-top:2px}
+.hu-file-row .fr-tag{margin-left:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;color:#b5560c;background:#fff4e8;border:1px solid #f3d4b0;border-radius:999px;padding:5px 12px;font-size:.88em;white-space:nowrap;flex-shrink:0}
+.hu-msg{margin-top:14px;border-radius:8px;padding:12px 14px;font-size:.88em;line-height:1.6;display:none}
+.hu-msg.show{display:block}
+.hu-msg.ok{background:#eafaf0;border:1px solid #c8efd8;color:#1f7a44}
+.hu-msg.ok b{color:#0f5a30}
+.hu-msg.err{background:#fdeaea;border:1px solid #f6cccc;color:#b03030}
+.hu-msg.err b{color:#8a1f1f}
+.hu-msg .nf{margin-top:8px;font-size:.82em;color:#8793a0;max-height:110px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.hu-foot{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid #eef1f4;background:#fafbfc}
+.hu-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:7px;font-weight:700;font-size:.88em;cursor:pointer;border:none;font-family:inherit;background:#ec7211;color:#fff}
+.hu-btn:hover{background:#d9660d}
+.hu-btn[disabled]{opacity:.5;cursor:default}
+.hu-btn.sec{background:#fff;border:1px solid #d4dce4;color:#2a3340}
+.hu-btn.sec:hover{background:#f1f4f7}
+.hu-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:huSp .7s linear infinite;display:inline-block}
+@keyframes huSp{100%{transform:rotate(360deg)}}
+/* "Upload hashtag CSV" trigger button (ink bg, light text). */
+.hx-upload-btn:hover{background:#0f1420!important;color:#fff!important}
+
+/* ===== Fancy phased loader (ported from sla-breach.html). Shown while hashtags load. ===== */
+.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
+.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  animation:gwSpin 1.1s linear infinite}
+.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
+  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
+.gw-orb-ic svg{width:30px;height:30px}
+@keyframes gwSpin{100%{transform:rotate(360deg)}}
+@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
+.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
+@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.gw-dots{display:flex;gap:7px}
+.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
+.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
+.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
+@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
+.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
+.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
+.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
+.gw-loader.gw-done .gw-dots{visibility:hidden}
+@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+</style>
 </head>
 <body data-nav-active="hashtags" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap">
-  <div class="hx-skel">
-    <!-- White 60px title-bar shell (matches .hx-banner). -->
-    <div class="sk-titlebar">
-      <span class="sk-line" style="width:150px;height:18px"></span>
-      <span class="sk-line sk-pill" style="width:92px;height:34px;border-radius:5px"></span>
-    </div>
-    <!-- Group shell: a colored header bar + a few white section-card rows inside. ×2 (DEFECTS/PATTERNS). -->
-    <div class="sk-group sk-group-defects">
-      <div class="sk-grouphead"><span class="sk-line sk-glabel" style="width:120px;height:13px"></span><span class="sk-line sk-gmeta" style="width:150px;height:11px"></span></div>
-      <div class="sk-groupbody">
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:220px;height:15px"></span><span class="sk-line" style="width:340px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:300px;height:15px"></span><span class="sk-line" style="width:280px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:260px;height:15px"></span><span class="sk-line" style="width:360px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-      </div>
-    </div>
-    <div class="sk-group sk-group-patterns">
-      <div class="sk-grouphead"><span class="sk-line sk-glabel" style="width:120px;height:13px"></span><span class="sk-line sk-gmeta" style="width:150px;height:11px"></span></div>
-      <div class="sk-groupbody">
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:240px;height:15px"></span><span class="sk-line" style="width:320px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:200px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-      </div>
-    </div>
-    <!-- Third group shell (OUT OF SCOPE), red header bar — matches the real 3-group layout. -->
-    <div class="sk-group sk-group-oos">
-      <div class="sk-grouphead"><span class="sk-line sk-glabel" style="width:140px;height:13px"></span><span class="sk-line sk-gmeta" style="width:150px;height:11px"></span></div>
-      <div class="sk-groupbody">
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:210px;height:15px"></span><span class="sk-line" style="width:300px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-        <div class="sk-sec"><div class="sk-sec-head"><span class="sk-ic"></span><span class="sk-line" style="width:180px;height:15px"></span><span class="sk-line" style="width:260px;height:11px"></span><span class="sk-line" style="margin-left:auto;width:46px;height:26px;border-radius:5px"></span></div></div>
-      </div>
+  <!-- Fancy phased loader (same style as the SLA-breach section loaders), shown until the hashtag
+       report lands. hxLoaderStart() animates it; render() replaces #wrap entirely. -->
+  <div id="hxLoader" class="gw-loader">
+    <div class="gw-loader-in">
+      <div class="gw-orb"><span class="gw-orb-ic" id="hxLoaderIc"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span></div>
+      <div class="gw-loader-msg gw-msg-in" id="hxLoaderMsg">Getting the hashtags ready…</div>
+      <div class="gw-dots"><span></span><span></span><span></span></div>
+      <div class="gw-loader-sub" id="hxLoaderSub">Loading hashtags</div>
     </div>
   </div>
 </div>
+
+<!-- ===== Admin: Upload-hashtag-CSV modal (opened by the "Upload hashtag CSV" button) ===== -->
+<div class="hu-ov" id="huOverlay" onclick="if(event.target===this)huClose()">
+  <div class="hu-modal" role="dialog" aria-modal="true" aria-labelledby="huTitle">
+    <div class="hu-head">
+      <div class="hu-title" id="huTitle"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload hashtag CSV</div>
+      <button type="button" class="hu-x" aria-label="Close" onclick="huClose()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="hu-body">
+      <p class="hu-info">Upload a CSV <b>named after the hashtag</b> — e.g. <code>no-emt-attached.csv</code> assigns <code>#no-emt-attached</code>. The file name must match one of the hashtags shown on this page (managed on the <a href="tools.html" target="_blank" rel="noopener" style="color:#b5560c;font-weight:700">Tools page</a>). We read the <b>ShortId</b> column (falling back to <b>IssueId</b>) and tag every matching ticket. The tag is added with <b>no duplicates</b>, so re-uploading is safe.</p>
+      <div class="hu-drop" id="huDrop">
+        <div class="hu-drop-ic"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+        <div class="hu-drop-main">Drop a CSV here, or click to choose</div>
+        <div class="hu-drop-sub">The hashtag is taken from the file name.</div>
+      </div>
+      <input type="file" accept=".csv,text/csv" id="huFile" style="display:none">
+      <div id="huFileRow"></div>
+      <div class="hu-msg" id="huMsg"></div>
+    </div>
+    <div class="hu-foot">
+      <button type="button" class="hu-btn sec" id="huClear" style="display:none" onclick="huReset()">Clear</button>
+      <div style="flex:1"></div>
+      <button type="button" class="hu-btn sec" onclick="huClose()">Cancel</button>
+      <button type="button" class="hu-btn" id="huGo" disabled onclick="huUpload()">Apply hashtag</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -290,91 +368,79 @@ var HX_DEFS={
   'dp-misconduct':'The Root cause is found to be a driver false report/misconduct related',
   'hubda-misconduct':'The Root cause is found to be a driver false report/misconduct related',
   'contradictory-statement-no-proof':'Contradictory statements made by CX and DA/DP, no proof to determine the truth',
-  'unsuccessful-outreach':'Extensive outreach has been attempted on CX with no response',
   'unsucessful-outreach':'Extensive outreach has been attempted on CX with no response',
   'cx-verification-rejection':'CX is unwilling or unable to authenticate their account with LMIR/SDS, often due to the belief of the agent being a scammer',
   'no-emt-attached':'Incidents that have been submitted into LM-HUB without an EMT attached',
   'api-emt-miss':'An API EMT is identified unsubmitted to LMET/GSOC',
   'appeal-review':'Customer is requesting an appeal be made to a mitigation action on their account/address',
-  'support-p-b':'Applicable when a support team states that an action was taken but was either incorrectly actioned or not at all.',
+  'support-p-b':'Applicable when a support team refuses or refutes a request/determination made by a PHD Agent',
+  'support-f-r':'Applicable when a support team states that an action was taken but was either incorrectly actioned or not at all.',
   'address-employee':'When the incident involves Security/ Property Management/ Receptionist as the POI/Victim',
   'mitigation-gap':'Used to document when a recommended mitigation is not currently available in this country/region; not an actionable resolution at this time',
   'mst-action':'When support teams fail to action (approve or deny) requested PHD action. This can include action items or PHD SIM communications',
-  // --- Newly added tags (DEFECTS group). Definitions are provisional — update with official wording. ---
-  'missing-auto-comms':'Expected automated communication to the customer/driver was not sent for the incident',
-  'duplicate-report':'The incident is a duplicate of another report already in scope',
-  'emt-defect':'A defect in the EMT (Escalation Management Tool) data or workflow for the incident',
-  'no-phd-created':'No PHD case was created for an incident that should have had one',
-  // --- Newly added tags (PATTERNS group). Definitions are provisional — update with official wording. ---
-  'hi-handled-by-phd':'Historical Incident for the POI that was handled by the PHD team',
-  'hi-not-handled-by-phd':'Historical Incident for the POI that was not handled by the PHD team',
-  'swa-order':'Incident associated with a SWA (Ship With Amazon) order',
-  // --- Second batch of added tags. Definitions are provisional — update with official wording. ---
-  'auto-resolve-defect':'A defect in the auto-resolve workflow caused an incident to be resolved incorrectly or without proper handling',
-  'geo-c-d':'Geo country/domain discrepancy identified for the incident',
-  'cx-acct-i-u':'Customer account was identified as invalid or unverified during the investigation',
-  'netradyne-audio-record-help':'Netradyne audio recording was requested/needed to assist the investigation',
-  'netradyne-rear-camera-help':'Netradyne rear-camera footage was requested/needed to assist the investigation',
-  'better-mitigation-needed':'The applied mitigation was insufficient; a stronger or more appropriate mitigation is needed'
+  'missing-auto-comms':'Used to track inconsistencies in LMIR/PHD SIM tickets, if data/attachments/outreach is missing from one SIM add this hashtag',
+  'duplicate-report':'When you find duplicate PHD SIM of an incident for which there is an original PHD SIM already existing',
+  'emt-defect':'Instances where the EMT is provided by LMET with inadequate details, or incorrect data (example: API reports with no Driver outreach)',
+  'no-phd-created':'Incidents that are missing a PHD SIM but are in-scope (LMIR SIM, and EMT present)',
+  'hi-handled-by-phd':'The previous incident was handled by current PHD team members.',
+  'hi-not-handled-by-phd':'The previous incident was not handled by current PHD team members.',
+  'swa-order':'The order was delivered by Amazon however the order was placed from a 3rd party side.',
+  'auto-resolve-defect':'When you find SIM where overview page says "Resolved- Automatically Closed"',
+  'geo-c-d':'SIM ticket is created to update geo-coordinates for Delivery Point and/or Entry Point but incorrectly actioned/resolved',
+  'cx-acct-l-u':'When a customer account is suspended or unlocked without PHD alignment',
+  'netradyne-audio-record-help':'Incidents that would have benefited from audio in the camera footage',
+  'netradyne-rear-camera-help':'Incidents that would have benefited from rear-netradyne camera footage',
+  's-req':'PHD requests additional SOPs be provided on a Last Mile Policy due to not having educational materials available'
 };
-// Canonical taxonomy split into TWO groups shown as separate sections on the page:
-//   DEFECTS  — process/system defects (missing comms, duplicates, EMT/geopin/scope issues, etc.)
-//   PATTERNS — behavioural / investigative patterns (misconduct, outreach, appeals, HI, etc.)
-// Every tag renders even with 0 live tickets, so the full taxonomy stays visible. Order within each
-// group is fixed (as listed) — groups are NOT re-sorted by ticket count.
-var HX_GROUPS=[
-  { key:'defects', label:'DEFECTS', tags:[
-    '#no-emt-attached',
-    '#api-emt-miss',
-    '#missing-auto-comms',
-    '#duplicate-report',
-    '#incorrect-geopin',
-    '#out-of-scope',
-    '#emt-defect',
-    '#no-phd-created',
-    '#auto-resolve-defect',
-    '#mst-action',
-    '#geo-c-d',
-    '#cx-acct-i-u'
-  ]},
-  { key:'patterns', label:'PATTERNS', tags:[
-    '#cx-acct-l-u',
-    '#appeal-review',
-    '#contradictory-statement-no-proof',
-    '#unsuccessful-outreach',
-    '#language-barrier',
-    '#hi-handled-by-phd',
-    '#hi-not-handled-by-phd',
-    '#dp-misconduct',
-    '#hubda-misconduct',
-    '#da-misconduct',
-    '#cx-verification-rejection',
-    '#support-p-b',
-    '#address-employee',
-    '#mitigation-gap',
-    '#swa-order',
-    '#netradyne-audio-record-help',
-    '#netradyne-rear-camera-help',
-    '#better-mitigation-needed'
-  ]}
+// ---- ALLOWED HASHTAGS (the only tags accepted on upload and shown as sections). This is the single
+// source of truth for the page + the client-side upload guard. The server enforces the same set. ----
+var HX_ORDER=[
+  '#no-emt-attached',
+  '#hi-handled-by-phd',
+  '#dp-misconduct',
+  '#contradictory-statement-no-proof',
+  '#hi-not-handled-by-phd',
+  '#duplicate-report',
+  '#incorrect-geopin',
+  '#unsucessful-outreach',
+  '#swa-order',
+  '#hubda-misconduct',
+  '#emt-defect',
+  '#out-of-scope',
+  '#language-barrier',
+  '#da-misconduct',
+  '#cx-verification-rejection',
+  '#api-emt-miss',
+  '#missing-auto-comms',
+  '#support-p-b',
+  '#mitigation-gap',
+  '#no-phd-created',
+  '#appeal-review',
+  '#support-f-r',
+  '#address-employee',
+  '#auto-resolve-defect',
+  '#mst-action',
+  '#geo-c-d',
+  '#cx-acct-l-u',
+  '#netradyne-audio-record-help',
+  '#netradyne-rear-camera-help'
 ];
-// Flat ordered list derived from the two groups (defects first, then patterns). Used by the folding
-// map + canonical-order tie-break below, keeping the rest of the page's logic unchanged.
-var HX_ORDER=HX_GROUPS.reduce(function(acc,g){ return acc.concat(g.tags); },[]);
-// Some tags appear in ticket Labels under a variant spelling. Map any variant -> the canonical tag
-// in HX_ORDER, so live tickets land in the right (single) section regardless of how they were typed.
+// Fast membership test for the allow-list (lowercased, with leading '#').
+var HX_ALLOWED=new Set(HX_ORDER);
+// Aliases fold ONLY tags that are NOT themselves in the allow-list, so live Labels using a legacy
+// spelling land in the right section. (support-f-r and unsucessful-outreach are kept as their OWN
+// allowed sections, so they are intentionally NOT aliased.)
 var HX_ALIAS={
-  '#unsucessful-outreach':'#unsuccessful-outreach', // missing second 's'
-  '#geopin':'#incorrect-geopin',                    // short form of the geopin tag
-  '#support-f-r':'#support-p-b',                     // same definition, alt code
-  '#s-req':'#out-of-scope'                           // (removed/low-yield) — fold defensively
+  '#geopin':'#incorrect-geopin',               // short form of the geopin tag
+  '#s-req':'#out-of-scope',                     // SOP-request fold
+  '#unsuccessful-outreach':'#unsucessful-outreach' // correct spelling -> the allowed (misspelled) tag
 };
 // Normalize a raw "#tag" to its canonical form (lowercased, alias-resolved).
 function hxCanon(tag){ var t='#'+String(tag||'').replace(/^#/,'').toLowerCase(); return HX_ALIAS[t]||t; }
 // Look up a definition for a "#tag" (or bare tag). Returns '' if unknown.
 function hxDefOf(tag){ var k=hxCanon(tag).replace(/^#/,''); return HX_DEFS[k]||''; }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="hx-gate"><h1>Hashtags</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
+function gate(msg){ if(typeof hxLoaderStop==='function') hxLoaderStop(); document.getElementById('wrap').innerHTML='<div class="hx-gate"><h1>Hashtags</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
 function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
 // C/R tag: C = Closed, R = Resolved, else first letter.
 function statusTag(s){
@@ -514,6 +580,7 @@ function hxToggle(idx){
 }
 
 function render(data){
+  if(typeof hxLoaderStop==='function') hxLoaderStop(); // stop the initial loader before repaint
   var secs=(data&&data.sections)||[];
   // Fold the live sections into a map keyed by CANONICAL tag (alias-resolved), merging tickets so a
   // variant spelling and its canonical tag collapse into one section (deduped by shortId).
@@ -528,110 +595,53 @@ function render(data){
       cur.tickets.push(t);
     });
   });
-  // Which group a canonical tag belongs to (defects / patterns), from HX_GROUPS.
-  var groupOf={}; HX_GROUPS.forEach(function(g){ g.tags.forEach(function(t){ groupOf[t]=g.key; }); });
-  // EVERY defined hashtag appears, even with 0 tickets. Build in the fixed group order (defects, then
-  // patterns), preserving each group's listed tag order — groups are NOT re-sorted by ticket count.
-  var used={};
+  // EXACTLY the allowed hashtags appear as sections — nothing else. Any tag in the data that is not
+  // on the allow-list (e.g. a bogus filename-derived tag, or a retired tag) is ignored. Every allowed
+  // tag renders even with 0 tickets, in the fixed HX_ORDER order.
   HX_SECS=HX_ORDER.map(function(tag){
-    used[tag]=1;
     var m=byTag[tag];
-    return { tag:tag, group:(groupOf[tag]||'other'), count:m?m.tickets.length:0, tickets:m?m.tickets:[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
+    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
   });
-  // ...then append any live tags not in the canonical taxonomy (so nothing from the data is dropped);
-  // these land in a trailing "OTHER" group.
-  Object.keys(byTag).forEach(function(tag){
-    if(used[tag]) return;
-    HX_SECS.push({ tag:tag, group:'other', count:byTag[tag].tickets.length, tickets:byTag[tag].tickets, shown:HX_PAGE0, sortField:'created', sortDir:'desc' });
-  });
-  var rawSrc=(data&&data.generatedFrom)||'25th September 2026.csv';
-  var isLive=/live/i.test(rawSrc);
-  var src=isLive?('Live — all uploaded tickets (created on/after '+((data&&data.from)||'2026-04-01')+')'):rawSrc;
-  // Total tagged tickets across all sections (deduped per section already; this is the sum of counts).
-  var totalTagged=HX_SECS.reduce(function(s,x){ return s+(Number(x.count)||0); },0);
-  var totalTags=HX_SECS.length;
-  // Inline clock SVG for the "Hashtags" banner glyph.
-  var hashGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>';
-  var html='<div class="hx-banner">'
-    +'<div class="hb-left">'
-      +'<h1 class="hb-title">'+hashGlyph+'Hashtags</h1>'
-      +'<div class="hb-sub">One section per hashtag found in the <b>Labels</b> column, with the definition of each. '
-        +'Updates automatically as files are uploaded. <b>'+esc(src)+'</b></div>'
-    +'</div>'
-    +'<div class="hb-total"><span class="n">'+totalTagged+'</span><span class="l">'+totalTags+' hashtags</span></div>'
-  +'</div>';
-  if(!HX_SECS.length){ html+='<div class="hx-empty">No hashtags found in the Labels column.</div>'; document.getElementById('wrap').innerHTML=html; return; }
-  // Group label + per-group tagged/tag counts for the group header rows.
-  var GROUP_LABEL={ defects:'DEFECTS', patterns:'PATTERNS', other:'OTHER' };
-  // ---- Build each TOP-LEVEL group's INNER HTML (head + body, minus the id/seq-dependent wiring),
-  // along with its total ticket count, into a list of entries. We then sort the entries by total
-  // DESCENDING and assign the sequential group ids / toggle wiring in FINAL display order, so the
-  // accordion keeps working (unique seq per group, only one open). Section ids / canvas ids / body
-  // ids keep using the ORIGINAL HX_SECS index — only the GROUP blocks are reordered, not sections.
-  var entries=[];   // { kind:'hashtag'|'oos', order:number, total:number, build:function(seq,collapsed)->html }
-  // --- Hashtag groups (defects / patterns / other), in their fixed listed order. ---
-  var hashOrder={ defects:0, patterns:1, other:2 };
-  var seenGroup={};
-  HX_SECS.forEach(function(a){
-    if(seenGroup[a.group]) return;
-    seenGroup[a.group]=1;
-    var gKey=a.group;
-    var inGroup=[];   // [{a,idx}] preserving HX_SECS order
-    HX_SECS.forEach(function(x,ix){ if(x.group===gKey) inGroup.push({a:x,idx:ix}); });
-    var gTotal=inGroup.reduce(function(s,x){ return s+(Number(x.a.count)||0); },0);
-    entries.push({
-      kind:'hashtag',
-      order:(hashOrder[gKey]!=null?hashOrder[gKey]:3),
-      total:gTotal,
-      build:function(seq,collapsed){
-        var groupIcon={ defects:'alert-triangle', patterns:'bar-chart', other:'hash' }[gKey]||'hash';
-        var h='<div class="hx-group'+(collapsed?' collapsed':'')+' hx-group-'+esc(gKey)+'" id="hxGroup'+seq+'">'
-          +'<div class="hx-group-head" onclick="hxGroupToggle('+seq+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();hxGroupToggle('+seq+');}" role="button" tabindex="0">'
-            +'<span class="hx-group-label">'+ic(groupIcon,16)+'<span>'+esc(GROUP_LABEL[gKey]||gKey.toUpperCase())+'</span></span>'
-            +'<span class="hx-group-head-right"><span class="hx-group-meta">'+inGroup.length+' hashtags \u00b7 '+gTotal+' tagged</span>'
-            +'<span class="hx-group-caret">\u25be</span></span>'
-          +'</div>'
-          +'<div class="hx-group-body">';
-        inGroup.forEach(function(entry){
-          var a=entry.a, idx=entry.idx;
-          var def=hxDefOf(a.tag);
-          var defHtml=def
-            ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
-            : '<div class="hx-def none">No definition on file for this hashtag.</div>';
-          h+='<div class="hx-sec" id="hxSec'+idx+'">'
-            +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
-              +'<div class="hx-sec-title">'
-                +'<div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(a.tag)+'</span>'+defHtml+'</div>'
-              +'</div>'
-              +'<div class="hx-sec-head-right"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span><span class="hx-caret">\u25be</span></div>'
-            +'</div>'
-            +'<div class="hx-sec-body">'
-              +(a.count>0
-                ? '<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
-                  +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
-                  +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
-                  +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
-                : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
-            +'</div>'
-          +'</div>';
-        });
-        h+='</div></div>';   // close group body + wrapper
-        return h;
-      }
-    });
-  });
-  // --- The "#Out of Scope" group (if present), total = sum of its subsection counts. ---
-  if(HX_OOS&&Array.isArray(HX_OOS.groups)){
-    var oosTotal=HX_OOS.groups.reduce(function(s,g){ return s+(Number(g.count)||0); },0);
-    entries.push({ kind:'oos', order:3, total:oosTotal, build:function(seq,collapsed){ return hxOosGroupHtml(seq,collapsed); } });
+  // No title bar, no group wrappers (DEFECTS / PATTERNS / OTHER / #Out of Scope). Render a single
+  // FLAT list of hashtag section cards, ordered by ticket count (most-used first), then by name.
+  if(!HX_SECS.length){ document.getElementById('wrap').innerHTML='<div class="hx-empty">No hashtags found in the Labels column.</div>'; return; }
+  // Sort a shallow copy by count desc, then tag asc — but keep each card's ORIGINAL HX_SECS index so
+  // the chart/body/canvas ids (hxCanvas<idx>, hxBody<idx>, hxSec<idx>) stay consistent with hxToggle.
+  var ordered=HX_SECS.map(function(a,idx){ return { a:a, idx:idx }; })
+    .sort(function(x,y){ return (Number(y.a.count)||0)-(Number(x.a.count)||0) || (x.a.tag<y.a.tag?-1:x.a.tag>y.a.tag?1:0); });
+  // Admin-only toolbar: open the hashtag-CSV upload modal (canUpload flag; owner always).
+  var html='';
+  if(A&&A.canUpload&&A.canUpload()){
+    html+='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+      +'<button type="button" class="hx-upload-btn" onclick="huOpen()" style="display:inline-flex;align-items:center;gap:7px;background:#161d2d;color:#f4f3ef;border:none;border-radius:5px;font-weight:700;font-size:.86em;padding:9px 16px;cursor:pointer;font-family:inherit">'
+      +ic('upload',15)+'Upload hashtag CSV</button>'
+    +'</div>';
   }
-  // Sort by total DESCENDING; stable tie-break on the fixed order (defects<patterns<other<oos).
-  entries.sort(function(x,y){ return (y.total-x.total) || (x.order-y.order); });
-  // Emit in final order, assigning sequential seq ids 0,1,2,…; first group starts expanded.
-  entries.forEach(function(e,i){ html+=e.build(i, i>0); });
+  ordered.forEach(function(entry){
+    var a=entry.a, idx=entry.idx;
+    var def=hxDefOf(a.tag);
+    var defHtml=def
+      ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
+      : '<div class="hx-def none">No definition on file for this hashtag.</div>';
+    html+='<div class="hx-sec" id="hxSec'+idx+'">'
+      +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
+        +'<div class="hx-sec-title">'
+          +'<div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(a.tag)+'</span>'+defHtml+'</div>'
+        +'</div>'
+        +'<div class="hx-sec-head-right"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span><span class="hx-caret">\u25be</span></div>'
+      +'</div>'
+      +'<div class="hx-sec-body">'
+        +(a.count>0
+          ? '<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+            +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
+            +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
+            +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
+          : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
+      +'</div>'
+    +'</div>';
+  });
   document.getElementById('wrap').innerHTML=html;
-  // Hashtag cards start collapsed (chart drawn on open via hxToggle); the FIRST group (by ticket
-  // count) starts open, the rest closed.
+  // Hashtag cards start collapsed; the chart is drawn on open via hxToggle.
 }
 
 // ---- "#Out of Scope" group (two subsections: AUTO-SIM, RULE) --------------------------------------
@@ -739,34 +749,265 @@ function hxGroupToggle(gi){
   if(willOpen) g.classList.remove('collapsed');
 }
 
+// ===== Admin upload-hashtag-CSV modal (canUpload only) =====
+// Minimal CSV parser (quoted fields, commas, CRLF, embedded quotes).
+function huParseCSV(text){
+  var rows=[], i=0, f='', row=[], q=false; text=String(text||'').replace(/^\uFEFF/,'');
+  while(i<text.length){ var c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ f+='"'; i+=2; continue; } q=false; i++; continue; } f+=c; i++; continue; }
+    if(c==='"'){ q=true; i++; continue; }
+    if(c===','){ row.push(f); f=''; i++; continue; }
+    if(c==='\r'){ i++; continue; }
+    if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; i++; continue; }
+    f+=c; i++;
+  }
+  if(f.length||row.length){ row.push(f); rows.push(row); }
+  if(!rows.length) return { headers:[], rows:[] };
+  var headers=rows[0].map(function(h){ return String(h||'').trim(); });
+  var out=rows.slice(1).filter(function(r){ return r.length&&r.some(function(x){ return x!==''; }); })
+    .map(function(r){ var o={}; headers.forEach(function(k,ix){ o[k]=r[ix]!=null?r[ix]:''; }); return o; });
+  return { headers:headers, rows:out };
+}
+function huTagFromName(name){ var b=String(name||'').replace(/\.[^.]*$/,'').trim().toLowerCase().replace(/^#+/,'').replace(/[^a-z0-9_-]/g,''); return b?('#'+b):''; }
+function huExtractIds(parsed){
+  var H=parsed.headers||[]; var find=function(w){ for(var i=0;i<H.length;i++){ if(H[i].toLowerCase()===w) return H[i]; } return null; };
+  var sidKey=find('shortid'), idKey=find('issueid'); var set={}, out=[];
+  (parsed.rows||[]).forEach(function(r){ var v=(sidKey&&String(r[sidKey]||'').trim())||(idKey&&String(r[idKey]||'').trim())||''; if(v&&!set[v]){ set[v]=1; out.push(v); } });
+  return out;
+}
+var HU_TAG='', HU_IDS=[], HU_BUSY=false, HU_WIRED=false;
+// Live allow-list = the hashtags managed on the Tools page (/api/hashtags). Refreshed every time the
+// modal opens, so a tag just added on Tools is immediately uploadable here (no page reload needed).
+var HU_ALLOWED=null; // Set of '#tag' (lowercased) or null until loaded
+async function huLoadAllowed(){
+  try{
+    var r=await A.api('GET','/api/hashtags');
+    if(r&&r.ok&&Array.isArray(r.data)){
+      HU_ALLOWED=new Set(r.data.map(function(d){ return '#'+String(d.tag||'').replace(/^#/,'').trim().toLowerCase(); }).filter(function(t){ return t!=='#'; }));
+    }
+  }catch(e){ /* leave HU_ALLOWED as-is; server still enforces the real check */ }
+}
+function huOpen(){ var ov=document.getElementById('huOverlay'); if(!ov) return; ov.classList.add('show'); huWire(); huLoadAllowed(); }
+window.huOpen=huOpen;
+function huClose(){ var ov=document.getElementById('huOverlay'); if(ov) ov.classList.remove('show'); huReset(); }
+window.huClose=huClose;
+function huWire(){
+  if(HU_WIRED) return; HU_WIRED=true;
+  var drop=document.getElementById('huDrop'), inp=document.getElementById('huFile');
+  drop.onclick=function(){ inp.click(); };
+  inp.onchange=function(e){ if(e.target.files&&e.target.files[0]) huPick(e.target.files[0]); };
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('drag'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove('drag'); }); });
+  drop.addEventListener('drop',function(e){ var fl=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(fl) huPick(fl); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var ov=document.getElementById('huOverlay'); if(ov&&ov.classList.contains('show')) huClose(); } });
+}
+function huShowMsg(kind,html){ var m=document.getElementById('huMsg'); m.className='hu-msg show '+kind; m.innerHTML=html; }
+function huHideMsg(){ var m=document.getElementById('huMsg'); m.className='hu-msg'; m.innerHTML=''; }
+function huPick(file){
+  huHideMsg();
+  if(!/\.csv$/i.test(file.name)){ huShowMsg('err','Please choose a <b>.csv</b> file.'); return; }
+  HU_TAG=huTagFromName(file.name);
+  if(!HU_TAG){ huShowMsg('err','Could not derive a hashtag from the file name. Name it after the tag, e.g. <code>no-emt-attached.csv</code>.'); return; }
+  // The file name must match a hashtag that exists on the Tools page. Use the freshly-loaded Tools
+  // list if available, else fall back to the built-in set; the server enforces the real check too.
+  var allow=HU_ALLOWED||HX_ALLOWED;
+  if(!allow.has(HU_TAG)){
+    huShowMsg('err',
+      'The file name doesn\u2019t match an existing hashtag. <b>'+esc(HU_TAG)+'</b> is not on the Tools page.<br>'+
+      'Please do one of the following, then upload again:'+
+      '<ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">'+
+        '<li><b>Rename the file</b> to exactly match an existing hashtag (e.g. <code>no-emt-attached.csv</code>).</li>'+
+        '<li>Or <b>create the hashtag</b> first on the <a href="tools.html" target="_blank" rel="noopener" style="color:#b5560c;font-weight:700">Tools page</a>, then come back and upload.</li>'+
+      '</ul>');
+    huReset(true);
+    return;
+  }
+  var reader=new FileReader();
+  reader.onerror=function(){ huShowMsg('err','Could not read that file. Please try again.'); };
+  reader.onload=function(ev){
+    try{
+      var ids=huExtractIds(huParseCSV(String(ev.target.result||'')));
+      if(!ids.length){ huShowMsg('err','No <b>ShortId</b> (or <b>IssueId</b>) values found in the file.'); huReset(true); return; }
+      HU_IDS=ids;
+      document.getElementById('huFileRow').innerHTML=
+        '<div class="hu-file-row">'+
+          '<span class="fr-ic">'+ic('ticket',18)+'</span>'+
+          '<div><div class="fr-name">'+esc(file.name)+'</div>'+
+            '<div class="fr-meta">'+ids.length+' ticket id'+(ids.length===1?'':'s')+' found</div></div>'+
+          '<span class="fr-tag">'+esc(HU_TAG)+'</span>'+
+        '</div>';
+      document.getElementById('huGo').disabled=false;
+      document.getElementById('huClear').style.display='';
+    }catch(e){ huShowMsg('err','Could not parse that CSV.'); huReset(true); }
+  };
+  reader.readAsText(file);
+}
+// Reset the picked-file state. Pass keepMsg=true to KEEP a shown error (so a rejection message
+// stays visible); the default (called by the Clear button) also hides the message.
+function huReset(keepMsg){
+  HU_TAG=''; HU_IDS=[];
+  var fr=document.getElementById('huFileRow'); if(fr) fr.innerHTML='';
+  var go=document.getElementById('huGo'); if(go){ go.disabled=true; go.innerHTML='Apply hashtag'; }
+  var cl=document.getElementById('huClear'); if(cl) cl.style.display='none';
+  var inp=document.getElementById('huFile'); if(inp) inp.value='';
+  if(keepMsg!==true) huHideMsg();
+}
+window.huReset=huReset;
+async function huUpload(){
+  if(HU_BUSY||!HU_IDS.length||!HU_TAG) return;
+  HU_BUSY=true; huHideMsg();
+  var go=document.getElementById('huGo'); go.disabled=true; go.innerHTML='<span class="hu-spin"></span> Applying…';
+  try{
+    var r=await A.api('POST','/api/hashtags/manual-tag',{ hashtag:HU_TAG, shortIds:HU_IDS });
+    if(r&&r.ok&&r.data&&r.data.ok){
+      var d=r.data;
+      var nf=(d.notFound&&d.notFound.length)
+        ? '<div class="nf"><b>'+d.notFound.length+'</b> id'+(d.notFound.length===1?'':'s')+' not found:<br>'+esc(d.notFound.slice(0,200).join(', '))+(d.notFound.length>200?' …':'')+'</div>'
+        : '';
+      huShowMsg('ok','Applied <b>'+esc(d.hashtag)+'</b> to <b>'+d.matchedTickets+'</b> of <b>'+d.requested+'</b> ticket'+(d.requested===1?'':'s')+'. Reloading the list…'+nf);
+      go.innerHTML='Done';
+      // Refresh the page data so the new/updated section count shows immediately.
+      setTimeout(function(){ huClose(); huReload(); }, 1200);
+    }else if(r&&r.data&&r.data.code==='UNKNOWN_HASHTAG'){
+      huShowMsg('err',
+        '<b>'+esc(HU_TAG)+'</b> doesn\u2019t match any hashtag on the Tools page.<br>'+
+        'Please do one of the following, then upload again:'+
+        '<ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">'+
+          '<li><b>Rename the file</b> to exactly match an existing hashtag.</li>'+
+          '<li>Or <b>create the hashtag</b> on the <a href="tools.html" target="_blank" rel="noopener" style="color:#b5560c;font-weight:700">Tools page</a> first.</li>'+
+        '</ul>');
+      go.disabled=false; go.innerHTML='Apply hashtag';
+    }else{
+      huShowMsg('err',esc((r&&r.data&&r.data.error)||('Request failed (HTTP '+(r&&r.status)+').')));
+      go.disabled=false; go.innerHTML='Apply hashtag';
+    }
+  }catch(e){ huShowMsg('err','Network error. Please try again.'); go.disabled=false; go.innerHTML='Apply hashtag'; }
+  HU_BUSY=false;
+}
+window.huUpload=huUpload;
+// Re-fetch the live report and re-render the list in place after a successful upload.
+async function huReload(){
+  try{ var r=await A.api('GET','/api/hashtags-report'); if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)){ render(r.data); } }catch(e){}
+}
+
+// Load order:
+// ===== Fancy phased loader for the initial page load (hashtag-themed lines). =====
+function hxShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function hxFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
+// PHASE 1 — 20 hashtag-themed, general lines (no agent names), personalized with first name.
+function hxPhase1(){
+  var me=hxFirstName();
+  return hxShuffle([
+    ['hash',        'Pulling every hashtag for you, '+me+' \u2728'],
+    ['hash',        'Scanning the Labels column across all tickets\u2026'],
+    ['check-circle','Matching tickets to each approved hashtag\u2026'],
+    ['bar-chart',   'Counting tickets per hashtag\u2026'],
+    ['inbox',       'Gathering the freshest tagged tickets\u2026'],
+    ['calendar',    'Walking through the year week by week\u2026'],
+    ['target',      'Reconciling manual tags with Labels\u2026'],
+    ['repeat',      'De-duplicating tickets within each tag\u2026'],
+    ['hash',        'Sorting hashtags by ticket volume\u2026'],
+    ['check-circle','Verifying every tag against the Tools list\u2026'],
+    ['bar-chart',   'Building the per-week trend for each tag\u2026'],
+    ['inbox',       'Collecting ticket titles and statuses\u2026'],
+    ['target',      'Folding spelling variants into one section\u2026'],
+    ['calendar',    'Lining up created dates\u2026'],
+    ['hash',        'Tidying the hashtag definitions\u2026'],
+    ['check-circle','Double-checking the counts\u2026'],
+    ['bar-chart',   'Almost there \u2014 assembling the sections\u2026'],
+    ['inbox',       'Fetching the latest uploads\u2026'],
+    ['repeat',      'Refreshing the hashtag taxonomy\u2026'],
+    ['hash',        'Warming up the numbers, '+me+'\u2026'],
+  ]);
+}
+// PHASE 2 — after the apology, 10 lines at 3s each (loops).
+function hxPhase2(){
+  var me=hxFirstName();
+  return hxShuffle([
+    ['hash',        'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
+    ['inbox',       'The server is taking a little longer than usual\u2026'],
+    ['bar-chart',   'Re-checking the hashtag counts to be sure\u2026'],
+    ['target',      'Hang tight \u2014 re-scanning the Labels\u2026'],
+    ['check-circle','Reconciling tags with the Tools list\u2026'],
+    ['repeat',      'One more pass over the tagged tickets\u2026'],
+    ['calendar',    'Tidying up the weekly trends\u2026'],
+    ['hash',        'Polishing the last few sections\u2026'],
+    ['bar-chart',   'Nearly ready \u2014 finalising the totals\u2026'],
+    ['hash',        'Appreciate the wait \u2014 almost done\u2026'],
+  ]);
+}
+var _hxTimer=null;
+function _hxSet(tuple){
+  var e=document.getElementById('hxLoaderMsg'), i=document.getElementById('hxLoaderIc');
+  if(i){ i.innerHTML=ic(tuple[0]||'hash',30); }
+  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
+}
+function hxLoaderStart(){
+  if(_hxTimer) return;
+  var p1=hxPhase1(), k=0; _hxSet(p1[0]);
+  _hxTimer=setInterval(function(){
+    k++;
+    if(k<p1.length){ _hxSet(p1[k]); return; }
+    clearInterval(_hxTimer); _hxTimer=null;
+    _hxSet(['alert','Sorry for the delay \u2014 still fetching your hashtags\u2026']);
+    setTimeout(function(){
+      var p2=hxPhase2(), j=0; _hxSet(p2[0]);
+      _hxTimer=setInterval(function(){ j=(j+1)%p2.length; _hxSet(p2[j]); },3000);
+    },3000);
+  },2000);
+}
+function hxLoaderStop(){ if(_hxTimer){ clearInterval(_hxTimer); _hxTimer=null; } }
+var _hxDelay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
+// Flip the loader to its green "Data fetched successfully" success state (shown briefly before the
+// real sections replace it). Returns a promise that resolves after `hold` ms so callers can await it.
+function hxLoaderSuccess(hold){
+  hxLoaderStop();
+  var l=document.getElementById('hxLoader'); if(l) l.classList.add('gw-done');
+  var i=document.getElementById('hxLoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var e=document.getElementById('hxLoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
+  var s=document.getElementById('hxLoaderSub'); if(s) s.textContent='Done';
+  return _hxDelay(hold||1000);
+}
+
 // Load order:
 //   1) Live API (/api/hashtags-report) — aggregates ticket_docs by #tag from the Labels column, so
 //      any uploaded file's hashtags show up automatically. This is the source of truth.
 //   2) Fallback to the static hashtags-data.json (e.g. API asleep on Render, or offline) so the
 //      page still renders something on GitHub Pages before the API wakes.
 (async function(){
+  hxLoaderStart();
+  var _hxT0=Date.now();   // so a very fast load still shows the loader (+ success beat) briefly
   var live=null;
-  // Fetch the hashtags report, then the out-of-scope report (the latter is best-effort: if it fails
-  // the page still renders the hashtag groups without the "#Out of Scope" group).
+  // First, load the canonical hashtag list from the Tools page (/api/hashtags). This drives BOTH the
+  // sections shown here AND the upload allow-list, so the two pages stay in lockstep (add a tag on
+  // Tools -> it shows + becomes uploadable here). Falls back to the built-in HX_ORDER if unavailable.
   try{
-    // Staggered, not parallel: on a cold Render instance both requests would otherwise land in the
-    // same instant and queue up behind one 30-90s boot, risking a gateway timeout (502) on whichever
-    // one is served second. Firing out-of-scope-report ~1.5s after hashtags-report means it starts
-    // its own timeout clock once the instance is already awake, instead of racing the cold boot too.
+    var tr=await A.api('GET','/api/hashtags');
+    if(tr&&tr.ok&&Array.isArray(tr.data)&&tr.data.length){
+      HX_ORDER=[]; 
+      tr.data.forEach(function(d){
+        var tag='#'+String(d.tag||'').replace(/^#/,'').trim().toLowerCase();
+        if(tag==='#') return;
+        HX_ORDER.push(tag);
+        // Use the Tools description as the section definition (so new Tools tags are documented too).
+        var desc=String(d.desc||'').trim();
+        if(desc) HX_DEFS[tag.replace(/^#/,'')]=desc;
+      });
+      HX_ALLOWED=new Set(HX_ORDER);
+    }
+  }catch(e){ /* keep built-in HX_ORDER */ }
+  // Then fetch the live hashtag report (ticket counts per tag).
+  try{
     var r=await A.api('GET','/api/hashtags-report');
-    var oos=await new Promise(function(resolve){
-      setTimeout(function(){
-        A.api('GET','/api/out-of-scope-report').then(resolve).catch(function(){ resolve(null); });
-      },1500);
-    });
     if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)) live=r.data;
-    if(oos&&oos.ok&&oos.data&&Array.isArray(oos.data.groups)) HX_OOS=oos.data;
   }catch(e){ live=null; }
-  if(live){ render(live); return; }
+  // Keep the loader up for at least ~1.5s so the animation + success beat are actually seen.
+  var _hxMin=function(){ var el=1500-(Date.now()-_hxT0); return el>0?_hxDelay(el):Promise.resolve(); };
+  if(live){ await _hxMin(); await hxLoaderSuccess(1000); render(live); return; }
   // Fallback: static snapshot bundled with the site.
   try{
     var fr=await fetch('hashtags-data.json',{cache:'no-store'});
-    if(fr.ok){ render(await fr.json()); return; }
+    if(fr.ok){ var snap=await fr.json(); await _hxMin(); await hxLoaderSuccess(1000); render(snap); return; }
   }catch(e){}
   gate('Could not load the hashtag data. Please try again.');
 })();

@@ -1092,6 +1092,118 @@
       + '.tb-live-fab:not(.tb-live-disabled){animation:tbLiveGlowLight 1.6s ease-in-out infinite!important}'
       // The dynamic YEAR caption under the Live FAB: a small green pill with a 5px radius.
       + '.tb-live-year{color:#1f9d57!important;font-weight:800!important}'
+      // ===================================================================================
+      // TEMP: navigation chrome removed site-wide (left nav-rail + right profile panel/column
+      // + top-right profile cluster). Main content now spans 90vw, centered. This is a single
+      // reversible block — delete it to restore the rails/profile when the new nav lands.
+      // Appended LAST so it overrides every layout rule above.
+      // ===================================================================================
+      + '.tb-fab-col,.tb-fab-col-right,.tb-profile-panel,#tbHeaderRow,.tb-hist-fab,.tb-top-right,#tbTopRight,.tb-avatar-fab,.tb-rail-profile,.tb-fab-item-profile,.tb-rail-badge,.tb-data-btn{display:none!important}'
+      // Belt-and-suspenders: also hide the rail/profile containers inside any media query by id, and
+      // on data-profile-panel pages, so a narrow-screen override can't re-show the floating avatar.
+      + '@media all{html body .tb-fab-col,html body .tb-fab-col-right,html body .tb-profile-panel,html body #tbTopRight,html body .tb-top-right,html body .tb-rail-profile,html body .tb-avatar-fab{display:none!important;pointer-events:none!important}}'
+      // Neutralize the narrow-screen (<=1100px) rule that re-adds rail/panel body padding + re-shows
+      // the right rail (which overlapped the header login icon and blocked its clicks).
+      + '@media(max-width:1100px){html body[data-profile-panel]{padding-left:0!important;padding-right:0!important}html body[data-profile-panel] .tb-fab-col-right{display:none!important;pointer-events:none!important}}'
+      // Drop the rail/profile gutters the body reserved; center an 80vw content column instead.
+      + 'body,body[data-profile-panel]{padding-left:0!important;padding-right:0!important;padding-top:0!important}'
+      + '.wrap,.content{width:100%!important;max-width:100%!important;margin:0!important;padding:10px!important}'
+      // ===== Shared home chrome (title bar + recent column), injected on every page by tbBuildHomeChrome.
+      // Palette matches index.html. The injected #tbHomeChrome becomes the full-width page shell; the
+      // page's own .wrap/.content (moved into .home-main) keeps its content. =====
+      + '#tbHomeChrome{--o:#ff6100;--ol:#fe9046;--gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;--line:#e7e5df;--icbg:#c4def6;--icfg:#2b66c1;--hsh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28);width:100%;max-width:100%;padding:10px!important;box-sizing:border-box}'
+      + '#tbHomeChrome .wrap,#tbHomeChrome .content{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}'
+      + '#tbHomeChrome .home-hdr{position:fixed;top:10px;left:10px;right:10px;z-index:200;display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--white);border:1px solid var(--line);border-radius:5px;box-shadow:var(--hsh);padding:10px;margin:0;box-sizing:border-box}'
+      + '#tbHomeChrome .home-hdr-left{display:flex;align-items:center;gap:13px}'
+      + '#tbHomeChrome .home-hdr-swap{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:transparent;text-decoration:none;flex:0 0 auto}'
+      + '#tbHomeChrome .home-hdr-swap .tb-logo-swap{position:relative;display:block;width:28px;height:28px;overflow:hidden}'
+      + '#tbHomeChrome .home-hdr-swap .tb-logo-swap .tb-rail-logo-img{position:absolute;top:50%;left:50%;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}'
+      + '#tbHomeChrome .home-hdr-logo{display:flex;align-items:center;text-decoration:none}'
+      + '#tbHomeChrome .home-hdr-logo img{height:24px;width:auto;display:block;object-fit:contain}'
+      + '#tbHomeChrome .home-hdr-prof{display:inline-flex;align-items:center}'
+      + '#tbHomeChrome .home-hdr-prof a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--white);color:var(--icfg);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s}'
+      + '#tbHomeChrome .home-hdr-prof a:hover{border-color:var(--o);color:var(--o);transform:translateY(-1px)}'
+      + '#tbHomeChrome .home-hdr-prof a svg{width:20px;height:20px}'
+      + '#tbHomeChrome .home-hdr-prof a{border-radius:5px!important;overflow:hidden}'
+      + '#tbHomeChrome .home-hdr-prof a img,#tbHomeChrome .home-hdr-prof a .avatar-initial,#tbHomeChrome .home-hdr-prof a .phd-avatar{width:38px!important;height:38px!important;border-radius:5px!important;object-fit:cover}'
+      + '#tbHomeChrome .home-hdr-right{display:flex;align-items:center;gap:10px}'
+      + '#tbHomeChrome .home-hdr-live{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:5px;text-decoration:none;font-size:.8em;font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(180deg,#2bb673,#1f9d57);box-shadow:0 4px 14px -4px rgba(31,157,87,.5)}'
+      + '#tbHomeChrome .home-hdr-live:hover{filter:brightness(1.06);transform:translateY(-1px)}'
+      + '#tbHomeChrome .home-hdr-live .hdr-live-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:hdrLiveBlink 1.2s ease-in-out infinite}'
+      + '@keyframes hdrLiveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{opacity:.4;box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,0)}}'
+      + '#tbHomeChrome .home-layout{display:flex;align-items:flex-start;gap:10px;max-width:100%;padding-top:72px}'
+      + '#tbHomeChrome .home-main{flex:1 1 0;min-width:0;max-width:100%}'
+      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(170px,15vw,230px);width:clamp(170px,15vw,230px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:space-between;gap:16px;height:calc(100vh - 92px)}'
+      // Left column = three colour-coded button groups, EQUAL gap between groups.
+      + '#tbHomeChrome .home-recent-col{gap:16px}'
+      + '#tbHomeChrome .home-navgrp{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}'
+      // Shared button shape for the nav (link) buttons.
+      + '#tbHomeChrome .home-nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:none;border-radius:5px;text-decoration:none;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;text-align:left;transition:filter .14s,transform .12s;box-shadow:0 2px 8px -4px rgba(21,29,40,.35)}'
+      + '#tbHomeChrome .home-nav-btn:hover{filter:brightness(1.08);transform:translateX(2px)}'
+      + '#tbHomeChrome .home-nav-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;flex:0 0 auto}'
+      + '#tbHomeChrome .home-nav-ic svg{width:15px;height:15px}'
+      + '#tbHomeChrome .home-nav-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      // Group 1 (blue): #2b66c1 bg, #c4def6 text.
+      + '#tbHomeChrome .home-navgrp-blue .home-nav-btn{background:#2b66c1;color:#c4def6}'
+      + '#tbHomeChrome .home-navgrp-blue .home-nav-ic{background:rgba(255,255,255,.16);color:#c4def6}'
+      // My Tickets highlighted: #fe9046 bg, white text.
+      + '#tbHomeChrome .home-navgrp-blue .home-nav-mytickets{background:#fe9046;color:#fff}'
+      + '#tbHomeChrome .home-navgrp-blue .home-nav-mytickets .home-nav-ic{background:rgba(255,255,255,.22);color:#fff}'
+      // Group 2 (dark): #161d2d bg, white text.
+      + '#tbHomeChrome .home-navgrp-dark .home-nav-btn{background:#161d2d;color:#fff}'
+      + '#tbHomeChrome .home-navgrp-dark .home-nav-ic{background:rgba(255,255,255,.12);color:#fff}'
+      // Group 3 (action): Upload / View log / Log out.
+      + '#tbHomeChrome .home-navgrp-action{}'
+      + '#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;padding:9px 12px;border-radius:5px;border:none;cursor:pointer;text-decoration:none;font-family:inherit;font-size:.86em;font-weight:800;color:#fff;text-align:left;transition:filter .14s}'
+      + '#tbHomeChrome .home-upload-btn:hover,#tbHomeChrome .home-viewlog-btn:hover,#tbHomeChrome .home-logout-btn:hover{filter:brightness(1.07)}'
+      // Icon chip for the bottom 3 buttons (matches the nav buttons\u2019 .home-nav-ic chip).
+      + '#tbHomeChrome .home-act-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;flex:0 0 auto;background:rgba(255,255,255,.22)}'
+      + '#tbHomeChrome .home-act-ic svg{width:15px;height:15px}'
+      + '#tbHomeChrome .home-upload-btn{background:#ff6100;box-shadow:0 4px 14px -4px rgba(255,97,0,.5)}'
+      + '#tbHomeChrome .home-viewlog-btn{background:#ff6100;box-shadow:0 4px 14px -4px rgba(255,97,0,.5)}'
+      + '#tbHomeChrome .home-logout-btn{background:#dc2626;box-shadow:0 4px 14px -4px rgba(220,38,38,.5)}'
+      // Logged-out: the whole menu column renders but is DISABLED — greyed, desaturated, not clickable.
+      + '#tbHomeChrome .home-navcol-disabled{opacity:.55;filter:grayscale(.35)}'
+      + '#tbHomeChrome .home-navcol-disabled .home-nav-btn,#tbHomeChrome .home-navcol-disabled .home-upload-btn,#tbHomeChrome .home-navcol-disabled .home-viewlog-btn,#tbHomeChrome .home-navcol-disabled .home-logout-btn{pointer-events:none;cursor:not-allowed}'
+      + '#tbHomeChrome .home-navcol-disabled .home-nav-btn:hover{transform:none;filter:none}'
+      // Shared upload-log modal (works on any page via PHDOpenUploadLog).
+      + '.tb-ullog-bg{position:fixed;inset:0;background:rgba(21,29,40,.6);z-index:3500;display:none;align-items:center;justify-content:center;padding:20px}'
+      + '.tb-ullog{background:#fff;border-radius:5px;width:min(1000px,96vw);height:min(86vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(21,29,40,.5)}'
+      + '.tb-ullog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e7e5df;flex:0 0 auto}'
+      + '.tb-ullog-title{display:flex;align-items:center;gap:9px;font-size:1em;font-weight:800;color:#151d28}'
+      + '.tb-ullog-ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#c4def6;color:#2b66c1}'
+      + '.tb-ullog-ic svg{width:16px;height:16px}'
+      + '.tb-ullog-x{margin-left:auto;background:transparent;border:none;color:#818284;font-size:1.6em;line-height:1;cursor:pointer;padding:0 6px;border-radius:5px}'
+      + '.tb-ullog-x:hover{color:#151d28;background:#f1efe9}'
+      + '.tb-ullog-body{flex:1;min-height:0}'
+      + '.tb-ullog-body iframe{width:100%;height:100%;border:none;display:block}'
+      + '#tbHomeChrome .home-recent .hr-head{display:flex;align-items:center;gap:8px;padding:10px;font-size:.84em;font-weight:800;color:var(--ink);border-bottom:1px solid var(--line)}'
+      + '#tbHomeChrome .home-recent .hr-head::before{content:"";width:3px;height:16px;border-radius:2px;background:var(--o)}'
+      + '#tbHomeChrome .home-recent .hr-head-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--icbg);color:var(--icfg);flex:0 0 auto}'
+      + '#tbHomeChrome .home-recent .hr-head-ic svg{width:13px;height:13px}'
+      + '#tbHomeChrome .home-recent .hr-list{display:flex;flex-direction:column;gap:6px;padding:10px}'
+      + '#tbHomeChrome .hr-item{--acc:var(--icfg);--accbg:var(--icbg);position:relative;display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #eceae4;border-radius:5px;text-decoration:none;color:var(--ink);transition:border-color .14s,background .14s,transform .14s}'
+      + '#tbHomeChrome .hr-item:hover{transform:translateX(2px);border-color:var(--acc);background:#fbfaf7}'
+      + '#tbHomeChrome .hr-item .hr-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--accbg);color:var(--acc);flex:0 0 auto}'
+      + '#tbHomeChrome .hr-item .hr-ic svg{width:14px;height:14px}'
+      + '#tbHomeChrome .hr-item .hr-tx{min-width:0;display:flex;flex-direction:column;gap:1px}'
+      + '#tbHomeChrome .hr-item .hr-title{font-size:.8em;font-weight:700;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '#tbHomeChrome .hr-item .hr-time{font-size:.68em;color:var(--ink2);font-weight:500}'
+      + '#tbHomeChrome .hr-item.nt-amber{--acc:#ff6100;--accbg:#ffe6d6}#tbHomeChrome .hr-item.nt-violet{--acc:#6d5bd0;--accbg:#e7e3fb}#tbHomeChrome .hr-item.nt-rose{--acc:#d6456f;--accbg:#fbe0e9}#tbHomeChrome .hr-item.nt-blue{--acc:var(--icfg);--accbg:var(--icbg)}#tbHomeChrome .hr-item.nt-teal{--acc:#1b8f8a;--accbg:#d2f0ee}'
+      + '#tbHomeChrome .hr-item.hr-latest{background:#fff7f2;border-color:#ffd9c2}'
+      + '#tbHomeChrome .home-recent .hr-empty{font-size:.74em;color:var(--ink2);text-align:center;padding:18px 8px;line-height:1.5}'
+      + '#tbHomeChrome .home-recent .hr-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-top:1px solid #eceae4;font-size:.68em;color:var(--ink2)}'
+      + '#tbHomeChrome .home-recent .hr-clear{background:transparent;border:none;color:var(--icfg);font-weight:700;font-size:1em;cursor:pointer;padding:0;font-family:inherit}'
+      + '#tbHomeChrome .home-recent .hr-clear:hover{color:var(--o)}'
+      // Below 1175px: keep the EXACT same left-column layout + positions (full-size buttons, the
+      // three groups spread across the column height with the action group at the bottom) — ONLY
+      // hide the label text so each button shows just its icon. Native title=".." gives the hover
+      // tooltip. The column narrows to fit the icon chips; buttons stay their normal height.
+      + '@media(max-width:1175px){'
+      +   '#tbHomeChrome .home-recent-col{width:auto!important;max-width:none!important;flex:0 0 auto!important}'
+      +   '#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{width:auto!important;justify-content:center!important;gap:0!important}'
+      +   '#tbHomeChrome .home-nav-lbl,#tbHomeChrome .home-act-lbl{display:none!important}'
+      + '}'
       ;
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
@@ -2022,6 +2134,188 @@
   window.PHDPlaceTopRight = tbPlaceTopRight; // let pages re-anchor the cluster after re-rendering the header
   // Escape helper for user-provided strings placed into markup.
   function tbEsc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+
+  // ==========================================================================================
+  // SHARED HOME CHROME: the title bar + "Recent" column, injected on EVERY page as components 1 & 2,
+  // wrapping the page's existing .wrap/.content as component 3 (main content). index.html and
+  // profile.html build their own, so we skip when a .home-hdr already exists. Logged out -> skip
+  // (guests only see index.html anyway). Reads the shared phd_recent_pages store for the panel.
+  // ==========================================================================================
+  var TBH_MAP = {
+    'app': { title: 'Active Dashboard', icon: 'bolt', tone: 'amber' }, 'my-tickets': { title: 'My Tickets', icon: 'ticket', tone: 'amber' },
+    'archive': { title: 'Program History', icon: 'inbox', tone: 'amber' }, 'issue-types': { title: 'Issue Standardization', icon: 'clipboard', tone: 'violet' },
+    'ticket-sanitization': { title: 'Ticket Sanitization', icon: 'check-circle', tone: 'rose' }, 'rules': { title: 'Rules & Definitions', icon: 'book', tone: 'teal' },
+    'hi-resolved': { title: 'Repeat Incidents', icon: 'repeat', tone: 'blue' }, 'sla-breach': { title: 'SLA Breaches', icon: 'clock', tone: 'rose' },
+    'station-request': { title: 'Station Requests', icon: 'map-pin', tone: 'blue' }, 'agent-analytics': { title: 'Team Analytics', icon: 'bar-chart', tone: 'blue' },
+    'performance-summary': { title: 'Performance Summary', icon: 'clipboard', tone: 'blue' },
+    'tools': { title: 'PHD Tools', icon: 'tool', tone: 'teal' }, 'profile': { title: 'Profile', icon: 'user', tone: 'blue' },
+    'data-log': { title: 'Uploaded Data Log', icon: 'history', tone: 'violet' }, 'users': { title: 'Users', icon: 'users', tone: 'blue' },
+    'db-health': { title: 'Database Health', icon: 'database', tone: 'teal' }, 'groups-page': { title: 'Grouping Page', icon: 'copy', tone: 'violet' },
+    'tool-blurbs': { title: 'Blurbs', icon: 'message', tone: 'teal' }, 'tool-hashtags': { title: 'Hashtags', icon: 'hash', tone: 'teal' },
+    'tool-paging': { title: 'Paging', icon: 'map-pin', tone: 'teal' }, 'tool-prompts': { title: 'Prompts', icon: 'message', tone: 'teal' },
+    'hashtags': { title: 'Hashtags', icon: 'hash', tone: 'teal' }, 'blurb-log': { title: 'Blurb Log', icon: 'history', tone: 'violet' },
+    'hashtag-log': { title: 'Hashtag Log', icon: 'history', tone: 'violet' }, 'paging-log': { title: 'Paging Log', icon: 'history', tone: 'violet' },
+    'important-cases': { title: 'Unique Cases', icon: 'star', tone: 'amber' }
+  };
+  function tbhFileOf(href) { try { return (String(href).split('?')[0].split('/').pop() || '').replace(/\.html?$/i, ''); } catch (e) { return ''; } }
+  function tbhRelTime(ts) {
+    var s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (s < 45) return 'just now';
+    var m = Math.floor(s / 60); if (m < 60) return m + ' min ago';
+    var h = Math.floor(m / 60); if (h < 24) return h + ' hr' + (h > 1 ? 's' : '') + ' ago';
+    var d = Math.floor(h / 24); if (d === 1) return 'Yesterday';
+    if (d < 7) return d + ' days ago';
+    return new Date(ts).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  }
+  function tbhRenderRecent() {
+    var list = document.getElementById('tbhList'); if (!list) return;
+    var items = []; try { items = JSON.parse(localStorage.getItem('phd_recent_pages') || '[]'); } catch (e) { items = []; }
+    if (!Array.isArray(items)) items = [];
+    var hereFile = tbhFileOf(location.pathname);
+    items = items.filter(function (x) { var f = tbhFileOf(x && x.href); return f && f !== 'index' && f !== '' && f !== hereFile; }).slice(0, 6);
+    if (!items.length) { list.innerHTML = '<div class="hr-empty">No recent pages yet. Pages you open will show up here.</div>'; return; }
+    list.innerHTML = items.map(function (x, i) {
+      var f = tbhFileOf(x.href); var meta = TBH_MAP[f] || { title: (x.title || f), icon: 'grid', tone: 'blue' };
+      var cls = 'hr-item nt-' + meta.tone + (i === 0 ? ' hr-latest' : '');
+      return '<a class="' + cls + '" href="' + x.href + '" title="' + tbEsc(meta.title) + '">' +
+        '<span class="hr-ic">' + ic(meta.icon, 14) + '</span>' +
+        '<span class="hr-tx"><span class="hr-title">' + tbEsc(meta.title) + '</span><span class="hr-time">' + tbhRelTime(x.at || Date.now()) + '</span></span></a>';
+    }).join('');
+  }
+  function tbhRenderHdrProf() {
+    var slot = document.getElementById('tbhHdrProf'); if (!slot) return;
+    var li = loggedIn();
+    if (li) {
+      var prof = (A.myProfile && A.myProfile()) || (A.getUser && A.getUser()) || {};
+      var nm = (prof && (prof.displayName || prof.username)) || 'Profile';
+      slot.innerHTML = '<a href="profile.html" title="' + tbEsc(nm) + ' — Profile" aria-label="Profile">' + (A.avatarHtml ? A.avatarHtml(prof, 40) : ic('user', 20)) + '</a>';
+    } else {
+      // On a page with a login modal (index.html exposes openLoginModal), open it; else go home.
+      slot.innerHTML = '<a href="#" title="Log in" aria-label="Log in" onclick="if(window.openLoginModal){openLoginModal();return false;}else{location.href=\'index.html\';return false;}">' + ic('key', 20) + '</a>';
+    }
+  }
+  window.PHDRefreshHomeChrome = function () { try { tbhRenderHdrProf(); tbhRenderRecent(); } catch (e) {} };
+  // Shared "View upload log" modal — embeds data-log.html in an iframe (embed mode hides its chrome).
+  // Available on every page so the injected chrome's View-log button works everywhere.
+  window.PHDOpenUploadLog = function () {
+    var bg = document.getElementById('tbUploadLogModal');
+    if (!bg) {
+      bg = document.createElement('div');
+      bg.id = 'tbUploadLogModal'; bg.className = 'tb-ullog-bg';
+      bg.innerHTML = '<div class="tb-ullog"><div class="tb-ullog-head">'
+        + '<span class="tb-ullog-title"><span class="tb-ullog-ic">' + ic('history', 16) + '</span>Update Data Log</span>'
+        + '<button type="button" class="tb-ullog-x" aria-label="Close">&times;</button></div>'
+        + '<div class="tb-ullog-body"><iframe title="Update Data Log"></iframe></div></div>';
+      bg.addEventListener('click', function (e) { if (e.target === bg) bg.style.display = 'none'; });
+      bg.querySelector('.tb-ullog-x').onclick = function () { bg.style.display = 'none'; };
+      document.body.appendChild(bg);
+    }
+    var fr = bg.querySelector('iframe');
+    fr.setAttribute('src', 'data-log.html?embed=1&t=' + Date.now());
+    bg.style.display = 'flex';
+  };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { var m = document.getElementById('tbUploadLogModal'); if (m) m.style.display = 'none'; } });
+  // Wire the "Clear" button + paint the header avatar / recent list for a freshly-built chrome.
+  function tbhWireChrome() {
+    tbhRenderHdrProf(); tbhRenderRecent();
+    var clr = document.getElementById('tbhClear');
+    if (clr) clr.onclick = function () { try { localStorage.removeItem('phd_recent_pages'); } catch (e) {} tbhRenderRecent(); };
+  }
+  function tbhChromeHtml() {
+    var li = loggedIn();
+    var hdr = '<div class="home-title-row js-header-row home-hdr">'
+      + '<div class="home-hdr-left">'
+      + '<a class="home-hdr-swap" href="index.html" title="Home" aria-label="Home"><span class="tb-logo-swap">'
+      + '<img class="tb-rail-logo-img tb-logo-a" src="gsoc-logo.svg" alt="GSOC">'
+      + '<img class="tb-rail-logo-img tb-logo-b" src="amazon-logo.webp" alt="Amazon"></span></a>'
+      + '<a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>'
+      + '</div>'
+      + '<div class="home-hdr-right">'
+      + (li ? '<a class="home-hdr-live" href="app.html" title="Open the live dashboard"><span class="hdr-live-dot"></span> ' + new Date().getFullYear() + '</a>' : '')
+      + '<span class="home-hdr-prof" id="tbhHdrProf"></span>'
+      + '</div></div>';
+    var canUpload = (li && A.canUpload && A.canUpload());
+    // ---- Left column = three colour-coded button groups, equal gaps between them. ----
+    // When logged OUT, the whole column renders but DISABLED (greyed, not clickable) via the
+    // .home-navcol-disabled wrapper class; links become inert <span>s so a guest can't navigate.
+    var navBtn = function (href, label, icon) {
+      var inner = '<span class="home-nav-ic">' + ic(icon, 15) + '</span><span class="home-nav-lbl">' + label + '</span>';
+      var tt = ' title="' + label.replace(/"/g, '&quot;') + '"';   // hover tooltip (used by the icon rail)
+      return li
+        ? '<a class="home-nav-btn" href="' + href + '"' + tt + '>' + inner + '</a>'
+        : '<span class="home-nav-btn" aria-disabled="true"' + tt + '>' + inner + '</span>';
+    };
+    // Group 1 (top): blue buttons (My Tickets is highlighted in orange).
+    var myTicketsInner = '<span class="home-nav-ic">' + ic('ticket', 15) + '</span><span class="home-nav-lbl">My Tickets</span>';
+    var navTop = '<nav class="home-navgrp home-navgrp-blue">'
+      + (li ? '<a class="home-nav-btn home-nav-mytickets" href="my-tickets.html" title="My Tickets">' + myTicketsInner + '</a>'
+            : '<span class="home-nav-btn home-nav-mytickets" aria-disabled="true" title="My Tickets">' + myTicketsInner + '</span>')
+      + navBtn('tools.html', 'PHD Tools', 'tool')
+      + navBtn('agent-analytics.html', 'Team Analytics', 'bar-chart')
+      + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
+      + '</nav>';
+    // Group 2 (middle): dark buttons.
+    var navMid = '<nav class="home-navgrp home-navgrp-dark">'
+      + navBtn('sla-breach.html', 'SLA Breaches (>240h)', 'clock')
+      + navBtn('station-request.html', 'Station Request Tickets', 'map-pin')
+      + navBtn('hashtags.html', 'Hashtags', 'hash')
+      + navBtn('hi-resolved.html', 'Repeat Incidents', 'repeat')
+      + navBtn('important-cases.html', 'Unique Cases', 'star')
+      + '</nav>';
+    // Group 3 (bottom): Upload / View log (upload-gated, logged-in only) + Log out.
+    var navBot = '<div class="home-navgrp home-navgrp-action">'
+      + (canUpload
+          ? '<button type="button" class="home-upload-btn" title="Upload new data" onclick="if(window.tbUploadIntro)tbUploadIntro(\'standalone\')"><span class="home-act-ic">' + ic('upload', 15) + '</span><span class="home-act-lbl">Upload new data</span></button>'
+            + '<input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">'
+            + '<button type="button" class="home-viewlog-btn" title="View upload log" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()"><span class="home-act-ic">' + ic('history', 15) + '</span><span class="home-act-lbl">View upload log</span></button>'
+          : '')
+      + (li
+          ? '<button type="button" class="home-logout-btn" title="Log out" onclick="if(window.PHDConfirmLogout)window.PHDConfirmLogout()"><span class="home-act-ic">' + ic('log-out', 15) + '</span><span class="home-act-lbl">Log out</span></button>'
+          : '<span class="home-logout-btn" aria-disabled="true" title="Log out"><span class="home-act-ic">' + ic('log-out', 15) + '</span><span class="home-act-lbl">Log out</span></span>')
+      + '</div>';
+    var recent = '<div class="home-recent-col' + (li ? '' : ' home-navcol-disabled') + '" id="tbhRecentCol">'
+      + navTop + navMid + navBot
+      + '</div>';
+    return { hdr: hdr, recent: recent };
+  }
+  // Wrap a main-content node (.wrap/.content) with the injected [header] + [layout: recent + main].
+  function tbhWrapMain(main) {
+    if (!main || main.closest('#tbHomeChrome') || main.closest('.home-main')) return false;
+    var c = tbhChromeHtml();
+    var page = document.createElement('div'); page.id = 'tbHomeChrome'; page.className = 'tb-home-chrome';
+    page.innerHTML = c.hdr + '<div class="home-layout">' + c.recent + '<div class="home-main"></div></div>';
+    main.parentNode.insertBefore(page, main);
+    page.querySelector('.home-main').appendChild(main);
+    tbhWireChrome();
+    return true;
+  }
+  function tbBuildHomeChrome() {
+    // Opt-out hook: a page can set data-no-home-chrome to skip (none do currently). Runs for guests
+    // too (header + login icon; Recent/upload hidden) so index.html's guest state works from here.
+    if (document.body.getAttribute('data-no-home-chrome') === 'true') return;
+
+    // app.html (data-app="live") renders its content into #app asynchronously AND re-renders it on
+    // every view switch. Watch #app and (re)wrap its .content after each render so the chrome persists.
+    var appHost = document.getElementById('app');
+    if (appHost) {
+      var rewrap = function () {
+        if (document.getElementById('tbHomeChrome')) return;         // already wrapped this render
+        var main = appHost.querySelector(':scope > .content') || appHost.querySelector('.content');
+        if (main) tbhWrapMain(main);
+      };
+      rewrap();
+      try {
+        var obs = new MutationObserver(function () { rewrap(); });
+        obs.observe(appHost, { childList: true, subtree: true });
+      } catch (e) {}
+      return;
+    }
+
+    // Standard pages: wrap the existing .wrap/.content once.
+    var m = document.querySelector('.wrap, .content'); if (!m) return;
+    tbhWrapMain(m);
+  }
+
   function paintProfileAvatar() {
     var cluster = document.getElementById('tbTopRight');
     if (!cluster) return;
@@ -2030,7 +2324,7 @@
     // Uploaded data log sits to the LEFT of the profile pill (logged-in only). DOM order = visual
     // left-to-right: [Uploaded data log] [profile pill]. (Upload new data moved to the left rail.)
     if (li) {
-      html += '<a class="tb-data-btn" href="data-log.html" title="Uploaded data log">' + ic('history', 16) + '<span>Uploaded data log</span></a>';
+      html += '<button type="button" class="tb-data-btn" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()" title="Uploaded data log">' + ic('history', 16) + '<span>Uploaded data log</span></button>';
     }
     // Profile pill (far right). Logged in -> avatar + name; logged out -> key icon + "Login".
     if (li) {
@@ -2053,7 +2347,7 @@
   // ---- Recent-history quick-swap (bottom-left FAB) ----
   var TB_HISTORY_KEY = 'phd_recent_pages';
   // app.html hosts several views via ?view= — map each to a friendly title.
-  var TB_APP_VIEW_TITLES = { '': 'Q3 Live Dashboard', dashboard: 'Q3 Live Dashboard', 'shift-report': 'Shift Report', groups: 'Groups', 'previous-week': 'Previous Week' };
+  var TB_APP_VIEW_TITLES = { '': 'Q3 Live Dashboard', dashboard: 'Q3 Live Dashboard', groups: 'Groups', 'previous-week': 'Previous Week' };
   function tbViewOf(href) {
     try { return (new URLSearchParams(String(href).split('?')[1] || '')).get('view') || ''; } catch (e) { return ''; }
   }
@@ -2459,7 +2753,9 @@
     }
     if (li) {
       try { tbClearProfileCache(); } catch (e) {}   // purge any legacy phd_pp_* cache from before caching was removed
-      tbLoadProfileStats();                          // fetch + render the role-aware stats card below the banner (always fresh)
+      // tbLoadProfileStats() REMOVED: the profile panel is retired (replaced by the new header +
+      // Recent chrome), so we no longer fetch /api/profile-stats (which also chained to
+      // /api/last-upload). No profile-panel API calls fire on page load anymore.
     }
   }
   window.PHDBuildProfilePanel = buildProfilePanel;
@@ -2532,7 +2828,7 @@
     // by / Filename / When / NOT ASSIGNED + the sort column headers + the A\u2192Z analyst names) render
     // immediately; only the server VALUES get a small inline spinner. Shares tbUploadBodySkeleton()
     // with the live loader so both look identical.
-    var uploadLogBtn = '<a class="tb-pp-up-loglink" href="data-log.html" aria-label="View upload log">' + ic('history', 13) + '<span>Upload log</span></a>';
+    var uploadLogBtn = '<button type="button" class="tb-pp-up-loglink" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()" aria-label="View upload log">' + ic('history', 13) + '<span>Upload log</span></button>';
     var uploadCard = '<section class="tb-pp-card tb-pp-card-upload">'
       + '<div class="tb-pp-card-h"><span class="tb-pp-ic">' + izImg('upload-new-data', ic('upload', 15)) + '</span>'
       +   '<span class="tb-pp-card-t">Data due to Last Upload</span>' + uploadLogBtn + '</div>'
@@ -2700,11 +2996,10 @@
       // time the later ones go out the instance is already awake, so they land fast instead of piling
       // up. This doesn't remove the cold start itself (only a paid plan or a keep-alive ping would) —
       // it just stops one slow boot from taking the whole profile panel down with it.
-      var tbPpStagger = function (fn, delayMs) { setTimeout(function () { try { fn(); } catch (e) {} }, delayMs); };
-      if (canWeekly) tbPpStagger(tbLoadSummaries, 0);                                                   // weekly + monthly carousel (managers + owners)
-      tbPpStagger(function () { tbLoadLastUpload(); }, 400);                                            // upload card
-      tbPpStagger(function () { tbLoadAgentsActivity('yesterday', 'tbPpAgYesterday'); }, 1800);         // 2 agent windows (Today window removed)
-      tbPpStagger(function () { tbLoadAgentsActivity('lastweek', 'tbPpAgLastWeek'); }, 3200);
+      // Profile-panel carousel data loads REMOVED: the panel is retired in favour of the new header +
+      // Recent chrome, so we no longer fetch /api/last-upload, /api/agents-activity, or the weekly/
+      // monthly summaries here. (Those endpoints are the heavy/slow Render calls that were firing on
+      // every page load.) The slide shells may still render but stay empty; nothing hits the API.
       tbStartProfileSlider();                              // manual N-slide carousel
       // Wire the per-section reload buttons. Open-tickets + tickets-by-age both come from the single
       // /api/profile-stats call, so either button force-refreshes that whole call (re-renders both).
@@ -3031,9 +3326,10 @@
       var upCard = body.closest ? body.closest('.tb-pp-card') : null;
       var upCardH = upCard ? upCard.querySelector('.tb-pp-card-h') : null;
       if (upCardH && !upCardH.querySelector('.tb-pp-up-loglink')) {
-        var a = document.createElement('a');
+        var a = document.createElement('button');
+        a.type = 'button';
         a.className = 'tb-pp-up-loglink';
-        a.href = 'data-log.html';
+        a.onclick = function () { if (window.PHDOpenUploadLog) window.PHDOpenUploadLog(); };
         a.setAttribute('aria-label', 'View upload log');
         a.innerHTML = ic('history', 13) + '<span>Upload log</span>';
         upCardH.appendChild(a);
@@ -3931,6 +4227,7 @@
     // Repaint ONLY the banner avatar/name IN PLACE — do NOT rebuild the whole panel (that re-ran the
     // skeleton + re-initialised the hamburger section, causing a visible flash on every load).
     try { tbRepaintProfileBanner(); } catch (e) {}
+    try { if (window.PHDRefreshHomeChrome) window.PHDRefreshHomeChrome(); } catch (e) {}  // repaint injected header avatar
     try { if (typeof applyAnalyticsFabState === 'function') applyAnalyticsFabState(); } catch (e) {}
     try { if (typeof applyNavFabsState === 'function') applyNavFabsState(); } catch (e) {}
   }
@@ -3976,8 +4273,7 @@
       // Upload new data is a DIRECT rail button (replaces the old "Data" fly-out) — opens the CSV
       // picker on click. The "View upload log" link moved to the profile upload card's header.
       { key: 'upload-new',    label: 'Upload new data',         img: 'icons/upload-new-data.png', type: 'upload',                  need: 'upload' },
-      { key: 'tools',         label: 'PHD Tools',               img: 'icons/phd-tools.png',    href: 'tools.html',                 need: 'li' },
-      { key: 'shift-report', label: 'Shift Report',            img: 'icons/shift-report.png', href: 'app.html?view=shift-report', need: 'li' }
+      { key: 'tools',         label: 'PHD Tools',               img: 'icons/phd-tools.png',    href: 'tools.html',                 need: 'li' }
       // Repeat Incidents / SLA Breaches / Station Requests / Unique cases now live in the line-chart
       // "Reports" fly-out; Program History (Before WWOS / Moved under WWOS) lives in the calendar
       // fly-out; Users / Database health / Grouping Page live in the user-shield "Admin" fly-out.
@@ -4296,17 +4592,16 @@
     var key = 'grid'; // sensible default
     var map = {
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
-      'agent-analytics.html': 'bar-chart',
+      'agent-analytics.html': 'bar-chart', 'performance-summary.html': 'clipboard',
       'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
       'important-cases.html': 'hash',
       'station-request.html': 'map-pin',
       'users.html': 'users-gear', 'db-health.html': 'database', 'profile.html': 'users',
       'data-log.html': 'history', 'blurb-log.html': 'history', 'hashtag-log.html': 'history',
-      'paging-log.html': 'history', 'archive.html': 'calendar',
-      'add-archive.html': 'plus'
+      'paging-log.html': 'history', 'archive.html': 'calendar'
     };
-    if (file === 'app.html' && view) { key = ({ groups: 'users', 'shift-report': 'clipboard', 'previous-week': 'clock-rewind' })[view] || 'bolt'; }
+    if (file === 'app.html' && view) { key = ({ groups: 'users', 'previous-week': 'clock-rewind' })[view] || 'bolt'; }
     else if (map[file]) { key = map[file]; }
     return ic(key);
   }
@@ -4384,6 +4679,7 @@
     try { document.documentElement.classList.remove('tb-booting'); } catch (e) {}
     buildModalAndLoader();
     tbTrackHistory();       // record this page in the recent-history list (runs on every page)
+    try { tbBuildHomeChrome(); } catch (e) { /* home chrome is best-effort; never block the page */ }
     // Pages with a bespoke top bar (e.g. index.html) opt out of the toolbar swap but still get the
     // recent-history quick-swap button so the feature is on EVERY page.
     if (document.body.getAttribute('data-no-toolbar') === 'true') { buildBackButton(); buildMenuButton(); buildHistoryButton(); buildLiveButton(); buildNavFabs(); buildAnalyticsButton(); buildRailLogo(); buildProfileAvatar(); buildProfilePanel(); hydrateProfileAndRepaint(); tbStartPresenceHeartbeat(); return; }

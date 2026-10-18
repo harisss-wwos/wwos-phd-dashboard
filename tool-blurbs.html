@@ -43,27 +43,61 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .page-head h1{margin:0}
 .page-head-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 /* Stacked list of expandable, click-to-copy blurb cards */
-.blurb-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.blurb-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;row-gap:14px;align-items:start}
 @media(max-width:760px){.blurb-list{grid-template-columns:1fr}}
-.blurb-card{position:relative;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:5px;padding:16px 18px;box-shadow:0 1px 3px rgba(20,30,50,.05);transition:border-color .15s,background .15s,box-shadow .15s}
-.blurb-card:hover{border-color:var(--o);background:var(--cardh);box-shadow:0 4px 14px -6px rgba(236,114,17,.3)}
-/* View toggle button */
-.bc-view{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--bd);background:#fff;color:var(--t);flex-shrink:0}
-.bc-view:hover{border-color:var(--o);color:var(--o)}
-.blurb-card.show .bc-view{border-color:var(--o);color:var(--o);background:#fff4e8}
-.bc-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.bc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
-.bc-title{color:#1b2026;font-weight:700;font-size:1.02em;line-height:1.4;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;flex:1}
-.bc-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.bc-count{display:inline-flex;align-items:center;gap:4px;background:#fff4e8;color:var(--o);border:1px solid #f3d4b0;border-radius:5px;padding:2px 9px;font-size:.72em;font-weight:800;flex-shrink:0}
-.bc-count svg{width:12px;height:12px}
-.bc-copy{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--o);background:var(--o);color:#fff;flex-shrink:0}
-.bc-copy:hover{filter:brightness(1.08)}
-.bc-copy.copied{background:var(--gl);border-color:var(--gl);color:#fff}
-/* Content: hidden by default, revealed only when the card is expanded via the View button (.show) */
-.bc-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin .2s ease;margin-top:0}
-.blurb-card.show .bc-content{max-height:600px;opacity:1;margin-top:12px}
-.bc-content .bc-text{white-space:pre-wrap;color:#2a3340;font-size:.9em;line-height:1.6;border-top:1px solid #eef1f4;padding-top:12px}
+/* ============================================================================================
+   Redesigned blurb card — a clean row: copy-count chip + title (whole header is the expand toggle)
+   on the left, a single solid Copy button on the right; the body slides open below on expand.
+   Palette: orange #ff6100 / #fe9046, ink #151d28, blue accent #2b66c1, soft surfaces.
+   ============================================================================================ */
+.blurb-card{position:relative;background:#fff;border:1px solid #e9e6df;border-radius:5px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(21,29,40,.05),0 8px 22px -16px rgba(21,29,40,.25);
+  transition:border-color .16s,box-shadow .16s,transform .16s}
+/* Left accent spine — grey at rest, orange when hovered/open. */
+.blurb-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#e2ddd2;transition:background .16s}
+.blurb-card:hover{border-color:#f3c7a4;box-shadow:0 2px 4px rgba(21,29,40,.06),0 14px 30px -16px rgba(255,97,0,.4);transform:translateY(-1px)}
+.blurb-card:hover::before{background:#fe9046}
+.blurb-card.show{border-color:#ff6100}
+.blurb-card.show::before{background:#ff6100}
+
+/* The header IS the expand toggle (a full-width button). */
+.bc-head{display:flex;align-items:center;gap:12px;min-width:0;width:100%;padding:14px 16px 14px 18px;
+  background:transparent;border:none;cursor:pointer;font-family:inherit;text-align:left}
+.bc-head:hover{background:#fdf7f1}
+/* Copy-count chip: circular badge with the icon + number. */
+.bc-count{display:inline-flex;align-items:center;gap:5px;background:#fff2ea;color:#ff6100;border:1px solid #ffd9c2;
+  border-radius:999px;padding:4px 10px 4px 8px;font-size:.74em;font-weight:900;flex-shrink:0;line-height:1}
+.bc-count svg{width:13px;height:13px}
+.bc-count-n{letter-spacing:.2px}
+.bc-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:#151d28;font-weight:700;font-size:1.0em;line-height:1.35}
+/* Expand chevron — rotates 180° when the card is open. */
+.bc-expand{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+  border-radius:6px;background:#eef3fb;color:#2b66c1;transition:transform .22s ease,background .16s}
+.bc-head:hover .bc-expand{background:#c4def6}
+.blurb-card.show .bc-expand{transform:rotate(180deg);background:#2b66c1;color:#fff}
+
+/* Copy button — sits in the header row, pinned right via absolute so it isn't part of the toggle. */
+.bc-actions{position:absolute;top:10px;right:14px;display:flex;align-items:center;gap:8px;z-index:2}
+.bc-copy{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:5px;font-family:inherit;
+  font-size:.82em;font-weight:800;cursor:pointer;border:none;background:#ff6100;color:#fff;flex-shrink:0;
+  box-shadow:0 2px 8px -2px rgba(255,97,0,.55);transition:background .14s,box-shadow .14s,transform .12s}
+.bc-copy:hover{background:#e85800;transform:translateY(-1px)}
+.bc-copy:active{transform:translateY(0)}
+.bc-copy svg{display:block}
+.bc-copy .bc-copy-done{display:none}
+.bc-copy.copied{background:var(--gl);box-shadow:0 2px 8px -2px rgba(31,157,87,.55)}
+.bc-copy.copied .bc-copy-ic{display:none}
+.bc-copy.copied .bc-copy-done{display:inline-flex}
+/* Reserve room on the header so the title never slides under the absolute Copy button. */
+.bc-head{padding-right:112px}
+
+/* Body — slides open below the header. */
+.bc-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .28s ease,opacity .2s ease,padding .28s ease;
+  padding:0 16px 0 18px}
+.blurb-card.show .bc-content{max-height:640px;opacity:1;padding:0 16px 16px 18px}
+.bc-content .bc-text{white-space:pre-wrap;color:#2a3340;font-size:.9em;line-height:1.65;
+  background:#f7f8fa;border:1px solid #eceef1;border-radius:5px;padding:14px 16px}
 .bc-content .bc-hash{color:var(--tl);font-size:.85em;margin-top:8px}
 .bc-admin{display:flex;gap:8px;margin-top:12px}
 .bc-admin .btn.mini{flex:0 0 auto}
@@ -88,8 +122,8 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2000;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
 .toast.show{opacity:1}
 
-/* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* Global: main content spans the full width, flush with the title bar (no side margins). */
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:0!important;margin-right:0!important}
 
 /* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
 .tool-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
@@ -126,7 +160,15 @@ body[data-embedded="true"] .tool-banner{display:none!important}
 /* Embedded: the iframe body renders ~10px narrower than the iframe viewport (a scrollbar-gutter
    reservation from theme.css's 10px scrollbar), which left the card band 10px short of the title bar
    on the right. Pull the content wrap 10px to the right so its right edge meets the title bar. */
-body[data-embedded="true"] .wrap{width:100%!important;padding-left:0!important;padding-right:0!important;margin-left:0!important;margin-right:-10px!important}
+body[data-embedded="true"] .wrap{width:100%!important;max-width:100%!important;padding-left:0!important;padding-right:0!important;margin-left:0!important;margin-right:0!important}
+/* Root cause of the title-bar vs content width gap: theme.css gives the iframe a classic 10px
+   vertical scrollbar; whenever the embedded doc momentarily overflows its JS-sized frame, that
+   gutter reserves ~10px and shrinks the inner layout viewport, so width:100% content falls short of
+   the parent title bar. The parent (tools.html) auto-sizes the frame to content and shows ONE page
+   scrollbar, so the iframe never needs its own vertical bar — zero it out to remove the reservation. */
+body[data-embedded="true"]{scrollbar-width:none!important;scrollbar-gutter:auto!important}
+body[data-embedded="true"]::-webkit-scrollbar{width:0!important;height:0!important}
+html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 
 /* ---- Pagination bar (7 rows x 2 cols per page) ---- */
 .tp-pager{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:18px 0 6px}
@@ -222,7 +264,7 @@ body[data-embedded="true"] .wrap{width:100%!important;padding-left:0!important;p
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
 let BLURBS=[];
@@ -257,6 +299,8 @@ async function load(){
 function render(){
   const editor=canEdit();
   const copyIcon='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const chevIcon='<svg class="bc-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+  const checkIcon='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   // Header: title left, actions (Add + edit log) right.
   // Illustrated gradient banner header (title + sub on the left, actions on the right).
   let html='<div class="tool-banner tb-blurbs">'
@@ -277,12 +321,13 @@ function render(){
   // handlers keep the GLOBAL index i so copy/view/edit still map to the right blurb.
   html+=`<div class="blurb-list">`+BLURBS.map((b,i)=>({b,i})).filter(x=>x.i>=start&&x.i<end).map(({b,i})=>`
     <div class="blurb-card" id="card-${i}">
-      <div class="bc-head">
-        <span class="bc-title"><span class="bc-count" id="count-${i}" title="Times copied">${copyIcon}<span class="bc-count-n">${b.copyCount||0}</span></span> <span class="bc-name" title="${esc(b.title)}">${esc(b.title)}</span></span>
-        <div class="bc-actions">
-          <button class="bc-view" id="viewCard-${i}" onclick="toggleView(${i},event)" title="Show / hide the blurb text"><span>View</span></button>
-          <button class="bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i},event)" title="Copy this blurb">${copyIcon}<span>Copy</span></button>
-        </div>
+      <button type="button" class="bc-head" id="viewCard-${i}" onclick="toggleView(${i},event)" title="Show / hide the blurb text" aria-expanded="false">
+        <span class="bc-count" id="count-${i}" title="Times copied">${copyIcon}<span class="bc-count-n">${b.copyCount||0}</span></span>
+        <span class="bc-name" title="${esc(b.title)}">${esc(b.title)}</span>
+        <span class="bc-expand" aria-hidden="true">${chevIcon}</span>
+      </button>
+      <div class="bc-actions">
+        <button class="bc-copy" id="copyCard-${i}" onclick="copyBlurb(${i},event)" title="Copy this blurb"><span class="bc-copy-ic">${copyIcon}</span><span class="bc-copy-done" aria-hidden="true">${checkIcon}</span><span class="bc-copy-lbl">Copy</span></button>
       </div>
       <div class="bc-content">
         <div class="bc-text">${esc(b.text)}</div>
@@ -323,19 +368,19 @@ function toggleView(i,ev){
   const card=document.getElementById('card-'+i);
   if(!card)return;
   const willOpen=!card.classList.contains('show');
-  // Close every other open card first.
+  // Close every other open card first (accordion: one open at a time).
   document.querySelectorAll('.blurb-card.show').forEach(c=>{
-    if(c!==card){c.classList.remove('show');const b=c.querySelector('.bc-view span');if(b)b.textContent='View';}
+    if(c!==card){c.classList.remove('show');const h=c.querySelector('.bc-head');if(h)h.setAttribute('aria-expanded','false');}
   });
   card.classList.toggle('show',willOpen);
-  const label=card.querySelector('.bc-view span');if(label)label.textContent=willOpen?'Hide':'View';
+  const head=card.querySelector('.bc-head');if(head)head.setAttribute('aria-expanded',willOpen?'true':'false');
 }
 
 // Copy a blurb (the Copy button). Stops the click from bubbling.
 function copyBlurb(i,ev){
   if(ev)ev.stopPropagation();
   const text=BLURBS[i].text;
-  const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('span');const old=s.textContent;btn.classList.add('copied');s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');s.textContent=old;},1600);}toast('Blurb copied to clipboard');recordCopy(i);};
+  const done=()=>{const btn=document.getElementById('copyCard-'+i);if(btn){const s=btn.querySelector('.bc-copy-lbl');const old=s?s.textContent:'Copy';btn.classList.add('copied');if(s)s.textContent='Copied';setTimeout(()=>{btn.classList.remove('copied');if(s)s.textContent=old;},1600);}toast('Blurb copied to clipboard');recordCopy(i);};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
   else fallbackCopy(text,done);
 }

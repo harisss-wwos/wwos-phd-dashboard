@@ -8,59 +8,80 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--gl:#1f9d57}
+:root{
+  --o:#ff6100;--oh:#fe9046;--ol:#fe9046;
+  --gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;
+  --blue:#e6f0fc;--purple:#161d2d;--icbg:#c4def6;--icfg:#2b66c1;
+  --t:#151d28;--tm:#818284;--bd:#e7e5df;--gl:#1f9d57;
+  --sh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28);
+}
 *{margin:0;padding:0;box-sizing:border-box}
 input,button,textarea,select{font-family:inherit}
-body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t);min-height:100vh}
-.top-bar{background:#fff;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;gap:12px}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo img{height:28px;width:auto}
-.logo span{font-size:1.1em;font-weight:700;color:#1b2026}
-.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--o);color:#fff;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:none;text-decoration:none;transition:filter .14s,transform .12s}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--gray);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+.top-bar{display:none!important}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--o);color:#fff;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:none;text-decoration:none;transition:filter .14s,transform .12s,box-shadow .14s}
 .btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
-.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--t)}
+.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--ink)}
 .btn.sec:hover{border-color:var(--o);color:var(--o);filter:none}
-.btn.danger{background:#fff;border:1px solid rgba(220,38,38,.4);color:#dc2626}
-.btn.danger:hover{background:#fef2f2;filter:none}
+.btn.danger{background:#fff;border:1px solid rgba(214,69,111,.4);color:#d6456f}
+.btn.danger:hover{background:#fcebf0;filter:none}
 .btn.mini{padding:7px 13px;font-size:.8em}
 .btn svg{width:15px;height:15px}
-.wrap{padding:26px 24px 60px}
-.wrap,.content{width:auto!important;max-width:760px!important;margin-left:auto!important;margin-right:auto!important}
-/* ===== Hero ===== */
-.ph-hero{position:relative;overflow:hidden;border-radius:5px;padding:0;margin-bottom:20px;background:#fff;border:1px solid var(--bd);box-shadow:0 8px 26px -16px rgba(20,40,70,.35)}
-.ph-hero-top{height:92px;background:linear-gradient(100deg,#f0820f,#ff9f2e 52%,#ffc879);position:relative}
-.ph-hero-top::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 85% -10%,rgba(255,255,255,.4),transparent 42%)}
+.wrap{padding:0}
+/* ===== Hero — light card with orange accent + avatar, matching index.html ===== */
+.ph-hero{position:relative;overflow:hidden;border-radius:5px;padding:0;margin-bottom:12px;background:var(--white);border:1px solid var(--line,#e7e5df);box-shadow:var(--sh)}
+.ph-hero-top{height:84px;background:linear-gradient(100deg,var(--o),var(--ol) 60%,#ffd3b0);position:relative}
+.ph-hero-top::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 85% -10%,rgba(255,255,255,.45),transparent 42%)}
 .ph-hero-body{display:flex;align-items:flex-end;gap:18px;padding:0 24px 20px;margin-top:-44px;position:relative}
 .ph-hero-av{position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;background:#fff;padding:5px;box-shadow:0 6px 18px -6px rgba(20,40,70,.4)}
 .ph-hero-av #avatarBox,.ph-hero-av #avatarBox img,.ph-hero-av #avatarBox .avatar-initial,.ph-hero-av .avatar-loading{width:86px!important;height:86px!important;border-radius:50%!important;object-fit:cover;display:flex;align-items:center;justify-content:center}
-.ph-hero-cam{position:absolute;right:0;bottom:4px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#fff;border:3px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(20,40,70,.3)}
+.ph-hero-cam{position:absolute;right:0;bottom:4px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#fff;border:3px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(21,29,40,.3)}
 .ph-hero-cam:hover{background:var(--oh)}
 .ph-hero-cam svg{width:14px;height:14px}
 .ph-hero-meta{flex:1;min-width:0;padding-bottom:4px}
-.ph-hero-name{font-size:1.5em;font-weight:800;color:#1b2026;letter-spacing:-.3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.ph-hero-badge{display:inline-flex;align-items:center;background:#fff4e8;color:#b5560c;border:1px solid #f3d4b0;font-size:.56em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:999px}
-.ph-hero-handle{color:var(--tm);font-size:.9em;font-weight:600;margin-top:3px}
+.ph-hero-name{font-size:1.45em;font-weight:800;color:var(--ink);letter-spacing:-.3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph-hero-badge{display:inline-flex;align-items:center;background:#ffe6d6;color:var(--o);border:1px solid #ffd0b3;font-size:.56em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.ph-hero-handle{color:var(--ink2);font-size:.9em;font-weight:600;margin-top:3px}
 .ph-hero-actions{flex:0 0 auto;display:flex;gap:8px;padding-bottom:4px}
 @media(max-width:600px){.ph-hero-body{flex-direction:column;align-items:center;text-align:center}.ph-hero-actions{justify-content:center}.ph-hero-name{justify-content:center}}
 /* ===== Cards ===== */
-.ph-card{background:#fff;border:1px solid var(--bd);border-radius:5px;padding:22px 24px;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05)}
-.ph-card-h{display:flex;align-items:center;gap:9px;font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#1b2026;margin-bottom:16px}
-.ph-card-h svg{width:15px;height:15px;color:var(--o)}
-label{display:block;color:var(--tm);font-size:.82em;font-weight:700;margin:14px 0 7px}
-input[type=text],input[type=password]{width:100%;padding:11px 13px;background:#fff;border:1px solid var(--bd);border-radius:5px;color:#1b2026;font-size:.92em;transition:border-color .14s,box-shadow .14s}
-input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.ph-card{background:var(--white);border:1px solid var(--bd);border-radius:5px;padding:18px;margin-bottom:12px;box-shadow:var(--sh)}
+/* Two 50/50 columns of EQUAL height. Left = Account; right = Security + Admin tools stacked
+   (spread to fill the same height). */
+.ph-row-2{display:flex;gap:18px;align-items:stretch;margin-bottom:12px}
+.ph-row-2>.ph-card,.ph-row-2>.ph-col{flex:1 1 0;min-width:0;margin-bottom:0}
+.ph-row-2>.ph-card{display:flex;flex-direction:column}
+.ph-col{display:flex;flex-direction:column;gap:12px}
+.ph-col>.ph-card{margin-bottom:0}
+.ph-col>.ph-card:last-child{flex:1}
+/* Change/Remove photo buttons pinned to the RIGHT of the Account header title. Not uppercase. */
+.ph-photo-btns{margin-left:auto;display:inline-flex;gap:8px;text-transform:none;letter-spacing:normal}
+/* Login ID + Role + Save on one line. Each cell shows "Label: value" INLINE (not stacked). */
+.ph-idrow{display:flex;align-items:stretch;gap:12px;margin-top:16px}
+.ph-idrow .cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;background:var(--gray);border:1px solid #eceae4;border-radius:5px;padding:10px 14px}
+.ph-idrow .cell .k{flex:0 0 auto;font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
+.ph-idrow .cell .k::after{content:':'}
+.ph-idrow .cell .v{min-width:0;font-size:.95em;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis}
+.ph-idrow .btn{flex:0 0 auto;align-self:stretch;min-width:150px;justify-content:center}
+@media(max-width:700px){.ph-row-2{flex-direction:column;gap:12px}.ph-idrow{flex-wrap:wrap}.ph-idrow .btn{flex:1 1 100%}.ph-photo-btns{margin-left:0;flex-wrap:wrap}}
+.ph-card-h{display:flex;align-items:center;gap:10px;font-size:.8em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--ink);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eef0f3}
+.ph-card-h::before{content:'';flex:0 0 auto;width:3px;height:18px;border-radius:2px;background:linear-gradient(var(--o),var(--ol))}
+.ph-card-h svg{flex:0 0 auto;width:28px;height:28px;padding:6px;background:var(--icbg);color:var(--icfg);border-radius:8px}
+label{display:block;color:var(--ink2);font-size:.82em;font-weight:700;margin:14px 0 7px}
+input[type=text],input[type=password]{width:100%;padding:11px 13px;background:var(--white);border:1px solid var(--bd);border-radius:5px;color:var(--ink);font-size:.92em;transition:border-color .14s,box-shadow .14s}
+input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,0,.14)}
 .ph-kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-.ph-kv .cell{background:#f7f9fb;border:1px solid #eef1f4;border-radius:5px;padding:12px 14px}
-.ph-kv .k{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tm)}
-.ph-kv .v{font-size:1em;font-weight:800;color:#1b2026;margin-top:4px;display:flex;align-items:center;gap:8px}
-.ph-badge{background:#fff4e8;color:#b5560c;border:1px solid #f3d4b0;padding:2px 10px;border-radius:999px;font-size:.72em;text-transform:uppercase;font-weight:800}
+.ph-kv .cell{background:var(--gray);border:1px solid #eceae4;border-radius:5px;padding:12px 14px}
+.ph-kv .k{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
+.ph-kv .v{font-size:1em;font-weight:800;color:var(--ink);margin-top:4px;display:flex;align-items:center;gap:8px}
+.ph-badge{background:#ffe6d6;color:var(--o);border:1px solid #ffd0b3;padding:2px 10px;border-radius:999px;font-size:.72em;text-transform:uppercase;font-weight:800}
 .ph-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .ph-actions .btn{flex:1;min-width:150px;justify-content:center}
 .msg{font-size:.85em;margin-top:12px;display:none;font-weight:600}
-.msg.err{color:#dc2626}.msg.ok{color:var(--gl)}
-.gate{text-align:center;padding:60px 20px;background:#fff;border:1px solid var(--bd);border-radius:5px}
-.gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
-.gate p{color:var(--tm);margin-bottom:18px;line-height:1.55}
+.msg.err{color:#d6456f}.msg.ok{color:var(--gl)}
+.gate{text-align:center;padding:60px 20px;background:var(--white);border:1px solid var(--bd);border-radius:5px;box-shadow:var(--sh)}
+.gate h1{color:var(--ink);font-size:1.5em;margin-bottom:10px}
+.gate p{color:var(--ink2);margin-bottom:18px;line-height:1.55}
 /* spinners */
 .pspin{display:inline-block;border:2px solid #e2e7eb;border-top-color:var(--o);border-radius:50%;animation:pspin .8s linear infinite}
 .pspin.big{width:34px;height:34px;border-width:3px}
@@ -70,11 +91,11 @@ input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114
 .field-loading{display:flex;align-items:center;color:var(--tm);font-size:.9em;padding:11px 13px;background:#fff;border:1px solid var(--bd);border-radius:5px}
 /* modal */
 .modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#fff;border:1px solid var(--bd);border-radius:5px;width:440px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
+.modal{background:var(--white);border-radius:5px;width:440px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(21,29,40,.5)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.modal-head h2{color:#1b2026;font-size:1.1em;font-weight:800}
-.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#1b2026}
+.modal-head h2{color:var(--ink);font-size:1.1em;font-weight:800}
+.modal-close{background:transparent;border:none;color:var(--ink2);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
+.modal-close:hover{color:var(--ink)}
 /* ===== Weekly Performance Summary (managers + owners) ===== */
 .ws-card{background:#fff;border:1px solid var(--bd);border-radius:5px;padding:0;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05);overflow:hidden}
 .ws-head{width:100%;display:flex;align-items:center;gap:12px;padding:16px 22px;background:linear-gradient(100deg,#fff6ec,#fff 70%);border:none;border-bottom:1px solid var(--bd);font:inherit;text-align:left;cursor:pointer}
@@ -129,15 +150,93 @@ input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114
 .ws-tag.watch{background:#fff3e0;color:#b5680c}
 .ws-note-line{font-size:.82em;line-height:1.55;color:var(--tm);margin-top:12px;font-style:italic}
 @media(max-width:560px){.ws-kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Header bar + Recent sidebar (ported from index.html) ===== */
+:root{--gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;--line:#e7e5df;--icbg:#c4def6;--icfg:#2b66c1;--sh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28)}
+.page{width:100%;max-width:100%;padding:10px;box-sizing:border-box}
+/* Override the narrow centered .wrap: inside the main column it fills full width.
+   Higher-specificity selector (.home-main .wrap) so it beats topbar-auth.js's injected
+   .wrap{width/padding !important} rule regardless of source order. */
+.home-main .wrap,.home-main .content,
+body[data-profile-panel] .home-main .wrap,
+body[data-profile-panel] .home-main .content{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}
+.home-hdr{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--white);
+  border:1px solid var(--line);border-radius:5px;box-shadow:var(--sh);padding:10px;margin:0 0 10px;box-sizing:border-box}
+.home-hdr-left{display:flex;align-items:center;gap:13px}
+.home-hdr-swap{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--icbg);text-decoration:none;flex:0 0 auto}
+.home-hdr-swap .tb-logo-swap{position:relative;display:block;width:28px;height:28px;overflow:hidden}
+.home-hdr-swap .tb-logo-swap .tb-rail-logo-img{position:absolute;top:50%;left:50%;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.home-hdr-logo{display:flex;align-items:center;text-decoration:none}
+.home-hdr-logo img{height:24px;width:auto;display:block;object-fit:contain}
+.home-hdr-prof{display:inline-flex;align-items:center}
+.home-hdr-prof a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--white);color:var(--icfg);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
+.home-hdr-prof a:hover{border-color:var(--o);color:var(--o);transform:translateY(-1px);box-shadow:0 4px 12px -4px rgba(255,97,0,.4)}
+.home-hdr-prof a svg{width:20px;height:20px}
+.home-hdr-prof a img,.home-hdr-prof a .avatar-initial{width:38px!important;height:38px!important;border-radius:50%!important;object-fit:cover}
+.home-layout{display:flex;align-items:flex-start;gap:12px;max-width:100%}
+.home-main{flex:1 1 0;min-width:0;max-width:100%}
+.home-recent{flex:0 0 clamp(170px,15vw,230px);width:clamp(170px,15vw,230px);position:sticky;top:10px;align-self:flex-start;background:var(--white);border:1px solid var(--line);border-radius:5px;box-shadow:var(--sh);display:flex;flex-direction:column;overflow:hidden}
+.home-recent .hr-head{display:flex;align-items:center;gap:8px;padding:10px;font-size:.84em;font-weight:800;color:var(--ink);border-bottom:1px solid var(--line)}
+.home-recent .hr-head::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--o)}
+.home-recent .hr-head-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--icbg);color:var(--icfg);flex:0 0 auto}
+.home-recent .hr-head-ic svg{width:13px;height:13px}
+.home-recent .hr-list{display:flex;flex-direction:column;gap:6px;padding:10px}
+.hr-item{--acc:var(--icfg);--accbg:var(--icbg);position:relative;display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #eceae4;border-radius:5px;text-decoration:none;color:var(--ink);transition:border-color .14s,background .14s,transform .14s}
+.hr-item:hover{transform:translateX(2px);border-color:var(--acc);background:#fbfaf7}
+.hr-item .hr-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--accbg);color:var(--acc);flex:0 0 auto}
+.hr-item .hr-ic svg{width:14px;height:14px}
+.hr-item .hr-tx{min-width:0;display:flex;flex-direction:column;gap:1px}
+.hr-item .hr-title{font-size:.8em;font-weight:700;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr-item .hr-time{font-size:.68em;color:var(--ink2);font-weight:500}
+.hr-item.nt-amber{--acc:#ff6100;--accbg:#ffe6d6}
+.hr-item.nt-violet{--acc:#6d5bd0;--accbg:#e7e3fb}
+.hr-item.nt-rose{--acc:#d6456f;--accbg:#fbe0e9}
+.hr-item.nt-blue{--acc:var(--icfg);--accbg:var(--icbg)}
+.hr-item.nt-teal{--acc:#1b8f8a;--accbg:#d2f0ee}
+.hr-item.hr-latest{background:#fff7f2;border-color:#ffd9c2}
+.home-recent .hr-list .hr-empty{font-size:.74em;color:var(--ink2);text-align:center;padding:18px 8px;line-height:1.5}
+.home-recent .hr-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-top:1px solid #eceae4;font-size:.68em;color:var(--ink2)}
+.home-recent .hr-clear{background:transparent;border:none;color:var(--icfg);font-weight:700;font-size:1em;cursor:pointer;padding:0;font-family:inherit}
+.home-recent .hr-clear:hover{color:var(--o)}
+body.home-no-recent .home-recent{display:none}
+body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
+@media(max-width:1024px){.home-layout{flex-direction:column}.home-recent{position:static;top:auto;width:100%;max-width:100%;flex:1 1 auto}.home-recent .hr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}}
+@media(max-width:860px){.home-recent{display:none}}
+/* Rotating logo-swap animation (self-contained). */
+.tb-logo-swap .tb-logo-a{animation:tbLogoSlideA 2s ease-in-out infinite}
+.tb-logo-swap .tb-logo-b{animation:tbLogoSlideB 2s ease-in-out infinite}
+@keyframes tbLogoSlideA{0%,38%{transform:translate(-50%,-50%);opacity:1}50%,88%{transform:translate(-50%,-180%);opacity:0}100%{transform:translate(-50%,-50%);opacity:1}}
+@keyframes tbLogoSlideB{0%,38%{transform:translate(-50%,80%);opacity:0}50%,88%{transform:translate(-50%,-50%);opacity:1}100%{transform:translate(-50%,80%);opacity:0}}
 </style>
-<link rel="stylesheet" href="theme.css">
-<link rel="stylesheet" href="app-light.css?v=5">
 </head>
 <body data-nav-active="profile" data-back-href="app.html" data-back-label="Dashboard">
-<div class="top-bar" style="visibility:hidden">
-  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+<div class="top-bar" style="display:none"></div>
+<div class="page">
+  <!-- Header bar (matches index.html): rotating logo + wordmark + profile/login icon -->
+  <div class="home-title-row js-header-row home-hdr">
+    <div class="home-hdr-left">
+      <a class="home-hdr-swap" href="index.html" title="Home" aria-label="Home">
+        <span class="tb-logo-swap">
+          <img class="tb-rail-logo-img tb-logo-a" src="gsoc-logo.svg" alt="GSOC">
+          <img class="tb-rail-logo-img tb-logo-b" src="amazon-logo.webp" alt="Amazon">
+        </span>
+      </a>
+      <a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>
+    </div>
+    <span class="home-hdr-prof" id="homeHdrProf"></span>
+  </div>
+
+  <div class="home-layout">
+    <!-- Recent visited sidebar (logged-in only; hidden on mobile) -->
+    <aside class="home-recent" id="homeRecent">
+      <div class="hr-head"><span class="hr-head-ic" data-ic="clock"></span>Recent</div>
+      <div class="hr-list" id="hrList"></div>
+      <div class="hr-foot"><span>Last visited pages</span><button type="button" class="hr-clear" id="hrClear">Clear</button></div>
+    </aside>
+    <!-- Main profile content (filled by renderProfile) -->
+    <div class="home-main"><div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div></div>
+  </div>
 </div>
-<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
 <div class="modal-bg" id="pwModal" onclick="if(event.target===this)closePwModal()">
   <div class="modal">
@@ -159,11 +258,67 @@ input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---- Header profile/login icon (matches index.html) ----
+function renderHomeHdrProf(){
+  var slot=document.getElementById('homeHdrProf'); if(!slot) return;
+  var user=(A&&A.getUser&&A.getUser())||null;
+  if(user){
+    var prof=(A.myProfile&&A.myProfile())||A._myProfile||user;
+    var nm=(prof&&(prof.displayName||prof.username))||'Profile';
+    var av=(A.avatarHtml?A.avatarHtml(prof,40):ic('user',20));
+    slot.innerHTML='<a href="profile.html" title="'+String(nm).replace(/"/g,'&quot;')+' — Profile" aria-label="Profile">'+av+'</a>';
+  }else{
+    slot.innerHTML='<a href="index.html" title="Log in" aria-label="Log in">'+ic('key',20)+'</a>';
+  }
+}
+
+// ---- Recently visited sidebar (logged-in only; reads phd_recent_pages) ----
+var HR_KEY='phd_recent_pages';
+var HR_MAP={
+  'app':{title:'Active Dashboard',icon:'bolt',tone:'amber'},'my-tickets':{title:'My Tickets',icon:'ticket',tone:'amber'},
+  'archive':{title:'Program History',icon:'inbox',tone:'amber'},'issue-types':{title:'Issue Standardization',icon:'clipboard',tone:'violet'},
+  'ticket-sanitization':{title:'Ticket Sanitization',icon:'check-circle',tone:'rose'},'rules':{title:'Rules & Definitions',icon:'book',tone:'teal'},
+  'hi-resolved':{title:'Repeat Incidents',icon:'repeat',tone:'blue'},'sla-breach':{title:'SLA Breaches',icon:'clock',tone:'rose'},
+  'station-request':{title:'Station Requests',icon:'map-pin',tone:'blue'},'agent-analytics':{title:'Team Analytics',icon:'bar-chart',tone:'blue'},
+  'tools':{title:'PHD Tools',icon:'tool',tone:'teal'},'profile':{title:'Profile',icon:'user',tone:'blue'},
+  'data-log':{title:'Uploaded Data Log',icon:'history',tone:'violet'},'users':{title:'Users',icon:'users',tone:'blue'},
+  'db-health':{title:'Database Health',icon:'database',tone:'teal'},'groups-page':{title:'Grouping Page',icon:'copy',tone:'violet'}
+};
+function hrFileOf(href){ try{ return (String(href).split('?')[0].split('/').pop()||'').replace(/\.html?$/i,''); }catch(e){ return ''; } }
+function hrRelTime(ts){
+  var s=Math.max(0,Math.floor((Date.now()-ts)/1000));
+  if(s<45) return 'just now';
+  var m=Math.floor(s/60); if(m<60) return m+' min ago';
+  var h=Math.floor(m/60); if(h<24) return h+' hr'+(h>1?'s':'')+' ago';
+  var d=Math.floor(h/24); if(d===1) return 'Yesterday';
+  if(d<7) return d+' days ago';
+  return new Date(ts).toLocaleDateString('en-US',{day:'numeric',month:'short'});
+}
+function renderRecent(){
+  var panel=document.getElementById('homeRecent');
+  var loggedIn=(A&&A.getUser&&A.getUser());
+  if(!loggedIn){ if(panel) panel.style.display='none'; document.body.classList.add('home-no-recent'); return; }
+  if(panel) panel.style.display=''; document.body.classList.remove('home-no-recent');
+  var list=document.getElementById('hrList'); if(!list) return;
+  var items=[]; try{ items=JSON.parse(localStorage.getItem(HR_KEY)||'[]'); }catch(e){ items=[]; }
+  if(!Array.isArray(items)) items=[];
+  items=items.filter(function(x){ var f=hrFileOf(x&&x.href); return f && f!=='index' && f!==''; }).slice(0,6);
+  if(!items.length){ list.innerHTML='<div class="hr-empty">No recent pages yet. Pages you open will show up here.</div>'; return; }
+  list.innerHTML=items.map(function(x,i){
+    var f=hrFileOf(x.href); var meta=HR_MAP[f]||{title:(x.title||f),icon:'grid',tone:'blue'};
+    var cls='hr-item nt-'+meta.tone+(i===0?' hr-latest':'');
+    return '<a class="'+cls+'" href="'+x.href+'" title="'+String(meta.title).replace(/"/g,'&quot;')+'">'+
+      '<span class="hr-ic">'+ic(meta.icon,14)+'</span>'+
+      '<span class="hr-tx"><span class="hr-title">'+meta.title+'</span><span class="hr-time">'+hrRelTime(x.at||Date.now())+'</span></span></a>';
+  }).join('');
+}
+
 let PROFILE_LOADED=false;
 let PENDING_AVATAR=undefined; // undefined=no change, ''=remove, 'data:...'=new
 
@@ -204,36 +359,37 @@ function render(){
       </div>
     </div>
 
-    <div id="weeklySummarySlot"></div>
-    <div id="monthlySummarySlot"></div>
-
-    <div class="ph-card">
-      <div class="ph-card-h">${ic('user',15)} Account</div>
-      <label>Display name</label>
-      ${nameField}
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Change photo</button>
-        ${removeBtn}
+    <div class="ph-row-2">
+      <!-- LEFT 50%: Account -->
+      <div class="ph-card">
+        <div class="ph-card-h">${ic('user',15)} Account
+          <span class="ph-photo-btns">
+            <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Change photo</button>
+            ${removeBtn}
+          </span>
+        </div>
+        <label>Display name</label>
+        ${nameField}
+        <div class="ph-idrow">
+          <div class="cell"><span class="k">Login ID</span><span class="v">${esc(user.username)}</span></div>
+          <div class="cell"><span class="k">Role</span><span class="v"><span class="ph-badge">${esc(user.role)}</span></span></div>
+          <button class="btn" id="saveProfBtn" onclick="saveProfile()"${PROFILE_LOADED?'':' disabled'}>${ic('check-circle')} Save changes</button>
+        </div>
+        <div class="msg err" id="profErr"></div>
+        <div class="msg ok" id="profOk"></div>
       </div>
-      <div class="ph-kv">
-        <div class="cell"><div class="k">Login ID</div><div class="v">${esc(user.username)}</div></div>
-        <div class="cell"><div class="k">Role</div><div class="v"><span class="ph-badge">${esc(user.role)}</span></div></div>
+      <!-- RIGHT 50%: Security above Admin tools (stacked) -->
+      <div class="ph-col">
+        <div class="ph-card">
+          <div class="ph-card-h">${ic('lock',15)} Security</div>
+          <div class="ph-actions">
+            <button class="btn sec" onclick="openPwModal()">${ic('lock')} Change Password</button>
+            <button class="btn danger" onclick="doLogout()">${ic('log-out')} Logout</button>
+          </div>
+        </div>
+        ${adminToolsCard()}
       </div>
-      <div class="msg err" id="profErr"></div>
-      <div class="msg ok" id="profOk"></div>
-      <div class="ph-actions" style="justify-content:flex-end">
-        <button class="btn" id="saveProfBtn" onclick="saveProfile()" style="flex:0 0 auto;min-width:150px"${PROFILE_LOADED?'':' disabled'}>${ic('check-circle')} Save changes</button>
-      </div>
-    </div>
-
-    <div class="ph-card">
-      <div class="ph-card-h">${ic('lock',15)} Security</div>
-      <div class="ph-actions">
-        <button class="btn sec" onclick="openPwModal()">${ic('lock')} Change Password</button>
-        <button class="btn danger" onclick="doLogout()">${ic('log-out')} Logout</button>
-      </div>
-    </div>
-    ${adminToolsCard()}`;
+    </div>`;
   if(PROFILE_LOADED)wireAvatarInput();
   paintWeeklySummary();
 }
@@ -485,14 +641,21 @@ async function changePw(){
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
+// Fill the header clock icon placeholder + wire the Recent "Clear" button.
+document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML=window.icon(el.getAttribute('data-ic'),13); });
+(function(){ var clr=document.getElementById('hrClear'); if(clr) clr.onclick=function(){ try{ localStorage.removeItem(HR_KEY); }catch(e){} renderRecent(); }; })();
+
 (async()=>{
+  renderHomeHdrProf();
+  renderRecent();
   render();
   if(A.getUser()&&A.getToken()){
     try{ await A.loadMyProfile(); }catch(e){}
     try{ if(A._refreshMe) await A._refreshMe(); else if(A.getMe) await A.getMe(); }catch(e){}
     PROFILE_LOADED=true;
     render();
-    loadWeeklySummary();   // managers + owners only; fills the slot once fetched
+    renderHomeHdrProf();   // repaint with the loaded avatar
+    renderRecent();
   }
 })();
 </script>

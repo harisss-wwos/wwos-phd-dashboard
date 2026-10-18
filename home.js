@@ -53,11 +53,12 @@ function renderQuarterCards(){
     const action=opts.action ? ('<span class="nt-cta">'+opts.action+' <span class="nt-arrow">'+(opts.external?'↗':'→')+'</span></span>') : '';
     const inner=
       '<span class="nt-top">'+
-        '<span class="nt-ic">'+icH(opts.icon,20)+'</span>'+pill+
+        '<span class="nt-ic">'+icH(opts.icon,18)+'</span>'+
+        '<span class="nt-head"><span class="nt-title">'+opts.title+'</span>'+sub+'</span>'+
+        (opts.live?pill:'')+
         (isGuest?'<span class="nt-lock" title="Log in to access">'+icH('key',14)+'</span>':'')+
       '</span>'+
       '<span class="nt-body">'+
-        '<span class="nt-title">'+opts.title+'</span>'+sub+
         '<span class="nt-desc">'+opts.desc+'</span>'+
       '</span>'+
       action;
@@ -142,43 +143,18 @@ function renderCmpSparks(){
   });
 }
 
-// Fetch /api/year-metrics and fill the per-year comparison table (2021-2026) + its sparklines.
-// Public endpoint; runs on the home page. Graceful no-op if the table or data is missing.
+// Draw the per-year comparison table's trend sparklines (2021-2026). All year values — including
+// 2026 (approximate program averages: ~2,375/mo, ~116.4 hrs, ~90.1%) — are now HARDCODED in the
+// HTML; this no longer fetches /api/year-metrics. Each row's data-fixed already carries all six
+// points, so we just mirror it into data-vals and render. No-op if the table is missing.
 (function(){
   var table=document.getElementById('yearCmpTable'); if(!table)return;
-  var A=window.PHDAuth;
-  // 2021-2025 are hardcoded in the HTML (historical, never change). Only 2026 (live) is fetched.
-  var setLive=function(metric,html){
-    var row=table.querySelector('tr[data-metric="'+metric+'"]'); if(!row)return;
-    var td=row.querySelector('td.yv[data-y="2026"]'); if(td)td.innerHTML=html;
-  };
-  // Sparkline = the row's fixed 2021-2025 values (data-fixed) + the live 2026 value appended.
-  var sparkWith=function(metric,v2026){
+  var sparkFromFixed=function(metric){
     var row=table.querySelector('tr[data-metric="'+metric+'"]'); if(!row)return;
     var cell=row.querySelector('.cmp-spark'); if(!cell)return;
     var fixed=(cell.getAttribute('data-fixed')||'').split(',').filter(Boolean);
-    if(v2026!=null) fixed.push(String(v2026));
     cell.setAttribute('data-vals',fixed.join(','));
   };
-  var put=function(){
-    (A&&A.api?A.api('GET','/api/year-metrics'):Promise.reject()).then(function(r){
-      if(!r||!r.ok||!r.data||!Array.isArray(r.data.years)) throw new Error('bad');
-      var d=null; r.data.years.forEach(function(y){ if(y.year===2026) d=y; });
-      d=d||{};
-      var vol=(d.volPerMonth!=null)?d.volPerMonth:null;
-      var res=(d.avgResHrs!=null)?d.avgResHrs:null;
-      var sla=(d.slaPct!=null)?d.slaPct:null;
-      setLive('vol', vol!=null?(vol.toLocaleString()+'<span class="cmp-u">/mo</span>'):'\u2014');
-      setLive('res', res!=null?(res+'<span class="cmp-u">hrs</span>'):'\u2014');
-      setLive('sla', sla!=null?(sla+'%'):'\u2014');
-      sparkWith('vol',vol); sparkWith('res',res); sparkWith('sla',sla);
-      renderCmpSparks();
-    }).catch(function(){
-      // Endpoint failed: show a dash for 2026 and draw the sparkline from the 5 fixed years only.
-      setLive('vol','\u2014'); setLive('res','\u2014'); setLive('sla','\u2014');
-      sparkWith('vol',null); sparkWith('res',null); sparkWith('sla',null);
-      renderCmpSparks();
-    });
-  };
-  put();
+  sparkFromFixed('vol'); sparkFromFixed('res'); sparkFromFixed('sla');
+  renderCmpSparks();
 })();

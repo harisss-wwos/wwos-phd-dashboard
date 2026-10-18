@@ -57,17 +57,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
    as the right-side child by topbar-auth.js (PHDPlaceTopRight). */
 .dash-title-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
 .dash-title-row:not(:empty){margin-bottom:10px}
-/* Header title bar copied from index.html: Amazon WWOS wordmark (left) + "YTD <year>" calendar-icon
-   label (right) on a white card. */
-.home-hdr{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px;background:#fff!important;border:1px solid #e2e6ea!important;border-radius:5px!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;padding:5px 18px!important;margin:0 0 12px!important;height:60px!important;min-height:60px!important;box-sizing:border-box!important}
-/* The shared .js-header-row rule forces padding-top:10px!important; override it (higher specificity
-   with the extra .home-hdr class) so the bar's padding is 5px 18px 5px. */
-.home-hdr.js-header-row{padding-top:5px!important;padding-bottom:5px!important}
-.home-hdr .home-hdr-logo{display:flex;align-items:center;align-self:center;height:auto;text-decoration:none;flex:0 0 auto}
-.home-hdr .home-hdr-logo img{height:28px;width:auto;display:block;object-fit:contain}
-.home-hdr .home-hdr-title{display:flex;align-items:center;align-self:center;gap:9px;height:auto;line-height:1;color:#ec7211;font-size:1.15em;font-weight:800;letter-spacing:.2px;white-space:nowrap;flex:0 0 auto;text-transform:uppercase}
-.home-hdr .home-hdr-ic{display:inline-flex;align-items:center;color:#ec7211}
-.home-hdr .home-hdr-ic svg{width:20px;height:20px;display:block}
+/* (The page's own .home-hdr header styles were removed — the shared chrome in topbar-auth.js
+   (#tbHomeChrome .home-hdr) now styles the title bar on every page, including this one.) */
 .dash-title-h1{font-size:1.8em;color:#fff;font-weight:700;margin:0;display:inline-flex;align-items:center;gap:12px;flex:1 1 auto;justify-content:space-between}
 /* Dashboard title label (replaces the old My Tickets button in this row). */
 .dash-title-name{font-size:1.2em;color:#fff;font-weight:700;letter-spacing:.3px;line-height:1}
@@ -737,13 +728,12 @@ tr:hover{background:#f8fafb}
 .content .dash-collapsible.collapsed .sec-caret{transform:rotate(-90deg)}
 /* When collapsed, hide the Q3/Q2/Q2+Q3 scope selector AND the Performance period picker — so the
    collapsed banner is just title + caret, giving Live Queue & Performance Overview the SAME height. */
-.content .dash-collapsible.collapsed .dash-scope-sec,
-.content .dash-collapsible.collapsed .perf-head-right{display:none!important}
+.content .dash-collapsible.collapsed .dash-scope-sec{display:none!important}
 /* The body wrapper animates its height. Target the direct body: .sec-body (legacy), .dash-chunk-slot
-   (Age), .lq-body (merged Live Queue), .perf-body (merged Performance Overview). */
-.content .dash-collapsible>.sec-body,.content .dash-collapsible>.dash-chunk-slot,.content .dash-collapsible>.lq-body,.content .dash-collapsible>.perf-body{
+   (Age), .lq-body (merged Live Queue). */
+.content .dash-collapsible>.sec-body,.content .dash-collapsible>.dash-chunk-slot,.content .dash-collapsible>.lq-body{
   overflow:hidden;transition:max-height .32s ease,opacity .25s ease,padding .32s ease;max-height:4000px;opacity:1}
-.content .dash-collapsible.collapsed>.sec-body,.content .dash-collapsible.collapsed>.dash-chunk-slot,.content .dash-collapsible.collapsed>.lq-body,.content .dash-collapsible.collapsed>.perf-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
+.content .dash-collapsible.collapsed>.sec-body,.content .dash-collapsible.collapsed>.dash-chunk-slot,.content .dash-collapsible.collapsed>.lq-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
 .content .dash-chunk-slot>.meta-info:first-child,.content .sec-body>.meta-info:first-child{margin-top:-4px;color:#9aa6b0}
 
 /* Per-section banner colors (via :has() — the header is colored by the slot the section contains). */
@@ -754,22 +744,16 @@ tr:hover{background:#f8fafb}
    rule below so this section (which also contains #dashAgeBody) keeps its own colour. */
 .content .section:has(.lq-body) .sec-head{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)!important}
 .content .section:has(#dashAgeBody):not(:has(.lq-body)) .sec-head{background:linear-gradient(90deg,#f07d0a,#ff9f2e 55%,#ffb454)}
-/* ---- Live Queue + Performance Overview banners: state-aware flat color + WHITE font ----
+/* ---- Live Queue banner: state-aware flat color + WHITE font ----
    Expanded = #0b63cf (AA white contrast). Collapsed = sky-blue #38bdf8. White title + icons. */
-.content .dash-collapsible:has(.lq-body) .sec-head,
-.content .dash-collapsible[data-perf] .sec-head{background:#0b63cf!important}
-.content .dash-collapsible.collapsed:has(.lq-body) .sec-head,
-.content .dash-collapsible.collapsed[data-perf] .sec-head{background:#38bdf8!important}
-/* White title text + caret on both banners (overrides the default dark #0e1013). */
+.content .dash-collapsible:has(.lq-body) .sec-head{background:#0b63cf!important}
+.content .dash-collapsible.collapsed:has(.lq-body) .sec-head{background:#38bdf8!important}
+/* White title text + caret on the banner (overrides the default dark #0e1013). */
 .content .dash-collapsible:has(.lq-body) .sec-head h2,
 .content .dash-collapsible:has(.lq-body) .sec-head h2 svg,
-.content .dash-collapsible:has(.lq-body) .sec-head .sec-caret,
-.content .dash-collapsible[data-perf] .sec-head h2,
-.content .dash-collapsible[data-perf] .sec-head h2 svg,
-.content .dash-collapsible[data-perf] .sec-head .sec-caret{color:#ffffff!important}
+.content .dash-collapsible:has(.lq-body) .sec-head .sec-caret{color:#ffffff!important}
 /* The watermark illustration is a dark SVG; soften it so it reads on the blue (optional subtlety). */
-.content .dash-collapsible:has(.lq-body) .sec-head::after,
-.content .dash-collapsible[data-perf] .sec-head::after{opacity:.28}
+.content .dash-collapsible:has(.lq-body) .sec-head::after{opacity:.28}
 /* Average Data — green */
 .content .kpi-section:has(#dashSumAvg) .sec-head{background:linear-gradient(90deg,#22c55e,#4ade80 55%,#86efac)}
 /* Repeat Incident Data — purple */
@@ -818,89 +802,6 @@ body[data-app="live"] .content{width:auto!important;max-width:none!important;mar
 .lq-sub-h{display:flex;align-items:center;gap:8px;font-size:.9em;font-weight:700;color:#1b2026;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eef1f4}
 .lq-sub-h svg{color:#ec7211}
 
-/* ---- Performance Overview: period picker (segmented chips + optional sub-select) ---- */
-/* Keep the whole picker on ONE line (never wrap -> never break the fixed 56px banner height). If it
-   genuinely can't fit, it scrolls horizontally instead of wrapping. The title truncates to yield room. */
-.content [data-perf] .sec-head{gap:12px}
-/* Title = icon + text. The icon never shrinks; the text truncates first to give the picker room, and
-   is hidden entirely on narrow banners (below) where even a truncated label would crowd the chips. */
-.content [data-perf] .sec-head>h2{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;gap:9px}
-.content [data-perf] .sec-head>h2 .perf-h2-ic{flex:0 0 auto;display:inline-flex;align-items:center}
-.content [data-perf] .sec-head>h2 .perf-h2-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Narrow viewport: the full picker (6 chips + up to 2 selects) needs the width — drop the title text,
-   keep just the icon. The hover tooltip still reads "Performance Overview". */
-@media(max-width:1150px){
-  .content [data-perf] .sec-head>h2 .perf-h2-txt{display:none}
-  .content [data-perf] .sec-head>h2{gap:0}
-}
-.perf-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-.perf-head-right::-webkit-scrollbar{display:none}
-.perf-head-right>span{display:inline-flex}
-.perf-picker{display:inline-flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-end}
-.perf-sub{flex:0 0 auto}
-/* Segmented chip group: one rounded pill track, each range type a chip; active chip = white on orange. */
-.perf-chips{display:inline-flex;flex:0 0 auto;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
-.perf-chip{font-family:inherit;font-size:.76em;font-weight:700;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
-.perf-chip:hover{color:#1b2026}
-.perf-chip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
-/* Secondary select(s) for month / week / quarter — compact, appears only when needed. */
-.perf-sub{display:inline-flex;align-items:center;gap:6px}
-.perf-sel{font-family:inherit;font-size:.8em;font-weight:600;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:5px;padding:6px 10px;cursor:pointer;outline:none}
-.perf-sel:hover{border-color:#c2cad1}
-.perf-sel:focus{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
-.perf-body{padding:14px 18px 18px}
-/* Period picker moved INTO the body: a top row, right-aligned, with a divider + gap below it so it
-   separates cleanly from the KPI/chart content. Resets the banner-era margin-left:auto. */
-.perf-head-inbody{margin:0 0 14px!important;padding-bottom:14px;border-bottom:1px solid #eef1f4;justify-content:flex-end}
-@media(max-width:860px){.perf-head-inbody{justify-content:flex-start}}
-/* ---- Performance KPIs: top-3 podium + colorful stat tiles ---- */
-.pf-section-h{display:flex;align-items:center;gap:7px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8b96a0;margin:2px 0 10px}
-.pf-section-h svg{width:13px;height:13px;color:#ec7211}
-.pf-podium-wrap{margin-bottom:18px}
-.pf-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
-.pf-medal{position:relative;border-radius:5px;padding:18px 14px 14px;text-align:center;color:#1b2026;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
-.pf-medal::before{content:"";position:absolute;inset:0 0 auto 0;height:4px}
-.pf-medal.pf-gold{background:linear-gradient(180deg,#fff8e6,#fff);} .pf-medal.pf-gold::before{background:linear-gradient(90deg,#f6c21a,#ffde7a)}
-.pf-medal.pf-silver{background:linear-gradient(180deg,#f4f7fa,#fff);} .pf-medal.pf-silver::before{background:linear-gradient(90deg,#aab6c2,#d9e1e8)}
-.pf-medal.pf-bronze{background:linear-gradient(180deg,#fbf0e6,#fff);} .pf-medal.pf-bronze::before{background:linear-gradient(90deg,#cd7f32,#e3a86a)}
-.pf-medal.pf-gold{transform:translateY(-6px)}            /* gold stands a touch taller, podium feel */
-/* medal emoji badge, top-right corner */
-.pf-medal-badge{position:absolute;top:8px;right:10px;font-size:1.25em;line-height:1}
-/* avatar: photo or coloured initial, centered */
-.pf-av{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#eef1f4;border:2px solid #fff;box-shadow:0 2px 6px rgba(20,40,70,.18)}
-.pf-av img{width:100%;height:100%;object-fit:cover;display:block}
-.pf-av-i{font-weight:800;font-size:1.3em;color:#5c6773}
-.pf-medal.pf-gold .pf-av{border-color:#f6c21a}.pf-medal.pf-silver .pf-av{border-color:#c3ccd4}.pf-medal.pf-bronze .pf-av{border-color:#cd7f32}
-.pf-medal-id{font-size:.9em;font-weight:800;margin-top:8px;color:#1b2026;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pf-medal-metrics{display:flex;flex-direction:column;gap:2px;margin-top:8px}
-.pf-mm{font-size:.76em;color:#5c6773}
-.pf-mm b{color:#1b2026;font-size:1.05em}
-.pf-mm-avg{color:#8b96a0;font-size:.72em;margin-top:1px}
-.pf-mm-avg small{opacity:.8}
-/* Stat tiles — one accent colour each. */
-.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.pf-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:13px 14px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
-.pf-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
-.pf-stat-top{display:flex;align-items:center;gap:7px;color:#5c6773}
-.pf-stat-top svg{width:15px;height:15px}
-.pf-stat-l{font-size:.72em;font-weight:700;letter-spacing:.2px;text-transform:uppercase}
-.pf-stat-v{font-size:1.5em;font-weight:900;letter-spacing:-.5px;color:#1b2026;margin-top:7px;line-height:1}
-.pf-stat-s{font-size:.72em;color:#8b96a0;margin-top:4px}
-.pf-created::before{background:#2563eb}.pf-created .pf-stat-top{color:#2563eb}
-.pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
-.pf-avgres::before{background:#0ea5b7}.pf-avgres .pf-stat-top{color:#0ea5b7}
-.pf-sla::before{background:#7c5cf0}.pf-sla .pf-stat-top{color:#7c5cf0}
-.pf-sla.ok .pf-stat-v{color:#1f9d57}.pf-sla.warn .pf-stat-v{color:#dc2626}
-.pf-autosim::before{background:#ec7211}.pf-autosim .pf-stat-top{color:#ec7211}
-.pf-repeat::before{background:#d9930a}.pf-repeat .pf-stat-top{color:#b5760a}
-.pf-avgrep::before{background:#db2777}.pf-avgrep .pf-stat-top{color:#db2777}
-.pf-pet::before{background:#0d9488}.pf-pet .pf-stat-top{color:#0d9488}
-@media(max-width:900px){.pf-stats{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.pf-podium{grid-template-columns:1fr}.pf-medal.pf-gold{transform:none}}
-/* Spinner overlay centered on the chart plot while the series data loads (axes already drawn). */
-.perf-spin-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.perf-chart-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a94a0;font-size:.86em}
-@media(max-width:860px){.perf-head-right{width:100%;margin-left:0;justify-content:flex-start}.perf-chips{flex-wrap:wrap}}
 
 /* ---- Queue Status: stat tiles ---- */
 .q-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;grid-column:1/-1}
@@ -1058,14 +959,187 @@ body[data-profile-panel] .content .q-tile-click:hover .q-tile-open{color:#ec7211
 @keyframes mblink{50%{opacity:.4}}
 </style>
 <!-- Light-mode preview (app.html only). Loaded last so it wins the cascade. Remove this line to revert. -->
-<link rel="stylesheet" href="light-app.css?v=39">
+<link rel="stylesheet" href="light-app.css?v=40">
+<!-- ===== Redesigned dashboard (flat, no collapse) � scoped under #dashRoot, loaded LAST so it wins. ===== -->
+<style id="dashRedesign">
+#dashRoot{
+  --dh-orange:#ff6100; --dh-orange-l:#fe9046; --dh-page:#f4f3ef; --dh-white:#ffffff;
+  --dh-ink:#151d28; --dh-ink2:#161d2d; --dh-mut:#818284; --dh-blue-bg:#e6f0fc;
+  --dh-blue-ic-bg:#c4def6; --dh-blue:#2b66c1;
+  width:100%; max-width:100%; margin:0; padding:0; display:flex; flex-direction:column; gap:16px;
+  color:var(--dh-ink); font-family:'Inter',-apple-system,sans-serif;
+}
+#dashRoot *{box-sizing:border-box}
+
+/* ---- Hero banner (now hosts the Queue Status content) ---- */
+#dashRoot .dh-hero{display:flex;flex-direction:column;gap:20px;
+  background:linear-gradient(120deg,var(--dh-ink2) 0%,#20304a 100%);border-radius:5px;padding:24px 26px;
+  box-shadow:0 10px 30px -14px rgba(21,29,40,.5);position:relative;overflow:hidden}
+#dashRoot .dh-hero::after{content:"";position:absolute;right:-40px;top:-60px;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,97,0,.28),transparent 68%);pointer-events:none}
+#dashRoot .dh-hero-top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;position:relative;z-index:1}
+#dashRoot .dh-hero-main{position:relative;z-index:1}
+#dashRoot .dh-hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:.72em;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--dh-orange-l);background:rgba(255,97,0,.14);
+  border:1px solid rgba(254,144,70,.4);border-radius:5px;padding:4px 12px}
+#dashRoot .dh-hero-eyebrow svg{color:var(--dh-orange-l)}
+#dashRoot .dh-hero-title{color:#c4def6!important;font-size:1.9em;font-weight:800;letter-spacing:-.5px;margin:0 0 6px;line-height:1}
+#dashRoot .dh-hero-sub{color:#b9c4d4;font-size:.92em;font-weight:500}
+#dashRoot .dh-hero-side{position:relative;z-index:1}
+#dashRoot .dh-live{display:inline-flex;align-items:center;gap:9px;font-size:.92em;font-weight:800;letter-spacing:.5px;
+  color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:5px;padding:9px 18px}
+#dashRoot .dh-live::before{content:"";width:9px;height:9px;border-radius:50%;background:#3ecf4a;
+  box-shadow:0 0 0 0 rgba(62,207,74,.7);animation:dhPulse 1.6s ease-out infinite}
+@keyframes dhPulse{0%{box-shadow:0 0 0 0 rgba(62,207,74,.6)}70%{box-shadow:0 0 0 8px rgba(62,207,74,0)}100%{box-shadow:0 0 0 0 rgba(62,207,74,0)}}
+
+/* ---- Cards ---- */
+#dashRoot .dh-card{background:var(--dh-white);border:1px solid #e7e4dc;border-radius:5px;overflow:hidden;
+  box-shadow:0 4px 18px -10px rgba(21,29,40,.22)}
+#dashRoot .dh-card-head{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #eef0ec}
+#dashRoot .dh-card-head h2{display:flex;align-items:center;gap:10px;font-size:1.08em;font-weight:800;color:var(--dh-ink);margin:0}
+#dashRoot .dh-card-head h2 svg{color:var(--dh-blue)}
+#dashRoot .dh-card-note{color:var(--dh-mut);font-size:.82em;font-weight:500;margin-left:2px}
+#dashRoot .dh-card-head .dh-export-btn{margin-left:auto}
+#dashRoot .dh-card-body{padding:22px}
+
+/* Export button */
+#dashRoot .dh-export-btn{display:inline-flex;align-items:center;gap:7px;font-family:inherit;font-size:.82em;font-weight:700;
+  letter-spacing:.2px;color:#fff;background:var(--dh-orange);border:1px solid var(--dh-orange);border-radius:5px;
+  padding:9px 16px;cursor:pointer;transition:background .15s,transform .12s}
+#dashRoot .dh-export-btn:hover{background:#e55700;transform:translateY(-1px)}
+#dashRoot .dh-export-btn svg{color:#fff}
+
+/* ---- Queue Status tiles (inside the dark hero) ---- */
+#dashRoot .dh-hero-queue{position:relative;z-index:1}
+#dashRoot #dashQueueKpis .q-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+#dashRoot .q-tile{position:relative;background:var(--dh-blue-bg)!important;border:1px solid #d3e4f8!important;border-radius:5px!important;
+  padding:18px 16px!important;overflow:hidden;box-shadow:none!important;transition:transform .15s,box-shadow .15s,border-color .15s}
+#dashRoot .q-tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--dh-blue)}
+#dashRoot .q-tile.am::before{background:var(--dh-orange)}
+#dashRoot .q-tile.mut::before{background:var(--dh-mut)}
+#dashRoot .q-tile .k{display:flex;align-items:center;gap:7px;color:var(--dh-ink2)!important;font-size:.8em;font-weight:700;
+  letter-spacing:.2px;margin-bottom:12px;text-transform:uppercase}
+#dashRoot .q-tile .k svg{width:24px;height:24px;padding:5px;border-radius:5px;background:var(--dh-blue-ic-bg);color:var(--dh-blue);flex-shrink:0}
+#dashRoot .q-tile.am .k svg{background:#ffe0cc;color:var(--dh-orange)}
+#dashRoot .q-tile.mut .k svg{background:#e4e4e4;color:var(--dh-mut)}
+#dashRoot .q-tile .v{font-size:2em;font-weight:900;letter-spacing:-1px;color:var(--dh-ink)!important;line-height:1}
+#dashRoot .q-tile .v small{font-size:.44em;font-weight:700;color:var(--dh-mut)!important;margin-left:5px;letter-spacing:0}
+#dashRoot .q-tile-click{cursor:pointer}
+#dashRoot .q-tile-click:hover{transform:translateY(-3px);border-color:var(--dh-blue);box-shadow:0 14px 28px -16px rgba(43,102,193,.6)}
+#dashRoot .q-tile-open{position:absolute;top:12px;right:12px;color:var(--dh-blue);opacity:.5;transition:opacity .15s}
+#dashRoot .q-tile-click:hover .q-tile-open{opacity:1}
+#dashRoot .q-tile .kpi-spin,#dashRoot .q-tile .kpi-spin-lg{display:inline-block;width:22px;height:22px;border:3px solid #cdddf2;
+  border-top-color:var(--dh-blue);border-radius:50%;animation:spin .8s linear infinite}
+@media(max-width:1024px){#dashRoot #dashQueueKpis .q-tiles{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){#dashRoot #dashQueueKpis .q-tiles{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- Ticket Age Classification ---- */
+#dashRoot .age-grid{--age-cols:150px 120px 120px 1fr 1fr}
+#dashRoot .agehead{display:grid;grid-template-columns:var(--age-cols);gap:16px;align-items:end;justify-items:center;
+  padding:0 16px 12px;color:var(--dh-mut);font-size:10px;font-weight:800;letter-spacing:.5px;line-height:1.35;text-align:center}
+#dashRoot .agehead span{white-space:nowrap}
+#dashRoot .agehead .hi{display:inline-block;vertical-align:-2px;margin-right:3px}
+#dashRoot .agerows{display:flex;flex-direction:column;gap:10px}
+#dashRoot .age{position:relative;display:grid;grid-template-columns:var(--age-cols);gap:16px;align-items:center;justify-items:center;
+  overflow:hidden;background:var(--dh-page);border:1px solid #e7e4dc;border-radius:5px;padding:15px 18px;
+  cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
+#dashRoot .age:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(21,29,40,.35)}
+#dashRoot .age::after{display:none!important}
+#dashRoot .age::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;z-index:2}
+#dashRoot .age.purple::before{background:#7c5cf0}#dashRoot .age.black::before{background:#4a5563}
+#dashRoot .age.red::before{background:#dc2626}#dashRoot .age.yellow::before{background:#d9930a}#dashRoot .age.green::before{background:#1f9d57}
+#dashRoot .age.purple:hover{border-color:#7c5cf0}#dashRoot .age.black:hover{border-color:#4a5563}
+#dashRoot .age.red:hover{border-color:#dc2626}#dashRoot .age.yellow:hover{border-color:#d9930a}#dashRoot .age.green:hover{border-color:#1f9d57}
+#dashRoot .age.age-loading{cursor:default;pointer-events:none;opacity:.7}
+#dashRoot .age>*{position:relative;z-index:1}
+#dashRoot .age .band{display:flex;align-items:center;gap:11px;min-width:0;text-align:left;justify-self:start}
+#dashRoot .age .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+#dashRoot .age.purple .dot{background:#7c5cf0}#dashRoot .age.black .dot{background:#4a5563}
+#dashRoot .age.red .dot{background:#dc2626}#dashRoot .age.yellow .dot{background:#d9930a}#dashRoot .age.green .dot{background:#1f9d57}
+#dashRoot .age .band .lbl{line-height:1.25}
+#dashRoot .age .band .lbl b{display:block;color:var(--dh-ink);font-size:13px;font-weight:800;letter-spacing:.3px}
+#dashRoot .age .band .lbl span{color:var(--dh-mut);font-size:10.5px}
+#dashRoot .age .agents-count{font-size:19px;font-weight:900;color:var(--dh-ink)}
+#dashRoot .age .tik{font-size:19px;font-weight:900;color:var(--dh-ink)}
+#dashRoot .age .num-spinner{display:inline-block;width:18px;height:18px;border:3px solid #ded;border-top-color:var(--dh-blue);border-radius:50%;animation:spin .8s linear infinite}
+#dashRoot .age .idlist{display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;width:100%;flex-wrap:wrap}
+#dashRoot .age .idchips{display:grid;grid-template-columns:auto auto;gap:6px 8px;align-items:center}
+#dashRoot .age .idchip{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;background:var(--dh-white);
+  border:1px solid #e2e6ea;border-radius:5px;padding:3px 8px 3px 3px;font-size:11px;color:var(--dh-ink);white-space:nowrap;min-width:108px}
+#dashRoot .age .idchip.idchip-noava{padding:3px 10px}
+#dashRoot .age .idchip b{margin-right:auto;font-weight:700;color:var(--dh-ink)}
+#dashRoot .age .idchip .ct{margin-left:auto;background:var(--dh-blue-bg);color:var(--dh-blue);border-radius:6px;padding:0 6px;font-size:9.5px;font-weight:800}
+#dashRoot .age .idchip .av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center}
+#dashRoot .age .idchip .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+#dashRoot .age .idlist .more{color:var(--dh-mut);font-size:11px;font-weight:700}
+#dashRoot .age .idlist .none{color:#b7b7b7;font-size:12px;font-style:italic}
+#dashRoot .age.blink-alert{animation:dhBlink 1.2s ease-in-out infinite;border-color:#dc2626}
+@keyframes dhBlink{50%{border-color:rgba(220,38,38,.4);box-shadow:0 0 0 3px rgba(220,38,38,.12)}}
+@media(max-width:900px){#dashRoot .agehead{display:none}#dashRoot .age{grid-template-columns:1fr 1fr;gap:12px}#dashRoot .age .band{grid-column:1/-1}}
+
+/* ---- Override the legacy light-app.css solid-fill age styling INSIDE the redesigned dashboard
+   (those rules use !important, so we must too). Keep clean light rows with a colored left spine. ---- */
+body[data-profile-panel] #dashRoot .age,
+#dashRoot .age{background:var(--dh-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important;
+  min-height:0!important;box-shadow:none!important;color:var(--dh-ink)!important}
+#dashRoot .age:hover{box-shadow:0 12px 26px -16px rgba(21,29,40,.35)!important}
+#dashRoot .age::before{display:block!important;content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;width:5px!important;z-index:2!important}
+#dashRoot .age.purple::before{background:#7c5cf0!important}#dashRoot .age.black::before{background:#4a5563!important}
+#dashRoot .age.red::before{background:#dc2626!important}#dashRoot .age.yellow::before{background:#d9930a!important}#dashRoot .age.green::before{background:#1f9d57!important}
+/* Restore the color NAME label + dot that light-app.css hid. */
+#dashRoot .age .band{justify-content:flex-start!important;text-align:left!important;width:auto!important}
+#dashRoot .age .band .lbl{text-align:left!important}
+#dashRoot .age .band .lbl b{display:block!important;color:var(--dh-ink)!important;font-size:13px!important;font-weight:800!important}
+#dashRoot .age .band .lbl span{color:var(--dh-mut)!important;font-size:10.5px!important;font-weight:500!important}
+#dashRoot .age .band .dot{display:inline-block!important}
+/* Count/agent text back to dark ink (light-app.css forced white for the solid fills). */
+#dashRoot .age .agents-count,#dashRoot .age .tik{color:var(--dh-ink)!important}
+/* Agent chips: white box, dark id, blue count tag (light-app.css made the count orange + white). */
+#dashRoot .age .idchip{background:var(--dh-white)!important;border:1px solid #e2e6ea!important;border-radius:5px!important;color:var(--dh-ink)!important;min-width:108px!important}
+#dashRoot .age .idchip b{color:var(--dh-ink)!important}
+#dashRoot .age .idchip .ct{background:var(--dh-blue-bg)!important;color:var(--dh-blue)!important;border-radius:6px!important;padding:0 6px!important;font-weight:800!important}
+#dashRoot .age .idlist .more{color:var(--dh-mut)!important;font-weight:700!important}
+#dashRoot .age .idlist .none{color:#b7b7b7!important}
+#dashRoot .age-grid{--age-cols:150px 110px 110px 1fr 1fr!important}
+
+/* ---- Takeover ---- */
+#dashRoot .sr-colors{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+#dashRoot .sr-color{position:relative;background:var(--dh-page)!important;border:1px solid #e7e4dc!important;border-radius:5px!important;
+  padding:18px 12px 15px!important;text-align:center;overflow:hidden;box-shadow:none!important;transition:transform .15s,box-shadow .15s}
+#dashRoot .sr-color:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(21,29,40,.3)}
+#dashRoot .sr-color::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--sc)}
+#dashRoot .sr-color-dot{width:12px;height:12px;border-radius:50%;background:var(--sc);margin:0 auto 10px;box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 18%,transparent)}
+#dashRoot .sr-color-v{font-size:2em;font-weight:900;color:var(--dh-ink);line-height:1}
+#dashRoot .sr-color-l{color:var(--dh-ink2);font-size:.84em;font-weight:800;margin-top:7px}
+#dashRoot .sr-color-r{color:var(--dh-mut);font-size:.68em;margin-top:3px}
+#dashRoot .sr-purple{--sc:#7c5cf0}#dashRoot .sr-black{--sc:#4a5563}#dashRoot .sr-red{--sc:#dc2626}#dashRoot .sr-yellow{--sc:#d9930a}#dashRoot .sr-green{--sc:#1f9d57}
+#dashRoot .sr-chart-card{background:var(--dh-page);border:1px solid #e7e4dc;border-radius:5px;padding:20px}
+#dashRoot .sr-chart-card h3{color:var(--dh-ink);font-size:.95em;font-weight:800;text-align:center;letter-spacing:.3px;margin:0 0 16px}
+#dashRoot .spinner{width:40px;height:40px;border:4px solid #dfe3e7;border-top-color:var(--dh-blue);border-radius:50%;animation:spin .9s linear infinite}
+#dashRoot .meta-info{color:var(--dh-mut);font-size:.88em}
+/* ---- Custom pill legend for the Takeover (Age Breakdown) chart: one centered row of chips, each
+   with a colour dot, label, and a count badge. Clicking a chip toggles that series on/off. ---- */
+.to-legend{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:9px;margin:0 0 18px}
+.to-leg{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 10px;border-radius:999px;cursor:pointer;
+  background:#f6f8fb;border:1px solid #e4e9ef;font:inherit;font-size:.8em;font-weight:700;color:#2a3340;line-height:1;
+  transition:background .14s,border-color .14s,box-shadow .14s,opacity .14s,transform .12s}
+.to-leg:hover{background:#eef2f7;border-color:#d4dce4;box-shadow:0 3px 10px -6px rgba(20,40,70,.4);transform:translateY(-1px)}
+.to-leg-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.to-leg-lbl{white-space:nowrap}
+.to-leg-n{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:20px;padding:0 7px;border-radius:999px;
+  background:#1b2026;color:#fff;font-weight:800;font-size:.95em;letter-spacing:.2px}
+.to-leg.off{opacity:.42}
+.to-leg.off .to-leg-lbl{text-decoration:line-through}
+.to-leg.off .to-leg-n{background:#9aa5b1}
+@media(max-width:760px){#dashRoot .sr-colors{grid-template-columns:repeat(2,1fr)}}
+</style>
 </head>
 <body data-app="live" data-profile-panel data-back-href="index.html" data-back-label="All Dashboards">
 <div id="app"></div>
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
-<script src="app.js?v=77"></script>
+<script src="topbar-auth.js?v=200"></script>
+<script src="app.js?v=91"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>

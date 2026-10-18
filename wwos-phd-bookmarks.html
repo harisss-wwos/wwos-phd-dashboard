@@ -1,86 +1,131 @@
-<!DOCTYPE NETSCAPE-Bookmark-file-1>
-<!-- This is an automatically generated file. It will be read and overwritten. -->
-<!-- Import into Chrome/Edge/Firefox: Bookmarks > Import bookmarks from HTML file. -->
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
-<TITLE>Bookmarks</TITLE>
-<H1>Bookmarks</H1>
-<DL><p>
-    <DT><H3>WWOS-GSOC PHD Dashboard</H3>
-    <DL><p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Links · WWOS-GSOC PHD Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --o:#ff6100;--ol:#fe9046;--gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;
+  --blue:#e6f0fc;--purple:#161d2d;--icbg:#c4def6;--icfg:#2b66c1;--line:#e7e5df;
+  --sh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--gray);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;padding:16px}
+.bm-wrap{max-width:1000px;margin:0 auto}
+/* Header */
+.bm-hdr{background:var(--white);border:1px solid var(--line);border-left:5px solid var(--o);border-radius:5px;box-shadow:var(--sh);padding:16px 18px;margin-bottom:14px}
+.bm-hdr h1{font-size:1.35em;font-weight:800;letter-spacing:-.3px;margin:0 0 4px}
+.bm-hdr h1 .accent{color:var(--o)}
+.bm-hdr p{color:var(--ink2);font-size:.86em;line-height:1.5}
+.bm-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.bm-legend span{display:inline-flex;align-items:center;gap:6px;font-size:.75em;font-weight:700;color:var(--ink2)}
+.bm-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.bm-legend i.loc{background:var(--icfg)}
+.bm-legend i.prod{background:var(--o)}
+/* Category card */
+.bm-cat{background:var(--white);border:1px solid var(--line);border-radius:5px;box-shadow:var(--sh);overflow:hidden;margin-bottom:12px}
+.bm-cat-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:.82em;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.bm-cat-h::before{content:'';width:3px;height:16px;border-radius:2px;background:linear-gradient(var(--o),var(--ol))}
+.bm-cat-h .n{margin-left:auto;font-weight:600;color:var(--ink2);text-transform:none;letter-spacing:0;font-size:.9em}
+.bm-rows{padding:8px}
+/* Each link row: label on the left, Local + Live buttons on the right (side by side) */
+.bm-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:5px;transition:background .13s}
+.bm-row:hover{background:#fbfaf7}
+.bm-row+.bm-row{border-top:1px solid #f1efe9}
+.bm-row .bm-ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--icbg);color:var(--icfg);flex:0 0 auto}
+.bm-row .bm-ic svg{width:16px;height:16px}
+.bm-row .bm-label{flex:1;min-width:0;font-size:.9em;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bm-links{display:flex;gap:8px;flex:0 0 auto}
+.bm-btn{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-size:.76em;font-weight:700;padding:6px 12px;border-radius:5px;border:1px solid var(--line);transition:transform .12s,border-color .12s,background .12s,color .12s}
+.bm-btn:hover{transform:translateY(-1px)}
+.bm-btn svg{width:12px;height:12px}
+.bm-btn.loc{background:var(--blue);border-color:#cfe0f6;color:var(--icfg)}
+.bm-btn.loc:hover{background:#d8e8fa;border-color:var(--icfg)}
+.bm-btn.prod{background:#fff3ec;border-color:#ffd9c2;color:var(--o)}
+.bm-btn.prod:hover{background:#ffe9db;border-color:var(--o)}
+@media(max-width:620px){
+  .bm-row{flex-wrap:wrap}
+  .bm-row .bm-label{flex:1 1 auto}
+  .bm-links{flex:1 1 100%;justify-content:flex-end}
+  .bm-btn{flex:1 1 0;justify-content:center}
+}
+.bm-foot{text-align:center;color:var(--ink2);font-size:.75em;padding:10px}
+</style>
+</head>
+<body>
+<div class="bm-wrap">
+  <div class="bm-hdr">
+    <h1>WWOS-GSOC <span class="accent">PHD</span> · Page Links</h1>
+    <p>Every dashboard page, with its Local and Live links side by side. Click to open.</p>
+    <div class="bm-legend">
+      <span><i class="loc"></i> Local — localhost:8082</span>
+      <span><i class="prod"></i> Live — harisss-wwos.github.io</span>
+    </div>
+  </div>
+  <div id="bmBody"></div>
+  <div class="bm-foot">Tip: bookmark this page for one-click access to everything.</div>
+</div>
 
-        <DT><H3>Local (localhost:8082)</H3>
-        <DL><p>
-            <DT><H3>Entry / Landing</H3>
-            <DL><p>
-                <DT><A HREF="http://localhost:8082/index.html">Home (index)</A>
-                <DT><A HREF="http://localhost:8082/app.html">Live Dashboard</A>
-            </DL><p>
-            <DT><H3>Tickets &amp; Agent Work</H3>
-            <DL><p>
-                <DT><A HREF="http://localhost:8082/my-tickets.html">My Tickets</A>
-                <DT><A HREF="http://localhost:8082/agent-analytics.html">Agent &amp; Group Analytics</A>
-                <DT><A HREF="http://localhost:8082/app.html?view=shift-report">Shift Report</A>
-            </DL><p>
-            <DT><H3>Incident / Analysis</H3>
-            <DL><p>
-                <DT><A HREF="http://localhost:8082/station-request.html">Station Request Tickets</A>
-                <DT><A HREF="http://localhost:8082/hi-resolved.html">Resolved Repeat Incidents</A>
-                <DT><A HREF="http://localhost:8082/sla-breach.html">SLA Breaches (&gt;240h)</A>
-                <DT><A HREF="http://localhost:8082/important-cases.html">Unique Cases</A>
-            </DL><p>
-            <DT><H3>Tools</H3>
-            <DL><p>
-                <DT><A HREF="http://localhost:8082/tools.html">PHD Tools (Blurbs / Hashtags / Paging / Prompts)</A>
-            </DL><p>
-            <DT><H3>Admin / Account</H3>
-            <DL><p>
-                <DT><A HREF="http://localhost:8082/users.html">Users</A>
-                <DT><A HREF="http://localhost:8082/db-health.html">Database Health</A>
-                <DT><A HREF="http://localhost:8082/profile.html">My Profile</A>
-                <DT><A HREF="http://localhost:8082/rules.html">Rules</A>
-            </DL><p>
-            <DT><H3>Audit Logs</H3>
-            <DL><p>
-                <DT><A HREF="http://localhost:8082/data-log.html">Uploaded Data Log</A>
-            </DL><p>
-        </DL><p>
+<script src="icons.js"></script>
+<script>
+var LOCAL='http://localhost:8082/';
+var PROD='https://harisss-wwos.github.io/wwos-phd-dashboard/';
+function ic(n,s){ return (typeof window.icon==='function') ? window.icon(n,s||16) : ''; }
 
-        <DT><H3>Production (wwos-phd-api.onrender.com)</H3>
-        <DL><p>
-            <DT><H3>Entry / Landing</H3>
-            <DL><p>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/index.html">Home (index)</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/app.html">Live Dashboard</A>
-            </DL><p>
-            <DT><H3>Tickets &amp; Agent Work</H3>
-            <DL><p>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/my-tickets.html">My Tickets</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/agent-analytics.html">Agent &amp; Group Analytics</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/app.html?view=shift-report">Shift Report</A>
-            </DL><p>
-            <DT><H3>Incident / Analysis</H3>
-            <DL><p>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/station-request.html">Station Request Tickets</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/hi-resolved.html">Resolved Repeat Incidents</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/sla-breach.html">SLA Breaches (&gt;240h)</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/important-cases.html">Unique Cases</A>
-            </DL><p>
-            <DT><H3>Tools</H3>
-            <DL><p>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/tools.html">PHD Tools (Blurbs / Hashtags / Paging / Prompts)</A>
-            </DL><p>
-            <DT><H3>Admin / Account</H3>
-            <DL><p>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/users.html">Users</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/db-health.html">Database Health</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/profile.html">My Profile</A>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/rules.html">Rules</A>
-            </DL><p>
-            <DT><H3>Audit Logs</H3>
-            <DL><p>
-                <DT><A HREF="https://wwos-phd-api.onrender.com/data-log.html">Uploaded Data Log</A>
-            </DL><p>
-        </DL><p>
-
-    </DL><p>
-</DL><p>
+// [category, categoryIcon, [ [label, path, icon], ... ]]
+var CATS=[
+  ['Entry / Landing','home',[
+    ['Home (index)','index.html','home'],
+    ['Live Dashboard','app.html','bolt'],
+    ['Program History (Archive)','archive.html','inbox'],
+  ]],
+  ['Tickets & Agent Work','ticket',[
+    ['My Tickets','my-tickets.html','ticket'],
+    ['Agent & Group Analytics','agent-analytics.html','bar-chart'],
+  ]],
+  ['Incident / Analysis','repeat',[
+    ['Station Request Tickets','station-request.html','map-pin'],
+    ['Resolved Repeat Incidents','hi-resolved.html','repeat'],
+    ['SLA Breaches (>240h)','sla-breach.html','clock'],
+    ['Unique Cases','important-cases.html','star'],
+    ['Hashtags Report','hashtags.html','hash'],
+  ]],
+  ['Reference / Guides','book',[
+    ['Issue Standardization','issue-types.html','clipboard'],
+    ['Ticket Sanitization Process','ticket-sanitization.html','check-circle'],
+    ['Rules & Definitions','rules.html','book'],
+  ]],
+  ['Tools','tool',[
+    ['PHD Tools (all tabs)','tools.html','tool'],
+  ]],
+  ['Admin / Account','database',[
+    ['Users','users.html','users'],
+    ['Database Health','db-health.html','database'],
+    ['Grouping Page','groups-page.html','copy'],
+    ['My Profile','profile.html','user'],
+  ]],
+];
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+var html='';
+CATS.forEach(function(cat){
+  var rows=cat[2].map(function(p){
+    var label=p[0], path=p[1], icon=p[2];
+    return '<div class="bm-row">'
+      + '<span class="bm-ic">'+ic(icon,16)+'</span>'
+      + '<span class="bm-label">'+esc(label)+'</span>'
+      + '<span class="bm-links">'
+        + '<a class="bm-btn loc" href="'+LOCAL+path+'" target="_blank" rel="noopener">'+ic('grid',12)+' Local</a>'
+        + '<a class="bm-btn prod" href="'+PROD+path+'" target="_blank" rel="noopener">'+ic('globe',12)+' Live</a>'
+      + '</span>'
+    + '</div>';
+  }).join('');
+  html+='<div class="bm-cat"><div class="bm-cat-h">'+ic(cat[1],15)+esc(cat[0])
+    +'<span class="n">'+cat[2].length+'</span></div><div class="bm-rows">'+rows+'</div></div>';
+});
+document.getElementById('bmBody').innerHTML=html;
+</script>
+</body>
+</html>

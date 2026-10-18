@@ -91,6 +91,8 @@ body[data-profile-panel] .wrap > .home-hdr.js-header-row,
   background:#0b63cf !important; color:#fff !important; transition:background .15s !important; }
 .home-sec.collapsed .home-sec-toggle{ background:#38bdf8 !important; border-radius:5px !important; }   /* collapsed: banner fills the whole rounded card */
 .home-sec:not(.collapsed) .home-sec-toggle{ border-radius:5px 5px 0 0 !important; }                     /* expanded: round only the top (body follows below) */
+/* Static (non-collapsible) banner: keep the blue bar look, drop the clickable affordance. */
+.home-sec-static{ cursor:default !important; }
 /* Match the app.html banner title: Inter, 1.02em, weight 800, WHITE, sentence-case (no uppercase /
    letter-spacing). Use .home-sec-h.home-sec-toggle (two classes) so WHITE beats the single-class
    orange .home-sec-h{color:#ec7211} rule regardless of source order. */

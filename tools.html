@@ -37,13 +37,32 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 /* Per-tab action buttons on the right of the title bar (switch with the radio) */
 .tb-actions{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
-.tb-actions .btn,.tb-actions .btn.sec{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:7px;font-weight:700;font-size:.85em;cursor:pointer;border:1px solid transparent;text-decoration:none;font-family:inherit;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
-.tb-actions .btn{background:var(--o);color:#fff}
-.tb-actions .btn:hover{background:var(--oh)}
-.tb-actions .btn.sec{background:#fff;border-color:var(--bd);color:var(--t)}
-.tb-actions .btn.sec:hover{border-color:var(--o);color:var(--o)}
+.tb-actions .btn,.tb-actions .btn.sec{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-weight:700;font-size:.85em;cursor:pointer;text-decoration:none;font-family:inherit;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+/* Both title-bar action buttons (Add + Edit Log): dark #151d28 bg, white font, 5px radius.
+   Scoped under #tbActions (ID) + :not() chain so it beats theme.css's '.btn:not(.sec)...!important'
+   (which forced an amber gradient + pill radius). */
+#tbActions .btn,#tbActions .btn.sec,
+#tbActions .btn:not(.sec):not(.danger):not(.mini):not(.tb-btn){
+  background:#151d28!important;background-image:none!important;color:#fff!important;
+  border:1px solid #151d28!important;border-radius:5px!important;box-shadow:none!important}
+#tbActions .btn svg,#tbActions .btn.sec svg{color:#fff!important;stroke:currentColor!important}
+#tbActions .btn:hover,#tbActions .btn.sec:hover,
+#tbActions .btn:not(.sec):not(.danger):not(.mini):not(.tb-btn):hover{
+  background:#243247!important;border-color:#243247!important;color:#fff!important;filter:none!important}
 .tb-actions svg{flex-shrink:0}
 @media(max-width:900px){.tb-actions .btn .tb-blabel{display:none}}
+
+/* ---- Edit-log MODAL popup (Blurb/Hashtag/Paging edit log) — mirrors the "View upload log" modal ---- */
+.tool-log-bg{position:fixed;inset:0;background:rgba(21,29,40,.6);z-index:3500;display:none;align-items:center;justify-content:center;padding:20px}
+.tool-log{background:#fff;border-radius:5px;width:min(1000px,96vw);height:min(86vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(21,29,40,.5)}
+.tool-log-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e7e5df;flex:0 0 auto}
+.tool-log-title{display:flex;align-items:center;gap:9px;font-size:1em;font-weight:800;color:#151d28}
+.tool-log-ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#c4def6;color:#2b66c1}
+.tool-log-ic svg{width:16px;height:16px}
+.tool-log-x{margin-left:auto;background:transparent;border:none;color:#818284;font-size:1.6em;line-height:1;cursor:pointer;padding:0 6px;border-radius:5px}
+.tool-log-x:hover{color:#151d28;background:#f1efe9}
+.tool-log-body{flex:1;min-height:0}
+.tool-log-body iframe{width:100%;height:100%;border:none;display:block}
 
 /* ---- Embedded-tool frame + skeleton ---- */
 /* The iframe height is driven by JS (sizeFrame) to match its inner content, so the embedded tool
@@ -88,7 +107,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
@@ -98,8 +117,8 @@ const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 // cross-tab collisions. Prompts is the WIP page, embedded the same way.
 const TABS=[
   { id:'blurbs',   label:'Common Blurbs',   icon:'clipboard', src:'tool-blurbs.html',  addLabel:'Add New Blurb',   logHref:'blurb-log.html',   logLabel:'Blurb edit log' },
-  { id:'hashtags', label:'Hashtags',        icon:'hash',      src:'tool-hashtags.html', addLabel:'Add New Hashtag', logHref:'hashtag-log.html', logLabel:'Hashtag edit log' },
   { id:'paging',   label:'Paging Contacts', icon:'mail',      src:'tool-paging.html',   addLabel:'Add Region',      logHref:'paging-log.html',  logLabel:'Paging edit log' },
+  { id:'hashtags', label:'Hashtags',        icon:'hash',      src:'tool-hashtags.html', addLabel:'Add New Hashtag', logHref:'hashtag-log.html', logLabel:'Hashtag edit log' },
 ];
 let ACTIVE='blurbs';
 const LOADED={}; // id -> true once its iframe has been created (kept alive so re-clicks are instant)
@@ -134,25 +153,17 @@ function moveSegIndicator(){
   ind.style.width=opt.offsetWidth+'px';
 }
 
-// LOGVIEW[id] = true while that tab is showing its change log (inline, in the same iframe) instead
-// of the tool itself. The "edit log" button toggles this; in log mode it becomes a "Back" button.
-const LOGVIEW={};
-
 // Render the per-tab action buttons (right side of the title bar). Switches with the active tab.
-// Normal mode: "Add" (calls the embedded tool's own openAddModal) + "<Tool> edit log" (opens the log
-// inline in the same iframe). Log mode: a single "Back" button that restores the tool. Admin-gated.
+// "Add" (calls the embedded tool's own openAddModal) + "<Tool> edit log" (opens the log as a modal
+// popup — see openLog). Admin-gated.
 function renderActions(){
   var el=document.getElementById('tbActions'); if(!el) return;
   var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t){ el.innerHTML=''; return; }
   var editor=canEditTools();
   if(!editor){ el.innerHTML=''; return; }
   var html='';
-  if(LOGVIEW[ACTIVE]){
-    html+='<button class="btn sec" onclick="closeLog()">'+ic('arrow-left',15)+'<span class="tb-blabel">Back</span></button>';
-  }else{
-    html+='<button class="btn" onclick="toolAdd()">'+ic('plus',15)+'<span class="tb-blabel">'+t.addLabel+'</span></button>';
-    html+='<button class="btn sec" onclick="openLog()">'+ic('history',15)+'<span class="tb-blabel">'+t.logLabel+'</span></button>';
-  }
+  html+='<button class="btn" onclick="toolAdd()">'+ic('plus',15)+'<span class="tb-blabel">'+t.addLabel+'</span></button>';
+  html+='<button class="btn sec" onclick="openLog()">'+ic('history',15)+'<span class="tb-blabel">'+t.logLabel+'</span></button>';
   el.innerHTML=html;
 }
 
@@ -166,32 +177,29 @@ function toolAdd(){
 }
 window.toolAdd=toolAdd;
 
-// Show the change log inline: swap the active iframe's src to the log page (embedded), re-skeleton
-// while it loads, and flip the title-bar button to "Back".
+// Show the change log as a MODAL POPUP (like "View upload log"): embed the log page in an iframe
+// overlay instead of swapping the tool iframe in-place. The tool stays visible behind the modal.
 function openLog(){
   var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t) return;
-  LOGVIEW[ACTIVE]=true;
-  renderActions();
-  swapFrameSrc(ACTIVE, t.logHref);
+  var bg=document.getElementById('toolLogModal');
+  if(!bg){
+    bg=document.createElement('div'); bg.id='toolLogModal'; bg.className='tool-log-bg';
+    bg.innerHTML='<div class="tool-log"><div class="tool-log-head">'
+      +'<span class="tool-log-title"><span class="tool-log-ic">'+ic('history',16)+'</span><span id="toolLogTitle"></span></span>'
+      +'<button type="button" class="tool-log-x" aria-label="Close">&times;</button></div>'
+      +'<div class="tool-log-body"><iframe id="toolLogFrame" title="Edit log"></iframe></div></div>';
+    bg.addEventListener('click',function(e){ if(e.target===bg) bg.style.display='none'; });
+    bg.querySelector('.tool-log-x').onclick=function(){ bg.style.display='none'; };
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') bg.style.display='none'; });
+    document.body.appendChild(bg);
+  }
+  document.getElementById('toolLogTitle').textContent=t.logLabel;
+  var fr=document.getElementById('toolLogFrame');
+  fr.setAttribute('title',t.logLabel);
+  fr.setAttribute('src', t.logHref+(t.logHref.indexOf('?')>=0?'&':'?')+'embed=1&t='+Date.now());
+  bg.style.display='flex';
 }
 window.openLog=openLog;
-
-// Restore the tool itself in place of the log.
-function closeLog(){
-  var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t) return;
-  LOGVIEW[ACTIVE]=false;
-  renderActions();
-  swapFrameSrc(ACTIVE, t.src);
-}
-window.closeLog=closeLog;
-
-// Point the given tab's iframe at a new page (always embedded) and show its skeleton until it loads.
-function swapFrameSrc(id, src){
-  var frame=document.getElementById('frame-'+id); if(!frame) return;
-  var s=document.getElementById('skel-'+id); if(s) s.classList.remove('hidden');
-  frame.style.height='300px'; // reset so auto-size re-measures the new document
-  frame.src=src+(src.indexOf('?')>=0?'&':'?')+'embed=1';
-}
 
 // Show a tab: create its iframe once (with a skeleton overlay until it loads), then just show/hide
 // the frames on subsequent clicks so state is preserved and switching is instant.
@@ -199,12 +207,6 @@ function switchTab(id){
   ACTIVE=id;
   TABS.forEach(function(t){ var b=document.getElementById('tab-'+t.id); if(b){ b.classList.toggle('active',t.id===id); b.setAttribute('aria-selected',String(t.id===id)); } });
   moveSegIndicator();
-  // If this tab was left showing its change log, restore the tool itself on re-entry.
-  if(LOGVIEW[id]){
-    LOGVIEW[id]=false;
-    var _t=TABS.find(function(x){return x.id===id;});
-    if(_t&&LOADED[id]) swapFrameSrc(id,_t.src);
-  }
   renderActions();
   const body=document.getElementById('tabBody');
   // Hide all existing frame-wraps.
@@ -214,7 +216,7 @@ function switchTab(id){
   const tab=TABS.find(function(t){return t.id===id;});
   const wrap=document.createElement('div');
   wrap.className='tool-frame-wrap'; wrap.setAttribute('data-id',id);
-  wrap.innerHTML=skeleton()+'<iframe class="tool-frame" id="frame-'+id+'" title="'+tab.label+'" src="'+tab.src+(tab.src.indexOf('?')>=0?'&':'?')+'embed=1"></iframe>';
+  wrap.innerHTML=skeleton()+'<iframe class="tool-frame" id="frame-'+id+'" title="'+tab.label+'" src="'+tab.src+(tab.src.indexOf('?')>=0?'&':'?')+'embed=1&v=4"></iframe>';
   body.appendChild(wrap);
   const frame=wrap.querySelector('iframe');
   frame.addEventListener('load',function(){

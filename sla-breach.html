@@ -113,13 +113,20 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-chart-sk-plot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:240px;padding:0 6px}
 .hr-chart-sk-bar{flex:1;border-radius:6px 6px 0 0;align-self:flex-end}
 /* ===== Country grouping (section 2) ===== */
-.np-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
-.np-checks{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.np-chip{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:.82em;font-weight:700;padding:7px 13px;border-radius:999px;border:1px solid var(--bd);background:#0b0f14;color:#9fb2c4}
-.np-chip input{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1.5px solid #5a6470;border-radius:4px;cursor:pointer;position:relative;flex-shrink:0}
-.np-chip input:checked{background:#ec7211;border-color:#ec7211}
-.np-chip input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.np-chip:has(input:checked){border-color:#ec7211;color:#fff;background:rgba(236,114,17,.1)}
+.np-controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.np-controls-lbl{display:inline-flex;align-items:center;gap:8px;font-size:.8em;font-weight:700;letter-spacing:.2px;color:#8795a3}
+.np-controls-lbl svg{opacity:.85;flex-shrink:0}
+/* Segmented filter: one pill group holding the analyst-type toggles, pushed to the right. */
+.np-seg{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:4px;border-radius:999px;background:#0b0f14;border:1px solid var(--bd)}
+.np-seg-btn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font:inherit;font-size:.82em;font-weight:700;line-height:1;
+  padding:8px 15px;border-radius:999px;border:1px solid transparent;background:transparent;color:#8795a3;transition:background .14s,color .14s,border-color .14s}
+.np-seg-btn:hover{color:#cdd8e3;background:rgba(255,255,255,.04)}
+.np-seg-check{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid #5a6470;background:transparent;color:transparent;transition:background .14s,border-color .14s,color .14s}
+.np-seg-check svg{width:11px;height:11px;stroke-width:3}
+.np-seg-btn.on{background:#ec7211;border-color:#ec7211;color:#fff;box-shadow:0 2px 8px -3px rgba(236,114,17,.6)}
+.np-seg-btn.on:hover{background:#d9660d;color:#fff}
+.np-seg-btn.on .np-seg-check{background:#fff;border-color:#fff;color:#ec7211}
 .hr-sub{border:1px solid #2f3a45;border-radius:5px;margin-bottom:10px;overflow:hidden;background:#0b0f14}
 .hr-sub:last-child{margin-bottom:0}
 .hr-sub-head{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:0 16px;border:none;cursor:pointer;font:inherit;text-align:left;background:#141a22;color:#e6edf3;transition:background .12s}
@@ -284,11 +291,24 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-chart-tip .tt-row .v{color:#1b2026!important}
 .hr-chart-tip .tt-pct{color:#dc2626!important}
 .hr-chart-tip .tt-sep{background:#eef1f4!important}
+/* Chart stat strip — light theme. */
+.sla-stat{background:#fff!important;border:1px solid #e2e6ea!important}
+.sla-stat-ic{background:#eaf4fb!important;color:#1577a0!important}
+.sla-stat-n{color:#1b2026!important}
+.sla-stat-l{color:#8795a3!important}
+.sla-stat.breach .sla-stat-ic{background:#fdeaea!important;color:#dc2626!important}
+.sla-stat.breach .sla-stat-n{color:#dc2626!important}
+.sla-stat.rate .sla-stat-ic{background:#fff3e0!important;color:#b5680c!important}
+.sla-stat.worst .sla-stat-ic{background:#f1ecfe!important;color:#7c5cff!important}
 .np-controls{border-bottom:1px solid #eef1f4!important}
-.np-chip{background:#fff!important;border:1px solid #e2e6ea!important;color:#5c6773!important}
-.np-chip input{border:1.5px solid #c4ccd4!important}
-.np-chip input:checked{background:#ec7211!important;border-color:#ec7211!important}
-.np-chip:has(input:checked){border-color:#ec7211!important;color:#1b2026!important;background:#fff7ef!important}
+.np-controls-lbl{color:#5c6773!important}
+.np-seg{background:#f3f6f9!important;border:1px solid #e2e6ea!important}
+.np-seg-btn{color:#5c6773!important}
+.np-seg-btn:hover{color:#1b2026!important;background:#eaeff5!important}
+.np-seg-check{border:1.5px solid #c4ccd4!important;background:#fff!important}
+.np-seg-btn.on{background:#ec7211!important;border-color:#ec7211!important;color:#fff!important}
+.np-seg-btn.on:hover{background:#d9660d!important;color:#fff!important}
+.np-seg-btn.on .np-seg-check{background:#fff!important;border-color:#fff!important;color:#ec7211!important}
 .hr-sub{background:#fff!important;border:1px solid #e4e9ee!important}
 .hr-sub-head{background:#f3f6f9!important;color:#1b2026!important}
 .hr-sub-head:hover{background:#eaeff5!important}
@@ -326,11 +346,62 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-range-head .hr-range-title{color:#fff!important}
 .hr-range-head .hr-range-ic{background:rgba(255,255,255,.22)!important;color:#fff!important}
 .hr-range-head .hr-range-meta{background:rgba(255,255,255,.22)!important;color:#fff!important}
-/* (E) Plus/minus PNG caret on the RANGE head only (collapsed=plus, expanded=minus). */
-.hr-range>.hr-range-head .hr-caret{color:transparent!important;font-size:0!important;width:18px!important;height:18px!important;display:inline-block!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;transform:none!important;transition:none!important;background-image:url("icons/plus.v3.png")!important}
+/* (E) Plus/minus PNG caret on the RANGE head only (collapsed=plus, expanded=minus). Pinned to the
+   far-right corner of the banner via margin-left:auto. */
+.hr-range>.hr-range-head .hr-caret{margin-left:auto!important;color:transparent!important;font-size:0!important;width:18px!important;height:18px!important;display:inline-block!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;transform:none!important;transition:none!important;background-image:url("icons/plus.v3.png")!important}
 .hr-range.open>.hr-range-head .hr-caret{transform:none!important;background-image:url("icons/minus.v3.png")!important}
 /* (F) 10px gap between range cards. */
 .hr-range{margin-bottom:10px!important}
+</style>
+<style id="sb-loader">
+/* ---- Fun phased section loader (ported from agent-analytics.html). Concrete brand colors since
+   this page has no --an-* palette vars. Blue #2b66c1, blue-bg #e6f0fc, blue-ic #c4def6,
+   orange #ff6100, orange-l #fe9046, ink #151d28. ---- */
+.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
+.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  animation:gwSpin 1.1s linear infinite}
+.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
+  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
+.gw-orb-ic svg{width:30px;height:30px}
+@keyframes gwSpin{100%{transform:rotate(360deg)}}
+@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
+.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
+@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.gw-dots{display:flex;gap:7px}
+.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
+.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
+.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
+@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
+.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
+.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
+.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
+.gw-loader.gw-done .gw-dots{visibility:hidden}
+@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+
+/* ---- Chart section: graph on top, the 5 stat tiles in a full-width row below the graph ---- */
+.sla-chart-row{display:flex;flex-direction:column;gap:16px}
+.sla-chart-col{min-width:0;display:flex;flex-direction:column}
+.sla-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.sla-stat{min-width:0;display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;background:#0b0f14;border:1px solid #23303c}
+.sla-stat-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:7px;flex-shrink:0;background:rgba(68,185,214,.12);color:#44b9d6}
+.sla-stat-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sla-stat-n{font-size:1.25em;font-weight:800;line-height:1.05;color:#fff;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sla-stat-l{font-size:.72em;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#879596;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sla-stat.breach .sla-stat-ic{background:rgba(229,72,77,.14);color:#ff6b6b}
+.sla-stat.breach .sla-stat-n{color:#ff6b6b}
+.sla-stat.rate .sla-stat-ic{background:rgba(255,159,46,.14);color:#ff9f2e}
+.sla-stat.worst .sla-stat-ic{background:rgba(167,139,250,.16);color:#a78bfa}
+/* Cap the graph height so it doesn't dominate the section now that stats sit beneath it. */
+.sla-chart-col .hr-chart-wrap,.sla-chart-col .hr-chart-svg{max-height:300px}
+@media(max-width:900px){.sla-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){.sla-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body data-nav-active="sla-breach" data-back-href="app.html" data-back-label="Dashboard">
@@ -339,12 +410,6 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 </div>
 
 <div class="wrap" id="wrap">
-  <div class="hr-banner">
-    <div class="hb-left">
-      <h1 class="hb-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> SLA Breaches (&gt;240h)</h1>
-    </div>
-    <div class="hb-right"><span class="hr-ytd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> YTD 2026</span></div>
-  </div>
   <div id="hrSkel">
     <div class="hr-range rng-after"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:280px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:190px;height:12px"></span><span class="hr-caret">▾</span></div></div>
     <div class="hr-range rng-mid"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"></span><span class="sk-line" style="width:320px;height:16px"></span><span class="sk-line" style="margin-left:auto;width:190px;height:12px"></span><span class="hr-caret">▾</span></div></div>
@@ -354,7 +419,7 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
 let HR_DATA=null;
@@ -500,8 +565,148 @@ function hrRangeToggle(btn){
   const willOpen=!s.classList.contains('open');
   document.querySelectorAll('.hr-range.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
   s.classList.toggle('open', willOpen);
+  // Lazy-load: fire the section's data fetch the FIRST time it is expanded.
+  if(willOpen){ var r=s.getAttribute('data-range'); if(r==='chart') slaLoadChart(); else if(r==='country') slaLoadCountry(); }
 }
 window.hrRangeToggle=hrRangeToggle;
+
+// ================= Fun phased loader (ported from agent-analytics.html) =================
+// Loader markup for a section body: a hidden orb+message loader keyed by the id-prefix `pfx`.
+function ldHtml(pfx){
+  return '<div id="'+pfx+'Loader" class="gw-loader" style="display:none">'+
+    '<div class="gw-loader-in">'+
+      '<div class="gw-orb"><span class="gw-orb-ic" id="'+pfx+'LoaderIc">'+ic('clock',30)+'</span></div>'+
+      '<div class="gw-loader-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting things ready\u2026</div>'+
+      '<div class="gw-dots"><span></span><span></span><span></span></div>'+
+      '<div class="gw-loader-sub" id="'+pfx+'LoaderSub">Loading</div>'+
+    '</div>'+
+  '</div>';
+}
+function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
+function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+// PHASE 1 — 20 randomized, SLA-themed, general lines (no agent names). Personalized with first name.
+function slaPhase1(what){
+  var me=gwFirstName();
+  var lines=[
+    ['clock',       'Pulling the '+what+' for you, '+me+' \u2728'],
+    ['target',      'Scanning tickets that crossed the 240-hour SLA\u2026'],
+    ['bar-chart',   'Measuring how long each breach ran past SLA\u2026'],
+    ['inbox',       'Collecting breached tickets across the team\u2026'],
+    ['calendar',    'Walking month by month through 2026\u2026'],
+    ['check-circle','Separating resolved from still-open breaches\u2026'],
+    ['globe',       'Grouping breaches by country\u2026'],
+    ['repeat',      'Reviewing repeat incidents and pet cases\u2026'],
+    ['user',        'Tallying per-analyst breach counts\u2026'],
+    ['bolt',        'Crunching created-vs-crossed totals\u2026'],
+    ['clock',       'Computing average time past SLA\u2026'],
+    ['target',      'Double-checking the 240-hour threshold\u2026'],
+    ['bar-chart',   'Sorting the worst breaches to the top\u2026'],
+    ['inbox',       'Fetching the freshest breach records\u2026'],
+    ['users',       'Rolling up PHD vs non-PHD analysts\u2026'],
+    ['calendar',    'Lining up the monthly trend\u2026'],
+    ['check-circle','Verifying resolution codes\u2026'],
+    ['globe',       'Mapping breaches to their regions\u2026'],
+    ['clock',       'Warming up the numbers, '+me+'\u2026'],
+    ['bar-chart',   'Almost there \u2014 building the '+what+'\u2026'],
+  ];
+  return gwShuffle(lines);
+}
+// PHASE 2 — after the apology, 10 general lines at 3s each (loops). No agent names.
+function slaPhase2(what){
+  var me=gwFirstName();
+  var lines=[
+    ['clock',       'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
+    ['inbox',       'The server is taking a little longer than usual\u2026'],
+    ['bar-chart',   'Re-checking the breach figures to be sure\u2026'],
+    ['target',      'Hang tight \u2014 re-verifying the SLA window\u2026'],
+    ['globe',       'Reconciling the country groupings\u2026'],
+    ['bolt',        'Nearly ready \u2014 finalising the totals\u2026'],
+    ['repeat',      'One more pass over repeat incidents\u2026'],
+    ['check-circle','Polishing the last few numbers\u2026'],
+    ['calendar',    'Tidying up the monthly view\u2026'],
+    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
+  ];
+  return gwShuffle(lines);
+}
+var _ldMsgTimers={}, _ldWhat={};   // pfx -> interval id / window-words
+function _ldSetMsg(pfx,tuple){
+  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
+  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
+  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
+}
+function _ldStop(pfx){ if(_ldMsgTimers[pfx]){ clearInterval(_ldMsgTimers[pfx]); _ldMsgTimers[pfx]=null; } }
+// Phase 1 (20 lines @2s) -> apology -> Phase 2 (10 lines @3s, loops). Never blank.
+function _ldStart(pfx,subLabel){
+  _ldStop(pfx);
+  var sub=document.getElementById(pfx+'LoaderSub'); if(sub&&subLabel) sub.textContent=subLabel;
+  var what=_ldWhat[pfx]||'data';
+  var p1=slaPhase1(what), i=0; _ldSetMsg(pfx,p1[0]);
+  _ldMsgTimers[pfx]=setInterval(function(){
+    i++;
+    if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
+    _ldStop(pfx);
+    _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your data\u2026']);
+    setTimeout(function(){
+      var p2=slaPhase2(what), j=0; _ldSetMsg(pfx,p2[0]);
+      _ldMsgTimers[pfx]=setInterval(function(){ j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
+    },3000);
+  },2000);
+}
+function _ldShow(pfx,on,subLabel){
+  var l=document.getElementById(pfx+'Loader'), c=document.getElementById(pfx+'Content');
+  if(l){ l.style.display=on?'flex':'none'; if(on) l.classList.remove('gw-done'); }
+  if(c) c.style.display=on?'none':'';
+  if(on) _ldStart(pfx,subLabel); else _ldStop(pfx);
+}
+function _ldSuccess(pfx){
+  _ldStop(pfx);
+  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
+  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
+}
+var _delay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
+
+// ---- Lazy-load orchestration: fetch each section's data the FIRST time it is expanded. ----
+var SLA_CHART_STATE='idle', SLA_COUNTRY_STATE='idle';   // idle | loading | done
+async function slaLoadChart(){
+  if(SLA_CHART_STATE!=='idle') return; SLA_CHART_STATE='loading';
+  _ldWhat['slc']='monthly trend';
+  _ldShow('slc',true,'Monthly trend · 2026');
+  var minDelay=_delay(4000);
+  try{
+    var mr=await A.api('GET','/api/sla-monthly');
+    if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)) SLA_MONTHLY=mr.data;
+  }catch(e){}
+  await minDelay;
+  _ldSuccess('slc'); await _delay(1000);
+  _ldShow('slc',false);
+  var b=document.getElementById('slaChartBody'); if(b){ b.innerHTML=slaChartInnerHtml(); }
+  if(SLA_MONTHLY) drawSlaChart(SLA_MONTHLY);
+  SLA_CHART_STATE='done';
+}
+async function slaLoadCountry(){
+  if(SLA_COUNTRY_STATE!=='idle') return; SLA_COUNTRY_STATE='loading';
+  _ldWhat['slb']='SLA breaches by country';
+  _ldShow('slb',true,'SLA breaches · YTD 2026');
+  var minDelay=_delay(4000);
+  try{
+    var fr=await A.api('GET','/api/sla-flat');
+    if(fr&&fr.ok&&fr.data&&Array.isArray(fr.data.tickets)) SLA_FLAT=fr.data;
+  }catch(e){}
+  await minDelay;
+  _ldSuccess('slb'); await _delay(1000);
+  _ldShow('slb',false);
+  renderSlaCountryView();
+  SLA_COUNTRY_STATE='done';
+}
+function slaSubToggle(btn){
+  var s=btn.closest('.hr-sub'); if(!s)return;
+  var willOpen=!s.classList.contains('open');
+  var scope=s.parentNode||document;
+  Array.prototype.forEach.call(scope.children, function(o){ if(o!==s && o.classList && o.classList.contains('hr-sub')) o.classList.remove('open'); });
+  s.classList.toggle('open', willOpen);
+}
+window.slaSubToggle=slaSubToggle;
 function slaSubToggle(btn){
   var s=btn.closest('.hr-sub'); if(!s)return;
   var willOpen=!s.classList.contains('open');
@@ -514,20 +719,52 @@ window.slaSubToggle=slaSubToggle;
 // ================= SECTION 1: monthly trend chart (created vs SLA crossed) =================
 var SLA_MONTHLY=null;
 var SLA_MONTH_LBL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Roll the monthly series up into headline numbers for the stat strip.
+function slaChartStats(){
+  var months=(SLA_MONTHLY&&SLA_MONTHLY.months)||[];
+  var created=0, crossed=0, worst={lbl:'—',pct:0,n:0};
+  months.forEach(function(m,i){
+    var c=m.created||0, x=m.slaCrossed||0; created+=c; crossed+=x;
+    var p=(c>0)?(x/c*100):0; if(p>worst.pct){ worst={lbl:SLA_MONTH_LBL[i]||('M'+(i+1)),pct:p,n:x}; }
+  });
+  var rate=(created>0)?(crossed/created*100):0;
+  var activeMonths=months.filter(function(m){return (m.created||0)>0;}).length||1;
+  return { created:created, crossed:crossed, rate:rate, worstLbl:worst.lbl, worstPct:worst.pct, avg:Math.round(crossed/activeMonths) };
+}
+function slaStatsHtml(){
+  var s=slaChartStats();
+  var fmt=function(n){ return (n||0).toLocaleString('en-US'); };
+  function tile(ic0,cls,val,lbl){ return '<div class="sla-stat '+(cls||'')+'">'+
+    '<span class="sla-stat-ic">'+ic(ic0,16)+'</span>'+
+    '<span class="sla-stat-body"><span class="sla-stat-n">'+val+'</span><span class="sla-stat-l">'+lbl+'</span></span></div>'; }
+  return '<div class="sla-stats">'+
+    tile('inbox','',fmt(s.created),'Tickets created')+
+    tile('target','breach',fmt(s.crossed),'SLA crossed')+
+    tile('bar-chart','rate',s.rate.toFixed(1)+'%','Breach rate')+
+    tile('calendar','',s.avg?fmt(s.avg):'—','Avg crossed / mo')+
+    tile('alert','worst',s.worstLbl,'Worst month ('+s.worstPct.toFixed(0)+'%)')+
+  '</div>';
+}
 function slaChartInnerHtml(){
   if(!SLA_MONTHLY){
     var hs=[55,40,70,50,85,60,78,45,66,52,38,72], bars='';
     for(var i=0;i<12;i++) bars+='<span class="sk-line hr-chart-sk-bar" style="height:'+hs[i]+'%"></span>';
     return '<div class="hr-chart-sk"><div class="hr-chart-sk-legend"><span class="sk-line" style="width:140px;height:12px"></span><span class="sk-line" style="width:150px;height:12px"></span></div><div class="hr-chart-sk-plot">'+bars+'</div></div>';
   }
-  return '<div class="hr-chart-legend">'+
-      '<span class="sr-lg l1"><i></i>Created</span>'+
-      '<span class="sr-lg l2"><i></i>SLA crossed</span>'+
+  // Two columns: graph (70%) on the left, the 5 stat tiles stacked in a 30% column on the right.
+  return '<div class="sla-chart-row">'+
+    '<div class="sla-chart-col">'+
+      '<div class="hr-chart-legend">'+
+        '<span class="sr-lg l1"><i></i>Created</span>'+
+        '<span class="sr-lg l2"><i></i>SLA crossed</span>'+
+      '</div>'+
+      '<div class="hr-chart-wrap" id="slaChartWrap">'+
+        '<svg class="hr-chart-svg" id="slaChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet"></svg>'+
+        '<div class="hr-chart-tip" id="slaChartTip"></div>'+
+      '</div>'+
     '</div>'+
-    '<div class="hr-chart-wrap" id="slaChartWrap">'+
-      '<svg class="hr-chart-svg" id="slaChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet"></svg>'+
-      '<div class="hr-chart-tip" id="slaChartTip"></div>'+
-    '</div>';
+    slaStatsHtml()+
+  '</div>';
 }
 function slaChartSectionHtml(){
   return '<div class="hr-range rng-chart open" data-range="chart">'+
@@ -536,15 +773,24 @@ function slaChartSectionHtml(){
       '<span class="hr-range-title">Tickets created vs SLA crossed · 2026</span>'+
       '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
     '</button>'+
-    '<div class="hr-range-body"><div id="slaChartBody">'+slaChartInnerHtml()+'</div></div>'+
+    '<div class="hr-range-body">'+ldHtml('slc')+'<div id="slcContent" style="display:none"><div id="slaChartBody">'+slaChartInnerHtml()+'</div></div></div>'+
   '</div>';
 }
 function slaNiceCeil(v){ if(v<=5)return 5; var e=Math.floor(Math.log10(v)),b=Math.pow(10,e),f=v/b; var nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*b; }
+// Index of the last month that actually has data (so the lines stop there instead of dropping to
+// zero across empty future months). Returns a count for slice() — defaults to full length.
+function slaLastMonth(months){
+  var last=0;
+  for(var i=0;i<months.length;i++){ var m=months[i]||{}; if((m.created||0)>0||(m.slaCrossed||0)>0) last=i+1; }
+  return last||months.length;
+}
 function drawSlaChart(data){
   var svg=document.getElementById('slaChartSvg'); if(!svg)return;
   var months=(data&&data.months)||[];
+  // Only draw lines/points/hover through the last month with data; keep all 12 x-axis labels.
+  var draw=months.slice(0, slaLastMonth(months));
   var W=920,H=320,padL=46,padR=20,padT=18,padB=36, plotW=W-padL-padR, plotH=H-padT-padB;
-  var maxV=0; months.forEach(function(m){ maxV=Math.max(maxV,m.created,m.slaCrossed); });
+  var maxV=0; draw.forEach(function(m){ maxV=Math.max(maxV,m.created,m.slaCrossed); });
   var niceMax=slaNiceCeil(Math.max(maxV,1));
   var xAt=function(i){ return padL+(plotW*(i/11)); };
   var yAt=function(v){ return padT+plotH-(plotH*(v/niceMax)); };
@@ -554,16 +800,16 @@ function drawSlaChart(data){
     g+='<text class="axlbl" x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end">'+v+'</text>'; }
   for(var i=0;i<12;i++){ g+='<text class="axlbl" x="'+xAt(i)+'" y="'+(H-padB+20)+'" text-anchor="middle">'+SLA_MONTH_LBL[i]+'</text>'; }
   g+='<line class="axis" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'"/>';
-  var pts=function(getter){ return months.map(function(m,i){ return xAt(i)+','+yAt(getter(m)); }).join(' '); };
+  var pts=function(getter){ return draw.map(function(m,i){ return xAt(i)+','+yAt(getter(m)); }).join(' '); };
   g+='<polyline class="ln l1" points="'+pts(function(m){return m.created;})+'"/>';
   g+='<polyline class="ln l2" points="'+pts(function(m){return m.slaCrossed;})+'"/>';
   g+='<line class="vline" id="slaVLine" y1="'+padT+'" y2="'+(padT+plotH)+'"/>';
-  months.forEach(function(m,i){
+  draw.forEach(function(m,i){
     g+='<circle class="pt l1" cx="'+xAt(i)+'" cy="'+yAt(m.created)+'" r="4"/>';
     g+='<circle class="pt l2" cx="'+xAt(i)+'" cy="'+yAt(m.slaCrossed)+'" r="4"/>';
   });
   var colW=plotW/11;
-  months.forEach(function(m,i){ g+='<rect class="hit" data-i="'+i+'" x="'+(xAt(i)-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>'; });
+  draw.forEach(function(m,i){ g+='<rect class="hit" data-i="'+i+'" x="'+(xAt(i)-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>'; });
   svg.innerHTML=g;
   var tip=document.getElementById('slaChartTip'), vline=document.getElementById('slaVLine'), wrap=document.getElementById('slaChartWrap');
   svg.querySelectorAll('.hit').forEach(function(rect){
@@ -590,7 +836,15 @@ function drawSlaChart(data){
 var SLA_FLAT=null, SLA_PHD=true, SLA_NONPHD=true;
 var SLA_SORT_DIR='desc'; // SLA-breach-days column sort: desc (default, worst breach first) | asc
 function slaFiltered(tickets){ return (tickets||[]).filter(function(t){ var p=isPhdUser(t.resolvedBy); return (p&&SLA_PHD)||(!p&&SLA_NONPHD); }); }
-function slaToggleKind(which, cb){ if(which==='phd')SLA_PHD=cb.checked; else SLA_NONPHD=cb.checked; renderSlaCountryView(); }
+// Segmented filter toggle: flip this analyst-type on/off, update the button's pressed state, and
+// re-render. Guard against turning BOTH off (keep at least one selected so the table isn't empty).
+function slaToggleKind(which, btn){
+  var next=(which==='phd')?!SLA_PHD:!SLA_NONPHD;
+  if(!next && ((which==='phd' && !SLA_NONPHD) || (which==='nonphd' && !SLA_PHD))) return; // don't allow both off
+  if(which==='phd')SLA_PHD=next; else SLA_NONPHD=next;
+  if(btn){ btn.classList.toggle('on', next); btn.setAttribute('aria-pressed', next?'true':'false'); }
+  renderSlaCountryView();
+}
 window.slaToggleKind=slaToggleKind;
 // Toggle the SLA-breach-days sort direction and re-render all country tables.
 function slaSortBreach(){ SLA_SORT_DIR=(SLA_SORT_DIR==='desc'?'asc':'desc'); renderSlaCountryView(); }
@@ -627,10 +881,15 @@ function slaTable(list){
 }
 function slaCountrySectionHtml(){
   var checks=
-    '<div class="np-controls"><div style="flex:1"></div>'+
-      '<div class="np-checks">'+
-        '<label class="np-chip"><input type="checkbox" checked onchange="slaToggleKind(\'phd\',this)"><span>PHD Analysts</span></label>'+
-        '<label class="np-chip"><input type="checkbox" checked onchange="slaToggleKind(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
+    '<div class="np-controls">'+
+      '<div class="np-controls-lbl">'+ic('filter',15)+'<span>Filter by analyst</span></div>'+
+      '<div class="np-seg" role="group" aria-label="Filter by analyst type">'+
+        '<button type="button" class="np-seg-btn on" data-kind="phd" aria-pressed="true" onclick="slaToggleKind(\'phd\',this)">'+
+          '<span class="np-seg-check">'+ic('check',13)+'</span><span class="np-seg-txt">PHD Analysts</span>'+
+        '</button>'+
+        '<button type="button" class="np-seg-btn on" data-kind="nonphd" aria-pressed="true" onclick="slaToggleKind(\'nonphd\',this)">'+
+          '<span class="np-seg-check">'+ic('check',13)+'</span><span class="np-seg-txt">Non-PHD Analysts</span>'+
+        '</button>'+
       '</div>'+
     '</div>';
   return '<div class="hr-range rng-country" data-range="country">'+
@@ -639,7 +898,7 @@ function slaCountrySectionHtml(){
       '<span class="hr-range-title">SLA Breaches by Country</span>'+
       '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
     '</button>'+
-    '<div class="hr-range-body">'+checks+'<div id="slaCountryBody"></div></div>'+
+    '<div class="hr-range-body">'+ldHtml('slb')+'<div id="slbContent" style="display:none">'+checks+'<div id="slaCountryBody"></div></div></div>'+
   '</div>';
 }
 function renderSlaCountryView(){
@@ -665,25 +924,20 @@ window.renderSlaCountryView=renderSlaCountryView;
 
 function paintSlaShell(){
   document.getElementById('wrap').innerHTML=
-    '<div class="hr-banner"><div class="hb-left">'+
-      '<h1 class="hb-title">'+ic('clock',24)+' SLA Breaches (&gt;240h)</h1>'+
-    '</div>'+
-    '<div class="hb-right"><span class="hr-ytd">'+ic('calendar',15)+' YTD 2026</span></div>'+
-    '</div>'+
     slaChartSectionHtml()+
     slaCountrySectionHtml();
-  if(SLA_MONTHLY) drawSlaChart(SLA_MONTHLY);
-  renderSlaCountryView();
+  // No eager render: each section fetches + draws on its first expand (see slaLoadChart/Country).
 }
 
 (async function init(){
   if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
   if(!(A.canViewSLA&&A.canViewSLA())){ location.replace('index.html'); return; }
   paintSlaShell();
+  // Resolve user roles up front so PHD/non-PHD classification is ready before a section fetches.
   try{ const ru=await A.api('GET','/api/user-roles'); if(ru&&ru.ok&&Array.isArray(ru.data)){ HR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();})); } }catch(e){ HR_USERS=null; }
-  var pm=A.api('GET','/api/sla-monthly').then(function(mr){ if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)){ SLA_MONTHLY=mr.data; var b=document.getElementById('slaChartBody'); if(b){ b.innerHTML=slaChartInnerHtml(); drawSlaChart(SLA_MONTHLY); } } }).catch(function(){});
-  var pf=A.api('GET','/api/sla-flat').then(function(fr){ if(fr&&fr.ok&&fr.data&&Array.isArray(fr.data.tickets)){ SLA_FLAT=fr.data; renderSlaCountryView(); } }).catch(function(){});
-  await Promise.allSettled([pm,pf]);
+  // Chart section is expanded by default -> load it now. The Country section stays collapsed and
+  // fetches only when it is expanded (lazy-load).
+  slaLoadChart();
 })();
 </script>
 </body>

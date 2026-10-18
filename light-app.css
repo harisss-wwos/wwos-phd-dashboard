@@ -6,21 +6,28 @@
    ============================================================================================ */
 
 :root{
-  /* Light palette */
+  /* ---- New brand palette (applied across all app.html views) ----
+     #ff6100 dark orange · #fe9046 light orange · #f4f3ef grayish · #ffffff white
+     #151d28 black · #161d2d purple-black · #818284 light black · #e6f0fc blue-bg
+     #c4def6 icon-bg · #2b66c1 icon/blue */
   --lt-page:#f4f3ef;        /* page background */
   --lt-panel:#ffffff;       /* cards / sections / panels */
-  --lt-panel-2:#eef1f4;     /* secondary surfaces (headers, chips, inset) */
-  --lt-panel-3:#e7ebef;     /* hover / zebra */
+  --lt-panel-2:#e6f0fc;     /* secondary surfaces (headers, chips, inset) — soft blue */
+  --lt-panel-3:#d8e6f8;     /* hover / zebra */
   --lt-border:#e2e6ea;      /* standard border */
   --lt-border-2:#d4dade;    /* stronger border */
-  --lt-text:#1b2026;        /* primary text */
-  --lt-text-2:#5c6773;      /* muted text */
-  --lt-accent:#ec7211;      /* amazon orange (slightly darker for contrast on white) */
-  --lt-accent-soft:#fff4e8;
+  --lt-text:#151d28;        /* primary text — brand black */
+  --lt-text-2:#818284;      /* muted text — light black */
+  --lt-accent:#ff6100;      /* dark orange (primary accent) */
+  --lt-accent-l:#fe9046;    /* light orange */
+  --lt-accent-soft:#fff2ea;
+  --lt-blue:#2b66c1;        /* blue accent */
+  --lt-blue-bg:#e6f0fc;     /* blue surface */
+  --lt-blue-ic:#c4def6;     /* blue icon background */
 
   /* Remap the app's own semantic vars to light equivalents (used widely via var()). */
-  --t:#1b2026;              /* was light-on-dark; now dark text */
-  --tm:#5c6773;             /* muted */
+  --t:#151d28;              /* was light-on-dark; now dark text */
+  --tm:#818284;             /* muted */
   --bd:#e2e6ea;             /* border */
   --s:#ffffff;              /* "surface" used by .section/.kpi-card/.chart-box */
 }
@@ -49,7 +56,7 @@ body[data-profile-panel] .content>.page-title:first-child{margin-bottom:14px!imp
 
 /* ---- Buttons ---- */
 .btn{background:var(--lt-accent)!important;color:#fff!important}
-.btn:hover{background:#d9630c!important}
+.btn:hover{background:#e55700!important}
 .btn.sec{background:var(--lt-panel)!important;border:1px solid var(--lt-border-2)!important;color:var(--lt-text)!important}
 .btn.sec:hover{border-color:var(--lt-accent)!important;color:var(--lt-accent)!important}
 
@@ -62,7 +69,7 @@ body[data-profile-panel] .content>.page-title:first-child{margin-bottom:14px!imp
 .dash-scope-opt,.dsc-opt{color:var(--lt-text-2)!important}
 .dash-scope-opt:hover,.dsc-opt:hover{color:var(--lt-text)!important;border-color:#c3ccd4!important}
 /* Keep the selected scope chip orange (matches the dark theme's active state). */
-.dash-scope-opt.checked,.dsc-opt.checked{color:#fff!important;background:linear-gradient(180deg,#ff9f2e,#ec7211)!important;border-color:#ec7211!important}
+.dash-scope-opt.checked,.dsc-opt.checked{color:#fff!important;background:linear-gradient(180deg,#fe9046,#ff6100)!important;border-color:#ff6100!important}
 
 /* ---- Sections / cards / panels ---- */
 .section,.kpi-card,.chart-box{background:var(--lt-panel)!important;border:1px solid var(--lt-border)!important}
@@ -78,11 +85,11 @@ td,th{border-color:var(--lt-border)!important}
 .kpi-table th,.kpi-table td{border-color:var(--lt-border)!important}
 .kpi-table td.kt-metric{color:var(--lt-text)!important}
 .kpi-table tr:nth-child(even) td{background:#fafbfc!important}
-tr:hover{background:#fff6ec!important}
+tr:hover{background:#fff2ea!important}
 .xls-table,.xls-table th,.xls-table td{border-color:var(--lt-border-2)!important}
 .inc-sub-h{color:var(--lt-text)!important}
 .inc-sub-h .inc-sub-n{color:var(--lt-text)!important;background:var(--lt-panel-2)!important}
-.xls-table tr.inc-clickrow:hover td{background:#fff6ec!important}
+.xls-table tr.inc-clickrow:hover td{background:#fff2ea!important}
 .inc-ag-name{color:var(--lt-text)!important}
 
 /* Blink-alert sections should flash on a light base, not black. */
@@ -110,8 +117,8 @@ tr:hover{background:#fff6ec!important}
   box-shadow:none!important;color:var(--lt-text)!important;transition:transform .15s!important}
 .tb-rail-badge.tb-rail-logo:hover{background:transparent!important;transform:none!important}
 /* Upload FAB: no orange chip — transparent at rest like the other rail pills; icon tinted navy. */
-.tb-nav-fab.tb-nav-upload{background:transparent!important;color:#2a3f63!important;border:none!important}
-.tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
+.tb-nav-fab.tb-nav-upload{background:transparent!important;color:#2b66c1!important;border:none!important}
+.tb-nav-fab.tb-nav-upload .tb-nav-ic svg{color:#2b66c1!important;stroke:#2b66c1!important}
 /* Live FAB keeps its green identity but on a light chip. */
 .tb-live-fab{background:#eafaf0!important;border:1px solid #9ad9b4!important;color:#1a8f4e!important}
 .tb-live-fab .tb-live-dot{background:#1aa85a!important;box-shadow:0 0 8px #1aa85a!important}
@@ -124,11 +131,11 @@ tr:hover{background:#fff6ec!important}
    On hover the pill turns orange and the icon flips to near-black (handled in topbar-auth.js). */
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic,
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab) .tb-nav-ic svg,
-body .tb-fab-col .tb-an-fab .tb-an-ic,body .tb-fab-col .tb-an-fab .tb-an-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
-/* No orange chip now -> icons KEEP their navy tint on hover (only the icon scales). */
+body .tb-fab-col .tb-an-fab .tb-an-ic,body .tb-fab-col .tb-an-fab .tb-an-ic svg{color:#2b66c1!important;stroke:#2b66c1!important}
+/* No orange chip now -> icons KEEP their blue tint on hover (only the icon scales). */
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab):hover .tb-nav-ic,
 body .tb-fab-col .tb-nav-fab:not(.tb-nav-upload):not(.tb-flyout-item):not(.tb-flyout-fab):hover .tb-nav-ic svg,
-body .tb-fab-col .tb-an-fab:hover .tb-an-ic,body .tb-fab-col .tb-an-fab:hover .tb-an-ic svg{color:#2a3f63!important;stroke:#2a3f63!important}
+body .tb-fab-col .tb-an-fab:hover .tb-an-ic,body .tb-fab-col .tb-an-fab:hover .tb-an-ic svg{color:#2b66c1!important;stroke:#2b66c1!important}
 .tb-rail-badge-label{background:var(--lt-panel)!important;color:var(--lt-text)!important;border-color:var(--lt-border-2)!important}
 /* Profile pill text. */
 .tb-profile-btn,.tb-profile-name,.tb-av-label{color:var(--lt-text)!important}
@@ -363,7 +370,7 @@ body[data-profile-panel] .content .kpi-section.collapsed{
 .ap-caret{ color:var(--lt-text-2)!important }
 .ap-tbl th,.ap-tbl td{ border-top-color:#eceff2!important; color:var(--lt-text)!important }
 .ap-tbl thead th{ background:#f7f9fb!important; color:var(--lt-text-2)!important }
-.ap-tbl tbody tr:hover td{ background:#fff6ec!important }
+.ap-tbl tbody tr:hover td{ background:#fff2ea!important }
 .ap-tbl .ap-id{ color:#1577a0!important }
 .ap-tbl td.ap-cmt{ color:#2a3340!important }
 .ap-cmt-input,.ap-cmt-save,.ap-cmt-cancel{ font-family:inherit }

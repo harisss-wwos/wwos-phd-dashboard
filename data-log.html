@@ -118,8 +118,8 @@ h1{color:#1b2026!important}
 .log-quarter{color:#5c6773!important}
 .log-date-title{color:#1b2026!important}
 .log-date-meta{color:#5c6773!important}
-.lf-name{color:#1b2026!important}
-.lf-sub{color:#5c6773!important}
+.lf-name{color:#1b2026!important;font-weight:600;font-size:.86em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lf-sub{color:#5c6773!important;margin-left:auto;flex:0 0 auto;white-space:nowrap;font-size:.78em}
 .chg .k{color:#5c6773!important}
 .nochg{color:#8793a0!important}
 .tk-group-title.added{color:#1f9d57!important}
@@ -164,6 +164,24 @@ h1{color:#1b2026!important}
 .btn.danger:hover{background:#fef2f2!important}
 .log-more-note{color:#5c6773!important}
 .empty{border-color:#d4dce4!important;color:#8793a0!important}
+/* New upload change summary (no quarter ref): two stat tiles — added + updated. */
+.ul-change-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ul-chg{background:#f7f9fb!important;border:1px solid #e6eaee;border-radius:5px;padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.ul-chg .ul-chg-n{font-size:1.5em;font-weight:800;line-height:1;color:#1b2026}
+.ul-chg .ul-chg-l{font-size:.78em;font-weight:600;color:#5c6773}
+.ul-chg.added{border-left:3px solid #1f9d57}
+.ul-chg.added .ul-chg-n{color:#1f9d57}
+.ul-chg.updated{border-left:3px solid #b5680c}
+.ul-chg.updated .ul-chg-n{color:#b5680c}
+@media(max-width:480px){.ul-change-grid{grid-template-columns:1fr}}
+/* ===== Embedded (index.html "View upload log" modal) overrides ===== */
+/* Hide the page title + description — the modal has its own header. */
+body.dl-embed #wrap>h1,body.dl-embed #wrap>.sub{display:none!important}
+body.dl-embed .wrap{margin:0!important;padding:16px 10px!important;max-width:none!important}
+/* "Load N more days" button: 5px radius, #c4def6 text on #2b66c1. */
+body.dl-embed .log-more .btn{background:#2b66c1!important;color:#c4def6!important;border:none!important;border-radius:5px!important;box-shadow:0 4px 14px -4px rgba(43,102,193,.5)!important}
+body.dl-embed .log-more .btn:hover{filter:brightness(1.08)!important}
+body.dl-embed .log-more .btn svg{color:#c4def6!important}
 </style>
 </head>
 <body data-nav-active="data-log" data-back-href="app.html" data-back-label="Dashboard">
@@ -175,9 +193,12 @@ h1{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=167"></script>
+<script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
+// Embedded in the index.html "View upload log" modal? Tag the body so embed-only CSS applies
+// (hide the page title/description, restyle the load-more button).
+try{ if(/[?&]embed=1\b/.test(location.search) || window.self!==window.top) document.body.classList.add('dl-embed'); }catch(e){ document.body.classList.add('dl-embed'); }
 
 // Format an ISO timestamp into a timezone label. Uses Intl with the IANA zone.
 function fmtTZ(iso,zone){
@@ -218,12 +239,11 @@ function fileMetaHtml(items){
   const it=(items||[]).find(x=>x&&(x.fileName||x.fileSize||x.fileType))||{};
   if(!it.fileName&&!it.fileSize&&!it.fileType)return '';
   const size=fmtBytes(it.fileSize);
+  const right=[size,esc(it.fileType||'')].filter(Boolean).join(' · ');
   return '<div class="log-file">'+
     '<span class="log-file-icon" aria-hidden="true">📄</span>'+
-    '<span class="log-file-meta">'+
-      '<span class="lf-name">'+esc(it.fileName||'Uploaded file')+'</span>'+
-      (size||it.fileType?'<span class="lf-sub">'+[size,esc(it.fileType||'')].filter(Boolean).join(' · ')+'</span>':'')+
-    '</span>'+
+    '<span class="lf-name">'+esc(it.fileName||'Uploaded file')+'</span>'+
+    (right?'<span class="lf-sub">'+right+'</span>':'')+
   '</div>';
 }
 
@@ -269,15 +289,17 @@ function render(entries){
   });
   // Newest first (entries already arrive sorted desc, so groups are in that order).
 
-  // One quarter's change block within a section.
+  // One upload's change block within a session. No quarter reference — just what the uploaded file
+  // brought in: newly added tickets + tickets with updated fields.
   function quarterBlock(e){
-    const liveWritten=(e.written||[]).find(w=>w.isLive);
-    const liveCount=liveWritten?liveWritten.count:(e.totalTickets!=null?e.totalTickets:'');
-    const heading=(e.pastQuarterMerge?'Merged into past quarter ':'Published to ')+'<b>'+esc(e.liveQuarter||'')+'</b>'+
-      (liveCount!==''?(' · '+liveCount+(e.pastQuarterMerge?' tickets in quarter':' tickets in live quarter')):'');
-    return '<div class="log-quarter-block '+(e.pastQuarterMerge?'past':'live')+'">'+
-      '<div class="log-quarter '+(e.pastQuarterMerge?'past':'live')+'">'+heading+'</div>'+
-      changeCells(e.changeSummary)+
+    const cs=e.changeSummary||{};
+    const added=Number(cs.added||0), updated=Number(cs.updated||0);
+    const summary='<div class="ul-change-grid">'+
+      '<div class="ul-chg added"><span class="ul-chg-n">'+added+'</span><span class="ul-chg-l">Newly added tickets</span></div>'+
+      '<div class="ul-chg updated"><span class="ul-chg-n">'+updated+'</span><span class="ul-chg-l">Tickets with updated fields</span></div>'+
+    '</div>';
+    return '<div class="log-quarter-block live">'+
+      summary+
       changedTicketsBlock(e.changedTickets)+
     '</div>';
   }
@@ -352,12 +374,19 @@ function toggleSession(btn){
   const isOpen=card.classList.toggle('open');
   btn.setAttribute('aria-expanded',isOpen?'true':'false');
 }
-// Expand/collapse a whole date section.
+// Expand/collapse a whole date section. Accordion: opening one collapses the others (only one day
+// expanded at a time).
 function toggleDateSection(btn){
   const sec=btn.closest('.log-date-section');
   if(!sec)return;
-  const isOpen=sec.classList.toggle('open');
-  btn.setAttribute('aria-expanded',isOpen?'true':'false');
+  const willOpen=!sec.classList.contains('open');
+  if(willOpen){
+    document.querySelectorAll('.log-date-section.open').forEach(function(s){
+      if(s!==sec){ s.classList.remove('open'); var b=s.querySelector('.log-date-head'); if(b) b.setAttribute('aria-expanded','false'); }
+    });
+  }
+  sec.classList.toggle('open',willOpen);
+  btn.setAttribute('aria-expanded',willOpen?'true':'false');
 }
 
 let MY_TZ='IST'; // logged-in user's preferred timezone (IST|MST)

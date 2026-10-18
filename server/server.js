@@ -52,6 +52,20 @@ function ticketChanged(incoming, existing) {
 // Cached briefly so a burst of read endpoints in one page load doesn't re-scan every request.
 let _liveQCache = { id: null, at: 0 };
 const LIVE_Q_TTL_MS = 15000;
+
+// ---- Generic in-memory TTL cache for expensive live reports (hashtags/out-of-scope). --------------
+// These endpoints scan the whole ticket_docs collection, so without caching every page load re-scans.
+// The data only changes on a CSV upload, so a few minutes of staleness is fine. Cache is cleared on
+// any upload/merge via invalidateReportCache() so a fresh upload shows immediately.
+const _reportCache = new Map(); // key -> { at:ms, data:any }
+const REPORT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+function getCachedReport(key) {
+  const hit = _reportCache.get(key);
+  if (hit && (Date.now() - hit.at) < REPORT_TTL_MS) return hit.data;
+  return null;
+}
+function setCachedReport(key, data) { _reportCache.set(key, { at: Date.now(), data }); }
+function invalidateReportCache() { _reportCache.clear(); }
 async function liveQuarterId() {
   const now = Date.now();
   if (_liveQCache.id && (now - _liveQCache.at) < LIVE_Q_TTL_MS) return _liveQCache.id;
@@ -1279,6 +1293,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
     res.json({ ok: true, liveQuarter: liveQ, written, undated });
     invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
     invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
+    invalidateReportCache();      // tickets changed -> drop cached hashtags/out-of-scope reports
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message));
@@ -1431,6 +1446,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
     invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
     invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
+    invalidateReportCache();      // tickets changed -> drop cached hashtags/out-of-scope reports
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
     recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
     recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message));
@@ -3280,30 +3296,46 @@ app.get('/api/station-flat', requireFlag('canViewSR'), async (req, res) => {
 // into ticket_docs, this report is ALWAYS live — a newly uploaded file's hashtags appear here with
 // no extra step. A single ticket carrying multiple hashtags appears in each of its tag sections.
 // De-duplicated by ShortId within a tag so a ticket is counted once per section.
-const HASHTAGS_FROM = new Date('2026-04-01T00:00:00.000Z');
+const HASHTAGS_FROM = new Date('2026-01-01T00:00:00.000Z');
 const HASHTAG_TOKEN_RE = /#[a-z0-9][a-z0-9_-]*/gi;
+// NOTE: the manual-tag upload allow-list is NOT hardcoded — it is the live set of hashtags managed
+// on the Tools page (the `hashtags` collection). See /api/hashtags/manual-tag below.
+// Normalize a hashtag to a canonical token: lowercased, exactly one leading '#', no surrounding
+// whitespace. Returns '' if there's nothing tag-like. Used by the manual-tag upload + the report.
+function normHashtag(raw) {
+  var t = String(raw == null ? '' : raw).trim().toLowerCase().replace(/^#+/, '');
+  t = t.replace(/[^a-z0-9_-]/g, ''); // keep only tag-safe chars
+  return t ? ('#' + t) : '';
+}
 app.get('/api/hashtags-report', async (req, res) => {
   try {
+    // Serve a cached result if fresh (these scan the whole collection; data changes only on upload).
+    const cached = getCachedReport('hashtags-report');
+    if (cached) return res.json(cached);
     const coll = await getCollection(COLLECTIONS.ticketDocs);
-    // Only pull the rows that actually carry a '#' in Labels and were created on/after the cutoff.
-    // Slim projection keeps the payload small even across ~70k tickets.
+    // A ticket qualifies if its Labels carry a '#' OR it has one or more manually-assigned hashtags
+    // (ManualHashtags, written by the admin hashtag-CSV upload). Both sources are unioned per ticket.
     const rows = await coll.aggregate([
+      { $match: { $or: [ { Labels: { $regex: /#/ } }, { ManualHashtags: { $exists: true, $ne: [] } } ] } },
       { $project: {
         _id: 0,
         ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1,
-        AssigneeIdentity: 1, Labels: 1, q: 1,
+        AssigneeIdentity: 1, Labels: 1, ManualHashtags: 1, q: 1,
         cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
-        hasHash: { $regexMatch: { input: { $ifNull: ['$Labels', ''] }, regex: '#' } },
       } },
-      { $match: { hasHash: true, cd: { $gte: HASHTAGS_FROM } } },
+      { $match: { cd: { $gte: HASHTAGS_FROM } } },
     ], { allowDiskUse: true }).toArray();
 
     // Group into sections keyed by lowercased #tag; dedupe ShortIds within a tag.
     const sections = new Map(); // tag -> { tag, seen:Set, tickets:[] }
     rows.forEach(t => {
       const sid = t.ShortId || t.IssueId || '';
-      const tags = String(t.Labels || '').match(HASHTAG_TOKEN_RE);
-      if (!tags) return;
+      // Union of (a) #tags scanned from Labels and (b) manually-assigned hashtags, deduped per ticket
+      // so a tag present in BOTH Labels and ManualHashtags is counted exactly once.
+      const labelTags = String(t.Labels || '').match(HASHTAG_TOKEN_RE) || [];
+      const manualTags = Array.isArray(t.ManualHashtags) ? t.ManualHashtags : [];
+      const tags = labelTags.concat(manualTags);
+      if (!tags.length) return;
       const ticket = {
         shortId: sid,
         url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
@@ -3312,7 +3344,7 @@ app.get('/api/hashtags-report', async (req, res) => {
         status: t.Status || '',
         title: t.Title || '',
       };
-      const uniqueTags = [...new Set(tags.map(x => x.toLowerCase()))];
+      const uniqueTags = [...new Set(tags.map(x => normHashtag(x)).filter(Boolean))];
       uniqueTags.forEach(tag => {
         let sec = sections.get(tag);
         if (!sec) { sec = { tag, seen: new Set(), tickets: [] }; sections.set(tag, sec); }
@@ -3331,14 +3363,174 @@ app.get('/api/hashtags-report', async (req, res) => {
       }))
       .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 
-    res.json({
+    const payload = {
       generatedFrom: 'ticket_docs (live)',
       generatedAt: new Date().toISOString(),
       from: HASHTAGS_FROM.toISOString().slice(0, 10),
       sections: out,
-    });
+    };
+    setCachedReport('hashtags-report', payload);
+    res.json(payload);
   } catch (e) {
     res.status(500).json({ error: 'Could not load hashtags report.' });
+  }
+});
+
+// ---- Admin: assign a hashtag to a set of tickets from an uploaded CSV --------------------------
+// The admin uploads a CSV NAMED after the hashtag (e.g. "no-emt-attached.csv"); the client derives
+// the hashtag + the list of ShortIds and POSTs them here. We $addToSet the (normalized) hashtag into
+// each matched ticket's ManualHashtags array, so it counts in the Hashtags report exactly like a
+// '#tag' in the Labels column — deduped, never repeated. Admin (canUpload) only.
+// Body: { hashtag: "#no-emt-attached", shortIds: ["ID1","ID2", ...] }
+app.post('/api/hashtags/manual-tag', requireFlag('canUpload'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const hashtag = normHashtag(body.hashtag);
+    if (!hashtag) return res.status(400).json({ error: 'Missing or invalid hashtag (derive it from the CSV filename, e.g. "no-emt-attached.csv").' });
+    // The allow-list is the LIVE set of hashtags managed on the Tools page (the `hashtags`
+    // collection) — so adding a tag there immediately makes it uploadable here. The collection is
+    // small, so load all tags and match the normalized token ('#tag', lowercased) in JS.
+    const hashColl = await getCollection(COLLECTIONS.hashtags);
+    const bare = hashtag.replace(/^#/, '');
+    const docs = await hashColl.find({}, { projection: { _id: 0, tag: 1 } }).toArray();
+    const allowed = new Set(docs.map(d => normHashtag(d.tag)).filter(Boolean));
+    if (!allowed.has(hashtag)) {
+      return res.status(400).json({
+        error: '"' + hashtag + '" does not match any hashtag on the Tools page. Rename the file to match an existing hashtag, or create "' + bare + '" on the Tools page first, then upload again.',
+        code: 'UNKNOWN_HASHTAG',
+      });
+    }
+    // Normalize + dedupe the incoming ShortIds (strings, trimmed, non-empty).
+    const idsRaw = Array.isArray(body.shortIds) ? body.shortIds : [];
+    const ids = [...new Set(idsRaw.map(x => String(x == null ? '' : x).trim()).filter(Boolean))];
+    if (!ids.length) return res.status(400).json({ error: 'No ticket ShortIds found in the file.' });
+
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    // A ShortId may exist across multiple quarter docs; $addToSet is idempotent, so tag them all.
+    // Match on ShortId OR IssueId so files that only carry one of the two still resolve.
+    const r = await coll.updateMany(
+      { $or: [ { ShortId: { $in: ids } }, { IssueId: { $in: ids } } ] },
+      { $addToSet: { ManualHashtags: hashtag } }
+    );
+    // Figure out which of the requested ids actually matched a ticket (for a "not found" count).
+    const foundDocs = await coll.distinct('ShortId', { $or: [ { ShortId: { $in: ids } }, { IssueId: { $in: ids } } ] });
+    const foundSet = new Set((foundDocs || []).map(x => String(x || '').trim()).filter(Boolean));
+    const notFound = ids.filter(id => !foundSet.has(id));
+
+    invalidateReportCache(); // drop cached hashtags/out-of-scope reports so the new tag shows at once
+
+    // Audit log (best-effort): who tagged what, how many, when.
+    try {
+      const log = await getCollection(COLLECTIONS.hashtagLog);
+      await log.insertOne({
+        action: 'manual-tag-upload', hashtag,
+        uploadedBy: req.user.username, at: new Date().toISOString(),
+        requested: ids.length, matchedTickets: foundSet.size, modified: r.modifiedCount, notFound: notFound.length,
+      });
+    } catch (e) { /* non-fatal */ }
+
+    res.json({
+      ok: true, hashtag,
+      requested: ids.length,
+      matchedTickets: foundSet.size,
+      modified: r.modifiedCount,
+      notFound,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not apply the hashtag to the uploaded tickets.' });
+  }
+});
+
+// ---- Performance Summary (weekly / monthly) over an arbitrary [from,to] window ----------------
+// Powers performance-summary.html. Computes, for the requested window AND the immediately-preceding
+// window of equal length (for WoW/MoM deltas):
+//   reports   = tickets CREATED in the window (CreateDate in [from,to])
+//   resolved  = tickets RESOLVED in the window (ResolvedDate in [from,to], Status Resolved/Closed)
+//   backlog   = reports - resolved
+//   slaBreaches / slaPct = of tickets RESOLVED in the window, how many took > 240h (breach), and the
+//                          % that did NOT breach (resHrs <= 240)
+//   repeat {total,pet,nonPet} = resolved-in-window tickets with HI count (Cnt) > 0, split by pet flag
+//   defects {contradictory,noEmt,unsuccessfulOutreach} = resolved-in-window tickets whose hashtag set
+//            (Labels + ManualHashtags) contains the respective tag
+//   addressExclusions = resolved-in-window with RootCauseDetails mentioning "address exclusion/depri"
+//   geoPins           = resolved-in-window with RootCauseDetails mentioning a geo-pin
+// Also returns mtdSlaPct = SLA% for the current calendar month to date (server "now").
+const SLA_THRESHOLD_HRS = 240;
+async function perfWindowStats(from, to) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const cd = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+  const rd = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+  const resHrs = { $let: { vars: { r: rd, c: cd }, in: { $cond: [{ $and: [{ $ne: ['$$r', null] }, { $ne: ['$$c', null] }] }, { $divide: [{ $subtract: ['$$r', '$$c'] }, 3600000] }, null] } } };
+  const hiExpr = { $let: { vars: { m: { $regexFind: { input: { $ifNull: ['$RootCauseDetails', ''] }, regex: /(?:\bCnt\s*[:\s]\s*|Historical Incident\s*:?\s*)(\d+)/i } } }, in: { $cond: [{ $ne: ['$$m', null] }, { $toInt: { $arrayElemAt: ['$$m.captures', 0] } }, 0] } } };
+  const isPet = { $regexMatch: { input: { $toLower: { $ifNull: ['$RootCause', ''] } }, regex: 'unsecured animal' } };
+  const rcd = { $ifNull: ['$RootCauseDetails', ''] };
+  const isAddr = { $regexMatch: { input: rcd, regex: 'address\\s*(exclusion|depri)', options: 'i' } };
+  const isGeo = { $regexMatch: { input: rcd, regex: 'geo\\s*-?\\s*pin', options: 'i' } };
+  // Hashtag presence (Labels text OR ManualHashtags array), matched case-insensitively.
+  const hasTag = (tag) => ({ $or: [
+    { $regexMatch: { input: { $ifNull: ['$Labels', ''] }, regex: tag.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), options: 'i' } },
+    { $in: [tag, { $map: { input: { $ifNull: ['$ManualHashtags', []] }, as: 't', in: { $toLower: '$$t' } } }] },
+  ] });
+
+  // (1) Created-in-window count.
+  const createdAgg = await coll.aggregate([
+    { $project: { cd } },
+    { $match: { cd: { $gte: from, $lt: to } } },
+    { $count: 'n' },
+  ], { allowDiskUse: true }).toArray();
+  const reports = (createdAgg[0] && createdAgg[0].n) || 0;
+
+  // (2) Resolved-in-window: compute every per-ticket flag we need in one pass.
+  const r = await coll.aggregate([
+    { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
+    { $project: {
+      rdv: rd, resHrs, hi: hiExpr, isPet,
+      addr: isAddr, geo: isGeo,
+      tgContra: hasTag('#contradictory-statement-no-proof'),
+      tgNoEmt: hasTag('#no-emt-attached'),
+      tgOutreach: { $or: [ hasTag('#unsucessful-outreach'), hasTag('#unsuccessful-outreach') ] },
+    } },
+    { $match: { rdv: { $gte: from, $lt: to } } },
+    { $group: {
+      _id: null,
+      resolved: { $sum: 1 },
+      breaches: { $sum: { $cond: [{ $and: [{ $ne: ['$resHrs', null] }, { $gt: ['$resHrs', SLA_THRESHOLD_HRS] }] }, 1, 0] } },
+      repeatTotal: { $sum: { $cond: [{ $gt: ['$hi', 0] }, 1, 0] } },
+      repeatPet: { $sum: { $cond: [{ $and: ['$isPet', { $gt: ['$hi', 0] }] }, 1, 0] } },
+      repeatNonPet: { $sum: { $cond: [{ $and: [{ $not: '$isPet' }, { $gt: ['$hi', 0] }] }, 1, 0] } },
+      addr: { $sum: { $cond: ['$addr', 1, 0] } },
+      geo: { $sum: { $cond: ['$geo', 1, 0] } },
+      dContra: { $sum: { $cond: ['$tgContra', 1, 0] } },
+      dNoEmt: { $sum: { $cond: ['$tgNoEmt', 1, 0] } },
+      dOutreach: { $sum: { $cond: ['$tgOutreach', 1, 0] } },
+    } },
+  ], { allowDiskUse: true }).toArray();
+  const g = r[0] || {};
+  const resolved = g.resolved || 0, breaches = g.breaches || 0;
+  const slaPct = resolved ? ((resolved - breaches) / resolved * 100) : 0;
+  return {
+    reports, resolved, backlog: reports - resolved,
+    slaBreaches: breaches, slaPct,
+    repeat: { total: g.repeatTotal || 0, pet: g.repeatPet || 0, nonPet: g.repeatNonPet || 0 },
+    defects: { contradictory: g.dContra || 0, noEmt: g.dNoEmt || 0, unsuccessfulOutreach: g.dOutreach || 0 },
+    addressExclusions: g.addr || 0, geoPins: g.geo || 0,
+  };
+}
+app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
+  try {
+    const from = new Date(String(req.query.from || ''));
+    const to = new Date(String(req.query.to || ''));   // exclusive upper bound
+    if (isNaN(from) || isNaN(to) || to <= from) return res.status(400).json({ error: 'Provide valid from/to dates (to exclusive).' });
+    const span = to - from;
+    const prevFrom = new Date(from.getTime() - span), prevTo = new Date(from.getTime());
+    const [cur, prev] = await Promise.all([ perfWindowStats(from, to), perfWindowStats(prevFrom, prevTo) ]);
+    // Month-to-date SLA (1st of the current month at server "now" -> now).
+    const now = new Date();
+    const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const mtd = await perfWindowStats(mStart, now);
+    res.json({ from: from.toISOString(), to: to.toISOString(), current: cur, previous: prev, mtdSlaPct: mtd.slaPct });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not build the performance summary.' });
   }
 });
 
@@ -3355,6 +3547,8 @@ app.get('/api/hashtags-report', async (req, res) => {
 const PET_TITLE_RE = /\bpet\b|attack\s*w\/?\s*pet|unsecured\s+animal/i;
 app.get('/api/out-of-scope-report', async (req, res) => {
   try {
+    const cached = getCachedReport('out-of-scope-report');
+    if (cached) return res.json(cached);
     const coll = await getCollection(COLLECTIONS.ticketDocs);
     // Analyst set (the PHD agents) — users flagged analyst:true, lowercased for comparison.
     let analystSet = new Set();
@@ -3364,7 +3558,10 @@ app.get('/api/out-of-scope-report', async (req, res) => {
     } catch (e) { /* analystSet empty -> RULE group simply yields nothing resolver-matched */ }
 
     // Pull resolved/closed tickets (both branches require a resolution) created on/after the cutoff.
+    // Match Status FIRST (a cheap, index-eligible filter) to shrink the set before the heavy
+    // $convert projection, then filter by the computed create date.
     const rows = await coll.aggregate([
+      { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
       { $project: {
         _id: 0,
         ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1,
@@ -3372,7 +3569,7 @@ app.get('/api/out-of-scope-report', async (req, res) => {
         Labels: 1, Tags: 1,
         cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
       } },
-      { $match: { Status: { $in: ['Resolved', 'Closed'] }, cd: { $gte: HASHTAGS_FROM } } },
+      { $match: { cd: { $gte: HASHTAGS_FROM } } },
     ], { allowDiskUse: true }).toArray();
 
     const ccOf = (t) => String(t.ClosureCode || '').trim();
@@ -3412,7 +3609,7 @@ app.get('/api/out-of-scope-report', async (req, res) => {
     const byNewest = (a, b) => new Date(b.created) - new Date(a.created);
     autosim.sort(byNewest); rule.sort(byNewest);
 
-    res.json({
+    const payload = {
       generatedFrom: 'ticket_docs (live)',
       generatedAt: new Date().toISOString(),
       from: HASHTAGS_FROM.toISOString().slice(0, 10),
@@ -3420,7 +3617,9 @@ app.get('/api/out-of-scope-report', async (req, res) => {
         { key: 'autosim', label: 'Pet incidents resolved by AUTO-SIM', count: autosim.length, tickets: autosim },
         { key: 'rule',    label: 'Pet incidents resolved by RULE (PHD agents)', count: rule.length, tickets: rule },
       ],
-    });
+    };
+    setCachedReport('out-of-scope-report', payload);
+    res.json(payload);
   } catch (e) {
     res.status(500).json({ error: 'Could not load out-of-scope report.' });
   }
@@ -4157,7 +4356,7 @@ function ticketDocId(qid, shortId) { return qid + '|' + String(shortId); }
 let _ticketIndexesReady = false;
 async function ensureTicketIndexes() {
   if (_ticketIndexesReady) return;
-  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); await coll.createIndex({ Status: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
+  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); await coll.createIndex({ Status: 1 }); await coll.createIndex({ Status: 1, CreateDate: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
 }
 // Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
 // fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
@@ -4457,6 +4656,31 @@ const GRP_B = ['mbozied', 'nobregak', 'mellanej'];                          // B
 const GRP_ALL = GRP_A1.concat(GRP_A2, GRP_B);
 function grpOf(login) { const n = String(login || '').toLowerCase(); if (GRP_A1.includes(n)) return 'A1'; if (GRP_A2.includes(n)) return 'A2'; if (GRP_B.includes(n)) return 'B'; return null; }
 function grpAvg(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
+
+// Resolve a comma-separated ?groups= param (e.g. "A1,B") to the set of member logins (lowercased).
+// Returns null when the param is absent OR selects all three groups (no filtering needed), else the
+// array of logins. An empty/invalid selection returns [] (matches nothing). Used by the Performance
+// Overview group checkboxes: every KPI is scoped to tickets OWNED (AssigneeIdentity) by those groups.
+function groupLoginsFromParam(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;                                  // absent -> no filter
+  const keys = s.split(',').map(x => x.trim().toUpperCase()).filter(Boolean);
+  const valid = keys.filter(k => k === 'A1' || k === 'A2' || k === 'B');
+  if (!valid.length) return [];                         // explicit empty selection -> match nothing
+  if (valid.length >= 3) return null;                   // all groups -> no filter
+  let out = [];
+  valid.forEach(k => { out = out.concat(k === 'A1' ? GRP_A1 : k === 'A2' ? GRP_A2 : GRP_B); });
+  return out.map(x => x.toLowerCase());
+}
+// A $match stage restricting the (aggLive-wrapped) pipeline to tickets whose AssigneeIdentity is one
+// of `logins` (lowercased, trimmed, kerberos/@ANT suffix stripped to match stored form). Prepended
+// to a summary/timeseries pipeline so the whole computation is scoped to those groups' owned tickets.
+function groupMatchStage(logins) {
+  return { $match: { $expr: { $in: [
+    { $toLower: { $trim: { input: { $ifNull: ['$t.AssigneeIdentity', ''] } } } },
+    logins,
+  ] } } };
+}
 
 // Compute the full group-metrics object from a quarter's tickets (mirrors the client gvComputeMetrics).
 async function computeGroupMetrics(qid) {
@@ -5260,8 +5484,11 @@ AGG.isFirstPetPhd = { $let: {
 } };
 
 // ---- Summary (KPIs + top agents) — computed in Atlas, window/era/quarter-scoped via aggLive ----
-async function dashSummary(qid) {
-  const rows = await aggLive([
+// groupLogins (optional): when provided, every KPI is scoped to tickets OWNED (AssigneeIdentity) by
+// those group members — the Performance Overview group checkboxes (BLR/AZA/WFH).
+async function dashSummary(qid, groupLogins) {
+  const GM = (groupLogins && groupLogins.length) ? [groupMatchStage(groupLogins)] : [];
+  const rows = await aggLive(GM.concat([
     {
       $group: {
         _id: null,
@@ -5281,7 +5508,7 @@ async function dashSummary(qid) {
         hiPet: { $sum: { $cond: [AGG.isRepeatPet, 1, 0] } },
       },
     },
-  ], qid);
+  ]), qid);
   const r = rows[0] || {};
   const T = r.total || 0, res = r.resolved || 0, inQ = r.unresolved || 0;
   const avgR = r.rtCount ? (r.rtSum / r.rtCount) : 0;
@@ -5291,12 +5518,12 @@ async function dashSummary(qid) {
   // average the repeat-incident (HI Cnt>0) tickets created per week.
   let weeksElapsed = 0;
   try {
-    const wr = await aggLive([
+    const wr = await aggLive(GM.concat([
       { $match: { 't.CreateDate': { $ne: null, $ne: '' } } },
       { $group: { _id: _weekExpr('$t.CreateDate') } },
       { $match: { _id: { $ne: null } } },
       { $count: 'weeks' },
-    ], qid);
+    ]), qid);
     weeksElapsed = (wr[0] && wr[0].weeks) || 0;
   } catch (e) { weeksElapsed = 0; }
   const avgHiPerWeek = weeksElapsed ? +(hi / weeksElapsed).toFixed(1) : 0;
@@ -5307,7 +5534,7 @@ async function dashSummary(qid) {
   // resolves only. Avatars are attached from the users collection afterward.
   let topAgents = [];
   try {
-    const ar = await aggLive([
+    const ar = await aggLive(GM.concat([
       { $project: {
         rby: { $toLower: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } } },
         cc: { $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } },
@@ -5324,7 +5551,7 @@ async function dashSummary(qid) {
       { $match: { successful: { $gt: 0 } } },
       { $sort: { successful: -1 } },
       { $limit: 3 },
-    ], qid);
+    ]), qid);
     topAgents = ar.map(x => ({
       login: x._id,
       successful: x.successful,
@@ -5616,7 +5843,7 @@ function _tsEdges(fromISO, toISO, bucket) {
   }
   return edges;
 }
-async function dashTimeseries(fromISO, toISO, bucket) {
+async function dashTimeseries(fromISO, toISO, bucket, groupLogins) {
   const edges = _tsEdges(fromISO, toISO, bucket);
   if (!edges.length) return { buckets: [], created: [], resolved: [], within: [], resolvedBase: [] };
   const now = Date.now();
@@ -5624,7 +5851,9 @@ async function dashTimeseries(fromISO, toISO, bucket) {
   const resolvedBranches = edges.map((e, i) => ({ case: { $and: [{ $ne: ['$rd', null] }, { $gte: ['$rd', e.start] }, { $lt: ['$rd', e.end] }] }, then: i }));
   // Window the aggregation to the full edge span so we don't scan the whole collection.
   const spanFrom = edges[0].start, spanTo = edges[edges.length - 1].end;
-  const rows = await aggLive([
+  // Optional group filter (Performance Overview checkboxes): scope to tickets owned by those groups.
+  const GM = (groupLogins && groupLogins.length) ? [groupMatchStage(groupLogins)] : [];
+  const rows = await aggLive(GM.concat([
     { $project: { cd: _safeDate('$t.CreateDate'), rd: _safeDate('$t.ResolvedDate'), h: AGG.resHours } },
     { $project: {
       ci: { $switch: { branches: createdBranches, default: -1 } },
@@ -5637,7 +5866,7 @@ async function dashTimeseries(fromISO, toISO, bucket) {
       resolved: [{ $match: { ri: { $gte: 0 } } }, { $group: { _id: '$ri', n: { $sum: 1 } } }],
       sla: [{ $match: { ri: { $gte: 0 }, hasH: 1 } }, { $group: { _id: '$ri', base: { $sum: 1 }, within: { $sum: '$within' } } }],
     } },
-  ], { from: spanFrom.toISOString(), to: spanTo.toISOString() });
+  ]), { from: spanFrom.toISOString(), to: spanTo.toISOString() });
   const f = rows[0] || { created: [], resolved: [], sla: [] };
   const C = new Array(edges.length).fill(0), R = new Array(edges.length).fill(0), W = new Array(edges.length).fill(0), B = new Array(edges.length).fill(0);
   (f.created || []).forEach(x => { if (x._id >= 0) C[x._id] = x.n; });
@@ -6056,8 +6285,12 @@ Object.keys(DASH_CHUNKS).forEach(name => {
     const qid = isWindow
       ? { from: fromReq || null, to: toReq || null }
       : isEraScope(qLower) ? qLower : (qReq === 'all') ? 'all' : (qReq === 'q2q3') ? 'q2q3' : (isValidQ ? qReq : liveQ);
+    // Optional ?groups=A1,B — Performance Overview group filter (summary chunk only). When present,
+    // bypass the rollup cache (which is computed group-agnostic) and compute live.
+    const groupLogins = (name === 'summary') ? groupLoginsFromParam(req.query.groups) : null;
+    const hasGroupFilter = Array.isArray(groupLogins);
     // Window + era + non-live scopes never use the (quarter-keyed, publish-time) rollup — compute live.
-    const isLiveScope = (!isWindow && qid === liveQ);
+    const isLiveScope = (!isWindow && qid === liveQ && !hasGroupFilter);
     try {
       const meta = await liveMeta();
       // Incident Types get the owner's display grouping applied at READ time (never baked into the
@@ -6079,7 +6312,7 @@ Object.keys(DASH_CHUNKS).forEach(name => {
         }
       }
       // Any non-live scope (Q2 / Overall), always-live chunk, or missing/stale rollup -> compute now.
-      const slice = finalize(await DASH_CHUNKS[name](qid));
+      const slice = finalize(await DASH_CHUNKS[name](qid, groupLogins));
       const label = isWindow ? 'Custom range'
         : (qid === 'ac') ? 'AC era' : (qid === 'bc') ? 'BC era' : (qid === 'all') ? 'Overall' : (qid === 'q2q3') ? 'Q2 + Q3' : quarterLabel(qid);
       // `quarter` echoes the scope; for a window send the from/to back so the client can confirm it.
@@ -6103,7 +6336,8 @@ app.get('/api/dash/timeseries', async (req, res) => {
     const to = String(req.query.to || '').trim() || null;
     const bucket = ['year', 'month', 'day', 'week', 'step10'].includes(String(req.query.bucket)) ? String(req.query.bucket) : 'week';
     if (!from) return res.status(400).json({ error: 'from is required.' });
-    const out = await dashTimeseries(from, to, bucket);
+    const groupLogins = groupLoginsFromParam(req.query.groups); // Performance Overview group filter
+    const out = await dashTimeseries(from, to, bucket, groupLogins);
     res.json(out);
   } catch (e) {
     res.status(500).json({ error: 'Could not compute timeseries.' });
