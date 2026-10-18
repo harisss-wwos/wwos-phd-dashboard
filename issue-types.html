@@ -237,6 +237,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .rc-field label{display:block;font-size:.82em;font-weight:700;color:#2a3340;margin-bottom:5px}
 .rc-field select,.rc-field textarea{width:100%;background:#fff;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-family:inherit;font-size:.9em;padding:10px 12px}
 .rc-field select:focus,.rc-field textarea:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.rc-field select:disabled{background:#f1f3f6;color:#a7b0ba;cursor:not-allowed;opacity:.8}
 .rc-field textarea{resize:vertical;line-height:1.5;white-space:pre}
 /* Raw-input box: 50% of the modal body's height (body is 80vh -> ~40vh). */
 #rcRaw{height:40vh;min-height:160px}
@@ -257,8 +258,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .rc-def .rc-def-v{font-size:.86em;line-height:1.6;color:#4a3524}
 /* Resolution risk-metadata panel. */
 .rc-resmeta{margin-top:12px;background:#f7f9fc;border:1px solid #e2e6ea;border-radius:8px;padding:12px 14px}
-.rc-resmeta .rc-rm-t{display:flex;align-items:center;gap:8px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773;margin-bottom:8px}
-.rc-resmeta .rc-rm-name{font-weight:800;color:#1b2026;font-size:.95em;margin-bottom:8px}
+.rc-resmeta .rc-rm-line{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.rc-resmeta .rc-rm-right{display:inline-flex;align-items:center;flex-wrap:wrap;gap:10px;margin-left:auto}
+.rc-resmeta .rc-rm-t{display:inline-flex;align-items:center;gap:7px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773;white-space:nowrap}
+.rc-resmeta .rc-rm-name{font-weight:800;color:#1b2026;font-size:.95em;white-space:nowrap}
 .rc-rm-grid{display:flex;flex-wrap:wrap;gap:8px}
 .rc-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:.78em;font-weight:800;border:1px solid}
 .rc-chip .k{font-weight:700;opacity:.75}
@@ -302,11 +305,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
         </div>
         <div class="rc-field">
           <label for="rcIssue">Issue (incident type) &mdash; auto-detected, editable</label>
-          <select id="rcIssue" onchange="rcConvert()"></select>
+          <select id="rcIssue" onchange="rcConvert()" disabled></select>
         </div>
         <div class="rc-field">
           <label for="rcRes">Resolution</label>
-          <select id="rcRes" onchange="rcConvert()"></select>
+          <select id="rcRes" onchange="rcConvert()" disabled></select>
         </div>
       </div>
       <div class="rc-col">
@@ -702,6 +705,7 @@ var _rcWired=false;
 function rcOpen(){
   rcInitSelects();
   if(!_rcWired){ _rcWired=true; var ta=document.getElementById('rcRaw'); if(ta) ta.addEventListener('input',function(){ rcConvert(true); }); }
+  rcGateSelects();   // start disabled when there's no input
   var ov=document.getElementById('rcOverlay'); if(ov) ov.classList.add('show');
 }
 window.rcOpen=rcOpen;
@@ -726,8 +730,20 @@ function rcRenderDef(){
 }
 // Convert flow: RAW text drives the Issue. If the pasted Issue matches a known type (case-insensitive)
 // it is auto-selected in the dropdown. The dropdown also lets the user override manually.
+// Enable the Issue + Resolution dropdowns only once the user has entered some raw input. When the
+// textarea is empty, both are disabled (and reset) so nothing can be selected without input.
+function rcGateSelects(){
+  var has=!!String((document.getElementById('rcRaw')||{}).value||'').trim();
+  ['rcIssue','rcRes'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    el.disabled=!has;
+    if(!has) el.value='';
+  });
+  return has;
+}
 function rcConvert(fromRaw){
   var raw=String(document.getElementById('rcRaw').value||'');
+  rcGateSelects();   // enable/disable the dropdowns based on whether there's input
   var issueSelEl=document.getElementById('rcIssue');
   // Resolve the Issue from the raw text and auto-select it ONLY if it matches a known type.
   var rawIssueTxt=rcGrab(raw,['Issue']);
@@ -780,6 +796,7 @@ function rcClear(){
   var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
   rcSetCopyState(false,false);   // nothing valid yet -> Copy disabled
   var warn=document.getElementById('rcCopyWarn'); if(warn){ warn.style.display='none'; warn.textContent=''; }
+  rcGateSelects();   // empty input -> re-disable the dropdowns
   if(ta) ta.focus();
 }
 window.rcClear=rcClear;
@@ -790,17 +807,16 @@ function rcRenderResMeta(){
   var r=(n && RC_RESLIST[n])?RC_RESLIST[n]:null;
   if(!r){ box.style.display='none'; box.innerHTML=''; return; }
   var tone=function(v){ var s=String(v||'').toLowerCase(); if(s.indexOf('n/a')>=0) return 'v-na'; if(s.indexOf('high')>=0) return 'v-high'; if(s.indexOf('low')>=0) return 'v-low'; return 'v-na'; };
-  var effTone=(String(r.eff).toLowerCase()==='effective')?'v-eff':'v-lim';
-  var sevCls='s-'+String(r.sev||'').toLowerCase();
   box.style.display='block';
-  box.innerHTML='<div class="rc-rm-t">'+ic('target',13)+'Resolution risk</div>'+
-    '<div class="rc-rm-name">'+esc(r.name)+(r.note?(' <span style="color:#8a94a2;font-weight:600">('+esc(r.note)+')</span>'):'')+'</div>'+
-    '<div class="rc-rm-grid">'+
-      '<span class="rc-sev '+sevCls+'">'+esc(r.sev)+'</span>'+
+  // One line: RESOLUTION RISK label + resolution name + Likelihood + Impact (severity + effectiveness removed).
+  box.innerHTML='<div class="rc-rm-line">'+
+    '<span class="rc-rm-t">'+ic('target',13)+'Resolution risk</span>'+
+    '<span class="rc-rm-right">'+
+      '<span class="rc-rm-name">'+esc(r.name)+'</span>'+
       '<span class="rc-chip '+tone(r.lk)+'"><span class="k">Likelihood</span>'+esc(r.lk)+'</span>'+
       '<span class="rc-chip '+tone(r.im)+'"><span class="k">Impact</span>'+esc(r.im)+'</span>'+
-      '<span class="rc-chip '+effTone+'"><span class="k">Effectiveness</span>'+esc(r.eff)+'</span>'+
-    '</div>';
+    '</span>'+
+  '</div>';
 }
 async function rcCopyOut(){
   var btn=document.getElementById('rcCopy');
