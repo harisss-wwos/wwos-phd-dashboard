@@ -202,6 +202,15 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 .nav-tile.nt-blue{--acc:var(--icfg);--accbg:var(--icbg)}
 .nav-tile.nt-teal{--acc:#1b8f8a;--accbg:#d2f0ee}
 .nav-tile.nt-live{--acc:var(--o);--accbg:#ffe6d6;background:linear-gradient(150deg,#fff,#fff7f2)}
+/* External-resource tiles (PHD Wiki, PHD Mitigation Matrix): dark ink surface (#161d2d) with a
+   light-blue (#c4def6) icon chip + accents, so they read as off-site destinations. */
+.nav-tile.nt-external{--acc:#c4def6;--accbg:rgba(196,222,246,.16);background:linear-gradient(165deg,#1b2436,#161d2d);border-color:#2a3650;border-left-color:#c4def6}
+.nav-tile.nt-external:hover{box-shadow:0 14px 30px -14px rgba(10,15,25,.6)}
+.nav-tile.nt-external .nt-title{color:#f4f6fb}
+.nav-tile.nt-external .nt-sub{color:#c4def6}
+.nav-tile.nt-external .nt-desc{color:#adbbce}
+.nav-tile.nt-external .nt-cta{color:#c4def6}
+.nav-tile.nt-external .nt-lock{color:#c4def6}
 .nav-tile.nt-disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.3);pointer-events:none}
 
 /* ---- Login modal ---- */
@@ -443,6 +452,6 @@ async function homeDoLogin(){
 })();
 document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
-<script src="home.js?v=12"></script>
+<script src="home.js?v=13"></script>
 </body>
 </html>

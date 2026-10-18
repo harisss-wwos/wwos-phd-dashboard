@@ -62,11 +62,12 @@ function renderQuarterCards(){
         '<span class="nt-desc">'+opts.desc+'</span>'+
       '</span>'+
       action;
+    const extCls=opts.external?' nt-external':'';
     if(isGuest){
       // Inert tile: a <div> (no href), greyed + not clickable.
-      return '<div class="nav-tile nt-disabled'+(opts.live?' nt-live':'')+(opts.tone?(' nt-'+opts.tone):'')+'" aria-disabled="true" title="Log in to access">'+inner+'</div>';
+      return '<div class="nav-tile nt-disabled'+(opts.live?' nt-live':'')+extCls+(opts.tone?(' nt-'+opts.tone):'')+'" aria-disabled="true" title="Log in to access">'+inner+'</div>';
     }
-    return '<a class="nav-tile'+(opts.live?' nt-live':'')+(opts.tone?(' nt-'+opts.tone):'')+'" href="'+opts.href+'"'+ext+'>'+inner+'</a>';
+    return '<a class="nav-tile'+(opts.live?' nt-live':'')+extCls+(opts.tone?(' nt-'+opts.tone):'')+'" href="'+opts.href+'"'+ext+'>'+inner+'</a>';
   };
   const tiles=[
     // Program History — year-by-year archive, Q1 2021 -> Q4 2025.
@@ -89,10 +90,10 @@ function renderQuarterCards(){
     navTile({ href:'https://w.amazon.com/bin/view/GSOC/PHD#Attachments', icon:'globe', tone:'blue', external:true,
       title:'PHD Wiki', sub:'External resource',
       desc:'Dive deeper into the PHD program on the official wiki.', action:'Explore the wiki' }),
-    // Rules — the scoring/SLA/classification rulebook. Kept LAST per request.
-    navTile({ href:'rules.html', icon:'book', tone:'teal',
-      title:'Rules & Definitions', sub:'How the numbers work',
-      desc:'SLA, severity, colour and classification rules behind the dashboard.', action:'Read the rules' }),
+    // PHD Mitigation Matrix — external QuickSight dashboard (replaces the old Rules tile).
+    navTile({ href:'https://us-east-1.quicksight.aws.amazon.com/sn/account/amazonbi/apps/7d536622-b36f-4375-bf6c-5a1cf0424dc9/view/PHD-Mitigation-Matrix?sso_login=true#', icon:'grid', tone:'teal', external:true,
+      title:'PHD Mitigation Matrix', sub:'External resource',
+      desc:'Open the PHD Mitigation Matrix dashboard in QuickSight.', action:'Open the matrix' }),
   ];
   host.innerHTML='<div class="nav-tiles">'+tiles.join('')+'</div>';
 }
