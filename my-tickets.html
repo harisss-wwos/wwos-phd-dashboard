@@ -1852,6 +1852,9 @@ function openIncidentLog(i){
   fillIncidentSelects();
   // Reset every field.
   ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  // Auto-fill the PHD Related Link with this ticket's URL (falls back to the standard t.corp URL).
+  var linkEl=document.getElementById('ilRelatedLink');
+  if(linkEl){ linkEl.value=(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):''); }
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
   setTimeout(()=>{ var f=document.getElementById('ilPhdFindings'); if(f) f.focus(); },40);
