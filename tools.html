@@ -119,6 +119,7 @@ const TABS=[
   { id:'blurbs',   label:'Common Blurbs',   icon:'clipboard', src:'tool-blurbs.html',  addLabel:'Add New Blurb',   logHref:'blurb-log.html',   logLabel:'Blurb edit log' },
   { id:'paging',   label:'Paging Contacts', icon:'mail',      src:'tool-paging.html',   addLabel:'Add Region',      logHref:'paging-log.html',  logLabel:'Paging edit log' },
   { id:'hashtags', label:'Hashtags',        icon:'hash',      src:'tool-hashtags.html', addLabel:'Add New Hashtag', logHref:'hashtag-log.html', logLabel:'Hashtag edit log' },
+  { id:'rcd',      label:'Build Root Cause Details', icon:'clipboard', src:'tool-rcd.html' },
 ];
 let ACTIVE='blurbs';
 const LOADED={}; // id -> true once its iframe has been created (kept alive so re-clicks are instant)
@@ -160,10 +161,11 @@ function renderActions(){
   var el=document.getElementById('tbActions'); if(!el) return;
   var t=TABS.find(function(x){return x.id===ACTIVE;}); if(!t){ el.innerHTML=''; return; }
   var editor=canEditTools();
-  if(!editor){ el.innerHTML=''; return; }
+  // Tabs without an add/log workflow (e.g. the RCD converter) show no action buttons.
+  if(!editor || !t.addLabel){ el.innerHTML=''; return; }
   var html='';
   html+='<button class="btn" onclick="toolAdd()">'+ic('plus',15)+'<span class="tb-blabel">'+t.addLabel+'</span></button>';
-  html+='<button class="btn sec" onclick="openLog()">'+ic('history',15)+'<span class="tb-blabel">'+t.logLabel+'</span></button>';
+  if(t.logHref) html+='<button class="btn sec" onclick="openLog()">'+ic('history',15)+'<span class="tb-blabel">'+t.logLabel+'</span></button>';
   el.innerHTML=html;
 }
 

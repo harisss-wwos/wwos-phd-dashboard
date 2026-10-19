@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Standalone-visit guard: lives inside tools.html (iframe, ?embed=1). A direct top-level visit
+     bounces to tools.html so Tools stays the single entry point. -->
+<script>(function(){try{var emb=/[?&]embed=1\b/.test(location.search);if(window.self===window.top&&!emb){location.replace('tools.html');}}catch(e){}})();</script>
+<title>Build Root Cause Details · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ec7211;--oh:#c85f0e;--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(--t)}
+.rcpage{padding:20px 22px}
+.rcpage h1{font-size:1.25em;font-weight:800;color:#1b2026;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.rcpage .sub{color:var(--tm);font-size:.88em;margin-bottom:16px}
+/* ===== Converter layout (ported from issue-types.html; no modal — the tab IS the converter) ===== */
+.rc-card{background:#fff;border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 2px 12px -8px rgba(20,30,50,.3);overflow:hidden}
+.rc-body{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px}
+@media(max-width:860px){.rc-body{grid-template-columns:1fr}}
+.rc-col h3{font-size:.76em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#8a94a2;margin:0 0 10px;display:flex;align-items:center;gap:7px}
+.rc-step{font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#8a94a2;font-size:.92em}
+.rc-field{margin-bottom:14px}
+.rc-field label{display:block;font-size:.82em;font-weight:700;color:#2a3340;margin-bottom:5px}
+.rc-field select,.rc-field textarea{width:100%;background:#fff;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-family:inherit;font-size:.9em;padding:10px 12px}
+.rc-field select:focus,.rc-field textarea:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.rc-field select:disabled{background:#f1f3f6;color:#a7b0ba;cursor:not-allowed;opacity:.8}
+.rc-field textarea{resize:vertical;line-height:1.5;white-space:pre}
+#rcRaw{height:40vh;min-height:160px}
+.rc-out-wrap{position:relative}
+.rc-out{width:100%;min-height:230px;background:#0f1622;border:1px solid #243041;border-radius:8px;color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;line-height:1.6;padding:12px 14px;white-space:pre-wrap;word-break:break-word;overflow:auto}
+.rc-actions{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid #eef1f4;background:#fafbfc}
+.rc-actions .spacer{flex:1}
+.rc-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:7px;font-weight:700;font-size:.88em;cursor:pointer;border:none;font-family:inherit}
+.rc-btn.prim{background:#ec7211;color:#fff}.rc-btn.prim:hover{background:#d9660d}
+.rc-btn.sec{background:#fff;border:1px solid #d4dce4;color:#2a3340}.rc-btn.sec:hover{background:#f1f4f7}
+.rc-btn.ok{background:#1f9d57;color:#fff}
+.rc-btn[disabled],.rc-btn.is-off{opacity:.45;cursor:not-allowed;pointer-events:none}
+.rc-copywarn{font-size:.78em;font-weight:700;color:#b5680c;align-self:center;margin-left:4px}
+.rc-hint{font-size:.78em;color:#8a94a2;margin-top:6px;line-height:1.5}
+.rc-def{margin-top:12px;background:#fff7ef;border:1px solid #f3d4b0;border-left:4px solid #ec7211;border-radius:8px;padding:12px 14px}
+.rc-def .rc-def-t{display:flex;align-items:center;gap:8px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#b5560c;margin-bottom:6px}
+.rc-def .rc-def-name{font-weight:800;color:#1b2026;font-size:.95em;margin-bottom:4px}
+.rc-def .rc-def-v{font-size:.86em;line-height:1.6;color:#4a3524}
+.rc-resmeta{margin-top:12px;background:#f7f9fc;border:1px solid #e2e6ea;border-radius:8px;padding:12px 14px}
+.rc-resmeta .rc-rm-line{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.rc-resmeta .rc-rm-right{display:inline-flex;align-items:center;flex-wrap:wrap;gap:10px;margin-left:auto}
+.rc-resmeta .rc-rm-t{display:inline-flex;align-items:center;gap:7px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773;white-space:nowrap}
+.rc-resmeta .rc-rm-name{font-weight:800;color:#1b2026;font-size:.95em;white-space:nowrap}
+.rc-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:.78em;font-weight:800;border:1px solid}
+.rc-chip .k{font-weight:700;opacity:.75}
+.rc-chip.v-high{color:#b02a2a;background:#fdeaea;border-color:#f6cccc}
+.rc-chip.v-low{color:#1f7a44;background:#eafaf0;border-color:#c8efd8}
+.rc-chip.v-na{color:#5c6773;background:#eef1f4;border-color:#e2e6ea}
+.rc-gate{padding:40px 22px;color:var(--tm)}
+</style>
+</head>
+<body>
+<div class="rcpage" id="rcPage">
+  <h1><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg> Build Root Cause Details</h1>
+  <div class="sub">Paste a raw root cause details string to convert it into the standard short key:value format. Pick the Issue (auto-detected) and Resolution to complete it.</div>
+  <div class="rc-card">
+    <div class="rc-body">
+      <div class="rc-col">
+        <div class="rc-field">
+          <label for="rcRaw"><span class="rc-step">INPUT</span> &rarr; Paste the raw Root Cause Details</label>
+          <textarea id="rcRaw" placeholder="e.g.  Issue: Threat w/ Weapon  Station ID: VHL1  Driver Type: DP  Incident Date: 6/11/2021  Tracking ID: TBA341...  Historical Incident: 0  Zip: 19014  AID: A3ONC...  UPID: USC478..."></textarea>
+          <div class="rc-hint">Paste first &mdash; if the Issue matches a known incident type (case-insensitive), it&rsquo;s auto-selected below. Keys not in the mapping are ignored; missing keys become &ldquo;N/A&rdquo;.</div>
+        </div>
+        <div class="rc-field">
+          <label for="rcIssue">Issue (incident type) &mdash; auto-detected, editable</label>
+          <select id="rcIssue" onchange="rcConvert()" disabled></select>
+        </div>
+        <div class="rc-field">
+          <label for="rcRes">Resolution</label>
+          <select id="rcRes" onchange="rcConvert()" disabled></select>
+        </div>
+      </div>
+      <div class="rc-col">
+        <h3>Converted output</h3>
+        <div class="rc-out-wrap"><div class="rc-out" id="rcOut">Paste details to convert.</div></div>
+        <div class="rc-resmeta" id="rcResMeta" style="display:none"></div>
+        <div class="rc-def" id="rcDef" style="display:none"></div>
+      </div>
+    </div>
+    <div class="rc-actions">
+      <button type="button" class="rc-btn sec" onclick="rcClear()">Clear</button>
+      <span class="rc-copywarn" id="rcCopyWarn" style="display:none"></span>
+      <div class="spacer"></div>
+      <button type="button" class="rc-btn sec" id="rcCopy" onclick="rcCopyOut()" disabled>Copy result</button>
+      <button type="button" class="rc-btn prim" onclick="rcConvert()">Convert</button>
+    </div>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="issue-types-data.js"></script>
+<script src="topbar-auth.js?v=200"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+var IZ_CATS=window.IZ_CATS||[];
+
+// ---- Resolutions in the required order, each with risk metadata. Index 0 unused so #1..#21 line up. ----
+var RC_RESLIST=[null,
+  {name:'Account Closure',           note:'Permanent',          sev:'CRITICAL',    lk:'High', im:'High', eff:'Effective'},
+  {name:'Account Suspension',        note:'Temporary Lock',     sev:'CRITICAL',    lk:'High', im:'High', eff:'Effective'},
+  {name:'Blocking Place ID',         note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
+  {name:'Physical Order Block',      note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
+  {name:'Address Exclusion',         note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
+  {name:'Address Deprioritization or Address Depri', note:'', sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
+  {name:'Area Exclusion',            note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
+  {name:'GeoPin Update',             note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'GeoFence Update',           note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'Geo-Routing Update',        note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'Parcel Box Installation',   note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Limited'},
+  {name:'Delivery Hint Update',      note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'Customer Education',        note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'Customer Reassurance',      note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
+  {name:'Driver Follow-up',          note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
+  {name:'Pet Info Update',           note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
+  {name:'Insufficient Information',  note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
+  {name:'PHD Outreach',              note:'CX, Driver, Site Leadership', sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Effective'},
+  {name:'Driver Education',          note:'',                   sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Effective'},
+  {name:'Driver Misconduct Reported',    note:'',               sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Limited'},
+  {name:'Driver Misconduct Not Reported',note:'',               sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Limited'},
+];
+var RC_RES=RC_RESLIST.map(function(r){ return r?r.name:''; });
+var RC_ISSUE_MAP=(function(){ var m={}; IZ_CATS.forEach(function(cat){ (cat.types||[]).forEach(function(ty){ m[String(ty.type).trim().toLowerCase()]={type:ty.type,def:ty.def||''}; }); }); return m; })();
+function rcMatchIssue(name){ var k=String(name||'').trim().toLowerCase(); return k?(RC_ISSUE_MAP[k]||null):null; }
+function rcDefOf(typeName){ var hit=rcMatchIssue(typeName); return hit?hit.def:''; }
+var RC_FIELDS=[
+  ['SID',  ['Station ID','SID']],
+  ['TID',  ['Transporter ID','TID']],
+  ['Driv', ['Driver Type','Driv']],
+  ['Date', ['Incident Date','Date of Incident','Date']],
+  ['TBA',  ['Tracking ID','Related Tracking ID','TBA']],
+  ['Cnt',  ['Historical Incident Count','Historical Incident','Historical Incidents','Cnt']],
+  ['Zip',  ['Zip Code','Zip']],
+  ['CID',  ['Customer Account ID','Account ID','AID','CID']],
+  ['UPID', ['Unit Place ID','UPID']],
+];
+var RC_OTHER_KEYS=['Contact ID','Contact Id','Contact Date','Severity','Tag','Place ID','UID','CAID',
+  'Customer ID','Threat Contact ID','SIM Root Cause Details','Output','Historical','AID','CID'];
+var RC_ALL_KEYS=(function(){
+  var ks=['Issue','Resolution','Res'];
+  RC_FIELDS.forEach(function(f){ f[1].forEach(function(a){ ks.push(a); }); });
+  RC_OTHER_KEYS.forEach(function(k){ ks.push(k); });
+  ks=Array.from(new Set(ks)).sort(function(a,b){ return b.length-a.length; });
+  return ks;
+})();
+function rcEscRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function rcGrab(raw, aliases){
+  var stop=RC_ALL_KEYS.map(rcEscRe).join('|');
+  for(var i=0;i<aliases.length;i++){
+    var a=rcEscRe(aliases[i]);
+    var re=new RegExp('(?:^|[\\s,;|])'+a+'\\s*[:\\-]\\s*([\\s\\S]*?)(?=\\s*(?:'+stop+')\\s*[:\\-]|$)','i');
+    var m=raw.match(re);
+    if(m){ var v=String(m[1]||'').trim().replace(/[,;|]+$/,'').trim(); if(v) return v; }
+  }
+  return '';
+}
+function rcFmtDate(v){
+  if(!v) return '';
+  var s=String(v).trim();
+  var d=new Date(s);
+  if(isNaN(d)){
+    var m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if(m){ var yr=m[3].length===2?('20'+m[3]):m[3]; d=new Date(yr+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0')); }
+  }
+  if(isNaN(d)) return s;
+  var p=function(n){ return String(n).padStart(2,'0'); };
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+function rcInitSelects(){
+  var is=document.getElementById('rcIssue'); if(is && !is.options.length){
+    var opts='<option value="">\u2014 Select issue \u2014</option>';
+    IZ_CATS.forEach(function(cat){ opts+='<optgroup label="'+esc(cat.category)+'">';
+      cat.types.forEach(function(ty){ opts+='<option value="'+esc(ty.type)+'">'+esc(ty.type)+'</option>'; });
+      opts+='</optgroup>'; });
+    is.innerHTML=opts;
+  }
+  var rs=document.getElementById('rcRes'); if(rs && !rs.options.length){
+    var ro='<option value="">\u2014 Select resolution \u2014</option>';
+    for(var i=1;i<RC_RESLIST.length;i++){ var r=RC_RESLIST[i];
+      var lbl=r.name+(r.note?(' ('+r.note+')'):'');
+      ro+='<option value="'+i+'">'+String(i).padStart(2,'0')+'. '+esc(lbl)+'</option>'; }
+    rs.innerHTML=ro;
+  }
+}
+function rcRenderDef(){
+  var box=document.getElementById('rcDef'); if(!box) return;
+  var sel=document.getElementById('rcIssue').value;
+  var def=sel?rcDefOf(sel):'';
+  if(sel && def){
+    box.style.display='block';
+    box.innerHTML='<div class="rc-def-t">'+ic('info',13)+'Issue definition</div>'+
+      '<div class="rc-def-name">'+esc(sel)+'</div><div class="rc-def-v">'+esc(def)+'</div>';
+  }else if(sel){
+    box.style.display='block';
+    box.innerHTML='<div class="rc-def-t">'+ic('info',13)+'Issue definition</div>'+
+      '<div class="rc-def-name">'+esc(sel)+'</div><div class="rc-def-v">No definition on file for this incident type.</div>';
+  }else{ box.style.display='none'; box.innerHTML=''; }
+}
+function rcGateSelects(){
+  var has=!!String((document.getElementById('rcRaw')||{}).value||'').trim();
+  ['rcIssue','rcRes'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.disabled=!has; if(!has) el.value=''; });
+  return has;
+}
+function rcConvert(fromRaw){
+  var raw=String(document.getElementById('rcRaw').value||'');
+  rcGateSelects();
+  var issueSelEl=document.getElementById('rcIssue');
+  var rawIssueTxt=rcGrab(raw,['Issue']);
+  var matched=rcMatchIssue(rawIssueTxt);
+  if(matched){ issueSelEl.value=matched.type; }
+  var issue=issueSelEl.value || '';
+  var issueOk=!!issue;
+  var resNum=document.getElementById('rcRes').value;
+  var res=(resNum && RC_RES[+resNum])?RC_RES[+resNum]:'';
+  var resOk=!!res;
+  var lines=['Issue: '+issue];
+  RC_FIELDS.forEach(function(f){
+    var v=rcGrab(raw,f[1]);
+    if(f[0]==='Date' && v) v=rcFmtDate(v);
+    lines.push(f[0]+': '+(v||'N/A'));
+  });
+  lines.push('Res: '+res);
+  document.getElementById('rcOut').textContent=lines.join('\n');
+  rcRenderDef();
+  rcRenderResMeta();
+  rcSetCopyState(issueOk, resOk);
+}
+window.rcConvert=rcConvert;
+function rcSetCopyState(issueOk, resOk){
+  var btn=document.getElementById('rcCopy'); var warn=document.getElementById('rcCopyWarn');
+  var ok=issueOk && resOk;
+  if(btn){ btn.disabled=!ok; btn.classList.toggle('is-off',!ok); }
+  if(warn){
+    if(ok){ warn.style.display='none'; warn.textContent=''; }
+    else{ var miss=[]; if(!issueOk) miss.push('select a valid Issue'); if(!resOk) miss.push('select a Resolution'); warn.style.display='block'; warn.textContent='Copy disabled \u2014 please '+miss.join(' and ')+'.'; }
+  }
+}
+function rcClear(){
+  var ta=document.getElementById('rcRaw'); if(ta) ta.value='';
+  var is=document.getElementById('rcIssue'); if(is) is.value='';
+  var rs=document.getElementById('rcRes'); if(rs) rs.value='';
+  var out=document.getElementById('rcOut'); if(out) out.textContent='Paste details to convert.';
+  var def=document.getElementById('rcDef'); if(def){ def.style.display='none'; def.innerHTML=''; }
+  var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
+  rcSetCopyState(false,false);
+  var warn=document.getElementById('rcCopyWarn'); if(warn){ warn.style.display='none'; warn.textContent=''; }
+  rcGateSelects();
+  if(ta) ta.focus();
+}
+window.rcClear=rcClear;
+function rcRenderResMeta(){
+  var box=document.getElementById('rcResMeta'); if(!box) return;
+  var n=+document.getElementById('rcRes').value;
+  var r=(n && RC_RESLIST[n])?RC_RESLIST[n]:null;
+  if(!r){ box.style.display='none'; box.innerHTML=''; return; }
+  var tone=function(v){ var s=String(v||'').toLowerCase(); if(s.indexOf('n/a')>=0) return 'v-na'; if(s.indexOf('high')>=0) return 'v-high'; if(s.indexOf('low')>=0) return 'v-low'; return 'v-na'; };
+  box.style.display='block';
+  box.innerHTML='<div class="rc-rm-line">'+
+    '<span class="rc-rm-t">'+ic('target',13)+'Resolution risk</span>'+
+    '<span class="rc-rm-right">'+
+      '<span class="rc-rm-name">'+esc(r.name)+'</span>'+
+      '<span class="rc-chip '+tone(r.lk)+'"><span class="k">Likelihood</span>'+esc(r.lk)+'</span>'+
+      '<span class="rc-chip '+tone(r.im)+'"><span class="k">Impact</span>'+esc(r.im)+'</span>'+
+    '</span>'+
+  '</div>';
+}
+async function rcCopyOut(){
+  var btn=document.getElementById('rcCopy');
+  if(btn && btn.disabled){ return; }
+  var txt=document.getElementById('rcOut').textContent||'';
+  if(!txt.trim()){ return; }
+  try{
+    await navigator.clipboard.writeText(txt);
+    if(btn){ var prev=btn.textContent; btn.textContent='Copied!'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent=prev; btn.classList.remove('ok'); },1500); }
+  }catch(e){ window.prompt('Copy the result:', txt); }
+}
+window.rcCopyOut=rcCopyOut;
+
+(function init(){
+  rcInitSelects();
+  rcGateSelects();
+  var ta=document.getElementById('rcRaw'); if(ta) ta.addEventListener('input',function(){ rcConvert(true); });
+})();
+</script>
+</body>
+</html>
