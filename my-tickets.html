@@ -157,11 +157,15 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .mi-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
 .mi-btn.sec:hover{border-color:#8b96a0;color:#fff}
 /* ---- Add-incident-log modal (icon on the card actions bar) — redesigned ---- */
-.ail-modal{width:min(760px,94vw);max-width:min(760px,94vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh}
+.ail-modal{width:min(760px,94vw);max-width:min(760px,94vw);padding:0;overflow:hidden;display:flex;flex-direction:column;height:90vh;max-height:90vh}
 /* ---- Structured incident-log form (labelled fields) ---- */
 .ail-field{margin-bottom:14px}
 .ail-field:last-child{margin-bottom:0}
-.ail-flabel{display:block;font-size:.8em;font-weight:700;color:#d5dbdb;margin-bottom:5px}
+.ail-flabel{display:flex;align-items:center;gap:7px;font-size:.8em;font-weight:700;color:#d5dbdb;margin-bottom:5px}
+/* Light-red "this field is empty" marker on the label; hidden once the field has a value. */
+.ail-empty-dot{display:none;align-items:center;gap:4px;font-size:.82em;font-weight:700;color:#ff8a8a;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);border-radius:999px;padding:1px 8px;line-height:1.4}
+.ail-empty-dot::before{content:"";width:7px;height:7px;border-radius:50%;background:#ff6b6b;display:inline-block}
+.ail-field.is-empty .ail-empty-dot{display:inline-flex}
 .ail-fsub{color:var(--tm);font-weight:500}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
 .ail-field textarea{resize:vertical;min-height:84px;white-space:pre-wrap}
@@ -194,6 +198,11 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-btn.primary:disabled{opacity:.6;cursor:default;filter:none}
 .ail-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
 .ail-btn.sec:hover{border-color:#8b96a0;color:#fff}
+/* Copy button: orange bg, white font, pinned to the bottom-left of the footer. */
+.ail-btn.copy{margin-right:auto;background:var(--oh);border-color:var(--oh);color:#fff}
+.ail-btn.copy:hover{filter:brightness(1.06)}
+.ail-btn.copy:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.ail-btn.copy.copied{background:#1f9d57;border-color:#1f9d57}
 /* ---- View-incident-log modal (clipboard header icon -> openIncidentIcon) — redesigned ---- */
 /* Was a plain .modal-head: title + a 2-button group as flex children with no wrap guard, so a long
    title ("Incident log · V2396279680") squeezed the Copy/Close buttons onto their own line below
@@ -948,6 +957,7 @@ h1{color:#1b2026 !important}
 #addCmtText,#editIncidentText,#incidentText{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
 .ail-flabel{color:#1b2026 !important}.ail-fsub{color:#5c6773 !important}
+.ail-empty-dot{color:#c0392b !important;background:#fdeaea !important;border-color:#f3b4b4 !important}
 #addCmtText::placeholder,#incidentText::placeholder{color:#9aa5b1 !important}
 /* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
 .modal p{color:#5c6773 !important}
@@ -1067,41 +1077,41 @@ h1{color:#1b2026 !important}
     <div class="ail-head">
       <span class="ail-head-ic" id="ailHeadIc"></span>
       <div class="ail-head-tx"><h2 id="incidentTitle">Add incident log</h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket's log</span></div>
-      <button type="button" class="ail-icbtn" id="incidentCopyBtn" onclick="copyIncidentDraft()" title="Copy the formatted incident log" aria-label="Copy formatted log"><span id="ailCopyIc"></span></button>
       <button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>
     </div>
     <div class="ail-body">
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilPhdFindings">PHD Findings</label>
-        <textarea id="ilPhdFindings" class="ail-f" placeholder="- On 11OCT'26, a DSP DA from station …&#10;- …"></textarea>
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilPhdFindings">PHD Findings <span class="ail-empty-dot">Empty</span></label>
+        <textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT'26, a DSP DA from station …&#10;- …"></textarea>
       </div>
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilPhdInvestigation">PHD Investigation for mitigation</label>
-        <textarea id="ilPhdInvestigation" class="ail-f" placeholder="- Does current ticket have any duplicate: No&#10;- Is POI the CX: …"></textarea>
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilPhdInvestigation">PHD Investigation for mitigation <span class="ail-empty-dot">Empty</span></label>
+        <textarea id="ilPhdInvestigation" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- Does current ticket have any duplicate: No&#10;- Is POI the CX: …"></textarea>
       </div>
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilSimRcd">SIM Root Cause Details</label>
-        <textarea id="ilSimRcd" class="ail-f" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilSimRcd">SIM Root Cause Details <span class="ail-empty-dot">Empty</span></label>
+        <textarea id="ilSimRcd" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
       </div>
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilRootCause">Root Cause</label>
-        <select id="ilRootCause"></select>
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilRootCause">Root Cause <span class="ail-empty-dot">Empty</span></label>
+        <select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>
       </div>
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilRelatedLink">PHD Related Link</label>
-        <input type="text" id="ilRelatedLink" placeholder="https://t.corp.amazon.com/…">
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilRelatedLink">PHD Related Link <span class="ail-empty-dot">Empty</span></label>
+        <input type="text" id="ilRelatedLink" oninput="ilMarkEmpty(this)" placeholder="https://t.corp.amazon.com/…">
       </div>
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilPhdResolution">PHD Resolution</label>
-        <select id="ilPhdResolution"></select>
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilPhdResolution">PHD Resolution <span class="ail-empty-dot">Empty</span></label>
+        <select id="ilPhdResolution" onchange="ilMarkEmpty(this)"></select>
       </div>
-      <div class="ail-field">
-        <label class="ail-flabel" for="ilPhdNotes">PHD Notes</label>
-        <textarea id="ilPhdNotes" class="ail-f" placeholder="- The DA has confessed …&#10;- …"></textarea>
+      <div class="ail-field" data-ilfield>
+        <label class="ail-flabel" for="ilPhdNotes">PHD Notes <span class="ail-empty-dot">Empty</span></label>
+        <textarea id="ilPhdNotes" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- The DA has confessed …&#10;- …"></textarea>
       </div>
       <div class="msg err ail-err" id="incidentErr" style="display:none"></div>
     </div>
     <div class="ail-actions">
+      <button type="button" class="ail-btn copy" id="incidentCopyFooterBtn" onclick="copyIncidentDraft()" disabled title="Fill every field to enable copying">Copy</button>
       <button class="ail-btn sec" onclick="closeIncidentLog()">Cancel</button>
       <button class="ail-btn primary" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
     </div>
@@ -1923,6 +1933,28 @@ function fillIncidentSelects(){
   if(res){ var rl=window.RC_RESOLUTIONS||[];
     res.innerHTML='<option value="">— Select resolution —</option>'+rl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join(''); }
 }
+var IL_FIELD_IDS=['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRootCause','ilRelatedLink','ilPhdResolution','ilPhdNotes'];
+var IL_EDIT_ID=null;   // null = Add mode; an id = editing that existing incident-log entry
+// Toggle the light-red "Empty" marker on a field's label based on whether it has a value.
+function ilMarkEmpty(el){
+  if(el){ var field=el.closest('.ail-field'); if(field) field.classList.toggle('is-empty', !String(el.value||'').trim()); }
+  ilUpdateCopyState();
+}
+// Refresh the empty markers on every structured field at once (used when the modal opens).
+function ilRefreshEmptyMarks(){
+  IL_FIELD_IDS.forEach(function(id){ var el=document.getElementById(id); if(el){ var f=el.closest('.ail-field'); if(f) f.classList.toggle('is-empty', !String(el.value||'').trim()); } });
+  ilUpdateCopyState();
+}
+// Copy is allowed ONLY when every field has a value.
+function ilAllFilled(){
+  return IL_FIELD_IDS.every(function(id){ var el=document.getElementById(id); return el && String(el.value||'').trim(); });
+}
+function ilUpdateCopyState(){
+  var btn=document.getElementById('incidentCopyFooterBtn'); if(!btn) return;
+  var ok=ilAllFilled();
+  btn.disabled=!ok;
+  btn.title=ok?'Copy the formatted incident log':'Fill every field to enable copying';
+}
 // Assemble the structured fields into the standard copy/save format.
 function buildIncidentOutput(){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
@@ -1938,48 +1970,76 @@ function buildIncidentOutput(){
   parts.push('**PHD notes**:\n'+(notes||'-'));
   return parts.join('\n\n');
 }
+// Reverse of buildIncidentOutput: split a saved log blob back into the 7 structured fields so the
+// Edit flow reopens the same split form. Tolerant of extra whitespace; a lone "-" placeholder -> ''.
+function parseIncidentOutput(text){
+  var s=String(text||'').replace(/\r\n/g,'\n');
+  var clean=function(v){ v=String(v||'').trim(); return (v==='-')?'':v; };
+  // Capture each labelled section up to the next known label (or end).
+  var grab=function(re){ var m=s.match(re); return m?clean(m[1]):''; };
+  var NEXT='(?=\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|$)';
+  return {
+    findings:  grab(new RegExp('PHD Findings:\\n([\\s\\S]*?)'+NEXT, 'i')),
+    invest:    grab(new RegExp('\\*\\*PHD Investigation for mitigation:\\*\\*\\n([\\s\\S]*?)'+NEXT, 'i')),
+    sim:       grab(new RegExp('\\*\\*SIM Root Cause Details:\\*\\*\\n([\\s\\S]*?)'+NEXT, 'i')),
+    rootCause: grab(new RegExp('\\*\\*Root Cause\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
+    link:      grab(new RegExp('\\*\\*PHD Related Link\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
+    res:       grab(new RegExp('\\*\\*PHD Resolution\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
+    notes:     grab(new RegExp('\\*\\*PHD notes\\*\\*:\\n([\\s\\S]*?)'+NEXT, 'i'))
+  };
+}
 function openIncidentLog(i){
   INCIDENT_INDEX=i;
   const t=TICKETS[i];
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
-  var cic=document.getElementById('ailCopyIc'); if(cic) cic.innerHTML=ic('copy',14);
+  IL_EDIT_ID=null;   // add mode (not editing an existing entry)
   document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
+  var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
   fillIncidentSelects();
   // Reset every field.
   ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
   // Auto-fill the PHD Related Link with this ticket's URL (falls back to the standard t.corp URL).
   var linkEl=document.getElementById('ilRelatedLink');
   if(linkEl){ linkEl.value=(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):''); }
+  ilRefreshEmptyMarks();   // flag every still-empty field in light red
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
   setTimeout(()=>{ var f=document.getElementById('ilPhdFindings'); if(f) f.focus(); },40);
 }
-function closeIncidentLog(){document.getElementById('incidentModal').style.display='none';INCIDENT_INDEX=null;}
-// Copy the formatted incident log assembled from the structured fields.
+function closeIncidentLog(){document.getElementById('incidentModal').style.display='none';INCIDENT_INDEX=null;IL_EDIT_ID=null;}
+// Copy the formatted incident log — ONLY when every field is filled.
 async function copyIncidentDraft(){
+  var btn=document.getElementById('incidentCopyFooterBtn');
+  if(!ilAllFilled()){ toast('Fill every field before copying'); return; }
   var text=buildIncidentOutput();
-  var btn=document.getElementById('incidentCopyBtn');
   try{ await navigator.clipboard.writeText(text); }
   catch(e){
     const tmp=document.createElement('textarea');tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
     document.body.appendChild(tmp);tmp.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(tmp);
   }
   toast('Copied');
-  if(btn){ btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',14);
-    setTimeout(function(){btn.classList.remove('copied');btn.innerHTML=prev;},1200); }
+  if(btn){ btn.classList.add('copied'); var prev=btn.textContent; btn.textContent='Copied!';
+    setTimeout(function(){btn.classList.remove('copied');btn.textContent=prev;},1200); }
 }
 window.copyIncidentDraft=copyIncidentDraft;
 async function submitIncidentLog(){
   if(INCIDENT_INDEX==null)return;
   const t=TICKETS[INCIDENT_INDEX];
   const err=document.getElementById('incidentErr');
-  // Require at least the PHD findings so an empty structured log can't be saved.
-  var findings=String((document.getElementById('ilPhdFindings')||{}).value||'').trim();
-  if(!findings){err.textContent='Enter the PHD Findings first.';err.style.display='block';return;}
+  // Save is allowed even with empty fields — no required-field gate.
   err.style.display='none';
   const text=buildIncidentOutput();
   const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
   const idx=INCIDENT_INDEX;
+  if(IL_EDIT_ID){
+    // Edit mode: update the existing entry via the same structured form.
+    const editId=IL_EDIT_ID;
+    const r=await A.api('PUT','/api/incident-log/'+editId,{text});
+    btn.disabled=false;btn.textContent='Save incident log';
+    if(r.ok){ closeIncidentLog(); toast('Incident log updated'); refreshLatestComment(idx); openViewIncident(idx); }
+    else{ err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'); err.style.display='block'; }
+    return;
+  }
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});
   btn.disabled=false;btn.textContent='Save incident log';
   if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);HAS_LOG[String(t.shortId)]=true;repaintIncidentBtn(idx);var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c);refreshLatestComment(idx);}
@@ -2062,17 +2122,38 @@ function renderIncidentList(shortId,items){
 function closeViewIncident(){document.getElementById('viewIncidentModal').style.display='none';VIEW_INC_INDEX=null;}
 
 let EDIT_INC_ID=null;
+// Edit reuses the SAME structured split form as Add. We parse the saved blob back into the 7
+// fields, open the structured modal in edit mode, and PUT on save (handled in submitIncidentLog).
 function openEditIncident(id){
   EDIT_INC_ID=id;
-  var hic=document.getElementById('editIncidentIcon'); if(hic) hic.innerHTML=ic('edit',16);
-  const item=document.querySelector('#viewIncidentList .ilog-item[data-id="'+id+'"] .ilog-text');
-  document.getElementById('editIncidentText').value=item?item.textContent:'';
-  document.getElementById('editIncidentErr').style.display='none';
-  document.getElementById('editIncidentModal').style.display='flex';
-  setTimeout(()=>document.getElementById('editIncidentText').focus(),40);
+  var i=VIEW_INC_INDEX;
+  if(i==null){ return; }
+  var t=TICKETS[i];
+  // Pull the saved text for this entry straight from the rendered view list.
+  var item=document.querySelector('#viewIncidentList .ilog-item[data-id="'+id+'"] .ilog-text');
+  var saved=item?item.textContent:'';
+  var f=parseIncidentOutput(saved);
+  // Close the view popup and open the structured modal (same split layout as Add).
+  closeViewIncident();
+  INCIDENT_INDEX=i;
+  IL_EDIT_ID=id;   // edit mode
+  var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
+  document.getElementById('incidentTitle').textContent='Edit incident log · '+(t?t.shortId:'');
+  var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
+  fillIncidentSelects();
+  // Prefill every field from the parsed saved text.
+  var set=function(id2,v){ var el=document.getElementById(id2); if(el) el.value=v||''; };
+  set('ilPhdFindings',f.findings); set('ilPhdInvestigation',f.invest); set('ilSimRcd',f.sim);
+  set('ilRootCause',f.rootCause); set('ilRelatedLink',f.link); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
+  ilRefreshEmptyMarks();
+  document.getElementById('incidentErr').style.display='none';
+  document.getElementById('incidentModal').style.display='flex';
+  setTimeout(()=>{ var el=document.getElementById('ilPhdFindings'); if(el) el.focus(); },40);
 }
 function closeEditIncident(){document.getElementById('editIncidentModal').style.display='none';EDIT_INC_ID=null;}
 async function submitEditIncident(){
+  // Legacy single-textarea edit modal path (kept for safety). The new flow edits via the structured
+  // Add modal (openEditIncident + submitIncidentLog in edit mode).
   if(!EDIT_INC_ID)return;
   const text=document.getElementById('editIncidentText').value.trim();
   const err=document.getElementById('editIncidentErr');
