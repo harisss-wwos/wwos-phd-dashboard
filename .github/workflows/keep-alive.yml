@@ -4,9 +4,9 @@ name: Keep Render API awake
 # Runs on GitHub's infrastructure, so it works even when no dashboard tab is open.
 on:
   schedule:
-    # Every 10 minutes. (GitHub cron is UTC and best-effort — it can lag a few minutes
-    # under load, which is fine against Render's ~15 min idle window.)
-    - cron: "*/10 * * * *"
+    # Every 5 minutes. (GitHub cron is UTC and best-effort — it can lag a few minutes
+    # under load; the 5-min cadence leaves plenty of margin vs Render's ~15 min idle window.)
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}   # allow manual runs from the Actions tab
 
 jobs:
