@@ -155,7 +155,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=200"></script>
+<script src="topbar-auth.js?v=201"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -316,6 +316,8 @@ function defectItem(name,badge){
 var PS_ACTIVE='weekly';           // currently-shown pane
 var PS_RANGES={ weekly:'', monthly:'' }; // live date-range labels, set in render()
 var PS_DATA={ weekly:null, monthly:null }; // fetched { current, previous, mtdSlaPct } per period
+var PS_WIN={ weekly:null, monthly:null };  // the {start,end} window objects, set in render()
+var PS_STATE={ weekly:'idle', monthly:'idle' }; // idle | loading | done — so each period fetches once
 function psSwitch(which){
   PS_ACTIVE=which;
   ['weekly','monthly'].forEach(function(k){
@@ -324,6 +326,9 @@ function psSwitch(which){
     if(pane) pane.classList.toggle('on',k===which);
   });
   var lbl=document.getElementById('psExportLbl'); if(lbl) lbl.textContent='Export '+(which==='weekly'?'Weekly':'Monthly');
+  // Lazy-load this period's data the first time its tab is opened (avoids fetching the hidden
+  // tab on page load).
+  if(PS_STATE[which]==='idle') psFill(which);
 }
 window.psSwitch=psSwitch;
 
@@ -470,6 +475,8 @@ async function render(){
   var wkTxt=rangeLabel(wk);
   var moTxt=MON[mo.start.getMonth()]+' '+mo.start.getFullYear()+'  \u00b7  '+rangeLabel(mo);
   PS_RANGES={ weekly:wkTxt, monthly:moTxt };
+  PS_WIN={ weekly:wk, monthly:mo };
+  PS_STATE={ weekly:'idle', monthly:'idle' };
   // Shell with loading placeholders in both panes.
   document.getElementById('wrap').innerHTML=
     '<div class="ps-toolbar">'+
@@ -482,26 +489,35 @@ async function render(){
     '<div class="ps-pane on" id="psPane-weekly">'+loadingPane('Weekly',wkTxt,'psW')+'</div>'+
     '<div class="ps-pane" id="psPane-monthly">'+loadingPane('Monthly',moTxt,'psM')+'</div>';
 
-  // Start the phased loader animation in both panes.
-  _psStart('psW','week'); _psStart('psM','month');
+  // Only the ACTIVE (Weekly) pane fetches on load. Monthly fetches lazily the first time its tab
+  // is opened (psSwitch -> psFill), so the hidden tab's /api/perf-summary isn't fired on load.
+  psFill('weekly');
+}
+// Fetch + render one period's pane. Runs its phased loader, fetches the window once, reveals.
+var PS_META={
+  weekly:  { pfx:'psW', paneId:'psPane-weekly',  kind:'Weekly',  per:'WoW', phase:'week'  },
+  monthly: { pfx:'psM', paneId:'psPane-monthly', kind:'Monthly', per:'MoM', phase:'month' }
+};
+function psFill(period){
+  if(PS_STATE[period]!=='idle') return;   // fetch each period only once
+  PS_STATE[period]='loading';
+  var m=PS_META[period], win=PS_WIN[period], txt=PS_RANGES[period];
+  _psStart(m.pfx,m.phase);
   var t0=Date.now();
   var minHold=function(){ var el=1500-(Date.now()-t0); return el>0?_psDelay(el):Promise.resolve(); };
-
-  // Fetch both windows in parallel; on each result show the success beat (~1s) then reveal.
-  var fill=function(pfx,paneId,kind,per,txt,win){
-    fetchWindow(win).then(async function(D){
-      PS_DATA[kind.toLowerCase()]=D;
-      await minHold();
-      _psSuccess(pfx); await _psDelay(900);
-      var el=document.getElementById(paneId); if(el) el.innerHTML=summaryPane(kind,per,txt,D,D.mtdSlaPct);
-    }).catch(function(){
-      _psStop(pfx);
-      var el=document.getElementById(paneId); if(el) el.innerHTML='<div class="ps-gate" style="padding:40px"><p style="color:#dc2626">Could not load '+kind.toLowerCase()+' data. Please refresh.</p></div>';
-    });
-  };
-  fill('psW','psPane-weekly','Weekly','WoW',wkTxt,wk);
-  fill('psM','psPane-monthly','Monthly','MoM',moTxt,mo);
+  fetchWindow(win).then(async function(D){
+    PS_DATA[period]=D;
+    await minHold();
+    _psSuccess(m.pfx); await _psDelay(900);
+    var el=document.getElementById(m.paneId); if(el) el.innerHTML=summaryPane(m.kind,m.per,txt,D,D.mtdSlaPct);
+    PS_STATE[period]='done';
+  }).catch(function(){
+    _psStop(m.pfx);
+    PS_STATE[period]='idle';   // allow a retry on next tab open
+    var el=document.getElementById(m.paneId); if(el) el.innerHTML='<div class="ps-gate" style="padding:40px"><p style="color:#dc2626">Could not load '+m.kind.toLowerCase()+' data. Please refresh.</p></div>';
+  });
 }
+window.psFill=psFill;
 
 (function init(){
   if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }

@@ -4221,7 +4221,9 @@
   async function hydrateProfileAndRepaint() {
     if (!loggedIn()) return;
     try { if (A.loadMyProfile) await A.loadMyProfile(); } catch (e) {}
-    try { if (A._refreshMe) await A._refreshMe(); else if (A.getMe) await A.getMe(); } catch (e) {}
+    // Cache-first: getMe() returns the cached /api/me instantly and only revalidates in the
+    // background when stale (past TTL). Avoids a forced /api/me round-trip on every page mount.
+    try { if (A.getMe) await A.getMe(); else if (A._refreshMe) await A._refreshMe(); } catch (e) {}
     try { if (window.PHDNav && window.PHDNav.refreshRight) window.PHDNav.refreshRight(); } catch (e) {}
     try { rebuildRailProfile(); } catch (e) {}          // repaint the right-rail avatar badge with the photo
     // Repaint ONLY the banner avatar/name IN PLACE — do NOT rebuild the whole panel (that re-ran the

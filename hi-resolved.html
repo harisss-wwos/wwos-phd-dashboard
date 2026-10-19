@@ -463,7 +463,7 @@ h1{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=200"></script>
+<script src="topbar-auth.js?v=201"></script>
 <script>
 const A=window.PHDAuth;
 let HR_DATA=null;
@@ -1101,7 +1101,10 @@ async function hiLoadChart(){
   _ldWhat['hic']='monthly trend';
   _ldShow('hic',true,'Monthly trend · 2026');
   var minDelay=_delay(4000);
-  try{ var mr=await A.api('GET','/api/hi-monthly'); if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)) HR_MONTHLY=mr.data; }catch(e){}
+  try{ var mr=await A.api('GET','/api/hi-monthly');
+    // Session gate: a 401 here bounces home (this replaces the old heavy /api/hi-resolved gate).
+    if(mr&&mr.status===401){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+    if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)) HR_MONTHLY=mr.data; }catch(e){}
   await minDelay;
   _ldSuccess('hic'); await _delay(1000);
   _ldShow('hic',false);
@@ -1164,11 +1167,9 @@ window.hrFilter=hrFilter;
   // shows right away — do NOT block on any network call here.
   render({});
   // Chart section is open by default -> load it now. Non-pet + pet lazy-load on first expand.
+  // The 401 session gate now piggybacks on hiLoadChart()'s /api/hi-monthly call, so we no longer
+  // fetch the heavy /api/hi-resolved (122 kB) just for an auth check.
   hiLoadChart();
-  // Gate/freshness check runs in the background: a 401 bounces home; other failures are ignored.
-  A.api('GET','/api/hi-resolved').then(function(r){
-    if(r&&r.status===401){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); }
-  }).catch(function(){});
 })();
 </script>
 </body>

@@ -456,7 +456,7 @@ tbody tr:hover,.gv-sec tr:hover{background:#f8fafb!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Redesigned Analytics UI — brand palette, loaded LAST so it wins the cascade ===== -->
+<!-- ===== Redesigned Analytics UI ï¿½ brand palette, loaded LAST so it wins the cascade ===== -->
 <style id="anRedesign">
 :root{
   --an-orange:#ff6100; --an-orange-l:#fe9046; --an-page:#f4f3ef; --an-white:#ffffff;
@@ -530,7 +530,7 @@ body{background:var(--an-page)!important;color:var(--an-ink)!important}
 .perf-chip.on{background:linear-gradient(120deg,var(--an-orange-l),var(--an-orange))!important;color:#fff!important;box-shadow:0 2px 8px -2px rgba(255,97,0,.6)!important}
 .perf-sel:focus{border-color:var(--an-orange)!important;box-shadow:0 0 0 3px rgba(255,97,0,.14)!important}
 
-/* ---- Group checkbox pills (BLR/AZA/WFH) — blue accent ---- */
+/* ---- Group checkbox pills (BLR/AZA/WFH) ï¿½ blue accent ---- */
 .perf-groups .ga-opt,.ga-head-groups .ga-opt{color:var(--an-blue)!important;font-weight:700}
 .perf-groups .ga-opt.checked,.ga-head-groups .ga-opt.checked{color:var(--an-blue)!important}
 .perf-groups .ga-opt::before{border-color:#a8c8ee!important}
@@ -542,7 +542,7 @@ body{background:var(--an-page)!important;color:var(--an-ink)!important}
 .ga-filters{background:var(--an-white)!important;border:1px solid #e7e4dc!important}
 .ga-fopts{background:#f0efe9!important;border:1px solid #e7e4dc!important}
 
-/* ---- Performance Overview KPI stat tiles — unify accents to the brand palette ---- */
+/* ---- Performance Overview KPI stat tiles ï¿½ unify accents to the brand palette ---- */
 .pf-created::before{background:var(--an-blue)}.pf-created .pf-stat-top{color:var(--an-blue)}
 .pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
 .pf-avgres::before{background:var(--an-blue)}.pf-avgres .pf-stat-top{color:var(--an-blue)}
@@ -581,7 +581,7 @@ body{background:var(--an-page)!important;color:var(--an-ink)!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=200"></script>
+<script src="topbar-auth.js?v=201"></script>
 <script>
 const A=window.PHDAuth;
 const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
@@ -903,7 +903,7 @@ function gaSubSelectHtml(){
   return '';
 }
 function groupsSectionsHtml(){
-  // No own controls — the TOP Performance Overview picker drives these tables (period + groups).
+  // No own controls ï¿½ the TOP Performance Overview picker drives these tables (period + groups).
   return '<p class="ga-scope-note" id="gaScopeNote"></p>'+
     '<div class="ga-tables">'+
       '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gaIapBody"></div></div>'+
@@ -1307,11 +1307,11 @@ function windowSectionsHtml(){
 // prepared coverage ~70s before it would loop. ----
 const GW_AGENTS_POOL=['harisss','punithsd','arunkzn','flofalgu','tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb','mbozied','nobregak','mellanej'];
 function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
-// Human label for the current window radio (drives the "Last 12 Hours…" line + the sub-pill).
+// Human label for the current window radio (drives the "Last 12 Hoursï¿½" line + the sub-pill).
 let _ldWinWords=null;   // override set by the Performance Overview loader; else use the RA radio
 function gwWinWords(){ if(_ldWinWords) return _ldWinWords; return { '12h':'last 12 hours', '24h':'last 24 hours', '7d':'last 7 days' }[GW_FILTER.win] || 'recent'; }
 function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
-// PHASE 1 — 20 randomized lines, each with an icon. {ic, t}. General phrasing (no agent names).
+// PHASE 1 ï¿½ 20 randomized lines, each with an icon. {ic, t}. General phrasing (no agent names).
 function gwPhase1(){
   var me=gwFirstName(), win=gwWinWords();
   var lines=[
@@ -1338,7 +1338,7 @@ function gwPhase1(){
   ];
   return gwShuffle(lines);
 }
-// PHASE 2 — shown after the apology, 10 lines at 3s each. General phrasing (no agent names).
+// PHASE 2 ï¿½ shown after the apology, 10 lines at 3s each. General phrasing (no agent names).
 function gwPhase2(){
   var me=gwFirstName(), win=gwWinWords();
   var lines=[
@@ -1411,7 +1411,7 @@ function toggleRecentCard(btn){
   if(willOpen && !GW_DATA) gwLoad();   // lazy-load on first expand
 }
 window.toggleRecentCard=toggleRecentCard;
-// (YTD Performance card merged into Performance Overview — toggleGroupAnalyticsCard removed.)
+// (YTD Performance card merged into Performance Overview ï¿½ toggleGroupAnalyticsCard removed.)
 
 /* ===================== Performance Overview (ported from app.js) =====================
    Self-contained: a period picker (6 range types -> {from,to} window + bucket), a KPI podium/tiles
@@ -1530,7 +1530,7 @@ function perfPickerHtml(){
     const qCount=_acQuartersCount(); const qOpts=[]; for(let i=1;i<=qCount;i++)qOpts.push({v:i,l:'Q'+i+' 2026'});
     sub+=sel('perfQuarter','perfOnQuarter(this.value)',qOpts,(PERF.quarter==null)?qCount:PERF.quarter);
   }
-  // Group checkboxes (BLR=A1 / AZA=B / WFH=A2) — same control YTD Performance uses. Scopes every KPI
+  // Group checkboxes (BLR=A1 / AZA=B / WFH=A2) ï¿½ same control YTD Performance uses. Scopes every KPI
   // + the chart to tickets OWNED by the selected groups (AssigneeIdentity).
   const groupChips=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){
     const on=PERF_GROUPS[g[0]];

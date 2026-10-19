@@ -1162,7 +1162,7 @@ h1{color:#1b2026 !important}
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js"></script>
-<script src="topbar-auth.js?v=200"></script>
+<script src="topbar-auth.js?v=201"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -1633,7 +1633,9 @@ async function load(){
   var minDelay=_delay(3500);   // keep the loader up long enough to read a line or two
 
   const cached=readCache();    // used only as a cache stamp below (not painted)
-  const version=await A.liveVersion();
+  // NOTE: we no longer fetch /api/live-version here. The page always fetches /api/my-tickets fresh,
+  // so the live version was only a label on the cache stamp — not worth an extra blocking round-trip.
+  const version=(cached&&cached.version)||null;
   try{MY_TZ=await A.myTimezone();}catch(e){}
   const r=await A.api('GET','/api/my-tickets');
   if(r.status===401){ _ldStop('mt'); gate('Session expired. Please log in again.'); return; }

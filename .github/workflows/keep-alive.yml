@@ -1,0 +1,24 @@
+name: Keep Render API awake
+
+# Pings the Render free-tier API so it doesn't spin down after ~15 min of inactivity.
+# Runs on GitHub's infrastructure, so it works even when no dashboard tab is open.
+on:
+  schedule:
+    # Every 10 minutes. (GitHub cron is UTC and best-effort — it can lag a few minutes
+    # under load, which is fine against Render's ~15 min idle window.)
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}   # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/health
+        run: |
+          echo "Pinging API health endpoint..."
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 60 \
+            https://wwos-phd-api.onrender.com/api/health || echo "000")
+          echo "HTTP status: $code"
+          # Don't fail the run on a cold-start timeout/5xx — the ping itself already
+          # delivered the traffic that keeps the instance warm.
+          exit 0
