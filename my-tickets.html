@@ -166,11 +166,20 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-empty-dot{display:none;align-items:center;gap:4px;font-size:.82em;font-weight:700;color:#ff8a8a;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);border-radius:999px;padding:1px 8px;line-height:1.4}
 .ail-empty-dot::before{content:"";width:7px;height:7px;border-radius:50%;background:#ff6b6b;display:inline-block}
 .ail-field.is-empty .ail-empty-dot{display:inline-flex}
+/* Per-field copy icon, pinned to the right of the label. Only active when the field has content. */
+.ail-fcopy{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--tm);cursor:pointer;transition:border-color .15s,color .15s,background .15s;flex:0 0 auto}
+.ail-fcopy svg{width:14px;height:14px}
+.ail-fcopy:hover{border-color:var(--tl);color:var(--tl);background:rgba(68,185,214,.1)}
+.ail-fcopy:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.ail-fcopy.copied{border-color:var(--gl);color:var(--gl)}
+/* When the field is empty, grey the copy icon out (handled by disabled attr too). */
+.ail-field.is-empty .ail-fcopy{opacity:.35;pointer-events:none}
 .ail-fsub{color:var(--tm);font-weight:500}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
-/* Collapsed to ~3 lines; expands to ~10 lines on focus. (line-height 1.55 + 20px vertical padding; box-sizing: border-box.) */
-.ail-field textarea{resize:vertical;height:calc(3 * 1.55em + 20px);min-height:calc(3 * 1.55em + 20px);white-space:pre-wrap;transition:height .18s ease,min-height .18s ease}
-.ail-field textarea:focus{height:calc(10 * 1.55em + 20px);min-height:calc(10 * 1.55em + 20px)}
+/* Starts ~3 lines. On focus -> ~10 lines. On blur -> JS fits height to content (min ~3 lines).
+   (line-height 1.55 + 20px vertical padding; box-sizing: border-box.) */
+.ail-field textarea{resize:vertical;height:calc(3 * 1.55em + 20px);min-height:calc(3 * 1.55em + 20px);white-space:pre-wrap;transition:height .18s ease}
+.ail-field textarea:focus{height:calc(10 * 1.55em + 20px)}
 .ail-field select:focus,.ail-field input:focus,.ail-field textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
 .ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
@@ -963,6 +972,8 @@ h1{color:#1b2026 !important}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
 .ail-flabel{color:#1b2026 !important}.ail-fsub{color:#5c6773 !important}
 .ail-empty-dot{color:#c0392b !important;background:#fdeaea !important;border-color:#f3b4b4 !important}
+.ail-fcopy{border-color:#d4dce4 !important;color:#5c6773 !important}
+.ail-fcopy:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
 #addCmtText::placeholder,#incidentText::placeholder{color:#9aa5b1 !important}
 /* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
 .modal p{color:#5c6773 !important}
@@ -1086,31 +1097,31 @@ h1{color:#1b2026 !important}
     </div>
     <div class="ail-body">
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdFindings">PHD Findings <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilPhdFindings"><span class="ail-flabel-tx">PHD Findings</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdFindings" data-label="PHD Findings" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Findings"></button></label>
         <textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT'26, a DSP DA from station …&#10;- …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdInvestigation">PHD Investigation for mitigation <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilPhdInvestigation"><span class="ail-flabel-tx">PHD Investigation for mitigation</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdInvestigation" data-label="PHD Investigation for mitigation" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Investigation for mitigation"></button></label>
         <textarea id="ilPhdInvestigation" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- Does current ticket have any duplicate: No&#10;- Is POI the CX: …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilSimRcd">SIM Root Cause Details <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilSimRcd"><span class="ail-flabel-tx">SIM Root Cause Details</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilSimRcd" data-label="SIM Root Cause Details" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy SIM Root Cause Details"></button></label>
         <textarea id="ilSimRcd" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilRootCause">Root Cause <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilRootCause"><span class="ail-flabel-tx">Root Cause</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilRootCause" data-label="Root Cause" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy Root Cause"></button></label>
         <select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilRelatedLink">PHD Related Link <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilRelatedLink"><span class="ail-flabel-tx">PHD Related Link</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilRelatedLink" data-label="PHD Related Link" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Related Link"></button></label>
         <input type="text" id="ilRelatedLink" oninput="ilMarkEmpty(this)" placeholder="https://t.corp.amazon.com/…">
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdResolution">PHD Resolution <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilPhdResolution"><span class="ail-flabel-tx">PHD Resolution</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdResolution" data-label="PHD Resolution" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Resolution"></button></label>
         <select id="ilPhdResolution" onchange="ilMarkEmpty(this)"></select>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdNotes">PHD Notes <span class="ail-empty-dot">Empty</span></label>
+        <label class="ail-flabel" for="ilPhdNotes"><span class="ail-flabel-tx">PHD Notes</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdNotes" data-label="PHD Notes" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Notes"></button></label>
         <textarea id="ilPhdNotes" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- The DA has confessed …&#10;- …"></textarea>
       </div>
       <div class="msg err ail-err" id="incidentErr" style="display:none"></div>
@@ -1973,10 +1984,66 @@ function ilAllFilled(){
   return IL_FIELD_IDS.every(function(id){ var el=document.getElementById(id); return el && String(el.value||'').trim(); });
 }
 function ilUpdateCopyState(){
-  var btn=document.getElementById('incidentCopyFooterBtn'); if(!btn) return;
-  var ok=ilAllFilled();
-  btn.disabled=!ok;
-  btn.title=ok?'Copy the formatted incident log':'Fill every field to enable copying';
+  var btn=document.getElementById('incidentCopyFooterBtn');
+  if(btn){ var ok=ilAllFilled(); btn.disabled=!ok; btn.title=ok?'Copy the formatted incident log':'Fill every field to enable copying'; }
+  ilUpdateFieldCopyStates();
+}
+// Paint the per-field copy icons (static HTML can't call ic()).
+function ilPaintFieldCopyIcons(){
+  document.querySelectorAll('.ail-fcopy').forEach(function(b){ if(!b.dataset.painted){ b.innerHTML=ic('copy',14); b.dataset.painted='1'; } });
+}
+// Enable a field's copy icon only when that field is non-empty.
+function ilUpdateFieldCopyStates(){
+  document.querySelectorAll('.ail-fcopy').forEach(function(b){
+    var el=document.getElementById(b.getAttribute('data-for'));
+    b.disabled=!(el && String(el.value||'').trim());
+  });
+}
+// Per-field copy format — matches exactly how each field is written in the full saved log
+// (buildIncidentOutput). Block fields put the value on the next line; inline fields keep it on one.
+var IL_COPY_FMT={
+  ilPhdFindings:      {prefix:'**PHD Findings**:', block:true},
+  ilPhdInvestigation: {prefix:'**PHD Investigation for mitigation:**', block:true},
+  ilSimRcd:           {prefix:'**SIM Root Cause Details:**', block:true},
+  ilRootCause:        {prefix:'**Root Cause**:', block:false},
+  ilRelatedLink:      {prefix:'**PHD Related Link**:', block:false},
+  ilPhdResolution:    {prefix:'**PHD Resolution**:', block:false},
+  ilPhdNotes:         {prefix:'**PHD notes**:', block:true}
+};
+// Copy a single field using its canonical header format (only when it has content).
+async function ilCopyField(btn){
+  if(!btn) return;
+  var id=btn.getAttribute('data-for');
+  var el=document.getElementById(id);
+  var val=el?String(el.value||'').trim():'';
+  if(!val){ toast('Nothing to copy — field is empty'); return; }
+  var label=btn.getAttribute('data-label')||'';
+  var fmt=IL_COPY_FMT[id]||{prefix:label+':', block:true};
+  var text=fmt.block ? (fmt.prefix+'\n'+val) : (fmt.prefix+' '+val);
+  try{ await navigator.clipboard.writeText(text); }
+  catch(e){
+    var tmp=document.createElement('textarea');tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
+    document.body.appendChild(tmp);tmp.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(tmp);
+  }
+  toast('Copied '+label);
+  btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',14);
+  setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=prev; },1200);
+}
+window.ilCopyField=ilCopyField;
+// Textarea sizing: focus -> 10 lines (CSS). Blur -> fit height to content, min 3 lines.
+var _ilTaWired=false;
+function ilWireTextareaAutosize(){
+  if(_ilTaWired) return; _ilTaWired=true;
+  var minH=function(ta){ var lh=parseFloat(getComputedStyle(ta).lineHeight)||20; var pad=20; return Math.round(3*lh+pad); };
+  document.querySelectorAll('.ail-field textarea').forEach(function(ta){
+    ta.addEventListener('focus',function(){ ta.style.height=''; });   // let CSS :focus (10 lines) take over
+    ta.addEventListener('blur',function(){
+      // Fit to content, but never below 3 lines.
+      ta.style.height='auto';
+      var h=Math.max(ta.scrollHeight, minH(ta));
+      ta.style.height=h+'px';
+    });
+  });
 }
 // Assemble the structured fields into the standard copy/save format.
 function buildIncidentOutput(){
@@ -1984,7 +2051,7 @@ function buildIncidentOutput(){
   var findings=g('ilPhdFindings'), invest=g('ilPhdInvestigation'), sim=g('ilSimRcd');
   var rootCause=g('ilRootCause'), link=g('ilRelatedLink'), res=g('ilPhdResolution'), notes=g('ilPhdNotes');
   var parts=[];
-  parts.push('PHD Findings:\n'+(findings||'-'));
+  parts.push('**PHD Findings**:\n'+(findings||'-'));
   parts.push('**PHD Investigation for mitigation:**\n'+(invest||'-'));
   parts.push('**SIM Root Cause Details:**\n'+(sim||'-'));
   parts.push('**Root Cause**: '+(rootCause||''));
@@ -2002,7 +2069,7 @@ function parseIncidentOutput(text){
   var grab=function(re){ var m=s.match(re); return m?clean(m[1]):''; };
   var NEXT='(?=\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|$)';
   return {
-    findings:  grab(new RegExp('PHD Findings:\\n([\\s\\S]*?)'+NEXT, 'i')),
+    findings:  grab(new RegExp('(?:\\*\\*)?PHD Findings(?:\\*\\*)?:\\n([\\s\\S]*?)'+NEXT, 'i')),
     invest:    grab(new RegExp('\\*\\*PHD Investigation for mitigation:\\*\\*\\n([\\s\\S]*?)'+NEXT, 'i')),
     sim:       grab(new RegExp('\\*\\*SIM Root Cause Details:\\*\\*\\n([\\s\\S]*?)'+NEXT, 'i')),
     rootCause: grab(new RegExp('\\*\\*Root Cause\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
@@ -2025,6 +2092,10 @@ function openIncidentLog(i){
   // Auto-fill the PHD Related Link with this ticket's URL (falls back to the standard t.corp URL).
   var linkEl=document.getElementById('ilRelatedLink');
   if(linkEl){ linkEl.value=(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):''); }
+  ilPaintFieldCopyIcons();
+  ilWireTextareaAutosize();
+  // Add mode: clear any inline heights so the fields start at the default 3 lines.
+  document.querySelectorAll('.ail-field textarea').forEach(function(ta){ ta.style.height=''; });
   ilRefreshEmptyMarks();   // flag every still-empty field in light red
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
@@ -2189,10 +2260,19 @@ function openEditIncidentStructured(i, id, savedText){
   var set=function(id2,v){ var el=document.getElementById(id2); if(el) el.value=v||''; };
   set('ilPhdFindings',f.findings); set('ilPhdInvestigation',f.invest); set('ilSimRcd',f.sim);
   set('ilRootCause',f.rootCause); set('ilRelatedLink',f.link); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
+  ilPaintFieldCopyIcons();
+  ilWireTextareaAutosize();
   ilRefreshEmptyMarks();
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
-  setTimeout(()=>{ var el=document.getElementById('ilPhdFindings'); if(el) el.focus(); },40);
+  // Edit mode: fit each prefilled textarea to its content (min 3 lines) once the modal is visible.
+  setTimeout(function(){
+    document.querySelectorAll('.ail-field textarea').forEach(function(ta){
+      var lh=parseFloat(getComputedStyle(ta).lineHeight)||20; var minH=Math.round(3*lh+20);
+      ta.style.height='auto'; ta.style.height=Math.max(ta.scrollHeight,minH)+'px';
+    });
+    var el=document.getElementById('ilPhdFindings'); if(el) el.focus();
+  },50);
 }
 window.openEditIncidentStructured=openEditIncidentStructured;
 function closeEditIncident(){document.getElementById('editIncidentModal').style.display='none';EDIT_INC_ID=null;}
