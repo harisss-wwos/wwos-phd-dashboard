@@ -29,7 +29,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-field select:focus,.rc-field textarea:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .rc-field select:disabled{background:#f1f3f6;color:#a7b0ba;cursor:not-allowed;opacity:.8}
 .rc-field textarea{resize:vertical;line-height:1.5;white-space:pre}
-#rcRaw{height:40vh;min-height:160px}
+/* ~15 lines tall: 15 * 1.5em line-height + the textarea's 10px top/bottom padding. */
+#rcRaw{height:calc(15 * 1.5em + 20px);min-height:160px}
 .rc-out-wrap{position:relative}
 .rc-out{width:100%;min-height:230px;background:#0f1622;border:1px solid #243041;border-radius:8px;color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;line-height:1.6;padding:12px 14px;white-space:pre-wrap;word-break:break-word;overflow:auto}
 .rc-actions{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid #eef1f4;background:#fafbfc}
@@ -57,6 +58,28 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-chip.v-low{color:#1f7a44;background:#eafaf0;border-color:#c8efd8}
 .rc-chip.v-na{color:#5c6773;background:#eef1f4;border-color:#e2e6ea}
 .rc-gate{padding:40px 22px;color:var(--tm)}
+/* ===== Admin-only quick-copy reference (Issue types + Resolutions) — two cards side by side ===== */
+.rc-refs{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;align-items:start}
+@media(max-width:760px){.rc-refs{grid-template-columns:1fr}}
+.rc-ref{background:#fff;border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 2px 12px -8px rgba(20,30,50,.3);overflow:hidden}
+.rc-ref-head{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid #eef1f4;background:linear-gradient(90deg,#161d2d,#212b42);color:#f4f3ef}
+.rc-ref-head .rc-ref-t{font-weight:800;font-size:.98em;display:inline-flex;align-items:center;gap:9px}
+.rc-ref-head .rc-ref-sub{margin-left:auto;font-size:.76em;color:#aab6c6;font-weight:600}
+.rc-ref-body{padding:16px 18px}
+.rc-ref-grp{font-size:.7em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#a7b0ba;margin:12px 0 6px}
+.rc-ref-grp:first-child{margin-top:0}
+/* Severity tier tag used as a sub-header in the Resolutions card (mitigation-matrix buckets). */
+.rc-sevtag{display:inline-flex;align-items:center;gap:6px;font-size:1em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:3px 11px;border:1px solid}
+.rc-sevtag.s-critical{color:#b02a2a;background:#fdeaea;border-color:#f6cccc}
+.rc-sevtag.s-moderate{color:#b5680c;background:#fff3e0;border-color:#f6ddb8}
+.rc-sevtag.s-low{color:#1f7a44;background:#eafaf0;border-color:#c8efd8}
+.rc-sevtag.s-operational{color:#1577a0;background:#eaf4fb;border-color:#cfe6f5}
+.rc-ref-list{display:flex;flex-wrap:wrap;gap:7px}
+.rc-copychip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:7px;font-size:.82em;font-weight:600;cursor:pointer;border:1px solid #d7dde4;background:#f7f9fb;color:#1b2026;font-family:inherit;line-height:1.3;text-align:left;transition:background .12s,border-color .12s}
+.rc-copychip:hover{background:#eef3f8;border-color:#b9c4cf}
+.rc-copychip .rc-cc-ic{color:#8a94a2;display:inline-flex;flex:0 0 auto}
+.rc-copychip.copied{background:#eafaf0;border-color:#b5e6c8;color:#1f7a44}
+.rc-copychip.copied .rc-cc-ic{color:#1f9d57}
 </style>
 </head>
 <body>
@@ -68,7 +91,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
       <div class="rc-col">
         <div class="rc-field">
           <label for="rcRaw"><span class="rc-step">INPUT</span> &rarr; Paste the raw Root Cause Details</label>
-          <textarea id="rcRaw" placeholder="e.g.  Issue: Threat w/ Weapon  Station ID: VHL1  Driver Type: DP  Incident Date: 6/11/2021  Tracking ID: TBA341...  Historical Incident: 0  Zip: 19014  AID: A3ONC...  UPID: USC478..."></textarea>
+          <textarea id="rcRaw" rows="15" placeholder="Issue: Threat w/ Weapon&#10;Station ID: VHL1&#10;Driver Type: DP&#10;Incident Date: 6/11/2021&#10;Tracking ID: TBA341...&#10;Historical Incident: 0&#10;Zip: 19014&#10;AID: A3ONC...&#10;UPID: USC478..."></textarea>
           <div class="rc-hint">Paste first &mdash; if the Issue matches a known incident type (case-insensitive), it&rsquo;s auto-selected below. Keys not in the mapping are ignored; missing keys become &ldquo;N/A&rdquo;.</div>
         </div>
         <div class="rc-field">
@@ -94,6 +117,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
       <div class="spacer"></div>
       <button type="button" class="rc-btn sec" id="rcCopy" onclick="rcCopyOut()" disabled>Copy result</button>
       <button type="button" class="rc-btn prim" onclick="rcConvert()">Convert</button>
+    </div>
+  </div>
+
+  <!-- Admin-only quick-copy reference: two side-by-side cards. Click any item to copy "Issue: ..." / "Res: ...". Hidden for non-admins. -->
+  <div class="rc-refs" id="rcRef" style="display:none">
+    <div class="rc-ref">
+      <div class="rc-ref-head">
+        <span class="rc-ref-t" id="rcRefIssuesH"></span>
+        <span class="rc-ref-sub">Click to copy</span>
+      </div>
+      <div class="rc-ref-body" id="rcRefIssues"></div>
+    </div>
+    <div class="rc-ref">
+      <div class="rc-ref-head">
+        <span class="rc-ref-t" id="rcRefResH"></span>
+        <span class="rc-ref-sub">Click to copy</span>
+      </div>
+      <div class="rc-ref-body" id="rcRefRes"></div>
     </div>
   </div>
 </div>
@@ -330,11 +371,65 @@ async function rcCopyPending(){
 }
 window.rcCopyPending=rcCopyPending;
 
+// Copy a single "Issue: X" / "Res: Y" line when an admin clicks a reference chip.
+// The exact line to copy lives in the chip's data-copy attribute (safe for any characters).
+async function rcCopyChip(btn){
+  if(!rcIsAdmin() || !btn){ return; }
+  var text=btn.getAttribute('data-copy')||'';
+  if(!text){ return; }
+  try{
+    await navigator.clipboard.writeText(text);
+    btn.classList.add('copied'); var lbl=btn.querySelector('.rc-cc-label'); var prev=lbl?lbl.textContent:'';
+    if(lbl) lbl.textContent='Copied!';
+    setTimeout(function(){ btn.classList.remove('copied'); if(lbl) lbl.textContent=prev; },1200);
+  }catch(e){ window.prompt('Copy:', text); }
+}
+window.rcCopyChip=rcCopyChip;
+// Build the admin-only quick-copy reference (all Issue types, grouped by category, + all Resolutions).
+function rcBuildRef(){
+  var ref=document.getElementById('rcRef'); if(!ref) return;
+  if(!rcIsAdmin()){ ref.style.display='none'; return; }   // admins (and above) only
+  var copyIcon='<span class="rc-cc-ic">'+ic('copy',13)+'</span>';
+  var chip=function(prefix,name){
+    var line=prefix+': '+name;
+    return '<button type="button" class="rc-copychip" title="Copy \u201c'+esc(line)+'\u201d" data-copy="'+esc(line)+'" onclick="rcCopyChip(this)">'+
+      copyIcon+'<span class="rc-cc-label">'+esc(name)+'</span></button>';
+  };
+  // Issues — grouped by category so they're easy to scan.
+  var ih='';
+  IZ_CATS.forEach(function(cat){
+    ih+='<div class="rc-ref-grp">'+esc(cat.category)+'</div><div class="rc-ref-list">';
+    (cat.types||[]).forEach(function(ty){ ih+=chip('Issue', ty.type); });
+    ih+='</div>';
+  });
+  document.getElementById('rcRefIssues').innerHTML=ih;
+  // Resolutions — grouped by their mitigation-matrix severity bucket, in matrix order.
+  var SEV_ORDER=[
+    {key:'CRITICAL',    label:'Critical',    cls:'s-critical'},
+    {key:'MODERATE',    label:'Moderate',    cls:'s-moderate'},
+    {key:'LOW',         label:'Low',         cls:'s-low'},
+    {key:'OPERATIONAL', label:'Operational', cls:'s-operational'}
+  ];
+  var rh='';
+  SEV_ORDER.forEach(function(b){
+    var items='';
+    for(var i=1;i<RC_RESLIST.length;i++){ var r=RC_RESLIST[i]; if(r && String(r.sev).toUpperCase()===b.key) items+=chip('Res', r.name); }
+    if(!items) return;   // skip an empty bucket
+    rh+='<div class="rc-ref-grp"><span class="rc-sevtag '+b.cls+'">'+esc(b.label)+'</span></div><div class="rc-ref-list">'+items+'</div>';
+  });
+  document.getElementById('rcRefRes').innerHTML=rh;
+  // Card titles.
+  document.getElementById('rcRefIssuesH').innerHTML=ic('alert',15)+' Issue types';
+  document.getElementById('rcRefResH').innerHTML=ic('target',15)+' Resolutions';
+  ref.style.display='';
+}
+
 (function init(){
   rcInitSelects();
   rcGateSelects();
   // Reveal the admin-only "Copy as Pending" button for admins (and above).
   var pend=document.getElementById('rcCopyPending'); if(pend && rcIsAdmin()) pend.style.display='';
+  rcBuildRef();   // admin-only quick-copy reference below the builder
   var ta=document.getElementById('rcRaw'); if(ta) ta.addEventListener('input',function(){ rcConvert(true); });
 })();
 </script>

@@ -157,7 +157,15 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .mi-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
 .mi-btn.sec:hover{border-color:#8b96a0;color:#fff}
 /* ---- Add-incident-log modal (icon on the card actions bar) — redesigned ---- */
-.ail-modal{width:min(620px,92vw);max-width:min(620px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.ail-modal{width:min(760px,94vw);max-width:min(760px,94vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh}
+/* ---- Structured incident-log form (labelled fields) ---- */
+.ail-field{margin-bottom:14px}
+.ail-field:last-child{margin-bottom:0}
+.ail-flabel{display:block;font-size:.8em;font-weight:700;color:#d5dbdb;margin-bottom:5px}
+.ail-fsub{color:var(--tm);font-weight:500}
+.ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
+.ail-field textarea{resize:vertical;min-height:84px;white-space:pre-wrap}
+.ail-field select:focus,.ail-field input:focus,.ail-field textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
 .ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
 .ail-head-ic svg{width:18px;height:18px}
@@ -909,6 +917,8 @@ h1{color:#1b2026 !important}
 .ilog-empty{color:#8793a0 !important}
 /* Modal textareas carry inline dark styles (background:#000;color:#fff) — override by id. */
 #addCmtText,#editIncidentText,#incidentText{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
+.ail-field textarea,.ail-field select,.ail-field input[type=text]{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
+.ail-flabel{color:#1b2026 !important}.ail-fsub{color:#5c6773 !important}
 #addCmtText::placeholder,#incidentText::placeholder{color:#9aa5b1 !important}
 /* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
 .modal p{color:#5c6773 !important}
@@ -1027,14 +1037,39 @@ h1{color:#1b2026 !important}
   <div class="modal ail-modal" role="dialog" aria-modal="true" aria-labelledby="incidentTitle">
     <div class="ail-head">
       <span class="ail-head-ic" id="ailHeadIc"></span>
-      <div class="ail-head-tx"><h2 id="incidentTitle">Add incident log</h2><span class="ail-head-sub">Final mitigation + hashtags, saved to this ticket's log</span></div>
-      <button type="button" class="ail-icbtn" id="incidentCopyBtn" onclick="copyIncidentDraft()" title="Copy everything in this note" aria-label="Copy note content"><span id="ailCopyIc"></span></button>
+      <div class="ail-head-tx"><h2 id="incidentTitle">Add incident log</h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket's log</span></div>
+      <button type="button" class="ail-icbtn" id="incidentCopyBtn" onclick="copyIncidentDraft()" title="Copy the formatted incident log" aria-label="Copy formatted log"><span id="ailCopyIc"></span></button>
       <button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>
     </div>
     <div class="ail-body">
-      <p class="ail-hint">Capture your <b>final mitigation</b> and any relevant <span class="ail-hint-tag">#hashtags</span> for this incident so it can be tracked and referenced later.</p>
-      <textarea id="incidentText" maxlength="5000" class="ail-ta" oninput="updateIncidentCount()" placeholder="Final mitigation: what resolved the incident…&#10;&#10;#hashtags: #address-exclusion #lmdx …"></textarea>
-      <div class="ail-foot-row"><span class="ail-count" id="incidentCount">0 / 5000</span></div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilPhdFindings">PHD Findings</label>
+        <textarea id="ilPhdFindings" class="ail-f" placeholder="- On 11OCT'26, a DSP DA from station …&#10;- …"></textarea>
+      </div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilPhdInvestigation">PHD Investigation for mitigation</label>
+        <textarea id="ilPhdInvestigation" class="ail-f" placeholder="- Does current ticket have any duplicate: No&#10;- Is POI the CX: …"></textarea>
+      </div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilSimRcd">SIM Root Cause Details</label>
+        <textarea id="ilSimRcd" class="ail-f" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
+      </div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilRootCause">Root Cause</label>
+        <select id="ilRootCause"></select>
+      </div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilRelatedLink">PHD Related Link</label>
+        <input type="text" id="ilRelatedLink" placeholder="https://t.corp.amazon.com/…">
+      </div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilPhdResolution">PHD Resolution</label>
+        <select id="ilPhdResolution"></select>
+      </div>
+      <div class="ail-field">
+        <label class="ail-flabel" for="ilPhdNotes">PHD Notes</label>
+        <textarea id="ilPhdNotes" class="ail-f" placeholder="- The DA has confessed …&#10;- …"></textarea>
+      </div>
       <div class="msg err ail-err" id="incidentErr" style="display:none"></div>
     </div>
     <div class="ail-actions">
@@ -1070,6 +1105,7 @@ h1{color:#1b2026 !important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="issue-types-data.js"></script>
 <script src="topbar-auth.js?v=200"></script>
 <script>
 const A=window.PHDAuth;
@@ -1781,29 +1817,49 @@ function openIncidentIcon(i,ev){
 }
 window.openIncidentIcon=openIncidentIcon;
 let INCIDENT_INDEX=null;
+// Populate the Root Cause + PHD Resolution dropdowns from the shared data file (once).
+let _ilSelectsFilled=false;
+function fillIncidentSelects(){
+  if(_ilSelectsFilled) return; _ilSelectsFilled=true;
+  var rc=document.getElementById('ilRootCause');
+  if(rc){ var causes=window.RC_ROOT_CAUSES||[];
+    rc.innerHTML='<option value="">— Select root cause —</option>'+causes.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join(''); }
+  var res=document.getElementById('ilPhdResolution');
+  if(res){ var rl=window.RC_RESOLUTIONS||[];
+    res.innerHTML='<option value="">— Select resolution —</option>'+rl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join(''); }
+}
+// Assemble the structured fields into the standard copy/save format.
+function buildIncidentOutput(){
+  var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
+  var findings=g('ilPhdFindings'), invest=g('ilPhdInvestigation'), sim=g('ilSimRcd');
+  var rootCause=g('ilRootCause'), link=g('ilRelatedLink'), res=g('ilPhdResolution'), notes=g('ilPhdNotes');
+  var parts=[];
+  parts.push('PHD Findings:\n'+(findings||'-'));
+  parts.push('**PHD Investigation for mitigation:**\n'+(invest||'-'));
+  parts.push('**SIM Root Cause Details:**\n'+(sim||'-'));
+  parts.push('**Root Cause**: '+(rootCause||''));
+  parts.push('**PHD Related Link**: '+(link||''));
+  parts.push('**PHD Resolution**: '+(res||''));
+  parts.push('**PHD notes**:\n'+(notes||'-'));
+  return parts.join('\n\n');
+}
 function openIncidentLog(i){
   INCIDENT_INDEX=i;
   const t=TICKETS[i];
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   var cic=document.getElementById('ailCopyIc'); if(cic) cic.innerHTML=ic('copy',14);
   document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
-  const ta=document.getElementById('incidentText');ta.value='';
-  updateIncidentCount();
+  fillIncidentSelects();
+  // Reset every field.
+  ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
-  setTimeout(()=>ta.focus(),40);
+  setTimeout(()=>{ var f=document.getElementById('ilPhdFindings'); if(f) f.focus(); },40);
 }
 function closeIncidentLog(){document.getElementById('incidentModal').style.display='none';INCIDENT_INDEX=null;}
-function updateIncidentCount(){
-  var ta=document.getElementById('incidentText'), cnt=document.getElementById('incidentCount');
-  if(ta&&cnt) cnt.textContent=ta.value.length+' / 5000';
-}
-// Copy EVERYTHING currently typed in the Add-incident-log textarea (the user's in-progress draft) —
-// handy for reusing the same mitigation/hashtags text elsewhere before saving.
+// Copy the formatted incident log assembled from the structured fields.
 async function copyIncidentDraft(){
-  var ta=document.getElementById('incidentText'); if(!ta) return;
-  var text=ta.value;
-  if(!text.trim()){ toast('Nothing to copy yet'); return; }
+  var text=buildIncidentOutput();
   var btn=document.getElementById('incidentCopyBtn');
   try{ await navigator.clipboard.writeText(text); }
   catch(e){
@@ -1818,11 +1874,12 @@ window.copyIncidentDraft=copyIncidentDraft;
 async function submitIncidentLog(){
   if(INCIDENT_INDEX==null)return;
   const t=TICKETS[INCIDENT_INDEX];
-  const ta=document.getElementById('incidentText');
   const err=document.getElementById('incidentErr');
-  const text=ta.value.trim();
-  if(!text){err.textContent='Enter the incident details first.';err.style.display='block';return;}
+  // Require at least the PHD findings so an empty structured log can't be saved.
+  var findings=String((document.getElementById('ilPhdFindings')||{}).value||'').trim();
+  if(!findings){err.textContent='Enter the PHD Findings first.';err.style.display='block';return;}
   err.style.display='none';
+  const text=buildIncidentOutput();
   const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
   const idx=INCIDENT_INDEX;
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});

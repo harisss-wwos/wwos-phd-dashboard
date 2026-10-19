@@ -133,3 +133,77 @@ window.IZ_CATS = [
       ex:"The DP noticed an unknown vehicle that had earlier parked next to the DP's vehicle on arrival. The same vehicle followed the DP. The DP felt unsafe." }
   ]}
 ];
+
+// Shared PHD resolution list (clean names, in canonical mitigation-matrix order). Single source of
+// truth for the tools-page Root-Cause-Details builder AND the My Tickets structured incident log.
+window.RC_RESOLUTIONS = [
+  'Account Closure',
+  'Account Suspension',
+  'Blocking Place ID',
+  'Physical Order Block',
+  'Address Exclusion',
+  'Address Deprioritization or Address Depri',
+  'Area Exclusion',
+  'GeoPin Update',
+  'GeoFence Update',
+  'Geo-Routing Update',
+  'Parcel Box Installation',
+  'Delivery Hint Update',
+  'Customer Education',
+  'Customer Reassurance',
+  'Driver Follow-up',
+  'Pet Info Update',
+  'Insufficient Information',
+  'PHD Outreach',
+  'Driver Education',
+  'Driver Misconduct Reported',
+  'Driver Misconduct Not Reported'
+];
+
+// Shared PHD "Root Cause" classification list (used by the My Tickets structured incident log).
+window.RC_ROOT_CAUSES = [
+  'Access Code Defect',
+  'Aggressive CM (unprovoked)',
+  'Aggressive CX (unprovoked)',
+  'Amazon/Driver targeted',
+  'CX Unfamiliar with Delivery Process',
+  'CX/CM Embellished/False Report',
+  'Collusion',
+  'Customer Appeal Request (Not Applicable)',
+  'Customer Service Escalation',
+  'Driver Embellished/False Report',
+  'Driving Behavior - Other',
+  'Failure to de-escalate',
+  'Geo Pin',
+  'Inaccurate Delivery Instructions',
+  'Inappropriate Conduct',
+  'Inappropriate Racial Comments',
+  'Inappropriate Sexual Comments',
+  'Key In-Garage Delivery',
+  'Language Barrier',
+  'Misidentification',
+  'Missing Delivery Instructions',
+  'NOT APPLICABLE/No Further Action Required',
+  'Not Amazon related',
+  'Not following delivery instructions',
+  'OTP Confusion',
+  'Opportunity',
+  'Package Handling',
+  'Parking Dispute',
+  'Previous Delivery Experience',
+  'Property Damage',
+  'Road Rage',
+  'Routing Issue',
+  'Transporter Misconduct',
+  'Transporter being followed',
+  'Transporter felt unsafe (No Interaction)',
+  'Undetermined',
+  'Unexpected Delivery Time',
+  'Unsecured Animal Attack (CX Pet)',
+  'Unsecured Animal Attack (Non-CX Pet/ Other)',
+  'Unsecured Animal Evasion (CX Pet)',
+  'Unsecured Animal Evasion (Non-CX Pet/ Other)',
+  'Vehicle Collision',
+  'Vehicle Unsecured',
+  'Wrong/No Package Delivered'
+];
