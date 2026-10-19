@@ -38,6 +38,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-btn.prim{background:#ec7211;color:#fff}.rc-btn.prim:hover{background:#d9660d}
 .rc-btn.sec{background:#fff;border:1px solid #d4dce4;color:#2a3340}.rc-btn.sec:hover{background:#f1f4f7}
 .rc-btn.ok{background:#1f9d57;color:#fff}
+.rc-btn.dark{background:#000;color:#fff}.rc-btn.dark:hover{background:#1a1a1a}
 .rc-btn[disabled],.rc-btn.is-off{opacity:.45;cursor:not-allowed;pointer-events:none}
 .rc-copywarn{font-size:.78em;font-weight:700;color:#b5680c;align-self:center;margin-left:4px}
 .rc-hint{font-size:.78em;color:#8a94a2;margin-top:6px;line-height:1.5}
@@ -88,6 +89,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
     </div>
     <div class="rc-actions">
       <button type="button" class="rc-btn sec" onclick="rcClear()">Clear</button>
+      <button type="button" class="rc-btn dark" id="rcCopyPending" onclick="rcCopyPending()" style="display:none" disabled>Copy as Pending</button>
       <span class="rc-copywarn" id="rcCopyWarn" style="display:none"></span>
       <div class="spacer"></div>
       <button type="button" class="rc-btn sec" id="rcCopy" onclick="rcCopyOut()" disabled>Copy result</button>
@@ -105,6 +107,10 @@ const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 var IZ_CATS=window.IZ_CATS||[];
+// Admin-only: "Copy as Pending" lets admins copy with a valid Issue but no Resolution yet
+// (the Res line is written as the placeholder below).
+function rcIsAdmin(){ return !!(A && A.atLeast && A.atLeast('admin')); }
+var RC_PENDING_RES='*****PENDING*****';
 
 // ---- Resolutions in the required order, each with risk metadata. Index 0 unused so #1..#21 line up. ----
 var RC_RESLIST=[null,
@@ -165,17 +171,31 @@ function rcGrab(raw, aliases){
   }
   return '';
 }
+// Format an incident date for the output line as DATE ONLY, month as a short name (Oct, Sep, Dec).
+//   * ISO like "2026-10-11T00:00:00.000Z" -> "11 Oct 2026" (calendar date taken verbatim, time dropped).
+//   * "2026-12-25" / "6/11/2021"          -> "25 Dec 2026" / "11 Jun 2021".
+//   * Unparseable input                   -> returned as-is.
 function rcFmtDate(v){
   if(!v) return '';
   var s=String(v).trim();
-  var d=new Date(s);
-  if(isNaN(d)){
-    var m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-    if(m){ var yr=m[3].length===2?('20'+m[3]):m[3]; d=new Date(yr+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0')); }
-  }
-  if(isNaN(d)) return s;
   var p=function(n){ return String(n).padStart(2,'0'); };
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var build=function(y,mo,da){ return da+' '+(MON[mo-1]||p(mo))+' '+y; };   // "11 Oct 2026" — no time
+  // ISO 8601 (optional time / trailing Z). Read the date fields as written so an all-zero-time UTC
+  // value stays on the same calendar day (no local-timezone rollback).
+  var iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso){ return build(+iso[1], +iso[2], +iso[3]); }
+  // Non-ISO fallback: DD/MM/YYYY or MM/DD/YYYY.
+  var m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if(m){
+    var yr=m[3].length===2?('20'+m[3]):m[3];
+    var d=new Date(yr+'-'+p(+m[1])+'-'+p(+m[2]));
+    if(!isNaN(d)) return build(d.getFullYear(), d.getMonth()+1, d.getDate());
+  }
+  // Last resort: let Date try, then format its local date components.
+  var d2=new Date(s);
+  if(isNaN(d2)) return s;
+  return build(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
 }
 function rcInitSelects(){
   var is=document.getElementById('rcIssue'); if(is && !is.options.length){
@@ -241,6 +261,9 @@ function rcSetCopyState(issueOk, resOk){
   var btn=document.getElementById('rcCopy'); var warn=document.getElementById('rcCopyWarn');
   var ok=issueOk && resOk;
   if(btn){ btn.disabled=!ok; btn.classList.toggle('is-off',!ok); }
+  // Admin-only "Copy as Pending": enabled as soon as the Issue is valid (Resolution not required).
+  var pend=document.getElementById('rcCopyPending');
+  if(pend && rcIsAdmin()){ pend.disabled=!issueOk; pend.classList.toggle('is-off',!issueOk); }
   if(warn){
     if(ok){ warn.style.display='none'; warn.textContent=''; }
     else{ var miss=[]; if(!issueOk) miss.push('select a valid Issue'); if(!resOk) miss.push('select a Resolution'); warn.style.display='block'; warn.textContent='Copy disabled \u2014 please '+miss.join(' and ')+'.'; }
@@ -253,7 +276,7 @@ function rcClear(){
   var out=document.getElementById('rcOut'); if(out) out.textContent='Paste details to convert.';
   var def=document.getElementById('rcDef'); if(def){ def.style.display='none'; def.innerHTML=''; }
   var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
-  rcSetCopyState(false,false);
+  rcSetCopyState(false,false);   // also disables the admin "Copy as Pending" button
   var warn=document.getElementById('rcCopyWarn'); if(warn){ warn.style.display='none'; warn.textContent=''; }
   rcGateSelects();
   if(ta) ta.focus();
@@ -286,10 +309,32 @@ async function rcCopyOut(){
   }catch(e){ window.prompt('Copy the result:', txt); }
 }
 window.rcCopyOut=rcCopyOut;
+// Admin-only: copy the converted output with the current (valid) Issue but no Resolution yet.
+// The Res line is forced to the PENDING placeholder regardless of any Resolution selection.
+async function rcCopyPending(){
+  var btn=document.getElementById('rcCopyPending');
+  if(!rcIsAdmin() || (btn && btn.disabled)){ return; }   // admin-only + needs a valid Issue
+  var base=document.getElementById('rcOut').textContent||'';
+  if(!base.trim()){ return; }
+  // Replace the existing "Res: ..." line (or append one if somehow missing).
+  var lines=base.split('\n');
+  var resLine='Res: '+RC_PENDING_RES;
+  var found=false;
+  for(var i=0;i<lines.length;i++){ if(/^Res:/.test(lines[i])){ lines[i]=resLine; found=true; break; } }
+  if(!found) lines.push(resLine);
+  var txt=lines.join('\n');
+  try{
+    await navigator.clipboard.writeText(txt);
+    if(btn){ var prev=btn.textContent; btn.textContent='Copied (Pending)!'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent=prev; btn.classList.remove('ok'); },1500); }
+  }catch(e){ window.prompt('Copy the result:', txt); }
+}
+window.rcCopyPending=rcCopyPending;
 
 (function init(){
   rcInitSelects();
   rcGateSelects();
+  // Reveal the admin-only "Copy as Pending" button for admins (and above).
+  var pend=document.getElementById('rcCopyPending'); if(pend && rcIsAdmin()) pend.style.display='';
   var ta=document.getElementById('rcRaw'); if(ta) ta.addEventListener('input',function(){ rcConvert(true); });
 })();
 </script>
