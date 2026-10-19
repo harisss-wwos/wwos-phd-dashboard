@@ -168,7 +168,9 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-field.is-empty .ail-empty-dot{display:inline-flex}
 .ail-fsub{color:var(--tm);font-weight:500}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
-.ail-field textarea{resize:vertical;min-height:84px;white-space:pre-wrap}
+/* Collapsed to ~3 lines; expands to ~10 lines on focus. (line-height 1.55 + 20px vertical padding; box-sizing: border-box.) */
+.ail-field textarea{resize:vertical;height:calc(3 * 1.55em + 20px);min-height:calc(3 * 1.55em + 20px);white-space:pre-wrap;transition:height .18s ease,min-height .18s ease}
+.ail-field textarea:focus{height:calc(10 * 1.55em + 20px);min-height:calc(10 * 1.55em + 20px)}
 .ail-field select:focus,.ail-field input:focus,.ail-field textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
 .ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
