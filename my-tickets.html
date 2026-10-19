@@ -203,6 +203,9 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-btn.copy:hover{filter:brightness(1.06)}
 .ail-btn.copy:disabled{opacity:.45;cursor:not-allowed;filter:none}
 .ail-btn.copy.copied{background:#1f9d57;border-color:#1f9d57}
+/* Delete (edit mode only): solid red bg, white font, sits at the far left of the footer. */
+.ail-btn.danger{background:#e23b3b;border-color:#e23b3b;color:#fff}
+.ail-btn.danger:hover{background:#c82f2f;border-color:#c82f2f}
 /* ---- View-incident-log modal (clipboard header icon -> openIncidentIcon) — redesigned ---- */
 /* Was a plain .modal-head: title + a 2-button group as flex children with no wrap guard, so a long
    title ("Incident log · V2396279680") squeezed the Copy/Close buttons onto their own line below
@@ -1111,6 +1114,7 @@ h1{color:#1b2026 !important}
       <div class="msg err ail-err" id="incidentErr" style="display:none"></div>
     </div>
     <div class="ail-actions">
+      <button type="button" class="ail-btn danger" id="incidentDeleteBtn" onclick="deleteIncidentFromForm()" style="display:none">Delete</button>
       <button type="button" class="ail-btn copy" id="incidentCopyFooterBtn" onclick="copyIncidentDraft()" disabled title="Fill every field to enable copying">Copy</button>
       <button class="ail-btn sec" onclick="closeIncidentLog()">Cancel</button>
       <button class="ail-btn primary" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
@@ -1808,7 +1812,7 @@ let HAS_LOG={}; // shortId -> true if the ticket already has >=1 incident log
 function incidentBtnHtml(i){
   const t=TICKETS[i]; const has=t&&HAS_LOG[String(t.shortId)];
   return has
-    ? '<button class="btn sec mini" title="View incident log" onclick="openViewIncident('+i+')">'+ic('clipboard',13)+'<span class="btn-txt">View incident log</span></button>'
+    ? '<button class="btn sec mini" title="View incident log" onclick="openIncidentStructured('+i+')">'+ic('clipboard',13)+'<span class="btn-txt">View incident log</span></button>'
     : '<button class="btn sec mini" title="Add incident log" onclick="openIncidentLog('+i+')">'+ic('plus',13)+'<span class="btn-txt">Add incident log</span></button>';
 }
 // Small header indicator: shown only when the ticket already has an incident log. Clicking it
@@ -1816,7 +1820,7 @@ function incidentBtnHtml(i){
 function incidentFlagHtml(i){
   const t=TICKETS[i]; const has=t&&HAS_LOG[String(t.shortId)];
   if(!has) return '';
-  return '<button type="button" class="tk-logflag-btn" title="This ticket has an incident log \u2014 click to view" aria-label="View incident log" onclick="event.stopPropagation();openViewIncident('+i+')">'+ic('clipboard',13)+'</button>';
+  return '<button type="button" class="tk-logflag-btn" title="This ticket has an incident log \u2014 click to view" aria-label="View incident log" onclick="event.stopPropagation();openIncidentStructured('+i+')">'+ic('clipboard',13)+'</button>';
 }
 async function fillLatestComments(){
   const ids=TICKETS.map(t=>t.shortId).filter(Boolean);
@@ -1918,9 +1922,26 @@ function closeAddComment(){document.getElementById('addCmtModal').style.display=
 function openIncidentIcon(i,ev){
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
   const t=TICKETS[i]; if(!t) return;
-  if(HAS_LOG[String(t.shortId)]) openViewIncident(i); else openIncidentLog(i);
+  openIncidentStructured(i);
 }
 window.openIncidentIcon=openIncidentIcon;
+// ALWAYS open the structured split form. If the user already has a log entry on this ticket, open
+// it in EDIT mode (fields prefilled from the saved text); otherwise open a fresh ADD form.
+async function openIncidentStructured(i,ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  const t=TICKETS[i]; if(!t) return;
+  if(!HAS_LOG[String(t.shortId)]){ openIncidentLog(i); return; }
+  // Fetch this ticket's log and find the current user's own entry to edit.
+  let mineEntry=null;
+  try{
+    const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log');
+    const list=(r.ok&&Array.isArray(r.data))?r.data:[];
+    mineEntry=list.filter(e=>e.mine).slice(-1)[0]||null;   // most recent own entry
+  }catch(e){}
+  if(mineEntry && mineEntry.id!=null){ openEditIncidentStructured(i, String(mineEntry.id), String(mineEntry.text||'')); }
+  else { openIncidentLog(i); }   // no editable own entry -> fresh add form
+}
+window.openIncidentStructured=openIncidentStructured;
 let INCIDENT_INDEX=null;
 // Populate the Root Cause + PHD Resolution dropdowns from the shared data file (once).
 let _ilSelectsFilled=false;
@@ -1995,6 +2016,7 @@ function openIncidentLog(i){
   IL_EDIT_ID=null;   // add mode (not editing an existing entry)
   document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
+  var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
   fillIncidentSelects();
   // Reset every field.
   ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
@@ -2022,6 +2044,23 @@ async function copyIncidentDraft(){
     setTimeout(function(){btn.classList.remove('copied');btn.textContent=prev;},1200); }
 }
 window.copyIncidentDraft=copyIncidentDraft;
+// Delete the entry currently open in the structured EDIT form.
+async function deleteIncidentFromForm(){
+  if(!IL_EDIT_ID) return;
+  const idx=INCIDENT_INDEX, id=IL_EDIT_ID, t=(idx!=null)?TICKETS[idx]:null;
+  if(!await window.PHDConfirm({title:'Delete incident log',body:'Delete this incident log entry? This cannot be undone.',okLabel:'Delete',danger:true})) return;
+  const r=await A.api('DELETE','/api/incident-log/'+id);
+  if(r.ok){
+    closeIncidentLog();
+    toast('Incident log deleted');
+    if(idx!=null){
+      if(t)delete HAS_LOG[String(t.shortId)];
+      repaintIncidentBtn(idx); var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c);
+      refreshLatestComment(idx);
+    }
+  } else { window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Failed (HTTP '+r.status+')')}); }
+}
+window.deleteIncidentFromForm=deleteIncidentFromForm;
 async function submitIncidentLog(){
   if(INCIDENT_INDEX==null)return;
   const t=TICKETS[INCIDENT_INDEX];
@@ -2036,7 +2075,7 @@ async function submitIncidentLog(){
     const editId=IL_EDIT_ID;
     const r=await A.api('PUT','/api/incident-log/'+editId,{text});
     btn.disabled=false;btn.textContent='Save incident log';
-    if(r.ok){ closeIncidentLog(); toast('Incident log updated'); refreshLatestComment(idx); openViewIncident(idx); }
+    if(r.ok){ closeIncidentLog(); toast('Incident log updated'); refreshLatestComment(idx); }
     else{ err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'); err.style.display='block'; }
     return;
   }
@@ -2124,22 +2163,25 @@ function closeViewIncident(){document.getElementById('viewIncidentModal').style.
 let EDIT_INC_ID=null;
 // Edit reuses the SAME structured split form as Add. We parse the saved blob back into the 7
 // fields, open the structured modal in edit mode, and PUT on save (handled in submitIncidentLog).
+// Called from the (legacy) view list — resolves the saved text from the DOM, then delegates.
 function openEditIncident(id){
-  EDIT_INC_ID=id;
-  var i=VIEW_INC_INDEX;
-  if(i==null){ return; }
-  var t=TICKETS[i];
-  // Pull the saved text for this entry straight from the rendered view list.
+  var i=VIEW_INC_INDEX; if(i==null){ return; }
   var item=document.querySelector('#viewIncidentList .ilog-item[data-id="'+id+'"] .ilog-text');
   var saved=item?item.textContent:'';
-  var f=parseIncidentOutput(saved);
-  // Close the view popup and open the structured modal (same split layout as Add).
   closeViewIncident();
+  openEditIncidentStructured(i, id, saved);
+}
+// Open the structured split form in EDIT mode for ticket index i, entry id, prefilled from savedText.
+function openEditIncidentStructured(i, id, savedText){
+  var t=TICKETS[i];
+  var f=parseIncidentOutput(savedText||'');
   INCIDENT_INDEX=i;
   IL_EDIT_ID=id;   // edit mode
+  EDIT_INC_ID=id;
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   document.getElementById('incidentTitle').textContent='Edit incident log · '+(t?t.shortId:'');
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
+  var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='';   // edit mode -> allow delete
   fillIncidentSelects();
   // Prefill every field from the parsed saved text.
   var set=function(id2,v){ var el=document.getElementById(id2); if(el) el.value=v||''; };
@@ -2150,6 +2192,7 @@ function openEditIncident(id){
   document.getElementById('incidentModal').style.display='flex';
   setTimeout(()=>{ var el=document.getElementById('ilPhdFindings'); if(el) el.focus(); },40);
 }
+window.openEditIncidentStructured=openEditIncidentStructured;
 function closeEditIncident(){document.getElementById('editIncidentModal').style.display='none';EDIT_INC_ID=null;}
 async function submitEditIncident(){
   // Legacy single-textarea edit modal path (kept for safety). The new flow edits via the structured
