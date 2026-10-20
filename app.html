@@ -1143,6 +1143,14 @@ body[data-profile-panel] #dashRoot .age,
 #dashRoot .ho-noemt{border-left-color:#7c5cf0}
 #dashRoot .ho-station{border-left-color:#dc2626}
 #dashRoot .ho-appeal{border-left-color:#ea7317}
+/* Chart card header: title + a "Copy chart" (as image, for Slack) button on the right. */
+#dashRoot .ho-chart-head{display:flex;align-items:center;justify-content:center;gap:12px;position:relative;margin:0 0 16px}
+#dashRoot .ho-chart-head h3{margin:0}
+#dashRoot .ho-chart-copy{position:absolute;right:0;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:.76em;font-weight:700;color:var(--dh-blue);background:#eef4fb;border:1px solid #d4e4f5;border-radius:5px;padding:6px 11px;cursor:pointer;transition:background .15s,border-color .15s}
+#dashRoot .ho-chart-copy:hover{background:#e0ecf9;border-color:#b9d4ef}
+#dashRoot .ho-chart-copy.copied{color:#1f9d57;background:#eafaf0;border-color:#bfe8cf}
+#dashRoot .ho-chart-copy svg{width:13px;height:13px}
+@media(max-width:620px){#dashRoot .ho-chart-head{flex-direction:column;gap:8px}#dashRoot .ho-chart-copy{position:static;transform:none}}
 #dashRoot .spinner{width:40px;height:40px;border:4px solid #dfe3e7;border-top-color:var(--dh-blue);border-radius:50%;animation:spin .9s linear infinite}
 #dashRoot .meta-info{color:var(--dh-mut);font-size:.88em}
 /* ---- Custom pill legend for the Takeover (Age Breakdown) chart: one centered row of chips, each
@@ -1167,7 +1175,7 @@ body[data-profile-panel] #dashRoot .age,
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=201"></script>
-<script src="app.js?v=100"></script>
+<script src="app.js?v=101"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>

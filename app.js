@@ -1362,7 +1362,9 @@ async function reloadHandoverSection(){
         tile('ho-queue',qs['Researching'],'Researching')+
         tile('ho-queue',qs['Pending'],'Pending')+
       '</div>'+
-      '<div class="sr-chart-card"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3><div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>';
+      '<div class="sr-chart-card"><div class="ho-chart-head"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3>'+
+        '<button type="button" class="ho-chart-copy" id="handoverChartCopy" onclick="copyHandoverChart(this)">'+ic('copy',13)+' Copy chart</button></div>'+
+        '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>';
     try{ drawHandoverChart(d); }catch(e){}
   }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; });
 }
@@ -1409,6 +1411,33 @@ function drawHandoverChart(d){
       scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } }, x:{ grid:{ display:false }, ticks:{ font:{ size:10 }, maxRotation:30, minRotation:0 } } },
     }});
 }
+// Copy the handover chart as a PNG image (paste straight into Slack). The chart canvas is
+// transparent, so we flatten it onto a white background first. Falls back to a PNG download
+// if the browser blocks image-clipboard writes.
+async function copyHandoverChart(btn){
+  const cv=document.getElementById('handoverChart'); if(!cv){ showToast('Chart not ready yet'); return; }
+  // Flatten onto white (Slack shows transparent PNGs on a dark-ish surface otherwise).
+  const out=document.createElement('canvas'); out.width=cv.width; out.height=cv.height;
+  const cx=out.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,out.width,out.height); cx.drawImage(cv,0,0);
+  const done=function(ok){ if(btn){ var prev=btn.innerHTML; btn.innerHTML=ic(ok?'check-circle':'copy',13)+(ok?' Copied':' Copy chart'); btn.classList.toggle('copied',ok); setTimeout(function(){ btn.innerHTML=prev; btn.classList.remove('copied'); },1400); } };
+  const toBlob=function(){ return new Promise(function(res){ out.toBlob(res,'image/png'); }); };
+  try{
+    const blob=await toBlob();
+    if(blob && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+      await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+      showToast('Chart copied — paste into Slack'); done(true); return;
+    }
+    throw new Error('no-clipboard-image');
+  }catch(e){
+    // Fallback: download the PNG so the user can drag/upload it.
+    try{
+      const a=document.createElement('a'); a.href=out.toDataURL('image/png');
+      a.download='handover-chart.png'; document.body.appendChild(a); a.click(); a.remove();
+      showToast('Image copy blocked — downloaded the chart instead'); done(false);
+    }catch(e2){ showToast('Could not copy the chart'); done(false); }
+  }
+}
+window.copyHandoverChart=copyHandoverChart;
 async function exportHandover(){
   const d=HANDOVER_DATA; if(!d){ showToast('Handover not loaded yet'); return; }
   const lines=[];
