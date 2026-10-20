@@ -246,7 +246,8 @@ function rcGrab(raw, aliases){
 //   * Unparseable input                   -> returned as-is.
 function rcFmtDate(v){
   if(!v) return '';
-  var s=String(v).trim();
+  // Tolerate a stray leading ":" (e.g. the raw field is "Date:: 2026-10-10..." -> value is ": 2026-10-10...").
+  var s=String(v).trim().replace(/^[:\s]+/,'');
   var p=function(n){ return String(n).padStart(2,'0'); };
   var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var build=function(y,mo,da){ return da+' '+(MON[mo-1]||p(mo))+' '+y; };   // "11 Oct 2026" — no time
