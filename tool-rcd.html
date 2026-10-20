@@ -88,17 +88,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 <body>
 <div class="rcpage" id="rcPage">
   <h1><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg> Build Root Cause Details</h1>
-  <div class="sub">Paste a raw root cause details string to convert it into the standard short key:value format. Pick the Issue (auto-detected) and Resolution to complete it.</div>
+  <div class="sub">Paste a raw root cause details string to convert it into the standard short key:value format. Select the Issue and Resolution manually to complete it.</div>
   <div class="rc-card">
     <div class="rc-body">
       <div class="rc-col">
         <div class="rc-field">
           <label for="rcRaw"><span class="rc-step">INPUT</span> &rarr; Paste the raw Root Cause Details</label>
           <textarea id="rcRaw" rows="15" placeholder="Issue: Threat w/ Weapon&#10;Station ID: VHL1&#10;Driver Type: DP&#10;Incident Date: 6/11/2021&#10;Tracking ID: TBA341...&#10;Historical Incident: 0&#10;Zip: 19014&#10;AID: A3ONC...&#10;UPID: USC478..."></textarea>
-          <div class="rc-hint">Paste first &mdash; if the Issue matches a known incident type (case-insensitive), it&rsquo;s auto-selected below. Keys not in the mapping are ignored; missing keys become &ldquo;N/A&rdquo;.</div>
+          <div class="rc-hint">Paste the details, then pick the Issue manually below. Keys not in the mapping are ignored; missing keys become &ldquo;N/A&rdquo;.</div>
         </div>
         <div class="rc-field">
-          <label for="rcIssue">Issue (incident type) &mdash; auto-detected, editable</label>
+          <label for="rcIssue">Issue (incident type) &mdash; select manually</label>
           <select id="rcIssue" onchange="rcConvert()" disabled></select>
         </div>
         <div class="rc-field">
@@ -279,10 +279,8 @@ function rcGateSelects(){
 function rcConvert(fromRaw){
   var raw=String(document.getElementById('rcRaw').value||'');
   rcGateSelects();
+  // Issue is NOT auto-detected from the pasted text — the user picks it manually from the dropdown.
   var issueSelEl=document.getElementById('rcIssue');
-  var rawIssueTxt=rcGrab(raw,['Issue']);
-  var matched=rcMatchIssue(rawIssueTxt);
-  if(matched){ issueSelEl.value=matched.type; }
   var issue=issueSelEl.value || '';
   var issueOk=!!issue;
   var resNum=document.getElementById('rcRes').value;

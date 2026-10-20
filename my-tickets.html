@@ -174,6 +174,13 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-fcopy.copied{border-color:var(--gl);color:var(--gl)}
 /* When the field is empty, grey the copy icon out (handled by disabled attr too). */
 .ail-field.is-empty .ail-fcopy{opacity:.35;pointer-events:none}
+/* Per-field EDIT (pencil) icon — same look as the copy icon, shown only for filled fields in edit mode. */
+.ail-fedit{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--tm);cursor:pointer;transition:border-color .15s,color .15s,background .15s;flex:0 0 auto}
+.ail-fedit svg{width:14px;height:14px}
+.ail-fedit:hover{border-color:var(--o);color:var(--o);background:rgba(255,153,0,.1)}
+.ail-fedit.editing{border-color:var(--o);color:var(--o);background:rgba(255,153,0,.14)}
+/* A textarea locked to read-only "display" mode (edit mode, before the user clicks the pencil). */
+.ail-field textarea[readonly]{background:#0b0f14;color:#cdd5dd;cursor:default;opacity:.95}
 .ail-fsub{color:var(--tm);font-weight:500}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
 /* Default ~5 lines; JS auto-grows the height to fit content and caps at ~16 lines (then scrolls).
@@ -209,10 +216,15 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
 .ail-btn.sec:hover{border-color:#8b96a0;color:#fff}
 /* Copy button: orange bg, white font, pinned to the bottom-left of the footer. */
-.ail-btn.copy{margin-right:auto;background:var(--oh);border-color:var(--oh);color:#fff}
+.ail-btn.copy{background:var(--oh);border-color:var(--oh);color:#fff}
 .ail-btn.copy:hover{filter:brightness(1.06)}
-.ail-btn.copy:disabled{opacity:.45;cursor:not-allowed;filter:none}
-.ail-btn.copy.copied{background:#1f9d57;border-color:#1f9d57}
+.ail-btn.copy:disabled,.ail-btn.copy2:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.ail-btn.copy.copied,.ail-btn.copy2.copied{background:#1f9d57;border-color:#1f9d57;color:#fff}
+/* "Copy w/o RC Details": lighter orange outline variant, sits right after Copy. */
+.ail-btn.copy2{background:#b45309;border-color:#b45309;color:#fff}
+.ail-btn.copy2:hover{filter:brightness(1.08)}
+/* Cancel starts the right-hand group — push it (and Save) to the right. */
+.ail-actions .ail-btn.sec{margin-left:auto}
 /* Delete (edit mode only): solid red bg, white font, sits at the far left of the footer. */
 .ail-btn.danger{background:#e23b3b;border-color:#e23b3b;color:#fff}
 .ail-btn.danger:hover{background:#c82f2f;border-color:#c82f2f}
@@ -973,6 +985,9 @@ h1{color:#1b2026 !important}
 .ail-empty-dot{color:#c0392b !important;background:#fdeaea !important;border-color:#f3b4b4 !important}
 .ail-fcopy{border-color:#d4dce4 !important;color:#5c6773 !important}
 .ail-fcopy:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
+.ail-fedit{border-color:#d4dce4 !important;color:#5c6773 !important}
+.ail-fedit:hover,.ail-fedit.editing{border-color:#ec7211 !important;color:#ec7211 !important;background:rgba(236,114,17,.1) !important}
+.ail-field textarea[readonly]{background:#f3f5f7 !important;color:#2a3340 !important;opacity:1}
 #addCmtText::placeholder,#incidentText::placeholder{color:#9aa5b1 !important}
 /* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
 .modal p{color:#5c6773 !important}
@@ -1097,16 +1112,16 @@ h1{color:#1b2026 !important}
     </div>
     <div class="ail-body">
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdFindings"><span class="ail-flabel-tx">PHD Findings</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdFindings" data-label="PHD Findings" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Findings"></button></label>
+        <label class="ail-flabel" for="ilPhdFindings"><span class="ail-flabel-tx">PHD Findings</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fedit" data-for="ilPhdFindings" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit PHD Findings" style="display:none"></button><button type="button" class="ail-fcopy" data-for="ilPhdFindings" data-label="PHD Findings" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Findings"></button></label>
         <textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT'26, a DSP DA from station …&#10;- …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdInvestigation"><span class="ail-flabel-tx">PHD Investigation for mitigation</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdInvestigation" data-label="PHD Investigation for mitigation" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Investigation for mitigation"></button></label>
+        <label class="ail-flabel" for="ilPhdInvestigation"><span class="ail-flabel-tx">PHD Investigation for mitigation</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fedit" data-for="ilPhdInvestigation" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit PHD Investigation for mitigation" style="display:none"></button><button type="button" class="ail-fcopy" data-for="ilPhdInvestigation" data-label="PHD Investigation for mitigation" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Investigation for mitigation"></button></label>
         <textarea id="ilPhdInvestigation" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- Does current ticket have any duplicate: No&#10;- Is POI the CX: …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilSimRcd"><span class="ail-flabel-tx">SIM Root Cause Details</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilSimRcd" data-label="SIM Root Cause Details" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy SIM Root Cause Details"></button></label>
-        <textarea id="ilSimRcd" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
+        <label class="ail-flabel" for="ilSimRcd"><span class="ail-flabel-tx">SIM Root Cause Details</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fedit" data-for="ilSimRcd" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit SIM Root Cause Details" style="display:none"></button><button type="button" class="ail-fcopy" data-for="ilSimRcd" data-label="SIM Root Cause Details" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy SIM Root Cause Details"></button></label>
+        <textarea id="ilSimRcd" class="ail-f" oninput="ilMarkEmpty(this);ilUpdateCopyState()" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilRootCause"><span class="ail-flabel-tx">Root Cause</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilRootCause" data-label="Root Cause" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy Root Cause"></button></label>
@@ -1121,7 +1136,7 @@ h1{color:#1b2026 !important}
         <select id="ilPhdResolution" onchange="ilMarkEmpty(this)"></select>
       </div>
       <div class="ail-field" data-ilfield>
-        <label class="ail-flabel" for="ilPhdNotes"><span class="ail-flabel-tx">PHD Notes</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdNotes" data-label="PHD Notes" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Notes"></button></label>
+        <label class="ail-flabel" for="ilPhdNotes"><span class="ail-flabel-tx">PHD Notes</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fedit" data-for="ilPhdNotes" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit PHD Notes" style="display:none"></button><button type="button" class="ail-fcopy" data-for="ilPhdNotes" data-label="PHD Notes" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Notes"></button></label>
         <textarea id="ilPhdNotes" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- The DA has confessed …&#10;- …"></textarea>
       </div>
       <div class="msg err ail-err" id="incidentErr" style="display:none"></div>
@@ -1129,6 +1144,7 @@ h1{color:#1b2026 !important}
     <div class="ail-actions">
       <button type="button" class="ail-btn danger" id="incidentDeleteBtn" onclick="deleteIncidentFromForm()" style="display:none">Delete</button>
       <button type="button" class="ail-btn copy" id="incidentCopyFooterBtn" onclick="copyIncidentDraft()" disabled title="Fill every field to enable copying">Copy</button>
+      <button type="button" class="ail-btn copy2" id="incidentCopyNoRcBtn" onclick="copyIncidentNoRc(this)" disabled title="Copy everything except the SIM Root Cause Details">Copy w/o RC Details</button>
       <button class="ail-btn sec" onclick="closeIncidentLog()">Cancel</button>
       <button class="ail-btn primary" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
     </div>
@@ -2002,14 +2018,58 @@ function ilRefreshEmptyMarks(){
 function ilAllFilled(){
   return IL_FIELD_IDS.every(function(id){ var el=document.getElementById(id); return el && String(el.value||'').trim(); });
 }
+// Copy is blocked when the SIM Root Cause Details "Res:" line contains PENDING.
+function ilSimResPending(){
+  var el=document.getElementById('ilSimRcd'); if(!el) return false;
+  var m=String(el.value||'').match(/^\s*Res\s*:\s*(.*)$/mi);
+  return !!(m && /pending/i.test(m[1]));
+}
 function ilUpdateCopyState(){
+  var pending=ilSimResPending();
+  var ok=ilAllFilled() && !pending;
   var btn=document.getElementById('incidentCopyFooterBtn');
-  if(btn){ var ok=ilAllFilled(); btn.disabled=!ok; btn.title=ok?'Copy the formatted incident log':'Fill every field to enable copying'; }
+  if(btn){
+    btn.disabled=!ok;
+    btn.title=pending ? 'Copy disabled — SIM Root Cause Details resolution is PENDING'
+      : (ok ? 'Copy the formatted incident log' : 'Fill every field to enable copying');
+  }
+  // "Copy w/o RC Details" mirrors the same enable state (same gating), just omits the SIM section.
+  var btn2=document.getElementById('incidentCopyNoRcBtn');
+  if(btn2){
+    btn2.disabled=!ok;
+    btn2.title=pending ? 'Copy disabled — SIM Root Cause Details resolution is PENDING'
+      : (ok ? 'Copy everything except the SIM Root Cause Details' : 'Fill every field to enable copying');
+  }
   ilUpdateFieldCopyStates();
 }
-// Paint the per-field copy icons (static HTML can't call ic()).
+// Paint the per-field copy + edit icons (static HTML can't call ic()).
 function ilPaintFieldCopyIcons(){
   document.querySelectorAll('.ail-fcopy').forEach(function(b){ if(!b.dataset.painted){ b.innerHTML=ic('copy',14); b.dataset.painted='1'; } });
+  document.querySelectorAll('.ail-fedit').forEach(function(b){ if(!b.dataset.painted){ b.innerHTML=ic('edit',14); b.dataset.painted='1'; } });
+}
+// Click the pencil: unlock that one field for editing.
+function ilEditField(btn){
+  if(!btn) return;
+  var el=document.getElementById(btn.getAttribute('data-for')); if(!el) return;
+  el.readOnly=false; btn.classList.add('editing');
+  try{ el.focus(); var n=el.value.length; el.setSelectionRange(n,n); }catch(e){}
+  if(typeof ilAutosize==='function') ilAutosize(el);
+}
+window.ilEditField=ilEditField;
+// Put the 4 text fields into read-only "display" mode for EDIT open: filled ones become read-only
+// with a visible pencil; empty ones stay editable with the pencil hidden. `locked`=false (add mode)
+// leaves everything editable and hides all pencils.
+function ilSetFieldLocks(locked){
+  ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilPhdNotes'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    var btn=document.querySelector('.ail-fedit[data-for="'+id+'"]');
+    var hasContent=!!String(el.value||'').trim();
+    // Exception: SIM Root Cause Details with a PENDING Res: stays EDITABLE (not read-only) so the
+    // user can replace PENDING with the real resolution right away.
+    var forceEdit=(id==='ilSimRcd' && ilSimResPending());
+    if(locked && hasContent && !forceEdit){ el.readOnly=true; if(btn){ btn.style.display=''; btn.classList.remove('editing'); } }
+    else{ el.readOnly=false; if(btn){ btn.style.display=(locked&&hasContent)?'':'none'; btn.classList.toggle('editing',!!forceEdit); } }
+  });
 }
 // Enable a field's copy icon only when that field is non-empty.
 function ilUpdateFieldCopyStates(){
@@ -2071,14 +2131,16 @@ function ilWireTextareaAutosize(){
 // Size every textarea to its current content (used when the modal opens / fields are (re)filled).
 function ilAutosizeAll(){ document.querySelectorAll('.ail-field textarea').forEach(ilAutosize); }
 // Assemble the structured fields into the standard copy/save format.
-function buildIncidentOutput(){
+// opts.omitSim === true drops the "SIM Root Cause Details" section (used by "Copy w/o RC Details").
+function buildIncidentOutput(opts){
+  opts=opts||{};
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   var findings=g('ilPhdFindings'), invest=g('ilPhdInvestigation'), sim=g('ilSimRcd');
   var rootCause=g('ilRootCause'), link=g('ilRelatedLink'), res=g('ilPhdResolution'), notes=g('ilPhdNotes');
   var parts=[];
   parts.push('**PHD Findings**:\n'+(findings||'-'));
   parts.push('**PHD Investigation for mitigation:**\n'+(invest||'-'));
-  parts.push('**SIM Root Cause Details:**\n'+(sim||'-'));
+  if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(sim||'-'));
   parts.push('**Root Cause**: '+(rootCause||''));
   parts.push('**PHD Related Link**: '+(link||''));
   parts.push('**PHD Resolution**: '+(res||''));
@@ -2120,6 +2182,7 @@ function openIncidentLog(i){
   if(linkEl){ linkEl.value=(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):''); }
   ilPaintFieldCopyIcons();
   ilWireTextareaAutosize();
+  ilSetFieldLocks(false);   // add mode: everything editable, no pencils
   // Add mode: fields are empty -> settle every textarea to the 5-line default.
   ilAutosizeAll();
   ilRefreshEmptyMarks();   // flag every still-empty field in light red
@@ -2132,17 +2195,28 @@ function closeIncidentLog(){document.getElementById('incidentModal').style.displ
 async function copyIncidentDraft(){
   var btn=document.getElementById('incidentCopyFooterBtn');
   if(!ilAllFilled()){ toast('Fill every field before copying'); return; }
-  var text=buildIncidentOutput();
+  if(ilSimResPending()){ toast('Resolve the PENDING resolution before copying'); return; }
+  await _ilCopyText(buildIncidentOutput(), btn, 'Copied');
+}
+window.copyIncidentDraft=copyIncidentDraft;
+// Same as Copy, but omits the SIM Root Cause Details section.
+async function copyIncidentNoRc(btn){
+  if(!ilAllFilled()){ toast('Fill every field before copying'); return; }
+  if(ilSimResPending()){ toast('Resolve the PENDING resolution before copying'); return; }
+  await _ilCopyText(buildIncidentOutput({omitSim:true}), btn, 'Copied (no RC)');
+}
+window.copyIncidentNoRc=copyIncidentNoRc;
+// Shared clipboard write + button flash for the two footer copy buttons.
+async function _ilCopyText(text,btn,toastMsg){
   try{ await navigator.clipboard.writeText(text); }
   catch(e){
     const tmp=document.createElement('textarea');tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
     document.body.appendChild(tmp);tmp.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(tmp);
   }
-  toast('Copied');
-  if(btn){ btn.classList.add('copied'); var prev=btn.textContent; btn.textContent='Copied!';
+  toast(toastMsg||'Copied');
+  if(btn){ var prev=btn.textContent; btn.classList.add('copied'); btn.textContent='Copied!';
     setTimeout(function(){btn.classList.remove('copied');btn.textContent=prev;},1200); }
 }
-window.copyIncidentDraft=copyIncidentDraft;
 // Delete the entry currently open in the structured EDIT form.
 async function deleteIncidentFromForm(){
   if(!IL_EDIT_ID) return;
@@ -2289,6 +2363,7 @@ function openEditIncidentStructured(i, id, savedText){
   set('ilRootCause',f.rootCause); set('ilRelatedLink',f.link); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
   ilPaintFieldCopyIcons();
   ilWireTextareaAutosize();
+  ilSetFieldLocks(true);   // edit mode: filled text fields start read-only with a pencil to edit
   ilRefreshEmptyMarks();
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
