@@ -56,6 +56,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-paste-status.ok{background:#eafaf0;border:1px solid #c8efd8;color:#1f7a44}
 .rc-paste-status.err{background:#fdecec;border:1px solid #f5c2c2;color:#b02a2a}
 .rc-paste-status .rc-ps-badge{display:inline-block;font-weight:800;border-radius:999px;padding:2px 9px;margin-left:4px;background:#e6f0fc;color:#1877eb;border:1px solid #cfe1fb;font-size:.9em}
+.rc-paste-fields{margin-top:10px}
+.rc-paste-lbl{display:block;font-size:.82em;font-weight:700;color:#2a3340;margin-bottom:5px}
 .rc-paste-actions{display:flex;gap:10px;margin-top:10px}
 .rc-paste-actions .rc-btn{flex:1;justify-content:center}
 .rc-def{margin-top:12px;background:#fff7ef;border:1px solid #f3d4b0;border-left:4px solid #ec7211;border-radius:8px;padding:12px 14px}
@@ -89,10 +91,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-sevtag.s-moderate{color:#b5680c;background:#fff3e0;border-color:#f6ddb8}
 .rc-sevtag.s-low{color:#1f7a44;background:#eafaf0;border-color:#c8efd8}
 .rc-sevtag.s-operational{color:#1577a0;background:#eaf4fb;border-color:#cfe6f5}
-.rc-ref-list{display:flex;flex-wrap:wrap;gap:7px}
-.rc-copychip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:7px;font-size:.82em;font-weight:600;cursor:pointer;border:1px solid #d7dde4;background:#f7f9fb;color:#1b2026;font-family:inherit;line-height:1.3;text-align:left;transition:background .12s,border-color .12s}
+/* Quick-copy chips: 3 equal-width columns (collapses to 2 then 1 on narrow screens). */
+.rc-ref-list{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+@media(max-width:1100px){.rc-ref-list{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.rc-ref-list{grid-template-columns:1fr}}
+.rc-copychip{display:flex;align-items:center;gap:7px;width:100%;box-sizing:border-box;padding:6px 11px;border-radius:7px;font-size:.82em;font-weight:600;cursor:pointer;border:1px solid #d7dde4;background:#f7f9fb;color:#1b2026;font-family:inherit;line-height:1.3;transition:background .12s,border-color .12s}
 .rc-copychip:hover{background:#eef3f8;border-color:#b9c4cf}
-.rc-copychip .rc-cc-ic{color:#8a94a2;display:inline-flex;flex:0 0 auto}
+/* Label centered (fills the space), copy icon pinned to the far right. */
+.rc-copychip .rc-cc-label{flex:1;min-width:0;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-copychip .rc-cc-ic{color:#8a94a2;display:inline-flex;flex:0 0 auto;margin-left:auto}
 .rc-copychip.copied{background:#eafaf0;border-color:#b5e6c8;color:#1f7a44}
 .rc-copychip.copied .rc-cc-ic{color:#1f9d57}
 </style>
@@ -132,9 +139,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
             <button type="button" class="rc-btn sec" id="rcTicketCheck" onclick="rcCheckTicket()">Check</button>
           </div>
           <div class="rc-paste-status" id="rcTicketStatus" style="display:none"></div>
+          <div class="rc-paste-fields" id="rcPasteFields" style="display:none">
+            <label class="rc-paste-lbl" for="rcPasteRootCause">Root Cause</label>
+            <select id="rcPasteRootCause"></select>
+          </div>
           <div class="rc-paste-actions" id="rcPasteActions" style="display:none">
-            <button type="button" class="rc-btn dark" id="rcPastePending" onclick="rcPasteToTicket(true)">Paste as Pending</button>
-            <button type="button" class="rc-btn prim" id="rcPaste" onclick="rcPasteToTicket(false)">Paste</button>
+            <button type="button" class="rc-btn dark" id="rcPastePending" onclick="rcPasteToTicket(true)" style="display:none">Push to ticket as Pending</button>
+            <button type="button" class="rc-btn prim" id="rcPaste" onclick="rcPasteToTicket(false)" style="display:none">Push to ticket</button>
           </div>
         </div>
       </div>
@@ -334,6 +345,7 @@ function rcConvert(fromRaw){
   rcRenderDef();
   rcRenderResMeta();
   rcSetCopyState(issueOk, resOk, drivOk);
+  if(typeof rcUpdatePushButtons==='function') rcUpdatePushButtons();   // flip the single push button on Res change
 }
 window.rcConvert=rcConvert;
 // Show/hide the "Driver Type missing" error below the converted output.
@@ -445,16 +457,17 @@ function rcOutputText(asPending){
   if(!done) lines.push('Res: '+RC_PENDING_RES);
   return lines.join('\n');
 }
-// Wrap the RCD output as a My-Tickets incident-log blob: only the SIM Root Cause Details section is
-// filled; the other structured sections are left as the "-" placeholder (matches buildIncidentOutput).
-function rcWrapIncidentLog(simText){
+// Wrap the RCD output as a My-Tickets incident-log blob. The SIM Root Cause Details section holds
+// the converted output; Root Cause + PHD Resolution are filled from the paste panel / converter.
+// Other structured sections are left as the "-" placeholder (matches buildIncidentOutput).
+function rcWrapIncidentLog(simText, rootCause, phdResolution){
   return [
     '**PHD Findings**:\n-',
     '**PHD Investigation for mitigation:**\n-',
     '**SIM Root Cause Details:**\n'+simText,
-    '**Root Cause**: ',
+    '**Root Cause**: '+(rootCause||''),
     '**PHD Related Link**: ',
-    '**PHD Resolution**: ',
+    '**PHD Resolution**: '+(phdResolution||''),
     '**PHD notes**:\n-'
   ].join('\n\n');
 }
@@ -462,10 +475,33 @@ function rcShowTargetStatus(cls,html){
   var el=document.getElementById('rcTicketStatus'); if(!el) return;
   el.className='rc-paste-status '+cls; el.style.display='block'; el.innerHTML=html;
 }
+// Show exactly ONE push button: "Push to ticket" when a valid Resolution is selected in the
+// converter; otherwise "Push to ticket as Pending". Only relevant once a ticket is verified.
+function rcUpdatePushButtons(){
+  var p=document.getElementById('rcPaste'), pp=document.getElementById('rcPastePending');
+  if(!p || !pp) return;
+  var resNum=(document.getElementById('rcRes')||{}).value;
+  var hasRes=!!(resNum && RC_RES[+resNum]);
+  p.style.display = hasRes ? '' : 'none';
+  pp.style.display = hasRes ? 'none' : '';
+}
+// Populate + enhance the paste-panel Root Cause dropdown (once).
+var _rcPasteRcFilled=false;
+function rcFillPasteRootCause(){
+  var sel=document.getElementById('rcPasteRootCause'); if(!sel) return;
+  if(!_rcPasteRcFilled){
+    _rcPasteRcFilled=true;
+    var causes=window.RC_ROOT_CAUSES||[];
+    sel.innerHTML='<option value="">\u2014 Select root cause \u2014</option>'+causes.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
+    if(window.makeSearchableSelect) window.makeSearchableSelect(sel);
+  }
+}
 function rcTargetReset(){
   RC_TARGET=null;
   var st=document.getElementById('rcTicketStatus'); if(st){ st.style.display='none'; st.innerHTML=''; }
+  var fl=document.getElementById('rcPasteFields'); if(fl) fl.style.display='none';
   var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='none';
+  var rc=document.getElementById('rcPasteRootCause'); if(rc){ rc.value=''; if(window.makeSearchableSelect && rc._ssWrap) window.makeSearchableSelect(rc); }
 }
 window.rcTargetReset=rcTargetReset;
 // Look up the pasted ticket ID: must be in the user's My Tickets, open, and have NO SIM RCD yet.
@@ -485,7 +521,10 @@ async function rcCheckTicket(){
     // Good to go.
     RC_TARGET={ shortId:d.shortId, status:d.status };
     rcShowTargetStatus('ok', 'Your ticket <b>'+esc(d.shortId)+'</b> \u00b7 status: <span class="rc-ps-badge">'+esc(d.status||'Open')+'</span>');
+    rcFillPasteRootCause();
+    var fl=document.getElementById('rcPasteFields'); if(fl) fl.style.display='';
     var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='flex';
+    rcUpdatePushButtons();   // show the right single button for the current Resolution state
   }catch(e){ rcShowTargetStatus('err', 'Could not check the ticket.'); }
   finally{ if(chk){ chk.disabled=false; chk.textContent='Check'; } }
 }
@@ -498,15 +537,21 @@ async function rcPasteToTicket(asPending){
   if(!issue){ rcShowTargetStatus('err', 'Select a valid Issue before pasting.'); return; }
   var drivOk=!/^Driv:\s*N\/A\s*$/mi.test(String(document.getElementById('rcOut').textContent||''));
   if(!drivOk){ rcShowTargetStatus('err', 'Driver Type is missing (Driv: N/A). Fix it before pasting.'); return; }
-  if(!asPending){ var resNum=(document.getElementById('rcRes')||{}).value; if(!(resNum && RC_RES[+resNum])){ rcShowTargetStatus('err', 'Select a Resolution, or use Paste as Pending.'); return; } }
+  // Non-pending Paste writes a real PHD Resolution -> a valid Resolution must be selected.
+  var resNum=(document.getElementById('rcRes')||{}).value;
+  var phdRes=(resNum && RC_RES[+resNum]) ? RC_RES[+resNum] : '';
+  if(!asPending && !phdRes){ rcShowTargetStatus('err', 'Select a Resolution, or use Paste as Pending.'); return; }
+  var rootCause=(document.getElementById('rcPasteRootCause')||{}).value||'';
   var sim=rcOutputText(asPending);
-  var blob=rcWrapIncidentLog(sim);
+  // Map Root Cause (selected here) + PHD Resolution (from the converter; PENDING for pending paste).
+  var blob=rcWrapIncidentLog(sim, rootCause, asPending ? RC_PENDING_RES : phdRes);
   var pBtn=document.getElementById('rcPaste'), ppBtn=document.getElementById('rcPastePending');
   if(pBtn) pBtn.disabled=true; if(ppBtn) ppBtn.disabled=true;
   try{
     var r=await A.api('POST','/api/tickets/'+encodeURIComponent(RC_TARGET.shortId)+'/incident-log',{text:blob});
     if(r && r.ok){
       rcShowTargetStatus('ok', 'Pasted into <b>'+esc(RC_TARGET.shortId)+'</b>\u2019s SIM Root Cause Details'+(asPending?' (as PENDING)':'')+'. \u2713');
+      var fl=document.getElementById('rcPasteFields'); if(fl) fl.style.display='none';
       var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='none';
       RC_TARGET=null;
       setTimeout(function(){ rcClear(); var ti=document.getElementById('rcTicketId'); if(ti) ti.value=''; rcTargetReset(); },1400);
@@ -541,7 +586,7 @@ function rcBuildRef(){
   var chip=function(prefix,name){
     var line=prefix+': '+name;
     return '<button type="button" class="rc-copychip" title="Copy \u201c'+esc(line)+'\u201d" data-copy="'+esc(line)+'" onclick="rcCopyChip(this)">'+
-      copyIcon+'<span class="rc-cc-label">'+esc(name)+'</span></button>';
+      '<span class="rc-cc-label">'+esc(name)+'</span>'+copyIcon+'</button>';
   };
   // Issues — grouped by category so they're easy to scan.
   var ih='';

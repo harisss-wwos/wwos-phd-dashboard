@@ -207,6 +207,7 @@ window.openLog=openLog;
 // the frames on subsequent clicks so state is preserved and switching is instant.
 function switchTab(id){
   ACTIVE=id;
+  try{ localStorage.setItem('phd_tools_tab', id); }catch(e){}   // remember the last tab for next visit
   TABS.forEach(function(t){ var b=document.getElementById('tab-'+t.id); if(b){ b.classList.toggle('active',t.id===id); b.setAttribute('aria-selected',String(t.id===id)); } });
   moveSegIndicator();
   renderActions();
@@ -262,8 +263,10 @@ function load(){
     document.getElementById('wrap').innerHTML='<div class="gate"><h1 style="color:#1b2026">PHD Tools</h1><p>This page is for logged-in users. Log in from the Live Dashboard first.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
     return;
   }
+  // Restore the last-used tab (falls back to the default if missing/unknown).
+  try{ var saved=localStorage.getItem('phd_tools_tab'); if(saved && TABS.some(function(t){return t.id===saved;})) ACTIVE=saved; }catch(e){}
   document.getElementById('wrap').innerHTML=pageShell();
-  switchTab(ACTIVE); // default tab
+  switchTab(ACTIVE); // open the restored (or default) tab
   // Keep the sliding indicator aligned when the layout reflows (fonts load, window resize).
   moveSegIndicator();
   setTimeout(moveSegIndicator,120);

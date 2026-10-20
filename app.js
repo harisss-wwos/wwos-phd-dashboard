@@ -1281,9 +1281,85 @@ function reloadTakeoverSection(){
     window._takeoverAgents=agentSorted;
     body.innerHTML='<div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="to-legend" id="takeoverLegend"></div><div class="chart-wrap" style="height:380px;position:relative"><canvas id="takeoverChart"></canvas></div></div>';
     try{ drawTakeoverChart(agentSorted); }catch(e){}
+    var cb=document.getElementById('takeoverChartCopy'); if(cb) cb.disabled=false;   // chart ready -> enable Copy chart
   }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the takeover queue. Please refresh.</p>'; });
 }
 window.reloadTakeoverSection=reloadTakeoverSection;
+// Draw centered rows of legend PILLS onto a canvas context: each pill = light rounded capsule with
+// a coloured dot, the label, and a dark count badge (matches the on-page HTML legend).
+// `items` = [[label, dotColor, count], ...]; wraps to multiple rows if it's wider than W.
+// Starts at top `bandTop`; returns the total height consumed (so callers can size the canvas).
+function drawPillLegend(cx, items, W, bandTop){
+  var rr=function(x,y,w,h,r){ cx.beginPath(); cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r); cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath(); };
+  var ph=28, dotR=5, padL=12, padR=8, gapDot=8, gapBadge=8, badgePadX=8, pillGap=10, rowGap=10, sidePad=12;
+  cx.font='700 12px Inter, Arial, sans-serif';
+  var meas=items.map(function(it){
+    var lblW=cx.measureText(it[0]).width, cntW=cx.measureText(String(it[2])).width, badgeW=cntW+badgePadX*2;
+    return {w:padL+dotR*2+gapDot+lblW+gapBadge+badgeW+padR, lblW:lblW, badgeW:badgeW, label:it[0], color:it[1], count:String(it[2])};
+  });
+  // Pack into rows that fit the width.
+  var rows=[], cur=[], curW=0, maxW=W-sidePad*2;
+  meas.forEach(function(m){ var add=m.w+(cur.length?pillGap:0); if(cur.length && curW+add>maxW){ rows.push(cur); cur=[]; curW=0; add=m.w; } cur.push(m); curW+=add; });
+  if(cur.length) rows.push(cur);
+  var y=bandTop;
+  var drawPill=function(m,x){
+    cx.fillStyle='#f4f6f9'; cx.strokeStyle='#e4e9ef'; cx.lineWidth=1; rr(x,y,m.w,ph,ph/2); cx.fill(); cx.stroke();
+    var ix=x+padL, iy=y+ph/2;
+    cx.fillStyle=m.color; cx.beginPath(); cx.arc(ix+dotR,iy,dotR,0,Math.PI*2); cx.fill(); ix+=dotR*2+gapDot;
+    cx.fillStyle='#2a3340'; cx.textAlign='left'; cx.textBaseline='middle'; cx.font='700 12px Inter, Arial, sans-serif'; cx.fillText(m.label, ix, iy); ix+=m.lblW+gapBadge;
+    cx.fillStyle='#161d2d'; rr(ix,y+(ph-20)/2,m.badgeW,20,10); cx.fill();
+    cx.fillStyle='#ffffff'; cx.textAlign='center'; cx.fillText(m.count, ix+m.badgeW/2, iy);
+  };
+  rows.forEach(function(row){
+    var rowW=row.reduce(function(s,m){return s+m.w+pillGap;},0)-pillGap;
+    var x=Math.max(sidePad,(W-rowW)/2);
+    row.forEach(function(m){ drawPill(m,x); x+=m.w+pillGap; });
+    y+=ph+rowGap;
+  });
+  return (y-bandTop);
+}
+// Copy the Takeover chart as a PNG for Slack — composes title + colour legend (with counts) + the
+// chart canvas onto a white background. Falls back to a PNG download if clipboard-image is blocked.
+async function copyTakeoverChart(btn){
+  const cv=document.getElementById('takeoverChart'); if(!cv||typeof Chart==='undefined'){ showToast('Chart not ready yet'); return; }
+  const col=SR_COLORS||{};
+  const legend=[
+    ['Purple (Reopened)','#8b5cf6', col.purple||0],
+    ['Black (>10d)','#555555',       col.black||0],
+    ['Red (7-10d)','#dc2626',        col.red||0],
+    ['Yellow (4-7d)','#d9930a',      col.yellow||0],
+    ['Green (0-4d)','#1f9d57',       col.green||0]
+  ];
+  const W=cv.width, titleH=46;
+  // Measure the legend height first (offscreen scratch context), then size the output canvas.
+  var scratch=document.createElement('canvas').getContext('2d');
+  var legH=drawPillLegend(scratch, legend, W, 0)+10;
+  const out=document.createElement('canvas'); out.width=W; out.height=titleH+legH+cv.height;
+  const cx=out.getContext('2d');
+  cx.fillStyle='#ffffff'; cx.fillRect(0,0,out.width,out.height);
+  // Title.
+  cx.fillStyle='#151d28'; cx.textBaseline='middle'; cx.textAlign='center';
+  cx.font='700 18px Inter, Arial, sans-serif';
+  cx.fillText('Unresolved Tickets by Agent (Age Breakdown)', W/2, titleH/2);
+  // Pill legend (dot + label + dark count badge).
+  drawPillLegend(cx, legend, W, titleH);
+  // The chart itself below.
+  cx.drawImage(cv,0,titleH+legH);
+  const done=function(ok){ if(btn){ var prev=btn.innerHTML; btn.innerHTML=ic(ok?'check-circle':'copy',14)+(ok?' Copied':' Copy chart'); setTimeout(function(){ btn.innerHTML=prev; },1400); } };
+  const toBlob=function(){ return new Promise(function(res){ out.toBlob(res,'image/png'); }); };
+  try{
+    const blob=await toBlob();
+    if(blob && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+      await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+      showToast('Chart copied — paste into Slack'); done(true); return;
+    }
+    throw new Error('no-clipboard-image');
+  }catch(e){
+    try{ const a=document.createElement('a'); a.href=out.toDataURL('image/png'); a.download='takeover-chart.png'; document.body.appendChild(a); a.click(); a.remove(); showToast('Image copy blocked — downloaded the chart instead'); done(false); }
+    catch(e2){ showToast('Could not copy the chart'); done(false); }
+  }
+}
+window.copyTakeoverChart=copyTakeoverChart;
 // ===== end Takeover =====
 
 // ===== Handover Report — last 12 hours (today 7am–7pm) in the user's timezone (IST/MST) =====
@@ -1354,8 +1430,8 @@ async function reloadHandoverSection(){
         tile('ho-imm',d.immediatelyByAgentRule,'Imm. Resolved by Agent/Rule')+
         tile('ho-auto',d.immediatelyByAutosim,'Imm. Resolved by AUTOSIM')+
       '</div>'+
-      '<div class="sr-chart-card"><div class="ho-chart-head"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3>'+
-        '<button type="button" class="ho-chart-copy" id="handoverChartCopy" onclick="copyHandoverChart(this)">'+ic('copy',13)+' Copy chart</button></div>'+
+      '<div class="sr-chart-card"><h3>Created, Resolved &amp; In Queue in the last 12 hours</h3>'+
+        '<div class="to-legend" id="handoverLegend">'+handoverLegendHtml(d)+'</div>'+
         '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>'+
       // Row 3 — In Queue group (below the chart).
       '<div class="ho-row ho-row-queue" style="margin-top:12px">'+
@@ -1366,6 +1442,7 @@ async function reloadHandoverSection(){
         tile('ho-queue',qs['Pending'],'Pending')+
       '</div>';
     try{ drawHandoverChart(d); }catch(e){}
+    var cb=document.getElementById('handoverChartCopy'); if(cb) cb.disabled=false;   // chart ready -> enable Copy chart
   }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; });
 }
 window.reloadHandoverSection=reloadHandoverSection;
@@ -1382,6 +1459,27 @@ function handoverClosureHtml(codes,d){
   }).join('');
   return '<div class="ho-closure"><h4>Resolved by closure code</h4>'+
     '<table class="ho-cc-tbl"><thead><tr><th>Closure code</th><th class="ho-cc-n">Count</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+// On-page pill legend for the Handover chart (one pill per bar: dot + label + count badge).
+function handoverLegendHtml(d){
+  d=d||{}; var cf=d.createdFlags||{};
+  var items=[
+    ['Created','#2b82fe', d.created||0],
+    ['No EMT','#7c5cf0', cf.noEmt||0],
+    ['Station Request','#dc2626', cf.stationRequest||0],
+    ['Appeal','#ea7317', cf.appeal||0],
+    ['Imm. Resolved (Agent/Rule)','#16a34a', d.immediatelyByAgentRule||0],
+    ['Imm. Resolved (AUTOSIM)','#2563eb', d.immediatelyByAutosim||0],
+    ['Successful','#0d9488', d.successful||0],
+    ['In Queue','#ec7211', d.inQueue||0]
+  ];
+  return items.map(function(it){
+    return '<span class="to-leg" style="cursor:default">'+
+      '<span class="to-leg-dot" style="background:'+it[1]+'"></span>'+
+      '<span class="to-leg-lbl">'+String(it[0])+'</span>'+
+      '<span class="to-leg-n">'+Number(it[2]).toLocaleString('en-US')+'</span>'+
+    '</span>';
+  }).join('');
 }
 function drawHandoverChart(d){
   const cv=document.getElementById('handoverChart'); if(!cv||typeof Chart==='undefined') return;
@@ -1416,10 +1514,28 @@ function drawHandoverChart(d){
 // if the browser blocks image-clipboard writes.
 async function copyHandoverChart(btn){
   const cv=document.getElementById('handoverChart'); if(!cv){ showToast('Chart not ready yet'); return; }
-  // Flatten onto white (Slack shows transparent PNGs on a dark-ish surface otherwise).
-  const out=document.createElement('canvas'); out.width=cv.width; out.height=cv.height;
-  const cx=out.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,out.width,out.height); cx.drawImage(cv,0,0);
-  const done=function(ok){ if(btn){ var prev=btn.innerHTML; btn.innerHTML=ic(ok?'check-circle':'copy',13)+(ok?' Copied':' Copy chart'); btn.classList.toggle('copied',ok); setTimeout(function(){ btn.innerHTML=prev; btn.classList.remove('copied'); },1400); } };
+  const d=HANDOVER_DATA||{}, cf=d.createdFlags||{};
+  // Pill legend items (colours match the bars in drawHandoverChart).
+  const legend=[
+    ['Created','#2b82fe', d.created||0],
+    ['No EMT','#7c5cf0', cf.noEmt||0],
+    ['Station Request','#dc2626', cf.stationRequest||0],
+    ['Appeal','#ea7317', cf.appeal||0],
+    ['Imm. Resolved (Agent/Rule)','#16a34a', d.immediatelyByAgentRule||0],
+    ['Imm. Resolved (AUTOSIM)','#2563eb', d.immediatelyByAutosim||0],
+    ['Successful','#0d9488', d.successful||0],
+    ['In Queue','#ec7211', d.inQueue||0]
+  ];
+  const W=cv.width, titleH=46;
+  var scratch=document.createElement('canvas').getContext('2d');
+  var legH=drawPillLegend(scratch, legend, W, 0)+10;
+  const out=document.createElement('canvas'); out.width=W; out.height=titleH+legH+cv.height;
+  const cx=out.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,out.width,out.height);
+  cx.fillStyle='#151d28'; cx.textBaseline='middle'; cx.textAlign='center'; cx.font='700 18px Inter, Arial, sans-serif';
+  cx.fillText('Created, Resolved & In Queue in the last 12 hours', W/2, titleH/2);
+  drawPillLegend(cx, legend, W, titleH);
+  cx.drawImage(cv,0,titleH+legH);
+  const done=function(ok){ if(btn){ var prev=btn.innerHTML; btn.innerHTML=ic(ok?'check-circle':'copy',14)+(ok?' Copied':' Copy chart'); btn.classList.toggle('copied',ok); setTimeout(function(){ btn.innerHTML=prev; btn.classList.remove('copied'); },1400); } };
   const toBlob=function(){ return new Promise(function(res){ out.toBlob(res,'image/png'); }); };
   try{
     const blob=await toBlob();
@@ -3350,7 +3466,9 @@ function renderDashboardChunked(){
     // ---- Section 3: Takeover ï¿½ Queue by Age ----
     '<section class="dh-card dh-card-takeover">'+
       '<div class="dh-card-head"><h2>'+ic('alert',16)+' Takeover \u2014 Queue by Age</h2>'+
-        '<button type="button" class="dh-export-btn" onclick="exportTakeover()">'+ic('copy',14)+' Export takeover</button></div>'+
+        '<div class="dash-scope-sec" style="display:flex;gap:8px;margin-left:auto">'+
+          '<button type="button" class="dh-export-btn" id="takeoverChartCopy" onclick="copyTakeoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
+          '<button type="button" class="dh-export-btn" onclick="exportTakeover()">'+ic('copy',14)+' Export takeover</button></div></div>'+
       '<div class="dh-card-body"><div id="takeoverBody">'+
         '<div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3>'+
           '<div class="chart-wrap" style="height:380px;position:relative"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>'+
@@ -3359,7 +3477,9 @@ function renderDashboardChunked(){
     // ---- Section 4: Handover Report (last 12 hours, 7am-7pm in the user's timezone) ----
     '<section class="dh-card dh-card-handover">'+
       '<div class="dh-card-head"><h2>'+ic('clipboard',16)+' Handover Report \u2014 Last 12 Hours</h2>'+
-        '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button></div>'+
+        '<div class="dash-scope-sec" style="display:flex;gap:8px;margin-left:auto">'+
+          '<button type="button" class="dh-export-btn" id="handoverChartCopy" onclick="copyHandoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
+          '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button></div></div>'+
       '<div class="dh-card-body"><div id="handoverBody">'+
         '<div class="sr-chart-card"><div class="chart-wrap" style="height:380px;position:relative"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>'+
       '</div></div>'+

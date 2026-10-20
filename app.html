@@ -1008,6 +1008,8 @@ body[data-profile-panel] .content .q-tile-click:hover .q-tile-open{color:#ec7211
   padding:9px 16px;cursor:pointer;transition:background .15s,transform .12s}
 #dashRoot .dh-export-btn:hover{background:#e55700;transform:translateY(-1px)}
 #dashRoot .dh-export-btn svg{color:#fff}
+#dashRoot .dh-export-btn:disabled{opacity:.45;cursor:not-allowed;background:#c0785a;transform:none}
+#dashRoot .dh-export-btn:disabled:hover{transform:none}
 
 /* ---- Queue Status tiles (inside the dark hero) ---- */
 #dashRoot .dh-hero-queue{position:relative;z-index:1}
@@ -1175,7 +1177,7 @@ body[data-profile-panel] #dashRoot .age,
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=201"></script>
-<script src="app.js?v=102"></script>
+<script src="app.js?v=106"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>
