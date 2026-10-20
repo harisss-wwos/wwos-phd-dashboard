@@ -1351,7 +1351,6 @@ async function reloadHandoverSection(){
       '<div class="ho-row ho-row-resolved">'+
         tile('ho-resolved',d.resolved,'Resolved (total)',true)+
         tile('ho-succ',d.successful,'Successful')+
-        tile('ho-succ',d.successfulAddressActions,'Successful as Address Exclusion')+
         tile('ho-imm',d.immediatelyByAgentRule,'Imm. Resolved by Agent/Rule')+
         tile('ho-auto',d.immediatelyByAutosim,'Imm. Resolved by AUTOSIM')+
       '</div>'+
