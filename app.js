@@ -1354,17 +1354,17 @@ async function reloadHandoverSection(){
         tile('ho-imm',d.immediatelyByAgentRule,'Imm. Resolved by Agent/Rule')+
         tile('ho-auto',d.immediatelyByAutosim,'Imm. Resolved by AUTOSIM')+
       '</div>'+
-      // Row 3 — In Queue group.
-      '<div class="ho-row ho-row-queue">'+
+      '<div class="sr-chart-card"><div class="ho-chart-head"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3>'+
+        '<button type="button" class="ho-chart-copy" id="handoverChartCopy" onclick="copyHandoverChart(this)">'+ic('copy',13)+' Copy chart</button></div>'+
+        '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>'+
+      // Row 3 — In Queue group (below the chart).
+      '<div class="ho-row ho-row-queue" style="margin-top:12px">'+
         tile('ho-queue',d.inQueue,'In Queue (total)',true)+
         tile('ho-queue',qs['Assigned'],'Assigned')+
         tile('ho-queue',qs['Work In Progress'],'Work In Progress')+
         tile('ho-queue',qs['Researching'],'Researching')+
         tile('ho-queue',qs['Pending'],'Pending')+
-      '</div>'+
-      '<div class="sr-chart-card"><div class="ho-chart-head"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3>'+
-        '<button type="button" class="ho-chart-copy" id="handoverChartCopy" onclick="copyHandoverChart(this)">'+ic('copy',13)+' Copy chart</button></div>'+
-        '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>';
+      '</div>';
     try{ drawHandoverChart(d); }catch(e){}
   }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; });
 }
