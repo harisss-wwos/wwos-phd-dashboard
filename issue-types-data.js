@@ -226,6 +226,7 @@ window.RC_ROOT_CAUSES = [
     var st = document.createElement('style'); st.id = 'ss-css';
     st.textContent = [
       '.ss-wrap{position:relative;width:100%}',
+      '.ss-wrap.open{z-index:9000}',
       '.ss-field{width:100%;display:flex;align-items:center;gap:8px;box-sizing:border-box;cursor:pointer;background:#fff;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-family:inherit;font-size:.9em;padding:10px 12px;line-height:1.3}',
       '.ss-field:focus,.ss-wrap.open .ss-field{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
       '.ss-field.ss-disabled{background:#f1f3f6;color:#a7b0ba;cursor:not-allowed;opacity:.8}',
@@ -233,7 +234,7 @@ window.RC_ROOT_CAUSES = [
       '.ss-field .ss-val.ss-ph{color:#8a94a2}',
       '.ss-field .ss-caret{flex:0 0 auto;color:#8a94a2;transition:transform .15s}',
       '.ss-wrap.open .ss-field .ss-caret{transform:rotate(180deg)}',
-      '.ss-pop{position:absolute;z-index:6000;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #d4dce4;border-radius:8px;box-shadow:0 12px 30px -12px rgba(20,30,50,.35);padding:8px;display:none}',
+      '.ss-pop{position:absolute;z-index:9001;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #d4dce4;border-radius:8px;box-shadow:0 12px 30px -12px rgba(20,30,50,.35);padding:8px;display:none}',
       '.ss-wrap.open .ss-pop{display:block}',
       '.ss-search{display:flex;align-items:center;gap:8px;border:0;border-radius:0;padding:0;margin-bottom:8px}',
       '.ss-search svg{flex:0 0 auto;color:#8a94a2}',
@@ -249,7 +250,22 @@ window.RC_ROOT_CAUSES = [
   var SEARCH_ICO = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
   var CARET_ICO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
-  function closeOpen(){ if (OPEN){ OPEN.classList.remove('open'); OPEN=null; } }
+  // Some containers (e.g. the RCD converter card, modals) use overflow:hidden which would CLIP the
+  // popup. On open we temporarily set overflow:visible on any clipping ancestor and restore on close.
+  var _unclipped = [];
+  function unclipAncestors(el){
+    _unclipped = [];
+    var n = el ? el.parentElement : null;
+    while (n && n !== document.body){
+      try{
+        var ov = getComputedStyle(n).overflow;
+        if (ov && ov !== 'visible'){ _unclipped.push([n, n.style.overflow]); n.style.overflow = 'visible'; }
+      }catch(e){}
+      n = n.parentElement;
+    }
+  }
+  function reclipAncestors(){ _unclipped.forEach(function(p){ p[0].style.overflow = p[1]||''; }); _unclipped = []; }
+  function closeOpen(){ if (OPEN){ OPEN.classList.remove('open'); OPEN=null; reclipAncestors(); } }
   document.addEventListener('click', function(e){ if (OPEN && !OPEN.contains(e.target)) closeOpen(); });
   document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeOpen(); });
 
@@ -272,7 +288,7 @@ window.RC_ROOT_CAUSES = [
       wrap.appendChild(field); wrap.appendChild(pop);
       sel._ssWrap = wrap; sel._ssField = field; sel._ssInput = pop.querySelector('input'); sel._ssList = pop.querySelector('.ss-list');
 
-      field.addEventListener('click', function(){ if (sel.disabled) return; var isOpen = wrap.classList.contains('open'); closeOpen(); if (!isOpen){ wrap.classList.add('open'); OPEN = wrap; sel._ssInput.value=''; renderList(sel,''); setTimeout(function(){ sel._ssInput.focus(); }, 10); } });
+      field.addEventListener('click', function(){ if (sel.disabled) return; var isOpen = wrap.classList.contains('open'); closeOpen(); if (!isOpen){ wrap.classList.add('open'); OPEN = wrap; unclipAncestors(wrap); sel._ssInput.value=''; renderList(sel,''); setTimeout(function(){ sel._ssInput.focus(); }, 10); } });
       sel._ssInput.addEventListener('input', function(){ renderList(sel, this.value); });
       sel._ssInput.addEventListener('keydown', function(e){
         var items = Array.prototype.slice.call(sel._ssList.querySelectorAll('.ss-opt'));
