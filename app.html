@@ -1115,6 +1115,34 @@ body[data-profile-panel] #dashRoot .age,
 #dashRoot .sr-purple{--sc:#7c5cf0}#dashRoot .sr-black{--sc:#4a5563}#dashRoot .sr-red{--sc:#dc2626}#dashRoot .sr-yellow{--sc:#d9930a}#dashRoot .sr-green{--sc:#1f9d57}
 #dashRoot .sr-chart-card{background:var(--dh-page);border:1px solid #e7e4dc;border-radius:5px;padding:20px}
 #dashRoot .sr-chart-card h3{color:var(--dh-ink);font-size:.95em;font-weight:800;text-align:center;letter-spacing:.3px;margin:0 0 16px}
+/* ---- Handover Report (last 12h) ---- */
+#dashRoot .ho-meta{display:inline-flex;align-items:center;gap:8px;font-size:.84em;font-weight:700;color:var(--dh-ink);background:#eef4fb;border:1px solid #d4e4f5;border-radius:999px;padding:7px 14px;margin-bottom:16px}
+#dashRoot .ho-meta svg{color:var(--dh-blue)}
+/* Each group (Created / Resolved / In Queue) is one flex row of tiles that wraps on narrow screens. */
+#dashRoot .ho-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+#dashRoot .ho-tile{flex:1 1 0;min-width:140px;border:1px solid #e7e4dc;border-left-width:4px;border-radius:5px;padding:14px 16px;background:#fff}
+#dashRoot .ho-tile-v{font-size:1.7em;font-weight:800;line-height:1;color:var(--dh-ink)}
+#dashRoot .ho-tile-l{font-size:.76em;font-weight:700;color:var(--dh-mut);margin-top:6px;text-transform:uppercase;letter-spacing:.3px}
+/* The group total tile: slightly bolder number + a tinted background so it reads as the row header. */
+#dashRoot .ho-tile.ho-tot{background:#f7f9fb;flex:1.1 1 0}
+#dashRoot .ho-tile.ho-tot .ho-tile-v{font-size:2em}
+#dashRoot .ho-created{border-left-color:#2b82fe}
+#dashRoot .ho-resolved{border-left-color:#1f9d57}
+#dashRoot .ho-queue{border-left-color:#ec7211}
+#dashRoot .ho-imm{border-left-color:#16a34a}
+#dashRoot .ho-auto{border-left-color:#2563eb}
+#dashRoot .ho-succ{border-left-color:#0d9488}
+#dashRoot .ho-closure{margin-top:18px}
+#dashRoot .ho-closure h4{font-size:.9em;font-weight:800;color:var(--dh-ink);margin:0 0 10px}
+#dashRoot .ho-cc-tbl{width:100%;border-collapse:collapse;font-size:.86em}
+#dashRoot .ho-cc-tbl th,#dashRoot .ho-cc-tbl td{text-align:left;padding:8px 12px;border-bottom:1px solid #eef0ec;color:var(--dh-ink)}
+#dashRoot .ho-cc-tbl th{font-size:.74em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--dh-mut)}
+#dashRoot .ho-cc-tbl .ho-cc-n{text-align:right;font-weight:800;width:90px}
+#dashRoot .ho-cc-sub{font-size:.8em;font-weight:600;color:var(--dh-mut);margin-top:2px}
+/* Created-window flag tile accents (No EMT / Station Request / Appeal). */
+#dashRoot .ho-noemt{border-left-color:#7c5cf0}
+#dashRoot .ho-station{border-left-color:#dc2626}
+#dashRoot .ho-appeal{border-left-color:#ea7317}
 #dashRoot .spinner{width:40px;height:40px;border:4px solid #dfe3e7;border-top-color:var(--dh-blue);border-radius:50%;animation:spin .9s linear infinite}
 #dashRoot .meta-info{color:var(--dh-mut);font-size:.88em}
 /* ---- Custom pill legend for the Takeover (Age Breakdown) chart: one centered row of chips, each
@@ -1139,7 +1167,7 @@ body[data-profile-panel] #dashRoot .age,
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=201"></script>
-<script src="app.js?v=91"></script>
+<script src="app.js?v=98"></script>
 <script>try{if(window.tbSetDashboardTitle)window.tbSetDashboardTitle();}catch(e){}</script>
 </body>
 </html>

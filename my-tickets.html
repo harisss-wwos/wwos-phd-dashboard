@@ -176,10 +176,9 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-field.is-empty .ail-fcopy{opacity:.35;pointer-events:none}
 .ail-fsub{color:var(--tm);font-weight:500}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
-/* Starts ~3 lines. On focus -> ~10 lines. On blur -> JS fits height to content (min ~3 lines).
+/* Default ~5 lines; JS auto-grows the height to fit content and caps at ~16 lines (then scrolls).
    (line-height 1.55 + 20px vertical padding; box-sizing: border-box.) */
-.ail-field textarea{resize:vertical;height:calc(3 * 1.55em + 20px);min-height:calc(3 * 1.55em + 20px);white-space:pre-wrap;transition:height .18s ease}
-.ail-field textarea:focus{height:calc(10 * 1.55em + 20px)}
+.ail-field textarea{resize:vertical;min-height:calc(5 * 1.55em + 20px);max-height:calc(16 * 1.55em + 20px);white-space:pre-wrap;overflow-y:auto}
 .ail-field select:focus,.ail-field input:focus,.ail-field textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
 .ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
@@ -1093,6 +1092,7 @@ h1{color:#1b2026 !important}
     <div class="ail-head">
       <span class="ail-head-ic" id="ailHeadIc"></span>
       <div class="ail-head-tx"><h2 id="incidentTitle">Add incident log</h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket's log</span></div>
+      <button type="button" class="ail-icbtn ail-idcopy" id="incidentIdCopyBtn" onclick="copyIncidentTicketId(this)" title="Copy ticket ID" aria-label="Copy ticket ID" style="display:none"></button>
       <button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>
     </div>
     <div class="ail-body">
@@ -1971,6 +1971,23 @@ function fillIncidentSelects(){
 }
 var IL_FIELD_IDS=['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRootCause','ilRelatedLink','ilPhdResolution','ilPhdNotes'];
 var IL_EDIT_ID=null;   // null = Add mode; an id = editing that existing incident-log entry
+var IL_TICKET_SID='';  // the ticket ShortId the modal is currently open for (for the title copy icon)
+// Reveal + paint the title's "copy ticket ID" icon for the given ShortId.
+function ilSetTitleCopyId(sid){
+  IL_TICKET_SID=String(sid||'');
+  var btn=document.getElementById('incidentIdCopyBtn'); if(!btn) return;
+  if(IL_TICKET_SID){ btn.style.display=''; btn.innerHTML=ic('copy',14); btn.classList.remove('copied'); btn.title='Copy ticket ID '+IL_TICKET_SID; }
+  else { btn.style.display='none'; }
+}
+// Copy just the ticket ID shown in the modal title.
+async function copyIncidentTicketId(btn){
+  if(!IL_TICKET_SID) return;
+  try{ await navigator.clipboard.writeText(IL_TICKET_SID); }
+  catch(e){ var ta=document.createElement('textarea');ta.value=IL_TICKET_SID;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}ta.remove(); }
+  toast('Copied '+IL_TICKET_SID);
+  if(btn){ btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',14); setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=prev; },1200); }
+}
+window.copyIncidentTicketId=copyIncidentTicketId;
 // Toggle the light-red "Empty" marker on a field's label based on whether it has a value.
 function ilMarkEmpty(el){
   if(el){ var field=el.closest('.ail-field'); if(field) field.classList.toggle('is-empty', !String(el.value||'').trim()); }
@@ -2032,21 +2049,27 @@ async function ilCopyField(btn){
   setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=prev; },1200);
 }
 window.ilCopyField=ilCopyField;
-// Textarea sizing: focus -> 10 lines (CSS). Blur -> fit height to content, min 3 lines.
+// Textarea auto-size: default ~5 lines, grow with content, cap at ~16 lines (then scroll).
 var _ilTaWired=false;
+// Resize ONE textarea to fit its content, clamped between the 5-line min and the 16-line cap.
+function ilAutosize(ta){
+  if(!ta) return;
+  var lh=parseFloat(getComputedStyle(ta).lineHeight)||20, pad=20;
+  var minH=Math.round(5*lh+pad), maxH=Math.round(16*lh+pad);
+  ta.style.height='auto';                       // reset so scrollHeight reflects the true content height
+  var h=Math.min(Math.max(ta.scrollHeight, minH), maxH);
+  ta.style.height=h+'px';
+  ta.style.overflowY=(ta.scrollHeight>maxH)?'auto':'hidden';   // only scroll once past the cap
+}
+window.ilAutosize=ilAutosize;
 function ilWireTextareaAutosize(){
   if(_ilTaWired) return; _ilTaWired=true;
-  var minH=function(ta){ var lh=parseFloat(getComputedStyle(ta).lineHeight)||20; var pad=20; return Math.round(3*lh+pad); };
   document.querySelectorAll('.ail-field textarea').forEach(function(ta){
-    ta.addEventListener('focus',function(){ ta.style.height=''; });   // let CSS :focus (10 lines) take over
-    ta.addEventListener('blur',function(){
-      // Fit to content, but never below 3 lines.
-      ta.style.height='auto';
-      var h=Math.max(ta.scrollHeight, minH(ta));
-      ta.style.height=h+'px';
-    });
+    ta.addEventListener('input',function(){ ilAutosize(ta); });
   });
 }
+// Size every textarea to its current content (used when the modal opens / fields are (re)filled).
+function ilAutosizeAll(){ document.querySelectorAll('.ail-field textarea').forEach(ilAutosize); }
 // Assemble the structured fields into the standard copy/save format.
 function buildIncidentOutput(){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
@@ -2086,6 +2109,7 @@ function openIncidentLog(i){
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   IL_EDIT_ID=null;   // add mode (not editing an existing entry)
   document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
+  ilSetTitleCopyId(t.shortId);
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
   fillIncidentSelects();
@@ -2096,8 +2120,8 @@ function openIncidentLog(i){
   if(linkEl){ linkEl.value=(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):''); }
   ilPaintFieldCopyIcons();
   ilWireTextareaAutosize();
-  // Add mode: clear any inline heights so the fields start at the default 3 lines.
-  document.querySelectorAll('.ail-field textarea').forEach(function(ta){ ta.style.height=''; });
+  // Add mode: fields are empty -> settle every textarea to the 5-line default.
+  ilAutosizeAll();
   ilRefreshEmptyMarks();   // flag every still-empty field in light red
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
@@ -2255,6 +2279,7 @@ function openEditIncidentStructured(i, id, savedText){
   EDIT_INC_ID=id;
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   document.getElementById('incidentTitle').textContent='Edit incident log · '+(t?t.shortId:'');
+  ilSetTitleCopyId(t?t.shortId:'');
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='';   // edit mode -> allow delete
   fillIncidentSelects();
@@ -2267,12 +2292,9 @@ function openEditIncidentStructured(i, id, savedText){
   ilRefreshEmptyMarks();
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';
-  // Edit mode: fit each prefilled textarea to its content (min 3 lines) once the modal is visible.
+  // Edit mode: fit each prefilled textarea to its content once the modal is visible (laid out).
   setTimeout(function(){
-    document.querySelectorAll('.ail-field textarea').forEach(function(ta){
-      var lh=parseFloat(getComputedStyle(ta).lineHeight)||20; var minH=Math.round(3*lh+20);
-      ta.style.height='auto'; ta.style.height=Math.max(ta.scrollHeight,minH)+'px';
-    });
+    ilAutosizeAll();
     var el=document.getElementById('ilPhdFindings'); if(el) el.focus();
   },50);
 }

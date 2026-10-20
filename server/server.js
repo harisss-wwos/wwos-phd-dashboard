@@ -5028,6 +5028,101 @@ async function getShiftRollup() {
 }
 // Assemble the Shift Report response: derive age-colours at read time, build the per-agent colour
 // breakdown for the takeover chart (with slim ticket lists for the drill-down), and return counts.
+// ---- Handover Report — a fixed 12-hour window (default "today 7am–7pm" in the user's timezone) ----
+// The CLIENT computes the window bounds (so IST/MST + DST are resolved with Intl, not fragile server
+// offset math) and passes them as ?from=<ISO>&to=<ISO>. We return, over ALL ticket_docs:
+//   created  = tickets whose CreateDate falls in [from, to)
+//   resolved = tickets whose ResolvedDate falls in [from, to), broken down by ClosureCode
+//   inQueue  = CURRENT open tickets (Status in OPEN_STATUSES), as a live snapshot (not window-bound)
+app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
+  try {
+    const from = new Date(String(req.query.from || ''));
+    const to = new Date(String(req.query.to || ''));
+    if (isNaN(from) || isNaN(to) || from >= to) {
+      return res.status(400).json({ error: 'Valid from/to ISO timestamps are required.' });
+    }
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const cd = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const rd = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+    const inWin = (field) => ({ $and: [{ $ne: [field, null] }, { $gte: [field, from] }, { $lt: [field, to] }] });
+    const RESOLVED_SET = ['Resolved', 'Closed'];
+
+    // 1) Created in-window — pull Title + Labels so we can flag No-EMT / Station Request / Appeal.
+    const createdDocs = await coll.aggregate([
+      { $project: { cd, Title: 1, Labels: 1 } },
+      { $match: { $expr: inWin('$cd') } },
+    ]).toArray();
+    const created = createdDocs.length;
+    let noEmt = 0, stationReq = 0, appeal = 0;
+    const APPEAL_RE = /appeal/i;
+    const STATION_RE = /station\s*request/i;  // in Title OR Labels
+    createdDocs.forEach(t => {
+      const title = String(t.Title || ''), labels = String(t.Labels || '');
+      if (hasNoEmt(title, labels)) noEmt++;
+      if (STATION_RE.test(title) || STATION_RE.test(labels)) stationReq++;
+      if (APPEAL_RE.test(title)) appeal++;
+    });
+
+    // 2) Resolved in-window, grouped by ClosureCode (blank -> "Unspecified"). Also, within the
+    //    "Successful" bucket, count Address Exclusion / Address Depri(oritization) resolutions
+    //    (matched against RootCause / RootCauseDetails, case-insensitive).
+    const resolvedRows = await coll.aggregate([
+      { $project: {
+        rd, Status: 1,
+        cc: { $trim: { input: { $ifNull: ['$ClosureCode', ''] } } },
+        rctext: { $toLower: { $concat: [ { $ifNull: ['$RootCause', ''] }, ' ', { $ifNull: ['$RootCauseDetails', ''] } ] } },
+        resolver: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } },
+      } },
+      { $match: { Status: { $in: RESOLVED_SET }, $expr: inWin('$rd') } },
+      { $project: {
+        code: { $cond: [{ $eq: ['$cc', ''] }, 'Unspecified', '$cc'] },
+        rctext: 1, resolver: 1,
+      } },
+    ]).toArray();
+    const resolved = resolvedRows.length;
+    const ccMap = {};
+    const ADDR_RE = /address\s*(exclusion|depri)/i;   // "Address Exclusion" OR "Address Depri*"
+    let successfulAddr = 0, successful = 0, immediatelyResolved = 0;
+    let immByAutosim = 0, immByAgentRule = 0;          // split of "Immediately Resolved"
+    resolvedRows.forEach(r => {
+      const code = r.code || 'Unspecified';
+      ccMap[code] = (ccMap[code] || 0) + 1;
+      const codeL = code.toLowerCase();
+      if (codeL === 'successful') { successful++; if (ADDR_RE.test(String(r.rctext || ''))) successfulAddr++; }
+      if (codeL === 'immediately resolved') {
+        immediatelyResolved++;
+        if (/autosim/i.test(String(r.resolver || ''))) immByAutosim++; else immByAgentRule++;
+      }
+    });
+    const closureCodes = Object.keys(ccMap).map(k => ({ code: k, count: ccMap[k] })).sort((a, b) => b.count - a.count);
+
+    // 3) Current in-queue (open) snapshot — across all quarters, broken down by status.
+    const queueRows = await coll.aggregate([
+      { $match: { Status: { $in: OPEN_STATUSES } } },
+      { $group: { _id: '$Status', n: { $sum: 1 } } },
+    ]).toArray();
+    const queueByStatus = { 'Assigned': 0, 'Work In Progress': 0, 'Researching': 0, 'Pending': 0 };
+    queueRows.forEach(r => { if (queueByStatus[r._id] != null) queueByStatus[r._id] = r.n || 0; });
+    const inQueue = queueRows.reduce((s, r) => s + (r.n || 0), 0);
+
+    res.json({
+      from: from.toISOString(), to: to.toISOString(),
+      created, resolved, inQueue, closureCodes,
+      // Resolved split for the chart. Immediately Resolved splits into Agent/Rule vs AutoSIM.
+      immediatelyResolved, immediatelyByAgentRule: immByAgentRule, immediatelyByAutosim: immByAutosim,
+      successful,
+      // Within "Successful": Address Exclusion / Address Depri resolutions.
+      successfulAddressActions: successfulAddr,
+      // Created-window flags.
+      createdFlags: { noEmt, stationRequest: stationReq, appeal },
+      // Current open queue broken down by status.
+      queueByStatus,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not build the handover report.' });
+  }
+});
+
 app.get('/api/shift-report', requireRole('admin'), async (req, res) => {
   try {
     const roll = await getShiftRollup();

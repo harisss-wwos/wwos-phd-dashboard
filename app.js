@@ -1286,6 +1286,160 @@ function reloadTakeoverSection(){
 window.reloadTakeoverSection=reloadTakeoverSection;
 // ===== end Takeover =====
 
+// ===== Handover Report — last 12 hours (today 7am–7pm) in the user's timezone (IST/MST) =====
+const HANDOVER_TZ_ZONE={ IST:'Asia/Kolkata', MST:'America/Denver' };
+let HANDOVER_DATA=null;   // { from, to, created, resolved, inQueue, closureCodes, tz, label }
+let _handoverChart=null;
+// What the parts in a zoned wall-clock time are for a given instant, using Intl (DST-correct).
+function _zonedParts(date,zone){
+  const f=new Intl.DateTimeFormat('en-CA',{ timeZone:zone, year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false });
+  const p={}; f.formatToParts(date).forEach(x=>{ if(x.type!=='literal') p[x.type]=x.value; });
+  return p; // {year,month,day,hour,minute,second}
+}
+// The UTC instant corresponding to a given wall-clock (y,m,d,h) in `zone`. Solves the offset via
+// one Intl round-trip (good enough for whole-hour boundaries; DST-safe either side of a shift).
+function _zonedWallToUTC(y,mo,d,h,zone){
+  // Guess from a UTC time with those wall components, then correct by the zone's offset at that guess.
+  const guess=Date.UTC(y,mo-1,d,h,0,0);
+  const p=_zonedParts(new Date(guess),zone);
+  const asUTCofGuess=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);
+  const offset=asUTCofGuess-guess;          // zone offset (ms) at the guessed instant
+  return new Date(guess-offset);
+}
+// Build TODAY's 7am–7pm window in `zone`. "Today" = the current date in that zone. If it's before
+// 7am locally there's not yet a completed window, so we show the current partial day up to now.
+function handoverWindow(zone){
+  const now=new Date();
+  const p=_zonedParts(now,zone);
+  const y=+p.year, mo=+p.month, d=+p.day;
+  const start=_zonedWallToUTC(y,mo,d,7,zone);    // today 07:00 local
+  const end=_zonedWallToUTC(y,mo,d,19,zone);     // today 19:00 local
+  return { start, end };
+}
+function fmtHandoverLabel(win,zone){
+  const opt={ timeZone:zone, day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:true };
+  try{ return new Date(win.start).toLocaleString('en-US',opt)+' \u2013 '+new Date(win.end).toLocaleString('en-US',opt); }catch(e){ return ''; }
+}
+async function reloadHandoverSection(){
+  const body=document.getElementById('handoverBody'); if(!body) return;
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let tz='IST';
+  try{ if(window.PHDAuth&&window.PHDAuth.myTimezone) tz=await window.PHDAuth.myTimezone(); }catch(e){}
+  if(tz!=='IST'&&tz!=='MST') tz='IST';
+  const zone=HANDOVER_TZ_ZONE[tz]||HANDOVER_TZ_ZONE.IST;
+  const win=handoverWindow(zone);
+  const label=fmtHandoverLabel(win,zone);
+  const url='/api/handover-12h?from='+encodeURIComponent(new Date(win.start).toISOString())+'&to='+encodeURIComponent(new Date(win.end).toISOString());
+  window.PHDAuth.api('GET',url).then(function(r){
+    if(!r||!r.ok||!r.data){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; return; }
+    const d=Object.assign({},r.data,{ tz:tz, label:label });
+    HANDOVER_DATA=d;
+    const cf=d.createdFlags||{noEmt:0,stationRequest:0,appeal:0};
+    const qs=d.queueByStatus||{};
+    // A tile: `tot` marks the group total (darker/bold). cls adds the coloured left border.
+    const tile=function(cls,val,lbl,tot){ return '<div class="ho-tile '+cls+(tot?' ho-tot':'')+'"><div class="ho-tile-v">'+(val||0)+'</div><div class="ho-tile-l">'+lbl+'</div></div>'; };
+    body.innerHTML=
+      '<div class="ho-meta">'+ic('clock',14)+' <b>'+esc(tz)+'</b> \u00b7 '+esc(label)+'</div>'+
+      // Row 1 — Created group.
+      '<div class="ho-row ho-row-created">'+
+        tile('ho-created',d.created,'Created (total)',true)+
+        tile('ho-noemt',cf.noEmt,'No EMT')+
+        tile('ho-station',cf.stationRequest,'Station Request')+
+        tile('ho-appeal',cf.appeal,'Appeal')+
+      '</div>'+
+      // Row 2 — Resolved group.
+      '<div class="ho-row ho-row-resolved">'+
+        tile('ho-resolved',d.resolved,'Resolved (total)',true)+
+        tile('ho-succ',d.successful,'Successful')+
+        tile('ho-succ',d.successfulAddressActions,'Successful as Address Exclusion')+
+        tile('ho-imm',d.immediatelyByAgentRule,'Imm. Resolved by Agent/Rule')+
+        tile('ho-auto',d.immediatelyByAutosim,'Imm. Resolved by AUTOSIM')+
+      '</div>'+
+      // Row 3 — In Queue group.
+      '<div class="ho-row ho-row-queue">'+
+        tile('ho-queue',d.inQueue,'In Queue (total)',true)+
+        tile('ho-queue',qs['Assigned'],'Assigned')+
+        tile('ho-queue',qs['Work In Progress'],'Work In Progress')+
+        tile('ho-queue',qs['Researching'],'Researching')+
+        tile('ho-queue',qs['Pending'],'Pending')+
+      '</div>'+
+      '<div class="sr-chart-card"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3><div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>'+
+      handoverClosureHtml(d.closureCodes||[], d);
+    try{ drawHandoverChart(d); }catch(e){}
+  }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; });
+}
+window.reloadHandoverSection=reloadHandoverSection;
+// Closure-code breakdown table for the resolved tickets in-window. For the "Successful" row we also
+// show how many were Address Exclusion / Address Depri resolutions (from d.successfulAddressActions).
+function handoverClosureHtml(codes,d){
+  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if(!codes.length) return '<div class="ho-closure"><h4>Resolved by closure code</h4><p class="meta-info" style="padding:8px 0">No tickets resolved in this window.</p></div>';
+  const addr=(d&&d.successfulAddressActions)||0;
+  const rows=codes.map(function(c){
+    const isSucc=String(c.code).toLowerCase()==='successful';
+    const note=(isSucc&&addr>0)?('<div class="ho-cc-sub">incl. '+addr+' Address Exclusion / Address Depri</div>'):'';
+    return '<tr><td>'+esc(c.code)+note+'</td><td class="ho-cc-n">'+c.count+'</td></tr>';
+  }).join('');
+  return '<div class="ho-closure"><h4>Resolved by closure code</h4>'+
+    '<table class="ho-cc-tbl"><thead><tr><th>Closure code</th><th class="ho-cc-n">Count</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function drawHandoverChart(d){
+  const cv=document.getElementById('handoverChart'); if(!cv||typeof Chart==='undefined') return;
+  const grad=function(c1,c2){ const cx=cv.getContext('2d'); const g=cx.createLinearGradient(0,0,0,320); g.addColorStop(0,c1); g.addColorStop(1,c2); return g; };
+  const cf=d.createdFlags||{};
+  const immAgent=d.immediatelyByAgentRule||0, immAuto=d.immediatelyByAutosim||0, succ=d.successful||0;
+  // Bars: Created + its 3 flags, the two Immediately-Resolved splits, Successful, and In Queue.
+  const bars=[
+    ['Created',                d.created||0,              grad('#7fd3fb','#2b82fe')],
+    ['No EMT',                 cf.noEmt||0,               grad('#c4b5fd','#7c5cf0')],
+    ['Station Request',        cf.stationRequest||0,      grad('#fca5a5','#dc2626')],
+    ['Appeal',                 cf.appeal||0,              grad('#fdba74','#ea7317')],
+    ['Imm. Resolved (Agent/Rule)', immAgent,             grad('#86efac','#1f9d57')],
+    ['Imm. Resolved (AUTOSIM)',    immAuto,               grad('#93c5fd','#2563eb')],
+    ['Successful',             succ,                      grad('#5eead4','#0d9488')],
+    ['In Queue',               d.inQueue||0,              grad('#fcd34d','#ec7211')],
+  ];
+  makeChart('handoverChart',{ type:'bar',
+    data:{ labels:bars.map(b=>b[0]), datasets:[{
+      label:'Tickets', data:bars.map(b=>b[1]),
+      backgroundColor:bars.map(b=>b[2]),
+      borderRadius:8, maxBarThickness:70,
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false },
+        tooltip:{ backgroundColor:'rgba(20,24,30,.96)', padding:12, cornerRadius:8, callbacks:{ label:function(c){ return ' '+c.parsed.y+' tickets'; } } } },
+      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } }, x:{ grid:{ display:false }, ticks:{ font:{ size:10 }, maxRotation:30, minRotation:0 } } },
+    }});
+}
+async function exportHandover(){
+  const d=HANDOVER_DATA; if(!d){ showToast('Handover not loaded yet'); return; }
+  const lines=[];
+  lines.push('PHD Handover Report');
+  lines.push(d.tz+' · '+d.label);
+  lines.push('');
+  lines.push('Tickets created: '+d.created);
+  const cf=d.createdFlags||{};
+  lines.push('    No EMT: '+(cf.noEmt||0));
+  lines.push('    Station Request: '+(cf.stationRequest||0));
+  lines.push('    Appeal: '+(cf.appeal||0));
+  lines.push('Tickets resolved: '+d.resolved);
+  lines.push('    Immediately Resolved: '+(d.immediatelyResolved||0));
+  lines.push('        by Agent/Rule: '+(d.immediatelyByAgentRule||0));
+  lines.push('        by AUTOSIM: '+(d.immediatelyByAutosim||0));
+  lines.push('    Successful: '+(d.successful||0)+(d.successfulAddressActions?(' (incl. '+d.successfulAddressActions+' Address Exclusion / Address Depri)'):''));
+  lines.push('In queue (open now): '+d.inQueue);
+  if((d.closureCodes||[]).length){
+    lines.push('');
+    lines.push('Resolved by closure code:');
+    d.closureCodes.forEach(function(c){ lines.push('    '+c.code+': '+c.count); });
+  }
+  const txt=lines.join('\n');
+  try{ await navigator.clipboard.writeText(txt); showToast('Handover report copied'); }
+  catch(e){ const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Handover report copied'); }
+}
+window.exportHandover=exportHandover;
+// ===== end Handover Report =====
+
 async function exportTakeover(){
   const cc=SR_COUNTS||{}, col=SR_COLORS||{};
   const inQ=cc.inQ||0, ct={purple:{length:col.purple||0},black:{length:col.black||0},red:{length:col.red||0},yellow:{length:col.yellow||0},green:{length:col.green||0}};
@@ -3175,11 +3329,21 @@ function renderDashboardChunked(){
           '<div class="chart-wrap" style="height:380px;position:relative"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>'+
       '</div></div>'+
     '</section>'+
+    // ---- Section 4: Handover Report (last 12 hours, 7am-7pm in the user's timezone) ----
+    '<section class="dh-card dh-card-handover">'+
+      '<div class="dh-card-head"><h2>'+ic('clipboard',16)+' Handover Report \u2014 Last 12 Hours</h2>'+
+        '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button></div>'+
+      '<div class="dh-card-body"><div id="handoverBody">'+
+        '<div class="sr-chart-card"><div class="chart-wrap" style="height:380px;position:relative"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>'+
+      '</div></div>'+
+    '</section>'+
   '</div></div>';
   attachNewFileHandler();
   if(window.PHDPlaceTopRight) window.PHDPlaceTopRight(); // move the top-right cluster into the header row
   // Takeover loads EAGERLY (section is always open — no expand needed).
   try{ reloadTakeoverSection(); }catch(e){}
+  // Handover Report loads EAGERLY too (last 12h window computed client-side in the user's timezone).
+  try{ reloadHandoverSection(); }catch(e){}
   // Ticket Age Classification loads EAGERLY (always visible, not collapsible). age-detail is
   // time-sensitive so it's not version-cached â€” always fetched fresh (small payload).
   // AC era (all 2026+ tickets, no quarter) â€” Ticket Age Classification is live-only, era-scoped.

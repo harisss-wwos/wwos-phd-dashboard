@@ -43,6 +43,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-btn[disabled],.rc-btn.is-off{opacity:.45;cursor:not-allowed;pointer-events:none}
 .rc-copywarn{font-size:.78em;font-weight:700;color:#b5680c;align-self:center;margin-left:4px}
 .rc-hint{font-size:.78em;color:#8a94a2;margin-top:6px;line-height:1.5}
+/* Error shown below the converted output (e.g. Driver Type missing -> Driv: N/A). */
+.rc-err{margin-top:12px;display:flex;align-items:flex-start;gap:9px;background:#fdecec;border:1px solid #f5c2c2;border-left:4px solid #e23b3b;border-radius:8px;padding:11px 14px;font-size:.84em;font-weight:600;color:#b02a2a;line-height:1.5}
+.rc-err svg{flex:0 0 auto;margin-top:1px}
 .rc-def{margin-top:12px;background:#fff7ef;border:1px solid #f3d4b0;border-left:4px solid #ec7211;border-radius:8px;padding:12px 14px}
 .rc-def .rc-def-t{display:flex;align-items:center;gap:8px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#b5560c;margin-bottom:6px}
 .rc-def .rc-def-name{font-weight:800;color:#1b2026;font-size:.95em;margin-bottom:4px}
@@ -106,6 +109,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
       <div class="rc-col">
         <h3>Converted output</h3>
         <div class="rc-out-wrap"><div class="rc-out" id="rcOut">Paste details to convert.</div></div>
+        <div class="rc-err" id="rcDrivErr" style="display:none"></div>
         <div class="rc-resmeta" id="rcResMeta" style="display:none"></div>
         <div class="rc-def" id="rcDef" style="display:none"></div>
       </div>
@@ -285,28 +289,51 @@ function rcConvert(fromRaw){
   var res=(resNum && RC_RES[+resNum])?RC_RES[+resNum]:'';
   var resOk=!!res;
   var lines=['Issue: '+issue];
+  var drivOk=true;   // Driver Type must resolve to a real value (not N/A) for copying to be allowed.
   RC_FIELDS.forEach(function(f){
     var v=rcGrab(raw,f[1]);
     if(f[0]==='Date' && v) v=rcFmtDate(v);
-    lines.push(f[0]+': '+(v||'N/A'));
+    var out=(v||'N/A');
+    if(f[0]==='Driv' && out==='N/A') drivOk=false;
+    lines.push(f[0]+': '+out);
   });
   lines.push('Res: '+res);
   document.getElementById('rcOut').textContent=lines.join('\n');
+  // Driver-Type error: shown below the output. Only flag it once the user has pasted something
+  // (an empty textarea shouldn't scream an error on first load).
+  var hasInput=!!raw.trim();
+  rcSetDrivError(hasInput && !drivOk);
   rcRenderDef();
   rcRenderResMeta();
-  rcSetCopyState(issueOk, resOk);
+  rcSetCopyState(issueOk, resOk, drivOk);
 }
 window.rcConvert=rcConvert;
-function rcSetCopyState(issueOk, resOk){
+// Show/hide the "Driver Type missing" error below the converted output.
+function rcSetDrivError(on){
+  var el=document.getElementById('rcDrivErr'); if(!el) return;
+  if(on){
+    el.style.display='flex';
+    el.innerHTML=ic('alert',15)+'<span>Driver Type is missing (Driv: N/A). Add the Driver Type to the pasted details before copying.</span>';
+  }else{ el.style.display='none'; el.innerHTML=''; }
+}
+function rcSetCopyState(issueOk, resOk, drivOk){
+  if(drivOk===undefined) drivOk=true;
   var btn=document.getElementById('rcCopy'); var warn=document.getElementById('rcCopyWarn');
-  var ok=issueOk && resOk;
+  var ok=issueOk && resOk && drivOk;
   if(btn){ btn.disabled=!ok; btn.classList.toggle('is-off',!ok); }
-  // Admin-only "Copy as Pending": enabled as soon as the Issue is valid (Resolution not required).
+  // Admin-only "Copy as Pending": enabled when the Issue is valid AND Driver Type is present
+  // (Resolution not required for pending).
   var pend=document.getElementById('rcCopyPending');
-  if(pend && rcIsAdmin()){ pend.disabled=!issueOk; pend.classList.toggle('is-off',!issueOk); }
+  if(pend && rcIsAdmin()){ var pendOk=issueOk && drivOk; pend.disabled=!pendOk; pend.classList.toggle('is-off',!pendOk); }
   if(warn){
     if(ok){ warn.style.display='none'; warn.textContent=''; }
-    else{ var miss=[]; if(!issueOk) miss.push('select a valid Issue'); if(!resOk) miss.push('select a Resolution'); warn.style.display='block'; warn.textContent='Copy disabled \u2014 please '+miss.join(' and ')+'.'; }
+    else{
+      var miss=[];
+      if(!issueOk) miss.push('select a valid Issue');
+      if(!resOk) miss.push('select a Resolution');
+      if(!drivOk) miss.push('add the Driver Type');
+      warn.style.display='block'; warn.textContent='Copy disabled \u2014 please '+miss.join(' and ')+'.';
+    }
   }
 }
 function rcClear(){
@@ -316,7 +343,8 @@ function rcClear(){
   var out=document.getElementById('rcOut'); if(out) out.textContent='Paste details to convert.';
   var def=document.getElementById('rcDef'); if(def){ def.style.display='none'; def.innerHTML=''; }
   var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
-  rcSetCopyState(false,false);   // also disables the admin "Copy as Pending" button
+  rcSetDrivError(false);   // clear the Driver-Type error
+  rcSetCopyState(false,false,true);   // also disables the admin "Copy as Pending" button
   var warn=document.getElementById('rcCopyWarn'); if(warn){ warn.style.display='none'; warn.textContent=''; }
   rcGateSelects();
   if(ta) ta.focus();
