@@ -191,7 +191,12 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
 .ail-head-ic svg{width:18px;height:18px}
 .ail-head-tx{flex:1;min-width:0}
-.ail-head-tx h2{margin:0;color:#fff;font-size:1.1em;font-weight:800}
+.ail-head-tx h2{margin:0;color:#fff;font-size:1.1em;font-weight:800;display:inline-flex;align-items:center;gap:8px}
+/* Copy-ticket-ID icon sitting right next to the ID inside the title. */
+.ail-idcopy{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--bd);color:var(--tm);background:transparent;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.ail-idcopy svg{width:13px;height:13px}
+.ail-idcopy:hover{border-color:#44b9d6;color:#44b9d6;background:rgba(68,185,214,.08)}
+.ail-idcopy.copied{border-color:var(--gl);color:var(--gl)}
 .ail-head-sub{display:block;color:var(--tm);font-size:.8em;margin-top:3px}
 .ail-icbtn{flex-shrink:0;background:transparent;border:1px solid var(--bd);color:var(--tm);border-radius:6px;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s;margin-top:1px}
 .ail-icbtn svg{width:14px;height:14px}
@@ -944,6 +949,9 @@ h1{color:#1b2026 !important}
 .ail-icbtn{border-color:#d4dce4 !important;color:#5c6773 !important}
 .ail-icbtn:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
 .ail-icbtn.copied{border-color:#1f9d57 !important;color:#1f9d57 !important}
+.ail-idcopy{border-color:#d4dce4 !important;color:#5c6773 !important}
+.ail-idcopy:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
+.ail-idcopy.copied{border-color:#1f9d57 !important;color:#1f9d57 !important}
 .ail-x{color:#8793a0 !important}
 .ail-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
 .ail-hint{color:#5c6773 !important}
@@ -1106,8 +1114,7 @@ h1{color:#1b2026 !important}
   <div class="modal ail-modal" role="dialog" aria-modal="true" aria-labelledby="incidentTitle">
     <div class="ail-head">
       <span class="ail-head-ic" id="ailHeadIc"></span>
-      <div class="ail-head-tx"><h2 id="incidentTitle">Add incident log</h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket's log</span></div>
-      <button type="button" class="ail-icbtn ail-idcopy" id="incidentIdCopyBtn" onclick="copyIncidentTicketId(this)" title="Copy ticket ID" aria-label="Copy ticket ID" style="display:none"></button>
+      <div class="ail-head-tx"><h2 id="incidentTitle"><span id="incidentTitleText">Add incident log</span><button type="button" class="ail-idcopy" id="incidentIdCopyBtn" onclick="copyIncidentTicketId(this)" title="Copy ticket ID" aria-label="Copy ticket ID" style="display:none"></button></h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket's log</span></div>
       <button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>
     </div>
     <div class="ail-body">
@@ -1980,10 +1987,16 @@ function fillIncidentSelects(){
   if(_ilSelectsFilled) return; _ilSelectsFilled=true;
   var rc=document.getElementById('ilRootCause');
   if(rc){ var causes=window.RC_ROOT_CAUSES||[];
-    rc.innerHTML='<option value="">— Select root cause —</option>'+causes.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join(''); }
+    rc.innerHTML='<option value="">— Select root cause —</option>'+causes.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join('');
+    if(window.makeSearchableSelect) window.makeSearchableSelect(rc); }
   var res=document.getElementById('ilPhdResolution');
   if(res){ var rl=window.RC_RESOLUTIONS||[];
-    res.innerHTML='<option value="">— Select resolution —</option>'+rl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join(''); }
+    res.innerHTML='<option value="">— Select resolution —</option>'+rl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join('');
+    if(window.makeSearchableSelect) window.makeSearchableSelect(res); }
+}
+// Resync the searchable comboboxes for the two dropdowns (after their .value is set directly).
+function ilRefreshSelectUI(){
+  ['ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el && el._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(el); });
 }
 var IL_FIELD_IDS=['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRootCause','ilRelatedLink','ilPhdResolution','ilPhdNotes'];
 var IL_EDIT_ID=null;   // null = Add mode; an id = editing that existing incident-log entry
@@ -2170,7 +2183,7 @@ function openIncidentLog(i){
   const t=TICKETS[i];
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   IL_EDIT_ID=null;   // add mode (not editing an existing entry)
-  document.getElementById('incidentTitle').textContent='Add incident log · '+t.shortId;
+  document.getElementById('incidentTitleText').textContent='Add incident log · '+t.shortId;
   ilSetTitleCopyId(t.shortId);
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
@@ -2183,6 +2196,7 @@ function openIncidentLog(i){
   ilPaintFieldCopyIcons();
   ilWireTextareaAutosize();
   ilSetFieldLocks(false);   // add mode: everything editable, no pencils
+  ilRefreshSelectUI();      // resync the searchable dropdowns to their (empty) value
   // Add mode: fields are empty -> settle every textarea to the 5-line default.
   ilAutosizeAll();
   ilRefreshEmptyMarks();   // flag every still-empty field in light red
@@ -2352,7 +2366,7 @@ function openEditIncidentStructured(i, id, savedText){
   IL_EDIT_ID=id;   // edit mode
   EDIT_INC_ID=id;
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
-  document.getElementById('incidentTitle').textContent='Edit incident log · '+(t?t.shortId:'');
+  document.getElementById('incidentTitleText').textContent='Edit incident log · '+(t?t.shortId:'');
   ilSetTitleCopyId(t?t.shortId:'');
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='';   // edit mode -> allow delete
@@ -2364,6 +2378,7 @@ function openEditIncidentStructured(i, id, savedText){
   ilPaintFieldCopyIcons();
   ilWireTextareaAutosize();
   ilSetFieldLocks(true);   // edit mode: filled text fields start read-only with a pencil to edit
+  ilRefreshSelectUI();     // resync the searchable dropdowns to their prefilled values
   ilRefreshEmptyMarks();
   document.getElementById('incidentErr').style.display='none';
   document.getElementById('incidentModal').style.display='flex';

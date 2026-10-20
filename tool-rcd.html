@@ -255,6 +255,8 @@ function rcInitSelects(){
       var lbl=r.name+(r.note?(' ('+r.note+')'):'');
       ro+='<option value="'+i+'">'+String(i).padStart(2,'0')+'. '+esc(lbl)+'</option>'; }
     rs.innerHTML=ro;
+    // Make the Resolution picker type-to-filter searchable.
+    if(window.makeSearchableSelect) window.makeSearchableSelect(rs);
   }
 }
 function rcRenderDef(){
@@ -273,7 +275,7 @@ function rcRenderDef(){
 }
 function rcGateSelects(){
   var has=!!String((document.getElementById('rcRaw')||{}).value||'').trim();
-  ['rcIssue','rcRes'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.disabled=!has; if(!has) el.value=''; });
+  ['rcIssue','rcRes'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.disabled=!has; if(!has) el.value=''; if(window.makeSearchableSelect && el._ssWrap) window.makeSearchableSelect(el); });
   return has;
 }
 function rcConvert(fromRaw){
@@ -342,6 +344,9 @@ function rcClear(){
   var def=document.getElementById('rcDef'); if(def){ def.style.display='none'; def.innerHTML=''; }
   var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
   rcSetDrivError(false);   // clear the Driver-Type error
+  // Restore the copy buttons' default labels (they may read "Copied!" after an auto-clear).
+  var cpy=document.getElementById('rcCopy'); if(cpy){ cpy.textContent='Copy result'; cpy.classList.remove('ok'); }
+  var pend=document.getElementById('rcCopyPending'); if(pend){ pend.textContent='Copy as Pending'; pend.classList.remove('ok'); }
   rcSetCopyState(false,false,true);   // also disables the admin "Copy as Pending" button
   var warn=document.getElementById('rcCopyWarn'); if(warn){ warn.style.display='none'; warn.textContent=''; }
   rcGateSelects();
@@ -371,7 +376,9 @@ async function rcCopyOut(){
   if(!txt.trim()){ return; }
   try{
     await navigator.clipboard.writeText(txt);
-    if(btn){ var prev=btn.textContent; btn.textContent='Copied!'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent=prev; btn.classList.remove('ok'); },1500); }
+    if(btn){ btn.textContent='Copied!'; btn.classList.add('ok'); }
+    // Reset the whole converter shortly after the "Copied!" flash so the next entry starts fresh.
+    setTimeout(function(){ rcClear(); },900);
   }catch(e){ window.prompt('Copy the result:', txt); }
 }
 window.rcCopyOut=rcCopyOut;
@@ -391,7 +398,9 @@ async function rcCopyPending(){
   var txt=lines.join('\n');
   try{
     await navigator.clipboard.writeText(txt);
-    if(btn){ var prev=btn.textContent; btn.textContent='Copied (Pending)!'; btn.classList.add('ok'); setTimeout(function(){ btn.textContent=prev; btn.classList.remove('ok'); },1500); }
+    if(btn){ btn.textContent='Copied (Pending)!'; btn.classList.add('ok'); }
+    // Reset the whole converter shortly after the "Copied!" flash so the next entry starts fresh.
+    setTimeout(function(){ rcClear(); },900);
   }catch(e){ window.prompt('Copy the result:', txt); }
 }
 window.rcCopyPending=rcCopyPending;

@@ -207,3 +207,120 @@ window.RC_ROOT_CAUSES = [
   'Vehicle Unsecured',
   'Wrong/No Package Delivered'
 ];
+
+// ====================================================================================
+// Shared "searchable select" enhancer.
+// Turns a native <select> into a type-to-filter combobox (like the Resolve-ticket Root Cause
+// picker) WITHOUT changing the underlying <select>: the native element stays the source of truth,
+// so existing code that reads/sets .value and listens to 'change' keeps working. Call
+// window.makeSearchableSelect(selectEl) after the <select> is populated with its <option>s.
+// Idempotent (safe to call again after re-populating options — pass {rebuild:true} to resync).
+// ====================================================================================
+(function () {
+  var OPEN = null; // currently-open combobox (only one at a time)
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  // Inject the shared CSS once.
+  function ensureCss(){
+    if (document.getElementById('ss-css')) return;
+    var st = document.createElement('style'); st.id = 'ss-css';
+    st.textContent = [
+      '.ss-wrap{position:relative;width:100%}',
+      '.ss-field{width:100%;display:flex;align-items:center;gap:8px;box-sizing:border-box;cursor:pointer;background:#fff;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-family:inherit;font-size:.9em;padding:10px 12px;line-height:1.3}',
+      '.ss-field:focus,.ss-wrap.open .ss-field{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
+      '.ss-field.ss-disabled{background:#f1f3f6;color:#a7b0ba;cursor:not-allowed;opacity:.8}',
+      '.ss-field .ss-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.ss-field .ss-val.ss-ph{color:#8a94a2}',
+      '.ss-field .ss-caret{flex:0 0 auto;color:#8a94a2;transition:transform .15s}',
+      '.ss-wrap.open .ss-field .ss-caret{transform:rotate(180deg)}',
+      '.ss-pop{position:absolute;z-index:6000;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #d4dce4;border-radius:8px;box-shadow:0 12px 30px -12px rgba(20,30,50,.35);padding:8px;display:none}',
+      '.ss-wrap.open .ss-pop{display:block}',
+      '.ss-search{display:flex;align-items:center;gap:8px;border:1px solid #cfd6de;border-radius:7px;padding:7px 10px;margin-bottom:6px}',
+      '.ss-search:focus-within{border-color:#2b82fe;box-shadow:0 0 0 3px rgba(43,130,254,.14)}',
+      '.ss-search svg{flex:0 0 auto;color:#8a94a2}',
+      '.ss-search input{flex:1;min-width:0;border:0;outline:none;background:transparent;font-family:inherit;font-size:.9em;color:#1b2026}',
+      '.ss-list{max-height:240px;overflow:auto}',
+      '.ss-opt{padding:9px 11px;border-radius:6px;font-size:.9em;color:#1b2026;cursor:pointer;white-space:normal;line-height:1.35}',
+      '.ss-opt:hover,.ss-opt.ss-active{background:#eef3f8}',
+      '.ss-opt.ss-chosen{font-weight:700}',
+      '.ss-empty{padding:10px 11px;color:#8a94a2;font-size:.86em}'
+    ].join('');
+    document.head.appendChild(st);
+  }
+  var SEARCH_ICO = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  var CARET_ICO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  function closeOpen(){ if (OPEN){ OPEN.classList.remove('open'); OPEN=null; } }
+  document.addEventListener('click', function(e){ if (OPEN && !OPEN.contains(e.target)) closeOpen(); });
+  document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeOpen(); });
+
+  window.makeSearchableSelect = function (sel, opts) {
+    opts = opts || {};
+    if (!sel || sel.tagName !== 'SELECT') return;
+    ensureCss();
+    var wrap = sel._ssWrap;
+    if (wrap && !opts.rebuild) { refreshFromSelect(sel); return; }
+    if (!wrap) {
+      // Build the combobox shell once and hide the native select.
+      sel.style.display = 'none';
+      wrap = document.createElement('div'); wrap.className = 'ss-wrap';
+      sel.parentNode.insertBefore(wrap, sel.nextSibling);
+      var field = document.createElement('button');
+      field.type = 'button'; field.className = 'ss-field';
+      field.innerHTML = '<span class="ss-val"></span><span class="ss-caret">'+CARET_ICO+'</span>';
+      var pop = document.createElement('div'); pop.className = 'ss-pop';
+      pop.innerHTML = '<div class="ss-search">'+SEARCH_ICO+'<input type="text" placeholder="Filter\u2026" aria-label="Filter options"></div><div class="ss-list"></div>';
+      wrap.appendChild(field); wrap.appendChild(pop);
+      sel._ssWrap = wrap; sel._ssField = field; sel._ssInput = pop.querySelector('input'); sel._ssList = pop.querySelector('.ss-list');
+
+      field.addEventListener('click', function(){ if (sel.disabled) return; var isOpen = wrap.classList.contains('open'); closeOpen(); if (!isOpen){ wrap.classList.add('open'); OPEN = wrap; sel._ssInput.value=''; renderList(sel,''); setTimeout(function(){ sel._ssInput.focus(); }, 10); } });
+      sel._ssInput.addEventListener('input', function(){ renderList(sel, this.value); });
+      sel._ssInput.addEventListener('keydown', function(e){
+        var items = Array.prototype.slice.call(sel._ssList.querySelectorAll('.ss-opt'));
+        var act = sel._ssList.querySelector('.ss-opt.ss-active'); var idx = items.indexOf(act);
+        if (e.key==='ArrowDown'){ e.preventDefault(); idx=Math.min(items.length-1, idx+1); }
+        else if (e.key==='ArrowUp'){ e.preventDefault(); idx=Math.max(0, idx-1); }
+        else if (e.key==='Enter'){ e.preventDefault(); if (act) act.click(); return; }
+        else return;
+        items.forEach(function(x){ x.classList.remove('ss-active'); });
+        if (items[idx]){ items[idx].classList.add('ss-active'); items[idx].scrollIntoView({block:'nearest'}); }
+      });
+    }
+    refreshFromSelect(sel);
+  };
+
+  // Mirror the native select's current value + disabled state into the combobox face.
+  function refreshFromSelect(sel){
+    var field = sel._ssField; if (!field) return;
+    var val = sel.value;
+    var opt = sel.options[sel.selectedIndex];
+    var label = opt ? opt.textContent : '';
+    var valEl = field.querySelector('.ss-val');
+    // A placeholder option has an empty value — show it greyed.
+    valEl.textContent = label || (sel.options[0] ? sel.options[0].textContent : '');
+    valEl.classList.toggle('ss-ph', !val);
+    field.classList.toggle('ss-disabled', !!sel.disabled);
+  }
+  // (Re)render the filtered option list.
+  function renderList(sel, q){
+    var list = sel._ssList; if (!list) return;
+    q = String(q||'').trim().toLowerCase();
+    var html = ''; var cur = sel.value;
+    for (var i=0;i<sel.options.length;i++){
+      var o = sel.options[i];
+      if (o.value==='' ) continue;                 // skip the placeholder row inside the list
+      var txt = o.textContent;
+      if (q && txt.toLowerCase().indexOf(q)<0) continue;
+      html += '<div class="ss-opt'+(o.value===cur?' ss-chosen':'')+'" data-val="'+esc(o.value)+'">'+esc(txt)+'</div>';
+    }
+    list.innerHTML = html || '<div class="ss-empty">No matches</div>';
+    Array.prototype.forEach.call(list.querySelectorAll('.ss-opt'), function(el){
+      el.addEventListener('click', function(){
+        sel.value = el.getAttribute('data-val');
+        refreshFromSelect(sel);
+        closeOpen();
+        sel.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+    });
+  }
+})();
