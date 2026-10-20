@@ -46,6 +46,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 /* Error shown below the converted output (e.g. Driver Type missing -> Driv: N/A). */
 .rc-err{margin-top:12px;display:flex;align-items:flex-start;gap:9px;background:#fdecec;border:1px solid #f5c2c2;border-left:4px solid #e23b3b;border-radius:8px;padding:11px 14px;font-size:.84em;font-weight:600;color:#b02a2a;line-height:1.5}
 .rc-err svg{flex:0 0 auto;margin-top:1px}
+/* Paste-into-My-Tickets panel */
+.rc-paste{margin-top:14px;background:#f7f9fc;border:1px solid #e2e6ea;border-radius:8px;padding:14px}
+.rc-paste-t{font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773;margin-bottom:9px}
+.rc-paste-row{display:flex;gap:8px}
+.rc-paste-row input{flex:1;min-width:0;background:#fff;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-family:inherit;font-size:.9em;padding:10px 12px}
+.rc-paste-row input:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.rc-paste-status{margin-top:10px;font-size:.85em;line-height:1.5;border-radius:8px;padding:9px 12px}
+.rc-paste-status.ok{background:#eafaf0;border:1px solid #c8efd8;color:#1f7a44}
+.rc-paste-status.err{background:#fdecec;border:1px solid #f5c2c2;color:#b02a2a}
+.rc-paste-status .rc-ps-badge{display:inline-block;font-weight:800;border-radius:999px;padding:2px 9px;margin-left:4px;background:#e6f0fc;color:#1877eb;border:1px solid #cfe1fb;font-size:.9em}
+.rc-paste-actions{display:flex;gap:10px;margin-top:10px}
+.rc-paste-actions .rc-btn{flex:1;justify-content:center}
 .rc-def{margin-top:12px;background:#fff7ef;border:1px solid #f3d4b0;border-left:4px solid #ec7211;border-radius:8px;padding:12px 14px}
 .rc-def .rc-def-t{display:flex;align-items:center;gap:8px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#b5560c;margin-bottom:6px}
 .rc-def .rc-def-name{font-weight:800;color:#1b2026;font-size:.95em;margin-bottom:4px}
@@ -112,6 +124,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
         <div class="rc-err" id="rcDrivErr" style="display:none"></div>
         <div class="rc-resmeta" id="rcResMeta" style="display:none"></div>
         <div class="rc-def" id="rcDef" style="display:none"></div>
+        <!-- Paste the converted RCD straight into a ticket's My-Tickets SIM Root Cause Details. -->
+        <div class="rc-paste" id="rcPaste">
+          <div class="rc-paste-t">Paste into My Tickets</div>
+          <div class="rc-paste-row">
+            <input type="text" id="rcTicketId" placeholder="Ticket ID (e.g. V2409230449)" oninput="rcTargetReset()">
+            <button type="button" class="rc-btn sec" id="rcTicketCheck" onclick="rcCheckTicket()">Check</button>
+          </div>
+          <div class="rc-paste-status" id="rcTicketStatus" style="display:none"></div>
+          <div class="rc-paste-actions" id="rcPasteActions" style="display:none">
+            <button type="button" class="rc-btn dark" id="rcPastePending" onclick="rcPasteToTicket(true)">Paste as Pending</button>
+            <button type="button" class="rc-btn prim" id="rcPaste" onclick="rcPasteToTicket(false)">Paste</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="rc-actions">
@@ -346,6 +371,7 @@ function rcClear(){
   var def=document.getElementById('rcDef'); if(def){ def.style.display='none'; def.innerHTML=''; }
   var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
   rcSetDrivError(false);   // clear the Driver-Type error
+  if(typeof rcTargetReset==='function') rcTargetReset();   // reset the paste-into-My-Tickets panel
   // Restore the copy buttons' default labels (they may read "Copied!" after an auto-clear).
   var cpy=document.getElementById('rcCopy'); if(cpy){ cpy.textContent='Copy result'; cpy.classList.remove('ok'); }
   var pend=document.getElementById('rcCopyPending'); if(pend){ pend.textContent='Copy as Pending'; pend.classList.remove('ok'); }
@@ -406,6 +432,91 @@ async function rcCopyPending(){
   }catch(e){ window.prompt('Copy the result:', txt); }
 }
 window.rcCopyPending=rcCopyPending;
+
+// ===== Paste the converted RCD straight into a ticket's My-Tickets SIM Root Cause Details =====
+var RC_TARGET=null;   // last verified target: { shortId, status } or null
+// Build the converter output, optionally forcing the Res line to PENDING.
+function rcOutputText(asPending){
+  var base=String(document.getElementById('rcOut').textContent||'');
+  if(!asPending) return base;
+  var lines=base.split('\n'); var done=false;
+  for(var i=0;i<lines.length;i++){ if(/^Res:/.test(lines[i])){ lines[i]='Res: '+RC_PENDING_RES; done=true; break; } }
+  if(!done) lines.push('Res: '+RC_PENDING_RES);
+  return lines.join('\n');
+}
+// Wrap the RCD output as a My-Tickets incident-log blob: only the SIM Root Cause Details section is
+// filled; the other structured sections are left as the "-" placeholder (matches buildIncidentOutput).
+function rcWrapIncidentLog(simText){
+  return [
+    '**PHD Findings**:\n-',
+    '**PHD Investigation for mitigation:**\n-',
+    '**SIM Root Cause Details:**\n'+simText,
+    '**Root Cause**: ',
+    '**PHD Related Link**: ',
+    '**PHD Resolution**: ',
+    '**PHD notes**:\n-'
+  ].join('\n\n');
+}
+function rcShowTargetStatus(cls,html){
+  var el=document.getElementById('rcTicketStatus'); if(!el) return;
+  el.className='rc-paste-status '+cls; el.style.display='block'; el.innerHTML=html;
+}
+function rcTargetReset(){
+  RC_TARGET=null;
+  var st=document.getElementById('rcTicketStatus'); if(st){ st.style.display='none'; st.innerHTML=''; }
+  var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='none';
+}
+window.rcTargetReset=rcTargetReset;
+// Look up the pasted ticket ID: must be in the user's My Tickets, open, and have NO SIM RCD yet.
+async function rcCheckTicket(){
+  var sid=String((document.getElementById('rcTicketId')||{}).value||'').trim();
+  rcTargetReset();
+  if(!sid){ rcShowTargetStatus('err', 'Enter a ticket ID first.'); return; }
+  var chk=document.getElementById('rcTicketCheck'); if(chk){ chk.disabled=true; chk.textContent='Checking\u2026'; }
+  try{
+    var r=await A.api('GET','/api/rcd-target?shortId='+encodeURIComponent(sid));
+    if(!r || !r.ok){ rcShowTargetStatus('err', (r&&r.data&&r.data.error)||'Could not check the ticket.'); return; }
+    var d=r.data;
+    if(!d.found){ rcShowTargetStatus('err', 'Ticket <b>'+esc(sid)+'</b> was not found.'); return; }
+    if(!d.mine){ rcShowTargetStatus('err', 'Ticket <b>'+esc(d.shortId)+'</b> is not assigned to you.'); return; }
+    if(!d.open){ rcShowTargetStatus('err', 'Ticket <b>'+esc(d.shortId)+'</b> is not open (status: '+esc(d.status||'\u2014')+').'); return; }
+    if(d.hasSim){ rcShowTargetStatus('err', 'Ticket <b>'+esc(d.shortId)+'</b> already has SIM Root Cause Details in its log.'); return; }
+    // Good to go.
+    RC_TARGET={ shortId:d.shortId, status:d.status };
+    rcShowTargetStatus('ok', 'Your ticket <b>'+esc(d.shortId)+'</b> \u00b7 status: <span class="rc-ps-badge">'+esc(d.status||'Open')+'</span>');
+    var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='flex';
+  }catch(e){ rcShowTargetStatus('err', 'Could not check the ticket.'); }
+  finally{ if(chk){ chk.disabled=false; chk.textContent='Check'; } }
+}
+window.rcCheckTicket=rcCheckTicket;
+// Paste the RCD into the verified ticket's incident log (SIM Root Cause Details section).
+async function rcPasteToTicket(asPending){
+  if(!RC_TARGET){ rcShowTargetStatus('err', 'Check a valid ticket first.'); return; }
+  // Gate exactly like the copy buttons: need a valid Issue + Driver Type; non-pending also needs a Resolution.
+  var issue=(document.getElementById('rcIssue')||{}).value||'';
+  if(!issue){ rcShowTargetStatus('err', 'Select a valid Issue before pasting.'); return; }
+  var drivOk=!/^Driv:\s*N\/A\s*$/mi.test(String(document.getElementById('rcOut').textContent||''));
+  if(!drivOk){ rcShowTargetStatus('err', 'Driver Type is missing (Driv: N/A). Fix it before pasting.'); return; }
+  if(!asPending){ var resNum=(document.getElementById('rcRes')||{}).value; if(!(resNum && RC_RES[+resNum])){ rcShowTargetStatus('err', 'Select a Resolution, or use Paste as Pending.'); return; } }
+  var sim=rcOutputText(asPending);
+  var blob=rcWrapIncidentLog(sim);
+  var pBtn=document.getElementById('rcPaste'), ppBtn=document.getElementById('rcPastePending');
+  if(pBtn) pBtn.disabled=true; if(ppBtn) ppBtn.disabled=true;
+  try{
+    var r=await A.api('POST','/api/tickets/'+encodeURIComponent(RC_TARGET.shortId)+'/incident-log',{text:blob});
+    if(r && r.ok){
+      rcShowTargetStatus('ok', 'Pasted into <b>'+esc(RC_TARGET.shortId)+'</b>\u2019s SIM Root Cause Details'+(asPending?' (as PENDING)':'')+'. \u2713');
+      var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='none';
+      RC_TARGET=null;
+      setTimeout(function(){ rcClear(); var ti=document.getElementById('rcTicketId'); if(ti) ti.value=''; rcTargetReset(); },1400);
+    } else {
+      rcShowTargetStatus('err', (r&&r.data&&r.data.error)||'Could not paste into the ticket.');
+    }
+  }catch(e){ rcShowTargetStatus('err', 'Could not paste into the ticket.'); }
+  finally{ if(pBtn) pBtn.disabled=false; if(ppBtn) ppBtn.disabled=false; }
+}
+window.rcPasteToTicket=rcPasteToTicket;
+// ===== end paste-into-My-Tickets =====
 
 // Copy a single "Issue: X" / "Res: Y" line when an admin clicks a reference chip.
 // The exact line to copy lives in the chip's data-copy attribute (safe for any characters).

@@ -4258,6 +4258,40 @@ app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, 
   }
 });
 
+// ---- RCD "paste into My Tickets" target check (used by the Tools Build-Root-Cause-Details page) ----
+// Given a ticket ShortId, report whether the CURRENT user may paste a converted RCD into it:
+//   mine    = the ticket is assigned to the requester
+//   status  = the ticket's current Status
+//   open    = status is one of OPEN_STATUSES (Assigned / WIP / Pending / Researching)
+//   hasSim  = an existing incident-log entry by this user already has a non-empty SIM Root Cause
+//             Details section (so we must NOT overwrite it)
+app.get('/api/rcd-target', requireRole('user'), async (req, res) => {
+  try {
+    const shortId = String(req.query.shortId || '').trim();
+    if (!shortId) return res.status(400).json({ error: 'A ticket ShortId is required.' });
+    const ticket = await findLiveTicket(shortId);
+    if (!ticket) return res.json({ found: false, shortId });
+    const mine = String(ticket.AssigneeIdentity || '').toLowerCase() === String(req.user.username).toLowerCase();
+    const status = String(ticket.Status || '');
+    const open = OPEN_STATUSES.includes(status);
+    // Does this user already have a SIM Root Cause Details filled on this ticket's log?
+    let hasSim = false;
+    try {
+      const coll = await getCollection(COLLECTIONS.incidentLogs);
+      const mineLogs = await coll.find({ shortId, user: req.user.username }).toArray();
+      const SIM_RE = /\*\*SIM Root Cause Details:\*\*\n([\s\S]*?)(?=\n\n\*\*|$)/i;
+      for (const lg of mineLogs) {
+        const m = String(lg.text || '').match(SIM_RE);
+        const body = m ? String(m[1] || '').trim() : '';
+        if (body && body !== '-') { hasSim = true; break; }
+      }
+    } catch (e) { /* best-effort */ }
+    res.json({ found: true, shortId: ticket.ShortId || ticket.IssueId || shortId, mine, status, open, hasSim });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not check the ticket.' });
+  }
+});
+
 // Which of a set of tickets have >=1 incident log (logged-in). Body: { shortIds: [...] }.
 // Returns { shortId: true } only for tickets that have at least one incident-log entry — used by
 // My Tickets to show "View incident log" vs "Add incident log" per row.
