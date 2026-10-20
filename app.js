@@ -1363,8 +1363,7 @@ async function reloadHandoverSection(){
         tile('ho-queue',qs['Researching'],'Researching')+
         tile('ho-queue',qs['Pending'],'Pending')+
       '</div>'+
-      '<div class="sr-chart-card"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3><div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>'+
-      handoverClosureHtml(d.closureCodes||[], d);
+      '<div class="sr-chart-card"><h3>Created &amp; flags \u00b7 Resolved (by code) \u00b7 In Queue</h3><div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>';
     try{ drawHandoverChart(d); }catch(e){}
   }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; });
 }
