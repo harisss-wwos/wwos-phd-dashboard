@@ -248,6 +248,8 @@ function rcInitSelects(){
       cat.types.forEach(function(ty){ opts+='<option value="'+esc(ty.type)+'">'+esc(ty.type)+'</option>'; });
       opts+='</optgroup>'; });
     is.innerHTML=opts;
+    // Make the Issue picker type-to-filter searchable.
+    if(window.makeSearchableSelect) window.makeSearchableSelect(is);
   }
   var rs=document.getElementById('rcRes'); if(rs && !rs.options.length){
     var ro='<option value="">\u2014 Select resolution \u2014</option>';
