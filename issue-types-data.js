@@ -251,15 +251,30 @@ window.RC_ROOT_CAUSES = [
   var SEARCH_ICO = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
   var CARET_ICO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
-  // Some containers (e.g. the RCD converter card, modals) use overflow:hidden which would CLIP the
-  // popup. On open we temporarily set overflow:visible on any clipping ancestor and restore on close.
+  // Some containers (e.g. the RCD converter card) use overflow:hidden which would CLIP the popup.
+  // On open we temporarily set overflow:visible on those clippers and restore on close.
+  // IMPORTANT: we must NOT touch SCROLL containers (overflow auto/scroll) — a modal body that scrolls
+  // (.ail-body) or a flex modal shell (.ail-modal, overflow:hidden but height-bounded) manages its own
+  // layout; forcing it visible makes the body balloon to full content height so the footer + fields
+  // spill outside the modal. So: skip any ancestor that scrolls, and stop at a bounded/scrolling
+  // container boundary. The popup is position:absolute (and flips upward when tight), so it does not
+  // need its scrolling ancestors un-clipped to be visible.
   var _unclipped = [];
   function unclipAncestors(el){
     _unclipped = [];
     var n = el ? el.parentElement : null;
     while (n && n !== document.body){
       try{
-        var ov = getComputedStyle(n).overflow;
+        var cs = getComputedStyle(n);
+        var ovY = cs.overflowY, ovX = cs.overflowX, ov = cs.overflow;
+        var scrolls = /(auto|scroll)/.test(ovY) || /(auto|scroll)/.test(ovX) || /(auto|scroll)/.test(ov);
+        // A box with an explicit max-height (e.g. the flex modal shell .ail-modal: height/max-height
+        // 90vh, overflow hidden) is a bounded layout container we must leave alone — un-clipping it
+        // lets its body balloon to full content height so the footer + fields spill out of the modal.
+        // (We can't use computed `height`, which always resolves to a px value for a rendered block;
+        // only an author-set max-height distinguishes a bounded shell from an auto-height card.)
+        var bounded = cs.maxHeight && cs.maxHeight !== 'none';
+        if (scrolls || bounded) break;   // reached a layout/scroll boundary — stop here
         if (ov && ov !== 'visible'){ _unclipped.push([n, n.style.overflow]); n.style.overflow = 'visible'; }
       }catch(e){}
       n = n.parentElement;

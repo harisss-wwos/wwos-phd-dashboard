@@ -1136,7 +1136,7 @@ h1{color:#1b2026 !important}
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilRelatedLink"><span class="ail-flabel-tx">PHD Related Link</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilRelatedLink" data-label="PHD Related Link" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Related Link"></button></label>
-        <input type="text" id="ilRelatedLink" oninput="ilMarkEmpty(this)" placeholder="https://t.corp.amazon.com/…">
+        <input type="text" id="ilRelatedLink" readonly placeholder="https://t.corp.amazon.com/…">
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilPhdResolution"><span class="ail-flabel-tx">PHD Resolution</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdResolution" data-label="PHD Resolution" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Resolution"></button></label>
@@ -1152,8 +1152,8 @@ h1{color:#1b2026 !important}
       <button type="button" class="ail-btn danger" id="incidentDeleteBtn" onclick="deleteIncidentFromForm()" style="display:none">Delete</button>
       <button type="button" class="ail-btn copy" id="incidentCopyFooterBtn" onclick="copyIncidentDraft()" disabled title="Fill every field to enable copying">Copy</button>
       <button type="button" class="ail-btn copy2" id="incidentCopyNoRcBtn" onclick="copyIncidentNoRc(this)" disabled title="Copy everything except the SIM Root Cause Details">Copy w/o RC Details</button>
-      <button class="ail-btn sec" onclick="closeIncidentLog()">Cancel</button>
-      <button class="ail-btn primary" id="incidentBtn" onclick="submitIncidentLog()">Save incident log</button>
+      <button class="ail-btn sec" onclick="closeIncidentLog()">Close</button>
+      <button class="ail-btn primary" id="incidentBtn" onclick="submitIncidentLog()">Save</button>
     </div>
   </div>
 </div>
@@ -1184,7 +1184,7 @@ h1{color:#1b2026 !important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="issue-types-data.js"></script>
+<script src="issue-types-data.js?v=2"></script>
 <script src="topbar-auth.js?v=201"></script>
 <script>
 const A=window.PHDAuth;
@@ -2218,7 +2218,7 @@ function openIncidentLog(i){
   IL_EDIT_ID=null;   // add mode (not editing an existing entry)
   document.getElementById('incidentTitleText').textContent='Add incident log · '+t.shortId;
   ilSetTitleCopyId(t.shortId);
-  var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
+  var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
   fillIncidentSelects();
   // Reset every field.
@@ -2281,6 +2281,18 @@ async function deleteIncidentFromForm(){
   } else { window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Failed (HTTP '+r.status+')')}); }
 }
 window.deleteIncidentFromForm=deleteIncidentFromForm;
+// After a successful save we KEEP the modal open: lock every filled field to read-only (with the
+// pencil to re-edit) and leave empty fields editable. The modal is also switched into "edit" mode
+// (title + Delete button) so a subsequent Save updates the same entry instead of creating a dup.
+function ilApplyPostSaveState(editId){
+  IL_EDIT_ID=editId||IL_EDIT_ID; EDIT_INC_ID=IL_EDIT_ID;
+  var tt=document.getElementById('incidentTitleText');
+  if(tt && IL_TICKET_SID) tt.textContent='Edit incident log · '+IL_TICKET_SID;
+  var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='';
+  ilSetFieldLocks(true);     // filled text fields -> read-only + pencil; empty ones stay editable
+  ilRefreshSelectUI();
+  ilRefreshEmptyMarks();
+}
 async function submitIncidentLog(){
   if(INCIDENT_INDEX==null)return;
   const t=TICKETS[INCIDENT_INDEX];
@@ -2294,14 +2306,21 @@ async function submitIncidentLog(){
     // Edit mode: update the existing entry via the same structured form.
     const editId=IL_EDIT_ID;
     const r=await A.api('PUT','/api/incident-log/'+editId,{text});
-    btn.disabled=false;btn.textContent='Save incident log';
-    if(r.ok){ closeIncidentLog(); toast('Incident log updated'); refreshLatestComment(idx); }
+    btn.disabled=false;btn.textContent='Save';
+    // Keep the popup OPEN; just lock the filled fields and refresh the latest-comment peek.
+    if(r.ok){ ilApplyPostSaveState(editId); toast('Incident log updated'); refreshLatestComment(idx); }
     else{ err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'); err.style.display='block'; }
     return;
   }
   const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});
-  btn.disabled=false;btn.textContent='Save incident log';
-  if(r.ok){closeIncidentLog();toast('Incident log saved for '+t.shortId);HAS_LOG[String(t.shortId)]=true;repaintIncidentBtn(idx);var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c);refreshLatestComment(idx);}
+  btn.disabled=false;btn.textContent='Save';
+  if(r.ok){
+    // Stay open. Mark the ticket as having a log, repaint the row icon, and flip the modal into edit
+    // mode against the newly-created entry's id so the next Save updates it (no duplicate).
+    const newId=(r.data&&r.data.id)?String(r.data.id):null;
+    ilApplyPostSaveState(newId);
+    toast('Incident log saved for '+t.shortId);HAS_LOG[String(t.shortId)]=true;repaintIncidentBtn(idx);var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c);refreshLatestComment(idx);
+  }
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
@@ -2401,13 +2420,16 @@ function openEditIncidentStructured(i, id, savedText){
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   document.getElementById('incidentTitleText').textContent='Edit incident log · '+(t?t.shortId:'');
   ilSetTitleCopyId(t?t.shortId:'');
-  var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save incident log';
+  var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='';   // edit mode -> allow delete
   fillIncidentSelects();
   // Prefill every field from the parsed saved text.
   var set=function(id2,v){ var el=document.getElementById(id2); if(el) el.value=v||''; };
   set('ilPhdFindings',f.findings); set('ilPhdInvestigation',f.invest); set('ilSimRcd',f.sim);
-  set('ilRootCause',f.rootCause); set('ilRelatedLink',f.link); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
+  set('ilRootCause',f.rootCause); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
+  // PHD Related Link is hardcoded to this ticket's URL (read-only, copy-only) — never editable,
+  // so always use the canonical ticket URL rather than whatever was parsed from the saved text.
+  set('ilRelatedLink',(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):(f.link||'')));
   ilPaintFieldCopyIcons();
   ilWireTextareaAutosize();
   ilSetFieldLocks(true);   // edit mode: filled text fields start read-only with a pencil to edit
