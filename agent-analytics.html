@@ -1262,17 +1262,41 @@ function iapRenderTable(){
     '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'+GAMMA_NOTE;
 }
 
-// ---- Time-windowed sections (last 12h / 24h / 7d): collapsible, lazy-load on first expand ----
-function last7DaysRange(){
-  var to=new Date(); var from=new Date(to.getTime()-7*864e5);
-  var f=function(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});};
-  return f(from)+' \u2013 '+f(to);
+// ---- Time-windowed sections (Today / Yesterday / Last 7 days / Last complete week): collapsible,
+// lazy-load on first expand. Ranges are computed on the CLIENT (local day boundaries) and sent to
+// /api/group-range?from=&to= (ResolvedDate-windowed, whole DB — no quarter filter), so "Today"
+// respects the viewer's day and no resolves are missed across quarter edges. ----
+var _GW_MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _gwOrd(n){ var s=['th','st','nd','rd'],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function _gwDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }     // local midnight
+function _gwFmt(d){ return _gwOrd(d.getDate())+' '+_GW_MON[d.getMonth()]; }           // "14th Oct"
+// Window keys -> { title, from(Date), toExcl(Date), label }. All bounds are half-open [from,toExcl).
+function gwWindowRange(win){
+  var now=new Date();
+  var startToday=_gwDay(now);                         // 00:00 today
+  var startTomorrow=new Date(startToday); startTomorrow.setDate(startTomorrow.getDate()+1);
+  if(win==='today'){
+    return { title:'Today', from:startToday, toExcl:startTomorrow, label:_gwFmt(startToday) };
+  }
+  if(win==='yesterday'){
+    var y=new Date(startToday); y.setDate(y.getDate()-1);
+    return { title:'Yesterday', from:y, toExcl:startToday, label:_gwFmt(y) };
+  }
+  if(win==='last7'){
+    // Last 7 days INCLUDING today: [today-6 .. tomorrow). e.g. 14th Oct to 20th Oct.
+    var f=new Date(startToday); f.setDate(f.getDate()-6);
+    return { title:'Last 7 days', from:f, toExcl:startTomorrow, label:_gwFmt(f)+' to '+_gwFmt(startToday) };
+  }
+  // lastweek: the last COMPLETE week, Sunday..Saturday (ends before THIS week's Sunday).
+  var thisSun=new Date(startToday); thisSun.setDate(thisSun.getDate()-thisSun.getDay());   // Sunday of current week
+  var lastSun=new Date(thisSun); lastSun.setDate(lastSun.getDate()-7);                      // Sunday of last week
+  var lastSatEnd=new Date(thisSun);                                                         // exclusive end = this Sunday 00:00
+  var lastSat=new Date(thisSun); lastSat.setDate(lastSat.getDate()-1);                      // Saturday (for the label)
+  return { title:'Last complete week', from:lastSun, toExcl:lastSatEnd, label:_gwFmt(lastSun)+' to '+_gwFmt(lastSat) };
 }
-const WIN_DEFS=[
-  {win:'12h',title:'Last 12 Hours'},
-  {win:'24h',title:'Last 24 Hours'},
-  {win:'7d', title:'Last 7 Days'}
-];
+// Build the 4 radio options. Titles carry their live dates, e.g. "Today (20th Oct)".
+var GW_WINS=['today','yesterday','last7','lastweek'];
+const WIN_DEFS=GW_WINS.map(function(w){ var r=gwWindowRange(w); return { win:w, title:r.title+' ('+r.label+')' }; });
 // Consolidated Recent Activity: one collapsible card holding a Window radio (12h/24h/7d) +
 // Group checkboxes, and ONE Individual Agent Performance table + ONE Group Totals Summary table.
 function windowSectionsHtml(){
@@ -1312,7 +1336,7 @@ const GW_AGENTS_POOL=['harisss','punithsd','arunkzn','flofalgu','tanviroo','urma
 function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
 // Human label for the current window radio (drives the "Last 12 Hours�" line + the sub-pill).
 let _ldWinWords=null;   // override set by the Performance Overview loader; else use the RA radio
-function gwWinWords(){ if(_ldWinWords) return _ldWinWords; return { '12h':'last 12 hours', '24h':'last 24 hours', '7d':'last 7 days' }[GW_FILTER.win] || 'recent'; }
+function gwWinWords(){ if(_ldWinWords) return _ldWinWords; return { 'today':'today', 'yesterday':'yesterday', 'last7':'last 7 days', 'lastweek':'last complete week' }[GW_FILTER.win] || 'recent'; }
 function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
 // PHASE 1 � 20 randomized lines, each with an icon. {ic, t}. General phrasing (no agent names).
 function gwPhase1(){
@@ -1400,7 +1424,7 @@ function _ldSuccess(pfx){
 function gwShowLoader(on){ if(on)_ldWinWords=null; _ldShow('gw',on,GW_TITLE(GW_FILTER.win)); }
 function gwShowSuccess(){ _ldSuccess('gw'); }
 // ---- Consolidated Recent Activity: filter state + loading (mirrors the ga* pattern) ----
-const GW_FILTER={ win:'12h', groups:['A1','A2','B'] };
+const GW_FILTER={ win:'today', groups:['A1','A2','B'] };
 const GW_CACHE={};   // win -> data
 const GW_SORT={ iap:{key:'Successful',dir:'desc'}, gts:{key:'Successful',dir:'desc'} };
 let GW_DATA=null, GW_LOADSEQ=0;
@@ -1748,7 +1772,7 @@ window.togglePerfCard=togglePerfCard;
 /* =================== end Performance Overview =================== */
 
 function gwOnWinChange(){
-  var el=document.querySelector('input[name="gwWin"]:checked'); GW_FILTER.win=el?el.value:'12h';
+  var el=document.querySelector('input[name="gwWin"]:checked'); GW_FILTER.win=el?el.value:'today';
   document.querySelectorAll('input[name="gwWin"]').forEach(function(inp){ var opt=inp.closest('.ga-opt'); if(opt) opt.classList.toggle('checked', inp.checked); });
   gwLoad();
 }
@@ -1761,8 +1785,8 @@ function gwOnGroupChange(){
 window.gwOnGroupChange=gwOnGroupChange;
 function gwSetNote(){
   var el=document.getElementById('gwScopeNote'); if(!el)return;
-  var extra=(GW_FILTER.win==='7d')?(' ('+last7DaysRange()+')'):'';
-  el.textContent='Showing: '+GW_TITLE(GW_FILTER.win)+extra+'.';
+  var r=gwWindowRange(GW_FILTER.win);
+  el.textContent='Showing: '+r.title+' ('+r.label+').';
 }
 const _delay=(ms)=>new Promise(function(res){ setTimeout(res,ms); });
 async function gwLoad(){
@@ -1776,7 +1800,11 @@ async function gwLoad(){
   let d=GW_CACHE[GW_FILTER.win]||null;
   const fetchP=(async function(){
     if(d) return d;
-    try{ const r=await A.api('GET','/api/group-window/'+GW_FILTER.win); if(r&&r.ok&&r.data){ GW_CACHE[GW_FILTER.win]=r.data; return r.data; } }catch(e){}
+    // Compute THIS window's [from,to) in epoch ms (local day boundaries) and hit the ResolvedDate-
+    // windowed, whole-DB range endpoint. A request fires ONLY on load / tab switch (cached per win).
+    const rg=gwWindowRange(GW_FILTER.win);
+    const qs='from='+rg.from.getTime()+'&to='+rg.toExcl.getTime();
+    try{ const r=await A.api('GET','/api/group-range?'+qs); if(r&&r.ok&&r.data){ GW_CACHE[GW_FILTER.win]=r.data; return r.data; } }catch(e){}
     return null;
   })();
   const [, got]=await Promise.all([minDelay, fetchP]);
