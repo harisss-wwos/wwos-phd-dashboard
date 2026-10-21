@@ -202,6 +202,9 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-icbtn svg{width:14px;height:14px}
 .ail-icbtn:hover{border-color:#44b9d6;color:#44b9d6;background:rgba(68,185,214,.08)}
 .ail-icbtn.copied{border-color:var(--gl);color:var(--gl)}
+/* Flag toggles in the modal head (Transporter Trace + Mark important), pinned to the right next to
+   the close button so the user can mark them from inside the incident-log modal. */
+.ail-head-flags{flex:0 0 auto;align-items:center;gap:8px;margin-top:1px}
 .ail-x{flex-shrink:0;background:transparent;border:none;color:var(--tm);font-size:1.5em;line-height:1;cursor:pointer;padding:0 2px;border-radius:5px}
 .ail-x:hover{color:#fff;background:rgba(255,255,255,.06)}
 .ail-body{padding:18px 22px;overflow:auto;flex:1;min-height:0;display:flex;flex-direction:column}
@@ -758,8 +761,8 @@ h1{letter-spacing:-.5px}
 .mtc-ilog{padding:6px 13px;border-radius:5px;border:1px solid rgba(255,153,0,.4);color:#ff9900;font-size:11px;font-weight:600;background:rgba(255,153,0,.05);white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .mtc-ilog:hover{background:rgba(255,153,0,.14)}
 .mtc-ilog-ic{width:14px;height:14px;object-fit:contain;display:inline-block;vertical-align:middle}
-/* ---- Analyst-flag icons: Driver-trace / Reports-attached / EMT-updated / Mark-important ----
-   Four on-off toggle buttons. Grey (desaturated + dim) when OFF; green chip when ON (clicked).
+/* ---- Analyst-flag icons: Driver-trace / Mark-important (+ incident-log) ----
+   On-off toggle buttons. Grey (desaturated + dim) when OFF; green chip when ON (clicked).
    Rendered in the actions bar (.mtc-icons-bar, shown while open) and mirrored in the header
    (.mtc-icons-collapsed, shown next to temp-resolve ONLY when collapsed, selected ones only). */
 .mtc-icons{display:inline-flex;align-items:center;gap:7px;flex-shrink:0}
@@ -1165,6 +1168,7 @@ h1{color:#1b2026 !important}
     <div class="ail-head">
       <span class="ail-head-ic" id="ailHeadIc"></span>
       <div class="ail-head-tx"><h2 id="incidentTitle"><span id="incidentTitleText">Add incident log</span><button type="button" class="ail-idcopy" id="incidentIdCopyBtn" onclick="copyIncidentTicketId(this)" title="Copy ticket ID" aria-label="Copy ticket ID" style="display:none"></button></h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket's log</span></div>
+      <span class="mtc-icons ail-head-flags" id="ailHeadFlags"></span>
       <button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>
     </div>
     <div class="ail-body">
@@ -1274,9 +1278,6 @@ function toggleViewed(sid, cb){
   const el=cb.classList&&cb.classList.contains('mtc-cb')?cb:null;
   if(el) el.classList.toggle('on', on);
   const card=cb.closest('.mtc'); if(card) card.classList.toggle('viewed', on);
-  // Unchecking "Mark as viewed" clears the SIM + EMT selections for this ticket (ATTACH_SETS is
-  // declared further down the file but already initialized by load time, so this is safe to call).
-  if(!on){ clearAttach('reports',sid); clearAttach('emt',sid); }
 }
 window.toggleViewed=toggleViewed;
 
@@ -1315,21 +1316,18 @@ function toggleOpenSection(){
 window.toggleOpenSection=toggleOpenSection;
 
 // ---- Per-ticket analyst flags (UI-only on/off toggles, persisted per-user in localStorage, like
-//      VIEWED / TEMP_RESOLVED). Grey when off, green when on. Four flags:
-//      dtrace = Driver trace attached · reports = Reports attached · emt = EMT updated ·
-//      important = Mark important. ----
+//      VIEWED / TEMP_RESOLVED). Grey when off, green when on. Flags:
+//      dtrace = Driver trace attached · important = Mark important. ----
 const ATTACH_FLAGS=[
   { kind:'dtrace',    icon:'driver-trace',   label:'Transporter Trace icon',  title:'Select the icon only when a Driver Trace is attached in both SIM and EMT.' },
-  { kind:'reports',   icon:'reports-attached', label:'SIM icon',             title:'Choose this option once the SIM worklog/correspondence reflects your most current investigation updates.' },
-  { kind:'emt',       icon:'emt-updated-v3', label:'EMT icon',                title:'Choose this option once the EMT incident log reflects your most current investigation updates.' },
   { kind:'important', icon:'mark-important', label:'Important icon',         title:'Use this icon exclusively to highlight an incident that stands out as important or unique.' },
-  // Incident log: NOT a local on/off toggle like the other four — "on" (green) means a log already
+  // Incident log: NOT a local on/off toggle like the local flags — "on" (green) means a log already
   // exists for this ticket (mirrors HAS_LOG, kept server-side), and the click always opens the
   // incident-log popup: the Add-note screen if none exists yet, or the existing entries (with
   // Edit/Delete) if one does. See ticketIconsHtml()'s handler for the add-vs-view branch.
   { kind:'ilog',      icon:'add-report',     label:'Incident log icon',       title:'Add or view this ticket\u2019s incident log (final mitigation + hashtags).' },
 ];
-const ATTACH_SETS={ dtrace:new Set(), reports:new Set(), emt:new Set(), important:new Set() };
+const ATTACH_SETS={ dtrace:new Set(), important:new Set() };
 function attachKey(kind){ var u=A.getUser(); return 'phd_mytickets_'+kind+'_'+((u&&u.username)||'anon'); }
 function loadAttachFlags(){
   ATTACH_FLAGS.forEach(function(f){
@@ -1351,8 +1349,8 @@ function toggleAttach(kind, sid, ev){
   document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.toggle('on', on); });
 }
 window.toggleAttach=toggleAttach;
-// Force a given flag OFF for a ticket (used when unchecking "Mark as viewed" clears SIM + EMT).
-// No-op if the flag is already off, or if ATTACH_SETS[kind] doesn't exist for some reason.
+// Force a given flag OFF for a ticket. Generic helper; no-op if the flag is already off, or if
+// ATTACH_SETS[kind] doesn't exist for some reason.
 function clearAttach(kind, sid){
   sid=String(sid);
   const set=ATTACH_SETS[kind]; if(!set||!set.has(sid)) return;
@@ -1887,7 +1885,6 @@ function cardHtml(t,i,editor){
       <div id="cbody-${i}" data-loaded="0">
         <div class="mtc-empty">${ic('message',12)} Expand to load comments.</div>
       </div>
-      <div class="mtc-attnote">Unchecking "Mark as viewed" clears the SIM and EMT icons \u2014 a reminder to keep both the SIM and EMT updated with your latest investigation at all times.</div>
     </div></div></div>
   </div>`;
 }
@@ -1913,6 +1910,23 @@ function ticketIconsHtml(i, mirror){
       : f.kind==='ilog' ? `openIncidentIcon(${i},event)`
       : `toggleAttach('${f.kind}','${sidAttr}',event)`;
     return `<span class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)}" onclick="${handler}">${attImg(f.icon,'mtc-att-ic')}</span>`;
+  }).join('');
+}
+// Render ONLY the 1st (Transporter Trace) + 4th (Mark important) flag toggles into the incident-log
+// modal head, so the user can mark them from inside the modal. Same on/off toggle + persistence as
+// the card icons; the card's rendered copies re-skin automatically because toggleAttach/open...
+// re-paint every instance by [data-kind][data-sid].
+function ilRenderHeadFlags(i){
+  var box=document.getElementById('ailHeadFlags'); if(!box) return;
+  var t=TICKETS[i];
+  if(!t){ box.innerHTML=''; return; }
+  var sid=String(t.shortId); var sidAttr=esc(sid);
+  var kinds=['dtrace','important'];   // the 1st and 4th buttons from the card flag set
+  box.innerHTML=kinds.map(function(kind){
+    var f=ATTACH_FLAGS.filter(function(x){return x.kind===kind;})[0]; if(!f) return '';
+    var on=ATTACH_SETS[f.kind].has(sid)?' on':'';
+    var handler=f.kind==='important'?("openMarkImportant('"+sidAttr+"',event)"):("toggleAttach('"+f.kind+"','"+sidAttr+"',event)");
+    return '<span class="mtc-att'+on+'" data-kind="'+f.kind+'" data-sid="'+sidAttr+'" title="'+esc(f.title)+'" aria-label="'+esc(f.label)+'" onclick="'+handler+'">'+attImg(f.icon,'mtc-att-ic')+'</span>';
   }).join('');
 }
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.
@@ -2293,6 +2307,7 @@ function openIncidentLog(i){
   IL_EDIT_ID=null;   // add mode (not editing an existing entry)
   document.getElementById('incidentTitleText').textContent='Add incident log · '+t.shortId;
   ilSetTitleCopyId(t.shortId);
+  ilRenderHeadFlags(i);
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
   fillIncidentSelects();
@@ -2495,6 +2510,7 @@ function openEditIncidentStructured(i, id, savedText){
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   document.getElementById('incidentTitleText').textContent='Edit incident log · '+(t?t.shortId:'');
   ilSetTitleCopyId(t?t.shortId:'');
+  ilRenderHeadFlags(i);
   var sb=document.getElementById('incidentBtn'); if(sb) sb.textContent='Save';
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='';   // edit mode -> allow delete
   fillIncidentSelects();
