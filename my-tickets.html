@@ -666,8 +666,10 @@ h1{letter-spacing:-.5px}
 .mtc.temp .mtc-pill,
 .mtc.temp .mtc-icons.mtc-icons-collapsed{display:none !important}
 /* Keep the ticket id readable (no strike-through) and let the title fill the row. */
-.mtc.temp .mtc-tid{text-decoration:none !important}
+.mtc.temp .mtc-tid{text-decoration:none !important;display:inline !important}
 .mtc.temp .mtc-title{display:inline-block !important;flex:1 1 auto;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Temp cards: also strip the severity tag + both days-left pills (minimal id+title row). */
+.mtc.temp .mtc-sev,.mtc.temp .mtc-pill-left,.mtc.temp .mtc-pill-right{display:none !important}
 
 /* ---- Header line ---- */
 .mtc-head{display:flex;align-items:center;gap:12px;padding:16px 18px 14px 22px;flex-wrap:wrap}
@@ -677,9 +679,51 @@ h1{letter-spacing:-.5px}
 .mtc-ago{color:#eef2f4;font-weight:700;font-size:13.5px;white-space:nowrap}
 /* Compact age tag "8D" is unused now (collapsed cards show NO age tag). Kept hidden always. */
 .mtc-ago-short{display:none !important}
-/* COLLAPSED (viewed): drop the age ("8 days ago"/"8D") AND the status badge ("W") — the row shows
-   the ticket id + last comment instead. */
-.mtc.viewed .mtc-ago,.mtc.viewed .mtc-ago-short,.mtc.viewed .mtc-sbadge{display:none !important}
+/* COLLAPSED (viewed): drop the "N days ago" age — the row shows the days-LEFT pill, status, sev,
+   icons, ticket id + last comment instead. (Status badge now stays visible in both states.) */
+.mtc.viewed .mtc-ago,.mtc.viewed .mtc-ago-short{display:none !important}
+/* ---- Severity tag (read from the TITLE) ---- */
+.mtc-sev{height:24px;padding:0 9px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;font-weight:800;letter-spacing:.3px;white-space:nowrap;flex-shrink:0;line-height:1}
+.mtc-sev.sev-3{color:#fbbf24;background:rgba(251,191,36,.16);border:1px solid rgba(251,191,36,.4)}
+.mtc-sev.sev-4{color:#ff8f5e;background:rgba(255,122,69,.16);border:1px solid rgba(255,122,69,.42)}
+.mtc-sev.sev-5{color:#ff6b6b;background:rgba(255,82,82,.16);border:1px solid rgba(255,82,82,.45)}
+/* Unknown severity: a blinking "#" placeholder tag. */
+.mtc-sev.sev-unknown{min-width:24px;color:#ff6b6b;background:rgba(255,82,82,.14);border:1px dashed rgba(255,82,82,.55);animation:mtcSevBlink 1s steps(1,end) infinite}
+@keyframes mtcSevBlink{50%{opacity:.25}}
+/* No-EMT / Station-Request header marks are rendered always; `.off` hides the one that doesn't apply.
+   Both marks show in BOTH states when they apply. */
+.mtc-mk.off{display:none !important}
+/* Days-left pill lives on the RIGHT (just left of the toggle) in BOTH states. Expanded keeps the
+   age-coloured pill; COLLAPSED shows it with a BLACK font and no grey/dim — a plain readable tag. */
+.mtc.viewed .mtc-pill-right{color:#000 !important;background:#eef1f4 !important;border-color:#d6dde3 !important;opacity:1 !important;filter:none !important;font-weight:800}
+/* ---- EXPANDED order: checkbox | created-ago | country | SEV # | status | no-emt | station-req |
+   ticket-id (copy) | Title ----  (days-left pill + flag icons + toggle stay in the right group). */
+.mtc-head{align-items:center}
+.mtc .mtc-cb{order:0}
+.mtc .mtc-ago{order:1}
+.mtc .mtc-country{order:2}
+.mtc .mtc-sev{order:3}
+.mtc .mtc-sbadge{order:4}
+.mtc .mtc-mk.emt{order:5}
+.mtc .mtc-mk.sr{order:6}
+.mtc .mtc-tid{order:7}
+.mtc .mtc-copy{order:8}
+.mtc .mtc-title{order:9}
+.mtc .mtc-head-last{order:9}
+.mtc .mtc-head-right{order:10}
+/* ---- COLLAPSED order: country | SEV # | status | no-emt | station-req | ticket-id (copy) | last comment ----
+   The days-left pill + flag icons + toggle stay in the right-hand group. flex `order` reorders the
+   header children only when the card is collapsed (.viewed); expanded uses natural source order. */
+.mtc.viewed .mtc-cb{order:0}
+.mtc.viewed .mtc-country{order:1}
+.mtc.viewed .mtc-sev{order:2}
+.mtc.viewed .mtc-sbadge{order:3}
+.mtc.viewed .mtc-mk.emt{order:4}
+.mtc.viewed .mtc-mk.sr{order:5}
+.mtc.viewed .mtc-tid{order:6}
+.mtc.viewed .mtc-copy{order:7}
+.mtc.viewed .mtc-head-last{order:8}
+.mtc.viewed .mtc-head-right{order:9}
 .mtc-pill{padding:4px 11px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid transparent}
 /* ---- Redesigned "Created" sort control ---- */
 .mt-sortbar{display:flex;align-items:center;gap:10px;margin:0 0 10px}
@@ -766,10 +810,15 @@ h1{letter-spacing:-.5px}
 .mtc-zone.help{flex:0 0 auto}
 /* Last comment shown IN THE HEADER only when the ticket is viewed (actions bar is collapsed then). */
 .mtc-head-last{display:none;font-style:italic;font-weight:700;color:#8b96a0;font-size:12px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.mtc.viewed .mtc-head-last{display:inline-block}
+/* Collapsed: latest comment fills the remaining space so the toggle stays pinned right. */
+.mtc.viewed .mtc-head-last{display:inline-block;flex:1 1 auto;max-width:none}
 /* "No comments added" placeholder: muted, non-italic so it reads as a hint, not a quote. */
 .mtc-head-last.mtc-head-last-empty{font-style:normal;font-weight:600;opacity:.7}
-.mtc.viewed .mtc-title{max-width:280px}
+/* Ticket id + copy show in BOTH states now. The Title shows EXPANDED; the latest comment shows
+   COLLAPSED (the two swap into the same slot). */
+.mtc .mtc-tid{display:inline}
+.mtc .mtc-copy{display:grid}
+.mtc.viewed .mtc-title{display:none !important}
 
 /* ---- Drop-down panels (animated, accordion per card) ---- */
 .mtc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s cubic-bezier(.4,0,.2,1);border-top:1px solid transparent}
@@ -850,9 +899,10 @@ h1{color:#1b2026 !important}
 .mtc-copy.copied{color:#1f9d57;border-color:#1f9d57}
 .mtc-title{color:#5c6773 !important}
 .mtc-head-last{color:#8793a0 !important}
-/* Country/region badge: hidden normally; shown only when the card is VIEWED (checked). */
-.mtc-country{display:none;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.4px;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec;text-transform:uppercase}
-.mtc.viewed .mtc-country{display:inline-flex}
+/* Country/region badge: shown in BOTH states (expanded + collapsed). */
+.mtc-country{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.4px;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec;text-transform:uppercase}
+/* Unknown country -> blinking "N/A" tag (same treatment as the unknown-severity "SEV #"). */
+.mtc-country.mtc-country-na{color:#e23b3b;background:rgba(226,59,59,.1);border:1px dashed rgba(226,59,59,.55);animation:mtcSevBlink 1s steps(1,end) infinite}
 /* When viewed: hide the full title, show the country + last comment instead. The comment TRUNCATES
    with an ellipsis to a single line so a long comment never breaks the header layout. */
 .mtc.viewed .mtc-title{display:none !important}
@@ -1523,6 +1573,30 @@ function daysAgo(iso){
   const d=Math.round((Date.now()-cd.getTime())/864e5);
   return d<=0?'Today':(d===1?'1 day ago':d+' days ago');
 }
+// Severity number is read from the TITLE (not the Severity field). Handles "Severity 4",
+// "Severity level 4", "Severity level - 4", "Sev 4", "SEV4", "Severity: 4", "Sev: 4", etc. Only a
+// valid PHD severity (3/4/5) is accepted; anything else (Pending / Unknown / None / 0-2 / absent)
+// returns '' so the UI shows a blinking placeholder "#".
+function sevFromTitle(title){
+  var m=String(title||'').match(/\bsev(?:erity)?\b\s*(?:level)?\s*[-:#]?\s*([0-9])/i);
+  var n=m?m[1]:'';
+  return (n==='3'||n==='4'||n==='5')?n:'';
+}
+// Severity tag HTML. Known sev -> solid tag "SEV 4". Unknown -> a blinking "SEV #" placeholder.
+function sevTagHtml(t){
+  var n=sevFromTitle(t&&t.title);
+  if(n) return '<span class="mtc-sev sev-'+n+'" title="Severity '+n+' (from title)">SEV '+n+'</span>';
+  return '<span class="mtc-sev sev-unknown" title="Severity not found in the title">SEV #</span>';
+}
+// Recognised country/region codes (mirrors the server's Countries-report set). The My Tickets
+// endpoint returns a best-effort code (Country field, else the leading title token), which can be
+// noise — so we validate it here and show a blinking "N/A" tag when it isn't a known code.
+var MT_COUNTRY_CODES={US:1,UK:1,CA:1,IN:1,AU:1,MX:1,JP:1,DE:1,IT:1,FR:1,EG:1,ES:1,SA:1,BR:1,NL:1,ZA:1,PT:1,UAE:1,IE:1,SG:1,TR:1,PL:1,SE:1,BE:1,AT:1,CH:1,DK:1,NO:1,FI:1,GR:1,CZ:1,GB:1,NZ:1,AE:1};
+function countryTagHtml(t){
+  var raw=String((t&&t.country)||'').toUpperCase().replace(/[^A-Z]/g,'');
+  if(raw&&MT_COUNTRY_CODES[raw]) return '<span class="mtc-country" title="Country / region">'+esc(raw)+'</span>';
+  return '<span class="mtc-country mtc-country-na" title="Country / region unknown">N/A</span>';
+}
 // Compact age for the COLLAPSED header tag: "8D" / "1D" / "0D" (shown like the status "W" badge).
 function daysAgoShort(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '\u2014';
@@ -1786,15 +1860,16 @@ function cardHtml(t,i,editor){
       <span class="mtc-ago">${esc(daysAgo(t.createDate))}</span>
       <span class="mtc-ago-short" title="${esc(daysAgo(t.createDate))}">${esc(daysAgoShort(t.createDate))}</span>
       <span class="mtc-sbadge" title="${esc(st)}">${esc(letter)}</span>
+      ${sevTagHtml(t)}
+      <span class="mtc-mk emt${ticketIsNoEmt(t)?'':' off'}" title="No EMT ticket">${ic('no-entry',14)}</span>
+      <span class="mtc-mk sr${t.priority?'':' off'}" title="Station Request / Address Exclusion">${ic('map-pin',14)}</span>
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
       <button class="mtc-copy" title="Copy ticket ID" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
       ${t.title?('<span class="mtc-title" title="'+esc(t.title)+'">'+esc(t.title)+'</span>'):'<span class="mtc-title"></span>'}
-      ${t.country?('<span class="mtc-country" title="Country / region">'+esc(t.country)+'</span>'):''}
+      ${countryTagHtml(t)}
       <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">No comments added</span>
       <span class="mtc-head-right">
-        ${t.priority?`<span class="mtc-mk sr" title="Station Request / Address Exclusion">${ic('map-pin',14)}</span>`:''}
-        ${ticketIsNoEmt(t)?`<span class="mtc-mk emt" title="No EMT ticket">${ic('no-entry',14)}</span>`:''}
-        <span class="mtc-pill ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
+        <span class="mtc-pill mtc-pill-right ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
         <span class="mtc-icons mtc-icons-collapsed" id="ticons-c-${i}">${ticketIconsHtml(i,true)}</span>
         <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" style="display:none"><i></i></label>
       </span>
