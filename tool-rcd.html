@@ -144,8 +144,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
             <select id="rcPasteRootCause"></select>
           </div>
           <div class="rc-paste-actions" id="rcPasteActions" style="display:none">
-            <button type="button" class="rc-btn dark" id="rcPastePending" onclick="rcPasteToTicket(true)" style="display:none">Push to ticket as Pending</button>
-            <button type="button" class="rc-btn prim" id="rcPaste" onclick="rcPasteToTicket(false)" style="display:none">Push to ticket</button>
+            <button type="button" class="rc-btn dark" id="rcPushPending" onclick="rcPasteToTicket(true)" style="display:none">Push to ticket as Pending</button>
+            <button type="button" class="rc-btn prim" id="rcPushBtn" onclick="rcPasteToTicket(false)" style="display:none">Push to ticket</button>
           </div>
         </div>
       </div>
@@ -199,7 +199,7 @@ var RC_RESLIST=[null,
   {name:'Blocking Place ID',         note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
   {name:'Physical Order Block',      note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
   {name:'Address Exclusion',         note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
-  {name:'Address Deprioritization or Address Depri', note:'', sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
+  {name:'Address Depri',             note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
   {name:'Area Exclusion',            note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
   {name:'GeoPin Update',             note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
   {name:'GeoFence Update',           note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
@@ -478,7 +478,7 @@ function rcShowTargetStatus(cls,html){
 // Show exactly ONE push button: "Push to ticket" when a valid Resolution is selected in the
 // converter; otherwise "Push to ticket as Pending". Only relevant once a ticket is verified.
 function rcUpdatePushButtons(){
-  var p=document.getElementById('rcPaste'), pp=document.getElementById('rcPastePending');
+  var p=document.getElementById('rcPushBtn'), pp=document.getElementById('rcPushPending');
   if(!p || !pp) return;
   var resNum=(document.getElementById('rcRes')||{}).value;
   var hasRes=!!(resNum && RC_RES[+resNum]);
@@ -545,7 +545,7 @@ async function rcPasteToTicket(asPending){
   var sim=rcOutputText(asPending);
   // Map Root Cause (selected here) + PHD Resolution (from the converter; PENDING for pending paste).
   var blob=rcWrapIncidentLog(sim, rootCause, asPending ? RC_PENDING_RES : phdRes);
-  var pBtn=document.getElementById('rcPaste'), ppBtn=document.getElementById('rcPastePending');
+  var pBtn=document.getElementById('rcPushBtn'), ppBtn=document.getElementById('rcPushPending');
   if(pBtn) pBtn.disabled=true; if(ppBtn) ppBtn.disabled=true;
   try{
     var r=await A.api('POST','/api/tickets/'+encodeURIComponent(RC_TARGET.shortId)+'/incident-log',{text:blob});

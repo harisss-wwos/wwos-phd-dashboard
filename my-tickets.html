@@ -1128,7 +1128,7 @@ h1{color:#1b2026 !important}
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilSimRcd"><span class="ail-flabel-tx">SIM Root Cause Details</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fedit" data-for="ilSimRcd" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit SIM Root Cause Details" style="display:none"></button><button type="button" class="ail-fcopy" data-for="ilSimRcd" data-label="SIM Root Cause Details" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy SIM Root Cause Details"></button></label>
-        <textarea id="ilSimRcd" class="ail-f" oninput="ilMarkEmpty(this);ilUpdateCopyState()" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
+        <textarea id="ilSimRcd" class="ail-f" oninput="ilMarkEmpty(this);ilUpdateCopyState();ilSyncResolutionEnabled()" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilRootCause"><span class="ail-flabel-tx">Root Cause</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilRootCause" data-label="Root Cause" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy Root Cause"></button></label>
@@ -1140,7 +1140,7 @@ h1{color:#1b2026 !important}
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilPhdResolution"><span class="ail-flabel-tx">PHD Resolution</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fcopy" data-for="ilPhdResolution" data-label="PHD Resolution" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Resolution"></button></label>
-        <select id="ilPhdResolution" onchange="ilMarkEmpty(this)"></select>
+        <select id="ilPhdResolution" onchange="ilMarkEmpty(this);ilSyncSimResFromResolution()"></select>
       </div>
       <div class="ail-field" data-ilfield>
         <label class="ail-flabel" for="ilPhdNotes"><span class="ail-flabel-tx">PHD Notes</span> <span class="ail-empty-dot">Empty</span><button type="button" class="ail-fedit" data-for="ilPhdNotes" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit PHD Notes" style="display:none"></button><button type="button" class="ail-fcopy" data-for="ilPhdNotes" data-label="PHD Notes" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy PHD Notes"></button></label>
@@ -1997,6 +1997,7 @@ function fillIncidentSelects(){
 // Resync the searchable comboboxes for the two dropdowns (after their .value is set directly).
 function ilRefreshSelectUI(){
   ['ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el && el._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(el); });
+  if(typeof ilSyncResolutionEnabled==='function') ilSyncResolutionEnabled();   // gate PHD Resolution on SIM content
 }
 var IL_FIELD_IDS=['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRootCause','ilRelatedLink','ilPhdResolution','ilPhdNotes'];
 var IL_EDIT_ID=null;   // null = Add mode; an id = editing that existing incident-log entry
@@ -2037,6 +2038,38 @@ function ilSimResPending(){
   var m=String(el.value||'').match(/^\s*Res\s*:\s*(.*)$/mi);
   return !!(m && /pending/i.test(m[1]));
 }
+// PHD Resolution can only be picked once SIM Root Cause Details has content. Disable the dropdown
+// (and its searchable combobox face) while SIM is empty; re-enable when it has text.
+function ilSyncResolutionEnabled(){
+  var sim=document.getElementById('ilSimRcd'), res=document.getElementById('ilPhdResolution');
+  if(!res) return;
+  var hasSim=!!String((sim||{}).value||'').trim();
+  res.disabled=!hasSim;
+  if(!hasSim) res.value='';   // clear any stale selection when SIM goes empty
+  if(window.makeSearchableSelect && res._ssWrap) window.makeSearchableSelect(res);   // refresh the combobox face/disabled state
+}
+// When the PHD Resolution dropdown changes, rewrite the SIM Root Cause Details "Res:" line to the
+// selected resolution — replacing whatever was there (PENDING or any prior value). No-op if the SIM
+// field is empty or no resolution is selected.
+function ilSyncSimResFromResolution(){
+  var res=document.getElementById('ilPhdResolution'); var sim=document.getElementById('ilSimRcd');
+  if(!res || !sim) return;
+  var val=String(res.value||'').trim();
+  if(!val) return;                                   // nothing selected -> leave SIM as-is
+  var text=String(sim.value||''); if(!text.trim()) return;   // empty SIM -> nothing to update
+  var wasReadonly=sim.readOnly;                      // temporarily unlock if it was read-only
+  var reRe=/^([ \t]*Res[ \t]*:[ \t]*).*$/mi;
+  var next;
+  if(reRe.test(text)){ next=text.replace(reRe, '$1'+val); }   // replace the existing Res: value
+  else { next=text.replace(/\s*$/,'')+'\nRes: '+val; }        // or append a Res: line
+  if(next===text) return;
+  sim.readOnly=false; sim.value=next; sim.readOnly=wasReadonly;
+  // Keep the empty-marker, copy-state (PENDING check), and autosize in sync.
+  if(typeof ilMarkEmpty==='function') ilMarkEmpty(sim);
+  if(typeof ilUpdateCopyState==='function') ilUpdateCopyState();
+  if(typeof ilAutosize==='function') ilAutosize(sim);
+}
+window.ilSyncSimResFromResolution=ilSyncSimResFromResolution;
 function ilUpdateCopyState(){
   var pending=ilSimResPending();
   var ok=ilAllFilled() && !pending;

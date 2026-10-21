@@ -142,7 +142,7 @@ window.RC_RESOLUTIONS = [
   'Blocking Place ID',
   'Physical Order Block',
   'Address Exclusion',
-  'Address Deprioritization or Address Depri',
+  'Address Depri',
   'Area Exclusion',
   'GeoPin Update',
   'GeoFence Update',
@@ -235,6 +235,7 @@ window.RC_ROOT_CAUSES = [
       '.ss-field .ss-caret{flex:0 0 auto;color:#8a94a2;transition:transform .15s}',
       '.ss-wrap.open .ss-field .ss-caret{transform:rotate(180deg)}',
       '.ss-pop{position:absolute;z-index:9001;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #d4dce4;border-radius:8px;box-shadow:0 12px 30px -12px rgba(20,30,50,.35);padding:8px;display:none}',
+      '.ss-wrap.up .ss-pop{top:auto;bottom:calc(100% + 4px)}',
       '.ss-wrap.open .ss-pop{display:block}',
       '.ss-search{display:flex;align-items:center;gap:8px;border:0;border-radius:0;padding:0;margin-bottom:8px}',
       '.ss-search svg{flex:0 0 auto;color:#8a94a2}',
@@ -265,9 +266,25 @@ window.RC_ROOT_CAUSES = [
     }
   }
   function reclipAncestors(){ _unclipped.forEach(function(p){ p[0].style.overflow = p[1]||''; }); _unclipped = []; }
-  function closeOpen(){ if (OPEN){ OPEN.classList.remove('open'); OPEN=null; reclipAncestors(); } }
+  // Decide whether the popup opens downward (default) or UPWARD, based on space below the field vs.
+  // the viewport, and cap the list height to whatever room is available so it never spills off-screen.
+  function positionPopup(wrap){
+    var field = wrap.querySelector('.ss-field');
+    var list = wrap.querySelector('.ss-list');
+    if (!field || !list) return;
+    var r = field.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var below = vh - r.bottom, above = r.top;
+    var up = (below < 240 && above > below);   // flip up only when below is tight and above has more room
+    wrap.classList.toggle('up', up);
+    var room = (up ? above : below) - 70;       // leave margin for the search box + padding
+    list.style.maxHeight = Math.max(120, Math.min(240, room)) + 'px';
+  }
+  function closeOpen(){ if (OPEN){ OPEN.classList.remove('open'); OPEN.classList.remove('up'); OPEN=null; reclipAncestors(); } }
   document.addEventListener('click', function(e){ if (OPEN && !OPEN.contains(e.target)) closeOpen(); });
   document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeOpen(); });
+  window.addEventListener('resize', function(){ if (OPEN) positionPopup(OPEN); });
+  window.addEventListener('scroll', function(){ if (OPEN) positionPopup(OPEN); }, true);
 
   window.makeSearchableSelect = function (sel, opts) {
     opts = opts || {};
@@ -288,7 +305,7 @@ window.RC_ROOT_CAUSES = [
       wrap.appendChild(field); wrap.appendChild(pop);
       sel._ssWrap = wrap; sel._ssField = field; sel._ssInput = pop.querySelector('input'); sel._ssList = pop.querySelector('.ss-list');
 
-      field.addEventListener('click', function(){ if (sel.disabled) return; var isOpen = wrap.classList.contains('open'); closeOpen(); if (!isOpen){ wrap.classList.add('open'); OPEN = wrap; unclipAncestors(wrap); sel._ssInput.value=''; renderList(sel,''); setTimeout(function(){ sel._ssInput.focus(); }, 10); } });
+      field.addEventListener('click', function(){ if (sel.disabled) return; var isOpen = wrap.classList.contains('open'); closeOpen(); if (!isOpen){ wrap.classList.add('open'); OPEN = wrap; unclipAncestors(wrap); positionPopup(wrap); sel._ssInput.value=''; renderList(sel,''); setTimeout(function(){ sel._ssInput.focus(); }, 10); } });
       sel._ssInput.addEventListener('input', function(){ renderList(sel, this.value); });
       sel._ssInput.addEventListener('keydown', function(e){
         var items = Array.prototype.slice.call(sel._ssList.querySelectorAll('.ss-opt'));
