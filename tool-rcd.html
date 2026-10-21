@@ -460,13 +460,13 @@ function rcOutputText(asPending){
 // Wrap the RCD output as a My-Tickets incident-log blob. The SIM Root Cause Details section holds
 // the converted output; Root Cause + PHD Resolution are filled from the paste panel / converter.
 // Other structured sections are left as the "-" placeholder (matches buildIncidentOutput).
-function rcWrapIncidentLog(simText, rootCause, phdResolution){
+function rcWrapIncidentLog(simText, rootCause, phdResolution, relatedLink){
   return [
     '**PHD Findings**:\n-',
     '**PHD Investigation for mitigation:**\n-',
     '**SIM Root Cause Details:**\n'+simText,
     '**Root Cause**: '+(rootCause||''),
-    '**PHD Related Link**: ',
+    '**PHD Related Link**: '+(relatedLink||''),
     '**PHD Resolution**: '+(phdResolution||''),
     '**PHD notes**:\n-'
   ].join('\n\n');
@@ -543,8 +543,10 @@ async function rcPasteToTicket(asPending){
   if(!asPending && !phdRes){ rcShowTargetStatus('err', 'Select a Resolution, or use Paste as Pending.'); return; }
   var rootCause=(document.getElementById('rcPasteRootCause')||{}).value||'';
   var sim=rcOutputText(asPending);
+  // PHD Related Link = the ticket's standard URL (so it isn't blanked out in My Tickets).
+  var relatedLink='https://t.corp.amazon.com/issues/'+RC_TARGET.shortId;
   // Map Root Cause (selected here) + PHD Resolution (from the converter; PENDING for pending paste).
-  var blob=rcWrapIncidentLog(sim, rootCause, asPending ? RC_PENDING_RES : phdRes);
+  var blob=rcWrapIncidentLog(sim, rootCause, asPending ? RC_PENDING_RES : phdRes, relatedLink);
   var pBtn=document.getElementById('rcPushBtn'), ppBtn=document.getElementById('rcPushPending');
   if(pBtn) pBtn.disabled=true; if(ppBtn) ppBtn.disabled=true;
   try{

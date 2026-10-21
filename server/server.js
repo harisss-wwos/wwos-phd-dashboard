@@ -5663,13 +5663,33 @@ async function dashSummary(qid, groupLogins) {
   // resolves only. Avatars are attached from the users collection afterward.
   let topAgents = [];
   try {
-    const ar = await aggLive(GM.concat([
-      { $project: {
-        rby: { $toLower: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } } },
-        cc: { $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } },
-        h: AGG.resHours,
-      } },
-      { $match: { rby: { $nin: ['', PET_AUTOSIM_IDENTITY.toLowerCase()] } } },
+    // ---- Podium: SAME definition the Team Analytics table uses, so the podium "successful" ALWAYS
+    // equals the table's SUCCESS column for the same filter. That means, for a {from,to} window,
+    // scope the resolves by ResolvedDate (NOT CreateDate) and restrict to the PHD roster (GRP_ALL) —
+    // exactly how aggClosureMetrics (the table source) counts. Non-window scopes (main dashboard
+    // podium: quarter / era / all / q2q3) keep the original CreateDate-scoped aggLive path.
+    const isWin = (qid && typeof qid === 'object' && (qid.from || qid.to));
+    let resWindowMatch = null;   // ResolvedDate window stage, window scope only
+    if (isWin) {
+      const _d = (v) => { if (!v) return null; const d = new Date(String(v).length <= 10 ? (String(v) + 'T00:00:00Z') : String(v)); return isNaN(d) ? null : d; };
+      const rdCond = {};
+      const f = _d(qid.from), t = _d(qid.to);
+      if (f) rdCond.$gte = f;
+      if (t) rdCond.$lt = t;
+      if (Object.keys(rdCond).length) resWindowMatch = { $match: { _rd: rdCond } };
+    }
+    // For a window: match on ResolvedDate + roster (mirror the table). Otherwise: original behaviour
+    // (CreateDate scope via aggLive's qid, exclude only AutoSIM).
+    const projStage = { $project: {
+      rby: { $toLower: { $trim: { input: { $ifNull: ['$t.ResolvedByIdentity', ''] } } } },
+      cc: { $trim: { input: { $ifNull: ['$t.ClosureCode', ''] } } },
+      h: AGG.resHours,
+      _rd: { $convert: { input: '$t.ResolvedDate', to: 'date', onError: null, onNull: null } },
+    } };
+    const matchStages = isWin
+      ? [ { $match: { rby: { $in: GRP_ALL } } } ].concat(resWindowMatch ? [resWindowMatch] : [])
+      : [ { $match: { rby: { $nin: ['', PET_AUTOSIM_IDENTITY.toLowerCase()] } } } ];
+    const pipe = [projStage].concat(matchStages, [
       { $group: {
         _id: '$rby',
         successful: { $sum: { $cond: [{ $eq: ['$cc', 'Successful'] }, 1, 0] } },
@@ -5680,7 +5700,11 @@ async function dashSummary(qid, groupLogins) {
       { $match: { successful: { $gt: 0 } } },
       { $sort: { successful: -1 } },
       { $limit: 3 },
-    ]), qid);
+    ]);
+    // When the window is in play we must NOT let aggLive also apply its CreateDate window. Pass a
+    // scope that spans the whole collection (ResolvedDate match inside `pipe` does the bounding).
+    const topScope = isWin ? 'all' : qid;
+    const ar = await aggLive(GM.concat(pipe), topScope);
     topAgents = ar.map(x => ({
       login: x._id,
       successful: x.successful,

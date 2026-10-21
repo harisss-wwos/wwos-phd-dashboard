@@ -964,7 +964,10 @@ function GA_AC_WEEKS(){
 // The window bounds come from perfWindow() (ISO 'YYYY-MM-DD'); group-range takes ms timestamps.
 function gaResolveSource(){
   var win=perfWindow();
-  if(PERF.type==='era') return { url:'/api/group-overall', label:(win.label||'YTD 2026')+' — complete database.' };
+  // EVERY period (including YTD/era) resolves to the SAME windowed range endpoint keyed off
+  // perfWindow(), so the tables track the EXACT same {from,to} window as the podium/KPIs/chart.
+  // (Previously YTD fell back to /api/group-overall = complete database, which made the table's
+  // SUCCESS count diverge from the podium's window-scoped count.)
   var toMsExcl=function(iso){ // ISO date -> ms at local midnight
     var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]).getTime():null;
   };
