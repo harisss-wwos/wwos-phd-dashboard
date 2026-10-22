@@ -77,6 +77,19 @@ input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,
 .ph-badge{background:#ffe6d6;color:var(--o);border:1px solid #ffd0b3;padding:2px 10px;border-radius:999px;font-size:.72em;text-transform:uppercase;font-weight:800}
 .ph-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .ph-actions .btn{flex:1;min-width:150px;justify-content:center}
+/* ===== Admin-tool link rows (icon + label | Local + Live buttons) ===== */
+.ph-links{display:flex;flex-direction:column;gap:2px}
+.ph-link-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:8px;transition:background .12s}
+.ph-link-row:not(:last-child){border-bottom:1px solid #eef0f3}
+.ph-link-row:hover{background:#f7f9fb}
+.ph-link-ic{flex:0 0 auto;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--icbg);color:var(--icfg)}
+.ph-link-ic svg{width:18px;height:18px}
+.ph-link-label{flex:1;min-width:0;font-weight:800;font-size:.95em;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph-link-btns{flex:0 0 auto;display:inline-flex;gap:8px}
+/* Regular button (reuses .btn.sec); just size it a touch smaller for the row. */
+.ph-lbtn{padding:7px 15px;font-size:.82em}
+.ph-lbtn svg{width:13px;height:13px}
+@media(max-width:600px){.ph-link-row{flex-wrap:wrap}.ph-link-btns{margin-left:46px}}
 .msg{font-size:.85em;margin-top:12px;display:none;font-weight:600}
 .msg.err{color:#d6456f}.msg.ok{color:var(--gl)}
 .gate{text-align:center;padding:60px 20px;background:var(--white);border:1px solid var(--bd);border-radius:5px;box-shadow:var(--sh)}
@@ -194,6 +207,28 @@ body[data-profile-panel] .home-main .content{width:100%!important;max-width:100%
 .hr-item.nt-blue{--acc:var(--icfg);--accbg:var(--icbg)}
 .hr-item.nt-teal{--acc:#1b8f8a;--accbg:#d2f0ee}
 .hr-item.hr-latest{background:#fff7f2;border-color:#ffd9c2}
+/* ===== Left MENU (full-width coloured nav buttons) ===== */
+.home-recent .hr-list{gap:9px}
+.mnu-grp{display:flex;flex-direction:column;gap:9px}
+.mnu-grp-dark{margin-top:14px}
+.mnu-grp-foot{margin-top:auto;padding-top:14px}
+.mnu-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 13px;border-radius:7px;border:none;cursor:pointer;
+  text-decoration:none;font-family:inherit;font-size:.85em;font-weight:800;line-height:1.15;text-align:left;
+  box-shadow:0 4px 12px -6px rgba(20,30,50,.4);transition:filter .14s,transform .1s;overflow:hidden}
+.mnu-btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.mnu-btn:active{transform:translateY(0)}
+.mnu-ic{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.2)}
+.mnu-ic svg{width:15px;height:15px}
+.mnu-tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Colour variants. */
+.mnu-orange{background:linear-gradient(180deg,#ff8a3d,#ef6a12);color:#fff}
+.mnu-orange.soft{background:linear-gradient(180deg,#ffb067,#f3853a);color:#fff}
+.mnu-blue{background:linear-gradient(180deg,#3b82f6,#2b66c1);color:#fff}
+.mnu-dark{background:#141c28;color:#dfe6ec;box-shadow:0 4px 12px -6px rgba(0,0,0,.5)}
+.mnu-dark .mnu-ic{background:rgba(255,255,255,.1)}
+.mnu-red{background:linear-gradient(180deg,#f0564f,#e23b3b);color:#fff}
+/* Current page highlighted. */
+.mnu-btn.mnu-active{outline:2px solid #fff;outline-offset:-2px;filter:brightness(1.08)}
 .home-recent .hr-list .hr-empty{font-size:.74em;color:var(--ink2);text-align:center;padding:18px 8px;line-height:1.5}
 .home-recent .hr-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-top:1px solid #eceae4;font-size:.68em;color:var(--ink2)}
 .home-recent .hr-clear{background:transparent;border:none;color:var(--icfg);font-weight:700;font-size:1em;cursor:pointer;padding:0;font-family:inherit}
@@ -227,11 +262,10 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
   </div>
 
   <div class="home-layout">
-    <!-- Recent visited sidebar (logged-in only; hidden on mobile) -->
+    <!-- Menu sidebar (logged-in only; hidden on mobile) -->
     <aside class="home-recent" id="homeRecent">
-      <div class="hr-head"><span class="hr-head-ic" data-ic="clock"></span>Recent</div>
+      <div class="hr-head"><span class="hr-head-ic" data-ic="grid"></span>Menu</div>
       <div class="hr-list" id="hrList"></div>
-      <div class="hr-foot"><span>Last visited pages</span><button type="button" class="hr-clear" id="hrClear">Clear</button></div>
     </aside>
     <!-- Main profile content (filled by renderProfile) -->
     <div class="home-main"><div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div></div>
@@ -300,23 +334,50 @@ function hrRelTime(ts){
   if(d<7) return d+' days ago';
   return new Date(ts).toLocaleDateString('en-US',{day:'numeric',month:'short'});
 }
-function renderRecent(){
+// Left sidebar is a NAVIGATION MENU (replaces the old "Recent" list): full-width coloured buttons.
+// Two groups — PRIMARY (coloured) nav on top, then DARK secondary nav — followed by footer actions
+// (Upload new data / View upload log / Log out). Links are relative so they stay in the current
+// environment. The current page is marked active.
+function renderRecent(){   // (kept the name; now renders the Menu)
   var panel=document.getElementById('homeRecent');
   var loggedIn=(A&&A.getUser&&A.getUser());
   if(!loggedIn){ if(panel) panel.style.display='none'; document.body.classList.add('home-no-recent'); return; }
   if(panel) panel.style.display=''; document.body.classList.remove('home-no-recent');
   var list=document.getElementById('hrList'); if(!list) return;
-  var items=[]; try{ items=JSON.parse(localStorage.getItem(HR_KEY)||'[]'); }catch(e){ items=[]; }
-  if(!Array.isArray(items)) items=[];
-  items=items.filter(function(x){ var f=hrFileOf(x&&x.href); return f && f!=='index' && f!==''; }).slice(0,6);
-  if(!items.length){ list.innerHTML='<div class="hr-empty">No recent pages yet. Pages you open will show up here.</div>'; return; }
-  list.innerHTML=items.map(function(x,i){
-    var f=hrFileOf(x.href); var meta=HR_MAP[f]||{title:(x.title||f),icon:'grid',tone:'blue'};
-    var cls='hr-item nt-'+meta.tone+(i===0?' hr-latest':'');
-    return '<a class="'+cls+'" href="'+x.href+'" title="'+String(meta.title).replace(/"/g,'&quot;')+'">'+
-      '<span class="hr-ic">'+ic(meta.icon,14)+'</span>'+
-      '<span class="hr-tx"><span class="hr-title">'+meta.title+'</span><span class="hr-time">'+hrRelTime(x.at||Date.now())+'</span></span></a>';
-  }).join('');
+  var here=(location.pathname.split('/').pop()||'').toLowerCase();
+  // PRIMARY group — the four highlighted nav items (orange + blue in the mock).
+  var primary=[
+    {href:'my-tickets.html',          icon:'ticket',    title:'My Tickets',          cls:'mnu-orange'},
+    {href:'tools.html',               icon:'tool',      title:'PHD Tools',           cls:'mnu-blue'},
+    {href:'agent-analytics.html',     icon:'bar-chart', title:'Team Analytics',      cls:'mnu-blue'},
+    {href:'performance-summary.html', icon:'clipboard', title:'Performance Summary', cls:'mnu-blue'},
+  ];
+  // SECONDARY group — dark buttons.
+  var secondary=[
+    {href:'sla-breach.html',      icon:'clock',  title:'SLA Breaches (>240h)'},
+    {href:'station-request.html', icon:'map-pin',title:'Station Request Tickets'},
+    {href:'hashtags.html',        icon:'hash',   title:'Hashtags'},
+    {href:'hi-resolved.html',     icon:'repeat', title:'Repeat Incidents'},
+    {href:'important-cases.html', icon:'star',   title:'Unique Cases'},
+  ];
+  // Admin pages appear in the secondary group only for permitted users.
+  if(A.canManageUsers&&A.canManageUsers())   secondary.push({href:'users.html',       icon:'users',   title:'Users'});
+  if(A.canDatabase&&A.canDatabase())         secondary.push({href:'db-health.html',   icon:'database',title:'Database Health'});
+  if(A.canGroupingPage&&A.canGroupingPage()) secondary.push({href:'groups-page.html', icon:'copy',    title:'Grouping Page'});
+  var btn=function(m,extraCls){
+    var active=(m.href.toLowerCase()===here)?' mnu-active':'';
+    return '<a class="mnu-btn '+(extraCls||'')+active+'" href="'+m.href+'" title="'+String(m.title).replace(/"/g,'&quot;')+'">'+
+      '<span class="mnu-ic">'+ic(m.icon,15)+'</span><span class="mnu-tx">'+esc(m.title)+'</span></a>';
+  };
+  var html='<div class="mnu-grp mnu-grp-primary">'+primary.map(function(m){return btn(m,m.cls);}).join('')+'</div>';
+  html+='<div class="mnu-grp mnu-grp-dark">'+secondary.map(function(m){return btn(m,'mnu-dark');}).join('')+'</div>';
+  // Footer actions — Upload new data / View upload log (admin-gated) + Log out.
+  var foot='';
+  if(A.canUpload&&A.canUpload()) foot+='<a class="mnu-btn mnu-orange" href="app.html#upload" title="Upload new data"><span class="mnu-ic">'+ic('upload',15)+'</span><span class="mnu-tx">Upload new data</span></a>';
+  foot+='<a class="mnu-btn mnu-orange soft" href="data-log.html" title="View upload log"><span class="mnu-ic">'+ic('history',15)+'</span><span class="mnu-tx">View upload log</span></a>';
+  foot+='<button type="button" class="mnu-btn mnu-red" onclick="doLogout()" title="Log out"><span class="mnu-ic">'+ic('log-out',15)+'</span><span class="mnu-tx">Log out</span></button>';
+  html+='<div class="mnu-grp mnu-grp-foot">'+foot+'</div>';
+  list.innerHTML=html;
 }
 
 let PROFILE_LOADED=false;
@@ -394,15 +455,30 @@ function render(){
   paintWeeklySummary();
 }
 
+// Base URLs for the Local vs Live links (same as wwos-phd-bookmarks.html). Each row shows ONE button
+// that matches WHERE the profile page is currently open: on localhost -> "Local" (localhost base),
+// on the live site -> "Live" (GitHub Pages base).
+const PH_LOCAL='http://localhost:8082/';
+const PH_LIVE='https://harisss-wwos.github.io/wwos-phd-dashboard/';
+const PH_IS_LOCAL=/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 function adminToolsCard(){
   const links=[
     { show:(A.canManageUsers&&A.canManageUsers()),  icon:'users',    href:'users.html',       label:'Users' },
-    { show:(A.canDatabase&&A.canDatabase()),        icon:'database', href:'db-health.html',   label:'Database health' },
+    { show:(A.canDatabase&&A.canDatabase()),        icon:'database', href:'db-health.html',   label:'Database Health' },
     { show:(A.canGroupingPage&&A.canGroupingPage()),icon:'copy',     href:'groups-page.html', label:'Grouping Page' },
   ].filter(x=>x.show);
   if(!links.length) return '';
-  const btns=links.map(l=>`<a class="btn sec" href="${l.href}">${ic(l.icon)} ${esc(l.label)}</a>`).join('');
-  return `<div class="ph-card"><div class="ph-card-h">${ic('tool',15)} Admin tools</div><div class="ph-actions">${btns}</div></div>`;
+  const base=PH_IS_LOCAL?PH_LOCAL:PH_LIVE;
+  const rows=links.map(l=>
+    `<div class="ph-link-row">`+
+      `<span class="ph-link-ic">${ic(l.icon,18)}</span>`+
+      `<span class="ph-link-label">${esc(l.label)}</span>`+
+      `<span class="ph-link-btns">`+
+        `<a class="btn sec ph-lbtn" href="${base}${l.href}" target="_blank" rel="noopener">${ic('external-link',12)} Open</a>`+
+      `</span>`+
+    `</div>`
+  ).join('');
+  return `<div class="ph-card"><div class="ph-card-h">${ic('tool',15)} Admin tools</div><div class="ph-links">${rows}</div></div>`;
 }
 
 // ---- Weekly + Monthly Performance Summary (managers + owners only) ----
@@ -643,7 +719,6 @@ async function changePw(){
 
 // Fill the header clock icon placeholder + wire the Recent "Clear" button.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML=window.icon(el.getAttribute('data-ic'),13); });
-(function(){ var clr=document.getElementById('hrClear'); if(clr) clr.onclick=function(){ try{ localStorage.removeItem(HR_KEY); }catch(e){} renderRecent(); }; })();
 
 (async()=>{
   renderHomeHdrProf();
