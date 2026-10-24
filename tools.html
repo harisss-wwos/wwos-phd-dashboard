@@ -239,8 +239,16 @@ function setupAutoSize(frame){
     try{
       const doc=frame.contentDocument||(frame.contentWindow&&frame.contentWindow.document);
       if(!doc||!doc.documentElement) return;
+      // documentElement.scrollHeight never drops below the frame's own height, so measuring at the
+      // current height can only GROW the frame (collapsing an accordion left a blank gap). Collapse
+      // the frame to 0 for the measurement so it reports the true content height, then apply it —
+      // all in one synchronous step (no paint in between), restoring the page scroll if it moved.
+      const y=window.scrollY;
+      const prev=frame.style.height;
+      frame.style.height='0px';
       const h=Math.max(doc.documentElement.scrollHeight, doc.body?doc.body.scrollHeight:0);
-      if(h) frame.style.height=h+'px';
+      frame.style.height=h?(h+'px'):prev;
+      if(window.scrollY!==y) window.scrollTo(0,y);
     }catch(e){ /* cross-origin or not ready — ignore */ }
   }
   sizeFrame();

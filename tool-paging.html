@@ -142,15 +142,6 @@ body[data-embedded="true"]{scrollbar-width:none!important;scrollbar-gutter:auto!
 body[data-embedded="true"]::-webkit-scrollbar{width:0!important;height:0!important}
 html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 
-/* ---- Pagination bar (7 rows x 2 cols per page) ---- */
-.tp-pager{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:18px 0 6px}
-.tp-pg{min-width:34px;height:34px;padding:0 10px;border:1px solid var(--bd);background:#fff;color:var(--t);border-radius:7px;font-family:inherit;font-size:.85em;font-weight:700;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-.tp-pg:hover:not(:disabled):not(.active){border-color:var(--o);color:var(--o)}
-.tp-pg.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);border-color:#f07d0a;color:#fff;box-shadow:0 3px 10px -2px rgba(240,125,10,.4)}
-.tp-pg.nav{font-weight:600}
-.tp-pg:disabled{opacity:.45;cursor:default}
-.tp-count{margin-left:8px;color:var(--tm);font-size:.82em;font-weight:600}
-@media(max-width:560px){.tp-count{width:100%;text-align:center;margin:4px 0 0}}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -231,8 +222,6 @@ html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 <script>
 const A=window.PHDAuth;
 let CONTACTS=[];
-// Pagination: 7 rows x 2 columns = 14 cards per page.
-let PAGE=0; const PER_PAGE=14;
 const canAdd=()=>A.canEditTools&&A.canEditTools();
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
@@ -272,13 +261,8 @@ function render(){
       +'<a class="btn sec" href="paging-log.html">'+(window.icon?window.icon('history',15):'')+' Paging edit log</a>'
     +'</div>'
   +'</div>';
-  // Clamp the page in case the list shrank (edit/delete).
-  const pages=Math.max(1,Math.ceil(CONTACTS.length/PER_PAGE));
-  if(PAGE>pages-1)PAGE=pages-1; if(PAGE<0)PAGE=0;
-  const start=PAGE*PER_PAGE, end=start+PER_PAGE;
-  // Expandable, click-to-copy cards. Only the current page's 14 cards are rendered; onclick handlers
-  // keep the GLOBAL index i so copy/view/edit map to the right contact.
-  html+=`<div class="pg-list">`+CONTACTS.map((c,i)=>({c,i})).filter(x=>x.i>=start&&x.i<end).map(({c,i})=>`
+  // Expandable, click-to-copy cards — ALL contacts, no pagination.
+  html+=`<div class="pg-list">`+CONTACTS.map((c,i)=>`
     <div class="pg-card" id="pgcard-${i}">
       <button type="button" class="pg-headrow" id="viewCard-${i}" onclick="toggleView(${i},event)" title="Show / hide the email" aria-expanded="false">
         <span class="pg-count" id="count-${i}" title="Times copied">${copyIcon}<span class="pg-count-n">${c.copyCount||0}</span></span>
@@ -294,32 +278,8 @@ function render(){
         ${admin?`<div class="pg-admin"><button class="btn sec mini" onclick="event.stopPropagation();openEditModal(${i})">Edit</button></div>`:''}
       </div>
     </div>`).join('')+`</div>`;
-  html+=pagerHtml(CONTACTS.length);
   document.getElementById('wrap').innerHTML=html;
 }
-
-// ---- Pagination bar: Prev · up to 7 windowed page numbers · Next. ----
-function pagerHtml(total){
-  const pages=Math.max(1,Math.ceil(total/PER_PAGE));
-  if(pages<=1) return '';
-  const WIN=7; let s=Math.max(0,PAGE-Math.floor(WIN/2)); let e=Math.min(pages,s+WIN); s=Math.max(0,e-WIN);
-  let btns='';
-  for(let p=s;p<e;p++){ btns+='<button class="tp-pg'+(p===PAGE?' active':'')+'" onclick="goPage('+p+')">'+(p+1)+'</button>'; }
-  const from=PAGE*PER_PAGE+1, to=Math.min(total,(PAGE+1)*PER_PAGE);
-  return '<div class="tp-pager">'
-    +'<button class="tp-pg nav" '+(PAGE<=0?'disabled':'')+' onclick="goPage('+(PAGE-1)+')">‹ Prev</button>'
-    +btns
-    +'<button class="tp-pg nav" '+(PAGE>=pages-1?'disabled':'')+' onclick="goPage('+(PAGE+1)+')">Next ›</button>'
-    +'<span class="tp-count">'+from+'–'+to+' of '+total+'</span>'
-  +'</div>';
-}
-function goPage(p){
-  const pages=Math.max(1,Math.ceil(CONTACTS.length/PER_PAGE));
-  PAGE=Math.min(Math.max(0,p),pages-1);
-  render();
-  try{ window.scrollTo(0,0); }catch(e){}
-}
-window.goPage=goPage;
 
 // Expand/collapse a card's email via the View button. Accordion: only one open at a time.
 function toggleView(i,ev){

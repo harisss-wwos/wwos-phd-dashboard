@@ -75,11 +75,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-chip.v-low{color:#1f7a44;background:#eafaf0;border-color:#c8efd8}
 .rc-chip.v-na{color:#5c6773;background:#eef1f4;border-color:#e2e6ea}
 .rc-gate{padding:40px 22px;color:var(--tm)}
-/* ===== Admin-only quick-copy reference (Issue types + Resolutions) — two cards side by side ===== */
-.rc-refs{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;align-items:start}
-@media(max-width:760px){.rc-refs{grid-template-columns:1fr}}
+/* ===== Admin-only quick-copy reference (Issue types + Resolutions) — two collapsible cards stacked
+   one below the other. Accordion: at most one open; both collapsed by default. ===== */
+.rc-refs{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .rc-ref{background:#fff;border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 2px 12px -8px rgba(20,30,50,.3);overflow:hidden}
-.rc-ref-head{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid #eef1f4;background:linear-gradient(90deg,#161d2d,#212b42);color:#f4f3ef}
+.rc-ref-head{display:flex;align-items:center;gap:10px;width:100%;padding:14px 20px;border:none;background:linear-gradient(90deg,#161d2d,#212b42);color:#f4f3ef;font-family:inherit;text-align:left;cursor:pointer}
+.rc-ref-head:focus-visible{outline:2px solid #ec7211;outline-offset:-2px}
+.rc-ref-caret{display:inline-flex;color:#aab6c6;transition:transform .2s}
+.rc-ref.open .rc-ref-caret{transform:rotate(180deg)}
+.rc-ref.open .rc-ref-head{border-bottom:1px solid #eef1f4}
+.rc-ref:not(.open) .rc-ref-body{display:none}
+/* "Click to copy" hint only matters while the list is visible. */
+.rc-ref:not(.open) .rc-ref-sub{visibility:hidden}
 .rc-ref-head .rc-ref-t{font-weight:800;font-size:.98em;display:inline-flex;align-items:center;gap:9px}
 .rc-ref-head .rc-ref-sub{margin-left:auto;font-size:.76em;color:#aab6c6;font-weight:600}
 .rc-ref-body{padding:16px 18px}
@@ -162,17 +169,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
   <!-- Admin-only quick-copy reference: two side-by-side cards. Click any item to copy "Issue: ..." / "Res: ...". Hidden for non-admins. -->
   <div class="rc-refs" id="rcRef" style="display:none">
     <div class="rc-ref">
-      <div class="rc-ref-head">
+      <button type="button" class="rc-ref-head" aria-expanded="false" aria-controls="rcRefIssues" onclick="rcToggleRef(this)">
         <span class="rc-ref-t" id="rcRefIssuesH"></span>
         <span class="rc-ref-sub">Click to copy</span>
-      </div>
+        <span class="rc-ref-caret" aria-hidden="true"></span>
+      </button>
       <div class="rc-ref-body" id="rcRefIssues"></div>
     </div>
     <div class="rc-ref">
-      <div class="rc-ref-head">
+      <button type="button" class="rc-ref-head" aria-expanded="false" aria-controls="rcRefRes" onclick="rcToggleRef(this)">
         <span class="rc-ref-t" id="rcRefResH"></span>
         <span class="rc-ref-sub">Click to copy</span>
-      </div>
+        <span class="rc-ref-caret" aria-hidden="true"></span>
+      </button>
       <div class="rc-ref-body" id="rcRefRes"></div>
     </div>
   </div>
@@ -616,8 +625,21 @@ function rcBuildRef(){
   // Card titles.
   document.getElementById('rcRefIssuesH').innerHTML=ic('alert',15)+' Issue types';
   document.getElementById('rcRefResH').innerHTML=ic('target',15)+' Resolutions';
+  ref.querySelectorAll('.rc-ref-caret').forEach(function(c){ c.innerHTML=ic('chevron-down',16); });
   ref.style.display='';
 }
+// Accordion for the two reference cards: opening one closes the other; clicking an open card
+// collapses it. Both start collapsed (no .open in the markup).
+function rcToggleRef(btn){
+  var card=btn&&btn.closest('.rc-ref'); if(!card) return;
+  var willOpen=!card.classList.contains('open');
+  document.querySelectorAll('#rcRef .rc-ref').forEach(function(c){
+    var on=(c===card)&&willOpen;
+    c.classList.toggle('open',on);
+    var h=c.querySelector('.rc-ref-head'); if(h) h.setAttribute('aria-expanded',on?'true':'false');
+  });
+}
+window.rcToggleRef=rcToggleRef;
 
 (function init(){
   rcInitSelects();

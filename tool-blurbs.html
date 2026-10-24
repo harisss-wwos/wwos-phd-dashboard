@@ -170,15 +170,6 @@ body[data-embedded="true"]{scrollbar-width:none!important;scrollbar-gutter:auto!
 body[data-embedded="true"]::-webkit-scrollbar{width:0!important;height:0!important}
 html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 
-/* ---- Pagination bar (7 rows x 2 cols per page) ---- */
-.tp-pager{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:18px 0 6px}
-.tp-pg{min-width:34px;height:34px;padding:0 10px;border:1px solid var(--bd);background:#fff;color:var(--t);border-radius:7px;font-family:inherit;font-size:.85em;font-weight:700;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-.tp-pg:hover:not(:disabled):not(.active){border-color:var(--o);color:var(--o)}
-.tp-pg.active{background:linear-gradient(180deg,#ff9f2e,#f07d0a);border-color:#f07d0a;color:#fff;box-shadow:0 3px 10px -2px rgba(240,125,10,.4)}
-.tp-pg.nav{font-weight:600}
-.tp-pg:disabled{opacity:.45;cursor:default}
-.tp-count{margin-left:8px;color:var(--tm);font-size:.82em;font-weight:600}
-@media(max-width:560px){.tp-count{width:100%;text-align:center;margin:4px 0 0}}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
@@ -268,8 +259,14 @@ html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 <script>
 const A=window.PHDAuth;
 let BLURBS=[];
-// Pagination: 7 rows x 2 columns = 14 cards per page.
-let PAGE=0; const PER_PAGE=14;
+// Most-copied first (stable: ties keep the server's manual order). Applied whenever the list is
+// loaded (cache paint + fresh fetch). Copying a blurb updates its count in place WITHOUT re-sorting,
+// so cards don't jump under the cursor; the new order applies on the next load.
+function sortBlurbs(arr){
+  return arr.map(function(b,i){return {b:b,i:i};})
+    .sort(function(x,y){ return ((y.b.copyCount||0)-(x.b.copyCount||0)) || (x.i-y.i); })
+    .map(function(x){return x.b;});
+}
 const canEdit=()=>A.canEditTools&&A.canEditTools();
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
@@ -285,11 +282,11 @@ async function load(){
   // Instant paint from cache if present.
   let paintedFromCache=false;
   const cached=readCache();
-  if(Array.isArray(cached)&&cached.length){BLURBS=cached;render();paintedFromCache=true;}
+  if(Array.isArray(cached)&&cached.length){BLURBS=sortBlurbs(cached);render();paintedFromCache=true;}
   // Background refresh.
   const r=await A.api('GET','/api/blurbs');
   if(!r.ok){ if(!paintedFromCache)document.getElementById('wrap').innerHTML='<h1>Common Blurbs</h1><p class="sub" style="color:#ff5252">Could not load blurbs (HTTP '+r.status+').</p>'; return; }
-  const fresh=Array.isArray(r.data)?r.data:[];
+  const fresh=sortBlurbs(Array.isArray(r.data)?r.data:[]);
   writeCache(fresh);
   const changed=JSON.stringify(fresh)!==JSON.stringify(BLURBS);
   BLURBS=fresh;
@@ -313,13 +310,10 @@ function render(){
       +'<a class="btn sec" href="blurb-log.html">'+(window.icon?window.icon('history',15):'')+' Blurb edit log</a>'
     +'</div>'
   +'</div>';
-  // Clamp the page in case the list shrank (edit/delete).
-  const pages=Math.max(1,Math.ceil(BLURBS.length/PER_PAGE));
-  if(PAGE>pages-1)PAGE=pages-1; if(PAGE<0)PAGE=0;
-  const start=PAGE*PER_PAGE, end=start+PER_PAGE;
-  // Expandable, click-to-copy cards. Only the current page's 14 cards are rendered; the onclick
-  // handlers keep the GLOBAL index i so copy/view/edit still map to the right blurb.
-  html+=`<div class="blurb-list">`+BLURBS.map((b,i)=>({b,i})).filter(x=>x.i>=start&&x.i<end).map(({b,i})=>`
+  // Expandable, click-to-copy cards — ALL blurbs, no pagination. BLURBS is already sorted most-copied
+  // first (sortBlurbs on load); the grid fills row by row, so 2 columns read #1 #2 / #3 #4 … and the
+  // single-column (narrow screen) layout is a straight highest-to-lowest list.
+  html+=`<div class="blurb-list">`+BLURBS.map((b,i)=>`
     <div class="blurb-card" id="card-${i}">
       <button type="button" class="bc-head" id="viewCard-${i}" onclick="toggleView(${i},event)" title="Show / hide the blurb text" aria-expanded="false">
         <span class="bc-count" id="count-${i}" title="Times copied">${copyIcon}<span class="bc-count-n">${b.copyCount||0}</span></span>
@@ -334,33 +328,8 @@ function render(){
         ${editor?`<div class="bc-admin"><button class="btn sec mini" onclick="event.stopPropagation();openViewModal(${i})">Edit</button></div>`:''}
       </div>
     </div>`).join('')+`</div>`;
-  html+=pagerHtml(BLURBS.length);
   document.getElementById('wrap').innerHTML=html;
 }
-
-// ---- Pagination bar: Prev · up to 7 windowed page numbers · Next. One shared helper for the page. ----
-function pagerHtml(total){
-  const pages=Math.max(1,Math.ceil(total/PER_PAGE));
-  if(pages<=1) return ''; // nothing to page through
-  // Windowed numbers: show up to 7 page buttons centred on the current page.
-  const WIN=7; let s=Math.max(0,PAGE-Math.floor(WIN/2)); let e=Math.min(pages,s+WIN); s=Math.max(0,e-WIN);
-  let btns='';
-  for(let p=s;p<e;p++){ btns+='<button class="tp-pg'+(p===PAGE?' active':'')+'" onclick="goPage('+p+')">'+(p+1)+'</button>'; }
-  const from=PAGE*PER_PAGE+1, to=Math.min(total,(PAGE+1)*PER_PAGE);
-  return '<div class="tp-pager">'
-    +'<button class="tp-pg nav" '+(PAGE<=0?'disabled':'')+' onclick="goPage('+(PAGE-1)+')">‹ Prev</button>'
-    +btns
-    +'<button class="tp-pg nav" '+(PAGE>=pages-1?'disabled':'')+' onclick="goPage('+(PAGE+1)+')">Next ›</button>'
-    +'<span class="tp-count">'+from+'–'+to+' of '+total+'</span>'
-  +'</div>';
-}
-function goPage(p){
-  const pages=Math.max(1,Math.ceil(BLURBS.length/PER_PAGE));
-  PAGE=Math.min(Math.max(0,p),pages-1);
-  render();
-  try{ window.scrollTo(0,0); }catch(e){}
-}
-window.goPage=goPage;
 
 // Expand/collapse a card's content via the View button. Accordion: only one open at a time.
 function toggleView(i,ev){
