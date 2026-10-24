@@ -968,8 +968,11 @@ function gaResolveSource(){
   // perfWindow(), so the tables track the EXACT same {from,to} window as the podium/KPIs/chart.
   // (Previously YTD fell back to /api/group-overall = complete database, which made the table's
   // SUCCESS count diverge from the podium's window-scoped count.)
-  var toMsExcl=function(iso){ // ISO date -> ms at local midnight
-    var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?new Date(+m[1],+m[2]-1,+m[3]).getTime():null;
+  // ISO date -> ms at UTC midnight. Must match the server, which reads the same 'YYYY-MM-DD' bounds
+  // as UTC for the podium/KPIs/chart. (Local midnight shifted the table by the viewer's UTC offset,
+  // e.g. IST pulled in 5.5h of the previous period, so its counts drifted from the podium.)
+  var toMsExcl=function(iso){
+    var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||'')); return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null;
   };
   var fromMs=toMsExcl(win.from);
   var toMs=win.to?toMsExcl(win.to):Date.now();
@@ -1494,7 +1497,6 @@ function perfWindow(){
   const now=new Date();
   const todayWords=_ord(now.getDate())+' '+_MON_SHORT[now.getMonth()];
   if(PERF.type==='era'){ return { from:'2026-01-01', to:'2027-01-01', label:'YTD 2026' }; }
-  if(PERF.type==='days100'){ const f=new Date(now); f.setDate(f.getDate()-100); return { from:_ymd(f), to:null, label:'Last 100 days ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
   if(PERF.type==='weeks12'){ const sun=_sundayOf(now); const f=new Date(sun); f.setDate(f.getDate()-7*11); return { from:_ymd(f), to:null, label:'Last 12 weeks ('+_ord(f.getDate())+' '+_MON_SHORT[f.getMonth()]+' to '+todayWords+')' }; }
   if(PERF.type==='month'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const f=new Date(2026,m,1); const t=new Date(2026,m+1,1); return { from:_ymd(f), to:_ymd(t), label:_MONTH_NAMES[m]+' 2026' }; }
   if(PERF.type==='week'){ const m=(PERF.month==null)?(_acMonthsCount()-1):PERF.month; const wks=_weeksInMonth(m); const wi=Math.min(PERF.week||0,wks.length-1); const w=wks[wi]||wks[0]; return { from:w.from, to:w.to, label:w.short+' ('+w.range+')' }; }
@@ -1506,7 +1508,6 @@ function perfBucket(){
     case 'era': return 'month';
     case 'month': return 'day';
     case 'week': return 'day';
-    case 'days100': return 'step10';
     case 'weeks12': return 'week';
     case 'quarter': return 'week';
     default: return 'week';
@@ -1520,7 +1521,6 @@ function perfBucketLabel(b){
     if(PERF.type==='week') return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.getDay()];
     return String(s.getDate());
   }
-  if(bucket==='step10') return _ord(s.getDate())+' '+_MON_SHORT[s.getMonth()];
   return 'W'+_weekNum(eIncl);
 }
 function perfBucketTip(b){
@@ -1528,13 +1528,12 @@ function perfBucketTip(b){
   const bucket=perfBucket();
   if(bucket==='month') return _MONTH_NAMES[s.getMonth()]+' 2026';
   if(bucket==='day'){ const wd=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][s.getDay()]; return wd+', '+_ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]; }
-  if(bucket==='step10') return _ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]+' to '+_ord(eIncl.getDate())+' '+_MON_SHORT[eIncl.getMonth()];
   return 'W'+_weekNum(eIncl)+' \u00b7 '+_ord(s.getDate())+' '+_MON_SHORT[s.getMonth()]+' to '+_ord(eIncl.getDate())+' '+_MON_SHORT[eIncl.getMonth()];
 }
 function perfPickerHtml(){
   const types=[
     {v:'era',l:'YTD 2026'},{v:'quarter',l:'Quarterly'},{v:'weeks12',l:'12 weeks'},
-    {v:'days100',l:'100 days'},{v:'month',l:'Monthly'},{v:'week',l:'Weekly'}
+    {v:'month',l:'Monthly'},{v:'week',l:'Weekly'}
   ];
   let chips='<div class="perf-chips" role="tablist">';
   types.forEach(function(t){
@@ -1625,7 +1624,6 @@ function _perfEdges(win,bucket){
   if(bucket==='month'){ let d=new Date(from.getFullYear(),from.getMonth(),1); while(d<to){ const nx=new Date(d.getFullYear(),d.getMonth()+1,1); edges.push({start:new Date(d),end:nx}); d=nx; } }
   else if(bucket==='day'){ let d=new Date(from.getFullYear(),from.getMonth(),from.getDate()); while(d<to){ const nx=new Date(d); nx.setDate(nx.getDate()+1); edges.push({start:new Date(d),end:nx}); d=nx; } }
   else if(bucket==='week'){ let d=new Date(from.getFullYear(),from.getMonth(),from.getDate()); d.setDate(d.getDate()-d.getDay()); while(d<to){ const nx=new Date(d); nx.setDate(nx.getDate()+7); edges.push({start:new Date(d),end:nx}); d=nx; } }
-  else if(bucket==='step10'){ const span=to-from, seg=span/10; for(let i=0;i<10;i++)edges.push({start:new Date(from.getTime()+seg*i),end:new Date(from.getTime()+seg*(i+1))}); }
   return edges;
 }
 function perfChartShell(win){

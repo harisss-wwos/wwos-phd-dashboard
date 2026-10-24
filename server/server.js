@@ -5963,7 +5963,7 @@ async function dashWeekly(qid) {
 }
 
 // ---- Generic bucketed timeseries for the Performance chart --------------------------------------
-// Buckets [from, to) into month | day | week (Sun..Sat) | step10 (10 equal segments) edges, then
+// Buckets [from, to) into year | month | day | week (Sun..Sat) edges, then
 // counts, per bucket: tickets CREATED (by CreateDate), tickets RESOLVED (by ResolvedDate) + how many
 // of those resolved within 240h (for SLA %). Returns the FULL ordered bucket list so the x-axis spans
 // the whole period; buckets whose start is in the future carry null values (the client draws a gap,
@@ -5989,10 +5989,6 @@ function _tsEdges(fromISO, toISO, bucket) {
     // Sunday-aligned weeks.
     let d = new Date(from.getFullYear(), from.getMonth(), from.getDate()); d.setDate(d.getDate() - d.getDay());
     while (d < to) { const nx = new Date(d); nx.setDate(nx.getDate() + 7); edges.push({ start: new Date(d), end: nx }); d = nx; }
-  } else if (bucket === 'step10') {
-    // 10 equal segments across [from, to).
-    const span = to - from, seg = span / 10;
-    for (let i = 0; i < 10; i++) edges.push({ start: new Date(from.getTime() + seg * i), end: new Date(from.getTime() + seg * (i + 1)) });
   }
   return edges;
 }
@@ -6482,12 +6478,12 @@ Object.keys(DASH_CHUNKS).forEach(name => {
 // Granularity-aware timeseries for the Performance chart (public read). The client sends the window
 // + bucket type; the server returns an ordered bucket list (created/resolved/SLA per bucket) spanning
 // the whole period, with future buckets as null so the drawn line stops at "now".
-//   ?from=<ISO>&to=<ISO|empty>&bucket=month|day|week|step10
+//   ?from=<ISO>&to=<ISO|empty>&bucket=year|month|day|week
 app.get('/api/dash/timeseries', async (req, res) => {
   try {
     const from = String(req.query.from || '').trim();
     const to = String(req.query.to || '').trim() || null;
-    const bucket = ['year', 'month', 'day', 'week', 'step10'].includes(String(req.query.bucket)) ? String(req.query.bucket) : 'week';
+    const bucket = ['year', 'month', 'day', 'week'].includes(String(req.query.bucket)) ? String(req.query.bucket) : 'week';
     if (!from) return res.status(400).json({ error: 'from is required.' });
     const groupLogins = groupLoginsFromParam(req.query.groups); // Performance Overview group filter
     const out = await dashTimeseries(from, to, bucket, groupLogins);
