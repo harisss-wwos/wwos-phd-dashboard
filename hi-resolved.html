@@ -139,6 +139,9 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-chart-svg .pt.pet{fill:#a78bfa}
 .hr-chart-svg .pt.nonpet{fill:#ff9900}
 .hr-chart-svg .hit{fill:transparent;cursor:pointer}
+/* Point value labels: bold, line-coloured, white halo so they read over gridlines/lines. */
+.hr-chart-svg .ptlbl{font-size:11px;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.hr-chart-svg .ptlbl.combined{fill:#0b8fc4}.hr-chart-svg .ptlbl.nonpet{fill:#c46f00}.hr-chart-svg .ptlbl.pet{fill:#7c5cff}
 .hr-chart-svg .vline{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
 .hr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:190px;background:#0a0a0a;border:1px solid #2a323b;border-radius:7px;padding:11px 13px;box-shadow:0 14px 34px -16px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
 .hr-chart-tip.show{opacity:1;transform:translateY(0)}
@@ -430,8 +433,19 @@ h1{color:#1b2026!important}
 .hr-stat.pet .hr-stat-n{color:#a78bfa}
 .hr-stat.rate .hr-stat-ic{background:rgba(74,222,128,.16);color:#4ade80}
 .hr-chart-colw .hr-chart-wrap,.hr-chart-colw .hr-chart-svg{max-height:300px}
-@media(max-width:900px){.hr-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:560px){.hr-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hr-chart-colw .hr-chart-wrap{width:100%}
+/* Header line inside the graph area: stat chips LEFT, legend RIGHT (same as SLA Breaches). Wraps on
+   narrow screens. */
+.hr-chart-top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:8px}
+.hr-chart-top .hr-chart-legend{margin-bottom:0;margin-left:auto}
+/* Compact chips (overrides the old full-width tile grid): small icon + value + label on one line. */
+.hr-chart-top .hr-stats{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.hr-chart-top .hr-stat{padding:6px 10px;gap:8px;border-radius:7px}
+.hr-chart-top .hr-stat-ic{width:24px;height:24px;border-radius:6px}
+.hr-chart-top .hr-stat-ic svg{width:13px;height:13px}
+.hr-chart-top .hr-stat-body{flex-direction:row;align-items:baseline;gap:6px}
+.hr-chart-top .hr-stat-n{font-size:1em}
+.hr-chart-top .hr-stat-l{font-size:.68em}
 /* Light-theme stat tiles. */
 .hr-stat{background:#fff!important;border:1px solid #e2e6ea!important}
 .hr-stat-ic{background:#eaf4fb!important;color:#1577a0!important}
@@ -868,19 +882,23 @@ function chartStatsHtml(){
 // loading state, so an empty string is returned until the data lands.
 function chartInnerHtml(){
   if(!HR_MONTHLY) return '';
+  // One chart panel (same layout as SLA Breaches): a header line INSIDE the graph area — the 5
+  // headline stats as compact chips on the LEFT, the legend on the RIGHT — with the chart underneath.
   return '<div class="hr-chart-row">'+
     '<div class="hr-chart-colw">'+
-      '<div class="hr-chart-legend">'+
-        '<span class="hr-lg combined"><i></i>Combined</span>'+
-        '<span class="hr-lg nonpet"><i></i>Non-pet</span>'+
-        '<span class="hr-lg pet"><i></i>Pet</span>'+
+      '<div class="hr-chart-top">'+
+        chartStatsHtml()+
+        '<div class="hr-chart-legend">'+
+          '<span class="hr-lg combined"><i></i>Combined</span>'+
+          '<span class="hr-lg nonpet"><i></i>Non-pet</span>'+
+          '<span class="hr-lg pet"><i></i>Pet</span>'+
+        '</div>'+
       '</div>'+
       '<div class="hr-chart-wrap" id="hrChartWrap">'+
         '<svg class="hr-chart-svg" id="hrChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tickets created per month in 2026"></svg>'+
         '<div class="hr-chart-tip" id="hrChartTip"></div>'+
       '</div>'+
     '</div>'+
-    chartStatsHtml()+
   '</div>';
 }
 function monthlyChartHtml(){
@@ -898,7 +916,13 @@ function drawMonthlyChart(data){
   const months=(data&&data.months)||[];
   // Only draw Jan..Oct (indices 0..9); keep all 12 x labels on the axis.
   const draw=months.slice(0, CHART_LAST_MONTH);
-  const W=920,H=320,padL=46,padR=20,padT=18,padB=36;
+  // Size the drawing to its box (same as the SLA chart): keep H=320 units for ~300px of height and
+  // widen W to the box's real aspect, so the plot fills 100% of the width at the same text size.
+  const wrapEl=document.getElementById('hrChartWrap');
+  const boxW=(wrapEl&&wrapEl.clientWidth)||920, TARGET_PX_H=300;
+  const H=320, W=Math.max(600, Math.round(H*boxW/TARGET_PX_H));
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const padL=46,padR=20,padT=18,padB=36;
   const plotW=W-padL-padR, plotH=H-padT-padB;
   // Y scale from the combined max (the tallest line), with a little headroom.
   let maxV=0; draw.forEach(function(m){ if(m.total>maxV)maxV=m.total; });
@@ -931,6 +955,27 @@ function drawMonthlyChart(data){
     g+='<circle class="pt combined" cx="'+xAt(i)+'" cy="'+yAt(m.total)+'" r="4"/>';
     g+='<circle class="pt nonpet" cx="'+xAt(i)+'" cy="'+yAt(m.nonPet)+'" r="4"/>';
     g+='<circle class="pt pet" cx="'+xAt(i)+'" cy="'+yAt(m.pet)+'" r="4"/>';
+  });
+  // Value labels on every point. Combined and Non-pet often coincide (few pet tickets), so per month
+  // the labels are ordered top->bottom by point height and spaced at least GAP apart (each still sits
+  // just above its point when there's room). If the stack runs into the x-axis it shifts up as a group.
+  const axisY=padT+plotH, GAP=12, TOP_MIN=padT+8, BOT_MAX=axisY-3;
+  const num=function(v){ return Number(v||0).toLocaleString('en-US'); };
+  draw.forEach(function(m,i){
+    const x=xAt(i);
+    const items=[
+      {cls:'combined', v:m.total||0},
+      {cls:'nonpet',   v:m.nonPet||0},
+      {cls:'pet',      v:m.pet||0},
+    ].map(function(it){ it.py=yAt(it.v); return it; })
+     .sort(function(a,b){ return a.py-b.py; });          // highest point first
+    let prev=-Infinity;
+    items.forEach(function(it){ it.y=Math.max(it.py-9, TOP_MIN, prev+GAP); prev=it.y; });
+    const over=items[items.length-1].y-BOT_MAX;
+    if(over>0) items.forEach(function(it){ it.y=Math.max(TOP_MIN, it.y-over); });
+    items.forEach(function(it){
+      g+='<text class="ptlbl '+it.cls+'" x="'+x+'" y="'+it.y+'" text-anchor="middle">'+num(it.v)+'</text>';
+    });
   });
   // Transparent hit columns (one per drawn month) carry the hover.
   const colW=plotW/11;
@@ -970,8 +1015,19 @@ function drawMonthlyChart(data){
       tip.style.left=left+'px'; tip.style.top='8px';
     });
   });
-  wrap.addEventListener('mouseleave', function(){ tip.classList.remove('show'); if(vline) vline.style.visibility='hidden'; });
+  if(!wrap._hrLeave){   // bind once per wrap (drawMonthlyChart re-runs on resize)
+    wrap._hrLeave=true;
+    wrap.addEventListener('mouseleave', function(){ const t=document.getElementById('hrChartTip'), v=document.getElementById('hrChartVLine'); if(t) t.classList.remove('show'); if(v) v.style.visibility='hidden'; });
+  }
 }
+// Redraw on resize so the chart keeps filling 100% of its box at the new width (debounced).
+(function(){
+  let tmr=null;
+  window.addEventListener('resize', function(){
+    clearTimeout(tmr);
+    tmr=setTimeout(function(){ if(HR_MONTHLY && document.getElementById('hrChartSvg')) drawMonthlyChart(HR_MONTHLY); }, 150);
+  });
+})();
 // Round up to a "nice" axis maximum (1-2-5 x 10^n).
 function niceCeil(v){
   if(v<=5) return 5;

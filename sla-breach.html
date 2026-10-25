@@ -99,9 +99,55 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .hr-chart-svg .pt{stroke:#0b0f14;stroke-width:2;cursor:pointer}
 .hr-chart-svg .pt.l1{fill:#44b9d6}.hr-chart-svg .pt.l2{fill:#e5484d}
 .hr-chart-svg .hit{fill:transparent;cursor:pointer}
+/* Point value labels: bold, line-coloured, with a white halo so they read over gridlines/lines. */
+.hr-chart-svg .ptlbl{font-size:11px;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.hr-chart-svg .ptlbl.l1{fill:#1f8fb0}.hr-chart-svg .ptlbl.l2{fill:#d33b40}
 .hr-chart-svg .vline{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
 .hr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:200px;background:#0a0a0a;border:1px solid #2a323b;border-radius:7px;padding:11px 13px;box-shadow:0 14px 34px -16px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
 .hr-chart-tip.show{opacity:1;transform:translateY(0)}
+/* Pinned checkpoint (clicked month): clickable, agent list scrolls, close button in the header. */
+/* Wider card. Height is capped in JS to the room left inside the section (which clips overflow);
+   the pinned card scrolls inside that cap, the hover preview is short enough not to need it. */
+.hr-chart-tip{min-width:340px;max-width:440px;overflow:hidden}
+.hr-chart-tip.pinned{pointer-events:auto;overflow-y:auto;box-shadow:0 18px 40px -16px rgba(20,40,70,.45)!important;border-color:#cdd5dd!important}
+.hr-chart-tip .tt-m{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hr-chart-tip .tt-x{background:transparent;border:none;color:#8793a0;font-size:1.3em;line-height:1;cursor:pointer;padding:0 2px;border-radius:4px;font-family:inherit}
+.hr-chart-tip .tt-x:hover{color:#1b2026;background:#f1f3f6}
+.hr-chart-tip .tt-sub{font-size:.78em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:#8793a0;margin-bottom:4px}
+/* Agents in ONE column, highest first. */
+.hr-chart-tip .tt-agents{display:flex;flex-direction:column}
+.hr-chart-tip .tt-agents .tt-row .k{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+/* The card is clickable only while visible (an invisible card must not block the chart hover). */
+.hr-chart-tip.show{pointer-events:auto}
+/* "View agents" + "Close" buttons inside the card. */
+.hr-chart-tip .tt-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:4px;padding:7px 10px;border-radius:6px;font:inherit;font-size:.95em;font-weight:700;cursor:pointer;transition:background .12s,border-color .12s}
+.hr-chart-tip .tt-viewbtn{background:#eaf4fb;border:1px solid #cfe6f5;color:#1577a0}
+.hr-chart-tip .tt-viewbtn:hover{background:#dcedf9;border-color:#1577a0}
+.hr-chart-tip .tt-closebtn{margin-top:10px;background:#fff;border:1px solid #d4dce4;color:#2a3340}
+.hr-chart-tip .tt-closebtn:hover{border-color:#8793a0;color:#1b2026}
+.hr-chart-tip .tt-agent{width:100%;background:transparent;border:none;border-radius:5px;font:inherit;text-align:left;cursor:pointer;padding:3px 6px}
+.hr-chart-tip .tt-agent .k{color:#1577a0;font-weight:700;text-decoration:underline;text-decoration-color:rgba(21,119,160,.35);text-underline-offset:2px}
+.hr-chart-tip .tt-agent:hover,.hr-chart-tip .tt-agent:focus-visible{background:#eef5fb;outline:none}
+/* Tickets pop-up (one agent, one month). */
+.sla-am-bg{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,30,45,.55)}
+.sla-am-bg.open{display:flex}
+.sla-am{background:#fff;border-radius:10px;width:min(960px,96vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(20,30,45,.55)}
+.sla-am-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 20px;border-bottom:1px solid #e6eaee}
+.sla-am-title{font-size:1.05em;font-weight:800;color:#1b2026}
+.sla-am-sub{font-size:.8em;color:#5c6773;margin-top:3px}
+.sla-am-x{background:transparent;border:none;color:#8793a0;font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px;border-radius:5px}
+.sla-am-x:hover{color:#1b2026;background:#f1f3f6}
+.sla-am-body{padding:14px 20px 20px;overflow:auto;min-height:0}
+.sla-am-msg{padding:24px;text-align:center;color:#5c6773;font-size:.9em}
+.sla-am-msg.err{color:#b02a2a}
+.sla-am-scroll{overflow-x:auto}
+.sla-am-table{width:100%;border-collapse:collapse;font-size:.84em}
+.sla-am-table th{position:sticky;top:0;background:#f7f9fb;color:#5c6773;font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:9px 10px;border-bottom:1px solid #e6eaee;white-space:nowrap}
+.sla-am-table td{padding:9px 10px;border-bottom:1px solid #eef1f4;color:#1b2026;white-space:nowrap}
+.sla-am-table tbody tr:hover td{background:#fbfcfd}
+.sla-am-table a{color:#1577a0;font-weight:700;text-decoration:none}
+.sla-am-table a:hover{text-decoration:underline}
+.sla-am-cc{display:inline-block;padding:1px 8px;border-radius:5px;font-size:.9em;font-weight:800;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec}
 .hr-chart-tip .tt-m{font-weight:800;color:#fff;margin-bottom:7px}
 .hr-chart-tip .tt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 0;color:#c4ccd4}
 .hr-chart-tip .tt-row .k{display:inline-flex;align-items:center;gap:6px}
@@ -398,10 +444,21 @@ h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:
 .sla-stat.breach .sla-stat-n{color:#ff6b6b}
 .sla-stat.rate .sla-stat-ic{background:rgba(255,159,46,.14);color:#ff9f2e}
 .sla-stat.worst .sla-stat-ic{background:rgba(167,139,250,.16);color:#a78bfa}
-/* Cap the graph height so it doesn't dominate the section now that stats sit beneath it. */
+/* Cap the graph height so it doesn't dominate the section. */
 .sla-chart-col .hr-chart-wrap,.sla-chart-col .hr-chart-svg{max-height:300px}
-@media(max-width:900px){.sla-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:560px){.sla-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* The plot spans 100% of its parent panel (drawSlaChart sizes the drawing to the box). */
+.sla-chart-col .hr-chart-wrap{width:100%}
+/* Header line inside the graph area: stat chips LEFT, legend RIGHT. Wraps on narrow screens. */
+.sla-chart-top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:8px}
+.sla-chart-top .hr-chart-legend{margin-bottom:0;margin-left:auto}
+/* Compact chips (overrides the old full-width tile grid): small icon + value + label on one line. */
+.sla-chart-top .sla-stats{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.sla-chart-top .sla-stat{padding:6px 10px;gap:8px;border-radius:7px}
+.sla-chart-top .sla-stat-ic{width:24px;height:24px;border-radius:6px}
+.sla-chart-top .sla-stat-ic svg{width:13px;height:13px}
+.sla-chart-top .sla-stat-body{flex-direction:row;align-items:baseline;gap:6px}
+.sla-chart-top .sla-stat-n{font-size:1em}
+.sla-chart-top .sla-stat-l{font-size:.68em}
 </style>
 </head>
 <body data-nav-active="sla-breach" data-back-href="app.html" data-back-label="Dashboard">
@@ -751,19 +808,22 @@ function slaChartInnerHtml(){
     for(var i=0;i<12;i++) bars+='<span class="sk-line hr-chart-sk-bar" style="height:'+hs[i]+'%"></span>';
     return '<div class="hr-chart-sk"><div class="hr-chart-sk-legend"><span class="sk-line" style="width:140px;height:12px"></span><span class="sk-line" style="width:150px;height:12px"></span></div><div class="hr-chart-sk-plot">'+bars+'</div></div>';
   }
-  // Two columns: graph (70%) on the left, the 5 stat tiles stacked in a 30% column on the right.
+  // One chart panel: a header line INSIDE the graph area — the 5 headline stats as compact chips on
+  // the LEFT, the Created / SLA crossed legend on the RIGHT — with the line chart underneath.
   return '<div class="sla-chart-row">'+
     '<div class="sla-chart-col">'+
-      '<div class="hr-chart-legend">'+
-        '<span class="sr-lg l1"><i></i>Created</span>'+
-        '<span class="sr-lg l2"><i></i>SLA crossed</span>'+
+      '<div class="sla-chart-top">'+
+        slaStatsHtml()+
+        '<div class="hr-chart-legend">'+
+          '<span class="sr-lg l1"><i></i>Created</span>'+
+          '<span class="sr-lg l2"><i></i>SLA crossed</span>'+
+        '</div>'+
       '</div>'+
       '<div class="hr-chart-wrap" id="slaChartWrap">'+
         '<svg class="hr-chart-svg" id="slaChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet"></svg>'+
         '<div class="hr-chart-tip" id="slaChartTip"></div>'+
       '</div>'+
     '</div>'+
-    slaStatsHtml()+
   '</div>';
 }
 function slaChartSectionHtml(){
@@ -789,7 +849,15 @@ function drawSlaChart(data){
   var months=(data&&data.months)||[];
   // Only draw lines/points/hover through the last month with data; keep all 12 x-axis labels.
   var draw=months.slice(0, slaLastMonth(months));
-  var W=920,H=320,padL=46,padR=20,padT=18,padB=36, plotW=W-padL-padR, plotH=H-padT-padB;
+  // Size the drawing to the box it actually gets. A fixed 920x320 viewBox capped at 300px tall got
+  // shrunk to fit (with blank space either side) whenever the box was wider than ~3:1. Instead keep
+  // H=320 units for ~300px of height and widen W to match the box's real aspect, so the plot fills
+  // the full width while text keeps the same on-screen size.
+  var wrapEl=document.getElementById('slaChartWrap');
+  var boxW=(wrapEl&&wrapEl.clientWidth)||920, TARGET_PX_H=300;
+  var H=320, W=Math.max(600, Math.round(H*boxW/TARGET_PX_H));
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  var padL=46,padR=20,padT=18,padB=36, plotW=W-padL-padR, plotH=H-padT-padB;
   var maxV=0; draw.forEach(function(m){ maxV=Math.max(maxV,m.created,m.slaCrossed); });
   var niceMax=slaNiceCeil(Math.max(maxV,1));
   var xAt=function(i){ return padL+(plotW*(i/11)); };
@@ -808,29 +876,173 @@ function drawSlaChart(data){
     g+='<circle class="pt l1" cx="'+xAt(i)+'" cy="'+yAt(m.created)+'" r="4"/>';
     g+='<circle class="pt l2" cx="'+xAt(i)+'" cy="'+yAt(m.slaCrossed)+'" r="4"/>';
   });
+  // Value labels on every point. Created sits ABOVE its point. SLA crossed also goes above unless the
+  // Created point is close overhead (labels would collide) — then it drops BELOW. Each label flips
+  // to the other side if it would leave the plot (top edge / x-axis + month labels).
+  var axisY=padT+plotH, ABOVE=-10, BELOW=17, MIN_GAP=24;
+  var fitY=function(py,off){
+    var y=py+off;
+    if(y<padT+4) y=py+BELOW;              // too close to the top -> below
+    if(y>axisY-4) y=py+ABOVE;             // would hit the x-axis -> above
+    return y;
+  };
+  var num=function(v){ return Number(v||0).toLocaleString('en-US'); };
+  draw.forEach(function(m,i){
+    var x=xAt(i), yc=yAt(m.created), ys=yAt(m.slaCrossed);
+    var close=(ys-yc)<MIN_GAP;            // created is (nearly) on top of SLA crossed
+    g+='<text class="ptlbl l1" x="'+x+'" y="'+fitY(yc,ABOVE)+'" text-anchor="middle">'+num(m.created)+'</text>';
+    g+='<text class="ptlbl l2" x="'+x+'" y="'+fitY(ys,close?BELOW:ABOVE)+'" text-anchor="middle">'+num(m.slaCrossed)+'</text>';
+  });
   var colW=plotW/11;
   draw.forEach(function(m,i){ g+='<rect class="hit" data-i="'+i+'" x="'+(xAt(i)-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>'; });
   svg.innerHTML=g;
   var tip=document.getElementById('slaChartTip'), vline=document.getElementById('slaVLine'), wrap=document.getElementById('slaChartWrap');
+  // Show month i's checkpoint. pinned=true -> the tooltip stays put and becomes clickable (full agent
+  // list, names open the tickets pop-up); pinned=false -> the normal hover preview.
+  var showMonth=function(i,pinned){
+    var m=months[i]; if(!m) return;
+    tip.innerHTML=slaTipHtml(m,i,pinned);
+    tip.classList.toggle('pinned',!!pinned);
+    tip.scrollTop=0;
+    var cx=xAt(i); vline.setAttribute('x1',cx); vline.setAttribute('x2',cx); vline.style.visibility='visible';
+    var box=svg.getBoundingClientRect(), px=(cx/W)*box.width; tip.classList.add('show');
+    var tw=tip.offsetWidth||340; var left=px+14; if(left+tw>box.width)left=px-tw-14; if(left<0)left=4;
+    tip.style.left=left+'px'; tip.style.top='8px';
+    // The section card clips overflow, so cap the card to the room left below its top edge (the
+    // pinned card scrolls inside the cap; the short hover preview normally fits).
+    var sec=wrap.closest('.hr-range');
+    if(sec){
+      var room=sec.getBoundingClientRect().bottom - wrap.getBoundingClientRect().top - 8 - 12;
+      tip.style.maxHeight=Math.max(160, Math.floor(room))+'px';
+    }
+  };
   svg.querySelectorAll('.hit').forEach(function(rect){
-    rect.addEventListener('mouseenter', function(){
-      var i=+rect.getAttribute('data-i'), m=months[i]; if(!m)return;
-      var pct=(m.created>0)?(Math.round((m.slaCrossed/m.created)*1000)/10):0;
-      tip.innerHTML='<div class="tt-m">'+SLA_MONTH_LBL[i]+' 2026</div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#44b9d6"></i>Created</span><span class="v">'+(m.created||0)+'</span></div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#e5484d"></i>SLA crossed</span><span class="v">'+(m.slaCrossed||0)+' <b class="tt-pct">('+pct+'%)</b></span></div>'+
-        '<div class="tt-sep"></div>'+
-        '<div class="tt-row"><span class="k">Repeat</span><span class="v">'+(m.repeat||0)+'</span></div>'+
-        '<div class="tt-row"><span class="k">Pet</span><span class="v">'+(m.pet||0)+'</span></div>'+
-        '<div class="tt-row"><span class="k">Non-pet</span><span class="v">'+(m.nonPet||0)+'</span></div>';
-      var cx=xAt(i); vline.setAttribute('x1',cx); vline.setAttribute('x2',cx); vline.style.visibility='visible';
-      var box=svg.getBoundingClientRect(), px=(cx/W)*box.width; tip.classList.add('show');
-      var tw=tip.offsetWidth||220; var left=px+14; if(left+tw>box.width)left=px-tw-14; if(left<0)left=4;
-      tip.style.left=left+'px'; tip.style.top='8px';
+    var i=+rect.getAttribute('data-i');
+    rect.addEventListener('mouseenter', function(){ if(SLA_TIP_PIN==null) showMonth(i,false); });
+    // Click a month to pin its checkpoint (click the same month again to unpin).
+    rect.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      if(SLA_TIP_PIN===i){ slaUnpinTip(); return; }
+      SLA_TIP_PIN=i; showMonth(i,true);
     });
   });
-  wrap.addEventListener('mouseleave', function(){ tip.classList.remove('show'); if(vline)vline.style.visibility='hidden'; });
+  SLA_SHOW_MONTH=showMonth;
+  // Re-drawn while pinned (window resize) -> keep the same month pinned.
+  if(SLA_TIP_PIN!=null && months[SLA_TIP_PIN]) showMonth(SLA_TIP_PIN,true); else SLA_TIP_PIN=null;
+  if(!wrap._slaLeave){   // bind once per wrap (drawSlaChart re-runs on resize)
+    wrap._slaLeave=true;
+    wrap.addEventListener('mouseleave', function(){
+      if(SLA_TIP_PIN!=null) return;   // a pinned checkpoint stays open
+      var t=document.getElementById('slaChartTip'), v=document.getElementById('slaVLine'); if(t)t.classList.remove('show'); if(v)v.style.visibility='hidden';
+    });
+    // Clicks inside the card: "View agents" -> pin with the list; agent name -> tickets pop-up;
+    // × / Close -> unpin. Uses SLA_SHOW_MONTH (re-assigned on every draw) so it never holds the
+    // stale geometry of an earlier draw.
+    tip.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var v=ev.target.closest('[data-sla-view]');
+      if(v){ var vi=+v.getAttribute('data-sla-view'); SLA_TIP_PIN=vi; if(SLA_SHOW_MONTH) SLA_SHOW_MONTH(vi,true); return; }
+      var a=ev.target.closest('[data-sla-agent]');
+      if(a){ slaOpenAgentTickets(+a.getAttribute('data-mi'), a.getAttribute('data-sla-agent')); return; }
+      if(ev.target.closest('.tt-x')||ev.target.closest('.tt-closebtn')) slaUnpinTip();
+    });
+  }
 }
+// ---- Monthly chart: pinned checkpoint + "who was assigned" breakdown ----
+var SLA_TIP_PIN=null;     // index of the pinned month, or null
+var SLA_SHOW_MONTH=null;  // showMonth() from the latest draw (current geometry)
+function slaAgentName(a){ return a?a:'(Unassigned)'; }
+function slaTipHtml(m,i,pinned){
+  var pct=(m.created>0)?(Math.round((m.slaCrossed/m.created)*1000)/10):0;
+  var agents=m.agents||[];
+  var h='<div class="tt-m">'+SLA_MONTH_LBL[i]+' 2026'+(pinned?'<button type="button" class="tt-x" aria-label="Close">\u00d7</button>':'')+'</div>'+
+    '<div class="tt-row"><span class="k"><i style="background:#44b9d6"></i>Created</span><span class="v">'+(m.created||0)+'</span></div>'+
+    '<div class="tt-row"><span class="k"><i style="background:#e5484d"></i>SLA crossed</span><span class="v">'+(m.slaCrossed||0)+' <b class="tt-pct">('+pct+'%)</b></span></div>'+
+    '<div class="tt-sep"></div>'+
+    '<div class="tt-row"><span class="k">Repeat</span><span class="v">'+(m.repeat||0)+'</span></div>'+
+    '<div class="tt-row"><span class="k">Pet</span><span class="v">'+(m.pet||0)+'</span></div>'+
+    '<div class="tt-row"><span class="k">Non-pet</span><span class="v">'+(m.nonPet||0)+'</span></div>';
+  if(!agents.length) return h;
+  // Hover card: just a "View agents" button — the list opens in the pinned card.
+  if(!pinned){
+    h+='<div class="tt-sep"></div><button type="button" class="tt-btn tt-viewbtn" data-sla-view="'+i+'">'+
+      ic('users',13)+' View agents ('+agents.length+')</button>';
+    return h;
+  }
+  // Pinned card: every assignee in ONE column, highest first; names open the tickets pop-up.
+  h+='<div class="tt-sep"></div><div class="tt-sub">SLA crossed by assignee</div><div class="tt-agents">';
+  agents.forEach(function(a){
+    var nm=esc(slaAgentName(a.assignee));
+    h+='<button type="button" class="tt-row tt-agent" data-mi="'+i+'" data-sla-agent="'+esc(a.assignee)+'" title="View '+nm+'\u2019s tickets"><span class="k">'+nm+'</span><span class="v">'+a.n+'</span></button>';
+  });
+  h+='</div><button type="button" class="tt-btn tt-closebtn">Close</button>';
+  return h;
+}
+function slaUnpinTip(){
+  SLA_TIP_PIN=null;
+  var t=document.getElementById('slaChartTip'), v=document.getElementById('slaVLine');
+  if(t){ t.classList.remove('show','pinned'); } if(v) v.style.visibility='hidden';
+}
+// Click anywhere outside the chart / Esc closes a pinned checkpoint (the pop-up handles Esc first).
+document.addEventListener('click', function(ev){
+  if(SLA_TIP_PIN==null) return;
+  if(ev.target.closest('#slaChartWrap')||ev.target.closest('#slaAgentModal')) return;
+  slaUnpinTip();
+});
+document.addEventListener('keydown', function(ev){
+  if(ev.key!=='Escape') return;
+  var md=document.getElementById('slaAgentModal');
+  if(md && md.classList.contains('open')){ slaCloseAgentModal(); return; }
+  if(SLA_TIP_PIN!=null) slaUnpinTip();
+});
+// ---- Tickets pop-up for one agent in one month ----
+function slaEnsureAgentModal(){
+  var md=document.getElementById('slaAgentModal'); if(md) return md;
+  md=document.createElement('div'); md.id='slaAgentModal'; md.className='sla-am-bg';
+  md.innerHTML='<div class="sla-am" role="dialog" aria-modal="true" aria-labelledby="slaAmTitle">'+
+    '<div class="sla-am-head"><div><div class="sla-am-title" id="slaAmTitle"></div><div class="sla-am-sub" id="slaAmSub"></div></div>'+
+    '<button type="button" class="sla-am-x" aria-label="Close" onclick="slaCloseAgentModal()">\u00d7</button></div>'+
+    '<div class="sla-am-body" id="slaAmBody"></div></div>';
+  md.addEventListener('click', function(ev){ if(ev.target===md) slaCloseAgentModal(); });
+  document.body.appendChild(md);
+  return md;
+}
+function slaCloseAgentModal(){ var md=document.getElementById('slaAgentModal'); if(md) md.classList.remove('open'); }
+window.slaCloseAgentModal=slaCloseAgentModal;
+var SLA_AM_SEQ=0;
+async function slaOpenAgentTickets(mi, assignee){
+  var md=slaEnsureAgentModal(), seq=++SLA_AM_SEQ;
+  var mLbl=(SLA_MONTH_LBL[mi]||'')+' 2026';
+  document.getElementById('slaAmTitle').textContent=slaAgentName(assignee);
+  document.getElementById('slaAmSub').textContent='SLA crossed (>240h) \u00b7 tickets created in '+mLbl;
+  var body=document.getElementById('slaAmBody');
+  body.innerHTML='<div class="sla-am-msg">Loading tickets\u2026</div>';
+  md.classList.add('open');
+  var x=md.querySelector('.sla-am-x'); if(x) x.focus();
+  var r=null;
+  try{ r=await A.api('GET','/api/sla-monthly-tickets?month='+(mi+1)+'&assignee='+encodeURIComponent(assignee||'')); }catch(e){}
+  if(seq!==SLA_AM_SEQ) return;   // a newer click superseded this one
+  if(!(r&&r.ok&&r.data&&Array.isArray(r.data.tickets))){ body.innerHTML='<div class="sla-am-msg err">Could not load the tickets'+(r&&r.status?(' (HTTP '+r.status+')'):'')+'.</div>'; return; }
+  var t=r.data.tickets;
+  document.getElementById('slaAmSub').textContent=t.length+' ticket'+(t.length===1?'':'s')+' \u00b7 SLA crossed (>240h) \u00b7 created in '+mLbl;
+  if(!t.length){ body.innerHTML='<div class="sla-am-msg">No tickets found.</div>'; return; }
+  body.innerHTML='<div class="sla-am-scroll"><table class="sla-am-table"><thead><tr>'+
+      '<th>Ticket ID</th><th>Country</th><th>Created</th><th>Resolved</th><th>AssigneeIdentity</th><th>ResolvedByIdentity</th>'+
+    '</tr></thead><tbody>'+t.map(function(k){
+      return '<tr><td>'+(k.url?'<a href="'+esc(k.url)+'" target="_blank" rel="noopener">'+esc(k.shortId)+'</a>':esc(k.shortId))+'</td>'+
+        '<td><span class="sla-am-cc">'+esc(k.country||'Unknown')+'</span></td>'+
+        '<td>'+fmtDate(k.createDate)+'</td><td>'+fmtDate(k.resolvedDate)+'</td>'+
+        '<td>'+esc(slaAgentName(k.assignee))+'</td><td>'+esc(k.resolvedBy||'\u2014')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+// Redraw on resize so the chart keeps filling its box at the new width (debounced).
+(function(){
+  var tmr=null;
+  window.addEventListener('resize', function(){
+    clearTimeout(tmr);
+    tmr=setTimeout(function(){ if(SLA_MONTHLY && document.getElementById('slaChartSvg')) drawSlaChart(SLA_MONTHLY); }, 150);
+  });
+})();
 
 // ================= SECTION 2: SLA breaches by country =================
 var SLA_FLAT=null, SLA_PHD=true, SLA_NONPHD=true;

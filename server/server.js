@@ -495,31 +495,109 @@ app.get('/api/sla-monthly', requireFlag('canViewSLA'), async (req, res) => {
     const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
     const resHrs = { $let: { vars: { rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } }, cd: cdExpr }, in: { $cond: [{ $and: [{ $ne: ['$$rd', null] }, { $ne: ['$$cd', null] }] }, { $divide: [{ $subtract: ['$$rd', '$$cd'] }, 3600000] }, null] } } };
     const Y0 = new Date('2026-01-01T00:00:00.000Z'), Y1 = new Date('2027-01-01T00:00:00.000Z');
-    const rows = await coll.aggregate([
-      { $project: { cd: cdExpr, isPet: isPetExpr, hi: hiExpr, resHrs } },
+    // One scan, two outputs ($facet): the per-month totals, and — for the SLA-crossed tickets only —
+    // a per-month count by AssigneeIdentity (who the ticket was assigned to) for the hover checkpoint.
+    const [facet] = await coll.aggregate([
+      { $project: { cd: cdExpr, isPet: isPetExpr, hi: hiExpr, resHrs, assignee: { $trim: { input: { $ifNull: ['$AssigneeIdentity', ''] } } } } },
       { $match: { cd: { $gte: Y0, $lt: Y1 } } },
-      { $project: { mo: { $month: '$cd' }, isPet: 1, hi: 1,
+      { $project: { mo: { $month: '$cd' }, isPet: 1, hi: 1, assignee: 1,
         crossed: { $cond: [{ $and: [{ $ne: ['$resHrs', null] }, { $gt: ['$resHrs', 240] }] }, 1, 0] } } },
-      { $group: {
-        _id: '$mo',
-        created:    { $sum: 1 },
-        slaCrossed: { $sum: '$crossed' },
-        repeat:     { $sum: { $cond: [{ $gt: ['$hi', 0] }, 1, 0] } },
-        pet:        { $sum: { $cond: ['$isPet', 1, 0] } },
-        nonPet:     { $sum: { $cond: ['$isPet', 0, 1] } },
+      { $facet: {
+        totals: [
+          { $group: {
+            _id: '$mo',
+            created:    { $sum: 1 },
+            slaCrossed: { $sum: '$crossed' },
+            repeat:     { $sum: { $cond: [{ $gt: ['$hi', 0] }, 1, 0] } },
+            pet:        { $sum: { $cond: ['$isPet', 1, 0] } },
+            nonPet:     { $sum: { $cond: ['$isPet', 0, 1] } },
+          } },
+        ],
+        agents: [
+          { $match: { crossed: 1 } },
+          { $group: { _id: { mo: '$mo', a: '$assignee' }, n: { $sum: 1 } } },
+        ],
       } },
     ], { allowDiskUse: true }).toArray();
-    const byMonth = {}; rows.forEach(r => { byMonth[r._id] = r; });
+    const byMonth = {}; ((facet && facet.totals) || []).forEach(r => { byMonth[r._id] = r; });
+    const agentsByMonth = {};
+    ((facet && facet.agents) || []).forEach(r => {
+      const mo = r._id.mo; (agentsByMonth[mo] = agentsByMonth[mo] || []).push({ assignee: r._id.a || '', n: r.n });
+    });
     const months = [];
     for (let m = 1; m <= 12; m++) {
       const r = byMonth[m] || {};
+      const agents = (agentsByMonth[m] || []).sort((a, b) => (b.n - a.n) || a.assignee.localeCompare(b.assignee));
       months.push({ month: m,
         created: r.created || 0, slaCrossed: r.slaCrossed || 0,
-        repeat: r.repeat || 0, pet: r.pet || 0, nonPet: r.nonPet || 0 });
+        repeat: r.repeat || 0, pet: r.pet || 0, nonPet: r.nonPet || 0,
+        agents });   // [{ assignee: AssigneeIdentity ('' = unassigned), n: SLA-crossed tickets }], most first
     }
     res.json({ year: 2026, months });
   } catch (e) {
     res.status(500).json({ error: 'Could not load the SLA monthly trend.' });
+  }
+});
+
+// Country code for an SLA ticket (same rules as /api/sla-flat): Country field, else a bracketed /
+// "Country XX" / leading title token, validated against the known code list; else 'Unknown'.
+const SLA_COUNTRY_CODES = new Set(['US','UK','CA','IN','AU','MX','JP','DE','IT','FR','EG','ES','SA','BR','NL','ZA','PT','UAE','IE','SG','TR','PL','SE','BE','AT','CH','DK','NO','FI','GR','CZ']);
+const SLA_NAME_TO_CODE = { CANADA:'CA', CANNADA:'CA', UNITEDKINGDOM:'UK', UNITEDSTATES:'US', INDIA:'IN', MEXICO:'MX', JAPAN:'JP', GERMANY:'DE', FRANCE:'FR', ITALY:'IT', SPAIN:'ES', BRAZIL:'BR', AUSTRALIA:'AU', EGYPT:'EG' };
+function slaCountryOf(t) {
+  const norm = (raw) => { if (!raw) return ''; const up = String(raw).toUpperCase().replace(/[^A-Z]/g, ''); if (SLA_COUNTRY_CODES.has(up)) return up; if (SLA_NAME_TO_CODE[up]) return SLA_NAME_TO_CODE[up]; return ''; };
+  const f = norm(String(t.Country || '').trim()); if (f) return f;
+  const title = String(t.Title || '').trim();
+  const wrap = title.match(/^[\[(]\s*([^\])]*?)\s*[\])]/);
+  if (wrap) { const toks = (wrap[1].match(/[A-Za-z]{2,}/g) || []); for (let i = toks.length - 1; i >= 0; i--) { const c = norm(toks[i]); if (c) return c; } return 'Unknown'; }
+  const ctry = title.match(/^Country\s+([A-Za-z]{2,})\b/i); if (ctry) { const c = norm(ctry[1]); if (c) return c; }
+  const lead = title.match(/^([A-Za-z]{2,})\b/); if (lead) { const c = norm(lead[1]); if (c) return c; }
+  return 'Unknown';
+}
+
+// ---- SLA: drill-down for the monthly chart hover ----
+// GET /api/sla-monthly-tickets?month=1..12&assignee=<AssigneeIdentity|''>
+// The SLA-crossed tickets (created in that 2026 month, >240h create->resolve) assigned to one agent —
+// exactly the set counted in /api/sla-monthly's per-month `agents` list.
+app.get('/api/sla-monthly-tickets', requireFlag('canViewSLA'), async (req, res) => {
+  try {
+    const month = parseInt(req.query.month, 10);
+    if (!(month >= 1 && month <= 12)) return res.status(400).json({ error: 'month must be 1-12.' });
+    const assignee = String(req.query.assignee == null ? '' : req.query.assignee).trim();
+    if (assignee.length > 300) return res.status(400).json({ error: 'assignee is too long.' });
+    const from = new Date(Date.UTC(2026, month - 1, 1)), to = new Date(Date.UTC(2026, month, 1));
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const rdExpr = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+    const rows = await coll.aggregate([
+      { $project: {
+        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, CreateDate: 1, ResolvedDate: 1,
+        ResolvedByIdentity: 1, cd: cdExpr, rd: rdExpr,
+        a: { $trim: { input: { $ifNull: ['$AssigneeIdentity', ''] } } },
+      } },
+      { $match: { cd: { $gte: from, $lt: to }, rd: { $ne: null }, a: assignee } },
+      { $match: { $expr: { $gt: [{ $divide: [{ $subtract: ['$rd', '$cd'] }, 3600000] }, 240] } } },
+      { $sort: { cd: 1 } },
+      { $limit: 5000 },
+    ], { allowDiskUse: true }).toArray();
+    // A ticket can be stored under more than one quarter key — keep one row per ShortId.
+    const seen = new Set();
+    const tickets = [];
+    rows.forEach(t => {
+      const sid = t.ShortId || t.IssueId || '';
+      if (sid && seen.has(sid)) return; if (sid) seen.add(sid);
+      tickets.push({
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        country: slaCountryOf(t),
+        createDate: t.CreateDate || '',
+        resolvedDate: t.ResolvedDate || '',
+        assignee: t.a || '',
+        resolvedBy: t.ResolvedByIdentity || '',
+      });
+    });
+    res.json({ year: 2026, month, assignee, total: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the SLA tickets for this agent.' });
   }
 });
 
@@ -3363,6 +3441,18 @@ app.get('/api/hashtags-report', async (req, res) => {
       }))
       .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 
+    // Last time each hashtag was updated by a CSV upload (Hashtags page "Upload hashtag CSV"):
+    // newest manual-tag-upload log entry per hashtag. Tags never uploaded by file get no date.
+    try {
+      const log = await getCollection(COLLECTIONS.hashtagLog);
+      const last = await log.aggregate([
+        { $match: { action: 'manual-tag-upload' } },
+        { $group: { _id: '$hashtag', at: { $max: '$at' } } },
+      ]).toArray();
+      const lastBy = new Map(last.map(x => [normHashtag(x._id), x.at]));
+      out.forEach(s => { const at = lastBy.get(s.tag); if (at) s.lastUploadAt = at; });
+    } catch (e) { /* non-fatal: the report still renders without the dates */ }
+
     const payload = {
       generatedFrom: 'ticket_docs (live)',
       generatedAt: new Date().toISOString(),
@@ -3417,8 +3507,6 @@ app.post('/api/hashtags/manual-tag', requireFlag('canUpload'), async (req, res) 
     const foundSet = new Set((foundDocs || []).map(x => String(x || '').trim()).filter(Boolean));
     const notFound = ids.filter(id => !foundSet.has(id));
 
-    invalidateReportCache(); // drop cached hashtags/out-of-scope reports so the new tag shows at once
-
     // Audit log (best-effort): who tagged what, how many, when.
     try {
       const log = await getCollection(COLLECTIONS.hashtagLog);
@@ -3428,6 +3516,9 @@ app.post('/api/hashtags/manual-tag', requireFlag('canUpload'), async (req, res) 
         requested: ids.length, matchedTickets: foundSet.size, modified: r.modifiedCount, notFound: notFound.length,
       });
     } catch (e) { /* non-fatal */ }
+    // Drop cached hashtags/out-of-scope reports AFTER the log write, so the rebuilt report picks up
+    // both the new tag counts and this upload's "last updated" date.
+    invalidateReportCache();
 
     res.json({
       ok: true, hashtag,
@@ -3438,6 +3529,26 @@ app.post('/api/hashtags/manual-tag', requireFlag('canUpload'), async (req, res) 
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not apply the hashtag to the uploaded tickets.' });
+  }
+});
+
+// Hashtag CSV upload history for the Hashtags page "Hashtag log" pop-up (canUpload, same as the
+// upload itself). Newest first.
+app.get('/api/hashtags/upload-log', requireFlag('canUpload'), async (req, res) => {
+  try {
+    const log = await getCollection(COLLECTIONS.hashtagLog);
+    const rows = await log.find({ action: 'manual-tag-upload' }).sort({ at: -1 }).limit(500).toArray();
+    res.json(rows.map(e => ({
+      id: String(e._id),
+      uploadedBy: e.uploadedBy || '',
+      hashtag: e.hashtag || '',
+      requested: e.requested || 0,
+      matchedTickets: e.matchedTickets || 0,
+      notFound: e.notFound || 0,
+      at: e.at || null,
+    })));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the hashtag upload log.' });
   }
 });
 

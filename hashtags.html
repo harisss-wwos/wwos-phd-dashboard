@@ -183,6 +183,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-group-body>.hx-sec:last-child{margin-bottom:0!important}
 .hx-sec-title{color:#1b2026!important}
 .hx-tag{color:#b5560c!important}
+/* Count badge with the "Updated <date>" line under it (only for tags updated by CSV upload). */
+.hx-count-col{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px}
+.hx-updated{font-size:.7em;font-weight:600;color:#8793a0;white-space:nowrap;line-height:1}
+/* Copy button right after each section's hashtag. */
+.hx-tag-line{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.hx-copy{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid #e2d3c2;background:#fff;color:#b5560c;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.hx-copy:hover{background:#fff4e8;border-color:#b5560c}
+.hx-copy:focus-visible{outline:2px solid #ec7211;outline-offset:1px}
+.hx-copy.copied{background:#eafaf0;border-color:#1f9d57;color:#1f9d57}
 .hx-def{color:#5c6773!important}
 .hx-count{background:#fff4e8!important;color:#b5560c!important;border:1px solid #f3d4b0!important}
 .hx-count.zero{background:#f0f3f6!important;color:#8793a0!important;border:1px solid #e2e6ea!important}
@@ -257,6 +266,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hu-file-row .fr-ic{color:#1577a0;flex-shrink:0}
 .hu-file-row .fr-name{font-weight:700;color:#1b2026;font-size:.9em;word-break:break-all}
 .hu-file-row .fr-meta{color:#8793a0;font-size:.8em;margin-top:2px}
+/* Multi-file list: rows stack, scroll if many; error rows red, done rows green; remove "×". */
+#huFileRow{max-height:300px;overflow-y:auto}
+#huFileRow .hu-file-row{margin-top:8px}
+#huFileRow .hu-file-row:first-child{margin-top:14px}
+.hu-file-row.err{background:#fdf2f2;border-color:#f6cccc}
+.hu-file-row.err .fr-ic,.hu-file-row.err .fr-meta{color:#b03030}
+.hu-file-row.ok{background:#f0faf4;border-color:#c8efd8}
+.hu-file-row.ok .fr-ic{color:#1f9d57}
+.hu-file-row .fr-x{flex-shrink:0;background:transparent;border:none;color:#8793a0;font-size:1.25em;line-height:1;cursor:pointer;padding:0 4px;border-radius:5px}
+.hu-file-row .fr-x:hover{color:#1b2026;background:#eef1f4}
+.hu-spin.dark{width:12px;height:12px;border-color:rgba(21,119,160,.25);border-top-color:#1577a0;vertical-align:-2px}
 .hu-file-row .fr-tag{margin-left:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;color:#b5560c;background:#fff4e8;border:1px solid #f3d4b0;border-radius:999px;padding:5px 12px;font-size:.88em;white-space:nowrap;flex-shrink:0}
 .hu-msg{margin-top:14px;border-radius:8px;padding:12px 14px;font-size:.88em;line-height:1.6;display:none}
 .hu-msg.show{display:block}
@@ -275,6 +295,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 @keyframes huSp{100%{transform:rotate(360deg)}}
 /* "Upload hashtag CSV" trigger button (ink bg, light text). */
 .hx-upload-btn:hover{background:#0f1420!important;color:#fff!important}
+/* "Hashtag log" trigger button (outlined, sits left of Upload). */
+.hx-log-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#161d2d;border:1px solid #cdd5dd;border-radius:5px;font-weight:700;font-size:.86em;padding:8px 15px;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
+.hx-log-btn:hover{border-color:#161d2d;background:#f7f9fb}
+/* Hashtag log pop-up: wider than the upload modal to fit the table. */
+.hl-modal{max-width:980px}
+.hl-scroll{overflow:auto;max-height:62vh;border:1px solid #eef1f4;border-radius:8px}
+.hl-table{width:100%;border-collapse:collapse;font-size:.84em}
+.hl-table th{position:sticky;top:0;background:#f7f9fb;color:#5c6773;font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:9px 11px;border-bottom:1px solid #e6eaee;white-space:nowrap}
+.hl-table td{padding:9px 11px;border-bottom:1px solid #eef1f4;color:#1b2026;vertical-align:top}
+.hl-table tbody tr:last-child td{border-bottom:none}
+.hl-table tbody tr:hover td{background:#fbfcfd}
+.hl-table td.num{text-align:right;font-weight:800;white-space:nowrap}
+.hl-table th.num{text-align:right}
+.hl-table td.when{white-space:nowrap;color:#5c6773}
+.hl-table .hl-tag{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;color:#b5560c;white-space:nowrap}
+.hl-table .hl-nf{display:block;font-size:.8em;font-weight:600;color:#b03030}
+.hl-msg{padding:24px;text-align:center;color:#5c6773;font-size:.9em}
+.hl-msg.err{color:#b03030}
 
 /* ===== Fancy phased loader (ported from sla-breach.html). Shown while hashtags load. ===== */
 .gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -323,6 +361,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   </div>
 </div>
 
+<!-- ===== Admin: Hashtag upload log pop-up (opened by the "Hashtag log" button) ===== -->
+<div class="hu-ov" id="hlOverlay" onclick="if(event.target===this)hlClose()">
+  <div class="hu-modal hl-modal" role="dialog" aria-modal="true" aria-labelledby="hlTitle">
+    <div class="hu-head">
+      <div class="hu-title" id="hlTitle"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Hashtag log</div>
+      <button type="button" class="hu-x" aria-label="Close" onclick="hlClose()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="hu-body" id="hlBody"></div>
+  </div>
+</div>
+
 <!-- ===== Admin: Upload-hashtag-CSV modal (opened by the "Upload hashtag CSV" button) ===== -->
 <div class="hu-ov" id="huOverlay" onclick="if(event.target===this)huClose()">
   <div class="hu-modal" role="dialog" aria-modal="true" aria-labelledby="huTitle">
@@ -334,10 +383,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <p class="hu-info">Upload a CSV <b>named after the hashtag</b> — e.g. <code>no-emt-attached.csv</code> assigns <code>#no-emt-attached</code>. The file name must match one of the hashtags shown on this page (managed on the <a href="tools.html" target="_blank" rel="noopener" style="color:#b5560c;font-weight:700">Tools page</a>). We read the <b>ShortId</b> column (falling back to <b>IssueId</b>) and tag every matching ticket. The tag is added with <b>no duplicates</b>, so re-uploading is safe.</p>
       <div class="hu-drop" id="huDrop">
         <div class="hu-drop-ic"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-        <div class="hu-drop-main">Drop a CSV here, or click to choose</div>
-        <div class="hu-drop-sub">The hashtag is taken from the file name.</div>
+        <div class="hu-drop-main">Drop CSV files here, or click to choose</div>
+        <div class="hu-drop-sub">You can add several files &mdash; each file&rsquo;s hashtag is taken from its file name.</div>
       </div>
-      <input type="file" accept=".csv,text/csv" id="huFile" style="display:none">
+      <input type="file" accept=".csv,text/csv" id="huFile" multiple style="display:none">
       <div id="huFileRow"></div>
       <div class="hu-msg" id="huMsg"></div>
     </div>
@@ -345,7 +394,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
       <button type="button" class="hu-btn sec" id="huClear" style="display:none" onclick="huReset()">Clear</button>
       <div style="flex:1"></div>
       <button type="button" class="hu-btn sec" onclick="huClose()">Cancel</button>
-      <button type="button" class="hu-btn" id="huGo" disabled onclick="huUpload()">Apply hashtag</button>
+      <button type="button" class="hu-btn" id="huGo" disabled onclick="huUpload()">Apply hashtags</button>
     </div>
   </div>
 </div>
@@ -356,6 +405,25 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+// Copy a section's hashtag (e.g. "#out-of-scope"). Stops the click so it doesn't also toggle the
+// section open/closed; flashes a green check on the button for confirmation.
+async function hxCopyTag(btn,ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  var tag=btn&&btn.getAttribute('data-tag'); if(!tag) return;
+  try{ await navigator.clipboard.writeText(tag); }
+  catch(e){
+    var ta=document.createElement('textarea'); ta.value=tag; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(_){} document.body.removeChild(ta);
+  }
+  if(btn._t) clearTimeout(btn._t);
+  btn.classList.add('copied'); btn.innerHTML=ic('check',13); btn.title='Copied '+tag;
+  btn._t=setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=ic('copy',13); btn.title='Copy '+tag; },1200);
+}
+window.hxCopyTag=hxCopyTag;
+// "Last updated by CSV upload" date under each section's count: short form on the card ("25 Oct
+// 2026"), full date + time in the hover title.
+function hxUpdatedShort(iso){ var d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function hxUpdatedFull(iso){ var d=new Date(iso); if(isNaN(d)) return String(iso||''); return d.toLocaleString('en-US',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
 // Hashtag definitions ("Use When"), keyed by the tag WITHOUT the leading '#', lowercased.
 // Spelling variants that appear in ticket Labels are aliased to the same definition so they resolve
 // regardless of how they were typed (e.g. unsuccessful vs unsucessful, geopin vs incorrect-geopin).
@@ -587,7 +655,9 @@ function render(data){
   var byTag={};
   secs.forEach(function(s){
     var canon=hxCanon(s.tag);
-    var cur=byTag[canon]||(byTag[canon]={ tag:canon, tickets:[], seen:{} });
+    var cur=byTag[canon]||(byTag[canon]={ tag:canon, tickets:[], seen:{}, lastUploadAt:'' });
+    // Newest CSV-upload date across the tag and its alias spellings (ISO strings compare in order).
+    if(s.lastUploadAt && String(s.lastUploadAt)>String(cur.lastUploadAt||'')) cur.lastUploadAt=s.lastUploadAt;
     (s.tickets||[]).forEach(function(t){
       var id=String(t.shortId||'');
       if(id&&cur.seen[id]) return;
@@ -600,7 +670,7 @@ function render(data){
   // tag renders even with 0 tickets, in the fixed HX_ORDER order.
   HX_SECS=HX_ORDER.map(function(tag){
     var m=byTag[tag];
-    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
+    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], lastUploadAt:(m&&m.lastUploadAt)||'', shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
   });
   // No title bar, no group wrappers (DEFECTS / PATTERNS / OTHER / #Out of Scope). Render a single
   // FLAT list of hashtag section cards, ordered by ticket count (most-used first), then by name.
@@ -612,7 +682,8 @@ function render(data){
   // Admin-only toolbar: open the hashtag-CSV upload modal (canUpload flag; owner always).
   var html='';
   if(A&&A.canUpload&&A.canUpload()){
-    html+='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+    html+='<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px">'
+      +'<button type="button" class="hx-log-btn" onclick="hlOpen()">'+ic('history',15)+'Hashtag log</button>'
       +'<button type="button" class="hx-upload-btn" onclick="huOpen()" style="display:inline-flex;align-items:center;gap:7px;background:#161d2d;color:#f4f3ef;border:none;border-radius:5px;font-weight:700;font-size:.86em;padding:9px 16px;cursor:pointer;font-family:inherit">'
       +ic('upload',15)+'Upload hashtag CSV</button>'
     +'</div>';
@@ -626,9 +697,13 @@ function render(data){
     html+='<div class="hx-sec" id="hxSec'+idx+'">'
       +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
         +'<div class="hx-sec-title">'
-          +'<div class="hx-sec-title-wrap"><span class="hx-tag">'+esc(a.tag)+'</span>'+defHtml+'</div>'
+          +'<div class="hx-sec-title-wrap"><span class="hx-tag-line"><span class="hx-tag">'+esc(a.tag)+'</span>'
+            +'<button type="button" class="hx-copy" data-tag="'+esc(a.tag)+'" onclick="hxCopyTag(this,event)" title="Copy '+esc(a.tag)+'" aria-label="Copy '+esc(a.tag)+'">'+ic('copy',13)+'</button></span>'
+            +defHtml+'</div>'
         +'</div>'
-        +'<div class="hx-sec-head-right"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span><span class="hx-caret">\u25be</span></div>'
+        +'<div class="hx-sec-head-right"><span class="hx-count-col"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span>'
+          +(a.lastUploadAt?'<span class="hx-updated" title="Last updated by a CSV upload: '+esc(hxUpdatedFull(a.lastUploadAt))+'">Updated '+esc(hxUpdatedShort(a.lastUploadAt))+'</span>':'')
+        +'</span><span class="hx-caret">\u25be</span></div>'
       +'</div>'
       +'<div class="hx-sec-body">'
         +(a.count>0
@@ -775,7 +850,9 @@ function huExtractIds(parsed){
   (parsed.rows||[]).forEach(function(r){ var v=(sidKey&&String(r[sidKey]||'').trim())||(idKey&&String(r[idKey]||'').trim())||''; if(v&&!set[v]){ set[v]=1; out.push(v); } });
   return out;
 }
-var HU_TAG='', HU_IDS=[], HU_BUSY=false, HU_WIRED=false;
+// Multi-file upload state: one entry per picked file.
+//   { key, name, tag, ids:[...], state:'reading'|'ready'|'error'|'uploading'|'done'|'failed', msg, res }
+var HU_FILES=[], HU_SEQ=0, HU_BUSY=false, HU_WIRED=false;
 // Live allow-list = the hashtags managed on the Tools page (/api/hashtags). Refreshed every time the
 // modal opens, so a tag just added on Tools is immediately uploadable here (no page reload needed).
 var HU_ALLOWED=null; // Set of '#tag' (lowercased) or null until loaded
@@ -795,96 +872,170 @@ function huWire(){
   if(HU_WIRED) return; HU_WIRED=true;
   var drop=document.getElementById('huDrop'), inp=document.getElementById('huFile');
   drop.onclick=function(){ inp.click(); };
-  inp.onchange=function(e){ if(e.target.files&&e.target.files[0]) huPick(e.target.files[0]); };
+  inp.onchange=function(e){ if(e.target.files&&e.target.files.length) huPickMany(e.target.files); inp.value=''; };
   ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('drag'); }); });
   ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove('drag'); }); });
-  drop.addEventListener('drop',function(e){ var fl=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(fl) huPick(fl); });
+  drop.addEventListener('drop',function(e){ var fl=e.dataTransfer&&e.dataTransfer.files; if(fl&&fl.length) huPickMany(fl); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var ov=document.getElementById('huOverlay'); if(ov&&ov.classList.contains('show')) huClose(); } });
 }
 function huShowMsg(kind,html){ var m=document.getElementById('huMsg'); m.className='hu-msg show '+kind; m.innerHTML=html; }
 function huHideMsg(){ var m=document.getElementById('huMsg'); m.className='hu-msg'; m.innerHTML=''; }
-function huPick(file){
+// Add one or more picked/dropped files to the list. Each file is validated on its own (csv ext,
+// file name -> a hashtag that exists on the Tools page, at least one ShortId/IssueId); bad files
+// are listed with the reason and simply skipped by Apply.
+function huPickMany(fileList){
+  if(HU_BUSY) return;
   huHideMsg();
-  if(!/\.csv$/i.test(file.name)){ huShowMsg('err','Please choose a <b>.csv</b> file.'); return; }
-  HU_TAG=huTagFromName(file.name);
-  if(!HU_TAG){ huShowMsg('err','Could not derive a hashtag from the file name. Name it after the tag, e.g. <code>no-emt-attached.csv</code>.'); return; }
-  // The file name must match a hashtag that exists on the Tools page. Use the freshly-loaded Tools
-  // list if available, else fall back to the built-in set; the server enforces the real check too.
+  // Re-picking after a finished batch starts a fresh list.
+  if(HU_FILES.length && HU_FILES.every(function(f){ return f.state==='done'||f.state==='failed'; })) HU_FILES=[];
   var allow=HU_ALLOWED||HX_ALLOWED;
-  if(!allow.has(HU_TAG)){
-    huShowMsg('err',
-      'The file name doesn\u2019t match an existing hashtag. <b>'+esc(HU_TAG)+'</b> is not on the Tools page.<br>'+
-      'Please do one of the following, then upload again:'+
-      '<ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">'+
-        '<li><b>Rename the file</b> to exactly match an existing hashtag (e.g. <code>no-emt-attached.csv</code>).</li>'+
-        '<li>Or <b>create the hashtag</b> first on the <a href="tools.html" target="_blank" rel="noopener" style="color:#b5560c;font-weight:700">Tools page</a>, then come back and upload.</li>'+
-      '</ul>');
-    huReset(true);
-    return;
-  }
-  var reader=new FileReader();
-  reader.onerror=function(){ huShowMsg('err','Could not read that file. Please try again.'); };
-  reader.onload=function(ev){
-    try{
-      var ids=huExtractIds(huParseCSV(String(ev.target.result||'')));
-      if(!ids.length){ huShowMsg('err','No <b>ShortId</b> (or <b>IssueId</b>) values found in the file.'); huReset(true); return; }
-      HU_IDS=ids;
-      document.getElementById('huFileRow').innerHTML=
-        '<div class="hu-file-row">'+
-          '<span class="fr-ic">'+ic('ticket',18)+'</span>'+
-          '<div><div class="fr-name">'+esc(file.name)+'</div>'+
-            '<div class="fr-meta">'+ids.length+' ticket id'+(ids.length===1?'':'s')+' found</div></div>'+
-          '<span class="fr-tag">'+esc(HU_TAG)+'</span>'+
-        '</div>';
-      document.getElementById('huGo').disabled=false;
-      document.getElementById('huClear').style.display='';
-    }catch(e){ huShowMsg('err','Could not parse that CSV.'); huReset(true); }
-  };
-  reader.readAsText(file);
+  Array.prototype.forEach.call(fileList, function(file){
+    var it={ key:'f'+(++HU_SEQ), name:file.name||'', tag:'', ids:[], state:'reading', msg:'', res:null };
+    HU_FILES.push(it);
+    if(!/\.csv$/i.test(it.name)){ it.state='error'; it.msg='Not a .csv file.'; return; }
+    it.tag=huTagFromName(it.name);
+    if(!it.tag){ it.state='error'; it.msg='Can\u2019t derive a hashtag from the file name.'; return; }
+    if(!allow.has(it.tag)){ it.state='error'; it.msg=it.tag+' isn\u2019t a hashtag on the Tools page \u2014 rename the file or create it there first.'; return; }
+    var reader=new FileReader();
+    reader.onerror=function(){ it.state='error'; it.msg='Could not read the file.'; huRenderFiles(); };
+    reader.onload=function(ev){
+      try{
+        it.ids=huExtractIds(huParseCSV(String(ev.target.result||'')));
+        if(!it.ids.length){ it.state='error'; it.msg='No ShortId (or IssueId) values found.'; }
+        else it.state='ready';
+      }catch(e){ it.state='error'; it.msg='Could not parse the CSV.'; }
+      huRenderFiles();
+    };
+    reader.readAsText(file);
+  });
+  huRenderFiles();
 }
-// Reset the picked-file state. Pass keepMsg=true to KEEP a shown error (so a rejection message
-// stays visible); the default (called by the Clear button) also hides the message.
+// Remove one not-yet-uploaded file from the list.
+function huRemoveFile(key){
+  if(HU_BUSY) return;
+  HU_FILES=HU_FILES.filter(function(f){ return f.key!==key; });
+  huRenderFiles();
+}
+window.huRemoveFile=huRemoveFile;
+// Paint the file list + footer button state.
+function huRenderFiles(){
+  var box=document.getElementById('huFileRow'); if(!box) return;
+  box.innerHTML=HU_FILES.map(function(f){
+    var meta, cls='';
+    if(f.state==='reading') meta='Reading\u2026';
+    else if(f.state==='error'){ meta=esc(f.msg); cls=' err'; }
+    else if(f.state==='ready') meta=f.ids.length.toLocaleString('en-US')+' ticket id'+(f.ids.length===1?'':'s')+' found';
+    else if(f.state==='uploading') meta='<span class="hu-spin dark"></span> Applying\u2026';
+    else if(f.state==='done'){
+      var d=f.res||{}; cls=' ok';
+      meta='Applied to <b>'+(d.matchedTickets||0).toLocaleString('en-US')+'</b> of <b>'+(d.requested||0).toLocaleString('en-US')+'</b>'+
+        ((d.notFound&&d.notFound.length)?(' \u00b7 '+d.notFound.length+' not found'):'');
+    }
+    else { meta=esc(f.msg||'Failed.'); cls=' err'; }   // failed
+    var canRemove=!HU_BUSY && (f.state==='ready'||f.state==='error'||f.state==='reading');
+    return '<div class="hu-file-row'+cls+'">'+
+      '<span class="fr-ic">'+ic(f.state==='done'?'check-circle':(cls===' err'?'alert':'ticket'),18)+'</span>'+
+      '<div style="min-width:0"><div class="fr-name">'+esc(f.name)+'</div><div class="fr-meta">'+meta+'</div></div>'+
+      (f.tag?'<span class="fr-tag">'+esc(f.tag)+'</span>':'<span style="margin-left:auto"></span>')+
+      (canRemove?'<button type="button" class="fr-x" aria-label="Remove '+esc(f.name)+'" title="Remove" onclick="huRemoveFile(\''+f.key+'\')">\u00d7</button>':'')+
+    '</div>';
+  }).join('');
+  var ready=HU_FILES.filter(function(f){ return f.state==='ready'; }).length;
+  var reading=HU_FILES.some(function(f){ return f.state==='reading'; });
+  var go=document.getElementById('huGo');
+  if(go && !HU_BUSY){ go.disabled=!ready||reading; go.innerHTML=ready?('Apply '+ready+' hashtag'+(ready===1?'':'s')):'Apply hashtags'; }
+  var cl=document.getElementById('huClear'); if(cl) cl.style.display=(HU_FILES.length&&!HU_BUSY)?'':'none';
+}
+// Reset the picked-file list. Pass keepMsg=true to KEEP a shown message.
 function huReset(keepMsg){
-  HU_TAG=''; HU_IDS=[];
-  var fr=document.getElementById('huFileRow'); if(fr) fr.innerHTML='';
-  var go=document.getElementById('huGo'); if(go){ go.disabled=true; go.innerHTML='Apply hashtag'; }
-  var cl=document.getElementById('huClear'); if(cl) cl.style.display='none';
+  if(HU_BUSY) return;
+  HU_FILES=[];
+  huRenderFiles();
   var inp=document.getElementById('huFile'); if(inp) inp.value='';
   if(keepMsg!==true) huHideMsg();
 }
 window.huReset=huReset;
+// Apply every ready file, one request per file (each hashtag is its own upload + log entry),
+// sequentially so the per-file status updates live and the server isn't hit in parallel.
 async function huUpload(){
-  if(HU_BUSY||!HU_IDS.length||!HU_TAG) return;
+  var todo=HU_FILES.filter(function(f){ return f.state==='ready'; });
+  if(HU_BUSY||!todo.length) return;
   HU_BUSY=true; huHideMsg();
-  var go=document.getElementById('huGo'); go.disabled=true; go.innerHTML='<span class="hu-spin"></span> Applying…';
-  try{
-    var r=await A.api('POST','/api/hashtags/manual-tag',{ hashtag:HU_TAG, shortIds:HU_IDS });
-    if(r&&r.ok&&r.data&&r.data.ok){
-      var d=r.data;
-      var nf=(d.notFound&&d.notFound.length)
-        ? '<div class="nf"><b>'+d.notFound.length+'</b> id'+(d.notFound.length===1?'':'s')+' not found:<br>'+esc(d.notFound.slice(0,200).join(', '))+(d.notFound.length>200?' …':'')+'</div>'
-        : '';
-      huShowMsg('ok','Applied <b>'+esc(d.hashtag)+'</b> to <b>'+d.matchedTickets+'</b> of <b>'+d.requested+'</b> ticket'+(d.requested===1?'':'s')+'. Reloading the list…'+nf);
-      go.innerHTML='Done';
-      // Refresh the page data so the new/updated section count shows immediately.
-      setTimeout(function(){ huClose(); huReload(); }, 1200);
-    }else if(r&&r.data&&r.data.code==='UNKNOWN_HASHTAG'){
-      huShowMsg('err',
-        '<b>'+esc(HU_TAG)+'</b> doesn\u2019t match any hashtag on the Tools page.<br>'+
-        'Please do one of the following, then upload again:'+
-        '<ul style="margin:8px 0 0 18px;padding:0;line-height:1.7">'+
-          '<li><b>Rename the file</b> to exactly match an existing hashtag.</li>'+
-          '<li>Or <b>create the hashtag</b> on the <a href="tools.html" target="_blank" rel="noopener" style="color:#b5560c;font-weight:700">Tools page</a> first.</li>'+
-        '</ul>');
-      go.disabled=false; go.innerHTML='Apply hashtag';
-    }else{
-      huShowMsg('err',esc((r&&r.data&&r.data.error)||('Request failed (HTTP '+(r&&r.status)+').')));
-      go.disabled=false; go.innerHTML='Apply hashtag';
-    }
-  }catch(e){ huShowMsg('err','Network error. Please try again.'); go.disabled=false; go.innerHTML='Apply hashtag'; }
+  var go=document.getElementById('huGo'); go.disabled=true; go.innerHTML='<span class="hu-spin"></span> Applying\u2026';
+  huRenderFiles();
+  var okN=0, failN=0;
+  for(var k=0;k<todo.length;k++){
+    var f=todo[k]; f.state='uploading'; huRenderFiles();
+    go.innerHTML='<span class="hu-spin"></span> Applying '+(k+1)+' of '+todo.length+'\u2026';
+    try{
+      var r=await A.api('POST','/api/hashtags/manual-tag',{ hashtag:f.tag, shortIds:f.ids });
+      if(r&&r.ok&&r.data&&r.data.ok){ f.state='done'; f.res=r.data; okN++; }
+      else{
+        f.state='failed'; failN++;
+        f.msg=(r&&r.data&&r.data.code==='UNKNOWN_HASHTAG')
+          ? (f.tag+' isn\u2019t a hashtag on the Tools page.')
+          : ((r&&r.data&&r.data.error)||('Request failed (HTTP '+(r&&r.status)+').'));
+      }
+    }catch(e){ f.state='failed'; f.msg='Network error.'; failN++; }
+    huRenderFiles();
+  }
   HU_BUSY=false;
+  var skipped=HU_FILES.filter(function(f){ return f.state==='error'; }).length;
+  huRenderFiles();
+  go.disabled=true; go.innerHTML='Done';
+  if(okN) huReload();   // refresh section counts for whatever was applied
+  if(!failN && !skipped){
+    huShowMsg('ok','Applied <b>'+okN+'</b> hashtag'+(okN===1?'':'s')+'. Reloading the list\u2026');
+    setTimeout(function(){ huClose(); }, 1400);
+  }else{
+    huShowMsg(okN?'ok':'err',
+      (okN?('Applied <b>'+okN+'</b> hashtag'+(okN===1?'':'s')+'. '):'')+
+      (failN?('<b>'+failN+'</b> failed. '):'')+
+      (skipped?('<b>'+skipped+'</b> file'+(skipped===1?' was':'s were')+' skipped. '):'')+
+      'See the list above for details.');
+  }
 }
 window.huUpload=huUpload;
+
+// ===== Hashtag log pop-up: who uploaded which file, how many ids, and when (canUpload only) =====
+var HL_SEQ=0;
+function hlFmtWhen(iso){
+  if(!iso) return '\u2014';
+  var d=new Date(iso); if(isNaN(d)) return esc(String(iso));
+  return d.toLocaleString('en-US',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+async function hlOpen(){
+  var ov=document.getElementById('hlOverlay'); if(!ov) return;
+  var body=document.getElementById('hlBody'), seq=++HL_SEQ;
+  body.innerHTML='<div class="hl-msg">Loading the hashtag log\u2026</div>';
+  ov.classList.add('show');
+  var x=ov.querySelector('.hu-x'); if(x) x.focus();
+  var r=null;
+  try{ r=await A.api('GET','/api/hashtags/upload-log'); }catch(e){}
+  if(seq!==HL_SEQ) return;
+  if(!(r&&r.ok&&Array.isArray(r.data))){ body.innerHTML='<div class="hl-msg err">Could not load the hashtag log'+(r&&r.status?(' (HTTP '+r.status+')'):'')+'.</div>'; return; }
+  var rows=r.data;
+  if(!rows.length){ body.innerHTML='<div class="hl-msg">No hashtag CSV uploads yet.</div>'; return; }
+  body.innerHTML='<div class="hl-scroll"><table class="hl-table"><thead><tr>'+
+      '<th>Uploaded by</th><th>Hashtag</th><th class="num">IDs uploaded</th><th class="num">Matched</th><th>Date &amp; time</th>'+
+    '</tr></thead><tbody>'+rows.map(function(e){
+      return '<tr>'+
+        '<td><b>'+esc(e.uploadedBy||'\u2014')+'</b></td>'+
+        '<td class="hl-tag">'+esc(e.hashtag||'')+'</td>'+
+        '<td class="num">'+(Number(e.requested)||0).toLocaleString('en-US')+'</td>'+
+        '<td class="num">'+(Number(e.matchedTickets)||0).toLocaleString('en-US')+
+          (e.notFound?'<span class="hl-nf">'+e.notFound+' not found</span>':'')+'</td>'+
+        '<td class="when">'+hlFmtWhen(e.at)+'</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table></div>';
+}
+window.hlOpen=hlOpen;
+function hlClose(){ var ov=document.getElementById('hlOverlay'); if(ov) ov.classList.remove('show'); }
+window.hlClose=hlClose;
+document.addEventListener('keydown', function(ev){
+  if(ev.key!=='Escape') return;
+  var ov=document.getElementById('hlOverlay'); if(ov && ov.classList.contains('show')) hlClose();
+});
 // Re-fetch the live report and re-render the list in place after a successful upload.
 async function huReload(){
   try{ var r=await A.api('GET','/api/hashtags-report'); if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)){ render(r.data); } }catch(e){}

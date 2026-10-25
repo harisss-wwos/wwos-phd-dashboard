@@ -87,6 +87,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .sr-chart-svg .pt{stroke:#0b0f14;stroke-width:2;cursor:pointer}
 .sr-chart-svg .pt.l1{fill:#e5484d}.sr-chart-svg .pt.l2{fill:#3b6fe0}.sr-chart-svg .pt.l3{fill:#0d9488}
 .sr-chart-svg .hit{fill:transparent;cursor:pointer}
+/* Point value labels: bold, line-coloured, white halo so they read over gridlines/lines. */
+.sr-chart-svg .ptlbl{font-size:11px;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.sr-chart-svg .ptlbl.l1{fill:#d33b40}.sr-chart-svg .ptlbl.l2{fill:#2f5fcc}.sr-chart-svg .ptlbl.l3{fill:#0b7f75}
 .sr-chart-svg .vline{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
 .sr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:230px;background:#0a0a0a;border:1px solid #2a323b;border-radius:7px;padding:11px 13px;box-shadow:0 14px 34px -16px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
 .sr-chart-tip.show{opacity:1;transform:translateY(0)}
@@ -434,10 +437,20 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .sr-stat.aligned .sr-stat-ic{background:rgba(13,148,136,.16);color:#2dd4bf}
 .sr-stat.aligned .sr-stat-n{color:#2dd4bf}
 .sr-stat.rate .sr-stat-ic{background:rgba(255,159,46,.14);color:#ff9f2e}
-/* Cap the graph height so it doesn't dominate now that stats sit beneath it. */
+/* Cap the graph height so it doesn't dominate the section. */
 .sr-chart-col .sr-chart-wrap,.sr-chart-col .sr-chart-svg{max-height:300px}
-@media(max-width:900px){.sr-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:560px){.sr-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Header line inside the graph area: stat chips LEFT, legend RIGHT (same as SLA Breaches). Wraps on
+   narrow screens. */
+.sr-chart-top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:8px}
+.sr-chart-top .sr-chart-legend{margin-bottom:0;margin-left:auto}
+/* Compact chips (overrides the old full-width tile grid): small icon + value + label on one line. */
+.sr-chart-top .sr-stats{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.sr-chart-top .sr-stat{padding:6px 10px;gap:8px;border-radius:7px}
+.sr-chart-top .sr-stat-ic{width:24px;height:24px;border-radius:6px}
+.sr-chart-top .sr-stat-ic svg{width:13px;height:13px}
+.sr-chart-top .sr-stat-body{flex-direction:row;align-items:baseline;gap:6px}
+.sr-chart-top .sr-stat-n{font-size:1em}
+.sr-chart-top .sr-stat-l{font-size:.68em}
 </style>
 </head>
 <body data-nav-active="station-request" data-back-href="app.html" data-back-label="Dashboard">
@@ -710,19 +723,23 @@ function srChartInnerHtml(){
     '</div>';
   }
   // Two columns: graph (70%) on the left, the stat tiles stacked in a 30% column on the right.
+  // One chart panel (same layout as SLA Breaches): a header line INSIDE the graph area — the 5
+  // headline stats as compact chips on the LEFT, the legend on the RIGHT — with the chart underneath.
   return '<div class="sr-chart-row">'+
     '<div class="sr-chart-col">'+
-      '<div class="sr-chart-legend">'+
-        '<span class="sr-lg l1"><i></i>Raised but refused</span>'+
-        '<span class="sr-lg l2"><i></i>Not raised, exclusion applied</span>'+
-        '<span class="sr-lg l3"><i></i>Raised and aligned</span>'+
+      '<div class="sr-chart-top">'+
+        srStatsHtml()+
+        '<div class="sr-chart-legend">'+
+          '<span class="sr-lg l1"><i></i>Raised but refused</span>'+
+          '<span class="sr-lg l2"><i></i>Not raised, exclusion applied</span>'+
+          '<span class="sr-lg l3"><i></i>Raised and aligned</span>'+
+        '</div>'+
       '</div>'+
       '<div class="sr-chart-wrap" id="srChartWrap">'+
         '<svg class="sr-chart-svg" id="srChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet"></svg>'+
         '<div class="sr-chart-tip" id="srChartTip"></div>'+
       '</div>'+
     '</div>'+
-    srStatsHtml()+
   '</div>';
 }
 // Roll the monthly series into headline numbers for the stat column.
@@ -772,7 +789,13 @@ function drawSrChart(data){
   var months=(data&&data.months)||[];
   // Only draw lines/points/hover through the last month with data; keep all 12 x-axis labels.
   var draw=months.slice(0, srLastMonth(months));
-  var W=920,H=320,padL=46,padR=20,padT=18,padB=36, plotW=W-padL-padR, plotH=H-padT-padB;
+  // Size the drawing to its box (same as the SLA chart): keep H=320 units for ~300px of height and
+  // widen W to the box's real aspect, so the plot fills 100% of the width at the same text size.
+  var wrapEl=document.getElementById('srChartWrap');
+  var boxW=(wrapEl&&wrapEl.clientWidth)||920, TARGET_PX_H=300;
+  var H=320, W=Math.max(600, Math.round(H*boxW/TARGET_PX_H));
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  var padL=46,padR=20,padT=18,padB=36, plotW=W-padL-padR, plotH=H-padT-padB;
   var maxV=0; draw.forEach(function(m){ maxV=Math.max(maxV,m.raisedNotFulfilled,m.notRaisedFulfilled,m.raisedFulfilled); });
   var niceMax=srNiceCeil(Math.max(maxV,1));
   var xAt=function(i){ return padL+(plotW*(i/11)); };
@@ -792,6 +815,27 @@ function drawSrChart(data){
     g+='<circle class="pt l1" cx="'+xAt(i)+'" cy="'+yAt(m.raisedNotFulfilled)+'" r="4"/>';
     g+='<circle class="pt l2" cx="'+xAt(i)+'" cy="'+yAt(m.notRaisedFulfilled)+'" r="4"/>';
     g+='<circle class="pt l3" cx="'+xAt(i)+'" cy="'+yAt(m.raisedFulfilled)+'" r="4"/>';
+  });
+  // Value labels on every point. Three lines often sit close together, so per month the labels are
+  // ordered top->bottom by point height and spaced at least GAP apart (each still sits just above
+  // its point when there's room). If the stack runs into the x-axis it shifts up as a group.
+  var axisY=padT+plotH, GAP=12, TOP_MIN=padT+8, BOT_MAX=axisY-3;
+  var num=function(v){ return Number(v||0).toLocaleString('en-US'); };
+  draw.forEach(function(m,i){
+    var x=xAt(i);
+    var items=[
+      {cls:'l1', v:m.raisedNotFulfilled||0},
+      {cls:'l2', v:m.notRaisedFulfilled||0},
+      {cls:'l3', v:m.raisedFulfilled||0},
+    ].map(function(it){ it.py=yAt(it.v); return it; })
+     .sort(function(a,b){ return a.py-b.py; });          // highest point first
+    var prev=-Infinity;
+    items.forEach(function(it){ it.y=Math.max(it.py-9, TOP_MIN, prev+GAP); prev=it.y; });
+    var over=items[items.length-1].y-BOT_MAX;
+    if(over>0) items.forEach(function(it){ it.y=Math.max(TOP_MIN, it.y-over); });
+    items.forEach(function(it){
+      g+='<text class="ptlbl '+it.cls+'" x="'+x+'" y="'+it.y+'" text-anchor="middle">'+num(it.v)+'</text>';
+    });
   });
   var colW=plotW/11;
   draw.forEach(function(m,i){ g+='<rect class="hit" data-i="'+i+'" x="'+(xAt(i)-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>'; });
@@ -816,8 +860,19 @@ function drawSrChart(data){
       tip.style.left=left+'px'; tip.style.top='8px';
     });
   });
-  wrap.addEventListener('mouseleave', function(){ tip.classList.remove('show'); if(vline)vline.style.visibility='hidden'; });
+  if(!wrap._srLeave){   // bind once per wrap (drawSrChart re-runs on resize)
+    wrap._srLeave=true;
+    wrap.addEventListener('mouseleave', function(){ var t=document.getElementById('srChartTip'), v=document.getElementById('srVLine'); if(t)t.classList.remove('show'); if(v)v.style.visibility='hidden'; });
+  }
 }
+// Redraw on resize so the chart keeps filling 100% of its box at the new width (debounced).
+(function(){
+  var tmr=null;
+  window.addEventListener('resize', function(){
+    clearTimeout(tmr);
+    tmr=setTimeout(function(){ if(SR_MONTHLY && document.getElementById('srChartSvg')) drawSrChart(SR_MONTHLY); }, 150);
+  });
+})();
 
 // ================= SECTION 2: Country -> State / Station grouping =================
 var SR_FLAT=null;              // { total, tickets:[...] }
@@ -955,7 +1010,7 @@ function srCountrySectionHtml(){
   return '<div class="sr-sec" id="sec-country">'+
     '<div class="sr-sec-head" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">'+
       '<div class="sr-sec-head-left"><div class="sr-sec-title"><span class="sec-ic">'+ic('globe',18)+'</span> Station Requests by Country</div></div>'+
-      '<div class="sr-sec-head-right"><span class="sr-count" id="srCountryCount">\u2014</span><span class="sr-caret">\u25be</span></div>'+
+      '<div class="sr-sec-head-right"><span class="sr-caret">\u25be</span></div>'+
     '</div>'+
     '<div class="sr-sec-body">'+ldHtml('srCountry')+'<div id="srCountryContent" style="display:none">'+checks+'<div id="srCountryBody"></div></div></div>'+
   '</div>';
@@ -965,7 +1020,6 @@ function renderCountryView(){
   var box=document.getElementById('srCountryBody'); if(!box) return;
   if(!SR_FLAT){ box.innerHTML='<div class="np-sk-wrap">'+Array(6).join('<div class="np-sk-row"><span class="np-sk b1"></span><span class="np-sk b2"></span><span class="np-sk b3"></span><span class="np-sk b4"></span><span class="np-sk b5"></span></div>')+'</div>'; return; }
   var tickets=srFiltered(SR_FLAT.tickets||[]);
-  var cnt=document.getElementById('srCountryCount'); if(cnt)cnt.textContent=tickets.length;
   if(!tickets.length){ box.innerHTML='<div class="sr-empty">No station-request tickets for the selected analyst type.</div>'; return; }
   var byCountry={}; tickets.forEach(function(t){ (byCountry[t.country]=byCountry[t.country]||[]).push(t); });
   var codes=Object.keys(byCountry).sort(function(a,b){ return byCountry[b].length-byCountry[a].length; });
