@@ -10,6 +10,7 @@ const {
   issueToken, attachUser, requireRole,
 } = require('./auth');
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
+const { computePulseReport } = require('./pulse-check');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -65,6 +66,17 @@ function getCachedReport(key) {
   return null;
 }
 function setCachedReport(key, data) { _reportCache.set(key, { at: Date.now(), data }); }
+// Like getCachedReport but ignores the TTL: returns the last payload stored for `key` (or null).
+// Used to serve a stale-but-usable report when recomputing is not possible right now.
+function getStaleCachedReport(key) { const hit = _reportCache.get(key); return hit ? hit.data : null; }
+// Keep only the `keep` most recently stored entries whose key starts with `prefix` (oldest dropped first).
+function pruneCachedReports(prefix, keep) {
+  const hits = [];
+  _reportCache.forEach((v, k) => { if (k.startsWith(prefix)) hits.push([k, v.at]); });
+  if (hits.length <= keep) return;
+  hits.sort((a, b) => a[1] - b[1]);
+  hits.slice(0, hits.length - keep).forEach(([k]) => _reportCache.delete(k));
+}
 function invalidateReportCache() { _reportCache.clear(); }
 async function liveQuarterId() {
   const now = Date.now();
@@ -5265,6 +5277,190 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not build the handover report.' });
+  }
+});
+
+// ---- Pulse Check (24h) — rolling 24h operational report for pulse-check.html. -----------------
+// Read-only. The maths lives in ./pulse-check.js (pure); this route validates `end`, fetches the
+// three windowed/open sets + two counts, and caches the payload in the shared report cache.
+// `end` forms (the only two accepted): date only -> 00:00:00.000Z, or a full timestamp with an
+// explicit zone (Z or +-hh:mm). Zone-less date-times are rejected (no server-local-time ambiguity).
+// The window is ONE full MST calendar day (see pulseMstDay): the last day completely ended in MST
+// (and therefore in IST) before now, or before a supplied `end`. Section 9 has one slot per real hour.
+// Ticket-level lists (sla.atRiskTop, breaches.rows) are only returned to callers with canViewSLA;
+// the cache holds the full payload and the lists are stripped per request.
+const PULSE_END_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const PULSE_END_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+const PULSE_END_ERR = 'end must be YYYY-MM-DD or an ISO-8601 timestamp with a timezone, not in the future.';
+const PULSE_MIN_END_MS = Date.parse('2000-01-01T00:00:00Z');
+const PULSE_FRESH_MIN_MS = 20000;   // ?fresh=1 recomputes only if the cached payload is older than this
+const PULSE_MAX_BUSY = 2;           // max concurrent uncached computes (5 Mongo reads each)
+const PULSE_MAX_END_KEYS = 20;      // cap on cached `pulse-check:v8:end:*` entries (pruned oldest-first by `at`)
+const PULSE_QUERY_MAX_MS = 15000;   // maxTimeMS on each Mongo read (a slow DB fails fast and frees the slot)
+const PULSE_RETRY_AFTER_S = 5;
+const PULSE_HOUR_MS = 3600000;
+let _pulseBusy = 0;
+const _pulseInflight = new Map();   // cache key -> in-flight compute promise
+const _pulseUserBusy = new Set();   // usernames with an uncached compute in flight (max one each)
+// Parse a caller-supplied `end`; returns a Date truncated down to the whole UTC hour, or null if invalid.
+function parsePulseEnd(v) {
+  if (typeof v !== 'string' || !v || v.length > 40) return null;
+  const raw = v.replace(/ (\d{2}:\d{2})$/, '+$1'); // an unencoded '+' arrives as ' '
+  let iso;
+  if (PULSE_END_DATE_ONLY.test(raw)) iso = raw + 'T00:00:00.000Z';
+  else if (PULSE_END_TS.test(raw)) iso = raw;
+  else return null;
+  // V8 rolls invalid days over (2026-02-30 -> 2 Mar), so check the typed Y-M-D explicitly.
+  const y = +iso.slice(0, 4), m = +iso.slice(5, 7), d = +iso.slice(8, 10);
+  const chk = new Date(Date.UTC(y, m - 1, d));
+  if (chk.getUTCFullYear() !== y || chk.getUTCMonth() !== m - 1 || chk.getUTCDate() !== d) return null;
+  const t = Date.parse(iso);
+  if (isNaN(t) || t < PULSE_MIN_END_MS || t > Date.now()) return null;
+  return new Date(Math.floor(t / PULSE_HOUR_MS) * PULSE_HOUR_MS);
+}
+// Same rule as requireFlag('canViewSLA') (owner override via userFlags). Fails closed (no detail).
+async function pulseCanViewDetail(username) {
+  try {
+    const users = await getCollection(COLLECTIONS.users);
+    const u = await users.findOne({ username }, { projection: { role: 1, canViewSLA: 1 } });
+    return !!u && userFlags(u).canViewSLA;
+  } catch (e) {
+    return false;
+  }
+}
+// Per-request view of a cached payload: never mutates it. Without canViewSLA the ticket-level lists
+// are emptied and flagged; `extra` adds response-only fields (e.g. servedStale).
+function pulseForViewer(payload, canSeeDetail, extra) {
+  if (canSeeDetail && !extra) return payload;
+  const out = Object.assign({}, payload, extra || {});
+  if (!canSeeDetail) {
+    out.sla = Object.assign({}, payload.sla, { atRiskTop: [], atRiskByAgent: [], detailHidden: true });
+    out.breaches = Object.assign({}, payload.breaches, { rows: [], detailHidden: true });
+    out.resolvedList = [];            // ticket-level list; resolvedIssueCounts/resolvedRootCauseCounts/resolvedResolutionCounts (aggregates) stay
+    out.resolvedDetailHidden = true;
+  }
+  return out;
+}
+function isMongoTimeout(e) {
+  return !!e && (e.code === 50 || e.codeName === 'MaxTimeMSExpired' || /exceeded time limit|operation exceeded/i.test(String(e.message)));
+}
+// ---- MST calendar-day window ----
+// The flash report covers ONE full calendar day in America/Denver ("MST" per the repo convention):
+// the latest day that has completely ended in MST. MST is behind IST, so a day that has ended in MST
+// has also ended in IST (e.g. 26 Oct 00:01 IST is still 25 Oct in MST, so 25 Oct is not reported
+// until it ends in MST). Day edges are real Denver midnights, so DST days are 23 or 25 hours.
+const _pulseDenYmd = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' });
+function pulseDenParts(t) {
+  const o = {}; _pulseDenYmd.formatToParts(new Date(t)).forEach(p => { o[p.type] = p.value; });
+  return { y: +o.year, m: +o.month, d: +o.day, h: (+o.hour) % 24 };
+}
+// UTC instant of 00:00 America/Denver on y-m-d (offset is -6h in MDT, -7h in MST).
+function pulseDenMidnight(y, m, d) {
+  const n = new Date(Date.UTC(y, m - 1, d));                     // normalise day overflow (e.g. d=0)
+  const Y = n.getUTCFullYear(), M = n.getUTCMonth() + 1, D = n.getUTCDate();
+  for (const off of [6, 7]) {
+    const t = Date.UTC(Y, M - 1, D, off);
+    const p = pulseDenParts(t);
+    if (p.y === Y && p.m === M && p.d === D && p.h === 0) return t;
+  }
+  return Date.UTC(Y, M - 1, D, 7);
+}
+// The last complete MST day on or before instant `t`: { start, end, nextUpdateAt, reportDate }.
+function pulseMstDay(t) {
+  const p = pulseDenParts(t);
+  const endMs = pulseDenMidnight(p.y, p.m, p.d);                  // today's 00:00 MST (<= t)
+  const startMs = pulseDenMidnight(p.y, p.m, p.d - 1);            // yesterday's 00:00 MST
+  const nextMs = pulseDenMidnight(p.y, p.m, p.d + 1);             // when today completes in MST
+  const s = pulseDenParts(startMs);
+  return {
+    start: new Date(startMs), end: new Date(endMs), nextUpdateAt: new Date(nextMs).toISOString(),
+    reportDate: s.y + '-' + String(s.m).padStart(2, '0') + '-' + String(s.d).padStart(2, '0'),
+  };
+}
+async function buildPulsePayload(day) {
+  const start = day.start, end = day.end;
+  // String range padded by +-1s (ms-precision formatting differences); exact [start,end) is applied in JS.
+  const padS = new Date(start.getTime() - 1000).toISOString();
+  const padE = new Date(end.getTime() + 1000).toISOString();
+  const liveQid = await liveQuarterId();
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const maxTimeMS = PULSE_QUERY_MAX_MS;
+  const [created, resolved, open, totalDataset, latest] = await Promise.all([
+    coll.find({ CreateDate: { $gte: padS, $lt: padE } }, { maxTimeMS, projection: {
+      _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1,
+      RequesterIdentity: 1, Labels: 1, ManualHashtags: 1, q: 1 } }).toArray(),
+    coll.find({ ResolvedDate: { $gte: padS, $lt: padE }, Status: { $in: ['Resolved', 'Closed'] } }, { maxTimeMS, projection: {
+      _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, ClosureCode: 1,
+      RootCause: 1, RootCauseDetails: 1, ResolvedByIdentity: 1, Labels: 1, ManualHashtags: 1, Tags: 1, q: 1 } }).toArray(),
+    coll.find({ Status: { $in: OPEN_STATUSES } }, { maxTimeMS, projection: {
+      _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, AssigneeIdentity: 1, q: 1 } }).toArray(),
+    coll.countDocuments({ q: liveQid }, { maxTimeMS }),
+    coll.find({ CreateDate: { $gte: '2000', $lt: '3000' } }, { maxTimeMS, projection: { _id: 0, CreateDate: 1 } })
+      .sort({ CreateDate: -1 }).limit(1).toArray(),
+  ]);
+  const payload = computePulseReport(
+    { start, end, created, resolved, open, totalDataset, latestCreateDate: latest[0] ? latest[0].CreateDate : null },
+    { OPEN_STATUSES, SLA_HOURS, AUTOSIM_IDENTITY: PET_AUTOSIM_IDENTITY, AUTOSIM_TAG, tagsToStr, normHashtag, HASHTAG_TOKEN_RE, hiCountOf });
+  const ex = payload.excluded;
+  if (Object.values(ex).some(n => n > 0)) console.warn('[pulse-check] excluded', ex);
+  payload.reportDate = day.reportDate;          // the MST calendar day covered (YYYY-MM-DD)
+  payload.reportTz = 'America/Denver';
+  payload.nextUpdateAt = day.nextUpdateAt;      // the next day becomes reportable at this instant
+  return payload;
+}
+app.get('/api/pulse-check', requireRole('user'), async (req, res) => {
+  const hasEnd = req.query.end !== undefined;
+  // Live: the last complete MST day before now. A supplied `end` (testing) selects the last
+  // complete MST day on or before that instant.
+  const at = hasEnd ? parsePulseEnd(req.query.end) : new Date();
+  if (!at) return res.status(400).json({ error: PULSE_END_ERR });
+  const day = pulseMstDay(at.getTime());
+  const end = day.end;
+  // v8: sla.atRiskTop rows gained agent (current assignee) and sla gained atRiskByAgent (stripped without canViewSLA).
+  // v7: hashtags.rows now includes 'pet_incident_auto_resolved' (merged, no '#'); unique/topTag/top5SharePct/onResolved follow.
+  // v6: hashtags gained resolvedUntagged (count of resolved tickets with no hashtag).
+  // v5: resolvedList rows gained resolution and the payload gained resolvedResolutionCounts.
+  // v4: resolvedList rows gained rootCause and the payload gained resolvedRootCauseCounts.
+  // v3: payload gained resolvedList/resolvedIssueCounts/resolvedDetailHidden (v2 added kpis.openAssigned/openWip/
+  // openPending/openResearching/repeatResolved); the version in the key keeps older cached payloads from being served.
+  const key = hasEnd ? ('pulse-check:v8:end:' + end.toISOString()) : 'pulse-check:v8:live';
+  const fresh = req.query.fresh === '1';
+  const who = String(req.user.username || '');
+  const canSeeP = pulseCanViewDetail(who); // never rejects
+  try {
+    const cached = getCachedReport(key);
+    // A live cache entry from a previous clock hour is stale even within the TTL.
+    const sameWindow = cached && cached.window && cached.window.end === end.toISOString();
+    if (cached && sameWindow && (!fresh || (Date.now() - Date.parse(cached.generatedAt)) < PULSE_FRESH_MIN_MS)) {
+      return res.json(pulseForViewer(cached, await canSeeP));
+    }
+    let p = _pulseInflight.get(key);
+    if (!p) {
+      // Global cap (2 computes) and per-user cap (1 compute): serve the last cached payload for this
+      // key if there is one (even past its TTL), otherwise 429.
+      const userBusy = _pulseUserBusy.has(who);
+      if (_pulseBusy >= PULSE_MAX_BUSY || userBusy) {
+        const stale = getStaleCachedReport(key);
+        if (stale) return res.json(pulseForViewer(stale, await canSeeP, { servedStale: true }));
+        res.set('Retry-After', String(PULSE_RETRY_AFTER_S));
+        return res.status(429).json({
+          error: userBusy ? 'Your previous report is still building. Try again shortly.' : 'Report is busy. Try again shortly.',
+          retryAfter: PULSE_RETRY_AFTER_S,
+        });
+      }
+      _pulseBusy++;
+      _pulseUserBusy.add(who);
+      p = buildPulsePayload(day)
+        .then(payload => { setCachedReport(key, payload); pruneCachedReports('pulse-check:v8:end:', PULSE_MAX_END_KEYS); return payload; })
+        .finally(() => { _pulseInflight.delete(key); _pulseBusy--; _pulseUserBusy.delete(who); });
+      _pulseInflight.set(key, p);
+    }
+    const [payload, canSee] = await Promise.all([p, canSeeP]);
+    res.json(pulseForViewer(payload, canSee));
+  } catch (e) {
+    console.error('[pulse-check]', e && e.message);
+    if (isMongoTimeout(e)) return res.status(503).json({ error: 'The report took too long to build. Try again shortly.' });
+    res.status(500).json({ error: 'Could not build the pulse check report.' });
   }
 });
 

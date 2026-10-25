@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse Check (24h) · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: keep the page hidden until topbar-auth.js has injected its chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --o:#ff6100; --o-l:#fe9046; --page:#f4f3ef; --card:#ffffff; --ink:#151d28; --ink2:#161d2d;
+  --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --blue:#2b66c1; --blue-bg:#e6f0fc; --blue-ic:#c4def6;
+  --green:#1f9d57; --green-bg:#eafaf0; --red:#dc2626; --red-bg:#fdeaea; --amber:#b5680c; --amber-bg:#fff3e0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:var(--ink);min-height:100vh}
+.top-bar{background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:var(--ink);line-height:1}
+.wrap{width:auto!important;max-width:none!important;margin:0 15px!important;padding:0 0 28px!important}
+#wrap.wrap{padding-top:0!important}
+
+/* ---- Hero ---- */
+.pc-hero{position:relative;overflow:hidden;border-radius:10px;padding:22px 26px;margin-bottom:14px;
+  background:linear-gradient(120deg,#1f49a8,#2b66c1 48%,#4f8cf0);box-shadow:0 14px 34px -22px rgba(20,40,70,.6);color:#fff}
+.pc-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pc-hero h1{color:#fff;font-size:1.55em;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:12px;line-height:1.15}
+.pc-hero h1 svg{flex-shrink:0}
+.pc-hero-when{margin-top:6px;font-size:.98em;font-weight:700;color:rgba(255,255,255,.95)}
+.pc-hero-sub{text-align:right;font-weight:800;font-size:.95em;color:#fff}
+.pc-hero-sub small{display:block;font-weight:600;font-size:.86em;color:rgba(255,255,255,.88);margin-top:4px}
+.pc-hero-meta{margin-top:12px;font-size:.84em;line-height:1.6;color:rgba(255,255,255,.92);font-weight:600}
+.pc-hero-meta.pc-hero-line{margin-top:3px}
+.pc-hero-line b{font-weight:800;color:#fff}
+.pc-countdown{font-variant-numeric:tabular-nums;font-weight:800;color:#fff}
+/* Export button in the hero's right block (black background, white text). */
+.pc-export{display:inline-flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;
+  color:#fff;background:#000;border:1px solid rgba(255,255,255,.25);border-radius:5px;padding:9px 16px;transition:background .15s,transform .12s}
+.pc-export:hover{background:#1a1a1a}
+.pc-export:active{transform:translateY(1px)}
+.pc-export:disabled{opacity:.5;cursor:default;transform:none}
+.pc-export.ok{background:#1f9d57;border-color:#1f9d57}
+.pc-export:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.pc-export svg{flex-shrink:0}
+
+/* ---- Toolbar ---- */
+.pc-btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;
+  color:#f4f3ef;background:#161d2d;border:none;border-radius:5px;padding:10px 16px;transition:background .15s}
+.pc-btn:hover{background:#0f1420}
+.pc-btn:disabled{opacity:.55;cursor:default}
+.pc-btn:focus-visible,.pc-card a:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+
+/* ---- Cards ---- */
+.pc-card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 10px -6px rgba(20,40,70,.22)}
+.pc-card-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#f7f9fc,#fff)}
+.pc-card-no{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;flex-shrink:0;background:var(--blue-bg);color:var(--blue);font-weight:800;font-size:.9em}
+.pc-card-head h2{font-size:1.02em;font-weight:800;color:var(--ink)}
+.pc-card-head{flex-wrap:wrap}
+.pc-head-aside{margin-left:auto;font-size:.8em;font-weight:600;color:var(--mut)}
+.pc-note{margin:-4px 0 14px;font-size:.82em;font-weight:600;color:var(--mut)}
+.pc-inline{font-size:.82em;font-weight:700;color:var(--red);text-align:right;margin:4px 0 14px}
+.pc-inline:empty{display:none}
+.pc-card-body{padding:16px 20px;font-size:.92em;line-height:1.65;color:#2a3340}
+.pc-card-body p+p,.pc-card-body p+.pc-scroll,.pc-card-body .pc-scroll+p,.pc-card-body .pc-scroll+ul,.pc-card-body p+ul,.pc-card-body ul+p{margin-top:12px}
+.pc-card-body b{color:var(--ink);font-weight:800}
+.pc-card a{color:var(--blue);font-weight:700}
+.pc-line{font-weight:700;color:var(--ink)}
+.pc-muted{color:var(--mut)}
+.pc-warn{margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--amber-bg);border:1px solid #f3d3a6;border-left:4px solid var(--amber);color:#6b3d05;font-weight:700}
+.pc-banner{margin-bottom:14px;padding:12px 16px;border-radius:9px;background:var(--blue-bg);border:1px solid var(--blue-ic);color:#1d4a8f;font-weight:700;font-size:.9em}
+.pc-bullets{padding-left:20px}
+.pc-bullets li+li{margin-top:4px}
+
+/* ---- Tables ---- */
+.pc-scroll{overflow-x:auto}
+.pc-tbl{width:100%;border-collapse:collapse;font-size:.95em}
+.pc-tbl th,.pc-tbl td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.pc-tbl thead th{background:#f3f5f8;font-size:.82em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:#3a4552;white-space:nowrap}
+.pc-tbl td.n,.pc-tbl th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pc-tbl tbody tr:nth-child(even) td{background:#fafbfc}
+.pc-tbl tfoot th,.pc-tbl tfoot td{font-weight:800;background:#f3f5f8;color:var(--ink)}
+.pc-tbl .pc-wrap{display:block;min-width:140px;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.pc-tbl .pc-empty td{color:var(--mut);text-align:center;font-style:italic}
+.pc-tbl .pc-peak{font-weight:800;color:var(--ink)}
+.pc-tbl .pc-grp{border-left:2px solid #d5dbe2}
+.pc-kv th[scope=row]{font-weight:700;color:#2a3340;background:transparent}
+.pc-row-risk th,.pc-row-risk td{background:var(--amber-bg)!important}
+.pc-row-breach th,.pc-row-breach td{background:var(--red-bg)!important}
+
+/* ---- Action items ---- */
+.pc-actions{display:flex;flex-direction:column;gap:10px}
+.pc-act{padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:#fafbfc;border-left:5px solid #c4ccd4}
+.pc-act h3{font-size:1em;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pc-act p{margin-top:6px}
+.pc-badge{font-size:.72em;font-weight:800;letter-spacing:.6px;border-radius:999px;padding:3px 10px;flex-shrink:0}
+.pc-act.sev-CRITICAL{border-left-color:#c81e1e}.pc-act.sev-CRITICAL .pc-badge{background:#fdeaea;color:#a51616}
+.pc-act.sev-HIGH{border-left-color:#e86a10}.pc-act.sev-HIGH .pc-badge{background:#ffeedd;color:#9a4100}
+.pc-act.sev-MEDIUM{border-left-color:#e0b000}.pc-act.sev-MEDIUM .pc-badge{background:#fff6cc;color:#6e5600}
+.pc-act.sev-INFO{border-left-color:#2b66c1}.pc-act.sev-INFO .pc-badge{background:var(--blue-bg);color:#1d4a8f}
+
+.pc-gate{text-align:center;padding:60px 20px;color:var(--mut)}
+.pc-gate h1{color:var(--ink);font-size:1.4em;margin-bottom:10px}
+.pc-error{text-align:center;padding:40px 20px}
+.pc-error p{color:var(--red);font-weight:700;margin-bottom:14px}
+
+/* ===== Phased loader (ported from performance-summary.html) ===== */
+.gw-loader{min-height:52vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
+.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  animation:gwSpin 1.1s linear infinite}
+.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
+  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
+.gw-orb-ic svg{width:30px;height:30px}
+@keyframes gwSpin{100%{transform:rotate(360deg)}}
+@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
+.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
+@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.gw-dots{display:flex;gap:7px}
+.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
+.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
+.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
+@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
+.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
+.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
+.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
+.gw-loader.gw-done .gw-dots{visibility:hidden}
+@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.gw-orb::before,.gw-orb-ic,.gw-dots span,.gw-loader-msg.gw-msg-in{animation:none}}
+</style>
+</head>
+<body data-nav-active="pulse-check" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+
+<div class="wrap" id="wrap">
+  <div class="pc-gate"><h1>Pulse Check (24h)</h1><p>Loading…</p></div>
+</div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js?v=203"></script>
+<script>
+const A=window.PHDAuth;
+const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+const DASH='\u2014';
+
+// ---- Formatting helpers (every dynamic string goes through esc) ----
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
+function pct1(p){ return (p==null||!isFinite(p))?DASH:(Number(p).toFixed(1)+'%'); }
+function hrs1(h){ return (h==null||!isFinite(h))?DASH:Number(h).toFixed(1); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function hourRange(h){ return pad2(h)+':00\u2013'+pad2((h+1)%24)+':00'; }
+function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
+function idLink(id,url){ var s=safeUrl(url); return s?'<a href="'+esc(s)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'</a>':esc(id); }
+function shortStatus(s){ return s==='Work In Progress'?'WIP':s; }
+// Singular/plural: tix(1)='1 ticket', tix(2)='2 tickets', tix(2,'breach','breaches')='2 breaches'.
+function tix(n,one,many){ one=one||'ticket'; return num(n)+' '+(Number(n)===1?one:(many||one+'s')); }
+// "2026-10-25 11:00" from an ISO timestamp (UTC).
+function utcStamp(iso){ return (typeof iso==='string'&&iso.length>=16)?(iso.slice(0,10)+' '+iso.slice(11,16)):DASH; }
+
+// America/Denver date parts; labelled "MST" per the repo convention (D9).
+function denParts(iso){
+  var o={}; if(!iso) return o;
+  try{
+    new Intl.DateTimeFormat('en-US',{timeZone:'America/Denver',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
+      .formatToParts(new Date(iso)).forEach(function(p){ o[p.type]=p.value; });
+  }catch(e){}
+  return o;
+}
+// Clock time "HH:MM" in a zone (24h).
+function hm(iso,tz){ try{ return new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso)); }catch(e){ return DASH; } }
+var TZ_MST='America/Denver', TZ_IST='Asia/Kolkata';
+// ISO instant -> "10/24 14:05" in America/Denver (MST per the repo convention); DASH if invalid.
+function mstStamp(iso){
+  var o={}; try{
+    new Intl.DateTimeFormat('en-US',{timeZone:TZ_MST,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
+      .formatToParts(new Date(iso)).forEach(function(p){ o[p.type]=p.value; });
+  }catch(e){ return DASH; }
+  return (o.month&&o.day&&o.hour)?(o.month+'/'+o.day+' '+o.hour+':'+o.minute):DASH;
+}
+// "Sunday, October 25, 2026 — 07:04 MST · 18:34 IST" (the date is the MST date).
+function fmtLong(iso){ var p=denParts(iso); return p.weekday?(p.weekday+', '+p.month+' '+p.day+', '+p.year+' \u2014 '+hm(iso,TZ_MST)+' MST \u00b7 '+hm(iso,TZ_IST)+' IST'):DASH; }
+// Report date 'YYYY-MM-DD' -> "Saturday, October 24, 2026" (a calendar date; formatted at UTC noon).
+function reportDayLong(ymd){
+  var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd||'')); if(!m) return DASH;
+  try{ return new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(new Date(Date.UTC(+m[1],+m[2]-1,+m[3],12))); }catch(e){ return DASH; }
+}
+// 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 4 -> "4th", 11..13 -> "11th".."13th", 21 -> "21st".
+function ordinal(n){
+  var v=n%100, s=(v>=11&&v<=13)?'th':({1:'st',2:'nd',3:'rd'}[n%10]||'th');
+  return n+s;
+}
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+// 'YYYY-MM-DD' (+ addDays calendar days) -> "25th October"; DASH when the date is invalid.
+function ordinalDayMonth(ymd,addDays){
+  var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd||'')); if(!m) return DASH;
+  var d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]+(addDays||0)));
+  return ordinal(d.getUTCDate())+' '+MONTHS[d.getUTCMonth()];
+}
+// ISO instant -> "11:30 AM IST 26th October" (Asia/Kolkata).
+function istWhen(iso){
+  var o={}; try{
+    new Intl.DateTimeFormat('en-US',{timeZone:TZ_IST,hour:'numeric',minute:'2-digit',hour12:true,month:'numeric',day:'numeric'})
+      .formatToParts(new Date(iso)).forEach(function(p){ o[p.type]=p.value; });
+  }catch(e){ return DASH; }
+  if(!o.hour||!o.month) return DASH;
+  return o.hour+':'+o.minute+' '+String(o.dayPeriod||'').toUpperCase()+' IST '+ordinal(+o.day)+' '+MONTHS[+o.month-1];
+}
+// Milliseconds -> "1d 02h 15m 09s" (days omitted when 0), zero-padded; null once the time has run out.
+function fmtCountdown(ms){
+  if(!(ms>0)) return null;
+  var t=Math.floor(ms/1000), d=Math.floor(t/86400), h=Math.floor(t%86400/3600), m=Math.floor(t%3600/60), s=t%60;
+  var p=function(n){ return String(n).padStart(2,'0'); };
+  return (d>0?d+'d ':'')+p(h)+'h '+p(m)+'m '+p(s)+'s';
+}
+
+// ---- User ----
+function me(){ var u=(A.getUser&&A.getUser())||{}; var p=(A.myProfile&&A.myProfile())||u; return { username:u.username||p.username||'', name:(p&&p.displayName)||(p&&p.username)||u.username||'' }; }
+
+// ---- Building blocks ----
+// aside (optional, already-escaped HTML) renders as a muted note next to the heading.
+function card(no,title,body,aside){
+  return '<section class="pc-card" aria-labelledby="pcH'+no+'"><div class="pc-card-head"><span class="pc-card-no" aria-hidden="true">'+no+'</span>'+
+    '<h2 id="pcH'+no+'">'+no+'. '+title+'</h2>'+(aside?'<span class="pc-head-aside">'+aside+'</span>':'')+'</div><div class="pc-card-body">'+body+'</div></section>';
+}
+// cols: [{h:'Label', n:true}] ; rows: array of arrays of already-escaped cell HTML.
+function table(cols,rows,foot,cap){
+  var h='<div class="pc-scroll"><table class="pc-tbl">'+(cap?'<caption class="pc-muted" style="text-align:left;padding-bottom:6px">'+cap+'</caption>':'')+'<thead><tr>'+
+    cols.map(function(c){ return '<th scope="col"'+(c.n?' class="n"':'')+'>'+c.h+'</th>'; }).join('')+'</tr></thead><tbody>';
+  if(!rows.length) h+='<tr class="pc-empty"><td colspan="'+cols.length+'">None in this window</td></tr>';
+  rows.forEach(function(r){
+    var cls=r.cls?' class="'+r.cls+'"':''; var cells=r.cells||r;
+    h+='<tr'+cls+'>'+cells.map(function(v,i){ return i===0?'<th scope="row"'+(cols[0].n?' class="n"':'')+'>'+v+'</th>':'<td'+(cols[i].n?' class="n"':'')+'>'+v+'</td>'; }).join('')+'</tr>';
+  });
+  h+='</tbody>'+(foot||'')+'</table></div>';
+  return h;
+}
+function bullets(arr){ return arr.length?'<ul class="pc-bullets">'+arr.map(function(b){ return '<li>'+b+'</li>'; }).join('')+'</ul>':''; }
+
+// ---- Section 1: Executive Summary (template per design §6; built as plain text, set via textContent) ----
+function execText(D){
+  var k=D.kpis, s=D.summary, al=D.agents.autosimLine, br=D.breaches.total, atRisk=D.sla.atRisk;
+  var out=[];
+  out.push('The PHD team processed '+tix(k.created)+' created and '+tix(k.resolved)+' resolved during the reporting day '+reportDayLong(D.reportDate)+' (MST).');
+  out.push('The total open ticket backlog stands at '+tix(k.openTotal)+'.');
+  if(atRisk>0||br>0) out.push('SLA health is under pressure with '+tix(atRisk)+' at risk (7\u201310 days old, approaching the 240-hour SLA limit) and '+tix(br,'historical SLA breach','historical SLA breaches')+(br>0?(br===1?' (now resolved)':' (all now resolved)'):'')+'.');
+  else out.push('SLA health is stable: no tickets at risk and no breaches in this window.');
+  if(s.resolutionRatePct!=null) out.push('Resolution rate: '+Number(s.resolutionRatePct).toFixed(1)+'% ('+num(k.resolved)+'/'+num(k.created)+').');
+  if(s.autosimSharePct!=null) out.push('AutoSIM handled '+s.autosimSharePct+'% of all resolutions ('+num(al.n)+'/'+num(al.d)+')'+(s.autosimSharePct>0?', demonstrating effective automation.':'.'));
+  if(s.peakHourMst!=null) out.push('Peak ticket creation occurred at '+hourRange(s.peakHourMst)+' MST.');
+  if(k.openBreached>0) out.push(k.openBreached===1?'1 currently open ticket has breached the 240-hour SLA.':(num(k.openBreached)+' currently open tickets have breached the 240-hour SLA.'));
+  else out.push('No currently open tickets have breached the 240-hour SLA.');
+  return out.join(' ');
+}
+function secExec(D){
+  var k=D.kpis;
+  var warn=(k.created>0&&k.hashtagsCreated===0)?'<p class="pc-warn" role="note">\u26a0 Warning: Tagging compliance gap identified \u2014 0 hashtags applied to '+tix(k.created,'newly created ticket','newly created tickets')+'.</p>':'';
+  return card(1,'Executive Summary',
+    '<p id="pcExec"></p>'+warn);
+}
+
+// ---- Section 2: Key metrics ----
+function secKpis(D){
+  var k=D.kpis;
+  var pairs=[
+    ['Tickets Created (24h)',k.created,'Successful Resolved',k.successful],
+    ['Assigned',k.openAssigned,'Immediately Resolved',k.immediate],
+    ['Work In Progress',k.openWip,'Repeat Incidents Resolved',k.repeatResolved],
+    ['Pending',k.openPending,'Total Resolves',k.resolved],
+    ['Researching',k.openResearching,'SLA At Risk (7\u201310 days)',k.slaAtRisk],
+    ['Total Open Tickets',k.openTotal,'Station Requests Received',k.stationRequests]
+  ];
+  // A value missing from the payload (e.g. an older cached report) shows the dash, never NaN/0.
+  var kv=function(v){ return (v==null||v===''||!isFinite(Number(v)))?DASH:num(v); };
+  var rows=pairs.map(function(p){ return '<tr><th scope="row">'+esc(p[0])+'</th><td class="n"><b>'+kv(p[1])+'</b></td><th scope="row" class="pc-grp">'+esc(p[2])+'</th><td class="n"><b>'+kv(p[3])+'</b></td></tr>'; }).join('');
+  return card(2,'Key Metrics at a Glance','<div class="pc-scroll"><table class="pc-tbl pc-kv"><thead><tr><th scope="col">Metric</th><th scope="col" class="n">Value</th><th scope="col" class="pc-grp">Metric</th><th scope="col" class="n">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>');
+}
+
+// ---- Section 3 ----
+function secTypes(D){
+  // Main table: the issues of the tickets resolved in the window (RootCauseDetails), already ordered count desc, issue A-Z.
+  // A payload without resolvedIssueCounts (older cache) falls back to the table's empty state.
+  var counts=Array.isArray(D.resolvedIssueCounts)?D.resolvedIssueCounts:[];
+  var rows=counts.map(function(c){ return [esc(c.issue),num(c.count),pct1(c.pct)]; });
+  return card(3,'Issue Type Distribution',table([{h:'Issue Type'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedTickets(D));
+}
+// Section 3, below the distribution: EVERY ticket resolved in the window with its issue. No cap, no "+N more".
+// The ticket-level list is absent for viewers without SLA access (the issue table above stays).
+// Blocks are direct children of the card body so the plain-text export picks up every table row.
+function resolvedTickets(D){
+  var list=Array.isArray(D.resolvedList)?D.resolvedList:null;
+  if(D.resolvedDetailHidden) return '<p class="pc-muted">Ticket details require SLA access.</p>';
+  if(!list||!list.length) return '';
+  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p>'+
+    table([{h:'#',n:true},{h:'Ticket ID'},{h:'Issue'},{h:'Closure Code'},{h:'Resolved (MST)'}],
+    list.map(function(t,i){ return [num(i+1),idLink(t.shortId,t.url),esc(t.issue),esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }));
+}
+
+// ---- Section 4: Root Cause Distribution (same shape as Section 3) ----
+function secRootCauses(D){
+  // Main table: root cause of every ticket resolved in the window, already ordered count desc, cause A-Z. All rows, no "Other" grouping.
+  // A payload without resolvedRootCauseCounts (older cache) falls back to the table's empty state.
+  var counts=Array.isArray(D.resolvedRootCauseCounts)?D.resolvedRootCauseCounts:[];
+  var rows=counts.map(function(c){ return [esc(c.cause),num(c.count),pct1(c.pct)]; });
+  return card(4,'Root Cause Distribution',table([{h:'Root Cause'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedRootCauseTickets(D));
+}
+// Section 4, below the distribution: EVERY ticket resolved in the window with its root cause. No cap, no "+N more".
+// Hidden for viewers without SLA access (the distribution table above stays).
+function resolvedRootCauseTickets(D){
+  var list=Array.isArray(D.resolvedList)?D.resolvedList:null;
+  if(D.resolvedDetailHidden) return '<p class="pc-muted">Ticket details require SLA access.</p>';
+  if(!list||!list.length) return '';
+  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p>'+
+    table([{h:'#',n:true},{h:'Ticket ID'},{h:'Root Cause'},{h:'Closure Code'},{h:'Resolved (MST)'}],
+    list.map(function(t,i){ return [num(i+1),idLink(t.shortId,t.url),esc(t.rootCause||DASH),esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }));
+}
+
+// ---- Section 5: Resolution Distribution (same shape as Section 3 / 4) ----
+// Long resolution texts wrap inside their cell (.pc-wrap) so the table never forces a horizontal scroll.
+function secResolutions(D){
+  // Main table: resolution (RootCauseDetails "Res:") of every ticket resolved in the window, already ordered count desc, resolution A-Z. All rows, no "Other" grouping.
+  // A payload without resolvedResolutionCounts (older cache) falls back to the table's empty state.
+  var counts=Array.isArray(D.resolvedResolutionCounts)?D.resolvedResolutionCounts:[];
+  var rows=counts.map(function(c){ return ['<span class="pc-wrap">'+esc(c.resolution)+'</span>',num(c.count),pct1(c.pct)]; });
+  return card(5,'Resolution Distribution',table([{h:'Resolution'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedResolutionTickets(D));
+}
+// Section 5, below the distribution: EVERY ticket resolved in the window with its resolution. No cap, no "+N more".
+// Hidden for viewers without SLA access (the distribution table above stays).
+function resolvedResolutionTickets(D){
+  var list=Array.isArray(D.resolvedList)?D.resolvedList:null;
+  if(D.resolvedDetailHidden) return '<p class="pc-muted">Ticket details require SLA access.</p>';
+  if(!list||!list.length) return '';
+  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p>'+
+    table([{h:'#',n:true},{h:'Ticket ID'},{h:'Resolution'},{h:'Closure Code'},{h:'Resolved (MST)'}],
+    list.map(function(t,i){ return [num(i+1),idLink(t.shortId,t.url),'<span class="pc-wrap">'+esc(t.resolution||DASH)+'</span>',esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }));
+}
+
+// ---- Section 6 ----
+function secAgents(D){
+  var a=D.agents, al=a.autosimLine, b=[];
+  var rows=a.rows.map(function(r){ return [esc(r.agent),num(r.immediate),num(r.successful),'<b>'+num(r.total)+'</b>']; });
+  if(al.d>0) b.push('AutoSIM handled '+esc(al.pct)+'% of all resolutions ('+num(al.n)+'/'+num(al.d)+')'+(al.allImmediate&&al.n>0?' \u2014 all Immediately Resolved':'')+'.');
+  if(a.topHuman){ var t=a.topHuman; b.push(esc(t.agent)+' was the top human resolver with '+tix(t.total)+' ('+num(t.immediate)+' Imm + '+num(t.successful)+' Successful).'); }
+  var nh=a.nextHumans||[];
+  if(nh.length){
+    var tot=nh.map(function(x){ return x.total; }), lo=Math.min.apply(null,tot), hi=Math.max.apply(null,tot);
+    var names=nh.map(function(x){ return esc(x.agent); });
+    var line;
+    if(nh.length===1) line=names[0]+' resolved '+tix(lo);
+    else if(lo===hi) line=names.join(' and ')+' each resolved '+tix(lo);
+    else line=names.join(' and ')+' resolved '+num(lo)+'\u2013'+num(hi)+' tickets';
+    if(nh.every(function(x){ return x.successful===x.total; })) line+=', all Successful';
+    else if(nh.every(function(x){ return x.immediate===x.total; })) line+=', all Immediately Resolved';
+    b.push(line+'.');
+  }
+  return card(6,'Agent Performance \u2014 Resolved Tickets (Total: '+num(a.total)+')',
+    table([{h:'Agent'},{h:'Imm. Resolved',n:true},{h:'Successful',n:true},{h:'Total',n:true}],rows)+bullets(b));
+}
+
+// ---- Section 7 ----
+// Plain-language summary of every hashtag on the resolved tickets. A ticket can carry several tags,
+// so the per-tag counts can add up to more than the resolved total.
+function hashtagSummary(D){
+  var n=Number(D.kpis&&D.kpis.resolved)||0, rows=(D.hashtags&&D.hashtags.rows)||[];
+  if(n<=0) return '';
+  var head=num(n)+(n===1?' ticket':' tickets')+' resolved';
+  if(!rows.length) return '<p class="pc-line">'+head+', none have a hashtag.</p>';
+  var parts=rows.map(function(r){ return num(r.count)+(Number(r.count)===1?' has':' have')+' &quot;'+esc(r.tag)+'&quot;'; });
+  var list=parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0];
+  var u=D.hashtags.resolvedUntagged, tail='';
+  if(typeof u==='number'&&u>0) tail=' '+num(u)+(u===1?' resolved ticket has':' resolved tickets have')+' no hashtag.';
+  return '<p class="pc-line">'+head+', in which '+list+'.'+tail+'</p>';
+}
+function secHashtags(D){
+  var h=D.hashtags, b=[];
+  var rows=h.rows.map(function(r){ return [esc(r.tag),num(r.count)]; });
+  if(h.topTag) b.push(esc(h.topTag.tag)+' leads at '+pct1(h.topTag.sharePct)+(h.topTag.tag==='#out-of-scope'?' \u2014 review intake process for upstream filtering':'')+'.');
+  if(h.unique>5&&h.top5SharePct!=null) b.push('Top 5 hashtags account for '+esc(h.top5SharePct)+'% of all tags.');
+  return card(7,'Hashtag Analytics \u2014 Resolved Tickets',
+    hashtagSummary(D)+
+    table([{h:'Hashtag'},{h:'Count',n:true}],rows)+bullets(b));
+}
+
+// ---- Section 8: the day's hours split into three 8-hour blocks of the MST day ----
+// One row per real hour of the MST day (24, or 23/25 on DST days). Rows are assigned to a block by their
+// Denver hour (0-7 / 8-15 / 16-23), so a DST day just makes block a 9 or 7 rows long.
+var HOURLY_BLOCKS=[
+  {key:'a',name:'IST hours',from:0,to:8},
+  {key:'b',name:'IST + MST hours',from:8,to:16},
+  {key:'c',name:'MST hours',from:16,to:24}
+];
+// "HH:MM" in a zone; a midnight END time reads "24:00" (end of the day), not "00:00".
+function hmEnd(iso,tz){ var s=hm(iso,tz); return s==='00:00'?'24:00':s; }
+// Block rows' first start .. last end (start+1h) in a zone, e.g. "11:30\u201319:30".
+function blockSpan(rows,tz){
+  if(!rows.length) return '';
+  var a=rows[0].start, z=rows[rows.length-1].start, t=Date.parse(z);
+  if(!isFinite(Date.parse(a))||!isFinite(t)) return '';
+  return hm(a,tz)+'\u2013'+hmEnd(new Date(t+3600000).toISOString(),tz);
+}
+// Splits the hourly rows into the three blocks with their sums and MST/IST ranges.
+function hourlyBlocks(rows){
+  return HOURLY_BLOCKS.map(function(b){
+    var rs=rows.filter(function(r){ return r.hour>=b.from&&r.hour<b.to; }), c=0, s=0;
+    rs.forEach(function(r){ c+=Number(r.created)||0; s+=Number(r.resolved)||0; });
+    return {key:b.key,name:b.name,label:b.key+') '+b.name,created:c,resolved:s,
+      mst:blockSpan(rs,TZ_MST)||(pad2(b.from)+':00\u2013'+pad2(b.to)+':00'), ist:blockSpan(rs,TZ_IST)||DASH};
+  });
+}
+function secHourly(D){
+  var H=D&&D.hourly;
+  var note='<p class="pc-muted">Report day split into three 8-hour blocks of the MST day; times shown in MST and IST.</p>';
+  if(!H||!Array.isArray(H.rows)) return card(8,'Ticket Flow by 8-Hour Block \u2014 Created vs. Resolved',note+'<p class="pc-muted">No hourly data in this window.</p>');
+  var blocks=hourlyBlocks(H.rows), top=null;
+  blocks.forEach(function(b){ if(b.created>0&&(!top||b.created>top.created)) top=b; });   // ties -> earliest block
+  var line=top?('Busiest block: <b>'+esc(top.label)+'</b> \u2014 '+tix(top.created)+' created.'):'No tickets created in this window.';
+  var rows=blocks.map(function(b){ return [esc(b.label),esc(b.mst),esc(b.ist),num(b.created),num(b.resolved)]; });
+  var foot='<tfoot><tr><th scope="row" colspan="3">TOTAL</th><td class="n">'+num(H.totalCreated)+'</td><td class="n">'+num(H.totalResolved)+'</td></tr></tfoot>';
+  return card(8,'Ticket Flow by 8-Hour Block \u2014 Created vs. Resolved',
+    note+'<p class="pc-line">'+line+'</p>'+
+    table([{h:'Block'},{h:'MST'},{h:'IST'},{h:'Created',n:true},{h:'Resolved',n:true}],rows,foot));
+}
+
+// ---- Section 9 ----
+function secSla(D){
+  var S=D.sla;
+  var bRows=S.buckets.map(function(b){ return { cls:b.key==='d7_10'?'pc-row-risk':(b.key==='gt10'?'pc-row-breach':''), cells:[esc(b.label),num(b.count)] }; });
+  var byStatus=S.atRiskByStatus.length?S.atRiskByStatus.map(function(x){ return esc(x.status)+': '+num(x.count); }).join('  |  '):DASH;
+  var types=S.atRiskTypes.length?S.atRiskTypes.map(function(x){ return esc(x.type)+' ('+num(x.count)+')'; }).join(', '):DASH;
+  // Agent = current assignee (older payloads lack the field -> DASH). The by-agent line is ticket-detail
+  // level: omitted when the viewer has no SLA access or the payload predates it.
+  var byAgent=(!S.detailHidden&&Array.isArray(S.atRiskByAgent))?
+    '<p><b>At-Risk by Agent:</b> '+(S.atRiskByAgent.length?S.atRiskByAgent.map(function(x){ return esc(x.agent)+': '+num(x.count); }).join('  |  '):DASH)+'</p>':'';
+  var tRows=S.atRiskTop.map(function(t){ return [idLink(t.shortId,t.url),esc(t.agent||DASH),esc(shortStatus(t.status)),Number(t.ageDays).toFixed(1)+'d',esc(t.title)]; });
+  var detail=S.detailHidden?'<p class="pc-muted">Ticket details require SLA access.</p>':
+    (table([{h:'ShortId'},{h:'Agent'},{h:'Status'},{h:'Age',n:true},{h:'Title'}],tRows)+
+     (S.atRiskMore>0?'<p class="pc-muted">+ '+num(S.atRiskMore)+' more at-risk '+(S.atRiskMore===1?'ticket':'tickets')+'.</p>':''));
+  return card(9,'SLA Health \u2014 Open Ticket Aging &amp; At-Risk Cases',
+    '<p class="pc-line">'+num(S.open)+' Open '+(S.open===1?'Ticket':'Tickets')+'  |  '+tix(S.atRisk)+' in 7\u201310 day danger zone  |  '+num(S.breached)+' currently breached</p>'+
+    table([{h:'Age Bucket'},{h:'Count',n:true}],bRows)+
+    '<p><b>At-Risk Breakdown:</b> '+byStatus+'</p>'+byAgent+
+    '<p><b>Top Severity Types at Risk:</b> '+types+'</p>'+
+    '<p class="pc-line">At-Risk Tickets (Top 10 by Age):</p>'+detail,
+    'As of '+esc(utcStamp(S.asOf))+' UTC \u00b7 Backlog = current open tickets, aged at the window end.');
+}
+
+// ---- Section 10 ----
+function secBreaches(D){
+  var B=D.breaches;
+  if(!B.total) return card(10,'SLA Breaches \u2014 Historical (&gt;240 Hours)','<p class="pc-muted">No SLA breaches in this window</p>');
+  var m=[
+    ['Total Breaches',num(B.total)],
+    ['Worst Case',hrs1(B.worstHrs)+' hrs ('+hrs1(B.worstDays)+' days)'],
+    ['Best Case',hrs1(B.bestHrs)+' hrs'],
+    ['Average Breach Duration',hrs1(B.avgHrs)+' hrs'],
+    ['Status',B.allResolved?'All Resolved':DASH]
+  ];
+  var rows=B.rows.map(function(r){ return [idLink(r.shortId,r.url),hrs1(r.hours)]; });
+  var detail=B.detailHidden?'<p class="pc-muted">Ticket details require SLA access.</p>':
+    (table([{h:'Ticket ID'},{h:'Duration (Hours)',n:true}],rows)+
+     (B.rows.length<B.total?'<p class="pc-muted">Showing the longest '+num(B.rows.length)+' of '+num(B.total)+'.</p>':''));
+  return card(10,'SLA Breaches \u2014 Historical (&gt;240 Hours)',
+    '<p class="pc-line">'+(B.total===1?'1 ticket exceeded the 240-hour SLA  |  It is now Resolved.':(num(B.total)+' tickets exceeded the 240-hour SLA  |  All '+num(B.total)+' are now Resolved.'))+'</p>'+
+    table([{h:'Metric'},{h:'Value',n:true}],m)+
+    '<p class="pc-line">Breach Detail (by Ticket ID):</p>'+detail);
+}
+
+// ---- Section 11 ----
+function secActions(D){
+  if(!D.actions.length) return card(11,'Action Items &amp; Recommendations','<p class="pc-muted">No action items for this period</p>');
+  var html=D.actions.map(function(a){
+    var sev=String(a.severity||'INFO').replace(/[^A-Z]/g,'');
+    return '<div class="pc-act sev-'+sev+'"><h3><span class="pc-badge">'+esc(sev)+'</span>'+esc(a.title)+'</h3><p>'+esc(a.body)+'</p></div>';
+  }).join('');
+  return card(11,'Action Items &amp; Recommendations','<div class="pc-actions">'+html+'</div>');
+}
+
+// ---- Hero + toolbar ----
+// Hero lines as plain text (shared by the page and the Export copy).
+function heroLines(D){
+  if(!D) return { report:'Building the latest complete day\u2026' };
+  return { report:'Flash report for '+reportDayLong(D.reportDate) };
+}
+// Export button label: "Export Pulse Report for 24th October" (plain "Export Pulse Report" before data loads).
+function pcExportLabel(D){ return (D&&D.reportDate)?('Export Pulse Report for '+ordinalDayMonth(D.reportDate)):'Export Pulse Report'; }
+// The next report (reportDate + 1) becomes available at D.nextUpdateAt: Denver midnight that ends that day.
+// Live line: "Next Flash report for 25th October generates by 1d 02h 15m 09s i.e., 11:30 AM IST 26th October".
+function pcNextHtml(D){
+  if(!D||!D.nextUpdateAt) return '';
+  var day=ordinalDayMonth(D.reportDate,1), ist=istWhen(D.nextUpdateAt), cd=fmtCountdown(Date.parse(D.nextUpdateAt)-Date.now());
+  return cd===null?esc(pcNextDoneText(D))
+    :'Next Flash report for '+esc(day)+' generates by <span id="pcCountdown" class="pc-countdown" aria-live="off">'+esc(cd)+'</span> i.e., '+esc(ist);
+}
+function pcNextDoneText(D){ return 'Next Flash report for '+ordinalDayMonth(D.reportDate,1)+' is generating\u2026 i.e., '+istWhen(D.nextUpdateAt); }
+function hero(D){
+  var L=heroLines(D), nx=pcNextHtml(D);
+  return '<header class="pc-hero"><div class="pc-hero-top"><div><h1>'+ic('line-chart',24)+'PHD Operational Pulse Check</h1>'+
+    '<div class="pc-hero-when">'+esc(L.report)+'</div>'+
+    (nx?'<div class="pc-hero-meta pc-hero-line" id="pcNextLine">'+nx+'</div>':'')+'</div>'+
+    '<div class="pc-hero-sub">Potential Harm to Driver \u2014 GSOC'+
+      // Export: copies the whole report as rich HTML (real tables) with a plain-text fallback (enabled once a report is loaded).
+      '<br><button type="button" class="pc-export" id="pcExport" onclick="pcExport()"'+(D?'':' disabled')+' title="Copy the full report (tables included)">'+ic('copy',15)+'<span id="pcExportLbl">'+esc(pcExportLabel(D))+'</span></button>'+
+    '</div></div></header>';
+}
+// ---- Export: the rendered report as plain text (tables tab-separated) -> clipboard ----
+function pcCellsText(tr){ return Array.prototype.map.call(tr.children,function(c){ return c.textContent.replace(/\s+/g,' ').trim(); }).join('\t'); }
+// Export only: prose is copied as bullets. Splits a paragraph into sentences at '. ' + uppercase letter/digit,
+// except inside parentheses or after an abbreviation (e.g., vs., dotted initials); decimals like 7.5 and 'w/o' never match.
+var PC_ABBR=/^(?:e\.g|i\.e|vs|approx|incl|dr|mr|mrs|ms|inc|ltd|(?:[a-z]\.)+[a-z])$/i;
+function pcSentences(text){
+  var s=String(text==null?'':text).replace(/\s+/g,' ').trim(), out=[], depth=0, start=0;
+  for(var i=0;i<s.length;i++){
+    var ch=s.charAt(i);
+    if(ch==='(') depth++;
+    else if(ch===')'){ if(depth>0) depth--; }
+    else if(ch==='.'&&depth===0&&s.charAt(i+1)===' '&&/[A-Z0-9]/.test(s.charAt(i+2))){
+      var m=/(\S+)$/.exec(s.slice(start,i)), w=m?m[1].replace(/^[("'\u201c]+/,''):'';
+      if(PC_ABBR.test(w)) continue;
+      out.push(s.slice(start,i+1)); start=i+2;
+    }
+  }
+  var rest=s.slice(start).trim(); if(rest) out.push(rest);
+  return out;
+}
+// A .pc-line that labels the table below it (stays a heading, not a bullet): "Resolved Tickets (N)" or "Label:".
+function pcIsSubHead(el){
+  var c=el.classList, t=(el.textContent||'').replace(/\s+/g,' ').trim();
+  return /^H[1-6]$/.test(String(el.tagName).toUpperCase())||(!!c&&c.contains('pc-line')&&/^(?:Resolved Tickets \([\d,]+\)|.*:)$/.test(t));
+}
+function pcBlockText(el,out){
+  var tx=function(n){ return (n?n.textContent:'').replace(/\s+/g,' ').trim(); };
+  if(el.classList&&el.classList.contains('pc-actions')){
+    el.querySelectorAll('.pc-act').forEach(function(a){
+      var b=a.querySelector('.pc-badge'), h=a.querySelector('h3'), p=a.querySelector('p');
+      var title=tx(h).replace(tx(b),'').trim();
+      out.push('\u25cf '+tx(b)+' \u2014 '+title); if(tx(p)) out.push('  '+tx(p));
+    });
+    return;
+  }
+  var tbl=(el.tagName==='TABLE')?el:(el.querySelector&&el.querySelector('table'));
+  if(tbl&&(el.classList.contains('pc-scroll')||el.tagName==='TABLE')){
+    tbl.querySelectorAll('tr').forEach(function(tr){ var line=pcCellsText(tr); if(line.replace(/\t/g,'')) out.push(line); });
+    return;
+  }
+  if(el.tagName==='UL'){ el.querySelectorAll('li').forEach(function(li){ out.push('\u25cf '+tx(li)); }); return; }
+  var t=tx(el); if(!t) return;
+  if(pcIsSubHead(el)){ out.push(t); return; }
+  if(el.id==='pcExec') pcSentences(t).forEach(function(s){ out.push('\u25cf '+s); });
+  else out.push('\u25cf '+t);
+}
+function pcExportText(){
+  var D=PC.data; if(!D) return '';
+  var L=heroLines(D);
+  var out=['PHD Operational Pulse Check',L.report,'Potential Harm to Driver \u2014 GSOC'];
+  var w=wrap();
+  w.querySelectorAll(':scope > .pc-banner, :scope > .pc-note').forEach(function(n){ out.push(''); pcBlockText(n,out); });
+  w.querySelectorAll('section.pc-card').forEach(function(sec){
+    out.push('');
+    var h=sec.querySelector('.pc-card-head h2'), aside=sec.querySelector('.pc-head-aside');
+    out.push(h?h.textContent.trim():'');
+    if(aside&&aside.textContent.trim()) out.push('\u25cf '+aside.textContent.replace(/\s+/g,' ').trim());
+    var body=sec.querySelector('.pc-card-body');
+    if(body) Array.prototype.forEach.call(body.children,function(c){ pcBlockText(c,out); });
+  });
+  return out.join('\n');
+}
+// ---- Export: the rendered report as email-safe rich HTML (inline styles only; tables become images, see below) ----
+// Built by walking a clone of the rendered report. Only whitelisted tags are emitted, no attributes are copied
+// (except a validated absolute href and colspan/rowspan numbers), and every text node goes through esc().
+var PC_FONT='font-family:Segoe UI,Arial,sans-serif;';
+var PC_TBL='border-collapse:collapse;border:1px solid #c8d0dc;'+PC_FONT+'font-size:13px';
+var PC_CELL='border:1px solid #c8d0dc;padding:4px;vertical-align:top;';
+var PC_P='margin:6px 0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340;';
+var PC_H3='margin:12px 0 4px;'+PC_FONT+'font-size:14px;font-weight:bold;color:#1a2230;';
+var PC_GAP='<div style="height:8px;line-height:8px;font-size:8px">&nbsp;</div>';
+// Left indent of copied tables (matches the bullet lists' 20px + a little breathing room).
+var PC_TBL_INDENT='margin:4px 0 10px 28px;padding:0;';
+// Never exported: controls, icons, hidden / aria-only content, the inline status line and the live countdown.
+function pcSkip(el){
+  var t=String(el.tagName||'').toUpperCase();
+  if(/^(BUTTON|SVG|SCRIPT|STYLE|NOSCRIPT|IMG|INPUT|SELECT|TEXTAREA|NAV)$/.test(t)) return true;
+  if(el.hidden||el.getAttribute('aria-hidden')==='true') return true;
+  if(el.style&&(el.style.display==='none'||el.style.visibility==='hidden')) return true;
+  var c=el.classList;
+  if(c&&(c.contains('pc-inline')||c.contains('pc-countdown')||c.contains('sr-only')||c.contains('visually-hidden'))) return true;
+  return el.id==='pcStatus'||el.id==='pcNextLine'||el.id==='pcCountdown';
+}
+function pcAbsUrl(u){
+  var s=safeUrl(u); if(!s) return '';
+  try{ return new URL(s,location.href).href; }catch(e){ return s; }
+}
+// Inline content: text, <b>, <a href>, <br>; everything else contributes only its (escaped) text.
+function pcInline(node){
+  var h='';
+  Array.prototype.forEach.call(node.childNodes,function(n){
+    if(n.nodeType===3){ h+=esc(n.textContent.replace(/\s+/g,' ')); return; }
+    if(n.nodeType!==1||pcSkip(n)) return;
+    var t=n.tagName.toUpperCase(), inner=pcInline(n);
+    if(t==='B'||t==='STRONG') h+='<b>'+inner+'</b>';
+    else if(t==='A'){ var u=pcAbsUrl(n.getAttribute('href')); h+=u?'<a href="'+esc(u)+'" style="color:#1f5fbf;font-weight:bold">'+inner+'</a>':inner; }
+    else if(t==='BR') h+='<br>';
+    else h+=inner;
+  });
+  return h;
+}
+function pcCellHtml(cell,sect,rowBg){
+  var c=cell.classList, head=(sect==='thead'), foot=(sect==='tfoot'), th=(cell.tagName.toUpperCase()==='TH');
+  var empty=!!(cell.parentNode&&cell.parentNode.classList&&cell.parentNode.classList.contains('pc-empty'));
+  var st=PC_CELL+'text-align:'+(empty?'center':(c.contains('n')?'right':'left'))+';';
+  if(c.contains('n')) st+='white-space:nowrap;';
+  if(head) st+='font-weight:bold;background:#eef2f8;';
+  else if(foot) st+='font-weight:bold;background:'+(rowBg||'#f6f8fb')+';';
+  else { if(th||c.contains('pc-peak')) st+='font-weight:bold;'; if(rowBg) st+='background:'+rowBg+';'; }
+  if(empty) st+='font-style:italic;color:#5b6676;';
+  if(c.contains('pc-grp')) st+='border-left:2px solid #9aa7b8;';
+  var span='', cs=parseInt(cell.getAttribute('colspan'),10), rs=parseInt(cell.getAttribute('rowspan'),10);
+  if(cs>1) span+=' colspan="'+cs+'"';
+  if(rs>1) span+=' rowspan="'+rs+'"';
+  var inner=pcInline(cell).trim();
+  var tag=head?'th':'td';
+  return '<'+tag+span+' style="'+st+'">'+(inner||'&nbsp;')+'</'+tag+'>';
+}
+function pcTable(tbl){
+  var h='<table border="1" cellpadding="4" cellspacing="0" style="'+PC_TBL+'">';
+  var rowsOf=function(sec,name){
+    return Array.prototype.map.call(sec.children,function(tr){
+      if(String(tr.tagName).toUpperCase()!=='TR'||pcSkip(tr)) return '';
+      var k=tr.classList, bg=k.contains('pc-row-risk')?'#fff4e0':(k.contains('pc-row-breach')?'#fdeaea':'');
+      return '<tr>'+Array.prototype.map.call(tr.children,function(cell){ return pcSkip(cell)?'':pcCellHtml(cell,name,bg); }).join('')+'</tr>';
+    }).join('');
+  };
+  Array.prototype.forEach.call(tbl.children,function(sec){
+    if(pcSkip(sec)) return;
+    var t=String(sec.tagName).toUpperCase();
+    if(t==='CAPTION') h+='<caption style="text-align:left;padding-bottom:4px;color:#5b6676">'+pcInline(sec).trim()+'</caption>';
+    else if(t==='THEAD'||t==='TBODY'||t==='TFOOT') h+=rowsOf(sec,t.toLowerCase());
+    else if(t==='TR') h+=rowsOf({children:[sec]},'tbody');
+  });
+  return h+'</table>';
+}
+// Table output for the export: a queued placeholder (rendered as an image later) or the real HTML table.
+var pcTblQ=null, pcCurTitle='';
+function pcTableOut(tbl){
+  if(pcTblQ){ pcTblQ.push({tbl:tbl,title:pcCurTitle}); return '<!--PCTBL'+(pcTblQ.length-1)+'-->'; }
+  return '<div style="'+PC_TBL_INDENT+'">'+pcTable(tbl)+PC_GAP+'</div>';
+}
+function pcParaStyle(el){
+  var c=el.classList, st=PC_P;
+  if(c.contains('pc-muted')||c.contains('pc-note')) st+='color:#5b6676;';
+  if(c.contains('pc-note')) st+='font-size:12px;font-weight:bold;';
+  if(c.contains('pc-warn')) st+='font-weight:bold;color:#6b3d05;background:#fff4e0;border-left:4px solid #e08a00;padding:6px 10px;';
+  if(c.contains('pc-banner')) st+='font-weight:bold;color:#1d4a8f;background:#eaf2fd;border:1px solid #9bbbe8;padding:8px 12px;';
+  return st;
+}
+// Action items: the severity badge becomes bold text, e.g. "CRITICAL \u2014 title", followed by the body paragraph.
+// Bullets: every prose block is emitted as a marked <li>; pcMergeBullets wraps each run of consecutive items in one <ul>.
+var PC_LI='<li style="margin:2px 0">', PC_UL='<ul style="margin:4px 0 10px 20px;padding:0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340">';
+function pcLi(inner){ return '\u0001'+PC_LI+inner+'</li>'; }
+function pcMergeBullets(h){
+  var re=new RegExp('(?:\\u0001'+PC_LI.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[\\s\\S]*?</li>)+','g');
+  return h.replace(re,function(m){ return PC_UL+m.replace(/\u0001/g,'')+'</ul>'; });
+}
+// Action items: one bullet each: bold "CRITICAL \u2014 title", then the body after a line break.
+function pcActionsHtml(el){
+  var h='';
+  Array.prototype.forEach.call(el.querySelectorAll('.pc-act'),function(a){
+    var b=a.querySelector('.pc-badge'), hh=a.querySelector('h3'), p=a.querySelector('p');
+    var sev=b?b.textContent.trim():'', title='';
+    if(hh) Array.prototype.forEach.call(hh.childNodes,function(x){ if(x!==b) title+=x.textContent; });
+    title=title.replace(/\s+/g,' ').trim();
+    h+=pcLi('<b>'+esc((sev?sev+' \u2014 ':'')+title)+'</b>'+((p&&p.textContent.trim())?'<br>'+pcInline(p).trim():''));
+  });
+  return h;
+}
+function pcBlockHtml(n){
+  if(n.nodeType===3){ var tx=n.textContent.replace(/\s+/g,' ').trim(); return tx?pcLi(esc(tx)):''; }
+  if(n.nodeType!==1||pcSkip(n)) return '';
+  var t=n.tagName.toUpperCase(), c=n.classList;
+  if(t==='TABLE') return pcTableOut(n);
+  if(c.contains('pc-scroll')) return Array.prototype.map.call(n.querySelectorAll('table'),pcTableOut).join('');
+  if(c.contains('pc-actions')) return pcActionsHtml(n);
+  if(t==='UL'||t==='OL'){
+    var isUl=(t==='UL');
+    var items=Array.prototype.map.call(n.children,function(li){
+      if(String(li.tagName).toUpperCase()!=='LI'||pcSkip(li)) return '';
+      return isUl?pcLi(pcInline(li).trim()):('<li style="margin:2px 0">'+pcInline(li).trim()+'</li>');
+    }).join('');
+    return (items&&!isUl)?'<ol style="margin:6px 0 6px 20px;padding:0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340">'+items+'</ol>':items;
+  }
+  if((t==='DIV'||t==='SECTION')&&n.querySelector('p,ul,ol,table,div,h1,h2,h3,h4,h5,h6'))
+    return Array.prototype.map.call(n.childNodes,pcBlockHtml).join('');
+  if(!n.textContent.trim()) return '';
+  var inner=pcInline(n).trim();
+  if(pcIsSubHead(n)) return '<h3 style="'+PC_H3+'">'+inner+'</h3>';
+  if(n.id==='pcExec') return pcSentences(n.textContent).map(function(s){ return pcLi(esc(s)); }).join('');
+  return pcLi(inner);
+}
+function pcSectionHtml(sec){
+  var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('h2'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
+  pcCurTitle=h2?h2.textContent.replace(/\s+/g,' ').trim():'';
+  var h='<h2 style="margin:20px 0 6px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+esc(pcCurTitle)+'</h2>';
+  if(aside&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
+  if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
+  return h;
+}
+// The whole report as one HTML fragment ('' when no report is loaded).
+// With a queue array, every table is replaced by a <!--PCTBLn--> placeholder (queued for pcImagesHtml); without one, real <table>s are emitted.
+function pcExportHtml(queue){
+  pcTblQ=queue||null; pcCurTitle='';
+  try{ return pcExportHtmlBuild(); } finally { pcTblQ=null; }
+}
+function pcExportHtmlBuild(){
+  var D=PC.data, w=wrap(); if(!D||!w) return '';
+  var root=w.cloneNode(true), L=heroLines(D);
+  var h='<div style="'+PC_FONT+'font-size:13px;color:#2a3340">'+
+    '<h1 style="margin:0 0 4px;'+PC_FONT+'font-size:20px;font-weight:bold;color:#1a2230">PHD Operational Pulse Check</h1>'+
+    '<p style="margin:0 0 2px;'+PC_FONT+'font-size:14px;font-weight:bold;color:#2a3340">'+esc(L.report)+'</p>'+
+    '<p style="margin:0 0 12px;'+PC_FONT+'font-size:13px;color:#5b6676">Potential Harm to Driver \u2014 GSOC</p>';
+  Array.prototype.forEach.call(root.children,function(el){
+    if(pcSkip(el)) return;
+    var c=el.classList;
+    if(String(el.tagName).toUpperCase()==='SECTION'&&c.contains('pc-card')) h+=pcSectionHtml(el);
+    else if(c.contains('pc-banner')||c.contains('pc-note')) h+=pcBlockHtml(el);
+  });
+  return pcMergeBullets(h)+'</div>';
+}
+// ---- Export: tables drawn as styled PNG images (canvas 2D, no libraries) ----
+// pc-img-layout:start (pure layout; `measure(text,bold)` returns the text width in logical px)
+var PC_IMG={padX:10,padY:6,lh:17,maxCol:420,minCol:30,maxH:8000,dpr:2,fs:13};
+function pcIsNum(s){ return /^[-+]?\d[\d,]*(\.\d+)?%?$/.test(String(s).trim()); }
+function pcWrapText(text,maxW,measure,bold){
+  var lines=[], cur='';
+  String(text).split(' ').forEach(function(w){
+    if(!w) return;
+    var t=cur?cur+' '+w:w;
+    if(measure(t,bold)<=maxW){ cur=t; return; }
+    if(cur){ lines.push(cur); cur=''; }
+    if(measure(w,bold)<=maxW){ cur=w; return; }
+    var piece='';
+    Array.prototype.forEach.call(w,function(ch){
+      if(piece&&measure(piece+ch,bold)>maxW){ lines.push(piece); piece=ch; } else piece+=ch;
+    });
+    cur=piece;
+  });
+  if(cur||!lines.length) lines.push(cur);
+  return lines;
+}
+// model: {caption:'', rows:[{kind:'head'|'body'|'foot', empty:bool, cells:[{text,n,bold,link,grp,span}]}]}
+function pcTblLayout(model,measure){
+  var P=PC_IMG, rows=model.rows, ncols=0;
+  var isBold=function(r,c){ return r.kind==='head'||r.total||c.bold; };
+  rows.forEach(function(r){
+    var k=0; r.cells.forEach(function(c){ c.span=Math.max(1,c.span||1); k+=c.span; });
+    if(k>ncols) ncols=k;
+    var f=r.cells[0]; r.total=r.kind==='foot'||!!(f&&/^(sub\s*)?total\b/i.test(f.text));
+  });
+  var colW=[]; for(var i=0;i<ncols;i++) colW.push(P.minCol);
+  var natural=function(r,c){ return Math.ceil(measure(c.text,isBold(r,c)))+2*P.padX; };
+  rows.forEach(function(r){ var ci=0; r.cells.forEach(function(c){ if(c.span===1&&!r.empty) colW[ci]=Math.max(colW[ci],Math.min(P.maxCol,natural(r,c))); ci+=c.span; }); });
+  rows.forEach(function(r){
+    var ci=0; r.cells.forEach(function(c){
+      if(c.span>1&&!r.empty){
+        var need=Math.min(P.maxCol*c.span,natural(r,c)), have=0, j;
+        for(j=ci;j<ci+c.span;j++) have+=colW[j];
+        if(need>have) for(j=ci;j<ci+c.span;j++) colW[j]+=Math.ceil((need-have)/c.span);
+      }
+      ci+=c.span;
+    });
+  });
+  var width=colW.reduce(function(a,b){ return a+b; },0);
+  var out={ncols:ncols,colW:colW,width:width,caption:null,head:[],body:[],foot:[],parts:[]};
+  var bodyIdx=0;
+  rows.forEach(function(r){
+    var ci=0, maxL=1, cells=[];
+    r.cells.forEach(function(c){
+      var w=0; for(var j=ci;j<ci+c.span&&j<ncols;j++) w+=colW[j];
+      var cx=0; for(var m=0;m<ci;m++) cx+=colW[m];
+      var bold=isBold(r,c);
+      var lines=pcWrapText(c.text,Math.max(1,w-2*P.padX),measure,bold);
+      if(lines.length>maxL) maxL=lines.length;
+      cells.push({x:cx,w:w,lines:lines,bold:bold,link:!!c.link&&r.kind!=='head',grp:!!c.grp,
+        align:r.empty?'center':((c.n||pcIsNum(c.text))?'right':'left')});
+      ci+=c.span;
+    });
+    var row={kind:r.kind,empty:!!r.empty,total:!!r.total,cells:cells,h:maxL*P.lh+2*P.padY,zebra:0};
+    if(r.kind==='head') out.head.push(row);
+    else if(r.kind==='foot') out.foot.push(row);
+    else { row.zebra=bodyIdx++%2; out.body.push(row); }
+  });
+  if(model.caption){
+    var cl=pcWrapText(model.caption,Math.max(1,width),measure,false);
+    out.caption={lines:cl,h:cl.length*P.lh+6};
+  }
+  var sum=function(a){ return a.reduce(function(s,r){ return s+r.h; },0); };
+  var headH=sum(out.head), footH=sum(out.foot), capH=out.caption?out.caption.h:0;
+  var limit=P.maxH-1, part=null, cur=0;
+  var open=function(first){ part={cap:first&&!!out.caption,body:[],foot:[],height:0}; cur=(part.cap?capH:0)+headH+1; out.parts.push(part); };
+  open(true);
+  out.body.forEach(function(r){
+    if(part.body.length&&cur+r.h>limit) open(false);
+    part.body.push(r); cur+=r.h;
+  });
+  if(out.foot.length){
+    if(part.body.length&&cur+footH>limit) open(false);
+    part.foot=out.foot.slice(); cur+=footH;
+  }
+  out.parts.forEach(function(p){
+    p.height=(p.cap?capH:0)+headH+sum(p.body)+sum(p.foot)+1;
+  });
+  return out;
+}
+// pc-img-layout:end
+
+function pcCellWalk(node,acc,inLink,inBold){
+  Array.prototype.forEach.call(node.childNodes,function(n){
+    if(n.nodeType===3){
+      var t=n.textContent.replace(/\s+/g,' '), k=t.replace(/\s/g,'').length;
+      acc.t+=t; acc.c+=k; if(inLink) acc.l+=k; if(inBold) acc.b+=k;
+      return;
+    }
+    if(n.nodeType!==1||pcSkip(n)) return;
+    var tg=n.tagName.toUpperCase();
+    if(tg==='BR'){ acc.t+=' '; return; }
+    pcCellWalk(n,acc,inLink||(tg==='A'&&!!pcAbsUrl(n.getAttribute('href'))),inBold||tg==='B'||tg==='STRONG');
+  });
+}
+// Reads a rendered <table> (thead / tbody / tfoot / caption, colspan honoured) into the layout model.
+function pcTblModel(tbl){
+  var model={caption:'',rows:[]};
+  var addRows=function(sec,kind){
+    Array.prototype.forEach.call(sec.children,function(tr){
+      if(String(tr.tagName).toUpperCase()!=='TR'||pcSkip(tr)) return;
+      var cells=[];
+      Array.prototype.forEach.call(tr.children,function(cell){
+        if(pcSkip(cell)) return;
+        var acc={t:'',c:0,l:0,b:0}; pcCellWalk(cell,acc,false,false);
+        var k=cell.classList, th=cell.tagName.toUpperCase()==='TH';
+        cells.push({text:acc.t.replace(/\s+/g,' ').trim(),n:k.contains('n'),grp:k.contains('pc-grp'),
+          bold:th||k.contains('pc-peak')||(acc.c>0&&acc.b===acc.c),link:acc.c>0&&acc.l===acc.c,
+          span:parseInt(cell.getAttribute('colspan'),10)||1});
+      });
+      if(cells.length) model.rows.push({kind:kind,empty:tr.classList.contains('pc-empty'),cells:cells});
+    });
+  };
+  Array.prototype.forEach.call(tbl.children,function(sec){
+    if(pcSkip(sec)) return;
+    var t=String(sec.tagName).toUpperCase();
+    if(t==='CAPTION') model.caption=sec.textContent.replace(/\s+/g,' ').trim();
+    else if(t==='THEAD') addRows(sec,'head');
+    else if(t==='TBODY') addRows(sec,'body');
+    else if(t==='TFOOT') addRows(sec,'foot');
+  });
+  return model;
+}
+function pcImgFont(bold,italic){ return (italic?'italic ':'')+(bold?'bold ':'')+PC_IMG.fs+"px 'Segoe UI', Arial, sans-serif"; }
+function pcMeasurer(){
+  var ctx=document.createElement('canvas').getContext('2d');
+  return function(t,bold){ ctx.font=pcImgFont(bold,false); return ctx.measureText(t).width; };
+}
+function pcDrawPart(L,part){
+  var P=PC_IMG, W=L.width+1, H=part.height, cv=document.createElement('canvas');
+  cv.width=W*P.dpr; cv.height=H*P.dpr;
+  var ctx=cv.getContext('2d'); ctx.scale(P.dpr,P.dpr);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  ctx.textBaseline='middle'; ctx.lineWidth=1;
+  var y=0;
+  if(part.cap){
+    ctx.font=pcImgFont(false,false); ctx.fillStyle='#5b6676'; ctx.textAlign='left';
+    L.caption.lines.forEach(function(s,i){ ctx.fillText(s,0,y+i*P.lh+P.lh/2); });
+    y+=L.caption.h;
+  }
+  var drawRow=function(r){
+    var bg=r.kind==='head'?'#1f3a68':(r.kind==='foot'||r.total?'#e6ecf5':(r.zebra?'#f4f7fb':'#ffffff'));
+    r.cells.forEach(function(c){
+      ctx.fillStyle=bg; ctx.fillRect(c.x,y,c.w+1,r.h+1);
+      ctx.strokeStyle='#c8d0dc'; ctx.strokeRect(c.x+0.5,y+0.5,c.w,r.h);
+      if(c.grp){ ctx.fillStyle=r.kind==='head'?'#6f86b3':'#9aa7b8'; ctx.fillRect(c.x,y,2,r.h+1); }
+      ctx.font=pcImgFont(c.bold,r.empty);
+      ctx.fillStyle=r.kind==='head'?'#ffffff':(r.empty?'#5b6676':(c.link?'#1a56db':'#2a3340'));
+      var tx=c.align==='right'?c.x+c.w-P.padX:(c.align==='center'?c.x+c.w/2:c.x+P.padX);
+      ctx.textAlign=c.align;
+      c.lines.forEach(function(s,i){ ctx.fillText(s,tx,y+P.padY+i*P.lh+P.lh/2); });
+    });
+    y+=r.h;
+  };
+  L.head.forEach(drawRow); part.body.forEach(drawRow); part.foot.forEach(drawRow);
+  return cv;
+}
+// One <img> per part (a table taller than ~8000 logical px is split, header row repeated).
+function pcTableImages(tbl,title,measure){
+  if(!measure) throw new Error('no canvas');
+  var model=pcTblModel(tbl);
+  if(!model.rows.length) throw new Error('empty table');
+  var L=pcTblLayout(model,measure);
+  return L.parts.map(function(part){
+    var cv=pcDrawPart(L,part);
+    // Pixels are drawn at PC_IMG.dpr (2x) for sharpness; BOTH width and height (attributes + inline px) pin the
+    // display size to the logical size. With only a width, Outlook/Word take the 2x natural height -> stretched.
+    // No max-width:100%: shrinking the width alone while the height stays fixed distorts the image.
+    var w=L.width+1, h=part.height;
+    return '<img src="'+cv.toDataURL('image/png')+'" width="'+w+'" height="'+h+'" alt="'+esc((title||'Report')+' table')+'" style="display:block;width:'+w+'px;height:'+h+'px;margin:6px 0 12px;border:0">';
+  }).join('');
+}
+// Replaces the queued table placeholders with images (a table that fails to render falls back to the HTML table). Never rejects.
+async function pcImagesHtml(html,queue){
+  if(!queue.length) return html;
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(_){}
+  var measure=null; try{ measure=pcMeasurer(); }catch(_){}
+  return html.replace(/<!--PCTBL(\d+)-->/g,function(m,i){
+    var it=queue[+i];
+    // Every copied table (image, or the HTML-table fallback) sits in an indented block so it lines up with
+    // the bullet text. A block-level div's margin-left is honoured by Outlook/Word, Teams and OneNote.
+    var body;
+    try{ body=pcTableImages(it.tbl,it.title,measure); }
+    catch(e){ body=pcTable(it.tbl)+PC_GAP; }
+    return '<div style="'+PC_TBL_INDENT+'">'+body+'</div>';
+  });
+}
+// Fallback 1: select the HTML in an off-screen contenteditable div and run the browser's copy command.
+// A temporary copy listener keeps the tab-separated text as text/plain.
+function pcCopyViaSelection(html,plain){
+  var d=document.createElement('div'), sel=window.getSelection&&window.getSelection(), ok=false;
+  d.contentEditable='true'; d.setAttribute('aria-hidden','true');
+  d.style.cssText='position:fixed;left:-10000px;top:0;width:800px;height:1px;overflow:hidden;';
+  d.innerHTML=html;
+  var onCopy=function(e){
+    try{ if(e.clipboardData){ e.clipboardData.setData('text/html',html); e.clipboardData.setData('text/plain',plain); e.preventDefault(); } }catch(_){}
+  };
+  document.body.appendChild(d); document.addEventListener('copy',onCopy);
+  try{
+    var r=document.createRange(); r.selectNodeContents(d);
+    sel.removeAllRanges(); sel.addRange(r);
+    ok=document.execCommand('copy');
+  }catch(e){ ok=false; }
+  document.removeEventListener('copy',onCopy);
+  try{ sel.removeAllRanges(); }catch(_){}
+  document.body.removeChild(d);
+  return ok;
+}
+// Fallback 3 (as before): plain text through a hidden textarea, for contexts without the async clipboard.
+function pcCopyTextarea(txt){
+  var ok=false, ta=document.createElement('textarea');
+  ta.value=txt; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ ok=document.execCommand('copy'); }catch(_){ ok=false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+async function pcExport(){
+  var txt=pcExportText(); if(!txt) return;
+  var html='', q=[]; try{ html=pcExportHtml(q); }catch(e){ html=''; }
+  var btn=document.getElementById('pcExport'), lbl=document.getElementById('pcExportLbl');
+  var ok=false;
+  // Text sections stay rich text; tables become PNG images (built after fonts are ready; the Promise never rejects).
+  var htmlP=html?pcImagesHtml(html,q):null;
+  var mk=function(s){ return new Blob(['<html><head><meta charset="utf-8"></head><body>'+s+'</body></html>'],{type:'text/html'}); };
+  var plain=new Blob([txt],{type:'text/plain'});
+  // 1) Rich copy: text/html (images for tables) + text/plain (tab-separated). The ClipboardItem is created inside the
+  //    click (before any await) with a Promise for text/html; if the browser rejects that, retry after awaiting the HTML.
+  if(htmlP&&window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+    try{
+      await navigator.clipboard.write([new ClipboardItem({'text/html':htmlP.then(mk),'text/plain':plain})]);
+      ok=true;
+    }catch(e){
+      try{
+        await navigator.clipboard.write([new ClipboardItem({'text/html':mk(await htmlP),'text/plain':plain})]);
+        ok=true;
+      }catch(e2){ ok=false; }
+    }
+  }
+  // 2) Select + execCommand('copy') on an off-screen contenteditable copy of the same HTML (with images).
+  if(!ok&&htmlP) ok=pcCopyViaSelection(await htmlP,txt);
+  // 3) Plain text only.
+  if(!ok){
+    try{ await navigator.clipboard.writeText(txt); ok=true; }
+    catch(e){ ok=pcCopyTextarea(txt); }
+  }
+  if(lbl){ lbl.textContent=ok?'Copied!':'Copy failed'; }
+  if(btn) btn.classList.toggle('ok',ok);
+  setTimeout(function(){ if(lbl) lbl.textContent=pcExportLabel(PC.data); if(btn) btn.classList.remove('ok'); },1600);
+}
+window.pcExport=pcExport;
+// Inline error line (hidden while empty) for a failed background reload.
+function toolbar(){
+  return '<div class="pc-inline" id="pcStatus" role="alert"></div>';
+}
+
+// ---- Phased loader (trimmed copy of performance-summary.html) ----
+function pcFirstName(){ var n=me().username||me().name||''; return String(n).split(/[@\s]/)[0]||'there'; }
+function pcPhase1(){ var m=pcFirstName(); return [
+  ['clock','Pulling the last 24 hours for you, '+m+' \u2728'],
+  ['inbox','Counting tickets created in the window\u2026'],
+  ['check-circle','Tallying resolutions and closure codes\u2026'],
+  ['users','Crediting agents and AutoSIM\u2026'],
+  ['hash','Counting hashtags on resolved tickets\u2026'],
+  ['bar-chart','Building the hourly flow\u2026'],
+  ['target','Ageing the open backlog (240-hour rule)\u2026'],
+  ['check-circle','Almost there \u2014 assembling the pulse check\u2026']
+]; }
+function pcPhase2(){ var m=pcFirstName(); return [
+  ['clock','Still working on it \u2014 thanks for your patience, '+m+'\u2026'],
+  ['inbox','The server is taking a little longer than usual\u2026'],
+  ['target','Re-checking the at-risk tickets\u2026'],
+  ['bar-chart','Nearly ready \u2014 wrapping up the totals\u2026']
+]; }
+var _pcTimer=null;
+function _pcSet(t){
+  var e=document.getElementById('pcLoaderMsg'), i=document.getElementById('pcLoaderIc');
+  if(i) i.innerHTML=ic(t[0]||'clock',30);
+  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=t[1]; e.classList.add('gw-msg-in'); }
+}
+function _pcStop(){ if(_pcTimer){ clearInterval(_pcTimer); clearTimeout(_pcTimer); _pcTimer=null; } }
+function _pcStart(){
+  _pcStop();
+  var p1=pcPhase1(), i=0; _pcSet(p1[0]);
+  _pcTimer=setInterval(function(){
+    i++;
+    if(i<p1.length){ _pcSet(p1[i]); return; }
+    _pcStop();
+    _pcSet(['alert','Sorry for the delay \u2014 still crunching the numbers\u2026']);
+    _pcTimer=setTimeout(function(){
+      var p2=pcPhase2(), j=0; _pcSet(p2[0]);
+      _pcTimer=setInterval(function(){ j=(j+1)%p2.length; _pcSet(p2[j]); },3000);
+    },3000);
+  },2000);
+}
+function _pcSuccess(){
+  _pcStop();
+  var l=document.getElementById('pcLoader'); if(l) l.classList.add('gw-done');
+  var i=document.getElementById('pcLoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var e=document.getElementById('pcLoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
+}
+function _pcDelay(ms){ return new Promise(function(res){ setTimeout(res,ms); }); }
+function loaderHtml(){
+  return '<div id="pcLoader" class="gw-loader" role="status" aria-live="polite"><div class="gw-loader-in">'+
+    '<div class="gw-orb"><span class="gw-orb-ic" id="pcLoaderIc">'+ic('clock',30)+'</span></div>'+
+    '<div class="gw-loader-msg gw-msg-in" id="pcLoaderMsg">Getting the numbers ready\u2026</div>'+
+    '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
+    '<div class="gw-loader-sub">Pulse check \u00b7 24h</div></div></div>';
+}
+
+// ---- State + flow ----
+// autoRetried: the one automatic 429 retry is used.
+var PC={ data:null, loading:false, autoRetried:false, retryTimer:null };
+function wrap(){ return document.getElementById('wrap'); }
+function setText(id,t){ var e=document.getElementById(id); if(e) e.textContent=t||''; }
+// One muted line when the server dropped documents (missing IDs / unparseable or after-window dates).
+function excludedNote(D){
+  var x=D.excluded||{}, n0=function(v){ return Number(v)||0; };
+  var c=n0(x.createdNoId)+n0(x.createdNoDate), r=n0(x.resolvedNoId)+n0(x.resolvedNoDate), o=n0(x.openNoId)+n0(x.openNoDate), n=c+r+o;
+  if(!n) return '';
+  return '<p class="pc-note" role="note">Note: '+tix(n)+' skipped (unparseable dates / missing IDs) \u2014 created '+num(c)+', resolved '+num(r)+', open '+num(o)+'.</p>';
+}
+function renderReport(D){
+  var k=D.kpis;
+  var banner=(k.created===0&&k.resolved===0)?'<div class="pc-banner" role="note">No tickets created or resolved in this window.'+(D.latestCreateDate?' Latest ticket in the dataset was created '+esc(fmtLong(D.latestCreateDate))+'.':'')+'</div>':'';
+  wrap().innerHTML=hero(D)+toolbar()+excludedNote(D)+banner+
+    secExec(D)+secKpis(D)+secTypes(D)+secRootCauses(D)+secResolutions(D)+secAgents(D)+
+    secHashtags(D)+secHourly(D)+secSla(D)+secBreaches(D)+secActions(D);
+  document.getElementById('pcExec').textContent=execText(D);
+}
+function renderError(msg){
+  wrap().innerHTML=hero(PC.data)+toolbar()+
+    '<div class="pc-card"><div class="pc-error" role="alert"><p>'+esc(msg)+'</p>'+
+    '<button type="button" class="pc-btn" onclick="pcRetry()">'+ic('refresh',15)+'Retry</button></div></div>';
+}
+// With a report already on screen (background reload) the report stays in place and any error shows inline. Without one, the phased loader runs and a failure shows the error card.
+async function load(fresh){
+  if(PC.loading) return;
+  PC.loading=true;
+  if(PC.retryTimer){ clearTimeout(PC.retryTimer); PC.retryTimer=null; }
+  var keep=!!PC.data;
+  if(keep){ setText('pcStatus',''); }
+  else { wrap().innerHTML=hero(null)+toolbar()+loaderHtml(); _pcStart(); }
+  var t0=Date.now(), r=null;
+  try{ r=await A.api('GET','/api/pulse-check'+(fresh?'?fresh=1':'')); }catch(e){ r=null; }
+  if(r&&r.ok&&r.data&&r.data.kpis){
+    if(!keep){ var wait=800-(Date.now()-t0); if(wait>0) await _pcDelay(wait); _pcSuccess(); await _pcDelay(500); }
+    PC.data=r.data; PC.loading=false;
+    renderReport(r.data);
+    return;
+  }
+  _pcStop(); PC.loading=false;
+  if(r&&r.status===401){
+    // A.api already cleared the session and showed the expired-session modal; drop the loader.
+    if(keep){ setText('pcStatus','Your session has expired. Please log in again.'); }
+    else wrap().innerHTML='<div class="pc-gate"><h1>Pulse Check (24h)</h1><p>Your session has expired. Please log in again.</p></div>';
+    return;
+  }
+  var msg=(r&&(r.status===429||r.status===503)&&r.data&&r.data.error)?r.data.error:'Could not load the pulse check report.';
+  // 429: one automatic retry after Retry-After (the body mirrors the header as retryAfter, seconds).
+  if(r&&r.status===429&&!PC.autoRetried){
+    var ra=Math.min(60,Math.max(1,Number(r.data&&r.data.retryAfter)||5));
+    PC.autoRetried=true;
+    msg+=' Retrying in '+ra+'s\u2026';
+    PC.retryTimer=setTimeout(function(){ PC.retryTimer=null; load(fresh); },ra*1000);
+  }
+  if(keep){ setText('pcStatus',msg); }
+  else renderError(msg);
+}
+function pcRetry(){ PC.autoRetried=false; load(false); }
+window.pcRetry=pcRetry;
+
+// Live countdown (every second) to the next report. Once it runs out, show "is generating…"; once the next
+// MST day has completed while the page is open (+60s), pull the new day's report (once per boundary).
+var _pcAutoDayFor='';
+setInterval(function(){
+  var D=PC.data; if(!D||!D.nextUpdateAt) return;
+  var cd=document.getElementById('pcCountdown');
+  if(cd){
+    var txt=fmtCountdown(Date.parse(D.nextUpdateAt)-Date.now());
+    if(txt!==null) cd.textContent=txt;
+    else { var ln=document.getElementById('pcNextLine'); if(ln) ln.textContent=pcNextDoneText(D); }
+  }
+  if(!PC.loading&&_pcAutoDayFor!==D.nextUpdateAt&&Date.now()>=Date.parse(D.nextUpdateAt)+60000){
+    _pcAutoDayFor=D.nextUpdateAt; load(true);
+  }
+},1000);
+
+(async function init(){
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+  try{ if(A.loadMyProfile) await A.loadMyProfile(); }catch(e){}
+  load(false);
+})();
+</script>
+</body>
+</html>

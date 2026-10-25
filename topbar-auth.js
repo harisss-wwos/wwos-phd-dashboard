@@ -1138,7 +1138,12 @@
       + '@keyframes hdrLiveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{opacity:.4;box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,0)}}'
       + '#tbHomeChrome .home-layout{display:flex;align-items:flex-start;gap:10px;max-width:100%;padding-top:72px}'
       + '#tbHomeChrome .home-main{flex:1 1 0;min-width:0;max-width:100%}'
-      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(170px,15vw,230px);width:clamp(170px,15vw,230px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:space-between;gap:16px;height:calc(100vh - 92px)}'
+      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(170px,15vw,230px);width:clamp(170px,15vw,230px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:space-between;gap:16px;height:calc(100vh - 92px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding-right:4px;margin-right:-4px}'
+      // Short viewports: the column scrolls (thin bar) so the bottom action group stays reachable. Its
+      // items use native title tooltips only (no absolutely-positioned flyouts), so nothing is clipped;
+      // the 4px right padding (offset by a -4px margin) keeps the hover translateX(2px) visible.
+      + '#tbHomeChrome .home-recent-col::-webkit-scrollbar{width:4px}'
+      + '#tbHomeChrome .home-recent-col::-webkit-scrollbar-thumb{background:#c4ccd4;border-radius:5px}'
       // Left column = three colour-coded button groups, EQUAL gap between groups.
       + '#tbHomeChrome .home-recent-col{gap:16px}'
       + '#tbHomeChrome .home-navgrp{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}'
@@ -2153,6 +2158,7 @@
     'hi-resolved': { title: 'Repeat Incidents', icon: 'repeat', tone: 'blue' }, 'sla-breach': { title: 'SLA Breaches', icon: 'clock', tone: 'rose' },
     'station-request': { title: 'Station Requests', icon: 'map-pin', tone: 'blue' }, 'agent-analytics': { title: 'Team Analytics', icon: 'bar-chart', tone: 'blue' },
     'performance-summary': { title: 'Performance Summary', icon: 'clipboard', tone: 'blue' },
+    'pulse-check': { title: 'Pulse Check (24h)', icon: 'line-chart', tone: 'blue' },
     'tools': { title: 'PHD Tools', icon: 'tool', tone: 'teal' }, 'profile': { title: 'Profile', icon: 'user', tone: 'blue' },
     'data-log': { title: 'Uploaded Data Log', icon: 'history', tone: 'violet' }, 'users': { title: 'Users', icon: 'users', tone: 'blue' },
     'db-health': { title: 'Database Health', icon: 'database', tone: 'teal' }, 'groups-page': { title: 'Grouping Page', icon: 'copy', tone: 'violet' },
@@ -2260,6 +2266,7 @@
       + navBtn('tools.html', 'PHD Tools', 'tool')
       + navBtn('agent-analytics.html', 'Team Analytics', 'bar-chart')
       + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
+      + navBtn('pulse-check.html', 'Pulse Check (24h)', 'line-chart')
       + '</nav>';
     // Group 2 (middle): dark buttons.
     var navMid = '<nav class="home-navgrp home-navgrp-dark">'
@@ -4599,6 +4606,7 @@
     var map = {
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
       'agent-analytics.html': 'bar-chart', 'performance-summary.html': 'clipboard',
+      'pulse-check.html': 'line-chart',
       'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
       'important-cases.html': 'hash',
