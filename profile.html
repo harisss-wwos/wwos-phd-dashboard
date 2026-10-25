@@ -164,113 +164,16 @@ input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,
 .ws-note-line{font-size:.82em;line-height:1.55;color:var(--tm);margin-top:12px;font-style:italic}
 @media(max-width:560px){.ws-kpis{grid-template-columns:repeat(2,1fr)}}
 
-/* ===== Header bar + Recent sidebar (ported from index.html) ===== */
+/* Shared colour tokens used by the profile cards. (The header + left menu come from the shared
+   chrome in topbar-auth.js, like every other page.) */
 :root{--gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;--line:#e7e5df;--icbg:#c4def6;--icfg:#2b66c1;--sh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28)}
-.page{width:100%;max-width:100%;padding:10px;box-sizing:border-box}
-/* Override the narrow centered .wrap: inside the main column it fills full width.
-   Higher-specificity selector (.home-main .wrap) so it beats topbar-auth.js's injected
-   .wrap{width/padding !important} rule regardless of source order. */
-.home-main .wrap,.home-main .content,
-body[data-profile-panel] .home-main .wrap,
-body[data-profile-panel] .home-main .content{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}
-.home-hdr{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--white);
-  border:1px solid var(--line);border-radius:5px;box-shadow:var(--sh);padding:10px;margin:0 0 10px;box-sizing:border-box}
-.home-hdr-left{display:flex;align-items:center;gap:13px}
-.home-hdr-swap{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--icbg);text-decoration:none;flex:0 0 auto}
-.home-hdr-swap .tb-logo-swap{position:relative;display:block;width:28px;height:28px;overflow:hidden}
-.home-hdr-swap .tb-logo-swap .tb-rail-logo-img{position:absolute;top:50%;left:50%;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
-.home-hdr-logo{display:flex;align-items:center;text-decoration:none}
-.home-hdr-logo img{height:24px;width:auto;display:block;object-fit:contain}
-.home-hdr-prof{display:inline-flex;align-items:center}
-.home-hdr-prof a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--white);color:var(--icfg);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
-.home-hdr-prof a:hover{border-color:var(--o);color:var(--o);transform:translateY(-1px);box-shadow:0 4px 12px -4px rgba(255,97,0,.4)}
-.home-hdr-prof a svg{width:20px;height:20px}
-.home-hdr-prof a img,.home-hdr-prof a .avatar-initial{width:38px!important;height:38px!important;border-radius:50%!important;object-fit:cover}
-.home-layout{display:flex;align-items:flex-start;gap:12px;max-width:100%}
-.home-main{flex:1 1 0;min-width:0;max-width:100%}
-.home-recent{flex:0 0 clamp(170px,15vw,230px);width:clamp(170px,15vw,230px);position:sticky;top:10px;align-self:flex-start;background:var(--white);border:1px solid var(--line);border-radius:5px;box-shadow:var(--sh);display:flex;flex-direction:column;overflow:hidden}
-.home-recent .hr-head{display:flex;align-items:center;gap:8px;padding:10px;font-size:.84em;font-weight:800;color:var(--ink);border-bottom:1px solid var(--line)}
-.home-recent .hr-head::before{content:'';width:3px;height:16px;border-radius:2px;background:var(--o)}
-.home-recent .hr-head-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--icbg);color:var(--icfg);flex:0 0 auto}
-.home-recent .hr-head-ic svg{width:13px;height:13px}
-.home-recent .hr-list{display:flex;flex-direction:column;gap:6px;padding:10px}
-.hr-item{--acc:var(--icfg);--accbg:var(--icbg);position:relative;display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #eceae4;border-radius:5px;text-decoration:none;color:var(--ink);transition:border-color .14s,background .14s,transform .14s}
-.hr-item:hover{transform:translateX(2px);border-color:var(--acc);background:#fbfaf7}
-.hr-item .hr-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--accbg);color:var(--acc);flex:0 0 auto}
-.hr-item .hr-ic svg{width:14px;height:14px}
-.hr-item .hr-tx{min-width:0;display:flex;flex-direction:column;gap:1px}
-.hr-item .hr-title{font-size:.8em;font-weight:700;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hr-item .hr-time{font-size:.68em;color:var(--ink2);font-weight:500}
-.hr-item.nt-amber{--acc:#ff6100;--accbg:#ffe6d6}
-.hr-item.nt-violet{--acc:#6d5bd0;--accbg:#e7e3fb}
-.hr-item.nt-rose{--acc:#d6456f;--accbg:#fbe0e9}
-.hr-item.nt-blue{--acc:var(--icfg);--accbg:var(--icbg)}
-.hr-item.nt-teal{--acc:#1b8f8a;--accbg:#d2f0ee}
-.hr-item.hr-latest{background:#fff7f2;border-color:#ffd9c2}
-/* ===== Left MENU (full-width coloured nav buttons) ===== */
-.home-recent .hr-list{gap:9px}
-.mnu-grp{display:flex;flex-direction:column;gap:9px}
-.mnu-grp-dark{margin-top:14px}
-.mnu-grp-foot{margin-top:auto;padding-top:14px}
-.mnu-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 13px;border-radius:7px;border:none;cursor:pointer;
-  text-decoration:none;font-family:inherit;font-size:.85em;font-weight:800;line-height:1.15;text-align:left;
-  box-shadow:0 4px 12px -6px rgba(20,30,50,.4);transition:filter .14s,transform .1s;overflow:hidden}
-.mnu-btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
-.mnu-btn:active{transform:translateY(0)}
-.mnu-ic{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.2)}
-.mnu-ic svg{width:15px;height:15px}
-.mnu-tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Colour variants. */
-.mnu-orange{background:linear-gradient(180deg,#ff8a3d,#ef6a12);color:#fff}
-.mnu-orange.soft{background:linear-gradient(180deg,#ffb067,#f3853a);color:#fff}
-.mnu-blue{background:linear-gradient(180deg,#3b82f6,#2b66c1);color:#fff}
-.mnu-dark{background:#141c28;color:#dfe6ec;box-shadow:0 4px 12px -6px rgba(0,0,0,.5)}
-.mnu-dark .mnu-ic{background:rgba(255,255,255,.1)}
-.mnu-red{background:linear-gradient(180deg,#f0564f,#e23b3b);color:#fff}
-/* Current page highlighted. */
-.mnu-btn.mnu-active{outline:2px solid #fff;outline-offset:-2px;filter:brightness(1.08)}
-.home-recent .hr-list .hr-empty{font-size:.74em;color:var(--ink2);text-align:center;padding:18px 8px;line-height:1.5}
-.home-recent .hr-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-top:1px solid #eceae4;font-size:.68em;color:var(--ink2)}
-.home-recent .hr-clear{background:transparent;border:none;color:var(--icfg);font-weight:700;font-size:1em;cursor:pointer;padding:0;font-family:inherit}
-.home-recent .hr-clear:hover{color:var(--o)}
-body.home-no-recent .home-recent{display:none}
-body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
-@media(max-width:1024px){.home-layout{flex-direction:column}.home-recent{position:static;top:auto;width:100%;max-width:100%;flex:1 1 auto}.home-recent .hr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}}
-@media(max-width:860px){.home-recent{display:none}}
-/* Rotating logo-swap animation (self-contained). */
-.tb-logo-swap .tb-logo-a{animation:tbLogoSlideA 2s ease-in-out infinite}
-.tb-logo-swap .tb-logo-b{animation:tbLogoSlideB 2s ease-in-out infinite}
-@keyframes tbLogoSlideA{0%,38%{transform:translate(-50%,-50%);opacity:1}50%,88%{transform:translate(-50%,-180%);opacity:0}100%{transform:translate(-50%,-50%);opacity:1}}
-@keyframes tbLogoSlideB{0%,38%{transform:translate(-50%,80%);opacity:0}50%,88%{transform:translate(-50%,-50%);opacity:1}100%{transform:translate(-50%,80%);opacity:0}}
 </style>
 </head>
 <body data-nav-active="profile" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="display:none"></div>
-<div class="page">
-  <!-- Header bar (matches index.html): rotating logo + wordmark + profile/login icon -->
-  <div class="home-title-row js-header-row home-hdr">
-    <div class="home-hdr-left">
-      <a class="home-hdr-swap" href="index.html" title="Home" aria-label="Home">
-        <span class="tb-logo-swap">
-          <img class="tb-rail-logo-img tb-logo-a" src="gsoc-logo.svg" alt="GSOC">
-          <img class="tb-rail-logo-img tb-logo-b" src="amazon-logo.webp" alt="Amazon">
-        </span>
-      </a>
-      <a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>
-    </div>
-    <span class="home-hdr-prof" id="homeHdrProf"></span>
-  </div>
-
-  <div class="home-layout">
-    <!-- Menu sidebar (logged-in only; hidden on mobile) -->
-    <aside class="home-recent" id="homeRecent">
-      <div class="hr-head"><span class="hr-head-ic" data-ic="grid"></span>Menu</div>
-      <div class="hr-list" id="hrList"></div>
-    </aside>
-    <!-- Main profile content (filled by renderProfile) -->
-    <div class="home-main"><div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div></div>
-  </div>
-</div>
+<!-- Main profile content (filled by render). The header + left menu are the SHARED chrome that
+     topbar-auth.js wraps around #wrap — the same one every other page uses. -->
+<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
 
 <div class="modal-bg" id="pwModal" onclick="if(event.target===this)closePwModal()">
   <div class="modal">
@@ -292,93 +195,13 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=201"></script>
+<script src="topbar-auth.js?v=202"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-// ---- Header profile/login icon (matches index.html) ----
-function renderHomeHdrProf(){
-  var slot=document.getElementById('homeHdrProf'); if(!slot) return;
-  var user=(A&&A.getUser&&A.getUser())||null;
-  if(user){
-    var prof=(A.myProfile&&A.myProfile())||A._myProfile||user;
-    var nm=(prof&&(prof.displayName||prof.username))||'Profile';
-    var av=(A.avatarHtml?A.avatarHtml(prof,40):ic('user',20));
-    slot.innerHTML='<a href="profile.html" title="'+String(nm).replace(/"/g,'&quot;')+' — Profile" aria-label="Profile">'+av+'</a>';
-  }else{
-    slot.innerHTML='<a href="index.html" title="Log in" aria-label="Log in">'+ic('key',20)+'</a>';
-  }
-}
-
-// ---- Recently visited sidebar (logged-in only; reads phd_recent_pages) ----
-var HR_KEY='phd_recent_pages';
-var HR_MAP={
-  'app':{title:'Active Dashboard',icon:'bolt',tone:'amber'},'my-tickets':{title:'My Tickets',icon:'ticket',tone:'amber'},
-  'archive':{title:'Program History',icon:'inbox',tone:'amber'},'issue-types':{title:'Issue Standardization',icon:'clipboard',tone:'violet'},
-  'ticket-sanitization':{title:'Ticket Sanitization',icon:'check-circle',tone:'rose'},'rules':{title:'Rules & Definitions',icon:'book',tone:'teal'},
-  'hi-resolved':{title:'Repeat Incidents',icon:'repeat',tone:'blue'},'sla-breach':{title:'SLA Breaches',icon:'clock',tone:'rose'},
-  'station-request':{title:'Station Requests',icon:'map-pin',tone:'blue'},'agent-analytics':{title:'Team Analytics',icon:'bar-chart',tone:'blue'},
-  'tools':{title:'PHD Tools',icon:'tool',tone:'teal'},'profile':{title:'Profile',icon:'user',tone:'blue'},
-  'data-log':{title:'Uploaded Data Log',icon:'history',tone:'violet'},'users':{title:'Users',icon:'users',tone:'blue'},
-  'db-health':{title:'Database Health',icon:'database',tone:'teal'},'groups-page':{title:'Grouping Page',icon:'copy',tone:'violet'}
-};
-function hrFileOf(href){ try{ return (String(href).split('?')[0].split('/').pop()||'').replace(/\.html?$/i,''); }catch(e){ return ''; } }
-function hrRelTime(ts){
-  var s=Math.max(0,Math.floor((Date.now()-ts)/1000));
-  if(s<45) return 'just now';
-  var m=Math.floor(s/60); if(m<60) return m+' min ago';
-  var h=Math.floor(m/60); if(h<24) return h+' hr'+(h>1?'s':'')+' ago';
-  var d=Math.floor(h/24); if(d===1) return 'Yesterday';
-  if(d<7) return d+' days ago';
-  return new Date(ts).toLocaleDateString('en-US',{day:'numeric',month:'short'});
-}
-// Left sidebar is a NAVIGATION MENU (replaces the old "Recent" list): full-width coloured buttons.
-// Two groups — PRIMARY (coloured) nav on top, then DARK secondary nav — followed by footer actions
-// (Upload new data / View upload log / Log out). Links are relative so they stay in the current
-// environment. The current page is marked active.
-function renderRecent(){   // (kept the name; now renders the Menu)
-  var panel=document.getElementById('homeRecent');
-  var loggedIn=(A&&A.getUser&&A.getUser());
-  if(!loggedIn){ if(panel) panel.style.display='none'; document.body.classList.add('home-no-recent'); return; }
-  if(panel) panel.style.display=''; document.body.classList.remove('home-no-recent');
-  var list=document.getElementById('hrList'); if(!list) return;
-  var here=(location.pathname.split('/').pop()||'').toLowerCase();
-  // PRIMARY group — the four highlighted nav items (orange + blue in the mock).
-  var primary=[
-    {href:'my-tickets.html',          icon:'ticket',    title:'My Tickets',          cls:'mnu-orange'},
-    {href:'tools.html',               icon:'tool',      title:'PHD Tools',           cls:'mnu-blue'},
-    {href:'agent-analytics.html',     icon:'bar-chart', title:'Team Analytics',      cls:'mnu-blue'},
-    {href:'performance-summary.html', icon:'clipboard', title:'Performance Summary', cls:'mnu-blue'},
-  ];
-  // SECONDARY group — dark buttons.
-  var secondary=[
-    {href:'sla-breach.html',      icon:'clock',  title:'SLA Breaches (>240h)'},
-    {href:'station-request.html', icon:'map-pin',title:'Station Request Tickets'},
-    {href:'hashtags.html',        icon:'hash',   title:'Hashtags'},
-    {href:'hi-resolved.html',     icon:'repeat', title:'Repeat Incidents'},
-    {href:'important-cases.html', icon:'star',   title:'Unique Cases'},
-  ];
-  // Admin pages appear in the secondary group only for permitted users.
-  if(A.canManageUsers&&A.canManageUsers())   secondary.push({href:'users.html',       icon:'users',   title:'Users'});
-  if(A.canDatabase&&A.canDatabase())         secondary.push({href:'db-health.html',   icon:'database',title:'Database Health'});
-  if(A.canGroupingPage&&A.canGroupingPage()) secondary.push({href:'groups-page.html', icon:'copy',    title:'Grouping Page'});
-  var btn=function(m,extraCls){
-    var active=(m.href.toLowerCase()===here)?' mnu-active':'';
-    return '<a class="mnu-btn '+(extraCls||'')+active+'" href="'+m.href+'" title="'+String(m.title).replace(/"/g,'&quot;')+'">'+
-      '<span class="mnu-ic">'+ic(m.icon,15)+'</span><span class="mnu-tx">'+esc(m.title)+'</span></a>';
-  };
-  var html='<div class="mnu-grp mnu-grp-primary">'+primary.map(function(m){return btn(m,m.cls);}).join('')+'</div>';
-  html+='<div class="mnu-grp mnu-grp-dark">'+secondary.map(function(m){return btn(m,'mnu-dark');}).join('')+'</div>';
-  // Footer actions — Upload new data / View upload log (admin-gated) + Log out.
-  var foot='';
-  if(A.canUpload&&A.canUpload()) foot+='<a class="mnu-btn mnu-orange" href="app.html#upload" title="Upload new data"><span class="mnu-ic">'+ic('upload',15)+'</span><span class="mnu-tx">Upload new data</span></a>';
-  foot+='<a class="mnu-btn mnu-orange soft" href="data-log.html" title="View upload log"><span class="mnu-ic">'+ic('history',15)+'</span><span class="mnu-tx">View upload log</span></a>';
-  foot+='<button type="button" class="mnu-btn mnu-red" onclick="doLogout()" title="Log out"><span class="mnu-ic">'+ic('log-out',15)+'</span><span class="mnu-tx">Log out</span></button>';
-  html+='<div class="mnu-grp mnu-grp-foot">'+foot+'</div>';
-  list.innerHTML=html;
-}
+// (Header + left menu come from the shared chrome in topbar-auth.js, like every other page.)
 
 let PROFILE_LOADED=false;
 let PENDING_AVATAR=undefined; // undefined=no change, ''=remove, 'data:...'=new
@@ -717,20 +540,15 @@ async function changePw(){
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
 
-// Fill the header clock icon placeholder + wire the Recent "Clear" button.
-document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML=window.icon(el.getAttribute('data-ic'),13); });
-
 (async()=>{
-  renderHomeHdrProf();
-  renderRecent();
   render();
   if(A.getUser()&&A.getToken()){
     try{ await A.loadMyProfile(); }catch(e){}
     try{ if(A._refreshMe) await A._refreshMe(); else if(A.getMe) await A.getMe(); }catch(e){}
     PROFILE_LOADED=true;
     render();
-    renderHomeHdrProf();   // repaint with the loaded avatar
-    renderRecent();
+    // Repaint the shared header avatar now that the full profile is loaded.
+    if(window.PHDRefreshHomeChrome) window.PHDRefreshHomeChrome();
   }
 })();
 </script>

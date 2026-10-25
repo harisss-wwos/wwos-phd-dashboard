@@ -1127,6 +1127,11 @@
       + '#tbHomeChrome .home-hdr-prof a{border-radius:5px!important;overflow:hidden}'
       + '#tbHomeChrome .home-hdr-prof a img,#tbHomeChrome .home-hdr-prof a .avatar-initial,#tbHomeChrome .home-hdr-prof a .phd-avatar{width:38px!important;height:38px!important;border-radius:5px!important;object-fit:cover}'
       + '#tbHomeChrome .home-hdr-right{display:flex;align-items:center;gap:10px}'
+      // Icon-only Log out button, same 40px box as the profile icon, red.
+      + '#tbHomeChrome .home-hdr-logout{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:5px;border:none;cursor:pointer;background:#dc2626;color:#fff;box-shadow:0 4px 14px -4px rgba(220,38,38,.5);transition:filter .14s,transform .14s;flex:0 0 auto}'
+      + '#tbHomeChrome .home-hdr-logout:hover{filter:brightness(1.08);transform:translateY(-1px)}'
+      + '#tbHomeChrome .home-hdr-logout:focus-visible{outline:2px solid #1b2026;outline-offset:2px}'
+      + '#tbHomeChrome .home-hdr-logout svg{width:18px;height:18px}'
       + '#tbHomeChrome .home-hdr-live{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:5px;text-decoration:none;font-size:.8em;font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(180deg,#2bb673,#1f9d57);box-shadow:0 4px 14px -4px rgba(31,157,87,.5)}'
       + '#tbHomeChrome .home-hdr-live:hover{filter:brightness(1.06);transform:translateY(-1px)}'
       + '#tbHomeChrome .home-hdr-live .hdr-live-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:hdrLiveBlink 1.2s ease-in-out infinite}'
@@ -2233,6 +2238,8 @@
       + '<div class="home-hdr-right">'
       + (li ? '<a class="home-hdr-live" href="app.html" title="Open the live dashboard"><span class="hdr-live-dot"></span> ' + new Date().getFullYear() + '</a>' : '')
       + '<span class="home-hdr-prof" id="tbhHdrProf"></span>'
+      // Log out: icon-only button right of the profile icon (moved here from the menu's bottom group).
+      + (li ? '<button type="button" class="home-hdr-logout" title="Log out" aria-label="Log out" onclick="if(window.PHDConfirmLogout)window.PHDConfirmLogout()">' + ic('log-out', 18) + '</button>' : '')
       + '</div></div>';
     var canUpload = (li && A.canUpload && A.canUpload());
     // ---- Left column = three colour-coded button groups, equal gaps between them. ----
@@ -2269,9 +2276,6 @@
             + '<input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">'
             + '<button type="button" class="home-viewlog-btn" title="View upload log" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()"><span class="home-act-ic">' + ic('history', 15) + '</span><span class="home-act-lbl">View upload log</span></button>'
           : '')
-      + (li
-          ? '<button type="button" class="home-logout-btn" title="Log out" onclick="if(window.PHDConfirmLogout)window.PHDConfirmLogout()"><span class="home-act-ic">' + ic('log-out', 15) + '</span><span class="home-act-lbl">Log out</span></button>'
-          : '<span class="home-logout-btn" aria-disabled="true" title="Log out"><span class="home-act-ic">' + ic('log-out', 15) + '</span><span class="home-act-lbl">Log out</span></span>')
       + '</div>';
     var recent = '<div class="home-recent-col' + (li ? '' : ' home-navcol-disabled') + '" id="tbhRecentCol">'
       + navTop + navMid + navBot
