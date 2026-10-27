@@ -3583,11 +3583,15 @@ const SLA_THRESHOLD_HRS = 240;
 // resolutionFromRcd from pulse-check.js). Values are grouped case-insensitively on trimmed,
 // whitespace-collapsed text and displayed with the first-seen spelling. Returns EVERY value (no cap,
 // no "Other"), sorted count desc then name A->Z, pct = 1-decimal % of the total.
+// Grouping label / key for one ticket's "Res" value. The drill-down endpoint matches on the same
+// key, so a count here and its ticket list can never disagree.
+function perfResolutionLabel(rcd) { return String(resolutionFromRcd(rcd)).replace(/\s+/g, ' ').trim(); }
+function perfResolutionKey(label) { return String(label == null ? '' : label).replace(/\s+/g, ' ').trim().toLowerCase(); }
 function buildResolutionDistribution(rcds) {
   const groups = new Map();
   for (const rcd of rcds) {
-    const label = String(resolutionFromRcd(rcd)).replace(/\s+/g, ' ').trim();
-    const key = label.toLowerCase();
+    const label = perfResolutionLabel(rcd);
+    const key = perfResolutionKey(label);
     const g = groups.get(key);
     if (g) g.count++; else groups.set(key, { resolution: label, count: 1 });
   }
@@ -3600,17 +3604,56 @@ function buildResolutionDistribution(rcds) {
 // Scope = the SAME as the `resolved` count in perfWindowStats: Status Resolved/Closed and
 // ResolvedDate in [from,to) (UTC), every ticket doc counted once per doc (no extra resolver-group
 // filter and no cross-doc dedupe, exactly like `resolved`), so resolvedTotal === resolved.
-// Only RootCauseDetails (+ the fields the scope needs) is projected; read-only.
-async function perfResolutionDistribution(from, to) {
+// Shared selection for the Resolution Distribution counts AND the drill-down ticket list: only the
+// fields in `fields` (a $project spec) are projected; read-only.
+async function perfResolvedScope(from, to, fields) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   const rd = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
-  const rows = await coll.aggregate([
+  return coll.aggregate([
     { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
-    { $project: { _id: 0, rdv: rd, RootCauseDetails: 1 } },
+    { $project: Object.assign({ _id: 0, rdv: rd }, fields) },
     { $match: { rdv: { $gte: from, $lt: to } } },
-    { $project: { RootCauseDetails: 1 } },
+    { $project: { rdv: 0 } },
   ], { allowDiskUse: true }).toArray();
+}
+async function perfResolutionDistribution(from, to) {
+  const rows = await perfResolvedScope(from, to, { RootCauseDetails: 1 });
   return buildResolutionDistribution(rows.map(r => r.RootCauseDetails));
+}
+// Tickets behind one Resolution Distribution row: the same scope as the count, filtered on the same
+// normalised Res key, newest CreateDate first (ties by ShortId). Returns ALL matches.
+const PERF_RES_MAX_LEN = 200;
+function perfResolverName(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (/autosim/i.test(s)) return 'AutoSIM';
+  return s.replace(/^kerberos:/i, '').replace(/@ANT\.AMAZON\.COM$/i, '');
+}
+async function perfResolutionTickets(from, to, resolution) {
+  const key = perfResolutionKey(resolution);
+  const docs = await perfResolvedScope(from, to, {
+    RootCauseDetails: 1, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, ResolvedByIdentity: 1,
+    cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+  });
+  const tickets = docs.filter(d => perfResolutionKey(perfResolutionLabel(d.RootCauseDetails)) === key).map(d => {
+    const sid = d.ShortId || d.IssueId || '';
+    return {
+      country: slaCountryOf(d),
+      shortId: sid,
+      url: d.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+      title: d.Title || '',
+      resolvedBy: perfResolverName(d.ResolvedByIdentity),
+      createdDate: d.cd instanceof Date && !isNaN(d.cd) ? d.cd.toISOString() : '',
+    };
+  });
+  tickets.sort((a, b) => {
+    if (a.createdDate !== b.createdDate) {
+      if (!a.createdDate) return 1;            // undated tickets last
+      if (!b.createdDate) return -1;
+      return a.createdDate < b.createdDate ? 1 : -1;   // ISO strings sort chronologically; newest first
+    }
+    return a.shortId < b.shortId ? -1 : a.shortId > b.shortId ? 1 : 0;
+  });
+  return tickets;
 }
 async function perfWindowStats(from, to) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
@@ -3687,6 +3730,32 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
     res.json({ from: from.toISOString(), to: to.toISOString(), current: cur, previous: prev, mtdSlaPct: mtd.slaPct, resolvedTotal: resDist.resolvedTotal, resolutions: resDist.resolutions });
   } catch (e) {
     res.status(500).json({ error: 'Could not build the performance summary.' });
+  }
+});
+// GET /api/perf-summary/resolution-tickets?view=week|month&from=YYYY-MM-DD&to=YYYY-MM-DD&resolution=<value>
+// Drill-down for a Resolution Distribution count: every ticket counted under that Res value for the
+// same window (from inclusive, to exclusive — the params the page sends to /api/perf-summary).
+app.get('/api/perf-summary/resolution-tickets', requireRole('user'), async (req, res) => {
+  try {
+    const q = req.query || {};
+    const view = typeof q.view === 'string' ? q.view : '';
+    if (view !== 'week' && view !== 'month') return res.status(400).json({ error: 'view must be "week" or "month".' });
+    const parseDay = (v) => {
+      if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+      const d = new Date(v + 'T00:00:00.000Z');
+      return (isNaN(d) || d.toISOString().slice(0, 10) !== v) ? null : d;
+    };
+    const from = parseDay(q.from), to = parseDay(q.to);   // to is exclusive
+    if (!from || !to || to <= from) return res.status(400).json({ error: 'Provide valid from/to dates as YYYY-MM-DD (to exclusive).' });
+    const maxDays = view === 'week' ? 14 : 62;
+    if ((to - from) / 86400000 > maxDays) return res.status(400).json({ error: 'The date range is too long for this view.' });
+    const resolution = typeof q.resolution === 'string' ? q.resolution.replace(/\s+/g, ' ').trim() : '';
+    if (!resolution) return res.status(400).json({ error: 'Provide a resolution value.' });
+    if (resolution.length > PERF_RES_MAX_LEN) return res.status(400).json({ error: 'The resolution value is too long.' });
+    const tickets = await perfResolutionTickets(from, to, resolution);
+    res.json({ view, from: from.toISOString(), to: to.toISOString(), resolution, total: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the tickets for this resolution.' });
   }
 });
 
