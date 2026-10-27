@@ -93,6 +93,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .ps-tag.good{color:var(--green);background:var(--green-bg)}
 .ps-tag.watch{color:var(--amber);background:var(--amber-bg)}
 
+/* Resolution Distribution: summary line + Resolution | Count | Percentage table. */
+.ps-res-sum{font-size:.92em;color:#2a3340;margin-bottom:12px}
+.ps-res-sum b{color:var(--ink);font-weight:800}
+.ps-res-wrap{border:1px solid var(--line);border-radius:9px;overflow:auto}
+.ps-res-tbl{width:100%;border-collapse:collapse;font-size:.9em}
+.ps-res-tbl th{text-align:left;font-size:.78em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--mut2);background:#fafbfc;padding:10px 14px;border-bottom:1px solid var(--line)}
+.ps-res-tbl td{padding:9px 14px;border-bottom:1px solid var(--line);color:#2a3340}
+.ps-res-tbl tbody tr:last-child td{border-bottom:none}
+.ps-res-tbl tbody th{font-size:1em;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ink);background:transparent;padding:9px 14px}
+.ps-res-tbl .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ps-res-empty{color:#8793a0;font-size:.88em;padding:6px 2px}
+
 .ps-gate{text-align:center;padding:60px 20px;color:var(--mut)}
 .ps-gate h1{color:var(--ink);font-size:1.4em;margin-bottom:10px}
 .ps-foot{font-size:.78em;color:var(--mut2);text-align:center;margin-top:18px}
@@ -258,6 +270,9 @@ function summaryPane(kind,p,rangeTxt,D,mtdPct){
     // ---- Defect Code Trends (auto-split into Improving (down) vs Watch (up)) ----
     defectTrendsCard(c.defects,pv.defects,p)+
 
+    // ---- Resolution Distribution ("Res:" value from RootCauseDetails, resolved in this period) ----
+    resolutionCard(D)+
+
     '<div class="ps-foot">WWOS-GSOC PHD \u00b7 '+kind+' Performance Summary \u00b7 use <b>Export</b> for the full write-up</div>';
 }
 // Defect trends: three tracked tags, auto-sorted into Improving (count went down or flat) vs
@@ -280,6 +295,28 @@ function defectTrendsCard(cur,prev,p){
   if(watch.length) rows+=defectRow('watch','Watch Item',watch);
   if(!rows) rows='<div style="color:#8793a0;font-size:.88em;padding:6px 2px">No tagged defects in this window.</div>';
   return sectionCard('alert','Defect Code Trends','<div class="ps-trend">'+rows+'</div>');
+}
+// HTML-escape dynamic text before inserting it into markup.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; }); }
+// Resolution Distribution card. Data comes from /api/perf-summary (resolvedTotal + resolutions[]),
+// whose scope is the SAME as the "Resolved" KPI: Status Resolved/Closed with ResolvedDate in the
+// selected window, so the summary total matches the Resolved tile. Every value is listed.
+function resolutionCard(D){
+  var rows=(D&&D.resolutions)||[], total=(D&&D.resolvedTotal)||0;
+  var body;
+  if(!total||!rows.length){
+    body='<div class="ps-res-empty">No tickets resolved in this period</div>';
+  }else{
+    body='<div class="ps-res-sum"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved</div>'+
+      '<div class="ps-res-wrap"><table class="ps-res-tbl">'+
+        '<caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Resolution distribution of tickets resolved in this period</caption>'+
+        '<thead><tr><th scope="col">Resolution</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead>'+
+        '<tbody>'+rows.map(function(r){
+          return '<tr><th scope="row">'+esc(r.resolution)+'</th><td class="n">'+num(r.count)+'</td><td class="n">'+esc((Number(r.pct)||0).toFixed(1))+'%</td></tr>';
+        }).join('')+'</tbody>'+
+      '</table></div>';
+  }
+  return sectionCard('check-circle','Resolution Distribution',body);
 }
 // Number formatter with thousands separators.
 function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
@@ -354,7 +391,15 @@ function psSummaryText(kind,p,rangeTxt,D,mtd){
     'Defect Code Trends:\n'+defImp+defWatch+'\n'+
     'Address Exclusions & GEO Pins: '+num(c.addressExclusions)+' address exclusions were processed ('+pt(c.addressExclusions,pv.addressExclusions)+' '+p+') alongside '+num(c.geoPins)+' GEO Pin updates ('+pt(c.geoPins,pv.geoPins)+' '+p+'). '+
       'GEO Pins are critical to setting accurate Road Entry Points (REP) and delivery points, ensuring transporters can '+
-      'complete deliveries safely via the Rabbit app.';
+      'complete deliveries safely via the Rabbit app.'+
+    resolutionText(D);
+}
+// Export block for the Resolution Distribution (indented rows, every value).
+function resolutionText(D){
+  var rows=(D&&D.resolutions)||[], total=(D&&D.resolvedTotal)||0;
+  if(!total||!rows.length) return '\n\nResolution Distribution: No tickets resolved in this period.';
+  return '\n\nResolution Distribution ('+num(total)+' ticket'+(total===1?'':'s')+' resolved):\n'+
+    rows.map(function(r){ return '    \u2022 '+r.resolution+': '+num(r.count)+' ('+(Number(r.pct)||0).toFixed(1)+'%)'; }).join('\n');
 }
 // Export (copy) the summary for whichever period is currently selected.
 async function psExport(){

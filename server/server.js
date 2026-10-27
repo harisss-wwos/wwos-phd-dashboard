@@ -10,7 +10,7 @@ const {
   issueToken, attachUser, requireRole,
 } = require('./auth');
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
-const { computePulseReport } = require('./pulse-check');
+const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -3579,6 +3579,39 @@ app.get('/api/hashtags/upload-log', requireFlag('canUpload'), async (req, res) =
 //   geoPins           = resolved-in-window with RootCauseDetails mentioning a geo-pin
 // Also returns mtdSlaPct = SLA% for the current calendar month to date (server "now").
 const SLA_THRESHOLD_HRS = 240;
+// Resolution Distribution: counts the "Res" value of each ticket's RootCauseDetails (via
+// resolutionFromRcd from pulse-check.js). Values are grouped case-insensitively on trimmed,
+// whitespace-collapsed text and displayed with the first-seen spelling. Returns EVERY value (no cap,
+// no "Other"), sorted count desc then name A->Z, pct = 1-decimal % of the total.
+function buildResolutionDistribution(rcds) {
+  const groups = new Map();
+  for (const rcd of rcds) {
+    const label = String(resolutionFromRcd(rcd)).replace(/\s+/g, ' ').trim();
+    const key = label.toLowerCase();
+    const g = groups.get(key);
+    if (g) g.count++; else groups.set(key, { resolution: label, count: 1 });
+  }
+  const total = rcds.length;
+  const resolutions = [...groups.values()]
+    .sort((a, b) => (b.count - a.count) || a.resolution.localeCompare(b.resolution, 'en', { sensitivity: 'base' }))
+    .map(g => ({ resolution: g.resolution, count: g.count, pct: total ? Math.round(g.count / total * 1000) / 10 : 0 }));
+  return { resolvedTotal: total, resolutions };
+}
+// Scope = the SAME as the `resolved` count in perfWindowStats: Status Resolved/Closed and
+// ResolvedDate in [from,to) (UTC), every ticket doc counted once per doc (no extra resolver-group
+// filter and no cross-doc dedupe, exactly like `resolved`), so resolvedTotal === resolved.
+// Only RootCauseDetails (+ the fields the scope needs) is projected; read-only.
+async function perfResolutionDistribution(from, to) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const rd = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+  const rows = await coll.aggregate([
+    { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
+    { $project: { _id: 0, rdv: rd, RootCauseDetails: 1 } },
+    { $match: { rdv: { $gte: from, $lt: to } } },
+    { $project: { RootCauseDetails: 1 } },
+  ], { allowDiskUse: true }).toArray();
+  return buildResolutionDistribution(rows.map(r => r.RootCauseDetails));
+}
 async function perfWindowStats(from, to) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   const cd = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
@@ -3646,12 +3679,12 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
     if (isNaN(from) || isNaN(to) || to <= from) return res.status(400).json({ error: 'Provide valid from/to dates (to exclusive).' });
     const span = to - from;
     const prevFrom = new Date(from.getTime() - span), prevTo = new Date(from.getTime());
-    const [cur, prev] = await Promise.all([ perfWindowStats(from, to), perfWindowStats(prevFrom, prevTo) ]);
+    const [cur, prev, resDist] = await Promise.all([ perfWindowStats(from, to), perfWindowStats(prevFrom, prevTo), perfResolutionDistribution(from, to) ]);
     // Month-to-date SLA (1st of the current month at server "now" -> now).
     const now = new Date();
     const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const mtd = await perfWindowStats(mStart, now);
-    res.json({ from: from.toISOString(), to: to.toISOString(), current: cur, previous: prev, mtdSlaPct: mtd.slaPct });
+    res.json({ from: from.toISOString(), to: to.toISOString(), current: cur, previous: prev, mtdSlaPct: mtd.slaPct, resolvedTotal: resDist.resolvedTotal, resolutions: resDist.resolutions });
   } catch (e) {
     res.status(500).json({ error: 'Could not build the performance summary.' });
   }
