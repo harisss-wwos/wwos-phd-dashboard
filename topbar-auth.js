@@ -2289,6 +2289,118 @@
       + '</div>';
     return { hdr: hdr, recent: recent };
   }
+  // ---- Live dual clock (IST + MST) in the title bar, right of the logo ----
+  // Chip colour is decided per chip by its own AM/PM: PM -> black bg / white text, AM -> white bg / black text.
+  var TBC_ZONES = [
+    { key: 'IST', tz: 'Asia/Kolkata', name: 'India Standard Time' },
+    { key: 'MST', tz: 'America/Denver', name: 'Mountain Time (America/Denver)' }   // always labelled MST
+  ];
+  var TBC_FMT = {};
+  function tbcParts(zone, date) {
+    var f = TBC_FMT[zone.tz] || (TBC_FMT[zone.tz] = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone.tz, weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
+    var o = {};
+    f.formatToParts(date).forEach(function (p) { o[p.type] = p.value; });
+    var period = String(o.dayPeriod || '').toUpperCase();
+    return {
+      date: o.weekday + ', ' + o.day + ' ' + o.month + ' ' + o.year,
+      hm: o.hour + ':' + o.minute,
+      ss: o.second,
+      period: period,
+      cls: period === 'PM' ? 'pm' : 'am'
+    };
+  }
+  var tbcTimer = null, tbcIv = null, tbcStarted = false;
+  var tbcRefs = null;   // per-zone cached DOM refs, built once in tbMountClock
+  function tbcSet(node, text) { if (node.data !== text) node.data = text; }
+  function tbcRender() {
+    if (!tbcRefs) return;
+    var now = new Date();
+    TBC_ZONES.forEach(function (z) {
+      var r = tbcRefs[z.key]; if (!r) return;
+      var p = tbcParts(z, now);
+      if (r.cls !== p.cls) {
+        r.cls = p.cls;
+        r.chip.className = 'tb-clk-chip tb-clk-' + p.cls;
+      }
+      tbcSet(r.hm, p.hm); tbcSet(r.ss, ':' + p.ss); tbcSet(r.per, ' ' + p.period); tbcSet(r.date, p.date);
+      var title = z.name + ': ' + p.date + ' ' + p.hm + ' ' + p.period;
+      if (r.chip.title !== title) r.chip.title = title;
+    });
+  }
+  function tbcStop() { clearTimeout(tbcTimer); clearInterval(tbcIv); tbcTimer = tbcIv = null; }
+  function tbcSchedule() {
+    tbcStop();
+    if (document.hidden) return;
+    // Align to the next full second, then tick every 1000ms.
+    tbcTimer = setTimeout(function () {
+      tbcRender();
+      tbcIv = setInterval(function () { if (!document.hidden) tbcRender(); }, 1000);
+    }, 1000 - (Date.now() % 1000));
+  }
+  function tbMountClock() {
+    try {
+      if (document.getElementById('tbClock')) return;
+      var left = document.querySelector('#tbHomeChrome .home-hdr-left, .home-hdr .home-hdr-left');
+      if (!left) return;
+      if (!document.getElementById('tbClockStyles')) {
+        var st = document.createElement('style'); st.id = 'tbClockStyles';
+        st.textContent = '.home-hdr-left{min-width:0}'
+          + '.tb-clock{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:-2px;font-family:inherit}'
+          + '.tb-clk-chip{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;height:36px;padding:4px 10px 4px 6px;border-radius:5px;border:1px solid transparent;font-family:inherit;white-space:nowrap;font-variant-numeric:tabular-nums;transition:background-color .3s,color .3s,border-color .3s,box-shadow .3s}'
+          + '.tb-clk-am{background:#fff;color:#0b0d10;border-color:#d0d5dd;box-shadow:0 1px 2px rgba(16,24,40,.08)}'
+          + '.tb-clk-pm{background:#0b0d10;color:#fff;border-color:#0b0d10;box-shadow:none}'
+          + '.tb-clk-z{display:inline-block;padding:3px 6px;border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.06em;line-height:1.1;transition:background-color .3s,color .3s}'
+          + '.tb-clk-am .tb-clk-z{background:#0b0d10;color:#fff}'
+          + '.tb-clk-pm .tb-clk-z{background:#fff;color:#0b0d10}'
+          + '.tb-clk-ic{flex:0 0 auto;width:14px;height:14px;display:none}'
+          + '.tb-clk-am .tb-clk-sun,.tb-clk-pm .tb-clk-moon{display:block}'
+          + '.tb-clk-tm{display:flex;flex-direction:column;line-height:1.1}'
+          + '.tb-clk-l1{display:flex;align-items:baseline}'
+          + '.tb-clk-hm{font-size:15px;font-weight:700}'
+          + '.tb-clk-s{font-size:12px;font-weight:600;opacity:.7}'
+          + '.tb-clk-p{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}'
+          + '.tb-clk-d{font-size:10.5px;font-weight:500;opacity:.7}'
+          // narrower viewports: drop the date line, then seconds + icon, then the whole clock
+          + '@media(max-width:1099px){.tb-clk-d{display:none}}'
+          + '@media(max-width:759px){.tb-clk-s,.tb-clk-ic{display:none!important}}'
+          + '@media(max-width:599px){.tb-clock{display:none}}'
+          + '@media(prefers-reduced-motion:reduce){.tb-clk-chip,.tb-clk-z{transition:none}}';
+        document.head.appendChild(st);
+      }
+      var root = document.createElement('div');
+      root.id = 'tbClock'; root.className = 'tb-clock';
+      root.setAttribute('role', 'group'); root.setAttribute('aria-label', 'Current time in IST and MST');
+      root.setAttribute('aria-live', 'off');
+      // Build each card once; the per-second tick only updates text nodes + the am/pm class.
+      var SVG_ATTR = ' class="tb-clk-ic %C" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+      var SUN = '<svg' + SVG_ATTR.replace('%C', 'tb-clk-sun') + '><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+      var MOON = '<svg' + SVG_ATTR.replace('%C', 'tb-clk-moon') + '><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+      root.innerHTML = TBC_ZONES.map(function (z) {
+        return '<span class="tb-clk-chip tb-clk-am" data-tz="' + z.key + '">'
+          + '<span class="tb-clk-z">' + z.key + '</span>' + SUN + MOON
+          + '<span class="tb-clk-tm"><span class="tb-clk-l1"><span class="tb-clk-hm"></span><span class="tb-clk-s"></span><span class="tb-clk-p"></span></span>'
+          + '<span class="tb-clk-d"></span></span></span>';
+      }).join('');
+      tbcRefs = {};
+      TBC_ZONES.forEach(function (z) {
+        var chip = root.querySelector('[data-tz="' + z.key + '"]');
+        function tn(sel) { var el = chip.querySelector(sel), t = document.createTextNode(''); el.appendChild(t); return t; }
+        tbcRefs[z.key] = { chip: chip, cls: 'am', hm: tn('.tb-clk-hm'), ss: tn('.tb-clk-s'), per: tn('.tb-clk-p'), date: tn('.tb-clk-d') };
+      });
+      var logo = left.querySelector('.home-hdr-logo');
+      if (logo && logo.parentNode === left) left.insertBefore(root, logo.nextSibling); else left.appendChild(root);
+      tbcRender();
+      if (!tbcStarted) {
+        tbcStarted = true;
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) tbcStop(); else { tbcRender(); tbcSchedule(); }
+        });
+      }
+      tbcSchedule();
+    } catch (e) { /* the clock is best-effort; never block the chrome */ }
+  }
   // Wrap a main-content node (.wrap/.content) with the injected [header] + [layout: recent + main].
   function tbhWrapMain(main) {
     if (!main || main.closest('#tbHomeChrome') || main.closest('.home-main')) return false;
@@ -2298,6 +2410,7 @@
     main.parentNode.insertBefore(page, main);
     page.querySelector('.home-main').appendChild(main);
     tbhWireChrome();
+    tbMountClock();
     return true;
   }
   function tbBuildHomeChrome() {
