@@ -468,8 +468,8 @@ h1{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="issue-types-data.js?v=2"></script>
-<script src="incident-log-editor.js?v=1"></script>
+<script src="issue-types-data.js?v=3"></script>
+<script src="incident-log-editor.js?v=6"></script>
 <script src="topbar-auth.js?v=209"></script>
 <script>
 const A=window.PHDAuth;
@@ -1146,7 +1146,10 @@ function openLogEntryEditor(id){
   const db=document.getElementById('incidentDeleteBtn');if(db)db.style.display='';
   fillIncidentSelects();
   const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v||'';};
-  set('ilPhdFindings',f.findings);set('ilPhdInvestigation',f.invest);set('ilSimRcd',f.sim);
+  set('ilPhdFindings',f.findings);ilSetInvestigation(f.invest);set('ilSimRcd',f.sim);ilSetHistorical(f.hist);
+  // Keep a saved value that is no longer in the list (retired resolution) as an extra option so it is not blanked.
+  ['ilRootCause','ilPhdResolution'].forEach(id2=>{const el=document.getElementById(id2),v=(id2==='ilRootCause'?f.rootCause:f.res);
+    if(el&&v&&!Array.prototype.some.call(el.options,o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (old)';el.appendChild(o);}});
   set('ilRootCause',f.rootCause);set('ilPhdResolution',f.res);set('ilPhdNotes',f.notes);
   // Same as My Tickets: PHD Related Link is always the canonical ticket URL (read-only).
   const url=(CURRENT&&String(CURRENT.shortId)===sid&&CURRENT.url)?CURRENT.url:('https://t.corp.amazon.com/'+sid);

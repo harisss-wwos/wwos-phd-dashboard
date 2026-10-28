@@ -189,7 +189,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="issue-types-data.js?v=2"></script>
+<script src="issue-types-data.js?v=3"></script>
 <script src="topbar-auth.js?v=209"></script>
 <script>
 const A=window.PHDAuth;
@@ -201,29 +201,23 @@ var IZ_CATS=window.IZ_CATS||[];
 function rcIsAdmin(){ return !!(A && A.atLeast && A.atLeast('admin')); }
 var RC_PENDING_RES='*****PENDING*****';
 
-// ---- Resolutions in the required order, each with risk metadata. Index 0 unused so #1..#21 line up. ----
+// ---- Resolutions, alphabetical A-Z (same list/order as RC_RESOLUTIONS in issue-types-data.js), each
+// with risk metadata (carried over from the previous list; renamed items keep their old metadata:
+// Address Depri -> Address Deprio, Delivery Hint Update -> Delivery Hint, Geo-Routing Update -> Routing Update).
+// Index 0 unused so #1..#12 line up. ----
 var RC_RESLIST=[null,
   {name:'Account Closure',           note:'Permanent',          sev:'CRITICAL',    lk:'High', im:'High', eff:'Effective'},
-  {name:'Account Suspension',        note:'Temporary Lock',     sev:'CRITICAL',    lk:'High', im:'High', eff:'Effective'},
-  {name:'Blocking Place ID',         note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
-  {name:'Physical Order Block',      note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
+  {name:'Address Deprio',            note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
   {name:'Address Exclusion',         note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
-  {name:'Address Depri',             note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
   {name:'Area Exclusion',            note:'',                   sev:'MODERATE',    lk:'High', im:'Low',  eff:'Limited'},
-  {name:'GeoPin Update',             note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
-  {name:'GeoFence Update',           note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
-  {name:'Geo-Routing Update',        note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
-  {name:'Parcel Box Installation',   note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Limited'},
-  {name:'Delivery Hint Update',      note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
-  {name:'Customer Education',        note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
   {name:'Customer Reassurance',      note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
+  {name:'Delivery Hint',             note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
   {name:'Driver Follow-up',          note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
-  {name:'Pet Info Update',           note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
-  {name:'Insufficient Information',  note:'',                   sev:'LOW',         lk:'Low',  im:'Low',  eff:'Effective'},
-  {name:'PHD Outreach',              note:'CX, Driver, Site Leadership', sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Effective'},
-  {name:'Driver Education',          note:'',                   sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Effective'},
-  {name:'Driver Misconduct Reported',    note:'',               sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Limited'},
-  {name:'Driver Misconduct Not Reported',note:'',               sev:'OPERATIONAL', lk:'N/A (Administrative)', im:'N/A (Administrative)', eff:'Limited'},
+  {name:'GeoFence Update',           note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'GeoPin Update',             note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
+  {name:'Parcel Box Installation',   note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Limited'},
+  {name:'Physical Order Block',      note:'',                   sev:'CRITICAL',    lk:'High', im:'High', eff:'Limited'},
+  {name:'Routing Update',            note:'',                   sev:'MODERATE',    lk:'Low',  im:'High', eff:'Effective'},
 ];
 var RC_RES=RC_RESLIST.map(function(r){ return r?r.name:''; });
 var RC_ISSUE_MAP=(function(){ var m={}; IZ_CATS.forEach(function(cat){ (cat.types||[]).forEach(function(ty){ m[String(ty.type).trim().toLowerCase()]={type:ty.type,def:ty.def||''}; }); }); return m; })();
@@ -466,20 +460,6 @@ function rcOutputText(asPending){
   if(!done) lines.push('Res: '+RC_PENDING_RES);
   return lines.join('\n');
 }
-// Wrap the RCD output as a My-Tickets incident-log blob. The SIM Root Cause Details section holds
-// the converted output; Root Cause + PHD Resolution are filled from the paste panel / converter.
-// Other structured sections are left as the "-" placeholder (matches buildIncidentOutput).
-function rcWrapIncidentLog(simText, rootCause, phdResolution, relatedLink){
-  return [
-    '**PHD Findings**:\n-',
-    '**PHD Investigation for mitigation:**\n-',
-    '**SIM Root Cause Details:**\n'+simText,
-    '**Root Cause**: '+(rootCause||''),
-    '**PHD Related Link**: '+(relatedLink||''),
-    '**PHD Resolution**: '+(phdResolution||''),
-    '**PHD notes**:\n-'
-  ].join('\n\n');
-}
 function rcShowTargetStatus(cls,html){
   var el=document.getElementById('rcTicketStatus'); if(!el) return;
   el.className='rc-paste-status '+cls; el.style.display='block'; el.innerHTML=html;
@@ -555,13 +535,16 @@ async function rcPasteToTicket(asPending){
   // PHD Related Link = the ticket's standard URL (so it isn't blanked out in My Tickets).
   var relatedLink='https://t.corp.amazon.com/issues/'+RC_TARGET.shortId;
   // Map Root Cause (selected here) + PHD Resolution (from the converter; PENDING for pending paste).
-  var blob=rcWrapIncidentLog(sim, rootCause, asPending ? RC_PENDING_RES : phdRes, relatedLink);
+  // The server MERGES these into the user's existing log entry (only empty / "-" sections are
+  // filled; Findings / Investigation / notes are kept) or creates a new entry if there is none.
+  var payload={ sim:sim, rootCause:rootCause, phdResolution:(asPending ? RC_PENDING_RES : phdRes), relatedLink:relatedLink, pending:!!asPending };
   var pBtn=document.getElementById('rcPushBtn'), ppBtn=document.getElementById('rcPushPending');
   if(pBtn) pBtn.disabled=true; if(ppBtn) ppBtn.disabled=true;
   try{
-    var r=await A.api('POST','/api/tickets/'+encodeURIComponent(RC_TARGET.shortId)+'/incident-log',{text:blob});
+    var r=await A.api('POST','/api/tickets/'+encodeURIComponent(RC_TARGET.shortId)+'/incident-log/rcd',payload);
     if(r && r.ok){
-      rcShowTargetStatus('ok', 'Pasted into <b>'+esc(RC_TARGET.shortId)+'</b>\u2019s SIM Root Cause Details'+(asPending?' (as PENDING)':'')+'. \u2713');
+      var how=(r.data && r.data.merged) ? 'Added to the existing log' : 'Created a new log';
+      rcShowTargetStatus('ok', how+' on <b>'+esc(RC_TARGET.shortId)+'</b> \u00b7 SIM Root Cause Details'+(asPending?' (as PENDING)':'')+'. \u2713');
       var fl=document.getElementById('rcPasteFields'); if(fl) fl.style.display='none';
       var ac=document.getElementById('rcPasteActions'); if(ac) ac.style.display='none';
       RC_TARGET=null;

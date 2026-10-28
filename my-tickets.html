@@ -157,7 +157,8 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .mi-btn.sec{background:transparent;border-color:var(--bd);color:var(--t)}
 .mi-btn.sec:hover{border-color:#8b96a0;color:#fff}
 /* ---- Add-incident-log modal (icon on the card actions bar) — redesigned ---- */
-.ail-modal{width:min(760px,94vw);max-width:min(760px,94vw);padding:0;overflow:hidden;display:flex;flex-direction:column;height:90vh;max-height:90vh}
+.ail-modal{width:90vw;max-width:90vw;padding:0;overflow:hidden;display:flex;flex-direction:column;height:90vh;max-height:90vh}
+@media(max-width:699.98px){.ail-modal{width:96vw;max-width:96vw}}
 /* ---- Structured incident-log form (labelled fields) ---- */
 .ail-field{margin-bottom:14px}
 .ail-field:last-child{margin-bottom:0}
@@ -1198,8 +1199,8 @@ h1{color:#1b2026 !important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="issue-types-data.js?v=2"></script>
-<script src="incident-log-editor.js?v=1"></script>
+<script src="issue-types-data.js?v=3"></script>
+<script src="incident-log-editor.js?v=6"></script>
 <script src="topbar-auth.js?v=209"></script>
 <script>
 const A=window.PHDAuth;
@@ -2022,12 +2023,17 @@ async function openIncidentStructured(i,ev){
   const t=TICKETS[i]; if(!t) return;
   if(!HAS_LOG[String(t.shortId)]){ openIncidentLog(i); return; }
   // Fetch this ticket's log and find the current user's own entry to edit.
-  let mineEntry=null;
+  let mineEntry=null, mineCount=0;
   try{
     const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log');
     const list=(r.ok&&Array.isArray(r.data))?r.data:[];
-    mineEntry=list.filter(e=>e.mine).slice(-1)[0]||null;   // most recent own entry
+    const mine=list.filter(e=>e.mine);
+    mineCount=mine.length;
+    mineEntry=mine.slice(-1)[0]||null;   // most recent own entry
   }catch(e){}
+  // Several own entries -> show them all (newest first) so none is hidden behind the newest one;
+  // each has Edit / Delete, and Edit opens the same structured form.
+  if(mineCount>1){ openViewIncident(i); return; }
   if(mineEntry && mineEntry.id!=null){ openEditIncidentStructured(i, String(mineEntry.id), String(mineEntry.text||'')); }
   else { openIncidentLog(i); }   // no editable own entry -> fresh add form
 }
@@ -2048,7 +2054,9 @@ function openIncidentLog(i){
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
   fillIncidentSelects();
   // Reset every field.
-  ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ['ilPhdFindings','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ilSetInvestigation('');   // reset the PHD Investigation questionnaire
+  ilSetHistorical('');      // reset the Historical Incidents rows (hidden until SIM has "Cnt: 1+")
   // Auto-fill the PHD Related Link with this ticket's URL (falls back to the standard t.corp URL).
   var linkEl=document.getElementById('ilRelatedLink');
   if(linkEl){ linkEl.value=(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):''); }
@@ -2132,8 +2140,8 @@ async function openViewIncident(i){
   const t=TICKETS[i];
   const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log');
   const list=(r.ok&&Array.isArray(r.data))?r.data:[];
-  // Only entries the current user added.
-  const mine=list.filter(e=>e.mine);
+  // Only entries the current user added, newest first (the API returns oldest first).
+  const mine=list.filter(e=>e.mine).reverse();
   const copyBtn=document.getElementById('viewIncidentCopyBtn');
   // Fill the head icons (clipboard title, copy, close) — static HTML can't call ic().
   (function(){ var a=document.getElementById('viewIncidentIcon'); if(a)a.innerHTML=ic('clipboard',16);
@@ -2226,7 +2234,11 @@ function openEditIncidentStructured(i, id, savedText){
   fillIncidentSelects();
   // Prefill every field from the parsed saved text.
   var set=function(id2,v){ var el=document.getElementById(id2); if(el) el.value=v||''; };
-  set('ilPhdFindings',f.findings); set('ilPhdInvestigation',f.invest); set('ilSimRcd',f.sim);
+  set('ilPhdFindings',f.findings); ilSetInvestigation(f.invest); set('ilSimRcd',f.sim); ilSetHistorical(f.hist);
+  // A saved value that is no longer in the dropdown list (e.g. a retired resolution such as
+  // "Delivery Hint Update") is kept as an extra option so opening + saving never blanks it.
+  ['ilRootCause','ilPhdResolution'].forEach(function(id2){ var el=document.getElementById(id2), v=(id2==='ilRootCause'?f.rootCause:f.res);
+    if(el && v && !Array.prototype.some.call(el.options,function(o){return o.value===v;})){ var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; el.appendChild(o); } });
   set('ilRootCause',f.rootCause); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
   // PHD Related Link is hardcoded to this ticket's URL (read-only, copy-only) — never editable,
   // so always use the canonical ticket URL rather than whatever was parsed from the saved text.

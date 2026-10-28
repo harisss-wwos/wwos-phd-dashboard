@@ -11,6 +11,7 @@ const {
 } = require('./auth');
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
+const ilMerge = require('./incident-log-merge');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -4647,6 +4648,63 @@ app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, 
     res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not add incident log.' });
+  }
+});
+
+// Push a Tools-page "Build Root Cause Details" result into the ticket's incident log WITHOUT
+// creating a placeholder entry. If the user already has an entry on this ticket it is MERGED:
+// only SIM Root Cause Details (must be empty / "-"; else 409) and Root Cause / PHD Related Link /
+// PHD Resolution (only when empty / "-") are filled — Findings, Investigation, notes and any other
+// text stay byte-identical. No own entry -> the full blob is inserted (same as before).
+// Body: { sim, rootCause, phdResolution, relatedLink, pending }.
+app.post('/api/tickets/:shortId/incident-log/rcd', requireRole('user'), async (req, res) => {
+  try {
+    const shortId = String(req.params.shortId);
+    const b = req.body || {};
+    const fields = {
+      sim: String(b.sim || '').trim(),
+      rootCause: String(b.rootCause || '').trim(),
+      link: String(b.relatedLink || '').trim(),
+      res: String(b.phdResolution || '').trim(),
+    };
+    if (!fields.sim) return res.status(400).json({ error: 'SIM Root Cause Details text is required.' });
+    if (!b.pending && !fields.res) return res.status(400).json({ error: 'A PHD Resolution is required (or push as Pending).' });
+    // Same assignee-only rule as POST /api/tickets/:shortId/incident-log.
+    const ticket = await findLiveTicket(shortId);
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+    if (String(ticket.AssigneeIdentity || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'You can only add incident logs to tickets assigned to you.' });
+    }
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    const out = (x, merged) => ({ id: String(x._id), text: x.text, user: x.user, role: x.role, at: x.at, editedAt: x.editedAt, merged });
+    // Optimistic merge: re-read, merge, update only if the text is unchanged; retry once.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const mine = await coll.find({ shortId, user: req.user.username }).sort({ at: -1 }).toArray();
+      if (mine.some(e => ilMerge.hasSimFilled(e.text))) {
+        return res.status(409).json({ error: 'This ticket already has SIM Root Cause Details in its log.' });
+      }
+      const target = mine.find(e => ilMerge.hasStructuredSections(e.text));   // newest structured own entry
+      if (!target) {
+        const text = ilMerge.buildRcdBlob(fields);
+        if (text.length > 5000) return res.status(400).json({ error: 'Incident log must be 5000 characters or fewer.' });
+        const now = new Date().toISOString();
+        const r = await coll.insertOne({ shortId, text, user: req.user.username, role: req.user.role, at: now });
+        await recordTicketActivity(shortId, req.user.username, 'incident-log');
+        return res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now, merged: false });
+      }
+      const m = ilMerge.mergeRcdIntoText(target.text, fields);
+      if (m.conflict) return res.status(409).json({ error: 'This ticket already has SIM Root Cause Details in its log.' });
+      if (m.text.length > 5000) return res.status(400).json({ error: 'Incident log must be 5000 characters or fewer.' });
+      const editedAt = new Date().toISOString();
+      const u = await coll.updateOne({ _id: target._id, text: target.text }, { $set: { text: m.text, editedAt } });
+      if (u.matchedCount === 1) {
+        await recordTicketActivity(shortId, req.user.username, 'incident-log-edit');
+        return res.json(Object.assign(out(Object.assign({}, target, { text: m.text, editedAt }), true), { filled: m.filled }));
+      }
+    }
+    res.status(409).json({ error: 'The incident log changed while saving. Please try again.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not add the Root Cause Details to the incident log.' });
   }
 });
 

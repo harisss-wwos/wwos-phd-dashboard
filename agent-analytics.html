@@ -1599,7 +1599,6 @@ function reloadPerfSection(){
   const bucket=perfBucket();
   const spin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
   const avg=document.getElementById('dashSumAvg'); if(avg)avg.innerHTML=spin;
-  try{ drawPerfSkeleton(win,bucket); }catch(e){ try{ perfChartShell(win); }catch(e2){} }
   const gp=perfGroupsParam();   // '&groups=A1,B' or '' when all/none selected
   // KPIs — direct /api/dash/summary call (no loadDashChunk SWR layer on this page).
   const q=['from='+encodeURIComponent(win.from)]; if(win.to)q.push('to='+encodeURIComponent(win.to));
@@ -1607,13 +1606,10 @@ function reloadPerfSection(){
     if(r&&r.ok&&r.data){ renderPerfKpis(r.data); }
     else { if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; }
   }).catch(function(){ if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; });
-  // Chart — granularity-aware timeseries endpoint.
-  const parts=['from='+encodeURIComponent(win.from)]; if(win.to)parts.push('to='+encodeURIComponent(win.to)); parts.push('bucket='+bucket);
-  const chartP=A.api('GET','/api/dash/timeseries?'+parts.join('&')+gp).then(function(r){
-    if(r&&r.ok&&r.data){ renderPerfChart(r.data,win); }
-    else { perfChartError('Could not load the chart.'); }
-  }).catch(function(){ perfChartError('Could not load the chart.'); });
-  return Promise.all([kpiP,chartP]);   // so perfReloadAll can await both before hiding the loader
+  // The Created vs Resolved / SLA % chart was removed from this section, so /api/dash/timeseries is
+  // no longer requested here (bucket kept for the KPI window only).
+  void bucket;
+  return Promise.all([kpiP]);   // so perfReloadAll can await it before hiding the loader
 }
 window.reloadPerfSection=reloadPerfSection;
 function perfChartError(msg){ const o=document.getElementById('perfSpinner'); if(o)o.outerHTML='<div class="perf-chart-msg">'+msg+'</div>'; }
@@ -1733,8 +1729,7 @@ window.renderPerfChart=renderPerfChart;
 // Body markup for the Performance Overview card (picker + KPI slot + chart slot).
 function perfSectionBodyHtml(){
   const avgSkel='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
-  const wkSkel='<p class="meta-info" style="margin:0 0 16px">Weekly Created vs Resolved volume, with SLA compliance % on a second axis.</p>'+
-    '<div class="chart-box"><div class="chart-wrap tall"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>';
+  // The Created vs Resolved / SLA % chart (#dashWeeklyBody) was removed from this section on request.
   return '<div class="perf-body">'+
       // Picker stays visible (it drives the reloads); the loader overlays only the data area below.
       '<div class="perf-head-right perf-head-inbody"><span id="perfPickerWrap">'+perfPickerHtml()+'</span></div>'+
@@ -1746,7 +1741,6 @@ function perfSectionBodyHtml(){
       '</div></div>'+
       '<div id="perfContent">'+
         '<div id="dashSumAvg" class="dash-chunk-slot">'+avgSkel+'</div>'+
-        '<div id="dashWeeklyBody" class="dash-chunk-slot" style="margin-top:4px">'+wkSkel+'</div>'+
         '<div id="dashPodium" class="dash-chunk-slot" style="margin-top:18px"></div>'+
         '<div class="perf-ytd-block"><div id="groupsView">'+groupsSectionsHtml()+'</div></div>'+
       '</div>'+

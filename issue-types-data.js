@@ -136,28 +136,20 @@ window.IZ_CATS = [
 
 // Shared PHD resolution list (clean names, in canonical mitigation-matrix order). Single source of
 // truth for the tools-page Root-Cause-Details builder AND the My Tickets structured incident log.
+// Updated list (12 resolutions), alphabetical A-Z. Keep tool-rcd.html RC_RESLIST in the same order.
 window.RC_RESOLUTIONS = [
   'Account Closure',
-  'Account Suspension',
-  'Blocking Place ID',
-  'Physical Order Block',
+  'Address Deprio',
   'Address Exclusion',
-  'Address Depri',
   'Area Exclusion',
-  'GeoPin Update',
-  'GeoFence Update',
-  'Geo-Routing Update',
-  'Parcel Box Installation',
-  'Delivery Hint Update',
-  'Customer Education',
   'Customer Reassurance',
+  'Delivery Hint',
   'Driver Follow-up',
-  'Pet Info Update',
-  'Insufficient Information',
-  'PHD Outreach',
-  'Driver Education',
-  'Driver Misconduct Reported',
-  'Driver Misconduct Not Reported'
+  'GeoFence Update',
+  'GeoPin Update',
+  'Parcel Box Installation',
+  'Physical Order Block',
+  'Routing Update'
 ];
 
 // Shared PHD "Root Cause" classification list (used by the My Tickets structured incident log).
