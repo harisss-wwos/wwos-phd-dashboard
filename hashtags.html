@@ -222,6 +222,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-more button:hover{border-color:#ec7211!important;color:#1b2026!important}
 .hx-mcount{color:#8793a0!important}
 .hx-empty{color:#8793a0!important}
+/* Per-card Export: sits at the right of the chart heading row; styled like the Show more buttons. */
+.hx-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hx-chart-head-txt{min-width:0;flex:1 1 auto}
+.hx-export-wrap{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.hx-export{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e6ea;color:#2a3340;border-radius:5px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer;font-family:inherit}
+.hx-export:hover{border-color:#ec7211;color:#1b2026}
+.hx-export:focus-visible{outline:2px solid #ec7211;outline-offset:1px}
+.hx-export[disabled]{opacity:.65;cursor:default}
+.hx-export .hu-spin.dark{width:12px;height:12px}
+.hx-export-msg{font-size:.78em;font-weight:600;color:#b03030}
+.hx-export-msg button{background:none;border:none;color:#1577a0;font-weight:700;cursor:pointer;padding:0 2px;font-family:inherit;font-size:1em;text-decoration:underline}
 /* Skeleton — mirrors the loaded layout: white 60px title bar + colored group bars + white cards. */
 .sk-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px;margin-bottom:14px}
 .sk-group{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);overflow:hidden;margin-top:18px}
@@ -401,7 +412,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=207"></script>
+<script src="topbar-auth.js?v=209"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -647,6 +658,76 @@ function hxToggle(idx){
   if(!wasOpen){ sec.classList.add('open'); setTimeout(function(){ hxDrawChart(idx); },60); }
 }
 
+// ===== Per-card CSV export (ALL tickets of the hashtag, not just the visible rows) =====
+/* HX-CSV-START — pure helpers (no DOM), also exercised by a Node test. */
+// [friendly header, DB field] in the exact CSV column order.
+var HX_EXP_COLS=[
+  ['Age','Age'],['Assigned Group','AssignedGroup'],['Assignee','AssigneeIdentity'],['Closure Code','ClosureCode'],
+  ['Created','CreateDate'],['Issue ID','IssueId'],['Issue URL','IssueUrl'],['Labels','Labels'],
+  ['Last Assigned','LastAssignedDate'],['Last Comment Date','LastUpdatedConversationDate'],['Last Updated','LastUpdatedDate'],
+  ['Requester','RequesterIdentity'],['Resolved By','ResolvedByIdentity'],['Resolved Date','ResolvedDate'],
+  ['Root Cause','RootCause'],['Root Cause Details','RootCauseDetails'],['Severity','Severity'],['Short ID','ShortId'],
+  ['Status','Status'],['Tags','Tags'],['Title','Title']
+];
+// One CSV cell (same rules as resolution-tickets-modal.js): neutralise spreadsheet formulas (leading
+// = + - @, tab, CR) with an apostrophe, then RFC-4180 quote when it holds a comma, quote or line break.
+function hxCsvCell(v){
+  var s=String(v==null?'':v);
+  if(/^[=+\-@\t\r]/.test(s)) s="'"+s;
+  if(/[",\r\n]/.test(s)) s='"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+// UTF-8 BOM + CRLF rows so Excel opens it correctly.
+function hxBuildCsv(rows){
+  var lines=[HX_EXP_COLS.map(function(c){ return hxCsvCell(c[0]); }).join(',')];
+  (rows||[]).forEach(function(r){ lines.push(HX_EXP_COLS.map(function(c){ return hxCsvCell(r&&r[c[1]]); }).join(',')); });
+  return '\uFEFF'+lines.join('\r\n')+'\r\n';
+}
+// hashtag_<tag-without-#>_<YYYY-MM-DD>.csv (local date).
+function hxExportFileName(tag,d){
+  d=d||new Date(); var p=function(n){ return (n<10?'0':'')+n; };
+  return 'hashtag_'+String(tag||'').replace(/^#+/,'')+'_'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'.csv';
+}
+/* HX-CSV-END */
+var HX_EXP_BUSY={}; // idx -> true while that card's export request is in flight
+// The Export control for a card. state: '' (idle) | 'busy' | 'err' (with a short message + Retry).
+function hxExportBtnHtml(idx,state,msg){
+  var a=HX_SECS[idx]; if(!a) return '';
+  var label='Export all '+a.count+' '+a.tag+' tickets';
+  if(state==='busy'){
+    return '<button type="button" class="hx-export" disabled aria-busy="true" aria-label="Exporting '+esc(a.tag)+' tickets">'
+      +'<span class="hu-spin dark" aria-hidden="true"></span>Exporting\u2026</button>';
+  }
+  var note=state==='err'
+    ? '<span class="hx-export-msg" role="alert">'+esc(msg||'Export failed.')+' <button type="button" onclick="hxExport('+idx+')">Retry</button></span>'
+    : (state==='note'?'<span class="hx-export-msg" role="status" style="color:#8a5a00">'+esc(msg||'')+'</span>':'');
+  return note+'<button type="button" class="hx-export" onclick="hxExport('+idx+')" title="'+esc(label)+'" aria-label="'+esc(label)+'">'
+    +ic('download',14)+'Export</button>';
+}
+function hxExportPaint(idx,state,msg){ var w=document.getElementById('hxExpWrap'+idx); if(w) w.innerHTML=hxExportBtnHtml(idx,state,msg); }
+// Fetch every ticket of the card from the server (same selection as the count) and save it as CSV.
+async function hxExport(idx){
+  var a=HX_SECS[idx]; if(!a||HX_EXP_BUSY[idx]) return;
+  HX_EXP_BUSY[idx]=true; hxExportPaint(idx,'busy');
+  try{
+    var also=(a.srcTags||[]).filter(function(t){ return hxCanon(t)===a.tag&&t!==a.tag; });
+    var path='/api/hashtags/'+encodeURIComponent(a.tag)+'/export'+(also.length?('?also='+encodeURIComponent(also.join(','))):'');
+    var r=null; try{ r=await A.api('GET',path); }catch(e){ r=null; }
+    if(!(r&&r.ok&&r.data&&Array.isArray(r.data.rows))){
+      var why=!r?'Network error.':(r.status===401?'Please log in again.':((r.data&&r.data.error)||('Export failed (HTTP '+r.status+').')));
+      hxExportPaint(idx,'err',why); return;
+    }
+    var blob=new Blob([hxBuildCsv(r.data.rows)],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob), link=document.createElement('a');
+    link.href=url; link.download=hxExportFileName(a.tag); document.body.appendChild(link); link.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); if(link.parentNode) link.parentNode.removeChild(link); },1000);
+    if(r.data.truncated) hxExportPaint(idx,'note','Exported the first '+r.data.count.toLocaleString('en-US')+' of '+Number(r.data.total).toLocaleString('en-US')+'.');
+    else hxExportPaint(idx,'');
+  }catch(e){ hxExportPaint(idx,'err','Could not build the CSV.'); }
+  finally{ HX_EXP_BUSY[idx]=false; }
+}
+window.hxExport=hxExport;
+
 function render(data){
   if(typeof hxLoaderStop==='function') hxLoaderStop(); // stop the initial loader before repaint
   var secs=(data&&data.sections)||[];
@@ -655,7 +736,9 @@ function render(data){
   var byTag={};
   secs.forEach(function(s){
     var canon=hxCanon(s.tag);
-    var cur=byTag[canon]||(byTag[canon]={ tag:canon, tickets:[], seen:{}, lastUploadAt:'' });
+    var cur=byTag[canon]||(byTag[canon]={ tag:canon, tickets:[], seen:{}, lastUploadAt:'', srcTags:[] });
+    // Remember every raw spelling folded into this card so the export can ask for the same set.
+    if(cur.srcTags.indexOf(s.tag)<0) cur.srcTags.push(s.tag);
     // Newest CSV-upload date across the tag and its alias spellings (ISO strings compare in order).
     if(s.lastUploadAt && String(s.lastUploadAt)>String(cur.lastUploadAt||'')) cur.lastUploadAt=s.lastUploadAt;
     (s.tickets||[]).forEach(function(t){
@@ -670,7 +753,7 @@ function render(data){
   // tag renders even with 0 tickets, in the fixed HX_ORDER order.
   HX_SECS=HX_ORDER.map(function(tag){
     var m=byTag[tag];
-    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], lastUploadAt:(m&&m.lastUploadAt)||'', shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
+    return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], lastUploadAt:(m&&m.lastUploadAt)||'', srcTags:(m&&m.srcTags)||[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
   });
   // No title bar, no group wrappers (DEFECTS / PATTERNS / OTHER / #Out of Scope). Render a single
   // FLAT list of hashtag section cards, ordered by ticket count (most-used first), then by name.
@@ -707,8 +790,10 @@ function render(data){
       +'</div>'
       +'<div class="hx-sec-body">'
         +(a.count>0
-          ? '<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
-            +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
+          ? '<div class="hx-chart-head"><div class="hx-chart-head-txt">'
+              +'<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+              +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
+            +'</div><span class="hx-export-wrap" id="hxExpWrap'+idx+'">'+hxExportBtnHtml(idx)+'</span></div>'
             +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
             +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
           : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')

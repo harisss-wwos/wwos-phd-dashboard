@@ -551,6 +551,77 @@ app.get('/api/sla-monthly', requireFlag('canViewSLA'), async (req, res) => {
   }
 });
 
+// ---- Resolutions page: MONTHLY Created vs Resolved vs SLA (section-1 chart) ----
+// GET /api/resolutions/monthly?year=2026  (same access as /api/sla-monthly)
+// One read-only scan, two $facet branches on projected fields, UTC months ($month on a Date is UTC):
+//   created    = CreateDate in the month (same count as /api/sla-monthly `created`)
+//   slaCrossed = of those, create->resolve > 240h (same rule + cohort as /api/sla-monthly
+//                `slaCrossed`, so the numbers match the SLA Breaches page)
+//   resolved   = Status Resolved/Closed with ResolvedDate in the month (same scope as
+//                /api/perf-summary `resolved`)
+//   slaEligible = of the created-in-month tickets, those with a ResolvedDate (the SLA cohort above)
+//   slaWithin   = of those, create->resolve <= 240h  (slaEligible = slaWithin + slaCrossed)
+//   slaPct      = SLA compliance % = slaWithin / slaEligible * 100 (1 dp); null when slaEligible is 0
+// Counted once per ticket doc, exactly like those two endpoints (neither dedupes), so they agree.
+// Months after the current UTC month are null (the chart line stops there). Cached 5 min.
+const slaPctOf = (within, elig) => (elig > 0 ? Math.round(within / elig * 1000) / 10 : null);
+app.get('/api/resolutions/monthly', requireFlag('canViewSLA'), async (req, res) => {
+  try {
+    const year = req.query.year == null || req.query.year === '' ? 2026 : Number(req.query.year);
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) return res.status(400).json({ error: 'year must be a 4-digit year.' });
+    const key = 'resolutions-monthly:v2:' + year;   // v2: + slaEligible / slaWithin / slaPct
+    const cached = getCachedReport(key);
+    if (cached) return res.json(cached);
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const rdExpr = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+    const Y0 = new Date(Date.UTC(year, 0, 1)), Y1 = new Date(Date.UTC(year + 1, 0, 1));
+    const [facet] = await coll.aggregate([
+      { $project: { _id: 0, st: '$Status', cd: cdExpr, rd: rdExpr } },
+      { $match: { $or: [{ cd: { $gte: Y0, $lt: Y1 } }, { rd: { $gte: Y0, $lt: Y1 } }] } },
+      { $facet: {
+        created: [
+          { $match: { cd: { $gte: Y0, $lt: Y1 } } },
+          { $group: {
+            _id: { $month: '$cd' },
+            n: { $sum: 1 },
+            sla: { $sum: { $cond: [{ $and: [{ $ne: ['$rd', null] }, { $gt: [{ $divide: [{ $subtract: ['$rd', '$cd'] }, 3600000] }, SLA_THRESHOLD_HRS] }] }, 1, 0] } },
+            elig: { $sum: { $cond: [{ $ne: ['$rd', null] }, 1, 0] } },
+          } },
+        ],
+        resolved: [
+          { $match: { st: { $in: ['Resolved', 'Closed'] }, rd: { $gte: Y0, $lt: Y1 } } },
+          { $group: { _id: { $month: '$rd' }, n: { $sum: 1 } } },
+        ],
+      } },
+    ], { allowDiskUse: true }).toArray();
+    const cBy = {}, rBy = {};
+    ((facet && facet.created) || []).forEach(r => { cBy[r._id] = r; });
+    ((facet && facet.resolved) || []).forEach(r => { rBy[r._id] = r.n; });
+    const now = new Date();
+    const lastMonth = year < now.getUTCFullYear() ? 12 : year > now.getUTCFullYear() ? 0 : now.getUTCMonth() + 1;
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      if (m > lastMonth) { months.push({ month: m, created: null, resolved: null, slaCrossed: null, slaEligible: null, slaWithin: null, slaPct: null }); continue; }
+      const c = cBy[m] || {};
+      const elig = c.elig || 0, crossed = c.sla || 0, within = elig - crossed;
+      months.push({ month: m, created: c.n || 0, resolved: rBy[m] || 0, slaCrossed: crossed,
+        slaEligible: elig, slaWithin: within, slaPct: slaPctOf(within, elig) });
+    }
+    const sum = (k) => months.reduce((s, x) => s + (x[k] || 0), 0);
+    const payload = {
+      year, lastMonth, slaThresholdHrs: SLA_THRESHOLD_HRS, months,
+      totals: { created: sum('created'), resolved: sum('resolved'), slaCrossed: sum('slaCrossed'),
+        slaEligible: sum('slaEligible'), slaWithin: sum('slaWithin'), slaPct: slaPctOf(sum('slaWithin'), sum('slaEligible')) },
+      generatedAt: now.toISOString(),
+    };
+    setCachedReport(key, payload);
+    res.json(payload);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the monthly resolutions trend.' });
+  }
+});
+
 // Country code for an SLA ticket (same rules as /api/sla-flat): Country field, else a bracketed /
 // "Country XX" / leading title token, validated against the known code list; else 'Unknown'.
 const SLA_COUNTRY_CODES = new Set(['US','UK','CA','IN','AU','MX','JP','DE','IT','FR','EG','ES','SA','BR','NL','ZA','PT','UAE','IE','SG','TR','PL','SE','BE','AT','CH','DK','NO','FI','GR','CZ']);
@@ -3409,52 +3480,98 @@ function normHashtag(raw) {
   t = t.replace(/[^a-z0-9_-]/g, ''); // keep only tag-safe chars
   return t ? ('#' + t) : '';
 }
+// Shared ticket selection for the Hashtags report AND the per-hashtag CSV export, so the export row
+// count always equals the card's count. A ticket qualifies if its Labels carry a '#' OR it has one
+// or more manually-assigned hashtags (ManualHashtags, written by the admin hashtag-CSV upload), and
+// it was created on/after HASHTAGS_FROM. `extraProject` adds fields to the projection (export only).
+async function scanHashtagTickets(coll, extraProject) {
+  return coll.aggregate([
+    { $match: { $or: [ { Labels: { $regex: /#/ } }, { ManualHashtags: { $exists: true, $ne: [] } } ] } },
+    { $project: Object.assign({
+      _id: 0,
+      ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1,
+      AssigneeIdentity: 1, Labels: 1, ManualHashtags: 1, q: 1,
+      cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+    }, extraProject || {}) },
+    { $match: { cd: { $gte: HASHTAGS_FROM } } },
+  ], { allowDiskUse: true }).toArray();
+}
+// Group scanned rows into sections keyed by normalized #tag; dedupe ShortIds within a tag (a ticket
+// can exist in several quarter docs). `toTicket(row, sid)` shapes what is stored per ticket.
+function groupHashtagSections(rows, toTicket) {
+  const sections = new Map(); // tag -> { tag, seen:Set, tickets:[] }
+  rows.forEach(t => {
+    const sid = t.ShortId || t.IssueId || '';
+    // Union of (a) #tags scanned from Labels and (b) manually-assigned hashtags, deduped per ticket
+    // so a tag present in BOTH Labels and ManualHashtags is counted exactly once.
+    const labelTags = String(t.Labels || '').match(HASHTAG_TOKEN_RE) || [];
+    const manualTags = Array.isArray(t.ManualHashtags) ? t.ManualHashtags : [];
+    const tags = labelTags.concat(manualTags);
+    if (!tags.length) return;
+    const ticket = toTicket(t, sid);
+    const uniqueTags = [...new Set(tags.map(x => normHashtag(x)).filter(Boolean))];
+    uniqueTags.forEach(tag => {
+      let sec = sections.get(tag);
+      if (!sec) { sec = { tag, seen: new Set(), tickets: [] }; sections.set(tag, sec); }
+      if (sid && sec.seen.has(sid)) return; // already counted this ticket in this tag
+      if (sid) sec.seen.add(sid);
+      sec.tickets.push(ticket);
+    });
+  });
+  return sections;
+}
+// The 21 export columns (DB field names), in CSV order. The client maps them to friendly headers.
+const HASHTAG_EXPORT_FIELDS = [
+  'Age', 'AssignedGroup', 'AssigneeIdentity', 'ClosureCode', 'CreateDate', 'IssueId', 'IssueUrl',
+  'Labels', 'LastAssignedDate', 'LastUpdatedConversationDate', 'LastUpdatedDate', 'RequesterIdentity',
+  'ResolvedByIdentity', 'ResolvedDate', 'RootCause', 'RootCauseDetails', 'Severity', 'ShortId',
+  'Status', 'Tags', 'Title',
+];
+const HASHTAG_EXPORT_CAP = 20000;
+// Raw value -> export string: arrays joined with '; ', Dates as ISO, null/undefined -> ''.
+function hashtagExportVal(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.map(hashtagExportVal).filter(s => s !== '').join('; ');
+  if (v instanceof Date) return isNaN(v) ? '' : v.toISOString();
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+// Every ticket of one hashtag card, using the SAME selection/matching/dedupe as /api/hashtags-report.
+// `tags` = the canonical tag plus any alias spellings the page folds into the same card; tickets are
+// unioned across them and deduped by ShortId exactly like the page's render(). Newest-created first.
+async function hashtagExportRows(coll, tags) {
+  const proj = {};
+  HASHTAG_EXPORT_FIELDS.forEach(f => { proj[f] = 1; });
+  const rows = await scanHashtagTickets(coll, proj);
+  const sections = groupHashtagSections(rows, t => t);
+  const seen = new Set(), out = [];
+  tags.forEach(tag => {
+    const sec = sections.get(tag); if (!sec) return;
+    sec.tickets.forEach(t => {
+      const sid = String(t.ShortId || t.IssueId || '');
+      if (sid && seen.has(sid)) return;
+      if (sid) seen.add(sid);
+      out.push(t);
+    });
+  });
+  out.sort((a, b) => (new Date(b.CreateDate) - new Date(a.CreateDate)) || 0);
+  return out;
+}
 app.get('/api/hashtags-report', async (req, res) => {
   try {
     // Serve a cached result if fresh (these scan the whole collection; data changes only on upload).
     const cached = getCachedReport('hashtags-report');
     if (cached) return res.json(cached);
     const coll = await getCollection(COLLECTIONS.ticketDocs);
-    // A ticket qualifies if its Labels carry a '#' OR it has one or more manually-assigned hashtags
-    // (ManualHashtags, written by the admin hashtag-CSV upload). Both sources are unioned per ticket.
-    const rows = await coll.aggregate([
-      { $match: { $or: [ { Labels: { $regex: /#/ } }, { ManualHashtags: { $exists: true, $ne: [] } } ] } },
-      { $project: {
-        _id: 0,
-        ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1,
-        AssigneeIdentity: 1, Labels: 1, ManualHashtags: 1, q: 1,
-        cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
-      } },
-      { $match: { cd: { $gte: HASHTAGS_FROM } } },
-    ], { allowDiskUse: true }).toArray();
-
-    // Group into sections keyed by lowercased #tag; dedupe ShortIds within a tag.
-    const sections = new Map(); // tag -> { tag, seen:Set, tickets:[] }
-    rows.forEach(t => {
-      const sid = t.ShortId || t.IssueId || '';
-      // Union of (a) #tags scanned from Labels and (b) manually-assigned hashtags, deduped per ticket
-      // so a tag present in BOTH Labels and ManualHashtags is counted exactly once.
-      const labelTags = String(t.Labels || '').match(HASHTAG_TOKEN_RE) || [];
-      const manualTags = Array.isArray(t.ManualHashtags) ? t.ManualHashtags : [];
-      const tags = labelTags.concat(manualTags);
-      if (!tags.length) return;
-      const ticket = {
-        shortId: sid,
-        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
-        created: t.CreateDate || '',
-        assignee: t.AssigneeIdentity || '',
-        status: t.Status || '',
-        title: t.Title || '',
-      };
-      const uniqueTags = [...new Set(tags.map(x => normHashtag(x)).filter(Boolean))];
-      uniqueTags.forEach(tag => {
-        let sec = sections.get(tag);
-        if (!sec) { sec = { tag, seen: new Set(), tickets: [] }; sections.set(tag, sec); }
-        if (sid && sec.seen.has(sid)) return; // already counted this ticket in this tag
-        if (sid) sec.seen.add(sid);
-        sec.tickets.push(ticket);
-      });
-    });
+    const rows = await scanHashtagTickets(coll);
+    const sections = groupHashtagSections(rows, (t, sid) => ({
+      shortId: sid,
+      url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+      created: t.CreateDate || '',
+      assignee: t.AssigneeIdentity || '',
+      status: t.Status || '',
+      title: t.Title || '',
+    }));
 
     // Shape for the frontend: newest-first tickets, sections ordered by descending count.
     const out = [...sections.values()]
@@ -3487,6 +3604,34 @@ app.get('/api/hashtags-report', async (req, res) => {
     res.json(payload);
   } catch (e) {
     res.status(500).json({ error: 'Could not load hashtags report.' });
+  }
+});
+
+// ---- Hashtags page: export ALL tickets of one hashtag card (CSV built client-side) -------------
+// GET /api/hashtags/:tag/export[?also=%23alias1,%23alias2]  (logged-in users; the page itself is
+// login-only). `tag` is URL-encoded ('#' optional). `also` lists alias spellings the page folds into
+// this card (e.g. #geopin -> #incorrect-geopin) so the export count equals the card's count. Read-only.
+app.get('/api/hashtags/:tag/export', requireRole('user'), async (req, res) => {
+  try {
+    const raw = String(req.params.tag || '');
+    if (raw.length > 100) return res.status(400).json({ error: 'Hashtag is too long.' });
+    const tag = normHashtag(raw);
+    if (!tag) return res.status(400).json({ error: 'Missing or invalid hashtag.' });
+    const alsoRaw = String(req.query.also || '');
+    if (alsoRaw.length > 1000) return res.status(400).json({ error: 'Too many alias hashtags.' });
+    const also = alsoRaw ? alsoRaw.split(',').slice(0, 10).map(s => s.length > 100 ? '' : normHashtag(s)).filter(Boolean) : [];
+    const tags = [...new Set([tag].concat(also))];
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const all = await hashtagExportRows(coll, tags);
+    const truncated = all.length > HASHTAG_EXPORT_CAP;
+    const rows = all.slice(0, HASHTAG_EXPORT_CAP).map(t => {
+      const o = {};
+      HASHTAG_EXPORT_FIELDS.forEach(f => { o[f] = hashtagExportVal(t[f]); });
+      return o;
+    });
+    res.json({ tag, tags, total: all.length, count: rows.length, truncated, fields: HASHTAG_EXPORT_FIELDS, rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not export hashtag tickets.' });
   }
 });
 
@@ -3635,6 +3780,7 @@ async function perfResolutionDistribution(from, to) {
 // Tickets behind one Resolution Distribution row: the same scope as the count, filtered on the same
 // normalised Res key, newest CreateDate first (ties by ShortId). Returns ALL matches.
 const PERF_RES_MAX_LEN = 200;
+const PERF_RES_MAX_DAYS = 367;   // longest window for the resolutions-only views (YTD)
 function perfResolverName(raw) {
   const s = String(raw == null ? '' : raw).trim();
   if (/autosim/i.test(s)) return 'AutoSIM';
@@ -3732,6 +3878,15 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
     const from = new Date(String(req.query.from || ''));
     const to = new Date(String(req.query.to || ''));   // exclusive upper bound
     if (isNaN(from) || isNaN(to) || to <= from) return res.status(400).json({ error: 'Provide valid from/to dates (to exclusive).' });
+    // part=resolutions (resolutions.html): ONLY the Resolution Distribution for [from,to) — the same
+    // perfResolutionDistribution selection the full summary uses, so a week/month here equals
+    // performance-summary's resolvedTotal/resolutions and the drill-down list. Any window up to
+    // PERF_RES_MAX_DAYS (YTD 2026, an arbitrary month or Sun–Sat week).
+    if (req.query.part === 'resolutions') {
+      if ((to - from) / 86400000 > PERF_RES_MAX_DAYS) return res.status(400).json({ error: 'The date range is too long.' });
+      const dist = await perfResolutionDistribution(from, to);
+      return res.json({ from: from.toISOString(), to: to.toISOString(), resolvedTotal: dist.resolvedTotal, resolutions: dist.resolutions });
+    }
     const span = to - from;
     const prevFrom = new Date(from.getTime() - span), prevTo = new Date(from.getTime());
     const [cur, prev, resDist] = await Promise.all([ perfWindowStats(from, to), perfWindowStats(prevFrom, prevTo), perfResolutionDistribution(from, to) ]);
@@ -3744,14 +3899,14 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
     res.status(500).json({ error: 'Could not build the performance summary.' });
   }
 });
-// GET /api/perf-summary/resolution-tickets?view=week|month&from=YYYY-MM-DD&to=YYYY-MM-DD&resolution=<value>
+// GET /api/perf-summary/resolution-tickets?view=week|month|ytd&from=YYYY-MM-DD&to=YYYY-MM-DD&resolution=<value>
 // Drill-down for a Resolution Distribution count: every ticket counted under that Res value for the
 // same window (from inclusive, to exclusive — the params the page sends to /api/perf-summary).
 app.get('/api/perf-summary/resolution-tickets', requireRole('user'), async (req, res) => {
   try {
     const q = req.query || {};
     const view = typeof q.view === 'string' ? q.view : '';
-    if (view !== 'week' && view !== 'month') return res.status(400).json({ error: 'view must be "week" or "month".' });
+    if (view !== 'week' && view !== 'month' && view !== 'ytd') return res.status(400).json({ error: 'view must be "week", "month" or "ytd".' });
     const parseDay = (v) => {
       if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
       const d = new Date(v + 'T00:00:00.000Z');
@@ -3759,7 +3914,7 @@ app.get('/api/perf-summary/resolution-tickets', requireRole('user'), async (req,
     };
     const from = parseDay(q.from), to = parseDay(q.to);   // to is exclusive
     if (!from || !to || to <= from) return res.status(400).json({ error: 'Provide valid from/to dates as YYYY-MM-DD (to exclusive).' });
-    const maxDays = view === 'week' ? 14 : 62;
+    const maxDays = view === 'week' ? 14 : view === 'month' ? 62 : PERF_RES_MAX_DAYS;
     if ((to - from) / 86400000 > maxDays) return res.status(400).json({ error: 'The date range is too long for this view.' });
     const resolution = typeof q.resolution === 'string' ? q.resolution.replace(/\s+/g, ' ').trim() : '';
     if (!resolution) return res.status(400).json({ error: 'Provide a resolution value.' });

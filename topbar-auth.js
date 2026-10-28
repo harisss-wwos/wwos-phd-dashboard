@@ -1162,6 +1162,12 @@
       // Group 2 (dark): #161d2d bg, white text.
       + '#tbHomeChrome .home-navgrp-dark .home-nav-btn{background:#161d2d;color:#fff}'
       + '#tbHomeChrome .home-navgrp-dark .home-nav-ic{background:rgba(255,255,255,.12);color:#fff}'
+      // Resolutions (first dark-group item): #161d2d bg, white text + icon, no border (also when current).
+      + '#tbHomeChrome .home-navgrp-dark .home-nav-res{background:#161d2d;color:#fff;border:0;box-shadow:none}'
+      + '#tbHomeChrome .home-navgrp-dark .home-nav-res:hover{background:#222b3f;filter:none}'
+      + '#tbHomeChrome .home-navgrp-dark .home-nav-res .home-nav-ic{background:rgba(255,255,255,.12);color:#fff}'
+      + '#tbHomeChrome .home-navgrp-dark .home-nav-res.is-current{background:#161d2d;border:0;box-shadow:none}'
+      + '#tbHomeChrome .home-nav-res:focus-visible{outline:2px solid #fff;outline-offset:2px}'
       // Group 3 (action): Upload / View log / Log out.
       + '#tbHomeChrome .home-navgrp-action{}'
       + '#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;padding:9px 12px;border-radius:5px;border:none;cursor:pointer;text-decoration:none;font-family:inherit;font-size:.86em;font-weight:800;color:#fff;text-align:left;transition:filter .14s}'
@@ -2158,6 +2164,7 @@
     'hi-resolved': { title: 'Repeat Incidents', icon: 'repeat', tone: 'blue' }, 'sla-breach': { title: 'SLA Breaches', icon: 'clock', tone: 'rose' },
     'station-request': { title: 'Station Requests', icon: 'map-pin', tone: 'blue' }, 'agent-analytics': { title: 'Team Analytics', icon: 'bar-chart', tone: 'blue' },
     'performance-summary': { title: 'Performance Summary', icon: 'clipboard', tone: 'blue' },
+    'resolutions': { title: 'Resolutions', icon: 'check-circle', tone: 'violet' },
     'pulse-check': { title: 'Pulse Check (24h)', icon: 'line-chart', tone: 'blue' },
     'tools': { title: 'PHD Tools', icon: 'tool', tone: 'teal' }, 'profile': { title: 'Profile', icon: 'user', tone: 'blue' },
     'data-log': { title: 'Uploaded Data Log', icon: 'history', tone: 'violet' }, 'users': { title: 'Users', icon: 'users', tone: 'blue' },
@@ -2268,8 +2275,14 @@
       + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
       + navBtn('pulse-check.html', 'Pulse Check (24h)', 'line-chart')
       + '</nav>';
+    // Resolutions: first item of the dark group (directly above SLA Breaches), purple via
+    // .home-nav-res; marked current (aria-current) while on resolutions.html.
+    var onResolutions = /(^|\/)resolutions\.html$/i.test(location.pathname);
+    var resBtn = navBtn('resolutions.html', 'Resolutions', 'check-circle')
+      .replace('class="home-nav-btn"', 'class="home-nav-btn home-nav-res' + (onResolutions ? ' is-current" aria-current="page' : '') + '"');
     // Group 2 (middle): dark buttons.
     var navMid = '<nav class="home-navgrp home-navgrp-dark">'
+      + resBtn
       + navBtn('sla-breach.html', 'SLA Breaches (>240h)', 'clock')
       + navBtn('station-request.html', 'Station Request Tickets', 'map-pin')
       + navBtn('hashtags.html', 'Hashtags', 'hash')
@@ -4480,6 +4493,8 @@
     if (li) {
       buildFlyoutGroup(rcol, ranchor, li, isAdmin, isOwner, {
         id: 'reports', triggerIcon: 'line-chart', triggerImg: 'icons/reports.png', triggerLabel: 'Statistics', items: [
+          // Same access as /api/perf-summary (requireRole('user') = any logged-in user).
+          { key: 'resolutions',     label: 'Resolutions',             icon: 'check-circle',             href: 'resolutions.html',     need: 'li' },
           { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    img: 'icons/sla-breaches.png',    href: 'sla-breach.html',      need: 'sla' },
           { key: 'station-request', label: 'Station Request Tickets', img: 'icons/station-request.png', href: 'station-request.html', need: 'sr' },
           { key: 'hashtags',        label: 'Hashtags',                img: 'icons/hashtags.png',        href: 'hashtags.html',        need: 'li' },
@@ -4721,6 +4736,7 @@
     var map = {
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
       'agent-analytics.html': 'bar-chart', 'performance-summary.html': 'clipboard',
+      'resolutions.html': 'check-circle',
       'pulse-check.html': 'line-chart',
       'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
