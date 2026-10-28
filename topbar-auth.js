@@ -2293,7 +2293,9 @@
   // Chip colour is decided per chip by its own AM/PM: PM -> black bg / white text, AM -> white bg / black text.
   var TBC_ZONES = [
     { key: 'IST', tz: 'Asia/Kolkata', name: 'India Standard Time' },
-    { key: 'MST', tz: 'America/Denver', name: 'Mountain Time (America/Denver)' }   // always labelled MST
+    // The team's "MST" is Arizona time: America/Phoenix stays on MST (UTC-7) all year, with no
+    // daylight saving. America/Denver switches to MDT (UTC-6) in summer, which showed an hour ahead.
+    { key: 'MST', tz: 'America/Phoenix', name: 'Mountain Standard Time (Arizona, America/Phoenix)' }
   ];
   var TBC_FMT = {};
   function tbcParts(zone, date) {
