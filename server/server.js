@@ -2793,11 +2793,23 @@ app.get('/api/ticket-search', requireRole('user'), async (req, res) => {
       country,
       slaHours: SLA_HOURS,
       important: await getImportantMarking(hit.ShortId || hit.IssueId || shortId),
+      logCount: await countIncidentLogs(hit.ShortId || hit.IssueId || shortId),
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not search for the ticket.' });
   }
 });
+
+// Helper: number of incident-log entries for a ticket (null if the count fails, so the
+// client falls back to fetching the log lazily).
+async function countIncidentLogs(shortId) {
+  try {
+    const coll = await getCollection(COLLECTIONS.incidentLogs);
+    return await coll.countDocuments({ shortId: String(shortId) });
+  } catch (e) {
+    return null;
+  }
+}
 
 // Helper: fetch the "important" marking for a ticket (or null).
 async function getImportantMarking(shortId) {

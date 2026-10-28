@@ -9,6 +9,12 @@
      is cleared by topbar-auth after the chrome builds; a failsafe timer clears it if the script
      never runs (offline) so the page can never stay hidden. -->
 <style>html.tb-booting body{visibility:hidden!important}</style>
+<!-- Keep the page section hidden until the shared chrome (title bar + menu column) has wrapped it, so the
+     loader never shows on a bare page while topbar-auth.js is still downloading. Safety net: shown
+     anyway after 8s (html.tb-wrap-timeout) or without JS. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
 <script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
 <noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -296,6 +302,92 @@ h1{color:#1b2026!important}
 .mark-ticket .mt-id{color:#1577a0!important}
 #srchMarkInfo{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
 #srchMarkInfo:focus{border-color:#ec7211!important}
+/* Found-card: "View log updates" icon button next to the ticket ID. */
+.fc-id-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fc-logwrap{display:inline-flex}
+.fc-logbtn{position:relative;width:32px;height:32px;border-radius:5px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;box-shadow:0 4px 12px -5px rgba(240,125,10,.6);transition:transform .12s,box-shadow .12s}
+.fc-logbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fc-logbtn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 14px -5px rgba(240,125,10,.75)}
+.fc-logbtn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}
+.fc-logbtn:disabled{background:#e8ebee;color:#9aa5b1;box-shadow:none;cursor:not-allowed}
+.fc-logcount{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#1b2026;color:#fff;
+  font-size:10px;font-weight:700;line-height:17px;text-align:center;border:2px solid #fff}
+/* Log updates popup (read-only; same layout as My Tickets' View-incident-log modal, light theme). */
+.vil-modal{width:min(640px,92vw);max-width:min(640px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.vil-head{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid #e6eaee}
+.vil-head-ic{flex-shrink:0;width:32px;height:32px;border-radius:9px;background:rgba(21,119,160,.1);color:#1577a0;display:inline-flex;align-items:center;justify-content:center}
+.vil-head-tx{flex:1;min-width:0;margin:0;color:#1b2026;font-size:1.05em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vil-icbtn,.vil-x{flex-shrink:0;background:transparent;border:1px solid #d4dce4;color:#5c6773;border-radius:6px;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
+.vil-icbtn:hover{border-color:#1577a0;color:#1577a0;background:rgba(21,119,160,.08)}
+.vil-x:hover{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.vil-body{padding:16px 20px 20px;overflow:auto}
+.vil-hint{color:#5c6773;font-size:.78em;margin:0 0 12px}
+.ilog-item{background:#f7f9fb;border:1px solid #e6eaee;border-radius:5px;padding:12px 14px;margin-bottom:10px}
+.ilog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.ilog-who{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.76em;color:#5c6773}
+.ilog-who b{color:#1b2026}
+.ilog-when{display:inline-flex;align-items:center;gap:4px;margin-left:8px;color:#5c6773}
+.ilog-text{color:#2a3340;white-space:pre-wrap;font-size:.88em;line-height:1.55;word-break:break-word}
+.ilog-empty{color:#8793a0;text-align:center;padding:24px;font-style:italic}
+.ilog-err{text-align:center;padding:20px;color:#dc2626;font-size:.88em}
+.ilog-err .btn{margin-top:10px}
+/* Per-entry Edit button (top-right of each log entry; author-only). */
+.ilog-editwrap{display:inline-flex;flex-shrink:0}
+.ilog-editbtn{flex-shrink:0;width:28px;height:28px;border-radius:5px;border:1px solid #d4dce4;background:#fff;color:#5c6773;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
+.ilog-editbtn svg{width:14px;height:14px}
+.ilog-editbtn:hover:not(:disabled){border-color:#ec7211;color:#ec7211;background:#fff4e8}
+.ilog-editbtn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}
+.ilog-editbtn:disabled{opacity:.45;cursor:not-allowed}
+/* Shared Edit-incident-log modal stacks above the Log updates modal (2000), below toasts/confirm. */
+#incidentModal{z-index:2050}
+</style>
+<style id="ic-loader">
+/* ---- Fun phased section loader (same look as sla-breach.html / agent-analytics.html). Concrete brand
+   colors: blue #2b66c1, blue-bg #e6f0fc, blue-ic #c4def6, orange #ff6100, orange-l #fe9046, ink #151d28. ---- */
+.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
+.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  animation:gwSpin 1.1s linear infinite}
+.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
+  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
+.gw-orb-ic svg{width:30px;height:30px}
+@keyframes gwSpin{100%{transform:rotate(360deg)}}
+@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
+.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
+@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.gw-dots{display:flex;gap:7px}
+.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
+.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
+.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
+@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
+.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
+.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
+.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
+.gw-loader.gw-done .gw-dots{visibility:hidden}
+@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+/* Compact variants: ticket-search results area (sm) and inside the Log updates modal (xs). */
+.gw-loader.gw-sm{min-height:220px;padding:20px}
+.gw-loader.gw-sm .gw-loader-in{gap:14px}
+.gw-loader.gw-sm .gw-loader-msg{font-size:1.05em}
+.gw-loader.gw-xs{min-height:160px;padding:16px}
+.gw-loader.gw-xs .gw-loader-in{gap:12px}
+.gw-loader.gw-xs .gw-orb{width:72px;height:72px}
+.gw-loader.gw-xs .gw-orb-ic{width:46px;height:46px}
+.gw-loader.gw-xs .gw-orb-ic svg{width:22px;height:22px}
+.gw-loader.gw-xs .gw-loader-msg{font-size:.98em}
+.card.gw-card{padding:0}
+@media (prefers-reduced-motion:reduce){
+  .gw-orb::before,.gw-orb-ic,.gw-loader-msg.gw-msg-in,.gw-dots span,.gw-loader.gw-done .gw-orb-ic{animation:none!important}
+  .gw-dots span{opacity:.8}
+}
 </style>
 </head>
 <body data-nav-active="" data-back-href="app.html" data-back-label="Dashboard">
@@ -303,7 +395,7 @@ h1{color:#1b2026!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1></div></div><div class="uc-skel"><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div><div class="case sk"><div class="sk-head"><span class="sk-bar id"></span><span class="sk-bar title"></span><span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div></div></div>
+<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1></div></div><div class="card gw-card"><div class="gw-loader gw-sm" role="status" aria-live="polite"><div class="gw-loader-in"><div class="gw-orb"><span class="gw-orb-ic"></span></div><div class="gw-loader-msg gw-msg-in">Getting things ready…</div><div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="gw-loader-sub">Unique cases</div></div></div></div></div>
 
 <!-- Edit marking popup -->
 <div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
@@ -353,13 +445,36 @@ h1{color:#1b2026!important}
   </div>
 </div>
 
+<!-- Log updates popup (read-only incident log for the searched ticket) -->
+<div class="modal-bg" id="logModal" onclick="if(event.target===this)closeLogModal()">
+  <div class="modal vil-modal" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
+    <div class="vil-head">
+      <span class="vil-head-ic" id="logModalIcon" aria-hidden="true"></span>
+      <h2 class="vil-head-tx" id="logModalTitle">Log updates</h2>
+      <button type="button" class="vil-icbtn" id="logCopyBtn" onclick="copyLogUpdates()" style="display:none" title="Copy all entries" aria-label="Copy all entries"></button>
+      <button type="button" class="vil-x" id="logCloseBtn" onclick="closeLogModal()" title="Close" aria-label="Close"></button>
+    </div>
+    <div class="vil-body">
+      <p class="vil-hint">Every incident-log entry on this ticket, newest first. You can edit entries you authored.</p>
+      <div id="logList" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit-incident-log popup: built by incident-log-editor.js (same modal as My Tickets). -->
+<div id="incidentModalMount" hidden></div>
+
 <div class="toast" id="toast"></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
+<script src="issue-types-data.js?v=2"></script>
+<script src="incident-log-editor.js?v=1"></script>
 <script src="topbar-auth.js?v=206"></script>
 <script>
 const A=window.PHDAuth;
+// Shared structured incident-log editor (same modal + helpers as My Tickets).
+if(window.IncidentLogEditor){ window.IncidentLogEditor.injectStyles(); window.IncidentLogEditor.mount('incidentModalMount'); }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Unique Cases</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
 let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
@@ -472,54 +587,198 @@ async function doUnmark(){
   else{document.getElementById('unmarkErr').textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');document.getElementById('unmarkErr').style.display='block';}
 }
 
+// ================= Fun phased loader (same experience as sla-breach.html) =================
+// Loader markup keyed by the id-prefix `pfx`. `size`: '' = full section (70vh), 'gw-sm' = ticket-search
+// results area (220px), 'gw-xs' = inside the Log updates modal (160px). role=status announces the message.
+function ldHtml(pfx,size,subLabel){
+  return '<div id="'+pfx+'Loader" class="gw-loader'+(size?(' '+size):'')+'" role="status" aria-live="polite">'+
+    '<div class="gw-loader-in">'+
+      '<div class="gw-orb" aria-hidden="true"><span class="gw-orb-ic" id="'+pfx+'LoaderIc">'+ic('clock',30)+'</span></div>'+
+      '<div class="gw-loader-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting things ready\u2026</div>'+
+      '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
+      '<div class="gw-loader-sub" id="'+pfx+'LoaderSub">'+esc(subLabel||'Loading')+'</div>'+
+    '</div>'+
+  '</div>';
+}
+function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
+function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+// Keep the opening line first and the closing "Almost there" last; shuffle everything in between.
+function gwKeepEnds(lines){ return lines.length<3?lines:[lines[0]].concat(gwShuffle(lines.slice(1,-1)),[lines[lines.length-1]]); }
+// Unique-cases list: phase 1 (@2s) then, if the server is slow, phase 2 (@3s, loops).
+function ucListPhase1(){
+  var me=gwFirstName();
+  return gwKeepEnds([
+    ['target',      'Finding the unique cases for you, '+me+' \u2728'],
+    ['calendar',    'Checking every quarter\u2026'],
+    ['ticket',      'Pulling ticket details\u2026'],
+    ['star',        'Gathering the cases marked important\u2026'],
+    ['users',       'Matching each case to who marked it\u2026'],
+    ['clipboard',   'Collecting notes and links\u2026'],
+    ['history',     'Looking back through past quarters\u2026'],
+    ['search',      'Double-checking every ShortId\u2026'],
+    ['check-circle','Almost there\u2026'],
+  ]);
+}
+function ucListPhase2(){
+  var me=gwFirstName();
+  return gwShuffle([
+    ['hourglass',   'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
+    ['database',    'The server is taking a little longer than usual\u2026'],
+    ['refresh',     'Re-checking the case list\u2026'],
+    ['ticket',      'Lining up the ticket details\u2026'],
+    ['check-circle','Nearly ready \u2014 tidying up the list\u2026'],
+    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
+  ]);
+}
+// Ticket search (compact loader in the results area).
+function ucSearchPhase1(q){
+  return gwKeepEnds([
+    ['search',      'Searching all quarters for '+q+'\u2026'],
+    ['database',    'Checking live and past data\u2026'],
+    ['calendar',    'Walking back through previous quarters\u2026'],
+    ['ticket',      'Pulling the ticket details\u2026'],
+    ['star',        'Checking whether it\u2019s already marked important\u2026'],
+    ['check-circle','Almost there\u2026'],
+  ]);
+}
+function ucSearchPhase2(){
+  return gwShuffle([
+    ['hourglass',   'Still searching \u2014 thanks for your patience\u2026'],
+    ['database',    'The server is taking a little longer than usual\u2026'],
+    ['history',     'Still checking older quarters\u2026'],
+    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
+  ]);
+}
+// Log updates modal (compact loader in the modal body).
+function ucLogPhase1(sid){
+  return gwKeepEnds([
+    ['clipboard',   'Loading log updates for '+sid+'\u2026'],
+    ['history',     'Reading every incident-log entry\u2026'],
+    ['users',       'Checking who wrote each entry\u2026'],
+    ['check-circle','Almost there\u2026'],
+  ]);
+}
+function ucLogPhase2(){
+  return gwShuffle([
+    ['hourglass',   'Still loading \u2014 thanks for your patience\u2026'],
+    ['database',    'The server is taking a little longer than usual\u2026'],
+    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
+  ]);
+}
+var _ldMsgTimers={};   // pfx -> {iv,to} for the running message rotation
+function _ldSetMsg(pfx,tuple){
+  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
+  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
+  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
+}
+function _ldStop(pfx){ var t=_ldMsgTimers[pfx]; if(t){ clearInterval(t.iv); clearTimeout(t.to); _ldMsgTimers[pfx]=null; } }
+// Phase 1 (@2s) -> apology -> Phase 2 (@3s, loops). Never blank. Stops itself once the loader leaves the DOM.
+function _ldStart(pfx,p1,p2){
+  _ldStop(pfx);
+  var t=_ldMsgTimers[pfx]={iv:null,to:null}, i=0;
+  var alive=function(){
+    if(_ldMsgTimers[pfx]===t && document.getElementById(pfx+'Loader')) return true;
+    clearInterval(t.iv); clearTimeout(t.to); if(_ldMsgTimers[pfx]===t) _ldMsgTimers[pfx]=null;
+    return false;
+  };
+  _ldSetMsg(pfx,p1[0]);
+  t.iv=setInterval(function(){
+    if(!alive()) return;
+    i++;
+    if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
+    clearInterval(t.iv); t.iv=null;
+    _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your data\u2026']);
+    t.to=setTimeout(function(){
+      if(!alive()) return;
+      var j=0; _ldSetMsg(pfx,p2[0]);
+      t.iv=setInterval(function(){ if(!alive()) return; j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
+    },3000);
+  },2000);
+}
+// Green "done" state shown briefly before the real content replaces the loader.
+function _ldSuccess(pfx,msg){
+  _ldStop(pfx);
+  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
+  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=msg||'Data fetched successfully'; e.classList.add('gw-msg-in'); }
+}
+var _delay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
+const LIST_MIN_MS=1200;   // cold load: keep the loader up long enough to read the first line
+const LIST_DONE_MS=900;   // then show the green done state this long before revealing the list
+const SEARCH_DONE_MS=600; // shorter done state for a found ticket
+
+let LIST_SEQ=0; // newest load() wins; older in-flight loads are ignored
+function listLoaderOn(){return !!document.getElementById('uclLoader');}
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   if(!(A.canViewUnique&&A.canViewUnique())){gate('You do not have access to Unique Cases.');return;}
+  const seq=++LIST_SEQ;
+  // Wait for the profile/timezone first (as before the loader was added): painting earlier ran
+  // before the shared chrome (header + menu column) and the admin role were ready, so the page
+  // showed a bare loader with no menu and no search bar.
   try{MY_TZ=await A.myTimezone();}catch(e){}
-  // Show shimmer placeholders immediately (banner + search + a few skeleton case rows) so a cold
-  // load isn't a bare spinner. swrLoad then paints real data over it (from cache or the network).
-  paintLoading();
-  // Cache (time-based): paint instantly from cache, then refresh in the background.
+  if(seq!==LIST_SEQ)return;
+  // First load: banner + (admin) search + a compact phased loader just below the search bar.
+  // Refreshes (after edit / mark / unmark) keep the current page and just swap the list.
+  if(!document.getElementById('ucList')) paintLoading();
+  const t0=Date.now();
+  // Cache (time-based): paint instantly from cache, then refresh in the background. A network
+  // result that arrives while the loader is up is held so the done state can show first.
+  let fresh=null;
   const res=await A.swrLoad({
     key:'unique-cases',
     fetch:()=>A.api('GET','/api/important-cases'),
-    onData:(rows)=>render(Array.isArray(rows)?rows:[])
+    onData:(rows,fromCache)=>{
+      if(seq!==LIST_SEQ)return;
+      rows=Array.isArray(rows)?rows:[];
+      if(listLoaderOn()&&!fromCache){fresh=rows;return;}
+      render(rows);
+    }
   });
-  if(!res.painted)gate('Could not load unique cases (HTTP '+res.status+').');
+  if(seq!==LIST_SEQ)return;
+  if(fresh){
+    const wait=LIST_MIN_MS-(Date.now()-t0);
+    if(wait>0) await _delay(wait);
+    if(seq!==LIST_SEQ)return;
+    _ldSuccess('ucl','Unique cases loaded');
+    await _delay(LIST_DONE_MS);
+    if(seq!==LIST_SEQ)return;
+    render(fresh);
+    return;
+  }
+  if(!res.painted){_ldStop('ucl');gate('Could not load unique cases (HTTP '+res.status+').');}
 }
-// Loading view: the banner + (admin) search bar + a few shimmer case rows.
-function paintLoading(){
+// Page shell: the banner + (admin) inline search + the list container.
+function paintShell(){
   var isAdmin=A.atLeast&&A.atLeast('admin');
   var html='<div class="uc-banner"><div class="ub-left">'
     +'<h1 class="ub-title">'+(window.icon?window.icon('target',24):'')+' Unique Cases</h1>'
     +'</div></div>';
+  // Inline ticket search for admins (between the banner and the marked-cases list).
   if(isAdmin) html+=searchBlock();
-  html+=skeletonCards(4);
+  html+='<div id="ucList"></div>';
   document.getElementById('wrap').innerHTML=html;
   if(isAdmin) bindSearch();
 }
-// A few collapsed-case shimmer placeholders for the loading state.
-function skeletonCards(n){
-  var one='<div class="case sk"><div class="sk-head">'+
-    '<span class="sk-bar id"></span><span class="sk-bar title"></span>'+
-    '<span class="sk-bar by"></span><span class="sk-bar caret"></span></div></div>';
-  var out=''; for(var i=0;i<(n||4);i++) out+=one; return '<div class="uc-skel">'+out+'</div>';
+// Loading view: the shell with the full phased loader in the list area.
+function paintLoading(){
+  paintShell();
+  const list=document.getElementById('ucList');
+  list.setAttribute('aria-busy','true');
+  // Compact card (220px) directly under the search bar, not a 70vh full-section loader.
+  list.innerHTML='<div class="card gw-card">'+ldHtml('ucl','gw-sm','Unique cases')+'</div>';
+  _ldStart('ucl',ucListPhase1(),ucListPhase2());
 }
 
 function render(rows){
   CASES=rows; // stash for the edit popup
   var isAdmin=A.atLeast&&A.atLeast('admin');
-  let html='<div class="uc-banner">'
-    +'<div class="ub-left">'
-      +'<h1 class="ub-title">'+(window.icon?window.icon('target',24):'')+' Unique Cases</h1>'
-    +'</div>'
-  +'</div>';
-  // Inline ticket search for admins (between the banner and the marked-cases list).
-  if(isAdmin) html+=searchBlock();
-  if(!rows.length){html+='<div class="empty">No unique cases marked yet. Use <b>Search a ticket</b> above to find a ticket and mark it important.</div>';document.getElementById('wrap').innerHTML=html;bindSearch();if(isAdmin){const q=document.getElementById('q');if(q)q.focus();}return;}
-  html+=rows.map(caseCard).join('');
-  document.getElementById('wrap').innerHTML=html;
-  bindSearch();
+  if(!document.getElementById('ucList')) paintShell();
+  _ldStop('ucl');
+  const list=document.getElementById('ucList');
+  list.removeAttribute('aria-busy');
+  if(!rows.length){list.innerHTML='<div class="empty">No unique cases marked yet. Use <b>Search a ticket</b> above to find a ticket and mark it important.</div>';if(isAdmin){const q=document.getElementById('q');if(q)q.focus();}return;}
+  list.innerHTML=rows.map(caseCard).join('');
 }
 
 // ================= Inline ticket search (copied from unique-cases.html) =================
@@ -545,16 +804,36 @@ function slaRemaining(createIso,slaHours){
   const d=Math.floor(abs/86400000), h=Math.floor((abs%86400000)/3600000);
   return {over, txt:(d>0?d+'d ':'')+h+'h'};
 }
+let SEARCH_SEQ=0; // a newer search (or Clear) supersedes an in-flight one
+function searchBusy(on){
+  const btn=document.getElementById('searchBtn'), box=document.getElementById('result');
+  if(btn){btn.disabled=on;if(on)btn.setAttribute('aria-busy','true');else btn.removeAttribute('aria-busy');}
+  if(box){if(on)box.setAttribute('aria-busy','true');else box.removeAttribute('aria-busy');}
+}
 async function doSearch(){
   const q=document.getElementById('q').value.trim();
+  if(!q){
+    ++SEARCH_SEQ;_ldStop('ucs');searchBusy(false);
+    document.getElementById('result').innerHTML='<p class="hint">Enter a ticket ShortId first.</p>';return;
+  }
+  const seq=++SEARCH_SEQ;
+  searchBusy(true);
+  document.getElementById('result').innerHTML='<div class="card gw-card">'+ldHtml('ucs','gw-sm','Ticket search')+'</div>';
+  _ldStart('ucs',ucSearchPhase1(q),ucSearchPhase2());
+  let r;
+  try{ r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(q)); }
+  catch(e){ r={ok:false,status:0}; }
+  if(seq!==SEARCH_SEQ)return; // superseded by a newer search or Clear
+  const d=(r&&r.data)||{};
+  if(r.ok&&d.found){
+    _ldSuccess('ucs','Found '+(d.shortId||q));
+    await _delay(SEARCH_DONE_MS);
+    if(seq!==SEARCH_SEQ)return;
+  }
+  _ldStop('ucs');searchBusy(false);
   const box=document.getElementById('result');
-  if(!q){box.innerHTML='<p class="hint">Enter a ticket ShortId first.</p>';return;}
-  const btn=document.getElementById('searchBtn');btn.disabled=true;
-  box.innerHTML='<div class="card"><span class="sp-sm"></span> <span style="color:var(--tm)">Searching all quarters…</span></div>';
-  const r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(q));
-  btn.disabled=false;
-  if(!r.ok){box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Search failed (HTTP '+r.status+').</b></div>';return;}
-  const d=r.data||{};
+  if(!box)return;
+  if(!r.ok){box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Search failed ('+(r.status?('HTTP '+esc(r.status)):'network error')+').</b></div>';return;}
   if(!d.found){
     box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Ticket not found.</b><p class="hint">No ticket matching <b>'+esc(q)+'</b> exists in any quarter.</p></div>';
     return;
@@ -563,6 +842,7 @@ async function doSearch(){
 }
 window.doSearch=doSearch;
 function clearSearch(){
+  ++SEARCH_SEQ;_ldStop('ucs');searchBusy(false); // cancel any in-flight search
   const q=document.getElementById('q'); if(q){ q.value=''; q.focus(); }
   const box=document.getElementById('result'); if(box) box.innerHTML='';
   CURRENT=null;
@@ -631,8 +911,11 @@ function renderResult(d){
     '<div class="card found fc'+(marked?' is-marked':'')+'">'+
       '<div class="fc-head">'+
         '<div class="fc-head-main">'+
-          '<a class="fc-id" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+
-            esc(d.shortId)+'<span class="fc-ext" aria-hidden="true">↗</span></a>'+
+          '<div class="fc-id-row">'+
+            '<a class="fc-id" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+
+              esc(d.shortId)+'<span class="fc-ext" aria-hidden="true">↗</span></a>'+
+            logBtnHtml(d)+
+          '</div>'+
           (d.title?('<div class="fc-title">'+esc(d.title)+'</div>'):'')+
         '</div>'+
         '<div class="fc-head-meta">'+
@@ -713,6 +996,243 @@ async function completeMarking(){
   }
 }
 window.completeMarking=completeMarking;
+
+// ================= Log updates (read-only incident log, same rendering as My Tickets) =================
+const CLIP_SVG='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>';
+const clipIc=s=>ic('clipboard',s||16)||CLIP_SVG;
+let LOG_ITEMS=[];let LOG_SID=null;let LOG_RETURN=null;let LOG_SEQ=0;
+// Icon button shown next to the ticket ID. logCount comes from /api/ticket-search:
+// 0 -> disabled; a number -> badge; null/missing -> enabled, fetched lazily on click.
+function logBtnHtml(d){
+  const n=(typeof d.logCount==='number')?d.logCount:null;
+  if(n===0){
+    // Wrapper carries the tooltip (disabled buttons don't show title in every browser).
+    return '<span class="fc-logwrap" title="No log updates for this ticket">'+
+      '<button type="button" class="fc-logbtn" disabled aria-label="No log updates for this ticket">'+clipIc(16)+'</button></span>';
+  }
+  const lbl='View log updates for '+esc(d.shortId);
+  const aria=lbl+(n?(' ('+n+' entr'+(n===1?'y':'ies')+')'):'');
+  return '<span class="fc-logwrap"><button type="button" class="fc-logbtn" id="fcLogBtn" onclick="openLogModal(this)" title="'+lbl+'" aria-label="'+aria+'">'+
+    clipIc(16)+(n?('<span class="fc-logcount" aria-hidden="true">'+(n>99?'99+':n)+'</span>'):'')+'</button></span>';
+}
+function openLogModal(btn){
+  if(!CURRENT)return;
+  LOG_RETURN=btn||null;
+  LOG_SID=CURRENT.shortId;
+  document.getElementById('logModalIcon').innerHTML=clipIc(16);
+  document.getElementById('logCopyBtn').innerHTML=ic('copy',12)||'⧉';
+  document.getElementById('logCloseBtn').innerHTML=ic('close',12)||'\u2715';
+  document.getElementById('logModalTitle').textContent='Log updates · '+LOG_SID;
+  document.getElementById('logModal').style.display='flex';
+  document.addEventListener('keydown',logKeydown,true);
+  setTimeout(()=>document.getElementById('logCloseBtn').focus(),20);
+  fetchLogUpdates();
+}
+window.openLogModal=openLogModal;
+async function fetchLogUpdates(){
+  const sid=LOG_SID;if(!sid)return;
+  const box=document.getElementById('logList');
+  const copyBtn=document.getElementById('logCopyBtn');
+  const seq=++LOG_SEQ;
+  LOG_ITEMS=[];copyBtn.style.display='none';
+  box.setAttribute('aria-busy','true');
+  box.innerHTML=ldHtml('ucg','gw-xs','Log updates');
+  _ldStart('ucg',ucLogPhase1(sid),ucLogPhase2());
+  let r;
+  try{ r=await A.api('GET','/api/tickets/'+encodeURIComponent(sid)+'/incident-log'); }
+  catch(e){ r={ok:false,status:0}; }
+  if(LOG_SID!==sid||seq!==LOG_SEQ)return; // closed, switched or re-fetched while loading
+  _ldStop('ucg');box.removeAttribute('aria-busy');
+  if(!r.ok||!Array.isArray(r.data)){
+    box.innerHTML='<div class="ilog-err">Could not load log updates'+(r.status?(' (HTTP '+esc(r.status)+')'):'')+'.<br>'+
+      '<button type="button" class="btn sec" onclick="fetchLogUpdates()">'+ic('refresh',13)+' Retry</button></div>';
+    return;
+  }
+  // Newest first.
+  const items=r.data.slice().sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
+  syncLogBadge(sid,items.length);
+  if(!items.length){box.innerHTML='<div class="ilog-empty">No log updates for this ticket yet</div>';return;}
+  LOG_ITEMS=items;copyBtn.style.display='';
+  box.innerHTML=items.map(e=>{
+    const when=e.at?fmtTZ(e.at):'';
+    return '<div class="ilog-item" data-id="'+esc(e.id)+'">'+
+      '<div class="ilog-head">'+
+        '<div class="ilog-who">'+ic('users',13)+' by <b>'+esc(e.user||'—')+'</b>'+(when?('<span class="ilog-when">'+ic('clock',11)+' '+esc(when)+'</span>'):'')+'</div>'+
+        logEditBtnHtml(e)+
+      '</div>'+
+      '<div class="ilog-text">'+esc(e.text)+'</div>'+
+    '</div>';
+  }).join('');
+}
+window.fetchLogUpdates=fetchLogUpdates;
+// Copy every entry in the popup as plain text (exactly as authored, blank line between entries).
+async function copyLogUpdates(){
+  if(!LOG_ITEMS.length){toast('Nothing to copy');return;}
+  const text=LOG_ITEMS.map(e=>e.text||'').join('\n\n');
+  const n=LOG_ITEMS.length;
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Copied '+n+' log entr'+(n===1?'y':'ies'));
+  }catch(e){
+    const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copied to clipboard');}catch(_){toast('Copy failed');}
+    document.body.removeChild(ta);
+  }
+}
+window.copyLogUpdates=copyLogUpdates;
+function closeLogModal(){
+  document.getElementById('logModal').style.display='none';
+  document.removeEventListener('keydown',logKeydown,true);
+  LOG_SID=null;LOG_ITEMS=[];_ldStop('ucg');
+  const ll=document.getElementById('logList');if(ll)ll.removeAttribute('aria-busy');
+  const back=(LOG_RETURN&&document.body.contains(LOG_RETURN))?LOG_RETURN:(document.getElementById('fcLogBtn')||document.getElementById('q'));
+  LOG_RETURN=null;
+  if(back)back.focus();
+}
+window.closeLogModal=closeLogModal;
+// Esc closes; Tab / Shift+Tab stay inside the dialog.
+function logKeydown(e){
+  // A modal stacked on top (the entry editor, or a confirm/alert popup) owns the keyboard.
+  if(ilEditorOpen()||document.querySelector('.tb-modal-bg'))return;
+  if(e.key==='Escape'){e.preventDefault();closeLogModal();return;}
+  if(e.key!=='Tab')return;
+  const dlg=document.querySelector('#logModal .vil-modal');
+  const f=[...dlg.querySelectorAll('button,a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled&&el.offsetParent!==null);
+  if(!f.length)return;
+  const first=f[0],last=f[f.length-1];
+  if(!dlg.contains(document.activeElement)){e.preventDefault();first.focus();return;}
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+}
+// Keep the found-card's log button (count badge) in sync with the latest fetched entry count.
+function syncLogBadge(sid,n){
+  if(!CURRENT||String(CURRENT.shortId)!==String(sid)||CURRENT.logCount===n)return;
+  CURRENT.logCount=n;
+  const wrap=document.querySelector('#result .fc-logwrap');if(!wrap)return;
+  const tmp=document.createElement('div');tmp.innerHTML=logBtnHtml(CURRENT);
+  wrap.replaceWith(tmp.firstChild);
+  if(LOG_SID)LOG_RETURN=document.getElementById('fcLogBtn')||null;
+}
+
+// ================= Edit a log entry (shared structured editor from incident-log-editor.js) =================
+// Server rule (PUT/DELETE /api/incident-log/:id): only the entry's author may edit or delete it — no
+// admin override. GET /incident-log returns `mine` using the same check, so it drives the button;
+// the server still enforces it (403 is surfaced in the editor).
+const PENCIL_SVG='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const NOT_AUTHOR_MSG='Only the author can edit this entry';
+function logEditBtnHtml(e){
+  const pic=ic('edit',14)||PENCIL_SVG;
+  if(!e||!e.mine){
+    return '<span class="ilog-editwrap" title="'+NOT_AUTHOR_MSG+'"><button type="button" class="ilog-editbtn" disabled aria-label="'+NOT_AUTHOR_MSG+'">'+pic+'</button></span>';
+  }
+  return '<button type="button" class="ilog-editbtn" data-id="'+esc(e.id)+'" onclick="openLogEntryEditor(this.getAttribute(\'data-id\'))" title="Edit this log entry" aria-label="Edit this log entry">'+pic+'</button>';
+}
+var IL_EDIT_ID=null;        // entry id open in the editor
+var IL_EDIT_RETURN_ID=null; // entry whose Edit button gets focus back when the editor closes
+function ilEditorOpen(){const m=document.getElementById('incidentModal');return !!(m&&m.style.display==='flex');}
+function openLogEntryEditor(id){
+  const e=LOG_ITEMS.find(x=>String(x.id)===String(id));
+  if(!e||!LOG_SID||!window.IncidentLogEditor)return;
+  if(!e.mine){toast(NOT_AUTHOR_MSG);return;}
+  const sid=LOG_SID;
+  const f=parseIncidentOutput(e.text||'');
+  IL_EDIT_ID=String(e.id);IL_EDIT_RETURN_ID=IL_EDIT_ID;
+  const hic=document.getElementById('ailHeadIc');if(hic)hic.innerHTML=clipIc(18);
+  document.getElementById('incidentTitleText').textContent='Edit incident log · '+sid;
+  ilSetTitleCopyId(sid);
+  // Transporter Trace / Mark important head flags are My-Tickets-only (see report); left empty here.
+  const flags=document.getElementById('ailHeadFlags');if(flags)flags.innerHTML='';
+  const sb=document.getElementById('incidentBtn');if(sb){sb.textContent='Save';sb.disabled=false;}
+  const db=document.getElementById('incidentDeleteBtn');if(db)db.style.display='';
+  fillIncidentSelects();
+  const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v||'';};
+  set('ilPhdFindings',f.findings);set('ilPhdInvestigation',f.invest);set('ilSimRcd',f.sim);
+  set('ilRootCause',f.rootCause);set('ilPhdResolution',f.res);set('ilPhdNotes',f.notes);
+  // Same as My Tickets: PHD Related Link is always the canonical ticket URL (read-only).
+  const url=(CURRENT&&String(CURRENT.shortId)===sid&&CURRENT.url)?CURRENT.url:('https://t.corp.amazon.com/'+sid);
+  set('ilRelatedLink',url);
+  ilPaintFieldCopyIcons();
+  ilWireTextareaAutosize();
+  ilSetFieldLocks(true);   // filled text fields start read-only with a pencil to edit
+  ilRefreshSelectUI();
+  ilRefreshEmptyMarks();
+  document.getElementById('incidentErr').style.display='none';
+  document.getElementById('incidentModal').style.display='flex';
+  document.addEventListener('keydown',ilEditorKeydown,true);
+  setTimeout(()=>{ilAutosizeAll();const el=document.getElementById('ilPhdFindings');if(el)el.focus();},50);
+}
+window.openLogEntryEditor=openLogEntryEditor;
+// Called by the shared modal's Close / × / backdrop.
+function closeIncidentLog(){
+  document.getElementById('incidentModal').style.display='none';
+  document.removeEventListener('keydown',ilEditorKeydown,true);
+  IL_EDIT_ID=null;
+  const rid=IL_EDIT_RETURN_ID;IL_EDIT_RETURN_ID=null;
+  let back=null;
+  if(rid)back=[...document.querySelectorAll('#logList .ilog-editbtn[data-id]')].find(b=>b.getAttribute('data-id')===rid)||null;
+  if(!back)back=document.getElementById('logCloseBtn');
+  if(back&&ilVisible(back))back.focus();
+}
+window.closeIncidentLog=closeIncidentLog;
+function ilVisible(el){return !!(el&&el.offsetParent!==null);}
+function ilWriteErrMsg(r,verb){
+  if(r.status===403)return 'Only the author of this entry can '+verb+' it. '+((r.data&&r.data.error)||'');
+  if(r.status===401)return 'Your session has expired. Log in again and retry.';
+  return (r.data&&r.data.error)||('Failed (HTTP '+(r.status||'network error')+')');
+}
+// Save = update the existing entry (same PUT as My Tickets). Like My Tickets, the editor stays open
+// afterwards with filled fields re-locked; the Log updates list behind it refreshes.
+async function submitIncidentLog(){
+  if(!IL_EDIT_ID)return;
+  const id=IL_EDIT_ID;
+  const err=document.getElementById('incidentErr');err.style.display='none';
+  const text=buildIncidentOutput();
+  const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
+  let r;try{r=await A.api('PUT','/api/incident-log/'+encodeURIComponent(id),{text});}catch(e){r={ok:false,status:0};}
+  btn.disabled=false;btn.textContent='Save';
+  if(r.ok){
+    if(IL_EDIT_ID===id){ilSetFieldLocks(true);ilRefreshSelectUI();ilRefreshEmptyMarks();}
+    toast('Incident log updated');
+    fetchLogUpdates();
+  }else{err.textContent=ilWriteErrMsg(r,'edit');err.style.display='block';}
+}
+window.submitIncidentLog=submitIncidentLog;
+async function deleteIncidentFromForm(){
+  if(!IL_EDIT_ID)return;
+  const id=IL_EDIT_ID;
+  const db=document.getElementById('incidentDeleteBtn');
+  const ok=await window.PHDConfirm({title:'Delete incident log',body:'Delete this incident log entry? This cannot be undone.',okLabel:'Delete',danger:true});
+  if(!ok){if(db&&ilVisible(db))db.focus();return;}
+  let r;try{r=await A.api('DELETE','/api/incident-log/'+encodeURIComponent(id));}catch(e){r={ok:false,status:0};}
+  if(r.ok){
+    IL_EDIT_RETURN_ID=null; // the entry is gone -> focus returns to the Log updates dialog
+    closeIncidentLog();
+    toast('Incident log deleted');
+    fetchLogUpdates();
+  }else{
+    await window.PHDAlert({title:'Delete failed',body:ilWriteErrMsg(r,'delete')});
+    if(db&&ilVisible(db))db.focus();
+  }
+}
+window.deleteIncidentFromForm=deleteIncidentFromForm;
+// Editor keyboard: Esc closes only the editor (or an open dropdown first); Tab is trapped inside.
+function ilEditorKeydown(e){
+  if(!ilEditorOpen()||document.querySelector('.tb-modal-bg'))return;
+  if(e.key==='Escape'){
+    e.preventDefault();e.stopPropagation();
+    const ss=document.querySelector('#incidentModal .ss-wrap.open');
+    if(ss){const fld=ss.querySelector('.ss-field');if(fld){fld.click();fld.focus();}return;}
+    closeIncidentLog();return;
+  }
+  if(e.key!=='Tab')return;
+  const dlg=document.querySelector('#incidentModal .ail-modal');
+  const f=[...dlg.querySelectorAll('button,a[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled&&ilVisible(el));
+  if(!f.length)return;
+  const first=f[0],last=f[f.length-1];
+  if(!dlg.contains(document.activeElement)){e.preventDefault();first.focus();return;}
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+}
 
 load();
 </script>
