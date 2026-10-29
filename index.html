@@ -212,6 +212,49 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 .nav-tile.nt-external .nt-cta{color:#c4def6}
 .nav-tile.nt-external .nt-lock{color:#c4def6}
 .nav-tile.nt-disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.3);pointer-events:none}
+/* Admin-managed external links (home.js): tile + delete button share a wrapper so the <button> is
+   never nested inside the tile's <a>. */
+.nt-wrap{position:relative;display:flex;min-width:0}
+.nt-wrap>.nav-tile{flex:1 1 auto;min-width:0}
+.nt-wrap.nt-has-del .nt-head{padding-right:28px}
+.nt-wrap .nt-title,.nt-wrap .nt-desc{overflow-wrap:anywhere}
+.nt-del{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border-radius:5px;
+  border:1px solid rgba(196,222,246,.35);background:rgba(22,29,45,.75);color:#c4def6;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
+.nt-del:hover,.nt-del:focus-visible{background:#d6456f;border-color:#d6456f;color:#fff}
+.nt-del:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.nt-del svg{width:14px;height:14px}
+/* "Add External link" button in the Dashboards & reports header (admins only). */
+.home-sec-h .el-add-btn{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;
+  font-size:.78em;font-weight:800;letter-spacing:0;color:#fff;background:linear-gradient(180deg,var(--o),#e85800);box-shadow:0 4px 14px -4px rgba(255,97,0,.5);transition:filter .14s,transform .1s}
+.home-sec-h .el-add-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.home-sec-h .el-add-btn:active{transform:translateY(0)}
+.home-sec-h .el-add-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.home-sec-h .el-add-btn svg{width:14px;height:14px}
+/* Add-link + delete-confirm modals (light, same look as the login modal). */
+.el-modal-bg{z-index:1050}
+/* .modal.el-modal (not .el-modal): the generic .modal{width:min(420px,100%)} below would win otherwise. */
+.modal.el-modal{width:60vw;max-width:60vw}
+@media(max-width:700px){.modal.el-modal{width:94vw;max-width:94vw}}
+/* Delete confirm stays compact (only the Add pop-up is 60vw). */
+#elDelModal .modal.el-modal{width:min(480px,94vw);max-width:min(480px,94vw)}
+/* Author row on external link tiles: "AUTHOR  Team PHD". */
+.nav-tile .nt-author{display:flex;align-items:baseline;gap:7px;margin-top:8px;font-size:.78em;line-height:1.35;min-width:0}
+.nav-tile .nt-author-k{flex:0 0 auto;font-size:.82em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--acc)}
+.nav-tile .nt-author-v{font-weight:700;color:var(--ink);overflow-wrap:anywhere}
+.nav-tile.nt-external .nt-author-v{color:#f4f6fb}
+/* External links section: empty state. */
+.home-sec-links .el-empty{margin:4px 2px;color:var(--ink2);font-size:.86em}
+.el-modal .el-req{color:#d6456f}
+.el-modal textarea{width:100%;padding:11px 13px;background:var(--white);border:1px solid var(--line);border-radius:5px;color:var(--ink);font-size:.95em;font-family:inherit;resize:vertical}
+.el-modal textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,0,.14)}
+.el-modal [aria-invalid="true"]{border-color:#d6456f}
+.el-modal .el-ferr{color:#d6456f;font-size:.78em;margin-top:5px;min-height:0}
+.el-modal .el-ferr:empty{display:none}
+.el-modal .el-msg{color:var(--ink2);font-size:.9em;line-height:1.5;margin-top:6px;overflow-wrap:anywhere}
+.el-modal .el-msg b{color:var(--ink)}
+.el-modal .btn.danger{background:#d6456f}
+.el-modal .btn[disabled]{opacity:.65;cursor:progress}
+.el-modal .el-actions{display:flex;gap:10px;justify-content:flex-end}
 
 /* ---- Login modal ---- */
 .modal-bg{position:fixed;inset:0;background:rgba(21,29,40,.6);backdrop-filter:blur(2px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
@@ -395,6 +438,15 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
       <div class="dynamic-btns" id="dynamicBtns"></div>
     </div>
   </section>
+
+  <!-- ===== External links (admin-managed; filled by home.js) ===== -->
+  <section class="home-sec home-sec-links" id="linksSec" aria-labelledby="linksSecH">
+    <h3 class="home-sec-h" id="linksSecH"><span class="home-sec-ic" data-ic="globe" aria-hidden="true"></span>External links</h3>
+    <div class="home-sec-body">
+      <div class="nav-tiles" id="extLinks"></div>
+      <p class="el-empty" id="extLinksEmpty" hidden>No external links yet.</p>
+    </div>
+  </section>
 </div>
 
 <script src="icons.js"></script>
@@ -452,6 +504,6 @@ async function homeDoLogin(){
 })();
 document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
-<script src="home.js?v=14"></script>
+<script src="home.js?v=19"></script>
 </body>
 </html>

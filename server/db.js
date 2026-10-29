@@ -43,6 +43,7 @@ const COLLECTIONS = {
   incidentGroups: 'incident_groups', // owner-defined display grouping of raw incident types (RootCause labels) into combined names. Applied at READ time to Incident Types; never changes ticket data. { _id:'live', version, groups:[{name, members:[rawType]}], updatedAt }
   resolutionGroups: 'resolution_groups', // owner-defined display grouping of raw Resolution values (from RootCauseDetails) into combined names. Owner-tool only for now. { _id:'live', version, groups:[{name, members:[rawValue]}], updatedAt }
   sanitizationChecklist: 'sanitization_checklist', // editable copyable checklist shown on ticket-sanitization.html (one doc per line): { text, order, createdBy/updatedBy/at } — editable by harisss/flofalgu
+  externalLinks: 'external_links', // admin-managed external link tiles on the home page (Dashboards & reports): { title, description, url, createdBy (lower-case), createdAt, [icon, sub, action, seedKey] } + one seed-marker doc { _id:'seed:...', kind:'__marker' } (excluded from GET/count/delete)
 };
 
 let clientPromise = null;

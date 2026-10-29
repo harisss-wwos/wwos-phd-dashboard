@@ -12,6 +12,7 @@ const {
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
+const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -2633,6 +2634,61 @@ app.delete('/api/sanitization-checklist/:id', requireTaxonomyEditor, async (req,
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete the line.' });
+  }
+});
+
+// ---- External links (home page 'Dashboards & reports' tiles) ----
+// Any logged-in user can list them; admin+ can add; only the creator can delete (author-only, no
+// owner override, matching the comment / incident-log author-only deletes).
+function mapExternalLink(d) {
+  return {
+    id: String(d._id), title: d.title || '', description: d.description || '', url: d.url || '', createdBy: d.createdBy || '', createdAt: d.createdAt || null,
+    // Author (free text) entered in the Add form; older/seeded links fall back to whoever added them.
+    // Delete permission still uses createdBy, never author.
+    author: d.author || d.createdBy || '',
+    // Optional display fields (set only on seeded links); defaults match user-added links.
+    icon: EXT_LINK_ICONS.includes(d.icon) ? d.icon : 'link', sub: d.sub || 'External link', action: d.action || 'Open link', seedKey: d.seedKey || '',
+  };
+}
+
+app.get('/api/external-links', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.externalLinks);
+    const rows = (await coll.find(EXT_LINK_REAL_FILTER).sort({ createdAt: 1, _id: 1 }).toArray()).map(mapExternalLink);
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load external links.' });
+  }
+});
+
+app.post('/api/external-links', requireRole('admin'), async (req, res) => {
+  try {
+    const v = validateExternalLink(req.body);
+    if (!v.ok) return res.status(400).json({ error: v.error });
+    const coll = await getCollection(COLLECTIONS.externalLinks);
+    const n = await coll.countDocuments(EXT_LINK_REAL_FILTER);
+    if (n >= EXT_LINK_LIMITS.maxLinks) return res.status(409).json({ error: 'The external link limit (' + EXT_LINK_LIMITS.maxLinks + ') has been reached.' });
+    const doc = { ...v.value, createdBy: String(req.user.username).toLowerCase(), createdAt: new Date().toISOString() };
+    const r = await coll.insertOne(doc);
+    res.status(201).json(mapExternalLink({ _id: r.insertedId, ...doc }));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not add the link.' });
+  }
+});
+
+app.delete('/api/external-links/:id', requireRole('admin'), async (req, res) => {
+  try {
+    if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid id.' });
+    const coll = await getCollection(COLLECTIONS.externalLinks);
+    const existing = await coll.findOne({ _id: new ObjectId(req.params.id), ...EXT_LINK_REAL_FILTER });
+    if (!existing) return res.status(404).json({ error: 'Link not found.' });
+    if (String(existing.createdBy || '').toLowerCase() !== String(req.user.username).toLowerCase()) {
+      return res.status(403).json({ error: 'You can only delete links you added.' });
+    }
+    await coll.deleteOne({ _id: existing._id });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the link.' });
   }
 });
 
@@ -7559,6 +7615,14 @@ app.put('/api/resolution-groups', requireFlag('canGroupingPage'), async (req, re
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('PHD API listening on port ' + PORT);
+  // One-time seed of the former hard-coded PHD Wiki / PHD Mitigation Matrix tiles as external links
+  // owned by harisss (idempotent via a marker doc; a failure never blocks start-up).
+  (async () => {
+    try {
+      const elColl = await getCollection(COLLECTIONS.externalLinks);
+      await seedExternalLinks(elColl, (msg) => console.log(msg));
+    } catch (e) { console.error('External links seed failed:', e && e.message); }
+  })();
   // Backfill the current live quarter's dashboard rollup on boot if it's missing/stale, so the
   // first visitor after a (re)deploy gets instant chunks without waiting for the next upload.
   (async () => {
