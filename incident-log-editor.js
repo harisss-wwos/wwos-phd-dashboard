@@ -88,7 +88,7 @@ var IL_INVEST_QS=[
   {key:'cortex', label:'Cortex Driver Trace added to SIM & EMT', type:'select', opts:['Yes','No'],
     aliases:['Cortex Driver Trace added to SIM','Cortex Driver Trace added to SIM and EMT']},
   {key:'locEmt', label:'Location Historical incidents in EMT records (Physical address)', type:'number'},
-  {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','N/A']},
+  {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','Yes (low level offense)','N/A']},
   {key:'station',label:'Station request made', type:'select', opts:['No','Yes'],
     sub:{key:'stationLink', label:'Station request link', type:'text', inputType:'url', placeholder:'LINK_IF_APPLICABLE'}},
   {key:'netra',  label:'Netradyne footage exists', type:'select', opts:['No','Yes'],
