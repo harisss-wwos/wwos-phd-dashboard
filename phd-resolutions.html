@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<title>PHD Resolutions · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<style id="pr-light">
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
+/* Title bar: same look as Ticket Sanitization. */
+.pr-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;gap:11px;padding:0 16px;margin-bottom:16px}
+.pr-titlebar .ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:5px;background:#d2f0ee;color:#1b8f8a;flex-shrink:0}
+.pr-titlebar h1{margin:0;font-size:1.25em;font-weight:800;color:#1b2026;line-height:1.1}
+.pr-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);padding:18px 22px;width:100%}
+.pr-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.pr-head h2{margin:0;color:#1b2026;font-size:1.15em;font-weight:800}
+.pr-sub{color:#5c6773;font-size:.92em;line-height:1.55;margin:0 0 16px;max-width:80ch}
+.pr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pr-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #eef1f4;border-radius:5px;background:#f9fafb}
+.pr-item:hover{background:#f4f7fa;border-color:#e2e6ea}
+.pr-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#d2f0ee;color:#136b67;font-weight:800;font-size:.78em;display:inline-flex;align-items:center;justify-content:center}
+.pr-name{flex:1 1 auto;min-width:0;color:#1b2026;font-size:.95em;font-weight:600;line-height:1.4}
+.pr-copy,.pr-copyall{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-weight:700;cursor:pointer;border-radius:5px;border:1px solid #e2e6ea;background:#fff;color:#5c6773;transition:border-color .15s,background .15s,color .15s}
+.pr-copy{flex-shrink:0;padding:6px 8px;font-size:.76em}
+.pr-copyall{padding:8px 14px;font-size:.84em;color:#136b67}
+.pr-copy:hover,.pr-copyall:hover{border-color:#1b8f8a;background:#eaf8f7;color:#136b67}
+.pr-copy:focus-visible,.pr-copyall:focus-visible{outline:2px solid #1b8f8a;outline-offset:2px}
+.pr-copy.copied,.pr-copyall.copied{border-color:#1f9d57!important;background:#eafaf0!important;color:#1f9d57!important}
+.pr-note{margin-top:14px;color:#8793a0;font-size:.82em;line-height:1.5}
+.pr-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+</head>
+<body data-nav-active="phd-resolutions" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="issue-types-data.js?v=3"></script>
+<script src="topbar-auth.js?v=209"></script>
+<script>
+(function(){
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
+var ICO_COPY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+var ICO_CHK='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
+// Display order requested for this page (same 12 names as RC_RESOLUTIONS in issue-types-data.js,
+// which stays A-Z for the Tools builder and My Tickets dropdowns).
+var LIST=['Account Closure','Physical Order Block','Area Exclusion','Address Exclusion','Address Deprio',
+  'Routing Update','GeoFence Update','GeoPin Update','Customer Reassurance','Parcel Box Installation',
+  'Delivery Hint','Driver Follow-up'];
+
+function copyText(text,btn,doneLabel){
+  var done=function(ok){
+    if(!btn||!ok) return;
+    var orig=btn.innerHTML; btn.classList.add('copied'); btn.innerHTML=ICO_CHK+(doneLabel?'<span>'+doneLabel+'</span>':'');
+    var live=document.getElementById('prLive'); if(live) live.textContent='Copied';
+    setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); }, 1300);
+  };
+  var fallback=function(){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok); }catch(e){ done(false); } };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){done(true);},fallback); }
+  else fallback();
+}
+
+function render(){
+  var items=LIST.map(function(name,i){
+    return '<li class="pr-item"><span class="pr-num" aria-hidden="true">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<span class="pr-name">'+esc(name)+'</span>'+
+      '<button type="button" class="pr-copy" data-i="'+i+'" title="Copy" aria-label="Copy '+esc(name)+'">'+ICO_COPY+'</button></li>';
+  }).join('');
+  document.getElementById('wrap').innerHTML=
+    '<div class="pr-titlebar"><span class="ic">'+ic('check-circle',18)+'</span><h1>PHD Resolutions</h1></div>'+
+    '<section class="pr-card" aria-labelledby="prHead">'+
+      '<div class="pr-head"><h2 id="prHead">Allowed resolutions ('+LIST.length+')</h2>'+
+        '<button type="button" class="pr-copyall" id="prCopyAll">'+ICO_COPY+'<span>Copy all</span></button></div>'+
+      '<p class="pr-sub">These are the only resolutions allowed for the <b>Res:</b> line in SIM Root Cause Details and the <b>PHD Resolution</b> field of the incident log. They match the lists in the Build Root Cause Details tool and My Tickets.</p>'+
+      '<ol class="pr-list">'+items+'</ol>'+
+      '<span class="pr-sr" id="prLive" aria-live="polite"></span>'+
+    '</section>';
+  document.getElementById('prCopyAll').addEventListener('click',function(){ copyText(LIST.join('\n'),this,'Copied'); });
+  Array.prototype.forEach.call(document.querySelectorAll('.pr-copy'),function(b){
+    b.addEventListener('click',function(){ copyText(LIST[+b.getAttribute('data-i')],b,''); });
+  });
+}
+render();
+})();
+</script>
+</body>
+</html>

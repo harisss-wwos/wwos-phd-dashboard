@@ -86,6 +86,10 @@ function renderQuarterCards(){
     navTile({ href:'ticket-sanitization.html', icon:'check-circle', tone:'rose',
       title:'Ticket Sanitization Process', sub:'Step-by-step guide',
       desc:'Instructions and linked resources that walk you through sanitizing a ticket.', action:'Open the guide' }),
+    // PHD Resolutions — the 12 allowed resolutions (same list as Tools + My Tickets).
+    navTile({ href:'phd-resolutions.html', icon:'check-circle', tone:'teal',
+      title:'PHD Resolutions', sub:'Reference list',
+      desc:'The 12 resolutions allowed for the Res line and PHD Resolution.', action:'View resolutions' }),
     // PHD Wiki — external deep-dive.
     navTile({ href:'https://w.amazon.com/bin/view/GSOC/PHD#Attachments', icon:'globe', tone:'blue', external:true,
       title:'PHD Wiki', sub:'External resource',
