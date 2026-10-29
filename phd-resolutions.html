@@ -36,12 +36,22 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .pr-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);padding:18px 22px;width:100%}
 .pr-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap}
 .pr-head h2{margin:0;color:#1b2026;font-size:1.15em;font-weight:800}
-.pr-sub{color:#5c6773;font-size:.92em;line-height:1.55;margin:0 0 16px;max-width:80ch}
+/* One line (no 80ch cap); wraps only on narrower screens where it can't fit. */
+.pr-sub{color:#5c6773;font-size:.92em;line-height:1.55;margin:0 0 16px;white-space:nowrap}
+@media(max-width:1199px){.pr-sub{white-space:normal}}
 .pr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .pr-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #eef1f4;border-radius:5px;background:#f9fafb}
 .pr-item:hover{background:#f4f7fa;border-color:#e2e6ea}
 .pr-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#d2f0ee;color:#136b67;font-weight:800;font-size:.78em;display:inline-flex;align-items:center;justify-content:center}
 .pr-name{flex:1 1 auto;min-width:0;color:#1b2026;font-size:.95em;font-weight:600;line-height:1.4}
+/* Likelihood / Impact chips: High = red, Low = green. */
+.pr-chips{flex-shrink:0;display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pr-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:5px;border:1px solid;font-size:.8em;white-space:nowrap}
+.pr-chip-k{font-weight:600;opacity:.8}
+.pr-chip b{font-weight:800}
+.pr-chip.pr-hi{background:#fdecec;border-color:#f5c2c2;color:#b42318}
+.pr-chip.pr-lo{background:#eafaf0;border-color:#bfe8cf;color:#17803d}
+@media(max-width:640px){.pr-item{flex-wrap:wrap}.pr-chips{order:3;width:100%;justify-content:flex-start;padding-left:38px}}
 .pr-copy,.pr-copyall{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-weight:700;cursor:pointer;border-radius:5px;border:1px solid #e2e6ea;background:#fff;color:#5c6773;transition:border-color .15s,background .15s,color .15s}
 .pr-copy{flex-shrink:0;padding:6px 8px;font-size:.76em}
 .pr-copyall{padding:8px 14px;font-size:.84em;color:#136b67}
@@ -71,9 +81,24 @@ var ICO_CHK='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke=
 
 // Display order requested for this page (same 12 names as RC_RESOLUTIONS in issue-types-data.js,
 // which stays A-Z for the Tools builder and My Tickets dropdowns).
-var LIST=['Account Closure','Physical Order Block','Area Exclusion','Address Exclusion','Address Deprio',
-  'Routing Update','GeoFence Update','GeoPin Update','Customer Reassurance','Parcel Box Installation',
-  'Delivery Hint','Driver Follow-up'];
+// Likelihood / Impact per resolution, taken from the PHD Mitigation Matrix. Names that differ in the
+// matrix: Address Deprio = "Address Deprioritization", Routing Update = "Geo-Routing Update",
+// Delivery Hint = "Delivery Hint Update", Account Closure = "Account Closure (Permanent)".
+var RES=[
+  {name:'Account Closure',         lk:'High', im:'High'},
+  {name:'Physical Order Block',    lk:'High', im:'High'},
+  {name:'Area Exclusion',          lk:'High', im:'Low'},
+  {name:'Address Exclusion',       lk:'High', im:'Low'},
+  {name:'Address Deprio',          lk:'High', im:'Low'},
+  {name:'Routing Update',          lk:'Low',  im:'High'},
+  {name:'GeoFence Update',         lk:'Low',  im:'High'},
+  {name:'GeoPin Update',           lk:'Low',  im:'High'},
+  {name:'Customer Reassurance',    lk:'Low',  im:'Low'},
+  {name:'Parcel Box Installation', lk:'Low',  im:'High'},
+  {name:'Delivery Hint',           lk:'Low',  im:'High'},
+  {name:'Driver Follow-up',        lk:'Low',  im:'Low'}
+];
+var LIST=RES.map(function(r){ return r.name; });
 
 function copyText(text,btn,doneLabel){
   var done=function(ok){
@@ -88,9 +113,13 @@ function copyText(text,btn,doneLabel){
 }
 
 function render(){
-  var items=LIST.map(function(name,i){
+  var chip=function(k,v){ var c=String(v).toLowerCase()==='high'?'hi':'lo';
+    return '<span class="pr-chip pr-'+c+'"><span class="pr-chip-k">'+k+'</span><b>'+esc(v)+'</b></span>'; };
+  var items=RES.map(function(r,i){
+    var name=r.name;
     return '<li class="pr-item"><span class="pr-num" aria-hidden="true">'+String(i+1).padStart(2,'0')+'</span>'+
       '<span class="pr-name">'+esc(name)+'</span>'+
+      '<span class="pr-chips">'+chip('Likelihood',r.lk)+chip('Impact',r.im)+'</span>'+
       '<button type="button" class="pr-copy" data-i="'+i+'" title="Copy" aria-label="Copy '+esc(name)+'">'+ICO_COPY+'</button></li>';
   }).join('');
   document.getElementById('wrap').innerHTML=
@@ -102,7 +131,10 @@ function render(){
       '<ol class="pr-list">'+items+'</ol>'+
       '<span class="pr-sr" id="prLive" aria-live="polite"></span>'+
     '</section>';
-  document.getElementById('prCopyAll').addEventListener('click',function(){ copyText(LIST.join('\n'),this,'Copied'); });
+  // Copy all: name + likelihood / impact, tab-separated (pastes as columns in Excel).
+  document.getElementById('prCopyAll').addEventListener('click',function(){
+    copyText(['Resolution\tLikelihood\tImpact'].concat(RES.map(function(r){ return r.name+'\t'+r.lk+'\t'+r.im; })).join('\n'),this,'Copied');
+  });
   Array.prototype.forEach.call(document.querySelectorAll('.pr-copy'),function(b){
     b.addEventListener('click',function(){ copyText(LIST[+b.getAttribute('data-i')],b,''); });
   });

@@ -13,6 +13,7 @@ const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./qua
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
 const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
+const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -2689,6 +2690,76 @@ app.delete('/api/external-links/:id', requireRole('admin'), async (req, res) => 
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete the link.' });
+  }
+});
+
+// ---- Regions & countries (Rules page reference) ----
+// Any logged-in user can read; ONLY the REGION_EDITORS allow-list (harisss) can add/remove countries.
+// A country code belongs to exactly one region.
+function requireRegionEditor(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (canEditRegions(req.user.username)) return next();
+  return res.status(403).json({ error: 'Only harisss can edit regions.' });
+}
+
+app.get('/api/regions', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.regions);
+    const rows = (await coll.find(REGION_REAL_FILTER).sort({ order: 1, _id: 1 }).toArray()).map(mapRegion);
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load regions.' });
+  }
+});
+
+app.post('/api/regions/:key/countries', requireRegionEditor, async (req, res) => {
+  try {
+    const v = normalizeCountryCode((req.body || {}).code);
+    if (!v.ok) return res.status(400).json({ error: v.error });
+    const code = v.value;
+    const key = normalizeRegionKey(req.params.key);
+    const coll = await getCollection(COLLECTIONS.regions);
+    const region = key ? await coll.findOne({ _id: key, ...REGION_REAL_FILTER }) : null;
+    if (!region) return res.status(404).json({ error: 'Unknown region.' });
+    const holder = await coll.findOne({ countries: code, ...REGION_REAL_FILTER });
+    if (holder) return res.status(409).json({ error: code + ' is already in ' + (holder.name || holder.key || holder._id) + '.' });
+    // Guarded write: only matches if this region doesn't already hold the code.
+    const r = await coll.updateOne(
+      { _id: key, countries: { $ne: code }, ...REGION_REAL_FILTER },
+      { $addToSet: { countries: code }, $set: { updatedBy: req.user.username, updatedAt: new Date().toISOString() } }
+    );
+    if (!r.modifiedCount) return res.status(409).json({ error: code + ' is already in ' + (region.name || key) + '.' });
+    // Re-check: a concurrent add may have put the same code in another region. Undo ours if so.
+    const other = await coll.findOne({ _id: { $ne: key }, countries: code, ...REGION_REAL_FILTER });
+    if (other) {
+      await coll.updateOne({ _id: key }, { $pull: { countries: code } });
+      return res.status(409).json({ error: code + ' is already in ' + (other.name || other.key || other._id) + '.' });
+    }
+    const updated = await coll.findOne({ _id: key });
+    res.status(201).json(mapRegion(updated));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not add the country.' });
+  }
+});
+
+app.delete('/api/regions/:key/countries/:code', requireRegionEditor, async (req, res) => {
+  try {
+    const v = normalizeCountryCode(req.params.code);
+    if (!v.ok) return res.status(400).json({ error: v.error });
+    const code = v.value;
+    const key = normalizeRegionKey(req.params.key);
+    const coll = await getCollection(COLLECTIONS.regions);
+    const region = key ? await coll.findOne({ _id: key, ...REGION_REAL_FILTER }) : null;
+    if (!region) return res.status(404).json({ error: 'Unknown region.' });
+    const r = await coll.updateOne(
+      { _id: key, countries: code },
+      { $pull: { countries: code }, $set: { updatedBy: req.user.username, updatedAt: new Date().toISOString() } }
+    );
+    if (!r.modifiedCount) return res.status(404).json({ error: code + ' is not in ' + (region.name || key) + '.' });
+    const updated = await coll.findOne({ _id: key });
+    res.json(mapRegion(updated));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not remove the country.' });
   }
 });
 
@@ -7622,6 +7693,15 @@ app.listen(PORT, () => {
       const elColl = await getCollection(COLLECTIONS.externalLinks);
       await seedExternalLinks(elColl, (msg) => console.log(msg));
     } catch (e) { console.error('External links seed failed:', e && e.message); }
+  })();
+  // One-time seed of the Rules-page regions & countries (idempotent via a marker doc; never re-adds
+  // a removed country). A failure never blocks start-up.
+  (async () => {
+    try {
+      const rgColl = await getCollection(COLLECTIONS.regions);
+      const n = await seedRegions(rgColl, (msg) => console.log(msg));
+      if (!n) console.log('Regions seed: already seeded (no changes).');
+    } catch (e) { console.error('Regions seed failed:', e && e.message); }
   })();
   // Backfill the current live quarter's dashboard rollup on boot if it's missing/stale, so the
   // first visitor after a (re)deploy gets instant chunks without waiting for the next upload.

@@ -36,6 +36,28 @@ code{background:#f0f3f6;color:#b5560c;border:1px solid #e2e7eb;border-radius:5px
 .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:middle}
 .d-green{background:#1f9d57}.d-yellow{background:#d9930a}.d-red{background:#dc2626}.d-black{background:#4a5563}.d-purple{background:#7c5cf0}
 .pill{display:inline-block;font-size:.72em;font-weight:700;border-radius:5px;padding:2px 9px;border:1px solid}
+/* 13. Regions & countries */
+.rg-row{border:1px solid var(--bd);border-radius:5px;padding:12px 14px;margin-bottom:10px;background:#fbfcfd}
+.rg-row:last-child{margin-bottom:0}
+.rg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rg-name{font-weight:700;color:#1b2026;font-size:.95em}
+.rg-count{font-size:.72em;font-weight:700;color:var(--tm);background:#eef1f4;border:1px solid var(--bd);border-radius:5px;padding:1px 8px}
+.rg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rg-chip{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--bd);border-radius:5px;padding:3px 8px;font-size:.82em;font-weight:600;color:#1b2026;font-family:ui-monospace,Menlo,Consolas,monospace}
+.rg-x{background:transparent;border:none;color:var(--tm);cursor:pointer;font-size:1.05em;line-height:1;padding:0 2px;border-radius:5px}
+.rg-x:hover,.rg-x:focus-visible{color:var(--rl);background:rgba(220,38,38,.08)}
+.rg-x:disabled{opacity:.4;cursor:default}
+.rg-empty{color:var(--tm);font-size:.84em}
+.rg-add{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.rg-add label{font-size:.8em;color:var(--tm);font-weight:600}
+.rg-add input{width:90px;padding:6px 9px;border:1px solid var(--bd);border-radius:5px;font-size:.85em;font-family:ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;color:var(--t);background:#fff}
+.rg-add input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 2px rgba(236,114,17,.15)}
+.rg-add .btn{padding:6px 12px;font-size:.8em}
+.rg-add .btn:disabled{opacity:.6;cursor:default}
+.rg-err{color:var(--rl);font-size:.8em;margin-top:6px}
+.rg-err:empty{display:none}
+.rg-state{color:var(--tm);font-size:.88em;padding:6px 0}
+.rg-state .btn{margin-left:8px;padding:5px 12px;font-size:.8em}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
 .wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
@@ -224,6 +246,12 @@ code{background:#f0f3f6;color:#b5560c;border:1px solid #e2e7eb;border-radius:5px
     </ul>
   </div>
 
+  <div class="sec" id="rgSec">
+    <h2>13. Regions &amp; Countries</h2>
+    <p style="color:var(--tm);font-size:.85em;margin-bottom:12px">Countries are grouped by region for reporting. Only harisss can add or remove countries.</p>
+    <div id="rgBody" aria-live="polite"><div class="rg-state">Loading regions&hellip;</div></div>
+  </div>
+
   <div style="margin-top:8px"><a class="btn sec" href="index.html">&larr; Back to All Dashboards</a></div>
 </div>
 
@@ -231,5 +259,111 @@ code{background:#f0f3f6;color:#b5560c;border:1px solid #e2e7eb;border-radius:5px
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=209"></script>
+<script>
+// ---- 13. Regions & countries (GET /api/regions; add/remove only for harisss — server enforces) ----
+(function(){
+  var A=window.PHDAuth;
+  var RG_EDITORS=['harisss'];
+  var RG=[]; // [{key,name,countries:[...]}]
+  var body=document.getElementById('rgBody');
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+  function canEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && RG_EDITORS.indexOf(String(u.username||'').toLowerCase())>=0); }
+  function errMsg(r,fallback){ return (r&&r.data&&r.data.error)||(fallback+' (HTTP '+(r?r.status:'?')+').'); }
+
+  function rowHtml(rg,i){
+    var editor=canEdit();
+    var chips=rg.countries.map(function(c){
+      return '<span class="rg-chip">'+esc(c)
+        +(editor?'<button type="button" class="rg-x" data-i="'+i+'" data-code="'+esc(c)+'" aria-label="Remove '+esc(c)+' from '+esc(rg.name)+'" title="Remove '+esc(c)+'">&times;</button>':'')
+        +'</span>';
+    }).join('');
+    var n=rg.countries.length;
+    return '<div class="rg-head"><span class="rg-name">'+esc(rg.name)+'</span><span class="rg-count">'+n+' '+(n===1?'country':'countries')+'</span></div>'
+      +'<div class="rg-chips">'+(chips||'<span class="rg-empty">No countries yet.</span>')+'</div>'
+      +(editor?('<div class="rg-add"><label for="rgIn'+i+'">Add country to '+esc(rg.name)+'</label>'
+        +'<input type="text" id="rgIn'+i+'" data-i="'+i+'" maxlength="3" placeholder="e.g. NL" autocomplete="off" spellcheck="false">'
+        +'<button type="button" class="btn rg-addbtn" data-i="'+i+'">Add</button></div>'
+        +'<div class="rg-err" id="rgErr'+i+'" role="alert"></div>'):'');
+  }
+  function render(){
+    if(!RG.length){ body.innerHTML='<div class="rg-state">No regions defined.</div>'; return; }
+    body.innerHTML=RG.map(function(rg,i){ return '<div class="rg-row" id="rgRow'+i+'">'+rowHtml(rg,i)+'</div>'; }).join('');
+  }
+  // Re-render one region only (keeps other regions' half-typed inputs intact).
+  function renderRow(i,err){
+    var el=document.getElementById('rgRow'+i); if(!el) return;
+    el.innerHTML=rowHtml(RG[i],i);
+    if(err){ var e=document.getElementById('rgErr'+i); if(e) e.textContent=err; }
+  }
+  function showErr(i,msg){ var e=document.getElementById('rgErr'+i); if(e) e.textContent=msg||''; }
+
+  async function load(){
+    if(!(A&&A.getUser&&A.getUser())){ body.innerHTML='<div class="rg-state">Log in to view regions and countries.</div>'; return; }
+    body.innerHTML='<div class="rg-state">Loading regions&hellip;</div>';
+    var r=null; try{ r=await A.api('GET','/api/regions'); }catch(e){}
+    if(r&&r.ok&&Array.isArray(r.data)){
+      RG=r.data.map(function(x){ return { key:String(x.key||''), name:String(x.name||x.key||''), countries:Array.isArray(x.countries)?x.countries.map(String):[] }; });
+      render(); return;
+    }
+    if(r&&r.status===401) { body.innerHTML='<div class="rg-state">Log in to view regions and countries.</div>'; return; }
+    body.innerHTML='<div class="rg-state" role="alert">'+esc(r?errMsg(r,'Could not load regions'):'Could not load regions \u2014 network error.')
+      +'<button type="button" class="btn sec" id="rgRetry">Retry</button></div>';
+  }
+
+  async function add(i){
+    if(!canEdit()) return;
+    var rg=RG[i], inp=document.getElementById('rgIn'+i); if(!rg||!inp) return;
+    var code=String(inp.value||'').trim().toUpperCase();
+    if(!/^[A-Z]{2,3}$/.test(code)){ showErr(i,'Enter a 2 or 3 letter code (A\u2013Z).'); inp.focus(); return; }
+    var btn=inp.parentNode.querySelector('.rg-addbtn');
+    showErr(i,''); inp.disabled=true; if(btn){ btn.disabled=true; btn.textContent='Adding\u2026'; }
+    var r=null; try{ r=await A.api('POST','/api/regions/'+encodeURIComponent(rg.key)+'/countries',{code:code}); }catch(e){}
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.countries)){
+      RG[i]={ key:rg.key, name:String(r.data.name||rg.name), countries:r.data.countries.map(String) };
+      renderRow(i);
+      var ni=document.getElementById('rgIn'+i); if(ni) ni.focus();
+      return;
+    }
+    inp.disabled=false; if(btn){ btn.disabled=false; btn.textContent='Add'; }
+    showErr(i, r?errMsg(r,'Add failed'):'Add failed \u2014 network error.');
+    inp.focus();
+  }
+
+  async function remove(i,code,btn){
+    if(!canEdit()) return;
+    var rg=RG[i]; if(!rg) return;
+    if(!window.confirm('Remove '+code+' from '+rg.name+'?')) return;
+    showErr(i,''); btn.disabled=true;
+    var r=null; try{ r=await A.api('DELETE','/api/regions/'+encodeURIComponent(rg.key)+'/countries/'+encodeURIComponent(code)); }catch(e){}
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.countries)){
+      RG[i]={ key:rg.key, name:String(r.data.name||rg.name), countries:r.data.countries.map(String) };
+      renderRow(i);
+      return;
+    }
+    btn.disabled=false;
+    showErr(i, r?errMsg(r,'Remove failed'):'Remove failed \u2014 network error.');
+  }
+
+  body.addEventListener('click',function(e){
+    var t=e.target;
+    if(t.id==='rgRetry'){ load(); return; }
+    if(t.classList.contains('rg-addbtn')){ add(+t.getAttribute('data-i')); return; }
+    if(t.classList.contains('rg-x')){ remove(+t.getAttribute('data-i'), t.getAttribute('data-code'), t); }
+  });
+  body.addEventListener('keydown',function(e){
+    var t=e.target;
+    if(e.key==='Enter' && t.tagName==='INPUT' && t.id.indexOf('rgIn')===0){ e.preventDefault(); add(+t.getAttribute('data-i')); }
+  });
+  // Upper-case as you type; letters only.
+  body.addEventListener('input',function(e){
+    var t=e.target;
+    if(t.tagName==='INPUT' && t.id.indexOf('rgIn')===0){
+      var v=t.value.toUpperCase().replace(/[^A-Z]/g,''); if(v!==t.value) t.value=v;
+      showErr(+t.getAttribute('data-i'),'');
+    }
+  });
+  load();
+})();
+</script>
 </body>
 </html>

@@ -90,6 +90,10 @@ function renderQuarterCards(){
     navTile({ href:'phd-resolutions.html', icon:'check-circle', tone:'teal',
       title:'PHD Resolutions', sub:'Reference list',
       desc:'The 12 resolutions allowed for the Res line and PHD Resolution.', action:'View resolutions' }),
+    // Rules & Definitions — program rules, plus the Regions & countries grouping.
+    navTile({ href:'rules.html', icon:'book', tone:'blue',
+      title:'Rules & Definitions', sub:'Reference guide',
+      desc:'Program rules and definitions, including how countries are grouped into regions.', action:'View the rules' }),
   ];
   host.innerHTML='<div class="nav-tiles">'+tiles.join('')+'</div>';
   // External links live in their own "External links" section (#linksSec, filled below for
