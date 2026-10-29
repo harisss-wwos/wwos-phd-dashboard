@@ -257,7 +257,7 @@ function ilCopyMissing(f,answers,opts){
 //       - SIM link: <v>
 //       - Assignee: <v>
 //       - Incident date: <v>
-//       - Issue type: <Pet|Non-pet>          (was "Incident type"; old entries still parse)
+//       - Issue type: <an issue from IZ_CATS> (was "Incident type: Pet|Non-pet"; old entries still parse)
 //       - Incident resolution: <v>
 //       - Incident brief: <first line>
 //           <further lines, IL_INVEST_CONT_INDENT continuation lines>
@@ -268,10 +268,11 @@ var IL_HIST_MAX=10;   // rows rendered / saved at most (a higher Cnt shows "Show
 var IL_HIST_FIELDS=[
   {key:'link',     label:'SIM link',            type:'url', placeholder:'https://t.corp.amazon.com/...'},
   {key:'assignee', label:'Assignee',            type:'text'},
-  {key:'date',     label:'Incident date',       type:'date'},
-  {key:'type',     label:'Issue type',          type:'select', opts:['Pet','Non-pet'], aliases:['Incident type']},
+  {key:'date',     label:'Incident date',       type:'text', placeholder:'e.g. 18 Oct 2026'},
+  // Issue type options = the Build Root Cause Details issue list (window.IZ_CATS, grouped by category).
+  {key:'type',     label:'Issue type',          type:'select', src:'issues', opts:[], aliases:['Incident type']},
   {key:'res',      label:'Incident resolution', type:'text'},
-  {key:'brief',    label:'Incident brief',      type:'textarea', rows:5}
+  {key:'brief',    label:'Incident brief',      type:'textarea', rows:5, placeholder:'Give a short brief of the incident in one or two lines.'}
 ];
 // Cnt from the SIM text: first "Cnt: <n>" / "Historical Incident(s): <n>" line (case-insensitive).
 // Missing / non-numeric (e.g. "Cnt: N/A") -> 0.
@@ -280,11 +281,7 @@ function ilSimCnt(sim){
   return m ? (parseInt(m[1],10)||0) : 0;
 }
 function _ilhEmpty(){ return {link:'',assignee:'',date:'',type:'',res:'',brief:''}; }
-// Canonical "Incident type" option ("pet" -> "Pet", "non pet" / "nonpet" -> "Non-pet"); other text kept.
-function _ilhCanonType(v){
-  v=String(v==null?'':v).trim(); var k=v.toLowerCase().replace(/[^a-z]/g,'');
-  return k==='pet' ? 'Pet' : (k==='nonpet' ? 'Non-pet' : v);
-}
+// (Issue type values are kept exactly as saved; an old "Pet" / "Non-pet" shows as an extra "(old)" option.)
 // Parse the section body -> array of rows ({link, assignee, type, res, brief}). Tolerant of CRLF,
 // extra blank lines and missing lines; "- Historical incident <n>:" selects row n (gaps are empty
 // rows). Lines indented deeper than the current "- Label:" line continue its value ("\n"-joined).
@@ -317,7 +314,6 @@ function ilParseHistorical(text){
   });
   rows.forEach(function(r){
     IL_HIST_FIELDS.forEach(function(f){ r[f.key]=String(r[f.key]).replace(/\s+$/,'').replace(/^\s+/,''); });
-    r.type=_ilhCanonType(r.type);
   });
   return rows;
 }
@@ -382,11 +378,18 @@ function _ilhGrow(ta){
 }
 function _ilhControl(i,f){
   var id='ilh_'+(i+1)+'_'+f.key, a=' id="'+id+'" class="ail-hctl'+(f.type==='textarea'?' ail-hta':'')+'" aria-required="true"';
+  var opt=function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o)+'</option>'; };
+  if(f.type==='select' && f.src==='issues'){
+    // Same list + category groups as the Build Root Cause Details "Issue" dropdown.
+    var cats=(typeof window!=='undefined' && Array.isArray(window.IZ_CATS)) ? window.IZ_CATS : [];
+    return '<select'+a+' onchange="ilHistChanged(this)"><option value="">Select an issue type</option>'+
+      cats.map(function(cat){ return '<optgroup label="'+_ileEsc(cat.category)+'">'+
+        (cat.types||[]).map(function(ty){ return opt(ty.type); }).join('')+'</optgroup>'; }).join('')+'</select>';
+  }
   if(f.type==='select')
-    return '<select'+a+' onchange="ilHistChanged(this)"><option value="">Select an option</option>'+
-      f.opts.map(function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o)+'</option>'; }).join('')+'</select>';
+    return '<select'+a+' onchange="ilHistChanged(this)"><option value="">Select an option</option>'+f.opts.map(opt).join('')+'</select>';
   if(f.type==='textarea')
-    return '<textarea'+a+' rows="'+(f.rows||2)+'" oninput="ilHistChanged(this)"></textarea>';
+    return '<textarea'+a+' rows="'+(f.rows||2)+'"'+(f.placeholder?' placeholder="'+_ileEsc(f.placeholder)+'"':'')+' oninput="ilHistChanged(this)"></textarea>';
   return '<input type="'+f.type+'"'+a+' autocomplete="off"'+(f.placeholder?' placeholder="'+_ileEsc(f.placeholder)+'"':'')+' oninput="ilHistChanged(this)">';
 }
 // (Re)build the rows from _ilhRows for the current _ilhCnt.
@@ -415,8 +418,6 @@ function _ilhRender(){
         var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; el.appendChild(o);   // keep a saved non-option value
       }
       if(el.tagName==='INPUT') v=v.replace(/[ \t]*\n\s*/g,' ');
-      // A date picker only accepts YYYY-MM-DD; keep any other saved date text (e.g. "18 Oct 2026") as plain text.
-      if(f.type==='date' && v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) el.type='text';
       el.value=v; el.disabled=_ilhLocked;
       if(el.tagName==='TEXTAREA') _ilhGrow(el);
     });
