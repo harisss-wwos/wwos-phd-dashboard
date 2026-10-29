@@ -256,18 +256,22 @@ function ilCopyMissing(f,answers,opts){
 //   - Historical incident 1:
 //       - SIM link: <v>
 //       - Assignee: <v>
-//       - Incident type: <Pet|Non-pet>
+//       - Incident date: <v>
+//       - Issue type: <Pet|Non-pet>          (was "Incident type"; old entries still parse)
 //       - Incident resolution: <v>
 //       - Incident brief: <first line>
 //           <further lines, IL_INVEST_CONT_INDENT continuation lines>
 var IL_HIST_HEAD='**Historical Incidents:**';
 var IL_HIST_MAX=10;   // rows rendered / saved at most (a higher Cnt shows "Showing 10 of N")
+// Layout (3 columns): [SIM link / Assignee / Incident date] [Issue type / Incident resolution] [Incident brief, full height].
+// `aliases` = labels used in entries saved before a rename, so they still parse.
 var IL_HIST_FIELDS=[
   {key:'link',     label:'SIM link',            type:'url', placeholder:'https://t.corp.amazon.com/...'},
   {key:'assignee', label:'Assignee',            type:'text'},
-  {key:'type',     label:'Incident type',       type:'select', opts:['Pet','Non-pet']},
+  {key:'date',     label:'Incident date',       type:'date'},
+  {key:'type',     label:'Issue type',          type:'select', opts:['Pet','Non-pet'], aliases:['Incident type']},
   {key:'res',      label:'Incident resolution', type:'text'},
-  {key:'brief',    label:'Incident brief',      type:'textarea', rows:2}
+  {key:'brief',    label:'Incident brief',      type:'textarea', rows:5}
 ];
 // Cnt from the SIM text: first "Cnt: <n>" / "Historical Incident(s): <n>" line (case-insensitive).
 // Missing / non-numeric (e.g. "Cnt: N/A") -> 0.
@@ -275,7 +279,7 @@ function ilSimCnt(sim){
   var m=String(sim==null?'':sim).match(/^[ \t]*(?:Cnt|Historical[ \t]+Incident(?:s|\(s\))?)[ \t]*:[ \t]*(\d+)\b/mi);
   return m ? (parseInt(m[1],10)||0) : 0;
 }
-function _ilhEmpty(){ return {link:'',assignee:'',type:'',res:'',brief:''}; }
+function _ilhEmpty(){ return {link:'',assignee:'',date:'',type:'',res:'',brief:''}; }
 // Canonical "Incident type" option ("pet" -> "Pet", "non pet" / "nonpet" -> "Non-pet"); other text kept.
 function _ilhCanonType(v){
   v=String(v==null?'':v).trim(); var k=v.toLowerCase().replace(/[^a-z]/g,'');
@@ -287,7 +291,7 @@ function _ilhCanonType(v){
 function ilParseHistorical(text){
   var rows=[], s=String(text==null?'':text).replace(/\r\n/g,'\n');
   if(!s.trim() || s.trim()==='-') return rows;
-  var lab={}; IL_HIST_FIELDS.forEach(function(f){ lab[_ilqNorm(f.label)]=f.key; });
+  var lab={}; IL_HIST_FIELDS.forEach(function(f){ [f.label].concat(f.aliases||[]).forEach(function(l){ lab[_ilqNorm(l)]=f.key; }); });
   var cur=null, key=null, keyInd=0, blanks=0, contMin=IL_INVEST_CONT_INDENT.length;
   s.split('\n').forEach(function(raw){
     if(!raw.trim()){ if(key) blanks++; return; }
@@ -372,11 +376,9 @@ function _ilhCapture(){
   }
 }
 // Let a brief textarea grow with its content (no-op while the modal is hidden / not laid out).
+// The brief now fills the full height of its 3-row column (CSS), so no auto-grow; clear any old inline height.
 function _ilhGrow(ta){
-  if(!ta) return;
-  ta.style.height='auto';
-  if(!ta.scrollHeight){ ta.style.height=''; return; }
-  ta.style.height=(ta.scrollHeight+2)+'px';
+  if(ta) ta.style.height='';
 }
 function _ilhControl(i,f){
   var id='ilh_'+(i+1)+'_'+f.key, a=' id="'+id+'" class="ail-hctl'+(f.type==='textarea'?' ail-hta':'')+'" aria-required="true"';
@@ -413,6 +415,8 @@ function _ilhRender(){
         var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; el.appendChild(o);   // keep a saved non-option value
       }
       if(el.tagName==='INPUT') v=v.replace(/[ \t]*\n\s*/g,' ');
+      // A date picker only accepts YYYY-MM-DD; keep any other saved date text (e.g. "18 Oct 2026") as plain text.
+      if(f.type==='date' && v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) el.type='text';
       el.value=v; el.disabled=_ilhLocked;
       if(el.tagName==='TEXTAREA') _ilhGrow(el);
     });
@@ -1004,7 +1008,12 @@ var IncidentLogEditor=(function(){
     '.ail-hrow{padding:8px 0;border-top:1px solid #eef1f4}',
     '.ail-hist-h+.ail-hrow,.ail-hist-note+.ail-hrow{border-top:0}',
     '.ail-hrow-h{font-size:.74em;font-weight:700;color:#5c6773;margin-bottom:5px}',
-    '.ail-hgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,2fr);gap:8px 10px;align-items:start}',
+    // 3 columns: col 1 = SIM link / Assignee / Incident date, col 2 = Issue type / Incident resolution,
+    // col 3 = Incident brief spanning all three rows (same height as column 1).
+    '.ail-hgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);grid-template-areas:"link type brief" "assignee res brief" "date . brief";gap:8px 12px;align-items:stretch}',
+    '.ail-hcell-link{grid-area:link}.ail-hcell-assignee{grid-area:assignee}.ail-hcell-date{grid-area:date}',
+    '.ail-hcell-type{grid-area:type}.ail-hcell-res{grid-area:res}.ail-hcell-brief{grid-area:brief}',
+    '.ail-field .ail-hist .ail-hcell-brief textarea.ail-hta{flex:1 1 auto;height:100%;min-height:calc(5 * 1.4em + 14px);max-height:none}',
     '.ail-hcell{min-width:0;display:flex;flex-direction:column;gap:3px;border-radius:5px}',
     '.ail-hlabel{font-size:.76em;font-weight:600;color:#2a3340}',
     '.ail-field .ail-hist .ail-hctl{box-sizing:border-box;width:100%;min-height:34px;margin:0;padding:6px 10px!important;font-size:.85em;line-height:1.4;font-family:inherit;border-radius:5px!important;background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}',
@@ -1012,8 +1021,8 @@ var IncidentLogEditor=(function(){
     '.ail-field .ail-hist .ail-hctl:disabled{background:#f3f5f7!important;color:#2a3340!important;opacity:1;cursor:default}',
     '.ail-field .ail-hist textarea.ail-hta{display:block;height:auto;min-height:calc(2 * 1.4em + 14px);max-height:calc(12 * 1.4em + 14px);resize:vertical;overflow-y:auto;white-space:pre-wrap}',
     '.ail-hcell.ail-flash{animation:ailFlash 1.8s ease-out}',
-    '@media (max-width:900px){.ail-hgrid{grid-template-columns:repeat(4,minmax(0,1fr))}.ail-hcell-brief{grid-column:1/-1}}',
-    '@media (max-width:520px){.ail-hgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+    '@media (max-width:900px){.ail-hgrid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"link type" "assignee res" "date ." "brief brief"}}',
+    '@media (max-width:520px){.ail-hgrid{grid-template-columns:minmax(0,1fr);grid-template-areas:"link" "assignee" "date" "type" "res" "brief"}}',
     '@media (max-width:640px){.ail-qrow{grid-template-columns:1fr;gap:4px}.ail-qsub{margin-left:8px}}',
     '@media (prefers-reduced-motion:reduce){.ail-qsub{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
   ].join('\n');
