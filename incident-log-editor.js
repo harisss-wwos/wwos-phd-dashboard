@@ -74,7 +74,8 @@ function parseIncidentOutput(text){
 var IL_INVEST_QS=[
   {key:'dup',    label:'Does current ticket have any duplicate', type:'select', opts:['No','Yes']},
   // "No" reveals an optional free-text "Who is the POI?" saved inline as "No (<text>)".
-  {key:'poi',    label:'Is POI the CX', type:'select', opts:['Yes','No'],
+  // "Community Member (Unknown)" hides the IL_POI_CM_HIDE questions (form, copies and saved text).
+  {key:'poi',    label:'Is POI the CX', type:'select', opts:['Yes','No','Community Member (Unknown)'],
     poiWho:{key:'poiWho', label:'Who is the POI?', type:'text', optional:true, placeholder:"e.g. CX's father / neighbour / unknown person"}},
   {key:'susp',   label:'CX Account suspension requested from GSOC?', type:'select', opts:['No','Yes'],
     aliases:['CX Account suspension requested?','CX Account suspension requested']},
@@ -101,6 +102,12 @@ var IL_INVEST_QS=[
     sub:{key:'diUpd', label:'Delivery instructions updated after incident?', type:'select', opts:['Yes','No']}},
   {key:'pod',    label:'GeoStudio Delivery Photo (POD) added', type:'select', opts:['No','Yes']}
 ];
+// "Is POI the CX" = IL_POI_CM -> these questions (and their sub-questions) are hidden in the form and
+// left out of the serialized section / copy check. Their values stay in the controls for the session.
+var IL_POI_CM='Community Member (Unknown)';
+var IL_POI_CM_HIDE=['susp','histCx','locSim','cortex','locEmt','clear','station','netra','addPkg','di','pod'];
+// True if question q is hidden by the current POI answer.
+function _ilqPoiHidden(q,a){ return IL_POI_CM_HIDE.indexOf(q.key)>=0 && String((a||{}).poi==null?'':a.poi).trim()===IL_POI_CM; }
 var IL_INVEST_SUB_INDENT='    ';
 // Continuation lines of a multi-line answer: indented deeper than any sub-question line.
 var IL_INVEST_CONT_INDENT='        ';
@@ -199,6 +206,7 @@ function ilSerializeInvestigation(answers,unknown){
     for(var i=1;i<ls.length;i++) lines.push(ls[i] ? IL_INVEST_CONT_INDENT+ls[i] : '');
   };
   IL_INVEST_QS.forEach(function(q){
+    if(_ilqPoiHidden(q,a)) return;   // hidden for a Community Member POI -> no line
     var v=val(q.key);
     if(q.poiWho && v==='No' && val('poiWho')) v='No ('+val('poiWho')+')';
     if(v) any=true;
@@ -214,6 +222,7 @@ function ilInvestMissing(answers){
   var a=answers||{}, miss=[];
   var val=function(k){ return String(a[k]==null?'':a[k]).trim(); };
   IL_INVEST_QS.forEach(function(q){
+    if(_ilqPoiHidden(q,a)) return;   // hidden questions are not required
     var v=val(q.key);
     if(q.type==='number' ? !/^\d+$/.test(v) : !v) miss.push(q.key);
     if(_ilqSubShown(q,a) && !val(q.sub.key)) miss.push(q.sub.key);
@@ -509,9 +518,10 @@ function ilSetInvestigation(text){
 function _ilqSyncVisibility(){
   var a=_ilqReadAnswers();
   IL_INVEST_QS.forEach(function(q){
-    var row;
+    var row, off=_ilqPoiHidden(q,a);
+    if(IL_POI_CM_HIDE.indexOf(q.key)>=0){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
     if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=(a[q.key]!=='No'); }
-    if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=!_ilqSubShown(q,a); }
+    if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=off || !_ilqSubShown(q,a); }
   });
 }
 // aria-invalid / visual state per control + the "n questions need an answer" status line.
