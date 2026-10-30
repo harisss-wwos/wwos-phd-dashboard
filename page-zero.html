@@ -85,6 +85,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .pz-kri-wrap{margin-top:18px;display:flex;flex-direction:column;gap:14px}
 .pz-note{background:#f4f7fb;border:1px solid #c8d4e6;border-left:4px solid #1f3a68;border-radius:5px;padding:10px 14px;font-size:.84em;color:#1b2026;line-height:1.5}
 .pz-note b{color:#1f3a68}
+/* app-light.css forces every h1-h5 to dark text with !important, so the white needs !important too. */
+h2.pz-kri-bar,.pz-card h2.pz-kri-bar{color:#fff!important}
 .pz-kri-bar{background:#161d2d;color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.4px;font-size:.82em;padding:8px 12px;border-radius:5px 5px 0 0;margin:0}
 .pz-kri-scroll{overflow-x:auto}
 .pz-kri{border-collapse:separate;border-spacing:0;font-size:.82em;color:#1b2026;width:100%}
@@ -284,7 +286,7 @@ function kriNote(D){
   var lbl=function(w,full){ return w?(full?w.label:w.short):DASH; };
   return [
     'Indicative KRI: incident-volume index (0\u2013100) \u2014 each site\u2019s/zip\u2019s incidents in the month divided by the busiest site\u2019s/zip\u2019s that month.',
-    'Current = '+lbl(W.current,true)+' to date; Last Month = '+lbl(W.last)+'; 2 Mo Ago = '+lbl(W.prev2)+'. Ranked when \u2265 '+n+' incidents this month.'
+    'Current = '+lbl(W.current,true)+' to date; Last Month = '+lbl(W.last)+'; 2 Mo Ago = '+lbl(W.prev2)+'. Ranked by most incidents this month (sites need \u2265 '+n+'; zipcodes \u2265 1).'
   ];
 }
 function kriHtml(D){

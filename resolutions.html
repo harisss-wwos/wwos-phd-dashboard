@@ -269,6 +269,23 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .psm-pg:disabled{opacity:.45;cursor:not-allowed}
 .psm-gap{min-width:24px;text-align:center;color:var(--mut2);font-weight:700}
 .rs-gate{text-align:center;padding:60px 20px;color:var(--mut)}
+
+/* ---- Section 3: Pet auto-resolve overrides (bars = resolved by agents, dotted line = override rate %) ---- */
+.rs-lg.s4 i{width:12px;height:10px;border-radius:2px;background:#ff6100}
+.rs-lg.s5 i{width:18px;background:repeating-linear-gradient(90deg,var(--s3) 0 4px,transparent 4px 7px)}
+.rs-chart-svg .bar{fill:#ff6100;cursor:pointer;transition:fill .12s}
+.rs-chart-svg .bar:hover,.rs-chart-svg .bar.on{fill:#e55700}
+.rs-chart-svg .bar:focus{outline:none}
+.rs-chart-svg .bar:focus-visible{stroke:#1b2026;stroke-width:2}
+.rs-chart-svg .ptlbl.s4{fill:#c24a00}
+.rs-chart-svg .hit.click{cursor:pointer}
+.rs-stat.ovr .rs-stat-ic{background:#fff4ea;color:#ff6100}
+.rs-stat.ovr .rs-stat-n{color:#ec7211}
+.rs-stat.asim .rs-stat-ic{background:#eef0fe;color:#4f46e5}
+.rs-stat.reo .rs-stat-ic{background:var(--amber-bg);color:var(--amber)}
+.rs-po-stats{margin:0 0 14px}
+.rs-po-h{font-size:.92em;font-weight:800;color:var(--ink);margin:18px 0 10px}
+.rs-po-note{font-size:.8em;color:var(--mut);margin:12px 2px 0;line-height:1.45}
 </style>
 </head>
 <body data-nav-active="resolutions" data-back-href="app.html" data-back-label="Dashboard">
@@ -283,7 +300,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=210"></script>
-<script src="resolution-tickets-modal.js?v=4"></script>
+<script src="resolution-tickets-modal.js?v=5"></script>
 <script>
 const A=window.PHDAuth;
 function ic(n,s){ return window.icon?window.icon(n,s||14):''; }
@@ -712,6 +729,179 @@ document.addEventListener('keydown',function(ev){
   ev.preventDefault(); rsSetType(RS_TYPES[j].v,true);
 });
 
+// =============== SECTION 3: Pet auto-resolve overrides (2026) ===============
+// Server: GET /api/resolutions/pet-overrides?year= (counts) and /api/resolutions/pet-overrides/tickets
+// (the pop-up list, the same selection, so a count always equals its list length).
+// Lazy: no request until the section is first expanded.
+var RS_PO=null, RS_PO_STATE='idle';
+var RS_PO_NOTE='Tickets tagged pet_incident_auto_resolved whose final resolver is a person (reopened after AutoSIM). The DB keeps no reopen history, so this is based on the final resolver.';
+var RS_PO_TITLE='Pet auto-resolve overrides';
+function rsPoOpen(){ var c=document.getElementById('rsPetCard'); return !!(c&&c.classList.contains('open')); }
+async function rsLoadPet(){
+  if(RS_PO_STATE!=='idle') return; RS_PO_STATE='loading';
+  var body=document.getElementById('rsPetBody'); if(!body){ RS_PO_STATE='idle'; return; }
+  body.setAttribute('aria-busy','true');
+  body.innerHTML=ldHtml('rsp','Pet auto-resolve overrides \u00b7 '+RS_YEAR);
+  _ldStart('rsp','pet auto-resolve overrides');
+  var minHold=_delay(1200), r=null;
+  try{ r=await A.api('GET','/api/resolutions/pet-overrides?year='+RS_YEAR); }catch(e){}
+  await minHold;
+  body.setAttribute('aria-busy','false');
+  if(!(r&&r.ok&&r.data&&r.data.totals&&Array.isArray(r.data.months))){
+    _ldStop('rsp'); RS_PO_STATE='idle';   // the next expand (or Retry) fetches again
+    if(r&&r.status===403){ body.innerHTML='<div class="rs-msg" role="alert">This section needs SLA access. Ask an admin to enable SLA Breaches for your account.</div>'; return; }
+    body.innerHTML=rsErrHtml('Could not load the pet auto-resolve overrides'+(r&&r.status?(' (HTTP '+r.status+')'):'')+'.','rsPetRetry');
+    var b=document.getElementById('rsPetRetry'); if(b) b.addEventListener('click',rsLoadPet);
+    return;
+  }
+  RS_PO=r.data;
+  _ldSuccess('rsp'); await _delay(600);
+  body.innerHTML=rsPetHtml();
+  rsDrawPetChart();
+  RS_PO_STATE='done';
+}
+function rsPoMonthLbl(m,long){ var i=Number(String(m.key).slice(5,7))-1; return (long?RS_MON[i]:RS_MON3[i])+' '+RS_PO.year; }
+function rsPetHtml(){
+  var D=RS_PO, t=D.totals||{}, open=D.reopenedOpen||[], agents=D.byAgent||[];
+  function tile(icn,cls,val,lbl,title,extra){ return '<div class="rs-stat '+cls+'"'+(title?' title="'+esc(title)+'"':'')+'><span class="rs-stat-ic" aria-hidden="true">'+ic(icn,15)+'</span>'+
+    '<span class="rs-stat-body"><span class="rs-stat-n">'+val+'</span><span class="rs-stat-l">'+esc(lbl)+'</span>'+(extra||'')+'</span></div>'; }
+  var openIds=open.map(function(o){ return o.shortId; }).join(', ');
+  var stats='<div class="rs-stats rs-po-stats">'+
+    tile('user','ovr', num(t.overrides), 'Resolved by agents', 'Tagged tickets resolved in '+D.year+' by a person (not AutoSIM)')+
+    tile('bolt','asim', num(t.autosim), 'Resolved by AutoSIM', 'Tagged tickets resolved in '+D.year+' by AutoSIM')+
+    tile('bar-chart','pct', rsFmtPct(t.overrideRatePct), 'Override rate', 'Resolved by agents \u00f7 (resolved by agents + resolved by AutoSIM)')+
+    tile('reopen','reo', num(t.reopenedOpen), 'Reopened now', open.length?('Currently open: '+openIds):'No tagged ticket is open right now',
+      open.length?'<span class="sr-only">Currently open: '+esc(openIds)+'</span>':'')+
+  '</div>';
+  var drawn=(D.months||[]).filter(function(m){ return m.elapsed; });
+  var lastLbl=drawn.length?rsPoMonthLbl(drawn[drawn.length-1],true):RS_MON[0];
+  var rows=(D.months||[]).map(function(m){
+    var f=function(v){ return v==null?'\u2014':num(v); };
+    return '<tr><th scope="row">'+rsPoMonthLbl(m,true)+'</th><td>'+f(m.overrides)+'</td><td>'+f(m.autosim)+'</td><td>'+rsFmtPct(m.overrideRatePct)+'</td></tr>';
+  }).join('');
+  var chart='<div class="rs-chart-top"><div class="rs-legend" aria-hidden="true">'+
+      '<span class="rs-lg s4"><i></i>Resolved by agents</span><span class="rs-lg s5"><i></i>Override rate %</span>'+
+    '</div></div>'+
+    '<div class="rs-chart-wrap" id="rsPoChartWrap">'+
+      '<svg class="rs-chart-svg" id="rsPoChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet" role="group" '+
+        'aria-label="Bar chart of pet auto-resolve tickets resolved by agents per month in '+D.year+', January to '+esc(lastLbl)+', with the override rate percentage as a dotted line on a right-hand axis. Each bar opens that month\u2019s tickets. The same numbers are in the table that follows." aria-describedby="rsPoTblCap"></svg>'+
+      '<div class="rs-tip" id="rsPoChartTip" aria-hidden="true"></div>'+
+    '</div>'+
+    '<table class="sr-only"><caption id="rsPoTblCap">Monthly pet auto-resolve tickets resolved by agents and by AutoSIM, and the override rate (resolved by agents \u00f7 both), '+D.year+'. Months after the current month have no data yet.</caption>'+
+      '<thead><tr><th scope="col">Month</th><th scope="col">Resolved by agents</th><th scope="col">Resolved by AutoSIM</th><th scope="col">Override rate</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  var total=Number(t.overrides)||0, max=Math.max.apply(null,agents.map(function(a){ return Number(a.count)||0; }).concat([1]));
+  var table=agents.length
+    ? '<div class="ps-res-wrap"><table class="ps-res-tbl">'+
+        '<caption class="sr-only">Pet auto-resolve overrides by agent, '+D.year+'</caption>'+
+        '<thead><tr><th scope="col">Agent</th><th scope="col" class="n">Tickets</th><th scope="col">Share</th></tr></thead>'+
+        '<tbody>'+agents.map(function(a,i){
+          var n=Number(a.count)||0, pct=total?(n/total*100).toFixed(1):'0.0', w=Math.max(1,Math.round(n/max*100));
+          return '<tr><th scope="row">'+esc(a.agent)+'</th>'+
+            '<td class="n"><button type="button" class="ps-res-cnt" data-po-agent="'+i+'" aria-label="View '+n+' ticket'+(n===1?'':'s')+' resolved by '+esc(a.agent)+'">'+num(n)+'</button></td>'+
+            '<td class="rs-pct"><span class="rs-pct-wrap"><span class="rs-bar" aria-hidden="true"><i style="width:'+w+'%"></i></span><span class="rs-pct-n">'+esc(pct)+'%</span></span></td></tr>';
+        }).join('')+'</tbody></table></div>'
+    : '<div class="ps-res-empty">No overrides in '+D.year+'</div>';
+  return stats+chart+'<h3 class="rs-po-h">Overrides by agent</h3>'+table+'<p class="rs-po-note">'+esc(RS_PO_NOTE)+'</p>';
+}
+// Right-axis max for the override rate: the smallest of 10 / 25 / 50 / 100 that fits.
+function rsPoPctMax(v){ return v<=10?10:v<=25?25:v<=50?50:100; }
+function rsDrawPetChart(){
+  var svg=document.getElementById('rsPoChartSvg'), wrap=document.getElementById('rsPoChartWrap'); if(!svg||!wrap||!RS_PO) return;
+  var ms=RS_PO.months||[], lastI=-1; ms.forEach(function(m,i){ if(m.elapsed) lastI=i; });
+  var boxW=wrap.clientWidth||920, H=320, W=Math.max(600,Math.round(H*boxW/300));
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  var padL=46,padR=48,padT=22,padB=36, plotW=W-padL-padR, plotH=H-padT-padB, axisY=padT+plotH;
+  var maxV=0, maxP=0; ms.forEach(function(m){ if(m.elapsed){ maxV=Math.max(maxV,m.overrides||0); if(m.overrideRatePct!=null) maxP=Math.max(maxP,m.overrideRatePct); } });
+  var niceMax=rsNiceCeil(Math.max(maxV,1)), PMAX=rsPoPctMax(maxP);
+  var band=plotW/12, barW=Math.max(8,Math.min(48,band*0.56));
+  var xAt=function(i){ return padL+band*(i+0.5); };
+  var yCnt=function(v){ return padT+plotH-plotH*((v||0)/niceMax); };
+  var yPct=function(v){ var c=Math.min(PMAX,Math.max(0,Number(v)||0)); return padT+plotH-plotH*(c/PMAX); };
+  var g='';
+  for(var b=0;b<=5;b++){ var v=Math.round(niceMax*b/5), y=yCnt(v);
+    g+='<line class="grid" x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'"/>';
+    g+='<text class="axlbl" x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end">'+num(v)+'</text>'; }
+  for(var p=0;p<=5;p++){ var pv=PMAX*p/5; g+='<text class="axlbl pct" x="'+(W-padR+8)+'" y="'+(yPct(pv)+4)+'" text-anchor="start">'+(Math.round(pv*10)/10)+'%</text>'; }
+  for(var i=0;i<12;i++) g+='<text class="axlbl'+(i===lastI?' cur':'')+'" x="'+xAt(i)+'" y="'+(H-padB+20)+'" text-anchor="middle">'+RS_MON3[i]+'</text>';
+  g+='<line class="axis" x1="'+padL+'" y1="'+axisY+'" x2="'+(W-padR)+'" y2="'+axisY+'"/>';
+  // Bars (elapsed months only; future months stay empty). Non-zero bars open that month's tickets.
+  var barTop={};
+  ms.forEach(function(m,i){
+    if(!m.elapsed) return;
+    var n=m.overrides||0, y=yCnt(n), h=axisY-y;
+    if(n>0) g+='<rect class="bar" data-po-m="'+i+'" tabindex="0" role="button" aria-label="'+esc(rsPoMonthLbl(m,true)+': '+num(n)+' ticket'+(n===1?'':'s')+' resolved by agents. Open the list')+'" x="'+(xAt(i)-barW/2)+'" y="'+y+'" width="'+barW+'" height="'+Math.max(1,h)+'" rx="3"/>';
+    barTop[i]=y;
+  });
+  // Dotted override-rate line (breaks where a month has no resolved tagged ticket).
+  var seg=[], flush=function(){ if(seg.length>1) g+='<polyline class="ln s3" points="'+seg.join(' ')+'"/>'; seg=[]; };
+  ms.forEach(function(m,i){ if(m.elapsed&&m.overrideRatePct!=null) seg.push(xAt(i)+','+yPct(m.overrideRatePct)); else flush(); });
+  flush();
+  ms.forEach(function(m,i){ if(m.elapsed&&m.overrideRatePct!=null) g+='<circle class="pt s3" cx="'+xAt(i)+'" cy="'+yPct(m.overrideRatePct)+'" r="'+(i===lastI?5.5:4)+'"/>'; });
+  // Value labels: count on top of each bar; % above its point, dropped below when it would collide.
+  ms.forEach(function(m,i){
+    if(!m.elapsed) return;
+    var x=xAt(i), by=barTop[i]-6;
+    g+='<text class="ptlbl s4'+(i===lastI?' last':'')+'" x="'+x+'" y="'+by+'" text-anchor="middle">'+num(m.overrides||0)+'</text>';
+    if(m.overrideRatePct==null) return;
+    var py=yPct(m.overrideRatePct), ly=py-9; if(ly<padT+2) ly=py+16;
+    if(Math.abs(ly-by)<12) ly=py+16;
+    if(Math.abs(ly-by)<12) ly=by-14;
+    if(ly>axisY-3) ly=Math.max(padT+10,py-9);
+    g+='<text class="ptlbl s3" x="'+x+'" y="'+ly+'" text-anchor="middle">'+rsFmtPct(m.overrideRatePct)+'</text>';
+  });
+  // Transparent hover columns (tooltip; a click on a column with tickets opens that month too).
+  ms.forEach(function(m,i){ if(m.elapsed) g+='<rect class="hit'+((m.overrides||0)>0?' click':'')+'" data-po-hit="'+i+'" x="'+(xAt(i)-band/2)+'" y="'+padT+'" width="'+band+'" height="'+plotH+'"/>'; });
+  svg.innerHTML=g;
+  // Keep the focusable bars above the transparent hover columns so keyboard focus rings show.
+  svg.querySelectorAll('.bar').forEach(function(b){ svg.appendChild(b); });
+  var tip=document.getElementById('rsPoChartTip');
+  var show=function(i){
+    var m=ms[i]; if(!m||!m.elapsed) return;
+    tip.innerHTML='<div class="tt-m">'+esc(rsPoMonthLbl(m,true))+'</div>'+
+      '<div class="tt-row"><span class="k"><i style="background:#ff6100"></i>Resolved by agents</span><span class="v">'+num(m.overrides||0)+'</span></div>'+
+      '<div class="tt-row"><span class="k"><i style="background:#4f46e5"></i>Resolved by AutoSIM</span><span class="v">'+num(m.autosim||0)+'</span></div>'+
+      '<div class="tt-row"><span class="k"><i style="background:#7c3aed"></i>Override rate</span><span class="v">'+rsFmtPct(m.overrideRatePct)+'</span></div>';
+    svg.querySelectorAll('.bar').forEach(function(b){ b.classList.toggle('on',+b.getAttribute('data-po-m')===i); });
+    var box=svg.getBoundingClientRect(), px=(xAt(i)/W)*box.width; tip.classList.add('show');
+    var tw=tip.offsetWidth||220, left=px+14; if(left+tw>box.width) left=px-tw-14; if(left<0) left=4;
+    tip.style.left=left+'px';
+  };
+  var hide=function(){ tip.classList.remove('show'); svg.querySelectorAll('.bar.on').forEach(function(b){ b.classList.remove('on'); }); };
+  svg.querySelectorAll('[data-po-hit],[data-po-m]').forEach(function(el){
+    var i=+(el.getAttribute('data-po-hit')||el.getAttribute('data-po-m'));
+    el.addEventListener('mouseenter',function(){ show(i); });
+  });
+  svg.querySelectorAll('.bar').forEach(function(b){ b.addEventListener('focus',function(){ show(+b.getAttribute('data-po-m')); }); b.addEventListener('blur',hide); });
+  if(!wrap._rsLeave){ wrap._rsLeave=true; wrap.addEventListener('mouseleave',hide); }
+}
+function rsPoOpenMonth(i,opener){
+  var m=RS_PO&&(RS_PO.months||[])[i]; if(!m||!m.elapsed||!(m.overrides>0)||!window.PHDResTickets) return;
+  window.PHDResTickets.open({ opener:opener, count:m.overrides,
+    endpoint:'/api/resolutions/pet-overrides/tickets?year='+RS_PO.year+'&month='+encodeURIComponent(m.key),
+    title:RS_PO_TITLE+' \u2014 '+rsPoMonthLbl(m,false), subtitle:'Resolved by agents \u00b7 '+rsPoMonthLbl(m,true),
+    fileName:'pet-overrides_'+m.key+'.csv' });
+}
+function rsPoOpenAgent(i,opener){
+  var a=RS_PO&&(RS_PO.byAgent||[])[i]; if(!a||!window.PHDResTickets) return;
+  var slug=(PURE.slug?PURE.slug(a.agent):String(a.agent).toLowerCase().replace(/[^a-z0-9]+/g,'-'))||'agent';
+  window.PHDResTickets.open({ opener:opener, count:a.count,
+    endpoint:'/api/resolutions/pet-overrides/tickets?year='+RS_PO.year+'&agent='+encodeURIComponent(a.agent),
+    title:RS_PO_TITLE+' \u2014 '+a.agent, subtitle:'Resolved by '+a.agent+' \u00b7 YTD '+RS_PO.year,
+    fileName:'pet-overrides_'+slug+'_'+RS_PO.year+'.csv' });
+}
+document.addEventListener('click',function(ev){
+  var el=ev.target.closest&&ev.target.closest('[data-po-agent],[data-po-m],.hit.click[data-po-hit]'); if(!el) return;
+  if(el.hasAttribute('data-po-agent')) { rsPoOpenAgent(parseInt(el.getAttribute('data-po-agent'),10),el); return; }
+  var i=parseInt(el.getAttribute('data-po-m')||el.getAttribute('data-po-hit'),10);
+  var bar=document.querySelector('#rsPoChartSvg [data-po-m="'+i+'"]');
+  rsPoOpenMonth(i,bar||el);
+});
+document.addEventListener('keydown',function(ev){
+  var b=ev.target.closest&&ev.target.closest('#rsPoChartSvg [data-po-m]'); if(!b) return;
+  if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); rsPoOpenMonth(parseInt(b.getAttribute('data-po-m'),10),b); }
+});
+window.addEventListener('resize',function(){ clearTimeout(rsDrawPetChart._t); rsDrawPetChart._t=setTimeout(function(){ if(RS_PO_STATE==='done') rsDrawPetChart(); },150); });
+
 // =============== Page shell ===============
 var CARET='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
 // Collapsible card: <h2><button aria-expanded aria-controls> header + a region that animates open/closed.
@@ -724,7 +914,7 @@ function rsCard(id,icon,title,inner,open){
 }
 // Accordion: only one section is expanded at a time. Expanding one collapses the others (their
 // content stays rendered, so nothing is refetched when they are reopened).
-var RS_CARD_IDS=['rsMonthly','rsTypes'];
+var RS_CARD_IDS=['rsMonthly','rsTypes','rsPet'];
 function rsSetCardOpen(id,open){
   var card=document.getElementById(id+'Card'), head=document.getElementById(id+'Head'); if(!card||!head) return;
   card.classList.toggle('open',open); head.setAttribute('aria-expanded',String(open));
@@ -736,6 +926,10 @@ function rsToggleCard(id){
   rsSetCardOpen(id,open);
   // Section 2: first expand (or an expand after the selection changed) fetches; otherwise reuse.
   if(open&&id==='rsTypes'&&RS_TYPES_KEY!==rsTypesKey(rsWindow())) rsLoadTypes();
+  // Section 3: first expand fetches (and after an error); a loaded section is reused.
+  if(open&&id==='rsPet'&&RS_PO_STATE==='idle') rsLoadPet();
+  // Section 3 was drawn while hidden or at another width: redraw at the current width.
+  if(open&&id==='rsPet'&&RS_PO_STATE==='done') rsDrawPetChart();
 }
 document.addEventListener('click',function(ev){
   var h=ev.target.closest&&ev.target.closest('[data-rs-toggle]'); if(h) rsToggleCard(h.getAttribute('data-rs-toggle'));
@@ -744,7 +938,8 @@ function rsPaint(){
   document.getElementById('wrap').innerHTML=
     '<div class="rs-banner"><h1><span class="rs-hic" aria-hidden="true">'+ic('check-circle',18)+'</span>Resolutions</h1><span class="rs-ytd">'+ic('calendar',14)+'YTD '+RS_YEAR+'</span></div>'+
     rsCard('rsMonthly','line-chart','Monthly Created vs Resolved vs SLA ('+RS_YEAR+')','<div class="rs-card-body" id="rsMonthlyBody"></div>',true)+
-    rsCard('rsTypes','check-circle','Resolution Types',rsTypesShellHtml(),false);
+    rsCard('rsTypes','check-circle','Resolution Types',rsTypesShellHtml(),false)+
+    rsCard('rsPet','paw','Pet Auto-Resolve \u2014 Reopened & Resolved by Agents','<div class="rs-card-body" id="rsPetBody">'+ldHtml('rsp','Pet auto-resolve overrides')+'</div>',false);
   rsSyncTabs();
 }
 (function init(){

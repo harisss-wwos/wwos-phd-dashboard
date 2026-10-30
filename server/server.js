@@ -626,6 +626,136 @@ app.get('/api/resolutions/monthly', requireFlag('canViewSLA'), async (req, res) 
   }
 });
 
+// ---- Resolutions page: PET AUTO-RESOLVE OVERRIDES (section-3 chart + table) ----
+// GET /api/resolutions/pet-overrides?year=2026          (same access as /api/resolutions/monthly)
+// GET /api/resolutions/pet-overrides/tickets?year=2026&month=YYYY-MM&agent=<login>  (both optional)
+// The DB keeps no reopen history for resolved tickets, so an "override" is decided on the FINAL
+// resolver. One read-only find (Tags OR Labels match PET_OVR_TAG_RE, i.e. 'pet_incident_auto_resolved'),
+// only the needed fields projected, one row per ticket (ShortId/IssueId; the latest quarter copy `q`):
+//   override     = Status Resolved/Closed, ResolvedDate in the year (UTC), and the normalised
+//                  ResolvedByIdentity (strip 'kerberos:' / '@ANT.AMAZON.COM') is a person: not blank
+//                  and not the AutoSIM identity (perfIsAutosimResolver).
+//   autosim      = same, but resolved by the AutoSIM identity.
+//   reopenedOpen = tagged tickets whose Status is NOT Resolved/Closed (currently reopened).
+//   tagged       = every tagged ticket that is open or resolved in the year.
+// The summary counts and the pop-up list come from the SAME cached selection (petOverrideSelection),
+// so a count always equals its list length. Cached 5 min (report cache, version key).
+const PET_OVR_TAG_RE = /pet[\s_-]*(incident[\s_-]*)?auto[\s_-]*resol/i;
+const PET_OVR_RESOLVED = new Set(['resolved', 'closed']);
+const RS_MON3_SRV = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+async function petOverrideSelection(year) {
+  const key = 'pet-overrides-sel:v1:' + year;
+  const cached = getCachedReport(key);
+  if (cached) return cached;
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const rows = await coll.find(
+    { $or: [{ Tags: PET_OVR_TAG_RE }, { Labels: PET_OVR_TAG_RE }] },
+    { projection: { _id: 0, q: 1, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, Status: 1,
+      ResolvedByIdentity: 1, AssigneeIdentity: 1, CreateDate: 1, ResolvedDate: 1 } }
+  ).toArray();
+  // A ticket can be stored under more than one quarter key — keep the latest quarter's copy.
+  const bySid = new Map();
+  rows.forEach(d => {
+    const sid = String(d.ShortId || d.IssueId || '').trim(); if (!sid) return;
+    const prev = bySid.get(sid);
+    if (!prev || String(d.q || '') > String(prev.q || '')) bySid.set(sid, d);
+  });
+  const Y0 = Date.UTC(year, 0, 1), Y1 = Date.UTC(year + 1, 0, 1);
+  const overrides = [], reopenedOpen = [];
+  let tagged = 0, autosim = 0;
+  const autosimByMonth = new Array(12).fill(0);
+  bySid.forEach((d, sid) => {
+    const url = d.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid);
+    if (!PET_OVR_RESOLVED.has(String(d.Status || '').trim().toLowerCase())) {
+      tagged++;
+      reopenedOpen.push({ shortId: sid, url, status: String(d.Status || '').trim(), assignee: perfResolverName(d.AssigneeIdentity) });
+      return;
+    }
+    const rd = new Date(d.ResolvedDate); const rt = rd.getTime();
+    if (!(rt >= Y0 && rt < Y1)) return;
+    tagged++;
+    const login = perfResolverLogin(d.ResolvedByIdentity);
+    if (!login) return;                                   // blank resolver: neither group
+    const mo = rd.getUTCMonth();
+    if (perfIsAutosimResolver(d.ResolvedByIdentity)) { autosim++; autosimByMonth[mo]++; return; }
+    const cd = new Date(d.CreateDate);
+    overrides.push({
+      agent: login, month: year + '-' + String(mo + 1).padStart(2, '0'),
+      country: slaCountryOf(d), shortId: sid, url, title: d.Title || '',
+      resolvedBy: perfResolverName(d.ResolvedByIdentity),
+      createdDate: isNaN(cd) ? '' : cd.toISOString(),
+    });
+  });
+  // Pop-up order: newest CreateDate first (undated last), ties by ShortId.
+  overrides.sort((a, b) => {
+    if (a.createdDate !== b.createdDate) {
+      if (!a.createdDate) return 1;
+      if (!b.createdDate) return -1;
+      return a.createdDate < b.createdDate ? 1 : -1;
+    }
+    return a.shortId < b.shortId ? -1 : a.shortId > b.shortId ? 1 : 0;
+  });
+  reopenedOpen.sort((a, b) => (a.shortId < b.shortId ? -1 : a.shortId > b.shortId ? 1 : 0));
+  const sel = { tagged, autosim, autosimByMonth, overrides, reopenedOpen };
+  setCachedReport(key, sel);
+  return sel;
+}
+function petOvrYear(q) {
+  const year = q.year == null || q.year === '' ? 2026 : Number(q.year);
+  return Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : null;
+}
+const petOvrPct = (n, d) => (d > 0 ? Math.round(n / d * 1000) / 10 : null);
+app.get('/api/resolutions/pet-overrides', requireFlag('canViewSLA'), async (req, res) => {
+  try {
+    const year = petOvrYear(req.query || {});
+    if (year == null) return res.status(400).json({ error: 'year must be a 4-digit year.' });
+    const sel = await petOverrideSelection(year);
+    const now = new Date();
+    const lastMonth = year < now.getUTCFullYear() ? 12 : year > now.getUTCFullYear() ? 0 : now.getUTCMonth() + 1;
+    const ovByMonth = new Array(12).fill(0), agents = new Map();
+    sel.overrides.forEach(t => {
+      ovByMonth[Number(t.month.slice(5, 7)) - 1]++;
+      agents.set(t.agent, (agents.get(t.agent) || 0) + 1);
+    });
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      const elapsed = m <= lastMonth;
+      const ov = elapsed ? ovByMonth[m - 1] : null, as = elapsed ? sel.autosimByMonth[m - 1] : null;
+      months.push({ key: year + '-' + String(m).padStart(2, '0'), label: RS_MON3_SRV[m - 1], overrides: ov, autosim: as,
+        overrideRatePct: elapsed ? petOvrPct(ov, ov + as) : null, elapsed });
+    }
+    const byAgent = [...agents.entries()].map(([agent, count]) => ({ agent, count }))
+      .sort((a, b) => (b.count - a.count) || a.agent.localeCompare(b.agent));
+    const overrides = sel.overrides.length;
+    res.json({
+      year,
+      totals: { tagged: sel.tagged, autosim: sel.autosim, overrides, reopenedOpen: sel.reopenedOpen.length,
+        overrideRatePct: petOvrPct(overrides, overrides + sel.autosim) },
+      months, byAgent, reopenedOpen: sel.reopenedOpen,
+      generatedAt: now.toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the pet auto-resolve overrides.' });
+  }
+});
+app.get('/api/resolutions/pet-overrides/tickets', requireFlag('canViewSLA'), async (req, res) => {
+  try {
+    const q = req.query || {};
+    const year = petOvrYear(q);
+    if (year == null) return res.status(400).json({ error: 'year must be a 4-digit year.' });
+    const month = typeof q.month === 'string' ? q.month.trim() : '';
+    if (month && !(new RegExp('^' + year + '-(0[1-9]|1[0-2])$')).test(month)) return res.status(400).json({ error: 'month must be YYYY-MM within the year.' });
+    const agent = typeof q.agent === 'string' ? q.agent.trim().toLowerCase() : '';
+    if (agent.length > 200) return res.status(400).json({ error: 'agent is too long.' });
+    const sel = await petOverrideSelection(year);
+    const tickets = sel.overrides.filter(t => (!month || t.month === month) && (!agent || t.agent === agent))
+      .map(t => ({ country: t.country, shortId: t.shortId, url: t.url, title: t.title, resolvedBy: t.resolvedBy, createdDate: t.createdDate }));
+    res.json({ year, month: month || null, agent: agent || null, total: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the override tickets.' });
+  }
+});
+
 // ---- Page ZERO: "GLOBAL PHD Page 0 — <year>" metrics table (page-zero.html) ----
 // GET /api/page-zero?year=2026  (owner or manager only; only 2026 for now)
 // One read-only scan over projected fields (tickets created OR resolved in the year), then the
@@ -642,7 +772,7 @@ app.get('/api/page-zero', requireOwnerOrManager, async (req, res) => {
   try {
     const year = req.query.year == null || req.query.year === '' ? 2026 : Number(req.query.year);
     if (year !== 2026) return res.status(400).json({ error: 'Only year=2026 is available.' });
-    const key = 'page-zero:v2:' + year;
+    const key = 'page-zero:v3:' + year;
     const cached = getCachedReport(key);
     if (cached) return res.json(cached);
     const coll = await getCollection(COLLECTIONS.ticketDocs);

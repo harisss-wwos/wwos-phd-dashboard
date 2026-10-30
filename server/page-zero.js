@@ -344,8 +344,11 @@ function rankKri(perMonth, countries, win, withLevel) {
     return mx[key] > 0 ? r2(100 * n / mx[key]) : 0;
   };
   const list = [];
+  // Sites need >= KRI_MIN_INCIDENTS this month to be ranked. Zipcodes have far fewer incidents each,
+  // so every zip with at least 1 incident this month is ranked (top 5 = most incidents).
+  const minN = withLevel ? KRI_MIN_INCIDENTS : 1;
   perMonth[cur.idx].forEach((n, id) => {
-    if (n < KRI_MIN_INCIDENTS) return;
+    if (n < minN) return;
     const current = score(win.current, 'current', id), last = score(win.last, 'last', id), prev2 = score(win.prev2, 'prev2', id);
     const mom = last == null ? null : r2(current - last);
     const qoq = prev2 == null ? null : r2(current - prev2);
@@ -358,7 +361,8 @@ function rankKri(perMonth, countries, win, withLevel) {
     });
     list.push(e);
   });
-  list.sort((a, b) => b.current - a.current || b.currentCount - a.currentCount || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  // Most incidents this month first (KRI follows the count), then last month's KRI, then id A->Z.
+  list.sort((a, b) => b.currentCount - a.currentCount || (b.last || 0) - (a.last || 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return list.slice(0, KRI_TOP).map((e, i) => Object.assign(e, { rank: i + 1 }));
 }
 
