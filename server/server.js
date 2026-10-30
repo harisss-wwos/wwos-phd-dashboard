@@ -12,6 +12,7 @@ const {
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
+const { computePageZero } = require('./page-zero');
 const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 
@@ -625,6 +626,42 @@ app.get('/api/resolutions/monthly', requireFlag('canViewSLA'), async (req, res) 
   }
 });
 
+// ---- Page ZERO: "GLOBAL PHD Page 0 — <year>" metrics table (page-zero.html) ----
+// GET /api/page-zero?year=2026  (owner or manager only; only 2026 for now)
+// One read-only scan over projected fields (tickets created OR resolved in the year), then the
+// classification + per-month / quarter / YTD aggregation runs in Node (server/page-zero.js, pure).
+// Created / resolved scopes and the 240h SLA rule are the same as /api/resolutions/monthly; one
+// count per ShortId across quarter docs. Months after the current UTC month are null. Cached 5 min.
+// Also returns `kri`: INDICATIVE KRI top-5 sites / zipcodes (definition in server/page-zero.js).
+function requireOwnerOrManager(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (req.user.role !== 'owner' && req.user.role !== 'manager') return res.status(403).json({ error: 'Page ZERO is available to the owner and managers only.' });
+  next();
+}
+app.get('/api/page-zero', requireOwnerOrManager, async (req, res) => {
+  try {
+    const year = req.query.year == null || req.query.year === '' ? 2026 : Number(req.query.year);
+    if (year !== 2026) return res.status(400).json({ error: 'Only year=2026 is available.' });
+    const key = 'page-zero:v2:' + year;
+    const cached = getCachedReport(key);
+    if (cached) return res.json(cached);
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+    const rdExpr = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+    const Y0 = new Date(Date.UTC(year, 0, 1)), Y1 = new Date(Date.UTC(year + 1, 0, 1));
+    const docs = await coll.aggregate([
+      { $project: { _id: 0, ShortId: 1, IssueId: 1, Status: 1, ClosureCode: 1, RootCauseDetails: 1, Country: 1, Title: 1, cd: cdExpr, rd: rdExpr } },
+      { $match: { $or: [{ cd: { $gte: Y0, $lt: Y1 } }, { rd: { $gte: Y0, $lt: Y1 } }] } },
+    ], { allowDiskUse: true }).toArray();
+    const payload = computePageZero(docs, { year, now: new Date(), countryOf: slaCountryOf });
+    setCachedReport(key, payload);
+    res.json(payload);
+  } catch (e) {
+    console.error('page-zero error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load Page ZERO.' });
+  }
+});
+
 // Country code for an SLA ticket (same rules as /api/sla-flat): Country field, else a bracketed /
 // "Country XX" / leading title token, validated against the known code list; else 'Unknown'.
 const SLA_COUNTRY_CODES = new Set(['US','UK','CA','IN','AU','MX','JP','DE','IT','FR','EG','ES','SA','BR','NL','ZA','PT','UAE','IE','SG','TR','PL','SE','BE','AT','CH','DK','NO','FI','GR','CZ']);
@@ -802,6 +839,8 @@ function userFlags(u) {
     canViewUnique: isOwner ? true : !!(u && u.canViewUnique),
     canViewSLA: isOwner ? true : !!(u && u.canViewSLA),
     canGroupingPage: isOwner ? true : !!(u && u.canGroupingPage),
+    // Display-only "MANAGER" tag on the Users page. Grants no access; the role field is unchanged.
+    managerTag: !!(u && u.managerTag),
   };
 }
 // Middleware factory: require a specific access flag (reads the fresh flag from the DB, since the
@@ -992,7 +1031,8 @@ app.patch('/api/users/:id/flags', requireFlag('canCreateUsers'), async (req, res
     // Reject any attempt by a non-owner to change access-granting flags.
     if (!isOwner && (body.canUpload !== undefined || body.canCreateUsers !== undefined || body.canDatabase !== undefined
       || body.canEditTools !== undefined || body.canViewSR !== undefined || body.canViewRepeat !== undefined
-      || body.canViewUnique !== undefined || body.canViewSLA !== undefined || body.canGroupingPage !== undefined)) {
+      || body.canViewUnique !== undefined || body.canViewSLA !== undefined || body.canGroupingPage !== undefined
+      || body.managerTag !== undefined)) {
       return res.status(403).json({ error: 'Only the owner can grant page access.' });
     }
     const set = { updatedAt: new Date() };
@@ -1007,6 +1047,7 @@ app.patch('/api/users/:id/flags', requireFlag('canCreateUsers'), async (req, res
     if (isOwner && body.canViewUnique !== undefined) set.canViewUnique = toBool(body.canViewUnique);
     if (isOwner && body.canViewSLA !== undefined) set.canViewSLA = toBool(body.canViewSLA);
     if (isOwner && body.canGroupingPage !== undefined) set.canGroupingPage = toBool(body.canGroupingPage);
+    if (isOwner && body.managerTag !== undefined) set.managerTag = toBool(body.managerTag);
     await users.updateOne({ _id: target._id }, { $set: set });
     const u = await users.findOne({ _id: target._id });
     res.json(Object.assign({ id: String(u._id), username: u.username }, userFlags(u)));
@@ -3872,15 +3913,36 @@ const SLA_THRESHOLD_HRS = 240;
 // key, so a count here and its ticket list can never disagree.
 function perfResolutionLabel(rcd) { return String(resolutionFromRcd(rcd)).replace(/\s+/g, ' ').trim(); }
 function perfResolutionKey(label) { return String(label == null ? '' : label).replace(/\s+/g, ' ').trim().toLowerCase(); }
-function buildResolutionDistribution(rcds) {
+// Optional split (resolutions.html sends splitNotSpecified=1): a 'Not specified' ticket is labelled by
+// its RESOLVER and CLOSURE CODE — the AutoSIM identity -> 'Resolved by AUTO-SIM'; anyone else with
+// ClosureCode 'Immediately Resolved' or 'Automatically Closed' (case-insensitive, trimmed) ->
+// PERF_RES_RULE_LABEL; every other closure code (Successful, Duplicate, blank, ...) stays 'Not specified'.
+// Without the option the label is unchanged (Performance Summary keeps 'Not specified').
+const PERF_RES_NOT_SPECIFIED_KEY = 'not specified';
+const PERF_RES_AUTOSIM_LABEL = 'Resolved by AUTO-SIM';
+const PERF_RES_RULE_LABEL = 'Resolved by Rule (Immediately Resolved + Automatically Closed)';
+const PERF_RES_RULE_OLD_KEY = 'resolved by rule';   // old drill-down label, accepted as an alias
+const PERF_RES_RULE_CODES = new Set(['immediately resolved', 'automatically closed']);
+function perfIsRuleClosure(code) { return PERF_RES_RULE_CODES.has(perfResolutionKey(code)); }
+function perfIsAutosimResolver(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  return s === PET_AUTOSIM_IDENTITY || /autosim/i.test(s);
+}
+function perfResolutionLabelOf(doc, split) {
+  const label = perfResolutionLabel(doc.RootCauseDetails);
+  if (!split || perfResolutionKey(label) !== PERF_RES_NOT_SPECIFIED_KEY) return label;
+  if (perfIsAutosimResolver(doc.ResolvedByIdentity)) return PERF_RES_AUTOSIM_LABEL;
+  return perfIsRuleClosure(doc.ClosureCode) ? PERF_RES_RULE_LABEL : label;
+}
+function buildResolutionDistribution(docs, split) {
   const groups = new Map();
-  for (const rcd of rcds) {
-    const label = perfResolutionLabel(rcd);
+  for (const doc of docs) {
+    const label = perfResolutionLabelOf(doc, split);
     const key = perfResolutionKey(label);
     const g = groups.get(key);
     if (g) g.count++; else groups.set(key, { resolution: label, count: 1 });
   }
-  const total = rcds.length;
+  const total = docs.length;
   const resolutions = [...groups.values()]
     .sort((a, b) => (b.count - a.count) || a.resolution.localeCompare(b.resolution, 'en', { sensitivity: 'base' }))
     .map(g => ({ resolution: g.resolution, count: g.count, pct: total ? Math.round(g.count / total * 1000) / 10 : 0 }));
@@ -3891,19 +3953,69 @@ function buildResolutionDistribution(rcds) {
 // filter and no cross-doc dedupe, exactly like `resolved`), so resolvedTotal === resolved.
 // Shared selection for the Resolution Distribution counts AND the drill-down ticket list: only the
 // fields in `fields` (a $project spec) are projected; read-only.
-async function perfResolvedScope(from, to, fields) {
+// Optional resolver-group filter `agents` (resolutions.html sends agents=phd|nonphd|all|autosim).
+// Three DISJOINT resolver groups, decided on the ticket's RESOLVER (ResolvedByIdentity):
+//   autosim = the AutoSIM identity (perfIsAutosimResolver, the same match as the split label).
+//   phd     = normalised resolver (strip 'kerberos:' and '@ANT.AMAZON.COM', lower-case) is a PHD
+//             agent = a users-collection user with analyst:true (the same "13" the NOT-ASSIGNED /
+//             out-of-scope views use).
+//   nonphd  = every other resolver (any other human, blank resolver) — NOT AutoSIM.
+//   all     = phd + nonphd (everything EXCEPT AutoSIM).
+//   any     = no filter (phd + nonphd + autosim). Used when the param is OMITTED, so Performance
+//             Summary (sends no param) is unchanged.
+const PERF_AGENT_GROUPS = ['all', 'phd', 'nonphd', 'autosim'];
+function perfAgentsParam(v) {
+  if (v == null || v === '') return 'any';
+  return PERF_AGENT_GROUPS.includes(v) ? v : null;   // null -> 400 in the handlers
+}
+function perfResolverGroup(raw, phdSet) {
+  if (perfIsAutosimResolver(raw)) return 'autosim';
+  return phdSet.has(perfResolverLogin(raw)) ? 'phd' : 'nonphd';
+}
+function perfInAgentGroup(group, agents) {
+  return agents === 'any' || (agents === 'all' ? group !== 'autosim' : group === agents);
+}
+function perfResolverLogin(raw) {
+  return String(raw == null ? '' : raw).trim().replace(/^kerberos:/i, '').replace(/@ANT\.AMAZON\.COM$/i, '').toLowerCase();
+}
+async function perfPhdAgentSet() {
+  const rows = await (await getCollection(COLLECTIONS.users)).find({ analyst: true }, { projection: { _id: 0, username: 1 } }).toArray();
+  return new Set(rows.map(u => String(u.username || '').toLowerCase()).filter(Boolean));
+}
+// Every resolved-in-window doc (unfiltered) + each doc's resolver group (`_grp`, only when a group
+// filter is requested). `agents` = 'any' skips the users lookup and the resolver projection.
+async function perfResolvedRows(from, to, fields, agents) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   const rd = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
-  return coll.aggregate([
-    { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
-    { $project: Object.assign({ _id: 0, rdv: rd }, fields) },
-    { $match: { rdv: { $gte: from, $lt: to } } },
-    { $project: { rdv: 0 } },
-  ], { allowDiskUse: true }).toArray();
+  const grouped = agents !== 'any';
+  const proj = Object.assign({ _id: 0, rdv: rd }, fields, grouped ? { ResolvedByIdentity: 1 } : {});
+  const [rows, phdSet] = await Promise.all([
+    coll.aggregate([
+      { $match: { Status: { $in: ['Resolved', 'Closed'] } } },
+      { $project: proj },
+      { $match: { rdv: { $gte: from, $lt: to } } },
+      { $project: { rdv: 0 } },
+    ], { allowDiskUse: true }).toArray(),
+    grouped ? perfPhdAgentSet() : Promise.resolve(null),
+  ]);
+  if (grouped) rows.forEach(d => { d._grp = perfResolverGroup(d.ResolvedByIdentity, phdSet); });
+  return rows;
 }
-async function perfResolutionDistribution(from, to) {
-  const rows = await perfResolvedScope(from, to, { RootCauseDetails: 1 });
-  return buildResolutionDistribution(rows.map(r => r.RootCauseDetails));
+async function perfResolvedScope(from, to, fields, agents) {
+  const rows = await perfResolvedRows(from, to, fields, agents);
+  return agents === 'any' ? rows : rows.filter(d => perfInAgentGroup(d._grp, agents));
+}
+// With a group filter the result also carries, for the SAME window and the same single pass:
+//   allResolvedTotal = every resolved ticket (phd + nonphd + autosim)
+//   autosimTotal     = the AutoSIM-resolved tickets (the drill-down for agents=autosim lists exactly these)
+async function perfResolutionDistribution(from, to, split, agents) {
+  const g = agents || 'any';
+  const rows = await perfResolvedRows(from, to, split ? { RootCauseDetails: 1, ResolvedByIdentity: 1, ClosureCode: 1 } : { RootCauseDetails: 1 }, g);
+  if (g === 'any') return buildResolutionDistribution(rows, !!split);
+  const dist = buildResolutionDistribution(rows.filter(d => perfInAgentGroup(d._grp, g)), !!split);
+  dist.allResolvedTotal = rows.length;
+  dist.autosimTotal = rows.filter(d => d._grp === 'autosim').length;
+  return dist;
 }
 // Tickets behind one Resolution Distribution row: the same scope as the count, filtered on the same
 // normalised Res key, newest CreateDate first (ties by ShortId). Returns ALL matches.
@@ -3914,13 +4026,18 @@ function perfResolverName(raw) {
   if (/autosim/i.test(s)) return 'AutoSIM';
   return s.replace(/^kerberos:/i, '').replace(/@ANT\.AMAZON\.COM$/i, '');
 }
-async function perfResolutionTickets(from, to, resolution) {
-  const key = perfResolutionKey(resolution);
+// agents=autosim + resolution='Resolved by AUTO-SIM' = EVERY AutoSIM-resolved ticket in the window
+// (whatever its Res value), i.e. exactly the autosimTotal count on resolutions.html.
+// With the split, the old 'Resolved by Rule' label is an alias of PERF_RES_RULE_LABEL.
+async function perfResolutionTickets(from, to, resolution, split, agents) {
+  let key = perfResolutionKey(resolution);
+  if (split && key === PERF_RES_RULE_OLD_KEY) key = perfResolutionKey(PERF_RES_RULE_LABEL);
   const docs = await perfResolvedScope(from, to, {
-    RootCauseDetails: 1, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, ResolvedByIdentity: 1,
+    RootCauseDetails: 1, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, ResolvedByIdentity: 1, ClosureCode: 1,
     cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
-  });
-  const tickets = docs.filter(d => perfResolutionKey(perfResolutionLabel(d.RootCauseDetails)) === key).map(d => {
+  }, agents);
+  const allOfGroup = agents === 'autosim' && key === perfResolutionKey(PERF_RES_AUTOSIM_LABEL);
+  const tickets = docs.filter(d => allOfGroup || perfResolutionKey(perfResolutionLabelOf(d, !!split)) === key).map(d => {
     const sid = d.ShortId || d.IssueId || '';
     return {
       country: slaCountryOf(d),
@@ -4012,8 +4129,13 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
     // PERF_RES_MAX_DAYS (YTD 2026, an arbitrary month or Sun–Sat week).
     if (req.query.part === 'resolutions') {
       if ((to - from) / 86400000 > PERF_RES_MAX_DAYS) return res.status(400).json({ error: 'The date range is too long.' });
-      const dist = await perfResolutionDistribution(from, to);
-      return res.json({ from: from.toISOString(), to: to.toISOString(), resolvedTotal: dist.resolvedTotal, resolutions: dist.resolutions });
+      const agents = perfAgentsParam(req.query.agents);
+      if (!agents) return res.status(400).json({ error: 'agents must be "phd", "nonphd", "all" or "autosim".' });
+      const dist = await perfResolutionDistribution(from, to, req.query.splitNotSpecified === '1', agents);
+      // Param omitted -> echo 'all' and no extra fields, exactly as before.
+      const out = { from: from.toISOString(), to: to.toISOString(), agents: agents === 'any' ? 'all' : agents, resolvedTotal: dist.resolvedTotal, resolutions: dist.resolutions };
+      if (agents !== 'any') { out.autosimTotal = dist.autosimTotal; out.allResolvedTotal = dist.allResolvedTotal; }
+      return res.json(out);
     }
     const span = to - from;
     const prevFrom = new Date(from.getTime() - span), prevTo = new Date(from.getTime());
@@ -4047,8 +4169,11 @@ app.get('/api/perf-summary/resolution-tickets', requireRole('user'), async (req,
     const resolution = typeof q.resolution === 'string' ? q.resolution.replace(/\s+/g, ' ').trim() : '';
     if (!resolution) return res.status(400).json({ error: 'Provide a resolution value.' });
     if (resolution.length > PERF_RES_MAX_LEN) return res.status(400).json({ error: 'The resolution value is too long.' });
-    const tickets = await perfResolutionTickets(from, to, resolution);
-    res.json({ view, from: from.toISOString(), to: to.toISOString(), resolution, total: tickets.length, tickets });
+    const agents = perfAgentsParam(q.agents);
+    if (!agents) return res.status(400).json({ error: 'agents must be "phd", "nonphd", "all" or "autosim".' });
+    const tickets = await perfResolutionTickets(from, to, resolution, q.splitNotSpecified === '1', agents);
+    // Param omitted (Performance Summary) -> echo 'all' exactly as before, so that response is unchanged.
+    res.json({ view, from: from.toISOString(), to: to.toISOString(), resolution, agents: q.agents ? agents : 'all', total: tickets.length, tickets });
   } catch (e) {
     res.status(500).json({ error: 'Could not load the tickets for this resolution.' });
   }

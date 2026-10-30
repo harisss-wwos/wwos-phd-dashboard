@@ -165,9 +165,49 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .rs-step-btn svg{width:15px;height:15px}
 .rs-step-lbl{min-width:170px;text-align:center;font-size:.82em;font-weight:800;color:var(--ink);padding:0 4px;white-space:nowrap}
 .rs-period{font-size:.82em;font-weight:700;color:var(--mut)}
+/* Resolver group (PHD / Non-PHD): segmented chip toggles on the same grey track as .perf-chips,
+   pushed to the right end of the toolbar (wraps under, right-aligned, on narrow screens). */
+.rs-agents-wrap{display:inline-flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto}
+.rs-agents-lbl{font-size:.72em;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#8795a3}
+.rs-agents{display:inline-flex;align-items:center;gap:2px;margin:0;padding:3px;min-width:0;background:#f0efe9;border:1px solid #e7e4dc;border-radius:999px}
+.rs-agent{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:.76em;font-weight:700;letter-spacing:.1px;color:var(--mut2);background:transparent;border-radius:999px;padding:6px 12px 6px 9px;cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+.rs-agent:hover{color:var(--ink);background:rgba(255,255,255,.55)}
+.rs-agent:has(input:checked){background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,30,45,.16)}
+/* Native checkbox kept (focusable, screen-reader + change handlers) but visually hidden. */
+.rs-agent input{position:absolute;opacity:0;width:1px;height:1px;margin:0;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.rs-agent:has(input:focus-visible){outline:2px solid #ec7211;outline-offset:2px}
+.rs-agent-ic{display:inline-flex;width:14px;height:14px;flex:0 0 14px}
+.rs-agent-ic svg{width:14px;height:14px;display:block}
+.rs-agent-ic .o{fill:none;stroke:#b3b9c0;stroke-width:1.5}
+.rs-agent-ic .k{fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.rs-agent:has(input:checked) .rs-agent-ic .o{fill:#ec7211;stroke:#ec7211}
+.rs-agent:has(input:checked) .rs-agent-ic .k{opacity:1}
+.rs-agent.is-locked{cursor:not-allowed}
+.rs-agent.is-locked:hover{background:#fff}
+
+/* Standalone 'Resolved by AUTO-SIM' summary row above the Resolution Types table (indigo accent). */
+/* One row like the table rows: title | count | bar + % (the bar column matches the table's 42% / 200px). */
+.rs-autosim{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(200px,42%);align-items:center;gap:8px 14px;margin:0 0 12px;padding:10px 14px;background:#fff;border:1px solid #e2e6ea;border-left:3px solid #4f46e5;border-radius:5px;color:#2a3340;font-size:.9em}
+.rs-as-name{display:flex;align-items:center;gap:10px;min-width:0}
+.rs-as-num{text-align:right}
+@media(max-width:700px){.rs-autosim{grid-template-columns:minmax(0,1fr) auto}.rs-as-bar{grid-column:1/-1}}
+.rs-as-ic{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;border-radius:7px;background:#eef0fe;color:#4f46e5}
+.rs-as-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rs-as-lbl{font-size:1em;font-weight:800;color:var(--ink)}
+.rs-as-sub{font-size:.76em;font-weight:600;color:var(--mut)}
+.rs-as-right{display:inline-flex;align-items:baseline;gap:10px;margin-left:auto}
+.rs-as-cnt{font:inherit;font-weight:800;font-variant-numeric:tabular-nums;color:var(--blue);background:none;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.rs-as-cnt:hover{background:var(--blue-bg)}
+.rs-as-cnt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.rs-as-cnt.is-zero{cursor:default;text-decoration:none;color:var(--mut)}
+.rs-as-cnt.is-zero:hover{background:none}
+.rs-as-pct{font-size:.9em;font-weight:700;font-variant-numeric:tabular-nums;color:#2a3340}
+.rs-bar.rs-bar-as i{background:linear-gradient(90deg,#818cf8,#4f46e5)}
+.rs-as-share{flex:0 0 auto;font-size:.8em;font-weight:600;font-variant-numeric:tabular-nums;color:var(--mut);white-space:nowrap}
+
 
 /* Resolution Types table (same table as Performance Summary's Resolution Distribution + a bar). */
-.ps-res-sum{font-size:.92em;color:#2a3340;margin-bottom:12px}
+.ps-res-sum{font-size:.92em;color:#2a3340;margin:0 0 12px;padding:0 2px;line-height:1.4}
 .ps-res-sum b{color:var(--ink);font-weight:800}
 .ps-res-sum .rs-sum-per{color:var(--mut);font-weight:600}
 .ps-res-wrap{border:1px solid var(--line);border-radius:9px;overflow:auto}
@@ -175,7 +215,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .ps-res-tbl th{text-align:left;font-size:.78em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--mut2);background:#fafbfc;padding:10px 14px;border-bottom:1px solid var(--line)}
 .ps-res-tbl td{padding:9px 14px;border-bottom:1px solid var(--line);color:#2a3340}
 .ps-res-tbl tbody tr:last-child td,.ps-res-tbl tbody tr:last-child th{border-bottom:none}
-.ps-res-tbl tbody th{font-size:1em;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ink);background:transparent;padding:9px 14px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.ps-res-tbl tbody th{font-size:1em;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ink);background:transparent;padding:9px 14px;border-bottom:1px solid var(--line);overflow-wrap:break-word;line-height:1.35}
 .ps-res-tbl .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ps-res-tbl .rs-pct{width:42%;min-width:200px}
 .rs-pct-wrap{display:flex;align-items:center;gap:10px}
@@ -242,8 +282,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=209"></script>
-<script src="resolution-tickets-modal.js?v=1"></script>
+<script src="topbar-auth.js?v=210"></script>
+<script src="resolution-tickets-modal.js?v=4"></script>
 <script>
 const A=window.PHDAuth;
 function ic(n,s){ return window.icon?window.icon(n,s||14):''; }
@@ -485,8 +525,15 @@ window.addEventListener('resize',function(){ clearTimeout(_rsResizeT); _rsResize
 
 // =============== SECTION 2: Resolution Types (YTD 2026 | Monthly | Weekly) ===============
 var RS_TYPES=[ { v:'ytd', l:'YTD '+RS_YEAR }, { v:'month', l:'Monthly' }, { v:'week', l:'Weekly' } ];
-var RS={ type:'ytd', month:rsMaxMonth(), week:rsMaxWeek() };
+// Default resolver group: PHD only (Non-PHD unticked).
+var RS={ type:'ytd', month:rsMaxMonth(), week:rsMaxWeek(), phd:true, nonphd:false };
 var RS_CACHE={}, RS_CUR=null, RS_SEQ=0;
+// Resolver group (the server decides, on ResolvedByIdentity): PHD = a PHD agent (users with
+// analyst:true); Non-PHD = any other resolver EXCEPT AutoSIM. Both checked = 'all' = PHD + Non-PHD.
+// AutoSIM-resolved tickets are never in the table: they get their own card above it (autosimTotal).
+var RS_AGENTS=[ { v:'phd', l:'PHD' }, { v:'nonphd', l:'Non-PHD' } ];
+function rsAgents(){ return (RS.phd&&RS.nonphd) ? 'all' : RS.phd ? 'phd' : 'nonphd'; }
+function rsAgentsLabel(a){ return a==='phd' ? 'PHD' : a==='nonphd' ? 'Non-PHD' : 'PHD + Non-PHD'; }
 // The selected window: start/end are inclusive calendar days; the API gets [start, end+1).
 function rsWindow(){
   if(RS.type==='month'){ var s=rsCal(RS_YEAR,RS.month,1); return { view:'month', start:s, end:rsCal(RS_YEAR,RS.month+1,0) }; }
@@ -499,7 +546,15 @@ function rsTypesShellHtml(){
     var on=RS.type===t.v;
     return '<button type="button" class="perf-chip'+(on?' on':'')+'" role="tab" id="rsTab-'+t.v+'" data-rs-type="'+t.v+'" aria-selected="'+on+'" aria-controls="rsTypesPanel" tabindex="'+(on?'0':'-1')+'">'+esc(t.l)+'</button>';
   }).join('')+'</div>';
-  return '<div class="rs-toolbar">'+tabs+'<div id="rsStepper"></div></div>'+
+  // Chip toggles: the native checkbox stays inside the label (visually hidden); the icon is CSS-driven
+  // (orange check when checked, empty circle when not).
+  var agents='<div class="rs-agents-wrap"><span class="rs-agents-lbl" aria-hidden="true">Resolver</span>'+
+    '<div class="rs-agents" role="group" aria-label="Resolver group">'+RS_AGENTS.map(function(a){
+    return '<label class="rs-agent" id="rsAgentLbl-'+a.v+'"><input type="checkbox" id="rsAgent-'+a.v+'" data-rs-agent="'+a.v+'"'+(RS[a.v]?' checked':'')+'>'+
+      '<span class="rs-agent-ic" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><circle class="o" cx="8" cy="8" r="6.5"/><path class="k" d="M5 8.3l2 2 4-4.3"/></svg></span>'+
+      '<span>'+esc(a.l)+'</span></label>';
+  }).join('')+'</div></div>';
+  return '<div class="rs-toolbar">'+tabs+'<div id="rsStepper"></div>'+agents+'</div>'+
     // Holds the (idle) compact loader until the section is first expanded — no request before then.
     '<div class="rs-card-body" id="rsTypesPanel" role="tabpanel" aria-labelledby="rsTab-'+RS.type+'">'+ldHtml('rst','Resolution types')+'</div>';
 }
@@ -523,7 +578,32 @@ function rsSyncTabs(){
   });
   var p=document.getElementById('rsTypesPanel'); if(p) p.setAttribute('aria-labelledby','rsTab-'+RS.type);
   var st=document.getElementById('rsStepper'); if(st) st.innerHTML=rsStepperHtml();
+  rsSyncAgents();
 }
+// Keep at least one resolver group checked: the last checked box is disabled (with a tooltip).
+function rsSyncAgents(){
+  var onlyOne=(RS.phd?1:0)+(RS.nonphd?1:0)===1;
+  RS_AGENTS.forEach(function(a){
+    var cb=document.getElementById('rsAgent-'+a.v), lb=document.getElementById('rsAgentLbl-'+a.v); if(!cb||!lb) return;
+    var lock=onlyOne&&RS[a.v];
+    cb.checked=!!RS[a.v]; cb.disabled=lock; lb.classList.toggle('is-locked',lock);
+    if(lock){ lb.title='At least one must be selected'; cb.setAttribute('aria-describedby','rsAgentHint'); }
+    else { lb.removeAttribute('title'); cb.removeAttribute('aria-describedby'); }
+  });
+  var hint=document.getElementById('rsAgentHint');
+  if(!hint){ var g=document.querySelector('.rs-agents'); if(g){ hint=document.createElement('span'); hint.id='rsAgentHint'; hint.className='sr-only'; hint.textContent='At least one must be selected'; g.appendChild(hint); } }
+}
+function rsSetAgent(v,on){
+  if(v!=='phd'&&v!=='nonphd') return;
+  var other=v==='phd'?'nonphd':'phd';
+  if(!on&&!RS[other]){ rsSyncAgents(); return; }   // never uncheck the last one
+  RS[v]=!!on; rsSyncAgents();
+  rsLoadTypes();
+}
+document.addEventListener('change',function(ev){
+  var cb=ev.target&&ev.target.closest&&ev.target.closest('[data-rs-agent]'); if(!cb) return;
+  rsSetAgent(cb.getAttribute('data-rs-agent'),cb.checked);
+});
 function rsSetType(v,focus){
   if(!RS_TYPES.some(function(t){ return t.v===v; })) return;
   RS.type=v; rsSyncTabs();
@@ -542,19 +622,19 @@ function rsStep(dir){
 // Lazy: Section 2 makes NO request until it is expanded. RS_TYPES_KEY = the window currently shown
 // (or loading) in the panel; re-expanding only fetches when the selection changed since then.
 var RS_TYPES_KEY=null;
-function rsTypesKey(w){ return w.view+':'+rsYmd(w.start)+'_'+rsYmd(w.end); }
+function rsTypesKey(w,agents){ return w.view+':'+rsYmd(w.start)+'_'+rsYmd(w.end)+':'+agents; }
 function rsTypesOpen(){ var c=document.getElementById('rsTypesCard'); return !!(c&&c.classList.contains('open')); }
 async function rsLoadTypes(){
   if(!rsTypesOpen()) return;   // collapsed: fetched on the next expand instead
-  var seq=++RS_SEQ, w=rsWindow(), key=rsTypesKey(w);   // newest request wins (older ones bail on seq)
+  var seq=++RS_SEQ, w=rsWindow(), ag=rsAgents(), key=rsTypesKey(w,ag);   // newest request wins (older ones bail on seq)
   var panel=document.getElementById('rsTypesPanel'); if(!panel) return;
   RS_TYPES_KEY=key;
-  if(RS_CACHE[key]){ _ldStop('rst'); RS_CUR={ win:w, data:RS_CACHE[key] }; panel.innerHTML=rsTypesHtml(RS_CUR); panel.setAttribute('aria-busy','false'); return; }
+  if(RS_CACHE[key]){ _ldStop('rst'); RS_CUR={ win:w, agents:ag, data:RS_CACHE[key] }; panel.innerHTML=rsTypesHtml(RS_CUR); panel.setAttribute('aria-busy','false'); return; }
   panel.setAttribute('aria-busy','true');
-  panel.innerHTML=ldHtml('rst','Resolution types \u00b7 '+rsWinLabel(w));
+  panel.innerHTML=ldHtml('rst','Resolution types \u00b7 '+rsAgentsLabel(ag)+' \u00b7 '+rsWinLabel(w));
   _ldStart('rst','resolution types');
   var minHold=_delay(1200), r=null;
-  try{ r=await A.api('GET','/api/perf-summary?part=resolutions&from='+rsYmd(w.start)+'&to='+rsYmd(rsAddDays(w.end,1))); }catch(e){}
+  try{ r=await A.api('GET','/api/perf-summary?part=resolutions&splitNotSpecified=1&from='+rsYmd(w.start)+'&to='+rsYmd(rsAddDays(w.end,1))+'&agents='+ag); }catch(e){}
   await minHold;
   if(seq!==RS_SEQ) return;   // superseded by a newer selection
   panel.setAttribute('aria-busy','false');
@@ -567,14 +647,34 @@ async function rsLoadTypes(){
   RS_CACHE[key]=r.data;
   _ldSuccess('rst'); await _delay(600);
   if(seq!==RS_SEQ) return;
-  RS_CUR={ win:w, data:r.data };
+  RS_CUR={ win:w, agents:ag, data:r.data };
   panel.innerHTML=rsTypesHtml(RS_CUR);
 }
+// Standalone 'Resolved by AUTO-SIM' card: shown whatever the PHD / Non-PHD boxes, for the selected period.
+var RS_AUTOSIM_LABEL='Resolved by AUTO-SIM';
+function rsAutosimHtml(D,win){
+  var n=Number(D.autosimTotal)||0, all=Number(D.allResolvedTotal)||0, pct=all?(n/all*100).toFixed(1):'0.0';
+  var w=all?Math.min(100,n/all*100):0;   // bar fill = AutoSIM share of ALL resolved in the period
+  var cnt=n?'<button type="button" class="rs-as-cnt" data-rs-autosim="1" aria-label="View '+num(n)+' ticket'+(n===1?'':'s')+' resolved by AUTO-SIM">'+num(n)+'</button>'
+    :'<span class="rs-as-cnt is-zero">0</span>';
+  // One row laid out like the table below: [icon + title] [count] [bar + %] (bar on the right).
+  return '<div class="rs-autosim" role="group" aria-label="Resolved by AUTO-SIM \u00b7 '+esc(rsWinLabel(win))+'">'+
+    '<span class="rs-as-name">'+
+      '<span class="rs-as-ic" aria-hidden="true">'+(window.icon?window.icon('bolt',16):'')+'</span>'+
+      '<span class="rs-as-txt"><span class="rs-as-lbl">'+esc(RS_AUTOSIM_LABEL)+'</span>'+
+        '<span class="rs-as-sub">Not part of PHD / Non-PHD \u00b7 share of all '+num(all)+' resolved</span></span>'+
+    '</span>'+
+    '<span class="rs-as-num">'+cnt+'</span>'+
+    '<span class="rs-pct-wrap rs-as-bar"><span class="rs-bar rs-bar-as" aria-hidden="true"><i style="width:'+w.toFixed(1)+'%"></i></span>'+
+      '<span class="rs-pct-n">'+esc(pct)+'%</span></span>'+
+  '</div>';
+}
 function rsTypesHtml(cur){
-  var D=cur.data, rows=D.resolutions||[], total=Number(D.resolvedTotal)||0, per=rsWinLabel(cur.win);
-  if(!total||!rows.length) return '<div class="ps-res-empty">No tickets resolved in '+esc(per)+'</div>';
+  var D=cur.data, rows=D.resolutions||[], total=Number(D.resolvedTotal)||0, per=rsAgentsLabel(cur.agents)+' \u00b7 '+rsWinLabel(cur.win);
+  var as=rsAutosimHtml(D,cur.win);
+  if(!total||!rows.length) return as+'<div class="ps-res-empty">No tickets resolved in '+esc(per)+'</div>';
   var max=Math.max.apply(null,rows.map(function(r){ return Number(r.count)||0; }))||1;
-  return '<div class="ps-res-sum"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved <span class="rs-sum-per">\u00b7 '+esc(per)+'</span></div>'+
+  return as+'<div class="ps-res-sum"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved <span class="rs-sum-per">\u00b7 '+esc(per)+'</span></div>'+
     '<div class="ps-res-wrap"><table class="ps-res-tbl">'+
       '<caption class="sr-only">Resolution types of tickets resolved in '+esc(per)+'</caption>'+
       '<thead><tr><th scope="col">Resolution</th><th scope="col" class="n">Count</th><th scope="col">Percentage</th></tr></thead>'+
@@ -590,10 +690,15 @@ function rsTypesHtml(cur){
 document.addEventListener('click',function(ev){
   var t=ev.target.closest&&ev.target.closest('[data-rs-type]'); if(t){ if(t.getAttribute('data-rs-type')!==RS.type) rsSetType(t.getAttribute('data-rs-type'),false); return; }
   var s=ev.target.closest&&ev.target.closest('[data-rs-step]'); if(s){ if(!s.disabled) rsStep(parseInt(s.getAttribute('data-rs-step'),10)); return; }
+  var a=ev.target.closest&&ev.target.closest('[data-rs-autosim]');
+  if(a&&RS_CUR&&window.PHDResTickets){
+    window.PHDResTickets.open({ opener:a, resolution:RS_AUTOSIM_LABEL, count:Number(RS_CUR.data.autosimTotal)||0, view:RS_CUR.win.view, start:RS_CUR.win.start, end:RS_CUR.win.end, splitNotSpecified:true, agents:'autosim' });
+    return;
+  }
   var c=ev.target.closest&&ev.target.closest('[data-rs-i]');
   if(c&&RS_CUR&&window.PHDResTickets){
     var r=(RS_CUR.data.resolutions||[])[parseInt(c.getAttribute('data-rs-i'),10)]; if(!r) return;
-    window.PHDResTickets.open({ opener:c, resolution:r.resolution, count:r.count, view:RS_CUR.win.view, start:RS_CUR.win.start, end:RS_CUR.win.end });
+    window.PHDResTickets.open({ opener:c, resolution:r.resolution, count:r.count, view:RS_CUR.win.view, start:RS_CUR.win.start, end:RS_CUR.win.end, splitNotSpecified:true, agents:RS_CUR.agents });
   }
 });
 document.addEventListener('keydown',function(ev){
@@ -617,10 +722,18 @@ function rsCard(id,icon,title,inner,open){
       '<span class="rs-caret" aria-hidden="true">'+CARET+'</span></button></h2>'+
     '<div class="rs-card-region" id="'+id+'Region"><div>'+inner+'</div></div></section>';
 }
+// Accordion: only one section is expanded at a time. Expanding one collapses the others (their
+// content stays rendered, so nothing is refetched when they are reopened).
+var RS_CARD_IDS=['rsMonthly','rsTypes'];
+function rsSetCardOpen(id,open){
+  var card=document.getElementById(id+'Card'), head=document.getElementById(id+'Head'); if(!card||!head) return;
+  card.classList.toggle('open',open); head.setAttribute('aria-expanded',String(open));
+}
 function rsToggleCard(id){
   var card=document.getElementById(id+'Card'), head=document.getElementById(id+'Head'); if(!card||!head) return;
   var open=!card.classList.contains('open');
-  card.classList.toggle('open',open); head.setAttribute('aria-expanded',String(open));
+  if(open) RS_CARD_IDS.forEach(function(o){ if(o!==id) rsSetCardOpen(o,false); });
+  rsSetCardOpen(id,open);
   // Section 2: first expand (or an expand after the selection changed) fetches; otherwise reuse.
   if(open&&id==='rsTypes'&&RS_TYPES_KEY!==rsTypesKey(rsWindow())) rsLoadTypes();
 }

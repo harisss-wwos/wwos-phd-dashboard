@@ -2267,9 +2267,15 @@
     };
     // Group 1 (top): blue buttons (My Tickets is highlighted in orange).
     var myTicketsInner = '<span class="home-nav-ic">' + ic('ticket', 15) + '</span><span class="home-nav-lbl">My Tickets</span>';
+    // Page ZERO: owner gets it directly below My Tickets; managers get it INSTEAD of My Tickets;
+    // everyone else keeps My Tickets only.
+    var _pzRole = (li && A && A.role) ? A.role() : '';
+    var _pzOwner = _pzRole === 'owner', _pzMgr = _pzRole === 'manager';
+    var myTicketsBtn = li ? '<a class="home-nav-btn home-nav-mytickets" href="my-tickets.html" title="My Tickets">' + myTicketsInner + '</a>'
+                          : '<span class="home-nav-btn home-nav-mytickets" aria-disabled="true" title="My Tickets">' + myTicketsInner + '</span>';
+    var pageZeroBtn = navBtn('page-zero.html', 'Page ZERO', 'grid');
     var navTop = '<nav class="home-navgrp home-navgrp-blue">'
-      + (li ? '<a class="home-nav-btn home-nav-mytickets" href="my-tickets.html" title="My Tickets">' + myTicketsInner + '</a>'
-            : '<span class="home-nav-btn home-nav-mytickets" aria-disabled="true" title="My Tickets">' + myTicketsInner + '</span>')
+      + (_pzMgr ? pageZeroBtn : myTicketsBtn + (_pzOwner ? pageZeroBtn : ''))
       + navBtn('tools.html', 'PHD Tools', 'tool')
       + navBtn('agent-analytics.html', 'Team Analytics', 'bar-chart')
       + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
@@ -4737,6 +4743,7 @@
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
       'agent-analytics.html': 'bar-chart', 'performance-summary.html': 'clipboard',
       'resolutions.html': 'check-circle',
+      'page-zero.html': 'grid',
       'pulse-check.html': 'line-chart',
       'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',

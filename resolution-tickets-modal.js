@@ -7,7 +7,12 @@
    The page supplies the .psm* CSS. Calendar days are passed as LOCAL-midnight Date objects that
    name the calendar day (start inclusive, end inclusive); only their Y/M/D parts are used.
 
-   API: window.PHDResTickets.open({ opener, resolution, count, view, start, end })
+   API: window.PHDResTickets.open({ opener, resolution, count, view, start, end, splitNotSpecified, agents })
+        (splitNotSpecified: true -> 'Not specified' is split into 'Resolved by AUTO-SIM' / 'Resolved by Rule'
+         on the server, the same option the page used for its counts)
+        (agents: 'phd' | 'nonphd' | 'all' (= PHD + Non-PHD, no AutoSIM) | 'autosim' -> the same
+         resolver-group filter the page used for its counts, always sent to the server; shown in the
+         subtitle and appended to the CSV name. Omitted -> unchanged behaviour (no filter).)
         window.PHDResTickets.close()
         window.PHDResTickets.pure  -> the pure helpers (labels, CSV, pagination) */
 (function () {
@@ -47,7 +52,10 @@
   }
   function psmPeriodKey(view, start, end) { return view === 'month' ? psmYmd(start).slice(0, 7) : psmYmd(start) + '_' + psmYmd(end); }
   function psmSlug(s) { var v = String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, ''); return v || 'resolution'; }
-  function psmFileName(resolution, view, periodKey) { return 'resolution_' + psmSlug(resolution) + '_' + view + '_' + periodKey + '.csv'; }
+  // agents (optional, resolutions.html only): 'phd' | 'nonphd' | 'all' -> appended to the name;
+  // omitted (Performance Summary) -> the name is unchanged.
+  function psmFileName(resolution, view, periodKey, agents) { return 'resolution_' + psmSlug(resolution) + '_' + view + '_' + periodKey + (agents ? '_' + agents : '') + '.csv'; }
+  function psmAgentsLabel(agents) { return agents === 'phd' ? 'PHD' : agents === 'nonphd' ? 'Non-PHD' : agents === 'all' ? 'PHD + Non-PHD' : agents === 'autosim' ? 'AUTO-SIM' : ''; }
   function psmPageCount(n) { return Math.max(1, Math.ceil((Number(n) || 0) / PSM_PAGE_SIZE)); }
   function psmShowing(page, n) {
     n = Number(n) || 0; if (!n) return 'Showing 0 of 0';
@@ -80,7 +88,7 @@
   }
   /* PSM-PURE-END */
 
-  var PSM = { view: '', start: null, end: null, resolution: '', count: 0, tickets: [], page: 1, tz: 'IST', state: 'idle', seq: 0, opener: null, pgFocus: false, err: '' };
+  var PSM = { view: '', start: null, end: null, resolution: '', count: 0, split: false, agents: '', tickets: [], page: 1, tz: 'IST', state: 'idle', seq: 0, opener: null, pgFocus: false, err: '' };
   function psmEnsure() {
     var bg = document.getElementById('psmBg'); if (bg) return bg;
     bg = document.createElement('div'); bg.id = 'psmBg'; bg.className = 'psm-bg';
@@ -128,7 +136,8 @@
     if (!opts || !opts.resolution || !opts.start || !opts.end) return;
     var bg = psmEnsure();
     PSM.view = opts.view; PSM.start = opts.start; PSM.end = opts.end;
-    PSM.resolution = String(opts.resolution); PSM.count = Number(opts.count) || 0; PSM.tickets = []; PSM.page = 1; PSM.opener = opts.opener || null;
+    PSM.resolution = String(opts.resolution); PSM.count = Number(opts.count) || 0; PSM.split = !!opts.splitNotSpecified;
+    PSM.agents = (opts.agents === 'phd' || opts.agents === 'nonphd' || opts.agents === 'all' || opts.agents === 'autosim') ? opts.agents : ''; PSM.tickets = []; PSM.page = 1; PSM.opener = opts.opener || null;
     bg.classList.add('open'); document.body.style.overflow = 'hidden';
     psmLoad();
   }
@@ -139,7 +148,7 @@
     var tzP = (auth && auth.myTimezone ? auth.myTimezone() : Promise.resolve('IST')).catch(function () { return 'IST'; });
     var r = null;
     try {
-      r = await auth.api('GET', '/api/perf-summary/resolution-tickets?view=' + encodeURIComponent(PSM.view) + '&from=' + psmYmd(PSM.start) + '&to=' + psmYmd(psmNextDay(PSM.end)) + '&resolution=' + encodeURIComponent(PSM.resolution));
+      r = await auth.api('GET', '/api/perf-summary/resolution-tickets?view=' + encodeURIComponent(PSM.view) + '&from=' + psmYmd(PSM.start) + '&to=' + psmYmd(psmNextDay(PSM.end)) + '&resolution=' + encodeURIComponent(PSM.resolution) + (PSM.split ? '&splitNotSpecified=1' : '') + (PSM.agents ? '&agents=' + PSM.agents : ''));
     } catch (e) {}
     var tz = await tzP;
     if (seq !== PSM.seq) return;   // closed or superseded while loading
@@ -150,7 +159,8 @@
   function psmRender() {
     var n = PSM.tickets.length, shown = (PSM.state === 'done') ? n : PSM.count;
     document.getElementById('psmTitle').textContent = PSM.resolution + ' \u2014 ' + num(shown) + ' ticket' + (shown === 1 ? '' : 's');
-    document.getElementById('psmSub').textContent = PSM.start ? psmPeriodLabel(PSM.view, PSM.start, PSM.end) : '';
+    var scope = psmAgentsLabel(PSM.agents);
+    document.getElementById('psmSub').textContent = PSM.start ? ((scope ? scope + ' \u00b7 ' : '') + psmPeriodLabel(PSM.view, PSM.start, PSM.end)) : '';
     var body = document.getElementById('psmBody'), foot = document.getElementById('psmFoot'), ex = document.getElementById('psmExtract');
     ex.disabled = !(PSM.state === 'done' && n > 0);
     foot.className = 'psm-foot'; foot.innerHTML = '';
@@ -197,7 +207,7 @@
     if (PSM.state !== 'done' || !PSM.tickets.length) return;
     var blob = new Blob([psmBuildCsv(PSM.tickets, PSM.tz)], { type: 'text/csv;charset=utf-8' });
     var url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = psmFileName(PSM.resolution, PSM.view, psmPeriodKey(PSM.view, PSM.start, PSM.end));
+    a.href = url; a.download = psmFileName(PSM.resolution, PSM.view, psmPeriodKey(PSM.view, PSM.start, PSM.end), PSM.agents);
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
@@ -207,7 +217,7 @@
     close: psmClose,
     pure: {
       PAGE_SIZE: PSM_PAGE_SIZE, tzLabel: psmTzLabel, fmtDate: psmFmtDate, ymd: psmYmd, nextDay: psmNextDay,
-      periodLabel: psmPeriodLabel, periodKey: psmPeriodKey, slug: psmSlug, fileName: psmFileName,
+      periodLabel: psmPeriodLabel, periodKey: psmPeriodKey, slug: psmSlug, fileName: psmFileName, agentsLabel: psmAgentsLabel,
       pageCount: psmPageCount, showing: psmShowing, pageItems: psmPageItems, csvCell: psmCsvCell, buildCsv: psmBuildCsv
     }
   };

@@ -210,6 +210,7 @@ h1{color:#1b2026!important}
 .u-card .u-avatar{border:1px solid #e2e6ea!important}
 .u-card .u-avatar-ph{background:#fff4e8!important;color:#b5560c!important}
 .u-admin-tag{color:#b5560c!important;background:#fff4e8!important;border:1px solid #f3d4b0!important}
+.u-mgr-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#6d28d9;background:#f1eaff;border:1px solid #d6c2fb}
 /* meta controls row (tz / badge / analyst) */
 .u-card-meta{display:flex;flex-wrap:wrap;gap:10px}
 .um-fld{display:flex;flex-direction:column;gap:5px;min-width:92px}
@@ -361,7 +362,7 @@ td.user{color:#1b2026!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=209"></script>
+<script src="topbar-auth.js?v=210"></script>
 <script>
 const A=window.PHDAuth;
 // Analyst groups (display names only for analysts). Keys map to a display name + accent color.
@@ -532,7 +533,9 @@ function renderList(users){
     const tag=g?('<span class="u-group" style="--gc:'+g.color+'">'+esc(g.name)+'</span>'):'';
     // ADMIN tag: anyone with upload access is treated as an admin (owner excluded — has its own tag).
     const adminTag=(u.role!=='owner'&&u.canUpload)?'<span class="u-admin-tag">ADMIN</span>':'';
-    const name='<span class="u-uname">'+esc(u.username)+tag+adminTag+'</span>'+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
+    // MANAGER tag: display-only flag set by the owner (shown alongside ADMIN; grants no access).
+    const mgrTag=(u.role!=='owner'&&u.managerTag)?'<span class="u-mgr-tag">MANAGER</span>':'';
+    const name='<span class="u-uname">'+esc(u.username)+tag+adminTag+mgrTag+'</span>'+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
     return '<div class="u-cell"><span class="u-avatar-wrap">'+pic+'</span><span class="u-name">'+name+'</span></div>';
   };
   const tzSelect=(u)=>'<select onchange="changeTz(\''+u.id+'\',this.value,\''+u.username+'\')">'
@@ -577,7 +580,13 @@ function renderList(users){
         +'<div class="um-fld"><span class="um-k">Analyst</span>'+yesNo(u.analyst)+'</div>'
       : '<div class="um-fld"><span class="um-k">Timezone</span>'+tzSelect(u)+'</div>'
         +'<div class="um-fld"><span class="um-k">Badge</span>'+badgeSelect(u)+'</div>'
-        +'<div class="um-fld"><span class="um-k">Analyst</span>'+analystSelect(u)+'</div>';
+        +'<div class="um-fld"><span class="um-k">Analyst</span>'+analystSelect(u)+'</div>'
+        // Manager tag: only the owner can change it (server enforces the same).
+        +'<div class="um-fld"><span class="um-k">Manager tag</span>'+(iAmOwner
+          ? '<select onchange="changeMgrTag(\''+u.id+'\',this.value,\''+u.username+'\')">'
+            +'<option value="yes"'+(u.managerTag?' selected':'')+'>Yes</option>'
+            +'<option value="no"'+(!u.managerTag?' selected':'')+'>No</option></select>'
+          : yesNo(u.managerTag))+'</div>';
     const accessGrid='<div class="ua-grid">'+ACCESS_FLAGS.map(([f,l])=>accessCell(u,f,l)).join('')+'</div>';
     const actions = isOwnerRow
       ? '<span class="u-owner-tag">'+ic('shield',14)+'Full access</span>'
@@ -715,6 +724,8 @@ async function patchFlags(id,body,username,okMsg){
   setUsersBusy(false);
 }
 function changeBadge(id,badge,username){ patchFlags(id,{badge},username,username+"'s badge is now "+badge+'.'); }
+function changeMgrTag(id,val,username){ const managerTag=(val==='yes'); patchFlags(id,{managerTag},username,username+(managerTag?' now shows the MANAGER tag.':' no longer shows the MANAGER tag.')); }
+window.changeMgrTag=changeMgrTag;
 function changeAnalyst(id,val,username){ const analyst=(val==='yes'); patchFlags(id,{analyst},username,username+(analyst?' is now an Analyst.':' is no longer an Analyst.')); }
 function changeFlag(id,flag,value,username){
   const LBL={canUpload:'upload access',canDatabase:'Database page access',canCreateUsers:'user-management access',canEditTools:'Edit Tools access',canViewSR:'View SR access',canViewRepeat:'View Repeat access',canViewUnique:'View Unique access',canViewSLA:'View SLA access',canGroupingPage:'Grouping Page access'};

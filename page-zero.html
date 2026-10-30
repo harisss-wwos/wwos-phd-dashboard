@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<title>Page ZERO · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<style id="pz-light">
+#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
+.pz-titlebar{min-height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;gap:11px;padding:8px 16px;margin-bottom:16px}
+.pz-titlebar .ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:5px;background:#e8f0ff;color:#2563eb;flex-shrink:0}
+.pz-titlebar .pz-ttl{flex:1;min-width:0}
+.pz-titlebar h1{margin:0;font-size:1.25em;font-weight:800;color:#1b2026;line-height:1.15}
+.pz-sub{margin-top:2px;font-size:.8em;color:#5c6773;line-height:1.35}
+/* Export button (black background, white text, like Pulse Check). */
+.pz-export{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;flex-shrink:0;
+  color:#fff;background:#000;border:1px solid #000;border-radius:5px;padding:9px 16px;transition:background .15s,transform .12s}
+.pz-export:hover{background:#1a1a1a}
+.pz-export:active{transform:translateY(1px)}
+.pz-export:disabled{opacity:.5;cursor:default;transform:none}
+.pz-export.ok{background:#1f9d57;border-color:#1f9d57}
+.pz-export.err{background:#b42318;border-color:#b42318}
+.pz-export:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.pz-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);width:100%}
+.pz-gate{max-width:560px;margin:60px auto;text-align:center}
+.pz-gate h1{color:#1b2026;font-size:1.5em;margin-bottom:10px}
+.pz-gate p{color:#5c6773;line-height:1.55;margin-bottom:16px}
+.pz-gate a{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:5px;background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;font-weight:700;text-decoration:none}
+.pz-error{text-align:center;padding:40px 20px}
+.pz-error p{color:#b42318;font-weight:700;margin-bottom:14px}
+.pz-btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;color:#f4f3ef;background:#161d2d;border:none;border-radius:5px;padding:10px 16px}
+.pz-btn:hover{background:#0f1420}
+.pz-btn:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.pz-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ===== Metrics table ===== */
+.pz-scroll{overflow:auto;max-height:calc(100vh - 190px);border-radius:5px}
+.pz-tbl{border-collapse:separate;border-spacing:0;font-size:.82em;color:#1b2026;min-width:100%}
+.pz-tbl th,.pz-tbl td{border-right:1px solid #e3e7ec;border-bottom:1px solid #e3e7ec;padding:6px 10px;white-space:nowrap;line-height:1.3}
+.pz-tbl thead th{position:sticky;background:#1f3a68;color:#fff;font-weight:700;text-align:center;z-index:3;border-color:#3b5584}
+.pz-tbl thead tr.pz-hg th{top:0;height:30px}
+.pz-tbl thead tr.pz-hm th{top:30px;height:30px}
+.pz-tbl thead th.pz-tot{background:#9a4a00}
+.pz-tbl thead th.pz-q{background:#163056}
+.pz-tbl .pz-n{position:sticky;left:0;width:40px;min-width:40px;text-align:right;color:#5c6773}
+.pz-tbl .pz-name{position:sticky;left:40px;min-width:260px;text-align:left;font-weight:600;box-shadow:inset -1px 0 0 #c8d0dc}
+.pz-tbl thead .pz-n,.pz-tbl thead .pz-name{z-index:4;color:#fff;text-align:left}
+.pz-tbl tbody td,.pz-tbl tbody th{background:#fff}
+.pz-tbl tbody tr.pz-z td,.pz-tbl tbody tr.pz-z th{background:#f4f7fb}
+.pz-tbl tbody .pz-n,.pz-tbl tbody .pz-name{z-index:2}
+.pz-tbl td.v{text-align:right;font-variant-numeric:tabular-nums}
+.pz-tbl tbody td.pz-tot,.pz-tbl tbody tr.pz-z td.pz-tot{background:#fff4e8;font-weight:800}
+.pz-tbl td.pz-empty{color:#98a2ae}
+.pz-tbl tr.pz-sec th{background:#161d2d;color:#fff;font-weight:800;text-align:left;letter-spacing:.4px;font-size:.95em;padding:7px 10px}
+.pz-tbl tr.pz-sec th span{position:sticky;left:10px}
+/* Section rows: force white text on the black bar (shared theme styles were overriding the colour). */
+.pz-tbl tbody tr.pz-sec th,.pz-tbl tbody tr.pz-sec:hover th{background:#161d2d!important;color:#fff!important}
+.pz-tbl tbody tr.pz-sec th span{color:#fff!important;background:transparent!important;text-transform:uppercase}
+.pz-tbl tbody tr:not(.pz-sec):hover td,.pz-tbl tbody tr:not(.pz-sec):hover th{background:#eef3fa}
+.pz-tbl tbody tr:not(.pz-sec):hover td.pz-tot{background:#ffe9d1}
+
+/* ===== Indicative KRI tables (below the metrics table) ===== */
+.pz-kri-wrap{margin-top:18px;display:flex;flex-direction:column;gap:14px}
+.pz-note{background:#f4f7fb;border:1px solid #c8d4e6;border-left:4px solid #1f3a68;border-radius:5px;padding:10px 14px;font-size:.84em;color:#1b2026;line-height:1.5}
+.pz-note b{color:#1f3a68}
+.pz-kri-bar{background:#161d2d;color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.4px;font-size:.82em;padding:8px 12px;border-radius:5px 5px 0 0;margin:0}
+.pz-kri-scroll{overflow-x:auto}
+.pz-kri{border-collapse:separate;border-spacing:0;font-size:.82em;color:#1b2026;width:100%}
+.pz-kri th,.pz-kri td{border-right:1px solid #e3e7ec;border-bottom:1px solid #e3e7ec;padding:6px 10px;white-space:nowrap;line-height:1.3}
+.pz-kri thead th{background:#1f3a68;color:#fff;font-weight:700;text-align:center;border-color:#3b5584}
+.pz-kri tbody td{background:#fff}
+.pz-kri tbody tr.pz-z td{background:#f4f7fb}
+.pz-kri tbody tr:hover td{background:#eef3fa}
+.pz-kri td.c{text-align:center}
+.pz-kri td.l{text-align:left;font-weight:600}
+.pz-kri td.v{text-align:right;font-variant-numeric:tabular-nums}
+.pz-kri td.pz-empty{color:#98a2ae}
+.pz-kri td.pz-none{text-align:center;color:#5c6773;font-style:italic;padding:16px}
+.pz-kri .pz-cnt{display:block;font-size:.82em;color:#6b7684;font-weight:400}
+.pz-kri .up{color:#b91c1c;font-weight:700}
+.pz-kri .dn{color:#15803d;font-weight:700}
+.pz-pill{display:inline-block;padding:2px 10px;border-radius:999px;color:#fff;font-weight:700;font-size:.92em}
+
+/* ===== Compact phased loader (ported from pulse-check.html) ===== */
+.gw-loader{min-height:36vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;max-width:680px}
+.gw-orb{position:relative;width:84px;height:84px;display:flex;align-items:center;justify-content:center}
+.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  animation:gwSpin 1.1s linear infinite}
+.gw-orb-ic{position:relative;width:54px;height:54px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
+  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
+.gw-orb-ic svg{width:26px;height:26px}
+@keyframes gwSpin{100%{transform:rotate(360deg)}}
+@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.gw-loader-msg{font-size:1.08em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
+.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
+@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.gw-dots{display:flex;gap:7px}
+.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
+.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
+.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
+@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
+.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
+.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
+.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
+.gw-loader.gw-done .gw-dots{visibility:hidden}
+@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.gw-orb::before,.gw-orb-ic,.gw-dots span,.gw-loader-msg.gw-msg-in{animation:none}}
+</style>
+</head>
+<body data-nav-active="page-zero" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js?v=210"></script>
+<script>
+(function(){
+var A=window.PHDAuth;
+var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
+var wrap=document.getElementById('wrap');
+var YEAR=2026, TITLE='GLOBAL PHD Page 0 \u2014 '+YEAR;
+// Owner and managers only. /api/page-zero enforces the same rule on the server (403 otherwise).
+var role=(A&&A.getUser&&A.getUser()&&A.role)?A.role():'';
+if(role!=='owner' && role!=='manager'){
+  wrap.innerHTML='<div class="pz-gate"><h1>Page ZERO</h1><p>This page is available to the owner and managers only.</p><a href="index.html">Go to Home</a></div>';
+  return;
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+var DASH='\u2014';
+// Cell text for one value: counts with thousands separators, % and days to 1 decimal, '—' when null.
+function fmt(kind,v){
+  if(v==null||!isFinite(v)) return DASH;
+  if(kind==='pct') return Number(v).toFixed(1)+'%';
+  if(kind==='days') return Number(v).toFixed(1);
+  return Number(v).toLocaleString('en-US');
+}
+function fmtIst(iso){
+  var d=new Date(iso); if(isNaN(d.getTime())) return '';
+  try{ return d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' IST'; }
+  catch(_){ return d.toISOString(); }
+}
+
+// Column layout: per quarter its three months then the quarter total, then the year-to-date column.
+// Months that have not started yet are left out entirely (e.g. Nov / Dec), and a quarter with no
+// elapsed month is dropped (its header + total). A partly elapsed quarter keeps its total column.
+function quarters(D){
+  var out=[];
+  for(var q=0;q<4;q++){
+    var ms=[]; for(var k=0;k<3;k++){ var m=D.months[q*3+k]; if(m && m.elapsed!==false) ms.push(m); }
+    if(ms.length) out.push({ q:q, months:ms, span:ms.length+1 });
+  }
+  return out;
+}
+function columns(D){
+  var cols=[];
+  quarters(D).forEach(function(Q){
+    Q.months.forEach(function(m){ cols.push({key:m.key,label:m.label,tot:false,q:Q.q}); });
+    cols.push({key:'Q'+(Q.q+1),label:'Q'+(Q.q+1)+' '+D.year,tot:true,q:Q.q});
+  });
+  cols.push({key:'YTD',label:D.year+' YTD',tot:true,q:-1});
+  return cols;
+}
+// Rows grouped by section, in server order.
+function sections(D){
+  var out=[], cur=null;
+  D.rows.forEach(function(r){
+    if(!cur||cur.name!==r.section){ cur={name:r.section,rows:[]}; out.push(cur); }
+    cur.rows.push(r);
+  });
+  return out;
+}
+
+// ---- Title bar ----
+var PZ={ data:null, loading:false };
+function titlebar(D){
+  var sub=D?('Created / resolved tickets, '+D.year+', UTC months \u00b7 updated '+esc(fmtIst(D.generatedAt))):('Created / resolved tickets, '+YEAR+', UTC months');
+  return '<div class="pz-titlebar"><span class="ic">'+ic('grid',18)+'</span>'+
+    '<div class="pz-ttl"><h1>'+esc(TITLE)+'</h1><div class="pz-sub" id="pzSub">'+sub+'</div></div>'+
+    '<button type="button" class="pz-export" id="pzExport"'+(D?'':' disabled')+' title="Copy the table as an image">'+ic('copy',15)+'<span id="pzExportLbl">Export</span></button>'+
+  '</div>';
+}
+
+// ---- Table ----
+function tableHtml(D){
+  var cols=columns(D), ncols=cols.length+2, h='';
+  h+='<div class="pz-card"><div class="pz-scroll" tabindex="0" role="region" aria-label="'+esc(TITLE)+' table (scrolls horizontally)">';
+  h+='<table class="pz-tbl" id="pzTbl"><caption class="pz-sr">'+esc(TITLE)+': PHD metrics by UTC month, quarter total and '+D.year+' year to date. Future months show a dash.</caption>';
+  h+='<colgroup><col class="pz-col-n"><col class="pz-col-name"></colgroup>';
+  var QS=quarters(D);
+  QS.forEach(function(Q){ h+='<colgroup span="'+Q.span+'" class="pz-col-q'+(Q.q+1)+'"></colgroup>'; });
+  h+='<colgroup><col class="pz-col-ytd"></colgroup>';
+  h+='<thead><tr class="pz-hg"><th scope="col" rowspan="2" class="pz-n">#</th><th scope="col" rowspan="2" class="pz-name">Metric Name</th>';
+  QS.forEach(function(Q){ h+='<th scope="colgroup" colspan="'+Q.span+'" class="pz-q">Q'+(Q.q+1)+' '+D.year+'</th>'; });
+  h+='<th scope="col" rowspan="2" class="pz-tot">'+D.year+' YTD</th></tr><tr class="pz-hm">';
+  cols.forEach(function(c){ if(c.key!=='YTD') h+='<th scope="col"'+(c.tot?' class="pz-tot"':'')+'>'+esc(c.label)+'</th>'; });
+  h+='</tr></thead>';
+  sections(D).forEach(function(s){
+    h+='<tbody><tr class="pz-sec"><th scope="rowgroup" colspan="'+ncols+'"><span>'+esc(s.name)+'</span></th></tr>';
+    s.rows.forEach(function(r,i){
+      h+='<tr'+(i%2?' class="pz-z"':'')+'><td class="pz-n">'+r.n+'</td><th scope="row" class="pz-name">'+esc(r.label)+'</th>';
+      cols.forEach(function(c){
+        var v=r.values[c.key], t=fmt(r.kind,v);
+        h+='<td class="v'+(c.tot?' pz-tot':'')+(t===DASH?' pz-empty':'')+'">'+t+'</td>';
+      });
+      h+='</tr>';
+    });
+    h+='</tbody>';
+  });
+  h+='</table></div></div>';
+  return h;
+}
+
+// ---- Indicative KRI tables (server: computePageZero -> kri; definition documented in server/page-zero.js) ----
+// KRI = incident-volume index 0-100: an entity's created tickets in the month / the busiest entity's that month.
+// Lower risk is better, so a decrease is green (down arrow) and an increase is red (up arrow).
+var KRI_LEVEL_BG={'Critical':'#b91c1c','Very High':'#ea580c','High':'#d97706','Medium':'#2563eb','Low':'#64748b'};
+var KRI_UP='#b91c1c', KRI_DN='#15803d';
+function f2(v){ return (v==null||!isFinite(v))?DASH:Number(v).toFixed(2); }
+// Signed change: {text, dir:'up'|'dn'|''}; dp decimals, optional '%' suffix.
+function kriChg(v,dp,pct){
+  if(v==null||!isFinite(v)) return {text:DASH,dir:''};
+  var n=Number(v), s=Math.abs(n).toFixed(dp)+(pct?'%':'');
+  if(Number(s.replace('%',''))===0) return {text:(0).toFixed(dp)+(pct?'%':''),dir:''};
+  return n>0?{text:'\u25b2 +'+s,dir:'up'}:{text:'\u25bc -'+s,dir:'dn'};
+}
+// Column specs; get(e) -> {text, align:'c'|'l'|'v', dir, pill, sub}
+var KRI_C={
+  rank:{h:'Rank',get:function(e){ return {text:String(e.rank),align:'c'}; }},
+  country:{h:'Country',get:function(e){ return {text:e.country||'Unknown',align:'c'}; }},
+  site:{h:'Site ID',get:function(e){ return {text:e.id,align:'l'}; }},
+  zip:{h:'Zipcode',get:function(e){ return {text:e.id,align:'l'}; }},
+  level:{h:'KRI Level',get:function(e){ return {text:e.level||DASH,align:'c',pill:KRI_LEVEL_BG[e.level]||null}; }},
+  current:{h:'Current KRI',get:function(e){ return {text:f2(e.current),align:'v',sub:e.currentCount+' incident'+(e.currentCount===1?'':'s')}; }},
+  last:{h:'Last Month KRI',get:function(e){ return {text:f2(e.last),align:'v'}; }},
+  prev2:{h:'2 Mo Ago KRI',get:function(e){ return {text:f2(e.prev2),align:'v'}; }},
+  mom:{h:'MoM Change',get:function(e){ var c=kriChg(e.mom,2,false); c.align='v'; return c; }},
+  momPct:{h:'MoM % Change',get:function(e){ var c=kriChg(e.momPct,1,true); c.align='v'; return c; }},
+  qoq:{h:'QoQ Change',get:function(e){ var c=kriChg(e.qoq,2,false); c.align='v'; return c; }},
+  qoqPct:{h:'QoQ % Change',get:function(e){ var c=kriChg(e.qoqPct,1,true); c.align='v'; return c; }}
+};
+function kriTables(D){
+  var K=D.kri||{};
+  return [
+    {id:'pzKriSites',title:'TOP 5 SITES BY KRI (MoM & QoQ Changes)',list:K.sites||[],
+      cols:['rank','country','site','level','current','last','prev2','qoq','qoqPct'].map(function(k){ return KRI_C[k]; })},
+    {id:'pzKriZips',title:'TOP 5 ZIPCODES BY KRI (MoM & QoQ Changes)',list:K.zips||[],
+      cols:['rank','zip','country','current','last','mom','momPct','prev2','qoq'].map(function(k){ return KRI_C[k]; })}
+  ];
+}
+// The definition note, split in two lines (the export draws one row per line).
+function kriNote(D){
+  var K=D.kri||{}, W=K.windows||{}, n=K.minIncidents||3;
+  var lbl=function(w,full){ return w?(full?w.label:w.short):DASH; };
+  return [
+    'Indicative KRI: incident-volume index (0\u2013100) \u2014 each site\u2019s/zip\u2019s incidents in the month divided by the busiest site\u2019s/zip\u2019s that month.',
+    'Current = '+lbl(W.current,true)+' to date; Last Month = '+lbl(W.last)+'; 2 Mo Ago = '+lbl(W.prev2)+'. Ranked when \u2265 '+n+' incidents this month.'
+  ];
+}
+function kriHtml(D){
+  if(!D.kri) return '';
+  var note=kriNote(D), h='<div class="pz-kri-wrap">';
+  h+='<div class="pz-note" role="note"><b>'+esc(note[0].split(':')[0])+':</b>'+esc(note[0].slice(note[0].indexOf(':')+1))+' '+esc(note[1])+'</div>';
+  kriTables(D).forEach(function(T){
+    h+='<section class="pz-card" aria-labelledby="'+T.id+'H"><h2 class="pz-kri-bar" id="'+T.id+'H">'+esc(T.title)+'</h2>';
+    h+='<div class="pz-kri-scroll"><table class="pz-kri" id="'+T.id+'"><thead><tr>';
+    T.cols.forEach(function(c){ h+='<th scope="col">'+esc(c.h)+'</th>'; });
+    h+='</tr></thead><tbody>';
+    if(!T.list.length) h+='<tr><td class="pz-none" colspan="'+T.cols.length+'">Not enough data yet</td></tr>';
+    T.list.forEach(function(e,i){
+      h+='<tr'+(i%2?' class="pz-z"':'')+'>';
+      T.cols.forEach(function(c){
+        var x=c.get(e), cls=x.align+(x.text===DASH?' pz-empty':''), inner;
+        if(x.pill) inner='<span class="pz-pill" style="background:'+x.pill+'">'+esc(x.text)+'</span>';
+        else if(x.dir) inner='<span class="'+x.dir+'" aria-label="'+(x.dir==='up'?'increase ':'decrease ')+esc(x.text.replace(/^\S+ /,''))+'">'+esc(x.text)+'</span>';
+        else inner=esc(x.text);
+        if(x.sub) inner+='<span class="pz-cnt">'+esc(x.sub)+'</span>';
+        h+='<td class="'+cls+'"'+(x.sub?' title="'+esc(x.sub)+' this month"':'')+'>'+inner+'</td>';
+      });
+      h+='</tr>';
+    });
+    h+='</tbody></table></div></section>';
+  });
+  return h+'</div>';
+}
+
+// ---- Export: the table drawn as a PNG on a canvas (port of Pulse Check's pcTblLayout / pcDrawPart) ----
+var PZ_IMG={padX:10,padY:6,lh:17,minCol:30,maxH:8000,dpr:2,fs:13};
+function pzFont(bold){ return (bold?'bold ':'')+PZ_IMG.fs+"px 'Segoe UI', Arial, sans-serif"; }
+function pzMeasurer(){
+  var ctx=document.createElement('canvas').getContext('2d');
+  if(!ctx) throw new Error('no canvas');
+  return function(t,bold){ ctx.font=pzFont(bold); return ctx.measureText(t).width; };
+}
+// model rows: {kind:'head'|'sec'|'body', cells:[{text,span,tot,bold,align}]}
+function pzModel(D){
+  var cols=columns(D), rows=[], g=[{text:'',span:2}];
+  quarters(D).forEach(function(Q){ g.push({text:'Q'+(Q.q+1)+' '+D.year,span:Q.span,align:'center',q:true}); });
+  g.push({text:'',span:1,tot:true});
+  rows.push({kind:'head',cells:g});
+  var hm=[{text:'#',align:'right'},{text:'Metric Name',align:'left'}];
+  cols.forEach(function(c){ hm.push({text:c.label,tot:c.tot,align:'center'}); });
+  rows.push({kind:'head',cells:hm});
+  var z=0;
+  var KT=D.kri?kriTables(D):[];
+  // Grid width shared by the metrics table and the KRI tables; narrower rows get a blank filler cell.
+  var N=Math.max(cols.length+2, KT.reduce(function(m,T){ return Math.max(m,T.cols.length); },0));
+  var pad=function(cells){ var k=0; cells.forEach(function(c){ k+=c.span||1; }); if(k<N) cells.push({text:'',span:N-k,blank:true}); return cells; };
+  rows.forEach(function(r){ pad(r.cells); });
+  sections(D).forEach(function(s){
+    rows.push({kind:'sec',cells:[{text:s.name,span:N,align:'left'}]});
+    z=0;
+    s.rows.forEach(function(r){
+      var cells=[{text:String(r.n),align:'right',muted:true},{text:r.label,align:'left',bold:true}];
+      cols.forEach(function(c){ cells.push({text:fmt(r.kind,r.values[c.key]),tot:c.tot,bold:c.tot,align:'right'}); });
+      rows.push({kind:'body',zebra:z++%2,cells:pad(cells)});
+    });
+  });
+  // Indicative KRI: note lines, then each table as a section bar + its own header row + body rows.
+  if(KT.length){
+    rows.push({kind:'gap',cells:[{text:'',span:N,blank:true}]});
+    kriNote(D).forEach(function(t,i){ rows.push({kind:'note',cells:[{text:t,span:N,align:'left',bold:i===0}]}); });
+    var AL={c:'center',l:'left',v:'right'};
+    KT.forEach(function(T){
+      rows.push({kind:'gap',cells:[{text:'',span:N,blank:true}]});
+      rows.push({kind:'sec',cells:[{text:T.title,span:N,align:'left'}]});
+      rows.push({kind:'subhead',cells:pad(T.cols.map(function(c){ return {text:c.h,align:'center'}; }))});
+      if(!T.list.length){ rows.push({kind:'body',zebra:0,cells:pad([{text:'Not enough data yet',span:T.cols.length,align:'center',muted:true}])}); return; }
+      T.list.forEach(function(e,i){
+        rows.push({kind:'body',zebra:i%2,cells:pad(T.cols.map(function(c){
+          var x=c.get(e);
+          return {text:x.text,align:AL[x.align],pill:x.pill||null,color:x.dir==='up'?KRI_UP:(x.dir==='dn'?KRI_DN:null),bold:!!x.dir||x.align==='l'};
+        }))});
+      });
+    });
+  }
+  return rows;
+}
+function pzLayout(rows,measure){
+  var P=PZ_IMG, ncols=0;
+  rows.forEach(function(r){ var k=0; r.cells.forEach(function(c){ c.span=Math.max(1,c.span||1); k+=c.span; }); if(k>ncols) ncols=k; });
+  var colW=[]; for(var i=0;i<ncols;i++) colW.push(P.minCol);
+  var bold=function(r,c){ return (r.kind!=='body'&&r.kind!=='note')||!!c.bold; };
+  var nat=function(r,c){ return Math.ceil(measure(c.text,bold(r,c)))+2*P.padX+(c.pill?12:0); };
+  rows.forEach(function(r){ if(r.kind==='sec'||r.kind==='gap') return; var ci=0; r.cells.forEach(function(c){ if(c.span===1) colW[ci]=Math.max(colW[ci],nat(r,c)); ci+=c.span; }); });
+  rows.forEach(function(r){
+    if(r.kind==='sec'||r.kind==='gap') return;
+    var ci=0; r.cells.forEach(function(c){
+      if(c.span>1){ var have=0,j; for(j=ci;j<ci+c.span;j++) have+=colW[j]; var need=nat(r,c); if(need>have) for(j=ci;j<ci+c.span;j++) colW[j]+=Math.ceil((need-have)/c.span); }
+      ci+=c.span;
+    });
+  });
+  var width=colW.reduce(function(a,b){ return a+b; },0), rh=P.lh+2*P.padY;
+  var head=[], body=[];
+  rows.forEach(function(r){
+    var ci=0, cells=[];
+    r.cells.forEach(function(c){
+      var x=0,w=0,m; for(m=0;m<ci;m++) x+=colW[m]; for(m=ci;m<ci+c.span;m++) w+=colW[m];
+      cells.push({x:x,w:w,text:c.text,bold:bold(r,c),tot:!!c.tot,q:!!c.q,muted:!!c.muted,align:c.align||'left',
+        blank:!!c.blank,pill:c.pill||null,color:c.color||null});
+      ci+=c.span;
+    });
+    var row={kind:r.kind,zebra:r.zebra||0,cells:cells,h:rh};
+    (r.kind==='head'?head:body).push(row);
+  });
+  var headH=head.length*rh, parts=[], part=null, cur=0;
+  var open=function(){ part={body:[],height:0}; cur=headH+1; parts.push(part); };
+  open();
+  body.forEach(function(r){ if(part.body.length&&cur+r.h>P.maxH-1) open(); part.body.push(r); cur+=r.h; });
+  parts.forEach(function(p){ p.height=headH+p.body.length*rh+1; });
+  return {width:width,head:head,parts:parts};
+}
+function pzDrawPart(L,part){
+  var P=PZ_IMG, W=L.width+1, H=part.height, cv=document.createElement('canvas');
+  cv.width=W*P.dpr; cv.height=H*P.dpr;
+  var ctx=cv.getContext('2d'); ctx.scale(P.dpr,P.dpr);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  ctx.textBaseline='middle'; ctx.lineWidth=1;
+  var y=0;
+  var drawRow=function(r){
+    r.cells.forEach(function(c){
+      var bg, fg;
+      if(c.blank||r.kind==='gap'){ ctx.fillStyle='#ffffff'; ctx.fillRect(c.x,y,c.w+1,r.h+1); return; }
+      if(r.kind==='head'||r.kind==='subhead'){ bg=c.tot?'#9a4a00':(c.q?'#163056':'#1f3a68'); fg='#ffffff'; }
+      else if(r.kind==='sec'){ bg='#161d2d'; fg='#ffffff'; }
+      else if(r.kind==='note'){ bg='#f4f7fb'; fg='#1b2026'; }
+      else { bg=c.tot?'#fff4e8':(r.zebra?'#f4f7fb':'#ffffff'); fg=c.color||(c.muted?'#5b6676':(c.text===DASH?'#98a2ae':'#1b2026')); }
+      ctx.fillStyle=bg; ctx.fillRect(c.x,y,c.w+1,r.h+1);
+      ctx.strokeStyle=(r.kind==='body'||r.kind==='note')?'#d5dbe3':'#3b5584'; ctx.strokeRect(c.x+0.5,y+0.5,c.w,r.h);
+      if(c.pill){   // KRI Level pill: coloured rounded box, white text
+        ctx.fillStyle=c.pill; ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(c.x+5,y+4,c.w-10,r.h-8,(r.h-8)/2); else ctx.rect(c.x+5,y+4,c.w-10,r.h-8);
+        ctx.fill(); fg='#ffffff';
+      }
+      ctx.font=pzFont(c.bold); ctx.fillStyle=fg; ctx.textAlign=c.align;
+      var tx=c.align==='right'?c.x+c.w-P.padX:(c.align==='center'?c.x+c.w/2:c.x+P.padX);
+      ctx.fillText(c.text,tx,y+r.h/2);
+    });
+    y+=r.h;
+  };
+  L.head.forEach(drawRow); part.body.forEach(drawRow);
+  return cv;
+}
+// Tab-separated copy of the same table (text/plain).
+function pzPlain(D){
+  var cols=columns(D), out=[TITLE];
+  var g=['','']; quarters(D).forEach(function(Q){ g.push('Q'+(Q.q+1)+' '+D.year); for(var i=1;i<Q.span;i++) g.push(''); }); g.push('');
+  out.push(g.join('\t'));
+  out.push(['#','Metric Name'].concat(cols.map(function(c){ return c.label; })).join('\t'));
+  sections(D).forEach(function(s){
+    out.push(s.name);
+    s.rows.forEach(function(r){ out.push([r.n,r.label].concat(cols.map(function(c){ return fmt(r.kind,r.values[c.key]); })).join('\t')); });
+  });
+  if(D.kri){
+    out.push(''); kriNote(D).forEach(function(t){ out.push(t); });
+    kriTables(D).forEach(function(T){
+      out.push('', T.title, T.cols.map(function(c){ return c.h; }).join('\t'));
+      if(!T.list.length) out.push('Not enough data yet');
+      T.list.forEach(function(e){ out.push(T.cols.map(function(c){ return c.get(e).text; }).join('\t')); });
+    });
+  }
+  return out.join('\n');
+}
+function pzToBlob(cv){ return new Promise(function(res,rej){ cv.toBlob(function(b){ b?res(b):rej(new Error('toBlob failed')); },'image/png'); }); }
+function pzCopyViaSelection(html,plain){
+  var d=document.createElement('div'), sel=window.getSelection&&window.getSelection(), ok=false;
+  d.contentEditable='true'; d.setAttribute('aria-hidden','true');
+  d.style.cssText='position:fixed;left:-10000px;top:0;width:800px;height:1px;overflow:hidden;';
+  d.innerHTML=html;
+  var onCopy=function(e){ try{ if(e.clipboardData){ e.clipboardData.setData('text/html',html); e.clipboardData.setData('text/plain',plain); e.preventDefault(); } }catch(_){} };
+  document.body.appendChild(d); document.addEventListener('copy',onCopy);
+  try{ var r=document.createRange(); r.selectNodeContents(d); sel.removeAllRanges(); sel.addRange(r); ok=document.execCommand('copy'); }catch(e){ ok=false; }
+  document.removeEventListener('copy',onCopy);
+  try{ sel.removeAllRanges(); }catch(_){}
+  document.body.removeChild(d);
+  return ok;
+}
+function pzDownload(blob,name){
+  var u=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=u; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(u); },4000);
+}
+function pzFeedback(text,ok){
+  var b=document.getElementById('pzExport'), l=document.getElementById('pzExportLbl');
+  if(l) l.textContent=text;
+  if(b){ b.classList.toggle('ok',!!ok); b.classList.toggle('err',!ok); }
+  setTimeout(function(){ if(l) l.textContent='Export'; if(b){ b.classList.remove('ok'); b.classList.remove('err'); } },1800);
+}
+// Copies the table as a PNG (image/png + <img> html + tab-separated text). The canvas is drawn synchronously
+// inside the click so the ClipboardItem is created before any await. Fallbacks: rich HTML with the <img>
+// (async clipboard, then select+copy), else download the PNG.
+async function pzExport(){
+  var D=PZ.data; if(!D) return;
+  var parts, L, plain=pzPlain(D);
+  try{ L=pzLayout(pzModel(D),pzMeasurer()); parts=L.parts.map(function(p){ return pzDrawPart(L,p); }); }
+  catch(e){ pzFeedback('Export failed',false); return; }
+  var html=parts.map(function(cv,i){
+    var w=L.width+1, h=L.parts[i].height;
+    return '<img src="'+cv.toDataURL('image/png')+'" width="'+w+'" height="'+h+'" alt="'+esc(TITLE)+(parts.length>1?' (part '+(i+1)+' of '+parts.length+')':'')+'" style="display:block;width:'+w+'px;height:'+h+'px;margin:6px 0 12px;border:0">';
+  }).join('');
+  var mk=function(s){ return new Blob(['<html><head><meta charset="utf-8"></head><body>'+s+'</body></html>'],{type:'text/html'}); };
+  var plainBlob=new Blob([plain],{type:'text/plain'});
+  var canClip=!!(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write);
+  var pngOk=canClip&&parts.length===1&&(typeof ClipboardItem.supports!=='function'||ClipboardItem.supports('image/png'));
+  // 1) Image clipboard (single image only: the clipboard holds one image/png).
+  if(pngOk){
+    try{
+      await navigator.clipboard.write([new ClipboardItem({'image/png':pzToBlob(parts[0]),'text/html':mk(html),'text/plain':plainBlob})]);
+      pzFeedback('Copied',true); return;
+    }catch(e){}
+  }
+  // 2) Rich HTML with the <img> (+ plain text).
+  if(canClip){
+    try{ await navigator.clipboard.write([new ClipboardItem({'text/html':mk(html),'text/plain':plainBlob})]); pzFeedback('Copied',true); return; }catch(e){}
+  }
+  if(pzCopyViaSelection(html,plain)){ pzFeedback('Copied',true); return; }
+  // 3) Download the PNG(s).
+  try{
+    for(var i=0;i<parts.length;i++){
+      var b=await pzToBlob(parts[i]);
+      pzDownload(b,parts.length>1?('page-zero-'+YEAR+'-'+(i+1)+'.png'):('page-zero-'+YEAR+'.png'));
+    }
+    pzFeedback('Downloaded',true);
+  }catch(e){ pzFeedback('Copy failed',false); }
+}
+
+// ---- Compact phased loader (trimmed copy of pulse-check.html) ----
+var PHASES=[
+  ['inbox','Counting tickets created in '+YEAR+'\u2026'],
+  ['target','Classifying incidents by issue type\u2026'],
+  ['check-circle','Tallying resolutions and mitigations\u2026'],
+  ['clock','Checking SLA compliance (240-hour rule)\u2026'],
+  ['bar-chart','Building the quarter and YTD totals\u2026']
+];
+var _t=null;
+function _set(p){
+  var e=document.getElementById('pzLoaderMsg'), i=document.getElementById('pzLoaderIc');
+  if(i) i.innerHTML=ic(p[0]||'clock',26);
+  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=p[1]; e.classList.add('gw-msg-in'); }
+}
+function _stop(){ if(_t){ clearInterval(_t); _t=null; } }
+function _start(){
+  _stop(); var i=0; _set(PHASES[0]);
+  _t=setInterval(function(){ i++; if(i<PHASES.length) _set(PHASES[i]); else { _stop(); _set(['clock','Still working on it \u2014 thanks for your patience\u2026']); } },1800);
+}
+function _done(){
+  _stop();
+  var l=document.getElementById('pzLoader'); if(l) l.classList.add('gw-done');
+  _set(['check-circle','Data fetched successfully']);
+}
+function _delay(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+function loaderHtml(){
+  return '<section class="pz-card"><div id="pzLoader" class="gw-loader" role="status" aria-live="polite"><div class="gw-loader-in">'+
+    '<div class="gw-orb"><span class="gw-orb-ic" id="pzLoaderIc">'+ic('inbox',26)+'</span></div>'+
+    '<div class="gw-loader-msg gw-msg-in" id="pzLoaderMsg">Getting the numbers ready\u2026</div>'+
+    '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
+    '<div class="gw-loader-sub">Page ZERO \u00b7 '+YEAR+'</div></div></div></section>';
+}
+
+// ---- Flow ----
+function bindExport(){ var b=document.getElementById('pzExport'); if(b) b.addEventListener('click',pzExport); }
+function render(D){ wrap.innerHTML=titlebar(D)+tableHtml(D)+kriHtml(D); bindExport(); }
+function renderError(msg){
+  wrap.innerHTML=titlebar(null)+'<section class="pz-card"><div class="pz-error" role="alert"><p>'+esc(msg)+'</p>'+
+    '<button type="button" class="pz-btn" id="pzRetry">'+ic('refresh',15)+'Retry</button></div></section>';
+  var r=document.getElementById('pzRetry'); if(r) r.addEventListener('click',function(){ load(); });
+}
+async function load(){
+  if(PZ.loading) return;
+  PZ.loading=true;
+  wrap.innerHTML=titlebar(null)+loaderHtml(); _start();
+  var t0=Date.now(), r=null;
+  try{ r=await A.api('GET','/api/page-zero?year='+YEAR); }catch(e){ r=null; }
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)&&Array.isArray(r.data.months)){
+    var wait=700-(Date.now()-t0); if(wait>0) await _delay(wait);
+    _done(); await _delay(400);
+    PZ.data=r.data; PZ.loading=false; render(r.data);
+    return;
+  }
+  _stop(); PZ.loading=false;
+  if(r&&r.status===401){ wrap.innerHTML='<div class="pz-gate"><h1>Page ZERO</h1><p>Your session has expired. Please log in again.</p></div>'; return; }
+  if(r&&r.status===403){ wrap.innerHTML='<div class="pz-gate"><h1>Page ZERO</h1><p>This page is available to the owner and managers only.</p><a href="index.html">Go to Home</a></div>'; return; }
+  renderError((r&&r.data&&r.data.error)?r.data.error:'Could not load Page ZERO.');
+}
+load();
+})();
+</script>
+</body>
+</html>
