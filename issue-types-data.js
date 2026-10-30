@@ -186,6 +186,7 @@ window.RC_ROOT_CAUSES = [
   'Property Damage',
   'Road Rage',
   'Routing Issue',
+  'Threat over pet presence',
   'Transporter Misconduct',
   'Transporter being followed',
   'Transporter felt unsafe (No Interaction)',
