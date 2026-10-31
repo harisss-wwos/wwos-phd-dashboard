@@ -1391,21 +1391,45 @@ function _zonedWallToUTC(y,mo,d,h,zone){
   const p=_zonedParts(new Date(guess),zone);
   const asUTCofGuess=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);
   const offset=asUTCofGuess-guess;          // zone offset (ms) at the guessed instant
-  return new Date(guess-offset);
+  // Second pass: re-read the offset at the corrected instant (fixes DST-change days, e.g. Denver on
+  // the first Sunday of November, where the offset at the guess differs from the offset at 07:00).
+  const p2=_zonedParts(new Date(guess-offset),zone);
+  const offset2=Date.UTC(+p2.year,+p2.month-1,+p2.day,+p2.hour,+p2.minute,+p2.second)-(guess-offset);
+  return new Date(guess-offset2);
 }
-// Build TODAY's 7am–7pm window in `zone`. "Today" = the current date in that zone. If it's before
-// 7am locally there's not yet a completed window, so we show the current partial day up to now.
-function handoverWindow(zone){
-  const now=new Date();
+// Pick the 07:00–19:00 shift window in `zone` (wall-clock in that zone, never the browser's):
+//   before today's 07:00  -> the LAST COMPLETED window = yesterday 07:00–19:00 (state 'completed')
+//   07:00 <= now < 19:00  -> today's window so far                           (state 'in-progress')
+//   now >= 19:00          -> today's window, now finished                    (state 'completed')
+// "Yesterday" is derived with Date.UTC calendar math, so month/year rollover is handled.
+const HANDOVER_START_H=7, HANDOVER_END_H=19;
+function handoverWindow(zone,nowArg){
+  const now=nowArg?new Date(nowArg):new Date();
   const p=_zonedParts(now,zone);
-  const y=+p.year, mo=+p.month, d=+p.day;
-  const start=_zonedWallToUTC(y,mo,d,7,zone);    // today 07:00 local
-  const end=_zonedWallToUTC(y,mo,d,19,zone);     // today 19:00 local
-  return { start, end };
+  let y=+p.year, mo=+p.month, d=+p.day;
+  let start=_zonedWallToUTC(y,mo,d,HANDOVER_START_H,zone);   // today 07:00 local
+  if(now<start){                                             // today's shift not started yet
+    const prev=new Date(Date.UTC(y,mo-1,d-1));
+    y=prev.getUTCFullYear(); mo=prev.getUTCMonth()+1; d=prev.getUTCDate();
+    start=_zonedWallToUTC(y,mo,d,HANDOVER_START_H,zone);
+  }
+  const end=_zonedWallToUTC(y,mo,d,HANDOVER_END_H,zone);     // that day's 19:00 local
+  return { start, end, state:(now<end?'in-progress':'completed') };
 }
-function fmtHandoverLabel(win,zone){
-  const opt={ timeZone:zone, day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:true };
-  try{ return new Date(win.start).toLocaleString('en-US',opt)+' \u2013 '+new Date(win.end).toLocaleString('en-US',opt); }catch(e){ return ''; }
+// "Sun, 1 Nov 2026 · 07:00–19:00 IST" for the shift day of `win` in `zone`.
+function fmtHandoverWindow(win,zone,tz){
+  try{
+    const p={};
+    new Intl.DateTimeFormat('en-US',{ timeZone:zone, weekday:'short', day:'numeric', month:'short', year:'numeric' })
+      .formatToParts(new Date(win.start)).forEach(function(x){ if(x.type!=='literal') p[x.type]=x.value; });
+    const hh=function(h){ return (h<10?'0':'')+h+':00'; };
+    return p.weekday+', '+p.day+' '+p.month+' '+p.year+' \u00b7 '+hh(HANDOVER_START_H)+'\u2013'+hh(HANDOVER_END_H)+' '+tz;
+  }catch(e){ return ''; }
+}
+// Full window line shown on the page, in Copy chart and in Export handover.
+function fmtHandoverLabel(win,zone,tz){
+  const w=fmtHandoverWindow(win,zone,tz);
+  return win.state==='in-progress' ? ('Current shift: '+w+' (in progress)') : ('Showing last completed shift: '+w);
 }
 async function reloadHandoverSection(){
   const body=document.getElementById('handoverBody'); if(!body) return;
@@ -1421,7 +1445,7 @@ async function reloadHandoverSection(){
   if(tz!=='IST'&&tz!=='MST') tz='IST';
   const zone=HANDOVER_TZ_ZONE[tz]||HANDOVER_TZ_ZONE.IST;
   const win=handoverWindow(zone);
-  const label=fmtHandoverLabel(win,zone);
+  const label=fmtHandoverLabel(win,zone,tz);
   var tzChip=document.getElementById('dhTz'); if(tzChip) tzChip.textContent=tz;
   const url='/api/handover-12h?from='+encodeURIComponent(new Date(win.start).toISOString())+'&to='+encodeURIComponent(new Date(win.end).toISOString());
   window.PHDAuth.api('GET',url).then(function(r){
@@ -1438,7 +1462,7 @@ async function reloadHandoverSection(){
     const band=function(gs){ return gs.length?('<div class="ho-band">'+gs.map(grp).join(sep)+'</div>'):''; };
     const chartAria='Bar chart of the handover report: '+groups.map(function(g){ return g.items.map(function(it){ return it.lbl+' '+it.n; }).join(', '); }).join('; ');
     body.innerHTML=
-      '<div class="ho-meta">'+ic('clock',14)+' <b>'+esc(tz)+'</b> \u00b7 '+esc(label)+'</div>'+
+      '<div class="ho-meta">'+ic('clock',14)+' '+esc(label)+'</div>'+
       '<div class="ho-strip">'+band(groups.slice(0,2))+'<span class="ho-band-sep" aria-hidden="true"></span>'+band(groups.slice(2))+'</div>'+
       '<div class="sr-chart-card"><h3>Created, Resolved &amp; In Queue in the last 12 hours</h3>'+
         '<div class="to-legend" id="handoverLegend">'+handoverLegendHtml(d)+'</div>'+
@@ -1549,13 +1573,14 @@ async function copyHandoverChart(btn){
   // Pill legend items = the same list/order/colours as the bars (handoverGroups; hidden zeros omitted).
   const legend=[];
   handoverGroups(d).forEach(function(g){ g.items.forEach(function(it){ legend.push([it.lbl,it.color,it.n]); }); });
-  const W=cv.width, titleH=46;
+  const W=cv.width, titleH=d.label?70:46;
   var scratch=document.createElement('canvas').getContext('2d');
   var legH=drawPillLegend(scratch, legend, W, 0)+10;
   const out=document.createElement('canvas'); out.width=W; out.height=titleH+legH+cv.height;
   const cx=out.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,out.width,out.height);
   cx.fillStyle='#151d28'; cx.textBaseline='middle'; cx.textAlign='center'; cx.font='700 18px Inter, Arial, sans-serif';
-  cx.fillText('Created, Resolved & In Queue in the last 12 hours', W/2, titleH/2);
+  cx.fillText('Created, Resolved & In Queue in the last 12 hours', W/2, d.label?24:titleH/2);
+  if(d.label){ cx.fillStyle='#1f4f9a'; cx.font='600 13px Inter, Arial, sans-serif'; cx.fillText(d.label, W/2, 50); }
   drawPillLegend(cx, legend, W, titleH);
   cx.drawImage(cv,0,titleH+legH);
   const done=function(ok){ if(btn){ var prev=btn.innerHTML; btn.innerHTML=ic(ok?'check-circle':'copy',14)+(ok?' Copied':' Copy chart'); btn.classList.toggle('copied',ok); setTimeout(function(){ btn.innerHTML=prev; btn.classList.remove('copied'); },1400); } };
@@ -1581,7 +1606,7 @@ async function exportHandover(){
   const d=HANDOVER_DATA; if(!d){ showToast('Handover not loaded yet'); return; }
   const lines=[];
   lines.push('PHD Handover Report');
-  lines.push(d.tz+' · '+d.label);
+  lines.push(d.label);
   // Same list/order/labels as the bars and chart (hidden zero items omitted), groups split by a rule.
   handoverGroups(d).forEach(function(g){
     lines.push('======================================');
