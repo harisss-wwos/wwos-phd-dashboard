@@ -1113,75 +1113,92 @@
       // page's own .wrap/.content (moved into .home-main) keeps its content. =====
       + '#tbHomeChrome{--o:#ff6100;--ol:#fe9046;--gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;--line:#e7e5df;--icbg:#c4def6;--icfg:#2b66c1;--hsh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28);width:100%;max-width:100%;padding:10px!important;box-sizing:border-box}'
       + '#tbHomeChrome .wrap,#tbHomeChrome .content{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}'
-      + '#tbHomeChrome .home-hdr{position:fixed;top:10px;left:10px;right:10px;z-index:200;display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--white);border:1px solid var(--line);border-radius:5px;box-shadow:var(--hsh);padding:10px;margin:0;box-sizing:border-box}'
+      // Title bar = a light, frosted card in the Errors-in-Resolved hero's language: 12px radius, soft
+      // navy shadow, a 4px orange left rule, an orange uppercase eyebrow over a bold page title. Kept
+      // LIGHT (not navy) because the wordmark/logos are dark-on-light and every page opens with its own
+      // dark hero right below it; a navy bar would merge with those heroes into one heavy block.
+      + '#tbHomeChrome .home-hdr{position:fixed;top:10px;left:10px;right:10px;z-index:200;display:flex;align-items:center;justify-content:space-between;gap:14px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,50,.05),0 16px 32px -24px rgba(20,30,50,.55);padding:10px 14px 10px 18px;margin:0;box-sizing:border-box}'
+      + '#tbHomeChrome .home-hdr::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:12px 0 0 12px;background:linear-gradient(180deg,#ff9f2e,#ec7211);pointer-events:none}'
+      + '#tbHomeChrome .home-hdr :is(a,button):focus-visible{outline:3px solid #f0a35a;outline-offset:2px}'
       + '#tbHomeChrome .home-hdr-left{display:flex;align-items:center;gap:13px}'
+      // Page title block (eyebrow + title), divided from the wordmark by a hairline.
+      + '#tbHomeChrome .home-hdr-page{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;max-width:260px;height:34px;padding-left:14px;border-left:1px solid #e2e6ea;flex:0 1 auto}'
+      + '#tbHomeChrome .home-hdr-eyebrow{font-size:.6em;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#b5530a;line-height:1.15;white-space:nowrap}'
+      + '#tbHomeChrome .home-hdr-pt{font-size:1.02em;font-weight:800;letter-spacing:-.3px;color:#1b2026;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '@media(max-width:1239px){#tbHomeChrome .home-hdr-page{display:none}}'
       + '#tbHomeChrome .home-hdr-swap{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:transparent;text-decoration:none;flex:0 0 auto}'
       + '#tbHomeChrome .home-hdr-swap .tb-logo-swap{position:relative;display:block;width:28px;height:28px;overflow:hidden}'
       + '#tbHomeChrome .home-hdr-swap .tb-logo-swap .tb-rail-logo-img{position:absolute;top:50%;left:50%;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}'
       + '#tbHomeChrome .home-hdr-logo{display:flex;align-items:center;text-decoration:none}'
       + '#tbHomeChrome .home-hdr-logo img{height:24px;width:auto;display:block;object-fit:contain}'
       + '#tbHomeChrome .home-hdr-prof{display:inline-flex;align-items:center}'
-      + '#tbHomeChrome .home-hdr-prof a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--white);color:var(--icfg);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s}'
-      + '#tbHomeChrome .home-hdr-prof a:hover{border-color:var(--o);color:var(--o);transform:translateY(-1px)}'
+      + '#tbHomeChrome .home-hdr-prof a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px!important;overflow:hidden;border:1px solid #e2e6ea;background:#fff;color:#1f2a40;text-decoration:none;transition:border-color .15s,box-shadow .15s}'
+      + '#tbHomeChrome .home-hdr-prof a:hover{border-color:#ec7211;color:#b5530a;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
       + '#tbHomeChrome .home-hdr-prof a svg{width:20px;height:20px}'
-      + '#tbHomeChrome .home-hdr-prof a{border-radius:5px!important;overflow:hidden}'
-      + '#tbHomeChrome .home-hdr-prof a img,#tbHomeChrome .home-hdr-prof a .avatar-initial,#tbHomeChrome .home-hdr-prof a .phd-avatar{width:38px!important;height:38px!important;border-radius:5px!important;object-fit:cover}'
-      + '#tbHomeChrome .home-hdr-right{display:flex;align-items:center;gap:10px}'
-      // Icon-only Log out button, same 40px box as the profile icon, red.
-      + '#tbHomeChrome .home-hdr-logout{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:5px;border:none;cursor:pointer;background:#dc2626;color:#fff;box-shadow:0 4px 14px -4px rgba(220,38,38,.5);transition:filter .14s,transform .14s;flex:0 0 auto}'
-      + '#tbHomeChrome .home-hdr-logout:hover{filter:brightness(1.08);transform:translateY(-1px)}'
-      + '#tbHomeChrome .home-hdr-logout:focus-visible{outline:2px solid #1b2026;outline-offset:2px}'
+      + '#tbHomeChrome .home-hdr-prof a img,#tbHomeChrome .home-hdr-prof a .avatar-initial,#tbHomeChrome .home-hdr-prof a .phd-avatar{width:38px!important;height:38px!important;border-radius:9px!important;object-fit:cover}'
+      + '#tbHomeChrome .home-hdr-right{display:flex;align-items:center;gap:8px}'
+      // Icon-only Log out button, same 40px box as the profile icon: a quiet outlined chip in the red family.
+      + '#tbHomeChrome .home-hdr-logout{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;border:1px solid #f2b8b1;cursor:pointer;background:#fff;color:#b42318;box-shadow:none;transition:background-color .15s,border-color .15s,color .15s;flex:0 0 auto}'
+      + '#tbHomeChrome .home-hdr-logout:hover{background:#fdecec;border-color:#e8968c;color:#912018}'
       + '#tbHomeChrome .home-hdr-logout svg{width:18px;height:18px}'
-      + '#tbHomeChrome .home-hdr-live{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:5px;text-decoration:none;font-size:.8em;font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(180deg,#2bb673,#1f9d57);box-shadow:0 4px 14px -4px rgba(31,157,87,.5)}'
-      + '#tbHomeChrome .home-hdr-live:hover{filter:brightness(1.06);transform:translateY(-1px)}'
+      + '#tbHomeChrome .home-hdr-live{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:10px;text-decoration:none;font-size:.8em;font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(180deg,#1c8f50,#136b3c);box-shadow:0 8px 18px -12px rgba(19,107,60,.8);transition:filter .15s}'
+      + '#tbHomeChrome .home-hdr-live:hover{filter:brightness(1.08)}'
       + '#tbHomeChrome .home-hdr-live .hdr-live-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:hdrLiveBlink 1.2s ease-in-out infinite}'
       + '@keyframes hdrLiveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{opacity:.4;box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,0)}}'
       + '#tbHomeChrome .home-layout{display:flex;align-items:flex-start;gap:10px;max-width:100%;padding-top:72px}'
       + '#tbHomeChrome .home-main{flex:1 1 0;min-width:0;max-width:100%}'
-      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(170px,15vw,230px);width:clamp(170px,15vw,230px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:space-between;gap:16px;height:calc(100vh - 92px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;padding-right:4px;margin-right:-4px}'
-      // Short viewports: the column scrolls (thin bar) so the bottom action group stays reachable. Its
-      // items use native title tooltips only (no absolutely-positioned flyouts), so nothing is clipped;
-      // the 4px right padding (offset by a -4px margin) keeps the hover translateX(2px) visible.
+      // Menu column = ONE dark navy panel in the Errors-in-Resolved hero's gradient family (a faint
+      // orange glow top-left + a very faint 28px grid), 12px radius, soft navy shadow. It scrolls
+      // (thin light bar) on short viewports so the bottom Data group stays reachable.
+      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(180px,16vw,240px);width:clamp(180px,16vw,240px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:flex-start;gap:18px;height:calc(100vh - 92px);overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:14px 8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);color:#e9edf3;'
+      +   'background:radial-gradient(160% 55% at 0% 0%,rgba(236,114,17,.2),transparent 60%),linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(180deg,#131a2a,#1f2a40);'
+      +   'box-shadow:0 18px 40px -26px rgba(20,30,50,.75);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent!important}'
       + '#tbHomeChrome .home-recent-col::-webkit-scrollbar{width:4px}'
-      + '#tbHomeChrome .home-recent-col::-webkit-scrollbar-thumb{background:#c4ccd4;border-radius:5px}'
-      // Left column = three colour-coded button groups, EQUAL gap between groups.
-      + '#tbHomeChrome .home-recent-col{gap:16px}'
-      + '#tbHomeChrome .home-navgrp{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}'
-      // Shared button shape for the nav (link) buttons.
-      + '#tbHomeChrome .home-nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border:none;border-radius:5px;text-decoration:none;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer;text-align:left;transition:filter .14s,transform .12s;box-shadow:0 2px 8px -4px rgba(21,29,40,.35)}'
-      + '#tbHomeChrome .home-nav-btn:hover{filter:brightness(1.08);transform:translateX(2px)}'
-      + '#tbHomeChrome .home-nav-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;flex:0 0 auto}'
+      + '#tbHomeChrome .home-recent-col::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22)!important;border-radius:4px}'
+      + '#tbHomeChrome .home-navgrp{display:flex;flex-direction:column;gap:2px;flex:0 0 auto;margin:0;padding:0}'
+      // Group label = the hero eyebrow: tiny uppercase orange micro-label.
+      + '#tbHomeChrome .home-navgrp-h{display:block;margin:0 0 6px;padding:0 10px;font-size:.6em;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#ffb26b;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      // Nav item: transparent row, muted light text, rounded lighter-navy hover.
+      + '#tbHomeChrome .home-nav-btn{position:relative;display:flex;align-items:center;gap:9px;width:100%;min-height:38px;box-sizing:border-box;padding:6px 8px;border:none;border-radius:10px;background:transparent;color:rgba(233,237,243,.8);text-decoration:none;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;text-align:left;box-shadow:none;transition:background-color .15s,color .15s}'
+      + '#tbHomeChrome .home-nav-btn:hover{background:rgba(255,255,255,.07);color:#fff}'
+      + '#tbHomeChrome .home-nav-btn:focus-visible,#tbHomeChrome .home-upload-btn:focus-visible,#tbHomeChrome .home-viewlog-btn:focus-visible{outline:3px solid #f0a35a;outline-offset:1px}'
+      + '#tbHomeChrome .home-nav-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;flex:0 0 auto;background:rgba(255,255,255,.06);color:rgba(233,237,243,.75);transition:background-color .15s,color .15s,box-shadow .15s}'
       + '#tbHomeChrome .home-nav-ic svg{width:15px;height:15px}'
-      + '#tbHomeChrome .home-nav-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-      // Group 1 (blue): #2b66c1 bg, #c4def6 text.
-      + '#tbHomeChrome .home-navgrp-blue .home-nav-btn{background:#2b66c1;color:#c4def6}'
-      + '#tbHomeChrome .home-navgrp-blue .home-nav-ic{background:rgba(255,255,255,.16);color:#c4def6}'
-      // My Tickets highlighted: #fe9046 bg, white text.
-      + '#tbHomeChrome .home-navgrp-blue .home-nav-mytickets{background:#fe9046;color:#fff}'
-      + '#tbHomeChrome .home-navgrp-blue .home-nav-mytickets .home-nav-ic{background:rgba(255,255,255,.22);color:#fff}'
-      // Group 2 (dark): #161d2d bg, white text.
-      + '#tbHomeChrome .home-navgrp-dark .home-nav-btn{background:#161d2d;color:#fff}'
-      + '#tbHomeChrome .home-navgrp-dark .home-nav-ic{background:rgba(255,255,255,.12);color:#fff}'
-      // Resolutions (first dark-group item): #161d2d bg, white text + icon, no border (also when current).
-      + '#tbHomeChrome .home-navgrp-dark .home-nav-res{background:#161d2d;color:#fff;border:0;box-shadow:none}'
-      + '#tbHomeChrome .home-navgrp-dark .home-nav-res:hover{background:#222b3f;filter:none}'
-      + '#tbHomeChrome .home-navgrp-dark .home-nav-res .home-nav-ic{background:rgba(255,255,255,.12);color:#fff}'
-      + '#tbHomeChrome .home-navgrp-dark .home-nav-res.is-current{background:#161d2d;border:0;box-shadow:none}'
-      + '#tbHomeChrome .home-nav-res:focus-visible{outline:2px solid #fff;outline-offset:2px}'
-      // Group 3 (action): Upload / View log / Log out.
-      + '#tbHomeChrome .home-navgrp-action{}'
-      + '#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;padding:9px 12px;border-radius:5px;border:none;cursor:pointer;text-decoration:none;font-family:inherit;font-size:.86em;font-weight:800;color:#fff;text-align:left;transition:filter .14s}'
-      + '#tbHomeChrome .home-upload-btn:hover,#tbHomeChrome .home-viewlog-btn:hover,#tbHomeChrome .home-logout-btn:hover{filter:brightness(1.07)}'
-      // Icon chip for the bottom 3 buttons (matches the nav buttons\u2019 .home-nav-ic chip).
-      + '#tbHomeChrome .home-act-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;flex:0 0 auto;background:rgba(255,255,255,.22)}'
+      + '#tbHomeChrome .home-nav-btn:hover .home-nav-ic{background:rgba(255,255,255,.1);color:#ffb26b}'
+      // Labels wrap (never truncate) if the column is too narrow for a long name.
+      + '#tbHomeChrome .home-nav-lbl{min-width:0;line-height:1.25;overflow-wrap:anywhere}'
+      // My Tickets keeps its "primary" identity: an orange-tinted icon.
+      + '#tbHomeChrome .home-nav-mytickets .home-nav-ic{color:#ffb26b}'
+      // ACTIVE item (aria-current="page"): lighter navy, white text, orange left accent bar + orange icon chip.
+      + '#tbHomeChrome .home-nav-btn.is-current{background:rgba(255,255,255,.11);color:#fff;font-weight:700}'
+      + '#tbHomeChrome .home-nav-btn.is-current::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#ff9f2e,#ec7211)}'
+      + '#tbHomeChrome .home-nav-btn.is-current .home-nav-ic{background:rgba(236,114,17,.18);color:#ffb26b;box-shadow:inset 0 0 0 1px rgba(236,114,17,.42)}'
+      // Group 3 (Data): Upload = solid orange (dark enough for white text, AA), View log = glassy chip.
+      + '#tbHomeChrome .home-navgrp-action{gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}'
+      + '#tbHomeChrome .home-navgrp-action:empty{display:none}'
+      + '#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;min-height:38px;box-sizing:border-box;padding:6px 8px;border-radius:10px;border:1px solid transparent;cursor:pointer;text-decoration:none;font-family:inherit;font-size:.82em;font-weight:700;color:#fff;text-align:left;transition:filter .15s,background-color .15s,border-color .15s}'
+      + '#tbHomeChrome .home-act-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;flex:0 0 auto;background:rgba(255,255,255,.16)}'
       + '#tbHomeChrome .home-act-ic svg{width:15px;height:15px}'
-      + '#tbHomeChrome .home-upload-btn{background:#ff6100;box-shadow:0 4px 14px -4px rgba(255,97,0,.5)}'
-      + '#tbHomeChrome .home-viewlog-btn{background:#ff6100;box-shadow:0 4px 14px -4px rgba(255,97,0,.5)}'
-      + '#tbHomeChrome .home-logout-btn{background:#dc2626;box-shadow:0 4px 14px -4px rgba(220,38,38,.5)}'
+      + '#tbHomeChrome .home-upload-btn{background:linear-gradient(180deg,#c25500,#a94a00);border-color:rgba(255,178,107,.35);box-shadow:0 10px 22px -14px rgba(236,114,17,.9)}'
+      + '#tbHomeChrome .home-upload-btn:hover{filter:brightness(1.1)}'
+      + '#tbHomeChrome .home-viewlog-btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}'
+      + '#tbHomeChrome .home-viewlog-btn:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.22)}'
+      + '#tbHomeChrome .home-viewlog-btn .home-act-ic{background:rgba(255,255,255,.08);color:#ffb26b}'
+      // View Log | Extract share one row, equal width; they stack below 720px (and in the icon rail).
+      + '#tbHomeChrome .home-act-row{display:flex;gap:6px;width:100%}'
+      + '#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:1 1 0;min-width:0;width:auto;gap:5px;padding:6px;justify-content:center}'
+      + '#tbHomeChrome .home-act-row .home-act-ic{width:22px;height:22px;border-radius:7px}'
+      + '#tbHomeChrome .home-act-row .home-act-ic svg{width:14px;height:14px}'
+      + '#tbHomeChrome .home-act-row .home-act-lbl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      // Narrow (but still labelled) column: drop the row's icon chips so both labels fit in full.
+      + '@media(min-width:1176px) and (max-width:1279px){#tbHomeChrome .home-act-row .home-act-ic{display:none}}'
+      + '@media(max-width:720px){#tbHomeChrome .home-act-row{flex-direction:column}#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:0 0 auto;width:100%}}'
+      + '#tbHomeChrome .home-logout-btn{background:#b42318}'
       // Logged-out: the whole menu column renders but is DISABLED — greyed, desaturated, not clickable.
       + '#tbHomeChrome .home-navcol-disabled{opacity:.55;filter:grayscale(.35)}'
       + '#tbHomeChrome .home-navcol-disabled .home-nav-btn,#tbHomeChrome .home-navcol-disabled .home-upload-btn,#tbHomeChrome .home-navcol-disabled .home-viewlog-btn,#tbHomeChrome .home-navcol-disabled .home-logout-btn{pointer-events:none;cursor:not-allowed}'
-      + '#tbHomeChrome .home-navcol-disabled .home-nav-btn:hover{transform:none;filter:none}'
+      + '#tbHomeChrome .home-navcol-disabled .home-nav-btn:hover{background:transparent}'
+      + '@media(prefers-reduced-motion:reduce){#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-nav-ic,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn{transition:none}}'
       // Shared upload-log modal (works on any page via PHDOpenUploadLog).
       + '.tb-ullog-bg{position:fixed;inset:0;background:rgba(21,29,40,.6);z-index:3500;display:none;align-items:center;justify-content:center;padding:20px}'
       + '.tb-ullog{background:#fff;border-radius:5px;width:min(1000px,96vw);height:min(86vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(21,29,40,.5)}'
@@ -1219,6 +1236,12 @@
       +   '#tbHomeChrome .home-recent-col{width:auto!important;max-width:none!important;flex:0 0 auto!important}'
       +   '#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{width:auto!important;justify-content:center!important;gap:0!important}'
       +   '#tbHomeChrome .home-nav-lbl,#tbHomeChrome .home-act-lbl{display:none!important}'
+      +   '#tbHomeChrome .home-act-row{flex-direction:column}#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:0 0 auto}#tbHomeChrome .home-act-row .home-act-ic{width:26px;height:26px;border-radius:8px}#tbHomeChrome .home-act-row .home-act-ic svg{width:15px;height:15px}'
+      // Icon rail: tighter panel padding; group labels collapse to thin hairline dividers.
+      +   '#tbHomeChrome .home-recent-col{padding:10px 7px!important}'
+      +   '#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{padding:6px!important}'
+      +   '#tbHomeChrome .home-navgrp-h{font-size:0;height:1px;padding:0;margin:4px 6px 8px;background:rgba(255,178,107,.35)}'
+      +   '#tbHomeChrome .home-navgrp-blue .home-navgrp-h{display:none}'
       + '}'
       ;
     var st = document.createElement('style');
@@ -2166,6 +2189,7 @@
     'performance-summary': { title: 'Performance Summary', icon: 'clipboard', tone: 'blue' },
     'resolutions': { title: 'Resolutions', icon: 'check-circle', tone: 'violet' },
     'pulse-check': { title: 'Pulse Check (24h)', icon: 'line-chart', tone: 'blue' },
+    'errors-in-resolved': { title: 'Errors in Resolved', icon: 'alert-triangle', tone: 'rose' },
     'tools': { title: 'PHD Tools', icon: 'tool', tone: 'teal' }, 'profile': { title: 'Profile', icon: 'user', tone: 'blue' },
     'data-log': { title: 'Uploaded Data Log', icon: 'history', tone: 'violet' }, 'users': { title: 'Users', icon: 'users', tone: 'blue' },
     'db-health': { title: 'Database Health', icon: 'database', tone: 'teal' }, 'groups-page': { title: 'Grouping Page', icon: 'copy', tone: 'violet' },
@@ -2239,14 +2263,25 @@
     var clr = document.getElementById('tbhClear');
     if (clr) clr.onclick = function () { try { localStorage.removeItem('phd_recent_pages'); } catch (e) {} tbhRenderRecent(); };
   }
+  // Friendly title of the current page for the title bar (TBH_MAP first, then document.title).
+  function tbhHereTitle() {
+    var f = tbhFileOf(location.pathname) || 'index';
+    if (f === 'index') return 'Home';
+    if (TBH_MAP[f]) return TBH_MAP[f].title;
+    var t = (document.title || '').split('\u00b7')[0].split('|')[0].trim();
+    return t || f.replace(/[-_]/g, ' ');
+  }
   function tbhChromeHtml() {
     var li = loggedIn();
+    var hereFile = tbhFileOf(location.pathname) || 'index';
     var hdr = '<div class="home-title-row js-header-row home-hdr">'
       + '<div class="home-hdr-left">'
       + '<a class="home-hdr-swap" href="index.html" title="Home" aria-label="Home"><span class="tb-logo-swap">'
       + '<img class="tb-rail-logo-img tb-logo-a" src="gsoc-logo.svg" alt="GSOC">'
       + '<img class="tb-rail-logo-img tb-logo-b" src="amazon-logo.webp" alt="Amazon"></span></a>'
       + '<a class="home-hdr-logo" href="index.html"><img src="wwos-logo.png" alt="Amazon WWOS"></a>'
+      // Page title in the hero's type style: orange eyebrow over a bold title (hidden < 1240px).
+      + '<div class="home-hdr-page"><span class="home-hdr-eyebrow">PHD Dashboard</span><span class="home-hdr-pt">' + tbEsc(tbhHereTitle()) + '</span></div>'
       + '</div>'
       + '<div class="home-hdr-right">'
       + (li ? '<a class="home-hdr-live" href="app.html" title="Open the live dashboard"><span class="hdr-live-dot"></span> ' + new Date().getFullYear() + '</a>' : '')
@@ -2261,33 +2296,37 @@
     var navBtn = function (href, label, icon) {
       var inner = '<span class="home-nav-ic">' + ic(icon, 15) + '</span><span class="home-nav-lbl">' + label + '</span>';
       var tt = ' title="' + label.replace(/"/g, '&quot;') + '"';   // hover tooltip (used by the icon rail)
+      var on = tbhFileOf(href) === hereFile;                        // current page -> active item
       return li
-        ? '<a class="home-nav-btn" href="' + href + '"' + tt + '>' + inner + '</a>'
+        ? '<a class="home-nav-btn' + (on ? ' is-current' : '') + '" href="' + href + '"' + tt + (on ? ' aria-current="page"' : '') + '>' + inner + '</a>'
         : '<span class="home-nav-btn" aria-disabled="true"' + tt + '>' + inner + '</span>';
     };
+    // Eyebrow label for a nav group (also its accessible name via aria-labelledby).
+    var grpHead = function (id, text) { return '<span class="home-navgrp-h" id="' + id + '">' + text + '</span>'; };
     // Group 1 (top): blue buttons (My Tickets is highlighted in orange).
     var myTicketsInner = '<span class="home-nav-ic">' + ic('ticket', 15) + '</span><span class="home-nav-lbl">My Tickets</span>';
-    // Page ZERO: owner gets it directly below My Tickets; managers get it INSTEAD of My Tickets;
+    // Page ZERO: owner and admins get it directly below My Tickets; managers get it INSTEAD of My Tickets;
     // everyone else keeps My Tickets only.
     var _pzRole = (li && A && A.role) ? A.role() : '';
-    var _pzOwner = _pzRole === 'owner', _pzMgr = _pzRole === 'manager';
-    var myTicketsBtn = li ? '<a class="home-nav-btn home-nav-mytickets" href="my-tickets.html" title="My Tickets">' + myTicketsInner + '</a>'
+    var _pzOwner = _pzRole === 'owner' || _pzRole === 'admin', _pzMgr = _pzRole === 'manager';
+    var onMyTickets = hereFile === 'my-tickets';
+    var myTicketsBtn = li ? '<a class="home-nav-btn home-nav-mytickets' + (onMyTickets ? ' is-current' : '') + '" href="my-tickets.html" title="My Tickets"' + (onMyTickets ? ' aria-current="page"' : '') + '>' + myTicketsInner + '</a>'
                           : '<span class="home-nav-btn home-nav-mytickets" aria-disabled="true" title="My Tickets">' + myTicketsInner + '</span>';
     var pageZeroBtn = navBtn('page-zero.html', 'Page ZERO', 'grid');
-    var navTop = '<nav class="home-navgrp home-navgrp-blue">'
+    var navTop = '<nav class="home-navgrp home-navgrp-blue" aria-labelledby="tbhNavWork">' + grpHead('tbhNavWork', 'Workspace')
       + (_pzMgr ? pageZeroBtn : myTicketsBtn + (_pzOwner ? pageZeroBtn : ''))
       + navBtn('tools.html', 'PHD Tools', 'tool')
       + navBtn('agent-analytics.html', 'Team Analytics', 'bar-chart')
       + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
       + navBtn('pulse-check.html', 'Pulse Check (24h)', 'line-chart')
+      + navBtn('errors-in-resolved.html', 'Errors in Resolved', 'alert-triangle')
       + '</nav>';
-    // Resolutions: first item of the dark group (directly above SLA Breaches), purple via
-    // .home-nav-res; marked current (aria-current) while on resolutions.html.
-    var onResolutions = /(^|\/)resolutions\.html$/i.test(location.pathname);
+    // Resolutions: first item of the second group (directly above SLA Breaches), tagged .home-nav-res;
+    // navBtn already marks it current (aria-current) while on resolutions.html.
     var resBtn = navBtn('resolutions.html', 'Resolutions', 'check-circle')
-      .replace('class="home-nav-btn"', 'class="home-nav-btn home-nav-res' + (onResolutions ? ' is-current" aria-current="page' : '') + '"');
-    // Group 2 (middle): dark buttons.
-    var navMid = '<nav class="home-navgrp home-navgrp-dark">'
+      .replace('class="home-nav-btn', 'class="home-nav-btn home-nav-res');
+    // Group 2 (middle): ticket insight pages.
+    var navMid = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavIns">' + grpHead('tbhNavIns', 'Ticket insights')
       + resBtn
       + navBtn('sla-breach.html', 'SLA Breaches (>240h)', 'clock')
       + navBtn('station-request.html', 'Station Request Tickets', 'map-pin')
@@ -2296,11 +2335,15 @@
       + navBtn('important-cases.html', 'Unique Cases', 'star')
       + '</nav>';
     // Group 3 (bottom): Upload / View log (upload-gated, logged-in only) + Log out.
-    var navBot = '<div class="home-navgrp home-navgrp-action">'
+    var navBot = '<div class="home-navgrp home-navgrp-action"' + (canUpload ? ' role="group" aria-labelledby="tbhNavData"' : '') + '>'
       + (canUpload
-          ? '<button type="button" class="home-upload-btn" title="Upload new data" onclick="if(window.tbUploadIntro)tbUploadIntro(\'standalone\')"><span class="home-act-ic">' + ic('upload', 15) + '</span><span class="home-act-lbl">Upload new data</span></button>'
+          ? grpHead('tbhNavData', 'Data') + '<button type="button" class="home-upload-btn" title="Upload new data" onclick="if(window.tbUploadIntro)tbUploadIntro(\'standalone\')"><span class="home-act-ic">' + ic('upload', 15) + '</span><span class="home-act-lbl">Upload new data</span></button>'
             + '<input type="file" accept=".csv" id="uploadFileStandalone" style="display:none">'
-            + '<button type="button" class="home-viewlog-btn" title="View upload log" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()"><span class="home-act-ic">' + ic('history', 15) + '</span><span class="home-act-lbl">View upload log</span></button>'
+            // View Log | Extract on one row (stacks in the icon rail / narrow screens).
+            + '<div class="home-act-row">'
+            + '<button type="button" class="home-viewlog-btn" title="View upload log" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()"><span class="home-act-ic">' + ic('history', 15) + '</span><span class="home-act-lbl">View Log</span></button>'
+            + '<a class="home-viewlog-btn home-extract-btn" href="https://t.corp.amazon.com/issues?q=%7B%22AND%22%3A%7B%22status%22%3A%7B%22OR%22%3A%5B%22Assigned%22%2C%7B%22OR%22%3A%5B%22Work%20In%20Progress%22%2C%7B%22OR%22%3A%5B%22Researching%22%2C%7B%22OR%22%3A%5B%22Pending%22%2C%22Resolved%22%5D%7D%5D%7D%5D%7D%5D%7D%2C%22assignedGroup%22%3A%22LM-HUB%22%7D%7D" target="_blank" rel="noopener noreferrer" title="Open the LM-HUB ticket search in SIM (new tab)" aria-label="Extract — opens the LM-HUB ticket search in a new tab"><span class="home-act-ic">' + ic('external-link', 15) + '</span><span class="home-act-lbl">Extract</span></a>'
+            + '</div>'
           : '')
       + '</div>';
     var recent = '<div class="home-recent-col' + (li ? '' : ' home-navcol-disabled') + '" id="tbhRecentCol">'
@@ -2309,7 +2352,7 @@
     return { hdr: hdr, recent: recent };
   }
   // ---- Live dual clock (IST + MST) in the title bar, right of the logo ----
-  // Chip colour is decided per chip by its own AM/PM: PM -> black bg / white text, AM -> white bg / black text.
+  // Chip colour is decided per chip by its own AM/PM: PM -> navy bg / white text, AM -> light bg / dark text.
   var TBC_ZONES = [
     { key: 'IST', tz: 'Asia/Kolkata', name: 'India Standard Time' },
     // The team's "MST" is Arizona time: America/Phoenix stays on MST (UTC-7) all year, with no
@@ -2369,12 +2412,14 @@
         var st = document.createElement('style'); st.id = 'tbClockStyles';
         st.textContent = '.home-hdr-left{min-width:0}'
           + '.tb-clock{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:-2px;font-family:inherit}'
-          + '.tb-clk-chip{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;height:36px;padding:4px 10px 4px 6px;border-radius:5px;border:1px solid transparent;font-family:inherit;white-space:nowrap;font-variant-numeric:tabular-nums;transition:background-color .3s,color .3s,border-color .3s,box-shadow .3s}'
-          + '.tb-clk-am{background:#fff;color:#0b0d10;border-color:#d0d5dd;box-shadow:0 1px 2px rgba(16,24,40,.08)}'
-          + '.tb-clk-pm{background:#0b0d10;color:#fff;border-color:#0b0d10;box-shadow:none}'
-          + '.tb-clk-z{display:inline-block;padding:3px 6px;border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.06em;line-height:1.1;transition:background-color .3s,color .3s}'
-          + '.tb-clk-am .tb-clk-z{background:#0b0d10;color:#fff}'
-          + '.tb-clk-pm .tb-clk-z{background:#fff;color:#0b0d10}'
+          // Hero-style chips: AM = soft light chip, PM = navy hero-gradient chip; zone tag = micro-label.
+          + '.tb-clk-chip{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;height:36px;padding:4px 11px 4px 5px;border-radius:10px;border:1px solid transparent;font-family:inherit;white-space:nowrap;font-variant-numeric:tabular-nums;transition:background-color .3s,color .3s,border-color .3s,box-shadow .3s}'
+          + '.tb-clk-am{background:#f5f6f8;color:#1b2026;border-color:#e2e6ea;box-shadow:none}'
+          + '.tb-clk-pm{background:linear-gradient(135deg,#131a2a,#1f2a40);color:#fff;border-color:#1f2a40;box-shadow:0 8px 18px -14px rgba(20,30,50,.8)}'
+          + '.tb-clk-z{display:inline-block;padding:4px 6px;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:.1em;line-height:1.1;transition:background-color .3s,color .3s}'
+          + '.tb-clk-am .tb-clk-z{background:#1f2a40;color:#fff}'
+          + '.tb-clk-pm .tb-clk-z{background:rgba(236,114,17,.2);color:#ffb26b;box-shadow:inset 0 0 0 1px rgba(236,114,17,.42)}'
+          + '.tb-clk-pm .tb-clk-ic{color:#ffb26b}'
           + '.tb-clk-ic{flex:0 0 auto;width:14px;height:14px;display:none}'
           + '.tb-clk-am .tb-clk-sun,.tb-clk-pm .tb-clk-moon{display:block}'
           + '.tb-clk-tm{display:flex;flex-direction:column;line-height:1.1}'
@@ -2410,7 +2455,8 @@
         function tn(sel) { var el = chip.querySelector(sel), t = document.createTextNode(''); el.appendChild(t); return t; }
         tbcRefs[z.key] = { chip: chip, cls: 'am', hm: tn('.tb-clk-hm'), ss: tn('.tb-clk-s'), per: tn('.tb-clk-p'), date: tn('.tb-clk-d') };
       });
-      var logo = left.querySelector('.home-hdr-logo');
+      // Clocks sit after the page-title block (or the wordmark when there is no title block).
+      var logo = left.querySelector('.home-hdr-page') || left.querySelector('.home-hdr-logo');
       if (logo && logo.parentNode === left) left.insertBefore(root, logo.nextSibling); else left.appendChild(root);
       tbcRender();
       if (!tbcStarted) {
@@ -4745,6 +4791,7 @@
       'resolutions.html': 'check-circle',
       'page-zero.html': 'grid',
       'pulse-check.html': 'line-chart',
+      'errors-in-resolved.html': 'alert-triangle',
       'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
       'important-cases.html': 'hash',

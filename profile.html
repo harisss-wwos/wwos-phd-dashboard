@@ -4,111 +4,257 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: keep the page hidden until topbar-auth.js has injected its chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --o:#ff6100;--oh:#fe9046;--ol:#fe9046;
-  --gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;
-  --blue:#e6f0fc;--purple:#161d2d;--icbg:#c4def6;--icfg:#2b66c1;
-  --t:#151d28;--tm:#818284;--bd:#e7e5df;--gl:#1f9d57;
-  --sh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28);
+  --o:#ff6100; --o-l:#fe9046; --page:#f4f3ef; --card:#ffffff; --ink:#1b2026; --ink2:#161d2d;
+  --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --soft:#f5f6f8; --blue:#2b66c1; --blue-bg:#e6f0fc; --blue-ic:#c4def6;
+  --green:#1a7a43; --green-bg:#e5f5ec; --red:#b42318; --red-bg:#fdecec; --amber:#b5530a; --amber-bg:#fff3e8;
+  --acc:#ec7211; --acc-ink:#9a4100; --focus:#f0a35a;
+  /* Primary button orange: darker than --acc so white label text meets WCAG AA (4.5:1). */
+  --btn:#c45500; --btn-h:#a84800;
+  /* Legacy tokens still used by the (dormant) weekly-summary styles below. */
+  --bd:#e7e5df; --tm:#818284; --t:#151d28;
 }
 *{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
 input,button,textarea,select{font-family:inherit}
-body{font-family:'Inter',-apple-system,sans-serif;background:var(--gray);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
 .top-bar{display:none!important}
-.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;background:var(--o);color:#fff;border-radius:5px;font-weight:700;font-size:.88em;cursor:pointer;border:none;text-decoration:none;transition:filter .14s,transform .12s,box-shadow .14s}
-.btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
-.btn.sec{background:#fff;border:1px solid var(--bd);color:var(--ink)}
-.btn.sec:hover{border-color:var(--o);color:var(--o);filter:none}
-.btn.danger{background:#fff;border:1px solid rgba(214,69,111,.4);color:#d6456f}
-.btn.danger:hover{background:#fcebf0;filter:none}
-.btn.mini{padding:7px 13px;font-size:.8em}
-.btn svg{width:15px;height:15px}
-.wrap{padding:0}
-/* ===== Hero — light card with orange accent + avatar, matching index.html ===== */
-.ph-hero{position:relative;overflow:hidden;border-radius:5px;padding:0;margin-bottom:12px;background:var(--white);border:1px solid var(--line,#e7e5df);box-shadow:var(--sh)}
-.ph-hero-top{height:84px;background:linear-gradient(100deg,var(--o),var(--ol) 60%,#ffd3b0);position:relative}
-.ph-hero-top::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 85% -10%,rgba(255,255,255,.45),transparent 42%)}
-.ph-hero-body{display:flex;align-items:flex-end;gap:18px;padding:0 24px 20px;margin-top:-44px;position:relative}
-.ph-hero-av{position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;background:#fff;padding:5px;box-shadow:0 6px 18px -6px rgba(20,40,70,.4)}
-.ph-hero-av #avatarBox,.ph-hero-av #avatarBox img,.ph-hero-av #avatarBox .avatar-initial,.ph-hero-av .avatar-loading{width:86px!important;height:86px!important;border-radius:50%!important;object-fit:cover;display:flex;align-items:center;justify-content:center}
-.ph-hero-cam{position:absolute;right:0;bottom:4px;width:30px;height:30px;border-radius:50%;background:var(--o);color:#fff;border:3px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(21,29,40,.3)}
-.ph-hero-cam:hover{background:var(--oh)}
-.ph-hero-cam svg{width:14px;height:14px}
-.ph-hero-meta{flex:1;min-width:0;padding-bottom:4px}
-.ph-hero-name{font-size:1.45em;font-weight:800;color:var(--ink);letter-spacing:-.3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.ph-hero-badge{display:inline-flex;align-items:center;background:#ffe6d6;color:var(--o);border:1px solid #ffd0b3;font-size:.56em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:999px}
-.ph-hero-handle{color:var(--ink2);font-size:.9em;font-weight:600;margin-top:3px}
-.ph-hero-actions{flex:0 0 auto;display:flex;gap:8px;padding-bottom:4px}
-@media(max-width:600px){.ph-hero-body{flex-direction:column;align-items:center;text-align:center}.ph-hero-actions{justify-content:center}.ph-hero-name{justify-content:center}}
-/* ===== Cards ===== */
-.ph-card{background:var(--white);border:1px solid var(--bd);border-radius:5px;padding:18px;margin-bottom:12px;box-shadow:var(--sh)}
-/* Two 50/50 columns of EQUAL height. Left = Account; right = Security + Admin tools stacked
-   (spread to fill the same height). */
-.ph-row-2{display:flex;gap:18px;align-items:stretch;margin-bottom:12px}
-.ph-row-2>.ph-card,.ph-row-2>.ph-col{flex:1 1 0;min-width:0;margin-bottom:0}
-.ph-row-2>.ph-card{display:flex;flex-direction:column}
-.ph-col{display:flex;flex-direction:column;gap:12px}
-.ph-col>.ph-card{margin-bottom:0}
-.ph-col>.ph-card:last-child{flex:1}
-/* Change/Remove photo buttons pinned to the RIGHT of the Account header title. Not uppercase. */
-.ph-photo-btns{margin-left:auto;display:inline-flex;gap:8px;text-transform:none;letter-spacing:normal}
-/* Login ID + Role + Save on one line. Each cell shows "Label: value" INLINE (not stacked). */
-.ph-idrow{display:flex;align-items:stretch;gap:12px;margin-top:16px}
-.ph-idrow .cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;background:var(--gray);border:1px solid #eceae4;border-radius:5px;padding:10px 14px}
-.ph-idrow .cell .k{flex:0 0 auto;font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
-.ph-idrow .cell .k::after{content:':'}
-.ph-idrow .cell .v{min-width:0;font-size:.95em;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis}
-.ph-idrow .btn{flex:0 0 auto;align-self:stretch;min-width:150px;justify-content:center}
-@media(max-width:700px){.ph-row-2{flex-direction:column;gap:12px}.ph-idrow{flex-wrap:wrap}.ph-idrow .btn{flex:1 1 100%}.ph-photo-btns{margin-left:0;flex-wrap:wrap}}
-.ph-card-h{display:flex;align-items:center;gap:10px;font-size:.8em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--ink);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eef0f3}
-.ph-card-h::before{content:'';flex:0 0 auto;width:3px;height:18px;border-radius:2px;background:linear-gradient(var(--o),var(--ol))}
-.ph-card-h svg{flex:0 0 auto;width:28px;height:28px;padding:6px;background:var(--icbg);color:var(--icfg);border-radius:8px}
-label{display:block;color:var(--ink2);font-size:.82em;font-weight:700;margin:14px 0 7px}
-input[type=text],input[type=password]{width:100%;padding:11px 13px;background:var(--white);border:1px solid var(--bd);border-radius:5px;color:var(--ink);font-size:.92em;transition:border-color .14s,box-shadow .14s}
-input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,0,.14)}
-.ph-kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-.ph-kv .cell{background:var(--gray);border:1px solid #eceae4;border-radius:5px;padding:12px 14px}
-.ph-kv .k{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
-.ph-kv .v{font-size:1em;font-weight:800;color:var(--ink);margin-top:4px;display:flex;align-items:center;gap:8px}
-.ph-badge{background:#ffe6d6;color:var(--o);border:1px solid #ffd0b3;padding:2px 10px;border-radius:999px;font-size:.72em;text-transform:uppercase;font-weight:800}
-.ph-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.ph-actions .btn{flex:1;min-width:150px;justify-content:center}
-/* ===== Admin-tool link rows (icon + label | Local + Live buttons) ===== */
-.ph-links{display:flex;flex-direction:column;gap:2px}
-.ph-link-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:8px;transition:background .12s}
-.ph-link-row:not(:last-child){border-bottom:1px solid #eef0f3}
-.ph-link-row:hover{background:#f7f9fb}
-.ph-link-ic{flex:0 0 auto;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--icbg);color:var(--icfg)}
-.ph-link-ic svg{width:18px;height:18px}
-.ph-link-label{flex:1;min-width:0;font-weight:800;font-size:.95em;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ph-link-btns{flex:0 0 auto;display:inline-flex;gap:8px}
-/* Regular button (reuses .btn.sec); just size it a touch smaller for the row. */
-.ph-lbtn{padding:7px 15px;font-size:.82em}
-.ph-lbtn svg{width:13px;height:13px}
-@media(max-width:600px){.ph-link-row{flex-wrap:wrap}.ph-link-btns{margin-left:46px}}
-.msg{font-size:.85em;margin-top:12px;display:none;font-weight:600}
-.msg.err{color:#d6456f}.msg.ok{color:var(--gl)}
-.gate{text-align:center;padding:60px 20px;background:var(--white);border:1px solid var(--bd);border-radius:5px;box-shadow:var(--sh)}
-.gate h1{color:var(--ink);font-size:1.5em;margin-bottom:10px}
-.gate p{color:var(--ink2);margin-bottom:18px;line-height:1.55}
-/* spinners */
-.pspin{display:inline-block;border:2px solid #e2e7eb;border-top-color:var(--o);border-radius:50%;animation:pspin .8s linear infinite}
-.pspin.big{width:34px;height:34px;border-width:3px}
-.pspin.sm{width:15px;height:15px;vertical-align:-3px;margin-right:7px}
-@keyframes pspin{100%{transform:rotate(360deg)}}
-.avatar-loading{background:#eef1f4;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.field-loading{display:flex;align-items:center;color:var(--tm);font-size:.9em;padding:11px 13px;background:#fff;border:1px solid var(--bd);border-radius:5px}
-/* modal */
-.modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:var(--white);border-radius:5px;width:440px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(21,29,40,.5)}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.modal-head h2{color:var(--ink);font-size:1.1em;font-weight:800}
-.modal-close{background:transparent;border:none;color:var(--ink2);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:var(--ink)}
+.wrap{width:auto!important;max-width:none!important;margin:0 15px!important;padding:0 0 28px!important}
+#wrap.wrap{padding-top:0!important}
+
+/* =====================================================================================
+   Profile — same visual language as performance-summary.html / errors-in-resolved.html:
+   dark navy hero (grid texture + orange glow + orange left rule), KPI tiles that overlap it,
+   then white section cards. Scoped under .pf (a size container for the responsive grids).
+   ===================================================================================== */
+.pf{container-type:inline-size;color:var(--ink)}
+.pf button{font-family:inherit;text-transform:none}
+.pf :is(button,a,input,[tabindex]):focus-visible,.pf-modal :is(button,a,input):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pf-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.pf-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 80px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.pf-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.pf-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.pf-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.pf-hero-main{display:flex;gap:22px;align-items:center;min-width:0;flex:1 1 420px}
+.pf-hero-txt{min-width:0}
+/* Avatar: ring + glow on the dark hero, with a camera button pinned bottom-right. */
+.pf-av{position:relative;flex:0 0 auto;width:108px;height:108px;border-radius:50%;padding:6px;
+  background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 14px 30px -14px rgba(0,0,0,.7),0 0 0 6px rgba(236,114,17,.10)}
+.pf-av #avatarBox{width:96px;height:96px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pf-av #avatarBox>*{width:96px!important;height:96px!important;border-radius:50%!important}
+.pf-cam{position:absolute;right:0;bottom:2px;width:34px;height:34px;border-radius:50%;border:3px solid #1a2336;background:var(--btn);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 10px -4px rgba(0,0,0,.6);transition:background .15s,transform .12s}
+.pf-cam:hover{background:var(--btn-h);transform:translateY(-1px)}
+.pf-cam:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.pf-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.pf-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08;overflow-wrap:anywhere}
+.pf-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.pf-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
+.pf-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  font-size:.8em;font-weight:700;color:#fff;max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pf-chip svg{flex-shrink:0;color:#ffb26b}
+.pf-chip span{color:rgba(233,237,243,.66);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase}
+.pf-chip b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-chip.is-role{background:rgba(236,114,17,.18);border-color:rgba(236,114,17,.5)}
+.pf-hero-tools{display:flex;gap:10px;flex:0 0 auto;flex-wrap:wrap}
+/* Glassy ghost buttons on the hero. */
+.pf-gbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:8px;cursor:pointer;text-decoration:none;
+  font-size:.86em;font-weight:800;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,border-color .15s}
+.pf-gbtn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
+.pf-gbtn svg{flex-shrink:0}
+
+/* ---- KPI tiles (overlap the hero) ---- */
+.pf-kpis{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:-58px 18px 16px}
+@container (min-width:900px){.pf-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pf-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6);min-width:0}
+.pf-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#1f2a40)}
+.pf-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.pf-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.pf-kpi-n{margin-top:12px;font-size:1.55em;font-weight:800;letter-spacing:-.6px;line-height:1.15;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-kpi-n.is-num{font-size:2.4em;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums}
+.pf-kpi-sub{margin-top:8px;font-size:.8em;font-weight:600;color:var(--mut);line-height:1.4}
+.pf-kpi.k-base{--k:#1f2a40}
+.pf-kpi.k-good{--k:#1f9d57;--kb:var(--green-bg);--ki:var(--green)}
+.pf-kpi.k-warn{--k:var(--acc);--kb:var(--amber-bg);--ki:var(--amber)}
+.pf-kpi.k-blue{--k:#2b66c1;--kb:var(--blue-bg);--ki:var(--blue)}
+
+/* ---- Layout: Account (left) + Security / Admin tools (right) ---- */
+.pf-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@container (min-width:860px){.pf-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.pf-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* ---- Section cards ---- */
+.pf-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);overflow:hidden;min-width:0}
+.pf-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--ct,#1f2a40)}
+.pf-card.t-blue{--ct:#2b66c1;--cb:var(--blue-bg);--ci:var(--blue)}
+.pf-card.t-amber{--ct:var(--acc);--cb:var(--amber-bg);--ci:var(--amber)}
+.pf-card.t-green{--ct:#1f9d57;--cb:var(--green-bg);--ci:var(--green)}
+.pf-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:18px 20px 16px;border-bottom:1px solid var(--line)}
+.pf-card.is-shut .pf-card-head{border-bottom-color:transparent}
+.pf-card-h{display:flex;align-items:center;gap:12px;min-width:0;font-size:1em;font-weight:inherit}
+.pf-card-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;flex-shrink:0;background:var(--cb,var(--blue-bg));color:var(--ci,var(--blue))}
+.pf-card-tt{display:flex;flex-direction:column;min-width:0;text-align:left}
+.pf-card-title{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
+.pf-card-sub{margin-top:3px;font-size:.8em;font-weight:500;color:var(--mut);line-height:1.4}
+.pf-card-body{padding:18px 20px 20px}
+.pf-card-body[hidden]{display:none}
+.pf-card-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid #eef1f4;background:#fafbfc}
+/* Chevron expander (as on performance-summary). */
+.pf-exp{font-size:inherit;display:inline-flex;align-items:center;gap:12px;margin:-5px -8px;padding:5px 10px 5px 6px;border:none;border-radius:9px;background:none;color:var(--ink);cursor:pointer;min-width:0}
+.pf-exp:hover{background:#fafbfc}
+.pf-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.pf-chev svg{transition:transform .15s}
+.pf-exp[aria-expanded="true"] .pf-chev svg{transform:rotate(90deg)}
+.pf-exp:hover .pf-chev{background:#e6f0fc;color:#2b66c1}
+.pf-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.78em;font-weight:700;color:#3a4552;white-space:nowrap}
+.pf-pill b{color:var(--ink);font-weight:800}
+.pf-pill.warn{background:var(--amber-bg);border-color:#f7d2b0;color:var(--amber)}
+.pf-pill.role{background:var(--amber-bg);border-color:#f7d2b0;color:var(--acc-ink);text-transform:capitalize}
+
+/* ---- Buttons ---- */
+.pf-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:8px;border:1px solid transparent;cursor:pointer;text-decoration:none;
+  font-size:.88em;font-weight:800;line-height:1.2;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .12s}
+.pf-btn svg{flex-shrink:0}
+.pf-btn:active{transform:translateY(1px)}
+.pf-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.pf-btn.primary{background:var(--btn);color:#fff;box-shadow:0 8px 18px -12px rgba(196,85,0,.9)}
+.pf-btn.primary:hover:not(:disabled){background:var(--btn-h)}
+.pf-btn.ghost{background:#fff;color:var(--ink);border-color:#d5dbe1}
+.pf-btn.ghost:hover:not(:disabled){border-color:var(--btn);color:var(--btn)}
+.pf-btn.danger{background:#fff;color:var(--red);border-color:#f2c3bd}
+.pf-btn.danger:hover:not(:disabled){background:var(--red-bg)}
+.pf-btn.sm{padding:7px 13px;font-size:.8em}
+.pf-btn.navy{background:#161d2d;color:#f4f3ef}
+.pf-btn.navy:hover{background:#0f1420}
+.pf-spin{display:inline-block;width:15px;height:15px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:pfSpin .7s linear infinite;flex-shrink:0}
+@keyframes pfSpin{to{transform:rotate(360deg)}}
+
+/* ---- Form fields ---- */
+.pf-field+.pf-field{margin-top:16px}
+.pf-lbl,.pf-field label{display:block;font-size:.82em;font-weight:800;color:#2a3340;margin-bottom:7px}
+.pf-input{width:100%;padding:11px 13px;background:#fff;border:1px solid #cfd6dd;border-radius:8px;color:var(--ink);font-size:.95em;transition:border-color .14s,box-shadow .14s}
+.pf-input::placeholder{color:#7a8590}
+.pf-input:hover{border-color:#b3bdc7}
+.pf-input:focus{outline:none;border-color:var(--btn);box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+.pf-input[aria-invalid="true"]{border-color:var(--red);box-shadow:0 0 0 3px rgba(180,35,24,.12)}
+.pf-help{margin-top:6px;font-size:.78em;line-height:1.45;color:var(--mut)}
+.pf-msg{display:none;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;border-radius:8px;font-size:.85em;font-weight:700;line-height:1.4}
+.pf-msg.err{color:var(--red);background:var(--red-bg);border:1px solid #f2c3bd}
+.pf-msg.ok{color:var(--green);background:var(--green-bg);border:1px solid #bfe6cf}
+/* Photo row inside Account */
+.pf-photo{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px;border:1px dashed #d5dbe1;border-radius:10px;background:#fafbfc;margin-bottom:18px}
+.pf-photo-ic{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--blue-bg);color:var(--blue)}
+.pf-photo-t{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.pf-photo-t .pf-lbl{margin:0}
+.pf-photo-t .pf-help{margin:0}
+.pf-photo-t .pf-pill{align-self:flex-start;margin-top:4px}
+.pf-photo-btns{display:flex;gap:8px;flex-wrap:wrap}
+/* Read-only identity cells */
+.pf-ro{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.pf-ro>div{min-width:0;padding:11px 14px;border-radius:10px;background:var(--soft);border:1px solid #eceff2}
+.pf-ro dt{font-size:.68em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.pf-ro dd{margin-top:5px;font-size:.95em;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-ro .pf-lock{display:inline-flex;vertical-align:-2px;margin-left:5px;color:#8793a0}
+/* Security rows */
+.pf-sec-row{display:flex;align-items:center;gap:14px;padding:12px 0}
+.pf-sec-row+.pf-sec-row{border-top:1px solid #eef1f4}
+.pf-sec-row:first-child{padding-top:0}.pf-sec-row:last-child{padding-bottom:0}
+.pf-sec-ic{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.pf-sec-t{flex:1 1 auto;min-width:0}
+.pf-sec-t b{display:block;font-size:.92em;font-weight:800;color:var(--ink)}
+.pf-sec-t small{display:block;margin-top:2px;font-size:.8em;color:var(--mut);line-height:1.4}
+/* Admin tool rows */
+.pf-links{list-style:none;display:flex;flex-direction:column}
+.pf-link{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:9px;transition:background .12s}
+.pf-link+.pf-link{border-top:1px solid #eef1f4}
+.pf-link:hover{background:#fafbfc}
+.pf-link-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--green-bg);color:var(--green)}
+.pf-link-l{flex:1 1 auto;min-width:0;font-weight:800;font-size:.92em;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- Loading skeleton ---- */
+.pf-sk{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:pfShim 1.4s ease infinite}
+.pf-sk.dark{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes pfShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.pf-kpi.is-sk::before,.pf-card.is-sk::before{background:#e2e6ea}
+
+/* ---- Error state (replaces the Account card) ---- */
+.pf-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 20px;text-align:center;color:var(--mut)}
+.pf-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red);margin-bottom:4px}
+.pf-state h2{font-size:1.08em;font-weight:800;color:var(--ink)}
+.pf-state p{font-size:.9em;max-width:48ch;line-height:1.5}
+.pf-state .pf-btn{margin-top:6px}
+
+/* ---- Logged-out gate ---- */
+.pf-gate{margin-top:16px;text-align:center;padding:48px 20px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);color:var(--mut)}
+.pf-gate h1{color:var(--ink);font-size:1.4em;margin-bottom:10px}
+.pf-gate p{margin-bottom:18px;line-height:1.55}
+
+/* ---- Change-password dialog ---- */
+.modal-bg{position:fixed;inset:0;background:rgba(15,22,36,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.pf-modal{position:relative;background:#fff;border-radius:12px;width:460px;max-width:94vw;max-height:92vh;overflow:auto;box-shadow:0 28px 70px -24px rgba(15,22,36,.7);color:var(--ink)}
+.pf-modal::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.pf-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--line);
+  background:radial-gradient(90% 200% at 100% 0%,rgba(236,114,17,.10),transparent 60%),#fff}
+.pf-modal-head h2{font-size:1.1em;font-weight:800;letter-spacing:-.2px;color:var(--ink)}
+.pf-modal-head p{margin-top:4px;font-size:.8em;color:var(--mut)}
+.pf-modal-x{background:transparent;border:none;color:#5c6773;font-size:1.6em;line-height:1;cursor:pointer;width:36px;height:36px;border-radius:8px;flex-shrink:0}
+.pf-modal-x:hover{color:var(--ink);background:#f1f3f6}
+.pf-modal-body{padding:18px 22px 6px}
+.pf-modal-foot{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:16px 22px 20px}
+
+/* One orchestrated entrance. */
+@keyframes pfUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pf.is-first .pf-hero{animation:pfUp .45s ease both}
+.pf.is-anim .pf-kpi{animation:pfUp .5s ease both}
+.pf.is-anim .pf-kpi:nth-child(2){animation-delay:.06s}
+.pf.is-anim .pf-kpi:nth-child(3){animation-delay:.12s}
+.pf.is-anim .pf-kpi:nth-child(4){animation-delay:.18s}
+.pf.is-anim .pf-grid{animation:pfUp .5s ease .2s both}
+
+/* Small screens */
+@container (max-width:700px){
+  .pf-hero{padding:22px 18px 76px 22px}
+  .pf-hero-main{flex-direction:column;align-items:flex-start;gap:16px;flex-basis:100%}
+  .pf-hero h1{font-size:1.6em;letter-spacing:-.6px}
+  .pf-av{width:88px;height:88px;padding:5px}
+  .pf-av #avatarBox,.pf-av #avatarBox>*{width:76px!important;height:76px!important}
+  .pf-cam{width:30px;height:30px}
+  .pf-hero-tools{width:100%}
+  .pf-hero-tools .pf-gbtn{flex:1 1 0}
+  .pf-kpis{margin-left:10px;margin-right:10px;gap:10px}
+  .pf-kpi{padding:14px 14px 13px}
+  .pf-kpi-n{font-size:1.25em}
+  .pf-kpi-n.is-num{font-size:2em}
+  .pf-card-head,.pf-card-body,.pf-card-foot{padding-left:14px;padding-right:14px}
+}
+@container (max-width:460px){
+  .pf-ro{grid-template-columns:minmax(0,1fr)}
+  .pf-card-foot .pf-btn{flex:1 1 100%}
+  .pf-photo-btns{width:100%}.pf-photo-btns .pf-btn{flex:1 1 0}
+  .pf-sec-row{flex-wrap:wrap}.pf-sec-t{flex:1 1 calc(100% - 64px)}.pf-sec-row .pf-btn{margin-left:50px}
+}
+@media (max-width:480px){.pf-modal-foot .pf-btn{flex:1 1 0}}
+
+@media (prefers-reduced-motion:reduce){
+  .pf *,.pf *::before,.pf *::after,.pf,.pf-modal *{animation:none!important;transition:none!important}
+}
+
 /* ===== Weekly Performance Summary (managers + owners) ===== */
 .ws-card{background:#fff;border:1px solid var(--bd);border-radius:5px;padding:0;margin-bottom:18px;box-shadow:0 2px 10px rgba(20,40,70,.05);overflow:hidden}
 .ws-head{width:100%;display:flex;align-items:center;gap:12px;padding:16px 22px;background:linear-gradient(100deg,#fff6ec,#fff 70%);border:none;border-bottom:1px solid var(--bd);font:inherit;text-align:left;cursor:pointer}
@@ -164,38 +310,52 @@ input:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,
 .ws-note-line{font-size:.82em;line-height:1.55;color:var(--tm);margin-top:12px;font-style:italic}
 @media(max-width:560px){.ws-kpis{grid-template-columns:repeat(2,1fr)}}
 
-/* Shared colour tokens used by the profile cards. (The header + left menu come from the shared
-   chrome in topbar-auth.js, like every other page.) */
-:root{--gray:#f4f3ef;--white:#fff;--ink:#151d28;--ink2:#818284;--line:#e7e5df;--icbg:#c4def6;--icfg:#2b66c1;--sh:0 1px 2px rgba(21,29,40,.05),0 10px 28px -18px rgba(21,29,40,.28)}
 </style>
 </head>
 <body data-nav-active="profile" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="display:none"></div>
+<!-- Polite live region for loading / loaded / error / saved announcements (outside #wrap so it
+     survives re-renders). -->
+<div id="pfLive" class="pf-sr" role="status" aria-live="polite" aria-atomic="true"></div>
 <!-- Main profile content (filled by render). The header + left menu are the SHARED chrome that
      topbar-auth.js wraps around #wrap — the same one every other page uses. -->
-<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
+<div class="wrap" id="wrap"><div class="pf-gate"><p>Loading…</p></div></div>
 
 <div class="modal-bg" id="pwModal" onclick="if(event.target===this)closePwModal()">
-  <div class="modal">
-    <div class="modal-head"><h2>Change Password</h2><button class="modal-close" onclick="closePwModal()" aria-label="Close">&times;</button></div>
-    <label>Current password</label>
-    <input type="password" id="curPw" autocomplete="current-password">
-    <label>New password (min 6 chars)</label>
-    <input type="password" id="newPw" autocomplete="new-password">
-    <label>Confirm new password</label>
-    <input type="password" id="newPw2" autocomplete="new-password">
-    <div class="msg err" id="msgErr"></div>
-    <div class="msg ok" id="msgOk"></div>
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closePwModal()">Cancel</button>
-      <button class="btn" id="saveBtn" onclick="changePw()">Update Password</button>
+  <div class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle" aria-describedby="pwModalSub">
+    <div class="pf-modal-head">
+      <div><h2 id="pwModalTitle">Change Password</h2><p id="pwModalSub">Enter your current password, then choose a new one.</p></div>
+      <button type="button" class="pf-modal-x" onclick="closePwModal()" aria-label="Close">&times;</button>
     </div>
+    <form id="pwForm" novalidate onsubmit="event.preventDefault();changePw()">
+      <div class="pf-modal-body">
+        <div class="pf-field">
+          <label for="curPw">Current password</label>
+          <input class="pf-input" type="password" id="curPw" autocomplete="current-password" required>
+        </div>
+        <div class="pf-field">
+          <label for="newPw">New password</label>
+          <input class="pf-input" type="password" id="newPw" autocomplete="new-password" required minlength="6" aria-describedby="newPwHelp">
+          <p class="pf-help" id="newPwHelp">At least 6 characters.</p>
+        </div>
+        <div class="pf-field">
+          <label for="newPw2">Confirm new password</label>
+          <input class="pf-input" type="password" id="newPw2" autocomplete="new-password" required>
+        </div>
+        <div class="pf-msg err" id="msgErr" role="alert"></div>
+        <div class="pf-msg ok" id="msgOk" role="status"></div>
+      </div>
+      <div class="pf-modal-foot">
+        <button type="button" class="pf-btn ghost" onclick="closePwModal()">Cancel</button>
+        <button type="submit" class="pf-btn primary" id="saveBtn">Update Password</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
@@ -204,78 +364,194 @@ const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 // (Header + left menu come from the shared chrome in topbar-auth.js, like every other page.)
 
 let PROFILE_LOADED=false;
+let PROFILE_STATE='loading';  // loading | ready | error  (the /api/me/profile + /api/me fetch)
 let PENDING_AVATAR=undefined; // undefined=no change, ''=remove, 'data:...'=new
+let PF_FIRST=true;            // first paint -> play the hero entrance once
+let PF_TOOLS_OPEN=true;       // Admin tools card expander state (kept across re-renders)
+const AV=96;                  // hero avatar diameter (px)
+const CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// Polite screen-reader announcement.
+function pfAnnounce(msg){ const l=document.getElementById('pfLive'); if(!l) return; l.textContent=''; setTimeout(()=>{ l.textContent=msg; },60); }
+const pfSk=(w,h,extra,dark)=>`<span class="pf-sk${dark?' dark':''}" style="width:${w};height:${h}px${extra?';'+extra:''}"></span>`;
+const pfCap=(s)=>{ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); };
 
 function render(){
   const user=A.getUser();
   const wrap=document.getElementById('wrap');
   if(!user||!A.getToken()){
-    wrap.innerHTML='<div class="gate"><h1>Profile</h1><p>You are not logged in. Log in from the Live Dashboard to view your profile.</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';
+    wrap.innerHTML='<div class="pf"><div class="pf-gate"><h1>Profile</h1><p>You are not logged in. Log in from the Live Dashboard to view your profile.</p><a class="pf-btn primary" href="app.html">Go to Live Dashboard</a></div></div>';
     return;
   }
+  const st=PROFILE_STATE, ready=(st==='ready'), loading=(st==='loading');
+  PROFILE_LOADED=ready;
   const prof=A._myProfile||user;
+  // What the avatar should LOOK like right now (includes an unsaved photo change / removal).
+  const shown=(PENDING_AVATAR!==undefined)?Object.assign({},prof,{avatar:PENDING_AVATAR}):prof;
   const name=(prof.displayName||user.username||'Profile');
-  const heroAv=PROFILE_LOADED
-    ? `<div id="avatarBox">${A.avatarHtml(prof,86)}</div>`
-    : `<div id="avatarBox"><div class="avatar-loading" style="width:86px;height:86px"><span class="pspin big"></span></div></div>`;
-  const nameField=PROFILE_LOADED
-    ? `<input type="text" id="displayName" maxlength="40" value="${(prof.displayName||'').replace(/"/g,'&quot;')}" placeholder="How your name appears to others">`
-    : `<div class="field-loading"><span class="pspin sm"></span>Loading…</div>`;
-  const removeBtn=(PROFILE_LOADED&&prof.avatar)?('<button class="btn sec mini" onclick="removeAvatar()">'+ic('trash')+' Remove photo</button>'):'';
+  const role=String(user.role||'user');
+  const isMgr=role.toLowerCase()==='manager';
+  const links=adminLinks();
+
+  // Preserve whatever the user has typed into Display name across re-renders (photo change/remove).
+  const dnEl=document.getElementById('displayName');
+  const dnVal=dnEl?dnEl.value:(prof.displayName||'');
+
+  const heroAv=ready
+    ? `<div id="avatarBox">${A.avatarHtml(shown,AV)}</div>`
+    : loading
+      ? `<div id="avatarBox">${pfSk('96px',96,'border-radius:50%',true)}</div>`
+      : `<div id="avatarBox">${A.avatarHtml(user,AV)}</div>`;
+  const title=loading
+    ? `<h1 id="pfTitle">${pfSk('min(320px,60vw)',34,'margin:4px 0',true)}<span class="pf-sr">Loading profile</span></h1>`
+    : `<h1 id="pfTitle">${esc(name)}</h1>`;
 
   wrap.innerHTML=`
-    <div class="ph-hero">
-      <div class="ph-hero-top"></div>
-      <div class="ph-hero-body">
-        <div class="ph-hero-av">
-          ${heroAv}
-          <button class="ph-hero-cam" title="Change photo" onclick="document.getElementById('avatarFile').click()">${ic('camera',14)}</button>
-          <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none">
-        </div>
-        <div class="ph-hero-meta">
-          <div class="ph-hero-name">${esc(name)} <span class="ph-hero-badge">${esc(user.role)}</span></div>
-          <div class="ph-hero-handle">${esc(user.username)}@ · WWOS-GSOC PHD</div>
-        </div>
-        <div class="ph-hero-actions">
-          ${String(user.role||'').toLowerCase()==='manager'?'':`<a class="btn sec mini" href="my-tickets.html">${ic('ticket',14)} My Tickets</a>`}
-          <button class="btn danger mini" onclick="doLogout()">${ic('log-out',14)} Logout</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="ph-row-2">
-      <!-- LEFT 50%: Account -->
-      <div class="ph-card">
-        <div class="ph-card-h">${ic('user',15)} Account
-          <span class="ph-photo-btns">
-            <button class="btn sec mini" onclick="document.getElementById('avatarFile').click()">${ic('camera')} Change photo</button>
-            ${removeBtn}
-          </span>
-        </div>
-        <label>Display name</label>
-        ${nameField}
-        <div class="ph-idrow">
-          <div class="cell"><span class="k">Login ID</span><span class="v">${esc(user.username)}</span></div>
-          <div class="cell"><span class="k">Role</span><span class="v"><span class="ph-badge">${esc(user.role)}</span></span></div>
-          <button class="btn" id="saveProfBtn" onclick="saveProfile()"${PROFILE_LOADED?'':' disabled'}>${ic('check-circle')} Save changes</button>
-        </div>
-        <div class="msg err" id="profErr"></div>
-        <div class="msg ok" id="profOk"></div>
-      </div>
-      <!-- RIGHT 50%: Security above Admin tools (stacked) -->
-      <div class="ph-col">
-        <div class="ph-card">
-          <div class="ph-card-h">${ic('lock',15)} Security</div>
-          <div class="ph-actions">
-            <button class="btn sec" onclick="openPwModal()">${ic('lock')} Change Password</button>
-            <button class="btn danger" onclick="doLogout()">${ic('log-out')} Logout</button>
+  <div class="pf${PF_FIRST?' is-first':''}${ready?' is-anim':''}" id="pfRoot" aria-busy="${loading?'true':'false'}">
+    <header class="pf-hero">
+      <div class="pf-hero-in">
+        <div class="pf-hero-main">
+          <div class="pf-av">
+            ${heroAv}
+            <button type="button" class="pf-cam" aria-label="Change photo" title="Change photo" onclick="document.getElementById('avatarFile').click()"${ready?'':' disabled'}>${ic('camera',14)}</button>
+            <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none" tabindex="-1" aria-hidden="true">
+          </div>
+          <div class="pf-hero-txt">
+            <div class="pf-eyebrow">Your account \u00b7 Profile</div>
+            ${title}
+            <p class="pf-hero-sub">Manage how you appear across the dashboard, keep your password up to date, and open the tools your access allows.</p>
+            <ul class="pf-chips" aria-label="Account details">
+              <li class="pf-chip is-role">${ic('user-shield',14)}<span>Role</span><b>${esc(pfCap(role))}</b></li>
+              <li class="pf-chip">${ic('key',14)}<span>Login</span><b>${esc(user.username)}@</b></li>
+              <li class="pf-chip">${ic('users',14)}<span>Team</span><b>WWOS-GSOC PHD</b></li>
+            </ul>
           </div>
         </div>
-        ${adminToolsCard()}
+        <div class="pf-hero-tools">
+          ${isMgr?'':`<a class="pf-gbtn" href="my-tickets.html">${ic('ticket',15)} My Tickets</a>`}
+          <button type="button" class="pf-gbtn" onclick="doLogout()">${ic('log-out',15)} Logout</button>
+        </div>
       </div>
-    </div>`;
-  if(PROFILE_LOADED)wireAvatarInput();
+    </header>
+
+    ${kpiRow(user,role,shown,links,st)}
+
+    <div class="pf-grid">
+      ${accountCard(user,role,prof,shown,dnVal,st)}
+      <div class="pf-col">
+        ${securityCard()}
+        ${loading?toolsSkeleton():adminToolsCard(links)}
+      </div>
+    </div>
+  </div>`;
+  PF_FIRST=false;
+  if(ready)wireAvatarInput();
   paintWeeklySummary();
+}
+
+// ---- KPI tiles (overlap the hero) ----
+function kpiTile(icon,label,value,sub,tone,isNum){
+  return `<div class="pf-kpi k-${tone}"><div class="pf-kpi-l"><span class="pf-kpi-ic">${ic(icon,15)}</span>${label}</div>`+
+    `<div class="pf-kpi-n${isNum?' is-num':''}" title="${esc(value)}">${esc(value)}</div><div class="pf-kpi-sub">${sub}</div></div>`;
+}
+function kpiSkeleton(){
+  return `<div class="pf-kpi is-sk">${pfSk('58%',11)}${pfSk('50%',26,'margin-top:14px')}${pfSk('72%',12,'margin-top:11px')}</div>`;
+}
+function kpiRow(user,role,shown,links,st){
+  const idTile=kpiTile('user','Login ID',user.username||'\u2014','Your sign-in ID \u00b7 read-only','base');
+  const roleTile=kpiTile('user-shield','Role',pfCap(role),(A.atLeast&&A.atLeast('admin'))?'Admin-level access':'Standard access','warn');
+  if(st==='loading') return `<div class="pf-kpis">${idTile}${roleTile}${kpiSkeleton()}${kpiSkeleton()}</div>`;
+  const photoTile=(st==='ready')
+    ? kpiTile('camera','Profile photo',shown.avatar?'Custom photo':'Initials',(PENDING_AVATAR!==undefined)?'Unsaved change \u00b7 save to apply':'Shown in the header and menus','blue')
+    : kpiTile('camera','Profile photo','\u2014','Couldn\u2019t load your profile','blue');
+  const n=links.length;
+  const toolsTile=kpiTile('tool','Admin tools',String(n),n?(n===1?'tool available to you':'tools available to you'):'None for your access level','good',true);
+  return `<div class="pf-kpis">${idTile}${roleTile}${photoTile}${toolsTile}</div>`;
+}
+
+// ---- Card header (optionally a chevron expander) ----
+function cardHead(icon,title,sub,headId,exp){
+  const tt=`<span class="pf-card-ic">${ic(icon,18)}</span><span class="pf-card-tt"><span class="pf-card-title" id="${headId}">${title}</span>${sub?`<span class="pf-card-sub">${sub}</span>`:''}</span>`;
+  if(exp) return `<div class="pf-card-head"><h2 class="pf-card-h"><button type="button" class="pf-exp" aria-expanded="${exp.open}" aria-controls="${exp.id}" onclick="pfToggleTools(this)"><span class="pf-chev">${CHEV}</span>${tt}</button></h2>${exp.aside||''}</div>`;
+  return `<div class="pf-card-head"><h2 class="pf-card-h">${tt}</h2></div>`;
+}
+
+// ---- Account (photo + display name + read-only identity + Save) ----
+function accountCard(user,role,prof,shown,dnVal,st){
+  if(st==='loading'){
+    return `<section class="pf-card is-sk" aria-label="Account (loading)">
+      <div class="pf-card-head"><div class="pf-card-h">${pfSk('34px',34,'border-radius:9px')}<span style="display:flex;flex-direction:column;gap:7px">${pfSk('120px',14)}${pfSk('220px',10,'max-width:50vw')}</span></div></div>
+      <div class="pf-card-body">
+        <div class="pf-photo" style="border-style:solid">${pfSk('40px',40,'border-radius:10px')}<span style="flex:1 1 180px;display:flex;flex-direction:column;gap:7px">${pfSk('110px',12)}${pfSk('70%',10)}</span>${pfSk('130px',32,'border-radius:8px')}</div>
+        ${pfSk('100px',12,'margin-bottom:9px')}${pfSk('100%',42,'border-radius:8px')}${pfSk('62%',10,'margin-top:8px')}
+        <div class="pf-ro">${pfSk('100%',56,'border-radius:10px')}${pfSk('100%',56,'border-radius:10px')}</div>
+      </div>
+      <div class="pf-card-foot">${pfSk('150px',38,'border-radius:8px')}</div>
+    </section>`;
+  }
+  if(st==='error'){
+    return `<section class="pf-card t-blue" aria-labelledby="pfAccH">
+      ${cardHead('user','Account','Your photo and the name others see','pfAccH')}
+      <div class="pf-state" role="alert">
+        <span class="pf-state-ic">${ic('alert',26)}</span>
+        <h2>We couldn\u2019t load your profile</h2>
+        <p>The server didn\u2019t send your display name and photo. Check your connection, then try again.</p>
+        <button type="button" class="pf-btn navy" id="pfRetry" onclick="pfRetry()">${ic('refresh',15)} Retry</button>
+      </div>
+    </section>`;
+  }
+  const removeBtn=shown.avatar?`<button type="button" class="pf-btn danger sm" onclick="removeAvatar()">${ic('trash',14)} Remove photo</button>`:'';
+  const pending=(PENDING_AVATAR!==undefined)?`<span class="pf-pill warn">${ic('info',13)} ${PENDING_AVATAR?'New photo':'Photo removal'} not saved yet</span>`:'';
+  return `<section class="pf-card t-blue" aria-labelledby="pfAccH">
+    ${cardHead('user','Account','Your photo and the name others see','pfAccH')}
+    <div class="pf-card-body">
+      <div class="pf-photo" role="group" aria-labelledby="pfPhotoLbl">
+        <span class="pf-photo-ic">${ic('camera',18)}</span>
+        <div class="pf-photo-t">
+          <span class="pf-lbl" id="pfPhotoLbl">Profile photo</span>
+          <span class="pf-help">PNG, JPG, GIF or WebP. It\u2019s cropped to a square and resized for you.</span>
+          ${pending}
+        </div>
+        <div class="pf-photo-btns">
+          <button type="button" class="pf-btn ghost sm" onclick="document.getElementById('avatarFile').click()">${ic('camera',14)} Change photo</button>
+          ${removeBtn}
+        </div>
+      </div>
+      <div class="pf-field">
+        <label for="displayName">Display name</label>
+        <input class="pf-input" type="text" id="displayName" maxlength="40" value="${esc(dnVal)}" placeholder="How your name appears to others" aria-describedby="displayNameHelp" autocomplete="nickname">
+        <p class="pf-help" id="displayNameHelp">Shown to others instead of your Login ID. Up to 40 characters.</p>
+      </div>
+      <dl class="pf-ro">
+        <div><dt>Login ID</dt><dd title="${esc(user.username)}">${esc(user.username)}<span class="pf-lock" title="Read-only" aria-hidden="true">${ic('lock',12)}</span><span class="pf-sr"> (read-only)</span></dd></div>
+        <div><dt>Role</dt><dd><span class="pf-pill role">${esc(role)}</span></dd></div>
+      </dl>
+      <div class="pf-msg err" id="profErr" role="alert"></div>
+      <div class="pf-msg ok" id="profOk" role="status"></div>
+    </div>
+    <div class="pf-card-foot">
+      <button type="button" class="pf-btn primary" id="saveProfBtn" onclick="saveProfile()">${ic('check-circle',15)} Save changes</button>
+    </div>
+  </section>`;
+}
+
+// ---- Security (password + logout) ----
+function securityCard(){
+  return `<section class="pf-card t-amber" aria-labelledby="pfSecH">
+    ${cardHead('lock','Security','Password and session for this device','pfSecH')}
+    <div class="pf-card-body">
+      <div class="pf-sec-row">
+        <span class="pf-sec-ic">${ic('key',17)}</span>
+        <div class="pf-sec-t"><b>Password</b><small>Change the password you use to sign in.</small></div>
+        <button type="button" class="pf-btn ghost sm" onclick="openPwModal()">${ic('lock',14)} Change Password</button>
+      </div>
+      <div class="pf-sec-row">
+        <span class="pf-sec-ic">${ic('log-out',17)}</span>
+        <div class="pf-sec-t"><b>Session</b><small>Sign out of the dashboard on this device.</small></div>
+        <button type="button" class="pf-btn danger sm" onclick="doLogout()">${ic('log-out',14)} Logout</button>
+      </div>
+    </div>
+  </section>`;
 }
 
 // Base URLs for the Local vs Live links (same as wwos-phd-bookmarks.html). Each row shows ONE button
@@ -284,24 +560,41 @@ function render(){
 const PH_LOCAL='http://localhost:8082/';
 const PH_LIVE='https://harisss-wwos.github.io/wwos-phd-dashboard/';
 const PH_IS_LOCAL=/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-function adminToolsCard(){
-  const links=[
+function adminLinks(){
+  return [
     { show:(A.canManageUsers&&A.canManageUsers()),  icon:'users',    href:'users.html',       label:'Users' },
     { show:(A.canDatabase&&A.canDatabase()),        icon:'database', href:'db-health.html',   label:'Database Health' },
     { show:(A.canGroupingPage&&A.canGroupingPage()),icon:'copy',     href:'groups-page.html', label:'Grouping Page' },
   ].filter(x=>x.show);
+}
+function adminToolsCard(links){
+  links=links||adminLinks();
   if(!links.length) return '';
   const base=PH_IS_LOCAL?PH_LOCAL:PH_LIVE;
   const rows=links.map(l=>
-    `<div class="ph-link-row">`+
-      `<span class="ph-link-ic">${ic(l.icon,18)}</span>`+
-      `<span class="ph-link-label">${esc(l.label)}</span>`+
-      `<span class="ph-link-btns">`+
-        `<a class="btn sec ph-lbtn" href="${base}${l.href}" target="_blank" rel="noopener">${ic('external-link',12)} Open</a>`+
-      `</span>`+
-    `</div>`
+    `<li class="pf-link">`+
+      `<span class="pf-link-ic">${ic(l.icon,18)}</span>`+
+      `<span class="pf-link-l">${esc(l.label)}</span>`+
+      `<a class="pf-btn ghost sm" href="${base}${l.href}" target="_blank" rel="noopener" aria-label="Open ${esc(l.label)} (opens in a new tab)">${ic('external-link',13)} Open</a>`+
+    `</li>`
   ).join('');
-  return `<div class="ph-card"><div class="ph-card-h">${ic('tool',15)} Admin tools</div><div class="ph-links">${rows}</div></div>`;
+  const aside=`<span class="pf-pill"><b>${links.length}</b> available</span>`;
+  return `<section class="pf-card t-green${PF_TOOLS_OPEN?'':' is-shut'}" aria-labelledby="pfToolsH">
+    ${cardHead('tool','Admin tools','Pages your access level unlocks','pfToolsH',{open:PF_TOOLS_OPEN,id:'pfToolsBody',aside})}
+    <div class="pf-card-body" id="pfToolsBody"${PF_TOOLS_OPEN?'':' hidden'}><ul class="pf-links">${rows}</ul></div>
+  </section>`;
+}
+function toolsSkeleton(){
+  let rows=''; for(let i=0;i<3;i++) rows+=`<div style="display:flex;align-items:center;gap:12px;padding:11px 8px">${pfSk('34px',34,'border-radius:9px')}${pfSk('40%',13)}<span style="margin-left:auto">${pfSk('72px',30,'border-radius:8px')}</span></div>`;
+  return `<section class="pf-card is-sk" aria-label="Admin tools (loading)">
+    <div class="pf-card-head"><div class="pf-card-h">${pfSk('34px',34,'border-radius:9px')}<span style="display:flex;flex-direction:column;gap:7px">${pfSk('110px',14)}${pfSk('180px',10)}</span></div></div>
+    <div class="pf-card-body">${rows}</div></section>`;
+}
+function pfToggleTools(btn){
+  PF_TOOLS_OPEN=btn.getAttribute('aria-expanded')!=='true';
+  btn.setAttribute('aria-expanded',String(PF_TOOLS_OPEN));
+  const body=document.getElementById(btn.getAttribute('aria-controls')); if(body) body.hidden=!PF_TOOLS_OPEN;
+  const card=btn.closest('.pf-card'); if(card) card.classList.toggle('is-shut',!PF_TOOLS_OPEN);
 }
 
 // ---- Weekly + Monthly Performance Summary (managers + owners only) ----
@@ -467,23 +760,22 @@ function wireAvatarInput(){ const inp=document.getElementById('avatarFile'); if(
 
 function removeAvatar(){
   PENDING_AVATAR='';
-  const p=A.myProfile()||A.getUser();
-  const dn=document.getElementById('displayName');
-  document.getElementById('avatarBox').innerHTML=A.avatarHtml({displayName:dn?dn.value:'',username:p.username},86);
-  render();
+  render();   // render() previews the pending removal (initial circle) and keeps the typed name
+  pfAnnounce('Photo will be removed when you save changes.');
 }
 
+function showProfErr(msg){ const err=document.getElementById('profErr'); if(!err) return; err.textContent=msg; err.style.display='flex'; }
 function handleAvatarFile(file){
   const err=document.getElementById('profErr'),ok=document.getElementById('profOk');
   err.style.display='none';ok.style.display='none';
   if(!file)return;
-  if(!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)){err.textContent='Unsupported file. Please upload a PNG, JPG, GIF, or WebP image.';err.style.display='block';return;}
-  if(file.size>8*1024*1024){err.textContent='That image is too large. Please upload a smaller image.';err.style.display='block';return;}
+  if(!/^image\/(png|jpe?g|gif|webp)$/.test(file.type)){showProfErr('Unsupported file. Please upload a PNG, JPG, GIF, or WebP image.');return;}
+  if(file.size>8*1024*1024){showProfErr('That image is too large. Please upload a smaller image.');return;}
   const reader=new FileReader();
-  reader.onerror=()=>{err.textContent='Could not read that image. Please upload a different one.';err.style.display='block';};
+  reader.onerror=()=>{showProfErr('Could not read that image. Please upload a different one.');};
   reader.onload=(ev)=>{
     const img=new Image();
-    img.onerror=()=>{err.textContent='That file is not a valid image.';err.style.display='block';};
+    img.onerror=()=>{showProfErr('That file is not a valid image.');};
     img.onload=()=>{
       const size=128;const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
       const ctx=canvas.getContext('2d');
@@ -491,36 +783,64 @@ function handleAvatarFile(file){
       ctx.drawImage(img,sx,sy,s,s,0,0,size,size);
       let dataUrl=canvas.toDataURL('image/jpeg',0.82);
       if(dataUrl.length>200000){dataUrl=canvas.toDataURL('image/jpeg',0.6);}
-      if(dataUrl.length>200000){err.textContent='Image is still too large after resizing. Please upload a different image.';err.style.display='block';return;}
+      if(dataUrl.length>200000){showProfErr('Image is still too large after resizing. Please upload a different image.');return;}
       PENDING_AVATAR=dataUrl;
-      document.getElementById('avatarBox').innerHTML='<img class="phd-avatar" src="'+dataUrl+'" alt="avatar" style="width:86px;height:86px;border-radius:50%;object-fit:cover;display:block">';
+      render();   // previews the new photo in the hero + shows the "not saved yet" hint
+      pfAnnounce('New photo ready. Save changes to apply it.');
     };
     img.src=ev.target.result;
   };
   reader.readAsDataURL(file);
 }
 
+const SAVE_LABEL=()=>`${ic('check-circle',15)} Save changes`;
 async function saveProfile(){
   const err=document.getElementById('profErr'),ok=document.getElementById('profOk');
   err.style.display='none';ok.style.display='none';
   const body={displayName:document.getElementById('displayName').value.trim()};
   if(PENDING_AVATAR!==undefined)body.avatar=PENDING_AVATAR;
-  const btn=document.getElementById('saveProfBtn');btn.disabled=true;btn.textContent='Saving…';
-  const r=await A.api('POST','/api/me/profile',body);
-  btn.disabled=false;
-  if(r.ok){A.setMyProfile?A.setMyProfile(r.data):(A._myProfile=r.data);PENDING_AVATAR=undefined;render();setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='block';setTimeout(()=>{if(o)o.style.display='none';},1800);}},30);}
-  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+  const btn=document.getElementById('saveProfBtn');btn.disabled=true;btn.setAttribute('aria-busy','true');btn.innerHTML='<span class="pf-spin" aria-hidden="true"></span> Saving…';
+  let r;
+  try{ r=await A.api('POST','/api/me/profile',body); }catch(e){ r={ok:false,status:0,data:{error:'Could not reach the server. Check your connection and try again.'}}; }
+  btn.disabled=false;btn.removeAttribute('aria-busy');btn.innerHTML=SAVE_LABEL();
+  if(r.ok){A.setMyProfile?A.setMyProfile(r.data):(A._myProfile=r.data);PENDING_AVATAR=undefined;render();if(window.PHDRefreshHomeChrome)window.PHDRefreshHomeChrome();pfAnnounce('Profile updated.');setTimeout(()=>{const o=document.getElementById('profOk');if(o){o.textContent='Profile updated.';o.style.display='flex';setTimeout(()=>{if(o)o.style.display='none';},1800);}},30);}
+  else{showProfErr((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
 }
 
+// ---- Change-password dialog (focus moves in, Tab is trapped, Esc closes, focus returns) ----
+let PW_OPENER=null;
+function setPwBtn(busy){
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=!!busy;
+  if(busy){btn.setAttribute('aria-busy','true');btn.innerHTML='<span class="pf-spin" aria-hidden="true"></span> Updating…';}
+  else{btn.removeAttribute('aria-busy');btn.textContent='Update Password';}
+}
+function pwInvalid(ids){ ['curPw','newPw','newPw2'].forEach(id=>{ const el=document.getElementById(id); if(ids.indexOf(id)>=0) el.setAttribute('aria-invalid','true'); else el.removeAttribute('aria-invalid'); }); }
 function openPwModal(){
+  PW_OPENER=document.activeElement;
   ['curPw','newPw','newPw2'].forEach(id=>document.getElementById(id).value='');
+  pwInvalid([]);
   document.getElementById('msgErr').style.display='none';
   document.getElementById('msgOk').style.display='none';
-  const btn=document.getElementById('saveBtn');btn.disabled=false;btn.textContent='Update Password';
+  setPwBtn(false);
   document.getElementById('pwModal').style.display='flex';
   setTimeout(()=>document.getElementById('curPw').focus(),40);
 }
-function closePwModal(){document.getElementById('pwModal').style.display='none';}
+function closePwModal(){
+  document.getElementById('pwModal').style.display='none';
+  if(PW_OPENER&&document.contains(PW_OPENER)){ try{PW_OPENER.focus();}catch(e){} }
+  PW_OPENER=null;
+}
+document.addEventListener('keydown',(ev)=>{
+  const m=document.getElementById('pwModal'); if(!m||m.style.display!=='flex') return;
+  if(ev.key==='Escape'){ ev.preventDefault(); closePwModal(); return; }
+  if(ev.key!=='Tab') return;
+  const f=[...m.querySelectorAll('button,input,a[href]')].filter(el=>!el.disabled&&el.offsetParent!==null);
+  if(!f.length) return;
+  const first=f[0], last=f[f.length-1];
+  if(ev.shiftKey&&document.activeElement===first){ ev.preventDefault(); last.focus(); }
+  else if(!ev.shiftKey&&document.activeElement===last){ ev.preventDefault(); first.focus(); }
+});
 function doLogout(){ if(window.PHDConfirmLogout){window.PHDConfirmLogout();return;} if(confirm('Log out?')){A.clear();location.href='index.html';} }
 
 async function changePw(){
@@ -529,28 +849,51 @@ async function changePw(){
   const np2=document.getElementById('newPw2').value;
   const err=document.getElementById('msgErr'),ok=document.getElementById('msgOk');
   err.style.display='none';ok.style.display='none';
-  if(!cur||!np){err.textContent='Fill in all fields.';err.style.display='block';return;}
-  if(np.length<6){err.textContent='New password must be at least 6 characters.';err.style.display='block';return;}
-  if(np!==np2){err.textContent='New passwords do not match.';err.style.display='block';return;}
-  const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Updating…';
-  const r=await A.api('POST','/api/change-password',{currentPassword:cur,newPassword:np});
-  btn.disabled=false;btn.textContent='Update Password';
-  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='block';['curPw','newPw','newPw2'].forEach(id=>document.getElementById(id).value='');setTimeout(closePwModal,1200);}
-  else if(r.status===401 && !A.getToken()){err.textContent='Session expired. Please log in again from the Live Dashboard.';err.style.display='block';setTimeout(()=>{closePwModal();render();},1500);}
-  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+  const fail=(msg,ids)=>{ err.textContent=msg; err.style.display='flex'; pwInvalid(ids||[]); if(ids&&ids[0]) document.getElementById(ids[0]).focus(); };
+  if(!cur||!np){fail('Fill in all fields.',[!cur?'curPw':null,!np?'newPw':null].filter(Boolean));return;}
+  if(np.length<6){fail('New password must be at least 6 characters.',['newPw']);return;}
+  if(np!==np2){fail('New passwords do not match.',['newPw2']);return;}
+  pwInvalid([]);
+  setPwBtn(true);
+  let r;
+  try{ r=await A.api('POST','/api/change-password',{currentPassword:cur,newPassword:np}); }catch(e){ r={ok:false,status:0,data:{error:'Could not reach the server. Check your connection and try again.'}}; }
+  setPwBtn(false);
+  if(r.ok){ok.textContent='Password updated successfully.';ok.style.display='flex';['curPw','newPw','newPw2'].forEach(id=>document.getElementById(id).value='');setTimeout(closePwModal,1200);}
+  else if(r.status===401 && !A.getToken()){fail('Session expired. Please log in again from the Live Dashboard.');setTimeout(()=>{closePwModal();render();},1500);}
+  else{fail((r.data&&r.data.error)||('Failed (HTTP '+r.status+')'));}
+}
+
+// ---- Fetch the profile (/api/me/profile) + access flags (/api/me). Skeleton while loading,
+//      friendly error + Retry (re-runs this same fetch) if the profile can't be loaded. ----
+async function loadProfile(){
+  PROFILE_STATE='loading';
+  render();
+  pfAnnounce('Loading your profile…');
+  let prof=null;
+  try{ prof=await A.loadMyProfile(); }catch(e){ prof=null; }
+  try{ if(A._refreshMe) await A._refreshMe(); else if(A.getMe) await A.getMe(); }catch(e){}
+  if(!A.getUser()||!A.getToken()){ render(); return; }   // session ended (401) -> logged-out gate
+  if(prof||A._myProfile){
+    PROFILE_STATE='ready';
+    render();
+    pfAnnounce('Profile loaded.');
+    // Repaint the shared header avatar now that the full profile is loaded.
+    if(window.PHDRefreshHomeChrome) window.PHDRefreshHomeChrome();
+  }else{
+    PROFILE_STATE='error';
+    render();
+    pfAnnounce('Could not load your profile.');
+  }
+}
+function pfRetry(){
+  loadProfile().then(()=>{ const b=document.getElementById('pfRetry')||document.getElementById('displayName'); if(b) b.focus(); });
 }
 
 (async()=>{
-  render();
-  if(A.getUser()&&A.getToken()){
-    try{ await A.loadMyProfile(); }catch(e){}
-    try{ if(A._refreshMe) await A._refreshMe(); else if(A.getMe) await A.getMe(); }catch(e){}
-    PROFILE_LOADED=true;
-    render();
-    // Repaint the shared header avatar now that the full profile is loaded.
-    if(window.PHDRefreshHomeChrome) window.PHDRefreshHomeChrome();
-  }
+  if(A.getUser()&&A.getToken()){ await loadProfile(); }
+  else render();
 })();
 </script>
 </body>
 </html>
+

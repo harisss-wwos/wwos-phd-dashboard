@@ -14,7 +14,7 @@
 <title>PHD Resolutions · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -28,38 +28,209 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
 <style id="pr-light">
-#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
-/* Title bar: same look as Ticket Sanitization. */
-.pr-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;gap:11px;padding:0 16px;margin-bottom:16px}
-.pr-titlebar .ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:5px;background:#d2f0ee;color:#1b8f8a;flex-shrink:0}
-.pr-titlebar h1{margin:0;font-size:1.25em;font-weight:800;color:#1b2026;line-height:1.1}
-.pr-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);padding:18px 22px;width:100%}
-.pr-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap}
-.pr-head h2{margin:0;color:#1b2026;font-size:1.15em;font-weight:800}
-/* One line (no 80ch cap); wraps only on narrower screens where it can't fit. */
-.pr-sub{color:#5c6773;font-size:.92em;line-height:1.55;margin:0 0 16px;white-space:nowrap}
-@media(max-width:1199px){.pr-sub{white-space:normal}}
-.pr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.pr-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #eef1f4;border-radius:5px;background:#f9fafb}
-.pr-item:hover{background:#f4f7fa;border-color:#e2e6ea}
-.pr-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#d2f0ee;color:#136b67;font-weight:800;font-size:.78em;display:inline-flex;align-items:center;justify-content:center}
-.pr-name{flex:1 1 auto;min-width:0;color:#1b2026;font-size:.95em;font-weight:600;line-height:1.4}
-/* Likelihood / Impact chips: High = red, Low = green. */
-.pr-chips{flex-shrink:0;display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.pr-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:5px;border:1px solid;font-size:.8em;white-space:nowrap}
-.pr-chip-k{font-weight:600;opacity:.8}
-.pr-chip b{font-weight:800}
-.pr-chip.pr-hi{background:#fdecec;border-color:#f5c2c2;color:#b42318}
-.pr-chip.pr-lo{background:#eafaf0;border-color:#bfe8cf;color:#17803d}
-@media(max-width:640px){.pr-item{flex-wrap:wrap}.pr-chips{order:3;width:100%;justify-content:flex-start;padding-left:38px}}
-.pr-copy,.pr-copyall{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-weight:700;cursor:pointer;border-radius:5px;border:1px solid #e2e6ea;background:#fff;color:#5c6773;transition:border-color .15s,background .15s,color .15s}
-.pr-copy{flex-shrink:0;padding:6px 8px;font-size:.76em}
-.pr-copyall{padding:8px 14px;font-size:.84em;color:#136b67}
-.pr-copy:hover,.pr-copyall:hover{border-color:#1b8f8a;background:#eaf8f7;color:#136b67}
-.pr-copy:focus-visible,.pr-copyall:focus-visible{outline:2px solid #1b8f8a;outline-offset:2px}
-.pr-copy.copied,.pr-copyall.copied{border-color:#1f9d57!important;background:#eafaf0!important;color:#1f9d57!important}
-.pr-note{margin-top:14px;color:#8793a0;font-size:.82em;line-height:1.5}
+/* PHD Resolutions — "severity ladder": the same dark navy hero + orange rule as Home / Errors in Resolved,
+   then one white ranked card where every row carries a priority badge on a red (most severe) to muted
+   green (least severe) scale. Scoped under .pr (a size container for the responsive row grid). */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.pr{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--focus:#f0a35a;--navy:#161d2d;container-type:inline-size;color:var(--ink)}
+.pr button,.pr-modal button{font-family:inherit}
+.pr :is(button,a,input,select):focus-visible,.pr-modal :is(button,input,select):focus-visible{outline:3px solid var(--focus,#f0a35a);outline-offset:2px}
 .pr-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.pr-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 30px 26px 34px;margin-bottom:16px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.pr-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.pr-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.pr-hero-in{position:relative;display:flex;gap:18px;align-items:flex-start}
+.pr-hero-ic{width:50px;height:50px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.pr-hero-txt{min-width:0}
+.pr-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:8px}
+.pr-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08;margin:0}
+.pr-sub{margin-top:10px;max-width:78ch;font-size:.94em;line-height:1.6;color:rgba(233,237,243,.82)}
+.pr-sub b{color:#fff;font-weight:700}
+.pr-hero-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
+.pr-hero-chips li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;
+  color:#e9edf3;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
+.pr-hero-chips li::before{content:'';width:6px;height:6px;border-radius:50%;background:#ffb26b}
+.pr-hero-chips li b{color:#fff;font-weight:800}
+.pr-hero-chips li.is-acc{background:rgba(236,114,17,.18);border-color:rgba(236,114,17,.5);color:#ffd2a8}
+.pr-hero-chips li.is-skel::before{display:none}
+
+/* ---- Card ---- */
+.pr-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;overflow:hidden}
+.pr-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#d92d20,#ec7211 35%,#e0b23a 60%,#7fb38f)}
+.pr-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:14px}
+.pr-head-t{display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1 1 320px}
+.pr-head-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.pr-head h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.pr-head h2:focus{outline:none}
+.pr-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:2px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);
+  font-size:.66em;font-weight:800;letter-spacing:0;color:#3a4552;font-variant-numeric:tabular-nums}
+.pr-mode{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.56em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:#eef1f4;color:#3a4552;border:1px solid #d4dade;white-space:nowrap}
+.pr-mode.is-acc{background:var(--acc-bg);color:var(--acc-ink);border-color:#f7c99c}
+.pr-mode.is-acc::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--acc)}
+.pr-order{margin:5px 0 0;color:var(--mut);font-size:.86em;font-weight:600;line-height:1.5}
+.pr-actions{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Severity legend: the same hue ramp the badges use. */
+.pr-legend{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:9px 12px;border-radius:10px;background:var(--soft);border:1px solid var(--line);
+  font-size:.74em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.pr-legend i{flex:1 1 auto;height:6px;border-radius:99px;background:linear-gradient(90deg,hsl(4 78% 50%),hsl(28 72% 50%),hsl(48 66% 48%),hsl(95 50% 44%),hsl(142 40% 42%))}
+.pr-legend span{white-space:nowrap}
+.pr-default{margin:0 0 12px;color:var(--mut);font-size:.82em;font-weight:600}
+.pr-err{display:flex;align-items:flex-start;gap:8px;margin:0 0 12px;padding:9px 12px;border-radius:8px;background:var(--red-bg);border:1px solid #f2b8b1;color:var(--red);font-size:.86em;font-weight:700;line-height:1.45}
+.pr-err:empty{display:none}
+
+/* Buttons */
+.pr-add{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border:none;border-radius:8px;background:var(--navy,#161d2d);color:#fff;
+  font-size:.84em;font-weight:800;cursor:pointer;transition:background .14s,transform .1s}
+.pr-add svg{color:#ffb26b}
+.pr-add:hover:not(:disabled){background:#0f1420;transform:translateY(-1px)}
+.pr-add:active{transform:none}
+.pr-add:disabled{opacity:.65;cursor:default}
+.pr-copyall,.pr-copy{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;cursor:pointer;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#3a4552;
+  transition:border-color .15s,background .15s,color .15s}
+.pr-copyall{padding:8px 14px;font-size:.84em}
+.pr-copy{width:32px;height:32px;padding:0}
+.pr-copy:hover,.pr-copyall:hover:not(:disabled){border-color:#9aa6b1;background:#f5f6f8;color:var(--ink)}
+.pr-copyall:disabled{opacity:.55;cursor:default}
+.pr-copy.copied,.pr-copyall.copied{border-color:#1f9d57!important;background:var(--grn-bg)!important;color:var(--grn)!important}
+.pr-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:none;border-radius:8px;background:var(--navy);color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
+.pr-btn:hover{background:#0f1420}
+
+/* Spinner (inline busy state on buttons and rows). */
+.pr-spin{display:inline-block;flex-shrink:0;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:prSpin .7s linear infinite;vertical-align:-1px}
+@keyframes prSpin{to{transform:rotate(360deg)}}
+
+/* ---- Ranked rows ---- */
+.pr{--act:40px}
+.pr.is-editor{--act:150px}
+.pr-cols,.pr-item{display:grid;grid-template-columns:48px minmax(0,1fr) 116px 116px var(--act);column-gap:14px;align-items:center}
+.pr-cols{padding:0 14px 8px 17px;font-size:.68em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.pr-cols span:last-child{text-align:right}
+.pr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pr-item{position:relative;padding:10px 14px 10px 17px;border:1px solid var(--line);border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s,background .15s}
+.pr-item::before{content:'';position:absolute;left:-1px;top:10px;bottom:10px;width:4px;border-radius:0 4px 4px 0;background:hsl(var(--h,210) var(--s,10%) 48%)}
+.pr-item:hover{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
+.pr-num{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-size:.92em;font-weight:800;letter-spacing:-.2px;font-variant-numeric:tabular-nums;
+  background:hsl(var(--h,210) var(--s,10%) 94%);color:hsl(var(--h,210) var(--s,10%) 26%);border:1px solid hsl(var(--h,210) var(--s,10%) 80%)}
+.pr-nm{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.pr-name{min-width:0;color:var(--ink);font-size:.98em;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.pr-busy{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7c99c;color:var(--acc-ink);font-size:.74em;font-weight:800}
+.pr-item.is-busy{background:#fffaf5}
+/* Likelihood / Impact chips: High = red, Low = green. On wide rows the column header names them. */
+.pr-chips{display:contents}
+.pr-chip{justify-self:start;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;border:1px solid;font-size:.78em;font-weight:700;white-space:nowrap}
+.pr-chip::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.pr-chip-k{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.pr-chip b{font-weight:800}
+.pr-chip.pr-hi{background:var(--red-bg);border-color:#f5c2c2;color:var(--red)}
+.pr-chip.pr-lo{background:var(--grn-bg);border-color:#b7e1c8;color:var(--grn)}
+.pr-act{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+/* Per-row "Change priority" select (harisss only). */
+.pr-prisel{width:70px;height:32px;padding:0 8px;border-radius:8px;font-family:inherit;font-size:.84em;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.pr-prisel:disabled{opacity:.55;cursor:default}
+/* Per-row delete (harisss only) + its inline confirm strip. */
+.pr-del{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:1px solid #f1c4c4;border-radius:8px;background:#fff;color:#c0261a;cursor:pointer;transition:background .14s,border-color .14s}
+.pr-del:hover:not(:disabled){background:var(--red-bg);border-color:#dc2626}
+.pr-del:disabled{opacity:.5;cursor:default}
+.pr-item.is-confirm{border-color:#f2b8b1;box-shadow:0 0 0 3px rgba(217,45,32,.08)}
+.pr-cfm{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 10px;margin-top:10px;padding:9px 10px 9px 12px;border-radius:8px;
+  background:var(--red-bg);border:1px solid #f6d3cf;font-size:.84em;font-weight:700;color:#8f1d14}
+.pr-cfm-t{display:inline-flex;align-items:center;gap:8px;margin-right:auto}
+.pr-cfm-t b{font-weight:800}
+.pr-cfm button{display:inline-flex;align-items:center;gap:7px;font-size:.96em;font-weight:800;border-radius:7px;padding:6px 12px;cursor:pointer}
+.pr-cfm .yes{background:#c0261a;border:1px solid #c0261a;color:#fff}
+.pr-cfm .yes:hover:not(:disabled){background:#a51f15}
+.pr-cfm .no{background:#fff;border:1px solid #d4dade;color:#3a4552}
+.pr-cfm button:disabled{opacity:.75;cursor:default}
+@keyframes prFlash{0%{background:#fff4e0;border-color:#ffb43a}100%{background:#fff;border-color:var(--line)}}
+.pr-item.pr-flash{animation:prFlash 2.4s ease-out}
+
+/* ---- Loading / error states ---- */
+.pr-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:prShim 1.4s ease infinite}
+.pr-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes prShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.pr-item.is-skel::before{background:#e2e6ea}
+.pr-item.is-skel:hover{border-color:var(--line);box-shadow:none}
+.pr-item.is-skel .pr-skel-chip{justify-self:start;width:78px;height:24px;border-radius:99px}
+.pr-state{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin:0 0 14px;padding:16px 18px;border-radius:10px;border:1px solid #f2b8b1;background:#fffafa}
+.pr-state-ic{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red)}
+.pr-state-txt{flex:1 1 260px;min-width:0}
+.pr-state-t{margin:0;font-size:1em;font-weight:800;color:var(--ink)}
+.pr-state-p{margin:3px 0 0;font-size:.86em;line-height:1.5;color:var(--mut)}
+.pr-state .pr-btn{align-self:center}
+
+/* ---- One orchestrated entrance on the first loaded paint ---- */
+@keyframes prUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pr.is-hero-anim .pr-hero{animation:prUp .45s ease both}
+.pr.is-anim .pr-card{animation:prUp .45s ease .08s both}
+.pr.is-anim .pr-item{animation:prUp .4s ease both;animation-delay:calc(.14s + var(--i,0) * 35ms)}
+@media (prefers-reduced-motion:reduce){
+  .pr *,.pr *::before,.pr *::after,.pr-modal *,.pr-mbg{animation:none!important;transition:none!important}
+}
+
+/* ---- Responsive rows (container widths) ---- */
+@container (max-width:720px){
+  .pr-cols{display:none}
+  .pr-item{grid-template-columns:40px minmax(0,1fr) auto;grid-template-areas:"b n a" ". c c";row-gap:8px;column-gap:12px}
+  .pr-num{grid-area:b;width:36px;height:36px;align-self:start}
+  .pr-nm{grid-area:n}
+  .pr-act{grid-area:a}
+  .pr-chips{grid-area:c;display:flex;flex-wrap:wrap;gap:6px}
+  .pr-chip-k{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-weight:600;opacity:.85}
+  .pr-item.is-skel .pr-chips{display:flex}
+}
+@container (max-width:460px){
+  .pr-item{grid-template-columns:36px minmax(0,1fr);grid-template-areas:"b n" ". c" ". a"}
+  .pr-num{width:32px;height:32px;font-size:.84em}
+  .pr-act{justify-content:flex-start}
+  .pr-cfm{justify-content:flex-start}
+  .pr-cfm-t{flex-basis:100%}
+  .pr-legend{flex-wrap:wrap;justify-content:space-between;row-gap:8px}
+  .pr-legend i{order:3;flex-basis:100%}
+}
+@media (max-width:700px){
+  .pr-hero{padding:22px 18px 22px 22px}
+  .pr-hero-ic{display:none}
+  .pr-hero h1{font-size:1.6em;letter-spacing:-.5px}
+  .pr-sub{font-size:.86em}
+  .pr-card{padding:18px 14px}
+  .pr-head-ic{display:none}
+}
+
+/* ---- Add-resolution dialog (owner only) ---- */
+.pr-mbg{position:fixed;inset:0;background:rgba(16,24,38,.55);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
+.pr-mbg.open{display:flex;animation:prFade .16s ease-out}
+@keyframes prFade{from{opacity:0}to{opacity:1}}
+.pr-modal{--focus:#f0a35a;position:relative;overflow:hidden;background:#fff;border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 28px 70px -24px rgba(16,24,38,.5);
+  width:100%;max-width:460px;padding:22px 22px 18px;color:#1b2026;animation:prUp .2s ease-out}
+.pr-modal::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#ff9f2e,#ec7211)}
+.pr-mhead{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.pr-mhead-ic{width:36px;height:36px;border-radius:10px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:#fff3e8;color:#b5530a}
+.pr-meyebrow{font-size:.66em;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#9a4100;margin:0 0 2px}
+.pr-modal h2{margin:0;font-size:1.15em;font-weight:800;letter-spacing:-.2px;color:#1b2026}
+.pr-field{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.pr-field label{font-size:.8em;font-weight:800;color:#2a3340!important}
+.pr-field input,.pr-field select{height:38px;padding:0 11px;border-radius:8px;font-family:inherit;font-size:.92em}
+.pr-field input[aria-invalid="true"]{border-color:#b42318!important;box-shadow:0 0 0 3px rgba(180,35,24,.12)!important}
+.pr-hint{font-size:.76em;color:#5c6773;line-height:1.4}
+.pr-row2{display:flex;gap:12px}.pr-row2 .pr-field{flex:1 1 0;min-width:0}
+.pr-ferr{display:flex;align-items:center;gap:6px;color:#b42318;font-size:.8em;font-weight:700}
+.pr-ferr::before{content:'!';flex-shrink:0;width:15px;height:15px;border-radius:50%;background:#b42318;color:#fff;font-size:.8em;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.pr-ferr:empty{display:none}
+.pr-modal .pr-err{margin-top:2px}
+.pr-mact{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;padding-top:14px;border-top:1px solid #eef1f4}
+.pr-cancel{padding:9px 15px;font-size:.84em;font-weight:800;cursor:pointer;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#2a3340}
+.pr-cancel:hover:not(:disabled){background:#f5f6f8}
+.pr-cancel:disabled{opacity:.6;cursor:default}
+@media (max-width:420px){.pr-row2{flex-direction:column;gap:0}}
 </style>
 </head>
 <body data-nav-active="phd-resolutions" data-back-href="index.html" data-back-label="Home">
@@ -71,20 +242,34 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 (function(){
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
 var ICO_COPY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 var ICO_CHK='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+var ICO_DEL='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+var ICO_PLUS='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+var ICO_RETRY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>';
+var SPIN='<span class="pr-spin" aria-hidden="true"></span>';
+var CONFIRM_ID='';   // id of the row currently showing its inline delete confirm
+var A=window.PHDAuth;
+// Edit access (add / change priority): ONLY these usernames. Mirrors PHD_RES_EDITORS in
+// server/phd-resolutions.js; the server is the authority.
+var PR_EDITORS=['harisss'];
+function canEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && PR_EDITORS.indexOf(String(u.username||'').toLowerCase())>=0); }
+function errMsg(r,fallback){ return (r&&r.data&&r.data.error)||(fallback+' (HTTP '+(r?r.status:'?')+').'); }
+var NAME_RE=/^[A-Za-z0-9 &()\-'.]+$/;
 
-// Display order requested for this page (same 12 names as RC_RESOLUTIONS in issue-types-data.js,
-// which stays A-Z for the Tools builder and My Tickets dropdowns).
+// The list now lives on the server (GET /api/phd-resolutions, order = priority, 1 = most severe).
+// DEFAULT_RES below is the original list, used only as a fallback when the request fails.
+// It is separate from RC_RESOLUTIONS in issue-types-data.js, which stays A-Z for the Tools builder
+// and My Tickets dropdowns.
 // Likelihood / Impact per resolution, taken from the PHD Mitigation Matrix. Names that differ in the
 // matrix: Address Deprio = "Address Deprioritization", Routing Update = "Geo-Routing Update",
 // Delivery Hint = "Delivery Hint Update", Account Closure = "Account Closure (Permanent)".
-var RES=[
+var DEFAULT_RES=[
   {name:'Account Closure',         lk:'High', im:'High'},
   {name:'Physical Order Block',    lk:'High', im:'High'},
   {name:'Area Exclusion',          lk:'High', im:'Low'},
@@ -98,13 +283,33 @@ var RES=[
   {name:'Delivery Hint',           lk:'Low',  im:'High'},
   {name:'Driver Follow-up',        lk:'Low',  im:'Low'}
 ];
-var LIST=RES.map(function(r){ return r.name; });
+// Current list: [{id, name, lk, im, priority}] sorted by priority. USING_DEFAULT = server unavailable.
+// LOAD_ERR = why the GET failed (shown with a Retry button above the default list).
+var RES=[], USING_DEFAULT=false, LOADING=true, FLASH_ID='', LIST_ERR='', LOAD_ERR='', FIRST=true, HERO_FIRST=true;
+function fromServer(x){ return { id:String(x.id||''), name:String(x.name||''), lk:String(x.likelihood||''), im:String(x.impact||''), priority:Number(x.priority)||0 }; }
+function setList(rows){ RES=rows.slice().sort(function(a,b){ return a.priority-b.priority; }); }
+function useDefault(){ USING_DEFAULT=true; RES=DEFAULT_RES.map(function(r,i){ return { id:'', name:r.name, lk:r.lk, im:r.im, priority:i+1 }; }); }
+function editorMode(){ return canEdit() && !USING_DEFAULT && !LOADING; }
+
+// Severity colour for a priority: 1 = red, then orange / amber, down to a muted green for the last one.
+function sevStyle(p,n){
+  var t=n>1?(p-1)/(n-1):0; t=Math.max(0,Math.min(1,t));
+  return '--h:'+Math.round(4+138*Math.pow(t,1.15))+';--s:'+Math.round(78-38*t)+'%';
+}
+
+// One persistent polite live region (outside #wrap, so re-renders never replace it).
+function liveEl(){
+  var el=document.getElementById('prLive');
+  if(!el){ el=document.createElement('span'); el.id='prLive'; el.className='pr-sr'; el.setAttribute('aria-live','polite'); el.setAttribute('role','status'); document.body.appendChild(el); }
+  return el;
+}
+function announce(msg){ var live=liveEl(); live.textContent=''; setTimeout(function(){ live.textContent=msg; },30); }
 
 function copyText(text,btn,doneLabel){
   var done=function(ok){
     if(!btn||!ok) return;
     var orig=btn.innerHTML; btn.classList.add('copied'); btn.innerHTML=ICO_CHK+(doneLabel?'<span>'+doneLabel+'</span>':'');
-    var live=document.getElementById('prLive'); if(live) live.textContent='Copied';
+    announce('Copied');
     setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); }, 1300);
   };
   var fallback=function(){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok); }catch(e){ done(false); } };
@@ -112,34 +317,282 @@ function copyText(text,btn,doneLabel){
   else fallback();
 }
 
+function heroHtml(editor,n){
+  var chips=LOADING
+    ? '<li class="is-skel" aria-hidden="true"><span class="pr-skel pr-skel-d" style="width:92px;height:10px"></span></li><li class="is-skel" aria-hidden="true"><span class="pr-skel pr-skel-d" style="width:150px;height:10px"></span></li>'
+    : '<li><b>'+n+'</b>&nbsp;'+(n===1?'resolution':'resolutions')+'</li><li>Ranked by severity \u00b7 1 = most severe</li>'+
+      (editor?'<li class="is-acc">Editor access</li>':'<li>View only</li>');
+  return '<header class="pr-hero"><div class="pr-hero-in"><span class="pr-hero-ic" aria-hidden="true">'+ic('check-circle',24)+'</span><div class="pr-hero-txt">'+
+    '<p class="pr-eyebrow">Reference list</p><h1>PHD Resolutions</h1>'+
+    '<p class="pr-sub">These are the only resolutions allowed for the <b>Res:</b> line in SIM Root Cause Details and the <b>PHD Resolution</b> field of the incident log. They match the lists in the Build Root Cause Details tool and My Tickets.</p>'+
+    '<ul class="pr-hero-chips" aria-label="Summary">'+chips+'</ul>'+
+  '</div></div></header>';
+}
+
+function skeletonRows(){
+  var w=[62,48,70,55,66,44,58,52], s='';
+  for(var i=0;i<w.length;i++){
+    s+='<li class="pr-item is-skel" aria-hidden="true"><span class="pr-skel" style="width:38px;height:38px;border-radius:10px"></span>'+
+      '<span class="pr-nm"><span class="pr-skel" style="width:'+w[i]+'%;height:13px"></span></span>'+
+      '<span class="pr-chips"><span class="pr-skel pr-skel-chip"></span><span class="pr-skel pr-skel-chip"></span></span>'+
+      '<span class="pr-act"><span class="pr-skel" style="width:32px;height:32px;border-radius:8px"></span></span></li>';
+  }
+  return s;
+}
+
 function render(){
+  var editor=editorMode(), n=RES.length;
+  var anim=FIRST&&!LOADING; if(anim) FIRST=false;
+  var heroAnim=HERO_FIRST; HERO_FIRST=false;
   var chip=function(k,v){ var c=String(v).toLowerCase()==='high'?'hi':'lo';
     return '<span class="pr-chip pr-'+c+'"><span class="pr-chip-k">'+k+'</span><b>'+esc(v)+'</b></span>'; };
-  var items=RES.map(function(r,i){
-    var name=r.name;
-    return '<li class="pr-item"><span class="pr-num" aria-hidden="true">'+String(i+1).padStart(2,'0')+'</span>'+
-      '<span class="pr-name">'+esc(name)+'</span>'+
+  var priSel=function(r,i){
+    if(!editor) return '';
+    var opts='';
+    for(var p=1;p<=n;p++) opts+='<option value="'+p+'"'+(p===r.priority?' selected':'')+'>'+p+'</option>';
+    return '<label class="pr-sr" for="prPri'+i+'">Change priority of '+esc(r.name)+'</label>'+
+      '<select class="pr-prisel" id="prPri'+i+'" data-i="'+i+'" title="Change priority">'+opts+'</select>';
+  };
+  var items=LOADING?skeletonRows():RES.map(function(r,i){
+    var name=r.name, p=r.priority, cfm=editor&&CONFIRM_ID===r.id;
+    return '<li class="pr-item'+(FLASH_ID&&r.id===FLASH_ID?' pr-flash':'')+(cfm?' is-confirm':'')+'" data-id="'+esc(r.id)+'" style="'+sevStyle(p,n)+(anim?';--i:'+Math.min(i,14):'')+'">'+
+      '<span class="pr-num" title="Priority '+p+'"><span aria-hidden="true">'+String(p).padStart(2,'0')+'</span><span class="pr-sr">Priority '+p+'</span></span>'+
+      '<span class="pr-nm"><span class="pr-name">'+esc(name)+'</span></span>'+
       '<span class="pr-chips">'+chip('Likelihood',r.lk)+chip('Impact',r.im)+'</span>'+
-      '<button type="button" class="pr-copy" data-i="'+i+'" title="Copy" aria-label="Copy '+esc(name)+'">'+ICO_COPY+'</button></li>';
+      '<span class="pr-act">'+priSel(r,i)+
+        '<button type="button" class="pr-copy" data-i="'+i+'" title="Copy" aria-label="Copy '+esc(name)+'">'+ICO_COPY+'</button>'+
+        // Delete (harisss only): first click asks inline, second click (Delete) confirms.
+        (editor&&!cfm?'<button type="button" class="pr-del" data-del="'+i+'" title="Delete" aria-label="Delete '+esc(name)+'">'+ICO_DEL+'</button>':'')+
+      '</span>'+
+      (cfm?'<span class="pr-cfm" role="group" aria-label="Confirm delete of '+esc(name)+'"><span class="pr-cfm-t">'+ic('alert-triangle',15)+'<span>Delete <b>'+esc(name)+'</b>?</span></span>'+
+          '<button type="button" class="yes" data-del-yes="'+i+'">Delete</button><button type="button" class="no" data-del-no="'+i+'">Cancel</button></span>':'')+
+      '</li>';
   }).join('');
+  FLASH_ID='';
+  var loadErr=(!LOADING&&LOAD_ERR)
+    ? '<div class="pr-state" role="alert"><span class="pr-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="pr-state-txt">'+
+        '<p class="pr-state-t">Couldn\u2019t load the latest list</p><p class="pr-state-p">'+esc(LOAD_ERR)+' Showing the default list below until the server responds.</p></div>'+
+        '<button type="button" class="pr-btn" id="prRetry">'+ICO_RETRY+'<span>Retry</span></button></div>'
+    : '';
   document.getElementById('wrap').innerHTML=
-    '<div class="pr-titlebar"><span class="ic">'+ic('check-circle',18)+'</span><h1>PHD Resolutions</h1></div>'+
-    '<section class="pr-card" aria-labelledby="prHead">'+
-      '<div class="pr-head"><h2 id="prHead">Allowed resolutions ('+LIST.length+')</h2>'+
-        '<button type="button" class="pr-copyall" id="prCopyAll">'+ICO_COPY+'<span>Copy all</span></button></div>'+
-      '<p class="pr-sub">These are the only resolutions allowed for the <b>Res:</b> line in SIM Root Cause Details and the <b>PHD Resolution</b> field of the incident log. They match the lists in the Build Root Cause Details tool and My Tickets.</p>'+
+    '<div class="pr'+(editor?' is-editor':'')+(anim?' is-anim':'')+(heroAnim?' is-hero-anim':'')+'">'+
+    heroHtml(editor,n)+
+    '<section class="pr-card" aria-labelledby="prHead" aria-busy="'+(LOADING?'true':'false')+'">'+
+      '<div class="pr-head"><div class="pr-head-t"><span class="pr-head-ic" aria-hidden="true">'+ic('hash',17)+'</span><div>'+
+          '<h2 id="prHead" tabindex="-1">Allowed resolutions'+(LOADING?'':'<span class="pr-count"><span class="pr-sr">(</span>'+n+'<span class="pr-sr">)</span></span>')+
+            (!LOADING&&editor?'<span class="pr-mode is-acc">Editor</span>':'')+'</h2>'+
+          '<p class="pr-order">Ordered by priority \u2014 1 is the most severe.</p></div></div>'+
+        '<div class="pr-actions">'+
+          (editor?'<button type="button" class="pr-add" id="prAdd" aria-haspopup="dialog">'+ICO_PLUS+'<span>Add resolution</span></button>':'')+
+          '<button type="button" class="pr-copyall" id="prCopyAll"'+(LOADING?' disabled':'')+'>'+ICO_COPY+'<span>Copy all</span></button>'+
+        '</div></div>'+
+      '<div class="pr-legend" aria-hidden="true"><span>1 \u00b7 Most severe</span><i></i><span>'+(LOADING?'':n+' \u00b7 ')+'Least severe</span></div>'+
+      loadErr+
+      (USING_DEFAULT&&!LOAD_ERR?'<p class="pr-default">Showing the default list</p>':'')+
+      '<p class="pr-err" id="prErr" role="alert">'+esc(LIST_ERR)+'</p>'+
+      '<div class="pr-cols" aria-hidden="true"><span>#</span><span>Resolution</span><span>Likelihood</span><span>Impact</span><span>'+(editor?'Priority \u00b7 Actions':'Copy')+'</span></div>'+
       '<ol class="pr-list">'+items+'</ol>'+
-      '<span class="pr-sr" id="prLive" aria-live="polite"></span>'+
-    '</section>';
-  // Copy all: name + likelihood / impact, tab-separated (pastes as columns in Excel).
+    '</section></div>';
+  LIST_ERR='';
+  // Copy all: priority + name + likelihood / impact, tab-separated (pastes as columns in Excel).
   document.getElementById('prCopyAll').addEventListener('click',function(){
-    copyText(['Resolution\tLikelihood\tImpact'].concat(RES.map(function(r){ return r.name+'\t'+r.lk+'\t'+r.im; })).join('\n'),this,'Copied');
+    copyText(['Priority\tResolution\tLikelihood\tImpact'].concat(RES.map(function(r){ return r.priority+'\t'+r.name+'\t'+r.lk+'\t'+r.im; })).join('\n'),this,'Copied');
   });
+  var retry=document.getElementById('prRetry'); if(retry) retry.addEventListener('click',function(){ load(true); });
   Array.prototype.forEach.call(document.querySelectorAll('.pr-copy'),function(b){
-    b.addEventListener('click',function(){ copyText(LIST[+b.getAttribute('data-i')],b,''); });
+    b.addEventListener('click',function(){ var r=RES[+b.getAttribute('data-i')]; if(r) copyText(r.name,b,''); });
+  });
+  var add=document.getElementById('prAdd'); if(add) add.addEventListener('click',openModal);
+  Array.prototype.forEach.call(document.querySelectorAll('.pr-prisel'),function(s){
+    s.addEventListener('change',function(){ changePriority(+s.getAttribute('data-i'), +s.value, s); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del]'),function(b){
+    b.addEventListener('click',function(){ var r=RES[+b.getAttribute('data-del')]; if(!r) return; CONFIRM_ID=r.id; render();
+      var y=document.querySelector('[data-del-yes="'+b.getAttribute('data-del')+'"]'); if(y) y.focus(); });
+  });
+  var cancelDel=function(i){ CONFIRM_ID=''; render(); var d=document.querySelector('[data-del="'+i+'"]'); if(d) d.focus(); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del-no]'),function(b){
+    b.addEventListener('click',function(){ cancelDel(b.getAttribute('data-del-no')); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.pr-cfm'),function(g){
+    g.addEventListener('keydown',function(e){ var no=g.querySelector('[data-del-no]');
+      if(e.key==='Escape'&&no&&!no.disabled){ e.preventDefault(); cancelDel(no.getAttribute('data-del-no')); } });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del-yes]'),function(b){
+    b.addEventListener('click',function(){ deleteRes(+b.getAttribute('data-del-yes'), b); });
   });
 }
-render();
+
+// Owner-only: delete a resolution (DELETE); the server renumbers the rest 1..N.
+async function deleteRes(i,btn){
+  if(!editorMode()) return;
+  var r=RES[i]; if(!r) return;
+  if(btn){
+    btn.disabled=true; btn.innerHTML=SPIN+'<span>Deleting\u2026</span>';
+    var g=btn.closest('.pr-cfm'), no=g&&g.querySelector('.no'); if(no) no.disabled=true;
+    var li=btn.closest('.pr-item'); if(li){ li.classList.add('is-busy'); li.setAttribute('aria-busy','true'); }
+  }
+  var resp=null; try{ resp=await A.api('DELETE','/api/phd-resolutions/'+encodeURIComponent(r.id)); }catch(e){}
+  CONFIRM_ID='';
+  if(resp&&resp.ok&&Array.isArray(resp.data)){
+    setList(resp.data.map(fromServer)); render();
+    var a=document.getElementById('prAdd'); if(a) a.focus();
+    announce('Deleted '+r.name+'.');
+    return;
+  }
+  LIST_ERR=resp?errMsg(resp,'Could not delete the resolution'):'Could not delete the resolution \u2014 network error.';
+  render();
+}
+
+async function load(fromRetry){
+  LOADING=true; LOAD_ERR=''; render();
+  announce('Loading resolutions\u2026');
+  var r=null, asked=false;
+  // No session: skip the request (a 401 would pop the session-expired modal) and show the defaults.
+  if(A&&A.getUser&&A.getUser()){ asked=true; try{ r=await A.api('GET','/api/phd-resolutions'); }catch(e){} }
+  LOADING=false;
+  if(r&&r.ok&&Array.isArray(r.data)&&r.data.length){ USING_DEFAULT=false; setList(r.data.map(fromServer)); }
+  else {
+    useDefault();
+    // A failed request (not an empty list / no session) gets the friendly error + Retry.
+    if(asked&&!(r&&r.ok)) LOAD_ERR=r?errMsg(r,'The server could not return the list'):'The server could not be reached.';
+  }
+  render();
+  if(LOAD_ERR){
+    announce('Couldn\u2019t load the latest list. Showing the default list.');
+    if(fromRetry){ var rb=document.getElementById('prRetry'); if(rb) rb.focus(); }
+  } else {
+    announce('Loaded '+RES.length+' resolutions.');
+    if(fromRetry){ var h=document.getElementById('prHead'); if(h) h.focus(); }
+  }
+}
+
+// Owner-only: move a resolution to a new priority (PATCH); others renumber on the server.
+async function changePriority(i,p,sel){
+  if(!editorMode()) return;
+  var r=RES[i]; if(!r||!p||p===r.priority) return;
+  Array.prototype.forEach.call(document.querySelectorAll('.pr-prisel,#prAdd,.pr-del'),function(x){ x.disabled=true; });
+  var li=sel&&sel.closest('.pr-item');
+  if(li){ li.classList.add('is-busy'); li.setAttribute('aria-busy','true');
+    var nm=li.querySelector('.pr-nm'); if(nm) nm.insertAdjacentHTML('beforeend','<span class="pr-busy">'+SPIN+'Moving to '+p+'\u2026</span>'); }
+  var resp=null; try{ resp=await A.api('PATCH','/api/phd-resolutions/'+encodeURIComponent(r.id)+'/priority',{priority:p}); }catch(e){}
+  if(resp&&resp.ok&&Array.isArray(resp.data)){
+    setList(resp.data.map(fromServer)); FLASH_ID=r.id; render();
+    var idx=-1; RES.forEach(function(x,k){ if(x.id===r.id) idx=k; });
+    var ns=document.getElementById('prPri'+idx); if(ns) ns.focus();
+    announce(r.name+' moved to priority '+p+'.');
+    return;
+  }
+  LIST_ERR=resp?errMsg(resp,'Could not change the priority'):'Could not change the priority \u2014 network error.';
+  render();
+  var os=document.getElementById('prPri'+i); if(os) os.focus();
+}
+
+// ---- Add-resolution modal (owner only) ----
+var modalBg=null, lastFocus=null, busy=false;
+function buildModal(){
+  if(modalBg) return;
+  modalBg=document.createElement('div');
+  modalBg.className='pr-mbg'; modalBg.id='prModalBg';
+  modalBg.innerHTML=
+    '<div class="pr-modal" role="dialog" aria-modal="true" aria-labelledby="prMTitle">'+
+      '<div class="pr-mhead"><span class="pr-mhead-ic" aria-hidden="true">'+ICO_PLUS+'</span><div>'+
+        '<p class="pr-meyebrow">PHD Resolutions</p><h2 id="prMTitle">Add resolution</h2></div></div>'+
+      '<form id="prForm" novalidate>'+
+        '<div class="pr-field"><label for="prMName">Name</label>'+
+          '<input type="text" id="prMName" maxlength="60" required autocomplete="off" aria-describedby="prMNameHint prMNameErr">'+
+          '<span class="pr-hint" id="prMNameHint">2\u201360 characters: letters, numbers, spaces and &amp; ( ) - \' .</span>'+
+          '<span class="pr-ferr" id="prMNameErr"></span></div>'+
+        '<div class="pr-row2">'+
+          '<div class="pr-field"><label for="prMLk">Likelihood</label><select id="prMLk"><option>High</option><option selected>Low</option></select></div>'+
+          '<div class="pr-field"><label for="prMIm">Impact</label><select id="prMIm"><option>High</option><option selected>Low</option></select></div>'+
+        '</div>'+
+        '<div class="pr-field"><label for="prMPri">Priority</label><select id="prMPri"></select></div>'+
+        '<p class="pr-err" id="prMErr" role="alert"></p>'+
+        '<div class="pr-mact"><button type="button" class="pr-cancel" id="prMCancel">Cancel</button>'+
+          '<button type="submit" class="pr-add" id="prMSave">Save</button></div>'+
+      '</form>'+
+    '</div>';
+  document.body.appendChild(modalBg);
+  modalBg.addEventListener('mousedown',function(e){ if(e.target===modalBg) closeModal(); });
+  document.getElementById('prMCancel').addEventListener('click',closeModal);
+  document.getElementById('prForm').addEventListener('submit',function(e){ e.preventDefault(); save(); });
+  document.getElementById('prMName').addEventListener('input',function(){ fieldErr(''); });
+  modalBg.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ e.preventDefault(); closeModal(); return; }
+    if(e.key!=='Tab') return;
+    var f=Array.prototype.filter.call(modalBg.querySelectorAll('input,select,button'),function(x){ return !x.disabled; });
+    if(!f.length) return;
+    var first=f[0], last=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+  });
+}
+function fieldErr(msg){
+  var inp=document.getElementById('prMName'), e=document.getElementById('prMNameErr');
+  e.textContent=msg||''; if(msg) inp.setAttribute('aria-invalid','true'); else inp.removeAttribute('aria-invalid');
+}
+function setBusy(on){
+  busy=on;
+  ['prMName','prMLk','prMIm','prMPri','prMCancel','prMSave'].forEach(function(id){ document.getElementById(id).disabled=on; });
+  var s=document.getElementById('prMSave');
+  s.innerHTML=on?SPIN+'<span>Saving\u2026</span>':'Save';
+  if(on) s.setAttribute('aria-busy','true'); else s.removeAttribute('aria-busy');
+}
+function openModal(){
+  if(!editorMode()) return;
+  buildModal();
+  lastFocus=document.activeElement;
+  var n=RES.length, opts='';
+  RES.forEach(function(r,i){ opts+='<option value="'+(i+1)+'">'+(i+1)+' \u2014 before '+esc(r.name)+'</option>'; });
+  opts+='<option value="'+(n+1)+'" selected>'+(n+1)+' \u2014 last (least severe)</option>';
+  document.getElementById('prMPri').innerHTML=opts;
+  document.getElementById('prMName').value='';
+  document.getElementById('prMLk').value='Low';
+  document.getElementById('prMIm').value='Low';
+  document.getElementById('prMErr').textContent='';
+  fieldErr(''); setBusy(false);
+  modalBg.classList.add('open');
+  document.getElementById('prMName').focus();
+}
+function closeModal(){
+  if(!modalBg||busy) return;
+  modalBg.classList.remove('open');
+  var back=(lastFocus&&document.body.contains(lastFocus))?lastFocus:document.getElementById('prAdd');
+  if(back) back.focus();
+}
+async function save(){
+  if(busy||!editorMode()) return;
+  var inp=document.getElementById('prMName');
+  var name=String(inp.value||'').trim().replace(/\s+/g,' ');
+  var err='';
+  if(!name) err='Name is required.';
+  else if(name.length<2||name.length>60) err='Name must be 2-60 characters.';
+  else if(!NAME_RE.test(name)) err="Name can only use letters, numbers, spaces and & ( ) - ' .";
+  else if(RES.some(function(r){ return r.name.toLowerCase()===name.toLowerCase(); })) err='Already in the list';
+  if(err){ fieldErr(err); inp.focus(); return; }
+  var body={ name:name, likelihood:document.getElementById('prMLk').value, impact:document.getElementById('prMIm').value, priority:+document.getElementById('prMPri').value };
+  document.getElementById('prMErr').textContent='';
+  setBusy(true);
+  var r=null; try{ r=await A.api('POST','/api/phd-resolutions',body); }catch(e){}
+  setBusy(false);
+  if(r&&r.ok&&Array.isArray(r.data)){
+    setList(r.data.map(fromServer));
+    var added=null; RES.forEach(function(x){ if(x.name.toLowerCase()===name.toLowerCase()) added=x; });
+    FLASH_ID=added?added.id:'';
+    modalBg.classList.remove('open');
+    render();
+    var a=document.getElementById('prAdd'); if(a) a.focus();
+    announce('Added '+name+' at priority '+(added?added.priority:body.priority)+'.');
+    return;
+  }
+  var msg=r?errMsg(r,'Could not add the resolution'):'Could not add the resolution \u2014 network error.';
+  if(r&&(r.status===409||(r.status===400&&/^Name/.test(msg)))){ fieldErr(msg); inp.focus(); }
+  else { document.getElementById('prMErr').textContent=msg; }
+}
+
+liveEl();
+load();
 })();
 </script>
 </body>

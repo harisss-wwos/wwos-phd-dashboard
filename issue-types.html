@@ -3,219 +3,214 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
 <title>Issue Types · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.wrap{padding:32px 24px;width:auto;max-width:1200px;margin:0 auto}
-/* ---- Illustrated gradient banner header (standardization theme: amber/orange) ---- */
-.iz-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:20px;
-  border:1px solid #2a2117;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
-  background:linear-gradient(90deg,#b4530a,#f08a1d 55%,#ffd27a);background-size:200% 100%;animation:izBanner 9s ease infinite}
-@keyframes izBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.iz-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
-.iz-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#2a1706}
-.iz-banner .hb-title svg{flex-shrink:0;color:#2a1706}
-.iz-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:92ch;color:rgba(42,23,6,.84)}
-.iz-banner .hb-sub b{color:#1e1004;font-weight:800}
-.iz-banner .hb-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.iz-banner .hb-total{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.80);border-radius:5px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#2a1706}
-.iz-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
-.iz-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
-.iz-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:200px;
-  background-repeat:no-repeat;background-position:right center;background-size:auto 112%;opacity:.30;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h40l14 14v46a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z"/><path d="M56 10v16h16"/><path d="M26 42l8 8 18-18"/></svg>')}
-@media(max-width:640px){.iz-banner .hb-title{font-size:1.25em}.iz-banner::after{opacity:.18}}
-/* Edit-mode buttons living in the banner (only shown to allowed editors). */
-.iz-ebtn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:5px;font-weight:700;font-size:.82em;cursor:pointer;border:1px solid transparent;font-family:inherit;text-decoration:none;transition:transform .12s,filter .15s}
-.iz-ebtn:hover{transform:translateY(-1px);filter:brightness(1.06)}
-.iz-ebtn svg{width:15px;height:15px}
-.iz-ebtn.primary{background:#1e1004;color:#ffd27a;border-color:rgba(42,23,6,.4)}
-.iz-ebtn.ghost{background:rgba(255,255,255,.82);color:#2a1706}
-.iz-edit-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(30,16,4,.72);color:#ffe3b0;font-size:.72em;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.3px}
-
-/* ================= Taxonomy as a 2-COLUMN CARD GRID ================= */
-/* Masonry-style 2-column grid: each CATEGORY is a self-contained card that ALWAYS shows its header
-   + the list of its incident-type names. Only a type's DETAILS are hidden until the type is clicked.
-   columns layout keeps cards tight to their content (no equal-height stretching / big gaps). */
-.iz-wire{column-count:2;column-gap:16px}
-@media(max-width:860px){.iz-wire{column-count:1}}
-.iz-grp{display:flex;flex-direction:column;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;margin:0 0 16px;background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #26211a;border-top:3px solid #f08a1d;border-radius:5px;overflow:hidden;box-shadow:0 8px 20px -16px rgba(0,0,0,.8);transition:box-shadow .15s}
-.iz-grp:hover{box-shadow:0 10px 26px -14px rgba(0,0,0,.9)}
-/* Category header — static (not clickable); it just labels the card. */
-.iz-cat-col{display:flex}
-.iz-cat-node{display:flex;align-items:center;gap:12px;width:100%;background:rgba(255,255,255,.02);border:none;border-bottom:1px solid #22272e;border-radius:0;padding:14px 18px}
-.iz-cat-node .ic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:5px;background:rgba(240,138,29,.14);color:#ffce8a;flex-shrink:0}
-.iz-cat-txt{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:3px}
-.iz-cat-name{display:block;color:#fff;font-size:1.02em;font-weight:800;line-height:1.25}
-.iz-cat-meta{display:block;color:#9fb6d6;font-size:.74em;font-weight:600;letter-spacing:.2px}
-/* Category edit/delete controls (editors only). */
-.iz-cat-actions{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
-.iz-catbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
-.iz-catbtn:hover{background:rgba(255,255,255,.06);border-color:#ff9900;color:#ff9900}
-.iz-catbtn.del:hover{background:rgba(255,82,82,.14);border-color:#ff5252;color:#ff5252}
-.iz-catbtn svg{width:15px;height:15px}
-/* Type list — always visible inside the card. */
-.iz-type-col{display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px}
-.iz-type{background:#0f1317;border:1px solid #1e242b;border-left:4px solid var(--iz-ac,#e08a1d);border-radius:5px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
-.iz-type:hover{box-shadow:0 6px 18px -12px rgba(0,0,0,.9)}
-.iz-type-head{display:flex;align-items:center;gap:12px;padding:12px 15px;cursor:pointer;user-select:none;transition:background .15s}
-.iz-type-head:hover{background:rgba(255,255,255,.03)}
-.iz-type-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;background:var(--iz-acbg,rgba(240,138,29,.14));color:var(--iz-ac,#e08a1d);flex-shrink:0}
-.iz-type-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
-.iz-type-nrow{display:inline-flex;align-items:center;gap:8px;min-width:0}
-.iz-type-name{color:#eef1f4;font-size:.96em;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Copy-name button — small, appears beside the type name; available to everyone. */
-.iz-copybtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;padding:0;transition:border-color .15s,color .15s,background .15s}
-.iz-copybtn:hover{border-color:#ff9900;color:#ff9900}
-.iz-copybtn.copied{border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,.12)}
-.iz-copybtn svg{width:13px;height:13px}
-.iz-type-desc{color:#8a94a2;font-size:.79em;font-style:italic;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.iz-type-caret{color:var(--tm);display:inline-flex;transition:transform .22s ease;flex-shrink:0}
-.iz-type.open .iz-type-caret{transform:rotate(180deg)}
-.iz-type.open{border-color:var(--iz-ac,#e08a1d)}
-.iz-type-body{max-height:0;overflow:hidden;transition:max-height .32s ease;padding:0 15px}
-.iz-type.open .iz-type-body{max-height:520px;padding:2px 15px 15px}
-.iz-def{border-left:3px solid var(--iz-ac,#e08a1d);background:#0b0d10;border-radius:0 10px 10px 0;padding:4px 2px;margin-top:4px}
-.iz-def-row{display:grid;grid-template-columns:104px 1fr;gap:14px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.05)}
-.iz-def-row:last-child{border-bottom:none}
-.iz-def-k{display:inline-flex;align-items:center;gap:6px;color:#ffb454;font-size:.72em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding-top:2px}
-.iz-def-k svg{width:13px;height:13px}
-.iz-def-k.use{color:#7fe0a0}.iz-def-k.ex{color:#7fdfff}
-.iz-def-v{color:var(--t);font-size:.9em;line-height:1.6}
-.iz-def-v.ex{color:#c9d3dc;font-style:italic}
-/* Row-level edit/delete controls (editors only) */
-.iz-type-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-right:2px}
-.iz-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-.iz-iconbtn:hover{border-color:#ff9900;color:#ff9900}
-.iz-iconbtn.del:hover{border-color:#ff5252;color:#ff5252}
-.iz-iconbtn svg{width:15px;height:15px}
-.iz-addtype{margin-top:6px;display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:5px;border:1px dashed #3a4a5e;background:#101722;color:#9fd0ff;font-weight:600;font-size:.84em;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s}
-.iz-addtype:hover{border-color:#4a86d8;color:#cfe6ff}
-.iz-addtype svg{width:15px;height:15px}
-/* Modal */
-.iz-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:4000;display:none;align-items:center;justify-content:center;padding:20px}
-/* Category icon picker grid (edit-category modal). */
-.iz-icon-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-.iz-icon-opt{display:inline-flex;align-items:center;justify-content:center;width:100%;height:40px;border-radius:5px;border:1px solid #2a3540;background:#141a21;color:#9fb0c3;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-.iz-icon-opt:hover{border-color:#4a86d8;color:#cfe6ff}
-.iz-icon-opt.sel{border-color:#4a86d8;background:#17314f;color:#cfe6ff;box-shadow:0 0 0 2px rgba(74,134,216,.35)}
-.iz-icon-opt svg{width:18px;height:18px}
-.iz-modal-bg.show{display:flex}
-.iz-modal{background:#11161c;border:1px solid #2a3340;border-radius:5px;width:560px;max-width:94vw;max-height:92vh;overflow:auto;padding:24px}
-.iz-modal h2{color:#fff;font-size:1.15em;margin:0 0 4px}
-.iz-modal .sub{color:var(--tm);font-size:.83em;margin:0 0 16px;line-height:1.5}
-.iz-field{margin-bottom:14px}
-.iz-field label{display:block;color:#cdd7de;font-size:.78em;font-weight:700;letter-spacing:.3px;margin-bottom:6px}
-.iz-field input,.iz-field textarea,.iz-field select{width:100%;padding:10px 12px;background:#0a0e12;border:1px solid #2a3340;border-radius:5px;color:#eef1f4;font-size:.9em;font-family:inherit}
-.iz-field input:focus,.iz-field textarea:focus,.iz-field select:focus{outline:none;border-color:#ff9900}
-.iz-field textarea{min-height:70px;resize:vertical;line-height:1.5}
-.iz-field .hint{color:#6b7681;font-size:.74em;margin-top:5px}
-.iz-modal-err{color:#ff6b6b;font-size:.84em;margin-top:10px;display:none}
-.iz-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-.iz-mbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:5px;font-weight:700;font-size:.86em;cursor:pointer;border:none;font-family:inherit}
-.iz-mbtn.primary{background:#ff9900;color:#000}.iz-mbtn.primary:hover{background:#ec7211}
-.iz-mbtn.sec{background:transparent;border:1px solid #2a3340;color:#cdd7de}.iz-mbtn.sec:hover{border-color:#ff9900;color:#ff9900}
-.iz-mbtn.danger{background:#ff5252;color:#fff}.iz-mbtn.danger:hover{background:#e03e3e}
-.iz-mbtn[disabled]{opacity:.5;cursor:not-allowed}
-@media(max-width:720px){
-  .iz-cat-name,.iz-cat-meta{white-space:normal}
-  .iz-def-row{grid-template-columns:1fr;gap:3px}
-}
-.iz-gate{max-width:560px;margin:60px auto;text-align:center}
-.iz-gate h1{color:#fff;font-size:1.5em;margin-bottom:10px}
-.iz-gate p{color:var(--tm);line-height:1.55}
-.iz-loading{color:#6b7681;text-align:center;padding:50px 0;font-size:.9em}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
-<style id="iz-light">
-/* ---- Title bar: white, 60px, black title (overrides the orange gradient banner). ---- */
-.iz-banner{background:#fff!important;border:1px solid #e2e6ea!important;min-height:60px!important;height:60px!important;padding:0 16px!important;margin-bottom:16px!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;animation:none!important;flex-wrap:nowrap!important}
-.iz-banner .hb-title,.iz-banner .hb-title svg{color:#1b2026!important}
-.iz-banner .hb-title{font-size:1.25em!important}
-.iz-banner .hb-total{flex-direction:row!important;align-items:center!important;gap:6px!important;background:#fff4e8!important;color:#b5560c!important;box-shadow:none!important;border:1px solid #f3d4b0!important;padding:5px 14px!important;white-space:nowrap!important}
-.iz-banner .hb-total .n{font-size:1.1em!important}
-.iz-banner .hb-total .l{text-transform:none!important;letter-spacing:0!important}
-.iz-banner::after{display:none!important}             /* drop the watermark on the slim bar */
-/* Edit buttons readable on the white bar: orange primary, outlined ghost. */
-.iz-banner .iz-ebtn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
-.iz-banner .iz-ebtn.ghost{background:#fff!important;color:#b5560c!important;border:1px solid #e2e6ea!important}
-.iz-banner .iz-ebtn.ghost:hover{border-color:#ec7211!important;background:#fff4e8!important}
-/* Content column: kill the injected 14px top gutter (topbar-auth .wrap{padding-top}). */
-#wrap.wrap{padding-top:0!important}
+<style id="izr-light">
+/* Issue Standardization — "field guide": the Errors-in-Resolved hero (dark navy, orange rule, faint grid),
+   a sticky white search/filter bar that overlaps the hero, then one section per category with a tinted
+   header strip and a 3/2/1 grid of white type cards. Everything is scoped under .izr. Breakpoints are
+   viewport media queries (the shell sizes the main column, so a size container is not relied on). */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.izr{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blu:#165f86;--focus:#f0a35a;color:var(--ink)}
+:where(.izr) button{font:inherit;text-transform:none}
+.izr :is(button,a,input,summary):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.izr-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* Grid container is transparent; each CATEGORY CARD gets its own pastel tint (--iz-cbg) + accent
-   (--iz-cac), set per-card inline, so adjacent categories are easy to differentiate. */
-.iz-wire{background:transparent!important;border:none!important;box-shadow:none!important}
-.iz-grp{background:var(--iz-cbg,#fff)!important;border:1px solid #e2e6ea!important;border-top:3px solid var(--iz-cac,#f08a1d)!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.iz-grp:hover{box-shadow:0 10px 26px -18px rgba(20,40,70,.45)!important}
-/* Category card head: slightly darker tint strip + accent-coloured icon tile. */
-.iz-cat-node{background:var(--iz-chd,#fbfcfd)!important;border:none!important;border-bottom:1px solid rgba(0,0,0,.06)!important;box-shadow:none!important}
-.iz-cat-node .ic{background:rgba(255,255,255,.6)!important;color:var(--iz-cac,#b5680c)!important;overflow:hidden}
-.iz-cat-node .ic .iz-cat-img{width:28px;height:28px;object-fit:contain;display:block}
-.iz-cat-name{color:#1b2026!important}
-.iz-cat-meta{color:#5c6773!important}
-/* Category edit/delete buttons on the white head. */
-.iz-catbtn{background:#fff!important;border:1px solid #d4dce4!important;color:#5c6773!important}
-.iz-catbtn:hover{border-color:#ec7211!important;color:#ec7211!important}
-.iz-catbtn.del:hover{border-color:#dc2626!important;color:#dc2626!important}
-/* Type cards (nested inside the tinted category card -> translucent white so they read on any tint). */
-.iz-type{background:rgba(255,255,255,.72)!important;border:1px solid rgba(0,0,0,.08)!important;border-left:4px solid var(--iz-ac,#e08a1d)!important}
-.iz-type-head:hover{background:rgba(255,255,255,.95)!important}
-.iz-type-name{color:#1b2026!important}
-.iz-type-desc{color:#8793a0!important}
-.iz-type-caret{color:#9aa5b1!important}
-/* Definition panel. */
-.iz-def{background:#f7f9fb!important;border-left:3px solid var(--iz-ac,#e08a1d)!important}
-.iz-def-row{border-bottom:1px solid #eef1f4!important}
-.iz-def-k{color:#b5680c!important}
-.iz-def-k.use{color:#1f9d57!important}.iz-def-k.ex{color:#1577a0!important}
-.iz-def-v{color:#2a3340!important}
-.iz-def-v.ex{color:#5c6773!important}
-/* Copy + icon buttons. */
-.iz-copybtn,.iz-iconbtn{background:#fff!important;border:1px solid #d4dce4!important;color:#5c6773!important}
-.iz-copybtn:hover,.iz-iconbtn:hover{border-color:#ec7211!important;color:#ec7211!important}
-.iz-copybtn.copied{border-color:#1f9d57!important;color:#1f9d57!important;background:#eafaf0!important}
-.iz-iconbtn.del:hover{border-color:#dc2626!important;color:#dc2626!important}
-.iz-addtype{background:#eaf4fb!important;border:1px dashed #9fcbe0!important;color:#1577a0!important}
-.iz-addtype:hover{border-color:#1577a0!important;color:#0f5f80!important}
-/* Category edit/delete buttons are on the blue node — keep them light (no override needed). */
-/* Category icon picker (light theme). */
-.iz-icon-opt{background:#f7f9fb!important;border:1px solid #d4dce4!important;color:#5c6773!important}
-.iz-icon-opt:hover{border-color:#1577a0!important;color:#0f5f80!important}
-.iz-icon-opt.sel{border-color:#1577a0!important;background:#eaf4fb!important;color:#0f5f80!important;box-shadow:0 0 0 2px rgba(21,119,160,.25)!important}
-/* Modal. */
-.iz-modal-bg{background:rgba(20,30,45,.55)!important}
-.iz-modal{background:#fff!important;border:1px solid #e2e6ea!important}
-.iz-modal h2{color:#1b2026!important}
-.iz-modal .sub{color:#5c6773!important}
-.iz-field label{color:#2a3340!important}
-.iz-field input,.iz-field textarea,.iz-field select{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-.iz-field input:focus,.iz-field textarea:focus,.iz-field select:focus{border-color:#ec7211!important}
-.iz-field .hint{color:#8793a0!important}
-.iz-modal-err{color:#d33a3a!important}
-.iz-mbtn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important}
-.iz-mbtn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-.iz-mbtn.sec:hover{border-color:#ec7211!important;color:#ec7211!important}
-.iz-mbtn.danger{background:#dc2626!important;color:#fff!important}
-/* Gate + loading. */
-.iz-gate h1{color:#1b2026!important}
-.iz-gate p{color:#5c6773!important}
-.iz-loading{color:#5c6773!important}
+/* ---- Hero ---- */
+.izr-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 76px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.izr-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.izr-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.izr-hero-in{position:relative;display:flex;gap:16px;align-items:flex-start}
+.izr-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.izr-hero-txt{min-width:0;flex:1 1 auto}
+.izr-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.izr-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05;margin:0}
+.izr-hero-sub{margin-top:9px;max-width:72ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.82)}
+.izr-hero-sub b{color:#fff;font-weight:700}
+.izr-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
+.izr-chips li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;
+  color:#e9edf3;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
+.izr-chips li::before{content:'';width:6px;height:6px;border-radius:50%;background:#ffb26b}
+/* Jump nav: quiet glass links, one per category. */
+.izr-jump{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:16px}
+.izr-jump-k{font-size:.64em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.6);margin-right:4px}
+.izr-jump a{display:inline-flex;align-items:center;gap:7px;padding:4px 5px 4px 10px;border-radius:99px;font-size:.76em;font-weight:600;
+  color:rgba(233,237,243,.88);text-decoration:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);transition:background-color .15s,border-color .15s,color .15s}
+.izr-jump a::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--c)}
+.izr-jump a b{min-width:20px;text-align:center;padding:0 6px;border-radius:99px;background:rgba(255,255,255,.1);font-weight:800;font-variant-numeric:tabular-nums}
+.izr-jump a:hover{background:rgba(255,255,255,.1);border-color:rgba(255,178,107,.55);color:#fff}
+
+/* ---- Sticky search / filter bar (overlaps the hero bottom) ---- */
+.izr-bar{position:sticky;top:82px;z-index:30;margin:-48px 18px 22px;display:flex;flex-direction:column;gap:10px;padding:12px 14px;
+  background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);
+  border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.izr-bar-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.izr-search{position:relative;flex:1 1 280px;max-width:520px}
+.izr-search>svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.izr .izr-search input{width:100%;height:40px;font:inherit;font-size:.9em;padding:0 38px 0 38px;border-radius:10px;border:1px solid #d4dade;background:#fff;color:var(--ink);box-shadow:none}
+.izr .izr-search input::placeholder{color:#8793a0}
+.izr .izr-search input:hover{border-color:#c4ccd4}
+.izr .izr-search input:focus{border-color:var(--acc);outline:none;box-shadow:0 0 0 3px rgba(236,114,17,.18)}
+.izr-search input::-webkit-search-cancel-button{display:none}
+.izr-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:#5c6773;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.izr-clear:hover{background:var(--soft);color:var(--ink)}
+.izr-clear[hidden]{display:none}
+.izr-count{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.izr-count b{color:var(--ink);font-weight:800}
+.izr-extog{margin-left:auto;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.izr-extog:hover{border-color:#c4ccd4;background:#fafbfc}
+.izr-extog[aria-pressed="true"]{background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+/* contain:inline-size: the scrolling chip row must not push the (fit-content) main column wider on phones. */
+.izr-fl{display:flex;align-items:center;gap:8px;min-width:0;contain:inline-size}
+.izr-fl-k{flex-shrink:0;font-size:.66em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.izr-fchips{display:flex;gap:6px;min-width:0;overflow-x:auto;padding:4px 2px;margin:-4px 0;scrollbar-width:thin;scrollbar-color:#d4dade transparent}
+.izr-fchip{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 5px 0 11px;border-radius:99px;border:1px solid var(--line);background:var(--soft);
+  font-size:.8em;font-weight:700;color:#3a4552;cursor:pointer;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.izr-fchip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c,#8793a0)}
+.izr-fchip.is-all::before{display:none}
+.izr-fchip.is-all{padding-left:13px}
+.izr-fchip b{min-width:22px;text-align:center;padding:1px 7px;border-radius:99px;background:#fff;border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.izr-fchip:hover{border-color:#c4ccd4;background:#fff}
+.izr-fchip[aria-pressed="true"]{background:#1f2a40;border-color:#1f2a40;color:#fff}
+.izr-fchip[aria-pressed="true"] b{background:var(--acc);border-color:var(--acc);color:#fff}
+.izr-fchip.is-zero:not([aria-pressed="true"]){color:#8793a0}
+.izr .izr-fchip:focus-visible{outline-offset:1px}
+
+/* ---- Category sections ---- */
+.izr-list{display:flex;flex-direction:column;gap:28px;padding:0 2px}
+/* No data -> no overlapping bar: close the hero and give the error card its own spacing. */
+.izr.is-nobar .izr-hero{padding-bottom:26px}
+.izr.is-nobar .izr-list{margin-top:16px}
+.izr-cat{scroll-margin-top:200px}
+.izr-cat-h{display:flex;align-items:center;gap:14px;padding:12px 18px 12px 14px;border-radius:12px;border:1px solid var(--line);border-left:4px solid var(--c);
+  background:linear-gradient(90deg,var(--cbg),#fff 75%);box-shadow:0 2px 10px -8px rgba(20,30,50,.25)}
+div.izr-cat-h{margin-bottom:12px}
+/* Collapsible category: the whole header row is the toggle button (inside the h2). */
+.izr .izr-cat-hh{margin:0;font-size:1em;font-weight:inherit;letter-spacing:0;line-height:inherit}
+.izr button.izr-cat-h{width:100%;text-align:left;color:inherit;cursor:pointer;transition:border-color .15s,box-shadow .2s}
+.izr button.izr-cat-h:hover{border-color:#cfd6dd;box-shadow:0 10px 24px -18px rgba(20,30,50,.55)}
+.izr-cat-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.izr-cat-chev svg{transition:transform .15s}
+.izr-cat-h[aria-expanded="true"] .izr-cat-chev svg{transform:rotate(90deg)}
+.izr-cat-h:hover .izr-cat-chev{background:#e6f0fc;color:#2b66c1}
+/* Smooth height: 0fr -> 1fr grid rows. Collapsed content is visibility:hidden (out of tab order + AT). */
+.izr-cat-b{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .28s ease,visibility 0s linear .28s}
+.izr-cat.is-open .izr-cat-b{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .28s ease,visibility 0s linear 0s}
+.izr-cat-in{min-height:0;overflow:hidden}
+.izr-cat-in>.izr-grid{padding-top:12px}
+.izr-list.is-cats{gap:12px}
+.izr-cat-in>.izr-grid{padding-bottom:16px}
+.izr-xc{display:inline-flex;align-items:center;gap:6px}
+.izr-xc .izr-extog{margin-left:0}
+.izr-cat-tile{width:46px;height:46px;flex-shrink:0;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(0,0,0,.06);color:var(--c);overflow:hidden}
+.izr-cat-tile img{width:32px;height:32px;object-fit:contain;display:block}
+.izr-cat-txt{flex:1 1 auto;min-width:0}
+.izr .izr-cat-txt h2,.izr-cat-name{display:block;margin:0;font-size:1.18em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
+.izr .izr-cat-txt h2:focus{outline:none}
+.izr-cat-sub{display:block;margin-top:2px;font-size:.8em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums}
+.izr-cat-no{flex-shrink:0;font-size:1.5em;font-weight:800;letter-spacing:-.8px;color:rgba(27,32,38,.18);font-variant-numeric:tabular-nums}
+.izr-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:760px){.izr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1240px){.izr-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ---- Issue-type card ---- */
+.izr-type{position:relative;display:flex;flex-direction:column;gap:12px;height:100%;padding:18px 18px 14px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);transition:border-color .15s,box-shadow .2s}
+.izr-type::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--c)}
+.izr-type:hover{border-color:#cfd6dd;box-shadow:0 14px 30px -22px rgba(20,30,50,.6)}
+.izr-type-top{display:flex;align-items:flex-start;gap:12px}
+.izr-type-ic{width:38px;height:38px;flex-shrink:0;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:var(--tbg);color:var(--t)}
+.izr-type-ttl{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.izr .izr-type-name{margin:0;font-size:1.02em;font-weight:800;letter-spacing:-.2px;line-height:1.25;color:var(--ink);overflow-wrap:anywhere}
+.izr-tag{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:2px 9px;border-radius:99px;background:var(--cbg);border:1px solid rgba(0,0,0,.06);
+  font-size:.7em;font-weight:700;color:#3a4552;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.izr-tag::before{content:'';width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--c)}
+.izr-copy{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#5c6773;
+  font-size:.74em;font-weight:700;cursor:pointer;transition:border-color .15s,color .15s,background-color .15s}
+.izr-copy:hover{border-color:var(--acc);color:var(--acc-ink);background:var(--acc-bg)}
+.izr-copy.copied{border-color:#9fd5b5;color:var(--grn);background:var(--grn-bg)}
+.izr-desc{font-size:.84em;font-weight:600;line-height:1.45;color:var(--mut)}
+.izr-def{display:flex;flex-direction:column;gap:10px;margin:0}
+.izr-def>div{display:flex;flex-direction:column;gap:4px}
+.izr-def dt{display:inline-flex;align-items:center;gap:6px;font-size:.66em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--acc-ink)}
+.izr-def dd{margin:0;font-size:.88em;line-height:1.58;color:#2a3340}
+.izr-def .is-use{padding:9px 12px;border-radius:8px;background:#f2faf5;border:1px solid #d3eedd}
+.izr-def .is-use dt{color:var(--grn)}
+.izr-ex{margin-top:auto;border-top:1px dashed #dde2e7;padding-top:8px}
+.izr-ex summary{list-style:none;display:flex;align-items:center;gap:8px;margin:0 -6px;padding:5px 6px;border-radius:7px;cursor:pointer;
+  font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--blu);user-select:none}
+.izr-ex summary::-webkit-details-marker{display:none}
+.izr-ex summary:hover{background:#eef6fb}
+.izr-ex summary .izr-chev{margin-left:auto;display:inline-flex;color:#818284;transition:transform .15s}
+.izr-ex[open] summary .izr-chev{transform:rotate(180deg)}
+.izr-ex p{margin:6px 0 2px;padding:9px 12px;border-radius:0 8px 8px 0;border-left:3px solid #4a9cc4;background:#f2f8fc;font-size:.86em;line-height:1.55;font-style:italic;color:#2a3340}
+.izr mark{background:#ffe2c2;color:inherit;border-radius:3px;padding:0 1px;box-shadow:0 0 0 1px #f7c99c}
+
+/* ---- States ---- */
+.izr-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px 20px;text-align:center;color:var(--mut);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18)}
+.izr-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:4px}
+.izr-state-ic.is-err{background:var(--red-bg);color:var(--red)}
+.izr .izr-state-t{font-size:1.08em;font-weight:800;color:var(--ink)}
+.izr-state p{font-size:.9em;max-width:52ch;line-height:1.5}
+.izr-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background-color .15s}
+.izr-btn:hover{background:#0f1420}
+.izr-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:izrShim 1.4s ease infinite}
+.izr-skel-card{display:flex;flex-direction:column;gap:10px;padding:18px;background:#fff;border:1px solid var(--line);border-radius:12px}
+@keyframes izrShim{0%{background-position:100% 0}100%{background-position:0 0}}
+
+/* ---- Motion: one orchestrated entrance (hero, bar, then sections) ---- */
+@keyframes izrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.izr.is-anim .izr-hero{animation:izrUp .45s ease both}
+.izr.is-anim .izr-bar{animation:izrUp .5s ease .1s both}
+.izr.is-anim .izr-cat{animation:izrUp .5s ease both;animation-delay:calc(.18s + var(--i,0) * .05s)}
+@media (prefers-reduced-motion:reduce){
+  .izr *,.izr *::before,.izr *::after{animation:none!important;transition:none!important}
+}
+
+/* ---- Small widths ---- */
+@media (max-width:700px){
+  .izr-hero{padding:22px 18px 76px 22px}
+  .izr-hero-ic{display:none}
+  .izr-hero h1{font-size:1.55em;letter-spacing:-.5px}
+  .izr-hero-sub{font-size:.86em}
+  .izr-jump{display:none}
+  .izr-bar{margin:-50px 8px 18px;padding:10px}
+  .izr-search{flex-basis:100%;max-width:none}
+  .izr-extog{margin-left:0}
+  .izr-fl-k{display:none}
+  .izr-cat-h{padding:10px 12px}
+  .izr-cat-no{display:none}
+  .izr-copy span{display:none}
+  .izr-copy{width:30px;padding:0;justify-content:center}
+}
 </style>
 </head>
 <body data-nav-active="issue-types" data-back-href="app.html" data-back-label="Dashboard">
@@ -227,63 +222,95 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
-const A=window.PHDAuth;
-const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+(function(){
+var ic=function(n,s){ return window.icon?window.icon(n,s||14):''; };
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function $(id){ return document.getElementById(id); }
+var REDUCED=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Inline icons for the def/use/example row markers.
-var ICO_DEF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 10h12M4 15h8"/><circle cx="19" cy="15" r="2"/></svg>';
-var ICO_USE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>';
-var ICO_EX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10c-.7.7-1 1.3-1 2H9c0-.7-.3-1.3-1-2a6 6 0 0 1 4-10z"/></svg>';
-var ICO_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-var ICO_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+// Inline glyphs (decorative; aria-hidden).
+function svg(p,s,w){ return '<svg width="'+(s||14)+'" height="'+(s||14)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||2)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+p+'</svg>'; }
+var ICO_DOC=svg('<path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 13l3 3 5-5"/>',24);
+var ICO_SEARCH=svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>',16);
+var ICO_X=svg('<path d="M6 6l12 12M18 6L6 18"/>',14);
+var ICO_DEF=svg('<path d="M4 5h12M4 10h12M4 15h8"/><circle cx="19" cy="15" r="2"/>',12);
+var ICO_USE=svg('<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>',12);
+var ICO_EX=svg('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10c-.7.7-1 1.3-1 2H9c0-.7-.3-1.3-1-2a6 6 0 0 1 4-10z"/>',13);
+var ICO_CHEV=svg('<path d="M6 9l6 6 6-6"/>',14);
+// Same right-pointing chevron as errors-in-resolved.html's expanders (rotates 90deg when open).
+var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var ICO_COPY=svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',13);
+var ICO_CHECK=svg('<path d="M20 6L9 17l-5-5"/>',13,2.4);
+var ICO_ALERT=svg('<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',26);
+var ICO_EMPTY=svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M8 11h6"/>',26);
+var ICO_RETRY=svg('<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',15);
 
-// Soft pastel palette for category cards (rotates per category so each is easy to tell apart).
-// bg = card background tint, hd = slightly darker header strip, ac = top-border + icon accent.
+// Category accent palette (rotates per category). bg = header/tag tint, ac = top border, dot + rule.
 var IZ_PALETTE=[
-  { bg:'#fff4e9', hd:'#ffe9d4', ac:'#f0820f' }, // amber
-  { bg:'#eaf4fb', hd:'#d9ecf8', ac:'#1577a0' }, // blue
-  { bg:'#eafaf0', hd:'#d6f2e1', ac:'#1f9d57' }, // green
-  { bg:'#f3eefc', hd:'#e7dcfa', ac:'#7c5cf0' }, // purple
-  { bg:'#fdeef0', hd:'#fbdce0', ac:'#dc2626' }, // red/rose
-  { bg:'#eef7f9', hd:'#dcedf1', ac:'#0e9aa7' }, // teal
-  { bg:'#fdf6e3', hd:'#f8ecc5', ac:'#c99a06' }, // gold
-  { bg:'#f1f0fb', hd:'#e2e0f6', ac:'#5b5bd6' }, // indigo
-  { bg:'#fef0f7', hd:'#fbd9ec', ac:'#c026a6' }, // pink
-  { bg:'#eef6ee', hd:'#dcecdc', ac:'#4a8f4a' }  // sage
+  { bg:'#fff4e9', ac:'#f0820f' }, { bg:'#eaf4fb', ac:'#1577a0' }, { bg:'#eafaf0', ac:'#1f9d57' },
+  { bg:'#f3eefc', ac:'#7c5cf0' }, { bg:'#fdeef0', ac:'#dc2626' }, { bg:'#eef7f9', ac:'#0e9aa7' },
+  { bg:'#fdf6e3', ac:'#c99a06' }, { bg:'#f1f0fb', ac:'#5b5bd6' }, { bg:'#fef0f7', ac:'#c026a6' },
+  { bg:'#eef6ee', ac:'#4a8f4a' }
 ];
-
-// Taxonomy comes from the shared file issue-types-data.js (window.IZ_CATS), so this page
-// and the Build-Root-Cause-Details converter on tools.html stay in sync.
-var IZ_CATS = window.IZ_CATS || [];
-function izTotalTypes(){ return IZ_CATS.reduce(function(s,c){return s+c.types.length;},0); }
+function pal(gi){ return IZ_PALETTE[gi%IZ_PALETTE.length]; }
 function izTint(hex){
   var m=/^#?([0-9a-f]{6})$/i.exec(String(hex||'').trim()); if(!m) return 'rgba(240,138,29,.14)';
-  var n=parseInt(m[1],16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+',.14)';
+  var n=parseInt(m[1],16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+',.13)';
+}
+function pad2(n){ return (n<10?'0':'')+n; }
+
+// Taxonomy comes from the shared, read-only issue-types-data.js (window.IZ_CATS), so this page and the
+// Build-Root-Cause-Details converter stay in sync.
+var IZ_CATS=window.IZ_CATS||[];
+function total(){ return IZ_CATS.reduce(function(s,c){ return s+c.types.length; },0); }
+
+// ---- View state ----
+var S={q:'',cat:-1,exAll:false};
+var EXOPEN={};          // "gi_ti" -> example disclosure opened by the user
+// Category expand state, never persisted (always collapsed on load). OPEN = the normal state;
+// SOPEN = overrides while a search is active (matching categories default to open). SOPEN is
+// dropped when the search is cleared, so the page returns to the OPEN state.
+var OPEN={}, SOPEN={};
+var announceT=null;
+
+function tokens(){ return S.q.trim().toLowerCase().split(/\s+/).filter(Boolean); }
+function isOpen(gi){ return tokens().length ? (gi in SOPEN ? SOPEN[gi] : true) : !!OPEN[gi]; }
+// Record + apply a category's state in place (no re-render, so the height transition runs).
+function setOpen(gi,v){
+  if(tokens().length) SOPEN[gi]=v; else OPEN[gi]=v;
+  var sec=$('izGrp'+gi), b=$('izCatH'+gi);
+  if(sec) sec.classList.toggle('is-open',v);
+  if(b) b.setAttribute('aria-expanded',String(v));
+}
+function reEsc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function hay(cat,ty){ return [ty.type,ty.desc,ty.def,ty.use,ty.ex,cat.category].join(' ').toLowerCase(); }
+function matches(cat,ty,tk){ if(!tk.length) return true; var h=hay(cat,ty); return tk.every(function(t){ return h.indexOf(t)>=0; }); }
+// Escape + wrap search hits in <mark>.
+function hl(s,rx){
+  s=String(s==null?'':s); if(!rx) return esc(s);
+  return s.split(rx).map(function(p,i){ return i%2?'<mark>'+esc(p)+'</mark>':esc(p); }).join('');
 }
 
-// Categories + their type names are ALWAYS shown. Only a type's DETAILS collapse. Within one
-// category card, only ONE type is expanded at a time (see izToggleType).
 // Copy an incident type's NAME to the clipboard; briefly flash a check mark. Available to everyone.
 function izCopyType(gi,ti,btn,ev){
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
   var cat=IZ_CATS[gi]; if(!cat) return; var ty=cat.types[ti]; if(!ty) return;
   var text=String(ty.type||'');
   var done=function(ok){
-    if(!btn) return;
-    if(ok){
-      var orig=btn.innerHTML;
-      btn.innerHTML=ICO_CHECK; btn.classList.add('copied'); btn.title='Copied!';
-      setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); btn.title='Copy incident type name'; }, 1300);
-    }
+    if(!btn||!ok) return;
+    var orig=btn.innerHTML;
+    btn.innerHTML=ICO_CHECK+'<span>Copied</span>'; btn.classList.add('copied');
+    say('Copied \u201c'+text+'\u201d to the clipboard.');
+    setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); }, 1300);
   };
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ izCopyFallback(text,done); });
   } else { izCopyFallback(text,done); }
 }
-// Fallback copy for insecure contexts / older browsers (uses a hidden textarea + execCommand).
+window.izCopyType=izCopyType;
+// Fallback copy for insecure contexts / older browsers (hidden textarea + execCommand).
 function izCopyFallback(text,done){
   try{
     var ta=document.createElement('textarea'); ta.value=text;
@@ -292,72 +319,196 @@ function izCopyFallback(text,done){
     var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok);
   }catch(e){ done(false); }
 }
-// Within an open category card, only ONE incident type is expanded at a time.
-function izToggleType(gi,ti,ev){
-  if(ev) ev.stopPropagation();
-  var grp=document.getElementById('izGrp'+gi); if(!grp) return;
-  var el=document.getElementById('izType'+gi+'_'+ti); if(!el) return;
-  var wasOpen=el.classList.contains('open');
-  grp.querySelectorAll('.iz-type.open').forEach(function(s){ s.classList.remove('open'); });
-  if(!wasOpen) el.classList.add('open');
+
+function say(msg){ var l=$('izLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+
+// ---------- Hero ----------
+function heroHtml(){
+  var n=total(), c=IZ_CATS.length;
+  var jump=IZ_CATS.map(function(cat,gi){
+    return '<a href="#izGrp'+gi+'" data-jump="'+gi+'" style="--c:'+pal(gi).ac+'">'+esc(cat.category)+'<b>'+cat.types.length+'</b></a>';
+  }).join('');
+  return '<header class="izr-hero"><div class="izr-hero-in"><span class="izr-hero-ic">'+ICO_DOC+'</span><div class="izr-hero-txt">'+
+    '<p class="izr-eyebrow">Reference guide \u00b7 Issue standardization</p><h1>Issue Type Standardization</h1>'+
+    '<p class="izr-hero-sub">Every PHD incident type, grouped by category, with what it means, when to use it and an example. '+
+      'Use these names <b>exactly as written</b> in ticket titles and on the <b>Issue:</b> line of the SIM root cause details.</p>'+
+    '<ul class="izr-chips" aria-label="About this guide"><li>'+(n||'\u2014')+' issue types \u00b7 '+(c||'\u2014')+' categories</li><li>Copy-ready names</li><li>Read-only reference</li></ul>'+
+    (c?'<nav class="izr-jump" aria-label="Jump to a category"><span class="izr-jump-k">Jump to</span>'+jump+'</nav>':'')+
+    '</div></div></header>';
 }
 
-// ---- Render ------------------------------------------------------------------------------------
-function render(){
-  var docGlyph='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 13l3 3 5-5"/></svg>';
-  var html='<div class="iz-banner">'
-    +'<div class="hb-left">'
-      +'<h1 class="hb-title">'+docGlyph+'Issue Type Standardization</h1>'
-    +'</div>'
-    +'<div class="hb-right">'
-      +'<div class="hb-total"><span class="n">'+izTotalTypes()+'</span><span class="l">incident types</span></div>'
-    +'</div>'
-  +'</div>';
-  html+='<div class="iz-wire">';
+// ---------- Search / filter bar ----------
+function barHtml(){
+  var chips='<button type="button" class="izr-fchip is-all" data-cat="-1" aria-pressed="true">All<b id="izCnt-1">'+total()+'</b></button>'+
+    IZ_CATS.map(function(cat,gi){
+      return '<button type="button" class="izr-fchip" data-cat="'+gi+'" aria-pressed="false" style="--c:'+pal(gi).ac+'">'+esc(cat.category)+'<b id="izCnt'+gi+'">'+cat.types.length+'</b></button>';
+    }).join('');
+  return '<div class="izr-bar" role="search" aria-label="Search and filter issue types">'+
+    '<div class="izr-bar-row">'+
+      '<div class="izr-search">'+ICO_SEARCH+'<label class="izr-sr" for="izQ">Search issue types</label>'+
+        '<input id="izQ" type="search" autocomplete="off" spellcheck="false" placeholder="Search types, definitions, examples" aria-describedby="izCount">'+
+        '<button type="button" class="izr-clear" id="izClear" aria-label="Clear search" hidden>'+ICO_X+'</button></div>'+
+      '<p class="izr-count" id="izCount"></p>'+
+      '<div class="izr-xc" role="group" aria-label="Categories" style="margin-left:auto">'+
+        '<button type="button" class="izr-extog" id="izOpenAll">Expand all</button>'+
+        '<button type="button" class="izr-extog" id="izShutAll">Collapse all</button></div>'+
+      '<button type="button" class="izr-extog" id="izExAll" aria-pressed="false" style="margin-left:0">'+ICO_EX+'<span>Show all examples</span></button>'+
+    '</div>'+
+    '<div class="izr-fl"><span class="izr-fl-k" id="izFlK">Category</span><div class="izr-fchips" role="group" aria-labelledby="izFlK">'+chips+'</div></div>'+
+  '</div>';
+}
+
+// ---------- Cards ----------
+function cardHtml(cat,gi,ty,ti,rx,tk){
+  var key=gi+'_'+ti, ac=ty.color||'#e08a1d';
+  var exHit=!!(tk.length&&tk.some(function(t){ return String(ty.ex||'').toLowerCase().indexOf(t)>=0; }));
+  var open=S.exAll||EXOPEN[key]||exHit;
+  return '<li><article class="izr-type" id="izType'+key+'" aria-labelledby="izTn'+key+'" style="--t:'+ac+';--tbg:'+izTint(ac)+'">'+
+    '<div class="izr-type-top"><span class="izr-type-ic" aria-hidden="true">'+(ic(ty.icon,18)||'\u25cf')+'</span>'+
+      '<div class="izr-type-ttl"><h3 class="izr-type-name" id="izTn'+key+'">'+hl(ty.type,rx)+'</h3><span class="izr-tag">'+esc(cat.category)+'</span></div>'+
+      '<button type="button" class="izr-copy" aria-label="Copy issue type name: '+esc(ty.type)+'" title="Copy the exact name" onclick="izCopyType('+gi+','+ti+',this,event)">'+ICO_COPY+'<span>Copy</span></button>'+
+    '</div>'+
+    (ty.desc?'<p class="izr-desc">'+hl(ty.desc,rx)+'</p>':'')+
+    '<dl class="izr-def">'+
+      '<div><dt>'+ICO_DEF+'Definition</dt><dd>'+hl(ty.def||'\u2014',rx)+'</dd></div>'+
+      '<div class="is-use"><dt>'+ICO_USE+'Use when</dt><dd>'+hl(ty.use||'\u2014',rx)+'</dd></div>'+
+    '</dl>'+
+    '<details class="izr-ex" data-key="'+key+'"'+(open?' open':'')+'><summary>'+ICO_EX+'Example<span class="izr-chev">'+ICO_CHEV+'</span></summary>'+
+      '<p>'+hl(ty.ex||'\u2014',rx)+'</p></details>'+
+  '</article></li>';
+}
+
+function renderList(){
+  var tk=tokens(), rx=tk.length?new RegExp('('+tk.map(reEsc).join('|')+')','gi'):null;
+  var html='', shown=0, i=0, all=0;
   IZ_CATS.forEach(function(cat,gi){
-    var n=cat.types.length;
-    var catIc=cat.catIcon||'alert';
-    // Soft pastel background + matching accent per category, rotating through the palette so adjacent
-    // cards differ. {bg: card tint, hd: header strip, ac: top-border/icon accent}.
-    var pal=IZ_PALETTE[gi%IZ_PALETTE.length];
-    html+='<div class="iz-grp" id="izGrp'+gi+'" style="--iz-cbg:'+pal.bg+';--iz-chd:'+pal.hd+';--iz-cac:'+pal.ac+'">'
-      +'<div class="iz-cat-col">'
-        +'<div class="iz-cat-node">'
-          +'<span class="ic">'+(cat.catImg?('<img class="iz-cat-img" src="'+esc(cat.catImg)+'" alt="">'):(ic(catIc,20)||'\u25cf'))+'</span>'
-          +'<span class="iz-cat-txt"><span class="iz-cat-name">'+esc(cat.category)+'</span>'
-            +'<span class="iz-cat-meta">'+n+' incident type'+(n===1?'':'s')+'</span></span>'
-        +'</div>'
-      +'</div>'
-      +'<div class="iz-type-col">';
-    cat.types.forEach(function(ty,ti){
-      var ac=ty.color||'#e08a1d';
-      html+='<div class="iz-type" id="izType'+gi+'_'+ti+'" style="--iz-ac:'+ac+';--iz-acbg:'+izTint(ac)+';--d:'+(ti*55)+'ms">'
-        +'<div class="iz-type-head" onclick="izToggleType('+gi+','+ti+',event)">'
-          +'<span class="iz-type-ic">'+(ic(ty.icon,17)||'\u25cf')+'</span>'
-          +'<span class="iz-type-main">'
-            +'<span class="iz-type-nrow"><span class="iz-type-name">'+esc(ty.type)+'</span>'
-              +'<button class="iz-copybtn" type="button" title="Copy incident type name" aria-label="Copy incident type name" onclick="izCopyType('+gi+','+ti+',this,event)">'+ICO_COPY+'</button></span>'
-            +(ty.desc?'<span class="iz-type-desc">'+esc(ty.desc)+'</span>':'')+'</span>'
-          +'<span class="iz-type-caret">\u25be</span>'
-        +'</div>'
-        +'<div class="iz-type-body">'
-          +'<div class="iz-def">'
-            +'<div class="iz-def-row"><span class="iz-def-k">'+ICO_DEF+'Definition</span><span class="iz-def-v">'+esc(ty.def||'\u2014')+'</span></div>'
-            +'<div class="iz-def-row"><span class="iz-def-k use">'+ICO_USE+'Use when</span><span class="iz-def-v">'+esc(ty.use||'\u2014')+'</span></div>'
-            +'<div class="iz-def-row"><span class="iz-def-k ex">'+ICO_EX+'Example</span><span class="iz-def-v ex">'+esc(ty.ex||'\u2014')+'</span></div>'
-          +'</div>'
-        +'</div>'
-      +'</div>';
-    });
-    html+='</div></div>';   // close .iz-type-col, .iz-grp
+    var items=[];
+    cat.types.forEach(function(ty,ti){ if(matches(cat,ty,tk)) items.push(ti); });
+    all+=items.length;
+    var cnt=$('izCnt'+gi); if(cnt){ cnt.textContent=items.length; cnt.parentNode.classList.toggle('is-zero',!items.length); }
+    if(S.cat>=0&&S.cat!==gi) return;
+    if(!items.length) return;
+    shown+=items.length;
+    var p=pal(gi), n=cat.types.length;
+    var op=isOpen(gi);
+    html+='<section class="izr-cat'+(op?' is-open':'')+'" id="izGrp'+gi+'" aria-labelledby="izCatH'+gi+'" style="--c:'+p.ac+';--cbg:'+p.bg+';--i:'+(i++)+'">'+
+      '<h2 class="izr-cat-hh"><button type="button" class="izr-cat-h" id="izCatH'+gi+'" data-cat-tog="'+gi+'" aria-expanded="'+op+'" aria-controls="izCatB'+gi+'">'+
+        '<span class="izr-cat-chev">'+CHEV+'</span>'+
+        '<span class="izr-cat-tile" aria-hidden="true">'+(cat.catImg?'<img src="'+esc(cat.catImg)+'" alt="">':(ic(cat.catIcon||'alert',22)||'\u25cf'))+'</span>'+
+        '<span class="izr-cat-txt"><span class="izr-cat-name">'+esc(cat.category)+'</span>'+
+        '<span class="izr-cat-sub">'+(items.length===n?n+' type'+(n===1?'':'s'):items.length+' of '+n+' types match')+'</span></span>'+
+        '<span class="izr-cat-no" aria-hidden="true">'+pad2(gi+1)+'</span></button></h2>'+
+      '<div class="izr-cat-b" id="izCatB'+gi+'"><div class="izr-cat-in">'+
+      '<ul class="izr-grid">'+items.map(function(ti){ return cardHtml(cat,gi,cat.types[ti],ti,rx,tk); }).join('')+'</ul>'+
+    '</div></div></section>';
   });
-  html+='</div>';
-  document.getElementById('wrap').innerHTML=html;
+  var allCnt=$('izCnt-1'); if(allCnt){ allCnt.textContent=all; allCnt.parentNode.classList.toggle('is-zero',!all); }
+  if(!shown){
+    var what=S.q.trim()?'\u201c'+esc(S.q.trim())+'\u201d':'this filter';
+    html='<div class="izr-state"><span class="izr-state-ic">'+ICO_EMPTY+'</span><p class="izr-state-t">No issue types match '+what+'</p>'+
+      '<p>Try a shorter word, or search a different part of the definition or example.</p>'+
+      '<button type="button" class="izr-btn" id="izReset">Clear search and filters</button></div>';
+  }
+  $('izList').innerHTML=html;
+  $('izList').classList.toggle('is-cats',!!shown);
+  var T=total();
+  $('izCount').innerHTML=(shown===T?'<b>'+T+'</b> issue types':'Showing <b>'+shown+'</b> of '+T);
+  document.querySelectorAll('.izr-fchip').forEach(function(b){ b.setAttribute('aria-pressed',String(+b.getAttribute('data-cat')===S.cat)); });
+  $('izClear').hidden=!S.q;
+  clearTimeout(announceT);
+  announceT=setTimeout(function(){ say(shown===T?'Showing all '+T+' issue types.':shown+' of '+T+' issue types shown.'); },450);
 }
 
-// ================= RENDER =======================================================================
-// Data is hardcoded and read-only, so just render the categories directly on load.
-render();
+function resetFilters(){ S.q=''; S.cat=-1; SOPEN={}; var q=$('izQ'); if(q) q.value=''; renderList(); }
+
+// ---------- Error / loading states (the taxonomy file failed to load) ----------
+function skeletonHtml(){
+  var card='<li class="izr-skel-card"><span class="izr-skel" style="width:60%;height:16px"></span><span class="izr-skel" style="width:35%;height:12px"></span>'+
+    '<span class="izr-skel" style="width:100%;height:11px"></span><span class="izr-skel" style="width:92%;height:11px"></span><span class="izr-skel" style="width:70%;height:11px"></span></li>';
+  return '<section class="izr-cat" aria-hidden="true"><div class="izr-cat-h" style="--c:#c4ccd4;--cbg:#f5f6f8"><span class="izr-skel" style="width:46px;height:46px;border-radius:10px"></span>'+
+    '<div class="izr-cat-txt"><span class="izr-skel" style="width:180px;height:16px"></span><span class="izr-skel" style="width:90px;height:11px;margin-top:6px"></span></div></div>'+
+    '<ul class="izr-grid">'+card+card+card+'</ul></section>';
+}
+function errorHtml(){
+  return '<div class="izr-state" role="alert"><span class="izr-state-ic is-err">'+ICO_ALERT+'</span><p class="izr-state-t">The issue types didn\u2019t load</p>'+
+    '<p>The reference list couldn\u2019t be read from the dashboard server. Check your connection, then try again.</p>'+
+    '<button type="button" class="izr-btn" id="izRetry">'+ICO_RETRY+'Retry</button></div>';
+}
+function retry(){
+  var list=$('izList'); list.setAttribute('aria-busy','true'); list.innerHTML=skeletonHtml(); say('Loading issue types\u2026');
+  var s=document.createElement('script'); s.src='issue-types-data.js?v=4&r='+Date.now();
+  s.onload=function(){ IZ_CATS=window.IZ_CATS||[]; boot(); };
+  s.onerror=function(){ list.removeAttribute('aria-busy'); list.innerHTML=errorHtml(); say('The issue types still could not be loaded.'); };
+  document.body.appendChild(s);
+}
+
+// ---------- Boot + events ----------
+function boot(){
+  var ok=IZ_CATS.length>0;
+  $('wrap').innerHTML='<main class="izr'+(REDUCED?'':' is-anim')+(ok?'':' is-nobar')+'" id="izMain">'+heroHtml()+(ok?barHtml():'')+
+    '<p class="izr-sr" aria-live="polite" id="izLive"></p><div class="izr-list" id="izList">'+(ok?'':errorHtml())+'</div></main>';
+  if(ok){
+    var hm=/^#izGrp(\d+)$/.exec(location.hash); if(hm) OPEN[+hm[1]]=true;   // deep link opens its section
+    renderList(); if(hm){ var t=document.querySelector(location.hash); if(t) t.scrollIntoView(); }
+  }
+  else say('The issue types could not be loaded.');
+}
+
+document.addEventListener('input',function(e){
+  if(e.target&&e.target.id==='izQ'){ S.q=e.target.value; if(!tokens().length) SOPEN={}; renderList(); }
+});
+document.addEventListener('keydown',function(e){
+  if(e.target&&e.target.id==='izQ'&&e.key==='Escape'&&e.target.value){ e.preventDefault(); S.q=''; SOPEN={}; e.target.value=''; renderList(); }
+});
+document.addEventListener('click',function(e){
+  var t=e.target; if(!t||!t.closest) return;
+  var tog=t.closest('[data-cat-tog]');
+  if(tog){ var g=+tog.getAttribute('data-cat-tog'); setOpen(g,tog.getAttribute('aria-expanded')!=='true'); return; }
+  var all=t.closest('#izOpenAll,#izShutAll');
+  if(all){
+    var v=all.id==='izOpenAll';
+    IZ_CATS.forEach(function(c,gi){ setOpen(gi,v); });
+    say(v?'All categories expanded.':'All categories collapsed.');
+    return;
+  }
+  var chip=t.closest('.izr-fchip');
+  if(chip){
+    var c=+chip.getAttribute('data-cat'); S.cat=(S.cat===c&&c>=0)?-1:c;
+    if(S.cat>=0){ if(tokens().length) SOPEN[S.cat]=true; else OPEN[S.cat]=true; }   // a single category opens
+    renderList(); return;
+  }
+  if(t.closest('#izClear')){ S.q=''; SOPEN={}; var q=$('izQ'); q.value=''; renderList(); q.focus(); return; }
+  if(t.closest('#izReset')){ resetFilters(); var q2=$('izQ'); if(q2) q2.focus(); return; }
+  if(t.closest('#izRetry')){ retry(); return; }
+  var ex=t.closest('#izExAll');
+  if(ex){
+    S.exAll=!S.exAll; EXOPEN={};
+    ex.setAttribute('aria-pressed',String(S.exAll)); ex.querySelector('span').textContent=S.exAll?'Hide all examples':'Show all examples';
+    document.querySelectorAll('.izr-ex').forEach(function(d){ d.open=S.exAll; });
+    return;
+  }
+  var j=t.closest('[data-jump]');
+  if(j){
+    e.preventDefault();
+    var gi=+j.getAttribute('data-jump');
+    if(!$('izGrp'+gi)){ S.q=''; S.cat=-1; SOPEN={}; var q3=$('izQ'); if(q3) q3.value=''; renderList(); }
+    var sec=$('izGrp'+gi); if(!sec) return;
+    setOpen(gi,true);
+    sec.scrollIntoView({behavior:REDUCED?'auto':'smooth',block:'start'});
+    var h=$('izCatH'+gi); if(h) h.focus({preventScroll:true});
+    try{ history.replaceState(null,'','#izGrp'+gi); }catch(err){}
+  }
+});
+// Remember examples a user opened one by one (summary click/Enter/Space all fire click), so they survive
+// re-renders while searching. A 'toggle' listener would also catch disclosures opened by a search hit.
+document.addEventListener('click',function(e){
+  var sm=e.target&&e.target.closest&&e.target.closest('.izr-ex>summary'); if(!sm) return;
+  var d=sm.parentNode, k=d.getAttribute('data-key');
+  if(!d.open) EXOPEN[k]=true; else delete EXOPEN[k];   // state before the browser flips it
+});
+
+boot();
+})();
 </script>
 </body>
 </html>

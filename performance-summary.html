@@ -13,9 +13,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --o:#ff6100; --o-l:#fe9046; --page:#f4f3ef; --card:#ffffff; --ink:#151d28; --ink2:#161d2d;
-  --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --blue:#2b66c1; --blue-bg:#e6f0fc; --blue-ic:#c4def6;
-  --green:#1f9d57; --green-bg:#eafaf0; --red:#dc2626; --red-bg:#fdeaea; --amber:#b5680c; --amber-bg:#fff3e0;
+  --o:#ff6100; --o-l:#fe9046; --page:#f4f3ef; --card:#ffffff; --ink:#1b2026; --ink2:#161d2d;
+  --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --soft:#f5f6f8; --blue:#2b66c1; --blue-bg:#e6f0fc; --blue-ic:#c4def6;
+  --green:#1a7a43; --green-bg:#e5f5ec; --red:#b42318; --red-bg:#fdecec; --amber:#b5530a; --amber-bg:#fff3e8;
+  --acc:#ec7211; --acc-ink:#9a4100; --focus:#f0a35a;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:var(--ink);min-height:100vh}
@@ -24,177 +25,278 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:var(--ink);line-height:1}
 .wrap{width:auto!important;max-width:none!important;margin:0 15px!important;padding:0 0 28px!important}
+#wrap.wrap{padding-top:0!important}
 
-/* ---- Hero banner ---- */
-.ps-hero{position:relative;overflow:hidden;border-radius:10px;padding:22px 26px;margin-bottom:18px;
-  background:linear-gradient(120deg,#1f49a8,#2b66c1 48%,#4f8cf0);box-shadow:0 14px 34px -22px rgba(20,40,70,.6)}
-.ps-hero h1{color:#fff;font-size:1.55em;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:12px;line-height:1.15}
-.ps-hero h1 svg{flex-shrink:0}
-.ps-hero .ps-range{margin-top:6px;color:rgba(255,255,255,.9);font-size:.95em;font-weight:600;display:inline-flex;align-items:center;gap:8px}
-.ps-hero .ps-range svg{opacity:.9}
-.ps-hero::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;opacity:.16;pointer-events:none;
-  background-repeat:no-repeat;background-position:right center;background-size:auto 150%;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 60%);mask-image:linear-gradient(90deg,transparent,#000 60%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 60V40M40 60V26M64 60V34M88 60V18"/><path d="M12 66h96"/></svg>')}
+/* =====================================================================================
+   Performance Summary — same visual language as errors-in-resolved.html:
+   dark navy hero (grid texture + orange glow + orange left rule), KPI cards that overlap it,
+   then white section cards. Scoped under .ps (a size container for the responsive grids).
+   ===================================================================================== */
+.ps{container-type:inline-size;color:var(--ink)}
+.ps button{font:inherit;text-transform:none}
+.ps :is(button,a,input,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.ps-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---- KPI tiles row ---- */
-.ps-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
-.ps-kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;box-shadow:0 2px 10px -6px rgba(20,40,70,.25)}
-.ps-kpi-l{font-size:.72em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--mut2);display:flex;align-items:center;gap:7px}
-.ps-kpi-l svg{color:var(--blue)}
-.ps-kpi-n{font-size:1.9em;font-weight:800;letter-spacing:-.5px;color:var(--ink);line-height:1.1;margin:8px 0 6px}
-.ps-kpi-sub{font-size:.8em;color:var(--mut);font-weight:600}
-@media(max-width:900px){.ps-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:520px){.ps-kpis{grid-template-columns:1fr}}
+/* ---- Hero ---- */
+.ps-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 80px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.ps-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.ps-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.ps-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.ps-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 380px}
+.ps-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.ps-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.ps-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08}
+.ps-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.ps-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
+.ps-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  font-size:.8em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.ps-chip svg{flex-shrink:0;color:#ffb26b}
+.ps-chip span{color:rgba(233,237,243,.62);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase}
+.ps-hero-tools{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:0 0 auto}
 
-/* WoW delta badge */
-.wow{display:inline-flex;align-items:center;gap:4px;font-weight:800;font-size:.82em;border-radius:999px;padding:2px 9px;white-space:nowrap}
+/* Weekly / Monthly segmented control (glassy, on the dark hero). */
+.ps-seg{display:inline-flex;gap:3px;padding:4px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16)}
+.ps-tab{display:inline-flex;align-items:center;gap:8px;border:none;background:transparent;cursor:pointer;font-size:.88em;font-weight:800;
+  color:rgba(233,237,243,.78);padding:8px 18px;border-radius:8px;transition:background .15s,color .15s,box-shadow .15s}
+.ps-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
+.ps-tab.on{background:#fff;color:var(--ink);box-shadow:0 4px 12px -6px rgba(0,0,0,.6)}
+.ps-tab.on svg{color:var(--acc)}
+.ps-tab svg{flex-shrink:0}
+
+/* Export (copy) — orange on the hero; navy elsewhere (e.g. the modal's Extract button). */
+.ps-export{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.86em;font-weight:800;
+  color:#f4f3ef;background:#161d2d;border:none;border-radius:8px;padding:10px 16px;transition:background .15s,transform .12s,opacity .15s}
+.ps-export:hover{background:#0f1420}
+.ps-export:active{transform:translateY(1px)}
+.ps-export svg{flex-shrink:0}
+.ps-hero .ps-export{background:var(--acc);color:#fff;box-shadow:0 8px 18px -10px rgba(236,114,17,.9)}
+.ps-hero .ps-export:hover{background:#d4620b}
+.ps-hero .ps-export:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.ps-export.ok,.ps-hero .ps-export.ok{background:#1f9d57}
+
+/* ---- Panes ---- */
+.ps-pane{display:none}
+.ps-pane.on{display:block}
+.ps-pane:focus{outline:none}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.ps-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-58px 18px 16px}
+@container (min-width:520px){.ps-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.ps-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.ps-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.ps-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#1f2a40)}
+.ps-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.ps-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.ps-kpi-n{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ps-kpi-sub{margin-top:9px;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;font-size:.8em;font-weight:600;color:var(--mut)}
+.ps-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.ps-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.ps-kpi.k-base{--k:#1f2a40}
+.ps-kpi.k-good{--k:#1f9d57;--kb:var(--green-bg);--ki:var(--green)}
+.ps-kpi.k-warn{--k:var(--acc);--kb:var(--amber-bg);--ki:var(--amber)}
+.ps-kpi.k-blue{--k:#2b66c1;--kb:var(--blue-bg);--ki:var(--blue)}
+
+/* WoW / MoM delta badge */
+.wow{display:inline-flex;align-items:center;gap:4px;font-weight:800;font-size:.92em;border-radius:99px;padding:2px 9px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .wow svg{width:12px;height:12px}
-.wow.good{color:var(--green);background:var(--green-bg);border:1px solid #c8efd8}
-.wow.bad{color:var(--red);background:var(--red-bg);border:1px solid #f6cccc}
-.wow.flat{color:var(--mut);background:#eef1f4;border:1px solid var(--line)}
+.wow.good{color:var(--green);background:var(--green-bg);border:1px solid #bfe6cf}
+.wow.bad{color:var(--red);background:var(--red-bg);border:1px solid #f2c3bd}
+.wow.flat{color:#3a4552;background:#eef1f4;border:1px solid var(--line)}
 
 /* ---- Section cards ---- */
-.ps-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:0;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 10px -6px rgba(20,40,70,.22)}
-.ps-card-head{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#f7f9fc,#fff)}
-.ps-card-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;flex-shrink:0;background:var(--blue-bg);color:var(--blue)}
-.ps-card.rose .ps-card-ic{background:var(--red-bg);color:var(--red)}
-.ps-card.green .ps-card-ic{background:var(--green-bg);color:var(--green)}
-.ps-card.amber .ps-card-ic{background:var(--amber-bg);color:var(--amber)}
-.ps-card-title{font-size:1.02em;font-weight:800;color:var(--ink)}
-.ps-card-body{padding:18px 20px}
-.ps-card-body p{font-size:.95em;line-height:1.72;color:#2a3340}
-.ps-card-body p+p{margin-top:12px}
-.ps-card-body b{color:var(--ink);font-weight:800}
+.ps-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px;overflow:hidden}
+.ps-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
+.ps-card.is-shut .ps-card-head{border-bottom-color:transparent}
+.ps-card-h{display:flex;align-items:center;gap:12px;min-width:0;font-size:1em;font-weight:inherit}
+.ps-card-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;flex-shrink:0;background:var(--cb,var(--blue-bg));color:var(--ci,var(--blue))}
+.ps-card.t-green{--cb:var(--green-bg);--ci:var(--green)}
+.ps-card.t-amber{--cb:var(--amber-bg);--ci:var(--amber)}
+.ps-card.t-rose{--cb:var(--red-bg);--ci:var(--red)}
+.ps-card-tt{display:flex;flex-direction:column;min-width:0;text-align:left}
+.ps-card-title{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
+.ps-card-sub{margin-top:3px;font-size:.8em;font-weight:500;color:var(--mut);line-height:1.4}
+.ps-card-body{padding:16px 20px 18px}
+.ps-card-body[hidden]{display:none}
+/* Chevron expander (as on errors-in-resolved). */
+.ps-exp{display:inline-flex;align-items:center;gap:12px;margin:-5px -8px;padding:5px 10px 5px 6px;border:none;border-radius:9px;background:none;color:var(--ink);cursor:pointer;min-width:0}
+.ps-exp:hover{background:#fafbfc}
+.ps-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.ps-chev svg{transition:transform .15s}
+.ps-exp[aria-expanded="true"] .ps-chev svg{transform:rotate(90deg)}
+.ps-exp:hover .ps-chev{background:#e6f0fc;color:#2b66c1}
+.ps-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.78em;font-weight:700;color:#3a4552;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ps-pill b{color:var(--ink);font-weight:800}
 
-/* Two-up card grid (Quality + Address/GEO). */
-.ps-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
-@media(max-width:720px){.ps-grid2{grid-template-columns:1fr}}
+/* Two-up grid (Quality + Address/GEO). */
+.ps-grid2{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-bottom:16px}
+@container (min-width:760px){.ps-grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ps-grid2 .ps-card{margin-bottom:0}
 
-/* Metric rows: label left, big number + delta badge right. */
-.ps-metrics{display:flex;flex-direction:column;gap:10px}
-.ps-metric{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-radius:9px;background:#fafbfc;border:1px solid var(--line)}
-.ps-metric.m-green{border-left:4px solid var(--green)}
-.ps-metric.m-flat{border-left:4px solid #c4ccd4}
-.ps-metric-l{font-size:.9em;font-weight:700;color:#2a3340}
+/* Metric rows: label left, big number + delta badge right, optional proportional bar. */
+.ps-metrics{list-style:none;display:flex;flex-direction:column}
+.ps-metric{padding:12px 2px;border-bottom:1px solid #eef1f4}
+.ps-metric:first-child{padding-top:2px}
+.ps-metric:last-child{border-bottom:none;padding-bottom:2px}
+.ps-metric-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ps-metric-l{display:inline-flex;align-items:center;gap:9px;font-size:.9em;font-weight:700;color:#2a3340;min-width:0}
+.ps-metric-l::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--m,#c4ccd4)}
+.ps-metric.m-green{--m:#1f9d57}
+.ps-metric.m-flat{--m:#8793a0}
+.ps-metric.m-blue{--m:#2b66c1}
+.ps-metric.m-amber{--m:var(--acc)}
 .ps-metric-r{display:inline-flex;align-items:center;gap:10px;flex-shrink:0}
-.ps-metric-n{font-size:1.5em;font-weight:800;letter-spacing:-.4px;color:var(--ink);line-height:1}
+.ps-metric-n{font-size:1.5em;font-weight:800;letter-spacing:-.4px;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.ps-metric-bar{display:flex;align-items:center;gap:10px;margin-top:9px}
+.ps-metric-bar .ps-bar{flex:1 1 auto}
+.ps-metric-bar small{font-size:.74em;font-weight:700;color:var(--mut);min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+.ps-bar{display:block;height:6px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.ps-bar i{display:block;height:100%;border-radius:inherit;background:var(--m,var(--acc));transition:width .5s ease}
 
-/* Defect trends: a status pill + compact "tag  badge" items, no prose. */
-.ps-trend{display:flex;flex-direction:column;gap:10px}
-.ps-trend-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 15px;border-radius:9px;border:1px solid var(--line);background:#fafbfc}
-.ps-trend-row.good{border-left:4px solid var(--green)}
-.ps-trend-row.watch{border-left:4px solid var(--amber)}
-.ps-defitems{display:flex;flex-wrap:wrap;gap:8px 10px;min-width:0}
-.ps-defitem{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-.ps-defitem-n{font-size:.86em;font-weight:700;color:#2a3340}
-.ps-tag{font-size:.68em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-radius:999px;padding:4px 11px;flex-shrink:0}
+/* Defect trends: Improving / Watch groups of compact chips. */
+.ps-grp+.ps-grp{margin-top:16px}
+.ps-grp-h{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:.7em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.ps-grp-h::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
+.ps-tag{display:inline-flex;align-items:center;gap:6px;font-size:1em;font-weight:800;letter-spacing:1px;border-radius:99px;padding:4px 10px}
 .ps-tag.good{color:var(--green);background:var(--green-bg)}
 .ps-tag.watch{color:var(--amber);background:var(--amber-bg)}
+.ps-defs{list-style:none;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@container (min-width:640px){.ps-defs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:1100px){.ps-defs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ps-def{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 12px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.ps-def::before{content:'';position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--d)}
+.ps-def.good{--d:#1f9d57}
+.ps-def.watch{--d:var(--acc)}
+.ps-def:hover{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
+.ps-def-n{font-size:.88em;font-weight:700;color:#2a3340;min-width:0}
+.ps-def-r{display:inline-flex;align-items:center;gap:9px;flex-shrink:0}
+.ps-def-c{font-size:1.25em;font-weight:800;letter-spacing:-.4px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ps-empty{color:#8793a0;font-size:.88em;padding:6px 2px}
 
-/* Resolution Distribution: summary line + Resolution | Count | Percentage table. */
-.ps-res-sum{font-size:.92em;color:#2a3340;margin-bottom:12px}
-.ps-res-sum b{color:var(--ink);font-weight:800}
-.ps-res-wrap{border:1px solid var(--line);border-radius:9px;overflow:auto}
-.ps-res-tbl{width:100%;border-collapse:collapse;font-size:.9em}
-.ps-res-tbl th{text-align:left;font-size:.78em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--mut2);background:#fafbfc;padding:10px 14px;border-bottom:1px solid var(--line)}
-.ps-res-tbl td{padding:9px 14px;border-bottom:1px solid var(--line);color:#2a3340}
-.ps-res-tbl tbody tr:last-child td{border-bottom:none}
-.ps-res-tbl tbody th{font-size:1em;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ink);background:transparent;padding:9px 14px}
+/* Resolution Distribution table. */
+.ps-res-wrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px}
+.ps-res-tbl{width:100%;min-width:560px;border-collapse:separate;border-spacing:0;font-size:.88em}
+.ps-res-tbl th,.ps-res-tbl td{padding:10px 14px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle;color:#2a3340}
+.ps-res-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8;border-bottom:1px solid var(--line);font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mut);white-space:nowrap}
+.ps-res-tbl tbody tr:last-child>*{border-bottom:none}
+.ps-res-tbl tbody tr{transition:background .12s}
+.ps-res-tbl tbody tr:hover{background:#fafbfc}
+.ps-res-tbl tbody th{font-weight:700;color:var(--ink)}
+.ps-res-tbl .rk{width:44px;color:#8793a0;font-weight:700;font-variant-numeric:tabular-nums}
+.ps-res-tbl .sh{width:32%;min-width:150px}
 .ps-res-tbl .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ps-res-empty{color:#8793a0;font-size:.88em;padding:6px 2px}
-.ps-res-cnt{font:inherit;font-weight:800;font-variant-numeric:tabular-nums;color:var(--blue);background:none;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.ps-res-cnt:hover{background:var(--blue-bg)}
-.ps-res-cnt:focus-visible,.psm button:focus-visible,.psm a:focus-visible,.psm-tblwrap:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ps-res-tbl .ps-bar{height:8px}
+.ps-res-tbl .ps-bar i{background:linear-gradient(90deg,#f5a54a,var(--acc))}
+.ps-res-cnt{font-weight:800;font-variant-numeric:tabular-nums;color:var(--blue);background:none;border:none;border-radius:6px;padding:3px 8px;margin:-3px -8px -3px 0;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(43,102,193,.35);text-underline-offset:3px;transition:background .12s}
+.ps-res-cnt:hover{background:var(--blue-bg);text-decoration-color:currentColor}
 
-/* Resolution tickets pop-up (accessible modal: title, Extract, table, pagination). */
-.psm-bg{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,30,45,.55)}
-.psm-bg.open{display:flex}
-.psm{background:#fff;border-radius:10px;width:min(1040px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(20,30,45,.55)}
-.psm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.psm-hd-t{min-width:0;flex:1 1 260px}
-.psm-title{font-size:1.05em;font-weight:800;color:var(--ink);overflow-wrap:anywhere}
-.psm-sub{font-size:.8em;color:var(--mut);margin-top:3px}
-.psm-hd-a{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.psm-extract{padding:8px 14px}
-.psm-extract:disabled{opacity:.45;cursor:not-allowed}
-.psm-x{background:transparent;border:none;color:#8793a0;font-size:1.6em;line-height:1;cursor:pointer;padding:0 6px;border-radius:5px}
-.psm-x:hover{color:var(--ink);background:#f1f3f6}
-.psm-body{padding:14px 20px;overflow:auto;min-height:0;flex:1 1 auto}
-.psm-msg{padding:28px 12px;text-align:center;color:var(--mut);font-size:.92em}
-.psm-msg.err{color:#b02a2a}
-.psm-retry{margin-top:12px;font:inherit;font-size:.86em;font-weight:800;color:#f4f3ef;background:#161d2d;border:none;border-radius:5px;padding:8px 16px;cursor:pointer}
-.psm-retry:hover{background:#0f1420}
-.psm-tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px}
-.psm-tbl{width:100%;border-collapse:collapse;font-size:.85em}
-.psm-tbl th{position:sticky;top:0;background:#fafbfc;color:var(--mut2);font-size:.78em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
-.psm-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4;color:var(--ink);vertical-align:top}
-.psm-tbl tbody tr:last-child td{border-bottom:none}
-.psm-tbl .c-cty,.psm-tbl .c-id,.psm-tbl .c-dt{white-space:nowrap}
-.psm-tbl .c-title{min-width:240px;white-space:normal;overflow-wrap:anywhere}
-.psm-tbl a{color:var(--blue);font-weight:700;text-decoration:none}
-.psm-tbl a:hover{text-decoration:underline}
-.psm-cc{display:inline-block;padding:1px 8px;border-radius:5px;font-size:.9em;font-weight:800;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-ic)}
-.psm-foot{display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line);background:#fafbfc}
-.psm-foot.on{display:flex}
-.psm-showing{font-size:.82em;font-weight:600;color:var(--mut)}
-.psm-pager{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.psm-pg{font:inherit;font-size:.82em;font-weight:700;min-width:34px;height:34px;padding:0 10px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:5px;cursor:pointer}
-.psm-pg:hover:not(:disabled):not([aria-current]){background:var(--blue-bg);border-color:var(--blue-ic)}
-.psm-pg[aria-current]{background:#161d2d;border-color:#161d2d;color:#f4f3ef;cursor:default}
-.psm-pg:disabled{opacity:.45;cursor:not-allowed}
-.psm-gap{min-width:24px;text-align:center;color:var(--mut2);font-weight:700}
+/* ---- Loading skeleton ---- */
+.ps-sk{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:psShim 1.4s ease infinite}
+@keyframes psShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.ps-kpi.is-sk::before{background:#e2e6ea}
+.ps-sk-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 2px;border-bottom:1px solid #eef1f4}
+.ps-sk-row:last-child{border-bottom:none}
+.ps-loadnote{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 16px;font-size:.86em;font-weight:700;color:var(--mut);min-height:28px}
+.ps-loadnote-ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--amber-bg);color:var(--amber);animation:psPulse 1.6s ease-in-out infinite}
+.ps-loadnote-msg.gw-msg-in{animation:psMsgIn .45s cubic-bezier(.22,1,.36,1)}
+.ps-load.gw-done .ps-loadnote-ic{background:var(--green-bg);color:var(--green);animation:none}
+.ps-load.gw-done .ps-loadnote-msg{color:var(--green)}
+@keyframes psPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes psMsgIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+
+/* ---- Error state ---- */
+.ps-state{position:relative;z-index:1;margin:-58px 18px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 32px -24px rgba(20,30,50,.6);
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
+.ps-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red);margin-bottom:4px}
+.ps-state h2{font-size:1.08em;font-weight:800;color:var(--ink)}
+.ps-state p{font-size:.9em;max-width:52ch;line-height:1.5}
+.ps-state code{font-size:.85em;color:#8793a0}
+.ps-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
+.ps-btn:hover{background:#0f1420}
 
 .ps-gate{text-align:center;padding:60px 20px;color:var(--mut)}
 .ps-gate h1{color:var(--ink);font-size:1.4em;margin-bottom:10px}
 .ps-foot{font-size:.78em;color:var(--mut2);text-align:center;margin-top:18px}
-/* ---- Toolbar: Weekly/Monthly tabs (left) + Export (right) ---- */
-.ps-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 18px}
-.ps-export{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;
-  color:#f4f3ef;background:#161d2d;border:none;border-radius:5px;padding:10px 16px;transition:background .15s,transform .12s}
-.ps-export:hover{background:#0f1420}
-.ps-export:active{transform:translateY(1px)}
-.ps-export.ok{background:#1f9d57}
-.ps-export svg{flex-shrink:0}
-/* ---- Weekly / Monthly tab switcher ---- */
-.ps-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:#eceef2;border:1px solid var(--line)}
-.ps-tab{display:inline-flex;align-items:center;gap:8px;border:none;background:transparent;cursor:pointer;font:inherit;font-size:.9em;font-weight:800;color:var(--mut);padding:9px 20px;border-radius:999px;transition:background .15s,color .15s,box-shadow .15s}
-.ps-tab:hover{color:var(--ink)}
-.ps-tab.on{background:#fff;color:var(--blue);box-shadow:0 2px 8px -3px rgba(20,40,70,.35)}
-.ps-tab svg{flex-shrink:0}
-.ps-pane{display:none}
-.ps-pane.on{display:block;animation:psFade .22s ease}
-@keyframes psFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-/* ===== Fancy phased loader (ported from sla-breach.html section loaders) ===== */
-.gw-loader{min-height:52vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
-.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
-#wrap.wrap{padding-top:0!important}
+.ps-foot b{color:var(--mut);font-weight:800}
+
+/* One orchestrated entrance: KPI cards stagger in, then the sections. */
+@keyframes psUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ps-hero{animation:psUp .45s ease both}
+.ps-pane.is-anim .ps-kpi{animation:psUp .5s ease both}
+.ps-pane.is-anim .ps-kpi:nth-child(2){animation-delay:.06s}
+.ps-pane.is-anim .ps-kpi:nth-child(3){animation-delay:.12s}
+.ps-pane.is-anim .ps-kpi:nth-child(4){animation-delay:.18s}
+.ps-pane.is-anim .ps-grid2,.ps-pane.is-anim>.ps-card{animation:psUp .5s ease .2s both}
+
+/* Small screens */
+@container (max-width:700px){
+  .ps-hero{padding:22px 18px 76px 22px}
+  .ps-hero h1{font-size:1.6em;letter-spacing:-.6px}
+  .ps-hero-ic{display:none}
+  .ps-hero-tools{align-items:stretch;width:100%}
+  .ps-seg{width:100%}.ps-tab{flex:1 1 0;justify-content:center}
+  .ps-hero .ps-export{justify-content:center}
+  .ps-kpis,.ps-state{margin-left:10px;margin-right:10px}
+  .ps-card-head,.ps-card-body{padding-left:14px;padding-right:14px}
+  .ps-kpi-n{font-size:2.1em}
+}
+
+/* ---- Resolution tickets pop-up (markup owned by shared resolution-tickets-modal.js; styles scoped to this page) ---- */
+.psm-bg{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,22,36,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.psm-bg.open{display:flex}
+.psm{position:relative;background:#fff;border-radius:12px;width:min(1040px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(15,22,36,.7)}
+.psm::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,var(--acc));z-index:2}
+.psm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  background:radial-gradient(90% 200% at 100% 0%,rgba(236,114,17,.10),transparent 60%),#fff}
+.psm-hd-t{min-width:0;flex:1 1 260px}
+.psm-title{font-size:1.1em;font-weight:800;letter-spacing:-.2px;color:var(--ink);overflow-wrap:anywhere}
+.psm-sub{font-size:.8em;color:var(--mut);margin-top:4px}
+.psm-hd-a{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.psm-extract{padding:8px 14px}
+.psm-extract:disabled{opacity:.45;cursor:not-allowed}
+.psm-x{background:transparent;border:none;color:#8793a0;font-size:1.6em;line-height:1;cursor:pointer;width:36px;height:36px;border-radius:8px}
+.psm-x:hover{color:var(--ink);background:#f1f3f6}
+.psm-body{padding:14px 22px;overflow:auto;min-height:0;flex:1 1 auto}
+.psm-msg{padding:28px 12px;text-align:center;color:var(--mut);font-size:.92em}
+.psm-msg[role="status"]{padding:4px 0 0;text-align:left;font-weight:700;font-size:.84em}
+.psm-msg[role="status"]::after{content:'';display:block;height:300px;margin-top:12px;border-radius:10px;
+  background:linear-gradient(90deg,transparent 25%,rgba(255,255,255,.65) 40%,transparent 60%),repeating-linear-gradient(180deg,#f5f6f8 0 38px,#eceff2 38px 39px);
+  background-size:400% 100%,100% 100%;animation:psmShim 1.4s ease infinite}
+@keyframes psmShim{0%{background-position:100% 0,0 0}100%{background-position:0 0,0 0}}
+.psm-msg.err{color:var(--red);font-weight:700}
+.psm-retry{margin-top:12px;font:inherit;font-size:.86em;font-weight:800;color:#f4f3ef;background:#161d2d;border:none;border-radius:8px;padding:9px 16px;cursor:pointer}
+.psm-retry:hover{background:#0f1420}
+.psm-tblwrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
+.psm-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.85em}
+.psm-tbl th{position:sticky;top:0;z-index:1;background:#f5f6f8;color:var(--mut);font-size:.74em;font-weight:800;text-transform:uppercase;letter-spacing:.7px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.psm-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4;color:var(--ink);vertical-align:top}
+.psm-tbl tbody tr:hover{background:#fafbfc}
+.psm-tbl tbody tr:last-child td{border-bottom:none}
+.psm-tbl .c-cty,.psm-tbl .c-id,.psm-tbl .c-dt{white-space:nowrap}
+.psm-tbl .c-title{min-width:240px;white-space:normal;overflow-wrap:anywhere;color:#2a3340}
+.psm-tbl a{color:var(--blue);font-weight:800;text-decoration:none}
+.psm-tbl a:hover{text-decoration:underline}
+.psm-cc{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.88em;font-weight:800;background:var(--soft);color:#3a4552;border:1px solid var(--line)}
+.psm-foot{display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 22px;border-top:1px solid var(--line);background:#fafbfc}
+.psm-foot.on{display:flex}
+.psm-showing{font-size:.82em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums}
+.psm-pager{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.psm-pg{font:inherit;font-size:.82em;font-weight:700;min-width:34px;height:34px;padding:0 10px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.psm-pg:hover:not(:disabled):not([aria-current]){background:var(--amber-bg);border-color:#f7c99c}
+.psm-pg[aria-current]{background:#161d2d;border-color:#161d2d;color:#f4f3ef;cursor:default}
+.psm-pg:disabled{opacity:.45;cursor:not-allowed}
+.psm-gap{min-width:24px;text-align:center;color:var(--mut2);font-weight:700}
+.psm button:focus-visible,.psm a:focus-visible,.psm-tblwrap:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+@media (prefers-reduced-motion:reduce){
+  .ps *,.ps *::before,.ps *::after,.ps,.psm *,.psm *::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body data-nav-active="performance-summary" data-back-href="app.html" data-back-label="Dashboard">
@@ -208,11 +310,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script src="resolution-tickets-modal.js?v=1"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
+var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // ---- Dynamic date ranges (computed from "now") ----
 var MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -244,9 +347,9 @@ function rangeLabel(r){
 function delta(pctText,good,period){
   var cls=good?'good':'bad';
   var arrow=good
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>';
-  return '<span class="wow '+cls+'">'+arrow+pctText+' '+period+'</span>';
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>';
+  return '<span class="wow '+cls+'">'+arrow+pctText+' '+period+'<span class="ps-sr"> ('+(good?'better':'worse')+')</span></span>';
 }
 function flat(text){ return '<span class="wow flat">'+text+'</span>'; }
 // Compute a WoW/MoM delta badge from current vs previous values. lowerIsGood=true means a DECREASE
@@ -272,48 +375,50 @@ function pctText(cur,prev){
   return (r>0?'+':'')+r+'%';
 }
 
-function kpi(icon,label,n,sub){
-  return '<div class="ps-kpi"><div class="ps-kpi-l">'+ic(icon,13)+label+'</div><div class="ps-kpi-n">'+n+'</div><div class="ps-kpi-sub">'+sub+'</div></div>';
+// KPI card. tone: base | good | warn | blue. `extra` = optional HTML under the sub line (e.g. a bar).
+function kpi(icon,label,n,sub,tone,extra){
+  return '<div class="ps-kpi k-'+(tone||'base')+'"><div class="ps-kpi-l"><span class="ps-kpi-ic">'+ic(icon,15)+'</span>'+label+'</div>'+
+    '<div class="ps-kpi-n">'+n+'</div><div class="ps-kpi-sub">'+sub+'</div>'+(extra||'')+'</div>';
 }
 // Build one period's full summary from REAL data. `D` = { current, previous } window stats,
 // `mtdPct` = month-to-date SLA %. `p` is the suffix ("WoW"/"MoM").
 function summaryPane(kind,p,rangeTxt,D,mtdPct){
   var inWindow=(p==='WoW')?'in-week':'in-month';
+  var period=(kind==='Weekly')?'weekly':'monthly';
+  var prevWord=(p==='WoW')?'prior week':'prior month';
   var c=D.current, pv=D.previous;
-  var slaTxt=(Math.round((c.slaPct||0)*10)/10)+'%';
+  var sla=Math.round((c.slaPct||0)*10)/10, slaTxt=sla+'%';
   var mtdTxt='MTD '+(Math.round((mtdPct||0)*10)/10)+'%';
+  var vs='<span>vs '+prevWord+'</span>';
+  var rt=Number(c.repeat.total)||0;
   return ''+
-    // Hero
-    '<div class="ps-hero">'+
-      '<h1>'+ic('clipboard',24)+'PHD '+kind+' Performance Summary</h1>'+
-      '<div class="ps-range">'+ic('calendar',15)+rangeTxt+'</div>'+
-    '</div>'+
-    // KPI tiles (headline numbers)
+    // KPI tiles (headline numbers), overlapping the hero
     '<div class="ps-kpis">'+
-      kpi('inbox','Reports received',num(c.reports),deltaOf(c.reports,pv.reports,true,p))+
-      kpi('check-circle','Resolved',num(c.resolved),deltaOf(c.resolved,pv.resolved,false,p))+
-      kpi('repeat','Added to backlog',num(c.backlog),deltaOf(c.backlog,pv.backlog,true,p))+
-      kpi('target','SLA ('+inWindow+')',slaTxt,flat(mtdTxt))+
+      kpi('inbox','Reports received',num(c.reports),deltaOf(c.reports,pv.reports,true,p)+vs,'base')+
+      kpi('check-circle','Resolved',num(c.resolved),deltaOf(c.resolved,pv.resolved,false,p)+vs,'good')+
+      kpi('repeat','Added to backlog',num(c.backlog),deltaOf(c.backlog,pv.backlog,true,p)+vs,'warn')+
+      kpi('target','SLA ('+inWindow+')',slaTxt,flat(mtdTxt)+'<span>month to date</span>','blue',
+        '<div class="ps-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,sla))+'%"></i></div>')+
     '</div>'+
 
     // ---- Quality + GEO (two compact metric cards side by side) ----
     '<div class="ps-grid2">'+
-      metricCard('repeat','green','Quality \u2014 Repeat Incidents',[
+      metricCard('repeat','green','Quality \u2014 Repeat Incidents','Repeat incidents and the pet / non-pet split',[
         metric('Total repeat incidents',num(c.repeat.total),deltaOf(c.repeat.total,pv.repeat.total,true,p),'green'),
-        metric('Non-pet related',num(c.repeat.nonPet),deltaOf(c.repeat.nonPet,pv.repeat.nonPet,true,p),'green'),
-        metric('Pet related',num(c.repeat.pet),deltaOf(c.repeat.pet,pv.repeat.pet,true,p),'green')
+        metric('Non-pet related',num(c.repeat.nonPet),deltaOf(c.repeat.nonPet,pv.repeat.nonPet,true,p),'blue',rt?(Number(c.repeat.nonPet)||0)/rt:0),
+        metric('Pet related',num(c.repeat.pet),deltaOf(c.repeat.pet,pv.repeat.pet,true,p),'amber',rt?(Number(c.repeat.pet)||0)/rt:0)
       ])+
-      metricCard('map-pin','amber','Address & GEO',[
+      metricCard('map-pin','amber','Address & GEO','Address exclusions processed and GEO Pin updates',[
         metric('Address exclusions',num(c.addressExclusions),deltaOf(c.addressExclusions,pv.addressExclusions,true,p),'green'),
         metric('GEO Pin updates',num(c.geoPins),deltaOf(c.geoPins,pv.geoPins,false,p),'flat')
       ])+
     '</div>'+
 
     // ---- Defect Code Trends (auto-split into Improving (down) vs Watch (up)) ----
-    defectTrendsCard(c.defects,pv.defects,p)+
+    defectTrendsCard(c.defects,pv.defects,p,period)+
 
     // ---- Resolution Distribution ("Res:" value from RootCauseDetails, resolved in this period) ----
-    resolutionCard(D,kind==='Weekly'?'weekly':'monthly')+
+    resolutionCard(D,period)+
 
     '<div class="ps-foot">WWOS-GSOC PHD \u00b7 '+kind+' Performance Summary \u00b7 use <b>Export</b> for the full write-up</div>';
 }
@@ -324,19 +429,20 @@ var PS_DEFECTS=[
   ['noEmt','No EMT'],
   ['unsuccessfulOutreach','Unsuccessful Outreach'],
 ];
-function defectTrendsCard(cur,prev,p){
+function defectTrendsCard(cur,prev,p,period){
   var improving=[], watch=[];
   PS_DEFECTS.forEach(function(d){
     var key=d[0], name=d[1], cv=(cur&&cur[key])||0, pvv=(prev&&prev[key])||0;
     var up=cv>pvv;
-    var item=defectItem(name,deltaOf(cv,pvv,true,p));
-    (up?watch:improving).push(item);
+    (up?watch:improving).push(defectItem(up?'watch':'good',name,num(cv),deltaOf(cv,pvv,true,p)));
   });
   var rows='';
   if(improving.length) rows+=defectRow('good','Improving',improving);
   if(watch.length) rows+=defectRow('watch','Watch Item',watch);
-  if(!rows) rows='<div style="color:#8793a0;font-size:.88em;padding:6px 2px">No tagged defects in this window.</div>';
-  return sectionCard('alert','Defect Code Trends','<div class="ps-trend">'+rows+'</div>');
+  if(!rows) rows='<div class="ps-empty">No tagged defects in this window.</div>';
+  var aside='<span class="ps-pill"><b>'+improving.length+'</b> improving \u00b7 <b>'+watch.length+'</b> to watch</span>';
+  return sectionCard('alert','Defect Code Trends',rows,{key:'defects',period:period,tone:'rose',
+    sub:'Tagged defects vs the prior '+(p==='WoW'?'week':'month')+'; any increase is a watch item',aside:aside});
 }
 // HTML-escape dynamic text before inserting it into markup.
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; }); }
@@ -345,53 +451,78 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(ch){ re
 // selected window, so the summary total matches the Resolved tile. Every value is listed.
 function resolutionCard(D,period){
   var rows=(D&&D.resolutions)||[], total=(D&&D.resolvedTotal)||0;
-  var body;
+  var body, aside='';
   if(!total||!rows.length){
-    body='<div class="ps-res-empty">No tickets resolved in this period</div>';
+    body='<div class="ps-empty">No tickets resolved in this period</div>';
   }else{
-    body='<div class="ps-res-sum"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved</div>'+
-      '<div class="ps-res-wrap"><table class="ps-res-tbl">'+
-        '<caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Resolution distribution of tickets resolved in this period</caption>'+
-        '<thead><tr><th scope="col">Resolution</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead>'+
+    aside='<span class="ps-res-sum ps-pill"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved \u00b7 <b>'+num(rows.length)+'</b> resolution'+(rows.length===1?'':'s')+'</span>';
+    var maxPct=rows.reduce(function(m,r){ return Math.max(m,Number(r.pct)||0); },0)||1;
+    body='<div class="ps-res-wrap" tabindex="0" role="region" aria-label="Resolution distribution table"><table class="ps-res-tbl">'+
+        '<caption class="ps-sr">Resolution distribution of tickets resolved in this period. Select a count to list its tickets.</caption>'+
+        '<thead><tr><th scope="col" class="rk">#</th><th scope="col">Resolution</th><th scope="col" class="sh">Share</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead>'+
         '<tbody>'+rows.map(function(r,i){
-          var n=Number(r.count)||0;
-          return '<tr><th scope="row">'+esc(r.resolution)+'</th><td class="n"><button type="button" class="ps-res-cnt" data-psm-period="'+period+'" data-psm-i="'+i+'" '+
-            'aria-label="View '+n+' ticket'+(n===1?'':'s')+' for '+esc(r.resolution)+'">'+num(n)+'</button></td><td class="n">'+esc((Number(r.pct)||0).toFixed(1))+'%</td></tr>';
+          var n=Number(r.count)||0, pc=Number(r.pct)||0;
+          return '<tr><td class="rk">'+(i+1)+'</td><th scope="row">'+esc(r.resolution)+'</th>'+
+            '<td class="sh"><span class="ps-bar" aria-hidden="true"><i style="width:'+(pc/maxPct*100).toFixed(1)+'%"></i></span></td>'+
+            '<td class="n"><button type="button" class="ps-res-cnt" data-psm-period="'+period+'" data-psm-i="'+i+'" '+
+            'aria-label="View '+n+' ticket'+(n===1?'':'s')+' for '+esc(r.resolution)+'">'+num(n)+'</button></td><td class="n">'+esc(pc.toFixed(1))+'%</td></tr>';
         }).join('')+'</tbody>'+
       '</table></div>';
   }
-  return sectionCard('check-circle','Resolution Distribution',body);
+  return sectionCard('check-circle','Resolution Distribution',body,{key:'res',period:period,tone:'green',
+    sub:'\u201cRes:\u201d value of tickets resolved in this period; select a count to see its tickets',aside:aside});
 }
 // Number formatter with thousands separators.
 function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
 // A labelled metric card holding one or more metric rows.
-function metricCard(icon,tone,title,rowsArr){
-  return '<div class="ps-card'+(tone&&tone!=='blue'?' '+tone:'')+'">'+
-    '<div class="ps-card-head"><span class="ps-card-ic">'+ic(icon,18)+'</span><span class="ps-card-title">'+title+'</span></div>'+
-    '<div class="ps-card-body"><div class="ps-metrics">'+rowsArr.join('')+'</div></div></div>';
+function metricCard(icon,tone,title,sub,rowsArr){
+  return '<section class="ps-card t-'+tone+'" aria-label="'+esc(title)+'">'+
+    '<div class="ps-card-head"><h2 class="ps-card-h"><span class="ps-card-ic">'+ic(icon,18)+'</span><span class="ps-card-tt"><span class="ps-card-title">'+title+'</span>'+
+    (sub?'<span class="ps-card-sub">'+sub+'</span>':'')+'</span></h2></div>'+
+    '<div class="ps-card-body"><ul class="ps-metrics">'+rowsArr.join('')+'</ul></div></section>';
 }
-// One metric: label (left) + big number + delta badge (right).
-function metric(label,n,badge,tone){
-  return '<div class="ps-metric'+(tone?(' m-'+tone):'')+'">'+
+// One metric: label (left) + big number + delta badge (right); `share` (0..1) adds a proportional bar.
+function metric(label,n,badge,tone,share){
+  var bar='';
+  if(share!=null){
+    var w=Math.round(Math.max(0,Math.min(1,share))*1000)/10;
+    bar='<div class="ps-metric-bar"><span class="ps-bar" aria-hidden="true"><i style="width:'+w+'%"></i></span><small>'+w+'%<span class="ps-sr"> of total repeats</span></small></div>';
+  }
+  return '<li class="ps-metric'+(tone?(' m-'+tone):'')+'"><div class="ps-metric-row">'+
     '<span class="ps-metric-l">'+label+'</span>'+
     '<span class="ps-metric-r"><span class="ps-metric-n">'+n+'</span>'+badge+'</span>'+
-  '</div>';
+  '</div>'+bar+'</li>';
 }
-// A plain titled section card (for the defect trends block).
-function sectionCard(icon,title,bodyHtml){
-  return '<div class="ps-card">'+
-    '<div class="ps-card-head"><span class="ps-card-ic">'+ic(icon,18)+'</span><span class="ps-card-title">'+title+'</span></div>'+
-    '<div class="ps-card-body">'+bodyHtml+'</div></div>';
+// Collapsible titled section card with a chevron expander. Open/closed state is shared by both
+// periods (PS_OPEN[key]) so switching Weekly/Monthly keeps the same layout.
+var PS_OPEN={ defects:true, res:true };
+function sectionCard(icon,title,bodyHtml,o){
+  o=o||{};
+  var id='psSec-'+o.period+'-'+o.key, open=PS_OPEN[o.key]!==false;
+  return '<section class="ps-card'+(o.tone?' t-'+o.tone:'')+(open?'':' is-shut')+'" aria-label="'+esc(title)+'">'+
+    '<div class="ps-card-head"><h2 class="ps-card-h"><button type="button" class="ps-exp" aria-expanded="'+open+'" aria-controls="'+id+'" data-ps-exp="'+o.key+'">'+
+      '<span class="ps-chev">'+CHEV+'</span><span class="ps-card-ic">'+ic(icon,18)+'</span>'+
+      '<span class="ps-card-tt"><span class="ps-card-title">'+title+'</span>'+(o.sub?'<span class="ps-card-sub">'+o.sub+'</span>':'')+'</span>'+
+    '</button></h2>'+(o.aside||'')+'</div>'+
+    '<div class="ps-card-body" id="'+id+'"'+(open?'':' hidden')+'>'+bodyHtml+'</div></section>';
 }
-// A defect group row: a status pill + a set of "tag  badge" items (no sentences).
+function psToggle(btn){
+  var key=btn.getAttribute('data-ps-exp'), open=btn.getAttribute('aria-expanded')!=='true';
+  PS_OPEN[key]=open;
+  // Apply to the same section in both panes (already-rendered ones).
+  document.querySelectorAll('[data-ps-exp="'+key+'"]').forEach(function(b){
+    b.setAttribute('aria-expanded',String(open));
+    var body=document.getElementById(b.getAttribute('aria-controls')); if(body) body.hidden=!open;
+    var card=b.closest('.ps-card'); if(card) card.classList.toggle('is-shut',!open);
+  });
+}
+// A defect group: a status heading + a grid of "name  count  badge" chips.
 function defectRow(tone,tag,items){
-  return '<div class="ps-trend-row '+tone+'">'+
-    '<span class="ps-tag '+tone+'">'+tag+'</span>'+
-    '<div class="ps-defitems">'+items.join('')+'</div>'+
-  '</div>';
+  return '<div class="ps-grp"><h3 class="ps-grp-h"><span class="ps-tag '+tone+'">'+tag+'</span></h3>'+
+    '<ul class="ps-defs">'+items.join('')+'</ul></div>';
 }
-function defectItem(name,badge){
-  return '<span class="ps-defitem"><span class="ps-defitem-n">'+name+'</span>'+badge+'</span>';
+function defectItem(tone,name,count,badge){
+  return '<li class="ps-def '+tone+'"><span class="ps-def-n">'+name+'</span><span class="ps-def-r"><span class="ps-def-c">'+count+'</span>'+badge+'</span></li>';
 }
 
 var PS_ACTIVE='weekly';           // currently-shown pane
@@ -399,14 +530,31 @@ var PS_RANGES={ weekly:'', monthly:'' }; // live date-range labels, set in rende
 var PS_DATA={ weekly:null, monthly:null }; // fetched { current, previous, mtdSlaPct } per period
 var PS_WIN={ weekly:null, monthly:null };  // the {start,end} window objects, set in render()
 var PS_STATE={ weekly:'idle', monthly:'idle' }; // idle | loading | done — so each period fetches once
+// Hero copy per period (the hero is shared; psSwitch swaps its text).
+var PS_HERO={
+  weekly:  { eyebrow:'Performance \u00b7 Weekly report', title:'PHD Weekly Performance Summary', cmp:'Previous week',
+             sub:'Volume, SLA, quality and defect trends for the last completed week (Sunday to Saturday), compared with the week before.' },
+  monthly: { eyebrow:'Performance \u00b7 Monthly report', title:'PHD Monthly Performance Summary', cmp:'Previous month',
+             sub:'Volume, SLA, quality and defect trends for the previous calendar month, compared with the month before.' }
+};
+function psSetHero(which){
+  var h=PS_HERO[which]; if(!h) return;
+  var set=function(id,t){ var e=document.getElementById(id); if(e) e.textContent=t; };
+  set('psEyebrow',h.eyebrow); set('psTitle',h.title); set('psSub',h.sub); set('psRange',PS_RANGES[which]||''); set('psCmp',h.cmp);
+}
+function psSyncExport(){
+  var b=document.getElementById('psExport'); if(b) b.disabled=!PS_DATA[PS_ACTIVE];
+}
 function psSwitch(which){
   PS_ACTIVE=which;
   ['weekly','monthly'].forEach(function(k){
     var t=document.getElementById('psTab-'+k), pane=document.getElementById('psPane-'+k);
-    if(t) t.classList.toggle('on',k===which);
+    if(t){ t.classList.toggle('on',k===which); t.setAttribute('aria-selected',String(k===which)); t.tabIndex=(k===which)?0:-1; }
     if(pane) pane.classList.toggle('on',k===which);
   });
   var lbl=document.getElementById('psExportLbl'); if(lbl) lbl.textContent='Export '+(which==='weekly'?'Weekly':'Monthly');
+  psSetHero(which);
+  psSyncExport();
   // Lazy-load this period's data the first time its tab is opened (avoids fetching the hidden
   // tab on page load).
   if(PS_STATE[which]==='idle') psFill(which);
@@ -454,7 +602,8 @@ async function psExport(){
   var btn=document.getElementById('psExport'), lbl=document.getElementById('psExportLbl');
   try{
     await navigator.clipboard.writeText(txt);
-    if(lbl){ var prev=lbl.textContent; lbl.textContent='Copied!'; if(btn)btn.classList.add('ok'); setTimeout(function(){ lbl.textContent=prev; if(btn)btn.classList.remove('ok'); },1600); }
+    if(lbl){ var prev=lbl.textContent; lbl.textContent='Copied!'; if(btn)btn.classList.add('ok'); psAnnounce((isWk?'Weekly':'Monthly')+' summary copied to the clipboard');
+      setTimeout(function(){ lbl.textContent=prev; if(btn)btn.classList.remove('ok'); },1600); }
   }catch(e){
     // Clipboard blocked -> fall back to a selectable prompt.
     window.prompt('Copy the '+(isWk?'weekly':'monthly')+' summary:', txt);
@@ -472,10 +621,13 @@ function psmOpen(btn){
 }
 window.psmClose=function(){ if(window.PHDResTickets) window.PHDResTickets.close(); };
 document.addEventListener('click',function(ev){
-  var b=ev.target.closest&&ev.target.closest('.ps-res-cnt'); if(b) psmOpen(b);
+  var t=ev.target.closest?ev.target:null; if(!t) return;
+  var b=t.closest('.ps-res-cnt'); if(b){ psmOpen(b); return; }
+  var x=t.closest('[data-ps-exp]'); if(x){ psToggle(x); return; }
+  var r=t.closest('[data-ps-retry]'); if(r){ psRetry(r.getAttribute('data-ps-retry')); }
 });
 
-// ===== Fancy phased loader (ported from the SLA-breach section loaders) =====
+// ===== Rotating status line shown under the skeleton (performance-themed, period-aware) =====
 function psFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
 function psShuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
 // PHASE 1 — 20 performance-themed lines (no agent names), personalized + period-aware.
@@ -523,7 +675,7 @@ function psPhase2(win){
 var _psTimers={};  // pfx -> interval id
 function _psSet(pfx,tuple){
   var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
-  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
+  if(i){ i.innerHTML=ic(tuple[0]||'clock',15); }
   if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
 }
 function _psStop(pfx){ if(_psTimers[pfx]){ clearInterval(_psTimers[pfx]); _psTimers[pfx]=null; } }
@@ -536,6 +688,7 @@ function _psStart(pfx,win){
     _psStop(pfx);
     _psSet(pfx,['alert','Sorry for the delay \u2014 still crunching the numbers\u2026']);
     setTimeout(function(){
+      if(!document.getElementById(pfx+'LoaderMsg')) return;   // already rendered / errored
       var p2=psPhase2(win), j=0; _psSet(pfx,p2[0]);
       _psTimers[pfx]=setInterval(function(){ j=(j+1)%p2.length; _psSet(pfx,p2[j]); },3000);
     },3000);
@@ -544,10 +697,12 @@ function _psStart(pfx,win){
 function _psSuccess(pfx){
   _psStop(pfx);
   var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',15);
   var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
 }
 var _psDelay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
+// Polite screen-reader announcements (loading / loaded / failed / copied).
+function psAnnounce(msg){ var l=document.getElementById('psLive'); if(!l) return; l.textContent=''; setTimeout(function(){ l.textContent=msg; },60); }
 
 // Fetch one window's stats. The API's `to` is EXCLUSIVE, so pass (end + 1 day).
 function nextDay(d){ var x=new Date(d); x.setDate(x.getDate()+1); return x; }
@@ -557,18 +712,35 @@ async function fetchWindow(range){
   if(r&&r.ok&&r.data&&r.data.current) return r.data;
   throw new Error((r&&r.data&&r.data.error)||'fetch failed');
 }
-// Loading pane: hero + the phased orb loader (keyed by pfx). Animation started by the caller.
-function loadingPane(kind,rangeTxt,pfx){
-  return '<div class="ps-hero"><h1>'+ic('clipboard',24)+'PHD '+kind+' Performance Summary</h1>'+
-    '<div class="ps-range">'+ic('calendar',15)+rangeTxt+'</div></div>'+
-    '<div id="'+pfx+'Loader" class="gw-loader">'+
-      '<div class="gw-loader-in">'+
-        '<div class="gw-orb"><span class="gw-orb-ic" id="'+pfx+'LoaderIc">'+ic('clock',30)+'</span></div>'+
-        '<div class="gw-loader-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting the numbers ready\u2026</div>'+
-        '<div class="gw-dots"><span></span><span></span><span></span></div>'+
-        '<div class="gw-loader-sub" id="'+pfx+'LoaderSub">'+kind+' summary</div>'+
-      '</div>'+
+// Loading pane: skeleton placeholders that mirror the final layout (KPI row, two metric cards,
+// defect trends, resolution table) + a rotating status line. Animation started by the caller.
+function loadingPane(kind,pfx){
+  var sk=function(w,h,extra){ return '<span class="ps-sk" style="width:'+w+';height:'+h+'px'+(extra?';'+extra:'')+'"></span>'; };
+  var kpiSk='<div class="ps-kpi is-sk">'+sk('58%',11)+sk('44%',34,'margin-top:14px')+sk('72%',14,'margin-top:11px')+'</div>';
+  var head=function(){ return '<div class="ps-card-head"><div class="ps-card-h">'+sk('34px',34,'border-radius:9px')+'<span style="display:flex;flex-direction:column;gap:7px">'+sk('180px',14)+sk('240px',10,'max-width:52vw')+'</span></div></div>'; };
+  var mrow='<div class="ps-sk-row">'+sk('46%',13)+sk('96px',22,'border-radius:99px')+'</div>';
+  var card=function(rows){ var r=''; for(var i=0;i<rows;i++) r+=mrow; return '<div class="ps-card">'+head()+'<div class="ps-card-body">'+r+'</div></div>'; };
+  var chips=''; for(var c=0;c<3;c++) chips+=sk('100%',46,'border-radius:10px');
+  var trow='', tw=['62%','48%','55%','40%','34%','28%'];
+  for(var t=0;t<6;t++) trow+='<div class="ps-sk-row" style="padding:12px 14px">'+sk(tw[t],12)+sk('30%',8,'border-radius:99px')+sk('48px',12)+'</div>';
+  return '<div id="'+pfx+'Loader" class="ps-load">'+
+      '<div class="ps-kpis">'+kpiSk+kpiSk+kpiSk+kpiSk+'</div>'+
+      '<div class="ps-loadnote" aria-hidden="true"><span class="ps-loadnote-ic" id="'+pfx+'LoaderIc">'+ic('clock',15)+'</span>'+
+        '<span class="ps-loadnote-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting the '+kind.toLowerCase()+' numbers ready\u2026</span></div>'+
+      '<div class="ps-grid2">'+card(3)+card(2)+'</div>'+
+      '<div class="ps-card">'+head()+'<div class="ps-card-body"><div class="ps-defs">'+chips+'</div></div></div>'+
+      '<div class="ps-card">'+head()+'<div class="ps-card-body" style="padding-top:8px">'+trow+'</div></div>'+
     '</div>';
+}
+// Friendly error state with a Retry that re-runs the same fetch.
+function errorPane(kind,period,err){
+  var detail=err&&err.message&&err.message!=='fetch failed'?'<code>'+esc(err.message)+'</code>':'';
+  return '<div class="ps-state" role="alert">'+
+    '<span class="ps-state-ic">'+ic('alert',26)+'</span>'+
+    '<h2>We couldn\u2019t load the '+kind.toLowerCase()+' summary</h2>'+
+    '<p>The server didn\u2019t send the numbers for '+esc(PS_RANGES[period]||'this period')+'. Check your connection, then try again.</p>'+detail+
+    '<button type="button" class="ps-btn" data-ps-retry="'+period+'">'+ic('refresh',15)+'Retry</button>'+
+  '</div>';
 }
 
 async function render(){
@@ -579,23 +751,52 @@ async function render(){
   PS_RANGES={ weekly:wkTxt, monthly:moTxt };
   PS_WIN={ weekly:wk, monthly:mo };
   PS_STATE={ weekly:'idle', monthly:'idle' };
-  // Shell with loading placeholders in both panes.
+  var h=PS_HERO.weekly;
+  // Shell: shared hero (title, period chips, Weekly/Monthly segmented control, Export) + one pane per period.
   document.getElementById('wrap').innerHTML=
-    '<div class="ps-toolbar">'+
-      '<div class="ps-tabs">'+
-        '<button type="button" class="ps-tab on" id="psTab-weekly" onclick="psSwitch(\'weekly\')">'+ic('calendar',15)+'Weekly</button>'+
-        '<button type="button" class="ps-tab" id="psTab-monthly" onclick="psSwitch(\'monthly\')">'+ic('calendar',15)+'Monthly</button>'+
+    '<div class="ps">'+
+    '<div id="psLive" class="ps-sr" role="status" aria-live="polite" aria-atomic="true"></div>'+
+    '<header class="ps-hero">'+
+      '<div class="ps-hero-in">'+
+        '<div class="ps-hero-main">'+
+          '<span class="ps-hero-ic" aria-hidden="true">'+ic('clipboard',24)+'</span>'+
+          '<div style="min-width:0">'+
+            '<div class="ps-eyebrow" id="psEyebrow">'+h.eyebrow+'</div>'+
+            '<h1 id="psTitle">'+h.title+'</h1>'+
+            '<p class="ps-hero-sub" id="psSub">'+h.sub+'</p>'+
+            '<ul class="ps-chips">'+
+              '<li class="ps-chip">'+ic('calendar',14)+'<span>Period</span><b id="psRange">'+esc(wkTxt)+'</b></li>'+
+              '<li class="ps-chip">'+ic('bar-chart',14)+'<span>Compared with</span><b id="psCmp">'+h.cmp+'</b></li>'+
+            '</ul>'+
+          '</div>'+
+        '</div>'+
+        '<div class="ps-hero-tools">'+
+          '<div class="ps-seg ps-tabs" role="tablist" aria-label="Summary period">'+
+            '<button type="button" class="ps-tab on" role="tab" id="psTab-weekly" aria-selected="true" aria-controls="psPane-weekly" tabindex="0" onclick="psSwitch(\'weekly\')">'+ic('calendar',15)+'Weekly</button>'+
+            '<button type="button" class="ps-tab" role="tab" id="psTab-monthly" aria-selected="false" aria-controls="psPane-monthly" tabindex="-1" onclick="psSwitch(\'monthly\')">'+ic('calendar',15)+'Monthly</button>'+
+          '</div>'+
+          '<button type="button" class="ps-export" id="psExport" onclick="psExport()" disabled>'+ic('copy',15)+'<span id="psExportLbl">Export Weekly</span></button>'+
+        '</div>'+
       '</div>'+
-      '<button type="button" class="ps-export" id="psExport" onclick="psExport()">'+ic('copy',15)+'<span id="psExportLbl">Export Weekly</span></button>'+
-    '</div>'+
-    '<div class="ps-pane on" id="psPane-weekly">'+loadingPane('Weekly',wkTxt,'psW')+'</div>'+
-    '<div class="ps-pane" id="psPane-monthly">'+loadingPane('Monthly',moTxt,'psM')+'</div>';
+    '</header>'+
+    '<div class="ps-pane on" id="psPane-weekly" role="tabpanel" aria-labelledby="psTab-weekly" tabindex="-1"></div>'+
+    '<div class="ps-pane" id="psPane-monthly" role="tabpanel" aria-labelledby="psTab-monthly" tabindex="-1"></div>'+
+    '</div>';
+
+  // Arrow-key navigation inside the segmented control (WAI-ARIA tabs pattern).
+  var tl=document.querySelector('.ps-seg');
+  if(tl) tl.addEventListener('keydown',function(ev){
+    if(['ArrowLeft','ArrowRight','Home','End'].indexOf(ev.key)<0) return;
+    ev.preventDefault();
+    var next=(ev.key==='Home')?'weekly':(ev.key==='End')?'monthly':(PS_ACTIVE==='weekly'?'monthly':'weekly');
+    psSwitch(next); var t=document.getElementById('psTab-'+next); if(t) t.focus();
+  });
 
   // Only the ACTIVE (Weekly) pane fetches on load. Monthly fetches lazily the first time its tab
   // is opened (psSwitch -> psFill), so the hidden tab's /api/perf-summary isn't fired on load.
   psFill('weekly');
 }
-// Fetch + render one period's pane. Runs its phased loader, fetches the window once, reveals.
+// Fetch + render one period's pane. Shows the skeleton, fetches the window once, reveals.
 var PS_META={
   weekly:  { pfx:'psW', paneId:'psPane-weekly',  kind:'Weekly',  per:'WoW', phase:'week'  },
   monthly: { pfx:'psM', paneId:'psPane-monthly', kind:'Monthly', per:'MoM', phase:'month' }
@@ -604,22 +805,36 @@ function psFill(period){
   if(PS_STATE[period]!=='idle') return;   // fetch each period only once
   PS_STATE[period]='loading';
   var m=PS_META[period], win=PS_WIN[period], txt=PS_RANGES[period];
+  var pane=document.getElementById(m.paneId);
+  if(pane){ pane.classList.remove('is-anim'); pane.setAttribute('aria-busy','true'); pane.innerHTML=loadingPane(m.kind,m.pfx); }
+  psAnnounce('Loading the '+m.kind.toLowerCase()+' summary\u2026');
   _psStart(m.pfx,m.phase);
   var t0=Date.now();
-  var minHold=function(){ var el=1500-(Date.now()-t0); return el>0?_psDelay(el):Promise.resolve(); };
+  var minHold=function(){ var el=500-(Date.now()-t0); return el>0?_psDelay(el):Promise.resolve(); };
   fetchWindow(win).then(async function(D){
     PS_DATA[period]=D;
     await minHold();
-    _psSuccess(m.pfx); await _psDelay(900);
-    var el=document.getElementById(m.paneId); if(el) el.innerHTML=summaryPane(m.kind,m.per,txt,D,D.mtdSlaPct);
+    _psSuccess(m.pfx); await _psDelay(250);
+    var el=document.getElementById(m.paneId);
+    if(el){ el.innerHTML=summaryPane(m.kind,m.per,txt,D,D.mtdSlaPct); el.classList.add('is-anim'); el.removeAttribute('aria-busy'); }
     PS_STATE[period]='done';
-  }).catch(function(){
+    psSyncExport();
+    psAnnounce(m.kind+' summary loaded for '+txt);
+  }).catch(function(err){
     _psStop(m.pfx);
-    PS_STATE[period]='idle';   // allow a retry on next tab open
-    var el=document.getElementById(m.paneId); if(el) el.innerHTML='<div class="ps-gate" style="padding:40px"><p style="color:#dc2626">Could not load '+m.kind.toLowerCase()+' data. Please refresh.</p></div>';
+    PS_STATE[period]='idle';   // allow a retry (button or next tab open)
+    var el=document.getElementById(m.paneId);
+    if(el){ el.innerHTML=errorPane(m.kind,period,err); el.removeAttribute('aria-busy'); }
+    psAnnounce('Could not load the '+m.kind.toLowerCase()+' summary.');
   });
 }
 window.psFill=psFill;
+// Retry: re-run the same fetch, keeping keyboard focus inside the pane.
+function psRetry(period){
+  if(!PS_META[period]) return;
+  psFill(period);
+  var p=document.getElementById(PS_META[period].paneId); if(p) p.focus();
+}
 
 (function init(){
   if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }

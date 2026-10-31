@@ -45,6 +45,8 @@ const COLLECTIONS = {
   sanitizationChecklist: 'sanitization_checklist', // editable copyable checklist shown on ticket-sanitization.html (one doc per line): { text, order, createdBy/updatedBy/at } — editable by harisss/flofalgu
   externalLinks: 'external_links', // admin-managed external link tiles on the home page (Dashboards & reports): { title, description, url, createdBy (lower-case), createdAt, [icon, sub, action, seedKey] } + one seed-marker doc { _id:'seed:...', kind:'__marker' } (excluded from GET/count/delete)
   regions: 'regions', // Rules-page 'Regions & countries' reference: one doc per region { _id:<key>, key, name, order, countries:[codes] } + one seed-marker doc { _id:'seed:regions-v1', kind:'__marker' }. Editable only by harisss (see server/regions.js)
+  errorsInResolvedSettings: 'errors_in_resolved_settings', // errors-in-resolved.html global settings: ONE doc { _id:'global', disabledChecks:['A1'..'C1'], updatedBy, updatedAt }. Written only by harisss via PUT /api/errors-in-resolved/settings
+  phdResolutions: 'phd_resolutions', // phd-resolutions.html list: one doc per resolution { name, nameKey, likelihood:'High'|'Low', impact:'High'|'Low', priority (1 = most severe, contiguous 1..N), updatedBy, updatedAt } + one seed-marker doc { _id:'seed:phd-resolutions-v1', kind:'__marker' }. Editable only by harisss (see server/phd-resolutions.js)
 };
 
 let clientPromise = null;

@@ -13,9 +13,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --o:#ff6100; --o-l:#fe9046; --page:#f4f3ef; --card:#ffffff; --ink:#151d28; --ink2:#161d2d;
-  --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --blue:#2b66c1; --blue-bg:#e6f0fc; --blue-ic:#c4def6;
-  --green:#1f9d57; --green-bg:#eafaf0; --red:#dc2626; --red-bg:#fdeaea; --amber:#b5680c; --amber-bg:#fff3e0;
+  --o:#ff6100; --o-l:#fe9046; --page:#f4f3ef; --card:#ffffff; --ink:#1b2026; --ink2:#161d2d;
+  --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --soft:#f5f6f8; --blue:#2b66c1; --blue-bg:#e6f0fc; --blue-ic:#c4def6;
+  --green:#1a7a43; --green-bg:#e5f5ec; --red:#b42318; --red-bg:#fdecec; --amber:#b5530a; --amber-bg:#fff3e8;
+  --acc:#ec7211; --acc-ink:#9a4100; --focus:#f0a35a;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:var(--ink);min-height:100vh}
@@ -26,118 +27,233 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .wrap{width:auto!important;max-width:none!important;margin:0 15px!important;padding:0 0 28px!important}
 #wrap.wrap{padding-top:0!important}
 
-/* ---- Hero ---- */
-.pc-hero{position:relative;overflow:hidden;border-radius:10px;padding:22px 26px;margin-bottom:14px;
-  background:linear-gradient(120deg,#1f49a8,#2b66c1 48%,#4f8cf0);box-shadow:0 14px 34px -22px rgba(20,40,70,.6);color:#fff}
-.pc-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.pc-hero h1{color:#fff;font-size:1.55em;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:12px;line-height:1.15}
-.pc-hero h1 svg{flex-shrink:0}
-.pc-hero-when{margin-top:6px;font-size:.98em;font-weight:700;color:rgba(255,255,255,.95)}
-.pc-hero-sub{text-align:right;font-weight:800;font-size:.95em;color:#fff}
-.pc-hero-sub small{display:block;font-weight:600;font-size:.86em;color:rgba(255,255,255,.88);margin-top:4px}
-.pc-hero-meta{margin-top:12px;font-size:.84em;line-height:1.6;color:rgba(255,255,255,.92);font-weight:600}
-.pc-hero-meta.pc-hero-line{margin-top:3px}
-.pc-hero-line b{font-weight:800;color:#fff}
-.pc-countdown{font-variant-numeric:tabular-nums;font-weight:800;color:#fff}
-/* Export button in the hero's right block (black background, white text). */
-.pc-export{display:inline-flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;
-  color:#fff;background:#000;border:1px solid rgba(255,255,255,.25);border-radius:5px;padding:9px 16px;transition:background .15s,transform .12s}
-.pc-export:hover{background:#1a1a1a}
-.pc-export:active{transform:translateY(1px)}
-.pc-export:disabled{opacity:.5;cursor:default;transform:none}
-.pc-export.ok{background:#1f9d57;border-color:#1f9d57}
-.pc-export:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
-.pc-export svg{flex-shrink:0}
+/* =====================================================================================
+   Pulse Check — same visual language as performance-summary.html / errors-in-resolved.html:
+   dark navy hero (grid texture + orange glow + orange left rule), KPI cards overlapping it,
+   then white collapsible section cards. Scoped under #wrap.pc (a size container).
+   The report sections stay DIRECT children of #wrap (the Export walks them).
+   ===================================================================================== */
+.pc{container-type:inline-size;color:var(--ink)}
+.pc:focus{outline:none}
+.pc button{font:inherit;text-transform:none}
+.pc :is(button,a,input,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pc-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---- Toolbar ---- */
-.pc-btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-size:.86em;font-weight:800;
-  color:#f4f3ef;background:#161d2d;border:none;border-radius:5px;padding:10px 16px;transition:background .15s}
+/* ---- Hero ---- */
+.pc-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 80px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.pc-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.pc-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.pc-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.pc-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 380px}
+.pc-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.pc-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.pc-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08}
+.pc-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.pc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
+.pc-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  font-size:.8em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pc-chip svg{flex-shrink:0;color:#ffb26b}
+.pc-chip-l{color:rgba(233,237,243,.62);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.pc-chip b{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.pc-chip .pc-sk{background:linear-gradient(90deg,rgba(255,255,255,.12) 25%,rgba(255,255,255,.26) 40%,rgba(255,255,255,.12) 60%);background-size:400% 100%}
+.pc-hero-next{margin-top:12px;font-size:.84em;line-height:1.55;font-weight:600;color:rgba(233,237,243,.78)}
+.pc-countdown{font-variant-numeric:tabular-nums;font-weight:800;color:#fff;background:rgba(236,114,17,.22);border:1px solid rgba(236,114,17,.45);border-radius:6px;padding:1px 7px;white-space:nowrap}
+.pc-hero-tools{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:0 0 auto}
+
+/* Export (copy) — primary orange button on the hero, with busy / done states. */
+.pc-export{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.86em;font-weight:800;
+  color:#fff;background:var(--acc);border:none;border-radius:8px;padding:10px 16px;box-shadow:0 8px 18px -10px rgba(236,114,17,.9);
+  transition:background .15s,transform .12s,opacity .15s}
+.pc-export:hover{background:#d4620b}
+.pc-export:active{transform:translateY(1px)}
+.pc-export:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none}
+.pc-export[aria-busy="true"]{opacity:.85;cursor:progress}
+.pc-export[aria-busy="true"] svg{animation:pcSpin .9s linear infinite}
+.pc-export.ok{background:#1f9d57;box-shadow:none}
+.pc-export.bad{background:var(--red)}
+.pc-export svg{flex-shrink:0}
+@keyframes pcSpin{100%{transform:rotate(360deg)}}
+
+/* Primary (navy) button — Retry. */
+.pc-btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.86em;font-weight:800;
+  color:#f4f3ef;background:#161d2d;border:none;border-radius:8px;padding:10px 16px;transition:background .15s}
 .pc-btn:hover{background:#0f1420}
 .pc-btn:disabled{opacity:.55;cursor:default}
-.pc-btn:focus-visible,.pc-card a:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
 
-/* ---- Cards ---- */
-.pc-card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 10px -6px rgba(20,40,70,.22)}
-.pc-card-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#f7f9fc,#fff)}
-.pc-card-no{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;flex-shrink:0;background:var(--blue-bg);color:var(--blue);font-weight:800;font-size:.9em}
-.pc-card-head h2{font-size:1.02em;font-weight:800;color:var(--ink)}
-.pc-card-head{flex-wrap:wrap}
-.pc-head-aside{margin-left:auto;font-size:.8em;font-weight:600;color:var(--mut)}
-.pc-note{margin:-4px 0 14px;font-size:.82em;font-weight:600;color:var(--mut)}
-.pc-inline{font-size:.82em;font-weight:700;color:var(--red);text-align:right;margin:4px 0 14px}
+/* ---- KPI row (overlaps the hero) ---- */
+.pc-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-58px 18px 16px}
+@container (min-width:520px){.pc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.pc-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pc-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.pc-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#1f2a40)}
+.pc-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.pc-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.pc-kpi-n{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pc-kpi-sub{margin-top:9px;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;font-size:.8em;font-weight:600;color:var(--mut)}
+.pc-kpi-sub b{color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums}
+.pc-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.pc-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.pc-kpi.k-base{--k:#1f2a40}
+.pc-kpi.k-good{--k:#1f9d57;--kb:var(--green-bg);--ki:var(--green)}
+.pc-kpi.k-warn{--k:var(--acc);--kb:var(--amber-bg);--ki:var(--amber)}
+.pc-kpi.k-blue{--k:#2b66c1;--kb:var(--blue-bg);--ki:var(--blue)}
+.pc-pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.92em;font-weight:800;color:#3a4552;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pc-pill.good{color:var(--green);background:var(--green-bg);border-color:#bfe6cf}
+.pc-pill.bad{color:var(--red);background:var(--red-bg);border-color:#f2c3bd}
+.pc-pill.warn{color:var(--amber);background:var(--amber-bg);border-color:#f7d3b0}
+
+/* ---- Inline status / notes / banner (direct children of #wrap) ---- */
+.pc-inline{margin:0 18px 14px;padding:10px 14px;border-radius:10px;background:var(--red-bg);border:1px solid #f2c3bd;color:var(--red);font-size:.86em;font-weight:700}
 .pc-inline:empty{display:none}
-.pc-card-body{padding:16px 20px;font-size:.92em;line-height:1.65;color:#2a3340}
-.pc-card-body p+p,.pc-card-body p+.pc-scroll,.pc-card-body .pc-scroll+p,.pc-card-body .pc-scroll+ul,.pc-card-body p+ul,.pc-card-body ul+p{margin-top:12px}
+.pc-note{margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#fff;border:1px solid var(--line);font-size:.82em;font-weight:600;color:var(--mut)}
+.pc-banner{margin-bottom:16px;padding:12px 16px;border-radius:10px;background:var(--blue-bg);border:1px solid var(--blue-ic);border-left:4px solid var(--blue);color:#1d4a8f;font-weight:700;font-size:.9em}
+
+/* ---- Section cards (chevron expander, as on errors-in-resolved) ---- */
+.pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px;overflow:hidden}
+.pc-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
+.pc-card.is-shut .pc-card-head{border-bottom-color:transparent}
+.pc-card-h{display:flex;align-items:center;gap:12px;min-width:0;font-size:1em;font-weight:inherit}
+.pc-card-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;flex-shrink:0;background:var(--cb,var(--blue-bg));color:var(--ci,var(--blue))}
+.pc-card.t-green{--cb:var(--green-bg);--ci:var(--green)}
+.pc-card.t-amber{--cb:var(--amber-bg);--ci:var(--amber)}
+.pc-card.t-rose{--cb:var(--red-bg);--ci:var(--red)}
+.pc-card-tt{display:flex;flex-direction:column;min-width:0;text-align:left}
+.pc-card-title{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
+.pc-card-no{color:var(--acc);font-variant-numeric:tabular-nums}
+.pc-card-sub{margin-top:3px;font-size:.8em;font-weight:500;color:var(--mut);line-height:1.4}
+.pc-exp{display:inline-flex;align-items:center;gap:12px;margin:-5px -8px;padding:5px 10px 5px 6px;border:none;border-radius:9px;background:none;color:var(--ink);cursor:pointer;min-width:0}
+.pc-exp:hover{background:#fafbfc}
+.pc-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.pc-chev svg{transition:transform .15s}
+.pc-exp[aria-expanded="true"] .pc-chev svg{transform:rotate(90deg)}
+.pc-exp:hover .pc-chev{background:#e6f0fc;color:#2b66c1}
+.pc-head-aside{display:inline-flex;align-items:center;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.76em;font-weight:700;color:#3a4552;line-height:1.4;max-width:100%}
+.pc-card-body{padding:16px 20px 18px;font-size:.92em;line-height:1.65;color:#2a3340}
+.pc-card-body[hidden]{display:none}
+.pc-card-body>*+*{margin-top:12px}
 .pc-card-body b{color:var(--ink);font-weight:800}
-.pc-card a{color:var(--blue);font-weight:700}
-.pc-line{font-weight:700;color:var(--ink)}
+.pc-card a{color:var(--blue);font-weight:700;text-decoration:none}
+.pc-card a:hover{text-decoration:underline}
+#pcExec{font-size:1.04em;line-height:1.7;color:#2a3340;max-width:110ch}
+.pc-line{font-weight:800;color:var(--ink)}
+/* Sub-heading lines that label the table below (e.g. "Resolved Tickets (N)"). */
+.pc-card-body>.pc-line{display:flex;align-items:center;gap:10px;font-size:.78em;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-top:18px}
+.pc-card-body>.pc-line::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
+.pc-card-body>.pc-line:first-child{margin-top:0}
+/* ...but a whole-sentence summary line stays a normal sentence. */
+.pc-card-body>.pc-line.pc-say{font-size:.98em;letter-spacing:0;text-transform:none;color:var(--ink);font-weight:700}
+.pc-card-body>.pc-line.pc-say::after{display:none}
 .pc-muted{color:var(--mut)}
-.pc-warn{margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--amber-bg);border:1px solid #f3d3a6;border-left:4px solid var(--amber);color:#6b3d05;font-weight:700}
-.pc-banner{margin-bottom:14px;padding:12px 16px;border-radius:9px;background:var(--blue-bg);border:1px solid var(--blue-ic);color:#1d4a8f;font-weight:700;font-size:.9em}
+.pc-warn{padding:10px 14px;border-radius:10px;background:var(--amber-bg);border:1px solid #f7d3b0;border-left:4px solid var(--acc);color:#6b3d05;font-weight:700}
 .pc-bullets{padding-left:20px}
+.pc-bullets li::marker{color:var(--acc)}
 .pc-bullets li+li{margin-top:4px}
 
-/* ---- Tables ---- */
-.pc-scroll{overflow-x:auto}
-.pc-tbl{width:100%;border-collapse:collapse;font-size:.95em}
-.pc-tbl th,.pc-tbl td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-.pc-tbl thead th{background:#f3f5f8;font-size:.82em;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:#3a4552;white-space:nowrap}
+/* ---- Tables (sticky header, subtle separators, hover rows, inline bars) ---- */
+.pc-scroll{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px;-webkit-overflow-scrolling:touch}
+.pc-tbl{width:100%;min-width:520px;border-collapse:separate;border-spacing:0;font-size:.95em}
+.pc-tbl caption{caption-side:top;text-align:left;padding:8px 14px 6px}
+.pc-tbl th,.pc-tbl td{padding:9px 14px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:top;color:#2a3340}
+.pc-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8;border-bottom:1px solid var(--line);font-size:.74em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mut);white-space:nowrap}
+.pc-tbl tbody th{font-weight:700;color:var(--ink)}
 .pc-tbl td.n,.pc-tbl th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.pc-tbl tbody tr:nth-child(even) td{background:#fafbfc}
-.pc-tbl tfoot th,.pc-tbl tfoot td{font-weight:800;background:#f3f5f8;color:var(--ink)}
+.pc-tbl tbody tr{transition:background .12s}
+.pc-tbl tbody tr:hover>*{background:#fafbfc}
+.pc-tbl tbody tr:last-child>*{border-bottom:none}
+.pc-tbl tfoot th,.pc-tbl tfoot td{font-weight:800;background:#f5f6f8;color:var(--ink);border-top:1px solid var(--line);border-bottom:none}
 .pc-tbl .pc-wrap{display:block;min-width:140px;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
 .pc-tbl .pc-empty td{color:var(--mut);text-align:center;font-style:italic}
 .pc-tbl .pc-peak{font-weight:800;color:var(--ink)}
-.pc-tbl .pc-grp{border-left:2px solid #d5dbe2}
-.pc-kv th[scope=row]{font-weight:700;color:#2a3340;background:transparent}
-.pc-row-risk th,.pc-row-risk td{background:var(--amber-bg)!important}
-.pc-row-breach th,.pc-row-breach td{background:var(--red-bg)!important}
+.pc-tbl .pc-grp{border-left:1px solid var(--line)}
+.pc-kv{min-width:560px}
+.pc-kv tbody th[scope=row]{font-weight:600;color:#3a4552}
+.pc-kv td.n b{font-size:1.08em}
+.pc-row-risk>*{background:#fff6ec!important}
+.pc-row-risk>:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+.pc-row-breach>*{background:#fdf0ef!important}
+.pc-row-breach>:first-child{box-shadow:inset 3px 0 0 var(--red)}
+/* Proportional inline bar next to a number (aria-hidden; the number is the content). */
+.pc-barcell{display:inline-flex;align-items:center;justify-content:flex-end;gap:10px}
+.pc-bar{display:inline-block;width:92px;height:7px;border-radius:99px;background:#eef1f4;overflow:hidden;flex-shrink:0}
+.pc-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f5a54a,var(--acc))}
+.pc-bar.blue i{background:linear-gradient(90deg,#78a6e6,var(--blue))}
+.pc-bar.green i{background:linear-gradient(90deg,#6cc896,#1f9d57)}
+.pc-bar.red i{background:linear-gradient(90deg,#ee8a80,var(--red))}
 
 /* ---- Action items ---- */
 .pc-actions{display:flex;flex-direction:column;gap:10px}
-.pc-act{padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:#fafbfc;border-left:5px solid #c4ccd4}
+.pc-act{position:relative;padding:13px 16px 13px 18px;border-radius:10px;border:1px solid var(--line);background:#fff;transition:border-color .15s,box-shadow .15s}
+.pc-act::before{content:'';position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--d,#c4ccd4)}
+.pc-act:hover{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
 .pc-act h3{font-size:1em;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.pc-act p{margin-top:6px}
-.pc-badge{font-size:.72em;font-weight:800;letter-spacing:.6px;border-radius:999px;padding:3px 10px;flex-shrink:0}
-.pc-act.sev-CRITICAL{border-left-color:#c81e1e}.pc-act.sev-CRITICAL .pc-badge{background:#fdeaea;color:#a51616}
-.pc-act.sev-HIGH{border-left-color:#e86a10}.pc-act.sev-HIGH .pc-badge{background:#ffeedd;color:#9a4100}
-.pc-act.sev-MEDIUM{border-left-color:#e0b000}.pc-act.sev-MEDIUM .pc-badge{background:#fff6cc;color:#6e5600}
-.pc-act.sev-INFO{border-left-color:#2b66c1}.pc-act.sev-INFO .pc-badge{background:var(--blue-bg);color:#1d4a8f}
+.pc-act p{margin-top:6px;color:#3a4552}
+.pc-badge{font-size:.72em;font-weight:800;letter-spacing:.8px;border-radius:99px;padding:3px 10px;flex-shrink:0}
+.pc-act.sev-CRITICAL{--d:#c81e1e}.pc-act.sev-CRITICAL .pc-badge{background:var(--red-bg);color:#a51616}
+.pc-act.sev-HIGH{--d:var(--acc)}.pc-act.sev-HIGH .pc-badge{background:var(--amber-bg);color:var(--acc-ink)}
+.pc-act.sev-MEDIUM{--d:#e0b000}.pc-act.sev-MEDIUM .pc-badge{background:#fff6cc;color:#6e5600}
+.pc-act.sev-INFO{--d:var(--blue)}.pc-act.sev-INFO .pc-badge{background:var(--blue-bg);color:#1d4a8f}
+
+/* ---- Loading skeleton ---- */
+.pc-sk{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:pcShim 1.4s ease infinite}
+.pc-chip .pc-sk{display:inline-block}
+@keyframes pcShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.pc-kpi.is-sk::before{background:#e2e6ea}
+.pc-sk-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-bottom:1px solid #eef1f4}
+.pc-sk-row:last-child{border-bottom:none}
+.pc-sk-tbl{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pc-sk-tbl .pc-sk-row:first-child{background:#f5f6f8}
+.pc-loadnote{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 16px;font-size:.86em;font-weight:700;color:var(--mut);min-height:28px;text-align:center}
+.pc-loadnote-ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;flex-shrink:0;background:var(--amber-bg);color:var(--amber);animation:pcPulse 1.6s ease-in-out infinite}
+.pc-loadnote-msg.gw-msg-in{animation:pcMsgIn .45s cubic-bezier(.22,1,.36,1)}
+.pc-load.gw-done .pc-loadnote-ic{background:var(--green-bg);color:var(--green);animation:none}
+.pc-load.gw-done .pc-loadnote-msg{color:var(--green)}
+@keyframes pcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes pcMsgIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+
+/* ---- Error state (overlaps the hero like the KPI row) ---- */
+.pc-state{position:relative;z-index:1;margin:-58px 18px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 32px -24px rgba(20,30,50,.6);
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
+.pc-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red);margin-bottom:4px}
+.pc-state h2{font-size:1.08em;font-weight:800;color:var(--ink)}
+.pc-state p{font-size:.9em;max-width:56ch;line-height:1.5}
+.pc-state .pc-btn{margin-top:6px}
 
 .pc-gate{text-align:center;padding:60px 20px;color:var(--mut)}
 .pc-gate h1{color:var(--ink);font-size:1.4em;margin-bottom:10px}
-.pc-error{text-align:center;padding:40px 20px}
-.pc-error p{color:var(--red);font-weight:700;margin-bottom:14px}
 
-/* ===== Phased loader (ported from performance-summary.html) ===== */
-.gw-loader{min-height:52vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
-.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
-@media(prefers-reduced-motion:reduce){.gw-orb::before,.gw-orb-ic,.gw-dots span,.gw-loader-msg.gw-msg-in{animation:none}}
+/* One orchestrated entrance: KPI cards stagger in, then the sections. */
+@keyframes pcUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pc-hero{animation:pcUp .45s ease both}
+.pc.is-anim .pc-kpi{animation:pcUp .5s ease both}
+.pc.is-anim .pc-kpi:nth-child(2){animation-delay:.06s}
+.pc.is-anim .pc-kpi:nth-child(3){animation-delay:.12s}
+.pc.is-anim .pc-kpi:nth-child(4){animation-delay:.18s}
+.pc.is-anim>.pc-card{animation:pcUp .5s ease .2s both}
+.pc.is-anim .pc-hero{animation:none}
+
+/* Small screens */
+@container (max-width:700px){
+  .pc-hero{padding:22px 18px 76px 22px}
+  .pc-hero h1{font-size:1.6em;letter-spacing:-.6px}
+  .pc-hero-ic{display:none}
+  .pc-hero-tools{align-items:stretch;width:100%}
+  .pc-export{justify-content:center}
+  .pc-kpis,.pc-state,.pc-inline{margin-left:10px;margin-right:10px}
+  .pc-card-head,.pc-card-body{padding-left:14px;padding-right:14px}
+  .pc-kpi-n{font-size:2.1em}
+  .pc-bar{width:56px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pc *,.pc *::before,.pc *::after,.pc{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body data-nav-active="pulse-check" data-back-href="app.html" data-back-label="Dashboard">
@@ -145,13 +261,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap">
+<div class="wrap pc" id="wrap" tabindex="-1">
   <div class="pc-gate"><h1>Pulse Check (24h)</h1><p>Loading…</p></div>
 </div>
+<!-- Polite announcements (loading / loaded / failed / copied); outside #wrap so re-renders keep it. -->
+<div id="pcLive" class="pc-sr" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -232,14 +350,57 @@ function fmtCountdown(ms){
 function me(){ var u=(A.getUser&&A.getUser())||{}; var p=(A.myProfile&&A.myProfile())||u; return { username:u.username||p.username||'', name:(p&&p.displayName)||(p&&p.username)||u.username||'' }; }
 
 // ---- Building blocks ----
-// aside (optional, already-escaped HTML) renders as a muted note next to the heading.
+// Per-section icon, tone and one-line description (the description is UI only; the Export reads .pc-card-title).
+var PC_SEC={
+  1:['clipboard','blue','Plain-language summary of the reporting day'],
+  2:['grid','blue','Created, resolved and the open backlog by status'],
+  3:['alert','amber','Issues of the tickets resolved in the window'],
+  4:['search','blue','Root cause of every ticket resolved in the window'],
+  5:['check-circle','green','\u201cRes:\u201d value of every ticket resolved in the window'],
+  6:['users','blue','Immediate vs successful resolutions per agent'],
+  7:['hash','amber','Tags carried by the tickets resolved in the window'],
+  8:['clock','blue','Created vs resolved across the reporting day'],
+  9:['hourglass','amber','Open ticket aging against the 240-hour SLA'],
+  10:['flame','rose','Resolved tickets that took longer than 240 hours'],
+  11:['bolt','rose','Follow-ups generated from the day\u2019s numbers']
+};
+// Open / collapsed state per section number; survives re-renders (background reloads).
+var PC_OPEN={};
+var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Collapsible section card with a chevron expander. The title span (.pc-card-title) holds exactly
+// "N. Title" so the Export text stays unchanged. aside (optional, already-escaped HTML) renders as a pill.
 function card(no,title,body,aside){
-  return '<section class="pc-card" aria-labelledby="pcH'+no+'"><div class="pc-card-head"><span class="pc-card-no" aria-hidden="true">'+no+'</span>'+
-    '<h2 id="pcH'+no+'">'+no+'. '+title+'</h2>'+(aside?'<span class="pc-head-aside">'+aside+'</span>':'')+'</div><div class="pc-card-body">'+body+'</div></section>';
+  var m=PC_SEC[no]||['info','blue',''], open=PC_OPEN[no]!==false, bid='pcB'+no;
+  return '<section class="pc-card t-'+m[1]+(open?'':' is-shut')+'" aria-labelledby="pcH'+no+'"><div class="pc-card-head">'+
+    '<h2 class="pc-card-h"><button type="button" class="pc-exp" aria-expanded="'+open+'" aria-controls="'+bid+'" data-pc-exp="'+no+'">'+
+      '<span class="pc-chev">'+CHEV+'</span><span class="pc-card-ic" aria-hidden="true">'+ic(m[0],18)+'</span>'+
+      '<span class="pc-card-tt"><span class="pc-card-title" id="pcH'+no+'"><span class="pc-card-no">'+no+'.</span> '+title+'</span>'+
+      (m[2]?'<span class="pc-card-sub">'+m[2]+'</span>':'')+'</span>'+
+    '</button></h2>'+(aside?'<span class="pc-head-aside">'+aside+'</span>':'')+'</div>'+
+    '<div class="pc-card-body" id="'+bid+'"'+(open?'':' hidden')+'>'+body+'</div></section>';
 }
+function pcToggle(btn){
+  var no=btn.getAttribute('data-pc-exp'), open=btn.getAttribute('aria-expanded')!=='true';
+  PC_OPEN[no]=open;
+  btn.setAttribute('aria-expanded',String(open));
+  var body=document.getElementById(btn.getAttribute('aria-controls')); if(body) body.hidden=!open;
+  var c=btn.closest('.pc-card'); if(c) c.classList.toggle('is-shut',!open);
+}
+document.addEventListener('click',function(ev){
+  var t=ev.target&&ev.target.closest?ev.target.closest('[data-pc-exp]'):null; if(t) pcToggle(t);
+});
+// Proportional inline bar + number for a table cell. The bar is aria-hidden and has no text, so the
+// cell's text (and the Export) is just the number.
+function barNum(txt,frac,tone){
+  var w=Math.max(0,Math.min(1,Number(frac)||0))*100;
+  return '<span class="pc-barcell"><span class="pc-bar'+(tone?' '+tone:'')+'" aria-hidden="true"><i style="width:'+w.toFixed(1)+'%"></i></span><span>'+txt+'</span></span>';
+}
+function maxOf(arr,f){ return arr.reduce(function(m,x){ return Math.max(m,Number(f(x))||0); },0)||1; }
 // cols: [{h:'Label', n:true}] ; rows: array of arrays of already-escaped cell HTML.
+// The scroll box is a focusable region (keyboard scrolling) with a sticky header row.
 function table(cols,rows,foot,cap){
-  var h='<div class="pc-scroll"><table class="pc-tbl">'+(cap?'<caption class="pc-muted" style="text-align:left;padding-bottom:6px">'+cap+'</caption>':'')+'<thead><tr>'+
+  var lbl=cols.map(function(c){ return String(c.h).replace(/<[^>]*>/g,''); }).join(', ');
+  var h='<div class="pc-scroll" tabindex="0" role="region" aria-label="'+esc(lbl)+' table"><table class="pc-tbl">'+(cap?'<caption class="pc-muted">'+cap+'</caption>':'')+'<thead><tr>'+
     cols.map(function(c){ return '<th scope="col"'+(c.n?' class="n"':'')+'>'+c.h+'</th>'; }).join('')+'</tr></thead><tbody>';
   if(!rows.length) h+='<tr class="pc-empty"><td colspan="'+cols.length+'">None in this window</td></tr>';
   rows.forEach(function(r){
@@ -273,6 +434,28 @@ function secExec(D){
     '<p id="pcExec"></p>'+warn);
 }
 
+// A value missing from the payload (e.g. an older cached report) shows the dash, never NaN/0.
+function kvNum(v){ return (v==null||v===''||!isFinite(Number(v)))?DASH:num(v); }
+
+// ---- Headline KPI cards (overlap the hero). UI only: not part of the Export (Section 2 carries the numbers). ----
+function kpi(icon,label,n,sub,tone,extra){
+  return '<div class="pc-kpi k-'+(tone||'base')+'"><div class="pc-kpi-l"><span class="pc-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</div>'+
+    '<div class="pc-kpi-n">'+n+'</div><div class="pc-kpi-sub">'+sub+'</div>'+(extra||'')+'</div>';
+}
+function kpiStrip(D){
+  var k=D.kpis||{}, s=D.summary||{}, rate=(s.resolutionRatePct!=null&&isFinite(s.resolutionRatePct))?Number(s.resolutionRatePct):null;
+  var risk=Number(k.slaAtRisk)||0, br=Number(k.openBreached)||0;
+  return '<div class="pc-kpis" role="group" aria-label="Headline numbers">'+
+    kpi('inbox','Created (24h)',kvNum(k.created),'Station requests <b>'+kvNum(k.stationRequests)+'</b>','base')+
+    kpi('check-circle','Resolved',kvNum(k.resolved),
+      (rate!=null?'<span class="pc-pill good">'+rate.toFixed(1)+'% rate</span>':'')+'Imm <b>'+kvNum(k.immediate)+'</b> \u00b7 Successful <b>'+kvNum(k.successful)+'</b>','good',
+      rate!=null?'<div class="pc-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,rate))+'%"></i></div>':'')+
+    kpi('ticket','Open backlog',kvNum(k.openTotal),'WIP <b>'+kvNum(k.openWip)+'</b> \u00b7 Pending <b>'+kvNum(k.openPending)+'</b> \u00b7 Researching <b>'+kvNum(k.openResearching)+'</b>','blue')+
+    kpi('hourglass','SLA at risk',kvNum(k.slaAtRisk),
+      '<span class="pc-pill '+(br>0?'bad':(risk>0?'warn':'good'))+'">'+num(br)+' breached</span><span>7\u201310 days old</span>','warn')+
+  '</div>';
+}
+
 // ---- Section 2: Key metrics ----
 function secKpis(D){
   var k=D.kpis;
@@ -285,9 +468,9 @@ function secKpis(D){
     ['Total Open Tickets',k.openTotal,'Station Requests Received',k.stationRequests]
   ];
   // A value missing from the payload (e.g. an older cached report) shows the dash, never NaN/0.
-  var kv=function(v){ return (v==null||v===''||!isFinite(Number(v)))?DASH:num(v); };
+  var kv=kvNum;
   var rows=pairs.map(function(p){ return '<tr><th scope="row">'+esc(p[0])+'</th><td class="n"><b>'+kv(p[1])+'</b></td><th scope="row" class="pc-grp">'+esc(p[2])+'</th><td class="n"><b>'+kv(p[3])+'</b></td></tr>'; }).join('');
-  return card(2,'Key Metrics at a Glance','<div class="pc-scroll"><table class="pc-tbl pc-kv"><thead><tr><th scope="col">Metric</th><th scope="col" class="n">Value</th><th scope="col" class="pc-grp">Metric</th><th scope="col" class="n">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>');
+  return card(2,'Key Metrics at a Glance','<div class="pc-scroll" tabindex="0" role="region" aria-label="Key metrics table"><table class="pc-tbl pc-kv"><thead><tr><th scope="col">Metric</th><th scope="col" class="n">Value</th><th scope="col" class="pc-grp">Metric</th><th scope="col" class="n">Value</th></tr></thead><tbody>'+rows+'</tbody></table></div>');
 }
 
 // ---- Section 3 ----
@@ -295,7 +478,8 @@ function secTypes(D){
   // Main table: the issues of the tickets resolved in the window (RootCauseDetails), already ordered count desc, issue A-Z.
   // A payload without resolvedIssueCounts (older cache) falls back to the table's empty state.
   var counts=Array.isArray(D.resolvedIssueCounts)?D.resolvedIssueCounts:[];
-  var rows=counts.map(function(c){ return [esc(c.issue),num(c.count),pct1(c.pct)]; });
+  var mx=maxOf(counts,function(c){ return c.pct; });
+  var rows=counts.map(function(c){ return [esc(c.issue),num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx)]; });
   return card(3,'Issue Type Distribution',table([{h:'Issue Type'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedTickets(D));
 }
 // Section 3, below the distribution: EVERY ticket resolved in the window with its issue. No cap, no "+N more".
@@ -315,7 +499,8 @@ function secRootCauses(D){
   // Main table: root cause of every ticket resolved in the window, already ordered count desc, cause A-Z. All rows, no "Other" grouping.
   // A payload without resolvedRootCauseCounts (older cache) falls back to the table's empty state.
   var counts=Array.isArray(D.resolvedRootCauseCounts)?D.resolvedRootCauseCounts:[];
-  var rows=counts.map(function(c){ return [esc(c.cause),num(c.count),pct1(c.pct)]; });
+  var mx=maxOf(counts,function(c){ return c.pct; });
+  var rows=counts.map(function(c){ return [esc(c.cause),num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'blue')]; });
   return card(4,'Root Cause Distribution',table([{h:'Root Cause'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedRootCauseTickets(D));
 }
 // Section 4, below the distribution: EVERY ticket resolved in the window with its root cause. No cap, no "+N more".
@@ -335,7 +520,8 @@ function secResolutions(D){
   // Main table: resolution (RootCauseDetails "Res:") of every ticket resolved in the window, already ordered count desc, resolution A-Z. All rows, no "Other" grouping.
   // A payload without resolvedResolutionCounts (older cache) falls back to the table's empty state.
   var counts=Array.isArray(D.resolvedResolutionCounts)?D.resolvedResolutionCounts:[];
-  var rows=counts.map(function(c){ return ['<span class="pc-wrap">'+esc(c.resolution)+'</span>',num(c.count),pct1(c.pct)]; });
+  var mx=maxOf(counts,function(c){ return c.pct; });
+  var rows=counts.map(function(c){ return ['<span class="pc-wrap">'+esc(c.resolution)+'</span>',num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'green')]; });
   return card(5,'Resolution Distribution',table([{h:'Resolution'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedResolutionTickets(D));
 }
 // Section 5, below the distribution: EVERY ticket resolved in the window with its resolution. No cap, no "+N more".
@@ -352,7 +538,8 @@ function resolvedResolutionTickets(D){
 // ---- Section 6 ----
 function secAgents(D){
   var a=D.agents, al=a.autosimLine, b=[];
-  var rows=a.rows.map(function(r){ return [esc(r.agent),num(r.immediate),num(r.successful),'<b>'+num(r.total)+'</b>']; });
+  var amx=maxOf(a.rows,function(r){ return r.total; });
+  var rows=a.rows.map(function(r){ return [esc(r.agent),num(r.immediate),num(r.successful),barNum('<b>'+num(r.total)+'</b>',(Number(r.total)||0)/amx,'blue')]; });
   if(al.d>0) b.push('AutoSIM handled '+esc(al.pct)+'% of all resolutions ('+num(al.n)+'/'+num(al.d)+')'+(al.allImmediate&&al.n>0?' \u2014 all Immediately Resolved':'')+'.');
   if(a.topHuman){ var t=a.topHuman; b.push(esc(t.agent)+' was the top human resolver with '+tix(t.total)+' ('+num(t.immediate)+' Imm + '+num(t.successful)+' Successful).'); }
   var nh=a.nextHumans||[];
@@ -378,16 +565,17 @@ function hashtagSummary(D){
   var n=Number(D.kpis&&D.kpis.resolved)||0, rows=(D.hashtags&&D.hashtags.rows)||[];
   if(n<=0) return '';
   var head=num(n)+(n===1?' ticket':' tickets')+' resolved';
-  if(!rows.length) return '<p class="pc-line">'+head+', none have a hashtag.</p>';
+  if(!rows.length) return '<p class="pc-line pc-say">'+head+', none have a hashtag.</p>';
   var parts=rows.map(function(r){ return num(r.count)+(Number(r.count)===1?' has':' have')+' &quot;'+esc(r.tag)+'&quot;'; });
   var list=parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0];
   var u=D.hashtags.resolvedUntagged, tail='';
   if(typeof u==='number'&&u>0) tail=' '+num(u)+(u===1?' resolved ticket has':' resolved tickets have')+' no hashtag.';
-  return '<p class="pc-line">'+head+', in which '+list+'.'+tail+'</p>';
+  return '<p class="pc-line pc-say">'+head+', in which '+list+'.'+tail+'</p>';
 }
 function secHashtags(D){
   var h=D.hashtags, b=[];
-  var rows=h.rows.map(function(r){ return [esc(r.tag),num(r.count)]; });
+  var hmx=maxOf(h.rows,function(r){ return r.count; });
+  var rows=h.rows.map(function(r){ return [esc(r.tag),barNum(num(r.count),(Number(r.count)||0)/hmx)]; });
   if(h.topTag) b.push(esc(h.topTag.tag)+' leads at '+pct1(h.topTag.sharePct)+(h.topTag.tag==='#out-of-scope'?' \u2014 review intake process for upstream filtering':'')+'.');
   if(h.unique>5&&h.top5SharePct!=null) b.push('Top 5 hashtags account for '+esc(h.top5SharePct)+'% of all tags.');
   return card(7,'Hashtag Analytics \u2014 Resolved Tickets',
@@ -428,17 +616,20 @@ function secHourly(D){
   var blocks=hourlyBlocks(H.rows), top=null;
   blocks.forEach(function(b){ if(b.created>0&&(!top||b.created>top.created)) top=b; });   // ties -> earliest block
   var line=top?('Busiest block: <b>'+esc(top.label)+'</b> \u2014 '+tix(top.created)+' created.'):'No tickets created in this window.';
-  var rows=blocks.map(function(b){ return [esc(b.label),esc(b.mst),esc(b.ist),num(b.created),num(b.resolved)]; });
+  var bmx=Math.max(maxOf(blocks,function(b){ return b.created; }),maxOf(blocks,function(b){ return b.resolved; }));
+  var rows=blocks.map(function(b){ return [esc(b.label),esc(b.mst),esc(b.ist),barNum(num(b.created),b.created/bmx),barNum(num(b.resolved),b.resolved/bmx,'green')]; });
   var foot='<tfoot><tr><th scope="row" colspan="3">TOTAL</th><td class="n">'+num(H.totalCreated)+'</td><td class="n">'+num(H.totalResolved)+'</td></tr></tfoot>';
   return card(8,'Ticket Flow by 8-Hour Block \u2014 Created vs. Resolved',
-    note+'<p class="pc-line">'+line+'</p>'+
+    note+'<p class="pc-line pc-say">'+line+'</p>'+
     table([{h:'Block'},{h:'MST'},{h:'IST'},{h:'Created',n:true},{h:'Resolved',n:true}],rows,foot));
 }
 
 // ---- Section 9 ----
 function secSla(D){
   var S=D.sla;
-  var bRows=S.buckets.map(function(b){ return { cls:b.key==='d7_10'?'pc-row-risk':(b.key==='gt10'?'pc-row-breach':''), cells:[esc(b.label),num(b.count)] }; });
+  var kmx=maxOf(S.buckets,function(b){ return b.count; });
+  var bRows=S.buckets.map(function(b){ return { cls:b.key==='d7_10'?'pc-row-risk':(b.key==='gt10'?'pc-row-breach':''),
+    cells:[esc(b.label),barNum(num(b.count),(Number(b.count)||0)/kmx,b.key==='gt10'?'red':(b.key==='d7_10'?'':'blue'))] }; });
   var byStatus=S.atRiskByStatus.length?S.atRiskByStatus.map(function(x){ return esc(x.status)+': '+num(x.count); }).join('  |  '):DASH;
   var types=S.atRiskTypes.length?S.atRiskTypes.map(function(x){ return esc(x.type)+' ('+num(x.count)+')'; }).join(', '):DASH;
   // Agent = current assignee (older payloads lack the field -> DASH). The by-agent line is ticket-detail
@@ -450,7 +641,7 @@ function secSla(D){
     (table([{h:'ShortId'},{h:'Agent'},{h:'Status'},{h:'Age',n:true},{h:'Title'}],tRows)+
      (S.atRiskMore>0?'<p class="pc-muted">+ '+num(S.atRiskMore)+' more at-risk '+(S.atRiskMore===1?'ticket':'tickets')+'.</p>':''));
   return card(9,'SLA Health \u2014 Open Ticket Aging &amp; At-Risk Cases',
-    '<p class="pc-line">'+num(S.open)+' Open '+(S.open===1?'Ticket':'Tickets')+'  |  '+tix(S.atRisk)+' in 7\u201310 day danger zone  |  '+num(S.breached)+' currently breached</p>'+
+    '<p class="pc-line pc-say">'+num(S.open)+' Open '+(S.open===1?'Ticket':'Tickets')+'  |  '+tix(S.atRisk)+' in 7\u201310 day danger zone  |  '+num(S.breached)+' currently breached</p>'+
     table([{h:'Age Bucket'},{h:'Count',n:true}],bRows)+
     '<p><b>At-Risk Breakdown:</b> '+byStatus+'</p>'+byAgent+
     '<p><b>Top Severity Types at Risk:</b> '+types+'</p>'+
@@ -474,7 +665,7 @@ function secBreaches(D){
     (table([{h:'Ticket ID'},{h:'Duration (Hours)',n:true}],rows)+
      (B.rows.length<B.total?'<p class="pc-muted">Showing the longest '+num(B.rows.length)+' of '+num(B.total)+'.</p>':''));
   return card(10,'SLA Breaches \u2014 Historical (&gt;240 Hours)',
-    '<p class="pc-line">'+(B.total===1?'1 ticket exceeded the 240-hour SLA  |  It is now Resolved.':(num(B.total)+' tickets exceeded the 240-hour SLA  |  All '+num(B.total)+' are now Resolved.'))+'</p>'+
+    '<p class="pc-line pc-say">'+(B.total===1?'1 ticket exceeded the 240-hour SLA  |  It is now Resolved.':(num(B.total)+' tickets exceeded the 240-hour SLA  |  All '+num(B.total)+' are now Resolved.'))+'</p>'+
     table([{h:'Metric'},{h:'Value',n:true}],m)+
     '<p class="pc-line">Breach Detail (by Ticket ID):</p>'+detail);
 }
@@ -506,16 +697,36 @@ function pcNextHtml(D){
     :'Next Flash report for '+esc(day)+' generates by <span id="pcCountdown" class="pc-countdown" aria-live="off">'+esc(cd)+'</span> i.e., '+esc(ist);
 }
 function pcNextDoneText(D){ return 'Next Flash report for '+ordinalDayMonth(D.reportDate,1)+' is generating\u2026 i.e., '+istWhen(D.nextUpdateAt); }
-function hero(D){
+// Dark navy hero: eyebrow, title, subtitle, glassy meta chips (report day, generated MST / IST), the live
+// next-report line and the Export button. Before data loads the chips show shimmer placeholders.
+// failed=true (error state without data): the chips show a dash instead of the shimmer.
+function hero(D,failed){
   var L=heroLines(D), nx=pcNextHtml(D);
-  return '<header class="pc-hero"><div class="pc-hero-top"><div><h1>'+ic('line-chart',24)+'PHD Operational Pulse Check</h1>'+
-    '<div class="pc-hero-when">'+esc(L.report)+'</div>'+
-    (nx?'<div class="pc-hero-meta pc-hero-line" id="pcNextLine">'+nx+'</div>':'')+'</div>'+
-    '<div class="pc-hero-sub">Potential Harm to Driver \u2014 GSOC'+
+  var skc=function(w){ return failed?DASH:'<span class="pc-sk" style="width:'+w+'px;max-width:34vw;height:11px;border-radius:99px" aria-hidden="true"></span>'; };
+  var day=D?esc(reportDayLong(D.reportDate)):skc(170);
+  var gen=(D&&D.generatedAt)?esc(hm(D.generatedAt,TZ_MST)+' MST \u00b7 '+hm(D.generatedAt,TZ_IST)+' IST'):(D?DASH:skc(120));
+  return '<header class="pc-hero"><div class="pc-hero-in">'+
+    '<div class="pc-hero-main">'+
+      '<span class="pc-hero-ic" aria-hidden="true">'+ic('line-chart',24)+'</span>'+
+      '<div style="min-width:0">'+
+        '<div class="pc-eyebrow">Pulse check \u00b7 24h flash report</div>'+
+        '<h1>PHD Operational Pulse Check</h1>'+
+        '<p class="pc-hero-sub">Potential Harm to Driver \u2014 GSOC. '+esc((failed&&!D)?'The latest report is unavailable right now.':L.report)+(D?' (MST day).':'')+'</p>'+
+        '<ul class="pc-chips">'+
+          '<li class="pc-chip">'+ic('calendar',14)+'<span class="pc-chip-l">Report day</span><b>'+day+'</b></li>'+
+          '<li class="pc-chip">'+ic('clock',14)+'<span class="pc-chip-l">Generated</span><b>'+gen+'</b></li>'+
+        '</ul>'+
+        (nx?'<p class="pc-hero-next" id="pcNextLine">'+nx+'</p>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="pc-hero-tools">'+
       // Export: copies the whole report as rich HTML (real tables) with a plain-text fallback (enabled once a report is loaded).
-      '<br><button type="button" class="pc-export" id="pcExport" onclick="pcExport()"'+(D?'':' disabled')+' title="Copy the full report (tables included)">'+ic('copy',15)+'<span id="pcExportLbl">'+esc(pcExportLabel(D))+'</span></button>'+
-    '</div></div></header>';
+      '<button type="button" class="pc-export" id="pcExport" onclick="pcExport()"'+(D?'':' disabled')+' title="Copy the full report (tables included)">'+ic('copy',15)+'<span id="pcExportLbl">'+esc(pcExportLabel(D))+'</span></button>'+
+    '</div>'+
+  '</div></header>';
 }
+// Polite screen-reader announcement.
+function pcAnnounce(msg){ var l=document.getElementById('pcLive'); if(!l) return; l.textContent=''; setTimeout(function(){ l.textContent=msg; },60); }
 // ---- Export: the rendered report as plain text (tables tab-separated) -> clipboard ----
 function pcCellsText(tr){ return Array.prototype.map.call(tr.children,function(c){ return c.textContent.replace(/\s+/g,' ').trim(); }).join('\t'); }
 // Export only: prose is copied as bullets. Splits a paragraph into sentences at '. ' + uppercase letter/digit,
@@ -570,8 +781,8 @@ function pcExportText(){
   w.querySelectorAll(':scope > .pc-banner, :scope > .pc-note').forEach(function(n){ out.push(''); pcBlockText(n,out); });
   w.querySelectorAll('section.pc-card').forEach(function(sec){
     out.push('');
-    var h=sec.querySelector('.pc-card-head h2'), aside=sec.querySelector('.pc-head-aside');
-    out.push(h?h.textContent.trim():'');
+    var h=sec.querySelector('.pc-card-head .pc-card-title'), aside=sec.querySelector('.pc-head-aside');
+    out.push(h?h.textContent.replace(/\s+/g,' ').trim():'');
     if(aside&&aside.textContent.trim()) out.push('\u25cf '+aside.textContent.replace(/\s+/g,' ').trim());
     var body=sec.querySelector('.pc-card-body');
     if(body) Array.prototype.forEach.call(body.children,function(c){ pcBlockText(c,out); });
@@ -710,7 +921,7 @@ function pcBlockHtml(n){
   return pcLi(inner);
 }
 function pcSectionHtml(sec){
-  var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('h2'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
+  var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('.pc-card-title'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
   pcCurTitle=h2?h2.textContent.replace(/\s+/g,' ').trim():'';
   var h='<h2 style="margin:20px 0 6px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+esc(pcCurTitle)+'</h2>';
   if(aside&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
@@ -964,7 +1175,11 @@ async function pcExport(){
   var txt=pcExportText(); if(!txt) return;
   var html='', q=[]; try{ html=pcExportHtml(q); }catch(e){ html=''; }
   var btn=document.getElementById('pcExport'), lbl=document.getElementById('pcExportLbl');
+  if(btn&&btn.getAttribute('aria-busy')==='true') return;   // a copy is already running
   var ok=false;
+  // Busy state while the table images are drawn and the clipboard is written.
+  if(btn){ btn.setAttribute('aria-busy','true'); btn.classList.remove('ok','bad'); }
+  if(lbl) lbl.textContent='Preparing copy\u2026';
   // Text sections stay rich text; tables become PNG images (built after fonts are ready; the Promise never rejects).
   var htmlP=html?pcImagesHtml(html,q):null;
   var mk=function(s){ return new Blob(['<html><head><meta charset="utf-8"></head><body>'+s+'</body></html>'],{type:'text/html'}); };
@@ -990,8 +1205,9 @@ async function pcExport(){
     catch(e){ ok=pcCopyTextarea(txt); }
   }
   if(lbl){ lbl.textContent=ok?'Copied!':'Copy failed'; }
-  if(btn) btn.classList.toggle('ok',ok);
-  setTimeout(function(){ if(lbl) lbl.textContent=pcExportLabel(PC.data); if(btn) btn.classList.remove('ok'); },1600);
+  if(btn){ btn.removeAttribute('aria-busy'); btn.classList.toggle('ok',ok); btn.classList.toggle('bad',!ok); }
+  pcAnnounce(ok?'Pulse report copied to the clipboard':'Could not copy the pulse report');
+  setTimeout(function(){ if(lbl) lbl.textContent=pcExportLabel(PC.data); if(btn) btn.classList.remove('ok','bad'); },1600);
 }
 window.pcExport=pcExport;
 // Inline error line (hidden while empty) for a failed background reload.
@@ -1020,7 +1236,7 @@ function pcPhase2(){ var m=pcFirstName(); return [
 var _pcTimer=null;
 function _pcSet(t){
   var e=document.getElementById('pcLoaderMsg'), i=document.getElementById('pcLoaderIc');
-  if(i) i.innerHTML=ic(t[0]||'clock',30);
+  if(i) i.innerHTML=ic(t[0]||'clock',15);
   if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=t[1]; e.classList.add('gw-msg-in'); }
 }
 function _pcStop(){ if(_pcTimer){ clearInterval(_pcTimer); clearTimeout(_pcTimer); _pcTimer=null; } }
@@ -1041,16 +1257,29 @@ function _pcStart(){
 function _pcSuccess(){
   _pcStop();
   var l=document.getElementById('pcLoader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById('pcLoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
+  var i=document.getElementById('pcLoaderIc'); if(i) i.innerHTML=ic('check-circle',15);
   var e=document.getElementById('pcLoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
 }
 function _pcDelay(ms){ return new Promise(function(res){ setTimeout(res,ms); }); }
+// Skeleton placeholders that mirror the final layout (KPI row, summary card, key-metrics table, distribution
+// tables) + a rotating status line. Visual only (aria-hidden); #wrap carries aria-busy and #pcLive announces.
 function loaderHtml(){
-  return '<div id="pcLoader" class="gw-loader" role="status" aria-live="polite"><div class="gw-loader-in">'+
-    '<div class="gw-orb"><span class="gw-orb-ic" id="pcLoaderIc">'+ic('clock',30)+'</span></div>'+
-    '<div class="gw-loader-msg gw-msg-in" id="pcLoaderMsg">Getting the numbers ready\u2026</div>'+
-    '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
-    '<div class="gw-loader-sub">Pulse check \u00b7 24h</div></div></div>';
+  var sk=function(w,h,extra){ return '<span class="pc-sk" style="width:'+w+';height:'+h+'px'+(extra?';'+extra:'')+'"></span>'; };
+  var kpiSk='<div class="pc-kpi is-sk">'+sk('58%',11)+sk('44%',34,'margin-top:14px')+sk('72%',14,'margin-top:11px')+'</div>';
+  var head='<div class="pc-card-head"><div class="pc-card-h">'+sk('22px',22,'border-radius:5px')+sk('34px',34,'border-radius:9px')+
+    '<span style="display:flex;flex-direction:column;gap:7px">'+sk('200px',14,'max-width:46vw')+sk('260px',10,'max-width:52vw')+'</span></div></div>';
+  var lines=function(ws){ return ws.map(function(w){ return sk(w,12,'margin-top:10px'); }).join(''); };
+  var tbl=function(n,ws){ var r='<div class="pc-sk-row">'+sk('22%',9)+sk('14%',9)+'</div>'; for(var i=0;i<n;i++) r+='<div class="pc-sk-row">'+sk(ws[i%ws.length],12)+sk('92px',8,'border-radius:99px;margin-left:auto')+sk('44px',12)+'</div>'; return '<div class="pc-sk-tbl">'+r+'</div>'; };
+  var cardSk=function(body){ return '<div class="pc-card">'+head+'<div class="pc-card-body">'+body+'</div></div>'; };
+  return '<div id="pcLoader" class="pc-load" aria-hidden="true">'+
+      '<div class="pc-kpis">'+kpiSk+kpiSk+kpiSk+kpiSk+'</div>'+
+      '<div class="pc-loadnote"><span class="pc-loadnote-ic" id="pcLoaderIc">'+ic('clock',15)+'</span>'+
+        '<span class="pc-loadnote-msg gw-msg-in" id="pcLoaderMsg">Getting the numbers ready\u2026</span></div>'+
+      cardSk(lines(['96%','92%','84%','60%']))+
+      cardSk(tbl(6,['48%','36%','42%','30%','40%','34%']))+
+      cardSk(tbl(5,['58%','44%','50%','38%','30%']))+
+      cardSk(tbl(4,['52%','40%','46%','32%']))+
+    '</div>';
 }
 
 // ---- State + flow ----
@@ -1068,15 +1297,20 @@ function excludedNote(D){
 function renderReport(D){
   var k=D.kpis;
   var banner=(k.created===0&&k.resolved===0)?'<div class="pc-banner" role="note">No tickets created or resolved in this window.'+(D.latestCreateDate?' Latest ticket in the dataset was created '+esc(fmtLong(D.latestCreateDate))+'.':'')+'</div>':'';
-  wrap().innerHTML=hero(D)+toolbar()+excludedNote(D)+banner+
+  wrap().innerHTML=hero(D)+kpiStrip(D)+toolbar()+excludedNote(D)+banner+
     secExec(D)+secKpis(D)+secTypes(D)+secRootCauses(D)+secResolutions(D)+secAgents(D)+
     secHashtags(D)+secHourly(D)+secSla(D)+secBreaches(D)+secActions(D);
   document.getElementById('pcExec').textContent=execText(D);
 }
+// Friendly error state (overlaps the hero) with a Retry that re-runs the same fetch.
 function renderError(msg){
-  wrap().innerHTML=hero(PC.data)+toolbar()+
-    '<div class="pc-card"><div class="pc-error" role="alert"><p>'+esc(msg)+'</p>'+
-    '<button type="button" class="pc-btn" onclick="pcRetry()">'+ic('refresh',15)+'Retry</button></div></div>';
+  wrap().innerHTML=hero(PC.data,true)+
+    '<div class="pc-state" role="alert">'+
+      '<span class="pc-state-ic" aria-hidden="true">'+ic('alert',26)+'</span>'+
+      '<h2>We couldn\u2019t load the pulse check</h2>'+
+      '<p>'+esc(msg)+'</p><p>Check your connection, then select Retry.</p>'+
+      '<button type="button" class="pc-btn" onclick="pcRetry()">'+ic('refresh',15)+'Retry</button>'+
+    '</div>'+toolbar();
 }
 // With a report already on screen (background reload) the report stays in place and any error shows inline. Without one, the phased loader runs and a failure shows the error card.
 async function load(fresh){
@@ -1085,16 +1319,23 @@ async function load(fresh){
   if(PC.retryTimer){ clearTimeout(PC.retryTimer); PC.retryTimer=null; }
   var keep=!!PC.data;
   if(keep){ setText('pcStatus',''); }
-  else { wrap().innerHTML=hero(null)+toolbar()+loaderHtml(); _pcStart(); }
+  else {
+    var w0=wrap(); w0.classList.remove('is-anim'); w0.setAttribute('aria-busy','true');
+    w0.innerHTML=hero(null)+loaderHtml()+toolbar(); _pcStart();
+    pcAnnounce('Loading the pulse check report\u2026');
+  }
   var t0=Date.now(), r=null;
   try{ r=await A.api('GET','/api/pulse-check'+(fresh?'?fresh=1':'')); }catch(e){ r=null; }
   if(r&&r.ok&&r.data&&r.data.kpis){
     if(!keep){ var wait=800-(Date.now()-t0); if(wait>0) await _pcDelay(wait); _pcSuccess(); await _pcDelay(500); }
     PC.data=r.data; PC.loading=false;
     renderReport(r.data);
+    var w1=wrap(); w1.removeAttribute('aria-busy'); w1.classList.toggle('is-anim',!keep);
+    pcAnnounce('Pulse check report loaded \u2014 '+heroLines(r.data).report+'.');
     return;
   }
   _pcStop(); PC.loading=false;
+  wrap().removeAttribute('aria-busy');
   if(r&&r.status===401){
     // A.api already cleared the session and showed the expired-session modal; drop the loader.
     if(keep){ setText('pcStatus','Your session has expired. Please log in again.'); }
@@ -1111,8 +1352,10 @@ async function load(fresh){
   }
   if(keep){ setText('pcStatus',msg); }
   else renderError(msg);
+  pcAnnounce('Could not load the pulse check report.');
 }
-function pcRetry(){ PC.autoRetried=false; load(false); }
+// Retry: re-run the same fetch; keep keyboard focus inside the report area (the button is replaced by the skeleton).
+function pcRetry(){ PC.autoRetried=false; load(false); var w=wrap(); if(w) w.focus({preventScroll:true}); }
 window.pcRetry=pcRetry;
 
 // Live countdown (every second) to the next report. Once it runs out, show "is generating…"; once the next

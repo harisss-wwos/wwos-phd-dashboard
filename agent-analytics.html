@@ -16,564 +16,292 @@
 <link rel="stylesheet" href="shimmer.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--yl:#fbbf24;--pu:#a78bfa;--tl:#44b9d6;--a1:#7dd3fc;--a2:#fbbf24;--b:#4ade80;--s:#000}
-.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
-@keyframes spin{100%{transform:rotate(360deg)}}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
-.wrap{width:95%;max-width:none;margin:0 auto;padding:32px 20px}
-@media(max-width:768px){.wrap{width:95%}}
-h1{color:#fff;font-size:1.6em;margin-bottom:6px}
-.sub{color:var(--tm);font-size:.9em;margin-bottom:24px}
-.section{margin-bottom:30px}
-.section h2{color:var(--o);font-size:1.05em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.tbl-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;overflow:auto}
-table{width:100%;border-collapse:collapse;min-width:1000px}
-thead th{background:#000;color:var(--tm);font-size:.68em;text-transform:uppercase;letter-spacing:.4px;font-weight:600;text-align:center;padding:10px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}
-thead th.l{text-align:left}
-tbody td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.86em;text-align:center;white-space:nowrap}
-tbody td.l{text-align:left}
-tbody tr:last-child td{border-bottom:none}
-tbody tr:hover{background:rgba(255,153,0,.03)}
-.uname{color:#fff;font-weight:600}
-.role{color:var(--o);text-transform:uppercase;font-size:.68em;font-weight:700;margin-left:6px;background:rgba(255,153,0,.14);padding:1px 7px;border-radius:5px}
-.big{font-weight:700;color:#fff}
-.colors{display:inline-flex;gap:5px;flex-wrap:wrap;justify-content:center}
-.dot{display:inline-flex;align-items:center;gap:3px;font-size:.8em;font-weight:600}
-.dot i{width:9px;height:9px;border-radius:2px;display:inline-block}
-.d-green i{background:#4ade80}.d-yellow i{background:#fbbf24}.d-red i{background:#ff5252}.d-black i{background:#888}.d-purple i{background:#a78bfa}
-.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.btn.mini{padding:5px 12px;font-size:.78em}
-/* Bucket popup */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;max-height:88vh;overflow:auto;padding:24px}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px}
-.modal-head h2{color:var(--o);font-size:1.1em;font-weight:700;text-transform:none;letter-spacing:0}
-.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#fff}
-.bk-sub{color:var(--tm);font-size:.85em;margin-bottom:16px}
-.bk-tk{background:#000;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:5px;padding:14px 16px;margin-bottom:14px;text-align:left}
-.bk-tk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-.bk-id{color:#44b9d6;font-weight:700;text-decoration:none}.bk-id:hover{text-decoration:underline}
-.bk-title{color:var(--t);font-size:.9em;margin-bottom:10px;line-height:1.5}
-.bk-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm);margin-bottom:10px}
-.bk-meta b{color:#fff;font-weight:600}
-.bk-rem{font-weight:700}.bk-rem.ok{color:var(--gl)}.bk-rem.warn{color:var(--yl)}.bk-rem.over{color:var(--rl)}
-.bk-cmts{border-top:1px solid rgba(255,255,255,.08);padding-top:10px}
-.bk-cmts-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px}
-.bk-cmt{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:8px 11px;margin-bottom:7px}
-.bk-cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.72em;color:#5f6b6c;margin-bottom:3px}
-.bk-cmt-meta b{color:#d5dbdb}
-.bk-cmt-text{color:var(--t);font-size:.85em;white-space:pre-wrap;line-height:1.5}
-.bk-nocmt{color:#5f6b6c;font-size:.82em;font-style:italic}
-.bk-empty{text-align:center;color:var(--tm);padding:30px;border:1px dashed var(--bd);border-radius:5px}
-/* ---- Teams (Alpha/Beta/Gamma) group cards with large avatars ---- */
-.ga-page-head{margin-bottom:22px}
-.ga-page-head h1{margin-bottom:4px}
-.ga-page-sub{color:var(--tm);font-size:.9em}
-.ga-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
-.ga-group{position:relative;background:linear-gradient(160deg,color-mix(in srgb,var(--gc) 13%,#0a0a0a),#0a0a0a 62%);border:1px solid var(--bd);border-radius:5px;padding:20px 18px 22px;overflow:hidden}
-.ga-group::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--gc)}
-.ga-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-.ga-group-name{display:flex;align-items:center;gap:9px;font-size:1.2em;font-weight:800;letter-spacing:.4px;color:#fff}
-.ga-dot{width:11px;height:11px;border-radius:50%;background:var(--gc);box-shadow:0 0 0 4px color-mix(in srgb,var(--gc) 25%,transparent)}
-.ga-group-count{color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 35%,transparent);font-size:.74em;font-weight:700;border-radius:5px;padding:3px 11px}
-/* Team KPI strip (Resolved / Open totals). */
-.ga-team-kpis{display:flex;gap:10px;margin-bottom:16px}
-.ga-kpi{flex:1;background:rgba(0,0,0,.35);border:1px solid var(--bd);border-radius:5px;padding:10px 12px;text-align:center}
-.ga-kpi-v{display:block;font-size:1.5em;font-weight:800;color:var(--gc);line-height:1}
-.ga-kpi-l{color:var(--tm);font-size:.68em;text-transform:uppercase;letter-spacing:.4px;margin-top:4px;display:block}
-.ga-mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
-.ga-mem{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;padding:14px 8px 12px;border:1px solid var(--bd);border-radius:5px;text-decoration:none;background:rgba(0,0,0,.25);transition:transform .14s,background .14s,border-color .14s}
-.ga-mem:hover{transform:translateY(-3px);background:rgba(255,255,255,.04);border-color:color-mix(in srgb,var(--gc) 55%,var(--bd))}
-.ga-mem-av{width:60px;height:60px;display:inline-flex;border-radius:50%;box-shadow:0 0 0 2px color-mix(in srgb,var(--gc) 55%,transparent),0 4px 12px rgba(0,0,0,.4);transition:box-shadow .14s}
-.ga-mem:hover .ga-mem-av{box-shadow:0 0 0 3px var(--gc),0 6px 16px rgba(0,0,0,.5)}
-.ga-mem-av .phd-avatar,.ga-mem-av img,.ga-mem-av .avatar-initial{width:60px!important;height:60px!important;font-size:24px!important}
-.ga-mem-name{color:#fff;font-size:.86em;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
-.ga-mem:hover .ga-mem-name{color:var(--gc)}
-.ga-mem-id{color:var(--tm);font-size:.72em}
-.ga-mem-stats{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center}
-.ga-chip{font-size:.66em;color:var(--tm);background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:5px;padding:2px 8px;display:inline-flex;gap:4px;align-items:center}
-.ga-chip b{color:#fff;font-weight:800}
-.ga-chip-r b{color:#4ade80}
-.ga-chip-o b{color:var(--o)}
-@media(max-width:600px){
-  .ga-mem-grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:9px}
-  .ga-mem-av{width:54px;height:54px}
-  .ga-mem-av .phd-avatar,.ga-mem-av img,.ga-mem-av .avatar-initial{width:54px!important;height:54px!important;font-size:22px!important}
-}
-/* Stat tiles (shared look with the agent profile) — used by the 1st Pet incidents totals. */
-.ac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.ac-tile{background:#000;border:1px solid var(--bd);border-top:3px solid var(--o);border-radius:5px;padding:16px 12px;text-align:center}
-.ac-num{font-size:1.9em;font-weight:800;color:#fff;line-height:1}
-.ac-lbl{color:var(--tm);font-size:.8em;margin-top:6px}
-/* ---- Ported Groups view (KPIs, charts, tables) ---- */
-.gv-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
-.gv-kpi{background:var(--s);border-radius:5px;padding:20px;text-align:center;border:1px solid var(--bd);border-top:3px solid var(--o)}
-.gv-kpi .value{font-size:2em;font-weight:700;color:#fff;margin-bottom:4px}
-.gv-kpi .label{font-size:.78em;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
-.gv-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(450px,1fr));gap:20px;margin-bottom:24px}
-.gv-chart{background:var(--s);border-radius:5px;padding:20px;border:1px solid var(--bd)}
-.gv-chart h3{color:#fff;margin-bottom:16px;text-align:center;font-size:.95em;font-weight:600}
-.gv-wrap{position:relative;height:300px}
-.gv-sec{background:var(--s);border-radius:5px;padding:24px;margin-bottom:24px;border:1px solid var(--bd)}
-.gv-sec h2{color:#fff;margin-bottom:18px;font-size:1.2em;font-weight:600;display:flex;align-items:center;gap:8px}
-.gv-sec h2::before{content:'';display:inline-block;width:4px;height:20px;background:var(--o);border-radius:2px}
-.gv-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.gv-scroll table{min-width:760px}
-.gv-sec table{width:100%;border-collapse:collapse;margin-top:12px}
-.gv-sec th,.gv-sec td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--bd);font-size:.88em}
-.gv-sec th{background:#0a0a0a;color:var(--tm);font-weight:600;text-transform:uppercase;font-size:.75em;letter-spacing:.5px}
-.gv-sec tr:hover{background:rgba(255,153,0,.03)}
-.gv-badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:.78em;font-weight:700;background:rgba(62,207,74,.2);color:#3ecf4a}
-.gv-tag{display:inline-block;padding:2px 10px;border-radius:5px;font-size:.72em;font-weight:600}
-.gv-tag.a1{background:rgba(125,211,252,.15);color:var(--a1)}
-.gv-tag.a2{background:rgba(251,191,36,.15);color:var(--a2)}
-.gv-tag.b{background:rgba(74,222,128,.15);color:var(--b)}
-/* Individual Agent Performance: Excel-sheet style — gridlines on every cell, no group borders. */
-.iap-hint{color:#879596;font-size:.8em;margin:0 0 10px;display:flex;align-items:center;gap:6px}
-.iap-hint svg{color:var(--o);flex-shrink:0}
-/* Explanatory note shown under Gamma tables about the Assigned vs Resolved (Total) gap. */
-.gamma-note{color:#9aa7a8;font-size:.8em;line-height:1.5;margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--g,#4ade80);background:rgba(74,222,128,.06);border-radius:0 6px 6px 0}
-.gamma-note b{color:#c9d3d4}
-/* Consolidated filter bar (Group Analytics + Windows). Segmented-pill controls, no harsh borders. */
-.ga-filters{display:flex;flex-wrap:wrap;gap:14px 30px;align-items:flex-start;background:linear-gradient(180deg,#111a23,#0d141b);border:1px solid #223040;border-radius:5px;padding:16px 18px;margin:5px 0;box-shadow:0 2px 10px rgba(0,0,0,.25)}
-/* Justification modifiers: spread pushes groups to left/center/right corners; center centers a single group. */
-.ga-filters.ga-spread{justify-content:space-between}
-.ga-filters.ga-center{justify-content:center}
-.ga-fgroup{display:flex;flex-direction:column;gap:9px;min-width:0}
-/* Inline variant: label + options on one line (used by Agent Queue Groups). */
-.ga-fgroup.ga-inline{flex-direction:row;align-items:center;gap:12px}
-.ga-fgroup.ga-inline>.ga-flabel{margin:0}
-.ga-fgroup>.ga-flabel{color:#8a98a0;font-size:.68em;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-/* Segmented control: options sit in a single rounded track. */
-.ga-fopts{display:inline-flex;flex-wrap:wrap;gap:4px;background:#0b1219;border:1px solid #1e2b38;border-radius:5px;padding:4px}
-.ga-opt{position:relative;display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;border-radius:5px;padding:7px 13px;font-size:.85em;font-weight:500;color:#9fb0b8;transition:color .18s,background .18s,box-shadow .18s,opacity .18s;white-space:nowrap}
-.ga-opt input{position:absolute;opacity:0;width:0;height:0;margin:0;pointer-events:none}
-.ga-opt:hover{color:#e6edf0;background:rgba(255,255,255,.04)}
-/* Selected radio = solid accent chip. Selected checkbox (group) = tinted chip with a dot. */
-.ga-opt.checked{color:#fff;background:linear-gradient(180deg,#2a3a48,#20303d);box-shadow:inset 0 0 0 1px #3d566a,0 1px 4px rgba(0,0,0,.3)}
-.ga-fopts.ga-radio .ga-opt.checked{background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#141414;box-shadow:0 1px 6px rgba(240,125,10,.4)}
-.ga-fopts.ga-checks .ga-opt{padding-left:11px}
-.ga-fopts.ga-checks .ga-opt::before{content:'';width:9px;height:9px;border-radius:5px;border:1.5px solid #4a5c6a;transition:background .18s,border-color .18s}
-.ga-fopts.ga-checks .ga-opt.checked::before{background:var(--o);border-color:var(--o);box-shadow:0 0 0 2px rgba(255,153,0,.2)}
-.ga-opt.disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
-.ga-fgroup.ga-months.disabled .ga-flabel{opacity:.35}
-.ga-scope-note{color:#879596;font-size:.8em;margin:0 0 14px;display:flex;align-items:center;gap:7px}
-.ga-scope-note::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--o);flex-shrink:0}
-.ga-tables{display:flex;flex-direction:column;gap:26px}
-.ga-tbl-title{color:#fff;font-size:1.02em;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px}
-.ga-tbl-title::before{content:'';display:inline-block;width:3px;height:16px;background:var(--o);border-radius:2px}
-/* Small in-cell spinner shown while a table's numbers load (header + names paint instantly). */
-.cell-spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
-.iap-table.xls td.loading{color:#4a5560}
-.gv-scroll .iap-table{min-width:1000px}
-.iap-table.xls{border-collapse:collapse;border:1px solid #2f3a45}
-.iap-table.xls th,.iap-table.xls td{white-space:nowrap;border:1px solid #2f3a45;padding:8px 12px}
-.iap-table.xls thead th{background:#111820}
-.iap-table.xls tbody tr:nth-child(even) td{background:rgba(255,255,255,.02)}
-.iap-table.xls tbody tr:hover td{background:rgba(255,153,0,.06)}
-/* "Successful" is the key column — subtle highlight so it stands out. */
-.iap-table.xls .col-key{background:rgba(74,222,128,.1)!important;font-weight:700;color:#eafff0}
-.iap-table.xls thead th.col-key{background:rgba(74,222,128,.16)!important;color:#4ade80}
-/* Sortable headers */
-.iap-table.xls th.iap-sort{cursor:pointer;user-select:none}
-.iap-table.xls th.iap-sort:hover{background:#18222c}
-.iap-table.xls th.iap-sort.sorted{color:var(--o)}
-.iap-table.xls th.iap-sort.col-key.sorted{color:#4ade80}
-/* Zero values are greyed out so non-zero numbers stand out. */
-.iap-table.xls td.zero{color:#4a5560}
-.iap-table.xls td.zero .zero,.iap-table.xls .zero{color:#4a5560}
-.iap-table.xls td.col-key.zero{color:#4a5560;font-weight:400}
-/* Total column — subtle highlight. */
-.iap-table.xls .col-total{background:rgba(68,185,214,.1)!important;color:#cfeffb}
-.iap-table.xls td.col-total.zero{color:#4a5560}
-/* Header labels: full by default, short/abbreviated forms on narrow screens. Truncate if still tight. */
-.iap-table.xls th .th-full{display:inline-block;overflow:hidden;text-overflow:ellipsis;max-width:130px;vertical-align:middle}
-.iap-table.xls th .th-short{display:none;overflow:hidden;text-overflow:ellipsis;max-width:90px;vertical-align:middle}
-.iap-table.xls th .th-arrow{white-space:nowrap}
-@media(max-width:900px){
-  .iap-table.xls th .th-full{display:none}
-  .iap-table.xls th .th-short{display:inline-block}
-  .iap-table.xls th,.iap-table.xls td{padding:6px 8px;font-size:.82em}
-}
-.gv-legend{display:flex;gap:24px;flex-wrap:wrap;background:var(--s);border:1px solid var(--bd);border-radius:5px;padding:16px 20px;margin-bottom:24px;font-size:.9em}
-.gv-legend span{display:flex;align-items:center;gap:8px}
-.gv-legend i{width:14px;height:14px;border-radius:5px;display:inline-block}
-@media(max-width:1024px){.gv-charts{grid-template-columns:1fr}}
-@media(max-width:768px){.gv-kpi-grid{grid-template-columns:repeat(2,1fr)}.gv-wrap{height:260px}}
-@media(max-width:480px){.gv-kpi-grid{grid-template-columns:1fr}}
-.gv-wrap.tall{height:400px}
-/* Collapsible Group Analytics sections (collapsed by default; fetch on first expand). */
-.gv-list{display:flex;flex-direction:column;gap:10px}
-.gv-card{border:1px solid var(--bd);border-radius:5px;overflow:hidden;background:#0a0a0a;display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease}
-.gv-card.open{grid-template-rows:auto 1fr}
-.gv-card-head{display:flex;align-items:center;gap:12px;width:100%;padding:16px 20px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.gv-card-head:hover{background:rgba(255,255,255,.04)}
-.gv-card-title{color:#fff;font-weight:700;font-size:1em}
-.gv-caret{margin-left:auto;color:var(--tm);transition:transform .3s ease;flex-shrink:0}
-.gv-card.open .gv-caret{transform:rotate(180deg)}
-.gv-card-body{overflow:hidden;min-height:0}
-.gv-card-body>div{padding:0 20px 20px}
-/* Inside a collapsible card the charts/tables shouldn't add their own card chrome or bottom gap. */
-.gv-card-body .gv-chart,.gv-card-body .gv-sec{border:none;background:transparent;padding:0;margin:0}
-.gv-card-body .gv-charts{margin-bottom:0}
-/* Nested collapsible hierarchy (By Quarters -> quarter -> Complete/months; window cards). */
-.gv-nested{margin-top:2px}
-.gv-mid>.gv-card-head .gv-card-title{color:#e5eaea}
-.gv-leaf{background:#0c1218}
-.gv-leaf>.gv-card-head .gv-card-title{font-weight:600;font-size:.94em;color:#cfd6d6}
-.gv-sub-range{color:var(--tm);font-weight:400;font-size:.82em;margin-left:6px}
-/* Two always-open blocks (Individual Agent Performance + Group Totals Summary) inside a scope card. */
-.gv-blocks{display:flex;flex-direction:column;gap:22px}
-.gv-block-title{color:#cfd6d6;font-size:.82em;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
-.gv-block-title::before{content:'';width:3px;height:.95em;background:var(--o);border-radius:2px;flex-shrink:0}
-
-/* ---- Performance Overview (ported from the Live Dashboard) — period picker + KPI podium/tiles +
-   Created/Resolved/SLA chart. Lives inside a .gv-card body (light surface). ---- */
-.perf-body{padding:0}
-.dash-chunk-slot{min-height:0}
-/* Period picker: a right-aligned top row inside the card body, divider below. */
-.perf-head-right{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-end;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-.perf-head-right::-webkit-scrollbar{display:none}
-.perf-head-right>span{display:inline-flex}
-.perf-head-inbody{margin:0 0 14px;padding-bottom:14px;border-bottom:1px solid #eef1f4;justify-content:flex-end}
-/* Merged YTD Performance tables, below the Performance Overview podium/KPIs/chart. */
-.perf-ytd-block{margin-top:26px;padding-top:22px;border-top:2px solid #eef1f4}
-@media(max-width:860px){.perf-head-inbody{justify-content:flex-start}}
-.perf-picker{display:inline-flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-end}
-.perf-sub{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
-/* Segmented chip group: one rounded pill track; active chip = white on orange. */
-.perf-chips{display:inline-flex;flex:0 0 auto;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
-.perf-chip{font-family:inherit;font-size:.76em;font-weight:700;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
-.perf-chip:hover{color:#1b2026}
-.perf-chip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
-.perf-sel{font-family:inherit;font-size:.8em;font-weight:600;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:5px;padding:6px 10px;cursor:pointer;outline:none}
-.perf-sel:hover{border-color:#c2cad1}
-.perf-sel:focus{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
-/* Chart box (light surface version — app.html's is dark). */
-.perf-body .chart-box{background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:16px}
-.perf-body .chart-wrap{position:relative;height:300px}
-.perf-body .chart-wrap.tall{height:340px}
-.perf-body .meta-info{color:#5c6773;font-size:.86em;line-height:1.5}
-.perf-spin-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.perf-chart-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a94a0;font-size:.86em}
-/* Performance KPIs: top-3 podium + colorful stat tiles. */
-.pf-section-h{display:flex;align-items:center;gap:7px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#8b96a0;margin:2px 0 10px}
-.pf-section-h svg{width:13px;height:13px;color:#ec7211}
-.pf-podium-wrap{margin-bottom:18px}
-.pf-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
-.pf-medal{position:relative;border-radius:5px;padding:18px 14px 14px;text-align:center;color:#1b2026;border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 18px -10px rgba(20,40,70,.35);overflow:hidden}
-.pf-medal::before{content:"";position:absolute;inset:0 0 auto 0;height:4px}
-.pf-medal.pf-gold{background:linear-gradient(180deg,#fff8e6,#fff);} .pf-medal.pf-gold::before{background:linear-gradient(90deg,#f6c21a,#ffde7a)}
-.pf-medal.pf-silver{background:linear-gradient(180deg,#f4f7fa,#fff);} .pf-medal.pf-silver::before{background:linear-gradient(90deg,#aab6c2,#d9e1e8)}
-.pf-medal.pf-bronze{background:linear-gradient(180deg,#fbf0e6,#fff);} .pf-medal.pf-bronze::before{background:linear-gradient(90deg,#cd7f32,#e3a86a)}
-.pf-medal.pf-gold{transform:translateY(-6px)}
-.pf-medal-badge{position:absolute;top:8px;right:10px;font-size:1.25em;line-height:1}
-.pf-av{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#eef1f4;border:2px solid #fff;box-shadow:0 2px 6px rgba(20,40,70,.18)}
-.pf-av img{width:100%;height:100%;object-fit:cover;display:block}
-.pf-av-i{font-weight:800;font-size:1.3em;color:#5c6773}
-.pf-medal.pf-gold .pf-av{border-color:#f6c21a}.pf-medal.pf-silver .pf-av{border-color:#c3ccd4}.pf-medal.pf-bronze .pf-av{border-color:#cd7f32}
-.pf-medal-id{font-size:.9em;font-weight:800;margin-top:8px;color:#1b2026;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pf-medal-metrics{display:flex;flex-direction:column;gap:2px;margin-top:8px}
-.pf-mm{font-size:.76em;color:#5c6773}
-.pf-mm b{color:#1b2026;font-size:1.05em}
-.pf-mm-avg{color:#8b96a0;font-size:.72em;margin-top:1px}
-.pf-mm-avg small{opacity:.8}
-.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px}
-.pf-stat{position:relative;background:#fff;border:1px solid #e6eaee;border-radius:5px;padding:13px 14px;overflow:hidden;box-shadow:0 2px 8px -4px rgba(20,40,70,.18)}
-.pf-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
-.pf-stat-top{display:flex;align-items:center;gap:7px;color:#5c6773}
-.pf-stat-top svg{width:15px;height:15px}
-.pf-stat-l{font-size:.72em;font-weight:700;letter-spacing:.2px;text-transform:uppercase}
-.pf-stat-v{font-size:1.5em;font-weight:900;letter-spacing:-.5px;color:#1b2026;margin-top:7px;line-height:1}
-.pf-stat-s{font-size:.72em;color:#8b96a0;margin-top:4px}
-.pf-created::before{background:#2563eb}.pf-created .pf-stat-top{color:#2563eb}
-.pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
-.pf-avgres::before{background:#0ea5b7}.pf-avgres .pf-stat-top{color:#0ea5b7}
-.pf-sla::before{background:#7c5cf0}.pf-sla .pf-stat-top{color:#7c5cf0}
-.pf-sla.ok .pf-stat-v{color:#1f9d57}.pf-sla.warn .pf-stat-v{color:#dc2626}
-.pf-autosim::before{background:#ec7211}.pf-autosim .pf-stat-top{color:#ec7211}
-.pf-repeat::before{background:#d9930a}.pf-repeat .pf-stat-top{color:#b5760a}
-.pf-avgrep::before{background:#db2777}.pf-avgrep .pf-stat-top{color:#db2777}
-.pf-pet::before{background:#0d9488}.pf-pet .pf-stat-top{color:#0d9488}
-@media(max-width:900px){.pf-stats{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.pf-podium{grid-template-columns:1fr}.pf-medal.pf-gold{transform:none}}
-
-/* ---- Page layout: title + evenly spaced, clearly labelled sections ---- */
-/* Title bar: WHITE card, 60px tall, 10px gap below. */
-.an-head{display:flex;align-items:center;justify-content:space-between;gap:14px;height:60px;min-height:60px;box-sizing:border-box;margin:0 0 10px;padding:0 18px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06)}
-.an-head h1{font-size:1.2em;font-weight:800;margin:0;display:inline-flex;align-items:center;gap:9px;color:#1b2026}
-.an-head h1 svg{color:#1b2026;flex-shrink:0}
-/* "YTD 2026" badge pinned to the right of the title bar (matches hi-resolved / station-request). */
-.an-ytd{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:.9em;letter-spacing:.3px;color:#ec7211;background:#fff4ea;border:1px solid #f3c99e;border-radius:999px;padding:6px 14px;white-space:nowrap;flex-shrink:0}
-.an-ytd svg{color:#ec7211;flex-shrink:0}
-/* Content column: kill the injected 14px top gutter; reduce bottom to 20px (keep 12px sides). */
-#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
-.an-sub{color:var(--tm);font-size:.92em}
-.an-sec{margin:0 0 34px}
-.an-sec:last-child{margin-bottom:0}
-.an-sec-head{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
-.an-sec-head h2{color:#fff;font-size:1.15em;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:6px}
-.an-sec-head h2 .ic{color:var(--o)}
-.an-sec-desc{color:var(--tm);font-size:.86em;line-height:1.5;max-width:900px}
-.an-sec-desc b{color:var(--t);font-weight:600}
-/* ---- Shimmer skeleton for the Group Analytics section ---- */
-.sk{position:relative;overflow:hidden;background:#0f0f0f;border-radius:5px}
-.sk::after{content:"";position:absolute;top:0;left:-150%;height:100%;width:150%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);animation:skmove 1.3s infinite}
-@keyframes skmove{100%{left:150%}}
-.sk-h3{height:16px;width:180px;margin:0 auto 16px}
-.sk-h2{height:20px;width:240px;margin-bottom:16px}
-.sk-fill{position:absolute;inset:0;border-radius:5px}
-.sk-row{height:34px;margin-bottom:8px;border-radius:5px}
-.gv-wrap{background:transparent}
-
-/* ============ Illustrated gradient section banners (agent-analytics) ============ */
-@keyframes anBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-/* Plain .section > h2 heads become gradient banner bars spanning the section padding. */
-.section{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-radius:5px;padding:0;overflow:hidden;box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
-.section>h2{position:relative;overflow:hidden;margin:0 0 0 !important;min-height:58px;padding:0 22px;display:flex;align-items:center;gap:10px;
-  text-transform:none !important;letter-spacing:-.2px !important;font-size:1.12em !important;font-weight:800 !important;color:#3a2405 !important;
-  background:linear-gradient(90deg,#f0a020,#ff9f2e 55%,#ffcf7a);background-size:200% 100%;animation:anBanner 10s ease infinite}
-.section>h2 .ic,.section>h2 svg{color:#3a2405 !important;position:relative;z-index:1}
-.section>h2::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background-repeat:no-repeat;background-position:right center;background-size:auto 78%;opacity:.28;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" fill="none" stroke="%23ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="48" x2="18" y2="30"/><line x1="34" y1="48" x2="34" y2="18"/><line x1="50" y1="48" x2="50" y2="36"/><line x1="66" y1="48" x2="66" y2="24"/></svg>')}
-/* The section body (everything after the h2 banner) gets inner padding. */
-.section>h2~*{margin-left:20px;margin-right:20px}
-.section>h2~*:last-child{margin-bottom:20px}
-.section>.ac-grid,.section>.gv-list{margin-top:16px}
-
-/* Top-level collapsible section banners (Recent Activity / YTD Performance / Performance Overview): a flat
-   56px bar — EXPANDED = #1878eb, COLLAPSED = #38bdf8 — with WHITE title/caret. */
-.gv-list>.gv-card>.gv-card-head{position:relative;overflow:hidden;height:56px;min-height:56px;box-sizing:border-box;
-  background:#38bdf8!important;animation:none!important;transition:background .15s}
-.gv-list>.gv-card.open>.gv-card-head{background:#1878eb!important}
-.gv-list>.gv-card>.gv-card-head:hover{filter:none}
-.gv-list>.gv-card>.gv-card-head .gv-card-title,
-.gv-list>.gv-card>.gv-card-head .gv-card-title svg,
-.gv-list>.gv-card>.gv-card-head .gv-caret{color:#fff!important;font-weight:800;position:relative;z-index:1}
-/* Drop the per-card watermark illustration (kept flat). */
-.gv-list>.gv-card>.gv-card-head::after{display:none!important}
-/* ---- YTD Performance controls (period chips + sub-dropdown + Groups checkboxes) — now INSIDE the
-   section body (white surface), as a right-aligned top row with a divider below it. ---- */
-.ga-head-ctrls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin:7px 0;padding:7px 0;border-bottom:1px solid #eef1f4}
-/* Segmented period chips on a light grey track. */
-.ga-pchips{display:inline-flex;flex:0 0 auto;background:#f0f3f6;border:1px solid #e2e7eb;border-radius:999px;padding:3px;gap:2px}
-.ga-pchip{font-family:inherit;font-size:.74em;font-weight:800;letter-spacing:.1px;color:#5c6773;background:transparent;border:none;border-radius:999px;padding:5px 11px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
-.ga-pchip:hover{color:#1b2026}
-.ga-pchip.on{background:linear-gradient(120deg,#ff9f2e,#ec7211);color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
-/* Secondary dropdown (quarter/month/week). */
-.ga-sub-wrap:empty{display:none}
-.ga-sub-sel{font-family:inherit;font-size:.78em;font-weight:700;color:#1b2026;background:#fff;border:1px solid #d4dade;border-radius:5px;padding:5px 9px;cursor:pointer;outline:none}
-.ga-sub-sel:hover{border-color:#c2cad1}
-/* Groups checkboxes: light pill track, ORANGE label font. */
-.ga-head-groups{display:inline-flex;flex:0 0 auto;gap:4px;background:#f3f5f7;border:1px solid #e2e7eb;border-radius:5px;padding:4px}
-.ga-head-groups .ga-opt{color:#ec7211!important;font-size:.74em;font-weight:700;white-space:nowrap}
-.ga-head-groups .ga-opt.checked{color:#ec7211!important}
-.ga-head-groups .ga-opt::before{border-color:#f0b878!important}
-.ga-head-groups .ga-opt.checked::before{background:#ec7211!important;border-color:#ec7211!important;
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')!important;background-size:7px 7px!important;background-position:center!important;background-repeat:no-repeat!important}
-
-/* Pill-toggle checkmark for SCOPE/MONTHS/GROUPS checkboxes (matches the archive tree). */
-.ga-fopts.ga-checks .ga-opt.checked::before{background:#fff;border-color:#fff;box-shadow:0 0 0 2px rgba(255,153,0,.2);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f07d0a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');background-size:7px 7px;background-position:center;background-repeat:no-repeat}
-
-/* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
-
-/* ============================================================================
-   LIGHT MODE OVERRIDE — appended last so it wins the cascade. Remaps the dark
-   palette + every dark surface (cards, tables, modals, filter bar) to light.
-   Section banners already use light gradients and are left as-is.
-   ============================================================================ */
-:root{--t:#2a3340!important;--tm:#5c6773!important;--bd:#e2e7eb!important;--s:#ffffff!important}
-body{background:#f3f5f7!important;color:#2a3340!important}
-.top-bar{background:#fff!important;border-bottom:1px solid #e2e7eb!important}
-.logo span{color:#1b2026!important}
-h1,.uname,.big,.gv-kpi .value,.gv-chart h3,.gv-sec h2,.ga-group-name,.ac-num,.gv-card-title,.an-sec-head h2 .big,.bk-cmt-meta b,.bk-meta b{color:#1b2026!important}
-.btn{color:#fff!important}
-.btn.sec{background:#fff!important;border:1px solid #e2e7eb!important;color:#2a3340!important}
-/* Cards / surfaces */
-.tbl-card,.gv-card,.gv-leaf,.ac-tile,.gv-kpi,.gv-chart,.gv-sec,.gv-legend,.modal,.bk-cmt{background:#fff!important}
-.section{background:#fff!important;border:1px solid #e2e7eb!important;box-shadow:0 2px 12px -6px rgba(20,40,70,.12)!important}
-.gv-card{border:1px solid #e2e7eb!important}
-.ac-tile{background:#f7f9fb!important}
-.ga-group{background:linear-gradient(160deg,color-mix(in srgb,var(--gc) 10%,#fff),#fff 65%)!important;border:1px solid #e6eaee!important}
-.ga-kpi{background:#f7f9fb!important;border:1px solid #eef1f4!important}
-.ga-mem{background:#fff!important;border:1px solid #e6eaee!important}
-.ga-mem:hover{background:#faf9ff!important}
-.ga-mem-name{color:#1b2026!important}
-.ga-chip{background:#f0f3f6!important;border:1px solid #e2e7eb!important;color:#5c6773!important}
-.ga-chip b{color:#1b2026!important}
-.ac-grid .ac-num{color:#1b2026!important}
-/* Tables (base + gv-sec + iap xls) */
-thead th,.gv-sec th{background:#f7f9fb!important;color:#5c6773!important}
-tbody td,.gv-sec td{border-bottom:1px solid #eef1f4!important;color:#2a3340!important}
-tbody tr:hover,.gv-sec tr:hover{background:#f8fafb!important}
-.iap-table.xls,.iap-table.xls th,.iap-table.xls td{border-color:#e2e7eb!important}
-.iap-table.xls thead th{background:#f3f5f7!important;color:#5c6773!important}
-.iap-table.xls tbody tr:nth-child(even) td{background:#fafbfc!important}
-.iap-table.xls tbody tr:hover td{background:#fff4e8!important}
-.iap-table.xls th.iap-sort:hover{background:#eef1f4!important}
-.iap-table.xls .col-key{background:#eafaf0!important;color:#0f6b38!important}
-.iap-table.xls thead th.col-key{background:#d8f3e3!important;color:#1f9d57!important}
-.iap-table.xls .col-total{background:#eaf4fb!important;color:#1577a0!important}
-.iap-table.xls td.zero,.iap-table.xls td.col-key.zero,.iap-table.xls td.col-total.zero,.iap-table.xls td.loading{color:#aab3bd!important}
-/* Modals */
-.modal{border:1px solid #e2e7eb!important;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)!important}
-.modal-bg{background:rgba(20,30,45,.55)!important}
-.modal-head h2{color:#1b2026!important}
-.bk-tk{background:#f7f9fb!important;border:1px solid #e6eaee!important;border-left:3px solid var(--o)!important}
-.bk-cmt{background:#f7f9fb!important;border:1px solid #eef1f4!important}
-.bk-cmt-meta b{color:#2a3340!important}
-.bk-id{color:#2563eb!important}
-.bk-title,.bk-cmt-text{color:#2a3340!important}
-.bk-empty{border-color:#e2e7eb!important;color:#5c6773!important}
-/* Filter bar + segmented controls */
-.ga-filters{background:#fff!important;border:1px solid #e2e7eb!important;box-shadow:0 2px 10px rgba(20,40,70,.05)!important}
-.ga-fgroup>.ga-flabel{color:#5c6773!important}
-.ga-fopts{background:#f3f5f7!important;border:1px solid #e2e7eb!important}
-.ga-opt{color:#5c6773!important}
-.ga-opt:hover{color:#1b2026!important;background:rgba(0,0,0,.04)!important}
-.ga-opt.checked{color:#1b2026!important;background:#fff!important;box-shadow:inset 0 0 0 1px #d4dade,0 1px 4px rgba(20,40,70,.12)!important}
-.ga-fopts.ga-radio .ga-opt.checked{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important}
-.ga-fopts.ga-checks .ga-opt::before{border-color:#c6cdd4!important}
-.gv-card-head:hover{background:#f7f9fb!important}
-.gv-leaf{background:#fafbfc!important}
-.gv-mid>.gv-card-head .gv-card-title,.gv-leaf>.gv-card-head .gv-card-title,.gv-block-title,.gv-tbl-title,.ga-tbl-title{color:#1b2026!important}
-.an-sec-head h2{color:#1b2026!important}
-.an-sub,.an-sec-desc,.sub,.ga-page-sub{color:#5c6773!important}
-.an-sec-desc b{color:#1b2026!important}
-.sk{background:#eef1f4!important}
-.sk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent)!important}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Redesigned Analytics UI � brand palette, loaded LAST so it wins the cascade ===== -->
-<style id="anRedesign">
-:root{
-  --an-orange:#ff6100; --an-orange-l:#fe9046; --an-page:#f4f3ef; --an-white:#ffffff;
-  --an-ink:#151d28; --an-ink2:#161d2d; --an-mut:#818284; --an-blue-bg:#e6f0fc;
-  --an-blue-ic:#c4def6; --an-blue:#2b66c1;
-}
-body{background:var(--an-page)!important;color:var(--an-ink)!important}
+<style id="aa-light">
+/* Analytics — same visual language as Errors in Resolved: dark navy hero with an orange rule, KPI cards
+   overlapping it, then white collapsible cards (chevron expanders) holding filter bars + ledger tables.
+   Everything is scoped under .aa (a size container, so the grids respond to the content width). */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.aa{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--navy:#1f2a40;--focus:#f0a35a;
+  --g-a1:#1f5fbf;--g-a1-bg:#e6f0fc;--g-a1-dot:#3b82f6;--g-b:#1a7a43;--g-b-bg:#e5f5ec;--g-b-dot:#22a35a;--g-a2:#8f4f00;--g-a2-bg:#fff1dc;--g-a2-dot:#e8930c;
+  container-type:inline-size;color:var(--ink)}
+.aa button{font:inherit;text-transform:none}
+.aa :is(button,a,select,[tabindex]):focus-visible{outline:3px solid var(--focus)!important;outline-offset:2px}
+.aa-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---- Title bar ---- */
-.an-head{background:var(--an-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important;
-  height:60px!important;box-shadow:0 1px 2px rgba(21,29,40,.05),0 8px 22px -18px rgba(21,29,40,.3)!important}
-.an-head h1,.an-head h1 svg{color:var(--an-ink)!important}
-.an-head h1 svg{color:var(--an-blue)!important}
-.an-ytd{color:#fff!important;background:var(--an-orange)!important;border:1px solid var(--an-orange)!important;border-radius:5px!important}
-.an-ytd svg{color:#fff!important}
+/* ---- Hero ---- */
+.aa-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.aa-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.aa-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.aa-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.aa-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.aa-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.aa-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.aa .aa-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.aa-hero-sub{margin-top:9px;max-width:62ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.82)}
+.aa-meta{display:grid;grid-template-columns:repeat(2,minmax(0,auto));gap:10px 26px;margin:0;padding:13px 16px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.aa-meta dt{font-size:.64em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.66)}
+.aa-meta dd{margin:4px 0 0;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.aa-meta .aa-meta-wide{grid-column:1/-1}
+.aa-gchips{display:flex;flex-wrap:wrap;gap:6px}
+.aa-gchip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);font-size:.92em}
+.aa-gchip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--d)}
 
-/* ---- Card shells ---- */
-.gv-list{display:flex;flex-direction:column;gap:12px}
-.gv-list>.gv-card{background:var(--an-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important;
-  overflow:hidden;box-shadow:0 1px 2px rgba(21,29,40,.05),0 8px 22px -18px rgba(21,29,40,.28)!important}
-/* Collapsible banner: collapsed = light blue surface w/ dark text, expanded = solid brand blue w/ white. */
-.gv-list>.gv-card>.gv-card-head{height:56px!important;min-height:56px!important;border:none!important;
-  background:var(--an-blue-bg)!important;transition:background .15s!important}
-.gv-list>.gv-card>.gv-card-head .gv-card-title,
-.gv-list>.gv-card>.gv-card-head .gv-card-title svg,
-.gv-list>.gv-card>.gv-card-head .gv-caret{color:var(--an-blue)!important;font-weight:800!important}
-.gv-list>.gv-card.open>.gv-card-head{background:var(--an-blue)!important}
-.gv-list>.gv-card.open>.gv-card-head .gv-card-title,
-.gv-list>.gv-card.open>.gv-card-head .gv-card-title svg,
-.gv-list>.gv-card.open>.gv-card-head .gv-caret{color:#fff!important}
-.gv-list>.gv-card>.gv-card-head:hover{filter:brightness(.98)}
+/* ---- KPI row (overlaps the hero) ---- */
+.aa-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:520px){.aa-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.aa-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.aa-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6);min-width:0}
+.aa-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.aa-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.aa-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.aa-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.aa-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aa-kpi-s b{color:var(--ink);font-weight:800}
+.aa-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.aa-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.aa-kpi.is-base{--k:var(--navy)}
+.aa-kpi.is-good{--k:#1f9d57}.aa-kpi.is-good .aa-kpi-v{color:var(--grn)}.aa-kpi.is-good .aa-kpi-ic{background:var(--grn-bg);color:var(--grn)}
+.aa-kpi.is-warn{--k:var(--acc)}.aa-kpi.is-warn .aa-kpi-ic{background:var(--acc-bg);color:#b5530a}
+.aa-kpi.is-blue{--k:#2b66c1}.aa-kpi.is-blue .aa-kpi-ic{background:#e9f0fb;color:#1f4f9a}
+.aa-kpi-who{margin-top:10px;display:flex;align-items:center;gap:10px;min-width:0}
+.aa-kpi-who .aa-av{width:38px;height:38px;font-size:.95em}
+.aa-kpi-name{font-size:1.25em;font-weight:800;letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 
-/* ---- Recent Activity fun loader: 70vh area, animated icon orb + rotating status line + dots ---- */
-.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-/* Icon "orb": a spinning conic ring around a pulsing brand-blue icon badge. */
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(var(--an-blue),var(--an-blue-ic),var(--an-orange-l),var(--an-orange),var(--an-blue));
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:var(--an-blue-bg);color:var(--an-blue);
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:var(--an-ink);line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-/* Bouncing dots under the message. */
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:var(--an-orange);animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:var(--an-orange-l);animation-delay:.18s}
-.gw-dots span:nth-child(3){background:var(--an-blue);animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--an-blue);background:var(--an-blue-bg);border:1px solid var(--an-blue-ic);border-radius:999px;padding:4px 14px}
-/* Success state: green orb, stop the dots. */
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+/* ---- Collapsible section cards (chevron expanders, as on Errors in Resolved) ---- */
+.aa .an-sec{margin:0}
+.aa .gv-list{display:flex;flex-direction:column;gap:16px}
+.aa .gv-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);
+  display:grid;grid-template-rows:auto 0fr;transition:grid-template-rows .3s ease,border-color .15s,box-shadow .15s;overflow:hidden}
+.aa .gv-card.open{grid-template-rows:auto 1fr;border-color:#d8dee4;box-shadow:0 14px 30px -24px rgba(20,30,50,.55)}
+.aa .aa-card-h{margin:0;font-size:1em;font-weight:inherit;letter-spacing:0;line-height:inherit}
+.aa .gv-card-head{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:12px 18px;background:#fff;border:none;border-bottom:1px solid transparent;color:var(--ink);text-align:left;cursor:pointer}
+.aa .gv-card-head:hover{background:#fafbfc}
+.aa .gv-card.open>.gv-card-head{background:#f7f8fa;border-bottom-color:var(--line)}
+.aa .gv-card-head:focus-visible{outline-offset:-3px}
+.aa-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;color:#6b7580}
+.aa-chev svg{transition:transform .15s}
+.aa .gv-card-head[aria-expanded="true"] .aa-chev svg{transform:rotate(90deg)}
+.aa .gv-card-head:hover .aa-chev{background:#e6f0fc;color:#2b66c1}
+.aa-card-ic{width:36px;height:36px;border-radius:10px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a;border:1px solid #f7d4b0}
+.aa-card-tt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.aa .gv-card-title{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
+.aa-card-sub{font-size:.8em;font-weight:600;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aa-card-tag{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;background:#eef1f4;border:1px solid #d4dade;color:#3a4552;font-size:.7em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap}
+@container (max-width:560px){.aa-card-tag{display:none}}
+.aa .gv-card-body{overflow:hidden;min-height:0}
+.aa .gv-card:not(.open)>.gv-card-body{visibility:hidden;transition:visibility 0s .3s}
+.aa .gv-card-body>div{padding:16px 18px 20px}
+@container (max-width:520px){.aa .gv-card-body>div{padding:14px 12px 16px}.aa .gv-card-head{padding:12px}
+  .aa .ga-opt,.aa .perf-chip{white-space:normal}.aa .ga-fopts.ga-radio{display:flex}.aa-card-sub{white-space:normal}.aa-hero-ic{display:none}}
 
-/* ---- Performance Overview picker row: 10px gap above the selection tabs ---- */
-.perf-head-inbody{margin-top:10px!important}
-/* ---- Performance Overview period chips (active = orange) ---- */
-.perf-chips{background:#f0efe9!important;border:1px solid #e7e4dc!important}
-.perf-chip{color:var(--an-mut)!important}
-.perf-chip:hover{color:var(--an-ink)!important}
-.perf-chip.on{background:linear-gradient(120deg,var(--an-orange-l),var(--an-orange))!important;color:#fff!important;box-shadow:0 2px 8px -2px rgba(255,97,0,.6)!important}
-.perf-sel:focus{border-color:var(--an-orange)!important;box-shadow:0 0 0 3px rgba(255,97,0,.14)!important}
-
-/* ---- Group checkbox pills (BLR/AZA/WFH) � blue accent ---- */
-.perf-groups .ga-opt,.ga-head-groups .ga-opt{color:var(--an-blue)!important;font-weight:700}
-.perf-groups .ga-opt.checked,.ga-head-groups .ga-opt.checked{color:var(--an-blue)!important}
-.perf-groups .ga-opt::before{border-color:#a8c8ee!important}
-.perf-groups .ga-opt.checked::before,.ga-head-groups .ga-opt.checked::before{background:var(--an-blue)!important;border-color:var(--an-blue)!important;
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')!important;background-size:7px 7px!important;background-position:center!important;background-repeat:no-repeat!important}
-
-/* ---- Recent Activity controls (radio = orange active, checks = blue) ---- */
-.ga-fopts.ga-radio .ga-opt.checked{background:linear-gradient(180deg,var(--an-orange-l),var(--an-orange))!important;color:#fff!important}
-.ga-filters{background:var(--an-white)!important;border:1px solid #e7e4dc!important}
-.ga-fopts{background:#f0efe9!important;border:1px solid #e7e4dc!important}
-
-/* ---- Performance Overview KPI stat tiles � unify accents to the brand palette ---- */
-.pf-created::before{background:var(--an-blue)}.pf-created .pf-stat-top{color:var(--an-blue)}
-.pf-resolved::before{background:#1f9d57}.pf-resolved .pf-stat-top{color:#1f9d57}
-.pf-avgres::before{background:var(--an-blue)}.pf-avgres .pf-stat-top{color:var(--an-blue)}
-.pf-autosim::before{background:var(--an-orange)}.pf-autosim .pf-stat-top{color:var(--an-orange)}
-.pf-avgrep::before{background:var(--an-orange-l)}.pf-avgrep .pf-stat-top{color:#c25400}
-.pf-stat{border:1px solid #e7e4dc!important;border-radius:5px!important}
-.pf-section-h svg{color:var(--an-orange)}
+/* ---- Filter bars (Recent Activity window + groups, Performance period picker) ---- */
+.aa .ga-filters{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end;justify-content:space-between;margin:0 0 12px;padding:12px 14px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.aa .ga-fgroup{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:7px}
+.aa .ga-flabel{padding:0;font-size:.66em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.aa .ga-fopts{display:inline-flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:12px;background:#e7eaee;max-width:100%}
+.aa .ga-fopts.ga-checks{background:none;padding:0;gap:6px}
+.aa .ga-opt{position:relative;display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:99px;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+.aa .ga-opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.aa .ga-opt:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
+.aa .ga-fopts.ga-radio .ga-opt:hover{background:rgba(255,255,255,.7);color:var(--ink)}
+.aa .ga-fopts.ga-radio .ga-opt.checked{background:var(--navy);color:#fff;box-shadow:0 2px 6px -2px rgba(20,30,50,.5)}
+.aa .ga-checks .ga-opt{--gc:#5c6773;--gcb:#fff;--gd:#9aa4ae;background:#fff;border:1px solid #d4dade;padding:5px 12px 5px 10px}
+.aa .ga-checks .ga-opt[data-g="A1"]{--gc:var(--g-a1);--gcb:var(--g-a1-bg);--gd:var(--g-a1-dot)}
+.aa .ga-checks .ga-opt[data-g="B"]{--gc:var(--g-b);--gcb:var(--g-b-bg);--gd:var(--g-b-dot)}
+.aa .ga-checks .ga-opt[data-g="A2"]{--gc:var(--g-a2);--gcb:var(--g-a2-bg);--gd:var(--g-a2-dot)}
+.aa .ga-checks .ga-opt::before{content:'';width:14px;height:14px;border-radius:4px;flex-shrink:0;border:2px solid #b4bcc5;background:#fff center/10px 10px no-repeat;transition:background-color .15s,border-color .15s}
+.aa .ga-checks .ga-opt:hover{border-color:#b4bcc5}
+.aa .ga-checks .ga-opt.checked{background:var(--gcb);color:var(--gc);border-color:color-mix(in srgb,var(--gd) 55%,#fff)}
+.aa .ga-checks .ga-opt.checked::before{background-color:var(--gd);border-color:var(--gd);
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')}
+.aa .ga-scope-note{display:inline-flex;align-items:center;gap:8px;max-width:100%;margin:0 0 14px;padding:5px 12px 5px 10px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7c99c;color:var(--acc-ink);font-size:.8em;font-weight:700}
+.aa .ga-scope-note::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--acc);flex-shrink:0}
+.aa .ga-scope-note:empty{display:none}
 
 /* ---- Tables ---- */
-.iap-table.xls thead th{background:var(--an-blue-bg)!important;color:var(--an-ink2)!important}
-.iap-table.xls tbody tr:hover td{background:#fff5ee!important}
-.iap-table.xls .col-total{background:var(--an-blue-bg)!important;color:var(--an-blue)!important}
-.iap-table.xls thead th.col-total{background:var(--an-blue-ic)!important;color:var(--an-blue)!important}
-.ga-tbl-title,.gv-tbl-title{color:var(--an-ink)!important}
-.ga-tbl-title::before,.gv-tbl-title::before{background:var(--an-orange)!important}
+.aa .ga-tables{display:flex;flex-direction:column;gap:22px}
+.aa .ga-tbl-title{display:flex;align-items:center;gap:10px;margin:0 0 9px;font-size:.7em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important}
+.aa .ga-tbl-title::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
+.aa .gv-scroll{overflow:auto;max-height:700px;border:1px solid var(--line);border-radius:10px;-webkit-overflow-scrolling:touch;background:#fff}
+.aa .iap-table{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;font-size:.86em}
+.aa .iap-table th,.aa .iap-table td{padding:9px 12px;border:0!important;border-bottom:1px solid #eef1f4!important;text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums;background:#fff!important}
+.aa .iap-table th:first-child,.aa .iap-table td:first-child{text-align:left;position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--line)}
+.aa .iap-table thead th{position:sticky;top:0;z-index:2;background:#f5f6f8!important;color:var(--mut)!important;border-bottom:1px solid var(--line)!important;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+.aa .iap-table thead th:first-child{z-index:3}
+.aa .iap-table tbody tr:nth-child(even) td{background:#fff!important}
+.aa .iap-table tbody tr:hover td{background:#fff7ed!important}
+.aa .iap-table tbody tr:last-child td{border-bottom:0!important}
+.aa .iap-table td.col-key{background:#f1faf4!important;color:#0f6b38!important;font-weight:800}
+.aa .iap-table thead th.col-key{background:#e3f4ea!important;color:#14683a!important}
+.aa .iap-table td.col-total{background:#f3f7fd!important;color:#1f4f9a!important}
+.aa .iap-table thead th.col-total{background:#e6eefb!important;color:#1f4f9a!important}
+.aa .iap-table tbody tr:hover td.col-key{background:#e6f6ec!important}
+.aa .iap-table tbody tr:hover td.col-total{background:#e9f1fc!important}
+.aa .iap-table td.zero,.aa .iap-table td .zero,.aa .iap-table td.col-key.zero,.aa .iap-table td.col-total.zero{color:#7c8792!important;font-weight:500}
+.aa .iap-table th.iap-sort{cursor:pointer;user-select:none}
+.aa .iap-table th.iap-sort:hover{color:var(--ink)!important;background:#edf0f3!important}
+.aa .iap-table th.iap-sort.sorted{color:var(--acc-ink)!important;box-shadow:inset 0 -2px 0 var(--acc)}
+.aa .iap-table th.iap-sort:focus-visible{outline-offset:-3px}
+.aa .iap-table th .th-full{display:inline-block;overflow:hidden;text-overflow:ellipsis;max-width:130px;vertical-align:middle}
+.aa .iap-table th .th-short{display:none;overflow:hidden;text-overflow:ellipsis;max-width:90px;vertical-align:middle}
+.aa .iap-table th .th-arrow{white-space:nowrap;color:var(--acc)}
+@container (max-width:900px){
+  .aa .iap-table th .th-full{display:none}
+  .aa .iap-table th .th-short{display:inline-block}
+  .aa .iap-table th,.aa .iap-table td{padding:8px 10px}
+  .aa .iap-table{min-width:760px}
+}
+.aa .iap-hint{color:var(--mut);font-size:.8em;margin:0 0 10px;display:flex;align-items:center;gap:6px}
+.aa .gamma-note{margin:10px 0 0;padding:10px 14px;border-radius:8px;background:#fffaf0;border:1px solid #f3dfb8;border-left:3px solid #d08a1a;color:#4a3a1c;font-size:.8em;line-height:1.55}
+.aa .gamma-note b{color:#2a1f0a}
+/* Group pills (BLR / AZA / WFH) */
+.aa .gv-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.8em;font-weight:800;letter-spacing:.3px}
+.aa .gv-tag::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.aa .gv-tag.a1{background:var(--g-a1-bg);color:var(--g-a1)}
+.aa .gv-tag.b{background:var(--g-b-bg);color:var(--g-b)}
+.aa .gv-tag.a2{background:var(--g-a2-bg);color:var(--g-a2)}
+/* Agent cell: avatar-initial circle + login (+ display name) + PHD tag */
+.aa-who{display:inline-flex;align-items:center;gap:10px;min-width:0}
+.aa-av{flex-shrink:0;width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:.84em;font-weight:800;
+  background:hsl(var(--h) 60% 92%);color:hsl(var(--h) 55% 26%);border:1px solid hsl(var(--h) 45% 82%)}
+.aa-av img{width:100%;height:100%;object-fit:cover;display:block}
+.aa-who-t{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.aa-who-t b{font-weight:800;color:var(--ink)}
+.aa-who-t small{font-size:.78em;font-weight:600;color:var(--mut)!important}
+.aa-phd{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#136b67;background:#d2f0ee;border:1px solid #9fd9d4;cursor:default;flex-shrink:0}
 
-/* ---- Chart card surface + spinner ---- */
-.chart-box{background:var(--an-white)!important;border:1px solid #e7e4dc!important;border-radius:5px!important}
-.spinner{border:4px solid #dfe3e7!important;border-top-color:var(--an-blue)!important}
+/* ---- Performance Overview ---- */
+.aa .perf-body{padding:0}
+.aa .perf-head-right{display:block;margin:0 0 16px;padding:12px 14px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.aa .perf-picker{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.aa .perf-chips{display:inline-flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:12px;background:#e7eaee;max-width:100%}
+.aa .perf-chip{padding:6px 13px;border:none;border-radius:99px;background:none;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.aa .perf-chip:hover{background:rgba(255,255,255,.7);color:var(--ink)}
+.aa .perf-chip.on{background:var(--navy);color:#fff;box-shadow:0 2px 6px -2px rgba(20,30,50,.5)}
+.aa .perf-sub{display:inline-flex;flex-wrap:wrap;gap:8px}
+.aa select.perf-sel{font:inherit;font-size:.84em;font-weight:700;color:var(--ink)!important;background:#fff!important;border:1px solid #d4dade!important;border-radius:8px!important;padding:6px 10px;cursor:pointer;max-width:100%}
+.aa .perf-groups{margin-left:auto}
+@container (max-width:700px){.aa .perf-groups{margin-left:0}}
+.aa .pf-section-h{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:.7em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.aa .pf-section-h::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
+.aa .pf-section-h svg{color:var(--acc)}
+.aa .pf-stats{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+@container (min-width:440px){.aa .pf-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.aa .pf-stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.aa .pf-stat{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px 13px;box-shadow:0 10px 24px -22px rgba(20,30,50,.55);min-width:0}
+.aa .pf-stat::before{content:'';position:absolute;left:0;right:0;top:0;bottom:auto;width:auto;height:3px;background:var(--k,#c4ccd4)}
+.aa .pf-stat-top{display:flex;align-items:center;gap:9px;color:var(--mut)}
+.aa .pf-stat-top svg{width:28px;height:28px;padding:6px;border-radius:8px;flex-shrink:0;background:color-mix(in srgb,var(--k) 12%,#fff);color:var(--k)}
+.aa .pf-stat-l{font-size:.7em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.aa .pf-stat-v{margin-top:10px;font-size:1.9em;font-weight:800;letter-spacing:-.9px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.aa .pf-stat-s{margin-top:6px;font-size:.8em;font-weight:600;color:var(--mut)}
+.aa .pf-created{--k:#2b66c1}.aa .pf-resolved{--k:#1f9d57}.aa .pf-avgres{--k:#0e7490}.aa .pf-sla{--k:#6d4fd6}
+.aa .pf-autosim{--k:#d1650d}.aa .pf-repeat{--k:#a86c08}.aa .pf-avgrep{--k:#be185d}.aa .pf-pet{--k:#0d8278}
+.aa .pf-sla.ok .pf-stat-v{color:var(--grn)}.aa .pf-sla.warn .pf-stat-v{color:var(--red)}
+.aa .pf-podium-wrap{margin:0}
+.aa .pf-podium{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:end}
+@container (min-width:600px){.aa .pf-podium{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.aa .pf-medal{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 14px 14px;text-align:center;box-shadow:0 12px 26px -22px rgba(20,30,50,.6);min-width:0}
+.aa .pf-medal::before{content:'';position:absolute;inset:0 0 auto 0;height:4px;background:var(--m)}
+.aa .pf-medal.pf-gold{--m:linear-gradient(90deg,#e8b10d,#ffd75e);background:linear-gradient(180deg,#fffaeb,#fff 55%)}
+.aa .pf-medal.pf-silver{--m:linear-gradient(90deg,#97a4b1,#cfd8e0)}
+.aa .pf-medal.pf-bronze{--m:linear-gradient(90deg,#b8702c,#e0a066)}
+@container (min-width:600px){.aa .pf-medal.pf-gold{transform:translateY(-6px)}}
+.aa .pf-medal-badge{position:absolute;top:10px;right:12px;font-size:1.25em;line-height:1}
+.aa .pf-rank{position:absolute;top:10px;left:12px;font-size:.66em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.aa .pf-medal .aa-av{width:54px;height:54px;font-size:1.25em;border-width:2px}
+.aa .pf-medal-id{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;font-size:.95em;font-weight:800;color:var(--ink);min-width:0}
+.aa .pf-medal-id span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aa .pf-medal-metrics{display:flex;flex-direction:column;gap:3px;margin-top:9px}
+.aa .pf-mm{font-size:.8em;color:var(--mut)}
+.aa .pf-mm b{color:var(--ink);font-size:1.08em;font-variant-numeric:tabular-nums}
+.aa .pf-mm-avg{font-size:.76em}
+.aa .perf-ytd-block{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+
+/* ---- Skeletons, states ---- */
+.aa-skel{display:inline-block;vertical-align:middle;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:aaShim 1.4s ease infinite}
+.aa-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+.aa-skel.is-circle{border-radius:50%}
+@keyframes aaShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.aa-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 20px;text-align:center;color:var(--mut);border:1px dashed #d4dade;border-radius:10px;background:#fcfcfd}
+.aa-state-ic{width:54px;height:54px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red);margin-bottom:4px}
+.aa-state-ic.is-mute{background:#eef1f4;color:#5c6773}
+.aa .aa-state-t{font-size:1.04em!important;font-weight:800;color:var(--ink)!important}
+.aa-state p{font-size:.88em;max-width:52ch;line-height:1.5}
+.aa-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef!important;font-size:.86em;font-weight:800;text-decoration:none;cursor:pointer;transition:background .15s}
+.aa-btn:hover{background:#0f1420}
+.aa-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18)}
+
+/* ---- Bucket popup (agent's open tickets) ---- */
+.modal-bg{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,30,50,.5)!important}
+.modal.aa{width:min(960px,94vw);max-height:88vh;overflow:auto;padding:22px 24px;border-radius:12px!important;border:1px solid var(--line)!important;background:#fff!important;box-shadow:0 30px 70px -24px rgba(20,30,50,.55)!important}
+.aa .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+.aa .modal-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px}
+.aa .modal-close{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:none;border-radius:8px;background:#f1f3f5;color:#3a4552;font-size:1.4em;line-height:1;cursor:pointer}
+.aa .modal-close:hover{background:#e4e8ec;color:var(--ink)}
+.aa .bk-sub{color:var(--mut);font-size:.86em;margin-bottom:16px}
+.aa .bk-tk{position:relative;border:1px solid var(--line);border-radius:10px;padding:14px 16px 14px 18px;margin-bottom:12px;background:#fff}
+.aa .bk-tk::before{content:'';position:absolute;left:-1px;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--acc)}
+.aa .bk-tk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.aa .bk-id{color:#2b66c1;font-weight:800;text-decoration:none}.aa .bk-id:hover{text-decoration:underline}
+.aa .bk-title{color:#2a3340;font-size:.9em;line-height:1.5;margin-bottom:10px}
+.aa .bk-meta{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:.82em;color:var(--mut);margin-bottom:10px}
+.aa .bk-meta b{color:var(--ink);font-weight:700}
+.aa .bk-rem{padding:2px 9px;border-radius:99px;font-size:.78em;font-weight:800}
+.aa .bk-rem.ok{background:var(--grn-bg);color:var(--grn)}.aa .bk-rem.warn{background:#fff3d6;color:#8a5a00}.aa .bk-rem.over{background:var(--red-bg);color:var(--red)}
+.aa .bk-cmts{border-top:1px solid #eef1f4;padding-top:10px}
+.aa .bk-cmts-t{font-size:.68em;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
+.aa .bk-cmt{background:var(--soft);border:1px solid #eef1f4;border-radius:8px;padding:8px 11px;margin-bottom:7px}
+.aa .bk-cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:.74em;color:var(--mut);margin-bottom:3px}
+.aa .bk-cmt-meta b{color:var(--ink)}
+.aa .bk-cmt-text{color:#2a3340;font-size:.86em;white-space:pre-wrap;line-height:1.5}
+.aa .bk-nocmt{color:var(--mut);font-size:.82em;font-style:italic}
+
+/* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the sections. */
+@keyframes aaUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.aa.is-anim .aa-hero{animation:aaUp .45s ease both}
+.aa.is-anim .aa-kpis{animation:aaUp .5s ease .1s both}
+.aa.is-anim .gv-list{animation:aaUp .5s ease .22s both}
+@media (prefers-reduced-motion:reduce){
+  .aa *,.aa *::before,.aa *::after{animation:none!important;transition:none!important}
+}
+@media (max-width:520px){
+  .aa-hero{padding:22px 18px 74px 22px}
+  .aa .aa-hero h1{font-size:1.75em}
+  .aa-kpis{margin:-56px 10px 16px}
+  .aa-meta{grid-template-columns:minmax(0,1fr)}
+}
 </style>
 </head>
 <body data-nav-active="agent-analytics" data-back-href="app.html" data-back-label="Dashboard">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap"><h1>Analytics</h1><p class="sub" style="color:#879596;font-size:.9em;margin:4px 0 24px">Team &amp; agent performance for the live quarter.</p></div>
+<div class="wrap" id="wrap"></div>
 
 <!-- Editor bucket popup -->
 <div class="modal-bg" id="bucketModal" onclick="if(event.target===this)closeBucket()">
-  <div class="modal">
-    <div class="modal-head"><h2 id="bucketTitle">Bucket</h2><button class="modal-close" onclick="closeBucket()" aria-label="Close">&times;</button></div>
+  <div class="modal aa" role="dialog" aria-modal="true" aria-labelledby="bucketTitle">
+    <div class="modal-head"><h2 id="bucketTitle">Bucket</h2><button type="button" class="modal-close" onclick="closeBucket()" aria-label="Close">&times;</button></div>
     <p class="bk-sub" id="bucketSub"></p>
     <div id="bucketBody"></div>
   </div>
@@ -581,13 +309,62 @@ body{background:var(--an-page)!important;color:var(--an-ink)!important}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Analytics</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+function gate(msg){document.getElementById('wrap').innerHTML='<div class="aa">'+heroHtml()+'<div class="aa-kpis" aria-hidden="true"></div>'+
+  '<section class="aa-panel" aria-labelledby="aaGateH">'+
+  aaStateHtml('is-mute','lock','Log in to see Analytics',esc(msg),'<a class="aa-btn" href="app.html">'+ic('arrow-left',14)+'Go to Live Dashboard</a>','aaGateH')+
+  '</section></div>';}
+// ---------- Shared presentation helpers (hero, avatars, skeletons, states, live region) ----------
+const AA_CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function aaNum(n){ return (Number(n)||0).toLocaleString('en-US'); }
+function aaPct(n,d){ if(!d) return '0%'; const p=n/d*100; return (p>0&&p<10?p.toFixed(1).replace(/\.0$/,''):String(Math.round(p)))+'%'; }
+function aaHue(s){ let h=0; s=String(s||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return [24,205,165,265,335,45,190,120][h%8]; }
+function aaSafeImg(u){ u=String(u||''); return /^(https?:\/\/|data:image\/)/i.test(u)?u:''; }
+// Avatar circle: photo when one is on file, otherwise a coloured initial.
+function aaAvatar(login,avatar){
+  const img=aaSafeImg(avatar);
+  return '<span class="aa-av" style="--h:'+aaHue(login)+'" aria-hidden="true">'+(img?'<img src="'+esc(img)+'" alt="">':esc(String(login||'?').trim().charAt(0).toUpperCase()||'?'))+'</span>';
+}
+function aaIsPhd(login){ return PHD_AGENTS.indexOf(String(login||'').toLowerCase())>=0; }
+function aaPhdTag(login){ return aaIsPhd(login)?'<span class="aa-phd" title="PHD agent">PHD</span>':''; }
+// Agent cell for the tables: avatar + login (+ display name once /api/user-roles has loaded) + PHD tag.
+function aaAgentCell(login){
+  const p=GROUP_PROFILES[String(login||'').toLowerCase()]||{};
+  const dn=(p.displayName&&p.displayName.toLowerCase()!==String(login).toLowerCase())?p.displayName:'';
+  return '<span class="aa-who">'+aaAvatar(login,p.avatar)+'<span class="aa-who-t"><b>'+esc(login)+'</b>'+(dn?'<small>'+esc(dn)+'</small>':'')+'</span>'+aaPhdTag(login)+'</span>';
+}
+function aaSkel(w,h,extra){ return '<span class="aa-skel'+(extra?' '+extra:'')+'" style="width:'+w+';height:'+h+'px"></span>'; }
+// Friendly empty / error state. `btn` is ready-made button HTML (e.g. a Retry that re-runs the same fetch).
+function aaStateHtml(icCls,icon,title,text,btn,hid){
+  return '<div class="aa-state"><span class="aa-state-ic '+(icCls||'')+'">'+ic(icon,24)+'</span><h3 class="aa-state-t"'+(hid?' id="'+hid+'"':'')+'>'+title+'</h3>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
+}
+function aaRetryBtn(js,label){ return '<button type="button" class="aa-btn" onclick="'+js+'">'+ic('refresh',14)+(label||'Retry')+'</button>'; }
+function aaErrorHtml(what,js){ return aaStateHtml('','alert-triangle','Couldn\u2019t load '+what,'<span role="alert">The server didn\u2019t respond with the data. Check your connection, then try again.</span>',aaRetryBtn(js)); }
+// Polite live region: loading / loaded / failed announcements for screen readers.
+function aaAnnounce(msg){ const l=document.getElementById('aaLive'); if(!l)return; l.textContent=''; setTimeout(function(){ l.textContent=msg; },40); }
+function aaBusy(id,on){ const el=document.getElementById(id); if(el) el.setAttribute('aria-busy',on?'true':'false'); }
+// Extra attributes for a sortable header cell (keyboard-focusable + aria-sort for the active column).
+function aaThAttrs(active,dir){ return ' scope="col" tabindex="0" aria-sort="'+(active?(dir==='asc'?'ascending':'descending'):'none')+'"'; }
+function aaScrollAttrs(label){ return ' tabindex="0" role="region" aria-label="'+esc(label)+'"'; }
+function heroHtml(){
+  const gw=(typeof GW_TITLE==='function')?GW_TITLE(GW_FILTER.win):'';
+  const pw=(typeof perfWindow==='function')?perfWindow().label:'';
+  const g=function(name,dot){ return '<span class="aa-gchip" style="--d:'+dot+'">'+name+'</span>'; };
+  return '<div class="aa-hero"><div class="aa-hero-in"><div class="aa-hero-main"><span class="aa-hero-ic">'+ic('bar-chart',24)+'</span><div>'+
+    '<p class="aa-eyebrow">Team performance \u00b7 2026</p><h1>Analytics</h1>'+
+    '<p class="aa-hero-sub">How the PHD agents and their groups are resolving tickets: recent activity by day and week, plus period performance, top performers and closure-code breakdowns.</p>'+
+    '</div></div>'+
+    '<dl class="aa-meta"><div class="aa-meta-wide"><dt>Groups</dt><dd class="aa-gchips">'+g('BLR','#7db3ff')+g('AZA','#5fd38d')+g('WFH','#ffc15e')+'</dd></div>'+
+      '<div><dt>Agents</dt><dd>'+PHD_AGENTS.length+' PHD agents</dd></div>'+
+      '<div><dt>Recent window</dt><dd id="aaHeroWin">'+esc(gw)+'</dd></div>'+
+      '<div class="aa-meta-wide"><dt>Performance period</dt><dd id="aaHeroPeriod">'+esc(pw)+'</dd></div>'+
+    '</dl></div></div>';
+}
 let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
 
@@ -648,13 +425,18 @@ function ageText(ageHours){
 async function openBucket(username){
   document.getElementById('bucketTitle').textContent="Bucket · "+username;
   document.getElementById('bucketSub').textContent='Open (live) tickets assigned to '+username+'. Times in '+MY_TZ+'.';
-  document.getElementById('bucketBody').innerHTML='<div style="display:flex;justify-content:center;padding:30px"><div class="spinner"></div></div>';
-  document.getElementById('bucketModal').style.display='flex';
-  const r=await A.api('GET','/api/agent-bucket?username='+encodeURIComponent(username));
   const body=document.getElementById('bucketBody');
-  if(!r.ok){body.innerHTML='<p style="color:var(--rl)">Could not load bucket (HTTP '+r.status+').</p>';return;}
+  // Skeleton ticket cards while the bucket loads (same shape as the final cards).
+  const sk='<div class="bk-tk" aria-hidden="true"><div class="bk-tk-head">'+aaSkel('90px',14)+aaSkel('80px',18)+'</div>'+aaSkel('80%',12)+'<div style="margin-top:12px">'+aaSkel('55%',10)+'</div></div>';
+  body.setAttribute('aria-busy','true');
+  body.innerHTML='<span class="aa-sr" role="status">Loading the bucket\u2026</span>'+sk+sk+sk;
+  document.getElementById('bucketModal').style.display='flex';
+  const cb=document.querySelector('#bucketModal .modal-close'); if(cb) try{ cb.focus(); }catch(e){}
+  let r=null; try{ r=await A.api('GET','/api/agent-bucket?username='+encodeURIComponent(username)); }catch(e){}
+  body.setAttribute('aria-busy','false');
+  if(!r||!r.ok){body.innerHTML=aaErrorHtml('the bucket'+(r&&r.status?' (HTTP '+r.status+')':''),'openBucket(\''+String(username).replace(/[^\w.@-]/g,'')+'\')');return;}
   const tix=(r.data&&r.data.tickets)||[];
-  if(!tix.length){body.innerHTML='<div class="bk-empty">No open tickets assigned to '+esc(username)+' right now. 🎉</div>';return;}
+  if(!tix.length){body.innerHTML=aaStateHtml('is-mute','check-circle','Bucket is empty','No open tickets assigned to '+esc(username)+' right now.');return;}
   body.innerHTML=tix.map(t=>{
     const rem=slaRem(t.deadline);
     const cmts=(t.comments||[]);
@@ -773,21 +555,72 @@ async function loadPetTotals(){
 }
 
 function render(){
-  document.getElementById('wrap').innerHTML=`
-    <section class="an-sec">
+  document.getElementById('wrap').innerHTML=`<div class="aa is-anim">
+    ${heroHtml()}
+    <h2 class="aa-sr" id="aaKpiH">Recent activity summary</h2>
+    <div class="aa-kpis" id="aaKpis" aria-labelledby="aaKpiH" aria-busy="true">${aaKpiSkeleton()}</div>
+    <span class="aa-sr" id="aaLive" aria-live="polite"></span>
+    <section class="an-sec" aria-label="Analytics sections">
       <div class="gv-list">
         ${windowSectionsHtml()}
-        <div class="gv-card" id="perfCard">
-          <button type="button" class="gv-card-head" aria-expanded="false" onclick="togglePerfCard(this)">
-            <span class="gv-card-title">${ic('bar-chart',16)} Performance Overview</span><span class="gv-caret" aria-hidden="true">\u25be</span>
-          </button>
-          <div class="gv-card-body"><div>${perfSectionBodyHtml()}</div></div>
-        </div>
+        <section class="gv-card" id="perfCard">
+          <h2 class="aa-card-h"><button type="button" class="gv-card-head" aria-expanded="false" aria-controls="perfCardBody" onclick="togglePerfCard(this)">
+            <span class="aa-chev">${AA_CHEV}</span><span class="aa-card-ic">${ic('bar-chart',18)}</span>
+            <span class="aa-card-tt"><span class="gv-card-title">Performance Overview</span><span class="aa-card-sub" id="perfHeadSub">${esc(perfWindow().label)} \u00b7 KPIs, top performers and closure codes</span></span>
+            <span class="aa-card-tag">${ic('calendar',13)}Period</span>
+          </button></h2>
+          <div class="gv-card-body" id="perfCardBody"><div>${perfSectionBodyHtml()}</div></div>
+        </section>
       </div>
-    </section>`;
+    </section></div>`;
   // Recent Activity is EXPANDED by default -> load its data now (one request, on first paint).
   // Performance Overview still lazy-loads on first expand.
   try{ gwLoad(); }catch(e){}
+}
+// ---- KPI row (overlapping the hero): a summary of the Recent Activity window + group selection ----
+function aaKpiCard(cls,icon,label,valueHtml,sub,ratio){
+  return '<div class="aa-kpi '+cls+'"><p class="aa-kpi-l"><span class="aa-kpi-ic">'+ic(icon,15)+'</span>'+label+'</p>'+valueHtml+
+    '<p class="aa-kpi-s" title="'+esc(String(sub).replace(/<[^>]+>/g,''))+'">'+sub+'</p>'+
+    (ratio==null?'':'<div class="aa-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+function aaKpiSkeleton(){
+  const k='<div class="aa-kpi" aria-hidden="true">'+aaSkel('55%',11)+'<div style="margin-top:14px">'+aaSkel('40%',30)+'</div><div style="margin-top:10px">'+aaSkel('70%',10)+'</div></div>';
+  return '<span class="aa-sr" role="status">Loading the summary\u2026</span>'+k+k+k+k;
+}
+function aaRenderKpis(){
+  const box=document.getElementById('aaKpis'); if(!box)return;
+  box.setAttribute('aria-busy','false');
+  const win=GW_TITLE(GW_FILTER.win), sel=GW_FILTER.groups;
+  if(!GW_DATA){
+    const dash='<p class="aa-kpi-v">\u2014</p>';
+    box.innerHTML=aaKpiCard('is-base','ticket','Resolved',dash,'Couldn\u2019t load '+esc(win),null)+aaKpiCard('is-good','check-circle','Successful',dash,'\u2014',null)+
+      aaKpiCard('is-warn','target','SLA (\u2264240h)',dash,'\u2014',null)+aaKpiCard('is-blue','star','Top agent',dash,'\u2014',null);
+    return;
+  }
+  const G=GW_DATA.groups||{}, clo=G.closure||{};
+  let total=0, succ=0;
+  sel.forEach(function(g){ const c=clo[g]||{}; total+=iapTotal(c); succ+=c.Successful||0; });
+  const agents=(GW_DATA.agents||[]).filter(function(a){ return sel.indexOf(a.group)>=0; });
+  let el=0, wi=0; agents.forEach(function(a){ if(a.sla){ el+=a.sla.eligible||0; wi+=a.sla.within||0; } });
+  const top=agents.slice().sort(function(a,b){ return (((b.closure||{}).Successful||0)-((a.closure||{}).Successful||0))||a.name.localeCompare(b.name); })[0];
+  const topN=top?((top.closure||{}).Successful||0):0;
+  const scope=sel.length?sel.map(function(g){ return GN[g]; }).join(', '):'No groups selected';
+  const topHtml=(top&&topN)
+    ?'<div class="aa-kpi-who">'+aaAvatar(top.name,(GROUP_PROFILES[top.name.toLowerCase()]||{}).avatar)+'<span class="aa-kpi-name" title="'+esc(top.name)+'">'+esc(top.name)+'</span>'+aaPhdTag(top.name)+'</div>'
+    :'<p class="aa-kpi-v">\u2014</p>';
+  box.innerHTML=
+    aaKpiCard('is-base','ticket','Resolved','<p class="aa-kpi-v">'+aaNum(total)+'</p>',esc(win)+' \u00b7 '+esc(scope),null)+
+    aaKpiCard('is-good','check-circle','Successful','<p class="aa-kpi-v">'+aaNum(succ)+'</p>','<b>'+aaPct(succ,total)+'</b> of resolved',total?succ/total:0)+
+    aaKpiCard('is-warn','target','SLA (\u2264240h)','<p class="aa-kpi-v">'+(el?aaPct(wi,el):'\u2014')+'</p>',el?('<b>'+aaNum(wi)+'</b> of '+aaNum(el)+' within SLA'):'No SLA-eligible tickets',el?wi/el:null)+
+    aaKpiCard('is-blue','star','Top agent',topHtml,(top&&topN)?('<b>'+aaNum(topN)+'</b> successful resolves'):'No successful resolves yet',null);
+}
+// Keep the hero chips + card sub-titles in sync with the current selections.
+function aaSyncLabels(){
+  const gw=GW_TITLE(GW_FILTER.win), pw=perfWindow().label;
+  const hw=document.getElementById('aaHeroWin'); if(hw) hw.textContent=gw;
+  const hp=document.getElementById('aaHeroPeriod'); if(hp) hp.textContent=pw;
+  const gs=document.getElementById('gwHeadSub'); if(gs) gs.textContent=gw+' \u00b7 '+(GW_FILTER.groups.length?GW_FILTER.groups.map(function(g){ return GN[g]; }).join(', '):'no groups');
+  const ps=document.getElementById('perfHeadSub'); if(ps) ps.textContent=pw+' \u00b7 KPIs, top performers and closure codes';
 }
 // ============================================================================
 // Ported "Groups" view (charts + tables), same output as app.html?view=groups.
@@ -814,7 +647,7 @@ function isAutoSimResolved(r){
 }
 const GV_CHARTS=[];
 // Light-theme Chart.js defaults: dark text/grid lines on white surfaces.
-try{ Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,.06)'; }catch(e){}
+try{ Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,.06)'; Chart.defaults.font.family="'Inter',-apple-system,sans-serif"; Chart.defaults.plugins.legend.labels.usePointStyle=true; }catch(e){}
 function gvMakeChart(id,config){ const ctx=document.getElementById(id); if(ctx){ GV_CHARTS.push(new Chart(ctx,config)); } }
 function gvDestroyCharts(){ GV_CHARTS.forEach(c=>{try{c.destroy();}catch(e){}}); GV_CHARTS.length=0; }
 
@@ -848,7 +681,7 @@ function gvComputeMetrics(data){
 // Group Analytics is split into collapsible sections that each fetch ONLY when first expanded.
 // They all share ONE /api/live-quarter fetch (the heavy ~8k-ticket blob) — loaded lazily on the
 // first expand and cached, so nothing loads on page open and later sections reuse the same data.
-const GN={A1:'BLR',A2:'WFH',B:'AZA'}, GC={A1:'#7dd3fc',A2:'#fbbf24',B:'#4ade80'}, GTC={A1:'a1',A2:'a2',B:'b'};
+const GN={A1:'BLR',A2:'WFH',B:'AZA'}, GC={A1:'#3b82f6',A2:'#e8930c',B:'#22a35a'}, GTC={A1:'a1',A2:'a2',B:'b'};
 // Short codes for the inline tag next to an agent name: BLR / WFH / AZA.
 const GN_SHORT={A1:'BLR',A2:'WFH',B:'AZA'};
 function gtag(grp){ return '<span class="gv-tag '+(GTC[grp]||'')+'" style="font-size:.7em" title="'+(GN[grp]||grp||'')+'">('+(GN_SHORT[grp]||grp||'')+')</span>'; }
@@ -906,8 +739,8 @@ function groupsSectionsHtml(){
   // No own controls � the TOP Performance Overview picker drives these tables (period + groups).
   return '<p class="ga-scope-note" id="gaScopeNote"></p>'+
     '<div class="ga-tables">'+
-      '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gaIapBody"></div></div>'+
-      '<div><h4 class="ga-tbl-title">Group Totals Summary</h4><div id="gaGtsBody"></div></div>'+
+      '<div><h3 class="ga-tbl-title">Individual Agent Performance</h3><div id="gaIapBody"></div></div>'+
+      '<div><h3 class="ga-tbl-title">Group Totals Summary</h3><div id="gaGtsBody"></div></div>'+
     '</div>';
 }
 // Accordion: collapse every OTHER open .gv-card that is a direct sibling of `card` (same .gv-list),
@@ -917,7 +750,7 @@ function gvAccordion(card){
   Array.prototype.forEach.call(list.children, function(sib){
     if(sib!==card && sib.classList && sib.classList.contains('gv-card') && sib.classList.contains('open')){
       sib.classList.remove('open');
-      var h=sib.querySelector(':scope > .gv-card-head'); if(h) h.setAttribute('aria-expanded','false');
+      var h=sib.querySelector('.gv-card-head'); if(h) h.setAttribute('aria-expanded','false');
     }
   });
 }
@@ -1052,8 +885,8 @@ async function gaLoad(){
   try{ data=await gaFetch(src.url); }catch(e){ data=null; }
   if(seq!==GA_LOADSEQ) return;   // a newer selection superseded this load
   if(!data){
-    if(ib) ib.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this selection. Try again.</div>';
-    if(gb) gb.innerHTML=''; return;
+    if(ib) ib.innerHTML=aaErrorHtml('the performance tables','gaLoad()');
+    if(gb) gb.innerHTML='<p class="iap-hint">Retry above to load the group totals for this period.</p>'; return;
   }
   GA_DATA=data;
   gaRenderIap(); gaRenderGts();
@@ -1073,23 +906,25 @@ function tableSkeleton(kind){
     ? [{label:'Group',short:'Group',key:'name'}].concat(IAP_CC_ORDER.map(function(c){return {label:GV_CC_SHORT[c]||c,short:IAP_CC_ABBR[c]||c};})).concat([{label:'Total',short:'Total'},{label:'SLA',short:'SLA'}])
     : IAP_COLS.filter(function(c){return c.key!=='__assigned';}).map(function(c){return {label:c.label,short:c.short,succ:(c.key==='Successful')};});
   // For gts we don't have the .succ flag; add manually for the Successful column.
-  const head='<tr>'+cols.map(function(c,i){ const kc=(c.succ||(isGts&&c.label==='Successful'))?' col-key':''; return '<th class="iap-sort'+kc+'"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
+  const head='<tr>'+cols.map(function(c,i){ const kc=(c.succ||(isGts&&(c.label==='Successful'||c.label==='Success')))?' col-key':''; return '<th scope="col" class="'+kc.trim()+'"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span></th>'; }).join('')+'</tr>';
   const ncols=cols.length;
+  // Shimmer bars in every number cell; the real names/group pills paint instantly in the first column.
+  const skCell=function(i){ return '<td class="loading'+(i===1?' col-key':'')+'">'+aaSkel((22+((i*7)%18))+'px',10)+'</td>'; };
   var bodyRows;
   if(isGts){
     bodyRows=GROUP_ROWS_ALPHA.map(function(r){
       var cells='<td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>';
-      for(var i=1;i<ncols;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
+      for(var i=1;i<ncols;i++) cells+=skCell(i);
       return '<tr>'+cells+'</tr>';
     }).join('');
   } else {
     bodyRows=AGENTS_ALPHA.map(function(n){
-      var cells='<td><span style="color:#44b9d6;font-weight:700">'+esc(n)+'</span></td>';
-      for(var i=1;i<ncols;i++) cells+='<td class="loading"><span class="cell-spin"></span></td>';
+      var cells='<td>'+aaAgentCell(n)+'</td>';
+      for(var i=1;i<ncols;i++) cells+=skCell(i);
       return '<tr>'+cells+'</tr>';
     }).join('');
   }
-  return '<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+bodyRows+'</tbody></table></div>';
+  return '<span class="aa-sr" role="status">Loading table\u2026</span><div class="gv-scroll" aria-hidden="true"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+bodyRows+'</tbody></table></div>';
 }
 // ---- Consolidated Group Analytics renderers (single IAP + single GTS table) ----
 // Both read GA_DATA + GA_FILTER.groups. Sort state in GA_SORT. Gamma note only when Gamma is shown.
@@ -1107,18 +942,18 @@ function gaRenderIap(){
   const dir=(sort.dir==='asc')?1:-1;
   const agents=(GA_DATA.agents||[]).filter(function(a){ return GA_FILTER.groups.indexOf(a.group)>=0; });
   const sorted=[...agents].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||a.name.localeCompare(b.name); });
-  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gaSort(\'iap\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'"'+aaThAttrs(sort.key===c.key,sort.dir)+' title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gaSort(\'iap\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
   const rows=sorted.length?sorted.map(function(a){
     const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
-    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span></td>'+
+    return '<tr><td>'+aaAgentCell(a.name)+'</td>'+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
       '<td'+(avg===0?' class="zero"':'')+'>'+avg.toFixed(1)+'</td></tr>';
-  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#7f8c8d">No groups selected.</td></tr>');
+  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#5c6773;padding:22px;position:static">No groups selected.</td></tr>');
   const note=(GA_FILTER.groups.indexOf('A2')>=0)?GAMMA_NOTE:'';
-  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'+note;
+  body.innerHTML='<div class="gv-scroll"'+aaScrollAttrs('Individual Agent Performance table')+'><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'+note;
 }
 function gaRenderGts(){
   const body=document.getElementById('gaGtsBody'); if(!GA_DATA||!body)return;
@@ -1135,15 +970,15 @@ function gaRenderGts(){
   const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
   const dir=(sort.dir==='asc')?1:-1;
   const rows=[...rows0].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||(GN[a[0]]||'').localeCompare(GN[b[0]]||''); });
-  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gaSort(\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'"'+aaThAttrs(sort.key===c.key,sort.dir)+' title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gaSort(\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
   const trs=rows.length?rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
     return '<tr><td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>'+
       IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';
-  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#7f8c8d">No groups selected.</td></tr>');
+  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#5c6773;padding:22px;position:static">No groups selected.</td></tr>');
   const note=(GA_FILTER.groups.indexOf('A2')>=0)?GAMMA_NOTE:'';
-  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>'+note;
+  body.innerHTML='<div class="gv-scroll"'+aaScrollAttrs('Group Totals Summary table')+'><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>'+note;
 }
 
 // Per-section renderers. Each draws into its own body element.
@@ -1303,129 +1138,40 @@ const WIN_DEFS=GW_WINS.map(function(w){ var r=gwWindowRange(w); return { win:w, 
 // Consolidated Recent Activity: one collapsible card holding a Window radio (12h/24h/7d) +
 // Group checkboxes, and ONE Individual Agent Performance table + ONE Group Totals Summary table.
 function windowSectionsHtml(){
-  var winOpts=WIN_DEFS.map(function(w,i){ return '<label class="ga-opt'+(i===0?' checked':'')+'"><input type="radio" name="gwWin" value="'+w.win+'"'+(i===0?' checked':'')+' onchange="gwOnWinChange()"> '+esc(w.title)+'</label>'; }).join('');
-  var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ return '<label class="ga-opt checked"><input type="checkbox" name="gwGroup" value="'+g[0]+'" checked onchange="gwOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
-  return '<div class="gv-card open" id="recentCard">'+
-    '<button type="button" class="gv-card-head" aria-expanded="true" onclick="toggleRecentCard(this)">'+
-      '<span class="gv-card-title">'+ic('clock',16)+' Recent Activity</span><span class="gv-caret" aria-hidden="true">\u25be</span>'+
-    '</button>'+
-    '<div class="gv-card-body"><div>'+
-      // Fun loading overlay (animated icon + big spinner + rotating status lines), shown while loading.
-      '<div id="gwLoader" class="gw-loader" style="display:none"><div class="gw-loader-in">'+
-        '<div class="gw-orb"><span class="gw-orb-ic" id="gwLoaderIc">'+ic('clock',30)+'</span></div>'+
-        '<div class="gw-loader-msg" id="gwLoaderMsg">Warming things up\u2026</div>'+
-        '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
-        '<div class="gw-loader-sub" id="gwLoaderSub">Recent Activity</div>'+
-      '</div></div>'+
-      '<div id="gwContent">'+
-        '<div class="ga-filters ga-spread">'+
-          '<div class="ga-fgroup"><span class="ga-flabel">Time window</span><div class="ga-fopts ga-radio">'+winOpts+'</div></div>'+
-          '<div class="ga-fgroup"><span class="ga-flabel">Groups</span><div class="ga-fopts ga-checks">'+groupOpts+'</div></div>'+
+  var winOpts=WIN_DEFS.map(function(w){ var on=(GW_FILTER.win===w.win); return '<label class="ga-opt'+(on?' checked':'')+'"><input type="radio" name="gwWin" value="'+w.win+'"'+(on?' checked':'')+' onchange="gwOnWinChange()"> '+esc(w.title)+'</label>'; }).join('');
+  var groupOpts=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){ var on=GW_FILTER.groups.indexOf(g[0])>=0; return '<label class="ga-opt'+(on?' checked':'')+'" data-g="'+g[0]+'"><input type="checkbox" name="gwGroup" value="'+g[0]+'"'+(on?' checked':'')+' onchange="gwOnGroupChange()"> '+esc(g[1])+'</label>'; }).join('');
+  var groupsTxt=GW_FILTER.groups.map(function(g){ return GN[g]; }).join(', ');
+  return '<section class="gv-card open" id="recentCard">'+
+    '<h2 class="aa-card-h"><button type="button" class="gv-card-head" aria-expanded="true" aria-controls="recentCardBody" onclick="toggleRecentCard(this)">'+
+      '<span class="aa-chev">'+AA_CHEV+'</span><span class="aa-card-ic">'+ic('clock',18)+'</span>'+
+      '<span class="aa-card-tt"><span class="gv-card-title">Recent Activity</span><span class="aa-card-sub" id="gwHeadSub">'+esc(GW_TITLE(GW_FILTER.win))+' \u00b7 '+esc(groupsTxt)+'</span></span>'+
+      '<span class="aa-card-tag">'+ic('clock-rewind',13)+'Day &amp; week</span>'+
+    '</button></h2>'+
+    '<div class="gv-card-body" id="recentCardBody"><div>'+
+      '<div id="gwContent" aria-busy="false">'+
+        '<div class="ga-filters ga-spread" role="group" aria-label="Recent Activity filters">'+
+          '<fieldset class="ga-fgroup"><legend class="ga-flabel">Time window</legend><div class="ga-fopts ga-radio">'+winOpts+'</div></fieldset>'+
+          '<fieldset class="ga-fgroup"><legend class="ga-flabel">Groups</legend><div class="ga-fopts ga-checks">'+groupOpts+'</div></fieldset>'+
         '</div>'+
         '<p class="ga-scope-note" id="gwScopeNote"></p>'+
         '<div class="ga-tables">'+
-          '<div><h4 class="ga-tbl-title">Individual Agent Performance</h4><div id="gwIapBody"></div></div>'+
-          '<div><h4 class="ga-tbl-title">Group Totals Summary</h4><div id="gwGtsBody"></div></div>'+
+          '<div><h3 class="ga-tbl-title">Individual Agent Performance</h3><div id="gwIapBody"></div></div>'+
+          '<div><h3 class="ga-tbl-title">Group Totals Summary</h3><div id="gwGtsBody"></div></div>'+
         '</div>'+
       '</div>'+
     '</div></div>'+
-  '</div>';
+  '</section>';
 }
-// ---- Recent Activity "fun loader": animated icon + rotating {icon, line} messages. Personalized
-// with the logged-in user, the selected time window, and agent names. Two message banks: PHASE 1
-// (20 lines, shown at 2s each = 40s) then PHASE 2 after an apology (10 lines, 3s each = 30s). Total
-// prepared coverage ~70s before it would loop. ----
-const GW_AGENTS_POOL=['harisss','punithsd','arunkzn','flofalgu','tanviroo','urmahala','chousoud','obalasut','shaavhad','dbiswamb','mbozied','nobregak','mellanej'];
-function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
-// Human label for the current window radio (drives the "Last 12 Hours�" line + the sub-pill).
-let _ldWinWords=null;   // override set by the Performance Overview loader; else use the RA radio
-function gwWinWords(){ if(_ldWinWords) return _ldWinWords; return { 'today':'today', 'yesterday':'yesterday', 'last7':'last 7 days', 'lastweek':'last complete week' }[GW_FILTER.win] || 'recent'; }
-function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
-// PHASE 1 � 20 randomized lines, each with an icon. {ic, t}. General phrasing (no agent names).
-function gwPhase1(){
-  var me=gwFirstName(), win=gwWinWords();
-  var lines=[
-    ['clock',    'Pulling the '+win+' of data for you, '+me+' \u2728'],
-    ['inbox',    'Scanning the live queue for '+win+' activity\u2026'],
-    ['check-circle','Counting successful resolves across the team\u2026'],
-    ['target',   'Checking SLA compliance across the team\u2026'],
-    ['bolt',     'Tallying immediate resolves\u2026'],
-    ['copy',     'Crunching auto-closed + duplicate tickets\u2026'],
-    ['clock',    'Measuring average resolution times\u2026'],
-    ['user',     'Gathering per-agent ticket counts\u2026'],
-    ['users',    'Rolling up BLR \u00b7 AZA \u00b7 WFH group totals\u2026'],
-    ['check-circle','Verifying closure codes\u2026'],
-    ['bar-chart','Sorting agents by successful resolves\u2026'],
-    ['repeat',   'Reviewing repeat incidents and pet cases\u2026'],
-    ['target',   'Double-checking the SLA window ('+win+')\u2026'],
-    ['inbox',    'Fetching the freshest '+win+' tickets\u2026'],
-    ['bolt',     'Adding up immediate resolves\u2026'],
-    ['clock',    'Warming up the numbers, '+me+'\u2026'],
-    ['bar-chart','Building the Individual Agent Performance table\u2026'],
-    ['users',    'Summarising Group Totals ('+win+')\u2026'],
-    ['check-circle','Confirming resolution times\u2026'],
-    ['clock',    'Almost there \u2014 lining up the '+win+' view\u2026'],
-  ];
-  return gwShuffle(lines);
+// ---- Recent Activity loading state: skeleton tables + KPI skeleton matching the final layout,
+// aria-busy on the region and a polite live-region announcement (no artificial minimum delay). ----
+function gwShowLoader(on){
+  aaBusy('gwContent',on); aaBusy('aaKpis',on);
+  if(!on) return;
+  var ib=document.getElementById('gwIapBody'), gb=document.getElementById('gwGtsBody'), k=document.getElementById('aaKpis');
+  if(ib) ib.innerHTML=tableSkeleton('iap'); if(gb) gb.innerHTML=tableSkeleton('gts');
+  if(k) k.innerHTML=aaKpiSkeleton();
+  aaAnnounce('Loading recent activity for '+GW_TITLE(GW_FILTER.win)+'\u2026');
 }
-// PHASE 2 � shown after the apology, 10 lines at 3s each. General phrasing (no agent names).
-function gwPhase2(){
-  var me=gwFirstName(), win=gwWinWords();
-  var lines=[
-    ['clock',    'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
-    ['inbox',    'The server is taking a little longer than usual\u2026'],
-    ['bar-chart','Re-checking the '+win+' figures to be sure\u2026'],
-    ['target',   'Hang tight \u2014 verifying SLA compliance\u2026'],
-    ['user',     'Reconciling the ticket counts\u2026'],
-    ['bolt',     'Nearly ready \u2014 finalising the totals\u2026'],
-    ['users',    'Cross-checking group rollups ('+win+')\u2026'],
-    ['check-circle','Polishing the last few numbers\u2026'],
-    ['repeat',   'One more pass over repeat incidents\u2026'],
-    ['clock',    'Appreciate the wait \u2014 almost done\u2026'],
-  ];
-  return gwShuffle(lines);
-}
-// ---- Generic phased loader (reused by Recent Activity `gw` + Performance Overview `pf`). `pfx` is
-// the element-id prefix: '<pfx>Loader', '<pfx>LoaderIc', '<pfx>LoaderMsg', '<pfx>LoaderSub',
-// '<pfx>Content'. `subLabel` is the pill text. ----
-const _ldMsgTimers={};   // pfx -> interval id
-function _ldSetMsg(pfx,tuple){
-  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
-  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
-  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
-}
-function _ldStop(pfx){ if(_ldMsgTimers[pfx]){ clearInterval(_ldMsgTimers[pfx]); _ldMsgTimers[pfx]=null; } }
-// Phase 1 (20 lines @2s) -> apology -> Phase 2 (10 lines @3s, then loops). Never goes blank.
-function _ldStart(pfx,subLabel){
-  _ldStop(pfx);
-  var sub=document.getElementById(pfx+'LoaderSub'); if(sub&&subLabel) sub.textContent=subLabel;
-  var p1=gwPhase1(), i=0; _ldSetMsg(pfx,p1[0]);
-  _ldMsgTimers[pfx]=setInterval(function(){
-    i++;
-    if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
-    _ldStop(pfx);
-    _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your data\u2026']);
-    setTimeout(function(){
-      var p2=gwPhase2(), j=0; _ldSetMsg(pfx,p2[0]);
-      _ldMsgTimers[pfx]=setInterval(function(){ j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
-    },3000);
-  },2000);
-}
-function _ldShow(pfx,on,subLabel){
-  var l=document.getElementById(pfx+'Loader'), c=document.getElementById(pfx+'Content');
-  if(l){ l.style.display=on?'flex':'none'; if(on) l.classList.remove('gw-done'); }
-  if(c) c.style.display=on?'none':'';
-  if(on) _ldStart(pfx,subLabel); else _ldStop(pfx);
-}
-function _ldSuccess(pfx){
-  _ldStop(pfx);
-  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
-  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
-}
-// Recent Activity wrappers (clear the window-words override so it uses the RA radio).
-function gwShowLoader(on){ if(on)_ldWinWords=null; _ldShow('gw',on,GW_TITLE(GW_FILTER.win)); }
-function gwShowSuccess(){ _ldSuccess('gw'); }
 // ---- Consolidated Recent Activity: filter state + loading (mirrors the ga* pattern) ----
 const GW_FILTER={ win:'today', groups:['A1','A2','B'] };
 const GW_CACHE={};   // win -> data
@@ -1535,12 +1281,13 @@ function perfPickerHtml(){
     {v:'era',l:'YTD 2026'},{v:'quarter',l:'Quarterly'},{v:'weeks12',l:'12 weeks'},
     {v:'month',l:'Monthly'},{v:'week',l:'Weekly'}
   ];
-  let chips='<div class="perf-chips" role="tablist">';
+  let chips='<div class="perf-chips" role="group" aria-label="Period">';
   types.forEach(function(t){
-    chips+='<button type="button" class="perf-chip'+(PERF.type===t.v?' on':'')+'" role="tab" aria-selected="'+(PERF.type===t.v)+'" onclick="perfOnType(\''+t.v+'\')">'+t.l+'</button>';
+    chips+='<button type="button" class="perf-chip'+(PERF.type===t.v?' on':'')+'" aria-pressed="'+(PERF.type===t.v)+'" onclick="perfOnType(\''+t.v+'\')">'+t.l+'</button>';
   });
   chips+='</div>';
-  const sel=(id,onchange,opts,cur)=>'<select class="perf-sel" id="'+id+'" onchange="'+onchange+'">'+
+  const SEL_LBL={perfMonth:'Month',perfWeek:'Week',perfQuarter:'Quarter'};
+  const sel=(id,onchange,opts,cur)=>'<select class="perf-sel" id="'+id+'" aria-label="'+(SEL_LBL[id]||'Option')+'" onchange="'+onchange+'">'+
     opts.map(o=>'<option value="'+o.v+'"'+(String(o.v)===String(cur)?' selected':'')+'>'+o.l+'</option>').join('')+'</select>';
   let sub='';
   const mCount=_acMonthsCount();
@@ -1560,52 +1307,74 @@ function perfPickerHtml(){
   // + the chart to tickets OWNED by the selected groups (AssigneeIdentity).
   const groupChips=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){
     const on=PERF_GROUPS[g[0]];
-    return '<label class="ga-opt'+(on?' checked':'')+'"><input type="checkbox" name="perfGroup" value="'+g[0]+'"'+(on?' checked':'')+' onchange="perfOnGroupChange()"> '+g[1]+'</label>';
+    return '<label class="ga-opt'+(on?' checked':'')+'" data-g="'+g[0]+'"><input type="checkbox" name="perfGroup" value="'+g[0]+'"'+(on?' checked':'')+' onchange="perfOnGroupChange()"> '+g[1]+'</label>';
   }).join('');
-  const groups='<span class="perf-groups ga-fopts ga-checks">'+groupChips+'</span>';
+  const groups='<span class="perf-groups ga-fopts ga-checks" role="group" aria-label="Groups">'+groupChips+'</span>';
   return '<div class="perf-picker">'+chips+(sub?('<div class="perf-sub">'+sub+'</div>'):'')+groups+'</div>';
 }
-// The TOP picker drives BOTH the Overview (podium/KPIs/chart) AND the merged YTD tables. Wraps the
-// combined fetch in the fun phased loader (4s min, phased messages, 1s "Data fetched successfully").
+// The TOP picker drives BOTH the Overview (KPI tiles/podium) AND the merged YTD tables. Each slot shows
+// its own skeleton while loading; the region is aria-busy and the result is announced politely.
 let _PERF_RELOAD_SEQ=0;
 async function perfReloadAll(){
   const seq=++_PERF_RELOAD_SEQ;
   GA_FILTER.groups=['A1','B','A2'].filter(function(k){ return PERF_GROUPS[k]; }); // sync table group filter
-  const win=(typeof perfWindow==='function')?perfWindow():{label:'Performance Overview'};
-  _ldWinWords=(win.label||'this period').toLowerCase();   // e.g. "last 12 weeks" / "ytd 2026"
-  _ldShow('perf',true,win.label||'Performance Overview');
-  const minDelay=_delay(4000);
+  const win=perfWindow();
+  aaSyncLabels();
+  aaBusy('perfContent',true);
+  aaAnnounce('Loading performance for '+(win.label||'this period')+'\u2026');
   // Kick off all data work in parallel (each renders into its own slot when done).
-  const work=Promise.all([
+  await Promise.all([
     Promise.resolve().then(function(){ return reloadPerfSection(); }).catch(function(){}),
     Promise.resolve().then(function(){ return gaLoad(); }).catch(function(){}),
   ]);
-  await Promise.all([minDelay, work]);
   if(seq!==_PERF_RELOAD_SEQ) return;   // a newer reload superseded this one
-  _ldSuccess('perf');
-  await _delay(1000);
-  if(seq!==_PERF_RELOAD_SEQ) return;
-  _ldShow('perf',false);
+  aaBusy('perfContent',false);
+  aaAnnounce('Performance for '+(win.label||'this period')+' loaded.');
 }
+window.perfReloadAll=perfReloadAll;
 function perfOnType(v){ PERF.type=v; if(v==='month'||v==='week'){ if(PERF.month==null)PERF.month=_acMonthsCount()-1; } if(v==='week')PERF.week=0; if(v==='quarter'&&PERF.quarter==null)PERF.quarter=_acQuartersCount(); perfRefreshPicker(); perfReloadAll(); }
 function perfOnMonth(v){ PERF.month=+v; PERF.week=0; perfRefreshPicker(); perfReloadAll(); }
 function perfOnWeek(v){ PERF.week=+v; perfReloadAll(); }
 function perfOnQuarter(v){ PERF.quarter=+v; perfReloadAll(); }
 window.perfOnType=perfOnType; window.perfOnMonth=perfOnMonth; window.perfOnWeek=perfOnWeek; window.perfOnQuarter=perfOnQuarter;
-function perfRefreshPicker(){ const h=document.getElementById('perfPickerWrap'); if(h)h.innerHTML=perfPickerHtml(); }
+function perfRefreshPicker(){
+  const h=document.getElementById('perfPickerWrap'); if(!h)return;
+  // Keep keyboard focus on the equivalent control after the picker is rebuilt.
+  const ae=document.activeElement, inside=ae&&h.contains(ae);
+  const fid=inside?(ae.id||(ae.classList.contains('perf-chip')?'__chip':'')):'';
+  h.innerHTML=perfPickerHtml();
+  if(fid){ const t=(fid==='__chip')?h.querySelector('.perf-chip.on'):document.getElementById(fid); if(t) try{ t.focus(); }catch(e){} }
+}
 let _PERF_CHART=null;
+let _PERF_KPI_SEQ=0;
+// Skeletons shaped like the final KPI tiles (8) and the top-3 podium.
+function perfKpiSkeleton(){
+  const t='<div class="pf-stat" aria-hidden="true"><div class="pf-stat-top">'+aaSkel('28px',28)+aaSkel('45%',10)+'</div><div style="margin-top:12px">'+aaSkel('50%',24)+'</div><div style="margin-top:8px">'+aaSkel('65%',10)+'</div></div>';
+  return '<span class="aa-sr" role="status">Loading the performance metrics\u2026</span><div class="pf-stats">'+t+t+t+t+t+t+t+t+'</div>';
+}
+function perfPodiumSkeleton(){
+  const m='<div class="pf-medal" aria-hidden="true">'+aaSkel('54px',54,'is-circle')+'<div style="margin-top:10px">'+aaSkel('50%',12)+'</div><div style="margin-top:10px">'+aaSkel('60%',10)+'</div><div style="margin-top:6px">'+aaSkel('45%',10)+'</div></div>';
+  return '<div class="pf-podium-wrap"><h3 class="pf-section-h">'+ic('target',13)+' Top performers \u2014 most successful resolves</h3><div class="pf-podium">'+m+m+m+'</div></div>';
+}
 function reloadPerfSection(){
   const win=perfWindow();
   const bucket=perfBucket();
-  const spin='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
-  const avg=document.getElementById('dashSumAvg'); if(avg)avg.innerHTML=spin;
+  const seq=++_PERF_KPI_SEQ;
+  const avg=document.getElementById('dashSumAvg'); if(avg){ avg.setAttribute('aria-busy','true'); avg.innerHTML=perfKpiSkeleton(); }
+  const pod=document.getElementById('dashPodium'); if(pod) pod.innerHTML=perfPodiumSkeleton();
   const gp=perfGroupsParam();   // '&groups=A1,B' or '' when all/none selected
   // KPIs — direct /api/dash/summary call (no loadDashChunk SWR layer on this page).
   const q=['from='+encodeURIComponent(win.from)]; if(win.to)q.push('to='+encodeURIComponent(win.to));
+  const fail=function(){
+    if(seq!==_PERF_KPI_SEQ) return;
+    if(avg){ avg.setAttribute('aria-busy','false'); avg.innerHTML=aaErrorHtml('the performance metrics','reloadPerfSection()'); }
+    if(pod) pod.innerHTML='';
+  };
   const kpiP=A.api('GET','/api/dash/summary?'+q.join('&')+gp).then(function(r){
-    if(r&&r.ok&&r.data){ renderPerfKpis(r.data); }
-    else { if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; }
-  }).catch(function(){ if(avg)avg.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load the metrics.</p>'; });
+    if(seq!==_PERF_KPI_SEQ) return;   // a newer selection superseded this load
+    if(r&&r.ok&&r.data){ if(avg) avg.setAttribute('aria-busy','false'); renderPerfKpis(r.data); }
+    else fail();
+  }).catch(fail);
   // The Created vs Resolved / SLA % chart was removed from this section, so /api/dash/timeseries is
   // no longer requested here (bucket kept for the KPI window only).
   void bucket;
@@ -1626,7 +1395,7 @@ function perfChartShell(win){
   const wk=document.getElementById('dashWeeklyBody'); if(!wk)return;
   wk.innerHTML='<p class="meta-info" style="margin:0 0 14px"><b style="color:#ff9900">Created</b> vs <b style="color:#4ade80">Resolved</b> volume, with <b style="color:#a78bfa">SLA %</b> (\u2264240h) on the right axis \u2014 for <b>'+esc(win.label)+'</b>.</p>'+
     '<div class="chart-box"><div class="chart-wrap tall" style="position:relative"><canvas id="cPerfChart"></canvas>'+
-      '<div id="perfSpinner" class="perf-spin-overlay"><div class="spinner"></div></div>'+
+      '<div id="perfSpinner" class="perf-spin-overlay" style="position:absolute;inset:0;padding:6px">'+aaSkel('100%',300)+'</div>'+
     '</div></div>';
 }
 function drawPerfSkeleton(win,bucket){
@@ -1649,19 +1418,16 @@ function renderPerfKpis(d){
   const nf=(n)=>Number(n||0).toLocaleString();
   const medals=[{cls:'gold',ico:'\uD83E\uDD47',rank:1},{cls:'silver',ico:'\uD83E\uDD48',rank:2},{cls:'bronze',ico:'\uD83E\uDD49',rank:3}];
   const agents=(d.topAgents||[]).slice(0,3);
-  const initial=(s)=>String(s||'?').trim().charAt(0).toUpperCase()||'?';
-  const avHtml=(a)=> a.avatar
-    ? '<span class="pf-av"><img src="'+esc(a.avatar)+'" alt=""></span>'
-    : '<span class="pf-av pf-av-i">'+esc(initial(a.name||a.login))+'</span>';
+  const avHtml=(a)=>aaAvatar(a.login||a.name, a.avatar||(GROUP_PROFILES[String(a.login||'').toLowerCase()]||{}).avatar);
   let podium='';
   if(agents.length){
     podium='<div class="pf-podium">'+agents.map(function(a,i){
       const m=medals[i]||medals[2];
       const avg=(a.avgResHrs!=null)?(nf(a.avgResHrs)+' hrs'):'\u2014';
       return '<div class="pf-medal pf-'+m.cls+'">'+
-        '<div class="pf-medal-badge">'+m.ico+'</div>'+
+        '<span class="pf-rank">#'+m.rank+'</span><div class="pf-medal-badge" aria-hidden="true">'+m.ico+'</div>'+
         avHtml(a)+
-        '<div class="pf-medal-id" title="'+esc(a.login)+'">'+esc(a.login)+'</div>'+
+        '<div class="pf-medal-id" title="'+esc(a.login)+'"><span>'+esc(a.login)+'</span>'+aaPhdTag(a.login)+'</div>'+
         '<div class="pf-medal-metrics">'+
           '<span class="pf-mm"><b>'+nf(a.successful)+'</b> successful</span>'+
           '<span class="pf-mm"><b>'+nf(a.immediate)+'</b> immediate</span>'+
@@ -1687,7 +1453,7 @@ function renderPerfKpis(d){
   // KPI stat tiles stay up top (right under the picker); the ranking podium is moved BELOW the chart.
   slot.innerHTML=tiles;
   const podSlot=document.getElementById('dashPodium');
-  if(podSlot) podSlot.innerHTML=(podium?('<div class="pf-podium-wrap"><div class="pf-section-h">'+ic('target',13)+' Top performers \u2014 most successful resolves</div>'+podium+'</div>'):'');
+  if(podSlot) podSlot.innerHTML=(podium?('<div class="pf-podium-wrap"><h3 class="pf-section-h">'+ic('target',13)+' Top performers \u2014 most successful resolves</h3>'+podium+'</div>'):'');
 }
 window.renderPerfKpis=renderPerfKpis;
 function perfChartOptions(labelCount,isSkeleton,tips,labels){
@@ -1728,20 +1494,14 @@ function renderPerfChart(d,win){
 window.renderPerfChart=renderPerfChart;
 // Body markup for the Performance Overview card (picker + KPI slot + chart slot).
 function perfSectionBodyHtml(){
-  const avgSkel='<div style="display:flex;align-items:center;justify-content:center;min-height:120px"><div class="spinner"></div></div>';
   // The Created vs Resolved / SLA % chart (#dashWeeklyBody) was removed from this section on request.
   return '<div class="perf-body">'+
-      // Picker stays visible (it drives the reloads); the loader overlays only the data area below.
-      '<div class="perf-head-right perf-head-inbody"><span id="perfPickerWrap">'+perfPickerHtml()+'</span></div>'+
-      '<div id="perfLoader" class="gw-loader" style="display:none"><div class="gw-loader-in">'+
-        '<div class="gw-orb"><span class="gw-orb-ic" id="perfLoaderIc">'+ic('bar-chart',30)+'</span></div>'+
-        '<div class="gw-loader-msg" id="perfLoaderMsg">Warming things up\u2026</div>'+
-        '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
-        '<div class="gw-loader-sub" id="perfLoaderSub">Performance Overview</div>'+
-      '</div></div>'+
-      '<div id="perfContent">'+
-        '<div id="dashSumAvg" class="dash-chunk-slot">'+avgSkel+'</div>'+
-        '<div id="dashPodium" class="dash-chunk-slot" style="margin-top:18px"></div>'+
+      // Picker stays visible (it drives the reloads); each data slot below shows its own skeleton.
+      '<div class="perf-head-right perf-head-inbody" role="group" aria-label="Performance filters"><span id="perfPickerWrap">'+perfPickerHtml()+'</span></div>'+
+      '<div id="perfContent" aria-busy="false">'+
+        '<h3 class="pf-section-h">'+ic('bar-chart',13)+' Key metrics</h3>'+
+        '<div id="dashSumAvg" class="dash-chunk-slot">'+perfKpiSkeleton()+'</div>'+
+        '<div id="dashPodium" class="dash-chunk-slot" style="margin-top:22px"></div>'+
         '<div class="perf-ytd-block"><div id="groupsView">'+groupsSectionsHtml()+'</div></div>'+
       '</div>'+
     '</div>';
@@ -1772,7 +1532,8 @@ window.gwOnWinChange=gwOnWinChange;
 function gwOnGroupChange(){
   var g=[]; document.querySelectorAll('input[name="gwGroup"]').forEach(function(inp){ var opt=inp.closest('.ga-opt'); if(opt) opt.classList.toggle('checked', inp.checked); if(inp.checked) g.push(inp.value); });
   GW_FILTER.groups=g;
-  if(GW_DATA){ gwRenderIap(); gwRenderGts(); }
+  aaSyncLabels();
+  if(GW_DATA){ gwRenderIap(); gwRenderGts(); aaRenderKpis(); }
 }
 window.gwOnGroupChange=gwOnGroupChange;
 function gwSetNote(){
@@ -1780,16 +1541,12 @@ function gwSetNote(){
   var r=gwWindowRange(GW_FILTER.win);
   el.textContent='Showing: '+r.title+' ('+r.label+').';
 }
-const _delay=(ms)=>new Promise(function(res){ setTimeout(res,ms); });
 async function gwLoad(){
   const seq=++GW_LOADSEQ;
-  // Show the fun loader (animated icon + big spinner + phased rotating messages).
-  const l=document.getElementById('gwLoader'); if(l) l.classList.remove('gw-done');
-  gwShowLoader(true);
-  // 4s MINIMUM so the lines are seen; the fetch runs in parallel. If the fetch takes longer, the
-  // loader stays and keeps cycling (Phase 1 @2s x20, apology, Phase 2 @3s x10 ~ 70s coverage).
-  const minDelay=_delay(4000);
+  aaSyncLabels();
   let d=GW_CACHE[GW_FILTER.win]||null;
+  // Skeleton tables + KPI skeleton while the window's data is fetched (skipped when it's cached).
+  if(!d) gwShowLoader(true);
   const fetchP=(async function(){
     if(d) return d;
     // Compute THIS window's [from,to) in epoch ms (local day boundaries) and hit the ResolvedDate-
@@ -1799,18 +1556,21 @@ async function gwLoad(){
     try{ const r=await A.api('GET','/api/group-range?'+qs); if(r&&r.ok&&r.data){ GW_CACHE[GW_FILTER.win]=r.data; return r.data; } }catch(e){}
     return null;
   })();
-  const [, got]=await Promise.all([minDelay, fetchP]);
+  const got=await fetchP;
   if(seq!==GW_LOADSEQ) return;   // a newer load (filter change) superseded this one
   d=got;
-  // Response is in -> show "Data fetched successfully" for 1s, THEN reveal the data.
-  gwShowSuccess();
-  await _delay(1000);
-  if(seq!==GW_LOADSEQ) return;
   gwShowLoader(false);
   var ib=document.getElementById('gwIapBody'), gb=document.getElementById('gwGtsBody');
   gwSetNote();
-  if(!d){ if(ib) ib.innerHTML='<div class="ov-none" style="margin:0"><span class="dot"></span>Could not load this window.</div>'; if(gb) gb.innerHTML=''; return; }
-  GW_DATA=d; gwRenderIap(); gwRenderGts();
+  if(!d){
+    GW_DATA=null; aaRenderKpis();
+    if(ib) ib.innerHTML=aaErrorHtml('recent activity','gwLoad()');
+    if(gb) gb.innerHTML='<p class="iap-hint">Retry above to load the group totals for this window.</p>';
+    aaAnnounce('Couldn\u2019t load recent activity. A Retry button is available.');
+    return;
+  }
+  GW_DATA=d; gwRenderIap(); gwRenderGts(); aaRenderKpis();
+  aaAnnounce('Recent activity for '+GW_TITLE(GW_FILTER.win)+' loaded.');
 }
 function gwSort(which,key){
   const s=GW_SORT[which]; if(!s)return;
@@ -1826,18 +1586,18 @@ function gwRenderIap(){
   const dir=(sort.dir==='asc')?1:-1;
   const agents=(GW_DATA.agents||[]).filter(function(a){ return GW_FILTER.groups.indexOf(a.group)>=0; });
   const sorted=[...agents].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||a.name.localeCompare(b.name); });
-  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gwSort(\'iap\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'"'+aaThAttrs(sort.key===c.key,sort.dir)+' title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gwSort(\'iap\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
   const rows=sorted.length?sorted.map(function(a){
     const clo=a.closure||{}; const sla=(a.sla&&a.sla.pct!=null)?(a.sla.pct+'%'):'\u2014'; const avg=(a.avgTime||0);
     const cell=function(n,extra){return '<td class="'+(extra||'')+((n===0)?' zero':'')+'">'+n+'</td>';};
-    return '<tr><td><span style="color:#44b9d6;font-weight:700">'+esc(a.name)+'</span></td>'+
+    return '<tr><td>'+aaAgentCell(a.name)+'</td>'+
       IAP_CC_ORDER.map(function(c){return cell(clo[c]||0,c==='Successful'?'col-key':'');}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td>'+
       '<td'+(avg===0?' class="zero"':'')+'>'+avg.toFixed(1)+'</td></tr>';
-  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#7f8c8d">No groups selected.</td></tr>');
+  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#5c6773;padding:22px;position:static">No groups selected.</td></tr>');
   const note=(GW_FILTER.groups.indexOf('A2')>=0)?GAMMA_NOTE:'';
-  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'+note;
+  body.innerHTML='<div class="gv-scroll"'+aaScrollAttrs('Individual Agent Performance table')+'><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'+note;
 }
 function gwRenderGts(){
   const body=document.getElementById('gwGtsBody'); if(!GW_DATA||!body)return;
@@ -1854,15 +1614,15 @@ function gwRenderGts(){
   const col=cols.find(function(c){return c.key===sort.key;})||cols[1];
   const dir=(sort.dir==='asc')?1:-1;
   const rows=[...rows0].sort(function(a,b){ let r=(col.type==='str')?String(col.val(a)).localeCompare(String(col.val(b))):(col.val(a)-col.val(b)); return (r*dir)||(GN[a[0]]||'').localeCompare(GN[b[0]]||''); });
-  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'" title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gwSort(\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
+  const head='<tr>'+cols.map(function(c){ const kc=(c.key==='Successful')?' col-key':''; const ac=(sort.key===c.key)?' sorted':''; return '<th class="iap-sort'+kc+ac+'"'+aaThAttrs(sort.key===c.key,sort.dir)+' title="'+esc(c.key.indexOf('__')===0?c.label:c.key)+'" onclick="gwSort(\'gts\',\''+esc(c.key)+'\')"><span class="th-full">'+esc(c.label)+'</span><span class="th-short">'+esc(c.short||c.label)+'</span><span class="th-arrow">'+(sort.key===c.key?(sort.dir==='desc'?' \u25be':' \u25b4'):'')+'</span></th>'; }).join('')+'</tr>';
   const trs=rows.length?rows.map(function(r){ const clo=cloOf(r); const s=slaOf(r); const sla=(s&&s.pct!=null)?(s.pct+'%'):'\u2014';
     return '<tr><td><span class="gv-tag '+r[1]+'">'+(GN[r[0]]||r[0])+'</span></td>'+
       IAP_CC_ORDER.map(function(c){var n=clo[c]||0;return '<td class="'+(c==='Successful'?'col-key':'')+(n===0?' zero':'')+'">'+n+'</td>';}).join('')+
       '<td class="col-total'+(iapTotal(clo)===0?' zero':'')+'"><b>'+iapTotal(clo)+'</b></td>'+
       '<td>'+(sla==='\u2014'?'<span class="zero">\u2014</span>':'<b>'+sla+'</b>')+'</td></tr>';
-  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#7f8c8d">No groups selected.</td></tr>');
+  }).join(''):('<tr><td colspan="'+cols.length+'" style="text-align:center;color:#5c6773;padding:22px;position:static">No groups selected.</td></tr>');
   const note=(GW_FILTER.groups.indexOf('A2')>=0)?GAMMA_NOTE:'';
-  body.innerHTML='<div class="gv-scroll"><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>'+note;
+  body.innerHTML='<div class="gv-scroll"'+aaScrollAttrs('Group Totals Summary table')+'><table class="iap-table xls"><thead>'+head+'</thead><tbody>'+trs+'</tbody></table></div>'+note;
 }
 // Group Totals Summary: same column arrangement + sortable headers (no Avg Res — not computed per group).
 let GTS_M=null, GTS_BODY=null, GTS_SORT=null;
@@ -1927,7 +1687,22 @@ function gvSortedByGroup(m){
     const grid=card.querySelector('.ga-mem-grid');
     if(grid) grid.innerHTML=g.members.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase())).map(memberCard).join('');
   });
+  // Agent cells: swap in display names + photos now that profiles are known.
+  try{ if(GW_DATA){ gwRenderIap(); aaRenderKpis(); } if(GA_DATA) gaRenderIap(); }catch(e){}
 })();
+// Keyboard: sortable headers respond to Enter/Space; Escape closes the bucket popup.
+document.addEventListener('keydown',function(ev){
+  const t=ev.target;
+  if((ev.key==='Enter'||ev.key===' ')&&t&&t.matches&&t.matches('th.iap-sort')){
+    ev.preventDefault();
+    const tbl=t.closest('table'), idx=Array.prototype.indexOf.call(t.parentNode.children,t), host=tbl&&tbl.closest('[id]');
+    t.click();
+    // The table re-renders; put focus back on the same column header.
+    const box=host&&document.getElementById(host.id); const nt=box&&box.querySelectorAll('thead th')[idx]; if(nt) try{ nt.focus(); }catch(e){}
+    return;
+  }
+  if(ev.key==='Escape'){ const m=document.getElementById('bucketModal'); if(m&&m.style.display==='flex') closeBucket(); }
+});
 </script>
 </body>
 </html>

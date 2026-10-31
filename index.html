@@ -114,122 +114,219 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 @keyframes hdrLiveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{opacity:.4;box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,0)}}
 @media(max-width:480px){.home-hdr-live{padding:0 10px;font-size:.72em}}
 
-/* ---- Hero (light, orange accent) ---- */
-.home-hero{position:relative;background:var(--white);border:1px solid var(--line);border-left:5px solid var(--o);
-  border-radius:5px;box-shadow:var(--sh);padding:10px;margin:0 0 10px;overflow:hidden}
-.home-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;
-  background:radial-gradient(circle,rgba(255,97,0,.1),transparent 70%);pointer-events:none}
-.home-hero .eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:.72em;font-weight:800;letter-spacing:1px;
-  text-transform:uppercase;color:var(--o);margin-bottom:10px}
-.home-hero .eyebrow svg{width:14px;height:14px}
-.home-hero h1{font-size:1.45em;font-weight:800;letter-spacing:-.4px;color:var(--ink);margin:0 0 6px;position:relative}
-.home-hero h1 .accent{color:var(--o)}
-.home-hero p{color:var(--ink2);font-size:.88em;line-height:1.6;width:100%;position:relative}
+/* ============================================================================
+   HOME MAIN CONTENT — redesign v3, in the Errors-in-Resolved visual language:
+   dark navy hero with an orange rule + grid texture, white KPI cards overlapping
+   the hero bottom (coloured top borders), white 12px-radius cards, pill chips.
+   Everything is scoped under .hm. Breakpoints are viewport media queries: the shell sizes the
+   main column to fit-content at <=1024px, so a size container here would collapse to 0 width.
+   ============================================================================ */
+.hm{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --navy:#1f2a40;--grn:#1a7a43;--grn-bg:#e5f5ec;--red:#b42318;--red-bg:#fdecec;--blu:#1f4f9a;--blu-bg:#e9f0fb;
+  --focus:#f0a35a;--card-sh:0 2px 10px -6px rgba(20,30,50,.18);
+  color:var(--ink);padding-bottom:12px}
+.hm :is(a,button,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.hm-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---- Live metric summary cards (2026 highlights) ---- */
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 10px}
-.kpi{position:relative;background:var(--ol);border:1px solid var(--ol);border-radius:5px;box-shadow:var(--sh);
-  padding:10px;overflow:hidden;transition:transform .14s,box-shadow .14s}
-.kpi:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(255,97,0,.5)}
-.kpi .kpi-top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-.kpi .kpi-ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.25);color:#fff;flex:0 0 auto}
-.kpi .kpi-ic svg{width:16px;height:16px}
-.kpi .kpi-label{font-size:.74em;font-weight:700;color:#fff;line-height:1.3;letter-spacing:.2px}
-.kpi .kpi-val{display:flex;align-items:baseline;gap:5px}
-.kpi .kpi-val b{font-size:1.4em;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1}
-.kpi .kpi-val .avg{font-size:.85em;font-weight:800;color:#fff;align-self:flex-start;margin-top:2px}
-.kpi .kpi-val span{font-size:.76em;font-weight:600;color:rgba(255,255,255,.85)}
-.kpi .kpi-sub{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:.68em;font-weight:700;color:#fff;letter-spacing:.3px;text-transform:uppercase}
-.kpi .kpi-sub::before{content:'';width:6px;height:6px;border-radius:50%;background:#fff;animation:livepulse 1.6s ease-in-out infinite}
+/* ---- Hero ---- */
+.hm-hero{position:relative;overflow:hidden;border-radius:12px;padding:28px 30px 84px 34px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.hm-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.hm-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.hm-hero-in{position:relative;display:flex;gap:18px;align-items:flex-start}
+.hm-hero-ic{width:50px;height:50px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.hm-hero-ic svg{width:24px;height:24px}
+.hm-hero-txt{min-width:0}
+.hm-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:8px}
+.hm-hero h1{color:#fff;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08;margin:0}
+.hm-hero h1 .accent{color:#ffb26b}
+.hm-hero-sub{margin-top:10px;max-width:70ch;font-size:.94em;line-height:1.6;color:rgba(233,237,243,.82)}
+.hm-hero-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
+.hm-hero-chips li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;
+  color:#e9edf3;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16)}
+.hm-hero-chips li::before{content:'';width:6px;height:6px;border-radius:50%;background:#ffb26b}
 
-/* ---- Section cards ---- */
-.home-sec{background:var(--white);border:1px solid var(--line);border-radius:5px;box-shadow:var(--sh);overflow:hidden;margin:0 0 10px;max-width:100%;min-width:0}
-.home-sec-h{display:flex;align-items:center;gap:12px;padding:10px;margin:0;font-size:1.02em;font-weight:800;
-  letter-spacing:.2px;color:var(--ink);border-bottom:1px solid var(--line);background:var(--white)}
-.home-sec-h::before{content:'';width:4px;height:20px;border-radius:5px;background:linear-gradient(var(--o),var(--ol))}
-.home-sec-h .home-sec-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
-  border-radius:10px;background:var(--icbg);color:var(--icfg)}
-.home-sec-h .home-sec-ic svg{width:18px;height:18px}
-.home-sec-body{padding:10px;min-width:0;max-width:100%;overflow:hidden}
+/* ---- KPI cards (overlap the hero bottom) ---- */
+.hm-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-60px 18px 18px;padding:0;list-style:none}
+@media (min-width:760px){.hm-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.hm-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.hm-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.hm-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.hm-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.hm-kpi-ic svg{width:15px;height:15px}
+.hm-kpi-v{display:flex;align-items:baseline;gap:4px;margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.hm-kpi-v .hm-approx{font-size:.5em;letter-spacing:0;color:var(--mut);align-self:flex-start;margin-top:.15em}
+.hm-kpi-v .hm-kpi-u{font-size:.36em;font-weight:700;letter-spacing:0;color:var(--mut)}
+.hm-kpi-s{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px;font-size:.78em;font-weight:600;color:var(--mut)}
+.hm-kpi-s b{color:var(--ink);font-weight:800}
+.hm-delta{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:.92em;font-weight:800;font-variant-numeric:tabular-nums;
+  background:#eef1f4;color:#3a4552;border:1px solid #d4dade}
+.hm-delta.is-good{background:var(--grn-bg);color:var(--grn);border-color:#b7e1c8}
+.hm-kpi.is-blue{--k:#2b66c1;--kb:var(--blu-bg);--ki:var(--blu)}
+.hm-kpi.is-acc{--k:var(--acc);--kb:var(--acc-bg);--ki:#b5530a}
+.hm-kpi.is-good{--k:#1f9d57;--kb:var(--grn-bg);--ki:var(--grn)}
 
-/* ---- Metrics comparison table ---- */
-.cmp-wrap{overflow:hidden;border-radius:5px;border:1px solid var(--line);max-width:100%}
-.cmp-table.xls{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.88em;background:var(--white);color:var(--ink)}
-.cmp-table.xls th,.cmp-table.xls td{border-bottom:1px solid #eef0f3;padding:12px 8px;text-align:center;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cmp-table.xls th:first-child,.cmp-table.xls td:first-child{width:20%;text-align:left}
-.cmp-table.xls th:not(:first-child):not(:last-child){width:11%}
-.cmp-table.xls th:last-child,.cmp-table.xls td:last-child{width:14%}
-.cmp-table.xls thead th{background:var(--gray);color:var(--ink2);font-size:.7em;text-transform:uppercase;letter-spacing:.6px;font-weight:800;line-height:1.5}
-.cmp-table.xls .cmp-yh{display:block;font-size:.84em;color:var(--ink2);font-weight:700}
-.cmp-table.xls .cmp-yn{display:block;color:var(--ink);font-weight:800;font-size:1.12em}
-.cmp-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--o);margin-left:4px;vertical-align:middle;animation:livepulse 1.6s ease-in-out infinite}
-.cmp-table.xls tbody tr:last-child td{border-bottom:none}
-.cmp-table.xls tbody tr:hover td{background:#fbfaf7}
-.cmp-table.xls td.cmp-metric{text-align:left;font-weight:700;color:var(--ink);white-space:nowrap}
-.cmp-metric .m-short{display:none}
-.cmp-table.xls td.yv{color:#3a4454;font-weight:700}
-.cmp-table.xls td.yv-live{color:var(--o);font-weight:800;background:rgba(255,97,0,.06)}
-.cmp-table.xls .cmp-u{color:var(--ink2);font-weight:500;font-size:.8em;margin-left:3px}
-.cmp-table.xls td.cmp-spark{padding:6px 10px;width:240px;min-width:220px}
-.cmp-table.xls td.cmp-spark svg{display:block;width:100%;height:70px}
+/* ---- Cards ---- */
+.hm-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--card-sh);padding:20px 22px;margin-bottom:16px;min-width:0}
+.hm-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px 18px;flex-wrap:wrap;margin-bottom:16px}
+.hm-card-t{display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1 1 320px}
+.hm-card-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--blu-bg);color:var(--blu)}
+.hm-card-ic svg{width:17px;height:17px}
+.hm-card-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;margin:0;color:var(--ink)}
+.hm-help{margin-top:4px;font-size:.86em;color:var(--mut);line-height:1.5;max-width:72ch}
+.hm-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:#eef1f4;color:#3a4552;border:1px solid #d4dade;white-space:nowrap}
+.hm-chip.is-acc{background:var(--acc-bg);color:var(--acc-ink);border-color:#f7c99c}
+.hm-chip .hm-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:hmPulse 1.8s ease-in-out infinite}
+
+/* ---- Program metrics table ---- */
+.hm-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;-webkit-overflow-scrolling:touch}
+.hm .cmp-table{display:table!important;overflow:visible!important;max-width:none!important;width:100%;min-width:max-content;border-collapse:separate;border-spacing:0;font-size:.9em;background:#fff}
+.hm .cmp-table th,.hm .cmp-table td{padding:12px 12px;border-bottom:1px solid #eef1f4;text-align:center;vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hm .cmp-table thead th{background:var(--soft);border-bottom:1px solid var(--line);font-size:.74em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+.hm .cmp-table thead th.cmp-yr{font-size:.86em;letter-spacing:.2px;color:var(--ink)}
+.hm .cmp-table tbody tr:last-child>*{border-bottom:none}
+.hm .cmp-table tbody tr:hover>*{background:#fafbfc}
+/* Sticky first column (metric labels) for horizontal scroll. */
+.hm .cmp-table .cmp-metric{position:sticky;left:0;z-index:1;text-align:left;background:#fff;box-shadow:inset -1px 0 0 var(--line)}
+.hm .cmp-table thead .cmp-metric{background:var(--soft);z-index:2}
+.hm .cmp-table tbody tr:hover .cmp-metric{background:#fafbfc}
+.hm .cmp-table tbody th.cmp-metric{font-weight:800;color:var(--ink);font-size:.98em}
+.hm .cmp-metric .m-short{display:none}
+.hm .cmp-table td.yv{color:#2a3340;font-weight:700}
+.hm .cmp-table .cmp-u{color:var(--mut);font-weight:600;font-size:.8em;margin-left:3px}
+/* 2026 column: soft orange tint + orange header rule. */
+.hm .cmp-table .yv-live{background:#fff6ee}
+.hm .cmp-table tbody tr:hover .yv-live{background:#ffefe0}
+.hm .cmp-table td.yv-live{color:var(--acc-ink);font-weight:800}
+.hm .cmp-table thead th.yv-live{color:var(--acc-ink);background:#ffeedd;box-shadow:inset 0 3px 0 var(--acc)}
+.hm .cmp-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle;animation:hmPulse 1.8s ease-in-out infinite}
+.hm .cmp-table .cmp-trend-h{text-align:center}
+.hm .cmp-table td.cmp-spark{padding:6px 14px;width:220px;min-width:220px;text-align:center}
+.hm .cmp-table td.cmp-spark svg{display:block;width:200px;height:56px;margin:0 auto}
+.hm-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:.78em;color:var(--mut)}
+.hm-legend span{display:inline-flex;align-items:center;gap:6px}
+.hm-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--navy)}
+.hm-legend i.is-acc{width:9px;height:9px;border-radius:50%;background:var(--acc)}
+.hm-legend i.is-tint{width:12px;height:12px;border-radius:3px;background:#ffeedd;border:1px solid #f7c99c}
+
+/* ---- Nav tiles (rendered by home.js into #yearSections and #extLinks) ---- */
+.hm .nav-tiles{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:700px){.hm .nav-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1180px){.hm .nav-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.hm .nav-tile{--acc:#2b66c1;--accbg:var(--blu-bg);--tink:var(--blu);position:relative;display:flex;flex-direction:column;gap:12px;height:100%;
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 18px 16px;overflow:hidden;text-decoration:none;color:var(--ink);
+  box-shadow:var(--card-sh);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.hm .nav-tile::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--acc)}
+.hm a.nav-tile:hover{transform:translateY(-3px);border-color:#cfd6dd;box-shadow:0 20px 36px -24px rgba(20,30,50,.6)}
+.hm a.nav-tile:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.hm .nav-tile .nt-top{display:flex;align-items:flex-start;gap:12px}
+.hm .nav-tile .nt-ic{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:10px;background:var(--accbg);color:var(--tink);flex:0 0 auto}
+.hm .nav-tile .nt-ic svg{width:20px;height:20px}
+.hm .nav-tile .nt-head{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;flex:1}
+.hm .nav-tile .nt-sub{order:-1;display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;background:var(--accbg);color:var(--tink);
+  font-size:.64em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;line-height:1.6}
+.hm .nav-tile .nt-title{font-size:1.04em;font-weight:800;letter-spacing:-.2px;color:var(--ink);line-height:1.25}
+.hm .nav-tile .nt-pill{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;font-size:.62em;font-weight:800;letter-spacing:.8px;
+  color:#0f5a32;background:#dff5e8;border:1px solid #a6dcbc}
+.hm .nav-tile .nt-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:#1f9d57;animation:hmPulse 1.6s ease-in-out infinite}
+.hm .nav-tile .nt-lock{flex:0 0 auto;display:inline-flex;color:var(--mut)}
+.hm .nav-tile .nt-body{display:flex;flex-direction:column;flex:1}
+.hm .nav-tile .nt-desc{font-size:.86em;color:var(--mut);line-height:1.5}
+.hm .nav-tile .nt-cta{display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid #eef1f4;font-size:.84em;font-weight:800;color:var(--tink)}
+.hm .nav-tile .nt-arrow{display:inline-block;transition:transform .18s ease}
+.hm a.nav-tile:hover .nt-arrow,.hm a.nav-tile:focus-visible .nt-arrow{transform:translateX(4px)}
+/* Tones: accent bar/icon colour + an AA-contrast ink for chip/CTA text. */
+.hm .nav-tile.nt-amber{--acc:#ec7211;--accbg:#fff3e8;--tink:#9a4100}
+.hm .nav-tile.nt-violet{--acc:#6d5bd0;--accbg:#eeebfb;--tink:#4a3aa6}
+.hm .nav-tile.nt-rose{--acc:#d6456f;--accbg:#fce8ef;--tink:#a3264f}
+.hm .nav-tile.nt-blue{--acc:#2b66c1;--accbg:var(--blu-bg);--tink:var(--blu)}
+.hm .nav-tile.nt-teal{--acc:#1b8f8a;--accbg:#dff3f1;--tink:#136b67}
+/* Active dashboard: the one primary destination — dark navy surface echoing the hero. */
+.hm .nav-tile.nt-live{--acc:#ec7211;--accbg:rgba(236,114,17,.18);--tink:#ffb26b;color:#e9edf3;border-color:#2a3650;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(236,114,17,.22),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40)}
+.hm .nav-tile.nt-live .nt-title{color:#fff}
+.hm .nav-tile.nt-live .nt-desc{color:rgba(233,237,243,.8)}
+.hm .nav-tile.nt-live .nt-ic{border:1px solid rgba(236,114,17,.4)}
+.hm .nav-tile.nt-live .nt-cta{border-top-color:rgba(255,255,255,.12)}
+.hm .nav-tile.nt-live .nt-pill{color:#c8f2d8;background:rgba(31,157,87,.2);border-color:rgba(74,222,128,.4)}
+.hm .nav-tile.nt-live .nt-pill::before{background:#4ade80}
+.hm a.nav-tile.nt-live:hover{border-color:#3a4a6a;box-shadow:0 22px 40px -22px rgba(10,15,25,.75)}
+/* External link tiles: white cards with a navy accent + external chip. */
+.hm .nav-tile.nt-external{--acc:#1f2a40;--accbg:#e8ebf1;--tink:#1f2a40}
+.hm .nav-tile.nt-disabled{opacity:.62;cursor:not-allowed;filter:grayscale(.35);pointer-events:none;box-shadow:none}
+/* Admin-managed external links: tile + delete button share a wrapper (button never inside the <a>). */
+.hm .nt-wrap{position:relative;display:flex;min-width:0}
+.hm .nt-wrap>.nav-tile{flex:1 1 auto;min-width:0}
+.hm .nt-wrap.nt-has-del .nt-head{padding-right:30px}
+.hm .nt-wrap .nt-title,.hm .nt-wrap .nt-desc{overflow-wrap:anywhere}
+.hm .nt-del{position:absolute;top:14px;right:12px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border-radius:8px;
+  border:1px solid var(--line);background:#fff;color:var(--mut);cursor:pointer;transition:background .14s,color .14s,border-color .14s}
+.hm .nt-del:hover,.hm .nt-del:focus-visible{background:var(--red-bg);border-color:#f2b8b1;color:var(--red)}
+.hm .nt-del svg{width:14px;height:14px}
+.hm .nav-tile .nt-author{display:flex;align-items:baseline;gap:7px;margin-top:10px;font-size:.8em;line-height:1.35;min-width:0}
+.hm .nav-tile .nt-author-k{flex:0 0 auto;font-size:.8em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.hm .nav-tile .nt-author-v{font-weight:700;color:var(--ink);overflow-wrap:anywhere}
+/* "Add External link" button (admins only; appended to the External links card head by home.js). */
+.hm .el-add-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;
+  font-size:.82em;font-weight:800;color:#fff;background:#161d2d;transition:background .14s,transform .1s}
+.hm .el-add-btn:hover{background:#0f1420;transform:translateY(-1px)}
+.hm .el-add-btn:active{transform:translateY(0)}
+.hm .el-add-btn svg{width:14px;height:14px;color:#ffb26b}
+
+/* ---- External links: loading / empty / error states ---- */
+.hm .nt-skel-tile{pointer-events:none}
+.hm .nt-skel-tile::before{background:#e2e6ea}
+.hm-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:hmShim 1.4s ease infinite}
+.hm-skel-row{display:flex;gap:12px;align-items:flex-start}
+.hm-skel-col{display:flex;flex-direction:column;gap:8px;flex:1}
+.hm-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:30px 20px;text-align:center;color:var(--mut);border:1px dashed #d4dade;border-radius:12px;background:#fafbfc}
+.hm-state[hidden]{display:none}
+.hm-state-ic{width:52px;height:52px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:2px}
+.hm-state-ic.is-err{background:var(--red-bg);color:var(--red)}
+.hm-state-ic svg{width:22px;height:22px}
+.hm-state-t{font-size:1.02em;font-weight:800;color:var(--ink);margin:0}
+.hm-state p{font-size:.88em;max-width:52ch;line-height:1.5;margin:0}
+.hm-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-family:inherit;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
+.hm-btn:hover{background:#0f1420}
+.hm-btn svg{width:14px;height:14px}
+.home-sec-links .el-empty{margin:0}
+
+/* ---- Motion: one orchestrated entrance (hero, KPIs staggered, then cards) ---- */
+@keyframes hmUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes hmShim{0%{background-position:100% 0}100%{background-position:0 0}}
+@keyframes hmPulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hm-hero{animation:hmUp .45s ease both}
+.hm-kpi{animation:hmUp .5s ease both}
+.hm-kpi:nth-child(1){animation-delay:.08s}
+.hm-kpi:nth-child(2){animation-delay:.14s}
+.hm-kpi:nth-child(3){animation-delay:.2s}
+.hm-card{animation:hmUp .5s ease .28s both}
+@media (prefers-reduced-motion:reduce){
+  .hm *,.hm *::before,.hm *::after{animation:none!important;transition:none!important}
+}
 
-/* ---- Nav tiles (rendered by home.js into #yearSections) — compact, scales to many buttons ---- */
-/* Nav tile columns: 3 (>=1000px), 2 (641-999px), 1 (<=640px) — set in media queries below. */
-.nav-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.nav-tile{--acc:var(--icfg);--accbg:var(--icbg);position:relative;display:flex;flex-direction:column;gap:9px;
-  background:var(--white);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:5px;padding:14px;
-  text-decoration:none;color:var(--ink);overflow:hidden;transition:transform .14s,border-color .14s,box-shadow .14s}
-.nav-tile{padding:10px}
-.nav-tile:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(21,29,40,.45)}
-/* Row 1: icon chip + (title / sub) + optional ACTIVE pill / lock. */
-.nav-tile .nt-top{display:flex;align-items:flex-start;gap:10px}
-.nav-tile .nt-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--accbg);color:var(--acc);flex:0 0 auto}
-.nav-tile .nt-ic svg{width:18px;height:18px}
-.nav-tile .nt-head{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
-.nav-tile .nt-title{font-size:.96em;font-weight:800;color:var(--ink);line-height:1.2}
-.nav-tile .nt-sub{font-size:.68em;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.4px}
-.nav-tile .nt-pill{flex:0 0 auto;align-self:flex-start;font-size:.58em;font-weight:800;letter-spacing:.6px;color:var(--white);background:var(--o);border-radius:999px;padding:3px 8px;animation:livepulse 2s ease-in-out infinite}
-.nav-tile .nt-lock{flex:0 0 auto;align-self:flex-start;display:inline-flex;color:var(--ink2)}
-.nav-tile .nt-body{display:flex;flex-direction:column;flex:1}
-.nav-tile .nt-desc{font-size:.8em;color:var(--ink2);line-height:1.45}
-.nav-tile .nt-cta{display:inline-flex;align-items:center;gap:5px;font-size:.78em;font-weight:700;color:var(--acc);margin-top:2px}
-.nav-tile .nt-arrow{transition:transform .14s}
-.nav-tile:hover .nt-arrow{transform:translateX(3px)}
-.nav-tile.nt-amber{--acc:var(--o);--accbg:#ffe6d6}
-.nav-tile.nt-violet{--acc:#6d5bd0;--accbg:#e7e3fb}
-.nav-tile.nt-rose{--acc:#d6456f;--accbg:#fbe0e9}
-.nav-tile.nt-blue{--acc:var(--icfg);--accbg:var(--icbg)}
-.nav-tile.nt-teal{--acc:#1b8f8a;--accbg:#d2f0ee}
-.nav-tile.nt-live{--acc:var(--o);--accbg:#ffe6d6;background:linear-gradient(150deg,#fff,#fff7f2)}
-/* External-resource tiles (PHD Wiki, PHD Mitigation Matrix): dark ink surface (#161d2d) with a
-   light-blue (#c4def6) icon chip + accents, so they read as off-site destinations. */
-.nav-tile.nt-external{--acc:#c4def6;--accbg:rgba(196,222,246,.16);background:linear-gradient(165deg,#1b2436,#161d2d);border-color:#2a3650;border-left-color:#c4def6}
-.nav-tile.nt-external:hover{box-shadow:0 14px 30px -14px rgba(10,15,25,.6)}
-.nav-tile.nt-external .nt-title{color:#f4f6fb}
-.nav-tile.nt-external .nt-sub{color:#c4def6}
-.nav-tile.nt-external .nt-desc{color:#adbbce}
-.nav-tile.nt-external .nt-cta{color:#c4def6}
-.nav-tile.nt-external .nt-lock{color:#c4def6}
-.nav-tile.nt-disabled{opacity:.6;cursor:not-allowed;filter:grayscale(.3);pointer-events:none}
-/* Admin-managed external links (home.js): tile + delete button share a wrapper so the <button> is
-   never nested inside the tile's <a>. */
-.nt-wrap{position:relative;display:flex;min-width:0}
-.nt-wrap>.nav-tile{flex:1 1 auto;min-width:0}
-.nt-wrap.nt-has-del .nt-head{padding-right:28px}
-.nt-wrap .nt-title,.nt-wrap .nt-desc{overflow-wrap:anywhere}
-.nt-del{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border-radius:5px;
-  border:1px solid rgba(196,222,246,.35);background:rgba(22,29,45,.75);color:#c4def6;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
-.nt-del:hover,.nt-del:focus-visible{background:#d6456f;border-color:#d6456f;color:#fff}
-.nt-del:focus-visible{outline:2px solid #fff;outline-offset:1px}
-.nt-del svg{width:14px;height:14px}
-/* "Add External link" button in the Dashboards & reports header (admins only). */
-.home-sec-h .el-add-btn{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;
-  font-size:.78em;font-weight:800;letter-spacing:0;color:#fff;background:linear-gradient(180deg,var(--o),#e85800);box-shadow:0 4px 14px -4px rgba(255,97,0,.5);transition:filter .14s,transform .1s}
-.home-sec-h .el-add-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
-.home-sec-h .el-add-btn:active{transform:translateY(0)}
-.home-sec-h .el-add-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.home-sec-h .el-add-btn svg{width:14px;height:14px}
+/* ---- Small widths ---- */
+@media (max-width:700px){
+  .hm-hero{padding:22px 18px 80px 22px}
+  .hm-hero-ic{display:none}
+  .hm-hero h1{font-size:1.55em;letter-spacing:-.5px}
+  .hm-hero-sub{font-size:.86em}
+  .hm-kpis{margin:-62px 10px 16px}
+  .hm-kpi-v{font-size:2em}
+  .hm-card{padding:16px 14px}
+  .hm-card-ic{display:none}
+  .hm .cmp-table{font-size:.84em}
+  .hm .cmp-metric .m-full{display:none}
+  .hm .cmp-metric .m-short{display:inline}
+}
+
 /* Add-link + delete-confirm modals (light, same look as the login modal). */
 .el-modal-bg{z-index:1050}
 /* .modal.el-modal (not .el-modal): the generic .modal{width:min(420px,100%)} below would win otherwise. */
@@ -237,13 +334,6 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 @media(max-width:700px){.modal.el-modal{width:94vw;max-width:94vw}}
 /* Delete confirm stays compact (only the Add pop-up is 60vw). */
 #elDelModal .modal.el-modal{width:min(480px,94vw);max-width:min(480px,94vw)}
-/* Author row on external link tiles: "AUTHOR  Team PHD". */
-.nav-tile .nt-author{display:flex;align-items:baseline;gap:7px;margin-top:8px;font-size:.78em;line-height:1.35;min-width:0}
-.nav-tile .nt-author-k{flex:0 0 auto;font-size:.82em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--acc)}
-.nav-tile .nt-author-v{font-weight:700;color:var(--ink);overflow-wrap:anywhere}
-.nav-tile.nt-external .nt-author-v{color:#f4f6fb}
-/* External links section: empty state. */
-.home-sec-links .el-empty{margin:4px 2px;color:var(--ink2);font-size:.86em}
 .el-modal .el-req{color:#d6456f}
 .el-modal textarea{width:100%;padding:11px 13px;background:var(--white);border:1px solid var(--line);border-radius:5px;color:var(--ink);font-size:.95em;font-family:inherit;resize:vertical}
 .el-modal textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(255,97,0,.14)}
@@ -284,48 +374,11 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 @keyframes tbLogoSlideA{0%,38%{transform:translate(-50%,-50%);opacity:1}50%,88%{transform:translate(-50%,-180%);opacity:0}100%{transform:translate(-50%,-50%);opacity:1}}
 @keyframes tbLogoSlideB{0%,38%{transform:translate(-50%,80%);opacity:0}50%,88%{transform:translate(-50%,-50%);opacity:1}100%{transform:translate(-50%,80%);opacity:0}}
 
-/* MEDIUM (<=1024px): hide the Recent card entirely, but KEEP the Upload button + last-upload info.
-   Stack the (now Recent-less) column above the main content, full width, so the metrics table gets
-   the full width with no second horizontal scrollbar. */
-@media (max-width:1024px){
-  .home-layout{flex-direction:column}
-  .home-recent-col{position:static;top:auto;flex:1 1 auto;width:100%;max-width:100%;flex-direction:row;flex-wrap:wrap;align-items:stretch}
-  .home-recent{display:none}                 /* Recent card gone */
-  #homeUploadSlot{flex:1 1 100%}             /* Upload buttons retained */
-  /* Upload + View log side by side, 50% each, when stacked. */
-  .home-upload-grp{flex-direction:row;gap:10px}
-  .home-upload-grp .home-upload-btn,.home-upload-grp .home-viewlog-btn{flex:1 1 0;min-width:0}
-}
-/* Nav tiles: 2 columns from 641px to 999px. */
-@media (max-width:999px){
-  .nav-tiles{grid-template-columns:repeat(2,1fr)}
-}
-/* <=950px: drop the Trend (sparkline) column and let the metric + year columns spread to fill. */
-@media (max-width:950px){
-  .cmp-table.xls th:last-child,.cmp-table.xls td.cmp-spark{display:none}
-  .cmp-table.xls{table-layout:auto}
-  .cmp-table.xls th,.cmp-table.xls td{width:auto;white-space:nowrap}
-  .cmp-table.xls th:first-child,.cmp-table.xls td:first-child{width:1%}
-}
-/* MOBILE (<=640px): shrink content so it fits comfortably. */
+/* (<=1024px layout is owned by the shared chrome in topbar-auth.js: the menu column collapses to an
+   icon rail beside the content. The old page-local "stack the column above main" override was
+   removed because it pushed the content below the rail.) */
+/* MOBILE (<=640px): shell Recent list (content sizing lives in the .hm media queries). */
 @media (max-width:640px){
-  .home-hero h1{font-size:1.2em}
-  .home-hero p{font-size:.82em}
-  .kpi-row{grid-template-columns:1fr;gap:10px}
-  .kpi .kpi-val b{font-size:1.3em}
-  .nav-tiles{grid-template-columns:1fr}
-  .home-sec-h{font-size:.94em}
-  .cmp-table.xls{font-size:.72em}
-  .cmp-table.xls th,.cmp-table.xls td{padding:10px 4px}
-  .cmp-table.xls .cmp-u{display:none}
-  /* Hide the Trend (sparkline) column on mobile; let the metric column truncate so the 6 year
-     columns fit the viewport without a horizontal scrollbar. */
-  /* (Trend column + auto-fill layout already handled by the <=950px block above.) */
-  /* Mobile metric column: center it, swap to the short labels. */
-  .cmp-table.xls th:first-child{text-align:center}
-  .cmp-table.xls td.cmp-metric{text-align:center}
-  .cmp-metric .m-full{display:none}
-  .cmp-metric .m-short{display:inline}
   .home-recent .hr-list{grid-template-columns:1fr 1fr}
 }
 </style>
@@ -361,97 +414,148 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
      injected by topbar-auth.js (tbBuildHomeChrome) around this .wrap. Single source of truth for
      every page — do not duplicate here. -->
 <div class="wrap">
+<main class="hm" id="homeMain">
   <!-- Hero -->
-  <div class="home-hero">
-    <h1>Potential Harm to Drivers — <span class="accent">PHD</span> Dashboard</h1>
-    <p>A security risk mitigation program protecting Last Mile transporters from violence, threats, and harassment. Explore live analytics, five-year trends, and the reference guides below.</p>
-  </div>
+  <header class="hm-hero home-hero">
+    <div class="hm-hero-in">
+      <span class="hm-hero-ic" data-ic="shield" aria-hidden="true"></span>
+      <div class="hm-hero-txt">
+        <p class="hm-eyebrow">WWOS-GSOC &middot; PHD Program</p>
+        <h1>Potential Harm to Drivers — <span class="accent">PHD</span> Dashboard</h1>
+        <p class="hm-hero-sub">A security risk mitigation program protecting Last Mile transporters from violence, threats, and harassment. Explore live analytics, five-year trends, and the reference guides below.</p>
+        <ul class="hm-hero-chips" aria-label="What's on this page">
+          <li>Live analytics</li>
+          <li>Five-year trends, 2021&ndash;2026</li>
+          <li>Reference guides</li>
+        </ul>
+      </div>
+    </div>
+  </header>
 
-  <!-- 2026 live KPI highlights -->
-  <div class="kpi-row">
-    <div class="kpi">
-      <div class="kpi-top"><span class="kpi-ic" data-ic="ticket"></span><span class="kpi-label">Ticket volume / month</span></div>
-      <div class="kpi-val"><span class="avg">~</span><b>2,375</b><span>/mo</span></div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-top"><span class="kpi-ic" data-ic="clock"></span><span class="kpi-label">Avg resolution time</span></div>
-      <div class="kpi-val"><span class="avg">~</span><b>116.4</b><span>hrs</span></div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-top"><span class="kpi-ic" data-ic="check-circle"></span><span class="kpi-label">SLA compliance (&le;240 hrs)</span></div>
-      <div class="kpi-val"><span class="avg">~</span><b>90.1</b><span>%</span></div>
-    </div>
-  </div>
+  <!-- 2026 KPI highlights (approximate program averages, static) -->
+  <section class="hm-kpis kpi-row" aria-label="2026 program highlights">
+    <article class="hm-kpi is-blue">
+      <h2 class="hm-kpi-l"><span class="hm-kpi-ic" data-ic="ticket" aria-hidden="true"></span>Ticket volume / month</h2>
+      <p class="hm-kpi-v"><span class="hm-approx" aria-label="approximately">~</span>2,375<span class="hm-kpi-u">/mo</span></p>
+      <p class="hm-kpi-s"><span class="hm-delta"><span aria-hidden="true">&#9650;</span> 75.1%</span><span>vs <b>1,356</b> in 2025 &middot; 2026 YTD</span></p>
+    </article>
+    <article class="hm-kpi is-acc">
+      <h2 class="hm-kpi-l"><span class="hm-kpi-ic" data-ic="clock" aria-hidden="true"></span>Avg resolution time</h2>
+      <p class="hm-kpi-v"><span class="hm-approx" aria-label="approximately">~</span>116.4<span class="hm-kpi-u">hrs</span></p>
+      <p class="hm-kpi-s"><span class="hm-delta is-good"><span aria-hidden="true">&#9660;</span> 65.9%</span><span>vs <b>341.2</b> hrs in 2025 &middot; 2026 YTD</span></p>
+    </article>
+    <article class="hm-kpi is-good">
+      <h2 class="hm-kpi-l"><span class="hm-kpi-ic" data-ic="check-circle" aria-hidden="true"></span>SLA compliance (&le;240 hrs)</h2>
+      <p class="hm-kpi-v"><span class="hm-approx" aria-label="approximately">~</span>90.1<span class="hm-kpi-u">%</span></p>
+      <p class="hm-kpi-s"><span class="hm-delta is-good"><span aria-hidden="true">&#9650;</span> 32.4 pts</span><span>vs <b>57.7%</b> in 2025 &middot; 2026 YTD</span></p>
+    </article>
+  </section>
 
   <!-- ===== Program metrics by year ===== -->
-  <section class="home-sec home-sec-metrics" id="metricsSec">
-    <h3 class="home-sec-h"><span class="home-sec-ic" data-ic="bar-chart" aria-hidden="true"></span>Program metrics by year</h3>
-    <div class="home-sec-body">
-      <div class="cmp-wrap">
+  <section class="hm-card home-sec home-sec-metrics" id="metricsSec" aria-labelledby="metricsSecH">
+    <div class="hm-card-head">
+      <div class="hm-card-t">
+        <span class="hm-card-ic" data-ic="bar-chart" aria-hidden="true"></span>
+        <div>
+          <h2 id="metricsSecH">Program metrics by year</h2>
+          <p class="hm-help">Yearly program averages from 2021. The 2026 column is year to date.</p>
+        </div>
+      </div>
+      <span class="hm-chip is-acc"><span class="hm-dot" aria-hidden="true"></span>2026 &middot; Live year</span>
+    </div>
+    <div class="hm-scroll" role="region" aria-labelledby="metricsSecH" tabindex="0">
       <table class="cmp-table xls" id="yearCmpTable">
+        <caption class="hm-sr">Program metrics by year, 2021 to 2026, with a trend chart for each metric</caption>
         <thead><tr>
-          <th>Metric</th>
-          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2021</span></th>
-          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2022</span></th>
-          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2023</span></th>
-          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2024</span></th>
-          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2025</span></th>
-          <th><span class="cmp-yh">Year</span><span class="cmp-yn">2026 <span class="cmp-live-dot" title="Live"></span></span></th>
-          <th>Trend</th>
+          <th scope="col" class="cmp-metric">Metric</th>
+          <th scope="col" class="cmp-yr">2021</th>
+          <th scope="col" class="cmp-yr">2022</th>
+          <th scope="col" class="cmp-yr">2023</th>
+          <th scope="col" class="cmp-yr">2024</th>
+          <th scope="col" class="cmp-yr">2025</th>
+          <th scope="col" class="cmp-yr yv-live">2026<span class="cmp-live-dot" title="Live" aria-hidden="true"></span><span class="hm-sr"> (live, year to date)</span></th>
+          <th scope="col" class="cmp-trend-h">Trend</th>
         </tr></thead>
         <tbody>
-          <tr data-metric="vol"><td class="cmp-metric"><span class="m-full">Ticket volume / month</span><span class="m-short">Ticket Vol/Mo</span></td>
+          <tr data-metric="vol"><th scope="row" class="cmp-metric"><span class="m-full">Ticket volume / month</span><span class="m-short">Ticket Vol/Mo</span></th>
             <td class="yv" data-y="2021">261<span class="cmp-u">/mo</span></td>
             <td class="yv" data-y="2022">623<span class="cmp-u">/mo</span></td>
             <td class="yv" data-y="2023">926<span class="cmp-u">/mo</span></td>
             <td class="yv" data-y="2024">1,237<span class="cmp-u">/mo</span></td>
             <td class="yv" data-y="2025">1,356<span class="cmp-u">/mo</span></td>
             <td class="yv yv-live" data-y="2026">~2,375<span class="cmp-u">/mo</span></td>
-            <td class="cmp-spark" data-dir="up" data-fixed="261,623,926,1237,1356,2375"></td></tr>
-          <tr data-metric="res"><td class="cmp-metric"><span class="m-full">Avg resolution time</span><span class="m-short">Avg Res Time</span></td>
+            <td class="cmp-spark" data-dir="up" data-unit="/mo" data-fixed="261,623,926,1237,1356,2375"></td></tr>
+          <tr data-metric="res"><th scope="row" class="cmp-metric"><span class="m-full">Avg resolution time</span><span class="m-short">Avg Res Time</span></th>
             <td class="yv" data-y="2021">695.7<span class="cmp-u">hrs</span></td>
             <td class="yv" data-y="2022">703.8<span class="cmp-u">hrs</span></td>
             <td class="yv" data-y="2023">289.5<span class="cmp-u">hrs</span></td>
             <td class="yv" data-y="2024">246.4<span class="cmp-u">hrs</span></td>
             <td class="yv" data-y="2025">341.2<span class="cmp-u">hrs</span></td>
             <td class="yv yv-live" data-y="2026">~116.4<span class="cmp-u">hrs</span></td>
-            <td class="cmp-spark" data-dir="down" data-fixed="695.7,703.8,289.5,246.4,341.2,116.4"></td></tr>
-          <tr data-metric="sla"><td class="cmp-metric"><span class="m-full">SLA compliance (&le;240 hrs)</span><span class="m-short">SLA %</span></td>
+            <td class="cmp-spark" data-dir="down" data-unit=" hrs" data-fixed="695.7,703.8,289.5,246.4,341.2,116.4"></td></tr>
+          <tr data-metric="sla"><th scope="row" class="cmp-metric"><span class="m-full">SLA compliance (&le;240 hrs)</span><span class="m-short">SLA %</span></th>
             <td class="yv" data-y="2021">41.9%</td>
             <td class="yv" data-y="2022">33.2%</td>
             <td class="yv" data-y="2023">51.9%</td>
             <td class="yv" data-y="2024">54.9%</td>
             <td class="yv" data-y="2025">57.7%</td>
             <td class="yv yv-live" data-y="2026">~90.1%</td>
-            <td class="cmp-spark" data-dir="up" data-fixed="41.9,33.2,51.9,54.9,57.7,90.1"></td></tr>
+            <td class="cmp-spark" data-dir="up" data-unit="%" data-fixed="41.9,33.2,51.9,54.9,57.7,90.1"></td></tr>
         </tbody>
       </table>
-      </div>
+    </div>
+    <div class="hm-legend" aria-hidden="true">
+      <span><i></i>Trend 2021&ndash;2026</span>
+      <span><i class="is-acc"></i>2026 value</span>
+      <span><i class="is-tint"></i>Live year</span>
     </div>
   </section>
 
   <!-- ===== Dashboards & reports ===== -->
-  <section class="home-sec home-sec-buttons" id="reportsSec">
-    <h3 class="home-sec-h"><span class="home-sec-ic" data-ic="grid" aria-hidden="true"></span>Dashboards &amp; reports</h3>
-    <div class="home-sec-body">
-      <div id="yearSections"></div>
-      <div class="dynamic-btns" id="dynamicBtns"></div>
+  <section class="hm-card home-sec home-sec-buttons" id="reportsSec" aria-labelledby="reportsSecH">
+    <div class="hm-card-head">
+      <div class="hm-card-t">
+        <span class="hm-card-ic" data-ic="grid" aria-hidden="true"></span>
+        <div>
+          <h2 id="reportsSecH">Dashboards &amp; reports</h2>
+          <p class="hm-help">Live analytics, program history and the reference guides the team works from.</p>
+        </div>
+      </div>
     </div>
+    <div id="yearSections"></div>
+    <div class="dynamic-btns" id="dynamicBtns"></div>
   </section>
 
   <!-- ===== External links (admin-managed; filled by home.js) ===== -->
-  <section class="home-sec home-sec-links" id="linksSec" aria-labelledby="linksSecH">
-    <h3 class="home-sec-h" id="linksSecH"><span class="home-sec-ic" data-ic="globe" aria-hidden="true"></span>External links</h3>
-    <div class="home-sec-body">
-      <div class="nav-tiles" id="extLinks"></div>
-      <p class="el-empty" id="extLinksEmpty" hidden>No external links yet.</p>
+  <section class="hm-card home-sec home-sec-links" id="linksSec" aria-labelledby="linksSecH">
+    <div class="hm-card-head">
+      <div class="hm-card-t">
+        <span class="hm-card-ic" data-ic="globe" aria-hidden="true"></span>
+        <div>
+          <h2 id="linksSecH">External links</h2>
+          <p class="hm-help">Off-site PHD resources. These open in a new tab.</p>
+        </div>
+      </div>
+    </div>
+    <p class="hm-sr" id="extLinksStatus" role="status" aria-live="polite"></p>
+    <div class="nav-tiles" id="extLinks"></div>
+    <div class="hm-state" id="extLinksEmpty" hidden>
+      <span class="hm-state-ic" data-ic="globe" aria-hidden="true"></span>
+      <p class="hm-state-t el-empty" id="extLinksEmptyMsg">No external links yet.</p>
+    </div>
+    <div class="hm-state" id="extLinksErr" role="alert" hidden>
+      <span class="hm-state-ic is-err" data-ic="alert-triangle" aria-hidden="true"></span>
+      <p class="hm-state-t">Couldn't load external links</p>
+      <p id="extLinksErrMsg">Something went wrong while reaching the server. Check your connection and try again.</p>
+      <button type="button" class="hm-btn" id="extLinksRetry"><span data-ic="refresh" aria-hidden="true"></span>Retry</button>
     </div>
   </section>
+</main>
 </div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 // Fill static icon placeholders (<span data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 18); });
@@ -504,6 +608,6 @@ async function homeDoLogin(){
 })();
 document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
-<script src="home.js?v=20"></script>
+<script src="home.js?v=21"></script>
 </body>
 </html>

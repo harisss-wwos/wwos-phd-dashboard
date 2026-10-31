@@ -12,9 +12,12 @@ const {
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
-const { computePageZero } = require('./page-zero');
+const { computePageZero, coreExportCsv, exportPeriod } = require('./page-zero');
 const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
+const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
+const { resolutionGroupOf } = require('./resolution-groups');
+const { SETTINGS_ID: EIR_SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport } = require('./errors-in-resolved');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -638,20 +641,35 @@ app.get('/api/resolutions/monthly', requireFlag('canViewSLA'), async (req, res) 
 //   autosim      = same, but resolved by the AutoSIM identity.
 //   reopenedOpen = tagged tickets whose Status is NOT Resolved/Closed (currently reopened).
 //   tagged       = every tagged ticket that is open or resolved in the year.
+//   created      = tagged tickets with CreateDate in the year (by created month); createdAutosim =
+//                  those of them Resolved/Closed with AutoSIM as the final resolver.
 // The summary counts and the pop-up list come from the SAME cached selection (petOverrideSelection),
 // so a count always equals its list length. Cached 5 min (report cache, version key).
 const PET_OVR_TAG_RE = /pet[\s_-]*(incident[\s_-]*)?auto[\s_-]*resol/i;
 const PET_OVR_RESOLVED = new Set(['resolved', 'closed']);
 const RS_MON3_SRV = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Tags or Labels (string or array) carry the 'pet_incident_auto_resolved' tag — the same match as the
+// Mongo { Tags|Labels: PET_OVR_TAG_RE } query below.
+function petIsAutoResolveTagged(d) {
+  const hit = (v) => (Array.isArray(v) ? v.some(x => PET_OVR_TAG_RE.test(String(x == null ? '' : x))) : PET_OVR_TAG_RE.test(String(v == null ? '' : v)));
+  return !!d && (hit(d.Tags) || hit(d.Labels));
+}
+// SHARED predicate (Section 3 'override' AND the resolutions.html '1st time AUTO-SIM Pet incidents
+// Reopened' card): tagged, Status Resolved/Closed, and the final resolver (normalised) is a person —
+// not blank and not AutoSIM. I.e. AutoSIM resolved it first, it was reopened and an agent resolved it.
+function petIsReopenedByAgent(d) {
+  return petIsAutoResolveTagged(d) && PET_OVR_RESOLVED.has(String(d.Status || '').trim().toLowerCase()) &&
+    !!perfResolverLogin(d.ResolvedByIdentity) && !perfIsAutosimResolver(d.ResolvedByIdentity);
+}
 async function petOverrideSelection(year) {
-  const key = 'pet-overrides-sel:v1:' + year;
+  const key = 'pet-overrides-sel:v3:' + year;
   const cached = getCachedReport(key);
   if (cached) return cached;
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   const rows = await coll.find(
     { $or: [{ Tags: PET_OVR_TAG_RE }, { Labels: PET_OVR_TAG_RE }] },
     { projection: { _id: 0, q: 1, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, Status: 1,
-      ResolvedByIdentity: 1, AssigneeIdentity: 1, CreateDate: 1, ResolvedDate: 1 } }
+      ResolvedByIdentity: 1, AssigneeIdentity: 1, CreateDate: 1, ResolvedDate: 1, Tags: 1, Labels: 1 } }
   ).toArray();
   // A ticket can be stored under more than one quarter key — keep the latest quarter's copy.
   const bySid = new Map();
@@ -664,8 +682,17 @@ async function petOverrideSelection(year) {
   const overrides = [], reopenedOpen = [];
   let tagged = 0, autosim = 0;
   const autosimByMonth = new Array(12).fill(0);
+  // Created cohort (headline + chart lines): tagged tickets with CreateDate in the year (UTC), by
+  // created month, and those of them whose final resolver is AutoSIM (Status Resolved/Closed).
+  const createdByMonth = new Array(12).fill(0), createdAutosimByMonth = new Array(12).fill(0);
   bySid.forEach((d, sid) => {
     const url = d.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid);
+    const cdt = new Date(d.CreateDate), ct = cdt.getTime();
+    if (ct >= Y0 && ct < Y1) {
+      const cm = cdt.getUTCMonth();
+      createdByMonth[cm]++;
+      if (PET_OVR_RESOLVED.has(String(d.Status || '').trim().toLowerCase()) && perfIsAutosimResolver(d.ResolvedByIdentity)) createdAutosimByMonth[cm]++;
+    }
     if (!PET_OVR_RESOLVED.has(String(d.Status || '').trim().toLowerCase())) {
       tagged++;
       reopenedOpen.push({ shortId: sid, url, status: String(d.Status || '').trim(), assignee: perfResolverName(d.AssigneeIdentity) });
@@ -678,6 +705,7 @@ async function petOverrideSelection(year) {
     if (!login) return;                                   // blank resolver: neither group
     const mo = rd.getUTCMonth();
     if (perfIsAutosimResolver(d.ResolvedByIdentity)) { autosim++; autosimByMonth[mo]++; return; }
+    if (!petIsReopenedByAgent(d)) return;                 // shared predicate (always true here)
     const cd = new Date(d.CreateDate);
     overrides.push({
       agent: login, month: year + '-' + String(mo + 1).padStart(2, '0'),
@@ -696,7 +724,7 @@ async function petOverrideSelection(year) {
     return a.shortId < b.shortId ? -1 : a.shortId > b.shortId ? 1 : 0;
   });
   reopenedOpen.sort((a, b) => (a.shortId < b.shortId ? -1 : a.shortId > b.shortId ? 1 : 0));
-  const sel = { tagged, autosim, autosimByMonth, overrides, reopenedOpen };
+  const sel = { tagged, autosim, autosimByMonth, createdByMonth, createdAutosimByMonth, overrides, reopenedOpen };
   setCachedReport(key, sel);
   return sel;
 }
@@ -722,14 +750,17 @@ app.get('/api/resolutions/pet-overrides', requireFlag('canViewSLA'), async (req,
       const elapsed = m <= lastMonth;
       const ov = elapsed ? ovByMonth[m - 1] : null, as = elapsed ? sel.autosimByMonth[m - 1] : null;
       months.push({ key: year + '-' + String(m).padStart(2, '0'), label: RS_MON3_SRV[m - 1], overrides: ov, autosim: as,
-        overrideRatePct: elapsed ? petOvrPct(ov, ov + as) : null, elapsed });
+        overrideRatePct: elapsed ? petOvrPct(ov, ov + as) : null, elapsed,
+        created: elapsed ? sel.createdByMonth[m - 1] : null, createdAutosim: elapsed ? sel.createdAutosimByMonth[m - 1] : null });
     }
+    const sumArr = (a) => a.reduce((s, v) => s + v, 0);
     const byAgent = [...agents.entries()].map(([agent, count]) => ({ agent, count }))
       .sort((a, b) => (b.count - a.count) || a.agent.localeCompare(b.agent));
     const overrides = sel.overrides.length;
     res.json({
       year,
       totals: { tagged: sel.tagged, autosim: sel.autosim, overrides, reopenedOpen: sel.reopenedOpen.length,
+        created: sumArr(sel.createdByMonth), createdAutosim: sumArr(sel.createdAutosimByMonth),
         overrideRatePct: petOvrPct(overrides, overrides + sel.autosim) },
       months, byAgent, reopenedOpen: sel.reopenedOpen,
       generatedAt: now.toISOString(),
@@ -757,7 +788,7 @@ app.get('/api/resolutions/pet-overrides/tickets', requireFlag('canViewSLA'), asy
 });
 
 // ---- Page ZERO: "GLOBAL PHD Page 0 — <year>" metrics table (page-zero.html) ----
-// GET /api/page-zero?year=2026  (owner or manager only; only 2026 for now)
+// GET /api/page-zero?year=2026  (owner, admin or manager only; only 2026 for now)
 // One read-only scan over projected fields (tickets created OR resolved in the year), then the
 // classification + per-month / quarter / YTD aggregation runs in Node (server/page-zero.js, pure).
 // Created / resolved scopes and the 240h SLA rule are the same as /api/resolutions/monthly; one
@@ -765,30 +796,68 @@ app.get('/api/resolutions/pet-overrides/tickets', requireFlag('canViewSLA'), asy
 // Also returns `kri`: INDICATIVE KRI top-5 sites / zipcodes (definition in server/page-zero.js).
 function requireOwnerOrManager(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Login required.' });
-  if (req.user.role !== 'owner' && req.user.role !== 'manager') return res.status(403).json({ error: 'Page ZERO is available to the owner and managers only.' });
+  if (req.user.role !== 'owner' && req.user.role !== 'admin' && req.user.role !== 'manager') return res.status(403).json({ error: 'Page ZERO is available to the owner, admins and managers only.' });
   next();
+}
+// The one Page ZERO ticket selection (read-only): tickets created OR resolved in the year. The table and
+// the CSV export both use it, so the same docs are deduped in the same order. extra = more fields to project.
+async function pageZeroDocs(year, extra) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+  const rdExpr = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
+  const Y0 = new Date(Date.UTC(year, 0, 1)), Y1 = new Date(Date.UTC(year + 1, 0, 1));
+  return coll.aggregate([
+    { $project: Object.assign({ _id: 0, ShortId: 1, IssueId: 1, Status: 1, ClosureCode: 1, RootCauseDetails: 1, Country: 1, Title: 1, cd: cdExpr, rd: rdExpr }, extra || {}) },
+    { $match: { $or: [{ cd: { $gte: Y0, $lt: Y1 } }, { rd: { $gte: Y0, $lt: Y1 } }] } },
+  ], { allowDiskUse: true }).toArray();
 }
 app.get('/api/page-zero', requireOwnerOrManager, async (req, res) => {
   try {
     const year = req.query.year == null || req.query.year === '' ? 2026 : Number(req.query.year);
     if (year !== 2026) return res.status(400).json({ error: 'Only year=2026 is available.' });
-    const key = 'page-zero:v3:' + year;
+    const key = 'page-zero:v8:' + year;   // v8: driver-type labels renamed; v7: + Duplicates & Appeals, Incidents by Driver Type sections
     const cached = getCachedReport(key);
     if (cached) return res.json(cached);
-    const coll = await getCollection(COLLECTIONS.ticketDocs);
-    const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
-    const rdExpr = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
-    const Y0 = new Date(Date.UTC(year, 0, 1)), Y1 = new Date(Date.UTC(year + 1, 0, 1));
-    const docs = await coll.aggregate([
-      { $project: { _id: 0, ShortId: 1, IssueId: 1, Status: 1, ClosureCode: 1, RootCauseDetails: 1, Country: 1, Title: 1, cd: cdExpr, rd: rdExpr } },
-      { $match: { $or: [{ cd: { $gte: Y0, $lt: Y1 } }, { rd: { $gte: Y0, $lt: Y1 } }] } },
-    ], { allowDiskUse: true }).toArray();
-    const payload = computePageZero(docs, { year, now: new Date(), countryOf: slaCountryOf });
+    const docs = await pageZeroDocs(year, { ResolvedByIdentity: 1 });
+    // Mitigation rows use the Resolutions page (split mode) label: one label per resolved ticket.
+    const payload = computePageZero(docs, {
+      year, now: new Date(), countryOf: slaCountryOf,
+      resolutionLabelOf: doc => perfResolutionGroupLabelOf(doc, true),
+      resolutionLabels: { autosim: PERF_RES_AUTOSIM_LABEL, rule: PERF_RES_RULE_LABEL },
+      // Duplicates & Appeals rows: the Resolutions page card rules, without the card precedence (informational).
+      isDuplicate: perfIsDuplicateClosure, isAppeal: perfIsAppeal,
+    });
     setCachedReport(key, payload);
     res.json(payload);
   } catch (e) {
     console.error('page-zero error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load Page ZERO.' });
+  }
+});
+// GET /api/page-zero/export?year=2026&period=2026-01 | Q1..Q4  (owner, admin or manager only)
+// Ticket-level CSV behind one month / quarter column of the CORE INCIDENT METRICS table: every ticket
+// CREATED in the period (UTC months), classified by the same coreClassify() as the table (server/page-zero.js).
+// UTF-8 with BOM, CRLF, formula-injection guarded. 400 on an invalid / future / YTD period. Not cached.
+app.get('/api/page-zero/export', requireOwnerOrManager, async (req, res) => {
+  try {
+    const year = req.query.year == null || req.query.year === '' ? 2026 : Number(req.query.year);
+    if (year !== 2026) return res.status(400).json({ error: 'Only year=2026 is available.' });
+    const now = new Date();
+    const period = String(req.query.period == null ? '' : req.query.period).trim();
+    if (!exportPeriod(year, now, period)) return res.status(400).json({ error: 'period must be an elapsed month (' + year + '-01 ... ' + year + '-12) or quarter (Q1 ... Q4) of ' + year + '.' });
+    const docs = await pageZeroDocs(year, { IssueUrl: 1, ResolvedByIdentity: 1 });
+    const out = coreExportCsv(docs, { year, now, period, countryOf: slaCountryOf, resolverName: perfResolverName });
+    if (!out) return res.status(400).json({ error: 'Invalid period.' });
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="' + out.filename + '"',
+      'Cache-Control': 'no-store',
+      'X-Row-Count': String(out.count),
+    });
+    res.send(out.csv);
+  } catch (e) {
+    console.error('page-zero export error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not build the Page ZERO export.' });
   }
 });
 
@@ -2934,6 +3003,176 @@ app.delete('/api/regions/:key/countries/:code', requireRegionEditor, async (req,
   }
 });
 
+// ---- PHD Resolutions (phd-resolutions.html; display order = priority, 1 = most severe) ----
+// Any logged-in user can read; ONLY the PHD_RES_EDITORS allow-list (harisss) can add / re-prioritise.
+// Priorities are kept contiguous 1..N (no gaps, no duplicates).
+function requirePhdResEditor(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (canEditPhdResolutions(req.user.username)) return next();
+  return res.status(403).json({ error: 'Only harisss can edit PHD resolutions.' });
+}
+async function phdResList(coll) {
+  return (await coll.find(PHD_RES_REAL_FILTER).sort({ priority: 1, _id: 1 }).toArray()).map(mapResolution);
+}
+// Safety step: renumber every resolution 1..N in its current order (only writes rows that differ).
+async function phdResRenormalize(coll, username, now) {
+  const docs = await coll.find(PHD_RES_REAL_FILTER, { projection: { _id: 1, priority: 1 } }).sort({ priority: 1, _id: 1 }).toArray();
+  const ops = [];
+  docs.forEach((d, i) => {
+    if (d.priority !== i + 1) ops.push({ updateOne: { filter: { _id: d._id }, update: { $set: { priority: i + 1, updatedBy: username, updatedAt: now } } } });
+  });
+  if (ops.length) await coll.bulkWrite(ops, { ordered: true });
+}
+
+app.get('/api/phd-resolutions', requireRole('user'), async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.phdResolutions);
+    res.json(await phdResList(coll));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load PHD resolutions.' });
+  }
+});
+
+app.post('/api/phd-resolutions', requirePhdResEditor, async (req, res) => {
+  try {
+    const coll = await getCollection(COLLECTIONS.phdResolutions);
+    const current = await phdResList(coll);
+    const v = validateNewResolution(req.body, current);
+    if (!v.ok) return res.status(v.status).json({ error: v.error });
+    const { name, likelihood, impact, priority } = v.value;
+    const now = new Date().toISOString();
+    const by = req.user.username;
+    // Make room: everything at >= priority moves down one, then insert, then renumber 1..N.
+    await coll.updateMany(
+      { priority: { $gte: priority }, ...PHD_RES_REAL_FILTER },
+      { $inc: { priority: 1 }, $set: { updatedBy: by, updatedAt: now } }
+    );
+    await coll.insertOne({ name, nameKey: name.toLowerCase(), likelihood, impact, priority, createdBy: by, createdAt: now, updatedBy: by, updatedAt: now });
+    await phdResRenormalize(coll, by, now);
+    res.status(201).json(await phdResList(coll));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not add the resolution.' });
+  }
+});
+
+app.patch('/api/phd-resolutions/:id/priority', requirePhdResEditor, async (req, res) => {
+  try {
+    if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid id.' });
+    const coll = await getCollection(COLLECTIONS.phdResolutions);
+    const current = await phdResList(coll);
+    const priority = normalizePriority((req.body || {}).priority, current.length);
+    if (!priority) return res.status(400).json({ error: 'Priority must be a whole number from 1 to ' + current.length + '.' });
+    const moved = moveToPriority(current, String(new ObjectId(req.params.id)), priority);
+    if (!moved) return res.status(404).json({ error: 'Resolution not found.' });
+    const before = new Map(current.map(r => [r.id, r.priority]));
+    const now = new Date().toISOString();
+    const by = req.user.username;
+    const ops = moved.filter(r => before.get(r.id) !== r.priority)
+      .map(r => ({ updateOne: { filter: { _id: new ObjectId(r.id) }, update: { $set: { priority: r.priority, updatedBy: by, updatedAt: now } } } }));
+    if (ops.length) await coll.bulkWrite(ops, { ordered: true });
+    await phdResRenormalize(coll, by, now);
+    res.json(await phdResList(coll));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not change the priority.' });
+  }
+});
+
+// Delete a resolution (harisss only). The remaining resolutions are renumbered 1..N, so everything
+// below the deleted one moves up by one. Returns the full updated list.
+app.delete('/api/phd-resolutions/:id', requirePhdResEditor, async (req, res) => {
+  try {
+    if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid id.' });
+    const coll = await getCollection(COLLECTIONS.phdResolutions);
+    const r = await coll.deleteOne({ _id: new ObjectId(req.params.id), ...PHD_RES_REAL_FILTER });
+    if (!r.deletedCount) return res.status(404).json({ error: 'Resolution not found.' });
+    await phdResRenormalize(coll, req.user.username, new Date().toISOString());
+    res.json(await phdResList(coll));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not delete the resolution.' });
+  }
+});
+
+// ---- Errors in Resolved (errors-in-resolved.html) ----
+// Checks the tickets of the MOST RECENT uploaded file (raw CSV kept in upload_files, keyed by the
+// data-log publishedAt) that are Resolved, agent-resolved (not AutoSIM), not appeals (perfIsAppeal)
+// and not Duplicate / Immediately Resolved / Automatically Closed. Resolvers are tagged PHD when registered agents (perfPhdAgentSet). The maths
+// lives in ./errors-in-resolved.js. Issue types come from issue-types-data.js (same source as
+// issue-types.html); the resolution list is read live from phd_resolutions. Any logged-in user can
+// read; ONLY harisss (requirePhdResEditor) can disable/enable checks globally via PUT .../settings.
+// The evaluated upload is cached per (upload, resolution list); settings are applied per request.
+const EIR_CACHE_PREFIX = 'eir:v3:';
+let _eirIssueTypes = null;
+function eirIssueTypes() {
+  if (!_eirIssueTypes || !_eirIssueTypes.length) {
+    _eirIssueTypes = loadIssueTypesFromFile();
+    if (!_eirIssueTypes.length) _eirIssueTypes = typesFromCats(ISSUE_TAXONOMY_SEED); // file not deployed
+  }
+  return _eirIssueTypes;
+}
+async function eirSettings() {
+  const coll = await getCollection(COLLECTIONS.errorsInResolvedSettings);
+  const doc = await coll.findOne({ _id: EIR_SETTINGS_ID });
+  return { disabledChecks: eirNormalizeDisabled(doc && doc.disabledChecks), updatedBy: (doc && doc.updatedBy) || null, updatedAt: (doc && doc.updatedAt) || null };
+}
+// The latest upload's stored file meta (no text). Falls back to the newest stored file when the
+// latest upload has no stored copy (e.g. over the size cap); `latestUploadAt` then differs from `uploadedAt`.
+async function eirLatestFileMeta() {
+  const logColl = await getCollection(COLLECTIONS.dataLog);
+  const latest = (await logColl.find({}).sort({ at: -1 }).limit(1).toArray())[0] || null;
+  const stamp = latest ? (latest.publishedAt || latest.at) : null;
+  const filesColl = await getCollection(COLLECTIONS.uploadFiles);
+  const proj = { projection: { text: 0 } };
+  let meta = stamp ? await filesColl.findOne({ _id: stamp }, proj) : null;
+  if (!meta) meta = (await filesColl.find({}, proj).sort({ _id: -1 }).limit(1).toArray())[0] || null;
+  return { meta, latestUploadAt: stamp, latestUser: latest ? latest.user || '' : '' };
+}
+
+app.get('/api/errors-in-resolved', requireRole('user'), async (req, res) => {
+  try {
+    const { meta, latestUploadAt, latestUser } = await eirLatestFileMeta();
+    const settings = await eirSettings();
+    const canEdit = canEditPhdResolutions(req.user.username);
+    if (!meta) return res.json(Object.assign(eirBuildReport({ inScope: 0, excluded: {}, tickets: [] }, settings.disabledChecks, null), { canEdit, settings, noFile: true }));
+    const resNames = (await phdResList(await getCollection(COLLECTIONS.phdResolutions))).map(r => r.name);
+    const key = EIR_CACHE_PREFIX + meta._id + ':' + resNames.join('|').toLowerCase();
+    let evald = getCachedReport(key);
+    if (!evald) {
+      const filesColl = await getCollection(COLLECTIONS.uploadFiles);
+      const doc = await filesColl.findOne({ _id: meta._id }, { projection: { text: 1 } });
+      evald = evaluateUpload(parseCsv(doc && doc.text), eirIssueTypes(), resNames, {
+        isAutosim: perfIsAutosimResolver, isAppeal: perfIsAppeal, resolverLogin: perfResolverLogin,
+      });
+      pruneCachedReports(EIR_CACHE_PREFIX, 1);
+      setCachedReport(key, evald);
+    }
+    const source = {
+      file: meta.fileName || '', uploadedAt: meta.at || meta._id, uploadedBy: meta.user || '',
+      latestUploadAt, latestUploadBy: latestUser, isLatest: !latestUploadAt || latestUploadAt === meta._id,
+      rows: evald.rows,
+    };
+    const phdSet = await perfPhdAgentSet();
+    res.json(Object.assign(eirBuildReport(evald, settings.disabledChecks, source, phdSet), { canEdit, settings }));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the Errors in Resolved report.' });
+  }
+});
+
+// harisss only: { disabledChecks: ['A2', ...] } -> stored as the single settings doc. Returns the settings.
+app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res) => {
+  try {
+    const raw = (req.body || {}).disabledChecks;
+    if (!Array.isArray(raw)) return res.status(400).json({ error: 'disabledChecks must be an array.' });
+    const disabledChecks = eirNormalizeDisabled(raw);
+    const coll = await getCollection(COLLECTIONS.errorsInResolvedSettings);
+    const now = new Date().toISOString();
+    await coll.updateOne({ _id: EIR_SETTINGS_ID }, { $set: { disabledChecks, updatedBy: req.user.username, updatedAt: now } }, { upsert: true });
+    pruneCachedReports(EIR_CACHE_PREFIX, 0);
+    res.json({ disabledChecks, updatedBy: req.user.username, updatedAt: now });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not save the settings.' });
+  }
+});
+
 // ---- Paging contacts ---- (no edit/delete by design)
 // Public: list all paging contacts (ordered).
 app.get('/api/paging', async (req, res) => {
@@ -4053,6 +4292,10 @@ const PERF_RES_AUTOSIM_LABEL = 'Resolved by AUTO-SIM';
 const PERF_RES_RULE_LABEL = 'Resolved by Rule (Immediately Resolved + Automatically Closed)';
 const PERF_RES_RULE_OLD_KEY = 'resolved by rule';   // old drill-down label, accepted as an alias
 const PERF_RES_RULE_CODES = new Set(['immediately resolved', 'automatically closed']);
+// Old split-mode 'Duplicate' table row label: the row is gone (duplicates are now the resolutions.html
+// 'Duplicate' card, see perfIsDuplicateCard); the drill-down still accepts it as an alias of that card.
+const PERF_RES_DUPLICATE_LABEL = 'Duplicate';
+const PERF_RES_DUPLICATE_KEY = perfResolutionKey(PERF_RES_DUPLICATE_LABEL);
 function perfIsRuleClosure(code) { return PERF_RES_RULE_CODES.has(perfResolutionKey(code)); }
 function perfIsAutosimResolver(raw) {
   const s = String(raw == null ? '' : raw).trim();
@@ -4064,7 +4307,42 @@ function perfResolutionLabelOf(doc, split) {
   if (perfIsAutosimResolver(doc.ResolvedByIdentity)) return PERF_RES_AUTOSIM_LABEL;
   return perfIsRuleClosure(doc.ClosureCode) ? PERF_RES_RULE_LABEL : label;
 }
+// Split mode only (resolutions.html table): every raw Res value is merged into one of the 17 priority
+// groups (resolution-groups.js, temporary until the data is cleaned upstream). The special labels
+// ('Resolved by AUTO-SIM', PERF_RES_RULE_LABEL, 'Not specified') are NOT grouped and keep their own
+// rows. Row label = group name; the drill-down matches on this SAME label, so count == list length.
+const PERF_RES_SPECIAL_ORDER = [perfResolutionKey(PERF_RES_AUTOSIM_LABEL), perfResolutionKey(PERF_RES_RULE_LABEL), PERF_RES_NOT_SPECIFIED_KEY];
+function perfResolutionGroupLabelOf(doc, split) {
+  const label = perfResolutionLabelOf(doc, split);
+  if (!split || PERF_RES_SPECIAL_ORDER.includes(perfResolutionKey(label))) return label;
+  return resolutionGroupOf(label).name;
+}
+function buildResolutionGroupDistribution(docs) {
+  const groups = new Map();   // row key -> { resolution, priority, count, values: Map(rawKey -> { value, count }) }
+  for (const doc of docs) {
+    const raw = perfResolutionLabelOf(doc, true);
+    const rawKey = perfResolutionKey(raw);
+    const special = PERF_RES_SPECIAL_ORDER.includes(rawKey);
+    const grp = special ? null : resolutionGroupOf(raw);
+    const key = special ? rawKey : perfResolutionKey(grp.name);
+    let g = groups.get(key);
+    if (!g) groups.set(key, g = { resolution: special ? raw : grp.name, priority: special ? null : grp.priority, count: 0, values: new Map() });
+    g.count++;
+    if (!special) { const v = g.values.get(rawKey); if (v) v.count++; else g.values.set(rawKey, { value: raw, count: 1 }); }
+  }
+  const total = docs.length;
+  const rank = (g) => g.priority != null ? g.priority : 1000 + PERF_RES_SPECIAL_ORDER.indexOf(perfResolutionKey(g.resolution));
+  const resolutions = [...groups.values()]
+    .sort((a, b) => rank(a) - rank(b))
+    .map(g => {
+      const row = { resolution: g.resolution, priority: g.priority, count: g.count, pct: total ? Math.round(g.count / total * 1000) / 10 : 0 };
+      if (g.priority != null) row.values = [...g.values.values()].sort((a, b) => (b.count - a.count) || a.value.localeCompare(b.value, 'en', { sensitivity: 'base' }));
+      return row;
+    });
+  return { resolvedTotal: total, resolutions };
+}
 function buildResolutionDistribution(docs, split) {
+  if (split) return buildResolutionGroupDistribution(docs);
   const groups = new Map();
   for (const doc of docs) {
     const label = perfResolutionLabelOf(doc, split);
@@ -4135,17 +4413,92 @@ async function perfResolvedScope(from, to, fields, agents) {
   const rows = await perfResolvedRows(from, to, fields, agents);
   return agents === 'any' ? rows : rows.filter(d => perfInAgentGroup(d._grp, agents));
 }
+// Card groups (resolutions.html, split mode only). PRECEDENCE, so no ticket is counted twice:
+//   Appeals > AUTO-SIM > Pet reopened > Duplicate > PHD / Non-PHD table.
+// Appeals      = Title contains 'appeal' (case-insensitive), whatever the resolver / Res value.
+// AUTO-SIM     = resolved by the AutoSIM identity and not an appeal.
+// Pet reopened = '1st time AUTO-SIM Pet incidents Reopened': petIsReopenedByAgent (the SAME predicate
+//                as Section 3's overrides: pet_incident_auto_resolved tag, final resolver a person)
+//                and not an appeal. Never AutoSIM-resolved by definition, so AUTO-SIM is unaffected.
+// Duplicate    = ClosureCode 'Duplicate' (case-insensitive, trimmed), whatever the Res value, and not
+//                an appeal, not AutoSIM-resolved and not a Pet-reopened ticket (an appeal closed as
+//                Duplicate stays in Appeals; an AutoSIM-resolved Duplicate stays in AUTO-SIM).
+// Card tickets are excluded from the table rows / resolvedTotal. Without the split (Performance
+// Summary) nothing changes. The same predicates drive the counts (appealsTotal / autosimTotal /
+// petReopenedTotal / duplicatesTotal, appealsCreated / autosimCreated / petReopenedCreated /
+// duplicatesCreated) and the agents=appeals / autosim / petreopened / duplicates drill-downs
+// (counts == list lengths).
+function perfIsAppeal(doc) { return /appeal/i.test(String(doc && doc.Title != null ? doc.Title : '')); }
+function perfIsDuplicateClosure(doc) { return perfResolutionKey(doc && doc.ClosureCode) === PERF_RES_DUPLICATE_KEY; }
+function perfIsPetReopenedCard(doc) { return !perfIsAppeal(doc) && petIsReopenedByAgent(doc); }
+function perfIsDuplicateCard(doc) {
+  return perfIsDuplicateClosure(doc) && !perfIsAppeal(doc) && !perfIsAutosimResolver(doc.ResolvedByIdentity) && !petIsReopenedByAgent(doc);
+}
 // With a group filter the result also carries, for the SAME window and the same single pass:
-//   allResolvedTotal = every resolved ticket (phd + nonphd + autosim)
-//   autosimTotal     = the AutoSIM-resolved tickets (the drill-down for agents=autosim lists exactly these)
+//   allResolvedTotal = every resolved ticket (split: table(all) + autosim + appeals + petReopened + duplicates; else phd + nonphd + autosim)
+//   autosimTotal     = the AutoSIM-resolved tickets (split: minus appeals; the drill-down for agents=autosim lists exactly these)
+//   appealsTotal     = split mode only: the appeal tickets (the drill-down for agents=appeals lists exactly these)
+//   petReopenedTotal = split mode only: perfIsPetReopenedCard tickets (the drill-down for agents=petreopened lists exactly these)
+//   duplicatesTotal  = split mode only: perfIsDuplicateCard tickets (the drill-down for agents=duplicates lists exactly these)
 async function perfResolutionDistribution(from, to, split, agents) {
   const g = agents || 'any';
-  const rows = await perfResolvedRows(from, to, split ? { RootCauseDetails: 1, ResolvedByIdentity: 1, ClosureCode: 1 } : { RootCauseDetails: 1 }, g);
+  const rows = await perfResolvedRows(from, to, split ? { RootCauseDetails: 1, ResolvedByIdentity: 1, ClosureCode: 1, Title: 1, Status: 1, Tags: 1, Labels: 1 } : { RootCauseDetails: 1 }, g);
   if (g === 'any') return buildResolutionDistribution(rows, !!split);
-  const dist = buildResolutionDistribution(rows.filter(d => perfInAgentGroup(d._grp, g)), !!split);
+  const rest = split ? rows.filter(d => !perfIsAppeal(d)) : rows;   // split: appeals take precedence
+  const pets = split ? rest.filter(petIsReopenedByAgent) : [];      // then AUTO-SIM, then Pet reopened
+  const dups = split ? rest.filter(perfIsDuplicateCard) : [];       // then Duplicate
+  const table = split ? rest.filter(d => !petIsReopenedByAgent(d) && !perfIsDuplicateCard(d)) : rest;
+  const dist = buildResolutionDistribution(table.filter(d => perfInAgentGroup(d._grp, g)), !!split);
   dist.allResolvedTotal = rows.length;
-  dist.autosimTotal = rows.filter(d => d._grp === 'autosim').length;
+  dist.autosimTotal = rest.filter(d => d._grp === 'autosim').length;
+  if (split) {
+    dist.appealsTotal = rows.length - rest.length; dist.petReopenedTotal = pets.length; dist.duplicatesTotal = dups.length;
+    // The Pet reopened card's own breakdown: same grouped labels as the table (sums to petReopenedTotal).
+    dist.petReopenedResolutions = buildResolutionGroupDistribution(pets).resolutions.map(r => ({ resolution: r.resolution, count: r.count }));
+    // Whole-section resolved total (cards + table, no double count) for the selected resolver group.
+    dist.sectionResolvedTotal = dist.resolvedTotal + dist.autosimTotal + dist.appealsTotal + dist.petReopenedTotal + dist.duplicatesTotal;
+  }
   return dist;
+}
+// Split mode only (resolutions.html card subtitles): tickets CREATED in [from,to) per card group,
+// with the same precedence as the resolved counts (no ticket in two groups):
+//   appealsCreated     = CreateDate in window + perfIsAppeal (any status)
+//   autosimCreated     = CreateDate in window + perfIsAutosimResolver(ResolvedByIdentity) + NOT an appeal
+//   petReopenedCreated = CreateDate in window + perfIsPetReopenedCard (tagged, final resolver a person, not an appeal)
+//   duplicatesCreated  = CreateDate in window + perfIsDuplicateCard (ClosureCode Duplicate, not an appeal, not AutoSIM, not Pet reopened)
+// Created scope = CreateDate converted to a Date, as /api/resolutions/monthly. One count per
+// ShortId (fallback IssueId) across quarter docs: the copy from the latest quarter `q` wins. Read-only.
+// createdTotal = every card group above + the remaining tickets whose resolver group (perfResolverGroup,
+// blank resolver = nonphd) matches `agents` — the same scope rule as the section's resolved total.
+async function perfCreatedGroups(from, to, agents) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const cd = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
+  const [rows, phdSet] = await Promise.all([
+    coll.aggregate([
+      { $project: { _id: 0, cdv: cd, Title: 1, ResolvedByIdentity: 1, ClosureCode: 1, Status: 1, Tags: 1, Labels: 1, ShortId: 1, IssueId: 1, q: 1 } },
+      { $match: { cdv: { $gte: from, $lt: to } } },
+    ], { allowDiskUse: true }).toArray(),
+    perfPhdAgentSet(),
+  ]);
+  const g = agents || 'any';
+  const best = new Map();   // sid -> doc from the latest quarter
+  let appealsCreated = 0, autosimCreated = 0, petReopenedCreated = 0, duplicatesCreated = 0, restCreated = 0;
+  const tally = (d) => {
+    if (perfIsAppeal(d)) appealsCreated++;
+    else if (perfIsAutosimResolver(d.ResolvedByIdentity)) autosimCreated++;
+    else if (petIsReopenedByAgent(d)) petReopenedCreated++;
+    else if (perfIsDuplicateCard(d)) duplicatesCreated++;
+    else if (perfInAgentGroup(perfResolverGroup(d.ResolvedByIdentity, phdSet), g)) restCreated++;
+  };
+  rows.forEach(d => {
+    const sid = d.ShortId || d.IssueId || '';
+    if (!sid) { tally(d); return; }
+    const prev = best.get(sid);
+    if (!prev || String(d.q || '') > String(prev.q || '')) best.set(sid, d);
+  });
+  best.forEach(tally);
+  const createdTotal = appealsCreated + autosimCreated + petReopenedCreated + duplicatesCreated + restCreated;
+  return { appealsCreated, autosimCreated, petReopenedCreated, duplicatesCreated, createdTotal };
 }
 // Tickets behind one Resolution Distribution row: the same scope as the count, filtered on the same
 // normalised Res key, newest CreateDate first (ties by ShortId). Returns ALL matches.
@@ -4159,15 +4512,29 @@ function perfResolverName(raw) {
 // agents=autosim + resolution='Resolved by AUTO-SIM' = EVERY AutoSIM-resolved ticket in the window
 // (whatever its Res value), i.e. exactly the autosimTotal count on resolutions.html.
 // With the split, the old 'Resolved by Rule' label is an alias of PERF_RES_RULE_LABEL.
+// Split mode: appeals (perfIsAppeal) are excluded from every group's list; agents=appeals lists
+// EVERY appeal in the window (whatever its resolver / Res value) = exactly appealsTotal.
+// Split mode: Duplicate-card tickets (perfIsDuplicateCard) are excluded from the table groups' lists;
+// agents=duplicates lists exactly them (= duplicatesTotal). The old table-row label 'Duplicate' with
+// agents=phd|nonphd|all is an alias of that card, so old links still work.
+// Split mode: Pet-reopened tickets (perfIsPetReopenedCard) are excluded from the table groups' lists;
+// agents=petreopened lists exactly them (= petReopenedTotal), whatever the resolution value sent.
 async function perfResolutionTickets(from, to, resolution, split, agents) {
   let key = perfResolutionKey(resolution);
   if (split && key === PERF_RES_RULE_OLD_KEY) key = perfResolutionKey(PERF_RES_RULE_LABEL);
-  const docs = await perfResolvedScope(from, to, {
+  if (split && key === PERF_RES_DUPLICATE_KEY && (agents === 'phd' || agents === 'nonphd' || agents === 'all')) agents = 'duplicates';
+  const fields = {
     RootCauseDetails: 1, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, ResolvedByIdentity: 1, ClosureCode: 1,
+    Status: 1, Tags: 1, Labels: 1,
     cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
-  }, agents);
-  const allOfGroup = agents === 'autosim' && key === perfResolutionKey(PERF_RES_AUTOSIM_LABEL);
-  const tickets = docs.filter(d => allOfGroup || perfResolutionKey(perfResolutionLabelOf(d, !!split)) === key).map(d => {
+  };
+  const appeals = agents === 'appeals', duplicates = agents === 'duplicates', petReopened = agents === 'petreopened';
+  let docs = (appeals || duplicates || petReopened)
+    ? (await perfResolvedRows(from, to, fields, 'any')).filter(appeals ? perfIsAppeal : duplicates ? perfIsDuplicateCard : perfIsPetReopenedCard)
+    : await perfResolvedScope(from, to, fields, agents);
+  if (split && !appeals && !duplicates && !petReopened && agents !== 'any') docs = docs.filter(d => !perfIsAppeal(d) && !petIsReopenedByAgent(d) && !perfIsDuplicateCard(d));
+  const allOfGroup = appeals || duplicates || petReopened || (agents === 'autosim' && key === perfResolutionKey(PERF_RES_AUTOSIM_LABEL));
+  const tickets = docs.filter(d => allOfGroup || perfResolutionKey(perfResolutionGroupLabelOf(d, !!split)) === key).map(d => {
     const sid = d.ShortId || d.IssueId || '';
     return {
       country: slaCountryOf(d),
@@ -4261,10 +4628,20 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
       if ((to - from) / 86400000 > PERF_RES_MAX_DAYS) return res.status(400).json({ error: 'The date range is too long.' });
       const agents = perfAgentsParam(req.query.agents);
       if (!agents) return res.status(400).json({ error: 'agents must be "phd", "nonphd", "all" or "autosim".' });
-      const dist = await perfResolutionDistribution(from, to, req.query.splitNotSpecified === '1', agents);
+      const split = req.query.splitNotSpecified === '1';
+      const [dist, created] = await Promise.all([
+        perfResolutionDistribution(from, to, split, agents),
+        split && agents !== 'any' ? perfCreatedGroups(from, to, agents) : Promise.resolve(null),
+      ]);
       // Param omitted -> echo 'all' and no extra fields, exactly as before.
       const out = { from: from.toISOString(), to: to.toISOString(), agents: agents === 'any' ? 'all' : agents, resolvedTotal: dist.resolvedTotal, resolutions: dist.resolutions };
       if (agents !== 'any') { out.autosimTotal = dist.autosimTotal; out.allResolvedTotal = dist.allResolvedTotal; }
+      if (agents !== 'any' && dist.appealsTotal != null) out.appealsTotal = dist.appealsTotal;
+      if (agents !== 'any' && dist.petReopenedTotal != null) out.petReopenedTotal = dist.petReopenedTotal;
+      if (agents !== 'any' && dist.duplicatesTotal != null) out.duplicatesTotal = dist.duplicatesTotal;
+      if (agents !== 'any' && dist.petReopenedResolutions) out.petReopenedResolutions = dist.petReopenedResolutions;
+      if (agents !== 'any' && dist.sectionResolvedTotal != null) out.sectionResolvedTotal = dist.sectionResolvedTotal;
+      if (created) { out.appealsCreated = created.appealsCreated; out.autosimCreated = created.autosimCreated; out.petReopenedCreated = created.petReopenedCreated; out.duplicatesCreated = created.duplicatesCreated; out.createdTotal = created.createdTotal; }
       return res.json(out);
     }
     const span = to - from;
@@ -4299,8 +4676,9 @@ app.get('/api/perf-summary/resolution-tickets', requireRole('user'), async (req,
     const resolution = typeof q.resolution === 'string' ? q.resolution.replace(/\s+/g, ' ').trim() : '';
     if (!resolution) return res.status(400).json({ error: 'Provide a resolution value.' });
     if (resolution.length > PERF_RES_MAX_LEN) return res.status(400).json({ error: 'The resolution value is too long.' });
-    const agents = perfAgentsParam(q.agents);
-    if (!agents) return res.status(400).json({ error: 'agents must be "phd", "nonphd", "all" or "autosim".' });
+    // agents=appeals / duplicates / petreopened (resolutions.html Appeals / Duplicate / Pet reopened cards) are accepted by the drill-down only.
+    const agents = (q.agents === 'appeals' || q.agents === 'duplicates' || q.agents === 'petreopened') ? q.agents : perfAgentsParam(q.agents);
+    if (!agents) return res.status(400).json({ error: 'agents must be "phd", "nonphd", "all", "autosim", "appeals", "duplicates" or "petreopened".' });
     const tickets = await perfResolutionTickets(from, to, resolution, q.splitNotSpecified === '1', agents);
     // Param omitted (Performance Summary) -> echo 'all' exactly as before, so that response is unchanged.
     res.json({ view, from: from.toISOString(), to: to.toISOString(), resolution, agents: q.agents ? agents : 'all', total: tickets.length, tickets });
@@ -5920,13 +6298,13 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
     ]).toArray();
     const created = createdDocs.length;
     let noEmt = 0, stationReq = 0, appeal = 0;
-    const APPEAL_RE = /appeal/i;
-    const STATION_RE = /station\s*request/i;  // in Title OR Labels
+    // Station Request = the "Station Request" label in the comma-separated Labels string (case-insensitive).
+    const STATION_RE = /station\s*request/i;
     createdDocs.forEach(t => {
       const title = String(t.Title || ''), labels = String(t.Labels || '');
       if (hasNoEmt(title, labels)) noEmt++;
-      if (STATION_RE.test(title) || STATION_RE.test(labels)) stationReq++;
-      if (APPEAL_RE.test(title)) appeal++;
+      if (STATION_RE.test(labels)) stationReq++;
+      if (perfIsAppeal(t)) appeal++;            // Title contains "appeal" (same rule as Performance)
     });
 
     // 2) Resolved in-window, grouped by ClosureCode (blank -> "Unspecified"). Also, within the
@@ -5938,11 +6316,12 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
         cc: { $trim: { input: { $ifNull: ['$ClosureCode', ''] } } },
         rctext: { $toLower: { $concat: [ { $ifNull: ['$RootCause', ''] }, ' ', { $ifNull: ['$RootCauseDetails', ''] } ] } },
         resolver: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } },
+        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
       } },
       { $match: { Status: { $in: RESOLVED_SET }, $expr: inWin('$rd') } },
       { $project: {
         code: { $cond: [{ $eq: ['$cc', ''] }, 'Unspecified', '$cc'] },
-        rctext: 1, resolver: 1,
+        rctext: 1, resolver: 1, resolverRaw: 1,
       } },
     ]).toArray();
     const resolved = resolvedRows.length;
@@ -5950,7 +6329,13 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
     const ADDR_RE = /address\s*(exclusion|depri)/i;   // "Address Exclusion" OR "Address Depri*"
     let successfulAddr = 0, successful = 0, immediatelyResolved = 0;
     let immByAutosim = 0, immByAgentRule = 0;          // split of "Immediately Resolved"
+    // Exclusive resolution split for the handover bars (each resolved ticket in at most one):
+    //   AutoSIM resolver (any code) -> Rule closure (Immediately Resolved / Automatically Closed) -> Successful.
+    let resByAutosim = 0, resByRule = 0, resSuccessful = 0;
     resolvedRows.forEach(r => {
+      if (perfIsAutosimResolver(r.resolverRaw)) resByAutosim++;
+      else if (perfIsRuleClosure(r.code)) resByRule++;
+      else if (String(r.code || '').toLowerCase() === 'successful') resSuccessful++;
       const code = r.code || 'Unspecified';
       ccMap[code] = (ccMap[code] || 0) + 1;
       const codeL = code.toLowerCase();
@@ -5983,6 +6368,8 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
       createdFlags: { noEmt, stationRequest: stationReq, appeal },
       // Current open queue broken down by status.
       queueByStatus,
+      // Handover bars (group 4): exclusive split of the resolved-in-window tickets.
+      resolvedSplit: { autosim: resByAutosim, rule: resByRule, successful: resSuccessful },
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not build the handover report.' });
@@ -7957,6 +8344,15 @@ app.listen(PORT, () => {
       const n = await seedRegions(rgColl, (msg) => console.log(msg));
       if (!n) console.log('Regions seed: already seeded (no changes).');
     } catch (e) { console.error('Regions seed failed:', e && e.message); }
+  })();
+  // One-time seed of the PHD Resolutions list (12 defaults, priority 1..12; idempotent via a marker
+  // doc, so later adds / re-prioritising are never overwritten). A failure never blocks start-up.
+  (async () => {
+    try {
+      const prColl = await getCollection(COLLECTIONS.phdResolutions);
+      const n = await seedPhdResolutions(prColl, (msg) => console.log(msg));
+      if (!n) console.log('PHD resolutions seed: already seeded (no changes).');
+    } catch (e) { console.error('PHD resolutions seed failed:', e && e.message); }
   })();
   // Backfill the current live quarter's dashboard rollup on boot if it's missing/stale, so the
   // first visitor after a (re)deploy gets instant chunks without waiting for the next upload.

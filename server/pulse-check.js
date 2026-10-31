@@ -466,4 +466,4 @@ function computePulseReport(input, deps) {
   };
 }
 
-module.exports = { computePulseReport, incidentLabel, issueFromRcd, resolutionFromRcd, REPEATED_REQUESTER_IGNORE, BUCKETS };
+module.exports = { computePulseReport, incidentLabel, issueFromRcd, resolutionFromRcd, REPEATED_REQUESTER_IGNORE, BUCKETS, RCD_ISSUE_RE, RCD_RESOLUTION_RE, RCD_NEXT_KEYS, rcdPlain };

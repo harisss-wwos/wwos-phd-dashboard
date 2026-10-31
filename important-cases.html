@@ -19,374 +19,331 @@
 <noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--yl:#fbbf24;--rl:#ff5252;--tl:#44b9d6}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite}
-@keyframes spin{100%{transform:rotate(360deg)}}
-.wrap{max-width:1000px;margin:0 auto;padding:40px 24px}
-h1{color:#fff;font-size:1.6em;margin-bottom:6px}
-.sub{color:var(--tm);font-size:.9em;margin-bottom:26px}
-/* Expand/collapse case cards */
-.case{background:#0a0a0a;border:1px solid var(--bd);border-left:3px solid var(--o);border-radius:5px;margin-bottom:14px;overflow:hidden}
-.case-head{display:flex;align-items:center;gap:14px;padding:16px 20px;width:100%;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
-.case-head:hover{background:#0d0d0d}
-.case-id{color:#44b9d6;font-weight:700;font-size:1.02em;flex-shrink:0}
-.case-title{color:var(--t);font-size:.9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
-.case-by{color:var(--tm);font-size:.78em;white-space:nowrap;flex-shrink:0}
-.case-caret{color:var(--tm);transition:transform .18s;flex-shrink:0}
-.case.open .case-caret{transform:rotate(180deg)}
-.case-body{padding:0 20px;display:none;flex-direction:column;gap:14px}
-.case.open .case-body{display:flex;padding:4px 20px 18px}
-.case-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.82em;color:var(--tm)}
-.case-meta b{color:#fff;font-weight:600}
-/* ---- Loading shimmer: a few collapsed-case placeholders ---- */
-.uc-skel .case.sk{pointer-events:none}
-.uc-skel .sk-head{display:flex;align-items:center;gap:14px;padding:16px 20px}
-.sk-bar{height:13px;border-radius:5px;background:#141a20;position:relative;overflow:hidden;flex-shrink:0}
-.sk-bar.id{width:120px}
-.sk-bar.title{flex:1;min-width:0;height:12px}
-.sk-bar.by{width:70px;height:11px}
-.sk-bar.caret{width:14px;height:14px;border-radius:50%}
-.sk-bar::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);animation:ucShim 1.3s ease-in-out infinite}
-@keyframes ucShim{100%{transform:translateX(100%)}}
-.blk-t{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px}
-.case-info{white-space:pre-wrap;color:var(--t);font-size:.9em;line-height:1.6;background:#000;border:1px solid var(--bd);border-radius:5px;padding:12px 14px}
-.links{display:flex;flex-direction:column;gap:6px}
-.link-item{background:#000;border:1px solid var(--bd);border-radius:5px;padding:8px 12px}
-.link-item a{color:#44b9d6;text-decoration:none;font-size:.85em;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
-.link-item a:hover{text-decoration:underline}
-.none{color:#5f6b6c;font-size:.85em;font-style:italic}
-.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.empty{text-align:center;color:var(--tm);padding:40px;border:1px dashed var(--bd);border-radius:5px}
-.case-actions{margin-top:6px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;flex-wrap:wrap}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
-.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.5);color:var(--rl)}
-.btn.danger:hover{background:rgba(255,82,82,.12)}
-/* Edit popup */
+.wrap{padding:32px 24px}
+/* Generic modal base — also used by the shared Edit-incident-log modal (incident-log-editor.js). */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;max-height:88vh;overflow:auto;padding:24px}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.modal-head h2{color:var(--o);font-size:1.1em;font-weight:700}
-.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#fff}
-.edit-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:16px}
-.edit-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
-.edit-ticket .meta-line{color:var(--tm);font-size:.82em}.edit-ticket .meta-line b{color:#fff}
-.fld-label{display:block;color:var(--tm);font-size:.82em;margin:12px 0 6px;font-weight:600}
-#editInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
-#editInfo:focus{outline:none;border-color:var(--o)}
-.link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.link-row input{flex:1;min-width:0;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:9px 12px;font-family:inherit;text-overflow:ellipsis}
-.link-row input:focus{outline:none;border-color:var(--o)}
-.link-row .rm{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--rl);border-radius:5px;cursor:pointer;padding:8px 11px;font-size:.9em;line-height:1;flex-shrink:0}
-.link-row .rm:hover{background:rgba(255,82,82,.12)}
-.add-link{margin-top:2px;padding:7px 14px;font-size:.82em}
-.msg-err{color:var(--rl);font-size:.85em;margin-top:10px;display:none}
-.edit-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0a0a0a;border:1px solid var(--gl);color:var(--gl);padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;pointer-events:none}
-.toast.show{opacity:1}
-
-/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
-.uc-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;gap:14px;flex-wrap:wrap;
-  border-radius:5px;padding:0 22px;height:60px;min-height:60px;margin-bottom:20px;
-  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
-  background:#fff}
-.uc-banner .ub-left{position:relative;z-index:1;display:flex;align-items:center;min-width:0}
-.uc-banner .ub-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
-.uc-banner .ub-title svg{flex-shrink:0;color:#241354}
-.uc-banner .ub-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:78ch;color:rgba(36,19,84,.82)}
-.uc-banner .ub-sub b{color:#180b40;font-weight:800}
-.uc-banner .ub-actions{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.uc-banner::after{content:none;display:none;position:absolute;top:0;bottom:0;right:0;width:220px;
-  background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.3;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M60 16l9 18 20 3-14 14 3 20-18-9-18 9 3-20-14-14 20-3z"/><circle cx="98" cy="24" r="3"/><circle cx="30" cy="60" r="3"/></svg>')}
-/* Banner buttons stay legible on the bright gradient. */
-.uc-banner .btn{background:rgba(10,12,15,.82);color:#fff;border:1px solid rgba(255,255,255,.14)}
-.uc-banner .btn:hover{background:rgba(10,12,15,.92);border-color:rgba(255,255,255,.28)}
-.uc-banner .btn.sec{background:rgba(255,255,255,.18);color:#241354;border:1px solid rgba(255,255,255,.4);font-weight:700}
-.uc-banner .btn.sec:hover{background:rgba(255,255,255,.3);color:#241354}
-/* Redesigned primary "Search a ticket" action — a crisp frosted-white pill with purple ink. */
-.uc-banner .uc-search-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;
-  background:#fff;color:#4c2ea8;border:1px solid rgba(255,255,255,.9);font-weight:800;font-size:.9em;letter-spacing:.1px;
-  box-shadow:0 6px 16px -6px rgba(0,0,0,.4);transition:transform .14s,box-shadow .14s,background .14s}
-.uc-banner .uc-search-btn svg{color:#7c5cff}
-.uc-banner .uc-search-btn:hover{transform:translateY(-1px);background:#f3efff;box-shadow:0 10px 22px -8px rgba(0,0,0,.5)}
-@media(max-width:640px){.uc-banner .ub-title{font-size:1.25em}.uc-banner::after{opacity:.2}}
-
-/* ---- Inline ticket search (copied from unique-cases.html) ---- */
-.search-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
-.search-row input{flex:1;min-width:220px;padding:11px 14px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.95em}
-.search-row input:focus{outline:none;border-color:var(--o)}
-.search-row .btn.clear{background:transparent;border:1px solid var(--bd);color:var(--tm)}
-.search-row .btn.clear:hover{border-color:var(--rl);color:var(--rl)}
-#result:not(:empty){margin-bottom:28px}
-.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:24px}
-.card.notfound{border-left:3px solid var(--rl)}
-.tk-title{color:var(--t);font-size:.92em;margin-bottom:18px;line-height:1.5}
-.detail{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.92em}
-.detail:last-child{border-bottom:none}
-.detail .k{color:var(--tm)}
-.detail .v{color:#fff;font-weight:600;text-align:right}
-.detail .v.open{color:var(--yl)}
-.detail .v.over{color:var(--rl)}
-.detail .v.resolved{color:var(--gl)}
-.sp-sm{width:20px;height:20px;border:3px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite;display:inline-block;vertical-align:middle}
-.hint{color:#5f6b6c;font-size:.82em;margin-top:8px}
-.marked-badge{color:var(--yl);font-weight:700;font-size:.85em}
-
-/* ===== Redesigned "ticket found" card ===== */
-.card.found.fc{padding:0;overflow:hidden;border-left:1px solid var(--bd);position:relative}
-.card.found.fc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#38bdf8,#1878eb)}
-.card.found.fc.is-marked::before{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
-.fc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;
-  padding:20px 24px 18px;background:linear-gradient(135deg,rgba(56,189,248,.10),rgba(24,120,235,.04));
-  border-bottom:1px solid rgba(255,255,255,.07)}
-.card.found.fc.is-marked .fc-head{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.03))}
-.fc-head-main{min-width:0;flex:1}
-.fc-id{display:inline-flex;align-items:center;gap:6px;color:#44b9d6;font-weight:800;font-size:1.5em;
-  letter-spacing:.3px;text-decoration:none;line-height:1.1}
-.fc-id:hover{text-decoration:underline}
-.fc-ext{font-size:.6em;opacity:.65;transform:translateY(-2px)}
-.fc-title{color:var(--t);font-size:.95em;line-height:1.5;margin-top:8px;max-width:62ch}
-.fc-head-meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
-.fc-q{color:var(--tm);font-size:.72em;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
-  background:rgba(255,255,255,.07);padding:3px 10px;border-radius:999px}
-.fc-status{display:inline-flex;align-items:center;gap:7px;font-size:.78em;font-weight:700;
-  padding:5px 12px;border-radius:999px;border:1px solid transparent}
-.fc-status i{width:7px;height:7px;border-radius:50%;display:inline-block}
-.fc-status.resolved{color:var(--gl);background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.3)}
-.fc-status.resolved i{background:var(--gl)}
-.fc-status.open{color:var(--yl);background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.3)}
-.fc-status.open i{background:var(--yl)}
-.fc-status.over{color:var(--rl);background:rgba(255,82,82,.12);border-color:rgba(255,82,82,.3)}
-.fc-status.over i{background:var(--rl);animation:fcpulse 1.4s ease-in-out infinite}
-@keyframes fcpulse{0%,100%{opacity:1}50%{opacity:.35}}
-.fc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:16px 24px;
-  border-bottom:1px solid rgba(255,255,255,.06)}
-.fc-tile{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#111;border:1px solid var(--bd);
-  border-radius:9px;min-width:0}
-.fc-tile:last-child:nth-child(odd){grid-column:1 / -1}
-.fc-ic{flex-shrink:0;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
-  background:rgba(56,189,248,.1);color:#38bdf8}
-.fc-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.fc-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
-.fc-k{color:var(--tm);font-size:.72em;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-.fc-v{color:#fff;font-weight:600;font-size:.95em;word-break:break-word}
-.fc-v.resolved{color:var(--gl)}
-.fc-v.open{color:var(--yl)}
-.fc-v.over{color:var(--rl)}
-.fc-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;letter-spacing:-.2px}
-.fc-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 24px;flex-wrap:wrap}
-.fc-foot-note{color:var(--tm);font-size:.82em;font-style:italic}
-.fc-mark{box-shadow:0 4px 14px -4px rgba(255,153,0,.5)}
-@media(max-width:640px){.fc-grid{grid-template-columns:1fr}.fc-tile:last-child:nth-child(odd){grid-column:auto}
-  .fc-head-meta{align-items:flex-start}}
-/* Mark important modal (search) */
-.mark-ticket{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px 16px;margin-bottom:16px}
-.mark-ticket .detail{padding:8px 0}
-.mark-ticket .mt-id{color:#44b9d6;font-weight:700;font-size:1.05em;margin-bottom:8px;display:block}
-#srchMarkInfo{width:100%;min-height:110px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:10px 12px;font-family:inherit;line-height:1.5;resize:vertical}
-#srchMarkInfo:focus{outline:none;border-color:var(--o)}
-.mark-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-
-/* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
-/* Remove the top padding, keep a 20px bottom. Use #wrap (ID) so it beats the
-   runtime .wrap{padding-top:14px} that topbar-auth.js injects into <head>. */
-#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
 <style id="uc-light">
-h1{color:#1b2026!important}
-.sub{color:#5c6773!important}
-/* Case cards. */
-.case{background:#fff!important;border:1px solid #e2e6ea!important;border-left:3px solid #ec7211!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.case-head:hover{background:#f7f9fb!important}
-.case-id{color:#1577a0!important}
-.case-title{color:#2a3340!important}
-.case-by{color:#5c6773!important}
-.case-caret{color:#9aa5b1!important}
-.sk-bar{background:#e8ebee!important}
-.sk-bar::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)!important}
-.case-meta{color:#5c6773!important}
-.case-meta b{color:#1b2026!important}
-.blk-t{color:#5c6773!important}
-.case-info{background:#f7f9fb!important;border:1px solid #e6eaee!important;color:#2a3340!important}
-.link-item{background:#f7f9fb!important;border:1px solid #e6eaee!important}
-.link-item a,.case-meta b a{color:#1577a0!important}
-.none{color:#8793a0!important}
-.case-actions{border-top:1px solid #eef1f4!important}
-/* Modals. */
-.modal-bg{background:rgba(20,30,45,.55)!important}
-.modal{background:#fff!important;border:1px solid #e2e6ea!important}
-.modal-head h2{color:#b5560c!important}
-.modal-close{color:#5c6773!important}.modal-close:hover{color:#1b2026!important}
-.edit-ticket{background:#f7f9fb!important;border:1px solid #e6eaee!important}
-.edit-ticket .mt-id{color:#1577a0!important}
-.edit-ticket .meta-line{color:#5c6773!important}.edit-ticket .meta-line b{color:#1b2026!important}
-.fld-label{color:#5c6773!important}
-#editInfo,.link-row input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-#editInfo:focus,.link-row input:focus{border-color:#ec7211!important}
-.link-row .rm{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
-.link-row .rm:hover{background:#fef2f2!important}
-.msg-err{color:#d33a3a!important}
-#unmarkText{color:#2a3340!important}
-#unmarkText b{color:#1b2026!important}
-.modal-head h2[style*="--rl"],.modal h2[style*="var(--rl)"]{color:#dc2626!important}
-/* Buttons (the banner's own buttons keep their on-gradient styling). */
-.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
-.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-.btn.sec:hover{border-color:#ec7211!important;color:#ec7211!important;background:#fff4e8!important}
-.btn.danger{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
-.btn.danger:hover{background:#fef2f2!important}
-/* Keep banner buttons as designed (dark pill / frosted) — re-assert over the generic .btn above. */
-.uc-banner .btn{background:rgba(10,12,15,.82)!important;color:#fff!important;border:1px solid rgba(255,255,255,.14)!important}
-.uc-banner .btn.sec{background:rgba(255,255,255,.18)!important;color:#241354!important;border:1px solid rgba(255,255,255,.4)!important}
-.uc-banner .uc-search-btn{background:#fff!important;color:#4c2ea8!important;border:1px solid rgba(255,255,255,.9)!important}
-/* White 60px title bar — light theme */
-.uc-banner{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.uc-banner .ub-title,.uc-banner .ub-title svg{color:#1b2026!important}
-.empty{border-color:#d4dce4!important;color:#8793a0!important}
-.empty b{color:#1b2026!important}
-.toast{background:#fff!important;border-color:#1f9d57!important;color:#1f9d57!important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35)!important}
-.gate p{color:#5c6773!important}
-/* Inline ticket search — light theme. */
-.search-row input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-.search-row input:focus{border-color:#ec7211!important}
-.search-row .btn.clear{background:#fff!important;border:1px solid #e2e6ea!important;color:#5c6773!important}
-.search-row .btn.clear:hover{border-color:#dc2626!important;color:#dc2626!important;background:#fef2f2!important}
-.card{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.card.notfound{border-left:3px solid #dc2626!important}
-.tk-title{color:#2a3340!important}
-.detail{border-bottom:1px solid #eef1f4!important}
-.detail .k{color:#5c6773!important}
-.detail .v{color:#1b2026!important}
-.detail .v.open{color:#b5560c!important}
-.detail .v.over{color:#dc2626!important}
-.detail .v.resolved{color:#1f9d57!important}
-.hint{color:#8793a0!important}
-.marked-badge{color:#b5560c!important}
-/* Redesigned found-card — light theme */
-.card.found.fc{border:1px solid #e2e6ea!important;border-left:1px solid #e2e6ea!important;box-shadow:0 6px 22px -14px rgba(20,40,70,.3)!important}
-.fc-head{background:linear-gradient(135deg,#eef6fe,#f7fbff)!important;border-bottom:1px solid #e6edf4!important}
-.card.found.fc.is-marked .fc-head{background:linear-gradient(135deg,#fff7e8,#fffdf7)!important}
-.fc-id{color:#1577a0!important}
-.fc-title{color:#2a3340!important}
-.fc-q{color:#5c6773!important;background:#eef1f4!important}
-.fc-status.resolved{color:#1f8a4c!important;background:#e8f7ee!important;border-color:#bfe6cd!important}
-.fc-status.open{color:#b5560c!important;background:#fdf3e5!important;border-color:#f3dcb8!important}
-.fc-status.over{color:#dc2626!important;background:#fdeeee!important;border-color:#f5c6c6!important}
-.fc-grid{background:transparent!important;border-bottom:1px solid #edf1f5!important}
-.fc-tile{background:#f8fafc!important;border:1px solid #e8edf2!important}
-.fc-ic{background:#eaf4fe!important;color:#1878eb!important}
-.fc-k{color:#6b7682!important}
-.fc-v{color:#1b2026!important}
-.fc-v.resolved{color:#1f8a4c!important}
-.fc-v.open{color:#b5560c!important}
-.fc-v.over{color:#dc2626!important}
-.fc-foot-note{color:#8793a0!important}
-.mark-ticket{background:#f7f9fb!important;border:1px solid #e6eaee!important}
-.mark-ticket .mt-id{color:#1577a0!important}
-#srchMarkInfo{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-#srchMarkInfo:focus{border-color:#ec7211!important}
-/* Found-card: "View log updates" icon button next to the ticket ID. */
+/* Unique Cases — "leadership watchlist": dark navy hero with an orange rule, KPI cards that overlap it,
+   an admin "find & mark" card, then a filterable list of expandable case cards. Everything in the page
+   section is scoped under .uc (a size container for the responsive grids); the page's own modals use
+   .uc-modal-bg / .uc-modal. Loaded after theme.css + app-light.css so it wins the cascade. */
+.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
+/* #wrap (ID) beats the runtime .wrap{padding-top:14px} that topbar-auth.js injects into <head>. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+:root{--uc-ink:#1b2026;--uc-mut:#5c6773;--uc-line:#e2e6ea;--uc-soft:#f5f6f8;--uc-acc:#ec7211;--uc-acc-bg:#fff3e8;--uc-acc-ink:#9a4100;
+  --uc-blue:#2b66c1;--uc-blue-bg:#e9f0fb;--uc-red:#b42318;--uc-red-bg:#fdecec;--uc-grn:#1a7a43;--uc-grn-bg:#e5f5ec;
+  --uc-amb:#8a5300;--uc-amb-bg:#fff4dc;--uc-focus:#f0a35a}
+.uc{container-type:inline-size;color:var(--uc-ink)}
+.uc button,.uc-modal-bg button{font:inherit;text-transform:none}
+:is(.uc,.uc-modal-bg) :is(button,a,input,textarea,[tabindex]):focus-visible{outline:3px solid var(--uc-focus)!important;outline-offset:2px}
+.uc-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.uc-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.uc-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.uc-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--uc-acc))}
+.uc-hero-in{position:relative;display:flex;gap:18px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.uc-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 340px}
+.uc-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.uc-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.uc-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.uc-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.uc-meta{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0;max-width:100%}
+.uc-meta li{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.16);font-size:.8em;font-weight:600;color:rgba(233,237,243,.85);white-space:nowrap;backdrop-filter:blur(4px)}
+.uc-meta li b{color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+.uc-meta li svg{color:#ffb26b;flex-shrink:0}
+@container (max-width:520px){.uc-hero{padding:20px 18px 70px 22px}.uc-hero h1{font-size:1.65em}.uc-hero-ic{width:40px;height:40px}.uc-meta li{white-space:normal}}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.uc-kpis{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:-56px 18px 16px}
+.uc-kpis:empty{margin:0 0 16px}
+@container (min-width:860px){.uc-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (max-width:520px){.uc-kpis{margin:-52px 10px 14px;gap:10px}}
+.uc-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--uc-line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6);min-width:0}
+.uc-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.uc-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--uc-mut);min-width:0}
+.uc-kpi-l>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uc-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--uc-soft);color:#3a4552}
+.uc-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--uc-ink)}
+.uc-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--uc-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uc-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.uc-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k);transition:width .5s ease}
+.uc-kpi.is-base{--k:#1f2a40}
+.uc-kpi.is-acc{--k:var(--uc-acc)}.uc-kpi.is-acc .uc-kpi-ic{background:var(--uc-acc-bg);color:#b5530a}
+.uc-kpi.is-blue{--k:var(--uc-blue)}.uc-kpi.is-blue .uc-kpi-ic{background:var(--uc-blue-bg);color:var(--uc-blue)}
+.uc-kpi.is-good{--k:#1f9d57}.uc-kpi.is-good .uc-kpi-ic{background:var(--uc-grn-bg);color:var(--uc-grn)}
+@container (max-width:520px){.uc-kpi{padding:13px 13px 12px}.uc-kpi-v{font-size:1.9em}.uc-kpi-l{letter-spacing:.6px;align-items:flex-start}.uc-kpi-ic{width:24px;height:24px}
+  .uc-kpi-l>span:last-child,.uc-kpi-s{white-space:normal;line-height:1.3}}
+
+/* ---- Generic card ---- */
+.uc-card{background:#fff;border:1px solid var(--uc-line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;margin-bottom:16px}
+@container (max-width:520px){.uc-card{padding:16px 14px}}
+.uc-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;margin-bottom:14px}
+.uc-card-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.uc-help{margin-top:5px;font-size:.86em;color:var(--uc-mut);line-height:1.5;max-width:72ch}
+.uc-count{font-size:.84em;font-weight:700;color:var(--uc-mut);font-variant-numeric:tabular-nums;align-self:center}
+.uc-role{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:var(--uc-acc-bg);color:var(--uc-acc-ink);border:1px solid #f7c99c;white-space:nowrap}
+
+/* ---- Buttons ---- */
+.uc-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:8px;border:1px solid transparent;
+  font-size:.86em;font-weight:800;line-height:1.2;cursor:pointer;text-decoration:none;white-space:nowrap;text-transform:none;
+  transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+.uc-btn svg{flex-shrink:0}
+.uc-btn-pri{background:#161d2d;color:#f4f3ef}
+.uc-btn-pri:hover:not(:disabled){background:#0f1420}
+.uc-btn-pri svg{color:#ffb26b}
+.uc-btn-ghost{background:#fff;border-color:#d4dade;color:#2a3340}
+.uc-btn-ghost:hover:not(:disabled){border-color:#f0a35a;color:var(--uc-acc-ink);background:var(--uc-acc-bg)}
+.uc-btn-danger{background:#fff;border-color:#f2b8b1;color:var(--uc-red)}
+.uc-btn-danger:hover:not(:disabled){background:var(--uc-red-bg);border-color:#e9998f}
+.uc-btn-danger.is-solid{background:#c0261a;border-color:#c0261a;color:#fff}
+.uc-btn-danger.is-solid:hover:not(:disabled){background:#a11f15}
+.uc-btn-sm{padding:6px 12px;font-size:.8em}
+.uc-btn:disabled{opacity:.6;cursor:not-allowed}
+.uc-btn.is-busy{opacity:.85;cursor:progress}
+.uc-btn.is-busy::before{content:'';width:13px;height:13px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:ucSpin .7s linear infinite;flex-shrink:0}
+.uc-btn.is-busy svg{display:none}
+@keyframes ucSpin{100%{transform:rotate(360deg)}}
+
+/* ---- Find & mark (admin) ---- */
+.uc-find-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.uc-search{position:relative;flex:1 1 260px;min-width:0;max-width:520px}
+.uc-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.uc-search input{width:100%;font:inherit;font-size:.92em;padding:10px 12px 10px 38px;border-radius:10px}
+.uc-find-row .uc-btn{padding-top:10px;padding-bottom:10px}
+#result:not(:empty){margin-top:16px}
+.uc-hint{color:var(--uc-mut);font-size:.84em;font-weight:600}
+
+/* Found ticket card */
+.uc-found{position:relative;border:1px solid var(--uc-line);border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 12px 28px -22px rgba(20,30,50,.6)}
+.uc-found::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#5b8fe6,var(--uc-blue))}
+.uc-found.is-marked::before{background:linear-gradient(180deg,#ff9f2e,var(--uc-acc))}
+.fc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;padding:18px 20px 16px 24px;
+  background:linear-gradient(135deg,#f3f7fd,#fafcff);border-bottom:1px solid #e9eef4}
+.uc-found.is-marked .fc-head{background:linear-gradient(135deg,#fff6ec,#fffcf8)}
+.fc-head-main{min-width:0;flex:1 1 280px}
 .fc-id-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fc-id{display:inline-flex;align-items:center;gap:6px;color:var(--uc-blue);font-weight:800;font-size:1.4em;letter-spacing:.2px;text-decoration:none;line-height:1.1}
+.fc-id:hover{text-decoration:underline}
+.fc-title{color:#2a3340;font-size:.94em;line-height:1.5;margin-top:7px;max-width:70ch;overflow-wrap:anywhere}
+.fc-head-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:16px 20px 16px 24px;border-bottom:1px solid #eef1f4}
+.fc-tile{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;background:#f8fafc;border:1px solid #e8edf2;border-radius:10px;min-width:0}
+.fc-ic{flex-shrink:0;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--uc-blue-bg);color:var(--uc-blue)}
+.fc-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fc-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fc-k{color:var(--uc-mut);font-size:.68em;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.fc-v{color:var(--uc-ink);font-weight:700;font-size:.92em;overflow-wrap:anywhere}
+.fc-v.resolved{color:var(--uc-grn)}.fc-v.open{color:var(--uc-amb)}.fc-v.over{color:var(--uc-red)}
+.fc-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+.fc-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px 14px 24px;flex-wrap:wrap}
+.fc-foot-note{color:var(--uc-mut);font-size:.84em;font-weight:600}
+.marked-badge{display:inline-flex;align-items:center;gap:6px;color:var(--uc-acc-ink);font-weight:800;font-size:.84em}
+/* "View log updates" icon button next to the ticket ID */
 .fc-logwrap{display:inline-flex}
-.fc-logbtn{position:relative;width:32px;height:32px;border-radius:5px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
-  background:linear-gradient(180deg,#ff9f2e,#f07d0a);color:#fff;box-shadow:0 4px 12px -5px rgba(240,125,10,.6);transition:transform .12s,box-shadow .12s}
+.fc-logbtn{position:relative;width:32px;height:32px;border-radius:8px;border:1px solid #d4dade;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  background:#fff;color:var(--uc-acc-ink);transition:border-color .15s,background .15s}
 .fc-logbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.fc-logbtn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 14px -5px rgba(240,125,10,.75)}
-.fc-logbtn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}
-.fc-logbtn:disabled{background:#e8ebee;color:#9aa5b1;box-shadow:none;cursor:not-allowed}
-.fc-logcount{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#1b2026;color:#fff;
-  font-size:10px;font-weight:700;line-height:17px;text-align:center;border:2px solid #fff}
-/* Log updates popup (read-only; same layout as My Tickets' View-incident-log modal, light theme). */
-.vil-modal{width:min(640px,92vw);max-width:min(640px,92vw);padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
-.vil-head{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid #e6eaee}
-.vil-head-ic{flex-shrink:0;width:32px;height:32px;border-radius:9px;background:rgba(21,119,160,.1);color:#1577a0;display:inline-flex;align-items:center;justify-content:center}
-.vil-head-tx{flex:1;min-width:0;margin:0;color:#1b2026;font-size:1.05em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vil-icbtn,.vil-x{flex-shrink:0;background:transparent;border:1px solid #d4dce4;color:#5c6773;border-radius:6px;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
-.vil-icbtn:hover{border-color:#1577a0;color:#1577a0;background:rgba(21,119,160,.08)}
-.vil-x:hover{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.fc-logbtn:hover:not(:disabled){border-color:#f0a35a;background:var(--uc-acc-bg)}
+.fc-logbtn:disabled{background:#f1f3f5;color:#a0a8b1;cursor:not-allowed}
+.fc-logcount{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:99px;background:var(--uc-acc);color:#fff;
+  font-size:10px;font-weight:800;line-height:14px;text-align:center;border:2px solid #fff}
+
+/* ---- Badges / chips ---- */
+.uc-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.74em;font-weight:800;white-space:nowrap;border:1px solid transparent}
+.uc-badge i{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.uc-badge.is-ok{color:var(--uc-grn);background:var(--uc-grn-bg);border-color:#bfe6cd}
+.uc-badge.is-warn{color:var(--uc-amb);background:var(--uc-amb-bg);border-color:#f3dcab}
+.uc-badge.is-info{color:var(--uc-blue);background:var(--uc-blue-bg);border-color:#c8d9f3}
+.uc-badge.is-bad{color:var(--uc-red);background:var(--uc-red-bg);border-color:#f2b8b1}
+.uc-badge.is-mute{color:#3a4552;background:#eef1f4;border-color:#dde2e7}
+.uc-q{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;background:var(--uc-soft);border:1px solid var(--uc-line);
+  font-size:.72em;font-weight:800;letter-spacing:.4px;color:#3a4552;white-space:nowrap;font-variant-numeric:tabular-nums}
+.uc-who{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:#2a3340;white-space:nowrap;min-width:0}
+.uc-who.is-mine{color:var(--uc-acc-ink)}
+.uc-av{flex-shrink:0;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.78em;font-weight:800;
+  background:hsl(var(--h) 60% 92%);color:hsl(var(--h) 55% 28%);border:1px solid hsl(var(--h) 45% 82%)}
+.uc-mini{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:#f1f3f5;color:#4a5562;font-size:.74em;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* ---- List toolbar ---- */
+.uc-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;padding:10px;border-radius:10px;background:var(--uc-soft);border:1px solid var(--uc-line)}
+.uc-tools .uc-search{flex:1 1 240px;max-width:420px}
+.uc-tools .uc-search input{padding:8px 12px 8px 36px;font-size:.88em;border-radius:8px}
+.uc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.uc-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 6px 6px 12px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;white-space:nowrap}
+.uc-chip b{min-width:22px;text-align:center;padding:1px 7px;border-radius:99px;background:var(--uc-soft);border:1px solid var(--uc-line);font-weight:800;font-variant-numeric:tabular-nums}
+.uc-chip:hover:not(:disabled){border-color:#f0a35a}
+.uc-chip[aria-pressed="true"]{background:var(--uc-acc-bg);border-color:#f7c99c;color:var(--uc-acc-ink)}
+.uc-chip[aria-pressed="true"] b{background:#fff;border-color:#f7c99c}
+.uc-chip:disabled,.uc-tools input:disabled{opacity:.55;cursor:not-allowed}
+
+/* ---- Case cards ---- */
+#ucList{transition:opacity .2s}
+#ucList[aria-busy="true"].is-refresh{opacity:.6}
+.uc-case{position:relative;border:1px solid var(--uc-line);border-radius:10px;background:#fff;margin-bottom:8px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.uc-case::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--uc-acc)}
+.uc-case:hover{border-color:#cfd6dd}
+.uc-case.is-open{border-color:#cfd6dd;box-shadow:0 12px 26px -22px rgba(20,30,50,.6)}
+.uc-case-h{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:10px 14px 10px 12px;cursor:pointer}
+.uc-case-h:hover{background:#fafbfc}
+.uc-case.is-open .uc-case-h{background:#f7f8fa;border-bottom:1px solid var(--uc-line)}
+.uc-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:none;background:none;color:#818284;cursor:pointer}
+.uc-chev svg{transition:transform .15s}
+.uc-chev[aria-expanded="true"] svg{transform:rotate(90deg)}
+.uc-case-h:hover .uc-chev{background:#e6f0fc;color:var(--uc-blue)}
+.uc-id{display:inline-flex;align-items:center;gap:4px;color:var(--uc-blue);font-weight:800;font-size:.95em;text-decoration:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+.uc-id:hover{text-decoration:underline}
+.uc-id svg{opacity:.6}
+.uc-case-title{font-size:.9em;font-weight:600;color:#2a3340;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.uc-case-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@container (max-width:760px){
+  .uc-case-h{grid-template-columns:auto auto minmax(0,1fr)}
+  .uc-case-tags{grid-column:2/-1;justify-content:flex-start}
+  .uc-case-title{grid-column:2/-1;grid-row:2;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .uc-case-tags{grid-row:3}
+}
+.uc-case-b{padding:14px 16px 16px 18px;display:flex;flex-direction:column;gap:16px}
+.uc-case-b[hidden]{display:none}
+.uc-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:0}
+.uc-facts>div{padding:10px 12px;border-radius:9px;background:#f8fafc;border:1px solid #e8edf2;min-width:0}
+.uc-facts dt{font-size:.66em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--uc-mut)}
+.uc-facts dd{margin:4px 0 0;font-size:.88em;font-weight:700;color:var(--uc-ink);overflow-wrap:anywhere}
+.uc-facts dd a{color:var(--uc-blue);text-decoration:none}
+.uc-facts dd a:hover{text-decoration:underline}
+.uc-blk-t{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:.7em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--uc-mut)!important}
+.uc-blk-t::after{content:'';flex:1 1 auto;height:1px;background:var(--uc-line)}
+.uc-blk-t span{font-weight:700;letter-spacing:.4px;color:#8793a0}
+.uc-info{white-space:pre-wrap;color:#2a3340;font-size:.9em;line-height:1.6;background:#fbfbfc;border:1px solid #e6eaee;border-left:3px solid #f0a35a;border-radius:8px;padding:12px 14px;overflow-wrap:anywhere}
+.uc-none{color:#8793a0;font-size:.86em;font-style:italic}
+.uc-links{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.uc-links>li{display:flex;min-width:0;max-width:100%}
+.uc-link{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:5px 10px;border-radius:99px;background:var(--uc-blue-bg);border:1px solid #c8d9f3;
+  color:#1f4f9a;font-size:.82em;font-weight:700;text-decoration:none}
+.uc-link span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:46ch}
+.uc-link svg{flex-shrink:0}
+a.uc-link:hover{background:#dce8f8;border-color:#a9c3ea}
+.uc-link.is-plain{background:var(--uc-soft);border-color:var(--uc-line);color:#3a4552}
+.uc-case-actions{display:flex;gap:10px;flex-wrap:wrap;padding-top:12px;border-top:1px solid #eef1f4}
+
+/* ---- States ---- */
+.uc-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--uc-mut)}
+.uc-state.is-compact{padding:24px 16px;border:1px dashed #d4dade;border-radius:10px}
+.uc-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--uc-acc-bg);color:#b5530a;margin-bottom:4px}
+.uc-state-ic.is-err{background:var(--uc-red-bg);color:var(--uc-red)}
+.uc-state-ic.is-mute{background:#eef1f4;color:#5c6773}
+.uc-state-t{font-size:1.08em;font-weight:800;color:var(--uc-ink)}
+.uc-state p{font-size:.9em;max-width:56ch;line-height:1.5}
+.uc-state p b{color:var(--uc-ink)}
+.uc-state .uc-btn{margin-top:6px}
+
+/* ---- Skeletons ---- */
+.uc-sk{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:ucShim 1.4s ease infinite}
+.uc-sk-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes ucShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.uc-meta li.is-sk{padding:6px 12px}
+.uc-case.is-sk{pointer-events:none}
+.uc-case.is-sk::before{background:#dfe3e8}
+.uc-case.is-sk .uc-case-h{cursor:default}
+
+/* ---- One orchestrated entrance when the data first arrives ---- */
+@keyframes ucUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.uc.is-anim .uc-kpi{animation:ucUp .45s ease both}
+.uc.is-anim .uc-kpi:nth-child(2){animation-delay:.06s}
+.uc.is-anim .uc-kpi:nth-child(3){animation-delay:.12s}
+.uc.is-anim .uc-kpi:nth-child(4){animation-delay:.18s}
+.uc.is-anim #ucList .uc-case{animation:ucUp .4s ease .15s both}
+
+/* ---- Page modals (Edit marking / Remove importance / Mark important) ---- */
+.modal-bg.uc-modal-bg{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,22,36,.55)!important}
+.modal.uc-modal{position:relative;display:flex;flex-direction:column;width:min(760px,94vw);max-width:94vw;max-height:88vh;padding:0!important;overflow:hidden;color:var(--uc-ink)!important;
+  background:#fff!important;border:1px solid var(--uc-line)!important;border-top:4px solid var(--uc-acc)!important;border-radius:12px!important;box-shadow:0 30px 70px -28px rgba(15,22,36,.6)!important}
+.modal.uc-modal.is-sm{width:min(480px,94vw)}
+.modal.uc-modal.is-danger{border-top-color:#d92d20!important}
+.uc-mh{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #eef1f4;flex-shrink:0}
+.uc-mh-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--uc-acc-bg);color:#b5530a}
+.is-danger .uc-mh-ic{background:var(--uc-red-bg);color:var(--uc-red)}
+.uc-mh h2{flex:1 1 auto;min-width:0;margin:0;font-size:1.05em;font-weight:800;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uc-mx{flex-shrink:0;width:32px;height:32px;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#5c6773;cursor:pointer;font-size:1.25em;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.uc-mx:hover{border-color:#e9998f;color:var(--uc-red);background:var(--uc-red-bg)}
+.uc-mb{padding:18px 20px;overflow:auto}
+.uc-mf{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:14px 20px;background:#fafbfc;border-top:1px solid #eef1f4;flex-shrink:0}
+.uc-tkbox{border:1px solid #e6eaee;background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:6px}
+.uc-tkbox .mt-id{display:inline-block;color:var(--uc-blue);font-weight:800;font-size:1.05em;margin-bottom:4px}
+.uc-tkbox .tk-title{color:#2a3340;font-size:.9em;line-height:1.5;margin-bottom:8px;overflow-wrap:anywhere}
+.uc-tkbox .uc-tk-tags{display:flex;flex-wrap:wrap;gap:6px}
+.uc-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 14px;margin-top:8px}
+.uc-dl .detail{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px solid #eef1f4;font-size:.86em}
+.uc-dl .k{font-size:.76em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--uc-mut)}
+.uc-dl .v{font-weight:700;color:var(--uc-ink);overflow-wrap:anywhere}
+.uc-dl .v.open{color:var(--uc-amb)}.uc-dl .v.over{color:var(--uc-red)}.uc-dl .v.resolved{color:var(--uc-grn)}
+.uc-modal .fld-label{display:block;color:#3a4552!important;font-size:.8em;font-weight:800;margin:16px 0 6px}
+.uc-modal .fld-label span{font-weight:600;color:#8793a0}
+.uc-ta{width:100%;min-height:120px;font:inherit;font-size:.9em;line-height:1.55;padding:10px 12px;resize:vertical}
+.link-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.link-row input{flex:1;min-width:0;font:inherit;font-size:.88em;padding:9px 12px;text-overflow:ellipsis}
+.link-row .rm{flex-shrink:0;width:36px;height:36px;border-radius:8px;border:1px solid #f2b8b1;background:#fff;color:var(--uc-red);cursor:pointer;font-size:.9em;line-height:1}
+.link-row .rm:hover{background:var(--uc-red-bg)}
+.msg-err{display:none;margin-top:12px;padding:9px 12px;border-radius:8px;background:var(--uc-red-bg);border:1px solid #f2b8b1;color:var(--uc-red);font-size:.85em;font-weight:700}
+.uc-unmark-text{color:#2a3340;font-size:.92em;line-height:1.6}
+.uc-unmark-text b{color:var(--uc-ink)}
+
+/* ---- Log updates popup (read-only incident log) ---- */
+.modal.vil-modal{width:min(640px,92vw);max-width:min(640px,92vw);padding:0!important;overflow:hidden;display:flex;flex-direction:column;max-height:88vh;
+  border-radius:12px!important;border-top:4px solid var(--uc-acc)!important}
+.vil-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid #e6eaee}
+.vil-head-ic{flex-shrink:0;width:34px;height:34px;border-radius:9px;background:var(--uc-acc-bg);color:#b5530a;display:inline-flex;align-items:center;justify-content:center}
+.vil-head-tx{flex:1;min-width:0;margin:0;color:var(--uc-ink);font-size:1.05em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vil-icbtn,.vil-x{flex-shrink:0;background:#fff;border:1px solid #d4dce4;color:#5c6773;border-radius:8px;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
+.vil-icbtn:hover{border-color:#a9c3ea;color:var(--uc-blue);background:var(--uc-blue-bg)}
+.vil-x:hover{border-color:#e9998f;color:var(--uc-red);background:var(--uc-red-bg)}
 .vil-body{padding:16px 20px 20px;overflow:auto}
-.vil-hint{color:#5c6773;font-size:.78em;margin:0 0 12px}
-.ilog-item{background:#f7f9fb;border:1px solid #e6eaee;border-radius:5px;padding:12px 14px;margin-bottom:10px}
+.vil-hint{color:var(--uc-mut);font-size:.8em;margin:0 0 12px}
+.ilog-item{background:#f8fafc;border:1px solid #e8edf2;border-left:3px solid #f0a35a;border-radius:9px;padding:12px 14px;margin-bottom:10px}
+.ilog-item.is-sk{border-left-color:#dfe3e8}
 .ilog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
-.ilog-who{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.76em;color:#5c6773}
-.ilog-who b{color:#1b2026}
-.ilog-when{display:inline-flex;align-items:center;gap:4px;margin-left:8px;color:#5c6773}
+.ilog-who{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.78em;color:var(--uc-mut)}
+.ilog-who b{color:var(--uc-ink)}
+.ilog-when{display:inline-flex;align-items:center;gap:4px;margin-left:8px;color:var(--uc-mut)}
 .ilog-text{color:#2a3340;white-space:pre-wrap;font-size:.88em;line-height:1.55;word-break:break-word}
-.ilog-empty{color:#8793a0;text-align:center;padding:24px;font-style:italic}
-.ilog-err{text-align:center;padding:20px;color:#dc2626;font-size:.88em}
-.ilog-err .btn{margin-top:10px}
-/* Per-entry Edit button (top-right of each log entry; author-only). */
 .ilog-editwrap{display:inline-flex;flex-shrink:0}
-.ilog-editbtn{flex-shrink:0;width:28px;height:28px;border-radius:5px;border:1px solid #d4dce4;background:#fff;color:#5c6773;cursor:pointer;
-  display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
+.ilog-editbtn{flex-shrink:0;width:28px;height:28px;border-radius:7px;border:1px solid #d4dce4;background:#fff;color:#5c6773;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s,background .15s}
 .ilog-editbtn svg{width:14px;height:14px}
-.ilog-editbtn:hover:not(:disabled){border-color:#ec7211;color:#ec7211;background:#fff4e8}
-.ilog-editbtn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}
+.ilog-editbtn:hover:not(:disabled){border-color:#f0a35a;color:var(--uc-acc-ink);background:var(--uc-acc-bg)}
 .ilog-editbtn:disabled{opacity:.45;cursor:not-allowed}
 /* Shared Edit-incident-log modal stacks above the Log updates modal (2000), below toasts/confirm. */
 #incidentModal{z-index:2050}
-</style>
-<style id="ic-loader">
-/* ---- Fun phased section loader (same look as sla-breach.html / agent-analytics.html). Concrete brand
-   colors: blue #2b66c1, blue-bg #e6f0fc, blue-ic #c4def6, orange #ff6100, orange-l #fe9046, ink #151d28. ---- */
-.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
-.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
-/* Compact variants: ticket-search results area (sm) and inside the Log updates modal (xs). */
-.gw-loader.gw-sm{min-height:220px;padding:20px}
-.gw-loader.gw-sm .gw-loader-in{gap:14px}
-.gw-loader.gw-sm .gw-loader-msg{font-size:1.05em}
-.gw-loader.gw-xs{min-height:160px;padding:16px}
-.gw-loader.gw-xs .gw-loader-in{gap:12px}
-.gw-loader.gw-xs .gw-orb{width:72px;height:72px}
-.gw-loader.gw-xs .gw-orb-ic{width:46px;height:46px}
-.gw-loader.gw-xs .gw-orb-ic svg{width:22px;height:22px}
-.gw-loader.gw-xs .gw-loader-msg{font-size:.98em}
-.card.gw-card{padding:0}
+
+/* ---- Toast ---- */
+.toast.uc-toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,8px);z-index:2200;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  display:inline-flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:10px!important;background:#161d2d;color:#f4f3ef;
+  font-size:.86em;font-weight:700;box-shadow:0 14px 30px -12px rgba(15,22,36,.6)!important;border-left:4px solid #1f9d57}
+.toast.uc-toast.show{opacity:1;transform:translate(-50%,0)}
+
 @media (prefers-reduced-motion:reduce){
-  .gw-orb::before,.gw-orb-ic,.gw-loader-msg.gw-msg-in,.gw-dots span,.gw-loader.gw-done .gw-orb-ic{animation:none!important}
-  .gw-dots span{opacity:.8}
+  .uc *,.uc *::before,.uc *::after,.uc-modal-bg *,.uc-modal-bg *::before,.toast.uc-toast{animation:none!important;transition:none!important}
+  .uc-sk{background:#eceff2}.uc-sk-d{background:rgba(255,255,255,.12)}
+  .uc-btn.is-busy::before{border-right-color:currentColor;opacity:.5}
 }
 </style>
 </head>
@@ -395,58 +352,66 @@ h1{color:#1b2026!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><div class="uc-banner"><div class="ub-left"><h1 class="ub-title"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg> Unique Cases</h1></div></div><div class="card gw-card"><div class="gw-loader gw-sm" role="status" aria-live="polite"><div class="gw-loader-in"><div class="gw-orb"><span class="gw-orb-ic"></span></div><div class="gw-loader-msg gw-msg-in">Getting things ready…</div><div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="gw-loader-sub">Unique cases</div></div></div></div></div>
+<!-- Pre-JS first paint: the same hero + skeleton the script paints while the case list loads. -->
+<div class="wrap" id="wrap"><div class="uc"><section class="uc-hero" aria-labelledby="ucH1"><div class="uc-hero-in"><div class="uc-hero-main"><span class="uc-hero-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg></span><div><p class="uc-eyebrow">Leadership watchlist</p><h1 id="ucH1">Unique Cases</h1><p class="uc-hero-sub">Tickets flagged as important, with the context and links behind each one.</p></div></div></div></section><div class="uc-kpis" aria-hidden="true"><div class="uc-kpi"><span class="uc-sk" style="width:60%;height:12px"></span><span class="uc-sk" style="width:44%;height:30px;margin-top:14px"></span><span class="uc-sk" style="width:70%;height:10px;margin-top:10px"></span></div><div class="uc-kpi"><span class="uc-sk" style="width:60%;height:12px"></span><span class="uc-sk" style="width:44%;height:30px;margin-top:14px"></span><span class="uc-sk" style="width:70%;height:10px;margin-top:10px"></span></div><div class="uc-kpi"><span class="uc-sk" style="width:60%;height:12px"></span><span class="uc-sk" style="width:44%;height:30px;margin-top:14px"></span><span class="uc-sk" style="width:70%;height:10px;margin-top:10px"></span></div><div class="uc-kpi"><span class="uc-sk" style="width:60%;height:12px"></span><span class="uc-sk" style="width:44%;height:30px;margin-top:14px"></span><span class="uc-sk" style="width:70%;height:10px;margin-top:10px"></span></div></div><section class="uc-card" aria-busy="true"><span class="uc-sk" style="width:180px;height:18px;margin-bottom:16px"></span><span class="uc-sk" style="width:100%;height:46px;border-radius:10px;margin-bottom:14px"></span><span class="uc-sk" style="width:100%;height:46px;border-radius:10px;margin-bottom:8px"></span><span class="uc-sk" style="width:100%;height:46px;border-radius:10px;margin-bottom:8px"></span><span class="uc-sk" style="width:100%;height:46px;border-radius:10px"></span><span class="uc-sr" role="status">Loading unique cases…</span></section></div></div>
 
 <!-- Edit marking popup -->
-<div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
-  <div class="modal">
-    <div class="modal-head"><h2 id="editTitle">Edit marking</h2><button class="modal-close" onclick="closeEdit()" aria-label="Close">&times;</button></div>
-    <div class="edit-ticket" id="editTicket"></div>
-    <label class="fld-label">Information about this ticket</label>
-    <textarea id="editInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
-    <label class="fld-label">Links</label>
-    <div id="editLinks"></div>
-    <button type="button" class="btn sec add-link" onclick="addLinkInput('')">＋ Add another link</button>
-    <div class="msg-err" id="editErr"></div>
-    <div class="edit-actions">
-      <button class="btn sec" onclick="closeEdit()">Cancel</button>
-      <button class="btn" id="editBtn" onclick="saveEdit()">Save changes</button>
+<div class="modal-bg uc-modal-bg" id="editModal" onclick="if(event.target===this)closeEdit()">
+  <div class="modal uc-modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="uc-mh"><span class="uc-mh-ic" id="editIc" aria-hidden="true"></span><h2 id="editTitle">Edit marking</h2><button type="button" class="uc-mx modal-close" onclick="closeEdit()" aria-label="Close">&times;</button></div>
+    <div class="uc-mb">
+      <div class="uc-tkbox edit-ticket" id="editTicket"></div>
+      <label class="fld-label" for="editInfo">Information about this ticket</label>
+      <textarea id="editInfo" class="uc-ta" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
+      <span class="fld-label" id="editLinksLbl">Links <span>(one per row)</span></span>
+      <div id="editLinks" role="group" aria-labelledby="editLinksLbl"></div>
+      <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm add-link" onclick="addLinkInput('')">＋ Add another link</button>
+      <div class="msg-err" id="editErr" role="alert"></div>
+    </div>
+    <div class="uc-mf">
+      <button type="button" class="uc-btn uc-btn-ghost" onclick="closeEdit()">Cancel</button>
+      <button type="button" class="uc-btn uc-btn-pri" id="editBtn" onclick="saveEdit()">Save changes</button>
     </div>
   </div>
 </div>
 
 <!-- Remove importance confirm popup -->
-<div class="modal-bg" id="unmarkModal" onclick="if(event.target===this)closeUnmark()">
-  <div class="modal" style="width:50vw;max-width:50vw;min-width:min(92vw,420px)">
-    <div class="modal-head"><h2 style="color:var(--rl)">Remove importance?</h2><button class="modal-close" onclick="closeUnmark()" aria-label="Close">&times;</button></div>
-    <p id="unmarkText" style="color:var(--t);font-size:.9em;line-height:1.6"></p>
-    <div class="msg-err" id="unmarkErr"></div>
-    <div class="edit-actions">
-      <button class="btn sec" onclick="closeUnmark()">Cancel</button>
-      <button class="btn danger" id="unmarkBtn" onclick="doUnmark()">Remove importance</button>
+<div class="modal-bg uc-modal-bg" id="unmarkModal" onclick="if(event.target===this)closeUnmark()">
+  <div class="modal uc-modal is-sm is-danger" role="alertdialog" aria-modal="true" aria-labelledby="unmarkTitle" aria-describedby="unmarkText">
+    <div class="uc-mh"><span class="uc-mh-ic" id="unmarkIc" aria-hidden="true"></span><h2 id="unmarkTitle">Remove importance?</h2><button type="button" class="uc-mx modal-close" onclick="closeUnmark()" aria-label="Close">&times;</button></div>
+    <div class="uc-mb">
+      <p id="unmarkText" class="uc-unmark-text"></p>
+      <div class="msg-err" id="unmarkErr" role="alert"></div>
+    </div>
+    <div class="uc-mf">
+      <button type="button" class="uc-btn uc-btn-ghost" onclick="closeUnmark()">Cancel</button>
+      <button type="button" class="uc-btn uc-btn-danger is-solid" id="unmarkBtn" onclick="doUnmark()">Remove importance</button>
     </div>
   </div>
 </div>
+
 <!-- Mark important popup (inline search) -->
-<div class="modal-bg" id="srchMarkModal" onclick="if(event.target===this)closeMark()">
-  <div class="modal">
-    <div class="modal-head"><h2 id="srchMarkTitle">Mark important</h2><button class="modal-close" onclick="closeMark()" aria-label="Close">&times;</button></div>
-    <div class="mark-ticket" id="srchMarkTicket"></div>
-    <label class="fld-label">Information about this ticket</label>
-    <textarea id="srchMarkInfo" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
-    <label class="fld-label">Links</label>
-    <div id="srchMarkLinks"></div>
-    <button type="button" class="btn sec add-link" onclick="srchAddLinkInput('')">＋ Add another link</button>
-    <div class="msg-err" id="srchMarkErr"></div>
-    <div class="mark-actions">
-      <button class="btn sec" onclick="closeMark()">Cancel</button>
-      <button class="btn" id="srchMarkBtn" onclick="completeMarking()">Complete marking</button>
+<div class="modal-bg uc-modal-bg" id="srchMarkModal" onclick="if(event.target===this)closeMark()">
+  <div class="modal uc-modal" role="dialog" aria-modal="true" aria-labelledby="srchMarkTitle">
+    <div class="uc-mh"><span class="uc-mh-ic" id="srchMarkIc" aria-hidden="true"></span><h2 id="srchMarkTitle">Mark important</h2><button type="button" class="uc-mx modal-close" onclick="closeMark()" aria-label="Close">&times;</button></div>
+    <div class="uc-mb">
+      <div class="uc-tkbox mark-ticket" id="srchMarkTicket"></div>
+      <label class="fld-label" for="srchMarkInfo">Information about this ticket</label>
+      <textarea id="srchMarkInfo" class="uc-ta" maxlength="5000" placeholder="Why is this case important? Context, decisions, follow-ups…"></textarea>
+      <span class="fld-label" id="srchMarkLinksLbl">Links <span>(one per row)</span></span>
+      <div id="srchMarkLinks" role="group" aria-labelledby="srchMarkLinksLbl"></div>
+      <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm add-link" onclick="srchAddLinkInput('')">＋ Add another link</button>
+      <div class="msg-err" id="srchMarkErr" role="alert"></div>
+    </div>
+    <div class="uc-mf mark-actions">
+      <button type="button" class="uc-btn uc-btn-ghost" onclick="closeMark()">Cancel</button>
+      <button type="button" class="uc-btn uc-btn-pri" id="srchMarkBtn" onclick="completeMarking()">Complete marking</button>
     </div>
   </div>
 </div>
 
 <!-- Log updates popup (read-only incident log for the searched ticket) -->
-<div class="modal-bg" id="logModal" onclick="if(event.target===this)closeLogModal()">
+<div class="modal-bg uc-modal-bg" id="logModal" onclick="if(event.target===this)closeLogModal()">
   <div class="modal vil-modal" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
     <div class="vil-head">
       <span class="vil-head-ic" id="logModalIcon" aria-hidden="true"></span>
@@ -464,336 +429,403 @@ h1{color:#1b2026!important}
 <!-- Edit-incident-log popup: built by incident-log-editor.js (same modal as My Tickets). -->
 <div id="incidentModalMount" hidden></div>
 
-<div class="toast" id="toast"></div>
+<div class="toast uc-toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
 <script src="incident-log-editor.js?v=10"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 // Shared structured incident-log editor (same modal + helpers as My Tickets).
 if(window.IncidentLogEditor){ window.IncidentLogEditor.injectStyles(); window.IncidentLogEditor.mount('incidentModalMount'); }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Unique Cases</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 function fmtTZ(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ;}catch(e){return iso;}}
+function fmtDay(iso){if(!iso)return '—';try{return new Date(iso).toLocaleDateString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',year:'numeric'});}catch(e){return '—';}}
+function num(n){return (Number(n)||0).toLocaleString('en-US');}
+function $(id){return document.getElementById(id);}
 
-function linkRow(url){
-  const u=esc(url);
-  return '<div class="link-item"><a href="'+u+'" target="_blank" rel="noopener" title="'+u+'">'+u+'</a></div>';
+// ---- Small inline SVGs (icons.js has no link / external glyphs) ----
+const CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const EXT_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+const LINK_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
+const NOTE_SVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 4h16v12l-4 4H4z"/><path d="M8 9h8M8 13h5"/></svg>';
+const STAR_SVG='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg>';
+const SEARCH_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+const star=s=>ic('star',s||16)||STAR_SVG;
+
+// Only http(s) URLs become hrefs; a bare host ("t.corp.amazon.com/V1") gets https:// in front.
+function safeUrl(u){u=String(u||'').trim();if(/^https?:\/\//i.test(u))return u;if(/^[\w-]+(\.[\w-]+)+(\/|$)/.test(u))return 'https://'+u;return '';}
+function idLink(id,url,cls){const s=safeUrl(url);return s?('<a class="'+(cls||'')+'" href="'+esc(s)+'" target="_blank" rel="noopener noreferrer" title="Open '+esc(id)+' in a new tab">'+esc(id)+EXT_SVG+'</a>'):('<span class="'+(cls||'')+'">'+esc(id)+'</span>');}
+function hue(s){s=String(s||'');let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h;}
+function myLogin(){const u=A.getUser&&A.getUser();return String((u&&u.username)||'').toLowerCase();}
+function isMine(c){const me=myLogin();return !!me&&String(c.markedBy||'').toLowerCase()===me;}
+function whoChip(name,mine){
+  const n=String(name||'');if(!n)return '<span class="uc-who">—</span>';
+  return '<span class="uc-who'+(mine?' is-mine':'')+'"><span class="uc-av" style="--h:'+hue(n)+'" aria-hidden="true">'+esc(n.charAt(0).toUpperCase())+'</span>'+esc(n)+(mine?' <span class="uc-sr">(you)</span>':'')+'</span>';
+}
+// Status badge: colour + text (never colour alone).
+function statusCls(s){s=String(s||'').toLowerCase();
+  if(/resolv|closed|complete|done/.test(s))return 'is-ok';
+  if(/pend|wait|hold|block/.test(s))return 'is-warn';
+  if(/overdue|breach|reopen/.test(s))return 'is-bad';
+  if(/open|assign|progress|research|new|active/.test(s))return 'is-info';
+  return 'is-mute';}
+function statusBadge(s){return s?('<span class="uc-badge '+statusCls(s)+'"><i aria-hidden="true"></i>'+esc(s)+'</span>'):'';}
+function qChip(q){return q?('<span class="uc-q" title="Quarter">'+esc(q)+'</span>'):'';}
+
+// Inline busy state for action buttons (spinner + label, disabled, aria-busy).
+function setBusy(btn,on,label){
+  if(!btn)return;
+  if(on){if(!btn.dataset.idle)btn.dataset.idle=btn.innerHTML;btn.disabled=true;btn.setAttribute('aria-busy','true');btn.classList.add('is-busy');if(label)btn.textContent=label;}
+  else{if(btn.dataset.idle!=null){btn.innerHTML=btn.dataset.idle;delete btn.dataset.idle;}btn.disabled=false;btn.removeAttribute('aria-busy');btn.classList.remove('is-busy');}
+}
+function announce(msg){const l=$('ucLive');if(l){l.textContent='';setTimeout(()=>{l.textContent=msg;},30);}}
+function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400);}
+
+// ================= Page shell: hero, KPIs, (admin) find & mark, list =================
+let CASES=[];        // last loaded rows (edit / unmark index into this)
+let HAS_DATA=false;  // a list has been rendered at least once
+let LOAD_ERR=null;   // {status} when the first load failed
+let Q='', FILTER='all';
+const OPEN={};       // shortId -> expanded (survives re-renders)
+const FILTERS=[['all','All'],['mine','Marked by me'],['links','With links'],['notes','With notes']];
+
+function heroHtml(){
+  return '<section class="uc-hero" aria-labelledby="ucH1"><div class="uc-hero-in">'+
+    '<div class="uc-hero-main"><span class="uc-hero-ic" aria-hidden="true">'+star(24)+'</span><div>'+
+      '<p class="uc-eyebrow">Leadership watchlist</p><h1 id="ucH1">Unique Cases</h1>'+
+      '<p class="uc-hero-sub">Tickets flagged as important, with the context and links behind each one. Only the person who marked a case can edit it.</p>'+
+    '</div></div>'+
+    '<ul class="uc-meta" id="ucHeroMeta" aria-label="Summary"></ul>'+
+  '</div></section>';
+}
+function paintShell(){
+  const isAdmin=A.atLeast&&A.atLeast('admin');
+  let html='<div class="uc" id="ucRoot">'+heroHtml()+'<div class="uc-kpis" id="ucKpis"></div>';
+  // Inline ticket search for admins (between the KPIs and the marked-cases list).
+  if(isAdmin) html+=searchBlock();
+  html+='<section class="uc-card" aria-labelledby="ucListH">'+
+    '<div class="uc-card-head"><div><h2 id="ucListH">Marked cases</h2><p class="uc-help">Expand a case to see its notes, links and actions.</p></div><span class="uc-count" id="ucCount" aria-live="polite"></span></div>'+
+    '<div class="uc-tools" role="search" aria-label="Filter marked cases">'+
+      '<div class="uc-search"><label for="ucFilterQ" class="uc-sr">Filter by ticket ID, title, notes or person</label>'+SEARCH_SVG+
+        '<input type="search" id="ucFilterQ" placeholder="Filter by ticket ID, title, notes or person" autocomplete="off"></div>'+
+      '<div class="uc-chips" id="ucChips" role="group" aria-label="Quick filters"></div>'+
+    '</div>'+
+    '<div id="ucList"></div>'+
+  '</section><span class="uc-sr" id="ucLive" aria-live="polite"></span></div>';
+  $('wrap').innerHTML=html;
+  const fq=$('ucFilterQ');
+  fq.value=Q;
+  fq.addEventListener('input',()=>{Q=fq.value;renderList();});
+  $('ucChips').addEventListener('click',e=>{const b=e.target.closest('.uc-chip');if(!b||b.disabled)return;FILTER=b.dataset.f;renderChips();renderList();});
+  if(isAdmin) bindSearch();
+}
+function setToolsEnabled(on){
+  const fq=$('ucFilterQ');if(fq)fq.disabled=!on;
+  document.querySelectorAll('#ucChips .uc-chip').forEach(b=>{b.disabled=!on;});
+}
+function gate(msg){
+  $('wrap').innerHTML='<div class="uc">'+heroHtml()+'<div class="uc-kpis" aria-hidden="true"></div>'+
+    '<section class="uc-card"><div class="uc-state"><span class="uc-state-ic is-mute" aria-hidden="true">'+(ic('lock',26)||star(26))+'</span>'+
+    '<p class="uc-state-t">Unique Cases</p><p>'+msg+'</p><a class="uc-btn uc-btn-pri" href="app.html">Go to Live Dashboard</a></div></section></div>';
 }
 
+// ---- Skeletons (match the final layout) ----
+function skMeta(){return [120,96,150,110].map(w=>'<li class="is-sk" aria-hidden="true"><span class="uc-sk uc-sk-d" style="width:'+w+'px;height:12px"></span></li>').join('');}
+function skKpis(){let h='';for(let i=0;i<4;i++)h+='<div class="uc-kpi"><span class="uc-sk" style="width:60%;height:12px"></span><span class="uc-sk" style="width:44%;height:30px;margin-top:14px"></span><span class="uc-sk" style="width:70%;height:10px;margin-top:10px"></span></div>';return h;}
+function skCases(n){
+  const tw=[62,48,74,55,68,40];let h='';
+  for(let i=0;i<n;i++)h+='<div class="uc-case is-sk" aria-hidden="true"><div class="uc-case-h">'+
+    '<span class="uc-sk" style="width:22px;height:22px;border-radius:6px"></span><span class="uc-sk" style="width:104px;height:14px"></span>'+
+    '<span class="uc-sk" style="width:'+tw[i%tw.length]+'%;height:12px"></span>'+
+    '<span class="uc-case-tags"><span class="uc-sk" style="width:58px;height:20px;border-radius:6px"></span><span class="uc-sk" style="width:76px;height:20px;border-radius:99px"></span><span class="uc-sk" style="width:90px;height:20px;border-radius:99px"></span></span>'+
+  '</div></div>';
+  return h;
+}
+function showSkeleton(){
+  const m=$('ucHeroMeta');if(m)m.innerHTML=skMeta();
+  const k=$('ucKpis');if(k){k.innerHTML=skKpis();k.setAttribute('aria-hidden','true');}
+  const list=$('ucList');list.classList.remove('is-refresh');list.setAttribute('aria-busy','true');
+  list.innerHTML=skCases(5);
+  const cnt=$('ucCount');if(cnt)cnt.textContent='';
+  renderChips();setToolsEnabled(false);
+  announce('Loading unique cases…');
+}
+
+// ---- Data views ----
+function hasLinks(c){return !!(c.links&&c.links.length);}
+function hasNotes(c){return !!String(c.info||'').trim();}
+function within(iso,days){const t=new Date(iso).getTime();return !isNaN(t)&&(Date.now()-t)<=days*86400000;}
+function counts(){
+  return {all:CASES.length,mine:CASES.filter(isMine).length,links:CASES.filter(hasLinks).length,notes:CASES.filter(hasNotes).length,
+    recent:CASES.filter(c=>within(c.updatedAt||c.at,30)).length,
+    quarters:new Set(CASES.map(c=>c.quarter).filter(Boolean)).size};
+}
+function renderHero(){
+  const m=$('ucHeroMeta');if(!m)return;
+  if(LOAD_ERR){m.innerHTML='';return;}
+  const n=counts();
+  let latest='';CASES.forEach(c=>{const w=c.updatedAt||c.at;if(w&&(!latest||String(w)>String(latest)))latest=w;});
+  m.innerHTML='<li>'+star(13)+'<span><b>'+num(n.all)+'</b> case'+(n.all===1?'':'s')+'</span></li>'+
+    '<li>'+(ic('calendar',13))+'<span><b>'+num(n.quarters)+'</b> quarter'+(n.quarters===1?'':'s')+'</span></li>'+
+    (latest?('<li>'+ic('clock',13)+'<span>Last update <b>'+esc(fmtDay(latest))+'</b></span></li>'):'')+
+    '<li>'+ic('globe',13)+'<span>Times in <b>'+esc(MY_TZ)+'</b></span></li>';
+}
+function kpi(cls,icon,label,val,sub,pct){
+  return '<div class="uc-kpi '+cls+'"><div class="uc-kpi-l"><span class="uc-kpi-ic" aria-hidden="true">'+icon+'</span><span>'+label+'</span></div>'+
+    '<div class="uc-kpi-v">'+num(val)+'</div><div class="uc-kpi-s">'+sub+'</div>'+
+    (pct==null?'':('<div class="uc-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,pct)).toFixed(1)+'%"></i></div>'))+'</div>';
+}
+function renderKpis(){
+  const k=$('ucKpis');if(!k)return;
+  if(LOAD_ERR){k.innerHTML='';k.setAttribute('aria-hidden','true');return;}
+  k.removeAttribute('aria-hidden');
+  const n=counts(),p=v=>n.all?v/n.all*100:0;
+  k.innerHTML=kpi('is-base',star(15),'Marked cases',n.all,'across '+num(n.quarters)+' quarter'+(n.quarters===1?'':'s'),100)+
+    kpi('is-acc',ic('user',15),'Marked by you',n.mine,Math.round(p(n.mine))+'% of all cases',p(n.mine))+
+    kpi('is-blue',LINK_SVG,'With links',n.links,Math.round(p(n.links))+'% have references',p(n.links))+
+    kpi('is-good',ic('clock',15),'Updated in 30 days',n.recent,Math.round(p(n.recent))+'% recently touched',p(n.recent));
+}
+function renderChips(){
+  const box=$('ucChips');if(!box)return;
+  const n=HAS_DATA?counts():null;
+  box.innerHTML=FILTERS.map(([f,l])=>'<button type="button" class="uc-chip" data-f="'+f+'" aria-pressed="'+(FILTER===f)+'">'+l+(n?('<b>'+num(n[f])+'</b>'):'')+'</button>').join('');
+}
+function matches(c){
+  if(FILTER==='mine'&&!isMine(c))return false;
+  if(FILTER==='links'&&!hasLinks(c))return false;
+  if(FILTER==='notes'&&!hasNotes(c))return false;
+  const q=Q.trim().toLowerCase();
+  if(q){const hay=[c.shortId,c.title,c.markedBy,c.info,c.quarter,c.status].concat(c.links||[]).join(' ').toLowerCase();if(hay.indexOf(q)<0)return false;}
+  return true;
+}
+function linkChip(u){
+  const s=safeUrl(u);let label=String(u||'');
+  try{if(s){const x=new URL(s);label=x.hostname.replace(/^www\./,'')+((x.pathname&&x.pathname!=='/')?x.pathname:'');}}catch(e){}
+  return '<li>'+(s?('<a class="uc-link" href="'+esc(s)+'" target="_blank" rel="noopener noreferrer" title="'+esc(u)+'">'+LINK_SVG+'<span>'+esc(label)+'</span>'+EXT_SVG+'<span class="uc-sr"> (opens in a new tab)</span></a>')
+    :('<span class="uc-link is-plain" title="'+esc(u)+'">'+LINK_SVG+'<span>'+esc(label)+'</span></span>'))+'</li>';
+}
 function caseCard(c,i){
-  const open=false; // all cards start collapsed (click a head to expand)
-  const links=(c.links&&c.links.length)?('<div class="links">'+c.links.map(linkRow).join('')+'</div>'):'<div class="none">No links added.</div>';
+  const sid=String(c.shortId||'');
+  const open=!!OPEN[sid];
+  const mine=isMine(c);
   const when=c.updatedAt||c.at;
-  // Only the person who marked it can edit/unmark.
-  const mine=(A.getUser&&A.getUser()&&String(c.markedBy||'').toLowerCase()===String(A.getUser().username||'').toLowerCase());
-  return '<div class="case'+(open?' open':'')+'">'+
-    '<button type="button" class="case-head" onclick="toggleCase(this)">'+
-      '<span class="case-id">'+esc(c.shortId)+'</span>'+
-      '<span class="case-title">'+esc(c.title||'(no title)')+'</span>'+
-      '<span class="case-by">'+esc(c.markedBy||'')+'</span>'+
-      '<span class="case-caret">▾</span>'+
-    '</button>'+
-    '<div class="case-body">'+
-      '<div class="case-meta">'+
-        '<span>Ticket: <b><a href="'+esc(c.url)+'" target="_blank" rel="noopener" style="color:#44b9d6;text-decoration:none">'+esc(c.shortId)+'</a></b></span>'+
-        (c.quarter?('<span>Quarter: <b>'+esc(c.quarter)+'</b></span>'):'')+
-        (c.status?('<span>Status: <b>'+esc(c.status)+'</b></span>'):'')+
-        '<span>Marked by: <b>'+esc(c.markedBy||'—')+'</b></span>'+
-        '<span>When: <b>'+fmtTZ(when)+'</b></span>'+
-      '</div>'+
-      '<div><div class="blk-t">Information</div>'+(c.info?('<div class="case-info">'+esc(c.info)+'</div>'):'<div class="none">No notes added.</div>')+'</div>'+
-      '<div><div class="blk-t">Links</div>'+links+'</div>'+
+  const title=c.title||'(no title)';
+  const bid='ucb-'+i;
+  const nl=(c.links||[]).length;
+  const mini=(hasNotes(c)?('<span class="uc-mini" title="Has notes">'+NOTE_SVG+'<span class="uc-sr">Has notes</span></span>'):'')+
+    (nl?('<span class="uc-mini" title="'+nl+' link'+(nl===1?'':'s')+'">'+LINK_SVG+nl+'<span class="uc-sr"> link'+(nl===1?'':'s')+'</span></span>'):'');
+  const links=nl?('<ul class="uc-links">'+c.links.map(linkChip).join('')+'</ul>'):'<p class="uc-none">No links added.</p>';
+  return '<article class="uc-case case'+(open?' is-open open':'')+'" data-sid="'+esc(sid)+'" aria-labelledby="ucct-'+i+'">'+
+    '<div class="uc-case-h" onclick="caseHeadClick(event,this)">'+
+      '<button type="button" class="uc-chev case-head" aria-expanded="'+open+'" aria-controls="'+bid+'" aria-label="Details for '+esc(sid)+'" onclick="toggleCase(this)">'+CHEV+'</button>'+
+      idLink(sid,c.url,'uc-id')+
+      '<span class="uc-case-title" id="ucct-'+i+'" title="'+esc(title)+'">'+esc(title)+'</span>'+
+      '<span class="uc-case-tags">'+mini+qChip(c.quarter)+statusBadge(c.status)+whoChip(c.markedBy,mine)+'</span>'+
+    '</div>'+
+    '<div class="uc-case-b" id="'+bid+'"'+(open?'':' hidden')+'>'+
+      '<dl class="uc-facts">'+
+        '<div><dt>Ticket</dt><dd>'+idLink(sid,c.url,'')+'</dd></div>'+
+        (c.quarter?('<div><dt>Quarter</dt><dd>'+esc(c.quarter)+'</dd></div>'):'')+
+        (c.status?('<div><dt>Status</dt><dd>'+statusBadge(c.status)+'</dd></div>'):'')+
+        '<div><dt>Marked by</dt><dd>'+whoChip(c.markedBy,mine)+'</dd></div>'+
+        '<div><dt>When</dt><dd>'+esc(fmtTZ(when))+'</dd></div>'+
+      '</dl>'+
+      '<div><h3 class="uc-blk-t">Information</h3>'+(hasNotes(c)?('<div class="uc-info">'+esc(c.info)+'</div>'):'<p class="uc-none">No notes added.</p>')+'</div>'+
+      '<div><h3 class="uc-blk-t">Links'+(nl?(' <span>('+nl+')</span>'):'')+'</h3>'+links+'</div>'+
       // Edit stays restricted to the person who marked it; Remove importance (delete) is allowed
       // for any logged-in viewer.
-      ('<div class="case-actions">'+
-        (mine?('<button class="btn sec" onclick="openEdit('+i+')">'+(window.icon?window.icon('pencil',15):'')+' Edit</button>'):'')+
-        '<button class="btn danger" onclick="askUnmark('+i+')">'+(window.icon?window.icon('trash',15):'')+' Remove importance</button>'+
-      '</div>')+
+      '<div class="uc-case-actions">'+
+        (mine?('<button type="button" class="uc-btn uc-btn-ghost" onclick="openEdit('+i+')">'+ic('pencil',15)+' Edit</button>'):'')+
+        '<button type="button" class="uc-btn uc-btn-danger" onclick="askUnmark('+i+')">'+ic('trash',15)+' Remove importance</button>'+
+      '</div>'+
     '</div>'+
-  '</div>';
+  '</article>';
+}
+function toggleCase(btn){
+  const card=btn.closest('.uc-case');if(!card)return;
+  const open=!card.classList.contains('is-open');
+  card.classList.toggle('is-open',open);card.classList.toggle('open',open);
+  btn.setAttribute('aria-expanded',String(open));
+  const body=$(btn.getAttribute('aria-controls'));if(body)body.hidden=!open;
+  OPEN[card.dataset.sid]=open;
+}
+// The whole header row toggles (links and buttons inside it keep their own behaviour).
+function caseHeadClick(e,head){if(e.target.closest('a,button'))return;const b=head.querySelector('.uc-chev');if(b)toggleCase(b);}
+function clearFilters(){Q='';FILTER='all';const fq=$('ucFilterQ');if(fq){fq.value='';fq.focus();}renderChips();renderList();}
+function renderList(){
+  const list=$('ucList');if(!list||!HAS_DATA)return;
+  const isAdmin=A.atLeast&&A.atLeast('admin');
+  const cnt=$('ucCount');
+  if(!CASES.length){
+    if(cnt)cnt.textContent='0 cases';
+    list.innerHTML='<div class="uc-state"><span class="uc-state-ic" aria-hidden="true">'+star(26)+'</span><p class="uc-state-t">No unique cases marked yet</p>'+
+      '<p>'+(isAdmin?'Use <b>Find &amp; mark a ticket</b> above to find a ticket and mark it important.':'Cases flagged as important by the team will appear here.')+'</p></div>';
+    return;
+  }
+  const rows=[];CASES.forEach((c,i)=>{if(matches(c))rows.push(caseCard(c,i));});
+  if(cnt)cnt.textContent=(rows.length===CASES.length)?(num(CASES.length)+' case'+(CASES.length===1?'':'s')):('Showing '+num(rows.length)+' of '+num(CASES.length));
+  list.innerHTML=rows.length?rows.join(''):
+    '<div class="uc-state is-compact"><span class="uc-state-ic is-mute" aria-hidden="true">'+(ic('filter',24)||SEARCH_SVG)+'</span><p class="uc-state-t">No cases match these filters</p>'+
+    '<p>Try a different search, or clear the filters to see every marked case.</p><button type="button" class="uc-btn uc-btn-ghost" onclick="clearFilters()">'+ic('close',14)+' Clear filters</button></div>';
+}
+function render(rows){
+  CASES=rows; // stash for the edit popup
+  const first=!HAS_DATA;
+  HAS_DATA=true;LOAD_ERR=null;
+  if(!$('ucList')) paintShell();
+  const list=$('ucList');list.removeAttribute('aria-busy');list.classList.remove('is-refresh');
+  const root=$('ucRoot');if(root&&first){root.classList.add('is-anim');setTimeout(()=>root.classList.remove('is-anim'),900);}
+  renderHero();renderKpis();renderChips();setToolsEnabled(true);renderList();
+  if(first)announce(rows.length?(num(rows.length)+' unique case'+(rows.length===1?'':'s')+' loaded'):'No unique cases marked yet');
+}
+function renderError(status){
+  LOAD_ERR={status:status};
+  renderHero();renderKpis();setToolsEnabled(false);
+  const cnt=$('ucCount');if(cnt)cnt.textContent='';
+  const list=$('ucList');list.removeAttribute('aria-busy');list.classList.remove('is-refresh');
+  const why=status?('The server answered with HTTP '+esc(status)+'.'):'We could not reach the server. Check your connection or VPN.';
+  list.innerHTML='<div class="uc-state"><span class="uc-state-ic is-err" aria-hidden="true">'+ic('alert-triangle',26)+'</span>'+
+    '<p class="uc-state-t">Couldn\u2019t load unique cases</p><p role="alert">'+why+' Your cases are safe; try again in a moment.</p>'+
+    '<button type="button" class="uc-btn uc-btn-pri" id="ucRetry" onclick="retryLoad(this)">'+ic('refresh',14)+' Retry</button></div>';
+  announce('Could not load unique cases');
+}
+function retryLoad(btn){setBusy(btn,true,'Retrying…');load();}
+
+let LIST_SEQ=0; // newest load() wins; older in-flight loads are ignored
+async function load(){
+  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
+  if(!(A.canViewUnique&&A.canViewUnique())){gate('You do not have access to Unique Cases.');return;}
+  const seq=++LIST_SEQ;
+  // Wait for the profile/timezone first: painting earlier ran before the shared chrome (header +
+  // menu column) and the admin role were ready, so the page showed no search bar. The static
+  // skeleton in #wrap covers this wait.
+  try{MY_TZ=await A.myTimezone();}catch(e){}
+  if(seq!==LIST_SEQ)return;
+  if(!$('ucList')) paintShell();
+  const list=$('ucList');
+  // First load (or a retry after an error): skeletons. Refreshes after edit / mark / unmark keep the
+  // current list on screen, dimmed and aria-busy, until the fresh rows arrive.
+  if(!HAS_DATA) showSkeleton();
+  else{list.setAttribute('aria-busy','true');list.classList.add('is-refresh');}
+  // Cache (time-based): paint instantly from cache, then refresh in the background.
+  const res=await A.swrLoad({
+    key:'unique-cases',
+    fetch:()=>A.api('GET','/api/important-cases'),
+    onData:(rows)=>{if(seq!==LIST_SEQ)return;render(Array.isArray(rows)?rows:[]);}
+  });
+  if(seq!==LIST_SEQ)return;
+  if(!res.painted){renderError(res.status);return;}
+  list.removeAttribute('aria-busy');list.classList.remove('is-refresh');
 }
 
-function toggleCase(btn){const card=btn.closest('.case');if(card)card.classList.toggle('open');}
+// ================= Modal focus handling (Edit / Remove / Mark) =================
+let MODAL_RETURN=null;
+function shown(id){const m=$(id);return !!(m&&m.style.display==='flex');}
+function openModal(id,focusId){MODAL_RETURN=document.activeElement;$(id).style.display='flex';setTimeout(()=>{const f=$(focusId);if(f)f.focus();},40);}
+function closeModal(id){$(id).style.display='none';const r=MODAL_RETURN;MODAL_RETURN=null;if(r&&document.body.contains(r)&&r.offsetParent!==null)r.focus();}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(ilEditorOpen()||document.querySelector('.tb-modal-bg')||shown('logModal'))return; // those own Esc
+  if(shown('editModal')){e.preventDefault();closeEdit();}
+  else if(shown('unmarkModal')){e.preventDefault();closeUnmark();}
+  else if(shown('srchMarkModal')){e.preventDefault();closeMark();}
+});
 
 // ---- Edit marking popup (same fields as the Mark important popup) ----
-let CASES=[];let EDIT_SID=null;
-function addLinkInput(val){
-  const wrap=document.getElementById('editLinks');
+let EDIT_SID=null;
+function linkInputRow(boxId,val,again){
+  const wrap=$(boxId);
   const row=document.createElement('div');
   row.className='link-row';
   const inp=document.createElement('input');
-  inp.type='text';inp.placeholder='https://…';inp.value=val||'';inp.title=val||'';
+  inp.type='url';inp.placeholder='https://…';inp.value=val||'';inp.title=val||'';
+  inp.setAttribute('aria-label','Link '+(wrap.querySelectorAll('.link-row').length+1));
   inp.addEventListener('input',()=>{inp.title=inp.value;});
   const rm=document.createElement('button');
-  rm.type='button';rm.className='rm';rm.textContent='✕';rm.title='Remove this link';
-  rm.onclick=()=>{row.remove();if(!document.querySelectorAll('#editLinks .link-row').length)addLinkInput('');};
+  rm.type='button';rm.className='rm';rm.textContent='✕';rm.title='Remove this link';rm.setAttribute('aria-label','Remove this link');
+  rm.onclick=()=>{row.remove();if(!wrap.querySelectorAll('.link-row').length)again('');};
   row.appendChild(inp);row.appendChild(rm);
   wrap.appendChild(row);
+  return inp;
+}
+function addLinkInput(val){const inp=linkInputRow('editLinks',val,addLinkInput);if(val===''&&shown('editModal'))inp.focus();}
+function tkBox(sid,url,title,tags){
+  return idLink(sid,url,'mt-id')+(title?('<div class="tk-title">'+esc(title)+'</div>'):'')+(tags?('<div class="uc-tk-tags">'+tags+'</div>'):'');
 }
 function openEdit(i){
   const c=CASES[i];if(!c)return;
   EDIT_SID=c.shortId;
-  document.getElementById('editTitle').textContent='Edit marking · '+c.shortId;
-  document.getElementById('editTicket').innerHTML=
-    '<span class="mt-id">'+esc(c.shortId)+'</span>'+
-    (c.title?('<div style="color:var(--t);font-size:.9em;margin-bottom:8px">'+esc(c.title)+'</div>'):'')+
-    '<div class="meta-line">'+(c.quarter?('Quarter: <b>'+esc(c.quarter)+'</b>'):'')+(c.status?('  ·  Status: <b>'+esc(c.status)+'</b>'):'')+'</div>';
-  document.getElementById('editInfo').value=c.info||'';
+  $('editIc').innerHTML=ic('pencil',17);
+  $('editTitle').textContent='Edit marking · '+c.shortId;
+  $('editTicket').innerHTML=tkBox(c.shortId,c.url,c.title,qChip(c.quarter)+statusBadge(c.status));
+  $('editInfo').value=c.info||'';
   const links=(c.links&&c.links.length)?c.links:[''];
-  const box=document.getElementById('editLinks');box.innerHTML='';
-  links.forEach(l=>addLinkInput(l));
-  document.getElementById('editErr').style.display='none';
-  document.getElementById('editModal').style.display='flex';
-  setTimeout(()=>document.getElementById('editInfo').focus(),40);
+  $('editLinks').innerHTML='';
+  links.forEach(l=>linkInputRow('editLinks',l,addLinkInput));
+  $('editErr').style.display='none';
+  setBusy($('editBtn'),false);
+  openModal('editModal','editInfo');
 }
-function closeEdit(){document.getElementById('editModal').style.display='none';EDIT_SID=null;}
-function toast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function closeEdit(){EDIT_SID=null;closeModal('editModal');}
 async function saveEdit(){
   if(!EDIT_SID)return;
-  const c=CASES.find(x=>x.shortId===EDIT_SID)||{};
-  const info=document.getElementById('editInfo').value.trim();
+  const sid=EDIT_SID;
+  const c=CASES.find(x=>x.shortId===sid)||{};
+  const info=$('editInfo').value.trim();
   const links=[...document.querySelectorAll('#editLinks .link-row input')].map(i=>i.value.trim()).filter(Boolean);
-  const err=document.getElementById('editErr');
+  const err=$('editErr');
   if(!info && !links.length){err.textContent='Add some information or at least one link.';err.style.display='block';return;}
   err.style.display='none';
-  const btn=document.getElementById('editBtn');btn.disabled=true;btn.textContent='Saving…';
-  const r=await A.api('POST','/api/important-cases/'+encodeURIComponent(EDIT_SID),{quarter:c.quarter||'',info,links});
-  btn.disabled=false;btn.textContent='Save changes';
-  if(r.ok){closeEdit();toast('Updated '+EDIT_SID);load();}
-  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+  const btn=$('editBtn');setBusy(btn,true,'Saving…');
+  let r;try{r=await A.api('POST','/api/important-cases/'+encodeURIComponent(sid),{quarter:c.quarter||'',info,links});}catch(e){r={ok:false,status:0};}
+  setBusy(btn,false);
+  if(r.ok){closeEdit();toast('Updated '+sid);load();}
+  else{err.textContent=(r.data&&r.data.error)||(r.status?('Failed (HTTP '+r.status+')'):'Could not reach the server. Try again.');err.style.display='block';}
 }
 
 let UNMARK_SID=null;
 function askUnmark(i){
   const c=CASES[i];if(!c)return;
   UNMARK_SID=c.shortId;
-  document.getElementById('unmarkText').innerHTML='Remove the important marking on <b style="color:#fff">'+esc(c.shortId)+'</b>? It will no longer appear in Unique Cases. This cannot be undone.';
-  document.getElementById('unmarkErr').style.display='none';
-  document.getElementById('unmarkModal').style.display='flex';
+  $('unmarkIc').innerHTML=ic('trash',17);
+  $('unmarkText').innerHTML='Remove the important marking on <b>'+esc(c.shortId)+'</b>? It will no longer appear in Unique Cases. This cannot be undone.';
+  $('unmarkErr').style.display='none';
+  setBusy($('unmarkBtn'),false);
+  openModal('unmarkModal','unmarkBtn');
 }
-function closeUnmark(){document.getElementById('unmarkModal').style.display='none';UNMARK_SID=null;}
+function closeUnmark(){UNMARK_SID=null;closeModal('unmarkModal');}
 async function doUnmark(){
   if(!UNMARK_SID)return;
   const sid=UNMARK_SID;
-  const btn=document.getElementById('unmarkBtn');btn.disabled=true;btn.textContent='Removing…';
-  const r=await A.api('DELETE','/api/important-cases/'+encodeURIComponent(sid));
-  btn.disabled=false;btn.textContent='Remove importance';
-  if(r.ok){closeUnmark();toast('Removed importance from '+sid);load();}
-  else{document.getElementById('unmarkErr').textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');document.getElementById('unmarkErr').style.display='block';}
+  const btn=$('unmarkBtn');setBusy(btn,true,'Removing…');
+  let r;try{r=await A.api('DELETE','/api/important-cases/'+encodeURIComponent(sid));}catch(e){r={ok:false,status:0};}
+  setBusy(btn,false);
+  if(r.ok){delete OPEN[sid];closeUnmark();toast('Removed importance from '+sid);load();}
+  else{$('unmarkErr').textContent=(r.data&&r.data.error)||(r.status?('Failed (HTTP '+r.status+')'):'Could not reach the server. Try again.');$('unmarkErr').style.display='block';}
 }
 
-// ================= Fun phased loader (same experience as sla-breach.html) =================
-// Loader markup keyed by the id-prefix `pfx`. `size`: '' = full section (70vh), 'gw-sm' = ticket-search
-// results area (220px), 'gw-xs' = inside the Log updates modal (160px). role=status announces the message.
-function ldHtml(pfx,size,subLabel){
-  return '<div id="'+pfx+'Loader" class="gw-loader'+(size?(' '+size):'')+'" role="status" aria-live="polite">'+
-    '<div class="gw-loader-in">'+
-      '<div class="gw-orb" aria-hidden="true"><span class="gw-orb-ic" id="'+pfx+'LoaderIc">'+ic('clock',30)+'</span></div>'+
-      '<div class="gw-loader-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting things ready\u2026</div>'+
-      '<div class="gw-dots" aria-hidden="true"><span></span><span></span><span></span></div>'+
-      '<div class="gw-loader-sub" id="'+pfx+'LoaderSub">'+esc(subLabel||'Loading')+'</div>'+
-    '</div>'+
-  '</div>';
-}
-function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
-function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
-// Keep the opening line first and the closing "Almost there" last; shuffle everything in between.
-function gwKeepEnds(lines){ return lines.length<3?lines:[lines[0]].concat(gwShuffle(lines.slice(1,-1)),[lines[lines.length-1]]); }
-// Unique-cases list: phase 1 (@2s) then, if the server is slow, phase 2 (@3s, loops).
-function ucListPhase1(){
-  var me=gwFirstName();
-  return gwKeepEnds([
-    ['target',      'Finding the unique cases for you, '+me+' \u2728'],
-    ['calendar',    'Checking every quarter\u2026'],
-    ['ticket',      'Pulling ticket details\u2026'],
-    ['star',        'Gathering the cases marked important\u2026'],
-    ['users',       'Matching each case to who marked it\u2026'],
-    ['clipboard',   'Collecting notes and links\u2026'],
-    ['history',     'Looking back through past quarters\u2026'],
-    ['search',      'Double-checking every ShortId\u2026'],
-    ['check-circle','Almost there\u2026'],
-  ]);
-}
-function ucListPhase2(){
-  var me=gwFirstName();
-  return gwShuffle([
-    ['hourglass',   'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
-    ['database',    'The server is taking a little longer than usual\u2026'],
-    ['refresh',     'Re-checking the case list\u2026'],
-    ['ticket',      'Lining up the ticket details\u2026'],
-    ['check-circle','Nearly ready \u2014 tidying up the list\u2026'],
-    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
-  ]);
-}
-// Ticket search (compact loader in the results area).
-function ucSearchPhase1(q){
-  return gwKeepEnds([
-    ['search',      'Searching all quarters for '+q+'\u2026'],
-    ['database',    'Checking live and past data\u2026'],
-    ['calendar',    'Walking back through previous quarters\u2026'],
-    ['ticket',      'Pulling the ticket details\u2026'],
-    ['star',        'Checking whether it\u2019s already marked important\u2026'],
-    ['check-circle','Almost there\u2026'],
-  ]);
-}
-function ucSearchPhase2(){
-  return gwShuffle([
-    ['hourglass',   'Still searching \u2014 thanks for your patience\u2026'],
-    ['database',    'The server is taking a little longer than usual\u2026'],
-    ['history',     'Still checking older quarters\u2026'],
-    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
-  ]);
-}
-// Log updates modal (compact loader in the modal body).
-function ucLogPhase1(sid){
-  return gwKeepEnds([
-    ['clipboard',   'Loading log updates for '+sid+'\u2026'],
-    ['history',     'Reading every incident-log entry\u2026'],
-    ['users',       'Checking who wrote each entry\u2026'],
-    ['check-circle','Almost there\u2026'],
-  ]);
-}
-function ucLogPhase2(){
-  return gwShuffle([
-    ['hourglass',   'Still loading \u2014 thanks for your patience\u2026'],
-    ['database',    'The server is taking a little longer than usual\u2026'],
-    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
-  ]);
-}
-var _ldMsgTimers={};   // pfx -> {iv,to} for the running message rotation
-function _ldSetMsg(pfx,tuple){
-  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
-  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
-  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
-}
-function _ldStop(pfx){ var t=_ldMsgTimers[pfx]; if(t){ clearInterval(t.iv); clearTimeout(t.to); _ldMsgTimers[pfx]=null; } }
-// Phase 1 (@2s) -> apology -> Phase 2 (@3s, loops). Never blank. Stops itself once the loader leaves the DOM.
-function _ldStart(pfx,p1,p2){
-  _ldStop(pfx);
-  var t=_ldMsgTimers[pfx]={iv:null,to:null}, i=0;
-  var alive=function(){
-    if(_ldMsgTimers[pfx]===t && document.getElementById(pfx+'Loader')) return true;
-    clearInterval(t.iv); clearTimeout(t.to); if(_ldMsgTimers[pfx]===t) _ldMsgTimers[pfx]=null;
-    return false;
-  };
-  _ldSetMsg(pfx,p1[0]);
-  t.iv=setInterval(function(){
-    if(!alive()) return;
-    i++;
-    if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
-    clearInterval(t.iv); t.iv=null;
-    _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your data\u2026']);
-    t.to=setTimeout(function(){
-      if(!alive()) return;
-      var j=0; _ldSetMsg(pfx,p2[0]);
-      t.iv=setInterval(function(){ if(!alive()) return; j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
-    },3000);
-  },2000);
-}
-// Green "done" state shown briefly before the real content replaces the loader.
-function _ldSuccess(pfx,msg){
-  _ldStop(pfx);
-  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
-  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=msg||'Data fetched successfully'; e.classList.add('gw-msg-in'); }
-}
-var _delay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
-const LIST_MIN_MS=1200;   // cold load: keep the loader up long enough to read the first line
-const LIST_DONE_MS=900;   // then show the green done state this long before revealing the list
-const SEARCH_DONE_MS=600; // shorter done state for a found ticket
-
-let LIST_SEQ=0; // newest load() wins; older in-flight loads are ignored
-function listLoaderOn(){return !!document.getElementById('uclLoader');}
-async function load(){
-  if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
-  if(!(A.canViewUnique&&A.canViewUnique())){gate('You do not have access to Unique Cases.');return;}
-  const seq=++LIST_SEQ;
-  // Wait for the profile/timezone first (as before the loader was added): painting earlier ran
-  // before the shared chrome (header + menu column) and the admin role were ready, so the page
-  // showed a bare loader with no menu and no search bar.
-  try{MY_TZ=await A.myTimezone();}catch(e){}
-  if(seq!==LIST_SEQ)return;
-  // First load: banner + (admin) search + a compact phased loader just below the search bar.
-  // Refreshes (after edit / mark / unmark) keep the current page and just swap the list.
-  if(!document.getElementById('ucList')) paintLoading();
-  const t0=Date.now();
-  // Cache (time-based): paint instantly from cache, then refresh in the background. A network
-  // result that arrives while the loader is up is held so the done state can show first.
-  let fresh=null;
-  const res=await A.swrLoad({
-    key:'unique-cases',
-    fetch:()=>A.api('GET','/api/important-cases'),
-    onData:(rows,fromCache)=>{
-      if(seq!==LIST_SEQ)return;
-      rows=Array.isArray(rows)?rows:[];
-      if(listLoaderOn()&&!fromCache){fresh=rows;return;}
-      render(rows);
-    }
-  });
-  if(seq!==LIST_SEQ)return;
-  if(fresh){
-    const wait=LIST_MIN_MS-(Date.now()-t0);
-    if(wait>0) await _delay(wait);
-    if(seq!==LIST_SEQ)return;
-    _ldSuccess('ucl','Unique cases loaded');
-    await _delay(LIST_DONE_MS);
-    if(seq!==LIST_SEQ)return;
-    render(fresh);
-    return;
-  }
-  if(!res.painted){_ldStop('ucl');gate('Could not load unique cases (HTTP '+res.status+').');}
-}
-// Page shell: the banner + (admin) inline search + the list container.
-function paintShell(){
-  var isAdmin=A.atLeast&&A.atLeast('admin');
-  var html='<div class="uc-banner"><div class="ub-left">'
-    +'<h1 class="ub-title">'+(window.icon?window.icon('target',24):'')+' Unique Cases</h1>'
-    +'</div></div>';
-  // Inline ticket search for admins (between the banner and the marked-cases list).
-  if(isAdmin) html+=searchBlock();
-  html+='<div id="ucList"></div>';
-  document.getElementById('wrap').innerHTML=html;
-  if(isAdmin) bindSearch();
-}
-// Loading view: the shell with the full phased loader in the list area.
-function paintLoading(){
-  paintShell();
-  const list=document.getElementById('ucList');
-  list.setAttribute('aria-busy','true');
-  // Compact card (220px) directly under the search bar, not a 70vh full-section loader.
-  list.innerHTML='<div class="card gw-card">'+ldHtml('ucl','gw-sm','Unique cases')+'</div>';
-  _ldStart('ucl',ucListPhase1(),ucListPhase2());
-}
-
-function render(rows){
-  CASES=rows; // stash for the edit popup
-  var isAdmin=A.atLeast&&A.atLeast('admin');
-  if(!document.getElementById('ucList')) paintShell();
-  _ldStop('ucl');
-  const list=document.getElementById('ucList');
-  list.removeAttribute('aria-busy');
-  if(!rows.length){list.innerHTML='<div class="empty">No unique cases marked yet. Use <b>Search a ticket</b> above to find a ticket and mark it important.</div>';if(isAdmin){const q=document.getElementById('q');if(q)q.focus();}return;}
-  list.innerHTML=rows.map(caseCard).join('');
-}
-
-// ================= Inline ticket search (copied from unique-cases.html) =================
-const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
+// ================= Inline ticket search (admins) =================
 function searchBlock(){
-  return '<p class="sub">Search any ticket across all quarters (live and past). Enter a ticket ShortId and click Search.</p>'+
-    '<div class="search-row">'+
-      '<input type="text" id="q" placeholder="e.g. V2346261846" autocomplete="off">'+
-      '<button class="btn" id="searchBtn" onclick="doSearch()">'+ic('search')+' Search</button>'+
-      '<button class="btn clear" id="clearBtn" onclick="clearSearch()" title="Clear the search and result">'+ic('close',15)+' Clear</button>'+
+  return '<section class="uc-card uc-find" aria-labelledby="ucFindH">'+
+    '<div class="uc-card-head"><div><h2 id="ucFindH">Find &amp; mark a ticket</h2>'+
+      '<p class="uc-help sub">Search any ticket across all quarters (live and past). Enter a ticket ShortId and click Search.</p></div>'+
+      '<span class="uc-role">'+ic('shield',12)+'Admin</span></div>'+
+    '<div class="uc-find-row search-row" role="search" aria-label="Ticket search">'+
+      '<div class="uc-search"><label for="q" class="uc-sr">Ticket ShortId</label>'+SEARCH_SVG+
+        '<input type="search" id="q" placeholder="e.g. V2346261846" autocomplete="off" spellcheck="false"></div>'+
+      '<button type="button" class="uc-btn uc-btn-pri" id="searchBtn" onclick="doSearch()">'+(ic('search')||SEARCH_SVG)+' Search</button>'+
+      '<button type="button" class="uc-btn uc-btn-ghost clear" id="clearBtn" onclick="clearSearch()" title="Clear the search and result">'+ic('close',15)+' Clear</button>'+
     '</div>'+
-    '<div id="result"></div>';
+    '<div id="result" aria-live="polite"></div>'+
+  '</section>';
 }
 function bindSearch(){
-  const input=document.getElementById('q');
+  const input=$('q');
   if(input && !input.dataset.bound){ input.dataset.bound='1'; input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();}); }
 }
 function slaRemaining(createIso,slaHours){
@@ -804,47 +836,55 @@ function slaRemaining(createIso,slaHours){
   const d=Math.floor(abs/86400000), h=Math.floor((abs%86400000)/3600000);
   return {over, txt:(d>0?d+'d ':'')+h+'h'};
 }
+function skFound(q){
+  let tiles='';for(let i=0;i<5;i++)tiles+='<div class="fc-tile"><span class="uc-sk" style="width:32px;height:32px;border-radius:9px;flex-shrink:0"></span><span class="fc-wrap" style="flex:1"><span class="uc-sk" style="width:55%;height:9px"></span><span class="uc-sk" style="width:80%;height:13px;margin-top:6px"></span></span></div>';
+  return '<div class="uc-found" aria-hidden="true"><div class="fc-head"><div class="fc-head-main"><span class="uc-sk" style="width:170px;height:22px"></span><span class="uc-sk" style="width:70%;height:12px;margin-top:12px"></span></div>'+
+    '<div class="fc-head-meta"><span class="uc-sk" style="width:64px;height:22px;border-radius:6px"></span><span class="uc-sk" style="width:90px;height:22px;border-radius:99px"></span></div></div>'+
+    '<div class="fc-grid">'+tiles+'</div><div class="fc-foot"><span class="uc-sk" style="width:180px;height:12px"></span><span class="uc-sk" style="width:150px;height:36px;border-radius:8px"></span></div></div>'+
+    '<span class="uc-sr">Searching all quarters for '+esc(q)+'…</span>';
+}
 let SEARCH_SEQ=0; // a newer search (or Clear) supersedes an in-flight one
 function searchBusy(on){
-  const btn=document.getElementById('searchBtn'), box=document.getElementById('result');
-  if(btn){btn.disabled=on;if(on)btn.setAttribute('aria-busy','true');else btn.removeAttribute('aria-busy');}
+  const btn=$('searchBtn'), box=$('result');
+  setBusy(btn,on,on?'Searching…':'');
   if(box){if(on)box.setAttribute('aria-busy','true');else box.removeAttribute('aria-busy');}
 }
 async function doSearch(){
-  const q=document.getElementById('q').value.trim();
+  const q=$('q').value.trim();
   if(!q){
-    ++SEARCH_SEQ;_ldStop('ucs');searchBusy(false);
-    document.getElementById('result').innerHTML='<p class="hint">Enter a ticket ShortId first.</p>';return;
+    ++SEARCH_SEQ;searchBusy(false);
+    $('result').innerHTML='<p class="uc-hint" role="alert">Enter a ticket ShortId first.</p>';$('q').focus();return;
   }
   const seq=++SEARCH_SEQ;
   searchBusy(true);
-  document.getElementById('result').innerHTML='<div class="card gw-card">'+ldHtml('ucs','gw-sm','Ticket search')+'</div>';
-  _ldStart('ucs',ucSearchPhase1(q),ucSearchPhase2());
+  $('result').innerHTML=skFound(q);
   let r;
   try{ r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(q)); }
   catch(e){ r={ok:false,status:0}; }
   if(seq!==SEARCH_SEQ)return; // superseded by a newer search or Clear
+  searchBusy(false);
   const d=(r&&r.data)||{};
-  if(r.ok&&d.found){
-    _ldSuccess('ucs','Found '+(d.shortId||q));
-    await _delay(SEARCH_DONE_MS);
-    if(seq!==SEARCH_SEQ)return;
-  }
-  _ldStop('ucs');searchBusy(false);
-  const box=document.getElementById('result');
+  const box=$('result');
   if(!box)return;
-  if(!r.ok){box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Search failed ('+(r.status?('HTTP '+esc(r.status)):'network error')+').</b></div>';return;}
+  if(!r.ok){
+    box.innerHTML='<div class="uc-state is-compact"><span class="uc-state-ic is-err" aria-hidden="true">'+ic('alert-triangle',24)+'</span><p class="uc-state-t">Search failed</p>'+
+      '<p role="alert">'+(r.status?('The server answered with HTTP '+esc(r.status)+'.'):'We could not reach the server.')+' Try the search again.</p>'+
+      '<button type="button" class="uc-btn uc-btn-pri" onclick="retrySearch(this)">'+ic('refresh',14)+' Retry</button></div>';
+    return;
+  }
   if(!d.found){
-    box.innerHTML='<div class="card notfound"><b style="color:var(--rl)">Ticket not found.</b><p class="hint">No ticket matching <b>'+esc(q)+'</b> exists in any quarter.</p></div>';
+    box.innerHTML='<div class="uc-state is-compact"><span class="uc-state-ic is-mute" aria-hidden="true">'+(ic('search',24)||SEARCH_SVG)+'</span><p class="uc-state-t">Ticket not found</p>'+
+      '<p>No ticket matching <b>'+esc(q)+'</b> exists in any quarter.</p></div>';
     return;
   }
   renderResult(d);
 }
 window.doSearch=doSearch;
+function retrySearch(btn){setBusy(btn,true,'Retrying…');doSearch();}
 function clearSearch(){
-  ++SEARCH_SEQ;_ldStop('ucs');searchBusy(false); // cancel any in-flight search
-  const q=document.getElementById('q'); if(q){ q.value=''; q.focus(); }
-  const box=document.getElementById('result'); if(box) box.innerHTML='';
+  ++SEARCH_SEQ;searchBusy(false); // cancel any in-flight search
+  const q=$('q'); if(q){ q.value=''; q.focus(); }
+  const box=$('result'); if(box) box.innerHTML='';
   CURRENT=null;
 }
 window.clearSearch=clearSearch;
@@ -861,36 +901,24 @@ function ticketDetailRows(d){
     const txt=rem?(rem.over?('Overdue by '+rem.txt+' past SLA'):(rem.txt+' remaining until SLA')):'—';
     resolvedRow='<div class="detail"><span class="k">When resolved</span><span class="v '+(rem&&rem.over?'over':'open')+'">Still open · '+txt+'</span></div>';
   }
-  return '<div class="detail"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>'+
+  return '<div class="uc-dl"><div class="detail"><span class="k">Who requested</span><span class="v">'+(d.requester?esc(d.requester):'—')+'</span></div>'+
     '<div class="detail"><span class="k">When created</span><span class="v">'+fmtTZ(d.createDate)+'</span></div>'+
     resolvedRow+
     '<div class="detail"><span class="k">Country</span><span class="v">'+(d.country?esc(d.country):'—')+'</span></div>'+
-    '<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div>';
+    '<div class="detail"><span class="k">Who assigned</span><span class="v">'+(d.assignee?esc(d.assignee):'—')+'</span></div></div>';
 }
-
-// A single stat tile for the redesigned found-card grid.
+// A single stat tile for the found-card grid.
 function fcTile(icon,label,value,cls){
-  return '<div class="fc-tile">'+
-    '<span class="fc-ic">'+icon+'</span>'+
-    '<span class="fc-wrap"><span class="fc-k">'+label+'</span>'+
-    '<span class="fc-v'+(cls?(' '+cls):'')+'">'+value+'</span></span>'+
-  '</div>';
+  return '<div class="fc-tile"><span class="fc-ic" aria-hidden="true">'+icon+'</span>'+
+    '<span class="fc-wrap"><span class="fc-k">'+label+'</span><span class="fc-v'+(cls?(' '+cls):'')+'">'+value+'</span></span></div>';
 }
-
 function renderResult(d){
   CURRENT=d;
   const marked=!!(d.important&&(d.important.info||(d.important.links&&d.important.links.length)));
-
-  // Status chip — colour follows the resolution state.
-  let statusCls='open', statusTxt;
-  if(d.resolvedDate){ statusCls='resolved'; statusTxt=d.status?esc(d.status):'Resolved'; }
-  else{
-    const rem=slaRemaining(d.createDate,d.slaHours);
-    statusCls=(rem&&rem.over)?'over':'open';
-    statusTxt=d.status?esc(d.status):'Open';
-  }
-
-  // Resolved / SLA tile.
+  // Status badge — colour follows the resolution / SLA state, text always present.
+  let badgeCls, statusTxt;
+  if(d.resolvedDate){ badgeCls='is-ok'; statusTxt=d.status||'Resolved'; }
+  else{ const rem=slaRemaining(d.createDate,d.slaHours); badgeCls=(rem&&rem.over)?'is-bad':'is-warn'; statusTxt=d.status||'Open'; }
   let resTile;
   if(d.resolvedDate){
     resTile=fcTile(ICN.check,'Resolved',fmtTZ(d.resolvedDate),'resolved');
@@ -899,36 +927,27 @@ function renderResult(d){
     const txt=rem?(rem.over?('Overdue '+rem.txt):(rem.txt+' to SLA')):'Still open';
     resTile=fcTile(ICN.clock,'SLA status',txt,(rem&&rem.over)?'over':'open');
   }
-
   const grid=
     fcTile(ICN.user,'Requested by',d.requester?esc(d.requester):'—')+
     fcTile(ICN.cal,'Created',fmtTZ(d.createDate))+
     resTile+
     fcTile(ICN.globe,'Country',d.country?esc(d.country):'—')+
     fcTile(ICN.id,'Assigned to',d.assignee?('<span class="fc-mono">'+esc(d.assignee)+'</span>'):'—');
-
-  document.getElementById('result').innerHTML=
-    '<div class="card found fc'+(marked?' is-marked':'')+'">'+
+  $('result').innerHTML=
+    '<article class="uc-found found fc'+(marked?' is-marked':'')+'" aria-label="Search result '+esc(d.shortId)+'">'+
       '<div class="fc-head">'+
         '<div class="fc-head-main">'+
-          '<div class="fc-id-row">'+
-            '<a class="fc-id" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+
-              esc(d.shortId)+'<span class="fc-ext" aria-hidden="true">↗</span></a>'+
-            logBtnHtml(d)+
-          '</div>'+
+          '<div class="fc-id-row">'+idLink(d.shortId,d.url,'fc-id')+logBtnHtml(d)+'</div>'+
           (d.title?('<div class="fc-title">'+esc(d.title)+'</div>'):'')+
         '</div>'+
-        '<div class="fc-head-meta">'+
-          (d.quarter?('<span class="fc-q">'+esc(d.quarter)+'</span>'):'')+
-          '<span class="fc-status '+statusCls+'"><i></i>'+statusTxt+'</span>'+
-        '</div>'+
+        '<div class="fc-head-meta">'+qChip(d.quarter)+'<span class="uc-badge '+badgeCls+'"><i aria-hidden="true"></i>'+esc(statusTxt)+'</span></div>'+
       '</div>'+
       '<div class="fc-grid">'+grid+'</div>'+
       '<div class="fc-foot">'+
-        (marked?'<span class="marked-badge" id="markedBadge">★ Marked important</span>':'<span class="fc-foot-note">Not yet flagged for leadership</span>')+
-        '<button class="btn fc-mark" onclick="openMark()">★ '+(marked?'Edit marking':'Mark important')+'</button>'+
+        (marked?('<span class="marked-badge" id="markedBadge">'+star(14)+' Marked important</span>'):'<span class="fc-foot-note">Not yet flagged for leadership</span>')+
+        '<button type="button" class="uc-btn uc-btn-pri fc-mark" onclick="openMark()">'+star(15)+' '+(marked?'Edit marking':'Mark important')+'</button>'+
       '</div>'+
-    '</div>';
+    '</article>';
 }
 window.renderResult=renderResult;
 
@@ -941,50 +960,36 @@ const ICN={
   globe:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
   id:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h7"/></svg>'
 };
-function srchAddLinkInput(val){
-  const wrap=document.getElementById('srchMarkLinks');
-  const row=document.createElement('div');
-  row.className='link-row';
-  const inp=document.createElement('input');
-  inp.type='text';inp.placeholder='https://…';inp.value=val||'';inp.title=val||'';
-  inp.addEventListener('input',()=>{inp.title=inp.value;});
-  const rm=document.createElement('button');
-  rm.type='button';rm.className='rm';rm.textContent='✕';rm.title='Remove this link';
-  rm.onclick=()=>{row.remove();if(!document.querySelectorAll('#srchMarkLinks .link-row').length)srchAddLinkInput('');};
-  row.appendChild(inp);row.appendChild(rm);
-  wrap.appendChild(row);
-}
+function srchAddLinkInput(val){const inp=linkInputRow('srchMarkLinks',val,srchAddLinkInput);if(val===''&&shown('srchMarkModal'))inp.focus();}
 window.srchAddLinkInput=srchAddLinkInput;
 function openMark(){
   if(!CURRENT)return;
   const d=CURRENT;
-  document.getElementById('srchMarkTitle').textContent='Mark important · '+d.shortId;
-  document.getElementById('srchMarkTicket').innerHTML=
-    '<span class="mt-id">'+esc(d.shortId)+'</span>'+
-    (d.title?('<div class="tk-title" style="margin-bottom:10px">'+esc(d.title)+'</div>'):'')+
-    ticketDetailRows(d);
+  $('srchMarkIc').innerHTML=star(17);
+  $('srchMarkTitle').textContent='Mark important · '+d.shortId;
+  $('srchMarkTicket').innerHTML=tkBox(d.shortId,d.url,d.title,qChip(d.quarter))+ticketDetailRows(d);
   const imp=d.important||{};
-  document.getElementById('srchMarkInfo').value=imp.info||'';
+  $('srchMarkInfo').value=imp.info||'';
   const links=(imp.links&&imp.links.length)?imp.links:[''];
-  const box=document.getElementById('srchMarkLinks');box.innerHTML='';
-  links.forEach(l=>srchAddLinkInput(l));
-  document.getElementById('srchMarkErr').style.display='none';
-  document.getElementById('srchMarkModal').style.display='flex';
-  setTimeout(()=>document.getElementById('srchMarkInfo').focus(),40);
+  $('srchMarkLinks').innerHTML='';
+  links.forEach(l=>linkInputRow('srchMarkLinks',l,srchAddLinkInput));
+  $('srchMarkErr').style.display='none';
+  setBusy($('srchMarkBtn'),false);
+  openModal('srchMarkModal','srchMarkInfo');
 }
 window.openMark=openMark;
-function closeMark(){document.getElementById('srchMarkModal').style.display='none';}
+function closeMark(){closeModal('srchMarkModal');}
 window.closeMark=closeMark;
 async function completeMarking(){
   if(!CURRENT)return;
-  const info=document.getElementById('srchMarkInfo').value.trim();
+  const info=$('srchMarkInfo').value.trim();
   const links=[...document.querySelectorAll('#srchMarkLinks .link-row input')].map(i=>i.value.trim()).filter(Boolean);
-  const err=document.getElementById('srchMarkErr');
+  const err=$('srchMarkErr');
   if(!info && !links.length){err.textContent='Add some information or at least one link.';err.style.display='block';return;}
   err.style.display='none';
-  const btn=document.getElementById('srchMarkBtn');btn.disabled=true;btn.textContent='Saving…';
-  const r=await A.api('POST','/api/important-cases/'+encodeURIComponent(CURRENT.shortId),{quarter:CURRENT.quarter,info,links});
-  btn.disabled=false;btn.textContent='Complete marking';
+  const btn=$('srchMarkBtn');setBusy(btn,true,'Saving…');
+  let r;try{r=await A.api('POST','/api/important-cases/'+encodeURIComponent(CURRENT.shortId),{quarter:CURRENT.quarter,info,links});}catch(e){r={ok:false,status:0};}
+  setBusy(btn,false);
   if(r.ok){
     CURRENT.important=(r.data&&r.data.important)||{info,links};
     closeMark();
@@ -992,7 +997,7 @@ async function completeMarking(){
     renderResult(CURRENT);
     load(); // refresh the Unique Cases list so the newly-marked ticket appears
   }else{
-    err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';
+    err.textContent=(r.data&&r.data.error)||(r.status?('Failed (HTTP '+r.status+')'):'Could not reach the server. Try again.');err.style.display='block';
   }
 }
 window.completeMarking=completeMarking;
@@ -1019,39 +1024,44 @@ function openLogModal(btn){
   if(!CURRENT)return;
   LOG_RETURN=btn||null;
   LOG_SID=CURRENT.shortId;
-  document.getElementById('logModalIcon').innerHTML=clipIc(16);
-  document.getElementById('logCopyBtn').innerHTML=ic('copy',12)||'⧉';
-  document.getElementById('logCloseBtn').innerHTML=ic('close',12)||'\u2715';
-  document.getElementById('logModalTitle').textContent='Log updates · '+LOG_SID;
-  document.getElementById('logModal').style.display='flex';
+  $('logModalIcon').innerHTML=clipIc(16);
+  $('logCopyBtn').innerHTML=ic('copy',12)||'⧉';
+  $('logCloseBtn').innerHTML=ic('close',12)||'\u2715';
+  $('logModalTitle').textContent='Log updates · '+LOG_SID;
+  $('logModal').style.display='flex';
   document.addEventListener('keydown',logKeydown,true);
-  setTimeout(()=>document.getElementById('logCloseBtn').focus(),20);
+  setTimeout(()=>$('logCloseBtn').focus(),20);
   fetchLogUpdates();
 }
 window.openLogModal=openLogModal;
+function skLog(n){
+  let h='';for(let i=0;i<n;i++)h+='<div class="ilog-item is-sk" aria-hidden="true"><div class="ilog-head"><span class="uc-sk" style="width:46%;height:11px"></span><span class="uc-sk" style="width:28px;height:28px;border-radius:7px"></span></div>'+
+    '<span class="uc-sk" style="width:94%;height:11px"></span><span class="uc-sk" style="width:82%;height:11px;margin-top:7px"></span><span class="uc-sk" style="width:60%;height:11px;margin-top:7px"></span></div>';
+  return h;
+}
 async function fetchLogUpdates(){
   const sid=LOG_SID;if(!sid)return;
-  const box=document.getElementById('logList');
-  const copyBtn=document.getElementById('logCopyBtn');
+  const box=$('logList');
+  const copyBtn=$('logCopyBtn');
   const seq=++LOG_SEQ;
   LOG_ITEMS=[];copyBtn.style.display='none';
   box.setAttribute('aria-busy','true');
-  box.innerHTML=ldHtml('ucg','gw-xs','Log updates');
-  _ldStart('ucg',ucLogPhase1(sid),ucLogPhase2());
+  box.innerHTML=skLog(3)+'<span class="uc-sr">Loading log updates for '+esc(sid)+'…</span>';
   let r;
   try{ r=await A.api('GET','/api/tickets/'+encodeURIComponent(sid)+'/incident-log'); }
   catch(e){ r={ok:false,status:0}; }
   if(LOG_SID!==sid||seq!==LOG_SEQ)return; // closed, switched or re-fetched while loading
-  _ldStop('ucg');box.removeAttribute('aria-busy');
+  box.removeAttribute('aria-busy');
   if(!r.ok||!Array.isArray(r.data)){
-    box.innerHTML='<div class="ilog-err">Could not load log updates'+(r.status?(' (HTTP '+esc(r.status)+')'):'')+'.<br>'+
-      '<button type="button" class="btn sec" onclick="fetchLogUpdates()">'+ic('refresh',13)+' Retry</button></div>';
+    box.innerHTML='<div class="uc-state is-compact"><span class="uc-state-ic is-err" aria-hidden="true">'+ic('alert-triangle',24)+'</span><p class="uc-state-t">Couldn\u2019t load log updates</p>'+
+      '<p role="alert">'+(r.status?('The server answered with HTTP '+esc(r.status)+'.'):'We could not reach the server.')+'</p>'+
+      '<button type="button" class="uc-btn uc-btn-pri" onclick="setBusy(this,true,\'Retrying…\');fetchLogUpdates()">'+ic('refresh',13)+' Retry</button></div>';
     return;
   }
   // Newest first.
   const items=r.data.slice().sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
   syncLogBadge(sid,items.length);
-  if(!items.length){box.innerHTML='<div class="ilog-empty">No log updates for this ticket yet</div>';return;}
+  if(!items.length){box.innerHTML='<div class="uc-state is-compact"><span class="uc-state-ic is-mute" aria-hidden="true">'+clipIc(22)+'</span><p>No log updates for this ticket yet</p></div>';return;}
   LOG_ITEMS=items;copyBtn.style.display='';
   box.innerHTML=items.map(e=>{
     const when=e.at?fmtTZ(e.at):'';
@@ -1081,11 +1091,11 @@ async function copyLogUpdates(){
 }
 window.copyLogUpdates=copyLogUpdates;
 function closeLogModal(){
-  document.getElementById('logModal').style.display='none';
+  $('logModal').style.display='none';
   document.removeEventListener('keydown',logKeydown,true);
-  LOG_SID=null;LOG_ITEMS=[];_ldStop('ucg');
-  const ll=document.getElementById('logList');if(ll)ll.removeAttribute('aria-busy');
-  const back=(LOG_RETURN&&document.body.contains(LOG_RETURN))?LOG_RETURN:(document.getElementById('fcLogBtn')||document.getElementById('q'));
+  LOG_SID=null;LOG_ITEMS=[];
+  const ll=$('logList');if(ll)ll.removeAttribute('aria-busy');
+  const back=(LOG_RETURN&&document.body.contains(LOG_RETURN))?LOG_RETURN:($('fcLogBtn')||$('q'));
   LOG_RETURN=null;
   if(back)back.focus();
 }
@@ -1111,7 +1121,7 @@ function syncLogBadge(sid,n){
   const wrap=document.querySelector('#result .fc-logwrap');if(!wrap)return;
   const tmp=document.createElement('div');tmp.innerHTML=logBtnHtml(CURRENT);
   wrap.replaceWith(tmp.firstChild);
-  if(LOG_SID)LOG_RETURN=document.getElementById('fcLogBtn')||null;
+  if(LOG_SID)LOG_RETURN=$('fcLogBtn')||null;
 }
 
 // ================= Edit a log entry (shared structured editor from incident-log-editor.js) =================
@@ -1129,7 +1139,7 @@ function logEditBtnHtml(e){
 }
 var IL_EDIT_ID=null;        // entry id open in the editor
 var IL_EDIT_RETURN_ID=null; // entry whose Edit button gets focus back when the editor closes
-function ilEditorOpen(){const m=document.getElementById('incidentModal');return !!(m&&m.style.display==='flex');}
+function ilEditorOpen(){const m=$('incidentModal');return !!(m&&m.style.display==='flex');}
 function openLogEntryEditor(id){
   const e=LOG_ITEMS.find(x=>String(x.id)===String(id));
   if(!e||!LOG_SID||!window.IncidentLogEditor)return;
@@ -1137,18 +1147,18 @@ function openLogEntryEditor(id){
   const sid=LOG_SID;
   const f=parseIncidentOutput(e.text||'');
   IL_EDIT_ID=String(e.id);IL_EDIT_RETURN_ID=IL_EDIT_ID;
-  const hic=document.getElementById('ailHeadIc');if(hic)hic.innerHTML=clipIc(18);
-  document.getElementById('incidentTitleText').textContent='Edit incident log · '+sid;
+  const hic=$('ailHeadIc');if(hic)hic.innerHTML=clipIc(18);
+  $('incidentTitleText').textContent='Edit incident log · '+sid;
   ilSetTitleCopyId(sid);
-  // Transporter Trace / Mark important head flags are My-Tickets-only (see report); left empty here.
-  const flags=document.getElementById('ailHeadFlags');if(flags)flags.innerHTML='';
-  const sb=document.getElementById('incidentBtn');if(sb){sb.textContent='Save';sb.disabled=false;}
-  const db=document.getElementById('incidentDeleteBtn');if(db)db.style.display='';
+  // Transporter Trace / Mark important head flags are My-Tickets-only; left empty here.
+  const flags=$('ailHeadFlags');if(flags)flags.innerHTML='';
+  const sb=$('incidentBtn');if(sb){sb.textContent='Save';sb.disabled=false;}
+  const db=$('incidentDeleteBtn');if(db)db.style.display='';
   fillIncidentSelects();
-  const set=(k,v)=>{const el=document.getElementById(k);if(el)el.value=v||'';};
+  const set=(k,v)=>{const el=$(k);if(el)el.value=v||'';};
   set('ilPhdFindings',f.findings);ilSetInvestigation(f.invest);set('ilSimRcd',f.sim);ilSetHistorical(f.hist);
   // Keep a saved value that is no longer in the list (retired resolution) as an extra option so it is not blanked.
-  ['ilRootCause','ilPhdResolution'].forEach(id2=>{const el=document.getElementById(id2),v=(id2==='ilRootCause'?f.rootCause:f.res);
+  ['ilRootCause','ilPhdResolution'].forEach(id2=>{const el=$(id2),v=(id2==='ilRootCause'?f.rootCause:f.res);
     if(el&&v&&!Array.prototype.some.call(el.options,o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (old)';el.appendChild(o);}});
   set('ilRootCause',f.rootCause);set('ilPhdResolution',f.res);set('ilPhdNotes',f.notes);
   // Same as My Tickets: PHD Related Link is always the canonical ticket URL (read-only).
@@ -1159,21 +1169,21 @@ function openLogEntryEditor(id){
   ilSetFieldLocks(true);   // filled text fields start read-only with a pencil to edit
   ilRefreshSelectUI();
   ilRefreshEmptyMarks();
-  document.getElementById('incidentErr').style.display='none';
-  document.getElementById('incidentModal').style.display='flex';
+  $('incidentErr').style.display='none';
+  $('incidentModal').style.display='flex';
   document.addEventListener('keydown',ilEditorKeydown,true);
-  setTimeout(()=>{ilAutosizeAll();const el=document.getElementById('ilPhdFindings');if(el)el.focus();},50);
+  setTimeout(()=>{ilAutosizeAll();const el=$('ilPhdFindings');if(el)el.focus();},50);
 }
 window.openLogEntryEditor=openLogEntryEditor;
 // Called by the shared modal's Close / × / backdrop.
 function closeIncidentLog(){
-  document.getElementById('incidentModal').style.display='none';
+  $('incidentModal').style.display='none';
   document.removeEventListener('keydown',ilEditorKeydown,true);
   IL_EDIT_ID=null;
   const rid=IL_EDIT_RETURN_ID;IL_EDIT_RETURN_ID=null;
   let back=null;
   if(rid)back=[...document.querySelectorAll('#logList .ilog-editbtn[data-id]')].find(b=>b.getAttribute('data-id')===rid)||null;
-  if(!back)back=document.getElementById('logCloseBtn');
+  if(!back)back=$('logCloseBtn');
   if(back&&ilVisible(back))back.focus();
 }
 window.closeIncidentLog=closeIncidentLog;
@@ -1188,11 +1198,11 @@ function ilWriteErrMsg(r,verb){
 async function submitIncidentLog(){
   if(!IL_EDIT_ID)return;
   const id=IL_EDIT_ID;
-  const err=document.getElementById('incidentErr');err.style.display='none';
+  const err=$('incidentErr');err.style.display='none';
   const text=buildIncidentOutput();
-  const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
+  const btn=$('incidentBtn');btn.disabled=true;btn.setAttribute('aria-busy','true');btn.textContent='Saving…';
   let r;try{r=await A.api('PUT','/api/incident-log/'+encodeURIComponent(id),{text});}catch(e){r={ok:false,status:0};}
-  btn.disabled=false;btn.textContent='Save';
+  btn.disabled=false;btn.removeAttribute('aria-busy');btn.textContent='Save';
   if(r.ok){
     if(IL_EDIT_ID===id){ilSetFieldLocks(true);ilRefreshSelectUI();ilRefreshEmptyMarks();}
     toast('Incident log updated');
@@ -1203,10 +1213,12 @@ window.submitIncidentLog=submitIncidentLog;
 async function deleteIncidentFromForm(){
   if(!IL_EDIT_ID)return;
   const id=IL_EDIT_ID;
-  const db=document.getElementById('incidentDeleteBtn');
+  const db=$('incidentDeleteBtn');
   const ok=await window.PHDConfirm({title:'Delete incident log',body:'Delete this incident log entry? This cannot be undone.',okLabel:'Delete',danger:true});
   if(!ok){if(db&&ilVisible(db))db.focus();return;}
+  if(db){db.disabled=true;db.setAttribute('aria-busy','true');}
   let r;try{r=await A.api('DELETE','/api/incident-log/'+encodeURIComponent(id));}catch(e){r={ok:false,status:0};}
+  if(db){db.disabled=false;db.removeAttribute('aria-busy');}
   if(r.ok){
     IL_EDIT_RETURN_ID=null; // the entry is gone -> focus returns to the Log updates dialog
     closeIncidentLog();

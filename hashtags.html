@@ -9,250 +9,252 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
 .top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.wrap{padding:32px 24px;width:auto;max-width:none;margin-left:15px;margin-right:15px}
-/* Header */
-.hx-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
-.hx-head h1{margin:0;color:#fff;font-size:1.7em;font-weight:700;display:inline-flex;align-items:center;gap:10px}
-.hx-head h1 .hx-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,153,0,.16);color:var(--o);flex-shrink:0}
-.hx-sub{color:var(--tm);font-size:.9em;line-height:1.55;margin:6px 0 12px;max-width:900px}
-.hx-sub b{color:#fff}
-.hx-from{display:inline-flex;align-items:center;gap:7px;margin:0 0 22px;color:var(--tl);font-weight:600;font-size:.85em}
-.hx-from svg{flex-shrink:0}
-/* ---- Illustrated gradient banner header (matches the SLA Breaches page banner) ---- */
-.hx-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:14px;
-  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
-  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:hxBanner 9s ease infinite}
-@keyframes hxBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.hx-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
-.hx-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
-.hx-banner .hb-title svg{flex-shrink:0;color:#241354}
-.hx-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:80ch;color:rgba(36,19,84,.82)}
-.hx-banner .hb-sub b{color:#180d3a;font-weight:800}
-/* Total-count pill on the right side of the banner. */
-.hx-banner .hb-total{position:relative;z-index:1;display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.72);border-radius:5px;padding:9px 18px;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#241354}
-.hx-banner .hb-total .n{font-size:1.5em;font-weight:900;line-height:1}
-.hx-banner .hb-total .l{font-size:.66em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.85}
-.hx-banner::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:210px;
-  background-repeat:no-repeat;background-position:right center;background-size:auto 116%;opacity:.32;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M40 20L32 60M62 20L54 60M26 34h44M22 50h44"/><circle cx="92" cy="30" r="12"/><path d="M92 24v6l4 3"/></svg>')}
-@media(max-width:640px){.hx-banner .hb-title{font-size:1.25em}.hx-banner::after{opacity:.2}.hx-banner .hb-total{margin-left:0}}
-/* Hashtag definition ("Use When") shown under each section's tag in the head bar. */
-.hx-sec-title-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;width:100%}
-.hx-def{color:var(--tm);font-size:.8em;font-weight:400;line-height:1.45;width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:help}
-.hx-def.none{font-style:italic;opacity:.7}
-/* Zero-count section: dim the count pill so the "tracked but empty" tags read as secondary. */
-.hx-count.zero{background:rgba(135,149,150,.12);color:var(--tm);border-color:rgba(135,149,150,.3)}
-/* Empty-state shown inside a zero-count section body. */
-.hx-none-yet{display:flex;align-items:flex-start;gap:12px;padding:22px;color:var(--tm);font-size:.9em;line-height:1.5;background:rgba(255,255,255,.02);border:1px dashed #2a323b;border-radius:5px;margin:6px 0 4px}
-.hx-none-yet b{color:var(--t)}
-.hx-none-yet .hx-tag{color:var(--o)}
-.hx-none-yet svg{flex-shrink:0;margin-top:2px;color:var(--tm)}
-/* Collapsible GROUP block (DEFECTS / PATTERNS), each wrapping a set of hashtag section cards. */
-.hx-group{margin-top:26px}
-.hx-group:first-of-type{margin-top:6px}
-.hx-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:14px 18px;border-radius:5px;cursor:pointer;user-select:none}
-.hx-group-head:focus-visible{outline:2px solid #7c5cff;outline-offset:3px;border-radius:5px}
-.hx-group-label{display:inline-flex;align-items:center;gap:10px;font-size:1.02em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff}
-.hx-group-label svg{flex-shrink:0}
-.hx-group-head-right{display:inline-flex;align-items:center;gap:12px}
-.hx-group-meta{font-size:.74em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:rgba(255,255,255,.9)}
-.hx-group-caret{color:#fff;font-size:.9em;transition:transform .25s ease;display:inline-flex}
-.hx-group.collapsed .hx-group-caret{transform:rotate(-90deg)}
-/* Group body animates open/closed. Collapsed = height 0 + hidden. */
-.hx-group-body{overflow:hidden;transition:max-height .34s ease,opacity .25s ease;max-height:200000px;opacity:1}
-.hx-group.collapsed .hx-group-body{max-height:0;opacity:0}
-/* Section card (collapsible accordion — one open at a time) */
-.hx-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid var(--o);border-radius:5px;margin-bottom:16px;overflow:hidden}
-.hx-sec-head{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;cursor:pointer;user-select:none;transition:background .15s}
-.hx-sec-head:hover{background:rgba(255,255,255,.03)}
-/* Hashtag illustration watermark behind the head, right side (mask-faded so text stays readable). */
-.hx-sec-head::after{content:"";position:absolute;top:0;bottom:0;right:150px;width:120px;background-repeat:no-repeat;background-position:center;background-size:auto 74%;opacity:.10;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 35%,#000 65%,transparent);mask-image:linear-gradient(90deg,transparent,#000 35%,#000 65%,transparent);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ff9900" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M46 18L38 62M74 18L66 62M28 34h60M24 50h60"/></svg>')}
-.hx-sec-title{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;color:#fff;font-size:1.08em;font-weight:700;min-width:0;flex:1 1 auto}
-.hx-tag{font-family:'Inter',monospace;color:var(--o)}
-.hx-sec-head-right{position:relative;z-index:1;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.hx-count{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:28px;padding:0 12px;border-radius:5px;font-weight:800;font-size:.88em;background:rgba(255,153,0,.14);color:var(--o);border:1px solid rgba(255,153,0,.35)}
-.hx-caret{color:var(--tm);display:inline-flex;transition:transform .2s ease}
-.hx-sec.open .hx-caret{transform:rotate(180deg)}
-.hx-sec-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 22px}
-.hx-sec.open .hx-sec-body{max-height:none;padding:8px 22px 14px}
-/* Per-section chart (styled like the Repeat Incident wave chart) */
-.hx-chart-title{color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 4px}
-.hx-chart-sub{color:var(--tm);font-size:.82em;line-height:1.5;margin:0 0 12px}
-.chart-box{background:#0b0d10;border:1px solid #1e242b;border-radius:5px;padding:14px 14px 6px;margin-bottom:20px}
-.chart-wrap{position:relative;height:200px}
-.chart-wrap.tall{height:300px}
-/* Table (clean, borderless — no spreadsheet grid) */
-.hx-tbl-wrap{overflow-x:auto;margin-bottom:10px}
-.hx-tbl{width:100%;border-collapse:collapse;font-size:.88em}
-.hx-tbl th,.hx-tbl td{border:none;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 14px;text-align:left;vertical-align:middle}
-.hx-tbl thead th{background:transparent;color:var(--tm);text-transform:uppercase;font-size:.72em;letter-spacing:.5px;font-weight:700;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.12)}
-.hx-tbl tbody tr:hover td{background:rgba(255,153,0,.04)}
-.hx-tbl tbody tr:last-child td{border-bottom:none}
-.hx-fit{width:1%;white-space:nowrap}
-.hx-center{text-align:center}
-.hx-tbl th.hx-center,.hx-tbl td.hx-center{text-align:center}
-.hx-idlink{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap}
-.hx-idlink:hover{text-decoration:underline}
-.hx-num{color:#879596;font-weight:600;white-space:nowrap}
-.hx-assignee{color:var(--t);white-space:nowrap}
-/* C/R status tag */
-.hx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-weight:800;font-size:.78em}
-.hx-tag-s.c{background:rgba(74,222,128,.16);color:var(--gl)}
-.hx-tag-s.r{background:rgba(68,185,214,.16);color:var(--tl)}
-.hx-tag-s.o{background:rgba(255,153,0,.16);color:var(--o)}
-/* Truncated title */
-.hx-title{max-width:1px;width:100%}
-.hx-title-txt{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t)}
-/* Sort */
-.hx-sort{cursor:pointer;user-select:none}
-.hx-sort:hover{color:#fff}
-.hx-sort-ar{color:var(--o);font-weight:800;margin-left:4px}
-.hx-sort-ar.idle{color:#4a5560;font-weight:400}
-/* Show more/less */
-.hx-more{margin:2px 0 4px;display:flex;align-items:center;gap:12px}
-.hx-more button{background:#1a2129;border:1px solid #2a3540;color:var(--t);border-radius:5px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer}
-.hx-more button:hover{border-color:var(--o);color:#fff}
-.hx-mcount{color:var(--tm);font-size:.8em}
-.hx-empty{color:#5f6b6c;font-size:.86em;font-style:italic;padding:14px 4px}
-/* Loading skeleton — collapsed section-card shells with shimmer (no big spinner). */
-.hx-skel{margin-top:2px}
-.sk-sec{background:linear-gradient(180deg,#15181d,#0f1115);border:1px solid #242a31;border-top:3px solid #2a323b;border-radius:5px;margin-bottom:16px;overflow:hidden}
-.sk-sec-head{display:flex;align-items:center;gap:12px;padding:18px 22px}
-.sk-ic{width:30px;height:30px;border-radius:50%;flex-shrink:0}
-.sk-line{display:inline-block;border-radius:5px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
-.sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);animation:hxSk 1.1s infinite}
-.sk-ic{background:#141a20;position:relative;overflow:hidden}
-.sk-ic::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);animation:hxSk 1.1s infinite}
-@keyframes hxSk{100%{transform:translateX(100%)}}
-/* gate */
-.hx-gate{max-width:560px;margin:60px auto;text-align:center}
-.hx-gate h1{color:#fff;font-size:1.5em;margin-bottom:10px}
-.hx-gate p{color:var(--tm);line-height:1.55}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
 <style id="hx-light">
-.hx-head h1{color:#1b2026!important}
-.hx-sub{color:#5c6773!important}.hx-sub b{color:#1b2026!important}
-/* Content column: no top gutter (kill topbar-auth's injected .wrap{padding-top:14px}); 12px sides
-   kept (app-light band gutter); bottom reduced to 20px. ID scope beats the shared !important rules. */
-#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
-/* ---- Title bar: white, 60px, black font (overrides the purple gradient banner). ---- */
-.hx-banner{background:#fff!important;border:1px solid #e2e6ea!important;min-height:60px!important;height:60px!important;padding:0 16px!important;margin-bottom:14px!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;animation:none!important;flex-wrap:nowrap!important}
-.hx-banner .hb-title,.hx-banner .hb-title svg{color:#1b2026!important}
-.hx-banner .hb-title{font-size:1.25em!important}
-.hx-banner .hb-sub{display:none!important}            /* subtitle hidden to fit the 60px bar */
-.hx-banner .hb-total{background:#fff4e8!important;color:#b5560c!important;box-shadow:none!important;border:1px solid #f3d4b0!important;padding:5px 14px!important}
-.hx-banner .hb-total .n{font-size:1.1em!important}
-.hx-banner::after{display:none!important}             /* drop the watermark illustration on the slim bar */
-/* Section cards white (keep orange sec-head top border). */
-.hx-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #ec7211!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.hx-sec-head:hover{background:#f7f9fb!important}
-/* ---- DEFECTS / PATTERNS / OTHER groups: each is a card (border + radius), with a FULL-WIDTH
-   COLORED HEADER BAR (white icon + title + caret) like a dashboard section on app.html. The header
-   is flush to the card edges (rounded top corners); the body holds the hashtag cards with padding. */
-.hx-group{background:#fff!important;border:1px solid #e2e6ea!important;border-radius:5px!important;box-shadow:0 10px 26px -20px rgba(20,30,50,.5)!important;padding:0!important;margin-top:18px!important;overflow:hidden!important}
-.hx-group:first-of-type{margin-top:6px!important}
-.hx-group-head{margin:0!important;border-radius:0!important}
-/* Per-group header colors (app.html palette): DEFECTS = blue, PATTERNS = purple, OTHER = sky-blue. */
-.hx-group-defects .hx-group-head{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)!important}
-.hx-group-patterns .hx-group-head{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#c9b6ff)!important}
-.hx-group-other .hx-group-head{background:linear-gradient(90deg,#38bdf8,#7dd3fc 55%,#bae6fd)!important}
-.hx-group-oos .hx-group-head{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)!important}
-/* OOS subsection cards: red left-accent top border + red tag text to match the group. */
-.hx-oos-sec{border-top:3px solid #e5484d!important}
-.hx-oos-sec .hx-tag{color:#c0323a!important;font-weight:800}
-.hx-group-head:hover{filter:brightness(1.03)!important}
-.hx-group-body{padding:14px 16px!important}
-.hx-group.collapsed .hx-group-body{padding-top:0!important;padding-bottom:0!important}
-.hx-group-body>.hx-sec:last-child{margin-bottom:0!important}
-.hx-sec-title{color:#1b2026!important}
-.hx-tag{color:#b5560c!important}
-/* Count badge with the "Updated <date>" line under it (only for tags updated by CSV upload). */
-.hx-count-col{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px}
-.hx-updated{font-size:.7em;font-weight:600;color:#8793a0;white-space:nowrap;line-height:1}
-/* Copy button right after each section's hashtag. */
-.hx-tag-line{display:inline-flex;align-items:center;gap:8px;min-width:0}
-.hx-copy{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid #e2d3c2;background:#fff;color:#b5560c;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
-.hx-copy:hover{background:#fff4e8;border-color:#b5560c}
-.hx-copy:focus-visible{outline:2px solid #ec7211;outline-offset:1px}
-.hx-copy.copied{background:#eafaf0;border-color:#1f9d57;color:#1f9d57}
-.hx-def{color:#5c6773!important}
-.hx-count{background:#fff4e8!important;color:#b5560c!important;border:1px solid #f3d4b0!important}
-.hx-count.zero{background:#f0f3f6!important;color:#8793a0!important;border:1px solid #e2e6ea!important}
-.hx-caret{color:#9aa5b1!important}
-.hx-none-yet{background:#f7f9fb!important;border:1px dashed #d4dce4!important;color:#5c6773!important}
-.hx-none-yet b{color:#1b2026!important}
-.hx-none-yet .hx-tag{color:#b5560c!important}
-/* Chart box. */
-.hx-chart-title{color:#2a3340!important}
-.hx-chart-sub{color:#5c6773!important}
-.hx-chart-sub b[style*="#a78bfa"]{color:#7c5cff!important}
-.chart-box{background:#fff!important;border:1px solid #e6eaee!important}
-/* Table. */
-.hx-tbl th,.hx-tbl td{border-bottom:1px solid #eef1f4!important}
-.hx-tbl thead th{color:#5c6773!important;border-bottom:1px solid #e2e6ea!important}
-.hx-tbl tbody tr:hover td{background:#fff7ed!important}
-.hx-idlink{color:#1577a0!important}
-.hx-num{color:#5c6773!important}
-.hx-assignee{color:#2a3340!important}
-.hx-title-txt{color:#2a3340!important}
-.hx-sort:hover{color:#1b2026!important}
-.hx-sort-ar{color:#ec7211!important}.hx-sort-ar.idle{color:#aab4bd!important}
-.hx-tag-s.c{background:#eafaf0!important;color:#1f9d57!important}
-.hx-tag-s.r{background:#eaf4fb!important;color:#1577a0!important}
-.hx-tag-s.o{background:#fff4e8!important;color:#b5680c!important}
-/* Show more/less. */
-.hx-more button{background:#fff!important;border:1px solid #e2e6ea!important;color:#2a3340!important}
-.hx-more button:hover{border-color:#ec7211!important;color:#1b2026!important}
-.hx-mcount{color:#8793a0!important}
-.hx-empty{color:#8793a0!important}
-/* Per-card Export: sits at the right of the chart heading row; styled like the Show more buttons. */
-.hx-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.hx-chart-head-txt{min-width:0;flex:1 1 auto}
+/* Hashtags — "label index": dark navy hero with an orange rule, KPI cards that overlap it, a filter
+   bar with quick-jump pills, then one white ledger card listing every hashtag as an expandable row
+   (pill + definition + proportional bar + count). Everything is scoped under .hx (a size container
+   for the responsive grids), mirroring the Errors in Resolved page. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.hx{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blu:#1f4f9a;--blu-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.hx button{font:inherit;text-transform:none}
+.hx :is(button,a,input,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.hx-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.hx-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.hx-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.hx-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+/* Oversized "#" watermark: the one memorable mark of this page, bleeding off the hero's right edge. */
+.hx-hero-mark{position:absolute;right:-18px;bottom:-62px;font-size:15em;font-weight:800;line-height:1;letter-spacing:-8px;color:rgba(255,178,107,.07);pointer-events:none;user-select:none}
+.hx-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.hx-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.hx-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.hx-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.hx-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.hx-hero-sub{margin-top:9px;max-width:62ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.hx-hero-sub b{color:#fff;font-weight:800}
+.hx-hero-side{flex:0 1 560px;display:flex;flex-direction:column;align-items:flex-end;gap:12px;max-width:100%}
+.hx-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.hx-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-size:.8em;font-weight:700;color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hx-chip span{font-size:.82em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:rgba(233,237,243,.62)}
+.hx-chip i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.18)}
+.hx-chip.is-snap i{background:#f5a623;box-shadow:0 0 0 3px rgba(245,166,35,.2)}
+.hx-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.hx .hx-log-btn,.hx .hx-upload-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:.84em;font-weight:800;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.hx .hx-log-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff}
+.hx .hx-log-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
+.hx .hx-upload-btn{background:linear-gradient(180deg,#ff9f2e,var(--acc));border:1px solid #d9660d;color:#fff;box-shadow:0 8px 18px -10px rgba(236,114,17,.9)}
+.hx .hx-upload-btn:hover{transform:translateY(-1px);background:linear-gradient(180deg,#ffab45,#f07d0a)}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.hx-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:520px){.hx-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.hx-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.hx-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.hx-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.hx-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.hx-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.hx-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hx-kpi-v.is-tag{font-size:1.45em;letter-spacing:-.4px;line-height:1.25;color:var(--acc-ink)}
+.hx-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.hx-kpi-s b{color:var(--ink);font-weight:800}
+.hx-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.hx-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.hx-kpi.is-base{--k:#1f2a40}
+.hx-kpi.is-acc{--k:var(--acc)}.hx-kpi.is-acc .hx-kpi-ic{background:var(--acc-bg);color:#b5530a}
+.hx-kpi.is-blue{--k:#2b66c1}.hx-kpi.is-blue .hx-kpi-ic{background:var(--blu-bg);color:var(--blu)}
+.hx-kpi.is-mute{--k:#9aa5b1}.hx-kpi.is-mute .hx-kpi-v{color:#5c6773}
+
+/* ---- Cards ---- */
+.hx-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;margin-bottom:16px}
+.hx-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;margin-bottom:14px}
+.hx-card-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px}
+.hx-count-txt{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.hx-help{margin-top:4px;font-size:.86em;color:var(--mut);line-height:1.5;max-width:72ch}
+
+/* ---- Filter bar ---- */
+.hx-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.hx-search{position:relative;flex:1 1 260px;max-width:440px}
+.hx-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.hx-search input{width:100%;font:inherit;font-size:.9em;padding:8px 12px 8px 36px;border-radius:8px}
+.hx-tog{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.84em;font-weight:700;color:#3a4552;cursor:pointer;user-select:none}
+.hx-tog input{width:15px;height:15px;margin:0;accent-color:var(--acc);cursor:pointer}
+.hx-tog:has(input:checked){background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+.hx-tog:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
+.hx-view{margin-left:auto;display:inline-flex;padding:3px;border-radius:9px;background:#e7eaee}
+.hx-view button{padding:6px 14px;border:none;border-radius:7px;background:none;font-size:.84em;font-weight:700;color:#5c6773;cursor:pointer}
+.hx-view button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,30,50,.18)}
+/* Quick-jump pills: the most-used hashtags, each a pill with its count. */
+.hx-jump{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 16px;padding:0;list-style:none}
+.hx-jump-k{font-size:.68em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);margin-right:4px}
+.hx-jump-b{display:inline-flex;align-items:center;gap:7px;padding:4px 5px 4px 11px;border-radius:99px;background:#fff;border:1px solid var(--line);
+  font-size:.8em;font-weight:700;color:var(--acc-ink);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s,box-shadow .15s}
+.hx-jump-b:hover{border-color:#f7c99c;background:var(--acc-bg);box-shadow:0 6px 14px -10px rgba(236,114,17,.8)}
+.hx-jump-b b{min-width:24px;text-align:center;padding:1px 7px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ---- Hashtag rows (expandable) ---- */
+.hx-list{display:flex;flex-direction:column;gap:8px}
+.hx-sec{position:relative;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.hx-sec::before{content:'';position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--acc);z-index:1}
+.hx-sec.is-zero::before{background:#c9d0d8}
+.hx-sec:hover{border-color:#cfd6dd}
+.hx-sec.open{border-color:#cfd6dd;box-shadow:0 12px 26px -22px rgba(20,30,50,.6)}
+.hx-sec-head{display:flex;align-items:center;gap:6px;padding-right:10px;background:#fff;cursor:pointer}
+.hx-sec-head:hover,.hx-sec-head:hover .hx-sec-btn{background:#fafbfc}
+.hx-sec.open>.hx-sec-head,.hx-sec.open>.hx-sec-head .hx-sec-btn{background:#f7f8fa}
+.hx-sec.open>.hx-sec-head{border-bottom:1px solid var(--line)}
+.hx-sec-btn{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:12px;padding:11px 8px 11px 14px;border:none;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+.hx .hx-sec-btn:focus-visible{outline-offset:-3px}
+.hx-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.hx-chev svg{transition:transform .15s}
+.hx-sec-btn[aria-expanded="true"] .hx-chev svg{transform:rotate(90deg)}
+.hx-sec-head:hover .hx-chev{background:#e6f0fc;color:#2b66c1}
+.hx-sec-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.hx-pill{display:inline-flex;align-items:center;max-width:100%;padding:3px 11px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7c99c}
+.hx-tag{font-weight:800;font-size:.9em;color:var(--acc-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hx-sec.is-zero .hx-pill{background:var(--soft);border-color:var(--line)}
+.hx-sec.is-zero .hx-tag{color:#5c6773}
+.hx-def{max-width:100%;font-size:.8em;line-height:1.4;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hx-def.none{font-style:italic;color:#8793a0}
+.hx-sec-bar{flex:0 0 190px;display:flex;align-items:center;gap:10px}
+.hx-track{flex:1 1 auto;display:block;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.hx-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9f2e,var(--acc))}
+.hx-share{flex:0 0 38px;text-align:right;font-size:.76em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.hx-count-col{flex:0 0 112px;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.hx-count{font-size:1.3em;font-weight:800;letter-spacing:-.4px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.hx-count.zero{color:#9aa5b1}
+.hx-count-l{font-size:.68em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8793a0}
+.hx-updated{font-size:.68em;font-weight:700;color:var(--blu);white-space:nowrap;line-height:1}
+.hx-copy{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#5c6773;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.hx-copy:hover{background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+.hx-copy.copied{background:var(--grn-bg);border-color:#a8dcbf;color:var(--grn)}
+@container (max-width:760px){.hx-sec-bar{display:none}}
+@container (max-width:460px){
+  .hx-sec-btn{gap:9px;padding-left:10px}
+  .hx-def{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .hx-count-col{flex-basis:auto;min-width:44px}.hx-count-l,.hx-updated{display:none}
+}
+
+/* ---- Expanded body: chart + export + ticket table ---- */
+.hx-sec-body{display:none;padding:14px 16px 16px}
+.hx-sec.open>.hx-sec-body{display:block}
+.hx-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin-bottom:12px}
+.hx-chart-head-txt{min-width:0;flex:1 1 260px}
+.hx-chart-title{font-size:.7em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.hx-chart-sub{margin-top:4px;font-size:.86em;line-height:1.5;color:#3a4552}
+.hx-chart-sub b{color:var(--acc-ink);font-weight:800}
+.hx .chart-box{background:#fff!important;border:1px solid var(--line)!important;border-radius:10px;padding:12px 12px 6px;margin-bottom:14px;box-shadow:none!important}
+.chart-wrap{position:relative;height:200px}
+.chart-wrap.tall{height:260px}
 .hx-export-wrap{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.hx-export{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e6ea;color:#2a3340;border-radius:5px;padding:7px 14px;font-size:.82em;font-weight:600;cursor:pointer;font-family:inherit}
-.hx-export:hover{border-color:#ec7211;color:#1b2026}
-.hx-export:focus-visible{outline:2px solid #ec7211;outline-offset:1px}
-.hx-export[disabled]{opacity:.65;cursor:default}
-.hx-export .hu-spin.dark{width:12px;height:12px}
-.hx-export-msg{font-size:.78em;font-weight:600;color:#b03030}
-.hx-export-msg button{background:none;border:none;color:#1577a0;font-weight:700;cursor:pointer;padding:0 2px;font-family:inherit;font-size:1em;text-decoration:underline}
-/* Skeleton — mirrors the loaded layout: white 60px title bar + colored group bars + white cards. */
-.sk-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px;margin-bottom:14px}
-.sk-group{background:#fff;border:1px solid #e2e6ea;border-radius:5px;box-shadow:0 10px 26px -20px rgba(20,30,50,.5);overflow:hidden;margin-top:18px}
-.sk-group:first-of-type{margin-top:6px}
-.sk-grouphead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
-.sk-group-defects .sk-grouphead{background:linear-gradient(90deg,#2563eb,#4f8cf0 55%,#9fc2fb)}
-.sk-group-patterns .sk-grouphead{background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#c9b6ff)}
-.sk-group-oos .sk-grouphead{background:linear-gradient(90deg,#e5484d,#ff6b6b 55%,#ff9d9d)}
-.sk-groupbody{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
-/* Shimmer tones: a clearly visible light-grey fill on the white surfaces with a brighter moving
-   highlight; a clearly visible translucent-white sweep on the colored group header bars. */
-.sk-sec{background:#fff!important;border:1px solid #e2e6ea!important;border-top:3px solid #cdd5dd!important;margin-bottom:0!important}
-.sk-line,.sk-ic{background:#e3e7ec!important}
-.sk-line::after,.sk-ic::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)!important}
-.sk-glabel,.sk-gmeta{background:rgba(255,255,255,.5)!important}
-.sk-glabel::after,.sk-gmeta::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)!important}
-/* Gate + button. */
-.hx-gate h1{color:#1b2026!important}
-.hx-gate p{color:#5c6773!important}
-.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
+.hx-export{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;transition:background .15s}
+.hx-export:hover{background:#0f1420}
+.hx-export[disabled]{opacity:.7;cursor:default}
+.hx-export-msg{font-size:.8em;font-weight:700;color:var(--red)}
+.hx-export-msg button{background:none;border:none;color:#2b66c1;font-weight:800;cursor:pointer;padding:0 2px;text-decoration:underline}
+.hx-tbl-wrap{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:8px}
+.hx-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.86em}
+.hx .hx-tbl th,.hx .hx-tbl td{padding:9px 12px;border:none;border-bottom:1px solid #eef1f4!important;text-align:left;vertical-align:middle;background:#fff!important}
+.hx .hx-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8!important;border-bottom:1px solid var(--line)!important;color:#3a4552!important;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap}
+.hx .hx-tbl tbody tr:hover td{background:#fff7ed!important}
+.hx .hx-tbl tbody tr:last-child td{border-bottom:none!important}
+.hx-fit{width:1%;white-space:nowrap}
+.hx .hx-tbl .hx-center{text-align:center}
+.hx-sort{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;margin:-2px -4px;border:none;border-radius:5px;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:uppercase!important;cursor:pointer}
+.hx-sort:hover{color:var(--ink);background:#e9ecf0}
+.hx-sort-ar{color:var(--acc);font-weight:800}
+.hx-sort-ar.idle{color:#aab4bd;font-weight:400}
+.hx-idlink{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
+.hx-idlink:hover{text-decoration:underline}
+.hx-num{color:#5c6773;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hx-assignee{color:#2a3340;font-weight:700;white-space:nowrap}
+.hx-tag-s{display:inline-flex;align-items:center;justify-content:center;width:24px;height:22px;border-radius:6px;font-weight:800;font-size:.8em}
+.hx-tag-s.c{background:var(--grn-bg);color:var(--grn)}
+.hx-tag-s.r{background:var(--blu-bg);color:var(--blu)}
+.hx-tag-s.o{background:var(--acc-bg);color:#b5530a}
+.hx-title{min-width:220px;max-width:1px;width:100%}
+.hx-title-txt{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#2a3340}
+.hx-more{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hx-more button{padding:7px 14px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#2a3340;font-size:.82em;font-weight:700;cursor:pointer}
+.hx-more button:hover{border-color:var(--acc);color:var(--ink)}
+.hx-mcount{font-size:.8em;font-weight:600;color:#8793a0;font-variant-numeric:tabular-nums}
+.hx-empty{color:#8793a0;font-size:.86em;font-style:italic;padding:14px 4px}
+.hx-none-yet{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border:1px dashed #d4dce4;border-radius:10px;background:#fafbfc;color:var(--mut);font-size:.88em;line-height:1.5}
+.hx-none-yet b{color:var(--ink)}
+.hx-none-yet .hx-tag{font-size:1em}
+.hx-none-yet svg{flex-shrink:0;margin-top:2px;color:#9aa5b1}
+
+/* ---- Legacy "#Out of Scope" group (kept for hxOosGroupHtml; not currently rendered) ---- */
+.hx-group{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;margin-top:16px}
+.hx-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:#1f2a40;color:#fff;cursor:pointer}
+.hx-group-label{display:inline-flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.hx-group-head-right{display:inline-flex;align-items:center;gap:12px;font-size:.8em;font-weight:700}
+.hx-group-caret{transition:transform .2s}
+.hx-group.collapsed .hx-group-caret{transform:rotate(-90deg)}
+.hx-group-body{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.hx-group.collapsed .hx-group-body{display:none}
+.hx-oos-sec .hx-sec-head{padding:12px 16px;justify-content:space-between}
+
+/* ---- States ---- */
+.hx-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
+.hx-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:4px}
+.hx-state-ic.is-err{background:var(--red-bg);color:var(--red)}
+.hx-state-t{font-size:1.08em!important;font-weight:800;color:var(--ink)!important}
+.hx-state p{font-size:.9em;max-width:52ch;line-height:1.5}
+.hx-state-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px}
+.hx-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;text-decoration:none;transition:background .15s}
+.hx-btn:hover{background:#0f1420}
+.hx-btn.is-ghost{background:#fff;color:#2a3340;border:1px solid #d4dade}
+.hx-btn.is-ghost:hover{background:var(--soft)}
+.hx-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:hxShim 1.4s ease infinite}
+.hx-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes hxShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.hx-skel-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.hx-skel-row .hx-skel-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:7px}
+@container (max-width:760px){.hx-skel-row .hx-skel-bar{display:none}}
+
+/* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the list. */
+@keyframes hxUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.hx.is-anim .hx-hero{animation:hxUp .45s ease both}
+.hx.is-anim .hx-kpi{animation:hxUp .5s ease both}
+.hx.is-anim .hx-kpi:nth-child(1){animation-delay:.08s}
+.hx.is-anim .hx-kpi:nth-child(2){animation-delay:.14s}
+.hx.is-anim .hx-kpi:nth-child(3){animation-delay:.2s}
+.hx.is-anim .hx-kpi:nth-child(4){animation-delay:.26s}
+.hx.is-anim .hx-card{animation:hxUp .5s ease .3s both}
+
+@container (max-width:560px){
+  .hx-hero{padding:22px 18px 72px 22px}
+  .hx-hero h1{font-size:1.75em}
+  .hx-hero-ic{width:40px;height:40px}
+  .hx-hero-side{align-items:flex-start}
+  .hx-chips,.hx-actions{justify-content:flex-start}
+  .hx-kpis{margin:-52px 10px 14px}
+  .hx-card{padding:16px 14px}
+  .hx-view{margin-left:0}
+  .hx-sec-body{padding:12px 10px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hx *,.hx *::before,.hx *::after{animation:none!important;transition:none!important}
+}
 </style>
 <style id="hu-modal-css">
 /* ===== Upload-hashtag-CSV modal ===== */
@@ -260,7 +262,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hu-ov.show{display:flex}
 .hu-modal{width:100%;max-width:560px;background:#fff;border:1px solid #e2e6ea;border-radius:12px;box-shadow:0 30px 70px -20px rgba(20,30,50,.5);overflow:hidden;animation:huPop .18s ease}
 @keyframes huPop{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
-.hu-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #eef1f4;background:linear-gradient(90deg,#7c5cff,#a78bfa 60%,#cbb8ff)}
+.hu-head{position:relative;display:flex;align-items:center;gap:12px;padding:16px 20px 16px 24px;border-bottom:1px solid #eef1f4;background:radial-gradient(120% 220% at 100% 0%,rgba(236,114,17,.28),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40)}
+.hu-head::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,#ec7211)}
+.hu-head .hu-title{color:#fff!important}
+.hu-head .hu-x{background:rgba(255,255,255,.1);color:#fff}
+.hu-head .hu-x:hover{background:rgba(255,255,255,.22)}
+.hu-x:focus-visible,.hu-btn:focus-visible,.hu-drop:focus-visible,.fr-x:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
 .hu-title{display:inline-flex;align-items:center;gap:10px;font-size:1.08em;font-weight:800;color:#241354}
 .hu-x{margin-left:auto;background:rgba(255,255,255,.4);border:none;color:#241354;width:30px;height:30px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .hu-x:hover{background:rgba(255,255,255,.7)}
@@ -304,11 +311,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hu-btn.sec:hover{background:#f1f4f7}
 .hu-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:huSp .7s linear infinite;display:inline-block}
 @keyframes huSp{100%{transform:rotate(360deg)}}
-/* "Upload hashtag CSV" trigger button (ink bg, light text). */
-.hx-upload-btn:hover{background:#0f1420!important;color:#fff!important}
-/* "Hashtag log" trigger button (outlined, sits left of Upload). */
-.hx-log-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#161d2d;border:1px solid #cdd5dd;border-radius:5px;font-weight:700;font-size:.86em;padding:8px 15px;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
-.hx-log-btn:hover{border-color:#161d2d;background:#f7f9fb}
 /* Hashtag log pop-up: wider than the upload modal to fit the table. */
 .hl-modal{max-width:980px}
 .hl-scroll{overflow:auto;max-height:62vh;border:1px solid #eef1f4;border-radius:8px}
@@ -324,35 +326,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hl-table .hl-nf{display:block;font-size:.8em;font-weight:600;color:#b03030}
 .hl-msg{padding:24px;text-align:center;color:#5c6773;font-size:.9em}
 .hl-msg.err{color:#b03030}
-
-/* ===== Fancy phased loader (ported from sla-breach.html). Shown while hashtags load. ===== */
-.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
-.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 </style>
 </head>
 <body data-nav-active="hashtags" data-back-href="app.html" data-back-label="Dashboard">
@@ -360,16 +333,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap">
-  <!-- Fancy phased loader (same style as the SLA-breach section loaders), shown until the hashtag
-       report lands. hxLoaderStart() animates it; render() replaces #wrap entirely. -->
-  <div id="hxLoader" class="gw-loader">
-    <div class="gw-loader-in">
-      <div class="gw-orb"><span class="gw-orb-ic" id="hxLoaderIc"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span></div>
-      <div class="gw-loader-msg gw-msg-in" id="hxLoaderMsg">Getting the hashtags ready…</div>
-      <div class="gw-dots"><span></span><span></span><span></span></div>
-      <div class="gw-loader-sub" id="hxLoaderSub">Loading hashtags</div>
-    </div>
-  </div>
+  <!-- Polite live region (outside the re-rendered root, so announcements survive repaints). -->
+  <div id="hxLive" class="hx-sr" role="status" aria-live="polite" aria-atomic="true"></div>
+  <!-- Page root: skeleton while loading, error state with Retry, or the hashtag index. -->
+  <div id="hxRoot" aria-busy="true"></div>
 </div>
 
 <!-- ===== Admin: Hashtag upload log pop-up (opened by the "Hashtag log" button) ===== -->
@@ -412,7 +379,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -519,7 +486,6 @@ function hxCanon(tag){ var t='#'+String(tag||'').replace(/^#/,'').toLowerCase();
 // Look up a definition for a "#tag" (or bare tag). Returns '' if unknown.
 function hxDefOf(tag){ var k=hxCanon(tag).replace(/^#/,''); return HX_DEFS[k]||''; }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function gate(msg){ if(typeof hxLoaderStop==='function') hxLoaderStop(); document.getElementById('wrap').innerHTML='<div class="hx-gate"><h1>Hashtags</h1><p>'+esc(msg)+'</p><p style="margin-top:16px"><a class="btn" href="app.html">Back to the live dashboard</a></p></div>';}
 function fmtDate(iso){ if(!iso)return '—'; var d=new Date(iso); if(isNaN(d))return esc(String(iso)); return d.toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'}); }
 // C/R tag: C = Closed, R = Resolved, else first letter.
 function statusTag(s){
@@ -582,7 +548,7 @@ function hxDrawChart(idx){
   if(HX_CHARTS[idx]){ try{HX_CHARTS[idx].destroy();}catch(e){} delete HX_CHARTS[idx]; }
   Chart.defaults.color='#5c6773'; Chart.defaults.borderColor='rgba(0,0,0,0.06)';
   HX_CHARTS[idx]=new Chart(cv,{type:'line',
-    data:{labels:b.labels,datasets:[hxWave(a.tag+' tickets',b.data,'#7c5cff','rgba(124,92,255,')]},
+    data:{labels:b.labels,datasets:[hxWave(a.tag+' tickets',b.data,'#ec7211','rgba(236,114,17,')]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}}},
       scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},title:{display:true,text:'Tickets created',color:'#2a3340',font:{size:12}},ticks:{font:{size:11},precision:0}},
@@ -612,7 +578,7 @@ function hxSecTableHtml(idx){
   var rows='';
   for(var i=0;i<shown;i++){
     var t=tix[i];
-    var link=t.url?('<a class="hx-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId||'—')+'</a>'):esc(t.shortId||'—');
+    var link=t.url?('<a class="hx-idlink" href="'+esc(t.url)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId||'—')+'</a>'):esc(t.shortId||'—');
     rows+='<tr>'
       +'<td class="hx-fit hx-center">'+link+'</td>'
       +'<td class="hx-fit hx-center hx-num">'+fmtDate(t.created)+'</td>'
@@ -622,8 +588,10 @@ function hxSecTableHtml(idx){
       +'</tr>';
   }
   if(!tix.length) rows='<tr><td colspan="5" class="hx-empty">No tickets.</td></tr>';
-  var th=function(field,label,extra){
-    return '<th class="hx-sort '+(extra||'')+'" onclick="hxSort('+idx+',\''+field+'\')">'+label+hxArrow(a,field)+'</th>';
+  // Sortable headers: a real <button> inside each <th> (keyboard-operable) + aria-sort on the active one.
+  var th=function(f,label,extra){
+    var act=field===f, srt=act?(dir==='desc'?'descending':'ascending'):'none';
+    return '<th scope="col" class="'+(extra||'')+'" aria-sort="'+srt+'"><button type="button" class="hx-sort" data-sort-f="'+f+'" onclick="hxSort('+idx+',\''+f+'\')">'+label+hxArrow(a,f)+'</button></th>';
   };
   var head='<thead><tr>'
     +th('ticket','Ticket ID','hx-fit hx-center')
@@ -636,26 +604,35 @@ function hxSecTableHtml(idx){
   if(tix.length>HX_PAGE0){
     var canMore=shown<tix.length, canLess=shown>HX_PAGE0;
     more='<div class="hx-more">'
-      +(canMore?'<button onclick="hxMore('+idx+')">Show more</button>':'')
-      +(canLess?'<button onclick="hxLess('+idx+')">Show less</button>':'')
+      +(canMore?'<button type="button" onclick="hxMore('+idx+')">Show more</button>':'')
+      +(canLess?'<button type="button" onclick="hxLess('+idx+')">Show less</button>':'')
       +'<span class="hx-mcount">Showing '+shown+' of '+tix.length+'</span></div>';
   }
-  return '<div class="hx-tbl-wrap"><table class="hx-tbl">'+head+'<tbody>'+rows+'</tbody></table></div>'+more;
+  return '<div class="hx-tbl-wrap"><table class="hx-tbl"><caption class="hx-sr">'+esc(a.tag)+' tickets</caption>'+head+'<tbody>'+rows+'</tbody></table></div>'+more;
 }
 function hxSort(idx,field){
   var a=HX_SECS[idx]; if(!a) return;
   if(a.sortField===field){ a.sortDir=(a.sortDir==='desc'?'asc':'desc'); }
   else { a.sortField=field; a.sortDir=(field==='created'?'desc':'asc'); }
-  var body=document.getElementById('hxBody'+idx); if(body) body.innerHTML=hxSecTableHtml(idx);
+  var body=document.getElementById('hxBody'+idx); if(!body) return;
+  body.innerHTML=hxSecTableHtml(idx);
+  var b=body.querySelector('[data-sort-f="'+field+'"]'); if(b) b.focus();
 }
 function hxMore(idx){ var a=HX_SECS[idx]; if(!a)return; a.shown=Math.min((a.shown||HX_PAGE0)+HX_STEP,(a.tickets||[]).length); var b=document.getElementById('hxBody'+idx); if(b)b.innerHTML=hxSecTableHtml(idx); }
 function hxLess(idx){ var a=HX_SECS[idx]; if(!a)return; a.shown=HX_PAGE0; var b=document.getElementById('hxBody'+idx); if(b)b.innerHTML=hxSecTableHtml(idx); }
-// Accordion: only one section open at a time.
+// Accordion: only one section open at a time. Keeps aria-expanded on each row's toggle button in sync
+// and remembers the open row (HX_OPEN) so a filter re-render keeps it open.
+var HX_OPEN=-1;
+function hxSetOpen(sec,on){
+  sec.classList.toggle('open',on);
+  var b=sec.querySelector('.hx-sec-btn'); if(b) b.setAttribute('aria-expanded',on?'true':'false');
+}
 function hxToggle(idx){
   var sec=document.getElementById('hxSec'+idx); if(!sec) return;
   var wasOpen=sec.classList.contains('open');
-  document.querySelectorAll('.hx-sec.open').forEach(function(s){ s.classList.remove('open'); });
-  if(!wasOpen){ sec.classList.add('open'); setTimeout(function(){ hxDrawChart(idx); },60); }
+  document.querySelectorAll('.hx-sec.open').forEach(function(s){ hxSetOpen(s,false); });
+  HX_OPEN=-1;
+  if(!wasOpen){ hxSetOpen(sec,true); HX_OPEN=idx; setTimeout(function(){ hxDrawChart(idx); },60); }
 }
 
 // ===== Per-card CSV export (ALL tickets of the hashtag, not just the visible rows) =====
@@ -728,9 +705,185 @@ async function hxExport(idx){
 }
 window.hxExport=hxExport;
 
+// ===== Page shell: hero, KPIs, filter bar, hashtag list, skeleton + error states =====
+var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var HX_DATA=null;      // last report payload rendered (for hero meta)
+var HX_SRC='live';     // 'live' (API) | 'snapshot' (hashtags-data.json fallback)
+var HX_FIRST=true;     // play the entrance animation once
+var HX_Q='', HX_HIDE0=false, HX_ORDER_BY='count';   // filter bar state: search, hide unused, sort
+function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
+function hxPct(n,d){ if(!d) return '0%'; var p=n/d*100; return (p>0&&p<10?p.toFixed(1).replace(/\.0$/,''):String(Math.round(p)))+'%'; }
+function hxRoot(){ return document.getElementById('hxRoot'); }
+function hxAnnounce(msg){ var l=document.getElementById('hxLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+function hxShortDate(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return ''; return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function hxWhen(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return ''; return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+function hxHeroHtml(loading){
+  var chips='';
+  if(loading){
+    var sk=function(w){ return '<li class="hx-chip" aria-hidden="true"><span class="hx-skel hx-skel-d" style="width:'+w+'px;height:12px"></span></li>'; };
+    chips=sk(110)+sk(130)+sk(90);
+  } else if(HX_DATA){
+    var since=hxShortDate(HX_DATA.from), gen=hxWhen(HX_DATA.generatedAt);
+    var lastUp=HX_SECS.reduce(function(m,a){ return a.lastUploadAt&&String(a.lastUploadAt)>m?String(a.lastUploadAt):m; },'');
+    chips=(since?'<li class="hx-chip"><span>Since</span>'+esc(since)+'</li>':'')
+      +(gen?'<li class="hx-chip"><span>Generated</span>'+esc(gen)+'</li>':'')
+      +(lastUp?'<li class="hx-chip" title="'+esc(hxUpdatedFull(lastUp))+'"><span>Last CSV upload</span>'+esc(hxShortDate(lastUp))+'</li>':'')
+      +'<li class="hx-chip'+(HX_SRC==='live'?'':' is-snap')+'"><i aria-hidden="true"></i>'+(HX_SRC==='live'?'Live data':'Offline snapshot')+'</li>';
+  }
+  // Admin-only actions (canUpload flag; owner always): hashtag log + upload modal.
+  var acts='';
+  if(!loading&&A&&A.canUpload&&A.canUpload()){
+    acts='<div class="hx-actions">'
+      +'<button type="button" class="hx-log-btn" onclick="hlOpen()">'+ic('history',15)+'Hashtag log</button>'
+      +'<button type="button" class="hx-upload-btn" onclick="huOpen()">'+ic('upload',15)+'Upload hashtag CSV</button>'
+    +'</div>';
+  }
+  return '<div class="hx-hero"><span class="hx-hero-mark" aria-hidden="true">#</span><div class="hx-hero-in"><div class="hx-hero-main"><span class="hx-hero-ic">'+ic('hash',24)+'</span><div>'
+    +'<p class="hx-eyebrow">Ticket labels \u00b7 Hashtag index</p><h1>Hashtags</h1>'
+    +'<p class="hx-hero-sub">Every approved hashtag from the Tools page with the tickets that carry it, read from the <b>Labels</b> column and CSV uploads. Open a hashtag to see its weekly trend, its tickets and an export.</p>'
+    +'</div></div><div class="hx-hero-side">'+(chips?'<ul class="hx-chips" aria-label="Report details">'+chips+'</ul>':'')+acts+'</div></div></div>';
+}
+function hxKpi(cls,icon,label,value,sub,ratio,vcls,vtitle){
+  return '<div class="hx-kpi '+cls+'"><p class="hx-kpi-l"><span class="hx-kpi-ic">'+ic(icon,15)+'</span>'+label+'</p>'
+    +'<p class="hx-kpi-v'+(vcls?' '+vcls:'')+'"'+(vtitle?' title="'+esc(vtitle)+'"':'')+'>'+value+'</p><p class="hx-kpi-s">'+sub+'</p>'
+    +(ratio==null?'':'<div class="hx-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+function hxStats(){
+  var ids={}, uniq=0, assigns=0, used=0, top=null;
+  HX_SECS.forEach(function(a){
+    assigns+=a.count; if(a.count>0) used++;
+    if(!top||a.count>top.count) top=a;
+    (a.tickets||[]).forEach(function(t){ var k=String(t.shortId||''); if(k&&!ids[k]){ ids[k]=1; uniq++; } });
+  });
+  return { uniq:uniq, assigns:assigns, used:used, total:HX_SECS.length, top:top, max:top?top.count:0 };
+}
+function hxKpisHtml(s){
+  var unused=s.total-s.used;
+  return '<div class="hx-kpis">'
+    +hxKpi('is-base','ticket','Tagged tickets',num(s.uniq),'<b>'+num(s.assigns)+'</b> hashtag assignment'+(s.assigns===1?'':'s'),null)
+    +hxKpi('is-acc','hash','Hashtags in use',num(s.used)+'<span style="font-size:.5em;color:#8793a0;letter-spacing:0"> / '+num(s.total)+'</span>','<b>'+hxPct(s.used,s.total)+'</b> of tracked hashtags',s.total?s.used/s.total:0)
+    +(s.top&&s.top.count
+      ? hxKpi('is-blue','bar-chart','Most used',esc(s.top.tag),'<b>'+num(s.top.count)+'</b> tickets \u00b7 '+hxPct(s.top.count,s.assigns)+' of assignments',s.assigns?s.top.count/s.assigns:0,'is-tag',s.top.tag)
+      : hxKpi('is-blue','bar-chart','Most used','\u2014','No tagged tickets yet',null))
+    +hxKpi('is-mute','inbox','Not used yet',num(unused),unused?'Tracked hashtags with no tickets':'Every hashtag has tickets',null)
+  +'</div>';
+}
+function hxToolsHtml(s){
+  var top=HX_SECS.map(function(a,idx){ return {a:a,idx:idx}; }).filter(function(e){ return e.a.count>0; })
+    .sort(function(x,y){ return y.a.count-x.a.count||(x.a.tag<y.a.tag?-1:1); }).slice(0,8);
+  return '<section class="hx-card" aria-labelledby="hxListH">'
+    +'<div class="hx-card-head"><div><h2 id="hxListH">All hashtags</h2><p class="hx-help">Bars compare each hashtag with the most used one. Copy a hashtag with the button at the end of its row.</p></div>'
+      +'<span class="hx-count-txt" id="hxCount"></span></div>'
+    +'<div class="hx-tools" role="search">'
+      +'<label class="hx-search"><span class="hx-sr">Search hashtags</span>'+ic('search',15)
+        +'<input type="search" id="hxQ" placeholder="Search hashtag or definition" autocomplete="off" value="'+esc(HX_Q)+'"></label>'
+      +'<label class="hx-tog"><input type="checkbox" id="hxHide0"'+(HX_HIDE0?' checked':'')+'>Hide unused</label>'
+      +'<div class="hx-view" role="group" aria-label="Sort hashtags">'
+        +'<button type="button" data-hxsort="count" aria-pressed="'+(HX_ORDER_BY==='count')+'">Most used</button>'
+        +'<button type="button" data-hxsort="az" aria-pressed="'+(HX_ORDER_BY==='az')+'">A\u2013Z</button>'
+      +'</div>'
+    +'</div>'
+    +(top.length?'<ul class="hx-jump" aria-label="Jump to a top hashtag"><li class="hx-jump-k" aria-hidden="true">Top</li>'
+      +top.map(function(e){ return '<li><button type="button" class="hx-jump-b" data-jump="'+e.idx+'" aria-label="Open '+esc(e.a.tag)+', '+e.a.count+' tickets">'+esc(e.a.tag)+'<b>'+num(e.a.count)+'</b></button></li>'; }).join('')
+      +'</ul>':'')
+    +'<div class="hx-list" id="hxList"></div>'
+  +'</section>';
+}
+// One hashtag row: toggle button (chevron, pill + definition, proportional bar, count) + copy button,
+// then the collapsible body (chart, export, ticket table). Ids keep the ORIGINAL HX_SECS index.
+function hxRowHtml(a,idx,s){
+  var def=hxDefOf(a.tag);
+  var defHtml=def?'<span class="hx-def" title="'+esc(def)+'">'+esc(def)+'</span>':'<span class="hx-def none">No definition on file for this hashtag.</span>';
+  var w=s.max?(a.count/s.max*100):0;
+  return '<div class="hx-sec'+(a.count>0?'':' is-zero')+'" id="hxSec'+idx+'">'
+    +'<div class="hx-sec-head">'
+      +'<button type="button" class="hx-sec-btn" id="hxSecBtn'+idx+'" aria-expanded="false" aria-controls="hxSecBody'+idx+'" onclick="hxToggle('+idx+')">'
+        +'<span class="hx-chev" aria-hidden="true">'+CHEV+'</span>'
+        +'<span class="hx-sec-main"><span class="hx-pill"><span class="hx-tag">'+esc(a.tag)+'</span></span>'+defHtml+'</span>'
+        +'<span class="hx-sec-bar" aria-hidden="true"><span class="hx-track"><i style="width:'+w.toFixed(1)+'%"></i></span><span class="hx-share">'+hxPct(a.count,s.assigns)+'</span></span>'
+        +'<span class="hx-count-col"><span class="hx-count'+(a.count>0?'':' zero')+'">'+num(a.count)+'<span class="hx-sr"> tickets</span></span><span class="hx-count-l" aria-hidden="true">ticket'+(a.count===1?'':'s')+'</span>'
+          +(a.lastUploadAt?'<span class="hx-updated" title="Last updated by a CSV upload: '+esc(hxUpdatedFull(a.lastUploadAt))+'">Updated '+esc(hxUpdatedShort(a.lastUploadAt))+'</span>':'')
+        +'</span>'
+      +'</button>'
+      +'<button type="button" class="hx-copy" data-tag="'+esc(a.tag)+'" onclick="hxCopyTag(this,event)" title="Copy '+esc(a.tag)+'" aria-label="Copy '+esc(a.tag)+'">'+ic('copy',14)+'</button>'
+    +'</div>'
+    +'<div class="hx-sec-body" id="hxSecBody'+idx+'" role="region" aria-labelledby="hxSecBtn'+idx+'">'
+      +(a.count>0
+        ? '<div class="hx-chart-head"><div class="hx-chart-head-txt">'
+            +'<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
+            +'<div class="hx-chart-sub">Tickets tagged <b>'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
+          +'</div><span class="hx-export-wrap" id="hxExpWrap'+idx+'">'+hxExportBtnHtml(idx)+'</span></div>'
+          +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'" role="img" aria-label="Weekly ticket count for '+esc(a.tag)+'"></canvas></div></div>'
+          +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
+        : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
+    +'</div>'
+  +'</div>';
+}
+// Visible rows for the current filter bar state (keeps each row's original HX_SECS index).
+function hxVisible(){
+  var q=HX_Q.trim().toLowerCase();
+  return HX_SECS.map(function(a,idx){ return { a:a, idx:idx }; })
+    .filter(function(e){
+      if(HX_HIDE0&&!e.a.count) return false;
+      if(q&&(e.a.tag+' '+hxDefOf(e.a.tag)).toLowerCase().indexOf(q)<0) return false;
+      return true;
+    })
+    .sort(function(x,y){
+      var byTag=(x.a.tag<y.a.tag?-1:x.a.tag>y.a.tag?1:0);
+      return HX_ORDER_BY==='az'?byTag:((Number(y.a.count)||0)-(Number(x.a.count)||0)||byTag);
+    });
+}
+function hxRenderList(){
+  var box=document.getElementById('hxList'); if(!box) return;
+  var s=hxStats(), vis=hxVisible();
+  var c=document.getElementById('hxCount');
+  if(c) c.textContent=vis.length===HX_SECS.length?(num(HX_SECS.length)+' hashtags'):('Showing '+num(vis.length)+' of '+num(HX_SECS.length));
+  if(!vis.length){
+    box.innerHTML='<div class="hx-state"><span class="hx-state-ic">'+ic('search',24)+'</span><p class="hx-state-t">No hashtags match</p>'
+      +'<p>Try a different search, or show the unused hashtags too.</p><div class="hx-state-acts"><button type="button" class="hx-btn is-ghost" data-hxclear>'+ic('refresh',14)+'Clear filters</button></div></div>';
+    return;
+  }
+  box.innerHTML=vis.map(function(e){ return hxRowHtml(e.a,e.idx,s); }).join('');
+  if(HX_OPEN>=0){
+    var sec=document.getElementById('hxSec'+HX_OPEN);
+    if(sec){ hxSetOpen(sec,true); var o=HX_OPEN; setTimeout(function(){ hxDrawChart(o); },60); }
+  }
+}
+function hxSkeletonHtml(){
+  var k='<div class="hx-kpi" aria-hidden="true"><span class="hx-skel" style="width:55%;height:11px"></span><span class="hx-skel" style="width:40%;height:30px;margin-top:14px"></span><span class="hx-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
+  var row=function(w1,w2){ return '<div class="hx-skel-row" aria-hidden="true"><span class="hx-skel" style="width:22px;height:22px;flex-shrink:0"></span>'
+    +'<span class="hx-skel-main"><span class="hx-skel" style="width:'+w1+'px;max-width:70%;height:20px;border-radius:99px"></span><span class="hx-skel" style="width:'+w2+'%;height:10px"></span></span>'
+    +'<span class="hx-skel hx-skel-bar" style="width:170px;height:8px;border-radius:99px;flex-shrink:0"></span>'
+    +'<span class="hx-skel" style="width:40px;height:22px;flex-shrink:0"></span><span class="hx-skel" style="width:32px;height:32px;border-radius:8px;flex-shrink:0"></span></div>'; };
+  var rows=[[150,62],[190,48],[130,70],[170,55],[210,40],[140,66],[180,52],[160,60]].map(function(r){ return row(r[0],r[1]); }).join('');
+  return '<div class="hx-kpis">'+k+k+k+k+'</div>'
+    +'<section class="hx-card" aria-hidden="true"><div class="hx-card-head"><span class="hx-skel" style="width:150px;height:20px"></span><span class="hx-skel" style="width:90px;height:12px"></span></div>'
+      +'<div class="hx-tools"><span class="hx-skel" style="flex:1 1 260px;max-width:440px;height:36px;border-radius:8px"></span><span class="hx-skel" style="width:120px;height:34px;border-radius:99px"></span><span class="hx-skel" style="width:170px;height:34px;border-radius:9px;margin-left:auto"></span></div>'
+      +'<div class="hx-list">'+rows+'</div></section>'
+    +'<p class="hx-sr">Loading hashtags\u2026</p>';
+}
+function hxRenderLoading(){
+  var r=hxRoot(); if(!r) return;
+  r.setAttribute('aria-busy','true');
+  r.innerHTML='<div class="hx">'+hxHeroHtml(true)+hxSkeletonHtml()+'</div>';
+}
+function hxRenderError(msg){
+  var r=hxRoot(); if(!r) return;
+  r.setAttribute('aria-busy','false');
+  r.innerHTML='<div class="hx">'+hxHeroHtml(false)+'<div class="hx-kpis" aria-hidden="true"></div><section class="hx-card">'
+    +'<div class="hx-state"><span class="hx-state-ic is-err">'+ic('alert-triangle',26)+'</span><p class="hx-state-t">Couldn\u2019t load the hashtags</p>'
+    +'<p role="alert">'+esc(msg||'Could not load the hashtag data. Please try again.')+'</p>'
+    +'<div class="hx-state-acts"><button type="button" class="hx-btn" id="hxRetry">'+ic('refresh',14)+'Retry</button>'
+    +'<a class="hx-btn is-ghost" href="app.html">Back to the live dashboard</a></div></div></section></div>';
+  var b=document.getElementById('hxRetry'); if(b) b.addEventListener('click',function(){ hxLoad(); });
+}
+// Kept for compatibility (older call sites): show a message in the friendly error state.
+function gate(msg){ hxRenderError(msg); }
+
 function render(data){
-  if(typeof hxLoaderStop==='function') hxLoaderStop(); // stop the initial loader before repaint
   var secs=(data&&data.sections)||[];
+  HX_DATA=data||null;
   // Fold the live sections into a map keyed by CANONICAL tag (alias-resolved), merging tickets so a
   // variant spelling and its canonical tag collapse into one section (deduped by shortId).
   var byTag={};
@@ -750,60 +903,62 @@ function render(data){
   });
   // EXACTLY the allowed hashtags appear as sections — nothing else. Any tag in the data that is not
   // on the allow-list (e.g. a bogus filename-derived tag, or a retired tag) is ignored. Every allowed
-  // tag renders even with 0 tickets, in the fixed HX_ORDER order.
+  // tag renders even with 0 tickets.
   HX_SECS=HX_ORDER.map(function(tag){
     var m=byTag[tag];
     return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], lastUploadAt:(m&&m.lastUploadAt)||'', srcTags:(m&&m.srcTags)||[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
   });
-  // No title bar, no group wrappers (DEFECTS / PATTERNS / OTHER / #Out of Scope). Render a single
-  // FLAT list of hashtag section cards, ordered by ticket count (most-used first), then by name.
-  if(!HX_SECS.length){ document.getElementById('wrap').innerHTML='<div class="hx-empty">No hashtags found in the Labels column.</div>'; return; }
-  // Sort a shallow copy by count desc, then tag asc — but keep each card's ORIGINAL HX_SECS index so
-  // the chart/body/canvas ids (hxCanvas<idx>, hxBody<idx>, hxSec<idx>) stay consistent with hxToggle.
-  var ordered=HX_SECS.map(function(a,idx){ return { a:a, idx:idx }; })
-    .sort(function(x,y){ return (Number(y.a.count)||0)-(Number(x.a.count)||0) || (x.a.tag<y.a.tag?-1:x.a.tag>y.a.tag?1:0); });
-  // Admin-only toolbar: open the hashtag-CSV upload modal (canUpload flag; owner always).
-  var html='';
-  if(A&&A.canUpload&&A.canUpload()){
-    html+='<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px">'
-      +'<button type="button" class="hx-log-btn" onclick="hlOpen()">'+ic('history',15)+'Hashtag log</button>'
-      +'<button type="button" class="hx-upload-btn" onclick="huOpen()" style="display:inline-flex;align-items:center;gap:7px;background:#161d2d;color:#f4f3ef;border:none;border-radius:5px;font-weight:700;font-size:.86em;padding:9px 16px;cursor:pointer;font-family:inherit">'
-      +ic('upload',15)+'Upload hashtag CSV</button>'
-    +'</div>';
+  if(HX_OPEN>=HX_SECS.length) HX_OPEN=-1;
+  var r=hxRoot(); if(!r) return;
+  r.setAttribute('aria-busy','false');
+  if(!HX_SECS.length){
+    r.innerHTML='<div class="hx">'+hxHeroHtml(false)+'<div class="hx-kpis" aria-hidden="true"></div><section class="hx-card"><div class="hx-state"><span class="hx-state-ic">'+ic('hash',24)+'</span><p class="hx-state-t">No hashtags found</p><p>No hashtags were found in the Labels column.</p></div></section></div>';
+    return;
   }
-  ordered.forEach(function(entry){
-    var a=entry.a, idx=entry.idx;
-    var def=hxDefOf(a.tag);
-    var defHtml=def
-      ? '<div class="hx-def" title="'+esc(def)+'">'+esc(def)+'</div>'
-      : '<div class="hx-def none">No definition on file for this hashtag.</div>';
-    html+='<div class="hx-sec" id="hxSec'+idx+'">'
-      +'<div class="hx-sec-head" onclick="hxToggle('+idx+')">'
-        +'<div class="hx-sec-title">'
-          +'<div class="hx-sec-title-wrap"><span class="hx-tag-line"><span class="hx-tag">'+esc(a.tag)+'</span>'
-            +'<button type="button" class="hx-copy" data-tag="'+esc(a.tag)+'" onclick="hxCopyTag(this,event)" title="Copy '+esc(a.tag)+'" aria-label="Copy '+esc(a.tag)+'">'+ic('copy',13)+'</button></span>'
-            +defHtml+'</div>'
-        +'</div>'
-        +'<div class="hx-sec-head-right"><span class="hx-count-col"><span class="hx-count'+(a.count>0?'':' zero')+'">'+a.count+'</span>'
-          +(a.lastUploadAt?'<span class="hx-updated" title="Last updated by a CSV upload: '+esc(hxUpdatedFull(a.lastUploadAt))+'">Updated '+esc(hxUpdatedShort(a.lastUploadAt))+'</span>':'')
-        +'</span><span class="hx-caret">\u25be</span></div>'
-      +'</div>'
-      +'<div class="hx-sec-body">'
-        +(a.count>0
-          ? '<div class="hx-chart-head"><div class="hx-chart-head-txt">'
-              +'<div class="hx-chart-title">'+esc(a.tag)+' \u2014 tickets created per week</div>'
-              +'<div class="hx-chart-sub">Tickets tagged <b style="color:#a78bfa">'+esc(a.tag)+'</b> bucketed by the week of their created date.</div>'
-            +'</div><span class="hx-export-wrap" id="hxExpWrap'+idx+'">'+hxExportBtnHtml(idx)+'</span></div>'
-            +'<div class="chart-box"><div class="chart-wrap tall"><canvas id="hxCanvas'+idx+'"></canvas></div></div>'
-            +'<div id="hxBody'+idx+'">'+hxSecTableHtml(idx)+'</div>'
-          : '<div class="hx-none-yet">'+ic('hash',16)+'<div><b>No tickets tagged <span class="hx-tag">'+esc(a.tag)+'</span> yet.</b><br>This hashtag is tracked \u2014 tickets will appear here automatically once an uploaded file labels them with it.</div></div>')
-      +'</div>'
-    +'</div>';
-  });
-  document.getElementById('wrap').innerHTML=html;
-  // Hashtag cards start collapsed; the chart is drawn on open via hxToggle.
+  var s=hxStats();
+  r.innerHTML='<div class="hx'+(HX_FIRST?' is-anim':'')+'">'+hxHeroHtml(false)+hxKpisHtml(s)+hxToolsHtml(s)+'</div>';
+  HX_FIRST=false;
+  hxRenderList();
 }
-
+// Filter bar + quick-jump wiring (delegated; the toolbar is re-rendered with the page).
+document.addEventListener('input',function(ev){
+  var el=ev.target; if(!el||el.id!=='hxQ') return;
+  HX_Q=el.value; hxRenderList();
+});
+document.addEventListener('change',function(ev){
+  var el=ev.target; if(!el||el.id!=='hxHide0') return;
+  HX_HIDE0=el.checked; hxRenderList();
+  hxAnnounce(HX_HIDE0?'Unused hashtags hidden.':'Showing all hashtags.');
+});
+document.addEventListener('click',function(ev){
+  var t=ev.target; if(!t||!t.closest) return;
+  var so=t.closest('[data-hxsort]');
+  if(so){
+    HX_ORDER_BY=so.getAttribute('data-hxsort');
+    document.querySelectorAll('[data-hxsort]').forEach(function(b){ b.setAttribute('aria-pressed',String(b===so)); });
+    hxRenderList(); hxAnnounce(HX_ORDER_BY==='az'?'Sorted A to Z.':'Sorted by most used.'); return;
+  }
+  if(t.closest('[data-hxclear]')){
+    HX_Q=''; HX_HIDE0=false;
+    var q=document.getElementById('hxQ'); if(q) q.value='';
+    var h=document.getElementById('hxHide0'); if(h) h.checked=false;
+    hxRenderList(); if(q) q.focus(); hxAnnounce('Filters cleared.'); return;
+  }
+  var j=t.closest('[data-jump]');
+  if(j){
+    var idx=Number(j.getAttribute('data-jump'));
+    if(!document.getElementById('hxSec'+idx)){   // filtered out: clear the filters first
+      HX_Q=''; HX_HIDE0=false;
+      var qi=document.getElementById('hxQ'); if(qi) qi.value='';
+      var hi=document.getElementById('hxHide0'); if(hi) hi.checked=false;
+      hxRenderList();
+    }
+    var sec=document.getElementById('hxSec'+idx); if(!sec) return;
+    if(!sec.classList.contains('open')) hxToggle(idx);
+    sec.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    var b=document.getElementById('hxSecBtn'+idx); if(b) b.focus({preventScroll:true});
+  }
+});
 // ---- "#Out of Scope" group (two subsections: AUTO-SIM, RULE) --------------------------------------
 // Rendered from HX_OOS (/api/out-of-scope-report). Collapsed by default (part of the accordion).
 function hxOosGroupHtml(seq,collapsed){
@@ -1123,104 +1278,25 @@ document.addEventListener('keydown', function(ev){
 });
 // Re-fetch the live report and re-render the list in place after a successful upload.
 async function huReload(){
-  try{ var r=await A.api('GET','/api/hashtags-report'); if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)){ render(r.data); } }catch(e){}
+  try{ var r=await A.api('GET','/api/hashtags-report'); if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)){ HX_SRC='live'; render(r.data); } }catch(e){}
 }
 
-// Load order:
-// ===== Fancy phased loader for the initial page load (hashtag-themed lines). =====
-function hxShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
-function hxFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
-// PHASE 1 — 20 hashtag-themed, general lines (no agent names), personalized with first name.
-function hxPhase1(){
-  var me=hxFirstName();
-  return hxShuffle([
-    ['hash',        'Pulling every hashtag for you, '+me+' \u2728'],
-    ['hash',        'Scanning the Labels column across all tickets\u2026'],
-    ['check-circle','Matching tickets to each approved hashtag\u2026'],
-    ['bar-chart',   'Counting tickets per hashtag\u2026'],
-    ['inbox',       'Gathering the freshest tagged tickets\u2026'],
-    ['calendar',    'Walking through the year week by week\u2026'],
-    ['target',      'Reconciling manual tags with Labels\u2026'],
-    ['repeat',      'De-duplicating tickets within each tag\u2026'],
-    ['hash',        'Sorting hashtags by ticket volume\u2026'],
-    ['check-circle','Verifying every tag against the Tools list\u2026'],
-    ['bar-chart',   'Building the per-week trend for each tag\u2026'],
-    ['inbox',       'Collecting ticket titles and statuses\u2026'],
-    ['target',      'Folding spelling variants into one section\u2026'],
-    ['calendar',    'Lining up created dates\u2026'],
-    ['hash',        'Tidying the hashtag definitions\u2026'],
-    ['check-circle','Double-checking the counts\u2026'],
-    ['bar-chart',   'Almost there \u2014 assembling the sections\u2026'],
-    ['inbox',       'Fetching the latest uploads\u2026'],
-    ['repeat',      'Refreshing the hashtag taxonomy\u2026'],
-    ['hash',        'Warming up the numbers, '+me+'\u2026'],
-  ]);
-}
-// PHASE 2 — after the apology, 10 lines at 3s each (loops).
-function hxPhase2(){
-  var me=hxFirstName();
-  return hxShuffle([
-    ['hash',        'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
-    ['inbox',       'The server is taking a little longer than usual\u2026'],
-    ['bar-chart',   'Re-checking the hashtag counts to be sure\u2026'],
-    ['target',      'Hang tight \u2014 re-scanning the Labels\u2026'],
-    ['check-circle','Reconciling tags with the Tools list\u2026'],
-    ['repeat',      'One more pass over the tagged tickets\u2026'],
-    ['calendar',    'Tidying up the weekly trends\u2026'],
-    ['hash',        'Polishing the last few sections\u2026'],
-    ['bar-chart',   'Nearly ready \u2014 finalising the totals\u2026'],
-    ['hash',        'Appreciate the wait \u2014 almost done\u2026'],
-  ]);
-}
-var _hxTimer=null;
-function _hxSet(tuple){
-  var e=document.getElementById('hxLoaderMsg'), i=document.getElementById('hxLoaderIc');
-  if(i){ i.innerHTML=ic(tuple[0]||'hash',30); }
-  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
-}
-function hxLoaderStart(){
-  if(_hxTimer) return;
-  var p1=hxPhase1(), k=0; _hxSet(p1[0]);
-  _hxTimer=setInterval(function(){
-    k++;
-    if(k<p1.length){ _hxSet(p1[k]); return; }
-    clearInterval(_hxTimer); _hxTimer=null;
-    _hxSet(['alert','Sorry for the delay \u2014 still fetching your hashtags\u2026']);
-    setTimeout(function(){
-      var p2=hxPhase2(), j=0; _hxSet(p2[0]);
-      _hxTimer=setInterval(function(){ j=(j+1)%p2.length; _hxSet(p2[j]); },3000);
-    },3000);
-  },2000);
-}
-function hxLoaderStop(){ if(_hxTimer){ clearInterval(_hxTimer); _hxTimer=null; } }
-var _hxDelay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
-// Flip the loader to its green "Data fetched successfully" success state (shown briefly before the
-// real sections replace it). Returns a promise that resolves after `hold` ms so callers can await it.
-function hxLoaderSuccess(hold){
-  hxLoaderStop();
-  var l=document.getElementById('hxLoader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById('hxLoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
-  var e=document.getElementById('hxLoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
-  var s=document.getElementById('hxLoaderSub'); if(s) s.textContent='Done';
-  return _hxDelay(hold||1000);
-}
-
-// Load order:
+// Load order (hxLoad is also what the error state's Retry button re-runs):
+//   0) Canonical hashtag list from the Tools page (/api/hashtags). This drives BOTH the sections shown
+//      here AND the upload allow-list, so the two pages stay in lockstep. Falls back to HX_ORDER.
 //   1) Live API (/api/hashtags-report) — aggregates ticket_docs by #tag from the Labels column, so
 //      any uploaded file's hashtags show up automatically. This is the source of truth.
 //   2) Fallback to the static hashtags-data.json (e.g. API asleep on Render, or offline) so the
 //      page still renders something on GitHub Pages before the API wakes.
-(async function(){
-  hxLoaderStart();
-  var _hxT0=Date.now();   // so a very fast load still shows the loader (+ success beat) briefly
-  var live=null;
-  // First, load the canonical hashtag list from the Tools page (/api/hashtags). This drives BOTH the
-  // sections shown here AND the upload allow-list, so the two pages stay in lockstep (add a tag on
-  // Tools -> it shows + becomes uploadable here). Falls back to the built-in HX_ORDER if unavailable.
+var HX_LOAD_SEQ=0;
+async function hxLoad(){
+  var seq=++HX_LOAD_SEQ;
+  hxRenderLoading();
+  hxAnnounce('Loading hashtags\u2026');
   try{
     var tr=await A.api('GET','/api/hashtags');
     if(tr&&tr.ok&&Array.isArray(tr.data)&&tr.data.length){
-      HX_ORDER=[]; 
+      HX_ORDER=[];
       tr.data.forEach(function(d){
         var tag='#'+String(d.tag||'').replace(/^#/,'').trim().toLowerCase();
         if(tag==='#') return;
@@ -1232,21 +1308,30 @@ function hxLoaderSuccess(hold){
       HX_ALLOWED=new Set(HX_ORDER);
     }
   }catch(e){ /* keep built-in HX_ORDER */ }
-  // Then fetch the live hashtag report (ticket counts per tag).
+  if(seq!==HX_LOAD_SEQ) return;
+  var live=null, status=0;
   try{
     var r=await A.api('GET','/api/hashtags-report');
+    status=(r&&r.status)||0;
     if(r&&r.ok&&r.data&&Array.isArray(r.data.sections)) live=r.data;
   }catch(e){ live=null; }
-  // Keep the loader up for at least ~1.5s so the animation + success beat are actually seen.
-  var _hxMin=function(){ var el=1500-(Date.now()-_hxT0); return el>0?_hxDelay(el):Promise.resolve(); };
-  if(live){ await _hxMin(); await hxLoaderSuccess(1000); render(live); return; }
+  if(seq!==HX_LOAD_SEQ) return;
+  if(live){ HX_SRC='live'; render(live); hxAnnounce('Hashtags loaded: '+HX_SECS.length+' hashtags.'); return; }
   // Fallback: static snapshot bundled with the site.
   try{
     var fr=await fetch('hashtags-data.json',{cache:'no-store'});
-    if(fr.ok){ var snap=await fr.json(); await _hxMin(); await hxLoaderSuccess(1000); render(snap); return; }
+    if(fr.ok){
+      var snap=await fr.json();
+      if(seq!==HX_LOAD_SEQ) return;
+      HX_SRC='snapshot'; render(snap); hxAnnounce('Live data unavailable. Showing the offline snapshot: '+HX_SECS.length+' hashtags.'); return;
+    }
   }catch(e){}
-  gate('Could not load the hashtag data. Please try again.');
-})();
+  if(seq!==HX_LOAD_SEQ) return;
+  var msg=status===401?'Your session has expired. Please log in again.':'The server didn\u2019t return the hashtag report. Check your connection and try again.';
+  hxRenderError(msg);
+  hxAnnounce('Couldn\u2019t load the hashtags.');
+}
+hxLoad();
 </script>
 </body>
 </html>

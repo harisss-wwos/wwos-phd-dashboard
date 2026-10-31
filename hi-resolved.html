@@ -13,451 +13,263 @@
 <noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shimmer.css">
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
-.spinner{width:44px;height:44px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin .9s linear infinite;margin:40px auto}
-@keyframes spin{100%{transform:rotate(360deg)}}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
-.top-bar{background:#0a0a0a;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--o);color:#000;border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;border:none;text-decoration:none}
-.btn:hover{background:var(--oh)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--t)}
-.btn.sec:hover{border-color:var(--o);color:var(--o)}
-.wrap{max-width:1200px;margin:0 auto;padding:36px 24px 80px}
-h1{color:#fff;font-size:1.6em;margin-bottom:6px;display:inline-flex;align-items:center;gap:10px}
-.sub{color:var(--tm);font-size:.9em;margin-bottom:22px;line-height:1.6}
-/* Summary chips + filter — all on ONE line. */
-.hr-counts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px}
-.hr-chip{display:inline-flex;align-items:center;gap:8px;background:#0b0f14;border:1px solid #23303c;border-radius:5px;padding:9px 14px}
-.hr-chip .n{color:#fff;font-size:1.05em;font-weight:800;line-height:1}
-.hr-chip .l{display:inline-flex;align-items:center;gap:6px;color:var(--tm);font-size:.78em;font-weight:600;white-space:nowrap}
-.hr-chip .l svg{opacity:.85;flex-shrink:0}
-.hr-chip.total{border-color:var(--o)}
-.hr-chip.pet .n{color:#a78bfa}
-.hr-chip.pet .l svg{color:#a78bfa}
-.hr-chip.nonpet .n{color:#ff9900}
-.hr-chip.nonpet .l svg{color:#ff9900}
-/* Inline agent filter, sits at the end of the same row. */
-.hr-filter{display:inline-flex;align-items:center;gap:6px;background:#0b0f14;border:1px solid var(--bd);border-radius:5px;padding:5px 10px;flex:1;min-width:200px}
-.hr-filter-ic{display:inline-flex;color:var(--tm);flex-shrink:0}
-.hr-filter input{flex:1;min-width:0;background:transparent;border:none;color:#fff;font-size:.88em;font-family:inherit;padding:4px 2px}
-.hr-filter input:focus{outline:none}
-/* ---- Illustrated gradient banner header (matches the live dashboard section banners) ---- */
-.hr-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  border-radius:5px;padding:16px 22px;min-height:82px;margin-bottom:20px;
-  border:1px solid #242a31;box-shadow:0 12px 30px -20px rgba(0,0,0,.75);
-  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:hrBanner 9s ease infinite}
-@keyframes hrBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.hr-banner .hb-left{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
-.hr-banner .hb-title{margin:0;display:inline-flex;align-items:center;gap:11px;font-size:1.5em;font-weight:800;letter-spacing:-.3px;line-height:1.1;color:#241354}
-.hr-banner .hb-title svg{flex-shrink:0;color:#241354}
-.hr-banner .hb-sub{font-size:.86em;font-weight:500;line-height:1.5;max-width:82ch;color:rgba(36,19,84,.82)}
-.hr-banner .hb-sub b{color:#180b40;font-weight:800}
-/* "YTD 2026" badge pinned to the right of the title bar. */
-.hr-banner .hb-right{position:relative;z-index:1;display:inline-flex;align-items:center;flex-shrink:0}
-.hr-ytd{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:.9em;letter-spacing:.3px;color:#ec7211;
-  background:rgba(236,114,17,.1);border:1px solid rgba(236,114,17,.35);border-radius:999px;padding:6px 14px;white-space:nowrap}
-.hr-ytd svg{color:#ec7211;flex-shrink:0}
-.hr-banner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;
-  background-repeat:no-repeat;background-position:right center;background-size:auto 118%;opacity:.32;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M42 26h30a12 12 0 0 1 12 12"/><path d="M72 16l12 10-12 10"/><path d="M78 54H48a12 12 0 0 1-12-12"/><path d="M48 64L36 54l12-10"/></svg>')}
-@media(max-width:640px){.hr-banner .hb-title{font-size:1.25em}.hr-banner::after{opacity:.22}}
-/* ---- Non-Pet Repeat incidents section (controls + views + tables) ---- */
-/* Controls row: segmented radio pills (left) + PHD/Non-PHD checkbox chips (right), all one line. */
-.np-controls{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
-/* Segmented radio group — pill container with selected segment highlighted. */
-.np-seg{display:inline-flex;align-items:center;background:#0b0f14;border:1px solid var(--bd);border-radius:999px;padding:3px;gap:2px}
-.np-seg-opt{position:relative;display:inline-flex;align-items:center;cursor:pointer;user-select:none}
-.np-seg-opt input{position:absolute;opacity:0;width:0;height:0}
-.np-seg-opt span{display:inline-flex;align-items:center;padding:7px 16px;border-radius:999px;font-size:.85em;font-weight:700;color:#9fb2c4;white-space:nowrap;transition:background .14s,color .14s}
-.np-seg-opt:hover span{color:#d7dee6}
-.np-seg-opt input:checked+span{background:#ec7211;color:#fff;box-shadow:0 2px 8px -2px rgba(236,114,17,.6)}
-/* Checkbox chips (By Agents view). */
-.np-checks{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.np-chip{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:.82em;font-weight:700;
-  padding:7px 13px;border-radius:999px;border:1px solid var(--bd);background:#0b0f14;color:#9fb2c4;transition:border-color .14s,color .14s,background .14s}
-.np-chip input{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1.5px solid #5a6470;border-radius:4px;cursor:pointer;position:relative;flex-shrink:0;transition:background .14s,border-color .14s}
-.np-chip input:checked{background:#ec7211;border-color:#ec7211}
-.np-chip input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.np-chip:has(input:checked){border-color:#ec7211;color:#fff;background:rgba(236,114,17,.1)}
-/* Shimmer skeleton (shown while a section's data loads). */
-.np-sk-wrap{padding:4px 0}
-.np-sk-row{display:flex;align-items:center;gap:14px;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
-.np-sk{height:12px;border-radius:5px;background:#141a20;position:relative;overflow:hidden}
-.np-sk.b1{width:12%}.np-sk.b2{width:7%}.np-sk.b3{width:14%}.np-sk.b4{flex:1}.np-sk.b5{width:20%}
-.np-sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);animation:npShim 1.3s ease-in-out infinite}
-@keyframes npShim{100%{transform:translateX(100%)}}
-.np-body{min-height:40px}
-.np-load{display:flex;align-items:center;justify-content:center;gap:12px;min-height:120px;color:#8795a3;font-size:.9em;font-weight:600}
-.np-load .spinner{margin:0;width:26px;height:26px;border-width:3px}
-.np-ctry{margin-bottom:10px}
-.np-tablewrap{overflow-x:auto}
-/* All columns centered, single line, truncated with ellipsis (no wrapping). */
-.np-tbl{width:100%;border-collapse:collapse;font-size:.84em;table-layout:fixed}
-.np-tbl th,.np-tbl td{text-align:center;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:middle;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np-tbl thead th{color:#8795a3;font-weight:700;text-transform:uppercase;font-size:.82em;letter-spacing:.4px;border-bottom:1px solid rgba(255,255,255,.14)}
-.np-tbl tbody tr:last-child td{border-bottom:none}
-.np-tbl td.np-c,.np-tbl th.np-c{font-weight:800}
-.np-id{color:#44b9d6;font-weight:700;text-decoration:none}
-.np-id:hover{text-decoration:underline}
-.np-by{color:#8795a3;font-size:.92em;margin-left:4px}
-.np-title{color:inherit}
-.np-rc{color:#aab6c2}
-.np-phd{color:#1577a0;background:rgba(68,185,214,.14);border:1px solid rgba(68,185,214,.35);border-radius:4px;font-size:.72em;font-weight:800;padding:1px 5px;margin-left:4px}
-/* ---- Monthly created-tickets trend chart (inside its collapsible range section) ---- */
-.hr-chart-legend{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;font-size:.82em;font-weight:700;margin-bottom:6px}
-.hr-chart-loading{display:flex;align-items:center;justify-content:center;gap:12px;min-height:220px;color:#8795a3;font-size:.9em;font-weight:600}
-.hr-chart-loading .spinner{margin:0;width:30px;height:30px;border-width:3px}
-/* Bar-shimmer chart placeholder. */
-.hr-chart-sk-legend{display:flex;justify-content:flex-end;gap:14px;margin-bottom:14px}
-.hr-chart-sk-plot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:240px;padding:0 6px}
-.hr-chart-sk-bar{flex:1;border-radius:6px 6px 0 0;align-self:flex-end}
-.hr-lg{display:inline-flex;align-items:center;gap:6px;color:#aab6c2}
-.hr-lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
-.hr-lg.combined i{background:#38bdf8}
-.hr-lg.pet i{background:#a78bfa}
-.hr-lg.nonpet i{background:#ff9900}
-.hr-chart-wrap{position:relative;width:100%;overflow:visible}
-.hr-chart-svg{width:100%;height:auto;display:block;overflow:visible}
-.hr-chart-svg .grid{stroke:rgba(255,255,255,.07);stroke-width:1}
-.hr-chart-svg .axis{stroke:rgba(255,255,255,.18);stroke-width:1}
-.hr-chart-svg .axlbl{fill:#8795a3;font-size:11px;font-weight:600}
-.hr-chart-svg .ln{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.hr-chart-svg .ln.combined{stroke:#38bdf8}
-.hr-chart-svg .ln.pet{stroke:#a78bfa}
-.hr-chart-svg .ln.nonpet{stroke:#ff9900}
-.hr-chart-svg .pt{stroke:#0b0f14;stroke-width:2;cursor:pointer}
-.hr-chart-svg .pt.combined{fill:#38bdf8}
-.hr-chart-svg .pt.pet{fill:#a78bfa}
-.hr-chart-svg .pt.nonpet{fill:#ff9900}
-.hr-chart-svg .hit{fill:transparent;cursor:pointer}
-/* Point value labels: bold, line-coloured, white halo so they read over gridlines/lines. */
-.hr-chart-svg .ptlbl{font-size:11px;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
-.hr-chart-svg .ptlbl.combined{fill:#0b8fc4}.hr-chart-svg .ptlbl.nonpet{fill:#c46f00}.hr-chart-svg .ptlbl.pet{fill:#7c5cff}
-.hr-chart-svg .vline{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
-.hr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:190px;background:#0a0a0a;border:1px solid #2a323b;border-radius:7px;padding:11px 13px;box-shadow:0 14px 34px -16px rgba(0,0,0,.8);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
-.hr-chart-tip.show{opacity:1;transform:translateY(0)}
-.hr-chart-tip .tt-m{font-weight:800;color:#fff;margin-bottom:7px;font-size:1.02em}
-.hr-chart-tip .tt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 0;color:#c4ccd4}
-.hr-chart-tip .tt-row .k{display:inline-flex;align-items:center;gap:6px}
-.hr-chart-tip .tt-row .k i{width:9px;height:9px;border-radius:50%;display:inline-block}
-.hr-chart-tip .tt-row .v{font-weight:800;color:#fff}
-.hr-chart-tip .tt-sep{height:1px;background:rgba(255,255,255,.08);margin:7px 0}
-.hr-chart-tip .tt-pct{color:#9aa6b1;font-size:.95em}
-.hr-chart-tip .tt-pct b{color:#fff}
-/* Date-range sections (top level, collapsible) — each header is an illustrated gradient banner. */
-.hr-range{position:relative;border:1px solid #242a31;border-radius:5px;margin-bottom:16px;overflow:hidden;background:linear-gradient(180deg,#15181d,#0f1115);box-shadow:0 12px 30px -22px rgba(0,0,0,.75)}
-.hr-range-head{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 20px;border:none;text-align:left;cursor:pointer;font:inherit;
-  background:linear-gradient(90deg,var(--rc1),var(--rc2) 60%,var(--rc3));background-size:200% 100%;animation:hrBanner 10s ease infinite;transition:filter .12s}
-.hr-range-head:hover{filter:brightness(1.04)}
-.hr-range-ic{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.85);color:var(--rc-ink);box-shadow:0 2px 6px rgba(0,0,0,.18)}
-.hr-range-ic svg{width:18px;height:18px}
-.hr-range-title{position:relative;z-index:1;color:var(--rc-ink);font-weight:800;font-size:1.12em;letter-spacing:-.2px;flex:1;min-width:0}
-.hr-range-meta{position:relative;z-index:1;margin-left:auto;color:var(--rc-ink);font-size:.82em;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.72);border-radius:5px;padding:5px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
-.hr-range .hr-caret{position:relative;z-index:1;color:var(--rc-ink);flex-shrink:0;transition:transform .18s}
-.hr-range-head::after{content:"";position:absolute;top:0;bottom:0;right:210px;width:150px;background-repeat:no-repeat;background-position:center;background-size:auto 90%;opacity:.34;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
-/* Per-range gradient + dark-ink color + illustration. after=cyan, mid=amber, before=purple. */
-.hr-range.rng-after{--rc1:#0e7490;--rc2:#22b8cf;--rc3:#7fe0ef;--rc-ink:#062e3a}
-.hr-range.rng-after .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M40 30h30a12 12 0 0 1 12 12"/><path d="M70 20l12 10-12 10"/><path d="M80 50H50a12 12 0 0 1-12-12"/><path d="M50 60L38 50l12-10"/></svg>')}
-.hr-range.rng-mid{--rc1:#f0a020;--rc2:#ff9f2e;--rc3:#ffcf7a;--rc-ink:#3a2405}
-.hr-range.rng-mid .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M40 20v6a20 20 0 0 0 8 16 20 20 0 0 1-8 16v6M72 20v6a20 20 0 0 1-8 16 20 20 0 0 0 8 16v6"/><path d="M36 20h40M36 66h40"/></svg>')}
-.hr-range.rng-before{--rc1:#7c5cff;--rc2:#a78bfa;--rc3:#cbb8ff;--rc-ink:#241354}
-.hr-range.rng-before .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><rect x="30" y="22" width="44" height="42" rx="5"/><path d="M30 34h44M42 16v10M62 16v10"/><path d="M84 34a13 13 0 1 1-4 22"/><path d="M84 30v8h8"/></svg>')}
-.hr-range.rng-unknown{--rc1:#4a5560;--rc2:#6b7681;--rc3:#95a1ac;--rc-ink:#161c22}
-.hr-range.rng-unknown .hr-range-head::after{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="40" r="22"/><path d="M45 34a7 7 0 0 1 13 3c0 5-7 5-7 10M51 54h.01"/></svg>')}
-@media(max-width:640px){.hr-range-head{min-height:auto;padding:14px 16px;flex-wrap:wrap}.hr-range-meta{margin-left:0}.hr-range-head::after{opacity:.2}}
-/* Skeleton shimmer for the collapsed-card loading state. */
-.sk-line{display:inline-block;border-radius:5px;background:#141a20;position:relative;overflow:hidden;vertical-align:middle}
-.hr-range-head .sk-line{background:rgba(255,255,255,.5)}
-.sk-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:sksh 1.2s infinite}
-
-@keyframes sksh{100%{transform:translateX(100%)}}
-.hr-range-body{display:none;padding:0 16px}
-.hr-range.open .hr-range-body{display:block;padding:16px}
-.hr-range.open>.hr-range-head .hr-caret{transform:rotate(180deg)}
-/* PHD / Non-PHD sub-sections (nested inside a range) */
-.hr-sub{border:1px solid #2f3a45;border-radius:5px;margin-bottom:10px;overflow:hidden;background:#0b0f14}
-.hr-sub:last-child{margin-bottom:0}
-.hr-sub-head{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 16px;border:none;cursor:pointer;font:inherit;text-align:left;background:#141a22;color:#e6edf3;transition:background .12s}
-.hr-sub-head:hover{background:#17202a}
-.hr-sub-ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.08);color:#9fb2c4}
-.hr-sub-title{font-weight:700;font-size:.98em}
-.hr-sub-meta{margin-left:auto;font-size:.78em;font-weight:700;color:#9fb2c4;background:rgba(255,255,255,.06);border-radius:5px;padding:4px 10px;white-space:nowrap}
-.hr-sub .hr-caret{color:#9fb2c4;flex-shrink:0;transition:transform .18s}
-.hr-sub-body{display:none;padding:0 14px}
-.hr-sub.open .hr-sub-body{display:block;padding:14px}
-.hr-sub.open>.hr-sub-head .hr-caret{transform:rotate(180deg)}
-/* Agent accordion */
-.hr-agent{border:1px solid #2f3a45;border-radius:5px;margin-bottom:12px;overflow:hidden;background:#0b0f14}
-.hr-agent-head{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .12s}
-.hr-agent-head:hover{background:rgba(255,255,255,.03)}
-.hr-agent-name{color:#fff;font-weight:700;font-size:1.1em}
-.hr-agent-name .sub{color:var(--tm);font-weight:400;font-size:.85em;margin-left:8px}
-.hr-agent-meta{margin-left:auto;display:inline-flex;align-items:center;gap:8px}
-.hr-agent-count{font-weight:800;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:5px;padding:4px 14px;font-size:1em}
-.hr-agent-pet{font-size:.78em;color:#a78bfa;font-weight:600}
-.hr-caret{color:var(--tm);transition:transform .25s ease;flex-shrink:0;font-size:1.1em}
-.hr-agent.open .hr-caret{transform:rotate(180deg)}
-.hr-agent-body{display:none}
-.hr-agent.open .hr-agent-body{display:block}
-.hr-scroll{overflow-x:auto}
-.hr-tbl{width:100%;border-collapse:collapse;font-size:.92em}
-.hr-tbl th,.hr-tbl td{border-top:1px solid #1b2530;padding:10px 14px;text-align:left;vertical-align:middle}
-.hr-tbl thead th{background:#0d1319;color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.4px;font-weight:700;white-space:nowrap}
-.hr-tbl tbody tr:hover td{background:rgba(255,153,0,.05)}
-.hr-tbl .hr-id{color:#44b9d6;text-decoration:none;font-weight:700;white-space:nowrap}
-.hr-tbl .hr-id:hover{text-decoration:underline}
-.hr-tbl .hr-st{font-weight:600;white-space:nowrap}
-.hr-tbl .hr-cnt{text-align:center;font-weight:800;color:#ff9900}
-/* Fit-to-content column (Ticket). */
-.hr-tbl th.hr-fit,.hr-tbl td.hr-fit{width:1%;white-space:nowrap}
-/* Sortable header: obvious hover + bold, clearly-visible sort arrow. */
-.hr-tbl th.hr-sort{user-select:none}
-.hr-tbl th.hr-sort:hover{color:#fff;background:#121922}
-.hr-sort-ar{display:inline-block;margin-left:7px;font-size:1em;font-weight:900;color:#ff9f2e;vertical-align:middle}
-.hr-sort-ar.idle{color:#7f8c96;opacity:.7;font-weight:700}
-/* C/R tag leading the root cause: C = Closed (green), R = Resolved (teal). */
-.hr-tag{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:.72em;font-weight:800;vertical-align:middle;line-height:1;flex-shrink:0}
-.hr-tag.c{color:#4ade80;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
-.hr-tag.r{color:#2dd4bf;background:rgba(45,212,191,.15);border:1px solid rgba(45,212,191,.4)}
-.hr-tag.o{color:#879596;background:rgba(135,149,150,.15);border:1px solid rgba(135,149,150,.4)}
-/* Root cause: tag + truncated text on one line. */
-.hr-tbl .hr-rc{max-width:1px;width:100%}
-.hr-rc-wrap{display:flex;align-items:center;gap:8px;min-width:0}
-.hr-rc-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-/* "PHD" tag for agents whose login is a registered user. */
-.hr-phd{display:inline-block;margin-left:9px;padding:2px 8px;border-radius:5px;font-size:.6em;font-weight:800;letter-spacing:.5px;vertical-align:middle;color:#5ecdec;background:rgba(94,205,236,.14);border:1px solid rgba(94,205,236,.45)}
-/* Load more / less footer under an agent's ticket table. */
-.hr-more{display:flex;justify-content:center;gap:10px;align-items:center;padding:12px 14px}
-.hr-more button{background:#141a20;border:1px solid #2a323b;color:#d5dbdb;border-radius:5px;padding:7px 16px;font-size:.85em;font-weight:600;cursor:pointer}
-.hr-more button:hover{background:#1c242d;border-color:#3a444f;color:#fff}
-.hr-more .hr-count{color:#879596;font-size:.8em}
-.hr-pill{display:inline-flex;align-items:center;gap:5px;font-size:.78em;font-weight:700;padding:2px 9px;border-radius:5px}
-.hr-pill.pet{color:#a78bfa;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.35)}
-.hr-pill.nonpet{color:#ff9900;background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.35)}
-.hr-search{margin-bottom:16px}
-.hr-search input{width:100%;max-width:360px;background:#0b0f14;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em;padding:9px 12px;font-family:inherit}
-.empty{text-align:center;color:var(--tm);padding:36px;font-size:.9em}
-.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-/* Global: main content spans full width with a 15px gutter each side. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
-/* Remove the top padding, keep a 20px bottom. Use #wrap (ID) so it beats the
-   runtime .wrap{padding-top:14px} that topbar-auth.js injects into <head>. */
-#wrap.wrap{padding-top:0!important;padding-bottom:20px!important}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
-<style id="hr-light">
-h1{color:#1b2026!important}
-.sub{color:#5c6773!important}
-/* Summary chips + filter. */
-.hr-chip{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 2px rgba(20,30,50,.05)!important}
-.hr-chip .n{color:#1b2026!important}
-.hr-chip .l{color:#5c6773!important}
-.hr-chip.total{border-color:#ec7211!important}
-.hr-chip.pet .n{color:#7c5cff!important}.hr-chip.pet .l svg{color:#7c5cff!important}
-.hr-chip.nonpet .n{color:#ec7211!important}.hr-chip.nonpet .l svg{color:#ec7211!important}
-.hr-filter{background:#fff!important;border:1px solid #e2e6ea!important}
-.hr-filter-ic{color:#8793a0!important}
-.hr-filter input{color:#1b2026!important}
-/* Range section container (keep the bright gradient heads). */
-.hr-range{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-/* Non-Pet Repeat section — light theme. */
-.np-controls{border-bottom:1px solid #eef1f4!important}
-.np-seg{background:#f1f4f7!important;border:1px solid #e2e6ea!important}
-.np-seg-opt span{color:#5c6773!important}
-.np-seg-opt:hover span{color:#1b2026!important}
-.np-seg-opt input:checked+span{background:#ec7211!important;color:#fff!important}
-.np-chip{background:#fff!important;border:1px solid #e2e6ea!important;color:#5c6773!important}
-.np-chip input{border:1.5px solid #c4ccd4!important}
-.np-chip input:checked{background:#ec7211!important;border-color:#ec7211!important}
-.np-chip:has(input:checked){border-color:#ec7211!important;color:#1b2026!important;background:#fff7ef!important}
-.np-sk-row{border-bottom:1px solid #eef1f4!important}
-.np-sk{background:#e8ebee!important}
-.np-sk::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)!important}
-.np-load{color:#8793a0!important}
-.np-tbl th,.np-tbl td{border-bottom:1px solid #eef1f4!important}
-.np-tbl thead th{color:#5c6773!important;border-bottom:1px solid #e2e6ea!important}
-.np-id{color:#1577a0!important}
-.np-by{color:#8793a0!important}
-.np-rc{color:#5c6773!important}
-.np-phd{color:#1577a0!important;background:#eaf4fb!important;border:1px solid #bfe0ef!important}
-/* Monthly trend chart — light theme. */
-.hr-chart-loading{color:#8793a0!important}
-.hr-lg{color:#5c6773!important}
-.hr-chart-svg .grid{stroke:#eef1f4!important}
-.hr-chart-svg .axis{stroke:#d4dce4!important}
-.hr-chart-svg .axlbl{fill:#8793a0!important}
-.hr-chart-svg .pt{stroke:#fff!important}
-.hr-chart-svg .vline{stroke:rgba(20,40,70,.22)!important}
-.hr-chart-tip{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 14px 34px -16px rgba(20,40,70,.35)!important}
-.hr-chart-tip .tt-m{color:#1b2026!important}
-.hr-chart-tip .tt-row{color:#5c6773!important}
-.hr-chart-tip .tt-row .v{color:#1b2026!important}
-.hr-chart-tip .tt-sep{background:#eef1f4!important}
-.hr-chart-tip .tt-pct{color:#5c6773!important}
-.hr-chart-tip .tt-pct b{color:#1b2026!important}
-/* PHD / Non-PHD sub-sections — light theme. */
-.hr-sub{background:#fff!important;border:1px solid #e4e9ee!important}
-.hr-sub-head{background:#f3f6f9!important;color:#1b2026!important}
-.hr-sub-head:hover{background:#eaeff5!important}
-.hr-sub-ic{background:#e7edf4!important;color:#5c6773!important}
-.hr-sub-meta{color:#5c6773!important;background:#eef1f4!important}
-.hr-sub .hr-caret{color:#9aa5b1!important}
-/* Agent accordion. */
-.hr-agent{background:#fff!important;border:1px solid #e6eaee!important}
-.hr-agent-head:hover{background:#f7f9fb!important}
-.hr-agent-name{color:#1b2026!important}
-.hr-agent-name .sub{color:#5c6773!important}
-.hr-agent-count{color:#1b2026!important;background:#f0f3f6!important;border:1px solid #e2e6ea!important}
-.hr-agent-pet{color:#7c5cff!important}
-.hr-caret{color:#9aa5b1!important}
-/* Tables. */
-.hr-tbl th,.hr-tbl td{border-top:1px solid #eef1f4!important}
-.hr-tbl thead th{background:#f7f9fb!important;color:#5c6773!important}
-.hr-tbl tbody tr:hover td{background:#fff7ed!important}
-.hr-tbl .hr-id{color:#1577a0!important}
-.hr-tbl .hr-cnt{color:#ec7211!important}
-.hr-tbl th.hr-sort:hover{color:#1b2026!important;background:#eef1f4!important}
-.hr-sort-ar{color:#ec7211!important}
-.hr-sort-ar.idle{color:#aab4bd!important}
-/* C/R/O status tags. */
-.hr-tag.c{color:#1f9d57!important;background:#eafaf0!important;border:1px solid #c8efd8!important}
-.hr-tag.r{color:#0f9b8e!important;background:#e6faf7!important;border:1px solid #bfeee8!important}
-.hr-tag.o{color:#5c6773!important;background:#f0f3f6!important;border:1px solid #e2e6ea!important}
-.hr-rc-txt{color:#2a3340!important}
-.hr-phd{color:#1577a0!important;background:#eaf4fb!important;border:1px solid #bfe0ef!important}
-.hr-pill.pet{color:#7c5cff!important;background:#f1ecff!important;border:1px solid #d9ccf7!important}
-.hr-pill.nonpet{color:#ec7211!important;background:#fff4e8!important;border:1px solid #f3d4b0!important}
-/* Show more/less footer. */
-.hr-more button{background:#fff!important;border:1px solid #e2e6ea!important;color:#2a3340!important}
-.hr-more button:hover{background:#f7f9fb!important;border-color:#cdd5dd!important;color:#1b2026!important}
-.hr-more .hr-count{color:#8793a0!important}
-/* Search + skeleton + empty + buttons. */
-.hr-search input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-.sk-line{background:#e8ebee!important}
-.hr-range-head .sk-line{background:rgba(255,255,255,.6)!important}
-.empty{color:#8793a0!important}
-.gate p{color:#5c6773!important}
-.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
-.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-/* ===== Report restyle overrides (win the cascade) ===== */
-/* (A) Title bar: 60px tall, white, flat. */
-.hr-banner{height:60px!important;min-height:60px!important;max-height:60px!important;box-sizing:border-box!important;
-  background:#fff!important;animation:none!important;border:1px solid #e2e6ea!important;border-radius:5px!important;
-  box-shadow:0 1px 3px rgba(20,30,50,.06)!important;margin:0 0 10px!important;padding:0 22px!important}
-.hr-banner::after{display:none!important}
-.hr-banner .hb-title{color:#1b2026!important;font-size:1.15em!important}
-.hr-banner .hb-title svg{color:#1b2026!important}
-.hr-ytd{color:#ec7211!important;background:#fff4ea!important;border:1px solid #f3c99e!important}
-.hr-ytd svg{color:#ec7211!important}
-/* (C) Range head: 56px, flat blue (collapsed #38bdf8 / expanded #1878eb), white text, no border. */
-/* Range CARD = white rounded card that clips its header + body. Collapsed = just the blue header;
-   expanded = blue header + white body. Cards are separated by a 10px margin-bottom (below). */
-.hr-range{border:1px solid #e2e6ea!important;background:#fff!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important;overflow:hidden!important;border-radius:5px!important}
-.hr-range-head{height:56px!important;min-height:56px!important;max-height:56px!important;box-sizing:border-box!important;
-  background:#38bdf8!important;background-image:none!important;animation:none!important;border:none!important}
-.hr-range.open>.hr-range-head{background:#1878eb!important;background-image:none!important}
-/* Body: white surface with padding (holds the chart / sub-rows). */
-.hr-range-body{background:#fff!important}
-.hr-range.open>.hr-range-body{padding:14px!important}
-.hr-range-head::after{display:none!important}
-.hr-range-head .hr-range-title{color:#fff!important}
-.hr-range-head .hr-range-ic{background:rgba(255,255,255,.22)!important;color:#fff!important}
-.hr-range-head .hr-range-meta{background:rgba(255,255,255,.22)!important;color:#fff!important}
-/* (E) Plus/minus PNG caret on the RANGE head only (collapsed=plus, expanded=minus). */
-.hr-range>.hr-range-head .hr-caret{color:transparent!important;font-size:0!important;width:18px!important;height:18px!important;display:inline-block!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;transform:none!important;transition:none!important;background-image:url("icons/plus.v3.png")!important}
-.hr-range.open>.hr-range-head .hr-caret{transform:none!important;background-image:url("icons/minus.v3.png")!important}
-/* (F) Main column: ONE flex column owns all vertical spacing. A 10px gap sits between the title
-   bar and each of the three sections (graph / non-pet / pet). Children carry no margin so the
-   flex gap is the single, uniform source of spacing — nothing can compete with it. */
-/* Gap between the title bar and each section card — simple margin-bottom pattern (same as
-   station-request.html). Cards are plain block siblings directly in .wrap. */
-.hr-banner{margin:0 0 10px!important}
-.hr-range{margin:0 0 10px!important}
-</style>
-<style id="hr-loader">
-/* ---- Fun phased section loader (ported from agent-analytics.html / sla-breach.html) ---- */
-.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:#151d28;line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
-.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#1f9d57}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+<style id="hrx-light">
+/* Resolved Repeat Incidents — same visual language as errors-in-resolved.html: dark navy hero with an
+   orange rule, KPI cards overlapping it, then white collapsible section cards. Everything is scoped
+   under .hrx (a size container, so the grids respond to the main column, not the viewport). */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.gate{text-align:center;padding:50px 0}
+.gate h1{font-size:1.6em;margin-bottom:8px}
+.gate p{color:#5c6773;margin-bottom:18px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;background:#ec7211;color:#fff;font-weight:700;font-size:.86em;text-decoration:none}
+.btn:hover{background:#d4650c}
 
-/* ---- Chart section: graph on top, the stat tiles in a full-width row below the graph ---- */
-.hr-chart-row{display:flex;flex-direction:column;gap:16px}
-.hr-chart-colw{min-width:0;display:flex;flex-direction:column}
-.hr-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-.hr-stat{min-width:0;display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;background:#0b0f14;border:1px solid #23303c}
-.hr-stat-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:7px;flex-shrink:0;background:rgba(68,185,214,.12);color:#44b9d6}
-.hr-stat-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-.hr-stat-n{font-size:1.25em;font-weight:800;line-height:1.05;color:#fff;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hr-stat-l{font-size:.72em;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#879596;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hr-stat.combined .hr-stat-ic{background:rgba(56,189,248,.16);color:#38bdf8}
-.hr-stat.combined .hr-stat-n{color:#38bdf8}
-.hr-stat.nonpet .hr-stat-ic{background:rgba(255,153,0,.16);color:#ff9f2e}
-.hr-stat.nonpet .hr-stat-n{color:#ff9f2e}
-.hr-stat.pet .hr-stat-ic{background:rgba(167,139,250,.16);color:#a78bfa}
-.hr-stat.pet .hr-stat-n{color:#a78bfa}
-.hr-stat.rate .hr-stat-ic{background:rgba(74,222,128,.16);color:#4ade80}
-.hr-chart-colw .hr-chart-wrap,.hr-chart-colw .hr-chart-svg{max-height:300px}
-.hr-chart-colw .hr-chart-wrap{width:100%}
-/* Header line inside the graph area: stat chips LEFT, legend RIGHT (same as SLA Breaches). Wraps on
-   narrow screens. */
-.hr-chart-top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:8px}
-.hr-chart-top .hr-chart-legend{margin-bottom:0;margin-left:auto}
-/* Compact chips (overrides the old full-width tile grid): small icon + value + label on one line. */
-.hr-chart-top .hr-stats{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
-.hr-chart-top .hr-stat{padding:6px 10px;gap:8px;border-radius:7px}
-.hr-chart-top .hr-stat-ic{width:24px;height:24px;border-radius:6px}
-.hr-chart-top .hr-stat-ic svg{width:13px;height:13px}
-.hr-chart-top .hr-stat-body{flex-direction:row;align-items:baseline;gap:6px}
-.hr-chart-top .hr-stat-n{font-size:1em}
-.hr-chart-top .hr-stat-l{font-size:.68em}
-/* Light-theme stat tiles. */
-.hr-stat{background:#fff!important;border:1px solid #e2e6ea!important}
-.hr-stat-ic{background:#eaf4fb!important;color:#1577a0!important}
-.hr-stat-n{color:#1b2026!important}
-.hr-stat-l{color:#8795a3!important}
-.hr-stat.combined .hr-stat-ic{background:#e7f6fe!important;color:#0ea5e9!important}
-.hr-stat.combined .hr-stat-n{color:#0ea5e9!important}
-.hr-stat.nonpet .hr-stat-ic{background:#fff3e0!important;color:#b5680c!important}
-.hr-stat.nonpet .hr-stat-n{color:#b5680c!important}
-.hr-stat.pet .hr-stat-ic{background:#f1ecfe!important;color:#7c5cff!important}
-.hr-stat.pet .hr-stat-n{color:#7c5cff!important}
-.hr-stat.rate .hr-stat-ic{background:#eafaf0!important;color:#1f9d57!important}
+.hrx{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blu:#2b66c1;--blu-bg:#e9f0fb;--vio:#6a4bd8;--vio-bg:#f0ecfe;
+  --c-all:#2b66c1;--c-np:#ec7211;--c-pet:#7c5cff;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.hrx button,.hrx input{font:inherit;text-transform:none}
+.hrx :is(button,a,input,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.hrx-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.hrx-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.hrx-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.hrx-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.hrx-hero-in{position:relative;display:flex;gap:18px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.hrx-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 380px}
+.hrx-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.hrx-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.hrx-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.hrx-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.hrx-chips{list-style:none;display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
+.hrx-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:99px;font-size:.8em;font-weight:700;color:#fff;white-space:nowrap;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-variant-numeric:tabular-nums}
+.hrx-chip svg{flex-shrink:0;color:#ffb26b}
+.hrx-chip.is-err{border-color:rgba(255,140,120,.5);color:#ffd1c8}
+@container (max-width:560px){
+  .hrx-hero{padding:20px 18px 70px 22px}
+  .hrx-hero h1{font-size:1.6em;letter-spacing:-.5px}
+  .hrx-hero-ic{width:40px;height:40px}
+  .hrx-hero-main{flex-basis:100%}
+}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.hrx-kpis{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:-56px 18px 16px}
+.hrx-kpis>:last-child{grid-column:1/-1}
+@container (min-width:600px){.hrx-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.hrx-kpis>:last-child{grid-column:auto}.hrx-kpis>:nth-child(4){grid-column:span 2}}
+@container (min-width:1060px){.hrx-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.hrx-kpis>:nth-child(4){grid-column:auto}}
+@container (max-width:560px){.hrx-kpis{margin:-50px 10px 14px;gap:10px}}
+.hrx-kpi{position:relative;overflow:hidden;min-width:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.hrx-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.hrx-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.hrx-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.hrx-kpi-v{margin-top:12px;font-size:2.3em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.hrx-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.hrx-kpi-s b{color:var(--ink);font-weight:800}
+.hrx-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.hrx-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+@container (max-width:560px){.hrx-kpi{padding:13px 14px 12px}.hrx-kpi-v{font-size:1.8em}.hrx-kpi-l{letter-spacing:.6px}}
+.hrx-kpi.is-base{--k:#1f2a40}
+.hrx-kpi.is-all{--k:var(--c-all)}.hrx-kpi.is-all .hrx-kpi-ic{background:var(--blu-bg);color:var(--blu)}
+.hrx-kpi.is-np{--k:var(--c-np)}.hrx-kpi.is-np .hrx-kpi-ic{background:var(--acc-bg);color:#b5530a}
+.hrx-kpi.is-pet{--k:var(--c-pet)}.hrx-kpi.is-pet .hrx-kpi-ic{background:var(--vio-bg);color:var(--vio)}
+.hrx-kpi.is-bad{--k:#d92d20}.hrx-kpi.is-bad .hrx-kpi-v{color:var(--red)}.hrx-kpi.is-bad .hrx-kpi-ic{background:var(--red-bg);color:var(--red)}
+.hrx-kpi.is-rate{--k:#1f9d57}.hrx-kpi.is-rate .hrx-kpi-ic{background:var(--grn-bg);color:var(--grn)}
+
+/* ---- Section cards (chart / non-pet / pet; one open at a time) ---- */
+.hrx-sections{display:flex;flex-direction:column;gap:14px}
+.hrx .hr-range{--sc:var(--c-all);--sc-bg:var(--blu-bg);position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  box-shadow:0 2px 10px -6px rgba(20,30,50,.18);transition:box-shadow .15s,border-color .15s}
+.hrx .hr-range::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--sc);opacity:.85}
+.hrx .hr-range.rng-nonpet{--sc:var(--c-np);--sc-bg:var(--acc-bg)}
+.hrx .hr-range.rng-pet{--sc:var(--c-pet);--sc-bg:var(--vio-bg)}
+.hrx .hr-range.open{border-color:#cfd6dd;box-shadow:0 14px 30px -24px rgba(20,30,50,.6)}
+.hrx-sec-h{margin:0;font-size:1em}
+.hrx .hr-range-head{width:100%;display:flex;align-items:center;gap:14px;padding:16px 20px 15px;border:none;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+.hrx .hr-range-head:hover{background:#fafbfc}
+.hrx .hr-range-head:focus-visible{outline-offset:-3px}
+.hrx .hr-range.open>.hrx-sec-h .hr-range-head{border-bottom:1px solid var(--line)}
+.hrx-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;color:#818284}
+.hrx-chev svg{transition:transform .15s}
+.hrx [aria-expanded="true"] .hrx-chev svg{transform:rotate(90deg)}
+.hrx :is(.hr-range-head,.hr-sub-head):hover .hrx-chev{background:#e6f0fc;color:#2b66c1}
+.hrx .hr-range-ic{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--sc-bg);color:var(--sc)}
+.hrx-sec-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.hrx .hr-range-title{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.hrx-sec-desc{font-size:.84em;font-weight:500;color:var(--mut);line-height:1.45}
+.hrx .hr-range-meta{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);
+  font-size:.78em;font-weight:800;color:#3a4552;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hrx .hr-range-meta:empty{display:none}
+.hrx .hr-range-meta.is-idle{font-weight:700;color:var(--mut);background:#fff;border-style:dashed}
+.hrx .hr-range-meta.is-err{background:var(--red-bg);border-color:#f2b8b1;color:var(--red)}
+@container (max-width:620px){.hrx .hr-range-head{flex-wrap:wrap;gap:10px 12px;padding:14px 14px 13px}.hrx-sec-txt{flex-basis:calc(100% - 90px)}.hrx .hr-range-meta{margin-left:34px}.hrx-sec-desc{display:none}}
+.hrx .hr-range-body{padding:18px 20px 20px}
+.hrx .hr-range-body[hidden]{display:none}
+@container (max-width:620px){.hrx .hr-range-body{padding:14px 12px 16px}}
+
+/* ---- Toolbar: segmented view control + search + analyst chips ---- */
+.hrx .np-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.hrx .np-seg{display:inline-flex;flex-wrap:wrap;padding:3px;border-radius:9px;background:#e7eaee;border:none;gap:2px}
+.hrx .np-seg-opt{position:relative;display:inline-flex;cursor:pointer;user-select:none}
+.hrx .np-seg-opt input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.hrx .np-seg-opt span{display:inline-flex;align-items:center;padding:6px 14px;border-radius:7px;font-size:.84em;font-weight:700;color:#5c6773;white-space:nowrap;transition:background .14s,color .14s}
+.hrx .np-seg-opt:hover span{color:var(--ink)}
+.hrx .np-seg-opt input:checked+span{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,30,50,.18)}
+.hrx .np-seg-opt input:focus-visible+span{outline:3px solid var(--focus);outline-offset:1px}
+.hrx-search{position:relative;flex:1 1 240px;max-width:420px}
+.hrx-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.hrx-search input{width:100%;font-size:.9em;padding:8px 12px 8px 36px;border-radius:8px}
+.hrx .np-checks{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hrx .np-checks[hidden]{display:none}
+.hrx .np-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.84em;font-weight:700;color:#3a4552;cursor:pointer;user-select:none}
+.hrx .np-chip input{width:15px;height:15px;margin:0;accent-color:var(--acc);cursor:pointer}
+.hrx .np-chip:has(input:checked){background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+.hrx-count{margin-left:auto;font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+@container (max-width:620px){.hrx .np-seg{width:100%}.hrx .np-seg-opt{flex:1 1 auto}.hrx .np-seg-opt span{width:100%;justify-content:center;padding:6px 8px;font-size:.8em}.hrx-search{max-width:none;flex-basis:100%}.hrx-count{margin-left:0}}
+
+/* ---- Groups (By Country / By Agents): avatar + chevron expanders ---- */
+.hrx .hr-sub{border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:8px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.hrx .hr-sub:last-child{margin-bottom:0}
+.hrx .hr-sub.open{border-color:#cfd6dd;box-shadow:0 12px 26px -22px rgba(20,30,50,.6)}
+.hrx .hr-sub-head{width:100%;display:flex;align-items:center;gap:12px;padding:10px 14px;border:none;background:#fff;color:var(--ink);text-align:left;cursor:pointer;min-height:0}
+.hrx .hr-sub-head:hover{background:#fafbfc}
+.hrx .hr-sub.open .hr-sub-head{background:#f7f8fa;border-bottom:1px solid var(--line)}
+.hrx .hr-sub-head:focus-visible{outline-offset:-3px}
+.hrx-av{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.86em;font-weight:800;
+  background:hsl(var(--h) 60% 92%);color:hsl(var(--h) 55% 28%);border:1px solid hsl(var(--h) 45% 82%)}
+.hrx-av.is-ctry{border-radius:9px;font-size:.7em;letter-spacing:.4px}
+.hrx-g-id{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px}
+.hrx .hr-sub-title{font-size:.95em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrx-g-name2{font-weight:600;color:var(--mut)}
+.hrx-g-bar{flex:0 0 160px;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.hrx-g-bar i{display:block;height:100%;border-radius:inherit;background:var(--gc,var(--acc))}
+.hrx .hr-sub-meta{flex:0 0 auto;min-width:170px;display:flex;justify-content:flex-end;align-items:center;gap:14px;font-size:.82em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hrx .hr-sub-meta b{font-size:1.15em;font-weight:800;color:var(--ink)}
+.hrx-g-top{display:inline-flex;align-items:center;gap:6px}
+@container (max-width:700px){.hrx-g-bar{display:none}.hrx .hr-sub-meta{min-width:0;flex-direction:column;align-items:flex-end;gap:2px}}
+.hrx .hr-sub-body{padding:12px 14px 14px}
+.hrx .hr-sub-body[hidden]{display:none}
+.hrx-phd{display:inline-flex;align-items:center;flex-shrink:0;padding:2px 7px;border-radius:5px;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+  color:#136b67;background:#d2f0ee;border:1px solid #9fd9d4;vertical-align:middle;cursor:default}
+
+/* ---- Tables ---- */
+.hrx .np-tablewrap{overflow:auto;max-height:540px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.hrx .np-tbl{width:100%;min-width:780px;border-collapse:separate;border-spacing:0;font-size:.86em;table-layout:fixed}
+.hrx .np-tbl th,.hrx .np-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4!important;text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrx .np-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8!important;border-bottom:1px solid var(--line)!important;color:#5c6773!important;
+  font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+.hrx .np-tbl tbody tr:last-child td{border-bottom:none!important}
+.hrx .np-tbl .np-c{text-align:center}
+.hrx .np-tbl tbody tr:hover td{background:#fff7ed!important}
+.hrx .np-id{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
+.hrx .np-id:hover{text-decoration:underline}
+.hrx .np-title{color:#2a3340!important}
+.hrx .np-rc{color:#5c6773!important}
+.hrx-who{display:inline-flex;align-items:center;gap:6px;max-width:100%;font-weight:700}
+.hrx-who span{overflow:hidden;text-overflow:ellipsis}
+.hrx-cc{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.86em;font-weight:800;color:#3a4552;letter-spacing:.3px}
+.hrx-hi{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:2px 8px;border-radius:99px;font-size:.9em;font-weight:800;font-variant-numeric:tabular-nums;
+  background:#fff6e0;color:#8a5a00;border:1px solid #f3dca2}
+.hrx-hi.is-high{background:var(--acc-bg);color:#a34700;border-color:#f7c99c}
+.hrx-hi.is-crit{background:var(--red-bg);color:var(--red);border-color:#f2b8b1}
+
+/* ---- Chart ---- */
+.hrx .hr-chart-top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:10px}
+.hrx-chart-note{font-size:.84em;font-weight:600;color:var(--mut)}
+.hrx .hr-chart-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;list-style:none}
+.hrx .hr-lg{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.8em;font-weight:700;color:#3a4552}
+.hrx .hr-lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.hrx .hr-lg.combined i{background:var(--c-all)}
+.hrx .hr-lg.nonpet i{background:var(--c-np)}
+.hrx .hr-lg.pet i{background:var(--c-pet)}
+.hrx .hr-chart-wrap{position:relative;width:100%;overflow:visible}
+.hrx .hr-chart-svg{width:100%;height:auto;max-height:300px;display:block;overflow:visible}
+.hr-chart-svg .grid{stroke:#eef1f4;stroke-width:1}
+.hr-chart-svg .axis{stroke:#d4dce4;stroke-width:1}
+.hr-chart-svg .axlbl{fill:#8793a0;font-size:11px;font-weight:600}
+.hr-chart-svg .ln{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.hr-chart-svg .ln.combined{stroke:#2b66c1}
+.hr-chart-svg .ln.nonpet{stroke:#ec7211}
+.hr-chart-svg .ln.pet{stroke:#7c5cff}
+.hr-chart-svg .pt{stroke:#fff;stroke-width:2;cursor:pointer}
+.hr-chart-svg .pt.combined{fill:#2b66c1}
+.hr-chart-svg .pt.nonpet{fill:#ec7211}
+.hr-chart-svg .pt.pet{fill:#7c5cff}
+.hr-chart-svg .hit{fill:transparent;cursor:pointer;outline:none}
+.hr-chart-svg .hit:focus-visible{fill:rgba(236,114,17,.08);stroke:#f0a35a;stroke-width:2}
+.hr-chart-svg .ptlbl{font-size:11px;font-weight:800;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.hr-chart-svg .ptlbl.combined{fill:#1f4f9a}.hr-chart-svg .ptlbl.nonpet{fill:#a34700}.hr-chart-svg .ptlbl.pet{fill:#5b3fd6}
+.hr-chart-svg .vline{stroke:rgba(20,40,70,.22);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
+.hr-chart-tip{position:absolute;pointer-events:none;z-index:5;min-width:200px;background:#fff;border:1px solid var(--line,#e2e6ea);border-radius:10px;padding:11px 13px;
+  box-shadow:0 16px 34px -16px rgba(20,40,70,.4);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;font-size:.82em}
+.hr-chart-tip.show{opacity:1;transform:translateY(0)}
+.hr-chart-tip .tt-m{font-weight:800;color:#1b2026;margin-bottom:7px;font-size:1.02em}
+.hr-chart-tip .tt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:2px 0;color:#5c6773}
+.hr-chart-tip .tt-row .k{display:inline-flex;align-items:center;gap:6px}
+.hr-chart-tip .tt-row .k i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.hr-chart-tip .tt-row .v{font-weight:800;color:#1b2026;font-variant-numeric:tabular-nums}
+.hr-chart-tip .tt-sep{height:1px;background:#eef1f4;margin:7px 0}
+.hr-chart-tip .tt-pct{color:#5c6773;font-size:.95em}
+.hr-chart-tip .tt-pct b{color:#1b2026}
+
+/* ---- Loading skeletons, empty + error states ---- */
+.hrx-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:hrxShim 1.4s ease infinite}
+.hrx-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.10) 25%,rgba(255,255,255,.22) 40%,rgba(255,255,255,.10) 60%);background-size:400% 100%}
+@keyframes hrxShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.hrx-sk-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.hrx-sk-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.hrx-sk-row .grow{flex:1 1 auto}
+@container (max-width:700px){.hrx-sk-row .bar{display:none}}
+.hrx-sk-chart{display:flex;flex-direction:column;gap:12px}
+.hrx-sk-legend{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hrx-sk-legend>span{display:flex;gap:8px}
+.hrx-sk-plot{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:240px;padding:0 6px 0 40px;
+  background-image:linear-gradient(#eef1f4 1px,transparent 1px);background-size:100% 48px}
+.hrx-sk-plot .hrx-skel{flex:1;border-radius:6px 6px 0 0;opacity:.75}
+.hrx-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 20px;text-align:center;color:var(--mut)}
+.hrx-state-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:4px}
+.hrx-state-ic.is-err{background:var(--red-bg);color:var(--red)}
+.hrx-state-t{font-size:1.08em!important;font-weight:800;color:var(--ink)!important}
+.hrx-state p{font-size:.9em;max-width:52ch;line-height:1.5}
+.hrx-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
+.hrx-btn:hover{background:#0f1420}
+
+/* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the sections. */
+@keyframes hrxUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.hrx.is-anim .hrx-hero{animation:hrxUp .45s ease both}
+.hrx.is-anim .hrx-kpi{animation:hrxUp .5s ease both}
+.hrx.is-anim .hrx-kpi:nth-child(2){animation-delay:.06s}
+.hrx.is-anim .hrx-kpi:nth-child(3){animation-delay:.12s}
+.hrx.is-anim .hrx-kpi:nth-child(4){animation-delay:.18s}
+.hrx.is-anim .hrx-kpi:nth-child(5){animation-delay:.24s}
+.hrx.is-anim .hr-range{animation:hrxUp .5s ease .2s both}
+@media (prefers-reduced-motion:reduce){
+  .hrx *,.hrx *::before,.hrx *::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body data-nav-active="hi-resolved" data-back-href="app.html" data-back-label="Dashboard">
@@ -466,18 +278,23 @@ h1{color:#1b2026!important}
 </div>
 
 <div class="wrap" id="wrap">
-  <!-- Hardcoded section heading banners (no shimmer). render() replaces this with the live sections
-       once the script runs; this static copy just prevents any skeleton flash on first paint. -->
-  <div id="hrSkel">
-    <div class="hr-range rng-chart open"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span class="hr-range-title">Tickets created per month · 2026</span><span class="hr-caret" aria-hidden="true">▾</span></div></div>
-    <div class="hr-range rng-nonpet"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span class="hr-range-title">Non-Pet Repeat incidents</span><span class="hr-caret" aria-hidden="true">▾</span></div></div>
-    <div class="hr-range rng-pet"><div class="hr-range-head" style="cursor:default"><span class="hr-range-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="9.5" r="1.8"/><circle cx="17.5" cy="9.5" r="1.8"/><circle cx="9.5" cy="5.5" r="1.8"/><circle cx="14.5" cy="5.5" r="1.8"/><path d="M12 12.5c-2.8 0-4.5 2-4.5 4 0 1.8 1.6 2.5 4.5 2.5s4.5-.7 4.5-2.5c0-2-1.7-4-4.5-4z"/></svg></span><span class="hr-range-title">Pet Repeat incidents</span><span class="hr-caret" aria-hidden="true">▾</span></div></div>
+  <!-- Static first-paint placeholder (hero + KPI skeletons). render() replaces it with the live page. -->
+  <div class="hrx" aria-busy="true">
+    <header class="hrx-hero"><div class="hrx-hero-in"><div class="hrx-hero-main"><div>
+      <p class="hrx-eyebrow">Repeat incidents · Resolved tickets</p><h1>Resolved Repeat Incidents</h1>
+    </div></div></div></header>
+    <div class="hrx-kpis" aria-hidden="true">
+      <div class="hrx-kpi"><span class="hrx-skel" style="width:55%;height:11px"></span><span class="hrx-skel" style="width:45%;height:30px;margin-top:14px"></span></div>
+      <div class="hrx-kpi"><span class="hrx-skel" style="width:55%;height:11px"></span><span class="hrx-skel" style="width:45%;height:30px;margin-top:14px"></span></div>
+      <div class="hrx-kpi"><span class="hrx-skel" style="width:55%;height:11px"></span><span class="hrx-skel" style="width:45%;height:30px;margin-top:14px"></span></div>
+      <div class="hrx-kpi"><span class="hrx-skel" style="width:55%;height:11px"></span><span class="hrx-skel" style="width:45%;height:30px;margin-top:14px"></span></div>
+      <div class="hrx-kpi"><span class="hrx-skel" style="width:55%;height:11px"></span><span class="hrx-skel" style="width:45%;height:30px;margin-top:14px"></span></div>
+    </div>
   </div>
 </div>
-
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 let HR_DATA=null;
@@ -632,54 +449,164 @@ function rangeSection(key,label,d){
     '<div class="hr-range-body">'+body+'</div>'+
   '</div>';
 }
+// ================= Page shell: hero + KPI row + three collapsible section cards =================
+const CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+let NP_Q='', PT_Q='';            // per-section search text (ticket ID, title, agent, country, root cause)
+let HR_LOADED_AT=null;           // when the monthly trend last loaded (shown in the hero chip)
+let HR_SUBSEQ=0;                 // unique ids for group expanders (aria-controls)
+function $id(id){ return document.getElementById(id); }
+function fmtN(n){ return (Number(n)||0).toLocaleString('en-US'); }
+// Percentage text: one decimal below 10% (so 0.4% does not read as 0%), whole numbers above.
+function pctTxt(n,d){ if(!d) return '0%'; var p=n/d*100; return (p>0&&p<10?p.toFixed(1).replace(/\.0$/,''):String(Math.round(p)))+'%'; }
+function hueOf(s){ var h=0; s=String(s||''); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return [24,205,165,265,335,45,190,120][h%8]; }
+function announce(msg){ var l=$id('hrxLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+function errMsg(r){
+  if(!r) return 'The server didn\u2019t respond. Check your connection and try again.';
+  return (r.data&&r.data.error)||('The server returned an error ('+r.status+'). Please try again.');
+}
+
 function render(d){
   HR_DATA=d;
   HR_AGENTS=[]; // reset the paginated-agent registry on each full render
-  // Emit the three sections directly into #wrap as plain block siblings. No title bar.
   document.getElementById('wrap').innerHTML=
-    monthlyChartHtml()+
-    nonPetSectionHtml()+
-    petSectionHtml();
+    '<div class="hrx is-anim" id="hrx">'+
+      heroHtml()+
+      '<div class="hrx-kpis" id="hrxKpis" role="group" aria-label="Headline figures, 2026" aria-busy="true">'+kpiSkeleton()+'</div>'+
+      '<p class="hrx-sr" id="hrxLive" role="status" aria-live="polite"></p>'+
+      '<div class="hrx-sections">'+
+        monthlyChartHtml()+
+        nonPetSectionHtml()+
+        petSectionHtml()+
+      '</div>'+
+    '</div>';
+  paintListMeta('nonpet'); paintListMeta('pet');
   // No eager render: each section fetches + draws on its first expand (see hiLoad* functions).
   // The chart section is open by default, so init() kicks off hiLoadChart().
+}
+
+// ---------- Hero ----------
+function heroHtml(){
+  return '<header class="hrx-hero"><div class="hrx-hero-in"><div class="hrx-hero-main"><span class="hrx-hero-ic" aria-hidden="true">'+ic('repeat',24)+'</span><div>'+
+    '<p class="hrx-eyebrow">Repeat incidents \u00b7 Resolved tickets</p><h1>Resolved Repeat Incidents</h1>'+
+    '<p class="hrx-hero-sub">Tickets created each month in 2026 and the resolved tickets that came back as repeat incidents, split into non-pet and pet cases by country, highest HI count and agent.</p>'+
+    '</div></div>'+
+    '<ul class="hrx-chips" aria-label="Report scope">'+
+      '<li class="hrx-chip">'+ic('calendar',14)+'<span>YTD 2026</span></li>'+
+      '<li class="hrx-chip">'+ic('check-circle',14)+'<span>Resolved &amp; closed</span></li>'+
+      '<li class="hrx-chip" id="hrxUpdated">'+updatedInner()+'</li>'+
+    '</ul></div></header>';
+}
+function fmtClock(d,tz){ try{ return new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d); }catch(e){ return ''; } }
+function updatedInner(){
+  if(HI_CHART_STATE==='error') return ic('alert',14)+'<span>Not loaded</span>';
+  if(!HR_LOADED_AT) return ic('clock',14)+'<span class="hrx-skel hrx-skel-d" style="width:110px;height:11px" aria-hidden="true"></span><span class="hrx-sr">Loading</span>';
+  return ic('clock',14)+'<span>Loaded '+esc(fmtClock(HR_LOADED_AT,'America/Phoenix'))+' MST \u00b7 '+esc(fmtClock(HR_LOADED_AT,'Asia/Kolkata'))+' IST</span>';
+}
+function paintUpdated(){ var c=$id('hrxUpdated'); if(!c) return; c.classList.toggle('is-err',HI_CHART_STATE==='error'); c.innerHTML=updatedInner(); }
+
+// ---------- KPIs (rolled up from the monthly series) ----------
+function kpiCard(cls,icon,label,value,sub,ratio){
+  return '<div class="hrx-kpi '+cls+'"><p class="hrx-kpi-l"><span class="hrx-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</p>'+
+    '<p class="hrx-kpi-v">'+value+'</p><p class="hrx-kpi-s">'+sub+'</p>'+
+    (ratio==null?'':'<div class="hrx-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+function kpiSkeleton(){
+  var k='<div class="hrx-kpi" aria-hidden="true"><span class="hrx-skel" style="width:55%;height:11px"></span><span class="hrx-skel" style="width:45%;height:30px;margin-top:14px"></span><span class="hrx-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
+  return k+k+k+k+k;
+}
+// "Jan – Mar 2026" for the months that have data so far.
+function monthsSpan(){
+  var months=(HR_MONTHLY&&HR_MONTHLY.months)||[], last=-1;
+  months.forEach(function(m,i){ if((m.total||0)>0) last=i; });
+  var y=(HR_MONTHLY&&HR_MONTHLY.year)||2026;
+  if(last<0) return 'No tickets yet in '+y;
+  return (last===0?MONTH_LBL[0]:MONTH_LBL[0]+' \u2013 '+MONTH_LBL[last])+' '+y;
+}
+function renderKpis(){
+  var box=$id('hrxKpis'); if(!box) return;
+  var busy=(HI_CHART_STATE==='idle'||HI_CHART_STATE==='loading');
+  box.setAttribute('aria-busy',busy?'true':'false');
+  if(busy){ box.innerHTML=kpiSkeleton(); return; }
+  if(!HR_MONTHLY){
+    var na='<span class="hrx-sr">Not available</span><span aria-hidden="true">\u2014</span>', sub='Couldn\u2019t load the monthly figures';
+    box.innerHTML=kpiCard('is-all','inbox','Tickets created',na,sub,null)+kpiCard('is-np','alert','Non-pet',na,sub,null)+
+      kpiCard('is-pet','paw','Pet',na,sub,null)+kpiCard('is-bad','repeat','Repeat incidents',na,sub,null)+kpiCard('is-rate','bar-chart','Repeat rate',na,sub,null);
+    return;
+  }
+  var s=chartStats();
+  box.innerHTML=
+    kpiCard('is-all','inbox','Tickets created',fmtN(s.total),esc(monthsSpan()),null)+
+    kpiCard('is-np','alert','Non-pet',fmtN(s.nonPet),'<b>'+pctTxt(s.nonPet,s.total)+'</b> of tickets created',s.total?s.nonPet/s.total:0)+
+    kpiCard('is-pet','paw','Pet',fmtN(s.pet),'<b>'+pctTxt(s.pet,s.total)+'</b> of tickets created',s.total?s.pet/s.total:0)+
+    kpiCard('is-bad','repeat','Repeat incidents',fmtN(s.repeat),'<b>'+fmtN(s.repeatNonPet)+'</b> non-pet \u00b7 <b>'+fmtN(s.repeatPet)+'</b> pet',null)+
+    kpiCard('is-rate','bar-chart','Repeat rate',s.rate.toFixed(1)+'%','Repeat incidents per ticket created',s.rate/100);
+}
+
+// ---------- Section card head (shared by the three sections) ----------
+function sectionHead(key,icon,title,desc,open){
+  return '<h2 class="hrx-sec-h"><button type="button" class="hr-range-head" id="hrxHead-'+key+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="hrxBody-'+key+'" onclick="hrRangeToggle(this)">'+
+    '<span class="hrx-chev" aria-hidden="true">'+CHEV+'</span>'+
+    '<span class="hr-range-ic" aria-hidden="true">'+ic(icon,18)+'</span>'+
+    '<span class="hrx-sec-txt"><span class="hr-range-title">'+esc(title)+'</span><span class="hrx-sec-desc">'+esc(desc)+'</span></span>'+
+    '<span class="hr-range-meta" id="hrxMeta-'+key+'"></span>'+
+  '</button></h2>';
+}
+function sectionBodyOpen(key,open){
+  return '<div class="hr-range-body" id="hrxBody-'+key+'" role="region" aria-labelledby="hrxHead-'+key+'" aria-busy="false"'+(open?'':' hidden')+'>';
+}
+// Friendly error state with a Retry that re-runs the same fetch.
+function errorHtml(key,title,msg){
+  return '<div class="hrx-state" role="alert"><span class="hrx-state-ic is-err" aria-hidden="true">'+ic('alert-triangle',24)+'</span>'+
+    '<h3 class="hrx-state-t">'+esc(title)+'</h3><p>'+esc(msg)+'</p>'+
+    '<button type="button" class="hrx-btn" data-retry="'+key+'">'+ic('refresh',14)+'Retry</button></div>';
+}
+function emptyHtml(icon,title,text,btn){
+  // title/text are trusted HTML built by the callers (any user text is escaped there).
+  return '<div class="hrx-state"><span class="hrx-state-ic" aria-hidden="true">'+ic(icon,24)+'</span><h3 class="hrx-state-t">'+title+'</h3>'+
+    (text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
 }
 
 // ================= "Non-Pet Repeat incidents" section =================
 // A collapsible white card. Body has 3 radio views (By Country / By HI count / By Agents) that
 // regroup the same flat HR_NONPET.tickets list. The section shell is built once; the view area
-// (#npBody) is (re)painted by renderNonPetView() whenever a radio/checkbox changes.
+// (#npBody) is (re)painted by renderNonPetView() whenever a radio/checkbox/search changes.
 function truncate(s, n){ s=String(s||''); return s.length>n ? (s.slice(0,n-1)+'…') : s; }
 // Country-code -> full name, for friendly labels ("US · United States").
 var NP_COUNTRY_NAME={US:'United States',UK:'United Kingdom',CA:'Canada',IN:'India',AU:'Australia',MX:'Mexico',JP:'Japan',DE:'Germany',IT:'Italy',FR:'France',EG:'Egypt',ES:'Spain',SA:'Saudi Arabia',BR:'Brazil',NL:'Netherlands',ZA:'South Africa',PT:'Portugal',UAE:'United Arab Emirates',IE:'Ireland',SG:'Singapore',TR:'Turkey',PL:'Poland',SE:'Sweden',BE:'Belgium',AT:'Austria',CH:'Switzerland',DK:'Denmark',NO:'Norway',FI:'Finland',GR:'Greece',CZ:'Czechia'};
-function npCountryLabel(code){ var n=NP_COUNTRY_NAME[code]; return n?(esc(code)+' \u00b7 '+esc(n)):esc(code); }
+function npCountryLabel(code){ var n=NP_COUNTRY_NAME[code]; return n?(esc(code)+' \u00b7 '+esc(n)):esc(code||'Unknown'); }
 
-function nonPetSectionHtml(){
-  // One controls row: a segmented radio-pill group (left) + the PHD/Non-PHD checkboxes (right,
-  // shown only in the "By Agents" view). Both live on the SAME line.
+// Shared section shell for the Non-Pet (pfx np / hin) and Pet (pfx pt / hip) sections. Element ids
+// (npChecks, npChkPhd, npChkNon, npBody, hinContent / pt*, hip*) are kept from the original page.
+function repeatSectionHtml(key,o){
   const seg=
-    '<div class="np-seg" role="radiogroup">'+
-      '<label class="np-seg-opt"><input type="radio" name="npView" value="country" checked onchange="npSetView(\'country\')"><span>By Country</span></label>'+
-      '<label class="np-seg-opt"><input type="radio" name="npView" value="hi" onchange="npSetView(\'hi\')"><span>By Highest HI count</span></label>'+
-      '<label class="np-seg-opt"><input type="radio" name="npView" value="agent" onchange="npSetView(\'agent\')"><span>By Agents</span></label>'+
+    '<div class="np-seg" role="radiogroup" aria-label="Group '+o.kind+' incidents">'+
+      '<label class="np-seg-opt"><input type="radio" name="'+o.radio+'" value="country" checked onchange="'+o.setFn+'(\'country\')"><span>By Country</span></label>'+
+      '<label class="np-seg-opt"><input type="radio" name="'+o.radio+'" value="hi" onchange="'+o.setFn+'(\'hi\')"><span>By Highest HI count</span></label>'+
+      '<label class="np-seg-opt"><input type="radio" name="'+o.radio+'" value="agent" onchange="'+o.setFn+'(\'agent\')"><span>By Agents</span></label>'+
     '</div>';
+  const search=
+    '<div class="hrx-search"><label for="'+o.p+'Q" class="hrx-sr">Search '+o.kind+' incidents by ticket ID, title, agent, country or root cause</label>'+ic('search',15)+
+      '<input type="search" id="'+o.p+'Q" data-q="'+o.p+'" placeholder="Search ticket, title, agent, country\u2026" autocomplete="off"></div>';
   const checks=
-    '<div class="np-checks" id="npChecks" style="display:none">'+
-      '<label class="np-chip"><input type="checkbox" id="npChkPhd" checked onchange="npToggleKind(\'phd\',this)"><span>PHD Analysts</span></label>'+
-      '<label class="np-chip"><input type="checkbox" id="npChkNon" checked onchange="npToggleKind(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
+    '<div class="np-checks" id="'+o.p+'Checks" role="group" aria-label="Analyst type" hidden>'+
+      '<label class="np-chip"><input type="checkbox" id="'+o.p+'ChkPhd" checked onchange="'+o.kindFn+'(\'phd\',this)"><span>PHD Analysts</span></label>'+
+      '<label class="np-chip"><input type="checkbox" id="'+o.p+'ChkNon" checked onchange="'+o.kindFn+'(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
     '</div>';
-  return '<div class="hr-range rng-nonpet" data-range="nonpet">'+
-    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
-      '<span class="hr-range-ic">'+(window.icon?window.icon('alert',18):'')+'</span>'+
-      '<span class="hr-range-title">Non-Pet Repeat incidents</span>'+
-      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
-    '</button>'+
-    '<div class="hr-range-body">'+ldHtml('hin')+
-      '<div id="hinContent" style="display:none">'+
-        '<div class="np-controls">'+seg+checks+'</div>'+
-        '<div id="npBody" class="np-body"></div>'+
+  return '<section class="hr-range rng-'+key+'" data-range="'+key+'">'+
+    sectionHead(key,o.icon,o.title,o.desc,false)+
+    sectionBodyOpen(key,false)+
+      '<div id="'+o.lp+'State"></div>'+
+      '<div id="'+o.lp+'Content" hidden>'+
+        '<div class="np-controls" role="search" aria-label="Filter '+o.kind+' incidents">'+seg+search+checks+
+          '<span class="hrx-count" id="'+o.p+'Count" aria-live="polite"></span></div>'+
+        '<div id="'+o.p+'Body" class="np-body"></div>'+
       '</div>'+
     '</div>'+
-  '</div>';
+  '</section>';
+}
+function nonPetSectionHtml(){
+  return repeatSectionHtml('nonpet',{p:'np',lp:'hin',radio:'npView',setFn:'npSetView',kindFn:'npToggleKind',kind:'non-pet',icon:'alert',
+    title:'Non-Pet Repeat incidents',desc:'Resolved non-pet tickets that came back as repeat incidents, YTD 2026.'});
 }
 // Radio switch.
 function npSetView(v){ NP_VIEW=v; renderNonPetView(); }
@@ -692,136 +619,166 @@ window.npToggleKind=npToggleKind;
 function renderNonPetView(){
   const box=document.getElementById('npBody'); if(!box) return;
   // Show the PHD/Non-PHD checkboxes only in the "By Agents" view.
-  const checks=document.getElementById('npChecks'); if(checks) checks.style.display=(NP_VIEW==='agent')?'flex':'none';
-  if(!HR_NONPET){ box.innerHTML=npSkeleton(6); return; }
-  const tickets=HR_NONPET.tickets||[];
-  if(!tickets.length){ box.innerHTML='<div class="empty">No non-pet repeat incidents.</div>'; return; }
-  if(NP_VIEW==='country')      box.innerHTML=npByCountry(tickets);
-  else if(NP_VIEW==='hi')      box.innerHTML=npByHi(tickets);
-  else                         box.innerHTML=npByAgent(tickets, NP_PHD, NP_NONPHD);
+  const checks=document.getElementById('npChecks'); if(checks) checks.hidden=(NP_VIEW!=='agent');
+  if(!HR_NONPET){ box.innerHTML=''; return; }
+  box.innerHTML=repeatView(HR_NONPET.tickets||[], NP_VIEW, NP_PHD, NP_NONPHD, NP_Q, 'np', 'non-pet');
 }
 window.renderNonPetView=renderNonPetView;
 
-// A row link for the ticket id.
-function npIdLink(t){ return '<a class="np-id" href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId)+'</a>'; }
-
-// Shimmer skeleton shown while a Repeat-incidents section's data is still loading.
-function npSkeleton(n){
-  var row='<div class="np-sk-row">'+
-    '<span class="np-sk b1"></span><span class="np-sk b2"></span><span class="np-sk b3"></span>'+
-    '<span class="np-sk b4"></span><span class="np-sk b5"></span></div>';
-  var out=''; for(var i=0;i<(n||6);i++) out+=row; return '<div class="np-sk-wrap">'+out+'</div>';
+// Search + view dispatch shared by both sections. Writes the "N tickets" count next to the toolbar.
+function ticketMatches(t,q){
+  return (String(t.shortId||'')+' '+(t.title||'')+' '+(t.resolvedBy||'')+' '+(t.country||'')+' '+(NP_COUNTRY_NAME[t.country]||'')+' '+(t.rootCause||'')).toLowerCase().indexOf(q)>=0;
+}
+function repeatView(all, view, wantPhd, wantNonPhd, query, pfx, kind){
+  const q=String(query||'').trim().toLowerCase();
+  const list=q?all.filter(function(t){ return ticketMatches(t,q); }):all;
+  const cnt=document.getElementById(pfx+'Count');
+  if(cnt) cnt.textContent=all.length?(q?fmtN(list.length)+' of '+fmtN(all.length)+' tickets match':fmtN(all.length)+' ticket'+(all.length===1?'':'s')):'';
+  if(!all.length) return emptyHtml('check-circle','No '+kind+' repeat incidents','Nothing has come back as a repeat incident in 2026 so far.');
+  if(!list.length) return emptyHtml('search','No tickets match \u201c'+esc(String(query).trim())+'\u201d','Try a ticket ID, an agent login, a country code or words from the title.',
+    '<button type="button" class="hrx-btn" data-clear-q="'+pfx+'">Clear search</button>');
+  if(view==='country') return npByCountry(list, pfx, !!q);
+  if(view==='hi')      return npByHi(list);
+  return npByAgent(list, wantPhd, wantNonPhd, pfx, !!q);
 }
 
-// ---- View 1: By Country — one sub-card per country code (count on the right), expand to a table. ----
-// Columns: ResolvedBy · HI Count (desc) · Title (truncated) · Root Cause.
-function npByCountry(tickets){
+// A row link for the ticket id.
+function npIdLink(t){ return '<a class="np-id" href="'+esc(t.url)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId)+'</a>'; }
+// HI count badge: colour + the number itself (amber < 3, orange 3-4, red 5+).
+function hiBadge(n){
+  n=Number(n)||0;
+  var cls=n>=5?' is-crit':n>=3?' is-high':'';
+  return '<span class="hrx-hi'+cls+'" title="HI count: '+n+'">'+n+'</span>';
+}
+function whoHtml(name){
+  return '<span class="hrx-who"><span>'+esc(name||'\u2014')+'</span>'+(isPhdUser(name)?'<span class="hrx-phd np-phd" title="Registered PHD user">PHD</span>':'')+'</span>';
+}
+function ctryChip(code){ return '<span class="hrx-cc" title="'+esc(NP_COUNTRY_NAME[code]||code||'Unknown')+'">'+esc(code||'\u2014')+'</span>'; }
+
+// Shimmer skeleton shown while a Repeat-incidents section's data is still loading. Mirrors the final
+// layout: the toolbar, then a stack of group rows (chevron, avatar, name, bar, stats).
+function npSkeleton(n){
+  var row='<div class="hrx-sk-row">'+
+    '<span class="hrx-skel" style="width:22px;height:22px;border-radius:6px"></span>'+
+    '<span class="hrx-skel" style="width:34px;height:34px;border-radius:50%"></span>'+
+    '<span class="grow"><span class="hrx-skel" style="width:min(220px,60%);height:12px"></span></span>'+
+    '<span class="hrx-skel bar" style="width:160px;height:8px;border-radius:99px"></span>'+
+    '<span class="hrx-skel" style="width:96px;height:12px"></span></div>';
+  var out=''; for(var i=0;i<(n||6);i++) out+=row;
+  return '<div aria-hidden="true"><div class="hrx-sk-tools"><span class="hrx-skel" style="width:min(340px,100%);height:34px;border-radius:9px"></span>'+
+    '<span class="hrx-skel" style="flex:1 1 200px;max-width:420px;height:34px;border-radius:8px"></span></div>'+out+'</div>';
+}
+
+// A collapsible group row (country or agent) with chevron + avatar + bar + stats; table inside.
+function groupHtml(o){
+  const id='hrxG'+(++HR_SUBSEQ);
+  return '<div class="hr-sub'+(o.open?' open':'')+'">'+
+    '<button type="button" class="hr-sub-head" aria-expanded="'+(o.open?'true':'false')+'" aria-controls="'+id+'" onclick="hrSubToggle(this)">'+
+      '<span class="hrx-chev" aria-hidden="true">'+CHEV+'</span>'+o.av+
+      '<span class="hrx-g-id"><span class="hr-sub-title">'+o.name+'</span>'+(o.tag||'')+'</span>'+
+      '<span class="hrx-g-bar" aria-hidden="true"><i style="width:'+Math.max(4,o.ratio*100).toFixed(1)+'%"></i></span>'+
+      '<span class="hr-sub-meta"><span><b>'+fmtN(o.count)+'</b> ticket'+(o.count===1?'':'s')+'</span>'+
+        '<span class="hrx-g-top"><span aria-hidden="true">Top HI</span><span class="hrx-sr">Highest HI count</span>'+hiBadge(o.top)+'</span></span>'+
+    '</button>'+
+    '<div class="hr-sub-body" id="'+id+'"'+(o.open?'':' hidden')+'>'+o.table+'</div>'+
+  '</div>';
+}
+function tableWrap(label,cols,head,rows){
+  return '<div class="np-tablewrap" tabindex="0" role="region" aria-label="'+esc(label)+'"><table class="np-tbl">'+
+    '<colgroup>'+cols.map(function(w){ return '<col style="width:'+w+'%">'; }).join('')+'</colgroup>'+
+    '<thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ---- View 1: By Country — one group per country code (count on the right), expand to a table. ----
+// Columns: Ticket · ResolvedBy · HI Count (desc) · Title (truncated) · Root Cause.
+function npByCountry(tickets, pfx, openAll){
   const groups={};
   tickets.forEach(function(t){ (groups[t.country]=groups[t.country]||[]).push(t); });
   // Country codes ordered by ticket count (desc).
   const codes=Object.keys(groups).sort(function(a,b){ return groups[b].length-groups[a].length; });
+  const max=codes.reduce(function(m,c){ return Math.max(m,groups[c].length); },1);
   return codes.map(function(code){
     const list=groups[code].slice().sort(function(a,b){ return b.hi-a.hi; });
     const rows=list.map(function(t){
       return '<tr>'+
         '<td>'+npIdLink(t)+'</td>'+
-        '<td>'+esc(t.resolvedBy||'—')+'</td>'+
-        '<td class="np-c">'+t.hi+'</td>'+
+        '<td>'+whoHtml(t.resolvedBy)+'</td>'+
+        '<td class="np-c">'+hiBadge(t.hi)+'</td>'+
         '<td class="np-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
         '<td class="np-rc" title="'+esc(t.rootCause)+'">'+esc(t.rootCause)+'</td>'+
       '</tr>';
     }).join('');
-    return '<div class="hr-sub np-ctry">'+
-      '<button type="button" class="hr-sub-head" onclick="hrSubToggle(this)">'+
-        '<span class="hr-sub-ic">'+(window.icon?window.icon('globe',16):'')+'</span>'+
-        '<span class="hr-sub-title">'+npCountryLabel(code)+'</span>'+
-        '<span class="hr-sub-meta">'+list.length+' tickets</span>'+
-        '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
-      '</button>'+
-      '<div class="hr-sub-body">'+
-        '<div class="np-tablewrap"><table class="np-tbl">'+
-          '<colgroup><col style="width:14%"><col style="width:16%"><col style="width:7%"><col style="width:38%"><col style="width:25%"></colgroup>'+
-          '<thead><tr><th>Ticket</th><th>Resolved By</th><th class="np-c">HI</th><th>Title</th><th>Root Cause</th></tr></thead>'+
-          '<tbody>'+rows+'</tbody>'+
-        '</table></div>'+
-      '</div>'+
-    '</div>';
+    const c=(code&&code!=='undefined')?code:'';
+    return groupHtml({ open:openAll, ratio:list.length/max, count:list.length, top:list[0]?list[0].hi:0,
+      av:'<span class="hrx-av is-ctry" style="--h:'+hueOf(c)+'" aria-hidden="true">'+esc((c||'?').slice(0,3).toUpperCase())+'</span>',
+      name:npCountryLabel(c),
+      table:tableWrap('Tickets for '+(NP_COUNTRY_NAME[c]||c||'unknown country'),[14,18,8,36,24],
+        '<th scope="col">Ticket</th><th scope="col">Resolved By</th><th scope="col" class="np-c">HI</th><th scope="col">Title</th><th scope="col">Root Cause</th>',rows) });
   }).join('');
 }
 
 // ---- View 2: By Highest HI count — one flat table, HI desc. ----
-// Columns: HI Count (desc) · Country · ResolvedBy · Title (truncated) · Root Cause.
+// Columns: Ticket · HI Count (desc) · Country · ResolvedBy · Title (truncated) · Root Cause.
 function npByHi(tickets){
   const list=tickets.slice().sort(function(a,b){ return b.hi-a.hi; });
   return npFlatTable(list);
 }
 
-// ---- View 3: By Agents — PHD / Non-PHD checkboxes, agents ordered by volume (desc). ----
-// Columns: HI Count (desc) · Country · ResolvedBy · Title (truncated) · Root Cause.
-function npByAgent(tickets, wantPhd, wantNonPhd){
+// ---- View 3: By Agents — PHD / Non-PHD checkboxes, one group per agent ordered by volume (desc). ----
+// Columns: Ticket · HI Count (desc) · Country · Title (truncated) · Root Cause.
+function npByAgent(tickets, wantPhd, wantNonPhd, pfx, openAll){
   // The PHD / Non-PHD checkboxes live in the controls row. Keep tickets whose resolver matches a
   // selected kind (flags passed in so both the Non-Pet and Pet sections can reuse this).
   const filtered=tickets.filter(function(t){
     const isPhd=isPhdUser(t.resolvedBy);
     return (isPhd&&wantPhd)||(!isPhd&&wantNonPhd);
   });
-  // Order rows so agents who handled the most appear first; within an agent, HI desc.
+  // Agents who handled the most appear first; within an agent, HI desc.
   const perAgent={};
-  filtered.forEach(function(t){ (perAgent[t.resolvedBy]=perAgent[t.resolvedBy]||[]).push(t); });
-  const agents=Object.keys(perAgent).sort(function(a,b){ return perAgent[b].length-perAgent[a].length; });
-  const ordered=[];
-  agents.forEach(function(ag){ perAgent[ag].sort(function(a,b){ return b.hi-a.hi; }).forEach(function(t){ ordered.push(t); }); });
-  if(!ordered.length) return '<div class="empty">No incidents for the selected analyst type.</div>';
-  return npFlatTable(ordered, true);
+  filtered.forEach(function(t){ var k=t.resolvedBy||'\u2014'; (perAgent[k]=perAgent[k]||[]).push(t); });
+  const agents=Object.keys(perAgent).sort(function(a,b){ return (perAgent[b].length-perAgent[a].length)||a.localeCompare(b); });
+  if(!agents.length) return emptyHtml('users','No incidents for the selected analyst type','Tick PHD Analysts or Non-PHD Analysts to see their tickets.');
+  const max=agents.reduce(function(m,a){ return Math.max(m,perAgent[a].length); },1);
+  return agents.map(function(ag){
+    const list=perAgent[ag].sort(function(a,b){ return b.hi-a.hi; });
+    const rows=list.map(function(t){
+      return '<tr>'+
+        '<td>'+npIdLink(t)+'</td>'+
+        '<td class="np-c">'+hiBadge(t.hi)+'</td>'+
+        '<td>'+ctryChip(t.country)+'</td>'+
+        '<td class="np-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
+        '<td class="np-rc" title="'+esc(t.rootCause)+'">'+esc(t.rootCause)+'</td>'+
+      '</tr>';
+    }).join('');
+    return groupHtml({ open:openAll, ratio:list.length/max, count:list.length, top:list[0]?list[0].hi:0,
+      av:'<span class="hrx-av" style="--h:'+hueOf(ag)+'" aria-hidden="true">'+esc(String(ag).charAt(0).toUpperCase())+'</span>',
+      name:esc(ag), tag:isPhdUser(ag)?'<span class="hrx-phd" title="Registered PHD user">PHD</span>':'',
+      table:tableWrap('Tickets resolved by '+ag,[15,8,10,40,27],
+        '<th scope="col">Ticket</th><th scope="col" class="np-c">HI</th><th scope="col">Country</th><th scope="col">Title</th><th scope="col">Root Cause</th>',rows) });
+  }).join('');
 }
 
-// Shared flat table for the HI and Agent views. Columns: HI · Country · ResolvedBy · Title · Root Cause.
-function npFlatTable(list, showPhdTag){
+// Flat table for the HI view. Columns: Ticket · HI · Country · ResolvedBy · Title · Root Cause.
+function npFlatTable(list){
   const rows=list.map(function(t){
-    const by=esc(t.resolvedBy||'—')+(showPhdTag&&isPhdUser(t.resolvedBy)?' <span class="np-phd">PHD</span>':'');
     return '<tr>'+
       '<td>'+npIdLink(t)+'</td>'+
-      '<td class="np-c">'+t.hi+'</td>'+
-      '<td>'+esc(t.country||'—')+'</td>'+
-      '<td>'+by+'</td>'+
+      '<td class="np-c">'+hiBadge(t.hi)+'</td>'+
+      '<td>'+ctryChip(t.country)+'</td>'+
+      '<td>'+whoHtml(t.resolvedBy)+'</td>'+
       '<td class="np-title" title="'+esc(t.title)+'">'+esc(t.title)+'</td>'+
       '<td class="np-rc" title="'+esc(t.rootCause)+'">'+esc(t.rootCause)+'</td>'+
     '</tr>';
   }).join('');
-  return '<div class="np-tablewrap"><table class="np-tbl">'+
-    '<colgroup><col style="width:13%"><col style="width:6%"><col style="width:10%"><col style="width:17%"><col style="width:34%"><col style="width:20%"></colgroup>'+
-    '<thead><tr><th>Ticket</th><th class="np-c">HI</th><th>Country</th><th>Resolved By</th><th>Title</th><th>Root Cause</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody>'+
-  '</table></div>';
+  return tableWrap('Tickets by highest HI count',[13,7,9,17,34,20],
+    '<th scope="col">Ticket</th><th scope="col" class="np-c">HI</th><th scope="col">Country</th><th scope="col">Resolved By</th><th scope="col">Title</th><th scope="col">Root Cause</th>',rows);
 }
 
 // ================= "Pet Repeat incidents" section =================
 // Mirror of the Non-Pet section, backed by HR_PET and reusing npByCountry/npByHi/npByAgent.
 function petSectionHtml(){
-  const seg=
-    '<div class="np-seg" role="radiogroup">'+
-      '<label class="np-seg-opt"><input type="radio" name="ptView" value="country" checked onchange="ptSetView(\'country\')"><span>By Country</span></label>'+
-      '<label class="np-seg-opt"><input type="radio" name="ptView" value="hi" onchange="ptSetView(\'hi\')"><span>By Highest HI count</span></label>'+
-      '<label class="np-seg-opt"><input type="radio" name="ptView" value="agent" onchange="ptSetView(\'agent\')"><span>By Agents</span></label>'+
-    '</div>';
-  const checks=
-    '<div class="np-checks" id="ptChecks" style="display:none">'+
-      '<label class="np-chip"><input type="checkbox" id="ptChkPhd" checked onchange="ptToggleKind(\'phd\',this)"><span>PHD Analysts</span></label>'+
-      '<label class="np-chip"><input type="checkbox" id="ptChkNon" checked onchange="ptToggleKind(\'nonphd\',this)"><span>Non-PHD Analysts</span></label>'+
-    '</div>';
-  return '<div class="hr-range rng-pet" data-range="pet">'+
-    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
-      '<span class="hr-range-ic">'+(window.icon?window.icon('paw',18):'')+'</span>'+
-      '<span class="hr-range-title">Pet Repeat incidents</span>'+
-      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
-    '</button>'+
-    '<div class="hr-range-body">'+ldHtml('hip')+
-      '<div id="hipContent" style="display:none">'+
-        '<div class="np-controls">'+seg+checks+'</div>'+
-        '<div id="ptBody" class="np-body"></div>'+
-      '</div>'+
-    '</div>'+
-  '</div>';
+  return repeatSectionHtml('pet',{p:'pt',lp:'hip',radio:'ptView',setFn:'ptSetView',kindFn:'ptToggleKind',kind:'pet',icon:'paw',
+    title:'Pet Repeat incidents',desc:'Resolved pet tickets that came back as repeat incidents, YTD 2026.'});
 }
 function ptSetView(v){ PT_VIEW=v; renderPetView(); }
 window.ptSetView=ptSetView;
@@ -829,40 +786,37 @@ function ptToggleKind(which, cb){ if(which==='phd') PT_PHD=cb.checked; else PT_N
 window.ptToggleKind=ptToggleKind;
 function renderPetView(){
   const box=document.getElementById('ptBody'); if(!box) return;
-  const checks=document.getElementById('ptChecks'); if(checks) checks.style.display=(PT_VIEW==='agent')?'flex':'none';
-  if(!HR_PET){ box.innerHTML=npSkeleton(6); return; }
-  const tickets=HR_PET.tickets||[];
-  if(!tickets.length){ box.innerHTML='<div class="empty">No pet repeat incidents.</div>'; return; }
-  if(PT_VIEW==='country')      box.innerHTML=npByCountry(tickets);
-  else if(PT_VIEW==='hi')      box.innerHTML=npByHi(tickets);
-  else                         box.innerHTML=npByAgent(tickets, PT_PHD, PT_NONPHD);
+  const checks=document.getElementById('ptChecks'); if(checks) checks.hidden=(PT_VIEW!=='agent');
+  if(!HR_PET){ box.innerHTML=''; return; }
+  box.innerHTML=repeatView(HR_PET.tickets||[], PT_VIEW, PT_PHD, PT_NONPHD, PT_Q, 'pt', 'pet');
 }
 window.renderPetView=renderPetView;
 
 // ================= Monthly created-tickets trend chart (SVG, dependency-free) =================
 const MONTH_LBL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CHART_LAST_MONTH=10; // draw lines/points through October only (data fills in as the year goes).
-// Bar-shimmer placeholder shown while the monthly trend data loads (shimmering legend + 12 bars).
+const CHART_COL={combined:'#2b66c1',nonpet:'#ec7211',pet:'#7c5cff'};
+// Skeleton shown while the monthly trend loads: legend pills + a gridded plot with 12 shimmer bars.
 function hrChartSkeleton(){
   var hs=[55,40,70,50,85,60,78,45,66,52,38,72], bars='';
-  for(var i=0;i<12;i++) bars+='<span class="sk-line hr-chart-sk-bar" style="height:'+hs[i]+'%"></span>';
-  return '<div class="hr-chart-sk">'+
-    '<div class="hr-chart-sk-legend"><span class="sk-line" style="width:120px;height:12px"></span><span class="sk-line" style="width:160px;height:12px"></span><span class="sk-line" style="width:130px;height:12px"></span></div>'+
-    '<div class="hr-chart-sk-plot">'+bars+'</div>'+
+  for(var i=0;i<12;i++) bars+='<span class="hrx-skel" style="height:'+hs[i]+'%"></span>';
+  return '<div class="hrx-sk-chart" aria-hidden="true">'+
+    '<div class="hrx-sk-legend"><span class="hrx-skel" style="width:min(260px,60%);height:12px"></span>'+
+      '<span><span class="hrx-skel" style="width:96px;height:24px;border-radius:99px"></span><span class="hrx-skel" style="width:84px;height:24px;border-radius:99px"></span><span class="hrx-skel" style="width:62px;height:24px;border-radius:99px"></span></span></div>'+
+    '<div class="hrx-sk-plot">'+bars+'</div>'+
   '</div>';
 }
-// The trend graph is a top-level collapsible section (part of the same accordion as the Non-pet /
-// Pet sections), EXPANDED by default. Shows a bar shimmer until the monthly data arrives.
-// Roll the monthly series into headline numbers for the stat row.
+// Roll the monthly series into headline numbers for the KPI row.
 function chartStats(){
   var months=(HR_MONTHLY&&HR_MONTHLY.months)||[];
-  var total=0, nonPet=0, pet=0, repeat=0;
+  var total=0, nonPet=0, pet=0, repeat=0, repeatPet=0, repeatNonPet=0;
   months.forEach(function(m){
     total+=m.total||0; nonPet+=m.nonPet||0; pet+=m.pet||0;
+    repeatNonPet+=m.repeatNonPet||0; repeatPet+=m.repeatPet||0;
     repeat+=(m.repeatNonPet||0)+(m.repeatPet||0);
   });
   var rate=(total>0)?(repeat/total*100):0;
-  return { total:total, nonPet:nonPet, pet:pet, repeat:repeat, rate:rate };
+  return { total:total, nonPet:nonPet, pet:pet, repeat:repeat, rate:rate, repeatPet:repeatPet, repeatNonPet:repeatNonPet };
 }
 function chartStatsHtml(){
   var s=chartStats();
@@ -878,38 +832,43 @@ function chartStatsHtml(){
     tile('bar-chart','rate',s.rate.toFixed(1)+'%','Repeat rate')+
   '</div>';
 }
-// Chart body inner: stats row + legend + svg when loaded. No shimmer — the fun loader covers the
-// loading state, so an empty string is returned until the data lands.
+// Chart body: a header line (note LEFT, legend RIGHT) with the SVG underneath. The headline stats
+// that used to sit in this header now live in the KPI row under the hero.
 function chartInnerHtml(){
   if(!HR_MONTHLY) return '';
-  // One chart panel (same layout as SLA Breaches): a header line INSIDE the graph area — the 5
-  // headline stats as compact chips on the LEFT, the legend on the RIGHT — with the chart underneath.
-  return '<div class="hr-chart-row">'+
-    '<div class="hr-chart-colw">'+
+  return '<div class="hr-chart-row"><div class="hr-chart-colw">'+
       '<div class="hr-chart-top">'+
-        chartStatsHtml()+
-        '<div class="hr-chart-legend">'+
-          '<span class="hr-lg combined"><i></i>Combined</span>'+
-          '<span class="hr-lg nonpet"><i></i>Non-pet</span>'+
-          '<span class="hr-lg pet"><i></i>Pet</span>'+
-        '</div>'+
+        '<p class="hrx-chart-note">'+esc(monthsSpan())+' \u00b7 hover or tab to a month for repeat-incident details</p>'+
+        '<ul class="hr-chart-legend" aria-label="Legend">'+
+          '<li class="hr-lg combined"><i aria-hidden="true"></i>Combined</li>'+
+          '<li class="hr-lg nonpet"><i aria-hidden="true"></i>Non-pet</li>'+
+          '<li class="hr-lg pet"><i aria-hidden="true"></i>Pet</li>'+
+        '</ul>'+
       '</div>'+
       '<div class="hr-chart-wrap" id="hrChartWrap">'+
-        '<svg class="hr-chart-svg" id="hrChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tickets created per month in 2026"></svg>'+
-        '<div class="hr-chart-tip" id="hrChartTip"></div>'+
+        '<svg class="hr-chart-svg" id="hrChartSvg" viewBox="0 0 920 320" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Tickets created per month in 2026: combined, non-pet and pet"></svg>'+
+        '<div class="hr-chart-tip" id="hrChartTip" aria-hidden="true"></div>'+
       '</div>'+
-    '</div>'+
-  '</div>';
+  '</div></div>';
 }
 function monthlyChartHtml(){
-  return '<div class="hr-range rng-chart open" data-range="chart">'+
-    '<button type="button" class="hr-range-head" onclick="hrRangeToggle(this)">'+
-      '<span class="hr-range-ic">'+ic('line-chart',18)+'</span>'+
-      '<span class="hr-range-title">Tickets created per month · 2026</span>'+
-      '<span class="hr-caret" aria-hidden="true">\u25be</span>'+
-    '</button>'+
-    '<div class="hr-range-body">'+ldHtml('hic')+'<div id="hicContent" style="display:none">'+chartInnerHtml()+'</div></div>'+
-  '</div>';
+  return '<section class="hr-range rng-chart open" data-range="chart">'+
+    sectionHead('chart','line-chart','Tickets created per month \u00b7 2026','Combined, non-pet and pet tickets created each month, with the share that became repeat incidents.',true)+
+    sectionBodyOpen('chart',true)+'<div id="hicContent"></div></div>'+
+  '</section>';
+}
+// Paint the chart body for its current state: skeleton / error / chart.
+function paintChart(){
+  var body=$id('hrxBody-chart'), box=$id('hicContent'); if(!box) return;
+  var st=HI_CHART_STATE;
+  if(body) body.setAttribute('aria-busy',st==='loading'?'true':'false');
+  var meta=$id('hrxMeta-chart');
+  if(meta){ meta.className='hr-range-meta'+(st==='error'?' is-err':'');
+    meta.innerHTML=st==='done'&&HR_MONTHLY?fmtN(chartStats().total)+' created':st==='error'?'Not loaded':st==='loading'?'<span class="hrx-skel" style="width:70px;height:10px" aria-hidden="true"></span>':''; }
+  if(st==='loading'){ box.innerHTML=hrChartSkeleton(); return; }
+  if(st==='error'){ box.innerHTML=errorHtml('chart','Couldn\u2019t load the monthly trend',HI_CHART_ERR); return; }
+  box.innerHTML=chartInnerHtml();
+  if(HR_MONTHLY) drawMonthlyChart(HR_MONTHLY);
 }
 function drawMonthlyChart(data){
   const svg=document.getElementById('hrChartSvg'); if(!svg) return;
@@ -936,11 +895,11 @@ function drawMonthlyChart(data){
   for(let b=0;b<=bands;b++){
     const v=Math.round(niceMax*b/bands); const y=yAt(v);
     g+='<line class="grid" x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'"/>';
-    g+='<text class="axlbl" x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end">'+v+'</text>';
+    g+='<text class="axlbl" x="'+(padL-8)+'" y="'+(y+4)+'" text-anchor="end" aria-hidden="true">'+v+'</text>';
   }
   // X axis labels (all 12 months).
   for(let i=0;i<12;i++){
-    g+='<text class="axlbl" x="'+xAt(i)+'" y="'+(H-padB+20)+'" text-anchor="middle">'+MONTH_LBL[i]+'</text>';
+    g+='<text class="axlbl" x="'+xAt(i)+'" y="'+(H-padB+20)+'" text-anchor="middle" aria-hidden="true">'+MONTH_LBL[i]+'</text>';
   }
   g+='<line class="axis" x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'"/>';
   // Build the 3 polylines.
@@ -974,46 +933,54 @@ function drawMonthlyChart(data){
     const over=items[items.length-1].y-BOT_MAX;
     if(over>0) items.forEach(function(it){ it.y=Math.max(TOP_MIN, it.y-over); });
     items.forEach(function(it){
-      g+='<text class="ptlbl '+it.cls+'" x="'+x+'" y="'+it.y+'" text-anchor="middle">'+num(it.v)+'</text>';
+      g+='<text class="ptlbl '+it.cls+'" x="'+x+'" y="'+it.y+'" text-anchor="middle" aria-hidden="true">'+num(it.v)+'</text>';
     });
   });
-  // Transparent hit columns (one per drawn month) carry the hover.
+  // Transparent hit columns (one per drawn month) carry the hover — and keyboard focus, each with a
+  // full spoken summary of that month.
   const colW=plotW/11;
+  const pctOf=function(n,total){ return total? Math.round((n/total)*1000)/10 : 0; };
   draw.forEach(function(m,i){
-    const cx=xAt(i);
-    g+='<rect class="hit" data-i="'+i+'" x="'+(cx-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>';
+    const cx=xAt(i), total=m.total||0;
+    const lbl=MONTH_LBL[i]+' 2026: '+total+' created, '+(m.nonPet||0)+' non-pet, '+(m.pet||0)+' pet. Repeat incidents: '+
+      (m.repeatPet||0)+' pet ('+pctOf(m.repeatPet||0,total)+'%), '+(m.repeatNonPet||0)+' non-pet ('+pctOf(m.repeatNonPet||0,total)+'%).';
+    g+='<rect class="hit" data-i="'+i+'" tabindex="0" role="img" aria-label="'+esc(lbl)+'" x="'+(cx-colW/2)+'" y="'+padT+'" width="'+colW+'" height="'+plotH+'"/>';
   });
   svg.innerHTML=g;
-  // Wire hover.
+  // Wire hover + focus.
   const tip=document.getElementById('hrChartTip');
   const vline=document.getElementById('hrChartVLine');
   const wrap=document.getElementById('hrChartWrap');
-  svg.querySelectorAll('.hit').forEach(function(rect){
-    rect.addEventListener('mouseenter', function(){
+  const show=function(rect){
       const i=+rect.getAttribute('data-i'); const m=draw[i]; if(!m) return;
       const total=m.total||0;
-      const petPct = total? Math.round((m.repeatPet/total)*1000)/10 : 0;
-      const nonPct = total? Math.round((m.repeatNonPet/total)*1000)/10 : 0;
+      const petPct = pctOf(m.repeatPet||0,total);
+      const nonPct = pctOf(m.repeatNonPet||0,total);
       tip.innerHTML=
         '<div class="tt-m">'+MONTH_LBL[i]+' 2026 · '+total+' created</div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#38bdf8"></i>Combined</span><span class="v">'+total+'</span></div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#ff9900"></i>Non-pet</span><span class="v">'+(m.nonPet||0)+'</span></div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#a78bfa"></i>Pet</span><span class="v">'+(m.pet||0)+'</span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:'+CHART_COL.combined+'"></i>Combined</span><span class="v">'+total+'</span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:'+CHART_COL.nonpet+'"></i>Non-pet</span><span class="v">'+(m.nonPet||0)+'</span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:'+CHART_COL.pet+'"></i>Pet</span><span class="v">'+(m.pet||0)+'</span></div>'+
         '<div class="tt-sep"></div>'+
         '<div class="tt-pct">Repeat incidents (of '+total+' created):</div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#a78bfa"></i>Pet repeat</span><span class="v">'+(m.repeatPet||0)+' | <b>'+petPct+'%</b></span></div>'+
-        '<div class="tt-row"><span class="k"><i style="background:#ff9900"></i>Non-pet repeat</span><span class="v">'+(m.repeatNonPet||0)+' | <b>'+nonPct+'%</b></span></div>';
+        '<div class="tt-row"><span class="k"><i style="background:'+CHART_COL.pet+'"></i>Pet repeat</span><span class="v">'+(m.repeatPet||0)+' | <b>'+petPct+'%</b></span></div>'+
+        '<div class="tt-row"><span class="k"><i style="background:'+CHART_COL.nonpet+'"></i>Non-pet repeat</span><span class="v">'+(m.repeatNonPet||0)+' | <b>'+nonPct+'%</b></span></div>';
       // Position the vertical guide + tooltip relative to the wrap box.
       const cx=xAt(i);
       vline.setAttribute('x1',cx); vline.setAttribute('x2',cx); vline.style.visibility='visible';
-      // Convert SVG x (0..920) to pixel offset within the responsive wrap.
+      // Convert SVG x (0..W) to pixel offset within the responsive wrap.
       const box=svg.getBoundingClientRect();
       const px=(cx/W)*box.width;
       tip.classList.add('show');
       const tipW=tip.offsetWidth||200;
       let left=px+14; if(left+tipW>box.width) left=px-tipW-14; if(left<0) left=4;
       tip.style.left=left+'px'; tip.style.top='8px';
-    });
+  };
+  const hide=function(){ tip.classList.remove('show'); vline.style.visibility='hidden'; };
+  svg.querySelectorAll('.hit').forEach(function(rect){
+    rect.addEventListener('mouseenter', function(){ show(rect); });
+    rect.addEventListener('focus', function(){ show(rect); });
+    rect.addEventListener('blur', hide);
   });
   if(!wrap._hrLeave){   // bind once per wrap (drawMonthlyChart re-runs on resize)
     wrap._hrLeave=true;
@@ -1045,160 +1012,95 @@ function hrToggle(btn){
   s.classList.toggle('open', willOpen);
 }
 window.hrToggle=hrToggle;
-// Expand/collapse a whole date-range section — accordion: only ONE range open at a time.
+// Open/close one section card (class + aria-expanded + hidden body stay in sync).
+function setRangeOpen(s,on){
+  s.classList.toggle('open',on);
+  var h=s.querySelector('.hr-range-head'); if(h) h.setAttribute('aria-expanded',on?'true':'false');
+  var b=s.querySelector('.hr-range-body'); if(b) b.hidden=!on;
+}
+// Expand/collapse a whole section — accordion: only ONE section open at a time.
 function hrRangeToggle(btn){
   const s=btn.closest('.hr-range'); if(!s)return;
   const willOpen=!s.classList.contains('open');
-  document.querySelectorAll('.hr-range.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
-  s.classList.toggle('open', willOpen);
-  // Lazy-load: fetch the section's data the FIRST time it is expanded.
-  if(willOpen){ var r=s.getAttribute('data-range'); if(r==='chart') hiLoadChart(); else if(r==='nonpet') hiLoadNonPet(); else if(r==='pet') hiLoadPet(); }
+  document.querySelectorAll('.hr-range.open').forEach(function(o){ if(o!==s) setRangeOpen(o,false); });
+  setRangeOpen(s,willOpen);
+  // Lazy-load: fetch the section's data the FIRST time it is expanded (or again after a failure).
+  if(willOpen){
+    var r=s.getAttribute('data-range');
+    if(r==='chart'){ if(HI_CHART_STATE==='done'&&HR_MONTHLY) drawMonthlyChart(HR_MONTHLY); else hiLoadChart(); }
+    else if(r==='nonpet') hiLoadNonPet();
+    else if(r==='pet') hiLoadPet();
+  }
 }
 window.hrRangeToggle=hrRangeToggle;
 
-// ================= Fun phased loader (ported from agent-analytics.html / sla-breach.html) =================
-function ldHtml(pfx){
-  return '<div id="'+pfx+'Loader" class="gw-loader" style="display:none">'+
-    '<div class="gw-loader-in">'+
-      '<div class="gw-orb"><span class="gw-orb-ic" id="'+pfx+'LoaderIc">'+ic('clock',30)+'</span></div>'+
-      '<div class="gw-loader-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting things ready\u2026</div>'+
-      '<div class="gw-dots"><span></span><span></span><span></span></div>'+
-      '<div class="gw-loader-sub" id="'+pfx+'LoaderSub">Loading</div>'+
-    '</div>'+
-  '</div>';
-}
-function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
-function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
-// PHASE 1 — 20 randomized, repeat-incident-themed general lines (no agent names). Personalized.
-function hiPhase1(what){
-  var me=gwFirstName();
-  var lines=[
-    ['clock',       'Pulling the '+what+' for you, '+me+' \u2728'],
-    ['repeat',      'Scanning for repeat incidents across the team\u2026'],
-    ['inbox',       'Collecting resolved repeat tickets\u2026'],
-    ['calendar',    'Walking month by month through 2026\u2026'],
-    ['paw',         'Separating pet from non-pet cases\u2026'],
-    ['check-circle','Counting resolved repeat incidents\u2026'],
-    ['globe',       'Grouping incidents by country\u2026'],
-    ['bar-chart',   'Tallying created-per-month totals\u2026'],
-    ['target',      'Measuring repeat rate against created volume\u2026'],
-    ['user',        'Counting per-analyst repeat handling\u2026'],
-    ['bolt',        'Crunching combined vs pet vs non-pet\u2026'],
-    ['alert',       'Reviewing the highest-HI incidents\u2026'],
-    ['inbox',       'Fetching the freshest repeat records\u2026'],
-    ['users',       'Rolling up PHD vs non-PHD analysts\u2026'],
-    ['calendar',    'Lining up the monthly trend\u2026'],
-    ['check-circle','Verifying resolution outcomes\u2026'],
-    ['globe',       'Sorting countries by incident volume\u2026'],
-    ['repeat',      'Double-checking repeat classifications\u2026'],
-    ['clock',       'Warming up the numbers, '+me+'\u2026'],
-    ['bar-chart',   'Almost there \u2014 building the '+what+'\u2026'],
-  ];
-  return gwShuffle(lines);
-}
-// PHASE 2 — after the apology, 10 general lines at 3s each (loops). No agent names.
-function hiPhase2(what){
-  var me=gwFirstName();
-  var lines=[
-    ['clock',       'Still working on it \u2014 thanks for your patience, '+me+'\u2026'],
-    ['inbox',       'The server is taking a little longer than usual\u2026'],
-    ['bar-chart',   'Re-checking the incident figures to be sure\u2026'],
-    ['target',      'Hang tight \u2014 re-verifying the repeat counts\u2026'],
-    ['globe',       'Reconciling the country groupings\u2026'],
-    ['bolt',        'Nearly ready \u2014 finalising the totals\u2026'],
-    ['paw',         'One more pass over pet and non-pet cases\u2026'],
-    ['check-circle','Polishing the last few numbers\u2026'],
-    ['calendar',    'Tidying up the monthly view\u2026'],
-    ['clock',       'Appreciate the wait \u2014 almost done\u2026'],
-  ];
-  return gwShuffle(lines);
-}
-var _ldMsgTimers={}, _ldWhat={};
-function _ldSetMsg(pfx,tuple){
-  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
-  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
-  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
-}
-function _ldStop(pfx){ if(_ldMsgTimers[pfx]){ clearInterval(_ldMsgTimers[pfx]); _ldMsgTimers[pfx]=null; } }
-function _ldStart(pfx,subLabel){
-  _ldStop(pfx);
-  var sub=document.getElementById(pfx+'LoaderSub'); if(sub&&subLabel) sub.textContent=subLabel;
-  var what=_ldWhat[pfx]||'data';
-  var p1=hiPhase1(what), i=0; _ldSetMsg(pfx,p1[0]);
-  _ldMsgTimers[pfx]=setInterval(function(){
-    i++;
-    if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
-    _ldStop(pfx);
-    _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your data\u2026']);
-    setTimeout(function(){
-      var p2=hiPhase2(what), j=0; _ldSetMsg(pfx,p2[0]);
-      _ldMsgTimers[pfx]=setInterval(function(){ j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
-    },3000);
-  },2000);
-}
-function _ldShow(pfx,on,subLabel){
-  var l=document.getElementById(pfx+'Loader'), c=document.getElementById(pfx+'Content');
-  if(l){ l.style.display=on?'flex':'none'; if(on) l.classList.remove('gw-done'); }
-  if(c) c.style.display=on?'none':'';
-  if(on) _ldStart(pfx,subLabel); else _ldStop(pfx);
-}
-function _ldSuccess(pfx){
-  _ldStop(pfx);
-  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
-  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Data fetched successfully'; e.classList.add('gw-msg-in'); }
-}
-var _delay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
-
 // ---- Lazy-load orchestration: fetch each section's data the FIRST time it is expanded. ----
+// States: idle -> loading -> done | error (error: Retry, or re-expanding, fetches again).
 var HI_CHART_STATE='idle', HI_NONPET_STATE='idle', HI_PET_STATE='idle';
+var HI_CHART_ERR='', HI_NONPET_ERR='', HI_PET_ERR='';
 async function hiLoadChart(){
-  if(HI_CHART_STATE!=='idle') return; HI_CHART_STATE='loading';
-  _ldWhat['hic']='monthly trend';
-  _ldShow('hic',true,'Monthly trend · 2026');
-  var minDelay=_delay(4000);
-  try{ var mr=await A.api('GET','/api/hi-monthly');
-    // Session gate: a 401 here bounces home (this replaces the old heavy /api/hi-resolved gate).
-    if(mr&&mr.status===401){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
-    if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)) HR_MONTHLY=mr.data; }catch(e){}
-  await minDelay;
-  _ldSuccess('hic'); await _delay(1000);
-  _ldShow('hic',false);
-  var b=document.getElementById('hicContent'); if(b){ b.innerHTML=chartInnerHtml(); }
-  if(HR_MONTHLY) drawMonthlyChart(HR_MONTHLY);
-  HI_CHART_STATE='done';
+  if(HI_CHART_STATE==='loading'||HI_CHART_STATE==='done') return;
+  HI_CHART_STATE='loading'; paintChart(); renderKpis(); paintUpdated();
+  announce('Loading the monthly trend\u2026');
+  var mr=null;
+  try{ mr=await A.api('GET','/api/hi-monthly'); }catch(e){}
+  // Session gate: a 401 here bounces home (this replaces the old heavy /api/hi-resolved gate).
+  if(mr&&mr.status===401){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+  if(mr&&mr.ok&&mr.data&&Array.isArray(mr.data.months)){ HR_MONTHLY=mr.data; HR_LOADED_AT=new Date(); HI_CHART_STATE='done'; announce('Monthly trend loaded.'); }
+  else { HI_CHART_ERR=errMsg(mr); HI_CHART_STATE='error'; announce('Couldn\u2019t load the monthly trend. '+HI_CHART_ERR); }
+  paintChart(); renderKpis(); paintUpdated();
+}
+// Paint a Non-Pet / Pet section body for its current state: skeleton / error / content.
+function listState(key){ return key==='pet'?HI_PET_STATE:HI_NONPET_STATE; }
+function paintListMeta(key){
+  var st=listState(key), data=key==='pet'?HR_PET:HR_NONPET, meta=$id('hrxMeta-'+key); if(!meta) return;
+  var n=data&&data.tickets?data.tickets.length:0;
+  meta.className='hr-range-meta'+(st==='idle'?' is-idle':st==='error'?' is-err':'');
+  meta.innerHTML=st==='done'?fmtN(n)+' ticket'+(n===1?'':'s'):st==='error'?'Not loaded':st==='loading'?'<span class="hrx-skel" style="width:70px;height:10px" aria-hidden="true"></span>':'Expand to load';
+}
+function paintList(key){
+  var lp=key==='pet'?'hip':'hin', st=listState(key);
+  var stBox=$id(lp+'State'), content=$id(lp+'Content'), body=$id('hrxBody-'+key);
+  paintListMeta(key);
+  if(body) body.setAttribute('aria-busy',st==='loading'?'true':'false');
+  if(!stBox||!content) return;
+  if(st==='loading'){ stBox.innerHTML=npSkeleton(6); content.hidden=true; return; }
+  if(st==='error'){ stBox.innerHTML=errorHtml(key,'Couldn\u2019t load '+(key==='pet'?'pet':'non-pet')+' repeat incidents',key==='pet'?HI_PET_ERR:HI_NONPET_ERR); content.hidden=true; return; }
+  stBox.innerHTML=''; content.hidden=(st!=='done');
+  if(st==='done'){ if(key==='pet') renderPetView(); else renderNonPetView(); }
 }
 async function hiLoadNonPet(){
-  if(HI_NONPET_STATE!=='idle') return; HI_NONPET_STATE='loading';
-  _ldWhat['hin']='non-pet repeat incidents';
-  _ldShow('hin',true,'Non-pet · YTD 2026');
-  var minDelay=_delay(4000);
-  try{ var nr=await A.api('GET','/api/hi-nonpet'); if(nr&&nr.ok&&nr.data&&Array.isArray(nr.data.tickets)) HR_NONPET=nr.data; }catch(e){}
-  await minDelay;
-  _ldSuccess('hin'); await _delay(1000);
-  _ldShow('hin',false);
-  renderNonPetView();
-  HI_NONPET_STATE='done';
+  if(HI_NONPET_STATE==='loading'||HI_NONPET_STATE==='done') return;
+  HI_NONPET_STATE='loading'; paintList('nonpet');
+  announce('Loading non-pet repeat incidents\u2026');
+  var nr=null;
+  try{ nr=await A.api('GET','/api/hi-nonpet'); }catch(e){}
+  if(nr&&nr.ok&&nr.data&&Array.isArray(nr.data.tickets)){ HR_NONPET=nr.data; HI_NONPET_STATE='done'; announce(fmtN(nr.data.tickets.length)+' non-pet repeat incidents loaded.'); }
+  else { HI_NONPET_ERR=errMsg(nr); HI_NONPET_STATE='error'; announce('Couldn\u2019t load non-pet repeat incidents. '+HI_NONPET_ERR); }
+  paintList('nonpet');
 }
 async function hiLoadPet(){
-  if(HI_PET_STATE!=='idle') return; HI_PET_STATE='loading';
-  _ldWhat['hip']='pet repeat incidents';
-  _ldShow('hip',true,'Pet · YTD 2026');
-  var minDelay=_delay(4000);
-  try{ var pr=await A.api('GET','/api/hi-nonpet?pet=1'); if(pr&&pr.ok&&pr.data&&Array.isArray(pr.data.tickets)) HR_PET=pr.data; }catch(e){}
-  await minDelay;
-  _ldSuccess('hip'); await _delay(1000);
-  _ldShow('hip',false);
-  renderPetView();
-  HI_PET_STATE='done';
+  if(HI_PET_STATE==='loading'||HI_PET_STATE==='done') return;
+  HI_PET_STATE='loading'; paintList('pet');
+  announce('Loading pet repeat incidents\u2026');
+  var pr=null;
+  try{ pr=await A.api('GET','/api/hi-nonpet?pet=1'); }catch(e){}
+  if(pr&&pr.ok&&pr.data&&Array.isArray(pr.data.tickets)){ HR_PET=pr.data; HI_PET_STATE='done'; announce(fmtN(pr.data.tickets.length)+' pet repeat incidents loaded.'); }
+  else { HI_PET_ERR=errMsg(pr); HI_PET_STATE='error'; announce('Couldn\u2019t load pet repeat incidents. '+HI_PET_ERR); }
+  paintList('pet');
 }
-// Expand/collapse a PHD / Non-PHD sub-section — accordion scoped to its parent range.
+// Expand/collapse a group row (country / agent) — accordion scoped to its parent section.
+function setSubOpen(s,on){
+  s.classList.toggle('open',on);
+  var h=s.querySelector('.hr-sub-head'); if(h) h.setAttribute('aria-expanded',on?'true':'false');
+  var b=s.querySelector('.hr-sub-body'); if(b) b.hidden=!on;
+}
 function hrSubToggle(btn){
   const s=btn.closest('.hr-sub'); if(!s)return;
   const willOpen=!s.classList.contains('open');
   const scope=s.closest('.hr-range-body')||document;
-  scope.querySelectorAll('.hr-sub.open').forEach(function(o){ if(o!==s) o.classList.remove('open'); });
-  s.classList.toggle('open', willOpen);
+  scope.querySelectorAll('.hr-sub.open').forEach(function(o){ if(o!==s) setSubOpen(o,false); });
+  setSubOpen(s,willOpen);
 }
 window.hrSubToggle=hrSubToggle;
 function hrFilter(inp,key){
@@ -1209,15 +1111,40 @@ function hrFilter(inp,key){
 }
 window.hrFilter=hrFilter;
 
+// Retry buttons, "Clear search" buttons and the per-section search boxes (delegated).
+document.addEventListener('click',function(ev){
+  var t=ev.target; if(!t||!t.closest) return;
+  var r=t.closest('[data-retry]');
+  if(r){
+    var k=r.getAttribute('data-retry');
+    if(k==='chart'){ HI_CHART_STATE='idle'; hiLoadChart(); }
+    else if(k==='nonpet'){ HI_NONPET_STATE='idle'; hiLoadNonPet(); }
+    else if(k==='pet'){ HI_PET_STATE='idle'; hiLoadPet(); }
+    var h=$id('hrxHead-'+k); if(h) h.focus();
+    return;
+  }
+  var c=t.closest('[data-clear-q]');
+  if(c){
+    var p=c.getAttribute('data-clear-q'), inp=$id(p+'Q');
+    if(p==='pt'){ PT_Q=''; renderPetView(); } else { NP_Q=''; renderNonPetView(); }
+    if(inp){ inp.value=''; inp.focus(); }
+  }
+});
+document.addEventListener('input',function(ev){
+  var el=ev.target; if(!el||!el.getAttribute) return;
+  var p=el.getAttribute('data-q'); if(!p) return;
+  if(p==='pt'){ PT_Q=el.value; renderPetView(); } else { NP_Q=el.value; renderNonPetView(); }
+});
 (async function init(){
   // Not logged in (or no token) -> send to the home page (same behavior as the guest lockdown).
   if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
   // Logged in but lacks access to Repeat Incidents -> home page.
   if(!(A.canViewRepeat&&A.canViewRepeat())){ location.replace('index.html'); return; }
   // Load the registered-user roster (for PHD tags) in the background — don't block the first paint.
-  // It resolves well before any section finishes its 4s loader, so tags are ready in time.
+  // If a section has already rendered by the time it arrives, repaint it so the PHD tags appear.
   A.api('GET','/api/user-roles').then(function(ru){
-    if(ru&&ru.ok&&Array.isArray(ru.data)){ HR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();})); }
+    if(ru&&ru.ok&&Array.isArray(ru.data)){ HR_USERS=new Set(ru.data.map(function(u){return String(u.username||'').trim().toLowerCase();}));
+      if(HI_NONPET_STATE==='done') renderNonPetView(); if(HI_PET_STATE==='done') renderPetView(); }
   }).catch(function(){ HR_USERS=null; });
   // Paint the three section shells IMMEDIATELY (chart open, non-pet + pet collapsed) so the loader
   // shows right away — do NOT block on any network call here.

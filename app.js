@@ -1193,12 +1193,13 @@ function drawTakeoverChart(agentSorted){
   const grad=(c1,c2)=>{const cx=canvasEl.getContext('2d');const g=cx.createLinearGradient(0,0,0,380);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;};
   const shadowPlugin={id:'barShadow',beforeDatasetsDraw(chart){const cx=chart.ctx;cx.save();cx.shadowColor='rgba(20,40,70,.18)';cx.shadowBlur=8;cx.shadowOffsetX=0;cx.shadowOffsetY=3;},afterDatasetsDraw(chart){chart.ctx.restore();}};
   makeChart('takeoverChart',{type:'bar',data:{labels,datasets:[
-    {label:'Purple (Reopened)',data:seg('purple'),backgroundColor:grad('#c4b0fb','#8b5cf6'),legendColor:'#8b5cf6'},
-    {label:'Black (>10d)',data:seg('black'),backgroundColor:grad('#a3a3a3','#555'),legendColor:'#666'},
-    {label:'Red (7-10d)',data:seg('red'),backgroundColor:grad('#ff7b7b','#e0342f'),legendColor:'#e0342f'},
-    {label:'Yellow (4-7d)',data:seg('yellow'),backgroundColor:grad('#ffd76b','#eab308'),legendColor:'#eab308'},
-    {label:'Green (0-4d)',data:seg('green'),backgroundColor:grad('#6ee7a0','#22c55e'),legendColor:'#22c55e'}
-  ].map(d=>({...d,borderRadius:5,borderSkipped:false,borderWidth:1,borderColor:'rgba(0,0,0,.25)',maxBarThickness:52}))},
+    // Flat fills from the redesigned age palette (same hues as the age-band rows/legend pills).
+    {label:'Purple (Reopened)',data:seg('purple'),backgroundColor:'#7c5cf0',legendColor:'#7c5cf0'},
+    {label:'Black (>10d)',data:seg('black'),backgroundColor:'#4a5563',legendColor:'#4a5563'},
+    {label:'Red (7-10d)',data:seg('red'),backgroundColor:'#dc2626',legendColor:'#dc2626'},
+    {label:'Yellow (4-7d)',data:seg('yellow'),backgroundColor:'#e3a008',legendColor:'#e3a008'},
+    {label:'Green (0-4d)',data:seg('green'),backgroundColor:'#1f9d57',legendColor:'#1f9d57'}
+  ].map(d=>({...d,borderRadius:4,borderSkipped:false,borderWidth:1.5,borderColor:'#ffffff',maxBarThickness:46}))},
   options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:10}},
     // Hovering anywhere on an agent's bar highlights the WHOLE column and the tooltip lists every
     // status (Purple/Black/Red/Yellow/Green) for that agent, plus a Total footer.
@@ -1212,9 +1213,11 @@ function drawTakeoverChart(agentSorted){
           label:function(c){ const v=c.parsed.y; if(!v)return null; return ' '+c.dataset.label+': '+v; },
           footer:function(items){ let t=0; items.forEach(function(it){ t+=(it.parsed&&it.parsed.y)||0; }); return 'Total: '+t; }
         },footerColor:'#ffd76b',footerFont:{weight:'700'}}},
-    scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#2a3340',font:{size:11,weight:'600'}}},
-      y:{stacked:true,beginAtZero:true,grid:{color:'rgba(0,0,0,.05)',drawBorder:false},ticks:{color:'#5c6773',font:{size:11}},border:{display:false}}}},
-  plugins:[shadowPlugin]});
+    scales:{x:{stacked:true,grid:{display:false},border:{color:'#e2e6ea'},ticks:{color:'#2a3340',font:{family:'Inter',size:11,weight:'600'}},
+        title:{display:true,text:'Agent',color:'#5c6773',font:{family:'Inter',size:11,weight:'700'}}},
+      y:{stacked:true,beginAtZero:true,grid:{color:'#eef1f4'},ticks:{color:'#5c6773',precision:0,font:{family:'Inter',size:11}},border:{display:false},
+        title:{display:true,text:'Open tickets',color:'#5c6773',font:{family:'Inter',size:11,weight:'700'}}}}},
+  plugins:[]});
   // Build the custom HTML pill legend (color dot + label + count badge), one row, click to toggle.
   try{ buildTakeoverLegend(); }catch(e){}
 }
@@ -1273,16 +1276,24 @@ function takeoverSectionHtml(){
 // Fetch /api/shift-report and (re)render the dashboard Takeover color tiles + chart.
 function reloadTakeoverSection(){
   const body=document.getElementById('takeoverBody'); if(!body)return;
+  // Loading: paint the skeleton (also on Retry), mark busy, keep Copy chart disabled until drawn.
+  body.innerHTML=dhTakeoverSkeletonHtml(); dhBusy(body,true);
+  var cb0=document.getElementById('takeoverChartCopy'); if(cb0) cb0.disabled=true;
+  const fail=function(){
+    body.innerHTML=dhErrorHtml('Takeover queue didn\u2019t load','We couldn\u2019t fetch the per-agent age breakdown.','reloadTakeoverSection');
+    dhBusy(body,false); dhAnnounce('Takeover queue failed to load.');
+  };
   window.PHDAuth.api('GET','/api/shift-report').then(function(r){
-    if(!r||!r.ok||!r.data){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the takeover queue. Please refresh.</p>'; return; }
+    if(!r||!r.ok||!r.data){ fail(); return; }
+    dhBusy(body,false); dhAnnounce('Takeover queue loaded.');
     const d=r.data, colors=d.colors||{}, cc=d.counts||{};
     SR_COLORS=colors; SR_COUNTS=cc; SR_DATA=d.agents||{};
     const agentSorted=Object.entries(SR_DATA).sort((a,b)=>b[1].total-a[1].total);
     window._takeoverAgents=agentSorted;
-    body.innerHTML='<div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="to-legend" id="takeoverLegend"></div><div class="chart-wrap" style="height:380px;position:relative"><canvas id="takeoverChart"></canvas></div></div>';
+    body.innerHTML='<div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3><div class="to-legend" id="takeoverLegend"></div><div class="chart-wrap" style="height:380px;position:relative"><canvas id="takeoverChart" role="img" aria-label="Stacked bar chart of unresolved tickets per agent by age band. Select a bar segment to list its tickets."></canvas></div></div>';
     try{ drawTakeoverChart(agentSorted); }catch(e){}
     var cb=document.getElementById('takeoverChartCopy'); if(cb) cb.disabled=false;   // chart ready -> enable Copy chart
-  }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the takeover queue. Please refresh.</p>'; });
+  }).catch(fail);
 }
 window.reloadTakeoverSection=reloadTakeoverSection;
 // Draw centered rows of legend PILLS onto a canvas context: each pill = light rounded capsule with
@@ -1324,10 +1335,10 @@ async function copyTakeoverChart(btn){
   const cv=document.getElementById('takeoverChart'); if(!cv||typeof Chart==='undefined'){ showToast('Chart not ready yet'); return; }
   const col=SR_COLORS||{};
   const legend=[
-    ['Purple (Reopened)','#8b5cf6', col.purple||0],
-    ['Black (>10d)','#555555',       col.black||0],
+    ['Purple (Reopened)','#7c5cf0', col.purple||0],
+    ['Black (>10d)','#4a5563',       col.black||0],
     ['Red (7-10d)','#dc2626',        col.red||0],
-    ['Yellow (4-7d)','#d9930a',      col.yellow||0],
+    ['Yellow (4-7d)','#e3a008',      col.yellow||0],
     ['Green (0-4d)','#1f9d57',       col.green||0]
   ];
   const W=cv.width, titleH=46;
@@ -1398,6 +1409,12 @@ function fmtHandoverLabel(win,zone){
 }
 async function reloadHandoverSection(){
   const body=document.getElementById('handoverBody'); if(!body) return;
+  body.innerHTML=dhHandoverSkeletonHtml(); dhBusy(body,true);
+  var cb0=document.getElementById('handoverChartCopy'); if(cb0) cb0.disabled=true;
+  const fail=function(){
+    body.innerHTML=dhErrorHtml('Handover report didn\u2019t load','We couldn\u2019t fetch the last 12 hours of activity.','reloadHandoverSection');
+    dhBusy(body,false); dhAnnounce('Handover report failed to load.');
+  };
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let tz='IST';
   try{ if(window.PHDAuth&&window.PHDAuth.myTimezone) tz=await window.PHDAuth.myTimezone(); }catch(e){}
@@ -1405,45 +1422,30 @@ async function reloadHandoverSection(){
   const zone=HANDOVER_TZ_ZONE[tz]||HANDOVER_TZ_ZONE.IST;
   const win=handoverWindow(zone);
   const label=fmtHandoverLabel(win,zone);
+  var tzChip=document.getElementById('dhTz'); if(tzChip) tzChip.textContent=tz;
   const url='/api/handover-12h?from='+encodeURIComponent(new Date(win.start).toISOString())+'&to='+encodeURIComponent(new Date(win.end).toISOString());
   window.PHDAuth.api('GET',url).then(function(r){
-    if(!r||!r.ok||!r.data){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; return; }
+    if(!r||!r.ok||!r.data){ fail(); return; }
+    dhBusy(body,false); dhAnnounce('Handover report loaded.');
     const d=Object.assign({},r.data,{ tz:tz, label:label });
     HANDOVER_DATA=d;
-    const cf=d.createdFlags||{noEmt:0,stationRequest:0,appeal:0};
-    const qs=d.queueByStatus||{};
-    // A tile: `tot` marks the group total (darker/bold). cls adds the coloured left border.
-    const tile=function(cls,val,lbl,tot){ return '<div class="ho-tile '+cls+(tot?' ho-tot':'')+'"><div class="ho-tile-v">'+(val||0)+'</div><div class="ho-tile-l">'+lbl+'</div></div>'; };
+    const groups=handoverGroups(d);
+    // A tile: cls adds the coloured top accent (same colour as the bar / legend pill).
+    const tile=function(it){ return '<div class="ho-tile '+it.cls+(it.tot?' ho-tot':'')+'" style="--hc:'+it.color+'"><div class="ho-tile-v">'+it.n.toLocaleString('en-US')+'</div><div class="ho-tile-l">'+esc(it.lbl)+'</div></div>'; };
+    const grp=function(g){ return '<div class="ho-grp" role="group" aria-label="'+esc(g.name)+'" style="flex-grow:'+g.items.length+'">'+g.items.map(tile).join('')+'</div>'; };
+    const sep='<span class="ho-sep" aria-hidden="true"></span>';
+    // Two bands (Created | Status) and (Flags | Resolutions); thin dividers between all four groups.
+    const band=function(gs){ return gs.length?('<div class="ho-band">'+gs.map(grp).join(sep)+'</div>'):''; };
+    const chartAria='Bar chart of the handover report: '+groups.map(function(g){ return g.items.map(function(it){ return it.lbl+' '+it.n; }).join(', '); }).join('; ');
     body.innerHTML=
       '<div class="ho-meta">'+ic('clock',14)+' <b>'+esc(tz)+'</b> \u00b7 '+esc(label)+'</div>'+
-      // Row 1 — Created group.
-      '<div class="ho-row ho-row-created">'+
-        tile('ho-created',d.created,'Created (total)',true)+
-        tile('ho-noemt',cf.noEmt,'No EMT')+
-        tile('ho-station',cf.stationRequest,'Station Request')+
-        tile('ho-appeal',cf.appeal,'Appeal')+
-      '</div>'+
-      // Row 2 — Resolved group.
-      '<div class="ho-row ho-row-resolved">'+
-        tile('ho-resolved',d.resolved,'Resolved (total)',true)+
-        tile('ho-succ',d.successful,'Successful')+
-        tile('ho-imm',d.immediatelyByAgentRule,'Imm. Resolved by Agent/Rule')+
-        tile('ho-auto',d.immediatelyByAutosim,'Imm. Resolved by AUTOSIM')+
-      '</div>'+
+      '<div class="ho-strip">'+band(groups.slice(0,2))+'<span class="ho-band-sep" aria-hidden="true"></span>'+band(groups.slice(2))+'</div>'+
       '<div class="sr-chart-card"><h3>Created, Resolved &amp; In Queue in the last 12 hours</h3>'+
         '<div class="to-legend" id="handoverLegend">'+handoverLegendHtml(d)+'</div>'+
-        '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart"></canvas></div></div>'+
-      // Row 3 — In Queue group (below the chart).
-      '<div class="ho-row ho-row-queue" style="margin-top:12px">'+
-        tile('ho-queue',d.inQueue,'In Queue (total)',true)+
-        tile('ho-queue',qs['Assigned'],'Assigned')+
-        tile('ho-queue',qs['Work In Progress'],'Work In Progress')+
-        tile('ho-queue',qs['Researching'],'Researching')+
-        tile('ho-queue',qs['Pending'],'Pending')+
-      '</div>';
+        '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart" role="img" aria-label="'+esc(chartAria)+'"></canvas></div></div>';
     try{ drawHandoverChart(d); }catch(e){}
     var cb=document.getElementById('handoverChartCopy'); if(cb) cb.disabled=false;   // chart ready -> enable Copy chart
-  }).catch(function(){ body.innerHTML='<p class="meta-info" style="text-align:center;padding:24px">Could not load the handover report. Please refresh.</p>'; });
+  }).catch(fail);
 }
 window.reloadHandoverSection=reloadHandoverSection;
 // Closure-code breakdown table for the resolved tickets in-window. For the "Successful" row we also
@@ -1460,53 +1462,82 @@ function handoverClosureHtml(codes,d){
   return '<div class="ho-closure"><h4>Resolved by closure code</h4>'+
     '<table class="ho-cc-tbl"><thead><tr><th>Closure code</th><th class="ho-cc-n">Count</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
-// On-page pill legend for the Handover chart (one pill per bar: dot + label + count badge).
-function handoverLegendHtml(d){
-  d=d||{}; var cf=d.createdFlags||{};
-  var items=[
-    ['Created','#2b82fe', d.created||0],
-    ['No EMT','#7c5cf0', cf.noEmt||0],
-    ['Station Request','#dc2626', cf.stationRequest||0],
-    ['Appeal','#ea7317', cf.appeal||0],
-    ['Imm. Resolved (Agent/Rule)','#16a34a', d.immediatelyByAgentRule||0],
-    ['Imm. Resolved (AUTOSIM)','#2563eb', d.immediatelyByAutosim||0],
-    ['Successful','#0d9488', d.successful||0],
-    ['In Queue','#ec7211', d.inQueue||0]
+// The ONE list of Handover items (order + labels + colours) shared by the tile strip, the chart,
+// its pill legend, Copy chart and Export handover. Four groups, divided visually. Items with
+// `hideZero` are dropped while their count is 0 (Pending, Researching, Station Request, Appeals).
+//   Created          = CreateDate in the window
+//   In Queue..       = live open-queue snapshot by Status (all open tickets, not window-bound)
+//   No EMT / Station Request / Appeals = flags on the created-in-window tickets
+//   Imm. Resolved (By AUTOSIM / By Rule) / Successful = exclusive split of tickets resolved in the window
+function handoverGroups(d){
+  d=d||{}; var cf=d.createdFlags||{}, qs=d.queueByStatus||{}, rs=d.resolvedSplit||{};
+  var groups=[
+    { name:'Created', items:[
+      {lbl:'Created', cls:'ho-created', color:'#2b82fe', n:d.created} ]},
+    { name:'Ticket status', items:[
+      {lbl:'In Queue', cls:'ho-queue', color:'#b45309', n:d.inQueue},
+      {lbl:'Assigned', cls:'ho-assigned', color:'#d97706', n:qs['Assigned']},
+      {lbl:'Work In progress', cls:'ho-wip', color:'#0891b2', n:qs['Work In Progress']},
+      {lbl:'Pending', cls:'ho-pending', color:'#9333ea', n:qs['Pending'], hideZero:true},
+      {lbl:'Researching', cls:'ho-research', color:'#475569', n:qs['Researching'], hideZero:true} ]},
+    { name:'Created ticket flags', items:[
+      {lbl:'No EMT', cls:'ho-noemt', color:'#7c5cf0', n:cf.noEmt},
+      {lbl:'Station Request', cls:'ho-station', color:'#dc2626', n:cf.stationRequest, hideZero:true},
+      {lbl:'Appeals', cls:'ho-appeal', color:'#ea7317', n:cf.appeal, hideZero:true} ]},
+    { name:'Resolutions', items:[
+      {lbl:'Imm. Resolved (By AUTOSIM)', cls:'ho-auto', color:'#2563eb', n:rs.autosim},
+      {lbl:'Imm. Resolved (By Rule)', cls:'ho-imm', color:'#16a34a', n:rs.rule},
+      {lbl:'Successful', cls:'ho-succ', color:'#0d9488', n:rs.successful} ]}
   ];
-  return items.map(function(it){
-    return '<span class="to-leg" style="cursor:default">'+
-      '<span class="to-leg-dot" style="background:'+it[1]+'"></span>'+
-      '<span class="to-leg-lbl">'+String(it[0])+'</span>'+
-      '<span class="to-leg-n">'+Number(it[2]).toLocaleString('en-US')+'</span>'+
-    '</span>';
-  }).join('');
+  groups.forEach(function(g){
+    g.items=g.items.map(function(it){ it.n=Number(it.n)||0; return it; }).filter(function(it){ return !(it.hideZero&&it.n===0); });
+  });
+  return groups;
 }
+// On-page pill legend for the Handover chart (one pill per bar: dot + label + count badge),
+// with a thin divider between the groups.
+function handoverLegendHtml(d){
+  return handoverGroups(d).map(function(g){
+    return g.items.map(function(it){
+      return '<span class="to-leg" style="cursor:default">'+
+        '<span class="to-leg-dot" style="background:'+it.color+'"></span>'+
+        '<span class="to-leg-lbl">'+String(it.lbl)+'</span>'+
+        '<span class="to-leg-n">'+it.n.toLocaleString('en-US')+'</span>'+
+      '</span>';
+    }).join('');
+  }).join('<span class="ho-leg-sep" aria-hidden="true"></span>');
+}
+// Chart.js plugin: dashed vertical divider at each spacer slot (the gap between handover groups).
+const HANDOVER_SEP_PLUGIN={ id:'hoGroupSep', afterDatasetsDraw:function(chart){
+  var seps=(chart.options.plugins&&chart.options.plugins.hoGroupSep&&chart.options.plugins.hoGroupSep.at)||[];
+  var x=chart.scales.x, a=chart.chartArea, cx=chart.ctx; if(!x||!a||!seps.length) return;
+  cx.save(); cx.strokeStyle='#c9d1db'; cx.lineWidth=1; cx.setLineDash([4,4]);
+  seps.forEach(function(i){ var px=Math.round(x.getPixelForValue(i))+0.5; cx.beginPath(); cx.moveTo(px,a.top); cx.lineTo(px,a.bottom); cx.stroke(); });
+  cx.restore();
+}};
 function drawHandoverChart(d){
   const cv=document.getElementById('handoverChart'); if(!cv||typeof Chart==='undefined') return;
-  const grad=function(c1,c2){ const cx=cv.getContext('2d'); const g=cx.createLinearGradient(0,0,0,320); g.addColorStop(0,c1); g.addColorStop(1,c2); return g; };
-  const cf=d.createdFlags||{};
-  const immAgent=d.immediatelyByAgentRule||0, immAuto=d.immediatelyByAutosim||0, succ=d.successful||0;
-  // Bars: Created + its 3 flags, the two Immediately-Resolved splits, Successful, and In Queue.
-  const bars=[
-    ['Created',                d.created||0,              grad('#7fd3fb','#2b82fe')],
-    ['No EMT',                 cf.noEmt||0,               grad('#c4b5fd','#7c5cf0')],
-    ['Station Request',        cf.stationRequest||0,      grad('#fca5a5','#dc2626')],
-    ['Appeal',                 cf.appeal||0,              grad('#fdba74','#ea7317')],
-    ['Imm. Resolved (Agent/Rule)', immAgent,             grad('#86efac','#1f9d57')],
-    ['Imm. Resolved (AUTOSIM)',    immAuto,               grad('#93c5fd','#2563eb')],
-    ['Successful',             succ,                      grad('#5eead4','#0d9488')],
-    ['In Queue',               d.inQueue||0,              grad('#fcd34d','#ec7211')],
-  ];
+  // Bars follow handoverGroups() exactly; a blank spacer slot (null value) sits between groups
+  // to give the gap, and the plugin draws a dashed divider through it.
+  const bars=[], seps=[];
+  handoverGroups(d).forEach(function(g,gi){
+    if(gi){ seps.push(bars.length); bars.push(['',null,'transparent']); }
+    g.items.forEach(function(it){ bars.push([it.lbl,it.n,it.color]); });
+  });
   makeChart('handoverChart',{ type:'bar',
+    plugins:[HANDOVER_SEP_PLUGIN],
     data:{ labels:bars.map(b=>b[0]), datasets:[{
       label:'Tickets', data:bars.map(b=>b[1]),
       backgroundColor:bars.map(b=>b[2]),
-      borderRadius:8, maxBarThickness:70,
+      borderRadius:6, maxBarThickness:64,
     }]},
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false },
-        tooltip:{ backgroundColor:'rgba(20,24,30,.96)', padding:12, cornerRadius:8, callbacks:{ label:function(c){ return ' '+c.parsed.y+' tickets'; } } } },
-      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } }, x:{ grid:{ display:false }, ticks:{ font:{ size:10 }, maxRotation:30, minRotation:0 } } },
+      plugins:{ legend:{ display:false }, hoGroupSep:{ at:seps },
+        tooltip:{ backgroundColor:'rgba(20,24,30,.96)', padding:12, cornerRadius:8, filter:function(c){ return c.label!==''; }, callbacks:{ label:function(c){ return ' '+c.parsed.y+' tickets'; } } } },
+      scales:{
+        y:{ beginAtZero:true, grid:{ color:'#eef1f4' }, border:{ display:false }, ticks:{ precision:0, color:'#5c6773', font:{ family:'Inter', size:11 } },
+          title:{ display:true, text:'Tickets', color:'#5c6773', font:{ family:'Inter', size:11, weight:'700' } } },
+        x:{ grid:{ display:false }, border:{ color:'#e2e6ea' }, ticks:{ color:'#2a3340', font:{ family:'Inter', size:10, weight:'600' }, maxRotation:30, minRotation:0 } } },
     }});
 }
 // Copy the handover chart as a PNG image (paste straight into Slack). The chart canvas is
@@ -1514,18 +1545,10 @@ function drawHandoverChart(d){
 // if the browser blocks image-clipboard writes.
 async function copyHandoverChart(btn){
   const cv=document.getElementById('handoverChart'); if(!cv){ showToast('Chart not ready yet'); return; }
-  const d=HANDOVER_DATA||{}, cf=d.createdFlags||{};
-  // Pill legend items (colours match the bars in drawHandoverChart).
-  const legend=[
-    ['Created','#2b82fe', d.created||0],
-    ['No EMT','#7c5cf0', cf.noEmt||0],
-    ['Station Request','#dc2626', cf.stationRequest||0],
-    ['Appeal','#ea7317', cf.appeal||0],
-    ['Imm. Resolved (Agent/Rule)','#16a34a', d.immediatelyByAgentRule||0],
-    ['Imm. Resolved (AUTOSIM)','#2563eb', d.immediatelyByAutosim||0],
-    ['Successful','#0d9488', d.successful||0],
-    ['In Queue','#ec7211', d.inQueue||0]
-  ];
+  const d=HANDOVER_DATA||{};
+  // Pill legend items = the same list/order/colours as the bars (handoverGroups; hidden zeros omitted).
+  const legend=[];
+  handoverGroups(d).forEach(function(g){ g.items.forEach(function(it){ legend.push([it.lbl,it.color,it.n]); }); });
   const W=cv.width, titleH=46;
   var scratch=document.createElement('canvas').getContext('2d');
   var legH=drawPillLegend(scratch, legend, W, 0)+10;
@@ -1559,23 +1582,12 @@ async function exportHandover(){
   const lines=[];
   lines.push('PHD Handover Report');
   lines.push(d.tz+' · '+d.label);
-  lines.push('');
-  lines.push('Tickets created: '+d.created);
-  const cf=d.createdFlags||{};
-  lines.push('    No EMT: '+(cf.noEmt||0));
-  lines.push('    Station Request: '+(cf.stationRequest||0));
-  lines.push('    Appeal: '+(cf.appeal||0));
-  lines.push('Tickets resolved: '+d.resolved);
-  lines.push('    Immediately Resolved: '+(d.immediatelyResolved||0));
-  lines.push('        by Agent/Rule: '+(d.immediatelyByAgentRule||0));
-  lines.push('        by AUTOSIM: '+(d.immediatelyByAutosim||0));
-  lines.push('    Successful: '+(d.successful||0)+(d.successfulAddressActions?(' (incl. '+d.successfulAddressActions+' Address Exclusion / Address Depri)'):''));
-  lines.push('In queue (open now): '+d.inQueue);
-  if((d.closureCodes||[]).length){
-    lines.push('');
-    lines.push('Resolved by closure code:');
-    d.closureCodes.forEach(function(c){ lines.push('    '+c.code+': '+c.count); });
-  }
+  // Same list/order/labels as the bars and chart (hidden zero items omitted), groups split by a rule.
+  handoverGroups(d).forEach(function(g){
+    lines.push('======================================');
+    g.items.forEach(function(it){ lines.push(it.lbl+': '+it.n); });
+  });
+  lines.push('======================================');
   const txt=lines.join('\n');
   try{ await navigator.clipboard.writeText(txt); showToast('Handover report copied'); }
   catch(e){ const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Handover report copied'); }
@@ -1609,10 +1621,10 @@ function showTakeoverAgentColorPopup(agentName,colorKey){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#fff;border:1px solid #e2e7eb;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="color:${colorHex[colorKey]};font-size:1.1em">${agentName} â€” ${colorNames[colorKey]} â€” ${tix.length} tickets</h2>
+      <h2 style="color:${colorHex[colorKey]};font-size:1.1em">${agentName} — ${colorNames[colorKey]} — ${tix.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
     </div>
-    <p style="color:#8b96a0;font-size:.85em;margin-bottom:8px">Sorted oldest â†’ newest by creation date</p>
+    <p style="color:#8b96a0;font-size:.85em;margin-bottom:8px">Sorted oldest → newest by creation date</p>
     <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:#8b96a0">No tickets</td></tr>'}</tbody></table></div>`;
   document.body.appendChild(overlay);
 }
@@ -2225,27 +2237,30 @@ function ageTileByCls(cls){ return AGE_TILES.find(function(t){return t.cls===cls
 function ageCardSkeletonHtml(){
   // Band name shown without the surrounding parens for the sub-label.
   const rng=function(t){ return String(t.range||'').replace(/^\(|\)$/g,''); };
+  const sk=function(w){ return '<span class="dh-skel dh-skel-num" style="width:'+w+'px" aria-hidden="true"></span>'; };
+  const chipSk='<span class="dh-skel-chips" aria-hidden="true"><span class="dh-skel"></span><span class="dh-skel"></span></span>';
   const rows=AGE_ROW_ORDER.map(function(cls){
     const t=ageTileByCls(cls);
-    return '<div id="ageRow-'+cls+'" class="age '+cls+' age-loading" onclick="showColorPopup(\''+cls+'\')" title="Loading '+t.name+' ticketsâ€¦">'+
-      '<div class="band"><span class="dot"></span><span class="lbl"><b>'+t.name+'</b><span>'+rng(t)+'</span></span></div>'+
-      '<div class="agents-count" id="ageAgents-'+cls+'"><span class="num-spinner"></span></div>'+
-      '<div class="tik" id="ageCount-'+cls+'"><span class="num-spinner"></span></div>'+
-      '<div id="agePrio-'+cls+'" title="Open tickets with a Station Request / Address Exclusion label"><span class="num-spinner"></span></div>'+
-      '<div id="ageNoEmt-'+cls+'" title="Open tickets whose Title or Labels mention No EMT / No-EMT"><span class="num-spinner"></span></div>'+
+    // Row = a button-like grid row (Enter/Space opens the popup via the delegated handler below).
+    return '<div id="ageRow-'+cls+'" class="dh-arow '+cls+' age-loading" role="row" tabindex="-1" aria-disabled="true" onclick="showColorPopup(\''+cls+'\')" title="Loading '+t.name+' tickets\u2026">'+
+      '<div class="band" role="rowheader"><span class="dot" aria-hidden="true"></span><span class="lbl"><b>'+t.name+'</b><span>'+rng(t)+'</span></span></div>'+
+      '<div class="agents-count" role="cell"><span id="ageAgents-'+cls+'">'+sk(26)+'</span></div>'+
+      '<div class="tik" role="cell"><span id="ageCount-'+cls+'">'+sk(30)+'</span><span class="dh-abar" aria-hidden="true"><i id="ageBar-'+cls+'" style="width:0%"></i></span></div>'+
+      '<div role="cell" id="agePrio-'+cls+'" title="Open tickets with a Station Request / Address Exclusion label">'+chipSk+'</div>'+
+      '<div role="cell" id="ageNoEmt-'+cls+'" title="Open tickets whose Title or Labels mention No EMT / No-EMT">'+chipSk+'</div>'+
     '</div>';
   }).join('');
-  const srIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>';
-  const emtIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#ff6b6b" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>';
-  return '<div class="age-grid">'+
-      '<div class="agehead">'+
-        '<span>AGE RANGE</span>'+
-        '<span>AGENTS COUNT</span>'+
-        '<span>TICKETS COUNT</span>'+
-        '<span>'+srIcon+'TICKETS WITH STATION REQUESTS</span>'+
-        '<span>'+emtIcon+'TICKETS WITH NO EMT</span>'+
+  const srIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#b45309" stroke-width="2" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>';
+  const emtIcon='<svg class="hi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#c0261a" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>';
+  return '<div class="dh-age" role="table" aria-label="Ticket age classification">'+
+      '<div class="dh-agehead" role="row">'+
+        '<span role="columnheader">Age range</span>'+
+        '<span role="columnheader">Agents</span>'+
+        '<span role="columnheader">Tickets</span>'+
+        '<span role="columnheader">'+srIcon+'Tickets with station requests</span>'+
+        '<span role="columnheader">'+emtIcon+'Tickets with no EMT</span>'+
       '</div>'+
-      '<div class="agerows">'+rows+'</div>'+
+      '<div class="dh-agerows" role="rowgroup">'+rows+'</div>'+
     '</div>';
 }
 
@@ -2284,7 +2299,14 @@ function renderAgeChunk(d){
       // Data is in -> enable the row (clickable) and restore its hover title.
       row.classList.remove('age-loading');
       row.setAttribute('title','View '+t.name+' tickets');
+      row.setAttribute('tabindex','0'); row.removeAttribute('aria-disabled');
+      row.setAttribute('aria-label',t.name+' '+String(t.range||'').replace(/&gt;/g,'>')+': '+list.length+' tickets, '+agentCount+' agents. Open ticket list');
+      if(!row._dhKey){ row._dhKey=true; row.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); row.click(); } }); }
     }
+    // Proportional bar: this band's share of all open tickets across the five bands.
+    const ageTotal=AGE_TILES.reduce(function(s,x){ return s+((ct[x.cls]||[]).length); },0);
+    const bar=document.getElementById('ageBar-'+t.cls);
+    if(bar) bar.style.width=(ageTotal?Math.round(list.length/ageTotal*100):0)+'%';
     const ael=document.getElementById('ageAgents-'+t.cls);
     if(ael){ ael.classList.add('kpi-anim'); countUpKpi(ael, String(agentCount)); }
     const cel=document.getElementById('ageCount-'+t.cls);
@@ -2369,10 +2391,13 @@ function renderQueueKpis(d){
       : '';
     // Clickable tiles get an "open in new window" hint icon in the top-right corner.
     const openIc=statusKey?('<span class="q-tile-open" aria-hidden="true">'+ic('external-link',13)+'</span>'):'';
-    return '<div class="q-tile'+(tone?(' '+tone):'')+clickAttrs+'">'+
+    // Proportional bar: share of In Queue (the In Queue card itself is the 100% baseline).
+    const barW=(pct!=null)?Math.max(0,Math.min(100,pct)):100;
+    return '<div class="dh-kpi'+(tone?(' '+tone):'')+clickAttrs+'">'+
       openIc+
-      '<div class="k">'+icon+' '+label+'</div>'+
+      '<div class="k"><span class="dh-kpi-ic">'+icon+'</span>'+label+'</div>'+
       '<div class="v"><span class="kpi-anim" data-kpi-val="'+raw+'">'+'</span>'+suffix+'</div>'+
+      '<div class="q-bar" aria-hidden="true"><i style="width:'+barW+'%"></i></div>'+
     '</div>';
   };
   grid.innerHTML='<div class="q-tiles">'+
@@ -3365,13 +3390,8 @@ function renderDashboardChunked(){
       [ic('eye',13),'Researching',100,'mut'],
       [ic('hourglass',13),'Pending',100,'']
     ];
-    const tile=function(t){
-      return '<div class="q-tile'+(t[3]?(' '+t[3]):'')+'">'+
-        '<div class="k">'+t[0]+' '+t[1]+'</div>'+
-        '<div class="v"><span class="kpi-spin kpi-spin-lg" aria-label="Loading"></span></div>'+
-      '</div>';
-    };
-    return '<div class="q-tiles" style="grid-column:1/-1">'+tiles.map(tile).join('')+'</div>';
+    // Shimmer skeleton card: same .dh-kpi frame/label as the loaded card; value + bar are placeholders.
+    return dhQueueSkeletonHtml(tiles);
   };
   // ---- Fixed skeletons for the always-open cards (match the new layouts; numbers tally via scramble). ----
   const shimmerBar=(w)=>'<div class="shimmer" style="height:8px;border-radius:5px;width:'+w+'%"></div>';
@@ -3438,89 +3458,188 @@ function renderDashboardChunked(){
     return '<div class="section kpi-section'+(collapsible?' dash-collapsible':'')+coll+'"><div class="sec-head"'+headClick+'><h2>'+ic(iconName,16)+' '+title+'</h2>'+(scopeSection?sectionScopeSelector(scopeSection):'')+caret+'</div>'+
     '<div class="sec-body"><div class="kpi-grid kpi-grid-compact" id="'+gridId+'" style="grid-template-columns:1fr">'+skel+'</div>'+(extraBody||'')+'</div></div>';
   };
-  // ===== REDESIGNED DASHBOARD (flat, always-open cards ï¿½ no accordion/collapse) =====
-  // Three always-visible data blocks: Queue Status (KPI tiles), Ticket Age Classification (table),
-  // and Takeover ï¿½ Queue by Age (color tiles + stacked bar chart). All reflect CURRENT open AC-era
-  // tickets and load eagerly. Markup IDs (#dashQueueKpis, #dashAgeBody, #takeoverBody, #takeoverChart)
-  // are preserved so the existing renderers/popups keep working.
+  // ===== REDESIGNED DASHBOARD (dark hero + overlapping KPI cards + chevron collapsible cards) =====
+  // Markup IDs (#dashQueueKpis, #dashAgeBody, #takeoverBody, #takeoverChart, #handoverBody,
+  // #handoverChart, #takeoverChartCopy, #handoverChartCopy) are preserved for the renderers/popups.
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content"><div id="dashRoot">'+
-    // Hero banner now hosts the Queue Status content: title row on top, status KPI tiles below,
-    // all on the dark hero background.
-    '<header class="dh-hero">'+
-      '<div class="dh-hero-top">'+
-        '<div class="dh-hero-main">'+
-          '<h1 class="dh-hero-title">In Queue</h1>'+
-          '<p class="dh-hero-sub">Current open PHD tickets across all groups \u00b7 '+dateStr+'</p>'+
-        '</div>'+
+  const secCard=function(key,iconName,title,note,actions,bodyHtml){
+    return '<section class="dh-card" id="dhSec'+key+'" aria-labelledby="dhSec'+key+'H">'+
+      '<div class="dh-card-head">'+
+        '<h2 id="dhSec'+key+'H" class="dh-card-h"><button type="button" class="dh-exp" aria-expanded="true" aria-controls="dhSec'+key+'Body" onclick="dhToggleSection(this)">'+
+          '<span class="dh-chev" aria-hidden="true">'+DH_CHEV+'</span>'+
+          '<span class="dh-card-ic" aria-hidden="true">'+ic(iconName,16)+'</span>'+
+          '<span class="dh-card-t">'+title+'</span></button></h2>'+
+        (note?'<p class="dh-card-note">'+note+'</p>':'')+
+        (actions?'<div class="dh-card-actions">'+actions+'</div>':'')+
       '</div>'+
-      '<div class="dh-hero-queue" id="dashQueueKpis">'+queueSkel()+'</div>'+
+      '<div class="dh-card-body" id="dhSec'+key+'Body">'+bodyHtml+'</div>'+
+    '</section>';
+  };
+  document.getElementById('app').innerHTML=topBar('dashboard')+'<div class="content"><div id="dashRoot" class="dh">'+
+    '<p id="dhLive" class="dh-sr" role="status" aria-live="polite"></p>'+
+    '<header class="dh-hero">'+
+      '<div class="dh-hero-in">'+
+        '<div class="dh-hero-main">'+
+          '<span class="dh-hero-ic" aria-hidden="true">'+ic('inbox',22)+'</span>'+
+          '<div class="dh-hero-txt">'+
+            '<p class="dh-eyebrow">Active dashboard \u00b7 Live queue</p>'+
+            '<h1 class="dh-hero-title">In Queue</h1>'+
+            '<p class="dh-hero-sub">Current open PHD tickets across all groups: how long they have been open, who holds them, and what moved in the last 12 hours.</p>'+
+          '</div>'+
+        '</div>'+
+        '<ul class="dh-chips" aria-label="Data context">'+
+          '<li class="dh-chip dh-chip-live"><span class="dh-live-dot" aria-hidden="true"></span>Live</li>'+
+          '<li class="dh-chip">'+ic('calendar',13)+'<span class="dh-chip-k">Today</span><b>'+dateStr+'</b></li>'+
+          '<li class="dh-chip">'+ic('database',13)+'<span class="dh-chip-k">Data as of</span><b id="dhAsOf">\u2026</b></li>'+
+          '<li class="dh-chip">'+ic('filter',13)+'<span class="dh-chip-k">Scope</span><b>All groups \u00b7 open tickets</b></li>'+
+          '<li class="dh-chip">'+ic('clock',13)+'<span class="dh-chip-k">Handover TZ</span><b id="dhTz">\u2026</b></li>'+
+        '</ul>'+
+      '</div>'+
     '</header>'+
-    // ---- Section 2: Ticket Age Classification ----
-    '<section class="dh-card dh-card-age">'+
-      '<div class="dh-card-head"><h2>'+ic('clock',16)+' Ticket Age Classification</h2>'+
-        '<span class="dh-card-note">By how long tickets have been open</span></div>'+
-      '<div class="dh-card-body"><div id="dashAgeBody" class="dash-chunk-slot">'+ageCardSkeletonHtml()+'</div></div>'+
-    '</section>'+
-    // ---- Section 3: Takeover ï¿½ Queue by Age ----
-    '<section class="dh-card dh-card-takeover">'+
-      '<div class="dh-card-head"><h2>'+ic('alert',16)+' Takeover \u2014 Queue by Age</h2>'+
-        '<div class="dash-scope-sec" style="display:flex;gap:8px;margin-left:auto">'+
-          '<button type="button" class="dh-export-btn" id="takeoverChartCopy" onclick="copyTakeoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
-          '<button type="button" class="dh-export-btn" onclick="exportTakeover()">'+ic('copy',14)+' Export takeover</button></div></div>'+
-      '<div class="dh-card-body"><div id="takeoverBody">'+
-        '<div class="sr-chart-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3>'+
-          '<div class="chart-wrap" style="height:380px;position:relative"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>'+
-      '</div></div>'+
-    '</section>'+
-    // ---- Section 4: Handover Report (last 12 hours, 7am-7pm in the user's timezone) ----
-    '<section class="dh-card dh-card-handover">'+
-      '<div class="dh-card-head"><h2>'+ic('clipboard',16)+' Handover Report \u2014 Last 12 Hours</h2>'+
-        '<div class="dash-scope-sec" style="display:flex;gap:8px;margin-left:auto">'+
-          '<button type="button" class="dh-export-btn" id="handoverChartCopy" onclick="copyHandoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
-          '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button></div></div>'+
-      '<div class="dh-card-body"><div id="handoverBody">'+
-        '<div class="sr-chart-card"><div class="chart-wrap" style="height:380px;position:relative"><div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div></div></div>'+
-      '</div></div>'+
-    '</section>'+
+    '<section class="dh-kpis" id="dashQueueKpis" aria-label="Queue status" aria-busy="true">'+queueSkel()+'</section>'+
+    '<nav class="dh-bar" aria-label="Dashboard sections">'+
+      '<ul class="dh-jump">'+
+        '<li><a href="#dhSecAge">'+ic('clock',13)+' Age classification</a></li>'+
+        '<li><a href="#dhSecTakeover">'+ic('alert',13)+' Takeover</a></li>'+
+        '<li><a href="#dhSecHandover">'+ic('clipboard',13)+' Handover</a></li>'+
+      '</ul>'+
+      '<div class="dh-seg" role="group" aria-label="Sections">'+
+        '<button type="button" onclick="dhToggleAll(true)">Expand all</button>'+
+        '<button type="button" onclick="dhToggleAll(false)">Collapse all</button>'+
+      '</div>'+
+    '</nav>'+
+    secCard('Age','clock','Ticket Age Classification','By how long tickets have been open \u00b7 select a row to see its tickets','',
+      '<div class="dh-scroll"><div id="dashAgeBody" class="dash-chunk-slot" aria-busy="true">'+ageCardSkeletonHtml()+'</div></div>')+
+    secCard('Takeover','alert','Takeover \u2014 Queue by Age','Unresolved tickets per agent, stacked by age band',
+      '<button type="button" class="dh-export-btn is-ghost" id="takeoverChartCopy" onclick="copyTakeoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
+      '<button type="button" class="dh-export-btn" onclick="exportTakeover()">'+ic('copy',14)+' Export takeover</button>',
+      '<div id="takeoverBody" aria-busy="true">'+dhTakeoverSkeletonHtml()+'</div>')+
+    secCard('Handover','clipboard','Handover Report \u2014 Last 12 Hours','Today 07:00\u201319:00 in your timezone',
+      '<button type="button" class="dh-export-btn is-ghost" id="handoverChartCopy" onclick="copyHandoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
+      '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button>',
+      '<div id="handoverBody" aria-busy="true">'+dhHandoverSkeletonHtml()+'</div>')+
   '</div></div>';
   attachNewFileHandler();
   if(window.PHDPlaceTopRight) window.PHDPlaceTopRight(); // move the top-right cluster into the header row
-  // Takeover loads EAGERLY (section is always open — no expand needed).
+  // All four blocks load EAGERLY. Each loader paints its skeleton, sets aria-busy, and on failure shows
+  // an error card whose Retry button re-runs the same loader.
   try{ reloadTakeoverSection(); }catch(e){}
-  // Handover Report loads EAGERLY too (last 12h window computed client-side in the user's timezone).
   try{ reloadHandoverSection(); }catch(e){}
-  // Ticket Age Classification loads EAGERLY (always visible, not collapsible). age-detail is
-  // time-sensitive so it's not version-cached â€” always fetched fresh (small payload).
-  // AC era (all 2026+ tickets, no quarter) â€” Ticket Age Classification is live-only, era-scoped.
-  loadDashChunk('age-detail',renderAgeChunk,{silent:true,noCache:true,scope:'ac'}).then(function(r){
-    if(!r||!r.ok){ const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>'; }
-  }).catch(function(){
-    const s=document.getElementById('dashAgeBody'); if(s)s.innerHTML='<p class="meta-info" style="text-align:center;padding:20px">Could not load ticket age classification.</p>';
-  });
-  // (Incident Types, Resolutions, and Historical Incidents eager loaders removed â€” Repeat Incidents
-  //  lives on hi-resolved.html; the standalone Incident Types / Resolutions pages were removed.)
-  // Queue Status Data KPIs load EAGERLY from the /api/dash/queue chunk. noCache:true because the
-  // active-status counts now span ALL quarters and change between uploads â€” a version-cached copy
-  // (keyed on the live quarter's publishedAt) would show stale numbers until the next publish.
-  loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true,noCache:true,scope:'ac'}).then(function(r){
-    if(!r||!r.ok){ document.querySelectorAll('#dashQueueKpis .kpi-spin').forEach(function(el){var p=el.parentNode;if(p){p.textContent='\u2014';}}); }
-  }).catch(function(){ document.querySelectorAll('#dashQueueKpis .kpi-spin').forEach(function(el){var p=el.parentNode;if(p){p.textContent='\u2014';}}); });
-  // Version sync for the topbar Refresh button: the redesigned dashboard has NO summary KPIs, so the
-  // heavy /api/dash/summary fetch was dropped. Use the lightweight /api/live-version endpoint instead
-  // (just quarter + publishedAt, no ticket payload) to keep LIVE_QUARTER + the liveCache version
-  // (used by the "already up to date" check) current.
+  dhLoadAge();
+  dhLoadQueue();
+  // Version sync for the topbar Refresh button via the lightweight /api/live-version endpoint
+  // (quarter + publishedAt). publishedAt also feeds the hero "Data as of" chip.
   (async function(){
+    const asOf=document.getElementById('dhAsOf');
     try{
       const r=await window.PHDAuth.api('GET','/api/live-version');
       if(r&&r.ok&&r.data&&r.data.quarter){
         LIVE_QUARTER=Object.assign({},LIVE_QUARTER,{quarter:r.data.quarter,label:r.data.label||r.data.quarter});
         try{ metaSet('liveCache',{quarter:r.data.quarter,publishedAt:r.data.publishedAt||null}); }catch(e){}
       }
-    }catch(e){}
+      if(asOf){
+        const p=r&&r.data&&r.data.publishedAt?new Date(r.data.publishedAt):null;
+        asOf.textContent=(p&&!isNaN(p))?p.toLocaleString('en-US',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Not available';
+      }
+    }catch(e){ if(asOf) asOf.textContent='Not available'; }
   })();
 }
+
+// ===== Redesigned dashboard helpers (app.html only) =====
+const DH_CHEV='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+// Polite live-region announcement (cleared first so repeated messages are re-read).
+function dhAnnounce(msg){
+  const el=document.getElementById('dhLive'); if(!el)return;
+  el.textContent=''; setTimeout(function(){ el.textContent=msg; },40);
+}
+function dhBusy(el,busy){ if(el) el.setAttribute('aria-busy',busy?'true':'false'); }
+// Friendly error state; the Retry button calls the named global loader again.
+function dhErrorHtml(title,msg,retryFn){
+  return '<div class="dh-state" role="alert">'+
+    '<span class="dh-state-ic" aria-hidden="true">'+ic('alert',22)+'</span>'+
+    '<p class="dh-state-t">'+title+'</p>'+
+    '<p class="dh-state-p">'+msg+'</p>'+
+    '<button type="button" class="dh-btn" onclick="'+retryFn+'()">'+ic('refresh',14)+' Retry</button>'+
+  '</div>';
+}
+function dhSk(cls,style){ return '<span class="dh-skel'+(cls?(' '+cls):'')+'"'+(style?(' style="'+style+'"'):'')+' aria-hidden="true"></span>'; }
+// Queue KPI skeleton: the same .dh-kpi cards renderQueueKpis paints, with shimmer value + bar.
+function dhQueueSkeletonHtml(tiles){
+  tiles=tiles||[[ic('inbox',13),'In Queue',0,'am'],[ic('inbox',13),'Assigned',0,''],[ic('tool',13),'Work In Progress',0,'am'],[ic('eye',13),'Researching',0,'mut'],[ic('hourglass',13),'Pending',0,'']];
+  return '<div class="q-tiles">'+tiles.map(function(t){
+    return '<div class="dh-kpi'+(t[3]?(' '+t[3]):'')+'">'+
+      '<div class="k"><span class="dh-kpi-ic">'+t[0]+'</span>'+t[1]+'</div>'+
+      '<div class="v">'+dhSk('dh-skel-v')+'</div>'+
+      '<div class="q-bar">'+dhSk('','height:100%;width:100%;border-radius:99px')+'</div>'+
+    '</div>';
+  }).join('')+'</div><span class="dh-sr">Loading queue status\u2026</span>';
+}
+// Takeover skeleton: legend pills + stacked-bar silhouettes inside the chart card.
+function dhTakeoverSkeletonHtml(){
+  const hs=[88,80,66,62,54,50,40,34];
+  const bars=hs.map(function(h){ return '<span class="dh-skel dh-skel-bar" style="height:'+h+'%"></span>'; }).join('');
+  return '<div class="sr-chart-card dh-skel-card"><h3>Unresolved Tickets by Agent (Age Breakdown)</h3>'+
+    '<div class="to-legend">'+[110,96,92,104,100].map(function(w){ return dhSk('dh-skel-pill','width:'+w+'px'); }).join('')+'</div>'+
+    '<div class="dh-skel-chart" style="height:340px">'+bars+'</div>'+
+    '<span class="dh-sr">Loading takeover chart\u2026</span></div>';
+}
+// Handover skeleton: window pill, two tile rows, chart, queue tile row.
+function dhHandoverSkeletonHtml(){
+  const t=function(tot){ return '<div class="ho-tile dh-skel-tile'+(tot?' ho-tot':'')+'">'+dhSk('dh-skel-num')+dhSk('','width:70%;height:10px;margin-top:10px')+'</div>'; };
+  // Mirrors the live strip: bands (Created | Status) and (Flags | Resolutions) with thin dividers.
+  const grp=function(n){ let s='<div class="ho-grp" style="flex-grow:'+n+'">'; for(let i=0;i<n;i++) s+=t(false); return s+'</div>'; };
+  const sep='<span class="ho-sep" aria-hidden="true"></span>';
+  return dhSk('dh-skel-pill','width:260px;height:30px;margin-bottom:16px;display:block')+
+    '<div class="ho-strip"><div class="ho-band">'+grp(1)+sep+grp(3)+'</div><span class="ho-band-sep" aria-hidden="true"></span>'+
+      '<div class="ho-band">'+grp(1)+sep+grp(3)+'</div></div>'+
+    '<div class="sr-chart-card dh-skel-card"><div class="dh-skel-chart" style="height:300px">'+
+      [70,82,48,30,26,22,40,52].map(function(h){ return '<span class="dh-skel dh-skel-bar" style="height:'+h+'%"></span>'; }).join('')+
+    '</div></div>'+
+    '<span class="dh-sr">Loading handover report\u2026</span>';
+}
+// Queue status (hero KPI cards). Retry-safe: repaints the skeleton first.
+function dhLoadQueue(){
+  const grid=document.getElementById('dashQueueKpis'); if(!grid)return;
+  grid.innerHTML=dhQueueSkeletonHtml(); dhBusy(grid,true);
+  const fail=function(){
+    const g=document.getElementById('dashQueueKpis'); if(!g)return;
+    g.innerHTML=dhErrorHtml('Queue status didn\u2019t load','We couldn\u2019t reach the server for the current queue counts.','dhLoadQueue');
+    dhBusy(g,false); dhAnnounce('Queue status failed to load.');
+  };
+  loadDashChunk('queue',function(d){ renderQueueKpis(d); renderQueueChunk(d); },{silent:true,noCache:true,scope:'ac'}).then(function(r){
+    if(!r||!r.ok||!document.querySelector('#dashQueueKpis .dh-kpi .kpi-anim')) return fail();
+    dhBusy(document.getElementById('dashQueueKpis'),false); dhAnnounce('Queue status loaded.');
+  }).catch(fail);
+}
+window.dhLoadQueue=dhLoadQueue;
+// Ticket Age Classification. age-detail is time-sensitive -> always fetched fresh (AC era).
+function dhLoadAge(){
+  const slot=document.getElementById('dashAgeBody'); if(!slot)return;
+  slot.innerHTML=ageCardSkeletonHtml(); dhBusy(slot,true);
+  const fail=function(){
+    const s=document.getElementById('dashAgeBody'); if(!s)return;
+    s.innerHTML=dhErrorHtml('Ticket age classification didn\u2019t load','The age bands couldn\u2019t be fetched. Your filters and view are unchanged.','dhLoadAge');
+    dhBusy(s,false); dhAnnounce('Ticket age classification failed to load.');
+  };
+  loadDashChunk('age-detail',renderAgeChunk,{silent:true,noCache:true,scope:'ac'}).then(function(r){
+    if(!r||!r.ok) return fail();
+    dhBusy(document.getElementById('dashAgeBody'),false); dhAnnounce('Ticket age classification loaded.');
+  }).catch(fail);
+}
+window.dhLoadAge=dhLoadAge;
+// Chevron collapsible cards. On expand, resize any charts inside (drawn while hidden = 0 size).
+function dhToggleSection(btn,force){
+  const sec=btn&&btn.closest('.dh-card'); if(!sec)return;
+  const open=(force!=null)?!!force:(btn.getAttribute('aria-expanded')!=='true');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  sec.classList.toggle('is-shut',!open);
+  const body=document.getElementById(btn.getAttribute('aria-controls')); if(body) body.hidden=!open;
+  if(open) setTimeout(function(){ try{ charts.forEach(function(c){ if(c.canvas&&sec.contains(c.canvas))c.resize(); }); }catch(e){} },30);
+}
+function dhToggleAll(open){ document.querySelectorAll('#dashRoot .dh-exp').forEach(function(b){ dhToggleSection(b,open); }); }
+window.dhToggleSection=dhToggleSection;
+window.dhToggleAll=dhToggleAll;
 
 function renderGroups(){
   const m=M;const sorted=[...m.agents.filter(a=>a.group==='A1').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='A2').sort((a,b)=>b.resolved-a.resolved),...m.agents.filter(a=>a.group==='B').sort((a,b)=>b.resolved-a.resolved)];

@@ -511,573 +511,409 @@ td.mt-actions .btn svg{flex-shrink:0}
 .temp-section.open .temp-body{display:block}
 @media(max-width:760px){.temp-note{display:none}}
 
-/* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
-
-/* ---- Fun phased page loader (ported from sla-breach.html). Shown while My Tickets fetches. ---- */
-.gw-loader{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.gw-loader-in{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;max-width:680px}
-.gw-orb{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
-.gw-orb::before{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(#2b66c1,#c4def6,#fe9046,#ff6100,#2b66c1);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  animation:gwSpin 1.1s linear infinite}
-.gw-orb-ic{position:relative;width:62px;height:62px;border-radius:50%;background:#e6f0fc;color:#2b66c1;
-  display:flex;align-items:center;justify-content:center;animation:gwPulse 1.6s ease-in-out infinite;box-shadow:0 6px 18px -8px rgba(43,102,193,.5)}
-.gw-orb-ic svg{width:30px;height:30px}
-@keyframes gwSpin{100%{transform:rotate(360deg)}}
-@keyframes gwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.gw-loader-msg{font-size:1.18em;font-weight:800;color:#eef3f8;line-height:1.4;min-height:1.5em}
-.gw-loader-msg.gw-msg-in{animation:gwMsgIn .5s cubic-bezier(.22,1,.36,1)}
-@keyframes gwMsgIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-.gw-dots{display:flex;gap:7px}
-.gw-dots span{width:9px;height:9px;border-radius:50%;background:#ff6100;animation:gwDot 1.2s ease-in-out infinite}
-.gw-dots span:nth-child(2){background:#fe9046;animation-delay:.18s}
-.gw-dots span:nth-child(3){background:#2b66c1;animation-delay:.36s}
-@keyframes gwDot{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.gw-loader-sub{font-size:.72em;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#2b66c1;background:#e6f0fc;border:1px solid #c4def6;border-radius:999px;padding:4px 14px}
-.gw-loader.gw-done .gw-orb::before{animation:none;background:#1f9d57}
-.gw-loader.gw-done .gw-orb-ic{background:#e7f7ee;color:#1f9d57;animation:gwPop .4s ease}
-.gw-loader.gw-done .gw-loader-msg{color:#4ade80}
-.gw-loader.gw-done .gw-dots{visibility:hidden}
-@keyframes gwPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== My Tickets: full-demo visual pass (page-scoped, wins by source order) ===== -->
-<style id="mt-theme">
-:root{--cy:#5ecdec;--cy2:#7fdcf0;--am:#fbbf24;--gr:#4ade80;--rd:#ff6b6b}
-/* Full page spans 80% of the viewport, centered (overrides the global auto-width rule). */
-.wrap{width:80vw!important;max-width:80vw!important;margin-left:auto!important;margin-right:auto!important}
-/* Tighten the page gutter: no top padding, 10px bottom (overrides the shared layout rule that was
-   giving it 14px top / 36px bottom). High-specificity #wrap wins. */
-#wrap.wrap{padding-top:0!important;padding-bottom:10px!important}
-/* Layered gradient-mesh canvas instead of flat black. */
-body{
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(94,205,236,.06), transparent 60%),
-    radial-gradient(1000px 500px at 0% 110%, rgba(251,191,36,.05), transparent 55%),
-    #07080a !important;
-  background-attachment:fixed !important;
+<!-- ===== My Tickets redesign (page-scoped; matches the errors-in-resolved.html visual language) ===== -->
+<style id="mt-redesign">
+/* "Assigned ledger": dark navy hero with an orange rule, KPI cards overlapping it, a filter strip,
+   then two chevron-expander sections holding one white ledger card per ticket. Content lives under
+   .mt (a size container for the responsive grids); the modals sit outside #wrap and are scoped by id. */
+:root{--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--o:#ec7211;--oh:#c85f0e;
+  --mt-ink:#1b2026;--mt-mut:#5c6773;--mt-line:#e2e6ea;--mt-soft:#f5f6f8;--mt-acc:#ec7211;--mt-acc-bg:#fff3e8;--mt-acc-ink:#9a4100;
+  --mt-red:#b42318;--mt-red-bg:#fdecec;--mt-grn:#1a7a43;--mt-grn-bg:#e5f5ec;--mt-amb:#8a5a00;--mt-amb-bg:#fff4d6;
+  --mt-blue:#2b66c1;--mt-navy:#1f2a40;--mt-focus:#f0a35a}
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.mt{container-type:inline-size;color:var(--mt-ink)}
+.mt button{font-family:inherit;text-transform:none}
+.mt :is(button,a,input,label,[tabindex]):focus-visible,
+.modal :is(button,a,input,textarea,select,[tabindex]):focus-visible{outline:3px solid var(--mt-focus)!important;outline-offset:2px}
+.mt-sr{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* ---- Hero ---- */
+.mt-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.mt-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.mt-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--mt-acc))}
+.mt-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.mt-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.mt-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.mt-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.mt-hero h1{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05;margin:0}
+.mt-hero .mt-count{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:30px;padding:0 11px;border-radius:99px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.24);color:#fff;font-size:.42em;font-weight:800;letter-spacing:0;font-variant-numeric:tabular-nums}
+.mt-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.82)}
+.mt-meta{display:grid;grid-template-columns:repeat(2,minmax(0,auto));gap:10px 26px;margin:0;padding:13px 16px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.mt-meta dt{font-size:.64em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.66)}
+.mt-meta dd{margin:3px 0 0;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+/* Right side of the hero: the meta card plus a column of equal-width external-link buttons. */
+.mt-hero-side{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;max-width:100%}
+.mt-links{display:flex;flex-direction:column;gap:8px;width:220px;margin:0;padding:0;list-style:none}
+.mt-links li{margin:0}
+.mt-xlink{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:38px;padding:8px 14px;border-radius:10px;
+  text-align:center;text-decoration:none;font-size:.84em;font-weight:700;color:#fff!important;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  transition:background .15s,border-color .15s,transform .15s}
+.mt-xlink svg{flex-shrink:0;color:#ffb26b}
+.mt-xlink:hover{background:rgba(255,255,255,.13);border-color:rgba(236,114,17,.6);transform:translateY(-1px)}
+.mt-xlink:focus-visible{outline:2px solid #ffb26b;outline-offset:2px;background:rgba(255,255,255,.13)}
+@media (max-width:719.98px){
+  .mt-hero-side{width:100%;flex-direction:column;align-items:stretch}
+  .mt-links{width:100%}
 }
-h1{letter-spacing:-.5px}
-.mt-count{box-shadow:0 6px 18px -8px rgba(255,153,0,.4)}
+@media (prefers-reduced-motion:reduce){.mt-xlink{transition:none}.mt-xlink:hover{transform:none}}
 
-/* ---- Illustrated banner header (same style as the live-dashboard section banners) ---- */
-/* Title bar: WHITE card, NO border, 60px tall. "My Tickets" (left) + count (right). */
-.mt-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  border-radius:5px;padding:0 18px;height:60px;min-height:60px;margin:0 0 10px;
-  background:#fff;border:none;box-shadow:0 1px 3px rgba(20,30,50,.06)}
-.mt-banner .mt-title{position:relative;z-index:1;margin:0}
-.mt-banner .mt-title h1{margin:0;font-size:1.15em;font-weight:800;color:#1b2026;display:inline-flex;align-items:center;gap:10px}
-.mt-banner .mt-title h1 svg{color:#1b2026;opacity:.85;flex-shrink:0}
-/* Count pill on the RIGHT corner. */
-.mt-banner .mt-count{position:relative;z-index:1;background:#fff4e8;border:1px solid #f3d4b0;color:#b5560c;font-weight:800;box-shadow:none}
-.mt-banner .mt-actions{position:relative;z-index:1}
+/* ---- KPI row (overlaps the hero) ---- */
+.mt-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:520px){.mt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.mt-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.mt-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--mt-line);border-radius:12px;padding:16px 18px 15px;margin:0;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.mt-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.mt-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mt-mut);margin:0}
+.mt-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--mt-soft);color:#3a4552}
+.mt-kpi-v{margin:12px 0 0;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--mt-ink)}
+.mt-kpi-s{margin:7px 0 0;font-size:.82em;font-weight:600;color:var(--mt-mut)}
+.mt-kpi-s b{color:var(--mt-ink);font-weight:800}
+.mt-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.mt-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.mt-kpi.is-base{--k:#1f2a40}
+.mt-kpi.is-bad{--k:#d92d20}.mt-kpi.is-bad .mt-kpi-v{color:var(--mt-red)}.mt-kpi.is-bad .mt-kpi-ic{background:var(--mt-red-bg);color:var(--mt-red)}
+.mt-kpi.is-warn{--k:var(--mt-acc)}.mt-kpi.is-warn .mt-kpi-ic{background:var(--mt-acc-bg);color:#b5530a}
+.mt-kpi.is-good{--k:#1f9d57}.mt-kpi.is-good .mt-kpi-v{color:var(--mt-grn)}.mt-kpi.is-good .mt-kpi-ic{background:var(--mt-grn-bg);color:var(--mt-grn)}
 
-/* ---- Illustrated section banners (Open Tickets / Temporarily Resolved) ---- */
-/* Both section headers become bright gradient banners with their own SVG watermark, matching the
-   page banner. High-specificity #wrap selectors so they win over the generic .temp-head glass card. */
-/* Section header bars: flat BLUE (#1878eb) when expanded, SKY-BLUE (#38bdf8) when collapsed, white
-   text, NO border. Matches the app.html section-banner scheme. */
-#wrap #openSection .temp-head,#wrap #tempSection .temp-head{
-  position:relative;overflow:hidden;border:none !important;border-radius:5px !important;
-  padding:0 20px !important;height:60px;min-height:60px;box-shadow:none !important;transition:background .15s;
-  background:#38bdf8 !important}
-#wrap #openSection.open .temp-head,#wrap #tempSection.open .temp-head{background:#1878eb !important}
-#wrap #openSection .temp-head:hover,#wrap #tempSection .temp-head:hover{transform:none}
-/* All header text/icons WHITE on the blue bars. */
-#wrap #openSection .temp-head>*,#wrap #tempSection .temp-head>*{position:relative;z-index:1}
-#wrap #openSection .temp-head .temp-title,#wrap #tempSection .temp-head .temp-title,
-#wrap #openSection .temp-head .temp-caret,#wrap #tempSection .temp-head .temp-caret,
-#wrap #openSection .temp-head .temp-note,#wrap #tempSection .temp-head .temp-note{color:#fff !important;opacity:1}
-#wrap #openSection .temp-head .temp-note,#wrap #tempSection .temp-head .temp-note{opacity:.9}
-/* Count pill: frosted white on the blue bar. */
-#wrap #openSection .temp-head .temp-count,#wrap #tempSection .temp-head .temp-count{
-  background:rgba(255,255,255,.22) !important;border:1px solid rgba(255,255,255,.5);box-shadow:none;color:#fff !important}
+/* ---- Filter strip ---- */
+.mt-tools{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;background:#fff;border:1px solid var(--mt-line);border-radius:12px;
+  padding:12px 14px;margin-bottom:16px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18)}
+.mt-search{position:relative;flex:1 1 240px;max-width:400px;min-width:0}
+.mt-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.mt-search input{width:100%;font:inherit;font-size:.9em;padding:8px 12px 8px 36px;border-radius:8px;border:1px solid #d4dade;background:#fff;color:var(--mt-ink)}
+.mt-search input::placeholder{color:#7b8794}
+.mt-search input:focus{border-color:var(--mt-acc);outline:none;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.mt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;border:0;min-width:0}
+.mt-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 6px 5px 12px;border:1px solid #d4dade;border-radius:99px;background:#fff;
+  font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.mt-chip b{min-width:22px;text-align:center;padding:1px 7px;border-radius:99px;background:var(--mt-soft);border:1px solid var(--mt-line);font-weight:800;color:var(--mt-ink);font-variant-numeric:tabular-nums}
+.mt-chip:hover{border-color:#b9c2cb;background:#fafbfc}
+.mt-chip[aria-pressed="true"]{background:var(--mt-navy);border-color:var(--mt-navy);color:#fff}
+.mt-chip[aria-pressed="true"] b{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff}
+.mt-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--c,#8793a0);flex-shrink:0}
+.mt-tog{display:inline-flex;align-items:center;gap:8px;padding:6px 13px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;user-select:none;white-space:nowrap}
+.mt-tog input{width:15px;height:15px;margin:0;accent-color:var(--mt-acc);cursor:pointer}
+.mt-tog:has(input:checked){background:var(--mt-acc-bg);border-color:#f7c99c;color:var(--mt-acc-ink)}
+.mt-tog:has(input:focus-visible){outline:3px solid var(--mt-focus);outline-offset:2px}
+.mt-tools-end{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mt-shown{font-size:.82em;font-weight:700;color:var(--mt-mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mt-sort-btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 6px 0 12px;background:#fff;border:1px solid #d4dade;border-radius:99px;
+  color:#2a3340;font-size:.84em;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
+.mt-sort-btn:hover{border-color:#b9c2cb;background:#fafbfc}
+.mt-sort-btn svg{color:var(--mt-blue);flex-shrink:0}
+.mt-sort-dir{color:var(--mt-mut);font-weight:600}
+.mt-sort-arrow{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#e6f0fc;color:var(--mt-blue);font-weight:800;line-height:1}
+.mt-alert{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-basis:100%;padding:8px 12px;border-radius:8px;background:var(--mt-amb-bg);border:1px solid #f1d58a;color:#6b4600;font-size:.84em;font-weight:600}
+.mt-alert[hidden]{display:none}
 
-/* No borders / glass chrome on the section heads (plain blue bars). */
-.temp-head{background:#38bdf8 !important;border:none !important;border-radius:5px !important;box-shadow:none !important;transition:background .15s}
-.temp-head:hover{transform:none}
-.tbl-wrap{overflow:visible !important}
+/* ---- Sections (chevron expanders, like the eir Checks card) ---- */
+.mt-sec{background:#fff;border:1px solid var(--mt-line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:14px 18px;margin:0 0 16px!important}
+.mt-sec-head{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
+.mt-sec-head h2{margin:0;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--mt-ink)}
+.mt .temp-head{font-size:1em;font-weight:800;letter-spacing:inherit;width:auto;display:inline-flex;align-items:center;gap:10px;margin:-4px -6px;padding:4px 8px 4px 6px;border:none;border-radius:8px;background:none;color:var(--mt-ink);cursor:pointer;white-space:nowrap;text-align:left}
+.mt .temp-head:hover{background:#fafbfc}
+.mt-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.mt-chev svg{transition:transform .15s}
+.mt .temp-head:hover .mt-chev{background:#e6f0fc;color:var(--mt-blue)}
+.mt .temp-head[aria-expanded="true"] .mt-chev svg{transform:rotate(90deg)}
+.mt .temp-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;padding:1px 8px;border-radius:99px;background:var(--mt-soft);border:1px solid var(--mt-line);font-size:.66em;font-weight:800;color:var(--mt-ink);font-variant-numeric:tabular-nums;letter-spacing:0}
+.mt-sec-help{flex:1 1 260px;min-width:0;margin:0;font-size:.84em;color:var(--mt-mut);line-height:1.45}
+.mt .temp-body{display:none;margin-top:14px}
+.mt .temp-section.open .temp-body{display:block}
+.mt-sec-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:.7em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;background:#eef1f4;color:#3a4552;border:1px solid #d4dade;white-space:nowrap}
 
-/* +/- toggle (right of the section head): FILLED circle like app.html — GREEN "+" when collapsed,
-   RED "−" when expanded. Replaces the old chevron. */
-.temp-pm{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.temp-pm::before{content:'+';font-size:1em;color:#fff}
-.temp-section.open .temp-pm{background:#dc2626}
-.temp-section.open .temp-pm::before{content:'\2212'}
+/* ---- Ticket ledger cards ---- */
+.mt-cards{display:flex;flex-direction:column;gap:8px;margin:0}
+.mtc{position:relative;background:#fff;border:1px solid var(--mt-line);border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(20,30,50,.04);
+  transition:border-color .15s,box-shadow .15s}
+.mtc[hidden]{display:none!important}
+.mtc:hover{border-color:#cfd6dd;box-shadow:0 12px 26px -22px rgba(20,30,50,.6)}
+.mtc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;z-index:2;background:#1f9d57}
+.mtc.row-warn::before{background:#e0a019}
+.mtc.row-over::before{background:#d92d20}
+.mtc.row-black::before{background:#5c6773}
+.mt.is-anim .mtc{animation:mtUp .45s ease both}
+.mt.is-anim .mtc:nth-child(2){animation-delay:.04s}.mt.is-anim .mtc:nth-child(3){animation-delay:.08s}
+.mt.is-anim .mtc:nth-child(4){animation-delay:.12s}.mt.is-anim .mtc:nth-child(n+5){animation-delay:.16s}
 
-/* ============================================================================
-   CARD LAYOUT (mirrors demo-my-tickets.html) — one rounded card per ticket.
-   ============================================================================ */
-.mt-cards{display:flex;flex-direction:column;gap:16px;margin-top:14px}
-.mtc{position:relative;border-radius:5px;
-  background:linear-gradient(180deg,#15181d,#0f1115);
-  border:1px solid #232830;overflow:hidden;
-  box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 30px -12px rgba(0,0,0,.7);
-  transition:transform .18s, box-shadow .18s, border-color .18s;
-  opacity:0;transform:translateY(12px);animation:mtcIn .5s cubic-bezier(.2,.7,.2,1) forwards}
-@keyframes mtcIn{to{opacity:1;transform:none}}
-.mtc:hover{transform:translateY(-2px);border-color:#2c333d;
-  box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 18px 40px -14px rgba(0,0,0,.8)}
-/* Status spine (color by age). */
-.mtc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;z-index:2;background:linear-gradient(180deg,var(--gr),#22c55e)}
-.mtc.row-warn::before{background:linear-gradient(180deg,var(--am),#f59e0b)}
-.mtc.row-over::before{background:linear-gradient(180deg,var(--rd),#ef4444)}
-.mtc.row-black::before{background:linear-gradient(180deg,#8b96a0,#5f6b6c)}
-/* Unanswered help = attention glow. */
-.mtc.has-help-waiting{border-color:rgba(251,191,36,.35);
-  box-shadow:0 0 0 1px rgba(251,191,36,.15), 0 0 34px -6px rgba(251,191,36,.25), 0 16px 40px -16px rgba(0,0,0,.8)}
-/* Viewed = "seen/done": muted/disabled grey card; all text greyed to match. */
-.mtc.viewed{background:linear-gradient(180deg,#141619,#0f1012) !important;border-color:#20242a !important}
-.mtc.viewed .mtc-head,.mtc.viewed .mtc-bar{border-color:rgba(255,255,255,.05)}
-.mtc.viewed .mtc-ago,.mtc.viewed .mtc-title,.mtc.viewed .mtc-head-last{color:#5f6b73 !important}
-.mtc.viewed .mtc-title,.mtc.viewed .mtc-tid{text-decoration:line-through}
-.mtc.viewed .mtc-tid{-webkit-text-fill-color:#5f7480;color:#5f7480 !important}
-.mtc.viewed .mtc-copy{color:#5f6b73;border-color:rgba(255,255,255,.12)}
-.mtc.viewed .mtc-sbadge{background:rgba(255,255,255,.06);color:#7a848c}
-.mtc.viewed .mtc-pill{opacity:.5;filter:grayscale(.4)}
-.mtc.viewed::before{opacity:.35;filter:grayscale(.6)}
-/* Viewed = "done": collapse the actions bar + panels with a smooth transition, keep the header. */
-.mtc-bar{overflow:hidden;max-height:120px;opacity:1;transition:max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s, padding .35s}
-.mtc.viewed .mtc-bar{max-height:0;opacity:0;pointer-events:none}
-/* Analyst-flag icons live in TWO places but only ONE shows at a time:
-   - OPEN card  -> the BAR set (next to the comments button) is visible; the header mirror is hidden.
-   - COLLAPSED  -> the bar is gone; the header mirror shows next to temp-resolve, SELECTED ones only.
-   Compound selectors (.mtc-icons.mtc-icons-collapsed) beat the plain .mtc-icons rule regardless of
-   source order. */
+.mtc-head{display:flex;align-items:center;gap:8px 10px;padding:12px 14px 10px 20px;flex-wrap:wrap}
+.mtc .mtc-cb{order:0}.mtc .mtc-ago{order:1}.mtc .mtc-country{order:2}.mtc .mtc-sev{order:3}.mtc .mtc-sbadge{order:4}
+.mtc .mtc-mk.emt{order:5}.mtc .mtc-mk.sr{order:6}.mtc .mtc-tid{order:7}.mtc .mtc-copy{order:8}.mtc .mtc-title{order:9}.mtc .mtc-head-last{order:9}.mtc .mtc-head-right{order:10}
+.mtc.viewed .mtc-cb{order:0}.mtc.viewed .mtc-country{order:1}.mtc.viewed .mtc-sev{order:2}.mtc.viewed .mtc-sbadge{order:3}.mtc.viewed .mtc-mk.emt{order:4}
+.mtc.viewed .mtc-mk.sr{order:5}.mtc.viewed .mtc-tid{order:6}.mtc.viewed .mtc-copy{order:7}.mtc.viewed .mtc-head-last{order:8}.mtc.viewed .mtc-head-right{order:9}
+
+.mtc-cb{width:22px;height:22px;padding:0;border-radius:6px;background:#fff;border:1.5px solid #b9c2cb;flex-shrink:0;cursor:pointer;display:grid;place-items:center;color:#fff;transition:background .15s,border-color .15s}
+.mtc-cb:hover{border-color:#8793a0}
+.mtc-cb.on{background:#1f9d57;border-color:#1f9d57}
+.mtc-cb svg{opacity:0;transition:opacity .15s}.mtc-cb.on svg{opacity:1}
+.mtc-ago{color:var(--mt-ink);font-weight:800;font-size:.84em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mtc-ago-short{display:none!important}
+.mtc-country{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:99px;font-size:.7em;font-weight:800;letter-spacing:.5px;
+  background:#e9f0fb;color:#1f4f9a;border:1px solid #c9daf3;text-transform:uppercase}
+.mtc-country.mtc-country-na{color:var(--mt-red);background:var(--mt-red-bg);border:1px dashed #e89a92;animation:mtBlink 1s steps(1,end) infinite}
+.mtc-sev{height:22px;padding:0 9px;border-radius:99px;display:inline-grid;place-items:center;font-size:.7em;font-weight:800;letter-spacing:.4px;white-space:nowrap;flex-shrink:0;line-height:1;border:1px solid transparent}
+.mtc-sev.sev-3{color:var(--mt-amb);background:var(--mt-amb-bg);border-color:#f1d58a}
+.mtc-sev.sev-4{color:#9a4100;background:var(--mt-acc-bg);border-color:#f7c99c}
+.mtc-sev.sev-5{color:var(--mt-red);background:var(--mt-red-bg);border-color:#f2b8b1}
+.mtc-sev.sev-unknown{min-width:24px;color:var(--mt-red);background:var(--mt-red-bg);border:1px dashed #e89a92;animation:mtBlink 1s steps(1,end) infinite}
+@keyframes mtBlink{50%{opacity:.3}}
+.mtc-sbadge{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:.72em;font-weight:800;color:#9a4100;background:var(--mt-acc-bg);border:1px solid #f7c99c;flex-shrink:0;cursor:default}
+.mtc-mk{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.mtc-mk.sr{background:var(--mt-amb-bg);color:var(--mt-amb)}
+.mtc-mk.emt{background:var(--mt-red-bg);color:var(--mt-red)}
+.mtc-mk.off{display:none!important}
+.mtc-tid{display:inline;font-size:.95em;font-weight:800;letter-spacing:.2px;color:var(--mt-blue);text-decoration:none;white-space:nowrap}
+.mtc-tid:hover{text-decoration:underline}
+.mtc-copy{display:grid;place-items:center;width:26px;height:24px;padding:0;border-radius:6px;border:1px solid #d4dade;background:#fff;color:#6b7681;cursor:pointer;transition:color .15s,border-color .15s}
+.mtc-copy:hover{color:var(--mt-blue);border-color:#9cbbe8}
+.mtc-copy.copied{color:var(--mt-grn);border-color:#9fd9b6}
+.mtc-title{flex:1 1 180px;min-width:0;color:#3a4552;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mtc-head-last{display:none;font-style:italic;font-weight:600;color:var(--mt-mut);font-size:.84em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mtc-head-last.mtc-head-last-empty{font-style:normal;color:#6b7681}
+.mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.mtc-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.74em;font-weight:800;white-space:nowrap;border:1px solid transparent;font-variant-numeric:tabular-nums}
+.mtc-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.mtc-pill.ok{color:var(--mt-grn);background:var(--mt-grn-bg);border-color:#a9dcbf}
+.mtc-pill.warn{color:var(--mt-amb);background:var(--mt-amb-bg);border-color:#f1d58a}
+.mtc-pill.over{color:var(--mt-red);background:var(--mt-red-bg);border-color:#f2b8b1}
+/* Analyst-flag icon toggles (grey when off, green when on). */
+.mtc-icons{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.mtc-icons-bar{flex-wrap:wrap}
 .mtc-icons.mtc-icons-collapsed{display:none}
 .mtc.viewed .mtc-icons.mtc-icons-collapsed{display:inline-flex}
 .mtc.viewed .mtc-icons.mtc-icons-collapsed .mtc-att:not(.on){display:none}
-.mtc.viewed .mtc-panel{grid-template-rows:0fr !important;opacity:0;pointer-events:none;transition:grid-template-rows .35s cubic-bezier(.4,0,.2,1), opacity .25s}
-.mtc.temp{opacity:.72}
-/* ---- TEMP-RESOLVED cards: always collapsed, stripped down to ID + title + the temp-resolve toggle.
-   Collapse the actions bar + panels (like .viewed) and hide every other header element: the viewed
-   checkbox, age, status badge, copy, country, last-comment, SR/EMT marks, time-left pill, and the
-   collapsed flag icons. ---- */
-.mtc.temp .mtc-bar{max-height:0 !important;opacity:0 !important;pointer-events:none !important}
-.mtc.temp .mtc-panel{grid-template-rows:0fr !important;opacity:0 !important;pointer-events:none !important}
-.mtc.temp .mtc-cb,
-.mtc.temp .mtc-ago,
-.mtc.temp .mtc-ago-short,
-.mtc.temp .mtc-sbadge,
-.mtc.temp .mtc-copy,
-.mtc.temp .mtc-country,
-.mtc.temp .mtc-head-last,
-.mtc.temp .mtc-mk,
-.mtc.temp .mtc-pill,
-.mtc.temp .mtc-icons.mtc-icons-collapsed{display:none !important}
-/* Keep the ticket id readable (no strike-through) and let the title fill the row. */
-.mtc.temp .mtc-tid{text-decoration:none !important;display:inline !important}
-.mtc.temp .mtc-title{display:inline-block !important;flex:1 1 auto;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Temp cards: also strip the severity tag + both days-left pills (minimal id+title row). */
-.mtc.temp .mtc-sev,.mtc.temp .mtc-pill-left,.mtc.temp .mtc-pill-right{display:none !important}
-
-/* ---- Header line ---- */
-.mtc-head{display:flex;align-items:center;gap:12px;padding:16px 18px 14px 22px;flex-wrap:wrap}
-.mtc-cb{width:18px;height:18px;border-radius:5px;background:#0b0d10;border:1.5px solid #3b4550;flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:.15s}
-.mtc-cb.on{background:var(--gr);border-color:var(--gr)}
-.mtc-cb svg{opacity:0;transition:.15s}.mtc-cb.on svg{opacity:1}
-.mtc-ago{color:#eef2f4;font-weight:700;font-size:13.5px;white-space:nowrap}
-/* Compact age tag "8D" is unused now (collapsed cards show NO age tag). Kept hidden always. */
-.mtc-ago-short{display:none !important}
-/* COLLAPSED (viewed): drop the "N days ago" age — the row shows the days-LEFT pill, status, sev,
-   icons, ticket id + last comment instead. (Status badge now stays visible in both states.) */
-.mtc.viewed .mtc-ago,.mtc.viewed .mtc-ago-short{display:none !important}
-/* ---- Severity tag (read from the TITLE) ---- */
-.mtc-sev{height:24px;padding:0 9px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;font-weight:800;letter-spacing:.3px;white-space:nowrap;flex-shrink:0;line-height:1}
-.mtc-sev.sev-3{color:#fbbf24;background:rgba(251,191,36,.16);border:1px solid rgba(251,191,36,.4)}
-.mtc-sev.sev-4{color:#ff8f5e;background:rgba(255,122,69,.16);border:1px solid rgba(255,122,69,.42)}
-.mtc-sev.sev-5{color:#ff6b6b;background:rgba(255,82,82,.16);border:1px solid rgba(255,82,82,.45)}
-/* Unknown severity: a blinking "#" placeholder tag. */
-.mtc-sev.sev-unknown{min-width:24px;color:#ff6b6b;background:rgba(255,82,82,.14);border:1px dashed rgba(255,82,82,.55);animation:mtcSevBlink 1s steps(1,end) infinite}
-@keyframes mtcSevBlink{50%{opacity:.25}}
-/* No-EMT / Station-Request header marks are rendered always; `.off` hides the one that doesn't apply.
-   Both marks show in BOTH states when they apply. */
-.mtc-mk.off{display:none !important}
-/* Days-left pill lives on the RIGHT (just left of the toggle) in BOTH states. Expanded keeps the
-   age-coloured pill; COLLAPSED shows it with a BLACK font and no grey/dim — a plain readable tag. */
-.mtc.viewed .mtc-pill-right{color:#000 !important;background:#eef1f4 !important;border-color:#d6dde3 !important;opacity:1 !important;filter:none !important;font-weight:800}
-/* ---- EXPANDED order: checkbox | created-ago | country | SEV # | status | no-emt | station-req |
-   ticket-id (copy) | Title ----  (days-left pill + flag icons + toggle stay in the right group). */
-.mtc-head{align-items:center}
-.mtc .mtc-cb{order:0}
-.mtc .mtc-ago{order:1}
-.mtc .mtc-country{order:2}
-.mtc .mtc-sev{order:3}
-.mtc .mtc-sbadge{order:4}
-.mtc .mtc-mk.emt{order:5}
-.mtc .mtc-mk.sr{order:6}
-.mtc .mtc-tid{order:7}
-.mtc .mtc-copy{order:8}
-.mtc .mtc-title{order:9}
-.mtc .mtc-head-last{order:9}
-.mtc .mtc-head-right{order:10}
-/* ---- COLLAPSED order: country | SEV # | status | no-emt | station-req | ticket-id (copy) | last comment ----
-   The days-left pill + flag icons + toggle stay in the right-hand group. flex `order` reorders the
-   header children only when the card is collapsed (.viewed); expanded uses natural source order. */
-.mtc.viewed .mtc-cb{order:0}
-.mtc.viewed .mtc-country{order:1}
-.mtc.viewed .mtc-sev{order:2}
-.mtc.viewed .mtc-sbadge{order:3}
-.mtc.viewed .mtc-mk.emt{order:4}
-.mtc.viewed .mtc-mk.sr{order:5}
-.mtc.viewed .mtc-tid{order:6}
-.mtc.viewed .mtc-copy{order:7}
-.mtc.viewed .mtc-head-last{order:8}
-.mtc.viewed .mtc-head-right{order:9}
-.mtc-pill{padding:4px 11px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid transparent}
-/* ---- Redesigned "Created" sort control ---- */
-.mt-sortbar{display:flex;align-items:center;gap:10px;margin:0 0 10px}
-.mt-sort-label{color:#7c8894;font-size:.78em;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.mt-sort-btn{display:inline-flex;align-items:center;gap:9px;height:36px;padding:0 6px 0 14px;
-  background:linear-gradient(180deg,#191d24,#12151b);border:1px solid #2b323b;border-radius:5px;
-  color:#dfe6ec;font-family:inherit;font-size:.86em;font-weight:600;cursor:pointer;
-  box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 6px 16px -10px rgba(0,0,0,.7);
-  transition:border-color .16s,background .16s,transform .12s}
-.mt-sort-btn:hover{border-color:#3d566a;background:linear-gradient(180deg,#1d2129,#14171d);transform:translateY(-1px)}
-.mt-sort-btn:active{transform:translateY(0)}
-.mt-sort-btn svg{color:#5ecdec;flex-shrink:0}
-.mt-sort-field{color:#eef2f4;font-weight:700}
-.mt-sort-sep{width:1px;height:16px;background:#2f3742}
-.mt-sort-dir{color:#9fb0c3;font-weight:600}
-/* Direction chip on the right: a rounded pill holding the up/down arrow. */
-.mt-sort-arrow{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
-  background:rgba(94,205,236,.16);color:#7fdcf0;font-size:.95em;font-weight:800;line-height:1}
-.mtc-pill.ok{color:var(--gr);background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.28)}
-.mtc-pill.warn{color:var(--am);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
-.mtc-pill.over{color:var(--rd);background:rgba(255,82,82,.1);border-color:rgba(255,82,82,.32)}
-.mtc-sbadge{width:24px;height:24px;border-radius:5px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#ff9900;background:rgba(255,153,0,.15);flex-shrink:0}
-.mtc-tid{font-size:15px;font-weight:800;letter-spacing:.2px;text-decoration:none;background:linear-gradient(90deg,#7fdcf0,#5ecdec);-webkit-background-clip:text;background-clip:text;color:transparent}
-.mtc-tid:hover{filter:brightness(1.15)}
-.mtc-copy{width:24px;height:22px;border-radius:5px;border:1px solid #39424c;color:#6b7681;display:grid;place-items:center;cursor:pointer;background:transparent}
-.mtc-copy:hover{color:var(--cy);border-color:var(--cy)}
-.mtc-copy.copied{color:var(--gr);border-color:var(--gr)}
-.mtc-title{color:#c3ccd2;font-size:13px;flex:1;min-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mtc-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
-.mtc-mk.sr{background:rgba(251,191,36,.14);color:var(--am)}.mtc-mk.emt{background:rgba(255,82,82,.14);color:var(--rd)}
-.mtc-logflag{display:inline-flex}
-.mtc-ilog{padding:6px 13px;border-radius:5px;border:1px solid rgba(255,153,0,.4);color:#ff9900;font-size:11px;font-weight:600;background:rgba(255,153,0,.05);white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.mtc-ilog:hover{background:rgba(255,153,0,.14)}
-.mtc-ilog-ic{width:14px;height:14px;object-fit:contain;display:inline-block;vertical-align:middle}
-/* ---- Analyst-flag icons: Driver-trace / Mark-important (+ incident-log) ----
-   On-off toggle buttons. Grey (desaturated + dim) when OFF; green chip when ON (clicked).
-   Rendered in the actions bar (.mtc-icons-bar, shown while open) and mirrored in the header
-   (.mtc-icons-collapsed, shown next to temp-resolve ONLY when collapsed, selected ones only). */
-.mtc-icons{display:inline-flex;align-items:center;gap:7px;flex-shrink:0}
-/* In-bar flag set: pinned to the RIGHT corner of the actions bar (comments button is the left
-   corner). No border/background wrapper. */
-.mtc-icons-bar{flex-wrap:wrap}
-.mtc-att{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;border:1px solid #2b323b;background:#171b21;cursor:pointer;transition:background .14s,border-color .14s,filter .14s,opacity .14s;line-height:0}
+.mtc-att{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border-radius:8px;border:1px solid var(--mt-line);background:#f7f9fb;cursor:pointer;line-height:0;
+  transition:background .14s,border-color .14s}
 .mtc-att-ic{width:17px;height:17px;object-fit:contain;display:block}
-/* OFF = greyed out (grayscale + dimmed). */
-.mtc-att:not(.on){filter:grayscale(1);opacity:.4}
-.mtc-att:not(.on):hover{opacity:.7}
-/* ON = green: tinted chip + green border, icon at full colour. */
-.mtc-att.on{filter:none;opacity:1;background:rgba(74,222,128,.16);border-color:var(--gr)}
-/* Right-side header group: SR + No-EMT icons + toggle, pinned to the far right. */
-.mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:12px;flex-shrink:0}
-.mtc-toggle{width:42px;height:23px;border-radius:5px;background:#242b32;border:1px solid #2b323b;position:relative;flex-shrink:0;cursor:pointer;transition:.18s}
-.mtc-toggle i{position:absolute;top:2px;left:3px;width:16px;height:16px;border-radius:50%;background:#8b96a0;transition:.18s;pointer-events:none}
-.mtc-toggle.on{background:rgba(74,222,128,.35);border-color:var(--gr)}
-.mtc-toggle.on i{transform:translateX(19px);background:var(--gr)}
+.mtc-att:not(.on) .mtc-att-ic{filter:grayscale(1);opacity:.45}
+.mtc-att:not(.on):hover .mtc-att-ic{opacity:.75}
+.mtc-att:not(.on):hover{border-color:#cfd6dd}
+.mtc-att.on{background:var(--mt-grn-bg);border-color:#1f9d57}
+.mtc-att.is-busy{cursor:progress}
+.mtc-att.is-busy .mtc-att-ic{opacity:0}
+.mtc-att.is-busy::after{content:'';position:absolute;width:14px;height:14px;border:2px solid #cfd6dd;border-top-color:var(--mt-acc);border-radius:50%;animation:mtSpin .8s linear infinite}
+/* Temp-resolve switch (pill, like the eir check switches). */
+.mtc-toggle{position:relative;flex-shrink:0;width:38px;height:22px;border-radius:99px;background:#c9d0d8;border:none;cursor:pointer;transition:background .15s}
+.mtc-toggle i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.28);transition:transform .15s;pointer-events:none}
+.mtc-toggle.on{background:#1f9d57}
+.mtc-toggle.on i{transform:translateX(16px)}
+.mtc-toggle:has(input:focus-visible){outline:3px solid var(--mt-focus);outline-offset:2px}
+.mtc-toggle:hover:not(.on){background:#b4bdc7}
 
-/* ---- Actions bar (comments LEFT / help RIGHT) ---- */
-.mtc-bar{display:flex;align-items:stretch;border-top:none}
-.mtc-zone{flex:1;display:flex;align-items:center;gap:10px;padding:13px 20px;flex-wrap:wrap}
-.mtc-zone.cmt{background:transparent}
-.mtc-zone.help{background:transparent;justify-content:flex-end}
-.mtc-zone.end{background:transparent;justify-content:flex-end;flex:0 0 auto}
-.mtc-zlabel{font-size:10px;font-weight:800;letter-spacing:.8px;opacity:.8}
-.mtc-zone.cmt .mtc-zlabel{color:var(--cy)}.mtc-zone.help .mtc-zlabel{color:var(--am)}
-.mtc-b{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #2b323b;background:#171b21;color:#dfe6ea;transition:.15s;white-space:nowrap;font-family:inherit}
-.mtc-b:hover{border-color:#3a4450;transform:translateY(-1px)}
-.mtc-b .cnt{min-width:19px;height:19px;padding:0 5px;border-radius:5px;font-size:10.5px;font-weight:800;display:grid;place-items:center}
-.mtc-b.cmt-cnt .cnt{background:rgba(94,205,236,.2);color:var(--cy2)}
-.mtc-b.help-cnt .cnt{background:rgba(74,222,128,.2);color:#7ef2a8}
-.mtc-b.primary{background:linear-gradient(180deg,#ffcb52,#f7b21a);color:#151206;border:none;box-shadow:0 4px 14px -4px rgba(251,191,36,.5);position:relative;overflow:hidden}
-.mtc-b.primary::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg);animation:mtcSheen 3.6s ease-in-out infinite}
-@keyframes mtcSheen{0%,60%{left:-60%}80%,100%{left:120%}}
-.mtc-b.primary:hover{filter:brightness(1.05)}
-.mtc-b.active-cmt{background:rgba(94,205,236,.14);border-color:var(--cy);color:var(--cy2)}
-.mtc-b.active-help{background:rgba(251,191,36,.14);border-color:var(--am);color:var(--am)}
-.mtc-b.lock{background:#2f2b18;border-color:rgba(251,191,36,.4);color:var(--am);cursor:not-allowed}
-.mtc-caret{transition:transform .2s;display:inline-flex}
-.mtc-b.active-cmt .mtc-caret,.mtc-b.active-help .mtc-caret{transform:rotate(180deg)}
-/* Last-comment preview next to "View comments": italic + bold, truncated. */
-.mtc-last{font-style:italic;font-weight:700;color:#9aa6b0;font-size:12px;flex:0 0 60%;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* Actions bar: comments expander (left) + flag icons (right). */
+.mtc-bar{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:0 14px 12px 20px;overflow:hidden;max-height:200px;opacity:1;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1),opacity .2s,padding .3s}
+.mtc-zone{display:flex;align-items:center;gap:10px;min-width:0}
+/* Shared chrome styles give these zones a card surface; keep them flush on the ticket card. */
+.mt-cards .mtc .mtc-bar,.mt-cards .mtc .mtc-zone{background:transparent!important;border:none!important;border-radius:0!important;box-shadow:none!important}
+.mt-cards .mtc .mtc-zone{padding:0!important}
+.mtc-zone.cmt{flex:1 1 280px}
+.mtc-zone.end{flex:0 0 auto;margin-left:auto}
+.mtc-b{display:inline-flex;align-items:center;gap:7px;padding:6px 10px 6px 12px;border-radius:99px;font-size:.8em;font-weight:700;cursor:pointer;border:1px solid #d4dade;background:#fff;color:#2a3340;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.mtc-b:hover{border-color:#b9c2cb;background:#fafbfc}
+.mtc-b:disabled{opacity:.7;cursor:progress}
+.mtc-b .cnt{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:.92em;font-weight:800;display:inline-grid;place-items:center;background:#e6f0fc;color:#1f4f9a;font-variant-numeric:tabular-nums}
+.mtc-b.active-cmt{background:#eef4fc;border-color:#9cbbe8;color:#1f4f9a}
+.mtc-caret{display:inline-flex;transition:transform .15s;color:#818284}
+.mtc-b[aria-expanded="true"] .mtc-caret{transform:rotate(180deg);color:var(--mt-blue)}
+.mtc-last{flex:1 1 auto;min-width:0;font-style:italic;font-weight:600;color:var(--mt-mut);font-size:.84em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mtc-last:empty{display:none}
-/* Comment preview occupies ~60% of its parent zone; keep the help zone compact. */
-.mtc-zone.cmt{flex:1 1 50%}
-.mtc-zone.help{flex:0 0 auto}
-/* Last comment shown IN THE HEADER only when the ticket is viewed (actions bar is collapsed then). */
-.mtc-head-last{display:none;font-style:italic;font-weight:700;color:#8b96a0;font-size:12px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-/* Collapsed: latest comment fills the remaining space so the toggle stays pinned right. */
-.mtc.viewed .mtc-head-last{display:inline-block;flex:1 1 auto;max-width:none}
-/* "No comments added" placeholder: muted, non-italic so it reads as a hint, not a quote. */
-.mtc-head-last.mtc-head-last-empty{font-style:normal;font-weight:600;opacity:.7}
-/* Ticket id + copy show in BOTH states now. The Title shows EXPANDED; the latest comment shows
-   COLLAPSED (the two swap into the same slot). */
-.mtc .mtc-tid{display:inline}
-.mtc .mtc-copy{display:grid}
-.mtc.viewed .mtc-title{display:none !important}
 
-/* ---- Drop-down panels (animated, accordion per card) ---- */
-.mtc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s cubic-bezier(.4,0,.2,1);border-top:1px solid transparent}
-.mtc-panel.open{grid-template-rows:1fr;border-top-color:#1b2027}
+/* Comment panel (accordion). */
+.mtc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.4,0,.2,1);border-top:1px solid transparent}
+.mtc-panel.open{grid-template-rows:1fr;border-top-color:var(--mt-line)}
 .mtc-panel-in{overflow:hidden;min-height:0}
-.mtc-panel-pad{padding:16px 20px 20px;background:rgba(255,255,255,.012)}
-.mtc-phead{font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#aeb8c0;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-/* Reminder shown at the bottom-right of the expanded panel: SIM/EMT clear when "viewed" is unchecked. */
-.mtc-attnote{margin-top:12px;text-align:right;font-style:italic;font-size:11px;line-height:1.5;color:#8b96a0}
-.mtc-schip{padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
-.mtc-schip.wait{background:rgba(251,191,36,.16);color:var(--am)}
-.mtc-schip.ok{background:rgba(74,222,128,.16);color:#7ef2a8}
-.mtc-msg{display:flex;gap:11px;margin-bottom:12px;max-width:74%}
-.mtc-panel.open .mtc-msg{animation:mtcRise .3s ease both}
-.mtc-msg.right{margin-left:auto;flex-direction:row-reverse}
-@keyframes mtcRise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.mtc-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#08090b;flex-shrink:0;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
-.mtc-av.c{background:linear-gradient(135deg,#7fdcf0,#5ecdec)}
-.mtc-av.h{background:linear-gradient(135deg,#ffd766,#fbbf24)}
-.mtc-av.r{background:linear-gradient(135deg,#86efac,#4ade80)}
-.mtc-bub{border-radius:5px;padding:9px 13px;border:none;background:#12161c;min-width:0}
-.mtc-bub.h{background:#1a1608}
-.mtc-msg.right .mtc-bub{background:#0e1a12}
-.mtc-m{font-size:10.5px;color:#6b7681;margin-bottom:4px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.mtc-m .k{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:1px 7px;border-radius:5px}
-.mtc-m .k.c{background:rgba(94,205,236,.16);color:var(--cy2)}
-.mtc-m .k.h{background:rgba(251,191,36,.16);color:var(--am)}
-.mtc-m .k.r{background:rgba(74,222,128,.16);color:#7ef2a8}
-.mtc-m b{color:#eef2f4;font-weight:700}
-.mtc-del{margin-left:6px;width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,82,82,.35);color:#ff5252;display:grid;place-items:center;cursor:pointer;background:transparent}
-.mtc-del:hover{background:rgba(255,82,82,.14)}
-.mtc-t{font-size:13px;color:#d5dbdb;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
-.mtc-composer{display:flex;gap:10px;margin-top:8px}
-.mtc-composer input{flex:1;background:#0b0d10;border:1px solid #232c36;border-radius:5px;color:#fff;font:inherit;font-size:12px;padding:9px 15px}
-.mtc-composer input:focus{outline:none;border-color:var(--cy)}
-.mtc-composer input::placeholder{color:#6b7681}
-.mtc-empty{color:#5f6b6c;font-size:12.5px;font-style:italic;padding:8px 2px;display:flex;align-items:center;gap:7px}
+.mtc-panel-pad{padding:14px 16px 16px 20px;background:#f7f8fa}
+.mtc-phead{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.7em;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--mt-mut)}
+.mtc-phead::after{content:'';flex:1 1 auto;height:1px;background:var(--mt-line)}
+.mtc-msg{display:flex;gap:10px;margin-bottom:10px;max-width:min(78ch,92%)}
+.mtc-panel.open .mtc-msg{animation:mtUp .3s ease both}
+.mtc-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:.78em;font-weight:800;flex-shrink:0;background:#e6f0fc;color:#1f4f9a;border:1px solid #c9daf3}
+.mtc-bub{min-width:0;border-radius:10px;padding:8px 12px;background:#fff;border:1px solid var(--mt-line)}
+.mtc-m{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px;font-size:.74em;color:var(--mt-mut)}
+.mtc-m b{color:var(--mt-ink);font-weight:800}
+.mtc-m .k{font-size:.9em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:1px 7px;border-radius:99px;background:#e6f0fc;color:#1f4f9a}
+.mtc-del{margin-left:4px;width:22px;height:22px;padding:0;border-radius:6px;border:1px solid #f2b8b1;background:#fff;color:var(--mt-red);display:grid;place-items:center;cursor:pointer}
+.mtc-del:hover{background:var(--mt-red-bg)}
+.mtc-del:disabled{opacity:.6;cursor:progress}
+.mtc-t{font-size:.86em;color:#2a3340;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.mtc-composer{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.mtc-composer input{flex:1 1 220px;min-width:0;background:#fff;border:1px solid #d4dade;border-radius:8px;color:var(--mt-ink);font:inherit;font-size:.86em;padding:8px 12px}
+.mtc-composer input::placeholder{color:#7b8794}
+.mtc-composer input:focus{outline:none;border-color:var(--mt-acc);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.mtc-composer .mtc-b{background:var(--mt-navy);border-color:var(--mt-navy);color:#fff;padding:7px 14px}
+.mtc-composer .mtc-b:hover{background:#131a2a}
+.mtc-empty{display:flex;align-items:center;gap:7px;padding:6px 2px;color:var(--mt-mut);font-size:.84em}
+.mtc-perr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:8px;background:var(--mt-red-bg);border:1px solid #f2b8b1;color:#8f1d14;font-size:.84em;font-weight:600}
 
-@media (prefers-reduced-motion: reduce){
-  .mtc,.mtc-b.primary::after,.mtc-panel.open .mtc-msg{animation:none !important;opacity:1;transform:none}
+/* Viewed = "seen/done": muted card, actions bar + panel collapsed, last comment replaces the title. */
+.mtc.viewed{background:#f7f8fa}
+.mtc.viewed::before{opacity:.4}
+.mtc.viewed .mtc-tid,.mtc.viewed .mtc-title{text-decoration:line-through}
+.mtc.viewed .mtc-tid{color:#5c6773}
+.mtc.viewed .mtc-ago{display:none!important}
+.mtc.viewed .mtc-title{display:none!important}
+.mtc.viewed .mtc-head-last{display:block;flex:1 1 0;min-width:0;max-width:100%}
+.mtc.viewed .mtc-head{padding-bottom:12px}
+.mtc.viewed .mtc-bar{max-height:0;opacity:0;padding-top:0;padding-bottom:0;pointer-events:none;visibility:hidden}
+.mtc.viewed .mtc-panel{grid-template-rows:0fr!important;border-top-color:transparent;pointer-events:none;visibility:hidden}
+.mtc.viewed .mtc-pill-right{color:#2a3340!important;background:#eef1f4!important;border-color:#d4dade!important}
+/* Temp-resolved: always collapsed to id + title + the switch. */
+.mtc.temp{background:#fafbfc}
+.mtc.temp .mtc-bar{max-height:0!important;opacity:0!important;padding-top:0!important;padding-bottom:0!important;pointer-events:none!important;visibility:hidden}
+.mtc.temp .mtc-panel{grid-template-rows:0fr!important;pointer-events:none!important;visibility:hidden}
+.mtc.temp .mtc-head{padding-bottom:12px}
+.mtc.temp :is(.mtc-cb,.mtc-ago,.mtc-ago-short,.mtc-sbadge,.mtc-copy,.mtc-country,.mtc-head-last,.mtc-mk,.mtc-pill,.mtc-sev,.mtc-icons.mtc-icons-collapsed){display:none!important}
+.mtc.temp .mtc-tid{text-decoration:none!important;display:inline!important}
+.mtc.temp .mtc-title,.mtc.temp.viewed .mtc-title{display:inline-block!important;flex:1 1 auto;min-width:0;text-decoration:none;color:#5c6773}
+.mtc.temp::before{background:#8793a0}
+.mt-noresults{padding:22px 12px;text-align:center;color:var(--mt-mut);font-size:.88em;border:1px dashed #d4dade;border-radius:10px}
+.mt-noresults[hidden]{display:none}
+
+/* ---- States (empty / error / manager) ---- */
+.mt-card{background:#fff;border:1px solid var(--mt-line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;margin-bottom:16px}
+.mt-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:30px 16px;text-align:center;color:var(--mt-mut)}
+.mt-empty-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--mt-grn-bg);color:var(--mt-grn);margin-bottom:4px}
+.mt-empty-ic.is-err{background:var(--mt-red-bg);color:var(--mt-red)}
+.mt-empty-ic.is-acc{background:var(--mt-acc-bg);color:#b5530a}
+.mt-empty-t{font-size:1.08em!important;font-weight:800;color:var(--mt-ink)!important;margin:0}
+.mt-empty p{font-size:.9em;max-width:56ch;line-height:1.55;margin:0}
+.mt-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef!important;font-size:.86em;font-weight:800;cursor:pointer;text-decoration:none;transition:background .15s}
+.mt-btn:hover{background:#0f1420}
+.mt-btn:disabled,.mt-btn.is-busy{opacity:.8;cursor:progress}
+.mt-btn-sm{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:99px;border:1px solid currentColor;background:#fff;color:inherit;font-size:.92em;font-weight:800;cursor:pointer}
+.mt-btn-sm:hover{background:#fafbfc}
+
+/* ---- Loading skeleton ---- */
+.mt-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:mtShim 1.4s ease infinite}
+.mt-skel-i{display:inline-block;vertical-align:middle}
+.mt-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes mtShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.mt-skel-card{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 14px 14px 20px;border:1px solid var(--mt-line);border-radius:10px;background:#fff;position:relative;overflow:hidden}
+.mt-skel-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:#e2e6ea}
+.mt-load-msg{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:.86em;font-weight:700;color:var(--mt-mut);min-height:1.4em}
+.mt-load-msg svg{color:var(--mt-acc);flex-shrink:0}
+.mt-spin{display:inline-block;width:14px;height:14px;flex-shrink:0;border:2px solid #d4dade;border-top-color:var(--mt-acc);border-radius:50%;animation:mtSpin .8s linear infinite;vertical-align:-2px}
+@keyframes mtSpin{100%{transform:rotate(360deg)}}
+.mt-btn .mt-spin,.mi-btn.primary .mt-spin,.eil-btn.primary .mt-spin,#incidentModal .ail-btn.primary .mt-spin,#addCmtBtn .mt-spin,.mtc-composer .mtc-b .mt-spin{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+
+/* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the sections. */
+@keyframes mtUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.mt.is-anim .mt-hero{animation:mtUp .45s ease both}
+.mt.is-anim .mt-kpi{animation:mtUp .5s ease both}
+.mt.is-anim .mt-kpi:nth-child(1){animation-delay:.08s}.mt.is-anim .mt-kpi:nth-child(2){animation-delay:.14s}
+.mt.is-anim .mt-kpi:nth-child(3){animation-delay:.2s}.mt.is-anim .mt-kpi:nth-child(4){animation-delay:.26s}
+.mt.is-anim .mt-tools,.mt.is-anim .mt-sec{animation:mtUp .5s ease .3s both}
+
+/* ---- Responsive ---- */
+@container (max-width:640px){
+  .mt-hero{padding:22px 18px 74px 22px}
+  .mt-hero h1{font-size:1.75em}
+  .mt-hero-ic{display:none}
+  .mt-meta{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 16px;width:100%}
+  .mt-kpis{margin:-56px 10px 14px}
+  .mt-kpi-v{font-size:2em}
+  .mt-search{max-width:none;flex-basis:100%}
+  .mt-tools-end{margin-left:0;width:100%;justify-content:space-between}
+  .mt-sec{padding:12px 12px}
+  .mtc-head{padding:10px 10px 8px 16px}
+  .mtc-bar{padding:0 10px 10px 16px}
+  .mtc-panel-pad{padding:12px 10px 12px 16px}
+  .mtc-head-right{margin-left:0;width:100%;justify-content:flex-start}
+  .mtc.viewed .mtc-head-last{flex-basis:100%}
+  .mtc-msg{max-width:100%}
 }
-</style>
-<!-- ===== My Tickets: LIGHT THEME override (loaded last, wins the cascade) ===== -->
-<style id="mt-light">
-:root{--t:#2a3340;--tm:#5c6773;--bd:#e2e7eb;--o:#ec7211;--oh:#c85f0e}
-/* Page background: soft light mesh instead of near-black. */
-body{
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(94,205,236,.10), transparent 60%),
-    radial-gradient(1000px 500px at 0% 110%, rgba(251,191,36,.08), transparent 55%),
-    #f3f5f7 !important;
-  color:#2a3340 !important;
+
+/* ============================ Modals (scoped by id) ============================ */
+.modal-bg{background:rgba(15,22,36,.55)!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.modal{background:#fff!important;color:var(--mt-ink);border:1px solid var(--mt-line)!important;border-top:3px solid var(--mt-acc)!important;border-radius:12px!important;
+  box-shadow:0 28px 70px -24px rgba(16,24,38,.5)!important}
+#cmtModal .modal,#addCmtModal .modal{width:min(640px,92vw);max-width:min(640px,92vw)}
+.modal-head{gap:12px;padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--mt-line)}
+.modal-head h2{color:var(--mt-ink)!important;font-size:1.1em;font-weight:800;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal-close,.mi-x,.eil-x,#incidentModal .ail-x{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0!important;border-radius:8px!important;
+  border:1px solid #d4dade!important;background:#fff!important;color:#5c6773!important;font-size:1.3em!important;line-height:1;cursor:pointer;flex-shrink:0}
+.modal-close:hover,.mi-x:hover,.eil-x:hover,#incidentModal .ail-x:hover{border-color:#e89a92!important;color:var(--mt-red)!important;background:var(--mt-red-bg)!important}
+.vil-icbtn,.vil-x{border-radius:8px!important;border-color:#d4dade!important;color:#5c6773!important;background:#fff!important}
+.vil-icbtn:hover{border-color:#9cbbe8!important;color:var(--mt-blue)!important;background:#eef4fc!important}
+.vil-x:hover{border-color:#e89a92!important;color:var(--mt-red)!important;background:var(--mt-red-bg)!important}
+.mi-head,.vil-head,.eil-head,#incidentModal .ail-head{background:linear-gradient(180deg,#fafbfc,#fff);border-bottom:1px solid var(--mt-line)!important}
+.mi-head-tx h2,.vil-head-tx,.eil-head-tx,#incidentModal .ail-head-tx h2{color:var(--mt-ink)!important;font-weight:800;letter-spacing:-.2px}
+.mi-head-sub,#incidentModal .ail-head-sub{color:var(--mt-mut)!important}
+.mi-head-ic,.vil-head-ic,.eil-head-ic,#incidentModal .ail-head-ic{border-radius:10px!important;background:var(--mt-acc-bg)!important;color:#b5530a!important;border:1px solid #f7c99c}
+.vil-hint,.modal p{color:var(--mt-mut)!important}
+.mi-actions,.eil-actions,#incidentModal .ail-actions{border-top:1px solid var(--mt-line)!important;background:#fafbfc}
+/* Buttons: navy primary, white secondary, red danger, dark-orange copy (all AA on their fills). */
+.mi-btn,.eil-btn,#incidentModal .ail-btn,#addCmtModal .btn,.ilog-actions .btn{border-radius:8px!important;font-weight:800!important}
+.mi-btn.primary,.eil-btn.primary,#incidentModal .ail-btn.primary,#addCmtBtn{background:var(--mt-navy)!important;color:#fff!important;border:1px solid var(--mt-navy)!important;box-shadow:0 8px 18px -12px rgba(20,30,50,.8)!important}
+.mi-btn.primary:hover,.eil-btn.primary:hover,#incidentModal .ail-btn.primary:hover,#addCmtBtn:hover{background:#131a2a!important;filter:none!important}
+.mi-btn.sec,.eil-btn.sec,#incidentModal .ail-btn.sec,#addCmtModal .btn.sec,.ilog-actions .btn.sec{background:#fff!important;border:1px solid #d4dade!important;color:#2a3340!important}
+.mi-btn.sec:hover,.eil-btn.sec:hover,#incidentModal .ail-btn.sec:hover,#addCmtModal .btn.sec:hover,.ilog-actions .btn.sec:hover{border-color:#8793a0!important;background:#fafbfc!important;color:var(--mt-ink)!important}
+#incidentModal .ail-btn.danger,.ilog-actions .btn.danger{background:var(--mt-red)!important;border:1px solid var(--mt-red)!important;color:#fff!important}
+#incidentModal .ail-btn.danger:hover,.ilog-actions .btn.danger:hover{background:#912018!important}
+#incidentModal .ail-btn.copy{background:#b4500a!important;border-color:#b4500a!important;color:#fff!important}
+#incidentModal .ail-btn.copy2{background:#fff!important;border:1px solid #e3a46c!important;color:#9a4100!important}
+#incidentModal .ail-btn.copy.copied,#incidentModal .ail-btn.copy2.copied{background:#1a7a43!important;border-color:#1a7a43!important;color:#fff!important}
+.mi-btn[aria-busy="true"],.eil-btn[aria-busy="true"],#incidentModal .ail-btn[aria-busy="true"],#addCmtBtn[aria-busy="true"]{cursor:progress;opacity:.85}
+/* Inputs: 8px radius, orange focus ring. */
+#miInfo,.link-row input,#addCmtText,#editIncidentText,.eil-ta,#incidentModal .ail-field textarea,#incidentModal .ail-field select,#incidentModal .ail-field input[type=text],#incidentModal .ss-field{border-radius:8px!important}
+#miInfo,.link-row input,#addCmtText,#editIncidentText{background:#fff!important;border:1px solid #d4dade!important;color:var(--mt-ink)!important}
+#miInfo:focus,.link-row input:focus,#addCmtText:focus,#editIncidentText:focus{outline:none;border-color:var(--mt-acc)!important;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+#incidentModal .ail-flabel{color:var(--mt-ink)!important;font-weight:800}
+#incidentModal .ail-field{padding:12px 14px;border:1px solid var(--mt-line);border-radius:10px;background:#fff}
+#incidentModal .ail-body{background:#f7f8fa}
+#incidentModal .ail-fcopy,#incidentModal .ail-fedit,#incidentModal .ail-idcopy{border-radius:7px!important}
+#incidentModal .ss-pop{border-radius:10px!important}
+#incidentModal .ss-opt{border-radius:7px}
+.ilc-dlg{border-radius:12px!important;border-top:3px solid var(--mt-acc)!important}
+.ilc-btn{border-radius:8px!important}
+.ilc-btn.go{background:var(--mt-navy)!important;border-color:var(--mt-navy)!important}
+/* Mark-important modal body. */
+.mi-head-ic{font-size:1.15em}
+.mi-ticket{background:#f7f8fa!important;border:1px solid var(--mt-line)!important;border-radius:10px!important}
+.mi-ticket .mt-id{color:var(--mt-blue)!important}
+.mi-ticket .mt-title{color:#2a3340!important;border-bottom:1px solid var(--mt-line)!important}
+.mi-stat{background:#fff!important;border:1px solid var(--mt-line)!important;border-radius:8px!important}
+.mi-stat .k{color:var(--mt-mut)!important;font-weight:800!important;letter-spacing:.9px!important}
+.mi-stat .v{color:var(--mt-ink)!important}
+.mi-stat .v.resolved{color:var(--mt-grn)!important}
+.mi-label{color:var(--mt-ink)!important;font-weight:800!important}
+.link-row .rm{background:#fff!important;border:1px solid #f2b8b1!important;color:var(--mt-red)!important;border-radius:8px!important}
+.link-row .rm:hover{background:var(--mt-red-bg)!important}
+.mi-addlink{border-radius:99px!important;border-color:#c4ccd4!important;color:#3a4552!important}
+.mi-addlink:hover{border-color:var(--mt-acc)!important;color:var(--mt-acc-ink)!important;background:var(--mt-acc-bg)!important}
+.msg-err,.msg.err{color:var(--mt-red)!important}
+.msg-err:empty{display:none}
+/* Incident-log list + legacy comment list. */
+.ilog-item,.cmt{background:#fff!important;border:1px solid var(--mt-line)!important;border-radius:10px!important;padding:12px 14px}
+.ilog-who,.cmt-meta{color:var(--mt-mut)!important}
+.ilog-who b,.cmt-meta b{color:var(--mt-ink)!important}
+.ilog-when{color:var(--mt-mut)!important}
+.ilog-text,.cmt-text{color:#2a3340!important}
+.ilog-empty{color:var(--mt-mut)!important;font-style:normal!important;border:1px dashed #d4dade;border-radius:10px}
+.mt-mskel{display:flex;flex-direction:column;gap:10px}
+.mt-mskel>div{border:1px solid var(--mt-line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+/* Toast */
+.toast{background:var(--mt-navy)!important;border:1px solid var(--mt-navy)!important;color:#fff!important;border-radius:99px!important;padding:10px 18px!important;font-weight:700;box-shadow:0 14px 30px -14px rgba(16,24,38,.7)!important}
+
+@media (prefers-reduced-motion:reduce){
+  .mt *,.mt *::before,.mt *::after,.modal *,.modal *::before,.modal *::after{animation:none!important;transition:none!important}
+  .mt-skel{background:#eceff2}
+  .mt-skel-d{background:rgba(255,255,255,.12)}
+  .mt-spin,.mtc-att.is-busy::after{animation:mtSpin 1.6s linear infinite!important}
 }
-h1{color:#1b2026 !important}
-.sub{color:#5c6773 !important}
-/* ---- Ticket cards: white surfaces, light borders, dark text ---- */
-.mtc{background:#ffffff !important;border:1px solid #e2e7eb !important;
-  box-shadow:0 1px 2px rgba(20,40,70,.04), 0 10px 26px -18px rgba(20,40,70,.25) !important}
-.mtc:hover{border-color:#d4dce4 !important;
-  box-shadow:0 2px 4px rgba(20,40,70,.05), 0 16px 36px -18px rgba(20,40,70,.32) !important}
-.mtc.has-help-waiting{border-color:rgba(224,138,30,.5) !important;
-  box-shadow:0 0 0 1px rgba(224,138,30,.18), 0 0 30px -8px rgba(224,138,30,.3), 0 14px 34px -18px rgba(20,40,70,.3) !important}
-.mtc.viewed{background:#f4f6f8 !important;border-color:#e2e7eb !important}
-.mtc.viewed .mtc-head,.mtc.viewed .mtc-bar{border-color:#eef1f4 !important}
-.mtc.viewed .mtc-ago,.mtc.viewed .mtc-title,.mtc.viewed .mtc-head-last{color:#9aa5b1 !important}
-.mtc.viewed .mtc-tid{-webkit-text-fill-color:#8793a0;color:#8793a0 !important}
-.mtc.viewed .mtc-copy{color:#9aa5b1;border-color:#d4dce4}
-.mtc.viewed .mtc-sbadge{background:#eef1f4;color:#8793a0}
-/* Header line */
-.mtc-head{border-bottom:1px solid #f0f3f6}
-.mtc-cb{background:#fff;border:1.5px solid #c6cdd4}
-.mtc-cb.on{background:#1f9d57;border-color:#1f9d57}
-.mtc-ago{color:#1b2026 !important}
-.mtc-tid{background:none !important;-webkit-text-fill-color:#1577a0 !important;color:#1577a0 !important}
-.mtc-tid:hover{filter:none;text-decoration:underline}
-.mtc-copy{border:1px solid #d4dce4;color:#8793a0;background:#fff}
-.mtc-copy:hover{color:#1577a0;border-color:#1577a0}
-.mtc-copy.copied{color:#1f9d57;border-color:#1f9d57}
-.mtc-title{color:#5c6773 !important}
-.mtc-head-last{color:#8793a0 !important}
-/* Country/region badge: shown in BOTH states (expanded + collapsed). */
-.mtc-country{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.4px;background:#eef4f8;color:#1577a0;border:1px solid #d6e3ec;text-transform:uppercase}
-/* Unknown country -> blinking "N/A" tag (same treatment as the unknown-severity "SEV #"). */
-.mtc-country.mtc-country-na{color:#e23b3b;background:rgba(226,59,59,.1);border:1px dashed rgba(226,59,59,.55);animation:mtcSevBlink 1s steps(1,end) infinite}
-/* When viewed: hide the full title, show the country + last comment instead. The comment TRUNCATES
-   with an ellipsis to a single line so a long comment never breaks the header layout. */
-.mtc.viewed .mtc-title{display:none !important}
-.mtc.viewed .mtc-head-last{display:block;flex:1 1 0;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* TEMP cards always show the title next to the id (wins over the viewed rule above, even when the
-   card is both temp AND viewed). */
-.mtc.temp .mtc-title,.mtc.temp.viewed .mtc-title{display:inline-block !important;flex:1 1 auto;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#5c6773 !important}
-.mtc.temp .mtc-head-last,.mtc.temp.viewed .mtc-head-last{display:none !important}
-.mtc-sbadge{background:#fff4e8;color:#b5560c}
-.mtc-ago-short{background:#fff4e8;color:#b5560c}
-.mtc-toggle{background:#dfe4ea;border:1px solid #cdd5dd}
-.mtc-toggle i{background:#fff;box-shadow:0 1px 2px rgba(20,40,70,.25)}
-.mtc-toggle.on{background:rgba(31,157,87,.3);border-color:#1f9d57}
-.mtc-toggle.on i{background:#1f9d57}
-/* Analyst-flag icons (light theme): grey chip when off, green chip when on. */
-.mtc-att{background:#f7f9fb;border:1px solid #e2e7eb}
-.mtc-att.on{background:rgba(31,157,87,.14);border-color:#1f9d57}
-/* Actions bar: no gray fill, no divider, no inset box — the comments button + icons sit flush on the
-   white card. Also neutralise the collapsed comment panel's padded surface so no gray strip shows. */
-.mt-cards .mtc .mtc-bar{border-top:none !important;background:transparent !important;border:none !important;border-radius:0 !important;box-shadow:none !important}
-.mt-cards .mtc .mtc-head{border-bottom:none !important}
-.mt-cards .mtc .mtc-zone{background:transparent !important;border:none !important;box-shadow:none !important}
-.mt-cards .mtc .mtc-panel-pad{background:transparent !important}
-.mtc-b{background:#f7f9fb;border:1px solid #e2e7eb;color:#2a3340}
-.mtc-b:hover{border-color:#cdd5dd;background:#eef1f4}
-.mtc-b.cmt-cnt .cnt{background:rgba(21,119,160,.14);color:#1577a0}
-.mtc-b.help-cnt .cnt{background:rgba(31,157,87,.16);color:#1f9d57}
-.mtc-b.active-cmt{background:#eaf4fb;border-color:#1577a0;color:#0f5f80}
-.mtc-b.active-help{background:#fff3e0;border-color:#e08a1e;color:#9a5a0a}
-.mtc-b.lock{background:#fdf3df;border-color:rgba(224,138,30,.45);color:#9a5a0a}
-.mtc-last{color:#8793a0 !important}
-/* Drop-down panels (comment / help thread) */
-.mtc-panel.open{border-top-color:#eef1f4}
-.mtc-panel-pad{background:#fafbfc}
-.mtc-phead{color:#5c6773}
-.mtc-attnote{color:#8793a0}
-.mtc-bub{background:#f3f6f9 !important;border:1px solid #e6eaee !important}
-.mtc-bub.h{background:#fff7e6 !important;border-color:#f3e0b8 !important}
-.mtc-msg.right .mtc-bub{background:#eafaf0 !important;border-color:#cdeedb !important}
-.mtc-m{color:#8793a0}
-.mtc-m b{color:#1b2026}
-.mtc-t{color:#2a3340 !important}
-.mtc-composer input{background:#fff;border:1px solid #d4dce4;color:#1b2026}
-.mtc-composer input::placeholder{color:#9aa5b1}
-.mtc-composer input:focus{border-color:#1577a0}
-.mtc-empty{color:#8793a0}
-/* Sort control */
-.mt-sort-btn{background:#fff;border:1px solid #e2e7eb;color:#2a3340;box-shadow:0 1px 2px rgba(20,40,70,.05)}
-.mt-sort-btn:hover{border-color:#cdd5dd;background:#f7f9fb}
-.mt-sort-field{color:#1b2026}
-.mt-sort-sep{background:#e2e7eb}
-.mt-sort-dir{color:#5c6773}
-.mt-sort-label{color:#8793a0}
-.mt-sort-arrow{background:rgba(21,119,160,.14);color:#1577a0}
-/* Skeleton shimmer on light */
-.sk-blk{background:#e8ebee}
-.sk-blk::after{background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.7) 50%,transparent 100%)}
-/* Skeleton table (pre-card loading state) */
-.mt-table.xls{border-color:#e2e7eb}
-.mt-table.xls th,.mt-table.xls td{border-color:#eef1f4}
-.mt-table thead th{background:#f7f9fb;color:#5c6773}
-/* Modals + toast */
-.modal{background:#fff !important;border:1px solid #e2e7eb !important;box-shadow:0 24px 60px -20px rgba(20,40,70,.4) !important}
-.modal-bg{background:rgba(20,30,45,.55) !important}
-/* Mark-important modal — light theme */
-.mi-head{border-bottom:1px solid #e6eaee !important}
-.mi-head-ic{background:rgba(217,119,6,.12) !important;color:#b45309 !important}
-.mi-head-tx h2{color:#1b2026 !important}
-.mi-head-sub{color:#5c6773 !important}
-.mi-x{color:#8793a0 !important}
-.mi-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
-.mi-ticket{background:#f7f9fb !important;border:1px solid #e6eaee !important}
-.mi-ticket .mt-id{color:#1577a0 !important}
-.mi-ticket .mt-title{color:#2a3340 !important;border-bottom:1px solid #eef1f4 !important}
-.mi-stat{background:#fff !important;border:1px solid #e6eaee !important}
-.mi-stat .k{color:#5c6773 !important}
-.mi-stat .v{color:#1b2026 !important}
-.mi-stat .v.resolved{color:#1f9d57 !important}
-.mi-label{color:#2a3340 !important}
-#miInfo,.link-row input{background:#fff !important;border:1px solid #d4dce4 !important;color:#1b2026 !important}
-#miInfo:focus,.link-row input:focus{border-color:#ec7211 !important}
-.link-row .rm{background:#fff !important;border:1px solid rgba(220,38,38,.4) !important;color:#dc2626 !important}
-.link-row .rm:hover{background:#fef2f2 !important}
-.mi-addlink{border-color:#d4dce4 !important;color:#5c6773 !important}
-.mi-addlink:hover{border-color:#ec7211 !important;color:#ec7211 !important;background:rgba(236,114,17,.06) !important}
-.mi-actions{border-top:1px solid #e6eaee !important}
-.mi-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
-.mi-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
-/* Add-incident-log modal — light theme */
-.ail-head{border-bottom:1px solid #e6eaee !important}
-.ail-head-ic{background:rgba(21,119,160,.1) !important;color:#1577a0 !important}
-.ail-head-tx h2{color:#1b2026 !important}
-.ail-head-sub{color:#5c6773 !important}
-.ail-icbtn{border-color:#d4dce4 !important;color:#5c6773 !important}
-.ail-icbtn:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
-.ail-icbtn.copied{border-color:#1f9d57 !important;color:#1f9d57 !important}
-.ail-idcopy{border-color:#d4dce4 !important;color:#5c6773 !important}
-.ail-idcopy:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
-.ail-idcopy.copied{border-color:#1f9d57 !important;color:#1f9d57 !important}
-.ail-x{color:#8793a0 !important}
-.ail-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
-.ail-hint{color:#5c6773 !important}
-.ail-hint b{color:#1b2026 !important}
-.ail-count{color:#8793a0 !important}
-.ail-actions{border-top:1px solid #e6eaee !important}
-.ail-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
-.ail-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
-/* View-incident-log modal — light theme */
-.vil-head{border-bottom:1px solid #e6eaee !important}
-.vil-head-ic{background:rgba(21,119,160,.1) !important;color:#1577a0 !important}
-.vil-head-tx{color:#1b2026 !important}
-.vil-icbtn,.vil-x{border-color:#d4dce4 !important;color:#5c6773 !important}
-.vil-icbtn:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
-.vil-x:hover{border-color:#dc2626 !important;color:#dc2626 !important;background:#fef2f2 !important}
-.vil-hint{color:#5c6773 !important}
-/* Edit-incident-log modal — light theme */
-.eil-head{border-bottom:1px solid #e6eaee !important}
-.eil-head-ic{background:#fff4e8 !important;color:#ec7211 !important}
-.eil-head-tx{color:#1b2026 !important}
-.eil-x{color:#8793a0 !important}
-.eil-x:hover{color:#1b2026 !important;background:rgba(20,30,45,.06) !important}
-.eil-actions{border-top:1px solid #e6eaee !important}
-.eil-btn.sec{border-color:#d4dce4 !important;color:#2a3340 !important}
-.eil-btn.sec:hover{border-color:#8793a0 !important;color:#1b2026 !important}
-.msg-err{color:#d33a3a !important}
-.modal-head h2{color:#1577a0 !important}
-.modal-close{color:#5c6773}.modal-close:hover{color:#1b2026}
-.cmt,.ilog-item{background:#f7f9fb !important;border-color:#e6eaee !important}
-.cmt-meta,.ilog-who{color:#5c6773 !important}
-.cmt-meta b,.ilog-who b{color:#1b2026 !important}
-.cmt-text,.ilog-text{color:#2a3340 !important}
-.cmt-input{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
-.ilog-empty{color:#8793a0 !important}
-/* Modal textareas carry inline dark styles (background:#000;color:#fff) — override by id. */
-#addCmtText,#editIncidentText,#incidentText{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
-.ail-field textarea,.ail-field select,.ail-field input[type=text]{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
-.ail-flabel{color:#1b2026 !important}.ail-fsub{color:#5c6773 !important}
-.ail-empty-dot{color:#c0392b !important;background:#fdeaea !important;border-color:#f3b4b4 !important}
-.ail-fcopy{border-color:#d4dce4 !important;color:#5c6773 !important}
-.ail-fcopy:hover{border-color:#1577a0 !important;color:#1577a0 !important;background:rgba(21,119,160,.08) !important}
-.ail-fedit{border-color:#d4dce4 !important;color:#5c6773 !important}
-.ail-fedit:hover,.ail-fedit.editing{border-color:#ec7211 !important;color:#ec7211 !important;background:rgba(236,114,17,.1) !important}
-.ail-field textarea[readonly]{background:#f3f5f7 !important;color:#2a3340 !important;opacity:1}
-#addCmtText::placeholder,#incidentText::placeholder{color:#9aa5b1 !important}
-/* Modal helper paragraphs + inline-coloured bits inside the (now light) modals. */
-.modal p{color:#5c6773 !important}
-.modal p b[style*="#fff"]{color:#1b2026 !important}
-.modal-head h2 span[style*="#fbbf24"]{color:#b5560c !important}
-.toast{background:#fff !important;border-color:#1f9d57 !important;color:#1f9d57 !important;box-shadow:0 8px 24px -10px rgba(20,40,70,.35) !important}
-/* Manager panel (if shown) */
-.mgr-panel{background:#fff !important;border-color:#e2e7eb !important}
-.mgr-panel h2{color:#1b2026 !important}
-.mgr-panel p{color:#5c6773 !important}
-.mgr-icon{background:#fff4e8 !important;color:#ec7211 !important}
-/* Generic buttons used across modals/sections */
-.btn.sec{border-color:#e2e7eb;color:#b5560c}
-.btn.sec:hover{border-color:#ec7211;color:#ec7211;background:#fff4e8}
-.empty{border-color:#d4dce4;color:#8793a0}
-/* Legacy table / conversation classes (in case any are still rendered). */
-.cv-composer textarea{background:#fff !important;border-color:#d4dce4 !important;color:#1b2026 !important}
-.cv-composer textarea::placeholder{color:#9aa5b1 !important}
-.cv-bubble{background:#f3f6f9 !important;border-color:#e6eaee !important}
-.cv-bubble.help{background:#fff7e6 !important;border-color:#f3e0b8 !important}
-.cv-msg.right .cv-bubble{background:#eafaf0 !important;border-color:#cdeedb !important}
-.cv-text,.cv-meta b{color:#2a3340 !important}
-.tk-cmt,.help-thread{background:#f7f9fb !important;border-color:#e6eaee !important}
-.tk-cmt-text,.help-reply{color:#2a3340 !important}
-.tk-cmt-who b{color:#1b2026 !important}
-.help-q{color:#1b2026 !important}
-.help-hint,.tk-thread-hint,.help-none{color:#8793a0 !important}
-.tbl-card{background:#fff !important;border-color:#e2e7eb !important;box-shadow:0 2px 12px -6px rgba(20,40,70,.15) !important}
 </style>
 <!-- Keep the page section hidden until the shared chrome (title bar + menu column) has wrapped it, so the
      skeleton never shows on a bare page while topbar-auth.js is still downloading. Safety net: shown
@@ -1090,26 +926,53 @@ h1{color:#1b2026 !important}
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap">
-  <div class="mt-head">
-    <div><h1>My Tickets</h1><p class="sub" style="margin:4px 0 0">Loading your open tickets, deadlines and comments…</p></div>
-  </div>
-  <div class="tbl-wrap" style="margin-top:20px">
-    <table class="mt-table xls"><thead><tr>
-      <th class="mt-col-view"></th><th>Created</th><th>Time left</th><th>Ticket</th><th>Latest comment</th><th>Actions</th><th class="mt-col-temp">Temp Resolve</th>
-    </tr></thead><tbody id="mtSkeleton"></tbody></table>
-  </div>
-  <script>(function(){var b=document.getElementById('mtSkeleton');if(!b)return;var row='<tr>'+
-    '<td><span class="sk-blk" style="width:16px;height:16px;border-radius:5px"></span></td>'+
-    '<td><span class="sk-blk" style="width:70px;height:13px"></span></td>'+
-    '<td><span class="sk-blk" style="width:56px;height:22px;border-radius:5px"></span></td>'+
-    '<td><span class="sk-blk" style="width:150px;height:14px;display:block"></span><span class="sk-blk" style="width:80%;height:11px;display:block;margin-top:6px"></span></td>'+
-    '<td><span class="sk-blk" style="width:80%;height:12px;display:block"></span><span class="sk-blk" style="width:50%;height:11px;display:block;margin-top:6px"></span></td>'+
-    '<td><span class="sk-blk" style="width:150px;height:26px;border-radius:5px;display:block"></span><span class="sk-blk" style="width:150px;height:26px;border-radius:5px;display:block;margin-top:8px"></span></td>'+
-    '<td><span class="sk-blk" style="width:42px;height:22px;border-radius:5px"></span></td>'+
-    '</tr>';var h='';for(var i=0;i<8;i++)h+=row;b.innerHTML=h;})();</script>
+<div class="wrap" id="wrap" aria-busy="true">
+  <script>
+  // Loading skeleton, shared with load() in the main script: mirrors the final layout (hero, four KPI
+  // cards, the filter strip and a section of ticket cards) so nothing jumps when the data lands.
+  window.MT_COPY={
+    eyebrow:'Your workspace \u00b7 Live quarter',
+    sub:'Open tickets assigned to you, with their 240-hour deadline, comments and incident logs. Viewed and temp-resolve marks are saved in this browser only.'
+  };
+  // External links shown in the hero (static, so the skeleton renders them too and nothing jumps).
+  window.MT_LINKS=function(){
+    var L=[
+      ['SIM Link','https://t.corp.amazon.com/issues/assigned-to-me'],
+      ['Share-point Link','https://amazon.sharepoint.com/:x:/r/sites/PHD/_layouts/15/Doc.aspx?sourcedoc=%7B86CA084F-B5C7-450D-86C9-07D479FF8DFF%7D&file=-%20USE%20THIS%20ONE%20-%20Ticket%20Tracker%20Flat%20File.xlsx&action=default&mobileredirect=true'],
+      ['Sev 3 Pet incidents','https://amazon-my.sharepoint.com/:x:/r/personal/flofalgu_amazon_com/_layouts/15/doc2.aspx?sourcedoc=%7B1C13EF24-F76D-41A3-A9A4-CE41C2550BA8%7D&file=Book.xlsx&action=editnew&mobileredirect=true']
+    ];
+    var X='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>';
+    var h='';
+    for(var i=0;i<L.length;i++){
+      var t=L[i][0]+' \u2014 opens in a new tab';
+      h+='<li><a class="mt-xlink" href="'+L[i][1].replace(/&/g,'&amp;')+'" target="_blank" rel="noopener noreferrer" title="'+t+'" aria-label="'+t+'">'+X+'<span>'+L[i][0]+'</span></a></li>';
+    }
+    return '<ul class="mt-links" aria-label="Quick links">'+h+'</ul>';
+  };
+  window.MT_SKEL=function(ic){
+    ic=ic||function(){ return ''; };
+    var S=function(w,h,mt){ return '<span class="mt-skel" style="width:'+w+';height:'+h+'px'+(mt?';margin-top:'+mt+'px':'')+'"></span>'; };
+    var D=function(w){ return '<span class="mt-skel mt-skel-d" style="width:'+w+';height:13px;margin-top:3px"></span>'; };
+    var hero='<div class="mt-hero"><div class="mt-hero-in"><div class="mt-hero-main"><span class="mt-hero-ic" aria-hidden="true">'+ic('ticket',24)+'</span><div>'+
+      '<p class="mt-eyebrow">'+window.MT_COPY.eyebrow+'</p><h1>My Tickets</h1><p class="mt-hero-sub">'+window.MT_COPY.sub+'</p></div></div>'+
+      '<div class="mt-hero-side"><dl class="mt-meta" aria-hidden="true"><div><dt>Signed in as</dt><dd>'+D('110px')+'</dd></div><div><dt>Times shown in</dt><dd>'+D('48px')+'</dd></div>'+
+      '<div><dt>Deadline</dt><dd>'+D('96px')+'</dd></div><div><dt>Refreshed</dt><dd>'+D('110px')+'</dd></div></dl>'+window.MT_LINKS()+'</div></div></div>';
+    var k='<div class="mt-kpi" aria-hidden="true">'+S('55%',11)+S('40%',30,14)+S('70%',10,10)+'</div>';
+    var tools='<div class="mt-tools" aria-hidden="true">'+S('min(340px,100%)',34)+S('64px',28)+S('92px',28)+S('104px',28)+S('92px',28)+'</div>';
+    var card='<div class="mt-skel-card" aria-hidden="true">'+S('22px',22)+S('64px',13)+S('34px',20)+S('46px',20)+S('96px',15)+S('min(38%,240px)',12)+
+      '<span style="margin-left:auto;display:flex;gap:10px">'+S('78px',22)+S('38px',22)+'</span></div>';
+    var cards=''; for(var i=0;i<6;i++) cards+=card;
+    var sec='<section class="mt-sec"><div class="mt-sec-head" aria-hidden="true">'+S('170px',20)+S('min(42%,320px)',12)+'</div><div style="margin-top:14px">'+
+      '<p class="mt-load-msg" aria-hidden="true"><span class="mt-spin"></span><span id="mtLoaderMsg">Getting things ready\u2026</span></p>'+
+      '<div class="mt-cards">'+cards+'</div></div></section>';
+    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+'</div>'+tools+sec+'</div>';
+  };
+  document.getElementById('wrap').innerHTML=window.MT_SKEL();
+  </script>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- Polite live region for loading / loaded / error announcements (outside #wrap so re-renders keep it). -->
+<div id="mtLive" class="mt-sr" role="status" aria-live="polite"></div>
 
 <!-- Comment log popup -->
 <div class="modal-bg" id="cmtModal" onclick="if(event.target===this)closeCmt()">
@@ -1201,7 +1064,7 @@ h1{color:#1b2026 !important}
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
 <script src="incident-log-editor.js?v=10"></script>
-<script src="topbar-auth.js?v=210"></script>
+<script src="topbar-auth.js?v=211"></script>
 <script>
 const A=window.PHDAuth;
 // Build the shared Add/Edit incident-log modal into its placeholder (before anything can open it).
@@ -1240,8 +1103,9 @@ function toggleViewed(sid, cb){
   if(on) VIEWED.add(sid); else VIEWED.delete(sid);
   saveViewed();
   const el=cb.classList&&cb.classList.contains('mtc-cb')?cb:null;
-  if(el) el.classList.toggle('on', on);
+  if(el){ el.classList.toggle('on', on); el.setAttribute('aria-pressed', on?'true':'false'); }
   const card=cb.closest('.mtc'); if(card) card.classList.toggle('viewed', on);
+  applyFilters();   // "Hide viewed" filter may now hide/show this card
 }
 window.toggleViewed=toggleViewed;
 
@@ -1267,6 +1131,7 @@ function tempOpenKey(){ var u=A.getUser(); return 'phd_mytickets_tempopen_'+((u&
 function toggleTempSection(){
   const sec=document.getElementById('tempSection'); if(!sec)return;
   const open=sec.classList.toggle('open');
+  const hb=sec.querySelector('.temp-head'); if(hb) hb.setAttribute('aria-expanded', open?'true':'false');
   try{ localStorage.setItem(tempOpenKey(), open?'1':'0'); }catch(e){}
 }
 window.toggleTempSection=toggleTempSection;
@@ -1275,6 +1140,7 @@ function openOpenKey(){ var u=A.getUser(); return 'phd_mytickets_openopen_'+((u&
 function toggleOpenSection(){
   const sec=document.getElementById('openSection'); if(!sec)return;
   const open=sec.classList.toggle('open');
+  const hb=sec.querySelector('.temp-head'); if(hb) hb.setAttribute('aria-expanded', open?'true':'false');
   try{ localStorage.setItem(openOpenKey(), open?'1':'0'); }catch(e){}
 }
 window.toggleOpenSection=toggleOpenSection;
@@ -1310,7 +1176,7 @@ function toggleAttach(kind, sid, ev){
   if(on) set.add(sid); else set.delete(sid);
   saveAttachFlag(kind);
   var safe=sid.replace(/"/g,'');
-  document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.toggle('on', on); });
+  document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.toggle('on', on); if(el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed', on?'true':'false'); });
 }
 window.toggleAttach=toggleAttach;
 // Force a given flag OFF for a ticket. Generic helper; no-op if the flag is already off, or if
@@ -1321,7 +1187,7 @@ function clearAttach(kind, sid){
   set.delete(sid);
   saveAttachFlag(kind);
   var safe=sid.replace(/"/g,'');
-  document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.remove('on'); });
+  document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.remove('on'); if(el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed','false'); });
 }
 // PNG icon helper for the analyst-flag icons (versioned to bust cache on re-replace).
 function attImg(name, cls){ return '<img class="'+(cls||'')+'" src="icons/'+name+'.v4.png" alt="" draggable="false">'; }
@@ -1371,14 +1237,20 @@ async function openMarkImportant(sid, ev){
   MI_SID=sid; MI_QUARTER='';
   document.getElementById('miTitle').textContent='Mark important · '+sid;
   var tbox=document.getElementById('miTicket');
-  tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span><div style="color:#8793a0;font-size:.85em">Loading ticket details…</div>';
+  // Skeleton tiles (same grid as the loaded details) while /api/ticket-search is in flight.
+  var _sk=function(w,h,mt){ return '<span class="mt-skel" style="width:'+w+';height:'+h+'px'+(mt?';margin-top:'+mt+'px':'')+'"></span>'; };
+  var _tile='<div class="mi-stat">'+_sk('50%',9)+_sk('75%',12,7)+'</div>';
+  tbox.setAttribute('aria-busy','true');
+  tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span><span class="mt-sr" role="status">Loading ticket details\u2026</span>'+
+    '<div aria-hidden="true">'+_sk('85%',12,2)+'<div class="mi-stats" style="margin-top:14px">'+_tile+_tile+_tile+_tile+'</div></div>';
   document.getElementById('miInfo').value='';
   document.getElementById('miLinks').innerHTML=''; miAddLinkInput('');
   document.getElementById('miErr').style.display='none';
   document.getElementById('miModal').style.display='flex';
   // Fetch ticket detail + any existing marking from the shared search endpoint.
-  var r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(sid));
+  var r={ok:false}; try{ r=await A.api('GET','/api/ticket-search?shortId='+encodeURIComponent(sid)); }catch(e){}
   if(MI_SID!==sid) return; // a newer open replaced this one
+  tbox.removeAttribute('aria-busy');
   var d=(r.ok&&r.data&&r.data.found)?r.data:null;
   if(d){
     MI_QUARTER=d.quarter||'';
@@ -1406,9 +1278,9 @@ async function completeMarkImportant(){
   var err=document.getElementById('miErr');
   if(!info && !links.length){ err.textContent='Add some information or at least one link.'; err.style.display='block'; return; }
   err.style.display='none';
-  var btn=document.getElementById('miBtn'); btn.disabled=true; btn.textContent='Saving…';
-  var r=await A.api('POST','/api/important-cases/'+encodeURIComponent(MI_SID),{quarter:MI_QUARTER,info:info,links:links});
-  btn.disabled=false; btn.textContent='Complete marking';
+  var btn=document.getElementById('miBtn'); setBusy(btn,true,'Saving\u2026');
+  var r={ok:false,status:0,data:null}; try{ r=await A.api('POST','/api/important-cases/'+encodeURIComponent(MI_SID),{quarter:MI_QUARTER,info:info,links:links}); }catch(e){}
+  setBusy(btn,false);
   if(r.ok){
     // Reflect in the star flag (green "on") and remember it locally.
     ATTACH_SETS.important.add(String(MI_SID)); saveAttachFlag('important');
@@ -1449,11 +1321,11 @@ function togglePanel(i,which){
   if(!cp)return;
   const wasOpen=cp.classList.contains('open');
   cp.classList.remove('open');
-  if(cb)cb.classList.remove('active-cmt');
+  if(cb){ cb.classList.remove('active-cmt'); cb.setAttribute('aria-expanded','false'); }
   const t=TICKETS[i];
   if(!wasOpen){
     cp.classList.add('open');
-    if(cb)cb.classList.add('active-cmt'); loadComments(i);
+    if(cb){ cb.classList.add('active-cmt'); cb.setAttribute('aria-expanded','true'); } loadComments(i);
     OPEN_CARD=t?String(t.shortId):null; OPEN_WHICH='cmt';
   } else {
     OPEN_CARD=null; OPEN_WHICH=null;
@@ -1473,13 +1345,27 @@ window.openComments=openComments;
 async function loadComments(i){
   const t=TICKETS[i]; if(!t)return;
   const box=document.getElementById('cbody-'+i); if(!box)return;
-  if(box.getAttribute('data-loaded')!=='1'){
-    box.innerHTML='<div class="mtc-empty">'+ic('clock',12)+' Loading comments\u2026</div>';
+  const first=box.getAttribute('data-loaded')!=='1';
+  if(first){
+    // Skeleton bubbles shaped like the loaded thread (head line, two messages, composer).
+    const sk=(w,h,mt)=>'<span class="mt-skel" style="width:'+w+';height:'+h+'px'+(mt?';margin-top:'+mt+'px':'')+'"></span>';
+    const bub='<div class="mtc-msg"><span class="mt-skel" style="width:30px;height:30px;border-radius:50%;flex-shrink:0"></span><div class="mtc-bub" style="width:min(420px,80%)">'+sk('40%',9)+sk('90%',12,8)+'</div></div>';
+    box.setAttribute('aria-busy','true');
+    box.innerHTML='<span class="mt-sr" role="status">Loading comments\u2026</span><div aria-hidden="true">'+sk('120px',10)+'<div style="margin-top:12px">'+bub+bub+'</div>'+sk('100%',34,6)+'</div>';
   }
   box.setAttribute('data-loaded','1');
-  const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments');
-  const list=(r.ok&&Array.isArray(r.data))?r.data:[];
-  paintComments(i,list);
+  let r=null; try{ r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments'); }catch(e){}
+  box.removeAttribute('aria-busy');
+  if(!(r&&r.ok&&Array.isArray(r.data))){
+    if(r&&r.status===401) return;   // the shared session-expired modal takes over
+    if(first){
+      box.setAttribute('data-loaded','0');
+      box.innerHTML='<div class="mtc-perr" role="alert">'+ic('alert-triangle',14)+' Couldn\u2019t load the comments for '+esc(t.shortId)+'.'+
+        '<button type="button" class="mt-btn-sm" onclick="loadComments('+i+')">'+ic('refresh',12)+' Retry</button></div>';
+    } else toast('Couldn\u2019t refresh the comments for '+t.shortId);
+    return;
+  }
+  paintComments(i,r.data);
 }
 // Render the COMMENTS thread (chat bubbles) + inline composer into a card's comment panel.
 function paintComments(i,list){
@@ -1493,14 +1379,14 @@ function paintComments(i,list){
   const bubbles=cmtN
     ? list.map(function(c){
         const initial=(String(c.user||'?').charAt(0)||'?').toUpperCase();
-        const del=(c.mine&&c.id)?'<button class="mtc-del" title="Delete this comment" onclick="deleteComment('+i+',\''+esc(c.id)+'\')">'+ic('trash',12)+'</button>':'';
+        const del=(c.mine&&c.id)?'<button type="button" class="mtc-del" title="Delete this comment" aria-label="Delete this comment" onclick="deleteComment('+i+',\''+esc(c.id)+'\',this)">'+ic('trash',12)+'</button>':'';
         return '<div class="mtc-msg"><div class="mtc-av c">'+esc(initial)+'</div>'
           +'<div class="mtc-bub"><div class="mtc-m"><span class="k c">comment</span> <b>'+esc(c.user)+'</b> · '+esc(fmtTZ(c.at,zone))+del+'</div>'
           +'<div class="mtc-t">'+esc(c.text)+'</div></div></div>';
       }).join('')
     : '<div class="mtc-empty">'+ic('message',12)+' No comments yet. Start the conversation below.</div>';
-  const composer='<div class="mtc-composer"><input id="cvInput-'+i+'" maxlength="2000" placeholder="Write a comment\u2026" onkeydown="if(event.key===\'Enter\')sendInlineComment('+i+')">'
-    +'<button class="mtc-b" id="cvSend-'+i+'" onclick="sendInlineComment('+i+')">'+ic('plus',13)+' Add</button></div>';
+  const composer='<div class="mtc-composer"><label class="mt-sr" for="cvInput-'+i+'">Write a comment on '+esc(t.shortId)+'</label><input id="cvInput-'+i+'" maxlength="2000" placeholder="Write a comment\u2026" onkeydown="if(event.key===\'Enter\')sendInlineComment('+i+')">'
+    +'<button type="button" class="mtc-b" id="cvSend-'+i+'" onclick="sendInlineComment('+i+')">'+ic('plus',13)+' Add</button></div>';
   box.innerHTML=head+bubbles+composer;
 }
 // Post a comment from the inline composer in the comment panel.
@@ -1509,21 +1395,23 @@ async function sendInlineComment(i){
   const ta=document.getElementById('cvInput-'+i); if(!ta)return;
   const text=(ta.value||'').trim();
   if(!text){toast('Write a comment first.');return;}
-  const btn=document.getElementById('cvSend-'+i); if(btn){btn.disabled=true;}
-  const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text});
-  if(btn){btn.disabled=false;}
+  const btn=document.getElementById('cvSend-'+i); setBusy(btn,true,'Adding\u2026');
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text}); }catch(e){}
+  setBusy(btn,false);
   if(r.ok){ ta.value=''; toast('Comment added to '+t.shortId); await loadComments(i); refreshLatestComment(i); }
   else{ toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')')); }
 }
 window.sendInlineComment=sendInlineComment;
 // Delete one of the current user's own comments on their ticket.
-async function deleteComment(i,id){
+async function deleteComment(i,id,btn){
   const t=TICKETS[i]; if(!t||!id)return;
   const ok=window.PHDConfirm
     ? await window.PHDConfirm({title:'Delete comment',body:'Delete this comment? This cannot be undone.',okLabel:'Delete',danger:true})
     : confirm('Delete this comment? This cannot be undone.');
   if(!ok)return;
-  const r=await A.api('DELETE','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments/'+encodeURIComponent(id));
+  setBusy(btn,true,'');
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('DELETE','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments/'+encodeURIComponent(id)); }catch(e){}
+  setBusy(btn,false);
   if(r.ok){ toast('Comment deleted'); await loadComments(i); refreshLatestComment(i); }
   else{ toast((r.data&&r.data.error)||('Failed (HTTP '+r.status+')')); }
 }
@@ -1575,7 +1463,32 @@ function readCache(){try{var raw=localStorage.getItem(cacheKey());return raw?JSO
 function writeCache(obj){try{localStorage.setItem(cacheKey(),JSON.stringify(obj));}catch(e){}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>My Tickets</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+// Signed-out / session-expired gate: hero + a friendly state card with the way back to the dashboard.
+function gate(msg){
+  setWrapBusy(false);
+  document.getElementById('wrap').innerHTML='<div class="mt gate">'+heroHtml(null)+'<section class="mt-card" style="margin-top:16px">'+
+    stateHtml('is-acc','lock','Sign in to see your tickets',esc(msg),'<a class="mt-btn" href="app.html">'+ic('home',14)+' Go to Live Dashboard</a>')+'</section></div>';
+  announce(msg);
+}
+// ---- Shared state helpers (loading / loaded / error) ----
+function setWrapBusy(on){ const w=document.getElementById('wrap'); if(!w) return; if(on) w.setAttribute('aria-busy','true'); else w.removeAttribute('aria-busy'); }
+function announce(msg){ const l=document.getElementById('mtLive'); if(!l) return; l.textContent=''; setTimeout(function(){ l.textContent=msg; },40); }
+function stateHtml(icCls,icon,title,text,btn){
+  return '<div class="mt-empty"><span class="mt-empty-ic '+icCls+'" aria-hidden="true">'+ic(icon,26)+'</span><h2 class="mt-empty-t">'+title+'</h2>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
+}
+// Inline busy state for an action button: disables it, sets aria-busy and swaps in a spinner + label.
+// setBusy(btn,false) restores the original content.
+function setBusy(btn,on,label){
+  if(!btn) return;
+  if(on){
+    if(btn._mtHtml==null) btn._mtHtml=btn.innerHTML;
+    btn.disabled=true; btn.setAttribute('aria-busy','true'); btn.classList.add('is-busy');
+    if(label!=null) btn.innerHTML='<span class="mt-spin" aria-hidden="true"></span>'+(label?' '+esc(label):'<span class="mt-sr">Working\u2026</span>');
+  } else {
+    btn.disabled=false; btn.removeAttribute('aria-busy'); btn.classList.remove('is-busy');
+    if(btn._mtHtml!=null){ btn.innerHTML=btn._mtHtml; btn._mtHtml=null; }
+  }
+}
 let MY_TZ='IST'; // logged-in user's preferred timezone (IST|MST); set from /api/me in load().
 const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
 function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleString('en-US',{timeZone:zone,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return iso;}}
@@ -1605,17 +1518,9 @@ function remaining(deadlineIso){
 }
 
 // ================= Fun phased page loader (ported from sla-breach.html) =================
-// Loader markup injected into #wrap while tickets are fetched. Keyed by the id-prefix `pfx`.
-function ldHtml(pfx){
-  return '<div id="'+pfx+'Loader" class="gw-loader" style="display:flex">'+
-    '<div class="gw-loader-in">'+
-      '<div class="gw-orb"><span class="gw-orb-ic" id="'+pfx+'LoaderIc">'+ic('clipboard',30)+'</span></div>'+
-      '<div class="gw-loader-msg gw-msg-in" id="'+pfx+'LoaderMsg">Getting things ready\u2026</div>'+
-      '<div class="gw-dots"><span></span><span></span><span></span></div>'+
-      '<div class="gw-loader-sub" id="'+pfx+'LoaderSub">Loading</div>'+
-    '</div>'+
-  '</div>';
-}
+// The loading state is now the layout skeleton (window.MT_SKEL, defined inline in #wrap). These
+// tickets-themed lines rotate in its small status line (aria-hidden; #mtLive announces once) so a
+// slow cold start never looks frozen.
 function gwFirstName(){ try{ var u=A.getUser&&A.getUser(); var n=(u&&(u.username||u.displayName||u.name))||''; return String(n).split(/[@\s]/)[0]||'there'; }catch(e){ return 'there'; } }
 function gwShuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
 // PHASE 1 — randomized, tickets-themed lines. Personalized with first name.
@@ -1649,35 +1554,36 @@ function mtPhase2(){
   ]);
 }
 var _ldMsgTimers={};
+var _ldTimeouts={};
 function _ldSetMsg(pfx,tuple){
-  var e=document.getElementById(pfx+'LoaderMsg'), i=document.getElementById(pfx+'LoaderIc');
-  if(i){ i.innerHTML=ic(tuple[0]||'clock',30); }
-  if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent=tuple[1]; e.classList.add('gw-msg-in'); }
+  var e=document.getElementById(pfx+'LoaderMsg'); if(!e) return;
+  e.textContent=tuple[1];
 }
-function _ldStop(pfx){ if(_ldMsgTimers[pfx]){ clearInterval(_ldMsgTimers[pfx]); _ldMsgTimers[pfx]=null; } }
+function _ldStop(pfx){
+  if(_ldMsgTimers[pfx]){ clearInterval(_ldMsgTimers[pfx]); _ldMsgTimers[pfx]=null; }
+  if(_ldTimeouts[pfx]){ clearTimeout(_ldTimeouts[pfx]); _ldTimeouts[pfx]=null; }
+}
 // Phase 1 (@2s) -> apology -> Phase 2 (@3s, loops). Never blank.
-function _ldStart(pfx,subLabel){
+function _ldStart(pfx){
   _ldStop(pfx);
-  var sub=document.getElementById(pfx+'LoaderSub'); if(sub&&subLabel) sub.textContent=subLabel;
   var p1=mtPhase1(), i=0; _ldSetMsg(pfx,p1[0]);
   _ldMsgTimers[pfx]=setInterval(function(){
     i++;
     if(i<p1.length){ _ldSetMsg(pfx,p1[i]); return; }
     _ldStop(pfx);
     _ldSetMsg(pfx,['alert','Sorry for the delay \u2014 still fetching your tickets\u2026']);
-    setTimeout(function(){
+    _ldTimeouts[pfx]=setTimeout(function(){
       var p2=mtPhase2(), j=0; _ldSetMsg(pfx,p2[0]);
       _ldMsgTimers[pfx]=setInterval(function(){ j=(j+1)%p2.length; _ldSetMsg(pfx,p2[j]); },3000);
     },3000);
   },2000);
 }
-function _ldSuccess(pfx){
-  _ldStop(pfx);
-  var l=document.getElementById(pfx+'Loader'); if(l) l.classList.add('gw-done');
-  var i=document.getElementById(pfx+'LoaderIc'); if(i) i.innerHTML=ic('check-circle',30);
-  var e=document.getElementById(pfx+'LoaderMsg'); if(e){ e.classList.remove('gw-msg-in'); void e.offsetWidth; e.textContent='Tickets loaded successfully'; e.classList.add('gw-msg-in'); }
-}
-var _delay=function(ms){ return new Promise(function(res){ setTimeout(res,ms); }); };
+
+let FIRST_PAINT=true;   // run the staggered entrance animation only on the first real render
+let LOADED_AT=null;     // when /api/my-tickets last answered (hero "Refreshed" chip)
+let LOAD_SEQ=0;         // guards against an older (retried) fetch painting over a newer one
+// Client-side quick filters (session only): search text, time-left bucket, hide viewed cards.
+const FILTER={q:'',due:'all',hideViewed:false};
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
@@ -1685,110 +1591,205 @@ async function load(){
   loadTempResolved(); // restore per-user "temp resolve" working marks (UI-only, localStorage)
   loadAttachFlags();  // restore per-user "driver trace / reports attached" flags (UI-only, localStorage)
 
-  // ALWAYS fetch fresh from the server on every page load — no instant cache paint. Show the
-  // animated phased loader (SLA-breach style) while the request is in flight.
-  document.getElementById('wrap').innerHTML=ldHtml('mt');
-  _ldStart('mt','My Tickets');
-  var minDelay=_delay(3500);   // keep the loader up long enough to read a line or two
+  // ALWAYS fetch fresh from the server on every page load — no instant cache paint. The layout
+  // skeleton stays up (aria-busy) while the request is in flight.
+  const seq=++LOAD_SEQ;
+  setWrapBusy(true);
+  document.getElementById('wrap').innerHTML=window.MT_SKEL?window.MT_SKEL(ic):'';
+  announce('Loading your tickets\u2026');
+  _ldStart('mt');
 
   const cached=readCache();    // used only as a cache stamp below (not painted)
-  // NOTE: we no longer fetch /api/live-version here. The page always fetches /api/my-tickets fresh,
-  // so the live version was only a label on the cache stamp — not worth an extra blocking round-trip.
   const version=(cached&&cached.version)||null;
   try{MY_TZ=await A.myTimezone();}catch(e){}
-  const r=await A.api('GET','/api/my-tickets');
-  if(r.status===401){ _ldStop('mt'); gate('Session expired. Please log in again.'); return; }
-  if(!r.ok){ _ldStop('mt'); gate('Could not load your tickets (HTTP '+r.status+').'); return; }
+  let r=null; try{ r=await A.api('GET','/api/my-tickets'); }catch(e){}
+  if(seq!==LOAD_SEQ) return;
+  _ldStop('mt');
+  if(r&&r.status===401){ gate('Your session has expired. Please log in again.'); return; }
+  if(!(r&&r.ok)){
+    renderError(r?('The server answered with HTTP '+r.status+'.'):'The server could not be reached. Check your connection and try again.');
+    return;
+  }
   TICKETS=(r.data&&r.data.tickets)||[];
+  LOADED_AT=new Date();
   // Reconcile the "important" star with the shared store (so an un-mark done on the Unique Cases
   // page clears the star here too).
   await syncImportantFromServer();
+  if(seq!==LOAD_SEQ) return;
   // Save the fresh copy (preserving any cached comment/activity maps).
   const fresh={version:version||(cached&&cached.version)||null,tz:MY_TZ,tickets:TICKETS,at:Date.now(),latest:(cached&&cached.latest)||{},activity:(cached&&cached.activity)||{}};
   writeCache(fresh);
-  // Finish the loader animation, then render the fresh board.
-  await minDelay;
-  _ldSuccess('mt'); await _delay(900);
   if(window.PHDRefreshBanner)window.PHDRefreshBanner.hide();
+  setWrapBusy(false);
   render();
+  announce('Loaded '+TICKETS.length+' ticket'+(TICKETS.length===1?'':'s')+'.');
 }
+// Friendly error state; Retry re-runs the same fetch.
+function renderError(detail){
+  setWrapBusy(false);
+  document.getElementById('wrap').innerHTML='<div class="mt">'+heroHtml(null)+'<div class="mt-kpis" aria-hidden="true"></div><section class="mt-card">'+
+    stateHtml('is-err','alert-triangle','Couldn\u2019t load your tickets',
+      '<span role="alert">'+esc(detail)+'</span> Your viewed and temp-resolve marks are safe in this browser.',
+      '<button type="button" class="mt-btn" id="mtRetry" onclick="retryLoad(this)">'+ic('refresh',14)+' Retry</button>')+'</section></div>';
+  announce('Couldn\u2019t load your tickets.');
+}
+function retryLoad(btn){ setBusy(btn,true,'Retrying\u2026'); load(); }
+
+// ---------- Hero / KPIs / filter strip ----------
+const CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function pct(n,d){ if(!d) return '0%'; return Math.round(n/d*100)+'%'; }
+function reducedMotion(){ try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } }
+// n = ticket count for the title chip (null = no chip, e.g. gate / error / manager).
+function heroHtml(n){
+  const u=A.getUser&&A.getUser();
+  const who=(u&&(u.username||u.displayName))||'\u2014';
+  const ref=LOADED_AT?(fmtTZ(LOADED_AT.toISOString(),TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'\u2014';
+  const count=(n==null)?'':'<span class="mt-count tally-ph" data-tally="'+n+'">\u2014</span><span class="mt-sr"> tickets</span>';
+  const copy=window.MT_COPY||{eyebrow:'',sub:''};
+  return '<div class="mt-hero"><div class="mt-hero-in"><div class="mt-hero-main"><span class="mt-hero-ic" aria-hidden="true">'+ic('ticket',24)+'</span><div>'+
+    '<p class="mt-eyebrow">'+copy.eyebrow+'</p><h1>My Tickets'+count+'</h1><p class="mt-hero-sub">'+copy.sub+'</p></div></div>'+
+    '<div class="mt-hero-side"><dl class="mt-meta"><div><dt>Signed in as</dt><dd>'+esc(who)+'</dd></div><div><dt>Times shown in</dt><dd>'+esc(MY_TZ)+'</dd></div>'+
+    '<div><dt>Deadline</dt><dd>240h from created</dd></div><div><dt>Refreshed</dt><dd>'+esc(ref)+'</dd></div></dl>'+(window.MT_LINKS?window.MT_LINKS():'')+'</div></div></div>';
+}
+function tallyHero(){
+  const el=document.querySelector('.mt-hero .mt-count'); if(!el) return;
+  const v=el.getAttribute('data-tally');
+  if(reducedMotion()||!A.tally){ el.classList.remove('tally-ph'); el.textContent=v; return; }
+  try{ A.tally(el,v); }catch(e){ el.classList.remove('tally-ph'); el.textContent=v; }
+}
+function kpiCard(cls,icon,label,value,sub,ratio){
+  return '<div class="mt-kpi '+cls+'"><p class="mt-kpi-l"><span class="mt-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</p>'+
+    '<p class="mt-kpi-v">'+value+'</p><p class="mt-kpi-s">'+sub+'</p>'+
+    (ratio==null?'':'<div class="mt-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+// Time-left bucket used by the KPI cards, the filter chips and each card's data-due.
+function dueOf(t){ return remaining(t.deadline).cls||'ok'; }
+function kpiHtml(){
+  let open=0,over=0,soon=0,temp=0;
+  TICKETS.forEach(function(t){
+    if(TEMP_RESOLVED.has(String(t.shortId))){ temp++; return; }
+    open++; const c=dueOf(t); if(c==='over') over++; else if(c==='warn') soon++;
+  });
+  const n=TICKETS.length;
+  return '<div class="mt-kpis">'+
+    kpiCard('is-base','inbox','Open tickets',open,'<b>'+n+'</b> assigned to you in total',null)+
+    kpiCard('is-bad','alert','Overdue',over,open?'<b>'+pct(over,open)+'</b> of open tickets are past 240h':'Nothing open',open?over/open:0)+
+    kpiCard('is-warn','hourglass','Due within 48h',soon,open?'<b>'+pct(soon,open)+'</b> of open tickets':'Nothing open',open?soon/open:0)+
+    kpiCard('is-good','check-circle','Temporarily resolved',temp,'Working view \u00b7 not saved to the database',n?temp/n:0)+
+    '</div>';
+}
+function anyFilter(){ return !!(FILTER.q.trim()||FILTER.due!=='all'||FILTER.hideViewed); }
+function toolsHtml(){
+  const c={all:TICKETS.length,over:0,warn:0,ok:0};
+  TICKETS.forEach(function(t){ c[dueOf(t)]++; });
+  const chip=function(k,label,color){
+    return '<button type="button" class="mt-chip" data-due="'+k+'" aria-pressed="'+(FILTER.due===k)+'">'+
+      (color?'<span class="mt-chip-dot" style="--c:'+color+'" aria-hidden="true"></span>':'')+label+'<b>'+c[k]+'</b></button>';
+  };
+  // Sort control: field + current direction. Click to flip between oldest-first and newest-first.
+  const dirDesc=(SORT_DIR==='asc')?'Oldest first':'Newest first';
+  const arrow=(SORT_DIR==='asc')?'\u2191':'\u2193';
+  const sortBtn='<button type="button" class="mt-sort-btn" onclick="setSort(\'created\')" title="Sort by created date \u2014 click to reverse" aria-label="Sort by created date, '+dirDesc+'. Press to reverse.">'+
+    ic('calendar',15)+'<span>Created</span><span class="mt-sort-dir">'+dirDesc+'</span><span class="mt-sort-arrow" aria-hidden="true">'+arrow+'</span></button>';
+  return '<div class="mt-tools" role="search" aria-label="Filter tickets">'+
+    '<div class="mt-search"><label for="mtQ" class="mt-sr">Search ticket ID, title, country or status</label>'+ic('search',15)+
+      '<input type="search" id="mtQ" placeholder="Search ticket ID, title, country or status" autocomplete="off" value="'+esc(FILTER.q)+'"></div>'+
+    '<div class="mt-chips" role="group" aria-label="Time left">'+chip('all','All')+chip('over','Overdue','#d92d20')+chip('warn','Due \u2264 48h','#e0a019')+chip('ok','On track','#1f9d57')+'</div>'+
+    '<label class="mt-tog" for="mtHideViewed"><input type="checkbox" id="mtHideViewed"'+(FILTER.hideViewed?' checked':'')+'>Hide viewed</label>'+
+    '<div class="mt-tools-end"><span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
+    '<div class="mt-alert" id="mtPreviewErr" role="alert" hidden>'+ic('alert-triangle',14)+' Comment previews and incident-log status couldn\u2019t be loaded.'+
+      '<button type="button" class="mt-btn-sm" onclick="retryPreviews(this)">'+ic('refresh',12)+' Retry</button></div>'+
+  '</div>';
+}
+function sectionHtml(id,fn,open,title,cards,help,emptyMsg,tag){
+  return '<section id="'+id+'" class="mt-sec temp-section'+(open?' open':'')+'" aria-labelledby="'+id+'H">'+
+    '<div class="mt-sec-head"><h2 id="'+id+'H"><button type="button" class="temp-head" onclick="'+fn+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+id+'Body">'+
+      '<span class="mt-chev">'+CHEV+'</span><span class="temp-title">'+title+'</span> <span class="temp-count">'+cards.length+'</span></button></h2>'+
+      '<p class="mt-sec-help">'+help+'</p>'+(tag||'')+'</div>'+
+    '<div class="temp-body" id="'+id+'Body"><div class="mt-cards">'+(cards.length?cards.join(''):'<div class="mt-noresults">'+emptyMsg+'</div>')+'</div>'+
+      '<p class="mt-noresults mt-nomatch" hidden>No tickets here match your filters. <button type="button" class="mt-btn-sm" data-clear-filters>Clear filters</button></p></div>'+
+  '</section>';
+}
+// Show/hide cards for the active quick filters (no re-render: open panels + focus are kept).
+function applyFilters(){
+  const q=FILTER.q.trim().toLowerCase(); let shown=0,total=0;
+  document.querySelectorAll('.mt .mtc[data-sid]').forEach(function(card){
+    total++;
+    let ok=true;
+    if(FILTER.due!=='all' && card.getAttribute('data-due')!==FILTER.due) ok=false;
+    if(ok && FILTER.hideViewed && card.classList.contains('viewed')) ok=false;
+    if(ok && q && (card.getAttribute('data-q')||'').indexOf(q)<0) ok=false;
+    card.hidden=!ok; if(ok) shown++;
+  });
+  ['openSection','tempSection'].forEach(function(id){
+    const sec=document.getElementById(id); if(!sec) return;
+    const nr=sec.querySelector('.mt-nomatch'); if(!nr) return;
+    const has=sec.querySelectorAll('.mtc[data-sid]').length, vis=sec.querySelectorAll('.mtc[data-sid]:not([hidden])').length;
+    nr.hidden=!(has&&!vis);
+  });
+  const s=document.getElementById('mtShown');
+  if(s) s.textContent=anyFilter()?(shown+' of '+total+' shown'):(total+' ticket'+(total===1?'':'s'));
+}
+function clearFilters(){
+  FILTER.q=''; FILTER.due='all'; FILTER.hideViewed=false;
+  const qi=document.getElementById('mtQ'); if(qi) qi.value='';
+  const hv=document.getElementById('mtHideViewed'); if(hv) hv.checked=false;
+  document.querySelectorAll('.mt-chip[data-due]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-due')==='all')); });
+  applyFilters();
+  if(qi) qi.focus();
+}
+document.addEventListener('input',function(ev){ const el=ev.target; if(el&&el.id==='mtQ'){ FILTER.q=el.value; applyFilters(); } });
+document.addEventListener('change',function(ev){ const el=ev.target; if(el&&el.id==='mtHideViewed'){ FILTER.hideViewed=el.checked; applyFilters(); } });
+document.addEventListener('click',function(ev){
+  const t=ev.target; if(!t||!t.closest) return;
+  const b=t.closest('.mt-chip[data-due]');
+  if(b){ FILTER.due=b.getAttribute('data-due'); document.querySelectorAll('.mt-chip[data-due]').forEach(function(x){ x.setAttribute('aria-pressed',String(x===b)); }); applyFilters(); return; }
+  if(t.closest('[data-clear-filters]')) clearFilters();
+});
+async function retryPreviews(btn){ setBusy(btn,true,'Retrying\u2026'); try{ await fillLatestComments(); }finally{ setBusy(btn,false); } }
 
 function render(){
-  const u=A.getUser();const editor=isEditor();
-  const isAdmin=A.atLeast&&A.atLeast('admin');
+  const editor=isEditor();
   const isManager=(A.role&&A.role()==='manager');
   const n=(TICKETS?TICKETS.length:0);
-  // Illustrated gradient banner header (matches the live-dashboard section banners). The
-  // "Search ticket" action moved to the Unique Cases page (important-cases.html).
-  let html='<div class="mt-banner"><div class="mt-title"><h1>'+ic('ticket',20)+' My Tickets</h1></div><span class="mt-count tally-ph" data-tally="'+n+'">\u2014</span></div>';
-  // Managers don't carry a personal ticket bucket — show a tailored panel instead of the table.
+  const wrap=document.getElementById('wrap');
+  const root=function(inner){ const h='<div class="mt'+(FIRST_PAINT?' is-anim':'')+'">'+inner+'</div>'; FIRST_PAINT=false; return h; };
+  // Managers don't carry a personal ticket bucket — show a tailored panel instead of the board.
   if(isManager){
-    html+='<p class="sub">Times shown in '+esc(MY_TZ)+'.</p>'+
-      '<div class="mgr-panel">'+
-        '<div class="mgr-icon">'+ic('shield',30)+'</div>'+
-        '<h2>You\u2019re a manager \u2014 no tickets in your bucket</h2>'+
-        '<p>Managers don\u2019t get tickets assigned to them. You can still <b>search any ticket</b> across all quarters and <b>mark it important</b> to flag it for leadership discussion.</p>'+
-        '<div class="mgr-actions">'+
-          '<a class="btn" href="important-cases.html">'+ic('target')+' Search &amp; mark a ticket · Unique Cases</a>'+
-        '</div>'+
-      '</div>';
-    document.getElementById('wrap').innerHTML=html;return;
+    wrap.innerHTML=root(heroHtml(null)+'<div class="mt-kpis" aria-hidden="true"></div><section class="mt-card mgr-panel-x">'+
+      stateHtml('is-acc','shield','You\u2019re a manager \u2014 no tickets in your bucket',
+        'Managers don\u2019t get tickets assigned to them. You can still <b>search any ticket</b> across all quarters and <b>mark it important</b> to flag it for leadership discussion. Times shown in '+esc(MY_TZ)+'.',
+        '<a class="mt-btn" href="important-cases.html">'+ic('target',14)+' Search &amp; mark a ticket \u00b7 Unique Cases</a>')+'</section>');
+    return;
   }
-  if(!TICKETS.length){html+='<div class="empty">You have no open tickets assigned in the live quarter. 🎉</div>';document.getElementById('wrap').innerHTML=html;return;}
+  if(!n){
+    wrap.innerHTML=root(heroHtml(0)+kpiHtml()+'<section class="mt-card">'+
+      stateHtml('','check-circle','No open tickets','You have no open tickets assigned in the live quarter. \ud83c\udf89')+'</section>');
+    tallyHero();
+    return;
+  }
   sortTickets();   // order by the active sort (default: Created ascending -> newest ticket at bottom)
-  // Sort control (redesigned): a labelled pill showing the field + current direction. Click to flip
-  // between oldest-first and newest-first; the arrow + sub-label make the active direction obvious.
-  const _dirDesc = (SORT_DIR==='asc') ? 'Oldest first' : 'Newest first';
-  const _arrow   = (SORT_DIR==='asc') ? '\u2191' : '\u2193';
-  const sortBar=`<div class="mt-sortbar">
-      <span class="mt-sort-label">Sort by</span>
-      <button type="button" class="mt-sort-btn" onclick="setSort('created')" title="Sort by created date — click to reverse" aria-label="Sort by created date, ${_dirDesc}">
-        ${ic('calendar',15)}
-        <span class="mt-sort-field">Created</span>
-        <span class="mt-sort-sep"></span>
-        <span class="mt-sort-dir">${_dirDesc}</span>
-        <span class="mt-sort-arrow">${_arrow}</span>
-      </button>
-    </div>`;
-  // Split by temp-resolve state, preserving the TICKETS index (i) so latest-${i}/inc-btn-${i} wiring holds.
+  // Split by temp-resolve state, preserving the TICKETS index (i) so the per-card ids stay wired.
   const mainCards=[], tempCards=[];
   TICKETS.forEach((t,i)=>{ (TEMP_RESOLVED.has(String(t.shortId))?tempCards:mainCards).push(cardHtml(t,i,editor)); });
-
-  // Collapsible "Open Tickets" section (defaults to OPEN).
+  // Collapsible "Open tickets" (defaults to OPEN) + "Temporarily resolved" (defaults to closed).
   let openOpen='1'; try{ var _oo=localStorage.getItem(openOpenKey()); if(_oo!==null) openOpen=_oo; }catch(e){}
-  html+=sortBar+`<div id="openSection" class="temp-section${openOpen==='1'?' open':''}">
-    <button type="button" class="temp-head" onclick="toggleOpenSection()">
-      <span class="temp-caret" style="color:var(--o)">${ic('inbox',14)}</span>
-      <span class="temp-title">Open Tickets <span class="temp-count">${mainCards.length}</span></span>
-      <span class="temp-note">Tickets assigned to you and still open in the live quarter.</span>
-      <span class="temp-pm" aria-hidden="true"></span>
-    </button>
-    <div class="temp-body"><div class="mt-cards">`
-      + (mainCards.length?mainCards.join(''):`<div class="empty" style="padding:22px">All your tickets are temporarily resolved. 🎉</div>`)
-      + `</div></div>
-  </div>`;
-
-  // Collapsible "Temporarily Resolved" section below.
   let tempOpen='0'; try{ tempOpen=localStorage.getItem(tempOpenKey())||'0'; }catch(e){}
-  html+=`<div id="tempSection" class="temp-section${tempOpen==='1'?' open':''}">
-    <button type="button" class="temp-head" onclick="toggleTempSection()">
-      <span class="temp-caret">${ic('bar-chart',14)}</span>
-      <span class="temp-title">Temporarily Resolved <span class="temp-count">${tempCards.length}</span></span>
-      <span class="temp-note">Working view only \u2014 the shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.</span>
-      <span class="temp-pm" aria-hidden="true"></span>
-    </button>
-    <div class="temp-body"><div class="mt-cards">`
-      + (tempCards.length?tempCards.join(''):`<div class="empty" style="padding:22px">No temporarily resolved tickets. Flip a "Temp Resolve" toggle to move a ticket here.</div>`)
-      + `</div></div>
-  </div>`;
-
-  document.getElementById('wrap').innerHTML=html;
-  // Tally the "My Tickets (N)" count (spinner placeholder -> scramble -> count-up).
-  try{ if(A.tally) A.tally(document.querySelector('.mt-count'), n); }catch(e){}
+  const html=heroHtml(n)+kpiHtml()+toolsHtml()+
+    sectionHtml('openSection','toggleOpenSection()',openOpen==='1','Open tickets',mainCards,
+      'Tickets assigned to you and still open in the live quarter. Tick a card to mark it viewed.',
+      'All your tickets are temporarily resolved. \ud83c\udf89')+
+    sectionHtml('tempSection','toggleTempSection()',tempOpen==='1','Temporarily resolved',tempCards,
+      'The shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.',
+      'No temporarily resolved tickets. Flip a card\u2019s temp-resolve switch to move it here.',
+      '<span class="mt-sec-tag">'+ic('info',12)+' Working view only</span>');
+  wrap.innerHTML=root(html);
+  tallyHero();
   fillLatestComments();
   // Restore the panel that was left open (e.g. after a background re-render).
   if(OPEN_CARD && OPEN_WHICH){ const oi=TICKETS.findIndex(t=>String(t.shortId)===OPEN_CARD); if(oi>=0){ const _w=OPEN_WHICH; OPEN_CARD=null; OPEN_WHICH=null; togglePanel(oi,_w); } }
   syncCardStates();
+  applyFilters();
 }
 // Guarantee every card's viewed/temp class matches the current state Sets — defends against any
 // background re-render dropping a class the user just toggled.
@@ -1815,31 +1816,34 @@ function cardHtml(t,i,editor){
   const viewed=VIEWED.has(sid);
   const temp=TEMP_RESOLVED.has(sid);
   let cls=' row-'+ageColor(t.createDate);
-  const cmtN=(LATEST[sid]&&LATEST[sid].count)||0;   // known count (filled by fillLatestComments); 0 until loaded
-  return `<div class="mtc${viewed?' viewed':''}${temp?' temp':''}${cls}" id="card-${i}" data-sid="${esc(sid)}">
+  const known=LATEST_READY||!!LATEST[sid];
+  const cmtN=(LATEST[sid]&&LATEST[sid].count)||0;   // known count (filled by fillLatestComments); skeleton until loaded
+  const skl='<span class="mt-skel mt-skel-i" style="width:min(220px,60%);height:11px" aria-hidden="true"></span>';
+  const dq=esc((sid+' '+(t.title||'')+' '+(t.country||'')+' '+st).toLowerCase());
+  return `<div class="mtc${viewed?' viewed':''}${temp?' temp':''}${cls}" id="card-${i}" data-sid="${esc(sid)}" data-due="${rem.cls||'ok'}" data-q="${dq}">
     <div class="mtc-head">
-      <div class="mtc-cb${viewed?' on':''}" title="Mark as viewed" onclick="toggleViewed('${esc(sid)}',this)">${ic('check-circle',12)}</div>
+      <button type="button" class="mtc-cb${viewed?' on':''}" title="Mark as viewed" aria-label="Mark ${esc(sid)} as viewed" aria-pressed="${viewed?'true':'false'}" onclick="toggleViewed('${esc(sid)}',this)">${ic('check',12)}</button>
       <span class="mtc-ago">${esc(daysAgo(t.createDate))}</span>
       <span class="mtc-ago-short" title="${esc(daysAgo(t.createDate))}">${esc(daysAgoShort(t.createDate))}</span>
-      <span class="mtc-sbadge" title="${esc(st)}">${esc(letter)}</span>
+      <span class="mtc-sbadge" title="${esc(st)}" role="img" aria-label="Status: ${esc(st||'unknown')}">${esc(letter)}</span>
       ${sevTagHtml(t)}
-      <span class="mtc-mk emt${ticketIsNoEmt(t)?'':' off'}" title="No EMT ticket">${ic('no-entry',14)}</span>
-      <span class="mtc-mk sr${t.priority?'':' off'}" title="Station Request / Address Exclusion">${ic('map-pin',14)}</span>
+      <span class="mtc-mk emt${ticketIsNoEmt(t)?'':' off'}" title="No EMT ticket" role="img" aria-label="No EMT ticket">${ic('no-entry',14)}</span>
+      <span class="mtc-mk sr${t.priority?'':' off'}" title="Station Request / Address Exclusion" role="img" aria-label="Station Request / Address Exclusion">${ic('map-pin',14)}</span>
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
-      <button class="mtc-copy" title="Copy ticket ID" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
+      <button type="button" class="mtc-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
       ${t.title?('<span class="mtc-title" title="'+esc(t.title)+'">'+esc(t.title)+'</span>'):'<span class="mtc-title"></span>'}
       ${countryTagHtml(t)}
-      <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">No comments added</span>
+      <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">${known?'No comments added':skl}</span>
       <span class="mtc-head-right">
         <span class="mtc-pill mtc-pill-right ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
         <span class="mtc-icons mtc-icons-collapsed" id="ticons-c-${i}">${ticketIconsHtml(i,true)}</span>
-        <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)" style="display:none"><i></i></label>
+        <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" class="mt-sr" aria-label="Temporarily resolve ${esc(sid)} (working view only)" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)"><i></i></label>
       </span>
     </div>
     <div class="mtc-bar">
       <div class="mtc-zone cmt">
-        <button class="mtc-b cmt-cnt" id="cbtn-${i}" onclick="togglePanel(${i},'cmt')" title="View comments" aria-label="View comments">${ic('message',13)} <span class="cnt" id="cbadge-${i}">${cmtN}</span> <span class="mtc-caret">${ic('caret-down',12)||'\u25be'}</span></button>
-        <span class="mtc-last" id="clast-${i}"></span>
+        <button type="button" class="mtc-b cmt-cnt" id="cbtn-${i}" onclick="togglePanel(${i},'cmt')" title="View comments" aria-expanded="false" aria-controls="cpanel-${i}">${ic('message',13)}<span class="mt-sr">Comments:</span> <span class="cnt" id="cbadge-${i}">${known?cmtN:'\u2026'}</span> <span class="mtc-caret" aria-hidden="true">${ic('chevron-down',12)}</span></button>
+        <span class="mtc-last" id="clast-${i}">${known?'':skl}</span>
       </div>
       <div class="mtc-zone end">
         <span class="mtc-icons mtc-icons-bar" id="ticons-${i}">${ticketIconsHtml(i)}</span>
@@ -1873,7 +1877,9 @@ function ticketIconsHtml(i, mirror){
     const handler = f.kind==='important' ? `openMarkImportant('${sidAttr}',event)`
       : f.kind==='ilog' ? `openIncidentIcon(${i},event)`
       : `toggleAttach('${f.kind}','${sidAttr}',event)`;
-    return `<span class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)}" onclick="${handler}">${attImg(f.icon,'mtc-att-ic')}</span>`;
+    // Local on/off flags expose their state via aria-pressed; the two popup openers do not.
+    const pressed=(f.kind==='dtrace')?` aria-pressed="${on?'true':'false'}"`:'';
+    return `<button type="button" class="mtc-att${on}${mk}" data-kind="${f.kind}" data-sid="${sidAttr}" title="${esc(f.title)}" aria-label="${esc(f.label)} \u00b7 ${sidAttr}"${pressed} onclick="${handler}">${attImg(f.icon,'mtc-att-ic')}</button>`;
   }).join('');
 }
 // Render ONLY the 1st (Transporter Trace) + 4th (Mark important) flag toggles into the incident-log
@@ -1890,7 +1896,7 @@ function ilRenderHeadFlags(i){
     var f=ATTACH_FLAGS.filter(function(x){return x.kind===kind;})[0]; if(!f) return '';
     var on=ATTACH_SETS[f.kind].has(sid)?' on':'';
     var handler=f.kind==='important'?("openMarkImportant('"+sidAttr+"',event)"):("toggleAttach('"+f.kind+"','"+sidAttr+"',event)");
-    return '<span class="mtc-att'+on+'" data-kind="'+f.kind+'" data-sid="'+sidAttr+'" title="'+esc(f.title)+'" aria-label="'+esc(f.label)+'" onclick="'+handler+'">'+attImg(f.icon,'mtc-att-ic')+'</span>';
+    return '<button type="button" class="mtc-att'+on+'" data-kind="'+f.kind+'" data-sid="'+sidAttr+'" title="'+esc(f.title)+'" aria-label="'+esc(f.label)+'"'+(f.kind==='dtrace'?' aria-pressed="'+(on?'true':'false')+'"':'')+' onclick="'+handler+'">'+attImg(f.icon,'mtc-att-ic')+'</button>';
   }).join('');
 }
 // Fetch the latest comment + count per ticket and fill the "Latest comment" column.
@@ -1898,6 +1904,7 @@ function ilRenderHeadFlags(i){
 // { shortId: { at, by, type } }. Separate from the CSV LastUpdated* fields.
 let ACTIVITY={};
 let LATEST={}; // shortId -> {text,user,at,count}
+let LATEST_READY=false; // true once a /api/comments/latest answer (or cached copy) has been painted
 let HAS_LOG={}; // shortId -> true if the ticket already has >=1 incident log
 // The incident-log button for row i: "View" if a log exists, else "Add".
 function incidentBtnHtml(i){
@@ -1921,11 +1928,12 @@ async function fillLatestComments(){
   if(cached){
     if(cached.latest)LATEST=cached.latest;
     if(cached.activity)ACTIVITY=cached.activity;
+    if(cached.latest) LATEST_READY=true;
     if(cached.latest||cached.activity)TICKETS.forEach((t,i)=>paintLatestCell(i,LATEST[t.shortId]));
   }
   // Paint incident buttons from cached HAS_LOG first (instant), then refresh below.
   if(cached&&cached.hasLog){ HAS_LOG=cached.hasLog; TICKETS.forEach((t,i)=>repaintIncidentBtn(i)); }
-  let map={};
+  let map=null, failed=false;
   // Fetch latest comments, last-activity timestamps, and incident-log existence in parallel.
   try{
     const [rc,ra,rh]=await Promise.all([
@@ -1933,11 +1941,17 @@ async function fillLatestComments(){
       A.api('POST','/api/tickets/activity',{shortIds:ids}),
       A.api('POST','/api/incident-logs/exists',{shortIds:ids})
     ]);
-    if(rc.ok&&rc.data)map=rc.data;
+    if(rc.ok&&rc.data)map=rc.data; else failed=true;
     if(ra.ok&&ra.data)ACTIVITY=ra.data;
-    if(rh.ok&&rh.data)HAS_LOG=rh.data;
-  }catch(e){}
-  LATEST=map;
+    if(rh.ok&&rh.data)HAS_LOG=rh.data; else failed=true;
+  }catch(e){ failed=true; }
+  // Previews failed: keep any cached ones, mark the rest unavailable, and offer a Retry.
+  const perr=document.getElementById('mtPreviewErr'); if(perr) perr.hidden=!failed;
+  if(!map){
+    TICKETS.forEach((t,i)=>{ if(!LATEST[t.shortId]) paintLatestCell(i,null,true); repaintIncidentBtn(i); });
+    return;
+  }
+  LATEST=map; LATEST_READY=true;
   TICKETS.forEach((t,i)=>{ paintLatestCell(i,map[t.shortId]); repaintIncidentBtn(i); });
   // Persist the comment/activity/incident-log maps alongside the tickets cache.
   const c=readCache()||{};c.latest=LATEST;c.activity=ACTIVITY;c.hasLog=HAS_LOG;writeCache(c);
@@ -1959,9 +1973,15 @@ function activityMetaHtml(shortId){
 
 // Render the compact latest-comment preview in the CARD HEAD from a {text,user,at,count} object.
 // The comment icon + count sits next to the preview; clicking the head expands the full thread.
-function paintLatestCell(i,c){
+function paintLatestCell(i,c,unavailable){
   // Card model: keep the "View comments (N)" count badge in sync from the latest-comment payload.
   const t=TICKETS[i]; if(!t)return;
+  if(unavailable){
+    const b=document.getElementById('cbadge-'+i); if(b) b.textContent='?';
+    const l=document.getElementById('clast-'+i); if(l) l.textContent='';
+    const h=document.getElementById('chead-'+i); if(h){ h.textContent='Comment preview unavailable'; h.classList.add('mtc-head-last-empty'); }
+    return;
+  }
   const n=(c&&typeof c.count==='number')?c.count:0;
   const badge=document.getElementById('cbadge-'+i); if(badge) badge.textContent=n;
   // Last-comment preview (italic bold) shown next to the comments button while OPEN.
@@ -2010,10 +2030,14 @@ function closeAddComment(){document.getElementById('addCmtModal').style.display=
 // Entry point for the incident-log icon in the 4(+1)-icon row (actions bar + collapsed mirror).
 // No log yet -> straight to the Add-note popup. Already has one -> the view popup, which lists
 // every entry with Edit/Delete per entry (openEditIncident / deleteIncident, further below).
-function openIncidentIcon(i,ev){
+async function openIncidentIcon(i,ev){
+  const el=ev&&ev.currentTarget;
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
   const t=TICKETS[i]; if(!t) return;
-  openIncidentStructured(i);
+  if(el&&el.getAttribute('aria-busy')==='true') return;   // already fetching this ticket's log
+  // Inline busy state on the icon while the existing log is fetched (the popup opens afterwards).
+  setBusy(el,true);
+  try{ await openIncidentStructured(i); } finally { setBusy(el,false); }
 }
 window.openIncidentIcon=openIncidentIcon;
 // ALWAYS open the structured split form. If the user already has a log entry on this ticket, open
@@ -2077,7 +2101,9 @@ async function deleteIncidentFromForm(){
   if(!IL_EDIT_ID) return;
   const idx=INCIDENT_INDEX, id=IL_EDIT_ID, t=(idx!=null)?TICKETS[idx]:null;
   if(!await window.PHDConfirm({title:'Delete incident log',body:'Delete this incident log entry? This cannot be undone.',okLabel:'Delete',danger:true})) return;
-  const r=await A.api('DELETE','/api/incident-log/'+id);
+  const dbtn=document.getElementById('incidentDeleteBtn'); setBusy(dbtn,true,'Deleting\u2026');
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('DELETE','/api/incident-log/'+id); }catch(e){}
+  setBusy(dbtn,false);
   if(r.ok){
     closeIncidentLog();
     toast('Incident log deleted');
@@ -2108,20 +2134,20 @@ async function submitIncidentLog(){
   // Save is allowed even with empty fields — no required-field gate.
   err.style.display='none';
   const text=buildIncidentOutput();
-  const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';
+  const btn=document.getElementById('incidentBtn');btn.disabled=true;btn.textContent='Saving…';btn.setAttribute('aria-busy','true');
   const idx=INCIDENT_INDEX;
   if(IL_EDIT_ID){
     // Edit mode: update the existing entry via the same structured form.
     const editId=IL_EDIT_ID;
-    const r=await A.api('PUT','/api/incident-log/'+editId,{text});
-    btn.disabled=false;btn.textContent='Save';
+    let r={ok:false,status:0,data:null}; try{ r=await A.api('PUT','/api/incident-log/'+editId,{text}); }catch(e){}
+    btn.disabled=false;btn.textContent='Save';btn.removeAttribute('aria-busy');
     // Keep the popup OPEN; just lock the filled fields and refresh the latest-comment peek.
     if(r.ok){ ilApplyPostSaveState(editId); toast('Incident log updated'); refreshLatestComment(idx); }
     else{ err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'); err.style.display='block'; }
     return;
   }
-  const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text});
-  btn.disabled=false;btn.textContent='Save';
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text}); }catch(e){}
+  btn.disabled=false;btn.textContent='Save';btn.removeAttribute('aria-busy');
   if(r.ok){
     // Stay open. Mark the ticket as having a log, repaint the row icon, and flip the modal into edit
     // mode against the newly-created entry's id so the next Save updates it (no duplicate).
@@ -2138,15 +2164,32 @@ let VIEW_INC_ITEMS=[]; // current popup's entries, used by Copy all
 async function openViewIncident(i){
   VIEW_INC_INDEX=i;
   const t=TICKETS[i];
-  const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log');
-  const list=(r.ok&&Array.isArray(r.data))?r.data:[];
-  // Only entries the current user added, newest first (the API returns oldest first).
-  const mine=list.filter(e=>e.mine).reverse();
   const copyBtn=document.getElementById('viewIncidentCopyBtn');
   // Fill the head icons (clipboard title, copy, close) — static HTML can't call ic().
   (function(){ var a=document.getElementById('viewIncidentIcon'); if(a)a.innerHTML=ic('clipboard',16);
     document.querySelectorAll('.ilog-copy-ic').forEach(function(s){s.innerHTML=ic('copy',12);});
     document.querySelectorAll('.ilog-close-ic').forEach(function(s){s.innerHTML=ic('close',12)||'\u2715';}); })();
+  // Open straight away with skeleton entries shaped like the loaded list, then fill it in.
+  var tt0=document.getElementById('viewIncidentTitleText'); if(tt0) tt0.textContent='Incident log \u00b7 '+t.shortId;
+  if(copyBtn)copyBtn.style.display='none';
+  const listBox=document.getElementById('viewIncidentList');
+  const sk=(w,h)=>'<span class="mt-skel" style="width:'+w+';height:'+h+'px"></span>';
+  const ent='<div>'+sk('45%',10)+sk('100%',12)+sk('80%',12)+'</div>';
+  listBox.setAttribute('aria-busy','true');
+  listBox.innerHTML='<span class="mt-sr" role="status">Loading incident log\u2026</span><div class="mt-mskel" aria-hidden="true">'+ent+ent+'</div>';
+  document.getElementById('viewIncidentModal').style.display='flex';
+  let r=null; try{ r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log'); }catch(e){}
+  if(VIEW_INC_INDEX!==i) return;   // closed / reopened for another ticket meanwhile
+  listBox.removeAttribute('aria-busy');
+  if(!(r&&r.ok&&Array.isArray(r.data))){
+    VIEW_INC_ITEMS=[];
+    listBox.innerHTML='<div class="mtc-perr" role="alert">'+ic('alert-triangle',14)+' Couldn\u2019t load the incident log for '+esc(t.shortId)+'.'+
+      '<button type="button" class="mt-btn-sm" onclick="openViewIncident('+i+')">'+ic('refresh',12)+' Retry</button></div>';
+    return;
+  }
+  const list=r.data;
+  // Only entries the current user added, newest first (the API returns oldest first).
+  const mine=list.filter(e=>e.mine).reverse();
   if(!mine.length){
     // No log exists for this user -> inform via popup.
     VIEW_INC_ITEMS=[];
@@ -2198,7 +2241,7 @@ function renderIncidentList(shortId,items){
         '<div class="ilog-who">'+ic('users',13)+' by <b>'+esc(e.user)+'</b>'+(when?('<span class="ilog-when">'+ic('clock',11)+' '+when+'</span>'):'')+'</div>'+
         '<div class="ilog-actions">'+
           '<button class="btn sec mini" onclick="openEditIncident(\''+esc(e.id)+'\')">'+ic('edit',12)+' Edit</button>'+
-          '<button class="btn danger mini" onclick="deleteIncident(\''+esc(e.id)+'\')">'+ic('trash',12)+' Delete</button>'+
+          '<button type="button" class="btn danger mini" onclick="deleteIncident(\''+esc(e.id)+'\',this)">'+ic('trash',12)+' Delete</button>'+
         '</div>'+
       '</div>'+
       '<div class="ilog-text">'+esc(e.text)+'</div>'+
@@ -2266,15 +2309,17 @@ async function submitEditIncident(){
   const err=document.getElementById('editIncidentErr');
   if(!text){err.textContent='Enter the incident details.';err.style.display='block';return;}
   err.style.display='none';
-  const btn=document.getElementById('editIncidentBtn');btn.disabled=true;btn.textContent='Saving…';
-  const r=await A.api('PUT','/api/incident-log/'+EDIT_INC_ID,{text});
-  btn.disabled=false;btn.textContent='Save changes';
+  const btn=document.getElementById('editIncidentBtn');setBusy(btn,true,'Saving\u2026');
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('PUT','/api/incident-log/'+EDIT_INC_ID,{text}); }catch(e){}
+  setBusy(btn,false);
   if(r.ok){closeEditIncident();toast('Incident log updated');if(VIEW_INC_INDEX!=null){refreshLatestComment(VIEW_INC_INDEX);openViewIncident(VIEW_INC_INDEX);}}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
-async function deleteIncident(id){
+async function deleteIncident(id,btn){
   if(!await window.PHDConfirm({title:'Delete incident log',body:'Delete this incident log entry? This cannot be undone.',okLabel:'Delete',danger:true}))return;
-  const r=await A.api('DELETE','/api/incident-log/'+id);
+  setBusy(btn,true,'Deleting\u2026');
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('DELETE','/api/incident-log/'+id); }catch(e){}
+  setBusy(btn,false);
   if(r.ok){toast('Incident log deleted');if(VIEW_INC_INDEX!=null){refreshLatestComment(VIEW_INC_INDEX);openViewIncident(VIEW_INC_INDEX);}}
   else{window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Failed (HTTP '+r.status+')')});}
 }
@@ -2287,10 +2332,10 @@ async function submitAddComment(){
   const text=ta.value.trim();
   if(!text){err.textContent='Enter a comment first.';err.style.display='block';return;}
   err.style.display='none';
-  const btn=document.getElementById('addCmtBtn');btn.disabled=true;btn.textContent='Adding…';
+  const btn=document.getElementById('addCmtBtn');setBusy(btn,true,'Adding\u2026');
   const idx=ADD_CMT_INDEX;
-  const r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text});
-  btn.disabled=false;btn.textContent='Add comment';
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments',{text}); }catch(e){}
+  setBusy(btn,false);
   if(r.ok){closeAddComment();toast('Comment added to '+t.shortId);refreshLatestComment(idx);}
   else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
 }
@@ -2298,10 +2343,15 @@ async function submitAddComment(){
 async function openCmt(i){
   const t=TICKETS[i];
   document.getElementById('cmtTitle').textContent='Comments · '+t.shortId;
-  document.getElementById('cmtList').innerHTML='<p style="color:#879596">Loading…</p>';
+  const box=document.getElementById('cmtList');
+  const sk=(w,h)=>'<span class="mt-skel" style="width:'+w+';height:'+h+'px"></span>';
+  const ent='<div>'+sk('40%',10)+sk('95%',12)+'</div>';
+  box.setAttribute('aria-busy','true');
+  box.innerHTML='<span class="mt-sr" role="status">Loading comments\u2026</span><div class="mt-mskel" aria-hidden="true">'+ent+ent+ent+'</div>';
   document.getElementById('cmtModal').style.display='flex';
-  const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments');
-  if(!r.ok){document.getElementById('cmtList').innerHTML='<p style="color:#ff5252">Could not load comments.</p>';return;}
+  let r=null; try{ r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/comments'); }catch(e){}
+  box.removeAttribute('aria-busy');
+  if(!(r&&r.ok)){box.innerHTML='<div class="mtc-perr" role="alert">'+ic('alert-triangle',14)+' Couldn\u2019t load the comments.<button type="button" class="mt-btn-sm" onclick="openCmt('+i+')">'+ic('refresh',12)+' Retry</button></div>';return;}
   const list=Array.isArray(r.data)?r.data:[];
   if(!list.length){document.getElementById('cmtList').innerHTML='<p style="color:#879596">No comments yet on this ticket.</p>';return;}
   document.getElementById('cmtList').innerHTML=list.map(c=>`

@@ -153,7 +153,8 @@ renderQuarterCards();
   function syncEmpty(){
     var e=document.getElementById('extLinksEmpty'); if(!e)return;
     var none=loaded && !Object.keys(links).length;
-    e.textContent=isAdmin?'No external links yet. Use Add External link to add one.':'No external links yet.';
+    var m=document.getElementById('extLinksEmptyMsg')||e;
+    m.textContent=isAdmin?'No external links yet. Use Add External link to add one.':'No external links yet.';
     e.hidden=!none;
   }
   function appendLink(l){
@@ -323,7 +324,7 @@ renderQuarterCards();
     closeModal();
   }
   if(isAdmin){
-    var h=document.querySelector('#linksSec .home-sec-h');
+    var h=document.querySelector('#linksSec .hm-card-head');
     if(h && !document.getElementById('elAddBtn')){
       var b=document.createElement('button');
       b.type='button'; b.className='el-add-btn'; b.id='elAddBtn';
@@ -334,20 +335,68 @@ renderQuarterCards();
     }
   }
 
+  // ---- Loading / error states for the External links fetch ----
+  // While loading: skeleton tiles in #extLinks, aria-busy on the section, a polite status message.
+  // On failure: a styled error card with a Retry button that re-runs the same request.
+  var sec=document.getElementById('linksSec');
+  var statusEl=document.getElementById('extLinksStatus');
+  var errBox=document.getElementById('extLinksErr');
+  var errMsg=document.getElementById('extLinksErrMsg');
+  var retryBtn=document.getElementById('extLinksRetry');
+  var loading=false;
+  function say(t){ if(statusEl) statusEl.textContent=t; }
+  function skelTile(){
+    return '<div class="nav-tile nt-skel-tile" aria-hidden="true">'+
+      '<div class="hm-skel-row"><span class="hm-skel" style="width:42px;height:42px;border-radius:10px"></span>'+
+        '<div class="hm-skel-col"><span class="hm-skel" style="width:38%;height:12px;border-radius:99px"></span><span class="hm-skel" style="width:70%;height:16px"></span></div></div>'+
+      '<span class="hm-skel" style="width:92%;height:11px"></span><span class="hm-skel" style="width:64%;height:11px"></span>'+
+      '<span class="hm-skel" style="width:34%;height:12px;margin-top:8px"></span>'+
+    '</div>';
+  }
+  function setLoading(on){
+    loading=on;
+    if(sec){ if(on) sec.setAttribute('aria-busy','true'); else sec.removeAttribute('aria-busy'); }
+  }
+  function showLoadErr(msg){
+    var g=grid(); if(g) g.innerHTML='';
+    var e=document.getElementById('extLinksEmpty'); if(e) e.hidden=true;
+    if(errMsg) errMsg.textContent=msg;
+    if(errBox) errBox.hidden=false;
+    say('External links failed to load.');
+  }
   // Fetch after the base tiles have rendered; never blocks the page and nothing is cached.
-  (async function(){
-    try{
-      var r=await A.api('GET','/api/external-links');
-      if(!r.ok||!Array.isArray(r.data)){
-        var e=document.getElementById('extLinksEmpty');
-        if(e){ e.textContent='Could not load external links.'; e.hidden=false; }
-        return;
-      }
-      loaded=true;
-      r.data.forEach(appendLink);
-      syncEmpty();
-    }catch(e){}
-  })();
+  async function loadLinks(){
+    if(loading)return;
+    var g=grid();
+    Object.keys(links).forEach(function(k){ delete links[k]; });
+    loaded=false;
+    if(errBox) errBox.hidden=true;
+    var e=document.getElementById('extLinksEmpty'); if(e) e.hidden=true;
+    if(g) g.innerHTML=skelTile()+skelTile()+skelTile();
+    setLoading(true); say('Loading external links\u2026');
+    var r;
+    try{ r=await A.api('GET','/api/external-links'); }
+    catch(err){ r=null; }
+    setLoading(false);
+    if(!r){ showLoadErr('We couldn\u2019t reach the server. Check your connection and try again.'); return; }
+    if(!r.ok||!Array.isArray(r.data)){
+      showLoadErr('The server couldn\u2019t return the links right now (HTTP '+r.status+'). Please try again.');
+      return;
+    }
+    if(g) g.innerHTML='';
+    loaded=true;
+    r.data.forEach(appendLink);
+    syncEmpty();
+    say(r.data.length?(r.data.length+' external link'+(r.data.length===1?'':'s')+' loaded.'):'No external links yet.');
+  }
+  if(retryBtn) retryBtn.addEventListener('click',function(){
+    loadLinks().then(function(){
+      // Keep keyboard focus sensible: first link on success, Retry again on failure.
+      if(errBox&&!errBox.hidden){ retryBtn.focus(); return; }
+      var first=grid()&&grid().querySelector('a.nav-tile'); if(first) first.focus();
+    });
+  });
+  loadLinks();
 })();
 
 // ---- Comparison-table mini charts: labeled 3-point trend (Before -> Q2 -> Q3) per row. ----
@@ -356,16 +405,17 @@ renderQuarterCards();
 // `data-dir="up"` = higher is better; `data-dir="down"` = lower is better.
 function renderCmpSparks(){
   var cells=document.querySelectorAll('.cmp-spark[data-vals]'); if(!cells.length)return;
-  var W=220, H=80, L=22, R=22, T=16, B=12;            // small margins so value labels aren't clipped
+  // Consistent palette for every row: navy line + soft area, white points, the 2026 (last) point in
+  // orange to match the highlighted 2026 column. Only the first and last values are labelled so the
+  // labels stay readable at this size; the full series is in the aria-label (and the table itself).
+  var W=200, H=56, L=8, R=8, T=16, B=6;
+  var NAVY='#1f2a40', ACC='#ec7211';
   var fmt=function(v){ v=Math.round(v*10)/10; return (v>=1000)?Math.round(v).toLocaleString():String(v); };
   cells.forEach(function(td){
     var vals=(td.getAttribute('data-vals')||'').split(',').map(function(v){return parseFloat(v);}).filter(function(v){return !isNaN(v);});
     if(vals.length<2)return;
-    var dir=td.getAttribute('data-dir')||'up';
     var n=vals.length;
-    // Improvement? up-metrics: last>first; down-metrics: last<first.
-    var improved=(dir==='down')?(vals[n-1]<vals[0]):(vals[n-1]>vals[0]);
-    var C=improved?'#4ade80':'#ff5252';
+    var unit=td.getAttribute('data-unit')||'';
     // Y scale over the real values with a little headroom.
     var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
     if(mn===mx){ mn=mn*0.9; mx=mx*1.1||1; }
@@ -377,19 +427,22 @@ function renderCmpSparks(){
     var line=pts.map(function(p,i){ return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }).join(' ');
     var area=line+' L'+pts[n-1][0].toFixed(1)+' '+(T+innerH)+' L'+pts[0][0].toFixed(1)+' '+(T+innerH)+' Z';
     var gid='spg'+Math.random().toString(36).slice(2,8);
-    // No axis lines/gridlines/tick labels — just the value label above (or below) each point.
-    var vlab='';
-    pts.forEach(function(p,i){
-      var above=(p[1]>T+12); vlab+='<text x="'+p[0].toFixed(1)+'" y="'+((above?p[1]-6:p[1]+12)).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+C+'">'+fmt(vals[i])+'</text>';
-    });
-    var dots=pts.map(function(p,i){ var last=(i===n-1); return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(last?3.2:2.6)+'" fill="'+(last?C:'#fff')+'" stroke="'+C+'" stroke-width="1.5"/>'; }).join('');
-    td.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="year trend 2021 to 2026">'+
+    var lab=function(i,anchor,col){
+      // Above the point (below it when the point is near the top); first label runs right, last runs left.
+      var p=pts[i], y=(p[1]-T<2)?p[1]+14:p[1]-6;
+      return '<text x="'+(anchor==='start'?p[0]-4:p[0]+4).toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="'+anchor+'" font-size="10" font-weight="800" fill="'+col+'">'+fmt(vals[i])+'</text>';
+    };
+    var dots=pts.map(function(p,i){ var last=(i===n-1); return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(last?3.6:2.4)+'" fill="'+(last?ACC:'#fff')+'" stroke="'+(last?'#fff':NAVY)+'" stroke-width="1.5"/>'; }).join('');
+    var years=[2021,2022,2023,2024,2025,2026].slice(-n);
+    var desc='Trend '+years[0]+' to '+years[n-1]+': '+vals.map(function(v,i){ return years[i]+' '+fmt(v)+unit; }).join(', ');
+    td.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="'+desc+'">'+
       '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
-        '<stop offset="0" stop-color="'+C+'" stop-opacity=".22"/><stop offset="1" stop-color="'+C+'" stop-opacity="0"/>'+
+        '<stop offset="0" stop-color="'+NAVY+'" stop-opacity=".16"/><stop offset="1" stop-color="'+NAVY+'" stop-opacity="0"/>'+
       '</linearGradient></defs>'+
+      '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+(T+innerH)+'" y2="'+(T+innerH)+'" stroke="#e2e6ea" stroke-width="1"/>'+
       '<path d="'+area+'" fill="url(#'+gid+')"/>'+
-      '<path d="'+line+'" fill="none" stroke="'+C+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
-      dots+vlab+
+      '<path d="'+line+'" fill="none" stroke="'+NAVY+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+      dots+lab(0,'start','#5c6773')+lab(n-1,'end','#9a4100')+
     '</svg>';
   });
 }
