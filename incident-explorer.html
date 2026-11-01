@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<title>Incident Explorer · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================================
+   Incident Explorer — same visual language as page-zero.html / errors-in-resolved.html:
+   dark navy hero (grid texture + orange glow + orange left rule), the fixed full-width 'All regions'
+   KPI card, the full-width path bar, then one full-width section per level stacked one below the other
+   (Regions > Countries > States > Cities > SIDs > Issue types > Root causes > Resolutions > Driver types > tickets).
+   Scoped under .iex (a size container).
+   (theme.css / app-light.css are intentionally not loaded, as on page-zero.html.)
+   ===================================================================================== */
+:root{
+  --page:#f4f3ef; --ink:#1b2026; --mut:#5c6773; --mut2:#818284; --line:#e2e6ea; --soft:#f5f6f8;
+  --blue:#2b66c1; --blue-bg:#e6f0fc; --green:#1a7a43; --green-bg:#e5f5ec; --red:#b42318; --red-bg:#fdecec;
+  --amber:#b5530a; --amber-bg:#fff3e8; --acc:#ec7211; --acc-ink:#9a4100; --acc-bg:#fff3e8; --focus:#f0a35a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:var(--ink);min-height:100vh}
+.top-bar{background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:var(--ink);line-height:1}
+.wrap{width:auto!important;max-width:none!important;margin:0 15px!important;padding:0 0 28px!important}
+#wrap.wrap{padding-top:0!important}
+
+.iex{container-type:inline-size;color:var(--ink)}
+.iex button,.iex select,.iex input{font:inherit;text-transform:none}
+.iex :is(button,a,input,select,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.iex-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.iex-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 26px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.iex-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.iex-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.iex-hero-in{position:relative;display:flex;gap:16px;align-items:flex-start;min-width:0}
+.iex-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.iex-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.iex-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08}
+.iex-hero-sub{margin-top:9px;max-width:80ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.iex-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
+.iex-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  font-size:.8em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.iex-chip svg{flex-shrink:0;color:#ffb26b}
+.iex-chip>span,.iex-chip>label{color:rgba(233,237,243,.62);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase}
+.iex-chip select{appearance:none;-webkit-appearance:none;border:none;border-radius:6px;background:rgba(255,255,255,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23ffb26b' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 7px center;
+  color:#fff;font-weight:800;padding:2px 24px 2px 8px;cursor:pointer}
+.iex-chip select option{color:var(--ink)}
+.iex-sk-d{display:inline-block;width:140px;height:12px;border-radius:5px;background:linear-gradient(90deg,rgba(255,255,255,.10) 25%,rgba(255,255,255,.24) 40%,rgba(255,255,255,.10) 60%);background-size:400% 100%;animation:iexShim 1.4s ease infinite}
+
+/* ---- Fixed 'All regions' card (full width, directly under the hero) ---- */
+.iex-fixed{margin:16px 0}
+.iex-fixed:empty{display:none}
+.iex-fixed>.iex-card{padding:18px 20px}
+
+/* ---- Path bar (full width, under All regions) ---- */
+.iex-path{position:relative;z-index:1;display:flex;align-items:center;gap:10px 14px;margin:16px 0;padding:10px 12px 10px 16px;background:#fff;border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.iex-path-k{flex-shrink:0;font-size:.66em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.iex-crumbs{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 2px;list-style:none}
+.iex-crumbs li{display:inline-flex;align-items:center;gap:2px;min-width:0}
+.iex-crumbs li+li::before{content:'';width:14px;height:14px;flex-shrink:0;color:#a0a8b1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath d='M4.5 2.5 8 6l-3.5 3.5' fill='none' stroke='%23a0a8b1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center}
+.iex-crumb{display:inline-flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:260px;padding:4px 9px;border:1px solid transparent;border-radius:8px;background:none;color:var(--ink);cursor:pointer;text-align:left;transition:background .15s,border-color .15s}
+.iex-crumb small{font-size:.6em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut2);line-height:1.3}
+.iex-crumb b{font-size:.86em;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.iex-crumb:hover{background:var(--blue-bg);border-color:#c4def6}
+.iex-crumb[aria-current="page"]{background:var(--acc-bg);border-color:#f7c99c;cursor:default}
+.iex-crumb[aria-current="page"] b{color:var(--acc-ink)}
+.iex-reset{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#3a4552;font-size:.82em;font-weight:800;cursor:pointer;transition:background .15s,border-color .15s}
+.iex-reset:hover:not(:disabled){background:var(--soft);border-color:#c4ccd4}
+.iex-reset:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---- Layout: one full-width column of stacked level sections ---- */
+.iex-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18)}
+.iex-secs{display:flex;flex-direction:column;gap:14px;min-width:0}
+.iex-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:14px}
+.iex-kick{font-size:.66em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
+.iex-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;overflow-wrap:anywhere}
+.iex-head-sub{margin-top:4px;font-size:.82em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums}
+.iex-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border:none;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;transition:background .15s,transform .12s}
+.iex-btn:hover{background:#0f1420}
+.iex-btn:active{transform:translateY(1px)}
+.iex-btn.is-ghost{background:#fff;color:#3a4552;border:1px solid #d4dade}
+.iex-btn.is-ghost:hover{background:var(--soft)}
+.iex-btn.is-acc{background:var(--acc);color:#fff;box-shadow:0 8px 18px -10px rgba(236,114,17,.9)}
+.iex-btn.is-acc:hover{background:#d4620b}
+.iex-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.iex-spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:iexSpin .8s linear infinite}
+@keyframes iexSpin{to{transform:rotate(360deg)}}
+
+/* Summary KPIs */
+.iex-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@container (min-width:760px){.iex-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.iex-kpi{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:10px;padding:14px 16px 13px;background:#fff}
+.iex-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#1f2a40)}
+.iex-kpi-l{display:flex;align-items:center;gap:8px;font-size:.68em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.iex-kpi-ic{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.iex-kpi-n{margin-top:10px;font-size:2.05em;font-weight:800;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.iex-kpi-s{margin-top:7px;font-size:.78em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums}
+.iex-kpi-s b{color:var(--ink);font-weight:800}
+.iex-kpi-bar{margin-top:10px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.iex-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.iex-kpi.k-base{--k:#1f2a40}
+.iex-kpi.k-good{--k:#1f9d57;--kb:var(--green-bg);--ki:var(--green)}
+.iex-kpi.k-warn{--k:var(--acc);--kb:var(--amber-bg);--ki:var(--amber)}
+.iex-kpi.k-blue{--k:#2b66c1;--kb:var(--blue-bg);--ki:var(--blue)}
+
+/* Level section: header (level · parent, item count, search / export, Successfully Resolved on the right),
+   divider, then the item chips (wrapping; long lists scroll inside the section). */
+.iex-sec{container-type:inline-size;padding:16px 18px;min-width:0}
+.iex-sec-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.iex-sec-tl{flex:1 1 260px;min-width:0}
+.iex-sec-h{font-size:1.1em;font-weight:800;letter-spacing:-.3px;line-height:1.25;overflow-wrap:anywhere}
+.iex-sec-h span{color:var(--mut);font-weight:700}
+.iex-sec-ctl{flex:0 1 300px;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.iex-sec-ctl .iex-search{flex:1 1 auto}
+.iex-seltot{flex:0 0 auto;text-align:right}
+.iex-seltot-l{font-size:.66em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--green)}
+.iex-seltot-n{margin-top:4px;font-size:1.7em;font-weight:800;letter-spacing:-.8px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+@container (max-width:620px){
+  .iex-sec-ctl{order:3;flex:1 1 100%;justify-content:flex-start}
+}
+.iex-search{position:relative}
+.iex-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.iex-search input{width:100%;font-size:.88em;padding:8px 12px 8px 33px;border:1px solid #d4dade;border-radius:8px;background:var(--soft);color:var(--ink)}
+.iex-search input:focus{background:#fff;border-color:#c4ccd4}
+.iex-search input::-webkit-search-cancel-button{cursor:pointer}
+/* Item chips */
+.iex-its{list-style:none;display:flex;flex-wrap:wrap;gap:8px;max-height:min(300px,45vh);overflow:auto;padding:3px;scrollbar-width:thin}
+.iex-it{display:inline-flex;align-items:baseline;gap:8px;max-width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);text-align:left;cursor:pointer;
+  transition:background .15s,border-color .15s,box-shadow .15s}
+.iex-it:hover{background:#fafbfc;border-color:#c4ccd4;box-shadow:0 8px 18px -14px rgba(20,30,50,.6)}
+.iex-it-nm{min-width:0;max-width:34ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86em;font-weight:800}
+.iex-it-n{font-size:.84em;font-weight:800;font-variant-numeric:tabular-nums}
+.iex-it-p{font-size:.74em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.iex-it[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 8px 18px -10px rgba(236,114,17,.9)}
+.iex-it[aria-pressed="true"] .iex-it-p{color:rgba(255,255,255,.88)}
+/* States / Cities / SIDs: equal-width paged grids (pagination replaces the internal scroll). 5 columns, then
+   3 / 2 / 1 as the section narrows; the per-page count stays fixed (25 / 25 / 10). Name truncates, count + % right. */
+.iex-its.is-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-height:none;overflow:visible}
+.iex-its.is-grid>li{display:flex;min-width:0}
+.iex-its.is-grid .iex-it{display:flex;width:100%;max-width:none;min-width:0}
+.iex-its.is-grid .iex-it-nm{flex:1 1 auto;max-width:none}
+.iex-its.is-grid .iex-it-n,.iex-its.is-grid .iex-it-p{flex-shrink:0}
+@container (max-width:900px){.iex-its.is-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (max-width:560px){.iex-its.is-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:340px){.iex-its.is-grid{grid-template-columns:minmax(0,1fr)}}
+/* Root causes / Resolutions: 4 equal columns (paged at 40 = 10 rows of 4 only when longer), then 2 / 1. */
+.iex-its.is-grid.is-g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@container (max-width:760px){.iex-its.is-grid.is-g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:420px){.iex-its.is-grid.is-g4{grid-template-columns:minmax(0,1fr)}}
+.iex-nomatch{padding:10px 4px;font-size:.84em;font-weight:600;color:var(--mut)}
+/* Issue-type groups (Issue Standardization categories): 3 equal-width panels per row (then 2 / 1, same order);
+   each panel stacks its chips vertically at full panel width. */
+.iex-grps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;padding:3px}
+@container (max-width:900px){.iex-grps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:560px){.iex-grps{grid-template-columns:minmax(0,1fr)}}
+.iex-grp{min-width:0;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fcfcfd}
+.iex-grps .iex-its{flex-direction:column;flex-wrap:nowrap;max-height:none;overflow:visible;padding:0;gap:6px}
+.iex-grps .iex-it{display:flex;width:100%;max-width:none;min-width:0}
+.iex-grps .iex-it-nm{flex:1 1 auto;max-width:none}
+.iex-grps .iex-it-n,.iex-grps .iex-it-p{flex-shrink:0}
+.iex-grp-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--line);font-size:.9em;font-weight:800;color:var(--ink)}
+.iex-grp-nm{min-width:0;overflow-wrap:anywhere}
+.iex-grp-n{margin-left:auto;font-size:.84em;font-weight:800;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Export buttons (Issue types / Root causes / Resolutions / Driver types / ticket section): soft accent fill,
+   download icon, ticket count in the label, 'CSV' caption; sits beside the Successfully Resolved count. */
+.iex-sec-end{flex:0 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px 18px}
+@container (max-width:620px){.iex-sec-end{flex:1 1 100%;justify-content:space-between}}
+.iex-exp{display:inline-flex;align-items:center;gap:8px;min-height:40px;max-width:100%;padding:9px 16px;border:0;border-radius:10px;
+  background:linear-gradient(135deg,#c84f0c,#a83a07);color:#fff;font-size:.86em;font-weight:800;line-height:1.2;cursor:pointer;font-variant-numeric:tabular-nums;
+  box-shadow:0 4px 12px rgba(232,89,12,.28),0 1px 2px rgba(0,0,0,.08);
+  transition:background .15s,box-shadow .15s,transform .12s}
+.iex-exp-ic{flex-shrink:0;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.iex-exp-ic svg{width:16px;height:16px}
+.iex-exp-l{min-width:0;white-space:nowrap}
+.iex-exp-cap{flex-shrink:0;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.22);font-size:.7em;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.iex-exp:hover:not(:disabled){background:linear-gradient(135deg,#b8400c,#9a3412);box-shadow:0 8px 20px rgba(232,89,12,.38),0 2px 4px rgba(0,0,0,.1);transform:translateY(-1px)}
+.iex-exp:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 6px rgba(232,89,12,.28),0 1px 2px rgba(0,0,0,.08)}
+.iex .iex-exp:focus-visible{outline:3px solid #9a3412;outline-offset:2px;box-shadow:0 0 0 6px rgba(247,144,30,.45),0 4px 12px rgba(232,89,12,.28)}
+.iex-exp:disabled{cursor:not-allowed}
+.iex-exp:disabled:not([aria-busy]){background:#e3e7eb;color:#8a95a1;box-shadow:none;transform:none}
+.iex-exp:disabled:not([aria-busy]) .iex-exp-ic{color:#8a95a1}
+.iex-exp:disabled:not([aria-busy]) .iex-exp-cap{background:rgba(138,149,161,.16);color:#8a95a1}
+.iex-exp[aria-busy="true"]{cursor:progress;opacity:.85}
+.iex-exp .iex-spin{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+@media (prefers-reduced-motion:reduce){
+  .iex-exp,.iex-exp:hover:not(:disabled),.iex-exp:active:not(:disabled){transition:none;transform:none}
+}
+
+/* Tickets table */
+.iex-scroll{overflow:auto;border:1px solid var(--line);border-radius:8px}
+.iex-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.86em;min-width:860px}
+.iex-tbl th,.iex-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle}
+.iex-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8;border-bottom:1px solid var(--line);font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;color:#3a4552}
+.iex-tbl thead th small{font-weight:700;letter-spacing:.3px;text-transform:none;color:var(--mut2)}
+.iex-tbl tbody tr:last-child td{border-bottom:none}
+.iex-tbl tbody tr:hover td{background:#fafbfc}
+.iex-tbl a{color:var(--blue);font-weight:800;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.iex-tbl a:hover{text-decoration:underline}
+.iex-tbl a svg{opacity:.6}
+/* The title column takes every pixel the other columns leave (max-width:0 + width:100% trick). */
+.iex-tbl td.iex-tcell{width:100%;max-width:0;min-width:200px}
+.iex-title{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#2a3340}
+.iex-dt{white-space:nowrap;font-variant-numeric:tabular-nums;color:#2a3340}
+.iex-geo{display:block;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#2a3340}
+/* GeoNames attribution (CC BY 4.0) under the layout */
+.iex-attr{margin:14px 4px 0;font-size:.74em;font-weight:600;color:var(--mut)}
+.iex-attr:empty{display:none}
+.iex-attr a{color:var(--blue)}
+.iex-open{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:99px;background:var(--amber-bg);color:var(--amber);font-size:.9em;font-weight:800;white-space:nowrap}
+.iex-pager{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-top:12px}
+.iex-showing{font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.iex-pages{display:flex;align-items:center;gap:4px;list-style:none;flex-wrap:wrap}
+.iex-pg{min-width:34px;height:32px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid #d4dade;border-radius:7px;background:#fff;color:#3a4552;font-size:.82em;font-weight:800;cursor:pointer;font-variant-numeric:tabular-nums}
+.iex-pg:hover:not(:disabled):not([aria-current]){background:var(--soft)}
+.iex-pg[aria-current="page"]{background:#161d2d;border-color:#161d2d;color:#fff;cursor:default}
+.iex-pg:disabled{opacity:.45;cursor:not-allowed}
+.iex-gap{padding:0 4px;color:var(--mut2);font-weight:800}
+
+/* ---- States ---- */
+.iex-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 20px;text-align:center;color:var(--mut)}
+.iex-empty-ic{width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:4px}
+.iex-empty-ic.is-err{background:var(--red-bg);color:var(--red)}
+.iex-empty h3{font-size:1.05em;font-weight:800;color:var(--ink)}
+.iex-empty p{font-size:.88em;max-width:52ch;line-height:1.5}
+.iex-empty code{font-size:.8em;padding:3px 8px;border-radius:6px;background:var(--soft);border:1px solid var(--line);color:#3a4552}
+.iex-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:iexShim 1.4s ease infinite}
+.iex-sk-row{display:flex;align-items:center;gap:10px;padding:8px 10px}
+@keyframes iexShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.iex-toast{position:fixed;right:20px;bottom:20px;z-index:50;display:flex;align-items:center;gap:12px;max-width:min(440px,calc(100vw - 40px));padding:11px 12px 11px 16px;border-radius:10px;background:#161d2d;color:#fff;font-size:.86em;font-weight:700;box-shadow:0 16px 32px -16px rgba(20,30,50,.7)}
+.iex-toast.err{background:var(--red)}
+.iex-toast button{border:none;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;font-size:.86em;font-weight:800;padding:5px 10px;cursor:pointer}
+
+/* One orchestrated entrance: hero, All regions, path bar, then the level sections. */
+@keyframes iexUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.iex.is-anim .iex-hero{animation:iexUp .45s ease both}
+.iex.is-anim .iex-fixed{animation:iexUp .5s ease .06s both}
+.iex.is-anim .iex-path{animation:iexUp .5s ease .12s both}
+.iex.is-anim .iex-secs{animation:iexUp .5s ease .18s both}
+
+@media (max-width:640px){
+  .iex-hero{padding:20px 18px 20px 22px}
+  .iex-hero h1{font-size:1.7em}
+  .iex-hero-ic{display:none}
+  .iex-path{flex-wrap:wrap;padding:10px}
+  .iex-path-k{flex-basis:100%}
+  .iex-reset{margin-left:auto}
+  .iex-sec,.iex-fixed>.iex-card{padding:14px}
+  .iex-kpi-n{font-size:1.7em}
+  .iex-it-nm{max-width:22ch}
+  .iex-crumb{max-width:170px}
+}
+@media (prefers-reduced-motion:reduce){
+  .iex *,.iex *::before,.iex *::after,.iex{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body data-nav-active="incident-explorer" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+
+<script src="icons.js"></script>
+<script src="api-config.js"></script>
+<script src="issue-types-data.js?v=4"></script>
+<script src="topbar-auth.js?v=215"></script>
+<script>
+(function(){
+var A=window.PHDAuth;
+var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
+var wrap=document.getElementById('wrap');
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
+// Percentage text: one decimal below 10% (so 0.4% does not read as 0%), whole numbers above.
+function pct(n,d){ if(!d) return '0%'; var p=n/d*100; return (p>0&&p<10?p.toFixed(1).replace(/\.0$/,''):String(Math.round(p)))+'%'; }
+function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
+function fmtUtc(iso){
+  var d=new Date(iso); if(!iso||isNaN(d.getTime())) return '\u2014';
+  try{ return new Intl.DateTimeFormat('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d); }catch(e){ return d.toISOString().slice(0,16).replace('T',' '); }
+}
+function fmtIst(iso){
+  var d=new Date(iso); if(!iso||isNaN(d.getTime())) return '\u2014';
+  try{ return d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' IST'; }catch(e){ return d.toISOString(); }
+}
+var EXT='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+
+// Level names (the API sends the same list as `levels`).
+var LEVELS_FB=['Region','Country','State','City','SID','Issue type','Root cause','Resolution','Driver type'];
+var YEARS=[2026,2025];
+var PAGE_SIZE=20;
+// The page is a stack of full-width level sections. Section d (0 = Regions ... 8 = Driver types) lists the
+// children of the node at S.sel.slice(0,d), with S.sel[d] highlighted; it shows once its parent level has a
+// selection (Regions always shows). When the selection is a leaf (a Driver type) a final ticket section follows.
+// Search boxes: only the States / Cities / SIDs sections (d = 2, 3, 4).
+// Export buttons: only the Issue types / Root causes / Resolutions / Driver types sections (d = 5..8, scope =
+// the section's parent node) and the final ticket section (scope = the selected Driver type).
+var SEARCH_SECS={2:1,3:1,4:1}, EXPORT_SECS={5:1,6:1,7:1,8:1};
+// Paged equal-width grids: section depth -> items per page (States 25 = 5x5, Cities 25 = 5x5, SIDs 10 = 5x2,
+// Root causes / Resolutions 40 = 10 rows of 4; the pager only shows when a list is longer than one page).
+var PAGED_SECS={2:25,3:25,4:10,6:40,7:40};
+// 4-column grids (Root causes, Resolutions); the other paged grids are 5 columns.
+var GRID4_SECS={6:1,7:1};
+// Default selection (no #path in the URL, and 'Start over'): the NA region, so its Countries section shows.
+var DEFAULT_REGION='NA';
+
+// ---- State ----
+// q: section depth -> search text (States / Cities / SIDs). dl: path length of the export in flight, or false.
+// pg: paged section depth -> { k:<parent path key>, p:<page> } (a page only applies under the same parent).
+var S={ year:2026, D:null, loading:true, err:'', sel:[], q:{}, pg:{}, first:true, dl:false };
+var T={ key:'', page:1, data:null, loading:false, err:'' };
+var NODES=[], BYKEY={};
+function keyOf(path){ return JSON.stringify(path); }
+
+// Index every node once: id -> { node, path, parent id, depth }.
+function indexTree(root){
+  NODES=[]; BYKEY={};
+  (function walk(n,path,parent){
+    var id=NODES.length; n.id=id;
+    NODES.push({ node:n, path:path, parent:parent, depth:path.length });
+    BYKEY[keyOf(path)]=id;
+    (n.c||[]).forEach(function(c){ walk(c,path.concat([c.k]),id); });
+  })(root,[],-1);
+}
+function rootN(){ return NODES[0]; }
+function selId(){ var id=BYKEY[keyOf(S.sel)]; return id==null?0:id; }
+function defaultPath(){ return BYKEY[keyOf([DEFAULT_REGION])]!=null?[DEFAULT_REGION]:[]; }
+// Level name of a node at `depth` (path length).
+function levelName(depth){
+  if(depth===0) return 'All regions';
+  return ((S.D&&S.D.levels)||LEVELS_FB)[depth-1]||LEVELS_FB[depth-1]||'';
+}
+function dispName(e){ return e.node.k; }
+function hasKids(n){ return !!(n.c&&n.c.length); }
+
+// ---- Hero ----
+function heroHtml(){
+  var opts=YEARS.map(function(y){ return '<option value="'+y+'"'+(y===S.year?' selected':'')+'>'+y+'</option>'; }).join('');
+  return '<header class="iex-hero"><div class="iex-hero-in"><span class="iex-hero-ic" aria-hidden="true">'+ic('globe',24)+'</span><div style="min-width:0">'+
+    '<p class="iex-eyebrow">Regions \u00b7 Drill-down</p><h1>Incident Explorer</h1>'+
+    '<p class="iex-hero-sub">Region \u2192 Country \u2192 State \u2192 City \u2192 SID \u2192 Issue \u2192 Root cause \u2192 Resolution \u2192 Driver type \u2192 Tickets</p>'+
+    '<ul class="iex-chips">'+
+      '<li class="iex-chip">'+ic('database',14)+'<span>Data source</span><b>SIM uploads \u00b7 tickets created in the year, resolved successfully by an agent</b></li>'+
+      '<li class="iex-chip">'+ic('clock',14)+'<span>As of</span><b id="iexAsOf"><span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span></b></li>'+
+      '<li class="iex-chip">'+ic('calendar',14)+'<label for="iexYear">Year</label><select id="iexYear">'+opts+'</select></li>'+
+    '</ul></div></div></header>';
+}
+function setHero(){
+  var a=$('iexAsOf'); if(!a) return;
+  var D=S.D, at=D&&D.source&&D.source.latestUploadAt;
+  a.textContent=S.loading?'':(D?(at?fmtIst(at):fmtIst(D.generatedAt)):'\u2014');
+  if(S.loading) a.innerHTML='<span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span>';
+}
+
+// ---- Path bar ----
+function pathHtml(){
+  if(!S.D) return '<span class="iex-path-k">Path</span><ol class="iex-crumbs"><li><span class="iex-skel" style="width:260px;height:26px"></span></li></ol>'+
+    '<button type="button" class="iex-reset" disabled>'+ic('refresh',14)+'Start over</button>';
+  var items=[{path:[],label:'All regions',val:num(rootN().node.n)+' tickets'}];
+  for(var i=1;i<=S.sel.length;i++){ var p=S.sel.slice(0,i); items.push({path:p,label:levelName(i),val:p[i-1]}); }
+  var h=items.map(function(it,i){
+    var last=i===items.length-1, id=BYKEY[keyOf(it.path)];
+    return '<li><button type="button" class="iex-crumb" data-go="'+id+'"'+(last?' aria-current="page"':'')+' title="'+esc(it.label+': '+it.val)+'">'+
+      '<small>'+esc(i===0?'Start':it.label)+'</small><b>'+esc(i===0?'All regions':it.val)+'</b></button></li>';
+  }).join('');
+  return '<span class="iex-path-k" id="iexPathK">Path</span><ol class="iex-crumbs" aria-labelledby="iexPathK">'+h+'</ol>'+
+    '<button type="button" class="iex-reset" id="iexReset"'+(keyOf(S.sel)!==keyOf(defaultPath())?'':' disabled')+'>'+ic('refresh',14)+'Start over</button>';
+}
+
+// ---- Level sections ----
+function levelPlural(depth){
+  var l=levelName(depth);
+  return l==='Country'?'Countries':l==='City'?'Cities':l+'s';
+}
+function byTickets(a,b){ return ((b.n||0)-(a.n||0))||(String(a.k)<String(b.k)?-1:String(a.k)>String(b.k)?1:0); }
+// Case- and accent-insensitive search key ('mexico' matches 'México').
+function foldTxt(s){ var t=String(s==null?'':s); try{ t=t.normalize('NFD'); }catch(e){} return t.replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+// The sections to show for the current selection: [{ d, pid, on:<selected child id or -1> }]. Section d lists
+// the children of the node at S.sel.slice(0,d); it stops at a leaf (that adds the final ticket section).
+function sectionLevels(){
+  var out=[];
+  for(var d=0;d<=S.sel.length;d++){
+    var pid=BYKEY[keyOf(S.sel.slice(0,d))]; if(pid==null) break;
+    if(!hasKids(NODES[pid].node)) break;
+    var on=d<S.sel.length?BYKEY[keyOf(S.sel.slice(0,d+1))]:null;
+    out.push({ d:d, pid:pid, on:on==null?-1:on });
+  }
+  return out;
+}
+// Children of a section, tickets desc then name, filtered by the section's search (if any).
+function sectionKids(s){
+  var kids=NODES[s.pid].node.c.slice().sort(byTickets), q=SEARCH_SECS[s.d]?foldTxt(S.q[s.d]||'').trim():'';
+  return { all:kids.length, list:q?kids.filter(function(c){ return foldTxt(c.k).indexOf(q)>=0; }):kids, q:q };
+}
+function itemHtml(c,pn,pname,depth,on){
+  return '<li><button type="button" class="iex-it" data-go="'+c.id+'" aria-pressed="'+on+'"'+(on?' aria-current="true"':'')+
+      ' title="'+esc(levelName(depth)+': '+c.k)+'" aria-label="'+esc(c.k+', '+num(c.n)+' tickets, '+pct(c.n,pn.n)+' of '+pname)+'">'+
+    '<span class="iex-it-nm">'+esc(c.k)+'</span><span class="iex-it-n">'+num(c.n)+'</span><span class="iex-it-p">'+pct(c.n,pn.n)+'</span></button></li>';
+}
+// The chips of one section (or the 'no matches' state). Issue types are grouped by Issue Standardization category.
+function sectionListHtml(s){
+  var pe=NODES[s.pid], pn=pe.node, pname=pe.depth?dispName(pe):'All regions', k=sectionKids(s), dep=s.d+1;
+  if(!k.list.length) return '<p class="iex-nomatch" role="status">No '+esc(levelPlural(dep).toLowerCase())+' match \u201c'+esc((S.q[s.d]||'').trim())+'\u201d.</p>';
+  var groups=levelName(dep)==='Issue type'?issueGroups(k.list):null;
+  if(groups) return '<div class="iex-grps">'+groups.map(function(g,gi){
+    var gid='iexG'+gi;
+    return '<section class="iex-grp" aria-labelledby="'+gid+'"><h3 class="iex-grp-h" id="'+gid+'"><span class="iex-grp-nm">'+esc(g.name)+'</span>'+
+        '<span class="iex-grp-n">'+num(g.n)+' tickets \u00b7 '+pct(g.n,pn.n)+'</span></h3>'+
+      '<ul class="iex-its">'+g.kids.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul></section>';
+  }).join('')+'</div>';
+  var per=PAGED_SECS[s.d];
+  if(per){
+    // Search filters first, then the filtered list is paged (same sort order across pages).
+    var p=secPage(s,k.list.length), page=k.list.slice((p-1)*per,p*per);
+    return '<ul class="iex-its is-grid'+(GRID4_SECS[s.d]?' is-g4':'')+'" aria-labelledby="iexSecH'+s.d+'">'+page.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul>'+
+      secPagerHtml(s,k.list.length,p,per);
+  }
+  return '<ul class="iex-its" aria-labelledby="iexSecH'+s.d+'">'+k.list.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul>';
+}
+// ---- Paged sections (States / Cities / SIDs) ----
+function setSecPage(d,p){ S.pg[d]={ k:keyOf(S.sel.slice(0,d)), p:p }; }
+// Current page of a paged section, clamped to its (filtered) length; page 1 under a different parent.
+function secPage(s,len){
+  var st=S.pg[s.d], last=Math.max(1,Math.ceil(len/PAGED_SECS[s.d]));
+  var p=st&&st.k===keyOf(S.sel.slice(0,s.d))?st.p:1;
+  return Math.min(Math.max(1,p),last);
+}
+// On a (re)build: open the page holding the selected item; otherwise keep the page (same parent) or page 1.
+function openSelPage(s){
+  var list=sectionKids(s).list, at=-1;
+  if(s.on>=0) for(var i=0;i<list.length;i++){ if(list[i].id===s.on){ at=i; break; } }
+  if(at>=0) setSecPage(s.d,Math.floor(at/PAGED_SECS[s.d])+1);
+  else setSecPage(s.d,secPage(s,list.length));
+}
+// Prev / page numbers (ellipsis for many pages) / Next + 'Showing x-y of N'. Hidden when one page holds everything.
+function secPagerHtml(s,total,p,per){
+  var pages=Math.ceil(total/per); if(pages<=1) return '';
+  var noun=levelPlural(s.d+1), lc=noun==='SIDs'?noun:noun.toLowerCase();
+  var b=function(pg,lab,txt,dis,cur){
+    return '<button type="button" class="iex-pg" data-sd="'+s.d+'" data-spage="'+pg+'" aria-label="'+esc(lab)+'"'+(dis?' disabled':'')+(cur?' aria-current="page"':'')+'>'+txt+'</button>';
+  };
+  var nums=pageList(p,pages).map(function(x){
+    if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
+    return '<li>'+b(x,noun+' page '+x+' of '+pages,x,false,x===p)+'</li>';
+  }).join('');
+  return '<div class="iex-pager"><p class="iex-showing">Showing '+num((p-1)*per+1)+'\u2013'+num(Math.min(total,p*per))+' of '+num(total)+'</p>'+
+    '<nav aria-label="'+esc(noun)+' pages"><ul class="iex-pages">'+
+      '<li>'+b(p-1,'Previous page of '+lc,'\u2039 Prev',p<=1,false)+'</li>'+nums+
+      '<li>'+b(p+1,'Next page of '+lc,'Next \u203a',p>=pages,false)+'</li></ul></nav></div>';
+}
+// Page change: re-render only that section's grid + pager (selection and lower sections stay as they are).
+function goSecPage(d,p){
+  setSecPage(d,p); renderSectionList(d);
+  var cur=document.querySelector('#iexL'+d+' .iex-pg[aria-current="page"]'); if(cur) cur.focus({preventScroll:true});
+  var sec=$('iexSec'+d); if(sec&&sec.getBoundingClientRect&&sec.getBoundingClientRect().top<0) sec.scrollIntoView({block:'start'});
+  announce(levelPlural(d+1)+' page '+p+'.');
+}
+function sectionCountText(s){
+  var k=sectionKids(s), dep=s.d+1, noun=k.all===1?levelName(dep).toLowerCase():levelPlural(dep).toLowerCase();
+  if(levelName(dep)==='SID') noun=k.all===1?'SID':'SIDs';
+  if(k.q) return num(k.list.length)+' of '+num(k.all)+' '+noun+' match';
+  var g=levelName(dep)==='Issue type'?issueGroups(NODES[s.pid].node.c):null;
+  return num(k.all)+' '+noun+(g?' in '+num(g.length)+' group'+(g.length===1?'':'s'):'')+', most tickets first \u00b7 successfully resolved tickets only';
+}
+function totHtml(n,lab){
+  return '<div class="iex-seltot" title="'+esc(lab)+'"><p class="iex-seltot-l" aria-hidden="true">Successfully Resolved</p>'+
+    '<p class="iex-seltot-n" aria-hidden="true">'+num(n)+'</p><p class="iex-sr">'+esc(lab)+'</p></div>';
+}
+// Export button: the tickets under S.sel.slice(0,len) (the section's scope). The count in the label is that
+// node's n = the rows /export writes for the same path (both are the successful agent resolves under it).
+var DL_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+function exportCount(len){ var id=BYKEY[keyOf(S.sel.slice(0,len))]; return id==null?0:(NODES[id].node.n||0); }
+function exportBtn(len){
+  var busy=S.dl===len, cnt=exportCount(len), path=S.sel.slice(0,len);
+  var lbl='Export '+num(cnt)+' ticket'+(cnt===1?'':'s'), scope=path.length?path.join(' \u00b7 '):'All regions';
+  return '<button type="button" class="iex-exp" data-export="'+len+'" aria-label="'+esc(busy?'Preparing the CSV for '+scope:lbl+' for '+scope+' as CSV')+'"'+
+      (S.dl!==false||!cnt?' disabled':'')+(busy?' aria-busy="true"':'')+(!cnt?' title="No tickets to export"':'')+'>'+
+    (busy?'<span class="iex-exp-ic"><span class="iex-spin" aria-hidden="true"></span></span><span class="iex-exp-l">Preparing\u2026</span>':
+      '<span class="iex-exp-ic">'+DL_SVG+'</span><span class="iex-exp-l">'+esc(lbl)+'</span><span class="iex-exp-cap" aria-hidden="true">CSV</span>')+'</button>';
+}
+function searchBox(s){
+  var dep=s.d+1, pe=NODES[s.pid], lv=levelName(dep), id='iexQ'+s.d;
+  return '<div class="iex-search" role="search" aria-label="'+esc(levelPlural(dep))+' in '+esc(dispName(pe))+'"><label for="'+id+'" class="iex-sr">Search '+esc(lv==='SID'?'SIDs':levelPlural(dep).toLowerCase())+' in '+esc(dispName(pe))+'</label>'+
+    ic('search',15)+'<input type="search" id="'+id+'" data-q="'+s.d+'" placeholder="Find a '+esc(lv==='SID'?'SID':lv.toLowerCase())+'\u2026" autocomplete="off" value="'+esc(S.q[s.d]||'')+'"></div>';
+}
+function sectionHtml(s){
+  var pe=NODES[s.pid], pn=pe.node, dep=s.d+1, pname=pe.depth?dispName(pe):'All regions', hid='iexSecH'+s.d;
+  var title=esc(levelPlural(dep))+(pe.depth?' <span>\u00b7 '+esc(pname)+'</span>':'');
+  var lab='Successfully Resolved '+num(pn.n)+' in '+pname;
+  // Search sections: search box, then the total. Export sections: Export button + total side by side (.iex-sec-end).
+  var right=SEARCH_SECS[s.d]?'<div class="iex-sec-ctl">'+searchBox(s)+'</div>'+totHtml(pn.n,lab):
+    EXPORT_SECS[s.d]?'<div class="iex-sec-end">'+exportBtn(s.d)+totHtml(pn.n,lab)+'</div>':totHtml(pn.n,lab);
+  return '<section class="iex-card iex-sec" id="iexSec'+s.d+'" aria-labelledby="'+hid+'"><div class="iex-sec-head"><div class="iex-sec-tl">'+
+      '<p class="iex-kick">'+esc(levelName(dep))+(pe.depth?' \u00b7 in '+esc(levelName(pe.depth))+' '+esc(pname):'')+'</p>'+
+      '<h2 class="iex-sec-h" id="'+hid+'">'+title+'</h2><p class="iex-head-sub" id="iexN'+s.d+'">'+sectionCountText(s)+'</p></div>'+
+      right+'</div>'+
+    '<div id="iexL'+s.d+'">'+sectionListHtml(s)+'</div></section>';
+}
+// Final section: the tickets of the selected Driver type (leaf), titled with its name, with its Export.
+function finalHtml(e){
+  var n=e.node, name=dispName(e);
+  return '<section class="iex-card iex-sec" id="iexTickets" aria-labelledby="iexTH"><div class="iex-sec-head"><div class="iex-sec-tl">'+
+      '<p class="iex-kick">Tickets \u00b7 '+esc(levelName(e.depth))+'</p><h2 class="iex-sec-h" id="iexTH">'+esc(name)+'</h2>'+
+      '<p class="iex-head-sub">'+num(n.n)+' ticket'+(n.n===1?'':'s')+' \u00b7 sorted by created date, newest first \u00b7 '+PAGE_SIZE+' per page</p></div>'+
+      '<div class="iex-sec-end">'+exportBtn(S.sel.length)+totHtml(n.n,'Successfully Resolved '+num(n.n)+' in '+name)+'</div></div>'+
+    '<div id="iexTBody">'+ticketsInner(e)+'</div></section>';
+}
+// Keep each list's highlighted chip in view by scrolling that list only (never the page).
+function chipsIntoView(){
+  var box=$('iexSecs'); if(!box) return;
+  Array.prototype.forEach.call(box.querySelectorAll('.iex-its,.iex-grps'),function(ul){
+    if(ul.scrollHeight<=ul.clientHeight) return;
+    var b=ul.querySelector('[aria-pressed="true"]'); if(!b) return;
+    var ut=ul.getBoundingClientRect(), bt=b.getBoundingClientRect();
+    if(bt.top<ut.top||bt.bottom>ut.bottom) ul.scrollTop+=bt.top-ut.top-(ul.clientHeight-b.offsetHeight)/2;
+  });
+}
+
+// ---- Right panel ----
+function kpi(cls,icon,label,val,sub,ratio){
+  return '<div class="iex-kpi '+cls+'"><p class="iex-kpi-l"><span class="iex-kpi-ic">'+ic(icon,14)+'</span>'+label+'</p>'+
+    '<p class="iex-kpi-n">'+val+'</p><p class="iex-kpi-s">'+sub+'</p>'+
+    (ratio==null?'':'<div class="iex-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+// FIXED 'All regions' section: reads ONLY S.D.summary (server incident-explorer.js `summary`, built over
+// every ticket created in the year, never filtered by a path), so it does not change with the selection.
+// Successfully Resolved / AUTO-SIM / Rule are mutually exclusive; their % is of Total Tickets.
+function fixedHtml(){
+  var s=S.D.summary, tk=s.created||0, mins=s.immediateMinutes;
+  var win='resolved within '+mins+' min of creation';
+  return '<section class="iex-card" aria-labelledby="iexFixH"><div class="iex-head"><div style="min-width:0">'+
+      '<p class="iex-kick">Fixed \u00b7 whole '+S.D.year+' data set</p><h2 id="iexFixH">All regions</h2>'+
+      '<p class="iex-head-sub">Every ticket created in '+S.D.year+'. Does not change with the selections below.</p></div></div>'+
+    '<div class="iex-kpis">'+
+      kpi('k-base','inbox','Total Tickets',num(tk),'Created in '+S.D.year,null)+
+      kpi('k-good','check-circle','Successfully Resolved',num(s.agent),'<b>'+pct(s.agent,tk)+'</b> of the selection',tk?s.agent/tk:0)+
+      kpi('k-blue','bolt','Imm. Resolved By AUTO-SIM',num(s.autosim),'<b>'+pct(s.autosim,tk)+'</b> of the selection',tk?s.autosim/tk:0)+
+      kpi('k-warn','book','Imm. Resolved By Rule',num(s.rule),'<b>'+pct(s.rule,tk)+'</b> of the selection',tk?s.rule/tk:0)+
+    '</div>'+
+    '<p class="iex-head-sub" style="margin-top:10px">Successfully Resolved = resolved by an agent. AUTO-SIM = closed by AutoSIM as \u201cImmediately Resolved\u201d; '+
+      'Rule = closed through the auto-resolve rule as \u201cAutomatically Closed\u201d; both '+esc(win)+'.</p></section>';
+}
+
+// Issue-type groups = the Issue Standardization page categories (window.IZ_CATS, the shared
+// issue-types-data.js that issue-types.html renders). Panel order (3 per row): GROUP_ORDER first, then any
+// other taxonomy category in that page's order, then 'Other / Not specified' (types in no category:
+// 'Issue not specified', anything else) last. Empty groups are hidden and the rest flow in the same order;
+// cards inside a group: tickets desc, then name A-Z. Returns null when the taxonomy did not load.
+var OTHER_GROUP='Other / Not specified';
+var GROUP_ORDER=['Weapon & Robbery','Pet','Physical / Severe Outcome','Detention / Impeding','Sexual','Abuse, Intimidation & Discrimination'];
+function typeKey(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase(); }
+var TYPE_CAT=null;
+function issueGroups(kids){
+  var cats=window.IZ_CATS||[]; if(!cats.length) return null;
+  if(!TYPE_CAT){ TYPE_CAT={}; cats.forEach(function(cat,gi){ (cat.types||[]).forEach(function(ty){ TYPE_CAT[typeKey(ty.type)]=gi; }); }); }
+  var out=cats.map(function(c,i){ return { name:c.category, i:i, n:0, kids:[] }; }), other={ name:OTHER_GROUP, n:0, kids:[] };
+  kids.forEach(function(c){ var gi=TYPE_CAT[typeKey(c.k)], g=gi==null?other:out[gi]; g.kids.push(c); g.n+=c.n; });
+  var rank=function(g){ var r=GROUP_ORDER.map(typeKey).indexOf(typeKey(g.name)); return r<0?GROUP_ORDER.length:r; };
+  out.sort(function(a,b){ return (rank(a)-rank(b))||(a.i-b.i); });
+  out.push(other);
+  out.forEach(function(g){ g.kids.sort(function(a,b){ return (b.n-a.n)||(String(a.k)<String(b.k)?-1:String(a.k)>String(b.k)?1:0); }); });
+  return out.filter(function(g){ return g.kids.length; });
+}
+function pageList(p,last){
+  var out=[], add=function(x){ if(out[out.length-1]!==x) out.push(x); };
+  for(var i=1;i<=last;i++){
+    if(i===1||i===last||Math.abs(i-p)<=1||(p<=3&&i<=4)||(p>=last-2&&i>=last-3)) add(i);
+    else add('gap');
+  }
+  return out;
+}
+function ticketsInner(e){
+  if(T.loading&&!T.data){
+    var sk=function(px){ return '<td><span class="iex-skel" style="width:'+px+'px;height:12px"></span></td>'; };
+    var r=''; for(var i=0;i<6;i++) r+='<tr>'+sk(90)+'<td><span class="iex-skel" style="width:'+(50+(i*13)%40)+'%;height:12px"></span></td>'+sk(70)+sk(80)+sk(50)+sk(110)+sk(110)+'</tr>';
+    return '<div class="iex-scroll" aria-hidden="true"><table class="iex-tbl"><thead><tr><th>Ticket ID</th><th>Title</th><th>State</th><th>City</th><th>Zip</th><th>Created</th><th>Resolved</th></tr></thead><tbody>'+r+'</tbody></table></div>';
+  }
+  if(T.err) return '<div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',24)+'</span><h3>Couldn\u2019t load the tickets</h3><p>'+esc(T.err)+'</p>'+
+    '<button type="button" class="iex-btn" id="iexTRetry">'+ic('refresh',14)+'Retry</button></div>';
+  var d=T.data; if(!d) return '';
+  if(!d.total) return '<div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',24)+'</span><h3>No tickets here</h3><p>This node has no tickets.</p></div>';
+  var rows=d.rows.map(function(t){
+    var u=safeUrl(t.url);
+    var idc=u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(t.id)+' (opens in a new tab)">'+esc(t.id)+EXT+'</a>':esc(t.id);
+    var res=t.isResolved?'<span class="iex-dt">'+esc(t.resolved?fmtUtc(t.resolved):'\u2014')+'</span>':'<span class="iex-open">\u2014 open</span>';
+    var geo=function(v){ return '<td><span class="iex-geo"'+(v?' title="'+esc(v)+'"':'')+'>'+esc(v||'\u2014')+'</span></td>'; };
+    return '<tr><td>'+idc+'</td><td class="iex-tcell"><span class="iex-title" title="'+esc(t.title)+'">'+esc(t.title||'\u2014')+'</span></td>'+
+      geo(t.state)+geo(t.city)+geo(t.zip)+'<td><span class="iex-dt">'+esc(fmtUtc(t.created))+'</span></td><td>'+res+'</td></tr>';
+  }).join('');
+  var from=(d.page-1)*d.pageSize+1, to=Math.min(d.total,d.page*d.pageSize);
+  var pg=pageList(d.page,d.pages).map(function(x){
+    if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
+    return '<li><button type="button" class="iex-pg" data-page="'+x+'"'+(x===d.page?' aria-current="page"':'')+' aria-label="Page '+x+'">'+x+'</button></li>';
+  }).join('');
+  return '<div class="iex-scroll" tabindex="0" role="region" aria-label="Tickets, page '+d.page+' of '+d.pages+'"'+(T.loading?' aria-busy="true" style="opacity:.6"':'')+'><table class="iex-tbl"><thead><tr>'+
+      '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">State</th><th scope="col">City</th><th scope="col">Zip</th><th scope="col" aria-sort="descending">Created <small>UTC \u00b7 newest first</small></th><th scope="col">Resolved <small>UTC</small></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="iex-pager"><p class="iex-showing">Showing '+num(from)+'\u2013'+num(to)+' of '+num(d.total)+'</p>'+
+    (d.pages>1?'<nav aria-label="Ticket pages"><ul class="iex-pages">'+
+      '<li><button type="button" class="iex-pg" data-page="'+(d.page-1)+'"'+(d.page<=1?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button></li>'+pg+
+      '<li><button type="button" class="iex-pg" data-page="'+(d.page+1)+'"'+(d.page>=d.pages?' disabled':'')+' aria-label="Next page">Next \u203a</button></li></ul></nav>':'')+
+    '</div>';
+}
+
+function sectionsSkeleton(){
+  var c='<li><span class="iex-it" aria-hidden="true" style="cursor:default"><span class="iex-skel" style="width:70px;height:12px"></span><span class="iex-skel" style="width:40px;height:12px"></span></span></li>';
+  return '<section class="iex-card iex-sec" aria-hidden="true"><span class="iex-skel" style="width:120px;height:10px"></span><span class="iex-skel" style="width:200px;height:20px;margin:8px 0 16px"></span><ul class="iex-its">'+c+c+c+c+c+c+'</ul></section>';
+}
+function fixedSkeleton(){
+  var k='<div class="iex-kpi" aria-hidden="true"><span class="iex-skel" style="width:55%;height:10px"></span><span class="iex-skel" style="width:45%;height:26px;margin-top:12px"></span><span class="iex-skel" style="width:70%;height:9px;margin-top:9px"></span></div>';
+  return '<section class="iex-card" aria-hidden="true"><span class="iex-skel" style="width:160px;height:10px"></span><span class="iex-skel" style="width:260px;height:20px;margin:8px 0 16px"></span><div class="iex-kpis">'+k+k+k+k+'</div></section>';
+}
+function errorHtml(){
+  return '<section class="iex-card"><div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',26)+'</span><h3>We couldn\u2019t load the Incident Explorer</h3>'+
+    '<p>The server didn\u2019t send the '+S.year+' drill-down. Check your connection, then try again.</p>'+(S.err?'<code>'+esc(S.err)+'</code>':'')+
+    '<button type="button" class="iex-btn" id="iexRetry">'+ic('refresh',14)+'Retry</button></div></section>';
+}
+function renderSections(){
+  var m=$('iexSecs'); if(!m) return;
+  if(S.loading){ m.setAttribute('aria-busy','true'); m.innerHTML=sectionsSkeleton(); return; }
+  m.removeAttribute('aria-busy');
+  if(!S.D){ m.innerHTML=errorHtml(); return; }
+  if(!rootN().node.n){ m.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets for '+S.D.year+'</h3><p>No ticket in the uploaded data was created in '+S.D.year+' and resolved successfully by an agent. Pick another year above.</p></div></section>'; return; }
+  var e=NODES[selId()], secs=sectionLevels();
+  secs.forEach(function(s){ if(PAGED_SECS[s.d]) openSelPage(s); });
+  m.innerHTML=secs.map(sectionHtml).join('')+(e.depth&&!hasKids(e.node)?finalHtml(e):'');
+  chipsIntoView();
+}
+// Search typing re-renders only that section's chips and count (the input keeps focus).
+function renderSectionList(d){
+  var s=null; sectionLevels().forEach(function(x){ if(x.d===d) s=x; }); if(!s) return;
+  var l=$('iexL'+d), n=$('iexN'+d);
+  if(l) l.innerHTML=sectionListHtml(s);
+  if(n) n.textContent=sectionCountText(s);
+}
+// Fixed 'All regions' card, full width under the hero (selection-independent). Empty (hidden) on a
+// load error or an empty year: the sections area shows that message.
+function renderFixed(){
+  var f=$('iexFixed'); if(!f) return;
+  if(S.loading){ f.setAttribute('aria-busy','true'); f.innerHTML=fixedSkeleton(); return; }
+  f.removeAttribute('aria-busy');
+  f.innerHTML=S.D&&rootN().node.n?fixedHtml():'';
+}
+function renderPath(){ var p=$('iexPath'); if(p) p.innerHTML=pathHtml(); }
+// GeoNames postal-code data is CC BY 4.0: credit it wherever the derived State / City are shown.
+function renderAttr(){
+  var a=$('iexAttr'); if(!a) return;
+  var g=S.D&&S.D.geo; if(!g){ a.innerHTML=''; return; }
+  a.innerHTML='State and city are derived from zip codes using GeoNames postal code data (<a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">geonames.org</a>), '+
+    'licensed under <a href="'+esc(safeUrl(g.licenseUrl)||'https://creativecommons.org/licenses/by/4.0/')+'" target="_blank" rel="noopener noreferrer">'+esc(g.license||'CC BY 4.0')+'</a>'+
+    (g.downloaded?', downloaded '+esc(g.downloaded):'')+'. Zips that cannot be matched show as Unknown.';
+}
+function renderAll(){ renderFixed(); renderPath(); renderSections(); setHero(); renderAttr(); }
+
+function shell(){
+  wrap.innerHTML='<div class="iex'+(S.first?' is-anim':'')+'"><div id="iexLive" class="iex-sr" role="status" aria-live="polite" aria-atomic="true"></div>'+
+    heroHtml()+
+    '<div class="iex-fixed" id="iexFixed"></div>'+
+    '<nav class="iex-path" id="iexPath" aria-label="Drill-down path"></nav>'+
+    '<div class="iex-secs" id="iexSecs"></div>'+
+    '<p class="iex-attr" id="iexAttr"></p><div id="iexToast" class="iex-toast" hidden></div></div>';
+}
+
+// ---- Selection ----
+function announce(msg){ var l=$('iexLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+function writeHash(){
+  try{ history.replaceState(null,'','#year='+S.year+(S.sel.length?'&path='+encodeURIComponent(JSON.stringify(S.sel)):'')); }catch(e){}
+}
+function readHash(){
+  var h=String(location.hash||'').replace(/^#/,''), out={};
+  h.split('&').forEach(function(kv){ var i=kv.indexOf('='); if(i>0){ try{ out[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1)); }catch(e){} } });
+  var y=Number(out.year); if(YEARS.indexOf(y)>=0) S.year=y;
+  if(out.path){ try{ var p=JSON.parse(out.path); if(Array.isArray(p)&&p.every(function(x){ return typeof x==='string'; })) S.sel=p.slice(0,9); }catch(e){} }
+}
+// Select a path. Sections whose parent changed are rebuilt from scratch (their search is cleared).
+function setSel(path){
+  var old=S.sel, i=0;
+  while(i<old.length&&i<path.length&&old[i]===path[i]) i++;
+  Object.keys(S.q).forEach(function(d){ if(Number(d)>i) delete S.q[d]; });
+  S.sel=path.slice();
+}
+function select(id){
+  var e=NODES[id]; if(!e) return;
+  var same=id===selId();
+  setSel(e.path);
+  writeHash();
+  renderAll();
+  // The final section (a Driver type, the leaf) lists its tickets.
+  if(e.depth&&!hasKids(e.node)&&(T.key!==keyOf(S.sel)+'|'+S.year||(!T.data&&!T.loading))) loadTickets(1);
+  if(!same) announce((e.depth?levelName(e.depth)+' '+dispName(e):'All regions')+' selected: '+num(e.node.n)+' tickets.'+
+    (hasKids(e.node)?' '+levelPlural(e.depth+1)+' listed below.':' Tickets listed below.'));
+}
+function startOver(){
+  setSel(defaultPath()); S.q={}; S.pg={}; writeHash(); renderAll();
+  announce('Start over: '+(S.sel.length?levelName(1)+' '+S.sel[0]:'All regions')+' selected.');
+}
+
+// ---- Tickets ----
+function apiPath(path){ return encodeURIComponent(JSON.stringify(path)); }
+async function loadTickets(page){
+  var key=keyOf(S.sel)+'|'+S.year;
+  if(T.key!==key) T.data=null;
+  T.key=key; T.page=page; T.loading=true; T.err='';
+  var b=$('iexTBody'), e=NODES[selId()];
+  if(b) b.innerHTML=ticketsInner(e);
+  var r=null;
+  try{ r=await A.api('GET','/api/incident-explorer/tickets?year='+S.year+'&path='+apiPath(S.sel)+'&page='+page+'&pageSize='+PAGE_SIZE); }catch(err){ r=null; }
+  if(T.key!==key||T.page!==page) return;   // a newer request superseded this one
+  T.loading=false;
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)){ T.data=r.data; T.page=r.data.page; }
+  else { T.data=null; T.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets.'); }
+  b=$('iexTBody'); if(b) b.innerHTML=ticketsInner(NODES[selId()]);
+  if(T.data) announce('Tickets page '+T.data.page+' of '+T.data.pages+': showing '+T.data.rows.length+' of '+num(T.data.total)+'.');
+}
+var _toastT=0;
+function toast(msg,isErr){
+  var t=$('iexToast'); if(!t) return;
+  t.className='iex-toast'+(isErr?' err':''); t.setAttribute('role',isErr?'alert':'status');
+  t.innerHTML='<span>'+esc(msg)+'</span><button type="button" data-toast-x aria-label="Dismiss message">OK</button>';
+  t.hidden=false; clearTimeout(_toastT); _toastT=setTimeout(function(){ t.hidden=true; },isErr?8000:3500);
+}
+function fallbackName(path){
+  var tags=path.length?path.map(function(s){ return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'x'; }):['All'];
+  return 'Incident_Explorer_'+tags.join('_')+'_'+S.year+'.csv';
+}
+// Re-draw every Export button from S.dl (one export at a time; the busy one shows a spinner).
+function syncExportBtns(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-export]'),function(b){
+    var len=Number(b.getAttribute('data-export'));
+    var tmp=document.createElement('div'); tmp.innerHTML=exportBtn(len); b.replaceWith(tmp.firstChild);
+  });
+}
+async function exportCsv(len){
+  if(S.dl!==false) return;
+  var path=S.sel.slice(0,len);
+  S.dl=len; syncExportBtns();
+  announce('Preparing the CSV\u2026');
+  try{
+    var tok=(A.getToken&&A.getToken())||'';
+    var r=await fetch(window.PHD_API_BASE+'/api/incident-explorer/export?year='+S.year+'&path='+apiPath(path),{headers:tok?{Authorization:'Bearer '+tok}:{}});
+    if(!r.ok){
+      var msg='HTTP '+r.status; try{ var j=await r.json(); if(j&&j.error) msg=j.error; }catch(_){}
+      if(r.status===401) msg='Your session has expired. Please log in again.';
+      throw new Error(msg);
+    }
+    var cd=r.headers.get('Content-Disposition')||'', m=/filename="([^"]+)"/.exec(cd), name=m?m[1]:fallbackName(path);
+    var blob=await r.blob(), u=URL.createObjectURL(new Blob([blob],{type:'text/csv;charset=utf-8'})), a=document.createElement('a');
+    a.href=u; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(u); },4000);
+    var cnt=r.headers.get('X-Row-Count');
+    toast('Downloaded '+name+(cnt?' ('+num(cnt)+' rows)':''),false); announce('CSV downloaded.');
+  }catch(e){ toast('Could not export the tickets: '+((e&&e.message)||'network error'),true); announce('Export failed.'); }
+  finally{
+    var f=document.activeElement&&document.activeElement.getAttribute&&document.activeElement.getAttribute('data-export');
+    S.dl=false; syncExportBtns();
+    if(f!=null){ var nb=document.querySelector('[data-export="'+f+'"]'); if(nb) nb.focus({preventScroll:true}); }
+  }
+}
+
+// ---- Load ----
+async function load(){
+  S.loading=true; S.err=''; S.D=null; NODES=[]; BYKEY={};
+  renderAll(); announce('Loading the Incident Explorer\u2026');
+  var r=null;
+  try{ r=await A.api('GET','/api/incident-explorer/tree?year='+S.year); }catch(e){ r=null; }
+  S.loading=false;
+  // An API process started before the "resolved successfully by an agent" model sends nodes without the
+  // context counts (t / a) and no `created`: its n is every created ticket. Refuse it instead of showing
+  // Tickets 0 and an unfiltered agent count.
+  // Same for a build without the fixed 'All regions' summary (agent / AUTO-SIM / Rule counts), or without
+  // the Region > Country > State > City chain (`geo` + 'City' in `levels`).
+  if(r&&r.ok&&r.data&&r.data.tree&&(typeof r.data.created!=='number'||typeof r.data.tree.t!=='number'||!r.data.summary||typeof r.data.summary.autosim!=='number'||
+      !r.data.geo||!Array.isArray(r.data.levels)||r.data.levels.indexOf('City')<0)){
+    S.err='The API server is running an older build of the Incident Explorer. Restart the API server (node server.js), then retry.';
+    renderAll(); announce('Could not load the Incident Explorer.'); S.first=false; return;
+  }
+  if(r&&r.ok&&r.data&&r.data.tree){
+    S.D=r.data; indexTree(r.data.tree);
+    // No (valid) #path: the default selection (NA), so the Regions and its Countries sections show.
+    if(!S.sel.length||BYKEY[keyOf(S.sel)]==null){ S.sel=defaultPath(); S.q={}; }
+    renderAll(); writeHash();
+    var e=NODES[selId()]; if(e.depth&&!hasKids(e.node)) loadTickets(1);
+    announce('Incident Explorer loaded: '+num(r.data.total)+' tickets created in '+r.data.year+' and resolved successfully by an agent.');
+  } else {
+    S.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the Incident Explorer.');
+    renderAll(); announce('Could not load the Incident Explorer.');
+  }
+  S.first=false;
+}
+
+// ---- Events ----
+function bind(){
+  wrap.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target:null; if(!t) return;
+    if(t.closest('[data-toast-x]')){ var ts=$('iexToast'); if(ts) ts.hidden=true; return; }
+    var go=t.closest('[data-go]');
+    if(go){
+      if(go.getAttribute('aria-current')) return;
+      var gid=Number(go.getAttribute('data-go')), isCrumb=go.classList.contains('iex-crumb');
+      select(gid);
+      if(isCrumb){ var cc=document.querySelector('.iex-crumb[aria-current="page"]'); if(cc) cc.focus({preventScroll:true}); return; }
+      // The sections were re-rendered: keep focus on the same chip and bring the next section into view.
+      var chip=document.querySelector('.iex-it[data-go="'+gid+'"]'); if(chip) chip.focus({preventScroll:true});
+      var sec=chip&&chip.closest('.iex-sec'), nx=sec&&sec.nextElementSibling;
+      if(nx&&nx.scrollIntoView&&nx.getBoundingClientRect().top>window.innerHeight-80) nx.scrollIntoView({block:'nearest',behavior:'smooth'});
+      return;
+    }
+    var sp=t.closest('[data-spage]');
+    if(sp){ if(!sp.disabled&&!sp.getAttribute('aria-current')) goSecPage(Number(sp.getAttribute('data-sd')),Number(sp.getAttribute('data-spage'))); return; }
+    if(t.closest('#iexReset')){ startOver(); var rb=$('iexReset'); if(rb&&rb.disabled){ var c0=document.querySelector('.iex-crumb[aria-current="page"]'); if(c0) c0.focus({preventScroll:true}); } return; }
+    var pg=t.closest('[data-page]'); if(pg&&!pg.disabled&&!pg.getAttribute('aria-current')){ loadTickets(Number(pg.getAttribute('data-page'))).then(function(){
+      var x=$('iexTickets'); if(x&&x.getBoundingClientRect().top<0) x.scrollIntoView({block:'start'});
+      var cur=document.querySelector('#iexTickets .iex-pg[aria-current="page"]'); if(cur) cur.focus({preventScroll:true});
+    }); return; }
+    var ex=t.closest('[data-export]'); if(ex){ if(!ex.disabled) exportCsv(Number(ex.getAttribute('data-export'))); return; }
+    if(t.closest('#iexTRetry')){ loadTickets(T.page||1); return; }
+    if(t.closest('#iexRetry')){ load(); return; }
+  });
+  wrap.addEventListener('change',function(ev){
+    var el=ev.target; if(!el||el.id!=='iexYear') return;
+    S.year=Number(el.value)||2026; S.q={}; S.pg={}; T.key=''; writeHash(); load();
+  });
+  wrap.addEventListener('input',function(ev){
+    var el=ev.target; if(!el||!el.hasAttribute||!el.hasAttribute('data-q')) return;
+    var d=Number(el.getAttribute('data-q'));
+    S.q[d]=el.value; if(PAGED_SECS[d]) setSecPage(d,1); renderSectionList(d);
+  });
+}
+
+(function init(){
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+  readHash();
+  shell(); bind();
+  load();
+})();
+})();
+</script>
+</body>
+</html>

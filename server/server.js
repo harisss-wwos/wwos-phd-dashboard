@@ -17,6 +17,7 @@ const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FIL
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
 const { resolutionGroupOf } = require('./resolution-groups');
+const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport } = require('./errors-in-resolved');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
@@ -858,6 +859,89 @@ app.get('/api/page-zero/export', requireOwnerOrManager, async (req, res) => {
   } catch (e) {
     console.error('page-zero export error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not build the Page ZERO export.' });
+  }
+});
+
+// ---- Incident Explorer (incident-explorer.html): Region > Country > State > City > SID > Issue > Root cause > Resolution > Driver ----
+// Any logged-in user (same as the other Ticket Insights pages / /api/errors-in-resolved). Read-only.
+// Model (server/incident-explorer.js) = Page ZERO's ticket selection (pageZeroDocs + the same dedupe and
+// created-in-year filter as row 01) classified with page-zero.js issueTypeOf / driverTypeOf, slaCountryOf,
+// the Rules-page regions and the Resolutions page labels (perfResolutionGroupLabelOf(doc, true)).
+// Only tickets RESOLVED SUCCESSFULLY BY AN AGENT are counted / listed / exported (incident-explorer.js
+// agentResolveExclusion); the other created tickets are context counts only.
+// Built once and cached per (year, latest upload, regions): a new upload changes the key, so it rebuilds.
+//   GET /api/incident-explorer/tree?year=2026                          -> nested counts for every level
+//   GET /api/incident-explorer/tickets?year=&path=<JSON array>&page=&pageSize=20  -> one page, Created desc
+//   GET /api/incident-explorer/export?year=&path=<JSON array>          -> CSV of the full list
+// 400 on a bad year / path / page / pageSize; 404 when the path is not a node of the tree.
+const IE_CACHE_PREFIX = 'ie:v3:';   // v3: Region > Country > State > City > SID chain (State / City from zip-geo.js)
+async function ieModel(year) {
+  const { latestUploadAt } = await eirLatestFileMeta();
+  const regions = (await (await getCollection(COLLECTIONS.regions)).find(REGION_REAL_FILTER).sort({ order: 1, _id: 1 }).toArray()).map(mapRegion);
+  const key = IE_CACHE_PREFIX + year + ':' + (latestUploadAt || '-') + ':' + regions.map(r => r.name + '=' + r.countries.join('.')).join('|');
+  // The key changes with every upload (and every regions edit), so the entry never goes stale: no TTL.
+  let model = getStaleCachedReport(key);
+  if (!model) {
+    const docs = await pageZeroDocs(year, { IssueUrl: 1, ResolvedByIdentity: 1, RootCause: 1, Tags: 1, Labels: 1 });
+    model = ieBuildExplorer(docs, {
+      year, now: new Date(), regions, countryOf: slaCountryOf,
+      resolutionLabelOf: doc => perfResolutionGroupLabelOf(doc, true), resolverName: perfResolverName,
+    });
+    pruneCachedReports(IE_CACHE_PREFIX, 1);
+    setCachedReport(key, model);
+  }
+  return { model, source: { latestUploadAt: latestUploadAt || null } };
+}
+// Shared query validation -> { year, path } or sends a 400 and returns null.
+function ieQuery(req, res) {
+  const y = ieParseYear(req.query.year, new Date());
+  if (!y.ok) { res.status(400).json({ error: y.error }); return null; }
+  const p = ieParsePath(req.query.path);
+  if (!p.ok) { res.status(400).json({ error: p.error }); return null; }
+  return { year: y.value, path: p.value };
+}
+app.get('/api/incident-explorer/tree', requireRole('user'), async (req, res) => {
+  try {
+    const y = ieParseYear(req.query.year, new Date());
+    if (!y.ok) return res.status(400).json({ error: y.error });
+    const { model, source } = await ieModel(y.value);
+    res.json(ieTreePayload(model, source));
+  } catch (e) {
+    console.error('incident-explorer tree error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the Incident Explorer.' });
+  }
+});
+app.get('/api/incident-explorer/tickets', requireRole('user'), async (req, res) => {
+  try {
+    const q = ieQuery(req, res); if (!q) return;
+    const page = ieParsePosInt(req.query.page, 1, 0, 'page');
+    if (!page.ok) return res.status(400).json({ error: page.error });
+    const size = ieParsePosInt(req.query.pageSize, 20, IE_MAX_PAGE_SIZE, 'pageSize');
+    if (!size.ok) return res.status(400).json({ error: size.error });
+    const { model } = await ieModel(q.year);
+    if (!ieFindNode(model.tree, q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
+    res.json(ieTicketsPage(model, q.path, page.value, size.value));
+  } catch (e) {
+    console.error('incident-explorer tickets error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the tickets.' });
+  }
+});
+app.get('/api/incident-explorer/export', requireRole('user'), async (req, res) => {
+  try {
+    const q = ieQuery(req, res); if (!q) return;
+    const { model } = await ieModel(q.year);
+    if (!ieFindNode(model.tree, q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
+    const out = ieExportCsv(model, q.path);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="' + out.filename + '"',
+      'Cache-Control': 'no-store',
+      'X-Row-Count': String(out.count),
+    });
+    res.send(out.csv);
+  } catch (e) {
+    console.error('incident-explorer export error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not build the Incident Explorer export.' });
   }
 });
 
@@ -3100,7 +3184,7 @@ app.delete('/api/phd-resolutions/:id', requirePhdResEditor, async (req, res) => 
 // issue-types.html); the resolution list is read live from phd_resolutions. Any logged-in user can
 // read; ONLY harisss (requirePhdResEditor) can disable/enable checks globally via PUT .../settings.
 // The evaluated upload is cached per (upload, resolution list); settings are applied per request.
-const EIR_CACHE_PREFIX = 'eir:v3:';
+const EIR_CACHE_PREFIX = 'eir:v4:';
 let _eirIssueTypes = null;
 function eirIssueTypes() {
   if (!_eirIssueTypes || !_eirIssueTypes.length) {
@@ -5513,11 +5597,18 @@ app.delete('/api/tickets/:shortId/comments/:id', requireRole('user'), async (req
 
 // ---- Incident logs (My Tickets: final mitigation + hashtags per ticket) ----
 // Add an incident log entry for a ticket (assignee-only, append-only). Stored for later use.
+// Idempotent per Add-form session: the client sends a random `clientKey` (one per opened Add form).
+// A repeat POST with the same key (double submit, or a retry after the response was lost while the
+// insert went through) updates that entry instead of inserting a second one. Without a key, an
+// identical text from the same user on the same ticket within IL_DEDUPE_MS returns the existing entry.
+const IL_DEDUPE_MS = 60 * 1000;
+const IL_CLIENT_KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, res) => {
   try {
     const shortId = String(req.params.shortId);
-    let { text } = req.body || {};
+    let { text, clientKey } = req.body || {};
     text = String(text || '').trim();
+    clientKey = IL_CLIENT_KEY_RE.test(String(clientKey || '')) ? String(clientKey) : null;
     if (!text) return res.status(400).json({ error: 'Incident log text is required.' });
     if (text.length > 5000) return res.status(400).json({ error: 'Incident log must be 5000 characters or fewer.' });
     // The ticket must exist (in any quarter) AND be assigned to the requester.
@@ -5528,9 +5619,23 @@ app.post('/api/tickets/:shortId/incident-log', requireRole('user'), async (req, 
     }
     const now = new Date().toISOString();
     const coll = await getCollection(COLLECTIONS.incidentLogs);
-    const r = await coll.insertOne({ shortId, text, user: req.user.username, role: req.user.role, at: now });
-    await recordTicketActivity(shortId, req.user.username, 'incident-log');
-    res.status(201).json({ id: String(r.insertedId), text, user: req.user.username, role: req.user.role, at: now });
+    const user = req.user.username;
+    let dup = clientKey ? await coll.findOne({ shortId, user, clientKey }) : null;
+    if (!dup) dup = await coll.findOne({ shortId, user, text, at: { $gte: new Date(Date.now() - IL_DEDUPE_MS).toISOString() } });
+    if (dup) {
+      if (dup.text !== text) {
+        const editedAt = new Date().toISOString();
+        await coll.updateOne({ _id: dup._id }, { $set: { text, editedAt } });
+        dup.text = text;
+        await recordTicketActivity(shortId, user, 'incident-log-edit');
+      }
+      return res.status(200).json({ id: String(dup._id), text: dup.text, user: dup.user, role: dup.role, at: dup.at, deduped: true });
+    }
+    const doc = { shortId, text, user, role: req.user.role, at: now };
+    if (clientKey) doc.clientKey = clientKey;
+    const r = await coll.insertOne(doc);
+    await recordTicketActivity(shortId, user, 'incident-log');
+    res.status(201).json({ id: String(r.insertedId), text, user, role: req.user.role, at: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not add incident log.' });
   }

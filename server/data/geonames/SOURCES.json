@@ -1,0 +1,200 @@
+{
+  "source": "GeoNames postal code dump",
+  "baseUrl": "https://download.geonames.org/export/zip/",
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "Postal code data (c) GeoNames (geonames.org), licensed under CC BY 4.0",
+  "downloaded": "2026-11-01",
+  "files": [
+    {
+      "cc": "US",
+      "file": "US.txt",
+      "url": "https://download.geonames.org/export/zip/US.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:18 GMT",
+      "zipSha256": "0d87de4713be95cb7d7ccd762a1d8d33e8afa4c085d00885e893b21e3210f706",
+      "txtSha256": "88495471922bbafb1e982c01aafd1e38038d08dde578be2ec5bbc0f16bf9dc9e",
+      "rows": 41490
+    },
+    {
+      "cc": "PR",
+      "file": "PR.txt",
+      "url": "https://download.geonames.org/export/zip/PR.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:11 GMT",
+      "zipSha256": "a4743c5f44be8b47f500c9ca0bd7eeb5d6d476dfb5c8077e2175df6c93cf95b3",
+      "txtSha256": "456f64214a3f79d9fa63773baf40c8b873a9076433690f2c30d18270efcf05ae",
+      "rows": 177
+    },
+    {
+      "cc": "CA",
+      "file": "CA.txt",
+      "url": "https://download.geonames.org/export/zip/CA.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:22 GMT",
+      "zipSha256": "efdc8259c74e1065bb1461180032b993cf7bd6122e3f242cd1e55959a6c9b8b0",
+      "txtSha256": "2401b95fc139f07435eab6a5c51036c67674605eeb72a2fceb33a0735ac50853",
+      "rows": 1657
+    },
+    {
+      "cc": "MX",
+      "file": "MX.txt",
+      "url": "https://download.geonames.org/export/zip/MX.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:03 GMT",
+      "zipSha256": "7dbf2ac593121928b9d40d669dafd000b10bfd4ca9f69786a0b29491ad67c089",
+      "txtSha256": "281715a2fab329311f86bcaed17cbe8de766d2583a7489fb5a1e25ab4ec9e84a",
+      "rows": 144655
+    },
+    {
+      "cc": "GB",
+      "file": "GB.txt",
+      "url": "https://download.geonames.org/export/zip/GB.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:51 GMT",
+      "zipSha256": "f0c17b116f4571fb6acc972bd73aae3b376b72b4ac9882af78c5d63706e4e025",
+      "txtSha256": "4267635ef07014b3499237d36bc213562c83c0af1551643b69ade86b682d4ea1",
+      "rows": 27450
+    },
+    {
+      "cc": "BR",
+      "file": "BR.txt",
+      "url": "https://download.geonames.org/export/zip/BR.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:12 GMT",
+      "zipSha256": "1ffa9a53e377a392fcb326139d34c99596af0700c40a3a599a732260b848f849",
+      "txtSha256": "31ddaa2fd9f86fc658dbd22c3a6e081554e4a479b3c9c1e25281cdd59611f163",
+      "rows": 5525
+    },
+    {
+      "cc": "IT",
+      "file": "IT.txt",
+      "url": "https://download.geonames.org/export/zip/IT.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:56 GMT",
+      "zipSha256": "dcbee3e2481aad2872d8b7949686d816196af024321b77c9d8854e487bd2dbd6",
+      "txtSha256": "fd4b26adcd9ba22433e207e045e4a1638ffc786ac10cf8b5ae9fab9fc4e2194a",
+      "rows": 18415
+    },
+    {
+      "cc": "JP",
+      "file": "JP.txt",
+      "url": "https://download.geonames.org/export/zip/JP.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:58 GMT",
+      "zipSha256": "e5c05ec9540967c96b469bd69234f01afb789d25aa7889555704438f95a13429",
+      "txtSha256": "8b5d3ce93f1f1d2129b415b52ca7cbb187a64de9067a06a717ae93253ffc21c6",
+      "rows": 146883
+    },
+    {
+      "cc": "IN",
+      "file": "IN.txt",
+      "url": "https://download.geonames.org/export/zip/IN.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:55 GMT",
+      "zipSha256": "4c4c8180fce9a94fe1a5de4d2484ecb859c1457a14b62b83ea35a472f1872a1a",
+      "txtSha256": "831bf1de54785fb1c1be5b13b2b8efdf27ffad0a97dc5e0e64a035826bea7308",
+      "rows": 155570
+    },
+    {
+      "cc": "AU",
+      "file": "AU.txt",
+      "url": "https://download.geonames.org/export/zip/AU.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:12 GMT",
+      "zipSha256": "72cd49da796d8dc10da3609a4fe2f6251200c0f2f8ef5edd39b0078f9e74a770",
+      "txtSha256": "f5545c174ca9a248a0d191e144db8f975bbf0f13ee1d6239219e4f4ebfad3207",
+      "rows": 18566
+    },
+    {
+      "cc": "BE",
+      "file": "BE.txt",
+      "url": "https://download.geonames.org/export/zip/BE.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:12 GMT",
+      "zipSha256": "ae03c3c3ac42d5da0d15ac4bdfba3311ecc30725441c7eb51ac1ce4fc2e9f81b",
+      "txtSha256": "b194ccb19c8358f859243596fa3e473919af9263ecbd0ff7830fc06278e25155",
+      "rows": 2781
+    },
+    {
+      "cc": "DE",
+      "file": "DE.txt",
+      "url": "https://download.geonames.org/export/zip/DE.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:23 GMT",
+      "zipSha256": "5843d98e765a140fb64737cda542e8d70a67db052232dc66f260bfbb9d0050f8",
+      "txtSha256": "99b652030f0fe7701d2d485c13de3e059b58aa6809f59433591b340785735374",
+      "rows": 23296
+    },
+    {
+      "cc": "FR",
+      "file": "FR.txt",
+      "url": "https://download.geonames.org/export/zip/FR.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:35 GMT",
+      "zipSha256": "d8b699ea69ddf2a7e3ac4c7ec0023bb4f05b27e707cd7b298f5fbf5c8d1b5079",
+      "txtSha256": "0df5ac4391746b8f035c247ac2769fb7413ec96a391d4fd2350228261353b7e9",
+      "rows": 51611
+    },
+    {
+      "cc": "NL",
+      "file": "NL.txt",
+      "url": "https://download.geonames.org/export/zip/NL.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:07 GMT",
+      "zipSha256": "58f9f43422a73c1da0ccbd34e55c1f0babdea0a565678064fd57689af547cb97",
+      "txtSha256": "b183766c671f7fc8385fdcbd6909a183ba1bafd5fb36419dfa0a1d9b378d38b7",
+      "rows": 4334
+    },
+    {
+      "cc": "ES",
+      "file": "ES.txt",
+      "url": "https://download.geonames.org/export/zip/ES.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:24 GMT",
+      "zipSha256": "75a63ef0683ab985220b3a558f1a72e6d463a2e85abd5f38e9faaa7732a0fc75",
+      "txtSha256": "86171481c0c123d4986c0710e0082e8d3f35223fb42987b0910ca5ddd92f8743",
+      "rows": 37867
+    },
+    {
+      "cc": "TR",
+      "file": "TR.txt",
+      "url": "https://download.geonames.org/export/zip/TR.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:17 GMT",
+      "zipSha256": "576df50b750480f6aedfd27437cd60a505472c307d5307203913c0b1fb9ce50e",
+      "txtSha256": "7fd4cca5aef1babf233b02569fb0ab362b71f8f8899b0ebcd74d4fb867677f6c",
+      "rows": 36307
+    },
+    {
+      "cc": "PT",
+      "file": "PT.txt",
+      "url": "https://download.geonames.org/export/zip/PT.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:13 GMT",
+      "zipSha256": "d0fb8be0c95d8c0bbbc78e79d4137565971a7941b17fab12de8553bff6567708",
+      "txtSha256": "77589ee4f618a487790b857cbdcc41d109868621ef043d15272744cc17c964cd",
+      "rows": 206942
+    },
+    {
+      "cc": "NO",
+      "file": "NO.txt",
+      "url": "https://download.geonames.org/export/zip/NO.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:47:07 GMT",
+      "zipSha256": "cf7982b3422533f9a35534ab487bbc765dd069ab0b3649366911462401f4c821",
+      "txtSha256": "adde45e0fc980e2c36f54ffae0870f47dcec2c06eca45ba6b0c5b6984d6da1ce",
+      "rows": 5132
+    },
+    {
+      "cc": "IE",
+      "file": "IE.txt",
+      "url": "https://download.geonames.org/export/zip/IE.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:53 GMT",
+      "zipSha256": "52160b68ce4c414646bdc8a9d1bd2c3aa009fc6b9867f5d812470b8694a30c85",
+      "txtSha256": "3c234a80cb983eafddc07f61e39616cee3cc49e551a9f76468470b65cfef6f40",
+      "rows": 139
+    }
+  ],
+  "notInDataset": [
+    {
+      "cc": "SA",
+      "reason": "https://download.geonames.org/export/zip/SA.zip returned 404 (no GeoNames postal data); tickets resolve to Unknown."
+    },
+    {
+      "cc": "EG",
+      "reason": "https://download.geonames.org/export/zip/EG.zip returned 404 (no GeoNames postal data); tickets resolve to Unknown."
+    }
+  ],
+  "excluded": [
+    {
+      "cc": "AE",
+      "url": "https://download.geonames.org/export/zip/AE.zip",
+      "lastModified": "Sun, 01 Nov 2026 03:46:11 GMT",
+      "reason": "Downloaded and checked, not kept: the UAE has no national postal-code system; GeoNames AE rows carry no admin1 (emirate) names, and no 2026 UAE ticket has a postal-style zip. UAE tickets resolve to Unknown."
+    }
+  ],
+  "tickets": "Ticket country codes UK and UAE are aliased to GB and AE."
+}

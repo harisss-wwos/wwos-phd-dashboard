@@ -2468,6 +2468,7 @@
     'station-request': { title: 'Station Requests', icon: 'map-pin', tone: 'blue' }, 'agent-analytics': { title: 'Team Analytics', icon: 'bar-chart', tone: 'blue' },
     'performance-summary': { title: 'Performance Summary', icon: 'clipboard', tone: 'blue' },
     'resolutions': { title: 'Resolutions', icon: 'check-circle', tone: 'violet' },
+    'incident-explorer': { title: 'Incident Explorer', icon: 'globe', tone: 'blue' },
     'pulse-check': { title: 'Pulse Check (24h)', icon: 'line-chart', tone: 'blue' },
     'errors-in-resolved': { title: 'Errors in Resolved', icon: 'alert-triangle', tone: 'rose' },
     'tools': { title: 'PHD Tools', icon: 'tool', tone: 'teal' }, 'profile': { title: 'Profile', icon: 'user', tone: 'blue' },
@@ -2608,6 +2609,8 @@
     // Group 2 (middle): ticket insight pages.
     var navMid = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavIns">' + grpHead('tbhNavIns', 'Ticket insights')
       + resBtn
+      // Incident Explorer: any logged-in user (same as Resolutions; /api/incident-explorer/* = requireRole('user')).
+      + navBtn('incident-explorer.html', 'Incident Explorer', 'globe')
       + navBtn('sla-breach.html', 'SLA Breaches (>240h)', 'clock')
       + navBtn('station-request.html', 'Station Request Tickets', 'map-pin')
       + navBtn('hashtags.html', 'Hashtags', 'hash')
@@ -4859,6 +4862,7 @@
         id: 'reports', triggerIcon: 'line-chart', triggerImg: 'icons/reports.png', triggerLabel: 'Statistics', items: [
           // Same access as /api/perf-summary (requireRole('user') = any logged-in user).
           { key: 'resolutions',     label: 'Resolutions',             icon: 'check-circle',             href: 'resolutions.html',     need: 'li' },
+          { key: 'incident-explorer', label: 'Incident Explorer',     icon: 'globe',                    href: 'incident-explorer.html', need: 'li' },
           { key: 'sla-breach',      label: 'SLA Breaches (>240h)',    img: 'icons/sla-breaches.png',    href: 'sla-breach.html',      need: 'sla' },
           { key: 'station-request', label: 'Station Request Tickets', img: 'icons/station-request.png', href: 'station-request.html', need: 'sr' },
           { key: 'hashtags',        label: 'Hashtags',                img: 'icons/hashtags.png',        href: 'hashtags.html',        need: 'li' },
@@ -5101,6 +5105,7 @@
       'index.html': 'home', 'app.html': 'bolt', 'my-tickets.html': 'ticket',
       'agent-analytics.html': 'bar-chart', 'performance-summary.html': 'clipboard',
       'resolutions.html': 'check-circle',
+      'incident-explorer.html': 'globe',
       'page-zero.html': 'grid',
       'pulse-check.html': 'line-chart',
       'errors-in-resolved.html': 'alert-triangle',

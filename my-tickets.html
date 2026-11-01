@@ -937,7 +937,7 @@ td.mt-actions .btn svg{flex-shrink:0}
   // External links shown in the hero (static, so the skeleton renders them too and nothing jumps).
   window.MT_LINKS=function(){
     var L=[
-      ['SIM Link','https://t.corp.amazon.com/issues/assigned-to-me'],
+      ['SIM Link','https://t.corp.amazon.com/issues/assigned-to-me?sort=createDate%20asc'],
       ['Share-point Link','https://amazon.sharepoint.com/:x:/r/sites/PHD/_layouts/15/Doc.aspx?sourcedoc=%7B86CA084F-B5C7-450D-86C9-07D479FF8DFF%7D&file=-%20USE%20THIS%20ONE%20-%20Ticket%20Tracker%20Flat%20File.xlsx&action=default&mobileredirect=true'],
       ['Sev 3 Pet incidents','https://amazon-my.sharepoint.com/:x:/r/personal/flofalgu_amazon_com/_layouts/15/doc2.aspx?sourcedoc=%7B1C13EF24-F76D-41A3-A9A4-CE41C2550BA8%7D&file=Book.xlsx&action=editnew&mobileredirect=true']
     ];
@@ -998,18 +998,19 @@ td.mt-actions .btn svg{flex-shrink:0}
 </div>
 
 <!-- View-incident-log popup -->
-<div class="modal-bg vil-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
-  <div class="modal vil-modal" role="dialog" aria-modal="true" aria-labelledby="viewIncidentTitleText">
-    <div class="vil-head">
-      <span class="vil-head-ic" id="viewIncidentIcon"></span>
-      <h2 class="vil-head-tx" id="viewIncidentTitle"><span id="viewIncidentTitleText">Incident log</span></h2>
-      <button type="button" class="vil-icbtn" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none" title="Copy all entries" aria-label="Copy all entries"><span class="ilog-copy-ic"></span></button>
-      <button type="button" class="vil-x" onclick="closeViewIncident()" aria-label="Close"><span class="ilog-close-ic"></span></button>
+<div class="modal-bg ilv-bg" id="viewIncidentModal" onclick="if(event.target===this)closeViewIncident()">
+  <div class="ilv-modal" role="dialog" aria-modal="true" aria-labelledby="viewIncidentTitle" aria-describedby="viewIncidentSub" tabindex="-1">
+    <div class="ilv-head">
+      <span class="ilv-head-ic" id="viewIncidentIcon" aria-hidden="true"></span>
+      <div class="ilv-head-tx">
+        <div class="ilv-eyebrow" aria-hidden="true">Incident log</div>
+        <h2 class="ilv-title" id="viewIncidentTitle"><span class="ilv-sr">Incident log for </span><a id="viewIncidentTitleLink" href="#" target="_blank" rel="noopener noreferrer" title="Open the SIM ticket in a new tab"></a></h2>
+        <div class="ilv-sub" id="viewIncidentSub">Entries you added on this ticket. You can edit or delete your own.</div>
+      </div>
+      <button type="button" class="ilv-icbtn" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none" title="Copy all entries" aria-label="Copy all entries"><span class="ilog-copy-ic" aria-hidden="true"></span></button>
+      <button type="button" class="ilv-icbtn" id="viewIncidentCloseBtn" onclick="closeViewIncident()" title="Close" aria-label="Close"><span class="ilog-close-ic" aria-hidden="true"></span></button>
     </div>
-    <div class="vil-body">
-      <p class="vil-hint">Entries you added on this ticket. You can edit or delete your own.</p>
-      <div id="viewIncidentList"></div>
-    </div>
+    <div class="ilv-body" id="viewIncidentList"></div>
   </div>
 </div>
 
@@ -1063,12 +1064,12 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=10"></script>
-<script src="topbar-auth.js?v=214"></script>
+<script src="incident-log-editor.js?v=11"></script>
+<script src="topbar-auth.js?v=215"></script>
 <script>
 const A=window.PHDAuth;
 // Build the shared Add/Edit incident-log modal into its placeholder (before anything can open it).
-if(window.IncidentLogEditor) window.IncidentLogEditor.mount('incidentModalMount');
+if(window.IncidentLogEditor){ window.IncidentLogEditor.mount('incidentModalMount'); window.IncidentLogEditor.injectViewStyles(); }
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 const isEditor=()=>A.role&&A.role()==='editor';
 let TICKETS=[];
@@ -1911,7 +1912,7 @@ function incidentBtnHtml(i){
   const t=TICKETS[i]; const has=t&&HAS_LOG[String(t.shortId)];
   return has
     ? '<button class="btn sec mini" title="View incident log" onclick="openIncidentStructured('+i+')">'+ic('clipboard',13)+'<span class="btn-txt">View incident log</span></button>'
-    : '<button class="btn sec mini" title="Add incident log" onclick="openIncidentLog('+i+')">'+ic('plus',13)+'<span class="btn-txt">Add incident log</span></button>';
+    : '<button class="btn sec mini" title="Add incident log" onclick="openIncidentStructured('+i+')">'+ic('plus',13)+'<span class="btn-txt">Add incident log</span></button>';
 }
 // Small header indicator: shown only when the ticket already has an incident log. Clicking it
 // opens the incident-log viewer (without expanding/collapsing the card).
@@ -2045,8 +2046,10 @@ window.openIncidentIcon=openIncidentIcon;
 async function openIncidentStructured(i,ev){
   if(ev){ ev.stopPropagation(); ev.preventDefault(); }
   const t=TICKETS[i]; if(!t) return;
-  if(!HAS_LOG[String(t.shortId)]){ openIncidentLog(i); return; }
-  // Fetch this ticket's log and find the current user's own entry to edit.
+  // Always ask the server — never decide Add vs Edit from HAS_LOG alone. HAS_LOG is loaded with the
+  // page (and from the localStorage cache), so it goes stale when an entry is added elsewhere (Tools
+  // page "push to incident log", another tab). Trusting it opened a fresh Add form on a ticket that
+  // already had the user's entry, and Save then created a second entry (V2423122553).
   let mineEntry=null, mineCount=0;
   try{
     const r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log');
@@ -2054,6 +2057,11 @@ async function openIncidentStructured(i,ev){
     const mine=list.filter(e=>e.mine);
     mineCount=mine.length;
     mineEntry=mine.slice(-1)[0]||null;   // most recent own entry
+    if(r.ok&&Array.isArray(r.data)){
+      const sid=String(t.shortId), had=!!HAS_LOG[sid];
+      if(list.length) HAS_LOG[sid]=true; else delete HAS_LOG[sid];
+      if(had!==!!list.length){ repaintIncidentBtn(i); var _c=readCache()||{};_c.hasLog=HAS_LOG;writeCache(_c); }
+    }
   }catch(e){}
   // Several own entries -> show them all (newest first) so none is hidden behind the newest one;
   // each has Edit / Delete, and Edit opens the same structured form.
@@ -2071,6 +2079,7 @@ function openIncidentLog(i){
   const t=TICKETS[i];
   var hic=document.getElementById('ailHeadIc'); if(hic) hic.innerHTML=ic('clipboard',18);
   IL_EDIT_ID=null;   // add mode (not editing an existing entry)
+  IL_ADD_KEY=ilNewClientKey();   // one idempotency key per opened Add form (see submitIncidentLog)
   document.getElementById('incidentTitleText').textContent='Add incident log · '+t.shortId;
   ilSetTitleCopyId(t.shortId);
   ilRenderHeadFlags(i);
@@ -2127,7 +2136,22 @@ function ilApplyPostSaveState(editId){
   ilRefreshSelectUI();
   ilRefreshEmptyMarks();
 }
+// Double-submit guards. IL_SAVING: one save request at a time (rapid double-click / Enter + click
+// are ignored while a request is in flight). IL_ADD_KEY: random key sent with the Add POST; the
+// server turns a repeat POST with the same key (e.g. a retry after a lost response) into an update
+// of the entry it already created, instead of inserting a duplicate.
+let IL_SAVING=false;
+let IL_ADD_KEY=null;
+function ilNewClientKey(){
+  try{ if(window.crypto&&crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
+}
 async function submitIncidentLog(){
+  if(IL_SAVING) return;
+  IL_SAVING=true;
+  try{ await _submitIncidentLog(); } finally { IL_SAVING=false; }
+}
+async function _submitIncidentLog(){
   if(INCIDENT_INDEX==null)return;
   const t=TICKETS[INCIDENT_INDEX];
   const err=document.getElementById('incidentErr');
@@ -2146,7 +2170,7 @@ async function submitIncidentLog(){
     else{ err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'); err.style.display='block'; }
     return;
   }
-  let r={ok:false,status:0,data:null}; try{ r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text}); }catch(e){}
+  let r={ok:false,status:0,data:null}; try{ r=await A.api('POST','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log',{text,clientKey:IL_ADD_KEY}); }catch(e){}
   btn.disabled=false;btn.textContent='Save';btn.removeAttribute('aria-busy');
   if(r.ok){
     // Stay open. Mark the ticket as having a log, repaint the row icon, and flip the modal into edit
@@ -2161,17 +2185,32 @@ async function submitIncidentLog(){
 // ---- View / edit / delete incident logs ----
 let VIEW_INC_INDEX=null;
 let VIEW_INC_ITEMS=[]; // current popup's entries, used by Copy all
+let VIEW_INC_RETURN=null; // element focused before the pop-up opened (focus goes back there on close)
+// Head title: ticket ID as a link to the SIM ticket (new tab) + the entry count line.
+function setViewIncidentHead(t,count){
+  const a=document.getElementById('viewIncidentTitleLink');
+  if(a){ a.textContent=t.shortId; a.href=(t&&t.url)?t.url:('https://t.corp.amazon.com/'+encodeURIComponent(t.shortId)); }
+  const sub=document.getElementById('viewIncidentSub');
+  if(sub) sub.textContent=(count==null?'Loading entries\u2026':(count+' entr'+(count===1?'y':'ies')+' you added \u00b7 newest first \u00b7 you can edit or delete your own'));
+}
 async function openViewIncident(i){
+  const modal=document.getElementById('viewIncidentModal');
+  const wasOpen=modal.style.display==='flex';
   VIEW_INC_INDEX=i;
   const t=TICKETS[i];
   const copyBtn=document.getElementById('viewIncidentCopyBtn');
   // Fill the head icons (clipboard title, copy, close) — static HTML can't call ic().
-  (function(){ var a=document.getElementById('viewIncidentIcon'); if(a)a.innerHTML=ic('clipboard',16);
-    document.querySelectorAll('.ilog-copy-ic').forEach(function(s){s.innerHTML=ic('copy',12);});
-    document.querySelectorAll('.ilog-close-ic').forEach(function(s){s.innerHTML=ic('close',12)||'\u2715';}); })();
+  (function(){ var a=document.getElementById('viewIncidentIcon'); if(a)a.innerHTML=ic('clipboard',20);
+    document.querySelectorAll('.ilog-copy-ic').forEach(function(s){s.innerHTML=ic('copy',16);});
+    document.querySelectorAll('.ilog-close-ic').forEach(function(s){s.innerHTML=ic('close',16)||'\u2715';}); })();
   // Open straight away with skeleton entries shaped like the loaded list, then fill it in.
-  var tt0=document.getElementById('viewIncidentTitleText'); if(tt0) tt0.textContent='Incident log \u00b7 '+t.shortId;
+  setViewIncidentHead(t,null);
   if(copyBtn)copyBtn.style.display='none';
+  if(!wasOpen){
+    VIEW_INC_RETURN=document.activeElement;
+    document.addEventListener('keydown',viewIncidentKeydown,true);
+    setTimeout(function(){ var c=document.getElementById('viewIncidentCloseBtn'); if(c&&modal.style.display==='flex') c.focus(); },30);
+  }
   const listBox=document.getElementById('viewIncidentList');
   const sk=(w,h)=>'<span class="mt-skel" style="width:'+w+';height:'+h+'px"></span>';
   const ent='<div>'+sk('45%',10)+sk('100%',12)+sk('80%',12)+'</div>';
@@ -2194,8 +2233,8 @@ async function openViewIncident(i){
     // No log exists for this user -> inform via popup.
     VIEW_INC_ITEMS=[];
     if(copyBtn)copyBtn.style.display='none';
-    var tt=document.getElementById('viewIncidentTitleText'); if(tt) tt.textContent='Incident log · '+t.shortId;
-    document.getElementById('viewIncidentList').innerHTML='<div class="ilog-empty">No incident log exists for this ticket.</div>';
+    setViewIncidentHead(t,0);
+    document.getElementById('viewIncidentList').innerHTML='<div class="ilv-empty">No incident log exists for this ticket.</div>';
     document.getElementById('viewIncidentModal').style.display='flex';
     return;
   }
@@ -2230,34 +2269,50 @@ async function copyIncidentLog(){
     document.body.removeChild(ta);
   }
 }
+// Entries as a vertical timeline (newest first): avatar + login + timestamp, Edit / Delete, and the
+// saved blob rendered as labelled sections (IncidentLogEditor.renderLogEntry). Copy uses e.text.
 function renderIncidentList(shortId,items){
   VIEW_INC_ITEMS=items||[];
-  var tt=document.getElementById('viewIncidentTitleText'); if(tt) tt.textContent='Incident log · '+shortId;
-  document.getElementById('viewIncidentList').innerHTML=items.map(e=>{
+  const t=TICKETS[VIEW_INC_INDEX]||{shortId:shortId};
+  setViewIncidentHead(t,items.length);
+  const R=window.IncidentLogEditor;
+  document.getElementById('viewIncidentList').innerHTML='<ol class="ilv-tl" aria-label="Incident log entries, newest first">'+items.map((e,k)=>{
     const when=e.at?(fmtTZ(e.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'';
-    return '<div class="ilog-item" data-id="'+esc(e.id)+'">'+
-      // Header row: author + timestamp on the left, Edit/Delete actions on the TOP-right.
-      '<div class="ilog-head">'+
-        '<div class="ilog-who">'+ic('users',13)+' by <b>'+esc(e.user)+'</b>'+(when?('<span class="ilog-when">'+ic('clock',11)+' '+when+'</span>'):'')+'</div>'+
-        '<div class="ilog-actions">'+
-          '<button class="btn sec mini" onclick="openEditIncident(\''+esc(e.id)+'\')">'+ic('edit',12)+' Edit</button>'+
-          '<button type="button" class="btn danger mini" onclick="deleteIncident(\''+esc(e.id)+'\',this)">'+ic('trash',12)+' Delete</button>'+
-        '</div>'+
-      '</div>'+
-      '<div class="ilog-text">'+esc(e.text)+'</div>'+
-    '</div>';
-  }).join('');
+    const acts='<button type="button" class="ilv-btn" onclick="openEditIncident(\''+esc(e.id)+'\')" aria-label="Edit entry by '+esc(e.user)+(when?', '+esc(when):'')+'">'+ic('edit',13)+' Edit</button>'+
+      '<button type="button" class="ilv-btn danger" onclick="deleteIncident(\''+esc(e.id)+'\',this)" aria-label="Delete entry by '+esc(e.user)+(when?', '+esc(when):'')+'">'+ic('trash',13)+' Delete</button>';
+    return R.renderLogEntry(e,{when:when,actionsHtml:acts,latest:k===0&&items.length>1});
+  }).join('')+'</ol>';
 }
-function closeViewIncident(){document.getElementById('viewIncidentModal').style.display='none';VIEW_INC_INDEX=null;}
+function closeViewIncident(){
+  document.getElementById('viewIncidentModal').style.display='none';VIEW_INC_INDEX=null;
+  document.removeEventListener('keydown',viewIncidentKeydown,true);
+  const back=VIEW_INC_RETURN; VIEW_INC_RETURN=null;
+  if(back&&document.body.contains(back)&&back.offsetParent!==null){ try{ back.focus(); }catch(e){} }
+}
+// Esc closes; Tab / Shift+Tab stay inside the pop-up. A dialog stacked on top (the entry editor or
+// a confirm/alert) owns the keyboard.
+function viewIncidentKeydown(e){
+  const ed=document.getElementById('incidentModal');
+  if((ed&&ed.style.display==='flex')||[...document.querySelectorAll('.tb-modal-bg')].some(b=>getComputedStyle(b).display!=='none'))return;
+  if(e.key==='Escape'){ e.preventDefault(); closeViewIncident(); return; }
+  if(e.key!=='Tab')return;
+  const dlg=document.querySelector('#viewIncidentModal .ilv-modal');
+  const f=[...dlg.querySelectorAll('button,a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled&&el.offsetParent!==null);
+  if(!f.length){ e.preventDefault(); dlg.focus(); return; }
+  const first=f[0],last=f[f.length-1];
+  if(!dlg.contains(document.activeElement)){ e.preventDefault(); first.focus(); return; }
+  if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+}
 
 let EDIT_INC_ID=null;
 // Edit reuses the SAME structured split form as Add. We parse the saved blob back into the 7
 // fields, open the structured modal in edit mode, and PUT on save (handled in submitIncidentLog).
-// Called from the (legacy) view list — resolves the saved text from the DOM, then delegates.
+// Called from the view list — takes the saved text from the loaded entries, then delegates.
 function openEditIncident(id){
   var i=VIEW_INC_INDEX; if(i==null){ return; }
-  var item=document.querySelector('#viewIncidentList .ilog-item[data-id="'+id+'"] .ilog-text');
-  var saved=item?item.textContent:'';
+  var item=VIEW_INC_ITEMS.find(function(e){ return String(e.id)===String(id); });
+  var saved=item?String(item.text||''):'';
   closeViewIncident();
   openEditIncidentStructured(i, id, saved);
 }
@@ -2320,7 +2375,15 @@ async function deleteIncident(id,btn){
   setBusy(btn,true,'Deleting\u2026');
   let r={ok:false,status:0,data:null}; try{ r=await A.api('DELETE','/api/incident-log/'+id); }catch(e){}
   setBusy(btn,false);
-  if(r.ok){toast('Incident log deleted');if(VIEW_INC_INDEX!=null){refreshLatestComment(VIEW_INC_INDEX);openViewIncident(VIEW_INC_INDEX);}}
+  if(r.ok){
+    toast('Incident log deleted');
+    if(VIEW_INC_INDEX!=null){
+      refreshLatestComment(VIEW_INC_INDEX);
+      await openViewIncident(VIEW_INC_INDEX);
+      // The deleted entry's button is gone -> keep focus inside the pop-up.
+      const c=document.getElementById('viewIncidentCloseBtn'); if(c&&!document.body.contains(btn)) c.focus();
+    }
+  }
   else{window.PHDAlert({title:'Delete failed',body:(r.data&&r.data.error)||('Failed (HTTP '+r.status+')')});}
 }
 

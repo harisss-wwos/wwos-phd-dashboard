@@ -412,17 +412,18 @@ a.uc-link:hover{background:#dce8f8;border-color:#a9c3ea}
 
 <!-- Log updates popup (read-only incident log for the searched ticket) -->
 <div class="modal-bg uc-modal-bg" id="logModal" onclick="if(event.target===this)closeLogModal()">
-  <div class="modal vil-modal" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
-    <div class="vil-head">
-      <span class="vil-head-ic" id="logModalIcon" aria-hidden="true"></span>
-      <h2 class="vil-head-tx" id="logModalTitle">Log updates</h2>
-      <button type="button" class="vil-icbtn" id="logCopyBtn" onclick="copyLogUpdates()" style="display:none" title="Copy all entries" aria-label="Copy all entries"></button>
-      <button type="button" class="vil-x" id="logCloseBtn" onclick="closeLogModal()" title="Close" aria-label="Close"></button>
+  <div class="ilv-modal" role="dialog" aria-modal="true" aria-labelledby="logModalTitle" aria-describedby="logModalSub" tabindex="-1">
+    <div class="ilv-head">
+      <span class="ilv-head-ic" id="logModalIcon" aria-hidden="true"></span>
+      <div class="ilv-head-tx">
+        <div class="ilv-eyebrow" aria-hidden="true">Incident log</div>
+        <h2 class="ilv-title" id="logModalTitle"><span class="ilv-sr">Log updates for </span><a id="logModalTitleLink" href="#" target="_blank" rel="noopener noreferrer" title="Open the SIM ticket in a new tab"></a></h2>
+        <div class="ilv-sub" id="logModalSub">Every incident-log entry on this ticket, newest first. You can edit entries you authored.</div>
+      </div>
+      <button type="button" class="ilv-icbtn" id="logCopyBtn" onclick="copyLogUpdates()" style="display:none" title="Copy all entries" aria-label="Copy all entries"></button>
+      <button type="button" class="ilv-icbtn" id="logCloseBtn" onclick="closeLogModal()" title="Close" aria-label="Close"></button>
     </div>
-    <div class="vil-body">
-      <p class="vil-hint">Every incident-log entry on this ticket, newest first. You can edit entries you authored.</p>
-      <div id="logList" aria-live="polite"></div>
-    </div>
+    <div class="ilv-body" id="logList" aria-live="polite"></div>
   </div>
 </div>
 
@@ -434,12 +435,12 @@ a.uc-link:hover{background:#dce8f8;border-color:#a9c3ea}
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=10"></script>
-<script src="topbar-auth.js?v=214"></script>
+<script src="incident-log-editor.js?v=11"></script>
+<script src="topbar-auth.js?v=215"></script>
 <script>
 const A=window.PHDAuth;
 // Shared structured incident-log editor (same modal + helpers as My Tickets).
-if(window.IncidentLogEditor){ window.IncidentLogEditor.injectStyles(); window.IncidentLogEditor.mount('incidentModalMount'); }
+if(window.IncidentLogEditor){ window.IncidentLogEditor.injectStyles(); window.IncidentLogEditor.injectViewStyles(); window.IncidentLogEditor.mount('incidentModalMount'); }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
 let MY_TZ='IST';const TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
@@ -1024,10 +1025,11 @@ function openLogModal(btn){
   if(!CURRENT)return;
   LOG_RETURN=btn||null;
   LOG_SID=CURRENT.shortId;
-  $('logModalIcon').innerHTML=clipIc(16);
-  $('logCopyBtn').innerHTML=ic('copy',12)||'⧉';
-  $('logCloseBtn').innerHTML=ic('close',12)||'\u2715';
-  $('logModalTitle').textContent='Log updates · '+LOG_SID;
+  $('logModalIcon').innerHTML=clipIc(20);
+  $('logCopyBtn').innerHTML=ic('copy',16)||'⧉';
+  $('logCloseBtn').innerHTML=ic('close',16)||'\u2715';
+  const tl=$('logModalTitleLink');
+  tl.textContent=LOG_SID;tl.href=CURRENT.url||('https://t.corp.amazon.com/'+encodeURIComponent(LOG_SID));
   $('logModal').style.display='flex';
   document.addEventListener('keydown',logKeydown,true);
   setTimeout(()=>$('logCloseBtn').focus(),20);
@@ -1063,16 +1065,10 @@ async function fetchLogUpdates(){
   syncLogBadge(sid,items.length);
   if(!items.length){box.innerHTML='<div class="uc-state is-compact"><span class="uc-state-ic is-mute" aria-hidden="true">'+clipIc(22)+'</span><p>No log updates for this ticket yet</p></div>';return;}
   LOG_ITEMS=items;copyBtn.style.display='';
-  box.innerHTML=items.map(e=>{
-    const when=e.at?fmtTZ(e.at):'';
-    return '<div class="ilog-item" data-id="'+esc(e.id)+'">'+
-      '<div class="ilog-head">'+
-        '<div class="ilog-who">'+ic('users',13)+' by <b>'+esc(e.user||'—')+'</b>'+(when?('<span class="ilog-when">'+ic('clock',11)+' '+esc(when)+'</span>'):'')+'</div>'+
-        logEditBtnHtml(e)+
-      '</div>'+
-      '<div class="ilog-text">'+esc(e.text)+'</div>'+
-    '</div>';
-  }).join('');
+  // Same timeline + structured rendering as the My Tickets incident-log pop-up (incident-log-editor.js).
+  box.innerHTML='<ol class="ilv-tl" aria-label="Incident log entries, newest first">'+items.map((e,k)=>
+    window.IncidentLogEditor.renderLogEntry(e,{when:e.at?fmtTZ(e.at):'',actionsHtml:logEditBtnHtml(e),latest:k===0&&items.length>1})
+  ).join('')+'</ol>';
 }
 window.fetchLogUpdates=fetchLogUpdates;
 // Copy every entry in the popup as plain text (exactly as authored, blank line between entries).
@@ -1106,7 +1102,7 @@ function logKeydown(e){
   if(ilEditorOpen()||document.querySelector('.tb-modal-bg'))return;
   if(e.key==='Escape'){e.preventDefault();closeLogModal();return;}
   if(e.key!=='Tab')return;
-  const dlg=document.querySelector('#logModal .vil-modal');
+  const dlg=document.querySelector('#logModal .ilv-modal');
   const f=[...dlg.querySelectorAll('button,a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled&&el.offsetParent!==null);
   if(!f.length)return;
   const first=f[0],last=f[f.length-1];
@@ -1131,11 +1127,11 @@ function syncLogBadge(sid,n){
 const PENCIL_SVG='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const NOT_AUTHOR_MSG='Only the author can edit this entry';
 function logEditBtnHtml(e){
-  const pic=ic('edit',14)||PENCIL_SVG;
+  const pic=ic('edit',13)||PENCIL_SVG;
   if(!e||!e.mine){
-    return '<span class="ilog-editwrap" title="'+NOT_AUTHOR_MSG+'"><button type="button" class="ilog-editbtn" disabled aria-label="'+NOT_AUTHOR_MSG+'">'+pic+'</button></span>';
+    return '<span class="ilog-editwrap" title="'+NOT_AUTHOR_MSG+'"><button type="button" class="ilv-btn" disabled aria-label="'+NOT_AUTHOR_MSG+'">'+pic+' Edit</button></span>';
   }
-  return '<button type="button" class="ilog-editbtn" data-id="'+esc(e.id)+'" onclick="openLogEntryEditor(this.getAttribute(\'data-id\'))" title="Edit this log entry" aria-label="Edit this log entry">'+pic+'</button>';
+  return '<button type="button" class="ilv-btn" data-edit-id="'+esc(e.id)+'" onclick="openLogEntryEditor(this.getAttribute(\'data-edit-id\'))" title="Edit this log entry" aria-label="Edit this log entry">'+pic+' Edit</button>';
 }
 var IL_EDIT_ID=null;        // entry id open in the editor
 var IL_EDIT_RETURN_ID=null; // entry whose Edit button gets focus back when the editor closes
@@ -1182,7 +1178,7 @@ function closeIncidentLog(){
   IL_EDIT_ID=null;
   const rid=IL_EDIT_RETURN_ID;IL_EDIT_RETURN_ID=null;
   let back=null;
-  if(rid)back=[...document.querySelectorAll('#logList .ilog-editbtn[data-id]')].find(b=>b.getAttribute('data-id')===rid)||null;
+  if(rid)back=[...document.querySelectorAll('#logList [data-edit-id]')].find(b=>b.getAttribute('data-edit-id')===rid)||null;
   if(!back)back=$('logCloseBtn');
   if(back&&ilVisible(back))back.focus();
 }
@@ -1195,7 +1191,14 @@ function ilWriteErrMsg(r,verb){
 }
 // Save = update the existing entry (same PUT as My Tickets). Like My Tickets, the editor stays open
 // afterwards with filled fields re-locked; the Log updates list behind it refreshes.
+// One save request at a time: a rapid double-click / Enter + click is ignored while it is in flight.
+let IL_SAVING=false;
 async function submitIncidentLog(){
+  if(IL_SAVING)return;
+  IL_SAVING=true;
+  try{await _submitIncidentLog();}finally{IL_SAVING=false;}
+}
+async function _submitIncidentLog(){
   if(!IL_EDIT_ID)return;
   const id=IL_EDIT_ID;
   const err=$('incidentErr');err.style.display='none';

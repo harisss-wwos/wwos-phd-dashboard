@@ -256,12 +256,13 @@ function exactMatch(text, segs) {
 }
 
 // Keyword scan of one string -> best rule hit or null (see KEYWORD_RULES for the ordering).
-function kwScan(s) {
+// rules defaults to KEYWORD_RULES (issueTypeOf passes a row's typed rules to pick a type in that row).
+function kwScan(s, rules) {
   const txt = ' ' + String(s || '').toLowerCase()
     .replace(/\bnon[-\s]?pets?\b|\bno\s+pets?\b/g, ' ')
     .replace(/\b(?:w\/o|w\/\s?out|without|no)\s+(?:a\s+|any\s+)?weapons?\b/g, ' unarmed ') + ' ';
   let best = null;
-  KEYWORD_RULES.forEach(r => {
+  (rules || KEYWORD_RULES).forEach(r => {
     r.re.lastIndex = 0;
     let m;
     while ((m = r.re.exec(txt))) {
@@ -322,6 +323,49 @@ function classifyTicket(t) {
   if (mi) return { row: mi.row, type: mi.type, step: 1, how: mi.how, src: issue, phrase: mi.phrase || '' };
   if (mt) return { row: mt.row, type: mt.type, step: 2, how: mt.how, src: title, phrase: mt.phrase || '' };
   return { row: ROW_NOT_SPECIFIED, type: null, step: 3, how: 'none', src: isNoValue(issue) ? String(title || '') : issue, phrase: '' };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Ticket -> ONE of the 28 taxonomy types (or 'Issue not specified'), for the Incident Explorer.
+// Same classifyTicket() order as the Core rows (Issue line exact/alias/keyword -> Title -> none), so a
+// ticket's type always sits in the Core row Page ZERO puts it in. When only the ROW is known (an
+// '@row' alias, or an untyped keyword such as "dog" / "assault" / "sexual"), the closest type in
+// that row is picked: the row's typed keyword rules (TYPE_REFINE_RULES) on the matched text, then on
+// the other text (title / Issue line); else ROW_DEFAULT_TYPE (the row's no-injury / no-contact type,
+// per the definitions in ../issue-types-data.js).
+//   source: 'RCD Issue line' | 'Title'  exact type name or alias (step 1 / step 2)
+//           'Closest match'             keyword match, or a row-only match refined to a type
+//           'Not specified'             step 3 (nothing matched)
+// ---------------------------------------------------------------------------------------------
+const ISSUE_NOT_SPECIFIED = 'Issue not specified';
+const ISSUE_SOURCES = ['RCD Issue line', 'Title', 'Closest match', 'Not specified'];
+// Extra wording used ONLY to pick a type inside an already chosen row (never changes the row).
+const TYPE_REFINE_RULES = KEYWORD_RULES.filter(r => r.type).concat([
+  KW('physical', 'Physical altercation w/ Injury', 2, '\\binjur(?:y|ies|ed)\\b|\\bbleed\\w*|\\bbruis\\w*|\\bhospital\\w*|\\bconcuss\\w*'),
+]);
+const ROW_REFINE_RULES = new Map(ISSUE_ROWS.map(r => [r.key, TYPE_REFINE_RULES.filter(k => k.row === r.key)]));
+const ROW_DEFAULT_TYPE = { pet: 'Unsecured pet - no contact', physical: 'Physical altercation \u2013 No Injury', sexual: 'Sexual harassment (verbal)' };
+function closestTypeInRow(row, texts) {
+  const rules = ROW_REFINE_RULES.get(row) || [];
+  for (const s of texts) {
+    if (isNoValue(s)) continue;
+    const h = kwScan(s, rules);
+    if (h && h.type) return h.type;
+  }
+  return ROW_DEFAULT_TYPE[row] || (ROW_META.get(row) || ISSUE_ROWS[ISSUE_ROWS.length - 1]).types[0];
+}
+// -> { type, source, row, step, how }
+function issueTypeOf(t) {
+  const cls = classifyTicket(t);
+  if (cls.step === 3) return { type: ISSUE_NOT_SPECIFIED, source: 'Not specified', row: cls.row, step: 3, how: cls.how };
+  let type = cls.type;
+  let closest = cls.how === 'keyword';
+  if (!type) {
+    closest = true;
+    const other = cls.step === 1 ? (t && t.Title) : issueFromRcd(t && t.RootCauseDetails);
+    type = closestTypeInRow(cls.row, [cls.src, other]);
+  }
+  return { type, source: closest ? 'Closest match' : (cls.step === 1 ? 'RCD Issue line' : 'Title'), row: cls.row, step: cls.step, how: cls.how };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -389,10 +433,11 @@ const defaultIsAppeal = t => /appeal/i.test(String(t && t.Title != null ? t.Titl
 // placeholders (DRIVER_PLACEHOLDERS) and tickets without a Driv line.
 // ---------------------------------------------------------------------------------------------
 const DRIVER_ROWS = [
-  { key: 'drvDsp', label: 'Incidents processed involving "DSP DA"', re: /dsp|^(?:dps|sdp|dsa)da/ },        // DSP, DSP-DA, DA (DSP), DPS DA typo
-  { key: 'drvFlex', label: 'Incidents processed involving "Flex DP"', re: /flex|^(?:fles|felx|flew)dp$/ },  // Flex, Flex-DP, Amazon Flex, Felx DP typo
-  { key: 'drvHub', label: 'Incidents processed involving "Hub DA"', re: /hub/ },                            // Hub, Hub-DA, HUB DA
-  { key: 'drvOthers', label: '"Others"', re: null },
+  // short = the driver type name alone (Incident Explorer level values).
+  { key: 'drvDsp', label: 'Incidents processed involving "DSP DA"', short: 'DSP DA', re: /dsp|^(?:dps|sdp|dsa)da/ },        // DSP, DSP-DA, DA (DSP), DPS DA typo
+  { key: 'drvFlex', label: 'Incidents processed involving "Flex DP"', short: 'Flex DP', re: /flex|^(?:fles|felx|flew)dp$/ },  // Flex, Flex-DP, Amazon Flex, Felx DP typo
+  { key: 'drvHub', label: 'Incidents processed involving "Hub DA"', short: 'Hub DA', re: /hub/ },                            // Hub, Hub-DA, HUB DA
+  { key: 'drvOthers', label: '"Others"', short: 'Others', re: null },
 ];
 const DRIVER_OTHERS = DRIVER_ROWS[DRIVER_ROWS.length - 1];
 const DRIVER_PLACEHOLDERS = new Set(['', 'na', 'none', 'null', 'nil', 'unknown', 'tbd']);
@@ -796,4 +841,5 @@ module.exports = {
   KRI_MIN_INCIDENTS, KRI_TOP, KRI_LEVELS, DRIVER_ROWS, driverTypeOf,
   normKey, classifyIssue, classifyTicket, coreClassify, dedupeTickets, exportPeriod, coreExportCsv, csvCell, matchIncidentText, incidentSegments, resolutionRowResolver, cntOf, columnsFor, elapsedMonths, computePageZero,
   sidFromRcd, zipFromRcd, kriLevelOf, kriWindow, topCountry,
+  issueTypeOf, ISSUE_NOT_SPECIFIED, ISSUE_SOURCES, RESOLVED_STATUSES, toDate,
 };

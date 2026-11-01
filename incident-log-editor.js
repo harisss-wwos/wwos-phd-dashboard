@@ -875,6 +875,87 @@ async function _ilCopyText(text,btn,toastMsg){
     setTimeout(function(){btn.classList.remove('copied');btn.textContent=prev;},1200); }
 }
 
+// ---- Read-only view of a saved entry (My Tickets "Incident log" pop-up + Unique Cases "Log updates") ----
+// Pure string builders (no DOM). The saved text is never changed: these only turn the
+// "**Heading**:" blob into labelled sections; Copy still copies the raw text.
+var IL_VIEW_NP='<span class="ilv-np">Not provided</span>';
+function _ilvBlank(v){ v=String(v==null?'':v).trim(); return !v || v==='-'; }
+// Escaped HTML with http(s) URLs turned into new-tab links.
+function _ilvLinkify(s){
+  s=String(s==null?'':s);
+  var out='', re=/https?:\/\/[^\s<>"']+/g, last=0, m;
+  while((m=re.exec(s))){
+    var url=m[0].replace(/[).,;:!?\]]+$/,'');
+    out+=_ileEsc(s.slice(last,m.index))+'<a href="'+_ileEsc(url)+'" target="_blank" rel="noopener noreferrer">'+_ileEsc(url)+'</a>';
+    last=m.index+url.length; re.lastIndex=last;
+  }
+  return out+_ileEsc(s.slice(last));
+}
+function _ilvText(v){ return _ilvBlank(v) ? IL_VIEW_NP : '<div class="ilv-txt">'+_ilvLinkify(String(v).trim())+'</div>'; }
+// "- Question: Answer" lines (sub-questions indented 4, continuation lines indented 8) -> Q/A list.
+function _ilvInvest(v){
+  if(_ilvBlank(v)) return IL_VIEW_NP;
+  var rows=[], cur=null;
+  String(v).replace(/\r\n/g,'\n').split('\n').forEach(function(raw){
+    if(!raw.trim()) return;
+    var ind=_ilqIndentOf(raw);
+    var m=raw.match(/^\s*[-*\u2022]\s*([^:]{1,160}?)\s*:[ \t]?(.*)$/);
+    if(cur && (ind>=IL_INVEST_CONT_INDENT.length || !m)){ cur.a+=(cur.a?'\n':'')+raw.trim(); return; }
+    if(m){ cur={q:m[1], a:m[2].trim(), sub:ind>=IL_INVEST_SUB_INDENT.length}; rows.push(cur); return; }
+    rows.push({q:'', a:raw.trim(), sub:false});   // free text before the first question
+  });
+  return '<dl class="ilv-qa">'+rows.map(function(r){
+    return '<div class="ilv-qa-row'+(r.sub?' is-sub':'')+(r.q?'':' is-free')+'">'+
+      (r.q?'<dt>'+_ileEsc(r.q)+'</dt>':'')+'<dd>'+(_ilvBlank(r.a)?IL_VIEW_NP:_ilvLinkify(r.a))+'</dd></div>';
+  }).join('')+'</dl>';
+}
+// SIM Root Cause Details "Key: value" lines -> compact key/value grid (monospace values).
+function _ilvKv(v){
+  if(_ilvBlank(v)) return IL_VIEW_NP;
+  var h='';
+  String(v).replace(/\r\n/g,'\n').split('\n').forEach(function(raw){
+    var line=raw.trim(); if(!line) return;
+    var m=line.match(/^([A-Za-z][\w .\/#&()-]{0,30}?)\s*:\s*(.*)$/);
+    if(m && !/^https?$/i.test(m[1])) h+='<dt>'+_ileEsc(m[1])+'</dt><dd>'+(_ilvBlank(m[2])?IL_VIEW_NP:_ilvLinkify(m[2]))+'</dd>';
+    else h+='<dd class="ilv-kv-full">'+_ilvLinkify(line)+'</dd>';
+  });
+  return '<dl class="ilv-kv">'+h+'</dl>';
+}
+function _ilvSec(label,body,cls){ return '<section class="ilv-sec'+(cls?' '+cls:'')+'"><h3 class="ilv-lbl">'+_ileEsc(label)+'</h3>'+body+'</section>'; }
+var IL_VIEW_LABEL_RE=/\*\*\s*(PHD Findings|PHD Investigation for mitigation|SIM Root Cause Details|Root Cause|PHD Related Link|PHD Resolution|PHD notes)\s*:?\s*\*\*/i;
+// Body of one entry. Structured blobs -> two columns (sections | SIM grid); anything else -> raw text.
+function ilRenderLogBody(text){
+  var s=String(text==null?'':text).replace(/\r\n/g,'\n');
+  if(!IL_VIEW_LABEL_RE.test(s)) return '<div class="ilv-txt ilv-raw">'+(_ilvBlank(s)?IL_VIEW_NP:_ilvLinkify(s.trim()))+'</div>';
+  var f=parseIncidentOutput(s);
+  var link=_ilvBlank(f.link) ? IL_VIEW_NP : _ilvLinkify(f.link.trim());
+  var fact=function(l,v){ return '<div class="ilv-fact"><dt>'+l+'</dt><dd>'+v+'</dd></div>'; };
+  var main=_ilvSec('PHD Findings',_ilvText(f.findings))+
+    _ilvSec('PHD Investigation for mitigation',_ilvInvest(f.invest))+
+    '<dl class="ilv-facts">'+fact('Root Cause',_ilvBlank(f.rootCause)?IL_VIEW_NP:_ileEsc(f.rootCause))+
+      fact('PHD Resolution',_ilvBlank(f.res)?IL_VIEW_NP:_ileEsc(f.res))+fact('PHD Related Link',link)+'</dl>'+
+    _ilvSec('PHD notes',_ilvText(f.notes));
+  var side=_ilvSec('SIM Root Cause Details',_ilvKv(f.sim))+(_ilvBlank(f.hist)?'':_ilvSec('Historical Incidents',_ilvText(f.hist)));
+  return '<div class="ilv-cols"><div class="ilv-col">'+main+'</div><div class="ilv-col ilv-col-side">'+side+'</div></div>';
+}
+// One timeline entry. e = {id, user, at, text}; o = {when (display string), actionsHtml, latest}.
+function ilRenderLogEntry(e,o){
+  e=e||{}; o=o||{};
+  var user=String(e.user||'\u2014'), ini=(user.match(/[A-Za-z0-9]/)||['?'])[0].toUpperCase();
+  var when=o.when?'<time class="ilv-when"'+(e.at?' datetime="'+_ileEsc(e.at)+'"':'')+'>'+_ileEsc(o.when)+'</time>':'';
+  return '<li class="ilv-entry'+(o.latest?' is-latest':'')+'" data-id="'+_ileEsc(e.id)+'">'+
+    '<span class="ilv-dot" aria-hidden="true"></span>'+
+    '<article class="ilv-card" aria-label="'+_ileEsc('Entry by '+user+(o.when?', '+o.when:''))+'">'+
+      '<header class="ilv-ehead">'+
+        '<span class="ilv-av" aria-hidden="true">'+_ileEsc(ini)+'</span>'+
+        '<div class="ilv-meta"><span class="ilv-user">'+_ileEsc(user)+'</span>'+when+'</div>'+
+        (o.latest?'<span class="ilv-badge">Latest</span>':'')+
+        (o.actionsHtml?'<div class="ilv-acts">'+o.actionsHtml+'</div>':'')+
+      '</header>'+
+      '<div class="ilv-ebody">'+ilRenderLogBody(e.text)+'</div>'+
+    '</article></li>';
+}
+
 // ---- Markup + CSS ----
 var IncidentLogEditor=(function(){
   // One labelled field row. kind: 'ta' (textarea + pencil), 'select', 'link' (read-only input).
@@ -1106,7 +1187,99 @@ var IncidentLogEditor=(function(){
     var st=document.createElement('style'); st.id='ile-css'; st.textContent=CSS;
     document.head.appendChild(st);
   }
-  return { markupHtml:markupHtml, mount:mount, injectStyles:injectStyles,
+  // Read-only incident-log pop-up (.ilv-*): app dialog language (navy gradient head band, thin orange
+  // accent, icon tile, uppercase orange eyebrow, glassy icon buttons) + a vertical entry timeline.
+  // 90vw (min 320px), 96vw under 720px, max 88vh with the body scrolling inside. Two columns per
+  // entry from 1000px. Selectors are two-class + !important where the pages' generic rules compete.
+  var VIEW_CSS=[
+    '.ilv-modal{box-sizing:border-box;flex:0 0 auto;width:90vw;max-width:90vw;min-width:min(320px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;margin:0;padding:0;background:#fff;color:#1b2026;border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 30px 70px -22px rgba(5,10,20,.85),0 2px 8px -2px rgba(5,10,20,.3);text-align:left;animation:ilvIn .18s ease-out}',
+    '@media (max-width:719.98px){.ilv-modal{width:96vw;max-width:96vw}}',
+    '@keyframes ilvIn{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}',
+    '.ilv-modal .ilv-head{position:relative;overflow:hidden;flex-shrink:0;display:flex;align-items:center;gap:12px 14px;padding:18px 20px 16px 26px;color:#e9edf3;background:radial-gradient(120% 170% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);border-bottom:1px solid rgba(236,114,17,.35)}',
+    '.ilv-modal .ilv-head::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:24px 24px;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 85%);mask-image:linear-gradient(90deg,transparent 25%,#000 85%)}',
+    '.ilv-modal .ilv-head::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,#ec7211)}',
+    '.ilv-modal .ilv-head>*{position:relative}',
+    '.ilv-modal .ilv-head-ic{width:42px;height:42px;border-radius:11px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}',
+    '.ilv-modal .ilv-head-ic svg{width:20px;height:20px}',
+    '.ilv-modal .ilv-head-tx{flex:1 1 auto;min-width:0}',
+    '.ilv-modal .ilv-eyebrow{font-size:.66em;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#ffb26b;margin:0 0 4px;line-height:1.2}',
+    '.ilv-modal h2.ilv-title{margin:0!important;padding:0;color:#fff!important;font-size:1.35em!important;font-weight:800!important;letter-spacing:-.3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none;background:none!important}',
+    '.ilv-modal .ilv-title a{color:#fff!important;text-decoration:underline;text-decoration-color:rgba(255,178,107,.6);text-underline-offset:4px;text-decoration-thickness:2px}',
+    '.ilv-modal .ilv-title a:hover{color:#ffcf9e!important;text-decoration-color:#ffb26b}',
+    '.ilv-modal .ilv-sub{margin:4px 0 0;color:rgba(233,237,243,.82);font-size:.8em;line-height:1.4}',
+    '.ilv-modal .ilv-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}',
+    '.ilv-modal button.ilv-icbtn{flex-shrink:0;width:36px;height:36px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.2)!important;color:#e9edf3!important;cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);transition:background .15s,border-color .15s,color .15s}',
+    '.ilv-modal button.ilv-icbtn svg{width:16px;height:16px}',
+    '.ilv-modal button.ilv-icbtn:hover{background:rgba(236,114,17,.22)!important;border-color:rgba(255,178,107,.7)!important;color:#fff!important}',
+    '.ilv-modal button.ilv-icbtn.copied{background:rgba(31,157,87,.3)!important;border-color:#4ade80!important}',
+    '.ilv-modal .ilv-head :is(button,a):focus-visible{outline:3px solid #f0a35a!important;outline-offset:2px}',
+    '.ilv-modal .ilv-body{flex:1 1 auto;min-height:0;overflow:auto;padding:20px 24px 24px;background:#f4f6f9}',
+    '.ilv-modal ol.ilv-tl{position:relative;list-style:none;margin:0;padding:0 0 0 28px}',
+    '.ilv-modal ol.ilv-tl::before{content:"";position:absolute;left:9px;top:8px;bottom:8px;width:2px;border-radius:2px;background:#dfe4ea}',
+    '.ilv-modal .ilv-entry{position:relative;margin:0 0 16px;padding:0}',
+    '.ilv-modal .ilv-entry:last-child{margin-bottom:0}',
+    '.ilv-modal .ilv-dot{position:absolute;left:-25px;top:20px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #c9d1da;box-sizing:border-box}',
+    '.ilv-modal .ilv-entry.is-latest .ilv-dot{border-color:#ec7211;background:#ffe3c7}',
+    '.ilv-modal .ilv-card{background:#fff;border:1px solid #e3e8ee;border-radius:12px;box-shadow:0 1px 2px rgba(16,24,38,.05),0 8px 20px -16px rgba(16,24,38,.35);overflow:hidden}',
+    '.ilv-modal .ilv-entry.is-latest .ilv-card{border-color:#f2c79b}',
+    '.ilv-modal .ilv-ehead{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:12px 16px;border-bottom:1px solid #eef1f4;background:linear-gradient(180deg,#fbfcfd,#fff)}',
+    '.ilv-modal .ilv-av{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1f2a40,#2f3f5f);color:#ffcf9e;font-weight:800;font-size:.9em;box-shadow:inset 0 0 0 2px rgba(236,114,17,.45)}',
+    '.ilv-modal .ilv-meta{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;line-height:1.3}',
+    '.ilv-modal .ilv-user{font-weight:800;color:#1b2026;font-size:.9em}',
+    '.ilv-modal .ilv-when{color:#5c6773;font-size:.78em}',
+    '.ilv-modal .ilv-badge{flex-shrink:0;font-size:.66em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#8a3a00;background:#fff3e8;border:1px solid #f7c99c;border-radius:999px;padding:2px 9px}',
+    '.ilv-modal .ilv-acts{display:flex;gap:8px;flex-shrink:0;margin-left:auto}',
+    '.ilv-modal button.ilv-btn{display:inline-flex;align-items:center;gap:6px;height:32px;margin:0;padding:0 12px;border-radius:8px!important;font-family:inherit;font-size:.8em;font-weight:800!important;cursor:pointer;background:#fff!important;border:1px solid #cdd4db!important;color:#2a3340!important;box-shadow:none!important;transition:background .15s,border-color .15s,color .15s}',
+    '.ilv-modal button.ilv-btn svg{width:13px;height:13px}',
+    '.ilv-modal button.ilv-btn:hover:not(:disabled){border-color:#8793a0!important;background:#f5f6f8!important;color:#1b2026!important}',
+    '.ilv-modal button.ilv-btn.danger{background:#b42318!important;border-color:#b42318!important;color:#fff!important}',
+    '.ilv-modal button.ilv-btn.danger:hover:not(:disabled){background:#912018!important;border-color:#912018!important;color:#fff!important}',
+    '.ilv-modal button.ilv-btn:disabled{opacity:.5;cursor:not-allowed}',
+    '.ilv-modal .ilv-body :is(button,a,[tabindex]):focus-visible{outline:3px solid #1577a0!important;outline-offset:2px}',
+    '.ilv-modal .ilv-ebody{padding:14px 16px 16px}',
+    '.ilv-modal .ilv-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 28px}',
+    '@media (min-width:1000px){.ilv-modal .ilv-cols{grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr)}.ilv-modal .ilv-col-side{border-left:1px dashed #e3e8ee;padding-left:24px}}',
+    '.ilv-modal .ilv-col{min-width:0}',
+    '.ilv-modal .ilv-sec{margin:0 0 14px}',
+    '.ilv-modal .ilv-col>.ilv-sec:last-child{margin-bottom:0}',
+    '.ilv-modal h3.ilv-lbl{margin:0 0 6px!important;padding:0;font-size:.68em!important;font-weight:800!important;letter-spacing:1.2px;text-transform:uppercase;color:#9a4100!important;line-height:1.3;background:none!important;border:0!important}',
+    '.ilv-modal .ilv-txt{color:#2a3340;font-size:.88em;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:0}',
+    '.ilv-modal .ilv-np{color:#5c6773;font-style:italic;font-size:.84em}',
+    '.ilv-modal .ilv-body a{color:#0b5f8f;text-decoration:underline;text-underline-offset:2px;word-break:break-all}',
+    '.ilv-modal .ilv-body a:hover{color:#063f60}',
+    '.ilv-modal dl{margin:0;padding:0}',
+    '.ilv-modal dd{margin:0}',
+    '.ilv-modal dl.ilv-qa{border:1px solid #eef1f4;border-radius:10px;padding:2px 12px;background:#fff}',
+    '.ilv-modal .ilv-qa-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,auto);gap:4px 16px;align-items:baseline;padding:6px 0;border-top:1px solid #f0f2f5}',
+    '.ilv-modal .ilv-qa-row:first-child{border-top:0}',
+    '.ilv-modal .ilv-qa-row dt{color:#3d4753;font-size:.84em;line-height:1.4}',
+    '.ilv-modal .ilv-qa-row dd{color:#1b2026;font-size:.84em;font-weight:700;text-align:right;white-space:pre-wrap;word-break:break-word}',
+    '.ilv-modal .ilv-qa-row.is-sub{margin-left:14px;padding-left:10px;border-left:2px solid #f2c79b}',
+    '.ilv-modal .ilv-qa-row.is-free{grid-template-columns:minmax(0,1fr)}',
+    '.ilv-modal .ilv-qa-row.is-free dd{text-align:left;font-weight:400}',
+    '.ilv-modal dl.ilv-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:0 0 14px}',
+    '.ilv-modal .ilv-fact{min-width:0;padding:8px 10px;border-radius:10px;background:#f7f9fb;border:1px solid #e6eaee}',
+    '.ilv-modal .ilv-fact dt{font-size:.66em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:#9a4100;margin:0 0 3px}',
+    '.ilv-modal .ilv-fact dd{font-size:.86em;font-weight:700;color:#1b2026;word-break:break-word}',
+    '.ilv-modal .ilv-fact dd .ilv-np{font-weight:400}',
+    '.ilv-modal dl.ilv-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:0 14px;padding:4px 12px;border-radius:10px;background:#f7f9fb;border:1px solid #e6eaee}',
+    '.ilv-modal .ilv-kv dt,.ilv-modal .ilv-kv dd{padding:6px 0;border-top:1px solid #e9edf1}',
+    '.ilv-modal .ilv-kv dt:first-child,.ilv-modal .ilv-kv dt:first-child+dd,.ilv-modal .ilv-kv dd.ilv-kv-full:first-child{border-top:0}',
+    '.ilv-modal .ilv-kv dt{font-size:.78em;font-weight:700;color:#5c6773;line-height:1.5}',
+    '.ilv-modal .ilv-kv dd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82em;color:#1b2026;line-height:1.5;word-break:break-word}',
+    '.ilv-modal .ilv-kv dd.ilv-kv-full{grid-column:1/-1;font-family:inherit}',
+    '.ilv-modal .ilv-kv dd .ilv-np{font-family:inherit}',
+    '.ilv-modal .ilv-empty{padding:28px 16px;text-align:center;color:#5c6773;border:1px dashed #cdd4db;border-radius:12px;background:#fff}',
+    '@media (max-width:519.98px){.ilv-modal .ilv-head{padding:14px 14px 12px 20px;gap:10px}.ilv-modal .ilv-head-ic{width:36px;height:36px}.ilv-modal h2.ilv-title{font-size:1.15em!important}.ilv-modal .ilv-body{padding:14px 12px 16px}.ilv-modal ol.ilv-tl{padding-left:20px}.ilv-modal ol.ilv-tl::before{left:5px}.ilv-modal .ilv-dot{left:-21px}.ilv-modal .ilv-ehead,.ilv-modal .ilv-ebody{padding-left:12px;padding-right:12px}.ilv-modal .ilv-acts{margin-left:0;width:100%}.ilv-modal .ilv-acts .ilv-btn{flex:1 1 0;justify-content:center}}',
+    '@media (prefers-reduced-motion:reduce){.ilv-modal{animation:none}}'
+  ].join('\n');
+  function injectViewStyles(){
+    if(document.getElementById('ile-view-css')) return;
+    var st=document.createElement('style'); st.id='ile-view-css'; st.textContent=VIEW_CSS;
+    document.head.appendChild(st);
+  }
+  return { markupHtml:markupHtml, mount:mount, injectStyles:injectStyles, injectViewStyles:injectViewStyles,
+    renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     setInvestigation:ilSetInvestigation, getInvestigation:ilGetInvestigation,
     setHistorical:ilSetHistorical, getHistorical:ilGetHistorical };
@@ -1115,4 +1288,5 @@ if(typeof window!=='undefined') window.IncidentLogEditor=IncidentLogEditor;
 if(typeof module!=='undefined' && module.exports) module.exports={ parseIncidentOutput:parseIncidentOutput, ilSerializeFields:ilSerializeFields,
   IL_INVEST_QS:IL_INVEST_QS, ilParseInvestigation:ilParseInvestigation, ilSerializeInvestigation:ilSerializeInvestigation, ilInvestMissing:ilInvestMissing,
   ilCopyMissing:ilCopyMissing, IL_HIST_FIELDS:IL_HIST_FIELDS, IL_HIST_MAX:IL_HIST_MAX, ilSimCnt:ilSimCnt,
-  ilParseHistorical:ilParseHistorical, ilSerializeHistorical:ilSerializeHistorical, ilHistMissing:ilHistMissing };
+  ilParseHistorical:ilParseHistorical, ilSerializeHistorical:ilSerializeHistorical, ilHistMissing:ilHistMissing,
+  ilRenderLogBody:ilRenderLogBody, ilRenderLogEntry:ilRenderLogEntry };

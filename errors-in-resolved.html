@@ -127,6 +127,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .eir-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 @container (min-width:560px){.eir-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @container (min-width:980px){.eir-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (min-width:1100px){.eir-grid.is-5{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .eir-chk{position:relative;display:flex;flex-direction:column;gap:11px;padding:14px 14px 13px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;
   transition:border-color .15s,box-shadow .15s}
 .eir-chk::before{content:'';position:absolute;left:-1px;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
@@ -272,7 +273,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=214"></script>
+<script src="topbar-auth.js?v=215"></script>
 <script>
 (function(){
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -302,6 +303,7 @@ var META={
   B2:{desc:'Issue: is the same type as the title',color:'#5b8fe6'},
   B3:{desc:'Date: line is filled in',color:'#13827c'},
   B4:{desc:'Res: is on the PHD resolutions list',color:'#4cb3aa'},
+  B5:{desc:'If a Cnt: line is present, its value must be 9 or less',color:'#7a5bd6'},
   C1:{desc:'Closure code is Successful',color:'#b42318'}
 };
 var GROUPS=[{k:'A',name:'Title'},{k:'B',name:'SIM Root Cause Details'},{k:'C',name:'Closure'}];
@@ -432,7 +434,7 @@ function checksHtml(){
     var codes=list.map(function(c){ return c.code; });
     return '<div class="eir-grp" role="group" aria-labelledby="eirGrp'+g.k+'"><h3 class="eir-grp-h" id="eirGrp'+g.k+'">'+esc(g.name)+
       ' <span>'+codes[0]+(codes.length>1?'\u2013'+codes[codes.length-1]:'')+'</span></h3>'+
-      '<ul class="eir-grid">'+list.map(function(c){ return chkCard(c,editor); }).join('')+'</ul></div>';
+      '<ul class="eir-grid'+(list.length===5?' is-5':'')+'">'+list.map(function(c){ return chkCard(c,editor); }).join('')+'</ul></div>';
   }).join('');
   // Any check whose code does not start with A/B/C still gets shown (future-proof).
   var other=D.checks.filter(function(c){ return 'ABC'.indexOf(String(c.code).charAt(0))<0; });

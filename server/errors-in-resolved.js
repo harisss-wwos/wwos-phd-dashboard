@@ -22,6 +22,7 @@ const CHECKS = [
   { code: 'B2', label: 'Issue matches title' },
   { code: 'B3', label: 'Date present' },
   { code: 'B4', label: 'Res valid' },
+  { code: 'B5', label: 'Cnt within limit' },
   { code: 'C1', label: 'Closure code Successful' },
 ];
 const CHECK_CODES = CHECKS.map(c => c.code);
@@ -190,6 +191,12 @@ function rcdField(rcd, re) {
 const RCD_DATE_RE = new RegExp('(?:^|\\s)(?:Incident\\s*Date|Date\\s*of\\s*Incident|Date)[ \\t]*:([^\\r\\n]*?)(?=\\s+(?:' + RCD_NEXT_KEYS + ')\\s*:|[\\r\\n]|$)', 'i');
 // Severity 1-5 in the title: Sev 3, Sev3, Sev #3, Sev: 3, Severity 3, Severity #3, Severity Level 3, Severity level #3, #3.
 const TITLE_SEV_RE = /(?:\bsev(?:erity)?\s*(?:level\s*)?[:#-]?\s*#?\s*|#\s*)[1-5](?!\d)/i;
+// Repeat count: the same "Cnt:" parsing as page-zero.js cntOf() / server.js hiCountOf() (HI_CNT_RE),
+// but only the Cnt key (never "Historical Incident"). RCD_CNT_LINE_RE finds a Cnt line whose value
+// is not a number (reported as cntNonNumeric; such tickets pass B5).
+const HI_CNT_RE = /\bCnt\s*[:\s]\s*(\d+)/i;
+const RCD_CNT_LINE_RE = new RegExp('(?:^|\\s)Cnt[ \\t]*:([^\\r\\n]*?)(?=\\s+(?:' + RCD_NEXT_KEYS + ')\\s*:|[\\r\\n]|$)', 'i');
+const CNT_MAX = 9;
 // 'Duplicate' and 'Immediately Resolved' are out of scope (see evaluateUpload), so only Successful passes.
 const CLOSURE_OK = new Set(['successful']);
 
@@ -218,6 +225,15 @@ function evaluateTicket(t, ctx) {
   if (!resVal) R.B4 = { pass: false, msg: 'Res: missing' };
   else if (!rm) R.B4 = { pass: false, msg: 'Res: not in PHD list' };
   else R.B4 = rm.exact ? { pass: true, msg: '' } : { pass: false, msg: spellMsg(resVal, rm.name) };
+  // B5 (no Cnt line, a placeholder or a non-numeric value -> pass; > 9 -> fail)
+  const cm = rcdPlain(rcd).match(HI_CNT_RE);
+  if (cm) {
+    const n = parseInt(cm[1], 10);
+    R.B5 = n > CNT_MAX ? { pass: false, msg: 'Cnt: ' + n + ' (over ' + CNT_MAX + ')' } : { pass: true, msg: '' };
+  } else {
+    R.B5 = { pass: true, msg: '' };
+    if (rcdField(rcd, RCD_CNT_LINE_RE)) R.B5.cntNonNumeric = true;
+  }
   // C1
   const cc = str(t.ClosureCode).trim();
   R.C1 = CLOSURE_OK.has(cc.replace(/\s+/g, ' ').toLowerCase()) ? { pass: true, msg: '' } : { pass: false, msg: 'Closure: ' + (cc || 'blank') };
@@ -252,7 +268,8 @@ function evaluateUpload(rows, issueTypes, resolutionNames, deps) {
       results: evaluateTicket(t, ctx),
     });
   });
-  return { rows: byId.size, inScope: tickets.length, excluded, tickets, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
+  const cntNonNumeric = tickets.filter(t => t.results.B5 && t.results.B5.cntNonNumeric).length;
+  return { rows: byId.size, inScope: tickets.length, excluded, tickets, cntNonNumeric, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
 }
 
 function normalizeDisabled(list) {
@@ -296,6 +313,7 @@ function buildReport(evald, disabledChecks, source, phdSet) {
     disabledChecks: Array.from(disabled),
     inScope: evald.inScope,
     withErrors: tickets.length,
+    cntNonNumeric: evald.cntNonNumeric || 0,   // in-scope tickets whose Cnt: value is not a number (B5 passes them)
     excluded: evald.excluded,
     resolvers,
     tickets,
@@ -304,5 +322,5 @@ function buildReport(evald, disabledChecks, source, phdSet) {
 
 module.exports = {
   CHECKS, CHECK_CODES, SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, canon, levenshtein,
-  findTypeInText, matchValue, evaluateTicket, evaluateUpload, normalizeDisabled, buildReport, TITLE_SEV_RE, RCD_DATE_RE,
+  findTypeInText, matchValue, evaluateTicket, evaluateUpload, normalizeDisabled, buildReport, TITLE_SEV_RE, RCD_DATE_RE, HI_CNT_RE,
 };
