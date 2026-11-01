@@ -102,13 +102,60 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-view{margin-left:auto;display:inline-flex;padding:3px;border-radius:9px;background:#e7eaee}
 .hx-view button{padding:6px 14px;border:none;border-radius:7px;background:none;font-size:.84em;font-weight:700;color:#5c6773;cursor:pointer}
 .hx-view button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,30,50,.18)}
-/* Quick-jump pills: the most-used hashtags, each a pill with its count. */
-.hx-jump{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 16px;padding:0;list-style:none}
-.hx-jump-k{font-size:.68em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);margin-right:4px}
-.hx-jump-b{display:inline-flex;align-items:center;gap:7px;padding:4px 5px 4px 11px;border-radius:99px;background:#fff;border:1px solid var(--line);
-  font-size:.8em;font-weight:700;color:var(--acc-ink);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s,box-shadow .15s}
-.hx-jump-b:hover{border-color:#f7c99c;background:var(--acc-bg);box-shadow:0 6px 14px -10px rgba(236,114,17,.8)}
-.hx-jump-b b{min-width:24px;text-align:center;padding:1px 7px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+/* "Top 5 hashtags": five equal tiles (rank, tag, count, share + bar vs #1, group chip). Each tile is a
+   button that opens/scrolls to its hashtag row; aria-pressed marks the one currently open.
+   5 per row >=1100px, 3 per row on tablet, a horizontal scroll-snap row on mobile. */
+.hx-top{margin:0 0 16px}
+.hx-top-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px}
+.hx-top-k{font-size:.7em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.hx-top-note{font-size:.76em;font-weight:600;color:#8793a0}
+.hx-top-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+@media (min-width:1100px){.hx-top-list{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (max-width:639px){.hx-top-list{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;margin:-2px -2px 0;-webkit-overflow-scrolling:touch}
+  .hx-top-list>li{flex:0 0 78%;scroll-snap-align:start}}
+.hx-top-list>li{min-width:0;display:flex}
+.hx-top-t{position:relative;flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px 13px;text-align:left;font:inherit;color:var(--ink);
+  background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 24px -20px rgba(20,30,50,.55);cursor:pointer;overflow:hidden;
+  transition:border-color .15s,box-shadow .15s,transform .15s}
+.hx-top-t:hover{border-color:#f7c99c;box-shadow:0 14px 28px -18px rgba(236,114,17,.55);transform:translateY(-1px)}
+.hx-top-t:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.hx-top-t[aria-pressed="true"]{border-color:var(--acc);background:var(--acc-bg);box-shadow:0 0 0 1px var(--acc) inset,0 14px 28px -18px rgba(236,114,17,.6)}
+.hx-top-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.hx-top-rk{flex-shrink:0;width:24px;height:24px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:.78em;font-weight:800;
+  background:#eef1f4;color:#3a4552;font-variant-numeric:tabular-nums}
+.hx-top-t.is-first .hx-top-rk{background:var(--acc);color:#fff;box-shadow:0 4px 10px -4px rgba(236,114,17,.8)}
+.hx-top-t.is-first::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#ff9f2e,var(--acc))}
+.hx-top-grp{min-width:0;max-width:75%;padding:2px 8px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.68em;font-weight:700;color:var(--mut);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hx-top-tag{display:block;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em;font-weight:700;color:var(--acc-ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hx-top-v{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.hx-top-n{font-size:1.75em;font-weight:800;letter-spacing:-.8px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.hx-top-pct{font-size:.76em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hx-top-bar{display:block;height:4px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.hx-top-bar i{display:block;height:100%;border-radius:inherit;background:#1f2a40}
+.hx-top-t.is-first .hx-top-bar i{background:var(--acc)}
+@media (prefers-reduced-motion:reduce){.hx-top-t{transition:none}.hx-top-t:hover{transform:none}}
+
+/* ---- Hashtag groups (HX_GROUPS): collapsible section cards holding the rows ---- */
+.hx-groups{display:flex;flex-direction:column;gap:14px}
+.hx-grp{border:1px solid var(--line);border-radius:12px;background:var(--soft);overflow:hidden}
+.hx-grp-h{margin:0;font-size:1em}
+.hx-grp-btn{width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;border:none;border-bottom:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+.hx-grp-btn:hover{background:#fafbfc}
+.hx-grp-btn:hover .hx-chev{background:#e6f0fc;color:#2b66c1}
+.hx .hx-grp-btn:focus-visible{outline-offset:-3px}
+.hx-grp-btn .hx-chev svg{transition:transform .15s}
+.hx-grp-btn[aria-expanded="true"] .hx-chev svg{transform:rotate(90deg)}
+.hx-grp-name{flex:0 1 auto;min-width:0;font-size:1.02em;font-weight:800;letter-spacing:-.2px}
+.hx-grp-meta{flex:0 0 auto;padding:2px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.76em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
+.hx-grp-total{margin-left:auto;flex:0 0 auto;font-size:.8em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums;cursor:help}
+.hx-grp-total b{font-size:1.35em;font-weight:800;letter-spacing:-.3px;color:var(--ink);margin-right:3px}
+.hx-grp-body{display:flex;flex-direction:column;gap:8px;padding:10px}
+.hx-grp.is-closed .hx-grp-btn{border-bottom-color:transparent}
+.hx-grp.is-closed .hx-grp-body{display:none}
+.hx-grp.is-other .hx-grp-name{color:var(--mut)}
+@container (max-width:460px){.hx-grp-btn{flex-wrap:wrap;gap:6px 10px}.hx-grp-total{margin-left:34px}}
 
 /* ---- Hashtag rows (expandable) ---- */
 .hx-list{display:flex;flex-direction:column;gap:8px}
@@ -134,6 +181,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .hx-sec.is-zero .hx-tag{color:#5c6773}
 .hx-def{max-width:100%;font-size:.8em;line-height:1.4;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hx-def.none{font-style:italic;color:#8793a0}
+.hx-alias{max-width:100%;font-size:.74em;line-height:1.3;color:#8793a0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hx-sec-bar{flex:0 0 190px;display:flex;align-items:center;gap:10px}
 .hx-track{flex:1 1 auto;display:block;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
 .hx-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9f2e,var(--acc))}
@@ -379,7 +427,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=211"></script>
+<script src="topbar-auth.js?v=214"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
@@ -415,6 +463,7 @@ var HX_DEFS={
   'hubda-misconduct':'The Root cause is found to be a driver false report/misconduct related',
   'contradictory-statement-no-proof':'Contradictory statements made by CX and DA/DP, no proof to determine the truth',
   'unsucessful-outreach':'Extensive outreach has been attempted on CX with no response',
+  'unsuccessful-outreach':'Extensive outreach has been attempted on CX with no response',
   'cx-verification-rejection':'CX is unwilling or unable to authenticate their account with LMIR/SDS, often due to the belief of the agent being a scammer',
   'no-emt-attached':'Incidents that have been submitted into LM-HUB without an EMT attached',
   'api-emt-miss':'An API EMT is identified unsubmitted to LMET/GSOC',
@@ -473,16 +522,55 @@ var HX_ORDER=[
 ];
 // Fast membership test for the allow-list (lowercased, with leading '#').
 var HX_ALLOWED=new Set(HX_ORDER);
+// ===== HASHTAG SPELLING ALIASES (edit here) =====
+// Misspelled tag -> correct tag. Applied in hxCanon() when the data is normalised, i.e. BEFORE
+// grouping, counting, sorting, the Top 5 tiles, KPI totals and ticket lists. The misspelled tag's
+// tickets are merged into the correct tag's row (deduped by ticket id, so a ticket carrying both
+// spellings counts once) and the row shows a muted "includes <misspelling>" note. Display only:
+// ticket Labels in the database are NOT changed. Keys/values: lowercase, with the leading '#'.
+var HASHTAG_ALIASES={
+  '#unsucessful-outreach':'#unsuccessful-outreach'   // missing "c" in "unsuccessful"
+};
 // Aliases fold ONLY tags that are NOT themselves in the allow-list, so live Labels using a legacy
-// spelling land in the right section. (support-f-r and unsucessful-outreach are kept as their OWN
-// allowed sections, so they are intentionally NOT aliased.)
+// spelling land in the right section. (support-f-r is kept as its OWN allowed section, so it is
+// intentionally NOT aliased.) HASHTAG_ALIASES above is merged in as well.
 var HX_ALIAS={
   '#geopin':'#incorrect-geopin',               // short form of the geopin tag
-  '#s-req':'#out-of-scope',                     // SOP-request fold
-  '#unsuccessful-outreach':'#unsucessful-outreach' // correct spelling -> the allowed (misspelled) tag
+  '#s-req':'#out-of-scope'                      // SOP-request fold
 };
-// Normalize a raw "#tag" to its canonical form (lowercased, alias-resolved).
-function hxCanon(tag){ var t='#'+String(tag||'').replace(/^#/,'').toLowerCase(); return HX_ALIAS[t]||t; }
+Object.keys(HASHTAG_ALIASES).forEach(function(k){ HX_ALIAS[k]=HASHTAG_ALIASES[k]; });
+// Misspellings folded into a given correct tag (from HASHTAG_ALIASES), for the row's muted note.
+function hxMisspellingsOf(tag){ return Object.keys(HASHTAG_ALIASES).filter(function(k){ return HASHTAG_ALIASES[k]===tag; }); }
+// Normalize a raw tag: trim, force exactly one leading '#', lowercase. ("  Out-Of-Scope " -> "#out-of-scope")
+function hxNormTag(tag){ return '#'+String(tag==null?'':tag).trim().replace(/^#+/,'').trim().toLowerCase(); }
+// Normalize a raw "#tag" to its canonical form (normalized, alias-resolved).
+function hxCanon(tag){ var t=hxNormTag(tag); return HX_ALIAS[t]||t; }
+
+// ===== HASHTAG GROUPS (edit here) =====
+// The list on this page is rendered as these groups, in THIS order. Each hashtag row sits in the
+// group whose `tags` contains it; inside a group rows are sorted by ticket count (desc, ties A-Z),
+// and listed tags with 0 tickets still show (muted) at the bottom so every group is complete.
+//   - Tags are matched case-insensitively, ignoring surrounding whitespace and a missing leading '#'.
+//   - `ifPresent`: extra tags placed in the group ONLY when they actually occur in the data.
+//   - List only CORRECT spellings here; misspellings are folded in via HASHTAG_ALIASES (e.g.
+//     '#unsucessful-outreach' is merged into '#unsuccessful-outreach').
+//   - Any hashtag on the page that is in none of these groups lands in a final HX_OTHER_GROUP.
+var HX_GROUPS=[
+  { name:'Case Characteristics',
+    tags:['#out-of-scope','#contradictory-statement-no-proof','#swa-order','#api-emt-miss','#unsuccessful-outreach','#auto-resolve-defect','#language-barrier'] },
+  { name:'Upstream Process Defects (LMIR / SDS)',
+    tags:['#no-emt-attached','#duplicate-report','#incorrect-geopin','#no-phd-created','#mst-action','#missing-auto-comms','#support-p-b','#support-f-r','#geo-c-d','#cx-acct-l-u'] },
+  { name:'Driver Conduct Issues',
+    tags:['#da-misconduct','#dp-misconduct','#hubda-misconduct'] },
+  { name:'PHD Capability Gaps',
+    tags:['#mitigation-gap','#cx-verification-rejection','#address-employee','#netradyne-audio-record-help','#netradyne-rear-camera-help','#hi-not-handled-by-phd','#emt-defect'] },
+  { name:'PHD Review & Ownership',
+    tags:['#appeal-review','#hi-handled-by-phd'] }
+];
+var HX_OTHER_GROUP='Other / Ungrouped';
+// Normalized tag -> group index (built once from HX_GROUPS).
+var HX_GROUP_OF={};
+HX_GROUPS.forEach(function(g,gi){ (g.tags||[]).concat(g.ifPresent||[]).forEach(function(t){ HX_GROUP_OF[hxNormTag(t)]=gi; }); });
 // Look up a definition for a "#tag" (or bare tag). Returns '' if unknown.
 function hxDefOf(tag){ var k=hxCanon(tag).replace(/^#/,''); return HX_DEFS[k]||''; }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -626,6 +714,8 @@ var HX_OPEN=-1;
 function hxSetOpen(sec,on){
   sec.classList.toggle('open',on);
   var b=sec.querySelector('.hx-sec-btn'); if(b) b.setAttribute('aria-expanded',on?'true':'false');
+  // Keep the matching "Top 5" tile's aria-pressed in sync with the open row.
+  var t=document.querySelector('.hx-top-t[data-jump="'+sec.id.replace('hxSec','')+'"]'); if(t) t.setAttribute('aria-pressed',on?'true':'false');
 }
 function hxToggle(idx){
   var sec=document.getElementById('hxSec'+idx); if(!sec) return;
@@ -769,11 +859,33 @@ function hxKpisHtml(s){
     +hxKpi('is-mute','inbox','Not used yet',num(unused),unused?'Tracked hashtags with no tickets':'Every hashtag has tickets',null)
   +'</div>';
 }
+// "Top 5 hashtags" tiles. `top` = [{a,idx}] already sorted (count desc, ties A-Z). Share = % of all
+// hashtag uses; the bar is relative to #1. Clicking a tile opens/scrolls to its row (data-jump).
+function hxTopHtml(top,s){
+  if(!top.length) return '';
+  var max=top[0].a.count||1;
+  return '<div class="hx-top"><div class="hx-top-h"><h3 class="hx-top-k" id="hxTopH">Top '+top.length+' hashtags</h3><span class="hx-top-note">Share of all hashtag uses</span></div>'
+    +'<ul class="hx-top-list" aria-labelledby="hxTopH">'+top.map(function(e,i){
+      var gi=HX_GROUP_OF[hxNormTag(e.a.tag)], grp=gi==null?HX_OTHER_GROUP:HX_GROUPS[gi].name;
+      return '<li><button type="button" class="hx-top-t'+(i===0?' is-first':'')+'" data-jump="'+e.idx+'" aria-pressed="'+(HX_OPEN===e.idx)+'"'
+        +' aria-label="'+esc(e.a.tag)+', '+num(e.a.count)+' uses, rank '+(i+1)+'">'
+        +'<span class="hx-top-row" aria-hidden="true"><span class="hx-top-rk">'+(i+1)+'</span><span class="hx-top-grp" title="'+esc(grp)+'">'+esc(grp)+'</span></span>'
+        +'<span class="hx-top-tag" title="'+esc(e.a.tag)+'">'+esc(e.a.tag)+'</span>'
+        +'<span class="hx-top-v" aria-hidden="true"><span class="hx-top-n">'+num(e.a.count)+'</span><span class="hx-top-pct">'+hxPct(e.a.count,s.assigns)+' of uses</span></span>'
+        +'<span class="hx-top-bar" aria-hidden="true"><i style="width:'+(e.a.count/max*100).toFixed(1)+'%"></i></span>'
+      +'</button></li>';
+    }).join('')+'</ul></div>';
+}
+function hxTopSkelHtml(){
+  var t='<li><span class="hx-top-t" style="cursor:default"><span class="hx-top-row"><span class="hx-skel" style="width:24px;height:24px;border-radius:7px"></span><span class="hx-skel" style="width:46%;height:16px;border-radius:99px"></span></span>'
+    +'<span class="hx-skel" style="width:72%;height:13px"></span><span class="hx-skel" style="width:45%;height:24px"></span><span class="hx-skel" style="width:100%;height:4px;border-radius:99px"></span></span></li>';
+  return '<div class="hx-top"><div class="hx-top-h"><span class="hx-skel" style="width:120px;height:11px"></span></div><ul class="hx-top-list">'+t+t+t+t+t+'</ul></div>';
+}
 function hxToolsHtml(s){
   var top=HX_SECS.map(function(a,idx){ return {a:a,idx:idx}; }).filter(function(e){ return e.a.count>0; })
-    .sort(function(x,y){ return y.a.count-x.a.count||(x.a.tag<y.a.tag?-1:1); }).slice(0,8);
+    .sort(function(x,y){ return y.a.count-x.a.count||(x.a.tag<y.a.tag?-1:x.a.tag>y.a.tag?1:0); }).slice(0,5);
   return '<section class="hx-card" aria-labelledby="hxListH">'
-    +'<div class="hx-card-head"><div><h2 id="hxListH">All hashtags</h2><p class="hx-help">Bars compare each hashtag with the most used one. Copy a hashtag with the button at the end of its row.</p></div>'
+    +'<div class="hx-card-head"><div><h2 id="hxListH">All hashtags</h2><p class="hx-help">Hashtags are grouped by category and sorted by ticket count within each group. Bars compare each hashtag with the most used one. Copy a hashtag with the button at the end of its row.</p></div>'
       +'<span class="hx-count-txt" id="hxCount"></span></div>'
     +'<div class="hx-tools" role="search">'
       +'<label class="hx-search"><span class="hx-sr">Search hashtags</span>'+ic('search',15)
@@ -784,9 +896,7 @@ function hxToolsHtml(s){
         +'<button type="button" data-hxsort="az" aria-pressed="'+(HX_ORDER_BY==='az')+'">A\u2013Z</button>'
       +'</div>'
     +'</div>'
-    +(top.length?'<ul class="hx-jump" aria-label="Jump to a top hashtag"><li class="hx-jump-k" aria-hidden="true">Top</li>'
-      +top.map(function(e){ return '<li><button type="button" class="hx-jump-b" data-jump="'+e.idx+'" aria-label="Open '+esc(e.a.tag)+', '+e.a.count+' tickets">'+esc(e.a.tag)+'<b>'+num(e.a.count)+'</b></button></li>'; }).join('')
-      +'</ul>':'')
+    +hxTopHtml(top,s)
     +'<div class="hx-list" id="hxList"></div>'
   +'</section>';
 }
@@ -796,11 +906,13 @@ function hxRowHtml(a,idx,s){
   var def=hxDefOf(a.tag);
   var defHtml=def?'<span class="hx-def" title="'+esc(def)+'">'+esc(def)+'</span>':'<span class="hx-def none">No definition on file for this hashtag.</span>';
   var w=s.max?(a.count/s.max*100):0;
+  var miss=hxMisspellingsOf(a.tag);
+  var aliasHtml=miss.length?'<span class="hx-alias" title="Tickets tagged '+esc(miss.join(', '))+' (misspelling) are counted here with '+esc(a.tag)+'; a ticket with both spellings counts once.">includes '+esc(miss.join(', '))+' (misspelling)</span>':'';
   return '<div class="hx-sec'+(a.count>0?'':' is-zero')+'" id="hxSec'+idx+'">'
     +'<div class="hx-sec-head">'
       +'<button type="button" class="hx-sec-btn" id="hxSecBtn'+idx+'" aria-expanded="false" aria-controls="hxSecBody'+idx+'" onclick="hxToggle('+idx+')">'
         +'<span class="hx-chev" aria-hidden="true">'+CHEV+'</span>'
-        +'<span class="hx-sec-main"><span class="hx-pill"><span class="hx-tag">'+esc(a.tag)+'</span></span>'+defHtml+'</span>'
+        +'<span class="hx-sec-main"><span class="hx-pill"><span class="hx-tag">'+esc(a.tag)+'</span></span>'+defHtml+aliasHtml+'</span>'
         +'<span class="hx-sec-bar" aria-hidden="true"><span class="hx-track"><i style="width:'+w.toFixed(1)+'%"></i></span><span class="hx-share">'+hxPct(a.count,s.assigns)+'</span></span>'
         +'<span class="hx-count-col"><span class="hx-count'+(a.count>0?'':' zero')+'">'+num(a.count)+'<span class="hx-sr"> tickets</span></span><span class="hx-count-l" aria-hidden="true">ticket'+(a.count===1?'':'s')+'</span>'
           +(a.lastUploadAt?'<span class="hx-updated" title="Last updated by a CSV upload: '+esc(hxUpdatedFull(a.lastUploadAt))+'">Updated '+esc(hxUpdatedShort(a.lastUploadAt))+'</span>':'')
@@ -820,6 +932,47 @@ function hxRowHtml(a,idx,s){
     +'</div>'
   +'</div>';
 }
+// ---- Groups (HX_GROUPS): one collapsible card per group holding its hashtag rows ----
+var HX_GRP_CLOSED={};  // group key -> true when collapsed (groups are expanded by default)
+function hxGrpKeyOf(tag){ var gi=HX_GROUP_OF[hxNormTag(tag)]; return gi==null?'other':('g'+gi); }
+// Split the (already filtered + sorted) visible rows into the groups, in HX_GROUPS order, with the
+// "Other / Ungrouped" bucket last. Each bucket also carries ALL its hashtags for the totals.
+function hxGroupBuckets(vis){
+  var buckets=HX_GROUPS.map(function(g,gi){ return { key:'g'+gi, name:g.name, items:[], all:[] }; });
+  var other={ key:'other', name:HX_OTHER_GROUP, items:[], all:[] };
+  var pick=function(tag){ var k=hxGrpKeyOf(tag); return k==='other'?other:buckets[Number(k.slice(1))]; };
+  HX_SECS.forEach(function(a){ pick(a.tag).all.push(a); });
+  vis.forEach(function(e){ pick(e.a.tag).items.push(e); });
+  buckets.push(other);
+  return buckets;
+}
+function hxGrpHtml(b,s,filtering){
+  var total=b.all.reduce(function(n,a){ return n+(Number(a.count)||0); },0);
+  var closed=!!HX_GRP_CLOSED[b.key];
+  var nTags=filtering&&b.items.length!==b.all.length
+    ? (num(b.items.length)+' of '+num(b.all.length)+' hashtags')
+    : (num(b.all.length)+' hashtag'+(b.all.length===1?'':'s'));
+  var tip='Sum of the ticket counts of the '+b.all.length+' hashtags in this group. A ticket carrying several of these hashtags is counted once per hashtag.';
+  return '<section class="hx-grp'+(closed?' is-closed':'')+(b.key==='other'?' is-other':'')+'" id="hxGrp-'+b.key+'" data-grp="'+b.key+'">'
+    +'<h3 class="hx-grp-h"><button type="button" class="hx-grp-btn" id="hxGrpBtn-'+b.key+'" aria-expanded="'+(!closed)+'" aria-controls="hxGrpBody-'+b.key+'" onclick="hxGrpToggle(\''+b.key+'\')">'
+      +'<span class="hx-chev" aria-hidden="true">'+CHEV+'</span>'
+      +'<span class="hx-grp-name">'+esc(b.name)+'</span>'
+      +'<span class="hx-grp-meta">'+nTags+'</span>'
+      +'<span class="hx-grp-total" title="'+esc(tip)+'"><b>'+num(total)+'</b> tickets<span class="hx-sr"> in total, counted once per hashtag</span></span>'
+    +'</button></h3>'
+    +'<div class="hx-grp-body" id="hxGrpBody-'+b.key+'" role="region" aria-labelledby="hxGrpBtn-'+b.key+'">'
+      +b.items.map(function(e){ return hxRowHtml(e.a,e.idx,s); }).join('')
+    +'</div>'
+  +'</section>';
+}
+function hxGrpSet(key,open){
+  var g=document.getElementById('hxGrp-'+key); if(!g) return;
+  if(open) delete HX_GRP_CLOSED[key]; else HX_GRP_CLOSED[key]=true;
+  g.classList.toggle('is-closed',!open);
+  var b=document.getElementById('hxGrpBtn-'+key); if(b) b.setAttribute('aria-expanded',String(open));
+}
+function hxGrpToggle(key){ hxGrpSet(key,!!HX_GRP_CLOSED[key]); }
+window.hxGrpToggle=hxGrpToggle;
 // Visible rows for the current filter bar state (keeps each row's original HX_SECS index).
 function hxVisible(){
   var q=HX_Q.trim().toLowerCase();
@@ -838,13 +991,17 @@ function hxRenderList(){
   var box=document.getElementById('hxList'); if(!box) return;
   var s=hxStats(), vis=hxVisible();
   var c=document.getElementById('hxCount');
-  if(c) c.textContent=vis.length===HX_SECS.length?(num(HX_SECS.length)+' hashtags'):('Showing '+num(vis.length)+' of '+num(HX_SECS.length));
+  if(c) c.textContent=vis.length===HX_SECS.length?(num(HX_SECS.length)+' hashtags in '+num(hxGroupBuckets([]).filter(function(b){ return b.all.length; }).length)+' groups'):('Showing '+num(vis.length)+' of '+num(HX_SECS.length));
   if(!vis.length){
     box.innerHTML='<div class="hx-state"><span class="hx-state-ic">'+ic('search',24)+'</span><p class="hx-state-t">No hashtags match</p>'
       +'<p>Try a different search, or show the unused hashtags too.</p><div class="hx-state-acts"><button type="button" class="hx-btn is-ghost" data-hxclear>'+ic('refresh',14)+'Clear filters</button></div></div>';
     return;
   }
-  box.innerHTML=vis.map(function(e){ return hxRowHtml(e.a,e.idx,s); }).join('');
+  var filtering=!!(HX_Q.trim()||HX_HIDE0);
+  box.innerHTML='<div class="hx-groups">'+hxGroupBuckets(vis).map(function(b){
+    if(!b.items.length) return '';            // empty while filtering (or an empty Other group): hide
+    return hxGrpHtml(b,s,filtering);
+  }).join('')+'</div>';
   if(HX_OPEN>=0){
     var sec=document.getElementById('hxSec'+HX_OPEN);
     if(sec){ hxSetOpen(sec,true); var o=HX_OPEN; setTimeout(function(){ hxDrawChart(o); },60); }
@@ -860,6 +1017,7 @@ function hxSkeletonHtml(){
   return '<div class="hx-kpis">'+k+k+k+k+'</div>'
     +'<section class="hx-card" aria-hidden="true"><div class="hx-card-head"><span class="hx-skel" style="width:150px;height:20px"></span><span class="hx-skel" style="width:90px;height:12px"></span></div>'
       +'<div class="hx-tools"><span class="hx-skel" style="flex:1 1 260px;max-width:440px;height:36px;border-radius:8px"></span><span class="hx-skel" style="width:120px;height:34px;border-radius:99px"></span><span class="hx-skel" style="width:170px;height:34px;border-radius:9px;margin-left:auto"></span></div>'
+      +hxTopSkelHtml()
       +'<div class="hx-list">'+rows+'</div></section>'
     +'<p class="hx-sr">Loading hashtags\u2026</p>';
 }
@@ -904,7 +1062,16 @@ function render(data){
   // EXACTLY the allowed hashtags appear as sections — nothing else. Any tag in the data that is not
   // on the allow-list (e.g. a bogus filename-derived tag, or a retired tag) is ignored. Every allowed
   // tag renders even with 0 tickets.
-  HX_SECS=HX_ORDER.map(function(tag){
+  // Plus: every tag listed in HX_GROUPS (so each group is complete, 0 if unused) and any `ifPresent`
+  // group tag that actually occurs in the data. Tags are alias-resolved (hxCanon) so a misspelling in
+  // the allow-list (e.g. #unsucessful-outreach) maps onto its correct row instead of its own row.
+  var list=[];
+  HX_ORDER.forEach(function(t){ var n=hxCanon(t); if(list.indexOf(n)<0) list.push(n); });
+  HX_GROUPS.forEach(function(g){
+    (g.tags||[]).forEach(function(t){ var n=hxCanon(t); if(list.indexOf(n)<0) list.push(n); });
+    (g.ifPresent||[]).forEach(function(t){ var n=hxCanon(t); if(list.indexOf(n)<0&&byTag[n]) list.push(n); });
+  });
+  HX_SECS=list.map(function(tag){
     var m=byTag[tag];
     return { tag:tag, count:m?m.tickets.length:0, tickets:m?m.tickets:[], lastUploadAt:(m&&m.lastUploadAt)||'', srcTags:(m&&m.srcTags)||[], shown:HX_PAGE0, sortField:'created', sortDir:'desc' };
   });
@@ -954,6 +1121,7 @@ document.addEventListener('click',function(ev){
       hxRenderList();
     }
     var sec=document.getElementById('hxSec'+idx); if(!sec) return;
+    if(HX_SECS[idx]) hxGrpSet(hxGrpKeyOf(HX_SECS[idx].tag),true);   // make sure its group is expanded
     if(!sec.classList.contains('open')) hxToggle(idx);
     sec.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
     var b=document.getElementById('hxSecBtn'+idx); if(b) b.focus({preventScroll:true});

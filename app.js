@@ -15,7 +15,7 @@ const STATUS_RANK={'Assigned':1,'Researching':2,'Work In Progress':3,'Pending':4
 // All columns are mandatory (the upload is blocked unless every one is present).
 // Listed alphabetically. Columns added beyond the original 18 are tagged "new" in the popup.
 const REQUIRED_COLUMNS=['Age','AssignedGroup','AssigneeIdentity','ClosureCode','CreateDate','IssueId','IssueUrl','Labels','LastAssignedDate','LastUpdatedConversationDate','LastUpdatedDate','RequesterIdentity','ResolvedByIdentity','ResolvedDate','RootCause','RootCauseDetails','Severity','ShortId','Status','Tags','Title'];
-// Columns that are newly required (added after the original 18) â€” flagged with a "new" tag.
+// Columns that are newly required (added after the original 18) — flagged with a "new" tag.
 const NEW_COLUMNS=new Set(['Labels','RequesterIdentity','Tags']);
 // Friendly display name for each CSV field, matching the labels shown in the source export dialog's
 // "Select and order visible columns" list. Used to tell users which export toggles map to which CSV
@@ -65,7 +65,7 @@ function timestampsChanged(nr,old){
   return TIMESTAMP_FIELDS.some(f=>tsNorm(nr[f])!==tsNorm(old[f]));
 }
 
-// Returns { ok, missing:[...] } â€” case-insensitive/trimmed match of required columns against the header.
+// Returns { ok, missing:[...] } — case-insensitive/trimmed match of required columns against the header.
 function validateColumns(csvText){
   const headers=parseCSVHeaders(csvText);
   const have=new Set(headers.map(h=>h.toLowerCase()));
@@ -85,15 +85,15 @@ function showColumnError(missing){
     // Show the export-dialog label, with the actual CSV field in parentheses (monospace).
     // Light theme: present = green #16a34a, missing = red #dc2626, label slate #1b2026, CSV field muted #5c6773.
     return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:'+(bad?'#dc2626':'#16a34a')+'">'
-      +(bad?'âœ—':'âœ“')+' <span style="font-weight:600;color:#1b2026">'+disp+'</span> <span style="font-family:monospace;font-size:.82em;color:#5c6773">('+c+')</span>'+newTag+(bad?' <span style="color:#dc2626;font-size:.78em;font-weight:700">(missing)</span>':'')+'</li>';
+      +(bad?'✗':'✓')+' <span style="font-weight:600;color:#1b2026">'+disp+'</span> <span style="font-family:monospace;font-size:.82em;color:#5c6773">('+c+')</span>'+newTag+(bad?' <span style="color:#dc2626;font-size:.78em;font-weight:700">(missing)</span>':'')+'</li>';
   }).join('');
   const overlay=document.createElement('div');
   overlay.id='incPopup';
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(20,30,50,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(ev)=>{if(ev.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#fff;border:1px solid #e3e8ee;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5);color:#1b2026">
-    <h2 style="color:#dc2626;font-size:1.2em;margin-bottom:6px">Upload blocked â€” missing required columns</h2>
-    <p style="color:#5c6773;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#dc2626">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Each is shown by its name in the export dialog's "Select and order visible columns" list, with the actual CSV field in parentheses. Fix the export and try again â€” <b style="color:#1b2026">no data was uploaded</b>.</p>
+    <h2 style="color:#dc2626;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>
+    <p style="color:#5c6773;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#dc2626">${missing.length}</b> required column${missing.length===1?'':'s'}. All ${REQUIRED_COLUMNS.length} columns below are mandatory. Each is shown by its name in the export dialog's "Select and order visible columns" list, with the actual CSV field in parentheses. Fix the export and try again — <b style="color:#1b2026">no data was uploaded</b>.</p>
     <ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">${listHtml}</ul>
     <div style="margin-top:20px;text-align:right"><button class="btn" style="background:#f0820f;border:1px solid #f0820f;color:#fff;font-weight:700;border-radius:5px;padding:8px 18px;cursor:pointer" onclick="closeAllPopups()">Close</button></div>
   </div>`;
@@ -103,7 +103,7 @@ function showColumnError(missing){
 // ===== Shared data store: MongoDB Atlas via the Render API (see api-config.js) =====
 // Auth + publish now go through window.PHDAuth / window.PHD_API_BASE.
 
-// Global lock â€” true while a publish is in progress. Blocks uploads/merges.
+// Global lock — true while a publish is in progress. Blocks uploads/merges.
 let PUBLISHING=false;
 
 // ===== IndexedDB storage =====
@@ -258,7 +258,7 @@ function computeMetrics(data){
   const pwAn={};pwR.forEach(r=>{let x=isAutoSimResolved(r)?'AutoSIM':(r.ResolvedByIdentity||'Unknown');if(!pwAn[x])pwAn[x]={t:0,a:0};pwAn[x].t++;if((r.RootCause||'').toLowerCase().includes('unsecured animal'))pwAn[x].a++;});
   const pwDC=[],pwDR=[],pwDL=[];for(let i=0;i<7;i++){const ds=new Date(pwS);ds.setDate(ds.getDate()+i);const de=new Date(ds);de.setDate(de.getDate()+1);pwDC.push(pwC.filter(r=>{const cd=new Date(r.CreateDate);return cd>=ds&&cd<de;}).length);pwDR.push(pwR.filter(r=>{const rd=new Date(r.ResolvedDate);return rd>=ds&&rd<de;}).length);pwDL.push(ds.toLocaleDateString('en-US',{month:'short',day:'numeric'}));}
   const pwSt={};pwC.forEach(r=>{pwSt[r.Status]=(pwSt[r.Status]||0)+1;});
-  // ---- SLA compliance per week (â‰¤240h), bucketed by RESOLVED date, for the current quarter ----
+  // ---- SLA compliance per week (≤240h), bucketed by RESOLVED date, for the current quarter ----
   // Quarter start = first day of the quarter that contains the latest ticket date. 13 weekly buckets.
   const qStart=new Date(maxDate.getFullYear(),Math.floor(maxDate.getMonth()/3)*3,1);
   const isoWeekNum=(d)=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-ys)/864e5+1)/7);};
@@ -276,7 +276,7 @@ function computeMetrics(data){
   const slaByWeek=[];for(let i=0;i<13;i++){
     const dt=new Date(qStart.getFullYear(),qStart.getMonth(),qStart.getDate()+i*7);
     const label='W'+String(isoWeekNum(dt)).padStart(2,'0');
-    // Only include weeks up to (and including) the current one â€” future weeks are not drawn yet.
+    // Only include weeks up to (and including) the current one — future weeks are not drawn yet.
     const inRange=(currentWeekIdx<0)||(i<=currentWeekIdx);
     const pct=(inRange&&slaResolvedWk[i])?+(slaWithinWk[i]/slaResolvedWk[i]*100).toFixed(1):null;
     slaByWeek.push({week:label,resolved:inRange?slaResolvedWk[i]:0,within:inRange?slaWithinWk[i]:0,pct});
@@ -307,7 +307,7 @@ function handleUpload(file,mode,autoPublish){
 
 // Same as handleUpload but from CSV text already in memory (used by the cross-page handoff).
 function handleUploadText(csvText,mode,autoPublish){
-  if(PUBLISHING){showToast('Publish in progress â€” data changes are locked.');return;}
+  if(PUBLISHING){showToast('Publish in progress — data changes are locked.');return;}
   // RULE 1: reject the file if the header is missing any required column (no upload happens).
   const colCheck=validateColumns(csvText);
   if(!colCheck.ok){ showColumnError(colCheck.missing); return; }
@@ -317,7 +317,7 @@ function handleUploadText(csvText,mode,autoPublish){
     const parsed=parseCSV(csvText).filter(r=>r.ShortId||r.IssueId).map(r=>{if(!r.ShortId&&r.IssueId)r.ShortId=r.IssueId;return r;});
     // Split by quarter: the local store + browser merge only concern the LIVE quarter.
     // Non-live rows (e.g. Q2 tickets) are passed straight to the server, which merges them
-    // into their own quarter doc â€” they must NOT enter the local live-dashboard store.
+    // into their own quarter doc — they must NOT enter the local live-dashboard store.
     const liveQ=LIVE_QUARTER?LIVE_QUARTER.quarter:null;
     const newRows=[];const nonLiveRows=[];
     parsed.forEach(r=>{const q=quarterOf(r.CreateDate);if(liveQ&&q&&q!==liveQ)nonLiveRows.push(r);else newRows.push(r);});
@@ -362,7 +362,7 @@ function handleUploadText(csvText,mode,autoPublish){
         }
       });
       if(toWrite.length>0)await dbPutAll(toWrite);
-      deltaLive=toWrite; // only the changed/new (+auto-closed) live tickets â€” the delta to publish
+      deltaLive=toWrite; // only the changed/new (+auto-closed) live tickets — the delta to publish
       mergeReport={added,updated,reopened,autoClosed,becameResolved,unchanged,missing:missing.length,missingIds:missing.slice(0,50)};
     }
     // Recompute from full merged LIVE set (local store holds live-quarter tickets only)
@@ -387,7 +387,7 @@ function showMergeReport(rep,crossInfo){
     crossNote=`<p style="color:#fbbf24;font-size:.85em;margin-top:16px;padding:10px 12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:5px"><b>Cross-quarter review completed.</b> Non-live quarter data was reviewed and overwritten with the uploaded tickets.</p>`;
   }else if(skipped.length){
     const s=skipped.map(c=>`${c.label} (${c.count})`).join(', ');
-    crossNote=`<p style="color:#879596;font-size:.85em;margin-top:16px;padding:10px 12px;background:rgba(135,149,150,.08);border:1px solid #2a2a2a;border-radius:5px">Non-live quarter tickets were <b>skipped</b> â€” only the live quarter was updated. Skipped: ${s}.</p>`;
+    crossNote=`<p style="color:#879596;font-size:.85em;margin-top:16px;padding:10px 12px;background:rgba(135,149,150,.08);border:1px solid #2a2a2a;border-radius:5px">Non-live quarter tickets were <b>skipped</b> — only the live quarter was updated. Skipped: ${s}.</p>`;
   }
   const overlay=document.createElement('div');
   overlay.id='incPopup';
@@ -402,7 +402,7 @@ function showMergeReport(rep,crossInfo){
       <div class="handoff-box"><h3>Change Summary</h3><ul>
         <li><span>New tickets added</span><span class="val" style="color:#4ade80">${rep.added}</span></li>
         <li><span>Tickets updated (status advanced)</span><span class="val" style="color:#fbbf24">${rep.updated}</span></li>
-        <li><span>Tickets reopened (â†’ Purple)</span><span class="val" style="color:#a78bfa">${rep.reopened}</span></li>
+        <li><span>Tickets reopened (→ Purple)</span><span class="val" style="color:#a78bfa">${rep.reopened}</span></li>
         <li><span>Auto-closed (missing + was Resolved)</span><span class="val" style="color:#44b9d6">${rep.autoClosed||0}</span></li>
         <li><span>Unchanged</span><span class="val" style="color:#879596">${rep.unchanged}</span></li>
         <li><span>Not present in new file (retained)</span><span class="val" style="color:#ff5252">${rep.missing}</span></li>
@@ -427,7 +427,7 @@ async function ensureFullData(){
   if(!hasSkeleton){
     try{
       // Paint a neutral spinner so the switch isn't blank while ~8k rows load.
-      document.getElementById('app').innerHTML=topBar(currentView||'dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div><p style="color:#879596;margin-top:16px">Loading full datasetâ€¦</p></div>';
+      document.getElementById('app').innerHTML=topBar(currentView||'dashboard')+'<div class="content" style="text-align:center;padding:80px 0"><div class="spinner"></div><p style="color:#879596;margin-top:16px">Loading full dataset…</p></div>';
     }catch(e){}
   }
   // Prefer whatever is already in IndexedDB; else fetch from the server.
@@ -460,7 +460,7 @@ function nav(view){
   // (it may currently live inside the dashboard header row). The target render re-anchors it.
   try{ var _tr=document.getElementById('tbTopRight'); if(_tr&&_tr.parentNode!==document.body){document.body.appendChild(_tr);_tr.classList.remove('tb-top-right-inrow');} }catch(e){}
   if(view==='dashboard'){ renderDashboardChunked(); return; }
-  // Other views need the full array â€” load it first if we don't have M yet.
+  // Other views need the full array — load it first if we don't have M yet.
   if(M){ _navRender(view); return; }
   ensureFullData().then(ok=>{ if(ok)_navRender(view); else renderDashboardChunked(); });
 }
@@ -473,7 +473,7 @@ function renderUpload(){
   document.getElementById('app').innerHTML=`
   <div class="upload-wrap">
     <div style="text-align:center;max-width:500px">
-      <a href="index.html" style="color:#879596;font-size:.85em;text-decoration:none;display:inline-block;margin-bottom:20px">â† Back to All Dashboards</a>
+      <a href="index.html" style="color:#879596;font-size:.85em;text-decoration:none;display:inline-block;margin-bottom:20px">← Back to All Dashboards</a>
       <h1 style="color:#fff;font-size:2em;margin-bottom:8px">WWOS-PHD Dashboard</h1>
       <p style="color:#879596;margin-bottom:30px">No data exists to create a dashboard. Upload a CSV file to get started. Later you can merge additional CSVs to keep the dashboard updated.</p>
       <div class="drop-zone" id="dropZone">
@@ -510,7 +510,7 @@ function doLogout(){window.PHDAuth.clear();location.reload();}
 
 // Handle a chosen CSV from the "Upload new data" input.
 function onUploadFileChange(e){
-  if(PUBLISHING){showToast('Upload in progress â€” please wait.');e.target.value='';return;}
+  if(PUBLISHING){showToast('Upload in progress — please wait.');e.target.value='';return;}
   const file=e.target.files&&e.target.files[0];e.target.value='';
   if(file)previewUpload(file);
 }
@@ -586,7 +586,7 @@ function assessAndPreview(csvText){
     const rowsHtml=quarters.map(q=>{
       const isLive=(q===liveQ);
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #2a2a2a">
-        <span style="color:#fff;font-weight:600">${esc(qLabel(q))} ${isLive?'<span style="color:#4ade80;font-size:.75em;font-weight:700;margin-left:6px">â— LIVE</span>':'<span style="color:#fbbf24;font-size:.75em;font-weight:700;margin-left:6px">PAST QUARTER</span>'}</span>
+        <span style="color:#fff;font-weight:600">${esc(qLabel(q))} ${isLive?'<span style="color:#4ade80;font-size:.75em;font-weight:700;margin-left:6px">● LIVE</span>':'<span style="color:#fbbf24;font-size:.75em;font-weight:700;margin-left:6px">PAST QUARTER</span>'}</span>
         <span style="color:${isLive?'#4ade80':'#fbbf24'};font-weight:700">${tally[q].toLocaleString()} ticket${tally[q]===1?'':'s'}</span>
       </div>`;
     }).join('');
@@ -595,7 +595,7 @@ function assessAndPreview(csvText){
       ? `<p style="color:#fbbf24;font-size:.85em;margin:14px 0 0;padding:10px 12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:5px"><b>Note:</b> tickets from a past quarter will be merged into <b>that quarter's own dashboard</b> (not the live one). Each quarter keeps its own data and update log.</p>`
       : `<p style="color:#879596;font-size:.85em;margin:14px 0 0">All tickets belong to the live quarter and will update the live dashboard.</p>`;
     // RULE 2 (freshness): compare the file's newest LastUpdatedDate to what's already live.
-    // If the file is OLDER, warn (but still allow â€” admin can override).
+    // If the file is OLDER, warn (but still allow — admin can override).
     let staleWarn='';
     try{
       const maxDate=(arr,f)=>arr.reduce((m,r)=>{const d=new Date(f(r));return (!isNaN(d)&&d.getTime()>m)?d.getTime():m;},0);
@@ -603,7 +603,7 @@ function assessAndPreview(csvText){
       const dbMax=(window._dbMaxLastUpdated!=null)?window._dbMaxLastUpdated:0;
       if(fileMax&&dbMax&&fileMax<dbMax){
         const fmt=(ms)=>new Date(ms).toLocaleString('en-US',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-        staleWarn=`<p style="color:#ff5252;font-size:.85em;margin:14px 0 0;padding:10px 12px;background:rgba(255,82,82,.1);border:1px solid rgba(255,82,82,.35);border-radius:5px"><b>âš  This file looks OLDER than the current data.</b><br>Newest change in file: <b>${fmt(fileMax)}</b> Â· Newest already live: <b>${fmt(dbMax)}</b>.<br>Uploading an outdated export may not reflect recent changes. Only continue if you're sure this is the correct file.</p>`;
+        staleWarn=`<p style="color:#ff5252;font-size:.85em;margin:14px 0 0;padding:10px 12px;background:rgba(255,82,82,.1);border:1px solid rgba(255,82,82,.35);border-radius:5px"><b>⚠ This file looks OLDER than the current data.</b><br>Newest change in file: <b>${fmt(fileMax)}</b> · Newest already live: <b>${fmt(dbMax)}</b>.<br>Uploading an outdated export may not reflect recent changes. Only continue if you're sure this is the correct file.</p>`;
       }
     }catch(e){}
     const overlay=document.createElement('div');
@@ -622,7 +622,7 @@ function assessAndPreview(csvText){
         <button class="btn" style="background:#4ade80" id="confirmUploadBtn">${ic('upload',15)} Upload</button>
       </div>
     </div>`;
-    hideAssessingSpinner(); // assessment done â€” show the confirm popup
+    hideAssessingSpinner(); // assessment done — show the confirm popup
     document.body.appendChild(overlay);
     const btn=document.getElementById('confirmUploadBtn');
     if(btn)btn.onclick=()=>{closeAllPopups();handleUploadText(csvText,'merge',/*autoPublish*/true);};
@@ -632,7 +632,7 @@ function assessAndPreview(csvText){
 function makeChart(id,config){
   const ctx=document.getElementById(id);
   if(ctx){
-    // Destroy any existing chart bound to this canvas first â€” Chart.js refuses to create a second
+    // Destroy any existing chart bound to this canvas first — Chart.js refuses to create a second
     // chart on the same <canvas>, so re-rendering (e.g. the Week/Day toggle) would otherwise be a
     // silent no-op and the stale chart would remain.
     try{
@@ -643,7 +643,7 @@ function makeChart(id,config){
   }
 }
 
-function closeAllPopups(){const p=document.getElementById('colorPopup');if(p)p.remove();const p2=document.getElementById('incPopup');if(p2)p2.remove();}
+function closeAllPopups(){const p=document.getElementById('colorPopup');if(p){const rf=p._tddRestore;p.remove();if(rf&&rf.focus&&document.contains(rf)){try{rf.focus();}catch(e){}}}const p2=document.getElementById('incPopup');if(p2)p2.remove();}
 
 // Collapse/expand a dashboard section (header is the click target). Charts inside are resized on expand.
 function toggleSection(h2){
@@ -669,7 +669,7 @@ function showTicketAccessPrompt(){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:50vw;width:50vw;min-width:min(92vw,420px);padding:28px;text-align:center">
-    <div style="font-size:2em;margin-bottom:8px">ðŸ”’</div>
+    <div style="font-size:2em;margin-bottom:8px">🔒</div>
     <h2 style="color:#fff;font-size:1.2em;margin-bottom:10px">Login required</h2>
     <p style="color:#879596;font-size:.9em;line-height:1.6;margin-bottom:20px">Ticket-level details are available to logged-in users only. Please log in to view tickets, or for access reach out to <a href="https://amazon.enterprise.slack.com/team/U033KLXL0FQ" target="_blank" rel="noopener" style="color:#ff9900;font-weight:600;text-decoration:none">@harisss</a>.</p>
     <div style="display:flex;gap:10px;justify-content:center">
@@ -680,310 +680,261 @@ function showTicketAccessPrompt(){
   document.body.appendChild(overlay);
 }
 
+// ===== Ticket drill-down dialog =====
+// One shared builder for the Queue Status tiles (Assigned / Work In Progress / Researching / Pending)
+// and the Ticket age classification buckets (Green / Yellow / Red / Black / Purple). Markup reuses the
+// .tbl-* dialog shell from topbar-auth.js (navy hero header, white body); the .tdd-* extras (90vw
+// width, bucket accent, chips, segmented toggle, analyst cards, ticket table) live in app.html.
+const TDD_AGE_META={
+  green:{label:'Green',range:'0\u20134 days',acc:'#22c55e',sw:'#22c55e',icon:'check-circle'},
+  yellow:{label:'Yellow',range:'4\u20137 days',acc:'#f59e0b',sw:'#fbbf24',icon:'clock'},
+  red:{label:'Red',range:'7\u201310 days',acc:'#ef4444',sw:'#ef4444',icon:'alert'},
+  black:{label:'Black',range:'>10 days',acc:'#94a3b8',sw:'#111827',icon:'flame'},
+  purple:{label:'Purple',range:'Reopened',acc:'#a78bfa',sw:'#8b5cf6',icon:'reopen'}
+};
+const TDD_ST_TAG={'Assigned':{t:'Assigned',c:'a'},'Work In Progress':{t:'WIP',c:'w'},'Pending':{t:'Pending',c:'p'},'Researching':{t:'Researching',c:'r'},'Resolved':{t:'Resolved',c:'ok'},'Closed':{t:'Closed',c:'ok'}};
+function tddEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Build both views for a ticket list. Same data/sorting as before: tickets oldest-first, analysts
+// by ticket count (desc); time left counts down to the 240h (10-day) black threshold.
+function tddViews(tix,emptyMsg){
+  const esc=tddEsc;
+  const me=(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser())?String(window.PHDAuth.getUser().username||'').toLowerCase():'';
+  const now=new Date();
+  const byAge=(a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate);
+  const isUnassigned=(n)=>!String(n||'').trim()||String(n).toLowerCase()==='unassigned';
+  const statusTag=(s)=>{const m=TDD_ST_TAG[s]||{t:(s||'\u2014'),c:'x'};return '<span class="ap-sttag ap-sttag-'+m.c+'" title="'+esc(s||'')+'">'+esc(m.t)+'</span>';};
+  const td=(label,html,cls)=>'<td'+(cls?' class="'+cls+'"':'')+' data-label="'+label+'">'+html+'</td>';
+  const row=(r,mine,cells)=>{
+    const cd=new Date(r.CreateDate), validCd=!isNaN(cd);
+    const left=10-(validCd?Math.floor((now-cd)/864e5):0);
+    const leftCls=left>3?'ok':(left>0?'warn':'over');
+    const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
+    const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'\u2014';
+    const sid=r.ShortId||'';
+    const isPrio=hasPriorityLabel(r.Labels), isNoEmt=hasNoEmt(r.Title,r.Labels);
+    const marks=(isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion" aria-label="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'')+
+      (isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT" aria-label="No EMT">'+ic('no-entry',13)+'</span>':'');
+    const c={
+      created:td('Created','<span class="tdd-created">'+esc(created)+'</span>'),
+      login:(agent)=>td('Login ID',isUnassigned(agent)?'<span class="tdd-unas">Unassigned</span>':esc(agent),'tdd-login'),
+      ticket:td('Ticket','<a class="tdd-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener" title="Open '+esc(sid)+' in a new tab">'+ic('ticket',13)+'<span>'+esc(sid)+'</span></a>'+marks),
+      status:td('Status',statusTag(r.Status)),
+      left:td('Time left','<span class="tdd-left tdd-left-'+leftCls+'">'+leftTxt+'</span>'),
+      cmt:'<td class="tdd-cmt pc-tk-cmt" data-label="Last comment" data-sid="'+esc(sid)+'" data-mine="'+(mine?'1':'0')+'"><span class="pc-tk-cmt-txt">Loading\u2026</span></td>'
+    };
+    return '<tr'+(isPrio?' class="tdd-row-prio"':'')+'>'+cells(c)+'</tr>';
+  };
+  const table=(cls,cols,rows)=>'<div class="tdd-tblwrap"><table class="tdd-tbl '+cls+'"><thead><tr>'+
+    cols.map(h=>'<th scope="col">'+h+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  const empty='<div class="tdd-empty" role="status">'+ic('inbox',22)+'<p>'+esc(emptyMsg)+'</p></div>';
+
+  const tickets=()=>{
+    if(!tix.length) return empty;
+    const rows=tix.slice().sort(byAge).map(r=>{
+      const agent=r.AssigneeIdentity||'';
+      return row(r,(me&&String(agent).toLowerCase()===me),c=>c.created+c.login(agent)+c.ticket+c.status+c.left+c.cmt);
+    }).join('');
+    return table('tdd-tbl-tix',['Created','Login ID','Ticket','Status','Time left','Last comment'],rows);
+  };
+
+  const analysts=()=>{
+    if(!tix.length) return empty;
+    const byAgent={}; tix.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
+    const rosterLoaded=!!window.USER_PROFILES;
+    return Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length).map(([name,list],i)=>{
+      const un=isUnassigned(name);
+      const registered=!un&&rosterLoaded&&isRegisteredUser(name);
+      const unregistered=un||(rosterLoaded&&!isRegisteredUser(name));
+      const prof=un?{}:(profileFor(name)||{});
+      const nm=un?'Unassigned':String(prof.displayName||prof.name||displayName(name)||name);
+      const initial=(nm.trim().charAt(0)||'?').toUpperCase();
+      const prioN=list.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
+      const noEmtN=list.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
+      const tags=(registered?'<span class="tdd-tag tdd-tag-phd" title="Registered PHD user">PHD</span>':'')+
+        (isLMCAP(name)?'<span class="tdd-tag tdd-tag-def">Default</span>':'')+
+        (unregistered&&!un?'<span class="tdd-tag tdd-tag-unreg" title="Not a registered PHD user">Not registered</span>':'');
+      const flags=(prioN?'<span class="tdd-flag" title="'+prioN+' Station Request / Address Exclusion ticket'+(prioN===1?'':'s')+'">'+ic('map-pin',12)+' '+prioN+'</span>':'')+
+        (noEmtN?'<span class="tdd-flag tdd-flag-noemt" title="'+noEmtN+' No EMT ticket'+(noEmtN===1?'':'s')+'">'+ic('no-entry',12)+' '+noEmtN+'</span>':'');
+      const rows=list.slice().sort(byAge).map(r=>row(r,(me&&String(name).toLowerCase()===me),c=>c.ticket+c.status+c.created+c.left+c.cmt)).join('');
+      const bid='tddAg'+i;
+      return '<div class="tdd-agent'+(unregistered?' is-unreg':'')+'">'+
+        '<button type="button" class="tdd-agent-head" aria-expanded="false" aria-controls="'+bid+'" onclick="tddToggleAgent(this)">'+
+          '<span class="tdd-av" aria-hidden="true">'+esc(initial)+'</span>'+
+          '<span class="tdd-agent-tx"><span class="tdd-agent-nm">'+esc(nm)+tags+'</span>'+
+            (un?'<span class="tdd-agent-sub">No assignee</span>':'<span class="tdd-agent-sub">@'+esc(name)+'</span>')+'</span>'+
+          (flags?'<span class="tdd-flags">'+flags+'</span>':'')+
+          '<span class="tdd-count">'+list.length+'<span class="tdd-sr"> ticket'+(list.length===1?'':'s')+'</span></span>'+
+          '<span class="tdd-chev" aria-hidden="true">'+ic('chevron-down',16)+'</span>'+
+        '</button>'+
+        '<div class="tdd-agent-body" id="'+bid+'" hidden>'+table('tdd-tbl-ana',['Ticket','Status','Created','Time left','Last comment'],rows)+'</div>'+
+      '</div>';
+    }).join('');
+  };
+  return {tickets,analysts};
+}
+
+// Expand/collapse one analyst card — accordion: only one open at a time.
+function tddToggleAgent(btn){
+  const card=btn.closest('.tdd-agent'); if(!card)return;
+  const open=btn.getAttribute('aria-expanded')!=='true';
+  const scope=card.closest('.tdd-card')||document;
+  const set=(c,on)=>{ c.classList.toggle('open',on); const h=c.querySelector('.tdd-agent-head'); if(h)h.setAttribute('aria-expanded',on?'true':'false'); const b=c.querySelector('.tdd-agent-body'); if(b)b.hidden=!on; };
+  scope.querySelectorAll('.tdd-agent.open').forEach(o=>{ if(o!==card) set(o,false); });
+  set(card,open);
+}
+window.tddToggleAgent=tddToggleAgent;
+
+// Open the dialog. o = {eyebrow, title, chip, acc, sw, icon, emptyMsg, onCsv}
+// Returns {setTickets(list), setError(msg)}. Esc / backdrop / Close dismiss; focus is trapped
+// inside and restored to the opener on close (see closeAllPopups).
+function tddOpenDialog(o){
+  closeAllPopups();
+  const esc=tddEsc;
+  const opener=document.activeElement;
+  let TIX=null, view='analysts';
+  const ov=document.createElement('div');
+  ov.id='colorPopup'; ov.className='tbl-bg tdd-bg'; ov.style.display='flex';
+  ov._tddRestore=opener;
+  ov.innerHTML='<div class="tbl-card tdd-card" role="dialog" aria-modal="true" aria-labelledby="tddTitle" aria-describedby="tddMeta" tabindex="-1" style="--tdd-acc:'+o.acc+';--tdd-sw:'+o.sw+'">'+
+    '<div class="tbl-head tdd-head">'+
+      '<span class="tbl-head-ic tdd-ic" aria-hidden="true">'+ic(o.icon,20)+'</span>'+
+      '<div class="tbl-head-tx">'+
+        '<p class="tbl-eyebrow">'+esc(o.eyebrow)+'</p>'+
+        '<h2 class="tbl-title" id="tddTitle">'+esc(o.title)+'</h2>'+
+        '<div class="tdd-chips" id="tddMeta">'+
+          '<span class="tdd-chip"><i class="tdd-sw" aria-hidden="true"></i>'+esc(o.chip)+'</span>'+
+          '<span class="tdd-chip tdd-chip-n" id="tddCount" aria-live="polite">Loading\u2026</span>'+
+          '<span class="tdd-chip tdd-chip-dim">'+ic('clock',12)+' Oldest first</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="tdd-actions">'+
+        '<div class="tdd-seg" role="radiogroup" aria-label="Group tickets by">'+
+          '<button type="button" class="tdd-seg-b" role="radio" aria-checked="false" tabindex="-1" data-view="tickets">'+ic('ticket',14)+' By Tickets</button>'+
+          '<button type="button" class="tdd-seg-b" role="radio" aria-checked="true" tabindex="0" data-view="analysts">'+ic('users',14)+' By Analysts</button>'+
+        '</div>'+
+        '<button type="button" class="tdd-btn tdd-btn-pri" data-act="csv">'+ic('download',14)+' Download CSV</button>'+
+        '<button type="button" class="tdd-btn tdd-btn-ghost" data-act="close">'+ic('close',14)+' Close</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="tdd-body" id="pcViewBody" role="region" aria-label="Tickets" tabindex="0"><div class="tdd-empty" role="status"><span class="tdd-spin" aria-hidden="true"></span><p>Loading tickets\u2026</p></div></div>'+
+  '</div>';
+  document.body.appendChild(ov);
+  const card=ov.querySelector('.tdd-card'), body=ov.querySelector('.tdd-body');
+  const segs=[].slice.call(ov.querySelectorAll('.tdd-seg-b'));
+
+  const render=()=>{
+    if(!TIX)return;
+    const v=tddViews(TIX,o.emptyMsg);
+    body.innerHTML=(view==='tickets')?v.tickets():v.analysts();
+    body.scrollTop=0;
+    // (re)load comments for whatever rows are now rendered (both views).
+    fillLatestComments(ov, TIX.map(r=>r.ShortId).filter(Boolean));
+  };
+  const pick=(btn,focus)=>{
+    segs.forEach(b=>{ const on=b===btn; b.setAttribute('aria-checked',on?'true':'false'); b.tabIndex=on?0:-1; });
+    if(focus)btn.focus();
+    if(btn.getAttribute('data-view')!==view){ view=btn.getAttribute('data-view'); render(); }
+  };
+  segs.forEach((b,i)=>{
+    b.onclick=()=>pick(b,false);
+    b.onkeydown=(e)=>{
+      const k=e.key; let j=-1;
+      if(k==='ArrowRight'||k==='ArrowDown')j=(i+1)%segs.length;
+      else if(k==='ArrowLeft'||k==='ArrowUp')j=(i-1+segs.length)%segs.length;
+      else if(k==='Home')j=0; else if(k==='End')j=segs.length-1;
+      if(j>=0){e.preventDefault();pick(segs[j],true);}
+    };
+  });
+  ov.querySelector('[data-act="csv"]').onclick=()=>{ if(o.onCsv)o.onCsv(TIX||[]); };
+  ov.querySelector('[data-act="close"]').onclick=()=>closeAllPopups();
+  ov.addEventListener('click',(e)=>{ if(e.target===ov)closeAllPopups(); });
+  ov.addEventListener('keydown',(e)=>{
+    if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeAllPopups(); return; }
+    if(e.key!=='Tab')return;
+    const f=[].slice.call(card.querySelectorAll('a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])')).filter(el=>el.offsetParent!==null);
+    if(!f.length){ e.preventDefault(); card.focus(); return; }
+    const first=f[0], last=f[f.length-1], a=document.activeElement;
+    if(e.shiftKey&&(a===first||a===card||!card.contains(a))){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey&&(a===last||!card.contains(a))){ e.preventDefault(); first.focus(); }
+  });
+  card.focus();
+  return {
+    setTickets(list){
+      TIX=Array.isArray(list)?list:[];
+      const n=ov.querySelector('#tddCount'); if(n)n.textContent=TIX.length.toLocaleString()+' ticket'+(TIX.length===1?'':'s');
+      render();
+    },
+    setError(msg){
+      const n=ov.querySelector('#tddCount'); if(n)n.textContent='Unavailable';
+      body.innerHTML='<div class="tdd-empty tdd-err" role="alert">'+ic('alert-triangle',22)+'<p>'+esc(msg)+'</p></div>';
+    }
+  };
+}
+
+// Ticket age classification bucket popup (Green / Yellow / Red / Black / Purple).
 function showColorPopup(color,tickets){
   if(!requireLoginForTickets())return;
-  // Guard: while the age-band data is still loading (rows show spinners), don't open the popup â€” it
+  // Guard: while the age-band data is still loading (rows show spinners), don't open the popup — it
   // would read an empty cache and wrongly show "0". Only applies when no explicit ticket array was
   // passed in (the KPI tiles pass their own loaded array).
   if(tickets===undefined && !colorTicketsLoaded()) return;
-  closeAllPopups();
-  const colorNames={green:'GREEN (0-4 days)',yellow:'YELLOW (4-7 days)',red:'RED (7-10 days)',black:'BLACK (>10 days)',purple:'PURPLE (Reopened)'};
-  const colorHex={green:'#4ade80',yellow:'#fbbf24',red:'#ff5252',black:'#888',purple:'#a78bfa'};
-  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  // Status -> filled pill tag (background tint + text). Short label; full status in the title.
-  const ST_TAG={'Assigned':{t:'Assigned',c:'a'},'Work In Progress':{t:'WIP',c:'w'},'Pending':{t:'Pending',c:'p'},'Researching':{t:'Researching',c:'r'},'Resolved':{t:'Resolved',c:'ok'},'Closed':{t:'Closed',c:'ok'}};
-  const statusTag=(s)=>{const m=ST_TAG[s]||{t:(s||'â€”'),c:'x'};return '<span class="ap-sttag ap-sttag-'+m.c+'" title="'+esc(s||'')+'">'+esc(m.t)+'</span>';};
-  const tix=colorTicketsFor(color);
-  const me=(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser())?String(window.PHDAuth.getUser().username||'').toLowerCase():'';
-  const now=new Date();
-
-  // Shared per-ticket derived values (created string, time-left to the 10-day/240h threshold).
-  const tkParts=(r)=>{
-    const cd=new Date(r.CreateDate);
-    const validCd=!isNaN(cd);
-    const daysAgo=validCd?Math.floor((now-cd)/864e5):0;
-    const left=10-daysAgo;   // days left to the 240h (10-day) black threshold
-    const leftCls=left>3?'ap-left-ok':(left>0?'ap-left-warn':'ap-left-over');
-    const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
-    const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'â€”';
-    const sid=r.ShortId||'';
-    const isPrio=hasPriorityLabel(r.Labels), isNoEmt=hasNoEmt(r.Title,r.Labels);
-    const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'';
-    const noEmt=isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT">'+ic('no-entry',13)+'</span>':'';
-    const idCell='<a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+noEmt;
-    const cmtCell=(mine)=>'<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+(mine?'1':'0')+'"><span class="pc-tk-cmt-txt">Loadingâ€¦</span></td>';
-    return {validCd,leftCls,leftTxt,created,sid,isPrio,idCell,cmtCell,cd};
-  };
-
-  // ---------- BY ANALYSTS (grouped, accordion) ----------
-  const buildByAnalysts=()=>{
-    const byAgent={}; tix.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
-    const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
-    const agentBlock=([name,tickets])=>{
-      const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
-      const isUnassigned=(String(name).toLowerCase()==='unassigned'||!String(name).trim());
-      const rosterLoaded=!!window.USER_PROFILES;
-      const registered=!isUnassigned&&rosterLoaded&&isRegisteredUser(name);
-      const unregistered=isUnassigned||(rosterLoaded&&!isRegisteredUser(name));
-      const phdTag=registered?' <span class="ap-phd-tag" title="Registered PHD user">PHD</span>':'';
-      const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
-      const noEmtCount=tickets.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
-      const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">'+ic('map-pin',13)+' '+prioCount+'</span>':'';
-      const noEmtBadge=noEmtCount>0?' <span class="ap-agent-prio ap-agent-noemt" title="'+noEmtCount+' No EMT ticket'+(noEmtCount===1?'':'s')+'">'+ic('no-entry',13)+' '+noEmtCount+'</span>':'';
-      // Tickets oldest-first (most urgent at top).
-      const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
-        const p=tkParts(r);
-        const mine=(me && String(name).toLowerCase()===me);
-        return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
-          '<td>'+p.idCell+'</td>'+
-          '<td>'+statusTag(r.Status)+'</td>'+
-          '<td>'+esc(p.created)+'</td>'+
-          '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
-          p.cmtCell(mine)+
-        '</tr>';
-      }).join('');
-      // Header shows the LOGIN ID (not display name), with PHD tag + @login + count.
-      const idLabel=isUnassigned?'Unassigned':esc(name);
-      const loginSub=unregistered?'':'<span class="sub">@'+esc(name)+'</span>';
-      return '<div class="ap-agent'+(unregistered?' ap-unreg':'')+'">'+
-        '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
-          '<span class="ap-agent-name">'+idLabel+phdTag+nmeta+prioBadge+noEmtBadge+loginSub+'</span>'+
-          '<span class="ap-agent-count" style="color:'+colorHex[color]+'">'+tickets.length+'</span>'+
-          '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
-        '</button>'+
-        '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl ap-tbl-ana">'+
-          '<colgroup><col style="width:140px"><col style="width:120px"><col style="width:180px"><col style="width:110px"><col></colgroup>'+
-          '<thead><tr><th>Ticket</th><th>Status</th><th>Created</th><th>Time left</th><th>Last comment</th></tr></thead>'+
-          '<tbody>'+rows+'</tbody></table></div></div>'+
-      '</div>';
-    };
-    return agentList.length?agentList.map(agentBlock).join(''):'<p class="pc-none">No open tickets in this category.</p>';
-  };
-
-  // ---------- BY TICKETS (flat table, newest LAST) ----------
-  const buildByTickets=()=>{
-    if(!tix.length) return '<p class="pc-none">No open tickets in this category.</p>';
-    const sorted=tix.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)); // oldest first -> newest last
-    const rows=sorted.map(r=>{
-      const p=tkParts(r);
-      const agent=r.AssigneeIdentity||'';
-      const isUnassigned=!String(agent).trim()||String(agent).toLowerCase()==='unassigned';
-      const idLabel=isUnassigned?'Unassigned':esc(agent);
-      const mine=(me && String(agent).toLowerCase()===me);
-      return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
-        '<td>'+esc(p.created)+'</td>'+
-        '<td class="ap-login">'+idLabel+'</td>'+
-        '<td>'+p.idCell+'</td>'+
-        '<td>'+statusTag(r.Status)+'</td>'+
-        '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
-        p.cmtCell(mine)+
-      '</tr>';
-    }).join('');
-    return '<div class="ap-scroll"><table class="ap-tbl ap-tbl-tix">'+
-      // First 5 columns fit content (width:1%); Last comment takes the rest.
-      '<colgroup><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col></colgroup>'+
-      '<thead><tr><th>Created</th><th>Login ID</th><th>Ticket</th><th>Status</th><th>Time left</th><th>Last comment</th></tr></thead>'+
-      '<tbody>'+rows+'</tbody></table></div>';
-  };
-
-  const overlay=document.createElement('div');
-  overlay.id='colorPopup';overlay.className='popup-overlay';
-  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
-    <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
-      <div class="pc-head-left">
-        <h2 style="color:${colorHex[color]};font-size:1.45em">${colorNames[color]}</h2>
-        <div class="pc-viewtoggle" role="radiogroup" aria-label="Group tickets by">
-          <button type="button" class="pc-vt" data-view="tickets" role="radio" aria-checked="false">${ic('ticket',13)} By Tickets</button>
-          <button type="button" class="pc-vt pc-vt-on" data-view="analysts" role="radio" aria-checked="true">${ic('users',13)} By Analysts</button>
-        </div>
-      </div>
-      <div class="popup-actions"><button class="btn" onclick="downloadColorCSV('${color}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
-    </div>
-    <div class="pc-view-body" id="pcViewBody" style="margin-top:16px"></div></div>`;
-  document.body.appendChild(overlay);
-
-  const bodyEl=overlay.querySelector('#pcViewBody');
-  const render=(view)=>{
-    bodyEl.innerHTML=(view==='tickets')?buildByTickets():buildByAnalysts();
-    // (re)load comments for whatever rows are now visible (both views, all colors).
-    fillLatestComments(overlay, tix.map(r=>r.ShortId).filter(Boolean));
-  };
-  overlay.querySelectorAll('.pc-vt').forEach(function(btn){
-    btn.onclick=function(){
-      overlay.querySelectorAll('.pc-vt').forEach(function(b){ b.classList.toggle('pc-vt-on', b===btn); b.setAttribute('aria-checked', b===btn?'true':'false'); });
-      render(btn.getAttribute('data-view'));
-    };
+  const m=TDD_AGE_META[color]; if(!m)return;
+  const dlg=tddOpenDialog({
+    eyebrow:'Ticket age classification',
+    title:m.label+' tickets',
+    chip:m.label.toUpperCase()+' \u00b7 '+m.range,
+    acc:m.acc, sw:m.sw, icon:m.icon,
+    emptyMsg:'No open tickets in this category.',
+    onCsv:()=>downloadColorCSV(color)
   });
-  render('analysts');   // default
+  dlg.setTickets(colorTicketsFor(color));
 }
-// Expand/collapse one agent section in the color popup â€” accordion: only one open at a time.
+// Kept for any legacy .ap-agent markup (the drill-down dialogs now use tddToggleAgent).
 function apToggleAgent(btn){
   const s=btn.closest('.ap-agent'); if(!s)return;
   const willOpen=!s.classList.contains('open');
-  // Collapse every other open agent section in this popup.
   const scope=s.closest('.popup-card')||document;
   scope.querySelectorAll('.ap-agent.open').forEach(function(other){ if(other!==s) other.classList.remove('open'); });
   s.classList.toggle('open', willOpen);
 }
 
-// Queue-Status popup: SAME By Tickets / By Analysts UI as the age-colour popup (showColorPopup),
-// but lists every OPEN ticket in one status (Assigned / Work In Progress / Researching / Pending)
-// across ALL agents â€” assigned or unassigned. Fetches from /api/tickets-by-status so it doesn't
-// depend on the full in-memory dataset being loaded on the chunked dashboard.
+// Queue-Status popup: lists every OPEN ticket in one status across ALL agents (assigned or not).
+// Fetches from /api/tickets-by-status so it doesn't depend on the full in-memory dataset.
 const STATUS_POPUP_META={
-  'Assigned':{label:'ASSIGNED',hex:'#2563eb'},
-  'Work In Progress':{label:'WORK IN PROGRESS',hex:'#b45309'},
-  'Researching':{label:'RESEARCHING',hex:'#0e7490'},
-  'Pending':{label:'PENDING',hex:'#6d28d9'}
+  'Assigned':{label:'Assigned',hex:'#2563eb',acc:'#60a5fa',icon:'inbox'},
+  'Work In Progress':{label:'Work In Progress',hex:'#b45309',acc:'#f59e0b',icon:'tool'},
+  'Researching':{label:'Researching',hex:'#0e7490',acc:'#22d3ee',icon:'eye'},
+  'Pending':{label:'Pending',hex:'#6d28d9',acc:'#a78bfa',icon:'hourglass'}
 };
 function showStatusPopup(status){
   if(!requireLoginForTickets())return;
   status=String(status||'').trim();
   const meta=STATUS_POPUP_META[status];
   if(!meta)return;
-  closeAllPopups();
-  const hex=meta.hex;
-  const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const ST_TAG={'Assigned':{t:'Assigned',c:'a'},'Work In Progress':{t:'WIP',c:'w'},'Pending':{t:'Pending',c:'p'},'Researching':{t:'Researching',c:'r'}};
-  const statusTag=(s)=>{const m=ST_TAG[s]||{t:(s||'â€”'),c:'x'};return '<span class="ap-sttag ap-sttag-'+m.c+'" title="'+esc(s||'')+'">'+esc(m.t)+'</span>';};
-  const me=(window.PHDAuth&&window.PHDAuth.getUser&&window.PHDAuth.getUser())?String(window.PHDAuth.getUser().username||'').toLowerCase():'';
-  const now=new Date();
-  let TIX=[];   // mapped ticket rows (filled after fetch)
-
-  const tkParts=(r)=>{
-    const cd=new Date(r.CreateDate);
-    const validCd=!isNaN(cd);
-    const daysAgo=validCd?Math.floor((now-cd)/864e5):0;
-    const left=10-daysAgo;
-    const leftCls=left>3?'ap-left-ok':(left>0?'ap-left-warn':'ap-left-over');
-    const leftTxt=left>0?(left+(left===1?' day':' days')):(left===0?'Due today':(Math.abs(left)+' days over'));
-    const created=validCd?cd.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'â€”';
-    const sid=r.ShortId||'';
-    const isPrio=hasPriorityLabel(r.Labels), isNoEmt=hasNoEmt(r.Title,r.Labels);
-    const prio=isPrio?' <span class="ap-crown" title="Station Request / Address Exclusion">'+ic('map-pin',13)+'</span>':'';
-    const noEmt=isNoEmt?' <span class="ap-crown ap-noemt" title="No EMT">'+ic('no-entry',13)+'</span>':'';
-    const idCell='<a class="ap-id" href="https://t.corp.amazon.com/issues/'+esc(sid)+'" target="_blank" rel="noopener">'+ic('ticket',13)+' '+esc(sid)+'</a>'+prio+noEmt;
-    const cmtCell=(mine)=>'<td class="ap-cmt pc-tk-cmt" data-sid="'+esc(sid)+'" data-mine="'+(mine?'1':'0')+'"><span class="pc-tk-cmt-txt">Loadingâ€¦</span></td>';
-    return {validCd,leftCls,leftTxt,created,sid,isPrio,idCell,cmtCell,cd};
-  };
-
-  const buildByAnalysts=()=>{
-    const byAgent={}; TIX.forEach(r=>{ const a=r.AssigneeIdentity||'Unassigned'; (byAgent[a]=byAgent[a]||[]).push(r); });
-    const agentList=Object.entries(byAgent).sort((a,b)=>b[1].length-a[1].length);
-    const agentBlock=([name,tickets])=>{
-      const nmeta=isLMCAP(name)?' <span class="pt-default">DEFAULT</span>':'';
-      const isUnassigned=(String(name).toLowerCase()==='unassigned'||!String(name).trim());
-      const rosterLoaded=!!window.USER_PROFILES;
-      const registered=!isUnassigned&&rosterLoaded&&isRegisteredUser(name);
-      const unregistered=isUnassigned||(rosterLoaded&&!isRegisteredUser(name));
-      const phdTag=registered?' <span class="ap-phd-tag" title="Registered PHD user">PHD</span>':'';
-      const prioCount=tickets.reduce((n,r)=>n+(hasPriorityLabel(r.Labels)?1:0),0);
-      const noEmtCount=tickets.reduce((n,r)=>n+(hasNoEmt(r.Title,r.Labels)?1:0),0);
-      const prioBadge=prioCount>0?' <span class="ap-agent-prio" title="'+prioCount+' Station Request / Address Exclusion ticket'+(prioCount===1?'':'s')+'">'+ic('map-pin',13)+' '+prioCount+'</span>':'';
-      const noEmtBadge=noEmtCount>0?' <span class="ap-agent-prio ap-agent-noemt" title="'+noEmtCount+' No EMT ticket'+(noEmtCount===1?'':'s')+'">'+ic('no-entry',13)+' '+noEmtCount+'</span>':'';
-      const rows=tickets.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate)).map(r=>{
-        const p=tkParts(r);
-        const mine=(me && String(name).toLowerCase()===me);
-        return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
-          '<td>'+p.idCell+'</td>'+
-          '<td>'+statusTag(r.Status)+'</td>'+
-          '<td>'+esc(p.created)+'</td>'+
-          '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
-          p.cmtCell(mine)+
-        '</tr>';
-      }).join('');
-      const idLabel=isUnassigned?'Unassigned':esc(name);
-      const loginSub=unregistered?'':'<span class="sub">@'+esc(name)+'</span>';
-      return '<div class="ap-agent'+(unregistered?' ap-unreg':'')+'">'+
-        '<button type="button" class="ap-agent-head" onclick="apToggleAgent(this)">'+
-          '<span class="ap-agent-name">'+idLabel+phdTag+nmeta+prioBadge+noEmtBadge+loginSub+'</span>'+
-          '<span class="ap-agent-count" style="color:'+hex+'">'+tickets.length+'</span>'+
-          '<span class="ap-caret" aria-hidden="true">\u25be</span>'+
-        '</button>'+
-        '<div class="ap-agent-body"><div class="ap-scroll"><table class="ap-tbl ap-tbl-ana">'+
-          '<colgroup><col style="width:140px"><col style="width:120px"><col style="width:180px"><col style="width:110px"><col></colgroup>'+
-          '<thead><tr><th>Ticket</th><th>Status</th><th>Created</th><th>Time left</th><th>Last comment</th></tr></thead>'+
-          '<tbody>'+rows+'</tbody></table></div></div>'+
-      '</div>';
-    };
-    return agentList.length?agentList.map(agentBlock).join(''):'<p class="pc-none">No tickets in this status.</p>';
-  };
-
-  const buildByTickets=()=>{
-    if(!TIX.length) return '<p class="pc-none">No tickets in this status.</p>';
-    const sorted=TIX.slice().sort((a,b)=>new Date(a.CreateDate)-new Date(b.CreateDate));
-    const rows=sorted.map(r=>{
-      const p=tkParts(r);
-      const agent=r.AssigneeIdentity||'';
-      const isUnassigned=!String(agent).trim()||String(agent).toLowerCase()==='unassigned';
-      const idLabel=isUnassigned?'Unassigned':esc(agent);
-      const mine=(me && String(agent).toLowerCase()===me);
-      return '<tr'+(p.isPrio?' class="ap-row-prio"':'')+'>'+
-        '<td>'+esc(p.created)+'</td>'+
-        '<td class="ap-login">'+idLabel+'</td>'+
-        '<td>'+p.idCell+'</td>'+
-        '<td>'+statusTag(r.Status)+'</td>'+
-        '<td class="'+p.leftCls+'">'+p.leftTxt+'</td>'+
-        p.cmtCell(mine)+
-      '</tr>';
-    }).join('');
-    return '<div class="ap-scroll"><table class="ap-tbl ap-tbl-tix">'+
-      '<colgroup><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col class="apc-fit"><col></colgroup>'+
-      '<thead><tr><th>Created</th><th>Login ID</th><th>Ticket</th><th>Status</th><th>Time left</th><th>Last comment</th></tr></thead>'+
-      '<tbody>'+rows+'</tbody></table></div>';
-  };
-
-  const overlay=document.createElement('div');
-  overlay.id='colorPopup';overlay.className='popup-overlay';
-  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
-    <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
-      <div class="pc-head-left">
-        <h2 style="color:${hex};font-size:1.45em"><span id="scPopTitle">${meta.label}</span></h2>
-        <div class="pc-viewtoggle" role="radiogroup" aria-label="Group tickets by">
-          <button type="button" class="pc-vt" data-view="tickets" role="radio" aria-checked="false">${ic('ticket',13)} By Tickets</button>
-          <button type="button" class="pc-vt pc-vt-on" data-view="analysts" role="radio" aria-checked="true">${ic('users',13)} By Analysts</button>
-        </div>
-      </div>
-      <div class="popup-actions"><button class="btn" id="scPopCsv">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
-    </div>
-    <div class="pc-view-body" id="pcViewBody" style="margin-top:16px"><p class="pc-none">Loading ticketsâ€¦</p></div></div>`;
-  document.body.appendChild(overlay);
-
-  const bodyEl=overlay.querySelector('#pcViewBody');
-  let curView='analysts';
-  const render=(view)=>{
-    curView=view;
-    bodyEl.innerHTML=(view==='tickets')?buildByTickets():buildByAnalysts();
-    fillLatestComments(overlay, TIX.map(r=>r.ShortId).filter(Boolean));
-  };
-  overlay.querySelectorAll('.pc-vt').forEach(function(btn){
-    btn.onclick=function(){
-      overlay.querySelectorAll('.pc-vt').forEach(function(b){ b.classList.toggle('pc-vt-on', b===btn); b.setAttribute('aria-checked', b===btn?'true':'false'); });
-      render(btn.getAttribute('data-view'));
-    };
+  const dlg=tddOpenDialog({
+    eyebrow:'Queue status',
+    title:meta.label+' tickets',
+    chip:'Status \u00b7 '+meta.label,
+    acc:meta.acc, sw:meta.acc, icon:meta.icon,
+    emptyMsg:'No tickets in this status.',
+    // CSV: all tickets in this status (not grouped), ShortId/Assignee/Created/Status/Title.
+    onCsv:(TIX)=>{
+      if(!TIX.length)return;
+      let csv='ShortId,Assignee,CreateDate,Status,Title\n';
+      TIX.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
+      const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download=status.toLowerCase().replace(/\s+/g,'-')+'_tickets.csv';a.click();URL.revokeObjectURL(url);
+    }
   });
-  // CSV: all tickets in current status (not grouped), ShortId/Assignee/Created/Status/Title.
-  overlay.querySelector('#scPopCsv').onclick=function(){
-    if(!TIX.length)return;
-    let csv='ShortId,Assignee,CreateDate,Status,Title\n';
-    TIX.forEach(r=>{csv+=`"${r.ShortId||''}","${r.AssigneeIdentity||''}","${r.CreateDate||''}","${r.Status||''}","${(r.Title||'').replace(/"/g,'""')}"\n`;});
-    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=status.toLowerCase().replace(/\s+/g,'-')+'_tickets.csv';a.click();URL.revokeObjectURL(url);
-  };
-
-  // Fetch the tickets for this status and render.
   window.PHDAuth.api('GET','/api/tickets-by-status?status='+encodeURIComponent(status)).then(function(r){
     if(!document.getElementById('pcViewBody'))return;
-    if(!r||!r.ok||!r.data){ bodyEl.innerHTML='<p class="pc-none">Could not load tickets.</p>'; return; }
+    if(!r||!r.ok||!r.data){ dlg.setError('Could not load tickets.'); return; }
     const list=Array.isArray(r.data.tickets)?r.data.tickets:[];
-    // Map API shape -> the field names tkParts/buildBy* expect.
-    TIX=list.map(function(t){ return { ShortId:t.shortId, AssigneeIdentity:t.assignee, Title:t.title, Labels:t.labels, CreateDate:t.createDate, Status:t.status }; });
-    const titleEl=overlay.querySelector('#scPopTitle'); if(titleEl)titleEl.textContent=meta.label+' ('+TIX.length+')';
-    render(curView);
+    // Map API shape -> the field names the view builder expects.
+    dlg.setTickets(list.map(function(t){ return { ShortId:t.shortId, AssigneeIdentity:t.assignee, Title:t.title, Labels:t.labels, CreateDate:t.createDate, Status:t.status }; }));
   }).catch(function(){
-    if(bodyEl)bodyEl.innerHTML='<p class="pc-none">Could not load tickets.</p>';
+    if(document.getElementById('pcViewBody'))dlg.setError('Could not load tickets.');
   });
 }
 window.showStatusPopup=showStatusPopup;
@@ -1010,7 +961,7 @@ function showAgentDrilldown(color,agentName){
     const daysText=daysAgo===0?'Today':daysAgo===1?'1 day ago':`${daysAgo} days ago`;
     const sid=r.ShortId||'';
     const st=esc(r.Status||'');
-    const commentRow=showComments?`<div class="pc-tk-cmt" data-sid="${esc(sid)}">${ic('message',13)} <span class="pc-tk-cmt-txt">Loading latest commentâ€¦</span></div>`:'';
+    const commentRow=showComments?`<div class="pc-tk-cmt" data-sid="${esc(sid)}">${ic('message',13)} <span class="pc-tk-cmt-txt">Loading latest comment…</span></div>`:'';
     const isPrio=hasPriorityLabel(r.Labels);
     const isNoEmt=hasNoEmt(r.Title,r.Labels);
     const prio=isPrio?` <span class="ap-crown" title="Station Request / Address Exclusion">${ic('map-pin',13)}</span>`:'';
@@ -1020,7 +971,7 @@ function showAgentDrilldown(color,agentName){
         `<a class="pc-tk-id" href="https://t.corp.amazon.com/issues/${esc(sid)}" target="_blank" rel="noopener">${ic('ticket',14)} ${esc(sid)}</a>${prio}${noEmt}`+
         `<span class="pc-tk-status" style="color:${statusColor(r.Status)};border-color:${statusColor(r.Status)}">${st}</span>`+
       `</div>`+
-      `<div class="pc-tk-meta">${ic('calendar',13)} ${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span class="pc-tk-age">Â· ${daysText}</span></div>`+
+      `<div class="pc-tk-meta">${ic('calendar',13)} ${cd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span class="pc-tk-age">· ${daysText}</span></div>`+
       commentRow+
     `</div>`;
   }).join('');
@@ -1029,8 +980,8 @@ function showAgentDrilldown(color,agentName){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div class="popup-card" style="max-width:80vw;width:80vw">
     <div class="popup-head" style="border-bottom:1px solid var(--bd);padding-bottom:14px">
-      <div><h2 style="color:${colorHex[color]}">${dn}</h2><div class="pc-subcount">${tix.length} ticket${tix.length===1?'':'s'} Â· oldest first</div></div>
-      <div class="popup-actions"><button class="btn" onclick="showColorPopup('${color}')">â† Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+      <div><h2 style="color:${colorHex[color]}">${dn}</h2><div class="pc-subcount">${tix.length} ticket${tix.length===1?'':'s'} · oldest first</div></div>
+      <div class="popup-actions"><button class="btn" onclick="showColorPopup('${color}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
     <div class="pc-tk-list">${rows||'<p class="pc-none">No tickets.</p>'}</div></div>`;
   document.body.appendChild(overlay);
@@ -1052,7 +1003,7 @@ async function fillLatestComments(overlay,shortIds){
       const c=map[sid];
       if(c&&c.text){
         const when=c.at?new Date(c.at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
-        setTxt(row,esc(c.text)+' <span style="color:#5f6b6c">â€” '+esc(c.user)+(when?(' Â· '+when):'')+'</span>',false);
+        setTxt(row,esc(c.text)+' <span style="color:#5f6b6c">— '+esc(c.user)+(when?(' · '+when):'')+'</span>',false);
       }else if(row.getAttribute('data-mine')==='1'){
         // No comment yet AND this ticket is assigned to me -> offer an inline "Add comment" action.
         setTxt(row,'<button type="button" class="ap-add-cmt" onclick="apAddComment(this,\''+esc(sid)+'\')">'+ic('plus',12)+' Add comment</button>',true);
@@ -1123,7 +1074,7 @@ function showIncidentPopup(type){
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showIncidentAgentDrilldown('${type.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:5px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <h2 style="color:#ff9900;font-size:1.1em">${type} â€” ${tickets.length} tickets</h2>
+      <h2 style="color:#ff9900;font-size:1.1em">${type} — ${tickets.length} tickets</h2>
       <div style="display:flex;gap:10px"><button class="btn" onclick="downloadIncidentCSV('${type.replace(/'/g,"\\'")}')">Download CSV</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
     <p style="color:#879596;font-size:.85em;margin-bottom:12px">Click an agent to view their tickets</p>
@@ -1148,8 +1099,8 @@ function showIncidentAgentDrilldown(type,agentName){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="color:#ff9900;font-size:1.1em">${agentName} â€” ${tickets.length} tickets (${type})</h2>
-      <div style="display:flex;gap:10px"><button class="btn" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')">â† Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+      <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${type})</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="showIncidentPopup('${type.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
     <table><thead><tr><th>Ticket ID</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
@@ -1171,7 +1122,7 @@ function showHIUnresolvedPopup(){
   overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="color:#ffb84d;font-size:1.1em">Unresolved Repeat Incidents (HI>0) â€” ${tix.length} tickets</h2><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="color:#ffb84d;font-size:1.1em">Unresolved Repeat Incidents (HI>0) — ${tix.length} tickets</h2><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     <table><thead><tr><th>Ticket ID</th><th>HI Cnt</th><th>Assignee</th><th>Created</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
 }
@@ -1181,7 +1132,7 @@ let SR_DATA=null;      // agents map { agent: {purple,black,...,total, tix:{colo
 let SR_COUNTS=null;    // status/activity counts
 let SR_COLORS=null;    // queue-by-colour counts
 
-// ===== Takeover ï¿½ Queue by Age (hosted on the dashboard; also the first section of Shift Report) =====
+// ===== Takeover — Queue by Age (hosted on the dashboard; also the first section of Shift Report) =====
 // Draw the stacked age-breakdown bar chart into #takeoverChart from a sorted [agent,{purple,...}] list.
 // Shared by the dashboard Takeover section and the Shift Report page so both look identical.
 function drawTakeoverChart(agentSorted){
@@ -1204,8 +1155,7 @@ function drawTakeoverChart(agentSorted){
     // Hovering anywhere on an agent's bar highlights the WHOLE column and the tooltip lists every
     // status (Purple/Black/Red/Yellow/Green) for that agent, plus a Total footer.
     interaction:{mode:'index',intersect:false},
-    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
-    onClick:(evt,els)=>{if(els.length>0){const el=els[0];const agent=labels[el.index];const colorKey=['purple','black','red','yellow','green'][el.datasetIndex];showTakeoverAgentColorPopup(agent,colorKey);}},
+    // Bars are read-only (tooltip only) — no click-through popup in the Takeover queue section.
     plugins:{legend:{display:false},  // replaced by a custom HTML pill legend (buildTakeoverLegend)
       tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(20,24,30,.96)',borderColor:'#2a3340',borderWidth:1,padding:12,cornerRadius:8,titleColor:'#fff',bodyColor:'#e6edf0',usePointStyle:true,
         callbacks:{
@@ -1373,63 +1323,22 @@ async function copyTakeoverChart(btn){
 window.copyTakeoverChart=copyTakeoverChart;
 // ===== end Takeover =====
 
-// ===== Handover Report — last 12 hours (today 7am–7pm) in the user's timezone (IST/MST) =====
-const HANDOVER_TZ_ZONE={ IST:'Asia/Kolkata', MST:'America/Denver' };
-let HANDOVER_DATA=null;   // { from, to, created, resolved, inQueue, closureCodes, tz, label }
+// ===== Handover Report — last 12 hours of the latest uploaded file (timezones ignored) =====
+// The server anchors the window on the newest timestamp in the latest upload: [anchor - 12h, anchor].
+let HANDOVER_DATA=null;   // API payload + label: { file, anchor, anchorField, from, to, created, ..., label }
 let _handoverChart=null;
-// What the parts in a zoned wall-clock time are for a given instant, using Intl (DST-correct).
-function _zonedParts(date,zone){
-  const f=new Intl.DateTimeFormat('en-CA',{ timeZone:zone, year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false });
-  const p={}; f.formatToParts(date).forEach(x=>{ if(x.type!=='literal') p[x.type]=x.value; });
-  return p; // {year,month,day,hour,minute,second}
+// "1 Nov 07:42" for an ISO instant, read in UTC (the file's own clock; no timezone conversion).
+function fmtHandoverTs(iso){
+  const t=new Date(iso); if(isNaN(t)) return '';
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const p=function(n){ return (n<10?'0':'')+n; };
+  return t.getUTCDate()+' '+M[t.getUTCMonth()]+' '+p(t.getUTCHours())+':'+p(t.getUTCMinutes());
 }
-// The UTC instant corresponding to a given wall-clock (y,m,d,h) in `zone`. Solves the offset via
-// one Intl round-trip (good enough for whole-hour boundaries; DST-safe either side of a shift).
-function _zonedWallToUTC(y,mo,d,h,zone){
-  // Guess from a UTC time with those wall components, then correct by the zone's offset at that guess.
-  const guess=Date.UTC(y,mo-1,d,h,0,0);
-  const p=_zonedParts(new Date(guess),zone);
-  const asUTCofGuess=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);
-  const offset=asUTCofGuess-guess;          // zone offset (ms) at the guessed instant
-  // Second pass: re-read the offset at the corrected instant (fixes DST-change days, e.g. Denver on
-  // the first Sunday of November, where the offset at the guess differs from the offset at 07:00).
-  const p2=_zonedParts(new Date(guess-offset),zone);
-  const offset2=Date.UTC(+p2.year,+p2.month-1,+p2.day,+p2.hour,+p2.minute,+p2.second)-(guess-offset);
-  return new Date(guess-offset2);
-}
-// Pick the 07:00–19:00 shift window in `zone` (wall-clock in that zone, never the browser's):
-//   before today's 07:00  -> the LAST COMPLETED window = yesterday 07:00–19:00 (state 'completed')
-//   07:00 <= now < 19:00  -> today's window so far                           (state 'in-progress')
-//   now >= 19:00          -> today's window, now finished                    (state 'completed')
-// "Yesterday" is derived with Date.UTC calendar math, so month/year rollover is handled.
-const HANDOVER_START_H=7, HANDOVER_END_H=19;
-function handoverWindow(zone,nowArg){
-  const now=nowArg?new Date(nowArg):new Date();
-  const p=_zonedParts(now,zone);
-  let y=+p.year, mo=+p.month, d=+p.day;
-  let start=_zonedWallToUTC(y,mo,d,HANDOVER_START_H,zone);   // today 07:00 local
-  if(now<start){                                             // today's shift not started yet
-    const prev=new Date(Date.UTC(y,mo-1,d-1));
-    y=prev.getUTCFullYear(); mo=prev.getUTCMonth()+1; d=prev.getUTCDate();
-    start=_zonedWallToUTC(y,mo,d,HANDOVER_START_H,zone);
-  }
-  const end=_zonedWallToUTC(y,mo,d,HANDOVER_END_H,zone);     // that day's 19:00 local
-  return { start, end, state:(now<end?'in-progress':'completed') };
-}
-// "Sun, 1 Nov 2026 · 07:00–19:00 IST" for the shift day of `win` in `zone`.
-function fmtHandoverWindow(win,zone,tz){
-  try{
-    const p={};
-    new Intl.DateTimeFormat('en-US',{ timeZone:zone, weekday:'short', day:'numeric', month:'short', year:'numeric' })
-      .formatToParts(new Date(win.start)).forEach(function(x){ if(x.type!=='literal') p[x.type]=x.value; });
-    const hh=function(h){ return (h<10?'0':'')+h+':00'; };
-    return p.weekday+', '+p.day+' '+p.month+' '+p.year+' \u00b7 '+hh(HANDOVER_START_H)+'\u2013'+hh(HANDOVER_END_H)+' '+tz;
-  }catch(e){ return ''; }
-}
-// Full window line shown on the page, in Copy chart and in Export handover.
-function fmtHandoverLabel(win,zone,tz){
-  const w=fmtHandoverWindow(win,zone,tz);
-  return win.state==='in-progress' ? ('Current shift: '+w+' (in progress)') : ('Showing last completed shift: '+w);
+// Window line shown on the page, in Copy chart and in Export handover.
+function fmtHandoverLabel(d){
+  if(!d||d.noFile||!d.from||!d.to) return 'Last 12 hours of latest upload: no uploaded file with timestamps yet';
+  const name=(d.file&&d.file.name)||'';
+  return 'Last 12 hours of latest upload: '+fmtHandoverTs(d.from)+' \u2192 '+fmtHandoverTs(d.to)+(name?(' (file: '+name+')'):'');
 }
 async function reloadHandoverSection(){
   const body=document.getElementById('handoverBody'); if(!body) return;
@@ -1440,18 +1349,11 @@ async function reloadHandoverSection(){
     dhBusy(body,false); dhAnnounce('Handover report failed to load.');
   };
   const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let tz='IST';
-  try{ if(window.PHDAuth&&window.PHDAuth.myTimezone) tz=await window.PHDAuth.myTimezone(); }catch(e){}
-  if(tz!=='IST'&&tz!=='MST') tz='IST';
-  const zone=HANDOVER_TZ_ZONE[tz]||HANDOVER_TZ_ZONE.IST;
-  const win=handoverWindow(zone);
-  const label=fmtHandoverLabel(win,zone,tz);
-  var tzChip=document.getElementById('dhTz'); if(tzChip) tzChip.textContent=tz;
-  const url='/api/handover-12h?from='+encodeURIComponent(new Date(win.start).toISOString())+'&to='+encodeURIComponent(new Date(win.end).toISOString());
+  const url='/api/handover-12h';
   window.PHDAuth.api('GET',url).then(function(r){
     if(!r||!r.ok||!r.data){ fail(); return; }
     dhBusy(body,false); dhAnnounce('Handover report loaded.');
-    const d=Object.assign({},r.data,{ tz:tz, label:label });
+    const d=Object.assign({},r.data); d.label=fmtHandoverLabel(d); const label=d.label;
     HANDOVER_DATA=d;
     const groups=handoverGroups(d);
     // A tile: cls adds the coloured top accent (same colour as the bar / legend pill).
@@ -1488,30 +1390,28 @@ function handoverClosureHtml(codes,d){
 }
 // The ONE list of Handover items (order + labels + colours) shared by the tile strip, the chart,
 // its pill legend, Copy chart and Export handover. Four groups, divided visually. Items with
-// `hideZero` are dropped while their count is 0 (Pending, Researching, Station Request, Appeals).
-//   Created          = CreateDate in the window
+// `hideZero` are dropped while their count is 0 (Pending, Station Requests).
+//   Created          = latest-file tickets with CreateDate in the window
 //   In Queue..       = live open-queue snapshot by Status (all open tickets, not window-bound)
-//   No EMT / Station Request / Appeals = flags on the created-in-window tickets
-//   Imm. Resolved (By AUTOSIM / By Rule) / Successful = exclusive split of tickets resolved in the window
+//   No EMT           = open (In Queue) tickets whose Title says "no emt"
+//   Station Requests = created-in-window tickets with a 'Station Request' label
+//   Imm. Resolved (AUTOSIM / By Rule) = latest-file tickets resolved in the window (AutoSIM vs rule closure)
 function handoverGroups(d){
-  d=d||{}; var cf=d.createdFlags||{}, qs=d.queueByStatus||{}, rs=d.resolvedSplit||{};
+  d=d||{}; var qs=d.queueByStatus||{}, rs=d.resolvedSplit||{};
   var groups=[
     { name:'Created', items:[
       {lbl:'Created', cls:'ho-created', color:'#2b82fe', n:d.created} ]},
     { name:'Ticket status', items:[
       {lbl:'In Queue', cls:'ho-queue', color:'#b45309', n:d.inQueue},
       {lbl:'Assigned', cls:'ho-assigned', color:'#d97706', n:qs['Assigned']},
-      {lbl:'Work In progress', cls:'ho-wip', color:'#0891b2', n:qs['Work In Progress']},
-      {lbl:'Pending', cls:'ho-pending', color:'#9333ea', n:qs['Pending'], hideZero:true},
-      {lbl:'Researching', cls:'ho-research', color:'#475569', n:qs['Researching'], hideZero:true} ]},
-    { name:'Created ticket flags', items:[
-      {lbl:'No EMT', cls:'ho-noemt', color:'#7c5cf0', n:cf.noEmt},
-      {lbl:'Station Request', cls:'ho-station', color:'#dc2626', n:cf.stationRequest, hideZero:true},
-      {lbl:'Appeals', cls:'ho-appeal', color:'#ea7317', n:cf.appeal, hideZero:true} ]},
+      {lbl:'WIP', cls:'ho-wip', color:'#0891b2', n:qs['Work In Progress']},
+      {lbl:'Pending', cls:'ho-pending', color:'#9333ea', n:qs['Pending'], hideZero:true} ]},
+    { name:'Ticket flags', items:[
+      {lbl:'No EMT', cls:'ho-noemt', color:'#7c5cf0', n:d.noEmt},
+      {lbl:'Station Requests', cls:'ho-station', color:'#dc2626', n:d.stationRequests, hideZero:true} ]},
     { name:'Resolutions', items:[
-      {lbl:'Imm. Resolved (By AUTOSIM)', cls:'ho-auto', color:'#2563eb', n:rs.autosim},
-      {lbl:'Imm. Resolved (By Rule)', cls:'ho-imm', color:'#16a34a', n:rs.rule},
-      {lbl:'Successful', cls:'ho-succ', color:'#0d9488', n:rs.successful} ]}
+      {lbl:'Imm. Resolved (AUTOSIM)', cls:'ho-auto', color:'#2563eb', n:rs.autosim},
+      {lbl:'Imm. Resolved (By Rule)', cls:'ho-imm', color:'#16a34a', n:rs.rule} ]}
   ];
   groups.forEach(function(g){
     g.items=g.items.map(function(it){ it.n=Number(it.n)||0; return it; }).filter(function(it){ return !(it.hideZero&&it.n===0); });
@@ -1679,7 +1579,7 @@ function showAgentTicketsPopup(agentName){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2 style="color:#44b9d6;font-size:1.2em">${agentName} â€” Open Tickets (${tickets.length})</h2>
+      <h2 style="color:#44b9d6;font-size:1.2em">${agentName} — Open Tickets (${tickets.length})</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
     </div>
     <h3 style="color:#ff9900;font-size:.9em;font-weight:600;text-transform:uppercase;margin-bottom:8px">Assigned (${assigned.length})</h3>
@@ -1705,7 +1605,7 @@ function showHIPopup(rootCause){
   const agentRows=agentList.map(([name,tix])=>{const style=name==='LM-CAP'?'color:#f97316;font-style:italic':'color:#44b9d6';return`<tr style="cursor:pointer" onclick="showHIAgentDrilldown('${rootCause.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')"><td><strong style="${style}">${name}</strong>${name==='LM-CAP'?'<span style="margin-left:8px;padding:2px 6px;background:rgba(249,115,22,.15);color:#f97316;border-radius:5px;font-size:.7em">DEFAULT</span>':''}</td><td style="color:#ff9900;font-weight:700;font-size:1.1em">${tix.length}</td></tr>`;}).join('');
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <h2 style="color:#ff9900;font-size:1.1em">${rootCause} â€” ${tickets.length} tickets</h2>
+      <h2 style="color:#ff9900;font-size:1.1em">${rootCause} — ${tickets.length} tickets</h2>
       <button class="btn danger" onclick="closeAllPopups()">Close</button>
     </div>
     <p style="color:#879596;font-size:.85em;margin-bottom:12px">Click an agent to view their tickets</p>
@@ -1730,8 +1630,8 @@ function showHIAgentDrilldown(rootCause,agentName){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;max-height:80vh;overflow:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h2 style="color:#ff9900;font-size:1.1em">${agentName} â€” ${tickets.length} tickets (${rootCause})</h2>
-      <div style="display:flex;gap:10px"><button class="btn" onclick="showHIPopup('${rootCause.replace(/'/g,"\\'")}')">â† Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
+      <h2 style="color:#ff9900;font-size:1.1em">${agentName} — ${tickets.length} tickets (${rootCause})</h2>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="showHIPopup('${rootCause.replace(/'/g,"\\'")}')">← Back</button><button class="btn danger" onclick="closeAllPopups()">Close</button></div>
     </div>
     <table><thead><tr><th>Ticket ID</th><th>Cnt</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   document.body.appendChild(overlay);
@@ -1740,14 +1640,14 @@ function showHIAgentDrilldown(rootCause,agentName){
 // Live-dashboard SHELL: paint the full structure + static labels immediately with spinners in
 // every DB-derived slot (KPI numbers, chart areas, table bodies). renderDashboard() replaces it
 // ---- Loading state for the age tiles now uses an inline spinner (.kpi-spin) baked into the tile
-//      markup â€” the number-scramble flicker was removed. Kept as no-ops for existing callers. ----
+//      markup — the number-scramble flicker was removed. Kept as no-ops for existing callers. ----
 let _scrambleTimer=null;
 function startScramble(){ /* no-op: age tiles render .kpi-spin spinners instead */ }
 function stopScramble(){ /* no-op */ }
 
 // ---- Summary-KPI scramble (matches the archive/Q2 "Summary Statistics" animation) ----
 // Loading state for KPI value cells now uses an inline spinner (.kpi-spin) baked into the skeleton
-// markup â€” no number-scramble flicker. These two are kept as no-ops so existing callers stay valid.
+// markup — no number-scramble flicker. These two are kept as no-ops so existing callers stay valid.
 let _kpiScrTimer=null;
 function startKpiScramble(){ /* no-op: skeletons render .kpi-spin spinners instead */ }
 function stopKpiScramble(){ /* no-op */ }
@@ -1755,7 +1655,7 @@ function stopKpiScramble(){ /* no-op */ }
 // Animate a KPI element from a brief scramble into its real value via a quick ease-out count-up.
 // `raw` is the final display string (e.g. "7,918 (97%)", "45 hrs (18.9%)", "99.2%", "+49%").
 // Only the FIRST number in the string is animated; the rest of the label is appended verbatim.
-// Set a KPI value directly â€” the scramble/count-up reveal animation was removed. By the time this
+// Set a KPI value directly — the scramble/count-up reveal animation was removed. By the time this
 // runs the real value is known, so we just show it instantly (loading states use .kpi-spin spinners).
 function countUpKpi(el,raw){ if(el) el.textContent=raw; }
 
@@ -1785,7 +1685,7 @@ function renderDashboardShell(){
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>
   <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     ${kpi('','Avg Resolution Time','Average resolution time vs 240hr SLA')}
-    ${kpi('','SLA Compliance (â‰¤240 hrs)','Resolved within 240 hrs')}
+    ${kpi('','SLA Compliance (≤240 hrs)','Resolved within 240 hrs')}
     ${kpi('',ic('bolt',14)+' AutoSIM Resolved','Tickets auto-resolved by AutoSIM')}
   </div>
 
@@ -1847,7 +1747,7 @@ function renderDashboardShell(){
 }
 
 function renderDashboard(){
-  stopScramble(); // real counts are in â€” halt the loading animation
+  stopScramble(); // real counts are in — halt the loading animation
   const m=M;
   const sorted=[...m.agents].sort((a,b)=>b.resolved-a.resolved);
   const ct=m.colorTickets;
@@ -1881,7 +1781,7 @@ function renderDashboard(){
   <h3 style="color:#879596;font-size:.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Average Data</h3>
   <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi-card"><div class="value">${m.avgR.toFixed(0)} hrs (${(m.avgR/240*100).toFixed(1)}%)</div><div class="label">Avg Resolution Time <span title="Average resolution time. Percentage = avg / 240hr SLA" style="cursor:help;opacity:.7">&#9432;</span></div></div>
-    <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (â‰¤240 hrs) <span title="${m.slaCompliant} of ${m.res+m.closed} resolved within 240 hrs" style="cursor:help;opacity:.7">&#9432;</span></div></div>
+    <div class="kpi-card" style="border-top-color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}"><div class="value" style="color:${parseFloat(m.slaPct)>=90?'#4ade80':'#ff5252'}">${m.slaPct}%</div><div class="label">SLA Compliance (≤240 hrs) <span title="${m.slaCompliant} of ${m.res+m.closed} resolved within 240 hrs" style="cursor:help;opacity:.7">&#9432;</span></div></div>
     <div class="kpi-card"><div class="value">${m.autosim.toLocaleString()} (${(m.autosim/m.T*100).toFixed(1)}%)</div><div class="label">${ic('bolt',14)} AutoSIM Resolved <span title="Tickets auto-resolved by AutoSIM" style="cursor:help;opacity:.7">&#9432;</span></div></div>
   </div>
 
@@ -1908,7 +1808,7 @@ function renderDashboard(){
       <div class="kpi-card age-tile" style="border-top-color:#fbbf24;cursor:pointer" onclick="showColorPopup('yellow',M.colorTickets.yellow)"><div class="value" style="color:#fbbf24">${ct.yellow.length}</div><div class="age-name">${ic('clock',14)} YELLOW</div><div class="age-range">(4-7 days)</div></div>
       <div class="kpi-card age-tile" style="border-top-color:#ff5252;cursor:pointer" onclick="showColorPopup('red',M.colorTickets.red)"><div class="value" style="color:#ff5252">${ct.red.length}</div><div class="age-name">${ic('alert',14)} RED</div><div class="age-range">(7-10 days)</div></div>
       <div class="kpi-card age-tile${blackBlink?' blink-alert':''}" style="border-top-color:#888;cursor:pointer" onclick="showColorPopup('black',M.colorTickets.black)"><div class="value" style="color:#888">${ct.black.length}</div><div class="age-name">${ic('flame',14)} BLACK</div><div class="age-range">(&gt;10 days)</div></div>
-      <div class="kpi-card age-tile${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="age-name">${ic('reopen',14)} PURPLE${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">âš </span>':''}</div><div class="age-range">(Reopened)</div></div>
+      <div class="kpi-card age-tile${purpleBlink?' blink-alert':''}" style="border-top-color:#a78bfa;cursor:pointer" onclick="showColorPopup('purple',M.colorTickets.purple)"><div class="value" style="color:#a78bfa">${ct.purple.length}</div><div class="age-name">${ic('reopen',14)} PURPLE${purpleBlink?' <span title="A purple ticket is assigned outside the allowed reviewers" style="color:#ff5252">⚠</span>':''}</div><div class="age-range">(Reopened)</div></div>
     </div></div></div>
 
   <div class="section"><h2>Queue Status</h2><div class="sec-body">
@@ -1968,15 +1868,15 @@ function renderDashboard(){
     };
     return `<div class="section"><h2>Historical Incidents (Cnt &gt; 0)</h2><div class="sec-body">
     <div style="background:#000;border:1px solid var(--bd);border-radius:5px;padding:16px 18px;margin-bottom:18px">
-      <p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">${totalHI}</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">${petPct}%</strong> are driven by <strong>pet/animal incidents</strong>. Pet incidents are the primary reason the HI&gt;0 count is elevated â€” handling them accounts for the majority of repeat cases.</p>
+      <p style="color:#d5dbdb;font-size:.9em;line-height:1.6;margin-bottom:12px">Of <strong style="color:#ff9900">${totalHI}</strong> repeat incidents (HI&gt;0), <strong style="color:#a78bfa">${petPct}%</strong> are driven by <strong>pet/animal incidents</strong>. Pet incidents are the primary reason the HI&gt;0 count is elevated — handling them accounts for the majority of repeat cases.</p>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
         <div style="background:#0a0a0a;border:1px solid rgba(167,139,250,.35);border-radius:5px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#a78bfa">${petCount} <span style="font-size:.55em;color:#879596">(${petPct}%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI due to pet / animal incidents</div></div>
         <div style="background:#0a0a0a;border:1px solid rgba(255,153,0,.3);border-radius:5px;padding:12px 14px"><div style="font-size:1.6em;font-weight:700;color:#ff9900">${nonPetCount} <span style="font-size:.55em;color:#879596">(${nonPetPct}%)</span></div><div style="color:#879596;font-size:.82em;margin-top:2px">HI NOT related to pet incidents</div></div>
       </div>
     </div>
-    <h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">ðŸ¾ Involving pet / animal incidents â€” ${petCount} (${petPct}% of all HI)</h3>
+    <h3 style="color:#a78bfa;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">🐾 Involving pet / animal incidents — ${petCount} (${petPct}% of all HI)</h3>
     ${subTable(m.hiCases.filter(h=>h.isAnimal),'#a78bfa')}
-    <h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents â€” ${nonPetCount} (${nonPetPct}% of all HI)</h3>
+    <h3 style="color:#ff9900;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Non-pet incidents — ${nonPetCount} (${nonPetPct}% of all HI)</h3>
     ${subTable(m.hiCases.filter(h=>!h.isAnimal),'#ff9900')}
     <p class="meta-info" style="margin-top:12px">Click any root cause to view the agent breakdown.</p>
     </div></div>`;
@@ -1987,10 +1887,10 @@ function renderDashboard(){
   makeChart('c2b',{type:'bar',data:{labels:m.dL,datasets:[{label:'Resolved',data:m.dD,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c4a',{type:'bar',data:{labels:m.wL,datasets:[{label:'Created',data:m.wD,backgroundColor:'rgba(255,153,0,.8)',borderColor:'#ff9900',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
   makeChart('c4b',{type:'bar',data:{labels:m.wL,datasets:[{label:'Resolved',data:m.wDR,backgroundColor:'rgba(74,222,128,.8)',borderColor:'#4ade80',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{font:{size:12}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
-  // SLA compliance per week â€” wave (filled, smooth) area chart. Weeks up to "now" are drawn; future weeks stay null.
+  // SLA compliance per week — wave (filled, smooth) area chart. Weeks up to "now" are drawn; future weeks stay null.
   if(m.slaByWeek&&m.slaByWeek.length){
     const slaQ=LIVE_QUARTER?LIVE_QUARTER.label:'this quarter';
-    makeChart('cSlaWave',{type:'line',data:{labels:m.slaByWeek.map(w=>w.week),datasets:[{label:'SLA % (â‰¤240h)',data:m.slaByWeek.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=m.slaByWeek[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (â‰¤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
+    makeChart('cSlaWave',{type:'line',data:{labels:m.slaByWeek.map(w=>w.week),datasets:[{label:'SLA % (≤240h)',data:m.slaByWeek.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=m.slaByWeek[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
   }
 }
 
@@ -2000,7 +1900,7 @@ function renderDashboard(){
 // default and fetches its own /api/dash/<chunk> slice only when first expanded,
 // caching it against the live version (busts automatically on a new upload).
 // Other views (groups / previous-week / shift-report) + ticket popups still use
-// the full tickets array (M) â€” loaded on demand, see ensureFullData().
+// the full tickets array (M) — loaded on demand, see ensureFullData().
 // ============================================================================
 const DASH_LOADED = {};   // chunk key -> true once fetched this page-load
 let DASH_VERSION = undefined; // A.liveVersion() for this page-load (fetched once)
@@ -2029,7 +1929,7 @@ async function dashVersion(){
 
 // The Incident Types display grouping is published separately (its own version, NOT tied to the
 // quarter's publishedAt). Fold that version into the incidents chunk's client cache key so publishing
-// a new grouping busts the browser cache and the relabeled list shows on next load â€” for everyone.
+// a new grouping busts the browser cache and the relabeled list shows on next load — for everyone.
 let INC_GROUPS_VER=undefined;
 async function incidentGroupsVersion(){
   if(INC_GROUPS_VER!==undefined)return INC_GROUPS_VER;
@@ -2063,7 +1963,7 @@ async function loadDashChunk(chunk, onData, opts){
     url='/api/dash/'+chunk+scopeQ;
     nonLiveScope=!!scopeQ;
   }
-  // Time-sensitive chunks (age-detail) must NOT be version-cached â€” a cached copy would show
+  // Time-sensitive chunks (age-detail) must NOT be version-cached — a cached copy would show
   // stale colours. Fetch fresh every time (payload is small). Non-live scopes also bypass the cache.
   if(opts.noCache||nonLiveScope){
     const r=await A.api('GET',url);
@@ -2126,7 +2026,7 @@ function dashSectionToggle(headEl,ev){
       // One-at-a-time: expanding a section collapses every OTHER section in the accordion.
       group.querySelectorAll(':scope > .section').forEach(function(s){ if(s!==sec)s.classList.add('collapsed'); });
     }
-    // Takeover ï¿½ Queue by Age loads LAZILY on first expand (fetches /api/shift-report + draws the
+    // Takeover — Queue by Age loads LAZILY on first expand (fetches /api/shift-report + draws the
     // stacked bar chart), so no request fires until the user opens it. Subsequent expands just resize.
     if(sec.hasAttribute('data-takeover')){
       if(!_TAKEOVER_LOADED){ _TAKEOVER_LOADED=true; reloadTakeoverSection(); return; }
@@ -2176,7 +2076,7 @@ function renderDashChunkInto(chunk){
 function retryDashChunk(chunk){ DASH_LOADED[chunk]=true; renderDashChunkInto(chunk); }
 window.retryDashChunk=retryDashChunk;
 
-// The 5 age tiles are 100% static (colour, name, range, icon) EXCEPT the count â€” so the whole
+// The 5 age tiles are 100% static (colour, name, range, icon) EXCEPT the count — so the whole
 // structure is hardcoded and painted immediately; only the number waits on the DB.
 const AGE_TILES=[
   {cls:'green', color:'#4ade80', icon:'check-circle', name:'GREEN',  range:'(0-4 days)'},
@@ -2186,7 +2086,7 @@ const AGE_TILES=[
   {cls:'purple',color:'#a78bfa', icon:'reopen',       name:'PURPLE', range:'(Reopened)'},
 ];
 // Static skeleton for the Ticket Age Classification card: intro + all 5 tiles with a spinner in
-// the count slot. No data needed â€” rendered eagerly. renderAgeChunk() later fills the counts.
+// the count slot. No data needed — rendered eagerly. renderAgeChunk() later fills the counts.
 // Row order for the age table (per request): PURPLE, BLACK, RED, YELLOW, GREEN.
 const AGE_ROW_ORDER=['purple','black','red','yellow','green'];
 // A ticket is "priority" when its Labels contain "Station Request" OR "Address Exclusion"
@@ -2216,8 +2116,8 @@ function prioAgentIconsHtml(list){
   });
   return idListHtml(by);
 }
-// Build a login-ID chip list: 2 chips per row Ã— 2 rows (max 4 shown), then "+N" on the right.
-// No avatars â€” just the login id + its count.
+// Build a login-ID chip list: 2 chips per row × 2 rows (max 4 shown), then "+N" on the right.
+// No avatars — just the login id + its count.
 function idListHtml(by){
   const esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   const agents=Object.keys(by).sort(function(x,y){ return by[y]-by[x] || x.localeCompare(y); });
@@ -2372,7 +2272,7 @@ function kpiTableHtml(rows, withDesc){
   // withDesc (Average / Repeat Incident sections) -> combined "metric" cards: name + definition
   // stacked on the left, the animated value on the right, a colored accent spine per row.
   if(withDesc){
-    // 2 metric tiles per row (2Ã—N grid). Each tile: name + definition on the left, value on the right.
+    // 2 metric tiles per row (2×N grid). Each tile: name + definition on the left, value on the right.
     const spineCycle=['s-cy','s-gr','s-am','s-pu'];
     const cards=rows.map(function(r,i){
       const raw=(r.value==null?'\u2014':String(r.value));
@@ -2495,7 +2395,7 @@ function drawWeeklyCombined(d){
       borderWidth:3,tension:0,fill:false,spanGaps:true,order:0});
   }
   // Right axis range: zoom to where the SLA values actually sit so weekly variation is visible
-  // (like the reference chart's ~87â€“97% band) instead of being flattened against 0â€“100.
+  // (like the reference chart's ~87–97% band) instead of being flattened against 0–100.
   var slaMin=100; slaData.forEach(function(v){ if(v!=null&&v<slaMin) slaMin=v; });
   var slaLo=hasSla?Math.max(0,Math.floor((slaMin-2))):0;
   // Inline plugin: print the SLA % just above each line point (no external dependency).
@@ -2510,7 +2410,7 @@ function drawWeeklyCombined(d){
     layout:{padding:{top:24}},
     plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
       tooltip:{callbacks:{
-        // Tooltip title = "W26  (Jun 23 â€“ Jun 29)" using this week's observed date span.
+        // Tooltip title = "W26  (Jun 23 – Jun 29)" using this week's observed date span.
         title:function(items){ var i=items[0]?items[0].dataIndex:0; var sp=spanText[i]; return labels[i]+(sp?('  ('+sp+')'):''); },
         label:function(c){
         if(c.dataset.yAxisID==='ySla'){ return 'SLA: '+(c.raw==null?'\u2014':(c.raw+'%'))+((d.slaResolved&&d.slaResolved[c.dataIndex])?(' ('+d.slaWithin[c.dataIndex]+'/'+d.slaResolved[c.dataIndex]+')'):''); }
@@ -2555,7 +2455,7 @@ function drawWeeklyHi(d){
       pointBackgroundColor:'#a78bfa',pointBorderColor:'#fff',pointBorderWidth:1,pointRadius:4,pointHoverRadius:6,
       borderWidth:3,tension:0,fill:false,spanGaps:true,order:0});
   }
-  // HI right-axis max: fixed 0â€“50, bumped to 0â€“100 if any week exceeds 50.
+  // HI right-axis max: fixed 0–50, bumped to 0–100 if any week exceeds 50.
   var hiMax=50; hiData.forEach(function(v){ if(v!=null&&v>50) hiMax=100; });
   // Inline plugin: print the HI count just above each line point.
   var hiLabelPlugin={ id:'hiLabels', afterDatasetsDraw:function(chart){
@@ -2569,7 +2469,7 @@ function drawWeeklyHi(d){
     layout:{padding:{top:16}},
     plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,boxWidth:8,font:{size:12}}},
       tooltip:{callbacks:{
-        // Tooltip title = "W26  (Jun 23 â€“ Jun 29)" using this week's observed date span.
+        // Tooltip title = "W26  (Jun 23 – Jun 29)" using this week's observed date span.
         title:function(items){ var i=items[0]?items[0].dataIndex:0; var sp=spanText[i]; return labels[i]+(sp?('  ('+sp+')'):''); },
         label:function(c){ return c.dataset.label+': '+c.raw; }}}},
     scales:{
@@ -2578,7 +2478,7 @@ function drawWeeklyHi(d){
       x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,minRotation:0,autoSkip:false}}}};
   makeChart('cWeeklyHi',{type:'bar',data:{labels:labels,datasets:datasets},options:opts,plugins:[hiLabelPlugin]});
 }
-// A smooth "wave" (filled area) line dataset. `rgbaPrefix` like 'rgba(255,153,0,' â€” fill fades out.
+// A smooth "wave" (filled area) line dataset. `rgbaPrefix` like 'rgba(255,153,0,' — fill fades out.
 function _waveDataset(label,data,color,rgbaPrefix){
   return {label:label,data:data,borderColor:color,pointBackgroundColor:color,pointRadius:3,
     borderWidth:2,tension:.45,fill:true,spanGaps:true,
@@ -2598,7 +2498,7 @@ function renderSlaWeeklyChunk(d){
   slot.innerHTML='<p class="meta-info" style="margin:0 0 16px">Percentage of each week\'s resolved tickets that met the 240-hour (10-day) SLA. Weeks are bucketed by resolved date and drawn as each week passes.</p>'+
     '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cSlaWave"></canvas></div></div>';
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
-  makeChart('cSlaWave',{type:'line',data:{labels:weeks.map(w=>w.week),datasets:[{label:'SLA % (â‰¤240h)',data:weeks.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=weeks[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (â‰¤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
+  makeChart('cSlaWave',{type:'line',data:{labels:weeks.map(w=>w.week),datasets:[{label:'SLA % (≤240h)',data:weeks.map(w=>w.pct),borderColor:'#4ade80',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const g=c.createLinearGradient(0,0,0,340);g.addColorStop(0,'rgba(74,222,128,.35)');g.addColorStop(1,'rgba(74,222,128,.02)');return g;},fill:true,tension:.45,pointRadius:3,pointBackgroundColor:'#4ade80',spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:(items)=>'Week '+items[0].label,label:(c)=>{const w=weeks[c.dataIndex];return (c.raw==null?'No resolutions yet':c.raw+'% within SLA')+(w&&w.resolved?(' ('+w.within+'/'+w.resolved+')'):'');}}}},scales:{y:{beginAtZero:true,max:100,title:{display:true,text:'SLA % (≤240 hrs)',color:'#d5dbdb',font:{size:12}},ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:10}},title:{display:true,text:'Week ('+slaQ+')',color:'#d5dbdb',font:{size:12}}}}}});
 }
 // Current scope of the Incident Types chunk (from d.quarter), so row-click popups query the same scope.
 // Maps the chunk's quarter value to a ?q= param: live quarter => '' (omit); else '?q=<value>'.
@@ -2899,7 +2799,7 @@ async function showIncidentAgentsPopup(type,resolverKey){
       '<td style="text-align:center;font-weight:800;color:#fff">'+a.count+'</td>'+
     '</tr>';
   }).join('');
-  // AutoSIM: 3-col table, no Volume (single bot row â€” a bar is pointless).
+  // AutoSIM: 3-col table, no Volume (single bot row — a bar is pointless).
   // PHD: same 3-col table, but the freed space shows a horizontal bar chart of per-agent counts.
   const tableHtml='<div style="overflow-x:auto"><table class="xls-table" style="width:100%;table-layout:auto"><thead><tr>'+
     '<th style="text-align:center;width:1%;white-space:nowrap">#</th><th style="width:auto;white-space:nowrap">Agent</th><th style="text-align:center;width:1%;white-space:nowrap">Tickets</th>'+
@@ -3029,7 +2929,7 @@ function renderHiChunk(d){
   // Map an HI root-cause breakdown ({rootCause,count}) to the {type,count,pct} shape dashTcardHtml wants.
   const hiRows=function(list){ return (list||[]).map(function(r){ const rc=String(r.rootCause||'Unknown').replace(/^\s*-\s*/,'').trim(); return {type:rc,count:r.count,pct:total?+(r.count/total*100).toFixed(1):0}; }); };
   slot.innerHTML=
-    // Weekly/daily pet vs non-pet repeat incidents (HI Cnt>0) created per period â€” sits above tables.
+    // Weekly/daily pet vs non-pet repeat incidents (HI Cnt>0) created per period — sits above tables.
     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'+
       '<div>'+
         '<h3 id="hiChartTitle" style="color:#d5dbdb;font-size:.85em;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px">Repeat incidents per '+(_HI_GRAN==='day'?'day':'week')+' \u2014 pet vs non-pet</h3>'+
@@ -3043,18 +2943,18 @@ function renderHiChunk(d){
     '</div>'+
     '<div class="chart-box"><div class="chart-wrap tall"><canvas id="cHiWeekly"></canvas></div></div>'+
     '<div style="margin-top:22px">'+
-    dashTcardHtml({title:'ðŸ¾ Involving pet / animal incidents',icon:'',dot:'#a78bfa',countClass:'pu',total:d.pet,
+    dashTcardHtml({title:'🐾 Involving pet / animal incidents',icon:'',dot:'#a78bfa',countClass:'pu',total:d.pet,
       barColor:'#a78bfa',nameCol:'Root Cause', rows:hiRows(d.petBreakdown)})+
     dashTcardHtml({title:'Non-pet incidents',icon:'',dot:'#ffcf5e',countClass:'am',total:d.nonPet,
       barColor:'#fbbf24',nameCol:'Root Cause', rows:hiRows(d.nonPetBreakdown)})+
     '</div>';
   // Weekly pet/non-pet chart pulls from /api/dash/weekly. This block now lives INSIDE the Repeat
-  // Incident Data section, so the chart must follow the REPEAT section's scope (Q3/Q2/Q2+Q3) â€”
+  // Incident Data section, so the chart must follow the REPEAT section's scope (Q3/Q2/Q2+Q3) —
   // not the Weekly Volume section's scope. Pass that scope explicitly and cache per-scope so the
   // week range (Q3 ~10-11 wks, Q2 ~12 wks, Q2+Q3 combined) changes when the chip changes.
   const hiScope=(typeof DASH_SECTION_SCOPE!=='undefined' && DASH_SECTION_SCOPE.repeat) || 'live';
   // Always fetch FRESH (noCache): the live (Q3) scope otherwise goes through the version-cached SWR
-  // path, which â€” when the dataset version is unchanged â€” serves a previously cached copy and skips
+  // path, which — when the dataset version is unchanged — serves a previously cached copy and skips
   // the network entirely. A copy cached before the daily-buckets fields were added would then have
   // no hiDailyLabels, so the Daily toggle silently falls back to weekly (Q2/Q2+Q3 worked only
   // because non-live scopes already bypass the cache). The payload is small, so fetching fresh here
@@ -3097,7 +2997,7 @@ function drawHiChart(){
   var xLabels=labels.map(fmtLabel);
   var combined=pet.map(function(v,i){ return (v||0)+((nonPet[i])||0); });
   var fmtD=function(iso){ if(!iso)return null; var dt=new Date(iso); if(isNaN(dt))return null; return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
-  // Daily has many more points â€” thin the x-axis labels and drop the point dots so it stays readable.
+  // Daily has many more points — thin the x-axis labels and drop the point dots so it stays readable.
   var many=daily && xLabels.length>40;
   Chart.defaults.color='#879596';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
   makeChart('cHiWeekly',{type:'line',
@@ -3122,7 +3022,7 @@ function _barOpts(){return {responsive:true,maintainAspectRatio:false,plugins:{l
 function renderSummaryInto(d,target){
   // Persist the live version so the topbar Refresh button's "already up to date" check works,
   // and keep LIVE_QUARTER's label in sync for the SLA-per-week card. Only on the initial (untargeted,
-  // live) load â€” a scoped Q2/Overall summary fetch must NOT clobber the live quarter reference.
+  // live) load — a scoped Q2/Overall summary fetch must NOT clobber the live quarter reference.
   if(!target){
     try{
       if(d&&d.quarter){
@@ -3131,12 +3031,12 @@ function renderSummaryInto(d,target){
       }
     }catch(e){}
   }
-  stopKpiScramble(); // real values are in â€” halt the flicker before the count-up
+  stopKpiScramble(); // real values are in — halt the flicker before the count-up
   const g1=(!target)?document.getElementById('dashSumTotals'):null;
   const g2=(!target||target==='avg')?document.getElementById('dashSumAvg'):null;
   const g3=(!target||target==='repeat')?document.getElementById('dashSumRepeat'):null;
   // Each section renders as a table; values carry their final string in data-kpi-val and are
-  // filled in by countUpKpi (now sets the real number directly â€” no animation).
+  // filled in by countUpKpi (now sets the real number directly — no animation).
   if(g1){
     g1.innerHTML=kpiTableHtml([
       {metric:ic('ticket',14)+' Total Tickets', value:d.total.toLocaleString()},
@@ -3172,7 +3072,7 @@ function renderSummaryInto(d,target){
 }
 
 // ===== Repeat Incident Data drill-down: ticket list (SIM URLs) + period trend (W/M/Q/Y) =====
-let _REPEAT_DD=null; // { data, gran, filter } â€” cached payload + current granularity + pet/non-pet filter
+let _REPEAT_DD=null; // { data, gran, filter } — cached payload + current granularity + pet/non-pet filter
 function showRepeatIncidentsDrilldown(scope){
   if(!requireLoginForTickets())return;
   closeAllPopups();
@@ -3288,14 +3188,14 @@ function dashPageTitleRow(){
   return '';
 }
 // Per-section scope. Each dashboard section picks its own scope INDEPENDENTLY, so switching
-// e.g. "Incident Types" to Q2 only reloads that section â€” the rest stay on their own scope.
-// Scope values: 'live' (Q3, the default â€” omits ?q=), '2026-Q2' (Q2), 'q2q3' (Q2 + Q3 combined).
+// e.g. "Incident Types" to Q2 only reloads that section — the rest stay on their own scope.
+// Scope values: 'live' (Q3, the default — omits ?q=), '2026-Q2' (Q2), 'q2q3' (Q2 + Q3 combined).
 const DASH_SECTION_SCOPE={ avg:'live', repeat:'live', incidents:'live', resolutions:'live', hi:'live', weekly:'live' };
 // Map a scope value to the ?q= param for /api/dash/* (live => omit; else the qid/'all').
 function scopeToParam(scope){ return (!scope||scope==='live')?'':('?q='+encodeURIComponent(scope)); }
 
 // ============================================================================
-// PERFORMANCE SECTION â€” moved to agent-analytics.html (Performance Overview card). The picker /
+// PERFORMANCE SECTION — moved to agent-analytics.html (Performance Overview card). The picker /
 // window helpers / KPI + chart renderers now live inline on that page and hit the same page-agnostic
 // /api/dash/summary + /api/dash/timeseries endpoints.
 // Legacy shim: chunk -> its section-scope param (used by loadDashChunk when no explicit scope passed).
@@ -3405,9 +3305,9 @@ function renderDashboardChunked(){
   };
   // Paired (4-col) queue skeleton: left = totals, right = open statuses.
   // Queue skeleton = the SAME .q-tiles grid the loaded card uses (renderQueueKpis), with scrambling
-  // value placeholders â€” so there's no table->tiles layout swap when data lands.
+  // value placeholders — so there's no table->tiles layout swap when data lands.
   const queueSkel=function(){
-    // [icon, label, scrambleMax, tone] â€” mirrors renderQueueKpis tile order/tones (AC-era: open work only).
+    // [icon, label, scrambleMax, tone] — mirrors renderQueueKpis tile order/tones (AC-era: open work only).
     const tiles=[
       [ic('inbox',13),'In Queue',400,'am'],
       [ic('inbox',13),'Assigned',200,''],
@@ -3518,7 +3418,6 @@ function renderDashboardChunked(){
           '<li class="dh-chip">'+ic('calendar',13)+'<span class="dh-chip-k">Today</span><b>'+dateStr+'</b></li>'+
           '<li class="dh-chip">'+ic('database',13)+'<span class="dh-chip-k">Data as of</span><b id="dhAsOf">\u2026</b></li>'+
           '<li class="dh-chip">'+ic('filter',13)+'<span class="dh-chip-k">Scope</span><b>All groups \u00b7 open tickets</b></li>'+
-          '<li class="dh-chip">'+ic('clock',13)+'<span class="dh-chip-k">Handover TZ</span><b id="dhTz">\u2026</b></li>'+
         '</ul>'+
       '</div>'+
     '</header>'+
@@ -3540,7 +3439,7 @@ function renderDashboardChunked(){
       '<button type="button" class="dh-export-btn is-ghost" id="takeoverChartCopy" onclick="copyTakeoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
       '<button type="button" class="dh-export-btn" onclick="exportTakeover()">'+ic('copy',14)+' Export takeover</button>',
       '<div id="takeoverBody" aria-busy="true">'+dhTakeoverSkeletonHtml()+'</div>')+
-    secCard('Handover','clipboard','Handover Report \u2014 Last 12 Hours','Today 07:00\u201319:00 in your timezone',
+    secCard('Handover','clipboard','Handover Report \u2014 Last 12 Hours','The 12 hours up to the newest timestamp in the latest uploaded file',
       '<button type="button" class="dh-export-btn is-ghost" id="handoverChartCopy" onclick="copyHandoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
       '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button>',
       '<div id="handoverBody" aria-busy="true">'+dhHandoverSkeletonHtml()+'</div>')+
@@ -3616,8 +3515,8 @@ function dhHandoverSkeletonHtml(){
   const grp=function(n){ let s='<div class="ho-grp" style="flex-grow:'+n+'">'; for(let i=0;i<n;i++) s+=t(false); return s+'</div>'; };
   const sep='<span class="ho-sep" aria-hidden="true"></span>';
   return dhSk('dh-skel-pill','width:260px;height:30px;margin-bottom:16px;display:block')+
-    '<div class="ho-strip"><div class="ho-band">'+grp(1)+sep+grp(3)+'</div><span class="ho-band-sep" aria-hidden="true"></span>'+
-      '<div class="ho-band">'+grp(1)+sep+grp(3)+'</div></div>'+
+    '<div class="ho-strip"><div class="ho-band">'+grp(1)+sep+grp(4)+'</div><span class="ho-band-sep" aria-hidden="true"></span>'+
+      '<div class="ho-band">'+grp(2)+sep+grp(2)+'</div></div>'+
     '<div class="sr-chart-card dh-skel-card"><div class="dh-skel-chart" style="height:300px">'+
       [70,82,48,30,26,22,40,52].map(function(h){ return '<span class="dh-skel dh-skel-bar" style="height:'+h+'%"></span>'; }).join('')+
     '</div></div>'+
@@ -3718,13 +3617,13 @@ function renderPreviousWeek(){
   const maxC=resolvers.length>0?resolvers[0][1]:1;
   const ratio=m.pwCreated>0?((m.pwResolved/m.pwCreated)*100).toFixed(1):0;
   document.getElementById('app').innerHTML=topBar('previous-week')+`<div class="content">
-  <div class="page-title"><h1>Previous Week Report</h1><p style="font-size:1.1em;font-weight:700;color:#fff;margin-top:6px">Week: ${m.pwStartStr} â€“ ${m.pwEndStr}</p></div>
+  <div class="page-title"><h1>Previous Week Report</h1><p style="font-size:1.1em;font-weight:700;color:#fff;margin-top:6px">Week: ${m.pwStartStr} – ${m.pwEndStr}</p></div>
   <div class="kpi-grid">
     <div class="kpi-card accent"><div class="value">${m.pwCreated}</div><div class="label">Tickets Created</div></div>
     <div class="kpi-card success"><div class="value">${m.pwResolved}</div><div class="label">Tickets Resolved</div></div>
     <div class="kpi-card"><div class="value">${m.pwAuto}</div><div class="label">AutoSIM Resolved</div></div>
     <div class="kpi-card"><div class="value">${m.pwResolved-m.pwAuto}</div><div class="label">Agent Resolved</div></div>
-    <div class="kpi-card success"><div class="value" title="(${m.pwResolved}/${m.pwCreated})Ã—100">${ratio}%</div><div class="label" style="cursor:help;border-bottom:1px dashed #879596" title="(Resolved/Created)Ã—100">Resolution Ratio â„¹</div></div>
+    <div class="kpi-card success"><div class="value" title="(${m.pwResolved}/${m.pwCreated})×100">${ratio}%</div><div class="label" style="cursor:help;border-bottom:1px dashed #879596" title="(Resolved/Created)×100">Resolution Ratio ℹ</div></div>
   </div>
   <div class="charts-grid">
     <div class="chart-box"><h3>Daily Created vs Resolved</h3><div class="chart-wrap"><canvas id="p1"></canvas></div></div>
@@ -3750,24 +3649,44 @@ function renderPreviousWeek(){
 function showLoginModal(){
   closeAllPopups();
   const overlay=document.createElement('div');overlay.id='incPopup';
-  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
-  overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;padding:28px">
-    <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Log in</h2>
-    <p style="color:#879596;font-size:.85em;margin-bottom:18px;line-height:1.5">Viewing the dashboard needs no login. Log in to publish or manage data.</p>
-    <label style="display:block;color:#879596;font-size:.85em;margin-bottom:6px">Username</label>
-    <input type="text" id="loginUser" autocomplete="username" style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:5px;color:#fff;font-size:.9em">
-    <label style="display:block;color:#879596;font-size:.85em;margin:12px 0 6px">Password</label>
-    <input type="password" id="loginPass" autocomplete="current-password" style="width:100%;padding:10px 12px;background:#000;border:1px solid #2a2a2a;border-radius:5px;color:#fff;font-size:.9em">
-    <label style="display:flex;align-items:center;gap:8px;color:#879596;font-size:.82em;margin-top:12px;cursor:pointer"><input type="checkbox" id="loginRemember" checked> Keep me logged in on this device</label>
-    <div class="err" id="loginErr" style="color:#ff5252;font-size:.85em;margin-top:12px;display:none"></div>
-    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
-      <button class="btn" style="background:#4ade80" onclick="doLogin()">Log in</button>
+  // Shared .tbl-* login-dialog look (styles injected by topbar-auth.js), same as #tbLoginModal.
+  overlay.className='tbl-bg';
+  overlay.style.cssText='display:flex';
+  const closeLogin=()=>{closeAllPopups();if(window.PHDLoginUI)window.PHDLoginUI.closed(overlay);};
+  overlay.onclick=(e)=>{if(e.target===overlay)closeLogin();};
+  const lic=(n,s)=>(typeof window.icon==='function')?window.icon(n,s):'';
+  overlay.innerHTML=`<div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle" aria-describedby="loginDesc">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true">${lic('shield',20)}</span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">WWOS-GSOC · PHD Dashboard</div><h2 class="tbl-title" id="loginTitle">Log in</h2></div>
+      <p class="tbl-sub" id="loginDesc">Log in to publish or manage data. Viewing the dashboards needs no login.</p>
     </div>
-    <p style="color:#5f6b6c;font-size:.75em;margin-top:14px">First login may take ~30â€“50s while the server wakes.</p>
+    <div class="tbl-body">
+    <label class="tbl-label" for="loginUser">Username</label>
+    <div class="tbl-field"><span class="tbl-fic" aria-hidden="true">${lic('user',17)}</span>
+      <input class="tbl-input" type="text" id="loginUser" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+    <label class="tbl-label" for="loginPass">Password</label>
+    <div class="tbl-field tbl-pw"><span class="tbl-fic" aria-hidden="true">${lic('lock',17)}</span>
+      <input class="tbl-input" type="password" id="loginPass" autocomplete="current-password" aria-describedby="loginCaps">
+      <button type="button" class="tbl-eye" id="loginPassEye" aria-label="Show password" aria-pressed="false" aria-controls="loginPass" title="Show password">${lic('eye',15)}</button></div>
+    <div class="tbl-caps" id="loginCaps" hidden>${lic('alert-triangle',14)} Caps Lock is on</div>
+    <label class="tbl-check"><input type="checkbox" id="loginRemember" checked><span class="tbl-box" aria-hidden="true"></span><span>Keep me signed in</span></label>
+    <div class="err tbl-err" id="loginErr" role="alert" style="display:none"></div>
+    <div class="tbl-actions">
+      <button type="button" class="btn tbl-submit" onclick="doLogin()">Log in</button>
+      <button type="button" class="btn sec tbl-cancel" id="loginCancel">Cancel</button>
+    </div>
+    <p class="tbl-note">First login may take ~30–50s while the server wakes.</p>
+    </div>
   </div>`;
   document.body.appendChild(overlay);
+  document.getElementById('loginCancel').onclick=closeLogin;
+  const eye=document.getElementById('loginPassEye');
+  eye.onclick=()=>{const inp=document.getElementById('loginPass');const show=inp.type==='password';inp.type=show?'text':'password';
+    eye.innerHTML=lic(show?'eye-off':'eye',15);eye.setAttribute('aria-label',show?'Hide password':'Show password');
+    eye.setAttribute('title',show?'Hide password':'Show password');eye.setAttribute('aria-pressed',show?'true':'false');inp.focus();};
+  if(window.PHDLoginUI){window.PHDLoginUI.wireCaps(document.getElementById('loginPass'),document.getElementById('loginCaps'));
+    window.PHDLoginUI.opened(overlay,closeLogin,null);}
   setTimeout(()=>{const u=document.getElementById('loginUser');if(u)u.focus();
     const p=document.getElementById('loginPass');if(p)p.addEventListener('keydown',(e)=>{if(e.key==='Enter')doLogin();});},50);
 }
@@ -3789,7 +3708,7 @@ async function doLogin(){
     // Refresh the role roster + my profile (avatar), then re-render so role-gated UI updates.
     await loadUserRoles();
     if(window.PHDAuth.loadMyProfile)await window.PHDAuth.loadMyProfile();
-    // Repaint the right-rail avatar badge now that the profile (with photo) is loaded â€” the badge was
+    // Repaint the right-rail avatar badge now that the profile (with photo) is loaded — the badge was
     // mounted while logged out, so it needs an explicit rebuild to show the photo without a reload.
     try{ if(window.PHDRefreshRailProfile)window.PHDRefreshRailProfile(); }catch(e){}
     hideLoginLoader();
@@ -3808,7 +3727,7 @@ function showLoginLoader(){
   const o=document.createElement('div');
   o.id='loginLoader';
   o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px';
-  o.innerHTML='<div class="spinner" style="width:48px;height:48px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite"></div><p style="color:#fff;font-size:1.05em;font-weight:600">Signing you inâ€¦</p><p style="color:#879596;font-size:.85em">Loading your dashboard and permissions</p>';
+  o.innerHTML='<div class="spinner" style="width:48px;height:48px;border:4px solid #2a2a2a;border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite"></div><p style="color:#fff;font-size:1.05em;font-weight:600">Signing you in…</p><p style="color:#879596;font-size:.85em">Loading your dashboard and permissions</p>';
   document.body.appendChild(o);
 }
 function hideLoginLoader(){const o=document.getElementById('loginLoader');if(o)o.remove();}
@@ -3822,7 +3741,7 @@ function showPublishModal(){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAllPopups();};
   overlay.innerHTML=`<div style="background:#111;border:1px solid #333;border-radius:5px;max-width:80vw;width:80vw;padding:28px">
     <h2 style="color:#4ade80;font-size:1.2em;margin-bottom:8px">Publish Data to Everyone</h2>
-    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This saves the current dashboard data to the shared database so all viewers see it. No token needed â€” you're already logged in.</p>
+    <p style="color:#879596;font-size:.88em;margin-bottom:18px;line-height:1.5">This saves the current dashboard data to the shared database so all viewers see it. No token needed — you're already logged in.</p>
     <div class="err" id="pubErr" style="color:#ff5252;font-size:.85em;margin-top:4px;display:none"></div>
     <div style="margin-top:8px;display:flex;gap:10px;justify-content:flex-end">
       <button class="btn sec" onclick="closeAllPopups()">Cancel</button>
@@ -3918,7 +3837,7 @@ function showUploadResult(written,liveSummary){
     const isLive=w.isLive;
     return `<div style="padding:12px 0;border-bottom:1px solid #2a2a2a">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="color:#fff;font-weight:600">${esc(w.label||w.quarter)} ${isLive?'<span style="color:#4ade80;font-size:.72em;font-weight:700;margin-left:6px">â— LIVE â€” updated</span>':'<span style="color:#fbbf24;font-size:.72em;font-weight:700;margin-left:6px">PAST â€” merged</span>'}</span>
+        <span style="color:#fff;font-weight:600">${esc(w.label||w.quarter)} ${isLive?'<span style="color:#4ade80;font-size:.72em;font-weight:700;margin-left:6px">● LIVE — updated</span>':'<span style="color:#fbbf24;font-size:.72em;font-weight:700;margin-left:6px">PAST — merged</span>'}</span>
         <span style="color:${isLive?'#4ade80':'#fbbf24'};font-weight:700">${(w.count||0).toLocaleString()} tickets</span>
       </div>
       <div style="color:#5f6b6c;font-size:.78em;margin-top:4px">${isLive?'View changes in the live quarter\u2019s update log.':'View changes in the '+esc(w.label||w.quarter)+' dashboard\u2019s update log.'}</div>
@@ -3985,7 +3904,7 @@ function loadUserAvatars(){
         window.USER_PROFILES=profiles;
         _avatarsLoaded=true;
       }
-    }catch(e){/* avatars are optional â€” popups fall back to initials */}
+    }catch(e){/* avatars are optional — popups fall back to initials */}
     finally{_avatarsLoading=null;}
   })();
   return _avatarsLoading;
@@ -4087,7 +4006,7 @@ function applyInitialView(){
 }
 
 // Is the page deep-linked to a non-dashboard view (Groups/Prev)? Then we shouldn't flash the
-// dashboard shell â€” show a neutral spinner while data loads, then render the requested view.
+// dashboard shell — show a neutral spinner while data loads, then render the requested view.
 function initialViewParam(){
   try{const v=new URLSearchParams(location.search).get('view');return (['groups','previous-week'].includes(v))?v:'';}catch(e){return '';}
 }
@@ -4161,5 +4080,5 @@ async function maybeHandlePendingUpload(){
     if(ok){ nav(deepLink); } else { renderDashboardChunked(); }
     return;
   }
-  // Dashboard already rendered (chunked). Nothing else to do â€” each card caches itself on expand.
+  // Dashboard already rendered (chunked). Nothing else to do — each card caches itself on expand.
 })();

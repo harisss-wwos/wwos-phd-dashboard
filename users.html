@@ -6,7 +6,7 @@
 <title>User Management · WWOS-GSOC PHD Dashboard</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -17,352 +17,413 @@ button,input,select,textarea{font-family:inherit}
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{height:28px;width:auto;display:block}
 .logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
-/* All buttons use amber (var(--o)) text on a transparent/outlined base. */
-.btn{display:inline-flex;align-items:center;padding:8px 16px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
-.btn:hover{background:rgba(255,153,0,.12)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--o)}
-.btn.sec:hover{border-color:var(--o);background:rgba(255,153,0,.1)}
-.btn.danger{background:transparent;border:1px solid rgba(255,82,82,.4);color:var(--o);padding:5px 10px;font-size:.78em}
-.btn.danger:hover{background:rgba(255,82,82,.12)}
-.wrap{max-width:920px;margin:0 auto;padding:44px 24px}
-h1{color:#fff;font-size:1.6em;margin-bottom:6px}
-.sub{color:var(--tm);font-size:.9em;margin-bottom:28px}
-.card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;padding:24px;margin-bottom:22px}
-.card h2{color:var(--o);font-size:.95em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
-.card>h2{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.card-h{display:inline-flex;align-items:center;gap:9px;min-width:0}
-.card-h svg{width:18px;height:18px;flex-shrink:0;color:var(--o)}
-table{width:100%;border-collapse:collapse}
-th{color:var(--tm);font-size:.72em;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
-td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9em}
-td.user{color:#fff;font-weight:600}
-.u-cell{display:flex;align-items:center;justify-content:flex-start;gap:10px;text-align:left}
-.u-avatar-wrap{flex-shrink:0;display:inline-flex}
-.u-uname{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:600}
-/* Analyst group tag: colored outline pill using the group's accent color. */
-.u-group{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--gc);background:color-mix(in srgb,var(--gc) 15%,transparent);border:1px solid color-mix(in srgb,var(--gc) 45%,transparent)}
-/* ADMIN tag — upload-access users are treated as admins. */
-.u-admin-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--o);background:rgba(255,153,0,.14);border:1px solid rgba(255,153,0,.45)}
-.u-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--bd)}
-.u-avatar-ph{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.16);color:var(--o);font-weight:800;font-size:.9em}
-.u-name{display:flex;flex-direction:column;line-height:1.25}
-.u-dn{color:var(--tm);font-weight:400;font-size:.78em}
-select{background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;padding:6px 10px;font-size:.85em;text-align:center;text-align-last:center}
-select option{text-align:center}
-select:focus{outline:none;border-color:var(--o)}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+/* Legacy owner-only copy-activity tables (rendered only if their boxes exist). */
 .badge{padding:2px 10px;border-radius:5px;font-size:.75em;text-transform:uppercase;font-weight:700}
-.badge.owner{background:rgba(167,139,250,.15);color:#a78bfa}
-.badge.admin{background:rgba(255,153,0,.15);color:var(--o)}
-.badge.editor{background:rgba(68,185,214,.15);color:#44b9d6}
-.badge.user{background:rgba(135,149,150,.15);color:var(--tm)}
-.form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-.form-row .fld{flex:1;min-width:150px}
-label{display:block;color:var(--tm);font-size:.8em;margin-bottom:6px}
-input{width:100%;padding:9px 12px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.9em}
-input:focus{outline:none;border-color:var(--o)}
-.msg{font-size:.85em;margin-top:12px;display:none}
-.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
-.gate{text-align:center;padding:50px 0}.gate p{color:var(--tm);margin-bottom:18px}
-
-/* ---- Users table + per-user flag controls ---- */
-/* Card wrapper gets no inner padding so the table can go edge-to-edge. */
-.users-card{padding:0;overflow:hidden}
-.users-card>h2{padding:18px 22px;margin:0;border-bottom:1px solid var(--bd)}
-.users-scroll{overflow-x:auto}
-.users-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.9em;min-width:820px}
-.users-table th,.users-table td{padding:14px 16px;text-align:center;vertical-align:middle}
-.users-table thead th{position:sticky;top:0;background:#0d0d0d;color:var(--tm);font-size:.7em;text-transform:uppercase;letter-spacing:.5px;font-weight:700;white-space:nowrap;border-bottom:2px solid var(--bd);z-index:1}
-/* Keep the select controls from stretching full-width now that cells are centered. */
-.users-table td select{margin:0 auto}
-/* User column stays left-aligned; every other column is centered. */
-.users-table th:first-child,.users-table td:first-child{text-align:left}
-.users-table tbody td{border-bottom:1px solid rgba(255,255,255,.05)}
-.users-table tbody tr{transition:background .12s}
-.users-table tbody tr:hover{background:rgba(255,255,255,.025)}
-.users-table tbody tr:last-child td{border-bottom:none}
-/* Owner row gets a subtle accent bar on the left. */
-.users-table tbody tr.is-owner td:first-child{box-shadow:inset 3px 0 0 var(--o)}
-.users-table td.col-access{text-align:center}
-.users-table select{padding:7px 10px;max-width:130px;width:100%}
-.u-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:5px;font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.u-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-.u-badge.blue{background:rgba(68,185,214,.14);color:#44b9d6}
-.u-badge.yellow{background:rgba(251,191,36,.14);color:#fbbf24}
-.u-yes{display:inline-flex;align-items:center;gap:6px;color:#4ade80;font-weight:700;font-size:.85em}
-.u-yes::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ade80}
-.u-no{display:inline-flex;align-items:center;gap:6px;color:#5f6b6c;font-weight:600;font-size:.85em}
-.u-no::before{content:"";width:7px;height:7px;border-radius:50%;background:#5f6b6c}
-.u-owner-tag{display:inline-flex;align-items:center;gap:7px;color:var(--o);font-size:.78em;font-weight:600}
-.u-owner-tag svg{width:14px;height:14px}
-.u-row-actions{display:flex;gap:8px;flex-wrap:nowrap;justify-content:center}
-/* Compact per-row action buttons (icon + label), nicer than the generic .btn. */
-.u-act{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:5px;font-size:.78em;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s,transform .1s}
-.u-act svg{width:14px;height:14px;flex-shrink:0}
-.u-act:active{transform:translateY(1px)}
-.u-act.reset{background:rgba(255,255,255,.04);border-color:#33404d;color:var(--o)}
-.u-act.reset:hover{background:rgba(255,153,0,.1);border-color:var(--o);color:var(--o)}
-.u-act.remove{background:rgba(255,82,82,.08);border-color:rgba(255,82,82,.35);color:var(--o)}
-.u-act.remove:hover{background:rgba(255,82,82,.18);border-color:var(--rl);color:var(--o)}
-/* Toggle switch (button-driven) */
-.u-toggle{display:inline-flex;align-items:center;width:46px;height:26px;border-radius:5px;background:#242e39;border:1px solid #3a4655;cursor:pointer;padding:2px;transition:background .18s,border-color .18s}
-.u-toggle:hover{border-color:#4a5768}
-.u-toggle .u-knob{width:20px;height:20px;border-radius:50%;background:#8b98a5;transition:transform .2s cubic-bezier(.4,0,.2,1),background .18s;box-shadow:0 1px 2px rgba(0,0,0,.4)}
-.u-toggle.on{background:rgba(74,222,128,.22);border-color:#4ade80}
-.u-toggle.on:hover{border-color:#6ee7a0}
-.u-toggle.on .u-knob{transform:translateX(20px);background:#4ade80}
-/* Disabled toggle (non-owner viewer): greyed, inert, no hover reaction. */
-.u-toggle.disabled{cursor:not-allowed;opacity:.45;background:#242e39;border-color:#33404d}
-.u-toggle.disabled:hover{border-color:#33404d}
-.u-toggle.disabled.on{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.35)}
-.u-toggle.disabled .u-knob{background:#5f6b6c}
-/* Disabled action buttons (non-owner viewer). */
-.u-act.disabled{cursor:not-allowed;opacity:.4;pointer-events:none}
-/* The toggle currently being saved: knob pulses + a subtle ring while we wait for the server. */
-.u-toggle.busy{position:relative}
-.u-toggle.busy .u-knob{animation:uKnobPulse .7s ease-in-out infinite}
-@keyframes uKnobPulse{0%,100%{opacity:1}50%{opacity:.45}}
-/* Page-wide busy state while a flag save is in flight: block interaction + show a top progress bar. */
-.users-busy{position:relative;pointer-events:none}
-.users-busy .users-table{opacity:.6;transition:opacity .15s}
-.users-busy::after{content:'';position:absolute;left:0;top:0;height:3px;width:40%;background:linear-gradient(90deg,transparent,var(--o),transparent);border-radius:5px;animation:usersBar 1s linear infinite;z-index:5}
-@keyframes usersBar{0%{left:-40%}100%{left:100%}}
-/* Create-user modal */
-.cu-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.cu-modal-bg[style*="flex"]{display:flex}
-.cu-modal{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:90vh;overflow:auto;padding:26px}
-.cu-modal h2{color:var(--o);font-size:1.15em;margin-bottom:4px}
-.cu-modal .cu-sub{color:#5f6b6c;font-size:.82em;margin-bottom:18px}
-.cu-fld{margin-bottom:14px}
-.cu-fld label{margin-bottom:6px}
-.cu-fld .cu-hint{color:#5f6b6c;font-size:.76em;margin-top:5px}
-.cu-row{display:flex;gap:14px;flex-wrap:wrap}
-.cu-row .cu-fld{flex:1;min-width:150px}
-.cu-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #1b2530}
-.cu-toggle-row .cu-tl{color:var(--t);font-size:.9em;font-weight:600}
-.cu-toggle-row .cu-hint{color:#5f6b6c;font-size:.76em;margin-top:3px}
-.cu-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
-/* Reuse the toggle look for the modal switches (checkbox-driven). */
-.cu-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
-.cu-switch input{opacity:0;width:0;height:0}
-.cu-switch .cu-slider{position:absolute;inset:0;background:#2b3742;border:1px solid #3a4655;border-radius:5px;cursor:pointer;transition:background .15s,border-color .15s}
-.cu-switch .cu-slider::before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#8b98a5;transition:transform .18s,background .15s}
-.cu-switch input:checked + .cu-slider{background:rgba(74,222,128,.25);border-color:#4ade80}
-.cu-switch input:checked + .cu-slider::before{transform:translateX(20px);background:#4ade80}
-/* Disabled (owner-only) access toggles in the create modal for non-owner creators. */
-.cu-switch input:disabled + .cu-slider{opacity:.4;cursor:not-allowed}
-.cu-locked{opacity:.6}
-.cu-locked .cu-tl::after{content:" (owner only)";color:#5f6b6c;font-weight:500;font-size:.85em}
-/* Confirmation modal */
-.confirm-modal{width:50vw;max-width:50vw;min-width:min(92vw,420px)}
-.confirm-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.confirm-head h2{margin:0;color:#fff;font-size:1.15em}
-.confirm-icon{flex-shrink:0;width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,153,0,.14);color:var(--o)}
-.confirm-icon svg{width:20px;height:20px}
-.confirm-body{color:var(--t);font-size:.92em;line-height:1.55;margin:0}
-.confirm-body b{color:#fff}
-/* Danger variant (Remove): red icon + red confirm button. */
-.confirm-modal.danger .confirm-icon{background:rgba(255,82,82,.14);color:var(--rl)}
-.confirm-modal.danger #confirmOk{border-color:var(--rl);color:var(--rl)}
-.confirm-modal.danger #confirmOk:hover{background:rgba(255,82,82,.14)}
-/* Global: main content spans 90% of the viewport at all sizes. */
-.wrap,.content{width:auto!important;max-width:none!important;margin-left:15px!important;margin-right:15px!important}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Light-theme + card redesign (loaded last, wins the cascade). No x-scroll. ===== -->
-<style id="users-light">
-h1{color:#1b2026!important}
-.sub{color:#5c6773!important}
-/* Primary + secondary buttons. */
-.btn{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;color:#fff!important;border:none!important}
-.btn:hover{filter:brightness(1.05)!important;background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important}
-.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-.btn.sec:hover{border-color:#ec7211!important;background:#fff4e8!important;color:#ec7211!important}
-.msg.err{color:#d33a3a!important}.msg.ok{color:#1f9d57!important}
-.gate p{color:#5c6773!important}
+<style id="um-light">
+/* User Management — same visual language as errors-in-resolved.html / performance-summary.html:
+   dark navy hero with an orange rule, KPI cards that overlap it, then white section cards.
+   Everything is scoped under .um (a size container for the responsive grids). Dialogs reuse the
+   shared login/logout dialog classes (.tbl-*) injected by topbar-auth.js, with page-only extensions. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.um{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.um button{font-family:inherit;text-transform:none}
+.um :is(button,a,input,select,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.um-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---------- Users list header ---------- */
-.u-count{display:inline-flex;align-items:center;gap:9px;color:#1b2026;font-weight:800;font-size:.95em;margin:4px 0 14px}
-.u-count svg{color:#ec7211}
-/* ---------- Shared 60px white title bar (title left, Create-user action right) ---------- */
-.u-titlebar{height:60px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 16px;margin-bottom:16px}
-.u-titlebar h1{margin:0!important;font-size:1.3em!important}
-@media(max-width:620px){.u-titlebar{height:auto;min-height:60px;flex-wrap:wrap;padding:10px 14px}}
+/* ---- Hero ---- */
+.um-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 80px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.um-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.um-hero.is-flat{padding-bottom:26px;margin-bottom:16px}
+.um-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.um-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.um-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 380px}
+.um-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.um-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.um-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08}
+.um-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.um-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
+.um-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  font-size:.8em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;min-width:0;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.um-chip svg{flex-shrink:0;color:#ffb26b}
+.um-chip span{color:rgba(233,237,243,.62);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.um-chip b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.um-hero-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end;flex:0 0 auto}
+/* Buttons. Primary uses the darker orange (#c2570a..#a94a05) so white text keeps >=4.5:1 contrast. */
+.um-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;cursor:pointer;
+  font-size:.9em;font-weight:800;white-space:nowrap;text-decoration:none;border:1px solid #9a4100;color:#fff!important;
+  background:linear-gradient(180deg,#c2570a,#a94a05);box-shadow:0 10px 22px -12px rgba(236,114,17,.9),inset 0 1px 0 rgba(255,255,255,.18);
+  transition:filter .15s,transform .1s,background .15s,border-color .15s}
+.um-btn:hover:not(:disabled){filter:brightness(1.08)}
+.um-btn:active:not(:disabled){transform:translateY(1px)}
+.um-btn:disabled{opacity:.55;cursor:not-allowed}
+.um-btn.is-glass{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);box-shadow:none}
+.um-btn.is-glass:hover:not(:disabled){background:rgba(255,255,255,.14);filter:none}
+.um-btn.is-busy svg{animation:umSpin .8s linear infinite}
+.um-btn-dark{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:6px;background:#161d2d;color:#f4f3ef!important;
+  font-size:.86em;font-weight:800;cursor:pointer;text-decoration:none;transition:background .15s}
+.um-btn-dark:hover{background:#0f1420}
+@keyframes umSpin{to{transform:rotate(360deg)}}
 
-/* ---------- User CARDS: exactly 2 equal columns ---------- */
-.u-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+/* ---- KPI row (overlaps the hero) ---- */
+.um-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:300px){.um-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.um-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.um-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.um-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.um-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.um-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.um-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.um-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.um-kpi-s b{color:var(--ink);font-weight:800}
+.um-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.um-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.um-kpi.is-base{--k:#1f2a40}
+.um-kpi.is-acc{--k:var(--acc);--kb:var(--acc-bg);--ki:#b5530a}
+.um-kpi.is-mgr{--k:#6d28d9;--kb:#f1eaff;--ki:#5b21b6}
+.um-kpi.is-phd{--k:#13827c;--kb:#d2f0ee;--ki:#136b67}
 
-/* ---------- Expand/collapse: clicking a card's identity area toggles its body ---------- */
-.u-card-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;min-width:0}
-.u-card-caret{flex:0 0 auto;margin-left:auto;color:#8793a0;transition:transform .2s;display:inline-flex;align-self:center}
-.u-card.open .u-card-caret{transform:rotate(180deg)}
-.u-card-body{display:none;flex-direction:column;gap:12px}
-.u-card.open .u-card-body{display:flex}
-.u-card{background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:16px 16px 14px;box-shadow:0 1px 3px rgba(20,30,50,.06);display:flex;flex-direction:column;gap:12px;min-width:0}
-.u-card.is-owner{border-color:#d9ccf7;box-shadow:0 0 0 1px rgba(124,92,255,.12),0 1px 3px rgba(20,30,50,.06)}
-.u-card.is-owner .u-card-head{border-left:3px solid #7c5cff;margin-left:-16px;padding-left:13px}
-.u-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.u-card-actions{flex:0 0 auto}
-/* identity cell */
-.u-card .u-cell{align-items:center}
-.u-card .u-uname{color:#1b2026!important}
-.u-card .u-dn{color:#5c6773!important}
-.u-card .u-avatar{border:1px solid #e2e6ea!important}
-.u-card .u-avatar-ph{background:#fff4e8!important;color:#b5560c!important}
-.u-admin-tag{color:#b5560c!important;background:#fff4e8!important;border:1px solid #f3d4b0!important}
-.u-mgr-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:.68em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#6d28d9;background:#f1eaff;border:1px solid #d6c2fb}
-/* meta controls row (tz / badge / analyst) */
-.u-card-meta{display:flex;flex-wrap:wrap;gap:10px}
-.um-fld{display:flex;flex-direction:column;gap:5px;min-width:92px}
-.um-k{font-size:.66em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#8793a0}
-.u-card-meta select{text-align:left;text-align-last:left;padding:7px 10px;max-width:none;width:auto}
-/* access grid: wraps, never scrolls */
-.u-card-access{border-top:1px solid #eef1f4;padding-top:12px}
-.ua-head{display:flex;align-items:center;gap:7px;font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#5c6773;margin-bottom:10px}
-.ua-head svg{color:#8793a0}
-.ua-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-.ua-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f7f9fb;border:1px solid #eef1f4;border-radius:5px;padding:7px 10px}
-.ua-label{font-size:.76em;font-weight:600;color:#2a3340;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* selects / inputs light */
-select{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-select:focus{border-color:#ec7211!important}
-input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-label{color:#5c6773!important}
-/* badge pill + yes/no light */
-.u-badge.blue{background:#eaf4fb!important;color:#1577a0!important}
-.u-badge.yellow{background:#fff3e0!important;color:#b5680c!important}
-.u-yes{color:#1f9d57!important}.u-yes::before{background:#1f9d57!important}
-.u-no{color:#8793a0!important}.u-no::before{background:#8793a0!important}
-.u-owner-tag{color:#6b4bd8!important}
-.u-group{/* keeps its --gc accent via color-mix; readable on white */}
-/* toggles light */
-.u-toggle{background:#dfe4ea!important;border:1px solid #cdd5dd!important}
-.u-toggle:hover{border-color:#b7c0ca!important}
-.u-toggle .u-knob{background:#fff!important;box-shadow:0 1px 2px rgba(20,40,70,.25)!important}
-.u-toggle.on{background:rgba(31,157,87,.3)!important;border-color:#1f9d57!important}
-.u-toggle.on .u-knob{background:#1f9d57!important}
-.u-toggle.disabled{opacity:.5!important;background:#eef1f4!important;border-color:#e2e6ea!important}
-.u-toggle.disabled .u-knob{background:#aab4bd!important}
-/* row action buttons light */
-.u-act.reset{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-.u-act.reset:hover{background:#fff4e8!important;border-color:#ec7211!important;color:#ec7211!important}
-.u-act.remove{background:#fff!important;border:1px solid rgba(220,38,38,.35)!important;color:#dc2626!important}
-.u-act.remove:hover{background:#fef2f2!important;border-color:#dc2626!important;color:#dc2626!important}
-/* ---------- Modals light ---------- */
-.cu-modal-bg{background:rgba(20,30,45,.55)!important}
-.cu-modal{background:#fff!important;border:1px solid #e2e6ea!important}
-.cu-modal h2{color:#1b2026!important}
-.cu-modal .cu-sub{color:#5c6773!important}
-.cu-fld .cu-hint,.cu-toggle-row .cu-hint{color:#8793a0!important}
-.cu-toggle-row{border-top:1px solid #eef1f4!important}
-.cu-toggle-row .cu-tl{color:#1b2026!important}
-.cu-switch .cu-slider{background:#dfe4ea!important;border:1px solid #cdd5dd!important}
-.cu-switch .cu-slider::before{background:#fff!important}
-.cu-switch input:checked + .cu-slider{background:rgba(31,157,87,.3)!important;border-color:#1f9d57!important}
-.cu-switch input:checked + .cu-slider::before{background:#1f9d57!important}
-.cu-locked .cu-tl::after{color:#8793a0!important}
-.confirm-head h2{color:#1b2026!important}
-.confirm-icon{background:#fff4e8!important;color:#ec7211!important}
-.confirm-body{color:#2a3340!important}
-.confirm-body b{color:#1b2026!important}
-.confirm-modal.danger .confirm-icon{background:#fdeaea!important;color:#dc2626!important}
-.confirm-modal.danger #confirmOk{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
-.confirm-modal.danger #confirmOk:hover{background:#fef2f2!important}
-/* copy-activity tables (owner sections, if present) light */
-.card{background:#fff!important;border:1px solid #e2e6ea!important}
-.card h2{color:#b5560c!important}
-th{color:#5c6773!important;border-bottom:1px solid #eef1f4!important}
-td{color:#2a3340!important;border-bottom:1px solid #eef1f4!important}
-td.user{color:#1b2026!important}
-@media(max-width:700px){.u-cards{grid-template-columns:1fr}}
+/* ---- Generic card ---- */
+.um-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;margin-bottom:16px}
+.um-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px 18px;flex-wrap:wrap;margin-bottom:14px}
+.um-card-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.um-help{margin-top:5px;font-size:.86em;color:var(--mut);line-height:1.5;max-width:72ch}
+.um-count{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+
+/* ---- Roles legend ---- */
+.um-roles{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@container (min-width:560px){.um-roles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:860px){.um-roles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (min-width:1180px){.um-roles{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.um-role{position:relative;display:flex;flex-direction:column;gap:8px;padding:13px 14px 13px 16px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.um-role::before{content:'';position:absolute;left:-1px;top:13px;bottom:13px;width:3px;border-radius:0 3px 3px 0;background:var(--rd)}
+.um-role-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.um-role-n{font-size:1.5em;font-weight:800;letter-spacing:-.6px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.um-role-n small{font-size:.5em;font-weight:700;letter-spacing:0;color:var(--mut)!important;margin-left:4px}
+.um-role-d{font-size:.82em;line-height:1.45;color:#3a4552}
+.um-role-lv{font-size:.68em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:#8793a0}
+.um-tagkey{display:flex;flex-wrap:wrap;gap:8px 18px;list-style:none;margin:14px 0 0;padding:12px 0 0;border-top:1px solid #eef1f4}
+.um-tagkey li{display:inline-flex;align-items:center;gap:8px;font-size:.8em;color:var(--mut);font-weight:600}
+.um-tagkey-k{font-size:.68em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important}
+
+/* Role pills: distinct colour per role, label text always present (never colour-only). */
+.um-rp{display:inline-flex;align-items:center;gap:7px;padding:3px 10px 3px 8px;border-radius:99px;font-size:.76em;font-weight:800;letter-spacing:.2px;white-space:nowrap;
+  color:var(--rc);background:var(--rb);border:1px solid var(--rl)}
+.um-rp::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--rd)}
+.r-owner{--rc:#fff;--rb:#1f2a40;--rl:#1f2a40;--rd:#ff9f2e}
+.r-manager{--rc:#5b21b6;--rb:#f1eaff;--rl:#d6c2fb;--rd:#7c3aed}
+.r-admin{--rc:#1f4f9a;--rb:#e9f0fb;--rl:#bcd0f0;--rd:#2b66c1}
+.r-editor{--rc:#1a7a43;--rb:#e5f5ec;--rl:#b5e0c6;--rd:#1f9d57}
+.r-user{--rc:#3a4552;--rb:#eef1f4;--rl:#d4dade;--rd:#8793a0}
+
+/* Tags (ADMIN / MANAGER / PHD / analyst group) */
+.um-tags{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center}
+.um-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;line-height:1.5;cursor:default}
+.um-tag.t-admin{color:#9a4100;background:var(--acc-bg);border:1px solid #f7c99c}
+.um-tag.t-mgr{color:#5b21b6;background:#f1eaff;border:1px solid #d6c2fb}
+.um-tag.t-phd{color:#136b67;background:#d2f0ee;border:1px solid #9fd9d4}
+.um-tag.t-grp{color:#1b2026;background:color-mix(in srgb,var(--gc) 16%,#fff);border:1px solid color-mix(in srgb,var(--gc) 70%,#fff)}
+.um-tag.t-grp::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gc)}
+.um-none{color:#8793a0;font-weight:600}
+
+/* Badge pill (Blue / Yellow) */
+.um-bp{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:.76em;font-weight:800;white-space:nowrap}
+.um-bp::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.um-bp.blue{background:#eaf4fb;color:#1577a0;border:1px solid #bfe0f2}
+.um-bp.yellow{background:#fff3d6;color:#8a5a00;border:1px solid #f3d58e}
+
+/* ---- Toolbar (search + filter chips) ---- */
+.um-tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:14px;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.um-search{position:relative;flex:1 1 240px;max-width:380px;min-width:0}
+.um-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.um .um-search input{width:100%;height:38px;font:inherit;font-size:.9em;padding:0 12px 0 36px!important;border-radius:8px!important}
+.um-fgrp{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.um-fgrp-k{font-size:.66em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);margin-right:2px}
+.um-fc{display:inline-flex;align-items:center;gap:7px;padding:5px 6px 5px 11px;border-radius:99px;border:1px solid #d4dade;background:#fff;
+  font-size:.8em;font-weight:700;color:#3a4552;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.um-fc b{min-width:22px;text-align:center;padding:0 6px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.um-fc:hover{border-color:#aeb8c2}
+.um-fc[aria-pressed="true"]{background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+.um-fc[aria-pressed="true"] b{background:#fff;border-color:#f7c99c;color:var(--acc-ink)}
+.um-fc .um-dot{width:7px;height:7px;border-radius:50%;background:var(--rd,#8793a0)}
+.um-clear{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:none;border-radius:7px;background:none;color:#2b66c1;font-size:.82em;font-weight:800;cursor:pointer}
+.um-clear:hover{background:#e6f0fc}
+.um-clear[hidden]{display:none}
+
+/* ---- Flash messages ---- */
+.um .msg{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:.86em;font-weight:700;line-height:1.45}
+.um .msg.ok{background:var(--grn-bg);border:1px solid #b5e0c6;color:var(--grn)}
+.um .msg.err{background:var(--red-bg);border:1px solid #f5c2c0;color:var(--red)}
+
+/* ---- Users table ---- */
+.um-scroll{position:relative;overflow:auto;max-height:min(72vh,780px);border:1px solid var(--line);border-radius:10px}
+.um-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.88em}
+.um .um-tbl th,.um .um-tbl td{padding:11px 14px;border-bottom:1px solid #eef1f4!important;text-align:left;vertical-align:middle}
+.um .um-tbl thead th{position:sticky;top:0;z-index:2;background:#f5f6f8!important;color:var(--mut)!important;border-bottom:1px solid var(--line)!important;
+  font-size:.7em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.um .um-tbl tbody td{background:#fff!important}
+.um .um-tbl tbody tr:hover td{background:#fffaf4!important}
+.um .um-tbl tbody tr:last-child td{border-bottom:none!important}
+.um .um-tbl tbody tr.is-owner td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+.um-tbl th.c-act,.um-tbl td.c-act{text-align:right;width:1%;white-space:nowrap}
+.um-who{display:flex;align-items:center;gap:11px;min-width:0}
+.um-av{flex-shrink:0;width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.9em;font-weight:800;overflow:hidden;
+  background:hsl(var(--h) 60% 92%);color:hsl(var(--h) 55% 28%);border:1px solid hsl(var(--h) 45% 82%)}
+.um-av img{width:100%;height:100%;object-fit:cover;display:block}
+.um-who-tx{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.um-login{font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.um-dn{font-size:.84em;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.um-tz{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#3a4552;white-space:nowrap}
+.um-tz svg{color:#8793a0}
+/* Page-access summary: count + a 9-segment meter (one segment per access flag). */
+.um-acc-sum{display:inline-flex;flex-direction:column;gap:5px;min-width:96px}
+.um-acc-n{font-size:.88em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
+.um-acc-n b{color:var(--ink);font-weight:800;font-size:1.08em}
+.um-meter{display:flex;gap:2px}
+.um-meter i{flex:1 1 0;height:5px;border-radius:2px;background:#e3e7eb}
+.um-meter i.on{background:var(--acc)}
+.um-full{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;background:var(--grn-bg);border:1px solid #b5e0c6;color:var(--grn);font-size:.78em;font-weight:800;white-space:nowrap}
+/* Row action icon buttons + CSS tooltips (shown on hover and keyboard focus). */
+.um-acts{display:inline-flex;gap:6px;justify-content:flex-end}
+.um-ib{position:relative;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid #d4dade;background:#fff;
+  color:#3a4552;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.um-ib:hover{background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+.um-ib.is-danger{color:var(--red);border-color:#f2c4c0}
+.um-ib.is-danger:hover{background:var(--red-bg);border-color:#e9a29b;color:var(--red)}
+.um-ib[aria-disabled="true"]{cursor:not-allowed;opacity:.42;background:#f5f6f8;color:#8793a0;border-color:#e2e6ea}
+.um-ib.is-ghost{visibility:hidden}
+.um-ib[data-tip]::after{content:attr(data-tip);position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-50%);z-index:5;pointer-events:none;
+  width:max-content;max-width:220px;padding:6px 9px;border-radius:7px;background:#1b2026;color:#fff;font-size:.74rem;font-weight:700;line-height:1.35;
+  white-space:normal;text-align:left;opacity:0;visibility:hidden;transition:opacity .12s}
+.um-ib[data-tip]:hover::after,.um-ib[data-tip]:focus-visible::after{opacity:1;visibility:visible}
+
+/* ---- Busy (a save / refresh in flight) ---- */
+.um-busy{position:relative;pointer-events:none}
+.um-busy::after{content:'';position:absolute;left:0;top:0;height:3px;width:40%;background:linear-gradient(90deg,transparent,var(--acc,#ec7211),transparent);border-radius:5px;animation:umBar 1s linear infinite;z-index:6}
+.um-scroll.um-busy .um-tbl{opacity:.65;transition:opacity .15s}
+@keyframes umBar{0%{left:-40%}100%{left:100%}}
+
+/* ---- States (skeleton / empty / error) ---- */
+.um-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:umShim 1.4s ease infinite}
+.um-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.16) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+.um-skel.is-round{border-radius:50%}
+@keyframes umShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.um-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
+.um-empty-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:4px}
+.um-empty-ic.is-err{background:var(--red-bg);color:var(--red)}
+.um-empty-t{font-size:1.08em!important;font-weight:800;color:var(--ink)!important}
+.um-empty p{font-size:.9em;max-width:52ch;line-height:1.5}
+
+/* ---- Narrow containers: each table row becomes a card ---- */
+@container (max-width:760px){
+  .um-card{padding:16px 14px}
+  .um-scroll{max-height:none;overflow:visible;border:none;border-radius:0}
+  .um-tbl,.um-tbl tbody{display:block}
+  .um-tbl thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .um .um-tbl tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;grid-auto-flow:row dense;gap:10px 12px;padding:14px;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .um .um-tbl tbody tr.is-owner{box-shadow:inset 3px 0 0 var(--acc)}
+  .um .um-tbl tbody tr.is-owner td:first-child{box-shadow:none}
+  .um .um-tbl tbody td{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0;border:none!important;background:transparent!important;min-width:0}
+  .um .um-tbl tbody tr:hover td{background:transparent!important}
+  .um-tbl td.c-user{grid-column:1/3;grid-row:1}
+  .um .um-tbl tbody td.c-act{grid-column:3;grid-row:1;width:auto;justify-content:flex-end}
+  /* Label above value; short fields pair up two per line, Tags + Page access span the card. */
+  .um .um-tbl tbody td[data-label]{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:5px;padding-top:9px;border-top:1px solid #eef1f4!important}
+  .um .um-tbl tbody td[data-label="Tags"],.um .um-tbl tbody td[data-label="Page access"]{grid-column:1/-1}
+  .um .um-tbl tbody td[data-label]::before{content:attr(data-label);font-size:.66em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut);flex-shrink:0}
+  .um .um-tbl tbody td.is-empty{display:none}
+  .um-ib.is-ghost{display:none}
+  .um-hero{padding:22px 18px 76px 22px}
+  .um-hero h1{font-size:1.75em}
+  .um-kpis{margin:-56px 10px 16px}
+  .um-clear{margin-left:0}
+}
+@container (max-width:460px){
+  .um-hero-main{flex-basis:100%}
+  .um-hero-ic{display:none}
+  .um-hero-tools{width:100%;justify-content:stretch}
+  .um-hero-tools .um-btn{flex:1 1 0}
+  .um-search{max-width:none;flex-basis:100%}
+}
+
+/* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the sections. */
+@keyframes umUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.um.is-anim .um-hero{animation:umUp .45s ease both}
+.um.is-anim .um-kpi{animation:umUp .5s ease both}
+.um.is-anim .um-kpi:nth-child(1){animation-delay:.08s}
+.um.is-anim .um-kpi:nth-child(2){animation-delay:.14s}
+.um.is-anim .um-kpi:nth-child(3){animation-delay:.2s}
+.um.is-anim .um-kpi:nth-child(4){animation-delay:.26s}
+.um.is-anim .um-card{animation:umUp .5s ease .3s both}
+@media (prefers-reduced-motion:reduce){
+  .um *,.um *::before,.um *::after,.um-dlg *,.um-dlg *::before,.um-dlg *::after,.um-busy::after{animation:none!important;transition:none!important}
+}
+
+/* ================= Dialogs: extend the shared .tbl-* login/logout dialog look ================= */
+.um-dlg{display:none}
+.tbl-bg .tbl-card.um-dlg-wide{width:min(680px,100%)!important}
+.tbl-card .tbl-head .um-dlg-av{width:42px;height:42px;border-radius:11px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;
+  font-size:1.05em;font-weight:800;background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.45)}
+.tbl-card .tbl-head .um-dlg-av img{width:100%;height:100%;object-fit:cover}
+.tbl-card .um-sec-h{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-size:.68em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut,#5c6773)!important}
+.tbl-card .um-sec-h:first-child{margin-top:0}
+.tbl-card .um-sec-h::after{content:'';flex:1 1 auto;height:1px;background:#e2e6ea}
+.tbl-card .um-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.tbl-card .um-grid.is-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tbl-card .um-lbl{display:block;margin:0 0 6px!important;color:#2a3340!important;font-size:.8em!important;font-weight:700!important;letter-spacing:.2px}
+.tbl-card select.um-select{display:block;width:100%;height:44px;margin:0;padding:0 36px 0 12px!important;border-radius:10px!important;font:inherit;font-size:.92em;
+  background:#f7f9fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c6773' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") right 12px center/14px no-repeat!important;
+  -webkit-appearance:none;appearance:none;color:#1b2026!important;border:1px solid #cdd4db!important;cursor:pointer;text-align:left;text-align-last:left}
+.tbl-card select.um-select:hover{border-color:#aeb8c2!important}
+.tbl-card select.um-select:focus{outline:none;background-color:#fff!important;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.22)!important}
+.tbl-card select.um-select:disabled{opacity:.6;cursor:not-allowed}
+.tbl-card .um-ro{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:10px;background:#f5f6f8;border:1px dashed #d4dade;color:#3a4552;font-size:.9em;font-weight:700;gap:8px}
+.tbl-card .um-hint{margin:6px 0 0;color:#5c6773;font-size:.76em;line-height:1.4}
+.tbl-card .um-ferr{margin:6px 0 0;color:#b42318;font-size:.78em;font-weight:700}
+.tbl-card .um-ferr:empty{display:none}
+.tbl-card input.tbl-input[aria-invalid="true"]{border-color:#d92d20!important;box-shadow:0 0 0 3px rgba(217,45,32,.14)!important}
+.tbl-card .um-acc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tbl-card .um-acc-row{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0!important;padding:10px 12px;border:1px solid #e2e6ea;border-radius:10px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s}
+.tbl-card .um-acc-row:hover{border-color:#cfd6dd;background:#fafbfc}
+.tbl-card .um-acc-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tbl-card .cu-tl{color:#1b2026;font-size:.86em;font-weight:700;line-height:1.3}
+.tbl-card .cu-hint{color:#5c6773;font-size:.74em;line-height:1.4}
+.tbl-card .cu-locked{cursor:not-allowed;background:#f8f9fa}
+.tbl-card .cu-locked:hover{background:#f8f9fa;border-color:#e2e6ea}
+.tbl-card .cu-locked .cu-tl::after{content:"Owner only";display:inline-block;margin-left:7px;padding:0 6px;border-radius:4px;background:#eef1f4;color:#5c6773;font-size:.78em;font-weight:800;vertical-align:1px}
+/* Checkbox-driven switch (create dialog) and button-driven switch (edit dialog) share one look. */
+.tbl-card .um-sw-in{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.tbl-card .um-sw,.tbl-card button.um-tg{position:relative;flex-shrink:0;width:40px;height:22px;border-radius:99px;background:#c9d0d8;transition:background .15s}
+.tbl-card .um-sw::after,.tbl-card button.um-tg::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.28);transition:transform .15s}
+.tbl-card .um-sw-in:checked+.um-sw,.tbl-card button.um-tg.on{background:#ec7211}
+.tbl-card .um-sw-in:checked+.um-sw::after,.tbl-card button.um-tg.on::after{transform:translateX(18px)}
+.tbl-card .um-sw-in:focus-visible+.um-sw{outline:3px solid #f0a35a;outline-offset:2px}
+.tbl-card .um-sw-in:disabled+.um-sw,.tbl-card button.um-tg:disabled{opacity:.5}
+.tbl-card button.um-tg{border:none;padding:0;margin:0;cursor:pointer}
+.tbl-card button.um-tg:disabled{cursor:not-allowed}
+.tbl-card button.um-tg.busy::after{animation:umKnob .7s ease-in-out infinite}
+@keyframes umKnob{0%,100%{opacity:1}50%{opacity:.4}}
+.tbl-card .um-note{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 11px;border-radius:8px;background:#f5f6f8;border:1px solid #e2e6ea;color:#3a4552;font-size:.8em;font-weight:600;line-height:1.4}
+.tbl-card .um-note svg{flex-shrink:0;color:#5c6773}
+.tbl-card .um-status{min-height:1.4em;margin:14px 0 0;font-size:.82em;font-weight:700;color:#5c6773}
+.tbl-card .um-status.is-ok{color:#1a7a43}
+.tbl-card .um-status.is-err{color:#b42318}
+.tbl-card .tbl-row button.tbl-submit{width:auto;min-width:140px;height:42px}
+.tbl-card .tbl-body.um-busy{position:relative}
+@media(max-width:560px){.tbl-card .um-grid,.tbl-card .um-grid.is-3,.tbl-card .um-acc{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body data-nav-active="users" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html" style="text-decoration:none"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
-<div class="wrap" id="wrap"><div class="gate"><p>Loading…</p></div></div>
+<div class="wrap" id="wrap"></div>
+<!-- Polite live region for load / filter / save announcements (kept outside #wrap so re-renders don't drop it). -->
+<div id="umLive" class="um-sr" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<!-- Create user modal -->
-<div class="cu-modal-bg" id="createUserModal" onclick="if(event.target===this)closeCreateUser()">
-  <div class="cu-modal">
-    <h2>Create user</h2>
-    <p class="cu-sub">Set the new account's details and access.</p>
-    <div class="cu-row">
-      <div class="cu-fld"><label>Username</label><input type="text" id="cuUser" autocomplete="off" placeholder="e.g. jsmith"></div>
-      <div class="cu-fld"><label>Temporary password</label><input type="text" id="cuPass" autocomplete="off" placeholder="Share with the user"></div>
+<!-- Create user dialog (login-dialog look) -->
+<div class="tbl-bg um-dlg" id="createUserModal" style="display:none" onclick="if(event.target===this)closeCreateUser()">
+  <div class="tbl-card um-dlg-wide" role="dialog" aria-modal="true" aria-labelledby="cuTitle" aria-describedby="cuSubTxt">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">User management · New account</div><h2 class="tbl-title" id="cuTitle">Create user</h2></div>
+      <p class="tbl-sub" id="cuSubTxt">Set the new account's details and access.</p>
     </div>
-    <div class="cu-row">
-      <div class="cu-fld"><label>Timezone</label>
-        <select id="cuTz"><option value="IST" selected>IST</option><option value="MST">MST</option></select>
+    <form class="tbl-body" id="cuForm" novalidate onsubmit="event.preventDefault();submitCreateUser()">
+      <div class="um-sec-h">Account</div>
+      <div class="um-grid">
+        <div class="tbl-field">
+          <label class="tbl-label" for="cuUser">Username</label>
+          <div style="position:relative"><span class="tbl-fic" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <input class="tbl-input" type="text" id="cuUser" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. jsmith" required aria-describedby="cuUserErr"></div>
+          <p class="um-ferr" id="cuUserErr" role="alert"></p>
+        </div>
+        <div class="tbl-field">
+          <label class="tbl-label" for="cuPass">Temporary password</label>
+          <div style="position:relative"><span class="tbl-fic" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/></svg></span>
+          <input class="tbl-input" type="text" id="cuPass" autocomplete="off" spellcheck="false" placeholder="Share with the user" required aria-describedby="cuPassErr cuPassHint"></div>
+          <p class="um-ferr" id="cuPassErr" role="alert"></p>
+          <p class="um-hint" id="cuPassHint">They should change it after their first login.</p>
+        </div>
       </div>
-      <div class="cu-fld"><label>Badge</label>
-        <select id="cuBadge"><option value="blue" selected>Blue</option><option value="yellow">Yellow</option></select>
+      <div class="um-grid is-3">
+        <div class="tbl-field"><label class="tbl-label" for="cuTz">Timezone</label>
+          <select class="um-select" id="cuTz"><option value="IST" selected>IST</option><option value="MST">MST</option></select>
+        </div>
+        <div class="tbl-field"><label class="tbl-label" for="cuBadge">Badge</label>
+          <select class="um-select" id="cuBadge"><option value="blue" selected>Blue</option><option value="yellow">Yellow</option></select>
+        </div>
+        <div class="tbl-field"><label class="tbl-label" for="cuAnalyst">Analyst</label>
+          <select class="um-select" id="cuAnalyst" aria-describedby="cuAnalystHint"><option value="no" selected>No</option><option value="yes">Yes</option></select>
+          <p class="um-hint" id="cuAnalystHint">An Analyst is a person who works on PHD tickets.</p>
+        </div>
       </div>
-      <div class="cu-fld"><label>Analyst</label>
-        <select id="cuAnalyst"><option value="no" selected>No</option><option value="yes">Yes</option></select>
-        <div class="cu-hint">An Analyst is a person who works on PHD tickets.</div>
+      <div class="um-sec-h">Page access</div>
+      <div class="um-acc">
+        <label class="cu-toggle-row um-acc-row" for="cuUpload"><span class="um-acc-tx"><span class="cu-tl">Has access to upload new data</span><span class="cu-hint">If off, the Upload new data button is disabled for them.</span></span><input type="checkbox" class="um-sw-in" id="cuUpload"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuCreate"><span class="um-acc-tx"><span class="cu-tl">Can create other users</span><span class="cu-hint">If off, the Users page is disabled for them; if on, they can manage users.</span></span><input type="checkbox" class="um-sw-in" id="cuCreate"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuEditTools"><span class="um-acc-tx"><span class="cu-tl">Edit Tools</span><span class="cu-hint">Allows adding/editing blurbs, hashtags and paging contacts.</span></span><input type="checkbox" class="um-sw-in" id="cuEditTools"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuViewSR"><span class="um-acc-tx"><span class="cu-tl">View SR</span><span class="cu-hint">Access to the Station Request Tickets page.</span></span><input type="checkbox" class="um-sw-in" id="cuViewSR"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuViewRepeat"><span class="um-acc-tx"><span class="cu-tl">View Repeat</span><span class="cu-hint">Access to the Repeat Incidents page.</span></span><input type="checkbox" class="um-sw-in" id="cuViewRepeat"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuViewUnique"><span class="um-acc-tx"><span class="cu-tl">View Unique</span><span class="cu-hint">Access to the Unique cases page.</span></span><input type="checkbox" class="um-sw-in" id="cuViewUnique"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuViewSLA"><span class="um-acc-tx"><span class="cu-tl">View SLA</span><span class="cu-hint">Access to the SLA Breaches page.</span></span><input type="checkbox" class="um-sw-in" id="cuViewSLA"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuGroupingPage"><span class="um-acc-tx"><span class="cu-tl">Grouping Page</span><span class="cu-hint">Access to the Grouping Page (owner tool).</span></span><input type="checkbox" class="um-sw-in" id="cuGroupingPage"><span class="um-sw" aria-hidden="true"></span></label>
+        <label class="cu-toggle-row um-acc-row" for="cuDatabase"><span class="um-acc-tx"><span class="cu-tl">Has access to the Database page</span><span class="cu-hint">If off, the Database button is disabled for them; if on, they can open Database health.</span></span><input type="checkbox" class="um-sw-in" id="cuDatabase"><span class="um-sw" aria-hidden="true"></span></label>
       </div>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">Has access to upload new data</div><div class="cu-hint">If off, the Upload new data button is disabled for them.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuUpload"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">Can create other users</div><div class="cu-hint">If off, the Users page is disabled for them; if on, they can manage users.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuCreate"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">Edit Tools</div><div class="cu-hint">Allows adding/editing blurbs, hashtags and paging contacts.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuEditTools"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">View SR</div><div class="cu-hint">Access to the Station Request Tickets page.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuViewSR"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">View Repeat</div><div class="cu-hint">Access to the Repeat Incidents page.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuViewRepeat"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">View Unique</div><div class="cu-hint">Access to the Unique cases page.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuViewUnique"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">View SLA</div><div class="cu-hint">Access to the SLA Breaches page.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuViewSLA"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">Grouping Page</div><div class="cu-hint">Access to the Grouping Page (owner tool).</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuGroupingPage"><span class="cu-slider"></span></label>
-    </div>
-    <div class="cu-toggle-row">
-      <div><div class="cu-tl">Has access to the Database page</div><div class="cu-hint">If off, the Database button is disabled for them; if on, they can open Database health.</div></div>
-      <label class="cu-switch"><input type="checkbox" id="cuDatabase"><span class="cu-slider"></span></label>
-    </div>
-    <div class="msg err" id="cuErr" style="display:none"></div>
-    <div class="cu-actions">
-      <button class="btn sec" onclick="closeCreateUser()">Cancel</button>
-      <button class="btn" onclick="submitCreateUser()">Create user</button>
-    </div>
+      <div class="tbl-err" id="cuErr" role="alert" style="display:none"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" id="cuCancel" onclick="closeCreateUser()">Cancel</button>
+        <button type="submit" class="tbl-submit" id="cuSubmit">Create user</button>
+      </div>
+    </form>
   </div>
 </div>
 
-<!-- Reusable confirmation modal (replaces native confirm()) -->
-<div class="cu-modal-bg" id="confirmModal" onclick="if(event.target===this)confirmResolve(false)">
-  <div class="cu-modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-    <div class="confirm-head"><span class="confirm-icon" id="confirmIcon"></span><h2 id="confirmTitle">Confirm</h2></div>
-    <p class="confirm-body" id="confirmBody"></p>
-    <div class="cu-actions">
-      <button class="btn sec" id="confirmCancel" onclick="confirmResolve(false)">Cancel</button>
-      <button class="btn" id="confirmOk" onclick="confirmResolve(true)">Confirm</button>
+<!-- Edit user dialog (login-dialog look). Body is rendered from the roster; every change saves immediately. -->
+<div class="tbl-bg um-dlg" id="editUserModal" style="display:none" onclick="if(event.target===this)closeEditUser()">
+  <div class="tbl-card um-dlg-wide" role="dialog" aria-modal="true" aria-labelledby="euTitle" aria-describedby="euSub">
+    <div class="tbl-head">
+      <span class="um-dlg-av" id="euAv" aria-hidden="true"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">User management · Edit user</div><h2 class="tbl-title" id="euTitle">Edit user</h2></div>
+      <p class="tbl-sub" id="euSub">Changes save as soon as you make them.</p>
+    </div>
+    <div class="tbl-body" id="euBody"></div>
+  </div>
+</div>
+
+<!-- Reusable confirmation dialog (logout-alertdialog look; replaces native confirm()) -->
+<div class="tbl-bg um-dlg" id="confirmModal" style="display:none" onclick="if(event.target===this)confirmResolve(false)">
+  <div class="tbl-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" id="confirmIcon" aria-hidden="true"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">User management</div><h2 class="tbl-title" id="confirmTitle">Confirm</h2></div>
+    </div>
+    <div class="tbl-body">
+      <p class="tbl-msg" id="confirmBody"></p>
+      <div id="confirmWho"></div>
+      <div class="tbl-err" id="confirmErr" role="alert"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" id="confirmCancel" onclick="confirmResolve(false)">Cancel</button>
+        <button type="button" class="tbl-submit" id="confirmOk" onclick="confirmOkClick()">Confirm</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=211"></script>
+<script src="topbar-auth.js?v=214"></script>
 <script>
 const A=window.PHDAuth;
 // Analyst groups (display names only for analysts). Keys map to a display name + accent color.
@@ -390,23 +451,279 @@ function fmtTZ(iso,zone){if(!iso)return '—';try{return new Date(iso).toLocaleS
 const ROLE_ORDER=['owner','manager','admin','editor','user'];
 const ROLE_TITLE={owner:'Owner',manager:'Managers',admin:'Admins',editor:'Editors',user:'Users'};
 const ROLE_ICON={owner:'shield',manager:'users-gear',admin:'users-gear',editor:'ticket',user:'users'};
+// Display-only role details (same wording as the Rules page role table).
+const ROLE_NAME={owner:'Owner',manager:'Manager',admin:'Admin',editor:'Editor',user:'User'};
+const ROLE_LEVEL={owner:3,manager:2,admin:2,editor:1,user:0};
+const ROLE_DESC={
+  owner:'Full access (user management, DB health, delete log entries).',
+  manager:'Same access level as admin, but cannot manage users.',
+  admin:'Can publish / upload data.',
+  editor:'Can comment / log on tickets ("touched").',
+  user:'Base / logged-in.'
+};
+// Per-user page-access flags: [flag, short label, title, hint]. Order matches the create dialog.
+const ACCESS_FLAGS=[
+  ['canUpload','Upload','Has access to upload new data','If off, the Upload new data button is disabled for them.'],
+  ['canCreateUsers','Create users','Can create other users','If off, the Users page is disabled for them; if on, they can manage users.'],
+  ['canEditTools','Edit Tools','Edit Tools','Allows adding/editing blurbs, hashtags and paging contacts.'],
+  ['canViewSR','View SR','View SR','Access to the Station Request Tickets page.'],
+  ['canViewRepeat','View Repeat','View Repeat','Access to the Repeat Incidents page.'],
+  ['canViewUnique','View Unique','View Unique','Access to the Unique cases page.'],
+  ['canViewSLA','View SLA','View SLA','Access to the SLA Breaches page.'],
+  ['canGroupingPage','Grouping Page','Grouping Page','Access to the Grouping Page (owner tool).'],
+  ['canDatabase','Database','Has access to the Database page','If off, the Database button is disabled for them; if on, they can open Database health.']
+];
 const ic=(n,s)=>window.icon?window.icon(n,s||18):'';
+const $=(id)=>document.getElementById(id);
+const LUI=()=>window.PHDLoginUI||null;
 
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>User Management</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+// ---- Page state ----
+let USERS=null;          // last roster rendered (array) — null until the first paint
+let LAST_SYNC=null;      // Date of the last fresh (non-cache) roster
+let FIRST=true;          // play the entrance animation once
+let Q='', FROLE='';      // search text + role filter ('' = all)
+const FTAG={admin:false,manager:false,phd:false}; // tag filters (AND)
+let EDIT_ID=null;        // user id open in the edit dialog
+
+function announce(msg){ const l=$('umLive'); if(!l)return; l.textContent=''; setTimeout(()=>{ l.textContent=msg; },30); }
+function roleKey(r){ return ROLE_NAME[r]?r:'user'; }
+function rolePill(r){ const k=roleKey(r); return '<span class="um-rp r-'+k+'">'+esc(ROLE_NAME[k])+'</span>'; }
+function hueOf(s){ let h=0; s=String(s||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return [24,205,165,265,335,45,190,120][h%8]; }
+function avatarHtml(u){
+  const initial=String(u.username||'?').charAt(0).toUpperCase();
+  return '<span class="um-av" style="--h:'+hueOf(u.username)+'" aria-hidden="true">'+(u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc(initial))+'</span>';
+}
+function isAdminTag(u){ return u.role!=='owner'&&!!u.canUpload; }
+function isMgrTag(u){ return u.role!=='owner'&&!!u.managerTag; }
+function tagsHtml(u){
+  const out=[];
+  // ADMIN tag: anyone with upload access is treated as an admin (owner excluded — has its own pill).
+  if(isAdminTag(u)) out.push('<span class="um-tag t-admin" title="Has upload access">Admin</span>');
+  // MANAGER tag: display-only flag set by the owner (grants no access).
+  if(isMgrTag(u)) out.push('<span class="um-tag t-mgr" title="Manager tag (display only)">Manager</span>');
+  if(u.analyst) out.push('<span class="um-tag t-phd" title="PHD analyst">PHD</span>');
+  // Group tag shows only for analysts (group names are analyst-only).
+  const g=u.analyst?groupOf(u.username):null;
+  if(g) out.push('<span class="um-tag t-grp" style="--gc:'+g.color+'" title="Analyst team">'+esc(g.name)+'</span>');
+  return out.join('');
+}
+function badgePill(b){ return '<span class="um-bp '+(b==='yellow'?'yellow':'blue')+'">'+(b==='yellow'?'Yellow':'Blue')+'</span>'; }
+function yesNoTxt(v){ return v?'Yes':'No'; }
+function findUser(id){ return (USERS||[]).find(u=>String(u.id)===String(id))||null; }
+function iAmOwner(){ return !!(A.isOwner&&A.isOwner()); }
+function canManage(){ return !!(A.canManageUsers&&A.canManageUsers()); }
+
+// ---------- Hero / KPIs / roles ----------
+function heroHtml(state){
+  const me=A.getUser()||{};
+  const owner=iAmOwner();
+  const access=owner?'Owner · full control':(canManage()?'Can manage users · granting access is owner-only':'View only');
+  let sync;
+  if(state==='loading') sync='<span class="um-skel um-skel-d" style="width:90px;height:12px"></span>';
+  else if(state==='error') sync='<b>Not loaded</b>';
+  else sync='<b>'+esc(LAST_SYNC?LAST_SYNC.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'Cached copy')+'</b>';
+  const tools=(state==='gate')?'':('<div class="um-hero-tools">'
+    +'<button type="button" class="um-btn is-glass" id="umRefresh"'+(state==='loading'?' disabled':'')+'>'+ic('refresh',15)+'Refresh</button>'
+    +(canManage()
+      ? '<button type="button" class="um-btn" id="umCreate">'+ic('plus',16)+'Create user</button>'
+      : '<button type="button" class="um-btn" disabled title="You do not have access to create users.">'+ic('plus',16)+'Create user</button>')
+    +'</div>');
+  return '<header class="um-hero'+(state==='gate'||state==='error'?' is-flat':'')+'"><div class="um-hero-in"><div class="um-hero-main"><span class="um-hero-ic">'+ic('users-gear',24)+'</span><div style="min-width:0">'
+    +'<p class="um-eyebrow">Administration · Access control</p><h1>User Management</h1>'
+    +'<p class="um-hero-sub">Every account on the PHD Dashboard: roles, analyst teams, badges and per-page access. Create accounts, adjust access and reset passwords from here.</p>'
+    +(state==='gate'?'':'<ul class="um-chips">'
+      +'<li class="um-chip">'+ic('user',14)+'<span>Signed in</span><b>'+esc(me.username||'—')+'</b></li>'
+      +'<li class="um-chip">'+ic('shield',14)+'<span>Access</span><b>'+esc(access)+'</b></li>'
+      +'<li class="um-chip">'+ic('clock',14)+'<span>Updated</span>'+sync+'</li>'
+      +'</ul>')
+    +'</div></div>'+tools+'</div></header>';
+}
+function kpiCard(cls,icon,label,value,sub,ratio){
+  return '<div class="um-kpi '+cls+'"><p class="um-kpi-l"><span class="um-kpi-ic">'+ic(icon,15)+'</span>'+label+'</p>'
+    +'<p class="um-kpi-v">'+value+'</p><p class="um-kpi-s">'+sub+'</p>'
+    +(ratio==null?'':'<div class="um-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+function kpisHtml(users){
+  const n=users.length;
+  const admins=users.filter(isAdminTag).length;
+  const mgrs=users.filter(isMgrTag).length;
+  const analysts=users.filter(u=>u.analyst);
+  const byGrp=USER_GROUPS.map(g=>{ const c=analysts.filter(u=>{ const x=groupOf(u.username); return x&&x.name===g.name; }).length; return c?('<b>'+c+'</b> '+esc(g.name)):''; }).filter(Boolean).join(' · ');
+  const managersOfUsers=users.filter(u=>u.role==='owner'||u.canCreateUsers).length;
+  return '<div class="um-kpis">'
+    +kpiCard('is-base','users','Total users',n,'<b>'+managersOfUsers+'</b> can manage users',null)
+    +kpiCard('is-acc','upload','Admins',admins,'Upload access · <b>'+(n?Math.round(admins/n*100):0)+'%</b> of accounts',n?admins/n:0)
+    +kpiCard('is-mgr','users-gear','Managers',mgrs,'Shown with the MANAGER tag',n?mgrs/n:0)
+    +kpiCard('is-phd','ticket','PHD analysts',analysts.length,byGrp||'No analyst teams yet',n?analysts.length/n:0)
+    +'</div>';
+}
+function kpisSkeleton(){
+  const k='<div class="um-kpi" aria-hidden="true"><span class="um-skel" style="width:55%;height:11px"></span><span class="um-skel" style="width:40%;height:30px;margin-top:14px"></span><span class="um-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
+  return '<div class="um-kpis">'+k+k+k+k+'</div>';
+}
+function rolesHtml(users){
+  const cnt={}; ROLE_ORDER.forEach(r=>cnt[r]=0);
+  if(users) users.forEach(u=>{ cnt[roleKey(u.role)]++; });
+  const items=ROLE_ORDER.map(r=>'<li class="um-role r-'+r+'">'
+    +'<div class="um-role-top">'+rolePill(r)+'<span class="um-role-n">'+(users?cnt[r]:'<span class="um-skel" style="width:28px;height:20px;display:inline-block"></span>')+(users?'<small>'+(cnt[r]===1?'account':'accounts')+'</small>':'')+'</span></div>'
+    +'<p class="um-role-d">'+esc(ROLE_DESC[r])+'</p>'
+    +'<span class="um-role-lv">Level '+ROLE_LEVEL[r]+'</span></li>').join('');
+  return '<section class="um-card" aria-labelledby="umRolesH"><div class="um-card-head"><div><h2 id="umRolesH">Roles &amp; tags</h2>'
+    +'<p class="um-help">Each account has one role. Page access is granted separately, per user, with the access switches in <b>Edit user</b>.</p></div></div>'
+    +'<ul class="um-roles">'+items+'</ul>'
+    +'<ul class="um-tagkey" aria-label="Tag legend"><li class="um-tagkey-k" aria-hidden="true">Tags</li>'
+    +'<li><span class="um-tag t-admin">Admin</span>Has upload access</li>'
+    +'<li><span class="um-tag t-mgr">Manager</span>Display-only tag set by the owner</li>'
+    +'<li><span class="um-tag t-phd">PHD</span>Analyst (works on PHD tickets)</li>'
+    +'<li>'+USER_GROUPS.map(g=>'<span class="um-tag t-grp" style="--gc:'+g.color+'">'+esc(g.name)+'</span>').join('')+'Analyst team</li>'
+    +'</ul></section>';
+}
+
+// ---------- Users table ----------
+const COLS='<tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Tags</th><th scope="col">Timezone</th><th scope="col">Badge</th><th scope="col">Page access</th><th scope="col" class="c-act"><span class="um-sr">Actions</span></th></tr>';
+function accessCell(u){
+  if(u.role==='owner') return '<span class="um-full">'+ic('shield',13)+'Full access</span>';
+  const on=ACCESS_FLAGS.filter(f=>u[f[0]]);
+  const list=on.map(f=>f[1]).join(', ')||'No page access';
+  return '<span class="um-acc-sum" title="'+esc(list)+'"><span class="um-acc-n"><b>'+on.length+'</b> / '+ACCESS_FLAGS.length+' pages</span>'
+    +'<span class="um-meter" aria-hidden="true">'+ACCESS_FLAGS.map(f=>'<i'+(u[f[0]]?' class="on"':'')+'></i>').join('')+'</span>'
+    +'<span class="um-sr">: '+esc(list)+'</span></span>';
+}
+function actionsCell(u){
+  const owner=iAmOwner(), isOwnerRow=(u.role==='owner'), name=esc(u.username);
+  const btn=(act,icon,label,tip,extra,disabled)=>'<button type="button" class="um-ib'+(extra||'')+'" data-um-act="'+act+'" data-id="'+esc(u.id)+'"'
+    +(disabled?' aria-disabled="true"':'')+' aria-label="'+esc(label)+'" data-tip="'+esc(tip)+'">'+ic(icon,16)+'</button>';
+  let h=btn('edit','pencil','Edit '+u.username,'Edit user',null,!canManage());
+  if(isOwnerRow){
+    // Owner account: no reset/remove (kept as invisible placeholders so columns line up).
+    h+='<span class="um-ib is-ghost" aria-hidden="true"></span><span class="um-ib is-ghost" aria-hidden="true"></span>';
+  } else if(owner){
+    h+=btn('reset','key','Reset password for '+u.username,'Reset password','',false);
+    h+=btn('remove','trash','Remove '+u.username,'Remove user',' is-danger',false);
+  } else {
+    h+=btn('reset','key','Reset password for '+u.username+' (only the owner can reset passwords)','Only the owner can reset passwords.','',true);
+    h+=btn('remove','trash','Remove '+u.username+' (only the owner can remove users)','Only the owner can remove users.',' is-danger',true);
+  }
+  return '<div class="um-acts">'+h+'</div>';
+}
+function rowHtml(u){
+  const tags=tagsHtml(u);
+  return '<tr'+(u.role==='owner'?' class="is-owner"':'')+'>'
+    +'<td class="c-user"><div class="um-who">'+avatarHtml(u)+'<span class="um-who-tx"><span class="um-login">'+esc(u.username)+'</span>'
+      +(u.displayName?'<span class="um-dn">'+esc(u.displayName)+'</span>':'')+'</span></div></td>'
+    +'<td data-label="Role">'+rolePill(u.role)+'</td>'
+    +'<td data-label="Tags"'+(tags?'':' class="is-empty"')+'>'+(tags?'<span class="um-tags">'+tags+'</span>':'<span class="um-none" aria-label="No tags">—</span>')+'</td>'
+    +'<td data-label="Timezone"><span class="um-tz">'+ic('clock',13)+(u.timezone==='MST'?'MST':'IST')+'</span></td>'
+    +'<td data-label="Badge">'+badgePill(u.badge)+'</td>'
+    +'<td data-label="Page access">'+accessCell(u)+'</td>'
+    +'<td class="c-act">'+actionsCell(u)+'</td></tr>';
+}
+function skeletonRows(n){
+  let r='';
+  for(let i=0;i<n;i++){
+    r+='<tr aria-hidden="true"><td class="c-user"><div class="um-who"><span class="um-skel is-round" style="width:36px;height:36px;flex-shrink:0"></span><span style="flex:1"><span class="um-skel" style="width:'+(90+(i*23)%60)+'px;height:12px"></span><span class="um-skel" style="width:'+(60+(i*17)%50)+'px;height:10px;margin-top:6px"></span></span></div></td>'
+      +'<td data-label="Role"><span class="um-skel" style="width:64px;height:20px;border-radius:99px"></span></td>'
+      +'<td data-label="Tags"><span class="um-skel" style="width:80px;height:16px"></span></td>'
+      +'<td data-label="Timezone"><span class="um-skel" style="width:44px;height:12px"></span></td>'
+      +'<td data-label="Badge"><span class="um-skel" style="width:56px;height:18px;border-radius:99px"></span></td>'
+      +'<td data-label="Page access"><span class="um-skel" style="width:96px;height:20px"></span></td>'
+      +'<td class="c-act"><span class="um-skel" style="width:114px;height:34px;margin-left:auto"></span></td></tr>';
+  }
+  return r;
+}
+// Same order as before: owner first, then analysts grouped by team (AZA, BLR, WFH), then ungrouped; username within.
+function sortUsers(users){
+  return users.slice().sort((a,b)=>{
+    if(a.role==='owner')return -1;
+    if(b.role==='owner')return 1;
+    const ra=groupRank(a.analyst?a.username:''), rb=groupRank(b.analyst?b.username:'');
+    if(ra!==rb)return ra-rb;
+    return a.username.localeCompare(b.username);
+  });
+}
+function anyFilter(){ return !!(Q.trim()||FROLE||FTAG.admin||FTAG.manager||FTAG.phd); }
+function filteredUsers(){
+  const q=Q.trim().toLowerCase();
+  return sortUsers(USERS||[]).filter(u=>{
+    if(FROLE&&roleKey(u.role)!==FROLE) return false;
+    if(FTAG.admin&&!isAdminTag(u)) return false;
+    if(FTAG.manager&&!isMgrTag(u)) return false;
+    if(FTAG.phd&&!u.analyst) return false;
+    if(q&&(String(u.username||'')+' '+String(u.displayName||'')).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+function toolsHtml(users){
+  const cnt={}; ROLE_ORDER.forEach(r=>cnt[r]=0); users.forEach(u=>cnt[roleKey(u.role)]++);
+  const roleChip=(r,label,n)=>'<button type="button" class="um-fc'+(r?' r-'+r:'')+'" data-um-role="'+r+'" aria-pressed="'+(FROLE===r)+'">'+(r?'<span class="um-dot" aria-hidden="true"></span>':'')+esc(label)+'<b>'+n+'</b></button>';
+  const tagChip=(k,label,n)=>'<button type="button" class="um-fc" data-um-tag="'+k+'" aria-pressed="'+FTAG[k]+'">'+esc(label)+'<b>'+n+'</b></button>';
+  return '<div class="um-tools" role="search" aria-label="Filter users">'
+    +'<div class="um-search"><label for="umQ" class="um-sr">Search by login or name</label>'+ic('search',15)
+      +'<input type="search" id="umQ" placeholder="Search login or name" autocomplete="off" spellcheck="false" value="'+esc(Q)+'"></div>'
+    +'<div class="um-fgrp" role="group" aria-label="Filter by role"><span class="um-fgrp-k" aria-hidden="true">Role</span>'
+      +roleChip('','All',users.length)+ROLE_ORDER.map(r=>roleChip(r,ROLE_NAME[r],cnt[r])).join('')+'</div>'
+    +'<div class="um-fgrp" role="group" aria-label="Filter by tag"><span class="um-fgrp-k" aria-hidden="true">Tags</span>'
+      +tagChip('admin','Admin',users.filter(isAdminTag).length)+tagChip('manager','Manager',users.filter(isMgrTag).length)+tagChip('phd','PHD',users.filter(u=>u.analyst).length)+'</div>'
+    +'<button type="button" class="um-clear" data-um-clear'+(anyFilter()?'':' hidden')+'>'+ic('close',13)+'Clear filters</button>'
+    +'</div>';
+}
+function usersCardHtml(inner,tools,count){
+  return '<section class="um-card" aria-labelledby="umListH"><div class="um-card-head"><h2 id="umListH">Accounts</h2><span class="um-count" id="umCount">'+(count||'')+'</span></div>'
+    +'<div class="msg err" id="listErr" role="alert"></div><div class="msg ok" id="listOk" role="status"></div>'
+    +(tools||'')+inner+'</section>';
+}
+function renderRows(){
+  const body=$('umRows'); if(!body||!USERS) return;
+  const list=filteredUsers();
+  if(!list.length){
+    body.innerHTML='<tr><td colspan="7" style="grid-column:1/-1"><div class="um-empty"><span class="um-empty-ic">'+ic('search',26)+'</span><h3 class="um-empty-t">No users match these filters</h3>'
+      +'<p>Try a different search, or clear the filters to see every account.</p><button type="button" class="um-btn-dark" data-um-clear>Clear filters</button></div></td></tr>';
+  } else body.innerHTML=list.map(rowHtml).join('');
+  const c=$('umCount'); if(c) c.textContent=anyFilter()?('Showing '+list.length+' of '+USERS.length+' users'):(USERS.length+' user'+(USERS.length===1?'':'s'));
+  document.querySelectorAll('[data-um-role]').forEach(b=>b.setAttribute('aria-pressed',String(b.getAttribute('data-um-role')===FROLE)));
+  document.querySelectorAll('[data-um-tag]').forEach(b=>b.setAttribute('aria-pressed',String(!!FTAG[b.getAttribute('data-um-tag')])));
+  const clr=document.querySelector('.um-tools [data-um-clear]'); if(clr) clr.hidden=!anyFilter();
+}
+
+// ---------- Page states ----------
+function gate(msg){
+  $('wrap').innerHTML='<div class="um">'+heroHtml('gate')
+    +'<section class="um-card"><div class="um-empty"><span class="um-empty-ic">'+ic('lock',26)+'</span><h2 class="um-empty-t">User Management</h2><p>'+esc(msg)+'</p>'
+    +'<a class="um-btn-dark" href="app.html">Go to Live Dashboard</a></div></section></div>';
+}
+function renderLoading(){
+  $('wrap').innerHTML='<div class="um">'+heroHtml('loading')+kpisSkeleton()+rolesHtml(null)
+    +usersCardHtml('<div class="um-scroll" id="umTblWrap" aria-busy="true" aria-label="Users (loading)"><table class="um-tbl"><thead>'+COLS+'</thead><tbody>'+skeletonRows(6)+'</tbody></table></div>','','<span class="um-skel" style="width:70px;height:12px;display:inline-block"></span>')
+    +'</div>';
+  announce('Loading users…');
+}
+function renderError(msg){
+  $('wrap').innerHTML='<div class="um">'+heroHtml('error')
+    +usersCardHtml('<div class="um-empty"><span class="um-empty-ic is-err">'+ic('alert-triangle',26)+'</span><h3 class="um-empty-t">Couldn’t load users</h3>'
+      +'<p role="alert">'+esc(msg)+'</p><button type="button" class="um-btn-dark" id="umRetry">'+ic('refresh',14)+'Retry</button></div>','','')
+    +'</div>';
+  announce('Could not load users.');
+}
 
 async function load(){
   const user=A.getUser();
   if(!user||!A.getToken()){gate('You are not logged in. Log in from the Live Dashboard first.');return;}
   if(!(A.canManageUsers&&A.canManageUsers())){gate('You do not have access to manage users.');return;}
+  // First visit (nothing painted yet): skeleton rows. Later reloads keep the roster and show the busy bar.
+  if(!USERS) renderLoading(); else setUsersBusy(true);
   // Cache (time-based): paint the roster instantly from cache, then refresh in the background.
-  const res=await A.swrLoad({
-    key:'users',
-    fetch:()=>A.api('GET','/api/users'),
-    onData:(rows)=>renderList(rows)
-  });
+  let res;
+  try{
+    res=await A.swrLoad({
+      key:'users',
+      fetch:()=>A.api('GET','/api/users'),
+      onData:(rows,fromCache)=>renderList(rows,fromCache)
+    });
+  }catch(e){ res={painted:false,status:0}; }
+  setUsersBusy(false);
   if(!res.painted){
     if(res.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
-    gate('Could not load users (HTTP '+res.status+').');return;
+    renderError(res.status?('Could not load users (HTTP '+res.status+').'):'Could not reach the server. Check your connection and try again.');return;
   }
   // Activity sections removed from this page.
 }
@@ -516,233 +833,298 @@ async function loadActivity(){
 
 function badge(role){return '<span class="badge '+role+'">'+role+'</span>';}
 
-function renderList(users){
-  const wrap=document.getElementById('wrap');
-  // Managers (canCreateUsers) can create/reset/remove users and edit Timezone/Badge/Analyst.
-  // GRANTING page access (the three access toggles) is OWNER-ONLY. Server enforces the same.
-  const iAmOwner=!!(A.isOwner&&A.isOwner());
-  const canManage=!!(A.canManageUsers&&A.canManageUsers()); // owner or canCreateUsers
-  // Avatar cell: uploaded pic if present, else an initials circle. Username shown beside it.
-  const userCell=(u)=>{
-    const initial=String(u.username||'?').charAt(0).toUpperCase();
-    const pic=u.avatar
-      ? '<img class="u-avatar" src="'+esc(u.avatar)+'" alt="">'
-      : '<span class="u-avatar u-avatar-ph">'+esc(initial)+'</span>';
-    // Group tag shows only for analysts (group names are analyst-only).
-    const g=(u.analyst)?groupOf(u.username):null;
-    const tag=g?('<span class="u-group" style="--gc:'+g.color+'">'+esc(g.name)+'</span>'):'';
-    // ADMIN tag: anyone with upload access is treated as an admin (owner excluded — has its own tag).
-    const adminTag=(u.role!=='owner'&&u.canUpload)?'<span class="u-admin-tag">ADMIN</span>':'';
-    // MANAGER tag: display-only flag set by the owner (shown alongside ADMIN; grants no access).
-    const mgrTag=(u.role!=='owner'&&u.managerTag)?'<span class="u-mgr-tag">MANAGER</span>':'';
-    const name='<span class="u-uname">'+esc(u.username)+tag+adminTag+mgrTag+'</span>'+(u.displayName?('<span class="u-dn">'+esc(u.displayName)+'</span>'):'');
-    return '<div class="u-cell"><span class="u-avatar-wrap">'+pic+'</span><span class="u-name">'+name+'</span></div>';
-  };
-  const tzSelect=(u)=>'<select onchange="changeTz(\''+u.id+'\',this.value,\''+u.username+'\')">'
-      +'<option value="IST"'+(u.timezone!=='MST'?' selected':'')+'>IST</option>'
-      +'<option value="MST"'+(u.timezone==='MST'?' selected':'')+'>MST</option></select>';
-  const badgePill=(b)=>'<span class="u-badge '+(b==='yellow'?'yellow':'blue')+'">'+(b==='yellow'?'Yellow':'Blue')+'</span>';
-  const yesNo=(v)=>v?'<span class="u-yes">Yes</span>':'<span class="u-no">No</span>';
-  // A small on/off pill toggle for a flag. Only the owner can flip access flags; for non-owners the
-  // toggle renders disabled (greyed, no handler) with a tooltip.
-  const toggle=(u,flag)=>{
-    if(!iAmOwner){
-      return '<span class="u-toggle disabled'+(u[flag]?' on':'')+'" title="Only the owner can change page access." aria-disabled="true"><span class="u-knob"></span></span>';
-    }
-    return '<button type="button" class="u-toggle'+(u[flag]?' on':'')+'" onclick="changeFlag(\''+u.id+'\',\''+flag+'\','+(!u[flag])+',\''+u.username+'\')" aria-pressed="'+(!!u[flag])+'"><span class="u-knob"></span></button>';
-  };
-  const badgeSelect=(u)=>'<select onchange="changeBadge(\''+u.id+'\',this.value,\''+u.username+'\')">'
-      +'<option value="blue"'+(u.badge!=='yellow'?' selected':'')+'>Blue</option>'
-      +'<option value="yellow"'+(u.badge==='yellow'?' selected':'')+'>Yellow</option></select>';
-  const analystSelect=(u)=>'<select onchange="changeAnalyst(\''+u.id+'\',this.value,\''+u.username+'\')">'
-      +'<option value="yes"'+(u.analyst?' selected':'')+'>Yes</option>'
-      +'<option value="no"'+(!u.analyst?' selected':'')+'>No</option></select>';
-  // ---- Card-per-user layout (replaces the wide table — NO horizontal scroll). ----
-  // Access flags shown as a wrapping grid of labelled toggles so any number of flags flows onto new
-  // rows instead of forcing an x-scrollbar.
-  const ACCESS_FLAGS=[
-    ['canUpload','Upload'],['canCreateUsers','Create users'],['canEditTools','Edit Tools'],
-    ['canViewSR','View SR'],['canViewRepeat','View Repeat'],['canViewUnique','View Unique'],
-    ['canViewSLA','View SLA'],['canGroupingPage','Grouping Page'],['canDatabase','Database']
-  ];
-  // One access cell: label + toggle (owner = static "on" pill since owner always has full access).
-  const accessCell=(u,flag,label)=>{
-    const ctl = (u.role==='owner')
-      ? '<span class="u-toggle on disabled" aria-disabled="true" title="Owner always has full access"><span class="u-knob"></span></span>'
-      : toggle(u,flag);
-    return '<div class="ua-item"><span class="ua-label">'+esc(label)+'</span>'+ctl+'</div>';
-  };
-  const cardFor=(u)=>{
-    const isOwnerRow=(u.role==='owner');
-    const metaControls = isOwnerRow
-      ? '<div class="um-fld"><span class="um-k">Timezone</span>'+tzSelect(u)+'</div>'
-        +'<div class="um-fld"><span class="um-k">Badge</span>'+badgePill(u.badge)+'</div>'
-        +'<div class="um-fld"><span class="um-k">Analyst</span>'+yesNo(u.analyst)+'</div>'
-      : '<div class="um-fld"><span class="um-k">Timezone</span>'+tzSelect(u)+'</div>'
-        +'<div class="um-fld"><span class="um-k">Badge</span>'+badgeSelect(u)+'</div>'
-        +'<div class="um-fld"><span class="um-k">Analyst</span>'+analystSelect(u)+'</div>'
-        // Manager tag: only the owner can change it (server enforces the same).
-        +'<div class="um-fld"><span class="um-k">Manager tag</span>'+(iAmOwner
-          ? '<select onchange="changeMgrTag(\''+u.id+'\',this.value,\''+u.username+'\')">'
-            +'<option value="yes"'+(u.managerTag?' selected':'')+'>Yes</option>'
-            +'<option value="no"'+(!u.managerTag?' selected':'')+'>No</option></select>'
-          : yesNo(u.managerTag))+'</div>';
-    const accessGrid='<div class="ua-grid">'+ACCESS_FLAGS.map(([f,l])=>accessCell(u,f,l)).join('')+'</div>';
-    const actions = isOwnerRow
-      ? '<span class="u-owner-tag">'+ic('shield',14)+'Full access</span>'
-      : (iAmOwner
-          ? '<div class="u-row-actions">'
-            +'<button type="button" class="u-act reset" onclick="resetPw(\''+u.id+'\',\''+u.username+'\')">'+ic('key',14)+'Reset password</button>'
-            +'<button type="button" class="u-act remove" onclick="delUser(\''+u.id+'\',\''+u.username+'\')">'+ic('trash',14)+'Remove</button>'
-            +'</div>'
-          : '<div class="u-row-actions"><span class="u-act reset disabled" title="Only the owner can reset passwords." aria-disabled="true">'+ic('key',14)+'Reset password</span>'
-            +'<span class="u-act remove disabled" title="Only the owner can remove users." aria-disabled="true">'+ic('trash',14)+'Remove</span></div>');
-    // Head: clicking the identity area (left) toggles expand/collapse; the actions (right) are
-    // outside the toggle so their own buttons/selects still work.
-    return '<div class="u-card'+(isOwnerRow?' is-owner':'')+'">'
-      +'<div class="u-card-head">'
-        +'<div class="u-card-toggle" onclick="toggleUserCard(this)">'+userCell(u)+'<span class="u-card-caret">'+ic('chevron-down',16)+'</span></div>'
-        +'<div class="u-card-actions">'+actions+'</div>'
-      +'</div>'
-      +'<div class="u-card-body">'
-        +'<div class="u-card-meta">'+metaControls+'</div>'
-        +'<div class="u-card-access"><div class="ua-head">'+ic('shield',13)+' Page access</div>'+accessGrid+'</div>'
-      +'</div>'
-      +'</div>';
-  };
-  // Owner first, then analysts grouped by team (AZA, BLR, WFH alphabetical), then ungrouped. Sort by username within.
-  const sorted=users.slice().sort((a,b)=>{
-    if(a.role==='owner')return -1;
-    if(b.role==='owner')return 1;
-    const ra=groupRank(a.analyst?a.username:''), rb=groupRank(b.analyst?b.username:'');
-    if(ra!==rb)return ra-rb;
-    return a.username.localeCompare(b.username);
-  });
-  const cards=sorted.map(cardFor).join('');
-  wrap.innerHTML=`
-    <div class="u-titlebar">
-      <h1>User Management</h1>
-      ${canManage
-        ? `<button class="btn" onclick="openCreateUser()">${ic('plus',15)} Create user</button>`
-        : `<button class="btn" disabled title="You do not have access to create users." style="opacity:.5;cursor:not-allowed">${ic('plus',15)} Create user</button>`}
-    </div>
-    <div class="msg err" id="listErr"></div>
-    <div class="msg ok" id="listOk"></div>
-    <div class="u-count">${ic('users',15)} Users (${users.length})</div>
-    <div class="u-cards">${cards}</div>`;
+// Render the whole page from a roster. Managers (canCreateUsers) can create/reset/remove users and edit
+// Timezone/Badge/Analyst; GRANTING page access (the access toggles) is OWNER-ONLY. Server enforces the same.
+function renderList(users,fromCache){
+  USERS=Array.isArray(users)?users:[];
+  if(!fromCache) LAST_SYNC=new Date();
+  const hadFocus=document.activeElement&&document.activeElement.id==='umQ';
+  const wrap=$('wrap');
+  wrap.innerHTML='<div class="um'+(FIRST?' is-anim':'')+'">'+heroHtml('ready')+kpisHtml(USERS)+rolesHtml(USERS)
+    +usersCardHtml('<div class="um-scroll" id="umTblWrap" tabindex="0" role="region" aria-labelledby="umListH"><table class="um-tbl"><thead>'+COLS+'</thead><tbody id="umRows"></tbody></table></div>',toolsHtml(USERS),'')
+    +'</div>';
+  FIRST=false;
+  renderRows();
+  if(hadFocus){ const q=$('umQ'); if(q){ q.focus(); q.setSelectionRange(q.value.length,q.value.length); } }
+  // Re-show any flash message that is still within its 4s window (the re-render replaced its element).
+  Object.keys(FLASH).forEach(function(id){ const f=FLASH[id]; if(f&&f.until>Date.now()) showFlash(id,f.msg,f.kind,f.until-Date.now()); });
+  if(EDIT_ID) renderEditBody();
+  else announce('Loaded '+USERS.length+' user'+(USERS.length===1?'':'s')+'.');
 }
 
-// Expand/collapse a user card (click its identity area). Accordion-free: each toggles independently.
-function toggleUserCard(el){
-  const card=el.closest('.u-card');
-  if(card) card.classList.toggle('open');
+const FLASH={};
+function showFlash(id,msg,kind,ms){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},ms);}
+function flash(id,msg,kind){FLASH[id]={msg:msg,kind:kind,until:Date.now()+4000};showFlash(id,msg,kind,4000);}
+
+// ---- Delegated page interactions ----
+document.addEventListener('click',function(ev){
+  const t=ev.target; if(!t||!t.closest) return;
+  const act=t.closest('[data-um-act]');
+  if(act){
+    if(act.getAttribute('aria-disabled')==='true') return;
+    const u=findUser(act.getAttribute('data-id')); if(!u) return;
+    const a=act.getAttribute('data-um-act');
+    if(a==='edit') openEditUser(u.id);
+    else if(a==='reset') resetPw(u.id,u.username);
+    else if(a==='remove') delUser(u.id,u.username);
+    return;
+  }
+  const rc=t.closest('[data-um-role]');
+  if(rc){ FROLE=rc.getAttribute('data-um-role'); renderRows(); announceCount(); return; }
+  const tc=t.closest('[data-um-tag]');
+  if(tc){ const k=tc.getAttribute('data-um-tag'); FTAG[k]=!FTAG[k]; renderRows(); announceCount(); return; }
+  if(t.closest('[data-um-clear]')){ Q=''; FROLE=''; FTAG.admin=FTAG.manager=FTAG.phd=false; const q=$('umQ'); if(q) q.value=''; renderRows(); if(q) q.focus(); announceCount(); return; }
+  if(t.closest('#umRetry')){ load(); return; }
+  if(t.closest('#umCreate')){ openCreateUser(); return; }
+  if(t.closest('#umRefresh')){ refreshUsers(); return; }
+  const fl=t.closest('[data-eu-flag]');
+  if(fl&&!fl.disabled){ const u=findUser(EDIT_ID); if(u) changeFlag(u.id,fl.getAttribute('data-eu-flag'),!fl.classList.contains('on'),u.username,fl); return; }
+  if(t.closest('#euDone')){ closeEditUser(); return; }
+});
+let _qTimer=null;
+document.addEventListener('input',function(ev){
+  const el=ev.target; if(!el||el.id!=='umQ') return;
+  Q=el.value; renderRows();
+  clearTimeout(_qTimer); _qTimer=setTimeout(announceCount,500);
+});
+document.addEventListener('change',function(ev){
+  const el=ev.target; if(!el||!el.getAttribute) return;
+  const k=el.getAttribute('data-eu-sel'); if(!k) return;
+  const u=findUser(EDIT_ID); if(!u) return;
+  if(k==='tz') changeTz(u.id,el.value,u.username);
+  else if(k==='badge') changeBadge(u.id,el.value,u.username);
+  else if(k==='analyst') changeAnalyst(u.id,el.value,u.username);
+  else if(k==='mgr') changeMgrTag(u.id,el.value,u.username);
+});
+function announceCount(){ const c=$('umCount'); if(c) announce(c.textContent+'.'); }
+// Manual refresh: fetch the roster fresh (no cache), keep the table visible with the busy bar.
+async function refreshUsers(){
+  const b=$('umRefresh'); if(b){ b.disabled=true; b.classList.add('is-busy'); b.setAttribute('aria-busy','true'); }
+  setUsersBusy(true);
+  await reloadFresh();
+  setUsersBusy(false);
 }
-window.toggleUserCard=toggleUserCard;
 
-function flash(id,msg,kind){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg '+kind;el.style.display='block';setTimeout(()=>{el.style.display='none';},4000);}
-
-// ---- Reusable confirmation modal (promise-based; replaces native confirm()) ----
-let _confirmCb=null, _confirmKeyHandler=null;
-// opts: { title, body (HTML allowed), okLabel, danger:bool, icon:iconName }. Resolves true/false.
+// ---- Reusable confirmation dialog (promise-based; replaces native confirm()) ----
+// opts: { title, body (HTML allowed), okLabel, busyLabel, danger:bool, icon:iconName, userId,
+//         action: async () => void } — with `action`, the dialog stays open (busy) until it finishes.
+let _confirmCb=null, _confirmOpts=null, _confirmKeyHandler=null;
 function uiConfirm(opts){
-  opts=opts||{};
-  const modal=document.getElementById('confirmModal');
-  const box=modal.querySelector('.confirm-modal');
-  document.getElementById('confirmTitle').textContent=opts.title||'Confirm';
-  document.getElementById('confirmBody').innerHTML=opts.body||'Are you sure?';
-  document.getElementById('confirmIcon').innerHTML=(window.icon?window.icon(opts.icon||'shield',20):'');
-  const ok=document.getElementById('confirmOk');
+  opts=opts||{}; _confirmOpts=opts;
+  const modal=$('confirmModal');
+  $('confirmTitle').textContent=opts.title||'Confirm';
+  $('confirmBody').innerHTML=opts.body||'Are you sure?';
+  const iconEl=$('confirmIcon');
+  iconEl.innerHTML=ic(opts.icon||'shield',20);
+  iconEl.classList.toggle('tbl-ic-danger',!!opts.danger);
+  // "Who" chip: the account this action targets (same pattern as the logout dialog's signed-in chip).
+  const u=opts.userId!=null?findUser(opts.userId):null;
+  $('confirmWho').innerHTML=u?('<div class="tbl-who"><span class="tbl-who-av" aria-hidden="true">'+avatarHtml(u)+'</span><span class="tbl-who-tx"><span class="tbl-who-nm">'+esc(u.displayName||u.username)+'</span><span class="tbl-who-sub">'+esc(u.username)+' · '+esc(ROLE_NAME[roleKey(u.role)])+'</span></span></div>'):'';
+  const err=$('confirmErr'); err.textContent=''; err.style.display='none';
+  const ok=$('confirmOk'), cancel=$('confirmCancel');
   ok.textContent=opts.okLabel||'Confirm';
-  box.classList.toggle('danger',!!opts.danger);
+  ok.className=opts.danger?'tbl-danger':'tbl-submit';
+  ok.disabled=false; ok.removeAttribute('aria-busy'); cancel.disabled=false;
   modal.style.display='flex';
-  setTimeout(function(){ ok.focus(); },40);
-  // Esc cancels, Enter confirms.
-  _confirmKeyHandler=function(e){ if(e.key==='Escape')confirmResolve(false); else if(e.key==='Enter'){e.preventDefault();confirmResolve(true);} };
-  document.addEventListener('keydown',_confirmKeyHandler);
+  // Focus starts on the safe choice (Cancel). Esc cancels; Tab is trapped (shared dialog helpers).
+  const L=LUI();
+  if(L) L.opened(modal,function(){ confirmResolve(false); },cancel);
+  else{
+    setTimeout(function(){ cancel.focus(); },40);
+    _confirmKeyHandler=function(e){ if(e.key==='Escape')confirmResolve(false); };
+    document.addEventListener('keydown',_confirmKeyHandler);
+  }
   return new Promise(function(resolve){ _confirmCb=resolve; });
 }
+async function confirmOkClick(){
+  const opts=_confirmOpts||{};
+  if(typeof opts.action==='function'){
+    const ok=$('confirmOk'), cancel=$('confirmCancel');
+    if(ok.disabled) return;
+    ok.disabled=true; ok.setAttribute('aria-busy','true'); ok.textContent=opts.busyLabel||'Working…'; cancel.disabled=true;
+    try{ await opts.action(); }catch(e){}
+  }
+  confirmResolve(true);
+}
 function confirmResolve(val){
-  const modal=document.getElementById('confirmModal');
+  const modal=$('confirmModal');
+  // Ignore Cancel / Esc / backdrop while an action is in flight.
+  if(!val&&$('confirmOk').getAttribute('aria-busy')==='true') return;
   if(modal)modal.style.display='none';
   if(_confirmKeyHandler){document.removeEventListener('keydown',_confirmKeyHandler);_confirmKeyHandler=null;}
-  const cb=_confirmCb; _confirmCb=null;
+  const L=LUI(); if(L&&modal) L.closed(modal);
+  const cb=_confirmCb; _confirmCb=null; _confirmOpts=null;
   if(cb)cb(!!val);
 }
-window.confirmResolve=confirmResolve;
+window.confirmResolve=confirmResolve; window.confirmOkClick=confirmOkClick;
 
 async function delUser(id,username){
+  let r=null;
   const ok=await uiConfirm({
-    title:'Remove user',
+    title:'Remove user?',
     body:'Remove user <b>'+esc(username)+'</b>? This cannot be undone.',
-    okLabel:'Remove',
+    okLabel:'Yes, Remove',
+    busyLabel:'Removing…',
     danger:true,
-    icon:'trash'
+    icon:'trash',
+    userId:id,
+    action:async()=>{ try{ r=await A.api('DELETE','/api/users/'+id); }catch(e){ r=null; } }
   });
   if(!ok)return;
-  const r=await A.api('DELETE','/api/users/'+id);
-  if(r.ok){flash('listOk','Removed '+username+'.','ok');load();}
-  else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+  if(r&&r.ok){flash('listOk','Removed '+username+'.','ok');announce('Removed '+username+'.');load();}
+  else flash('listErr',(r&&r.data&&r.data.error)||('Failed (HTTP '+(r?r.status:0)+')'),'err');
 }
 async function resetPw(id,username){
+  let r=null;
   const ok=await uiConfirm({
-    title:'Reset password',
+    title:'Reset password?',
     body:'Reset password for <b>'+esc(username)+'</b> to <b>'+esc(username)+'@123</b>? They should change it after logging in.',
     okLabel:'Reset password',
-    icon:'key'
+    busyLabel:'Resetting…',
+    icon:'key',
+    userId:id,
+    action:async()=>{ try{ r=await A.api('POST','/api/users/'+id+'/reset-password',{}); }catch(e){ r=null; } }
   });
   if(!ok)return;
-  const r=await A.api('POST','/api/users/'+id+'/reset-password',{});
-  if(r.ok){flash('listOk','Password for '+username+' reset to '+username+'@123.','ok');}
-  else flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+  if(r&&r.ok){flash('listOk','Password for '+username+' reset to '+username+'@123.','ok');announce('Password for '+username+' reset.');}
+  else flash('listErr',(r&&r.data&&r.data.error)||('Failed (HTTP '+(r?r.status:0)+')'),'err');
 }
 async function changeTz(id,timezone,username){
-  const r=await A.api('PATCH','/api/users/'+id+'/timezone',{timezone});
-  if(r.ok)flash('listOk',username+"'s timezone is now "+timezone+'.','ok');
-  else{flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');load();}
+  euStatus('Saving…','');
+  let r=null; try{ r=await A.api('PATCH','/api/users/'+id+'/timezone',{timezone}); }catch(e){ r=null; }
+  if(r&&r.ok){
+    flash('listOk',username+"'s timezone is now "+timezone+'.','ok');
+    // Reflect the saved value locally (the endpoint returns no roster) so the table and dialog agree.
+    const u=findUser(id); if(u){ u.timezone=timezone; renderRows(); }
+    euStatus('Saved · timezone is now '+timezone+'.','ok');
+  }
+  else{
+    const m=(r&&r.data&&r.data.error)||('Failed (HTTP '+(r?r.status:0)+')');
+    flash('listErr',m,'err'); euStatus(m,'err'); load();
+  }
 }
 // Fetch the roster FRESH (bypassing the SWR cache), re-render, and refresh the cache. Used after a
 // flag/badge/analyst change so the table reflects the just-saved value (the cache would be stale).
 async function reloadFresh(){
-  const r=await A.api('GET','/api/users');
-  if(r.ok&&Array.isArray(r.data)){
-    renderList(r.data);
+  let r=null; try{ r=await A.api('GET','/api/users'); }catch(e){ r=null; }
+  if(r&&r.ok&&Array.isArray(r.data)){
+    renderList(r.data,false);
     try{ A._cacheWrite('users',undefined,r.data); }catch(e){}
   } else {
     // Fall back to the cached SWR path if the fresh fetch failed.
-    load();
+    await load();
   }
 }
-// Toggle the page-wide busy state (dims table + top progress bar + blocks clicks) while a save runs.
-function setUsersBusy(on){ const c=document.querySelector('.users-card'); if(c) c.classList.toggle('users-busy',!!on); }
+// Toggle the busy state (dims the table / edit dialog + top progress bar + blocks clicks) while a save runs.
+function setUsersBusy(on){
+  ['umTblWrap','euBody'].forEach(function(id){
+    const el=$(id); if(!el) return;
+    el.classList.toggle('um-busy',!!on);
+    if(on) el.setAttribute('aria-busy','true'); else el.removeAttribute('aria-busy');
+  });
+}
 // ---- Per-user flag edits (badge / analyst / access flags) ----
 async function patchFlags(id,body,username,okMsg){
   setUsersBusy(true);
-  const r=await A.api('PATCH','/api/users/'+id+'/flags',body);
-  // Success is shown by the toggle state itself (no confirmation line). Only surface failures.
-  if(!r.ok) flash('listErr',(r.data&&r.data.error)||('Failed (HTTP '+r.status+')'),'err');
+  euStatus('Saving…','');
+  let r=null; try{ r=await A.api('PATCH','/api/users/'+id+'/flags',body); }catch(e){ r=null; }
+  // Success is shown by the control state itself; failures surface in the list + the dialog status line.
+  if(!(r&&r.ok)){ const m=(r&&r.data&&r.data.error)||('Failed (HTTP '+(r?r.status:0)+')'); flash('listErr',m,'err'); euStatus(m,'err'); }
   await reloadFresh();   // re-render from the server so the change is reflected (cache would be stale)
   setUsersBusy(false);
+  if(r&&r.ok) euStatus('Saved · '+okMsg,'ok');
 }
 function changeBadge(id,badge,username){ patchFlags(id,{badge},username,username+"'s badge is now "+badge+'.'); }
 function changeMgrTag(id,val,username){ const managerTag=(val==='yes'); patchFlags(id,{managerTag},username,username+(managerTag?' now shows the MANAGER tag.':' no longer shows the MANAGER tag.')); }
 window.changeMgrTag=changeMgrTag;
 function changeAnalyst(id,val,username){ const analyst=(val==='yes'); patchFlags(id,{analyst},username,username+(analyst?' is now an Analyst.':' is no longer an Analyst.')); }
-function changeFlag(id,flag,value,username){
+function changeFlag(id,flag,value,username,btn){
   const LBL={canUpload:'upload access',canDatabase:'Database page access',canCreateUsers:'user-management access',canEditTools:'Edit Tools access',canViewSR:'View SR access',canViewRepeat:'View Repeat access',canViewUnique:'View Unique access',canViewSLA:'View SLA access',canGroupingPage:'Grouping Page access'};
   const label=LBL[flag]||'access';
   // Optimistic feedback: flip + mark the clicked toggle busy immediately so it animates during the wait.
-  var btn=(typeof event!=='undefined'&&event)?(event.currentTarget||event.target):null;
-  if(btn&&btn.classList){ btn.classList.add('busy'); btn.classList.toggle('on',!!value); btn.setAttribute('aria-pressed',String(!!value)); }
+  if(!btn){ const ev=(typeof event!=='undefined'&&event)?event:null; btn=ev?(ev.currentTarget||ev.target):null; }
+  if(btn&&btn.classList){ btn.classList.add('busy'); btn.classList.toggle('on',!!value); btn.setAttribute(btn.getAttribute('role')==='switch'?'aria-checked':'aria-pressed',String(!!value)); }
   patchFlags(id,{[flag]:value},username,username+(value?' now has ':' no longer has ')+label+'.');
 }
 window.changeBadge=changeBadge; window.changeAnalyst=changeAnalyst; window.changeFlag=changeFlag;
 
-// ---- Create-user modal ----
+// ---- Edit-user dialog ----
+// Same controls (and same save calls) the roster offered inline: Timezone / Badge / Analyst / Manager tag
+// and the per-page access switches. Owner-only fields render read-only for non-owner managers.
+function euStatus(msg,kind){ const s=$('euStatus'); if(!s) return; s.textContent=msg||''; s.className='um-status'+(kind==='ok'?' is-ok':kind==='err'?' is-err':''); }
+function openEditUser(id){
+  if(!canManage()){ flash('listErr','You do not have access to manage users.','err'); return; }
+  const u=findUser(id); if(!u) return;
+  EDIT_ID=u.id;
+  renderEditBody();
+  const m=$('editUserModal'); m.style.display='flex';
+  const first=m.querySelector('#euBody select:not(:disabled),#euBody button:not(:disabled)');
+  const L=LUI(); if(L) L.opened(m,closeEditUser,first); else setTimeout(function(){ if(first) first.focus(); },40);
+}
+function closeEditUser(){
+  const m=$('editUserModal'); if(!m) return;
+  m.style.display='none'; EDIT_ID=null;
+  const L=LUI(); if(L) L.closed(m);
+}
+window.openEditUser=openEditUser; window.closeEditUser=closeEditUser;
+function renderEditBody(){
+  const u=findUser(EDIT_ID); const body=$('euBody'); if(!body) return;
+  if(!u){ closeEditUser(); return; }
+  // Keep focus on the same control across re-renders (the roster reloads after each save).
+  const ae=document.activeElement, key=ae&&body.contains(ae)?(ae.getAttribute('data-eu-sel')||ae.getAttribute('data-eu-flag')||ae.id):'';
+  const prevStatus=$('euStatus'); const st=prevStatus?{t:prevStatus.textContent,c:prevStatus.className}:null;
+  const owner=iAmOwner(), isOwnerRow=(u.role==='owner');
+  $('euTitle').textContent=u.username;
+  $('euAv').innerHTML=u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc(String(u.username||'?').charAt(0).toUpperCase());
+  $('euSub').textContent=(u.displayName?u.displayName+' · ':'')+ROLE_NAME[roleKey(u.role)]+' · Changes save as soon as you make them.';
+  const sel=(k,label,opts,cur)=>'<div class="tbl-field"><label class="um-lbl" for="eu_'+k+'">'+label+'</label><select class="um-select" id="eu_'+k+'" data-eu-sel="'+k+'">'
+    +opts.map(o=>'<option value="'+o[0]+'"'+(o[0]===cur?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>';
+  const ro=(label,html,note)=>'<div class="tbl-field"><span class="um-lbl">'+label+'</span><div class="um-ro">'+html+'</div>'+(note?'<p class="um-hint">'+note+'</p>':'')+'</div>';
+  let fields=sel('tz','Timezone',[['IST','IST'],['MST','MST']],u.timezone==='MST'?'MST':'IST');
+  if(isOwnerRow){
+    fields+=ro('Badge',badgePill(u.badge))+ro('Analyst',yesNoTxt(u.analyst));
+  } else {
+    fields+=sel('badge','Badge',[['blue','Blue'],['yellow','Yellow']],u.badge==='yellow'?'yellow':'blue');
+    fields+=sel('analyst','Analyst',[['yes','Yes'],['no','No']],u.analyst?'yes':'no');
+    // Manager tag: only the owner can change it (server enforces the same).
+    fields+=owner?sel('mgr','Manager tag',[['yes','Yes'],['no','No']],u.managerTag?'yes':'no')
+                 :ro('Manager tag',yesNoTxt(u.managerTag),'Only the owner can change this.');
+  }
+  // Access switches: owner row = always on (full access); non-owner viewer = read-only.
+  const note=isOwnerRow?'Owner always has full access.':(!owner?'Only the owner can change page access.':'');
+  const acc=ACCESS_FLAGS.map(function(f){
+    const flag=f[0], on=isOwnerRow?true:!!u[flag], locked=isOwnerRow||!owner;
+    return '<div class="um-acc-row'+(locked?' cu-locked':'')+'"'+(locked?'':' data-row-flag="'+flag+'"')+'><span class="um-acc-tx"><span class="cu-tl" id="euL_'+flag+'">'+esc(f[2])+'</span><span class="cu-hint" id="euH_'+flag+'">'+esc(f[3])+'</span></span>'
+      +'<button type="button" role="switch" class="um-tg'+(on?' on':'')+'" aria-checked="'+on+'" aria-labelledby="euL_'+flag+'" aria-describedby="euH_'+flag+'"'+(locked?' disabled':' data-eu-flag="'+flag+'"')+'></button></div>';
+  }).join('');
+  body.innerHTML='<div class="um-sec-h">Profile</div><div class="um-grid">'+fields+'</div>'
+    +'<div class="um-sec-h">Page access</div>'+(note?'<p class="um-note">'+ic('lock',14)+esc(note)+'</p>':'')+'<div class="um-acc">'+acc+'</div>'
+    +'<p class="um-status" id="euStatus" role="status" aria-live="polite"></p>'
+    +'<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="euDone">Done</button></div>';
+  if(st){ const s=$('euStatus'); s.textContent=st.t; s.className=st.c; }
+  if(key){
+    const n=body.querySelector('[data-eu-sel="'+key+'"],[data-eu-flag="'+key+'"]')||$(key);
+    if(n) n.focus();
+  }
+}
+// Clicking anywhere on an editable access row flips its switch.
+document.addEventListener('click',function(ev){
+  const row=ev.target&&ev.target.closest&&ev.target.closest('[data-row-flag]');
+  if(!row||ev.target.closest('button')) return;
+  const b=row.querySelector('[data-eu-flag]'); if(b) b.click();
+});
+
+// ---- Create-user dialog ----
+function setFieldErr(inputId,errId,msg){
+  const i=$(inputId), e=$(errId);
+  if(e) e.textContent=msg||'';
+  if(i){ if(msg) i.setAttribute('aria-invalid','true'); else i.removeAttribute('aria-invalid'); }
+}
 function openCreateUser(){
   // Requires canCreateUsers. Guard against direct invocation without access.
   if(!(A.canManageUsers&&A.canManageUsers())){ flash('listErr','You do not have access to create users.','err'); return; }
-  // Granting access is owner-only: for non-owner creators, the three access toggles are disabled
-  // (they can create a user, but can't grant Upload / Create users / Database access).
+  // Granting access is owner-only: for non-owner creators, the access toggles are disabled
+  // (they can create a user, but can't grant page access).
   const ownerCreating=!!(A.isOwner&&A.isOwner());
   ['cuUpload','cuCreate','cuDatabase','cuEditTools','cuViewSR','cuViewRepeat','cuViewUnique','cuViewSLA','cuGroupingPage'].forEach(function(id){
     const el=document.getElementById(id); if(!el)return;
@@ -752,6 +1134,7 @@ function openCreateUser(){
   document.getElementById('cuErr').style.display='none';
   document.getElementById('cuUser').value='';
   document.getElementById('cuPass').value='';
+  setFieldErr('cuUser','cuUserErr',''); setFieldErr('cuPass','cuPassErr','');
   document.getElementById('cuTz').value='IST';
   document.getElementById('cuBadge').value='blue';
   document.getElementById('cuAnalyst').value='no';
@@ -761,11 +1144,19 @@ function openCreateUser(){
   document.getElementById('cuCreate').setAttribute('aria-pressed','false');
   document.getElementById('cuDatabase').checked=false;
   document.getElementById('cuDatabase').setAttribute('aria-pressed','false');
-  document.getElementById('createUserModal').style.display='flex';
-  setTimeout(function(){document.getElementById('cuUser').focus();},40);
+  const sb=$('cuSubmit'); sb.disabled=false; sb.removeAttribute('aria-busy'); sb.textContent='Create user'; $('cuCancel').disabled=false;
+  const m=document.getElementById('createUserModal'); m.style.display='flex';
+  const L=LUI(); if(L) L.opened(m,closeCreateUser,$('cuUser')); else setTimeout(function(){document.getElementById('cuUser').focus();},40);
 }
-function closeCreateUser(){document.getElementById('createUserModal').style.display='none';}
+function closeCreateUser(){
+  const m=document.getElementById('createUserModal');
+  if($('cuSubmit').getAttribute('aria-busy')==='true') return; // don't close mid-request
+  m.style.display='none';
+  const L=LUI(); if(L) L.closed(m);
+}
 window.openCreateUser=openCreateUser; window.closeCreateUser=closeCreateUser;
+// Clear a field's inline error as soon as the user types into it.
+['cuUser','cuPass'].forEach(function(id){ const el=$(id); if(el) el.addEventListener('input',function(){ if(el.value.trim()) setFieldErr(id,id+'Err',''); }); });
 async function submitCreateUser(){
   const username=document.getElementById('cuUser').value.trim();
   const password=document.getElementById('cuPass').value;
@@ -775,7 +1166,7 @@ async function submitCreateUser(){
   const canUpload=document.getElementById('cuUpload').checked;
   const canCreateUsers=document.getElementById('cuCreate').checked;
   const canDatabase=document.getElementById('cuDatabase').checked;
-  // New flags are disabled in the modal for now, so they submit as false. Sent so the server stores them.
+  // New flags are disabled in the modal for non-owners, so they submit as false. Sent so the server stores them.
   const canEditTools=document.getElementById('cuEditTools').checked;
   const canViewSR=document.getElementById('cuViewSR').checked;
   const canViewRepeat=document.getElementById('cuViewRepeat').checked;
@@ -783,10 +1174,17 @@ async function submitCreateUser(){
   const canViewSLA=document.getElementById('cuViewSLA').checked;
   const canGroupingPage=document.getElementById('cuGroupingPage').checked;
   const err=document.getElementById('cuErr');
-  if(!username||!password){err.textContent='Username and temporary password are required.';err.style.display='block';return;}
-  const r=await A.api('POST','/api/users',{username,password,timezone,badge,analyst,canUpload,canCreateUsers,canDatabase,canEditTools,canViewSR,canViewRepeat,canViewUnique,canViewSLA,canGroupingPage});
-  if(r.ok){closeCreateUser();flash('listOk','Created '+username+'.','ok');load();}
-  else{err.textContent=(r.data&&r.data.error)||('Failed (HTTP '+r.status+')');err.style.display='block';}
+  err.style.display='none';
+  setFieldErr('cuUser','cuUserErr',username?'':'Enter a username.');
+  setFieldErr('cuPass','cuPassErr',password?'':'Enter a temporary password.');
+  if(!username||!password){ (!username?$('cuUser'):$('cuPass')).focus(); return; }
+  const sb=$('cuSubmit'), cb=$('cuCancel');
+  sb.disabled=true; sb.setAttribute('aria-busy','true'); sb.textContent='Creating…'; cb.disabled=true;
+  let r=null;
+  try{ r=await A.api('POST','/api/users',{username,password,timezone,badge,analyst,canUpload,canCreateUsers,canDatabase,canEditTools,canViewSR,canViewRepeat,canViewUnique,canViewSLA,canGroupingPage}); }catch(e){ r=null; }
+  sb.disabled=false; sb.removeAttribute('aria-busy'); sb.textContent='Create user'; cb.disabled=false;
+  if(r&&r.ok){closeCreateUser();flash('listOk','Created '+username+'.','ok');announce('Created '+username+'.');load();}
+  else{err.textContent=(r&&r.data&&r.data.error)||('Failed (HTTP '+(r?r.status:0)+')');err.style.display='block';}
 }
 window.submitCreateUser=submitCreateUser;
 load();

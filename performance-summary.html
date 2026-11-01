@@ -52,6 +52,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .ps-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
 .ps-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08}
 .ps-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.ps-hero-txt{min-width:0}
+/* Desktop: the subtitle stays on one line; the text column keeps its full width (min-width:auto), so
+   the Weekly/Monthly + Export tools wrap below it instead of the line overflowing. Wraps under 1100px. */
+@media (min-width:1100px){
+  .ps-hero-main,.ps-hero-txt{min-width:auto}
+  .ps-hero-main{flex-basis:auto}
+  .ps-hero-sub{white-space:nowrap;max-width:none}
+  .ps-hero .ps-hero-tools{flex-direction:row;align-items:center}
+}
 .ps-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
 .ps-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
   font-size:.8em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;
@@ -178,6 +187,35 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .ps-def-r{display:inline-flex;align-items:center;gap:9px;flex-shrink:0}
 .ps-def-c{font-size:1.25em;font-weight:800;letter-spacing:-.4px;color:var(--ink);font-variant-numeric:tabular-nums}
 .ps-empty{color:#8793a0;font-size:.88em;padding:6px 2px}
+/* Hashtag trend items: a labelled "Hashtags" sub-group inside Improving / Watch Item. */
+.ps-sub{margin-top:12px}
+.ps-grp>.ps-sub:first-child{margin-top:0}
+.ps-sub-h{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:.66em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut2)}
+.ps-sub-h::before{content:'#';display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:var(--soft);border:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.1em;letter-spacing:0;color:#3a4552}
+.ps-hxs{list-style:none;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@container (min-width:640px){.ps-hxs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:1100px){.ps-hxs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ps-hx{position:relative;padding:12px 14px 12px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.ps-hx::before{content:'';position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--d)}
+.ps-hx.good{--d:#1f9d57}
+.ps-hx.watch{--d:var(--acc)}
+.ps-hx.flat{--d:#8793a0}
+.ps-hx:hover{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
+.ps-hx-top{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;flex-wrap:wrap}
+.ps-hx-tag{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em;font-weight:700;color:#2a3340;overflow-wrap:anywhere;min-width:0}
+.ps-hx-nums{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:start;margin-top:10px}
+.ps-hx-nums>.ps-hx-spark{align-self:center}
+.ps-hx-k{display:block;font-size:.64em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mut2)}
+.ps-hx-v{display:block;margin-top:2px;font-size:1.25em;font-weight:800;letter-spacing:-.3px;color:var(--ink);line-height:1.15;font-variant-numeric:tabular-nums}
+.ps-hx-prev .ps-hx-v{font-size:1.05em;color:#4a5562}
+.ps-hx-r{display:block;font-size:.72em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ps-hx-spark{display:block;width:76px;height:28px;color:var(--d);overflow:visible}
+.ps-hx-cnt{margin-top:8px;font-size:.74em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums}
+.ps-hx-err{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid #f2c3bd;border-radius:10px;background:var(--red-bg);color:var(--red);font-size:.86em;font-weight:700}
+.ps-hx-err .ps-btn{margin-top:0;padding:6px 12px;font-size:.92em}
+.ps-hx-foot{margin-top:14px;font-size:.74em;line-height:1.5;color:var(--mut2)}
+.ps-hx-foot code{font-size:.95em;color:var(--mut)}
+.ps-asides{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
 
 /* Resolution Distribution table. */
 .ps-res-wrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px}
@@ -188,6 +226,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .ps-res-tbl tbody tr{transition:background .12s}
 .ps-res-tbl tbody tr:hover{background:#fafbfc}
 .ps-res-tbl tbody th{font-weight:700;color:var(--ink)}
+.ps-res-tbl tfoot>tr>*{position:sticky;bottom:0;background:#f5f6f8;border-top:1px solid var(--line);border-bottom:none;font-weight:800;color:var(--ink)}
 .ps-res-tbl .rk{width:44px;color:#8793a0;font-weight:700;font-variant-numeric:tabular-nums}
 .ps-res-tbl .sh{width:32%;min-width:150px}
 .ps-res-tbl .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -310,7 +349,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=211"></script>
+<script src="topbar-auth.js?v=214"></script>
 <script src="resolution-tickets-modal.js?v=1"></script>
 <script>
 const A=window.PHDAuth;
@@ -341,6 +380,30 @@ function previousMonth(now){
 function rangeLabel(r){
   var sameYear=r.start.getFullYear()===r.end.getFullYear();
   return (sameYear ? fmtDay(r.start) : fmtDayYr(r.start))+' \u2013 '+fmtDayYr(r.end);
+}
+/* PS-WEEK-START */
+// Week number for Sunday–Saturday weeks (US / Excel WEEKNUM type 1 style): W01 is the Sun–Sat week
+// that contains 1 January; a week spanning New Year belongs to the NEW year's W01. `d` = any day of
+// the week (local Date naming a calendar day; only its Y/M/D are used). UTC math, so DST never shifts
+// a day. Returns { week:1..53, year } (year = the year of that week's Saturday).
+function psWeekOf(d){
+  var DAY=86400000;
+  var t=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());
+  var sun=t-new Date(t).getUTCDay()*DAY;                 // Sunday that starts the week
+  var year=new Date(sun+6*DAY).getUTCFullYear();         // the week belongs to its Saturday's year
+  var jan1=Date.UTC(year,0,1);
+  var wk1=jan1-new Date(jan1).getUTCDay()*DAY;           // Sunday of the week holding 1 Jan (= W01)
+  return { week:Math.round((sun-wk1)/DAY/7)+1, year:year };
+}
+// 'W44' (always 2 digits).
+function psWeekTag(d){ var w=psWeekOf(d).week; return 'W'+(w<10?'0':'')+w; }
+/* PS-WEEK-END */
+// Weekly period label: 'W44 · Oct 25 – Oct 31, 2026'.
+function weekLabel(r){ return psWeekTag(r.start)+' \u00b7 '+rangeLabel(r); }
+// Comparison (previous) week label: 'W43 · Oct 18 – Oct 24' (years only when they differ from `cur`'s end).
+function prevWeekLabel(r,cur){
+  var short=r.start.getFullYear()===cur.end.getFullYear()&&r.end.getFullYear()===cur.end.getFullYear();
+  return psWeekTag(r.start)+' \u00b7 '+(short?fmtDay(r.start)+' \u2013 '+fmtDay(r.end):rangeLabel(r));
 }
 
 // Raw delta badge from a preformatted "%" string + good/bad direction.
@@ -408,10 +471,9 @@ function summaryPane(kind,p,rangeTxt,D,mtdPct){
         metric('Non-pet related',num(c.repeat.nonPet),deltaOf(c.repeat.nonPet,pv.repeat.nonPet,true,p),'blue',rt?(Number(c.repeat.nonPet)||0)/rt:0),
         metric('Pet related',num(c.repeat.pet),deltaOf(c.repeat.pet,pv.repeat.pet,true,p),'amber',rt?(Number(c.repeat.pet)||0)/rt:0)
       ])+
-      metricCard('map-pin','amber','Address & GEO','Address exclusions processed and GEO Pin updates',[
-        metric('Address exclusions',num(c.addressExclusions),deltaOf(c.addressExclusions,pv.addressExclusions,true,p),'green'),
-        metric('GEO Pin updates',num(c.geoPins),deltaOf(c.geoPins,pv.geoPins,false,p),'flat')
-      ])+
+      metricCard('map-pin','amber','Address & GEO','Resolved tickets whose \u201cRes:\u201d value includes each action',psAddrGeoItems(D).map(function(a){
+        return metric(a.label,num(a.cur),deltaOf(a.cur,a.prev,a.lowerIsGood,p),a.tone);
+      }))+
     '</div>'+
 
     // ---- Defect Code Trends (auto-split into Improving (down) vs Watch (up)) ----
@@ -421,6 +483,20 @@ function summaryPane(kind,p,rangeTxt,D,mtdPct){
     resolutionCard(D,period)+
 
     '<div class="ps-foot">WWOS-GSOC PHD \u00b7 '+kind+' Performance Summary \u00b7 use <b>Export</b> for the full write-up</div>';
+}
+// Address & GEO: the 5 actions from /api/perf-summary?grouped=1 `addressGeo` (fixed order and labels).
+// A multi-action Res value counts in each of its actions. Delta direction as before: exclusions /
+// deprio lower is better; GeoPin / GeoFence / Routing updates higher is better.
+var PS_ADDR_GEO=[
+  ['addressExclusion','Address Exclusion',true,'green'],
+  ['routingUpdate','Routing Update',false,'blue'],
+  ['addressDeprio','Address Deprio',true,'amber'],
+  ['geoPinUpdate','GeoPin Update',false,'flat'],
+  ['geoFenceUpdate','GeoFence Update',false,'flat'],
+];
+function psAddrGeoItems(D){
+  var g=(D&&D.addressGeo)||{}, c=g.current||{}, pv=g.previous||{};
+  return PS_ADDR_GEO.map(function(a){ return { key:a[0], label:a[1], lowerIsGood:a[2], tone:a[3], cur:Number(c[a[0]])||0, prev:Number(pv[a[0]])||0 }; });
 }
 // Defect trends: three tracked tags, auto-sorted into Improving (count went down or flat) vs
 // Watch Item (count went up vs the prior window).
@@ -436,13 +512,126 @@ function defectTrendsCard(cur,prev,p,period){
     var up=cv>pvv;
     (up?watch:improving).push(defectItem(up?'watch':'good',name,num(cv),deltaOf(cv,pvv,true,p)));
   });
+  // Hashtag trend items (separate fetch, PS_HT[period]) join each section as a "Hashtags" sub-group.
+  var H=PS_HT[period], hx=(H&&H.state==='done')?psHxItems(H.data):null, hxState='';
+  if(H&&H.state==='loading') hxState=psHxLoading();
+  else if(H&&H.state==='error') hxState=psHxError(period);
   var rows='';
-  if(improving.length) rows+=defectRow('good','Improving',improving);
-  if(watch.length) rows+=defectRow('watch','Watch Item',watch);
+  if(improving.length||(hx&&hx.good.length)) rows+=defectRow('good','Improving',improving,hx&&hx.good.length?psHxSub(hx.good,p):'');
+  if(watch.length||(hx&&hx.watch.length)) rows+=defectRow('watch','Watch Item',watch,hx&&hx.watch.length?psHxSub(hx.watch,p):'');
   if(!rows) rows='<div class="ps-empty">No tagged defects in this window.</div>';
+  rows+=hxState+(hx?psHxFoot():'');
   var aside='<span class="ps-pill"><b>'+improving.length+'</b> improving \u00b7 <b>'+watch.length+'</b> to watch</span>';
+  if(hx) aside='<span class="ps-asides">'+aside+'<span class="ps-pill"><b>'+hx.good.length+'</b> hashtags improving \u00b7 <b>'+hx.watch.length+'</b> to watch</span></span>';
   return sectionCard('alert','Defect Code Trends',rows,{key:'defects',period:period,tone:'rose',
     sub:'Tagged defects vs the prior '+(p==='WoW'?'week':'month')+'; any increase is a watch item',aside:aside});
+}
+
+// ===== Hashtag trend items (from /api/perf-summary/hashtag-trends) =====
+// Count = unique tickets CREATED in the window carrying the tag, on the Hashtags page's basis (Labels
+// '#tags' + manual hashtags, alias spellings merged). Rate = per 100 tickets created in the window.
+// All six are defect tags, so a LOWER rate is better: rate down -> Improving; rate up -> Watch Item;
+// |change| < 0.1 per 100 (or no data in either window) -> Watch Item with a neutral "No change" badge.
+var PS_HT={ weekly:null, monthly:null };   // { state:'loading'|'done'|'error', data }
+var PS_HT_SEQ={ weekly:0, monthly:0 };     // ignores stale responses after a retry
+var PS_HX_FLAT=0.1;                        // per-100 change treated as "no change"
+function psHxRate(n,created){ return (n==null||!created)?null:n/created*100; }
+function psHx1(x){ return (Math.round(x*10)/10).toFixed(1); }
+// -> { good:[...], watch:[...] } item models, sorted by size of change.
+function psHxItems(data){
+  var per=data.periods||[], L=per.length-1, out={ good:[], watch:[] };
+  if(L<1) return out;
+  (data.tags||[]).forEach(function(t){
+    var counts=t.counts||[], c=counts[L], pc=counts[L-1];
+    var cr=psHxRate(c,per[L].created), pr=psHxRate(pc,per[L-1].created);
+    var noData=(cr==null||pr==null||(c===0&&pc===0));
+    var chg=noData?0:cr-pr, flat=noData||Math.abs(chg)<PS_HX_FLAT;
+    var m={ tag:t.tag, also:t.also||[], c:c, pc:pc, cr:cr, pr:pr, chg:chg, flat:flat, noData:noData,
+      spark:counts.map(function(n,i){ return psHxRate(n,per[i]&&per[i].created); }) };
+    (!flat&&chg<0?out.good:out.watch).push(m);
+  });
+  out.good.sort(function(a,b){ return a.chg-b.chg; });                                  // biggest drop first
+  out.watch.sort(function(a,b){ return (a.flat-b.flat)||(b.chg-a.chg); });             // biggest rise first, "No change" last
+  return out;
+}
+function psHxSub(list,p){
+  return '<div class="ps-sub"><h4 class="ps-sub-h">Hashtags</h4><ul class="ps-hxs">'+list.map(function(m){ return psHxItem(m,p); }).join('')+'</ul></div>';
+}
+var PS_ARROW_DN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+var PS_ARROW_UP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>';
+function psHxItem(m,p){
+  var wk=(p==='WoW'), word=wk?'week':'month';
+  var tone=m.flat?'flat':(m.chg<0?'good':'watch'), badge;
+  if(m.flat){
+    badge='<span class="wow flat">No change<span class="ps-sr"> ('+(m.noData?'no data in one of the periods':'rate moved by less than 0.1 per 100')+')</span></span>';
+  }else{
+    var down=m.chg<0, pct=m.pr?Math.round(Math.abs(m.chg)/m.pr*1000)/10:null;
+    badge='<span class="wow '+(down?'good':'bad')+'">'+(down?PS_ARROW_DN:PS_ARROW_UP)+(down?'\u2212':'+')+psHx1(Math.abs(m.chg))+' /100'+
+      (pct!=null?' ('+(down?'\u2212':'+')+pct+'%)':'')+' '+p+'<span class="ps-sr"> per 100 created tickets ('+(down?'better':'worse')+')</span></span>';
+  }
+  var rate=function(r){ return r==null?'\u2014':psHx1(r)+' per 100'; };
+  var cnt=function(n){ return n==null?'\u2014':num(n); };
+  var dc=(m.c==null||m.pc==null)?null:m.c-m.pc;
+  var cntLine=dc==null?'':'<div class="ps-hx-cnt">Tickets '+(dc>0?'+':dc<0?'\u2212':'\u00b1')+num(Math.abs(dc))+' ('+pctText(m.c,m.pc)+') vs prior '+word+'</div>';
+  var also=m.also.length?' title="Includes '+esc(m.also.join(', '))+'"':'';
+  return '<li class="ps-hx '+tone+'"><div class="ps-hx-top"><code class="ps-hx-tag"'+also+'>'+esc(m.tag)+'</code>'+badge+'</div>'+
+    '<div class="ps-hx-nums">'+
+      '<div><span class="ps-hx-k">Selected '+word+'</span><span class="ps-hx-v">'+cnt(m.c)+'</span><span class="ps-hx-r">'+rate(m.cr)+'</span></div>'+
+      '<div class="ps-hx-prev"><span class="ps-hx-k">Prior '+word+'</span><span class="ps-hx-v">'+cnt(m.pc)+'</span><span class="ps-hx-r">'+rate(m.pr)+'</span></div>'+
+      psHxSpark(m.spark,word)+
+    '</div>'+cntLine+'</li>';
+}
+// Tiny sparkline of the per-100 rate over the last 6 windows (gaps skipped); the last point is marked.
+function psHxSpark(vals,word){
+  var pts=[], W=76, Hh=28, pad=3, n=vals.length;
+  var nums=vals.filter(function(v){ return v!=null; });
+  if(nums.length<2) return '<span></span>';
+  var lo=Math.min.apply(null,nums), hi=Math.max.apply(null,nums), rg=(hi-lo)||1;
+  vals.forEach(function(v,i){ if(v==null) return;
+    var x=pad+(n>1?i*(W-2*pad)/(n-1):0), y=(hi===lo)?Hh/2:pad+(1-(v-lo)/rg)*(Hh-2*pad);
+    pts.push([Math.round(x*10)/10,Math.round(y*10)/10]); });
+  var last=pts[pts.length-1];
+  var lbl='Rate per 100 created, last '+n+' '+word+'s: '+vals.map(function(v){ return v==null?'no data':psHx1(v); }).join(', ');
+  return '<svg class="ps-hx-spark" viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="'+esc(lbl)+'"><title>'+esc(lbl)+'</title>'+
+    '<polyline points="'+pts.map(function(q){ return q.join(','); }).join(' ')+'" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>'+
+    '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.4" fill="currentColor"/></svg>';
+}
+function psHxLoading(){
+  var sk='<span class="ps-sk" style="width:100%;height:104px;border-radius:10px"></span>';
+  return '<div class="ps-grp ps-sub" aria-busy="true"><h4 class="ps-sub-h">Hashtags</h4><div class="ps-hxs">'+sk+sk+sk+'</div>'+
+    '<span class="ps-sr">Loading hashtag trends\u2026</span></div>';
+}
+function psHxError(period){
+  return '<div class="ps-grp ps-sub"><h4 class="ps-sub-h">Hashtags</h4><div class="ps-hx-err" role="alert">'+ic('alert',15)+
+    '<span>We couldn\u2019t load the hashtag trends.</span><button type="button" class="ps-btn" data-ps-hxretry="'+period+'">'+ic('refresh',14)+'Retry</button></div></div>';
+}
+function psHxFoot(){
+  return '<p class="ps-hx-foot">Hashtags: unique tickets created in the period that carry the tag (same basis as the Hashtags page; '+
+    '<code>#unsucessful-outreach</code> is merged into <code>#unsuccessful-outreach</code> and <code>#s-req</code> into <code>#out-of-scope</code>). '+
+    'Rate = per 100 tickets created. Lower is better; a change under 0.1 per 100 shows as No change. Sparkline = rate over the last 6 periods.</p>';
+}
+// Fetch the hashtag trends for one period (in parallel with the main summary).
+function psHxFetch(period){
+  var win=PS_WIN[period]; if(!win) return;
+  var seq=++PS_HT_SEQ[period];
+  PS_HT[period]={ state:'loading' }; psHxRefresh(period);
+  var done=function(st){ if(seq!==PS_HT_SEQ[period]) return; PS_HT[period]=st; psHxRefresh(period);
+    psAnnounce(st.state==='done'?'Hashtag trends loaded':'Could not load the hashtag trends.'); };
+  A.api('GET','/api/perf-summary/hashtag-trends?from='+ymd(win.start)+'&to='+ymd(nextDay(win.end))).then(function(r){
+    var d=r&&r.ok&&r.data;
+    done(d&&Array.isArray(d.tags)&&Array.isArray(d.periods)&&d.periods.length>=2?{ state:'done', data:d }:{ state:'error' });
+  }).catch(function(){ done({ state:'error' }); });
+}
+// Re-render just the Defect Code Trends card of an already-rendered pane.
+function psHxRefresh(period){
+  if(PS_STATE[period]!=='done') return;     // pane not rendered yet; summaryPane reads PS_HT itself
+  var D=PS_DATA[period], body=document.getElementById('psSec-'+period+'-defects');
+  var card=body&&body.closest('.ps-card'); if(!D||!card) return;
+  var hadFocus=card.contains(document.activeElement);
+  var tmp=document.createElement('div');
+  tmp.innerHTML=defectTrendsCard(D.current.defects,D.previous.defects,PS_META[period].per,period);
+  var fresh=tmp.firstElementChild; card.replaceWith(fresh);
+  if(hadFocus){ var x=fresh.querySelector('[data-ps-exp]'); if(x) x.focus(); }
 }
 // HTML-escape dynamic text before inserting it into markup.
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; }); }
@@ -455,11 +644,11 @@ function resolutionCard(D,period){
   if(!total||!rows.length){
     body='<div class="ps-empty">No tickets resolved in this period</div>';
   }else{
-    aside='<span class="ps-res-sum ps-pill"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved \u00b7 <b>'+num(rows.length)+'</b> resolution'+(rows.length===1?'':'s')+'</span>';
+    aside='<span class="ps-res-sum ps-pill"><b>'+num(total)+'</b> ticket'+(total===1?'':'s')+' resolved \u00b7 <b>'+num(rows.length)+'</b> group'+(rows.length===1?'':'s')+'</span>';
     var maxPct=rows.reduce(function(m,r){ return Math.max(m,Number(r.pct)||0); },0)||1;
     body='<div class="ps-res-wrap" tabindex="0" role="region" aria-label="Resolution distribution table"><table class="ps-res-tbl">'+
         '<caption class="ps-sr">Resolution distribution of tickets resolved in this period. Select a count to list its tickets.</caption>'+
-        '<thead><tr><th scope="col" class="rk">#</th><th scope="col">Resolution</th><th scope="col" class="sh">Share</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead>'+
+        '<thead><tr><th scope="col" class="rk">#</th><th scope="col">Resolution group</th><th scope="col" class="sh">Share</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead>'+
         '<tbody>'+rows.map(function(r,i){
           var n=Number(r.count)||0, pc=Number(r.pct)||0;
           return '<tr><td class="rk">'+(i+1)+'</td><th scope="row">'+esc(r.resolution)+'</th>'+
@@ -467,10 +656,11 @@ function resolutionCard(D,period){
             '<td class="n"><button type="button" class="ps-res-cnt" data-psm-period="'+period+'" data-psm-i="'+i+'" '+
             'aria-label="View '+n+' ticket'+(n===1?'':'s')+' for '+esc(r.resolution)+'">'+num(n)+'</button></td><td class="n">'+esc(pc.toFixed(1))+'%</td></tr>';
         }).join('')+'</tbody>'+
+        '<tfoot><tr><td class="rk"></td><th scope="row">Total resolved</th><td class="sh"></td><td class="n"><b>'+num(total)+'</b></td><td class="n"><b>100.0%</b></td></tr></tfoot>'+
       '</table></div>';
   }
   return sectionCard('check-circle','Resolution Distribution',body,{key:'res',period:period,tone:'green',
-    sub:'\u201cRes:\u201d value of tickets resolved in this period; select a count to see its tickets',aside:aside});
+    sub:'Tickets resolved in this period, grouped as on the Resolutions page; select a count to see its tickets',aside:aside});
 }
 // Number formatter with thousands separators.
 function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
@@ -517,9 +707,10 @@ function psToggle(btn){
   });
 }
 // A defect group: a status heading + a grid of "name  count  badge" chips.
-function defectRow(tone,tag,items){
+// `extra` (optional) = the "Hashtags" sub-group appended after the tracked defect chips.
+function defectRow(tone,tag,items,extra){
   return '<div class="ps-grp"><h3 class="ps-grp-h"><span class="ps-tag '+tone+'">'+tag+'</span></h3>'+
-    '<ul class="ps-defs">'+items.join('')+'</ul></div>';
+    (items.length?'<ul class="ps-defs">'+items.join('')+'</ul>':'')+(extra||'')+'</div>';
 }
 function defectItem(tone,name,count,badge){
   return '<li class="ps-def '+tone+'"><span class="ps-def-n">'+name+'</span><span class="ps-def-r"><span class="ps-def-c">'+count+'</span>'+badge+'</span></li>';
@@ -575,13 +766,14 @@ function psSummaryText(kind,p,rangeTxt,D,mtd){
     (cv>pvv?watch:improving).push(n+' ('+pt(cv,pvv)+' '+p+')'); });
   var defImp=improving.length?('\u2022 Improving: '+improving.join(' and ')+'.\n'):'';
   var defWatch=watch.length?('\u2022 Watch Item: '+watch.join(' and ')+' \u2014 an opportunity area. Customer and driver outreach, performed by LMIR, directly supports mitigating actions such as driver notes, delivery GEO pin updates, and parcel box instructions for low-severity incidents.\n'):'';
-  return 'PHD '+kind+' Performance Summary ('+rangeTxt+')\n\n'+
+  var cmpTxt=(p==='WoW'&&PS_HERO.weekly.cmp)?(', vs '+PS_HERO.weekly.cmp):'';
+  return 'PHD '+kind+' Performance Summary ('+rangeTxt+cmpTxt+')\n\n'+
     'Volume & Throughput: PHD received '+num(c.reports)+' incident reports ('+pt(c.reports,pv.reports)+' '+p+') and resolved '+num(c.resolved)+' ('+pt(c.resolved,pv.resolved)+' '+p+'), '+
       'netting '+num(c.backlog)+' cases to the backlog ('+pt(c.backlog,pv.backlog)+' '+over+'). SLA performance was '+slaPct+' for cases '+
       'resolved '+within+', with MTD SLA at '+mtdPct+'.\n\n'+
     'Quality \u2014 Repeat Incidents: Total repeat incidents were '+num(c.repeat.total)+' ('+pt(c.repeat.total,pv.repeat.total)+' '+p+') \u2014 '+num(c.repeat.nonPet)+' non-pet related ('+pt(c.repeat.nonPet,pv.repeat.nonPet)+' '+p+') and '+num(c.repeat.pet)+' pet related ('+pt(c.repeat.pet,pv.repeat.pet)+' '+p+').\n\n'+
     'Defect Code Trends:\n'+defImp+defWatch+'\n'+
-    'Address Exclusions & GEO Pins: '+num(c.addressExclusions)+' address exclusions were processed ('+pt(c.addressExclusions,pv.addressExclusions)+' '+p+') alongside '+num(c.geoPins)+' GEO Pin updates ('+pt(c.geoPins,pv.geoPins)+' '+p+'). '+
+    'Address & GEO: '+psAddrGeoItems(D).map(function(a){ return a.label+' '+num(a.cur)+' ('+pt(a.cur,a.prev)+' '+p+')'; }).join(', ')+'. '+
       'GEO Pins are critical to setting accurate Road Entry Points (REP) and delivery points, ensuring transporters can '+
       'complete deliveries safely via the Rabbit app.'+
     resolutionText(D);
@@ -617,13 +809,15 @@ window.psExport=psExport;
 function psmOpen(btn){
   var period=btn.getAttribute('data-psm-period'), i=parseInt(btn.getAttribute('data-psm-i'),10);
   var D=PS_DATA[period], r=D&&D.resolutions&&D.resolutions[i], win=PS_WIN[period]; if(!r||!win||!window.PHDResTickets) return;
-  window.PHDResTickets.open({ opener:btn, resolution:r.resolution, count:r.count, view:(period==='weekly')?'week':'month', start:win.start, end:win.end });
+  // splitNotSpecified + no agents = the same group labels and scope as the grouped counts (count == list).
+  window.PHDResTickets.open({ opener:btn, resolution:r.resolution, count:r.count, view:(period==='weekly')?'week':'month', start:win.start, end:win.end, splitNotSpecified:true });
 }
 window.psmClose=function(){ if(window.PHDResTickets) window.PHDResTickets.close(); };
 document.addEventListener('click',function(ev){
   var t=ev.target.closest?ev.target:null; if(!t) return;
   var b=t.closest('.ps-res-cnt'); if(b){ psmOpen(b); return; }
   var x=t.closest('[data-ps-exp]'); if(x){ psToggle(x); return; }
+  var hr=t.closest('[data-ps-hxretry]'); if(hr){ psHxFetch(hr.getAttribute('data-ps-hxretry')); return; }
   var r=t.closest('[data-ps-retry]'); if(r){ psRetry(r.getAttribute('data-ps-retry')); }
 });
 
@@ -708,7 +902,8 @@ function psAnnounce(msg){ var l=document.getElementById('psLive'); if(!l) return
 function nextDay(d){ var x=new Date(d); x.setDate(x.getDate()+1); return x; }
 function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 async function fetchWindow(range){
-  var r=await A.api('GET','/api/perf-summary?from='+ymd(range.start)+'&to='+ymd(nextDay(range.end)));
+  // grouped=1: Resolution Distribution rows use the resolutions.html Section 2 group labels.
+  var r=await A.api('GET','/api/perf-summary?from='+ymd(range.start)+'&to='+ymd(nextDay(range.end))+'&grouped=1');
   if(r&&r.ok&&r.data&&r.data.current) return r.data;
   throw new Error((r&&r.data&&r.data.error)||'fetch failed');
 }
@@ -746,7 +941,11 @@ function errorPane(kind,period,err){
 async function render(){
   var now=new Date();
   var wk=lastCompletedWeek(now), mo=previousMonth(now);
-  var wkTxt=rangeLabel(wk);
+  var wkTxt=weekLabel(wk);
+  // Comparison week = the 7 days before (the same window /api/perf-summary uses for `previous`).
+  var pwS=new Date(wk.start); pwS.setDate(pwS.getDate()-7);
+  var pwE=new Date(wk.end); pwE.setDate(pwE.getDate()-7);
+  PS_HERO.weekly.cmp=prevWeekLabel({ start:pwS, end:pwE },wk);
   var moTxt=MON[mo.start.getMonth()]+' '+mo.start.getFullYear()+'  \u00b7  '+rangeLabel(mo);
   PS_RANGES={ weekly:wkTxt, monthly:moTxt };
   PS_WIN={ weekly:wk, monthly:mo };
@@ -760,7 +959,7 @@ async function render(){
       '<div class="ps-hero-in">'+
         '<div class="ps-hero-main">'+
           '<span class="ps-hero-ic" aria-hidden="true">'+ic('clipboard',24)+'</span>'+
-          '<div style="min-width:0">'+
+          '<div class="ps-hero-txt">'+
             '<div class="ps-eyebrow" id="psEyebrow">'+h.eyebrow+'</div>'+
             '<h1 id="psTitle">'+h.title+'</h1>'+
             '<p class="ps-hero-sub" id="psSub">'+h.sub+'</p>'+
@@ -809,6 +1008,7 @@ function psFill(period){
   if(pane){ pane.classList.remove('is-anim'); pane.setAttribute('aria-busy','true'); pane.innerHTML=loadingPane(m.kind,m.pfx); }
   psAnnounce('Loading the '+m.kind.toLowerCase()+' summary\u2026');
   _psStart(m.pfx,m.phase);
+  psHxFetch(period);   // hashtag trend items load in parallel (own loader / error state in the card)
   var t0=Date.now();
   var minHold=function(){ var el=500-(Date.now()-t0); return el>0?_psDelay(el):Promise.resolve(); };
   fetchWindow(win).then(async function(D){

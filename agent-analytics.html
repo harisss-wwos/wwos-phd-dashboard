@@ -309,7 +309,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=211"></script>
+<script src="topbar-auth.js?v=214"></script>
 <script>
 const A=window.PHDAuth;
 const isAdminPlus=()=>A.atLeast&&A.atLeast('admin');
@@ -736,7 +736,7 @@ function gaSubSelectHtml(){
   return '';
 }
 function groupsSectionsHtml(){
-  // No own controls � the TOP Performance Overview picker drives these tables (period + groups).
+  // No own controls — the TOP Performance Overview picker drives these tables (period + groups).
   return '<p class="ga-scope-note" id="gaScopeNote"></p>'+
     '<div class="ga-tables">'+
       '<div><h3 class="ga-tbl-title">Individual Agent Performance</h3><div id="gaIapBody"></div></div>'+
@@ -1187,7 +1187,7 @@ function toggleRecentCard(btn){
   if(willOpen && !GW_DATA) gwLoad();   // lazy-load on first expand
 }
 window.toggleRecentCard=toggleRecentCard;
-// (YTD Performance card merged into Performance Overview � toggleGroupAnalyticsCard removed.)
+// (YTD Performance card merged into Performance Overview — toggleGroupAnalyticsCard removed.)
 
 /* ===================== Performance Overview (ported from app.js) =====================
    Self-contained: a period picker (6 range types -> {from,to} window + bucket), a KPI podium/tiles
@@ -1303,7 +1303,7 @@ function perfPickerHtml(){
     const qCount=_acQuartersCount(); const qOpts=[]; for(let i=1;i<=qCount;i++)qOpts.push({v:i,l:'Q'+i+' 2026'});
     sub+=sel('perfQuarter','perfOnQuarter(this.value)',qOpts,(PERF.quarter==null)?qCount:PERF.quarter);
   }
-  // Group checkboxes (BLR=A1 / AZA=B / WFH=A2) � same control YTD Performance uses. Scopes every KPI
+  // Group checkboxes (BLR=A1 / AZA=B / WFH=A2) — same control YTD Performance uses. Scopes every KPI
   // + the chart to tickets OWNED by the selected groups (AssigneeIdentity).
   const groupChips=[['A1','BLR'],['B','AZA'],['A2','WFH']].map(function(g){
     const on=PERF_GROUPS[g[0]];

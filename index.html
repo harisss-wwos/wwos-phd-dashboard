@@ -387,21 +387,30 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 <div class="top-bar"></div>
 
 <!-- Login modal -->
-<div class="modal-bg" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
-  <div class="modal">
-    <h2>Log in</h2>
-    <p style="color:var(--ink2);font-size:.85em;margin:0 0 6px;line-height:1.5">Log in to publish or manage data. Viewing the dashboards needs no login.</p>
-    <label>Username</label>
-    <input type="text" id="hLoginUser" autocomplete="username">
-    <label>Password</label>
-    <div class="pass-wrap"><input type="password" id="hLoginPass" autocomplete="current-password">
-      <button type="button" class="pass-eye" id="hLoginEye" onclick="homeTogglePass()" aria-label="Show password" title="Show password"></button>
+<!-- Styled by the shared .tbl-* login-dialog rules in topbar-auth.js (same look as #tbLoginModal). -->
+<div class="modal-bg tbl-bg" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
+  <div class="modal tbl-card" role="dialog" aria-modal="true" aria-labelledby="hLoginTitle" aria-describedby="hLoginDesc">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic-login="shield"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">WWOS-GSOC · PHD Dashboard</div><h2 class="tbl-title" id="hLoginTitle">Log in</h2></div>
+      <p class="tbl-sub" id="hLoginDesc">Log in to publish or manage data. Viewing the dashboards needs no login.</p>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:var(--ink2);font-weight:500"><input type="checkbox" id="hLoginRemember" style="width:auto" checked> Keep me signed in</label>
-    <div class="err" id="hLoginErr"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeLoginModal()">Cancel</button>
-      <button class="btn" id="hLoginBtn" onclick="homeDoLogin()">Log in</button>
+    <div class="tbl-body">
+      <label class="tbl-label" for="hLoginUser">Username</label>
+      <div class="tbl-field"><span class="tbl-fic" aria-hidden="true" data-ic-login="user"></span>
+        <input class="tbl-input" type="text" id="hLoginUser" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <label class="tbl-label" for="hLoginPass">Password</label>
+      <div class="tbl-field tbl-pw pass-wrap"><span class="tbl-fic" aria-hidden="true" data-ic-login="lock"></span>
+        <input class="tbl-input" type="password" id="hLoginPass" autocomplete="current-password" aria-describedby="hLoginCaps">
+        <button type="button" class="pass-eye tbl-eye" id="hLoginEye" onclick="homeTogglePass()" aria-label="Show password" aria-pressed="false" aria-controls="hLoginPass" title="Show password"></button>
+      </div>
+      <div class="tbl-caps" id="hLoginCaps" hidden><span aria-hidden="true" data-ic-login="alert-triangle"></span> Caps Lock is on</div>
+      <label class="tbl-check"><input type="checkbox" id="hLoginRemember" checked><span class="tbl-box" aria-hidden="true"></span><span>Keep me signed in</span></label>
+      <div class="err tbl-err" id="hLoginErr" role="alert"></div>
+      <div class="tbl-actions">
+        <button type="button" class="btn tbl-submit" id="hLoginBtn" onclick="homeDoLogin()">Log in</button>
+        <button type="button" class="btn sec tbl-cancel" onclick="closeLoginModal()">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -555,15 +564,25 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=211"></script>
+<script src="topbar-auth.js?v=214"></script>
 <script>
 // Fill static icon placeholders (<span data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 18); });
 function ic(n,s){ return (typeof window.icon==='function') ? window.icon(n,s||15) : ''; }
 var A = window.PHDAuth;
 
-function openLoginModal(){ document.getElementById('loginModal').style.display='flex'; setTimeout(function(){var u=document.getElementById('hLoginUser'); if(u) u.focus();},40); }
-function closeLoginModal(){ document.getElementById('loginModal').style.display='none'; }
+// Login-dialog icons (shield/user/lock/caps) at their own sizes.
+document.querySelectorAll('[data-ic-login]').forEach(function(el){ var n=el.getAttribute('data-ic-login'); if(window.icon) el.innerHTML=window.icon(n, n==='shield'?20:(n==='alert-triangle'?14:17)); });
+if(window.PHDLoginUI) window.PHDLoginUI.wireCaps(document.getElementById('hLoginPass'), document.getElementById('hLoginCaps'));
+function openLoginModal(){
+  var m=document.getElementById('loginModal'); m.style.display='flex';
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(m, closeLoginModal, document.getElementById('hLoginUser'));
+  else setTimeout(function(){var u=document.getElementById('hLoginUser'); if(u) u.focus();},40);
+}
+function closeLoginModal(){
+  var m=document.getElementById('loginModal'); m.style.display='none';
+  if(window.PHDLoginUI) window.PHDLoginUI.closed(m);
+}
 function homeTogglePass(){
   var inp=document.getElementById('hLoginPass'), btn=document.getElementById('hLoginEye');
   if(!inp||!btn) return;
@@ -572,6 +591,7 @@ function homeTogglePass(){
   btn.innerHTML=ic(show?'eye-off':'eye');
   btn.setAttribute('aria-label',show?'Hide password':'Show password');
   btn.setAttribute('title',show?'Hide password':'Show password');
+  btn.setAttribute('aria-pressed',show?'true':'false');
   inp.focus();
 }
 function homeLogout(){ A.clear(); location.reload(); }

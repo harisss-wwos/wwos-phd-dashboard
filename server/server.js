@@ -12,7 +12,7 @@ const {
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
-const { computePageZero, coreExportCsv, exportPeriod } = require('./page-zero');
+const { computePageZero, coreExportCsv, exportPeriod, normKey: pzNormKey } = require('./page-zero');
 const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
@@ -4615,6 +4615,34 @@ async function perfWindowStats(from, to) {
     addressExclusions: g.addr || 0, geoPins: g.geo || 0,
   };
 }
+// Performance Summary "Address & GEO" (opt-in, grouped=1): resolved tickets in the window (same scope
+// as `resolved`) whose "Res" value (resolutionFromRcd of RootCauseDetails) names each action. A Res value
+// is MULTI-LABEL: bracketed notes ([#hashtag]) are dropped, then it is split on , ; & + / and the words
+// 'and' / 'or'; every part is compared with page-zero.js normKey() against the alias lists below, so
+// 'Address Exclusion, GeoPin Update' counts in BOTH. A ticket counts at most once per action.
+// Aliases = the resolution-groups.js spellings of each group (as single parts) + short forms.
+const PERF_ADDR_GEO_ACTIONS = [
+  { key: 'addressExclusion', label: 'Address Exclusion', aliases: ['Address Exclusion', 'Address Exclusions'] },
+  { key: 'routingUpdate', label: 'Routing Update', aliases: ['Routing Update', 'Routing Updates', 'Routing'] },
+  { key: 'addressDeprio', label: 'Address Deprio', aliases: ['Address Deprio', 'Address Depri', 'Address Deprioritization', 'Address De-prioritization', 'Address Deprioritisation', 'Address Deprivation'] },
+  { key: 'geoPinUpdate', label: 'GeoPin Update', aliases: ['GeoPin Update', 'Geo Pin Update', 'GeoPin Updates', 'GeoPin Updated', 'GeoPin'] },
+  { key: 'geoFenceUpdate', label: 'GeoFence Update', aliases: ['GeoFence Update', 'Geo Fence Update', 'GeoFence Updates', 'GeoFence', 'Geo Fence'] },
+];
+const PERF_ADDR_GEO_INDEX = new Map();   // normKey(alias) -> action key
+PERF_ADDR_GEO_ACTIONS.forEach(a => a.aliases.forEach(s => PERF_ADDR_GEO_INDEX.set(pzNormKey(s), a.key)));
+function perfAddrGeoKeysOf(res) {
+  const keys = new Set();
+  String(res == null ? '' : res).replace(/\[[^\]]*\]?/g, ' ')
+    .split(/[,;&+/]|\band\b|\bor\b/i)
+    .forEach(p => { const k = PERF_ADDR_GEO_INDEX.get(pzNormKey(p)); if (k) keys.add(k); });
+  return keys;
+}
+async function perfAddressGeo(from, to) {
+  const rows = await perfResolvedRows(from, to, { RootCauseDetails: 1 }, 'any');
+  const out = {}; PERF_ADDR_GEO_ACTIONS.forEach(a => { out[a.key] = 0; });
+  rows.forEach(d => perfAddrGeoKeysOf(perfResolutionLabel(d.RootCauseDetails)).forEach(k => { out[k]++; }));
+  return out;
+}
 app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
   try {
     const from = new Date(String(req.query.from || ''));
@@ -4646,12 +4674,28 @@ app.get('/api/perf-summary', requireRole('user'), async (req, res) => {
     }
     const span = to - from;
     const prevFrom = new Date(from.getTime() - span), prevTo = new Date(from.getTime());
-    const [cur, prev, resDist] = await Promise.all([ perfWindowStats(from, to), perfWindowStats(prevFrom, prevTo), perfResolutionDistribution(from, to) ]);
+    // Opt-in grouped=1 (performance-summary.html): the Resolution Distribution uses the resolutions.html
+    // Section 2 split-mode labels (perfResolutionGroupLabelOf(doc, true): AUTO-SIM / Rule / Not specified +
+    // the 17 priority groups) over EVERY resolved ticket (no card removal), rows = { resolution, count, pct }
+    // only, sorted count desc then name A->Z. Sums to resolvedTotal (= the Resolved KPI). The drill-down
+    // is /api/perf-summary/resolution-tickets with splitNotSpecified=1 and no agents (same labels/scope).
+    // Param omitted -> unchanged (raw Res values).
+    const grouped = req.query.grouped === '1';
+    // grouped=1 also adds `addressGeo` { actions:[{key,label}], current:{key:n}, previous:{key:n} } (perfAddressGeo).
+    const [cur, prev, resDist, agCur, agPrev] = await Promise.all([ perfWindowStats(from, to), perfWindowStats(prevFrom, prevTo), perfResolutionDistribution(from, to, grouped),
+      grouped ? perfAddressGeo(from, to) : null, grouped ? perfAddressGeo(prevFrom, prevTo) : null ]);
+    if (grouped) {
+      resDist.resolutions = resDist.resolutions
+        .map(r => ({ resolution: r.resolution, count: r.count, pct: r.pct }))
+        .sort((a, b) => (b.count - a.count) || a.resolution.localeCompare(b.resolution, 'en', { sensitivity: 'base' }));
+    }
     // Month-to-date SLA (1st of the current month at server "now" -> now).
     const now = new Date();
     const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const mtd = await perfWindowStats(mStart, now);
-    res.json({ from: from.toISOString(), to: to.toISOString(), current: cur, previous: prev, mtdSlaPct: mtd.slaPct, resolvedTotal: resDist.resolvedTotal, resolutions: resDist.resolutions });
+    const out = { from: from.toISOString(), to: to.toISOString(), current: cur, previous: prev, mtdSlaPct: mtd.slaPct, resolvedTotal: resDist.resolvedTotal, resolutions: resDist.resolutions };
+    if (grouped) out.addressGeo = { actions: PERF_ADDR_GEO_ACTIONS.map(a => ({ key: a.key, label: a.label })), current: agCur, previous: agPrev };
+    res.json(out);
   } catch (e) {
     res.status(500).json({ error: 'Could not build the performance summary.' });
   }
@@ -4684,6 +4728,87 @@ app.get('/api/perf-summary/resolution-tickets', requireRole('user'), async (req,
     res.json({ view, from: from.toISOString(), to: to.toISOString(), resolution, agents: q.agents ? agents : 'all', total: tickets.length, tickets });
   } catch (e) {
     res.status(500).json({ error: 'Could not load the tickets for this resolution.' });
+  }
+});
+
+// ---- Performance Summary: hashtag trend items (Defect Code Trends > "Hashtags" sub-group) --------
+// GET /api/perf-summary/hashtag-trends?from=YYYY-MM-DD&to=YYYY-MM-DD  (to exclusive; the same window the
+// page sends to /api/perf-summary). Read-only and additive: /api/perf-summary itself is unchanged.
+// Counts use the SAME basis as the Hashtags page (/api/hashtags-report): scanHashtagTickets (Labels
+// '#tokens' + ManualHashtags, created on/after HASHTAGS_FROM) + groupHashtagSections (unique ShortIds),
+// with the page's alias folds unioned into one tag (deduped across spellings). A ticket counts in a
+// window by its CreateDate (the Hashtags page's period basis); the rate denominator is the number of
+// unique tickets created in that window. Windows: the selected one plus the 5 immediately preceding
+// windows of the same length (oldest first; last = selected), i.e. the "previous = from - span" rule
+// /api/perf-summary uses for its comparison. Windows starting before HASHTAGS_FROM report null counts.
+const PERF_HASHTAG_TRENDS = [
+  { tag: '#out-of-scope', also: ['#s-req'] },                         // hashtags.html HX_ALIAS
+  { tag: '#unsuccessful-outreach', also: ['#unsucessful-outreach'] },  // hashtags.html HASHTAG_ALIASES
+  { tag: '#contradictory-statement-no-proof', also: [] },
+  { tag: '#no-emt-attached', also: [] },
+  { tag: '#da-misconduct', also: [] },
+  { tag: '#dp-misconduct', also: [] },
+];
+const PERF_HASHTAG_PERIODS = 6;
+app.get('/api/perf-summary/hashtag-trends', requireRole('user'), async (req, res) => {
+  try {
+    const q = req.query || {};
+    const parseDay = (v) => {
+      if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+      const d = new Date(v + 'T00:00:00.000Z');
+      return (isNaN(d) || d.toISOString().slice(0, 10) !== v) ? null : d;
+    };
+    const from = parseDay(q.from), to = parseDay(q.to);   // to is exclusive
+    if (!from || !to || to <= from) return res.status(400).json({ error: 'Provide valid from/to dates as YYYY-MM-DD (to exclusive).' });
+    if ((to - from) / 86400000 > 62) return res.status(400).json({ error: 'The date range is too long.' });
+    const cacheKey = 'perf-hashtag-trends:' + q.from + ':' + q.to;
+    const cached = getCachedReport(cacheKey);
+    if (cached) return res.json(cached);
+
+    const span = to - from;
+    const wins = [];
+    for (let k = PERF_HASHTAG_PERIODS - 1; k >= 0; k--) wins.push({ from: new Date(from.getTime() - k * span), to: new Date(to.getTime() - k * span) });
+    const idxOf = (d) => {
+      if (!(d instanceof Date) || isNaN(d)) return -1;
+      for (let i = 0; i < wins.length; i++) if (d >= wins[i].from && d < wins[i].to) return i;
+      return -1;
+    };
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const [rows, createdAgg] = await Promise.all([
+      scanHashtagTickets(coll),
+      // Unique tickets created per window (a ticket can sit in several quarter docs).
+      coll.aggregate([
+        { $project: { _id: 0, sid: { $ifNull: ['$ShortId', { $ifNull: ['$IssueId', { $toString: '$_id' }] }] },
+          cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } } } },
+        { $match: { cd: { $gte: wins[0].from, $lt: to } } },
+        { $group: { _id: '$sid', cd: { $min: '$cd' } } },
+        { $bucket: { groupBy: '$cd', boundaries: wins.map(w => w.from).concat([to]), default: 'other', output: { n: { $sum: 1 } } } },
+      ], { allowDiskUse: true }).toArray(),
+    ]);
+    const createdBy = new Map(createdAgg.map(b => [b._id instanceof Date ? b._id.getTime() : String(b._id), b.n]));
+    const covered = wins.map(w => w.from >= HASHTAGS_FROM);
+    const sections = groupHashtagSections(rows, (t, sid) => ({ sid, cd: t.cd }));
+    const tags = PERF_HASHTAG_TRENDS.map(def => {
+      const counts = wins.map(() => 0), seen = new Set();
+      [def.tag].concat(def.also).forEach(tag => {
+        const sec = sections.get(tag); if (!sec) return;
+        sec.tickets.forEach(t => {
+          if (t.sid && seen.has(t.sid)) return;
+          if (t.sid) seen.add(t.sid);
+          const i = idxOf(t.cd); if (i >= 0) counts[i]++;
+        });
+      });
+      return { tag: def.tag, also: def.also, counts: counts.map((n, i) => covered[i] ? n : null) };
+    });
+    const payload = {
+      from: from.toISOString(), to: to.toISOString(), basis: 'created', hashtagsFrom: HASHTAGS_FROM.toISOString().slice(0, 10),
+      periods: wins.map((w, i) => ({ from: w.from.toISOString(), to: w.to.toISOString(), created: createdBy.get(w.from.getTime()) || 0, covered: covered[i] })),
+      tags,
+    };
+    setCachedReport(cacheKey, payload);
+    res.json(payload);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the hashtag trends.' });
   }
 });
 
@@ -6272,105 +6397,91 @@ async function getShiftRollup() {
 }
 // Assemble the Shift Report response: derive age-colours at read time, build the per-agent colour
 // breakdown for the takeover chart (with slim ticket lists for the drill-down), and return counts.
-// ---- Handover Report — a fixed 12-hour window (default "today 7am–7pm" in the user's timezone) ----
-// The CLIENT computes the window bounds (so IST/MST + DST are resolved with Intl, not fragile server
-// offset math) and passes them as ?from=<ISO>&to=<ISO>. We return, over ALL ticket_docs:
-//   created  = tickets whose CreateDate falls in [from, to)
-//   resolved = tickets whose ResolvedDate falls in [from, to), broken down by ClosureCode
-//   inQueue  = CURRENT open tickets (Status in OPEN_STATUSES), as a live snapshot (not window-bound)
+// ---- Handover Report — the last 12 hours of the LATEST UPLOADED FILE (timezones ignored) ----
+// Anchor = the newest timestamp present in that file: max over CreateDate / ResolvedDate /
+// LastUpdatedDate / LastUpdatedConversationDate, parsed exactly as the importer stores them (ISO, UTC).
+// Window = [anchor - 12h, anchor] (both ends inclusive). Items:
+//   created         = file tickets whose CreateDate is in the window
+//   stationRequests = those created tickets carrying a 'Station Request' label (comma-separated Labels)
+//   resolvedSplit   = file tickets Resolved/Closed with ResolvedDate in the window:
+//                       autosim = resolved by the AutoSIM identity (perfIsAutosimResolver)
+//                       rule    = not AutoSIM, ClosureCode Immediately Resolved / Automatically Closed
+//   inQueue / queueByStatus = CURRENT open tickets in ticket_docs (live snapshot, not window-bound)
+//   noEmt           = those open tickets whose Title says "no emt" (space / - / _ / nothing between)
+// The file-derived part is cached per stored file; the live queue part is read on every request.
+const HANDOVER_CACHE_PREFIX = 'handover:v2:';
+const HANDOVER_WINDOW_MS = 12 * 3600 * 1000;
+const HANDOVER_ANCHOR_FIELDS = ['CreateDate', 'ResolvedDate', 'LastUpdatedDate', 'LastUpdatedConversationDate'];
+const HANDOVER_NO_EMT_RE = /no[\s_-]*emt/i;
+const HANDOVER_RESOLVED_SET = new Set(['resolved', 'closed']);
+// 'Station Request' label, case-insensitive and trimmed; also accepts '#station-request' / 'station_request'.
+function handoverIsStationLabel(l) {
+  return String(l == null ? '' : l).trim().replace(/^#/, '').replace(/[\s_-]+/g, ' ').toLowerCase() === 'station request';
+}
+function handoverTs(v) { const s = String(v == null ? '' : v).trim(); return s ? new Date(s).getTime() : NaN; }
+function handoverFromFile(rows) {
+  // One row per ticket (ShortId, else IssueId — the importer's key); a later row replaces an earlier one.
+  const bySid = new Map();
+  (rows || []).forEach(r => { const sid = String(r.ShortId || r.IssueId || '').trim(); if (sid) bySid.set(sid, r); });
+  const tix = Array.from(bySid.values());
+  let anchor = NaN, anchorField = null;
+  tix.forEach(r => HANDOVER_ANCHOR_FIELDS.forEach(f => {
+    const t = handoverTs(r[f]);
+    if (!isNaN(t) && (isNaN(anchor) || t > anchor)) { anchor = t; anchorField = f; }
+  }));
+  if (isNaN(anchor)) return { anchor: null, anchorField: null, from: null, to: null, created: 0, stationRequests: 0, stationLabels: [], resolvedSplit: { autosim: 0, rule: 0 } };
+  const from = anchor - HANDOVER_WINDOW_MS;
+  const inWin = (v) => { const t = handoverTs(v); return !isNaN(t) && t >= from && t <= anchor; };
+  let created = 0, stationRequests = 0, autosim = 0, rule = 0;
+  const stationLabels = new Set();
+  tix.forEach(r => {
+    if (inWin(r.CreateDate)) {
+      created++;
+      const hits = String(r.Labels || '').split(',').map(x => x.trim()).filter(handoverIsStationLabel);
+      if (hits.length) { stationRequests++; hits.forEach(x => stationLabels.add(x)); }
+    }
+    if (HANDOVER_RESOLVED_SET.has(String(r.Status || '').trim().toLowerCase()) && inWin(r.ResolvedDate)) {
+      if (perfIsAutosimResolver(r.ResolvedByIdentity)) autosim++;
+      else if (perfIsRuleClosure(r.ClosureCode)) rule++;
+    }
+  });
+  return {
+    anchor: new Date(anchor).toISOString(), anchorField,
+    from: new Date(from).toISOString(), to: new Date(anchor).toISOString(),
+    created, stationRequests, stationLabels: Array.from(stationLabels), resolvedSplit: { autosim, rule },
+  };
+}
 app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
   try {
-    const from = new Date(String(req.query.from || ''));
-    const to = new Date(String(req.query.to || ''));
-    if (isNaN(from) || isNaN(to) || from >= to) {
-      return res.status(400).json({ error: 'Valid from/to ISO timestamps are required.' });
-    }
-    const coll = await getCollection(COLLECTIONS.ticketDocs);
-    const cd = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
-    const rd = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
-    const inWin = (field) => ({ $and: [{ $ne: [field, null] }, { $gte: [field, from] }, { $lt: [field, to] }] });
-    const RESOLVED_SET = ['Resolved', 'Closed'];
-
-    // 1) Created in-window — pull Title + Labels so we can flag No-EMT / Station Request / Appeal.
-    const createdDocs = await coll.aggregate([
-      { $project: { cd, Title: 1, Labels: 1 } },
-      { $match: { $expr: inWin('$cd') } },
-    ]).toArray();
-    const created = createdDocs.length;
-    let noEmt = 0, stationReq = 0, appeal = 0;
-    // Station Request = the "Station Request" label in the comma-separated Labels string (case-insensitive).
-    const STATION_RE = /station\s*request/i;
-    createdDocs.forEach(t => {
-      const title = String(t.Title || ''), labels = String(t.Labels || '');
-      if (hasNoEmt(title, labels)) noEmt++;
-      if (STATION_RE.test(labels)) stationReq++;
-      if (perfIsAppeal(t)) appeal++;            // Title contains "appeal" (same rule as Performance)
-    });
-
-    // 2) Resolved in-window, grouped by ClosureCode (blank -> "Unspecified"). Also, within the
-    //    "Successful" bucket, count Address Exclusion / Address Depri(oritization) resolutions
-    //    (matched against RootCause / RootCauseDetails, case-insensitive).
-    const resolvedRows = await coll.aggregate([
-      { $project: {
-        rd, Status: 1,
-        cc: { $trim: { input: { $ifNull: ['$ClosureCode', ''] } } },
-        rctext: { $toLower: { $concat: [ { $ifNull: ['$RootCause', ''] }, ' ', { $ifNull: ['$RootCauseDetails', ''] } ] } },
-        resolver: { $toLower: { $ifNull: ['$ResolvedByIdentity', ''] } },
-        resolverRaw: { $ifNull: ['$ResolvedByIdentity', ''] },
-      } },
-      { $match: { Status: { $in: RESOLVED_SET }, $expr: inWin('$rd') } },
-      { $project: {
-        code: { $cond: [{ $eq: ['$cc', ''] }, 'Unspecified', '$cc'] },
-        rctext: 1, resolver: 1, resolverRaw: 1,
-      } },
-    ]).toArray();
-    const resolved = resolvedRows.length;
-    const ccMap = {};
-    const ADDR_RE = /address\s*(exclusion|depri)/i;   // "Address Exclusion" OR "Address Depri*"
-    let successfulAddr = 0, successful = 0, immediatelyResolved = 0;
-    let immByAutosim = 0, immByAgentRule = 0;          // split of "Immediately Resolved"
-    // Exclusive resolution split for the handover bars (each resolved ticket in at most one):
-    //   AutoSIM resolver (any code) -> Rule closure (Immediately Resolved / Automatically Closed) -> Successful.
-    let resByAutosim = 0, resByRule = 0, resSuccessful = 0;
-    resolvedRows.forEach(r => {
-      if (perfIsAutosimResolver(r.resolverRaw)) resByAutosim++;
-      else if (perfIsRuleClosure(r.code)) resByRule++;
-      else if (String(r.code || '').toLowerCase() === 'successful') resSuccessful++;
-      const code = r.code || 'Unspecified';
-      ccMap[code] = (ccMap[code] || 0) + 1;
-      const codeL = code.toLowerCase();
-      if (codeL === 'successful') { successful++; if (ADDR_RE.test(String(r.rctext || ''))) successfulAddr++; }
-      if (codeL === 'immediately resolved') {
-        immediatelyResolved++;
-        if (/autosim/i.test(String(r.resolver || ''))) immByAutosim++; else immByAgentRule++;
+    const { meta } = await eirLatestFileMeta();
+    let fromFile = null;
+    if (meta) {
+      const key = HANDOVER_CACHE_PREFIX + meta._id;
+      fromFile = getCachedReport(key);
+      if (!fromFile) {
+        const filesColl = await getCollection(COLLECTIONS.uploadFiles);
+        const doc = await filesColl.findOne({ _id: meta._id }, { projection: { text: 1 } });
+        fromFile = handoverFromFile(parseCsv(doc && doc.text));
+        pruneCachedReports(HANDOVER_CACHE_PREFIX, 1);
+        setCachedReport(key, fromFile);
       }
-    });
-    const closureCodes = Object.keys(ccMap).map(k => ({ code: k, count: ccMap[k] })).sort((a, b) => b.count - a.count);
+    }
 
-    // 3) Current in-queue (open) snapshot — across all quarters, broken down by status.
-    const queueRows = await coll.aggregate([
-      { $match: { Status: { $in: OPEN_STATUSES } } },
-      { $group: { _id: '$Status', n: { $sum: 1 } } },
-    ]).toArray();
+    // Current in-queue (open) snapshot — across all quarters, broken down by status, plus No EMT titles.
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const openDocs = await coll.find({ Status: { $in: OPEN_STATUSES } }, { projection: { _id: 0, Status: 1, Title: 1 } }).toArray();
     const queueByStatus = { 'Assigned': 0, 'Work In Progress': 0, 'Researching': 0, 'Pending': 0 };
-    queueRows.forEach(r => { if (queueByStatus[r._id] != null) queueByStatus[r._id] = r.n || 0; });
-    const inQueue = queueRows.reduce((s, r) => s + (r.n || 0), 0);
-
-    res.json({
-      from: from.toISOString(), to: to.toISOString(),
-      created, resolved, inQueue, closureCodes,
-      // Resolved split for the chart. Immediately Resolved splits into Agent/Rule vs AutoSIM.
-      immediatelyResolved, immediatelyByAgentRule: immByAgentRule, immediatelyByAutosim: immByAutosim,
-      successful,
-      // Within "Successful": Address Exclusion / Address Depri resolutions.
-      successfulAddressActions: successfulAddr,
-      // Created-window flags.
-      createdFlags: { noEmt, stationRequest: stationReq, appeal },
-      // Current open queue broken down by status.
-      queueByStatus,
-      // Handover bars (group 4): exclusive split of the resolved-in-window tickets.
-      resolvedSplit: { autosim: resByAutosim, rule: resByRule, successful: resSuccessful },
+    let noEmt = 0;
+    openDocs.forEach(t => {
+      if (queueByStatus[t.Status] != null) queueByStatus[t.Status]++;
+      if (HANDOVER_NO_EMT_RE.test(String(t.Title || ''))) noEmt++;
     });
+
+    res.json(Object.assign({
+      noFile: !meta,
+      file: meta ? { id: meta._id, name: meta.fileName || '', uploadedAt: meta.at || meta._id } : null,
+      inQueue: openDocs.length, queueByStatus, noEmt,
+    }, fromFile || { anchor: null, anchorField: null, from: null, to: null, created: 0, stationRequests: 0, stationLabels: [], resolvedSplit: { autosim: 0, rule: 0 } }));
   } catch (e) {
     res.status(500).json({ error: 'Could not build the handover report.' });
   }

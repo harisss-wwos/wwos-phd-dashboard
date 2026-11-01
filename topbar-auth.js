@@ -111,6 +111,149 @@
       + '.tb-loader{position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:3200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}'
       + '.tb-loader .sp{width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite}'
       + '.tb-loader p{color:#1b2026;font-weight:600}'
+      // Login dialog (.tbl-*): navy hero header + white body. Shared by #tbLoginModal, index.html's
+      // #loginModal and app.js's legacy login popup. Two-class selectors + !important so the generic
+      // .modal/.tb-modal/input rules in theme.css, app-light.css and home-light.css can't override it.
+      + 'div.tbl-bg{position:fixed;inset:0;z-index:3000;align-items:center;justify-content:center;padding:20px;background:rgba(9,14,26,.72)!important;-webkit-backdrop-filter:blur(6px) saturate(120%);backdrop-filter:blur(6px) saturate(120%);animation:tblFade .18s ease-out}'
+      + '.tbl-bg .tbl-card{position:relative;width:min(416px,100%)!important;max-width:100%!important;min-width:0!important;max-height:calc(100vh - 40px);overflow:auto;padding:0!important;margin:0;background:#fff!important;color:#1b2026!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;box-shadow:0 30px 70px -22px rgba(5,10,20,.85),0 2px 8px -2px rgba(5,10,20,.35)!important;font-family:inherit;text-align:left;animation:tblPop .22s cubic-bezier(.2,.8,.25,1)}'
+      + '.tbl-card .tbl-head{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;padding:22px 24px 20px 28px;color:#e9edf3;background:radial-gradient(120% 170% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);border-bottom:1px solid rgba(236,114,17,.35)}'
+      + '.tbl-card .tbl-head::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:24px 24px;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 85%);mask-image:linear-gradient(90deg,transparent 25%,#000 85%)}'
+      + '.tbl-card .tbl-head::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,#ec7211)}'
+      + '.tbl-card .tbl-head > *{position:relative}'
+      + '.tbl-card .tbl-head-ic{width:42px;height:42px;border-radius:11px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}'
+      + '.tbl-card .tbl-head-tx{min-width:0;flex:1 1 auto}'
+      + '.tbl-card .tbl-eyebrow{font-size:.66em;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#ffb26b;margin:0 0 4px;line-height:1.2}'
+      + '.tbl-card h2.tbl-title{margin:0!important;padding:0;color:#fff!important;font-size:1.45em!important;font-weight:800!important;letter-spacing:-.4px;line-height:1.1;text-transform:none}'
+      + '.tbl-card p.tbl-sub{flex:1 1 100%;margin:2px 0 0!important;color:rgba(233,237,243,.82)!important;font-size:.86em!important;line-height:1.5}'
+      + '.tbl-card .tbl-body{padding:20px 24px 22px}'
+      + '.tbl-card label.tbl-label{display:block;margin:0 0 6px!important;color:#2a3340!important;font-size:.8em!important;font-weight:700!important;letter-spacing:.2px}'
+      + '.tbl-card .tbl-field{position:relative;margin-bottom:14px}'
+      + '.tbl-card .tbl-field + .tbl-caps{margin-top:-6px}'
+      + '.tbl-card .tbl-fic{position:absolute;left:13px;top:50%;transform:translateY(-50%);display:inline-flex;color:#7b8794;pointer-events:none;transition:color .15s}'
+      + '.tbl-card .tbl-field:focus-within .tbl-fic{color:#c2570a}'
+      + '.tbl-card input.tbl-input{display:block;width:100%!important;height:44px!important;margin:0!important;padding:0 14px 0 40px!important;background:#f7f9fb!important;color:#1b2026!important;border:1px solid #cdd4db!important;border-radius:10px!important;font-size:.95em!important;font-family:inherit;box-shadow:none!important;outline:none!important;transition:border-color .15s,box-shadow .15s,background .15s}'
+      + '.tbl-card .tbl-pw input.tbl-input{padding-right:48px!important}'
+      + '.tbl-card input.tbl-input::placeholder{color:#8a94a2!important}'
+      + '.tbl-card input.tbl-input:hover{border-color:#aeb8c2!important}'
+      + '.tbl-card input.tbl-input:focus{background:#fff!important;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.22)!important}'
+      + '.tbl-card button.tbl-eye{position:absolute;top:50%;right:5px;left:auto;transform:translateY(-50%);width:34px;height:34px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:8px;color:#5c6773;cursor:pointer}'
+      + '.tbl-card button.tbl-eye:hover{background:#eef1f4;color:#c2570a}'
+      + '.tbl-card button.tbl-eye[aria-pressed="true"]{color:#c2570a}'
+      + '.tbl-card .tbl-caps{display:flex;align-items:center;gap:7px;margin:0 0 14px;padding:6px 10px;border-radius:8px;background:#fff3e8;border:1px solid #f7c99c;color:#8a3a00;font-size:.78em;font-weight:700}'
+      + '.tbl-card .tbl-caps[hidden]{display:none}'
+      + '.tbl-card label.tbl-check{position:relative;display:inline-flex!important;align-items:center;gap:10px;margin:2px 0 0!important;color:#2a3340!important;font-size:.86em!important;font-weight:600!important;cursor:pointer;user-select:none}'
+      + '.tbl-card .tbl-check input{position:absolute;left:0;top:50%;width:18px!important;height:18px!important;margin:-9px 0 0!important;opacity:0;cursor:pointer}'
+      + '.tbl-card .tbl-box{width:18px;height:18px;flex-shrink:0;border-radius:5px;border:1.5px solid #9aa6b1;background:#fff center/12px no-repeat;transition:background-color .15s,border-color .15s,box-shadow .15s}'
+      + '.tbl-card .tbl-check:hover .tbl-box{border-color:#ec7211}'
+      + '.tbl-card .tbl-check input:checked + .tbl-box{background-color:#c2570a;border-color:#c2570a;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23fff%27 stroke-width=%273.4%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%2720 6 9 17 4 12%27/%3E%3C/svg%3E")}'
+      + '.tbl-card .tbl-check input:focus-visible + .tbl-box{outline:3px solid #f0a35a;outline-offset:2px}'
+      + '.tbl-card .tbl-err{position:relative;display:none;margin:16px 0 0!important;padding:10px 12px 10px 38px;border-radius:10px;background:#fdecec;border:1px solid #f5c2c0;color:#b42318!important;font-size:.85em;font-weight:600;line-height:1.45}'
+      + '.tbl-card .tbl-err::before{content:"";position:absolute;left:12px;top:11px;width:17px;height:17px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23000%27 stroke-width=%272.2%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2710%27/%3E%3Cline x1=%2712%27 y1=%277.5%27 x2=%2712%27 y2=%2712.5%27/%3E%3Cline x1=%2712%27 y1=%2716.5%27 x2=%2712.01%27 y2=%2716.5%27/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23000%27 stroke-width=%272.2%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2710%27/%3E%3Cline x1=%2712%27 y1=%277.5%27 x2=%2712%27 y2=%2712.5%27/%3E%3Cline x1=%2712%27 y1=%2716.5%27 x2=%2712.01%27 y2=%2716.5%27/%3E%3C/svg%3E") center/contain no-repeat}'
+      + '.tbl-card .tbl-actions{display:flex;flex-direction:column;gap:8px;margin-top:20px}'
+      // White on #c2570a..#a94a05 keeps >=4.5:1 contrast (the brighter #ec7211 is only ~3:1 with white text).
+      + '.tbl-card button.tbl-submit,.tbl-card button.tbl-cancel{width:100%;height:44px;margin:0!important;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:10px!important;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer;transition:filter .15s,box-shadow .15s,background .15s,border-color .15s,color .15s,transform .1s}'
+      + '.tbl-card button.tbl-submit,.tbl-card button.tbl-cancel{text-transform:none!important}'
+      + '.tbl-card button.tbl-submit{background:linear-gradient(180deg,#c2570a,#a94a05)!important;color:#fff!important;border:1px solid #9a4100!important;box-shadow:0 10px 22px -12px rgba(236,114,17,.9),inset 0 1px 0 rgba(255,255,255,.18)}'
+      + '.tbl-card button.tbl-submit:hover:not(:disabled){filter:brightness(1.08)}'
+      + '.tbl-card button.tbl-submit:active:not(:disabled){transform:translateY(1px)}'
+      + '.tbl-card button.tbl-submit:disabled{cursor:progress;filter:saturate(.8);opacity:.88}'
+      + '.tbl-card button.tbl-submit:disabled::before{content:"";width:16px;height:16px;flex-shrink:0;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:tbspin .7s linear infinite}'
+      + '.tbl-card button.tbl-cancel{background:transparent!important;color:#2a3340!important;border:1px solid #cdd4db!important;height:42px}'
+      + '.tbl-card button.tbl-cancel:hover{background:#f5f6f8!important;border-color:#9aa6b1!important;color:#1b2026!important}'
+      + '.tbl-card :is(button,a):focus-visible{outline:3px solid #f0a35a!important;outline-offset:2px}'
+      + '.tbl-card .tbl-note{margin:14px 0 0;color:#5c6773;font-size:.76em;line-height:1.45;text-align:center}'
+      // Log-out confirm (#tbLogoutConfirm) variant: red icon tile, message + signed-in chip, and a
+      // ghost "No, Stay" + danger "Yes, Log Out" pair (row on desktop, stacked safe-first < 480px).
+      + '.tbl-card .tbl-head-ic.tbl-ic-danger{background:rgba(239,68,68,.16);color:#fca5a5;border-color:rgba(239,68,68,.5)}'
+      + '.tbl-card p.tbl-msg{margin:0!important;color:#3d4753!important;font-size:.92em!important;line-height:1.55}'
+      + '.tbl-card .tbl-who{display:flex;align-items:center;gap:10px;margin:14px 0 0;padding:8px 12px;border:1px solid #e2e7eb;border-radius:10px;background:#f7f9fb}'
+      + '.tbl-card .tbl-who-av{width:32px;height:32px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;border-radius:50%}'
+      + '.tbl-card .tbl-who-av > *{max-width:32px;max-height:32px}'
+      + '.tbl-card .tbl-who-tx{min-width:0;display:flex;flex-direction:column;line-height:1.3}'
+      + '.tbl-card .tbl-who-nm{color:#1b2026;font-size:.88em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      + '.tbl-card .tbl-who-sub{color:#5c6773;font-size:.76em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      + '.tbl-card .tbl-actions.tbl-row{flex-direction:row;justify-content:flex-end;gap:10px}'
+      + '.tbl-card .tbl-row button.tbl-cancel,.tbl-card .tbl-row button.tbl-danger{width:auto;min-width:124px;height:42px}'
+      + '.tbl-card button.tbl-danger{margin:0!important;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:10px!important;font-family:inherit;font-size:.95em;font-weight:700;text-transform:none!important;cursor:pointer;background:linear-gradient(180deg,#d92d20,#b42318)!important;color:#fff!important;border:1px solid #a51f14!important;box-shadow:0 10px 22px -12px rgba(217,45,32,.9),inset 0 1px 0 rgba(255,255,255,.18);transition:filter .15s,transform .1s}'
+      + '.tbl-card button.tbl-danger:hover:not(:disabled){filter:brightness(1.08)}'
+      + '.tbl-card button.tbl-danger:active:not(:disabled){transform:translateY(1px)}'
+      + '.tbl-card button.tbl-danger:disabled{cursor:progress;filter:saturate(.8);opacity:.88}'
+      + '.tbl-card button.tbl-danger:disabled::before{content:"";width:16px;height:16px;flex-shrink:0;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:tbspin .7s linear infinite}'
+      + '@media(max-width:479px){.tbl-card .tbl-actions.tbl-row{flex-direction:column}.tbl-card .tbl-row button.tbl-cancel,.tbl-card .tbl-row button.tbl-danger{width:100%;height:44px}}'
+      + '@keyframes tblFade{from{opacity:0}to{opacity:1}}'
+      + '@keyframes tblPop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}'
+      + '@media(max-width:479px){div.tbl-bg{padding:12px}.tbl-bg .tbl-card{width:100%!important;max-height:calc(100vh - 24px)}.tbl-card .tbl-head{padding:18px 18px 16px 22px}.tbl-card .tbl-body{padding:18px 18px 20px}}'
+      + '@media(prefers-reduced-motion:reduce){div.tbl-bg,.tbl-bg .tbl-card{animation:none}.tbl-card *{transition:none!important}.tbl-card button.tbl-submit:disabled::before,.tbl-card button.tbl-danger:disabled::before{animation-duration:1.6s}}'
+      // "Upload new data" flow dialogs (.tbu-*): the same .tbl-* shell widened to 70vw (94vw < 720px),
+      // plus a 4-step header stepper, column chips, progress bars, KPI tiles and callouts.
+      + '.tbl-bg .tbl-card.tbu-card{width:70vw!important;max-width:none!important;min-width:320px!important}'
+      + '.tbl-card.tbu-card:focus{outline:none}'
+      + '.tbl-card .tbl-row button.tbl-submit{width:auto;min-width:168px;height:42px}'
+      + '.tbu-card p.tbl-sub b{color:#fff}'
+      + '.tbu-card .tbl-head-ic.tbu-ic-ok{background:rgba(34,197,94,.16);color:#86efac;border-color:rgba(34,197,94,.5)}'
+      + '.tbu-card .tbu-spin{display:block;width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(255,178,107,.28);border-top-color:#ffb26b;animation:tbspin .9s linear infinite}'
+      + '.tbu-card ol.tbu-steps{flex:1 1 100%;display:flex;align-items:center;margin:8px 0 0;padding:0;list-style:none}'
+      + '.tbu-steps li{display:flex;align-items:center;gap:8px;flex:1 1 0;min-width:0;color:rgba(233,237,243,.66);font-size:.74em;font-weight:700;letter-spacing:.3px;white-space:nowrap}'
+      + '.tbu-steps li:last-child{flex:0 0 auto}'
+      + '.tbu-steps li:not(:last-child)::after{content:"";flex:1 1 auto;min-width:12px;height:2px;margin:0 10px 0 2px;border-radius:2px;background:rgba(255,255,255,.16)}'
+      + '.tbu-steps li.is-done:not(:last-child)::after{background:linear-gradient(90deg,#22c55e,rgba(34,197,94,.45))}'
+      + '.tbu-steps .tbu-dot{width:22px;height:22px;flex-shrink:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.95em;font-weight:800;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.24);color:rgba(233,237,243,.85)}'
+      + '.tbu-steps .tbu-st-l{overflow:hidden;text-overflow:ellipsis}'
+      + '.tbu-steps li.is-done{color:#bbf7d0}'
+      + '.tbu-steps li.is-done .tbu-dot{background:#16a34a;border-color:#22c55e;color:#fff}'
+      + '.tbu-steps li.is-current{color:#fff}'
+      + '.tbu-steps li.is-current .tbu-dot{background:#ec7211;border-color:#ffb26b;color:#fff;box-shadow:0 0 0 4px rgba(236,114,17,.25)}'
+      + '.tbu-steps li.is-skip{color:rgba(233,237,243,.5)}'
+      + '.tbu-steps li.is-skip .tbu-dot{background:transparent;border-style:dashed;color:rgba(233,237,243,.6)}'
+      + '.tbu-steps li.is-err{color:#fecaca}'
+      + '.tbu-steps li.is-err .tbu-dot{background:#d92d20;border-color:#f87171;color:#fff;box-shadow:0 0 0 4px rgba(239,68,68,.22)}'
+      + '.tbu-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}'
+      + '.tbu-card p.tbu-lead{margin:0 0 14px!important;color:#3d4753!important;font-size:.93em!important;line-height:1.6}'
+      + '.tbu-card p.tbu-sec{margin:16px 0 8px!important;color:#5c6773!important;font-size:.7em!important;font-weight:800;letter-spacing:1.2px;text-transform:uppercase}'
+      + '.tbu-card .tbu-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}'
+      + '.tbu-card .tbu-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#f2f4f7;border:1px solid #e2e7eb;color:#3d4753;font-size:.76em;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}'
+      + '.tbu-card .tbu-chip .ic{color:#5c6773}'
+      + '.tbu-card .tbu-chip.tbu-chip-new{background:#fff4d6;border-color:#f6d58a;color:#7a4a00}'
+      + '.tbu-card ul.tbu-cols{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}'
+      + '.tbu-cols li{display:flex;align-items:center;gap:9px;min-width:0;padding:7px 10px;border:1px solid #e6eaee;border-radius:9px;background:#f9fafb}'
+      + '.tbu-cols .tbu-ck{width:20px;height:20px;flex-shrink:0;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:#e7f6ec;color:#15803d}'
+      + '.tbu-cols .tbu-nm{min-width:0;font-weight:700;color:#1b2026;font-size:.86em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.tbu-cols code.tbu-key{margin-left:auto;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74em;color:#475467;background:#fff;border:1px solid #e2e7eb;border-radius:6px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.tbu-card .tbu-new{flex-shrink:0;background:#fff4d6;color:#7a4a00;border:1px solid #f6d58a;font-size:.62em;font-weight:800;padding:2px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.5px;line-height:1.3}'
+      + '.tbu-cols li.is-miss{background:#fef3f2;border-color:#fecdca}'
+      + '.tbu-cols li.is-miss .tbu-ck{background:#fee4e2;color:#b42318}'
+      + '.tbu-cols li.is-miss .tbu-nm{color:#b42318}'
+      + '.tbu-cols .tbu-miss-tag{flex-shrink:0;font-size:.64em;font-weight:800;color:#b42318;text-transform:uppercase;letter-spacing:.4px}'
+      + '.tbu-card .tbu-callout{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;padding:11px 14px;border-radius:10px;font-size:.86em;line-height:1.5}'
+      + '.tbu-card .tbu-callout > .ic{margin-top:2px}'
+      + '.tbu-card .tbu-callout.is-info{background:#eef6fb;border:1px solid #c7e1f0;color:#164e6e}'
+      + '.tbu-card .tbu-callout.is-err{background:#fef3f2;border:1px solid #fecdca;color:#912018}'
+      + '.tbu-card .tbu-callout.is-ok{background:#ecfdf3;border:1px solid #bbe7cc;color:#14532d}'
+      + '.tbu-card .tbu-callout b{color:inherit}'
+      + '.tbu-card .tbu-miss-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}'
+      + '.tbu-card .tbu-miss-list code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;font-weight:700;color:#b42318;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:2px 7px}'
+      + '.tbu-card p.tbu-status{display:flex;align-items:center;gap:10px;margin:0!important;color:#3d4753!important;font-size:.92em!important;line-height:1.5;min-height:1.5em}'
+      + '.tbu-card .tbu-prog{margin-top:16px}'
+      + '.tbu-card .tbu-prog-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:8px}'
+      + '.tbu-card .tbu-pct{font-size:2.3em;font-weight:800;line-height:1;color:#1b2026;letter-spacing:-1px;font-variant-numeric:tabular-nums}'
+      + '.tbu-card .tbu-track{position:relative;height:12px;border-radius:999px;background:#eef1f4;border:1px solid #e2e6ea;overflow:hidden}'
+      + '.tbu-card .tbu-bar{height:100%;width:0;border-radius:999px;background-color:#ec7211;background-image:linear-gradient(45deg,rgba(255,255,255,.24) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.24) 50%,rgba(255,255,255,.24) 75%,transparent 75%,transparent),linear-gradient(90deg,#ec7211,#f59e0b 45%,#16a34a);background-size:16px 16px,100% 100%;transition:width .35s ease;animation:tbuStripes .8s linear infinite}'
+      + '@keyframes tbuStripes{from{background-position:0 0,0 0}to{background-position:16px 0,0 0}}'
+      + '.tbu-card .tbu-prog-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin-top:12px}'
+      + '.tbu-card .tbu-tick{display:inline-flex;align-items:center;gap:8px;color:#5c6773;font-size:.78em;font-weight:700}'
+      + '.tbu-card .tbu-tick code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.08em;font-weight:700;letter-spacing:.4px;color:#0b5c80;background:#eef6fb;border:1px solid #c7e1f0;border-radius:6px;padding:3px 8px;min-width:12ch;text-align:center;transition:opacity .15s}'
+      + '.tbu-card .tbu-hint{color:#667085;font-size:.78em}'
+      + '.tbu-card .tbu-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}'
+      + '.tbu-card .tbu-kpi{min-width:0;padding:12px 14px 13px;border:1px solid #e6eaee;border-top:3px solid #98a2b3;border-radius:10px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.05)}'
+      + '.tbu-card .tbu-kpi-n{font-size:1.9em;font-weight:800;line-height:1.1;color:#1b2026;font-variant-numeric:tabular-nums;letter-spacing:-.5px}'
+      + '.tbu-card .tbu-kpi-l{margin-top:4px;color:#5c6773;font-size:.76em;font-weight:700;line-height:1.35}'
+      + '.tbu-card .tbu-kpi.is-add{border-top-color:#16a34a;background:linear-gradient(180deg,#f0fdf4,#fff 70%)}.tbu-card .tbu-kpi.is-add .tbu-kpi-n{color:#15803d}'
+      + '.tbu-card .tbu-kpi.is-upd{border-top-color:#f59e0b;background:linear-gradient(180deg,#fffbeb,#fff 70%)}.tbu-card .tbu-kpi.is-upd .tbu-kpi-n{color:#b45309}'
+      + '.tbu-card .tbu-kpi.is-same{border-top-color:#475569;background:linear-gradient(180deg,#f8fafc,#fff 70%)}.tbu-card .tbu-kpi.is-same .tbu-kpi-n{color:#475569}'
+      + '@media(max-width:719px){div.tbl-bg.tbu-bg{padding:3vw}.tbl-bg .tbl-card.tbu-card{width:94vw!important;min-width:0!important;max-height:calc(100vh - 6vw)}.tbu-card .tbu-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}'
+      + '@media(max-width:560px){.tbu-card ul.tbu-cols{grid-template-columns:1fr}.tbu-steps li:not(.is-current):not(.is-err) .tbu-st-l{display:none}.tbu-steps li.is-current,.tbu-steps li.is-err{flex:0 0 auto}.tbu-card .tbu-pct{font-size:1.9em}}'
+      + '@media(max-width:479px){.tbl-card .tbl-row button.tbl-submit{width:100%;height:44px}}'
+      + '@media(prefers-reduced-motion:reduce){.tbu-card .tbu-bar{animation:none}.tbu-card .tbu-spin{animation-duration:2.4s}}'
       // The old sticky title bar is retired: navigation lives in the left rail and the profile avatar
       // floats top-right. Hide the bar and drop the top padding pages reserved for it.
       + '.tb-topbar{display:none!important}'
@@ -1430,7 +1573,7 @@
     LastUpdatedConversationDate: 'Last Comment Date', LastUpdatedDate: 'Last Updated', Labels: 'Labels',
     RequesterIdentity: 'Requester', Tags: 'Tags'
   };
-  function tbNewTag(c) { return TB_NEW_COLUMNS[c] ? ' <span style="background:#fbbf24;color:#000;font-size:.66em;font-weight:800;padding:1px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle">new</span>' : ''; }
+  function tbNewTag(c) { return TB_NEW_COLUMNS[c] ? '<span class="tbu-new">New</span>' : ''; }
   function tbMissingColumns(text) {
     var cells = [], cur = '', inQ = false;
     for (var i = 0; i < text.length; i++) { var ch = text[i];
@@ -1446,30 +1589,32 @@
   // Proceed opens the file picker.
   window.tbUploadIntro = function (target) {
     var inputId = (target === 'standalone') ? 'uploadFileStandalone' : 'uploadFile';
+    var nNew = 0;
     var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
       var disp = TB_COLUMN_DISPLAY_NAMES[c] || c;
-      return '<li style="padding:4px 0;color:#1b2026;display:flex;align-items:center;gap:8px">' +
-        '<span style="color:#16a34a">•</span>' +
-        '<span style="font-weight:600;color:#1b2026">' + disp + '</span>' +
-        '<span style="font-family:monospace;font-size:.82em;color:#5c6773">(' + c + ')</span>' +
-        tbNewTag(c) + '</li>';
+      if (TB_NEW_COLUMNS[c]) nNew++;
+      return '<li><span class="tbu-ck" aria-hidden="true">' + ic('check', 13) + '</span>' +
+        '<span class="tbu-nm">' + disp + '</span>' +
+        '<code class="tbu-key">' + c + '</code>' + tbNewTag(c) + '</li>';
     }).join('');
-    var ov = document.createElement('div');
-    ov.id = 'tbUploadIntro';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-      '<h2 style="color:#1b2026;font-size:1.2em;margin-bottom:6px">Before you upload</h2>' +
-      '<p style="color:#5c6773;font-size:.9em;margin-bottom:14px">For the file to be considered, the CSV <b style="color:#1b2026">must include all of these columns</b>. If any is missing, the upload will be blocked.</p>' +
-      '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
-      '<div style="margin-top:22px;display:flex;gap:10px;justify-content:flex-end">' +
-        '<button class="tb-mbtn sec" id="tbUploadCancel">Cancel</button>' +
-        '<button class="tb-mbtn" id="tbUploadProceed">Proceed &amp; choose file</button>' +
-      '</div></div>';
-    document.body.appendChild(ov);
-    document.getElementById('tbUploadCancel').onclick = function () { ov.remove(); };
+    var close = function () { tbRemove('tbUploadIntro'); };
+    tbFlowOverlay('tbUploadIntro', tbuCard({
+      id: 'tbUploadIntro', step: 1, icon: ic('upload', 20), title: 'Before you upload',
+      sub: 'For the file to be considered, the CSV <b>must include all of these columns</b>. If any is missing, the upload will be blocked.',
+      body:
+        '<div class="tbu-meta">' +
+          '<span class="tbu-chip">' + ic('check-circle', 13) + TB_REQUIRED_COLUMNS.length + ' required columns</span>' +
+          (nNew ? '<span class="tbu-chip tbu-chip-new">' + nNew + ' new</span>' : '') +
+        '</div>' +
+        '<ul class="tbu-cols" aria-label="Required CSV columns">' + listHtml + '</ul>' +
+        '<div class="tbl-actions tbl-row">' +
+          '<button type="button" class="tbl-cancel" id="tbUploadCancel">Cancel</button>' +
+          '<button type="button" class="tbl-submit" id="tbUploadProceed">' + ic('upload', 16) + 'Proceed &amp; Choose File</button>' +
+        '</div>'
+    }), 3400, { close: close, backdrop: close, focus: '#tbUploadProceed' });
+    document.getElementById('tbUploadCancel').onclick = close;
     document.getElementById('tbUploadProceed').onclick = function () {
-      ov.remove();
+      close();
       var inp = document.getElementById(inputId);
       if (inp) inp.click();
     };
@@ -1478,18 +1623,26 @@
   function tbShowColumnError(missing) {
     var listHtml = TB_REQUIRED_COLUMNS.map(function (c) {
       var bad = missing.indexOf(c) !== -1;
-      return '<li style="display:flex;align-items:center;gap:8px;padding:4px 0;color:' + (bad ? '#dc2626' : '#1f9d57') + '">' + (bad ? '✗' : '✓') + ' <span style="font-family:monospace;font-size:.9em">' + c + '</span>' + tbNewTag(c) + (bad ? ' <span style="color:#dc2626;font-size:.78em">(missing)</span>' : '') + '</li>';
+      var disp = TB_COLUMN_DISPLAY_NAMES[c] || c;
+      return '<li' + (bad ? ' class="is-miss"' : '') + '><span class="tbu-ck" aria-hidden="true">' + ic(bad ? 'close' : 'check', 13) + '</span>' +
+        '<span class="tbu-nm">' + disp + '</span>' +
+        '<code class="tbu-key">' + c + '</code>' + tbNewTag(c) +
+        (bad ? '<span class="tbu-miss-tag">Missing</span>' : '<span class="tbu-sr">present</span>') + '</li>';
     }).join('');
-    var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:3400;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-      '<h2 style="color:#dc2626;font-size:1.2em;margin-bottom:6px">Upload blocked — missing required columns</h2>' +
-      '<p style="color:#5c6773;font-size:.9em;margin-bottom:14px">The file is missing <b style="color:#dc2626">' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again — <b>no data was uploaded</b>.</p>' +
-      '<ul style="list-style:none;padding:0;margin:0;columns:2;column-gap:24px">' + listHtml + '</ul>' +
-      '<div style="margin-top:20px;text-align:right"><button class="tb-mbtn" onclick="this.closest(\'div[style*=fixed]\').remove()">Close</button></div>' +
-      '</div>';
-    document.body.appendChild(ov);
+    var close = function () { tbRemove('tbColErr'); };
+    tbFlowOverlay('tbColErr', tbuCard({
+      id: 'tbColErr', step: 1, state: 'err', role: 'alertdialog', icon: ic('alert', 20), iconCls: 'tbl-ic-danger',
+      title: 'Upload blocked \u2014 missing required columns', descId: 'tbColErrDesc',
+      body:
+        '<div class="tbu-callout is-err" style="margin-top:0">' + ic('alert', 16) +
+          '<div><span id="tbColErrDesc">The file is missing <b>' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again \u2014 <b>no data was uploaded</b>.</span>' +
+          '<div class="tbu-miss-list" role="list" aria-label="Missing columns">' + missing.map(function (c) { return '<code role="listitem">' + tbEsc(c) + '</code>'; }).join('') + '</div></div>' +
+        '</div>' +
+        '<p class="tbu-sec">All required columns</p>' +
+        '<ul class="tbu-cols" aria-label="Required CSV columns">' + listHtml + '</ul>' +
+        '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbColErrClose">Close</button></div>'
+    }), 3400, { close: close, backdrop: close, focus: '#tbColErrClose' });
+    document.getElementById('tbColErrClose').onclick = close;
   }
 
   // ---- In-place "Upload new data" pipeline (runs on ANY page; the page is retained) ----
@@ -1518,12 +1671,81 @@
   function tbEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
 
   // Small full-page overlay helpers for this flow.
-  function tbFlowOverlay(id, inner, z) {
+  // Shares the login dialog's .tbl-bg backdrop + focus trap / Esc / focus restore (PHDLoginUI).
+  // o: { close: Esc handler (default no-op), backdrop: backdrop-click handler, focus: selector }.
+  function tbFlowOverlay(id, inner, z, o) {
+    o = o || {};
     var ov = document.createElement('div'); ov.id = id;
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:' + (z || 3400) + ';display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.innerHTML = inner; document.body.appendChild(ov); return ov;
+    ov.className = 'tbl-bg tbu-bg';
+    ov.style.cssText = 'display:flex;z-index:' + (z || 3400);
+    ov.innerHTML = inner; document.body.appendChild(ov);
+    if (o.backdrop) ov.onclick = function (e) { if (e.target === ov) o.backdrop(); };
+    if (window.PHDLoginUI) {
+      var f = (o.focus && ov.querySelector(o.focus)) || ov.querySelector('.tbl-card');
+      window.PHDLoginUI.opened(ov, o.close || function () {}, f);
+    }
+    return ov;
   }
-  function tbRemove(id) { var el = document.getElementById(id); if (el) el.remove(); }
+  function tbRemove(id) {
+    var el = document.getElementById(id);
+    if (el) { el.remove(); if (window.PHDLoginUI) window.PHDLoginUI.closed(el); }
+  }
+
+  // 4-step header indicator. state 'err' = current step failed; 'done' = every step complete;
+  // 'skip' = steps up to `step` done, the rest skipped (e.g. "No new changes" skips Push).
+  var TBU_STEPS = ['Check columns', 'Process', 'Review', 'Push'];
+  function tbuSteps(step, state) {
+    return '<ol class="tbu-steps" aria-label="Upload steps">' + TBU_STEPS.map(function (l, i) {
+      var n = i + 1, cls = 'is-todo', cur = '';
+      if (state === 'done' || n < step || (state === 'skip' && n === step)) cls = 'is-done';
+      else if (state === 'skip') cls = 'is-skip';
+      else if (n === step) { cls = (state === 'err') ? 'is-err' : 'is-current'; cur = ' aria-current="step"'; }
+      var dot = (cls === 'is-done') ? ic('check', 12) : (cls === 'is-err' ? ic('close', 12) : (cls === 'is-skip' ? '&ndash;' : String(n)));
+      var sr = (cls === 'is-done') ? ' (done)' : (cls === 'is-err' ? ' (failed)' : '');
+      return '<li class="' + cls + '"' + cur + '><span class="tbu-dot" aria-hidden="true">' + dot + '</span>' +
+        '<span class="tbu-st-l">' + l + (cls === 'is-skip' ? ' \u00b7 skipped' : '') + (sr ? '<span class="tbu-sr">' + sr + '</span>' : '') + '</span></li>';
+    }).join('') + '</ol>';
+  }
+  // Dialog card in the .tbl-* language. o: { id, step, state, role, icon, iconCls, eyebrow, title,
+  // titleId, sub, descId, body }. With `sub` and no descId, the subtitle describes the dialog.
+  function tbuCard(o) {
+    var tid = o.titleId || (o.id + 'Title');
+    var did = o.descId || (o.sub ? o.id + 'Desc' : '');
+    return '<div class="tbl-card tbu-card" role="' + (o.role || 'dialog') + '" aria-modal="true" aria-labelledby="' + tid + '"' +
+        (did ? ' aria-describedby="' + did + '"' : '') + ' tabindex="-1">' +
+      '<div class="tbl-head">' +
+        '<span class="tbl-head-ic' + (o.iconCls ? ' ' + o.iconCls : '') + '" aria-hidden="true">' + o.icon + '</span>' +
+        '<div class="tbl-head-tx"><div class="tbl-eyebrow">' + (o.eyebrow || ('Data upload \u00b7 Step ' + o.step + ' of 4')) + '</div>' +
+          '<h2 class="tbl-title" id="' + tid + '">' + o.title + '</h2></div>' +
+        (o.sub ? '<p class="tbl-sub"' + (o.descId ? '' : ' id="' + did + '"') + '>' + o.sub + '</p>' : '') +
+        tbuSteps(o.step, o.state) +
+      '</div>' +
+      '<div class="tbl-body">' + o.body + '</div></div>';
+  }
+  // Progress block (big %, elapsed chip, role=progressbar track, ticket chip). IDs: <pfx>Pct/Bar/Ticker/Track/Elapsed.
+  function tbuProgBlock(pfx, label, hint) {
+    return '<div class="tbu-prog-top"><div class="tbu-pct" id="' + pfx + 'Pct" aria-hidden="true">0%</div>' +
+        '<span class="tbu-chip">' + ic('clock', 13) + '<span>Elapsed <span id="' + pfx + 'Elapsed">0 sec</span></span></span></div>' +
+      '<div class="tbu-track" id="' + pfx + 'Track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="' + label + ' progress">' +
+        '<div class="tbu-bar" id="' + pfx + 'Bar"></div></div>' +
+      '<div class="tbu-prog-foot"><span class="tbu-tick">Current ticket <code id="' + pfx + 'Ticker">&nbsp;</code></span>' +
+        '<span class="tbu-hint">' + hint + '</span></div>';
+  }
+  // Mirror % onto the progressbar and politely announce 25/50/75/100% milestones (not every tick).
+  function tbuProgA11y(pfx, p, label) {
+    var tr = document.getElementById(pfx + 'Track'); if (tr) tr.setAttribute('aria-valuenow', String(p));
+    var lv = document.getElementById(pfx + 'Live'); if (!lv) return;
+    var m = p >= 100 ? 100 : p >= 75 ? 75 : p >= 50 ? 50 : p >= 25 ? 25 : 0;
+    if (m > +(lv.getAttribute('data-ms') || 0)) {
+      lv.setAttribute('data-ms', String(m));
+      lv.textContent = (m === 100) ? (label + ' complete.') : (label + ' ' + m + '% complete.');
+    }
+  }
+  // Ticking "Elapsed" readout from t0; returns the interval id (clear it with the other timers).
+  function tbuElapsed(id, t0) {
+    var tick = function () { var el = document.getElementById(id); if (el) el.textContent = tbFmtDuration(Math.round((Date.now() - t0) / 1000)); };
+    tick(); return setInterval(tick, 1000);
+  }
 
   // Single delegated listener for BOTH upload inputs (app.html #uploadFile + standalone).
   document.addEventListener('change', function (e) {
@@ -1594,25 +1816,18 @@
     var missing = tbMissingColumns(csvText);
     if (missing.length) { tbShowColumnError(missing); return; }
     tbAssessAborted = false;
-    tbFlowOverlay('tbAssess',
-      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-        '<div class="sp" style="width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
-        '<p style="color:#1b2026;margin-top:20px;font-size:1.1em;font-weight:600" id="tbAssessTitle">Reading the file…</p>' +
-        '<p style="color:#5c6773;margin-top:6px;font-size:.9em" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
+    var _cancelAssess = function () { tbAssessAborted = true; tbRemove('tbAssess'); };
+    tbFlowOverlay('tbAssess', tbuCard({
+      id: 'tbAssess', step: 2, icon: '<span class="tbu-spin"></span>', titleId: 'tbAssessTitle', title: 'Reading the file…',
+      descId: 'tbAssessSub',
+      body:
+        '<p class="tbu-status" id="tbAssessSub">The data file is being processed, Please wait...</p>' +
         // Progress bar + ticket ticker (shown while the live data loads).
-        '<div id="tbAssessTimerWrap" style="display:none;margin-top:20px">' +
-          '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:5px;overflow:hidden">' +
-              '<div id="tbAssessBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:5px;transition:width .35s ease"></div>' +
-            '</div>' +
-            '<div id="tbAssessPct" style="font-size:.95em;font-weight:800;color:#1f9d57;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
-          '</div>' +
-          '<p id="tbAssessTicker" style="color:#1577a0;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
-          '<p style="color:#8a94a2;margin-top:2px;font-size:.72em">Scanning all the tickets…</p>' +
-        '</div>' +
-        '<button class="tb-mbtn sec" id="tbAssessCancel" style="margin-top:18px">Cancel</button>' +
-      '</div>');
-    document.getElementById('tbAssessCancel').onclick = function () { tbAssessAborted = true; tbRemove('tbAssess'); };
+        '<div id="tbAssessTimerWrap" class="tbu-prog" style="display:none">' + tbuProgBlock('tbAssess', 'Processing', 'Scanning all the tickets…') + '</div>' +
+        '<p class="tbu-sr" id="tbAssessLive" role="status" aria-live="polite"></p>' +
+        '<div class="tbl-actions tbl-row"><button type="button" class="tbl-cancel" id="tbAssessCancel">Cancel</button></div>'
+    }), 3400, { close: _cancelAssess, focus: '#tbAssessCancel' });
+    document.getElementById('tbAssessCancel').onclick = _cancelAssess;
     // Defer so the spinner paints before the (sync) parse + fetch.
     setTimeout(function () { tbAssess(csvText, fileMeta); }, 40);
   }
@@ -1638,7 +1853,8 @@
     var _pctEl = document.getElementById('tbAssessPct');
     var _msgEl = document.getElementById('tbAssessSub');       // reuse the sub-line for stage messages
     var _pct = 0;
-    var _setPct = function (p) { _pct = p; if (_barEl) _barEl.style.width = p + '%'; if (_pctEl) _pctEl.textContent = p + '%'; };
+    var _setPct = function (p) { _pct = p; if (_barEl) _barEl.style.width = p + '%'; if (_pctEl) _pctEl.textContent = p + '%'; tbuProgA11y('tbAssess', p, 'Processing'); };
+    var _elapsedTimer = tbuElapsed('tbAssessElapsed', _t0);   // display only
     var _setMsg = function (m) { if (_msgEl) _msgEl.textContent = m; };
     // Per-stage: [ceiling %, sec/step, message-shown-when-entering-this-stage].
     var _stages = [
@@ -1687,7 +1903,7 @@
     // answer with a 304 (empty body) — we need the full ticket payload to run the comparison.
     var live;
     try { live = await A.api('GET', '/api/live-quarter?ts=' + Date.now()); } catch (e) { live = null; }
-    clearTimeout(_progTimer); clearInterval(_ticker);         // data is here — stop the animations
+    clearTimeout(_progTimer); clearInterval(_ticker); clearInterval(_elapsedTimer);   // data is here — stop the animations
     if (_almostTimer) clearInterval(_almostTimer);
     var _assessSecs = Math.round((Date.now() - _t0) / 1000);  // total time this fetch+compare took
     // Data arrived — fill the bar straight to 100%.
@@ -1738,14 +1954,16 @@
     // No newer data at all (0 tickets with a changed LastUpdatedDate) and no new tickets
     // -> tell the user there are no new changes and let them close the upload.
     if (res.xNewer === 0 && res.zNew === 0) {
-      tbFlowOverlay('tbConfirm',
-        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-          '<div style="font-size:2em">✅</div>' +
-          '<h2 style="color:#1b2026;font-size:1.2em;margin:8px 0 8px">No new changes</h2>' +
-          '<p style="color:#5c6773;font-size:.92em;line-height:1.6">No ticket in this file has a newer <b style="color:#1b2026">LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</p>' +
-          '<div style="margin-top:22px"><button class="tb-mbtn" id="tbConfirmClose">Close</button></div>' +
-        '</div>');
-      document.getElementById('tbConfirmClose').onclick = function () { tbRemove('tbConfirm'); };
+      var _closeNone = function () { tbRemove('tbConfirm'); };
+      tbFlowOverlay('tbConfirm', tbuCard({
+        id: 'tbConfirm', step: 3, state: 'skip', role: 'alertdialog', eyebrow: 'Data upload \u00b7 Up to date',
+        icon: ic('check-circle', 20), iconCls: 'tbu-ic-ok', title: 'No new changes', descId: 'tbConfirmDesc',
+        body:
+          '<div class="tbu-callout is-ok" style="margin-top:0">' + ic('check-circle', 16) + '<div id="tbConfirmDesc">No ticket in this file has a newer <b>LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</div></div>' +
+          (res.totalRows != null ? ('<div class="tbu-meta" style="margin:12px 0 0"><span class="tbu-chip">' + ic('check', 13) + 'Tickets analysed: ' + res.totalRows + '</span></div>') : '') +
+          '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbConfirmClose">Close</button></div>'
+      }), 3400, { close: _closeNone, focus: '#tbConfirmClose' });
+      document.getElementById('tbConfirmClose').onclick = _closeNone;
       return;
     }
     // Build a plain-language summary of what the analysis found. The raw counts stay below as a
@@ -1758,8 +1976,8 @@
     var _plural = function (n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); };
     // Compose the parts of the summary sentence from whatever is non-zero.
     var _parts = [];
-    if (_add > 0) _parts.push('<b style="color:#1f9d57">' + _plural(_add, 'new ticket') + '</b> will be added');
-    if (_upd > 0) _parts.push('<b style="color:#b5680c">' + _plural(_upd, 'ticket') + '</b> will be updated');
+    if (_add > 0) _parts.push('<b style="color:#15803d">' + _plural(_add, 'new ticket') + '</b> will be added');
+    if (_upd > 0) _parts.push('<b style="color:#b45309">' + _plural(_upd, 'ticket') + '</b> will be updated');
     var _summary;
     if (_parts.length) {
       var _list = (_parts.length === 1) ? _parts[0]
@@ -1769,56 +1987,49 @@
     } else {
       _summary = 'We checked all <b style="color:#1b2026">' + _plural(_total, 'ticket') + '</b> in your file against the live database. Everything already matches — nothing needs to change.';
     }
-    tbFlowOverlay('tbConfirm',
-      '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
-          '<span style="font-size:1.4em">✅</span>' +
-          '<h2 style="color:#1b2026;font-size:1.2em;margin:0">Your file checked out</h2>' +
+    var _kpi = function (cls, n, label) { return '<div role="listitem" class="tbu-kpi ' + cls + '"><div class="tbu-kpi-n">' + n + '</div><div class="tbu-kpi-l">' + label + '</div></div>'; };
+    var _closeConfirm = function () { tbRemove('tbConfirm'); };
+    tbFlowOverlay('tbConfirm', tbuCard({
+      id: 'tbConfirm', step: 3, role: 'alertdialog', icon: ic('check-circle', 20), iconCls: 'tbu-ic-ok', title: 'Your file checked out',
+      descId: 'tbConfirmDesc tbConfirmNote',
+      body:
+        '<p class="tbu-lead" id="tbConfirmDesc">' + _summary + '</p>' +
+        '<div class="tbu-kpis" role="list" aria-label="Upload summary">' +
+          _kpi('is-total', _total, 'Tickets analyzed') +
+          _kpi('is-add', _add, 'New tickets to add') +
+          _kpi('is-upd', _upd, 'Tickets to update (field changes)') +
+          _kpi('is-same', _unchanged, 'Already up to date') +
         '</div>' +
-        '<p style="color:#3a4652;font-size:.95em;line-height:1.6;margin-bottom:16px">' + _summary + '</p>' +
-        '<div style="background:#f7f9fb;border:1px solid #e2e6ea;border-radius:5px;padding:6px 16px">' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets analyzed</span><span style="color:#1b2026;font-weight:700">' + _total + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">New tickets to add</span><span style="color:#1f9d57;font-weight:700">' + _add + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef1f4"><span style="color:#5c6773">Tickets to update (field changes)</span><span style="color:#b5680c;font-weight:700">' + _upd + '</span></div>' +
-          '<div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#5c6773">Already up to date</span><span style="color:#5c6773;font-weight:700">' + _unchanged + '</span></div>' +
-        '</div>' +
-        (res.assessSecs != null ? ('<p style="color:#8a94a2;font-size:.78em;margin-top:10px;text-align:center">Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</p>') : '') +
-        '<p style="color:#5c6773;font-size:.82em;margin-top:12px">Confirm to save these changes to the shared database.</p>' +
-        '<div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">' +
-          '<button class="tb-mbtn sec" id="tbConfirmCancel">Cancel</button>' +
-          '<button class="tb-mbtn" id="tbConfirmGo">Confirm &amp; upload</button>' +
-        '</div>' +
-      '</div>');
-    document.getElementById('tbConfirmCancel').onclick = function () { tbRemove('tbConfirm'); };
+        (res.assessSecs != null ? ('<div class="tbu-meta" style="margin:12px 0 0"><span class="tbu-chip">' + ic('clock', 13) + 'Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</span></div>') : '') +
+        '<div class="tbu-callout is-info">' + ic('info', 16) + '<div id="tbConfirmNote">Confirm to save these changes to the shared database.</div></div>' +
+        '<div class="tbl-actions tbl-row">' +
+          '<button type="button" class="tbl-cancel" id="tbConfirmCancel">Cancel</button>' +
+          '<button type="button" class="tbl-submit" id="tbConfirmGo">' + ic('database', 16) + 'Confirm &amp; Upload</button>' +
+        '</div>'
+    }), 3400, { close: _closeConfirm, focus: '#tbConfirmCancel' });
+    document.getElementById('tbConfirmCancel').onclick = _closeConfirm;
     document.getElementById('tbConfirmGo').onclick = function () { tbRemove('tbConfirm'); tbPublish(res); };
   }
 
   // Step D: delta publish (only changed/new + non-live). Stays on the current page.
   async function tbPublish(res) {
-    tbFlowOverlay('tbPush',
-      '<div style="text-align:center;width:90vw;max-width:90vw;min-width:300px;background:#fff;border:1px solid #e2e6ea;border-radius:5px;padding:34px 26px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-        '<div class="sp" style="width:46px;height:46px;border:4px solid #e2e6ea;border-top-color:#ec7211;border-radius:50%;animation:tbspin 1s linear infinite;margin:0 auto"></div>' +
-        '<p style="color:#1b2026;margin-top:20px;font-size:1.1em;font-weight:600">New data is being pushed…</p>' +
-        '<p style="color:#5c6773;margin-top:8px;font-size:.9em" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
-        '<div style="margin-top:20px">' +
-          '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div style="flex:1;height:10px;background:#eef1f4;border:1px solid #e2e6ea;border-radius:5px;overflow:hidden">' +
-              '<div id="tbPushBar" style="height:100%;width:0%;background:linear-gradient(90deg,#1f9d57,#16a34a);border-radius:5px;transition:width .35s ease"></div>' +
-            '</div>' +
-            '<div id="tbPushPct" style="font-size:.95em;font-weight:800;color:#1f9d57;min-width:44px;text-align:right;font-variant-numeric:tabular-nums">0%</div>' +
-          '</div>' +
-          '<p id="tbPushTicker" style="color:#1577a0;margin-top:14px;font-size:.9em;font-weight:700;letter-spacing:.4px;font-family:monospace;min-height:1.2em;transition:opacity .15s">&nbsp;</p>' +
-          '<p style="color:#8a94a2;margin-top:2px;font-size:.72em">Writing tickets to the database…</p>' +
-        '</div>' +
-      '</div>');
+    // No Cancel on the save step: Esc is a no-op and focus rests on the (focusable) card.
+    tbFlowOverlay('tbPush', tbuCard({
+      id: 'tbPush', step: 4, icon: '<span class="tbu-spin"></span>', title: 'New data is being pushed…', descId: 'tbPushSub',
+      body:
+        '<p class="tbu-status" id="tbPushSub">Saving to the shared database. This may take a moment.</p>' +
+        '<div class="tbu-prog">' + tbuProgBlock('tbPush', 'Saving', 'Writing tickets to the database…') + '</div>' +
+        '<p class="tbu-sr" id="tbPushLive" role="status" aria-live="polite"></p>'
+    }), 3400);
     var _pt0 = Date.now();
+    var _pElapsedTimer = tbuElapsed('tbPushElapsed', _pt0);   // display only
     // Progress bar staging (~2 min 19 s runway before it parks at 98%), same as the assess step:
     //   0->60% @1.25s, 60->80% @1.5s, 80->90% @1.75s, 90->98% @2s; hold at 98% w/ rotating lines.
     var _pBarEl = document.getElementById('tbPushBar');
     var _pPctEl = document.getElementById('tbPushPct');
     var _pMsgEl = document.getElementById('tbPushSub');
     var _pPct = 0;
-    var _pSetPct = function (p) { _pPct = p; if (_pBarEl) _pBarEl.style.width = p + '%'; if (_pPctEl) _pPctEl.textContent = p + '%'; };
+    var _pSetPct = function (p) { _pPct = p; if (_pBarEl) _pBarEl.style.width = p + '%'; if (_pPctEl) _pPctEl.textContent = p + '%'; tbuProgA11y('tbPush', p, 'Saving'); };
     var _pSetMsg = function (m) { if (_pMsgEl) _pMsgEl.textContent = m; };
     var _pStages = [
       { to: 60, delay: 1250, msg: 'Adding new tickets to the database for a proper fetch…' },
@@ -1862,7 +2073,7 @@
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
       if (fm.fileText) body.fileText = fm.fileText;   // raw uploaded file, persisted for later download
       var r = await A.api('POST', '/api/live-quarter/patch', body);
-      clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer);
+      clearTimeout(_pProgTimer); clearInterval(_pTicker); clearInterval(_pElapsedTimer); if (_pAlmostTimer) clearInterval(_pAlmostTimer);
       _pushSecs = Math.round((Date.now() - _pt0) / 1000);
       _pSetPct(100); _pSetMsg('Done — saved to the shared database.'); if (_pTickerEl) _pTickerEl.textContent = 'Done';
       await new Promise(function (rr) { setTimeout(rr, 400); });   // brief beat so 100% is visible
@@ -1871,29 +2082,32 @@
         throw new Error((r.data && r.data.error) || ('Upload failed (HTTP ' + r.status + ')'));
       }
       tbRemove('tbPush');
-      tbFlowOverlay('tbDone',
-        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-          '<div style="font-size:2em">✅</div>' +
-          '<h2 style="color:#1f9d57;font-size:1.2em;margin:8px 0 6px">Upload complete</h2>' +
-          '<p style="color:#5c6773;font-size:.9em">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
-          (_pushSecs ? ('<p style="color:#8a94a2;font-size:.78em;margin-top:8px">Saved in ' + tbFmtDuration(_pushSecs) + '</p>') : '') +
-          '<div style="margin-top:18px"><button class="tb-mbtn" id="tbDoneClose">Done</button></div>' +
-        '</div>');
+      tbFlowOverlay('tbDone', tbuCard({
+        id: 'tbDone', step: 4, state: 'done', eyebrow: 'Data upload \u00b7 Complete', icon: ic('check-circle', 20), iconCls: 'tbu-ic-ok',
+        title: 'Upload complete', descId: 'tbDoneDesc',
+        body:
+          '<p class="tbu-lead" id="tbDoneDesc">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
+          (_pushSecs ? ('<div class="tbu-meta" style="margin:0"><span class="tbu-chip">' + ic('clock', 13) + 'Saved in ' + tbFmtDuration(_pushSecs) + '</span></div>') : '') +
+          '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbDoneClose">Done</button></div>'
+      }), 3400, { close: function () { var b = document.getElementById('tbDoneClose'); if (b) b.click(); }, focus: '#tbDoneClose' });
       document.getElementById('tbDoneClose').onclick = function () {
         tbRemove('tbDone');
         // Refresh in-place if the current page can re-render from the live data.
         if (typeof window.PHDRefreshLive === 'function') { try { window.PHDRefreshLive(); } catch (e) {} }
       };
     } catch (err) {
-      try { clearTimeout(_pProgTimer); clearInterval(_pTicker); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
+      try { clearTimeout(_pProgTimer); clearInterval(_pTicker); clearInterval(_pElapsedTimer); if (_pAlmostTimer) clearInterval(_pAlmostTimer); } catch (e) {}
       tbRemove('tbPush');
-      tbFlowOverlay('tbErr',
-        '<div style="background:#fff;border:1px solid #e2e6ea;border-radius:5px;max-width:80vw;width:80vw;padding:26px;text-align:center;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)">' +
-          '<h2 style="color:#dc2626;font-size:1.15em;margin-bottom:6px">Upload failed</h2>' +
-          '<p style="color:#5c6773;font-size:.9em">' + tbEsc(err.message) + '</p>' +
-          '<div style="margin-top:18px"><button class="tb-mbtn" id="tbErrClose">Close</button></div>' +
-        '</div>');
-      document.getElementById('tbErrClose').onclick = function () { tbRemove('tbErr'); };
+      // Overlay id is tbUploadErr: "tbErr" is already the login dialog's error line (#tbErr).
+      var _closeErr = function () { tbRemove('tbUploadErr'); };
+      tbFlowOverlay('tbUploadErr', tbuCard({
+        id: 'tbUploadErr', step: 4, state: 'err', role: 'alertdialog', icon: ic('alert', 20), iconCls: 'tbl-ic-danger',
+        title: 'Upload failed', descId: 'tbErrDesc',
+        body:
+          '<div class="tbu-callout is-err" style="margin-top:0">' + ic('alert', 16) + '<div id="tbErrDesc">' + tbEsc(err.message) + '</div></div>' +
+          '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbErrClose">Close</button></div>'
+      }), 3400, { close: _closeErr, focus: '#tbErrClose' });
+      document.getElementById('tbErrClose').onclick = _closeErr;
     }
   }
 
@@ -2002,12 +2216,67 @@
   window.PHDConfirm = function (opts) { return tbShowPopup(opts, true); };
   window.PHDAlert = function (opts) { return tbShowPopup(typeof opts === 'string' ? { body: opts } : opts, false); };
 
+  // ---- Shared login-dialog UI helpers (focus trap, Esc, focus restore, Caps Lock hint) ----
+  // Used by #tbLoginModal here, index.html's #loginModal and app.js's legacy login popup. Purely
+  // presentational: the login request/session logic stays in each page's own handler.
+  var tblOpen = []; // [{ bg, close, prev }] — the most recent visible entry owns the keyboard
+  function tblVisible(bg) { return !!(bg && bg.isConnected && getComputedStyle(bg).display !== 'none'); }
+  function tblFocusables(root) {
+    return Array.prototype.filter.call(root.querySelectorAll('button,input,a[href],select,textarea,[tabindex]:not([tabindex="-1"])'),
+      function (el) { return !el.disabled && el.offsetParent !== null; });
+  }
+  window.PHDLoginUI = {
+    // Call after the backdrop is shown. close() is what Esc should run (the page's own close fn).
+    opened: function (bg, close, firstField) {
+      tblOpen = tblOpen.filter(function (x) { return x.bg !== bg && x.bg.isConnected; });
+      tblOpen.push({ bg: bg, close: close, prev: document.activeElement });
+      var caps = bg.querySelector('.tbl-caps'); if (caps) caps.hidden = true;
+      setTimeout(function () { if (firstField) firstField.focus(); }, 40);
+    },
+    // Call after the backdrop is hidden/removed: returns focus to whatever opened the dialog.
+    closed: function (bg) {
+      for (var i = tblOpen.length - 1; i >= 0; i--) {
+        if (tblOpen[i].bg === bg) {
+          var prev = tblOpen[i].prev; tblOpen.splice(i, 1);
+          if (prev && prev.focus && prev.isConnected) { try { prev.focus(); } catch (e) {} }
+          return;
+        }
+      }
+    },
+    // Show the "Caps Lock is on" hint under a password field while typing in it.
+    wireCaps: function (input, hint) {
+      if (!input || !hint) return;
+      var upd = function (e) { if (e && e.getModifierState) hint.hidden = !e.getModifierState('CapsLock'); };
+      input.addEventListener('keydown', upd); input.addEventListener('keyup', upd);
+      input.addEventListener('blur', function () { hint.hidden = true; });
+    }
+  };
+  document.addEventListener('keydown', function (e) {
+    tblOpen = tblOpen.filter(function (x) { return x.bg.isConnected; });
+    var top = null;
+    for (var i = tblOpen.length - 1; i >= 0; i--) { if (tblVisible(tblOpen[i].bg)) { top = tblOpen[i]; break; } }
+    if (!top) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); top.close(); return; }
+    if (e.key !== 'Tab') return;
+    var card = top.bg.querySelector('.tbl-card') || top.bg;
+    var f = tblFocusables(card); if (!f.length) { e.preventDefault(); return; }   // e.g. the upload save step
+    var first = f[0], last = f[f.length - 1];
+    if (!card.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }, true);
+
   // ---- Login modal + loader ----
   window.tbOpenLogin = function () {
-    document.getElementById('tbLoginModal').style.display = 'flex';
-    setTimeout(function () { var u = document.getElementById('tbUser'); if (u) u.focus(); }, 40);
+    var m = document.getElementById('tbLoginModal');
+    m.style.display = 'flex';
+    window.PHDLoginUI.opened(m, tbCloseLogin, document.getElementById('tbUser'));
   };
-  window.tbCloseLogin = function () { document.getElementById('tbLoginModal').style.display = 'none'; };
+  window.tbCloseLogin = function () {
+    var m = document.getElementById('tbLoginModal');
+    m.style.display = 'none';
+    window.PHDLoginUI.closed(m);
+  };
   // Logged-out entry point: ask the user to log in FIRST (styled confirm). On "Log in" -> open the
   // login modal; on Cancel/decline -> send them to the profile "not logged in" gate (profile.html).
   window.tbPromptLogin = function () {
@@ -2029,6 +2298,7 @@
     btn.innerHTML = ic(show ? 'eye-off' : 'eye');
     btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
     inp.focus();
   };
   window.tbDoLogin = async function () {
@@ -2056,23 +2326,33 @@
   function buildModalAndLoader() {
     if (document.getElementById('tbLoginModal')) return;
     var modal = document.createElement('div');
-    modal.className = 'tb-modal-bg';
+    modal.className = 'tb-modal-bg tbl-bg';
     modal.id = 'tbLoginModal';
     modal.onclick = function (e) { if (e.target === modal) tbCloseLogin(); };
     modal.innerHTML =
-      '<div class="tb-modal">' +
-        '<h2>Log in</h2>' +
-        '<p class="sub">Log in to publish or manage data. Viewing needs no login.</p>' +
-        '<label>Username</label><input type="text" id="tbUser" autocomplete="username">' +
-        '<label>Password</label>' +
-        '<div class="tb-pass-wrap"><input type="password" id="tbPass" autocomplete="current-password">' +
-          '<button type="button" class="tb-pass-eye" id="tbPassEye" onclick="tbTogglePass()" aria-label="Show password" title="Show password">' + ic('eye') + '</button>' +
+      '<div class="tb-modal tbl-card" role="dialog" aria-modal="true" aria-labelledby="tbLoginTitle" aria-describedby="tbLoginDesc">' +
+        '<div class="tbl-head">' +
+          '<span class="tbl-head-ic" aria-hidden="true">' + ic('shield', 20) + '</span>' +
+          '<div class="tbl-head-tx"><div class="tbl-eyebrow">WWOS-GSOC · PHD Dashboard</div><h2 class="tbl-title" id="tbLoginTitle">Log in</h2></div>' +
+          '<p class="sub tbl-sub" id="tbLoginDesc">Log in to publish or manage data. Viewing the dashboards needs no login.</p>' +
         '</div>' +
-        '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.85em;color:#879596"><input type="checkbox" id="tbRemember" style="width:auto" checked> Keep me signed in</label>' +
-        '<div class="tb-err" id="tbErr"></div>' +
-        '<div class="tb-modal-actions"><button class="tb-mbtn sec" onclick="tbCloseLogin()">Cancel</button><button class="tb-mbtn" id="tbLoginBtn" onclick="tbDoLogin()">Log in</button></div>' +
+        '<div class="tbl-body">' +
+          '<label class="tbl-label" for="tbUser">Username</label>' +
+          '<div class="tbl-field"><span class="tbl-fic" aria-hidden="true">' + ic('user', 17) + '</span>' +
+            '<input class="tbl-input" type="text" id="tbUser" autocomplete="username" autocapitalize="off" spellcheck="false"></div>' +
+          '<label class="tbl-label" for="tbPass">Password</label>' +
+          '<div class="tbl-field tbl-pw tb-pass-wrap"><span class="tbl-fic" aria-hidden="true">' + ic('lock', 17) + '</span>' +
+            '<input class="tbl-input" type="password" id="tbPass" autocomplete="current-password" aria-describedby="tbCaps">' +
+            '<button type="button" class="tb-pass-eye tbl-eye" id="tbPassEye" onclick="tbTogglePass()" aria-label="Show password" aria-pressed="false" aria-controls="tbPass" title="Show password">' + ic('eye') + '</button>' +
+          '</div>' +
+          '<div class="tbl-caps" id="tbCaps" hidden>' + ic('alert-triangle', 14) + ' Caps Lock is on</div>' +
+          '<label class="tbl-check"><input type="checkbox" id="tbRemember" checked><span class="tbl-box" aria-hidden="true"></span><span>Keep me signed in</span></label>' +
+          '<div class="tb-err tbl-err" id="tbErr" role="alert"></div>' +
+          '<div class="tb-modal-actions tbl-actions"><button type="button" class="tb-mbtn tbl-submit" id="tbLoginBtn" onclick="tbDoLogin()">Log in</button><button type="button" class="tb-mbtn sec tbl-cancel" onclick="tbCloseLogin()">Cancel</button></div>' +
+        '</div>' +
       '</div>';
     document.body.appendChild(modal);
+    window.PHDLoginUI.wireCaps(document.getElementById('tbPass'), document.getElementById('tbCaps'));
     var loader = document.createElement('div');
     loader.className = 'tb-loader'; loader.id = 'tbLoader';
     loader.innerHTML = '<div class="sp"></div><p>Signing you in…</p>';
@@ -2951,31 +3231,63 @@
   }
   window.PHDBuildProfilePanel = buildProfilePanel;
 
-  // Shared "Log out?" confirmation popup. Shows a light yes/no dialog; on confirm, clears the session
-  // and returns home. Used by the profile-panel banner and any page that calls window.PHDConfirmLogout.
+  // Shared "Log out?" confirmation popup, styled like the login dialog (.tbl-* navy hero header +
+  // white body). On confirm, clears the session and returns home. Used by the profile-panel banner
+  // and any page that calls window.PHDConfirmLogout. Esc / backdrop / "No, Stay" just close it;
+  // focus trap + focus restore come from PHDLoginUI. No global Enter handler: Enter only activates
+  // the focused button, and focus starts on the safe "No, Stay".
   function tbConfirmLogout() {
-    var old = document.getElementById('tbLogoutConfirm'); if (old && old.parentNode) old.parentNode.removeChild(old);
+    var old = document.getElementById('tbLogoutConfirm');
+    if (old && old.parentNode) { old.parentNode.removeChild(old); window.PHDLoginUI.closed(old); }
+    // Optional "signed in as" chip from the client-side session (no extra requests).
+    var who = '';
+    try {
+      var user = (A.getUser && A.getUser()) || null;
+      if (user) {
+        var prof = (A.myProfile && A.myProfile()) || user;
+        var login = user.username || prof.username || '';
+        var name = (prof && prof.displayName) || login;
+        var role = user.role ? String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1) : '';
+        var av = ''; try { av = A.avatarHtml ? A.avatarHtml(prof, 32) : ''; } catch (e) { av = ''; }
+        var sub = [login ? login + '@' : '', role].filter(Boolean).join(' \u00b7 ');
+        if (name) {
+          who = '<div class="tbl-who">'
+            + '<span class="tbl-who-av" aria-hidden="true">' + (av || ic('user', 18)) + '</span>'
+            + '<span class="tbl-who-tx"><span class="tbl-who-nm">Signed in as ' + tbEsc(name) + '</span>'
+            + (sub ? '<span class="tbl-who-sub">' + tbEsc(sub) + '</span>' : '') + '</span>'
+            + '</div>';
+        }
+      }
+    } catch (e) { who = ''; }
     var ov = document.createElement('div');
     ov.id = 'tbLogoutConfirm';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px';
-    ov.innerHTML = '<div style="background:#fff;border:1px solid #e2e7eb;border-radius:5px;width:400px;max-width:92vw;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5);font-family:inherit">'
-      + '<div style="display:flex;align-items:center;gap:11px;margin-bottom:8px">'
-      +   '<span style="flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#fef2f2;color:#dc2626;display:inline-flex;align-items:center;justify-content:center">' + ic('log-out', 18) + '</span>'
-      +   '<h2 style="margin:0;color:#1b2026;font-size:1.1em;font-weight:800">Log out?</h2>'
+    ov.className = 'tbl-bg';
+    ov.style.cssText = 'display:flex;z-index:5000';
+    ov.innerHTML = '<div class="tbl-card" role="alertdialog" aria-modal="true" aria-labelledby="tbLogoutTitle" aria-describedby="tbLogoutDesc">'
+      + '<div class="tbl-head">'
+      +   '<span class="tbl-head-ic tbl-ic-danger" aria-hidden="true">' + ic('log-out', 20) + '</span>'
+      +   '<div class="tbl-head-tx"><div class="tbl-eyebrow">WWOS-GSOC \u00b7 PHD Dashboard</div><h2 class="tbl-title" id="tbLogoutTitle">Log out?</h2></div>'
       + '</div>'
-      + '<p style="color:#5c6773;font-size:.9em;line-height:1.55;margin:0 0 18px">You\u2019ll need to log in again to access your tickets and tools.</p>'
-      + '<div style="display:flex;gap:10px;justify-content:flex-end">'
-      +   '<button type="button" id="tbLogoutNo" style="font-family:inherit;font-weight:700;font-size:.86em;padding:9px 16px;border-radius:5px;border:1px solid #d4dade;background:#fff;color:#2a3340;cursor:pointer">No, stay</button>'
-      +   '<button type="button" id="tbLogoutYes" style="font-family:inherit;font-weight:800;font-size:.86em;padding:9px 18px;border-radius:5px;border:none;background:#dc2626;color:#fff;cursor:pointer">Yes, log out</button>'
+      + '<div class="tbl-body">'
+      +   '<p class="tbl-msg" id="tbLogoutDesc">You\u2019ll need to log in again to access your tickets and tools.</p>'
+      +   who
+      +   '<div class="tbl-actions tbl-row">'
+      +     '<button type="button" class="tbl-cancel" id="tbLogoutNo">No, Stay</button>'
+      +     '<button type="button" class="tbl-danger" id="tbLogoutYes">Yes, Log Out</button>'
+      +   '</div>'
       + '</div></div>';
-    var close = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
+    var close = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); window.PHDLoginUI.closed(ov); };
     ov.onclick = function (e) { if (e.target === ov) close(); };
     document.body.appendChild(ov);
     var no = document.getElementById('tbLogoutNo'); if (no) no.onclick = close;
-    var yes = document.getElementById('tbLogoutYes'); if (yes) yes.onclick = function () { try { A.clear(); } catch (e) {} location.href = 'index.html'; };
-    var onEsc = function (e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); } };
-    document.addEventListener('keydown', onEsc);
-    setTimeout(function () { try { yes && yes.focus(); } catch (e) {} }, 40);
+    var yes = document.getElementById('tbLogoutYes');
+    if (yes) yes.onclick = function () {
+      // Brief busy state (spinner via :disabled::before), then the unchanged logout: clear + go home.
+      yes.disabled = true; yes.setAttribute('aria-busy', 'true'); yes.textContent = 'Logging out\u2026';
+      if (no) no.disabled = true;
+      try { A.clear(); } catch (e) {} location.href = 'index.html';
+    };
+    window.PHDLoginUI.opened(ov, close, no);
   }
   window.PHDConfirmLogout = tbConfirmLogout;
 

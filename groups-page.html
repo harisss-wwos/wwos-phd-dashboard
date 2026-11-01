@@ -7,9 +7,9 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a;--gl:#4ade80;--rl:#ff5252;--tl:#44b9d6;--yl:#fbbf24;--pl:#a78bfa}
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
 *{margin:0;padding:0;box-sizing:border-box}
 button,input,select,textarea{font-family:inherit}
 body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
@@ -17,237 +17,297 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .logo img{height:26px;width:auto;display:block}
 .logo span{font-size:1.05em;font-weight:700;color:#fff}
-.wrap{width:auto;max-width:none;margin:0;padding:20px 0}
-h1{color:#fff;font-size:1.6em;margin-bottom:6px}
-/* Top-level collapsible section cards (Incident type / Resolutions). */
-.section-card{margin-bottom:20px}
-.section-title{font-size:1.15em!important;color:#fff!important;text-transform:none!important;letter-spacing:0!important}
-.sub{color:var(--tm);font-size:.9em;margin-bottom:8px;line-height:1.5}
-.warn-banner{background:rgba(255,153,0,.1);border:1px solid rgba(255,153,0,.35);color:var(--o);border-radius:5px;padding:10px 14px;font-size:.82em;margin:14px 0 22px;display:flex;gap:8px;align-items:center}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;background:transparent;color:var(--o);border:1px solid var(--o);border-radius:5px;font-weight:600;font-size:.85em;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
-.btn:hover{background:rgba(255,153,0,.12)}
-.btn.sec{color:var(--o);border-color:var(--bd)}
-.btn.sec:hover{border-color:var(--o);background:rgba(255,153,0,.1)}
-.btn.primary{background:var(--o);color:#000}
-.btn.primary:hover{background:var(--oh)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn.danger{color:var(--rl);border-color:rgba(255,82,82,.4)}
-.btn.danger:hover{background:rgba(255,82,82,.12)}
-.gate{text-align:center;padding:70px 0}.gate p{color:var(--tm);margin-bottom:18px}
-.spinner{width:42px;height:42px;border:4px solid var(--bd);border-top-color:var(--o);border-radius:50%;animation:spin 1s linear infinite;margin:60px auto}
-@keyframes spin{100%{transform:rotate(360deg)}}
-/* Two-column layout: source list (left) + groups editor (right). Preview below.
-   align-items:start so a taller right column never stretches the left one, and both start flush. */
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px;align-items:start}
-@media(max-width:900px){.cols{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,#12161c,#0c0f14);border:1px solid #232a33;border-radius:5px;padding:18px;box-shadow:0 10px 26px -20px rgba(0,0,0,.7)}
-/* Inner column cards (Raw / Groups) get a labelled header row with an accent bar + fill height. */
-.cols>.card{display:flex;flex-direction:column;min-height:100%;min-width:0}
-.cols>.card>h2{display:flex;align-items:center;gap:9px;color:#e6edf0;font-size:.82em;text-transform:uppercase;letter-spacing:.6px;font-weight:800;margin:0 0 10px;padding-bottom:10px;border-bottom:1px solid #202832}
-.cols>.card>h2::before{content:'';width:3px;height:15px;border-radius:2px;background:var(--o);flex-shrink:0}
-/* The right "Groups" column carries a purple accent to distinguish it from the left source list. */
-.cols>.card:nth-child(2)>h2{color:#cbb8ff}
-.cols>.card:nth-child(2)>h2::before{background:var(--pl)}
-.cols>.card>.card-body{flex:1;display:flex;flex-direction:column;min-height:0}
-.card h2{color:var(--o);font-size:.9em;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.card .hint{color:#5f6b6c;font-size:.78em;margin-bottom:12px}
-
-/* ============ Illustrated gradient page banner (Grouping page) ============ */
-@keyframes gpBanner{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.gp-hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
-  border-radius:5px;padding:20px 26px;min-height:96px;margin-bottom:18px;
-  border:1px solid #242a31;box-shadow:0 14px 34px -22px rgba(0,0,0,.8);
-  background:linear-gradient(90deg,#7c5cff,#a78bfa 55%,#cbb8ff);background-size:200% 100%;animation:gpBanner 10s ease infinite}
-.gp-hero .gph-left{position:relative;z-index:1;min-width:0}
-.gp-hero .gph-title{margin:0;display:inline-flex;align-items:center;gap:12px;font-size:1.7em;font-weight:800;letter-spacing:-.5px;line-height:1.1;color:#241354}
-.gp-hero .gph-title svg{flex-shrink:0;color:#241354}
-.gp-hero .gph-sub{margin-top:6px;font-size:.9em;font-weight:500;line-height:1.5;color:rgba(36,19,84,.82);max-width:80ch}
-.gp-hero::after{content:"";position:absolute;top:0;bottom:0;right:0;width:230px;
-  background-repeat:no-repeat;background-position:right center;background-size:auto 104%;opacity:.3;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" stroke="%23ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="26" r="9"/><circle cx="30" cy="54" r="9"/><circle cx="86" cy="40" r="11"/><path d="M39 26h20a8 8 0 0 1 8 8M39 54h20a8 8 0 0 0 8-8"/></svg>')}
-@media(max-width:768px){.gp-hero .gph-title{font-size:1.35em}.gp-hero::after{opacity:.2}}
-/* Top-level section cards (Incident type / Resolutions) become gradient banner heads. */
-.section-card{background:linear-gradient(180deg,#15181d,#0f1115)!important;border:1px solid #242a31;border-radius:5px;overflow:hidden;box-shadow:0 12px 30px -22px rgba(0,0,0,.75);padding:0!important}
-.section-card>.section-title{position:relative;overflow:hidden;margin:0!important;min-height:56px;padding:0 20px!important;display:flex;align-items:center;gap:10px;
-  background:linear-gradient(90deg,#0d9488,#2dd4bf 55%,#8ef0e2);background-size:200% 100%;animation:gpBanner 10s ease infinite;
-  color:#06322d!important;font-weight:800!important}
-.section-card#secRes>.section-title{background:linear-gradient(90deg,#3b6fe0,#5b8def 55%,#a7c4fb);color:#0b1f4a!important}
-.section-card>.section-title .card-caret{color:inherit;margin-left:auto;order:2}
-.section-card>.card-body{padding:20px}
-.section-card.collapsed>.card-body{display:none}
-/* Collapsible top-level cards: click the h2 to hide/show the whole body (incl. tables). */
-.card-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin-bottom:12px!important}
-.card-caret{display:inline-block;color:var(--o);transition:transform .18s ease}
-.card.collapsed .card-caret{transform:rotate(-90deg)}
-.card.collapsed .card-body{display:none}
-.card.collapsed h2{margin-bottom:0!important}
-/* Source raw-type list */
-.src-tools{display:flex;gap:8px;margin-bottom:10px}
-.src-tools input{flex:1;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px}
-.src-tools input:focus{outline:none;border-color:var(--o)}
-/* Source list grows naturally (no inner scrollbar); paged via Load more / Show less. */
-.src-list{border:1px solid #1b2530;border-radius:5px;overflow:hidden}
-.src-more{display:flex;justify-content:center;gap:10px;padding:10px}
-.src-more .btn{padding:6px 14px;font-size:.8em}
-/* Collapsible per-quarter source section */
-.sec-panel{border:1px solid #1b2530;border-radius:5px;margin-bottom:10px;overflow:hidden}
-.sec-head{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1620;border:none;color:var(--t);cursor:pointer;font-size:.88em;text-align:left}
-.sec-head:hover{background:#111e2b}
-.sec-caret{color:var(--o);font-size:.9em;width:14px;flex-shrink:0}
-.sec-title{flex:1;font-weight:700;color:#fff}
-.sec-meta{color:var(--tm);font-size:.82em;font-variant-numeric:tabular-nums}
-.sec-panel .src-tools{margin:10px 10px 8px}
-.sec-panel .src-list{margin:0 10px 10px;max-height:340px}
-.src-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;font-size:.86em}
-.src-row:last-child{border-bottom:none}
-.src-row:hover{background:rgba(255,255,255,.03)}
-.src-row.assigned{opacity:.5}
-.src-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--o);flex-shrink:0}
-.src-row .st-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff}
-.src-row .st-count{color:var(--tm);font-variant-numeric:tabular-nums;font-size:.9em}
-.src-row .st-in{color:var(--pl);font-size:.72em;font-weight:700;white-space:nowrap}
-.assign-bar{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.assign-bar select{flex:1;min-width:140px;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px}
-/* Groups editor */
-.grp{border:1px solid #1b2530;border-radius:5px;padding:12px 14px;margin-bottom:12px;background:#000}
-.grp-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.grp-head input{flex:1;background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;color:#fff;font-weight:600;font-size:.9em;padding:8px 10px}
-.grp-head input:focus{outline:none;border-color:var(--o)}
-.grp-members{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
-/* Chips wrap within the card and long labels truncate with an ellipsis so nothing spills out. */
-.chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.4);color:var(--pl);border-radius:5px;padding:3px 10px;font-size:.76em}
-.chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.chip button{background:none;border:none;color:var(--pl);cursor:pointer;font-size:1.1em;line-height:1;padding:0;flex-shrink:0}
-/* Group card + its header input must be allowed to shrink inside the grid column. */
-.grp{min-width:0}.grp-head input{min-width:0}
-.grp-empty{color:#5f6b6c;font-size:.78em;font-style:italic}
-.new-grp{display:flex;gap:8px;margin-top:6px}
-.new-grp input{flex:1;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.85em;padding:8px 10px}
-.new-grp input:focus{outline:none;border-color:var(--o)}
-/* Preview */
-.preview{margin-top:24px}
-.inc-sub-h{display:flex;align-items:center;gap:8px;font-size:.95em;font-weight:700;color:#d5dbdb;margin:14px 0 8px}
-.inc-sub-h .n{font-weight:800;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:5px;padding:1px 10px;font-size:.85em}
-table{width:100%;border-collapse:collapse;font-size:.86em}
-.xls-table{border:1px solid #2f3a45}
-.xls-table th,.xls-table td{border:1px solid #2f3a45;padding:7px 11px}
-th{color:var(--tm);text-transform:uppercase;letter-spacing:.4px;font-size:.78em;text-align:left}
-.grouped-row{background:rgba(167,139,250,.08);cursor:help}
-.grouped-row:hover{background:rgba(167,139,250,.16)}
-.grouped-row td:nth-child(2){color:var(--pl);font-weight:700}
-/* Hover tooltip listing a group's member types + counts (chart-style). */
-.grp-tip{position:fixed;z-index:4000;display:none;pointer-events:none;background:#0d1620;border:1px solid var(--pl);border-radius:5px;padding:8px 10px;width:fit-content;max-width:480px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:.82em}
-.grp-tip-h{color:var(--pl);font-weight:800;border-bottom:1px solid rgba(167,139,250,.35);padding-bottom:6px;margin-bottom:6px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
-.grp-tip-h span{color:#fff;font-variant-numeric:tabular-nums}
-.grp-tip-row{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
-.grp-tip-t{color:var(--t);white-space:nowrap}
-/* Clickable non-grouped preview rows */
-.clickable-row{cursor:pointer}
-.clickable-row:hover{background:rgba(255,153,0,.08)}
-/* Tickets popup (Excel-style) */
-.tk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:5000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
-.tk-card{background:#0a0a0a;border:1px solid var(--bd);border-radius:5px;width:80vw;max-width:80vw;padding:18px 18px 14px}
-.tk-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
-.tk-head h2{color:var(--o);font-size:1.1em;display:flex;align-items:baseline;gap:10px}
-.tk-count{color:var(--tm);font-size:.7em;font-weight:600}
-.tk-loading{display:flex;justify-content:center;padding:40px}
-.tk-scroll{overflow-x:auto;max-height:60vh;overflow-y:auto;border:1px solid #2f3a45;border-radius:5px}
-.tk-table{width:100%;border-collapse:collapse}
-.tk-table th{position:sticky;top:0;background:#0d1620;z-index:1}
-.tk-table td,.tk-table th{border:1px solid #2f3a45;padding:7px 11px;font-size:.86em}
-.tk-table a{color:var(--tl);text-decoration:none;font-weight:600}
-.tk-table a:hover{text-decoration:underline}
-.tk-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.tk-pageinfo{color:var(--tm);font-size:.82em;font-variant-numeric:tabular-nums}
-.tk-pgbtns{display:flex;gap:6px}
-.tk-pgbtns .btn{padding:5px 10px;font-size:.8em}
-.grp-tip-c{color:#9aa7a8;font-variant-numeric:tabular-nums;flex-shrink:0}
-.actions-bar{display:flex;gap:10px;align-items:center;margin:20px 0;flex-wrap:wrap}
-.msg{font-size:.85em;display:none}
-.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
-.bar-cell{display:flex;align-items:center}
-.bar-cell>div{height:8px;border-radius:5px;background:#ff9900;min-width:4px}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<!-- ===== Light-theme page override (loaded last, wins the cascade) ===== -->
 <style id="gp-light">
-h1,.section-title{color:#1b2026!important}
-.sub,.card .hint{color:#5c6773!important}
-/* Outer section cards: white (keep the bright gradient banner heads). */
-.section-card{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-/* Editor column cards + any inline background:#000 cards -> white. */
-.card,.cols>.card,.card[style*="background:#000"]{background:#fff!important;border:1px solid #e2e6ea!important;box-shadow:0 1px 3px rgba(20,30,50,.06)!important}
-.cols>.card>h2{color:#1b2026!important;border-bottom:1px solid #eef1f4!important}
-.cols>.card:nth-child(2)>h2{color:#6b4bd8!important}
-.card h2{color:#b5560c!important}
-.card .hint,.preview .hint{color:#8793a0!important}
-.inc-sub-h{color:#2a3340!important}
-.inc-sub-h .n{color:#1b2026!important;background:#f0f3f6!important;border:1px solid #e2e6ea!important}
-/* Source list + per-quarter sections. */
-.src-list,.sec-panel{border:1px solid #e2e6ea!important}
-.sec-head{background:#f7f9fb!important;color:#2a3340!important}
-.sec-head:hover{background:#eef1f4!important}
-.sec-title{color:#1b2026!important}
-.sec-meta{color:#5c6773!important}
-.sec-caret{color:#ec7211!important}
-.src-row{border-bottom:1px solid #eef1f4!important}
-.src-row:hover{background:#f7f9fb!important}
-.src-row .st-name{color:#1b2026!important}
-.src-row .st-count{color:#5c6773!important}
-.src-row .st-in{color:#6b4bd8!important}
-/* Inputs / selects. */
-.src-tools input,.assign-bar select,.grp-head input,.new-grp input{background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}
-.src-tools input:focus,.assign-bar select:focus,.grp-head input:focus,.new-grp input:focus{border-color:#ec7211!important}
-/* Groups + chips. */
-.grp{background:#f7f9fb!important;border:1px solid #e6eaee!important}
-.chip{background:#f1ecff!important;border:1px solid #d9ccf7!important;color:#6b4bd8!important}
-.chip button{color:#6b4bd8!important}
-.grp-empty{color:#8793a0!important}
-/* Preview table. */
-.xls-table{border:1px solid #e2e6ea!important}
-.xls-table th,.xls-table td{border:1px solid #eef1f4!important}
-th{color:#5c6773!important}
-.grouped-row{background:#f4f0ff!important}
-.grouped-row:hover{background:#ece4ff!important}
-.grouped-row td:nth-child(2){color:#6b4bd8!important}
-.clickable-row:hover{background:#fff7ed!important}
-/* Tooltip. */
-.grp-tip{background:#fff!important;border:1px solid #c9b8f5!important;box-shadow:0 8px 24px rgba(20,30,50,.25)!important}
-.grp-tip-h{color:#6b4bd8!important;border-bottom:1px solid #e4daf9!important}
-.grp-tip-h span{color:#1b2026!important}
-.grp-tip-t{color:#2a3340!important}
-.grp-tip-c{color:#5c6773!important}
-/* Tickets popup. */
-.tk-overlay{background:rgba(20,30,45,.55)!important}
-.tk-card{background:#fff!important;border:1px solid #e2e6ea!important}
-.tk-head h2{color:#b5560c!important}
-.tk-count{color:#5c6773!important}
-.tk-scroll{border:1px solid #e2e6ea!important}
-.tk-table th{background:#f7f9fb!important}
-.tk-table td,.tk-table th{border:1px solid #eef1f4!important}
-.tk-table a{color:#1577a0!important}
-.tk-pageinfo{color:#5c6773!important}
-/* Warn banner stays amber but light. */
-.warn-banner{background:#fff4e8!important;border:1px solid #f3d4b0!important;color:#b5560c!important}
-/* Buttons. */
-.btn{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-.btn:hover{background:#fff4e8!important;border-color:#ec7211!important;color:#ec7211!important}
-.btn.sec{background:#fff!important;border:1px solid #e2e6ea!important;color:#b5560c!important}
-.btn.sec:hover{border-color:#ec7211!important;background:#fff4e8!important;color:#ec7211!important}
-.btn.primary{background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important;border:none!important;color:#fff!important}
-.btn.primary:hover{filter:brightness(1.05)!important;background:linear-gradient(180deg,#ff9f2e,#f07d0a)!important}
-.btn.danger{background:#fff!important;border:1px solid rgba(220,38,38,.4)!important;color:#dc2626!important}
-.btn.danger:hover{background:#fef2f2!important}
-.msg.err{color:#d33a3a!important}.msg.ok{color:#1f9d57!important}
-.gate p{color:#5c6773!important}
-/* 3-column shell narrows the center content, so collapse the editor's two columns based on the
-   CONTAINER width (not the viewport) — keeps Raw/Groups side-by-side when there's room, stacks when tight. */
-.card-body{container-type:inline-size}
-@container (max-width:640px){.cols{grid-template-columns:1fr!important}}
-/* Keep the assign-bar usable in the narrower column: let the select shrink and wrap its button under it. */
-.assign-bar select{min-width:0!important}
+/* Grouping Page — same visual language as Errors in Resolved / Performance Summary: dark navy hero with an
+   orange rule, KPI cards overlapping it, then white section cards. Everything is scoped under .gp (a size
+   container, so the layout responds to the centre column width, not the viewport). The tickets modal and
+   the hover tooltip live on <body>, so they carry .gp / their own scoped classes. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.gp{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--pur:#6b4bd8;--pur-bg:#f3efff;--focus:#f0a35a;
+  container-type:inline-size;color:var(--ink);font-family:'Inter',-apple-system,sans-serif}
+.gp button{font-family:inherit;text-transform:none}
+.gp-exp,.gp-link{font:inherit}
+.gp :is(button,a,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.gp :is(input,select):focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.gp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.gp-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.gp-hero.is-flat{padding-bottom:26px;margin-bottom:16px}
+.gp-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.gp-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.gp-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.gp-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 380px}
+.gp-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.gp-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.gp-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.gp-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.gp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;list-style:none;padding:0}
+.gp-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  font-size:.8em;font-weight:700;color:#fff;max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.gp-chip svg{flex-shrink:0;color:#ffb26b}
+.gp-chip span{color:rgba(233,237,243,.62);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase}
+.gp-chip.is-warn{background:rgba(245,166,35,.16);border-color:rgba(245,166,35,.45);color:#ffd59a}
+.gp-meta{display:grid;grid-template-columns:repeat(2,minmax(0,auto));gap:10px 26px;margin:0;padding:13px 16px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.gp-meta dt{font-size:.64em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
+.gp-meta dd{margin:3px 0 0;font-size:1.25em;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.gp-meta dd small{font-size:.6em;font-weight:700;color:rgba(233,237,243,.7)!important;margin-left:4px}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.gp-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:520px){.gp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.gp-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.gp-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.gp-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.gp-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.gp-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--kb,var(--soft));color:var(--ki,#3a4552)}
+.gp-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.gp-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.gp-kpi-s b{color:var(--ink);font-weight:800}
+.gp-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.gp-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k);transition:width .4s ease}
+.gp-kpi.k-base{--k:#1f2a40}
+.gp-kpi.k-warn{--k:var(--acc);--kb:var(--acc-bg);--ki:#b5530a}
+.gp-kpi.k-teal{--k:#13827c;--kb:#e3f4f2;--ki:#13827c}
+.gp-kpi.k-blue{--k:#2b66c1;--kb:#e9f0fb;--ki:#1f4f9a}
+
+/* ---- Buttons ---- */
+.gp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 15px;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#2a3340;
+  font-size:.86em;font-weight:700;line-height:1.2;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+.gp-btn svg{flex-shrink:0}
+.gp-btn:hover:not(:disabled){border-color:var(--acc);color:var(--acc-ink);background:var(--acc-bg)}
+.gp-btn.is-primary{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 8px 18px -10px rgba(236,114,17,.9)}
+.gp-btn.is-primary:hover:not(:disabled){background:#d4620b;border-color:#d4620b;color:#fff}
+.gp-btn.is-danger{color:var(--red);border-color:#f2b8b1}
+.gp-btn.is-danger:hover:not(:disabled){background:var(--red-bg);border-color:#e58b80;color:var(--red)}
+.gp-btn.is-dark{background:#161d2d;border-color:#161d2d;color:#f4f3ef}
+.gp-btn.is-dark:hover:not(:disabled){background:#0f1420;border-color:#0f1420;color:#fff}
+.gp-btn.is-sm{padding:6px 10px;font-size:.8em;border-radius:7px}
+.gp-btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.gp-btn[aria-busy="true"]{opacity:.8;cursor:progress}
+.gp-spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:gpSpin .7s linear infinite}
+@keyframes gpSpin{to{transform:rotate(360deg)}}
+
+/* ---- Section cards (Incident type / Resolutions) ---- */
+.gp-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px}
+.gp-sec-head{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:14px 20px}
+.gp-sec-head h2{margin:0;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.gp-exp{display:inline-flex;align-items:center;gap:10px;margin:-4px -6px;padding:4px 8px 4px 6px;border:none;border-radius:8px;background:none;color:var(--ink);cursor:pointer;text-align:left}
+.gp-exp:hover{background:#fafbfc}
+.gp-exp:hover .gp-chev{background:#e6f0fc;color:#2b66c1}
+.gp-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.gp-chev svg{transition:transform .15s}
+.gp-exp[aria-expanded="true"] .gp-chev svg{transform:rotate(90deg)}
+.gp-sec-ic{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a;flex-shrink:0}
+#secRes .gp-sec-ic{background:#e9f0fb;color:#1f4f9a}
+.gp-sum{font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.gp-sum b{color:var(--ink);font-weight:800}
+.gp-mode{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:var(--grn-bg);color:var(--grn);border:1px solid #bfe6cf;white-space:nowrap;font-variant-numeric:tabular-nums}
+.gp-mode::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.gp-sec-body{padding:4px 20px 20px;border-top:1px solid var(--line)}
+.gp-sec.collapsed .gp-sec-body{display:none}
+.gp-help{margin:14px 0 0;font-size:.86em;color:var(--mut);line-height:1.5;max-width:90ch}
+.gp-help b{color:var(--ink)}
+
+/* Action bar + flash messages */
+.gp-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.gp-actions .gp-btn.is-danger{margin-left:auto}
+.gp-msg{display:none;flex-basis:100%;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:.84em;font-weight:700;line-height:1.4}
+.gp-msg.err{background:var(--red-bg);color:var(--red);border:1px solid #f2b8b1}
+.gp-msg.ok{background:var(--grn-bg);color:var(--grn);border:1px solid #bfe6cf}
+.gp-msg[style*="inline"]{display:flex!important}
+
+/* Two-column editor */
+.gp-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@container (min-width:900px){.gp-cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.gp-panel{position:relative;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:16px 16px 14px}
+.gp-panel::before{content:'';position:absolute;left:-1px;top:16px;width:3px;height:22px;border-radius:0 3px 3px 0;background:var(--c,var(--acc))}
+.gp-panel.is-grp{--c:var(--pur)}
+.gp-panel-h{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.gp-panel-h h3{font-size:1em;font-weight:800;letter-spacing:-.2px}
+.gp-count{font-size:.8em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.gp-hint{margin-top:5px;font-size:.8em;color:var(--mut);line-height:1.5}
+.gp-hint b{color:var(--ink)}
+.gp-src-meta{display:flex;align-items:center;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;margin-top:12px;font-size:.8em}
+.gp-src-t{font-weight:800;color:#2a3340}
+.gp-tools{margin:10px 0;padding:8px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.gp-search{position:relative}
+.gp-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
+.gp .gp-search input{width:100%;font:inherit;font-size:.88em;padding:8px 12px 8px 36px;border-radius:8px}
+.gp-list{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.gp-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #eef1f4;cursor:pointer;font-size:.86em;min-width:0;transition:background .12s}
+.gp-row:last-child{border-bottom:none}
+.gp-row:hover{background:#fafbfc}
+.gp-row.is-checked{background:var(--acc-bg)}
+.gp-row.is-assigned .gp-row-t{color:#8793a0}
+.gp-row input[type=checkbox]{width:16px;height:16px;margin:0;flex-shrink:0;accent-color:var(--acc);cursor:pointer}
+.gp-row-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--ink)}
+.gp-in{display:inline-flex;align-items:center;gap:5px;max-width:42%;padding:2px 8px;border-radius:99px;background:var(--pur-bg);border:1px solid #ddd2fa;color:var(--pur);
+  font-size:.78em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+.gp-in svg{flex-shrink:0}
+.gp-num{flex-shrink:0;min-width:42px;text-align:center;padding:2px 8px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.86em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums}
+.gp-none{padding:22px 14px;text-align:center;color:var(--mut);font-size:.84em}
+.gp-more{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;border-top:1px solid #eef1f4;background:#fcfcfd}
+.gp-more-c{font-size:.78em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.gp-assign{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:12px}
+.gp-field{display:flex;flex-direction:column;gap:5px;flex:1 1 200px;min-width:0}
+.gp-field>label{font-size:.7em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.gp-field>label .gp-selc{text-transform:none;letter-spacing:0;color:var(--acc-ink);margin-left:6px}
+.gp select,.gp .gp-field input{width:100%;min-width:0;font:inherit;font-size:.88em;padding:9px 11px;border-radius:8px}
+.gp-field-err{display:none;align-items:center;gap:6px;font-size:.8em;font-weight:700;color:var(--red)}
+.gp-field-err:not(:empty){display:flex}
+.gp .gp-field input[aria-invalid="true"],.gp .gp-grp-name[aria-invalid="true"]{border-color:#d92d20!important;box-shadow:0 0 0 3px rgba(217,45,32,.12)!important}
+
+/* Group cards */
+.gp-grps{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.gp-grp{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.gp-grp:hover{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
+.gp-grp-h{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:10px 12px;background:#fafbfc}
+.gp-grp.is-open .gp-grp-h{border-bottom:1px solid var(--line)}
+.gp-grp-h .gp-exp{margin:0;padding:2px}
+.gp-av{flex-shrink:0;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.84em;font-weight:800;
+  background:hsl(var(--h) 60% 92%);color:hsl(var(--h) 55% 28%);border:1px solid hsl(var(--h) 45% 82%)}
+.gp .gp-grp-name{flex:1 1 160px;min-width:0;font:inherit;font-size:.92em;font-weight:800;padding:7px 10px;border-radius:8px}
+.gp-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.74em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
+.gp-pill b{color:var(--ink);font-weight:800}
+.gp-grp-b{display:flex;flex-wrap:wrap;gap:6px;padding:12px;min-width:0}
+.gp-mchip{display:inline-flex;align-items:center;gap:7px;max-width:100%;min-width:0;padding:3px 4px 3px 3px;border-radius:99px;background:var(--pur-bg);border:1px solid #ddd2fa;font-size:.8em;font-weight:700;color:#3d2a8a}
+.gp-mchip-av{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.78em;font-weight:800;
+  background:hsl(var(--h) 60% 90%);color:hsl(var(--h) 55% 28%)}
+.gp-mchip-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.gp-mchip-n{flex-shrink:0;color:#7a68b8;font-weight:800;font-variant-numeric:tabular-nums}
+.gp-mchip button{flex-shrink:0;width:20px;height:20px;border:none;border-radius:50%;background:transparent;color:#6b5aa8;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.gp-mchip button:hover{background:#e3d9fb;color:var(--red)}
+.gp-empty-s{display:flex;align-items:center;gap:10px;padding:14px;border:1px dashed #d4dade;border-radius:10px;color:var(--mut);font-size:.84em;line-height:1.45;background:#fcfcfd}
+.gp-empty-s svg{flex-shrink:0;color:#8793a0}
+.gp-grp-b .gp-empty-s{flex:1 1 100%;padding:10px 12px}
+.gp-new{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.gp-new-row{display:flex;gap:8px;flex-wrap:wrap}
+.gp-new-row input{flex:1 1 200px}
+
+/* Preview */
+.gp-preview{margin-top:18px}
+.gp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 10px;font-size:.78em;font-weight:700;color:var(--mut)}
+.gp-legend span{display:inline-flex;align-items:center;gap:6px}
+.gp-legend i{width:12px;height:12px;border-radius:3px;background:#f3efff;border:1px solid #ddd2fa}
+.gp-legend i.is-c{background:#fff;border-color:#d4dade}
+.gp-scroll{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:8px}
+.gp-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.86em}
+/* The shared chrome turns every table into display:block on narrow screens; .gp-scroll already scrolls. */
+.gp .gp-tbl{display:table!important;overflow:visible!important;max-width:none!important}
+.gp .gp-tbl th,.gp .gp-tbl td{padding:9px 12px;border:none!important;border-bottom:1px solid #eef1f4!important;text-align:left;vertical-align:middle}
+.gp .gp-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8!important;border-bottom:1px solid var(--line)!important;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;color:var(--mut)!important}
+.gp .gp-tbl tbody tr td{background:#fff!important}
+.gp .gp-tbl tbody tr:last-child td{border-bottom:none!important}
+.gp .gp-tbl .c{text-align:center;white-space:nowrap}
+.gp .gp-tbl td.gp-rank{width:48px;color:#b5530a!important;font-weight:800;font-variant-numeric:tabular-nums}
+.gp .gp-tbl td.n{font-variant-numeric:tabular-nums;font-weight:700}
+.gp .gp-tbl tbody tr.is-grouped td{background:#f8f5ff!important}
+.gp .gp-tbl tbody tr.is-grouped:hover td{background:#efe8ff!important}
+.gp .gp-tbl tbody tr.is-click{cursor:pointer}
+.gp .gp-tbl tbody tr.is-click:hover td{background:#fff7ed!important}
+.gp-tag{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:99px;font-size:.74em;font-weight:800;letter-spacing:.3px;
+  color:var(--pur);background:#fff;border:1px solid #ddd2fa;vertical-align:middle;white-space:nowrap}
+.gp-pv-name{font-weight:700;color:var(--ink)}
+.gp-link{display:inline-flex;align-items:center;gap:6px;padding:0;border:none;background:none;color:#2b66c1;font-weight:700;text-align:left;cursor:pointer}
+.gp-link svg{flex-shrink:0;opacity:.6}
+.gp-link:hover{text-decoration:underline}
+.gp-vol{min-width:110px}
+.gp-vol-t{display:block;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.gp-vol-t i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9f2e,var(--acc));min-width:4px}
+tr.is-grouped .gp-vol-t i{background:linear-gradient(90deg,#9b85f0,var(--pur))}
+
+/* ---- States (gate / error / loading) ---- */
+.gp-state{padding:10px 20px}
+.gp-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
+.gp-empty-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#5c6773;margin-bottom:4px}
+.gp-empty-ic.is-err{background:var(--red-bg);color:var(--red)}
+.gp-empty-t{font-size:1.08em!important;font-weight:800;color:var(--ink)!important}
+.gp-empty p{font-size:.9em;max-width:56ch;line-height:1.5}
+.gp-empty .gp-btn{margin-top:6px}
+.gp-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:gpShim 1.4s ease infinite}
+.gp-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.16) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes gpShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.gp-row.is-skel{cursor:default}
+.gp-row.is-skel:hover{background:none}
+
+/* ---- Tickets modal (appended to <body>) ---- */
+.gp-ov{position:fixed;inset:0;z-index:5000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;background:rgba(20,30,45,.55)}
+.gp-modal{width:min(1100px,100%);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 30px 60px -30px rgba(20,30,50,.6);overflow:hidden}
+.gp-modal-h{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 16px 24px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.28),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40)}
+.gp-modal-h::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.gp-modal-ht{min-width:0}
+.gp-modal-h .gp-eyebrow{margin-bottom:4px}
+.gp-modal-h h2{color:#fff!important;font-size:1.25em;font-weight:800;letter-spacing:-.3px;line-height:1.25;overflow-wrap:anywhere}
+.gp-modal-h .gp-chip{margin-top:8px}
+.gp-modal-h .gp-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+.gp-modal-h .gp-btn:hover:not(:disabled){background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4);color:#fff}
+.gp-modal-b{padding:16px 20px 20px}
+.gp-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.gp-pageinfo{font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.gp-pgbtns{display:flex;gap:6px;flex-wrap:wrap}
+.gp-modal .gp-scroll{max-height:60vh}
+.gp-tbl a{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
+.gp-tbl a:hover{text-decoration:underline}
+
+/* ---- Hover tooltip for grouped preview rows (appended to <body>) ---- */
+.grp-tip{position:fixed;z-index:4000;display:none;pointer-events:none;background:#fff;border:1px solid #ddd2fa;border-radius:10px;padding:10px 12px;width:fit-content;max-width:480px;
+  box-shadow:0 14px 30px -12px rgba(20,30,50,.35);font-family:'Inter',-apple-system,sans-serif;font-size:.82em;color:#1b2026}
+.grp-tip-h{display:flex;justify-content:space-between;gap:14px;align-items:baseline;color:#6b4bd8;font-weight:800;border-bottom:1px solid #ece6fb;padding-bottom:6px;margin-bottom:6px}
+.grp-tip-h span{color:#1b2026;font-variant-numeric:tabular-nums}
+.grp-tip-row{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
+.grp-tip-t{color:#2a3340;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp-tip-c{color:#5c6773;font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* ---- Entrance (first paint only) ---- */
+@keyframes gpUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.gp.is-anim .gp-hero{animation:gpUp .45s ease both}
+.gp.is-anim .gp-kpi{animation:gpUp .5s ease both}
+.gp.is-anim .gp-kpi:nth-child(2){animation-delay:.06s}
+.gp.is-anim .gp-kpi:nth-child(3){animation-delay:.12s}
+.gp.is-anim .gp-kpi:nth-child(4){animation-delay:.18s}
+.gp.is-anim .gp-card{animation:gpUp .5s ease .22s both}
+
+/* ---- Narrow containers ---- */
+@container (max-width:700px){
+  .gp-hero{padding:22px 18px 76px 22px}
+  .gp-hero.is-flat{padding-bottom:22px}
+  .gp-hero h1{font-size:1.6em;letter-spacing:-.6px}
+  .gp-hero-ic{display:none}
+  .gp-meta{width:100%}
+  .gp-kpis{margin-left:10px;margin-right:10px}
+  .gp-sec-head{padding:12px 14px}
+  .gp-sec-body{padding:2px 14px 16px}
+  .gp-panel{padding:14px 12px 12px}
+  .gp-mode{margin-left:0}
+}
+@container (max-width:520px){
+  .gp-actions .gp-btn{flex:1 1 100%}
+  .gp-actions .gp-btn.is-danger{margin-left:0}
+  .gp .gp-tbl .gp-vol{display:none}
+  .gp-assign .gp-btn,.gp-new-row .gp-btn{flex:1 1 100%}
+  .gp-in{max-width:38%}
+  .gp-modal-b{padding:14px 12px 16px}
+  .gp-modal-h{padding:16px 14px 14px 18px;flex-wrap:wrap}
+  .gp-pgbtns{width:100%}.gp-pgbtns .gp-btn{flex:1 1 0;padding-left:6px;padding-right:6px}
+}
+@media (max-width:520px){.gp-ov{padding:16px 8px}}
+@media (prefers-reduced-motion:reduce){
+  .gp *,.gp *::before,.gp *::after,.gp{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body data-nav-active="groups-page" data-back-href="index.html" data-back-label="All Dashboards">
@@ -255,17 +315,21 @@ th{color:#5c6773!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap">
-  <div class="spinner"></div>
-</div>
+<div class="wrap" id="wrap" aria-busy="true"></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=211"></script>
+<script src="topbar-auth.js?v=214"></script>
 <script>
 const A=window.PHDAuth;
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const isOwner=()=>A.role&&A.role()==='owner';
+const num=(n)=>(Number(n)||0).toLocaleString();
+const CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const XSM='<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M2 2l6 6M8 2L2 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const HUES=[24,205,165,265,335,45,190,120];
+function hueOf(s){ let h=0; s=String(s||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return HUES[h%HUES.length]; }
+function initialOf(s){ const m=String(s||'').match(/[A-Za-z0-9]/); return m?m[0].toUpperCase():'?'; }
 
 // Two source lists (one per quarter). RAW is the MERGED list (dedup by type, summed counts) used
 // for the preview + memberIndex, so grouping a Q2-only type still previews.
@@ -287,6 +351,9 @@ let RPSHOW=SHOW_STEP;    // visible-row count for the resolutions PREVIEW table
 let RGROUPS=[];    // [{name, members:[rawValue]}] working copy for resolutions
 let RVERSION=0;    // last-loaded resolution-group server version
 let RSEL=new Set();// checked resolution values
+// UI-only state.
+let FIRST=true;               // first full paint gets the entrance animation
+const GSHUT=new WeakSet();    // group objects whose member list is collapsed (both kinds)
 
 // Merge the two per-quarter lists into RAW (dedup by type, sum counts).
 function rebuildMerged(){
@@ -296,7 +363,100 @@ function rebuildMerged(){
   RAW=Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([type,count])=>({type,count}));
 }
 
-function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Groups Page</h1><p>'+esc(msg)+'</p><a class="btn" href="index.html">Go to Home</a></div>';}
+// ---- Polite live region (lives on <body> so it survives full re-renders of #wrap) ----
+function live(){
+  let l=document.getElementById('gpLive');
+  if(!l){ l=document.createElement('div'); l.id='gpLive'; l.className='gp-sr'; l.setAttribute('role','status'); l.setAttribute('aria-live','polite'); l.setAttribute('aria-atomic','true');
+    l.style.cssText='position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)'; document.body.appendChild(l); }
+  return l;
+}
+function announce(msg){ const l=live(); l.textContent=''; setTimeout(()=>{ l.textContent=msg; },40); }
+function setWrapBusy(on){ const w=document.getElementById('wrap'); if(w) w.setAttribute('aria-busy',on?'true':'false'); }
+
+// ---------- Hero / KPIs / states ----------
+function sk(w,h,extra,dark){ return '<span class="gp-skel'+(dark?' gp-skel-d':'')+'" style="width:'+w+';height:'+h+'px'+(extra||'')+'"></span>'; }
+// mode: 'ready' (versions shown) | 'loading' (skeleton versions) | 'flat' (gate / error: no KPI overlap)
+function heroHtml(mode){
+  let meta='';
+  if(mode==='ready') meta='<dl class="gp-meta" aria-label="Published versions"><div><dt>Incident groups</dt><dd id="gpVer">v'+VERSION+'</dd></div><div><dt>Resolution groups</dt><dd id="gpRVer">v'+RVERSION+'</dd></div></dl>';
+  else if(mode==='loading') meta='<dl class="gp-meta" aria-hidden="true"><div><dt>Incident groups</dt><dd>'+sk('54px',20,';margin-top:4px',1)+'</dd></div><div><dt>Resolution groups</dt><dd>'+sk('54px',20,';margin-top:4px',1)+'</dd></div></dl>';
+  return '<header class="gp-hero'+(mode==='flat'?' is-flat':'')+'"><div class="gp-hero-in"><div class="gp-hero-main">'+
+    '<span class="gp-hero-ic" aria-hidden="true">'+ic('copy',24)+'</span><div style="min-width:0">'+
+    '<p class="gp-eyebrow">Owner tool \u00b7 Display grouping</p><h1>Grouping Page</h1>'+
+    '<p class="gp-hero-sub">Combine raw incident-type and resolution values into one display name. This only relabels what\u2019s shown \u2014 the underlying ticket data is never changed. Publish to save.</p>'+
+    '<ul class="gp-chips">'+
+      '<li class="gp-chip">'+ic('calendar',14)+'<span>Scope</span>From 1 Apr 2026 \u00b7 Q2 + Q3</li>'+
+      '<li class="gp-chip is-warn">'+ic('lock',14)+'Owner-only \u00b7 not linked anywhere \u00b7 saved only when you click Publish</li>'+
+    '</ul></div></div>'+meta+'</div></header>';
+}
+function kpiCard(cls,icon,label,value,sub,ratio){
+  return '<div class="gp-kpi '+cls+'"><p class="gp-kpi-l"><span class="gp-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</p>'+
+    '<p class="gp-kpi-v">'+value+'</p><p class="gp-kpi-s">'+sub+'</p>'+
+    (ratio==null?'':'<div class="gp-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+const sumCounts=(list)=>list.reduce((n,r)=>n+r.count,0);
+const memberTotal=(groups)=>groups.reduce((n,g)=>n+(g.members||[]).length,0);
+// KPIs + every small count that depends on the groups (section summaries, panel counts).
+function paintKpis(){
+  const gT=memberTotal(GROUPS), rT=memberTotal(RGROUPS);
+  const k=document.getElementById('gpKpis');
+  if(k) k.innerHTML=
+    kpiCard('k-base','hash','Incident types',num(RAW.length),'<b>'+num(sumCounts(RAW))+'</b> incidents \u00b7 Q2 + Q3',null)+
+    kpiCard('k-warn','copy','Incident groups',num(GROUPS.length),'<b>'+num(gT)+'</b> of '+num(RAW.length)+' types grouped',RAW.length?Math.min(1,gT/RAW.length):0)+
+    kpiCard('k-teal','check-circle','Resolution values',num(RES.length),'<b>'+num(sumCounts(RES))+'</b> resolved / closed',null)+
+    kpiCard('k-blue','copy','Resolution groups',num(RGROUPS.length),'<b>'+num(rT)+'</b> of '+num(RES.length)+' values grouped',RES.length?Math.min(1,rT/RES.length):0);
+  const s1=document.getElementById('secIncidentSum'); if(s1) s1.innerHTML='<b>'+num(RAW.length)+'</b> types \u00b7 <b>'+num(GROUPS.length)+'</b> group'+(GROUPS.length===1?'':'s');
+  const s2=document.getElementById('secResSum'); if(s2) s2.innerHTML='<b>'+num(RES.length)+'</b> values \u00b7 <b>'+num(RGROUPS.length)+'</b> group'+(RGROUPS.length===1?'':'s');
+  const g1=document.getElementById('grpCount'); if(g1) g1.textContent=num(GROUPS.length)+' group'+(GROUPS.length===1?'':'s')+' \u00b7 '+num(gT)+' types';
+  const g2=document.getElementById('rGrpCount'); if(g2) g2.textContent=num(RGROUPS.length)+' group'+(RGROUPS.length===1?'':'s')+' \u00b7 '+num(rT)+' values';
+}
+// Published-version labels (hero, section pills, publish buttons).
+function paintVersions(){
+  const set=(id,t)=>{ const e=document.getElementById(id); if(e) e.textContent=t; };
+  set('gpVer','v'+VERSION); set('gpRVer','v'+RVERSION);
+  set('secIncidentVer','Live v'+VERSION); set('secResVer','Live v'+RVERSION);
+  const b=document.getElementById('publishBtn'); if(b&&b.getAttribute('aria-busy')!=='true') b.innerHTML=ic('check-circle',15)+' Publish (v'+VERSION+' &rarr; v'+(VERSION+1)+')';
+  const rb=document.getElementById('rPublishBtn'); if(rb&&rb.getAttribute('aria-busy')!=='true') rb.innerHTML=ic('check-circle',15)+' Publish resolutions (v'+RVERSION+' &rarr; v'+(RVERSION+1)+')';
+}
+function emptyHtml(icCls,icon,title,text,btn){
+  return '<div class="gp-empty"><span class="gp-empty-ic '+icCls+'" aria-hidden="true">'+ic(icon,26)+'</span><h2 class="gp-empty-t">'+title+'</h2>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
+}
+
+function gate(msg){
+  setWrapBusy(false);
+  document.getElementById('wrap').innerHTML='<div class="gp">'+heroHtml('flat')+'<section class="gp-card gp-state">'+
+    emptyHtml('','lock','Groups Page',esc(msg),'<a class="gp-btn is-primary" href="index.html">'+ic('home',14)+' Go to Home</a>')+'</section></div>';
+  announce(msg);
+}
+// Friendly load error with a Retry that re-runs the same fetch (boot).
+function loadFailed(msg){
+  setWrapBusy(false);
+  document.getElementById('wrap').innerHTML='<div class="gp">'+heroHtml('flat')+'<section class="gp-card gp-state">'+
+    emptyHtml('is-err','alert-triangle','Couldn\u2019t load the grouping data','<span role="alert">'+esc(msg)+'</span>',
+      '<button type="button" class="gp-btn is-dark" id="gpRetry" onclick="boot()">'+ic('refresh',14)+' Retry</button>')+'</section></div>';
+  announce('Could not load the grouping data.');
+}
+// Skeleton that mirrors the final layout: hero, 4 KPI cards, the Incident type section (2 panels + preview), Resolutions header.
+function paintLoading(){
+  const kpi='<div class="gp-kpi">'+sk('55%',11)+sk('40%',30,';margin-top:14px')+sk('70%',10,';margin-top:10px')+'</div>';
+  const row=(w)=>'<div class="gp-row is-skel">'+sk('16px',16)+sk(w,12)+'<span style="flex:1"></span>'+sk('44px',20,';border-radius:99px')+'</div>';
+  const rows=['62%','48%','70%','40%','56%','66%','44%'].map(row).join('');
+  const panel='<div class="gp-panel">'+sk('45%',15)+sk('85%',10,';margin-top:10px')+'<div class="gp-tools">'+sk('100%',34)+'</div><div class="gp-list">'+rows+'</div></div>';
+  const grp='<div class="gp-grp"><div class="gp-grp-h">'+sk('22px',22)+sk('32px',32,';border-radius:50%')+sk('50%',32)+'<span style="flex:1"></span>'+sk('70px',30)+'</div>'+
+    '<div class="gp-grp-b">'+sk('120px',26,';border-radius:99px')+sk('160px',26,';border-radius:99px')+sk('96px',26,';border-radius:99px')+'</div></div>';
+  const gpanel='<div class="gp-panel is-grp">'+sk('35%',15)+sk('80%',10,';margin-top:10px')+'<div class="gp-grps">'+grp+grp+grp+'</div></div>';
+  const tr=(w)=>'<tr><td class="gp-rank">'+sk('18px',12)+'</td><td>'+sk(w,12)+'</td><td>'+sk('40px',12)+'</td><td>'+sk('40px',12)+'</td><td class="gp-vol">'+sk('80%',8,';border-radius:99px')+'</td></tr>';
+  const table='<div class="gp-scroll"><table class="gp-tbl"><thead><tr><th>#</th><th>'+sk('90px',10)+'</th><th>Count</th><th>%</th><th class="gp-vol">Volume</th></tr></thead><tbody>'+
+    ['55%','40%','62%','35%','48%'].map(tr).join('')+'</tbody></table></div>';
+  const head=(w)=>'<div class="gp-sec-head">'+sk('30px',30,';border-radius:8px')+sk(w,20)+'<span style="flex:1"></span>'+sk('96px',24,';border-radius:99px')+'</div>';
+  setWrapBusy(true);
+  document.getElementById('wrap').innerHTML='<div class="gp">'+heroHtml('loading')+
+    '<div aria-hidden="true"><div class="gp-kpis">'+kpi+kpi+kpi+kpi+'</div>'+
+    '<section class="gp-card">'+head('160px')+'<div class="gp-sec-body"><div class="gp-actions">'+sk('200px',36)+sk('130px',36)+'</div>'+
+      '<div class="gp-cols">'+panel+gpanel+'</div><div class="gp-preview">'+sk('120px',15)+sk('60%',10,';margin:8px 0 12px')+table+'</div></div></section>'+
+    '<section class="gp-card">'+head('130px')+'</section></div></div>';
+  announce('Loading grouping data\u2026');
+}
 
 // lowercased raw type -> group name (for "assigned" markers + preview relabel).
 function memberIndex(){
@@ -326,6 +486,7 @@ function clearRDraft(){ try{ localStorage.removeItem(RDRAFT_KEY); }catch(e){} }
 async function boot(){
   if(!A.getUser()||!A.getToken()){gate('Please log in to use this tool.');return;}
   if(!(A.canGroupingPage&&A.canGroupingPage())){gate('You do not have access to the Grouping Page.');return;}
+  paintLoading();
   try{
     const [q2R,q3R,resR,grpR,rgrpR]=await Promise.all([
       A.api('GET','/api/incident-types/raw?q=2026-Q2'),
@@ -334,7 +495,7 @@ async function boot(){
       A.api('GET','/api/incident-groups'),
       A.api('GET','/api/resolution-groups'),
     ]);
-    if(!q3R.ok&&!q2R.ok){gate('Could not load incident types.');return;}
+    if(!q3R.ok&&!q2R.ok){loadFailed('Could not load incident types'+(q3R.status?' (HTTP '+q3R.status+')':'')+'.');return;}
     RAW_Q3=(q3R.ok&&q3R.data&&q3R.data.types)||[];
     RAW_Q2=(q2R.ok&&q2R.data&&q2R.data.types)||[];
     RES=(resR.ok&&resR.data&&resR.data.types)||[];
@@ -350,217 +511,200 @@ async function boot(){
     const rdraft=loadRDraft();
     RGROUPS = rdraft ? rdraft : serverRGroups;
     render();
+    announce('Grouping data loaded: '+num(RAW.length)+' incident types, '+num(RES.length)+' resolution values.');
     if(draft||rdraft) flash('ok','Restored your unsaved draft. Use "Reload saved" to discard it.');
-  }catch(e){gate('Could not load the tool. '+esc(e.message||''));}
+  }catch(e){loadFailed('Could not load the tool. '+(e&&e.message||''));}
 }
+
+function secHead(id,icon,title,sumId,verId,ver){
+  return '<div class="gp-sec-head">'+
+    '<h2 id="'+id+'H"><button type="button" class="gp-exp" id="'+id+'Btn" aria-expanded="true" aria-controls="'+id+'Body" onclick="toggleCard(\''+id+'\')">'+
+      '<span class="gp-chev">'+CHEV+'</span><span class="gp-sec-ic" aria-hidden="true">'+ic(icon,16)+'</span>'+title+'</button></h2>'+
+    '<span class="gp-sum" id="'+sumId+'"></span>'+
+    '<span class="gp-mode" id="'+verId+'" title="Published version">Live v'+ver+'</span></div>';
+}
+function srcPanel(o){
+  return '<div class="gp-panel">'+
+    '<div class="gp-panel-h"><h3>'+o.title+'</h3></div>'+
+    '<p class="gp-hint">'+o.hint+'</p>'+
+    '<div id="'+o.host+'"></div>'+
+    '<div class="gp-assign">'+
+      '<div class="gp-field"><label for="'+o.sel+'">Add checked to group<span class="gp-selc" id="'+o.selc+'"></span></label><select id="'+o.sel+'"></select></div>'+
+      '<button type="button" class="gp-btn" onclick="'+o.assign+'()">Add checked &rarr;</button>'+
+    '</div></div>';
+}
+function grpPanel(o){
+  return '<div class="gp-panel is-grp">'+
+    '<div class="gp-panel-h"><h3>'+o.title+'</h3><span class="gp-count" id="'+o.count+'"></span></div>'+
+    '<p class="gp-hint">'+o.hint+'</p>'+
+    '<div class="gp-grps" id="'+o.list+'"></div>'+
+    '<form class="gp-new" novalidate onsubmit="event.preventDefault();'+o.add+'()">'+
+      '<div class="gp-field"><label for="'+o.input+'">New group name</label>'+
+      '<div class="gp-new-row"><input id="'+o.input+'" placeholder="'+o.ph+'" autocomplete="off" aria-describedby="'+o.input+'Err" oninput="clearFieldErr(this)">'+
+      '<button type="submit" class="gp-btn">'+ic('plus',14)+' Add group</button></div>'+
+      '<p class="gp-field-err" id="'+o.input+'Err" role="alert"></p></div>'+
+    '</form></div>';
+}
+function previewShell(o){
+  return '<div class="gp-preview">'+
+    '<div class="gp-panel-h"><h3>'+o.title+'</h3><span class="gp-count" id="'+o.count+'"></span></div>'+
+    '<p class="gp-hint">'+o.hint+'</p>'+
+    '<div class="gp-legend" aria-hidden="true"><span><i></i>Grouped row \u00b7 hover for the breakdown</span><span><i class="is-c"></i>Other rows \u00b7 click for tickets</span></div>'+
+    '<div id="'+o.box+'"></div></div>';
+}
+function msgBar(errId,okId){ return '<p class="gp-msg err msg" id="'+errId+'" role="alert"></p><p class="gp-msg ok msg" id="'+okId+'" role="status"></p>'; }
 
 function render(){
   const wrap=document.getElementById('wrap');
-  wrap.innerHTML=`
-    <div class="gp-hero"><div class="gph-left">
-      <h1 class="gph-title">${ic('copy',26)} Grouping Page</h1>
-      <div class="gph-sub">Combine raw incident-type and resolution values into one display name. This only relabels what's shown — the underlying ticket data is never changed. Publish to save.</div>
-    </div></div>
-    <div class="warn-banner">${ic('alert',15)} Owner-only. This page isn't linked anywhere. Changes are saved only when you click a <b>&nbsp;Publish</b> button.</div>
+  setWrapBusy(false);
+  wrap.innerHTML=`<div class="gp${FIRST?' is-anim':''}" id="gpRoot">
+    ${heroHtml('ready')}
+    <div class="gp-kpis" id="gpKpis"></div>
 
     <!-- ============ SECTION 1: INCIDENT TYPE ============ -->
-    <div class="card section-card" id="secIncident">
-      <h2 class="card-toggle section-title" onclick="toggleCard('secIncident')"><span class="card-caret">&#9662;</span> Incident type</h2>
-      <div class="card-body">
-        <div class="actions-bar">
-          <button class="btn primary" id="publishBtn" onclick="publish()">${ic('check-circle',15)} Publish (v${VERSION} &rarr; v${VERSION+1})</button>
-          <button class="btn sec" onclick="reloadFromServer()">${ic('refresh',15)} Reload saved</button>
-          <button class="btn danger" onclick="clearAll()">Clear all groups</button>
-          <span class="msg err" id="err"></span><span class="msg ok" id="ok"></span>
+    <section class="gp-card gp-sec section-card" id="secIncident" aria-labelledby="secIncidentH">
+      ${secHead('secIncident','hash','Incident type','secIncidentSum','secIncidentVer',VERSION)}
+      <div class="gp-sec-body card-body" id="secIncidentBody">
+        <div class="gp-actions actions-bar">
+          <button type="button" class="gp-btn is-primary" id="publishBtn" onclick="publish()">${ic('check-circle',15)} Publish (v${VERSION} &rarr; v${VERSION+1})</button>
+          <button type="button" class="gp-btn" id="reloadBtn" onclick="reloadFromServer()">${ic('refresh',15)} Reload saved</button>
+          <button type="button" class="gp-btn is-danger" onclick="clearAll()">${ic('trash',14)} Clear all groups</button>
+          ${msgBar('err','ok')}
         </div>
-        <div class="cols">
-          <div class="card" style="background:#000">
-            <h2>Raw incident types</h2>
-            <div class="card-body">
-              <div class="hint">Incident types from <b>1 Apr 2026 onward</b> (Q2 + Q3 combined; counts total across both quarters). Check the ones to combine, then assign them to a group.</div>
-              <div id="srcSection"></div>
-              <div class="assign-bar">
-                <select id="assignTarget"></select>
-                <button class="btn" onclick="assignSelected()">Add checked &rarr;</button>
-              </div>
-            </div>
-          </div>
-          <div class="card" style="background:#000">
-            <h2>Groups</h2>
-            <div class="card-body">
-              <div class="hint">Each group becomes one row on the dashboard. Unassigned types keep their original name.</div>
-              <div id="grpList"></div>
-              <div class="new-grp">
-                <input id="newGrpName" placeholder="New group name (e.g. Pet Incidents)" onkeydown="if(event.key==='Enter')addGroup()">
-                <button class="btn" onclick="addGroup()">${ic('plus',14)} Add group</button>
-              </div>
-            </div>
-          </div>
+        <div class="gp-cols cols">
+          ${srcPanel({title:'Raw incident types',hint:'Incident types from <b>1 Apr 2026 onward</b> (Q2 + Q3 combined; counts total across both quarters). Check the ones to combine, then assign them to a group.',host:'srcSection',sel:'assignTarget',selc:'selCount',assign:'assignSelected'})}
+          ${grpPanel({title:'Groups',count:'grpCount',hint:'Each group becomes one row on the dashboard. Unassigned types keep their original name.',list:'grpList',add:'addGroup',input:'newGrpName',ph:'e.g. Pet Incidents'})}
         </div>
-        <div class="preview" style="margin-top:16px">
-          <h2 style="color:var(--o);font-size:.9em;text-transform:uppercase;letter-spacing:.5px">Preview</h2>
-          <p class="hint" style="color:#5f6b6c;font-size:.8em;margin-bottom:6px">How the combined Incident Types list will look (overall, all resolved+unresolved this quarter). Grouped rows are highlighted.</p>
-          <div id="previewBox"></div>
-        </div>
+        ${previewShell({title:'Preview',count:'pvCount',box:'previewBox',hint:'How the combined Incident Types list will look (overall, all resolved+unresolved this quarter). Grouped rows are highlighted.'})}
       </div>
-    </div>
+    </section>
 
     <!-- ============ SECTION 2: RESOLUTIONS ============ -->
-    <div class="card section-card" id="secRes" style="margin-top:20px">
-      <h2 class="card-toggle section-title" onclick="toggleCard('secRes')"><span class="card-caret">&#9662;</span> Resolutions</h2>
-      <div class="card-body">
-        <div class="hint">The <b>Resolution</b> value recorded in each ticket's details (from 1 Apr 2026 onward, Q2 + Q3, resolved/closed only). Exact values. Grouping here is separate from incident-type grouping.</div>
-        <div class="actions-bar">
-          <button class="btn primary" id="rPublishBtn" onclick="rPublish()">${ic('check-circle',15)} Publish resolutions (v${RVERSION} &rarr; v${RVERSION+1})</button>
-          <button class="btn sec" onclick="rReloadFromServer()">${ic('refresh',15)} Reload saved</button>
-          <button class="btn danger" onclick="rClearAll()">Clear all groups</button>
-          <span class="msg err" id="rErr"></span><span class="msg ok" id="rOk"></span>
+    <section class="gp-card gp-sec section-card" id="secRes" aria-labelledby="secResH">
+      ${secHead('secRes','check-circle','Resolutions','secResSum','secResVer',RVERSION)}
+      <div class="gp-sec-body card-body" id="secResBody">
+        <p class="gp-help">The <b>Resolution</b> value recorded in each ticket's details (from 1 Apr 2026 onward, Q2 + Q3, resolved/closed only). Exact values. Grouping here is separate from incident-type grouping.</p>
+        <div class="gp-actions actions-bar">
+          <button type="button" class="gp-btn is-primary" id="rPublishBtn" onclick="rPublish()">${ic('check-circle',15)} Publish resolutions (v${RVERSION} &rarr; v${RVERSION+1})</button>
+          <button type="button" class="gp-btn" id="rReloadBtn" onclick="rReloadFromServer()">${ic('refresh',15)} Reload saved</button>
+          <button type="button" class="gp-btn is-danger" onclick="rClearAll()">${ic('trash',14)} Clear all groups</button>
+          ${msgBar('rErr','rOk')}
         </div>
-        <div class="cols">
-          <div class="card" style="background:#000">
-            <h2>Resolution values</h2>
-            <div class="card-body">
-              <div class="hint">Check the ones to combine, then assign them to a group.</div>
-              <div id="resSection"></div>
-              <div class="assign-bar">
-                <select id="rAssignTarget"></select>
-                <button class="btn" onclick="rAssignSelected()">Add checked &rarr;</button>
-              </div>
-            </div>
-          </div>
-          <div class="card" style="background:#000">
-            <h2>Resolution groups</h2>
-            <div class="card-body">
-              <div class="hint">Each group becomes one combined resolution. Unassigned values keep their original name.</div>
-              <div id="rGrpList"></div>
-              <div class="new-grp">
-                <input id="rNewGrpName" placeholder="New group name (e.g. Driver Follow-up)" onkeydown="if(event.key==='Enter')rAddGroup()">
-                <button class="btn" onclick="rAddGroup()">${ic('plus',14)} Add group</button>
-              </div>
-            </div>
-          </div>
+        <div class="gp-cols cols">
+          ${srcPanel({title:'Resolution values',hint:'Check the ones to combine, then assign them to a group.',host:'resSection',sel:'rAssignTarget',selc:'rSelCount',assign:'rAssignSelected'})}
+          ${grpPanel({title:'Resolution groups',count:'rGrpCount',hint:'Each group becomes one combined resolution. Unassigned values keep their original name.',list:'rGrpList',add:'rAddGroup',input:'rNewGrpName',ph:'e.g. Driver Follow-up'})}
         </div>
-        <div class="preview" style="margin-top:16px">
-          <h2 style="color:var(--o);font-size:.9em;text-transform:uppercase;letter-spacing:.5px">Resolutions preview</h2>
-          <p class="hint" style="color:#5f6b6c;font-size:.8em;margin-bottom:6px">Combined resolutions (Q2 + Q3, resolved/closed). Grouped rows are highlighted; hover for the breakdown, or click a non-grouped row for its tickets.</p>
-          <div id="rPreviewBox"></div>
-        </div>
+        ${previewShell({title:'Resolutions preview',count:'rpvCount',box:'rPreviewBox',hint:'Combined resolutions (Q2 + Q3, resolved/closed). Grouped rows are highlighted; hover for the breakdown, or click a non-grouped row for its tickets.'})}
       </div>
-    </div>`;
+    </section>
+  </div>`;
   paintSourceList();
   paintGroups();
   paintPreview();
   paintResolutions();
   paintRGroups();
   paintRPreview();
+  paintSelCount();
+  if(FIRST){ FIRST=false; setTimeout(()=>{ const r=document.getElementById('gpRoot'); if(r) r.classList.remove('is-anim'); },1200); }
 }
 
 // Filtering updates ONLY the row container (not the whole section), so the filter input keeps focus.
-function onFilter(v){ FILTER=v; SHOW=SHOW_STEP; paintRows(); }
+let _fltT=null;
+function announceMatches(list,f,label){ clearTimeout(_fltT); _fltT=setTimeout(()=>{ const q=(f||'').trim().toLowerCase(); const n=list.filter(r=>!q||r.type.toLowerCase().includes(q)).length; announce(num(n)+' '+label+(n===1?'':'s')+' match.'); },450); }
+function onFilter(v){ FILTER=v; SHOW=SHOW_STEP; paintRows(); announceMatches(RAW,v,'incident type'); }
 // Load more / show less for the incident-type source list.
 function srcMore(){ SHOW+=SHOW_STEP; paintRows(); }
 function srcLess(){ SHOW=SHOW_STEP; paintRows(); }
 window.srcMore=srcMore; window.srcLess=srcLess;
 // Collapse/expand a whole top-level card (its body incl. tables) by id.
-function toggleCard(id){ const el=document.getElementById(id); if(el)el.classList.toggle('collapsed'); }
-// Build the filtered row HTML for the combined source list (Q2 + Q3, merged counts).
-function rowsHtml(){
-  const idx=memberIndex();
-  const f=(FILTER||'').trim().toLowerCase();
-  const matched=RAW.filter(r=>!f||r.type.toLowerCase().includes(f));
-  if(!matched.length) return '<div style="padding:14px;color:#5f6b6c;font-size:.82em">No matching types.</div>';
-  const shown=matched.slice(0,SHOW);
-  const rows=shown.map(r=>{
+function toggleCard(id){
+  const el=document.getElementById(id); if(!el)return;
+  const shut=el.classList.toggle('collapsed');
+  const b=document.getElementById(id+'Btn'); if(b) b.setAttribute('aria-expanded',shut?'false':'true');
+}
+// Shared row builder for both source lists.
+function srcRowsHtml(list,filter,show,idx,sel,toggleFn,moreFn,lessFn,noun){
+  const f=(filter||'').trim().toLowerCase();
+  const matched=list.filter(r=>!f||r.type.toLowerCase().includes(f));
+  if(!matched.length) return '<div class="gp-none">No matching '+noun+'.</div>';
+  const rows=matched.slice(0,show).map(r=>{
     const inGrp=idx[r.type];
-    const checked=SEL.has(r.type)?' checked':'';
-    return '<label class="src-row'+(inGrp?' assigned':'')+'">'+
-      '<input type="checkbox" data-t="'+esc(r.type)+'"'+checked+' onchange="toggleSel(this)">'+
-      '<span class="st-name" title="'+esc(r.type)+'">'+esc(r.type)+'</span>'+
-      (inGrp?'<span class="st-in">in: '+esc(inGrp)+'</span>':'')+
-      '<span class="st-count">'+r.count.toLocaleString()+'</span>'+
+    const on=sel.has(r.type);
+    return '<label class="gp-row'+(inGrp?' is-assigned':'')+(on?' is-checked':'')+'">'+
+      '<input type="checkbox" data-t="'+esc(r.type)+'"'+(on?' checked':'')+' onchange="'+toggleFn+'(this)">'+
+      '<span class="gp-row-t" title="'+esc(r.type)+'">'+esc(r.type)+'</span>'+
+      (inGrp?'<span class="gp-in" title="In group: '+esc(inGrp)+'">'+ic('copy',11)+'<span class="gp-sr">In group: </span>'+esc(inGrp)+'</span>':'')+
+      '<span class="gp-num" title="Incidents">'+num(r.count)+'</span>'+
     '</label>';
   }).join('');
-  return rows+moreBar(matched.length,SHOW,'srcMore','srcLess');
+  return rows+moreBar(matched.length,show,moreFn,lessFn);
 }
-// Build a "Load more (+N) / Show less" bar for a paged source list.
+// Build the filtered row HTML for the combined source list (Q2 + Q3, merged counts).
+function rowsHtml(){ return srcRowsHtml(RAW,FILTER,SHOW,memberIndex(),SEL,'toggleSel','srcMore','srcLess','types'); }
+// Build a "Load more (+N) / Show less" bar for a paged list.
 function moreBar(totalMatched,show,moreFn,lessFn){
   var extra=totalMatched-show;
   if(extra<=0 && show<=SHOW_STEP) return '';       // nothing hidden and not expanded -> no bar
-  var btns='';
-  if(extra>0) btns+='<button type="button" class="btn sec" onclick="'+moreFn+'()">'+ic('plus',13)+' Load more ('+Math.min(SHOW_STEP,extra)+' of '+extra+')</button>';
-  if(show>SHOW_STEP) btns+='<button type="button" class="btn sec" onclick="'+lessFn+'()">Show less</button>';
-  return '<div class="src-more">'+btns+'</div>';
+  var btns='<span class="gp-more-c">Showing '+num(Math.min(show,totalMatched))+' of '+num(totalMatched)+'</span>';
+  if(extra>0) btns+='<button type="button" class="gp-btn is-sm" onclick="'+moreFn+'()">'+ic('plus',13)+' Load more ('+Math.min(SHOW_STEP,extra)+' of '+extra+')</button>';
+  if(show>SHOW_STEP) btns+='<button type="button" class="gp-btn is-sm" onclick="'+lessFn+'()">Show less</button>';
+  return '<div class="gp-more src-more">'+btns+'</div>';
 }
 
 // Update only the row list (keeps the filter input + its focus intact while typing).
 function paintRows(){ const el=document.getElementById('rows-combined'); if(el)el.innerHTML=rowsHtml(); }
 
+function srcHost(title,count,noun,total,inputId,label,value,handler,listId,rows){
+  return '<div class="gp-src-meta"><span class="gp-src-t">'+title+'</span><span class="gp-count">'+num(count)+' '+noun+' \u00b7 '+num(total)+' incidents</span></div>'+
+    '<div class="gp-tools" role="search"><div class="gp-search"><label class="gp-sr" for="'+inputId+'">'+label+'</label>'+ic('search',15)+
+      '<input type="search" id="'+inputId+'" placeholder="'+label+'\u2026" autocomplete="off" value="'+esc(value||'')+'" oninput="'+handler+'(this.value)"></div></div>'+
+    '<div class="gp-list" id="'+listId+'">'+rows+'</div>';
+}
+function assignOptions(groups){ return groups.length?groups.map((g,i)=>'<option value="'+i+'">'+esc(g.name||'(unnamed group)')+'</option>').join(''):'<option value="">(create a group first)</option>'; }
+
 // Paint the single combined source section (Q2 + Q3 from 1 Apr 2026).
 function paintSourceList(){
   const host=document.getElementById('srcSection');
-  if(host){
-    const total=RAW.reduce((n,r)=>n+r.count,0);
-    host.innerHTML='<div class="sec-panel">'+
-      '<div class="sec-head" style="cursor:default">'+
-        '<span class="sec-title">From 1 Apr 2026 \u00b7 Q2 + Q3 combined</span>'+
-        '<span class="sec-meta">'+RAW.length+' types \u00b7 '+total.toLocaleString()+' incidents</span>'+
-      '</div>'+
-      '<div class="src-tools"><input placeholder="Filter incident types\u2026" value="'+esc(FILTER||'')+'" oninput="onFilter(this.value)"></div>'+
-      '<div class="src-list" id="rows-combined">'+rowsHtml()+'</div>'+
-    '</div>';
-  }
+  if(host) host.innerHTML=srcHost('From 1 Apr 2026 \u00b7 Q2 + Q3 combined',RAW.length,'types',sumCounts(RAW),'srcQ','Filter incident types',FILTER,'onFilter','rows-combined',rowsHtml());
   // Refresh the assign-target dropdown.
   const sel=document.getElementById('assignTarget');
-  if(sel)sel.innerHTML=GROUPS.length?GROUPS.map((g,i)=>'<option value="'+i+'">'+esc(g.name)+'</option>').join(''):'<option value="">(create a group first)</option>';
+  if(sel)sel.innerHTML=assignOptions(GROUPS);
 }
 
-function toggleSel(cb){ const t=cb.getAttribute('data-t'); if(cb.checked)SEL.add(t); else SEL.delete(t); }
+function paintSelCount(){
+  const a=document.getElementById('selCount'); if(a) a.textContent=SEL.size?'\u00b7 '+SEL.size+' checked':'';
+  const b=document.getElementById('rSelCount'); if(b) b.textContent=RSEL.size?'\u00b7 '+RSEL.size+' checked':'';
+}
+function markRow(cb){ const r=cb.closest('.gp-row'); if(r) r.classList.toggle('is-checked',cb.checked); paintSelCount(); }
+function toggleSel(cb){ const t=cb.getAttribute('data-t'); if(cb.checked)SEL.add(t); else SEL.delete(t); markRow(cb); }
 
 // ================= Resolutions grouping (mirrors incident types, independent) =================
-function onResFilter(v){ RES_FILTER=v; RSHOW=SHOW_STEP; paintResRows(); }
+function onResFilter(v){ RES_FILTER=v; RSHOW=SHOW_STEP; paintResRows(); announceMatches(RES,v,'resolution'); }
 function rSrcMore(){ RSHOW+=SHOW_STEP; paintResRows(); }
 function rSrcLess(){ RSHOW=SHOW_STEP; paintResRows(); }
 window.rSrcMore=rSrcMore; window.rSrcLess=rSrcLess;
-function resRowsHtml(){
-  const idx=resMemberIndex();
-  const f=(RES_FILTER||'').trim().toLowerCase();
-  const matched=RES.filter(r=>!f||r.type.toLowerCase().includes(f));
-  if(!matched.length) return '<div style="padding:14px;color:#5f6b6c;font-size:.82em">No matching resolutions.</div>';
-  const rows=matched.slice(0,RSHOW).map(r=>{
-    const inGrp=idx[r.type];
-    const checked=RSEL.has(r.type)?' checked':'';
-    return '<label class="src-row'+(inGrp?' assigned':'')+'">'+
-      '<input type="checkbox" data-t="'+esc(r.type)+'"'+checked+' onchange="rToggleSel(this)">'+
-      '<span class="st-name" title="'+esc(r.type)+'">'+esc(r.type)+'</span>'+
-      (inGrp?'<span class="st-in">in: '+esc(inGrp)+'</span>':'')+
-      '<span class="st-count">'+r.count.toLocaleString()+'</span>'+
-    '</label>';
-  }).join('');
-  return rows+moreBar(matched.length,RSHOW,'rSrcMore','rSrcLess');
-}
+function resRowsHtml(){ return srcRowsHtml(RES,RES_FILTER,RSHOW,resMemberIndex(),RSEL,'rToggleSel','rSrcMore','rSrcLess','resolutions'); }
 function paintResRows(){ const el=document.getElementById('rows-res'); if(el)el.innerHTML=resRowsHtml(); }
 function paintResolutions(){
   const host=document.getElementById('resSection'); if(!host)return;
-  const total=RES.reduce((n,r)=>n+r.count,0);
-  host.innerHTML='<div class="sec-panel">'+
-    '<div class="sec-head" style="cursor:default">'+
-      '<span class="sec-title">Q2 + Q3 (resolved/closed)</span>'+
-      '<span class="sec-meta">'+RES.length+' resolutions \u00b7 '+total.toLocaleString()+' incidents</span>'+
-    '</div>'+
-    '<div class="src-tools"><input placeholder="Filter resolutions\u2026" value="'+esc(RES_FILTER||'')+'" oninput="onResFilter(this.value)"></div>'+
-    '<div class="src-list" id="rows-res">'+resRowsHtml()+'</div>'+
-  '</div>';
+  host.innerHTML=srcHost('Q2 + Q3 (resolved/closed)',RES.length,'resolutions',sumCounts(RES),'resQ','Filter resolutions',RES_FILTER,'onResFilter','rows-res',resRowsHtml());
   const sel=document.getElementById('rAssignTarget');
-  if(sel)sel.innerHTML=RGROUPS.length?RGROUPS.map((g,i)=>'<option value="'+i+'">'+esc(g.name)+'</option>').join(''):'<option value="">(create a group first)</option>';
+  if(sel)sel.innerHTML=assignOptions(RGROUPS);
 }
-function rToggleSel(cb){ const t=cb.getAttribute('data-t'); if(cb.checked)RSEL.add(t); else RSEL.delete(t); }
+function rToggleSel(cb){ const t=cb.getAttribute('data-t'); if(cb.checked)RSEL.add(t); else RSEL.delete(t); markRow(cb); }
+
+// ---- New-group field validation (inline message under the input) ----
+function fieldErr(inp,msg){ inp.setAttribute('aria-invalid','true'); const e=document.getElementById(inp.id+'Err'); if(e) e.textContent=msg; inp.focus(); }
+function clearFieldErr(inp){ if(inp.getAttribute('aria-invalid')!=='true')return; inp.removeAttribute('aria-invalid'); const e=document.getElementById(inp.id+'Err'); if(e) e.textContent=''; }
+window.clearFieldErr=clearFieldErr;
 
 function rAddGroup(){
   const inp=document.getElementById('rNewGrpName'); const name=inp.value.trim();
-  if(!name)return;
-  if(RGROUPS.some(g=>g.name.toLowerCase()===name.toLowerCase())){rFlash('err','A group with that name already exists.');return;}
-  RGROUPS.push({name,members:[]}); inp.value=''; saveRDraft();
+  if(!name){fieldErr(inp,'Enter a group name.');return;}
+  if(RGROUPS.some(g=>g.name.toLowerCase()===name.toLowerCase())){fieldErr(inp,'A group with that name already exists.');rFlash('err','A group with that name already exists.');return;}
+  RGROUPS.push({name,members:[]}); inp.value=''; clearFieldErr(inp); saveRDraft();
   paintRGroups();paintResolutions();paintRPreview();
+  announce('Group "'+name+'" added.');
 }
 function rAssignSelected(){
   const sel=document.getElementById('rAssignTarget'); const gi=parseInt(sel.value);
@@ -572,54 +716,118 @@ function rAssignSelected(){
   });
   RSEL.clear(); saveRDraft();
   rFlash('ok',added+' resolution'+(added===1?'':'s')+' added to "'+RGROUPS[gi].name+'".');
-  paintRGroups();paintResolutions();paintRPreview();
+  paintRGroups();paintResolutions();paintRPreview();paintSelCount();
+  const s=document.getElementById('rAssignTarget'); if(s) s.value=String(gi);
 }
-function rRenameGroup(i,val){ if(RGROUPS[i]){RGROUPS[i].name=val; saveRDraft(); paintResolutions();paintRPreview();} }
-function rRemoveMember(i,t){ if(RGROUPS[i]){RGROUPS[i].members=RGROUPS[i].members.filter(m=>m!==t); saveRDraft(); paintRGroups();paintResolutions();paintRPreview();} }
-function rRemoveGroup(i){ RGROUPS.splice(i,1); saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); }
-async function rClearAll(){ if(!RGROUPS.length)return; if(!await window.PHDConfirm({title:'Remove all resolution groups',body:'Remove all resolution groups? (Not published until you click Publish.)',okLabel:'Remove all',danger:true}))return; RGROUPS=[]; saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); }
+function rRenameGroup(i,val,el){ if(RGROUPS[i]){RGROUPS[i].name=val; saveRDraft(); nameFeedback(el,val); paintResolutions();paintRPreview();} }
+function rRemoveMember(i,t){ if(RGROUPS[i]){RGROUPS[i].members=RGROUPS[i].members.filter(m=>m!==t); saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); refocusGroup('r',i); announce('"'+t+'" removed.');} }
+function rRemoveGroup(i){ const n=RGROUPS[i]&&RGROUPS[i].name; RGROUPS.splice(i,1); saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); focusAfterDelete('r',i); announce('Group "'+(n||'')+'" deleted.'); }
+async function rClearAll(){ if(!RGROUPS.length)return; if(!await window.PHDConfirm({title:'Remove all resolution groups',body:'Remove all resolution groups? (Not published until you click Publish.)',okLabel:'Remove all',danger:true}))return; RGROUPS=[]; saveRDraft(); paintRGroups();paintResolutions();paintRPreview(); announce('All resolution groups removed.'); }
+
+// ---- Group cards (shared by both kinds) ----
+// kind '' = incident type groups, 'r' = resolution groups.
+function nameFeedback(el,val){
+  if(!el) return;
+  if(val.trim()) el.removeAttribute('aria-invalid'); else el.setAttribute('aria-invalid','true');
+  const card=el.closest('.gp-grp'); const av=card&&card.querySelector('.gp-av'); if(av) av.textContent=initialOf(val);
+}
+function groupsHtml(kind,groups,rawList,noun){
+  const P=kind==='r'?'rG':'g', rmFn=kind==='r'?'rRemoveMember':'removeMember';
+  const rawCount={}; rawList.forEach(r=>{ rawCount[r.type]=(rawCount[r.type]||0)+r.count; });
+  if(!groups.length) return '<div class="gp-empty-s">'+ic('copy',18)+'<span>No groups yet. Add one below, then assign '+noun+'s from the list.</span></div>';
+  const arr=kind==='r'?'RGROUPS':'GROUPS';
+  return groups.map((g,i)=>{
+    const open=!GSHUT.has(g), bodyId=P+'rpB_'+i, nameId=P+'rpName_'+i;
+    const tot=(g.members||[]).reduce((n,m)=>n+(rawCount[m]||0),0);
+    const chips=g.members.length?g.members.map((m,j)=>'<span class="gp-mchip" title="'+esc(m)+'"><span class="gp-mchip-av" style="--h:'+hueOf(m)+'" aria-hidden="true">'+esc(initialOf(m))+'</span>'+
+        '<span class="gp-mchip-t">'+esc(m)+'</span><span class="gp-mchip-n">'+num(rawCount[m]||0)+'</span>'+
+        '<button type="button" aria-label="Remove '+esc(m)+' from '+esc(g.name||'this group')+'" title="Remove" onclick="'+rmFn+'('+i+','+arr+'['+i+'].members['+j+'])">'+XSM+'</button></span>').join('')
+      :'<div class="gp-empty-s">'+ic('info',16)+'<span>No '+noun+'s yet \u2014 check some in the list and click \u201cAdd checked\u201d.</span></div>';
+    return '<div class="gp-grp'+(open?' is-open':'')+'">'+
+      '<div class="gp-grp-h">'+
+        '<button type="button" class="gp-exp" id="'+P+'rpExp_'+i+'" aria-expanded="'+open+'" aria-controls="'+bodyId+'" aria-label="'+(open?'Hide':'Show')+' members of '+esc(g.name||'group')+'" onclick="toggleGrp(\''+kind+'\','+i+')"><span class="gp-chev">'+CHEV+'</span></button>'+
+        '<span class="gp-av" style="--h:'+HUES[i%HUES.length]+'" aria-hidden="true">'+esc(initialOf(g.name))+'</span>'+
+        '<label class="gp-sr" for="'+nameId+'">Group name</label>'+
+        '<input class="gp-grp-name" id="'+nameId+'" value="'+esc(g.name)+'"'+(g.name.trim()?'':' aria-invalid="true"')+' autocomplete="off" oninput="'+(kind==='r'?'rRenameGroup':'renameGroup')+'('+i+',this.value,this)">'+
+        '<span class="gp-pill"><b>'+num(g.members.length)+'</b> '+noun+(g.members.length===1?'':'s')+' \u00b7 <b>'+num(tot)+'</b></span>'+
+        '<button type="button" class="gp-btn is-danger is-sm" aria-label="Delete group '+esc(g.name)+'" onclick="'+(kind==='r'?'rRemoveGroup':'removeGroup')+'('+i+')">'+ic('trash',13)+' Delete</button>'+
+      '</div>'+
+      '<div class="gp-grp-b" id="'+bodyId+'"'+(open?'':' hidden')+'>'+chips+'</div></div>';
+  }).join('');
+}
+function toggleGrp(kind,i){
+  const groups=kind==='r'?RGROUPS:GROUPS, g=groups[i]; if(!g)return;
+  if(GSHUT.has(g)) GSHUT.delete(g); else GSHUT.add(g);
+  if(kind==='r') paintRGroups(); else paintGroups();
+  const b=document.getElementById((kind==='r'?'rG':'g')+'rpExp_'+i); if(b) b.focus();
+}
+// After removing a chip: focus the chip now at the same position, else the group's expander.
+function refocusGroup(kind,i){
+  const P=kind==='r'?'rG':'g';
+  const body=document.getElementById(P+'rpB_'+i);
+  const btn=body&&body.querySelector('.gp-mchip button');
+  (btn||document.getElementById(P+'rpExp_'+i)||document.body).focus();
+}
+function focusAfterDelete(kind,i){
+  const P=kind==='r'?'rG':'g', n=(kind==='r'?RGROUPS:GROUPS).length;
+  const t=n?document.getElementById(P+'rpExp_'+Math.min(i,n-1)):document.getElementById(kind==='r'?'rNewGrpName':'newGrpName');
+  if(t) t.focus();
+}
+window.toggleGrp=toggleGrp;
 
 function paintRGroups(){
   const box=document.getElementById('rGrpList'); if(!box)return;
-  if(!RGROUPS.length){box.innerHTML='<div class="grp-empty">No groups yet. Add one on the right, then assign resolutions from the left.</div>';return;}
-  box.innerHTML=RGROUPS.map((g,i)=>{
-    const chips=g.members.length?g.members.map(m=>'<span class="chip" title="'+esc(m)+'"><span>'+esc(m)+'</span><button title="Remove" onclick="rRemoveMember('+i+',\''+m.replace(/'/g,"\\'")+'\')">&times;</button></span>').join(''):'<span class="grp-empty">No resolutions yet — check some on the left and click "Add checked".</span>';
-    return '<div class="grp">'+
-      '<div class="grp-head"><input value="'+esc(g.name)+'" oninput="rRenameGroup('+i+',this.value)"><button class="btn danger" style="padding:6px 10px" onclick="rRemoveGroup('+i+')">Delete</button></div>'+
-      '<div class="grp-members">'+chips+'</div>'+
-    '</div>';
+  box.innerHTML=groupsHtml('r',RGROUPS,RES,'resolution');
+}
+
+// Shared preview table (mirrors the server relabel). opts: src, groups, idx, show, label, open, more, less, countId, region.
+function previewHtml(o){
+  const rawCount={}; o.src.forEach(r=>{ rawCount[r.type]=(rawCount[r.type]||0)+r.count; });
+  const m={};let tot=0;
+  o.src.forEach(r=>{ const name=o.idx[r.type]||r.type; m[name]=(m[name]||0)+r.count; tot+=r.count; });
+  const grouped=new Set(o.groups.map(g=>g.name));
+  const list=Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  const max=list.length?list[0][1]:1;
+  // For each group name -> its member breakdown [{t,c}] sorted desc, JSON-encoded on the row.
+  const grpMembers={};
+  o.groups.forEach(g=>{ grpMembers[g.name]=(g.members||[]).map(t=>({t,c:rawCount[t]||0})).sort((a,b)=>b.c-a.c); });
+  const rows=list.slice(0,o.show).map(([type,count],i)=>{
+    const isG=grouped.has(type);
+    const mem=grpMembers[type]||[];
+    // Grouped rows: hover tooltip (members also listed for screen readers). Others: click opens the tickets popup.
+    const open=isG
+      ? ('<tr class="is-grouped" data-members="'+esc(JSON.stringify(mem))+'" data-grpname="'+esc(type)+'" onmousemove="grpTipMove(event)" onmouseleave="grpTipHide()">')
+      : ('<tr class="is-click clickable-row" data-type="'+esc(type)+'" onclick="'+o.open+'(this.dataset.type)">');
+    const name=isG
+      ? '<span class="gp-pv-name">'+esc(type)+'</span><span class="gp-tag">Grouped \u00b7 '+mem.length+'</span><span class="gp-sr">. Members: '+esc(mem.map(x=>x.t+' ('+x.c+')').join(', '))+'</span>'
+      : '<button type="button" class="gp-link" title="View tickets for '+esc(type)+'">'+esc(type)+ic('external-link',12)+'</button>';
+    return open+'<td class="gp-rank c">'+(i+1)+'</td><td>'+name+'</td>'+
+      '<td class="c n">'+num(count)+'</td>'+
+      '<td class="c n">'+(tot?(count/tot*100).toFixed(1):0)+'%</td>'+
+      '<td class="gp-vol" aria-hidden="true"><span class="gp-vol-t"><i style="width:'+(count/max*100).toFixed(0)+'%"></i></span></td></tr>';
   }).join('');
+  const c=document.getElementById(o.countId);
+  if(c) c.textContent=num(list.length)+' row'+(list.length===1?'':'s')+' \u00b7 '+num(o.groups.filter(g=>m[g.name]).length)+' grouped';
+  const body=rows||'<tr><td colspan="5"><div class="gp-none">Nothing to preview yet.</div></td></tr>';
+  return '<div class="gp-scroll" tabindex="0" role="region" aria-label="'+o.region+'"><table class="gp-tbl xls-table"><thead><tr><th scope="col" class="c">#</th><th scope="col">'+o.label+'</th><th scope="col" class="c">Count</th><th scope="col" class="c">% of Total</th><th scope="col" class="gp-vol">Volume</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+    moreBar(list.length,o.show,o.more,o.less);
 }
 
 function paintRPreview(){
   const box=document.getElementById('rPreviewBox'); if(!box)return;
-  const idx=resMemberIndex();
-  const rawCount={}; RES.forEach(r=>{ rawCount[r.type]=(rawCount[r.type]||0)+r.count; });
-  const m={};let tot=0;
-  RES.forEach(r=>{ const name=idx[r.type]||r.type; m[name]=(m[name]||0)+r.count; tot+=r.count; });
-  const grouped=new Set(RGROUPS.map(g=>g.name));
-  const list=Object.entries(m).sort((a,b)=>b[1]-a[1]);
-  const max=list.length?list[0][1]:1;
-  const grpMembers={};
-  RGROUPS.forEach(g=>{ grpMembers[g.name]=(g.members||[]).map(t=>({t,c:rawCount[t]||0})).sort((a,b)=>b.c-a.c); });
-  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const rows=list.slice(0,RPSHOW).map(([type,count],i)=>{
-    const isG=grouped.has(type);
-    const dataAttr=isG
-      ? (' data-members="'+esc(JSON.stringify(grpMembers[type]||[]))+'" data-grpname="'+esc(type)+'" onmousemove="grpTipMove(event)" onmouseleave="grpTipHide()"')
-      : (' class="clickable-row" title="View tickets for '+esc(type)+'" onclick="openResolutionPopup(\''+q(type)+'\')"');
-    return '<tr'+(isG?' class="grouped-row"':'')+dataAttr+'><td style="text-align:center;color:#ff9900;font-weight:700">'+(i+1)+'</td>'+
-      '<td>'+esc(type)+(isG?' <span style="color:var(--pl);font-size:.7em;font-weight:700">(grouped)</span>':'')+'</td>'+
-      '<td style="text-align:center">'+count.toLocaleString()+'</td>'+
-      '<td style="text-align:center">'+(tot?(count/tot*100).toFixed(1):0)+'%</td>'+
-      '<td><div class="bar-cell"><div style="width:'+(count/max*100).toFixed(0)+'%"></div></div></td></tr>';
-  }).join('');
-  box.innerHTML='<div style="overflow-x:auto"><table class="xls-table"><thead><tr><th style="text-align:center">#</th><th>Resolution</th><th style="text-align:center">Count</th><th style="text-align:center">% of Total</th><th>Volume</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    moreBar(list.length,RPSHOW,'rpMore','rpLess');
+  box.innerHTML=previewHtml({src:RES,groups:RGROUPS,idx:resMemberIndex(),show:RPSHOW,label:'Resolution',open:'openResolutionPopup',more:'rpMore',less:'rpLess',countId:'rpvCount',region:'Resolutions preview table'});
+  paintKpis();
 }
 function rpMore(){ RPSHOW+=SHOW_STEP; paintRPreview(); }
 function rpLess(){ RPSHOW=SHOW_STEP; paintRPreview(); }
 window.rpMore=rpMore; window.rpLess=rpLess;
+
+// Busy state for an async button: spinner + label, disabled, aria-busy. Restores the previous label.
+function setBusy(btn,on,label){
+  if(!btn)return;
+  if(on){ btn.dataset.label=btn.innerHTML; btn.disabled=true; btn.setAttribute('aria-busy','true'); btn.innerHTML='<span class="gp-spin" aria-hidden="true"></span> '+label; }
+  else { btn.disabled=false; btn.removeAttribute('aria-busy'); if(btn.dataset.label!=null) btn.innerHTML=btn.dataset.label; }
+}
 
 async function rPublish(){
   const btn=document.getElementById('rPublishBtn');
@@ -629,22 +837,25 @@ async function rPublish(){
     for(const mmb of g.members){ if(seen[mmb]){rFlash('err','"'+mmb+'" is in more than one group.');return;} seen[mmb]=true; }
   }
   const groups=RGROUPS.filter(g=>g.members.length).map(g=>({name:g.name.trim(),members:g.members}));
-  btn.disabled=true;
-  const r=await A.api('PUT','/api/resolution-groups',{groups});
-  btn.disabled=false;
-  if(r.ok){
+  setBusy(btn,true,'Publishing\u2026');
+  let r=null; try{ r=await A.api('PUT','/api/resolution-groups',{groups}); }catch(e){}
+  setBusy(btn,false);
+  if(r&&r.ok){
     RVERSION=(r.data&&r.data.version)||RVERSION+1; saveRDraft();
     rFlash('ok','Published resolution groups (v'+RVERSION+').');
-    btn.innerHTML=ic('check-circle',15)+' Publish resolutions (v'+RVERSION+' &rarr; v'+(RVERSION+1)+')';
-  }else rFlash('err',(r.data&&r.data.error)||('Publish failed (HTTP '+r.status+').'));
+    paintVersions();
+  }else rFlash('err',(r&&r.data&&r.data.error)||(r?'Publish failed (HTTP '+r.status+').':'Publish failed. Check your connection and try again.'));
 }
 async function rReloadFromServer(){
   if(!await window.PHDConfirm({title:'Discard resolution draft',body:'Discard your unsaved resolution draft and restore the last published grouping?',okLabel:'Discard'}))return;
-  const r=await A.api('GET','/api/resolution-groups');
-  if(r.ok){
+  const btn=document.getElementById('rReloadBtn');
+  setBusy(btn,true,'Reloading\u2026');
+  let r=null; try{ r=await A.api('GET','/api/resolution-groups'); }catch(e){}
+  setBusy(btn,false);
+  if(r&&r.ok){
     RGROUPS=((r.data&&r.data.groups)||[]).map(g=>({name:g.name,members:(g.members||[]).slice()}));
     RVERSION=(r.data&&r.data.version)||0; RSEL.clear(); clearRDraft();
-    paintRGroups();paintResolutions();paintRPreview();
+    paintRGroups();paintResolutions();paintRPreview();paintSelCount();paintVersions();
     rFlash('ok','Reloaded saved resolution grouping (v'+RVERSION+'). Draft discarded.');
   }else rFlash('err','Could not reload.');
 }
@@ -652,7 +863,7 @@ function rFlash(kind,msg){
   const el=document.getElementById(kind==='err'?'rErr':'rOk');
   const other=document.getElementById(kind==='err'?'rOk':'rErr');
   if(other)other.style.display='none';
-  if(!el)return; el.textContent=msg; el.style.display='inline'; setTimeout(()=>{el.style.display='none';},5000);
+  if(!el)return; el.textContent=msg; el.style.display='inline'; clearTimeout(el._t); el._t=setTimeout(()=>{el.style.display='none';},5000);
 }
 window.onResFilter=onResFilter;window.openResolutionPopup=openResolutionPopup;
 window.rToggleSel=rToggleSel;window.rAddGroup=rAddGroup;window.rAssignSelected=rAssignSelected;
@@ -662,19 +873,19 @@ window.rClearAll=rClearAll;window.rPublish=rPublish;window.rReloadFromServer=rRe
 function addGroup(){
   const inp=document.getElementById('newGrpName');
   const name=inp.value.trim();
-  if(!name)return;
-  if(GROUPS.some(g=>g.name.toLowerCase()===name.toLowerCase())){flash('err','A group with that name already exists.');return;}
+  if(!name){fieldErr(inp,'Enter a group name.');return;}
+  if(GROUPS.some(g=>g.name.toLowerCase()===name.toLowerCase())){fieldErr(inp,'A group with that name already exists.');flash('err','A group with that name already exists.');return;}
   GROUPS.push({name,members:[]});
-  inp.value='';
+  inp.value=''; clearFieldErr(inp);
   saveDraft();
   paintGroups();paintSourceList();paintPreview();
+  announce('Group "'+name+'" added.');
 }
 
 function assignSelected(){
   const sel=document.getElementById('assignTarget');
   const gi=parseInt(sel.value);
   if(isNaN(gi)||!GROUPS[gi]){flash('err','Create a group first, then assign.');return;}
-  const idx=memberIndex();
   let added=0;
   SEL.forEach(t=>{
     // Remove from any other group first (a type belongs to at most one group).
@@ -684,55 +895,25 @@ function assignSelected(){
   SEL.clear();
   saveDraft();
   flash('ok',added+' type'+(added===1?'':'s')+' added to "'+GROUPS[gi].name+'".');
-  paintGroups();paintSourceList();paintPreview();
+  paintGroups();paintSourceList();paintPreview();paintSelCount();
+  const s=document.getElementById('assignTarget'); if(s) s.value=String(gi);
 }
 
-function renameGroup(i,val){ if(GROUPS[i]){GROUPS[i].name=val; saveDraft(); paintSourceList();paintPreview();} }
-function removeMember(i,t){ if(GROUPS[i]){GROUPS[i].members=GROUPS[i].members.filter(m=>m!==t); saveDraft(); paintGroups();paintSourceList();paintPreview();} }
-function removeGroup(i){ GROUPS.splice(i,1); saveDraft(); paintGroups();paintSourceList();paintPreview(); }
-async function clearAll(){ if(!GROUPS.length)return; if(!await window.PHDConfirm({title:'Remove all groups',body:'Remove all groups? (Not published until you click Publish.)',okLabel:'Remove all',danger:true}))return; GROUPS=[]; saveDraft(); paintGroups();paintSourceList();paintPreview(); }
+function renameGroup(i,val,el){ if(GROUPS[i]){GROUPS[i].name=val; saveDraft(); nameFeedback(el,val); paintSourceList();paintPreview();} }
+function removeMember(i,t){ if(GROUPS[i]){GROUPS[i].members=GROUPS[i].members.filter(m=>m!==t); saveDraft(); paintGroups();paintSourceList();paintPreview(); refocusGroup('',i); announce('"'+t+'" removed.');} }
+function removeGroup(i){ const n=GROUPS[i]&&GROUPS[i].name; GROUPS.splice(i,1); saveDraft(); paintGroups();paintSourceList();paintPreview(); focusAfterDelete('',i); announce('Group "'+(n||'')+'" deleted.'); }
+async function clearAll(){ if(!GROUPS.length)return; if(!await window.PHDConfirm({title:'Remove all groups',body:'Remove all groups? (Not published until you click Publish.)',okLabel:'Remove all',danger:true}))return; GROUPS=[]; saveDraft(); paintGroups();paintSourceList();paintPreview(); announce('All groups removed.'); }
 
 function paintGroups(){
-  const box=document.getElementById('grpList');
-  if(!GROUPS.length){box.innerHTML='<div class="grp-empty">No groups yet. Add one on the right, then assign types from the left.</div>';return;}
-  box.innerHTML=GROUPS.map((g,i)=>{
-    const chips=g.members.length?g.members.map(m=>'<span class="chip" title="'+esc(m)+'"><span>'+esc(m)+'</span><button title="Remove" onclick="removeMember('+i+',\''+m.replace(/'/g,"\\'")+'\')">&times;</button></span>').join(''):'<span class="grp-empty">No types yet — check some on the left and click "Add checked".</span>';
-    return '<div class="grp">'+
-      '<div class="grp-head"><input value="'+esc(g.name)+'" oninput="renameGroup('+i+',this.value)"><button class="btn danger" style="padding:6px 10px" onclick="removeGroup('+i+')">Delete</button></div>'+
-      '<div class="grp-members">'+chips+'</div>'+
-    '</div>';
-  }).join('');
+  const box=document.getElementById('grpList'); if(!box)return;
+  box.innerHTML=groupsHtml('',GROUPS,RAW,'type');
 }
 
 // Build the combined preview from RAW + GROUPS (mirrors the server relabel).
 function paintPreview(){
-  const idx=memberIndex();
-  // Per-raw-type merged count (Q3+Q2) for the member breakdown tooltip.
-  const rawCount={}; RAW.forEach(r=>{ rawCount[r.type]=(rawCount[r.type]||0)+r.count; });
-  const m={};let tot=0;
-  RAW.forEach(r=>{ const name=idx[r.type]||r.type; m[name]=(m[name]||0)+r.count; tot+=r.count; });
-  const grouped=new Set(GROUPS.map(g=>g.name));
-  const list=Object.entries(m).sort((a,b)=>b[1]-a[1]);
-  const max=list.length?list[0][1]:1;
-  // For each group name -> its member breakdown [{type,count}] sorted desc, JSON-encoded on the row.
-  const grpMembers={};
-  GROUPS.forEach(g=>{ grpMembers[g.name]=(g.members||[]).map(t=>({t,c:rawCount[t]||0})).sort((a,b)=>b.c-a.c); });
-  const q=(s)=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const rows=list.slice(0,PSHOW).map(([type,count],i)=>{
-    const isG=grouped.has(type);
-    // Grouped rows: hover tooltip. Non-grouped rows: click to open the tickets popup.
-    const dataAttr=isG
-      ? (' data-members="'+esc(JSON.stringify(grpMembers[type]||[]))+'" data-grpname="'+esc(type)+'" onmousemove="grpTipMove(event)" onmouseleave="grpTipHide()"')
-      : (' class="clickable-row" title="View tickets for '+esc(type)+'" onclick="openTicketsPopup(\''+q(type)+'\')"');
-    return '<tr'+(isG?' class="grouped-row"':'')+dataAttr+'><td style="text-align:center;color:#ff9900;font-weight:700">'+(i+1)+'</td>'+
-      '<td>'+esc(type)+(isG?' <span style="color:var(--pl);font-size:.7em;font-weight:700">(grouped)</span>':'')+'</td>'+
-      '<td style="text-align:center">'+count.toLocaleString()+'</td>'+
-      '<td style="text-align:center">'+(tot?(count/tot*100).toFixed(1):0)+'%</td>'+
-      '<td><div class="bar-cell"><div style="width:'+(count/max*100).toFixed(0)+'%"></div></div></td></tr>';
-  }).join('');
-  document.getElementById('previewBox').innerHTML=
-    '<div style="overflow-x:auto"><table class="xls-table"><thead><tr><th style="text-align:center">#</th><th>Incident Type</th><th style="text-align:center">Count</th><th style="text-align:center">% of Total</th><th>Volume</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    moreBar(list.length,PSHOW,'pMore','pLess');
+  const box=document.getElementById('previewBox'); if(!box)return;
+  box.innerHTML=previewHtml({src:RAW,groups:GROUPS,idx:memberIndex(),show:PSHOW,label:'Incident Type',open:'openTicketsPopup',more:'pMore',less:'pLess',countId:'pvCount',region:'Incident type preview table'});
+  paintKpis();
 }
 function pMore(){ PSHOW+=SHOW_STEP; paintPreview(); }
 function pLess(){ PSHOW=SHOW_STEP; paintPreview(); }
@@ -740,7 +921,7 @@ window.pMore=pMore; window.pLess=pLess;
 
 // ---- Hover tooltip for grouped preview rows: lists member types + their counts (like a chart tooltip).
 let _grpTipEl=null;
-function grpTip(){ if(!_grpTipEl){_grpTipEl=document.createElement('div');_grpTipEl.className='grp-tip';document.body.appendChild(_grpTipEl);} return _grpTipEl; }
+function grpTip(){ if(!_grpTipEl){_grpTipEl=document.createElement('div');_grpTipEl.className='grp-tip';_grpTipEl.setAttribute('aria-hidden','true');document.body.appendChild(_grpTipEl);} return _grpTipEl; }
 function grpTipMove(ev){
   const tr=ev.currentTarget; let members=[];
   try{ members=JSON.parse(tr.getAttribute('data-members')||'[]'); }catch(e){}
@@ -748,72 +929,130 @@ function grpTipMove(ev){
   const tip=grpTip();
   const total=members.reduce((s,x)=>s+(x.c||0),0);
   tip.innerHTML='<div class="grp-tip-h">'+esc(name)+' <span>'+total.toLocaleString()+'</span></div>'+
-    (members.length?members.map(x=>'<div class="grp-tip-row"><span class="grp-tip-t" title="'+esc(x.t)+'">'+esc(x.t)+'</span><span class="grp-tip-c">'+(x.c||0).toLocaleString()+'</span></div>').join(''):'<div class="grp-tip-row" style="color:#5f6b6c">No types yet.</div>');
+    (members.length?members.map(x=>'<div class="grp-tip-row"><span class="grp-tip-t" title="'+esc(x.t)+'">'+esc(x.t)+'</span><span class="grp-tip-c">'+(x.c||0).toLocaleString()+'</span></div>').join(''):'<div class="grp-tip-row" style="color:#5c6773">No types yet.</div>');
   tip.style.display='block';
   // Position near the cursor, clamped to the viewport.
   const pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
   let x=ev.clientX+pad, y=ev.clientY+pad;
-  if(x+w>window.innerWidth-8)x=ev.clientX-w-pad;
+  if(x+w>window.innerWidth-8)x=Math.max(8,ev.clientX-w-pad);
   if(y+h>window.innerHeight-8)y=window.innerHeight-h-8;
   tip.style.left=x+'px'; tip.style.top=y+'px';
 }
 function grpTipHide(){ if(_grpTipEl)_grpTipEl.style.display='none'; }
 window.grpTipMove=grpTipMove;window.grpTipHide=grpTipHide;
 
-// ---- Tickets popup for a non-grouped incident type (Excel-style, 25/page pagination) ----
+// ---- Tickets popup for a non-grouped incident type / resolution (25/page pagination) ----
 const TK_PAGE_SIZE=25;
 let TK_STATE={type:'',list:[],page:0};
+let TK_LAST=null;   // {title,url} of the open popup (Retry re-runs it; null once closed)
+let TK_RET=null;    // element to return focus to when the popup closes
 function fmtDate(v){ if(!v)return '\u2014'; const d=new Date(v); if(isNaN(d))return esc(String(v)); return d.toLocaleString('en-US',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}); }
+function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
+function tkOverlay(){
+  let o=document.getElementById('tkOverlay');
+  if(!o){
+    o=document.createElement('div'); o.id='tkOverlay'; o.className='tk-overlay gp gp-ov';
+    o.addEventListener('click',(e)=>{ if(e.target===o)closeTicketsPopup(); });
+    o.addEventListener('keydown',tkKey);
+    document.body.appendChild(o);
+  }
+  return o;
+}
+// Escape closes; Tab is kept inside the dialog.
+function tkKey(e){
+  if(e.key==='Escape'){ e.preventDefault(); closeTicketsPopup(); return; }
+  if(e.key!=='Tab') return;
+  const o=document.getElementById('tkOverlay');
+  const f=Array.prototype.filter.call(o.querySelectorAll('button:not([disabled]),a[href],[tabindex="0"]'),el=>el.offsetParent!==null);
+  if(!f.length) return;
+  const first=f[0], last=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+}
+function tkShell(title,count,body,busy){
+  return '<div class="gp-modal" role="dialog" aria-modal="true" aria-labelledby="tkTitle">'+
+    '<div class="gp-modal-h"><div class="gp-modal-ht"><p class="gp-eyebrow">Tickets \u00b7 Q2 + Q3 resolved / closed</p><h2 id="tkTitle">'+esc(title)+'</h2>'+
+      (count!=null?'<span class="gp-chip tk-count">'+ic('ticket',13)+num(count)+' ticket'+(count===1?'':'s')+'</span>':'')+'</div>'+
+      '<button type="button" class="gp-btn is-sm" data-tk="close" onclick="closeTicketsPopup()">'+XSM+' Close</button></div>'+
+    '<div class="gp-modal-b"'+(busy?' aria-busy="true"':'')+'>'+body+'</div></div>';
+}
+function tkSkeleton(){
+  const tr=(w)=>'<tr><td class="gp-rank c">'+sk('18px',12,';margin:auto')+'</td><td>'+sk('84px',12)+'</td><td>'+sk(w,12)+'</td><td>'+sk(w,12)+'</td></tr>';
+  return '<div class="gp-pager" aria-hidden="true">'+sk('180px',12)+'<span class="gp-pgbtns">'+sk('64px',30)+sk('64px',30)+sk('64px',30)+sk('64px',30)+'</span></div>'+
+    '<div class="gp-scroll" aria-hidden="true"><table class="gp-tbl"><thead><tr><th class="c">#</th><th>Ticket</th><th>Created date</th><th>Resolved date</th></tr></thead><tbody>'+
+    ['70%','60%','75%','55%','68%','62%','72%','58%'].map(tr).join('')+'</tbody></table></div>'+
+    '<span class="gp-sr">Loading tickets\u2026</span>';
+}
 
 // Generic tickets popup: title + an /api url that returns { tickets:[...] }.
 async function openTicketsFor(title,url){
-  const overlay=document.getElementById('tkOverlay')||(function(){ const o=document.createElement('div'); o.id='tkOverlay'; o.className='tk-overlay'; o.onclick=(e)=>{ if(e.target===o)closeTicketsPopup(); }; document.body.appendChild(o); return o; })();
+  const overlay=tkOverlay();
+  if(overlay.style.display!=='flex') TK_RET=document.activeElement;
+  TK_LAST={title,url};
+  grpTipHide();
   overlay.style.display='flex';
-  overlay.innerHTML='<div class="tk-card"><div class="tk-head"><h2>'+esc(title)+'</h2><button class="btn danger" onclick="closeTicketsPopup()">Close</button></div><div class="tk-loading"><div class="spinner"></div></div></div>';
-  try{
-    const r=await A.api('GET',url);
-    if(!r.ok){ overlay.querySelector('.tk-loading').innerHTML='<p style="color:var(--rl);padding:20px">Could not load tickets (HTTP '+r.status+').</p>'; return; }
-    TK_STATE={type:title, list:(r.data&&r.data.tickets)||[], page:0};
-    paintTicketsPage();
-  }catch(e){ const l=overlay.querySelector('.tk-loading'); if(l)l.innerHTML='<p style="color:var(--rl);padding:20px">Could not load tickets.</p>'; }
+  overlay.innerHTML=tkShell(title,null,tkSkeleton(),true);
+  const cb=overlay.querySelector('[data-tk="close"]'); if(cb) cb.focus();
+  announce('Loading tickets for '+title+'\u2026');
+  let r=null, failed=false;
+  try{ r=await A.api('GET',url); }catch(e){ failed=true; }
+  if(!TK_LAST||TK_LAST.url!==url) return;   // closed or superseded while loading
+  if(failed||!r||!r.ok){
+    const msg=failed||!r?'Could not load tickets.':'Could not load tickets (HTTP '+r.status+').';
+    overlay.innerHTML=tkShell(title,null,emptyHtml('is-err','alert-triangle','Couldn\u2019t load the tickets','<span role="alert">'+esc(msg)+'</span>',
+      '<button type="button" class="gp-btn is-dark" data-tk="retry" onclick="tkRetry()">'+ic('refresh',14)+' Retry</button>'));
+    const rb=overlay.querySelector('[data-tk="retry"]'); if(rb) rb.focus();
+    return;
+  }
+  TK_STATE={type:title, list:(r.data&&r.data.tickets)||[], page:0};
+  paintTicketsPage('close');
+  announce(num(TK_STATE.list.length)+' tickets loaded for '+title+'.');
 }
+function tkRetry(){ if(TK_LAST) openTicketsFor(TK_LAST.title,TK_LAST.url); }
 // Incident-type popup (combined Q2+Q3, resolved/closed).
 function openTicketsPopup(type){ openTicketsFor(type,'/api/incident-types/tickets?type='+encodeURIComponent(type)+'&q='+encodeURIComponent(Q_IDS.join(','))); }
 // Resolution popup (combined Q2+Q3, resolved/closed).
 function openResolutionPopup(value){ openTicketsFor(value,'/api/resolutions/tickets?value='+encodeURIComponent(value)+'&q='+encodeURIComponent(Q_IDS.join(','))); }
-function closeTicketsPopup(){ const o=document.getElementById('tkOverlay'); if(o)o.style.display='none'; }
-function tkGoto(p){ const pages=Math.max(1,Math.ceil(TK_STATE.list.length/TK_PAGE_SIZE)); TK_STATE.page=Math.min(Math.max(0,p),pages-1); paintTicketsPage(); }
+function closeTicketsPopup(){
+  const o=document.getElementById('tkOverlay'); if(o)o.style.display='none';
+  TK_LAST=null;
+  const ret=TK_RET; TK_RET=null;
+  if(ret&&ret.focus&&document.contains(ret)) ret.focus();
+}
+function tkGoto(p,key){ const pages=Math.max(1,Math.ceil(TK_STATE.list.length/TK_PAGE_SIZE)); TK_STATE.page=Math.min(Math.max(0,p),pages-1); paintTicketsPage(key); }
 
-function paintTicketsPage(){
+function paintTicketsPage(focusKey){
   const o=document.getElementById('tkOverlay'); if(!o)return;
   const total=TK_STATE.list.length;
   const pages=Math.max(1,Math.ceil(total/TK_PAGE_SIZE));
   const page=Math.min(TK_STATE.page,pages-1);
   const start=page*TK_PAGE_SIZE;
   const slice=TK_STATE.list.slice(start,start+TK_PAGE_SIZE);
-  const rows=slice.map((t,i)=>'<tr>'+
-    '<td style="text-align:center;color:#ff9900;font-weight:700">'+(start+i+1)+'</td>'+
-    '<td>'+(t.url?('<a href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.shortId||'(open)')+'</a>'):esc(t.shortId||'\u2014'))+'</td>'+
-    '<td>'+fmtDate(t.createDate)+'</td>'+
-    '<td>'+fmtDate(t.resolvedDate)+'</td>'+
-  '</tr>').join('');
+  const rows=slice.map((t,i)=>{
+    const u=safeUrl(t.url);
+    return '<tr>'+
+      '<td class="gp-rank c">'+(start+i+1)+'</td>'+
+      '<td>'+(u?('<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId||'(open)')+'</a>'):esc(t.shortId||'\u2014'))+'</td>'+
+      '<td>'+fmtDate(t.createDate)+'</td>'+
+      '<td>'+fmtDate(t.resolvedDate)+'</td>'+
+    '</tr>';
+  }).join('');
   const from=total?start+1:0, to=Math.min(start+TK_PAGE_SIZE,total);
-  const pager='<div class="tk-pager">'+
-    '<span class="tk-pageinfo">'+from+'\u2013'+to+' of '+total.toLocaleString()+' \u00b7 page '+(page+1)+' / '+pages+'</span>'+
-    '<span class="tk-pgbtns">'+
-      '<button class="btn sec" '+(page<=0?'disabled':'')+' onclick="tkGoto(0)">&laquo; First</button>'+
-      '<button class="btn sec" '+(page<=0?'disabled':'')+' onclick="tkGoto('+(page-1)+')">&lsaquo; Prev</button>'+
-      '<button class="btn sec" '+(page>=pages-1?'disabled':'')+' onclick="tkGoto('+(page+1)+')">Next &rsaquo;</button>'+
-      '<button class="btn sec" '+(page>=pages-1?'disabled':'')+' onclick="tkGoto('+(pages-1)+')">Last &raquo;</button>'+
-    '</span>'+
-  '</div>';
-  o.innerHTML='<div class="tk-card">'+
-    '<div class="tk-head"><h2>'+esc(TK_STATE.type)+' <span class="tk-count">'+total.toLocaleString()+' tickets</span></h2><button class="btn danger" onclick="closeTicketsPopup()">Close</button></div>'+
-    pager+
-    '<div class="tk-scroll"><table class="xls-table tk-table"><thead><tr><th style="text-align:center">#</th><th>Ticket</th><th>Created date</th><th>Resolved date</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" style="text-align:center;color:#5f6b6c;padding:20px">No tickets.</td></tr>')+'</tbody></table></div>'+
-  '</div>';
+  const pb=(key,label,target,dis)=>'<button type="button" class="gp-btn is-sm" data-tk="'+key+'"'+(dis?' disabled':'')+' onclick="tkGoto('+target+',\''+key+'\')">'+label+'</button>';
+  const pager='<div class="gp-pager tk-pager">'+
+    '<span class="gp-pageinfo" aria-live="polite">'+from+'\u2013'+to+' of '+total.toLocaleString()+' \u00b7 page '+(page+1)+' / '+pages+'</span>'+
+    '<span class="gp-pgbtns" role="group" aria-label="Pages">'+
+      pb('first','&laquo; First',0,page<=0)+pb('prev','&lsaquo; Prev',page-1,page<=0)+
+      pb('next','Next &rsaquo;',page+1,page>=pages-1)+pb('last','Last &raquo;',pages-1,page>=pages-1)+
+    '</span></div>';
+  o.innerHTML=tkShell(TK_STATE.type,total,pager+
+    '<div class="gp-scroll" tabindex="0" role="region" aria-label="Tickets"><table class="gp-tbl tk-table"><thead><tr><th scope="col" class="c">#</th><th scope="col">Ticket</th><th scope="col">Created date</th><th scope="col">Resolved date</th></tr></thead><tbody>'+
+    (rows||'<tr><td colspan="4"><div class="gp-none">No tickets.</div></td></tr>')+'</tbody></table></div>');
+  let f=focusKey&&o.querySelector('[data-tk="'+focusKey+'"]');
+  if(!f||f.disabled) f=o.querySelector('[data-tk="close"]');
+  if(f) f.focus();
 }
-window.openTicketsPopup=openTicketsPopup;window.closeTicketsPopup=closeTicketsPopup;window.tkGoto=tkGoto;
+window.openTicketsPopup=openTicketsPopup;window.closeTicketsPopup=closeTicketsPopup;window.tkGoto=tkGoto;window.tkRetry=tkRetry;
 
 async function publish(){
   const btn=document.getElementById('publishBtn');
@@ -824,29 +1063,33 @@ async function publish(){
     for(const mmb of g.members){ if(seen[mmb]){flash('err','"'+mmb+'" is in more than one group.');return;} seen[mmb]=true; }
   }
   const groups=GROUPS.filter(g=>g.members.length).map(g=>({name:g.name.trim(),members:g.members}));
-  btn.disabled=true;
-  const r=await A.api('PUT','/api/incident-groups',{groups});
-  btn.disabled=false;
-  if(r.ok){
+  setBusy(btn,true,'Publishing\u2026');
+  let r=null; try{ r=await A.api('PUT','/api/incident-groups',{groups}); }catch(e){}
+  setBusy(btn,false);
+  if(r&&r.ok){
     VERSION=(r.data&&r.data.version)||VERSION+1;
     saveDraft(); // keep the local draft in sync with what was just published
     flash('ok','Published. Now live for everyone (v'+VERSION+'). The dashboard shows it on next load.');
-    btn.innerHTML=ic('check-circle',15)+' Publish (v'+VERSION+' &rarr; v'+(VERSION+1)+')';
+    paintVersions();
   }else{
-    flash('err',(r.data&&r.data.error)||('Publish failed (HTTP '+r.status+').'));
+    flash('err',(r&&r.data&&r.data.error)||(r?'Publish failed (HTTP '+r.status+').':'Publish failed. Check your connection and try again.'));
   }
 }
 
 async function reloadFromServer(){
   if(!await window.PHDConfirm({title:'Discard draft',body:'Discard your unsaved draft and restore the last published grouping?',okLabel:'Discard'}))return;
-  const r=await A.api('GET','/api/incident-groups');
-  if(r.ok){
+  const btn=document.getElementById('reloadBtn');
+  setBusy(btn,true,'Reloading\u2026');
+  let r=null; try{ r=await A.api('GET','/api/incident-groups'); }catch(e){}
+  setBusy(btn,false);
+  if(r&&r.ok){
     GROUPS=((r.data&&r.data.groups)||[]).map(g=>({name:g.name,members:(g.members||[]).slice()}));
     VERSION=(r.data&&r.data.version)||0;
     SEL.clear();
     clearDraft(); // discard the local draft — server copy is now the working state
     render();
     flash('ok','Reloaded the saved grouping (v'+VERSION+'). Draft discarded.');
+    const b=document.getElementById('reloadBtn'); if(b) b.focus();
   }else flash('err','Could not reload.');
 }
 
@@ -855,14 +1098,14 @@ function flash(kind,msg){
   const other=document.getElementById(kind==='err'?'ok':'err');
   if(other)other.style.display='none';
   if(!el)return;el.textContent=msg;el.style.display='inline';
-  setTimeout(()=>{el.style.display='none';},5000);
+  clearTimeout(el._t); el._t=setTimeout(()=>{el.style.display='none';},5000);
 }
 function ic(n,s){return window.icon?window.icon(n,s||14):'';}
 
 // expose handlers
 window.onFilter=onFilter;window.toggleCard=toggleCard;window.toggleSel=toggleSel;window.addGroup=addGroup;window.assignSelected=assignSelected;
 window.renameGroup=renameGroup;window.removeMember=removeMember;window.removeGroup=removeGroup;window.clearAll=clearAll;
-window.publish=publish;window.reloadFromServer=reloadFromServer;
+window.publish=publish;window.reloadFromServer=reloadFromServer;window.boot=boot;
 
 boot();
 </script>
