@@ -75,6 +75,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .rc-chip.v-low{color:#1f7a44;background:#eafaf0;border-color:#c8efd8}
 .rc-chip.v-na{color:#5c6773;background:#eef1f4;border-color:#e2e6ea}
 .rc-gate{padding:40px 22px;color:var(--tm)}
+/* Historical incidents (HI1..HIN issue-type pickers), driven by the parsed Cnt value. */
+.rc-hi{margin-top:4px;background:#f7f9fc;border:1px solid #e2e6ea;border-radius:8px;padding:14px}
+.rc-hi-t{display:flex;align-items:center;gap:8px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773;margin-bottom:10px}
+.rc-hi-t .rc-hi-n{display:inline-block;border-radius:999px;padding:1px 8px;background:#fff3e8;color:#9a4100;border:1px solid #f6ddb8;letter-spacing:0}
+.rc-hi .rc-field:last-child{margin-bottom:0}
+.rc-hi-warn{margin-bottom:10px;font-size:.8em;font-weight:700;color:#b5680c;background:#fff3e0;border:1px solid #f6ddb8;border-radius:7px;padding:7px 10px}
+.rc-hi-err{margin-top:5px;font-size:.78em;font-weight:700;color:#b02a2a}
 /* ===== Admin-only quick-copy reference (Issue types + Resolutions) — two collapsible cards stacked
    one below the other. Accordion: at most one open; both collapsed by default. ===== */
 .rc-refs{display:flex;flex-direction:column;gap:12px;margin-top:18px}
@@ -130,6 +137,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
         <div class="rc-field">
           <label for="rcRes">Resolution</label>
           <select id="rcRes" onchange="rcConvert()" disabled></select>
+        </div>
+        <!-- Historical incidents: one required issue-type picker per Cnt (HI1..HI9). Hidden when Cnt is 0/blank. -->
+        <div class="rc-hi" id="rcHiBlock" role="group" aria-labelledby="rcHiTitle" style="display:none">
+          <div class="rc-hi-t" id="rcHiTitle">Historical incidents <span class="rc-hi-n" id="rcHiCount"></span></div>
+          <div class="rc-hi-warn" id="rcHiWarn" role="status" style="display:none"></div>
+          <div id="rcHiFields"></div>
         </div>
       </div>
       <div class="rc-col">
@@ -235,7 +248,10 @@ var RC_FIELDS=[
   ['UPID', ['Unit Place ID','UPID']],
 ];
 var RC_OTHER_KEYS=['Contact ID','Contact Id','Contact Date','Severity','Tag','Place ID','UID','CAID',
-  'Customer ID','Threat Contact ID','SIM Root Cause Details','Output','Historical','AID','CID'];
+  'Customer ID','Threat Contact ID','SIM Root Cause Details','Output','Historical','AID','CID',
+  // Historical-incident lines (HI1..HI9) — known keys so they never leak into another field's value.
+  'HI1','HI2','HI3','HI4','HI5','HI6','HI7','HI8','HI9'];
+var RC_HI_MAX=9;   // at most 9 historical incidents can be listed (Errors in Resolved B5 flags Cnt > 9)
 var RC_ALL_KEYS=(function(){
   var ks=['Issue','Resolution','Res'];
   RC_FIELDS.forEach(function(f){ f[1].forEach(function(a){ ks.push(a); }); });
@@ -320,6 +336,71 @@ function rcGateSelects(){
   ['rcIssue','rcRes'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.disabled=!has; if(!has) el.value=''; if(window.makeSearchableSelect && el._ssWrap) window.makeSearchableSelect(el); });
   return has;
 }
+// ===== Historical incidents (HI1..HIN) — one required issue-type dropdown per parsed Cnt =====
+// Cnt must be a plain non-negative integer; 0 / blank / missing / non-numeric -> no HI fields.
+// Cnt > 9 -> 9 fields + a warning.
+function rcHiCountOf(cnt){
+  var s=String(cnt==null?'':cnt).trim();
+  if(!/^\d+$/.test(s)) return {n:0, over:false};
+  var v=parseInt(s,10);
+  return {n:Math.min(v,RC_HI_MAX), over:v>RC_HI_MAX};
+}
+var _rcHiOpts=null;
+function rcHiOptionsHtml(){
+  if(_rcHiOpts) return _rcHiOpts;
+  var h='<option value="">\u2014 Select issue type \u2014</option>';
+  IZ_CATS.forEach(function(cat){ h+='<optgroup label="'+esc(cat.category)+'">';
+    (cat.types||[]).forEach(function(ty){ h+='<option value="'+esc(ty.type)+'">'+esc(ty.type)+'</option>'; });
+    h+='</optgroup>'; });
+  return (_rcHiOpts=h);
+}
+function rcHiSelects(){ return Array.prototype.slice.call(document.querySelectorAll('#rcHiFields select')); }
+function rcHiAllChosen(){ return rcHiSelects().every(function(s){ return !!s.value; }); }
+// Add/remove HI fields to match Cnt, keeping the selections of the indexes that remain.
+// When the pasted blob already has "HIn: <type>" lines, pre-select matching types (case-insensitive)
+// for fields that are still empty. Returns the selected values in order (blank = not chosen).
+function rcSyncHi(cntVal, raw, fromRaw, hasInput){
+  var block=document.getElementById('rcHiBlock'), box=document.getElementById('rcHiFields');
+  if(!block || !box) return [];
+  var c=rcHiCountOf(cntVal);
+  var rows=box.querySelectorAll('.rc-field[data-hi]');
+  for(var r=rows.length-1;r>=c.n;r--){ rows[r].parentNode.removeChild(rows[r]); }
+  for(var i=box.children.length+1;i<=c.n;i++){
+    var row=document.createElement('div');
+    row.className='rc-field'; row.setAttribute('data-hi',String(i));
+    row.innerHTML='<label for="rcHi'+i+'" id="rcHiLbl'+i+'">HI'+i+': Issue type</label>'+
+      '<select id="rcHi'+i+'" onchange="rcConvert()" aria-required="true" aria-describedby="rcHiErr'+i+'">'+rcHiOptionsHtml()+'</select>'+
+      '<div class="rc-hi-err" id="rcHiErr'+i+'" style="display:none"></div>';
+    box.appendChild(row);
+    var sel=row.querySelector('select');
+    sel._rcHiNew=true;
+    if(window.makeSearchableSelect){
+      window.makeSearchableSelect(sel);
+      // The visible combobox button carries the field's accessible name.
+      if(sel._ssField){ sel._ssField.setAttribute('aria-labelledby','rcHiLbl'+i); sel._ssField.setAttribute('aria-describedby','rcHiErr'+i); }
+    }
+  }
+  var vals=[];
+  rcHiSelects().forEach(function(sel, idx){
+    var n=idx+1;
+    if((fromRaw || sel._rcHiNew) && !sel.value){
+      var hit=rcMatchIssue(rcGrab(raw,['HI'+n]));
+      if(hit){ sel.value=hit.type; if(sel._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(sel); }
+    }
+    sel._rcHiNew=false;
+    // Keep the combobox face in sync with the native value (same as the Issue/Res pickers).
+    if(sel._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(sel);
+    vals.push(sel.value||'');
+    var err=document.getElementById('rcHiErr'+n);
+    if(err){ var on=hasInput && !sel.value; err.style.display=on?'block':'none'; err.textContent=on?('Select an issue type for HI'+n+'.'):''; }
+    sel.setAttribute('aria-invalid', (hasInput && !sel.value)?'true':'false');
+  });
+  block.style.display=c.n?'':'none';
+  var cntEl=document.getElementById('rcHiCount'); if(cntEl) cntEl.textContent=c.n?('Cnt '+String(cntVal).trim()):'';
+  var warn=document.getElementById('rcHiWarn');
+  if(warn){ warn.style.display=c.over?'block':'none'; warn.textContent=c.over?'Cnt over 9 \u2014 only 9 historical incidents can be listed':''; }
+  return vals;
+}
 function rcConvert(fromRaw){
   var raw=String(document.getElementById('rcRaw').value||'');
   rcGateSelects();
@@ -332,22 +413,28 @@ function rcConvert(fromRaw){
   var resOk=!!res;
   var lines=['Issue: '+issue];
   var drivOk=true;   // Driver Type must resolve to a real value (not N/A) for copying to be allowed.
+  var cntVal='';     // raw Cnt value -> drives the HI1..HIN fields
   RC_FIELDS.forEach(function(f){
     var v=rcGrab(raw,f[1]);
     if(f[0]==='Date' && v) v=rcFmtDate(v);
+    if(f[0]==='Cnt') cntVal=v;
     var out=(v||'N/A');
     if(f[0]==='Driv' && out==='N/A') drivOk=false;
     lines.push(f[0]+': '+out);
   });
   lines.push('Res: '+res);
-  document.getElementById('rcOut').textContent=lines.join('\n');
   // Driver-Type error: shown below the output. Only flag it once the user has pasted something
   // (an empty textarea shouldn't scream an error on first load).
   var hasInput=!!raw.trim();
+  // Historical incidents: one "HIn: <type>" line per shown field, after Res (none when Cnt is 0/blank).
+  var hiVals=rcSyncHi(hasInput?cntVal:'', raw, !!fromRaw, hasInput);
+  hiVals.forEach(function(v,i){ lines.push('HI'+(i+1)+': '+v); });
+  var hiOk=hiVals.every(function(v){ return !!v; });
+  document.getElementById('rcOut').textContent=lines.join('\n');
   rcSetDrivError(hasInput && !drivOk);
   rcRenderDef();
   rcRenderResMeta();
-  rcSetCopyState(issueOk, resOk, drivOk);
+  rcSetCopyState(issueOk, resOk, drivOk, hiOk);
   if(typeof rcUpdatePushButtons==='function') rcUpdatePushButtons();   // flip the single push button on Res change
 }
 window.rcConvert=rcConvert;
@@ -359,15 +446,16 @@ function rcSetDrivError(on){
     el.innerHTML=ic('alert',15)+'<span>Driver Type is missing (Driv: N/A). Add the Driver Type to the pasted details before copying.</span>';
   }else{ el.style.display='none'; el.innerHTML=''; }
 }
-function rcSetCopyState(issueOk, resOk, drivOk){
+function rcSetCopyState(issueOk, resOk, drivOk, hiOk){
   if(drivOk===undefined) drivOk=true;
+  if(hiOk===undefined) hiOk=true;
   var btn=document.getElementById('rcCopy'); var warn=document.getElementById('rcCopyWarn');
-  var ok=issueOk && resOk && drivOk;
+  var ok=issueOk && resOk && drivOk && hiOk;
   if(btn){ btn.disabled=!ok; btn.classList.toggle('is-off',!ok); }
   // Admin-only "Copy as Pending": enabled when the Issue is valid AND Driver Type is present
-  // (Resolution not required for pending).
+  // AND every shown HI field is chosen (Resolution not required for pending).
   var pend=document.getElementById('rcCopyPending');
-  if(pend && rcIsAdmin()){ var pendOk=issueOk && drivOk; pend.disabled=!pendOk; pend.classList.toggle('is-off',!pendOk); }
+  if(pend && rcIsAdmin()){ var pendOk=issueOk && drivOk && hiOk; pend.disabled=!pendOk; pend.classList.toggle('is-off',!pendOk); }
   if(warn){
     if(ok){ warn.style.display='none'; warn.textContent=''; }
     else{
@@ -375,6 +463,7 @@ function rcSetCopyState(issueOk, resOk, drivOk){
       if(!issueOk) miss.push('select a valid Issue');
       if(!resOk) miss.push('select a Resolution');
       if(!drivOk) miss.push('add the Driver Type');
+      if(!hiOk) miss.push('select an issue type for every historical incident (HI)');
       warn.style.display='block'; warn.textContent='Copy disabled \u2014 please '+miss.join(' and ')+'.';
     }
   }
@@ -387,6 +476,7 @@ function rcClear(){
   var def=document.getElementById('rcDef'); if(def){ def.style.display='none'; def.innerHTML=''; }
   var rm=document.getElementById('rcResMeta'); if(rm){ rm.style.display='none'; rm.innerHTML=''; }
   rcSetDrivError(false);   // clear the Driver-Type error
+  rcSyncHi('', '', false, false);   // drop the historical-incident fields
   if(typeof rcTargetReset==='function') rcTargetReset();   // reset the paste-into-My-Tickets panel
   // Restore the copy buttons' default labels (they may read "Copied!" after an auto-clear).
   var cpy=document.getElementById('rcCopy'); if(cpy){ cpy.textContent='Copy result'; cpy.classList.remove('ok'); }
@@ -526,6 +616,7 @@ async function rcPasteToTicket(asPending){
   if(!issue){ rcShowTargetStatus('err', 'Select a valid Issue before pasting.'); return; }
   var drivOk=!/^Driv:\s*N\/A\s*$/mi.test(String(document.getElementById('rcOut').textContent||''));
   if(!drivOk){ rcShowTargetStatus('err', 'Driver Type is missing (Driv: N/A). Fix it before pasting.'); return; }
+  if(!rcHiAllChosen()){ rcShowTargetStatus('err', 'Select an issue type for every historical incident (HI) before pasting.'); return; }
   // Non-pending Paste writes a real PHD Resolution -> a valid Resolution must be selected.
   var resNum=(document.getElementById('rcRes')||{}).value;
   var phdRes=(resNum && RC_RES[+resNum]) ? RC_RES[+resNum] : '';

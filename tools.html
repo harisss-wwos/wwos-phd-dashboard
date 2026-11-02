@@ -275,7 +275,7 @@ function errorHtml(id){
     '<p>The tool page couldn\u2019t be loaded from the dashboard server. Check your connection, then try again.</p>'+
     '<button type="button" class="izr-btn" data-retry="'+id+'">'+ICO_RETRY+'Retry</button></div></div>';
 }
-function frameSrc(t,bust){ return t.src+(t.src.indexOf('?')>=0?'&':'?')+'embed=1&v=4'+(bust?'&r='+Date.now():''); }
+function frameSrc(t,bust){ return t.src+(t.src.indexOf('?')>=0?'&':'?')+'embed=1&v=5'+(bust?'&r='+Date.now():''); }
 function setBusy(id,busy){
   var body=$('tabBody'); if(!body) return;
   if(id===ACTIVE){ if(busy) body.setAttribute('aria-busy','true'); else body.removeAttribute('aria-busy'); }
