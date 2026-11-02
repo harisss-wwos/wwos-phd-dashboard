@@ -3184,7 +3184,7 @@ app.delete('/api/phd-resolutions/:id', requirePhdResEditor, async (req, res) => 
 // issue-types.html); the resolution list is read live from phd_resolutions. Any logged-in user can
 // read; ONLY harisss (requirePhdResEditor) can disable/enable checks globally via PUT .../settings.
 // The evaluated upload is cached per (upload, resolution list); settings are applied per request.
-const EIR_CACHE_PREFIX = 'eir:v4:';
+const EIR_CACHE_PREFIX = 'eir:v5:';
 let _eirIssueTypes = null;
 function eirIssueTypes() {
   if (!_eirIssueTypes || !_eirIssueTypes.length) {

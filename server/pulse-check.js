@@ -88,7 +88,8 @@ function incidentType(title) {
 // ("Issue: X SID: Y ..."), so the value stops at a newline or at the next known "KEY:". Empty blobs,
 // blobs with no Issue line and placeholder values (NA, N/A, none, ...) -> 'Not specified'.
 const ISSUE_NOT_SPECIFIED = 'Not specified';
-const RCD_NEXT_KEYS = 'SID|Station\\s*ID|TID|Transporter\\s*ID|Driv|Driver\\s*Type|Date|Incident\\s*Date|TBA|Tracking\\s*ID|Cnt|Historical\\s*Incident|Zip|CID|AID|UPID|Res|Resolution|Tag';
+// HI\d+ = the per-incident "HI1: <type>" .. "HI9: <type>" lines tool-rcd.html writes after Res:.
+const RCD_NEXT_KEYS = 'SID|Station\\s*ID|TID|Transporter\\s*ID|Driv|Driver\\s*Type|Date|Incident\\s*Date|TBA|Tracking\\s*ID|Cnt|Historical\\s*Incident|HI\\d+|Zip|CID|AID|UPID|Res|Resolution|Tag';
 const RCD_ISSUE_RE = new RegExp('(?:^|\\s)I?ssue(?:\\s*Type)?[ \\t]*:[ \\t]*([^\\r\\n]*?)(?=\\s+(?:' + RCD_NEXT_KEYS + ')\\s*:|[\\r\\n]|$)', 'i');
 // Markdown bold markers ("**Res:** X", pasted from formatted notes) are dropped before matching.
 function rcdPlain(rcd) { return str(rcd).replace(/\*\*/g, ''); }

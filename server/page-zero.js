@@ -578,7 +578,7 @@ function kriLevelOf(score) {
 // Same "KEY: value up to newline or next known KEY:" approach as issueFromRcd / resolutionFromRcd
 // in pulse-check.js (KEEP IN SYNC with RCD_NEXT_KEYS there; Issue added so a one-line blob that
 // starts "SID: X Issue: Y" also stops). Markdown '**' is stripped first.
-const KRI_NEXT_KEYS = 'I?ssue(?:\\s*Type)?|SID|Station\\s*ID|TID|Transporter\\s*ID|Driv|Driver\\s*Type|Date|Incident\\s*Date|TBA|Tracking\\s*ID|Cnt|Historical\\s*Incident|Zip|CID|AID|UPID|Res|Resolution|Tag';
+const KRI_NEXT_KEYS = 'I?ssue(?:\\s*Type)?|SID|Station\\s*ID|TID|Transporter\\s*ID|Driv|Driver\\s*Type|Date|Incident\\s*Date|TBA|Tracking\\s*ID|Cnt|Historical\\s*Incident|HI\\d+|Zip|CID|AID|UPID|Res|Resolution|Tag';
 const rcdKeyRe = key => new RegExp('(?:^|\\s)' + key + '[ \\t]*:([^\\r\\n]*?)(?=\\s+(?:' + KRI_NEXT_KEYS + ')\\s*:|[\\r\\n]|$)', 'i');
 const RCD_SID_RE = rcdKeyRe('SID');
 const RCD_ZIP_RE = rcdKeyRe('Zip');

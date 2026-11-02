@@ -23,6 +23,7 @@ const CHECKS = [
   { code: 'B3', label: 'Date present' },
   { code: 'B4', label: 'Res valid' },
   { code: 'B5', label: 'Cnt within limit' },
+  { code: 'B6', label: 'HI lines match Cnt' },
   { code: 'C1', label: 'Closure code Successful' },
 ];
 const CHECK_CODES = CHECKS.map(c => c.code);
@@ -197,6 +198,47 @@ const TITLE_SEV_RE = /(?:\bsev(?:erity)?\s*(?:level\s*)?[:#-]?\s*#?\s*|#\s*)[1-5
 const HI_CNT_RE = /\bCnt\s*[:\s]\s*(\d+)/i;
 const RCD_CNT_LINE_RE = new RegExp('(?:^|\\s)Cnt[ \\t]*:([^\\r\\n]*?)(?=\\s+(?:' + RCD_NEXT_KEYS + ')\\s*:|[\\r\\n]|$)', 'i');
 const CNT_MAX = 9;
+// Historical incident lines (tool-rcd.html writes "HI1: <type>" .. "HIN: <type>" after Res:, N = Cnt, max 9).
+// Key "HI" + digits; the value stops at a newline or the next known KEY: (HI\d+ is in RCD_NEXT_KEYS).
+const RCD_HI_RE = new RegExp('(?:^|\\s)HI(\\d+)[ \\t]*:([^\\r\\n]*?)(?=\\s+(?:' + RCD_NEXT_KEYS + ')\\s*:|[\\r\\n]|$)', 'gi');
+function hiLinesOf(rcd) {
+  const out = [], s = rcdPlain(rcd);
+  RCD_HI_RE.lastIndex = 0;
+  let m;
+  while ((m = RCD_HI_RE.exec(s))) {
+    out.push({ k: parseInt(m[1], 10), v: m[2].replace(/\s+/g, ' ').trim() });
+    if (m[0].length === 0) RCD_HI_RE.lastIndex++;
+  }
+  return out;
+}
+// B6: Cnt = N > 0 -> HI1..HI(min(N, 9)) each present once with one of the issue types, none beyond.
+// No Cnt line / Cnt 0 / non-numeric Cnt -> pass (not applicable). cntMatch = the B5 HI_CNT_RE match.
+function checkHiLines(rcd, cntMatch, types) {
+  const n = cntMatch ? parseInt(cntMatch[1], 10) : 0;
+  if (!(n > 0)) return { pass: true, msg: '' };
+  const want = Math.min(n, CNT_MAX), lines = hiLinesOf(rcd), msgs = [];
+  const seen = new Map();
+  lines.forEach(l => seen.set(l.k, (seen.get(l.k) || 0) + 1));
+  const missing = [];
+  for (let k = 1; k <= want; k++) if (!seen.has(k)) missing.push('HI' + k);
+  if (missing.length) msgs.push('HI missing: ' + missing.join(', '));
+  const extra = Array.from(seen.keys()).filter(k => k < 1 || k > want).sort((a, b) => a - b);
+  if (seen.size > want) msgs.push('HI lines (' + seen.size + ') exceed Cnt (' + n + ')');
+  else if (extra.length) msgs.push(extra.map(k => 'HI' + k).join(', ') + ' not expected (Cnt ' + n + ')');
+  Array.from(seen.keys()).filter(k => seen.get(k) > 1).sort((a, b) => a - b).forEach(k => msgs.push('HI' + k + ' repeated'));
+  const bad = new Set();
+  lines.filter(l => l.k >= 1 && l.k <= want).forEach(l => {
+    let msg;
+    if (!l.v || PLACEHOLDER_RE.test(l.v)) msg = 'HI' + l.k + ': no issue type';
+    else {
+      const tm = matchValue(l.v, types);
+      if (tm && tm.exact) return;
+      msg = 'HI' + l.k + ': ' + (tm ? spellMsg(l.v, tm.name) : '"' + l.v + '" not a valid issue type');
+    }
+    if (!bad.has(msg)) { bad.add(msg); msgs.push(msg); }
+  });
+  return msgs.length ? { pass: false, msg: msgs.join('; ') } : { pass: true, msg: '' };
+}
 // 'Duplicate' and 'Immediately Resolved' are out of scope (see evaluateUpload), so only Successful passes.
 const CLOSURE_OK = new Set(['successful']);
 
@@ -234,6 +276,8 @@ function evaluateTicket(t, ctx) {
     R.B5 = { pass: true, msg: '' };
     if (rcdField(rcd, RCD_CNT_LINE_RE)) R.B5.cntNonNumeric = true;
   }
+  // B6 (Cnt parsed exactly like B5)
+  R.B6 = checkHiLines(rcd, cm, ctx.types);
   // C1
   const cc = str(t.ClosureCode).trim();
   R.C1 = CLOSURE_OK.has(cc.replace(/\s+/g, ' ').toLowerCase()) ? { pass: true, msg: '' } : { pass: false, msg: 'Closure: ' + (cc || 'blank') };
@@ -323,4 +367,5 @@ function buildReport(evald, disabledChecks, source, phdSet) {
 module.exports = {
   CHECKS, CHECK_CODES, SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, canon, levenshtein,
   findTypeInText, matchValue, evaluateTicket, evaluateUpload, normalizeDisabled, buildReport, TITLE_SEV_RE, RCD_DATE_RE, HI_CNT_RE,
+  hiLinesOf, checkHiLines, vocab,
 };
