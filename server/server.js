@@ -17,7 +17,7 @@ const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FIL
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
 const { resolutionGroupOf } = require('./resolution-groups');
-const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
+const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
@@ -870,11 +870,12 @@ app.get('/api/page-zero/export', requireOwnerOrManager, async (req, res) => {
 // Only tickets RESOLVED SUCCESSFULLY BY AN AGENT are counted / listed / exported (incident-explorer.js
 // agentResolveExclusion); the other created tickets are context counts only.
 // Built once and cached per (year, latest upload, regions): a new upload changes the key, so it rebuilds.
+//   &hierarchy=geo (default: Region > ... > Driver type) | driver (Driver type > Region > ... > Resolution) on every route.
 //   GET /api/incident-explorer/tree?year=2026                          -> nested counts for every level
 //   GET /api/incident-explorer/tickets?year=&path=<JSON array>&page=&pageSize=20  -> one page, Created desc
 //   GET /api/incident-explorer/export?year=&path=<JSON array>          -> CSV of the full list
 // 400 on a bad year / path / page / pageSize; 404 when the path is not a node of the tree.
-const IE_CACHE_PREFIX = 'ie:v3:';   // v3: Region > Country > State > City > SID chain (State / City from zip-geo.js)
+const IE_CACHE_PREFIX = 'ie:v4:';   // v4: geo + driver hierarchies (two trees over one record set)
 async function ieModel(year) {
   const { latestUploadAt } = await eirLatestFileMeta();
   const regions = (await (await getCollection(COLLECTIONS.regions)).find(REGION_REAL_FILTER).sort({ order: 1, _id: 1 }).toArray()).map(mapRegion);
@@ -892,20 +893,24 @@ async function ieModel(year) {
   }
   return { model, source: { latestUploadAt: latestUploadAt || null } };
 }
-// Shared query validation -> { year, path } or sends a 400 and returns null.
+// Shared query validation -> { year, path, hierarchy } or sends a 400 and returns null.
 function ieQuery(req, res) {
   const y = ieParseYear(req.query.year, new Date());
   if (!y.ok) { res.status(400).json({ error: y.error }); return null; }
+  const h = ieParseHierarchy(req.query.hierarchy);
+  if (!h.ok) { res.status(400).json({ error: h.error }); return null; }
   const p = ieParsePath(req.query.path);
   if (!p.ok) { res.status(400).json({ error: p.error }); return null; }
-  return { year: y.value, path: p.value };
+  return { year: y.value, path: p.value, hierarchy: h.value };
 }
 app.get('/api/incident-explorer/tree', requireRole('user'), async (req, res) => {
   try {
     const y = ieParseYear(req.query.year, new Date());
     if (!y.ok) return res.status(400).json({ error: y.error });
+    const h = ieParseHierarchy(req.query.hierarchy);
+    if (!h.ok) return res.status(400).json({ error: h.error });
     const { model, source } = await ieModel(y.value);
-    res.json(ieTreePayload(model, source));
+    res.json(ieTreePayload(model, source, h.value));
   } catch (e) {
     console.error('incident-explorer tree error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the Incident Explorer.' });
@@ -919,8 +924,8 @@ app.get('/api/incident-explorer/tickets', requireRole('user'), async (req, res) 
     const size = ieParsePosInt(req.query.pageSize, 20, IE_MAX_PAGE_SIZE, 'pageSize');
     if (!size.ok) return res.status(400).json({ error: size.error });
     const { model } = await ieModel(q.year);
-    if (!ieFindNode(model.tree, q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
-    res.json(ieTicketsPage(model, q.path, page.value, size.value));
+    if (!ieFindNode(ieTreeOf(model, q.hierarchy), q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
+    res.json(ieTicketsPage(model, q.path, page.value, size.value, q.hierarchy));
   } catch (e) {
     console.error('incident-explorer tickets error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the tickets.' });
@@ -930,8 +935,8 @@ app.get('/api/incident-explorer/export', requireRole('user'), async (req, res) =
   try {
     const q = ieQuery(req, res); if (!q) return;
     const { model } = await ieModel(q.year);
-    if (!ieFindNode(model.tree, q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
-    const out = ieExportCsv(model, q.path);
+    if (!ieFindNode(ieTreeOf(model, q.hierarchy), q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
+    const out = ieExportCsv(model, q.path, q.hierarchy);
     res.set({
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': 'attachment; filename="' + out.filename + '"',

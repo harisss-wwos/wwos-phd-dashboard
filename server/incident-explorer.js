@@ -11,7 +11,8 @@
 //              created, agent (isSuccessfulAgentResolve), autosim (isImmediateAutoSimResolve), rule
 //              (isImmediateRuleResolve) — mutually exclusive — and `other` = resolved in none of them.
 // LEVELS       Region › Country › State › City › SID › Issue type › Root cause › Resolution › Driver type —
-//              ONE chain, the same for every region (Unmapped included).
+//              ONE chain, the same for every region (Unmapped included). HIERARCHIES below reorders the same
+//              levels into a second tree (?hierarchy=driver: Driver type first); both share one record set.
 //   Region       the region (regions collection, edited on rules.html) whose `countries` list holds the
 //                ticket's country. Tickets whose country is in no region (incl. 'Unknown') -> 'Unmapped'.
 //   Country      opts.countryOf(t) (server.js slaCountryOf, as Page ZERO); missing -> 'Unknown'.
@@ -47,7 +48,20 @@ const zipGeo = require('./zip-geo');
 
 const LEVELS = ['Region', 'Country', 'State', 'City', 'SID', 'Issue type', 'Root cause', 'Resolution', 'Driver type'];
 const PATH_FIELDS = ['region', 'country', 'state', 'city', 'sid', 'issue', 'rc', 'res', 'drv'];   // rec field per level
-const CITY_DEPTH = PATH_FIELDS.indexOf('city') + 1;   // tree depth of City nodes (root = 0)
+const FIELD_LEVEL = new Map(PATH_FIELDS.map((f, i) => [f, LEVELS[i]]));
+// HIERARCHIES: the level ORDER of each tree (?hierarchy=, default 'geo'). The same per-ticket records,
+// ticket set and level definitions feed every tree; only the order differs, so every tree has the same root.
+//   geo     Region > Country > State > City > SID > Issue type > Root cause > Resolution > Driver type (the original)
+//   driver  Driver type > Region > Country > State > City > SID > Issue type > Root cause > Resolution
+const HIERARCHIES = {
+  geo: PATH_FIELDS,
+  driver: ['drv', 'region', 'country', 'state', 'city', 'sid', 'issue', 'rc', 'res'],
+};
+const DEFAULT_HIERARCHY = 'geo';
+const HIERARCHY_KEYS = Object.keys(HIERARCHIES);
+const HIERARCHY_TAG = { geo: 'Geo', driver: 'Driver' };   // export filename prefix part
+const levelsOf = h => HIERARCHIES[h].map(f => FIELD_LEVEL.get(f));
+const fieldsOf = h => HIERARCHIES[h || DEFAULT_HIERARCHY] || PATH_FIELDS;
 const NOT_SPECIFIED = 'Not specified';
 const NOT_RESOLVED = 'Not resolved yet';
 const UNMAPPED = 'Unmapped';
@@ -210,28 +224,33 @@ function buildExplorer(tickets, opts) {
     sp.forEach((n, s) => { if (n > bn || (n === bn && s < best)) { best = s; bn = n; } });
     rcName.set(key, best);
   });
-  const root = newNode('All regions');
   all.forEach(rec => {
     rec.rc = rcName.get(rec.rcKey) || rec.rcLabel;
     delete rec.rcKey; delete rec.rcLabel;
   });
   const recs = all.filter(rec => rec.ok);
-  // 1) The tree: successful agent resolves only, one chain Region > Country > State > City > SID > ... > Driver.
-  recs.forEach(rec => {
-    let node = root; bump(node);
-    PATH_FIELDS.forEach((f, i) => {
-      node = child(node, rec[f]); bump(node);
-      if (i + 1 === CITY_DEPTH && rec.zip !== NOT_SPECIFIED) (node.z || (node.z = new Set())).add(rec.zip);
+  // One tree per hierarchy (level order), all from the same records.
+  // 1) successful agent resolves only; 2) context: every created ticket on the nodes that exist.
+  const buildTree = (fields, rootName) => {
+    const root = newNode(rootName);
+    recs.forEach(rec => {
+      let node = root; bump(node);
+      fields.forEach(f => {
+        node = child(node, rec[f]); bump(node);
+        if (f === 'city' && rec.zip !== NOT_SPECIFIED) (node.z || (node.z = new Set())).add(rec.zip);
+      });
     });
-  });
-  // 2) Context: every created ticket on the nodes that exist (all created / all resolved per node).
-  all.forEach(rec => {
-    let node = root; bumpContext(node, rec);
-    for (const f of PATH_FIELDS) {
-      node = node.m.get(rec[f]); if (!node) return;
-      bumpContext(node, rec);
-    }
-  });
+    all.forEach(rec => {
+      let node = root; bumpContext(node, rec);
+      for (const f of fields) {
+        node = node.m.get(rec[f]); if (!node) return;
+        bumpContext(node, rec);
+      }
+    });
+    return finalize(root, 0);
+  };
+  const trees = {};
+  HIERARCHY_KEYS.forEach(h => { trees[h] = buildTree(HIERARCHIES[h], h === 'driver' ? 'All driver types' : 'All regions'); });
   // 3) Zip -> State / City coverage per ticket country (successful agent resolves only).
   const coverage = {};
   recs.forEach(rec => {
@@ -251,7 +270,7 @@ function buildExplorer(tickets, opts) {
     regions: regions.map(r => ({ name: r.name, countries: r.countries.slice() })),
     unmapped: { count: unmapped.length, countries: unmappedCountries },
     geo: Object.assign(zipGeo.geoMeta(), { coverage }),
-    tree: finalize(root, 0), recs,
+    tree: trees[DEFAULT_HIERARCHY], trees, recs,
   };
 }
 
@@ -295,38 +314,50 @@ function findNode(tree, path) {
   }
   return node;
 }
-function matchesPath(rec, path) {
-  for (let i = 0; i < path.length; i++) if (rec[PATH_FIELDS[i]] !== path[i]) return false;
+// ?hierarchy= -> 'geo' (default, also when blank) | 'driver'.
+function parseHierarchy(raw) {
+  if (raw == null || raw === '') return { ok: true, value: DEFAULT_HIERARCHY };
+  const s = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  if (!Object.prototype.hasOwnProperty.call(HIERARCHIES, s)) return { ok: false, error: 'hierarchy must be one of: ' + HIERARCHY_KEYS.join(', ') + '.' };
+  return { ok: true, value: s };
+}
+// Tree of a hierarchy (default geo).
+function treeOf(model, hierarchy) { return (model.trees && model.trees[hierarchy || DEFAULT_HIERARCHY]) || model.tree; }
+function matchesPath(rec, path, hierarchy) {
+  const fields = fieldsOf(hierarchy);
+  for (let i = 0; i < path.length; i++) if (rec[fields[i]] !== path[i]) return false;
   return true;
 }
-function ticketsAt(model, path) { return path.length ? model.recs.filter(r => matchesPath(r, path)) : model.recs; }
+function ticketsAt(model, path, hierarchy) { return path.length ? model.recs.filter(r => matchesPath(r, path, hierarchy)) : model.recs; }
 const iso = ms => (ms == null ? null : new Date(ms).toISOString());
 
 // GET /tree payload (no ticket rows).
-function treePayload(model, source) {
+function treePayload(model, source, hierarchy) {
+  const h = hierarchy || DEFAULT_HIERARCHY;
   return {
     year: model.year, generatedAt: model.generatedAt, source: source || null, total: model.total,
-    created: model.created, excluded: model.excluded, summary: model.summary, levels: LEVELS,
-    regions: model.regions, unmapped: model.unmapped, geo: model.geo, tree: model.tree,
+    created: model.created, excluded: model.excluded, summary: model.summary, hierarchy: h, levels: levelsOf(h),
+    regions: model.regions, unmapped: model.unmapped, geo: model.geo, tree: treeOf(model, h),
   };
 }
 // GET /tickets payload: one page (Created desc).
-function ticketsPage(model, path, page, pageSize) {
-  const list = ticketsAt(model, path);
+function ticketsPage(model, path, page, pageSize, hierarchy) {
+  const list = ticketsAt(model, path, hierarchy);
   const pages = Math.max(1, Math.ceil(list.length / pageSize));
   const p = Math.min(page, pages);
   const rows = list.slice((p - 1) * pageSize, p * pageSize).map(r => ({
     id: r.id, url: r.url, title: r.title, created: iso(r.cd), resolved: r.resolved ? iso(r.rd) : null,
     isResolved: r.resolved, status: r.status, state: r.state, city: r.city, zip: r.zip,
   }));
-  return { year: model.year, path, total: list.length, page: p, pageSize, pages, rows };
+  return { year: model.year, hierarchy: hierarchy || DEFAULT_HIERARCHY, path, total: list.length, page: p, pageSize, pages, rows };
 }
 // GET /export: the FULL list for a path as CSV (UTF-8 BOM, CRLF, csvCell quoting + formula guard).
 const CSV_HEADER = ['Ticket ID', 'Ticket URL', 'Title', 'Created', 'Resolved', 'Status', 'Region', 'Country', 'State', 'City', 'SID', 'Zip',
   'Issue type', 'Issue source', 'Root cause', 'Resolution', 'Driver type', 'Resolved By'];
 function fileTag(s) { return String(s).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'x'; }
-function exportCsv(model, path) {
-  const list = ticketsAt(model, path);
+function exportCsv(model, path, hierarchy) {
+  const h = hierarchy || DEFAULT_HIERARCHY;
+  const list = ticketsAt(model, path, h);
   const lines = [CSV_HEADER.map(csvCell).join(',')];
   list.forEach(r => {
     lines.push([
@@ -336,14 +367,14 @@ function exportCsv(model, path) {
   });
   const tags = path.length ? path.map(fileTag) : ['All'];
   return {
-    filename: 'Incident_Explorer_' + tags.join('_') + '_' + model.year + '.csv',
+    filename: 'Incident_Explorer_' + HIERARCHY_TAG[h] + '_' + tags.join('_') + '_' + model.year + '.csv',
     count: list.length,
     csv: '\uFEFF' + lines.join('\r\n') + '\r\n',
   };
 }
 
 module.exports = {
-  LEVELS, PATH_FIELDS, NOT_SPECIFIED, NOT_RESOLVED, UNMAPPED, MAX_PAGE_SIZE, CSV_HEADER, EXCLUSION_RULES,
+  LEVELS, PATH_FIELDS, HIERARCHIES, DEFAULT_HIERARCHY, levelsOf, parseHierarchy, treeOf, NOT_SPECIFIED, NOT_RESOLVED, UNMAPPED, MAX_PAGE_SIZE, CSV_HEADER, EXCLUSION_RULES,
   IMMEDIATE_RESOLVE_MS, rootCauseOf, agentResolveExclusion, isSuccessfulAgentResolve, isImmediateAutoSimResolve, isImmediateRuleResolve, buildExplorer, parseYear, parsePath, parsePosInt, findNode, matchesPath, ticketsAt,
   treePayload, ticketsPage, exportCsv,
 };

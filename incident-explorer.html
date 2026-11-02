@@ -19,8 +19,10 @@
 /* =====================================================================================
    Incident Explorer — same visual language as page-zero.html / errors-in-resolved.html:
    dark navy hero (grid texture + orange glow + orange left rule), the fixed full-width 'All regions'
-   KPI card, the full-width path bar, then one full-width section per level stacked one below the other
-   (Regions > Countries > States > Cities > SIDs > Issue types > Root causes > Resolutions > Driver types > tickets).
+   card (KPIs + region cards), then two collapsible drill-down sections (collapsed by default):
+   A  Region > Country > State > City > SID > Issue type > Root cause > Resolution > Driver type > tickets
+   B  Driver type > Region > Country > State > City > SID > Issue type > Root cause > Resolution > tickets
+   each with its own path bar and one full-width section per level stacked one below the other.
    Scoped under .iex (a size container).
    (theme.css / app-light.css are intentionally not loaded, as on page-zero.html.)
    ===================================================================================== */
@@ -158,10 +160,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 /* States / Cities / SIDs: equal-width paged grids (pagination replaces the internal scroll). 5 columns, then
    3 / 2 / 1 as the section narrows; the per-page count stays fixed (25 / 25 / 10). Name truncates, count + % right. */
 .iex-its.is-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-height:none;overflow:visible}
-.iex-its.is-grid>li{display:flex;min-width:0}
-.iex-its.is-grid .iex-it{display:flex;width:100%;max-width:none;min-width:0}
-.iex-its.is-grid .iex-it-nm{flex:1 1 auto;max-width:none}
-.iex-its.is-grid .iex-it-n,.iex-its.is-grid .iex-it-p{flex-shrink:0}
+.iex-its:is(.is-grid,.is-eq)>li{display:flex;min-width:0}
+.iex-its:is(.is-grid,.is-eq) .iex-it{display:flex;width:100%;max-width:none;min-width:0}
+.iex-its:is(.is-grid,.is-eq) .iex-it-nm{flex:1 1 auto;max-width:none}
+.iex-its:is(.is-grid,.is-eq) .iex-it-n,.iex-its:is(.is-grid,.is-eq) .iex-it-p{flex-shrink:0}
+/* Unpaged levels (Regions / Countries / Driver types): one equal column per item (--n, set from JS; 5 when there
+   are more than 8), filling the row; at most 3 / 2 / 1 per row as the section narrows (--n3 / --n2 = min(n,3|2)). */
+.iex-its.is-eq{display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr))}
+@container (max-width:1000px){.iex-its.is-eq{grid-template-columns:repeat(var(--n3,1),minmax(0,1fr))}}
+@container (max-width:600px){.iex-its.is-eq{grid-template-columns:repeat(var(--n2,1),minmax(0,1fr))}}
+@container (max-width:400px){.iex-its.is-eq{grid-template-columns:minmax(0,1fr)}}
 @container (max-width:900px){.iex-its.is-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @container (max-width:560px){.iex-its.is-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @container (max-width:340px){.iex-its.is-grid{grid-template-columns:minmax(0,1fr)}}
@@ -250,6 +258,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-sk-row{display:flex;align-items:center;gap:10px;padding:8px 10px}
 @keyframes iexShim{0%{background-position:100% 0}100%{background-position:0 0}}
 .iex-toast{position:fixed;right:20px;bottom:20px;z-index:50;display:flex;align-items:center;gap:12px;max-width:min(440px,calc(100vw - 40px));padding:11px 12px 11px 16px;border-radius:10px;background:#161d2d;color:#fff;font-size:.86em;font-weight:700;box-shadow:0 16px 32px -16px rgba(20,30,50,.7)}
+.iex-toast[hidden]{display:none}
 .iex-toast.err{background:var(--red)}
 .iex-toast button{border:none;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;font-size:.86em;font-weight:800;padding:5px 10px;cursor:pointer}
 
@@ -257,8 +266,48 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 @keyframes iexUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .iex.is-anim .iex-hero{animation:iexUp .45s ease both}
 .iex.is-anim .iex-fixed{animation:iexUp .5s ease .06s both}
-.iex.is-anim .iex-path{animation:iexUp .5s ease .12s both}
-.iex.is-anim .iex-secs{animation:iexUp .5s ease .18s both}
+.iex.is-anim .iex-xsecs{animation:iexUp .5s ease .12s both}
+
+/* ---- Fixed card: region cards (click -> Section A at that region) ---- */
+.iex-regs-h{margin:18px 0 10px;font-size:.7em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
+.iex-regs-h span{font-weight:700;letter-spacing:.2px;text-transform:none;color:var(--mut2)}
+/* One equal column per region (--n from JS), filling the row; at most 3 / 2 / 1 per row on narrower layouts. */
+.iex-regs{list-style:none;display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));gap:10px}
+.iex-regs>li{min-width:0}
+@container (max-width:1000px){.iex-regs{grid-template-columns:repeat(var(--n3,1),minmax(0,1fr))}}
+@container (max-width:600px){.iex-regs{grid-template-columns:repeat(var(--n2,1),minmax(0,1fr))}}
+@container (max-width:400px){.iex-regs{grid-template-columns:minmax(0,1fr)}}
+.iex-reg{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-align:left;cursor:pointer;
+  --k:var(--acc);transition:background .15s,border-color .15s,box-shadow .15s}
+.iex-reg:hover{background:#fafbfc;border-color:#c4ccd4;box-shadow:0 8px 18px -14px rgba(20,30,50,.6)}
+.iex-reg.is-on{border-color:#f7c99c;background:var(--acc-bg)}
+.iex-reg-nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86em;font-weight:800}
+.iex-reg-n{font-size:1.45em;font-weight:800;letter-spacing:-.6px;line-height:1.1;font-variant-numeric:tabular-nums}
+.iex-reg-p{font-size:.74em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.iex-reg .iex-kpi-bar{align-self:stretch;margin-top:6px}
+
+/* ---- Collapsible drill-down sections A / B (chevron header, as on errors-in-resolved.html) ---- */
+.iex-xsecs{display:flex;flex-direction:column;gap:16px;margin-top:16px}
+.iex-xsec{overflow:hidden}
+.iex-xhead{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:14px 18px}
+.iex-xsec.is-open .iex-xhead{border-bottom:1px solid var(--line);background:#fbfbfa}
+.iex-xh{flex:1 1 420px;min-width:0;margin:0;font-size:1.05em;font-weight:800;letter-spacing:-.2px;line-height:1.3}
+.iex-xbtn{display:inline-flex;align-items:center;gap:10px;max-width:100%;margin:-4px -6px;padding:6px 10px 6px 6px;border:none;border-radius:8px;background:none;color:var(--ink);cursor:pointer;text-align:left}
+.iex-xbtn:hover{background:#f3f4f6}
+.iex-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
+.iex-chev svg{transition:transform .15s}
+.iex-xbtn:hover .iex-chev{background:var(--blue-bg);color:var(--blue)}
+.iex-xbtn[aria-expanded="true"] .iex-chev svg{transform:rotate(90deg)}
+.iex-xno{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:var(--acc-bg);
+  border:1px solid #f7c99c;color:var(--acc-ink);font-size:.72em;font-weight:800}
+.iex-xt{min-width:0;overflow-wrap:anywhere}
+.iex-xsum{flex:0 1 auto;min-width:0;margin:0;font-size:.82em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
+.iex-xsum b{color:var(--ink);font-weight:800}
+.iex-xsum-p{color:var(--acc-ink);font-weight:700;overflow-wrap:anywhere}
+.iex-xbody{padding:2px 16px 16px;background:#fafaf8}
+.iex-xbody[hidden]{display:none}
+.iex-xbody .iex-path{margin:14px 0}
+.iex-xbody .iex-path[hidden]{display:none}
 
 @media (max-width:640px){
   .iex-hero{padding:20px 18px 20px 22px}
@@ -308,262 +357,54 @@ function fmtIst(iso){
 }
 var EXT='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
-// Level names (the API sends the same list as `levels`).
-var LEVELS_FB=['Region','Country','State','City','SID','Issue type','Root cause','Resolution','Driver type'];
 var YEARS=[2026,2025];
 var PAGE_SIZE=20;
-// The page is a stack of full-width level sections. Section d (0 = Regions ... 8 = Driver types) lists the
-// children of the node at S.sel.slice(0,d), with S.sel[d] highlighted; it shows once its parent level has a
-// selection (Regions always shows). When the selection is a leaf (a Driver type) a final ticket section follows.
-// Search boxes: only the States / Cities / SIDs sections (d = 2, 3, 4).
-// Export buttons: only the Issue types / Root causes / Resolutions / Driver types sections (d = 5..8, scope =
-// the section's parent node) and the final ticket section (scope = the selected Driver type).
-var SEARCH_SECS={2:1,3:1,4:1}, EXPORT_SECS={5:1,6:1,7:1,8:1};
-// Paged equal-width grids: section depth -> items per page (States 25 = 5x5, Cities 25 = 5x5, SIDs 10 = 5x2,
-// Root causes / Resolutions 40 = 10 rows of 4; the pager only shows when a list is longer than one page).
-var PAGED_SECS={2:25,3:25,4:10,6:40,7:40};
-// 4-column grids (Root causes, Resolutions); the other paged grids are 5 columns.
-var GRID4_SECS={6:1,7:1};
-// Default selection (no #path in the URL, and 'Start over'): the NA region, so its Countries section shows.
+// Two drill-downs over the SAME ticket set (server ?hierarchy=geo|driver), each a makeExplorer() instance with
+// its own state (selection, searches, grid pages, ticket page, export). Inside an instance the drill-down is a
+// stack of full-width level sections: section d lists the children of the node at sel.slice(0,d), with sel[d]
+// highlighted; it shows once its parent level has a selection (the first level always shows). When the
+// selection is a leaf a final ticket section follows (20 per page, newest first, Export all).
+// Per-level behaviour is keyed by the LEVEL NAME of the listed items, so it follows the level in either order:
+//   search boxes   States / Cities / SIDs
+//   export buttons Issue types / Root causes / Resolutions / Driver types (scope = the section's parent node;
+//                  never on the first level, whose scope would be the whole tree) + the final ticket section
+//   paged grids    States 25 (5x5), Cities 25, SIDs 10 (5x2), Root causes / Resolutions 40 (10 rows of 4)
+var SEARCH_LV={'State':1,'City':1,'SID':1};
+var EXPORT_LV={'Issue type':1,'Root cause':1,'Resolution':1,'Driver type':1};
+var PAGED_LV={'State':25,'City':25,'SID':10,'Root cause':40,'Resolution':40};
+var GRID4_LV={'Root cause':1,'Resolution':1};
 var DEFAULT_REGION='NA';
-
-// ---- State ----
-// q: section depth -> search text (States / Cities / SIDs). dl: path length of the export in flight, or false.
-// pg: paged section depth -> { k:<parent path key>, p:<page> } (a page only applies under the same parent).
-var S={ year:2026, D:null, loading:true, err:'', sel:[], q:{}, pg:{}, first:true, dl:false };
-var T={ key:'', page:1, data:null, loading:false, err:'' };
-var NODES=[], BYKEY={};
+var HIER={
+  geo:{ key:'geo', no:'A', tag:'Geo', rootLabel:'All regions', defaultPath:[DEFAULT_REGION],
+    levels:['Region','Country','State','City','SID','Issue type','Root cause','Resolution','Driver type'] },
+  driver:{ key:'driver', no:'B', tag:'Driver', rootLabel:'All driver types', defaultPath:[],
+    levels:['Driver type','Region','Country','State','City','SID','Issue type','Root cause','Resolution'] }
+};
+var HKEYS=['geo','driver'];
+var G={ year:2026, first:true };
+var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var DL_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
 function keyOf(path){ return JSON.stringify(path); }
-
-// Index every node once: id -> { node, path, parent id, depth }.
-function indexTree(root){
-  NODES=[]; BYKEY={};
-  (function walk(n,path,parent){
-    var id=NODES.length; n.id=id;
-    NODES.push({ node:n, path:path, parent:parent, depth:path.length });
-    BYKEY[keyOf(path)]=id;
-    (n.c||[]).forEach(function(c){ walk(c,path.concat([c.k]),id); });
-  })(root,[],-1);
-}
-function rootN(){ return NODES[0]; }
-function selId(){ var id=BYKEY[keyOf(S.sel)]; return id==null?0:id; }
-function defaultPath(){ return BYKEY[keyOf([DEFAULT_REGION])]!=null?[DEFAULT_REGION]:[]; }
-// Level name of a node at `depth` (path length).
-function levelName(depth){
-  if(depth===0) return 'All regions';
-  return ((S.D&&S.D.levels)||LEVELS_FB)[depth-1]||LEVELS_FB[depth-1]||'';
-}
-function dispName(e){ return e.node.k; }
-function hasKids(n){ return !!(n.c&&n.c.length); }
-
-// ---- Hero ----
-function heroHtml(){
-  var opts=YEARS.map(function(y){ return '<option value="'+y+'"'+(y===S.year?' selected':'')+'>'+y+'</option>'; }).join('');
-  return '<header class="iex-hero"><div class="iex-hero-in"><span class="iex-hero-ic" aria-hidden="true">'+ic('globe',24)+'</span><div style="min-width:0">'+
-    '<p class="iex-eyebrow">Regions \u00b7 Drill-down</p><h1>Incident Explorer</h1>'+
-    '<p class="iex-hero-sub">Region \u2192 Country \u2192 State \u2192 City \u2192 SID \u2192 Issue \u2192 Root cause \u2192 Resolution \u2192 Driver type \u2192 Tickets</p>'+
-    '<ul class="iex-chips">'+
-      '<li class="iex-chip">'+ic('database',14)+'<span>Data source</span><b>SIM uploads \u00b7 tickets created in the year, resolved successfully by an agent</b></li>'+
-      '<li class="iex-chip">'+ic('clock',14)+'<span>As of</span><b id="iexAsOf"><span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span></b></li>'+
-      '<li class="iex-chip">'+ic('calendar',14)+'<label for="iexYear">Year</label><select id="iexYear">'+opts+'</select></li>'+
-    '</ul></div></div></header>';
-}
-function setHero(){
-  var a=$('iexAsOf'); if(!a) return;
-  var D=S.D, at=D&&D.source&&D.source.latestUploadAt;
-  a.textContent=S.loading?'':(D?(at?fmtIst(at):fmtIst(D.generatedAt)):'\u2014');
-  if(S.loading) a.innerHTML='<span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span>';
-}
-
-// ---- Path bar ----
-function pathHtml(){
-  if(!S.D) return '<span class="iex-path-k">Path</span><ol class="iex-crumbs"><li><span class="iex-skel" style="width:260px;height:26px"></span></li></ol>'+
-    '<button type="button" class="iex-reset" disabled>'+ic('refresh',14)+'Start over</button>';
-  var items=[{path:[],label:'All regions',val:num(rootN().node.n)+' tickets'}];
-  for(var i=1;i<=S.sel.length;i++){ var p=S.sel.slice(0,i); items.push({path:p,label:levelName(i),val:p[i-1]}); }
-  var h=items.map(function(it,i){
-    var last=i===items.length-1, id=BYKEY[keyOf(it.path)];
-    return '<li><button type="button" class="iex-crumb" data-go="'+id+'"'+(last?' aria-current="page"':'')+' title="'+esc(it.label+': '+it.val)+'">'+
-      '<small>'+esc(i===0?'Start':it.label)+'</small><b>'+esc(i===0?'All regions':it.val)+'</b></button></li>';
-  }).join('');
-  return '<span class="iex-path-k" id="iexPathK">Path</span><ol class="iex-crumbs" aria-labelledby="iexPathK">'+h+'</ol>'+
-    '<button type="button" class="iex-reset" id="iexReset"'+(keyOf(S.sel)!==keyOf(defaultPath())?'':' disabled')+'>'+ic('refresh',14)+'Start over</button>';
-}
-
-// ---- Level sections ----
-function levelPlural(depth){
-  var l=levelName(depth);
-  return l==='Country'?'Countries':l==='City'?'Cities':l+'s';
-}
+function chainText(cfg){ return cfg.levels.join(' \u2192 ')+' \u2192 Tickets'; }
 function byTickets(a,b){ return ((b.n||0)-(a.n||0))||(String(a.k)<String(b.k)?-1:String(a.k)>String(b.k)?1:0); }
+// Inline column vars for an equal-width card row: one column per item (5 when more than 8), capped at 3 / 2 by CSS.
+function eqCols(count){ var n=Math.max(1,count<=8?count:5); return '--n:'+n+';--n3:'+Math.min(n,3)+';--n2:'+Math.min(n,2); }
 // Case- and accent-insensitive search key ('mexico' matches 'México').
 function foldTxt(s){ var t=String(s==null?'':s); try{ t=t.normalize('NFD'); }catch(e){} return t.replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
-// The sections to show for the current selection: [{ d, pid, on:<selected child id or -1> }]. Section d lists
-// the children of the node at S.sel.slice(0,d); it stops at a leaf (that adds the final ticket section).
-function sectionLevels(){
-  var out=[];
-  for(var d=0;d<=S.sel.length;d++){
-    var pid=BYKEY[keyOf(S.sel.slice(0,d))]; if(pid==null) break;
-    if(!hasKids(NODES[pid].node)) break;
-    var on=d<S.sel.length?BYKEY[keyOf(S.sel.slice(0,d+1))]:null;
-    out.push({ d:d, pid:pid, on:on==null?-1:on });
-  }
-  return out;
-}
-// Children of a section, tickets desc then name, filtered by the section's search (if any).
-function sectionKids(s){
-  var kids=NODES[s.pid].node.c.slice().sort(byTickets), q=SEARCH_SECS[s.d]?foldTxt(S.q[s.d]||'').trim():'';
-  return { all:kids.length, list:q?kids.filter(function(c){ return foldTxt(c.k).indexOf(q)>=0; }):kids, q:q };
-}
-function itemHtml(c,pn,pname,depth,on){
-  return '<li><button type="button" class="iex-it" data-go="'+c.id+'" aria-pressed="'+on+'"'+(on?' aria-current="true"':'')+
-      ' title="'+esc(levelName(depth)+': '+c.k)+'" aria-label="'+esc(c.k+', '+num(c.n)+' tickets, '+pct(c.n,pn.n)+' of '+pname)+'">'+
-    '<span class="iex-it-nm">'+esc(c.k)+'</span><span class="iex-it-n">'+num(c.n)+'</span><span class="iex-it-p">'+pct(c.n,pn.n)+'</span></button></li>';
-}
-// The chips of one section (or the 'no matches' state). Issue types are grouped by Issue Standardization category.
-function sectionListHtml(s){
-  var pe=NODES[s.pid], pn=pe.node, pname=pe.depth?dispName(pe):'All regions', k=sectionKids(s), dep=s.d+1;
-  if(!k.list.length) return '<p class="iex-nomatch" role="status">No '+esc(levelPlural(dep).toLowerCase())+' match \u201c'+esc((S.q[s.d]||'').trim())+'\u201d.</p>';
-  var groups=levelName(dep)==='Issue type'?issueGroups(k.list):null;
-  if(groups) return '<div class="iex-grps">'+groups.map(function(g,gi){
-    var gid='iexG'+gi;
-    return '<section class="iex-grp" aria-labelledby="'+gid+'"><h3 class="iex-grp-h" id="'+gid+'"><span class="iex-grp-nm">'+esc(g.name)+'</span>'+
-        '<span class="iex-grp-n">'+num(g.n)+' tickets \u00b7 '+pct(g.n,pn.n)+'</span></h3>'+
-      '<ul class="iex-its">'+g.kids.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul></section>';
-  }).join('')+'</div>';
-  var per=PAGED_SECS[s.d];
-  if(per){
-    // Search filters first, then the filtered list is paged (same sort order across pages).
-    var p=secPage(s,k.list.length), page=k.list.slice((p-1)*per,p*per);
-    return '<ul class="iex-its is-grid'+(GRID4_SECS[s.d]?' is-g4':'')+'" aria-labelledby="iexSecH'+s.d+'">'+page.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul>'+
-      secPagerHtml(s,k.list.length,p,per);
-  }
-  return '<ul class="iex-its" aria-labelledby="iexSecH'+s.d+'">'+k.list.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul>';
-}
-// ---- Paged sections (States / Cities / SIDs) ----
-function setSecPage(d,p){ S.pg[d]={ k:keyOf(S.sel.slice(0,d)), p:p }; }
-// Current page of a paged section, clamped to its (filtered) length; page 1 under a different parent.
-function secPage(s,len){
-  var st=S.pg[s.d], last=Math.max(1,Math.ceil(len/PAGED_SECS[s.d]));
-  var p=st&&st.k===keyOf(S.sel.slice(0,s.d))?st.p:1;
-  return Math.min(Math.max(1,p),last);
-}
-// On a (re)build: open the page holding the selected item; otherwise keep the page (same parent) or page 1.
-function openSelPage(s){
-  var list=sectionKids(s).list, at=-1;
-  if(s.on>=0) for(var i=0;i<list.length;i++){ if(list[i].id===s.on){ at=i; break; } }
-  if(at>=0) setSecPage(s.d,Math.floor(at/PAGED_SECS[s.d])+1);
-  else setSecPage(s.d,secPage(s,list.length));
-}
-// Prev / page numbers (ellipsis for many pages) / Next + 'Showing x-y of N'. Hidden when one page holds everything.
-function secPagerHtml(s,total,p,per){
-  var pages=Math.ceil(total/per); if(pages<=1) return '';
-  var noun=levelPlural(s.d+1), lc=noun==='SIDs'?noun:noun.toLowerCase();
-  var b=function(pg,lab,txt,dis,cur){
-    return '<button type="button" class="iex-pg" data-sd="'+s.d+'" data-spage="'+pg+'" aria-label="'+esc(lab)+'"'+(dis?' disabled':'')+(cur?' aria-current="page"':'')+'>'+txt+'</button>';
-  };
-  var nums=pageList(p,pages).map(function(x){
-    if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
-    return '<li>'+b(x,noun+' page '+x+' of '+pages,x,false,x===p)+'</li>';
-  }).join('');
-  return '<div class="iex-pager"><p class="iex-showing">Showing '+num((p-1)*per+1)+'\u2013'+num(Math.min(total,p*per))+' of '+num(total)+'</p>'+
-    '<nav aria-label="'+esc(noun)+' pages"><ul class="iex-pages">'+
-      '<li>'+b(p-1,'Previous page of '+lc,'\u2039 Prev',p<=1,false)+'</li>'+nums+
-      '<li>'+b(p+1,'Next page of '+lc,'Next \u203a',p>=pages,false)+'</li></ul></nav></div>';
-}
-// Page change: re-render only that section's grid + pager (selection and lower sections stay as they are).
-function goSecPage(d,p){
-  setSecPage(d,p); renderSectionList(d);
-  var cur=document.querySelector('#iexL'+d+' .iex-pg[aria-current="page"]'); if(cur) cur.focus({preventScroll:true});
-  var sec=$('iexSec'+d); if(sec&&sec.getBoundingClientRect&&sec.getBoundingClientRect().top<0) sec.scrollIntoView({block:'start'});
-  announce(levelPlural(d+1)+' page '+p+'.');
-}
-function sectionCountText(s){
-  var k=sectionKids(s), dep=s.d+1, noun=k.all===1?levelName(dep).toLowerCase():levelPlural(dep).toLowerCase();
-  if(levelName(dep)==='SID') noun=k.all===1?'SID':'SIDs';
-  if(k.q) return num(k.list.length)+' of '+num(k.all)+' '+noun+' match';
-  var g=levelName(dep)==='Issue type'?issueGroups(NODES[s.pid].node.c):null;
-  return num(k.all)+' '+noun+(g?' in '+num(g.length)+' group'+(g.length===1?'':'s'):'')+', most tickets first \u00b7 successfully resolved tickets only';
-}
+function hasKids(n){ return !!(n.c&&n.c.length); }
+function announce(msg){ var l=$('iexLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
 function totHtml(n,lab){
   return '<div class="iex-seltot" title="'+esc(lab)+'"><p class="iex-seltot-l" aria-hidden="true">Successfully Resolved</p>'+
     '<p class="iex-seltot-n" aria-hidden="true">'+num(n)+'</p><p class="iex-sr">'+esc(lab)+'</p></div>';
 }
-// Export button: the tickets under S.sel.slice(0,len) (the section's scope). The count in the label is that
-// node's n = the rows /export writes for the same path (both are the successful agent resolves under it).
-var DL_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
-function exportCount(len){ var id=BYKEY[keyOf(S.sel.slice(0,len))]; return id==null?0:(NODES[id].node.n||0); }
-function exportBtn(len){
-  var busy=S.dl===len, cnt=exportCount(len), path=S.sel.slice(0,len);
-  var lbl='Export '+num(cnt)+' ticket'+(cnt===1?'':'s'), scope=path.length?path.join(' \u00b7 '):'All regions';
-  return '<button type="button" class="iex-exp" data-export="'+len+'" aria-label="'+esc(busy?'Preparing the CSV for '+scope:lbl+' for '+scope+' as CSV')+'"'+
-      (S.dl!==false||!cnt?' disabled':'')+(busy?' aria-busy="true"':'')+(!cnt?' title="No tickets to export"':'')+'>'+
-    (busy?'<span class="iex-exp-ic"><span class="iex-spin" aria-hidden="true"></span></span><span class="iex-exp-l">Preparing\u2026</span>':
-      '<span class="iex-exp-ic">'+DL_SVG+'</span><span class="iex-exp-l">'+esc(lbl)+'</span><span class="iex-exp-cap" aria-hidden="true">CSV</span>')+'</button>';
+function pageList(p,last){
+  var out=[], add=function(x){ if(out[out.length-1]!==x) out.push(x); };
+  for(var i=1;i<=last;i++){
+    if(i===1||i===last||Math.abs(i-p)<=1||(p<=3&&i<=4)||(p>=last-2&&i>=last-3)) add(i);
+    else add('gap');
+  }
+  return out;
 }
-function searchBox(s){
-  var dep=s.d+1, pe=NODES[s.pid], lv=levelName(dep), id='iexQ'+s.d;
-  return '<div class="iex-search" role="search" aria-label="'+esc(levelPlural(dep))+' in '+esc(dispName(pe))+'"><label for="'+id+'" class="iex-sr">Search '+esc(lv==='SID'?'SIDs':levelPlural(dep).toLowerCase())+' in '+esc(dispName(pe))+'</label>'+
-    ic('search',15)+'<input type="search" id="'+id+'" data-q="'+s.d+'" placeholder="Find a '+esc(lv==='SID'?'SID':lv.toLowerCase())+'\u2026" autocomplete="off" value="'+esc(S.q[s.d]||'')+'"></div>';
-}
-function sectionHtml(s){
-  var pe=NODES[s.pid], pn=pe.node, dep=s.d+1, pname=pe.depth?dispName(pe):'All regions', hid='iexSecH'+s.d;
-  var title=esc(levelPlural(dep))+(pe.depth?' <span>\u00b7 '+esc(pname)+'</span>':'');
-  var lab='Successfully Resolved '+num(pn.n)+' in '+pname;
-  // Search sections: search box, then the total. Export sections: Export button + total side by side (.iex-sec-end).
-  var right=SEARCH_SECS[s.d]?'<div class="iex-sec-ctl">'+searchBox(s)+'</div>'+totHtml(pn.n,lab):
-    EXPORT_SECS[s.d]?'<div class="iex-sec-end">'+exportBtn(s.d)+totHtml(pn.n,lab)+'</div>':totHtml(pn.n,lab);
-  return '<section class="iex-card iex-sec" id="iexSec'+s.d+'" aria-labelledby="'+hid+'"><div class="iex-sec-head"><div class="iex-sec-tl">'+
-      '<p class="iex-kick">'+esc(levelName(dep))+(pe.depth?' \u00b7 in '+esc(levelName(pe.depth))+' '+esc(pname):'')+'</p>'+
-      '<h2 class="iex-sec-h" id="'+hid+'">'+title+'</h2><p class="iex-head-sub" id="iexN'+s.d+'">'+sectionCountText(s)+'</p></div>'+
-      right+'</div>'+
-    '<div id="iexL'+s.d+'">'+sectionListHtml(s)+'</div></section>';
-}
-// Final section: the tickets of the selected Driver type (leaf), titled with its name, with its Export.
-function finalHtml(e){
-  var n=e.node, name=dispName(e);
-  return '<section class="iex-card iex-sec" id="iexTickets" aria-labelledby="iexTH"><div class="iex-sec-head"><div class="iex-sec-tl">'+
-      '<p class="iex-kick">Tickets \u00b7 '+esc(levelName(e.depth))+'</p><h2 class="iex-sec-h" id="iexTH">'+esc(name)+'</h2>'+
-      '<p class="iex-head-sub">'+num(n.n)+' ticket'+(n.n===1?'':'s')+' \u00b7 sorted by created date, newest first \u00b7 '+PAGE_SIZE+' per page</p></div>'+
-      '<div class="iex-sec-end">'+exportBtn(S.sel.length)+totHtml(n.n,'Successfully Resolved '+num(n.n)+' in '+name)+'</div></div>'+
-    '<div id="iexTBody">'+ticketsInner(e)+'</div></section>';
-}
-// Keep each list's highlighted chip in view by scrolling that list only (never the page).
-function chipsIntoView(){
-  var box=$('iexSecs'); if(!box) return;
-  Array.prototype.forEach.call(box.querySelectorAll('.iex-its,.iex-grps'),function(ul){
-    if(ul.scrollHeight<=ul.clientHeight) return;
-    var b=ul.querySelector('[aria-pressed="true"]'); if(!b) return;
-    var ut=ul.getBoundingClientRect(), bt=b.getBoundingClientRect();
-    if(bt.top<ut.top||bt.bottom>ut.bottom) ul.scrollTop+=bt.top-ut.top-(ul.clientHeight-b.offsetHeight)/2;
-  });
-}
-
-// ---- Right panel ----
-function kpi(cls,icon,label,val,sub,ratio){
-  return '<div class="iex-kpi '+cls+'"><p class="iex-kpi-l"><span class="iex-kpi-ic">'+ic(icon,14)+'</span>'+label+'</p>'+
-    '<p class="iex-kpi-n">'+val+'</p><p class="iex-kpi-s">'+sub+'</p>'+
-    (ratio==null?'':'<div class="iex-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
-}
-// FIXED 'All regions' section: reads ONLY S.D.summary (server incident-explorer.js `summary`, built over
-// every ticket created in the year, never filtered by a path), so it does not change with the selection.
-// Successfully Resolved / AUTO-SIM / Rule are mutually exclusive; their % is of Total Tickets.
-function fixedHtml(){
-  var s=S.D.summary, tk=s.created||0, mins=s.immediateMinutes;
-  var win='resolved within '+mins+' min of creation';
-  return '<section class="iex-card" aria-labelledby="iexFixH"><div class="iex-head"><div style="min-width:0">'+
-      '<p class="iex-kick">Fixed \u00b7 whole '+S.D.year+' data set</p><h2 id="iexFixH">All regions</h2>'+
-      '<p class="iex-head-sub">Every ticket created in '+S.D.year+'. Does not change with the selections below.</p></div></div>'+
-    '<div class="iex-kpis">'+
-      kpi('k-base','inbox','Total Tickets',num(tk),'Created in '+S.D.year,null)+
-      kpi('k-good','check-circle','Successfully Resolved',num(s.agent),'<b>'+pct(s.agent,tk)+'</b> of the selection',tk?s.agent/tk:0)+
-      kpi('k-blue','bolt','Imm. Resolved By AUTO-SIM',num(s.autosim),'<b>'+pct(s.autosim,tk)+'</b> of the selection',tk?s.autosim/tk:0)+
-      kpi('k-warn','book','Imm. Resolved By Rule',num(s.rule),'<b>'+pct(s.rule,tk)+'</b> of the selection',tk?s.rule/tk:0)+
-    '</div>'+
-    '<p class="iex-head-sub" style="margin-top:10px">Successfully Resolved = resolved by an agent. AUTO-SIM = closed by AutoSIM as \u201cImmediately Resolved\u201d; '+
-      'Rule = closed through the auto-resolve rule as \u201cAutomatically Closed\u201d; both '+esc(win)+'.</p></section>';
-}
-
 // Issue-type groups = the Issue Standardization page categories (window.IZ_CATS, the shared
 // issue-types-data.js that issue-types.html renders). Panel order (3 per row): GROUP_ORDER first, then any
 // other taxonomy category in that page's order, then 'Other / Not specified' (types in no category:
@@ -584,156 +425,6 @@ function issueGroups(kids){
   out.forEach(function(g){ g.kids.sort(function(a,b){ return (b.n-a.n)||(String(a.k)<String(b.k)?-1:String(a.k)>String(b.k)?1:0); }); });
   return out.filter(function(g){ return g.kids.length; });
 }
-function pageList(p,last){
-  var out=[], add=function(x){ if(out[out.length-1]!==x) out.push(x); };
-  for(var i=1;i<=last;i++){
-    if(i===1||i===last||Math.abs(i-p)<=1||(p<=3&&i<=4)||(p>=last-2&&i>=last-3)) add(i);
-    else add('gap');
-  }
-  return out;
-}
-function ticketsInner(e){
-  if(T.loading&&!T.data){
-    var sk=function(px){ return '<td><span class="iex-skel" style="width:'+px+'px;height:12px"></span></td>'; };
-    var r=''; for(var i=0;i<6;i++) r+='<tr>'+sk(90)+'<td><span class="iex-skel" style="width:'+(50+(i*13)%40)+'%;height:12px"></span></td>'+sk(70)+sk(80)+sk(50)+sk(110)+sk(110)+'</tr>';
-    return '<div class="iex-scroll" aria-hidden="true"><table class="iex-tbl"><thead><tr><th>Ticket ID</th><th>Title</th><th>State</th><th>City</th><th>Zip</th><th>Created</th><th>Resolved</th></tr></thead><tbody>'+r+'</tbody></table></div>';
-  }
-  if(T.err) return '<div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',24)+'</span><h3>Couldn\u2019t load the tickets</h3><p>'+esc(T.err)+'</p>'+
-    '<button type="button" class="iex-btn" id="iexTRetry">'+ic('refresh',14)+'Retry</button></div>';
-  var d=T.data; if(!d) return '';
-  if(!d.total) return '<div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',24)+'</span><h3>No tickets here</h3><p>This node has no tickets.</p></div>';
-  var rows=d.rows.map(function(t){
-    var u=safeUrl(t.url);
-    var idc=u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(t.id)+' (opens in a new tab)">'+esc(t.id)+EXT+'</a>':esc(t.id);
-    var res=t.isResolved?'<span class="iex-dt">'+esc(t.resolved?fmtUtc(t.resolved):'\u2014')+'</span>':'<span class="iex-open">\u2014 open</span>';
-    var geo=function(v){ return '<td><span class="iex-geo"'+(v?' title="'+esc(v)+'"':'')+'>'+esc(v||'\u2014')+'</span></td>'; };
-    return '<tr><td>'+idc+'</td><td class="iex-tcell"><span class="iex-title" title="'+esc(t.title)+'">'+esc(t.title||'\u2014')+'</span></td>'+
-      geo(t.state)+geo(t.city)+geo(t.zip)+'<td><span class="iex-dt">'+esc(fmtUtc(t.created))+'</span></td><td>'+res+'</td></tr>';
-  }).join('');
-  var from=(d.page-1)*d.pageSize+1, to=Math.min(d.total,d.page*d.pageSize);
-  var pg=pageList(d.page,d.pages).map(function(x){
-    if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
-    return '<li><button type="button" class="iex-pg" data-page="'+x+'"'+(x===d.page?' aria-current="page"':'')+' aria-label="Page '+x+'">'+x+'</button></li>';
-  }).join('');
-  return '<div class="iex-scroll" tabindex="0" role="region" aria-label="Tickets, page '+d.page+' of '+d.pages+'"'+(T.loading?' aria-busy="true" style="opacity:.6"':'')+'><table class="iex-tbl"><thead><tr>'+
-      '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">State</th><th scope="col">City</th><th scope="col">Zip</th><th scope="col" aria-sort="descending">Created <small>UTC \u00b7 newest first</small></th><th scope="col">Resolved <small>UTC</small></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    '<div class="iex-pager"><p class="iex-showing">Showing '+num(from)+'\u2013'+num(to)+' of '+num(d.total)+'</p>'+
-    (d.pages>1?'<nav aria-label="Ticket pages"><ul class="iex-pages">'+
-      '<li><button type="button" class="iex-pg" data-page="'+(d.page-1)+'"'+(d.page<=1?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button></li>'+pg+
-      '<li><button type="button" class="iex-pg" data-page="'+(d.page+1)+'"'+(d.page>=d.pages?' disabled':'')+' aria-label="Next page">Next \u203a</button></li></ul></nav>':'')+
-    '</div>';
-}
-
-function sectionsSkeleton(){
-  var c='<li><span class="iex-it" aria-hidden="true" style="cursor:default"><span class="iex-skel" style="width:70px;height:12px"></span><span class="iex-skel" style="width:40px;height:12px"></span></span></li>';
-  return '<section class="iex-card iex-sec" aria-hidden="true"><span class="iex-skel" style="width:120px;height:10px"></span><span class="iex-skel" style="width:200px;height:20px;margin:8px 0 16px"></span><ul class="iex-its">'+c+c+c+c+c+c+'</ul></section>';
-}
-function fixedSkeleton(){
-  var k='<div class="iex-kpi" aria-hidden="true"><span class="iex-skel" style="width:55%;height:10px"></span><span class="iex-skel" style="width:45%;height:26px;margin-top:12px"></span><span class="iex-skel" style="width:70%;height:9px;margin-top:9px"></span></div>';
-  return '<section class="iex-card" aria-hidden="true"><span class="iex-skel" style="width:160px;height:10px"></span><span class="iex-skel" style="width:260px;height:20px;margin:8px 0 16px"></span><div class="iex-kpis">'+k+k+k+k+'</div></section>';
-}
-function errorHtml(){
-  return '<section class="iex-card"><div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',26)+'</span><h3>We couldn\u2019t load the Incident Explorer</h3>'+
-    '<p>The server didn\u2019t send the '+S.year+' drill-down. Check your connection, then try again.</p>'+(S.err?'<code>'+esc(S.err)+'</code>':'')+
-    '<button type="button" class="iex-btn" id="iexRetry">'+ic('refresh',14)+'Retry</button></div></section>';
-}
-function renderSections(){
-  var m=$('iexSecs'); if(!m) return;
-  if(S.loading){ m.setAttribute('aria-busy','true'); m.innerHTML=sectionsSkeleton(); return; }
-  m.removeAttribute('aria-busy');
-  if(!S.D){ m.innerHTML=errorHtml(); return; }
-  if(!rootN().node.n){ m.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets for '+S.D.year+'</h3><p>No ticket in the uploaded data was created in '+S.D.year+' and resolved successfully by an agent. Pick another year above.</p></div></section>'; return; }
-  var e=NODES[selId()], secs=sectionLevels();
-  secs.forEach(function(s){ if(PAGED_SECS[s.d]) openSelPage(s); });
-  m.innerHTML=secs.map(sectionHtml).join('')+(e.depth&&!hasKids(e.node)?finalHtml(e):'');
-  chipsIntoView();
-}
-// Search typing re-renders only that section's chips and count (the input keeps focus).
-function renderSectionList(d){
-  var s=null; sectionLevels().forEach(function(x){ if(x.d===d) s=x; }); if(!s) return;
-  var l=$('iexL'+d), n=$('iexN'+d);
-  if(l) l.innerHTML=sectionListHtml(s);
-  if(n) n.textContent=sectionCountText(s);
-}
-// Fixed 'All regions' card, full width under the hero (selection-independent). Empty (hidden) on a
-// load error or an empty year: the sections area shows that message.
-function renderFixed(){
-  var f=$('iexFixed'); if(!f) return;
-  if(S.loading){ f.setAttribute('aria-busy','true'); f.innerHTML=fixedSkeleton(); return; }
-  f.removeAttribute('aria-busy');
-  f.innerHTML=S.D&&rootN().node.n?fixedHtml():'';
-}
-function renderPath(){ var p=$('iexPath'); if(p) p.innerHTML=pathHtml(); }
-// GeoNames postal-code data is CC BY 4.0: credit it wherever the derived State / City are shown.
-function renderAttr(){
-  var a=$('iexAttr'); if(!a) return;
-  var g=S.D&&S.D.geo; if(!g){ a.innerHTML=''; return; }
-  a.innerHTML='State and city are derived from zip codes using GeoNames postal code data (<a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">geonames.org</a>), '+
-    'licensed under <a href="'+esc(safeUrl(g.licenseUrl)||'https://creativecommons.org/licenses/by/4.0/')+'" target="_blank" rel="noopener noreferrer">'+esc(g.license||'CC BY 4.0')+'</a>'+
-    (g.downloaded?', downloaded '+esc(g.downloaded):'')+'. Zips that cannot be matched show as Unknown.';
-}
-function renderAll(){ renderFixed(); renderPath(); renderSections(); setHero(); renderAttr(); }
-
-function shell(){
-  wrap.innerHTML='<div class="iex'+(S.first?' is-anim':'')+'"><div id="iexLive" class="iex-sr" role="status" aria-live="polite" aria-atomic="true"></div>'+
-    heroHtml()+
-    '<div class="iex-fixed" id="iexFixed"></div>'+
-    '<nav class="iex-path" id="iexPath" aria-label="Drill-down path"></nav>'+
-    '<div class="iex-secs" id="iexSecs"></div>'+
-    '<p class="iex-attr" id="iexAttr"></p><div id="iexToast" class="iex-toast" hidden></div></div>';
-}
-
-// ---- Selection ----
-function announce(msg){ var l=$('iexLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
-function writeHash(){
-  try{ history.replaceState(null,'','#year='+S.year+(S.sel.length?'&path='+encodeURIComponent(JSON.stringify(S.sel)):'')); }catch(e){}
-}
-function readHash(){
-  var h=String(location.hash||'').replace(/^#/,''), out={};
-  h.split('&').forEach(function(kv){ var i=kv.indexOf('='); if(i>0){ try{ out[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1)); }catch(e){} } });
-  var y=Number(out.year); if(YEARS.indexOf(y)>=0) S.year=y;
-  if(out.path){ try{ var p=JSON.parse(out.path); if(Array.isArray(p)&&p.every(function(x){ return typeof x==='string'; })) S.sel=p.slice(0,9); }catch(e){} }
-}
-// Select a path. Sections whose parent changed are rebuilt from scratch (their search is cleared).
-function setSel(path){
-  var old=S.sel, i=0;
-  while(i<old.length&&i<path.length&&old[i]===path[i]) i++;
-  Object.keys(S.q).forEach(function(d){ if(Number(d)>i) delete S.q[d]; });
-  S.sel=path.slice();
-}
-function select(id){
-  var e=NODES[id]; if(!e) return;
-  var same=id===selId();
-  setSel(e.path);
-  writeHash();
-  renderAll();
-  // The final section (a Driver type, the leaf) lists its tickets.
-  if(e.depth&&!hasKids(e.node)&&(T.key!==keyOf(S.sel)+'|'+S.year||(!T.data&&!T.loading))) loadTickets(1);
-  if(!same) announce((e.depth?levelName(e.depth)+' '+dispName(e):'All regions')+' selected: '+num(e.node.n)+' tickets.'+
-    (hasKids(e.node)?' '+levelPlural(e.depth+1)+' listed below.':' Tickets listed below.'));
-}
-function startOver(){
-  setSel(defaultPath()); S.q={}; S.pg={}; writeHash(); renderAll();
-  announce('Start over: '+(S.sel.length?levelName(1)+' '+S.sel[0]:'All regions')+' selected.');
-}
-
-// ---- Tickets ----
-function apiPath(path){ return encodeURIComponent(JSON.stringify(path)); }
-async function loadTickets(page){
-  var key=keyOf(S.sel)+'|'+S.year;
-  if(T.key!==key) T.data=null;
-  T.key=key; T.page=page; T.loading=true; T.err='';
-  var b=$('iexTBody'), e=NODES[selId()];
-  if(b) b.innerHTML=ticketsInner(e);
-  var r=null;
-  try{ r=await A.api('GET','/api/incident-explorer/tickets?year='+S.year+'&path='+apiPath(S.sel)+'&page='+page+'&pageSize='+PAGE_SIZE); }catch(err){ r=null; }
-  if(T.key!==key||T.page!==page) return;   // a newer request superseded this one
-  T.loading=false;
-  if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)){ T.data=r.data; T.page=r.data.page; }
-  else { T.data=null; T.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets.'); }
-  b=$('iexTBody'); if(b) b.innerHTML=ticketsInner(NODES[selId()]);
-  if(T.data) announce('Tickets page '+T.data.page+' of '+T.data.pages+': showing '+T.data.rows.length+' of '+num(T.data.total)+'.');
-}
 var _toastT=0;
 function toast(msg,isErr){
   var t=$('iexToast'); if(!t) return;
@@ -741,73 +432,585 @@ function toast(msg,isErr){
   t.innerHTML='<span>'+esc(msg)+'</span><button type="button" data-toast-x aria-label="Dismiss message">OK</button>';
   t.hidden=false; clearTimeout(_toastT); _toastT=setTimeout(function(){ t.hidden=true; },isErr?8000:3500);
 }
-function fallbackName(path){
-  var tags=path.length?path.map(function(s){ return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'x'; }):['All'];
-  return 'Incident_Explorer_'+tags.join('_')+'_'+S.year+'.csv';
+function apiPath(path){ return encodeURIComponent(JSON.stringify(path)); }
+function sectionsSkeleton(){
+  var c='<li><span class="iex-it" aria-hidden="true" style="cursor:default"><span class="iex-skel" style="width:70px;height:12px"></span><span class="iex-skel" style="width:40px;height:12px"></span></span></li>';
+  return '<section class="iex-card iex-sec" aria-hidden="true"><span class="iex-skel" style="width:120px;height:10px"></span><span class="iex-skel" style="width:200px;height:20px;margin:8px 0 16px"></span><ul class="iex-its">'+c+c+c+c+c+c+'</ul></section>';
 }
-// Re-draw every Export button from S.dl (one export at a time; the busy one shows a spinner).
-function syncExportBtns(){
-  Array.prototype.forEach.call(document.querySelectorAll('[data-export]'),function(b){
-    var len=Number(b.getAttribute('data-export'));
-    var tmp=document.createElement('div'); tmp.innerHTML=exportBtn(len); b.replaceWith(tmp.firstChild);
-  });
-}
-async function exportCsv(len){
-  if(S.dl!==false) return;
-  var path=S.sel.slice(0,len);
-  S.dl=len; syncExportBtns();
-  announce('Preparing the CSV\u2026');
-  try{
-    var tok=(A.getToken&&A.getToken())||'';
-    var r=await fetch(window.PHD_API_BASE+'/api/incident-explorer/export?year='+S.year+'&path='+apiPath(path),{headers:tok?{Authorization:'Bearer '+tok}:{}});
-    if(!r.ok){
-      var msg='HTTP '+r.status; try{ var j=await r.json(); if(j&&j.error) msg=j.error; }catch(_){}
-      if(r.status===401) msg='Your session has expired. Please log in again.';
-      throw new Error(msg);
-    }
-    var cd=r.headers.get('Content-Disposition')||'', m=/filename="([^"]+)"/.exec(cd), name=m?m[1]:fallbackName(path);
-    var blob=await r.blob(), u=URL.createObjectURL(new Blob([blob],{type:'text/csv;charset=utf-8'})), a=document.createElement('a');
-    a.href=u; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(u); },4000);
-    var cnt=r.headers.get('X-Row-Count');
-    toast('Downloaded '+name+(cnt?' ('+num(cnt)+' rows)':''),false); announce('CSV downloaded.');
-  }catch(e){ toast('Could not export the tickets: '+((e&&e.message)||'network error'),true); announce('Export failed.'); }
-  finally{
-    var f=document.activeElement&&document.activeElement.getAttribute&&document.activeElement.getAttribute('data-export');
-    S.dl=false; syncExportBtns();
-    if(f!=null){ var nb=document.querySelector('[data-export="'+f+'"]'); if(nb) nb.focus({preventScroll:true}); }
+
+// =====================================================================================================
+// One drill-down (Section A = geo, Section B = driver). Element ids are prefixed 'iexA' / 'iexB'; events are
+// delegated from the page and routed by the section's [data-ex] attribute.
+// =====================================================================================================
+function makeExplorer(cfg){
+  var P='iex'+cfg.no;
+  var X={ cfg:cfg, open:false, D:null, loading:false, err:'', sel:[], q:{}, pg:{}, dl:false, seq:0, NODES:[], BYKEY:{} };
+  var T={ key:'', page:1, data:null, loading:false, err:'' };
+  function el(s){ return $(P+s); }
+  function box(){ return document.querySelector('[data-ex="'+cfg.key+'"]'); }
+
+  // Index every node once: id -> { node, path, parent id, depth }.
+  function indexTree(root){
+    X.NODES=[]; X.BYKEY={};
+    (function walk(n,path,parent){
+      var id=X.NODES.length; n.id=id;
+      X.NODES.push({ node:n, path:path, parent:parent, depth:path.length });
+      X.BYKEY[keyOf(path)]=id;
+      (n.c||[]).forEach(function(c){ walk(c,path.concat([c.k]),id); });
+    })(root,[],-1);
   }
+  function rootN(){ return X.NODES[0]; }
+  function selId(){ var id=X.BYKEY[keyOf(X.sel)]; return id==null?0:id; }
+  function defaultPath(){ return X.BYKEY[keyOf(cfg.defaultPath)]!=null?cfg.defaultPath.slice():[]; }
+  // Level name of a node at `depth` (path length).
+  function levelName(depth){
+    if(depth===0) return cfg.rootLabel;
+    return ((X.D&&X.D.levels)||cfg.levels)[depth-1]||cfg.levels[depth-1]||'';
+  }
+  function levelPlural(depth){
+    var l=levelName(depth);
+    return l==='Country'?'Countries':l==='City'?'Cities':l+'s';
+  }
+  function dispName(e){ return e.node.k; }
+  function secLv(s){ return levelName(s.d+1); }
+
+  // ---- Path bar ----
+  function pathHtml(){
+    if(!X.D) return '<span class="iex-path-k">Path</span><ol class="iex-crumbs"><li><span class="iex-skel" style="width:260px;height:26px"></span></li></ol>'+
+      '<button type="button" class="iex-reset" disabled>'+ic('refresh',14)+'Start over</button>';
+    var items=[{path:[],label:cfg.rootLabel,val:num(rootN().node.n)+' tickets'}];
+    for(var i=1;i<=X.sel.length;i++){ var p=X.sel.slice(0,i); items.push({path:p,label:levelName(i),val:p[i-1]}); }
+    var h=items.map(function(it,i){
+      var last=i===items.length-1, id=X.BYKEY[keyOf(it.path)];
+      return '<li><button type="button" class="iex-crumb" data-go="'+id+'"'+(last?' aria-current="page"':'')+' title="'+esc(it.label+': '+it.val)+'">'+
+        '<small>'+esc(i===0?'Start':it.label)+'</small><b>'+esc(i===0?cfg.rootLabel:it.val)+'</b></button></li>';
+    }).join('');
+    return '<span class="iex-path-k" id="'+P+'PathK">Path</span><ol class="iex-crumbs" aria-labelledby="'+P+'PathK">'+h+'</ol>'+
+      '<button type="button" class="iex-reset" data-reset'+(keyOf(X.sel)!==keyOf(defaultPath())?'':' disabled')+'>'+ic('refresh',14)+'Start over</button>';
+  }
+
+  // ---- Level sections ----
+  // The sections to show for the current selection: [{ d, pid, on:<selected child id or -1> }].
+  function sectionLevels(){
+    var out=[];
+    for(var d=0;d<=X.sel.length;d++){
+      var pid=X.BYKEY[keyOf(X.sel.slice(0,d))]; if(pid==null) break;
+      if(!hasKids(X.NODES[pid].node)) break;
+      var on=d<X.sel.length?X.BYKEY[keyOf(X.sel.slice(0,d+1))]:null;
+      out.push({ d:d, pid:pid, on:on==null?-1:on });
+    }
+    return out;
+  }
+  // Children of a section, tickets desc then name, filtered by the section's search (if any).
+  function sectionKids(s){
+    var kids=X.NODES[s.pid].node.c.slice().sort(byTickets), q=SEARCH_LV[secLv(s)]?foldTxt(X.q[s.d]||'').trim():'';
+    return { all:kids.length, list:q?kids.filter(function(c){ return foldTxt(c.k).indexOf(q)>=0; }):kids, q:q };
+  }
+  function itemHtml(c,pn,pname,depth,on){
+    return '<li><button type="button" class="iex-it" data-go="'+c.id+'" aria-pressed="'+on+'"'+(on?' aria-current="true"':'')+
+        ' title="'+esc(levelName(depth)+': '+c.k)+'" aria-label="'+esc(c.k+', '+num(c.n)+' tickets, '+pct(c.n,pn.n)+' of '+pname)+'">'+
+      '<span class="iex-it-nm">'+esc(c.k)+'</span><span class="iex-it-n">'+num(c.n)+'</span><span class="iex-it-p">'+pct(c.n,pn.n)+'</span></button></li>';
+  }
+  function perPage(s){ return PAGED_LV[secLv(s)]||0; }
+  // The chips of one section (or the 'no matches' state). Issue types are grouped by Issue Standardization category.
+  function sectionListHtml(s){
+    var pe=X.NODES[s.pid], pn=pe.node, pname=pe.depth?dispName(pe):cfg.rootLabel, k=sectionKids(s), dep=s.d+1;
+    if(!k.list.length) return '<p class="iex-nomatch" role="status">No '+esc(levelPlural(dep).toLowerCase())+' match \u201c'+esc((X.q[s.d]||'').trim())+'\u201d.</p>';
+    var groups=levelName(dep)==='Issue type'?issueGroups(k.list):null;
+    if(groups) return '<div class="iex-grps">'+groups.map(function(g,gi){
+      var gid=P+'G'+gi;
+      return '<section class="iex-grp" aria-labelledby="'+gid+'"><h4 class="iex-grp-h" id="'+gid+'"><span class="iex-grp-nm">'+esc(g.name)+'</span>'+
+          '<span class="iex-grp-n">'+num(g.n)+' tickets \u00b7 '+pct(g.n,pn.n)+'</span></h4>'+
+        '<ul class="iex-its">'+g.kids.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul></section>';
+    }).join('')+'</div>';
+    var per=perPage(s);
+    if(per){
+      // Search filters first, then the filtered list is paged (same sort order across pages).
+      var p=secPage(s,k.list.length), page=k.list.slice((p-1)*per,p*per);
+      return '<ul class="iex-its is-grid'+(GRID4_LV[secLv(s)]?' is-g4':'')+'" aria-labelledby="'+P+'SecH'+s.d+'">'+page.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul>'+
+        secPagerHtml(s,k.list.length,p,per);
+    }
+    return '<ul class="iex-its is-eq" style="'+eqCols(k.list.length)+'" aria-labelledby="'+P+'SecH'+s.d+'">'+k.list.map(function(c){ return itemHtml(c,pn,pname,dep,c.id===s.on); }).join('')+'</ul>';
+  }
+  // ---- Paged sections ----
+  function setSecPage(d,p){ X.pg[d]={ k:keyOf(X.sel.slice(0,d)), p:p }; }
+  // Current page of a paged section, clamped to its (filtered) length; page 1 under a different parent.
+  function secPage(s,len){
+    var st=X.pg[s.d], last=Math.max(1,Math.ceil(len/perPage(s)));
+    var p=st&&st.k===keyOf(X.sel.slice(0,s.d))?st.p:1;
+    return Math.min(Math.max(1,p),last);
+  }
+  // On a (re)build: open the page holding the selected item; otherwise keep the page (same parent) or page 1.
+  function openSelPage(s){
+    var list=sectionKids(s).list, at=-1;
+    if(s.on>=0) for(var i=0;i<list.length;i++){ if(list[i].id===s.on){ at=i; break; } }
+    if(at>=0) setSecPage(s.d,Math.floor(at/perPage(s))+1);
+    else setSecPage(s.d,secPage(s,list.length));
+  }
+  // Prev / page numbers (ellipsis for many pages) / Next + 'Showing x-y of N'. Hidden when one page holds everything.
+  function secPagerHtml(s,total,p,per){
+    var pages=Math.ceil(total/per); if(pages<=1) return '';
+    var noun=levelPlural(s.d+1), lc=noun==='SIDs'?noun:noun.toLowerCase();
+    var b=function(pg,lab,txt,dis,cur){
+      return '<button type="button" class="iex-pg" data-sd="'+s.d+'" data-spage="'+pg+'" aria-label="'+esc(lab)+'"'+(dis?' disabled':'')+(cur?' aria-current="page"':'')+'>'+txt+'</button>';
+    };
+    var nums=pageList(p,pages).map(function(x){
+      if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
+      return '<li>'+b(x,noun+' page '+x+' of '+pages,x,false,x===p)+'</li>';
+    }).join('');
+    return '<div class="iex-pager"><p class="iex-showing">Showing '+num((p-1)*per+1)+'\u2013'+num(Math.min(total,p*per))+' of '+num(total)+'</p>'+
+      '<nav aria-label="'+esc(noun)+' pages, section '+cfg.no+'"><ul class="iex-pages">'+
+        '<li>'+b(p-1,'Previous page of '+lc,'\u2039 Prev',p<=1,false)+'</li>'+nums+
+        '<li>'+b(p+1,'Next page of '+lc,'Next \u203a',p>=pages,false)+'</li></ul></nav></div>';
+  }
+  // Page change: re-render only that section's grid + pager (selection and lower sections stay as they are).
+  function goSecPage(d,p){
+    setSecPage(d,p); renderSectionList(d);
+    var cur=document.querySelector('#'+P+'L'+d+' .iex-pg[aria-current="page"]'); if(cur) cur.focus({preventScroll:true});
+    var sec=el('Sec'+d); if(sec&&sec.getBoundingClientRect&&sec.getBoundingClientRect().top<0) sec.scrollIntoView({block:'start'});
+    announce(levelPlural(d+1)+' page '+p+'.');
+  }
+  function sectionCountText(s){
+    var k=sectionKids(s), dep=s.d+1, noun=k.all===1?levelName(dep).toLowerCase():levelPlural(dep).toLowerCase();
+    if(levelName(dep)==='SID') noun=k.all===1?'SID':'SIDs';
+    if(k.q) return num(k.list.length)+' of '+num(k.all)+' '+noun+' match';
+    var g=levelName(dep)==='Issue type'?issueGroups(X.NODES[s.pid].node.c):null;
+    return num(k.all)+' '+noun+(g?' in '+num(g.length)+' group'+(g.length===1?'':'s'):'')+', most tickets first \u00b7 successfully resolved tickets only';
+  }
+  // Export button: the tickets under sel.slice(0,len) (the section's scope). The count in the label is that
+  // node's n = the rows /export writes for the same path (both are the successful agent resolves under it).
+  function exportCount(len){ var id=X.BYKEY[keyOf(X.sel.slice(0,len))]; return id==null?0:(X.NODES[id].node.n||0); }
+  function exportBtn(len){
+    var busy=X.dl===len, cnt=exportCount(len), path=X.sel.slice(0,len);
+    var lbl='Export '+num(cnt)+' ticket'+(cnt===1?'':'s'), scope=path.length?path.join(' \u00b7 '):cfg.rootLabel;
+    return '<button type="button" class="iex-exp" data-export="'+len+'" aria-label="'+esc(busy?'Preparing the CSV for '+scope:lbl+' for '+scope+' as CSV')+'"'+
+        (X.dl!==false||!cnt?' disabled':'')+(busy?' aria-busy="true"':'')+(!cnt?' title="No tickets to export"':'')+'>'+
+      (busy?'<span class="iex-exp-ic"><span class="iex-spin" aria-hidden="true"></span></span><span class="iex-exp-l">Preparing\u2026</span>':
+        '<span class="iex-exp-ic">'+DL_SVG+'</span><span class="iex-exp-l">'+esc(lbl)+'</span><span class="iex-exp-cap" aria-hidden="true">CSV</span>')+'</button>';
+  }
+  function searchBox(s){
+    var dep=s.d+1, pe=X.NODES[s.pid], lv=levelName(dep), id=P+'Q'+s.d;
+    return '<div class="iex-search" role="search" aria-label="'+esc(levelPlural(dep))+' in '+esc(dispName(pe))+'"><label for="'+id+'" class="iex-sr">Search '+esc(lv==='SID'?'SIDs':levelPlural(dep).toLowerCase())+' in '+esc(dispName(pe))+'</label>'+
+      ic('search',15)+'<input type="search" id="'+id+'" data-q="'+s.d+'" placeholder="Find a '+esc(lv==='SID'?'SID':lv.toLowerCase())+'\u2026" autocomplete="off" value="'+esc(X.q[s.d]||'')+'"></div>';
+  }
+  function sectionHtml(s){
+    var pe=X.NODES[s.pid], pn=pe.node, dep=s.d+1, pname=pe.depth?dispName(pe):cfg.rootLabel, hid=P+'SecH'+s.d, lv=secLv(s);
+    var title=esc(levelPlural(dep))+(pe.depth?' <span>\u00b7 '+esc(pname)+'</span>':'');
+    var lab='Successfully Resolved '+num(pn.n)+' in '+pname;
+    // Search sections: search box, then the total. Export sections: Export button + total side by side (.iex-sec-end).
+    var right=SEARCH_LV[lv]?'<div class="iex-sec-ctl">'+searchBox(s)+'</div>'+totHtml(pn.n,lab):
+      EXPORT_LV[lv]&&s.d>0?'<div class="iex-sec-end">'+exportBtn(s.d)+totHtml(pn.n,lab)+'</div>':totHtml(pn.n,lab);
+    return '<section class="iex-card iex-sec" id="'+P+'Sec'+s.d+'" aria-labelledby="'+hid+'"><div class="iex-sec-head"><div class="iex-sec-tl">'+
+        '<p class="iex-kick">'+esc(levelName(dep))+(pe.depth?' \u00b7 in '+esc(levelName(pe.depth))+' '+esc(pname):'')+'</p>'+
+        '<h3 class="iex-sec-h" id="'+hid+'">'+title+'</h3><p class="iex-head-sub" id="'+P+'N'+s.d+'">'+sectionCountText(s)+'</p></div>'+
+        right+'</div>'+
+      '<div id="'+P+'L'+s.d+'">'+sectionListHtml(s)+'</div></section>';
+  }
+  // Final section: the tickets of the selected leaf, titled with its name, with its Export.
+  function finalHtml(e){
+    var n=e.node, name=dispName(e);
+    return '<section class="iex-card iex-sec" id="'+P+'Tickets" aria-labelledby="'+P+'TH"><div class="iex-sec-head"><div class="iex-sec-tl">'+
+        '<p class="iex-kick">Tickets \u00b7 '+esc(levelName(e.depth))+'</p><h3 class="iex-sec-h" id="'+P+'TH">'+esc(name)+'</h3>'+
+        '<p class="iex-head-sub">'+num(n.n)+' ticket'+(n.n===1?'':'s')+' \u00b7 sorted by created date, newest first \u00b7 '+PAGE_SIZE+' per page</p></div>'+
+        '<div class="iex-sec-end">'+exportBtn(X.sel.length)+totHtml(n.n,'Successfully Resolved '+num(n.n)+' in '+name)+'</div></div>'+
+      '<div id="'+P+'TBody">'+ticketsInner()+'</div></section>';
+  }
+  // Keep each list's highlighted chip in view by scrolling that list only (never the page).
+  function chipsIntoView(){
+    var b0=el('Secs'); if(!b0) return;
+    Array.prototype.forEach.call(b0.querySelectorAll('.iex-its,.iex-grps'),function(ul){
+      if(ul.scrollHeight<=ul.clientHeight) return;
+      var b=ul.querySelector('[aria-pressed="true"]'); if(!b) return;
+      var ut=ul.getBoundingClientRect(), bt=b.getBoundingClientRect();
+      if(bt.top<ut.top||bt.bottom>ut.bottom) ul.scrollTop+=bt.top-ut.top-(ul.clientHeight-b.offsetHeight)/2;
+    });
+  }
+  function ticketsInner(){
+    if(T.loading&&!T.data){
+      var sk=function(px){ return '<td><span class="iex-skel" style="width:'+px+'px;height:12px"></span></td>'; };
+      var r=''; for(var i=0;i<6;i++) r+='<tr>'+sk(90)+'<td><span class="iex-skel" style="width:'+(50+(i*13)%40)+'%;height:12px"></span></td>'+sk(70)+sk(80)+sk(50)+sk(110)+sk(110)+'</tr>';
+      return '<div class="iex-scroll" aria-hidden="true"><table class="iex-tbl"><thead><tr><th>Ticket ID</th><th>Title</th><th>State</th><th>City</th><th>Zip</th><th>Created</th><th>Resolved</th></tr></thead><tbody>'+r+'</tbody></table></div>';
+    }
+    if(T.err) return '<div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',24)+'</span><h3>Couldn\u2019t load the tickets</h3><p>'+esc(T.err)+'</p>'+
+      '<button type="button" class="iex-btn" data-tretry>'+ic('refresh',14)+'Retry</button></div>';
+    var d=T.data; if(!d) return '';
+    if(!d.total) return '<div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',24)+'</span><h3>No tickets here</h3><p>This node has no tickets.</p></div>';
+    var rows=d.rows.map(function(t){
+      var u=safeUrl(t.url);
+      var idc=u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(t.id)+' (opens in a new tab)">'+esc(t.id)+EXT+'</a>':esc(t.id);
+      var res=t.isResolved?'<span class="iex-dt">'+esc(t.resolved?fmtUtc(t.resolved):'\u2014')+'</span>':'<span class="iex-open">\u2014 open</span>';
+      var geo=function(v){ return '<td><span class="iex-geo"'+(v?' title="'+esc(v)+'"':'')+'>'+esc(v||'\u2014')+'</span></td>'; };
+      return '<tr><td>'+idc+'</td><td class="iex-tcell"><span class="iex-title" title="'+esc(t.title)+'">'+esc(t.title||'\u2014')+'</span></td>'+
+        geo(t.state)+geo(t.city)+geo(t.zip)+'<td><span class="iex-dt">'+esc(fmtUtc(t.created))+'</span></td><td>'+res+'</td></tr>';
+    }).join('');
+    var from=(d.page-1)*d.pageSize+1, to=Math.min(d.total,d.page*d.pageSize);
+    var pg=pageList(d.page,d.pages).map(function(x){
+      if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
+      return '<li><button type="button" class="iex-pg" data-page="'+x+'"'+(x===d.page?' aria-current="page"':'')+' aria-label="Page '+x+'">'+x+'</button></li>';
+    }).join('');
+    return '<div class="iex-scroll" tabindex="0" role="region" aria-label="Section '+cfg.no+' tickets, page '+d.page+' of '+d.pages+'"'+(T.loading?' aria-busy="true" style="opacity:.6"':'')+'><table class="iex-tbl"><thead><tr>'+
+        '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">State</th><th scope="col">City</th><th scope="col">Zip</th><th scope="col" aria-sort="descending">Created <small>UTC \u00b7 newest first</small></th><th scope="col">Resolved <small>UTC</small></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<div class="iex-pager"><p class="iex-showing">Showing '+num(from)+'\u2013'+num(to)+' of '+num(d.total)+'</p>'+
+      (d.pages>1?'<nav aria-label="Ticket pages, section '+cfg.no+'"><ul class="iex-pages">'+
+        '<li><button type="button" class="iex-pg" data-page="'+(d.page-1)+'"'+(d.page<=1?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button></li>'+pg+
+        '<li><button type="button" class="iex-pg" data-page="'+(d.page+1)+'"'+(d.page>=d.pages?' disabled':'')+' aria-label="Next page">Next \u203a</button></li></ul></nav>':'')+
+      '</div>';
+  }
+  function errorHtml(){
+    return '<section class="iex-card"><div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',26)+'</span><h3>We couldn\u2019t load this drill-down</h3>'+
+      '<p>The server didn\u2019t send the '+G.year+' '+esc(chainText(cfg))+' tree. Check your connection, then try again.</p>'+(X.err?'<code>'+esc(X.err)+'</code>':'')+
+      '<button type="button" class="iex-btn" data-retry>'+ic('refresh',14)+'Retry</button></div></section>';
+  }
+  function renderSections(){
+    var m=el('Secs'); if(!m) return;
+    if(X.loading||(!X.D&&!X.err)){ m.setAttribute('aria-busy','true'); m.innerHTML=sectionsSkeleton(); return; }
+    m.removeAttribute('aria-busy');
+    if(!X.D){ m.innerHTML=errorHtml(); return; }
+    if(!rootN().node.n){ m.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets for '+X.D.year+'</h3><p>No ticket in the uploaded data was created in '+X.D.year+' and resolved successfully by an agent. Pick another year above.</p></div></section>'; return; }
+    var e=X.NODES[selId()], secs=sectionLevels();
+    secs.forEach(function(s){ if(perPage(s)) openSelPage(s); });
+    m.innerHTML=secs.map(sectionHtml).join('')+(e.depth&&!hasKids(e.node)?finalHtml(e):'');
+    chipsIntoView();
+  }
+  // Search typing re-renders only that section's chips and count (the input keeps focus).
+  function renderSectionList(d){
+    var s=null; sectionLevels().forEach(function(x){ if(x.d===d) s=x; }); if(!s) return;
+    var l=el('L'+d), n=el('N'+d);
+    if(l) l.innerHTML=sectionListHtml(s);
+    if(n) n.textContent=sectionCountText(s);
+  }
+  function renderPath(){
+    var p=el('Path'); if(!p) return;
+    p.hidden=!X.loading&&!X.D&&!!X.err;
+    p.innerHTML=pathHtml();
+  }
+  // Header line next to the toggle: ticket total + current path (also while collapsed).
+  function renderSum(){
+    var s=el('Sum'); if(!s) return;
+    if(X.D){
+      var n=rootN().node.n, e=X.NODES[selId()];
+      s.innerHTML='<b>'+num(n)+'</b> successfully resolved'+(e.depth?' \u00b7 <span class="iex-xsum-p">'+esc(X.sel.join(' \u203a '))+'</span> <b>'+num(e.node.n)+'</b>':'');
+    } else if(X.loading) s.textContent='Loading\u2026';
+    else if(X.err) s.textContent='Couldn\u2019t load \u00b7 open to retry';
+    else { var gn=EX.geo&&EX.geo.total(); s.innerHTML=gn!=null?'<b>'+num(gn)+'</b> successfully resolved':''; }
+  }
+  // Expanded / collapsed state: the toggle's aria-expanded + the body's hidden flag (the toggle keeps focus).
+  function renderOpen(){
+    var b=el('Btn'), body=el('Body'), sec=box();
+    if(b) b.setAttribute('aria-expanded',X.open?'true':'false');
+    if(body) body.hidden=!X.open;
+    if(sec) sec.classList.toggle('is-open',X.open);
+  }
+  function render(){ renderOpen(); renderSum(); if(X.open){ renderPath(); renderSections(); } }
+
+  // ---- Selection ----
+  // Select a path. Sections whose parent changed are rebuilt from scratch (their search is cleared).
+  function setSel(path){
+    var old=X.sel, i=0;
+    while(i<old.length&&i<path.length&&old[i]===path[i]) i++;
+    Object.keys(X.q).forEach(function(d){ if(Number(d)>i) delete X.q[d]; });
+    X.sel=path.slice();
+  }
+  function ensureTickets(){
+    var e=X.NODES[selId()]; if(!e) return;
+    if(X.open&&e.depth&&!hasKids(e.node)&&(T.key!==keyOf(X.sel)+'|'+G.year||(!T.data&&!T.loading))) loadTickets(1);
+  }
+  function select(id){
+    var e=X.NODES[id]; if(!e) return;
+    var same=id===selId();
+    setSel(e.path);
+    writeHash();
+    render(); onChange();
+    ensureTickets();
+    if(!same) announce('Section '+cfg.no+': '+(e.depth?levelName(e.depth)+' '+dispName(e):cfg.rootLabel)+' selected: '+num(e.node.n)+' tickets.'+
+      (hasKids(e.node)?' '+levelPlural(e.depth+1)+' listed below.':' Tickets listed below.'));
+  }
+  function startOver(){
+    setSel(defaultPath()); X.q={}; X.pg={}; writeHash(); render(); onChange();
+    announce('Section '+cfg.no+' start over: '+(X.sel.length?levelName(1)+' '+X.sel[0]:cfg.rootLabel)+' selected.');
+  }
+
+  // ---- Tickets ----
+  async function loadTickets(page){
+    var key=keyOf(X.sel)+'|'+G.year;
+    if(T.key!==key) T.data=null;
+    T.key=key; T.page=page; T.loading=true; T.err='';
+    var b=el('TBody');
+    if(b) b.innerHTML=ticketsInner();
+    var r=null;
+    try{ r=await A.api('GET','/api/incident-explorer/tickets?year='+G.year+'&hierarchy='+cfg.key+'&path='+apiPath(X.sel)+'&page='+page+'&pageSize='+PAGE_SIZE); }catch(err){ r=null; }
+    if(T.key!==key||T.page!==page) return;   // a newer request superseded this one
+    T.loading=false;
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)){ T.data=r.data; T.page=r.data.page; }
+    else { T.data=null; T.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets.'); }
+    b=el('TBody'); if(b) b.innerHTML=ticketsInner();
+    if(T.data) announce('Section '+cfg.no+' tickets page '+T.data.page+' of '+T.data.pages+': showing '+T.data.rows.length+' of '+num(T.data.total)+'.');
+  }
+  function fallbackName(path){
+    var tags=path.length?path.map(function(s){ return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'x'; }):['All'];
+    return 'Incident_Explorer_'+cfg.tag+'_'+tags.join('_')+'_'+G.year+'.csv';
+  }
+  // Re-draw this section's Export buttons from X.dl (one export at a time; the busy one shows a spinner).
+  function syncExportBtns(){
+    var bx=box(); if(!bx) return;
+    Array.prototype.forEach.call(bx.querySelectorAll('[data-export]'),function(b){
+      var len=Number(b.getAttribute('data-export'));
+      var tmp=document.createElement('div'); tmp.innerHTML=exportBtn(len); b.replaceWith(tmp.firstChild);
+    });
+  }
+  async function exportCsv(len){
+    if(X.dl!==false) return;
+    var path=X.sel.slice(0,len);
+    X.dl=len; syncExportBtns();
+    announce('Preparing the CSV\u2026');
+    try{
+      var tok=(A.getToken&&A.getToken())||'';
+      var r=await fetch(window.PHD_API_BASE+'/api/incident-explorer/export?year='+G.year+'&hierarchy='+cfg.key+'&path='+apiPath(path),{headers:tok?{Authorization:'Bearer '+tok}:{}});
+      if(!r.ok){
+        var msg='HTTP '+r.status; try{ var j=await r.json(); if(j&&j.error) msg=j.error; }catch(_){}
+        if(r.status===401) msg='Your session has expired. Please log in again.';
+        throw new Error(msg);
+      }
+      var cd=r.headers.get('Content-Disposition')||'', m=/filename="([^"]+)"/.exec(cd), name=m?m[1]:fallbackName(path);
+      var blob=await r.blob(), u=URL.createObjectURL(new Blob([blob],{type:'text/csv;charset=utf-8'})), a=document.createElement('a');
+      a.href=u; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(u); },4000);
+      var cnt=r.headers.get('X-Row-Count');
+      toast('Downloaded '+name+(cnt?' ('+num(cnt)+' rows)':''),false); announce('CSV downloaded.');
+    }catch(e){ toast('Could not export the tickets: '+((e&&e.message)||'network error'),true); announce('Export failed.'); }
+    finally{
+      var ae=document.activeElement, f=ae&&ae.getAttribute&&box()&&box().contains(ae)?ae.getAttribute('data-export'):null;
+      X.dl=false; syncExportBtns();
+      if(f!=null){ var nb=box().querySelector('[data-export="'+f+'"]'); if(nb) nb.focus({preventScroll:true}); }
+    }
+  }
+
+  // ---- Load (this hierarchy's tree) ----
+  async function load(){
+    var seq=++X.seq;
+    X.loading=true; X.err=''; X.D=null; X.NODES=[]; X.BYKEY={}; T.key=''; T.data=null; T.err='';
+    render(); onChange();
+    var r=null;
+    try{ r=await A.api('GET','/api/incident-explorer/tree?year='+G.year+'&hierarchy='+cfg.key); }catch(e){ r=null; }
+    if(seq!==X.seq) return;   // a newer load (year change) superseded this one
+    X.loading=false;
+    // An API process started before this build sends no `hierarchy` (and older ones no context counts /
+    // summary / geo chain): refuse it instead of showing the geo tree under the driver header.
+    if(r&&r.ok&&r.data&&r.data.tree&&(r.data.hierarchy!==cfg.key||typeof r.data.created!=='number'||typeof r.data.tree.t!=='number'||!r.data.summary||typeof r.data.summary.autosim!=='number'||
+        !r.data.geo||!Array.isArray(r.data.levels)||r.data.levels.indexOf('City')<0)){
+      X.err='The API server is running an older build of the Incident Explorer. Restart the API server (node server.js), then retry.';
+      render(); onChange(); if(X.open) announce('Could not load section '+cfg.no+'.'); return;
+    }
+    if(r&&r.ok&&r.data&&r.data.tree){
+      X.D=r.data; indexTree(r.data.tree);
+      // No (valid) path: the default selection (geo: NA, driver: none).
+      if(!X.sel.length||X.BYKEY[keyOf(X.sel)]==null){ X.sel=defaultPath(); X.q={}; }
+      render(); onChange(); writeHash();
+      ensureTickets();
+      if(X.open) announce('Section '+cfg.no+' loaded: '+num(r.data.total)+' tickets.');
+    } else {
+      X.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the Incident Explorer.');
+      render(); onChange(); if(X.open) announce('Could not load section '+cfg.no+'.');
+    }
+  }
+  // Expand / collapse. The tree loads on the first expand (skeleton meanwhile).
+  function setOpen(v){
+    X.open=!!v; render(); writeHash();
+    if(X.open&&!X.D&&!X.loading) load(); else if(X.open) ensureTickets();
+  }
+
+  // ---- Events (routed here when the target is inside this section) ----
+  function click(t){
+    var go=t.closest('[data-go]');
+    if(go){
+      if(go.getAttribute('aria-current')) return;
+      var gid=Number(go.getAttribute('data-go')), isCrumb=go.classList.contains('iex-crumb');
+      select(gid);
+      if(isCrumb){ var cc=box().querySelector('.iex-crumb[aria-current="page"]'); if(cc) cc.focus({preventScroll:true}); return; }
+      // The sections were re-rendered: keep focus on the same chip and bring the next section into view.
+      var chip=box().querySelector('.iex-it[data-go="'+gid+'"]'); if(chip) chip.focus({preventScroll:true});
+      var sec=chip&&chip.closest('.iex-sec'), nx=sec&&sec.nextElementSibling;
+      if(nx&&nx.scrollIntoView&&nx.getBoundingClientRect().top>window.innerHeight-80) nx.scrollIntoView({block:'nearest',behavior:'smooth'});
+      return;
+    }
+    var sp=t.closest('[data-spage]');
+    if(sp){ if(!sp.disabled&&!sp.getAttribute('aria-current')) goSecPage(Number(sp.getAttribute('data-sd')),Number(sp.getAttribute('data-spage'))); return; }
+    if(t.closest('[data-reset]')){ startOver(); var rb=box().querySelector('[data-reset]'); if(rb&&rb.disabled){ var c0=box().querySelector('.iex-crumb[aria-current="page"]'); if(c0) c0.focus({preventScroll:true}); } return; }
+    var pg=t.closest('[data-page]'); if(pg&&!pg.disabled&&!pg.getAttribute('aria-current')){ loadTickets(Number(pg.getAttribute('data-page'))).then(function(){
+      var x=el('Tickets'); if(x&&x.getBoundingClientRect().top<0) x.scrollIntoView({block:'start'});
+      var cur=document.querySelector('#'+P+'Tickets .iex-pg[aria-current="page"]'); if(cur) cur.focus({preventScroll:true});
+    }); return; }
+    var ex=t.closest('[data-export]'); if(ex){ if(!ex.disabled) exportCsv(Number(ex.getAttribute('data-export'))); return; }
+    if(t.closest('[data-tretry]')){ loadTickets(T.page||1); return; }
+    if(t.closest('[data-retry]')){ load(); return; }
+  }
+  function input(elm){
+    var d=Number(elm.getAttribute('data-q'));
+    X.q[d]=elm.value;
+    var s=null; sectionLevels().forEach(function(x){ if(x.d===d) s=x; });
+    if(s&&perPage(s)) setSecPage(d,1);
+    renderSectionList(d);
+  }
+  // Open this section at a node (the fixed 'All regions' cards -> Section A at that region).
+  function openAt(path){
+    if(!X.D) return;
+    var id=X.BYKEY[keyOf(path)]; if(id==null) return;
+    X.open=true; select(id);
+  }
+  // Year change: forget the per-year state; reload now if the tree is needed (open, or geo for the fixed cards).
+  function resetYear(){ X.q={}; X.pg={}; T.key=''; X.D=null; X.err=''; X.seq++; X.loading=false; }
+
+  // Section card (header toggle + body). Rendered once by the page shell.
+  function shellHtml(){
+    return '<section class="iex-card iex-xsec" data-ex="'+cfg.key+'" aria-labelledby="'+P+'H">'+
+      '<div class="iex-xhead"><h2 class="iex-xh" id="'+P+'H"><button type="button" class="iex-xbtn" id="'+P+'Btn" data-xtoggle="'+cfg.key+'" aria-expanded="false" aria-controls="'+P+'Body">'+
+        '<span class="iex-chev">'+CHEV+'</span><span class="iex-xno" aria-hidden="true">'+cfg.no+'</span><span class="iex-sr">Section '+cfg.no+': </span>'+
+        '<span class="iex-xt">'+esc(chainText(cfg))+'</span></button></h2>'+
+        '<p class="iex-xsum" id="'+P+'Sum"></p></div>'+
+      '<div class="iex-xbody" id="'+P+'Body" hidden>'+
+        '<nav class="iex-path" id="'+P+'Path" aria-label="Section '+cfg.no+' drill-down path"></nav>'+
+        '<div class="iex-secs" id="'+P+'Secs"></div></div></section>';
+  }
+
+  return {
+    cfg:cfg, X:X, shellHtml:shellHtml, render:render, renderSum:renderSum, load:load, setOpen:setOpen, click:click, input:input, openAt:openAt, resetYear:resetYear,
+    isOpen:function(){ return X.open; }, focusToggle:function(){ var b=el('Btn'); if(b) b.focus({preventScroll:true}); },
+    total:function(){ return X.D&&X.NODES.length?X.NODES[0].node.n:null; },
+    sel:function(){ return X.sel.slice(); }, setSelRaw:function(p){ X.sel=p.slice(0,9); },
+    isDefaultSel:function(){ return !X.sel.length||keyOf(X.sel)===keyOf(cfg.defaultPath); },
+    box:box,
+  };
+}
+var EX={};
+EX.geo=makeExplorer(HIER.geo);
+EX.driver=makeExplorer(HIER.driver);
+// Page parts that read an instance's data: the fixed 'All regions' card + hero (geo tree payload) and the
+// other section's collapsed summary (shows the shared root total before its own tree loads).
+function onChange(){ renderFixed(); setHero(); renderAttr(); HKEYS.forEach(function(k){ EX[k].renderSum(); }); }
+
+// ---- Hero ----
+function heroHtml(){
+  var opts=YEARS.map(function(y){ return '<option value="'+y+'"'+(y===G.year?' selected':'')+'>'+y+'</option>'; }).join('');
+  return '<header class="iex-hero"><div class="iex-hero-in"><span class="iex-hero-ic" aria-hidden="true">'+ic('globe',24)+'</span><div style="min-width:0">'+
+    '<p class="iex-eyebrow">Regions \u00b7 Driver types \u00b7 Drill-down</p><h1>Incident Explorer</h1>'+
+    '<p class="iex-hero-sub">A \u00b7 '+esc(chainText(HIER.geo))+'<br>B \u00b7 '+esc(chainText(HIER.driver))+'</p>'+
+    '<ul class="iex-chips">'+
+      '<li class="iex-chip">'+ic('database',14)+'<span>Data source</span><b>SIM uploads \u00b7 tickets created in the year, resolved successfully by an agent</b></li>'+
+      '<li class="iex-chip">'+ic('clock',14)+'<span>As of</span><b id="iexAsOf"><span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span></b></li>'+
+      '<li class="iex-chip">'+ic('calendar',14)+'<label for="iexYear">Year</label><select id="iexYear">'+opts+'</select></li>'+
+    '</ul></div></div></header>';
+}
+function setHero(){
+  var a=$('iexAsOf'); if(!a) return;
+  var X=EX.geo.X, D=X.D, at=D&&D.source&&D.source.latestUploadAt;
+  if(X.loading){ a.innerHTML='<span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span>'; return; }
+  a.textContent=D?(at?fmtIst(at):fmtIst(D.generatedAt)):'\u2014';
+}
+
+// ---- FIXED 'All regions' section (always shown, not collapsible) ----
+// KPI cards: ONLY D.summary (server incident-explorer.js `summary`, built over every ticket created in the
+// year, never filtered by a path). Successfully Resolved / AUTO-SIM / Rule are mutually exclusive; % of Total.
+// Region cards: the geo tree's root children (successful agent resolves per region, add up to the root);
+// a click expands Section A with that region selected.
+function kpi(cls,icon,label,val,sub,ratio){
+  return '<div class="iex-kpi '+cls+'"><p class="iex-kpi-l"><span class="iex-kpi-ic">'+ic(icon,14)+'</span>'+label+'</p>'+
+    '<p class="iex-kpi-n">'+val+'</p><p class="iex-kpi-s">'+sub+'</p>'+
+    (ratio==null?'':'<div class="iex-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+function fixedHtml(){
+  var X=EX.geo.X, D=X.D, s=D.summary, tk=s.created||0, mins=s.immediateMinutes, root=X.NODES[0].node;
+  var win='resolved within '+mins+' min of creation';
+  var cur=EX.geo.isOpen()?X.sel[0]:null;
+  var regs=(root.c||[]).slice().sort(byTickets).map(function(c){
+    var on=c.k===cur;
+    return '<li><button type="button" class="iex-reg'+(on?' is-on':'')+'" data-region="'+c.id+'"'+(on?' aria-current="true"':'')+' title="'+esc(c.k)+'"'+
+        ' aria-label="'+esc(c.k+', '+num(c.n)+' tickets, '+pct(c.n,root.n)+' of all regions. Opens section A at this region.')+'">'+
+      '<span class="iex-reg-nm">'+esc(c.k)+'</span><span class="iex-reg-n">'+num(c.n)+'</span><span class="iex-reg-p">'+pct(c.n,root.n)+' of '+num(root.n)+'</span>'+
+      '<span class="iex-kpi-bar" aria-hidden="true"><i style="width:'+(root.n?(c.n/root.n*100).toFixed(1):0)+'%"></i></span></button></li>';
+  }).join('');
+  var nRegs=(root.c||[]).length;
+  return '<section class="iex-card" aria-labelledby="iexFixH"><div class="iex-head"><div style="min-width:0">'+
+      '<p class="iex-kick">Fixed \u00b7 whole '+D.year+' data set</p><h2 id="iexFixH">All regions</h2>'+
+      '<p class="iex-head-sub">Every ticket created in '+D.year+'. Does not change with the selections below.</p></div></div>'+
+    '<div class="iex-kpis">'+
+      kpi('k-base','inbox','Total Tickets',num(tk),'Created in '+D.year,null)+
+      kpi('k-good','check-circle','Successfully Resolved',num(s.agent),'<b>'+pct(s.agent,tk)+'</b> of the selection',tk?s.agent/tk:0)+
+      kpi('k-blue','bolt','Imm. Resolved By AUTO-SIM',num(s.autosim),'<b>'+pct(s.autosim,tk)+'</b> of the selection',tk?s.autosim/tk:0)+
+      kpi('k-warn','book','Imm. Resolved By Rule',num(s.rule),'<b>'+pct(s.rule,tk)+'</b> of the selection',tk?s.rule/tk:0)+
+    '</div>'+
+    '<p class="iex-head-sub" style="margin-top:10px">Successfully Resolved = resolved by an agent. AUTO-SIM = closed by AutoSIM as \u201cImmediately Resolved\u201d; '+
+      'Rule = closed through the auto-resolve rule as \u201cAutomatically Closed\u201d; both '+esc(win)+'.</p>'+
+    (regs?'<h3 class="iex-regs-h" id="iexRegsH">Successfully resolved by region <span>\u00b7 select one to open section A there</span></h3>'+
+      '<ul class="iex-regs" style="'+eqCols(nRegs)+'" aria-labelledby="iexRegsH">'+regs+'</ul>':'')+
+    '</section>';
+}
+function fixedSkeleton(){
+  var k='<div class="iex-kpi" aria-hidden="true"><span class="iex-skel" style="width:55%;height:10px"></span><span class="iex-skel" style="width:45%;height:26px;margin-top:12px"></span><span class="iex-skel" style="width:70%;height:9px;margin-top:9px"></span></div>';
+  return '<section class="iex-card" aria-hidden="true"><span class="iex-skel" style="width:160px;height:10px"></span><span class="iex-skel" style="width:260px;height:20px;margin:8px 0 16px"></span><div class="iex-kpis">'+k+k+k+k+'</div></section>';
+}
+function renderFixed(){
+  var f=$('iexFixed'); if(!f) return;
+  var X=EX.geo.X;
+  if(X.loading||(!X.D&&!X.err)){ f.setAttribute('aria-busy','true'); f.innerHTML=fixedSkeleton(); return; }
+  f.removeAttribute('aria-busy');
+  if(!X.D){
+    f.innerHTML='<section class="iex-card"><div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',26)+'</span><h3>We couldn\u2019t load the Incident Explorer</h3>'+
+      '<p>The server didn\u2019t send the '+G.year+' overview. Check your connection, then try again.</p>'+(X.err?'<code>'+esc(X.err)+'</code>':'')+
+      '<button type="button" class="iex-btn" data-gretry>'+ic('refresh',14)+'Retry</button></div></section>';
+    return;
+  }
+  if(!X.NODES[0].node.n){ f.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets for '+X.D.year+'</h3><p>No ticket in the uploaded data was created in '+X.D.year+' and resolved successfully by an agent. Pick another year above.</p></div></section>'; return; }
+  f.innerHTML=fixedHtml();
+}
+// GeoNames postal-code data is CC BY 4.0: credit it wherever the derived State / City are shown.
+function renderAttr(){
+  var a=$('iexAttr'); if(!a) return;
+  var D=EX.geo.X.D||EX.driver.X.D, g=D&&D.geo; if(!g){ a.innerHTML=''; return; }
+  a.innerHTML='State and city are derived from zip codes using GeoNames postal code data (<a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">geonames.org</a>), '+
+    'licensed under <a href="'+esc(safeUrl(g.licenseUrl)||'https://creativecommons.org/licenses/by/4.0/')+'" target="_blank" rel="noopener noreferrer">'+esc(g.license||'CC BY 4.0')+'</a>'+
+    (g.downloaded?', downloaded '+esc(g.downloaded):'')+'. Zips that cannot be matched show as Unknown.';
+}
+
+function shell(){
+  wrap.innerHTML='<div class="iex'+(G.first?' is-anim':'')+'"><div id="iexLive" class="iex-sr" role="status" aria-live="polite" aria-atomic="true"></div>'+
+    heroHtml()+
+    '<div class="iex-fixed" id="iexFixed"></div>'+
+    '<div class="iex-xsecs">'+EX.geo.shellHtml()+EX.driver.shellHtml()+'</div>'+
+    '<p class="iex-attr" id="iexAttr"></p><div id="iexToast" class="iex-toast" hidden></div></div>';
+}
+
+// ---- URL hash: #year=2026&geo=[...]&driver=[...]&open=geo,driver ----
+// A path is written only when it is not the section's default (geo: ["NA"], driver: none). The old
+// '#path=' parameter is read as geo. Without an 'open' parameter, a section opens when the link carries a
+// non-default path for it (a deep link); 'open' (possibly empty) always wins.
+function writeHash(){
+  var h='#year='+G.year, open=[];
+  HKEYS.forEach(function(k){
+    var x=EX[k]; if(!x.isDefaultSel()) h+='&'+k+'='+encodeURIComponent(JSON.stringify(x.sel()));
+    if(x.isOpen()) open.push(k);
+  });
+  if(open.length) h+='&open='+open.join(',');
+  try{ history.replaceState(null,'',h); }catch(e){}
+}
+function readHash(){
+  var h=String(location.hash||'').replace(/^#/,''), out={};
+  h.split('&').forEach(function(kv){ var i=kv.indexOf('='); if(i>0){ try{ out[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1)); }catch(e){} } });
+  var y=Number(out.year); if(YEARS.indexOf(y)>=0) G.year=y;
+  var parse=function(s){ try{ var p=JSON.parse(s); if(Array.isArray(p)&&p.every(function(x){ return typeof x==='string'; })) return p.slice(0,9); }catch(e){} return null; };
+  var raw={ geo:out.geo!=null?out.geo:out.path, driver:out.driver };
+  var hasOpen=Object.prototype.hasOwnProperty.call(out,'open'), openList=hasOpen?String(out.open).split(','):[];
+  HKEYS.forEach(function(k){
+    var p=raw[k]!=null?parse(raw[k]):null, x=EX[k];
+    if(p) x.setSelRaw(p);
+    x.X.open=hasOpen?openList.indexOf(k)>=0:!!(p&&!x.isDefaultSel());
+  });
 }
 
 // ---- Load ----
-async function load(){
-  S.loading=true; S.err=''; S.D=null; NODES=[]; BYKEY={};
-  renderAll(); announce('Loading the Incident Explorer\u2026');
-  var r=null;
-  try{ r=await A.api('GET','/api/incident-explorer/tree?year='+S.year); }catch(e){ r=null; }
-  S.loading=false;
-  // An API process started before the "resolved successfully by an agent" model sends nodes without the
-  // context counts (t / a) and no `created`: its n is every created ticket. Refuse it instead of showing
-  // Tickets 0 and an unfiltered agent count.
-  // Same for a build without the fixed 'All regions' summary (agent / AUTO-SIM / Rule counts), or without
-  // the Region > Country > State > City chain (`geo` + 'City' in `levels`).
-  if(r&&r.ok&&r.data&&r.data.tree&&(typeof r.data.created!=='number'||typeof r.data.tree.t!=='number'||!r.data.summary||typeof r.data.summary.autosim!=='number'||
-      !r.data.geo||!Array.isArray(r.data.levels)||r.data.levels.indexOf('City')<0)){
-    S.err='The API server is running an older build of the Incident Explorer. Restart the API server (node server.js), then retry.';
-    renderAll(); announce('Could not load the Incident Explorer.'); S.first=false; return;
-  }
-  if(r&&r.ok&&r.data&&r.data.tree){
-    S.D=r.data; indexTree(r.data.tree);
-    // No (valid) #path: the default selection (NA), so the Regions and its Countries sections show.
-    if(!S.sel.length||BYKEY[keyOf(S.sel)]==null){ S.sel=defaultPath(); S.q={}; }
-    renderAll(); writeHash();
-    var e=NODES[selId()]; if(e.depth&&!hasKids(e.node)) loadTickets(1);
-    announce('Incident Explorer loaded: '+num(r.data.total)+' tickets created in '+r.data.year+' and resolved successfully by an agent.');
-  } else {
-    S.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the Incident Explorer.');
-    renderAll(); announce('Could not load the Incident Explorer.');
-  }
-  S.first=false;
+function loadAll(){
+  // geo always (the fixed 'All regions' card + hero use its payload); driver only once its section is open.
+  EX.geo.load();
+  if(EX.driver.isOpen()) EX.driver.load(); else EX.driver.render();
 }
 
 // ---- Events ----
@@ -815,37 +1018,27 @@ function bind(){
   wrap.addEventListener('click',function(ev){
     var t=ev.target&&ev.target.closest?ev.target:null; if(!t) return;
     if(t.closest('[data-toast-x]')){ var ts=$('iexToast'); if(ts) ts.hidden=true; return; }
-    var go=t.closest('[data-go]');
-    if(go){
-      if(go.getAttribute('aria-current')) return;
-      var gid=Number(go.getAttribute('data-go')), isCrumb=go.classList.contains('iex-crumb');
-      select(gid);
-      if(isCrumb){ var cc=document.querySelector('.iex-crumb[aria-current="page"]'); if(cc) cc.focus({preventScroll:true}); return; }
-      // The sections were re-rendered: keep focus on the same chip and bring the next section into view.
-      var chip=document.querySelector('.iex-it[data-go="'+gid+'"]'); if(chip) chip.focus({preventScroll:true});
-      var sec=chip&&chip.closest('.iex-sec'), nx=sec&&sec.nextElementSibling;
-      if(nx&&nx.scrollIntoView&&nx.getBoundingClientRect().top>window.innerHeight-80) nx.scrollIntoView({block:'nearest',behavior:'smooth'});
+    var tg=t.closest('[data-xtoggle]');
+    if(tg){ var x=EX[tg.getAttribute('data-xtoggle')]; if(x){ x.setOpen(!x.isOpen()); renderFixed(); x.focusToggle(); } return; }
+    var rg=t.closest('[data-region]');
+    if(rg){
+      EX.geo.openAt(EX.geo.X.NODES[Number(rg.getAttribute('data-region'))].path);
+      var bx=EX.geo.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
+      var chip=bx&&bx.querySelector('.iex-it[aria-pressed="true"]'); if(chip) chip.focus({preventScroll:true});
       return;
     }
-    var sp=t.closest('[data-spage]');
-    if(sp){ if(!sp.disabled&&!sp.getAttribute('aria-current')) goSecPage(Number(sp.getAttribute('data-sd')),Number(sp.getAttribute('data-spage'))); return; }
-    if(t.closest('#iexReset')){ startOver(); var rb=$('iexReset'); if(rb&&rb.disabled){ var c0=document.querySelector('.iex-crumb[aria-current="page"]'); if(c0) c0.focus({preventScroll:true}); } return; }
-    var pg=t.closest('[data-page]'); if(pg&&!pg.disabled&&!pg.getAttribute('aria-current')){ loadTickets(Number(pg.getAttribute('data-page'))).then(function(){
-      var x=$('iexTickets'); if(x&&x.getBoundingClientRect().top<0) x.scrollIntoView({block:'start'});
-      var cur=document.querySelector('#iexTickets .iex-pg[aria-current="page"]'); if(cur) cur.focus({preventScroll:true});
-    }); return; }
-    var ex=t.closest('[data-export]'); if(ex){ if(!ex.disabled) exportCsv(Number(ex.getAttribute('data-export'))); return; }
-    if(t.closest('#iexTRetry')){ loadTickets(T.page||1); return; }
-    if(t.closest('#iexRetry')){ load(); return; }
+    if(t.closest('[data-gretry]')){ EX.geo.load(); return; }
+    var sec=t.closest('[data-ex]'); if(sec&&EX[sec.getAttribute('data-ex')]) EX[sec.getAttribute('data-ex')].click(t);
   });
   wrap.addEventListener('change',function(ev){
     var el=ev.target; if(!el||el.id!=='iexYear') return;
-    S.year=Number(el.value)||2026; S.q={}; S.pg={}; T.key=''; writeHash(); load();
+    G.year=Number(el.value)||2026;
+    HKEYS.forEach(function(k){ EX[k].resetYear(); });
+    writeHash(); loadAll();
   });
   wrap.addEventListener('input',function(ev){
     var el=ev.target; if(!el||!el.hasAttribute||!el.hasAttribute('data-q')) return;
-    var d=Number(el.getAttribute('data-q'));
-    S.q[d]=el.value; if(PAGED_SECS[d]) setSecPage(d,1); renderSectionList(d);
+    var sec=el.closest('[data-ex]'); if(sec&&EX[sec.getAttribute('data-ex')]) EX[sec.getAttribute('data-ex')].input(el);
   });
 }
 
@@ -853,7 +1046,8 @@ function bind(){
   if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
   readHash();
   shell(); bind();
-  load();
+  loadAll();
+  G.first=false;
 })();
 })();
 </script>
