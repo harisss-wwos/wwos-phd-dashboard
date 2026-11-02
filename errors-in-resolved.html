@@ -236,7 +236,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .eir-to{color:var(--grn);font-weight:800}
 .eir-msg.eir-struck{background:#f4f5f7;border-color:var(--line);color:#a0a8b1;text-decoration:line-through}
 .eir-msg.eir-struck b,.eir-msg.eir-struck .eir-from,.eir-msg.eir-struck .eir-to{color:#a0a8b1}
+.eir-tbl td.eir-date{white-space:nowrap;font-variant-numeric:tabular-nums;color:#2a3340;font-weight:600}
 .eir-tbl tr.eir-row-muted td{opacity:.55}
+
+/* ---- Pagination (inside a resolver card / the All tickets view) ---- */
+.eir-pg{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin-top:10px}
+.eir-pg-info{font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.eir-pg-nav ul{display:flex;flex-wrap:wrap;align-items:center;gap:4px;list-style:none;margin:0;padding:0}
+.eir-pg-b{min-width:34px;height:32px;padding:0 10px;border:1px solid #d4dade;border-radius:7px;background:#fff;color:#3a4552;font-size:.84em;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.eir-pg-b:hover:not(:disabled){background:#f5f6f8;border-color:#c4ccd4}
+.eir-pg-b.is-cur{background:var(--acc);border-color:var(--acc);color:#fff;cursor:default}
+.eir-pg-b:disabled{opacity:.45;cursor:default}
+.eir-pg-gap{min-width:20px;text-align:center;color:var(--mut);font-weight:700}
 .eir-tbl tr.eir-row-muted .eir-title{text-decoration:line-through}
 
 /* ---- States ---- */
@@ -251,6 +262,46 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .eir-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:eirShim 1.4s ease infinite}
 .eir-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.16) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
 @keyframes eirShim{0%{background-position:100% 0}100%{background-position:0 0}}
+
+/* ---- Sections (three collapsible cards, each with KPIs, per-check counts and a resolver list) ---- */
+.eir-kpi.is-blue{--k:#2b66c1}.eir-kpi.is-blue .eir-kpi-ic{background:#e6f0fc;color:#2b66c1}
+.eir-scope-l{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:.86em;font-weight:600;color:#2a3340;line-height:1.45}
+.eir-scope-l b{color:var(--ink);font-weight:800}
+.eir-sec-n{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:var(--acc-bg);
+  border:1px solid #f7c99c;color:var(--acc-ink);font-size:.72em;font-weight:800;font-variant-numeric:tabular-nums}
+.eir-sec-body{margin-top:2px}
+.eir-sec-body[hidden]{display:none}
+.eir-skpis{margin:0 0 16px}
+@container (min-width:520px){.eir-skpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.eir-kpi.is-sm{box-shadow:none;padding:13px 16px 12px}
+.eir-kpi.is-sm .eir-kpi-v{margin-top:9px;font-size:1.9em}
+.eir-sub-h{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.7em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important}
+.eir-sub-h::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
+.eir-scnt{list-style:none;margin:0 0 18px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:8px}
+.eir-sc-b{position:relative;width:100%;height:100%;display:flex;flex-direction:column;gap:8px;padding:10px 12px 10px 14px;border:1px solid var(--line);border-radius:9px;
+  background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.eir-sc-b::before{content:'';position:absolute;left:-1px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
+.eir-sc-b:hover:not(:disabled){border-color:#cfd6dd;background:#fafbfc}
+.eir-sc-b:disabled{cursor:default}
+.eir-sc.is-filter .eir-sc-b{border-color:var(--c);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+.eir-sc-t{display:flex;align-items:center;gap:7px;min-width:0}
+.eir-sc-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8em;font-weight:700;color:#3a4552}
+.eir-sc-v{display:flex;align-items:baseline;gap:7px}
+.eir-sc-v b{font-size:1.35em;font-weight:800;letter-spacing:-.4px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums}
+.eir-sc-v span{font-size:.74em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.eir-sc.is-off .eir-sc-b{background:#f8f9fa}
+.eir-sc.is-off .eir-sc-b::before,.eir-sc.is-hidden .eir-sc-b::before{background:#c9d0d8}
+.eir-sc.is-off .eir-sc-l,.eir-sc.is-off .eir-sc-v b{color:#8793a0}
+.eir-sc.is-hidden .eir-sc-l,.eir-sc.is-hidden .eir-sc-v b{text-decoration:line-through;color:#8793a0}
+.eir-list-head h3{font-size:1.05em;font-weight:800;letter-spacing:-.2px}
+.eir-agents{display:inline-flex;flex-wrap:wrap;gap:6px}
+.eir-ag{display:inline-flex;align-items:center;gap:7px;padding:6px 6px 6px 12px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.84em;font-weight:700;color:#3a4552;cursor:pointer}
+.eir-ag b{min-width:24px;text-align:center;padding:1px 7px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.eir-ag:hover{background:#fafbfc}
+.eir-ag[aria-pressed="true"]{background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
+.eir-ag[aria-pressed="true"] b{background:#fff;border-color:#f7c99c}
+.eir-cnt.is-static{cursor:default}
+.eir-cnt.is-static:hover{background:none}
 
 /* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the sections. */
 @keyframes eirUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -291,6 +342,11 @@ function fmtTz(iso,tz){
   try{ return new Intl.DateTimeFormat('en-US',{timeZone:tz,month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d); }catch(e){ return '\u2014'; }
 }
 function fmtWhen(iso){ return fmtTz(iso,'America/Phoenix')+' MST \u00b7 '+fmtTz(iso,'Asia/Kolkata')+' IST'; }
+// "1 Jan 2026" (UTC calendar day, as the scope boundary is UTC).
+function fmtDay(iso){
+  var d=new Date(iso); if(!iso||isNaN(d)) return '\u2014';
+  try{ return new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'}).format(d); }catch(e){ return '\u2014'; }
+}
 var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var TICK='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 6.3l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var CROSS='<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M2 2l6 6M8 2L2 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -316,56 +372,109 @@ var LS_KEY='phd_eir_hidden_checks';
 function loadHidden(){ try{ var v=JSON.parse(localStorage.getItem(LS_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 function saveHidden(){ try{ localStorage.setItem(LS_KEY,JSON.stringify(Object.keys(HIDDEN).filter(function(k){ return HIDDEN[k]; }))); }catch(e){} }
 
-var D=null, LOADING=true, LOAD_ERR='', SAVE_ERR='', SAVING=false, VIEW='res', FIRST=true;
+// D = the summary: the global checks (admin toggles) and three sections, each with its own counts and
+// resolvers with fail-mask counts (no rows). Ticket rows are paged by the server
+// (/api/errors-in-resolved/tickets?section=, 10 per page, newest resolved first): tens of thousands of
+// tickets are in scope and thousands fail, far too many to ship in one payload.
+var D=null, LOADING=true, LOAD_ERR='', SAVE_ERR='', SAVING=false, FIRST=true;
 var HIDDEN={}; loadHidden().forEach(function(c){ HIDDEN[c]=true; });
-var OPEN={};    // resolver login -> expanded (no search active; collapsed by default)
-var SHUT={};    // resolver login -> collapsed while a search is active (search results open by default)
-var Q='', FCHK='', PHD_ONLY=false;   // quick filters: search text, check code, PHD agents only
-// Checks section expanded/collapsed (collapsed by default; remembered in this browser).
+var AUTO_OPEN=5;   // while searching, the first AUTO_OPEN resolver cards open by default
+var PAGE_SIZE=10;
+var ROWS={};       // request key -> {loading} | {data} | {err}
+var SEC_NO={phd:1,hi:2,nonphd:3};
+var SEC_INFO={
+  phd:{short:'PHD agents',icon:'user-shield',kpi:'is-bad',help:'Resolved tickets (Closed excluded) of PHD agents, checked against every rule except B6.'},
+  hi:{short:'HI lines',icon:'history',kpi:'is-warn',help:'Resolved and Closed tickets of PHD and Non-PHD agents, checked for B6 (HI# lines) only.'},
+  nonphd:{short:'Non-PHD agents',icon:'users',kpi:'is-blue',help:'Resolved and Closed tickets of Non-PHD agents, checked against every rule except B6.'}
+};
+var AGENT_LBL={all:'All',phd:'PHD','nonphd':'Non-PHD'};
+// Per-section view state: search text, check filter, view, agents filter (section 2), server search
+// groups, expanded resolver cards (with / without a search), current page per list scope.
+var SS={};
+function st(k){ return SS[k]||(SS[k]={q:'',fchk:'',view:'res',agents:'all',m:null,mErr:'',timer:null,open:{},qopen:{},pages:{},focus:''}); }
+// Sections expanded/collapsed: 1 and 2 open by default, 3 collapsed (remembered in this browser).
+var LS_SEC='phd_eir_sections_open';
+var SEC_OPEN={phd:true,hi:true,nonphd:false};
+try{ var so=JSON.parse(localStorage.getItem(LS_SEC)||'null'); if(so&&typeof so==='object') Object.keys(SEC_OPEN).forEach(function(k){ if(typeof so[k]==='boolean') SEC_OPEN[k]=so[k]; }); }catch(e){}
+// Checks card expanded/collapsed (collapsed by default; remembered in this browser).
 var LS_OPEN='phd_eir_checks_open';
 var CHK_OPEN=false; try{ CHK_OPEN=localStorage.getItem(LS_OPEN)==='1'; }catch(e){}
 
 function canEdit(){ return !!(D&&D.canEdit); }
 function checkOf(code){ return D?D.checks.filter(function(c){ return c.code===code; })[0]:null; }
-function enabledCodes(){ return D?D.checks.filter(function(c){ return c.enabled; }).map(function(c){ return c.code; }):[]; }
+function sec(k){ return D?(D.sections||[]).filter(function(s){ return s.key===k; })[0]:null; }
 // A check is "scratched" for this viewer when it is enabled but unticked locally (non-admin only).
 function isScratched(code){ return !canEdit() && !!HIDDEN[code]; }
-// Visible (un-scratched) failures of a ticket.
-function liveFails(t){ return enabledCodes().filter(function(c){ var r=t.results[c]; return r&&r.pass===false&&!isScratched(c); }); }
-// Drop a check filter that can no longer match (check turned off or scratched out).
-function fixFilter(){ if(FCHK){ var c=checkOf(FCHK); if(!c||!c.enabled||isScratched(FCHK)) FCHK=''; } }
-
-function query(){ return Q.trim().toLowerCase(); }
-function anyFilter(){ return !!(query()||FCHK||PHD_ONLY); }
-function filtered(){
-  var q=query();
-  return D.tickets.filter(function(t){
-    if(PHD_ONLY&&!t.resolverPhd) return false;
-    if(FCHK&&liveFails(t).indexOf(FCHK)<0) return false;
-    if(q&&(String(t.id)+' '+(t.title||'')+' '+(t.resolver||'')).toLowerCase().indexOf(q)<0) return false;
-    return true;
-  });
+// Visible (un-scratched) failures of a ticket within its section's checks.
+function liveFails(t,s){ return s.checks.filter(function(c){ var r=t.results[c]; return r&&r.pass===false&&!isScratched(c); }); }
+// Drop a check filter that can no longer match (check turned off, scratched out or not in the section).
+function fixFilter(k){
+  var S=st(k), s=sec(k); if(!S.fchk) return;
+  var c=checkOf(S.fchk); if(!c||!c.enabled||isScratched(S.fchk)||!s||s.checks.indexOf(S.fchk)<0) S.fchk='';
 }
-function isOpen(login){ return query()?!SHUT[login]:!!OPEN[login]; }
+function query(k){ return st(k).q.trim().toLowerCase(); }
+function anyFilter(k){ var S=st(k); return !!(query(k)||S.fchk||S.agents!=='all'); }
+function isOpen(k,login,idx){ var S=st(k); return query(k)?(login in S.qopen?S.qopen[login]:idx<AUTO_OPEN):!!S.open[login]; }
+// Fail masks: bit i = D.checks[i] failed (the section's enabled checks only; the server builds them in this order).
+function bitOf(code){ var i=D?D.checks.map(function(c){ return c.code; }).indexOf(code):-1; return i<0?0:(1<<i); }
+function hiddenMask(){ var m=0; D.checks.forEach(function(c,i){ if(c.enabled&&isScratched(c.code)) m|=1<<i; }); return m; }
+function bits(m){ var n=0; while(m){ n+=m&1; m>>>=1; } return n; }
+function agentOk(a,phd){ return a==='all'||(a==='phd')===!!phd; }
+// Search results come from the server (the rows' text is not on the page); null while loading.
+function matchGroups(k){ var S=st(k); return query(k)?(S.m&&S.m.q.toLowerCase()===query(k)?S.m.resolvers:null):sec(k).resolvers; }
+// Per-resolver counts of a section's filtered list for this viewer: n = rows listed, tickets = rows
+// with a visible (un-scratched) error, errors = visible errors, by = visible errors per check.
+function groupsOf(k,src){
+  var S=st(k), hid=hiddenMask(), fb=S.fchk?bitOf(S.fchk):0;
+  return (src||[]).map(function(r){
+    var g={login:r.login,phd:!!r.phd,n:0,tickets:0,errors:0,by:{}};
+    if(!agentOk(S.agents,g.phd)) return g;
+    Object.keys(r.masks||{}).forEach(function(key){
+      var m=Number(key), cnt=Number(r.masks[key])||0;
+      if(fb&&!(m&fb)) return;
+      g.n+=cnt;
+      var live=m&~hid; if(!live) return;
+      g.tickets+=cnt; g.errors+=bits(live)*cnt;
+      D.checks.forEach(function(c,i){ if(live&(1<<i)) g.by[c.code]=(g.by[c.code]||0)+cnt; });
+    });
+    return g;
+  }).filter(function(g){ return g.n>0; })
+    .sort(function(a,b){ return (b.errors-a.errors)||(b.tickets-a.tickets)||a.login.localeCompare(b.login); });
+}
+// A section's unfiltered totals for this viewer under an agents filter (default: the section's chip):
+// checked, tickets with a visible error, visible errors, and failures per check (scratched included).
+function secTotals(k,a){
+  var s=sec(k); a=a||st(k).agents;
+  var hid=hiddenMask(), o={checked:a==='all'?(Number(s.inScope)||0):(Number((s.inScopeAgents||{})[a])||0),withErr:0,errors:0,by:{}};
+  (s.resolvers||[]).forEach(function(r){
+    if(!agentOk(a,r.phd)) return;
+    Object.keys(r.masks||{}).forEach(function(key){
+      var m=Number(key), cnt=Number(r.masks[key])||0, live=m&~hid;
+      D.checks.forEach(function(c,i){ if(m&(1<<i)) o.by[c.code]=(o.by[c.code]||0)+cnt; });
+      if(live){ o.withErr+=cnt; o.errors+=bits(live)*cnt; }
+    });
+  });
+  return o;
+}
 
 // ---------- Hero ----------
 function metaHtml(){
-  if(LOADING) return '<dl class="eir-meta" aria-hidden="true"><div class="eir-meta-file"><dt>Source file</dt><dd><span class="eir-skel eir-skel-d" style="width:220px;height:14px"></span></dd></div>'+
+  if(LOADING) return '<dl class="eir-meta" aria-hidden="true"><div class="eir-meta-file"><dt>Scope</dt><dd><span class="eir-skel eir-skel-d" style="width:220px;height:14px"></span></dd></div>'+
     '<div><dt>MST</dt><dd><span class="eir-skel eir-skel-d" style="width:130px;height:12px"></span></dd></div><div><dt>IST</dt><dd><span class="eir-skel eir-skel-d" style="width:130px;height:12px"></span></dd></div></dl>';
   if(!D) return '';
   var s=D.source;
-  if(!s) return '<p class="eir-meta-none">No uploaded file is stored yet.</p>';
-  return '<div class="eir-meta-box"><dl class="eir-meta"><div class="eir-meta-file"><dt>Source file</dt><dd>'+ic('upload',15)+'<span>'+esc(s.file||'(unnamed)')+'</span></dd></div>'+
-    (s.uploadedBy?'<div class="eir-meta-wide"><dt>Uploaded by</dt><dd>'+esc(s.uploadedBy)+'</dd></div>':'')+
-    '<div><dt>Uploaded (MST)</dt><dd>'+esc(fmtTz(s.uploadedAt,'America/Phoenix'))+'</dd></div>'+
-    '<div><dt>Uploaded (IST)</dt><dd>'+esc(fmtTz(s.uploadedAt,'Asia/Kolkata'))+'</dd></div>'+
-    '</dl>'+(s.isLatest?'':'<p class="eir-hero-warn" role="note">The latest upload ('+esc(fmtWhen(s.latestUploadAt))+') has no stored file, so the newest stored one is shown.</p>')+
-    '</div>';
+  if(!s) return '<p class="eir-meta-none">No ticket data yet.</p>';
+  var scope='Resolved & Closed tickets \u00b7 '+fmtDay(s.from)+' \u2192 '+(s.to?fmtDay(s.to):'\u2014')+' \u00b7 '+num(s.rows)+' ticket'+(s.rows===1?'':'s');
+  return '<div class="eir-meta-box"><dl class="eir-meta"><div class="eir-meta-file"><dt>Scope</dt><dd>'+ic('calendar',15)+'<span>'+esc(scope)+'</span></dd></div>'+
+    (s.dataBy?'<div class="eir-meta-wide"><dt>Data uploaded by</dt><dd>'+esc(s.dataBy)+'</dd></div>':'')+
+    '<div><dt>Data as of (MST)</dt><dd>'+esc(fmtTz(s.dataAsOf,'America/Phoenix'))+'</dd></div>'+
+    '<div><dt>Data as of (IST)</dt><dd>'+esc(fmtTz(s.dataAsOf,'Asia/Kolkata'))+'</dd></div>'+
+    '</dl></div>';
 }
 function heroHtml(){
   return '<div class="eir-hero"><div class="eir-hero-in"><div class="eir-hero-main"><span class="eir-hero-ic">'+ic('alert-triangle',24)+'</span><div>'+
-    '<p class="eir-eyebrow">Quality audit \u00b7 Resolved tickets</p><h1>Errors in Resolved</h1>'+
-    '<p class="eir-hero-sub">Agent-resolved tickets from the latest upload, checked against the title, SIM root cause details and closure rules. Only tickets with at least one error are listed.</p>'+
+    '<p class="eir-eyebrow">Quality audit \u00b7 Resolved &amp; Closed tickets</p><h1>Errors in Resolved</h1>'+
+    '<p class="eir-hero-sub">Agent-resolved tickets since 1 Jan 2026, checked against the title, SIM root cause details and closure rules in three sections: PHD agents, HI lines for all agents, and Non-PHD agents. Only tickets with at least one error are listed.</p>'+
     '</div></div>'+metaHtml()+'</div></div>';
 }
 
@@ -375,26 +484,31 @@ function kpiCard(cls,icon,label,value,sub,ratio){
     '<p class="eir-kpi-v">'+value+'</p><p class="eir-kpi-s">'+sub+'</p>'+
     (ratio==null?'':'<div class="eir-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
 }
+// Overview: the union scope, then each section's tickets with errors (all agents, not the section chip).
 function kpiHtml(){
-  var checked=Number(D.inScope)||0, withErr=0, total=0;
-  D.tickets.forEach(function(t){ var n=liveFails(t).length; if(n){ withErr++; total+=n; } });
-  var clean=Math.max(0,checked-withErr);
-  return '<div class="eir-kpis">'+
-    kpiCard('is-base','clipboard','Tickets checked',num(checked),'In scope in the latest upload',null)+
-    kpiCard('is-bad','alert','Tickets with errors',num(withErr),'<b>'+pct(withErr,checked)+'</b> of tickets checked',checked?withErr/checked:0)+
-    kpiCard('is-warn','flame','Total errors',num(total),withErr?'<b>'+(total/withErr).toFixed(1)+'</b> per ticket with errors':'No errors to count',null)+
-    kpiCard('is-good','check-circle','Clean tickets',pct(clean,checked),'<b>'+num(clean)+'</b> pass every check',checked?clean/checked:0)+
-    '</div>';
+  var checked=Number(D.inScope)||0, ss=D.inScopeStatuses||{};
+  var out=kpiCard('is-base','clipboard','Tickets checked',num(checked),'<b>'+num(ss.resolved)+'</b> Resolved \u00b7 <b>'+num(ss.closed)+'</b> Closed',null);
+  (D.sections||[]).forEach(function(s){
+    var t=secTotals(s.key,'all'), inf=SEC_INFO[s.key]||{};
+    out+=kpiCard(inf.kpi||'is-bad',inf.icon||'alert',SEC_NO[s.key]+' \u00b7 '+esc(inf.short||s.label),num(t.withErr),
+      '<b>'+pct(t.withErr,t.checked)+'</b> of '+num(t.checked)+' with errors',t.checked?t.withErr/t.checked:0);
+  });
+  return '<div class="eir-kpis">'+out+'</div>';
 }
 
 // ---------- Scope ----------
 function scopeHtml(){
   var x=(D&&D.excluded)||{};
   var chip=function(txt,n){ return '<li class="eir-ign-c">'+txt+'<b>'+num(n)+'</b></li>'; };
+  var code=function(c){ return '<span class="eir-code" style="--c:'+meta(c).color+'">'+c+'</span>'; };
   return '<section class="eir-scope" aria-labelledby="eirScopeH"><div class="eir-scope-lead"><span class="eir-scope-ic">'+ic('info',17)+'</span><div>'+
     '<h2 class="eir-scope-h" id="eirScopeH">What\u2019s checked</h2>'+
-    '<p class="eir-scope-p">Only tickets <b>resolved by agents</b>. The closure code must be <b>Successful</b>; any other closure code is flagged by <span class="eir-code" style="--c:'+meta('C1').color+'">C1</span>.</p>'+
-    '</div></div><ul class="eir-ign" aria-label="Ignored tickets"><li class="eir-ign-k" aria-hidden="true">Ignored</li>'+
+    '<p class="eir-scope-p">Tickets <b>resolved by agents</b> since <b>1 Jan 2026</b>; the closure code must be <b>Successful</b> ('+code('C1')+').</p>'+
+    '<ul class="eir-scope-l">'+
+      '<li><b>1 \u00b7 PHD agents:</b> Resolved only (Closed excluded), every check except '+code('B6')+'.</li>'+
+      '<li><b>2 \u00b7 HI lines:</b> Resolved &amp; Closed, PHD and Non-PHD agents, '+code('B6')+' only.</li>'+
+      '<li><b>3 \u00b7 Non-PHD agents:</b> Resolved &amp; Closed, every check except '+code('B6')+'.</li>'+
+    '</ul></div></div><ul class="eir-ign" aria-label="Ignored tickets"><li class="eir-ign-k" aria-hidden="true">Ignored</li>'+
     chip('Immediately / Automatically closed',(Number(x.immediatelyResolved)||0)+(Number(x.automaticallyClosed)||0))+
     chip('Duplicate',x.duplicate)+
     chip('Appeal',x.appeal)+
@@ -402,22 +516,20 @@ function scopeHtml(){
     '</ul></section>';
 }
 
-// ---------- Checks ----------
+// ---------- Checks (global toggles) ----------
 function chkCard(c,editor){
   var m=meta(c.code), off=!c.enabled, hid=c.enabled&&isScratched(c.code);
   var checked=editor?c.enabled:(c.enabled&&!HIDDEN[c.code]);
   var locked=!editor&&off, dis=locked||SAVING;
   var note=off?(editor?'Off for everyone':'Disabled by admin'):(hid?'Hidden for you only':'');
-  var cnt=Number(c.count)||0, live=c.enabled&&!hid, active=FCHK===c.code;
-  var ratio=(c.enabled&&D.inScope)?Math.min(100,cnt/D.inScope*100):0;
+  var cnt=Number(c.count)||0;
+  var where=c.code==='B6'?'section 2':'sections 1 and 3';
   var noteId='eirChkN'+c.code, descId='eirChkD'+c.code;
   var foot=c.enabled
-    ?'<button type="button" class="eir-cnt'+(cnt?'':' is-zero')+'" data-filter="'+c.code+'" aria-pressed="'+active+'"'+(live&&cnt?'':' disabled')+
-       ' aria-label="'+num(cnt)+' ticket'+(cnt===1?'':'s')+' failing '+c.code+(live&&cnt?(active?'. Showing only these; press to clear':'. Press to show only these'):'')+'"'+
-       ' title="'+(live&&cnt?(active?'Clear this filter':'Show only tickets failing '+c.code):'')+'"><b>'+num(cnt)+'</b><span>ticket'+(cnt===1?'':'s')+'</span></button>'+
-       (function(t){return '<span class="eir-chk-pct" title="'+t+'">'+t+'</span>';})(pct(cnt,D.inScope)+' of checked tickets failed '+c.code)
+    ?'<span class="eir-cnt is-static'+(cnt?'':' is-zero')+'"><b>'+num(cnt)+'</b><span>ticket'+(cnt===1?'':'s')+'</span></span>'+
+       '<span class="eir-chk-pct" title="Failing in '+where+'">in '+where+'</span>'
     :'<span class="eir-cnt is-off"><b>\u2014</b><span>not checked</span></span>';
-  return '<li class="eir-chk'+(off?' is-off':'')+(hid?' is-hidden':'')+(locked?' is-locked':'')+(active?' is-filter':'')+'" style="--c:'+m.color+'">'+
+  return '<li class="eir-chk'+(off?' is-off':'')+(hid?' is-hidden':'')+(locked?' is-locked':'')+'" style="--c:'+m.color+'">'+
     '<label class="eir-chk-top" for="eirChk'+c.code+'">'+
       '<input type="checkbox" class="eir-sw-in" id="eirChk'+c.code+'" data-code="'+c.code+'"'+(checked?' checked':'')+(dis?' disabled':'')+
         ' aria-describedby="'+descId+(note?' '+noteId:'')+'">'+
@@ -425,8 +537,7 @@ function chkCard(c,editor){
       '<span class="eir-chk-txt"><span class="eir-chk-lbl">'+esc(c.label)+'</span><span class="eir-chk-desc" id="'+descId+'">'+esc(m.desc)+'</span></span>'+
       '<span class="eir-code">'+c.code+'</span></label>'+
     (note?'<span class="eir-chk-note" id="'+noteId+'">'+(off?ic('no-entry',12):ic('eye-off',12))+note+'</span>':'')+
-    '<div class="eir-chk-foot">'+foot+'</div>'+
-    '<div class="eir-bar" aria-hidden="true"><i style="width:'+ratio.toFixed(1)+'%"></i></div></li>';
+    '<div class="eir-chk-foot">'+foot+'</div></li>';
 }
 function checksHtml(){
   var editor=canEdit();
@@ -443,27 +554,25 @@ function checksHtml(){
   if(other.length) groups+='<div class="eir-grp"><h3 class="eir-grp-h">Other</h3><ul class="eir-grid">'+other.map(function(c){ return chkCard(c,editor); }).join('')+'</ul></div>';
   // Compact one-line summary, always visible in the header (reflects admin toggles and this viewer's unticks).
   var nAll=D.checks.length, nAct=D.checks.filter(function(c){ return c.enabled&&!isScratched(c.code); }).length, nErr=0;
-  D.tickets.forEach(function(t){ nErr+=liveFails(t).length; });
+  (D.sections||[]).forEach(function(s){ nErr+=secTotals(s.key,'all').errors; });
   var sum='<span class="eir-chk-sum">'+num(nAll)+' check'+(nAll===1?'':'s')+' \u00b7 <b>'+num(nAct)+'</b> active \u00b7 <b class="is-e">'+num(nErr)+'</b> error'+(nErr===1?'':'s')+'</span>';
   var full=editor
-    ?'Unticking turns it off for everyone: the check is no longer evaluated or counted. Click a count to filter the list below.'
-    :'Untick a check to scratch out its errors on your screen only (saved in this browser). Checks disabled by the admin are greyed out. Click a count to filter the list below.';
+    ?'Unticking turns a check off for everyone in every section: it is no longer evaluated or counted. Click a count inside a section to filter its list.'
+    :'Untick a check to scratch out its errors on your screen only, in every section (saved in this browser). Checks disabled by the admin are greyed out. Click a count inside a section to filter its list.';
   var short=editor
-    ?'Unticking turns a check off for everyone. Click a count to filter the list.'
-    :'Untick to scratch out a check on your screen only. Click a count to filter the list.';
-  var fchk=!CHK_OPEN&&FCHK&&checkOf(FCHK);
+    ?'Unticking turns a check off for everyone, in every section.'
+    :'Untick to scratch out a check on your screen only, in every section.';
   return '<section class="eir-card" aria-labelledby="eirChecksH"><div class="eir-card-head eir-chk-head'+(CHK_OPEN?'':' is-shut')+'">'+
     '<h2 id="eirChecksH"><button type="button" class="eir-chk-exp" id="eirChecksBtn" aria-expanded="'+(CHK_OPEN?'true':'false')+'" aria-controls="eirChecksBody">'+
       '<span class="eir-chev">'+CHEV+'</span>Checks'+sum+'</button></h2>'+
     '<p class="eir-help-1" title="'+esc(full)+'">'+esc(short)+'</p>'+
-    (fchk?'<button type="button" class="eir-fchip" data-clear-filter aria-label="Remove filter: failing '+FCHK+' '+esc(fchk.label)+'">Filtered: '+esc(fchk.label)+XSM+'</button>':'')+
     (editor?'<span class="eir-mode">'+ic('users',13)+'Applies to everyone</span>':'<span class="eir-mode is-view">'+ic('eye',13)+'View only \u00b7 this browser</span>')+
     '</div><div id="eirChecksBody"'+(CHK_OPEN?'':' hidden')+'>'+groups+'</div>'+
     '<p class="eir-err" id="eirSaveErr" role="alert">'+esc(SAVE_ERR)+'</p>'+
     '<span class="eir-sr" id="eirLive" aria-live="polite"></span></section>';
 }
 
-// ---------- Resolver list ----------
+// ---------- Tickets ----------
 // Small PHD tag next to a resolver login that is a registered agent in the database.
 function phdTag(on){ return on?'<span class="eir-phd-tag" role="img" title="PHD agent" aria-label="PHD agent">PHD</span>':''; }
 function hueOf(s){ var h=0; s=String(s||''); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return [24,205,165,265,335,45,190,120][h%8]; }
@@ -483,93 +592,211 @@ function cell(t,c){
   var s=isScratched(c);
   return '<td class="c"><span class="eir-ic x'+(s?' eir-struck':'')+'" role="img" aria-label="'+nm+': fail'+(s?' (hidden by you)':'')+' \u2014 '+esc(r.msg)+'" title="'+esc(r.msg)+'">'+CROSS+'</span></td>';
 }
-function ticketTable(list,showResolver){
-  var codes=D.checks.map(function(c){ return c.code; });
-  var head='<tr><th scope="col">Ticket</th>'+(showResolver?'<th scope="col">Resolver</th>':'')+'<th scope="col">Title</th>'+
-    D.checks.map(function(c){ return '<th scope="col" class="c" style="--c:'+meta(c.code).color+'"><abbr title="'+esc(c.label)+'">'+c.code+'</abbr><span class="eir-th-dot" aria-hidden="true"></span></th>'; }).join('')+
+// Columns = the section's checks only.
+function ticketTable(s,list,showResolver){
+  var codes=s.checks, tagPhd=s.agents==='all';
+  var head='<tr><th scope="col">Ticket</th>'+(showResolver?'<th scope="col">Resolver</th>':'')+'<th scope="col" aria-sort="descending">Resolved</th><th scope="col">Title</th>'+
+    codes.map(function(c){ return '<th scope="col" class="c" style="--c:'+meta(c).color+'"><abbr title="'+esc((checkOf(c)||{}).label||c)+'">'+c+'</abbr><span class="eir-th-dot" aria-hidden="true"></span></th>'; }).join('')+
     '<th scope="col">Errors</th></tr>';
   var rows=list.map(function(t){
-    var muted=!liveFails(t).length;
+    var muted=!liveFails(t,s).length;
     var msgs=codes.filter(function(c){ var r=t.results[c]; return r&&r.pass===false; }).map(function(c){
-      var s=isScratched(c);
-      return '<li class="eir-msg'+(s?' eir-struck':'')+'">'+(s?'<span class="eir-sr">Hidden by you: </span>':'')+'<b>'+c+'</b><span>'+msgHtml(t.results[c].msg)+'</span></li>';
+      var x=isScratched(c);
+      return '<li class="eir-msg'+(x?' eir-struck':'')+'">'+(x?'<span class="eir-sr">Hidden by you: </span>':'')+'<b>'+c+'</b><span>'+msgHtml(t.results[c].msg)+'</span></li>';
     }).join('');
     return '<tr'+(muted?' class="eir-row-muted"':'')+'><td>'+idLink(t.id,t.url)+'</td>'+
-      (showResolver?'<td><span class="eir-who">'+esc(t.resolver)+phdTag(t.resolverPhd)+'</span></td>':'')+
+      (showResolver?'<td><span class="eir-who">'+esc(t.resolver)+(tagPhd?phdTag(t.resolverPhd):'')+'</span></td>':'')+
+      '<td class="eir-date"><time datetime="'+esc(t.resolvedAt)+'" title="'+esc(fmtWhen(t.resolvedAt))+(t.status?' \u00b7 '+esc(t.status):'')+'">'+esc(fmtDay(t.resolvedAt))+'</time></td>'+
       '<td><span class="eir-title" title="'+esc(t.title)+'">'+esc(t.title||'\u2014')+'</span></td>'+
       codes.map(function(c){ return cell(t,c); }).join('')+
       '<td><ul class="eir-msgs">'+msgs+'</ul></td></tr>';
   }).join('');
-  return '<div class="eir-scroll" tabindex="0" role="region" aria-label="Tickets with errors"><table class="eir-tbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
+  return '<div class="eir-scroll" tabindex="0" role="region" aria-label="'+esc(s.label+': tickets with errors')+'"><table class="eir-tbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
 }
-function groupsOf(list){
-  var map={};
-  list.forEach(function(t){
-    var g=map[t.resolver]||(map[t.resolver]={login:t.resolver,phd:!!t.resolverPhd,tickets:0,errors:0,by:{},list:[]});
-    g.list.push(t);
-    var f=liveFails(t); if(f.length){ g.tickets++; g.errors+=f.length; f.forEach(function(c){ g.by[c]=(g.by[c]||0)+1; }); }
-  });
-  return Object.keys(map).map(function(k){ return map[k]; })
-    .sort(function(a,b){ return (b.errors-a.errors)||(b.tickets-a.tickets)||a.login.localeCompare(b.login); });
+// ---------- Paged rows (server) ----------
+// Page numbers with ellipses: 1 … p-1 p p+1 … last (all pages when 7 or fewer).
+function pageList(p,pages){
+  if(pages<=7){ var a=[]; for(var i=1;i<=pages;i++) a.push(i); return a; }
+  var s={}; [1,pages,p-1,p,p+1].forEach(function(n){ s[n]=1; });
+  if(p<=4) [2,3,4,5].forEach(function(n){ s[n]=1; });
+  if(p>=pages-3) [pages-4,pages-3,pages-2,pages-1].forEach(function(n){ s[n]=1; });
+  var ns=Object.keys(s).map(Number).filter(function(n){ return n>=1&&n<=pages; }).sort(function(x,y){ return x-y; }), out=[];
+  ns.forEach(function(n,k){ if(k&&n-ns[k-1]>1) out.push(0); out.push(n); });
+  return out;   // 0 = ellipsis
 }
-function resolverHtml(g,i,maxErr){
-  var open=isOpen(g.login), rid='eirRes'+i;
+function pagerHtml(scope,label,page,pages,total){
+  var from=total?(page-1)*PAGE_SIZE+1:0, to=Math.min(total,page*PAGE_SIZE);
+  var info='<p class="eir-pg-info">Showing '+num(from)+'\u2013'+num(to)+' of '+num(total)+'</p>';
+  if(pages<=1) return '<div class="eir-pg">'+info+'</div>';
+  var fk=function(k){ return ' data-fk="'+esc('p:'+scope+':'+k)+'"'; };
+  var btn=function(target,k,html,aria,dis,cur){
+    return '<li><button type="button" class="eir-pg-b'+(cur?' is-cur':'')+'" data-pg-scope="'+esc(scope)+'" data-pg="'+target+'"'+fk(k)+
+      ' aria-label="'+aria+'"'+(cur?' aria-current="page"':'')+(dis?' disabled':'')+'>'+html+'</button></li>';
+  };
+  var items=btn(page-1,'prev','<span aria-hidden="true">\u2039</span> Prev','Previous page',page<=1,false)+
+    pageList(page,pages).map(function(n){ return n?btn(n,n,num(n),'Page '+n+' of '+pages,false,n===page):'<li class="eir-pg-gap" aria-hidden="true">\u2026</li>'; }).join('')+
+    btn(page+1,'next','Next <span aria-hidden="true">\u203a</span>','Next page',page>=pages,false);
+  return '<div class="eir-pg">'+info+'<nav class="eir-pg-nav" aria-label="'+esc('Pages of '+label)+'"><ul>'+items+'</ul></nav></div>';
+}
+function rowsParams(k,resolver,page){
+  var S=st(k), p=['section='+encodeURIComponent(k),'page='+page,'pageSize='+PAGE_SIZE];
+  if(resolver!=null) p.push('resolver='+encodeURIComponent(resolver));
+  if(query(k)) p.push('q='+encodeURIComponent(S.q.trim()));
+  if(S.fchk) p.push('check='+encodeURIComponent(S.fchk));
+  if(S.agents!=='all') p.push('agents='+encodeURIComponent(S.agents));
+  return p.join('&');
+}
+var PENDING=[];
+async function fetchRows(k,rk){
+  ROWS[rk]={loading:true};
+  var r=null; try{ r=await A.api('GET','/api/errors-in-resolved/tickets?'+rk); }catch(e){}
+  if(!ROWS[rk]) return;   // dropped by a reload meanwhile
+  ROWS[rk]=(r&&r.ok&&r.data&&Array.isArray(r.data.tickets))?{data:r.data}:{err:(r&&r.data&&r.data.error)||'Could not load the tickets.'};
+  renderSec(k);
+}
+// Table + pager for one list scope of a section; total = rows in the filtered list (from the summary counts).
+function rowsBlock(k,scope,resolver,total,label){
+  var S=st(k), pages=Math.max(1,Math.ceil(total/PAGE_SIZE)), page=Math.min(Math.max(1,S.pages[scope]||1),pages);
+  S.pages[scope]=page;
+  var rk=rowsParams(k,resolver,page), e=ROWS[rk], table;
+  if(!e){ PENDING.push(rk); e={loading:true}; }
+  if(e.data) table=ticketTable(sec(k),e.data.tickets,resolver==null);
+  else if(e.err) table='<div class="eir-empty"><p role="alert">'+esc(e.err)+'</p><button type="button" class="eir-btn" data-retry="'+esc(rk)+'">'+ic('refresh',14)+'Retry</button></div>';
+  else table='<div class="eir-scroll"><div class="phd-load" role="status"><span class="phd-spin sm"></span> Loading tickets\u2026</div></div>';
+  return table+pagerHtml(scope,label,page,pages,total);
+}
+function resolverHtml(k,g,i,maxErr){
+  var s=sec(k), open=isOpen(k,g.login,i), rid='eirRes-'+k+'-'+i;
   var segs=D.checks.filter(function(c){ return g.by[c.code]; }).map(function(c){
     return '<i style="--c:'+meta(c.code).color+';flex:'+g.by[c.code]+' 1 0"></i>';
   }).join('');
   var brk=D.checks.filter(function(c){ return g.by[c.code]; }).map(function(c){ return c.code+' '+g.by[c.code]; }).join(', ');
   var w=maxErr?Math.max(4,g.errors/maxErr*100):0;
   return '<div class="eir-res'+(open?' is-open':'')+'">'+
-    '<button type="button" class="eir-exp eir-res-h" data-login="'+esc(g.login)+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+rid+'">'+
+    '<button type="button" class="eir-exp eir-res-h" data-login="'+esc(g.login)+'" data-idx="'+i+'" data-fk="'+esc('x:'+g.login)+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+rid+'">'+
       '<span class="eir-chev">'+CHEV+'</span>'+
       '<span class="eir-av" style="--h:'+hueOf(g.login)+'" aria-hidden="true">'+esc(String(g.login||'?').charAt(0).toUpperCase())+'</span>'+
-      '<span class="eir-res-id"><span class="eir-res-name">'+esc(g.login)+'</span>'+phdTag(g.phd)+'</span>'+
+      '<span class="eir-res-id"><span class="eir-res-name">'+esc(g.login)+'</span>'+(s.agents==='all'?phdTag(g.phd):'')+'</span>'+
       '<span class="eir-res-bar" title="'+esc(brk||'No visible errors')+'" aria-hidden="true"><span class="eir-res-track"><span class="eir-res-fill" style="width:'+(g.errors?w.toFixed(1):0)+'%">'+segs+'</span></span></span>'+
       '<span class="eir-res-stats"><span><b>'+num(g.tickets)+'</b> ticket'+(g.tickets===1?'':'s')+'</span><span class="is-e"><b>'+num(g.errors)+'</b> error'+(g.errors===1?'':'s')+'</span></span>'+
       (brk?'<span class="eir-sr">. By check: '+esc(brk)+'</span>':'')+
     '</button>'+
-    '<div class="eir-res-body" id="'+rid+'"'+(open?'':' hidden')+'>'+(open?ticketTable(g.list,false):'')+'</div></div>';
-}
-function listShell(){
-  return '<section class="eir-card" aria-labelledby="eirListH"><div class="eir-list-head"><h2 id="eirListH">Errors by resolver</h2><span class="eir-count" id="eirCount" aria-live="polite"></span></div>'+
-    '<div class="eir-tools" role="search" aria-label="Filter tickets">'+
-      '<div class="eir-search"><label for="eirQ" class="eir-sr">Search ticket ID, title or resolver</label>'+ic('search',15)+
-        '<input type="search" id="eirQ" placeholder="Search ticket ID, title or resolver" autocomplete="off" value="'+esc(Q)+'"></div>'+
-      '<label class="eir-tog" for="eirPhd"><input type="checkbox" id="eirPhd"'+(PHD_ONLY?' checked':'')+'>PHD agents only</label>'+
-      '<span id="eirFchk"></span>'+
-      '<div class="eir-view" role="group" aria-label="View">'+
-        '<button type="button" data-view="res" aria-pressed="'+(VIEW==='res')+'">By resolver</button>'+
-        '<button type="button" data-view="all" aria-pressed="'+(VIEW==='all')+'">All tickets</button></div>'+
-    '</div><div id="eirList"></div></section>';
+    '<div class="eir-res-body" id="'+rid+'"'+(open?'':' hidden')+'>'+(open?rowsBlock(k,'r:'+g.login,g.login,g.n,g.login+' tickets'):'')+'</div></div>';
 }
 function emptyHtml(icCls,icon,title,text,btn){
-  return '<div class="eir-empty"><span class="eir-empty-ic '+icCls+'">'+ic(icon,26)+'</span><h3 class="eir-empty-t">'+title+'</h3>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
+  return '<div class="eir-empty"><span class="eir-empty-ic '+icCls+'">'+ic(icon,26)+'</span><h4 class="eir-empty-t">'+title+'</h4>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
 }
-function renderList(){
-  var box=$('eirList'); if(!box||!D) return;
-  var list=filtered(), body;
-  var groups=VIEW==='res'?groupsOf(list):null;
-  if(!D.tickets.length) body=emptyHtml('','check-circle','No errors in the latest upload','Every ticket in scope passes all enabled checks.');
-  else if(!list.length) body=emptyHtml('is-mute','search','No tickets match these filters','Try a different search, or clear the filters to see every ticket with errors.',
+
+// ---------- Sections ----------
+function secSumHtml(k){
+  var t=secTotals(k,'all');
+  return '<span class="eir-chk-sum"><b class="is-e">'+num(t.withErr)+'</b> with errors \u00b7 '+pct(t.withErr,t.checked)+' of '+num(t.checked)+' \u00b7 <b>'+num(t.errors)+'</b> error'+(t.errors===1?'':'s')+'</span>';
+}
+// The section card shell; renderSec() fills in its KPIs, check counts, agent chips and list.
+function sectionHtml(s){
+  var k=s.key, S=st(k), open=!!SEC_OPEN[k];
+  return '<section class="eir-card eir-sec" data-key="'+k+'" aria-labelledby="eirSecH-'+k+'">'+
+    '<div class="eir-card-head eir-chk-head'+(open?'':' is-shut')+'">'+
+      '<h2 id="eirSecH-'+k+'"><button type="button" class="eir-chk-exp" data-sec-toggle="'+k+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="eirSecB-'+k+'">'+
+        '<span class="eir-chev">'+CHEV+'</span><span class="eir-sec-n" aria-hidden="true">'+SEC_NO[k]+'</span><span class="eir-sr">Section '+SEC_NO[k]+': </span>'+esc(s.label)+
+        '<span id="eirSum-'+k+'">'+secSumHtml(k)+'</span></button></h2>'+
+      '<p class="eir-help-1" title="'+esc(SEC_INFO[k].help)+'">'+esc(SEC_INFO[k].help)+'</p></div>'+
+    '<div class="eir-sec-body" id="eirSecB-'+k+'"'+(open?'':' hidden')+'>'+
+      '<div class="eir-kpis eir-skpis" id="eirSk-'+k+'"></div>'+
+      '<h3 class="eir-sub-h" id="eirScH-'+k+'">Errors by check</h3><ul class="eir-scnt" id="eirSc-'+k+'" aria-labelledby="eirScH-'+k+'"></ul>'+
+      '<div class="eir-list-head"><h3 id="eirListH-'+k+'">Errors by resolver</h3><span class="eir-count" id="eirCount-'+k+'" aria-live="polite"></span></div>'+
+      '<div class="eir-tools" role="search" aria-label="'+esc('Filter '+s.label)+'">'+
+        '<div class="eir-search"><label for="eirQ-'+k+'" class="eir-sr">Search ticket ID, title or resolver</label>'+ic('search',15)+
+          '<input type="search" id="eirQ-'+k+'" data-q-sec="'+k+'" placeholder="Search ticket ID, title or resolver" autocomplete="off" value="'+esc(S.q)+'"></div>'+
+        (s.agents==='all'?'<div class="eir-agents" role="group" aria-label="Agents" id="eirAg-'+k+'"></div>':'')+
+        '<span id="eirFchk-'+k+'"></span>'+
+        '<div class="eir-view" role="group" aria-label="View">'+
+          '<button type="button" data-view="res" data-fk="v:res" aria-pressed="'+(S.view==='res')+'">By resolver</button>'+
+          '<button type="button" data-view="all" data-fk="v:all" aria-pressed="'+(S.view==='all')+'">All tickets</button></div>'+
+      '</div><div id="eirList-'+k+'"></div></div></section>';
+}
+function secKpisHtml(k){
+  var s=sec(k), S=st(k), t=secTotals(k), ss=s.inScopeStatuses||{};
+  var sub=S.agents!=='all'?esc(AGENT_LBL[S.agents])+' agents only'
+    :(s.statuses.length===1?'Resolved only \u00b7 Closed excluded':'<b>'+num(ss.resolved)+'</b> Resolved \u00b7 <b>'+num(ss.closed)+'</b> Closed');
+  return kpiCard('is-base is-sm','clipboard','Tickets checked',num(t.checked),sub,null)+
+    kpiCard('is-bad is-sm','alert','Tickets with errors',num(t.withErr),'<b>'+pct(t.withErr,t.checked)+'</b> of tickets checked',t.checked?t.withErr/t.checked:0)+
+    kpiCard('is-warn is-sm','flame','Total errors',num(t.errors),t.withErr?'<b>'+(t.errors/t.withErr).toFixed(1)+'</b> per ticket with errors':'No errors to count',null);
+}
+function secCountsHtml(k){
+  var s=sec(k), S=st(k), t=secTotals(k);
+  return (s.counts||[]).map(function(c){
+    var gc=checkOf(c.code)||c, m=meta(c.code), off=!gc.enabled, hid=!off&&isScratched(c.code), n=off?0:(t.by[c.code]||0), active=S.fchk===c.code, can=!off&&!hid&&n>0;
+    var aria=c.code+' '+c.label+': '+(off?'disabled by admin':num(n)+' ticket'+(n===1?'':'s')+' failing'+(hid?', hidden by you':'')+(can?(active?'. Showing only these; press to clear':'. Press to show only these'):''));
+    return '<li class="eir-sc'+(off?' is-off':'')+(hid?' is-hidden':'')+(active?' is-filter':'')+'" style="--c:'+m.color+'">'+
+      '<button type="button" class="eir-sc-b" data-filter="'+c.code+'" data-fk="f:'+c.code+'" aria-pressed="'+active+'" aria-label="'+esc(aria)+'" title="'+esc(m.desc)+'"'+(can?'':' disabled')+'>'+
+      '<span class="eir-sc-t"><span class="eir-code">'+c.code+'</span><span class="eir-sc-l">'+esc(c.label)+'</span></span>'+
+      '<span class="eir-sc-v"><b>'+(off?'\u2014':num(n))+'</b><span>'+(off?'off':pct(n,t.checked))+'</span></span></button></li>';
+  }).join('');
+}
+function agentsHtml(k){
+  var S=st(k);
+  return ['all','phd','nonphd'].map(function(a){
+    var n=secTotals(k,a).withErr;
+    return '<button type="button" class="eir-ag" data-agents="'+a+'" data-fk="a:'+a+'" aria-pressed="'+(S.agents===a)+'" aria-label="'+esc(AGENT_LBL[a]+' agents, '+num(n)+' tickets with errors')+'">'+AGENT_LBL[a]+'<b>'+num(n)+'</b></button>';
+  }).join('');
+}
+function listBody(k){
+  var s=sec(k), S=st(k), src=matchGroups(k), groups=src?groupsOf(k,src):[], n=0, tot=Number(s.withErrors)||0;
+  groups.forEach(function(g){ n+=g.n; });
+  var body;
+  if(!tot) body=emptyHtml('','check-circle','No errors in this section','Every ticket in this section passes its enabled checks.');
+  else if(!src) body=S.mErr?emptyHtml('is-err','alert-triangle','Search failed','<span role="alert">'+esc(S.mErr)+'</span>')
+    :'<div class="phd-load" role="status"><span class="phd-spin sm"></span> Searching\u2026</div>';
+  else if(!n) body=emptyHtml('is-mute','search','No tickets match these filters','Try a different search, or clear the filters to see every ticket with errors in this section.',
     '<button type="button" class="eir-btn" data-clear-all>Clear filters</button>');
-  else if(VIEW==='all') body=ticketTable(list,true);
-  else { var mx=groups.reduce(function(m,g){ return Math.max(m,g.errors); },0); body=groups.map(function(g,i){ return resolverHtml(g,i,mx); }).join(''); }
-  box.innerHTML=body;
-  var h=$('eirListH'); if(h) h.textContent=VIEW==='all'?'All tickets with errors':'Errors by resolver';
-  var n=list.length, tot=D.tickets.length;
-  var cnt=anyFilter()?num(n)+' of '+num(tot)+' ticket'+(tot===1?'':'s')+' match'
-    :(VIEW==='res'?num(groups.length)+' resolver'+(groups.length===1?'':'s')+' \u00b7 ':'')+num(n)+' ticket'+(n===1?'':'s');
-  var ce=$('eirCount'); if(ce) ce.textContent=tot?cnt:'';
-  var fc=$('eirFchk'), fchk=FCHK&&checkOf(FCHK);
-  if(fc) fc.innerHTML=fchk?'<button type="button" class="eir-fchip" data-clear-filter aria-label="Remove filter: failing '+FCHK+' '+esc(fchk.label)+'">Failing '+FCHK+' \u00b7 '+esc(fchk.label)+XSM+'</button>':'';
-  document.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-view')===VIEW)); });
+  else if(S.view==='all') body=rowsBlock(k,'all',null,n,s.label+': all tickets with errors');
+  else { var mx=groups.reduce(function(m,g){ return Math.max(m,g.errors); },0); body=groups.map(function(g,i){ return resolverHtml(k,g,i,mx); }).join(''); }
+  return {html:body,n:n,tot:tot,groups:groups.length};
+}
+function renderSec(k){
+  var root=document.querySelector('.eir-sec[data-key="'+k+'"]'), s=sec(k); if(!root||!s) return;
+  var se=$('eirSum-'+k); if(se) se.innerHTML=secSumHtml(k);
+  if(!SEC_OPEN[k]) return;
+  var S=st(k), body=$('eirSecB-'+k);
+  fixFilter(k);
+  var ae=document.activeElement, keep=S.focus||(ae&&body.contains(ae)&&ae.getAttribute('data-fk'))||'';
+  S.focus='';
+  $('eirSk-'+k).innerHTML=secKpisHtml(k);
+  $('eirSc-'+k).innerHTML=secCountsHtml(k);
+  var ag=$('eirAg-'+k); if(ag) ag.innerHTML=agentsHtml(k);
+  PENDING=[];
+  var L=listBody(k);
+  $('eirList-'+k).innerHTML=L.html;
+  PENDING.forEach(function(rk){ if(!ROWS[rk]) fetchRows(k,rk); });
+  var h=$('eirListH-'+k); if(h) h.textContent=S.view==='all'?'All tickets with errors':'Errors by resolver';
+  var cnt=anyFilter(k)?num(L.n)+' of '+num(L.tot)+' ticket'+(L.tot===1?'':'s')+' match'
+    :(S.view==='res'?num(L.groups)+' resolver'+(L.groups===1?'':'s')+' \u00b7 ':'')+num(L.n)+' ticket'+(L.n===1?'':'s');
+  var ce=$('eirCount-'+k); if(ce) ce.textContent=L.tot?cnt:'';
+  var fc=$('eirFchk-'+k), fchk=S.fchk&&checkOf(S.fchk);
+  if(fc) fc.innerHTML=fchk?'<button type="button" class="eir-fchip" data-clear-filter data-fk="c:f" aria-label="Remove filter: failing '+S.fchk+' '+esc(fchk.label)+'">Failing '+S.fchk+' \u00b7 '+esc(fchk.label)+XSM+'</button>':'';
+  root.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-view')===S.view)); });
+  if(keep){
+    var all=body.querySelectorAll('[data-fk]'), el=null, i;
+    for(i=0;i<all.length;i++) if(all[i].getAttribute('data-fk')===keep){ el=all[i]; break; }
+    if((!el||el.disabled)&&/^p:/.test(keep)){ el=null; var cur=body.querySelectorAll('.eir-pg-b.is-cur'), sc=keep.replace(/^p:/,'').replace(/:[^:]*$/,'');
+      for(i=0;i<cur.length;i++) if(cur[i].getAttribute('data-pg-scope')===sc){ el=cur[i]; break; } }
+    if(el&&!el.disabled) el.focus();
+  }
+}
+// Re-mount one section card (expand/collapse, clear filters).
+function mountSec(k){
+  var root=document.querySelector('.eir-sec[data-key="'+k+'"]'), s=sec(k); if(!root||!s) return;
+  var tmp=document.createElement('div'); tmp.innerHTML=sectionHtml(s);
+  root.parentNode.replaceChild(tmp.firstChild,root);
+  renderSec(k);
 }
 
 // ---------- Page ----------
 function skeletonHtml(){
   var k='<div class="eir-kpi" aria-hidden="true"><span class="eir-skel" style="width:55%;height:11px"></span><span class="eir-skel" style="width:40%;height:30px;margin-top:14px"></span><span class="eir-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
   return '<div class="eir-kpis">'+k+k+k+k+'</div>'+
-    '<section class="eir-card"><div class="phd-load" role="status"><span class="phd-spin"></span> Loading the latest upload\u2026</div></section>';
+    '<section class="eir-card"><div class="phd-load" role="status"><span class="phd-spin"></span> Loading Resolved &amp; Closed tickets since 1 Jan 2026\u2026</div></section>';
 }
 function render(){
   var w=$('wrap');
@@ -581,42 +808,66 @@ function render(){
     var rb=$('eirRetry'); if(rb) rb.addEventListener('click',function(){ load(false); });
     return;
   }
-  fixFilter();
-  w.innerHTML='<div class="eir'+(FIRST?' is-anim':'')+'">'+heroHtml()+kpiHtml()+scopeHtml()+checksHtml()+listShell()+'</div>';
+  var secs=D.sections||[];
+  secs.forEach(function(s){ fixFilter(s.key); });
+  w.innerHTML='<div class="eir'+(FIRST?' is-anim':'')+'">'+heroHtml()+kpiHtml()+scopeHtml()+checksHtml()+secs.map(sectionHtml).join('')+'</div>';
   FIRST=false;
-  renderList();
+  secs.forEach(function(s){ renderSec(s.key); });
 }
 function announce(msg){ var l=$('eirLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
 function focusSel(sel){ var n=document.querySelector(sel); if(n) n.focus(); }
 
 document.addEventListener('click',function(ev){
   var t=ev.target; if(!t||!t.closest) return;
-  var v=t.closest('[data-view]');
-  if(v){ VIEW=v.getAttribute('data-view'); renderList(); return; }
-  var f=t.closest('[data-filter]');
-  if(f){ var code=f.getAttribute('data-filter'); FCHK=FCHK===code?'':code; render(); focusSel('[data-filter="'+code+'"]');
-    announce(FCHK?'Showing only tickets failing '+code+'.':'Check filter cleared.'); return; }
-  if(t.closest('[data-clear-filter]')){ var was=FCHK; FCHK=''; render(); focusSel(t.closest('.eir-chk-head')?'#eirChecksBtn':(CHK_OPEN&&was?'[data-filter="'+was+'"]':'#eirQ')); announce('Check filter cleared.'); return; }
   if(t.closest('#eirChecksBtn')){ CHK_OPEN=!CHK_OPEN; try{ localStorage.setItem(LS_OPEN,CHK_OPEN?'1':'0'); }catch(e){} render(); focusSel('#eirChecksBtn'); return; }
-  if(t.closest('[data-clear-all]')){ Q=''; FCHK=''; PHD_ONLY=false; SHUT={}; render(); focusSel('#eirQ'); return; }
+  var tg=t.closest('[data-sec-toggle]');
+  if(tg){ var tk=tg.getAttribute('data-sec-toggle'); SEC_OPEN[tk]=!SEC_OPEN[tk]; try{ localStorage.setItem(LS_SEC,JSON.stringify(SEC_OPEN)); }catch(e){}
+    mountSec(tk); focusSel('[data-sec-toggle="'+tk+'"]'); return; }
+  var root=t.closest('.eir-sec'); if(!root||!D) return;
+  var k=root.getAttribute('data-key'), S=st(k);
+  var v=t.closest('[data-view]');
+  if(v){ S.view=v.getAttribute('data-view'); renderSec(k); return; }
+  var ag=t.closest('[data-agents]');
+  if(ag){ S.agents=ag.getAttribute('data-agents'); S.pages={}; renderSec(k); announce('Showing '+AGENT_LBL[S.agents]+' agents.'); return; }
+  var pg=t.closest('[data-pg]');
+  if(pg){ if(pg.disabled) return;
+    var sc=pg.getAttribute('data-pg-scope'), np=Number(pg.getAttribute('data-pg'))||1;
+    S.pages[sc]=np; S.focus=pg.getAttribute('data-fk')||''; renderSec(k); announce('Page '+np+'.'); return; }
+  var rt=t.closest('[data-retry]');
+  if(rt){ delete ROWS[rt.getAttribute('data-retry')]; renderSec(k); return; }
+  var f=t.closest('[data-filter]');
+  if(f){ var code=f.getAttribute('data-filter'); S.fchk=S.fchk===code?'':code; S.pages={}; renderSec(k);
+    announce(S.fchk?'Showing only tickets failing '+code+'.':'Check filter cleared.'); return; }
+  if(t.closest('[data-clear-filter]')){ S.fchk=''; S.pages={}; renderSec(k); focusSel('#eirQ-'+k); announce('Check filter cleared.'); return; }
+  if(t.closest('[data-clear-all]')){ clearTimeout(S.timer); S.q=''; S.fchk=''; S.agents='all'; S.qopen={}; S.m=null; S.mErr=''; S.pages={}; mountSec(k); focusSel('#eirQ-'+k); return; }
   var x=t.closest('.eir-exp');
   if(x){
     var login=x.getAttribute('data-login');
-    if(query()) SHUT[login]=!SHUT[login]; else OPEN[login]=!OPEN[login];
-    renderList();
-    var btn=Array.prototype.filter.call(document.querySelectorAll('.eir-exp'),function(e){ return e.getAttribute('data-login')===login; })[0];
-    if(btn) btn.focus();
+    if(query(k)) S.qopen[login]=!isOpen(k,login,Number(x.getAttribute('data-idx'))||0); else S.open[login]=!S.open[login];
+    S.focus='x:'+login;
+    renderSec(k);
   }
 });
 document.addEventListener('input',function(ev){
-  var el=ev.target; if(!el||el.id!=='eirQ') return;
-  Q=el.value; SHUT={}; renderList();
+  var el=ev.target; if(!el||!el.getAttribute||!el.getAttribute('data-q-sec')) return;
+  var k=el.getAttribute('data-q-sec'), S=st(k);
+  S.q=el.value; S.qopen={}; S.pages={}; S.mErr='';
+  clearTimeout(S.timer);
+  if(query(k)) S.timer=setTimeout(function(){ loadMatch(k,S.q.trim()); },250);
+  renderSec(k);
 });
+// Search: the server returns the per-resolver counts of a section's matching tickets (rows stay paged).
+async function loadMatch(k,q){
+  var S=st(k), r=null;
+  try{ r=await A.api('GET','/api/errors-in-resolved?section='+encodeURIComponent(k)+'&q='+encodeURIComponent(q)); }catch(e){}
+  if(S.q.trim()!==q) return;   // a newer search is pending
+  if(r&&r.ok&&r.data&&r.data.match){ S.m=r.data.match; S.mErr=''; } else { S.m=null; S.mErr=(r&&r.data&&r.data.error)||'Could not search the tickets.'; }
+  renderSec(k);
+}
 document.addEventListener('change',function(ev){
-  var el=ev.target; if(!el||!el.matches) return;
-  if(el.id==='eirPhd'){ PHD_ONLY=el.checked; renderList(); return; }
-  if(!el.matches('.eir-chk input[data-code]')) return;
+  var el=ev.target; if(!el||!el.matches||!el.matches('.eir-chk input[data-code]')) return;
   var code=el.getAttribute('data-code');
+  Object.keys(SS).forEach(function(k){ SS[k].pages={}; });
   if(canEdit()){ saveGlobal(code,el.checked); return; }
   HIDDEN[code]=!el.checked; saveHidden(); render();
   focusSel('#eirChk'+code);
@@ -641,7 +892,10 @@ async function load(keep){
   if(!keep){ LOADING=true; render(); }
   var r=null; try{ r=await A.api('GET','/api/errors-in-resolved'); }catch(e){}
   LOADING=false;
-  if(r&&r.ok&&r.data&&Array.isArray(r.data.checks)){ D=r.data; LOAD_ERR=''; }
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.checks)&&Array.isArray(r.data.sections)){
+    D=r.data; LOAD_ERR=''; ROWS={};
+    Object.keys(SS).forEach(function(k){ SS[k].m=null; SS[k].mErr=''; if(query(k)) loadMatch(k,SS[k].q.trim()); });
+  }
   else if(!keep){ D=null; LOAD_ERR=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the report.'); }
   else SAVE_ERR=(r&&r.data&&r.data.error)||'Could not reload the report.';
   render();

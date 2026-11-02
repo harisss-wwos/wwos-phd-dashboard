@@ -12,13 +12,13 @@ const {
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
-const { computePageZero, coreExportCsv, exportPeriod, normKey: pzNormKey } = require('./page-zero');
+const { computePageZero, coreExportCsv, exportPeriod, normKey: pzNormKey, dedupeTickets: pzDedupeTickets } = require('./page-zero');
 const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
 const { resolutionGroupOf } = require('./resolution-groups');
 const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
-const { SETTINGS_ID: EIR_SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport } = require('./errors-in-resolved');
+const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -3177,14 +3177,26 @@ app.delete('/api/phd-resolutions/:id', requirePhdResEditor, async (req, res) => 
 });
 
 // ---- Errors in Resolved (errors-in-resolved.html) ----
-// Checks the tickets of the MOST RECENT uploaded file (raw CSV kept in upload_files, keyed by the
-// data-log publishedAt) that are Resolved, agent-resolved (not AutoSIM), not appeals (perfIsAppeal)
-// and not Duplicate / Immediately Resolved / Automatically Closed. Resolvers are tagged PHD when registered agents (perfPhdAgentSet). The maths
-// lives in ./errors-in-resolved.js. Issue types come from issue-types-data.js (same source as
-// issue-types.html); the resolution list is read live from phd_resolutions. Any logged-in user can
-// read; ONLY harisss (requirePhdResEditor) can disable/enable checks globally via PUT .../settings.
-// The evaluated upload is cached per (upload, resolution list); settings are applied per request.
-const EIR_CACHE_PREFIX = 'eir:v5:';
+// Checks EVERY ticket in ticket_docs (one per ShortId, page-zero.js dedupeTickets) with Status
+// Resolved or Closed (case-insensitive, trimmed) and ResolvedDate in [1 Jan 2026 UTC, now] that is
+// agent-resolved (not AutoSIM), not an appeal (perfIsAppeal) and not Duplicate / Immediately
+// Resolved / Automatically Closed. Resolvers are tagged PHD when registered agents (perfPhdAgentSet).
+// The maths lives in ./errors-in-resolved.js (fromTicketDoc adapts the DB fields). Issue types come
+// from issue-types-data.js (same source as issue-types.html); the resolution list is read live from
+// phd_resolutions. Any logged-in user can read; ONLY harisss (requirePhdResEditor) can
+// disable/enable checks globally via PUT .../settings.
+// ~25k docs are in scope and thousands fail, so the rows are served PAGED by .../tickets (10 per
+// page, newest resolved first); the main endpoint returns the summary + per-resolver fail-mask
+// counts only. Caches: the evaluated set per (latest data upload, resolution list) — the key changes
+// with every upload and uploads clear the cache — and the built report per (that, settings, PHD set).
+// The report is split into three sections (errors-in-resolved.js SECTIONS): 'phd' = PHD agents,
+// Resolved only, every check but B6; 'hi' = all agents, Resolved + Closed, B6 only; 'nonphd' =
+// Non-PHD agents, Resolved + Closed, every check but B6.
+//   GET /api/errors-in-resolved?q=&section=            -> summary (+ `match` groups for a search in one section)
+//   GET /api/errors-in-resolved/tickets?section=&resolver=&q=&check=&agents=all|phd|nonphd&page=1&pageSize=10 -> one page
+const EIR_CACHE_PREFIX = 'eir:v7:';   // v7: three sections (PHD Resolved / HI lines all agents / Non-PHD Resolved+Closed)
+const EIR_FROM = new Date(Date.UTC(2026, 0, 1));
+const EIR_PAGE_SIZE = 10, EIR_MAX_PAGE_SIZE = 50;
 let _eirIssueTypes = null;
 function eirIssueTypes() {
   if (!_eirIssueTypes || !_eirIssueTypes.length) {
@@ -3200,6 +3212,7 @@ async function eirSettings() {
 }
 // The latest upload's stored file meta (no text). Falls back to the newest stored file when the
 // latest upload has no stored copy (e.g. over the size cap); `latestUploadAt` then differs from `uploadedAt`.
+// (Used by the Incident Explorer and the rollups; Errors in Resolved uses eirDataStamp.)
 async function eirLatestFileMeta() {
   const logColl = await getCollection(COLLECTIONS.dataLog);
   const latest = (await logColl.find({}).sort({ at: -1 }).limit(1).toArray())[0] || null;
@@ -3210,34 +3223,119 @@ async function eirLatestFileMeta() {
   if (!meta) meta = (await filesColl.find({}, proj).sort({ _id: -1 }).limit(1).toArray())[0] || null;
   return { meta, latestUploadAt: stamp, latestUser: latest ? latest.user || '' : '' };
 }
+// Latest data upload / publish (data log only — no upload_files).
+async function eirDataStamp() {
+  const logColl = await getCollection(COLLECTIONS.dataLog);
+  const latest = (await logColl.find({}, { projection: { at: 1, publishedAt: 1, user: 1 } }).sort({ at: -1 }).limit(1).toArray())[0] || null;
+  return { stamp: latest ? (latest.publishedAt || latest.at) : null, by: latest ? latest.user || '' : '' };
+}
+// One pass over ticket_docs: only the fields the checks read, Resolved/Closed, resolved in [EIR_FROM, now].
+async function eirScopeRows(now) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const docs = await coll.aggregate([
+    { $match: { Status: { $regex: /^\s*(resolved|closed)\s*$/i } } },
+    { $project: {
+      _id: 0, ShortId: 1, IssueId: 1, Title: 1, RootCauseDetails: 1, ClosureCode: 1, Status: 1, ResolvedByIdentity: 1, IssueUrl: 1,
+      rd: { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } },
+      cd: { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } },
+    } },
+    { $match: { rd: { $gte: EIR_FROM, $lte: now } } },
+  ], { allowDiskUse: true }).toArray();
+  let latest = null;
+  const rows = pzDedupeTickets(docs).map(d => {
+    if (d.rd && (!latest || d.rd > latest)) latest = d.rd;
+    return eirFromTicketDoc(d);
+  });
+  return { rows, latestResolvedAt: latest ? latest.toISOString() : null };
+}
+const _eirInflight = new Map();   // evaluated-set key -> pending promise (one scan per key at a time)
+async function eirReport() {
+  const [data, settings, resNames, phdSet] = await Promise.all([
+    eirDataStamp(), eirSettings(),
+    getCollection(COLLECTIONS.phdResolutions).then(c => phdResList(c)).then(list => list.map(r => r.name)),
+    perfPhdAgentSet(),
+  ]);
+  const evKey = EIR_CACHE_PREFIX + 'ev:' + (data.stamp || '-') + ':' + resNames.join('|').toLowerCase();
+  let evald = getStaleCachedReport(evKey);
+  if (!evald) {
+    let p = _eirInflight.get(evKey);
+    if (!p) {
+      p = (async () => {
+        const scope = await eirScopeRows(new Date());
+        const ev = evaluateUpload(scope.rows, eirIssueTypes(), resNames, {
+          isAutosim: perfIsAutosimResolver, isAppeal: perfIsAppeal, resolverLogin: perfResolverLogin,
+        });
+        ev.latestResolvedAt = scope.latestResolvedAt;
+        pruneCachedReports(EIR_CACHE_PREFIX + 'ev:', 0);
+        pruneCachedReports(EIR_CACHE_PREFIX + 'rep:', 0);
+        setCachedReport(evKey, ev);
+        return ev;
+      })();
+      _eirInflight.set(evKey, p);
+      p.then(() => _eirInflight.delete(evKey), () => _eirInflight.delete(evKey));
+    }
+    evald = await p;
+  }
+  const source = {
+    scope: 'resolved-closed', from: EIR_FROM.toISOString(), to: evald.latestResolvedAt || null,
+    rows: evald.rows, resolved: (evald.statuses || {}).resolved || 0, closed: (evald.statuses || {}).closed || 0,
+    dataAsOf: data.stamp || null, dataBy: data.by,
+  };
+  const repKey = EIR_CACHE_PREFIX + 'rep:' + evKey.slice(EIR_CACHE_PREFIX.length + 3) + ':' + settings.disabledChecks.join(',') + ':' + Array.from(phdSet).sort().join(',');
+  let report = getStaleCachedReport(repKey);
+  if (!report) {
+    report = eirBuildReport(evald, settings.disabledChecks, source, phdSet);
+    pruneCachedReports(EIR_CACHE_PREFIX + 'rep:', 1);
+    setCachedReport(repKey, report);
+  }
+  return { report, settings };
+}
+function eirQ(v) { return String(v == null ? '' : v).trim().slice(0, 200); }
 
 app.get('/api/errors-in-resolved', requireRole('user'), async (req, res) => {
   try {
-    const { meta, latestUploadAt, latestUser } = await eirLatestFileMeta();
-    const settings = await eirSettings();
-    const canEdit = canEditPhdResolutions(req.user.username);
-    if (!meta) return res.json(Object.assign(eirBuildReport({ inScope: 0, excluded: {}, tickets: [] }, settings.disabledChecks, null), { canEdit, settings, noFile: true }));
-    const resNames = (await phdResList(await getCollection(COLLECTIONS.phdResolutions))).map(r => r.name);
-    const key = EIR_CACHE_PREFIX + meta._id + ':' + resNames.join('|').toLowerCase();
-    let evald = getCachedReport(key);
-    if (!evald) {
-      const filesColl = await getCollection(COLLECTIONS.uploadFiles);
-      const doc = await filesColl.findOne({ _id: meta._id }, { projection: { text: 1 } });
-      evald = evaluateUpload(parseCsv(doc && doc.text), eirIssueTypes(), resNames, {
-        isAutosim: perfIsAutosimResolver, isAppeal: perfIsAppeal, resolverLogin: perfResolverLogin,
-      });
-      pruneCachedReports(EIR_CACHE_PREFIX, 1);
-      setCachedReport(key, evald);
+    const q = eirQ(req.query.q);
+    const key = eirQ(req.query.section).toLowerCase();
+    if (q && EIR_SECTION_KEYS.indexOf(key) < 0) return res.status(400).json({ error: 'A search needs a valid section (' + EIR_SECTION_KEYS.join(', ') + ').' });
+    const { report, settings } = await eirReport();
+    const sections = report.sections.map(({ tickets, ...s }) => s);
+    const payload = Object.assign({}, report, { sections, canEdit: canEditPhdResolutions(req.user.username), settings });
+    // A search needs the rows' text, so its per-resolver counts are computed here (the page keeps the
+    // unfiltered summary for the KPIs / checks).
+    if (q) {
+      const list = eirFilterTickets(report.sections.find(s => s.key === key).tickets, { q });
+      payload.match = { q, section: key, total: list.length, resolvers: eirMaskGroups(list) };
     }
-    const source = {
-      file: meta.fileName || '', uploadedAt: meta.at || meta._id, uploadedBy: meta.user || '',
-      latestUploadAt, latestUploadBy: latestUser, isLatest: !latestUploadAt || latestUploadAt === meta._id,
-      rows: evald.rows,
-    };
-    const phdSet = await perfPhdAgentSet();
-    res.json(Object.assign(eirBuildReport(evald, settings.disabledChecks, source, phdSet), { canEdit, settings }));
+    res.json(payload);
   } catch (e) {
+    console.error('errors-in-resolved error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the Errors in Resolved report.' });
+  }
+});
+
+// One page of a section's failing tickets (newest resolved first), same filters as the page. resolver
+// omitted = every resolver ('All tickets'). 400 on a bad section / page / pageSize / check / agents.
+app.get('/api/errors-in-resolved/tickets', requireRole('user'), async (req, res) => {
+  try {
+    const key = eirQ(req.query.section).toLowerCase();
+    const def = EIR_SECTIONS.find(s => s.key === key);
+    if (!def) return res.status(400).json({ error: 'section must be one of ' + EIR_SECTION_KEYS.join(', ') + '.' });
+    const page = req.query.page == null || req.query.page === '' ? 1 : Number(req.query.page);
+    const pageSize = req.query.pageSize == null || req.query.pageSize === '' ? EIR_PAGE_SIZE : Number(req.query.pageSize);
+    if (!Number.isInteger(page) || page < 1) return res.status(400).json({ error: 'page must be a positive integer.' });
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > EIR_MAX_PAGE_SIZE) return res.status(400).json({ error: 'pageSize must be 1-' + EIR_MAX_PAGE_SIZE + '.' });
+    const check = eirQ(req.query.check).toUpperCase();
+    if (check && def.checks.indexOf(check) < 0) return res.status(400).json({ error: 'check must be one of ' + def.checks.join(', ') + ' in this section.' });
+    const agents = eirQ(req.query.agents).toLowerCase() || 'all';
+    if (EIR_AGENT_FILTERS.indexOf(agents) < 0) return res.status(400).json({ error: 'agents must be one of ' + EIR_AGENT_FILTERS.join(', ') + '.' });
+    const resolver = req.query.resolver == null ? null : eirQ(req.query.resolver);
+    const { report } = await eirReport();
+    const sec = report.sections.find(s => s.key === key);
+    const list = eirFilterTickets(sec.tickets, { q: eirQ(req.query.q), check, agents, resolver });
+    res.json(Object.assign({ section: key, resolver, agents }, eirPageOf(list, page, pageSize)));
+  } catch (e) {
+    console.error('errors-in-resolved tickets error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the tickets.' });
   }
 });
 
@@ -3250,7 +3348,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
     const coll = await getCollection(COLLECTIONS.errorsInResolvedSettings);
     const now = new Date().toISOString();
     await coll.updateOne({ _id: EIR_SETTINGS_ID }, { $set: { disabledChecks, updatedBy: req.user.username, updatedAt: now } }, { upsert: true });
-    pruneCachedReports(EIR_CACHE_PREFIX, 0);
+    pruneCachedReports(EIR_CACHE_PREFIX + 'rep:', 0);   // the evaluated set does not depend on the settings
     res.json({ disabledChecks, updatedBy: req.user.username, updatedAt: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not save the settings.' });

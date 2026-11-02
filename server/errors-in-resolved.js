@@ -1,10 +1,11 @@
 // Errors in Resolved — pure checks for GET /api/errors-in-resolved (errors-in-resolved.html).
-// No DB I/O: server.js loads the latest uploaded file, the PHD resolutions list and the issue-type
-// taxonomy, then calls evaluateUpload() (cacheable) and buildReport() (applies the admin settings).
-// Scope: rows of the most recent uploaded CSV with Status exactly 'Resolved', resolved by an agent
+// No DB I/O: server.js loads the ticket_docs in scope (fromTicketDoc adapter), the PHD resolutions
+// list and the issue-type taxonomy, then calls evaluateUpload() (cacheable) and buildReport()
+// (applies the admin settings); filterTickets() / pageOf() serve the paged ticket rows.
+// Scope: tickets with Status 'Resolved' or 'Closed' (case-insensitive, trimmed) resolved by an agent
 // (not AutoSIM), not an appeal ('appeal' in the Title) and ClosureCode not 'Duplicate' /
-// 'Immediately Resolved' / 'Automatically Closed'. Only tickets failing an
-// ENABLED check are returned.
+// 'Immediately Resolved' / 'Automatically Closed'. buildReport() splits that scope into the page's
+// three SECTIONS; a section lists only tickets failing one of ITS enabled checks, newest resolved first.
 'use strict';
 
 const fs = require('fs');
@@ -284,6 +285,29 @@ function evaluateTicket(t, ctx) {
   return R;
 }
 
+// Adapter: a ticket_docs document -> the flat string fields evaluateTicket / evaluateUpload read.
+// Dates may be stored as Date or string; `rd` / `cd` (already converted by the query) win when present.
+function isoOf(v) {
+  if (v == null || v === '') return '';
+  const d = v instanceof Date ? v : new Date(v);
+  return isNaN(d) ? str(v).trim() : d.toISOString();
+}
+function fromTicketDoc(d) {
+  d = d || {};
+  return {
+    ShortId: str(d.ShortId || d.IssueId).trim(), Title: str(d.Title), RootCauseDetails: str(d.RootCauseDetails),
+    ClosureCode: str(d.ClosureCode), Status: str(d.Status), ResolvedByIdentity: str(d.ResolvedByIdentity),
+    IssueUrl: str(d.IssueUrl), ResolvedDate: isoOf(d.rd != null ? d.rd : d.ResolvedDate), CreateDate: isoOf(d.cd != null ? d.cd : d.CreateDate),
+  };
+}
+
+const IN_SCOPE_STATUSES = new Set(['resolved', 'closed']);
+const timeOf = s => { const n = Date.parse(s); return isNaN(n) ? -Infinity : n; };
+// Newest resolved first; ties -> newest created first, then ticket id.
+function newestFirst(a, b) {
+  return (timeOf(b.resolvedAt) - timeOf(a.resolvedAt)) || (timeOf(b.createdAt) - timeOf(a.createdAt)) || a.id.localeCompare(b.id);
+}
+
 // Scope + evaluate every check (independent of the admin settings, so the result can be cached).
 // deps: { isAutosim(raw), isAppeal(row), resolverLogin(raw) }.
 function evaluateUpload(rows, issueTypes, resolutionNames, deps) {
@@ -296,8 +320,11 @@ function evaluateUpload(rows, issueTypes, resolutionNames, deps) {
   });
   const excluded = { notResolved: 0, autosim: 0, appeal: 0, duplicate: 0, immediatelyResolved: 0, automaticallyClosed: 0 };
   const tickets = [];
+  const statuses = { resolved: 0, closed: 0 };   // every Resolved / Closed row, before the exclusions
   byId.forEach((t, id) => {
-    if (str(t.Status).trim().toLowerCase() !== 'resolved') { excluded.notResolved++; return; }
+    const status = str(t.Status).trim().toLowerCase();
+    if (!IN_SCOPE_STATUSES.has(status)) { excluded.notResolved++; return; }
+    statuses[status]++;
     if (deps.isAutosim(t.ResolvedByIdentity)) { excluded.autosim++; return; }
     if (deps.isAppeal(t)) { excluded.appeal++; return; }   // appeals before closure codes
     const closure = str(t.ClosureCode).trim().replace(/\s+/g, ' ').toLowerCase();
@@ -308,12 +335,16 @@ function evaluateUpload(rows, issueTypes, resolutionNames, deps) {
     tickets.push({
       id, url: /^https?:\/\//i.test(url) ? url : ISSUE_URL_BASE + encodeURIComponent(id),
       title: str(t.Title).trim(), resolver: deps.resolverLogin(t.ResolvedByIdentity) || 'unknown',
-      closureCode: str(t.ClosureCode).trim(), resolvedAt: str(t.ResolvedDate).trim(),
+      status: str(t.Status).trim(), closureCode: str(t.ClosureCode).trim(),
+      resolvedAt: str(t.ResolvedDate).trim(), createdAt: str(t.CreateDate).trim(),
       results: evaluateTicket(t, ctx),
     });
   });
+  tickets.sort(newestFirst);
+  const inScopeStatuses = { resolved: 0, closed: 0 };
+  tickets.forEach(t => { inScopeStatuses[t.status.toLowerCase()]++; });
   const cntNonNumeric = tickets.filter(t => t.results.B5 && t.results.B5.cntNonNumeric).length;
-  return { rows: byId.size, inScope: tickets.length, excluded, tickets, cntNonNumeric, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
+  return { rows: byId.size, statuses, inScopeStatuses, inScope: tickets.length, excluded, tickets, cntNonNumeric, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
 }
 
 function normalizeDisabled(list) {
@@ -322,50 +353,114 @@ function normalizeDisabled(list) {
   return out.sort((a, b) => CHECK_CODES.indexOf(a) - CHECK_CODES.indexOf(b));
 }
 
+// The page's three sections. Every section shares the scope above (since 1 Jan 2026, agent-resolved,
+// same exclusions, same check logic); each narrows it by status and resolver type and evaluates only
+// its own checks. PHD = resolver login in the registered-agent set (phdSet), Non-PHD = any other agent.
+const NO_B6 = CHECK_CODES.filter(c => c !== 'B6');
+const SECTIONS = [
+  { key: 'phd', label: 'PHD agents \u2014 Resolved', statuses: ['resolved'], agents: 'phd', checks: NO_B6 },
+  { key: 'hi', label: 'HI lines check \u2014 all agents', statuses: ['resolved', 'closed'], agents: 'all', checks: ['B6'] },
+  { key: 'nonphd', label: 'Non-PHD agents \u2014 Resolved & Closed', statuses: ['resolved', 'closed'], agents: 'nonphd', checks: NO_B6 },
+];
+const SECTION_KEYS = SECTIONS.map(s => s.key);
+const AGENT_FILTERS = ['all', 'phd', 'nonphd'];
+
 // Apply the global settings: disabled checks are not evaluated (results -> { pass:null, disabled }),
-// not counted, and never make a ticket listed. Only tickets with >= 1 enabled failure are returned.
-// phdSet: lower-case logins of registered PHD agents -> resolvers[].phd / tickets[].resolverPhd.
+// not counted, and never make a ticket listed. Per section, only tickets with >= 1 enabled failure of
+// THAT section's checks are listed, and their results / errors / mask cover those checks only.
+// Masks: bit i = CHECK_CODES[i] failed. phdSet: lower-case logins of registered PHD agents.
 function buildReport(evald, disabledChecks, source, phdSet) {
   const isPhd = login => !!(phdSet && phdSet.has(str(login).toLowerCase()));
   const disabled = new Set(normalizeDisabled(disabledChecks));
-  const counts = {};
-  CHECK_CODES.forEach(c => { counts[c] = 0; });
-  const resMap = new Map();
-  const tickets = [];
+  const label = code => CHECKS[CHECK_CODES.indexOf(code)].label;
+  const sections = SECTIONS.map(s => ({
+    def: s, statusSet: new Set(s.statuses), counts: Object.fromEntries(s.checks.map(c => [c, 0])),
+    inScope: 0, inScopeStatuses: { resolved: 0, closed: 0 }, inScopeAgents: { phd: 0, nonphd: 0 },
+    resMap: new Map(), tickets: [],
+  }));
+  const total = Object.fromEntries(CHECK_CODES.map(c => [c, 0]));
   evald.tickets.forEach(t => {
-    const results = {};
-    let fails = 0;
-    CHECK_CODES.forEach(c => {
-      if (disabled.has(c)) { results[c] = { pass: null, msg: '', disabled: true }; return; }
-      const r = t.results[c];
-      results[c] = r;
-      if (r.pass === false) { fails++; counts[c]++; }
+    const phd = isPhd(t.resolver), status = t.status.toLowerCase();
+    sections.forEach(S => {
+      const s = S.def;
+      if (!S.statusSet.has(status)) return;
+      if ((s.agents === 'phd' && !phd) || (s.agents === 'nonphd' && phd)) return;
+      S.inScope++; S.inScopeStatuses[status]++; S.inScopeAgents[phd ? 'phd' : 'nonphd']++;
+      const results = {};
+      let fails = 0, mask = 0;
+      s.checks.forEach(c => {
+        if (disabled.has(c)) { results[c] = { pass: null, msg: '', disabled: true }; return; }
+        const r = t.results[c];
+        results[c] = r;
+        if (r.pass === false) { fails++; S.counts[c]++; total[c]++; mask |= 1 << CHECK_CODES.indexOf(c); }
+      });
+      if (!fails) return;
+      S.tickets.push(Object.assign({}, t, { results, errors: fails, mask, resolverPhd: phd }));
+      const g = S.resMap.get(t.resolver) || { login: t.resolver, phd, tickets: 0, errors: 0, masks: {} };
+      g.tickets++; g.errors += fails;
+      g.masks[mask] = (g.masks[mask] || 0) + 1;
+      S.resMap.set(t.resolver, g);
     });
-    if (!fails) return;
-    tickets.push(Object.assign({}, t, { results, errors: fails, resolverPhd: isPhd(t.resolver) }));
-    const g = resMap.get(t.resolver) || { login: t.resolver, phd: isPhd(t.resolver), tickets: 0, errors: 0 };
-    g.tickets++; g.errors += fails;
-    resMap.set(t.resolver, g);
   });
-  const resolvers = Array.from(resMap.values())
-    .sort((a, b) => (b.tickets - a.tickets) || (b.errors - a.errors) || a.login.localeCompare(b.login));
-  tickets.sort((a, b) => a.resolver.localeCompare(b.resolver) || (b.errors - a.errors) || a.id.localeCompare(b.id));
+  // evald.tickets is already newest resolved first (evaluateUpload), so every section keeps that order.
   return {
     generatedAt: new Date().toISOString(),
     source,
-    checks: CHECKS.map(c => ({ code: c.code, label: c.label, enabled: !disabled.has(c.code), count: disabled.has(c.code) ? 0 : counts[c.code] })),
+    // Global toggles; count = failures over all sections (a check is evaluated in disjoint ticket sets).
+    checks: CHECKS.map(c => ({ code: c.code, label: c.label, enabled: !disabled.has(c.code), count: disabled.has(c.code) ? 0 : total[c.code] })),
     disabledChecks: Array.from(disabled),
-    inScope: evald.inScope,
-    withErrors: tickets.length,
+    inScope: evald.inScope,                           // union of the sections
+    statuses: evald.statuses || null,                 // all Resolved / Closed rows before the exclusions
+    inScopeStatuses: evald.inScopeStatuses || null,   // in-scope tickets by status
     cntNonNumeric: evald.cntNonNumeric || 0,   // in-scope tickets whose Cnt: value is not a number (B5 passes them)
     excluded: evald.excluded,
-    resolvers,
-    tickets,
+    sections: sections.map(S => ({
+      key: S.def.key, label: S.def.label, statuses: S.def.statuses.slice(), agents: S.def.agents, checks: S.def.checks.slice(),
+      inScope: S.inScope, inScopeStatuses: S.inScopeStatuses, inScopeAgents: S.inScopeAgents,
+      withErrors: S.tickets.length,
+      counts: S.def.checks.map(c => ({ code: c, label: label(c), enabled: !disabled.has(c), count: disabled.has(c) ? 0 : S.counts[c] })),
+      resolvers: Array.from(S.resMap.values()).sort((a, b) => (b.tickets - a.tickets) || (b.errors - a.errors) || a.login.localeCompare(b.login)),
+      tickets: S.tickets,
+    })),
   };
 }
 
+// ---- Paging (GET /api/errors-in-resolved/tickets) ----
+// f: { q, check, agents, resolver } — a section's filters: search over ticket id / title / resolver
+// (case-insensitive substring), failing `check`, 'phd' / 'nonphd' agents only, one resolver login.
+function filterTickets(tickets, f) {
+  const q = str(f && f.q).trim().toLowerCase(), check = str(f && f.check).trim().toUpperCase();
+  const agents = str(f && f.agents).trim().toLowerCase(), byAgent = agents === 'phd' || agents === 'nonphd';
+  const hasRes = !!(f && f.resolver != null && f.resolver !== ''), resolver = hasRes ? str(f.resolver) : '';
+  if (!q && !check && !byAgent && !hasRes) return tickets;
+  return tickets.filter(t => {
+    if (hasRes && t.resolver !== resolver) return false;
+    if (byAgent && !!t.resolverPhd !== (agents === 'phd')) return false;
+    if (check && !(t.results[check] && t.results[check].pass === false)) return false;
+    if (q && (t.id + ' ' + (t.title || '') + ' ' + (t.resolver || '')).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
+// Per-resolver { login, phd, masks: { failMask: ticketCount } } of a (filtered) list, so the page can
+// recount tickets / errors for any set of scratched checks without the rows.
+function maskGroups(tickets) {
+  const map = new Map();
+  tickets.forEach(t => {
+    const g = map.get(t.resolver) || { login: t.resolver, phd: !!t.resolverPhd, masks: {} };
+    g.masks[t.mask] = (g.masks[t.mask] || 0) + 1;
+    map.set(t.resolver, g);
+  });
+  return Array.from(map.values());
+}
+// One page of an already-sorted list. page is clamped to 1..pages.
+function pageOf(list, page, pageSize) {
+  const total = list.length, pages = Math.max(1, Math.ceil(total / pageSize));
+  const p = Math.min(Math.max(1, page | 0), pages);
+  return { total, page: p, pageSize, pages, tickets: list.slice((p - 1) * pageSize, p * pageSize) };
+}
+
 module.exports = {
-  CHECKS, CHECK_CODES, SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, canon, levenshtein,
+  CHECKS, CHECK_CODES, SECTIONS, SECTION_KEYS, AGENT_FILTERS, SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, canon, levenshtein,
   findTypeInText, matchValue, evaluateTicket, evaluateUpload, normalizeDisabled, buildReport, TITLE_SEV_RE, RCD_DATE_RE, HI_CNT_RE,
-  hiLinesOf, checkHiLines, vocab,
+  hiLinesOf, checkHiLines, vocab, fromTicketDoc, newestFirst, filterTickets, maskGroups, pageOf,
 };
