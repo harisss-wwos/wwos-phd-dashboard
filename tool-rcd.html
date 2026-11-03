@@ -127,7 +127,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
       <div class="rc-col">
         <div class="rc-field">
           <label for="rcRaw"><span class="rc-step">INPUT</span> &rarr; Paste the raw Root Cause Details</label>
-          <textarea id="rcRaw" rows="15" placeholder="Issue: Threat w/ Weapon&#10;Station ID: VHL1&#10;Driver Type: DP&#10;Incident Date: 6/11/2021&#10;Tracking ID: TBA341...&#10;Historical Incident: 0&#10;Zip: 19014&#10;AID: A3ONC...&#10;UPID: USC478..."></textarea>
+          <textarea id="rcRaw" rows="15" placeholder="Issue: Threat w/ Weapon&#10;Station ID: VHL1&#10;Driver Type: DP&#10;Incident Date: 6/11/2021&#10;Historical Incident: 0&#10;Zip: 19014&#10;AID: A3ONC...&#10;UPID: USC478..."></textarea>
           <div class="rc-hint">Paste the details, then pick the Issue manually below. Keys not in the mapping are ignored; missing keys become &ldquo;N/A&rdquo;.</div>
         </div>
         <div class="rc-field">
@@ -241,7 +241,8 @@ var RC_FIELDS=[
   ['TID',  ['Transporter ID','TID']],
   ['Driv', ['Driver Type','Driv']],
   ['Date', ['Incident Date','Date of Incident','Date']],
-  ['TBA',  ['Tracking ID','Related Tracking ID','TBA']],
+  // TBA (Tracking ID) is no longer part of the output; its keys stay in RC_OTHER_KEYS so a pasted
+  // 'Tracking ID: ...' line never leaks into another field's value.
   ['Cnt',  ['Historical Incident Count','Historical Incident','Historical Incidents','Cnt']],
   ['Zip',  ['Zip Code','Zip']],
   ['CID',  ['Customer Account ID','Account ID','AID','CID']],
@@ -249,6 +250,7 @@ var RC_FIELDS=[
 ];
 var RC_OTHER_KEYS=['Contact ID','Contact Id','Contact Date','Severity','Tag','Place ID','UID','CAID',
   'Customer ID','Threat Contact ID','SIM Root Cause Details','Output','Historical','AID','CID',
+  'Tracking ID','Related Tracking ID','TBA',
   // Historical-incident lines (HI1..HI9) — known keys so they never leak into another field's value.
   'HI1','HI2','HI3','HI4','HI5','HI6','HI7','HI8','HI9'];
 var RC_HI_MAX=9;   // at most 9 historical incidents can be listed (Errors in Resolved B5 flags Cnt > 9)
