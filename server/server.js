@@ -6710,7 +6710,7 @@ const PULSE_END_ERR = 'end must be YYYY-MM-DD or an ISO-8601 timestamp with a ti
 const PULSE_MIN_END_MS = Date.parse('2000-01-01T00:00:00Z');
 const PULSE_FRESH_MIN_MS = 20000;   // ?fresh=1 recomputes only if the cached payload is older than this
 const PULSE_MAX_BUSY = 2;           // max concurrent uncached computes (5 Mongo reads each)
-const PULSE_MAX_END_KEYS = 20;      // cap on cached `pulse-check:v13:end:*` entries (pruned oldest-first by `at`)
+const PULSE_MAX_END_KEYS = 20;      // cap on cached `pulse-check:v14:end:*` entries (pruned oldest-first by `at`)
 const PULSE_QUERY_MAX_MS = 15000;   // maxTimeMS on each Mongo read (a slow DB fails fast and frees the slot)
 const PULSE_RETRY_AFTER_S = 5;
 const PULSE_HOUR_MS = 3600000;
@@ -6838,6 +6838,7 @@ app.get('/api/pulse-check', requireRole('user'), async (req, res) => {
   if (!at) return res.status(400).json({ error: PULSE_END_ERR });
   const day = pulseMstDay(at.getTime());
   const end = day.end;
+  // v14: Section 3 issueKind gained 'appeal' (Successful appeal tickets without RCD are not flagged).
   // v13: sla.atRiskTop now holds ALL at-risk tickets (oldest first) for page pagination.
   // v12: agents.rows gained phd (registered PHD agent) for the Section 6 export filter.
   // v9: payload gained resolvedIssueRows (Section 3 'Not specified' split + fixed bottom rows); resolvedList rows gained
@@ -6849,7 +6850,7 @@ app.get('/api/pulse-check', requireRole('user'), async (req, res) => {
   // v4: resolvedList rows gained rootCause and the payload gained resolvedRootCauseCounts.
   // v3: payload gained resolvedList/resolvedIssueCounts/resolvedDetailHidden (v2 added kpis.openAssigned/openWip/
   // openPending/openResearching/repeatResolved); the version in the key keeps older cached payloads from being served.
-  const key = hasEnd ? ('pulse-check:v13:end:' + end.toISOString()) : 'pulse-check:v13:live';
+  const key = hasEnd ? ('pulse-check:v14:end:' + end.toISOString()) : 'pulse-check:v14:live';
   const fresh = req.query.fresh === '1';
   const who = String(req.user.username || '');
   const canSeeP = pulseCanViewDetail(who); // never rejects
@@ -6877,7 +6878,7 @@ app.get('/api/pulse-check', requireRole('user'), async (req, res) => {
       _pulseBusy++;
       _pulseUserBusy.add(who);
       p = buildPulsePayload(day)
-        .then(payload => { setCachedReport(key, payload); pruneCachedReports('pulse-check:v13:end:', PULSE_MAX_END_KEYS); return payload; })
+        .then(payload => { setCachedReport(key, payload); pruneCachedReports('pulse-check:v14:end:', PULSE_MAX_END_KEYS); return payload; })
         .finally(() => { _pulseInflight.delete(key); _pulseBusy--; _pulseUserBusy.delete(who); });
       _pulseInflight.set(key, p);
     }

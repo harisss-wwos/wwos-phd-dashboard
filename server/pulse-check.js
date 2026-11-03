@@ -116,6 +116,7 @@ const ISSUE_SPLIT_LABELS = {
   rule: 'Imm. Resolved by Rule',
   duplicate: 'Duplicate',
   noRcd: 'Successful \u2014 no Root Cause Details',
+  appeal: 'Appeal \u2014 no Root Cause Details needed',
   notSpecified: ISSUE_NOT_SPECIFIED,
 };
 // "Closed without agent work" kinds, always listed last in this order.
@@ -164,7 +165,9 @@ function computePulseReport(input, deps) {
     if (c === 'duplicate') return 'duplicate';
     if (c === 'successful') {
       const rcd = rcdPlain(t.RootCauseDetails);
-      if (!rcd.trim() || !RCD_ISSUE_RE.test(rcd)) return 'noRcd';
+      // Appeal tickets ('appeal' in the title, case-insensitive) don't need Root Cause Details: they get a
+      // neutral 'appeal' row instead of the red 'Successful \u2014 no Root Cause Details' defect row.
+      if (!rcd.trim() || !RCD_ISSUE_RE.test(rcd)) return /appeal/i.test(str(t.Title)) ? 'appeal' : 'noRcd';
     }
     return 'notSpecified';
   };
