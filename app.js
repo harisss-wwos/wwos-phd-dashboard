@@ -1362,10 +1362,9 @@ async function reloadHandoverSection(){
     const sep='<span class="ho-sep" aria-hidden="true"></span>';
     // Two bands (Created | Status) and (Flags | Resolutions); thin dividers between all four groups.
     const band=function(gs){ return gs.length?('<div class="ho-band">'+gs.map(grp).join(sep)+'</div>'):''; };
-    const chartAria='Bar chart of the handover report: '+groups.map(function(g){ return g.items.map(function(it){ return it.lbl+' '+it.n; }).join(', '); }).join('; ');
+    const chartAria='Bar chart of the handover report: '+handoverChartGroups(d).map(function(g){ return g.items.map(function(it){ return it.lbl+' '+it.n; }).join(', '); }).join('; ')+'. '+handoverQueueBubbleText(d)+'.';
     body.innerHTML=
-      '<div class="ho-meta">'+ic('clock',14)+' '+esc(label)+'</div>'+
-      '<div class="ho-strip">'+band(groups.slice(0,2))+'<span class="ho-band-sep" aria-hidden="true"></span>'+band(groups.slice(2))+'</div>'+
+      // (tile cards above the chart removed; the chart, legend and In Queue bubble carry the numbers)
       '<div class="sr-chart-card"><h3>Created, Resolved &amp; In Queue in the last 12 hours</h3>'+
         '<div class="to-legend" id="handoverLegend">'+handoverLegendHtml(d)+'</div>'+
         '<div class="chart-wrap" style="height:340px;position:relative"><canvas id="handoverChart" role="img" aria-label="'+esc(chartAria)+'"></canvas></div></div>';
@@ -1420,8 +1419,17 @@ function handoverGroups(d){
 }
 // On-page pill legend for the Handover chart (one pill per bar: dot + label + count badge),
 // with a thin divider between the groups.
+// Pill legend list: the chart groups, but the status group (Assigned / WIP / Pending) shows as ONE
+// 'In Queue' pill with the queue total (the bars still show the three statuses).
+function handoverLegendGroups(d){
+  var all=handoverGroups(d), q=null;
+  all.forEach(function(g){ g.items.forEach(function(it){ if(it.cls==='ho-queue') q=it; }); });
+  return handoverChartGroups(d).map(function(g){
+    return (g.name==='Ticket status'&&q)?{ name:g.name, items:[q] }:g;
+  });
+}
 function handoverLegendHtml(d){
-  return handoverGroups(d).map(function(g){
+  return handoverLegendGroups(d).map(function(g){
     return g.items.map(function(it){
       return '<span class="to-leg" style="cursor:default">'+
         '<span class="to-leg-dot" style="background:'+it.color+'"></span>'+
@@ -1439,27 +1447,61 @@ const HANDOVER_SEP_PLUGIN={ id:'hoGroupSep', afterDatasetsDraw:function(chart){
   seps.forEach(function(i){ var px=Math.round(x.getPixelForValue(i))+0.5; cx.beginPath(); cx.moveTo(px,a.top); cx.lineTo(px,a.bottom); cx.stroke(); });
   cx.restore();
 }};
+// Chart / pill legend / Copy chart list: handoverGroups() WITHOUT the 'In Queue' bar (its breakdown
+// is shown as a bubble inside the chart instead). The export keeps using handoverGroups().
+function handoverChartGroups(d){
+  return handoverGroups(d).map(function(g){
+    return { name:g.name, items:g.items.filter(function(it){ return it.cls!=='ho-queue'; }) };
+  }).filter(function(g){ return g.items.length; });
+}
+// 'In Queue = 155A + 161WIP + 7P = 323' (Pending only when shown, like the bars).
+function handoverQueueBubbleText(d){
+  d=d||{}; var qs=d.queueByStatus||{}, n=function(v){ return Number(v)||0; }, f=function(v){ return n(v).toLocaleString('en-US'); };
+  var parts=[f(qs['Assigned'])+'A', f(qs['Work In Progress'])+'WIP'];
+  if(n(qs['Pending'])>0) parts.push(f(qs['Pending'])+'P');
+  return 'In Queue = '+parts.join(' + ')+' = '+f(d.inQueue);
+}
+// Chart.js plugin: the 'In Queue = ...' bubble, centred over the status group's bars, near the top.
+const HANDOVER_QUEUE_PLUGIN={ id:'hoQueueBubble', afterDatasetsDraw:function(chart){
+  var o=chart.options.plugins&&chart.options.plugins.hoQueueBubble; if(!o||!o.text||!o.span) return;
+  var x=chart.scales.x, a=chart.chartArea, cx=chart.ctx; if(!x||!a) return;
+  var x0=x.getPixelForValue(o.span[0]), x1=x.getPixelForValue(o.span[1]), mid=(x0+x1)/2;
+  cx.save();
+  cx.font='700 12px Inter, Arial, sans-serif'; cx.textBaseline='middle'; cx.textAlign='center';
+  var w=cx.measureText(o.text).width+24, h=26, bx=Math.max(a.left+2,Math.min(a.right-w-2,mid-w/2)), by=a.top+6, r=13;
+  cx.fillStyle='#fff4e6'; cx.strokeStyle='#b45309'; cx.lineWidth=1.2;
+  cx.beginPath();
+  cx.moveTo(bx+r,by); cx.lineTo(bx+w-r,by); cx.arcTo(bx+w,by,bx+w,by+r,r); cx.arcTo(bx+w,by+h,bx+w-r,by+h,r);
+  cx.lineTo(bx+r,by+h); cx.arcTo(bx,by+h,bx,by+h-r,r); cx.arcTo(bx,by,bx+r,by,r); cx.closePath();
+  cx.fill(); cx.stroke();
+  cx.fillStyle='#7a3b06'; cx.fillText(o.text,bx+w/2,by+h/2+0.5);
+  cx.restore();
+}};
 function drawHandoverChart(d){
   const cv=document.getElementById('handoverChart'); if(!cv||typeof Chart==='undefined') return;
-  // Bars follow handoverGroups() exactly; a blank spacer slot (null value) sits between groups
-  // to give the gap, and the plugin draws a dashed divider through it.
-  const bars=[], seps=[];
-  handoverGroups(d).forEach(function(g,gi){
+  // Bars follow handoverChartGroups() (no In Queue bar); a blank spacer slot (null value) sits between
+  // groups to give the gap, and the plugin draws a dashed divider through it.
+  const bars=[], seps=[]; let qSpan=null;
+  handoverChartGroups(d).forEach(function(g,gi){
     if(gi){ seps.push(bars.length); bars.push(['',null,'transparent']); }
+    const start=bars.length;
     g.items.forEach(function(it){ bars.push([it.lbl,it.n,it.color]); });
+    if(g.name==='Ticket status') qSpan=[start,bars.length-1];
   });
+  // Head-room so the bubble never sits on the tallest bar.
+  const yMax=Math.max.apply(null,bars.map(function(b){ return Number(b[1])||0; }).concat([1]));
   makeChart('handoverChart',{ type:'bar',
-    plugins:[HANDOVER_SEP_PLUGIN],
+    plugins:[HANDOVER_SEP_PLUGIN,HANDOVER_QUEUE_PLUGIN],
     data:{ labels:bars.map(b=>b[0]), datasets:[{
       label:'Tickets', data:bars.map(b=>b[1]),
       backgroundColor:bars.map(b=>b[2]),
       borderRadius:6, maxBarThickness:64,
     }]},
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false }, hoGroupSep:{ at:seps },
+      plugins:{ legend:{ display:false }, hoGroupSep:{ at:seps }, hoQueueBubble:{ text:qSpan?handoverQueueBubbleText(d):'', span:qSpan },
         tooltip:{ backgroundColor:'rgba(20,24,30,.96)', padding:12, cornerRadius:8, filter:function(c){ return c.label!==''; }, callbacks:{ label:function(c){ return ' '+c.parsed.y+' tickets'; } } } },
       scales:{
-        y:{ beginAtZero:true, grid:{ color:'#eef1f4' }, border:{ display:false }, ticks:{ precision:0, color:'#5c6773', font:{ family:'Inter', size:11 } },
+        y:{ beginAtZero:true, suggestedMax:Math.ceil(yMax*1.25), grid:{ color:'#eef1f4' }, border:{ display:false }, ticks:{ precision:0, color:'#5c6773', font:{ family:'Inter', size:11 } },
           title:{ display:true, text:'Tickets', color:'#5c6773', font:{ family:'Inter', size:11, weight:'700' } } },
         x:{ grid:{ display:false }, border:{ color:'#e2e6ea' }, ticks:{ color:'#2a3340', font:{ family:'Inter', size:10, weight:'600' }, maxRotation:30, minRotation:0 } } },
     }});
@@ -1472,15 +1514,17 @@ async function copyHandoverChart(btn){
   const d=HANDOVER_DATA||{};
   // Pill legend items = the same list/order/colours as the bars (handoverGroups; hidden zeros omitted).
   const legend=[];
-  handoverGroups(d).forEach(function(g){ g.items.forEach(function(it){ legend.push([it.lbl,it.color,it.n]); }); });
-  const W=cv.width, titleH=d.label?70:46;
+  handoverLegendGroups(d).forEach(function(g){ g.items.forEach(function(it){ legend.push([it.lbl,it.color,it.n]); }); });
+  // Sub-line under the image title: the shift time (the file/window label is no longer shown).
+  const sub='Last 12 hours (7 AM IST \u2013 7 PM IST)';
+  const W=cv.width, titleH=70;
   var scratch=document.createElement('canvas').getContext('2d');
   var legH=drawPillLegend(scratch, legend, W, 0)+10;
   const out=document.createElement('canvas'); out.width=W; out.height=titleH+legH+cv.height;
   const cx=out.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,out.width,out.height);
   cx.fillStyle='#151d28'; cx.textBaseline='middle'; cx.textAlign='center'; cx.font='700 18px Inter, Arial, sans-serif';
-  cx.fillText('Created, Resolved & In Queue in the last 12 hours', W/2, d.label?24:titleH/2);
-  if(d.label){ cx.fillStyle='#1f4f9a'; cx.font='600 13px Inter, Arial, sans-serif'; cx.fillText(d.label, W/2, 50); }
+  cx.fillText('Created, Resolved & In Queue in the last 12 hours', W/2, 24);
+  cx.fillStyle='#1f4f9a'; cx.font='600 13px Inter, Arial, sans-serif'; cx.fillText(sub, W/2, 50);
   drawPillLegend(cx, legend, W, titleH);
   cx.drawImage(cv,0,titleH+legH);
   const done=function(ok){ if(btn){ var prev=btn.innerHTML; btn.innerHTML=ic(ok?'check-circle':'copy',14)+(ok?' Copied':' Copy chart'); btn.classList.toggle('copied',ok); setTimeout(function(){ btn.innerHTML=prev; btn.classList.remove('copied'); },1400); } };
@@ -1504,16 +1548,33 @@ async function copyHandoverChart(btn){
 window.copyHandoverChart=copyHandoverChart;
 async function exportHandover(){
   const d=HANDOVER_DATA; if(!d){ showToast('Handover not loaded yet'); return; }
-  const lines=[];
-  lines.push('PHD Handover Report');
-  lines.push(d.label);
-  // Same list/order/labels as the bars and chart (hidden zero items omitted), groups split by a rule.
-  handoverGroups(d).forEach(function(g){
-    lines.push('======================================');
-    g.items.forEach(function(it){ lines.push(it.lbl+': '+it.n); });
-  });
-  lines.push('======================================');
-  const txt=lines.join('\n');
+  // Fixed plain-text format (no '====' rules). Counts come from the same handover payload as the bars;
+  // the RED / >10-day counts are the queue age buckets used by the Takeover section (SR_COLORS:
+  // red = 7-10 days / 168-240h, black = >10 days / >=240h; reopened tickets are counted as purple there).
+  const qs=d.queueByStatus||{}, rs=d.resolvedSplit||{}, col=(typeof SR_COLORS!=='undefined'&&SR_COLORS)||{};
+  const n=function(v){ return Number(v)||0; };
+  const ageN=function(k){ return (SR_COLORS&&typeof col[k]!=='undefined')?n(col[k]):'#'; };
+  const txt=[
+    'PHD Handover Report',
+    'Last 12 hours Update:',
+    '',
+    'Created: '+n(d.created),
+    '',
+    'In Queue: '+n(d.inQueue),
+    '    Assigned: '+n(qs['Assigned']),
+    '    WIP: '+n(qs['Work In Progress']),
+    '    Pending: '+n(qs['Pending']),
+    '',
+    'No EMT: '+n(d.noEmt),
+    '',
+    'Imm. Resolved (AUTOSIM): '+n(rs.autosim),
+    'Imm. Resolved (By Rule): '+n(rs.rule),
+    '',
+    'Count of tickets that has crossed above 7 days (In RED): '+ageN('red'),
+    'Count of tickets over 10 days i.e., >= 240h (In RED): '+ageN('black'),
+    '',
+    'Notes:'
+  ].join('\n');
   try{ await navigator.clipboard.writeText(txt); showToast('Handover report copied'); }
   catch(e){ const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Handover report copied'); }
 }
@@ -3439,7 +3500,7 @@ function renderDashboardChunked(){
       '<button type="button" class="dh-export-btn is-ghost" id="takeoverChartCopy" onclick="copyTakeoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
       '<button type="button" class="dh-export-btn" onclick="exportTakeover()">'+ic('copy',14)+' Export takeover</button>',
       '<div id="takeoverBody" aria-busy="true">'+dhTakeoverSkeletonHtml()+'</div>')+
-    secCard('Handover','clipboard','Handover Report \u2014 Last 12 Hours','The 12 hours up to the newest timestamp in the latest uploaded file',
+    secCard('Handover','clipboard','Handover Report \u2014 Last 12 Hours (7 AM IST \u2013 7 PM IST)','',
       '<button type="button" class="dh-export-btn is-ghost" id="handoverChartCopy" onclick="copyHandoverChart(this)" disabled>'+ic('copy',14)+' Copy chart</button>'+
       '<button type="button" class="dh-export-btn" onclick="exportHandover()">'+ic('copy',14)+' Export handover</button>',
       '<div id="handoverBody" aria-busy="true">'+dhHandoverSkeletonHtml()+'</div>')+
