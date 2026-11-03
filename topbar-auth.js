@@ -1343,16 +1343,40 @@
       + '#tbHomeChrome .home-navcol-disabled .home-nav-btn:hover{background:transparent}'
       + '@media(prefers-reduced-motion:reduce){#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-nav-ic,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn{transition:none}}'
       // Shared upload-log modal (works on any page via PHDOpenUploadLog).
-      + '.tb-ullog-bg{position:fixed;inset:0;background:rgba(21,29,40,.6);z-index:3500;display:none;align-items:center;justify-content:center;padding:20px}'
-      + '.tb-ullog{background:#fff;border-radius:5px;width:min(1000px,96vw);height:min(86vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(21,29,40,.5)}'
-      + '.tb-ullog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e7e5df;flex:0 0 auto}'
-      + '.tb-ullog-title{display:flex;align-items:center;gap:9px;font-size:1em;font-weight:800;color:#151d28}'
-      + '.tb-ullog-ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#c4def6;color:#2b66c1}'
-      + '.tb-ullog-ic svg{width:16px;height:16px}'
-      + '.tb-ullog-x{margin-left:auto;background:transparent;border:none;color:#818284;font-size:1.6em;line-height:1;cursor:pointer;padding:0 6px;border-radius:5px}'
-      + '.tb-ullog-x:hover{color:#151d28;background:#f1efe9}'
-      + '.tb-ullog-body{flex:1;min-height:0}'
+      // Same dialog language as the .tbl-/.tbu- pop-ups: darker navy blur backdrop, navy hero header
+      // (orange accent, icon tile, eyebrow, title, subtitle, glassy meta chips), white scrolling body.
+      // 80vw wide (96vw < 720px), 88vh tall; the iframe (data-log.html?embed=1) scrolls internally.
+      + '.tb-ullog-bg{position:fixed;inset:0;z-index:3500;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(9,14,26,.72);-webkit-backdrop-filter:blur(6px) saturate(120%);backdrop-filter:blur(6px) saturate(120%)}'
+      + '.tb-ullog-bg.is-open{animation:tbUllogFade .18s ease-out}'
+      + '.tb-ullog{position:relative;width:80vw;min-width:min(320px,100%);max-width:100%;height:88vh;max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden;background:#fff;color:#1b2026;border:1px solid rgba(255,255,255,.1);border-radius:12px;box-shadow:0 30px 70px -22px rgba(5,10,20,.85),0 2px 8px -2px rgba(5,10,20,.35);font-family:inherit;text-align:left}'
+      + '.tb-ullog-bg.is-open .tb-ullog{animation:tbUllogPop .22s cubic-bezier(.2,.8,.25,1)}'
+      + '.tb-ullog:focus{outline:none}'
+      + '.tb-ullog-head{position:relative;overflow:hidden;flex:0 0 auto;display:flex;align-items:flex-start;gap:14px;padding:20px 20px 18px 28px;color:#e9edf3;background:radial-gradient(120% 170% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);border-bottom:1px solid rgba(236,114,17,.35)}'
+      + '.tb-ullog-head::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:24px 24px;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 85%);mask-image:linear-gradient(90deg,transparent 25%,#000 85%)}'
+      + '.tb-ullog-head::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ff9f2e,#ec7211)}'
+      + '.tb-ullog-head > *{position:relative}'
+      + '.tb-ullog-ic{width:42px;height:42px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:11px;background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}'
+      + '.tb-ullog-ic svg{width:20px;height:20px}'
+      + '.tb-ullog-htx{min-width:0;flex:1 1 auto}'
+      + '.tb-ullog p.tb-ullog-eyebrow{margin:0 0 4px!important;padding:0;font-size:.66em!important;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#ffb26b!important;line-height:1.2}'
+      + '.tb-ullog h2.tb-ullog-title{display:block;margin:0!important;padding:0;color:#fff!important;font-size:1.45em!important;font-weight:800!important;letter-spacing:-.4px;line-height:1.15;text-transform:none}'
+      + '.tb-ullog p.tb-ullog-sub{margin:4px 0 0!important;padding:0;color:rgba(233,237,243,.82)!important;font-size:.86em!important;line-height:1.5}'
+      + '.tb-ullog-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:24px}'
+      + '.tb-ullog-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e9edf3;font-size:.74em;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}'
+      + '.tb-ullog-chip svg{width:13px;height:13px;color:#ffb26b}'
+      + '.tb-ullog-chip.is-err{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.45);color:#fecaca}'
+      + '.tb-ullog-chip.is-err svg{color:#fca5a5}'
+      + '.tb-ullog-x{flex-shrink:0;width:36px;height:36px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#e9edf3;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,border-color .15s,color .15s}'
+      + '.tb-ullog-x:hover{background:rgba(255,255,255,.16);border-color:rgba(255,178,107,.6);color:#fff}'
+      + '.tb-ullog-x:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}'
+      + '.tb-ullog-x svg{width:18px;height:18px}'
+      + '.tb-ullog-body{flex:1 1 auto;min-height:0;background:#fff}'
       + '.tb-ullog-body iframe{width:100%;height:100%;border:none;display:block}'
+      + '.tb-ullog-trap{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}'
+      + '@keyframes tbUllogFade{from{opacity:0}to{opacity:1}}'
+      + '@keyframes tbUllogPop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}'
+      + '@media(max-width:719px){.tb-ullog-bg{padding:2vw}.tb-ullog{width:96vw;min-width:0;height:calc(100vh - 4vw);max-height:none}.tb-ullog-head{gap:12px;padding:16px 14px 14px 20px}.tb-ullog-ic{width:36px;height:36px;border-radius:10px}.tb-ullog h2.tb-ullog-title{font-size:1.2em!important}}'
+      + '@media(prefers-reduced-motion:reduce){.tb-ullog-bg.is-open,.tb-ullog-bg.is-open .tb-ullog{animation:none}.tb-ullog-x{transition:none}}'
       + '#tbHomeChrome .home-recent .hr-head{display:flex;align-items:center;gap:8px;padding:10px;font-size:.84em;font-weight:800;color:var(--ink);border-bottom:1px solid var(--line)}'
       + '#tbHomeChrome .home-recent .hr-head::before{content:"";width:3px;height:16px;border-radius:2px;background:var(--o)}'
       + '#tbHomeChrome .home-recent .hr-head-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--icbg);color:var(--icfg);flex:0 0 auto}'
@@ -2520,24 +2544,77 @@
   window.PHDRefreshHomeChrome = function () { try { tbhRenderHdrProf(); tbhRenderRecent(); } catch (e) {} };
   // Shared "View upload log" modal — embeds data-log.html in an iframe (embed mode hides its chrome).
   // Available on every page so the injected chrome's View-log button works everywhere.
+  var tbUllogLastFocus = null;
+  function tbUllogChip(icon, txt, cls) {
+    return '<span class="tb-ullog-chip' + (cls ? ' ' + cls : '') + '">' + ic(icon, 13) + tbEsc(txt) + '</span>';
+  }
+  function tbUllogIsOpen(bg) { return !!(bg && bg.style.display !== 'none' && bg.classList.contains('is-open')); }
+  // Close + restore focus to whatever opened the modal. Also called from inside the iframe (Esc).
+  function tbUllogClose() {
+    var bg = document.getElementById('tbUploadLogModal');
+    if (!tbUllogIsOpen(bg)) return;
+    bg.classList.remove('is-open'); bg.style.display = 'none';
+    var f = tbUllogLastFocus; tbUllogLastFocus = null;
+    if (f && f.focus && document.documentElement.contains(f)) { try { f.focus(); } catch (e) {} }
+  }
+  window.PHDCloseUploadLog = tbUllogClose;
+  // Header chips, fed by data-log.html (embed) after each render: { days, uploads, tz, hasMore } or { error }.
+  window.PHDUploadLogMeta = function (m) {
+    var meta = document.getElementById('tbUllogMeta'); if (!meta) return;
+    m = m || {};
+    if (m.error) { meta.innerHTML = tbUllogChip('alert-triangle', 'Could not load', 'is-err'); return; }
+    var tz = String(m.tz || 'IST'), d = Number(m.days) || 0, u = Number(m.uploads) || 0;
+    var sub = document.getElementById('tbUllogSub');
+    if (sub) sub.textContent = 'Every data upload, grouped by day (' + tz + ')';
+    meta.innerHTML = tbUllogChip('calendar', 'Last ' + d + ' day' + (d === 1 ? '' : 's') + ' \u00b7 ' + u + ' upload' + (u === 1 ? '' : 's'))
+      + tbUllogChip('clock', tz + ' times');
+  };
   window.PHDOpenUploadLog = function () {
     var bg = document.getElementById('tbUploadLogModal');
     if (!bg) {
       bg = document.createElement('div');
       bg.id = 'tbUploadLogModal'; bg.className = 'tb-ullog-bg';
-      bg.innerHTML = '<div class="tb-ullog"><div class="tb-ullog-head">'
-        + '<span class="tb-ullog-title"><span class="tb-ullog-ic">' + ic('history', 16) + '</span>Update Data Log</span>'
-        + '<button type="button" class="tb-ullog-x" aria-label="Close">&times;</button></div>'
-        + '<div class="tb-ullog-body"><iframe title="Update Data Log"></iframe></div></div>';
-      bg.addEventListener('click', function (e) { if (e.target === bg) bg.style.display = 'none'; });
-      bg.querySelector('.tb-ullog-x').onclick = function () { bg.style.display = 'none'; };
+      bg.innerHTML = '<span class="tb-ullog-trap" tabindex="0" data-trap="start"></span>'
+        + '<div class="tb-ullog" role="dialog" aria-modal="true" aria-labelledby="tbUllogTitle" aria-describedby="tbUllogSub" tabindex="-1">'
+        + '<div class="tb-ullog-head">'
+        + '<span class="tb-ullog-ic" aria-hidden="true">' + ic('history', 20) + '</span>'
+        + '<div class="tb-ullog-htx">'
+        + '<p class="tb-ullog-eyebrow">Data \u00b7 Upload history</p>'
+        + '<h2 class="tb-ullog-title" id="tbUllogTitle">Update Data Log</h2>'
+        + '<p class="tb-ullog-sub" id="tbUllogSub">Every data upload, grouped by day (IST)</p>'
+        + '<div class="tb-ullog-meta" id="tbUllogMeta" aria-live="polite"></div>'
+        + '</div>'
+        + '<button type="button" class="tb-ullog-x" aria-label="Close" title="Close">' + ic('close', 18) + '</button></div>'
+        + '<div class="tb-ullog-body"><iframe title="Update Data Log"></iframe></div></div>'
+        + '<span class="tb-ullog-trap" tabindex="0" data-trap="end"></span>';
+      bg.addEventListener('click', function (e) { if (e.target === bg) tbUllogClose(); });
+      var xBtn = bg.querySelector('.tb-ullog-x');
+      xBtn.onclick = tbUllogClose;
+      // Focus trap: Tab past the iframe's last control lands on the end sentinel -> back to Close;
+      // Shift+Tab before Close lands on the start sentinel -> last control inside the iframe.
+      Array.prototype.forEach.call(bg.querySelectorAll('.tb-ullog-trap'), function (t) {
+        t.addEventListener('focus', function () {
+          if (t.getAttribute('data-trap') === 'end') { xBtn.focus(); return; }
+          var fr = bg.querySelector('iframe'), last = null;
+          try {
+            var els = fr.contentDocument.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])');
+            last = els.length ? els[els.length - 1] : null;
+          } catch (e) {}
+          if (last) last.focus(); else xBtn.focus();
+        });
+      });
       document.body.appendChild(bg);
     }
+    if (!tbUllogIsOpen(bg)) tbUllogLastFocus = document.activeElement;
+    var meta = document.getElementById('tbUllogMeta');
+    if (meta) meta.innerHTML = tbUllogChip('refresh', 'Loading\u2026');
     var fr = bg.querySelector('iframe');
     fr.setAttribute('src', 'data-log.html?embed=1&t=' + Date.now());
     bg.style.display = 'flex';
+    bg.classList.remove('is-open'); void bg.offsetWidth; bg.classList.add('is-open');
+    try { bg.querySelector('.tb-ullog-x').focus(); } catch (e) {}
   };
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { var m = document.getElementById('tbUploadLogModal'); if (m) m.style.display = 'none'; } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tbUllogClose(); });
   // Wire the "Clear" button + paint the header avatar / recent list for a freshly-built chrome.
   function tbhWireChrome() {
     tbhRenderHdrProf(); tbhRenderRecent();

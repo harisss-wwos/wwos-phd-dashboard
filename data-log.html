@@ -174,14 +174,109 @@ h1{color:#1b2026!important}
 .ul-chg.updated{border-left:3px solid #b5680c}
 .ul-chg.updated .ul-chg-n{color:#b5680c}
 @media(max-width:480px){.ul-change-grid{grid-template-columns:1fr}}
-/* ===== Embedded (index.html "View upload log" modal) overrides ===== */
-/* Hide the page title + description — the modal has its own header. */
+/* Embed-only extras (avatar, day icon tile, second-timezone chip, skeleton) stay hidden on the full page. */
+.log-av,.log-date-ic,.log-when-alt,.dl-sk{display:none}
+.log-role:empty{display:none}
+.log-spin{display:inline-block;width:14px;height:14px;margin-right:8px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .7s linear infinite;vertical-align:-2px}
+/* ===== Embedded ("Update Data Log" modal) — matches the .tbl-/.tbu- dialog language ===== */
+/* Hide the page title + description — the modal has its own navy hero header. */
+body.dl-embed{background:#fff!important;color:#1b2026;min-height:100vh;display:flex;flex-direction:column}
+html:has(body.dl-embed){background:#fff!important;scrollbar-gutter:auto}
+body.dl-embed .top-bar{display:none!important}
+/* Grid cards: let the single column shrink so long rows wrap instead of overflowing on phones. */
+body.dl-embed .log-date-section,body.dl-embed .log-session{grid-template-columns:minmax(0,1fr)}
+body.dl-embed .log-head,body.dl-embed .log-date-head{min-width:0}
 body.dl-embed #wrap>h1,body.dl-embed #wrap>.sub{display:none!important}
-body.dl-embed .wrap{margin:0!important;padding:16px 10px!important;max-width:none!important}
-/* "Load N more days" button: 5px radius, #c4def6 text on #2b66c1. */
-body.dl-embed .log-more .btn{background:#2b66c1!important;color:#c4def6!important;border:none!important;border-radius:5px!important;box-shadow:0 4px 14px -4px rgba(43,102,193,.5)!important}
-body.dl-embed .log-more .btn:hover{filter:brightness(1.08)!important}
-body.dl-embed .log-more .btn svg{color:#c4def6!important}
+body.dl-embed .wrap{flex:1 0 auto;display:flex;flex-direction:column;width:auto!important;margin:0!important;padding:18px 22px 0!important;max-width:none!important}
+body.dl-embed :is(button,a):focus-visible{outline:3px solid #f0a35a!important;outline-offset:2px}
+/* Loading skeleton (replaces the spinner line in the modal). */
+body.dl-embed .phd-load{display:none!important}
+body.dl-embed .dl-sk{display:flex;gap:12px;padding-left:24px}
+body.dl-embed .dl-sk .sk-date-row{height:58px;border-radius:12px}
+/* Vertical timeline of day cards. */
+body.dl-embed .log-timeline{position:relative;display:flex;flex-direction:column;gap:12px;padding-left:24px;margin-bottom:18px}
+body.dl-embed .log-timeline::before{content:"";position:absolute;left:7px;top:14px;bottom:14px;width:2px;border-radius:2px;background:#e6eaee}
+body.dl-embed .log-date-section{--day:#16a34a;--day-soft:rgba(22,163,74,.09);position:relative;overflow:visible!important;margin:0!important;background:#fff!important;border:1px solid #e6eaee!important;border-left:3px solid var(--day)!important;border-radius:12px!important;box-shadow:0 1px 2px rgba(16,24,40,.05),0 6px 16px -12px rgba(16,24,40,.18)}
+body.dl-embed .log-date-section::before{content:"";position:absolute;left:-25px;top:23px;width:12px;height:12px;box-sizing:border-box;border-radius:50%;background:#fff;border:3px solid var(--day);box-shadow:0 0 0 3px #fff}
+body.dl-embed .log-date-section.open::before{background:var(--day)}
+body.dl-embed .log-date-section.log-day-1{--day:#3b82f6;--day-soft:rgba(59,130,246,.09)}
+body.dl-embed .log-date-section.log-day-2{--day:#db2777;--day-soft:rgba(219,39,119,.08)}
+body.dl-embed .log-date-section.log-day-3{--day:#d97706;--day-soft:rgba(217,119,6,.09)}
+body.dl-embed .log-date-section.log-day-4{--day:#7c3aed;--day-soft:rgba(124,58,237,.08)}
+body.dl-embed .log-date-section.log-day-5{--day:#0891b2;--day-soft:rgba(8,145,178,.09)}
+body.dl-embed .log-date-head{gap:12px;min-height:60px;padding:12px 14px 12px 14px;border-radius:0 11px 11px 0}
+body.dl-embed .log-date-head:hover{background:var(--day-soft)!important}
+body.dl-embed .log-date-ic{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:34px;height:34px;border-radius:10px;background:var(--day-soft);color:var(--day)}
+body.dl-embed .log-date-title{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;font-size:.98em;font-weight:800;color:#1b2026!important}
+body.dl-embed .log-today-badge{margin:0!important;padding:3px 8px;border-radius:999px;font-size:.6em;font-weight:800;letter-spacing:.8px;color:#15803d!important;background:#ecfdf3!important;border:1px solid #bbe7cc}
+body.dl-embed .log-today-badge.log-yday-badge{color:#3d4753!important;background:#f2f4f7!important;border-color:#e2e7eb}
+body.dl-embed .log-date-meta{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:#f2f4f7;border:1px solid #e2e7eb;color:#3d4753!important;font-size:.76em;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.dl-embed .log-caret{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:30px;height:30px;margin-left:2px;border-radius:50%;background:#f2f4f7;color:#5c6773!important}
+body.dl-embed .log-date-body{gap:8px;padding:0 14px}
+body.dl-embed .log-date-section.open>.log-date-body{padding:0 14px 14px}
+/* One upload = a clean row card inside the day. */
+body.dl-embed .log-date-body .log-session{margin:0;background:#fff!important;border:1px solid #e9edf1!important;border-radius:10px!important;box-shadow:none!important}
+body.dl-embed .log-session>.log-head{position:relative;gap:8px 12px;padding:10px 54px 10px 12px;background:#fafbfc!important;border-bottom:1px solid transparent!important;border-radius:9px}
+body.dl-embed .log-session>.log-head:hover{background:#f3f5f8!important}
+body.dl-embed .log-session.open>.log-head{border-bottom-color:#eef1f4!important;border-radius:9px 9px 0 0}
+body.dl-embed .log-session>.log-head .log-caret{position:absolute;right:12px;top:50%;width:28px;height:28px;margin:-14px 0 0;background:#fff;border:1px solid #e6eaee}
+body.dl-embed .log-av{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1f2a40,#131a2a);color:#ffb26b;font-size:.84em;font-weight:800;box-shadow:inset 0 0 0 1px rgba(236,114,17,.4)}
+body.dl-embed .log-user{display:inline-flex;align-items:center;gap:8px;min-width:0;font-size:.92em;font-weight:700;color:#1b2026!important}
+body.dl-embed .log-role{margin:0!important;padding:2px 8px;border-radius:999px;font-size:.62em;letter-spacing:.6px;color:#b5560c!important;background:#fff4e8!important;border:1px solid #f7c99c}
+body.dl-embed .log-when{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:3px 10px 3px 3px;border-radius:999px;background:#fff;border:1px solid #e2e7eb;color:#3d4753!important;font-size:.76em;font-weight:600;line-height:1.3;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.dl-embed .log-when b.log-tz{padding:2px 7px;border-radius:999px;background:#131a2a;color:#ffb26b!important;font-size:.86em;font-weight:800;letter-spacing:.6px}
+body.dl-embed .log-tz-c{display:none}
+body.dl-embed .log-when.log-when-alt{display:inline-flex;margin-left:0;color:#5c6773!important}
+body.dl-embed .log-when.log-when-alt b.log-tz{background:#eef1f4;color:#3d4753!important}
+/* Expanded upload details: file row + stat tiles (added green, updated amber) + ticket chips. */
+body.dl-embed .log-session-body{gap:10px;padding:0 12px}
+body.dl-embed .log-session.open>.log-session-body{padding:12px}
+body.dl-embed .log-file{gap:10px;padding:8px 12px;border-radius:10px!important;background:#f7f9fb!important;border:1px solid #e6eaee!important}
+body.dl-embed .log-file-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:#fff;border:1px solid #e6eaee;font-size:.9em}
+body.dl-embed .log-quarter-block{padding:0!important;background:transparent!important;border:none!important}
+body.dl-embed .ul-change-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body.dl-embed .ul-chg{flex-direction:row;align-items:baseline;gap:10px;padding:10px 14px;border-radius:10px;background:#fff!important;border:1px solid #e6eaee!important;border-top:3px solid #98a2b3!important;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+body.dl-embed .ul-chg .ul-chg-n{font-size:1.45em;font-variant-numeric:tabular-nums}
+body.dl-embed .ul-chg.added{border-top-color:#16a34a!important;background:linear-gradient(180deg,#f0fdf4,#fff 75%)!important}
+body.dl-embed .ul-chg.added .ul-chg-n{color:#15803d}
+body.dl-embed .ul-chg.updated{border-top-color:#f59e0b!important;background:linear-gradient(180deg,#fffbeb,#fff 75%)!important}
+body.dl-embed .ul-chg.updated .ul-chg-n{color:#b45309}
+body.dl-embed .tk-chips{gap:6px}
+body.dl-embed .tk-chip{padding:3px 10px;border-radius:999px;background:#fff!important}
+body.dl-embed .tk-chip a{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.95em}
+/* Footer: pinned to the bottom of the modal body; muted note + primary orange action. */
+body.dl-embed .log-more{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:row-reverse;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:auto -22px 0!important;padding:12px 22px;text-align:left;background:rgba(255,255,255,.96);border-top:1px solid #e6eaee;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+body.dl-embed .log-more-note{margin:0!important;color:#5c6773!important;font-size:.8em}
+body.dl-embed #wrap .log-more .btn{height:40px;padding:0 18px;gap:8px;border-radius:10px!important;font-family:inherit;font-size:.88em;font-weight:700;background:linear-gradient(180deg,#c2570a,#a94a05)!important;color:#fff!important;border:1px solid #9a4100!important;box-shadow:0 10px 22px -12px rgba(236,114,17,.9),inset 0 1px 0 rgba(255,255,255,.18)!important;transition:filter .15s,transform .1s}
+body.dl-embed #wrap .log-more .btn:hover:not(:disabled){filter:brightness(1.08)}
+body.dl-embed #wrap .log-more .btn:active:not(:disabled){transform:translateY(1px)}
+body.dl-embed #wrap .log-more .btn svg{color:#fff!important}
+body.dl-embed #wrap .log-more .btn[aria-busy="true"]{cursor:progress;opacity:.9}
+body.dl-embed #wrap .log-more .btn:disabled:not([aria-busy="true"]){cursor:default;background:#f2f4f7!important;color:#667085!important;border-color:#e2e7eb!important;box-shadow:none!important}
+body.dl-embed #wrap .log-more .btn:disabled:not([aria-busy="true"]) svg{color:#16a34a!important}
+/* Empty + error states. */
+body.dl-embed .empty{margin-bottom:18px;border-radius:12px}
+body.dl-embed .gate{padding:40px 16px}
+body.dl-embed .gate h1{font-size:1.15em;margin-bottom:6px}
+body.dl-embed .log-err-ic{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin-bottom:12px;border-radius:12px;background:#fef3f2;border:1px solid #fecdca;color:#b42318}
+body.dl-embed #wrap .gate .btn{color:#fff!important;height:40px;padding:0 18px;gap:8px;border-radius:10px!important;font-weight:700;background:linear-gradient(180deg,#c2570a,#a94a05)!important;border:1px solid #9a4100!important}
+@media(max-width:560px){
+  body.dl-embed .wrap{padding:14px 12px 0!important}
+  body.dl-embed .log-more{margin:auto -12px 0!important;padding:10px 12px;flex-direction:column;align-items:stretch;text-align:center}
+  body.dl-embed #wrap .log-more .btn{justify-content:center}
+  body.dl-embed .log-timeline,body.dl-embed .dl-sk{padding-left:20px}
+  body.dl-embed .log-timeline::before{left:5px}
+  body.dl-embed .log-date-section::before{left:-23px}
+  body.dl-embed .log-date-ic{display:none}
+  body.dl-embed .log-date-head{padding:10px 10px 10px 12px;gap:8px}
+  body.dl-embed .log-when,body.dl-embed .log-when.log-when-alt{margin-left:40px}
+  body.dl-embed .ul-change-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  body.dl-embed *{transition:none!important}
+  body.dl-embed .shimmer::after{animation:none}
+  .log-spin{animation-duration:1.6s}
+}
 </style>
 </head>
 <body data-nav-active="data-log" data-back-href="app.html" data-back-label="Dashboard">
@@ -189,16 +284,24 @@ body.dl-embed .log-more .btn svg{color:#c4def6!important}
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 
-<div class="wrap" id="wrap"><h1>Update Data Log</h1><p class="sub" style="font-size:.9em;margin:4px 0 24px">History of data uploads to the live dashboard — who uploaded, when (IST), and what changed. Latest first.</p><div class="phd-load"><span class="phd-spin"></span> Loading upload history…</div></div>
+<div class="wrap" id="wrap"><h1>Update Data Log</h1><p class="sub" style="font-size:.9em;margin:4px 0 24px">History of data uploads to the live dashboard — who uploaded, when (IST), and what changed. Latest first.</p><div class="phd-load"><span class="phd-spin"></span> Loading upload history…</div><div class="log-skeleton dl-sk" role="status" aria-label="Loading upload history"><div class="shimmer sk-date-row"></div><div class="shimmer sk-date-row"></div><div class="shimmer sk-date-row"></div></div></div>
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=215"></script>
+<script src="topbar-auth.js?v=216"></script>
 <script>
 const A=window.PHDAuth;
+// Inline SVG icon helper (icons.js exposes window.icon).
+const ic=(n,s)=>(typeof window.icon==='function'?window.icon(n,s||15):'');
 // Embedded in the index.html "View upload log" modal? Tag the body so embed-only CSS applies
 // (hide the page title/description, restyle the load-more button).
 try{ if(/[?&]embed=1\b/.test(location.search) || window.self!==window.top) document.body.classList.add('dl-embed'); }catch(e){ document.body.classList.add('dl-embed'); }
+// Embedded: report the loaded window to the parent modal's header chips, and let Esc close it.
+function dlMeta(m){ try{ if(window.parent!==window && window.parent.PHDUploadLogMeta) window.parent.PHDUploadLogMeta(m); }catch(e){} }
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  try{ if(window.parent!==window && window.parent.PHDCloseUploadLog) window.parent.PHDCloseUploadLog(); }catch(_){}
+});
 
 // Format an ISO timestamp into a timezone label. Uses Intl with the IANA zone.
 function fmtTZ(iso,zone){
@@ -210,6 +313,14 @@ function fmtTZ(iso,zone){
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function gate(msg){document.getElementById('wrap').innerHTML='<div class="gate"><h1>Update Data Log</h1><p>'+msg+'</p><a class="btn" href="app.html">Go to Live Dashboard</a></div>';}
+// Fetch failure: error state with a Retry that re-requests the same day window.
+function failState(msg){
+  dlMeta({error:true});
+  document.getElementById('wrap').innerHTML='<div class="gate log-err" role="alert">'+
+    '<span class="log-err-ic" aria-hidden="true">'+(typeof ic==='function'?ic('alert-triangle',22):'!')+'</span>'+
+    '<h1>Couldn\u2019t load the data log</h1><p>'+esc(msg)+'</p>'+
+    '<button type="button" class="btn" id="logRetry" onclick="this.disabled=true;this.setAttribute(\'aria-busy\',\'true\');load(DAYS_LOADED)">'+(typeof ic==='function'?ic('refresh',15)+' ':'')+'Retry</button></div>';
+}
 
 function changeCells(cs){
   if(!cs)return '<div class="nochg">No change summary recorded for this upload.</div>';
@@ -276,7 +387,7 @@ function render(entries){
   let html='<h1>'+heading+'</h1><p class="sub">'+subText+'</p>';
   if(!entries.length){
     html+='<div class="empty">No '+(qid?('uploads recorded for '+esc(qid)+' yet.'):'uploads recorded yet.')+'</div>';
-    wrap.innerHTML=html;return;
+    wrap.innerHTML=html;dlMeta({days:DAYS_LOADED,uploads:0,tz:MY_TZ,hasMore:HAS_MORE});return;
   }
   // Group entries that belong to the SAME upload (same user + same timestamp) into one section.
   // A single upload can write both the live quarter and one or more past quarters — each is its
@@ -306,8 +417,13 @@ function render(entries){
 
   // Group sessions by upload DAY (in the user's timezone). Each day becomes a collapsible SECTION.
   const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const altTz=MY_TZ==='MST'?'IST':'MST'; // second-zone chip (shown in the modal only)
   const dayKey=(iso)=>{try{return new Date(iso).toLocaleDateString('en-CA',{timeZone:zone});}catch(e){return 'x';}};
   const todayKey=(()=>{try{return new Date().toLocaleDateString('en-CA',{timeZone:zone});}catch(e){return '';}})();
+  // Calendar day before todayKey (YYYY-MM-DD), for the YESTERDAY pill.
+  const ydayKey=(()=>{try{const d=new Date(todayKey+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10);}catch(e){return '';}})();
+  const icn=(n,s)=>(typeof ic==='function'?ic(n,s):'');
+  const caret='<span class="log-caret" aria-hidden="true">'+(typeof ic==='function'?ic('chevron-down',16):'▾')+'</span>';
   // Pretty day label, e.g. "11th Sep 2026".
   const ord=(n)=>{const s=['th','st','nd','rd'];const v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);};
   const dayLabel=(iso)=>{try{const d=new Date(iso);const parts=new Intl.DateTimeFormat('en-US',{timeZone:zone,day:'numeric',month:'short',year:'numeric'}).formatToParts(d);const get=(t)=>{const p=parts.find(x=>x.type===t);return p?p.value:'';};return ord(parseInt(get('day'),10))+' '+get('month')+' '+get('year');}catch(e){return iso;}};
@@ -325,15 +441,17 @@ function render(entries){
     return ''+
     '<div class="log-session">'+
       '<button type="button" class="log-head" aria-expanded="false" onclick="toggleSession(this)">'+
+        '<span class="log-av" aria-hidden="true">'+esc((String(g.user||'?').trim().charAt(0)||'?').toUpperCase())+'</span>'+
         '<span class="log-user">'+esc(g.user)+'<span class="log-role">'+esc(g.role||'')+'</span></span>'+
-        '<span class="log-when"><b>'+esc(MY_TZ)+':</b> '+fmtTZ(g.at,zone)+'</span>'+
-        '<span class="log-caret" aria-hidden="true">▾</span>'+
+        '<span class="log-when"><b class="log-tz">'+esc(MY_TZ)+'<span class="log-tz-c">:</span></b> <span class="log-tm">'+fmtTZ(g.at,zone)+'</span></span>'+
+        '<span class="log-when log-when-alt"><b class="log-tz">'+altTz+'</b> <span class="log-tm">'+fmtTZ(g.at,TZ_ZONE[altTz])+'</span></span>'+
+        caret+
       '</button>'+
       '<div class="log-session-body">'+fileMeta+items.map(quarterBlock).join('')+'</div>'+
     '</div>';
   }
 
-  html+=dayOrder.map(k=>{
+  html+='<div class="log-timeline">'+dayOrder.map(k=>{
     const dGroups=dayGroups[k];
     const isToday=(k===todayKey);
     const cnt=dGroups.length;
@@ -342,20 +460,24 @@ function render(entries){
     return ''+
     '<div class="log-date-section'+colorCls+'">'+
       '<button type="button" class="log-date-head" aria-expanded="false" onclick="toggleDateSection(this)">'+
-        '<span class="log-date-title">'+esc(dayLabel(dGroups[0].at))+(isToday?' <span class="log-today-badge">TODAY</span>':'')+'</span>'+
+        '<span class="log-date-ic" aria-hidden="true">'+icn('calendar',17)+'</span>'+
+        '<span class="log-date-title">'+esc(dayLabel(dGroups[0].at))+(isToday?' <span class="log-today-badge">TODAY</span>':(k===ydayKey?' <span class="log-today-badge log-yday-badge">YESTERDAY</span>':''))+'</span>'+
         '<span class="log-date-meta">'+cnt+' upload'+(cnt===1?'':'s')+'</span>'+
-        '<span class="log-caret" aria-hidden="true">▾</span>'+
+        caret+
       '</button>'+
       '<div class="log-date-body">'+dGroups.map(sessionCard).join('')+'</div>'+
     '</div>';
-  }).join('');
-  // "Load more" — only when the server signalled there are older days beyond the current window.
-  if(HAS_MORE && !qid){
-    html+='<div class="log-more"><button type="button" id="logLoadMore" class="btn" onclick="loadMoreDays()">'+
-      (typeof ic==='function'?ic('history',15)+' ':'')+'Load 2 more days</button>'+
+  }).join('')+'</div>';
+  // "Load more" — enabled only when the server signalled there are older days beyond the current
+  // window; otherwise the footer keeps a disabled "All uploads loaded" button.
+  if(!qid){
+    html+='<div class="log-more">'+(HAS_MORE
+      ?'<button type="button" id="logLoadMore" class="btn" onclick="loadMoreDays()">'+icn('history',15)+' Load 2 More Days</button>'
+      :'<button type="button" id="logLoadMore" class="btn" disabled>'+icn('check',15)+' All uploads loaded</button>')+
       '<p class="log-more-note">Showing the last '+DAYS_LOADED+' day'+(DAYS_LOADED===1?'':'s')+' of uploads.</p></div>';
   }
   wrap.innerHTML=html;
+  dlMeta({days:DAYS_LOADED,uploads:groups.length,tz:MY_TZ,hasMore:HAS_MORE});
 }
 
 // Owner-only: delete all log entries in a session (they share user+timestamp).
@@ -400,9 +522,11 @@ async function load(days){
   DAYS_LOADED=days||3;
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
   if(!_tzFetched){ try{MY_TZ=await A.myTimezone();}catch(e){} _tzFetched=true; }
-  const r=await A.api('GET','/api/data-log?days='+DAYS_LOADED);
+  let r;
+  try{ r=await A.api('GET','/api/data-log?days='+DAYS_LOADED); }
+  catch(e){ failState('The server could not be reached. Check your connection and try again.'); return; }
   if(r.status===401){gate('Session expired. Please log in again from the Live Dashboard.');return;}
-  if(!r.ok){gate('Could not load the data log (HTTP '+r.status+').');return;}
+  if(!r.ok){failState('Could not load the data log (HTTP '+r.status+').');return;}
   // New paginated shape { days, hasMore, entries }. (Tolerate the old bare-array shape too.)
   const data=r.data||{};
   const entries=Array.isArray(data)?data:(data.entries||[]);
@@ -412,7 +536,7 @@ async function load(days){
 // "Load more" — pull 2 additional days.
 function loadMoreDays(){
   const btn=document.getElementById('logLoadMore');
-  if(btn){ btn.disabled=true; btn.textContent='Loading…'; }
+  if(btn){ btn.disabled=true; btn.setAttribute('aria-busy','true'); btn.innerHTML='<span class="log-spin" aria-hidden="true"></span>Loading…'; }
   load(DAYS_LOADED+2);
 }
 load(3);
