@@ -151,6 +151,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .pc-card-body>.pc-line.pc-say{font-size:.98em;letter-spacing:0;text-transform:none;color:var(--ink);font-weight:700}
 .pc-card-body>.pc-line.pc-say::after{display:none}
 .pc-muted{color:var(--mut)}
+/* Section 7 hashtag summary: stat tiles + one chip per hashtag (replaces the long sentence). */
+.pc-hs{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.pc-hs-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pc-hs-stat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--line);border-top:3px solid #c8d0dc;border-radius:10px;background:#fff}
+.pc-hs-stat.t-blue{border-top-color:#3b6fe0}
+.pc-hs-stat.t-amber{border-top-color:var(--acc)}
+.pc-hs-stat.t-green{border-top-color:#1f9d57}
+.pc-hs-l{font-size:.72em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.pc-hs-n{font-size:1.6em;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.15}
+.pc-hs-s{font-size:.8em;color:var(--mut)}
+.pc-hs-cap{margin:0;font-size:.86em;font-weight:700;color:var(--ink)}
+.pc-hs-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.pc-hs-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:999px;background:#f7f9fc;font-size:.86em}
+.pc-hs-chip.is-top{border-color:#f7c99e;background:#fff4e9}
+.pc-hs-tag{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#1b2026;font-weight:600}
+.pc-hs-c{min-width:26px;padding:2px 8px;border-radius:999px;background:#1b2a3d;color:#fff;font-weight:800;font-size:.9em;text-align:center;font-variant-numeric:tabular-nums}
+.pc-hs-chip.is-top .pc-hs-c{background:var(--acc)}
+@media (max-width:600px){.pc-hs-stats{grid-template-columns:1fr}}
 .pc-warn{padding:10px 14px;border-radius:10px;background:var(--amber-bg);border:1px solid #f7d3b0;border-left:4px solid var(--acc);color:#6b3d05;font-weight:700}
 .pc-bullets{padding-left:20px}
 .pc-bullets li::marker{color:var(--acc)}
@@ -179,6 +197,64 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .pc-row-risk>:first-child{box-shadow:inset 3px 0 0 var(--acc)}
 .pc-row-breach>*{background:#fdf0ef!important}
 .pc-row-breach>:first-child{box-shadow:inset 3px 0 0 var(--red)}
+/* Section 3 (Issue Type Distribution): full-height table (no inner scroll bar), red "missing RCD" row,
+   slate-tinted "closed without agent work" group at the bottom under a thin labelled divider. */
+.pc-scroll.pc-full{max-height:none;overflow-y:visible}
+.pc-issue-tbl thead th{position:static}
+.pc-row-ic{display:inline-flex;align-items:center;flex-shrink:0}
+.pc-row-lbl{display:inline-flex;align-items:center;gap:8px}
+.pc-row-auto>*{background:#eef3fa!important}
+.pc-row-auto>:first-child{box-shadow:inset 3px 0 0 #7a93b8}
+.pc-row-auto .pc-row-ic{color:#4a6a9a}
+.pc-tbl tr.pc-grp-div>th{padding:7px 14px 5px;background:#fff!important;border-top:1px solid #cfd8e6;border-bottom:1px solid #e3e9f2;font-size:.72em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+.pc-tbl tr.pc-grp-div .pc-row-ic{display:inline-flex;vertical-align:-2px;margin-right:6px;color:#4a6a9a}
+.pc-tbl tbody tr.pc-grp-div:hover>*{background:#fff!important}
+.pc-row-miss{cursor:pointer}
+.pc-row-miss>*{background:var(--red-bg)!important}
+.pc-row-miss:hover>*{background:#fbdcdc!important}
+.pc-row-miss>:first-child{box-shadow:inset 3px 0 0 var(--red)}
+.pc-miss-btn{display:inline-flex;align-items:center;gap:8px;margin:-3px -6px;padding:3px 6px;border:none;border-radius:6px;background:none;color:var(--red);font-weight:800;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.pc-miss-btn:hover{background:rgba(180,35,24,.08)}
+/* Pager (10 per page) */
+.pc-pgbox>*+*{margin-top:10px}
+.pc-pager{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px}
+.pc-pager-info{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.pc-pager-btns{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.pc-pg-b{min-width:34px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#2a3340;font-size:.84em;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.pc-pg-b:hover:not(:disabled){border-color:#b9c3cf;background:#f5f6f8}
+.pc-pg-b.is-cur{background:#161d2d;border-color:#161d2d;color:#fff}
+.pc-pg-b:disabled{opacity:.45;cursor:not-allowed}
+.pc-pg-b:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.pc-pg-gap{padding:0 4px;color:var(--mut);font-weight:700}
+/* Missing Root Cause Details dialog: extends the shared .tbl-* shell (topbar-auth.js); 90vw, 96vw under 720px. */
+div.tbl-bg.pc-miss-bg{padding:2vw;background:rgba(9,14,26,.78)!important}
+.tbl-bg.pc-miss-bg .tbl-card.pc-miss-card{width:90vw!important;min-width:320px!important;max-width:none!important;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;border-radius:12px!important;font-family:'Inter',-apple-system,sans-serif}
+.tbl-card.pc-miss-card:focus{outline:none}
+.tbl-card.pc-miss-card .tbl-head.pc-miss-head{flex:0 0 auto;padding:20px 24px 18px 28px;border-bottom:0;box-shadow:inset 0 -3px 0 #ec7211}
+.tbl-card.pc-miss-card button.pc-miss-x{flex:0 0 auto;align-self:flex-start;width:36px;height:36px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.3);color:#e9edf3;cursor:pointer}
+.tbl-card.pc-miss-card button.pc-miss-x:hover{background:rgba(255,255,255,.14)}
+.pc-miss-body{flex:1 1 auto;min-height:0;overflow:auto;padding:18px 24px 14px;background:#fff;color:#1b2026}
+.pc-miss-body>*+*{margin-top:12px}
+.pc-miss-tblwrap{border:1px solid #e2e7eb;border-radius:10px;overflow:auto}
+.pc-miss-tbl{width:100%;min-width:640px;border-collapse:separate;border-spacing:0;font-size:.88em}
+.pc-miss-tbl thead th{position:sticky;top:0;z-index:1;padding:10px 14px;background:#f3f5f8;color:#4a5562;border-bottom:1px solid #e2e7eb;font-size:.74em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;text-align:left;white-space:nowrap}
+.pc-miss-tbl tbody th,.pc-miss-tbl td{padding:10px 14px;border-top:1px solid #eef1f4;text-align:left;vertical-align:top;color:#2a3340;font-weight:500}
+.pc-miss-tbl tbody tr:first-child>*{border-top:0}
+.pc-miss-tbl tbody tr:hover>*{background:#fff7f0}
+.pc-miss-tbl tbody th{white-space:nowrap}
+.pc-miss-tbl a{color:#0b6aa2;font-weight:700;text-decoration:none}
+.pc-miss-tbl a:hover{text-decoration:underline}
+.pc-miss-tbl .pc-nw{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pc-miss-title{overflow-wrap:anywhere}
+.pc-miss-empty{padding:36px 12px;text-align:center;color:#5c6773}
+.pc-miss-foot{flex:0 0 auto;display:flex;justify-content:flex-end;padding:12px 24px 16px;border-top:1px solid #eef1f4;background:#fff}
+.tbl-card.pc-miss-card button.tbl-cancel.pc-miss-close{width:auto;min-width:110px}
+.pc-miss-body .pc-pg-b{font-family:inherit}
+@media(max-width:719px){
+  .tbl-bg.pc-miss-bg .tbl-card.pc-miss-card{width:96vw!important}
+  .tbl-card.pc-miss-card .tbl-head.pc-miss-head{padding:16px 16px 14px 20px}
+  .pc-miss-body{padding:12px}
+}
 /* Proportional inline bar next to a number (aria-hidden; the number is the content). */
 .pc-barcell{display:inline-flex;align-items:center;justify-content:flex-end;gap:10px}
 .pc-bar{display:inline-block;width:92px;height:7px;border-radius:99px;background:#eef1f4;overflow:hidden;flex-shrink:0}
@@ -369,14 +445,18 @@ var PC_OPEN={};
 var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 // Collapsible section card with a chevron expander. The title span (.pc-card-title) holds exactly
 // "N. Title" so the Export text stays unchanged. aside (optional, already-escaped HTML) renders as a pill.
+// Sections shown on the page but left out of the Export (both the plain-text and the rich copy).
+var PC_NOEXPORT={7:true,8:true,10:true,11:true};
+// Sections whose header chip (aside, e.g. Section 9's 'As of ... UTC') stays on the page but not in the Export.
+var PC_ASIDE_NOEXPORT={9:true};
 function card(no,title,body,aside){
   var m=PC_SEC[no]||['info','blue',''], open=PC_OPEN[no]!==false, bid='pcB'+no;
-  return '<section class="pc-card t-'+m[1]+(open?'':' is-shut')+'" aria-labelledby="pcH'+no+'"><div class="pc-card-head">'+
+  return '<section class="pc-card t-'+m[1]+(open?'':' is-shut')+(PC_NOEXPORT[no]?' pc-noexport':'')+'" aria-labelledby="pcH'+no+'"><div class="pc-card-head">'+
     '<h2 class="pc-card-h"><button type="button" class="pc-exp" aria-expanded="'+open+'" aria-controls="'+bid+'" data-pc-exp="'+no+'">'+
       '<span class="pc-chev">'+CHEV+'</span><span class="pc-card-ic" aria-hidden="true">'+ic(m[0],18)+'</span>'+
       '<span class="pc-card-tt"><span class="pc-card-title" id="pcH'+no+'"><span class="pc-card-no">'+no+'.</span> '+title+'</span>'+
       (m[2]?'<span class="pc-card-sub">'+m[2]+'</span>':'')+'</span>'+
-    '</button></h2>'+(aside?'<span class="pc-head-aside">'+aside+'</span>':'')+'</div>'+
+    '</button></h2>'+(aside?'<span class="pc-head-aside'+(PC_ASIDE_NOEXPORT[no]?' pc-noexport':'')+'">'+aside+'</span>':'')+'</div>'+
     '<div class="pc-card-body" id="'+bid+'"'+(open?'':' hidden')+'>'+body+'</div></section>';
 }
 function pcToggle(btn){
@@ -474,65 +554,311 @@ function secKpis(D){
 }
 
 // ---- Section 3 ----
-function secTypes(D){
-  // Main table: the issues of the tickets resolved in the window (RootCauseDetails), already ordered count desc, issue A-Z.
-  // A payload without resolvedIssueCounts (older cache) falls back to the table's empty state.
-  var counts=Array.isArray(D.resolvedIssueCounts)?D.resolvedIssueCounts:[];
-  var mx=maxOf(counts,function(c){ return c.pct; });
-  var rows=counts.map(function(c){ return [esc(c.issue),num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx)]; });
-  return card(3,'Issue Type Distribution',table([{h:'Issue Type'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedTickets(D));
+// Rows come from D.resolvedIssueRows (server: 'Not specified' split by kind, normal rows count desc, then the
+// "closed without agent work" rows AUTO-SIM, Rule, Duplicate in that fixed order). An older payload without it
+// falls back to resolvedIssueCounts (every row kind 'issue').
+var PC_BOTTOM_KINDS=['autosim','rule','duplicate'];
+var PC_MISS_TIP='Resolved as Successful but SIM Root Cause Details is missing';
+function issueRowsOf(D){
+  if(Array.isArray(D.resolvedIssueRows)) return D.resolvedIssueRows;
+  return (Array.isArray(D.resolvedIssueCounts)?D.resolvedIssueCounts:[]).map(function(c){ return {issue:c.issue,count:c.count,pct:c.pct,kind:'issue'}; });
 }
-// Section 3, below the distribution: EVERY ticket resolved in the window with its issue. No cap, no "+N more".
+function secTypes(D){
+  var all=issueRowsOf(D), mx=maxOf(all,function(c){ return c.pct; });
+  var top=all.filter(function(c){ return PC_BOTTOM_KINDS.indexOf(c.kind)<0; });
+  var bottom=all.filter(function(c){ return PC_BOTTOM_KINDS.indexOf(c.kind)>=0; });
+  var row=function(c){
+    var bar=barNum(pct1(c.pct),(Number(c.pct)||0)/mx), lbl;
+    if(c.kind==='noRcd'){
+      lbl='<button type="button" class="pc-miss-btn" data-pc-miss aria-haspopup="dialog" title="'+esc(PC_MISS_TIP)+'">'+
+        '<span class="pc-row-ic" aria-hidden="true">'+ic('alert-triangle',14)+'</span><span>'+esc(c.issue)+'</span>'+
+        '<span class="pc-sr"> (warning: '+esc(PC_MISS_TIP)+'; opens ticket list)</span></button>';
+      return '<tr class="pc-row-miss" title="'+esc(PC_MISS_TIP)+'"><th scope="row">'+lbl+'</th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+    }
+    if(PC_BOTTOM_KINDS.indexOf(c.kind)>=0){
+      lbl='<span class="pc-row-lbl"><span class="pc-row-ic" aria-hidden="true">'+ic('bolt',14)+'</span><span>'+esc(c.issue)+'</span>'+
+        '<span class="pc-sr"> (closed without agent work)</span></span>';
+      return '<tr class="pc-row-auto"><th scope="row">'+lbl+'</th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+    }
+    return '<tr><th scope="row">'+esc(c.issue)+'</th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+  };
+  // Full-height table (no inner scroll box); the bottom group is a separate <tbody> under a labelled divider row.
+  var h='<div class="pc-scroll pc-full" role="region" aria-label="Issue Type, Count, Percentage table"><table class="pc-tbl pc-issue-tbl"><thead><tr>'+
+    '<th scope="col">Issue Type</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead><tbody>';
+  if(!all.length) h+='<tr class="pc-empty"><td colspan="3">None in this window</td></tr>';
+  h+=top.map(row).join('')+'</tbody>';
+  if(bottom.length) h+='<tbody class="pc-grp-auto"><tr class="pc-grp-div"><th scope="rowgroup" colspan="3"><span class="pc-row-ic" aria-hidden="true">'+ic('bolt',12)+'</span>Closed without agent work</th></tr>'+
+    bottom.map(row).join('')+'</tbody>';
+  h+='</table></div>';
+  return card(3,'Issue Type Distribution',h+resolvedTickets(D));
+}
+// Export only: the Issue Type Distribution with the FIRST 5 normal rows (count desc) followed by the
+// AUTO-SIM / Rule / Duplicate rows, in the same 3-column plain format as before (no divider, no ticket list).
+function secTypesExport(D){
+  var all=issueRowsOf(D), mx=maxOf(all,function(c){ return c.pct; });
+  var top=all.filter(function(c){ return PC_BOTTOM_KINDS.indexOf(c.kind)<0; }).slice(0,5);
+  var bottom=PC_BOTTOM_KINDS.map(function(k){ return all.filter(function(c){ return c.kind===k; })[0]; }).filter(Boolean);
+  var rows=top.concat(bottom).map(function(c){ return [esc(c.issue),num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx)]; });
+  return card(3,'Issue Type Distribution',table([{h:'Issue Type'},{h:'Count',n:true},{h:'Percentage',n:true}],rows));
+}
+// The export walks a substitute node for Sections 3, 4 and 5 (built from the data); every other section is the rendered DOM.
+function pcExportSec(sec){
+  var lb=sec?sec.getAttribute('aria-labelledby'):'';
+  if(!sec||(lb!=='pcH3'&&lb!=='pcH4'&&lb!=='pcH5'&&lb!=='pcH6')||!PC.data) return sec;
+  var d=document.createElement('div');
+  d.innerHTML=lb==='pcH3'?secTypesExport(PC.data):(lb==='pcH4'?secRootCausesExport(PC.data):(lb==='pcH5'?secResolutionsExport(PC.data):secAgentsExport(PC.data)));
+  return d.firstElementChild||sec;
+}
+
+// ---- Pagination (10 per page): Section 3 ticket list and the missing-RCD dialog ----
+var PC_PER=10;
+var PC_PG={};    // list id -> {page, sig}
+var PC_PGR={};   // list id -> function() returning the list's inner HTML for the current page
+function pcPageNums(cur,total){
+  if(total<=7){ var a=[]; for(var i=1;i<=total;i++) a.push(i); return a; }
+  var out=[1], lo=Math.max(2,cur-1), hi=Math.min(total-1,cur+1);
+  if(cur<=3){ lo=2; hi=4; } else if(cur>=total-2){ lo=total-3; hi=total-1; }
+  if(lo>2) out.push(0);
+  for(var j=lo;j<=hi;j++) out.push(j);
+  if(hi<total-1) out.push(0);
+  out.push(total);
+  return out;
+}
+// Current page for list `id`; resets to 1 when `sig` (the selection) changes or the page is out of range.
+function pcPageOf(id,sig,n){
+  var st=PC_PG[id], pages=Math.max(1,Math.ceil(n/PC_PER));
+  if(!st||st.sig!==sig){ st=PC_PG[id]={page:1,sig:sig}; }
+  if(st.page>pages) st.page=pages;
+  if(st.page<1) st.page=1;
+  return st.page;
+}
+function pcPager(id,page,n,label){
+  var pages=Math.max(1,Math.ceil(n/PC_PER)), from=n?(page-1)*PC_PER+1:0, to=Math.min(n,page*PC_PER);
+  var b=function(pg,txt,aria,dis,cur){
+    return '<button type="button" class="pc-pg-b'+(cur?' is-cur':'')+'" data-pg="'+pg+'" aria-label="'+esc(aria)+'"'+(cur?' aria-current="page"':'')+(dis?' disabled':'')+'>'+txt+'</button>';
+  };
+  var h='<nav class="pc-pager" aria-label="'+esc(label)+' pages" data-pg-for="'+esc(id)+'">'+
+    '<p class="pc-pager-info">Showing '+num(from)+'\u2013'+num(to)+' of '+num(n)+'</p>';
+  if(pages>1){
+    h+='<div class="pc-pager-btns">'+b('prev','Prev','Previous page',page<=1,false);
+    pcPageNums(page,pages).forEach(function(p){ h+=p?b(p,num(p),'Page '+p,false,p===page):'<span class="pc-pg-gap" aria-hidden="true">\u2026</span>'; });
+    h+=b('next','Next','Next page',page>=pages,false)+'</div>';
+  }
+  return h+'</nav>';
+}
+function pcRenderList(id){ var el=document.getElementById(id), f=PC_PGR[id]; if(el&&f) el.innerHTML=f(); }
+document.addEventListener('click',function(ev){
+  var t=ev.target&&ev.target.closest?ev.target.closest('.pc-pager [data-pg]'):null; if(!t||t.disabled) return;
+  var nav=t.closest('.pc-pager'), id=nav.getAttribute('data-pg-for'), st=PC_PG[id]; if(!st) return;
+  var v=t.getAttribute('data-pg');
+  st.page=v==='prev'?st.page-1:(v==='next'?st.page+1:(+v||1));
+  pcRenderList(id);
+  // Keep keyboard focus in the pager: the same control, or the current page when Prev/Next became disabled.
+  var box=document.getElementById(id), nb=box&&box.querySelector('.pc-pager [data-pg="'+v+'"]');
+  if(!nb||nb.disabled) nb=box&&box.querySelector('.pc-pager [aria-current="page"]');
+  if(nb) nb.focus();
+  pcAnnounce('Page '+st.page);
+});
+
+// Section 3, below the distribution: EVERY ticket resolved in the window with its issue row, 10 per page.
 // The ticket-level list is absent for viewers without SLA access (the issue table above stays).
-// Blocks are direct children of the card body so the plain-text export picks up every table row.
 function resolvedTickets(D){
   var list=Array.isArray(D.resolvedList)?D.resolvedList:null;
   if(D.resolvedDetailHidden) return '<p class="pc-muted">Ticket details require SLA access.</p>';
   if(!list||!list.length) return '';
-  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p>'+
-    table([{h:'#',n:true},{h:'Ticket ID'},{h:'Issue'},{h:'Closure Code'},{h:'Resolved (MST)'}],
-    list.map(function(t,i){ return [num(i+1),idLink(t.shortId,t.url),esc(t.issue),esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }));
+  var id='pcIssueTix', sig=String(D.reportDate||'')+'|'+list.length;
+  PC_PGR[id]=function(){
+    var page=pcPageOf(id,sig,list.length), s=(page-1)*PC_PER;
+    return table([{h:'#',n:true},{h:'Ticket ID'},{h:'Issue'},{h:'Closure Code'},{h:'Resolved (MST)'}],
+      list.slice(s,s+PC_PER).map(function(t,i){ return [num(s+i+1),idLink(t.shortId,t.url),esc(t.issueRow||t.issue),esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }))+
+      pcPager(id,page,list.length,'Resolved tickets');
+  };
+  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p><div class="pc-pgbox" id="'+id+'">'+PC_PGR[id]()+'</div>';
 }
 
-// ---- Section 4: Root Cause Distribution (same shape as Section 3) ----
-function secRootCauses(D){
-  // Main table: root cause of every ticket resolved in the window, already ordered count desc, cause A-Z. All rows, no "Other" grouping.
-  // A payload without resolvedRootCauseCounts (older cache) falls back to the table's empty state.
-  var counts=Array.isArray(D.resolvedRootCauseCounts)?D.resolvedRootCauseCounts:[];
-  var mx=maxOf(counts,function(c){ return c.pct; });
-  var rows=counts.map(function(c){ return [esc(c.cause),num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'blue')]; });
-  return card(4,'Root Cause Distribution',table([{h:'Root Cause'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedRootCauseTickets(D));
+// ---- Missing Root Cause Details dialog (only the 'Successful — no Root Cause Details' row opens it) ----
+var PC_DLG=null;   // {bg, ret}
+function pcMissTickets(D){
+  return (Array.isArray(D.resolvedList)?D.resolvedList:[]).filter(function(t){ return t.issueKind==='noRcd'; })
+    .slice().sort(function(a,b){ return String(b.resolvedAt).localeCompare(String(a.resolvedAt))||String(a.shortId).localeCompare(String(b.shortId)); });
 }
-// Section 4, below the distribution: EVERY ticket resolved in the window with its root cause. No cap, no "+N more".
+function pcMissOpen(){
+  var D=PC.data; if(!D||PC_DLG) return;
+  var row=issueRowsOf(D).filter(function(c){ return c.kind==='noRcd'; })[0], n=row?Number(row.count)||0:0;
+  var list=pcMissTickets(D), id='pcMissTix', sig=String(D.reportDate||'')+'|'+list.length+'|'+Date.now();
+  PC_PGR[id]=function(){
+    if(D.resolvedDetailHidden) return '<p class="pc-miss-empty">Ticket details require SLA access.</p>';
+    if(!list.length) return '<p class="pc-miss-empty">No tickets in this window.</p>';
+    var page=pcPageOf(id,sig,list.length), s=(page-1)*PC_PER;
+    return '<div class="pc-miss-tblwrap"><table class="pc-miss-tbl"><caption class="pc-sr">Tickets resolved as Successful without Root Cause Details, newest first</caption><thead><tr>'+
+      '<th scope="col">Ticket ID</th><th scope="col">Resolved By</th><th scope="col">Created Date (MST)</th><th scope="col">Resolved Date (MST)</th><th scope="col">Title</th></tr></thead><tbody>'+
+      list.slice(s,s+PC_PER).map(function(t){
+        var u=safeUrl(t.url);
+        return '<tr><th scope="row">'+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId)+'<span class="pc-sr"> (opens SIM in a new tab)</span></a>':esc(t.shortId))+'</th>'+
+          '<td>'+esc(t.resolvedBy||DASH)+'</td><td class="pc-nw">'+esc(t.createdAt?mstStamp(t.createdAt):DASH)+'</td><td class="pc-nw">'+esc(mstStamp(t.resolvedAt))+'</td>'+
+          '<td class="pc-miss-title">'+esc(t.title||DASH)+'</td></tr>';
+      }).join('')+'</tbody></table></div>'+pcPager(id,page,list.length,'Missing Root Cause Details tickets');
+  };
+  var bg=document.createElement('div');
+  bg.className='tbl-bg pc-miss-bg'; bg.style.display='flex';
+  bg.innerHTML='<div class="tbl-card pc-miss-card" role="dialog" aria-modal="true" aria-labelledby="pcMissTitle" aria-describedby="pcMissSub" tabindex="-1">'+
+    '<div class="tbl-head pc-miss-head"><span class="tbl-head-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span>'+
+      '<div class="tbl-head-tx"><p class="tbl-eyebrow">Pulse Check \u00b7 Missing Root Cause Details</p>'+
+      '<h2 class="tbl-title" id="pcMissTitle">'+esc(tix(n))+' resolved as Successful without Root Cause Details</h2></div>'+
+      '<button type="button" class="pc-miss-x" data-pc-miss-close aria-label="Close dialog">'+ic('close',18)+'</button>'+
+      '<p class="tbl-sub" id="pcMissSub">'+esc(PC_MISS_TIP)+' \u00b7 Reporting day '+esc(reportDayLong(D.reportDate))+' (MST) \u00b7 Newest resolved first</p></div>'+
+    '<div class="pc-miss-body" id="'+id+'">'+PC_PGR[id]()+'</div>'+
+    '<div class="pc-miss-foot"><button type="button" class="tbl-cancel pc-miss-close" data-pc-miss-close>Close</button></div></div>';
+  bg.addEventListener('mousedown',function(e){ if(e.target===bg) pcMissClose(); });
+  bg.addEventListener('keydown',pcMissKey);
+  PC_DLG={bg:bg,ret:document.activeElement,ov:document.body.style.overflow};
+  document.body.appendChild(bg);
+  document.body.style.overflow='hidden';
+  var first=bg.querySelector('.pc-miss-x'); if(first) first.focus();
+}
+function pcMissClose(){
+  if(!PC_DLG) return;
+  var d=PC_DLG; PC_DLG=null;
+  if(d.bg.parentNode) d.bg.parentNode.removeChild(d.bg);
+  document.body.style.overflow=d.ov||'';
+  var r=d.ret; if(!r||!document.contains(r)) r=document.querySelector('[data-pc-miss]');
+  if(r&&r.focus) r.focus();
+}
+function pcMissKey(e){
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); pcMissClose(); return; }
+  if(e.key!=='Tab') return;
+  var f=Array.prototype.filter.call(PC_DLG.bg.querySelectorAll('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'),function(x){ return x.offsetParent!==null; });
+  if(!f.length){ e.preventDefault(); return; }
+  var a=f[0], z=f[f.length-1];
+  if(e.shiftKey&&(document.activeElement===a||!PC_DLG.bg.contains(document.activeElement))){ e.preventDefault(); z.focus(); }
+  else if(!e.shiftKey&&(document.activeElement===z||!PC_DLG.bg.contains(document.activeElement))){ e.preventDefault(); a.focus(); }
+}
+document.addEventListener('click',function(ev){
+  var t=ev.target&&ev.target.closest?ev.target:null; if(!t) return;
+  if(t.closest('[data-pc-miss-close]')){ pcMissClose(); return; }
+  // The whole red row opens the dialog (the label cell holds the keyboard-operable button).
+  if(t.closest('tr.pc-row-miss')&&!t.closest('a')) pcMissOpen();
+});
+
+// ---- Section 4: Root Cause Distribution (same shape as Section 3) ----
+// Rows come from D.resolvedRootCauseRows (server: 'Not specified' split; normal rows count desc, then the single
+// 'na' row "Not Applicable/No Further Action Needed" last regardless of count). An older payload without it
+// falls back to resolvedRootCauseCounts (every row kind 'cause').
+var PC_RC_NA_TIP='Immediately resolved by AUTO-SIM or by Rule \u2014 RootCause set to Not Applicable/No Further Action Required';
+function rcRowsOf(D){
+  if(Array.isArray(D.resolvedRootCauseRows)) return D.resolvedRootCauseRows;
+  return (Array.isArray(D.resolvedRootCauseCounts)?D.resolvedRootCauseCounts:[]).map(function(c){ return {cause:c.cause,count:c.count,pct:c.pct,kind:'cause'}; });
+}
+function secRootCauses(D){
+  var all=rcRowsOf(D), mx=maxOf(all,function(c){ return c.pct; });
+  var top=all.filter(function(c){ return c.kind!=='na'; }), bottom=all.filter(function(c){ return c.kind==='na'; });
+  var row=function(c){
+    var bar=barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'blue');
+    if(c.kind==='na'){
+      var lbl='<span class="pc-row-lbl"><span class="pc-row-ic" aria-hidden="true">'+ic('bolt',14)+'</span><span>'+esc(c.cause)+'</span>'+
+        '<span class="pc-sr"> (closed without agent work: '+esc(PC_RC_NA_TIP)+')</span></span>';
+      return '<tr class="pc-row-auto" title="'+esc(PC_RC_NA_TIP)+'"><th scope="row">'+lbl+'</th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+    }
+    return '<tr><th scope="row">'+esc(c.cause)+'</th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+  };
+  // Full-height table (no inner scroll box); the 'na' row is a separate <tbody> under a labelled divider row.
+  var h='<div class="pc-scroll pc-full" role="region" aria-label="Root Cause, Count, Percentage table"><table class="pc-tbl pc-issue-tbl"><thead><tr>'+
+    '<th scope="col">Root Cause</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead><tbody>';
+  if(!all.length) h+='<tr class="pc-empty"><td colspan="3">None in this window</td></tr>';
+  h+=top.map(row).join('')+'</tbody>';
+  if(bottom.length) h+='<tbody class="pc-grp-auto"><tr class="pc-grp-div"><th scope="rowgroup" colspan="3"><span class="pc-row-ic" aria-hidden="true">'+ic('bolt',12)+'</span>Closed without agent work</th></tr>'+
+    bottom.map(row).join('')+'</tbody>';
+  h+='</table></div>';
+  return card(4,'Root Cause Distribution',h+resolvedRootCauseTickets(D));
+}
+// Export only: the Root Cause Distribution with the TOP 5 normal rows (count desc) in the same 3-column plain
+// format; the bottom 'Not Applicable/No Further Action Needed' row and the ticket list are not exported.
+function secRootCausesExport(D){
+  var all=rcRowsOf(D), mx=maxOf(all,function(c){ return c.pct; });
+  var rows=all.filter(function(c){ return c.kind!=='na'; }).slice(0,5)
+    .map(function(c){ return [esc(c.cause),num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'blue')]; });
+  return card(4,'Root Cause Distribution',table([{h:'Root Cause'},{h:'Count',n:true},{h:'Percentage',n:true}],rows));
+}
+// Section 4, below the distribution: EVERY ticket resolved in the window with its root cause row, 10 per page,
+// in table row order (the 'Not Applicable/No Further Action Needed' tickets last), then resolved time, ID.
 // Hidden for viewers without SLA access (the distribution table above stays).
 function resolvedRootCauseTickets(D){
-  var list=Array.isArray(D.resolvedList)?D.resolvedList:null;
+  var src=Array.isArray(D.resolvedList)?D.resolvedList:null;
   if(D.resolvedDetailHidden) return '<p class="pc-muted">Ticket details require SLA access.</p>';
-  if(!list||!list.length) return '';
-  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p>'+
-    table([{h:'#',n:true},{h:'Ticket ID'},{h:'Root Cause'},{h:'Closure Code'},{h:'Resolved (MST)'}],
-    list.map(function(t,i){ return [num(i+1),idLink(t.shortId,t.url),esc(t.rootCause||DASH),esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }));
+  if(!src||!src.length) return '';
+  var rk=function(t){ var k=t.rootCauseKind||'cause'; return k==='cause'?'cause:'+String(t.rootCauseRow||t.rootCause||'').toLowerCase():k; };
+  var ord={}; rcRowsOf(D).forEach(function(c,i){ ord[c.kind==='cause'?'cause:'+String(c.cause).toLowerCase():c.kind]=i; });
+  var at=function(t){ var v=ord[rk(t)]; return v===undefined?1e9:v; };
+  var list=src.slice().sort(function(a,b){ return at(a)-at(b)||String(a.resolvedAt).localeCompare(String(b.resolvedAt))||String(a.shortId).localeCompare(String(b.shortId)); });
+  var id='pcRcTix', sig=String(D.reportDate||'')+'|'+list.length;
+  PC_PGR[id]=function(){
+    var page=pcPageOf(id,sig,list.length), s=(page-1)*PC_PER;
+    return table([{h:'#',n:true},{h:'Ticket ID'},{h:'Root Cause'},{h:'Closure Code'},{h:'Resolved (MST)'}],
+      list.slice(s,s+PC_PER).map(function(t,i){ return [num(s+i+1),idLink(t.shortId,t.url),esc(t.rootCauseRow||t.rootCause||DASH),esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }))+
+      pcPager(id,page,list.length,'Root cause resolved tickets');
+  };
+  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p><div class="pc-pgbox" id="'+id+'">'+PC_PGR[id]()+'</div>';
 }
 
 // ---- Section 5: Resolution Distribution (same shape as Section 3 / 4) ----
+// Rows come from D.resolvedResolutionRows (server: 'Not specified' split; normal rows count desc, then the single
+// 'firstPet' row "First Pet Incident (Out of Scope)" last regardless of count). An older payload without it
+// falls back to resolvedResolutionCounts (every row kind 'res').
 // Long resolution texts wrap inside their cell (.pc-wrap) so the table never forces a horizontal scroll.
-function secResolutions(D){
-  // Main table: resolution (RootCauseDetails "Res:") of every ticket resolved in the window, already ordered count desc, resolution A-Z. All rows, no "Other" grouping.
-  // A payload without resolvedResolutionCounts (older cache) falls back to the table's empty state.
-  var counts=Array.isArray(D.resolvedResolutionCounts)?D.resolvedResolutionCounts:[];
-  var mx=maxOf(counts,function(c){ return c.pct; });
-  var rows=counts.map(function(c){ return ['<span class="pc-wrap">'+esc(c.resolution)+'</span>',num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'green')]; });
-  return card(5,'Resolution Distribution',table([{h:'Resolution'},{h:'Count',n:true},{h:'Percentage',n:true}],rows)+resolvedResolutionTickets(D));
+var PC_RES_FP_TIP='Immediately resolved by AUTO-SIM or by Rule \u2014 no Res line in SIM Root Cause Details';
+function resRowsOf(D){
+  if(Array.isArray(D.resolvedResolutionRows)) return D.resolvedResolutionRows;
+  return (Array.isArray(D.resolvedResolutionCounts)?D.resolvedResolutionCounts:[]).map(function(c){ return {resolution:c.resolution,count:c.count,pct:c.pct,kind:'res'}; });
 }
-// Section 5, below the distribution: EVERY ticket resolved in the window with its resolution. No cap, no "+N more".
+function secResolutions(D){
+  var all=resRowsOf(D), mx=maxOf(all,function(c){ return c.pct; });
+  var top=all.filter(function(c){ return c.kind!=='firstPet'; }), bottom=all.filter(function(c){ return c.kind==='firstPet'; });
+  var row=function(c){
+    var bar=barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'green');
+    if(c.kind==='firstPet'){
+      var lbl='<span class="pc-row-lbl"><span class="pc-row-ic" aria-hidden="true">'+ic('bolt',14)+'</span><span class="pc-wrap">'+esc(c.resolution)+'</span>'+
+        '<span class="pc-sr"> (closed without agent work: '+esc(PC_RES_FP_TIP)+')</span></span>';
+      return '<tr class="pc-row-auto" title="'+esc(PC_RES_FP_TIP)+'"><th scope="row">'+lbl+'</th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+    }
+    return '<tr><th scope="row"><span class="pc-wrap">'+esc(c.resolution)+'</span></th><td class="n">'+num(c.count)+'</td><td class="n">'+bar+'</td></tr>';
+  };
+  // Full-height table (no inner scroll box); the 'firstPet' row is a separate <tbody> under a labelled divider row.
+  var h='<div class="pc-scroll pc-full" role="region" aria-label="Resolution, Count, Percentage table"><table class="pc-tbl pc-issue-tbl"><thead><tr>'+
+    '<th scope="col">Resolution</th><th scope="col" class="n">Count</th><th scope="col" class="n">Percentage</th></tr></thead><tbody>';
+  if(!all.length) h+='<tr class="pc-empty"><td colspan="3">None in this window</td></tr>';
+  h+=top.map(row).join('')+'</tbody>';
+  if(bottom.length) h+='<tbody class="pc-grp-auto"><tr class="pc-grp-div"><th scope="rowgroup" colspan="3"><span class="pc-row-ic" aria-hidden="true">'+ic('bolt',12)+'</span>Closed without agent work</th></tr>'+
+    bottom.map(row).join('')+'</tbody>';
+  h+='</table></div>';
+  return card(5,'Resolution Distribution',h+resolvedResolutionTickets(D));
+}
+// Export only: the Resolution Distribution with the TOP 5 normal rows (count desc) in the same 3-column plain
+// format; the bottom 'First Pet Incident (Out of Scope)' row and the ticket list are not exported.
+function secResolutionsExport(D){
+  var all=resRowsOf(D), mx=maxOf(all,function(c){ return c.pct; });
+  var rows=all.filter(function(c){ return c.kind!=='firstPet'; }).slice(0,5)
+    .map(function(c){ return ['<span class="pc-wrap">'+esc(c.resolution)+'</span>',num(c.count),barNum(pct1(c.pct),(Number(c.pct)||0)/mx,'green')]; });
+  return card(5,'Resolution Distribution',table([{h:'Resolution'},{h:'Count',n:true},{h:'Percentage',n:true}],rows));
+}
+// Section 5, below the distribution: EVERY ticket resolved in the window with its resolution row, 10 per page,
+// in table row order (the 'First Pet Incident (Out of Scope)' tickets last), then resolved time, ID.
 // Hidden for viewers without SLA access (the distribution table above stays).
 function resolvedResolutionTickets(D){
-  var list=Array.isArray(D.resolvedList)?D.resolvedList:null;
+  var src=Array.isArray(D.resolvedList)?D.resolvedList:null;
   if(D.resolvedDetailHidden) return '<p class="pc-muted">Ticket details require SLA access.</p>';
-  if(!list||!list.length) return '';
-  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p>'+
-    table([{h:'#',n:true},{h:'Ticket ID'},{h:'Resolution'},{h:'Closure Code'},{h:'Resolved (MST)'}],
-    list.map(function(t,i){ return [num(i+1),idLink(t.shortId,t.url),'<span class="pc-wrap">'+esc(t.resolution||DASH)+'</span>',esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }));
+  if(!src||!src.length) return '';
+  var rk=function(t){ var k=t.resolutionKind||'res'; return k==='res'?'res:'+String(t.resolutionRow||t.resolution||'').toLowerCase():k; };
+  var ord={}; resRowsOf(D).forEach(function(c,i){ ord[c.kind==='res'?'res:'+String(c.resolution).toLowerCase():c.kind]=i; });
+  var at=function(t){ var v=ord[rk(t)]; return v===undefined?1e9:v; };
+  var list=src.slice().sort(function(a,b){ return at(a)-at(b)||String(a.resolvedAt).localeCompare(String(b.resolvedAt))||String(a.shortId).localeCompare(String(b.shortId)); });
+  var id='pcResTix', sig=String(D.reportDate||'')+'|'+list.length;
+  PC_PGR[id]=function(){
+    var page=pcPageOf(id,sig,list.length), s=(page-1)*PC_PER;
+    return table([{h:'#',n:true},{h:'Ticket ID'},{h:'Resolution'},{h:'Closure Code'},{h:'Resolved (MST)'}],
+      list.slice(s,s+PC_PER).map(function(t,i){ return [num(s+i+1),idLink(t.shortId,t.url),'<span class="pc-wrap">'+esc(t.resolutionRow||t.resolution||DASH)+'</span>',esc(t.closureCode||DASH),esc(mstStamp(t.resolvedAt))]; }))+
+      pcPager(id,page,list.length,'Resolution resolved tickets');
+  };
+  return '<p class="pc-line">Resolved Tickets ('+num(list.length)+')</p><div class="pc-pgbox" id="'+id+'">'+PC_PGR[id]()+'</div>';
 }
 
 // ---- Section 6 ----
@@ -555,7 +881,21 @@ function secAgents(D){
     b.push(line+'.');
   }
   return card(6,'Agent Performance \u2014 Resolved Tickets (Total: '+num(a.total)+')',
-    table([{h:'Agent'},{h:'Imm. Resolved',n:true},{h:'Successful',n:true},{h:'Total',n:true}],rows)+bullets(b));
+    // Full-height table (no inner scroll bar).
+    table([{h:'Agent'},{h:'Imm. Resolved',n:true},{h:'Successful',n:true},{h:'Total',n:true}],rows).replace('class="pc-scroll"','class="pc-scroll pc-full"')+
+    // On-page only: the AutoSIM / top-resolver notes are left out of the Export (pc-noexport).
+    bullets(b).replace('<ul class="pc-bullets">','<ul class="pc-bullets pc-noexport">'));
+}
+
+// Export only: Section 6 with PHD agents only (resolvers registered in the users collection; the server sets
+// row.phd). AutoSIM, Unknown and non-PHD resolvers are left out; the title total is the PHD agents' total.
+// The on-page notes (AutoSIM share / top resolver) are not exported.
+function secAgentsExport(D){
+  var a=D.agents||{rows:[]}, list=(a.rows||[]).filter(function(r){ return r.phd===true; });
+  var tot=list.reduce(function(s,r){ return s+(Number(r.total)||0); },0);
+  var rows=list.map(function(r){ return [esc(r.agent),num(r.immediate),num(r.successful),'<b>'+num(r.total)+'</b>']; });
+  return card(6,'Agent Performance \u2014 Resolved Tickets by PHD Agents (Total: '+num(tot)+')',
+    table([{h:'Agent'},{h:'Imm. Resolved',n:true},{h:'Successful',n:true},{h:'Total',n:true}],rows));
 }
 
 // ---- Section 7 ----
@@ -564,13 +904,28 @@ function secAgents(D){
 function hashtagSummary(D){
   var n=Number(D.kpis&&D.kpis.resolved)||0, rows=(D.hashtags&&D.hashtags.rows)||[];
   if(n<=0) return '';
-  var head=num(n)+(n===1?' ticket':' tickets')+' resolved';
-  if(!rows.length) return '<p class="pc-line pc-say">'+head+', none have a hashtag.</p>';
-  var parts=rows.map(function(r){ return num(r.count)+(Number(r.count)===1?' has':' have')+' &quot;'+esc(r.tag)+'&quot;'; });
-  var list=parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0];
-  var u=D.hashtags.resolvedUntagged, tail='';
-  if(typeof u==='number'&&u>0) tail=' '+num(u)+(u===1?' resolved ticket has':' resolved tickets have')+' no hashtag.';
-  return '<p class="pc-line pc-say">'+head+', in which '+list+'.'+tail+'</p>';
+  var u=D.hashtags.resolvedUntagged, hasU=(typeof u==='number');
+  var tagged=hasU?Math.max(0,n-u):null;
+  // Summary strip: resolved / tagged / no hashtag, then one chip per hashtag (count desc, as the rows come).
+  var stat=function(lbl,v,tone,sub){
+    return '<div class="pc-hs-stat t-'+tone+'"><span class="pc-hs-l">'+lbl+'</span><span class="pc-hs-n">'+v+'</span>'+(sub?'<span class="pc-hs-s">'+sub+'</span>':'')+'</div>';
+  };
+  var pctOfN=function(x){ return n>0?pct1(x/n*100):''; };
+  var h='<div class="pc-hs" role="group" aria-label="Hashtag summary">'+
+    '<div class="pc-hs-stats">'+
+      stat('Tickets resolved',num(n),'base','')+
+      (hasU?stat('With a hashtag',num(tagged),'blue',pctOfN(tagged)+' of resolved'):'')+
+      (hasU?stat('No hashtag',num(u),u>0?'amber':'green',pctOfN(u)+' of resolved'):'')+
+    '</div>';
+  if(rows.length){
+    h+='<p class="pc-hs-cap">Hashtags on the resolved tickets <span class="pc-muted">\u00b7 a ticket can carry more than one, so counts can add up to more than the total</span></p>'+
+      '<ul class="pc-hs-chips">'+rows.map(function(r,i){
+        var c=Number(r.count)||0;
+        return '<li class="pc-hs-chip'+(i===0?' is-top':'')+'" title="'+esc(r.tag)+': '+num(c)+(c===1?' ticket':' tickets')+' ('+pctOfN(c)+' of resolved)">'+
+          '<span class="pc-hs-tag">'+esc(r.tag)+'</span><span class="pc-hs-c">'+num(c)+'</span></li>';
+      }).join('')+'</ul>';
+  } else h+='<p class="pc-hs-cap">None of the resolved tickets have a hashtag.</p>';
+  return h+'</div>';
 }
 function secHashtags(D){
   var h=D.hashtags, b=[];
@@ -578,9 +933,10 @@ function secHashtags(D){
   var rows=h.rows.map(function(r){ return [esc(r.tag),barNum(num(r.count),(Number(r.count)||0)/hmx)]; });
   if(h.topTag) b.push(esc(h.topTag.tag)+' leads at '+pct1(h.topTag.sharePct)+(h.topTag.tag==='#out-of-scope'?' \u2014 review intake process for upstream filtering':'')+'.');
   if(h.unique>5&&h.top5SharePct!=null) b.push('Top 5 hashtags account for '+esc(h.top5SharePct)+'% of all tags.');
+  // Full-height table (no inner scroll bar). The whole section is on-page only (PC_NOEXPORT): not in the Export.
   return card(7,'Hashtag Analytics \u2014 Resolved Tickets',
     hashtagSummary(D)+
-    table([{h:'Hashtag'},{h:'Count',n:true}],rows)+bullets(b));
+    table([{h:'Hashtag'},{h:'Count',n:true}],rows).replace('class="pc-scroll"','class="pc-scroll pc-full"')+bullets(b));
 }
 
 // ---- Section 8: the day's hours split into three 8-hour blocks of the MST day ----
@@ -634,18 +990,26 @@ function secSla(D){
   var types=S.atRiskTypes.length?S.atRiskTypes.map(function(x){ return esc(x.type)+' ('+num(x.count)+')'; }).join(', '):DASH;
   // Agent = current assignee (older payloads lack the field -> DASH). The by-agent line is ticket-detail
   // level: omitted when the viewer has no SLA access or the payload predates it.
+  // On page only (pc-noexport): the three breakdown lines and the at-risk ticket list are left out of the Export.
   var byAgent=(!S.detailHidden&&Array.isArray(S.atRiskByAgent))?
-    '<p><b>At-Risk by Agent:</b> '+(S.atRiskByAgent.length?S.atRiskByAgent.map(function(x){ return esc(x.agent)+': '+num(x.count); }).join('  |  '):DASH)+'</p>':'';
-  var tRows=S.atRiskTop.map(function(t){ return [idLink(t.shortId,t.url),esc(t.agent||DASH),esc(shortStatus(t.status)),Number(t.ageDays).toFixed(1)+'d',esc(t.title)]; });
+    '<p class="pc-noexport"><b>At-Risk by Agent:</b> '+(S.atRiskByAgent.length?S.atRiskByAgent.map(function(x){ return esc(x.agent)+': '+num(x.count); }).join('  |  '):DASH)+'</p>':'';
+  // At-risk tickets: ALL of them (oldest first, as the server sends them), 10 per page, no Title column.
+  var list=S.atRiskTop||[], id='pcRiskTix', sig=String(D.reportDate||'')+'|'+list.length;
+  PC_PGR[id]=function(){
+    var page=pcPageOf(id,sig,list.length), s=(page-1)*PC_PER;
+    return table([{h:'#',n:true},{h:'ShortId'},{h:'Agent'},{h:'Status'},{h:'Age',n:true}],
+      list.slice(s,s+PC_PER).map(function(t,i){ return [num(s+i+1),idLink(t.shortId,t.url),esc(t.agent||DASH),esc(shortStatus(t.status)),Number(t.ageDays).toFixed(1)+'d']; }))
+      .replace('class="pc-scroll"','class="pc-scroll pc-full"')+
+      pcPager(id,page,list.length,'At-risk tickets');
+  };
   var detail=S.detailHidden?'<p class="pc-muted">Ticket details require SLA access.</p>':
-    (table([{h:'ShortId'},{h:'Agent'},{h:'Status'},{h:'Age',n:true},{h:'Title'}],tRows)+
-     (S.atRiskMore>0?'<p class="pc-muted">+ '+num(S.atRiskMore)+' more at-risk '+(S.atRiskMore===1?'ticket':'tickets')+'.</p>':''));
+    '<div class="pc-pgbox" id="'+id+'">'+PC_PGR[id]()+'</div>';
   return card(9,'SLA Health \u2014 Open Ticket Aging &amp; At-Risk Cases',
-    '<p class="pc-line pc-say">'+num(S.open)+' Open '+(S.open===1?'Ticket':'Tickets')+'  |  '+tix(S.atRisk)+' in 7\u201310 day danger zone  |  '+num(S.breached)+' currently breached</p>'+
+    '<p class="pc-line pc-say pc-noexport">'+num(S.open)+' Open '+(S.open===1?'Ticket':'Tickets')+'  |  '+tix(S.atRisk)+' in 7\u201310 day danger zone  |  '+num(S.breached)+' currently breached</p>'+
     table([{h:'Age Bucket'},{h:'Count',n:true}],bRows)+
-    '<p><b>At-Risk Breakdown:</b> '+byStatus+'</p>'+byAgent+
-    '<p><b>Top Severity Types at Risk:</b> '+types+'</p>'+
-    '<p class="pc-line">At-Risk Tickets (Top 10 by Age):</p>'+detail,
+    '<p class="pc-noexport"><b>At-Risk Breakdown:</b> '+byStatus+'</p>'+byAgent+
+    '<p class="pc-noexport"><b>Top Severity Types at Risk:</b> '+types+'</p>'+
+    '<p class="pc-line pc-noexport">At-Risk Tickets ('+num(list.length)+', oldest first)</p><div class="pc-noexport">'+detail+'</div>',
     'As of '+esc(utcStamp(S.asOf))+' UTC \u00b7 Backlog = current open tickets, aged at the window end.');
 }
 
@@ -710,8 +1074,8 @@ function hero(D,failed){
       '<span class="pc-hero-ic" aria-hidden="true">'+ic('line-chart',24)+'</span>'+
       '<div style="min-width:0">'+
         '<div class="pc-eyebrow">Pulse check \u00b7 24h flash report</div>'+
-        '<h1>PHD Operational Pulse Check</h1>'+
-        '<p class="pc-hero-sub">Potential Harm to Driver \u2014 GSOC. '+esc((failed&&!D)?'The latest report is unavailable right now.':L.report)+(D?' (MST day).':'')+'</p>'+
+        '<h1>WWOS GSOC PHD Operational Pulse Check</h1>'+
+        '<p class="pc-hero-sub">'+esc((failed&&!D)?'The latest report is unavailable right now.':L.report)+(D?' (MST day).':'')+'</p>'+
         '<ul class="pc-chips">'+
           '<li class="pc-chip">'+ic('calendar',14)+'<span class="pc-chip-l">Report day</span><b>'+day+'</b></li>'+
           '<li class="pc-chip">'+ic('clock',14)+'<span class="pc-chip-l">Generated</span><b>'+gen+'</b></li>'+
@@ -732,6 +1096,11 @@ function pcCellsText(tr){ return Array.prototype.map.call(tr.children,function(c
 // Export only: prose is copied as bullets. Splits a paragraph into sentences at '. ' + uppercase letter/digit,
 // except inside parentheses or after an abbreviation (e.g., vs., dotted initials); decimals like 7.5 and 'w/o' never match.
 var PC_ABBR=/^(?:e\.g|i\.e|vs|approx|incl|dr|mr|mrs|ms|inc|ltd|(?:[a-z]\.)+[a-z])$/i;
+// Executive Summary sentences that stay on the page but are left out of the Export.
+var PC_EXEC_NOEXPORT=[/^Resolution rate:/i];
+function pcExecExportSentences(text){
+  return pcSentences(text).filter(function(s){ return !PC_EXEC_NOEXPORT.some(function(re){ return re.test(s); }); });
+}
 function pcSentences(text){
   var s=String(text==null?'':text).replace(/\s+/g,' ').trim(), out=[], depth=0, start=0;
   for(var i=0;i<s.length;i++){
@@ -754,6 +1123,7 @@ function pcIsSubHead(el){
 }
 function pcBlockText(el,out){
   var tx=function(n){ return (n?n.textContent:'').replace(/\s+/g,' ').trim(); };
+  if(el.classList&&el.classList.contains('pc-noexport')) return;   // on-page only
   if(el.classList&&el.classList.contains('pc-actions')){
     el.querySelectorAll('.pc-act').forEach(function(a){
       var b=a.querySelector('.pc-badge'), h=a.querySelector('h3'), p=a.querySelector('p');
@@ -770,20 +1140,22 @@ function pcBlockText(el,out){
   if(el.tagName==='UL'){ el.querySelectorAll('li').forEach(function(li){ out.push('\u25cf '+tx(li)); }); return; }
   var t=tx(el); if(!t) return;
   if(pcIsSubHead(el)){ out.push(t); return; }
-  if(el.id==='pcExec') pcSentences(t).forEach(function(s){ out.push('\u25cf '+s); });
+  if(el.id==='pcExec') pcExecExportSentences(t).forEach(function(s){ out.push('\u25cf '+s); });
   else out.push('\u25cf '+t);
 }
 function pcExportText(){
   var D=PC.data; if(!D) return '';
   var L=heroLines(D);
-  var out=['PHD Operational Pulse Check',L.report,'Potential Harm to Driver \u2014 GSOC'];
+  var out=['WWOS GSOC PHD Operational Pulse Check',L.report];
   var w=wrap();
   w.querySelectorAll(':scope > .pc-banner, :scope > .pc-note').forEach(function(n){ out.push(''); pcBlockText(n,out); });
   w.querySelectorAll('section.pc-card').forEach(function(sec){
+    if(sec.classList.contains('pc-noexport')) return;   // on-page only section (e.g. 7. Hashtag Analytics)
+    sec=pcExportSec(sec);
     out.push('');
     var h=sec.querySelector('.pc-card-head .pc-card-title'), aside=sec.querySelector('.pc-head-aside');
     out.push(h?h.textContent.replace(/\s+/g,' ').trim():'');
-    if(aside&&aside.textContent.trim()) out.push('\u25cf '+aside.textContent.replace(/\s+/g,' ').trim());
+    if(aside&&!aside.classList.contains('pc-noexport')&&aside.textContent.trim()) out.push('\u25cf '+aside.textContent.replace(/\s+/g,' ').trim());
     var body=sec.querySelector('.pc-card-body');
     if(body) Array.prototype.forEach.call(body.children,function(c){ pcBlockText(c,out); });
   });
@@ -800,6 +1172,14 @@ var PC_H3='margin:12px 0 4px;'+PC_FONT+'font-size:14px;font-weight:bold;color:#1
 var PC_GAP='<div style="height:8px;line-height:8px;font-size:8px">&nbsp;</div>';
 // Left indent of copied tables (matches the bullet lists' 20px + a little breathing room).
 var PC_TBL_INDENT='margin:4px 0 10px 28px;padding:0;';
+// Email-safe left padding for copied tables / table images. Outlook ignores margins on <div>/<img>, so the
+// indent is a fixed-width spacer cell in a layout table (works in Outlook, Gmail and the browser).
+var PC_TBL_PAD=32;
+function pcIndentWrap(body){
+  return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:0;margin:4px 0 10px 0">'+
+    '<tr><td width="'+PC_TBL_PAD+'" style="width:'+PC_TBL_PAD+'px;min-width:'+PC_TBL_PAD+'px;padding:0;border:0;font-size:1px;line-height:1px">&nbsp;</td>'+
+    '<td style="padding:0;border:0;vertical-align:top">'+body+'</td></tr></table>';
+}
 // Never exported: controls, icons, hidden / aria-only content, the inline status line and the live countdown.
 function pcSkip(el){
   var t=String(el.tagName||'').toUpperCase();
@@ -807,7 +1187,7 @@ function pcSkip(el){
   if(el.hidden||el.getAttribute('aria-hidden')==='true') return true;
   if(el.style&&(el.style.display==='none'||el.style.visibility==='hidden')) return true;
   var c=el.classList;
-  if(c&&(c.contains('pc-inline')||c.contains('pc-countdown')||c.contains('sr-only')||c.contains('visually-hidden'))) return true;
+  if(c&&(c.contains('pc-inline')||c.contains('pc-countdown')||c.contains('pc-noexport')||c.contains('sr-only')||c.contains('visually-hidden'))) return true;
   return el.id==='pcStatus'||el.id==='pcNextLine'||el.id==='pcCountdown';
 }
 function pcAbsUrl(u){
@@ -867,7 +1247,7 @@ function pcTable(tbl){
 var pcTblQ=null, pcCurTitle='';
 function pcTableOut(tbl){
   if(pcTblQ){ pcTblQ.push({tbl:tbl,title:pcCurTitle}); return '<!--PCTBL'+(pcTblQ.length-1)+'-->'; }
-  return '<div style="'+PC_TBL_INDENT+'">'+pcTable(tbl)+PC_GAP+'</div>';
+  return pcIndentWrap(pcTable(tbl)+PC_GAP);
 }
 function pcParaStyle(el){
   var c=el.classList, st=PC_P;
@@ -917,14 +1297,14 @@ function pcBlockHtml(n){
   if(!n.textContent.trim()) return '';
   var inner=pcInline(n).trim();
   if(pcIsSubHead(n)) return '<h3 style="'+PC_H3+'">'+inner+'</h3>';
-  if(n.id==='pcExec') return pcSentences(n.textContent).map(function(s){ return pcLi(esc(s)); }).join('');
+  if(n.id==='pcExec') return pcExecExportSentences(n.textContent).map(function(s){ return pcLi(esc(s)); }).join('');
   return pcLi(inner);
 }
 function pcSectionHtml(sec){
   var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('.pc-card-title'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
   pcCurTitle=h2?h2.textContent.replace(/\s+/g,' ').trim():'';
   var h='<h2 style="margin:20px 0 6px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+esc(pcCurTitle)+'</h2>';
-  if(aside&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
+  if(aside&&!pcSkip(aside)&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
   if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
   return h;
 }
@@ -938,13 +1318,12 @@ function pcExportHtmlBuild(){
   var D=PC.data, w=wrap(); if(!D||!w) return '';
   var root=w.cloneNode(true), L=heroLines(D);
   var h='<div style="'+PC_FONT+'font-size:13px;color:#2a3340">'+
-    '<h1 style="margin:0 0 4px;'+PC_FONT+'font-size:20px;font-weight:bold;color:#1a2230">PHD Operational Pulse Check</h1>'+
-    '<p style="margin:0 0 2px;'+PC_FONT+'font-size:14px;font-weight:bold;color:#2a3340">'+esc(L.report)+'</p>'+
-    '<p style="margin:0 0 12px;'+PC_FONT+'font-size:13px;color:#5b6676">Potential Harm to Driver \u2014 GSOC</p>';
+    '<h1 style="margin:0 0 4px;'+PC_FONT+'font-size:20px;font-weight:bold;color:#1a2230">WWOS GSOC PHD Operational Pulse Check</h1>'+
+    '<p style="margin:0 0 12px;'+PC_FONT+'font-size:14px;font-weight:bold;color:#2a3340">'+esc(L.report)+'</p>';
   Array.prototype.forEach.call(root.children,function(el){
     if(pcSkip(el)) return;
     var c=el.classList;
-    if(String(el.tagName).toUpperCase()==='SECTION'&&c.contains('pc-card')) h+=pcSectionHtml(el);
+    if(String(el.tagName).toUpperCase()==='SECTION'&&c.contains('pc-card')) h+=pcSectionHtml(pcExportSec(el));
     else if(c.contains('pc-banner')||c.contains('pc-note')) h+=pcBlockHtml(el);
   });
   return pcMergeBullets(h)+'</div>';
@@ -1138,7 +1517,7 @@ async function pcImagesHtml(html,queue){
     var body;
     try{ body=pcTableImages(it.tbl,it.title,measure); }
     catch(e){ body=pcTable(it.tbl)+PC_GAP; }
-    return '<div style="'+PC_TBL_INDENT+'">'+body+'</div>';
+    return pcIndentWrap(body);
   });
 }
 // Fallback 1: select the HTML in an off-screen contenteditable div and run the browser's copy command.
@@ -1297,7 +1676,8 @@ function excludedNote(D){
 function renderReport(D){
   var k=D.kpis;
   var banner=(k.created===0&&k.resolved===0)?'<div class="pc-banner" role="note">No tickets created or resolved in this window.'+(D.latestCreateDate?' Latest ticket in the dataset was created '+esc(fmtLong(D.latestCreateDate))+'.':'')+'</div>':'';
-  wrap().innerHTML=hero(D)+kpiStrip(D)+toolbar()+excludedNote(D)+banner+
+  // The skipped-documents note (excludedNote) is no longer shown on the page or in the Export.
+  wrap().innerHTML=hero(D)+kpiStrip(D)+toolbar()+banner+
     secExec(D)+secKpis(D)+secTypes(D)+secRootCauses(D)+secResolutions(D)+secAgents(D)+
     secHashtags(D)+secHourly(D)+secSla(D)+secBreaches(D)+secActions(D);
   document.getElementById('pcExec').textContent=execText(D);

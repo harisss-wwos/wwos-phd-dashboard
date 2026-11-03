@@ -110,11 +110,31 @@ function resolutionFromRcd(rcd) {
   return (!v || /^(n\/?a|none|null|unknown|-+|\u2014)$/i.test(v)) ? ISSUE_NOT_SPECIFIED : v;
 }
 
+// Section 3 (Issue Type Distribution) split of the 'Not specified' bucket: row label per resolvedList issueKind.
+const ISSUE_SPLIT_LABELS = {
+  autosim: 'Imm. Resolved by AUTO-SIM',
+  rule: 'Imm. Resolved by Rule',
+  duplicate: 'Duplicate',
+  noRcd: 'Successful \u2014 no Root Cause Details',
+  notSpecified: ISSUE_NOT_SPECIFIED,
+};
+// "Closed without agent work" kinds, always listed last in this order.
+const ISSUE_BOTTOM_KINDS = ['autosim', 'rule', 'duplicate'];
+const ISSUE_RULE_CODES = ['immediately resolved', 'automatically closed'];
+
 const ROOT_CAUSE_NOT_SPECIFIED = 'Not specified';
+// Section 4 (Root Cause Distribution) split of the 'Not specified' bucket: N/A-style RootCause tickets closed
+// without agent work (AutoSIM resolver or a Rule closure code) form one bottom row; the rest stay 'Not specified'.
+const ROOT_CAUSE_NA_LABEL = 'Not Applicable/No Further Action Needed';
 function isNaCause(rc) {
   const s = str(rc).trim().toLowerCase();
   return s === '' || s === 'n/a' || s === 'na' || s.startsWith('not applicable') || s.includes('no further action');
 }
+
+// Section 5 (Resolution Distribution) split of the 'Not specified' bucket (no usable RCD "Res:" line): tickets
+// closed without agent work (AutoSIM resolver or a Rule closure code, the same test as the Section 4 'na' row)
+// form one bottom row; the rest (Duplicate, Successful without a Res line, ...) stay 'Not specified'.
+const RESOLUTION_FIRST_PET_LABEL = 'First Pet Incident (Out of Scope)';
 
 function computePulseReport(input, deps) {
   // The window always ends on a whole UTC hour (input.end is floored; input.start is ignored and
@@ -130,6 +150,24 @@ function computePulseReport(input, deps) {
   const excluded = { createdNoId: 0, resolvedNoId: 0, openNoId: 0, createdNoDate: 0, resolvedNoDate: 0, openNoDate: 0 };
   const isAutosim = t => str(t.ResolvedByIdentity).trim() === deps.AUTOSIM_IDENTITY;
   const cc = t => str(t.ClosureCode).trim().toLowerCase();
+  // Section 3 split of a 'Not specified' issue, same precedence as the resolutions.html cards:
+  // AutoSIM resolver -> Rule closure (Immediately Resolved / Automatically Closed) -> Duplicate ->
+  // Successful with an empty RCD or no Issue line -> still 'notSpecified'. A real issue -> 'issue'.
+  // deps.isAutosimResolver / deps.isRuleClosure are server.js perfIsAutosimResolver / perfIsRuleClosure.
+  const isAutosimRes = t => (deps.isAutosimResolver ? deps.isAutosimResolver(t.ResolvedByIdentity) : isAutosim(t));
+  const isRuleCode = t => (deps.isRuleClosure ? deps.isRuleClosure(t.ClosureCode) : ISSUE_RULE_CODES.includes(cc(t)));
+  const issueKindOf = (t, issue) => {
+    if (issue !== ISSUE_NOT_SPECIFIED) return 'issue';
+    if (isAutosimRes(t)) return 'autosim';
+    if (isRuleCode(t)) return 'rule';
+    const c = cc(t).replace(/\s+/g, ' ');
+    if (c === 'duplicate') return 'duplicate';
+    if (c === 'successful') {
+      const rcd = rcdPlain(t.RootCauseDetails);
+      if (!rcd.trim() || !RCD_ISSUE_RE.test(rcd)) return 'noRcd';
+    }
+    return 'notSpecified';
+  };
   const tagsOf = t => {
     const raw = (str(t.Labels).match(deps.HASHTAG_TOKEN_RE) || [])
       .concat(Array.isArray(t.ManualHashtags) ? t.ManualHashtags : []);
@@ -268,6 +306,10 @@ function computePulseReport(input, deps) {
     if (g) g.count++; else causeMap.set(k, { cause: disp, count: 1 });
   });
   const rootCauseOf = d => (isNaCause(d.RootCause) ? ROOT_CAUSE_NOT_SPECIFIED : causeMap.get(str(d.RootCause).trim().toLowerCase()).cause);
+  // 'cause' (a real RootCause) | 'na' (N/A RootCause + AutoSIM resolver or Rule closure) | 'notSpecified' (other N/A).
+  const rootCauseKindOf = d => (!isNaCause(d.RootCause) ? 'cause' : ((isAutosimRes(d) || isRuleCode(d)) ? 'na' : 'notSpecified'));
+  // 'res' (a real Res line) | 'firstPet' (no Res line + AutoSIM resolver or Rule closure) | 'notSpecified' (other).
+  const resolutionKindOf = (d, res) => (res !== ISSUE_NOT_SPECIFIED ? 'res' : ((isAutosimRes(d) || isRuleCode(d)) ? 'firstPet' : 'notSpecified'));
 
   // ---- Resolved tickets by issue (RootCauseDetails "Issue:"); EVERY resolved ticket, no cap ----
   // Issues are grouped case-insensitively and shown with the first-seen spelling.
@@ -278,16 +320,58 @@ function computePulseReport(input, deps) {
     if (!issueDisp.has(k)) issueDisp.set(k, issue);
     const res = resolutionFromRcd(r.d.RootCauseDetails), rk = res.toLowerCase();
     if (!resDisp.has(rk)) resDisp.set(rk, res);
-    return { shortId: r.id, url: urlOf(r.d, r.id), issue: issueDisp.get(k), rootCause: rootCauseOf(r.d), resolution: resDisp.get(rk), closureCode: str(r.d.ClosureCode).trim(), resolvedAt: new Date(r.rd).toISOString() };
+    const kind = issueKindOf(r.d, issue), rcKind = rootCauseKindOf(r.d), resKind = resolutionKindOf(r.d, res);
+    return { shortId: r.id, url: urlOf(r.d, r.id), issue: issueDisp.get(k), rootCause: rootCauseOf(r.d), resolution: resDisp.get(rk), closureCode: str(r.d.ClosureCode).trim(), resolvedAt: new Date(r.rd).toISOString(),
+      issueKind: kind, issueRow: kind === 'issue' ? issueDisp.get(k) : ISSUE_SPLIT_LABELS[kind],
+      rootCauseKind: rcKind, rootCauseRow: rcKind === 'na' ? ROOT_CAUSE_NA_LABEL : rootCauseOf(r.d),
+      resolutionKind: resKind, resolutionRow: resKind === 'firstPet' ? RESOLUTION_FIRST_PET_LABEL : resDisp.get(rk),
+      resolvedBy: agentOf(r.d), createdAt: r.cd === null ? null : new Date(r.cd).toISOString(), title: str(r.d.Title) };
   }).sort((a, b) => a.issue.localeCompare(b.issue) || a.resolvedAt.localeCompare(b.resolvedAt) || a.shortId.localeCompare(b.shortId));
   const resolvedIssueCounts = Array.from(groupCount(resolvedList, x => x.issue), ([issue, count]) => ({ issue, count, pct: pctOf(count, nResolved) }))
     .sort(byCountThenName('issue'));
+  // Section 3 table rows with 'Not specified' split (resolvedIssueCounts above is unchanged for other consumers).
+  // Normal rows (real issues + 'noRcd' + remaining 'notSpecified') sorted count desc, name A-Z; then the
+  // "closed without agent work" rows in a FIXED order (autosim, rule, duplicate) regardless of count.
+  // Counts sum to nResolved; zero-count rows are omitted.
+  const issueRowMap = new Map();
+  resolvedList.forEach(x => {
+    const key = x.issueKind === 'issue' ? 'issue:' + x.issueRow.toLowerCase() : x.issueKind;
+    const g = issueRowMap.get(key);
+    if (g) g.count++; else issueRowMap.set(key, { issue: x.issueRow, kind: x.issueKind, count: 1 });
+  });
+  const issueRowsAll = Array.from(issueRowMap.values()).map(g => ({ issue: g.issue, kind: g.kind, count: g.count, pct: pctOf(g.count, nResolved) }));
+  const resolvedIssueRows = issueRowsAll.filter(g => !ISSUE_BOTTOM_KINDS.includes(g.kind)).sort(byCountThenName('issue'))
+    .concat(ISSUE_BOTTOM_KINDS.map(kd => issueRowsAll.find(g => g.kind === kd)).filter(Boolean));
   // Every cause (no 'Other' grouping, no cap); counts sum to nResolved.
   const resolvedRootCauseCounts = Array.from(groupCount(resolvedList, x => x.rootCause), ([cause, count]) => ({ cause, count, pct: pctOf(count, nResolved) }))
     .sort(byCountThenName('cause'));
+  // Section 4 table rows with 'Not specified' split (resolvedRootCauseCounts above is unchanged for other consumers).
+  // Normal rows (real causes + remaining 'Not specified') sorted count desc, name A-Z; then the single 'na' row
+  // ('Not Applicable/No Further Action Needed') last regardless of count. Counts sum to nResolved; zero rows omitted.
+  const rcRowMap = new Map();
+  resolvedList.forEach(x => {
+    const key = x.rootCauseKind === 'cause' ? 'cause:' + x.rootCauseRow.toLowerCase() : x.rootCauseKind;
+    const g = rcRowMap.get(key);
+    if (g) g.count++; else rcRowMap.set(key, { cause: x.rootCauseRow, kind: x.rootCauseKind, count: 1 });
+  });
+  const rcRowsAll = Array.from(rcRowMap.values()).map(g => ({ cause: g.cause, kind: g.kind, count: g.count, pct: pctOf(g.count, nResolved) }));
+  const resolvedRootCauseRows = rcRowsAll.filter(g => g.kind !== 'na').sort(byCountThenName('cause'))
+    .concat(rcRowsAll.filter(g => g.kind === 'na'));
   // Every resolution (no 'Other' grouping, no cap); counts sum to nResolved.
   const resolvedResolutionCounts = Array.from(groupCount(resolvedList, x => x.resolution), ([resolution, count]) => ({ resolution, count, pct: pctOf(count, nResolved) }))
     .sort(byCountThenName('resolution'));
+  // Section 5 table rows with 'Not specified' split (resolvedResolutionCounts above is unchanged for other consumers).
+  // Normal rows (real resolutions + remaining 'Not specified') sorted count desc, name A-Z; then the single
+  // 'firstPet' row ('First Pet Incident (Out of Scope)') last regardless of count. Counts sum to nResolved.
+  const resRowMap = new Map();
+  resolvedList.forEach(x => {
+    const key = x.resolutionKind === 'res' ? 'res:' + x.resolutionRow.toLowerCase() : x.resolutionKind;
+    const g = resRowMap.get(key);
+    if (g) g.count++; else resRowMap.set(key, { resolution: x.resolutionRow, kind: x.resolutionKind, count: 1 });
+  });
+  const resRowsAll = Array.from(resRowMap.values()).map(g => ({ resolution: g.resolution, kind: g.kind, count: g.count, pct: pctOf(g.count, nResolved) }));
+  const resolvedResolutionRows = resRowsAll.filter(g => g.kind !== 'firstPet').sort(byCountThenName('resolution'))
+    .concat(resRowsAll.filter(g => g.kind === 'firstPet'));
 
   // ---- Resolution breakdown ----
   const allCauses = Array.from(causeMap.values()).sort(byCountThenName('cause'));
@@ -377,11 +461,12 @@ function computePulseReport(input, deps) {
     atRiskByAgent: Array.from(groupCount(atRiskList, o => openAgentOf(o.d)),
       ([agent, count]) => ({ agent, count })).sort(byCountThenName('agent')), // ALL at-risk tickets; server.js strips it without canViewSLA
     atRiskTypes: Array.from(labelMap.values()).sort(byCountThenName('type')).slice(0, 3),
-    atRiskTop: atRiskList.slice(0, AT_RISK_TOP).map(o => ({
+    // ALL at-risk tickets, oldest first (the page paginates them 10 per page); AT_RISK_TOP is kept for atRiskMore.
+    atRiskTop: atRiskList.map(o => ({
       shortId: o.id, url: urlOf(o.d, o.id), agent: openAgentOf(o.d), status: str(o.d.Status).trim() || 'Unknown',
       ageDays: round1(o.ageMs / HOUR_MS / 24), title: str(o.d.Title),
     })),
-    atRiskMore: Math.max(0, atRisk - AT_RISK_TOP),
+    atRiskMore: 0,   // the full list is returned in atRiskTop (was: atRisk - AT_RISK_TOP)
     detailHidden: false, // server.js sets true (and empties atRiskTop) for callers without canViewSLA
   };
 
@@ -453,8 +538,11 @@ function computePulseReport(input, deps) {
     incidentTypes,
     stationRequestCount: stationRequests,
     resolvedIssueCounts,
+    resolvedIssueRows,
     resolvedRootCauseCounts,
+    resolvedRootCauseRows,
     resolvedResolutionCounts,
+    resolvedResolutionRows,
     resolvedList,
     resolvedDetailHidden: false, // server.js sets true (and empties resolvedList) for callers without canViewSLA
     resolution,
