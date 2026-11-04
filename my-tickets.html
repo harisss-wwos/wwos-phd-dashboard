@@ -571,7 +571,8 @@ td.mt-actions .btn svg{flex-shrink:0}
 /* ---- KPI row (overlaps the hero) ---- */
 .mt-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
 @container (min-width:520px){.mt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@container (min-width:900px){.mt-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (min-width:760px){.mt-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (min-width:1280px){.mt-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .mt-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--mt-line);border-radius:12px;padding:16px 18px 15px;margin:0;
   box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
 .mt-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
@@ -585,6 +586,8 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-kpi.is-base{--k:#1f2a40}
 .mt-kpi.is-bad{--k:#d92d20}.mt-kpi.is-bad .mt-kpi-v{color:var(--mt-red)}.mt-kpi.is-bad .mt-kpi-ic{background:var(--mt-red-bg);color:var(--mt-red)}
 .mt-kpi.is-warn{--k:var(--mt-acc)}.mt-kpi.is-warn .mt-kpi-ic{background:var(--mt-acc-bg);color:#b5530a}
+.mt-kpi.is-noemt{--k:#7c5cf0}.mt-kpi.is-noemt .mt-kpi-v{color:#5b3fd0}.mt-kpi.is-noemt .mt-kpi-ic{background:#efebfd;color:#5b3fd0}
+.mt-kpi.is-sr{--k:#2563eb}.mt-kpi.is-sr .mt-kpi-v{color:#1d4ed8}.mt-kpi.is-sr .mt-kpi-ic{background:#e8effd;color:#1d4ed8}
 .mt-kpi.is-good{--k:#1f9d57}.mt-kpi.is-good .mt-kpi-v{color:var(--mt-grn)}.mt-kpi.is-good .mt-kpi-ic{background:var(--mt-grn-bg);color:var(--mt-grn)}
 
 /* ---- Filter strip ---- */
@@ -603,6 +606,10 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-chip[aria-pressed="true"]{background:var(--mt-navy);border-color:var(--mt-navy);color:#fff}
 .mt-chip[aria-pressed="true"] b{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff}
 .mt-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--c,#8793a0);flex-shrink:0}
+/* 'Hide viewed' toggle button: same pill shape, orange when on (independent of the filter buttons). */
+.mt-chip.mt-chip-tog{padding:5px 12px}
+.mt-sec-head .mt-sec-end{margin-left:auto}
+.mt-chip.mt-chip-tog[aria-pressed="true"]{background:var(--mt-acc-bg);border-color:#f7c99c;color:var(--mt-acc-ink)}
 .mt-tog{display:inline-flex;align-items:center;gap:8px;padding:6px 13px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer;user-select:none;white-space:nowrap}
 .mt-tog input{width:15px;height:15px;margin:0;accent-color:var(--mt-acc);cursor:pointer}
 .mt-tog:has(input:checked){background:var(--mt-acc-bg);border-color:#f7c99c;color:var(--mt-acc-ink)}
@@ -965,7 +972,7 @@ td.mt-actions .btn svg{flex-shrink:0}
     var sec='<section class="mt-sec"><div class="mt-sec-head" aria-hidden="true">'+S('170px',20)+S('min(42%,320px)',12)+'</div><div style="margin-top:14px">'+
       '<p class="mt-load-msg" aria-hidden="true"><span class="mt-spin"></span><span id="mtLoaderMsg">Getting things ready\u2026</span></p>'+
       '<div class="mt-cards">'+cards+'</div></div></section>';
-    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+'</div>'+tools+sec+'</div>';
+    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+k+k+'</div>'+tools+sec+'</div>';
   };
   document.getElementById('wrap').innerHTML=window.MT_SKEL();
   </script>
@@ -1514,7 +1521,8 @@ function remaining(deadlineIso){
   const d=Math.floor(h/24),hr=h%24;
   const span=(d>0?d+'d ':'')+hr+'h';
   if(ms<=0)return {cls:'over',txt:'Overdue by '+span};
-  if(ms<=48*3600000)return {cls:'warn',txt:span};
+  // 'warn' = the RED tickets: within 72h of crossing the 240h SLA (7-10 days old).
+  if(ms<=72*3600000)return {cls:'warn',txt:span};
   return {cls:'ok',txt:span};
 }
 
@@ -1584,7 +1592,7 @@ let FIRST_PAINT=true;   // run the staggered entrance animation only on the firs
 let LOADED_AT=null;     // when /api/my-tickets last answered (hero "Refreshed" chip)
 let LOAD_SEQ=0;         // guards against an older (retried) fetch painting over a newer one
 // Client-side quick filters (session only): search text, time-left bucket, hide viewed cards.
-const FILTER={q:'',due:'all',hideViewed:false};
+const FILTER={f:'all',hideViewed:false};
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
@@ -1666,25 +1674,57 @@ function kpiCard(cls,icon,label,value,sub,ratio){
 // Time-left bucket used by the KPI cards, the filter chips and each card's data-due.
 function dueOf(t){ return remaining(t.deadline).cls||'ok'; }
 function kpiHtml(){
-  let open=0,over=0,soon=0,temp=0;
+  let open=0,over=0,soon=0,temp=0,noEmt=0,sr=0;
   TICKETS.forEach(function(t){
     if(TEMP_RESOLVED.has(String(t.shortId))){ temp++; return; }
     open++; const c=dueOf(t); if(c==='over') over++; else if(c==='warn') soon++;
+    // Same markers as each ticket row: No EMT (title / server flag) and Station Request (t.priority).
+    if(ticketIsNoEmt(t)) noEmt++;
+    if(t.priority) sr++;
   });
   const n=TICKETS.length;
   return '<div class="mt-kpis">'+
     kpiCard('is-base','inbox','Open tickets',open,'<b>'+n+'</b> assigned to you in total',null)+
     kpiCard('is-bad','alert','Overdue',over,open?'<b>'+pct(over,open)+'</b> of open tickets are past 240h':'Nothing open',open?over/open:0)+
-    kpiCard('is-warn','hourglass','Due within 48h',soon,open?'<b>'+pct(soon,open)+'</b> of open tickets':'Nothing open',open?soon/open:0)+
+    kpiCard('is-warn','hourglass','Due within 72h',soon,open?'<b>'+pct(soon,open)+'</b> of open tickets \u00b7 red, about to cross the 240h SLA':'Nothing open',open?soon/open:0)+
+    kpiCard('is-noemt','no-entry','No EMT',noEmt,open?'<b>'+pct(noEmt,open)+'</b> of open tickets have no EMT':'Nothing open',open?noEmt/open:0)+
+    kpiCard('is-sr','map-pin','Station requests',sr,open?'<b>'+pct(sr,open)+'</b> of open tickets \u00b7 Station Request / Address Exclusion':'Nothing open',open?sr/open:0)+
     kpiCard('is-good','check-circle','Temporarily resolved',temp,'Working view \u00b7 not saved to the database',n?temp/n:0)+
     '</div>';
 }
-function anyFilter(){ return !!(FILTER.q.trim()||FILTER.due!=='all'||FILTER.hideViewed); }
+function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed); }
+// Quick-filter buttons (one active at a time; 'Hide viewed' is a separate on/off toggle).
+//   overdue = past the 240h deadline · red = due within 72h (about to cross the SLA)
+//   purple / yellow / green = the age colour from the server (t.color, same as the dashboard BY AGE tiles)
+//   noemt / sr = the same markers shown on each ticket (No EMT, Station Request / Address Exclusion)
+const MT_FILTERS=[
+  ['all','All',null],
+  ['overdue','Overdue','#d92d20'],
+  ['red','Due \u2264 72h (red)','#ef4444'],
+  ['purple','Purple','#7c5cf0'],
+  ['yellow','Yellow','#e0a019'],
+  ['green','Green','#1f9d57'],
+  ['noemt','No EMT','#ff8080'],
+  ['sr','Station requests','#2563eb']
+];
+// Age colour of a ticket: the server's t.color, else derived from the created date (purple needs the server).
+function colorOf(t){
+  const c=String((t&&t.color)||'').toLowerCase(); if(c) return c;
+  return ({ok:'green',warn:'yellow',over:'red',black:'black'})[ageColor(t&&t.createDate)]||'green';
+}
+function ticketMatches(t,f){
+  if(f==='all') return true;
+  if(f==='overdue') return dueOf(t)==='over';
+  if(f==='red') return dueOf(t)==='warn';
+  if(f==='noemt') return !!ticketIsNoEmt(t);
+  if(f==='sr') return !!t.priority;
+  return colorOf(t)===f;   // purple / yellow / green
+}
 function toolsHtml(){
-  const c={all:TICKETS.length,over:0,warn:0,ok:0};
-  TICKETS.forEach(function(t){ c[dueOf(t)]++; });
+  const c={}; MT_FILTERS.forEach(function(x){ c[x[0]]=0; });
+  TICKETS.forEach(function(t){ MT_FILTERS.forEach(function(x){ if(ticketMatches(t,x[0])) c[x[0]]++; }); });
   const chip=function(k,label,color){
-    return '<button type="button" class="mt-chip" data-due="'+k+'" aria-pressed="'+(FILTER.due===k)+'">'+
+    return '<button type="button" class="mt-chip" data-f="'+k+'" aria-pressed="'+(FILTER.f===k)+'">'+
       (color?'<span class="mt-chip-dot" style="--c:'+color+'" aria-hidden="true"></span>':'')+label+'<b>'+c[k]+'</b></button>';
   };
   // Sort control: field + current direction. Click to flip between oldest-first and newest-first.
@@ -1693,14 +1733,17 @@ function toolsHtml(){
   const sortBtn='<button type="button" class="mt-sort-btn" onclick="setSort(\'created\')" title="Sort by created date \u2014 click to reverse" aria-label="Sort by created date, '+dirDesc+'. Press to reverse.">'+
     ic('calendar',15)+'<span>Created</span><span class="mt-sort-dir">'+dirDesc+'</span><span class="mt-sort-arrow" aria-hidden="true">'+arrow+'</span></button>';
   return '<div class="mt-tools" role="search" aria-label="Filter tickets">'+
-    '<div class="mt-search"><label for="mtQ" class="mt-sr">Search ticket ID, title, country or status</label>'+ic('search',15)+
-      '<input type="search" id="mtQ" placeholder="Search ticket ID, title, country or status" autocomplete="off" value="'+esc(FILTER.q)+'"></div>'+
-    '<div class="mt-chips" role="group" aria-label="Time left">'+chip('all','All')+chip('over','Overdue','#d92d20')+chip('warn','Due \u2264 48h','#e0a019')+chip('ok','On track','#1f9d57')+'</div>'+
-    '<label class="mt-tog" for="mtHideViewed"><input type="checkbox" id="mtHideViewed"'+(FILTER.hideViewed?' checked':'')+'>Hide viewed</label>'+
+    '<div class="mt-chips" role="group" aria-label="Filter tickets">'+MT_FILTERS.map(function(x){ return chip(x[0],x[1],x[2]); }).join('')+'</div>'+
     '<div class="mt-tools-end"><span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
     '<div class="mt-alert" id="mtPreviewErr" role="alert" hidden>'+ic('alert-triangle',14)+' Comment previews and incident-log status couldn\u2019t be loaded.'+
       '<button type="button" class="mt-btn-sm" onclick="retryPreviews(this)">'+ic('refresh',12)+' Retry</button></div>'+
   '</div>';
+}
+// 'Hide viewed' toggle (top-right of the Open tickets section). Icon + label follow the state:
+// off = eye ('Hide viewed'), on = eye-off ('Viewed hidden').
+function hideViewedInner(on){ return ic(on?'eye-off':'eye',14)+'<span>'+(on?'Viewed hidden':'Hide viewed')+'</span>'; }
+function hideViewedBtn(){
+  return '<button type="button" class="mt-chip mt-chip-tog mt-sec-end" id="mtHideViewed" aria-pressed="'+(FILTER.hideViewed?'true':'false')+'" title="Show or hide the tickets you marked as viewed">'+hideViewedInner(FILTER.hideViewed)+'</button>';
 }
 function sectionHtml(id,fn,open,title,cards,help,emptyMsg,tag){
   return '<section id="'+id+'" class="mt-sec temp-section'+(open?' open':'')+'" aria-labelledby="'+id+'H">'+
@@ -1713,13 +1756,13 @@ function sectionHtml(id,fn,open,title,cards,help,emptyMsg,tag){
 }
 // Show/hide cards for the active quick filters (no re-render: open panels + focus are kept).
 function applyFilters(){
-  const q=FILTER.q.trim().toLowerCase(); let shown=0,total=0;
+  let shown=0,total=0;
+  const bySid={}; TICKETS.forEach(function(t){ bySid[String(t.shortId)]=t; });
   document.querySelectorAll('.mt .mtc[data-sid]').forEach(function(card){
     total++;
-    let ok=true;
-    if(FILTER.due!=='all' && card.getAttribute('data-due')!==FILTER.due) ok=false;
+    const t=bySid[card.getAttribute('data-sid')];
+    let ok=!t||ticketMatches(t,FILTER.f);
     if(ok && FILTER.hideViewed && card.classList.contains('viewed')) ok=false;
-    if(ok && q && (card.getAttribute('data-q')||'').indexOf(q)<0) ok=false;
     card.hidden=!ok; if(ok) shown++;
   });
   ['openSection','tempSection'].forEach(function(id){
@@ -1732,19 +1775,18 @@ function applyFilters(){
   if(s) s.textContent=anyFilter()?(shown+' of '+total+' shown'):(total+' ticket'+(total===1?'':'s'));
 }
 function clearFilters(){
-  FILTER.q=''; FILTER.due='all'; FILTER.hideViewed=false;
-  const qi=document.getElementById('mtQ'); if(qi) qi.value='';
-  const hv=document.getElementById('mtHideViewed'); if(hv) hv.checked=false;
-  document.querySelectorAll('.mt-chip[data-due]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-due')==='all')); });
+  FILTER.f='all'; FILTER.hideViewed=false;
+  const hv=document.getElementById('mtHideViewed'); if(hv){ hv.setAttribute('aria-pressed','false'); hv.innerHTML=hideViewedInner(false); }
+  document.querySelectorAll('.mt-chip[data-f]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-f')==='all')); });
   applyFilters();
-  if(qi) qi.focus();
+  const all=document.querySelector('.mt-chip[data-f="all"]'); if(all) all.focus();
 }
-document.addEventListener('input',function(ev){ const el=ev.target; if(el&&el.id==='mtQ'){ FILTER.q=el.value; applyFilters(); } });
-document.addEventListener('change',function(ev){ const el=ev.target; if(el&&el.id==='mtHideViewed'){ FILTER.hideViewed=el.checked; applyFilters(); } });
 document.addEventListener('click',function(ev){
   const t=ev.target; if(!t||!t.closest) return;
-  const b=t.closest('.mt-chip[data-due]');
-  if(b){ FILTER.due=b.getAttribute('data-due'); document.querySelectorAll('.mt-chip[data-due]').forEach(function(x){ x.setAttribute('aria-pressed',String(x===b)); }); applyFilters(); return; }
+  const hv=t.closest('#mtHideViewed');
+  if(hv){ FILTER.hideViewed=!FILTER.hideViewed; hv.setAttribute('aria-pressed',FILTER.hideViewed?'true':'false'); hv.innerHTML=hideViewedInner(FILTER.hideViewed); applyFilters(); return; }
+  const b=t.closest('.mt-chip[data-f]');
+  if(b){ FILTER.f=b.getAttribute('data-f'); document.querySelectorAll('.mt-chip[data-f]').forEach(function(x){ x.setAttribute('aria-pressed',String(x===b)); }); applyFilters(); return; }
   if(t.closest('[data-clear-filters]')) clearFilters();
 });
 async function retryPreviews(btn){ setBusy(btn,true,'Retrying\u2026'); try{ await fillLatestComments(); }finally{ setBusy(btn,false); } }
@@ -1779,7 +1821,8 @@ function render(){
   const html=heroHtml(n)+kpiHtml()+toolsHtml()+
     sectionHtml('openSection','toggleOpenSection()',openOpen==='1','Open tickets',mainCards,
       'Tickets assigned to you and still open in the live quarter. Tick a card to mark it viewed.',
-      'All your tickets are temporarily resolved. \ud83c\udf89')+
+      'All your tickets are temporarily resolved. \ud83c\udf89',
+      hideViewedBtn())+
     sectionHtml('tempSection','toggleTempSection()',tempOpen==='1','Temporarily resolved',tempCards,
       'The shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.',
       'No temporarily resolved tickets. Flip a card\u2019s temp-resolve switch to move it here.',
