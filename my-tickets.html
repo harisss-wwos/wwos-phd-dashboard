@@ -640,6 +640,43 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-sec-help{flex:1 1 260px;min-width:0;margin:0;font-size:.84em;color:var(--mt-mut);line-height:1.45}
 .mt .temp-body{display:none;margin-top:14px}
 .mt .temp-section.open .temp-body{display:block}
+/* ---- "Resolved — last 6 days" section: one collapsible group per day (newest first) ---- */
+.rs-days{display:flex;flex-direction:column;gap:8px}
+.rs-day{border:1px solid var(--mt-line);border-radius:10px;background:#fff;overflow:hidden}
+.rs-day-h{margin:0;font-size:1em}
+.rs-day-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;border:0;background:var(--mt-soft);color:var(--mt-ink);font:inherit;font-size:.9em;font-weight:800;text-align:left;cursor:pointer}
+.rs-day-btn:hover{background:#eef2f6}
+.rs-day-btn .mt-chev svg{transition:transform .15s}
+.rs-day-btn[aria-expanded="true"] .mt-chev svg{transform:rotate(90deg)}
+.rs-day-btn:focus-visible{outline:2px solid var(--mt-focus);outline-offset:-2px}
+.rs-day-lbl{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs-day-today{color:var(--mt-acc-ink)}
+.rs-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:26px;padding:1px 8px;border-radius:99px;background:var(--mt-grn-bg);border:1px solid #bfe3cd;color:var(--mt-grn);font-size:.8em;font-weight:800;font-variant-numeric:tabular-nums}
+.rs-cnt.is-zero{background:#fff;border-color:var(--mt-line);color:#8793a0;font-weight:700}
+.rs-day-body[hidden]{display:none!important}
+.rs-day-empty{margin:0;padding:12px 14px;color:var(--mt-mut);font-size:.84em}
+.rs-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.84em}
+.rs-tbl th{position:sticky;top:0;z-index:1;background:#fff;text-align:left;font-size:.76em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mt-mut);padding:8px 12px;border-bottom:1px solid var(--mt-line)}
+.rs-tbl td{padding:8px 12px;border-top:1px solid #eef1f4;vertical-align:middle;color:#2a3340;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-tbl tr:first-child td{border-top:0}
+.rs-tbl tbody tr:hover td{background:#fafbfc}
+.rs-c-id{width:150px}.rs-c-ct{width:78px}.rs-c-rc{width:20%}.rs-c-res{width:18%}.rs-c-at{width:96px}
+.rs-id{display:inline-flex;align-items:center;gap:6px}
+.rs-id .mtc-copy{flex:0 0 auto}
+.rs-na{color:#8793a0;font-style:italic}
+.rs-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:12px 14px;border:1px solid #f3b4b4;border-radius:10px;background:var(--mt-red-bg);color:var(--mt-red);font-size:.86em;font-weight:600}
+.rs-note{margin:0 0 8px;color:var(--mt-mut);font-size:.84em}
+.rs-skel{display:flex;flex-direction:column;gap:8px}
+.rs-skel .mt-skel{height:38px;border-radius:10px}
+@container (max-width:720px){
+  .rs-tbl thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .rs-tbl,.rs-tbl tbody,.rs-tbl tr,.rs-tbl td{display:block;width:auto}
+  .rs-tbl tr{padding:8px 12px;border-top:1px solid #eef1f4}
+  .rs-tbl tr:first-child{border-top:0}
+  .rs-tbl td{border:0;padding:2px 0;white-space:normal}
+  .rs-tbl td[data-l]::before{content:attr(data-l) ": ";font-weight:800;color:var(--mt-mut);font-size:.9em}
+  .rs-tbl td.rs-t{white-space:nowrap}
+}
 .mt-sec-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:.7em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;background:#eef1f4;color:#3a4552;border:1px solid #d4dade;white-space:nowrap}
 
 /* ---- Ticket ledger cards ---- */
@@ -1072,7 +1109,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=11"></script>
+<script src="incident-log-editor.js?v=12"></script>
 <script src="topbar-auth.js?v=216"></script>
 <script>
 const A=window.PHDAuth;
@@ -1153,6 +1190,121 @@ function toggleOpenSection(){
   try{ localStorage.setItem(openOpenKey(), open?'1':'0'); }catch(e){}
 }
 window.toggleOpenSection=toggleOpenSection;
+
+// ---- "Resolved — last 6 days" section (read-only; GET /api/my-tickets/resolved?days=6) ----
+// Tickets the user resolved today + the previous 5 calendar days in MY_TZ, one collapsible group per
+// day (today open). Collapsed by default (state persisted per-user like the other sections). Not
+// touched by the filter chips / Hide viewed (its rows are not .mtc cards) and not part of the KPIs.
+const RS_DAYS=6;
+let RS={state:'idle',tickets:[],err:'',seq:0};
+const RS_DAY_OPEN={};   // dayKey -> true/false once the user toggled it (default: today only)
+function res6OpenKey(){ var u=A.getUser(); return 'phd_mytickets_res6open_'+((u&&u.username)||'anon'); }
+function toggleRes6Section(){
+  const sec=document.getElementById('res6Section'); if(!sec)return;
+  const open=sec.classList.toggle('open');
+  const hb=sec.querySelector('.temp-head'); if(hb) hb.setAttribute('aria-expanded', open?'true':'false');
+  try{ localStorage.setItem(res6OpenKey(), open?'1':'0'); }catch(e){}
+}
+window.toggleRes6Section=toggleRes6Section;
+function rsZone(){ return TZ_ZONE[MY_TZ]||TZ_ZONE.IST; }
+// 'YYYY-MM-DD' of an instant in the user's timezone.
+function rsDayKey(d){ try{ return new Date(d).toLocaleDateString('en-CA',{timeZone:rsZone()}); }catch(e){ return ''; } }
+// The RS_DAYS day keys, newest first (calendar arithmetic, so DST changes never skip / repeat a day).
+function rsDays(){
+  const p=rsDayKey(Date.now()).split('-').map(Number);
+  const out=[];
+  for(let i=0;i<RS_DAYS;i++){
+    const u=new Date(Date.UTC(p[0],p[1]-1,p[2]-i,12));
+    out.push({key:u.toISOString().slice(0,10), today:i===0,
+      label:u.toLocaleDateString('en-GB',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short'}).replace(/^(\w+)\s/,'$1, ')});
+  }
+  return out;
+}
+function rsTime(iso){ try{ return new Date(iso).toLocaleTimeString('en-US',{timeZone:rsZone(),hour:'2-digit',minute:'2-digit',hour12:true}); }catch(e){ return ''; } }
+function rsNA(v){ v=String(v==null?'':v).trim(); return (!v||/^not specified$/i.test(v)) ? '<span class="rs-na">Not specified</span>' : esc(v); }
+function rsRowHtml(t){
+  const sid=String(t.shortId||''), url=t.url||('https://t.corp.amazon.com/issues/'+sid);
+  const ct=String(t.country||'').toUpperCase().replace(/[^A-Z]/g,'');
+  return '<tr>'+
+    '<td data-l="Ticket"><span class="rs-id"><a class="mtc-tid" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(sid)+'<span class="mt-sr"> (opens in a new tab)</span></a>'+
+      '<button type="button" class="mtc-copy" title="Copy ticket ID" aria-label="Copy ticket ID '+esc(sid)+'" onclick="copyTicketId(\''+esc(sid)+'\',this)">'+ic('copy',12)+'</button></span></td>'+
+    '<td class="rs-t" data-l="Title" title="'+esc(t.title||'')+'">'+(t.title?esc(t.title):'<span class="rs-na">No title</span>')+'</td>'+
+    '<td data-l="Country">'+(ct&&MT_COUNTRY_CODES[ct]?'<span class="mtc-country">'+esc(ct)+'</span>':'<span class="rs-na">N/A</span>')+'</td>'+
+    '<td data-l="Root Cause" title="'+esc(t.rootCause||'Not specified')+'">'+rsNA(t.rootCause)+'</td>'+
+    '<td data-l="Res" title="'+esc(t.res||'Not specified')+'">'+rsNA(t.res)+'</td>'+
+    '<td data-l="Resolved"><time datetime="'+esc(t.resolvedDate||'')+'">'+esc(rsTime(t.resolvedDate))+'</time></td>'+
+  '</tr>';
+}
+// Inner HTML of the section body for the current RS state.
+function rsBodyHtml(){
+  if(RS.state==='idle'||RS.state==='loading')
+    return '<div class="rs-skel" aria-hidden="true">'+Array.from({length:RS_DAYS},()=>'<span class="mt-skel"></span>').join('')+'</div>';
+  if(RS.state==='err')
+    return '<div class="rs-err" role="alert">'+ic('alert-triangle',14)+' <span>'+esc(RS.err)+'</span>'+
+      '<button type="button" class="mt-btn-sm" onclick="loadResolved6(this)">'+ic('refresh',12)+' Retry</button></div>';
+  const by={}; RS.tickets.forEach(function(t){ const k=rsDayKey(t.resolvedDate); (by[k]=by[k]||[]).push(t); });
+  const days=rsDays();
+  const total=days.reduce(function(n,d){ return n+((by[d.key]||[]).length); },0);
+  return (total?'':'<p class="rs-note">You haven\u2019t resolved any tickets in the last '+RS_DAYS+' days.</p>')+
+    '<div class="rs-days">'+days.map(function(d){
+      const list=(by[d.key]||[]).slice().sort(function(a,b){ return new Date(b.resolvedDate)-new Date(a.resolvedDate); });
+      const open=(d.key in RS_DAY_OPEN)?RS_DAY_OPEN[d.key]:d.today;
+      const id='rsDay-'+d.key;
+      const lbl=(d.today?'<span class="rs-day-today">Today</span> \u00b7 ':'')+esc(d.label);
+      return '<section class="rs-day" aria-labelledby="'+id+'H">'+
+        '<h3 class="rs-day-h" id="'+id+'H"><button type="button" class="rs-day-btn" data-rs-day="'+d.key+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+id+'">'+
+          '<span class="mt-chev">'+CHEV+'</span><span class="rs-day-lbl">'+lbl+'</span>'+
+          '<span class="rs-cnt'+(list.length?'':' is-zero')+'" aria-label="'+list.length+' ticket'+(list.length===1?'':'s')+'">'+list.length+'</span></button></h3>'+
+        '<div class="rs-day-body" id="'+id+'"'+(open?'':' hidden')+'>'+
+          (list.length
+            ? '<table class="rs-tbl"><caption class="mt-sr">Tickets resolved on '+esc(d.label)+'</caption><thead><tr>'+
+                '<th scope="col" class="rs-c-id">Ticket</th><th scope="col">Title</th><th scope="col" class="rs-c-ct">Country</th>'+
+                '<th scope="col" class="rs-c-rc">Root Cause</th><th scope="col" class="rs-c-res">Res</th><th scope="col" class="rs-c-at">Resolved</th>'+
+              '</tr></thead><tbody>'+list.map(rsRowHtml).join('')+'</tbody></table>'
+            : '<p class="rs-day-empty">No tickets resolved on this day.</p>')+
+        '</div></section>';
+    }).join('')+'</div>';
+}
+function rsCount(){
+  if(RS.state!=='ok') return null;
+  const keys={}; rsDays().forEach(function(d){ keys[d.key]=1; });
+  return RS.tickets.filter(function(t){ return keys[rsDayKey(t.resolvedDate)]; }).length;
+}
+function resolvedSectionHtml(){
+  let open='0'; try{ open=localStorage.getItem(res6OpenKey())||'0'; }catch(e){}
+  const isOpen=open==='1', n=rsCount();
+  return '<section id="res6Section" class="mt-sec temp-section'+(isOpen?' open':'')+'" aria-labelledby="res6SectionH">'+
+    '<div class="mt-sec-head"><h2 id="res6SectionH"><button type="button" class="temp-head" onclick="toggleRes6Section()" aria-expanded="'+(isOpen?'true':'false')+'" aria-controls="res6SectionBody">'+
+      '<span class="mt-chev">'+CHEV+'</span><span class="temp-title">Resolved \u2014 last '+RS_DAYS+' days</span> <span class="temp-count" id="res6Count">'+(n==null?'\u2026':n)+'</span></button></h2>'+
+      '<p class="mt-sec-help">Tickets you resolved in the last 5 days plus today (times in your timezone).</p></div>'+
+    '<div class="temp-body" id="res6SectionBody" aria-live="polite"'+(RS.state==='loading'?' aria-busy="true"':'')+'>'+rsBodyHtml()+'</div>'+
+  '</section>';
+}
+// Repaint just this section's count + body (no full page re-render).
+function rsPaint(){
+  const body=document.getElementById('res6SectionBody'); if(!body) return;
+  body.innerHTML=rsBodyHtml();
+  if(RS.state==='loading') body.setAttribute('aria-busy','true'); else body.removeAttribute('aria-busy');
+  const c=document.getElementById('res6Count'); if(c){ const n=rsCount(); c.textContent=(n==null?'\u2026':n); }
+}
+async function loadResolved6(btn){
+  const seq=++RS.seq;
+  RS.state='loading'; rsPaint();
+  let r=null; try{ r=await A.api('GET','/api/my-tickets/resolved?days='+RS_DAYS); }catch(e){}
+  if(seq!==RS.seq) return;
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.tickets)){ RS.state='ok'; RS.tickets=r.data.tickets; RS.err=''; }
+  else { RS.state='err'; RS.err=r&&r.status?('Couldn\u2019t load your resolved tickets (HTTP '+r.status+').'):'Couldn\u2019t load your resolved tickets. Check your connection and try again.'; }
+  rsPaint();
+  if(btn){ const b=document.querySelector('#res6SectionBody .rs-day-btn'); if(b) b.focus(); }
+}
+window.loadResolved6=loadResolved6;
+document.addEventListener('click',function(ev){
+  const b=ev.target&&ev.target.closest&&ev.target.closest('.rs-day-btn'); if(!b) return;
+  const open=b.getAttribute('aria-expanded')!=='true';
+  b.setAttribute('aria-expanded',open?'true':'false');
+  RS_DAY_OPEN[b.getAttribute('data-rs-day')]=open;
+  const body=document.getElementById(b.getAttribute('aria-controls')); if(body) body.hidden=!open;
+});
 
 // ---- Per-ticket analyst flags (UI-only on/off toggles, persisted per-user in localStorage, like
 //      VIEWED / TEMP_RESOLVED). Grey when off, green when on. Flags:
@@ -1612,6 +1764,7 @@ async function load(){
   const cached=readCache();    // used only as a cache stamp below (not painted)
   const version=(cached&&cached.version)||null;
   try{MY_TZ=await A.myTimezone();}catch(e){}
+  loadResolved6();   // "Resolved — last 6 days" section: fetched in parallel, painted into its own section
   let r=null; try{ r=await A.api('GET','/api/my-tickets'); }catch(e){}
   if(seq!==LOAD_SEQ) return;
   _ldStop('mt');
@@ -1814,7 +1967,8 @@ function render(){
   }
   if(!n){
     wrap.innerHTML=root(heroHtml(0)+kpiHtml()+'<section class="mt-card">'+
-      stateHtml('','check-circle','No open tickets','You have no open tickets assigned in the live quarter. \ud83c\udf89')+'</section>');
+      stateHtml('','check-circle','No open tickets','You have no open tickets assigned in the live quarter. \ud83c\udf89')+'</section>'+
+      resolvedSectionHtml());
     tallyHero();
     return;
   }
@@ -1833,7 +1987,8 @@ function render(){
     sectionHtml('tempSection','toggleTempSection()',tempOpen==='1','Temporarily resolved',tempCards,
       'The shared database is not updated. If a re-uploaded file still shows the ticket as open, it stays open.',
       'No temporarily resolved tickets. Flip a card\u2019s temp-resolve switch to move it here.',
-      '<span class="mt-sec-tag">'+ic('info',12)+' Working view only</span>');
+      '<span class="mt-sec-tag">'+ic('info',12)+' Working view only</span>')+
+    resolvedSectionHtml();   // "Resolved — last 6 days" (collapsed by default; own fetch, not filtered)
   wrap.innerHTML=root(html);
   tallyHero();
   fillLatestComments();
@@ -2137,7 +2292,9 @@ function openIncidentLog(i){
   var db=document.getElementById('incidentDeleteBtn'); if(db) db.style.display='none';
   fillIncidentSelects();
   // Reset every field.
-  ['ilPhdFindings','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause','ilPhdResolution'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ['ilPhdFindings','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ilSetSavedResolution('');   // PHD Resolution = the SIM "Res:" line (no saved fallback in add mode)
+  ilSetTicketRegion(t&&t.title, t&&t.country);   // US/CA-only questions follow the ticket's country
   ilSetInvestigation('');   // reset the PHD Investigation questionnaire
   ilSetHistorical('');      // reset the Historical Incidents rows (hidden until SIM has "Cnt: 1+")
   // Auto-fill the PHD Related Link with this ticket's URL (falls back to the standard t.corp URL).
@@ -2382,12 +2539,14 @@ function openEditIncidentStructured(i, id, savedText){
   fillIncidentSelects();
   // Prefill every field from the parsed saved text.
   var set=function(id2,v){ var el=document.getElementById(id2); if(el) el.value=v||''; };
+  ilSetTicketRegion(t&&t.title, t&&t.country);   // before ilSetInvestigation (US/CA-only questions)
   set('ilPhdFindings',f.findings); ilSetInvestigation(f.invest); set('ilSimRcd',f.sim); ilSetHistorical(f.hist);
-  // A saved value that is no longer in the dropdown list (e.g. a retired resolution such as
-  // "Delivery Hint Update") is kept as an extra option so opening + saving never blanks it.
-  ['ilRootCause','ilPhdResolution'].forEach(function(id2){ var el=document.getElementById(id2), v=(id2==='ilRootCause'?f.rootCause:f.res);
+  // A saved Root Cause that is no longer in the dropdown list is kept as an extra option so
+  // opening + saving never blanks it.
+  ['ilRootCause'].forEach(function(id2){ var el=document.getElementById(id2), v=f.rootCause;
     if(el && v && !Array.prototype.some.call(el.options,function(o){return o.value===v;})){ var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; el.appendChild(o); } });
-  set('ilRootCause',f.rootCause); set('ilPhdResolution',f.res); set('ilPhdNotes',f.notes);
+  set('ilRootCause',f.rootCause); set('ilPhdNotes',f.notes);
+  ilSetSavedResolution(f.res);   // PHD Resolution fallback when SIM has no "Res:" line
   // PHD Related Link is hardcoded to this ticket's URL (read-only, copy-only) — never editable,
   // so always use the canonical ticket URL rather than whatever was parsed from the saved text.
   set('ilRelatedLink',(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):(f.link||'')));

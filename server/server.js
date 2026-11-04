@@ -3827,6 +3827,67 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
   }
 });
 
+// GET tickets the logged-in user RESOLVED recently (My Tickets "Resolved — last 6 days" section).
+// Read-only; same auth as /api/my-tickets. ?days=1..14 (default 6 = today + the previous 5 days).
+// The resolver match uses the app's normalisation (perfResolverLogin: strip 'kerberos:' and
+// '@ANT.AMAZON.COM', case-insensitive). Status Resolved/Closed, across every quarter, one row per
+// ShortId (the copy with the latest ResolvedDate). The window returned is the last days*24h + 2h
+// (covers the oldest local calendar day in IST or MST); the page buckets by its own timezone day
+// and drops anything older. Only the needed fields are projected.
+const MY_RESOLVED_ROOT_CAUSE_NA = /^(n\/?a|none|null|unknown|not specified|-+|\u2014|select.*)$/i;
+app.get('/api/my-tickets/resolved', requireRole('user'), async (req, res) => {
+  try {
+    const me = String(req.user.username || '').trim().toLowerCase();
+    let days = parseInt(req.query.days, 10);
+    if (!Number.isFinite(days)) days = 6;
+    days = Math.min(Math.max(days, 1), 14);
+    const nowMs = Date.now();
+    const sinceMs = nowMs - (days * 24 + 2) * 36e5;
+    const esc = me.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const coll = await getCollection(COLLECTIONS.ticketDocs);
+    const rows = await coll.find(
+      { ResolvedByIdentity: new RegExp('^\\s*(kerberos:)?' + esc + '(@ant\\.amazon\\.com)?\\s*$', 'i'),
+        Status: { $regex: /^\s*(resolved|closed)\s*$/i } },
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Country: 1, Status: 1,
+        ResolvedDate: 1, RootCause: 1, RootCauseDetails: 1, ResolvedByIdentity: 1 } }
+    ).toArray();
+    // Country: the title's leading 2-3 letter code ("US …", "(US) …", "[CA] …") when it is a known
+    // code, else the Countries-report rule (slaCountryOf: Country field, then title tokens).
+    const countryOf = (t) => {
+      const m = String(t.Title || '').match(/^\s*[[(]?\s*([A-Za-z]{2,3})\s*[\])]?(?=[\s:\-|,.)\]]|$)/);
+      if (m && SLA_COUNTRY_CODES.has(m[1].toUpperCase())) return m[1].toUpperCase();
+      const c = slaCountryOf(t);
+      return c === 'Unknown' ? '' : c;
+    };
+    const bySid = new Map();
+    rows.forEach(t => {
+      if (perfResolverLogin(t.ResolvedByIdentity) !== me) return;
+      const rd = new Date(t.ResolvedDate);
+      if (isNaN(rd) || rd.getTime() < sinceMs || rd.getTime() > nowMs + 36e5) return;
+      const sid = t.ShortId || t.IssueId || '';
+      if (!sid) return;
+      const prev = bySid.get(sid);
+      if (prev && prev._rd >= rd.getTime()) return;
+      const rc = String(t.RootCause || '').replace(/\s+/g, ' ').trim();
+      bySid.set(sid, {
+        _rd: rd.getTime(),
+        shortId: sid,
+        url: t.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid),
+        title: t.Title || '',
+        country: countryOf(t),
+        status: t.Status || '',
+        resolvedDate: rd.toISOString(),
+        rootCause: (!rc || MY_RESOLVED_ROOT_CAUSE_NA.test(rc)) ? 'Not specified' : rc,
+        res: resolutionFromRcd(t.RootCauseDetails),
+      });
+    });
+    const tickets = [...bySid.values()].sort((a, b) => b._rd - a._rd).map(({ _rd, ...t }) => t);
+    res.json({ days, since: new Date(sinceMs).toISOString(), count: tickets.length, tickets });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load your resolved tickets.' });
+  }
+});
+
 // GET all NOT-ASSIGNED open tickets (assignee is NOT one of the analysts, incl. blank/unassigned),
 // across every quarter, deduped by ShortId, sorted by CreateDate DESCENDING (newest first). Powers
 // the "NOT ASSIGNED" popup in the profile upload card.
