@@ -1551,9 +1551,14 @@ async function exportHandover(){
   // Fixed plain-text format (no '====' rules). Counts come from the same handover payload as the bars;
   // the RED / >10-day counts are the queue age buckets used by the Takeover section (SR_COLORS:
   // red = 7-10 days / 168-240h, black = >10 days / >=240h; reopened tickets are counted as purple there).
-  const qs=d.queueByStatus||{}, rs=d.resolvedSplit||{}, col=(typeof SR_COLORS!=='undefined'&&SR_COLORS)||{};
+  // Make sure the age buckets are loaded so the RED / BLACK lines always carry a number (fetch them
+  // once if the Takeover section hasn't loaded yet).
+  if(!SR_COLORS){
+    try{ const r=await window.PHDAuth.api('GET','/api/shift-report'); if(r&&r.ok&&r.data){ SR_COLORS=r.data.colors||{}; SR_COUNTS=r.data.counts||{}; } }catch(e){}
+  }
+  const qs=d.queueByStatus||{}, rs=d.resolvedSplit||{}, col=SR_COLORS||{};
   const n=function(v){ return Number(v)||0; };
-  const ageN=function(k){ return (SR_COLORS&&typeof col[k]!=='undefined')?n(col[k]):'#'; };
+  const ageN=function(k){ return SR_COLORS?n(col[k]):'#'; };
   const txt=[
     'PHD Handover Report',
     'Last 12 hours Update:',
@@ -1571,7 +1576,7 @@ async function exportHandover(){
     'Imm. Resolved (By Rule): '+n(rs.rule),
     '',
     'Count of tickets that has crossed above 7 days (In RED): '+ageN('red'),
-    'Count of tickets over 10 days i.e., >= 240h (In RED): '+ageN('black'),
+    'Count of tickets over 10 days i.e., >= 240h (In Black): '+ageN('black'),
     '',
     'Notes:'
   ].join('\n');
