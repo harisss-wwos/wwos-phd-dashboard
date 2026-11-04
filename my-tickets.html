@@ -571,8 +571,8 @@ td.mt-actions .btn svg{flex-shrink:0}
 /* ---- KPI row (overlaps the hero) ---- */
 .mt-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
 @container (min-width:520px){.mt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@container (min-width:760px){.mt-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@container (min-width:1280px){.mt-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@container (min-width:760px){.mt-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (min-width:1280px){.mt-kpis{grid-template-columns:repeat(7,minmax(0,1fr))}}
 .mt-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--mt-line);border-radius:12px;padding:16px 18px 15px;margin:0;
   box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
 .mt-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
@@ -588,6 +588,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-kpi.is-warn{--k:var(--mt-acc)}.mt-kpi.is-warn .mt-kpi-ic{background:var(--mt-acc-bg);color:#b5530a}
 .mt-kpi.is-noemt{--k:#7c5cf0}.mt-kpi.is-noemt .mt-kpi-v{color:#5b3fd0}.mt-kpi.is-noemt .mt-kpi-ic{background:#efebfd;color:#5b3fd0}
 .mt-kpi.is-sr{--k:#2563eb}.mt-kpi.is-sr .mt-kpi-v{color:#1d4ed8}.mt-kpi.is-sr .mt-kpi-ic{background:#e8effd;color:#1d4ed8}
+.mt-kpi.is-appeal{--k:#0d8a7f}.mt-kpi.is-appeal .mt-kpi-v{color:#0b7268}.mt-kpi.is-appeal .mt-kpi-ic{background:#e3f4f2;color:#0b7268}
 .mt-kpi.is-good{--k:#1f9d57}.mt-kpi.is-good .mt-kpi-v{color:var(--mt-grn)}.mt-kpi.is-good .mt-kpi-ic{background:var(--mt-grn-bg);color:var(--mt-grn)}
 
 /* ---- Filter strip ---- */
@@ -972,7 +973,7 @@ td.mt-actions .btn svg{flex-shrink:0}
     var sec='<section class="mt-sec"><div class="mt-sec-head" aria-hidden="true">'+S('170px',20)+S('min(42%,320px)',12)+'</div><div style="margin-top:14px">'+
       '<p class="mt-load-msg" aria-hidden="true"><span class="mt-spin"></span><span id="mtLoaderMsg">Getting things ready\u2026</span></p>'+
       '<div class="mt-cards">'+cards+'</div></div></section>';
-    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+k+k+'</div>'+tools+sec+'</div>';
+    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+k+k+k+'</div>'+tools+sec+'</div>';
   };
   document.getElementById('wrap').innerHTML=window.MT_SKEL();
   </script>
@@ -1674,13 +1675,14 @@ function kpiCard(cls,icon,label,value,sub,ratio){
 // Time-left bucket used by the KPI cards, the filter chips and each card's data-due.
 function dueOf(t){ return remaining(t.deadline).cls||'ok'; }
 function kpiHtml(){
-  let open=0,over=0,soon=0,temp=0,noEmt=0,sr=0;
+  let open=0,over=0,soon=0,temp=0,noEmt=0,sr=0,appeal=0;
   TICKETS.forEach(function(t){
     if(TEMP_RESOLVED.has(String(t.shortId))){ temp++; return; }
     open++; const c=dueOf(t); if(c==='over') over++; else if(c==='warn') soon++;
     // Same markers as each ticket row: No EMT (title / server flag) and Station Request (t.priority).
     if(ticketIsNoEmt(t)) noEmt++;
     if(t.priority) sr++;
+    if(ticketIsAppeal(t)) appeal++;
   });
   const n=TICKETS.length;
   return '<div class="mt-kpis">'+
@@ -1689,6 +1691,7 @@ function kpiHtml(){
     kpiCard('is-warn','hourglass','Due within 72h',soon,open?'<b>'+pct(soon,open)+'</b> of open tickets \u00b7 red, about to cross the 240h SLA':'Nothing open',open?soon/open:0)+
     kpiCard('is-noemt','no-entry','No EMT',noEmt,open?'<b>'+pct(noEmt,open)+'</b> of open tickets have no EMT':'Nothing open',open?noEmt/open:0)+
     kpiCard('is-sr','map-pin','Station requests',sr,open?'<b>'+pct(sr,open)+'</b> of open tickets \u00b7 Station Request / Address Exclusion':'Nothing open',open?sr/open:0)+
+    kpiCard('is-appeal','repeat','Appeals',appeal,open?'<b>'+pct(appeal,open)+'</b> of open tickets \u00b7 \u201cappeal\u201d in the title':'Nothing open',open?appeal/open:0)+
     kpiCard('is-good','check-circle','Temporarily resolved',temp,'Working view \u00b7 not saved to the database',n?temp/n:0)+
     '</div>';
 }
@@ -1705,8 +1708,11 @@ const MT_FILTERS=[
   ['yellow','Yellow','#e0a019'],
   ['green','Green','#1f9d57'],
   ['noemt','No EMT','#ff8080'],
-  ['sr','Station requests','#2563eb']
+  ['sr','Station requests','#2563eb'],
+  ['appeal','Appeals','#0d8a7f']
 ];
+// Appeal ticket: 'appeal' anywhere in the title (case-insensitive) — same rule as the Resolutions page.
+function ticketIsAppeal(t){ return /appeal/i.test(String((t&&t.title)||'')); }
 // Age colour of a ticket: the server's t.color, else derived from the created date (purple needs the server).
 function colorOf(t){
   const c=String((t&&t.color)||'').toLowerCase(); if(c) return c;
@@ -1718,6 +1724,7 @@ function ticketMatches(t,f){
   if(f==='red') return dueOf(t)==='warn';
   if(f==='noemt') return !!ticketIsNoEmt(t);
   if(f==='sr') return !!t.priority;
+  if(f==='appeal') return ticketIsAppeal(t);
   return colorOf(t)===f;   // purple / yellow / green
 }
 function toolsHtml(){
@@ -1731,7 +1738,7 @@ function toolsHtml(){
   const dirDesc=(SORT_DIR==='asc')?'Oldest first':'Newest first';
   const arrow=(SORT_DIR==='asc')?'\u2191':'\u2193';
   const sortBtn='<button type="button" class="mt-sort-btn" onclick="setSort(\'created\')" title="Sort by created date \u2014 click to reverse" aria-label="Sort by created date, '+dirDesc+'. Press to reverse.">'+
-    ic('calendar',15)+'<span>Created</span><span class="mt-sort-dir">'+dirDesc+'</span><span class="mt-sort-arrow" aria-hidden="true">'+arrow+'</span></button>';
+    ic('calendar',15)+'<span class="mt-sort-dir">'+dirDesc+'</span><span class="mt-sort-arrow" aria-hidden="true">'+arrow+'</span></button>';
   return '<div class="mt-tools" role="search" aria-label="Filter tickets">'+
     '<div class="mt-chips" role="group" aria-label="Filter tickets">'+MT_FILTERS.map(function(x){ return chip(x[0],x[1],x[2]); }).join('')+'</div>'+
     '<div class="mt-tools-end"><span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
