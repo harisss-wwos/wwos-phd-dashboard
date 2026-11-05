@@ -1746,6 +1746,19 @@ let LOADED_AT=null;     // when /api/my-tickets last answered (hero "Refreshed" 
 let LOAD_SEQ=0;         // guards against an older (retried) fetch painting over a newer one
 // Client-side quick filters (session only): search text, time-left bucket, hide viewed cards.
 const FILTER={f:'all',hideViewed:false};
+// The selected filter button + Hide viewed are remembered per user (localStorage), so a refresh or
+// coming back to the page keeps them. Restored once, on the first render (the user is known then).
+function filterKey(){ var u=A.getUser(); return 'phd_mytickets_filter_'+((u&&u.username)||'anon'); }
+function saveFilter(){ try{ localStorage.setItem(filterKey(), JSON.stringify({f:FILTER.f, hideViewed:!!FILTER.hideViewed})); }catch(e){} }
+let FILTER_RESTORED=false;
+function restoreFilter(){
+  if(FILTER_RESTORED) return; FILTER_RESTORED=true;
+  try{
+    const s=JSON.parse(localStorage.getItem(filterKey())||'null'); if(!s) return;
+    if(typeof MT_FILTERS!=='undefined' && MT_FILTERS.some(function(x){ return x[0]===s.f; })) FILTER.f=s.f;
+    FILTER.hideViewed=!!s.hideViewed;
+  }catch(e){}
+}
 
 async function load(){
   if(!A.getUser()||!A.getToken()){gate('This page is for logged-in users. Log in from the Live Dashboard first.');return;}
@@ -1935,7 +1948,7 @@ function applyFilters(){
   if(s) s.textContent=anyFilter()?(shown+' of '+total+' shown'):(total+' ticket'+(total===1?'':'s'));
 }
 function clearFilters(){
-  FILTER.f='all'; FILTER.hideViewed=false;
+  FILTER.f='all'; FILTER.hideViewed=false; saveFilter();
   const hv=document.getElementById('mtHideViewed'); if(hv){ hv.setAttribute('aria-pressed','false'); hv.innerHTML=hideViewedInner(false); }
   document.querySelectorAll('.mt-chip[data-f]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-f')==='all')); });
   applyFilters();
@@ -1944,9 +1957,9 @@ function clearFilters(){
 document.addEventListener('click',function(ev){
   const t=ev.target; if(!t||!t.closest) return;
   const hv=t.closest('#mtHideViewed');
-  if(hv){ FILTER.hideViewed=!FILTER.hideViewed; hv.setAttribute('aria-pressed',FILTER.hideViewed?'true':'false'); hv.innerHTML=hideViewedInner(FILTER.hideViewed); applyFilters(); return; }
+  if(hv){ FILTER.hideViewed=!FILTER.hideViewed; hv.setAttribute('aria-pressed',FILTER.hideViewed?'true':'false'); hv.innerHTML=hideViewedInner(FILTER.hideViewed); saveFilter(); applyFilters(); return; }
   const b=t.closest('.mt-chip[data-f]');
-  if(b){ FILTER.f=b.getAttribute('data-f'); document.querySelectorAll('.mt-chip[data-f]').forEach(function(x){ x.setAttribute('aria-pressed',String(x===b)); }); applyFilters(); return; }
+  if(b){ FILTER.f=b.getAttribute('data-f'); document.querySelectorAll('.mt-chip[data-f]').forEach(function(x){ x.setAttribute('aria-pressed',String(x===b)); }); saveFilter(); applyFilters(); return; }
   if(t.closest('[data-clear-filters]')) clearFilters();
 });
 async function retryPreviews(btn){ setBusy(btn,true,'Retrying\u2026'); try{ await fillLatestComments(); }finally{ setBusy(btn,false); } }
@@ -1979,6 +1992,7 @@ function render(){
   // Collapsible "Open tickets" (defaults to OPEN) + "Temporarily resolved" (defaults to closed).
   let openOpen='1'; try{ var _oo=localStorage.getItem(openOpenKey()); if(_oo!==null) openOpen=_oo; }catch(e){}
   let tempOpen='0'; try{ tempOpen=localStorage.getItem(tempOpenKey())||'0'; }catch(e){}
+  restoreFilter();   // remembered filter button + Hide viewed (first render only)
   const html=heroHtml(n)+kpiHtml()+toolsHtml()+
     sectionHtml('openSection','toggleOpenSection()',openOpen==='1','Open tickets',mainCards,
       'Tickets assigned to you and still open in the live quarter. Tick a card to mark it viewed.',
