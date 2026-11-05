@@ -35,10 +35,10 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 // Assemble the 7 structured fields into the standard copy/save format.
 // f = {findings, invest, sim, hist, rootCause, link, res, notes}; opts.omitSim drops the SIM section.
 // f.hist = serialized "Historical Incidents" body (ilSerializeHistorical); the section is written
-// right after SIM and omitted entirely when empty. opts.omitSim (Copy w/o RC Details) drops the
-// Historical Incidents section too — it belongs to the RC details.
-// Section order follows the form: Root Cause, SIM Root Cause Details (+ Historical Incidents),
-// PHD Investigation, PHD Findings, then PHD Related Link + PHD Resolution (not shown in the form),
+// right after PHD Findings (it is shown under SIM in the form but copied with the findings) and
+// omitted entirely when empty. Copy w/o RC Details keeps it.
+// Section order: Root Cause, SIM Root Cause Details, PHD Investigation, PHD Findings (+ Historical
+// Incidents), then PHD Related Link + PHD Resolution (not shown in the form),
 // then PHD notes. The headings are unchanged, and every parser (parseIncidentOutput, the server's
 // incident-log-merge.js) locates sections by heading, so older entries in the old order still parse.
 function ilSerializeFields(f,opts){
@@ -47,9 +47,10 @@ function ilSerializeFields(f,opts){
   var parts=[];
   parts.push('**Root Cause**: '+(v('rootCause')||''));
   if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
-  if(!opts.omitSim && v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
   parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
   parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
+  // Historical Incidents travel with PHD Findings (also kept in Copy w/o RC Details).
+  if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
   parts.push('**PHD Related Link**: '+(v('link')||''));
   parts.push('**PHD Resolution**: '+(v('res')||''));
   parts.push('**PHD notes**:\n'+(v('notes')||'-'));
@@ -736,9 +737,20 @@ function _ilqSyncVisibility(){
     if(rev) rev.hidden=old || !cb.checked;
     if(note) note.hidden=!old;
     if(st){
-      if(kind==='yn'){ st.hidden=old; st.textContent=cb.checked?'Yes':'No'; st.classList.toggle('is-yes',cb.checked); }
+      if(kind==='yn'||kind==='check'){ st.hidden=old; st.textContent=cb.checked?'Yes':'No'; st.classList.toggle('is-yes',cb.checked); }
       else st.hidden=old || cb.checked;
     }
+  });
+  // "Changed from the default" highlight: Yes on a Yes/No or POD row, a number above 0, any CLEAR answer
+  // other than No, and an "Is POI the CX" answer other than the default Yes.
+  _ilqAllDefs().forEach(function(d){
+    var k=d.key, kind=_ilqKind(d), row=document.querySelector('[data-ilq-row="'+k+'"]'); if(!row) return;
+    var v=String(a[k]==null?'':a[k]).trim(), on=false;
+    if(kind==='yn'||kind==='check') on=(v==='Yes');
+    else if(kind==='num') on=/^\d+$/.test(v) && +v>0;
+    else if(kind==='cbsel') on=!!v && v!=='No';
+    else if(kind==='dsel') on=!!v && v!=='Yes';
+    row.classList.toggle('is-changed', on && !row.hidden);
   });
 }
 // aria-invalid / visual state per control + the "n questions need an answer" status line.
@@ -918,7 +930,8 @@ async function ilCopyField(btn){
   var label=btn.getAttribute('data-label')||'';
   var fmt=IL_COPY_FMT[id]||{prefix:label+':', block:true};
   var text=fmt.block ? (fmt.prefix+'\n'+val) : (fmt.prefix+' '+val);
-  if(id==='ilSimRcd'){ var hist=ilGetHistorical(); if(hist) text+='\n\n'+IL_HIST_HEAD+'\n'+hist; }   // SIM copy includes its rows
+  // The Historical Incidents rows sit under SIM in the form but are copied WITH PHD Findings (not SIM).
+  if(id==='ilPhdFindings'){ var hist=ilGetHistorical(); if(hist) text+='\n\n'+IL_HIST_HEAD+'\n'+hist; }
   try{ await navigator.clipboard.writeText(text); }
   catch(e){
     var tmp=document.createElement('textarea');tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
@@ -1163,7 +1176,7 @@ var IncidentLogEditor=(function(){
   function qControl(def,kind){
     var k=def.key, id='ilq_'+k, req=' aria-required="'+(def.optional?'false':'true')+'"', lbl=_ileEsc(def.label);
     var old='<span class="ail-qold" id="ilqo_'+k+'" hidden></span>';
-    if(kind==='check') return '';
+    if(kind==='check') return '<span class="ail-qstate" id="ilqs_'+k+'" aria-hidden="true">No</span>';   // GeoStudio POD: No / Yes tag
     if(kind==='yn') return '<span class="ail-qstate" id="ilqs_'+k+'" aria-hidden="true">No</span>'+old;
     if(kind==='num'){
       var btns=''; for(var n=0;n<=10;n++) btns+='<button type="button" class="ail-qctl ail-qnb" data-n="'+n+'" aria-pressed="'+(n===0?'true':'false')+'" onclick="ilqPickNum(\''+k+'\','+n+')">'+n+'</button>';
@@ -1283,6 +1296,9 @@ var IncidentLogEditor=(function(){
     // State tag: Yes / No of a Yes/No row; "No" / "0" of an unchecked dropdown / number row.
     '.ail-qstate{font-size:.74em;font-weight:700;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:2px 10px;line-height:1.4}',
     '.ail-qstate.is-yes{color:#1f2a40;background:#fff3e8;border-color:#f7c99c}',
+    // Row whose answer differs from the default (Yes, a number above 0, a CLEAR / POI change).
+    '.ail-qrow.is-changed{background:#fff8f1;box-shadow:inset 3px 0 0 #ec7211;border-radius:6px;padding-left:8px;padding-right:8px;margin:0 -8px}',
+    '.ail-qrow.is-changed .ail-qlabel{font-weight:700}',
     // Revealed controls (number buttons + "Other", CLEAR / POI dropdowns).
     '.ail-qrev{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 8px;animation:ailqIn .18s ease-out}',
     '.ail-qnums{display:inline-flex;flex-wrap:wrap;gap:4px}',
