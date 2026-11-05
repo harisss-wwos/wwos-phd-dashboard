@@ -126,9 +126,10 @@ var IL_INVEST_QS=[
   {key:'locEmt', label:'Location Historical incidents in EMT records (Physical address)', type:'number'},
   // usCa: asked only for US / CA tickets (ilSetTicketRegion); see _ilqRegionHidden.
   {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','Yes (low level offense)','N/A'], usCa:true},
-  {key:'station',label:'Station request made', type:'select', opts:['No','Yes'], usCa:true,
+  // noFlex: also hidden when the SIM "Driv:" is Flex DP (see _ilqRegionHidden).
+  {key:'station',label:'Station request made', type:'select', opts:['No','Yes'], usCa:true, noFlex:true,
     sub:{key:'stationLink', label:'Station request link', type:'text', inputType:'url', placeholder:'LINK_IF_APPLICABLE'}},
-  {key:'netra',  label:'Netradyne footage exists', type:'select', opts:['No','Yes'], usCa:true,
+  {key:'netra',  label:'Netradyne footage exists', type:'select', opts:['No','Yes'], usCa:true, noFlex:true,
     // Multi-line free text (5-row textarea). Extra lines are saved as continuation lines indented
     // IL_INVEST_CONT_INDENT under the sub-line (see ilSerializeInvestigation / ilParseInvestigation).
     sub:{key:'netraInfo', label:'Netradyne footage review', type:'textarea', rows:5, placeholder:'IF_APPLICABLE',
@@ -148,7 +149,15 @@ var IL_POI_CM_HIDE=['susp','histCx','locSim','cortex','locEmt','clear','station'
 function _ilqPoiHidden(q,a){ return IL_POI_CM_HIDE.indexOf(q.key)>=0 && String((a||{}).poi==null?'':a.poi).trim()===IL_POI_CM; }
 // True if question q is hidden for the ticket's region. ro = {usca:boolean}; usca===false hides the
 // usCa questions (+ their sub-questions). No ro / usca undefined -> shown (Node callers, old shape).
-function _ilqRegionHidden(q,ro){ return !!(q.usCa && ro && ro.usca===false); }
+// noFlex questions (Station request, Netradyne + their sub-questions) are also hidden when the SIM
+// Root Cause Details "Driv:" is Flex DP (ro.flex===true; see ilIsFlexDriv).
+function _ilqRegionHidden(q,ro){ return !!((q.usCa && ro && ro.usca===false) || (q.noFlex && ro && ro.flex===true)); }
+// True when the SIM Root Cause Details text has "Driv:" / "Driver Type:" = Flex DP (any case/spacing,
+// e.g. "Flex DP", "FLEX-DP", "Flex").
+function ilIsFlexDriv(sim){
+  var m=String(sim==null?'':sim).replace(/\*\*/g,'').match(/(?:^|\s)Driv(?:er\s*Type)?[ \t]*:[ \t]*([^\r\n]*)/i);
+  return !!(m && /^flex/i.test(m[1].replace(/[^A-Za-z]/g,'')));
+}
 var IL_INVEST_SUB_INDENT='    ';
 // Continuation lines of a multi-line answer: indented deeper than any sub-question line.
 var IL_INVEST_CONT_INDENT='        ';
@@ -275,7 +284,7 @@ function ilSerializeInvestigation(answers,unknown,ro){
     for(var i=1;i<ls.length;i++) lines.push(ls[i] ? IL_INVEST_CONT_INDENT+ls[i] : '');
   };
   IL_INVEST_QS.forEach(function(q){
-    if(_ilqRegionHidden(q,ro)){   // not a US / CA ticket -> no line, except saved answers kept as-is
+    if(_ilqRegionHidden(q,ro)){   // not a US / CA ticket (or Flex DP) -> no line, except saved answers kept as-is
       if(kept[q.key] && kept[q.key].length){ any=true; lines.push.apply(lines, kept[q.key]); }
       return;
     }
@@ -580,7 +589,9 @@ var IL_TICKET_SID='';  // the ticket ShortId the modal is currently open for (fo
 var _ilqUnknown=[];   // saved lines that matched no question; shown read-only and re-appended on save
 var _ilqKept={};      // non-US/CA ticket: saved US/CA-only answer lines, re-written unchanged on Save (not copied)
 function _ilqEl(key){ return document.getElementById('ilq_'+key); }
-function _ilqRO(forSave){ return {usca:_ilUsca, kept:forSave?_ilqKept:null}; }
+// flex = the SIM Root Cause Details in the form currently says "Driv: Flex DP".
+function _ilFlexNow(){ var el=document.getElementById('ilSimRcd'); return !!(el && ilIsFlexDriv(el.value)); }
+function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), kept:forSave?_ilqKept:null}; }
 // Every control definition in DOM order (questions, the POI free-text, sub-questions).
 function _ilqAllDefs(){
   var d=[]; IL_INVEST_QS.forEach(function(q){ d.push(q); if(q.poiWho) d.push(q.poiWho); if(q.sub) d.push(q.sub); }); return d;
@@ -725,7 +736,7 @@ function _ilqSyncVisibility(){
   var ro=_ilqRO(false);
   IL_INVEST_QS.forEach(function(q){
     var row, off=_ilqPoiHidden(q,a) || _ilqRegionHidden(q,ro);
-    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
+    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa || q.noFlex){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
     if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=(a[q.key]!=='No'); }
     if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=off || !_ilqSubShown(q,a); }
   });
@@ -840,7 +851,7 @@ function ilCopyMissingNow(opts){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   ilHistSync(); _ilhCapture();
   return ilCopyMissing({findings:g('ilPhdFindings'), sim:g('ilSimRcd'), histRows:_ilhRows, rootCause:g('ilRootCause'),
-    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca}, opts||{}));
+    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd'))}, opts||{}));
 }
 // True when every field has a value (the questionnaire: every visible question answered).
 function ilAllFilled(){ return ilCopyMissingNow().length===0; }
@@ -1236,7 +1247,7 @@ var IncidentLogEditor=(function(){
           // PHD Findings, PHD Notes. PHD Related Link (hidden input, filled by the page with the ticket
           // URL) and PHD Resolution (the SIM "Res:" value) are not shown but are in every copy / save.
           field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>')+
-          field('ilSimRcd','SIM Root Cause Details','ta','<textarea id="ilSimRcd" class="ail-f" oninput="ilHistSync();ilMarkEmpty(this);ilUpdateCopyState()" onchange="ilHistSync();ilMarkEmpty(this)" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>'+
+          field('ilSimRcd','SIM Root Cause Details','ta','<textarea id="ilSimRcd" class="ail-f" oninput="ilHistSync();ilMarkEmpty(this);_ilqSyncVisibility();ilUpdateCopyState()" onchange="ilHistSync();ilMarkEmpty(this);_ilqSyncVisibility()" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>'+
             // Historical Incidents rows (shown when the SIM "Cnt:" line is 1 or more; see ilHistSync).
             '<div class="ail-hist" id="ilHist" role="group" aria-labelledby="ilHistTitle" hidden></div>')+
           investigationField()+
