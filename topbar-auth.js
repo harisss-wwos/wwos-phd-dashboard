@@ -1327,6 +1327,9 @@
       + '#tbHomeChrome .home-viewlog-btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}'
       + '#tbHomeChrome .home-viewlog-btn:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.22)}'
       + '#tbHomeChrome .home-viewlog-btn .home-act-ic{background:rgba(255,255,255,.08);color:#ffb26b}'
+      // Assignment Center (Data group): current-page state mirrors the nav items' active look.
+      + '#tbHomeChrome .home-unassigned-btn.is-current{background:rgba(255,255,255,.11);border-color:rgba(236,114,17,.55);box-shadow:inset 3px 0 0 #ec7211}'
+      + '#tbHomeChrome .home-unassigned-btn.is-current .home-act-ic{background:rgba(236,114,17,.18);box-shadow:inset 0 0 0 1px rgba(236,114,17,.42)}'
       // View Log | Extract share one row, equal width; they stack below 720px (and in the icon rail).
       + '#tbHomeChrome .home-act-row{display:flex;gap:6px;width:100%}'
       + '#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:1 1 0;min-width:0;width:auto;gap:5px;padding:6px;justify-content:center}'
@@ -2495,6 +2498,7 @@
     'incident-explorer': { title: 'Incident Explorer', icon: 'globe', tone: 'blue' },
     'pulse-check': { title: 'Pulse Check (24h)', icon: 'line-chart', tone: 'blue' },
     'errors-in-resolved': { title: 'Errors in Resolved', icon: 'alert-triangle', tone: 'rose' },
+    'unassigned-tickets': { title: 'Assignment Center', icon: 'user-plus', tone: 'amber' },
     'tools': { title: 'PHD Tools', icon: 'tool', tone: 'teal' }, 'profile': { title: 'Profile', icon: 'user', tone: 'blue' },
     'data-log': { title: 'Uploaded Data Log', icon: 'history', tone: 'violet' }, 'users': { title: 'Users', icon: 'users', tone: 'blue' },
     'db-health': { title: 'Database Health', icon: 'database', tone: 'teal' }, 'groups-page': { title: 'Grouping Page', icon: 'copy', tone: 'violet' },
@@ -2712,6 +2716,11 @@
             + '<button type="button" class="home-viewlog-btn" title="View upload log" onclick="if(window.PHDOpenUploadLog)PHDOpenUploadLog()"><span class="home-act-ic">' + ic('history', 15) + '</span><span class="home-act-lbl">View Log</span></button>'
             + '<a class="home-viewlog-btn home-extract-btn" href="https://t.corp.amazon.com/issues?q=%7B%22AND%22%3A%7B%22status%22%3A%7B%22OR%22%3A%5B%22Assigned%22%2C%7B%22OR%22%3A%5B%22Work%20In%20Progress%22%2C%7B%22OR%22%3A%5B%22Researching%22%2C%7B%22OR%22%3A%5B%22Pending%22%2C%22Resolved%22%5D%7D%5D%7D%5D%7D%5D%7D%2C%22assignedGroup%22%3A%22LM-HUB%22%7D%7D" target="_blank" rel="noopener noreferrer" title="Open the LM-HUB ticket search in SIM (new tab)" aria-label="Extract — opens the LM-HUB ticket search in a new tab"><span class="home-act-ic">' + ic('external-link', 15) + '</span><span class="home-act-lbl">Extract</span></a>'
             + '</div>'
+            // Assignment Center (unassigned-tickets.html): last item of the Data group, full row, current-page highlight.
+            + (function () {
+                var onUa = hereFile === 'unassigned-tickets';
+                return '<a class="home-viewlog-btn home-unassigned-btn' + (onUa ? ' is-current' : '') + '" href="unassigned-tickets.html" title="Assignment Center"' + (onUa ? ' aria-current="page"' : '') + '><span class="home-act-ic">' + ic('user-plus', 15) + '</span><span class="home-act-lbl">Assignment Center</span></a>';
+              })()
           : '')
       + '</div>';
     var recent = '<div class="home-recent-col' + (li ? '' : ' home-navcol-disabled') + '" id="tbhRecentCol">'
@@ -5194,6 +5203,7 @@
       'page-zero.html': 'grid',
       'pulse-check.html': 'line-chart',
       'errors-in-resolved.html': 'alert-triangle',
+      'unassigned-tickets.html': 'user-plus',
       'tools.html': 'tool', 'tool-blurbs.html': 'clipboard',
       'tool-hashtags.html': 'hash', 'tool-paging.html': 'mail', 'tool-prompts.html': 'message',
       'important-cases.html': 'hash',

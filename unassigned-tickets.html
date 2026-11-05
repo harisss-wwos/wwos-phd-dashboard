@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assignment Center · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<style id="ua-light">
+/* Unassigned Tickets — navy hero with an orange rule, KPI cards overlapping it, then one white table
+   card. Same tokens as SLA Breaches / Errors in Resolved; everything is scoped under .ua. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.ua{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--amb:#b5530a;--amb-bg:#fff4e5;--blue:#1f5fbf;--blue-bg:#e9f0fb;
+  --vio:#5b3fc4;--vio-bg:#f1ecfe;--teal:#136b67;--teal-bg:#d2f0ee;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.ua button,.ua select,.ua input{font-family:inherit;line-height:inherit;text-transform:none}
+.ua :is(button,a,input,select,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.ua-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.ua-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.ua-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.ua-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.ua-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.ua-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.ua-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.ua-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.ua-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.ua-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.ua-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;max-width:100%}
+.ua-meta li{display:flex;flex-direction:column;gap:3px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:0}
+.ua-meta-k{font-size:.62em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
+.ua-meta-v{display:inline-flex;align-items:center;gap:7px;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ua-meta-v svg{color:#ffb26b;flex-shrink:0}
+@container (max-width:560px){
+  .ua-hero{padding:20px 18px 72px 22px}
+  .ua-hero h1{font-size:1.65em}
+  .ua-hero-ic{width:40px;height:40px}
+  .ua-hero-main{flex-basis:100%}
+}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.ua-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:420px){.ua-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:640px){.ua-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (min-width:1000px){.ua-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@container (max-width:560px){.ua-kpis{margin:-54px 10px 14px}}
+.ua-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.ua-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.ua-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.ua-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.ua-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ua-kpi-v small{font-size:.42em;font-weight:700;letter-spacing:0;color:var(--mut)!important;margin-left:6px}
+.ua-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.ua-kpi-s b{color:var(--ink);font-weight:800}
+.ua-kpi.is-base{--k:#1f2a40}.ua-kpi.is-base .ua-kpi-ic{background:var(--blue-bg);color:var(--blue)}
+.ua-kpi.is-warn{--k:#f59e0b}.ua-kpi.is-warn .ua-kpi-ic{background:var(--amb-bg);color:var(--amb)}
+.ua-kpi.is-vio{--k:#7c5ce0}.ua-kpi.is-vio .ua-kpi-ic{background:var(--vio-bg);color:var(--vio)}
+.ua-kpi.is-bad{--k:#d92d20}.ua-kpi.is-bad .ua-kpi-v{color:var(--red)}.ua-kpi.is-bad .ua-kpi-ic{background:var(--red-bg);color:var(--red)}
+.ua-kpi.is-na .ua-kpi-v{color:#a0a8b1}
+
+/* ---- Table card ---- */
+.ua-sec{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px;overflow:hidden}
+.ua-sec-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.ua-sec-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.ua-sec-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ua-sec-t{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)!important}
+.ua-sec-d{font-size:.82em;font-weight:500;color:var(--mut);line-height:1.4}
+.ua-sec-b{padding:16px 20px 18px}
+@container (max-width:640px){.ua-sec-h{padding:14px}.ua-sec-b{padding:14px}}
+
+/* ---- Toolbar ---- */
+.ua-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.ua-search{display:flex;align-items:center;gap:9px;flex:1 1 260px;max-width:420px;height:38px;padding:0 12px;background:#fff;border:1px solid #d4dade;border-radius:8px;transition:border-color .15s,box-shadow .15s}
+.ua-search:focus-within{border-color:var(--focus);box-shadow:0 0 0 3px rgba(236,114,17,.2)}
+.ua-search svg{color:#8793a0;flex-shrink:0}
+.ua-search input{flex:1;min-width:0;height:100%;padding:0;font-size:.88em;color:var(--ink)!important;background:transparent!important;border:0!important;box-shadow:none!important;outline:none}
+.ua .ua-search input:focus-visible{outline:none}
+.ua-seg{display:inline-flex;align-items:center;gap:0;border:1px solid #d4dade;border-radius:8px;background:#fff;overflow:hidden}
+.ua-seg-k{font-size:.68em;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin-right:6px}
+.ua-seg button{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:0;background:transparent;font-size:.82em;font-weight:700;color:#3a4552;cursor:pointer}
+.ua-seg button+button{border-left:1px solid #d4dade}
+.ua-seg button[aria-pressed="true"]{background:var(--acc-bg);color:var(--acc-ink)}
+.ua-seg button:hover:not([aria-pressed="true"]){background:#fafbfc}
+.ua-sortgrp{display:inline-flex;align-items:center}
+.ua-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid #161d2d;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;transition:background .15s}
+.ua-btn:hover:not(:disabled){background:#0f1420}
+.ua-btn:disabled{opacity:.45;cursor:default}
+.ua-ghost{background:#fff;border-color:#d4dade;color:#2a3340}
+.ua-ghost:hover:not(:disabled){background:#fff;border-color:var(--acc);color:var(--acc-ink)}
+.ua-tools-r{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ua-count{flex-basis:100%;font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;padding:0 2px}
+@container (max-width:700px){.ua-tools-r{margin-left:0}}
+
+/* ---- Table ---- */
+.ua-scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;-webkit-overflow-scrolling:touch}
+.ua-tbl{width:100%;min-width:860px;border-collapse:separate;border-spacing:0;font-size:.86em}
+.ua-tbl caption{text-align:left}
+/* Severity sections: Ticket ID | Age | Title — ID and Age hug their content, the title takes the rest and wraps. */
+.ua-tbl.ua-tbl-3{min-width:0;table-layout:auto}
+.ua-tbl-3 .ua-c-id,.ua-tbl-3 .ua-c-age{width:1%;white-space:nowrap}
+.ua-tbl-3 td.ua-c-title{white-space:normal;overflow-wrap:anywhere;line-height:1.45;color:var(--ink)}
+.ua-tbl th,.ua-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4!important;text-align:left;vertical-align:middle;color:#2a3340}
+.ua-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8!important;color:#5c6773!important;border-bottom:1px solid var(--line)!important;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap}
+.ua-tbl tbody tr td{background:#fff!important}
+.ua-tbl tbody tr:hover td{background:#f6f9fd!important}
+.ua-tbl tbody tr:last-child td{border-bottom:none!important}
+.ua-tbl a{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
+.ua-tbl a:hover{text-decoration:underline}
+.ua-th-sort{padding:0!important}
+.ua-sortbtn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:9px 12px;border:none;background:none;font:inherit!important;font-size:1em;font-weight:800;letter-spacing:.7px;text-transform:uppercase!important;color:inherit;cursor:pointer}
+.ua-sortbtn:hover{color:var(--ink)}
+.ua-sort-ar{color:var(--acc);font-size:1.1em}
+.ua-id{display:inline-flex;align-items:center;gap:6px}
+.ua-copy{display:grid;place-items:center;width:26px;height:24px;padding:0;border-radius:6px;border:1px solid #d4dade;background:#fff;color:#6b7681;cursor:pointer;transition:color .15s,border-color .15s;flex:0 0 auto}
+.ua-copy:hover{color:#2b66c1;border-color:#9cbbe8}
+.ua-copy.copied{color:var(--grn);border-color:#9fd9b6}
+.ua-trunc{display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ua-when{display:flex;flex-direction:column;gap:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ua-when small{font-size:.86em;font-weight:700;color:var(--mut)}
+.ua-age{display:inline-flex;align-items:center;padding:1px 7px;border-radius:99px;font-size:.82em;font-weight:800;background:#f1f3f5;border:1px solid var(--line);color:#3a4552;width:max-content}
+.ua-age.is-old{background:var(--red-bg);border-color:#f4c2bd;color:var(--red)}
+.ua-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;font-size:.84em;font-weight:800;white-space:nowrap;border:1px solid}
+.ua-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.ua-pill.s-assigned{background:var(--blue-bg);border-color:#c9daf3;color:var(--blue)}
+.ua-pill.s-wip{background:var(--amb-bg);border-color:#f6d3a6;color:#9a4a06}
+.ua-pill.s-pending{background:var(--vio-bg);border-color:#ddd2fb;color:var(--vio)}
+.ua-pill.s-researching{background:var(--teal-bg);border-color:#9fd9d4;color:var(--teal)}
+.ua-pill.s-other{background:#f1f3f5;border-color:var(--line);color:#5c6773}
+.ua-who{font-weight:700;white-space:nowrap}
+.ua-who.is-none{color:#8793a0;font-style:italic;font-weight:600}
+.ua-pager{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 4px 2px;flex-wrap:wrap}
+.ua-pg-info{color:var(--mut);font-size:.8em;font-weight:700;font-variant-numeric:tabular-nums}
+.ua-pager .ua-btn{height:34px;font-size:.8em}
+
+/* ---- States ---- */
+.ua-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:34px 20px;text-align:center;color:var(--mut)}
+.ua-empty-ic{width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--grn-bg);color:var(--grn);margin-bottom:4px}
+.ua-empty-ic.is-err{background:var(--red-bg);color:var(--red)}
+.ua-empty-ic.is-mute{background:#eef1f4;color:#5c6773}
+.ua-empty-t{font-size:1.06em!important;font-weight:800;color:var(--ink)!important}
+.ua-empty p{font-size:.9em;max-width:52ch;line-height:1.5}
+.ua-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:uaShim 1.4s ease infinite}
+.ua-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes uaShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.ua-skrow{display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid #eef1f4}
+/* ---- Severity cards (buttons that jump to their section) ---- */
+button.ua-kpi{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
+button.ua-kpi:hover:not(:disabled){transform:translateY(-2px);border-color:#c4ccd4;box-shadow:0 18px 34px -22px rgba(20,30,50,.7)}
+button.ua-kpi:disabled{cursor:default}
+.ua-kpi .ua-kpi-l,.ua-kpi .ua-kpi-v,.ua-kpi .ua-kpi-s{display:flex}
+.ua-kpi .ua-kpi-v{display:block}
+.ua-kpi.b-s1{--k:#d92d20}.ua-kpi.b-s1 .ua-kpi-ic{background:var(--red-bg);color:var(--red)}.ua-kpi.b-s1 .ua-kpi-v{color:var(--red)}
+.ua-kpi.b-s2{--k:#ec7211}.ua-kpi.b-s2 .ua-kpi-ic{background:var(--acc-bg);color:var(--acc-ink)}
+.ua-kpi.b-s3{--k:#f59e0b}.ua-kpi.b-s3 .ua-kpi-ic{background:var(--amb-bg);color:var(--amb)}
+.ua-kpi.b-s4{--k:#1f5fbf}.ua-kpi.b-s4 .ua-kpi-ic{background:var(--blue-bg);color:var(--blue)}
+.ua-kpi.b-s5{--k:#136b67}.ua-kpi.b-s5 .ua-kpi-ic{background:var(--teal-bg);color:var(--teal)}
+.ua-kpi.b-noemt{--k:#7c5ce0}.ua-kpi.b-noemt .ua-kpi-ic{background:var(--vio-bg);color:var(--vio)}
+.ua-sevs{display:inline-flex;gap:4px;flex-wrap:wrap}
+.ua-sev{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.8em;font-weight:800;white-space:nowrap;border:1px solid}
+.ua-sev.b-s1{background:var(--red-bg);border-color:#f4c2bd;color:var(--red)}
+.ua-sev.b-s2{background:var(--acc-bg);border-color:#f7caa2;color:var(--acc-ink)}
+.ua-sev.b-s3{background:var(--amb-bg);border-color:#f6d3a6;color:#8a4508}
+.ua-sev.b-s4{background:var(--blue-bg);border-color:#c9daf3;color:var(--blue)}
+.ua-sev.b-s5{background:var(--teal-bg);border-color:#9fd9d4;color:var(--teal)}
+.ua-sev.b-noemt{background:var(--vio-bg);border-color:#ddd2fb;color:var(--vio)}
+.ua-sev.b-none{background:#f1f3f5;border-color:var(--line);color:#5c6773}
+
+/* ---- Collapsible section headers ---- */
+.ua-sec-hh{margin:0;font:inherit}
+button.ua-sec-h{width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer}
+button.ua-sec-h:hover{background:#fafbfc}
+button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
+.ua-badge{flex-shrink:0;padding:3px 10px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.8em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ua-chev{flex-shrink:0;display:inline-flex;color:#5c6773;transition:transform .15s}
+.ua-tog[aria-expanded="false"] .ua-chev{transform:rotate(-90deg)}
+/* Severity section bar = expand button + Pet / Non-pet toggles on the right. */
+.ua-bhead{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);background:#fff}
+.ua-bhead.is-shut{border-bottom-color:transparent}
+.ua-bhead .ua-sec-hh{flex:1 1 auto;min-width:0}
+.ua-bhead button.ua-sec-h{border-bottom:0}
+.ua-pf{display:inline-flex;gap:6px;flex-shrink:0}
+.ua-bh-end{display:inline-flex;align-items:center;gap:10px;flex-shrink:0;padding-right:20px;cursor:pointer}
+.ua-bhead.is-shut .ua-bh-end .ua-chev{transform:rotate(-90deg)}
+/* Row selection checkboxes (left column of each severity table). */
+.ua-tbl-3 .ua-c-cb{width:1%;padding-right:4px}
+.ua-cb{width:16px;height:16px;margin:0;accent-color:var(--acc);cursor:pointer;vertical-align:middle}
+.ua-tbl tbody tr.is-sel td{background:#fff8f1!important}
+.ua-selinfo{font-size:.8em;font-weight:700;color:var(--acc-ink)}
+.ua-pf-b{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border:1px solid #d4dade;border-radius:99px;background:#fff;font:inherit;font-size:.78em;font-weight:700;color:#5c6773;cursor:pointer;white-space:nowrap}
+.ua-pf-b b{font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ua-pf-ck{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;border:1px solid #c4ccd4;background:#fff;color:#fff}
+.ua-pf-b.is-on{border-color:#f7caa2;background:var(--acc-bg);color:var(--acc-ink)}
+.ua-pf-b.is-on .ua-pf-ck{background:var(--acc);border-color:var(--acc)}
+.ua-pf-b:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@container (max-width:640px){.ua-bhead{flex-wrap:wrap}.ua-pf{padding:0 14px 12px}}
+.ua-bsec.b-s1 .ua-sec-ic{background:var(--red-bg);color:var(--red)}
+.ua-bsec.b-s2 .ua-sec-ic{background:var(--acc-bg);color:var(--acc-ink)}
+.ua-bsec.b-s3 .ua-sec-ic{background:var(--amb-bg);color:var(--amb)}
+.ua-bsec.b-s4 .ua-sec-ic{background:var(--blue-bg);color:var(--blue)}
+.ua-bsec.b-s5 .ua-sec-ic{background:var(--teal-bg);color:var(--teal)}
+.ua-bsec.b-noemt .ua-sec-ic{background:var(--vio-bg);color:var(--vio)}
+.ua-bsec{scroll-margin-top:16px}
+.ua-none{padding:6px 2px;font-size:.88em;font-weight:600;color:var(--mut)}
+
+/* ---- People (admin rows + contractor cards) ---- */
+.ua-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1f2a40,#3a4a6b);color:#fff;font-weight:800;font-size:.9em}
+.is-me .ua-av{background:linear-gradient(135deg,#ff9f2e,var(--acc))}
+.ua-nm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ua-login{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:var(--ink);font-size:.95em}
+.ua-dn{font-size:.8em;font-weight:600;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ua-you{padding:1px 7px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7caa2;color:var(--acc-ink);font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.ua-adms{list-style:none;display:flex;flex-direction:column;gap:8px}
+.ua-adm{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.ua-adm.is-me{border-color:#f7caa2;box-shadow:inset 3px 0 0 var(--acc)}
+.ua-adm-h{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border:0;background:transparent;text-align:left;font:inherit;color:inherit;cursor:pointer;flex-wrap:wrap}
+.ua-adm-h:hover{background:#fafbfc}
+.ua-adm-h .ua-nm{flex:1 1 160px}
+.ua-adm-b{padding:0 14px 14px}
+.ua-cnts{display:inline-flex;flex-wrap:wrap;gap:6px}
+.ua-cnt{display:inline-flex;align-items:baseline;gap:5px;padding:3px 10px;border-radius:99px;border:1px solid;font-size:.8em;font-weight:700;white-space:nowrap}
+.ua-cnt b{font-weight:800;font-variant-numeric:tabular-nums}
+.ua-cnt.c-as{background:var(--blue-bg);border-color:#c9daf3;color:var(--blue)}
+.ua-cnt.c-wip{background:var(--amb-bg);border-color:#f6d3a6;color:#9a4a06}
+.ua-cnt.c-pen{background:var(--vio-bg);border-color:#ddd2fb;color:var(--vio)}
+.ua-cnt.c-tot{background:#1f2a40;border-color:#1f2a40;color:#fff}
+.ua-tbl-adm{min-width:760px}
+/* Person cards (Admin team + Contractors): severity-card look, one row of --n cards on wide screens. */
+.ua-pcards{list-style:none;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+@container (min-width:480px){.ua-pcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:760px){.ua-pcards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (min-width:1240px){.ua-pcards{grid-template-columns:repeat(var(--n,6),minmax(0,1fr))}}
+.ua-pcard{--k:#1f2a40;box-shadow:none;display:flex;flex-direction:column;min-width:0}
+.ua-pcard.is-me{--k:var(--acc);border-color:#f7caa2}
+.ua-pc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.ua-pc-nm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ua-pc-nm .ua-login{font-size:1em}
+.ua-pc-tot{display:inline-flex;align-items:baseline;gap:4px;flex-shrink:0;font-size:.78em;font-weight:700;color:var(--mut);white-space:nowrap}
+.ua-pc-tot b{font-size:1.9em;font-weight:800;letter-spacing:-.8px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.ua-pcard.is-me .ua-pc-tot b{color:var(--acc-ink)}
+/* Assigned | WIP | Pending: number on top, label below, thin dividers between the three. */
+.ua-pc-m{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px;padding-top:10px;border-top:1px solid #eef1f4}
+.ua-pc-t{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0 10px;font-size:.74em;font-weight:700;white-space:nowrap;border-left:1px solid #e3e8ee}
+.ua-pc-t:first-child{padding-left:0;border-left:0}
+.ua-pc-t b{font-size:1.6em;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.ua-pc-t.c-as{color:var(--blue)}
+.ua-pc-t.c-wip{color:#9a4a06}
+.ua-pc-t.c-pen{color:var(--vio)}
+/* Severity cards: one line, label left + count right. */
+.ua-sc-row{display:flex!important;align-items:center;justify-content:space-between;gap:10px}
+.ua-sc-row .ua-kpi-v{margin-top:0;font-size:2em}
+
+.ua-ccs{list-style:none;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+@container (min-width:480px){.ua-ccs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:760px){.ua-ccs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (min-width:1100px){.ua-ccs{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.ua-cc{display:flex;flex-direction:column;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:0}
+.ua-cc.is-me{border-color:#f7caa2}
+.ua-cc-top{display:flex;align-items:center;gap:10px;min-width:0}
+.ua-cc-tot{margin-top:12px;font-size:.82em;font-weight:700;color:var(--mut)}
+.ua-cc-tot b{font-size:1.9em;font-weight:800;letter-spacing:-.8px;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:4px}
+.ua-cc-m{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.ua-cc-m div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:8px;border:1px solid}
+.ua-cc-m dt{font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.ua-cc-m dd{font-size:1.05em;font-weight:800;font-variant-numeric:tabular-nums}
+.ua-cc-m .c-as{background:var(--blue-bg);border-color:#c9daf3;color:var(--blue)}
+.ua-cc-m .c-wip{background:var(--amb-bg);border-color:#f6d3a6;color:#9a4a06}
+.ua-cc-m .c-pen{background:var(--vio-bg);border-color:#ddd2fb;color:var(--vio)}
+@media (prefers-reduced-motion:reduce){.ua *,.ua *::before,.ua *::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-nav-active="unassigned-tickets" data-back-href="app.html" data-back-label="Dashboard">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+
+<script src="icons.js?v=2"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js?v=219"></script>
+<script>
+var A=window.PHDAuth;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function ic(n,s){return window.icon?window.icon(n,s||14):'';}
+function $(id){return document.getElementById(id);}
+function num(n){return (Number(n)||0).toLocaleString('en-US');}
+function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
+function errMsg(r,fallback){ return (r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||fallback); }
+
+// ---- Timezone (account preference IST | MST, same convention as My Tickets) ----
+var MY_TZ='IST';
+var TZ_ZONE={IST:'Asia/Kolkata',MST:'America/Denver'};
+function tzDate(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return '\u2014';
+  try{ return d.toLocaleDateString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return '\u2014'; } }
+function tzTime(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return '';
+  try{ return d.toLocaleTimeString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ; }catch(e){ return ''; } }
+function tzFull(iso){ var t=tzTime(iso); return t?(tzDate(iso)+', '+t):'\u2014'; }
+// Age since creation as "3d 4h" (or "5h" under a day). Null when the date is unknown.
+function ageMs(iso){ var d=new Date(iso); return (!iso||isNaN(d))?null:Math.max(0,Date.now()-d.getTime()); }
+function ageLabel(ms){ if(ms==null) return '\u2014'; var h=Math.floor(ms/36e5), d=Math.floor(h/24); return d>0?(d+'d '+(h%24)+'h'):(h+'h'); }
+
+// ---- State ----
+var PAGE_SIZE=25;
+var STATE='loading', ERR='', DATA=null, Q='', SORT='asc';   // asc = Oldest first (default)
+var PAGES={};                 // bucket key -> page index
+var OPEN_ADM=true;            // Admin team section (open by default)
+var OPEN_A={};                // admin login -> expanded (collapsed by default)
+var OPEN_B={};                // bucket key -> expanded (default: open when it has tickets)
+var BUCKETS=[
+  {k:'s1',label:'Sev 1',icon:'flame',sub:'Most severe'},
+  {k:'s2',label:'Sev 2',icon:'alert-triangle',sub:'High'},
+  {k:'s3',label:'Sev 3',icon:'alert',sub:'Medium'},
+  {k:'s4',label:'Sev 4',icon:'info',sub:'Low'},
+  {k:'s5',label:'Sev 5',icon:'shield',sub:'Lowest'},
+  {k:'noemt',label:'No EMT',icon:'no-entry',sub:'No EMT or no severity'}
+];
+function bLabel(k){ for(var i=0;i<BUCKETS.length;i++) if(BUCKETS[i].k===k) return BUCKETS[i].label; return k; }
+function me(){ var u=(A&&A.getUser&&A.getUser())||{}; return String(u.username||'').toLowerCase(); }
+function sortKey(){ return 'phd_ua_sort_'+(me()||'anon'); }
+function loadSort(){ try{ var v=localStorage.getItem(sortKey()); if(v==='asc'||v==='desc') SORT=v; }catch(e){} }
+function saveSort(){ try{ localStorage.setItem(sortKey(),SORT); }catch(e){} }
+function announce(msg){ var l=$('uaLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+
+function rowsAll(){ return (DATA&&Array.isArray(DATA.rows))?DATA.rows:[]; }
+function admins(){ return (DATA&&Array.isArray(DATA.admins))?DATA.admins:[]; }
+function contractors(){ return (DATA&&Array.isArray(DATA.contractors))?DATA.contractors:[]; }
+function isBlank(r){ return !r.assignee||r.assignee==='Unassigned'; }
+// A ticket is No EMT when flagged no-EMT, else its Sev N, else (no severity) No EMT.
+function bucketOf(r){ if(r.noEmt) return 'noemt'; var s=Number(r.severity); return (s>=1&&s<=5)?('s'+s):'noemt'; }
+function matchQ(r,q){ return !q||String(r.shortId||'').toLowerCase().indexOf(q)>=0||String(r.title||'').toLowerCase().indexOf(q)>=0||String(r.assignee||'').toLowerCase().indexOf(q)>=0; }
+function byAge(dir){ return function(a,b){
+  var x=new Date(a.createdAt).getTime(), y=new Date(b.createdAt).getTime(), xn=isNaN(x), yn=isNaN(y);
+  if(xn||yn) return xn===yn?0:(xn?1:-1);   // unknown dates always last
+  return (x-y)*dir; }; }
+function groups(){
+  var q=Q.trim().toLowerCase(), g={}, dir=SORT==='desc'?-1:1;
+  BUCKETS.forEach(function(b){ g[b.k]={all:[],shown:[]}; });
+  rowsAll().forEach(function(r){ var k=bucketOf(r), x=g[k]; x.all.push(r); if(matchQ(r,q) && petOk(k,r)) x.shown.push(r); });
+  BUCKETS.forEach(function(b){ g[b.k].shown.sort(byAge(dir)); });
+  return g;
+}
+// Pet / Non-pet filter per severity section (both on by default; at least one stays on).
+var PETF={};   // bucket key -> {pet:bool, non:bool}
+var SEL=new Set();   // selected ticket IDs (row checkboxes; kept across re-renders this visit)
+function petF(k){ return PETF[k]||(PETF[k]={pet:true,non:true}); }
+function petOk(k,r){ var f=petF(k); return r.pet ? f.pet : f.non; }
+// Severity sections start collapsed; a section stays open only after the user opens it (this visit).
+function isOpenB(k,n){ return OPEN_B[k]===true; }
+
+// ---- Hero + severity cards ----
+function heroHtml(){
+  var total=STATE==='done'?num(rowsAll().length):(STATE==='error'?'\u2014':'<span class="ua-skel ua-skel-d" style="width:40px;height:12px" aria-hidden="true"></span><span class="ua-sr">Loading</span>');
+  var asOf=STATE==='done'?esc(DATA.asOf?tzFull(DATA.asOf):'Unknown'):(STATE==='error'?'Not loaded':'<span class="ua-skel ua-skel-d" style="width:120px;height:12px" aria-hidden="true"></span><span class="ua-sr">Loading</span>');
+  return '<header class="ua-hero"><div class="ua-hero-in"><div class="ua-hero-main"><span class="ua-hero-ic">'+ic('user-plus',24)+'</span><div>'+
+    '<p class="ua-eyebrow">Data \u00b7 Queue check</p><h1>Assignment Center</h1>'+
+    '<p class="ua-hero-sub">Admin and contractor workloads, plus open tickets not assigned to any registered PHD user, grouped by severity.</p>'+
+    '</div></div>'+
+    '<ul class="ua-meta" aria-label="Report details">'+
+      '<li><span class="ua-meta-k">Unassigned</span><span class="ua-meta-v">'+ic('ticket',14)+total+'</span></li>'+
+      '<li><span class="ua-meta-k">Data as of</span><span class="ua-meta-v">'+ic('clock',14)+asOf+'</span></li>'+
+    '</ul></div></header>';
+}
+function kpisHtml(){
+  if(STATE==='loading'){
+    var k='<div class="ua-kpi" aria-hidden="true"><span class="ua-skel" style="width:55%;height:11px"></span><span class="ua-skel" style="width:40%;height:30px;margin-top:14px"></span><span class="ua-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
+    return '<div class="ua-kpis" aria-busy="true" aria-label="Severity figures loading">'+k+k+k+k+k+k+'</div>';
+  }
+  var g=STATE==='done'?groups():null;
+  return '<div class="ua-kpis" role="group" aria-label="Unassigned tickets by severity">'+BUCKETS.map(function(b){
+    var n=g?g[b.k].all.length:null;
+    // A bucket with 0 tickets has no section to jump to -> disabled card.
+    return '<button type="button" class="ua-kpi b-'+b.k+(n==null?' is-na':'')+'" data-jump="'+b.k+'"'+((n==null||n===0)?' disabled':'')+
+      ' aria-label="'+esc(b.label)+': '+(n==null?'unavailable':num(n)+' unassigned. Jump to section')+'">'+
+      // One line: label on the left, count on the right.
+      '<span class="ua-sc-row"><span class="ua-kpi-l"><span class="ua-kpi-ic">'+ic(b.icon,15)+'</span>'+esc(b.label)+'</span>'+
+      '<span class="ua-kpi-v">'+(n==null?'\u2014':num(n))+'</span></span></button>';
+  }).join('')+'</div>';
+}
+
+// ---- Shared cells ----
+function statusPill(s){
+  var k=String(s||'').toLowerCase(), c=k==='assigned'?'s-assigned':(k==='work in progress'?'s-wip':(k==='pending'?'s-pending':(k==='researching'?'s-researching':'s-other')));
+  return '<span class="ua-pill '+c+'">'+esc(s||'Unknown')+'</span>';
+}
+function sevTag(r){
+  var s=Number(r.severity), t=(s>=1&&s<=5)?'<span class="ua-sev b-s'+s+'">Sev '+s+'</span>':'<span class="ua-sev b-none">No severity</span>';
+  return '<span class="ua-sevs">'+t+(r.noEmt?'<span class="ua-sev b-noemt">No EMT</span>':'')+'</span>';
+}
+function ageCell(r){
+  var ms=ageMs(r.createdAt);
+  return '<span class="ua-age'+(ms!=null&&ms>=240*36e5?' is-old':'')+'" title="'+esc(r.createdAt?('Created '+tzFull(r.createdAt)):'Created date unknown')+'">'+esc(ageLabel(ms))+'</span>';
+}
+function idCell(r){
+  var url=safeUrl(r.url), sid=r.shortId||'';
+  var link=url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(sid||'Open')+'<span class="ua-sr"> (opens in a new tab)</span></a>':esc(sid||'\u2014');
+  var copy=sid?'<button type="button" class="ua-copy" data-copy="'+esc(sid)+'" title="Copy ticket ID" aria-label="Copy ticket ID '+esc(sid)+'">'+ic('copy',12)+'</button>':'';
+  return '<span class="ua-id">'+link+copy+'</span>';
+}
+function titleCell(r){ return '<span class="ua-trunc" title="'+esc(r.title||'')+'">'+(r.title?esc(r.title):'<span class="ua-who is-none">No title</span>')+'</span>'; }
+function avatar(login){ return '<span class="ua-av" aria-hidden="true">'+esc(String(login||'?').charAt(0).toUpperCase())+'</span>'; }
+function chev(){ return '<span class="ua-chev" aria-hidden="true">'+ic('chevron-down',16)+'</span>'; }
+// bare=true: no badge / chevron inside the button (the severity bars place them after the Pet toggles).
+function secHead(tog,bodyId,btnId,icon,title,desc,badge,open,bare){
+  return '<h2 class="ua-sec-hh"><button type="button" class="ua-sec-h ua-tog" id="'+btnId+'" data-tog="'+esc(tog)+'" aria-expanded="'+open+'" aria-controls="'+bodyId+'"'+(bare?' aria-describedby="'+btnId+'-n"':'')+'>'+
+    '<span class="ua-sec-ic">'+ic(icon,18)+'</span><span class="ua-sec-txt"><span class="ua-sec-t">'+title+'</span>'+(desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</span>'+
+    (bare?'':'<span class="ua-badge">'+badge+'</span>'+chev())+'</button></h2>';
+}
+function skelRows(n){
+  var s=''; for(var i=0;i<n;i++) s+='<div class="ua-skrow"><span class="ua-skel" style="width:34px;height:34px;border-radius:50%"></span><span class="ua-skel" style="width:140px;height:12px"></span><span class="ua-skel" style="flex:1;height:12px"></span><span class="ua-skel" style="width:220px;height:18px;border-radius:99px"></span></div>';
+  return '<div aria-hidden="true">'+s+'</div>';
+}
+
+// ---- 1) Admin team ----
+function cntPills(c){
+  c=c||{};
+  return '<span class="ua-cnts"><span class="ua-cnt c-as"><b>'+num(c.assigned)+'</b> Assigned</span><span class="ua-cnt c-wip"><b>'+num(c.wip)+'</b> WIP</span>'+
+    '<span class="ua-cnt c-pen"><b>'+num(c.pending)+'</b> Pending</span><span class="ua-cnt c-tot"><b>'+num(c.total)+'</b> Total</span></span>';
+}
+function adminRowHtml(a,i){
+  var login=String(a.login||''), isMe=login===me(), open=OPEN_A[login]===true, list=Array.isArray(a.tickets)?a.tickets:[];
+  var body=list.length?
+    '<div class="ua-scroll" role="region" aria-label="'+esc(login)+' open tickets" tabindex="0"><table class="ua-tbl ua-tbl-adm"><caption class="ua-sr">'+esc(login)+': Assigned, Work In Progress and Pending tickets, oldest first</caption><thead><tr>'+
+      '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Status</th><th scope="col">Severity</th><th scope="col">Age</th></tr></thead><tbody>'+
+      list.map(function(r){ return '<tr><td>'+idCell(r)+'</td><td>'+titleCell(r)+'</td><td>'+statusPill(r.status)+'</td><td>'+sevTag(r)+'</td><td>'+ageCell(r)+'</td></tr>'; }).join('')+
+    '</tbody></table></div>'
+    :'<p class="ua-none">No Assigned, Work In Progress or Pending tickets.</p>';
+  return '<li class="ua-adm'+(isMe?' is-me':'')+'"><button type="button" class="ua-adm-h ua-tog" id="uaAT-'+i+'" data-tog="a:'+esc(login)+'" aria-expanded="'+open+'" aria-controls="uaA-'+i+'">'+
+    avatar(login)+'<span class="ua-nm"><span class="ua-login">'+esc(login)+(isMe?'<span class="ua-you">You</span>':'')+'</span>'+(a.displayName?'<span class="ua-dn">'+esc(a.displayName)+'</span>':'')+'</span>'+
+    cntPills(a.counts)+chev()+'</button><div class="ua-adm-b" id="uaA-'+i+'"'+(open?'':' hidden')+'>'+body+'</div></li>';
+}
+// Person card (admins + contractors), same look as the severity cards: coloured top bar, login, big
+// total, then Assigned / WIP / Pending as three small count tiles. Counts only (no ticket list).
+function personCard(p){
+  var n=(p&&p.counts)||{}, login=String((p&&p.login)||''), isMe=login===me();
+  return '<li class="ua-kpi ua-pcard'+(isMe?' is-me':'')+'" aria-label="'+esc(login)+': '+num(n.total)+' open tickets">'+
+    // One line: login on the left, the total (Assigned + WIP + Pending) on the right.
+    '<span class="ua-pc-head"><span class="ua-login">'+esc(login)+(isMe?'<span class="ua-you">You</span>':'')+'</span>'+
+    '<span class="ua-pc-tot"><b>'+num(n.total)+'</b></span></span></li>';
+}
+function personCardsHtml(list,n,empty){
+  if(STATE==='loading'){
+    var k='<li class="ua-kpi" aria-hidden="true"><span class="ua-skel" style="width:60%;height:12px"></span><span class="ua-skel" style="width:40%;height:28px;margin-top:14px"></span><span class="ua-skel" style="width:90%;height:26px;margin-top:12px"></span></li>';
+    var s=''; for(var i=0;i<n;i++) s+=k; return '<ul class="ua-pcards" style="--n:'+n+'">'+s+'</ul>';
+  }
+  return list.length?'<ul class="ua-pcards" style="--n:'+list.length+'">'+list.map(personCard).join('')+'</ul>':'<p class="ua-none">'+empty+'</p>';
+}
+function adminSecHtml(){
+  var list=admins(), tot=0; list.forEach(function(a){ tot+=(a.counts&&a.counts.total)||0; });
+  var badge=STATE==='done'?(num(tot)+' tickets'):'\u2026';
+  var body=personCardsHtml(byTotalDesc(list),7,'No admin team members found.');
+  // Always open (no expand / collapse), same static header as Contractors.
+  return '<section class="ua-sec" id="uaAdm" aria-labelledby="uaAdmT" aria-busy="'+(STATE==='loading')+'">'+
+    '<div class="ua-sec-h"><span class="ua-sec-ic">'+ic('user-shield',18)+'</span><div class="ua-sec-txt"><h2 class="ua-sec-t" id="uaAdmT">Admins</h2>'+
+    '<span class="ua-sec-d">Analysts with the owner or admin role \u00b7 tickets in Assigned, Work In Progress or Pending.</span></div>'+
+    '<span class="ua-badge" style="margin-left:auto">'+badge+'</span></div>'+
+    '<div class="ua-sec-b">'+body+'</div></section>';
+}
+// Highest total first; ties by login A-Z.
+function byTotalDesc(list){
+  return list.slice().sort(function(a,b){ var x=(a.counts&&a.counts.total)||0, y=(b.counts&&b.counts.total)||0; return (y-x)||String(a.login||'').localeCompare(String(b.login||'')); });
+}
+
+// ---- 2) Contractors ----
+function contractorsHtml(){
+  var list=contractors(), body=personCardsHtml(byTotalDesc(list),6,'No contractors found.'), tot=0;
+  list.forEach(function(c){ tot+=(c.counts&&c.counts.total)||0; });
+  var badge=STATE==='done'?(num(tot)+' tickets'):'\u2026';
+  return '<section class="ua-sec" id="uaCon" aria-labelledby="uaConT" aria-busy="'+(STATE==='loading')+'">'+
+    '<div class="ua-sec-h"><span class="ua-sec-ic">'+ic('users',18)+'</span><div class="ua-sec-txt"><h2 class="ua-sec-t" id="uaConT">Contractors</h2>'+
+    '<span class="ua-sec-d">Analysts with the editor role \u00b7 ticket counts in Assigned, Work In Progress or Pending.</span></div>'+
+    '<span class="ua-badge" style="margin-left:auto">'+badge+'</span></div>'+
+    '<div class="ua-sec-b">'+body+'</div></section>';
+}
+
+// ---- 3) Unassigned tickets by severity bucket ----
+function sortLabel(){ return SORT==='desc'?'Newest first':'Oldest first'; }
+function uaRowHtml(r){
+  // [checkbox] | Ticket ID | Age | Title (the title gets all the remaining width and wraps in full).
+  var sid=String(r.shortId||''), on=SEL.has(sid);
+  return '<tr'+(on?' class="is-sel"':'')+'><td class="ua-c-cb"><input type="checkbox" class="ua-cb" data-sel="'+esc(sid)+'"'+(on?' checked':'')+' aria-label="Select '+esc(sid)+'"></td><td class="ua-c-id">'+idCell(r)+'</td><td class="ua-c-age">'+ageCell(r)+'</td><td class="ua-c-title">'+(r.title?esc(r.title):'<span class="ua-who is-none">No title</span>')+'</td></tr>';
+}
+function toolsHtml(){
+  var dis=STATE!=='done'?' disabled':'';
+  return '<div class="ua-tools">'+
+    '<label class="ua-search" for="uaQ">'+ic('search',15)+'<span class="ua-sr">Search unassigned tickets</span>'+
+      '<input type="search" id="uaQ" placeholder="Search ticket ID, title or assignee\u2026" autocomplete="off" value="'+esc(Q)+'"'+dis+'></label>'+
+    '<div class="ua-tools-r">'+
+      '<span class="ua-sortgrp" role="group" aria-labelledby="uaSortK"><span class="ua-seg-k" id="uaSortK">Age</span><span class="ua-seg">'+
+        '<button type="button" data-sort="asc" aria-pressed="'+(SORT==='asc')+'"'+dis+'>'+ic('arrow-up',13)+'Oldest first</button>'+
+        '<button type="button" data-sort="desc" aria-pressed="'+(SORT==='desc')+'"'+dis+'>'+ic('arrow-down',13)+'Newest first</button>'+
+      '</span></span>'+
+      '<button type="button" class="ua-btn ua-ghost" id="uaCsv"'+(STATE==='done'&&rowsAll().length?'':' disabled')+'>'+ic('download',14)+'Export CSV</button>'+
+    '</div>'+
+    '<p class="ua-count" id="uaCount" aria-live="polite"></p>'+
+  '</div><div id="uaMsg"></div>';
+}
+function bucketSecHtml(b,grp){
+  var n=grp.all.length, list=grp.shown, m=list.length, searching=!!Q.trim();
+  if(searching&&!m) return '';
+  var f=petF(b.k), filtered=searching||!(f.pet&&f.non);
+  var open=isOpenB(b.k,n), badge=filtered?(num(m)+' of '+num(n)):num(n), body;
+  if(!n) body='<p class="ua-none">No unassigned tickets in '+esc(b.label)+'.</p>';
+  else if(!m) body='<p class="ua-none">No '+(f.pet?'pet':'non-pet')+' tickets in '+esc(b.label)+'.</p>';
+  else {
+    var pages=Math.max(1,Math.ceil(m/PAGE_SIZE)), pg=PAGES[b.k]||0;
+    if(pg>pages-1) pg=pages-1; if(pg<0) pg=0; PAGES[b.k]=pg;
+    var slice=list.slice(pg*PAGE_SIZE,pg*PAGE_SIZE+PAGE_SIZE), ar=SORT==='desc'?'\u2193':'\u2191';
+    body='<div class="ua-scroll" role="region" aria-label="'+esc(b.label)+' unassigned tickets" tabindex="0"><table class="ua-tbl ua-tbl-3"><caption class="ua-sr">'+esc(b.label)+' unassigned tickets, sorted by age, '+sortLabel().toLowerCase()+'</caption><thead><tr>'+
+      // Select-all for every ticket shown in this section (all pages, current Pet / Non-pet filter).
+      (function(){ var all=list.length&&list.every(function(r){ return SEL.has(String(r.shortId||'')); }), some=list.some(function(r){ return SEL.has(String(r.shortId||'')); });
+        return '<th scope="col" class="ua-c-cb"><input type="checkbox" class="ua-cb" data-selall="'+b.k+'"'+(all?' checked':'')+(some&&!all?' data-mixed="1"':'')+' aria-label="Select all '+num(m)+' tickets in '+esc(b.label)+'"></th>'; })()+
+      '<th scope="col" class="ua-c-id">Ticket ID</th>'+
+      '<th scope="col" class="ua-th-sort ua-c-age" aria-sort="'+(SORT==='desc'?'descending':'ascending')+'"><button type="button" class="ua-sortbtn" data-sorthead="'+b.k+'" title="Sort by age">Age <span class="ua-sort-ar" aria-hidden="true">'+ar+'</span><span class="ua-sr">, '+sortLabel()+'. Activate to toggle.</span></button></th>'+
+      '<th scope="col" class="ua-c-title">Title</th></tr></thead><tbody>'+slice.map(uaRowHtml).join('')+'</tbody></table></div>';
+    if(pages>1){
+      body+='<nav class="ua-pager" aria-label="'+esc(b.label)+' pages">'+
+        '<button type="button" class="ua-btn ua-ghost" data-page="-1" data-bucket="'+b.k+'"'+(pg<=0?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button>'+
+        '<span class="ua-pg-info">Page '+(pg+1)+' of '+pages+' \u00b7 '+num(pg*PAGE_SIZE+1)+'\u2013'+num(Math.min(m,pg*PAGE_SIZE+PAGE_SIZE))+' of '+num(m)+'</span>'+
+        '<button type="button" class="ua-btn ua-ghost" data-page="1" data-bucket="'+b.k+'"'+(pg>=pages-1?' disabled':'')+' aria-label="Next page">Next \u203a</button></nav>';
+    }
+  }
+  // Pet / Non-pet toggles sit in the section bar, right of the count (outside the expand button).
+  var np=0, nn=0; grp.all.forEach(function(r){ if(r.pet) np++; else nn++; });
+  var pf=function(kind,lbl,cnt){ var on=kind==='pet'?f.pet:f.non;
+    return '<button type="button" class="ua-pf-b'+(on?' is-on':'')+'" data-petf="'+b.k+':'+kind+'" aria-pressed="'+on+'" title="'+(on?'Hide':'Show')+' '+lbl.toLowerCase()+' tickets">'+
+      '<span class="ua-pf-ck" aria-hidden="true">'+(on?ic('check',11):'')+'</span>'+lbl+'<b>'+num(cnt)+'</b></button>'; };
+  var chips=n?'<span class="ua-pf" role="group" aria-label="'+esc(b.label)+': show pet or non-pet tickets">'+pf('pet','Pet',np)+pf('non','Non-pet',nn)+'</span>':'';
+  var nSel=list.filter(function(r){ return SEL.has(String(r.shortId||'')); }).length;
+  if(nSel) badge='<span class="ua-selinfo">'+num(nSel)+' selected</span> \u00b7 '+badge;
+  return '<section class="ua-sec ua-bsec b-'+b.k+'" id="uaB-'+b.k+'" aria-labelledby="uaBT-'+b.k+'">'+
+    // Bar order: [title] [Pet] [Non-pet] [count] [chevron]. The count + chevron also toggle the section.
+    '<div class="ua-bhead'+(open?'':' is-shut')+'">'+secHead('b:'+b.k,'uaBB-'+b.k,'uaBT-'+b.k,b.icon,esc(b.label),esc(b.sub),badge,open,true)+chips+
+      '<span class="ua-bh-end" data-tog-for="uaBT-'+b.k+'"><span class="ua-badge" id="uaBT-'+b.k+'-n">'+badge+'</span>'+chev()+'</span></div>'+
+    '<div class="ua-sec-b" id="uaBB-'+b.k+'"'+(open?'':' hidden')+'>'+body+'</div></section>';
+}
+function paintBuckets(){
+  var box=$('uaBuckets'), msg=$('uaMsg'), c=$('uaCount');
+  document.querySelectorAll('.ua-seg [data-sort]').forEach(function(x){ x.setAttribute('aria-pressed',String(x.getAttribute('data-sort')===SORT)); });
+  if(!box) return;
+  if(STATE!=='done'){ box.innerHTML=''; if(c) c.textContent=''; if(msg) msg.innerHTML=STATE==='loading'?skelRows(3):''; return; }
+  var g=groups(), total=rowsAll().length, shown=0;
+  BUCKETS.forEach(function(b){ shown+=g[b.k].shown.length; });
+  // Only buckets with tickets, highest count first (ties keep the Sev 1..5, No EMT order).
+  box.innerHTML=BUCKETS.map(function(b,i){ return {b:b,i:i,n:g[b.k].all.length}; })
+    .filter(function(x){ return x.n>0; })
+    .sort(function(x,y){ return (y.n-x.n)||(x.i-y.i); })
+    .map(function(x){ return bucketSecHtml(x.b,g[x.b.k]); }).join('');
+  box.querySelectorAll('[data-mixed]').forEach(function(x){ x.indeterminate=true; });   // partly selected
+  var m='';
+  if(!total) m='<div class="ua-empty" role="status"><span class="ua-empty-ic">'+ic('check-circle',26)+'</span><h3 class="ua-empty-t">All clear</h3><p>Every open ticket is assigned to a registered user.</p></div>';
+  else if(!shown) m='<div class="ua-empty" role="status"><span class="ua-empty-ic is-mute">'+ic('search',26)+'</span><h3 class="ua-empty-t">No matches</h3><p>No ticket ID, title or assignee matches \u201c'+esc(Q)+'\u201d.</p></div>';
+  if(msg) msg.innerHTML=m;
+  if(c) c.textContent=total?((Q.trim()?(num(shown)+' of '+num(total)+' unassigned tickets match'):(num(total)+' unassigned tickets'))+' \u00b7 sorted by age, '+sortLabel().toLowerCase()):'';
+}
+function errorHtml(){
+  return '<section class="ua-sec"><div class="ua-sec-b"><div class="ua-empty" role="alert"><span class="ua-empty-ic is-err">'+ic('alert-triangle',26)+'</span><h3 class="ua-empty-t">Could not load the Assignment Center</h3><p>'+esc(ERR)+'</p>'+
+    '<button type="button" class="ua-btn" data-retry="1">'+ic('refresh',14)+'Retry</button></div></div></section>';
+}
+function paintAll(){
+  // The "Unassigned tickets" toolbar card (search / sort / Export CSV / count) was removed; the
+  // severity sections follow the contractor cards directly. #uaMsg holds the loading / empty state.
+  var main=STATE==='error'?errorHtml():(adminSecHtml()+contractorsHtml()+'<div id="uaMsg"></div><div id="uaBuckets"></div>');
+  $('wrap').innerHTML='<div class="ua"><div id="uaHero">'+heroHtml()+'</div><div id="uaKpis">'+kpisHtml()+'</div>'+main+'<p class="ua-sr" id="uaLive" aria-live="polite"></p></div>';
+  paintBuckets();
+}
+
+// ---- Collapse / expand ----
+function toggle(btn){
+  var key=btn.getAttribute('data-tog'), open=btn.getAttribute('aria-expanded')!=='true';
+  btn.setAttribute('aria-expanded',String(open));
+  var p=$(btn.getAttribute('aria-controls')); if(p) p.hidden=!open;
+  if(key==='adm') OPEN_ADM=open;
+  else if(key.indexOf('a:')===0) OPEN_A[key.slice(2)]=open;
+  else if(key.indexOf('b:')===0){
+    // Only one severity section open at a time: opening one closes the others.
+    if(open){
+      document.querySelectorAll('.ua-tog[data-tog^="b:"]').forEach(function(o){
+        if(o===btn||o.getAttribute('aria-expanded')!=='true') return;
+        o.setAttribute('aria-expanded','false');
+        var op=$(o.getAttribute('aria-controls')); if(op) op.hidden=true;
+        var oh=o.closest('.ua-bhead'); if(oh) oh.classList.add('is-shut');
+        OPEN_B[o.getAttribute('data-tog').slice(2)]=false;
+      });
+    }
+    OPEN_B[key.slice(2)]=open;
+    var bh=btn.closest('.ua-bhead'); if(bh) bh.classList.toggle('is-shut',!open);
+  }
+}
+// Pet / Non-pet toggle in a section bar: keep at least one of the two on.
+function togglePet(spec){
+  var i=spec.lastIndexOf(':'), k=spec.slice(0,i), kind=spec.slice(i+1), f=petF(k);
+  if(kind==='pet') f.pet=!f.pet; else f.non=!f.non;
+  if(!f.pet&&!f.non){ if(kind==='pet') f.non=true; else f.pet=true; }
+  PAGES[k]=0; paintBuckets();
+  var nb=document.querySelector('[data-petf="'+spec+'"]'); if(nb) nb.focus();
+  announce(bLabel(k)+': showing '+(f.pet&&f.non?'pet and non-pet':(f.pet?'pet only':'non-pet only'))+' tickets.');
+}
+function jumpTo(k){
+  var sec=$('uaB-'+k);
+  if(!sec){ announce('No matching tickets in '+bLabel(k)+'.'); return; }
+  var btn=$('uaBT-'+k); if(btn&&btn.getAttribute('aria-expanded')!=='true') toggle(btn);
+  if(sec.scrollIntoView) sec.scrollIntoView({block:'start',behavior:'smooth'});
+  if(btn) btn.focus({preventScroll:true});
+}
+
+// ---- Sorting ----
+function setSort(dir,focusSel){
+  if(dir!=='asc'&&dir!=='desc') return;
+  SORT=dir; PAGES={}; saveSort(); paintBuckets();
+  announce('Sorted by age, '+sortLabel().toLowerCase()+'.');
+  if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); }
+}
+
+// ---- Copy ticket ID (same pattern as My Tickets) ----
+async function copyTicketId(id,btn){
+  try{ await navigator.clipboard.writeText(id); }
+  catch(e){
+    var ta=document.createElement('textarea'); ta.value=id; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(_){} document.body.removeChild(ta);
+  }
+  announce('Copied '+id);
+  if(btn){ btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',13);
+    setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=prev; },1200); }
+}
+
+// ---- CSV export: every unassigned row (UTF-8 BOM, RFC 4180 quoting, formula-injection guard) ----
+function csvCell(v){
+  var s=String(v==null?'':v);
+  if(/^[=+\-@\t\r]/.test(s)) s="'"+s;      // neutralise spreadsheet formulas
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+function exportCsv(){
+  var order={}; BUCKETS.forEach(function(b,i){ order[b.k]=i; });
+  var cmp=byAge(SORT==='desc'?-1:1);
+  var list=rowsAll().slice().sort(function(a,b){ return (order[bucketOf(a)]-order[bucketOf(b)])||cmp(a,b); });
+  var lines=[['Ticket ID','URL','Title','Severity bucket','Age','Created ('+MY_TZ+')','Status','Assignee'].map(csvCell).join(',')];
+  list.forEach(function(r){ lines.push([r.shortId,safeUrl(r.url),r.title,bLabel(bucketOf(r)),ageLabel(ageMs(r.createdAt)),r.createdAt?tzFull(r.createdAt):'',r.status,isBlank(r)?'Unassigned':r.assignee].map(csvCell).join(',')); });
+  var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='unassigned-tickets-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },0);
+  announce('Exported '+list.length+' tickets to CSV.');
+}
+
+// ---- Load ----
+async function load(){
+  STATE='loading'; ERR=''; paintAll(); announce('Loading the Assignment Center\u2026');
+  var r=null; try{ r=await A.api('GET','/api/assignment-center'); }catch(e){}
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)){ DATA=r.data; STATE='done'; }
+  else { STATE='error'; ERR=errMsg(r,'Could not load the Assignment Center.'); }
+  paintAll();
+  announce(STATE==='done'?(num(admins().length)+' admins, '+num(contractors().length)+' contractors and '+num(rowsAll().length)+' unassigned tickets loaded.'):ERR);
+}
+
+// ---- Delegated events ----
+document.addEventListener('click',function(ev){
+  var t=ev.target; if(!t||!t.closest) return;
+  if(t.closest('[data-retry]')){ load(); return; }
+  var cp=t.closest('[data-copy]'); if(cp){ copyTicketId(cp.getAttribute('data-copy'),cp); return; }
+  var pfb=t.closest('[data-petf]'); if(pfb){ togglePet(pfb.getAttribute('data-petf')); return; }
+  var tf=t.closest('[data-tog-for]'); if(tf){ var tb=$(tf.getAttribute('data-tog-for')); if(tb){ toggle(tb); tb.focus(); } return; }
+  var tg=t.closest('.ua-tog'); if(tg){ toggle(tg); return; }
+  var jp=t.closest('[data-jump]'); if(jp&&!jp.disabled){ jumpTo(jp.getAttribute('data-jump')); return; }
+  var sh=t.closest('[data-sorthead]'); if(sh){ setSort(SORT==='asc'?'desc':'asc','[data-sorthead="'+sh.getAttribute('data-sorthead')+'"]'); return; }
+  var sb=t.closest('.ua-seg [data-sort]'); if(sb&&!sb.disabled){ setSort(sb.getAttribute('data-sort')); return; }
+  var pg=t.closest('[data-page]'); if(pg&&!pg.disabled){
+    var k=pg.getAttribute('data-bucket'), d=pg.getAttribute('data-page');
+    PAGES[k]=(PAGES[k]||0)+(Number(d)||0); paintBuckets();
+    var sc=$('uaB-'+k); if(sc&&sc.scrollIntoView) sc.scrollIntoView({block:'start'});
+    var nb=document.querySelector('#uaB-'+k+' .ua-pager [data-page="'+d+'"]:not([disabled])')||document.querySelector('#uaB-'+k+' .ua-pager [data-page]:not([disabled])'); if(nb) nb.focus();
+    return;
+  }
+  if(t.closest('#uaCsv')){ exportCsv(); }
+});
+// Row / select-all checkboxes: update the selection, then repaint (keeps the open section + focus).
+document.addEventListener('change',function(ev){
+  var el=ev.target; if(!el||!el.classList||!el.classList.contains('ua-cb')) return;
+  var sid=el.getAttribute('data-sel'), k=el.getAttribute('data-selall'), focusSel;
+  if(sid){ if(el.checked) SEL.add(sid); else SEL.delete(sid); focusSel='[data-sel="'+sid+'"]'; }
+  else if(k){
+    var g=groups(); (g[k]?g[k].shown:[]).forEach(function(r){ var s=String(r.shortId||''); if(el.checked) SEL.add(s); else SEL.delete(s); });
+    focusSel='[data-selall="'+k+'"]';
+    announce((el.checked?'Selected ':'Cleared ')+num(g[k]?g[k].shown.length:0)+' tickets in '+bLabel(k)+'.');
+  }
+  paintBuckets();
+  var f=document.querySelector(focusSel); if(f) f.focus();
+});
+document.addEventListener('input',function(ev){
+  var el=ev.target; if(!el||el.id!=='uaQ') return;
+  Q=el.value; PAGES={}; paintBuckets();
+});
+
+(async function init(){
+  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
+  loadSort();
+  try{ var tz=await A.myTimezone(); if(tz==='MST'||tz==='IST') MY_TZ=tz; }catch(e){}
+  load();
+})();
+</script>
+</body>
+</html>

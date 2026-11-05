@@ -12,7 +12,7 @@ const {
 const { quarterOf, currentQuarter, quarterRange, quarterLabel } = require('./quarters');
 const { computePulseReport, resolutionFromRcd } = require('./pulse-check');
 const ilMerge = require('./incident-log-merge');
-const { computePageZero, coreExportCsv, exportPeriod, normKey: pzNormKey, dedupeTickets: pzDedupeTickets } = require('./page-zero');
+const { computePageZero, coreExportCsv, exportPeriod, normKey: pzNormKey, dedupeTickets: pzDedupeTickets, classifyTicket: pzClassifyTicket } = require('./page-zero');
 const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FILTER, seedExternalLinks } = require('./external-links');
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
@@ -3928,6 +3928,109 @@ app.get('/api/not-assigned-tickets', requireRole('user'), async (req, res) => {
     });
     out.sort((a, b) => new Date(b.createDate) - new Date(a.createDate)); // NEWEST first (desc)
     res.json({ slaHours: SLA_HOURS, count: out.length, tickets: out });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load unassigned tickets.' });
+  }
+});
+
+// GET every OPEN ticket whose assignee is NOT one of our registered users (Unassigned Tickets page).
+// Read-only. Same selection as /api/my-tickets (OPEN_STATUSES across every quarter, one row per
+// ShortId). The assignee login is normalised like the rest of the app (perfResolverLogin strips
+// 'kerberos:' / '@ANT.AMAZON.COM', then the path tail of an ARN, lower-case) and compared against
+// ALL usernames in the users collection. Blank -> 'Unassigned'; group/service identities (LM-CAP
+// UUID, AutoSIM ARN) are never registered users and are shown by their display name.
+// Cached (getCachedReport) keyed on the live quarter's publishedAt, so a new upload refreshes it.
+const UA_LMCAP_ID = '0d1616c8-bcb7-4450-8bc5-f0a296bc01d1';
+function uaAssigneeLogin(raw) {
+  const l = perfResolverLogin(raw);
+  const i = l.lastIndexOf('/');
+  return i >= 0 ? l.slice(i + 1) : l;
+}
+function uaAssigneeDisplay(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return 'Unassigned';
+  if (s.toLowerCase() === UA_LMCAP_ID) return 'LM-CAP';
+  if (/autosim/i.test(s)) return 'AutoSIM';
+  return uaAssigneeLogin(s) || s;
+}
+// Ticket severity 1..5 (or null): the Severity field (number, 'Sev 3', '3 - High', 'SEV_3'), else
+// the title ('Severity N' / 'Sev N' / 'Sev #N', case-insensitive).
+function uaSeverity(sevField, title) {
+  const ok = n => (n >= 1 && n <= 5 ? n : null);
+  if (typeof sevField === 'number' && Number.isFinite(sevField)) return ok(Math.round(sevField));
+  const f = String(sevField == null ? '' : sevField).trim();
+  if (f) {
+    const m = f.match(/^(?:sev(?:erity)?[\s_#:-]*)?([1-5])(?![0-9])/i);
+    if (m) return Number(m[1]);
+  }
+  const t = String(title || '').match(/\bsev(?:erity)?[\s_:-]*#?\s*([1-5])(?![0-9])/i);
+  return t ? Number(t[1]) : null;
+}
+// Admin team = analyst + role owner/admin; contractors = analyst + role editor (from the users collection).
+const UA_TEAM_STATUSES = { 'Assigned': 'assigned', 'Work In Progress': 'wip', 'Pending': 'pending' };
+app.get(['/api/unassigned-tickets', '/api/assignment-center'], requireRole('user'), async (req, res) => {
+  try {
+    const qid = await liveQuarterId();
+    const qDoc = await (await getCollection(COLLECTIONS.quarters)).findOne(
+      { _id: qid }, { projection: { 'meta.publishedAt': 1, 'data.updatedAt': 1 } });
+    const asOf = (qDoc && qDoc.meta && qDoc.meta.publishedAt) || (qDoc && qDoc.data && qDoc.data.updatedAt) || null;
+    // v3: rows gained pet (Page ZERO Pet row: RCD Issue line, else the title).
+    const cacheKey = 'unassigned-tickets:v3:' + qid + ':' + (asOf || '');
+    const hit = getCachedReport(cacheKey);
+    if (hit) return res.json(hit);
+
+    const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1, displayName: 1, role: 1, analyst: 1 } }).toArray();
+    const userSet = new Set(users.map(u => String(u.username || '').trim().toLowerCase()).filter(Boolean));
+    const teamOf = role => users
+      .filter(u => u.analyst === true && role.includes(String(u.role || '').toLowerCase()) && String(u.username || '').trim())
+      .map(u => ({ login: String(u.username).trim().toLowerCase(), displayName: u.displayName || '' }))
+      .sort((a, b) => a.login.localeCompare(b.login));
+    const admins = teamOf(['owner', 'admin']).map(a => ({ ...a, counts: { assigned: 0, wip: 0, pending: 0, total: 0 }, tickets: [] }));
+    const contractors = teamOf(['editor']).map(c => ({ ...c, counts: { assigned: 0, wip: 0, pending: 0, total: 0 } }));
+    const adminBy = new Map(admins.map(a => [a.login, a]));
+    const contrBy = new Map(contractors.map(c => [c.login, c]));
+
+    const rows = await (await getCollection(COLLECTIONS.ticketDocs)).find(
+      { Status: { $in: OPEN_STATUSES } },
+      { projection: { _id: 0, ShortId: 1, IssueUrl: 1, Title: 1, CreateDate: 1, Status: 1, AssigneeIdentity: 1, Severity: 1, Labels: 1, RootCauseDetails: 1 } }
+    ).toArray();
+    const seen = new Set();
+    const out = [];
+    const byCreated = (a, b) => (new Date(a.createdAt).getTime() || 0) - (new Date(b.createdAt).getTime() || 0); // oldest first
+    rows.forEach(t => {
+      if (!OPEN_STATUSES.includes(t.Status)) return;
+      const sid = String(t.ShortId || '').trim();
+      if (sid && seen.has(sid)) return;
+      if (sid) seen.add(sid);
+      const login = uaAssigneeLogin(t.AssigneeIdentity);
+      const base = {
+        shortId: sid,
+        url: t.IssueUrl || (sid ? ('https://t.corp.amazon.com/issues/' + sid) : ''),
+        title: t.Title || '',
+        createdAt: t.CreateDate || '',
+        status: t.Status || '',
+        severity: uaSeverity(t.Severity, t.Title),
+        noEmt: hasNoEmt(t.Title, t.Labels),
+        // Pet incident = the Page ZERO 'Pet Incidents' row (SIM Issue line, else the title); else non-pet.
+        pet: (() => { try { return pzClassifyTicket(t).row === 'pet'; } catch (e) { return false; } })(),
+      };
+      if (login && userSet.has(login)) {   // assigned to a registered user -> not in the unassigned list
+        const k = UA_TEAM_STATUSES[t.Status];
+        if (!k) return;
+        const a = adminBy.get(login), c = contrBy.get(login), who = a || c;
+        if (!who) return;
+        who.counts[k]++; who.counts.total++;
+        if (a) a.tickets.push(base);
+        return;
+      }
+      out.push({ ...base, assignee: uaAssigneeDisplay(t.AssigneeIdentity) });
+    });
+    out.sort(byCreated);
+    admins.forEach(a => a.tickets.sort(byCreated));
+    const payload = { asOf, total: out.length, rows: out, admins, contractors };
+    setCachedReport(cacheKey, payload);
+    pruneCachedReports('unassigned-tickets:', 2);
+    res.json(payload);
   } catch (e) {
     res.status(500).json({ error: 'Could not load unassigned tickets.' });
   }
