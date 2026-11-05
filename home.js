@@ -129,6 +129,25 @@ renderQuarterCards();
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function isHttpUrl(s){ try{ var u=new URL(String(s)); return u.protocol==='https:'||u.protocol==='http:'; }catch(e){ return false; } }
   function canDelete(l){ return isAdmin && String(l.createdBy||'').toLowerCase()===me; }
+  // Tile background choices (keys match server/external-links.js EXT_LINK_BGS). No red / purple /
+  // green / yellow / black. '' = the default white tile.
+  var BGS=[
+    {key:'',       name:'Default (white)', hex:'#ffffff'},
+    {key:'navy',   name:'Navy',  hex:'#1f2a40'},
+    {key:'blue',   name:'Blue',  hex:'#2563eb'},
+    {key:'sky',    name:'Sky',   hex:'#dbeafe'},
+    {key:'cyan',   name:'Cyan',  hex:'#0e7490'},
+    {key:'orange', name:'Orange',hex:'#ea580c'},
+    {key:'brown',  name:'Brown', hex:'#7c4a1e'},
+    {key:'slate',  name:'Slate', hex:'#475569'}
+  ];
+  function bgOf(key){ for(var i=0;i<BGS.length;i++) if(BGS[i].key===key) return BGS[i]; return BGS[0]; }
+  // WCAG relative luminance -> pick the text colour with the higher contrast (white vs dark ink).
+  function lum(hex){
+    var c=hex.replace('#',''), v=[0,2,4].map(function(i){ var x=parseInt(c.substr(i,2),16)/255; return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4); });
+    return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2];
+  }
+  function onDark(hex){ var L=lum(hex); return (1.05/(L+0.05)) > ((L+0.05)/(lum('#1b2026')+0.05)); }
 
   function tileHtml(l){
     var del=canDelete(l);
@@ -140,10 +159,13 @@ renderQuarterCards();
       '<span class="nt-body"><span class="nt-desc">'+esc(l.description)+'</span>'+
         (l.author?'<span class="nt-author"><span class="nt-author-k">Author</span><span class="nt-author-v">'+esc(l.author)+'</span></span>':'')+'</span>'+
       '<span class="nt-cta">'+esc(l.action||'Open link')+' <span class="nt-arrow">\u2197</span></span>';
+    // Chosen background: inline colour + a light/dark text class picked for contrast.
+    var bg=bgOf(l.bg||''), bgCls='', bgSty='';
+    if(bg.key){ bgCls=' nt-bg '+(onDark(bg.hex)?'nt-on-dark':'nt-on-light'); bgSty=' style="--tbg:'+bg.hex+'"'; }
     // Defence in depth: only http(s) URLs ever become an href.
     var tile=isHttpUrl(l.url)
-      ? '<a class="nav-tile nt-external" href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer">'+inner+'</a>'
-      : '<div class="nav-tile nt-external" aria-disabled="true">'+inner+'</div>';
+      ? '<a class="nav-tile nt-external'+bgCls+'"'+bgSty+' href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer">'+inner+'</a>'
+      : '<div class="nav-tile nt-external'+bgCls+'"'+bgSty+' aria-disabled="true">'+inner+'</div>';
     var btn=del ? '<button type="button" class="nt-del" data-id="'+esc(l.id)+'" aria-label="Delete link '+esc(l.title)+'" title="Delete link">'+icH('trash',14)+'</button>' : '';
     return '<div class="nt-wrap'+(del?' nt-has-del':'')+'" data-link-id="'+esc(l.id)+'">'+tile+btn+'</div>';
   }
@@ -269,6 +291,15 @@ renderQuarterCards();
           '<label for="elAuthor">Author <span class="el-req" aria-hidden="true">*</span></label>'+
           '<input type="text" id="elAuthor" maxlength="'+LIM.author+'" required aria-required="true" aria-describedby="elAuthorErr" placeholder="Login ID" autocomplete="off">'+
           '<div class="el-ferr" id="elAuthorErr"></div>'+
+          // Background colour: radio swatches; the text colour follows automatically (contrast).
+          '<fieldset class="el-bgs"><legend>Background colour</legend><div class="el-bg-row">'+
+            BGS.map(function(b,i){
+              var dark=onDark(b.hex);
+              return '<label class="el-bg" title="'+esc(b.name)+'"><input type="radio" name="elBg" value="'+esc(b.key)+'"'+(i===0?' checked':'')+'>'+
+                '<span class="el-bg-sw" style="background:'+b.hex+';color:'+(dark?'#fff':'#1b2026')+'" aria-hidden="true">Aa</span>'+
+                '<span class="el-bg-n">'+esc(b.name)+'</span></label>';
+            }).join('')+
+          '</div><p class="el-bg-hint">The text colour switches automatically so it stays readable on the chosen background.</p></fieldset>'+
           '<div class="err" id="elAddErr" role="alert"></div>'+
           '<div class="el-actions">'+
             '<button type="button" class="btn sec" id="elAddCancel">Cancel</button>'+
@@ -299,7 +330,8 @@ renderQuarterCards();
     setFieldErr('elTitle','elTitleErr',tErr); setFieldErr('elDesc','elDescErr',dErr); setFieldErr('elUrl','elUrlErr',uErr); setFieldErr('elAuthor','elAuthorErr',aErr);
     var firstBad=tErr?'elTitle':(dErr?'elDesc':(uErr?'elUrl':(aErr?'elAuthor':null)));
     if(firstBad){ document.getElementById(firstBad).focus(); return {ok:false}; }
-    return {ok:true, value:{title:title, description:description, url:url, author:author}};
+    var bgSel=document.querySelector('#elAddForm input[name="elBg"]:checked');
+    return {ok:true, value:{title:title, description:description, url:url, author:author, bg:bgSel?bgSel.value:''}};
   }
   function openAdd(opener){
     ensureAddModal();

@@ -259,6 +259,26 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 .hm a.nav-tile.nt-live:hover{border-color:#3a4a6a;box-shadow:0 22px 40px -22px rgba(10,15,25,.75)}
 /* External link tiles: white cards with a navy accent + external chip. */
 .hm .nav-tile.nt-external{--acc:#1f2a40;--accbg:#e8ebf1;--tink:#1f2a40}
+/* External link tile with a chosen background (--tbg). Text colour follows the contrast class. */
+.hm .nav-tile.nt-bg{background:var(--tbg);border-color:transparent}
+.hm .nav-tile.nt-on-dark{--acc:rgba(255,255,255,.55);--accbg:rgba(255,255,255,.18);--tink:#fff;color:#fff}
+.hm .nav-tile.nt-on-dark .nt-title{color:#fff}
+.hm .nav-tile.nt-on-dark .nt-desc{color:rgba(255,255,255,.86)}
+.hm .nav-tile.nt-on-dark .nt-cta{border-top-color:rgba(255,255,255,.22);color:#fff}
+.hm .nav-tile.nt-on-dark .nt-author-k,.hm .nav-tile.nt-on-dark .nt-author-v{color:rgba(255,255,255,.9)}
+.hm .nav-tile.nt-on-light{--acc:#1f2a40;--accbg:rgba(31,42,64,.1);--tink:#1f2a40;color:#1b2026}
+.hm .nav-tile.nt-on-light .nt-desc{color:#334155}
+.hm .nav-tile.nt-on-light .nt-cta{border-top-color:rgba(31,42,64,.15)}
+/* Add pop-up: background colour swatches. */
+.el-modal .el-bgs{border:0;margin:14px 0 4px;padding:0;min-width:0}
+.el-modal .el-bgs legend{font-size:.85em;font-weight:700;color:var(--ink);margin-bottom:8px;padding:0}
+.el-modal .el-bg-row{display:flex;flex-wrap:wrap;gap:8px}
+.el-modal .el-bg{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-size:.74em;font-weight:700;color:var(--ink2)}
+.el-modal .el-bg input{position:absolute;opacity:0;width:1px;height:1px}
+.el-modal .el-bg-sw{display:inline-flex;align-items:center;justify-content:center;width:52px;height:36px;border-radius:8px;border:1px solid #cfd6dd;font-weight:800;font-size:1.05em}
+.el-modal .el-bg input:checked+.el-bg-sw{outline:3px solid var(--o);outline-offset:2px}
+.el-modal .el-bg input:focus-visible+.el-bg-sw{box-shadow:0 0 0 3px rgba(255,97,0,.35)}
+.el-modal .el-bg-hint{margin:8px 0 0;font-size:.76em;color:var(--mut)}
 .hm .nav-tile.nt-disabled{opacity:.62;cursor:not-allowed;filter:grayscale(.35);pointer-events:none;box-shadow:none}
 /* Admin-managed external links: tile + delete button share a wrapper (button never inside the <a>). */
 .hm .nt-wrap{position:relative;display:flex;min-width:0}
@@ -564,7 +584,7 @@ body.home-no-recent .home-main{flex:1 1 100%;max-width:100%}
 
 <script src="icons.js"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=216"></script>
+<script src="topbar-auth.js?v=217"></script>
 <script>
 // Fill static icon placeholders (<span data-ic="name">) with SVG icons.
 document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.innerHTML = window.icon(el.getAttribute('data-ic'), 18); });
@@ -628,6 +648,6 @@ async function homeDoLogin(){
 })();
 document.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var m=document.getElementById('loginModal'); if(m && m.style.display==='flex') homeDoLogin(); } });
 </script>
-<script src="home.js?v=21"></script>
+<script src="home.js?v=22"></script>
 </body>
 </html>

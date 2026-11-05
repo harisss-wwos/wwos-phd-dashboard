@@ -2978,6 +2978,7 @@ function mapExternalLink(d) {
     author: d.author || d.createdBy || '',
     // Optional display fields (set only on seeded links); defaults match user-added links.
     icon: EXT_LINK_ICONS.includes(d.icon) ? d.icon : 'link', sub: d.sub || 'External link', action: d.action || 'Open link', seedKey: d.seedKey || '',
+    bg: d.bg || '',   // optional tile background key (see external-links.js EXT_LINK_BGS); '' = default white
   };
 }
 

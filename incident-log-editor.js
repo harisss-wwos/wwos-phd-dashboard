@@ -105,9 +105,11 @@ function parseIncidentOutput(text){
 // `aliases` = labels used before the questionnaire existed, so old entries still parse.
 var IL_INVEST_QS=[
   {key:'dup',    label:'Does current ticket have any duplicate', type:'select', opts:['No','Yes']},
+  // Form: unchecked = "No"; checked -> dropdown Yes / Community Member (Unknown).
   // "No" reveals an optional free-text "Who is the POI?" saved inline as "No (<text>)".
   // "Community Member (Unknown)" hides the IL_POI_CM_HIDE questions (form, copies and saved text).
-  {key:'poi',    label:'Is POI the CX', type:'select', opts:['Yes','No','Community Member (Unknown)'],
+  // direct: a plain dropdown (no row checkbox) — Yes (default) / Community Member / No (+ "Who is the POI?").
+  {key:'poi',    label:'Is POI the CX', type:'select', direct:true, opts:['Yes','Community Member (Unknown)','No'],
     poiWho:{key:'poiWho', label:'Who is the POI?', type:'text', optional:true, placeholder:"e.g. CX's father / neighbour / unknown person"}},
   {key:'susp',   label:'CX Account suspension requested from GSOC?', type:'select', opts:['No','Yes'],
     aliases:['CX Account suspension requested?','CX Account suspension requested']},
@@ -582,9 +584,74 @@ function _ilqRO(forSave){ return {usca:_ilUsca, kept:forSave?_ilqKept:null}; }
 function _ilqAllDefs(){
   var d=[]; IL_INVEST_QS.forEach(function(q){ d.push(q); if(q.poiWho) d.push(q.poiWho); if(q.sub) d.push(q.sub); }); return d;
 }
+// Every question row starts with a checkbox (id "ilqc_<key>"); the saved / copied answer per kind:
+//   yn    (Yes/No questions + the diUpd sub-question): checked = "Yes", unchecked = "No" (Yes/No tag)
+//   num   unchecked = "0" ("0" tag); checked -> buttons 0..10 ("0" pressed by default) or the "Other"
+//         input (id "ilq_<key>", whole number >= 0); an invalid typed value = "" (copy check flags it)
+//   cbsel (CLEAR history, Is POI the CX) unchecked = "No" ("No" tag; POI also shows the optional
+//         "Who is the POI?" row); checked -> dropdown (id "ilq_<key>") of the other options
+//   check (GeoStudio POD) checked = "Yes", unchecked = "" (no line)
+//   text  sub-fields (station link, Netradyne review, Who is the POI?): plain control "ilq_<key>"
+// The answer text / pure model (ilSerializeInvestigation etc.) is unchanged.
+var _ilqOld={};   // saved answers the controls cannot show (old free text) -> kept as-is until that row changes
+function _ilqHasOld(k){ return Object.prototype.hasOwnProperty.call(_ilqOld,k); }
+function _ilqKind(d){
+  if(d.type==='number') return 'num';
+  if(d.type==='check') return 'check';
+  if(d.type==='select' && d.direct) return 'dsel';   // plain dropdown, no row checkbox (Is POI the CX)
+  if(d.type==='select') return (d.opts.length===2 && d.opts.indexOf('Yes')>=0 && d.opts.indexOf('No')>=0) ? 'yn' : 'cbsel';
+  return 'text';
+}
+function _ilqCb(key){ return document.getElementById('ilqc_'+key); }
+function _ilqNumBtns(key){ var g=document.getElementById('ilqg_'+key); return g?Array.prototype.slice.call(g.querySelectorAll('.ail-qnb')):[]; }
+// Number chosen on a 'num' row: the pressed button, else a whole number >= 0 typed in "Other"; '' = none.
+function _ilqNumVal(key){
+  var b=_ilqNumBtns(key).filter(function(x){ return x.getAttribute('aria-pressed')==='true'; })[0];
+  if(b) return b.getAttribute('data-n');
+  var el=_ilqEl(key), v=el?String(el.value||'').trim():'';
+  return /^\d+$/.test(v) ? String(+v) : '';
+}
+// True if the "Other" input of a 'num' row holds something (incl. text the browser rejects).
+function _ilqNumTyped(key){ var el=_ilqEl(key); return !!(el && (String(el.value)!=='' || (el.validity && el.validity.badInput))); }
+// Press button n (null = clear the buttons).
+function _ilqSetNumBtn(key,n){
+  _ilqNumBtns(key).forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-n')===String(n)?'true':'false'); });
+}
 function _ilqReadAnswers(){
-  var a={}; _ilqAllDefs().forEach(function(d){ var el=_ilqEl(d.key);
-    a[d.key]=!el ? '' : (d.type==='check' ? (el.checked?'Yes':'') : String(el.value||'').trim()); }); return a;
+  var a={};
+  _ilqAllDefs().forEach(function(d){
+    var k=d.key, kind=_ilqKind(d), cb=_ilqCb(k), el=_ilqEl(k);
+    if(_ilqHasOld(k)){ a[k]=_ilqOld[k]; return; }
+    if(kind==='text'||kind==='dsel'){ a[k]=el?String(el.value||'').trim():''; return; }
+    if(!cb){ a[k]=''; return; }
+    if(kind==='check') a[k]=cb.checked?'Yes':'';
+    else if(kind==='yn') a[k]=cb.checked?'Yes':'No';
+    else if(kind==='num') a[k]=cb.checked?_ilqNumVal(k):'0';
+    else a[k]=cb.checked?(el?String(el.value||'').trim():''):'No';   // cbsel
+  });
+  return a;
+}
+// Row checkbox changed: drop a kept old answer for that row. A ticked number row with nothing
+// chosen gets the default "0" so it always has a value.
+function ilqToggle(key){
+  delete _ilqOld[key];
+  var cb=_ilqCb(key);
+  if(cb && cb.checked && _ilqNumBtns(key).length && _ilqNumVal(key)==='' && !_ilqNumTyped(key)) _ilqSetNumBtn(key,0);
+  ilInvestChanged();
+}
+// Number button clicked: press it (only one pressed), clear the "Other" input.
+function ilqPickNum(key,n){
+  delete _ilqOld[key];
+  _ilqSetNumBtn(key,n);
+  var el=_ilqEl(key); if(el) el.value='';
+  ilInvestChanged();
+}
+// Typing in "Other" clears the button selection (only one of the two is ever set); clearing the
+// input again falls back to the default "0" button.
+function ilqNumInput(key){
+  delete _ilqOld[key];
+  _ilqSetNumBtn(key, _ilqNumTyped(key) ? null : 0);
+  ilInvestChanged();
 }
 // Getter: the serialized section body ('' when nothing is answered -> saved as "-").
 // forSave=true also writes back the kept US/CA-only lines of a non-US/CA ticket (see _ilqKept).
@@ -603,22 +670,46 @@ function ilSetInvestigation(text){
     _ilqKept=ilRegionKeptLines(p);
     IL_INVEST_QS.forEach(function(q){ if(q.usCa){ delete p.answers[q.key]; if(q.sub) delete p.answers[q.sub.key]; } });
   }
+  _ilqOld={};
   _ilqAllDefs().forEach(function(d){
-    var el=_ilqEl(d.key); if(!el) return;
-    var v=p.answers[d.key]==null?'':String(p.answers[d.key]);
-    if(d.type==='check'){ el.checked=(v==='Yes'); return; }
-    if(el.tagName==='SELECT'){
-      // Drop "(old)" options from a previous entry; keep a saved answer that is not an option.
-      Array.prototype.slice.call(el.querySelectorAll('option[data-old]')).forEach(function(o){ o.parentNode.removeChild(o); });
-      if(v && !Array.prototype.some.call(el.options,function(o){ return o.value===v; })){
-        var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; o.setAttribute('data-old','1'); el.appendChild(o);
-      }
-    } else if(d.type==='number'){
-      // A number input would blank non-numeric text — show an old free-text value as text instead.
-      el.type=(!v || /^-?\d+(\.\d+)?$/.test(v)) ? 'number' : 'text';
+    var k=d.key, kind=_ilqKind(d), cb=_ilqCb(k), el=_ilqEl(k);
+    var v=p.answers[k]==null?'':String(p.answers[k]);
+    if(kind==='text'){
+      if(!el) return;
+      // Single-line inputs strip "\n" (gluing words together) — join continuation lines with a space.
+      if(el.tagName==='INPUT') v=v.replace(/[ \t]*\n\s*/g,' ');
+      el.value=v; return;
     }
-    // Single-line inputs strip "\n" (gluing words together) — join continuation lines with a space.
-    if(el.tagName==='INPUT') v=v.replace(/[ \t]*\n\s*/g,' ');
+    if(kind==='dsel'){
+      // Is POI the CX: blank (new log) -> "Yes"; a saved answer not in the list is kept as "(old)".
+      if(!el) return;
+      Array.prototype.slice.call(el.querySelectorAll('option[data-old]')).forEach(function(o){ o.parentNode.removeChild(o); });
+      v=v.trim(); if(!v){ el.value='Yes'; return; }
+      if(!Array.prototype.some.call(el.options,function(o){ return o.value===v; })){
+        var od=document.createElement('option'); od.value=v; od.textContent=v+' (old)'; od.setAttribute('data-old','1'); el.appendChild(od);
+      }
+      el.value=v; return;
+    }
+    if(!cb) return;
+    v=v.trim(); cb.checked=false;
+    var keep=function(){ _ilqOld[k]=v; var o=document.getElementById('ilqo_'+k); if(o) o.textContent='Saved answer: "'+v.replace(/\s*\n\s*/g,' ')+'" (kept until you change this row)'; };
+    if(kind==='check'){ cb.checked=(v==='Yes'); return; }
+    if(kind==='yn'){ if(v==='Yes') cb.checked=true; else if(v && v!=='No') keep(); return; }
+    if(kind==='num'){
+      _ilqSetNumBtn(k,0); if(el) el.value='';   // default "0" (shown once the row is ticked)
+      if(/^\d+$/.test(v)){ var n=parseInt(v,10); if(n>0){ cb.checked=true; if(n<=10) _ilqSetNumBtn(k,n); else { _ilqSetNumBtn(k,null); if(el) el.value=String(n); } } }
+      else if(v) keep();
+      return;
+    }
+    // cbsel (CLEAR, POI): "No" / blank -> unchecked; another answer -> checked + that option
+    // ("(old)" when not listed). Unchecked rows reset to the first option (POI: "Yes").
+    if(!el) return;
+    Array.prototype.slice.call(el.querySelectorAll('option[data-old]')).forEach(function(o){ o.parentNode.removeChild(o); });
+    if(!v || v==='No'){ el.selectedIndex=0; return; }
+    cb.checked=true;
+    if(!Array.prototype.some.call(el.options,function(o){ return o.value===v; })){
+      var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; o.setAttribute('data-old','1'); el.appendChild(o);
+    }
     el.value=v;
   });
   var ex=document.getElementById('ilqExtra'), wrap=document.getElementById('ilqExtraWrap');
@@ -637,21 +728,41 @@ function _ilqSyncVisibility(){
     if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=(a[q.key]!=='No'); }
     if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=off || !_ilqSubShown(q,a); }
   });
+  // Controls revealed by the row checkbox, the state tag (Yes/No rows: "Yes" / "No"; dropdown rows:
+  // "No" and number rows: "0" while unchecked) and old-answer notes.
+  _ilqAllDefs().forEach(function(d){
+    var k=d.key, kind=_ilqKind(d), cb=_ilqCb(k); if(!cb) return;
+    var old=_ilqHasOld(k), rev=document.getElementById('ilqv_'+k), note=document.getElementById('ilqo_'+k), st=document.getElementById('ilqs_'+k);
+    if(rev) rev.hidden=old || !cb.checked;
+    if(note) note.hidden=!old;
+    if(st){
+      if(kind==='yn'){ st.hidden=old; st.textContent=cb.checked?'Yes':'No'; st.classList.toggle('is-yes',cb.checked); }
+      else st.hidden=old || cb.checked;
+    }
+  });
 }
 // aria-invalid / visual state per control + the "n questions need an answer" status line.
 function _ilqUpdateValidity(){
   if(!document.getElementById('ilPhdInvestigation')) return;
   var a=_ilqReadAnswers(), miss=ilInvestMissing(a, _ilqRO(false));
   _ilqAllDefs().forEach(function(d){
-    var el=_ilqEl(d.key); if(!el) return;
-    var bad=miss.indexOf(d.key)>=0;
+    var k=d.key, el=_ilqEl(k); if(!el) return;
+    var bad=miss.indexOf(k)>=0;
     if(bad) el.setAttribute('aria-invalid','true'); else el.removeAttribute('aria-invalid');
+    if(_ilqKind(d)==='num'){
+      // A ticked row always has a number (default "0"); only an invalid "Other" value is flagged.
+      var cb=_ilqCb(k), on=!!(cb && cb.checked && !_ilqHasOld(k)), h=document.getElementById('ilqh_'+k);
+      var badTyped=bad && on && _ilqNumTyped(k);
+      if(h) h.hidden=!badTyped;
+      el.classList.toggle('ail-qbad', badTyped);
+      return;
+    }
     el.classList.toggle('ail-qbad', bad && !!String(el.value||'').trim());   // red only for a wrong value, not a blank
   });
   // Only the "n questions need an answer" hint; nothing is shown once every question is answered.
   var st=document.getElementById('ilqStatus');
   if(st){
-    var txt=miss.length ? (miss.length+(miss.length===1?' question needs':' questions need')+' an answer (numbers: whole numbers 0 or more)') : '';
+    var txt=miss.length ? (miss.length+(miss.length===1?' question needs':' questions need')+' an answer') : '';
     if(st.textContent!==txt) st.textContent=txt;
     st.hidden=!miss.length;
   }
@@ -1047,23 +1158,41 @@ var IncidentLogEditor=(function(){
   }
   // "PHD Investigation for mitigation" questionnaire field. Same header (Empty marker, pencil, copy)
   // as the other fields; the header is a <div> because each question has its own <label for>.
-  function qControl(def){
-    var id='ilq_'+def.key, req=' aria-required="'+(def.optional?'false':'true')+'"';
-    if(def.type==='check')   // unchecked by default; checked = "Yes"
-      return '<span class="ail-qcheck"><input type="checkbox" id="'+id+'" class="ail-qctl ail-qcb" onchange="ilInvestChanged()"></span>';
-    if(def.type==='select')
-      return '<select id="'+id+'" class="ail-qctl"'+req+' onchange="ilInvestChanged()"><option value="">Select an option</option>'+
-        def.opts.map(function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o)+'</option>'; }).join('')+'</select>';
-    if(def.type==='number')
-      return '<input type="number" id="'+id+'" class="ail-qctl" min="0" step="1" inputmode="numeric" placeholder="#"'+req+' oninput="ilInvestChanged()">';
+  // Controls on the right of a row (see _ilqKind). Revealed controls sit in "ilqv_<key>"; a kept
+  // old answer is shown in "ilqo_<key>".
+  function qControl(def,kind){
+    var k=def.key, id='ilq_'+k, req=' aria-required="'+(def.optional?'false':'true')+'"', lbl=_ileEsc(def.label);
+    var old='<span class="ail-qold" id="ilqo_'+k+'" hidden></span>';
+    if(kind==='check') return '';
+    if(kind==='yn') return '<span class="ail-qstate" id="ilqs_'+k+'" aria-hidden="true">No</span>'+old;
+    if(kind==='num'){
+      var btns=''; for(var n=0;n<=10;n++) btns+='<button type="button" class="ail-qctl ail-qnb" data-n="'+n+'" aria-pressed="'+(n===0?'true':'false')+'" onclick="ilqPickNum(\''+k+'\','+n+')">'+n+'</button>';
+      return '<span class="ail-qstate" id="ilqs_'+k+'" aria-hidden="true">0</span>'+
+        '<div class="ail-qrev" id="ilqv_'+k+'" hidden>'+
+        '<div class="ail-qnums" id="ilqg_'+k+'" role="group" aria-label="'+lbl+': number">'+btns+'</div>'+
+        '<input type="number" id="'+id+'" class="ail-qctl ail-qinp ail-qnum" min="0" step="1" inputmode="numeric" placeholder="Other" aria-label="'+lbl+': other number" aria-describedby="ilqh_'+k+'" oninput="ilqNumInput(\''+k+'\')">'+
+        '<span class="ail-qhint" id="ilqh_'+k+'" hidden>Enter a whole number</span>'+
+      '</div>'+old;
+    }
+    if(kind==='dsel')
+      return '<select id="'+id+'" class="ail-qctl ail-qinp ail-qsel" aria-label="'+lbl+': answer"'+req+' onchange="ilInvestChanged()">'+
+        def.opts.map(function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o===IL_POI_CM?'Community Member':o)+'</option>'; }).join('')+'</select>';
+    if(kind==='cbsel')
+      return '<span class="ail-qstate" id="ilqs_'+k+'" aria-hidden="true">No</span>'+
+        '<div class="ail-qrev" id="ilqv_'+k+'" hidden><select id="'+id+'" class="ail-qctl ail-qinp ail-qsel" aria-label="'+lbl+': answer" onchange="ilInvestChanged()">'+
+        def.opts.filter(function(o){ return o!=='No'; }).map(function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o)+'</option>'; }).join('')+'</select></div>';
     if(def.type==='textarea')
-      return '<textarea id="'+id+'" class="ail-qctl ail-qta" rows="'+(def.rows||5)+'" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged()"></textarea>';
-    return '<input type="'+(def.inputType||'text')+'" id="'+id+'" class="ail-qctl" autocomplete="off" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged()">';
+      return '<textarea id="'+id+'" class="ail-qctl ail-qinp ail-qta" rows="'+(def.rows||5)+'" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged()"></textarea>';
+    return '<input type="'+(def.inputType||'text')+'" id="'+id+'" class="ail-qctl ail-qinp" autocomplete="off" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged()">';
   }
+  // Row = [checkbox][label][controls]. Text sub-fields have no checkbox (empty lead cell).
   function qRow(def,isSub){
-    return '<div class="ail-qrow'+(isSub?' ail-qsub':'')+(def.type==='textarea'?' ail-qrow-ta':'')+'" data-ilq-row="'+def.key+'"'+(isSub?' hidden':'')+'>'+
-      '<label class="ail-qlabel" for="ilq_'+def.key+'">'+_ileEsc(def.label)+(def.optional?' <span class="ail-qopt">(optional)</span>':'')+'</label>'+
-      qControl(def)+'</div>';
+    var k=def.key, kind=_ilqKind(def), plain=(kind==='text'||kind==='dsel'), lead=plain
+      ? '<span class="ail-qlead" aria-hidden="true"></span>'
+      : '<span class="ail-qlead"><input type="checkbox" id="ilqc_'+k+'" class="ail-qctl ail-qcb" onchange="ilqToggle(\''+k+'\')"></span>';
+    return '<div class="ail-qrow'+(isSub?' ail-qsub':'')+(kind==='text'?' ail-qrow-txt':'')+(def.type==='textarea'?' ail-qrow-ta':'')+'" data-ilq-row="'+k+'"'+(isSub?' hidden':'')+'>'+
+      lead+'<label class="ail-qlabel" for="'+(plain?'ilq_':'ilqc_')+k+'">'+_ileEsc(def.label)+(def.optional?' <span class="ail-qopt">(optional)</span>':'')+'</label>'+
+      '<div class="ail-qctls">'+qControl(def,kind)+'</div></div>';
   }
   function investigationField(){
     var id='ilPhdInvestigation', label='PHD Investigation for mitigation';
@@ -1126,26 +1255,46 @@ var IncidentLogEditor=(function(){
   // Questionnaire CSS (light theme). Injected by mount() on every page — my-tickets keeps its own
   // inline copy of the base editor CSS, so these rules are self-contained and scoped to .ail-qn.
   var QN_CSS=[
-    '.ail-qn{border:1px solid #d4dce4;border-radius:5px;background:#fff;padding:2px 12px}',
-    '.ail-qrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,240px);gap:6px 14px;align-items:center;padding:7px 0;border-top:1px solid #eef1f4}',
+    '.ail-qn{border:1px solid #d4dce4;border-radius:10px;background:#fff;padding:2px 12px}',
+    // Row = [checkbox][label][controls on the right]; text sub-fields keep a fixed-width control column.
+    '.ail-qrow{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid #eef1f4}',
+    '.ail-qrow-txt{grid-template-columns:22px minmax(0,1fr) minmax(200px,380px)}',
     '.ail-qrow:first-child{border-top:0}',
-    '.ail-qrow[hidden],.ail-qn-extra[hidden]{display:none!important}',
-    '.ail-qlabel{font-size:.84em;font-weight:500;color:#1b2026;line-height:1.4}',
+    '.ail-qrow[hidden],.ail-qn-extra[hidden],.ail-qrev[hidden],.ail-qold[hidden],.ail-qhint[hidden],.ail-qstate[hidden]{display:none!important}',
+    '.ail-qlead{display:flex;align-items:center;justify-content:center;min-height:30px}',
+    '.ail-qlabel{font-size:.84em;font-weight:500;color:#1b2026;line-height:1.4;cursor:pointer}',
+    '.ail-qrow-txt .ail-qlabel{cursor:default}',
     '.ail-qopt{color:#5c6773;font-weight:400}',
+    '.ail-qctls{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 8px;min-width:0}',
+    '.ail-qrow-txt .ail-qctls{display:block}',
     '.ail-qsub{margin-left:18px;padding-left:12px;border-left:2px solid #f2c79b;animation:ailqIn .18s ease-out}',
     '.ail-qsub .ail-qlabel{color:#2a3340}',
     '@keyframes ailqIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',
-    '.ail-field .ail-qn .ail-qctl{width:100%;min-height:34px;padding:6px 10px!important;font-size:.85em;line-height:1.4;font-family:inherit;border-radius:5px;background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}',
-    '.ail-field .ail-qn .ail-qctl:focus{outline:none;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
-    '.ail-field .ail-qn .ail-qctl:disabled{background:#f3f5f7!important;color:#2a3340!important;opacity:1;cursor:default}',
-    '.ail-field .ail-qn .ail-qctl.ail-qbad{border-color:#d33a3a!important}',
+    '.ail-field .ail-qn .ail-qinp{box-sizing:border-box;width:100%;min-height:34px;margin:0;padding:6px 10px!important;font-size:.85em;line-height:1.4;font-family:inherit;border-radius:8px!important;background:#fff!important;border:1px solid #d4dce4!important;color:#1b2026!important}',
+    '.ail-field .ail-qn .ail-qinp:focus{outline:none;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
+    '.ail-field .ail-qn .ail-qinp:disabled{background:#f3f5f7!important;color:#2a3340!important;opacity:1;cursor:default}',
+    '.ail-field .ail-qn .ail-qinp.ail-qbad{border-color:#d33a3a!important}',
     '.ail-qn-status{margin:6px 0 0;font-size:.78em;color:#8a5a00}',
     '.ail-qn-status[hidden]{display:none!important}',
-    // GeoStudio POD checkbox (left-aligned in the control column).
-    '.ail-qcheck{display:flex;align-items:center;min-height:34px}',
-    '.ail-field .ail-qn input.ail-qcb{width:18px;height:18px;min-height:0;margin:0;padding:0!important;accent-color:#ec7211;cursor:pointer}',
+    // Row checkbox (left).
+    '.ail-field .ail-qn input.ail-qcb{width:18px!important;height:18px!important;min-height:0;margin:0;padding:0!important;accent-color:#ec7211;cursor:pointer}',
     '.ail-field .ail-qn input.ail-qcb:disabled{cursor:default}',
     '.ail-field .ail-qn input.ail-qcb:focus-visible{outline:2px solid #1577a0;outline-offset:2px;box-shadow:none}',
+    // State tag: Yes / No of a Yes/No row; "No" / "0" of an unchecked dropdown / number row.
+    '.ail-qstate{font-size:.74em;font-weight:700;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:2px 10px;line-height:1.4}',
+    '.ail-qstate.is-yes{color:#1f2a40;background:#fff3e8;border-color:#f7c99c}',
+    // Revealed controls (number buttons + "Other", CLEAR / POI dropdowns).
+    '.ail-qrev{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 8px;animation:ailqIn .18s ease-out}',
+    '.ail-qnums{display:inline-flex;flex-wrap:wrap;gap:4px}',
+    '.ail-field .ail-qn button.ail-qnb{min-width:30px;height:30px;margin:0;padding:0 6px!important;border-radius:8px!important;border:1px solid #d4dce4!important;background:#fff!important;color:#2a3340!important;font-family:inherit;font-size:.8em;font-weight:700;line-height:1;cursor:pointer;box-shadow:none!important;transition:background .12s,border-color .12s,color .12s}',
+    '.ail-field .ail-qn button.ail-qnb:hover:not(:disabled){border-color:#ec7211!important;color:#b4500a!important}',
+    '.ail-field .ail-qn button.ail-qnb[aria-pressed="true"]{background:#1f2a40!important;border-color:#1f2a40!important;color:#fff!important}',
+    '.ail-field .ail-qn button.ail-qnb:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ail-field .ail-qn button.ail-qnb:disabled{cursor:default;opacity:.7}',
+    '.ail-field .ail-qn input.ail-qnum{width:78px;min-height:30px;padding:4px 8px!important}',
+    '.ail-field .ail-qn select.ail-qsel{width:auto;min-width:210px}',
+    '.ail-qhint{flex-basis:100%;text-align:right;font-size:.76em;color:#8a5a00}',
+    '.ail-qold{font-size:.76em;color:#5c6773;font-style:italic;max-width:360px}',
     '.ail-qn-extra{margin-top:8px}',
     '.ail-qn-extra-h{font-size:.78em;font-weight:700;color:#5c6773;margin-bottom:4px}',
     '.ail-qn-extra pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:.82em;line-height:1.5;background:#f3f5f7;border:1px solid #e6eaee;border-radius:5px;padding:8px 10px;color:#2a3340}',
@@ -1201,8 +1350,10 @@ var IncidentLogEditor=(function(){
     '.ail-hcell.ail-flash{animation:ailFlash 1.8s ease-out}',
     '@media (max-width:900px){.ail-hgrid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"link type" "assignee res" "date ." "brief brief"}}',
     '@media (max-width:520px){.ail-hgrid{grid-template-columns:minmax(0,1fr);grid-template-areas:"link" "assignee" "date" "type" "res" "brief"}}',
-    '@media (max-width:640px){.ail-qrow{grid-template-columns:1fr;gap:4px}.ail-qsub{margin-left:8px}}',
-    '@media (prefers-reduced-motion:reduce){.ail-qsub{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
+    // Narrow: controls wrap below the label (aligned with it, not the checkbox).
+    '@media (max-width:860px){.ail-qrow,.ail-qrow-txt{grid-template-columns:22px minmax(0,1fr);gap:4px 10px}.ail-qctls{grid-column:2;justify-content:flex-start}.ail-qrev{justify-content:flex-start}.ail-qhint{text-align:left}.ail-qctls:empty{display:none}}',
+    '@media (max-width:640px){.ail-qsub{margin-left:8px}}',
+    '@media (prefers-reduced-motion:reduce){.ail-qsub,.ail-qrev{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
   ].join('\n');
   function injectQnStyles(){
     if(document.getElementById('ile-qn-css')) return;

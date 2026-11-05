@@ -2694,6 +2694,14 @@
       + navBtn('hi-resolved.html', 'Repeat Incidents', 'repeat')
       + navBtn('important-cases.html', 'Unique Cases', 'star')
       + '</nav>';
+    // Group 0 (top): Program & Reference — the Home page's history + reference guides.
+    // (The 'history' glyph in icons.js is a list, so it marks PHD Resolutions; Program History uses clock-rewind.)
+    var navRef = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavRef">' + grpHead('tbhNavRef', 'Program &amp; Reference')
+      + navBtn('archive.html?ds=archive', 'Program History (2021\u201325)', 'clock-rewind')
+      + navBtn('issue-types.html', 'Issue Standardization', 'book')
+      + navBtn('ticket-sanitization.html', 'Ticket Sanitization', 'check-circle')
+      + navBtn('phd-resolutions.html', 'PHD Resolutions', 'history')
+      + '</nav>';
     // Group 3 (bottom): Upload / View log (upload-gated, logged-in only) + Log out.
     var navBot = '<div class="home-navgrp home-navgrp-action"' + (canUpload ? ' role="group" aria-labelledby="tbhNavData"' : '') + '>'
       + (canUpload
@@ -2707,7 +2715,7 @@
           : '')
       + '</div>';
     var recent = '<div class="home-recent-col' + (li ? '' : ' home-navcol-disabled') + '" id="tbhRecentCol">'
-      + navTop + navMid + navBot
+      + navRef + navTop + navMid + navBot
       + '</div>';
     return { hdr: hdr, recent: recent };
   }

@@ -29,8 +29,13 @@ function validateExternalLink(body) {
   if (!isHttpUrl(url)) return { ok: false, error: 'Link must be a valid http:// or https:// URL.' };
   if (!author) return { ok: false, error: 'Author is required.' };
   if (author.length > EXT_LINK_LIMITS.author) return { ok: false, error: 'Author must be ' + EXT_LINK_LIMITS.author + ' characters or fewer.' };
-  return { ok: true, value: { title, description, url, author } };
+  // Optional tile background: one of EXT_LINK_BGS (home.js has the matching colours); '' = default white.
+  const bg = String(b.bg == null ? '' : b.bg).trim().toLowerCase();
+  if (bg && !EXT_LINK_BGS.includes(bg)) return { ok: false, error: 'Pick one of the listed background colours.' };
+  return { ok: true, value: { title, description, url, author, bg } };
 }
+// Tile background keys (no red / purple / green / yellow / black). Colours + contrast live in home.js.
+const EXT_LINK_BGS = ['navy', 'blue', 'sky', 'cyan', 'orange', 'brown', 'slate'];
 
 // ---- Optional display fields + one-time seed of the former hard-coded tiles ----
 // Links may carry icon/sub/action/seedKey (seeded links only; the Add modal never sets them, and
@@ -78,6 +83,6 @@ async function seedExternalLinks(coll, log) {
 }
 
 module.exports = {
-  EXT_LINK_LIMITS, isHttpUrl, validateExternalLink,
+  EXT_LINK_LIMITS, EXT_LINK_BGS, isHttpUrl, validateExternalLink,
   EXT_LINK_ICONS, EXT_LINK_MARKER_KIND, EXT_LINK_SEED_MARKER_ID, EXT_LINK_REAL_FILTER, EXT_LINK_SEED, seedExternalLinks,
 };
