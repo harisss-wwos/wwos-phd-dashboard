@@ -1286,6 +1286,36 @@
       + '#tbHomeChrome .home-hdr-logout svg{width:18px;height:18px}'
       + '#tbHomeChrome .home-hdr-live{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:10px;text-decoration:none;font-size:.8em;font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(180deg,#1c8f50,#136b3c);box-shadow:0 8px 18px -12px rgba(19,107,60,.8);transition:filter .15s}'
       + '#tbHomeChrome .home-hdr-live:hover{filter:brightness(1.08)}'
+      // "Assigned to you" bucket (left of the live chip): ticket icon + orange count pill; hidden when 0.
+      + '#tbHomeChrome .home-hdr-asg{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 10px 0 12px;border-radius:10px;border:1px solid #f7caa2;background:#fff;color:#1f2a40;font:inherit;font-size:.8em;font-weight:800;cursor:pointer;transition:border-color .15s,box-shadow .15s}'
+      + '#tbHomeChrome .home-hdr-asg:hover{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
+      + '#tbHomeChrome .home-hdr-asg:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}'
+      + '#tbHomeChrome .home-hdr-asg svg{width:18px;height:18px;color:#b5530a}'
+      + '#tbHomeChrome .home-hdr-asg-n{min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#c2570a,#a94a05);color:#fff;font-size:.95em;font-variant-numeric:tabular-nums}'
+      + '#tbHomeChrome .home-hdr-asg[hidden]{display:none}'
+      // Its pop-up: the .tbl-* dialog shell, widened, with a compact ticket table.
+      + '.tbl-bg .tbl-card.tb-asg-card{width:min(760px,94vw)!important}'
+      + '.tb-asg-card .tb-asg-scroll{overflow:auto;max-height:min(52vh,460px);border:1px solid #e2e6ea;border-radius:10px}'
+      + '.tb-asg-card table{width:100%;border-collapse:separate;border-spacing:0;font-size:.84em}'
+      + '.tb-asg-card th,.tb-asg-card td{padding:8px 10px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle;color:#2a3340}'
+      + '.tb-asg-card thead th{position:sticky;top:0;background:#f5f6f8;color:#5c6773;font-size:.76em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}'
+      + '.tb-asg-card tbody tr:last-child td{border-bottom:0}'
+      + '.tb-asg-card td.tb-asg-t{min-width:200px;line-height:1.4}'
+      + '.tb-asg-card .tb-asg-id{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}'
+      + '.tb-asg-card .tb-asg-id a{color:#2b66c1;font-weight:800;text-decoration:none}'
+      + '.tb-asg-card .tb-asg-id a:hover{text-decoration:underline}'
+      + '.tb-asg-card .tb-asg-cp{display:grid;place-items:center;width:26px;height:24px;padding:0;border-radius:6px;border:1px solid #d4dade;background:#fff;color:#6b7681;cursor:pointer}'
+      + '.tb-asg-card .tb-asg-cp:hover{color:#2b66c1;border-color:#9cbbe8}'
+      + '.tb-asg-card .tb-asg-sev{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:.92em;font-weight:800;white-space:nowrap;background:#e9f0fb;border:1px solid #c9daf3;color:#1f5fbf}'
+      + '.tb-asg-card .tb-asg-sev.is-noemt{background:#f1ecfe;border-color:#ddd2fb;color:#5b3fc4}'
+      + '.tb-asg-card .tb-asg-by{display:flex;flex-direction:column;gap:1px;white-space:nowrap}'
+      + '.tb-asg-card .tb-asg-by small{color:#5c6773;font-weight:600}'
+      + '.tb-asg-card .tb-asg-nw{white-space:nowrap;font-variant-numeric:tabular-nums}'
+      + '.tb-asg-card .tb-asg-empty{padding:18px;text-align:center;color:#5c6773;font-size:.9em}'
+      + '.tb-asg-card a.tb-asg-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 16px;border-radius:10px;background:linear-gradient(180deg,#c2570a,#a94a05);border:1px solid #9a4100;color:#fff;font-weight:700;font-size:.95em;text-decoration:none}'
+      + '.tb-asg-card a.tb-asg-open:hover{filter:brightness(1.08)}'
+      + '.tb-asg-card .tbl-row .tbl-cancel{min-width:110px}'
+      + '.tb-asg-card .tb-asg-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}'
       + '#tbHomeChrome .home-hdr-live .hdr-live-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:hdrLiveBlink 1.2s ease-in-out infinite}'
       + '@keyframes hdrLiveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{opacity:.4;box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,0)}}'
       + '#tbHomeChrome .home-layout{display:flex;align-items:flex-start;gap:10px;max-width:100%;padding-top:72px}'
@@ -2620,8 +2650,98 @@
   };
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tbUllogClose(); });
   // Wire the "Clear" button + paint the header avatar / recent list for a freshly-built chrome.
+  // ---- "Assigned to you" bucket: dashboard-assigned tickets waiting for me to pick up ----
+  // GET /api/my-assigned-tickets once per page load (server caches ~60 s); PHDRefreshMyAssigned()
+  // refetches (e.g. after an assignment in the same tab).
+  var tbMyAsg = { data: null, req: null };
+  function tbMyAsgFetch(force) {
+    if (!loggedIn() || !A || !A.api) return Promise.resolve(null);
+    if (tbMyAsg.req && !force) return tbMyAsg.req;
+    tbMyAsg.req = A.api('GET', '/api/my-assigned-tickets').then(function (r) {
+      if (r && r.ok && r.data && Array.isArray(r.data.tickets)) tbMyAsg.data = r.data;
+      tbMyAsgPaint();
+      return tbMyAsg.data;
+    }).catch(function () { return null; });
+    return tbMyAsg.req;
+  }
+  function tbMyAsgPaint() {
+    var b = document.getElementById('tbhMyAsg'); if (!b) return;
+    var n = (tbMyAsg.data && tbMyAsg.data.tickets.length) || 0;
+    if (!n) { b.hidden = true; b.innerHTML = ''; return; }
+    var lbl = n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you to pick up';
+    b.innerHTML = ic('ticket', 18) + '<span class="home-hdr-asg-n" aria-hidden="true">' + n + '</span>';
+    b.title = lbl; b.setAttribute('aria-label', lbl); b.setAttribute('aria-haspopup', 'dialog');
+    b.hidden = false;
+  }
+  function tbMyAsgAge(iso) {
+    var d = new Date(iso); if (!iso || isNaN(d)) return '\u2014';
+    var h = Math.floor(Math.max(0, Date.now() - d.getTime()) / 36e5), dd = Math.floor(h / 24);
+    return dd > 0 ? (dd + 'd ' + (h % 24) + 'h') : (h + 'h');
+  }
+  function tbMyAsgRel(iso) {
+    var d = new Date(iso); if (!iso || isNaN(d)) return '';
+    var m = Math.floor(Math.max(0, Date.now() - d.getTime()) / 60000);
+    if (m < 1) return 'just now'; if (m < 60) return m + 'm ago';
+    var h = Math.floor(m / 60); return h < 24 ? (h + 'h ago') : (Math.floor(h / 24) + 'd ago');
+  }
+  function tbMyAsgWhen(iso, tz) {
+    var d = new Date(iso); if (!iso || isNaN(d)) return '';
+    try {
+      return d.toLocaleString('en-US', { timeZone: tz === 'MST' ? 'America/Denver' : 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) + ' ' + (tz === 'MST' ? 'MST' : 'IST');
+    } catch (e) { return ''; }
+  }
+  function tbMyAsgBody(tz) {
+    var list = (tbMyAsg.data && tbMyAsg.data.tickets) || [];
+    if (!list.length) return '<p class="tb-asg-empty">Nothing waiting in your bucket right now.</p>';
+    return '<div class="tb-asg-scroll" role="region" aria-label="Tickets assigned to you" tabindex="0"><table><caption class="tb-asg-sr">Tickets assigned to you from the Assignment Center, newest first</caption>'
+      + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Age</th><th scope="col">Assigned by</th></tr></thead><tbody>'
+      + list.map(function (t) {
+        var sid = String(t.shortId || ''), url = /^https?:\/\//i.test(String(t.url || '')) ? t.url : ('https://t.corp.amazon.com/issues/' + encodeURIComponent(sid));
+        var s = Number(t.severity), sev = t.noEmt ? '<span class="tb-asg-sev is-noemt">No EMT</span>' : ((s >= 1 && s <= 5) ? '<span class="tb-asg-sev">Sev ' + s + '</span>' : '<span class="tb-asg-sev is-noemt">No severity</span>');
+        return '<tr><td><span class="tb-asg-id"><a href="' + tbEsc(url) + '" target="_blank" rel="noopener noreferrer">' + tbEsc(sid) + '<span class="tb-asg-sr"> (opens in a new tab)</span></a>'
+          + '<button type="button" class="tb-asg-cp" data-asgcopy="' + tbEsc(sid) + '" title="Copy ticket ID" aria-label="Copy ticket ID ' + tbEsc(sid) + '">' + ic('copy', 12) + '</button></span></td>'
+          + '<td class="tb-asg-t">' + tbEsc(t.title || 'No title') + '</td><td>' + sev + '</td>'
+          + '<td class="tb-asg-nw">' + tbEsc(tbMyAsgAge(t.createdAt)) + '</td>'
+          + '<td><span class="tb-asg-by"><b>' + tbEsc(t.by || '') + '</b><small>' + tbEsc(tbMyAsgWhen(t.at, tz)) + ' \u00b7 ' + tbEsc(tbMyAsgRel(t.at)) + '</small></span></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function tbMyAsgClose() {
+    var ov = document.getElementById('tbMyAsgDlg');
+    if (ov) { ov.remove(); window.PHDLoginUI.closed(ov); }
+  }
+  window.PHDOpenMyAssigned = function () {
+    tbMyAsgClose();
+    var n = (tbMyAsg.data && tbMyAsg.data.tickets.length) || 0;
+    var ov = document.createElement('div');
+    ov.id = 'tbMyAsgDlg'; ov.className = 'tbl-bg'; ov.style.cssText = 'display:flex;z-index:5000';
+    ov.innerHTML = '<div class="tbl-card tb-asg-card" role="dialog" aria-modal="true" aria-labelledby="tbMyAsgT" aria-describedby="tbMyAsgS">'
+      + '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">' + ic('ticket', 20) + '</span>'
+      + '<div class="tbl-head-tx"><div class="tbl-eyebrow">Assignment Center \u00b7 Your bucket</div><h2 class="tbl-title" id="tbMyAsgT">Assigned to you</h2></div>'
+      + '<p class="tbl-sub" id="tbMyAsgS">' + n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you from the Assignment Center, waiting to be picked up in SIM.</p></div>'
+      + '<div class="tbl-body"><div id="tbMyAsgBody">' + tbMyAsgBody('IST') + '</div>'
+      + '<div class="tbl-actions tbl-row"><button type="button" class="tbl-cancel" id="tbMyAsgX">Close</button>'
+      + '<a class="tb-asg-open" href="unassigned-tickets.html">' + ic('user-plus', 15) + 'Open Assignment Center</a></div></div></div>';
+    ov.onclick = function (e) {
+      if (e.target === ov) { tbMyAsgClose(); return; }
+      var cp = e.target.closest && e.target.closest('[data-asgcopy]');
+      if (cp) {
+        var id = cp.getAttribute('data-asgcopy');
+        var done = function () { cp.innerHTML = ic('check-circle', 12); setTimeout(function () { cp.innerHTML = ic('copy', 12); }, 1200); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(id).then(done, done); else done();
+      }
+    };
+    document.body.appendChild(ov);
+    document.getElementById('tbMyAsgX').onclick = tbMyAsgClose;
+    window.PHDLoginUI.opened(ov, tbMyAsgClose, document.getElementById('tbMyAsgX'));
+    // Times in the user's account timezone (IST / MST), like the rest of the app.
+    if (A && A.myTimezone) A.myTimezone().then(function (tz) {
+      var b = document.getElementById('tbMyAsgBody'); if (b && (tz === 'MST')) b.innerHTML = tbMyAsgBody(tz);
+    }).catch(function () {});
+  };
+  window.PHDRefreshMyAssigned = function () { return tbMyAsgFetch(true); };
   function tbhWireChrome() {
     tbhRenderHdrProf(); tbhRenderRecent();
+    if (tbMyAsg.data) tbMyAsgPaint(); else tbMyAsgFetch(false);
     var clr = document.getElementById('tbhClear');
     if (clr) clr.onclick = function () { try { localStorage.removeItem('phd_recent_pages'); } catch (e) {} tbhRenderRecent(); };
   }
@@ -2646,6 +2766,8 @@
       + '<div class="home-hdr-page"><span class="home-hdr-eyebrow">PHD Dashboard</span><span class="home-hdr-pt">' + tbEsc(tbhHereTitle()) + '</span></div>'
       + '</div>'
       + '<div class="home-hdr-right">'
+      // Dashboard-assigned tickets waiting in my bucket (painted by tbMyAsgPaint; hidden when 0).
+      + (li ? '<button type="button" class="home-hdr-asg" id="tbhMyAsg" hidden onclick="if(window.PHDOpenMyAssigned)window.PHDOpenMyAssigned()"></button>' : '')
       + (li ? '<a class="home-hdr-live" href="app.html" title="Open the live dashboard"><span class="hdr-live-dot"></span> ' + new Date().getFullYear() + '</a>' : '')
       + '<span class="home-hdr-prof" id="tbhHdrProf"></span>'
       // Log out: icon-only button right of the profile icon (moved here from the menu's bottom group).

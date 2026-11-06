@@ -19,6 +19,7 @@ const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToP
 const { resolutionGroupOf } = require('./resolution-groups');
 const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
+const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, mapLog: asgMapLog } = require('./assignments');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -74,6 +75,9 @@ function getCachedReport(key) {
   return null;
 }
 function setCachedReport(key, data) { _reportCache.set(key, { at: Date.now(), data }); }
+// Same cache with a shorter, caller-chosen TTL (e.g. 60 s for the per-user assignment bucket).
+function getCachedReportTtl(key, ttlMs) { const hit = _reportCache.get(key); return (hit && (Date.now() - hit.at) < ttlMs) ? hit.data : null; }
+function dropCachedReports(prefix) { Array.from(_reportCache.keys()).forEach(k => { if (k.startsWith(prefix)) _reportCache.delete(k); }); }
 // Like getCachedReport but ignores the TTL: returns the last payload stored for `key` (or null).
 // Used to serve a stale-but-usable report when recomputing is not possible right now.
 function getStaleCachedReport(key) { const hit = _reportCache.get(key); return hit ? hit.data : null; }
@@ -3968,8 +3972,9 @@ function uaSeverity(sevField, title) {
 }
 // Admin team = analyst + role owner/admin; contractors = analyst + role editor (from the users collection).
 const UA_TEAM_STATUSES = { 'Assigned': 'assigned', 'Work In Progress': 'wip', 'Pending': 'pending' };
-app.get(['/api/unassigned-tickets', '/api/assignment-center'], requireRole('user'), async (req, res) => {
-  try {
+// Ticket part of the Assignment Center (unassigned rows + admin / contractor counts), cached on the
+// live quarter's publishedAt. Shared by GET /api/assignment-center and the assign re-check.
+async function acBase() {
     const qid = await liveQuarterId();
     const qDoc = await (await getCollection(COLLECTIONS.quarters)).findOne(
       { _id: qid }, { projection: { 'meta.publishedAt': 1, 'data.updatedAt': 1 } });
@@ -3977,7 +3982,7 @@ app.get(['/api/unassigned-tickets', '/api/assignment-center'], requireRole('user
     // v3: rows gained pet (Page ZERO Pet row: RCD Issue line, else the title).
     const cacheKey = 'unassigned-tickets:v3:' + qid + ':' + (asOf || '');
     const hit = getCachedReport(cacheKey);
-    if (hit) return res.json(hit);
+    if (hit) return hit;
 
     const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1, displayName: 1, role: 1, analyst: 1 } }).toArray();
     const userSet = new Set(users.map(u => String(u.username || '').trim().toLowerCase()).filter(Boolean));
@@ -4030,9 +4035,103 @@ app.get(['/api/unassigned-tickets', '/api/assignment-center'], requireRole('user
     const payload = { asOf, total: out.length, rows: out, admins, contractors };
     setCachedReport(cacheKey, payload);
     pruneCachedReports('unassigned-tickets:', 2);
-    res.json(payload);
+    return payload;
+}
+
+// Open-ticket state for a set of ShortIds: Map shortId -> { assignees:[login...], row } built from
+// docs still in an OPEN status (a ShortId with no open doc is resolved/closed -> absent).
+async function acTicketStates(shortIds) {
+  const states = new Map();
+  if (!shortIds.length) return states;
+  const docs = await (await getCollection(COLLECTIONS.ticketDocs)).find(
+    { ShortId: { $in: shortIds }, Status: { $in: OPEN_STATUSES } },
+    { projection: { _id: 0, ShortId: 1, IssueUrl: 1, Title: 1, CreateDate: 1, Status: 1, AssigneeIdentity: 1, Severity: 1, Labels: 1 } }
+  ).toArray();
+  docs.forEach(t => {
+    const sid = String(t.ShortId || '').trim(); if (!sid) return;
+    const st = states.get(sid) || { assignees: [], row: {
+      shortId: sid, url: t.IssueUrl || ('https://t.corp.amazon.com/issues/' + sid), title: t.Title || '', createdAt: t.CreateDate || '',
+      status: t.Status || '', severity: uaSeverity(t.Severity, t.Title), noEmt: hasNoEmt(t.Title, t.Labels) } };
+    const login = uaAssigneeLogin(t.AssigneeIdentity);
+    if (login) st.assignees.push(login);
+    states.set(sid, st);
+  });
+  return states;
+}
+// Active dashboard assignments that are still pending (pending rule: see server/assignments.js).
+// filter narrows the active docs (e.g. { assignee }). Returns { docs, states, pending }.
+async function acPending(filter) {
+  const coll = await getCollection(COLLECTIONS.ticketAssignments);
+  const docs = await coll.find({ kind: 'active', status: 'pending', ...(filter || {}) },
+    { projection: { _id: 0, shortId: 1, assignee: 1, by: 1, at: 1, status: 1 } }).toArray();
+  const states = await acTicketStates(Array.from(new Set(docs.map(d => d.shortId).filter(Boolean))));
+  return { docs, states, pending: asgPendingMap(docs, states) };
+}
+// Assignment state for GET /api/assignment-center: pending map + latest 200 log entries. Cached 60 s
+// (keyed on the data's asOf); dropped on every assign and on any upload (invalidateReportCache).
+const AC_ASSIGN_TTL_MS = 60 * 1000;
+async function acAssignState(asOf) {
+  const key = 'ac-assign:v1:' + (asOf || '');
+  const hit = getCachedReportTtl(key, AC_ASSIGN_TTL_MS);
+  if (hit) return hit;
+  const { pending } = await acPending();
+  const log = await (await getCollection(COLLECTIONS.ticketAssignments)).find({ kind: 'log' }).sort({ at: -1 }).limit(200).toArray();
+  const data = { assignments: pending, log: log.map(asgMapLog) };
+  dropCachedReports('ac-assign:');
+  setCachedReport(key, data);
+  return data;
+}
+app.get(['/api/unassigned-tickets', '/api/assignment-center'], requireRole('user'), async (req, res) => {
+  try {
+    const base = await acBase();
+    const asg = await acAssignState(base.asOf);
+    res.json({ ...base, groups: ASSIGN_GROUPS, assignments: asg.assignments, log: asg.log });
   } catch (e) {
     res.status(500).json({ error: 'Could not load unassigned tickets.' });
+  }
+});
+
+// POST /api/assignment-center/assign { tickets:[shortId...], assignee, group, section }
+// Admins only (analyst + role owner/admin, checked against the users collection, not the token).
+// The tickets are re-checked against the CURRENT unassigned open list. See server/assignments.js.
+app.post('/api/assignment-center/assign', requireRole('user'), async (req, res) => {
+  try {
+    const login = String((req.user && req.user.username) || '').trim().toLowerCase();
+    const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1, role: 1, analyst: 1 } }).toArray();
+    const user = users.find(u => String(u.username || '').trim().toLowerCase() === login) || null;
+    if (!isAssignAdmin(user)) return res.status(403).json({ error: 'Only Assignment Center admins can assign tickets.' });
+    const base = await acBase();
+    const unassigned = new Map(base.rows.filter(r => r.shortId).map(r => [r.shortId, r]));
+    const analysts = new Set(users.filter(u => u.analyst === true).map(u => String(u.username || '').trim().toLowerCase()).filter(Boolean));
+    const out = await asgHandleAssign(req.body, {
+      coll: await getCollection(COLLECTIONS.ticketAssignments), user, unassigned, analysts,
+    });
+    if (out.status === 200 && !out.body.duplicate) { dropCachedReports('ac-assign:'); dropCachedReports('my-assigned:'); }
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not assign the tickets.' });
+  }
+});
+
+// GET /api/my-assigned-tickets: the caller's own pending dashboard assignments (top-bar bucket).
+// Cached 60 s per user; dropped on every assign and on any upload.
+app.get('/api/my-assigned-tickets', requireRole('user'), async (req, res) => {
+  try {
+    const me = String((req.user && req.user.username) || '').trim().toLowerCase();
+    const key = 'my-assigned:' + me;
+    const hit = getCachedReportTtl(key, AC_ASSIGN_TTL_MS);
+    if (hit) return res.json(hit);
+    const { docs, states, pending } = await acPending({ assignee: me });
+    const tickets = docs.filter(d => pending[d.shortId]).map(d => {
+      const r = states.get(d.shortId).row;
+      return { ...r, by: d.by, at: d.at };
+    }).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    const data = { count: tickets.length, tickets };
+    setCachedReport(key, data);
+    pruneCachedReports('my-assigned:', 50);
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load your assigned tickets.' });
   }
 });
 
