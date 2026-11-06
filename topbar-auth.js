@@ -1293,6 +1293,15 @@
       + '#tbHomeChrome .home-hdr-asg svg{width:18px;height:18px;color:#b5530a}'
       + '#tbHomeChrome .home-hdr-asg-n{min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#c2570a,#a94a05);color:#fff;font-size:.95em;font-variant-numeric:tabular-nums}'
       + '#tbHomeChrome .home-hdr-asg[hidden]{display:none}'
+      // Empty bucket: muted grey "0". Tickets waiting: the count pill pulses + the chip glows.
+      + '#tbHomeChrome .home-hdr-asg.is-zero{border-color:#d4dade}'
+      + '#tbHomeChrome .home-hdr-asg.is-zero svg{color:#8793a0}'
+      + '#tbHomeChrome .home-hdr-asg.is-zero .home-hdr-asg-n{background:#eef1f4;color:#5c6773}'
+      + '#tbHomeChrome .home-hdr-asg.is-blink{animation:tbAsgGlow 1.2s ease-in-out infinite}'
+      + '#tbHomeChrome .home-hdr-asg.is-blink .home-hdr-asg-n{animation:tbAsgBlink 1.2s ease-in-out infinite}'
+      + '@keyframes tbAsgBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.88)}}'
+      + '@keyframes tbAsgGlow{0%,100%{box-shadow:0 0 0 0 rgba(236,114,17,0)}50%{box-shadow:0 0 0 4px rgba(236,114,17,.28)}}'
+      + '@media (prefers-reduced-motion:reduce){#tbHomeChrome .home-hdr-asg.is-blink,#tbHomeChrome .home-hdr-asg.is-blink .home-hdr-asg-n{animation:none}#tbHomeChrome .home-hdr-asg.is-blink{box-shadow:0 0 0 3px rgba(236,114,17,.35)}}'
       // Its pop-up: the .tbl-* dialog shell, widened, with a compact ticket table.
       + '.tbl-bg .tbl-card.tb-asg-card{width:min(760px,94vw)!important}'
       + '.tb-asg-card .tb-asg-scroll{overflow:auto;max-height:min(52vh,460px);border:1px solid #e2e6ea;border-radius:10px}'
@@ -2666,10 +2675,13 @@
   }
   function tbMyAsgPaint() {
     var b = document.getElementById('tbhMyAsg'); if (!b) return;
-    var n = (tbMyAsg.data && tbMyAsg.data.tickets.length) || 0;
-    if (!n) { b.hidden = true; b.innerHTML = ''; return; }
-    var lbl = n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you to pick up';
+    // Always shown once loaded: muted "0" when the bucket is empty, a blinking orange count when > 0.
+    if (!tbMyAsg.data) { b.hidden = true; b.innerHTML = ''; return; }   // not loaded (or the request failed)
+    var n = tbMyAsg.data.tickets.length || 0;
+    var lbl = n ? (n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you to pick up') : 'No tickets assigned to you to pick up';
     b.innerHTML = ic('ticket', 18) + '<span class="home-hdr-asg-n" aria-hidden="true">' + n + '</span>';
+    b.classList.toggle('is-zero', !n);
+    b.classList.toggle('is-blink', n > 0);
     b.title = lbl; b.setAttribute('aria-label', lbl); b.setAttribute('aria-haspopup', 'dialog');
     b.hidden = false;
   }

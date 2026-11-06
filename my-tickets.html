@@ -620,6 +620,12 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-sort-btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 6px 0 12px;background:#fff;border:1px solid #d4dade;border-radius:99px;
   color:#2a3340;font-size:.84em;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
 .mt-sort-btn:hover{border-color:#b9c2cb;background:#fafbfc}
+.mt-country{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 4px 0 12px;background:#fff;border:1px solid #d4dade;border-radius:99px;
+  color:#2a3340;font-size:.84em;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
+.mt-country:hover{border-color:#b9c2cb;background:#fafbfc}
+.mt-country:focus-within{border-color:var(--mt-blue);box-shadow:0 0 0 3px rgba(26,115,232,.18)}
+.mt-country svg{color:var(--mt-blue);flex-shrink:0}
+.mt-country select{border:0;background:transparent;color:inherit;font:inherit;font-weight:700;height:30px;padding:0 6px;cursor:pointer;outline:none}
 .mt-sort-btn svg{color:var(--mt-blue);flex-shrink:0}
 .mt-sort-dir{color:var(--mt-mut);font-weight:600}
 .mt-sort-arrow{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#e6f0fc;color:var(--mt-blue);font-weight:800;line-height:1}
@@ -1110,7 +1116,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
 <script src="incident-log-editor.js?v=18"></script>
-<script src="topbar-auth.js?v=220"></script>
+<script src="topbar-auth.js?v=221"></script>
 <script>
 const A=window.PHDAuth;
 // Build the shared Add/Edit incident-log modal into its placeholder (before anything can open it).
@@ -1745,11 +1751,11 @@ let FIRST_PAINT=true;   // run the staggered entrance animation only on the firs
 let LOADED_AT=null;     // when /api/my-tickets last answered (hero "Refreshed" chip)
 let LOAD_SEQ=0;         // guards against an older (retried) fetch painting over a newer one
 // Client-side quick filters (session only): search text, time-left bucket, hide viewed cards.
-const FILTER={f:'all',hideViewed:false};
+const FILTER={f:'all',hideViewed:false,country:'all'};
 // The selected filter button + Hide viewed are remembered per user (localStorage), so a refresh or
 // coming back to the page keeps them. Restored once, on the first render (the user is known then).
 function filterKey(){ var u=A.getUser(); return 'phd_mytickets_filter_'+((u&&u.username)||'anon'); }
-function saveFilter(){ try{ localStorage.setItem(filterKey(), JSON.stringify({f:FILTER.f, hideViewed:!!FILTER.hideViewed})); }catch(e){} }
+function saveFilter(){ try{ localStorage.setItem(filterKey(), JSON.stringify({f:FILTER.f, hideViewed:!!FILTER.hideViewed, country:FILTER.country||'all'})); }catch(e){} }
 let FILTER_RESTORED=false;
 function restoreFilter(){
   if(FILTER_RESTORED) return; FILTER_RESTORED=true;
@@ -1757,6 +1763,7 @@ function restoreFilter(){
     const s=JSON.parse(localStorage.getItem(filterKey())||'null'); if(!s) return;
     if(typeof MT_FILTERS!=='undefined' && MT_FILTERS.some(function(x){ return x[0]===s.f; })) FILTER.f=s.f;
     FILTER.hideViewed=!!s.hideViewed;
+    if(s.country) FILTER.country=String(s.country);   // dropped later if that country is no longer in the list
   }catch(e){}
 }
 
@@ -1861,21 +1868,23 @@ function kpiHtml(){
     kpiCard('is-good','check-circle','Temporarily resolved',temp,'Working view \u00b7 not saved to the database',n?temp/n:0)+
     '</div>';
 }
-function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed); }
+function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed||FILTER.country!=='all'); }
 // Quick-filter buttons (one active at a time; 'Hide viewed' is a separate on/off toggle).
 //   overdue = past the 240h deadline · red = due within 72h (about to cross the SLA)
 //   purple / yellow / green = the age colour from the server (t.color, same as the dashboard BY AGE tiles)
 //   noemt / sr = the same markers shown on each ticket (No EMT, Station Request / Address Exclusion)
+// Entry: [key, visible label, dot colour, full description]. Colour chips use short letters
+// (B = black/overdue, R, P, Y, G); the description goes into the button's tooltip and aria-label.
 const MT_FILTERS=[
-  ['all','All',null],
-  ['overdue','Overdue','#d92d20'],
-  ['red','Due \u2264 72h (red)','#ef4444'],
-  ['purple','Purple','#7c5cf0'],
-  ['yellow','Yellow','#e0a019'],
-  ['green','Green','#1f9d57'],
-  ['noemt','No EMT','#ff8080'],
-  ['sr','Station requests','#2563eb'],
-  ['appeal','Appeals','#0d8a7f']
+  ['all','All',null,'All tickets'],
+  ['overdue','B','#1d2433','Overdue (past 240h)'],
+  ['red','R','#ef4444','Due within 72h (red)'],
+  ['purple','P','#7c5cf0','Purple'],
+  ['yellow','Y','#e0a019','Yellow'],
+  ['green','G','#1f9d57','Green'],
+  ['noemt','No EMT','#ff8080','No EMT'],
+  ['sr','Station requests','#2563eb','Station requests'],
+  ['appeal','Appeals','#0d8a7f','Appeals']
 ];
 // Appeal ticket: 'appeal' anywhere in the title (case-insensitive) — same rule as the Resolutions page.
 function ticketIsAppeal(t){ return /appeal/i.test(String((t&&t.title)||'')); }
@@ -1893,11 +1902,32 @@ function ticketMatches(t,f){
   if(f==='appeal') return ticketIsAppeal(t);
   return colorOf(t)===f;   // purple / yellow / green
 }
+// Country of a ticket (same rule as the incident log editor: title prefix, else the ticket field).
+function countryOf(t){
+  let c='';
+  try{ c=(typeof window.ilTicketCountry==='function')?ilTicketCountry(t&&t.title,t&&t.country):''; }catch(e){ c=''; }
+  if(!c) c=String((t&&t.country)||'');
+  c=String(c).trim().toUpperCase();
+  return c||'Unknown';
+}
+// Country dropdown: only the countries present in the user's tickets (+ 'Unknown' if any), with counts.
+function countrySelHtml(){
+  const cnt={}; (TICKETS||[]).forEach(function(t){ const k=countryOf(t); cnt[k]=(cnt[k]||0)+1; });
+  const keys=Object.keys(cnt).filter(function(k){ return k!=='Unknown'; }).sort(function(a,b){ return (cnt[b]-cnt[a]) || (a<b?-1:a>b?1:0); });   // most tickets first, ties A-Z
+  if(cnt.Unknown) keys.push('Unknown');
+  if(FILTER.country!=='all' && !cnt[FILTER.country]) FILTER.country='all';   // saved country no longer in the list
+  const esc=function(s){ return String(s).replace(/[&<>"]/g,function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]; }); };
+  const opts=['<option value="all"'+(FILTER.country==='all'?' selected':'')+'>All</option>'].concat(keys.map(function(k){
+    return '<option value="'+esc(k)+'"'+(FILTER.country===k?' selected':'')+'>'+esc(k)+' ('+cnt[k]+')</option>';
+  }));
+  return '<label class="mt-country" title="Filter by country">'+ic('globe',14)+
+    '<select id="mtCountry" aria-label="Filter by country">'+opts.join('')+'</select></label>';
+}
 function toolsHtml(){
   const c={}; MT_FILTERS.forEach(function(x){ c[x[0]]=0; });
   TICKETS.forEach(function(t){ MT_FILTERS.forEach(function(x){ if(ticketMatches(t,x[0])) c[x[0]]++; }); });
-  const chip=function(k,label,color){
-    return '<button type="button" class="mt-chip" data-f="'+k+'" aria-pressed="'+(FILTER.f===k)+'">'+
+  const chip=function(k,label,color,desc){
+    return '<button type="button" class="mt-chip" data-f="'+k+'" aria-pressed="'+(FILTER.f===k)+'" title="'+desc+'" aria-label="'+desc+', '+c[k]+' tickets">'+
       (color?'<span class="mt-chip-dot" style="--c:'+color+'" aria-hidden="true"></span>':'')+label+'<b>'+c[k]+'</b></button>';
   };
   // Sort control: field + current direction. Click to flip between oldest-first and newest-first.
@@ -1906,8 +1936,8 @@ function toolsHtml(){
   const sortBtn='<button type="button" class="mt-sort-btn" onclick="setSort(\'created\')" title="Sort by created date \u2014 click to reverse" aria-label="Sort by created date, '+dirDesc+'. Press to reverse.">'+
     ic('calendar',15)+'<span class="mt-sort-dir">'+dirDesc+'</span><span class="mt-sort-arrow" aria-hidden="true">'+arrow+'</span></button>';
   return '<div class="mt-tools" role="search" aria-label="Filter tickets">'+
-    '<div class="mt-chips" role="group" aria-label="Filter tickets">'+MT_FILTERS.map(function(x){ return chip(x[0],x[1],x[2]); }).join('')+'</div>'+
-    '<div class="mt-tools-end"><span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
+    '<div class="mt-chips" role="group" aria-label="Filter tickets">'+MT_FILTERS.map(function(x){ return chip(x[0],x[1],x[2],x[3]); }).join('')+'</div>'+
+    '<div class="mt-tools-end">'+countrySelHtml()+'<span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
     '<div class="mt-alert" id="mtPreviewErr" role="alert" hidden>'+ic('alert-triangle',14)+' Comment previews and incident-log status couldn\u2019t be loaded.'+
       '<button type="button" class="mt-btn-sm" onclick="retryPreviews(this)">'+ic('refresh',12)+' Retry</button></div>'+
   '</div>';
@@ -1935,6 +1965,7 @@ function applyFilters(){
     total++;
     const t=bySid[card.getAttribute('data-sid')];
     let ok=!t||ticketMatches(t,FILTER.f);
+    if(ok && t && FILTER.country!=='all' && countryOf(t)!==FILTER.country) ok=false;
     if(ok && FILTER.hideViewed && card.classList.contains('viewed')) ok=false;
     card.hidden=!ok; if(ok) shown++;
   });
@@ -1945,10 +1976,14 @@ function applyFilters(){
     nr.hidden=!(has&&!vis);
   });
   const s=document.getElementById('mtShown');
-  if(s) s.textContent=anyFilter()?(shown+' of '+total+' shown'):(total+' ticket'+(total===1?'':'s'));
+  if(s){
+    s.textContent=anyFilter()?(shown+'/'+total):(total+' ticket'+(total===1?'':'s'));
+    s.title=anyFilter()?(shown+' of '+total+' tickets shown'):'';
+  }
 }
 function clearFilters(){
-  FILTER.f='all'; FILTER.hideViewed=false; saveFilter();
+  FILTER.f='all'; FILTER.hideViewed=false; FILTER.country='all'; saveFilter();
+  const cs=document.getElementById('mtCountry'); if(cs) cs.value='all';
   const hv=document.getElementById('mtHideViewed'); if(hv){ hv.setAttribute('aria-pressed','false'); hv.innerHTML=hideViewedInner(false); }
   document.querySelectorAll('.mt-chip[data-f]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-f')==='all')); });
   applyFilters();
@@ -1961,6 +1996,10 @@ document.addEventListener('click',function(ev){
   const b=t.closest('.mt-chip[data-f]');
   if(b){ FILTER.f=b.getAttribute('data-f'); document.querySelectorAll('.mt-chip[data-f]').forEach(function(x){ x.setAttribute('aria-pressed',String(x===b)); }); saveFilter(); applyFilters(); return; }
   if(t.closest('[data-clear-filters]')) clearFilters();
+});
+document.addEventListener('change',function(ev){
+  const s=ev.target; if(!s||s.id!=='mtCountry') return;
+  FILTER.country=s.value||'all'; saveFilter(); applyFilters();
 });
 async function retryPreviews(btn){ setBusy(btn,true,'Retrying\u2026'); try{ await fillLatestComments(); }finally{ setBusy(btn,false); } }
 
