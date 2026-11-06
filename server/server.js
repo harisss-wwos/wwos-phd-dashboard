@@ -4121,16 +4121,17 @@ app.post('/api/assignment-center/assign', requireRole('user'), async (req, res) 
 });
 
 // POST /api/assignment-center/revoke { logId }: undo every assignment of one assign log entry.
-// Admins only (same rule as assign). Tickets re-assigned later / picked up / resolved are skipped.
+// Only the user who made the assignment (the entry's assigner) may revoke it; not admins, not the owner.
+// The caller is identified by the auth token login. Tickets re-assigned later / picked up / resolved are skipped.
 // The entry is marked revoked and a 'revoke' log entry is added. See server/assignments.js.
 app.post('/api/assignment-center/revoke', requireRole('user'), async (req, res) => {
   try {
     const login = String((req.user && req.user.username) || '').trim().toLowerCase();
     const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1, role: 1, analyst: 1 } }).toArray();
     const user = users.find(u => String(u.username || '').trim().toLowerCase() === login) || null;
-    if (!isAssignAdmin(user)) return res.status(403).json({ error: 'Only Assignment Center admins can revoke assignments.' });
+    if (!login) return res.status(403).json({ ok: false, error: 'Sign in to revoke assignments.' });
     const out = await asgHandleRevoke(req.body, {
-      coll: await getCollection(COLLECTIONS.ticketAssignments), user,
+      coll: await getCollection(COLLECTIONS.ticketAssignments), user: user || { username: login },
       toId: s => (/^[a-f0-9]{24}$/i.test(s) ? new ObjectId(s) : null),
       states: acTicketStates,
     });

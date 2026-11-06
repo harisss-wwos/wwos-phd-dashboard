@@ -74,6 +74,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-meta-k{font-size:.62em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
 .ua-meta-v{display:inline-flex;align-items:center;gap:7px;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ua-meta-v svg{color:#ffb26b;flex-shrink:0}
+/* Hero equation: UNASSIGNED = TEMP. ASSIGNED + YET TO ASSIGN (boxes look like the other meta boxes). */
+.ua-meta li.ua-meta-eq{padding:0;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none}
+.ua-eq{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ua-mbox{display:flex;flex-direction:column;gap:3px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:0}
+.ua-mbox.is-temp{border-color:rgba(236,114,17,.6);background:rgba(236,114,17,.14)}
+.ua-mbox.is-temp .ua-meta-v,.ua-mbox.is-temp .ua-meta-v svg{color:#ffb26b}
+.ua-mbox.is-yet{border-color:rgba(255,120,110,.55);background:rgba(230,70,60,.13)}
+.ua-mbox.is-yet .ua-meta-v,.ua-mbox.is-yet .ua-meta-v svg{color:#ffa39b}
+.ua-op{font-size:1.05em;font-weight:800;color:rgba(233,237,243,.7);line-height:1}
 @container (max-width:560px){
   .ua-hero{padding:20px 18px 72px 22px}
   .ua-hero h1{font-size:1.65em}
@@ -125,7 +135,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-seg button+button{border-left:1px solid #d4dade}
 .ua-seg button[aria-pressed="true"]{background:var(--acc-bg);color:var(--acc-ink)}
 .ua-seg button:hover:not([aria-pressed="true"]){background:#fafbfc}
-.ua-sortgrp{display:inline-flex;align-items:center}
 .ua-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid #161d2d;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;transition:background .15s}
 .ua-btn:hover:not(:disabled){background:#0f1420}
 .ua-btn:disabled{opacity:.45;cursor:default}
@@ -139,10 +148,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;-webkit-overflow-scrolling:touch}
 .ua-tbl{width:100%;min-width:860px;border-collapse:separate;border-spacing:0;font-size:.86em}
 .ua-tbl caption{text-align:left}
-/* Severity sections: Ticket ID | Age | Title — ID and Age hug their content, the title takes the rest and wraps. */
+/* Severity sections: Ticket ID | Title | Assigned tag — ID and tag hug their content, the title takes the rest and wraps. */
 .ua-tbl.ua-tbl-3{min-width:0;table-layout:auto}
-.ua-tbl-3 .ua-c-id,.ua-tbl-3 .ua-c-age{width:1%;white-space:nowrap}
+.ua-tbl-3 .ua-c-id,.ua-tbl-3 .ua-c-asg{width:1%;white-space:nowrap}
 .ua-tbl-3 td.ua-c-title{white-space:normal;overflow-wrap:anywhere;line-height:1.45;color:var(--ink)}
+.ua-tbl-3 .ua-c-asg{text-align:right!important}
 .ua-tbl th,.ua-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4!important;text-align:left;vertical-align:middle;color:#2a3340}
 .ua-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8!important;color:#5c6773!important;border-bottom:1px solid var(--line)!important;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap}
 .ua-tbl tbody tr td{background:#fff!important}
@@ -150,10 +160,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-tbl tbody tr:last-child td{border-bottom:none!important}
 .ua-tbl a{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
 .ua-tbl a:hover{text-decoration:underline}
-.ua-th-sort{padding:0!important}
-.ua-sortbtn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:9px 12px;border:none;background:none;font:inherit!important;font-size:1em;font-weight:800;letter-spacing:.7px;text-transform:uppercase!important;color:inherit;cursor:pointer}
-.ua-sortbtn:hover{color:var(--ink)}
-.ua-sort-ar{color:var(--acc);font-size:1.1em}
 .ua-id{display:inline-flex;align-items:center;gap:6px}
 .ua-copy{display:grid;place-items:center;width:26px;height:24px;padding:0;border-radius:6px;border:1px solid #d4dade;background:#fff;color:#6b7681;cursor:pointer;transition:color .15s,border-color .15s;flex:0 0 auto}
 .ua-copy:hover{color:#2b66c1;border-color:#9cbbe8}
@@ -161,8 +167,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-trunc{display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ua-when{display:flex;flex-direction:column;gap:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ua-when small{font-size:.86em;font-weight:700;color:var(--mut)}
-.ua-age{display:inline-flex;align-items:center;padding:1px 7px;border-radius:99px;font-size:.82em;font-weight:800;background:#f1f3f5;border:1px solid var(--line);color:#3a4552;width:max-content}
-.ua-age.is-old{background:var(--red-bg);border-color:#f4c2bd;color:var(--red)}
 .ua-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;font-size:.84em;font-weight:800;white-space:nowrap;border:1px solid}
 .ua-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
 .ua-pill.s-assigned{background:var(--blue-bg);border-color:#c9daf3;color:var(--blue)}
@@ -313,8 +317,11 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ua-asg-b{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;height:30px;padding:0 12px;border:1px solid #9a4100;border-radius:99px;background:linear-gradient(180deg,#c2570a,#a94a05);color:#fff;font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ua-asg-b:hover:not(:disabled){filter:brightness(1.08)}
 .ua-asg-b:disabled{background:#f1f3f5;border-color:#d4dade;color:#8793a0;cursor:not-allowed}
-.ua-asg-tag{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:1px 8px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7caa2;color:var(--acc-ink);font-size:.8em;font-weight:700;white-space:nowrap;vertical-align:middle}
+.ua-asg-tag{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7caa2;color:var(--acc-ink);font-size:.8em;font-weight:700;white-space:nowrap;vertical-align:middle}
 .ua-tbl tbody tr.is-asg td{background:#fcfcfd!important}
+/* Section bar: how many tickets in the section are still left to assign (orange) / all assigned (green). */
+.ua-left{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;padding:3px 10px;border-radius:99px;border:1px solid #f6d3a6;background:var(--amb-bg);color:#8a4508;font-size:.78em;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ua-left.is-done{border-color:#b7e1c6;background:var(--grn-bg);color:var(--grn)}
 .ua-cb:disabled{cursor:not-allowed;opacity:.45}
 @container (max-width:640px){.ua-asg-b{margin-left:14px}}
 /* ---- Assignment log (collapsible, below the severity cards) ---- */
@@ -332,10 +339,12 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-log-x .ua-chev{transition:transform .15s}
 .ac-log-x[aria-expanded="false"] .ua-chev{transform:rotate(-90deg)}
 .ac-log-acts{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-/* Revoke: danger ghost button. */
-.ac-log-rv{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid #efc2bd;border-radius:8px;background:#fff;color:var(--red);font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap}
-.ac-log-rv:hover:not(:disabled){background:var(--red-bg);border-color:#e39a92}
-.ac-log-rv:disabled{opacity:.6;cursor:progress}
+/* Revoke: solid red danger button (white text + icon). */
+.ua .ac-log-rv{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid #d92d20;border-radius:8px;background:#d92d20;color:#fff;font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap;outline:none;box-shadow:none}
+.ua .ac-log-rv svg{color:#fff}
+.ua .ac-log-rv:hover:not(:disabled){background:#b42318;border-color:#b42318;color:#fff}
+.ua .ac-log-rv:focus-visible{outline:3px solid #7a271a;outline-offset:2px}
+.ua .ac-log-rv:disabled{background:#b42318;border-color:#b42318;color:#fff;opacity:.85;cursor:progress}
 .ac-log-rvt{display:inline-flex;align-items:center;gap:5px;margin-left:6px;padding:1px 8px;border-radius:99px;background:#f1f3f5;border:1px solid var(--line);color:#5c6773;font-size:.8em;font-weight:700;vertical-align:middle}
 .ac-log-kic{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:6px;border-radius:6px;background:var(--red-bg);color:var(--red);vertical-align:-4px}
 /* Ticket list of an entry: one row per ticket (ID + copy, full title, revoke mark). */
@@ -372,9 +381,9 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-day-b[hidden]{display:none}
 @container (max-width:640px){.ac-log-r{grid-template-columns:minmax(0,1fr) auto}.ac-log-when{grid-column:1 / -1}.ac-log-tl li{grid-template-columns:minmax(0,1fr) auto}.ac-tl-t{grid-column:1 / -1;grid-row:2}}
 /* ---- Assign pop-up (.tbl-* shell from topbar-auth.js, widened) ---- */
-/* Every pop-up on this page is 80vw (96vw on phones): the Assign pop-up and the top-bar
+/* Every pop-up on this page is 90vw (96vw on phones): the Assign pop-up and the top-bar
    "Assigned to you" bucket pop-up (its base width lives in topbar-auth.js). */
-.tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:80vw!important;max-width:80vw!important}
+.tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:90vw!important;max-width:90vw!important}
 @media(max-width:719px){.tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important}}
 .ac-card .ac-k{display:block;margin:12px 0 6px;color:#2a3340;font-size:.8em;font-weight:800;letter-spacing:.2px}
 .ac-card .ac-segs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -386,20 +395,25 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-card .ac-segs .ac-opt{flex-direction:column;align-items:flex-start;gap:2px}
 .ac-card .ac-opt-t{font-weight:800;color:#1b2026;font-size:.95em}
 .ac-card .ac-opt-s{font-size:.76em;font-weight:600;color:#5c6773}
-/* Compact shell so every step fits the 80vw pop-up without an inner scroll bar (the card itself only
+/* Compact shell so every step fits the 90vw pop-up without an inner scroll bar (the card itself only
    scrolls, via the shared .tbl-card max-height, on very small viewports). */
 .ac-card .tbl-head{padding:16px 22px 14px 24px}
 .ac-card .tbl-body{padding:14px 22px 18px}
 .ac-card .tbl-msg{margin:0}
-/* Step 2: one compact row per agent in a responsive grid, ticket count input at the row end. */
-.ac-card .ac-agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:6px;padding:2px}
-.ac-card .ac-agents .ua-av{width:26px;height:26px;font-size:.78em;flex-shrink:0}
-.ac-card .ac-arow{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 6px 4px 10px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:pointer;min-width:0}
+/* Step 2: one full-width row per agent, one below the other (no inner scroll; the list grows and the
+   pop-up grows with it). Row: avatar + full login | open pill | ticket count input at the far right. */
+.ac-card .ac-agents{display:flex;flex-direction:column;gap:6px;padding:2px}
+.ac-card .ac-agents .ua-av{width:28px;height:28px;font-size:.8em;flex-shrink:0}
+.ac-card .ac-arow{display:flex;align-items:center;gap:10px;min-height:46px;padding:5px 8px 5px 12px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:pointer;min-width:0}
 .ac-card .ac-arow:hover{border-color:#9aa6b1}
 .ac-card .ac-arow.is-on{border-color:#ec7211;background:#fff3e8}
 .ac-card .ac-arow:focus-within{box-shadow:0 0 0 2px #f0a35a}
-.ac-card .ac-arow .ac-opt-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ac-card input.ac-anum{flex:0 0 auto;width:64px;height:30px;padding:0 8px;border:1px solid #cdd4db;border-radius:8px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:.9em;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.ac-card .ac-arow .ac-opt-t{white-space:normal;overflow-wrap:anywhere}
+/* Step 2: live "N remaining to assign" / "All allocated" tag next to the selection line. */
+.ac-card .ac-selrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.ac-card .ac-remtag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;border:1px solid #f7caa2;background:#fff3e8;color:#9a4100;font-size:.82em;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ac-card .ac-remtag.is-done{border-color:#b7e1c6;background:#ecf8f0;color:#1d7a43}
+.ac-card input.ac-anum{flex:0 0 auto;width:72px;height:34px;padding:0 8px;border:1px solid #cdd4db;border-radius:8px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:.9em;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .ac-card input.ac-anum:focus{outline:3px solid #1577a0;outline-offset:1px;background:#fff;border-color:#ec7211}
 .ac-card input.ac-anum[aria-invalid="true"]{border-color:#d92d20}
 .ac-card .ac-asum{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 0;font-size:.86em;color:#2a3340;font-variant-numeric:tabular-nums}
@@ -420,7 +434,6 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-card .ac-agent-n{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
 .ac-card .ac-cnt{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .ac-card .ac-chip{padding:2px 8px;border-radius:99px;background:#f1f3f5;border:1px solid #e2e6ea;color:#3a4552;font-size:.74em;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
-.ac-card .ac-chip.is-wait{background:#fff3e8;border-color:#f7caa2;color:#9a4100}
 .ac-card .ac-sum{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;margin:0;padding:12px 14px;border:1px solid #e2e7eb;border-radius:10px;background:#f7f9fb;font-size:.88em}
 .ac-card .ac-sum dt{color:#5c6773;font-weight:700}
 .ac-card .ac-sum dd{margin:0;color:#1b2026;font-weight:700;min-width:0;overflow-wrap:anywhere}
@@ -448,7 +461,7 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 
 <script src="icons.js?v=2"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=221"></script>
+<script src="topbar-auth.js?v=222"></script>
 <script>
 var A=window.PHDAuth;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -466,13 +479,10 @@ function tzDate(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return '\u2014';
 function tzTime(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return '';
   try{ return d.toLocaleTimeString('en-US',{timeZone:TZ_ZONE[MY_TZ]||TZ_ZONE.IST,hour:'2-digit',minute:'2-digit',hour12:true})+' '+MY_TZ; }catch(e){ return ''; } }
 function tzFull(iso){ var t=tzTime(iso); return t?(tzDate(iso)+', '+t):'\u2014'; }
-// Age since creation as "3d 4h" (or "5h" under a day). Null when the date is unknown.
-function ageMs(iso){ var d=new Date(iso); return (!iso||isNaN(d))?null:Math.max(0,Date.now()-d.getTime()); }
-function ageLabel(ms){ if(ms==null) return '\u2014'; var h=Math.floor(ms/36e5), d=Math.floor(h/24); return d>0?(d+'d '+(h%24)+'h'):(h+'h'); }
 
 // ---- State ----
 var PAGE_SIZE=25;
-var STATE='loading', ERR='', DATA=null, Q='', SORT='asc';   // asc = Oldest first (default)
+var STATE='loading', ERR='', DATA=null, Q='';   // section rows are always oldest first
 var PAGES={};                 // bucket key -> page index
 var OPEN_ADM=true;            // Admin team section (open by default)
 var OPEN_A={};                // admin login -> expanded (collapsed by default)
@@ -487,9 +497,6 @@ var BUCKETS=[
 ];
 function bLabel(k){ for(var i=0;i<BUCKETS.length;i++) if(BUCKETS[i].k===k) return BUCKETS[i].label; return k; }
 function me(){ var u=(A&&A.getUser&&A.getUser())||{}; return String(u.username||'').toLowerCase(); }
-function sortKey(){ return 'phd_ua_sort_'+(me()||'anon'); }
-function loadSort(){ try{ var v=localStorage.getItem(sortKey()); if(v==='asc'||v==='desc') SORT=v; }catch(e){} }
-function saveSort(){ try{ localStorage.setItem(sortKey(),SORT); }catch(e){} }
 function announce(msg){ var l=$('uaLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
 
 function rowsAll(){ return (DATA&&Array.isArray(DATA.rows))?DATA.rows:[]; }
@@ -512,10 +519,10 @@ function byAge(dir){ return function(a,b){
   if(xn||yn) return xn===yn?0:(xn?1:-1);   // unknown dates always last
   return (x-y)*dir; }; }
 function groups(){
-  var q=Q.trim().toLowerCase(), g={}, dir=SORT==='desc'?-1:1;
+  var q=Q.trim().toLowerCase(), g={};
   BUCKETS.forEach(function(b){ g[b.k]={all:[],shown:[]}; });
   rowsAll().forEach(function(r){ var k=bucketOf(r), x=g[k]; x.all.push(r); if(matchQ(r,q) && petOk(k,r)) x.shown.push(r); });
-  BUCKETS.forEach(function(b){ g[b.k].shown.sort(byAge(dir)); });
+  BUCKETS.forEach(function(b){ g[b.k].shown.sort(byAge(1)); });   // oldest first
   return g;
 }
 // Pet / Non-pet filter per severity section (both on by default; at least one stays on).
@@ -528,9 +535,17 @@ function asgMap(){ return (DATA&&DATA.assignments&&typeof DATA.assignments==='ob
 function pendingOf(sid){ var m=asgMap(); return Object.prototype.hasOwnProperty.call(m,sid)?m[sid]:null; }
 function logList(){ return (DATA&&Array.isArray(DATA.log))?DATA.log:[]; }
 // Admin = analyst + role owner/admin, i.e. listed in DATA.admins (the server enforces the same rule).
+// Only the user who made an assignment may revoke it (the server enforces the same rule).
+function isMine(e){ var m=me().trim(); return !!m&&String((e&&e.by)||'').trim().toLowerCase()===m; }
 function isAdmin(){ var m=me(); return !!m&&admins().some(function(a){ return String(a.login||'')===m; }); }
 // Selectable = not already waiting in someone's bucket.
 function selectable(r){ return !pendingOf(String(r.shortId||'')); }
+// Pure: how many rows are still left to assign, i.e. have no active Assignment Center assignment in m
+// (the same check as the row's "Assigned to X" tag: pendingOf). m = DATA.assignments ({shortId: entry}).
+function toAssignCount(rows,m){ var n=0; (rows||[]).forEach(function(r){ var s=String((r&&r.shortId)||''); if(!(m&&Object.prototype.hasOwnProperty.call(m,s)&&m[s])) n++; }); return n; }
+// Pure: hero split of the unassigned rows -> {total, temp (active dashboard assignment), yet (no assignment)}.
+// Same rows + same rule as toAssignCount, so temp + yet === total always.
+function heroSplit(rows,m){ var t=(rows||[]).length, y=toAssignCount(rows,m); return {total:t,temp:t-y,yet:y}; }
 // Selected tickets of a section, in the section's current order (sort + Pet / Non-pet filter).
 function selIn(k){ var g=groups(); return (g[k]?g[k].shown:[]).filter(function(r){ return SEL.has(String(r.shortId||''))&&selectable(r); }); }
 function relTime(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return ''; var s=Math.max(0,Math.round((Date.now()-d.getTime())/1000));
@@ -542,14 +557,25 @@ function isOpenB(k,n){ return OPEN_B[k]===true; }
 
 // ---- Hero + severity cards ----
 function heroHtml(){
-  var total=STATE==='done'?num(rowsAll().length):(STATE==='error'?'\u2014':'<span class="ua-skel ua-skel-d" style="width:40px;height:12px" aria-hidden="true"></span><span class="ua-sr">Loading</span>');
+  // UNASSIGNED = TEMP. ASSIGNED + YET TO ASSIGN, all from the same rows (rowsAll) and assignment map.
+  var sp=STATE==='done'?heroSplit(rowsAll(),asgMap()):null;
+  function hv(n,w){ return sp?num(n):(STATE==='error'?'\u2014':'<span class="ua-skel ua-skel-d" style="width:'+w+'px;height:12px"></span>'); }
+  var eqSr=sp?('Total unassigned '+num(sp.total)+' = '+num(sp.temp)+' temporarily assigned in dashboard + '+num(sp.yet)+' yet to be assigned'):
+    (STATE==='error'?'Unassigned totals not loaded':'Unassigned totals loading');
+  var eq='<li class="ua-meta-eq"><span class="ua-sr">'+esc(eqSr)+'</span><div class="ua-eq" aria-hidden="true">'+
+    '<span class="ua-mbox"><span class="ua-meta-k">Unassigned</span><span class="ua-meta-v">'+ic('ticket',14)+hv(sp&&sp.total,40)+'</span></span>'+
+    '<span class="ua-op">=</span>'+
+    '<span class="ua-mbox is-temp" title="Temporarily assigned in the dashboard - waiting to be picked up in SIM"><span class="ua-meta-k">Temp. assigned</span><span class="ua-meta-v">'+ic('user-plus',14)+hv(sp&&sp.temp,28)+'</span></span>'+
+    '<span class="ua-op">+</span>'+
+    '<span class="ua-mbox is-yet" title="Not assigned to anyone yet"><span class="ua-meta-k">Yet to assign</span><span class="ua-meta-v">'+ic('inbox',14)+hv(sp&&sp.yet,28)+'</span></span>'+
+    '</div></li>';
   var asOf=STATE==='done'?esc(DATA.asOf?tzFull(DATA.asOf):'Unknown'):(STATE==='error'?'Not loaded':'<span class="ua-skel ua-skel-d" style="width:120px;height:12px" aria-hidden="true"></span><span class="ua-sr">Loading</span>');
   return '<header class="ua-hero"><div class="ua-hero-in"><div class="ua-hero-main"><span class="ua-hero-ic">'+ic('user-plus',24)+'</span><div>'+
     '<p class="ua-eyebrow">Data \u00b7 Queue check</p><h1>Assignment Center</h1>'+
     '<p class="ua-hero-sub">Admin and contractor workloads, plus open tickets not assigned to any registered PHD user, grouped by severity.</p>'+
     '</div></div>'+
     '<ul class="ua-meta" aria-label="Report details">'+
-      '<li><span class="ua-meta-k">Unassigned</span><span class="ua-meta-v">'+ic('ticket',14)+total+'</span></li>'+
+      eq+
       '<li><span class="ua-meta-k">Data as of</span><span class="ua-meta-v">'+ic('clock',14)+asOf+'</span></li>'+
     '</ul></div></header>';
 }
@@ -579,14 +605,11 @@ function sevTag(r){
   var s=sevOf(r), t=(s>=1&&s<=5)?'<span class="ua-sev b-s'+s+'">Sev '+s+'</span>':'<span class="ua-sev b-none">No severity</span>';
   return '<span class="ua-sevs">'+t+(r.noEmt?'<span class="ua-sev b-noemt">No EMT</span>':'')+'</span>';
 }
-function ageCell(r){
-  var ms=ageMs(r.createdAt);
-  return '<span class="ua-age'+(ms!=null&&ms>=240*36e5?' is-old':'')+'" title="'+esc(r.createdAt?('Created '+tzFull(r.createdAt)):'Created date unknown')+'">'+esc(ageLabel(ms))+'</span>';
-}
-function idCell(r){
+// noCopy=true: ticket ID link only (severity section tables); the log's ticket list keeps the copy button.
+function idCell(r,noCopy){
   var url=safeUrl(r.url), sid=r.shortId||'';
   var link=url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(sid||'Open')+'<span class="ua-sr"> (opens in a new tab)</span></a>':esc(sid||'\u2014');
-  var copy=sid?'<button type="button" class="ua-copy" data-copy="'+esc(sid)+'" title="Copy ticket ID" aria-label="Copy ticket ID '+esc(sid)+'">'+ic('copy',12)+'</button>':'';
+  var copy=(sid&&!noCopy)?'<button type="button" class="ua-copy" data-copy="'+esc(sid)+'" title="Copy ticket ID" aria-label="Copy ticket ID '+esc(sid)+'">'+ic('copy',12)+'</button>':'';
   return '<span class="ua-id">'+link+copy+'</span>';
 }
 function titleCell(r){ return '<span class="ua-trunc" title="'+esc(r.title||'')+'">'+(r.title?esc(r.title):'<span class="ua-who is-none">No title</span>')+'</span>'; }
@@ -594,7 +617,7 @@ function avatar(login){ return '<span class="ua-av" aria-hidden="true">'+esc(Str
 function chev(){ return '<span class="ua-chev" aria-hidden="true">'+ic('chevron-down',16)+'</span>'; }
 // bare=true: no badge / chevron inside the button (the severity bars place them after the Pet toggles).
 function secHead(tog,bodyId,btnId,icon,title,desc,badge,open,bare){
-  return '<h2 class="ua-sec-hh"><button type="button" class="ua-sec-h ua-tog" id="'+btnId+'" data-tog="'+esc(tog)+'" aria-expanded="'+open+'" aria-controls="'+bodyId+'"'+(bare?' aria-describedby="'+btnId+'-n"':'')+'>'+
+  return '<h2 class="ua-sec-hh"><button type="button" class="ua-sec-h ua-tog" id="'+btnId+'" data-tog="'+esc(tog)+'" aria-expanded="'+open+'" aria-controls="'+bodyId+'"'+(bare?' aria-describedby="'+btnId+'-l '+btnId+'-n"':'')+'>'+
     '<span class="ua-sec-ic">'+ic(icon,18)+'</span><span class="ua-sec-txt"><span class="ua-sec-t">'+title+'</span>'+(desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</span>'+
     (bare?'':'<span class="ua-badge">'+badge+'</span>'+chev())+'</button></h2>';
 }
@@ -608,18 +631,6 @@ function cntPills(c){
   c=c||{};
   return '<span class="ua-cnts"><span class="ua-cnt c-as"><b>'+num(c.assigned)+'</b> Assigned</span><span class="ua-cnt c-wip"><b>'+num(c.wip)+'</b> WIP</span>'+
     '<span class="ua-cnt c-pen"><b>'+num(c.pending)+'</b> Pending</span><span class="ua-cnt c-tot"><b>'+num(c.total)+'</b> Total</span></span>';
-}
-function adminRowHtml(a,i){
-  var login=String(a.login||''), isMe=login===me(), open=OPEN_A[login]===true, list=Array.isArray(a.tickets)?a.tickets:[];
-  var body=list.length?
-    '<div class="ua-scroll" role="region" aria-label="'+esc(login)+' open tickets" tabindex="0"><table class="ua-tbl ua-tbl-adm"><caption class="ua-sr">'+esc(login)+': Assigned, Work In Progress and Pending tickets, oldest first</caption><thead><tr>'+
-      '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Status</th><th scope="col">Severity</th><th scope="col">Age</th></tr></thead><tbody>'+
-      list.map(function(r){ return '<tr><td>'+idCell(r)+'</td><td>'+titleCell(r)+'</td><td>'+statusPill(r.status)+'</td><td>'+sevTag(r)+'</td><td>'+ageCell(r)+'</td></tr>'; }).join('')+
-    '</tbody></table></div>'
-    :'<p class="ua-none">No Assigned, Work In Progress or Pending tickets.</p>';
-  return '<li class="ua-adm'+(isMe?' is-me':'')+'"><button type="button" class="ua-adm-h ua-tog" id="uaAT-'+i+'" data-tog="a:'+esc(login)+'" aria-expanded="'+open+'" aria-controls="uaA-'+i+'">'+
-    avatar(login)+'<span class="ua-nm"><span class="ua-login">'+esc(login)+(isMe?'<span class="ua-you">You</span>':'')+'</span>'+(a.displayName?'<span class="ua-dn">'+esc(a.displayName)+'</span>':'')+'</span>'+
-    cntPills(a.counts)+chev()+'</button><div class="ua-adm-b" id="uaA-'+i+'"'+(open?'':' hidden')+'>'+body+'</div></li>';
 }
 // Person card (admins + contractors), same look as the severity cards: coloured top bar, login, big
 // total, then Assigned / WIP / Pending as three small count tiles. Counts only (no ticket list).
@@ -666,29 +677,13 @@ function contractorsHtml(){
 }
 
 // ---- 3) Unassigned tickets by severity bucket ----
-function sortLabel(){ return SORT==='desc'?'Newest first':'Oldest first'; }
 function uaRowHtml(r){
-  // [checkbox] | Ticket ID | Age | Title (the title gets all the remaining width and wraps in full).
+  // [checkbox] | Ticket ID | Title (gets all the remaining width and wraps in full) | "Assigned to" tag (right).
   // A ticket already waiting in an agent's bucket: tag + disabled checkbox (no re-selection).
   var sid=String(r.shortId||''), p=pendingOf(sid), on=!p&&SEL.has(sid);
   var tip=p?('Already assigned to '+p.assignee+' by '+p.by+' \u2014 waiting to be picked up'):'';
   var tag=p?'<span class="ua-asg-tag" title="'+esc(tzFull(p.at))+'">'+ic('user-plus',12)+'Assigned to '+esc(p.assignee)+' \u00b7 by '+esc(p.by)+' \u00b7 '+esc(relTime(p.at))+'</span>':'';
-  return '<tr'+(on?' class="is-sel"':(p?' class="is-asg"':''))+'><td class="ua-c-cb"><input type="checkbox" class="ua-cb" data-sel="'+esc(sid)+'"'+(on?' checked':'')+(p?' disabled title="'+esc(tip)+'"':'')+' aria-label="'+(p?esc('Select '+sid+' (unavailable: '+tip+')'):'Select '+esc(sid))+'"></td><td class="ua-c-id">'+idCell(r)+'</td><td class="ua-c-age">'+ageCell(r)+'</td><td class="ua-c-title">'+(r.title?esc(r.title):'<span class="ua-who is-none">No title</span>')+tag+'</td></tr>';
-}
-function toolsHtml(){
-  var dis=STATE!=='done'?' disabled':'';
-  return '<div class="ua-tools">'+
-    '<label class="ua-search" for="uaQ">'+ic('search',15)+'<span class="ua-sr">Search unassigned tickets</span>'+
-      '<input type="search" id="uaQ" placeholder="Search ticket ID, title or assignee\u2026" autocomplete="off" value="'+esc(Q)+'"'+dis+'></label>'+
-    '<div class="ua-tools-r">'+
-      '<span class="ua-sortgrp" role="group" aria-labelledby="uaSortK"><span class="ua-seg-k" id="uaSortK">Age</span><span class="ua-seg">'+
-        '<button type="button" data-sort="asc" aria-pressed="'+(SORT==='asc')+'"'+dis+'>'+ic('arrow-up',13)+'Oldest first</button>'+
-        '<button type="button" data-sort="desc" aria-pressed="'+(SORT==='desc')+'"'+dis+'>'+ic('arrow-down',13)+'Newest first</button>'+
-      '</span></span>'+
-      '<button type="button" class="ua-btn ua-ghost" id="uaCsv"'+(STATE==='done'&&rowsAll().length?'':' disabled')+'>'+ic('download',14)+'Export CSV</button>'+
-    '</div>'+
-    '<p class="ua-count" id="uaCount" aria-live="polite"></p>'+
-  '</div><div id="uaMsg"></div>';
+  return '<tr'+(on?' class="is-sel"':(p?' class="is-asg"':''))+'><td class="ua-c-cb"><input type="checkbox" class="ua-cb" data-sel="'+esc(sid)+'"'+(on?' checked':'')+(p?' disabled title="'+esc(tip)+'"':'')+' aria-label="'+(p?esc('Select '+sid+' (unavailable: '+tip+')'):'Select '+esc(sid))+'"></td><td class="ua-c-id">'+idCell(r,true)+'</td><td class="ua-c-title">'+(r.title?esc(r.title):'<span class="ua-who is-none">No title</span>')+'</td><td class="ua-c-asg">'+tag+'</td></tr>';
 }
 function bucketSecHtml(b,grp){
   var n=grp.all.length, list=grp.shown, m=list.length, searching=!!Q.trim();
@@ -700,14 +695,13 @@ function bucketSecHtml(b,grp){
   else {
     var pages=Math.max(1,Math.ceil(m/PAGE_SIZE)), pg=PAGES[b.k]||0;
     if(pg>pages-1) pg=pages-1; if(pg<0) pg=0; PAGES[b.k]=pg;
-    var slice=list.slice(pg*PAGE_SIZE,pg*PAGE_SIZE+PAGE_SIZE), ar=SORT==='desc'?'\u2193':'\u2191';
-    body='<div class="ua-scroll" role="region" aria-label="'+esc(b.label)+' unassigned tickets" tabindex="0"><table class="ua-tbl ua-tbl-3"><caption class="ua-sr">'+esc(b.label)+' unassigned tickets, sorted by age, '+sortLabel().toLowerCase()+'</caption><thead><tr>'+
+    var slice=list.slice(pg*PAGE_SIZE,pg*PAGE_SIZE+PAGE_SIZE);
+    body='<div class="ua-scroll" role="region" aria-label="'+esc(b.label)+' unassigned tickets" tabindex="0"><table class="ua-tbl ua-tbl-3"><caption class="ua-sr">'+esc(b.label)+' unassigned tickets, oldest first</caption><thead><tr>'+
       // Select-all for every ticket shown in this section (all pages, current Pet / Non-pet filter).
       (function(){ var av=list.filter(selectable), all=av.length&&av.every(function(r){ return SEL.has(String(r.shortId||'')); }), some=av.some(function(r){ return SEL.has(String(r.shortId||'')); });
         return '<th scope="col" class="ua-c-cb"><input type="checkbox" class="ua-cb" data-selall="'+b.k+'"'+(all?' checked':'')+(some&&!all?' data-mixed="1"':'')+(av.length?'':' disabled')+' aria-label="Select all '+num(av.length)+' available tickets in '+esc(b.label)+'"></th>'; })()+
       '<th scope="col" class="ua-c-id">Ticket ID</th>'+
-      '<th scope="col" class="ua-th-sort ua-c-age" aria-sort="'+(SORT==='desc'?'descending':'ascending')+'"><button type="button" class="ua-sortbtn" data-sorthead="'+b.k+'" title="Sort by age">Age <span class="ua-sort-ar" aria-hidden="true">'+ar+'</span><span class="ua-sr">, '+sortLabel()+'. Activate to toggle.</span></button></th>'+
-      '<th scope="col" class="ua-c-title">Title</th></tr></thead><tbody>'+slice.map(uaRowHtml).join('')+'</tbody></table></div>';
+      '<th scope="col" class="ua-c-title">Title</th><th scope="col" class="ua-c-asg">Assigned</th></tr></thead><tbody>'+slice.map(uaRowHtml).join('')+'</tbody></table></div>';
     if(pages>1){
       body+='<nav class="ua-pager" aria-label="'+esc(b.label)+' pages">'+
         '<button type="button" class="ua-btn ua-ghost" data-page="-1" data-bucket="'+b.k+'"'+(pg<=0?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button>'+
@@ -726,15 +720,18 @@ function bucketSecHtml(b,grp){
   // Admins only: 'Assign Tickets' (enabled once a ticket in THIS section is selected).
   var asgBtn=(n&&isAdmin())?'<button type="button" class="ua-asg-b" data-assign="'+b.k+'"'+(nSel?'':' disabled')+
     ' title="'+(nSel?'Assign the selected '+esc(b.label)+' tickets':'Select tickets in '+esc(b.label)+' to assign them')+'">'+ic('user-plus',14)+'Assign Tickets'+(nSel?' ('+num(nSel)+')':'')+'</button>':'';
+  // Left to assign: every row of the section (ignores search and the Pet / Non-pet toggles) without an
+  // active Assignment Center assignment (same rule as the row's "Assigned to" tag).
+  var left=toAssignCount(grp.all,asgMap());
+  var leftTag='<span class="ua-left'+(left?'':' is-done')+'" id="uaBT-'+b.k+'-l">'+(left?num(left)+' to assign':ic('check',12)+'All assigned')+'</span>';
   return '<section class="ua-sec ua-bsec b-'+b.k+'" id="uaB-'+b.k+'" aria-labelledby="uaBT-'+b.k+'">'+
-    // Bar order: [title] [Assign Tickets] [Pet] [Non-pet] [count] [chevron]. The count + chevron also toggle the section.
-    '<div class="ua-bhead'+(open?'':' is-shut')+'">'+secHead('b:'+b.k,'uaBB-'+b.k,'uaBT-'+b.k,b.icon,esc(b.label),esc(b.sub),badge,open,true)+asgBtn+chips+
+    // Bar order: [title] [to assign] [Assign Tickets] [Pet] [Non-pet] [count] [chevron]. The count + chevron also toggle the section.
+    '<div class="ua-bhead'+(open?'':' is-shut')+'">'+secHead('b:'+b.k,'uaBB-'+b.k,'uaBT-'+b.k,b.icon,esc(b.label),esc(b.sub),badge,open,true)+leftTag+asgBtn+chips+
       '<span class="ua-bh-end" data-tog-for="uaBT-'+b.k+'"><span class="ua-badge" id="uaBT-'+b.k+'-n">'+badge+'</span>'+chev()+'</span></div>'+
     '<div class="ua-sec-b" id="uaBB-'+b.k+'"'+(open?'':' hidden')+'>'+body+'</div></section>';
 }
 function paintBuckets(){
   var box=$('uaBuckets'), msg=$('uaMsg'), c=$('uaCount');
-  document.querySelectorAll('.ua-seg [data-sort]').forEach(function(x){ x.setAttribute('aria-pressed',String(x.getAttribute('data-sort')===SORT)); });
   if(!box) return;
   if(STATE!=='done'){ box.innerHTML=''; if(c) c.textContent=''; if(msg) msg.innerHTML=STATE==='loading'?skelRows(3):''; return; }
   var g=groups(), total=rowsAll().length, shown=0;
@@ -749,7 +746,7 @@ function paintBuckets(){
   if(!total) m='<div class="ua-empty" role="status"><span class="ua-empty-ic">'+ic('check-circle',26)+'</span><h3 class="ua-empty-t">All clear</h3><p>Every open ticket is assigned to a registered user.</p></div>';
   else if(!shown) m='<div class="ua-empty" role="status"><span class="ua-empty-ic is-mute">'+ic('search',26)+'</span><h3 class="ua-empty-t">No matches</h3><p>No ticket ID, title or assignee matches \u201c'+esc(Q)+'\u201d.</p></div>';
   if(msg) msg.innerHTML=m;
-  if(c) c.textContent=total?((Q.trim()?(num(shown)+' of '+num(total)+' unassigned tickets match'):(num(total)+' unassigned tickets'))+' \u00b7 sorted by age, '+sortLabel().toLowerCase()):'';
+  if(c) c.textContent=total?((Q.trim()?(num(shown)+' of '+num(total)+' unassigned tickets match'):(num(total)+' unassigned tickets'))+' \u00b7 oldest first'):'';
 }
 // ---- Assignment log (collapsed by default) ----
 // Entries are grouped by day in the user's timezone (IST / MST), newest day first, entries newest
@@ -788,7 +785,7 @@ function logRowHtml(e,i){
   var rvTag=(!isRv&&e.revokedAt)?'<span class="ac-log-rvt" title="'+esc(tzFull(e.revokedAt))+'">'+ic('clock-rewind',12)+'Revoked by '+esc(e.revokedBy||'\u2014')+' \u00b7 '+esc(tzFull(e.revokedAt))+(skipped.length?' \u00b7 '+num(skipped.length)+' skipped':'')+'</span>':'';
   var skipNote=(isRv&&skipped.length)?'<span class="ac-log-rep">'+plural(skipped.length,'ticket')+' skipped (re-assigned later, picked up or resolved)</span>':'';
   var sum=e.by+' assigned '+plural(n,'ticket')+' to '+e.assignee+' on '+tzFull(e.at);
-  var canRv=!isRv&&!e.revokedAt&&isAdmin()&&/^[a-f0-9]{24}$/i.test(id), busy=REVOKING[id]===true;
+  var canRv=!isRv&&!e.revokedAt&&isMine(e)&&/^[a-f0-9]{24}$/i.test(id), busy=REVOKING[id]===true;
   var rvBtn=canRv?'<button type="button" class="ac-log-rv" data-revoke="'+esc(id)+'" aria-label="Revoke: '+esc(sum)+'"'+(busy?' disabled aria-busy="true"':'')+'>'+ic('clock-rewind',13)+(busy?'Revoking\u2026':'Revoke')+'</button>':'';
   // Ticket list (rendered only while shown): ID (SIM link + copy) | full title | revoked / skipped mark.
   var rows=x?list.map(function(t){ var s=String((t&&t.shortId)||''), sk=!!skip[s];
@@ -826,10 +823,10 @@ function logSecHtml(){
     '<div class="ua-sec-b" id="uaLogB"'+(OPEN_LOG?'':' hidden')+'>'+body+'</div></section>';
 }
 function paintLog(focusSel){ var w=$('uaLogWrap'); if(w) w.innerHTML=logSecHtml(); if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); } }
-// Revoke (admins): undo every assignment of one log entry. The server re-checks admin + ownership.
+// Revoke (assigner only): undo every assignment of one log entry. The server re-checks the assigner.
 async function revokeEntry(id){
-  if(!isAdmin()||REVOKING[id]) return;
-  var e=logList().filter(function(x){ return String(x.id)===id; })[0]; if(!e||e.kind==='revoke'||e.revokedAt) return;
+  if(REVOKING[id]) return;
+  var e=logList().filter(function(x){ return String(x.id)===id; })[0]; if(!e||e.kind==='revoke'||e.revokedAt||!isMine(e)) return;
   var n=Number(e.count)||(Array.isArray(e.tickets)?e.tickets.length:0), sel='[data-revoke="'+id+'"]', back='[data-logx="'+id+'"]';
   var ok=window.PHDConfirm?await window.PHDConfirm({title:'Revoke assignments',body:'Revoke '+plural(n,'assignment')+' to '+e.assignee+'? These tickets go back to unassigned.',okLabel:'Revoke',danger:true}):false;
   if(!ok){ var b0=document.querySelector(sel); if(b0) b0.focus(); return; }
@@ -873,12 +870,11 @@ function asgAllocate(rows,logins,counts){
 function asgPlan(){ return asgAllocate(ASG.rows,agentsOf(ASG.group).map(function(a){ return a.login; }),ASG.alloc); }
 function asgValid(){ var p=asgPlan(); return p.ok&&p.total>=1&&!Object.keys(ASG.bad).length; }
 function agentsOf(gname){
-  var g=((DATA&&DATA.groups)||[]).filter(function(x){ return x.name===gname; })[0], people={}, wait={};
+  var g=((DATA&&DATA.groups)||[]).filter(function(x){ return x.name===gname; })[0], people={};
   admins().concat(contractors()).forEach(function(p){ people[String(p.login||'')]=p; });
-  var m=asgMap(); Object.keys(m).forEach(function(s){ var a=m[s].assignee; wait[a]=(wait[a]||0)+1; });
   // Registered analysts only (admins + contractors); the server rejects anyone else.
   return (g?g.members:[]).filter(function(l){ return !!people[l]; }).map(function(l){
-    return { login:l, open:(people[l].counts&&people[l].counts.total)||0, waiting:wait[l]||0 }; });
+    return { login:l, open:(people[l].counts&&people[l].counts.total)||0 }; });
 }
 function asgBodyHtml(){
   var N=ASG.rows.length, lbl=esc(ASG.label), btns;
@@ -896,11 +892,11 @@ function asgBodyHtml(){
     var ags=agentsOf(ASG.group).map(function(a,i){ var v=ASG.alloc[a.login]||0;
       return '<label class="ac-arow'+(v>0?' is-on':'')+'" for="acA-'+i+'">'+avatar(a.login)+
         '<span class="ac-agent-n"><span class="ac-opt-t">'+esc(a.login)+(a.login===me()?' <span class="ua-you">You</span>':'')+'</span></span>'+
-        '<span class="ac-cnt"><span class="ac-chip" title="Assigned + Work In Progress + Pending in SIM">'+num(a.open)+' open</span>'+
-        '<span class="ac-chip'+(a.waiting?' is-wait':'')+'" title="Assigned from the dashboard, not picked up yet">'+num(a.waiting)+' waiting</span></span>'+
+        '<span class="ac-cnt"><span class="ac-chip" title="Assigned + Work In Progress + Pending in SIM">'+num(a.open)+' open</span></span>'+
         '<input type="number" class="ac-anum" id="acA-'+i+'" data-agent="'+esc(a.login)+'" min="0" step="1" inputmode="numeric" placeholder="0"'+
           ' value="'+(v>0?v:'')+'" aria-label="Tickets for '+esc(a.login)+'" aria-describedby="acSum"'+(ASG.bad[a.login]?' aria-invalid="true"':'')+'></label>'; }).join('');
-    return nsel+'<span class="ac-k" id="acAgK">Choose an agent in '+esc(ASG.group)+' \u00b7 enter how many tickets each one gets</span>'+
+    // Selection line + live "N remaining to assign" / "All allocated" tag (updated on every keystroke).
+    return '<div class="ac-selrow">'+nsel+'<span id="acRem" aria-live="polite">'+asgRemTagHtml()+'</span></div>'+'<span class="ac-k" id="acAgK">Choose an agent in '+esc(ASG.group)+' \u00b7 enter how many tickets each one gets</span>'+
       '<div class="ac-agents" role="group" aria-labelledby="acAgK">'+(ags||'<p class="ua-none">No registered agents in this group.</p>')+'</div>'+
       '<p class="ac-asum" id="acSum" aria-live="polite">'+asgSumHtml()+'</p>'+
       '<p class="ac-hint is-bad" id="acAMsg" aria-live="polite">'+esc(ASG.msg||'')+'</p>'+
@@ -928,6 +924,11 @@ function asgBodyHtml(){
 function asgSumHtml(){
   var N=ASG.rows.length, t=asgPlan().total, r=Math.max(0,N-t);
   return '<span>Allocated <b>'+num(t)+'</b> of <b>'+num(N)+'</b> selected</span><span class="'+(r?'is-rem':'')+'">Remaining <b>'+num(r)+'</b></span>';
+}
+// Live "N remaining to assign" tag (orange) / "All allocated" (green) for step 2.
+function asgRemTagHtml(){
+  var r=Math.max(0,ASG.rows.length-asgPlan().total);
+  return r?'<span class="ac-remtag">'+num(r)+' remaining to assign</span>':'<span class="ac-remtag is-done">'+ic('check',12)+'All allocated</span>';
 }
 // Plan entries still to send (everything not assigned yet).
 function asgTodo(p){ return (p||asgPlan()).plan.filter(function(x){ return ASG.st[x.login]!=='ok'; }); }
@@ -1065,6 +1066,7 @@ document.addEventListener('input',function(ev){
   ASG.msg=msg;
   var row=el.closest('.ac-arow'); if(row) row.classList.toggle('is-on',ASG.alloc[l]>0);
   var s=$('acSum'); if(s) s.innerHTML=asgSumHtml();
+  var rt=$('acRem'); if(rt) rt.innerHTML=asgRemTagHtml();
   var m=$('acAMsg'); if(m) m.textContent=msg;
   var nx=$('acNext'); if(nx) nx.disabled=!asgValid();
 });
@@ -1127,14 +1129,6 @@ function jumpTo(k){
   if(btn) btn.focus({preventScroll:true});
 }
 
-// ---- Sorting ----
-function setSort(dir,focusSel){
-  if(dir!=='asc'&&dir!=='desc') return;
-  SORT=dir; PAGES={}; saveSort(); paintBuckets();
-  announce('Sorted by age, '+sortLabel().toLowerCase()+'.');
-  if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); }
-}
-
 // ---- Copy ticket ID (same pattern as My Tickets) ----
 async function copyTicketId(id,btn){
   try{ await navigator.clipboard.writeText(id); }
@@ -1145,25 +1139,6 @@ async function copyTicketId(id,btn){
   announce('Copied '+id);
   if(btn){ btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=ic('check-circle',13);
     setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=prev; },1200); }
-}
-
-// ---- CSV export: every unassigned row (UTF-8 BOM, RFC 4180 quoting, formula-injection guard) ----
-function csvCell(v){
-  var s=String(v==null?'':v);
-  if(/^[=+\-@\t\r]/.test(s)) s="'"+s;      // neutralise spreadsheet formulas
-  return '"'+s.replace(/"/g,'""')+'"';
-}
-function exportCsv(){
-  var order={}; BUCKETS.forEach(function(b,i){ order[b.k]=i; });
-  var cmp=byAge(SORT==='desc'?-1:1);
-  var list=rowsAll().slice().sort(function(a,b){ return (order[bucketOf(a)]-order[bucketOf(b)])||cmp(a,b); });
-  var lines=[['Ticket ID','URL','Title','Severity bucket','Age','Created ('+MY_TZ+')','Status','Assignee'].map(csvCell).join(',')];
-  list.forEach(function(r){ lines.push([r.shortId,safeUrl(r.url),r.title,bLabel(bucketOf(r)),ageLabel(ageMs(r.createdAt)),r.createdAt?tzFull(r.createdAt):'',r.status,isBlank(r)?'Unassigned':r.assignee].map(csvCell).join(',')); });
-  var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='unassigned-tickets-'+new Date().toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },0);
-  announce('Exported '+list.length+' tickets to CSV.');
 }
 
 // ---- Load ----
@@ -1202,8 +1177,6 @@ document.addEventListener('click',function(ev){
   var tf=t.closest('[data-tog-for]'); if(tf){ var tb=$(tf.getAttribute('data-tog-for')); if(tb){ toggle(tb); tb.focus(); } return; }
   var tg=t.closest('.ua-tog'); if(tg){ toggle(tg); return; }
   var jp=t.closest('[data-jump]'); if(jp&&!jp.disabled){ jumpTo(jp.getAttribute('data-jump')); return; }
-  var sh=t.closest('[data-sorthead]'); if(sh){ setSort(SORT==='asc'?'desc':'asc','[data-sorthead="'+sh.getAttribute('data-sorthead')+'"]'); return; }
-  var sb=t.closest('.ua-seg [data-sort]'); if(sb&&!sb.disabled){ setSort(sb.getAttribute('data-sort')); return; }
   var pg=t.closest('[data-page]'); if(pg&&!pg.disabled){
     var k=pg.getAttribute('data-bucket'), d=pg.getAttribute('data-page');
     PAGES[k]=(PAGES[k]||0)+(Number(d)||0); paintBuckets();
@@ -1211,7 +1184,6 @@ document.addEventListener('click',function(ev){
     var nb=document.querySelector('#uaB-'+k+' .ua-pager [data-page="'+d+'"]:not([disabled])')||document.querySelector('#uaB-'+k+' .ua-pager [data-page]:not([disabled])'); if(nb) nb.focus();
     return;
   }
-  if(t.closest('#uaCsv')){ exportCsv(); }
 });
 // Shift-click range selection: the last clicked row checkbox per section (bucket key -> ticket ID).
 var LAST_CB={}, SHIFT_CB=false;
@@ -1256,7 +1228,6 @@ document.addEventListener('input',function(ev){
 
 (async function init(){
   if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
-  loadSort();
   try{ var tz=await A.myTimezone(); if(tz==='MST'||tz==='IST') MY_TZ=tz; }catch(e){}
   load();
 })();

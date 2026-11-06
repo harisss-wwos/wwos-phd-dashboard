@@ -1303,7 +1303,8 @@
       + '@keyframes tbAsgGlow{0%,100%{box-shadow:0 0 0 0 rgba(236,114,17,0)}50%{box-shadow:0 0 0 4px rgba(236,114,17,.28)}}'
       + '@media (prefers-reduced-motion:reduce){#tbHomeChrome .home-hdr-asg.is-blink,#tbHomeChrome .home-hdr-asg.is-blink .home-hdr-asg-n{animation:none}#tbHomeChrome .home-hdr-asg.is-blink{box-shadow:0 0 0 3px rgba(236,114,17,.35)}}'
       // Its pop-up: the .tbl-* dialog shell, widened, with a compact ticket table.
-      + '.tbl-bg .tbl-card.tb-asg-card{width:min(760px,94vw)!important}'
+      + '.tbl-bg .tbl-card.tb-asg-card{width:90vw!important;max-width:90vw!important}'
+      + '@media(max-width:719px){.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important}}'
       + '.tb-asg-card .tb-asg-scroll{overflow:auto;max-height:min(52vh,460px);border:1px solid #e2e6ea;border-radius:10px}'
       + '.tb-asg-card table{width:100%;border-collapse:separate;border-spacing:0;font-size:.84em}'
       + '.tb-asg-card th,.tb-asg-card td{padding:8px 10px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle;color:#2a3340}'
@@ -1321,8 +1322,11 @@
       + '.tb-asg-card .tb-asg-by small{color:#5c6773;font-weight:600}'
       + '.tb-asg-card .tb-asg-nw{white-space:nowrap;font-variant-numeric:tabular-nums}'
       + '.tb-asg-card .tb-asg-empty{padding:18px;text-align:center;color:#5c6773;font-size:.9em}'
-      + '.tb-asg-card a.tb-asg-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 16px;border-radius:10px;background:linear-gradient(180deg,#c2570a,#a94a05);border:1px solid #9a4100;color:#fff;font-weight:700;font-size:.95em;text-decoration:none}'
-      + '.tb-asg-card a.tb-asg-open:hover{filter:brightness(1.08)}'
+      // "Open all": primary button; disabled (no spinner) when the list is empty. Blocked-tabs note left of the buttons.
+      + '.tb-asg-card button.tbl-submit:disabled{cursor:not-allowed;opacity:.5}'
+      + '.tb-asg-card button.tbl-submit:disabled::before{content:none}'
+      + '.tb-asg-card .tb-asg-note{flex:1 1 240px;margin:0!important;align-self:center;color:#8a3a00;font-size:.84em;font-weight:700;line-height:1.4}'
+      + '.tb-asg-card .tb-asg-note[hidden]{display:none}'
       + '.tb-asg-card .tbl-row .tbl-cancel{min-width:110px}'
       + '.tb-asg-card .tb-asg-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}'
       + '#tbHomeChrome .home-hdr-live .hdr-live-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:hdrLiveBlink 1.2s ease-in-out infinite}'
@@ -2702,14 +2706,26 @@
       return d.toLocaleString('en-US', { timeZone: tz === 'MST' ? 'America/Denver' : 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) + ' ' + (tz === 'MST' ? 'MST' : 'IST');
     } catch (e) { return ''; }
   }
+  // Ticket URL used by the ticket ID links and "Open all".
+  function tbMyAsgUrl(t) {
+    var sid = String((t && t.shortId) || '');
+    return /^https?:\/\//i.test(String((t && t.url) || '')) ? t.url : ('https://t.corp.amazon.com/issues/' + encodeURIComponent(sid));
+  }
+  // Severity from the ticket TITLE ('Severity 2', 'Sev 3', 'Sev-1'; last match wins), else the field
+  // (same rule as the Assignment Center page).
+  function tbMyAsgSev(t) {
+    var re = /\b(?:severity|sev)[\s\-_:#]*([1-5])\b/gi, m, last = null, title = String((t && t.title) || '');
+    while ((m = re.exec(title))) last = Number(m[1]);
+    return last != null ? last : Number(t && t.severity);
+  }
   function tbMyAsgBody(tz) {
     var list = (tbMyAsg.data && tbMyAsg.data.tickets) || [];
     if (!list.length) return '<p class="tb-asg-empty">Nothing waiting in your bucket right now.</p>';
     return '<div class="tb-asg-scroll" role="region" aria-label="Tickets assigned to you" tabindex="0"><table><caption class="tb-asg-sr">Tickets assigned to you from the Assignment Center, newest first</caption>'
       + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Age</th><th scope="col">Assigned by</th></tr></thead><tbody>'
       + list.map(function (t) {
-        var sid = String(t.shortId || ''), url = /^https?:\/\//i.test(String(t.url || '')) ? t.url : ('https://t.corp.amazon.com/issues/' + encodeURIComponent(sid));
-        var s = Number(t.severity), sev = t.noEmt ? '<span class="tb-asg-sev is-noemt">No EMT</span>' : ((s >= 1 && s <= 5) ? '<span class="tb-asg-sev">Sev ' + s + '</span>' : '<span class="tb-asg-sev is-noemt">No severity</span>');
+        var sid = String(t.shortId || ''), url = tbMyAsgUrl(t);
+        var s = tbMyAsgSev(t), sev = t.noEmt ? '<span class="tb-asg-sev is-noemt">No EMT</span>' : ((s >= 1 && s <= 5) ? '<span class="tb-asg-sev">Sev ' + s + '</span>' : '<span class="tb-asg-sev is-noemt">No severity</span>');
         return '<tr><td><span class="tb-asg-id"><a href="' + tbEsc(url) + '" target="_blank" rel="noopener noreferrer">' + tbEsc(sid) + '<span class="tb-asg-sr"> (opens in a new tab)</span></a>'
           + '<button type="button" class="tb-asg-cp" data-asgcopy="' + tbEsc(sid) + '" title="Copy ticket ID" aria-label="Copy ticket ID ' + tbEsc(sid) + '">' + ic('copy', 12) + '</button></span></td>'
           + '<td class="tb-asg-t">' + tbEsc(t.title || 'No title') + '</td><td>' + sev + '</td>'
@@ -2731,10 +2747,27 @@
       + '<div class="tbl-head-tx"><div class="tbl-eyebrow">Assignment Center \u00b7 Your bucket</div><h2 class="tbl-title" id="tbMyAsgT">Assigned to you</h2></div>'
       + '<p class="tbl-sub" id="tbMyAsgS">' + n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you from the Assignment Center, waiting to be picked up in SIM.</p></div>'
       + '<div class="tbl-body"><div id="tbMyAsgBody">' + tbMyAsgBody('IST') + '</div>'
-      + '<div class="tbl-actions tbl-row"><button type="button" class="tbl-cancel" id="tbMyAsgX">Close</button>'
-      + '<a class="tb-asg-open" href="unassigned-tickets.html">' + ic('user-plus', 15) + 'Open Assignment Center</a></div></div></div>';
+      + '<div class="tbl-actions tbl-row"><p class="tb-asg-note" id="tbMyAsgNote" role="status" hidden></p>'
+      + '<button type="button" class="tbl-cancel" id="tbMyAsgX">Close</button>'
+      + '<button type="button" class="tbl-submit" id="tbMyAsgAll"' + (n ? '' : ' disabled') + '>' + ic('external-link', 15) + 'Open all</button></div></div></div>';
     ov.onclick = function (e) {
       if (e.target === ov) { tbMyAsgClose(); return; }
+      // Open every listed ticket in a new tab (same URL as the ticket ID links). Browsers may block
+      // all but the first pop-up; window.open returns null for a blocked one -> show the note.
+      // (The 'noopener' feature makes window.open always return null, which would hide that, so the
+      // opener link is cut by hand on the returned window instead.)
+      var all = e.target.closest && e.target.closest('#tbMyAsgAll');
+      if (all) {
+        if (all.disabled) return;
+        var blocked = 0;
+        ((tbMyAsg.data && tbMyAsg.data.tickets) || []).forEach(function (t) {
+          var w = window.open(tbMyAsgUrl(t), '_blank');
+          if (w) { try { w.opener = null; } catch (err) {} } else blocked++;
+        });
+        var note = document.getElementById('tbMyAsgNote');
+        if (note) { note.textContent = blocked ? 'Your browser blocked some tabs - allow pop-ups for this site and click Open all again.' : ''; note.hidden = !blocked; }
+        return;
+      }
       var cp = e.target.closest && e.target.closest('[data-asgcopy]');
       if (cp) {
         var id = cp.getAttribute('data-asgcopy');

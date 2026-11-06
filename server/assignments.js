@@ -108,15 +108,28 @@ async function handleAssign(body, deps) {
   return { status: 200, body: { ok: true, count: tickets.length, assignee, group, tickets, replaced } };
 }
 
+// Only the user who made an assignment (the log entry's `by`) may revoke it; nobody else, not
+// admins and not the owner. Case-insensitive, trimmed.
+const normLogin = s => String(s == null ? '' : s).trim().toLowerCase();
+function canRevoke(entry, login) {
+  const me = normLogin(login), by = normLogin(entry && entry.by);
+  return !!me && !!by && me === by;
+}
+// First entry the caller may not revoke (whole request is rejected, no partial revoke), or null.
+function revokeDenied(entries, login) {
+  return (entries || []).find(e => !canRevoke(e, login)) || null;
+}
+
 // The whole POST /api/assignment-center/revoke { logId } flow. Returns { status, body }.
 // Undoes every assignment made by one assign log entry. A ticket is only released when its active
 // assignment is still the one that entry created (same assignee + logId, or same `at` for docs
 // without a logId) AND it is still pending; anything else (re-assigned later, picked up, resolved)
 // is reported as skipped. The entry is marked revoked (never deleted) and a NEW log entry
 // { action:'revoke', revokes:<logId> } is written. A second revoke is a no-op (alreadyRevoked).
+// Only the entry's assigner may revoke it (403 otherwise, see canRevoke).
 // deps: { coll, user, toId (string -> _id or null), states: async shortIds -> Map shortId -> st, now? }
 async function handleRevoke(body, deps) {
-  if (!isAssignAdmin(deps.user)) return { status: 403, body: { error: 'Only Assignment Center admins can revoke assignments.' } };
+  if (!deps.user || !normLogin(deps.user.username)) return { status: 403, body: { ok: false, error: 'Sign in to revoke assignments.' } };
   const logId = String((body && body.logId) == null ? '' : body.logId).trim();
   const id = logId ? deps.toId(logId) : null;
   if (id == null) return { status: 400, body: { error: 'Invalid log entry.' } };
@@ -124,6 +137,8 @@ async function handleRevoke(body, deps) {
   const entry = await coll.findOne({ _id: id, kind: 'log' });
   if (!entry) return { status: 404, body: { error: 'Log entry not found.' } };
   if (entry.action === 'revoke') return { status: 400, body: { error: 'A revoke entry cannot be revoked.' } };
+  const denied = revokeDenied([entry], deps.user.username);
+  if (denied) return { status: 403, body: { ok: false, error: 'Only ' + (normLogin(denied.by) || 'the assigner') + ' can revoke this assignment.' } };
   const already = e => ({ status: 200, body: { ok: true, alreadyRevoked: true, logId, assignee: e.assignee,
     revokedAt: e.revokedAt, revokedBy: e.revokedBy, revokedCount: e.revokedCount || 0, skipped: e.skipped || [] } });
   if (entry.revokedAt) return already(entry);
@@ -166,4 +181,4 @@ function mapLog(d) {
   return out;
 }
 
-module.exports = { ASSIGN_GROUPS, ASSIGN_SECTIONS, ASSIGN_MAX, ASSIGN_DUP_MS, groupByName, isAssignAdmin, assignmentStatus, pendingMap, validateAssign, handleAssign, handleRevoke, mapLog, activeId };
+module.exports = { ASSIGN_GROUPS, ASSIGN_SECTIONS, ASSIGN_MAX, ASSIGN_DUP_MS, groupByName, isAssignAdmin, assignmentStatus, pendingMap, validateAssign, handleAssign, handleRevoke, canRevoke, revokeDenied, mapLog, activeId };
