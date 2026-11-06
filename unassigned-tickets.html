@@ -53,6 +53,21 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
 .ua-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
 .ua-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+/* Hero subtitle on one line on desktop (wraps below 1100px). */
+@media (min-width:1100px){.ua-hero-sub{max-width:none;white-space:nowrap}}
+/* Section tints: Admins light blue, Contractors light yellow. */
+#uaAdm{background:#eef5fe;border-color:#cfe0f6}
+#uaAdm .ua-sec-h{border-bottom-color:#d6e4f6}
+#uaCon{background:#fff9e6;border-color:#f3e2ad}
+#uaCon .ua-sec-h{border-bottom-color:#f1e4b8}
+/* Stale-data notice pop-up. */
+.ac-stale p{margin:14px 0 0;color:#2a3340;line-height:1.55}
+.ac-stale .ac-stale-when{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;border-radius:8px;background:#fff4e6;border:1px solid #f7caa2;color:#8a3a00;font-weight:700;font-size:.9em}
+.ac-stale .ac-stale-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:20px}
+.ac-stale .ac-stale-row a,.ac-stale .ac-stale-row button{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;font:inherit;font-weight:800;font-size:.9em;cursor:pointer;text-decoration:none}
+.ac-stale .ac-old{background:#fff;border:1px solid #d4dade;color:#2a3340}
+.ac-stale .ac-new{background:#ec7211;border:1px solid #ec7211;color:#fff}
+.ac-stale .ac-old:focus-visible,.ac-stale .ac-new:focus-visible{outline:3px solid #1577a0;outline-offset:2px}
 .ua-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;max-width:100%}
 .ua-meta li{display:flex;flex-direction:column;gap:3px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:0}
@@ -316,13 +331,51 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-log-x:hover{border-color:var(--acc);color:var(--acc-ink)}
 .ac-log-x .ua-chev{transition:transform .15s}
 .ac-log-x[aria-expanded="false"] .ua-chev{transform:rotate(-90deg)}
-.ac-log-ids{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 2px}
-.ac-log-ids[hidden]{display:none}
-.ac-log-ids a{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;background:var(--blue-bg);border:1px solid #c9daf3;color:#2b66c1;font-size:.8em;font-weight:800;text-decoration:none}
-.ac-log-ids a:hover{text-decoration:underline}
-@container (max-width:640px){.ac-log-r{grid-template-columns:minmax(0,1fr) auto}.ac-log-when{grid-column:1 / -1}}
+.ac-log-acts{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+/* Revoke: danger ghost button. */
+.ac-log-rv{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid #efc2bd;border-radius:8px;background:#fff;color:var(--red);font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap}
+.ac-log-rv:hover:not(:disabled){background:var(--red-bg);border-color:#e39a92}
+.ac-log-rv:disabled{opacity:.6;cursor:progress}
+.ac-log-rvt{display:inline-flex;align-items:center;gap:5px;margin-left:6px;padding:1px 8px;border-radius:99px;background:#f1f3f5;border:1px solid var(--line);color:#5c6773;font-size:.8em;font-weight:700;vertical-align:middle}
+.ac-log-kic{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:6px;border-radius:6px;background:var(--red-bg);color:var(--red);vertical-align:-4px}
+/* Ticket list of an entry: one row per ticket (ID + copy, full title, revoke mark). */
+.ac-log-tl{grid-column:1 / -1;list-style:none;margin:4px 0 2px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.ac-log-tl[hidden]{display:none}
+.ac-log-tl li{display:grid;grid-template-columns:max-content minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:7px 10px;border-top:1px solid #eef1f4;font-size:.85em}
+.ac-log-tl li:first-child{border-top:0}
+.ac-log-tl li.is-rvk,.ac-log-tl li.is-skip{background:#fafbfc}
+.ac-log-tl a{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
+.ac-log-tl a:hover{text-decoration:underline}
+.ac-tl-t{overflow-wrap:anywhere;line-height:1.45;color:var(--ink);padding-top:2px}
+.ac-tl-m{padding:1px 8px;border-radius:99px;font-size:.8em;font-weight:800;white-space:nowrap;border:1px solid;margin-top:1px}
+.ac-tl-m.is-rvk{background:#f1f3f5;border-color:var(--line);color:#5c6773}
+.ac-tl-m.is-skip{background:var(--amb-bg);border-color:#f6d3a6;color:#8a4508}
+/* Assignment log panel: soft slate-blue, distinct from the white severity sections. */
+#uaLog.ua-sec{background:#edf2f8;border-color:#cbd7e6}
+#uaLog button.ua-sec-h{background:transparent;border-bottom-color:#cbd7e6}
+#uaLog button.ua-sec-h:hover{background:#e3eaf4}
+#uaLog button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
+#uaLog .ua-sec-ic{background:#dae5f5;color:var(--blue)}
+#uaLog .ua-badge{background:#fff;border-color:#cbd7e6}
+#uaLog .ua-none{color:#4f5b68}
+/* One collapsible card per day (user's timezone), newest day first. */
+.ac-days{list-style:none;display:flex;flex-direction:column;gap:8px}
+.ac-day{background:#fff;border:1px solid #d3dce8;border-radius:10px;overflow:hidden}
+.ac-day-hh{margin:0;font:inherit}
+.ac-day-h{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:0;background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer;flex-wrap:wrap}
+.ac-day-h:hover{background:#f6f9fd}
+.ac-day-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--blue-bg);color:var(--blue)}
+.ac-day-t{font-size:.95em;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.ac-day-tag{padding:1px 8px;border-radius:99px;background:var(--blue-bg);border:1px solid #c9daf3;color:var(--blue);font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.ac-day-n{margin-left:auto;font-size:.8em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ac-day-b{padding:0 14px 8px;border-top:1px solid #eef1f4}
+.ac-day-b[hidden]{display:none}
+@container (max-width:640px){.ac-log-r{grid-template-columns:minmax(0,1fr) auto}.ac-log-when{grid-column:1 / -1}.ac-log-tl li{grid-template-columns:minmax(0,1fr) auto}.ac-tl-t{grid-column:1 / -1;grid-row:2}}
 /* ---- Assign pop-up (.tbl-* shell from topbar-auth.js, widened) ---- */
-.tbl-bg .tbl-card.ac-card{width:min(560px,94vw)!important}
+/* Every pop-up on this page is 80vw (96vw on phones): the Assign pop-up and the top-bar
+   "Assigned to you" bucket pop-up (its base width lives in topbar-auth.js). */
+.tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:80vw!important;max-width:80vw!important}
+@media(max-width:719px){.tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important}}
 .ac-card .ac-k{display:block;margin:18px 0 8px;color:#2a3340;font-size:.8em;font-weight:800;letter-spacing:.2px}
 .ac-card .ac-segs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .ac-card .ac-opt{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:pointer;min-width:0}
@@ -661,33 +714,105 @@ function paintBuckets(){
   if(msg) msg.innerHTML=m;
   if(c) c.textContent=total?((Q.trim()?(num(shown)+' of '+num(total)+' unassigned tickets match'):(num(total)+' unassigned tickets'))+' \u00b7 sorted by age, '+sortLabel().toLowerCase()):'';
 }
-// ---- Assignment log (collapsed by default; newest first, 20 per page) ----
-var LOG_SIZE=20, OPEN_LOG=false, LOG_PG=0, LOG_X={};   // LOG_X: entry id -> ticket IDs shown
-function logTodayCount(){ var t=tzDate(new Date().toISOString()); return logList().filter(function(e){ return tzDate(e.at)===t; }).length; }
+// ---- Assignment log (collapsed by default) ----
+// Entries are grouped by day in the user's timezone (IST / MST), newest day first, entries newest
+// first inside a day. Every day starts collapsed; open days are remembered for this visit only.
+// A day with more than LOG_SIZE entries paginates inside the day. The server sends the latest 200.
+var LOG_SIZE=20, LOG_MAX=200, OPEN_LOG=false, OPEN_DAY={}, DAY_PG={}, LOG_X={}, REVOKING={};   // LOG_X: entry id -> ticket list shown
+function tzZone(){ return TZ_ZONE[MY_TZ]||TZ_ZONE.IST; }
+function partsOf(d,o){ var p={}; new Intl.DateTimeFormat('en-US',o).formatToParts(d).forEach(function(x){ p[x.type]=x.value; }); return p; }
+// 'YYYY-MM-DD' of an instant in the user's timezone ('' when unknown).
+function tzDayKey(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return '';
+  try{ var p=partsOf(d,{timeZone:tzZone(),year:'numeric',month:'2-digit',day:'2-digit'}); return p.year+'-'+p.month+'-'+p.day; }catch(e){ return ''; } }
+function dayUtc(key,shift){ var m=String(key).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3]+(shift||0),12)):null; }
+function dayShift(key,n){ var d=dayUtc(key,n); return d?d.toISOString().slice(0,10):''; }
+// 'Thu, 6 Nov 2026'
+function dayLabel(key){ var d=dayUtc(key); if(!d) return 'Unknown date';
+  var p=partsOf(d,{timeZone:'UTC',weekday:'short',day:'numeric',month:'short',year:'numeric'}); return p.weekday+', '+p.day+' '+p.month+' '+p.year; }
+function logTodayCount(){ var t=tzDayKey(new Date().toISOString()); return logList().filter(function(e){ return tzDayKey(e.at)===t; }).length; }
+function logDays(){
+  var map={}, keys=[];
+  logList().forEach(function(e){ var k=tzDayKey(e.at)||'unknown'; if(!map[k]){ map[k]=[]; keys.push(k); } map[k].push(e); });
+  keys.sort(function(a,b){ return a==='unknown'?1:(b==='unknown'?-1:b.localeCompare(a)); });
+  return keys.map(function(k){ return { key:k, list:map[k].slice().sort(function(a,b){ return String(b.at||'').localeCompare(String(a.at||'')); }) }; });
+}
+function domId(s){ return String(s).replace(/[^A-Za-z0-9_-]/g,''); }
+function plural(n,one,many){ return num(n)+' '+(n===1?one:(many||one+'s')); }
 function logRowHtml(e,i){
-  var id=String(e.id||i), x=LOG_X[id]===true, list=Array.isArray(e.tickets)?e.tickets:[], n=Number(e.count)||list.length;
-  var rep=(Array.isArray(e.replaced)&&e.replaced.length)?'<span class="ac-log-rep">Replaced '+num(e.replaced.length)+' earlier assignment'+(e.replaced.length===1?'':'s')+' ('+e.replaced.map(function(r){ return esc(r.shortId)+' from '+esc(r.from); }).join(', ')+')</span>':'';
-  return '<li class="ac-log-r"><span class="ac-log-when"><span>'+esc(tzFull(e.at))+'</span><small>'+esc(relTime(e.at))+'</small></span>'+
-    '<span class="ac-log-what"><b>'+esc(e.by)+'</b> assigned <b>'+num(n)+' ticket'+(n===1?'':'s')+'</b> to <b>'+esc(e.assignee)+'</b> ('+esc(e.group||'\u2014')+')'+
-      (e.section?'<span class="ua-sev '+secCls(e.section)+'">'+esc(e.section)+'</span>':'')+rep+'</span>'+
-    '<button type="button" class="ac-log-x" data-logx="'+esc(id)+'" aria-expanded="'+x+'" aria-controls="acLogI-'+i+'">'+chev()+(x?'Hide':'Show')+' IDs</button>'+
-    '<span class="ac-log-ids" id="acLogI-'+i+'"'+(x?'':' hidden')+'>'+list.map(function(t){ var s=String(t.shortId||'');
-      return '<a href="'+esc(simUrl(s))+'" target="_blank" rel="noopener noreferrer" title="'+esc(t.title||'')+'">'+esc(s)+'<span class="ua-sr"> (opens in a new tab)</span></a>'; }).join('')+'</span></li>';
+  var id=String(e.id||('i'+i)), did=domId(id), x=LOG_X[id]===true, list=Array.isArray(e.tickets)?e.tickets:[], isRv=e.kind==='revoke';
+  var n=Number(e.count); if(!isRv&&!n) n=list.length; n=n||0;
+  var skipped=Array.isArray(e.skipped)?e.skipped:[], skip={}; skipped.forEach(function(s){ skip[String(s)]=1; });
+  var marked=isRv||!!e.revokedAt, grp=' ('+esc(e.group||'\u2014')+')';
+  var rep=(!isRv&&Array.isArray(e.replaced)&&e.replaced.length)?'<span class="ac-log-rep">Replaced '+plural(e.replaced.length,'earlier assignment')+' ('+e.replaced.map(function(r){ return esc(r.shortId)+' from '+esc(r.from); }).join(', ')+')</span>':'';
+  var what=isRv
+    ?'<span class="ac-log-kic" aria-hidden="true">'+ic('clock-rewind',13)+'</span><b>'+esc(e.by)+'</b> revoked <b>'+plural(n,'assignment')+'</b> to <b>'+esc(e.assignee)+'</b>'+grp
+    :'<b>'+esc(e.by)+'</b> assigned <b>'+plural(n,'ticket')+'</b> to <b>'+esc(e.assignee)+'</b>'+grp;
+  var sec=e.section?'<span class="ua-sev '+secCls(e.section)+'">'+esc(e.section)+'</span>':'';
+  var rvTag=(!isRv&&e.revokedAt)?'<span class="ac-log-rvt" title="'+esc(tzFull(e.revokedAt))+'">'+ic('clock-rewind',12)+'Revoked by '+esc(e.revokedBy||'\u2014')+' \u00b7 '+esc(tzFull(e.revokedAt))+(skipped.length?' \u00b7 '+num(skipped.length)+' skipped':'')+'</span>':'';
+  var skipNote=(isRv&&skipped.length)?'<span class="ac-log-rep">'+plural(skipped.length,'ticket')+' skipped (re-assigned later, picked up or resolved)</span>':'';
+  var sum=e.by+' assigned '+plural(n,'ticket')+' to '+e.assignee+' on '+tzFull(e.at);
+  var canRv=!isRv&&!e.revokedAt&&isAdmin()&&/^[a-f0-9]{24}$/i.test(id), busy=REVOKING[id]===true;
+  var rvBtn=canRv?'<button type="button" class="ac-log-rv" data-revoke="'+esc(id)+'" aria-label="Revoke: '+esc(sum)+'"'+(busy?' disabled aria-busy="true"':'')+'>'+ic('clock-rewind',13)+(busy?'Revoking\u2026':'Revoke')+'</button>':'';
+  // Ticket list (rendered only while shown): ID (SIM link + copy) | full title | revoked / skipped mark.
+  var rows=x?list.map(function(t){ var s=String((t&&t.shortId)||''), sk=!!skip[s];
+    var mark=marked?(sk?'<span class="ac-tl-m is-skip" title="Not revoked: re-assigned later, picked up or resolved">Skipped</span>':'<span class="ac-tl-m is-rvk">Revoked</span>'):'';
+    return '<li'+(marked?' class="'+(sk?'is-skip':'is-rvk')+'"':'')+'>'+idCell({shortId:s,url:simUrl(s)})+
+      '<span class="ac-tl-t">'+(t&&t.title?esc(t.title):'<span class="ua-who is-none">No title</span>')+'</span>'+mark+'</li>'; }).join(''):'';
+  if(x&&!list.length) rows='<li><span class="ua-who is-none">No ticket IDs recorded.</span></li>';
+  return '<li class="ac-log-r'+(isRv?' is-revoke':'')+(e.revokedAt?' is-rvk':'')+'"><span class="ac-log-when"><span>'+esc(tzFull(e.at))+'</span><small>'+esc(relTime(e.at))+'</small></span>'+
+    '<span class="ac-log-what">'+what+sec+rvTag+rep+skipNote+'</span>'+
+    '<span class="ac-log-acts"><button type="button" class="ac-log-x" data-logx="'+esc(id)+'" aria-expanded="'+x+'" aria-controls="acLogI-'+did+'">'+chev()+(x?'Hide':'Show')+' IDs</button>'+rvBtn+'</span>'+
+    '<ul class="ac-log-tl" id="acLogI-'+did+'" aria-label="Tickets in this entry"'+(x?'':' hidden')+'>'+rows+'</ul></li>';
+}
+function dayHtml(d,today){
+  var key=d.key, did='acDay-'+domId(key), open=OPEN_DAY[key]===true, list=d.list, m=list.length, tix=0;
+  list.forEach(function(e){ if(e.kind!=='revoke') tix+=Number(e.count)||(Array.isArray(e.tickets)?e.tickets.length:0); });
+  var tag=key===today?'Today':(key===dayShift(today,-1)?'Yesterday':''), label=key==='unknown'?'Unknown date':dayLabel(key);
+  var pages=Math.max(1,Math.ceil(m/LOG_SIZE)), pg=DAY_PG[key]||0; if(pg>pages-1) pg=pages-1; if(pg<0) pg=0; DAY_PG[key]=pg;
+  var pager=pages>1?'<nav class="ua-pager" aria-label="'+esc(label)+' log pages">'+
+      '<button type="button" class="ua-btn ua-ghost" data-daypage="'+esc(key)+'|-1"'+(pg<=0?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button>'+
+      '<span class="ua-pg-info">Page '+(pg+1)+' of '+pages+' \u00b7 '+plural(m,'entry','entries')+'</span>'+
+      '<button type="button" class="ua-btn ua-ghost" data-daypage="'+esc(key)+'|1"'+(pg>=pages-1?' disabled':'')+' aria-label="Next page">Next \u203a</button></nav>':'';
+  return '<li class="ac-day"><h3 class="ac-day-hh"><button type="button" class="ac-day-h ua-tog" id="'+did+'-h" data-tog="d:'+esc(key)+'" aria-expanded="'+open+'" aria-controls="'+did+'">'+
+      '<span class="ac-day-ic">'+ic('calendar',15)+'</span><span class="ac-day-t">'+esc(label)+'</span>'+(tag?'<span class="ac-day-tag">'+tag+'</span>':'')+
+      '<span class="ac-day-n">'+plural(m,'entry','entries')+' \u00b7 '+plural(tix,'ticket')+' assigned</span>'+chev()+'</button></h3>'+
+    '<div class="ac-day-b" id="'+did+'"'+(open?'':' hidden')+'><ol class="ac-log" aria-label="'+esc(label)+', newest first">'+
+      list.slice(pg*LOG_SIZE,pg*LOG_SIZE+LOG_SIZE).map(function(e,j){ return logRowHtml(e,pg*LOG_SIZE+j); }).join('')+'</ol>'+pager+'</div></li>';
 }
 function logSecHtml(){
   if(STATE!=='done') return '';
-  var all=logList(), m=all.length, pages=Math.max(1,Math.ceil(m/LOG_SIZE));
-  if(LOG_PG>pages-1) LOG_PG=pages-1; if(LOG_PG<0) LOG_PG=0;
+  var m=logList().length, today=tzDayKey(new Date().toISOString());
   var body=!m?'<p class="ua-none">No tickets have been assigned from the Assignment Center yet.</p>':
-    '<ol class="ac-log" aria-label="Assignments, newest first">'+all.slice(LOG_PG*LOG_SIZE,LOG_PG*LOG_SIZE+LOG_SIZE).map(function(e,j){ return logRowHtml(e,LOG_PG*LOG_SIZE+j); }).join('')+'</ol>'+
-    (pages>1?'<nav class="ua-pager" aria-label="Assignment log pages">'+
-      '<button type="button" class="ua-btn ua-ghost" data-logpage="-1"'+(LOG_PG<=0?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button>'+
-      '<span class="ua-pg-info">Page '+(LOG_PG+1)+' of '+pages+' \u00b7 '+num(m)+' entries</span>'+
-      '<button type="button" class="ua-btn ua-ghost" data-logpage="1"'+(LOG_PG>=pages-1?' disabled':'')+' aria-label="Next page">Next \u203a</button></nav>':'');
-  return '<section class="ua-sec" id="uaLog">'+secHead('log','uaLogB','uaLogT','history','Assignment log','Who assigned how many tickets to whom \u00b7 newest first',num(logTodayCount())+' today',OPEN_LOG,false)+
+    '<ol class="ac-days" aria-label="Assignment log by day, newest first">'+logDays().map(function(d){ return dayHtml(d,today); }).join('')+'</ol>'+
+    (m>=LOG_MAX?'<p class="ua-none">Showing the latest '+num(LOG_MAX)+' entries.</p>':'');
+  return '<section class="ua-sec" id="uaLog">'+secHead('log','uaLogB','uaLogT','history','Assignment log','Who assigned how many tickets to whom \u00b7 by day ('+esc(MY_TZ)+'), newest first',num(logTodayCount())+' today',OPEN_LOG,false)+
     '<div class="ua-sec-b" id="uaLogB"'+(OPEN_LOG?'':' hidden')+'>'+body+'</div></section>';
 }
 function paintLog(focusSel){ var w=$('uaLogWrap'); if(w) w.innerHTML=logSecHtml(); if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); } }
+// Revoke (admins): undo every assignment of one log entry. The server re-checks admin + ownership.
+async function revokeEntry(id){
+  if(!isAdmin()||REVOKING[id]) return;
+  var e=logList().filter(function(x){ return String(x.id)===id; })[0]; if(!e||e.kind==='revoke'||e.revokedAt) return;
+  var n=Number(e.count)||(Array.isArray(e.tickets)?e.tickets.length:0), sel='[data-revoke="'+id+'"]', back='[data-logx="'+id+'"]';
+  var ok=window.PHDConfirm?await window.PHDConfirm({title:'Revoke assignments',body:'Revoke '+plural(n,'assignment')+' to '+e.assignee+'? These tickets go back to unassigned.',okLabel:'Revoke',danger:true}):false;
+  if(!ok){ var b0=document.querySelector(sel); if(b0) b0.focus(); return; }
+  REVOKING[id]=true; paintLog(sel);
+  var r=null; try{ r=await A.api('POST','/api/assignment-center/revoke',{logId:id}); }catch(err){}
+  delete REVOKING[id];
+  if(!(r&&r.ok&&r.data&&r.data.ok)){
+    paintLog(sel);
+    var em=errMsg(r,'Could not revoke the assignments. Please try again.');
+    if(window.PHDBanner) window.PHDBanner.error(em); announce(em); return;
+  }
+  var d=r.data, k=Number(d.revokedCount)||0, sk=Array.isArray(d.skipped)?d.skipped.length:0;
+  var msg=d.alreadyRevoked?'These assignments were already revoked.':
+    ('Revoked '+plural(k,'assignment')+' to '+(d.assignee||e.assignee)+(sk?' \u00b7 '+num(sk)+' skipped (re-assigned later, picked up or resolved)':''));
+  if(window.PHDBanner) window.PHDBanner.ok(msg);
+  if(window.PHDRefreshMyAssigned) window.PHDRefreshMyAssigned();
+  // Refresh in place; focus goes back to the entry's Show IDs button (its Revoke button is gone).
+  // Announce after the repaint (the live region is re-rendered with the page).
+  load(true).then(function(){ var f=document.querySelector(back)||$('uaLogT'); if(f) f.focus({preventScroll:true}); announce(msg); });
+}
 
 // ---- Assign pop-up: group -> agent -> how many (admins only; the server re-checks everything) ----
 var ASG=null;   // { k, label, rows:[selected rows in order], step, group, agent, n, busy }
@@ -747,6 +872,40 @@ function asgPaint(focusSel){
   var f=focusSel?b.querySelector(focusSel):null;
   if(!f) f=b.querySelector('input:checked:not(:disabled)')||b.querySelector('input:not(:disabled)')||b.querySelector('.tbl-submit:not(:disabled)')||b.querySelector('.tbl-cancel');
   if(f) f.focus();
+}
+// ---- Stale-data check before assigning ----
+// If the latest data upload (DATA.asOf) is older than 60 minutes (or unknown), warn first: "Continue with
+// old data" opens the assign pop-up; "Extract new data" opens the LM-HUB SIM search in a new tab.
+// After "Continue" the warning is not shown again on this page view.
+var STALE_MIN=60, STALE_OK=false;
+var EXTRACT_URL='https://t.corp.amazon.com/issues?q=%7B%22AND%22%3A%7B%22status%22%3A%7B%22OR%22%3A%5B%22Assigned%22%2C%7B%22OR%22%3A%5B%22Work%20In%20Progress%22%2C%7B%22OR%22%3A%5B%22Researching%22%2C%7B%22OR%22%3A%5B%22Pending%22%2C%22Resolved%22%5D%7D%5D%7D%5D%7D%5D%7D%2C%22assignedGroup%22%3A%22LM-HUB%22%7D%7D';
+function staleCheck(k,opener){
+  var t=new Date(DATA&&DATA.asOf).getTime(), fresh=!isNaN(t) && (Date.now()-t) < STALE_MIN*60000;
+  if(fresh||STALE_OK){ asgOpen(k); return; }
+  var ov=document.createElement('div'); ov.id='uaStaleDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
+  var when=isNaN(t)?'Last upload time unknown':('Last upload: '+tzFull(DATA.asOf)+' ('+relTime(DATA.asOf)+')');
+  ov.innerHTML='<div class="tbl-card ac-card ac-stale" role="alertdialog" aria-modal="true" aria-labelledby="uaStaleT" aria-describedby="uaStaleD">'+
+    '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span>'+
+      '<div class="tbl-head-tx"><div class="tbl-eyebrow">Assignment Center \u00b7 Data check</div><h2 class="tbl-title" id="uaStaleT">New data has not been uploaded</h2></div></div>'+
+    '<div class="tbl-body"><p id="uaStaleD">The ticket data was not updated in the last '+STALE_MIN+' minutes. Please upload the latest data for a better assignment, or continue with the data that is loaded now.</p>'+
+      '<span class="ac-stale-when">'+ic('clock',14)+esc(when)+'</span>'+
+      '<div class="ac-stale-row"><button type="button" class="ac-old" data-stale="old">'+ic('arrow-left',14)+'Continue with old data</button>'+
+      '<a class="ac-new" data-stale="new" href="'+EXTRACT_URL+'" target="_blank" rel="noopener noreferrer">'+ic('external-link',14)+'Extract new data</a></div></div></div>';
+  document.body.appendChild(ov);
+  var close=function(){ document.removeEventListener('keydown',onKey,true); ov.remove(); if(opener&&document.body.contains(opener)) opener.focus(); };
+  var onKey=function(e){
+    if(e.key==='Escape'){ e.preventDefault(); close(); return; }
+    if(e.key==='Tab'){ var f=ov.querySelectorAll('button,a[href]'), a=f[0], z=f[f.length-1];
+      if(e.shiftKey&&document.activeElement===a){ e.preventDefault(); z.focus(); } else if(!e.shiftKey&&document.activeElement===z){ e.preventDefault(); a.focus(); } }
+  };
+  document.addEventListener('keydown',onKey,true);
+  ov.addEventListener('click',function(e){
+    if(e.target===ov){ close(); return; }
+    var b=e.target.closest('[data-stale]'); if(!b) return;
+    if(b.getAttribute('data-stale')==='old'){ STALE_OK=true; document.removeEventListener('keydown',onKey,true); ov.remove(); asgOpen(k); }
+    else { close(); }   // the link opens the SIM search in a new tab
+  });
+  setTimeout(function(){ var f=ov.querySelector('[data-stale="old"]'); if(f) f.focus(); },30);
 }
 function asgOpen(k){
   if(!isAdmin()) return;
@@ -834,6 +993,7 @@ function toggle(btn){
   var p=$(btn.getAttribute('aria-controls')); if(p) p.hidden=!open;
   if(key==='adm') OPEN_ADM=open;
   else if(key==='log') OPEN_LOG=open;
+  else if(key.indexOf('d:')===0) OPEN_DAY[key.slice(2)]=open;
   else if(key.indexOf('a:')===0) OPEN_A[key.slice(2)]=open;
   else if(key.indexOf('b:')===0){
     // Only one severity section open at a time: opening one closes the others.
@@ -930,9 +1090,13 @@ document.addEventListener('click',function(ev){
   var t=ev.target; if(!t||!t.closest) return;
   if(t.closest('#uaAsgDlg')) return;   // the assign pop-up has its own handler
   if(t.closest('[data-retry]')){ load(); return; }
-  var ab=t.closest('[data-assign]'); if(ab){ if(!ab.disabled) asgOpen(ab.getAttribute('data-assign')); return; }
+  var ab=t.closest('[data-assign]'); if(ab){ if(!ab.disabled) staleCheck(ab.getAttribute('data-assign'),ab); return; }
   var lx=t.closest('[data-logx]'); if(lx){ var id=lx.getAttribute('data-logx'); LOG_X[id]=!LOG_X[id]; paintLog('[data-logx="'+id+'"]'); return; }
-  var lp=t.closest('[data-logpage]'); if(lp&&!lp.disabled){ var d0=lp.getAttribute('data-logpage'); LOG_PG+=Number(d0)||0; paintLog('#uaLog [data-logpage="'+d0+'"]:not([disabled])'); return; }
+  var rv=t.closest('[data-revoke]'); if(rv){ if(!rv.disabled) revokeEntry(rv.getAttribute('data-revoke')); return; }
+  var lp=t.closest('[data-daypage]'); if(lp&&!lp.disabled){ var sp=lp.getAttribute('data-daypage'), cut=sp.lastIndexOf('|'), dk=sp.slice(0,cut);
+    DAY_PG[dk]=(DAY_PG[dk]||0)+(Number(sp.slice(cut+1))||0); paintLog('#uaLog [data-daypage="'+sp+'"]:not([disabled])');
+    var nb=document.activeElement; if(!nb||!nb.closest||!nb.closest('#uaLog')){ var o=document.querySelector('#uaLog [data-daypage^="'+dk+'|"]:not([disabled])'); if(o) o.focus(); }
+    return; }
   var cp=t.closest('[data-copy]'); if(cp){ copyTicketId(cp.getAttribute('data-copy'),cp); return; }
   var pfb=t.closest('[data-petf]'); if(pfb){ togglePet(pfb.getAttribute('data-petf')); return; }
   var tf=t.closest('[data-tog-for]'); if(tf){ var tb=$(tf.getAttribute('data-tog-for')); if(tb){ toggle(tb); tb.focus(); } return; }
