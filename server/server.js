@@ -3957,9 +3957,17 @@ function uaAssigneeDisplay(raw) {
   if (/autosim/i.test(s)) return 'AutoSIM';
   return uaAssigneeLogin(s) || s;
 }
-// Ticket severity 1..5 (or null): the Severity field (number, 'Sev 3', '3 - High', 'SEV_3'), else
-// the title ('Severity N' / 'Sev N' / 'Sev #N', case-insensitive).
+// Ticket severity 1..5 (or null): the TITLE first ('Severity N' / 'Sev N' / 'Sev-N' / 'SevN',
+// case-insensitive, last match wins), else the Severity field (number, 'Sev 3', '3 - High', 'SEV_3').
+function uaTitleSeverity(title) {
+  const re = /\b(?:severity|sev)[\s\-_:#]*([1-5])\b/gi;
+  let m, last = null;
+  while ((m = re.exec(String(title || '')))) last = Number(m[1]);
+  return last;
+}
 function uaSeverity(sevField, title) {
+  const fromTitle = uaTitleSeverity(title);
+  if (fromTitle != null) return fromTitle;
   const ok = n => (n >= 1 && n <= 5 ? n : null);
   if (typeof sevField === 'number' && Number.isFinite(sevField)) return ok(Math.round(sevField));
   const f = String(sevField == null ? '' : sevField).trim();
@@ -3967,8 +3975,7 @@ function uaSeverity(sevField, title) {
     const m = f.match(/^(?:sev(?:erity)?[\s_#:-]*)?([1-5])(?![0-9])/i);
     if (m) return Number(m[1]);
   }
-  const t = String(title || '').match(/\bsev(?:erity)?[\s_:-]*#?\s*([1-5])(?![0-9])/i);
-  return t ? Number(t[1]) : null;
+  return null;
 }
 // Admin team = analyst + role owner/admin; contractors = analyst + role editor (from the users collection).
 const UA_TEAM_STATUSES = { 'Assigned': 'assigned', 'Work In Progress': 'wip', 'Pending': 'pending' };

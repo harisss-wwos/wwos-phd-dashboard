@@ -467,8 +467,16 @@ function rowsAll(){ return (DATA&&Array.isArray(DATA.rows))?DATA.rows:[]; }
 function admins(){ return (DATA&&Array.isArray(DATA.admins))?DATA.admins:[]; }
 function contractors(){ return (DATA&&Array.isArray(DATA.contractors))?DATA.contractors:[]; }
 function isBlank(r){ return !r.assignee||r.assignee==='Unassigned'; }
+// Severity 1..5 from the ticket TITLE ('Severity 2', 'Sev 3', 'Sev-1', 'Sev1'; last match wins),
+// else the server's severity field; NaN when neither gives 1..5.
+function titleSev(title){
+  var re=/\b(?:severity|sev)[\s\-_:#]*([1-5])\b/gi, m, last=null;
+  while((m=re.exec(String(title||'')))) last=Number(m[1]);
+  return last;
+}
+function sevOf(r){ var t=titleSev(r&&r.title); return t!=null?t:Number(r&&r.severity); }
 // A ticket is No EMT when flagged no-EMT, else its Sev N, else (no severity) No EMT.
-function bucketOf(r){ if(r.noEmt) return 'noemt'; var s=Number(r.severity); return (s>=1&&s<=5)?('s'+s):'noemt'; }
+function bucketOf(r){ if(r.noEmt) return 'noemt'; var s=sevOf(r); return (s>=1&&s<=5)?('s'+s):'noemt'; }
 function matchQ(r,q){ return !q||String(r.shortId||'').toLowerCase().indexOf(q)>=0||String(r.title||'').toLowerCase().indexOf(q)>=0||String(r.assignee||'').toLowerCase().indexOf(q)>=0; }
 function byAge(dir){ return function(a,b){
   var x=new Date(a.createdAt).getTime(), y=new Date(b.createdAt).getTime(), xn=isNaN(x), yn=isNaN(y);
@@ -539,7 +547,7 @@ function statusPill(s){
   return '<span class="ua-pill '+c+'">'+esc(s||'Unknown')+'</span>';
 }
 function sevTag(r){
-  var s=Number(r.severity), t=(s>=1&&s<=5)?'<span class="ua-sev b-s'+s+'">Sev '+s+'</span>':'<span class="ua-sev b-none">No severity</span>';
+  var s=sevOf(r), t=(s>=1&&s<=5)?'<span class="ua-sev b-s'+s+'">Sev '+s+'</span>':'<span class="ua-sev b-none">No severity</span>';
   return '<span class="ua-sevs">'+t+(r.noEmt?'<span class="ua-sev b-noemt">No EMT</span>':'')+'</span>';
 }
 function ageCell(r){
