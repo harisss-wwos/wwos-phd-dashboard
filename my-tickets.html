@@ -993,15 +993,18 @@ td.mt-actions .btn svg{flex-shrink:0}
     sub:'Open tickets assigned to you, with their 240-hour deadline, comments and incident logs. Viewed and temp-resolve marks are saved in this browser only.'
   };
   // External links shown in the hero (static, so the skeleton renders them too and nothing jumps).
-  window.MT_LINKS=function(){
+  // opts.contractor=true skips entries flagged hideForContractors (3rd element). UI-only hiding.
+  window.MT_LINKS=function(opts){
+    var contractor=!!(opts&&opts.contractor);
     var L=[
       ['SIM Link','https://t.corp.amazon.com/issues/assigned-to-me?sort=createDate%20asc'],
-      ['Share-point Link','https://amazon.sharepoint.com/:x:/r/sites/PHD/_layouts/15/Doc.aspx?sourcedoc=%7B86CA084F-B5C7-450D-86C9-07D479FF8DFF%7D&file=-%20USE%20THIS%20ONE%20-%20Ticket%20Tracker%20Flat%20File.xlsx&action=default&mobileredirect=true'],
+      ['Share-point Link','https://amazon.sharepoint.com/:x:/r/sites/PHD/_layouts/15/Doc.aspx?sourcedoc=%7B86CA084F-B5C7-450D-86C9-07D479FF8DFF%7D&file=-%20USE%20THIS%20ONE%20-%20Ticket%20Tracker%20Flat%20File.xlsx&action=default&mobileredirect=true',true],
       ['Sev 3 Pet incidents','https://amazon-my.sharepoint.com/:x:/r/personal/flofalgu_amazon_com/_layouts/15/doc2.aspx?sourcedoc=%7B1C13EF24-F76D-41A3-A9A4-CE41C2550BA8%7D&file=Book.xlsx&action=editnew&mobileredirect=true']
     ];
     var X='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>';
     var h='';
     for(var i=0;i<L.length;i++){
+      if(contractor&&L[i][2])continue;
       var t=L[i][0]+' \u2014 opens in a new tab';
       h+='<li><a class="mt-xlink" href="'+L[i][1].replace(/&/g,'&amp;')+'" target="_blank" rel="noopener noreferrer" title="'+t+'" aria-label="'+t+'">'+X+'<span>'+L[i][0]+'</span></a></li>';
     }
@@ -1009,12 +1012,21 @@ td.mt-actions .btn svg{flex-shrink:0}
   };
   window.MT_SKEL=function(ic){
     ic=ic||function(){ return ''; };
+    // Skeleton may render before api-config.js (PHDAuth) loads: read the same stored user (phd_user)
+    // directly. Unknown role => treat as contractor (fail closed) so the link never flashes for editors.
+    var contractor=true;
+    try{
+      var role=null;
+      if(window.PHDAuth&&window.PHDAuth.getUser){ var pu=window.PHDAuth.getUser(); role=pu&&pu.role; }
+      else{ var raw=sessionStorage.getItem('phd_user')||localStorage.getItem('phd_user'); var su=raw?JSON.parse(raw):null; role=su&&su.role; }
+      if(role)contractor=(role==='editor');
+    }catch(e){ contractor=true; }
     var S=function(w,h,mt){ return '<span class="mt-skel" style="width:'+w+';height:'+h+'px'+(mt?';margin-top:'+mt+'px':'')+'"></span>'; };
     var D=function(w){ return '<span class="mt-skel mt-skel-d" style="width:'+w+';height:13px;margin-top:3px"></span>'; };
     var hero='<div class="mt-hero"><div class="mt-hero-in"><div class="mt-hero-main"><span class="mt-hero-ic" aria-hidden="true">'+ic('ticket',24)+'</span><div>'+
       '<p class="mt-eyebrow">'+window.MT_COPY.eyebrow+'</p><h1>My Tickets</h1><p class="mt-hero-sub">'+window.MT_COPY.sub+'</p></div></div>'+
       '<div class="mt-hero-side"><dl class="mt-meta" aria-hidden="true"><div><dt>Signed in as</dt><dd>'+D('110px')+'</dd></div><div><dt>Times shown in</dt><dd>'+D('48px')+'</dd></div>'+
-      '<div><dt>Deadline</dt><dd>'+D('96px')+'</dd></div><div><dt>Refreshed</dt><dd>'+D('110px')+'</dd></div></dl>'+window.MT_LINKS()+'</div></div></div>';
+      '<div><dt>Deadline</dt><dd>'+D('96px')+'</dd></div><div><dt>Refreshed</dt><dd>'+D('110px')+'</dd></div></dl>'+window.MT_LINKS({contractor:contractor})+'</div></div></div>';
     var k='<div class="mt-kpi" aria-hidden="true">'+S('55%',11)+S('40%',30,14)+S('70%',10,10)+'</div>';
     var tools='<div class="mt-tools" aria-hidden="true">'+S('min(340px,100%)',34)+S('64px',28)+S('92px',28)+S('104px',28)+S('92px',28)+'</div>';
     var card='<div class="mt-skel-card" aria-hidden="true">'+S('22px',22)+S('64px',13)+S('34px',20)+S('46px',20)+S('96px',15)+S('min(38%,240px)',12)+
@@ -1839,7 +1851,7 @@ function heroHtml(n){
   return '<div class="mt-hero"><div class="mt-hero-in"><div class="mt-hero-main"><span class="mt-hero-ic" aria-hidden="true">'+ic('ticket',24)+'</span><div>'+
     '<p class="mt-eyebrow">'+copy.eyebrow+'</p><h1>My Tickets'+count+'</h1><p class="mt-hero-sub">'+copy.sub+'</p></div></div>'+
     '<div class="mt-hero-side"><dl class="mt-meta"><div><dt>Signed in as</dt><dd>'+esc(who)+'</dd></div><div><dt>Times shown in</dt><dd>'+esc(MY_TZ)+'</dd></div>'+
-    '<div><dt>Deadline</dt><dd>240h from created</dd></div><div><dt>Refreshed</dt><dd>'+esc(ref)+'</dd></div></dl>'+(window.MT_LINKS?window.MT_LINKS():'')+'</div></div></div>';
+    '<div><dt>Deadline</dt><dd>240h from created</dd></div><div><dt>Refreshed</dt><dd>'+esc(ref)+'</dd></div></dl>'+(window.MT_LINKS?window.MT_LINKS({contractor:isEditor()}):'')+'</div></div></div>';
 }
 function tallyHero(){
   const el=document.querySelector('.mt-hero .mt-count'); if(!el) return;
