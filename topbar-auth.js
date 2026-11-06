@@ -184,6 +184,27 @@
       + '@keyframes tblPop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}'
       + '@media(max-width:479px){div.tbl-bg{padding:12px}.tbl-bg .tbl-card{width:100%!important;max-height:calc(100vh - 24px)}.tbl-card .tbl-head{padding:18px 18px 16px 22px}.tbl-card .tbl-body{padding:18px 18px 20px}}'
       + '@media(prefers-reduced-motion:reduce){div.tbl-bg,.tbl-bg .tbl-card{animation:none}.tbl-card *{transition:none!important}.tbl-card button.tbl-submit:disabled::before,.tbl-card button.tbl-danger:disabled::before{animation-duration:1.6s}}'
+      // PHD Tools dialogs (blurbs / paging / hashtags + their edit logs) and PHDConfirm/PHDAlert: the
+      // same .tbl-* shell plus a wider form variant, a header close (X), plain icon-less inputs and
+      // textareas, a left-aligned "lead" button, an outlined delete trigger and a "Copied" state.
+      + '.tbl-bg .tbl-card.tbl-form{width:min(640px,92vw)!important;max-width:92vw!important}'
+      + '.tbl-card.tbl-form h2.tbl-title{overflow-wrap:anywhere}'
+      + '.tbl-card .tbl-head button.tbl-x{flex-shrink:0;align-self:flex-start;width:36px;height:36px;margin:0 -6px 0 0!important;padding:0!important;display:inline-flex;align-items:center;justify-content:center;border-radius:10px!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.18)!important;color:#e9edf3!important;cursor:pointer;box-shadow:none!important;transition:background .15s,border-color .15s,color .15s}'
+      + '.tbl-card .tbl-head button.tbl-x:hover{background:rgba(255,255,255,.16)!important;border-color:rgba(255,178,107,.6)!important;color:#fff!important}'
+      + '.tbl-card .tbl-head button.tbl-x svg{width:18px;height:18px}'
+      + '.tbl-card .tbl-fld{display:block;box-sizing:border-box;width:100%!important;margin:0!important;padding:10px 12px!important;background:#fff!important;color:#1b2026!important;border:1px solid #d4dade!important;border-radius:10px!important;font-family:inherit;font-size:.92em!important;line-height:1.55;box-shadow:none!important;outline:none!important;transition:border-color .15s,box-shadow .15s}'
+      + '.tbl-card input.tbl-fld{height:44px;padding:0 12px!important}'
+      + '.tbl-card textarea.tbl-fld{min-height:160px;resize:vertical}'
+      + '.tbl-card .tbl-fld::placeholder{color:#8a94a2!important}'
+      + '.tbl-card .tbl-fld:hover{border-color:#aeb8c2!important}'
+      + '.tbl-card .tbl-fld:focus{border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.22)!important}'
+      + '.tbl-card .tbl-row .tbl-lead{margin-right:auto!important}'
+      + '.tbl-card button.tbl-cancel.tbl-del{color:#b42318!important;border-color:#f5c2c0!important}'
+      + '.tbl-card button.tbl-cancel.tbl-del:hover{background:#fdecec!important;border-color:#d92d20!important;color:#a51f14!important}'
+      + '.tbl-card button.tbl-submit.is-copied{background:linear-gradient(180deg,#1f9d57,#178046)!important;border-color:#137a3f!important}'
+      + '.tbl-card .tbl-meta{margin:8px 0 0;color:#5c6773;font-size:.78em}'
+      + '.tbl-card .tbl-meta:empty{display:none}'
+      + '@media(max-width:479px){.tbl-card .tbl-row .tbl-lead{margin-right:0!important}.tbl-card .tbl-row button.tbl-submit{width:100%;height:44px}}'
       // "Upload new data" flow dialogs (.tbu-*): the same .tbl-* shell widened to 70vw (94vw < 720px),
       // plus a 4-step header stepper, column chips, progress bars, KPI tiles and callouts.
       + '.tbl-bg .tbl-card.tbu-card{width:70vw!important;max-width:none!important;min-width:320px!important}'
@@ -2251,35 +2272,54 @@
   // Escape helper for popup text (was referenced but never defined — caused PHDConfirm to throw,
   // which silently broke the login-prompt flow). Reuses tbEsc.
   function tbPopupEsc(x) { return tbEsc(x); }
+  // Rendered in the shared .tbl-* dialog shell (navy header, icon tile, eyebrow, title, header X,
+  // white body, outlined Cancel + orange/red primary). Keeps the .tb-modal-bg class so pages that
+  // check for an open PHDConfirm/PHDAlert (to skip their own Esc handling) still find it.
+  // Optional opts.eyebrow overrides the default "WWOS-GSOC · PHD Dashboard" eyebrow.
+  var tbPopupSeq = 0;
   function tbShowPopup(opts, withCancel) {
     opts = opts || {};
     return new Promise(function (resolve) {
       var bg = document.createElement('div');
-      bg.className = 'tb-modal-bg'; bg.style.display = 'flex';
+      var id = 'tbPop' + (++tbPopupSeq);
+      bg.className = 'tb-modal-bg tbl-bg'; bg.style.cssText = 'display:flex;z-index:5000';
       var okLabel = opts.okLabel || (withCancel ? 'Confirm' : 'OK');
-      var okCls = 'tb-mbtn' + (opts.danger ? ' tb-mbtn-danger' : '');
-      var cancelBtn = withCancel ? ('<button class="tb-mbtn sec" data-act="cancel">' + tbPopupEsc(opts.cancelLabel || 'Cancel') + '</button>') : '';
-      bg.innerHTML = '<div class="tb-modal" role="dialog" aria-modal="true">' +
-        '<h2>' + tbPopupEsc(opts.title || (withCancel ? 'Please confirm' : 'Notice')) + '</h2>' +
-        '<p class="sub" style="margin:0 0 4px">' + tbPopupEsc(opts.body || '') + '</p>' +
-        '<div class="tb-modal-actions">' + cancelBtn +
-          '<button class="' + okCls + '" data-act="ok">' + tbPopupEsc(okLabel) + '</button>' +
-        '</div></div>';
+      var okCls = opts.danger ? 'tbl-danger' : 'tbl-submit';
+      var cancelBtn = withCancel ? ('<button type="button" class="tbl-cancel" data-act="cancel">' + tbPopupEsc(opts.cancelLabel || 'Cancel') + '</button>') : '';
+      bg.innerHTML = '<div class="tbl-card" role="' + (withCancel ? 'alertdialog' : 'dialog') + '" aria-modal="true" aria-labelledby="' + id + 'T" aria-describedby="' + id + 'D">' +
+        '<div class="tbl-head">' +
+          '<span class="tbl-head-ic' + (opts.danger ? ' tbl-ic-danger' : '') + '" aria-hidden="true">' + ic(opts.danger ? 'alert-triangle' : 'info', 20) + '</span>' +
+          '<div class="tbl-head-tx"><div class="tbl-eyebrow">' + tbPopupEsc(opts.eyebrow || 'WWOS-GSOC \u00b7 PHD Dashboard') + '</div>' +
+          '<h2 class="tbl-title" id="' + id + 'T">' + tbPopupEsc(opts.title || (withCancel ? 'Please confirm' : 'Notice')) + '</h2></div>' +
+          '<button type="button" class="tbl-x" data-act="x" aria-label="Close">' + ic('close', 18) + '</button>' +
+        '</div>' +
+        '<div class="tbl-body"><p class="tbl-msg" id="' + id + 'D">' + tbPopupEsc(opts.body || '') + '</p>' +
+          '<div class="tbl-actions tbl-row">' + cancelBtn +
+            '<button type="button" class="' + okCls + '" data-act="ok">' + tbPopupEsc(okLabel) + '</button>' +
+          '</div></div></div>';
       document.body.appendChild(bg);
+      var closed = false;
       function done(val) {
+        if (closed) return; closed = true;
         document.removeEventListener('keydown', onKey);
         if (bg.parentNode) bg.parentNode.removeChild(bg);
+        if (window.PHDLoginUI) window.PHDLoginUI.closed(bg); // focus returns to the opener
         resolve(val);
       }
       function onKey(e) { if (e.key === 'Escape') done(withCancel ? false : true); else if (e.key === 'Enter') { e.preventDefault(); done(true); } }
       bg.addEventListener('click', function (e) {
-        var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+        var el = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+        var act = el && bg.contains(el) ? el.getAttribute('data-act') : null;
         if (act === 'ok') done(true);
         else if (act === 'cancel') done(false);
+        else if (act === 'x') done(withCancel ? false : true); // header X = Esc
         else if (e.target === bg && withCancel) done(false); // backdrop click cancels (confirm only)
       });
       document.addEventListener('keydown', onKey);
-      setTimeout(function () { var b = bg.querySelector('[data-act="ok"]'); if (b) b.focus(); }, 40);
+      var okBtn = bg.querySelector('[data-act="ok"]');
+      // Focus trap + Esc + focus restore via the shared dialog helper (Esc runs the same close as above).
+      if (window.PHDLoginUI) window.PHDLoginUI.opened(bg, function () { done(withCancel ? false : true); }, okBtn);
+      else setTimeout(function () { if (okBtn) okBtn.focus(); }, 40);
     });
   }
   // Public API: await PHDConfirm({title,body,okLabel,danger}) -> true/false; await PHDAlert({title,body}) -> true.
@@ -2295,11 +2335,54 @@
     return Array.prototype.filter.call(root.querySelectorAll('button,input,a[href],select,textarea,[tabindex]:not([tabindex="-1"])'),
       function (el) { return !el.disabled && el.offsetParent !== null; });
   }
+  // Embedded pages (tools.html iframes) are auto-sized to their full content height, so a fixed
+  // .tbl-bg would cover the WHOLE (taller-than-screen) frame and centre the card off-screen / under
+  // the parent's sticky bar. Clamp the backdrop to the part of the frame the user can actually see
+  // (skipping parent chrome stacked over the frame's top edge), and keep it there while the parent
+  // scrolls/resizes. Returns a cleanup fn (no-op when not embedded / cross-origin).
+  function tblFitEmbedded(bg) {
+    var fe = null, pw = null;
+    try { fe = window.frameElement; pw = window.parent; } catch (e) { fe = null; }
+    if (!fe || !pw || pw === window) return function () {};
+    var card = bg.querySelector('.tbl-card');
+    var fit = function () {
+      try {
+        var r = fe.getBoundingClientRect(), vh = pw.innerHeight;
+        var top = Math.max(0, r.top), bot = Math.min(vh, r.bottom);
+        var cx = Math.min(Math.max(r.left + r.width / 2, 0), pw.innerWidth - 1);
+        // Step down past any parent chrome drawn over the frame's top band (fixed toolbar, sticky
+        // tool switcher): start below the LOWEST covered sample point in the top 320px.
+        for (var y = top, lim = Math.min(bot, top + 320), clear = top; y < lim; y += 8) {
+          if (pw.document.elementFromPoint(cx, y) !== fe) clear = y + 8;
+        }
+        top = Math.min(clear, bot);
+        if (bot - top < 160) { top = Math.max(0, r.top); bot = Math.min(vh, r.bottom); }
+        bg.style.top = (top - r.top) + 'px';
+        bg.style.height = Math.max(0, bot - top) + 'px';
+        bg.style.bottom = 'auto';
+        if (card) card.style.maxHeight = Math.max(160, bot - top - 40) + 'px';
+      } catch (e) {}
+    };
+    fit();
+    // Frame only peeks into view (e.g. page scrolled to the top, hero above it): scroll the parent
+    // just enough for the card to fit, so the pop-up isn't squeezed into a sliver.
+    try {
+      var need = (card ? card.scrollHeight : 0) + 40, have = parseFloat(bg.style.height) || 0;
+      var below = fe.getBoundingClientRect().bottom - pw.innerHeight;
+      if (have < need && below > 0) { pw.scrollBy(0, Math.min(need - have, below)); fit(); }
+    } catch (e) {}
+    pw.addEventListener('scroll', fit, true); pw.addEventListener('resize', fit);
+    return function () {
+      pw.removeEventListener('scroll', fit, true); pw.removeEventListener('resize', fit);
+      bg.style.top = bg.style.height = bg.style.bottom = ''; if (card) card.style.maxHeight = '';
+    };
+  }
   window.PHDLoginUI = {
     // Call after the backdrop is shown. close() is what Esc should run (the page's own close fn).
     opened: function (bg, close, firstField) {
+      tblOpen.forEach(function (x) { if (x.bg === bg && x.unfit) x.unfit(); });
       tblOpen = tblOpen.filter(function (x) { return x.bg !== bg && x.bg.isConnected; });
-      tblOpen.push({ bg: bg, close: close, prev: document.activeElement });
+      tblOpen.push({ bg: bg, close: close, prev: document.activeElement, unfit: tblFitEmbedded(bg) });
       var caps = bg.querySelector('.tbl-caps'); if (caps) caps.hidden = true;
       setTimeout(function () { if (firstField) firstField.focus(); }, 40);
     },
@@ -2307,7 +2390,7 @@
     closed: function (bg) {
       for (var i = tblOpen.length - 1; i >= 0; i--) {
         if (tblOpen[i].bg === bg) {
-          var prev = tblOpen[i].prev; tblOpen.splice(i, 1);
+          var prev = tblOpen[i].prev; if (tblOpen[i].unfit) tblOpen[i].unfit(); tblOpen.splice(i, 1);
           if (prev && prev.focus && prev.isConnected) { try { prev.focus(); } catch (e) {} }
           return;
         }

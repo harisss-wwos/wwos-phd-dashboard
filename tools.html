@@ -127,18 +127,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 .izr.is-nobar .izr-hero{padding-bottom:26px}
 .izr.is-nobar .izr-list{margin-top:16px}
 
-/* ---- Edit-log MODAL popup (Blurb/Hashtag/Paging edit log) ---- */
-.tool-log-bg{position:fixed;inset:0;background:rgba(21,29,40,.6);z-index:3500;display:none;align-items:center;justify-content:center;padding:20px}
-.tool-log{background:#fff;border-radius:12px;width:min(1000px,96vw);height:min(86vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 70px -24px rgba(21,29,40,.5)}
-.tool-log-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e2e6ea;flex:0 0 auto}
-.tool-log-title{display:flex;align-items:center;gap:9px;font-size:1em;font-weight:800;color:#1b2026}
-.tool-log-ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#fff3e8;color:#9a4100}
-.tool-log-ic svg{width:16px;height:16px}
-.tool-log-x{margin-left:auto;background:transparent;border:none;color:#5c6773;font-size:1.6em;line-height:1;cursor:pointer;padding:0 6px;border-radius:6px}
-.tool-log-x:hover{color:#1b2026;background:#f5f6f8}
-.tool-log-x:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
-.tool-log-body{flex:1;min-height:0}
-.tool-log-body iframe{width:100%;height:100%;border:none;display:block}
+/* ---- Edit-log MODAL popup (Blurb/Hashtag/Paging edit log) ----
+   Uses the shared "View upload log" shell from topbar-auth.js (.tb-ullog-*: navy header, orange
+   accent rule, icon tile, eyebrow, title, sub, header X, white iframe body), widened to 90vw. */
+#toolLogModal .tb-ullog{width:90vw}
+@media(max-width:719px){#toolLogModal .tb-ullog{width:96vw}}
 
 /* ---- Motion: one orchestrated entrance (hero, bar, then sections) ---- */
 @keyframes izrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -172,7 +165,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#f3f5f7;color:var(-
 
 <script src="icons.js?v=2"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=222"></script>
+<script src="topbar-auth.js?v=223"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||15):'';
@@ -389,22 +382,30 @@ function openLog(){
   var t=tabById(ACTIVE); if(!t) return;
   var bg=$('toolLogModal');
   if(!bg){
-    bg=document.createElement('div'); bg.id='toolLogModal'; bg.className='tool-log-bg';
-    bg.innerHTML='<div class="tool-log" role="dialog" aria-modal="true" aria-labelledby="toolLogTitle"><div class="tool-log-head">'
-      +'<span class="tool-log-title"><span class="tool-log-ic">'+ic('history',16)+'</span><span id="toolLogTitle"></span></span>'
-      +'<button type="button" class="tool-log-x" aria-label="Close">&times;</button></div>'
-      +'<div class="tool-log-body"><iframe id="toolLogFrame" title="Edit log"></iframe></div></div>';
-    bg.addEventListener('click',function(e){ if(e.target===bg) bg.style.display='none'; });
-    bg.querySelector('.tool-log-x').onclick=function(){ bg.style.display='none'; };
-    document.addEventListener('keydown',function(e){ if(e.key==='Escape') bg.style.display='none'; });
+    bg=document.createElement('div'); bg.id='toolLogModal'; bg.className='tb-ullog-bg';
+    bg.innerHTML='<div class="tb-ullog" role="dialog" aria-modal="true" aria-labelledby="toolLogTitle" aria-describedby="toolLogSub"><div class="tb-ullog-head">'
+      +'<span class="tb-ullog-ic" aria-hidden="true">'+ic('history',20)+'</span>'
+      +'<div class="tb-ullog-htx"><p class="tb-ullog-eyebrow" id="toolLogEyebrow"></p><h2 class="tb-ullog-title" id="toolLogTitle"></h2>'
+      +'<p class="tb-ullog-sub" id="toolLogSub"></p></div>'
+      +'<button type="button" class="tb-ullog-x" aria-label="Close">'+ic('close',18)+'</button></div>'
+      +'<div class="tb-ullog-body"><iframe id="toolLogFrame" title="Edit log"></iframe></div></div>';
+    // Close: hide, then return focus to the "<Tool> edit log" button that opened it.
+    var closeLog=function(){ if(bg.style.display==='none') return; bg.style.display='none'; bg.classList.remove('is-open');
+      var o=bg._opener; bg._opener=null; if(o&&o.isConnected&&o.focus){ try{ o.focus(); }catch(e){} } };
+    bg.addEventListener('click',function(e){ if(e.target===bg) closeLog(); });
+    bg.querySelector('.tb-ullog-x').onclick=closeLog;
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeLog(); });
     document.body.appendChild(bg);
   }
+  bg._opener=document.activeElement;
+  $('toolLogEyebrow').textContent='PHD Tools \u00b7 '+t.label;
+  $('toolLogSub').textContent='Who added, edited or deleted what, and when (IST & MST). Latest first.';
   $('toolLogTitle').textContent=t.logLabel;
   var fr=$('toolLogFrame');
   fr.setAttribute('title',t.logLabel);
   fr.setAttribute('src', t.logHref+(t.logHref.indexOf('?')>=0?'&':'?')+'embed=1&t='+Date.now());
-  bg.style.display='flex';
-  var x=bg.querySelector('.tool-log-x'); if(x) x.focus();
+  bg.style.display='flex'; bg.classList.add('is-open');
+  var x=bg.querySelector('.tb-ullog-x'); if(x) x.focus();
 }
 window.openLog=openLog;
 

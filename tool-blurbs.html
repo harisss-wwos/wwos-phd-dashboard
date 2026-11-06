@@ -111,15 +111,10 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .edit-area textarea{min-height:200px;line-height:1.6;resize:vertical}
 .edit-area label{display:block;color:var(--tm);font-size:.8em;font-weight:700;margin:10px 0 6px}
 .msg{font-size:.85em;margin-top:10px;display:none}.msg.err{color:var(--rl)}.msg.ok{color:var(--gl)}
-/* Add-blurb modal */
-.modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#fff;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);max-height:88vh;overflow:auto;padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
-.modal.modal-wide{width:50vw;max-width:50vw}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.modal-head h2{color:#1b2026;font-size:1.05em;font-weight:800}
-.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#1b2026}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2000;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
+/* Pop-ups use the shared .tbl-* dialog shell (topbar-auth.js); only page specifics live here. */
+.tbl-card .blurb-text{border-radius:10px;border-color:#e2e7eb}
+.tbl-card textarea.tbl-fld{min-height:200px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:5px;font-size:.85em;z-index:5100;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
 .toast.show{opacity:1}
 
 /* Global: main content spans the full width, flush with the title bar (no side margins). */
@@ -191,63 +186,75 @@ html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 </div>
 <div class="toast" id="toast"></div>
 
-<div class="modal-bg" id="viewModal" onclick="if(event.target===this)closeViewModal()">
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <h2 id="viewTitle" style="color:#1b2026"></h2>
-      <button class="modal-close" onclick="closeViewModal()" aria-label="Close">&times;</button>
+<!-- Pop-ups: the shared .tbl-* dialog shell from topbar-auth.js (navy header, icon tile, eyebrow,
+     title, sub, header X; white body; outlined Cancel + orange/red primary). Icons: [data-ic]. -->
+<div class="tbl-bg" id="viewModal" style="display:none" onclick="if(event.target===this)closeViewModal()">
+  <div class="tbl-card tbl-form" role="dialog" aria-modal="true" aria-labelledby="viewTitle" aria-describedby="viewSub">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="clipboard" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">PHD Tools &middot; Common Blurbs</div><h2 class="tbl-title" id="viewTitle"></h2></div>
+      <button type="button" class="tbl-x" onclick="closeViewModal()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub" id="viewSub">Copy this blurb with one click.</p>
     </div>
-    <div id="viewRead">
-      <div class="blurb-text" id="viewText"></div>
-      <div class="meta" id="viewMeta"></div>
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn danger" id="viewDeleteBtn" onclick="confirmDelete()" style="display:none">Delete</button>
-        <button class="btn sec" id="viewEditBtn" onclick="startEdit()">Edit</button>
-        <button class="btn" id="copyBtnModal" onclick="copyCurrent()">📋 Copy</button>
+    <div class="tbl-body">
+      <div id="viewRead">
+        <div class="blurb-text" id="viewText"></div>
+        <div class="tbl-meta" id="viewMeta"></div>
+        <div class="tbl-actions tbl-row">
+          <button type="button" class="tbl-cancel tbl-del tbl-lead" id="viewDeleteBtn" onclick="confirmDelete()" style="display:none"><span data-ic="trash" data-sz="15"></span>Delete</button>
+          <button type="button" class="tbl-cancel" id="viewEditBtn" onclick="startEdit()"><span data-ic="edit" data-sz="15"></span>Edit</button>
+          <button type="button" class="tbl-submit" id="copyBtnModal" onclick="copyCurrent()"></button>
+        </div>
       </div>
-    </div>
-    <div id="viewEdit" style="display:none">
-      <div class="edit-area">
-        <label>Title</label>
-        <input type="text" id="editTitle">
-        <label>Blurb text</label>
-        <textarea id="editText"></textarea>
-        <div class="msg err" id="editErr"></div>
-        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
-          <button class="btn sec" onclick="cancelEdit()">Cancel</button>
-          <button class="btn" onclick="saveEdit()">Save changes</button>
+      <div id="viewEdit" style="display:none">
+        <div class="tbl-field"><label class="tbl-label" for="editTitle">Title</label>
+          <input type="text" class="tbl-fld" id="editTitle"></div>
+        <div class="tbl-field"><label class="tbl-label" for="editText">Blurb text</label>
+          <textarea class="tbl-fld" id="editText"></textarea></div>
+        <div class="tbl-err" id="editErr" role="alert"></div>
+        <div class="tbl-actions tbl-row">
+          <button type="button" class="tbl-cancel" onclick="cancelEdit()">Cancel</button>
+          <button type="button" class="tbl-submit" onclick="saveEdit()"><span data-ic="check" data-sz="15"></span>Save changes</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()" style="z-index:2100">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-head"><h2 style="color:#ff5252">Delete blurb?</h2><button class="modal-close" onclick="closeConfirm()" aria-label="Close">&times;</button></div>
-    <p id="confirmText" style="color:var(--t);font-size:.9em;line-height:1.6;margin:6px 0 4px"></p>
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeConfirm()">Cancel</button>
-      <button class="btn danger" onclick="doDelete()">Delete</button>
+<div class="tbl-bg" id="confirmModal" style="display:none" onclick="if(event.target===this)closeConfirm()">
+  <div class="tbl-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <div class="tbl-head">
+      <span class="tbl-head-ic tbl-ic-danger" aria-hidden="true" data-ic="trash" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">PHD Tools &middot; Common Blurbs</div><h2 class="tbl-title" id="confirmTitle">Delete blurb?</h2></div>
+      <button type="button" class="tbl-x" onclick="closeConfirm()" aria-label="Close" data-ic="close" data-sz="18"></button>
+    </div>
+    <div class="tbl-body">
+      <p class="tbl-msg" id="confirmText"></p>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" id="confirmNo" onclick="closeConfirm()">Cancel</button>
+        <button type="button" class="tbl-danger" onclick="doDelete()"><span data-ic="trash" data-sz="15"></span>Delete</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="modal-bg" id="addModal" onclick="if(event.target===this)closeAddModal()">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>➕ Add New Blurb</h2>
-      <button class="modal-close" onclick="closeAddModal()" aria-label="Close">&times;</button>
+<div class="tbl-bg" id="addModal" style="display:none" onclick="if(event.target===this)closeAddModal()">
+  <div class="tbl-card tbl-form" role="dialog" aria-modal="true" aria-labelledby="addTitle" aria-describedby="addSub">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="plus" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">PHD Tools &middot; Common Blurbs</div><h2 class="tbl-title" id="addTitle">Add New Blurb</h2></div>
+      <button type="button" class="tbl-x" onclick="closeAddModal()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub" id="addSub">Add a reusable blurb that agents can copy with one click.</p>
     </div>
-    <div class="edit-area">
-      <label>Title</label>
-      <input type="text" id="newTitle" placeholder="e.g. Out of Scope (GSOC Tickets)">
-      <label>Blurb text</label>
-      <textarea id="newText" placeholder="Enter the blurb text users will copy…"></textarea>
-      <div class="msg err" id="addErr"></div>
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn sec" onclick="closeAddModal()">Cancel</button>
-        <button class="btn" onclick="addBlurb()">Add blurb</button>
+    <div class="tbl-body">
+      <div class="tbl-field"><label class="tbl-label" for="newTitle">Title</label>
+        <input type="text" class="tbl-fld" id="newTitle" placeholder="e.g. Out of Scope (GSOC Tickets)"></div>
+      <div class="tbl-field"><label class="tbl-label" for="newText">Blurb text</label>
+        <textarea class="tbl-fld" id="newText" placeholder="Enter the blurb text users will copy…"></textarea></div>
+      <div class="tbl-err" id="addErr" role="alert"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" onclick="closeAddModal()">Cancel</button>
+        <button type="button" class="tbl-submit" onclick="addBlurb()"><span data-ic="plus" data-sz="15"></span>Add blurb</button>
       </div>
     </div>
   </div>
@@ -255,10 +262,18 @@ html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 
 <script src="icons.js?v=2"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=222"></script>
+<script src="topbar-auth.js?v=223"></script>
 <script>
 const A=window.PHDAuth;
 let BLURBS=[];
+// Pop-up helpers: fill [data-ic] icon slots (icons.js) and register open/close with the shared dialog
+// helper (Esc closes the top pop-up, Tab stays inside it, focus returns to the opener).
+document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.insertAdjacentHTML('afterbegin',window.icon(el.getAttribute('data-ic'),+el.getAttribute('data-sz')||16)); });
+function dlgOpen(id,close,first){const bg=document.getElementById(id);bg.style.display='flex';if(window.PHDLoginUI)window.PHDLoginUI.opened(bg,close,first||null);else if(first)setTimeout(()=>first.focus(),40);}
+function dlgClose(id){const bg=document.getElementById(id);if(bg.style.display==='none')return;bg.style.display='none';if(window.PHDLoginUI)window.PHDLoginUI.closed(bg);}
+const COPY_LBL=()=>(window.icon?window.icon('copy',15):'')+'Copy';
+const COPIED_LBL=()=>(window.icon?window.icon('check',15):'')+'Copied';
+const VIEW_SUB='Copy this blurb with one click.', EDIT_SUB='Edit the title or text, then save your changes.';
 // Most-copied first (stable: ties keep the server's manual order). Applied whenever the list is
 // loaded (cache paint + fresh fetch). Copying a blurb updates its count in place WITHOUT re-sorting,
 // so cards don't jump under the cursor; the new order applies on the next load.
@@ -379,17 +394,18 @@ function openViewModal(i){
   document.getElementById('viewDeleteBtn').style.display=editor?'':'none';
   document.getElementById('viewRead').style.display='';
   document.getElementById('viewEdit').style.display='none';
-  document.getElementById('copyBtnModal').textContent='📋 Copy';
-  document.getElementById('copyBtnModal').classList.remove('copied');
-  document.getElementById('viewModal').style.display='flex';
+  document.getElementById('viewSub').textContent=VIEW_SUB;
+  document.getElementById('copyBtnModal').innerHTML=COPY_LBL();
+  document.getElementById('copyBtnModal').classList.remove('is-copied');
+  dlgOpen('viewModal',closeViewModal,document.getElementById('copyBtnModal'));
 }
-function closeViewModal(){document.getElementById('viewModal').style.display='none';VIEW_INDEX=null;}
+function closeViewModal(){dlgClose('viewModal');VIEW_INDEX=null;}
 
 function copyCurrent(){
   if(VIEW_INDEX==null)return;
   const text=BLURBS[VIEW_INDEX].text;
   const idx=VIEW_INDEX;
-  const done=()=>{const btn=document.getElementById('copyBtnModal');btn.textContent='✓ Copied';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy';btn.classList.remove('copied');},1600);toast('Blurb copied to clipboard');recordCopy(idx);};
+  const done=()=>{const btn=document.getElementById('copyBtnModal');btn.innerHTML=COPIED_LBL();btn.classList.add('is-copied');setTimeout(()=>{btn.innerHTML=COPY_LBL();btn.classList.remove('is-copied');},1600);toast('Blurb copied to clipboard');recordCopy(idx);};
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
   else fallbackCopy(text,done);
 }
@@ -404,8 +420,10 @@ function startEdit(){
   document.getElementById('editErr').style.display='none';
   document.getElementById('viewRead').style.display='none';
   document.getElementById('viewEdit').style.display='';
+  document.getElementById('viewSub').textContent=EDIT_SUB;
+  setTimeout(()=>document.getElementById('editTitle').focus(),40);
 }
-function cancelEdit(){document.getElementById('viewRead').style.display='';document.getElementById('viewEdit').style.display='none';}
+function cancelEdit(){document.getElementById('viewRead').style.display='';document.getElementById('viewEdit').style.display='none';document.getElementById('viewSub').textContent=VIEW_SUB;document.getElementById('viewEditBtn').focus();}
 
 async function saveEdit(){
   if(VIEW_INDEX==null)return;
@@ -424,9 +442,9 @@ function confirmDelete(){
   if(VIEW_INDEX==null||!canEdit())return;
   const b=BLURBS[VIEW_INDEX];
   document.getElementById('confirmText').innerHTML='Delete the blurb <b>"'+esc(b.title)+'"</b>? This cannot be undone.';
-  document.getElementById('confirmModal').style.display='flex';
+  dlgOpen('confirmModal',closeConfirm,document.getElementById('confirmNo'));
 }
-function closeConfirm(){document.getElementById('confirmModal').style.display='none';}
+function closeConfirm(){dlgClose('confirmModal');}
 async function doDelete(){
   if(VIEW_INDEX==null)return;
   const b=BLURBS[VIEW_INDEX];
@@ -436,8 +454,8 @@ async function doDelete(){
   else{toast((r.data&&r.data.error)||('Delete failed (HTTP '+r.status+')'));}
 }
 
-function openAddModal(){document.getElementById('addModal').style.display='flex';document.getElementById('newTitle').value='';document.getElementById('newText').value='';document.getElementById('addErr').style.display='none';setTimeout(()=>document.getElementById('newTitle').focus(),40);}
-function closeAddModal(){document.getElementById('addModal').style.display='none';}
+function openAddModal(){document.getElementById('newTitle').value='';document.getElementById('newText').value='';document.getElementById('addErr').style.display='none';dlgOpen('addModal',closeAddModal,document.getElementById('newTitle'));}
+function closeAddModal(){dlgClose('addModal');}
 
 async function addBlurb(){
   const title=document.getElementById('newTitle').value.trim();

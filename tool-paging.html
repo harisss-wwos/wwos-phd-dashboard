@@ -94,13 +94,8 @@ h1{color:#1b2026;font-size:1.7em;margin-bottom:6px}
 .pg-content .pg-email{color:#2b66c1;font-size:.9em;word-break:break-all;
   background:#f7f8fa;border:1px solid #eceef1;border-radius:5px;padding:14px 16px}
 .pg-admin{display:flex;gap:8px;margin-top:12px}
-.modal-bg{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
-.modal{background:#fff;border:1px solid var(--bd);border-radius:5px;width:50vw;max-width:50vw;min-width:min(92vw,420px);padding:24px;box-shadow:0 24px 60px -20px rgba(20,40,70,.5)}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.modal-head h2{color:#1b2026;font-size:1.05em;font-weight:800}
-.modal-close{background:transparent;border:none;color:var(--tm);font-size:1.6em;line-height:1;cursor:pointer;padding:0 4px}
-.modal-close:hover{color:#1b2026}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:5px;font-size:.85em;z-index:2200;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
+/* Pop-ups use the shared .tbl-* dialog shell (topbar-auth.js). */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b2026;border:1px solid #1b2026;color:#fff;padding:10px 18px;border-radius:5px;font-size:.85em;z-index:5100;opacity:0;transition:opacity .2s;box-shadow:0 10px 30px -10px rgba(20,40,70,.5)}
 .toast.show{opacity:1}
 
 /* Global: main content spans 90% of the viewport at all sizes. */
@@ -161,67 +156,88 @@ html[data-embedded] body[data-embedded="true"]{overflow-y:hidden!important}
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- Pop-ups: the shared .tbl-* dialog shell from topbar-auth.js (navy header, icon tile, eyebrow,
+     title, sub, header X; white body; outlined Cancel + orange/red primary). Icons: [data-ic]. -->
 <!-- Add region popup (admin+) -->
-<div class="modal-bg" id="addModal" onclick="if(event.target===this)closeAddModal()">
-  <div class="modal">
-    <div class="modal-head"><h2>➕ Add Region</h2><button class="modal-close" onclick="closeAddModal()" aria-label="Close">&times;</button></div>
-    <div class="edit-area">
-      <label>Country</label>
-      <input type="text" id="newCountry" placeholder="e.g. Brazil">
-      <label>Code</label>
-      <input type="text" id="newCode" placeholder="e.g. BR">
-      <label>Email</label>
-      <input type="text" id="newEmail" placeholder="e.g. sds-ecr-adhoc@amazon.com.br">
-      <div class="msg err" id="addErr"></div>
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
-        <button class="btn sec" onclick="closeAddModal()">Cancel</button>
-        <button class="btn" onclick="addContact()">Add region</button>
+<div class="tbl-bg" id="addModal" style="display:none" onclick="if(event.target===this)closeAddModal()">
+  <div class="tbl-card tbl-form" role="dialog" aria-modal="true" aria-labelledby="addTitle" aria-describedby="addSub">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="plus" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">PHD Tools &middot; Paging Contacts</div><h2 class="tbl-title" id="addTitle">Add Region</h2></div>
+      <button type="button" class="tbl-x" onclick="closeAddModal()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub" id="addSub">Add a country and the paging email agents should contact.</p>
+    </div>
+    <div class="tbl-body">
+      <div class="tbl-field"><label class="tbl-label" for="newCountry">Country</label>
+        <input type="text" class="tbl-fld" id="newCountry" placeholder="e.g. Brazil"></div>
+      <div class="tbl-field"><label class="tbl-label" for="newCode">Code</label>
+        <input type="text" class="tbl-fld" id="newCode" placeholder="e.g. BR"></div>
+      <div class="tbl-field"><label class="tbl-label" for="newEmail">Email</label>
+        <input type="text" class="tbl-fld" id="newEmail" placeholder="e.g. sds-ecr-adhoc@amazon.com.br"></div>
+      <div class="tbl-err" id="addErr" role="alert"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" onclick="closeAddModal()">Cancel</button>
+        <button type="button" class="tbl-submit" onclick="addContact()"><span data-ic="plus" data-sz="15"></span>Add region</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Edit region popup (admin+) -->
-<div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEditModal()">
-  <div class="modal">
-    <div class="modal-head"><h2>Edit Region</h2><button class="modal-close" onclick="closeEditModal()" aria-label="Close">&times;</button></div>
-    <div class="edit-area">
-      <label>Country</label>
-      <input type="text" id="editCountry">
-      <label>Code</label>
-      <input type="text" id="editCode">
-      <label>Email</label>
-      <input type="text" id="editEmail">
-      <div class="msg err" id="editErr"></div>
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between">
-        <button class="btn danger" onclick="confirmDelete()">Delete</button>
-        <div style="display:flex;gap:10px">
-          <button class="btn sec" onclick="closeEditModal()">Cancel</button>
-          <button class="btn" onclick="saveEdit()">Save changes</button>
-        </div>
+<div class="tbl-bg" id="editModal" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="tbl-card tbl-form" role="dialog" aria-modal="true" aria-labelledby="editTitleH" aria-describedby="editSub">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="edit" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">PHD Tools &middot; Paging Contacts</div><h2 class="tbl-title" id="editTitleH">Edit Region</h2></div>
+      <button type="button" class="tbl-x" onclick="closeEditModal()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub" id="editSub">Update the country, code or paging email, then save your changes.</p>
+    </div>
+    <div class="tbl-body">
+      <div class="tbl-field"><label class="tbl-label" for="editCountry">Country</label>
+        <input type="text" class="tbl-fld" id="editCountry"></div>
+      <div class="tbl-field"><label class="tbl-label" for="editCode">Code</label>
+        <input type="text" class="tbl-fld" id="editCode"></div>
+      <div class="tbl-field"><label class="tbl-label" for="editEmail">Email</label>
+        <input type="text" class="tbl-fld" id="editEmail"></div>
+      <div class="tbl-err" id="editErr" role="alert"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel tbl-del tbl-lead" onclick="confirmDelete()"><span data-ic="trash" data-sz="15"></span>Delete</button>
+        <button type="button" class="tbl-cancel" onclick="closeEditModal()">Cancel</button>
+        <button type="button" class="tbl-submit" onclick="saveEdit()"><span data-ic="check" data-sz="15"></span>Save changes</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Confirm delete popup -->
-<div class="modal-bg" id="confirmModal" onclick="if(event.target===this)closeConfirm()" style="z-index:2100">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-head"><h2 style="color:#ff5252">Delete region?</h2><button class="modal-close" onclick="closeConfirm()" aria-label="Close">&times;</button></div>
-    <p id="confirmText" style="color:var(--t);font-size:.9em;line-height:1.6;margin:6px 0 4px"></p>
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn sec" onclick="closeConfirm()">Cancel</button>
-      <button class="btn danger" onclick="doDelete()">Delete</button>
+<div class="tbl-bg" id="confirmModal" style="display:none" onclick="if(event.target===this)closeConfirm()">
+  <div class="tbl-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <div class="tbl-head">
+      <span class="tbl-head-ic tbl-ic-danger" aria-hidden="true" data-ic="trash" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">PHD Tools &middot; Paging Contacts</div><h2 class="tbl-title" id="confirmTitle">Delete region?</h2></div>
+      <button type="button" class="tbl-x" onclick="closeConfirm()" aria-label="Close" data-ic="close" data-sz="18"></button>
+    </div>
+    <div class="tbl-body">
+      <p class="tbl-msg" id="confirmText"></p>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" id="confirmNo" onclick="closeConfirm()">Cancel</button>
+        <button type="button" class="tbl-danger" onclick="doDelete()"><span data-ic="trash" data-sz="15"></span>Delete</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script src="icons.js?v=2"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=222"></script>
+<script src="topbar-auth.js?v=223"></script>
 <script>
 const A=window.PHDAuth;
 let CONTACTS=[];
+// Pop-up helpers: fill [data-ic] icon slots (icons.js) and register open/close with the shared dialog
+// helper (Esc closes the top pop-up, Tab stays inside it, focus returns to the opener).
+document.querySelectorAll('[data-ic]').forEach(function(el){ if(window.icon) el.insertAdjacentHTML('afterbegin',window.icon(el.getAttribute('data-ic'),+el.getAttribute('data-sz')||16)); });
+function dlgOpen(id,close,first){const bg=document.getElementById(id);bg.style.display='flex';if(window.PHDLoginUI)window.PHDLoginUI.opened(bg,close,first||null);else if(first)setTimeout(()=>first.focus(),40);}
+function dlgClose(id){const bg=document.getElementById(id);if(bg.style.display==='none')return;bg.style.display='none';if(window.PHDLoginUI)window.PHDLoginUI.closed(bg);}
 const canAdd=()=>A.canEditTools&&A.canEditTools();
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
@@ -316,8 +332,8 @@ function recordCopy(i){
 }
 function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}ta.remove();done();}
 
-function openAddModal(){document.getElementById('addModal').style.display='flex';document.getElementById('newCountry').value='';document.getElementById('newCode').value='';document.getElementById('newEmail').value='';document.getElementById('addErr').style.display='none';setTimeout(()=>document.getElementById('newCountry').focus(),40);}
-function closeAddModal(){document.getElementById('addModal').style.display='none';}
+function openAddModal(){document.getElementById('newCountry').value='';document.getElementById('newCode').value='';document.getElementById('newEmail').value='';document.getElementById('addErr').style.display='none';dlgOpen('addModal',closeAddModal,document.getElementById('newCountry'));}
+function closeAddModal(){dlgClose('addModal');}
 async function addContact(){
   const country=document.getElementById('newCountry').value.trim();
   const code=document.getElementById('newCode').value.trim();
@@ -337,10 +353,9 @@ function openEditModal(i){
   document.getElementById('editCode').value=c.code;
   document.getElementById('editEmail').value=c.email;
   document.getElementById('editErr').style.display='none';
-  document.getElementById('editModal').style.display='flex';
-  setTimeout(()=>document.getElementById('editCountry').focus(),40);
+  dlgOpen('editModal',closeEditModal,document.getElementById('editCountry'));
 }
-function closeEditModal(){document.getElementById('editModal').style.display='none';EDIT_INDEX=null;}
+function closeEditModal(){dlgClose('editModal');EDIT_INDEX=null;}
 async function saveEdit(){
   if(EDIT_INDEX==null)return;const c=CONTACTS[EDIT_INDEX];
   const country=document.getElementById('editCountry').value.trim();
@@ -355,9 +370,9 @@ async function saveEdit(){
 function confirmDelete(){
   if(EDIT_INDEX==null)return;const c=CONTACTS[EDIT_INDEX];
   document.getElementById('confirmText').innerHTML='Delete the paging contact for <b>'+esc(c.country)+' ('+esc(c.code)+')</b>? This cannot be undone.';
-  document.getElementById('confirmModal').style.display='flex';
+  dlgOpen('confirmModal',closeConfirm,document.getElementById('confirmNo'));
 }
-function closeConfirm(){document.getElementById('confirmModal').style.display='none';}
+function closeConfirm(){dlgClose('confirmModal');}
 async function doDelete(){
   if(EDIT_INDEX==null)return;const c=CONTACTS[EDIT_INDEX];
   const r=await A.api('DELETE','/api/paging/'+c.id);
