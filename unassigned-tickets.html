@@ -376,7 +376,7 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
    "Assigned to you" bucket pop-up (its base width lives in topbar-auth.js). */
 .tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:80vw!important;max-width:80vw!important}
 @media(max-width:719px){.tbl-bg .tbl-card.ac-card,.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important}}
-.ac-card .ac-k{display:block;margin:18px 0 8px;color:#2a3340;font-size:.8em;font-weight:800;letter-spacing:.2px}
+.ac-card .ac-k{display:block;margin:12px 0 6px;color:#2a3340;font-size:.8em;font-weight:800;letter-spacing:.2px}
 .ac-card .ac-segs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .ac-card .ac-opt{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:pointer;min-width:0}
 .ac-card .ac-opt:hover{border-color:#9aa6b1}
@@ -386,8 +386,37 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-card .ac-segs .ac-opt{flex-direction:column;align-items:flex-start;gap:2px}
 .ac-card .ac-opt-t{font-weight:800;color:#1b2026;font-size:.95em}
 .ac-card .ac-opt-s{font-size:.76em;font-weight:600;color:#5c6773}
-.ac-card .ac-agents{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto;padding:2px}
-.ac-card .ac-agents .ua-av{width:30px;height:30px;font-size:.82em}
+/* Compact shell so every step fits the 80vw pop-up without an inner scroll bar (the card itself only
+   scrolls, via the shared .tbl-card max-height, on very small viewports). */
+.ac-card .tbl-head{padding:16px 22px 14px 24px}
+.ac-card .tbl-body{padding:14px 22px 18px}
+.ac-card .tbl-msg{margin:0}
+/* Step 2: one compact row per agent in a responsive grid, ticket count input at the row end. */
+.ac-card .ac-agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:6px;padding:2px}
+.ac-card .ac-agents .ua-av{width:26px;height:26px;font-size:.78em;flex-shrink:0}
+.ac-card .ac-arow{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 6px 4px 10px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:pointer;min-width:0}
+.ac-card .ac-arow:hover{border-color:#9aa6b1}
+.ac-card .ac-arow.is-on{border-color:#ec7211;background:#fff3e8}
+.ac-card .ac-arow:focus-within{box-shadow:0 0 0 2px #f0a35a}
+.ac-card .ac-arow .ac-opt-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-card input.ac-anum{flex:0 0 auto;width:64px;height:30px;padding:0 8px;border:1px solid #cdd4db;border-radius:8px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:.9em;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.ac-card input.ac-anum:focus{outline:3px solid #1577a0;outline-offset:1px;background:#fff;border-color:#ec7211}
+.ac-card input.ac-anum[aria-invalid="true"]{border-color:#d92d20}
+.ac-card .ac-asum{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 0;font-size:.86em;color:#2a3340;font-variant-numeric:tabular-nums}
+.ac-card .ac-asum b{color:#1b2026}
+.ac-card .ac-asum .is-rem{color:#9a4100}
+/* Step 3: review, one card per agent with its ticket ID chips (wrapping, no inner scroll). */
+.ac-card .ac-rev{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;margin:12px 0 0;padding:0}
+.ac-card .ac-rv{padding:8px 10px;border:1px solid #e2e7eb;border-radius:10px;background:#f7f9fb;min-width:0}
+.ac-card .ac-rv-h{display:flex;align-items:center;gap:8px;min-width:0}
+.ac-card .ac-rv-h .ua-av{width:26px;height:26px;font-size:.78em;flex-shrink:0}
+.ac-card .ac-rv-h .ac-opt-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-card .ac-st{padding:1px 8px;border-radius:99px;font-size:.72em;font-weight:800;white-space:nowrap;border:1px solid #e2e6ea;background:#fff;color:#3a4552}
+.ac-card .ac-st.is-run{border-color:#c9daf3;background:#e9f0fb;color:#1f5fbf}
+.ac-card .ac-st.is-ok{border-color:#b7e1c6;background:#ecf8f0;color:#1d7a43}
+.ac-card .ac-st.is-err{border-color:#efc2bd;background:#fdeceb;color:#b42318}
+.ac-card .ac-rv .ac-ids{margin:6px 0 0;padding:0;border:0}
+.ac-card .ac-rest{margin:10px 0 0;color:#5c6773;font-size:.8em;line-height:1.45}
 .ac-card .ac-agent-n{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
 .ac-card .ac-cnt{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .ac-card .ac-chip{padding:2px 8px;border-radius:99px;background:#f1f3f5;border:1px solid #e2e6ea;color:#3a4552;font-size:.74em;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -400,7 +429,7 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-card input.ac-num[aria-invalid="true"]{border-color:#d92d20}
 .ac-card .ac-hint{margin:6px 0 0;color:#5c6773;font-size:.78em;line-height:1.45}
 .ac-card .ac-hint.is-bad{color:#b42318;font-weight:700}
-.ac-card .ac-ids{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:10px;max-height:120px;overflow:auto;border:1px dashed #d4dade;border-radius:10px}
+.ac-card .ac-ids{list-style:none;display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 0;padding:10px;border:1px dashed #d4dade;border-radius:10px}
 .ac-card .ac-ids li{padding:2px 8px;border-radius:6px;background:#e9f0fb;border:1px solid #c9daf3;color:#1f5fbf;font-size:.78em;font-weight:800;font-variant-numeric:tabular-nums}
 .ac-card .tbl-actions.tbl-row{flex-wrap:wrap}
 .ac-card .tbl-row .ac-back{margin-right:auto!important}
@@ -822,8 +851,27 @@ async function revokeEntry(id){
   load(true).then(function(){ var f=document.querySelector(back)||$('uaLogT'); if(f) f.focus({preventScroll:true}); announce(msg); });
 }
 
-// ---- Assign pop-up: group -> agent -> how many (admins only; the server re-checks everything) ----
-var ASG=null;   // { k, label, rows:[selected rows in order], step, group, agent, n, busy }
+// ---- Assign pop-up: group -> split across agents -> review (admins only; the server re-checks everything) ----
+// ASG = { k, label, rows:[selected rows, oldest first], step, group, alloc:{login:n}, bad:{login:true},
+//         st:{login:'wait'|'run'|'ok'|'err'|'skip'}, done:{login:count}, locked, busy, err, msg }
+var ASG=null;
+// Pure: split rows (already oldest first) across agents in the listed order. counts = {login:n}.
+// Returns { ok, error, total, plan:[{login, rows}], rest:[rows left unallocated] }. ok=false when a
+// count is not a whole number >= 0 or the total exceeds the selection.
+function asgAllocate(rows,logins,counts){
+  var N=rows.length, total=0, plan=[], bad='';
+  logins.forEach(function(l){
+    var v=counts?counts[l]:0, n=(v==null||v==='')?0:Number(v);
+    if(!(n>=0)||Math.floor(n)!==n){ if(!bad) bad='Enter a whole number of tickets for '+l+'.'; return; }
+    total+=n; if(n>0) plan.push({login:l,n:n});
+  });
+  if(bad) return {ok:false,error:bad,total:total,plan:[],rest:rows.slice()};
+  if(total>N) return {ok:false,error:'Allocated '+total+' but only '+N+' selected.',total:total,plan:[],rest:rows.slice()};
+  var i=0; plan=plan.map(function(p){ var o={login:p.login,rows:rows.slice(i,i+p.n)}; i+=p.n; return o; });
+  return {ok:true,error:'',total:total,plan:plan,rest:rows.slice(i)};
+}
+function asgPlan(){ return asgAllocate(ASG.rows,agentsOf(ASG.group).map(function(a){ return a.login; }),ASG.alloc); }
+function asgValid(){ var p=asgPlan(); return p.ok&&p.total>=1&&!Object.keys(ASG.bad).length; }
 function agentsOf(gname){
   var g=((DATA&&DATA.groups)||[]).filter(function(x){ return x.name===gname; })[0], people={}, wait={};
   admins().concat(contractors()).forEach(function(p){ people[String(p.login||'')]=p; });
@@ -832,7 +880,6 @@ function agentsOf(gname){
   return (g?g.members:[]).filter(function(l){ return !!people[l]; }).map(function(l){
     return { login:l, open:(people[l].counts&&people[l].counts.total)||0, waiting:wait[l]||0 }; });
 }
-function asgAgent(){ return ASG?agentsOf(ASG.group).filter(function(a){ return a.login===ASG.agent; })[0]||null:null; }
 function asgBodyHtml(){
   var N=ASG.rows.length, lbl=esc(ASG.label), btns;
   var cancel='<button type="button" class="tbl-cancel" data-acx="cancel"'+(ASG.busy?' disabled':'')+'>Cancel</button>';
@@ -845,34 +892,52 @@ function asgBodyHtml(){
       '<div class="tbl-actions tbl-row">'+cancel+'<button type="button" class="tbl-submit" data-acstep="2"'+(ASG.group?'':' disabled')+'>Next'+nextIc()+'</button></div>';
   }
   if(ASG.step===2){
-    var ags=agentsOf(ASG.group).map(function(a){
-      return '<label class="ac-opt"><input type="radio" name="acAgent" value="'+esc(a.login)+'"'+(ASG.agent===a.login?' checked':'')+'>'+avatar(a.login)+
+    // One row per agent; the whole row is the input's <label>, so clicking it focuses the count.
+    var ags=agentsOf(ASG.group).map(function(a,i){ var v=ASG.alloc[a.login]||0;
+      return '<label class="ac-arow'+(v>0?' is-on':'')+'" for="acA-'+i+'">'+avatar(a.login)+
         '<span class="ac-agent-n"><span class="ac-opt-t">'+esc(a.login)+(a.login===me()?' <span class="ua-you">You</span>':'')+'</span></span>'+
         '<span class="ac-cnt"><span class="ac-chip" title="Assigned + Work In Progress + Pending in SIM">'+num(a.open)+' open</span>'+
-        '<span class="ac-chip'+(a.waiting?' is-wait':'')+'" title="Assigned from the dashboard, not picked up yet">'+num(a.waiting)+' waiting</span></span></label>'; }).join('');
-    return nsel+'<span class="ac-k" id="acAgK">Choose an agent in '+esc(ASG.group)+'</span><div class="ac-agents" role="radiogroup" aria-labelledby="acAgK">'+(ags||'<p class="ua-none">No registered agents in this group.</p>')+'</div>'+
-      '<div class="tbl-actions tbl-row">'+back(1)+cancel+'<button type="button" class="tbl-submit" data-acstep="3"'+(ASG.agent?'':' disabled')+'>Next'+nextIc()+'</button></div>';
+        '<span class="ac-chip'+(a.waiting?' is-wait':'')+'" title="Assigned from the dashboard, not picked up yet">'+num(a.waiting)+' waiting</span></span>'+
+        '<input type="number" class="ac-anum" id="acA-'+i+'" data-agent="'+esc(a.login)+'" min="0" step="1" inputmode="numeric" placeholder="0"'+
+          ' value="'+(v>0?v:'')+'" aria-label="Tickets for '+esc(a.login)+'" aria-describedby="acSum"'+(ASG.bad[a.login]?' aria-invalid="true"':'')+'></label>'; }).join('');
+    return nsel+'<span class="ac-k" id="acAgK">Choose an agent in '+esc(ASG.group)+' \u00b7 enter how many tickets each one gets</span>'+
+      '<div class="ac-agents" role="group" aria-labelledby="acAgK">'+(ags||'<p class="ua-none">No registered agents in this group.</p>')+'</div>'+
+      '<p class="ac-asum" id="acSum" aria-live="polite">'+asgSumHtml()+'</p>'+
+      '<p class="ac-hint is-bad" id="acAMsg" aria-live="polite">'+esc(ASG.msg||'')+'</p>'+
+      '<div class="tbl-actions tbl-row">'+back(1)+cancel+'<button type="button" class="tbl-submit" id="acNext" data-acstep="3"'+(asgValid()?'':' disabled')+'>Next'+nextIc()+'</button></div>';
   }
-  var a=asgAgent()||{login:ASG.agent,open:0,waiting:0}, k=ASG.n, ok=asgNOk();
-  return '<dl class="ac-sum"><dt>Assigning as</dt><dd>'+esc(me())+'</dd>'+
-      '<dt>Agent</dt><dd>'+esc(a.login)+' ('+esc(ASG.group)+') \u00b7 '+num(a.open)+' open ticket'+(a.open===1?'':'s')+(a.waiting?' \u00b7 '+num(a.waiting)+' waiting to pick up':'')+'</dd>'+
-      '<dt>Selected</dt><dd>'+num(N)+' selected from '+lbl+'</dd></dl>'+
-    '<label class="ac-k" for="acN">How many to assign</label>'+
-    '<input type="number" class="ac-num" id="acN" min="1" max="'+N+'" step="1" inputmode="numeric" value="'+(isNaN(k)?'':k)+'" aria-describedby="acNH"'+(ok?'':' aria-invalid="true"')+(ASG.busy?' disabled':'')+'>'+
-    '<div id="acNDyn">'+asgNDynHtml()+'</div>'+
-    '<p class="tbl-err" id="acErr" role="alert"></p>'+
-    '<div class="tbl-actions tbl-row">'+back(2)+cancel+'<button type="button" class="tbl-submit" id="acGo"'+((ok&&!ASG.busy)?'':' disabled')+(ASG.busy?' aria-busy="true"':'')+'>'+asgGoLabel()+'</button></div>';
+  // Step 3: review. Agents in list order, tickets oldest first.
+  var p=asgPlan(), todo=asgTodo(p), lock=ASG.locked;
+  var stLbl={wait:'Queued',run:'Assigning\u2026',ok:'Assigned',err:'Failed',skip:'Not sent'};
+  var cards=p.plan.map(function(x){ var s=ASG.st[x.login], n=x.rows.length;
+    return '<li class="ac-rv"><div class="ac-rv-h">'+avatar(x.login)+'<span class="ac-opt-t">'+esc(x.login)+'</span>'+
+      '<span class="ac-chip">'+plural(n,'ticket')+'</span>'+(s?'<span class="ac-st is-'+s+'">'+stLbl[s]+'</span>':'')+'</div>'+
+      '<ul class="ac-ids" aria-label="Tickets for '+esc(x.login)+'">'+x.rows.map(function(r){ return '<li>'+esc(r.shortId)+'</li>'; }).join('')+'</ul></li>'; }).join('');
+  var rest=p.rest.length?'<p class="ac-rest">'+plural(p.rest.length,'ticket')+' not allocated '+(p.rest.length===1?'stays':'stay')+' selected and unassigned: '+
+    p.rest.map(function(r){ return esc(r.shortId); }).join(', ')+'</p>':'';
+  return '<dl class="ac-sum"><dt>Assigning as</dt><dd>'+esc(me())+'</dd><dt>Group</dt><dd>'+esc(ASG.group)+'</dd>'+
+      '<dt>Selected</dt><dd>'+num(N)+' selected from '+lbl+' \u00b7 '+num(p.total)+' allocated</dd></dl>'+
+    '<ul class="ac-rev" aria-label="Tickets per agent">'+cards+'</ul>'+rest+
+    '<p class="ac-hint" id="acProg" aria-live="polite">'+esc(ASG.prog||'')+'</p>'+
+    '<p class="tbl-err'+(ASG.err?' is-on':'')+'" id="acErr" role="alert">'+esc(ASG.err||'')+'</p>'+
+    '<div class="tbl-actions tbl-row">'+(lock?'':back(2))+
+      (lock?'<button type="button" class="tbl-cancel" data-acx="cancel"'+(ASG.busy?' disabled':'')+'>Close</button>':cancel)+
+      (todo.length?'<button type="button" class="tbl-submit" id="acGo"'+(ASG.busy?' disabled aria-busy="true"':'')+'>'+asgGoLabel(todo)+'</button>':'')+'</div>';
 }
-function asgNOk(){ var k=ASG.n; return k>=1&&k<=ASG.rows.length&&Math.floor(k)===k; }
-// Hint + the IDs that will be assigned (first K of the selection, in the section's order).
-function asgNDynHtml(){
-  var k=ASG.n, N=ASG.rows.length, ok=asgNOk();
-  return '<p class="ac-hint'+(ok?'':' is-bad')+'" id="acNH">'+(ok?('The first '+num(k)+' of the '+num(N)+' selected ticket'+(N===1?'':'s')+' ('+sortLabel().toLowerCase()+') will be assigned:'):('Enter a whole number from 1 to '+num(N)+'.'))+'</p>'+
-    (ok?'<ul class="ac-ids" aria-label="Tickets to assign">'+ASG.rows.slice(0,k).map(function(r){ return '<li>'+esc(r.shortId)+'</li>'; }).join('')+'</ul>':'');
+// Live allocation summary (step 2).
+function asgSumHtml(){
+  var N=ASG.rows.length, t=asgPlan().total, r=Math.max(0,N-t);
+  return '<span>Allocated <b>'+num(t)+'</b> of <b>'+num(N)+'</b> selected</span><span class="'+(r?'is-rem':'')+'">Remaining <b>'+num(r)+'</b></span>';
 }
-function asgGoLabel(){ var k=ASG.n, ok=asgNOk(); return ASG.busy?'Assigning\u2026':('Assign '+(ok?num(k)+' ':'')+'ticket'+(ok&&k===1?'':'s')+' to '+esc(ASG.agent)); }
+// Plan entries still to send (everything not assigned yet).
+function asgTodo(p){ return (p||asgPlan()).plan.filter(function(x){ return ASG.st[x.login]!=='ok'; }); }
+function asgGoLabel(todo){
+  if(ASG.busy) return 'Assigning\u2026';
+  var t=0; todo.forEach(function(x){ t+=x.rows.length; });
+  return (ASG.locked?'Retry: assign ':'Assign ')+plural(t,'ticket')+' to '+plural(todo.length,'agent');
+}
 function nextIc(){ return ic('chevron-down',14).replace('<svg','<svg style="transform:rotate(-90deg)"'); }
-var ASG_SUB={1:'Step 1 of 3 \u00b7 Choose a group',2:'Step 2 of 3 \u00b7 Choose an agent',3:'Step 3 of 3 \u00b7 How many to assign'};
+var ASG_SUB={1:'Step 1 of 3 \u00b7 Choose a group',2:'Step 2 of 3 \u00b7 Split the tickets across agents',3:'Step 3 of 3 \u00b7 Review and assign'};
 function asgPaint(focusSel){
   var ov=$('uaAsgDlg'); if(!ov||!ASG) return;
   $('uaAsgSub').textContent=ASG_SUB[ASG.step];
@@ -919,7 +984,8 @@ function asgOpen(k){
   if(!isAdmin()) return;
   var rows=selIn(k); if(!rows.length) return;
   asgClose(true);
-  ASG={k:k,label:bLabel(k),rows:rows,step:1,group:'',agent:'',n:rows.length,busy:false};
+  // Allocation always hands out the oldest tickets first, whatever the section's sort.
+  ASG={k:k,label:bLabel(k),rows:rows.slice().sort(byAge(1)),step:1,group:'',alloc:{},bad:{},st:{},done:{},locked:false,busy:false,err:'',msg:'',prog:''};
   var ov=document.createElement('div'); ov.id='uaAsgDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
   ov.innerHTML='<div class="tbl-card ac-card" role="dialog" aria-modal="true" aria-labelledby="uaAsgT" aria-describedby="uaAsgSub">'+
     '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic('user-plus',20)+'</span>'+
@@ -935,50 +1001,76 @@ function asgClose(force){
   var ov=$('uaAsgDlg'); ASG=null;
   if(ov){ ov.remove(); if(window.PHDLoginUI) window.PHDLoginUI.closed(ov); }
 }
+// One POST /api/assignment-center/assign per agent (the endpoint takes one assignee per call), sent
+// one after another. Stops at the first failure; agents already assigned are kept (and not re-sent
+// on Retry), the rest are reported.
 async function asgSubmit(){
-  if(!ASG||ASG.busy) return;
-  var k=ASG.n, N=ASG.rows.length; if(!(k>=1&&k<=N)) return;
-  var ids=ASG.rows.slice(0,k).map(function(r){ return String(r.shortId); }), who=ASG.agent;
-  ASG.busy=true; asgPaint('#acGo');
-  var r=null; try{ r=await A.api('POST','/api/assignment-center/assign',{tickets:ids,assignee:who,group:ASG.group,section:ASG.label}); }catch(e){}
-  if(!ASG) return;
-  ASG.busy=false;
-  if(!(r&&r.ok&&r.data&&r.data.ok)){
-    asgPaint('#acGo');
-    var er=$('acErr'); if(er){ er.textContent=errMsg(r,'Could not assign the tickets. Please try again.'); er.classList.add('is-on'); }
+  if(!ASG||ASG.busy||!asgValid()) return;
+  var todo=asgTodo(); if(!todo.length) return;
+  ASG.busy=true; ASG.err=''; todo.forEach(function(x){ ASG.st[x.login]='wait'; });
+  var failed='', em='', sentOk=0;
+  for(var i=0;i<todo.length;i++){
+    var x=todo[i], ids=x.rows.map(function(r){ return String(r.shortId); });
+    ASG.st[x.login]='run'; ASG.prog='Assigning to '+x.login+' ('+(i+1)+' of '+todo.length+' agents)\u2026'; asgPaint('#acGo');
+    var r=null; try{ r=await A.api('POST','/api/assignment-center/assign',{tickets:ids,assignee:x.login,group:ASG.group,section:ASG.label}); }catch(e){}
+    if(!ASG) return;
+    if(r&&r.ok&&r.data&&r.data.ok){ ASG.st[x.login]='ok'; ASG.done[x.login]=Number(r.data.count)||ids.length; ids.forEach(function(s){ SEL.delete(s); }); sentOk++; }
+    else { ASG.st[x.login]='err'; failed=x.login; em=errMsg(r,'Could not assign the tickets. Please try again.'); break; }
+  }
+  todo.forEach(function(x){ if(ASG.st[x.login]==='wait') ASG.st[x.login]='skip'; });
+  ASG.busy=false; ASG.prog='';
+  if(sentOk){ ASG.locked=true; if(window.PHDRefreshMyAssigned) window.PHDRefreshMyAssigned(); }
+  var okL=Object.keys(ASG.done), tot=0; okL.forEach(function(l){ tot+=ASG.done[l]; });
+  var okTxt=okL.map(function(l){ return l+' '+ASG.done[l]; }).join(', ');
+  if(!failed){
+    var k0=ASG.k, msg='Assigned '+plural(tot,'ticket')+' to '+plural(okL.length,'agent')+' ('+okTxt+')';
+    asgClose(true);
+    if(window.PHDBanner) window.PHDBanner.ok(msg); announce(msg);
+    // Refresh in place, then put focus back on the section bar (the Assign button was re-rendered).
+    load(true).then(function(){ var b=$('uaBT-'+k0); if(b) b.focus({preventScroll:true}); });
     return;
   }
-  var n=Number(r.data.count)||k, k0=ASG.k;
-  asgClose(true);
-  ids.forEach(function(s){ SEL.delete(s); });
-  var msg='Assigned '+n+' ticket'+(n===1?'':'s')+' to '+who;
-  if(window.PHDBanner) window.PHDBanner.ok(msg); announce(msg);
-  if(window.PHDRefreshMyAssigned) window.PHDRefreshMyAssigned();
-  // Refresh in place, then put focus back on the section bar (the Assign button was re-rendered).
-  load(true).then(function(){ var b=$('uaBT-'+k0); if(b) b.focus({preventScroll:true}); });
+  var notSent=todo.filter(function(x){ return ASG.st[x.login]==='skip'; }).map(function(x){ return x.login; });
+  ASG.err='Could not assign to '+failed+': '+em+(okL.length?' Assigned: '+okTxt+'.':' Nothing was assigned.')+(notSent.length?' Not sent: '+notSent.join(', ')+'.':'');
+  asgPaint('#acGo');
+  announce(ASG.err);
+  // Some agents got their tickets: refresh the page behind the pop-up (the pop-up stays open).
+  if(sentOk) load(true);
 }
 // Dialog events (delegated on the document; the dialog lives outside #wrap).
 document.addEventListener('click',function(ev){
   var t=ev.target; if(!t||!t.closest||!t.closest('#uaAsgDlg')||!ASG) return;
-  if(t.closest('[data-acx]')){ asgClose(); return; }
-  var st=t.closest('[data-acstep]'); if(st&&!st.disabled){ ASG.step=Number(st.getAttribute('data-acstep'))||1; asgPaint(); return; }
+  if(t.closest('[data-acx]')){ var k0=ASG.k, lk=ASG.locked; asgClose(); if(lk&&!ASG){ var sb=$('uaBT-'+k0); if(sb) sb.focus({preventScroll:true}); } return; }
+  var st=t.closest('[data-acstep]'); if(st&&!st.disabled){ var to=Number(st.getAttribute('data-acstep'))||1; if(to===3&&!asgValid()) return; ASG.step=to; ASG.msg=''; asgPaint(); return; }
   if(t.closest('#acGo')){ asgSubmit(); }
 });
 document.addEventListener('change',function(ev){
   var el=ev.target; if(!el||!ASG||!el.closest||!el.closest('#uaAsgDlg')) return;
-  if(el.name==='acGrp'){ if(ASG.group!==el.value){ ASG.group=el.value; ASG.agent=''; } asgPaint('input[name="acGrp"]:checked'); }
-  else if(el.name==='acAgent'){ ASG.agent=el.value; asgPaint('input[name="acAgent"]:checked'); }
+  if(el.name==='acGrp'){ if(ASG.group!==el.value){ ASG.group=el.value; ASG.alloc={}; ASG.bad={}; ASG.msg=''; } asgPaint('input[name="acGrp"]:checked'); }
 });
+// Step 2 count inputs: update the model + summary / Next in place (no repaint, so typing and focus
+// stay put). The total can never exceed the selection: an over-allocation is clamped to what is left.
 document.addEventListener('input',function(ev){
-  var el=ev.target; if(!el||el.id!=='acN'||!ASG) return;
-  // Update only the hint / ID list / final button so the user's typing is never rewritten.
-  var v=String(el.value).trim(); ASG.n=/^\d+$/.test(v)?Number(v):NaN;
-  var ok=asgNOk(); if(ok) el.removeAttribute('aria-invalid'); else el.setAttribute('aria-invalid','true');
-  var d=$('acNDyn'); if(d) d.innerHTML=asgNDynHtml();
-  var g=$('acGo'); if(g){ g.disabled=!ok; g.innerHTML=asgGoLabel(); }
+  var el=ev.target; if(!el||!ASG||!el.classList||!el.classList.contains('ac-anum')) return;
+  var l=el.getAttribute('data-agent'), v=String(el.value).trim(), N=ASG.rows.length, msg='';
+  var n=(el.validity&&el.validity.badInput)?NaN:(v===''?0:(/^\d+$/.test(v)?Number(v):NaN));
+  if(isNaN(n)){ ASG.bad[l]=true; ASG.alloc[l]=0; el.setAttribute('aria-invalid','true'); msg='Enter a whole number of tickets (0 or more) for '+l+'.'; }
+  else {
+    delete ASG.bad[l]; el.removeAttribute('aria-invalid');
+    var others=0; Object.keys(ASG.alloc).forEach(function(x){ if(x!==l) others+=Number(ASG.alloc[x])||0; });
+    var cap=Math.max(0,N-others);
+    if(n>cap){ n=cap; el.value=String(cap); msg='Only '+plural(cap,'ticket')+' left to allocate, so '+l+' is set to '+num(cap)+'.'; }
+    ASG.alloc[l]=n;
+  }
+  ASG.msg=msg;
+  var row=el.closest('.ac-arow'); if(row) row.classList.toggle('is-on',ASG.alloc[l]>0);
+  var s=$('acSum'); if(s) s.innerHTML=asgSumHtml();
+  var m=$('acAMsg'); if(m) m.textContent=msg;
+  var nx=$('acNext'); if(nx) nx.disabled=!asgValid();
 });
 document.addEventListener('keydown',function(ev){
-  if(ev.key==='Enter'&&ev.target&&ev.target.id==='acN'){ ev.preventDefault(); var g=$('acGo'); if(g&&!g.disabled) asgSubmit(); }
+  var t=ev.target; if(ev.key!=='Enter'||!t||!t.classList||!t.classList.contains('ac-anum')||!ASG) return;
+  ev.preventDefault(); if(asgValid()){ ASG.step=3; ASG.msg=''; asgPaint(); }
 });
 
 function errorHtml(){
@@ -1121,11 +1213,33 @@ document.addEventListener('click',function(ev){
   }
   if(t.closest('#uaCsv')){ exportCsv(); }
 });
+// Shift-click range selection: the last clicked row checkbox per section (bucket key -> ticket ID).
+var LAST_CB={}, SHIFT_CB=false;
+// Pure: the IDs from a to b inclusive in list order (either direction); null when either is missing.
+function rangeIds(ids,a,b){ var i=ids.indexOf(a), j=ids.indexOf(b); if(i<0||j<0) return null; if(i>j){ var t=i; i=j; j=t; } return ids.slice(i,j+1); }
+// Remember whether the row checkbox click had Shift held (the change event has no modifier keys).
+document.addEventListener('click',function(ev){ var t=ev.target; if(t&&t.matches&&t.matches('input.ua-cb[data-sel]')) SHIFT_CB=!!ev.shiftKey; },true);
+// No text selection when Shift-clicking in the checkbox column.
+document.addEventListener('mousedown',function(ev){ var t=ev.target; if(ev.shiftKey&&t&&t.closest&&t.closest('td.ua-c-cb')) ev.preventDefault(); });
 // Row / select-all checkboxes: update the selection, then repaint (keeps the open section + focus).
 document.addEventListener('change',function(ev){
   var el=ev.target; if(!el||!el.classList||!el.classList.contains('ua-cb')) return;
   var sid=el.getAttribute('data-sel'), k=el.getAttribute('data-selall'), focusSel;
-  if(sid){ if(el.checked) SEL.add(sid); else SEL.delete(sid); focusSel='[data-sel="'+sid+'"]'; }
+  if(sid){
+    // Shift+click: every shown row (current sort + Pet / Non-pet filter) between this section's last
+    // clicked row and this one takes this box's new state.
+    var sec=el.closest('.ua-bsec'), sk=sec?sec.id.replace(/^uaB-/,''):'', shift=SHIFT_CB, ids=null;
+    SHIFT_CB=false;
+    if(shift&&sk&&LAST_CB[sk]&&LAST_CB[sk]!==sid){
+      var sg=groups(), shown=sg[sk]?sg[sk].shown:[], rng=rangeIds(shown.map(function(r){ return String(r.shortId||''); }),LAST_CB[sk],sid);
+      if(rng){ var ok={}; shown.filter(selectable).forEach(function(r){ ok[String(r.shortId||'')]=1; }); ids=rng.filter(function(s){ return ok[s]; }); }
+      try{ var ws=window.getSelection&&window.getSelection(); if(ws) ws.removeAllRanges(); }catch(e){}
+    }
+    (ids||[sid]).forEach(function(s){ if(el.checked) SEL.add(s); else SEL.delete(s); });
+    if(sk) LAST_CB[sk]=sid;
+    focusSel='[data-sel="'+sid+'"]';
+    if(ids) announce((el.checked?'Selected ':'Cleared ')+plural(ids.length,'ticket')+' in '+bLabel(sk)+'.');
+  }
   else if(k){
     var g=groups(), av=(g[k]?g[k].shown:[]).filter(selectable);
     av.forEach(function(r){ var s=String(r.shortId||''); if(el.checked) SEL.add(s); else SEL.delete(s); });

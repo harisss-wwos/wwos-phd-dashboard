@@ -932,6 +932,15 @@ var IL_COPY_FMT={
   ilPhdResolution:    {prefix:'**PHD Resolution**:', block:false},
   ilPhdNotes:         {prefix:'**PHD notes**:', block:true}
 };
+// Fields whose own copy icon copies just the value, without the heading line. The SIM Root Cause
+// Details heading is still written by the footer Copy (Copy w/o RC Details leaves the section out).
+var IL_COPY_BARE={ilSimRcd:true};
+// Text one field's copy icon puts on the clipboard (pure; exported for Node).
+function ilFieldCopyText(id,val,label){
+  if(IL_COPY_BARE[id]) return val;
+  var fmt=IL_COPY_FMT[id]||{prefix:(label||'')+':', block:true};
+  return fmt.block ? (fmt.prefix+'\n'+val) : (fmt.prefix+' '+val);
+}
 // Copy a single field using its canonical header format (only when it has content).
 async function ilCopyField(btn){
   if(!btn) return;
@@ -939,8 +948,7 @@ async function ilCopyField(btn){
   var val=_ilVal(id);
   if(!val){ _ileToast('Nothing to copy — field is empty'); return; }
   var label=btn.getAttribute('data-label')||'';
-  var fmt=IL_COPY_FMT[id]||{prefix:label+':', block:true};
-  var text=fmt.block ? (fmt.prefix+'\n'+val) : (fmt.prefix+' '+val);
+  var text=ilFieldCopyText(id,val,label);
   // The Historical Incidents rows sit under SIM in the form but are copied WITH PHD Findings (not SIM).
   if(id==='ilPhdFindings'){ var hist=ilGetHistorical(); if(hist) text+='\n\n'+IL_HIST_HEAD+'\n'+hist; }
   try{ await navigator.clipboard.writeText(text); }
@@ -1554,4 +1562,5 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilCopyMissing:ilCopyMissing, IL_HIST_FIELDS:IL_HIST_FIELDS, IL_HIST_MAX:IL_HIST_MAX, ilSimCnt:ilSimCnt,
   ilParseHistorical:ilParseHistorical, ilSerializeHistorical:ilSerializeHistorical, ilHistMissing:ilHistMissing,
   ilRenderLogBody:ilRenderLogBody, ilRenderLogEntry:ilRenderLogEntry,
-  ilResFromSim:ilResFromSim, ilTicketCountry:ilTicketCountry, ilIsUsCa:ilIsUsCa, ilRegionKeptLines:ilRegionKeptLines };
+  ilResFromSim:ilResFromSim, ilTicketCountry:ilTicketCountry, ilIsUsCa:ilIsUsCa, ilRegionKeptLines:ilRegionKeptLines,
+  ilFieldCopyText:ilFieldCopyText };
