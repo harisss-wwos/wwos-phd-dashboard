@@ -19,6 +19,8 @@ const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToP
 const { resolutionGroupOf } = require('./resolution-groups');
 const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
+const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, buildScoreReport: sanBuildScoreReport } = require('./sanitization-score');
+const sanAssign = require('./sanitization-assign');
 const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, handleRevoke: asgHandleRevoke, mapLog: asgMapLog } = require('./assignments');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
@@ -3362,6 +3364,176 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
     res.json({ disabledChecks, updatedBy: req.user.username, updatedAt: now });
   } catch (e) {
     res.status(500).json({ error: 'Could not save the settings.' });
+  }
+});
+
+// ---- Sanitization scores (ticket-sanitization.html, owner-only section) ----
+// Scores every Resolved / Closed ticket 0..10 (maths in ./sanitization-score.js; lowest = needs
+// sanitizing most). Data source = ticket_docs (the collection Errors in Resolved / Resolutions read),
+// default 'since2026' = every quarter, CreateDate >= 1 Jan 2026 00:00 US Pacific (2026-01-01T08:00:00Z),
+// one doc per ShortId (newest quarter wins); or one quarter (`q`) at a time; or every quarter ('all',
+// one doc per ShortId, newest quarter wins). Tickets whose Cnt: is a number > 0 are excluded (counted).
+// Issue types = eirIssueTypes() (issue-types-data.js, as issue-types.html); resolutions =
+// phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
+// Cached 5 min per (latest data upload, quarter, issue types, resolution list).
+//   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
+const SAN_CACHE_PREFIX = 'san:v6:';   // v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets
+const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
+const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
+const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)
+const SAN_STATUS_MATCH = { $regex: /^\s*(resolved|closed)\s*$/i };
+// CreateDate is stored as an ISO string (Date objects accepted too): coarse filter in Mongo, exact in JS.
+function sanSinceMatch() {
+  return { Status: SAN_STATUS_MATCH, $or: [{ CreateDate: { $gte: SAN_SINCE_START } }, { CreateDate: { $type: 'string', $gte: '2026-01-01' } }] };
+}
+function sanIsSince(d) {
+  const v = d && d.CreateDate, t = v instanceof Date ? v.getTime() : Date.parse(String(v == null ? '' : v));
+  return !isNaN(t) && t >= SAN_SINCE_START.getTime();
+}
+const sanNewestFirst = (a, b) => String(b.q || '').localeCompare(String(a.q || ''));
+function requireSanOwner(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (sanIsOwner(req.user.username)) return next();
+  return res.status(403).json({ error: 'Sanitization scores are visible only to harisss.' });
+}
+// Resolved / Closed ticket count per quarter in ticket_docs (newest quarter first).
+async function sanQuarterCounts() {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const rows = await coll.aggregate([
+    { $match: { q: { $regex: /^\d{4}-Q[1-4]$/ }, Status: { $regex: /^\s*(resolved|closed)\s*$/i } } },
+    { $group: { _id: '$q', n: { $sum: 1 } } },
+  ]).toArray();
+  return rows.map(r => ({ id: r._id, n: r.n })).sort((a, b) => b.id.localeCompare(a.id));
+}
+// Deduped Resolved / Closed ticket count for the 'Since 1 Jan 2026' scope (light projection).
+async function sanSinceCount() {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const docs = await coll.find(sanSinceMatch(), { projection: { _id: 0, q: 1, ShortId: 1, IssueId: 1, CreateDate: 1 } }).toArray();
+  return pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst)).length;
+}
+async function sanScopeRows(quarter) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const since = quarter === SAN_SINCE_ID;
+  const match = since ? sanSinceMatch() : { Status: SAN_STATUS_MATCH };
+  if (!since && quarter !== 'all') match.q = quarter;
+  // CreateDate for every scope: the report groups each score's tickets by created quarter (Pacific).
+  const projection = { _id: 0, q: 1, ShortId: 1, IssueId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, IssueUrl: 1, ClosureCode: 1, Tags: 1, CreateDate: 1 };
+  let docs = await coll.find(match, { projection }).toArray();
+  if (since) docs = pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
+  else if (quarter === 'all') docs = pzDedupeTickets(docs.sort(sanNewestFirst));
+  else if (!docs.length) docs = await loadQuarterTickets(quarter);   // legacy quarter not split into ticket_docs
+  return docs;
+}
+const _sanInflight = new Map();   // cache key -> pending promise (one scan per key at a time)
+// The cached 'since2026' score report for one data stamp (shared by the scores and the assignments).
+async function sanReportFor(data, resNames, quarter) {
+  const types = eirIssueTypes();
+  const key = SAN_CACHE_PREFIX + (data.stamp || '-') + ':' + quarter + ':' + types.join('|').toLowerCase() + ':' + resNames.join('|').toLowerCase();
+  let report = getCachedReport(key);
+  if (!report) {
+    let p = _sanInflight.get(key);
+    if (!p) {
+      p = (async () => {
+        const rep = sanBuildScoreReport(await sanScopeRows(quarter), types, resNames);
+        rep.computedAt = new Date().toISOString();
+        pruneCachedReports(SAN_CACHE_PREFIX, 3);
+        setCachedReport(key, rep);
+        return rep;
+      })();
+      _sanInflight.set(key, p);
+      p.then(() => _sanInflight.delete(key), () => _sanInflight.delete(key));
+    }
+    report = await p;
+  }
+  return report;
+}
+const sanResNames = () => getCollection(COLLECTIONS.phdResolutions).then(c => phdResList(c)).then(list => list.map(r => r.name));
+// Contractors (Assignment Center rule: analyst + role editor) with login + display name.
+async function sanContractors() {
+  const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1, displayName: 1, role: 1, analyst: 1 } }).toArray();
+  return sanAssign.contractorsOf(users);
+}
+app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
+  try {
+    // Scope is fixed: only tickets created on/after 1 Jan 2026 (Pacific). Any ?quarter= value is ignored.
+    const want = SAN_SINCE_ID;
+    const wl = want;
+    const [live, counts, data, resNames] = await Promise.all([
+      liveQuarterId(), sanQuarterCounts(), eirDataStamp(),
+      getCollection(COLLECTIONS.phdResolutions).then(c => phdResList(c)).then(list => list.map(r => r.name)),
+    ]);
+    const quarter = (!want || wl === SAN_SINCE_ID) ? SAN_SINCE_ID : (wl === 'all' ? 'all' : want);
+    const sinceKey = 'sanc:v1:' + (data.stamp || '-');
+    let sinceCount = getCachedReport(sinceKey);
+    if (sinceCount == null) { sinceCount = await sanSinceCount(); setCachedReport(sinceKey, sinceCount); pruneCachedReports('sanc:', 1); }
+    // Selector: 'Since 1 Jan 2026' (default), the live quarter, then every previous quarter with Resolved / Closed tickets, then 'all'.
+    const ids = counts.map(c => c.id).filter(id => id <= live);
+    if (ids.indexOf(live) < 0) ids.unshift(live);
+    const countOf = id => (counts.find(c => c.id === id) || { n: 0 }).n;
+    const quarters = [{ id: SAN_SINCE_ID, label: SAN_SINCE_LABEL, isLive: false, count: sinceCount }]
+      .concat(ids.sort((a, b) => b.localeCompare(a)).map(id => ({ id, label: quarterLabel(id), isLive: id === live, count: countOf(id) })));
+    quarters.push({ id: 'all', label: 'All quarters', isLive: false, count: counts.reduce((s, c) => s + c.n, 0) });
+    const report = await sanReportFor(data, resNames, quarter);
+    // Sanitization assignments (read-only here): tickets locked in an active assignment carry `asg`
+    // (assignee login) and are left out of the per-score `available` counts.
+    const asgDocs = await (await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }).toArray();
+    const locked = sanAssign.lockedMap(asgDocs, report, data.stamp, new Date());
+    res.json({
+      quarter, quarterLabel: quarter === SAN_SINCE_ID ? SAN_SINCE_LABEL : (quarter === 'all' ? 'All quarters' : quarterLabel(quarter)), liveQuarter: live, quarters,
+      asOf: data.stamp || report.computedAt, computedAt: report.computedAt,
+      total: report.total, excluded: report.excluded, excludedBy: report.excludedBy || {}, buckets: report.buckets,
+      criteria: SAN_CRITERIA, typeCount: report.typeCount, resolutionCount: report.resolutionCount,
+      available: sanAssign.availableCounts(report, locked),
+      tickets: locked.size ? report.tickets.map(t => (locked.has(t.shortId) ? { ...t, asg: locked.get(t.shortId) } : t)) : report.tickets,
+    });
+  } catch (e) {
+    console.error('sanitization-score error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the sanitization scores.' });
+  }
+});
+
+// ---- Sanitization assignments (owner-only; logic in ./sanitization-assign.js) ----
+// The owner hands a score section's oldest available tickets to a contractor; later uploads verify
+// them against the same score report (data stamp = eirDataStamp).
+//   GET  /api/sanitization-assign            contractors, assignments (+ live verification), performance, issues.
+//        Persists a verification snapshot only when the data stamp changed since the stored one
+//        (env SAN_ASSIGN_READONLY=1 turns that write off).
+//   POST /api/sanitization-assign            { score:0..9, count:1..2000, assignee:<contractor> } -> the server picks the tickets (409 + available when short)
+//   POST /api/sanitization-assign/revoke     { id } -> status 'revoked' (never deleted)
+async function sanAssignDeps(req) {
+  const [data, resNames, contractors] = await Promise.all([eirDataStamp(), sanResNames(), sanContractors()]);
+  const report = await sanReportFor(data, resNames, SAN_SINCE_ID);
+  return { coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user, report, stamp: data.stamp, contractors };
+}
+app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
+  try {
+    const deps = await sanAssignDeps(req);
+    const out = await sanAssign.handleGet({ ...deps, persist: process.env.SAN_ASSIGN_READONLY !== '1' });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('sanitization-assign error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the sanitization assignments.' });
+  }
+});
+app.post('/api/sanitization-assign', requireSanOwner, async (req, res) => {
+  try {
+    const out = await sanAssign.handleAssign(req.body, await sanAssignDeps(req));
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('sanitization-assign POST error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not assign the tickets.' });
+  }
+});
+app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) => {
+  try {
+    const out = await sanAssign.handleRevoke(req.body, {
+      coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user,
+      toId: s => (/^[a-f0-9]{24}$/i.test(s) ? new ObjectId(s) : null),
+    });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('sanitization-assign revoke error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not revoke the assignment.' });
   }
 });
 

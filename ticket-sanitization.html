@@ -28,7 +28,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- ===== Light-theme page styles (loaded last, wins the cascade) ===== -->
 <style id="ts-light">
 /* Ticket Sanitization — "guided path": the same dark navy hero + orange rule as Home / Errors in Resolved /
-   PHD Resolutions, then a linked-resources grid and a vertical numbered stepper (circles joined by a rail).
+   PHD Resolutions (with the shared-sheet link on its right), then a vertical numbered stepper (circles joined by a rail).
    Everything is scoped under .ts (a size container, so the layout reacts to the content column width). */
 #wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
 .ts{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
@@ -46,10 +46,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
   background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
 .ts-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
-.ts-hero-in{position:relative;display:flex;gap:18px;align-items:flex-start}
+.ts-hero-in{position:relative;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
 .ts-hero-ic{width:50px;height:50px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
   background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
-.ts-hero-txt{min-width:0}
+.ts-hero-txt{flex:1 1 360px;min-width:0}
 .ts-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:8px}
 .ts-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08;margin:0}
 .ts-sub{margin-top:10px;max-width:78ch;font-size:.94em;line-height:1.6;color:rgba(233,237,243,.82)}
@@ -68,11 +68,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* ---- Cards ---- */
 .ts-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;overflow:hidden;scroll-margin-top:90px}
 .ts-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#ff9f2e,#ec7211)}
-.ts-card.is-res::before{background:linear-gradient(90deg,#1f9d57,#7fc79b)}
 .ts-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:14px}
 .ts-head-t{display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1 1 300px}
 .ts-head-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
-.is-res .ts-head-ic{background:var(--grn-bg);color:var(--grn)}
 .ts-head h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
 .ts-head h2:focus{outline:none}
 .ts-head-p{margin:5px 0 0;color:var(--mut);font-size:.86em;font-weight:600;line-height:1.5}
@@ -82,24 +80,22 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   background:var(--acc-bg);color:var(--acc-ink);border:1px solid #f7c99c;white-space:nowrap}
 .ts-mode::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--acc)}
 
-/* ---- Linked resources grid ---- */
-.ts-res-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
-.ts-res-item{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(180deg,#fff,#fafbfc);
-  transition:border-color .15s,box-shadow .15s}
-.ts-res-item:hover{border-color:#b7e1c8;box-shadow:0 12px 24px -20px rgba(20,30,50,.6)}
-.ts-res-ic{width:44px;height:44px;border-radius:11px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--grn-bg);color:var(--grn);border:1px solid #b7e1c8}
-.ts-res-txt{flex:1 1 240px;min-width:0}
-.ts-res-k{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 3px;font-size:.66em;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--grn)}
-.ts-res-k span{padding:1px 8px;border-radius:99px;background:var(--soft);border:1px solid var(--line);color:var(--mut);letter-spacing:.6px}
-.ts-res-txt h3{margin:0;font-size:1em;font-weight:800;color:var(--ink);letter-spacing:-.1px}
-.ts-res-txt p{margin:4px 0 0;color:var(--mut);font-size:.9em;line-height:1.55}
-.ts-res-txt p b{color:var(--ink)}
-.ts-cta{flex-shrink:0;display:inline-flex;align-items:center;gap:9px;padding:10px 18px;border-radius:9px;background:var(--navy);color:#fff!important;font-weight:800;font-size:.9em;text-decoration:none;
-  box-shadow:0 8px 18px -12px rgba(20,30,50,.8);transition:background .15s,transform .1s}
-.ts-cta svg{flex-shrink:0;color:#ffb26b;transition:transform .15s}
-.ts-cta:hover{background:#0f1420;transform:translateY(-1px)}
-.ts-cta:hover svg{transform:translate(2px,-2px)}
-.ts-cta:active{transform:none}
+/* ---- Hero CTA: shared sheet link ---- */
+.ts-hero-link{flex-shrink:0;align-self:center;margin-left:auto;display:inline-flex;align-items:center;gap:10px;min-height:40px;padding:9px 16px;border-radius:10px;text-decoration:none;
+  color:#fff!important;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);transition:background .15s,border-color .15s}
+.ts-hero-link svg{flex-shrink:0;color:#ffb26b}
+.ts-hero-acts{flex-shrink:0;align-self:center;margin-left:auto;display:flex;flex-direction:column;gap:8px}
+.ts-hero-acts .ts-hero-link{margin-left:0;align-self:stretch}
+button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
+.ts-hl-sheet,.ts-hl-ext{display:inline-flex}
+.ts-hl-sheet svg{width:18px;height:18px}
+.ts-hl-ext{transition:transform .15s}
+.ts-hero-link:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.32)}
+.ts-hero-link:hover .ts-hl-ext{transform:translate(2px,-2px)}
+.ts-hero-link:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.ts-hl-txt{display:flex;flex-direction:column;line-height:1.25}
+.ts-hl-t{font-weight:800;font-size:.9em}
+.ts-hl-s{font-size:.72em;font-weight:600;color:rgba(233,237,243,.68)}
 
 /* ---- Callouts ---- */
 .ts-callout{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;padding:10px 13px;border-radius:10px;border:1px solid #c9dff0;background:var(--info-bg);color:#1f3f5c;font-size:.86em;line-height:1.5}
@@ -109,15 +105,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ts-callout.is-warn svg{color:#b7791f}
 
 /* Buttons */
-.ts-copyall,.ts-ibtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;cursor:pointer;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#3a4552;
-  transition:border-color .15s,background .15s,color .15s}
-.ts-copyall{padding:8px 14px;font-size:.84em}
-.ts-copyall:disabled{opacity:.55;cursor:default}
-.ts-ibtn{width:32px;height:32px;padding:0}
-.ts-ibtn:hover,.ts-copyall:hover:not(:disabled){border-color:#9aa6b1;background:#f5f6f8;color:var(--ink)}
+.ts-ibtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;cursor:pointer;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#3a4552;
+  width:32px;height:32px;padding:0;transition:border-color .15s,background .15s,color .15s}
+.ts-ibtn:hover{border-color:#9aa6b1;background:#f5f6f8;color:var(--ink)}
 .ts-ibtn.del{border-color:#f1c4c4;color:#c0261a}
 .ts-ibtn.del:hover{background:var(--red-bg);border-color:#dc2626;color:#c0261a}
-.ts-copyall.copied,.ts-ibtn.copied{border-color:#1f9d57!important;background:var(--grn-bg)!important;color:var(--grn)!important}
 .ts-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:none;border-radius:8px;background:var(--navy);color:#f4f3ef!important;font-size:.86em;font-weight:800;cursor:pointer;text-decoration:none;transition:background .15s}
 .ts-btn svg{color:#ffb26b}
 .ts-btn:hover{background:#0f1420}
@@ -141,22 +133,45 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ts-step-k{display:block;font-size:.66em;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--acc-ink);margin-bottom:2px}
 .ts-text{display:block;color:#2a3340;font-size:.94em;font-weight:600;line-height:1.55;overflow-wrap:anywhere}
 .ts-step-act{flex-shrink:0;display:inline-flex;align-items:center;gap:6px}
+/* Sub-sections (SIM Title / Root Cause Details / Hashtags): collapsible disclosure header + its own numbered list. */
+.ts-secs{display:flex;flex-direction:column;gap:12px}
+.ts-sec{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.ts-sec-head{display:flex;align-items:center;gap:10px 12px;padding:10px 14px;background:var(--soft)}
+.ts-sec.is-open>.ts-sec-h{border-bottom:1px solid var(--line)}
+.ts-sec-h{margin:0;font-size:.98em;font-weight:800;letter-spacing:-.2px;line-height:1.25;color:var(--ink)}
+.ts-sec-tog{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:10px 14px;border:none;background:var(--soft);color:inherit;font:inherit;text-align:left;cursor:pointer;
+  transition:background .15s}
+.ts-sec-tog:hover{background:#eceff2}
+.ts .ts-sec .ts-sec-tog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ts-sec-chev{flex-shrink:0;display:inline-flex;color:#5c6773;transition:transform .2s ease}
+.ts-sec-tog[aria-expanded="true"] .ts-sec-chev{transform:rotate(90deg)}
+.ts-sec-lbl{min-width:0}
+.ts-sec-tog .ts-count{font-size:.74em;background:#fff}
+.ts-sec-ic{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.ts-sec-body[hidden]{display:none}
+.ts-sec-body>.ts-steps,.ts-sec-body>.ts-empty{margin:14px}
+.ts-text b{font-weight:800;color:var(--ink)}
 .ts-empty{display:flex;align-items:center;gap:10px;padding:14px;border:1px dashed #d4dade;border-radius:10px;color:var(--mut);font-size:.9em;font-style:italic}
 
-/* Editor add row */
-.ts-add-row{display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #eef1f4;flex-wrap:wrap}
-.ts-add-row input{flex:1 1 280px;min-width:0;height:40px;padding:0 12px;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-size:.9em;font-family:inherit;background:#fff}
-.ts-add-row input:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.16)}
+/* Editor "Add new check" (header button) + its pop-up: the shared .tbl-* dialog shell from topbar-auth.js. */
+.ts-head .ts-btn{flex-shrink:0;margin-left:auto}
+#tsAddModal .tbl-card{width:min(560px,92vw)!important}
+#tsAddModal .tbl-card :is(select,textarea){display:block;width:100%!important;margin:0 0 14px!important;background:#f7f9fb!important;color:#1b2026!important;border:1px solid #cdd4db!important;border-radius:10px!important;
+  font-size:.95em!important;font-family:inherit;box-shadow:none!important;outline:none!important;transition:border-color .15s,box-shadow .15s,background .15s}
+#tsAddModal .tbl-card select{height:44px!important;padding:0 12px!important;font-weight:700;cursor:pointer}
+#tsAddModal .tbl-card textarea{min-height:104px;padding:11px 14px!important;line-height:1.5;resize:vertical}
+#tsAddModal .tbl-card textarea::placeholder{color:#8a94a2!important}
+#tsAddModal .tbl-card :is(select,textarea):hover{border-color:#aeb8c2!important}
+#tsAddModal .tbl-card :is(select,textarea):focus{background:#fff!important;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.22)!important}
+#tsAddModal .tbl-card textarea + .tbl-err{margin-top:2px!important}
+#tsAddModal .tbl-row button.tbl-submit{width:auto;min-width:124px;height:42px}
+@media(max-width:479px){#tsAddModal .tbl-row button.tbl-submit{width:100%;height:44px}}
 .ts-err{display:none;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--red-bg);border:1px solid #f2b8b1;color:var(--red);font-size:.86em;font-weight:700;line-height:1.45}
 
 /* ---- Loading / error states ---- */
 .ts-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:tsShim 1.4s ease infinite}
 .ts-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
 @keyframes tsShim{0%{background-position:100% 0}100%{background-position:0 0}}
-.ts-step.is-skel .ts-dot{border-color:#e2e6ea;background:#f5f6f8}
-.ts-step.is-skel:first-child .ts-dot{background:#f5f6f8;border-color:#e2e6ea}
-.ts-step.is-skel::before{background:#eef1f4}
-.ts-step.is-skel:hover .ts-step-body{border-color:var(--line);box-shadow:none}
 .ts-state{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;padding:16px 18px;border-radius:10px;border:1px solid #f2b8b1;background:#fffafa}
 .ts-state-ic{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red)}
 .ts-state.is-info{border-color:var(--line);background:var(--soft)}
@@ -173,7 +188,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* ---- One orchestrated entrance on the first loaded paint ---- */
 @keyframes tsUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .ts.is-hero-anim .ts-hero{animation:tsUp .45s ease both}
-.ts.is-hero-anim .ts-card.is-res{animation:tsUp .45s ease .06s both}
 .ts.is-anim .ts-step{animation:tsUp .4s ease both;animation-delay:calc(.1s + var(--i,0) * 40ms)}
 @media (prefers-reduced-motion:reduce){
   .ts *,.ts *::before,.ts *::after,.ts-modal *,.ts-modal-bg{animation:none!important;transition:none!important}
@@ -186,11 +200,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   .ts-step-body{flex-wrap:wrap;padding:10px 12px}
   .ts-step-txt{flex-basis:100%}
   .ts-step-act{margin-left:auto}
-  .ts-cta{width:100%;justify-content:center}
 }
 @media (max-width:700px){
   .ts-hero{padding:22px 18px 22px 22px}
   .ts-hero-ic{display:none}
+  .ts-hero-link,.ts-hero-acts{margin-left:0}
   .ts-hero h1{font-size:1.6em;letter-spacing:-.5px}
   .ts-sub{font-size:.86em}
   .ts-card{padding:18px 14px}
@@ -223,6 +237,180 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ts-mbtn.sec{background:#fff;border:1px solid #d4dade;color:#2a3340}
 .ts-mbtn.sec:hover{background:#f5f6f8}
 .ts-mbtn:disabled{opacity:.7;cursor:default}
+
+/* ---- Sanitization scores (owner-only card). --sc-h = the score's hue: 0 red ... 5 amber ... 10 green. ---- */
+.ts-own{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.56em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:var(--info-bg);color:var(--info);border:1px solid #c9dff0;white-space:nowrap}
+.ts-sc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ts-sc-ctl label{font-size:.8em;font-weight:800;color:var(--mut)}
+.ts-sc-ctl select{height:36px;padding:0 10px;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-size:.88em;font-weight:700;font-family:inherit;background:#fff;cursor:pointer}
+.ts-sc-ctl select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.ts-sc-ctl select:disabled{opacity:.6;cursor:default}
+.ts-sc-tot{margin:0 0 12px;font-size:.9em;font-weight:700;color:#2a3340;font-variant-numeric:tabular-nums}
+.ts-sc-tot b{font-weight:800;color:var(--ink)}
+.ts-sc-tot span{color:var(--mut);font-weight:600}
+.ts-sc-dist{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.ts-sc-dist li{min-width:0}
+.ts-sc-dist button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:2px 0;border:none;background:transparent;font:inherit;cursor:pointer;border-radius:6px}
+.ts-sc-dist button:hover .ts-sc-bar{filter:brightness(.92)}
+.ts-sc-n{font-size:.74em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums}
+.ts-sc-col{display:flex;align-items:flex-end;width:100%;max-width:38px;height:64px}
+.ts-sc-bar{width:100%;min-height:2px;border-radius:4px 4px 0 0;background:hsl(var(--sc-h),68%,46%)}
+.ts-sc-x{font-size:.72em;font-weight:800;color:hsl(var(--sc-h),70%,28%)}
+.ts-sc-badge{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:3px 9px;border-radius:7px;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;
+  background:hsl(var(--sc-h),78%,92%);color:hsl(var(--sc-h),72%,26%);border:1px solid hsl(var(--sc-h),55%,70%)}
+.ts-sc-sec{border-left:4px solid hsl(var(--sc-h),68%,46%)}
+.ts-sc-sec.is-great .ts-sec-tog{background:#e5f5ec}
+.ts-sc-sec.is-great .ts-sec-tog:hover{background:#d6efe0}
+.ts-sc-great{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;background:var(--grn);color:#fff}
+.ts-sc-tw{overflow-x:auto;margin:14px}
+.ts-sc-tbl{width:100%;border-collapse:collapse;font-size:.84em}
+.ts-sc-tbl th{text-align:left;padding:7px 10px;border-bottom:2px solid var(--line);font-size:.86em;font-weight:800;color:var(--mut);white-space:nowrap}
+.ts-sc-tbl td{padding:7px 10px;border-bottom:1px solid #eef1f4;vertical-align:top;color:#2a3340;line-height:1.45}
+.ts-sc-tbl tr:last-child td{border-bottom:none}
+.ts-sc-tbl td.id{white-space:nowrap;font-weight:800}
+.ts-sc-tbl td.id a{color:#1d5a8a;text-decoration:none}
+.ts-sc-tbl td.id a:hover{text-decoration:underline}
+.ts-sc-tbl td.tt{min-width:220px;overflow-wrap:anywhere}
+.ts-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:180px}
+.ts-chip{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:.86em;font-weight:700;white-space:nowrap;background:var(--red-bg);color:var(--red);border:1px solid #f2b8b1;cursor:help}
+.ts-chip.ok{background:var(--grn-bg);color:var(--grn);border-color:#b7e1c7;cursor:default}
+.ts-chip b{margin-left:5px;font-weight:800;font-variant-numeric:tabular-nums}
+/* Score header row: toggle (left) + missing-checks summary chips (right corner; wraps below the title when narrow). */
+.ts-sc-hrow{display:flex;align-items:center;flex-wrap:wrap;background:var(--soft)}
+.ts-sc-hrow>.ts-sec-h{flex:1 1 260px;min-width:0}
+.ts-sc-sec.is-open>.ts-sc-hrow{border-bottom:1px solid var(--line)}
+.ts-sc-sec.is-great .ts-sc-hrow{background:#e5f5ec}
+.ts-sc-miss{flex:0 1 auto;max-width:62%;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;list-style:none;margin:0;padding:8px 14px 8px 0;font-size:.8em}
+@container (max-width:700px){ .ts-sc-miss{flex-basis:100%;max-width:none;justify-content:flex-start;padding:0 14px 10px 39px} }
+/* Quarter sub-sections inside an open score section. */
+.ts-sc-qs{display:flex;flex-direction:column;gap:8px;margin:14px}
+.ts-sc-q{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}
+.ts-sc-qh{margin:0;font-size:.92em;font-weight:800;line-height:1.25;color:var(--ink)}
+.ts-sc-q.is-open>.ts-sc-qh{border-bottom:1px solid var(--line)}
+.ts-sc-qtog{display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:8px 12px;border:none;background:#fff;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .15s}
+.ts-sc-qtog:hover{background:#f5f6f8}
+.ts .ts-sc-q .ts-sc-qtog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ts-sc-qtog[aria-expanded="true"] .ts-sec-chev{transform:rotate(90deg)}
+.ts-sc-qtog .ts-count{font-size:.78em;background:#fff}
+.ts-sc-qb[hidden]{display:none}
+.ts-sc-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}
+@container (max-width:899px){ .ts-sc-cols{grid-template-columns:minmax(0,1fr)} }
+.ts-sc-half{min-width:0;border:1px solid #eef1f4;border-radius:8px;overflow:hidden}
+.ts-sc-tbl.cmp{table-layout:fixed}
+.ts-sc-tbl.cmp th.id{width:120px}
+.ts-sc-tbl.cmp td{padding:6px 10px}
+.ts-sc-tbl.cmp td.tt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+.ts-sc-pg{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;padding:0 12px 12px}
+.ts-sc-pgs{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.ts-sc-pgb{display:flex;gap:8px}
+.ts-sc-pgb .ts-mbtn{padding:7px 14px}
+.ts-sc-pgb .ts-mbtn:disabled{opacity:.45}
+@container (max-width:620px){ .ts-sc-dist{gap:3px;padding:10px 6px} .ts-sc-n{font-size:.66em} }
+
+/* ---- Sanitization assignments (owner-only): header Assign button, row tag, pop-up, performance / log / rework cards ---- */
+.ts-sc-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 14px 6px 0}
+.ts-sc-av{font-size:.78em;font-weight:800;color:var(--acc-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ts-sc-av.is-none{color:var(--mut)}
+.ts-abtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#2a3340;font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap}
+.ts-abtn:hover:not(:disabled){border-color:var(--acc);color:var(--acc-ink);background:#fffaf5}
+.ts-abtn:disabled{opacity:.5;cursor:not-allowed}
+.ts-abtn.is-red{border-color:#d92d20;background:#d92d20;color:#fff}
+.ts-abtn.is-red:hover:not(:disabled){background:#b42318;border-color:#b42318;color:#fff}
+.ts-abtn.is-red:focus-visible{outline-color:#7a271a}
+.ts-sc-atag{display:inline-flex;align-items:center;margin-right:6px;padding:0 7px;border-radius:99px;background:var(--info-bg);border:1px solid #c9dff0;color:var(--info);font-size:.86em;font-weight:800;vertical-align:1px}
+/* Pop-up (shared .tbl-* shell). */
+#tsAsgDlg .tbl-card{width:90vw!important;max-width:min(640px,96vw)!important}
+#tsAsgDlg input.tsa-num{display:block;width:160px;height:44px;padding:0 12px;border:1px solid #cdd4db;border-radius:10px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:1em;font-weight:700;font-variant-numeric:tabular-nums}
+#tsAsgDlg input.tsa-num:focus{outline:none;background:#fff;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+#tsAsgDlg input.tsa-num[aria-invalid="true"]{border-color:#d92d20}
+#tsAsgDlg .tsa-hint{margin:6px 0 0;color:#5c6773;font-size:.82em;font-weight:600}
+#tsAsgDlg .tsa-k{display:block;margin:0 0 8px;color:#2a3340;font-size:.8em;font-weight:800}
+/* Step 2 split: one row per contractor (login left, ticket count input right), single column, no inner scroll. */
+#tsAsgDlg .tsa-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+#tsAsgDlg .tsa-row{display:flex;align-items:center;gap:12px;min-height:56px;margin:0;padding:8px 10px 8px 14px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:text}
+#tsAsgDlg .tsa-row:hover{border-color:#9aa6b1}
+#tsAsgDlg .tsa-row:focus-within{border-color:#ec7211;box-shadow:inset 0 0 0 1px #ec7211}
+#tsAsgDlg .tsa-row.is-done{background:#ecf8f0;border-color:#b7e1c6;box-shadow:none;cursor:default}
+#tsAsgDlg .tsa-t{flex:1 1 auto;min-width:0;font-weight:800;color:#1b2026;font-size:.95em;overflow-wrap:anywhere}
+#tsAsgDlg input.tsa-q{flex:0 0 auto;width:96px;height:40px;margin:0;padding:0 10px;border:1px solid #cdd4db;border-radius:8px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:1em;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+#tsAsgDlg input.tsa-q:focus{outline:none;background:#fff;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+#tsAsgDlg input.tsa-q[aria-invalid="true"]{border-color:#d92d20}
+#tsAsgDlg input.tsa-q:disabled{background:#fff;border-color:#b7e1c6;color:#1d7a43;opacity:1}
+#tsAsgDlg .tsa-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:.78em;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+#tsAsgDlg .tsa-tag.is-rem{background:#fff3e8;border:1px solid #f6c89b;color:#8a3a00}
+#tsAsgDlg .tsa-tag.is-all{background:#ecf8f0;border:1px solid #b7e1c6;color:#1d7a43}
+#tsAsgDlg .tsa-tag.is-over{background:var(--red-bg);border:1px solid #f2b8b1;color:#b42318}
+#tsAsgDlg .tsa-sum{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:14px 0 0;padding:10px 12px;border:1px solid #e2e7eb;border-radius:10px;background:#f7f9fb;color:#1b2026;font-size:.9em;font-weight:700;font-variant-numeric:tabular-nums}
+#tsAsgDlg .tsa-res{margin:12px 0 0;padding:10px 12px;border:1px solid #f2b8b1;border-radius:10px;background:var(--red-bg);color:#1b2026;font-size:.86em;font-weight:600;line-height:1.5}
+#tsAsgDlg .tsa-res p{margin:0}
+#tsAsgDlg .tsa-res p + p{margin-top:4px}
+#tsAsgDlg .tsa-res b.ok{color:#1d7a43}
+#tsAsgDlg .tsa-res b.bad{color:#b42318}
+#tsAsgDlg .tsa-prog{margin:12px 0 0;color:#2a3340;font-size:.86em;font-weight:700}
+#tsAsgDlg .tsa-prog:empty{display:none}
+#tsAsgDlg .tsa-dl{display:flex;flex-direction:column;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+#tsAsgDlg .tsa-dl li{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 10px 8px 14px;border:1px solid #e2e7eb;border-radius:10px;background:#fff}
+#tsAsgDlg .tsa-dl .tsa-c{color:#5c6773;font-size:.86em;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+#tsAsgDlg .tsa-all{display:flex;justify-content:flex-end;margin-top:12px}
+/* Only show the shared disabled-button spinner while actually submitting (same idea as .tb-asg-card in topbar-auth.js). */
+#tsAsgDlg .tbl-card button.tbl-submit:disabled:not(.is-busy){cursor:not-allowed;opacity:.5}
+#tsAsgDlg .tbl-card button.tbl-submit:disabled:not(.is-busy)::before{content:none}
+#tsAsgDlg .tsa-ok{display:flex;align-items:center;gap:10px;margin:0;padding:12px 14px;border:1px solid #b7e1c6;border-radius:10px;background:#ecf8f0;color:#1d7a43;font-weight:800}
+#tsAsgDlg .tsa-fb,.ts .tsa-fb{display:block;width:100%;min-height:96px;margin:10px 0 0;padding:8px 10px;border:1px solid #cdd4db;border-radius:8px;font:inherit;font-size:.82em;line-height:1.5;color:#1b2026;background:#fff;resize:vertical}
+.tsa-fbl{display:block;margin:10px 0 0;font-size:.8em;font-weight:700;color:#5c6773}
+.tsa-copied{font-size:.82em;font-weight:800;color:var(--grn,#1a7a43)}
+/* Performance table */
+.tsa-tw{overflow-x:auto}
+.tsa-tbl{width:100%;border-collapse:collapse;font-size:.86em;font-variant-numeric:tabular-nums}
+.tsa-tbl th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);font-size:.86em;font-weight:800;color:var(--mut);white-space:nowrap}
+.tsa-tbl td{padding:8px 10px;border-bottom:1px solid #eef1f4;color:#2a3340;vertical-align:middle}
+.tsa-tbl tr:last-child td{border-bottom:none}
+.tsa-tbl td.who b{display:block;color:var(--ink)}
+.tsa-tbl td.who small{color:var(--mut);font-weight:600}
+.tsa-tbl a{color:#1d5a8a;font-weight:800;text-decoration:none}
+.tsa-tbl a:hover{text-decoration:underline}
+.tsa-rate{display:flex;align-items:center;gap:8px;min-width:150px}
+.tsa-bar{flex:1 1 auto;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.tsa-bar span{display:block;height:100%;border-radius:99px;background:hsl(var(--sc-h),68%,46%)}
+.tsa-rate b{min-width:44px;text-align:right;color:var(--ink)}
+.tsa-mut{color:var(--mut);font-weight:600}
+/* Log */
+.tsa-days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.tsa-day{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tsa-day-h{margin:0;padding:9px 14px;background:var(--soft);border-bottom:1px solid var(--line);font-size:.9em;font-weight:800;color:var(--ink)}
+.tsa-log{list-style:none;margin:0;padding:0}
+.tsa-e{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;border-top:1px solid #eef1f4}
+.tsa-e:first-child{border-top:0}
+.tsa-e.is-rvk .tsa-what{color:var(--mut)}
+.tsa-what{flex:1 1 320px;min-width:0;font-size:.88em;line-height:1.5;color:#2a3340}
+.tsa-what b{color:var(--ink);font-weight:800}
+.tsa-pill{display:inline-flex;align-items:center;margin-left:6px;padding:1px 9px;border-radius:99px;font-size:.82em;font-weight:800;border:1px solid;white-space:nowrap;vertical-align:1px}
+.tsa-pill.progress{background:var(--info-bg);border-color:#c9dff0;color:var(--info)}
+.tsa-pill.awaiting{background:#fff8e6;border-color:#f5d48c;color:#6b4a06}
+.tsa-pill.verified{background:var(--grn-bg);border-color:#b7e1c7;color:var(--grn)}
+.tsa-pill.verified.has-bad{background:var(--red-bg);border-color:#f2b8b1;color:var(--red)}
+.tsa-pill.revoked{background:#f1f3f5;border-color:var(--line);color:#5c6773}
+.tsa-acts{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tsa-ids{flex-basis:100%;list-style:none;margin:2px 0 0;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tsa-ids[hidden]{display:none}
+.tsa-ids li{display:grid;grid-template-columns:max-content minmax(0,1fr) auto;gap:4px 12px;padding:6px 10px;border-top:1px solid #eef1f4;font-size:.84em}
+.tsa-ids li:first-child{border-top:0}
+.tsa-ids a{color:#1d5a8a;font-weight:800;text-decoration:none;white-space:nowrap}
+.tsa-ids a:hover{text-decoration:underline}
+.tsa-ids .t{overflow-wrap:anywhere;color:var(--ink)}
+.tsa-ids .s{white-space:nowrap;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.tsa-fbh:empty{display:none}
+.tsa-fbh{flex-basis:100%}
+/* Needs rework */
+.tsa-iss{display:flex;flex-direction:column;gap:12px}
+.tsa-blk{border:1px solid #f2b8b1;border-left:4px solid #d92d20;border-radius:10px;overflow:hidden}
+.tsa-blk-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;background:#fffafa;border-bottom:1px solid #f6d6d2}
+.tsa-blk-t{flex:1 1 320px;min-width:0;margin:0;font-size:.98em;font-weight:800;color:var(--ink)}
+.tsa-blk-t small{display:block;margin-top:2px;font-size:.82em;font-weight:600;color:var(--mut)}
+.tsa-blk .tsa-tw{padding:4px 6px}
+.tsa-blk .tsa-tbl td.tt{min-width:220px;overflow-wrap:anywhere}
+.tsa-wrap{display:flex;flex-direction:column;gap:16px;min-width:0}
 </style>
 </head>
 <body data-nav-active="ticket-sanitization" data-back-href="index.html" data-back-label="Home">
@@ -231,6 +419,30 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 <!-- Filled by render() / gate(); starts with the loading skeleton. -->
 <div class="wrap" id="wrap"></div>
+
+<!-- Add-check pop-up (editors): the shared .tbl-* dialog shell from topbar-auth.js. -->
+<div class="tbl-bg" id="tsAddModal" style="display:none" onclick="if(event.target===this)tsCloseAdd()">
+  <div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="tsAddTitle" aria-describedby="tsAddDesc">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="plus" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization &middot; Checklist</div><h2 class="tbl-title" id="tsAddTitle">Add new check</h2></div>
+      <button type="button" class="tbl-x" onclick="tsCloseAdd()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub" id="tsAddDesc">Add a check to the SIM Title, Root Cause Details or Hashtags section.</p>
+    </div>
+    <div class="tbl-body">
+      <label class="tbl-label" for="tsAddSec">Section</label>
+      <select id="tsAddSec"></select>
+      <label class="tbl-label" for="tsAddText">Check</label>
+      <textarea id="tsAddText" maxlength="1000" rows="4" placeholder="e.g. Has a valid country code"
+        onkeydown="if(event.key==='Enter'&amp;&amp;(event.ctrlKey||event.metaKey)){event.preventDefault();tsAdd();}"></textarea>
+      <div class="tbl-err" id="tsAddErr" role="alert"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" onclick="tsCloseAdd()">Cancel</button>
+        <button type="button" class="tbl-submit" id="tsAddSave" onclick="tsAdd()">Add check</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Edit-line modal (editors) -->
 <div class="ts-modal-bg" id="tsEditModal" onclick="if(event.target===this)tsCloseEdit()">
@@ -275,7 +487,7 @@ function tsCanEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && TS_EDITORS
 // Glyphs.
 var ICO_EXT='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 var ICO_COPY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-var ICO_CHK='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+var ICO_CHEV='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 var ICO_EDIT='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 var ICO_DEL='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
 var ICO_PLUS='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
@@ -283,7 +495,6 @@ var ICO_RETRY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" strok
 var ICO_INFO='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
 var ICO_SHEET='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>';
 var ICO_LIST='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h11M10 12h11M10 18h11"/><path d="M4 6h1v4M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>';
-var ICO_LINK='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
 var SPIN='<span class="ts-spin" aria-hidden="true"></span>';
 
 var TS_ITEMS=[];  // [{id,text,order}]
@@ -298,81 +509,140 @@ function liveEl(){
 }
 function announce(msg){ var live=liveEl(); live.textContent=''; setTimeout(function(){ live.textContent=msg; },30); }
 
-function copyText(text,btn,doneLabel){
-  if(doneLabel===undefined) doneLabel='Copied';
-  var done=function(ok){
-    if(!btn||!ok) return;
-    var orig=btn.innerHTML; btn.classList.add('copied');
-    btn.innerHTML=ICO_CHK+(doneLabel?'<span>'+doneLabel+'</span>':'');
-    announce('Copied');
-    setTimeout(function(){ btn.innerHTML=orig; btn.classList.remove('copied'); }, 1300);
-  };
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){done(true);},function(){copyFallback(text,done);}); }
-  else copyFallback(text,done);
-}
 function copyFallback(text,done){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); done(ok); }catch(e){ done(false); } }
-function tsCopyAll(btn){ copyText(TS_ITEMS.map(function(x){return x.text;}).join('\n'), btn); }
-window.tsCopyAll=tsCopyAll;
-function tsCopyOne(i,btn){ var it=TS_ITEMS[i]; if(it) copyText(it.text,btn,''); }
-window.tsCopyOne=tsCopyOne;
+// ---- Section grouping helpers (pure; no DOM) ----
+// Stored lines start with a section prefix ("SIM Title - ...", "Root Cause Details - ...", "Hashtags - ...").
+// The prefix picks the sub-section and is stripped for display; edits still use the full stored text.
+var TS_PREFIX_RE=/^\s*(SIM Title|Title|Root ?Cause Details|RCD|Hashtags?|Labels?)\s*[-\u2013\u2014:]\s*/i;
+var TS_SECTIONS=[
+  {key:'title',label:'SIM Title',icon:'ticket'},
+  {key:'rcd',label:'Root Cause Details',icon:'clipboard'},
+  {key:'tags',label:'Hashtags',icon:'hash'}
+];
+var TS_OTHER={key:'other',label:'Other',icon:'info'};
+var TS_ADD_SEC='SIM Title';  // last section picked in the editor's add row (kept across re-renders)
+function tsSectionKey(text){
+  var m=TS_PREFIX_RE.exec(String(text==null?'':text)); if(!m) return 'other';
+  var p=m[1].toLowerCase().replace(/\s+/g,' ');
+  if(p==='sim title'||p==='title') return 'title';
+  if(p==='root cause details'||p==='rootcause details'||p==='rcd') return 'rcd';
+  return 'tags';
+}
+function tsStripPrefix(text){ return String(text==null?'':text).replace(TS_PREFIX_RE,'').trim(); }
+// items -> [{key,label,icon,lines:[{idx,text}]}]; fixed section order, DB order within a section, 'Other' only when non-empty.
+function tsGroup(items){
+  var by={title:[],rcd:[],tags:[],other:[]};
+  (items||[]).forEach(function(it,idx){ by[tsSectionKey(it.text)].push({idx:idx,text:tsStripPrefix(it.text)}); });
+  var out=TS_SECTIONS.map(function(s){ return {key:s.key,label:s.label,icon:s.icon,lines:by[s.key]}; });
+  if(by.other.length) out.push({key:TS_OTHER.key,label:TS_OTHER.label,icon:TS_OTHER.icon,lines:by.other});
+  return out;
+}
+// ---- end section grouping helpers ----
+
+// Sub-section open state: in memory only (collapsed on every page load), kept across re-renders.
+var TS_OPEN={};
+function tsSetSec(key,open){
+  TS_OPEN[key]=!!open;
+  var btn=document.getElementById('tsSecBtn-'+key), body=document.getElementById('tsSecList-'+key);
+  if(btn) btn.setAttribute('aria-expanded',open?'true':'false');
+  if(body) body.hidden=!open;
+  if(btn&&btn.closest) { var s=btn.closest('.ts-sec'); if(s) s.classList.toggle('is-open',!!open); }
+}
+// Only one sub-section open at a time: opening one closes the others.
+function tsToggleSec(key){
+  var open=!TS_OPEN[key];
+  Object.keys(TS_OPEN).forEach(function(k){ if(k!==key&&TS_OPEN[k]) tsSetSec(k,false); });
+  tsSetSec(key,open);
+}
+window.tsToggleSec=tsToggleSec;
+
+// AI prompt copied by the hero "Copy prompt" button.
+var TS_PROMPT=[
+  'When I paste the next incident or information, reply with ONLY the four items below, in exactly this order, using exactly these headings. Do not add, remove, rename or reorder anything. No introduction, no commentary, no explanation, and no text before or after the four items.',
+  '',
+  '1. PHD Findings',
+  '2. Primary Case Tag',
+  '3. SIM Root Cause Details',
+  '4. SIM Title',
+  '',
+  'SIM Title rules:',
+  '- If a Customer Account ID is present, use: <COUNTRY CODE> Customer Incident Escalation - Account ID: <Customer Account ID> - <Issue type>',
+  '- If there is no Customer Account ID, use (and leave out "Account ID" entirely): <COUNTRY CODE> Community Member Incident Escalation - <Issue type>'
+].join('\n');
+function tsCopyPrompt(btn){
+  var lbl=btn&&btn.querySelector('.ts-hl-t'); var orig=lbl?lbl.textContent:'';
+  var done=function(ok){ if(!lbl) return; lbl.textContent=ok?'Prompt copied':'Copy failed'; announce(ok?'Prompt copied':'Copy failed'); setTimeout(function(){ lbl.textContent=orig; },1400); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(TS_PROMPT).then(function(){done(true);},function(){copyFallback(TS_PROMPT,done);});
+  else copyFallback(TS_PROMPT,done);
+}
+window.tsCopyPrompt=tsCopyPrompt;
 
 // ---- Building blocks ----
 function heroHtml(editor){
   var n=TS_ITEMS.length;
   var chips=LOADING
     ? '<li class="is-skel" aria-hidden="true"><span class="ts-skel ts-skel-d" style="width:120px;height:10px"></span></li><li class="is-skel" aria-hidden="true"><span class="ts-skel ts-skel-d" style="width:70px;height:10px"></span></li>'
-    : (LOAD_ERR?'<li><span>Checklist unavailable \u00b7 <b>1</b> resource</span></li>':'<li><span><b>'+n+'</b> '+(n===1?'step':'steps')+' \u00b7 <b>1</b> resource</span></li>')+
+    : (LOAD_ERR?'<li><span>Checklist unavailable</span></li>':'<li><span><b>'+n+'</b> '+(n===1?'step':'steps')+'</span></li>')+
       (editor?'<li class="is-acc">Editor access</li>':'<li>View only</li>');
   return '<header class="ts-hero"><div class="ts-hero-in"><span class="ts-hero-ic" aria-hidden="true">'+ic('check-circle',24)+'</span><div class="ts-hero-txt">'+
     '<p class="ts-eyebrow">Step-by-step guide</p><h1>Ticket Sanitization</h1>'+
     '<p class="ts-sub">Open the shared sheet, find <b>your assigned tickets</b>, then work through the <b>sanitization checklist</b> below for each one.</p>'+
-    '<ul class="ts-hero-chips" aria-label="Summary">'+chips+'</ul>'+
-  '</div></div></header>';
+    '<ul class="ts-hero-chips" aria-label="Summary">'+chips+'</ul></div>'+
+    '<div class="ts-hero-acts"><a class="ts-hero-link" href="'+esc(TS_SHEET_URL)+'" target="_blank" rel="noopener noreferrer" title="SharePoint \u00b7 Excel \u00b7 opens in a new tab">'+
+      '<span class="ts-hl-sheet" aria-hidden="true">'+ICO_SHEET+'</span>'+
+      '<span class="ts-hl-txt"><span class="ts-hl-t">Open assigned tickets sheet</span><span class="ts-hl-s" aria-hidden="true">SharePoint \u00b7 Excel \u00b7 opens in a new tab</span></span>'+
+      '<span class="ts-hl-ext" aria-hidden="true">'+ICO_EXT+'</span><span class="ts-sr"> (opens in a new tab)</span></a>'+
+      '<button type="button" class="ts-hero-link ts-hero-prompt" onclick="tsCopyPrompt(this)" title="Copy the AI prompt for writing PHD Findings, Primary Case Tag, SIM Root Cause Details and SIM Title">'+
+        '<span class="ts-hl-sheet" aria-hidden="true">'+ICO_COPY+'</span>'+
+        '<span class="ts-hl-txt"><span class="ts-hl-t">Copy prompt</span><span class="ts-hl-s" aria-hidden="true">Paste it into your AI tool before the incident</span></span></button></div>'+
+  '</div></header>';
 }
 
-function resourcesHtml(){
-  return '<section class="ts-card is-res" id="tsRes" aria-labelledby="tsResHead">'+
-    '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+ICO_LINK+'</span><div>'+
-      '<h2 id="tsResHead">Linked resources</h2><p class="ts-head-p">Start here \u2014 opens in a new tab.</p></div></div></div>'+
-    '<ul class="ts-res-grid">'+
-      '<li class="ts-res-item">'+
-        '<span class="ts-res-ic" aria-hidden="true">'+ICO_SHEET+'</span>'+
-        '<div class="ts-res-txt"><p class="ts-res-k">Shared sheet<span>SharePoint \u00b7 Excel</span></p>'+
-          '<h3>Assigned tickets sheet</h3>'+
-          '<p>Use the link below to open the shared sheet, find <b>your assigned tickets</b>, and <b>sanitize</b> them.</p></div>'+
-        '<a class="ts-cta" href="'+esc(TS_SHEET_URL)+'" target="_blank" rel="noopener">Link'+ICO_EXT+'<span class="ts-sr"> (opens the assigned tickets sheet in a new tab)</span></a>'+
-      '</li>'+
-    '</ul></section>';
+// Loading placeholder: three collapsed sub-section header rows (chevron + icon + title + count).
+function skeletonSections(){
+  return '<div class="ts-secs" aria-hidden="true">'+[110,170,96].map(function(w){
+    return '<div class="ts-sec"><div class="ts-sec-head"><span class="ts-skel" style="width:16px;height:16px;border-radius:4px"></span>'+
+      '<span class="ts-skel" style="width:26px;height:26px;border-radius:7px"></span>'+
+      '<span class="ts-skel" style="width:'+w+'px;height:14px"></span>'+
+      '<span class="ts-skel" style="width:28px;height:18px;border-radius:99px"></span></div></div>';
+  }).join('')+'</div>';
 }
 
-function skeletonSteps(){
-  var w=[72,84,60,78,88,66], s='';
-  for(var i=0;i<w.length;i++){
-    s+='<li class="ts-step is-skel" aria-hidden="true"><span class="ts-dot"></span>'+
-      '<div class="ts-step-body"><div class="ts-step-txt"><span class="ts-skel" style="width:44px;height:9px;margin:3px 0 8px"></span><span class="ts-skel" style="width:'+w[i]+'%;height:12px"></span></div>'+
-      '<span class="ts-skel" style="width:32px;height:32px;border-radius:8px"></span></div></li>';
-  }
-  return s;
+// Display markup for a stripped line. Root Cause Details lines like "Issue: ..." get the field name in bold.
+function tsLineHtml(key,text){
+  if(key==='rcd'){ var m=/^([A-Za-z][A-Za-z0-9 ]{0,24}):\s*([\s\S]*)$/.exec(text); if(m) return '<b>'+esc(m[1])+':</b> '+esc(m[2]); }
+  return esc(text);
 }
 
 function stepsHtml(editor,anim){
-  if(LOADING) return '<ol class="ts-steps" aria-hidden="true">'+skeletonSteps()+'</ol>';
+  if(LOADING) return skeletonSections();
   if(LOAD_ERR) return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
       '<p class="ts-state-t">Couldn\u2019t load the checklist</p><p class="ts-state-p">'+esc(LOAD_ERR)+' The shared sheet link above still works.</p></div>'+
       '<button type="button" class="ts-btn" id="tsRetry" onclick="tsRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
   if(!TS_ITEMS.length) return '<div class="ts-empty">'+ICO_INFO+'No checklist lines yet.</div>';
-  return '<ol class="ts-steps">'+TS_ITEMS.map(function(it,i){
-    return '<li class="ts-step" id="tsItem'+i+'" tabindex="-1"'+(anim?' style="--i:'+Math.min(i,14)+'"':'')+'>'+
-      '<span class="ts-dot" aria-hidden="true">'+(i+1)+'</span>'+
-      '<div class="ts-step-body">'+
-        '<div class="ts-step-txt"><span class="ts-step-k">Step '+(i+1)+'</span><span class="ts-text">'+esc(it.text)+'</span></div>'+
-        '<span class="ts-step-act">'+
-          '<button class="ts-ibtn" type="button" title="Copy step" aria-label="Copy step '+(i+1)+'" onclick="tsCopyOne('+i+',this)">'+ICO_COPY+'</button>'+
-          (editor?('<button class="ts-ibtn edit" type="button" title="Edit line" aria-label="Edit step '+(i+1)+'" onclick="tsEdit('+i+')">'+ICO_EDIT+'</button>'+
-            '<button class="ts-ibtn del" type="button" title="Delete line" aria-label="Delete step '+(i+1)+'" onclick="tsDelete('+i+')">'+ICO_DEL+'</button>'):'')+
-        '</span>'+
-      '</div></li>';
-  }).join('')+'</ol>';
+  var seq=0;
+  return '<div class="ts-secs">'+tsGroup(TS_ITEMS).map(function(sec){
+    var hid='tsSec-'+sec.key, lid='tsSecList-'+sec.key, n=sec.lines.length, lab=sec.label, open=!!TS_OPEN[sec.key];
+    return '<section class="ts-sec'+(open?' is-open':'')+'" aria-labelledby="'+hid+'">'+
+      '<h3 class="ts-sec-h" id="'+hid+'"><button type="button" class="ts-sec-tog" id="tsSecBtn-'+sec.key+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+lid+'" onclick="tsToggleSec(\''+sec.key+'\')">'+
+        '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
+        '<span class="ts-sec-ic" aria-hidden="true">'+ic(sec.icon,15)+'</span><span class="ts-sec-lbl">'+esc(lab)+'</span>'+
+        '<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> '+(n===1?'line':'lines')+')</span></span></button></h3>'+
+      '<div class="ts-sec-body" id="'+lid+'"'+(open?'':' hidden')+'>'+
+      (n?'<ol class="ts-steps">'+sec.lines.map(function(l,j){
+        var i=l.idx, k=j+1, d=seq++;
+        return '<li class="ts-step" id="tsItem'+i+'" tabindex="-1"'+(anim?' style="--i:'+Math.min(d,14)+'"':'')+'>'+
+          '<span class="ts-dot" aria-hidden="true">'+k+'</span>'+
+          '<div class="ts-step-body">'+
+            '<div class="ts-step-txt"><span class="ts-step-k">Step '+k+'</span><span class="ts-text">'+tsLineHtml(sec.key,l.text)+'</span></div>'+
+            (editor?('<span class="ts-step-act">'+
+              '<button class="ts-ibtn edit" type="button" title="Edit line" aria-label="Edit '+esc(lab)+' step '+k+'" onclick="tsEdit('+i+')">'+ICO_EDIT+'</button>'+
+              '<button class="ts-ibtn del" type="button" title="Delete line" aria-label="Delete '+esc(lab)+' step '+k+'" onclick="tsDelete('+i+')">'+ICO_DEL+'</button>'+
+            '</span>'):'')+
+          '</div></li>';
+      }).join('')+'</ol>':'<div class="ts-empty">'+ICO_INFO+'No lines in this section yet.</div>')+
+    '</div></section>';
+  }).join('')+'</div>';
 }
 
 function render(){
@@ -383,20 +653,19 @@ function render(){
   var html='<div class="ts'+(anim?' is-anim':'')+(heroAnim?' is-hero-anim':'')+'">'+
     heroHtml(editor)+
     '<div class="ts-main">'+
-      resourcesHtml()+
       '<section class="ts-card" id="tsGuide" aria-labelledby="tsStepsHead" aria-busy="'+(LOADING?'true':'false')+'">'+
         '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+ICO_LIST+'</span><div>'+
           '<h2 id="tsStepsHead" tabindex="-1">Sanitization checklist'+(ready?'<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> steps)</span></span>':'')+
             (ready&&editor?'<span class="ts-mode">Editor</span>':'')+'</h2>'+
           '<p class="ts-head-p">Work through each step in order for every assigned ticket.</p></div></div>'+
-          '<button class="ts-copyall" type="button" onclick="tsCopyAll(this)"'+(ready&&n?'':' disabled')+'>'+ICO_COPY+'<span>Copy all</span></button>'+
+          (ready&&editor?'<button class="ts-btn" type="button" id="tsAddBtn" aria-haspopup="dialog" onclick="tsOpenAdd()">'+ICO_PLUS+'<span>Add new check</span></button>':'')+
         '</div>'+
-        (ready&&n?'<p class="ts-callout">'+ICO_INFO+'<span>Use the <b>copy</b> button on a step to paste that line, or <b>Copy all</b> to paste the full checklist.</span></p>':'')+
         stepsHtml(editor,anim)+
-        (ready&&editor?('<div class="ts-add-row"><label class="ts-sr" for="tsNewLine">New checklist line</label><input type="text" id="tsNewLine" maxlength="1000" placeholder="Add a new checklist line\u2026" onkeydown="if(event.key===\'Enter\')tsAdd();">'+
-          '<button class="ts-btn" type="button" onclick="tsAdd()">'+ICO_PLUS+'<span>Add line</span></button></div>'+
-          '<div class="ts-err" id="tsErr" role="alert"></div>'):'')+
+        // Card-level error slot (a failed delete reports here, since its pop-up closes).
+        (ready&&editor?'<div class="ts-err" id="tsErr" role="alert"></div>':'')+
       '</section>'+
+      scoreHtml()+
+      saSecsHtml()+
     '</div></div>';
   document.getElementById('wrap').innerHTML=html;
 }
@@ -423,14 +692,41 @@ async function loadChecklist(fromRetry){
 function tsRetry(){ loadChecklist(true); }
 window.tsRetry=tsRetry;
 
+// ---- Add via the "Add new check" pop-up (shared .tbl-* shell; PHDLoginUI gives Esc, the Tab trap and focus return) ----
+function tsOpenAdd(){
+  if(!tsCanEdit()) return;
+  var bg=document.getElementById('tsAddModal'), sel=document.getElementById('tsAddSec'), ta=document.getElementById('tsAddText');
+  sel.innerHTML=TS_SECTIONS.map(function(s){ return '<option value="'+esc(s.label)+'"'+(s.label===TS_ADD_SEC?' selected':'')+'>'+esc(s.label)+'</option>'; }).join('');
+  tsModalErr('tsAddErr','');
+  bg.style.display='flex';
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,tsCloseAdd,ta); else setTimeout(function(){ ta.focus(); },40);
+}
+window.tsOpenAdd=tsOpenAdd;
+function tsCloseAdd(){
+  var bg=document.getElementById('tsAddModal'); if(bg.style.display==='none') return;
+  bg.style.display='none';
+  if(window.PHDLoginUI) window.PHDLoginUI.closed(bg); else { var b=document.getElementById('tsAddBtn'); if(b) b.focus(); }
+}
+window.tsCloseAdd=tsCloseAdd;
 async function tsAdd(){
   if(!tsCanEdit()) return;
-  var inp=document.getElementById('tsNewLine'); if(!inp) return;
-  var text=String(inp.value||'').trim(); if(!text){ tsErr('Enter a line first.'); inp.focus(); return; }
-  tsErr('');
-  var r=await A.api('POST','/api/sanitization-checklist',{text:text});
-  if(r&&r.ok){ inp.value=''; await loadChecklist(); var ni=document.getElementById('tsNewLine'); if(ni) ni.focus(); }
-  else tsErr((r&&r.data&&r.data.error)||('Add failed (HTTP '+(r?r.status:'?')+').'));
+  var inp=document.getElementById('tsAddText'), sel=document.getElementById('tsAddSec'), btn=document.getElementById('tsAddSave');
+  if(btn.disabled) return;
+  var text=String(inp.value||'').trim(); if(!text){ tsModalErr('tsAddErr','Enter a check first.'); inp.focus(); return; }
+  tsModalErr('tsAddErr','');
+  // Prepend the chosen section prefix unless the typed text already carries a known one.
+  if(sel&&sel.value){ TS_ADD_SEC=sel.value; if(!TS_PREFIX_RE.test(text)) text=sel.value+' - '+text; }
+  btn.disabled=true; btn.textContent='Adding\u2026';   // the shared .tbl-submit:disabled rule draws the spinner
+  var r=null;
+  try{ r=await A.api('POST','/api/sanitization-checklist',{text:text}); }catch(e){ r=null; }
+  btn.disabled=false; btn.textContent='Add check';
+  if(r&&r.ok){
+    inp.value=''; tsCloseAdd();
+    TS_OPEN={}; TS_OPEN[tsSectionKey(text)]=true;   // open only the section the check went into
+    await loadChecklist();
+    var b=document.getElementById('tsAddBtn'); if(b) b.focus();   // re-rendered, so re-find the opener
+    announce('Check added');
+  } else { tsModalErr('tsAddErr',(r&&r.data&&r.data.error)||('Add failed (HTTP '+(r?r.status:'?')+').')); inp.focus(); }
 }
 window.tsAdd=tsAdd;
 
@@ -485,6 +781,585 @@ async function tsDelConfirm(){
 }
 window.tsDelConfirm=tsDelConfirm;
 
+// ---- Sanitization scores (owner-only; the server enforces it too: GET /api/sanitization-score) ----
+// Every Resolved / Closed ticket scored 0..10 (one point per check); appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored.
+// 11 collapsible buckets, 0 points first (they matter most); one open at a time; each header lists its failing checks.
+// Inside: created-quarter sub-sections (Pacific, oldest first, collapsed); tickets paged by 100 in two 50-row columns.
+var TS_OWNER='harisss';
+function tsIsOwner(){ var u=A&&A.getUser&&A.getUser(); return !!(u && String(u.username||'').trim().toLowerCase()===TS_OWNER); }
+// open = open score section; openQ = open quarter sub-section inside it ('2026-Q1'); page = {'score|quarter': page no.}.
+var SC={loading:true, err:'', data:null, quarter:'', open:null, openQ:null, page:{}};
+var SC_PAGE=100;
+var ICO_SCORE='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>';
+// Hue per score: 0 red (0) -> 5 amber (38) -> 10 green (142).
+function scHue(s){ return s<=5 ? Math.round(s/5*38) : Math.round(38+(s-5)/5*104); }
+function scWhen(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):''; }
+
+function scSkel(){
+  return '<div aria-hidden="true"><span class="ts-skel" style="width:260px;height:14px;margin-bottom:14px"></span>'+
+    '<span class="ts-skel" style="width:100%;height:96px;border-radius:10px;margin-bottom:16px"></span>'+
+    '<div class="ts-secs">'+[0,1,2,3].map(function(){ return '<div class="ts-sec"><div class="ts-sec-head"><span class="ts-skel" style="width:16px;height:16px;border-radius:4px"></span>'+
+      '<span class="ts-skel" style="width:52px;height:22px;border-radius:7px"></span><span class="ts-skel" style="width:120px;height:14px"></span>'+
+      '<span class="ts-skel" style="width:28px;height:18px;border-radius:99px"></span></div></div>'; }).join('')+'</div></div>';
+}
+// Fixed scope (no selector): tickets created from 1 Jan 2026 to the latest upload.
+function scQuarterSelect(){
+  return '<div class="ts-sc-ctl"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
+}
+function scDistHtml(d){
+  var max=0, i; for(i=0;i<=10;i++) max=Math.max(max,d.buckets[i]||0);
+  var li=[];
+  for(i=0;i<=10;i++){
+    var n=d.buckets[i]||0, h=max?Math.max(n?4:0,Math.round(n/max*100)):0;
+    li.push('<li style="--sc-h:'+scHue(i)+'"><button type="button" onclick="tsScoreJump('+i+')" aria-label="'+i+' points: '+n+' '+(n===1?'ticket':'tickets')+'. Show this group">'+
+      '<span class="ts-sc-n" aria-hidden="true">'+n+'</span><span class="ts-sc-col" aria-hidden="true"><span class="ts-sc-bar" style="height:'+h+'%"></span></span>'+
+      '<span class="ts-sc-x" aria-hidden="true">'+i+'</span></button></li>');
+  }
+  return '<ul class="ts-sc-dist" aria-label="Score distribution, 0 to 10 points">'+li.join('')+'</ul>';
+}
+// Created quarter id from the server ('2026-Q1'); anything else (no CreateDate) -> 'none'.
+function scQKey(t){ var q=t&&t.cq; return /^\d{4}-Q[1-4]$/.test(q||'')?q:'none'; }
+function scQLabel(k){ return k==='none'?'No create date':k.slice(5)+' '+k.slice(0,4); }
+// One ticket's failed checks with their parsed values (row tooltip + sr-only text).
+function scMissText(t,crit){
+  var m=[];
+  (t.checks||[]).forEach(function(c,i){ if(c[0]) return; var cr=crit[i]||{chip:'Check '+(i+1)}; m.push(cr.chip+(c[1]?' (value: '+c[1]+')':'')); });
+  return m.length?'Missing: '+m.join(', '):'All checks pass';
+}
+// Header summary: failing criteria among a score group's tickets, most frequent first.
+function scMissHtml(list,score,crit){
+  if(!list.length) return '';
+  if(score===10) return '<ul class="ts-sc-miss" aria-label="Checks for '+score+' points"><li class="ts-chip ok">All checks pass</li></ul>';
+  var cnt=crit.map(function(){ return 0; });
+  list.forEach(function(t){ (t.checks||[]).forEach(function(c,i){ if(!c[0]&&i<cnt.length) cnt[i]++; }); });
+  var rows=cnt.map(function(n,i){ return {i:i,n:n}; }).filter(function(x){ return x.n>0; }).sort(function(a,b){ return (b.n-a.n)||(a.i-b.i); });
+  if(!rows.length) return '';
+  return '<ul class="ts-sc-miss" aria-label="Missing checks for '+score+' '+(score===1?'point':'points')+'">'+rows.map(function(x){
+    var cr=crit[x.i]||{chip:'Check '+(x.i+1),label:''}, n=x.n.toLocaleString();
+    return '<li class="ts-chip" title="'+esc(n+' of '+list.length.toLocaleString()+' tickets fail: '+(cr.label||cr.chip))+'">'+esc(cr.chip)+'<b>'+n+'</b><span class="ts-sr"> tickets</span></li>';
+  }).join('')+'</ul>';
+}
+function scColHtml(rows,from,score,qk,crit){
+  return '<div class="ts-sc-half"><table class="ts-sc-tbl cmp"><caption class="ts-sr">'+esc(scQLabel(qk))+', '+score+' points: tickets '+from+' to '+(from+rows.length-1)+'</caption>'+
+    '<thead><tr><th scope="col" class="id">Ticket ID</th><th scope="col">Title</th></tr></thead><tbody>'+rows.map(function(t){
+      var id=t.shortId||'\u2014', title=t.title||'\u2014', miss=scMissText(t,crit);
+      return '<tr title="'+esc(title+'\n'+miss)+'"><td class="id">'+(t.url?'<a href="'+esc(t.url)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id))+'</td>'+
+        '<td class="tt">'+(t.asg?'<span class="ts-sc-atag" title="Assigned to '+esc(t.asg)+' for sanitization"><span class="ts-sr">Assigned to </span>'+esc(t.asg)+'</span>':'')+esc(title)+'<span class="ts-sr">. '+esc(miss)+'</span></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+// One quarter's tickets: page of SC_PAGE, first half in the left column, second half in the right.
+function scQBodyHtml(list,score,qk,crit){
+  var n=list.length, pages=Math.max(1,Math.ceil(n/SC_PAGE)), pk=score+'|'+qk;
+  var p=Math.min(Math.max(1,SC.page[pk]||1),pages), a=(p-1)*SC_PAGE, rows=list.slice(a,a+SC_PAGE), half=SC_PAGE/2;
+  var L=rows.slice(0,half), R=rows.slice(half), id=score+'-'+qk;
+  var st='Page '+p+' of '+pages+' \u00b7 showing '+(a+1).toLocaleString()+'\u2013'+(a+rows.length).toLocaleString()+' of '+n.toLocaleString();
+  return '<div class="ts-sc-cols">'+scColHtml(L,a+1,score,qk,crit)+(R.length?scColHtml(R,a+half+1,score,qk,crit):'')+'</div>'+
+    '<div class="ts-sc-pg"><span class="ts-sc-pgs" id="tsScQS-'+id+'">'+st+'</span>'+
+    (pages>1?'<div class="ts-sc-pgb" role="group" aria-label="'+esc(scQLabel(qk))+' pages">'+
+      '<button type="button" class="ts-mbtn sec" id="tsScQP-'+id+'" aria-describedby="tsScQS-'+id+'" onclick="tsScorePage('+score+',\''+qk+'\',-1)"'+(p<=1?' disabled':'')+'>Previous</button>'+
+      '<button type="button" class="ts-mbtn sec" id="tsScQN-'+id+'" aria-describedby="tsScQS-'+id+'" onclick="tsScorePage('+score+',\''+qk+'\',1)"'+(p>=pages?' disabled':'')+'>Next</button></div>':'')+
+    '</div>';
+}
+// Quarter sub-sections (oldest first, only quarters with tickets); one open at a time, collapsed by default.
+function scQuartersHtml(list,score,crit){
+  var by={}, keys=[];
+  list.forEach(function(t){ var k=scQKey(t); if(!by[k]){ by[k]=[]; keys.push(k); } by[k].push(t); });
+  keys.sort(function(a,b){ return a==='none'?1:b==='none'?-1:a.localeCompare(b); });
+  return '<div class="ts-sc-qs">'+keys.map(function(k){
+    var open=SC.openQ===k, id=score+'-'+k, n=by[k].length;
+    return '<section class="ts-sc-q'+(open?' is-open':'')+'" aria-labelledby="tsScQH-'+id+'">'+
+      '<h4 class="ts-sc-qh" id="tsScQH-'+id+'"><button type="button" class="ts-sc-qtog" id="tsScQB-'+id+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScQL-'+id+'" onclick="tsScoreQtr('+score+',\''+k+'\')">'+
+        '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span><span class="ts-sec-lbl">'+esc(scQLabel(k))+'</span>'+
+        '<span class="ts-count"><span class="ts-sr">(</span>'+n.toLocaleString()+'<span class="ts-sr"> '+(n===1?'ticket':'tickets')+')</span></span></button></h4>'+
+      '<div class="ts-sc-qb" id="tsScQL-'+id+'"'+(open?'':' hidden')+'>'+(open?scQBodyHtml(by[k],score,k,crit):'')+'</div></section>';
+  }).join('')+'</div>';
+}
+function scBucketsHtml(d){
+  var by={}, i; for(i=0;i<=10;i++) by[i]=[];
+  (d.tickets||[]).forEach(function(t){ if(by[t.score]) by[t.score].push(t); });
+  var crit=d.criteria||[], out=[];
+  if(!d._miss) d._miss={};   // header summaries, computed once per payload
+  for(i=0;i<=10;i++){
+    var n=(d.buckets&&d.buckets[i])||0, open=SC.open===i, great=i===10;
+    out.push('<section class="ts-sec ts-sc-sec'+(open?' is-open':'')+(great?' is-great':'')+'" style="--sc-h:'+scHue(i)+'" id="tsScSec-'+i+'" aria-labelledby="tsScH-'+i+'">'+
+      '<div class="ts-sc-hrow"><h3 class="ts-sec-h" id="tsScH-'+i+'"><button type="button" class="ts-sec-tog" id="tsScB-'+i+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScL-'+i+'" onclick="tsScoreToggle('+i+')">'+
+        '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
+        '<span class="ts-sc-badge">'+i+' / 10</span><span class="ts-sec-lbl">'+i+' '+(i===1?'point':'points')+'</span>'+
+        '<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> '+(n===1?'ticket':'tickets')+')</span></span>'+
+        (great?'<span class="ts-sc-great">Great</span>':'')+'</button></h3>'+
+        (great?'':saHeadActs(d,i,n))+
+        (d._miss[i]!=null?d._miss[i]:(d._miss[i]=scMissHtml(by[i],i,crit)))+'</div>'+
+      '<div class="ts-sec-body" id="tsScL-'+i+'"'+(open?'':' hidden')+'>'+
+        (open?(by[i].length?scQuartersHtml(by[i],i,crit):'<div class="ts-empty" style="margin:14px">'+ICO_INFO+'No tickets</div>'):'')+
+      '</div></section>');
+  }
+  return '<div class="ts-secs">'+out.join('')+'</div>';
+}
+function scBodyHtml(){
+  if(SC.loading) return scSkel();
+  if(SC.err) return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
+    '<p class="ts-state-t">Couldn\u2019t load the sanitization scores</p><p class="ts-state-p">'+esc(SC.err)+'</p></div>'+
+    '<button type="button" class="ts-btn" id="tsScoreRetry" onclick="tsScoreRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
+  var d=SC.data; if(!d) return '';
+  var when=scWhen(d.asOf);
+  var xb=d.excludedBy||{}, XL=[['appeal','appeal'],['test','test'],['duplicate','duplicate'],['autosim','AUTO-SIM'],['cnt','Cnt &gt; 0']];
+  var why=XL.filter(function(x){ return xb[x[0]]; }).map(function(x){ return Number(xb[x[0]]).toLocaleString()+' '+x[1]; }).join(', ');
+  return '<p class="ts-sc-tot"><b>'+Number(d.total||0).toLocaleString()+'</b> '+(d.total===1?'ticket':'tickets')+' scored \u00b7 <b>'+Number(d.excluded||0).toLocaleString()+'</b> ignored'+(why?' ('+why+')':'')+
+      (when?' <span>\u00b7 data as of '+esc(when)+'</span>':'')+'</p>'+
+    scDistHtml(d)+scBucketsHtml(d);
+}
+function scoreHtml(){
+  if(!tsIsOwner()) return '';
+  return '<section class="ts-card" id="tsScore" aria-labelledby="tsScoreHead" aria-busy="'+(SC.loading?'true':'false')+'">'+
+    '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+ICO_SCORE+'</span><div>'+
+      '<h2 id="tsScoreHead" tabindex="-1">Sanitization scores<span class="ts-own">Only visible to you</span></h2>'+
+      '<p class="ts-head-p">Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details = 10). Lowest scores need sanitizing first.</p></div></div>'+
+      scQuarterSelect()+'</div>'+
+    scBodyHtml()+'</section>';
+}
+function scRender(focusId){
+  var el=document.getElementById('tsScore'); if(!el) return;
+  el.outerHTML=scoreHtml();
+  if(focusId){ var f=document.getElementById(focusId); if(f) f.focus(); }
+}
+// keep = refresh in place (after an assign / revoke): the open section, quarter and page stay.
+async function loadScores(quarter,fromRetry,keep){
+  if(!tsIsOwner()) return;
+  SC.loading=true; SC.err=''; if(quarter!=null) SC.quarter=quarter; scRender();
+  var r=null;
+  try{ r=await A.api('GET','/api/sanitization-score?quarter=since2026'); }catch(e){ r=null; }
+  SC.loading=false;
+  if(r&&r.ok&&r.data&&r.data.buckets){ SC.data=r.data; SC.quarter=r.data.quarter; if(!keep){ SC.open=null; SC.openQ=null; SC.page={}; } }
+  else SC.err=(r&&r.data&&r.data.error)||(r?'The server answered HTTP '+(r.status||'?')+'.':'Network error.');
+  scRender(SC.err&&fromRetry?'tsScoreRetry':(quarter!=null?'tsScoreQ':null));
+  announce(SC.err?'Couldn\u2019t load the sanitization scores.':('Sanitization scores loaded: '+SC.data.total+' tickets scored, '+SC.data.excluded+' ignored.'));
+}
+function tsScoreRetry(){ loadScores(null,true); }
+function tsScoreQuarter(v){ loadScores(String(v||'')); }
+// Opening / closing a score section collapses its quarters and forgets their pages.
+function tsScoreToggle(i){ SC.open=SC.open===i?null:i; SC.openQ=null; SC.page={}; scRender('tsScB-'+i); }
+function tsScoreJump(i){
+  if(SC.open!==i){ SC.open=i; SC.openQ=null; SC.page={}; }
+  scRender('tsScB-'+i);
+  var s=document.getElementById('tsScSec-'+i); if(s&&s.scrollIntoView) s.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+// Quarter sub-section: one open at a time; collapsing resets its page.
+function tsScoreQtr(i,k){
+  if(SC.open!==i) return;
+  SC.openQ=SC.openQ===k?null:k; SC.page={};
+  scRender('tsScQB-'+i+'-'+k);
+}
+function tsScorePage(i,k,dir){
+  if(SC.open!==i||SC.openQ!==k||!SC.data) return;
+  var n=(SC.data.tickets||[]).filter(function(t){ return t.score===i&&scQKey(t)===k; }).length;
+  var pages=Math.max(1,Math.ceil(n/SC_PAGE)), pk=i+'|'+k, p=Math.min(Math.max(1,(SC.page[pk]||1)+dir),pages);
+  SC.page[pk]=p;
+  var bid=(dir<0?'tsScQP-':'tsScQN-')+i+'-'+k, atEnd=dir<0?p<=1:p>=pages;
+  scRender(atEnd?'tsScQB-'+i+'-'+k:bid);   // keep focus on the pressed button; the heading once it disables
+  var a=(p-1)*SC_PAGE;
+  announce(scQLabel(k)+', '+i+' points: page '+p+' of '+pages+', showing '+(a+1)+' to '+Math.min(a+SC_PAGE,n)+' of '+n+'.');
+}
+window.tsScoreRetry=tsScoreRetry; window.tsScoreQuarter=tsScoreQuarter; window.tsScoreToggle=tsScoreToggle; window.tsScoreJump=tsScoreJump; window.tsScoreQtr=tsScoreQtr; window.tsScorePage=tsScorePage;
+
+// ---- Sanitization assignments (owner-only; the server enforces it: /api/sanitization-assign) ----
+// Assign a score section's oldest available tickets to a contractor (the server picks them), then the
+// next data uploads verify them: Contractor performance, the assignment log and Needs rework.
+// SA = { loading, err, data:{contractors, assignments, performance, issues}, x:{id:true} (Show IDs), rv:{id:true} (revoking) }
+var SA={loading:true, err:'', data:null, x:{}, rv:{}};
+function saPlural(n,one,many){ n=Number(n)||0; return n.toLocaleString()+' '+(n===1?one:(many||one+'s')); }
+function saDay(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'\u2014'; }
+function saDate(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'\u2014'; }
+function saDayKey(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return 'unknown'; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function saAvg(v){ return v==null?'\u2014':Number(v).toFixed(1); }
+function saUrl(t){ return (t&&t.url)||(t&&t.shortId?'https://t.corp.amazon.com/issues/'+encodeURIComponent(t.shortId):''); }
+function saFind(id){ var d=SA.data; return d?(d.assignments||[]).filter(function(a){ return a.id===id; })[0]||null:null; }
+function saIssue(id){ var d=SA.data; return d?(d.issues||[]).filter(function(a){ return a.id===id; })[0]||null:null; }
+function saLinkCell(t){ var u=saUrl(t), id=t.shortId||'\u2014'; return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id); }
+function saExtractBtn(attr,label){ return '<button type="button" class="ts-abtn" '+attr+'>'+ICO_COPY+'<span class="tsa-bl">Extract tickets</span><span class="ts-sr"> '+esc(label||'')+'</span></button>'; }
+
+// Copy ONLY the ticket links, one per line. Feedback 'Copied N links'; when the clipboard is blocked a
+// read-only textarea with the links (selected) appears in fbHost.
+function saCopy(urls,btn,fbHost){
+  urls=(urls||[]).filter(Boolean); var text=urls.join('\n'), n=urls.length;
+  var lbl=btn&&btn.querySelector('.tsa-bl');
+  if(lbl&&!lbl.getAttribute('data-l')) lbl.setAttribute('data-l',lbl.textContent);   // e.g. 'Extract tickets' / 'Extract all'
+  var done=function(ok){
+    if(ok){
+      if(fbHost) fbHost.innerHTML='';
+      var msg='Copied '+saPlural(n,'link');
+      if(lbl){ lbl.textContent=msg; setTimeout(function(){ if(lbl.isConnected) lbl.textContent=lbl.getAttribute('data-l')||'Extract tickets'; },1800); }
+      announce(msg); return;
+    }
+    if(fbHost){
+      var fid='tsaFb'+Math.random().toString(36).slice(2,8);
+      fbHost.innerHTML='<label class="tsa-fbl" for="'+fid+'">Copying is blocked in this browser. Select and copy these '+saPlural(n,'link')+':</label><textarea class="tsa-fb" id="'+fid+'" readonly rows="5"></textarea>';
+      var ta=document.getElementById(fid); ta.value=text; ta.focus(); ta.select();
+    }
+    announce('Copying is blocked. The links are shown in a text box to copy by hand.');
+  };
+  if(!n){ announce('No ticket links to copy.'); return; }
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){ done(true); },function(){ copyFallback(text,done); });
+  else copyFallback(text,done);
+}
+
+// Score section header: 'N available' + 'Assign to sanitize' (0..9 points).
+function saHeadActs(d,i,n){
+  var av=(d.available&&d.available[i]!=null)?d.available[i]:n;
+  return '<div class="ts-sc-acts"><span class="ts-sc-av'+(av?'':' is-none')+'" id="tsScAv-'+i+'">'+Number(av).toLocaleString()+' available</span>'+
+    '<button type="button" class="ts-abtn" id="tsScA-'+i+'" aria-haspopup="dialog" aria-label="Assign '+i+'-point tickets to sanitize" aria-describedby="tsScAv-'+i+'" onclick="tsAsgOpen('+i+')"'+(av?'':' disabled')+'>'+
+      ic('user-plus',14)+'Assign to sanitize</button></div>';
+}
+
+async function loadAssign(fromRetry,focusSel){
+  if(!tsIsOwner()) return;
+  SA.loading=!SA.data; SA.err=''; if(SA.loading) saRender();
+  var r=null;
+  try{ r=await A.api('GET','/api/sanitization-assign'); }catch(e){ r=null; }
+  SA.loading=false;
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.assignments)) SA.data=r.data;
+  else SA.err=(r&&r.data&&r.data.error)||(r?'The server answered HTTP '+(r.status||'?')+'.':'Network error.');
+  saRender(SA.err&&fromRetry?'#tsAsgRetry':focusSel);
+}
+function tsAsgRetry(){ loadAssign(true); }
+window.tsAsgRetry=tsAsgRetry;
+function saRender(focusSel){
+  var el=document.getElementById('tsAsgWrap'); if(!el) return;
+  el.outerHTML=saSecsHtml();
+  if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); }
+}
+function saCard(id,icon,title,sub,body){
+  return '<section class="ts-card" id="'+id+'" aria-labelledby="'+id+'Head" aria-busy="'+(SA.loading?'true':'false')+'">'+
+    '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+icon+'</span><div>'+
+      '<h2 id="'+id+'Head" tabindex="-1">'+title+'<span class="ts-own">Only visible to you</span></h2><p class="ts-head-p">'+sub+'</p></div></div></div>'+body+'</section>';
+}
+function saSkel(){ return '<div aria-hidden="true"><span class="ts-skel" style="width:100%;height:14px;margin-bottom:10px"></span><span class="ts-skel" style="width:70%;height:14px"></span></div>'; }
+function saErrHtml(){
+  return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
+    '<p class="ts-state-t">Couldn\u2019t load the sanitization assignments</p><p class="ts-state-p">'+esc(SA.err)+'</p></div>'+
+    '<button type="button" class="ts-btn" id="tsAsgRetry" onclick="tsAsgRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
+}
+function saSecsHtml(){
+  if(!tsIsOwner()) return '';
+  var d=SA.data;
+  var perf=SA.loading?saSkel():(SA.err?saErrHtml():saPerfHtml(d));
+  var log=SA.loading?saSkel():(SA.err?'':saLogHtml(d));
+  var iss=SA.loading?saSkel():(SA.err?'':saIssuesHtml(d));
+  return '<div class="tsa-wrap" id="tsAsgWrap">'+
+    saCard('tsPerf',ic('users-gear',17),'Contractor performance','Tickets assigned to each contractor and how many reached 10/10 after the next data upload. Sorted by pass rate.',perf)+
+    (SA.err?'':saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first. Due 7 days after assigning.',log))+
+    (SA.err?'':saCard('tsRework',ic('alert-triangle',17),'Needs rework','Assignments verified against new data where some tickets are still below 10/10. Send these back to the contractor.',iss))+
+    '</div>';
+}
+function saPerfHtml(d){
+  var rows=d.performance||[];
+  if(!rows.length) return '<div class="ts-empty">'+ICO_INFO+'No contractors found.</div>';
+  return '<div class="tsa-tw"><table class="tsa-tbl"><caption class="ts-sr">Contractor performance, sorted by pass rate</caption><thead><tr>'+
+    '<th scope="col">Contractor</th><th scope="col">Assigned</th><th scope="col">Verified</th><th scope="col">Passed (10/10)</th><th scope="col">Needs rework</th>'+
+    '<th scope="col">Pass rate</th><th scope="col">Avg score before \u2192 after</th><th scope="col">Pending</th></tr></thead><tbody>'+
+    rows.map(function(p){
+      var rate=p.passRate, h=rate==null?0:scHue(rate/10);
+      var rateHtml=rate==null?'<span class="tsa-mut">\u2014</span>':
+        '<div class="tsa-rate" style="--sc-h:'+h+'"><span class="tsa-bar" aria-hidden="true"><span style="width:'+Math.max(0,Math.min(100,rate))+'%"></span></span><b>'+rate+'%</b></div>';
+      var gain=p.avgGain==null?'':' <span class="tsa-mut">('+(p.avgGain>=0?'+':'')+Number(p.avgGain).toFixed(1)+')</span>';
+      return '<tr><td class="who"><b>'+esc(p.login)+'</b></td>'+
+        '<td>'+Number(p.ticketsAssigned||0).toLocaleString()+' <span class="tsa-mut">in '+saPlural(p.assignments,'assignment')+'</span></td>'+
+        '<td>'+Number(p.verified||0).toLocaleString()+'</td><td>'+Number(p.passed||0).toLocaleString()+'</td><td>'+Number(p.failed||0).toLocaleString()+'</td>'+
+        '<td>'+rateHtml+'</td>'+
+        '<td>'+(p.avgScoreBefore==null?'<span class="tsa-mut">\u2014</span>':saAvg(p.avgScoreBefore)+' \u2192 '+saAvg(p.avgScoreAfter)+gain)+'</td>'+
+        '<td>'+Number(p.pending||0).toLocaleString()+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function saStatusHtml(a){
+  if(a.status==='revoked') return '<span class="tsa-pill revoked">Revoked by '+esc(a.revokedBy||'\u2014')+' \u00b7 '+esc(saDate(a.revokedAt))+'</span>';
+  var nf=(a.notFound||0)+(a.excluded||0);
+  if(a.statusLabel==='Verified') return '<span class="tsa-pill verified'+(a.failed?' has-bad':'')+'">Verified: '+Number(a.passed).toLocaleString()+' passed, '+Number(a.failed).toLocaleString()+' need rework'+(nf?', '+nf+' not found or ignored':'')+'</span>';
+  if(a.statusLabel==='Awaiting new data') return '<span class="tsa-pill awaiting">Awaiting new data</span>';
+  return '<span class="tsa-pill progress">In progress until '+esc(saDay(a.dueAt))+(a.dataStamp&&a.verifiedCount?' \u00b7 '+Number(a.passed).toLocaleString()+' at 10/10 so far':'')+'</span>';
+}
+function saEntryHtml(a){
+  var id=a.id, x=SA.x[id]===true, rv=SA.rv[id]===true, list=a.tickets||[];
+  var sum=a.assignedBy+' assigned '+saPlural(a.count,'ticket')+' to '+a.assignee+' on '+saDate(a.assignedAt);
+  var ids=x?list.map(function(t){
+    var now=t.score!=null?(t.score+' / 10'):(t.excludedReason?'ignored ('+t.excludedReason+')':(t.found===false?'not found':'\u2014'));
+    return '<li>'+saLinkCell(t)+'<span class="t">'+esc(t.title||'No title')+'</span><span class="s">'+esc(String(t.scoreAtAssign))+' \u2192 '+esc(now)+'</span></li>';
+  }).join(''):'';
+  return '<li class="tsa-e'+(a.status==='revoked'?' is-rvk':'')+'">'+
+    '<span class="tsa-what"><span class="tsa-mut">'+esc(new Date(a.assignedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+'</span> \u00b7 '+
+      '<b>'+esc(a.assignedBy)+'</b> assigned <b>'+saPlural(a.count,'ticket')+'</b> ('+a.score+' '+(a.score===1?'point':'points')+') to <b>'+esc(a.assignee)+'</b> \u00b7 due '+esc(saDay(a.dueAt))+saStatusHtml(a)+'</span>'+
+    '<span class="tsa-acts">'+saExtractBtn('data-sa="copy" data-id="'+esc(id)+'"','for '+sum)+
+      '<button type="button" class="ts-abtn" data-sa="x" data-id="'+esc(id)+'" id="tsaX-'+esc(id)+'" aria-expanded="'+x+'" aria-controls="tsaI-'+esc(id)+'">'+(x?'Hide':'Show')+' IDs<span class="ts-sr"> for '+esc(sum)+'</span></button>'+
+      (a.status==='active'?'<button type="button" class="ts-abtn is-red" data-sa="rv" data-id="'+esc(id)+'"'+(rv?' disabled aria-busy="true"':'')+'>'+ic('clock-rewind',13)+(rv?'Revoking\u2026':'Revoke')+'<span class="ts-sr"> '+esc(sum)+'</span></button>':'')+
+    '</span>'+
+    '<span class="tsa-fbh" id="tsaF-'+esc(id)+'"></span>'+
+    '<ul class="tsa-ids" id="tsaI-'+esc(id)+'" aria-label="Tickets in this assignment (score at assign \u2192 now)"'+(x?'':' hidden')+'>'+ids+'</ul></li>';
+}
+function saLogHtml(d){
+  var list=(d.assignments||[]).slice().sort(function(a,b){ return String(b.assignedAt||'').localeCompare(String(a.assignedAt||'')); });
+  if(!list.length) return '<div class="ts-empty">'+ICO_INFO+'No tickets have been assigned for sanitization yet. Use \u201cAssign to sanitize\u201d on a score section above.</div>';
+  var days=[], by={};
+  list.forEach(function(a){ var k=saDayKey(a.assignedAt); if(!by[k]){ by[k]=[]; days.push(k); } by[k].push(a); });
+  return '<ol class="tsa-days" aria-label="Assignment log by day, newest first">'+days.map(function(k){
+    var items=by[k], label=k==='unknown'?'Unknown date':new Date(items[0].assignedAt).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    var tix=0; items.forEach(function(a){ tix+=Number(a.count)||0; });
+    return '<li class="tsa-day"><h3 class="tsa-day-h">'+esc(label)+' <span class="tsa-mut">\u00b7 '+saPlural(items.length,'assignment')+' \u00b7 '+saPlural(tix,'ticket')+'</span></h3>'+
+      '<ol class="tsa-log">'+items.map(saEntryHtml).join('')+'</ol></li>';
+  }).join('')+'</ol>';
+}
+function saIssuesHtml(d){
+  var iss=d.issues||[];
+  if(!iss.length){
+    var waiting=(d.assignments||[]).some(function(a){ return a.status==='active'&&a.statusLabel!=='Verified'; });
+    return '<div class="ts-empty" role="status">'+ICO_INFO+'No issues found yet'+(waiting?' \u00b7 Waiting for the next data upload':'')+'</div>';
+  }
+  return '<div class="tsa-iss">'+iss.map(function(b){
+    var id=b.id, fc=Number(b.failedCount)||0;
+    var head=esc(b.assignee)+' was assigned '+saPlural(b.count,'ticket')+' but '+fc.toLocaleString()+' '+(fc===1?'has':'have')+' issues';
+    return '<section class="tsa-blk" aria-labelledby="tsaB-'+esc(id)+'"><div class="tsa-blk-h"><h3 class="tsa-blk-t" id="tsaB-'+esc(id)+'">'+head+
+        '<small>Assigned '+esc(saDate(b.assignedAt))+' \u00b7 '+b.score+' '+(b.score===1?'point':'points')+' at assign \u00b7 verified against data of '+esc(saDate(b.dataStamp))+'</small></h3>'+
+        saExtractBtn('data-sa="icopy" data-id="'+esc(id)+'"','for the '+saPlural(fc,'ticket')+' '+b.assignee+' needs to rework')+'</div>'+
+      '<span class="tsa-fbh" id="tsaG-'+esc(id)+'"></span>'+
+      '<div class="tsa-tw"><table class="tsa-tbl"><caption class="ts-sr">Tickets '+esc(b.assignee)+' needs to rework</caption><thead><tr>'+
+        '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Score</th><th scope="col">Missed fields</th></tr></thead><tbody>'+
+      (b.tickets||[]).map(function(t){
+        return '<tr><td>'+saLinkCell(t)+'</td><td class="tt">'+esc(t.title||'\u2014')+'</td>'+
+          '<td><span class="ts-sc-badge" style="--sc-h:'+scHue(Number(t.score)||0)+'">'+esc(String(t.score))+' / 10</span></td>'+
+          '<td><span class="ts-chips">'+(t.missing||[]).map(function(m){ return '<span class="ts-chip" style="cursor:default">'+esc(m)+'</span>'; }).join('')+'</span></td></tr>';
+      }).join('')+'</tbody></table></div></section>';
+  }).join('')+'</div>';
+}
+
+// Log / rework buttons (delegated: the cards are re-rendered).
+document.addEventListener('click',async function(ev){
+  var b=ev.target&&ev.target.closest?ev.target.closest('[data-sa]'):null; if(!b||!tsIsOwner()) return;
+  var act=b.getAttribute('data-sa'), id=b.getAttribute('data-id'), a=saFind(id);
+  if(act==='x'&&a){ SA.x[id]=!SA.x[id]; saRender('#tsaX-'+id); return; }
+  if(act==='copy'&&a){ saCopy((a.tickets||[]).map(saUrl),b,document.getElementById('tsaF-'+id)); return; }
+  if(act==='icopy'){ var is=saIssue(id); if(is) saCopy((is.tickets||[]).map(saUrl),b,document.getElementById('tsaG-'+id)); return; }
+  if(act==='rv'&&a&&a.status==='active'&&!SA.rv[id]){
+    var ok=window.PHDConfirm?await window.PHDConfirm({title:'Revoke assignment',body:'Revoke the assignment of '+saPlural(a.count,'ticket')+' to '+a.assignee+'? Its tickets that are not 10/10 become available to assign again. The log entry is kept.',okLabel:'Revoke',danger:true}):window.confirm('Revoke this assignment?');
+    if(!ok){ var b0=document.querySelector('[data-sa="rv"][data-id="'+id+'"]'); if(b0) b0.focus(); return; }
+    SA.rv[id]=true; saRender();
+    var r=null; try{ r=await A.api('POST','/api/sanitization-assign/revoke',{id:id}); }catch(e){ r=null; }
+    delete SA.rv[id];
+    var msg=r&&r.ok&&r.data&&r.data.ok?(r.data.alreadyRevoked?'This assignment was already revoked.':'Revoked the assignment of '+saPlural(a.count,'ticket')+' to '+a.assignee+'.')
+      :((r&&r.data&&r.data.error)||'Could not revoke the assignment. Please try again.');
+    if(window.PHDBanner) window.PHDBanner[r&&r.ok?'ok':'error'](msg);
+    await loadAssign(false,'#tsaX-'+id);
+    announce(msg);
+    if(r&&r.ok) loadScores(null,false,true);
+  }
+});
+
+// ---- Assign pop-up: how many -> split across contractors -> done (Extract tickets) ----
+// SAD = { score, avail, step:1|2|3, count, split:{login:'typed'}, touched, busy, prog, err,
+//         done:[{assignee,count,dueAt,tickets:[{shortId,url}]}], failed:{login,count,status,msg}|null, rest:[{login,count}] }
+var SAD=null;
+var SAD_SUB={1:'Step 1 of 2 \u00b7 How many tickets?',2:'Step 2 of 2 \u00b7 Which contractors?',3:'Done'};
+function saContractors(){ return (SA.data&&SA.data.contractors)||[]; }
+function saLogins(){ return saContractors().map(function(c){ return c.login; }); }
+
+// Validate a split of n tickets: blank = 0, whole numbers only, total 1..n (less than n is fine: the rest stay available).
+function saSplitCheck(split,logins,n){
+  var total=0,k=0,bad='';
+  (logins||[]).forEach(function(l){
+    var v=split&&split[l]!=null?String(split[l]).trim():'';
+    if(v==='') return;
+    if(!/^\d+$/.test(v)){ if(!bad) bad=l; return; }
+    var q=Number(v); if(q>0){ total+=q; k++; }
+  });
+  var err='';
+  if(bad) err='Enter a whole number of tickets for '+bad+'.';
+  else if(total>n) err='Allocated '+total.toLocaleString()+' of '+n.toLocaleString()+'. Remove '+(total-n).toLocaleString()+' to continue.';
+  else if(!total) err='Enter how many tickets each contractor gets.';
+  return {total:total,k:k,remaining:Math.max(0,n-total),over:Math.max(0,total-n),ok:!err,err:err};
+}
+// One POST per contractor, in list order (the server picks the next oldest available tickets each call).
+// Stops at the first failure; returns what succeeded, the failure and the not-yet-attempted rest.
+async function saRunSplit(api,score,queue,onStep){
+  var done=[];
+  for(var i=0;i<queue.length;i++){
+    var q=queue[i]; if(onStep) onStep(q,i,queue.length);
+    var r=null; try{ r=await api('POST','/api/sanitization-assign',{score:score,count:q.count,assignee:q.login}); }catch(e){ r=null; }
+    if(r&&r.ok&&r.data&&r.data.ok){
+      done.push({login:q.login,assignee:r.data.assignee||q.login,count:r.data.count!=null?Number(r.data.count):q.count,dueAt:r.data.dueAt,tickets:r.data.tickets||[]});
+      continue;
+    }
+    var msg=(r&&r.data&&r.data.error)||(r?'The server answered HTTP '+(r.status||'?')+'.':'Network error.');
+    return {done:done,failed:{login:q.login,count:q.count,status:r?r.status:0,msg:msg},rest:queue.slice(i+1)};
+  }
+  return {done:done,failed:null,rest:[]};
+}
+function saDoneFor(login){ return SAD.done.filter(function(d){ return d.login===login; })[0]||null; }
+// Contractors still to assign (count > 0, not yet assigned in this pop-up), in list order.
+function saQueue(){
+  return saLogins().filter(function(l){ return !saDoneFor(l); }).map(function(l){
+    var v=String(SAD.split[l]==null?'':SAD.split[l]).trim(); return {login:l,count:/^\d+$/.test(v)?Number(v):0};
+  }).filter(function(q){ return q.count>0; });
+}
+async function tsAsgOpen(score){
+  if(!tsIsOwner()||!SC.data) return;
+  var av=(SC.data.available&&SC.data.available[score]!=null)?SC.data.available[score]:(SC.data.buckets[score]||0);
+  if(!av) return;
+  tsAsgClose(true);
+  SAD={score:score,avail:av,step:1,count:av,split:{},touched:false,busy:false,prog:'',err:'',done:[],failed:null,rest:[]};
+  var ov=document.createElement('div'); ov.id='tsAsgDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
+  ov.innerHTML='<div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="tsAsgT" aria-describedby="tsAsgSub">'+
+    '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic('user-plus',20)+'</span>'+
+      '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization scores \u00b7 Assign</div><h2 class="tbl-title" id="tsAsgT">Assign '+score+'-point tickets to sanitize</h2></div>'+
+      '<button type="button" class="tbl-x" data-sax="1" aria-label="Close">'+ic('close',18)+'</button>'+
+      '<p class="tbl-sub" id="tsAsgSub"></p></div>'+
+    '<div class="tbl-body" id="tsAsgBody"></div></div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) tsAsgClose(); });
+  document.body.appendChild(ov);
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(ov,function(){ tsAsgClose(); },null);
+  saPaint();
+  if(!SA.data){ await loadAssign(); if(SAD) saPaint(SAD.step===1?'#tsaCount':null); }
+}
+window.tsAsgOpen=tsAsgOpen;
+// Closing after a successful assign refreshes the scores (available counts) and the assignment cards.
+function tsAsgClose(force){
+  var ov=document.getElementById('tsAsgDlg'); if(!ov) return;
+  if(SAD&&SAD.busy&&!force) return;
+  var done=!!(SAD&&SAD.done.length), score=SAD?SAD.score:null; SAD=null;   // any contractor assigned (also a partial run)
+  ov.remove(); if(window.PHDLoginUI) window.PHDLoginUI.closed(ov);
+  if(done){
+    loadAssign();
+    loadScores(null,false,true).then(function(){ var b=document.getElementById('tsScA-'+score)||document.getElementById('tsScB-'+score); if(b) b.focus(); });
+  }
+}
+window.tsAsgClose=tsAsgClose;
+function saErrP(){ return '<p class="tbl-err" id="tsaErr" role="alert"'+(SAD.err?' style="display:block"':'')+'>'+esc(SAD.err||'')+'</p>'; }
+function saSumHtml(chk){
+  var n=SAD.count, tag=chk.over?'<span class="tsa-tag is-over">'+chk.over.toLocaleString()+' over</span>':
+    (chk.remaining?'<span class="tsa-tag is-rem">'+chk.remaining.toLocaleString()+' remaining</span>':'<span class="tsa-tag is-all">All allocated</span>');
+  return '<span>Allocated '+chk.total.toLocaleString()+' of '+n.toLocaleString()+' \u00b7 Remaining '+chk.remaining.toLocaleString()+'</span>'+tag;
+}
+function saGoLabel(chk){
+  if(SAD.busy) return SAD.prog||'Assigning\u2026';
+  var q=saQueue(), x=q.reduce(function(s,e){ return s+e.count; },0);
+  if(!chk.ok||!q.length) return SAD.failed?'Retry':'Assign tickets';
+  return (SAD.failed?'Retry: assign ':'Assign ')+saPlural(x,'ticket')+' to '+saPlural(q.length,'contractor');
+}
+// Outcome of a run that stopped at an error: who got their tickets, who failed (server message), who wasn't tried.
+function saResHtml(){
+  var f=SAD.failed; if(!f) return '';
+  var ok=SAD.done.map(function(d){ return esc(d.login)+' ('+saPlural(d.count,'ticket')+')'; }).join(', ');
+  var rest=SAD.rest.map(function(q){ return esc(q.login)+' ('+saPlural(q.count,'ticket')+')'; }).join(', ');
+  return '<div class="tsa-res" id="tsaRes" role="alert">'+
+    (ok?'<p><b class="ok">Assigned:</b> '+ok+'</p>':'')+
+    '<p><b class="bad">Failed:</b> '+esc(f.login)+' ('+saPlural(f.count,'ticket')+')'+(f.status?' \u00b7 HTTP '+f.status:'')+' \u2014 '+esc(f.msg)+'</p>'+
+    (rest?'<p><b>Not attempted:</b> '+rest+'</p>':'')+
+    '<p>Retry assigns the remaining contractors only. You can change their numbers first.</p></div>';
+}
+// Live update of the summary, inline error, invalid inputs and the primary button (no repaint, keeps focus).
+function saSplitSync(){
+  var b=document.getElementById('tsAsgBody'); if(!b||!SAD||SAD.step!==2) return;
+  var chk=saSplitCheck(SAD.split,saLogins(),SAD.count);
+  var s=b.querySelector('#tsaSum'); if(s) s.innerHTML=saSumHtml(chk);
+  var showErr=!chk.ok&&SAD.touched;
+  var e=b.querySelector('#tsaSErr'); if(e){ e.textContent=showErr?chk.err:''; e.style.display=showErr?'block':'none'; }
+  b.querySelectorAll('input.tsa-q').forEach(function(el){
+    var v=String(el.value).trim(), bad=v!==''&&(!/^\d+$/.test(v)||(chk.over>0&&Number(v)>0&&!el.disabled));
+    if(bad) el.setAttribute('aria-invalid','true'); else el.removeAttribute('aria-invalid');
+  });
+  var go=b.querySelector('#tsaGo'); if(go){ go.disabled=SAD.busy||!chk.ok||!saQueue().length; go.textContent=saGoLabel(chk); }
+}
+function saBodyHtml(){
+  var cancel='<button type="button" class="tbl-cancel" data-sax="1"'+(SAD.busy?' disabled':'')+'>Cancel</button>';
+  if(SAD.step===1){
+    return '<p class="tbl-msg"><b>'+saPlural(SAD.avail,'ticket')+'</b> with <b>'+SAD.score+' '+(SAD.score===1?'point':'points')+'</b> available to assign</p>'+
+      '<label class="tbl-label" for="tsaCount" style="margin-top:14px!important">How many tickets?</label>'+
+      '<input type="number" class="tsa-num" id="tsaCount" min="1" max="'+SAD.avail+'" step="1" inputmode="numeric" value="'+SAD.count+'" aria-describedby="tsaHint'+(SAD.err?' tsaErr':'')+'"'+(SAD.err?' aria-invalid="true"':'')+'>'+
+      '<p class="tsa-hint" id="tsaHint">Oldest first, across all quarters \u00b7 1 to '+SAD.avail.toLocaleString()+'</p>'+saErrP()+
+      '<div class="tbl-actions tbl-row">'+cancel+'<button type="button" class="tbl-submit" data-sastep="2">Next</button></div>';
+  }
+  if(SAD.step===2){
+    var cs=saContractors(), chk=saSplitCheck(SAD.split,saLogins(),SAD.count), showErr=!chk.ok&&SAD.touched, lock=SAD.done.length>0;
+    var rows=cs.length?'<ul class="tsa-list" aria-labelledby="tsaWhoK">'+cs.map(function(c,i){
+      var d=saDoneFor(c.login), v=d?String(d.count):(SAD.split[c.login]==null?'':String(SAD.split[c.login]));
+      return '<li><label class="tsa-row'+(d?' is-done':'')+'" for="tsaQ-'+i+'"><span class="tsa-t">'+esc(c.login)+'</span>'+
+        (d?'<span class="tsa-tag is-all">Assigned</span>':'')+
+        '<input type="number" class="tsa-q" id="tsaQ-'+i+'" data-login="'+esc(c.login)+'" aria-label="Tickets for '+esc(c.login)+'" aria-describedby="tsaSum tsaSErr"'+
+          ' min="0" max="'+SAD.count+'" step="1" inputmode="numeric" placeholder="0" value="'+esc(v)+'"'+(d||SAD.busy?' disabled':'')+'></label></li>';
+    }).join('')+'</ul>':(SA.loading?'<p class="tbl-msg">Loading contractors\u2026</p>':'<p class="tbl-msg">No contractors found.</p>');
+    return '<p class="tsa-k" id="tsaWhoK">Split '+saPlural(SAD.count,'ticket')+' ('+SAD.score+' '+(SAD.score===1?'point':'points')+') across contractors</p>'+rows+
+      '<div class="tsa-sum" id="tsaSum" aria-live="polite">'+saSumHtml(chk)+'</div>'+
+      '<p class="tbl-err" id="tsaSErr" aria-live="polite"'+(showErr?' style="display:block"':'')+'>'+esc(showErr?chk.err:'')+'</p>'+
+      '<p class="tsa-hint">Any tickets left unallocated stay available.</p>'+
+      saResHtml()+saErrP()+'<p class="tsa-prog" id="tsaProg" role="status">'+esc(SAD.busy?SAD.prog:'')+'</p>'+
+      '<div class="tbl-actions tbl-row">'+(lock?'':'<button type="button" class="tbl-cancel" data-sastep="1"'+(SAD.busy?' disabled':'')+'>Back</button>')+
+        (lock?'<button type="button" class="tbl-cancel" data-sax="1"'+(SAD.busy?' disabled':'')+'>Close</button>':cancel)+
+        '<button type="button" class="tbl-submit'+(SAD.busy?' is-busy':'')+'" id="tsaGo"'+(SAD.busy||!chk.ok||!saQueue().length?' disabled':'')+(SAD.busy?' aria-busy="true"':'')+'>'+esc(saGoLabel(chk))+'</button></div>';
+  }
+  var tot=SAD.done.reduce(function(s,d){ return s+d.count; },0), all=[];
+  SAD.done.forEach(function(d){ all=all.concat(d.tickets.map(saUrl)); });
+  return '<p class="tsa-ok" role="status">'+ic('check-circle',18)+'Assigned '+saPlural(tot,'ticket')+' to '+saPlural(SAD.done.length,'contractor')+'</p>'+
+    '<p class="tsa-hint">Due '+esc(saDate(SAD.done[0]&&SAD.done[0].dueAt))+'. Extract copies only the ticket links, one per line.</p>'+
+    '<ul class="tsa-dl" aria-label="Assigned contractors">'+SAD.done.map(function(d,i){
+      return '<li><span class="tsa-t">'+esc(d.assignee)+'</span><span class="tsa-c">'+saPlural(d.count,'ticket')+'</span>'+
+        saExtractBtn('data-sacp="'+i+'"','for the '+saPlural(d.count,'ticket')+' assigned to '+d.assignee)+'</li>';
+    }).join('')+'</ul>'+
+    '<div class="tsa-all"><button type="button" class="ts-abtn" id="tsaCopy">'+ICO_COPY+'<span class="tsa-bl">Extract all</span><span class="ts-sr"> '+esc(saPlural(all.length,'ticket link'))+'</span></button></div>'+
+    '<span class="tsa-fbh" id="tsaFbD"></span>'+
+    '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" data-sax="1">Close</button></div>';
+}
+function saPaint(focusSel){
+  var ov=document.getElementById('tsAsgDlg'); if(!ov||!SAD) return;
+  document.getElementById('tsAsgSub').textContent=SAD_SUB[SAD.step];
+  var b=document.getElementById('tsAsgBody'); b.innerHTML=saBodyHtml();
+  var f=focusSel?b.querySelector(focusSel):null;
+  if(!f) f=SAD.step===1?b.querySelector('#tsaCount'):(SAD.step===3?b.querySelector('#tsaCopy'):(b.querySelector('input.tsa-q:not(:disabled)')||b.querySelector('.tbl-cancel')));
+  if(f){ f.focus(); if(f.select&&f.type==='number') f.select(); }
+}
+function saStep1Next(){
+  var el=document.getElementById('tsaCount'), v=String(el?el.value:'').trim(), n=/^\d+$/.test(v)?Number(v):NaN;
+  if(!(n>=1&&n<=SAD.avail)){ SAD.err='Enter a whole number from 1 to '+SAD.avail.toLocaleString()+'.'; saPaint('#tsaCount'); return; }
+  SAD.count=n; SAD.err=''; SAD.step=2; saPaint();
+}
+async function saSubmit(){
+  if(!SAD||SAD.busy||SAD.step!==2) return;
+  SAD.touched=true;
+  var chk=saSplitCheck(SAD.split,saLogins(),SAD.count), queue=saQueue();
+  if(!chk.ok||!queue.length){ saSplitSync(); var bad=document.querySelector('#tsAsgBody input.tsa-q[aria-invalid="true"]')||document.querySelector('#tsAsgBody input.tsa-q:not(:disabled)'); if(bad) bad.focus(); return; }
+  var sd=SAD; SAD.busy=true; SAD.err=''; SAD.failed=null; SAD.rest=[]; SAD.prog='Assigning\u2026'; saPaint('#tsaGo');
+  var out=await saRunSplit(A.api.bind(A),SAD.score,queue,function(q,i,k){
+    if(SAD!==sd) return;
+    SAD.prog='Assigning to '+q.login+' ('+(i+1)+' of '+k+')\u2026';
+    var go=document.getElementById('tsaGo'); if(go) go.textContent=SAD.prog;
+    var p=document.getElementById('tsaProg'); if(p) p.textContent=SAD.prog;
+  });
+  if(SAD!==sd) return;
+  SAD.busy=false; SAD.prog=''; SAD.done=SAD.done.concat(out.done);
+  if(!out.failed){
+    SAD.step=3; saPaint();
+    announce('Assigned '+saPlural(SAD.done.reduce(function(s,d){ return s+d.count; },0),'ticket')+' to '+saPlural(SAD.done.length,'contractor')+'.');
+    return;
+  }
+  SAD.failed=out.failed; SAD.rest=out.rest;
+  saPaint('#tsaGo');
+  announce((out.done.length?'Assigned to '+out.done.map(function(d){ return d.login; }).join(', ')+'. ':'')+'Failed for '+out.failed.login+': '+out.failed.msg);
+}
+document.addEventListener('click',function(ev){
+  var t=ev.target; if(!t||!t.closest||!t.closest('#tsAsgDlg')||!SAD) return;
+  if(t.closest('[data-sax]')){ tsAsgClose(); return; }
+  var st=t.closest('[data-sastep]'); if(st&&!st.disabled){ var to=Number(st.getAttribute('data-sastep')); if(to===2) saStep1Next(); else { SAD.step=to; SAD.err=''; saPaint(); } return; }
+  if(t.closest('#tsaGo')){ saSubmit(); return; }
+  var fb=document.getElementById('tsaFbD');
+  var one=t.closest('[data-sacp]'); if(one){ var d=SAD.done[Number(one.getAttribute('data-sacp'))]; if(d) saCopy(d.tickets.map(saUrl),one,fb); return; }
+  var cp=t.closest('#tsaCopy'); if(cp){ var all=[]; SAD.done.forEach(function(d){ all=all.concat(d.tickets.map(saUrl)); }); saCopy(all,cp,fb); }
+});
+document.addEventListener('input',function(ev){
+  var el=ev.target; if(!el||!SAD||!el.classList||!el.classList.contains('tsa-q')||!el.closest('#tsAsgDlg')) return;
+  SAD.split[el.getAttribute('data-login')]=el.value; SAD.touched=true; SAD.err='';
+  var er=document.getElementById('tsaErr'); if(er){ er.textContent=''; er.style.display='none'; }
+  saSplitSync();
+});
+document.addEventListener('keydown',function(ev){
+  var t=ev.target; if(ev.key!=='Enter'||!SAD||!t) return;
+  if(t.id==='tsaCount'){ ev.preventDefault(); saStep1Next(); }
+  else if(t.classList&&t.classList.contains('tsa-q')&&t.closest('#tsAsgDlg')){ ev.preventDefault(); saSubmit(); }
+});
+
 // Not logged in: hero + a friendly notice (no checklist request, which would 401).
 function gate(msg){
   LOADING=false;
@@ -497,12 +1372,16 @@ function gate(msg){
 }
 
 // Esc closes whichever modal is open.
-document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ tsCloseEdit(); tsCloseDel(); } });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ tsCloseEdit(); tsCloseDel(); tsCloseAdd(); tsAsgClose(); } });
+// Fill the add pop-up's [data-ic] icon slots (icons.js).
+document.querySelectorAll('#tsAddModal [data-ic]').forEach(function(el){ el.insertAdjacentHTML('afterbegin',ic(el.getAttribute('data-ic'),+el.getAttribute('data-sz')||16)); });
 
-// Any logged-in user can view/copy. Only harisss/flofalgu see edit controls (server enforces too).
+// Any logged-in user can view. Only harisss/flofalgu see edit controls (server enforces too).
 (function(){
   if(!(A&&A.getUser&&A.getUser())){ gate('This page is for logged-in users. Log in from the Live Dashboard first.'); return; }
   loadChecklist();
+  loadScores();   // owner only (no-op for everyone else; the server returns 403 to non-owners anyway)
+  loadAssign();   // owner only: sanitization assignments (performance / log / needs rework)
 })();
 </script>
 </body>

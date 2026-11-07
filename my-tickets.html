@@ -673,7 +673,11 @@ td.mt-actions .btn svg{flex-shrink:0}
 .rs-tbl td{padding:8px 12px;border-top:1px solid #eef1f4;vertical-align:middle;color:#2a3340;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rs-tbl tr:first-child td{border-top:0}
 .rs-tbl tbody tr:hover td{background:#fafbfc}
-.rs-c-id{width:150px}.rs-c-ct{width:78px}.rs-c-rc{width:20%}.rs-c-res{width:18%}.rs-c-at{width:96px}
+.rs-c-id{width:150px}.rs-c-ct{width:78px}.rs-c-rc{width:20%}.rs-c-res{width:18%}.rs-c-at{width:118px}
+.rs-sort{display:inline-flex;align-items:center;gap:4px;margin:-2px -4px;padding:2px 4px;border:0;border-radius:4px;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer}
+.rs-sort:hover{color:var(--mt-acc-ink)}
+.rs-sort:focus-visible{outline:2px solid var(--mt-focus);outline-offset:1px}
+.rs-sort-ar{font-size:1.15em;line-height:1}
 .rs-id{display:inline-flex;align-items:center;gap:6px}
 .rs-id .mtc-copy{flex:0 0 auto}
 .rs-na{color:#8793a0;font-style:italic}
@@ -1245,6 +1249,15 @@ function rsDays(){
   }
   return out;
 }
+// Sort direction for the resolved tables + day groups ('desc' = newest first), persisted per-user.
+function rsSortKey(){ var u=A.getUser(); return 'phd_mytickets_rssort_'+((u&&u.username)||'anon'); }
+function rsSortDir(){ let v='desc'; try{ v=localStorage.getItem(rsSortKey())||'desc'; }catch(e){} return v==='asc'?'asc':'desc'; }
+// Copy of list sorted by resolvedDate (stable: ties keep their input order; unparsable dates sort as oldest).
+function rsSortByResolved(list,dir){
+  const ts=function(t){ const n=Date.parse(t&&t.resolvedDate); return isNaN(n)?0:n; };
+  const s=dir==='asc'?1:-1;
+  return list.slice().sort(function(a,b){ return s*(ts(a)-ts(b)); });
+}
 function rsTime(iso){ try{ return new Date(iso).toLocaleTimeString('en-US',{timeZone:rsZone(),hour:'2-digit',minute:'2-digit',hour12:true}); }catch(e){ return ''; } }
 function rsNA(v){ v=String(v==null?'':v).trim(); return (!v||/^not specified$/i.test(v)) ? '<span class="rs-na">Not specified</span>' : esc(v); }
 function rsRowHtml(t){
@@ -1268,11 +1281,14 @@ function rsBodyHtml(){
     return '<div class="rs-err" role="alert">'+ic('alert-triangle',14)+' <span>'+esc(RS.err)+'</span>'+
       '<button type="button" class="mt-btn-sm" onclick="loadResolved6(this)">'+ic('refresh',12)+' Retry</button></div>';
   const by={}; RS.tickets.forEach(function(t){ const k=rsDayKey(t.resolvedDate); (by[k]=by[k]||[]).push(t); });
-  const days=rsDays();
+  const dir=rsSortDir();
+  // rsDays() is newest-first; oldest-first also shows the oldest day group first.
+  const days=dir==='asc'?rsDays().reverse():rsDays();
   const total=days.reduce(function(n,d){ return n+((by[d.key]||[]).length); },0);
+  const asc=dir==='asc';
   return (total?'':'<p class="rs-note">You haven\u2019t resolved any tickets in the last '+RS_DAYS+' days.</p>')+
     '<div class="rs-days">'+days.map(function(d){
-      const list=(by[d.key]||[]).slice().sort(function(a,b){ return new Date(b.resolvedDate)-new Date(a.resolvedDate); });
+      const list=rsSortByResolved(by[d.key]||[],dir);
       const open=(d.key in RS_DAY_OPEN)?RS_DAY_OPEN[d.key]:d.today;
       const id='rsDay-'+d.key;
       const lbl=(d.today?'<span class="rs-day-today">Today</span> \u00b7 ':'')+esc(d.label);
@@ -1284,7 +1300,10 @@ function rsBodyHtml(){
           (list.length
             ? '<table class="rs-tbl"><caption class="mt-sr">Tickets resolved on '+esc(d.label)+'</caption><thead><tr>'+
                 '<th scope="col" class="rs-c-id">Ticket</th><th scope="col">Title</th><th scope="col" class="rs-c-ct">Country</th>'+
-                '<th scope="col" class="rs-c-rc">Root Cause</th><th scope="col" class="rs-c-res">Res</th><th scope="col" class="rs-c-at">Resolved</th>'+
+                '<th scope="col" class="rs-c-rc">Root Cause</th><th scope="col" class="rs-c-res">Res</th><th scope="col" class="rs-c-at" aria-sort="'+(asc?'ascending':'descending')+'">'+
+                  '<button type="button" class="rs-sort" data-rs-sort="'+d.key+'" title="Sort by resolved time">Resolved'+
+                  '<span class="rs-sort-ar" aria-hidden="true">'+(asc?'\u2191':'\u2193')+'</span>'+
+                  '<span class="mt-sr"> ('+(asc?'oldest':'newest')+' first)</span></button></th>'+
               '</tr></thead><tbody>'+list.map(rsRowHtml).join('')+'</tbody></table>'
             : '<p class="rs-day-empty">No tickets resolved on this day.</p>')+
         '</div></section>';
@@ -1329,6 +1348,15 @@ document.addEventListener('click',function(ev){
   b.setAttribute('aria-expanded',open?'true':'false');
   RS_DAY_OPEN[b.getAttribute('data-rs-day')]=open;
   const body=document.getElementById(b.getAttribute('aria-controls')); if(body) body.hidden=!open;
+});
+// Resolved-column sort toggle: flips direction for every day group, repaints only this section and
+// returns focus to the same day's header button (day open/closed state lives in RS_DAY_OPEN).
+document.addEventListener('click',function(ev){
+  const b=ev.target&&ev.target.closest&&ev.target.closest('.rs-sort'); if(!b) return;
+  const day=b.getAttribute('data-rs-sort');
+  try{ localStorage.setItem(rsSortKey(), rsSortDir()==='asc'?'desc':'asc'); }catch(e){}
+  rsPaint();
+  const nb=document.querySelector('#res6SectionBody .rs-sort[data-rs-sort="'+day+'"]'); if(nb) nb.focus();
 });
 
 // ---- Per-ticket analyst flags (UI-only on/off toggles, persisted per-user in localStorage, like
