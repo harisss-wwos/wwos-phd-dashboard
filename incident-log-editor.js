@@ -1202,7 +1202,13 @@ function ilSimImportClose(apply){
     _ilsApply(r.fields);
     ilSimChanged();
     (r.fields.HI||[]).forEach(function(v,i){ var s=_ilsHiSels()[i]; if(v && s) _ilsHiPrefill(i, String(s.value||'')); });
-    var st=document.getElementById('ilsStatus'); if(st){ st.textContent=r.summary; st.hidden=false; }
+    // Import summary line under the form: shown for 5 seconds, then hidden.
+    var st=document.getElementById('ilsStatus');
+    if(st){
+      st.textContent=r.summary; st.hidden=false;
+      clearTimeout(st._ilsHide);
+      st._ilsHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
+    }
     _ileToast(r.summary);
   } else bg.hidden=true;
   var op=_ilsiOpener; _ilsiOpener=null;
