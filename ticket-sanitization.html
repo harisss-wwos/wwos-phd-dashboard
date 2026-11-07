@@ -410,7 +410,34 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 .tsa-blk-t small{display:block;margin-top:2px;font-size:.82em;font-weight:600;color:var(--mut)}
 .tsa-blk .tsa-tw{padding:4px 6px}
 .tsa-blk .tsa-tbl td.tt{min-width:220px;overflow-wrap:anywhere}
-.tsa-wrap{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* ---- Top-level accordion cards (checklist / scores / log / performance / rework): one open at a time ---- */
+.ts-card.ts-acc{padding:0}
+.ts-acc>.ts-head{align-items:center;gap:0 10px;margin:0;background:#fff;transition:background .15s}
+.ts-acc>.ts-head:has(.ts-top-tog:hover){background:var(--soft)}
+.ts-acc.is-open>.ts-head{border-bottom:1px solid var(--line)}
+.ts-acc .ts-top-h{display:block;flex:1 1 300px;min-width:0;margin:0;font-size:1em;font-weight:inherit;letter-spacing:0;line-height:inherit}
+.ts-top-tog{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:14px 18px 14px 22px;border:none;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ts .ts-acc .ts-top-tog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ts-top-tog .ts-head-ic{align-self:flex-start}
+.ts-top-txt{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+.ts-top-tl{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink);min-height:34px}
+.ts-top-sub{display:block}
+.ts-acc:not(.is-open) .ts-top-sub{display:none}
+.ts-top-sum{white-space:nowrap}
+.ts-count.is-bad{background:var(--red-bg);border-color:#f2b8b1;color:var(--red)}
+.ts-top-chev{flex-shrink:0;display:inline-flex;margin-left:auto;align-self:center;color:#5c6773;transition:transform .2s ease}
+.ts-top-tog[aria-expanded="true"] .ts-top-chev{transform:rotate(90deg)}
+.ts-top-acts{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:8px 18px 8px 0}
+.ts-acc>.ts-head>.ts-btn{margin:8px 18px 8px 0}
+.ts-top-body{padding:16px 22px 20px}
+.ts-top-body[hidden]{display:none}
+@media (max-width:700px){
+  .ts-top-tog{padding:12px 14px}
+  .ts-top-acts{padding:0 14px 12px}
+  .ts-acc>.ts-head>.ts-btn{margin:0 14px 12px}
+  .ts-top-body{padding:14px}
+}
 </style>
 </head>
 <body data-nav-active="ticket-sanitization" data-back-href="index.html" data-back-label="Home">
@@ -556,6 +583,41 @@ function tsToggleSec(key){
 }
 window.tsToggleSec=tsToggleSec;
 
+// ---- Top-level accordion (checklist, scores, assignment log, performance, needs rework) ----
+// TS_TOP = id of the one open card (null = all collapsed). The checklist is open on every page load. In memory only.
+// Toggling only flips attributes, so inner accordions / pages keep their state; re-renders read TS_TOP.
+var TS_TOP='tsGuide';
+function tsTopCls(id){ return 'ts-card ts-acc'+(TS_TOP===id?' is-open':''); }
+function tsTopSum(text,cls){ return text?'<span class="ts-count ts-top-sum'+(cls?' '+cls:'')+'">'+text+'</span>':''; }
+// o = {icon, title, sum, tags, sub, acts}; acts sit OUTSIDE the toggle button (clicking them never toggles).
+function tsTopHead(id,o){
+  var open=TS_TOP===id;
+  return '<div class="ts-head"><h2 class="ts-top-h"><button type="button" class="ts-top-tog" id="'+id+'Btn" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+id+'Body" onclick="tsTopToggle(\''+id+'\')">'+
+      '<span class="ts-head-ic" aria-hidden="true">'+o.icon+'</span>'+
+      '<span class="ts-top-txt"><span class="ts-top-tl"><span id="'+id+'Head">'+o.title+'</span>'+(o.sum||'')+(o.tags||'')+'</span>'+
+        '<span class="ts-head-p ts-top-sub">'+o.sub+'</span></span>'+
+      '<span class="ts-top-chev" aria-hidden="true">'+ICO_CHEV+'</span></button></h2>'+(o.acts||'')+'</div>';
+}
+function tsTopBody(id){ return '<div class="ts-top-body" id="'+id+'Body"'+(TS_TOP===id?'':' hidden')+'>'; }
+function tsTopSet(id,open){
+  var card=document.getElementById(id), btn=document.getElementById(id+'Btn'), body=document.getElementById(id+'Body');
+  if(card) card.classList.toggle('is-open',!!open);
+  if(btn) btn.setAttribute('aria-expanded',open?'true':'false');
+  if(body) body.hidden=!open;
+}
+function tsTopToggle(id){
+  var open=TS_TOP!==id;
+  if(TS_TOP&&TS_TOP!==id) tsTopSet(TS_TOP,false);
+  TS_TOP=open?id:null; tsTopSet(id,open);
+}
+window.tsTopToggle=tsTopToggle;
+// Re-render helper: if the focused element was replaced, focus its re-rendered twin (same id).
+function tsKeepFocus(fn){
+  var a=document.activeElement, id=a&&a!==document.body?a.id:'';
+  fn();
+  if(id&&(!document.activeElement||document.activeElement===document.body)){ var f=document.getElementById(id); if(f&&f!==a) f.focus({preventScroll:true}); }
+}
+
 // AI prompt copied by the hero "Copy prompt" button.
 var TS_PROMPT=[
   'When I paste the next incident or information, reply with ONLY the four items below, in exactly this order, using exactly these headings. Do not add, remove, rename or reorder anything. No introduction, no commentary, no explanation, and no text before or after the four items.',
@@ -653,21 +715,21 @@ function render(){
   var html='<div class="ts'+(anim?' is-anim':'')+(heroAnim?' is-hero-anim':'')+'">'+
     heroHtml(editor)+
     '<div class="ts-main">'+
-      '<section class="ts-card" id="tsGuide" aria-labelledby="tsStepsHead" aria-busy="'+(LOADING?'true':'false')+'">'+
-        '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+ICO_LIST+'</span><div>'+
-          '<h2 id="tsStepsHead" tabindex="-1">Sanitization checklist'+(ready?'<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> steps)</span></span>':'')+
-            (ready&&editor?'<span class="ts-mode">Editor</span>':'')+'</h2>'+
-          '<p class="ts-head-p">Work through each step in order for every assigned ticket.</p></div></div>'+
-          (ready&&editor?'<button class="ts-btn" type="button" id="tsAddBtn" aria-haspopup="dialog" onclick="tsOpenAdd()">'+ICO_PLUS+'<span>Add new check</span></button>':'')+
-        '</div>'+
+      '<section class="'+tsTopCls('tsGuide')+'" id="tsGuide" aria-labelledby="tsGuideHead" aria-busy="'+(LOADING?'true':'false')+'">'+
+        tsTopHead('tsGuide',{icon:ICO_LIST,title:'Sanitization checklist',
+          sum:ready?tsTopSum(n.toLocaleString()+' '+(n===1?'check':'checks')):'',
+          tags:ready&&editor?'<span class="ts-mode">Editor</span>':'',
+          sub:'Work through each step in order for every assigned ticket.',
+          acts:ready&&editor?'<button class="ts-btn" type="button" id="tsAddBtn" aria-haspopup="dialog" onclick="tsOpenAdd()">'+ICO_PLUS+'<span>Add new check</span></button>':''})+
+        tsTopBody('tsGuide')+
         stepsHtml(editor,anim)+
         // Card-level error slot (a failed delete reports here, since its pop-up closes).
         (ready&&editor?'<div class="ts-err" id="tsErr" role="alert"></div>':'')+
-      '</section>'+
+      '</div></section>'+
       scoreHtml()+
       saSecsHtml()+
     '</div></div>';
-  document.getElementById('wrap').innerHTML=html;
+  tsKeepFocus(function(){ document.getElementById('wrap').innerHTML=html; });
 }
 
 function tsErr(msg){ var e=document.getElementById('tsErr'); if(e){ e.textContent=msg||''; e.style.display=msg?'flex':'none'; } }
@@ -686,7 +748,7 @@ async function loadChecklist(fromRetry){
     if(fromRetry){ var rb=document.getElementById('tsRetry'); if(rb) rb.focus(); }
   } else {
     announce('Loaded '+TS_ITEMS.length+' checklist '+(TS_ITEMS.length===1?'step':'steps')+'.');
-    if(fromRetry){ var h=document.getElementById('tsStepsHead'); if(h) h.focus(); }
+    if(fromRetry){ var h=document.getElementById('tsGuideBtn'); if(h) h.focus(); }
   }
 }
 function tsRetry(){ loadChecklist(true); }
@@ -804,7 +866,7 @@ function scSkel(){
 }
 // Fixed scope (no selector): tickets created from 1 Jan 2026 to the latest upload.
 function scQuarterSelect(){
-  return '<div class="ts-sc-ctl"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
+  return '<div class="ts-sc-ctl ts-top-acts"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
 }
 function scDistHtml(d){
   var max=0, i; for(i=0;i<=10;i++) max=Math.max(max,d.buckets[i]||0);
@@ -910,16 +972,18 @@ function scBodyHtml(){
 }
 function scoreHtml(){
   if(!tsIsOwner()) return '';
-  return '<section class="ts-card" id="tsScore" aria-labelledby="tsScoreHead" aria-busy="'+(SC.loading?'true':'false')+'">'+
-    '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+ICO_SCORE+'</span><div>'+
-      '<h2 id="tsScoreHead" tabindex="-1">Sanitization scores<span class="ts-own">Only visible to you</span></h2>'+
-      '<p class="ts-head-p">Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details = 10). Lowest scores need sanitizing first.</p></div></div>'+
-      scQuarterSelect()+'</div>'+
-    scBodyHtml()+'</section>';
+  var tot=SC.data?Number(SC.data.total||0):null;
+  return '<section class="'+tsTopCls('tsScore')+'" id="tsScore" aria-labelledby="tsScoreHead" aria-busy="'+(SC.loading?'true':'false')+'">'+
+    tsTopHead('tsScore',{icon:ICO_SCORE,title:'Sanitization scores',
+      sum:tot!=null?tsTopSum(tot.toLocaleString()+' scored'):'',
+      tags:'<span class="ts-own">Only visible to you</span>',
+      sub:'Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details = 10). Lowest scores need sanitizing first.',
+      acts:scQuarterSelect()})+
+    tsTopBody('tsScore')+scBodyHtml()+'</div></section>';
 }
 function scRender(focusId){
   var el=document.getElementById('tsScore'); if(!el) return;
-  el.outerHTML=scoreHtml();
+  tsKeepFocus(function(){ el.outerHTML=scoreHtml(); });
   if(focusId){ var f=document.getElementById(focusId); if(f) f.focus(); }
 }
 // keep = refresh in place (after an assign / revoke): the open section, quarter and page stay.
@@ -1022,15 +1086,18 @@ async function loadAssign(fromRetry,focusSel){
 }
 function tsAsgRetry(){ loadAssign(true); }
 window.tsAsgRetry=tsAsgRetry;
+// The three assignment cards are separate top-level accordion cards (page order: log, performance, rework);
+// each is re-rendered in place by id.
+var SA_CARDS=['tsAsgLog','tsPerf','tsRework'];
 function saRender(focusSel){
-  var el=document.getElementById('tsAsgWrap'); if(!el) return;
-  el.outerHTML=saSecsHtml();
+  if(!document.getElementById('tsPerf')) return;
+  tsKeepFocus(function(){ SA_CARDS.forEach(function(id){ var el=document.getElementById(id); if(el) el.outerHTML=saCardHtml(id); }); });
   if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); }
 }
-function saCard(id,icon,title,sub,body){
-  return '<section class="ts-card" id="'+id+'" aria-labelledby="'+id+'Head" aria-busy="'+(SA.loading?'true':'false')+'">'+
-    '<div class="ts-head"><div class="ts-head-t"><span class="ts-head-ic" aria-hidden="true">'+icon+'</span><div>'+
-      '<h2 id="'+id+'Head" tabindex="-1">'+title+'<span class="ts-own">Only visible to you</span></h2><p class="ts-head-p">'+sub+'</p></div></div></div>'+body+'</section>';
+function saCard(id,icon,title,sub,body,sum){
+  return '<section class="'+tsTopCls(id)+'" id="'+id+'" aria-labelledby="'+id+'Head" aria-busy="'+(SA.loading?'true':'false')+'">'+
+    tsTopHead(id,{icon:icon,title:title,sum:sum,tags:'<span class="ts-own">Only visible to you</span>',sub:sub})+
+    tsTopBody(id)+body+'</div></section>';
 }
 function saSkel(){ return '<div aria-hidden="true"><span class="ts-skel" style="width:100%;height:14px;margin-bottom:10px"></span><span class="ts-skel" style="width:70%;height:14px"></span></div>'; }
 function saErrHtml(){
@@ -1038,17 +1105,27 @@ function saErrHtml(){
     '<p class="ts-state-t">Couldn\u2019t load the sanitization assignments</p><p class="ts-state-p">'+esc(SA.err)+'</p></div>'+
     '<button type="button" class="ts-btn" id="tsAsgRetry" onclick="tsAsgRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
 }
+// One assignment card. On a load error only Contractor performance shows (with Retry); the log and rework
+// cards stay as hidden placeholders so saRender can fill them in once a reload succeeds.
+function saCardHtml(id){
+  var d=SA.data, ready=!SA.loading&&!SA.err&&d;
+  if(id==='tsPerf'){
+    var nc=ready?(d.performance||[]).length:0;
+    return saCard('tsPerf',ic('users-gear',17),'Contractor performance','Tickets assigned to each contractor and how many reached 10/10 after the next data upload. Sorted by pass rate.',
+      SA.loading?saSkel():(SA.err?saErrHtml():saPerfHtml(d)), ready?tsTopSum(saPlural(nc,'contractor')):'');
+  }
+  if(SA.err&&!SA.loading) return '<section id="'+id+'" hidden></section>';
+  if(id==='tsAsgLog'){
+    return saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first. Due 7 days after assigning.',
+      SA.loading?saSkel():saLogHtml(d), ready?tsTopSum(saPlural((d.assignments||[]).length,'assignment')):'');
+  }
+  var nr=0; if(ready) (d.issues||[]).forEach(function(b){ nr+=Number(b.failedCount)||0; });
+  return saCard('tsRework',ic('alert-triangle',17),'Needs rework','Assignments verified against new data where some tickets are still below 10/10. Send these back to the contractor.',
+    SA.loading?saSkel():saIssuesHtml(d), ready?tsTopSum(saPlural(nr,'ticket')+' '+(nr===1?'needs':'need')+' rework',nr>0?'is-bad':''):'');
+}
 function saSecsHtml(){
   if(!tsIsOwner()) return '';
-  var d=SA.data;
-  var perf=SA.loading?saSkel():(SA.err?saErrHtml():saPerfHtml(d));
-  var log=SA.loading?saSkel():(SA.err?'':saLogHtml(d));
-  var iss=SA.loading?saSkel():(SA.err?'':saIssuesHtml(d));
-  return '<div class="tsa-wrap" id="tsAsgWrap">'+
-    saCard('tsPerf',ic('users-gear',17),'Contractor performance','Tickets assigned to each contractor and how many reached 10/10 after the next data upload. Sorted by pass rate.',perf)+
-    (SA.err?'':saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first. Due 7 days after assigning.',log))+
-    (SA.err?'':saCard('tsRework',ic('alert-triangle',17),'Needs rework','Assignments verified against new data where some tickets are still below 10/10. Send these back to the contractor.',iss))+
-    '</div>';
+  return SA_CARDS.map(saCardHtml).join('');
 }
 function saPerfHtml(d){
   var rows=d.performance||[];
