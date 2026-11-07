@@ -174,6 +174,25 @@ h1{color:#1b2026!important}
 .ul-chg.updated{border-left:3px solid #b5680c}
 .ul-chg.updated .ul-chg-n{color:#b5680c}
 @media(max-width:480px){.ul-change-grid{grid-template-columns:1fr}}
+/* Non-LM-HUB rows dropped from an upload (per group). */
+.ul-rejected{margin-top:10px;padding:9px 12px;border-radius:8px;background:#fffaeb!important;border:1px solid #fedf89;color:#7a2e0e;font-size:.84em;line-height:1.45}
+.ul-rejected b{color:inherit}
+/* Owner-only upload revoke: red Revoke button (sits over the session header, outside its button),
+   grey "Revoked by" pill, muted "Not revocable" marker and the revoke log entry. */
+.log-session{position:relative}
+.log-session.has-revoke>.log-head{padding-right:150px}
+.log-rv-btn{position:absolute;top:14px;right:20px;z-index:1;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid #d92d20;border-radius:8px;background:#d92d20;color:#fff;font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap}
+.log-rv-btn svg{color:#fff}
+.log-rv-btn:hover:not(:disabled){background:#b42318;border-color:#b42318}
+.log-rv-btn:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.log-rv-btn:disabled{cursor:progress;opacity:.75}
+.log-rv-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;background:#f2f4f7;border:1px solid #e2e7eb;color:#475467;font-size:.72em;font-weight:700;white-space:nowrap}
+.log-rv-na{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;border:1px dashed #d0d5dd;color:#667085;font-size:.72em;font-weight:600;white-space:nowrap;cursor:help}
+.log-rv-what{color:#b42318;font-size:.86em;font-weight:700;min-width:0}
+.log-session.is-revoke-entry{border-left:3px solid #d92d20!important}
+.log-rv-detail{margin:0;color:#3d4753;font-size:.86em;line-height:1.5}
+body.dl-embed .log-session.has-revoke>.log-head{padding-right:150px}
+body.dl-embed .log-rv-btn{top:11px;right:50px}
 /* Embed-only extras (avatar, day icon tile, second-timezone chip, skeleton) stay hidden on the full page. */
 .log-av,.log-date-ic,.log-when-alt,.dl-sk{display:none}
 .log-role:empty{display:none}
@@ -288,7 +307,7 @@ body.dl-embed #wrap .gate .btn{color:#fff!important;height:40px;padding:0 18px;g
 
 <script src="icons.js?v=2"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=223"></script>
+<script src="topbar-auth.js?v=224"></script>
 <script>
 const A=window.PHDAuth;
 // Inline SVG icon helper (icons.js exposes window.icon).
@@ -300,6 +319,7 @@ try{ if(/[?&]embed=1\b/.test(location.search) || window.self!==window.top) docum
 function dlMeta(m){ try{ if(window.parent!==window && window.parent.PHDUploadLogMeta) window.parent.PHDUploadLogMeta(m); }catch(e){} }
 document.addEventListener('keydown',function(e){
   if(e.key!=='Escape')return;
+  if(document.querySelector('.tbl-bg'))return;   // a confirm/alert pop-up handles its own Esc
   try{ if(window.parent!==window && window.parent.PHDCloseUploadLog) window.parent.PHDCloseUploadLog(); }catch(_){}
 });
 
@@ -373,6 +393,55 @@ function changedTicketsBlock(ct){
   return h;
 }
 
+// "Rejected 2,398 non-LM-HUB tickets (DXP-Escalations 2,298, GSOC 92, ...)" — only when present.
+function rejectedBlock(e){
+  const n=Number(e&&e.rejectedCount)||0;
+  if(n<=0)return '';
+  const g=(e.rejectedGroups&&typeof e.rejectedGroups==='object')?e.rejectedGroups:{};
+  const list=Object.keys(g).map(k=>[k,Number(g[k])||0]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const detail=list.length?(' ('+list.map(x=>esc(x[0])+' '+x[1].toLocaleString('en-US')).join(', ')+')'):'';
+  return '<div class="ul-rejected" role="note"><b>Rejected '+n.toLocaleString('en-US')+' non-LM-HUB ticket'+(n===1?'':'s')+'</b>'+detail+'</div>';
+}
+
+// ---- Upload revoke (owner = harisss only; the server enforces it and sends canRevokeUploads) ----
+let CAN_REVOKE=false;   // set from GET /api/data-log
+let OPEN_FIRST=false;   // after a revoke: open the newest day and focus the new revoke entry
+const nfmt=n=>(Number(n)||0).toLocaleString('en-US');
+const plural=(n,w)=>nfmt(n)+' '+w+(Number(n)===1?'':'s');
+function whenTz(iso){ return fmtTZ(iso,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ; }
+// Revoke status markers shown inside a session header (non-interactive spans).
+function revokeMarks(items){
+  const rv=items.find(x=>x.revoked);
+  if(rv) return '<span class="log-rv-pill">'+ic('clock-rewind',12)+'Revoked by '+esc(rv.revokedBy||'harisss')+' \u00b7 '+esc(whenTz(rv.revokedAt))+'</span>';
+  if(!CAN_REVOKE||items.some(x=>x.canRevoke)) return '';
+  if(items.every(x=>x.preRevoke)) return '<span class="log-rv-na" title="Uploaded before revoke was available">Not revocable</span>';
+  if(items.some(x=>x.snapshotId&&x.revocable===false)) return '<span class="log-rv-na" title="No undo snapshot was saved for this upload">Not revocable</span>';
+  return '';
+}
+// The red Revoke button (owner only, latest revocable upload only). Sits outside the header button.
+function revokeButton(g,items){
+  const e=CAN_REVOKE&&items.find(x=>x.canRevoke);
+  if(!e) return '';
+  return '<button type="button" class="log-rv-btn" data-id="'+esc(e.id)+'" data-user="'+esc(g.user)+'" data-at="'+esc(g.at)+'" data-added="'+(Number(e.revokeAdded)||0)+'" data-restore="'+(Number(e.revokeRestore)||0)+'"'+
+    ' aria-label="Revoke '+esc(g.user)+'\u2019s upload of '+esc(whenTz(g.at))+'" onclick="revokeUpload(this)">'+ic('clock-rewind',14)+'Revoke</button>';
+}
+async function revokeUpload(btn){
+  const id=btn.getAttribute('data-id'), user=btn.getAttribute('data-user')||'this user';
+  const added=Number(btn.getAttribute('data-added'))||0, restore=Number(btn.getAttribute('data-restore'))||0;
+  const body='Remove '+plural(added,'ticket')+' added and restore '+plural(restore,'ticket')+' to their values before '+user+'\u2019s upload at '+whenTz(btn.getAttribute('data-at'))+'.';
+  if(!await window.PHDConfirm({title:'Revoke upload',body:body,okLabel:'Revoke upload',danger:true})){ btn.focus(); return; }
+  btn.disabled=true; btn.setAttribute('aria-busy','true'); btn.innerHTML='<span class="log-spin" aria-hidden="true"></span>Revoking\u2026';
+  let r=null; try{ r=await A.api('POST','/api/data-log/'+encodeURIComponent(id)+'/revoke',{}); }catch(e){}
+  if(!(r&&r.ok&&r.data&&r.data.ok)){
+    const msg=(r&&r.data&&r.data.error)||(r?('The server returned HTTP '+r.status+'.'):'The server could not be reached.');
+    await window.PHDAlert({title:'Could not revoke upload',body:msg});
+    load(DAYS_LOADED); // state may have changed (e.g. a newer upload) -> refresh the buttons
+    return;
+  }
+  OPEN_FIRST=true;
+  load(DAYS_LOADED);
+}
+
 // Delete access opened to admins and above (was owner-only). Name kept for existing callers.
 const isOwner=()=>A.atLeast&&A.atLeast('admin');
 function render(entries){
@@ -411,6 +480,7 @@ function render(entries){
     '</div>';
     return '<div class="log-quarter-block live">'+
       summary+
+      rejectedBlock(e)+
       changedTicketsBlock(e.changedTickets)+
     '</div>';
   }
@@ -437,17 +507,31 @@ function render(entries){
   // One upload session card (inside a date section).
   function sessionCard(g){
     const items=g.items.slice().sort((a,b)=>(a.pastQuarterMerge?1:0)-(b.pastQuarterMerge?1:0));
-    const fileMeta=fileMetaHtml(items);
+    const rvEntry=items.find(x=>x.action==='revoke');
+    const fileMeta=rvEntry?'':fileMetaHtml(items);
+    const rvBtn=rvEntry?'':revokeButton(g,items);
+    // Revoke log entry: "harisss revoked <user>'s upload of <time>" + what was undone.
+    let what='', body;
+    if(rvEntry){
+      const rs=rvEntry.restored||{};
+      what='<span class="log-rv-what">revoked '+esc(rvEntry.revokedUser||'an')+'\u2019s upload of '+esc(rvEntry.revokedUploadAt?whenTz(rvEntry.revokedUploadAt):'an earlier time')+'</span>';
+      body='<p class="log-rv-detail">Removed '+plural(rs.removedAdded,'ticket')+' that upload added and restored '+plural(rs.restored,'ticket')+' to their values before it.</p>';
+    } else {
+      what=revokeMarks(items);
+      body=fileMeta+items.map(quarterBlock).join('');
+    }
     return ''+
-    '<div class="log-session">'+
+    '<div class="log-session'+(rvEntry?' is-revoke-entry':'')+(rvBtn?' has-revoke':'')+'">'+
       '<button type="button" class="log-head" aria-expanded="false" onclick="toggleSession(this)">'+
         '<span class="log-av" aria-hidden="true">'+esc((String(g.user||'?').trim().charAt(0)||'?').toUpperCase())+'</span>'+
         '<span class="log-user">'+esc(g.user)+'<span class="log-role">'+esc(g.role||'')+'</span></span>'+
+        what+
         '<span class="log-when"><b class="log-tz">'+esc(MY_TZ)+'<span class="log-tz-c">:</span></b> <span class="log-tm">'+fmtTZ(g.at,zone)+'</span></span>'+
         '<span class="log-when log-when-alt"><b class="log-tz">'+altTz+'</b> <span class="log-tm">'+fmtTZ(g.at,TZ_ZONE[altTz])+'</span></span>'+
         caret+
       '</button>'+
-      '<div class="log-session-body">'+fileMeta+items.map(quarterBlock).join('')+'</div>'+
+      rvBtn+
+      '<div class="log-session-body">'+body+'</div>'+
     '</div>';
   }
 
@@ -531,7 +615,16 @@ async function load(days){
   const data=r.data||{};
   const entries=Array.isArray(data)?data:(data.entries||[]);
   HAS_MORE=Array.isArray(data)?false:!!data.hasMore;
+  CAN_REVOKE=!Array.isArray(data)&&data.canRevokeUploads===true;
   render(entries);
+  if(OPEN_FIRST){
+    // Just revoked: open the newest day and move focus to the new revoke entry (newest first).
+    OPEN_FIRST=false;
+    const dh=document.querySelector('.log-date-section .log-date-head');
+    if(dh&&!dh.closest('.log-date-section').classList.contains('open')) toggleDateSection(dh);
+    const rh=document.querySelector('.log-session.is-revoke-entry>.log-head');
+    if(rh) rh.focus();
+  }
 }
 // "Load more" — pull 2 additional days.
 function loadMoreDays(){

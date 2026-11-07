@@ -21,7 +21,9 @@ const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYe
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
 const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, buildScoreReport: sanBuildScoreReport } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
-const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, handleRevoke: asgHandleRevoke, mapLog: asgMapLog } = require('./assignments');
+const lmhub = require('./lmhub-filter');
+const uploadRevoke = require('./upload-revoke');
+const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, handleRevoke: asgHandleRevoke, mapLog: asgMapLog, logOutcomes: asgLogOutcomes } = require('./assignments');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -1701,6 +1703,14 @@ app.get('/api/quarter/:qid', async (req, res) => {
   }
 });
 
+// Undo-snapshot recorder for one publish (see ./upload-revoke.js). Never throws: if the collections
+// can't be opened the recorder just fails its captures and the log entries end up revocable:false.
+async function newUploadSnapshot(publishedAt, username) {
+  let snapColl = null, quartersColl = null;
+  try { snapColl = await getCollection(COLLECTIONS.uploadSnapshots); quartersColl = await getCollection(COLLECTIONS.quarters); } catch (e) { /* recorder fails safe */ }
+  return uploadRevoke.createSnapshotRecorder({ snapColl, quartersColl, id: publishedAt, at: publishedAt, user: username });
+}
+
 // Publish to the live quarter (admin+). Body: { data: { tickets: [...], updatedAt, count } }.
 // Routes tickets by CreateDate: the live-quarter bucket REPLACES the live doc (client already
 // merged locally). Non-live buckets are MERGED by ShortId into their own quarter doc (uploaded
@@ -1713,10 +1723,40 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
     if (!data || !Array.isArray(data.tickets)) return res.status(400).json({ error: 'No tickets provided.' });
     const liveQ = await liveQuarterId();
 
+    // LM-HUB gate (authoritative; incoming rows only). Non-LM-HUB rows are dropped. Because this
+    // route REPLACES the live quarter, a non-LM-HUB row that matches a ticket already stored in the
+    // live quarter keeps the STORED version, so the filter can never delete an existing ticket.
+    if (data.tickets.length && !lmhub.hasGroupColumn(data.tickets)) {
+      return res.status(400).json({ error: lmhub.MISSING_GROUP_COLUMN_MSG, missingGroupColumn: true });
+    }
+    const gate = lmhub.filterLmHub(data.tickets);
+    let incoming = gate.kept;
+    let srvRejected = {};
+    if (gate.rejectedCount) {
+      const storedLive = new Map();
+      (await loadQuarterTickets(liveQ)).forEach(t => { const id = String(t.ShortId || t.IssueId || '').trim(); if (id) storedLive.set(id, t); });
+      const preserved = [], dropped = [];
+      for (const t of gate.rejected) {
+        const id = String(t.ShortId || t.IssueId || '').trim();
+        const stored = id ? storedLive.get(id) : null;
+        if (stored) { preserved.push(stored); if (ticketChanged(t, stored)) dropped.push(t); } // keep stored as-is
+        else dropped.push(t);
+      }
+      srvRejected = lmhub.filterLmHub(dropped).rejectedGroups;
+      if (!gate.kept.length && dropped.length) {
+        return res.status(400).json({ error: lmhub.rejectMessage(srvRejected), rejectedGroups: srvRejected, rejectedCount: lmhub.sumGroups(srvRejected) });
+      }
+      incoming = gate.kept.concat(preserved);
+    }
+    // Client-side rejections (rows the browser already filtered out) are merged in for the log only.
+    const rejectedGroups = lmhub.mergeRejectedGroups(srvRejected, body.rejectedGroups);
+    const rejectedCount = lmhub.sumGroups(rejectedGroups);
+    let rejLogged = false;   // rejected counts go on the first data-log entry of this upload only
+
     // Bucket incoming tickets by their CreateDate quarter.
     const byQuarter = {};
     let undated = 0;
-    for (const t of data.tickets) {
+    for (const t of incoming) {
       const q = quarterOf(t.CreateDate);
       if (!q) { undated++; (byQuarter[liveQ] = byQuarter[liveQ] || []).push(t); continue; }
       (byQuarter[q] = byQuarter[q] || []).push(t);
@@ -1726,6 +1766,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
     const logColl = await getCollection(COLLECTIONS.dataLog);
     const written = [];
     const publishedAt = new Date().toISOString();
+    const snap = await newUploadSnapshot(publishedAt, req.user.username);   // undo snapshot (owner revoke)
 
     // Write each quarter bucket to its own doc.
     //  - LIVE quarter: the client already merged the new file into the full live dataset locally,
@@ -1738,19 +1779,22 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
       if (isLive) {
         // Live bucket: client already merged locally -> replace this quarter's tickets in ticket_docs
         // (diffed, only changes written). Keep only meta on the quarters doc (no giant array).
-        await replaceQuarterTickets(q, arr);
+        await replaceQuarterTickets(q, arr, snap);
         const meta = { publishedBy: req.user.username, publishedAt, count: arr.length };
         await coll.updateOne({ _id: q }, { $set: { meta, 'data.updatedAt': publishedAt, 'data.count': arr.length }, $unset: { 'data.tickets': '' } }, { upsert: true });
         written.push({ quarter: q, label: quarterLabel(q), count: arr.length, isLive: true });
         // Live-quarter data-log entry (uses the client's browser merge report).
         try {
-          await logColl.insertOne({
+          const liveLog = {
             user: req.user.username, role: req.user.role, at: publishedAt,
             liveQuarter: q, pastQuarterMerge: false, publishedAt,
             written: [{ quarter: q, label: quarterLabel(q), count: arr.length, isLive: true }],
             changeSummary: body.changeSummary || null,
             totalTickets: arr.length,
-          });
+            snapshotId: snap.id, revocable: !snap.failed,
+          };
+          if (!rejLogged) { liveLog.rejectedGroups = rejectedGroups; liveLog.rejectedCount = rejectedCount; rejLogged = true; }
+          await logColl.insertOne(liveLog);
         } catch (logErr) { /* never block publish */ }
       } else {
         // Merge by ShortId into the existing non-live quarter — write ONLY the changed rows to ticket_docs.
@@ -1768,7 +1812,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
           else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); map.set(id, t); changedTix.push(t); } // real change -> uploaded wins
           else { unchanged++; } // identical -> keep stored, don't log as updated
         }
-        const total = await bulkUpsertTickets(q, changedTix, []);   // only added/updated rows written
+        const total = await bulkUpsertTickets(q, changedTix, [], snap);   // only added/updated rows written
         const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total };
         const meta = { publishedBy: req.user.username, publishedAt, count: total, changeSummary: qSummary };
         await coll.updateOne({ _id: q }, { $set: { meta, 'data.updatedAt': publishedAt, 'data.count': total }, $unset: { 'data.tickets': '' } }, { upsert: true });
@@ -1781,15 +1825,18 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
             written: [{ quarter: q, label: quarterLabel(q), count: total, isLive: false }],
             changeSummary: qSummary,
             totalTickets: total,
+            snapshotId: snap.id, revocable: !snap.failed,
           };
           // Only for 2026-Q2: record which ShortIds were added/updated.
           if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
+          if (!rejLogged) { logDoc.rejectedGroups = rejectedGroups; logDoc.rejectedCount = rejectedCount; rejLogged = true; }
           await logColl.insertOne(logDoc);
         } catch (logErr) { /* never block publish */ }
       }
     }
+    await snap.finalize(logColl);   // link snapshot <-> log entries, revocable flag, retention (never throws)
 
-    res.json({ ok: true, liveQuarter: liveQ, written, undated });
+    res.json({ ok: true, liveQuarter: liveQ, written, undated, rejectedGroups, rejectedCount });
     invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
     invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
     invalidateReportCache();      // tickets changed -> drop cached hashtags/out-of-scope reports
@@ -1810,9 +1857,26 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
 app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) => {
   try {
     const body = req.body || {};
-    const changed = Array.isArray(body.changed) ? body.changed : [];
+    const changedIn = Array.isArray(body.changed) ? body.changed : [];
     const removed = Array.isArray(body.removed) ? body.removed.map(String) : [];
-    const nonLive = Array.isArray(body.nonLive) ? body.nonLive : [];
+    const nonLiveIn = Array.isArray(body.nonLive) ? body.nonLive : [];
+    // LM-HUB gate (authoritative; incoming rows only). This route only upserts, so dropping a row
+    // just skips that write — tickets already stored are never deleted by the filter.
+    const incomingAll = changedIn.concat(nonLiveIn);
+    if (incomingAll.length && !lmhub.hasGroupColumn(incomingAll)) {
+      return res.status(400).json({ error: lmhub.MISSING_GROUP_COLUMN_MSG, missingGroupColumn: true });
+    }
+    const gateLive = lmhub.filterLmHub(changedIn);
+    const gateNonLive = lmhub.filterLmHub(nonLiveIn);
+    const srvRejected = lmhub.mergeRejectedGroups(gateLive.rejectedGroups, gateNonLive.rejectedGroups);
+    if (!gateLive.kept.length && !gateNonLive.kept.length && (gateLive.rejectedCount + gateNonLive.rejectedCount)) {
+      return res.status(400).json({ error: lmhub.rejectMessage(srvRejected), rejectedGroups: srvRejected, rejectedCount: lmhub.sumGroups(srvRejected) });
+    }
+    const changed = gateLive.kept;
+    const nonLive = gateNonLive.kept;
+    // Client-side rejections (rows the browser already filtered out) are merged in for the log only.
+    const rejectedGroups = lmhub.mergeRejectedGroups(srvRejected, body.rejectedGroups);
+    const rejectedCount = lmhub.sumGroups(rejectedGroups);
     // Uploaded-file metadata (captured client-side), stored on the data-log entry. Sanitised.
     const fileMeta = {
       fileName: String(body.fileName || '').slice(0, 260),
@@ -1823,6 +1887,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     const coll = await getCollection(COLLECTIONS.quarters);
     const logColl = await getCollection(COLLECTIONS.dataLog);
     const publishedAt = new Date().toISOString();
+    const snap = await newUploadSnapshot(publishedAt, req.user.username);   // undo snapshot (owner revoke)
 
     // Live quarter must already have tickets for a delta; otherwise tell client to do a full replace.
     const tColl = await getCollection(COLLECTIONS.ticketDocs);
@@ -1875,7 +1940,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     // the whole ~8k array. This is the fix for the multi-minute publish.
     let applied = 0;
     for (const t of changed) { if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId; if (String(t.ShortId || '').trim()) applied++; }
-    const total = await bulkUpsertTickets(liveQ, changed, removed);
+    const total = await bulkUpsertTickets(liveQ, changed, removed, snap);
     let removedCount = 0; for (const id of removed) { if (String(id).trim()) removedCount++; }
 
     const meta = { publishedBy: req.user.username, publishedAt, count: total };
@@ -1892,6 +1957,8 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
         fileName: fileMeta.fileName, fileSize: fileMeta.fileSize, fileType: fileMeta.fileType,
         totalTickets: total,
         analystDelta, notAssignedAdded,   // per-analyst upload deltas + non-analyst new-ticket count
+        rejectedGroups, rejectedCount,    // non-LM-HUB rows dropped from this upload (per group)
+        snapshotId: snap.id, revocable: !snap.failed,   // undo snapshot (owner revoke)
       });
     } catch (logErr) { /* never block */ }
 
@@ -1931,18 +1998,19 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
         else if (ticketChanged(t, existing)) { updated++; updatedIds.push(id); qmap.set(id, t); changedTix.push(t); } // real change only
         else { unchanged++; } // identical -> preserved, not logged as updated
       }
-      const mtotal = await bulkUpsertTickets(q, changedTix, []);
+      const mtotal = await bulkUpsertTickets(q, changedTix, [], snap);
       const qSummary = { added, updated, unchanged, preserved: dbBefore - updated, uploaded: arr.length, total: mtotal };
       await coll.updateOne({ _id: q }, { $set: { meta: { publishedBy: req.user.username, publishedAt, count: mtotal, changeSummary: qSummary }, 'data.updatedAt': publishedAt, 'data.count': mtotal }, $unset: { 'data.tickets': '' } }, { upsert: true });
       written.push({ quarter: q, label: quarterLabel(q), count: mtotal, isLive: false, merged: true });
       if (added > 0 || updated > 0) try {
-        const logDoc = { user: req.user.username, role: req.user.role, at: publishedAt, liveQuarter: q, pastQuarterMerge: true, written: [{ quarter: q, label: quarterLabel(q), count: mtotal, isLive: false }], changeSummary: qSummary, totalTickets: mtotal };
+        const logDoc = { user: req.user.username, role: req.user.role, at: publishedAt, liveQuarter: q, pastQuarterMerge: true, written: [{ quarter: q, label: quarterLabel(q), count: mtotal, isLive: false }], changeSummary: qSummary, totalTickets: mtotal, snapshotId: snap.id, revocable: !snap.failed };
         if (q === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
         await logColl.insertOne(logDoc);
       } catch (logErr) { /* never block */ }
     }
+    await snap.finalize(logColl);   // link snapshot <-> log entries, revocable flag, retention (never throws)
 
-    res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount });
+    res.json({ ok: true, liveQuarter: liveQ, written, applied, removed: removedCount, rejectedGroups, rejectedCount });
     invalidateLiveQuarterCache(); // a new/filled quarter may now be the latest-non-empty "live"
     invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
     invalidateReportCache();      // tickets changed -> drop cached hashtags/out-of-scope reports
@@ -1969,6 +2037,17 @@ app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) =
     const body = req.body || {};
     const data = body.data;
     if (!data || !Array.isArray(data.tickets)) return res.status(400).json({ error: 'No tickets provided.' });
+    // LM-HUB gate (authoritative; incoming rows only). Merge only upserts, so stored tickets stay.
+    if (data.tickets.length && !lmhub.hasGroupColumn(data.tickets)) {
+      return res.status(400).json({ error: lmhub.MISSING_GROUP_COLUMN_MSG, missingGroupColumn: true });
+    }
+    const gate = lmhub.filterLmHub(data.tickets);
+    if (!gate.kept.length && gate.rejectedCount) {
+      return res.status(400).json({ error: lmhub.rejectMessage(gate.rejectedGroups), rejectedGroups: gate.rejectedGroups, rejectedCount: gate.rejectedCount });
+    }
+    const incoming = gate.kept;
+    const rejectedGroups = lmhub.mergeRejectedGroups(gate.rejectedGroups, body.rejectedGroups);
+    const rejectedCount = lmhub.sumGroups(rejectedGroups);
 
     const coll = await getCollection(COLLECTIONS.quarters);
     const existingTickets = await loadQuarterTickets(qid);
@@ -1980,7 +2059,7 @@ app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) =
 
     let added = 0, updated = 0, unchanged = 0, skippedNoId = 0;
     const addedIds = [], updatedIds = [], changedTix = [];
-    for (const t of data.tickets) {
+    for (const t of incoming) {
       if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId;
       const id = String(t.ShortId || '').trim();
       if (!id) { skippedNoId++; continue; }
@@ -1990,13 +2069,14 @@ app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) =
       else { unchanged++; } // identical -> preserved, not logged as updated
     }
     const publishedAt = new Date().toISOString();
-    const total = await bulkUpsertTickets(qid, changedTix, []);
+    const snap = await newUploadSnapshot(publishedAt, req.user.username);   // undo snapshot (owner revoke)
+    const total = await bulkUpsertTickets(qid, changedTix, [], snap);
     const changeSummary = {
       added,                          // tickets not previously in this quarter
       updated,                        // existing tickets with a real field change
       unchanged,                      // uploaded but identical -> not overwritten
       preserved: dbBefore - updated,  // existing tickets kept (not changed / not in the upload)
-      uploaded: data.tickets.length,
+      uploaded: incoming.length,      // LM-HUB rows only (rejected rows are counted separately)
       total,
     };
 
@@ -2015,13 +2095,16 @@ app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) =
         written: [{ quarter: qid, label: quarterLabel(qid), count: total, isLive: false }],
         changeSummary,
         totalTickets: total,
+        rejectedGroups, rejectedCount,   // non-LM-HUB rows dropped from this upload (per group)
+        snapshotId: snap.id, revocable: !snap.failed,   // undo snapshot (owner revoke)
       };
       // Only for 2026-Q2: record which ShortIds were added/updated.
       if (qid === Q2_QUARTER) logDoc.changedTickets = { added: addedIds, updated: updatedIds };
       await logColl.insertOne(logDoc);
+      await snap.finalize(logColl);   // link snapshot <-> log entry, revocable flag, retention (never throws)
     } catch (logErr) { /* logging must never block a successful merge */ }
 
-    res.json({ ok: true, quarter: qid, label: quarterLabel(qid), changeSummary });
+    res.json({ ok: true, quarter: qid, label: quarterLabel(qid), changeSummary, rejectedGroups, rejectedCount });
   } catch (e) {
     res.status(500).json({ error: 'Could not merge quarter data.' });
   }
@@ -2062,11 +2145,20 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
       kept.push(e);
     }
 
+    // Upload revoke (owner only): which upload may be revoked right now (newest non-revoked, with snapshot).
+    const revokeOwner = uploadRevoke.isRevokeOwner(req.user.username);
+    let revokeTarget = null;
+    if (revokeOwner) {
+      try { revokeTarget = await uploadRevoke.revokeTarget({ logColl, snapColl: await getCollection(COLLECTIONS.uploadSnapshots) }); }
+      catch (e) { revokeTarget = null; }
+    }
+
     res.json({
       days,
       daysReturned: seenDays.size,
       hasMore,
-      entries: kept.map(e => ({
+      canRevokeUploads: revokeOwner,
+      entries: kept.map(e => Object.assign({
         id: String(e._id),
         user: e.user,
         role: e.role,
@@ -2081,10 +2173,44 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
         fileSize: e.fileSize || 0,
         fileType: e.fileType || '',
         totalTickets: e.totalTickets,
-      })),
+        rejectedGroups: e.rejectedGroups || null,
+        rejectedCount: e.rejectedCount || 0,
+      }, uploadRevoke.mapRevokeFields(e, revokeTarget))),
     });
   } catch (e) {
     res.status(500).json({ error: 'Could not load data log.' });
+  }
+});
+
+// Revoke one upload (OWNER = harisss only; logic + rules in ./upload-revoke.js). Only the newest
+// non-revoked upload can be revoked: its added tickets are deleted, the tickets it changed are
+// restored from the undo snapshot, and each affected quarter gets a fresh meta.publishedAt so the
+// rollups rebuild. A second call is a no-op ({ alreadyRevoked:true }).
+app.post('/api/data-log/:id/revoke', requireRole('user'), async (req, res) => {
+  try {
+    const r = await uploadRevoke.handleRevokeUpload(req.params.id, {
+      user: req.user,
+      logColl: await getCollection(COLLECTIONS.dataLog),
+      snapColl: await getCollection(COLLECTIONS.uploadSnapshots),
+      ticketColl: await getCollection(COLLECTIONS.ticketDocs),
+      quartersColl: await getCollection(COLLECTIONS.quarters),
+      toId: s => (ObjectId.isValid(s) && String(new ObjectId(s)) === s ? new ObjectId(s) : null),
+    });
+    res.status(r.status).json(r.body);
+    if (r.status === 200 && !r.body.alreadyRevoked) {
+      // Ticket data changed -> drop every cache keyed on the data stamp and rebuild the rollups.
+      invalidateLiveQuarterCache();
+      invalidateCountriesReport();
+      invalidateReportCache();
+      _aaResCache = { key: null, at: 0, rows: null };
+      const liveQ = await liveQuarterId();
+      recomputeRollup(liveQ).catch(e => console.error('rollup recompute after revoke failed:', e && e.message));
+      recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after revoke failed:', e && e.message));
+      recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after revoke failed:', e && e.message));
+      recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after revoke failed:', e && e.message));
+    }
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ error: 'Could not finish revoking the upload. Try again; it is safe to repeat.' });
   }
 });
 
@@ -2094,7 +2220,7 @@ app.get('/api/data-log', requireRole('user'), async (req, res) => {
 app.get('/api/last-upload', requireRole('user'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.dataLog);
-    const latest = await logColl.find({}).sort({ at: -1 }).limit(1).toArray();
+    const latest = await logColl.find(uploadRevoke.LIVE_UPLOAD_FILTER).sort({ at: -1 }).limit(1).toArray();   // skip revoke entries + revoked uploads
     if (!latest.length) return res.json({ none: true });
     const top = latest[0];
     const stamp = top.publishedAt || top.at;
@@ -2223,7 +2349,7 @@ app.get('/api/last-upload', requireRole('user'), async (req, res) => {
 app.get('/api/last-upload/file', requireRole('user'), async (req, res) => {
   try {
     const logColl = await getCollection(COLLECTIONS.dataLog);
-    const latest = await logColl.find({}).sort({ at: -1 }).limit(1).toArray();
+    const latest = await logColl.find(uploadRevoke.LIVE_UPLOAD_FILTER).sort({ at: -1 }).limit(1).toArray();   // skip revoke entries + revoked uploads
     if (!latest.length) return res.status(404).json({ error: 'No uploads yet.' });
     const stamp = latest[0].publishedAt || latest[0].at;
     const filesColl = await getCollection(COLLECTIONS.uploadFiles);
@@ -4246,16 +4372,50 @@ async function acPending(filter) {
   const states = await acTicketStates(Array.from(new Set(docs.map(d => d.shortId).filter(Boolean))));
   return { docs, states, pending: asgPendingMap(docs, states) };
 }
-// Assignment state for GET /api/assignment-center: pending map + latest 200 log entries. Cached 60 s
+// Latest data for temp-assigned tickets (read-only): Map shortId -> { open, assignees:[login of every
+// OPEN doc], title, createdAt, cur (SIM assignee display of the open doc) }. A ShortId with docs but none
+// open is resolved / closed (open:false); a ShortId with no doc at all is absent (missing from the data).
+async function acOutcomeInfo(shortIds) {
+  const info = new Map();
+  if (!shortIds.length) return info;
+  const docs = await (await getCollection(COLLECTIONS.ticketDocs)).find(
+    { ShortId: { $in: shortIds } },
+    { projection: { _id: 0, ShortId: 1, Title: 1, CreateDate: 1, Status: 1, AssigneeIdentity: 1 } }
+  ).toArray();
+  docs.forEach(t => {
+    const sid = String(t.ShortId || '').trim(); if (!sid) return;
+    const x = info.get(sid) || { open: false, assignees: [], title: '', createdAt: '', cur: '' };
+    if (!x.title && t.Title) x.title = t.Title;
+    if (OPEN_STATUSES.includes(t.Status)) {
+      if (!x.open) { x.open = true; x.title = t.Title || x.title; x.createdAt = t.CreateDate || ''; x.cur = uaAssigneeDisplay(t.AssigneeIdentity); }
+      const login = uaAssigneeLogin(t.AssigneeIdentity);
+      if (login) x.assignees.push(login);
+    }
+    info.set(sid, x);
+  });
+  return info;
+}
+// Assignment state for GET /api/assignment-center: pending map + latest 200 log entries (each active
+// assign entry with its `outcome` against the latest data) + `tempSummary` per temp assignee. Cached 60 s
 // (keyed on the data's asOf); dropped on every assign and on any upload (invalidateReportCache).
 const AC_ASSIGN_TTL_MS = 60 * 1000;
 async function acAssignState(asOf) {
-  const key = 'ac-assign:v1:' + (asOf || '');
+  const key = 'ac-assign:v2:' + (asOf || '');
   const hit = getCachedReportTtl(key, AC_ASSIGN_TTL_MS);
   if (hit) return hit;
   const { pending } = await acPending();
   const log = await (await getCollection(COLLECTIONS.ticketAssignments)).find({ kind: 'log' }).sort({ at: -1 }).limit(200).toArray();
-  const data = { assignments: pending, log: log.map(asgMapLog) };
+  // Outcome of the active (non-revoked) assign entries: who took the tickets since (see server/assignments.js).
+  const activeSids = new Set();
+  log.forEach(d => { if (d.action !== 'revoke' && !d.revokedAt && Array.isArray(d.tickets)) d.tickets.forEach(t => { const s = String((t && t.shortId) || '').trim(); if (s) activeSids.add(s); }); });
+  const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1 } }).toArray();
+  const registered = new Set(users.map(u => String(u.username || '').trim().toLowerCase()).filter(Boolean));
+  const { outcomes, tempSummary } = asgLogOutcomes(log, await acOutcomeInfo(Array.from(activeSids)), registered);
+  const data = { assignments: pending, tempSummary, log: log.map(d => {
+    const m = asgMapLog(d), o = outcomes.get(String(d._id));
+    if (o) m.outcome = o;
+    return m;
+  }) };
   dropCachedReports('ac-assign:');
   setCachedReport(key, data);
   return data;
@@ -4264,7 +4424,7 @@ app.get(['/api/unassigned-tickets', '/api/assignment-center'], requireRole('user
   try {
     const base = await acBase();
     const asg = await acAssignState(base.asOf);
-    res.json({ ...base, groups: ASSIGN_GROUPS, assignments: asg.assignments, log: asg.log });
+    res.json({ ...base, groups: ASSIGN_GROUPS, assignments: asg.assignments, tempSummary: asg.tempSummary, log: asg.log });
   } catch (e) {
     res.status(500).json({ error: 'Could not load unassigned tickets.' });
   }
@@ -6430,7 +6590,9 @@ function ciExact(v) { return new RegExp('^' + String(v).replace(/[.*+?^${}()|[\]
 
 // Apply a delta to a quarter's ticket_docs: upsert `changed` tickets, delete `removed` ShortIds.
 // Only the changed/removed rows are written (bulkWrite) — never the whole array. Returns new count.
-async function bulkUpsertTickets(qid, changed, removed) {
+// snap (optional): an upload-revoke snapshot recorder; when given, the docs this write will change or
+// delete are read in full and saved as the upload's undo snapshot BEFORE anything is written.
+async function bulkUpsertTickets(qid, changed, removed, snap) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   await ensureTicketIndexes();
 
@@ -6446,13 +6608,15 @@ async function bulkUpsertTickets(qid, changed, removed) {
   // lives under a DIFFERENT _id than the target bucket. This makes re-uploads self-healing — the
   // "come back and fix the count" problem can't recur.
   const dedupeOps = [];
+  let snapExisting = [];
   if (writeSids.length) {
     const targetIds = new Set(writeSids.map(s => ticketDocId(qid, s)));
     const stale = await coll.find(
       { $or: [{ ShortId: { $in: writeSids } }, { IssueId: { $in: writeSids } }] },
-      { projection: { _id: 1 } }
+      snap ? {} : { projection: { _id: 1 } }   // full docs only when an undo snapshot is being taken
     ).toArray();
     stale.forEach(d => { if (!targetIds.has(d._id)) dedupeOps.push({ deleteOne: { filter: { _id: d._id } } }); });
+    if (snap) snapExisting = stale;
   }
 
   // Removals: delete the ticket from EVERY bucket it might sit in (not just the target), so a
@@ -6461,6 +6625,17 @@ async function bulkUpsertTickets(qid, changed, removed) {
     const sid = String(id).trim();
     if (sid) dedupeOps.push({ deleteMany: { filter: { $or: [{ ShortId: sid }, { IssueId: sid }] } } });
   });
+
+  // Undo snapshot (upload revoke): record what this write adds / changes / deletes, before writing.
+  if (snap) {
+    const targets = new Map();
+    (changed || []).forEach(t => { const sid = shortIdOf(t); if (sid) targets.set(ticketDocId(qid, sid), Object.assign({ _id: ticketDocId(qid, sid) }, t, { q: qid })); });
+    const remSids = (removed || []).map(id => String(id).trim()).filter(Boolean);
+    let removedDocs = [];
+    try { if (remSids.length) removedDocs = await coll.find({ $or: [{ ShortId: { $in: remSids } }, { IssueId: { $in: remSids } }] }).toArray(); }
+    catch (e) { snap.failed = true; }
+    await snap.capture(qid, uploadRevoke.planSnapshot(targets, snapExisting, removedDocs));
+  }
 
   // Phase 1: run all cross-bucket cleanups FIRST (ordered) so no stale copy survives the write.
   if (dedupeOps.length) { for (let i = 0; i < dedupeOps.length; i += 500) await coll.bulkWrite(dedupeOps.slice(i, i + 500), { ordered: false }); }
@@ -6477,7 +6652,7 @@ async function bulkUpsertTickets(qid, changed, removed) {
 }
 // Replace ALL of a quarter's tickets in ticket_docs with the given array (used by full publish of the
 // live bucket, where the client already merged locally). Diff against existing so we only write changes.
-async function replaceQuarterTickets(qid, tickets) {
+async function replaceQuarterTickets(qid, tickets, snap) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
   await ensureTicketIndexes();
   const existingIds = new Set((await coll.find({ q: qid }, { projection: { ShortId: 1 } }).toArray()).map(d => String(d.ShortId || '')));
@@ -6485,7 +6660,7 @@ async function replaceQuarterTickets(qid, tickets) {
   const changed = [];
   (tickets || []).forEach(t => { if (!t.ShortId && t.IssueId) t.ShortId = t.IssueId; const sid = shortIdOf(t); if (!sid) return; incomingIds.add(sid); changed.push(t); });
   const removed = [...existingIds].filter(id => !incomingIds.has(id));
-  return await bulkUpsertTickets(qid, changed, removed);
+  return await bulkUpsertTickets(qid, changed, removed, snap);
 }
 // One-time backfill: split a legacy quarters.data.tickets array into ticket_docs, then drop the
 // giant array from the quarters doc (keeping meta). Idempotent — skips if already migrated.

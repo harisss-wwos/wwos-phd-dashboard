@@ -250,6 +250,7 @@
       + '.tbu-card .tbu-callout.is-info{background:#eef6fb;border:1px solid #c7e1f0;color:#164e6e}'
       + '.tbu-card .tbu-callout.is-err{background:#fef3f2;border:1px solid #fecdca;color:#912018}'
       + '.tbu-card .tbu-callout.is-ok{background:#ecfdf3;border:1px solid #bbe7cc;color:#14532d}'
+      + '.tbu-card .tbu-callout.is-warn{background:#fffaeb;border:1px solid #fedf89;color:#7a2e0e}'
       + '.tbu-card .tbu-callout b{color:inherit}'
       + '.tbu-card .tbu-miss-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}'
       + '.tbu-card .tbu-miss-list code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;font-weight:700;color:#b42318;background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:2px 7px}'
@@ -1726,7 +1727,8 @@
       title: 'Upload blocked \u2014 missing required columns', descId: 'tbColErrDesc',
       body:
         '<div class="tbu-callout is-err" style="margin-top:0">' + ic('alert', 16) +
-          '<div><span id="tbColErrDesc">The file is missing <b>' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again \u2014 <b>no data was uploaded</b>.</span>' +
+          '<div><span id="tbColErrDesc">' + (missing.indexOf('AssignedGroup') !== -1 ? '<b>' + tbEsc(TB_NO_GROUP_COL_MSG) + '.</b> ' : '') +
+          'The file is missing <b>' + missing.length + '</b> required column' + (missing.length === 1 ? '' : 's') + '. All ' + TB_REQUIRED_COLUMNS.length + ' columns below are mandatory. Fix the export and try again \u2014 <b>no data was uploaded</b>.</span>' +
           '<div class="tbu-miss-list" role="list" aria-label="Missing columns">' + missing.map(function (c) { return '<code role="listitem">' + tbEsc(c) + '</code>'; }).join('') + '</div></div>' +
         '</div>' +
         '<p class="tbu-sec">All required columns</p>' +
@@ -1758,6 +1760,35 @@
     var data = [];
     for (var r = 1; r < rows.length; r++) { var o = {}; for (var j = 0; j < H.length; j++) o[H[j]] = rows[r][j] || ''; data.push(o); }
     return data;
+  }
+  // ---- LM-HUB group gate (mirrors server/lmhub-filter.js; the server re-checks every upload) ----
+  // Only rows whose AssignedGroup is 'LM-HUB' (trimmed, case-insensitive) are uploaded. Any other
+  // group, or a blank group, is dropped and counted per group for the warning + the data log.
+  var TB_NO_GROUP_COL_MSG = 'This file has no AssignedGroup column - export it from LM-HUB with the AssignedGroup column';
+  function tbFilterLmHub(rows) {
+    var kept = [], groups = {}, labels = {}, n = 0;
+    (rows || []).forEach(function (r) {
+      var g = String(r.AssignedGroup == null ? '' : r.AssignedGroup).trim();
+      if (g.toLowerCase() === 'lm-hub') { kept.push(r); return; }
+      var label = g || '(blank)', key = label.toLowerCase();
+      if (!labels[key]) labels[key] = label;
+      groups[labels[key]] = (groups[labels[key]] || 0) + 1; n++;
+    });
+    return { kept: kept, rejectedGroups: groups, rejectedCount: n };
+  }
+  // "LM-HUB is not selected as the group for N tickets: DXP-Escalations (2,298), GSOC (92). ..."
+  function tbRejectMessage(groups) {
+    var list = Object.keys(groups || {}).map(function (g) { return [g, groups[g]]; })
+      .sort(function (a, b) { return b[1] - a[1] || String(a[0]).localeCompare(String(b[0])); });
+    var n = list.reduce(function (s, x) { return s + x[1]; }, 0);
+    return 'LM-HUB is not selected as the group for ' + n.toLocaleString('en-US') + ' ticket' + (n === 1 ? '' : 's') + ': ' +
+      list.map(function (x) { return x[0] + ' (' + x[1].toLocaleString('en-US') + ')'; }).join(', ') +
+      '. These tickets were not uploaded. Only LM-HUB tickets are accepted. In the export, filter AssignedGroup = LM-HUB.';
+  }
+  // Amber warning callout shown in the Review and Complete steps when rows were dropped.
+  function tbRejectCallout(res) {
+    if (!res || !res.rejectedCount) return '';
+    return '<div class="tbu-callout is-warn" role="note">' + ic('alert', 16) + '<div>' + tbEsc(tbRejectMessage(res.rejectedGroups)) + '</div></div>';
   }
   function tbEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
 
@@ -1929,6 +1960,13 @@
     try { rows = tbParseCSV(csvText).filter(function (r) { return r.ShortId || r.IssueId; }).map(function (r) { if (!r.ShortId && r.IssueId) r.ShortId = r.IssueId; return r; }); }
     catch (err) { tbRemove('tbAssess'); window.PHDAlert({ title: 'Invalid CSV', body: 'Could not read the CSV file.' }); return; }
     if (!rows.length) { tbRemove('tbAssess'); window.PHDAlert({ title: 'No tickets found', body: 'No tickets with a ShortId/IssueId were found in the file.' }); return; }
+    // LM-HUB gate: drop every row whose AssignedGroup is not LM-HUB. No LM-HUB rows -> block.
+    if (!rows.some(function (r) { return Object.prototype.hasOwnProperty.call(r, 'AssignedGroup'); })) {
+      tbRemove('tbAssess'); tbShowColumnError(['AssignedGroup']); return;
+    }
+    var gate = tbFilterLmHub(rows);
+    if (!gate.kept.length) { tbRemove('tbAssess'); tbShowGroupBlocked(gate); return; }
+    rows = gate.kept;   // the merge report below is computed on LM-HUB rows only
 
     // Parsed the file — show the processing message + progress bar, then fetch the live dataset.
     (function () {
@@ -2032,12 +2070,28 @@
       var merged = {}; for (var k in old) merged[k] = old[k];
       TB_MERGE_FIELDS.forEach(function (f) { merged[f] = nr[f]; });
       TB_TS_FIELDS.forEach(function (f) { merged[f] = nr[f]; });
+      merged.AssignedGroup = nr.AssignedGroup;                // file's (LM-HUB) group, so the server gate sees it
       changed.push(merged); yUpdated++;
     });
 
     if (tbAssessAborted) return;
     tbRemove('tbAssess');
-    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {}, assessSecs: _assessSecs, totalRows: rows.length });
+    tbShowConfirm({ xNewer: xNewer, yUpdated: yUpdated, zNew: zNew, changed: changed, nonLive: nonLive, liveQ: liveQ, fileMeta: fileMeta || {}, assessSecs: _assessSecs, totalRows: rows.length, rejectedGroups: gate.rejectedGroups, rejectedCount: gate.rejectedCount });
+  }
+
+  // Upload blocked: the file has no LM-HUB tickets at all (every row is another / blank group).
+  function tbShowGroupBlocked(gate) {
+    var close = function () { tbRemove('tbGroupErr'); };
+    tbFlowOverlay('tbGroupErr', tbuCard({
+      id: 'tbGroupErr', step: 2, state: 'err', role: 'alertdialog', icon: ic('alert', 20), iconCls: 'tbl-ic-danger',
+      title: 'Upload blocked \u2014 no LM-HUB tickets', descId: 'tbGroupErrDesc',
+      body:
+        '<div class="tbu-callout is-err" style="margin-top:0">' + ic('alert', 16) +
+          '<div><span id="tbGroupErrDesc">' + tbEsc(tbRejectMessage(gate.rejectedGroups)) + ' <b>No data was uploaded.</b></span></div>' +
+        '</div>' +
+        '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbGroupErrClose">Close</button></div>'
+    }), 3400, { close: close, backdrop: close, focus: '#tbGroupErrClose' });
+    document.getElementById('tbGroupErrClose').onclick = close;
   }
 
   // Step C: confirmation popup with the counts. On confirm -> delta publish.
@@ -2052,6 +2106,7 @@
         body:
           '<div class="tbu-callout is-ok" style="margin-top:0">' + ic('check-circle', 16) + '<div id="tbConfirmDesc">No ticket in this file has a newer <b>LastUpdatedDate</b> than what\'s already live, and there are no new tickets. Nothing needs to be uploaded.</div></div>' +
           (res.totalRows != null ? ('<div class="tbu-meta" style="margin:12px 0 0"><span class="tbu-chip">' + ic('check', 13) + 'Tickets analysed: ' + res.totalRows + '</span></div>') : '') +
+          tbRejectCallout(res) +
           '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbConfirmClose">Close</button></div>'
       }), 3400, { close: _closeNone, focus: '#tbConfirmClose' });
       document.getElementById('tbConfirmClose').onclick = _closeNone;
@@ -2092,6 +2147,7 @@
           _kpi('is-same', _unchanged, 'Already up to date') +
         '</div>' +
         (res.assessSecs != null ? ('<div class="tbu-meta" style="margin:12px 0 0"><span class="tbu-chip">' + ic('clock', 13) + 'Fetch &amp; compare took ' + tbFmtDuration(res.assessSecs) + '</span></div>') : '') +
+        tbRejectCallout(res) +
         '<div class="tbu-callout is-info">' + ic('info', 16) + '<div id="tbConfirmNote">Confirm to save these changes to the shared database.</div></div>' +
         '<div class="tbl-actions tbl-row">' +
           '<button type="button" class="tbl-cancel" id="tbConfirmCancel">Cancel</button>' +
@@ -2162,6 +2218,7 @@
     try {
       var fm = res.fileMeta || {};
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
+      if (res.rejectedCount) body.rejectedGroups = res.rejectedGroups;   // client-side drops, recorded on the data log
       if (fm.fileText) body.fileText = fm.fileText;   // raw uploaded file, persisted for later download
       var r = await A.api('POST', '/api/live-quarter/patch', body);
       clearTimeout(_pProgTimer); clearInterval(_pTicker); clearInterval(_pElapsedTimer); if (_pAlmostTimer) clearInterval(_pAlmostTimer);
@@ -2179,6 +2236,7 @@
         body:
           '<p class="tbu-lead" id="tbDoneDesc">' + res.yUpdated + ' updated · ' + res.zNew + ' added. Live for everyone now.</p>' +
           (_pushSecs ? ('<div class="tbu-meta" style="margin:0"><span class="tbu-chip">' + ic('clock', 13) + 'Saved in ' + tbFmtDuration(_pushSecs) + '</span></div>') : '') +
+          tbRejectCallout(res) +
           '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="tbDoneClose">Done</button></div>'
       }), 3400, { close: function () { var b = document.getElementById('tbDoneClose'); if (b) b.click(); }, focus: '#tbDoneClose' });
       document.getElementById('tbDoneClose').onclick = function () {

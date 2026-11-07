@@ -55,11 +55,18 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
 /* Hero subtitle on one line on desktop (wraps below 1100px). */
 @media (min-width:1100px){.ua-hero-sub{max-width:none;white-space:nowrap}}
-/* Section tints: Admins light blue, Contractors light yellow. */
+/* Section tints: Core Team light blue, Support Team light yellow. */
 #uaAdm{background:#eef5fe;border-color:#cfe0f6}
 #uaAdm .ua-sec-h{border-bottom-color:#d6e4f6}
 #uaCon{background:#fff9e6;border-color:#f3e2ad}
 #uaCon .ua-sec-h{border-bottom-color:#f1e4b8}
+#uaAdm button.ua-sec-h,#uaCon button.ua-sec-h{background:transparent}
+#uaAdm button.ua-sec-h:hover,#uaCon button.ua-sec-h:hover{background:rgba(255,255,255,.5)}
+#uaAdm button.ua-sec-h[aria-expanded="false"],#uaCon button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
+/* Main sections (Current Team Assignment, Assignment log, Assignment Center): static header, sub-section cards inside. */
+.ua-main .ua-sec-b .ua-sec{box-shadow:none}
+.ua-main .ua-sec-b .ua-sec:last-child{margin-bottom:0}
+.ua-main h2.ua-sec-t:focus{outline:none}
 /* Stale-data notice pop-up. */
 .ac-stale p{margin:14px 0 0;color:#2a3340;line-height:1.55}
 .ac-stale .ac-stale-when{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;border-radius:8px;background:#fff4e6;border:1px solid #f7caa2;color:#8a3a00;font-weight:700;font-size:.9em}
@@ -84,6 +91,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .ua-mbox.is-yet{border-color:rgba(255,120,110,.55);background:rgba(230,70,60,.13)}
 .ua-mbox.is-yet .ua-meta-v,.ua-mbox.is-yet .ua-meta-v svg{color:#ffa39b}
 .ua-op{font-size:1.05em;font-weight:800;color:rgba(233,237,243,.7);line-height:1}
+/* TEMP. ASSIGNED box = button: opens the "Temporarily assigned tickets" pop-up. */
+button.ua-mbox{font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+button.ua-mbox.is-temp:hover:not(:disabled){background:rgba(236,114,17,.26);border-color:#ffb26b}
+button.ua-mbox:disabled{cursor:default}
+.ua-mbox .ua-mbox-go{display:inline-flex;margin-left:2px;opacity:.8}
+.ua-mbox .ua-mbox-go svg{transform:rotate(-90deg)}
 @container (max-width:560px){
   .ua-hero{padding:20px 18px 72px 22px}
   .ua-hero h1{font-size:1.65em}
@@ -359,6 +372,44 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ac-tl-m{padding:1px 8px;border-radius:99px;font-size:.8em;font-weight:800;white-space:nowrap;border:1px solid;margin-top:1px}
 .ac-tl-m.is-rvk{background:#f1f3f5;border-color:var(--line);color:#5c6773}
 .ac-tl-m.is-skip{background:var(--amb-bg);border-color:#f6d3a6;color:#8a4508}
+/* Outcome of an assign entry after later uploads: who took the tickets (expandable parts). */
+.ac-log-out{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid #e3e8ee;border-radius:8px;background:#f8fafc;font-size:.84em;color:#2a3340}
+.ac-out-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.ac-out-k{font-size:.82em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);margin-right:2px}
+.ac-out-b{display:inline-flex;align-items:center;gap:4px;padding:2px 9px 2px 5px;border-radius:99px;border:1px solid;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ac-out-b .ua-chev{transition:transform .15s}
+.ac-out-b[aria-expanded="false"] .ua-chev{transform:rotate(-90deg)}
+.ac-out-b.is-took{border-color:#b7e1c6;background:var(--grn-bg);color:var(--grn)}
+.ac-out-b.is-oth{border-color:#f3d48a;background:#fff8e1;color:#7a5200}
+.ac-out-b.is-wait{border-color:#f7caa2;background:var(--acc-bg);color:var(--acc-ink)}
+.ac-out-sep{color:#9aa4ae}
+.ac-out-mut,.ac-out-chk{color:var(--mut);font-weight:600}
+.ac-out-chk{font-size:.92em}
+.ac-log-out .ac-log-tl{margin:0}
+.ac-out-cur{padding:1px 8px;border-radius:99px;font-size:.8em;font-weight:800;white-space:nowrap;border:1px solid var(--line);background:#f1f3f5;color:#3a4552;margin-top:1px}
+/* "Temporarily assigned tickets" pop-up (opened from the hero TEMP. ASSIGNED box). */
+.ac-ts-card .ac-ts-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0}
+.ac-ts-card .ac-ts-blk{border:1px solid #e2e7eb;border-radius:10px;padding:12px 14px;background:#fff}
+.ac-ts-card .ac-ts-blk.has-wait{border-color:#f7caa2;box-shadow:inset 3px 0 0 #ec7211}
+.ac-ts-card .ac-ts-h{display:flex;align-items:center;gap:10px}
+.ac-ts-card .ac-ts-h .ua-av{width:30px;height:30px;font-size:.82em}
+.ac-ts-card .ac-ts-sum{margin:0;font-size:.92em;line-height:1.5;color:#2a3340}
+.ac-ts-card .ac-ts-sum b{color:#1b2026}
+.ac-ts-card .ac-ts-mut{color:#5c6773;font-weight:600}
+.ac-ts-card .ac-ts-bar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:#eef1f4;margin:10px 0 6px}
+.ac-ts-card .ac-ts-bar span{display:block;height:100%}
+.ac-ts-card .is-took{background:#1a9a55}
+.ac-ts-card .is-oth{background:#f2b705}
+.ac-ts-card .is-wait{background:#ec7211}
+.ac-ts-card .ac-ts-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.78em;font-weight:700;color:#5c6773}
+.ac-ts-card .ac-ts-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.ac-ts-card .ac-ts-tg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ac-ts-card .ac-log-x:disabled{opacity:.5;cursor:default}
+.ac-ts-card .ac-ts-pan{margin-top:8px}
+.ac-ts-card .ac-ts-pan[hidden]{display:none}
+.ac-ts-card .ua-id{white-space:nowrap}
+.ac-ts-card .ua-id a{color:#2b66c1;font-weight:800;text-decoration:none}
+.ac-ts-card .ua-id a:hover{text-decoration:underline}
 /* Assignment log panel: soft slate-blue, distinct from the white severity sections. */
 #uaLog.ua-sec{background:#edf2f8;border-color:#cbd7e6}
 #uaLog button.ua-sec-h{background:transparent;border-bottom-color:#cbd7e6}
@@ -461,7 +512,7 @@ button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 
 <script src="icons.js?v=2"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=223"></script>
+<script src="topbar-auth.js?v=224"></script>
 <script>
 var A=window.PHDAuth;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -484,7 +535,8 @@ function tzFull(iso){ var t=tzTime(iso); return t?(tzDate(iso)+', '+t):'\u2014';
 var PAGE_SIZE=25;
 var STATE='loading', ERR='', DATA=null, Q='';   // section rows are always oldest first
 var PAGES={};                 // bucket key -> page index
-var OPEN_ADM=true;            // Admin team section (open by default)
+var OPEN_ADM=false;           // Core Team sub-section (collapsed on every page load; this visit only)
+var OPEN_CON=false;           // Support Team sub-section (collapsed on every page load; this visit only)
 var OPEN_A={};                // admin login -> expanded (collapsed by default)
 var OPEN_B={};                // bucket key -> expanded (default: open when it has tickets)
 var BUCKETS=[
@@ -562,17 +614,21 @@ function heroHtml(){
   function hv(n,w){ return sp?num(n):(STATE==='error'?'\u2014':'<span class="ua-skel ua-skel-d" style="width:'+w+'px;height:12px"></span>'); }
   var eqSr=sp?('Total unassigned '+num(sp.total)+' = '+num(sp.temp)+' temporarily assigned in dashboard + '+num(sp.yet)+' yet to be assigned'):
     (STATE==='error'?'Unassigned totals not loaded':'Unassigned totals loading');
-  var eq='<li class="ua-meta-eq"><span class="ua-sr">'+esc(eqSr)+'</span><div class="ua-eq" aria-hidden="true">'+
-    '<span class="ua-mbox"><span class="ua-meta-k">Unassigned</span><span class="ua-meta-v">'+ic('ticket',14)+hv(sp&&sp.total,40)+'</span></span>'+
-    '<span class="ua-op">=</span>'+
-    '<span class="ua-mbox is-temp" title="Temporarily assigned in the dashboard - waiting to be picked up in SIM"><span class="ua-meta-k">Temp. assigned</span><span class="ua-meta-v">'+ic('user-plus',14)+hv(sp&&sp.temp,28)+'</span></span>'+
-    '<span class="ua-op">+</span>'+
-    '<span class="ua-mbox is-yet" title="Not assigned to anyone yet"><span class="ua-meta-k">Yet to assign</span><span class="ua-meta-v">'+ic('inbox',14)+hv(sp&&sp.yet,28)+'</span></span>'+
+  // TEMP. ASSIGNED is a button (the number = temp-assigned tickets still unassigned); it opens the
+  // "Temporarily assigned tickets" pop-up (who took them since). The other boxes are read via eqSr.
+  var tempLbl=sp?('Temp. assigned: '+num(sp.temp)+' still waiting to be picked up. See who took the temporarily assigned tickets'):'Temp. assigned';
+  var eq='<li class="ua-meta-eq"><span class="ua-sr">'+esc(eqSr)+'</span><div class="ua-eq">'+
+    '<span class="ua-mbox" aria-hidden="true"><span class="ua-meta-k">Unassigned</span><span class="ua-meta-v">'+ic('ticket',14)+hv(sp&&sp.total,40)+'</span></span>'+
+    '<span class="ua-op" aria-hidden="true">=</span>'+
+    '<button type="button" class="ua-mbox is-temp" id="uaTempBtn" data-temp="1" aria-haspopup="dialog" title="See who took the temporarily assigned tickets" aria-label="'+esc(tempLbl)+'"'+(sp?'':' disabled')+'>'+
+      '<span class="ua-meta-k">Temp. assigned</span><span class="ua-meta-v">'+ic('user-plus',14)+hv(sp&&sp.temp,28)+'<span class="ua-mbox-go" aria-hidden="true">'+ic('chevron-down',12)+'</span></span></button>'+
+    '<span class="ua-op" aria-hidden="true">+</span>'+
+    '<span class="ua-mbox is-yet" aria-hidden="true" title="Not assigned to anyone yet"><span class="ua-meta-k">Yet to assign</span><span class="ua-meta-v">'+ic('inbox',14)+hv(sp&&sp.yet,28)+'</span></span>'+
     '</div></li>';
   var asOf=STATE==='done'?esc(DATA.asOf?tzFull(DATA.asOf):'Unknown'):(STATE==='error'?'Not loaded':'<span class="ua-skel ua-skel-d" style="width:120px;height:12px" aria-hidden="true"></span><span class="ua-sr">Loading</span>');
   return '<header class="ua-hero"><div class="ua-hero-in"><div class="ua-hero-main"><span class="ua-hero-ic">'+ic('user-plus',24)+'</span><div>'+
     '<p class="ua-eyebrow">Data \u00b7 Queue check</p><h1>Assignment Center</h1>'+
-    '<p class="ua-hero-sub">Admin and contractor workloads, plus open tickets not assigned to any registered PHD user, grouped by severity.</p>'+
+    '<p class="ua-hero-sub">Core Team and Support Team workloads, plus open tickets not assigned to any registered PHD user, grouped by severity.</p>'+
     '</div></div>'+
     '<ul class="ua-meta" aria-label="Report details">'+
       eq+
@@ -616,10 +672,17 @@ function titleCell(r){ return '<span class="ua-trunc" title="'+esc(r.title||'')+
 function avatar(login){ return '<span class="ua-av" aria-hidden="true">'+esc(String(login||'?').charAt(0).toUpperCase())+'</span>'; }
 function chev(){ return '<span class="ua-chev" aria-hidden="true">'+ic('chevron-down',16)+'</span>'; }
 // bare=true: no badge / chevron inside the button (the severity bars place them after the Pet toggles).
-function secHead(tog,bodyId,btnId,icon,title,desc,badge,open,bare){
-  return '<h2 class="ua-sec-hh"><button type="button" class="ua-sec-h ua-tog" id="'+btnId+'" data-tog="'+esc(tog)+'" aria-expanded="'+open+'" aria-controls="'+bodyId+'"'+(bare?' aria-describedby="'+btnId+'-l '+btnId+'-n"':'')+'>'+
+// lvl: heading level of the wrapper (default 2; sub-sections inside a main section use 3).
+function secHead(tog,bodyId,btnId,icon,title,desc,badge,open,bare,lvl){
+  var h='h'+(lvl||2);
+  return '<'+h+' class="ua-sec-hh"><button type="button" class="ua-sec-h ua-tog" id="'+btnId+'" data-tog="'+esc(tog)+'" aria-expanded="'+open+'" aria-controls="'+bodyId+'"'+(bare?' aria-describedby="'+btnId+'-l '+btnId+'-n"':'')+'>'+
     '<span class="ua-sec-ic">'+ic(icon,18)+'</span><span class="ua-sec-txt"><span class="ua-sec-t">'+title+'</span>'+(desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</span>'+
-    (bare?'':'<span class="ua-badge">'+badge+'</span>'+chev())+'</button></h2>';
+    (bare?'':'<span class="ua-badge">'+badge+'</span>'+chev())+'</button></'+h+'>';
+}
+// Static (not collapsible) header of a main section: icon tile + title + one-line muted subtitle.
+function mainHead(icon,id,title,desc,badge){
+  return '<div class="ua-sec-h"><span class="ua-sec-ic">'+ic(icon,18)+'</span><div class="ua-sec-txt"><h2 class="ua-sec-t" id="'+id+'" tabindex="-1">'+title+'</h2>'+
+    (desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</div>'+(badge?'<span class="ua-badge">'+badge+'</span>':'')+'</div>';
 }
 function skelRows(n){
   var s=''; for(var i=0;i<n;i++) s+='<div class="ua-skrow"><span class="ua-skel" style="width:34px;height:34px;border-radius:50%"></span><span class="ua-skel" style="width:140px;height:12px"></span><span class="ua-skel" style="flex:1;height:12px"></span><span class="ua-skel" style="width:220px;height:18px;border-radius:99px"></span></div>';
@@ -651,13 +714,11 @@ function personCardsHtml(list,n,empty){
 function adminSecHtml(){
   var list=admins(), tot=0; list.forEach(function(a){ tot+=(a.counts&&a.counts.total)||0; });
   var badge=STATE==='done'?(num(tot)+' tickets'):'\u2026';
-  var body=personCardsHtml(byTotalDesc(list),7,'No admin team members found.');
-  // Always open (no expand / collapse), same static header as Contractors.
+  var body=personCardsHtml(byTotalDesc(list),7,'No Core Team members found.');
+  // Sub-section of Current Team Assignment: collapsible, collapsed on every page load.
   return '<section class="ua-sec" id="uaAdm" aria-labelledby="uaAdmT" aria-busy="'+(STATE==='loading')+'">'+
-    '<div class="ua-sec-h"><span class="ua-sec-ic">'+ic('user-shield',18)+'</span><div class="ua-sec-txt"><h2 class="ua-sec-t" id="uaAdmT">Admins</h2>'+
-    '<span class="ua-sec-d">Analysts with the owner or admin role \u00b7 tickets in Assigned, Work In Progress or Pending.</span></div>'+
-    '<span class="ua-badge" style="margin-left:auto">'+badge+'</span></div>'+
-    '<div class="ua-sec-b">'+body+'</div></section>';
+    secHead('adm','uaAdmB','uaAdmT','user-shield','Core Team','Analysts with the owner or admin role \u00b7 tickets in Assigned, Work In Progress or Pending.',badge,OPEN_ADM,false,3)+
+    '<div class="ua-sec-b" id="uaAdmB"'+(OPEN_ADM?'':' hidden')+'>'+body+'</div></section>';
 }
 // Highest total first; ties by login A-Z.
 function byTotalDesc(list){
@@ -666,14 +727,13 @@ function byTotalDesc(list){
 
 // ---- 2) Contractors ----
 function contractorsHtml(){
-  var list=contractors(), body=personCardsHtml(byTotalDesc(list),6,'No contractors found.'), tot=0;
+  var list=contractors(), body=personCardsHtml(byTotalDesc(list),6,'No Support Team members found.'), tot=0;
   list.forEach(function(c){ tot+=(c.counts&&c.counts.total)||0; });
   var badge=STATE==='done'?(num(tot)+' tickets'):'\u2026';
+  // Sub-section of Current Team Assignment: collapsible, collapsed on every page load.
   return '<section class="ua-sec" id="uaCon" aria-labelledby="uaConT" aria-busy="'+(STATE==='loading')+'">'+
-    '<div class="ua-sec-h"><span class="ua-sec-ic">'+ic('users',18)+'</span><div class="ua-sec-txt"><h2 class="ua-sec-t" id="uaConT">Contractors</h2>'+
-    '<span class="ua-sec-d">Analysts with the editor role \u00b7 ticket counts in Assigned, Work In Progress or Pending.</span></div>'+
-    '<span class="ua-badge" style="margin-left:auto">'+badge+'</span></div>'+
-    '<div class="ua-sec-b">'+body+'</div></section>';
+    secHead('con','uaConB','uaConT','users','Support Team','Analysts with the editor role \u00b7 ticket counts in Assigned, Work In Progress or Pending.',badge,OPEN_CON,false,3)+
+    '<div class="ua-sec-b" id="uaConB"'+(OPEN_CON?'':' hidden')+'>'+body+'</div></section>';
 }
 
 // ---- 3) Unassigned tickets by severity bucket ----
@@ -726,7 +786,7 @@ function bucketSecHtml(b,grp){
   var leftTag='<span class="ua-left'+(left?'':' is-done')+'" id="uaBT-'+b.k+'-l">'+(left?num(left)+' to assign':ic('check',12)+'All assigned')+'</span>';
   return '<section class="ua-sec ua-bsec b-'+b.k+'" id="uaB-'+b.k+'" aria-labelledby="uaBT-'+b.k+'">'+
     // Bar order: [title] [to assign] [Assign Tickets] [Pet] [Non-pet] [count] [chevron]. The count + chevron also toggle the section.
-    '<div class="ua-bhead'+(open?'':' is-shut')+'">'+secHead('b:'+b.k,'uaBB-'+b.k,'uaBT-'+b.k,b.icon,esc(b.label),esc(b.sub),badge,open,true)+leftTag+asgBtn+chips+
+    '<div class="ua-bhead'+(open?'':' is-shut')+'">'+secHead('b:'+b.k,'uaBB-'+b.k,'uaBT-'+b.k,b.icon,esc(b.label),esc(b.sub),badge,open,true,3)+leftTag+asgBtn+chips+
       '<span class="ua-bh-end" data-tog-for="uaBT-'+b.k+'"><span class="ua-badge" id="uaBT-'+b.k+'-n">'+badge+'</span>'+chev()+'</span></div>'+
     '<div class="ua-sec-b" id="uaBB-'+b.k+'"'+(open?'':' hidden')+'>'+body+'</div></section>';
 }
@@ -736,14 +796,12 @@ function paintBuckets(){
   if(STATE!=='done'){ box.innerHTML=''; if(c) c.textContent=''; if(msg) msg.innerHTML=STATE==='loading'?skelRows(3):''; return; }
   var g=groups(), total=rowsAll().length, shown=0;
   BUCKETS.forEach(function(b){ shown+=g[b.k].shown.length; });
-  // Only buckets with tickets, highest count first (ties keep the Sev 1..5, No EMT order).
-  box.innerHTML=BUCKETS.map(function(b,i){ return {b:b,i:i,n:g[b.k].all.length}; })
-    .filter(function(x){ return x.n>0; })
-    .sort(function(x,y){ return (y.n-x.n)||(x.i-y.i); })
-    .map(function(x){ return bucketSecHtml(x.b,g[x.b.k]); }).join('');
+  // Only buckets with tickets, in the fixed Sev 1..5, No EMT order.
+  box.innerHTML=BUCKETS.filter(function(b){ return g[b.k].all.length>0; })
+    .map(function(b){ return bucketSecHtml(b,g[b.k]); }).join('');
   box.querySelectorAll('[data-mixed]').forEach(function(x){ x.indeterminate=true; });   // partly selected
   var m='';
-  if(!total) m='<div class="ua-empty" role="status"><span class="ua-empty-ic">'+ic('check-circle',26)+'</span><h3 class="ua-empty-t">All clear</h3><p>Every open ticket is assigned to a registered user.</p></div>';
+  if(!total) m='<div class="ua-empty" role="status"><span class="ua-empty-ic">'+ic('check-circle',26)+'</span><h3 class="ua-empty-t">No unassigned tickets right now</h3><p>Every open ticket is assigned to a registered user.</p></div>';
   else if(!shown) m='<div class="ua-empty" role="status"><span class="ua-empty-ic is-mute">'+ic('search',26)+'</span><h3 class="ua-empty-t">No matches</h3><p>No ticket ID, title or assignee matches \u201c'+esc(Q)+'\u201d.</p></div>';
   if(msg) msg.innerHTML=m;
   if(c) c.textContent=total?((Q.trim()?(num(shown)+' of '+num(total)+' unassigned tickets match'):(num(total)+' unassigned tickets'))+' \u00b7 oldest first'):'';
@@ -793,10 +851,130 @@ function logRowHtml(e,i){
     return '<li'+(marked?' class="'+(sk?'is-skip':'is-rvk')+'"':'')+'>'+idCell({shortId:s,url:simUrl(s)})+
       '<span class="ac-tl-t">'+(t&&t.title?esc(t.title):'<span class="ua-who is-none">No title</span>')+'</span>'+mark+'</li>'; }).join(''):'';
   if(x&&!list.length) rows='<li><span class="ua-who is-none">No ticket IDs recorded.</span></li>';
+  var out=(!isRv&&!e.revokedAt&&e.outcome)?outcomeHtml(e,id,did):'';
   return '<li class="ac-log-r'+(isRv?' is-revoke':'')+(e.revokedAt?' is-rvk':'')+'"><span class="ac-log-when"><span>'+esc(tzFull(e.at))+'</span><small>'+esc(relTime(e.at))+'</small></span>'+
     '<span class="ac-log-what">'+what+sec+rvTag+rep+skipNote+'</span>'+
     '<span class="ac-log-acts"><button type="button" class="ac-log-x" data-logx="'+esc(id)+'" aria-expanded="'+x+'" aria-controls="acLogI-'+did+'">'+chev()+(x?'Hide':'Show')+' IDs</button>'+rvBtn+'</span>'+
+    out+
     '<ul class="ac-log-tl" id="acLogI-'+did+'" aria-label="Tickets in this entry"'+(x?'':' hidden')+'>'+rows+'</ul></li>';
+}
+// ---- What happened to the temp-assigned tickets of an entry (server: e.outcome, from the latest data) ----
+// Parts (each expands to its ticket list): '<assignee> took N' · '<other> took N (of <assignee>'s)' ·
+// 'N still waiting', then muted resolved / re-assigned later / no longer in the data counts.
+// Resolved tickets are never listed; every ticket resolved -> just a muted 'All resolved'.
+var LOG_O={};   // 'entryId|part' -> ticket list shown
+function checkedNote(){ return 'Checked against data of '+(DATA&&DATA.asOf?tzFull(DATA.asOf):'an unknown date'); }
+function outcomeHtml(e,id,did){
+  var o=e.outcome||{}, a=String(e.assignee||''), took=o.takenByAssignee||[], oth=o.takenByOthers||[], wait=o.waiting||[];
+  var res=Number(o.resolved)||0, mis=Number(o.missing)||0, rea=Number(o.reassigned)||0;
+  var mut=[]; if(res) mut.push(num(res)+' resolved'); if(rea) mut.push(num(rea)+' re-assigned later'); if(mis) mut.push(num(mis)+' no longer in the data');
+  if(!took.length&&!oth.length&&!wait.length){
+    if(!res&&!rea&&!mis) return '';
+    var only=(res&&!rea&&!mis)?'All resolved':mut.join(' \u00b7 ');
+    return '<div class="ac-log-out"><p class="ac-out-line"><span class="ac-out-mut">'+esc(only)+'</span>'+((res&&!rea&&!mis)?'':'<span class="ac-out-sep" aria-hidden="true">\u00b7</span><span class="ac-out-chk">'+esc(checkedNote())+'</span>')+'</p></div>';
+  }
+  // Others grouped by who took them, most first.
+  var byWho={}, order=[]; oth.forEach(function(t){ var w=String(t.by||''); if(!byWho[w]){ byWho[w]=[]; order.push(w); } byWho[w].push(t); });
+  order.sort(function(x,y){ return (byWho[y].length-byWho[x].length)||x.localeCompare(y); });
+  var parts=[];
+  if(took.length) parts.push({k:'a',cls:'is-took',label:a+' took '+num(took.length),list:took,cur:function(){ return a; }});
+  order.forEach(function(w){ parts.push({k:'o-'+w,cls:'is-oth',label:w+' took '+num(byWho[w].length)+' (of '+a+'\u2019s)',list:byWho[w],cur:function(){ return w; }}); });
+  if(wait.length) parts.push({k:'w',cls:'is-wait',label:num(wait.length)+' still waiting',list:wait,cur:function(t){ return t.cur||'Unassigned'; }});
+  var btns=[], pans=[];
+  parts.forEach(function(p){
+    var key=id+'|'+p.k, open=LOG_O[key]===true, pid='acOut-'+did+'-'+domId(p.k);
+    btns.push('<button type="button" class="ac-out-b '+p.cls+'" data-outx="'+esc(key)+'" aria-expanded="'+open+'" aria-controls="'+pid+'">'+chev()+esc(p.label)+'<span class="ua-sr"> \u2014 '+(open?'hide':'show')+' tickets</span></button>');
+    pans.push('<ul class="ac-log-tl" id="'+pid+'" aria-label="'+esc(p.label)+'"'+(open?'':' hidden')+'>'+(open?p.list.map(function(t){ var s=String(t.shortId||'');
+      return '<li>'+idCell({shortId:s,url:simUrl(s)})+'<span class="ac-tl-t">'+(t.title?esc(t.title):'<span class="ua-who is-none">No title</span>')+'</span>'+
+        '<span class="ac-out-cur" title="Current assignee">'+esc(p.cur(t))+'</span></li>'; }).join(''):'')+'</ul>');
+  });
+  var sep='<span class="ac-out-sep" aria-hidden="true">\u00b7</span>';
+  return '<div class="ac-log-out"><p class="ac-out-line"><span class="ac-out-k">Since then</span>'+btns.join(sep)+
+    (mut.length?sep+'<span class="ac-out-mut">'+esc(mut.join(' \u00b7 '))+'</span>':'')+sep+'<span class="ac-out-chk">'+esc(checkedNote())+'</span></p>'+pans.join('')+'</div>';
+}
+
+// ---- "Temporarily assigned tickets" pop-up (hero TEMP. ASSIGNED box; server: DATA.tempSummary) ----
+// One block per temp assignee with unresolved tickets (waiting ones first, most waiting first).
+var TS_O={};   // 'assignee|kind' -> list shown
+function tempSummary(){ return (DATA&&Array.isArray(DATA.tempSummary))?DATA.tempSummary:[]; }
+function tsWaitingAll(){ var out=[]; tempSummary().forEach(function(s){ (s.waitingList||[]).forEach(function(t){ out.push(t); }); }); return out; }
+// Ticket age from its create date: '5h' / '3d 4h'.
+function ageOf(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return '\u2014'; var h=Math.max(0,Math.floor((Date.now()-d.getTime())/3600000)); return h<24?(h+'h'):(Math.floor(h/24)+'d '+(h%24)+'h'); }
+function tsByCell(by,at){ return '<span class="tb-asg-by"><b>'+esc(by||'\u2014')+'</b><small>'+esc(tzFull(at))+' \u00b7 '+esc(relTime(at))+'</small></span>'; }
+function tsTable(cap,heads,rows){
+  return '<div class="tb-asg-scroll" role="region" aria-label="'+esc(cap)+'" tabindex="0"><table><caption class="ua-sr">'+esc(cap)+'</caption><thead><tr>'+
+    heads.map(function(h){ return '<th scope="col">'+esc(h)+'</th>'; }).join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+}
+function tsIdTd(t){ var s=String(t.shortId||''); return '<td>'+idCell({shortId:s,url:simUrl(s)})+'</td><td class="tb-asg-t">'+(t.title?esc(t.title):'No title')+'</td>'; }
+function tsBlockHtml(s,i){
+  var a=String(s.assignee||''), g=Number(s.given)||0, tk=Number(s.took)||0, ob=Number(s.byOthers)||0, w=Number(s.waiting)||0, res=Number(s.resolved)||0;
+  var byWho={}, order=[]; (s.othersList||[]).forEach(function(t){ var k=String(t.takenBy||''); if(!byWho[k]){ byWho[k]=0; order.push(k); } byWho[k]++; });
+  order.sort(function(x,y){ return (byWho[y]-byWho[x])||x.localeCompare(y); });
+  var parts=['<b>'+esc(a)+'</b> was given <b>'+num(g)+'</b>','took <b>'+num(tk)+'</b>'];
+  order.forEach(function(k){ parts.push('<b>'+num(byWho[k])+'</b> taken by <b>'+esc(k)+'</b>'); });
+  parts.push(w?('<b>'+num(w)+'</b> still waiting to be picked up'):'none waiting');
+  var pct=function(n){ return g?(Math.round(n*1000/g)/10):0; };
+  var bar='<div class="ac-ts-bar" role="img" aria-label="'+esc(a+': '+tk+' taken by '+a+', '+ob+' taken by others, '+w+' still waiting')+'">'+
+    (tk?'<span class="is-took" style="width:'+pct(tk)+'%"></span>':'')+(ob?'<span class="is-oth" style="width:'+pct(ob)+'%"></span>':'')+(w?'<span class="is-wait" style="width:'+pct(w)+'%"></span>':'')+'</div>';
+  var leg='<div class="ac-ts-leg" aria-hidden="true"><span><i class="is-took"></i>Taken by '+esc(a)+' '+num(tk)+'</span><span><i class="is-oth"></i>Taken by others '+num(ob)+'</span><span><i class="is-wait"></i>Still waiting '+num(w)+'</span></div>';
+  var did='uaTs-'+i;
+  var kinds=[
+    {k:'wait',label:'Still waiting',n:w,html:function(){ return tsTable(a+': still waiting',['Ticket ID','Title','Assigned by','Age'],(s.waitingList||[]).map(function(t){
+      return '<tr>'+tsIdTd(t)+'<td>'+tsByCell(t.by,t.at)+'</td><td class="tb-asg-nw">'+esc(ageOf(t.createdAt))+'</td></tr>'; })); }},
+    {k:'oth',label:'Taken by others',n:ob,html:function(){ return tsTable(a+': taken by others',['Ticket ID','Title','Taken by','Assigned by'],(s.othersList||[]).map(function(t){
+      return '<tr>'+tsIdTd(t)+'<td><b>'+esc(t.takenBy||'\u2014')+'</b></td><td>'+tsByCell(t.by,t.at)+'</td></tr>'; })); }},
+    {k:'took',label:'Taken by '+a,n:tk,html:function(){ return tsTable(a+': taken by '+a,['Ticket ID','Title','Assigned by'],(s.tookList||[]).map(function(t){
+      return '<tr>'+tsIdTd(t)+'<td>'+tsByCell(t.by,t.at)+'</td></tr>'; })); }}
+  ];
+  var tgs=kinds.map(function(x){ var key=a+'|'+x.k, open=TS_O[key]===true&&x.n>0;
+    return '<button type="button" class="ac-log-x" data-tsx="'+esc(key)+'" aria-expanded="'+open+'" aria-controls="'+did+'-'+x.k+'"'+(x.n?'':' disabled')+'>'+chev()+esc(x.label)+' ('+num(x.n)+')</button>'; }).join('');
+  var pans=kinds.map(function(x){ var open=TS_O[a+'|'+x.k]===true&&x.n>0;
+    return '<div class="ac-ts-pan" id="'+did+'-'+x.k+'"'+(open?'':' hidden')+'>'+(open?x.html():'')+'</div>'; }).join('');
+  return '<li class="ac-ts-blk'+(w?' has-wait':'')+'"><div class="ac-ts-h">'+avatar(a)+'<p class="ac-ts-sum">'+parts.join(' \u00b7 ')+
+    (res?'<span class="ac-ts-mut"> \u00b7 '+num(res)+' resolved</span>':'')+'</p></div>'+bar+leg+
+    '<div class="ac-ts-tg">'+tgs+'</div>'+pans+'</li>';
+}
+function tsBodyHtml(){
+  var list=tempSummary();
+  if(!list.length) return '<p class="tb-asg-empty">No temporarily assigned tickets are open right now.</p>';
+  return '<ul class="ac-ts-list" aria-label="Temporarily assigned tickets per agent, most waiting first">'+list.map(tsBlockHtml).join('')+'</ul>';
+}
+function tsClose(){
+  var ov=$('uaTsDlg'); if(!ov) return;
+  ov.remove(); if(window.PHDLoginUI) window.PHDLoginUI.closed(ov);
+  // The hero may have been repainted while the pop-up was open: fall back to the current button.
+  if(!document.activeElement||document.activeElement===document.body){ var b=$('uaTempBtn'); if(b) b.focus(); }
+}
+function tsOpen(){
+  if(STATE!=='done') return;
+  tsClose();
+  var nWait=tsWaitingAll().length;
+  var ov=document.createElement('div'); ov.id='uaTsDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
+  ov.innerHTML='<div class="tbl-card tb-asg-card ac-ts-card" role="dialog" aria-modal="true" aria-labelledby="uaTsT" aria-describedby="uaTsS">'+
+    '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic('user-plus',20)+'</span>'+
+      '<div class="tbl-head-tx"><div class="tbl-eyebrow">Assignment Center \u00b7 Temp. assigned</div><h2 class="tbl-title" id="uaTsT">Temporarily assigned tickets</h2></div>'+
+      '<p class="tbl-sub" id="uaTsS">Who picked up the tickets temporarily assigned in the dashboard. '+esc(checkedNote())+'. Resolved tickets are left out.</p></div>'+
+    '<div class="tbl-body"><div id="uaTsBody">'+tsBodyHtml()+'</div>'+
+      '<div class="tbl-actions tbl-row"><p class="tb-asg-note" id="uaTsNote" role="status" hidden></p>'+
+      '<button type="button" class="tbl-cancel" id="uaTsX">Close</button>'+
+      '<button type="button" class="tbl-submit" id="uaTsAll"'+(nWait?'':' disabled')+'>'+ic('external-link',15)+'Open waiting tickets'+(nWait?' ('+num(nWait)+')':'')+'</button></div></div></div>';
+  ov.addEventListener('click',function(e){
+    var t=e.target; if(t===ov){ tsClose(); return; }
+    if(!t.closest) return;
+    if(t.closest('#uaTsX')){ tsClose(); return; }
+    var tg=t.closest('[data-tsx]'); if(tg){ if(tg.disabled) return; var key=tg.getAttribute('data-tsx'); TS_O[key]=!TS_O[key];
+      $('uaTsBody').innerHTML=tsBodyHtml();
+      var nb=Array.prototype.filter.call(ov.querySelectorAll('[data-tsx]'),function(b){ return b.getAttribute('data-tsx')===key; })[0]; if(nb) nb.focus();
+      return; }
+    var all=t.closest('#uaTsAll'); if(all){ if(all.disabled) return;
+      // Same as the top-bar "Open all": browsers may block all but the first tab (window.open -> null).
+      var blocked=0;
+      tsWaitingAll().forEach(function(x){ var w=window.open(simUrl(String(x.shortId||'')),'_blank'); if(w){ try{ w.opener=null; }catch(err){} } else blocked++; });
+      var note=$('uaTsNote'); if(note){ note.textContent=blocked?'Your browser blocked some tabs - allow pop-ups for this site and click Open waiting tickets again.':''; note.hidden=!blocked; }
+    }
+  });
+  document.body.appendChild(ov);
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(ov,tsClose,$('uaTsX'));
 }
 function dayHtml(d,today){
   var key=d.key, did='acDay-'+domId(key), open=OPEN_DAY[key]===true, list=d.list, m=list.length, tix=0;
@@ -813,14 +991,16 @@ function dayHtml(d,today){
     '<div class="ac-day-b" id="'+did+'"'+(open?'':' hidden')+'><ol class="ac-log" aria-label="'+esc(label)+', newest first">'+
       list.slice(pg*LOG_SIZE,pg*LOG_SIZE+LOG_SIZE).map(function(e,j){ return logRowHtml(e,pg*LOG_SIZE+j); }).join('')+'</ol>'+pager+'</div></li>';
 }
+// Main section (always visible, not collapsible); the days inside keep their own expand / collapse.
 function logSecHtml(){
-  if(STATE!=='done') return '';
+  var sub='Who assigned how many tickets to whom \u00b7 by day ('+esc(MY_TZ)+'), newest first';
+  if(STATE!=='done') return '<section class="ua-sec ua-main" id="uaLog" aria-labelledby="uaLogT" aria-busy="true">'+mainHead('history','uaLogT','Assignment log',sub,'\u2026')+'<div class="ua-sec-b" id="uaLogB">'+skelRows(2)+'</div></section>';
   var m=logList().length, today=tzDayKey(new Date().toISOString());
   var body=!m?'<p class="ua-none">No tickets have been assigned from the Assignment Center yet.</p>':
     '<ol class="ac-days" aria-label="Assignment log by day, newest first">'+logDays().map(function(d){ return dayHtml(d,today); }).join('')+'</ol>'+
     (m>=LOG_MAX?'<p class="ua-none">Showing the latest '+num(LOG_MAX)+' entries.</p>':'');
-  return '<section class="ua-sec" id="uaLog">'+secHead('log','uaLogB','uaLogT','history','Assignment log','Who assigned how many tickets to whom \u00b7 by day ('+esc(MY_TZ)+'), newest first',num(logTodayCount())+' today',OPEN_LOG,false)+
-    '<div class="ua-sec-b" id="uaLogB"'+(OPEN_LOG?'':' hidden')+'>'+body+'</div></section>';
+  return '<section class="ua-sec ua-main" id="uaLog" aria-labelledby="uaLogT">'+mainHead('history','uaLogT','Assignment log',sub,num(logTodayCount())+' today')+
+    '<div class="ua-sec-b" id="uaLogB">'+body+'</div></section>';
 }
 function paintLog(focusSel){ var w=$('uaLogWrap'); if(w) w.innerHTML=logSecHtml(); if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); } }
 // Revoke (assigner only): undo every assignment of one log entry. The server re-checks the assigner.
@@ -1082,8 +1262,14 @@ function errorHtml(){
 function paintAll(){
   // The "Unassigned tickets" toolbar card (search / sort / Export CSV / count) was removed; the
   // severity sections follow the contractor cards directly. #uaMsg holds the loading / empty state.
-  // The Assignment log sits directly below the severity cards, above Admins.
-  var main=STATE==='error'?errorHtml():('<div id="uaLogWrap">'+logSecHtml()+'</div>'+adminSecHtml()+contractorsHtml()+'<div id="uaMsg"></div><div id="uaBuckets"></div>');
+  // Three main sections (always visible): Current Team Assignment (Core Team + Support Team
+  // sub-sections), Assignment log, Assignment Center (severity sub-sections).
+  var main=STATE==='error'?errorHtml():(
+    '<section class="ua-sec ua-main" id="uaTeam" aria-labelledby="uaTeamT">'+mainHead('users-gear','uaTeamT','Current Team Assignment','Open ticket workload of the Core Team and the Support Team')+
+      '<div class="ua-sec-b">'+adminSecHtml()+contractorsHtml()+'</div></section>'+
+    '<div id="uaLogWrap">'+logSecHtml()+'</div>'+
+    '<section class="ua-sec ua-main" id="uaCenter" aria-labelledby="uaCenterT">'+mainHead('inbox','uaCenterT','Assignment Center','Unassigned tickets by severity, oldest first \u00b7 select tickets to assign them')+
+      '<div class="ua-sec-b"><div id="uaMsg"></div><div id="uaBuckets"></div></div></section>');
   $('wrap').innerHTML='<div class="ua"><div id="uaHero">'+heroHtml()+'</div><div id="uaKpis">'+kpisHtml()+'</div>'+main+'<p class="ua-sr" id="uaLive" aria-live="polite"></p></div>';
   paintBuckets();
 }
@@ -1094,6 +1280,7 @@ function toggle(btn){
   btn.setAttribute('aria-expanded',String(open));
   var p=$(btn.getAttribute('aria-controls')); if(p) p.hidden=!open;
   if(key==='adm') OPEN_ADM=open;
+  else if(key==='con') OPEN_CON=open;
   else if(key==='log') OPEN_LOG=open;
   else if(key.indexOf('d:')===0) OPEN_DAY[key.slice(2)]=open;
   else if(key.indexOf('a:')===0) OPEN_A[key.slice(2)]=open;
@@ -1157,7 +1344,7 @@ async function load(quiet){
   else { STATE='error'; ERR=errMsg(r,'Could not load the Assignment Center.'); }
   var y=window.scrollY; paintAll(); if(quiet) window.scrollTo(0,y);
   if(quiet) return;
-  announce(STATE==='done'?(num(admins().length)+' admins, '+num(contractors().length)+' contractors and '+num(rowsAll().length)+' unassigned tickets loaded.'):ERR);
+  announce(STATE==='done'?(num(admins().length)+' Core Team members, '+num(contractors().length)+' Support Team members and '+num(rowsAll().length)+' unassigned tickets loaded.'):ERR);
 }
 
 // ---- Delegated events ----
@@ -1166,6 +1353,11 @@ document.addEventListener('click',function(ev){
   if(t.closest('#uaAsgDlg')) return;   // the assign pop-up has its own handler
   if(t.closest('[data-retry]')){ load(); return; }
   var ab=t.closest('[data-assign]'); if(ab){ if(!ab.disabled) staleCheck(ab.getAttribute('data-assign'),ab); return; }
+  if(t.closest('#uaTsDlg')&&!t.closest('[data-copy]')) return;   // the temp-assigned pop-up has its own handler
+  var tb0=t.closest('[data-temp]'); if(tb0){ if(!tb0.disabled) tsOpen(); return; }
+  var ox=t.closest('[data-outx]'); if(ox){ var okey=ox.getAttribute('data-outx'); LOG_O[okey]=!LOG_O[okey]; paintLog();
+    var ob=Array.prototype.filter.call(document.querySelectorAll('#uaLog [data-outx]'),function(b){ return b.getAttribute('data-outx')===okey; })[0]; if(ob) ob.focus();
+    return; }
   var lx=t.closest('[data-logx]'); if(lx){ var id=lx.getAttribute('data-logx'); LOG_X[id]=!LOG_X[id]; paintLog('[data-logx="'+id+'"]'); return; }
   var rv=t.closest('[data-revoke]'); if(rv){ if(!rv.disabled) revokeEntry(rv.getAttribute('data-revoke')); return; }
   var lp=t.closest('[data-daypage]'); if(lp&&!lp.disabled){ var sp=lp.getAttribute('data-daypage'), cut=sp.lastIndexOf('|'), dk=sp.slice(0,cut);

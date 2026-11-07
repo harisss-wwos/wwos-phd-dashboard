@@ -10,6 +10,9 @@
 //   - the "PHD Investigation for mitigation" questionnaire (IL_INVEST_QS; pure ilParseInvestigation /
 //     ilSerializeInvestigation / ilInvestMissing / ilCopyMissing; DOM ilSetInvestigation(text) /
 //     ilGetInvestigation())
+//   - the "SIM Root Cause Details" form (IL_SIM_FIELDS; pure ilParseSim / ilSerializeSim / ilSimImport /
+//     ilSimParseDate; DOM ilSetSim / ilGetSim — the hidden #ilSimRcd textarea's value is a live view of
+//     the form, so `el.value` reads / writes keep working) + its Import pop-up (ilSimImportOpen)
 //   - "Historical Incidents" rows driven by the SIM "Cnt:" line (pure ilSimCnt / ilParseHistorical /
 //     ilSerializeHistorical / ilHistMissing; DOM ilSetHistorical(text) / ilGetHistorical() / ilHistSync())
 //   - ticket region (ilSetTicketRegion(title, country) — call before ilSetInvestigation; the CLEAR /
@@ -444,6 +447,184 @@ function ilHistMissing(rows,cnt){
   return out;
 }
 
+// ---- SIM Root Cause Details form (pure model; no DOM; exported for Node) ----
+// The field is a structured form (Issue dropdown, text inputs, Driv chips, date picker, Cnt
+// buttons, Res dropdown) whose values serialize into the long-standing "Key: value" lines, one per
+// line in IL_SIM_FIELDS order, so every reader of the text (ilSimCnt, ilResFromSim, ilIsFlexDriv,
+// the server's Pulse Check / scoring parsers) is unchanged. Lines that are not one of the keys are
+// kept and re-appended after the keys. `aliases` are accepted by the Import pop-up only.
+var IL_SIM_FIELDS=[
+  {key:'Issue', type:'issue', aliases:['Issue type','Incident type']},
+  // Import aliases mirror the Build Root Cause Details tool (tool-rcd.html RC_FIELDS).
+  {key:'SID',   type:'text',  hint:'station', aliases:['Station','Station ID','Station code']},
+  {key:'Driv',  type:'driv',  hint:'driver type', aliases:['Driver type','Driver']},
+  {key:'Date',  type:'date',  hint:'MM/DD/YY', aliases:['Incident date','Date of Incident']},
+  {key:'TID',   type:'text',  hint:'transporter ID', aliases:['Transporter ID','Transporter']},
+  {key:'Zip',   type:'text',  aliases:['Zip code','Zipcode','Postal code']},
+  {key:'Cnt',   type:'cnt',   hint:'historical incidents', aliases:['Count','Historical Incident Count','Historical incidents','Historical incident','Historical incident(s)']},
+  {key:'CID',   type:'text',  hint:'customer ID', aliases:['Customer Account ID','Account ID','AID','Customer ID']},
+  {key:'UPID',  type:'text',  aliases:['Unit Place ID']},
+  {key:'Res',   type:'res',   hint:'resolution', aliases:['Resolution']}
+];
+var IL_SIM_DRIV=['DSP DA','Flex DP','Hub DA'];
+function _ilsNormKey(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+var _ilsKeyIdx=(function(){
+  var c={}, a={};
+  IL_SIM_FIELDS.forEach(function(f){
+    c[_ilsNormKey(f.key)]=f.key; a[_ilsNormKey(f.key)]=f.key;
+    (f.aliases||[]).forEach(function(x){ a[_ilsNormKey(x)]=f.key; });
+  });
+  return {canon:c, alias:a};
+})();
+function _ilsKeyRe(alias){
+  var names=[];
+  IL_SIM_FIELDS.forEach(function(f){ names.push(f.key); if(alias) names=names.concat(f.aliases||[]); });
+  names.sort(function(x,y){ return y.length-x.length; });
+  names=names.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s*'); });
+  return new RegExp('(^|\\s)(?:'+names.join('|')+')\\s*:','gi');
+}
+// Split "Issue: X SID: Y" (several keys on one line) into one segment per key. A key only starts a
+// new segment when the text before it already holds a "key:" (so "Incident date: …" stays whole).
+function _ilsSplitLine(raw,alias){
+  var re=_ilsKeyRe(alias), cuts=[], m, last=0;
+  while((m=re.exec(raw))){
+    var at=m.index+m[1].length;
+    if(at>last && raw.slice(last,at).indexOf(':')>=0){ cuts.push(at); last=at; }
+    if(re.lastIndex===m.index) re.lastIndex++;
+  }
+  if(!cuts.length) return [raw];
+  var out=[], from=0;
+  cuts.forEach(function(c){ out.push(raw.slice(from,c)); from=c; });
+  out.push(raw.slice(from));
+  return out;
+}
+// List match: case-insensitive, whitespace collapsed, any dash (- – — ‐) equal, so the typed
+// "Physical altercation - No Injury" matches the list's "Physical altercation – No Injury".
+function _ilsLoose(v){ return String(v==null?'':v).replace(/[\u2010-\u2015\u2212]/g,'-').replace(/\s*-\s*/g,' - ').replace(/\s+/g,' ').trim().toLowerCase(); }
+// -> the list's spelling; '' when not listed.
+function _ilsCanon(list,v){
+  var n=_ilsLoose(v); if(!n) return '';
+  list=list||[];
+  for(var i=0;i<list.length;i++) if(_ilsLoose(list[i])===n) return list[i];
+  return '';
+}
+// Driver type -> 'DSP DA' / 'Flex DP' / 'Hub DA' (any case / spacing / dashes); '' when none.
+function ilSimDriv(v){
+  var t=String(v==null?'':v).toLowerCase().replace(/[^a-z]/g,'');
+  if(t==='dspda'||t==='dsp') return 'DSP DA';
+  if(t==='flexdp'||t==='flex'||t==='amazonflex'||t==='flexdriver') return 'Flex DP';
+  if(t==='hubda'||t==='hub') return 'Hub DA';
+  return '';
+}
+// ---- Dates: stored as MM/DD/YY ----
+var IL_SIM_MONTHS=['january','february','march','april','may','june','july','august','september','october','november','december'];
+function _ilsMon(s){
+  s=String(s||'').toLowerCase(); if(s.length<3) return 0;
+  for(var i=0;i<12;i++) if(IL_SIM_MONTHS[i].indexOf(s)===0 || (s==='sept' && i===8)) return i+1;
+  return 0;
+}
+function _ilsYear(y){ y=parseInt(y,10); return y<100 ? 2000+y : y; }
+function _ilsValidDate(y,m,d){
+  if(!(m>=1 && m<=12 && d>=1 && y>=1900 && y<=2199)) return null;
+  return d<=new Date(Date.UTC(y,m,0)).getUTCDate() ? {y:y,m:m,d:d} : null;
+}
+// Parse a date typed in common formats -> {y,m,d} or null. Accepts MM/DD/YY(YY) (DD/MM when the
+// first number is above 12), YYYY-MM-DD (also with a time), "29 Oct 2026", "29OCT26", "11OCT'26",
+// "Oct 29, 2026", "Thu, Oct 29 2026", YYYYMMDD. Separators / . - are interchangeable.
+function ilSimParseDate(s){
+  s=String(s==null?'':s).trim().replace(/^(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+/i,'').replace(/[.,;]+$/,'');
+  if(!s) return null;
+  var m;
+  if((m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T\s].*)?$/))) return _ilsValidDate(+m[1],+m[2],+m[3]);
+  if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2}|\d{4})$/))){
+    var a=+m[1], b=+m[2]; if(a>12 && b<=12){ var t=a; a=b; b=t; }
+    return _ilsValidDate(_ilsYear(m[3]),a,b);
+  }
+  if((m=s.match(/^(\d{1,2})(?:st|nd|rd|th)?[\s\-\/.]*([A-Za-z]{3,9})\.?[\s\-\/.,']*(\d{4}|\d{2})$/))){
+    var mo=_ilsMon(m[2]); return mo ? _ilsValidDate(_ilsYear(m[3]),mo,+m[1]) : null;
+  }
+  if((m=s.match(/^([A-Za-z]{3,9})\.?[\s\-\/.]*(\d{1,2})(?:st|nd|rd|th)?[\s,\-\/.']+(\d{4}|\d{2})$/))){
+    var mo2=_ilsMon(m[1]); return mo2 ? _ilsValidDate(_ilsYear(m[3]),mo2,+m[2]) : null;
+  }
+  if((m=s.match(/^(\d{4})(\d{2})(\d{2})$/))) return _ilsValidDate(+m[1],+m[2],+m[3]);
+  return null;
+}
+function _ils2(n){ return (n<10?'0':'')+n; }
+// Any accepted date -> "MM/DD/YY"; '' when not a date.
+function ilSimFmtDate(s){ var p=ilSimParseDate(s); return p ? _ils2(p.m)+'/'+_ils2(p.d)+'/'+_ils2(p.y%100) : ''; }
+function _ilsIso(p){ return p ? p.y+'-'+_ils2(p.m)+'-'+_ils2(p.d) : ''; }
+// Parse the field text -> {fields:{Issue..Res}, listed:{Issue,Res}, extra:[lines kept as-is],
+// found:{key:raw value}}. Keys are case-insensitive with any spacing ("cnt :3", "**Res:** x"); a
+// repeated key or any other line goes to `extra`. o.issues / o.res = the dropdown lists: Issue / Res
+// stay as written in `fields` (so an unedited entry saves byte-identical) and `listed` holds the
+// matching list option ('' when not in the list). o.aliases = also accept IL_SIM_FIELDS aliases.
+// Driv: one of IL_SIM_DRIV when it matches, else as written. Cnt: digits normalised ("03" -> "3").
+// Date: kept as written (the form normalises it to MM/DD/YY when edited).
+function ilParseSim(text,o){
+  o=o||{};
+  var fields={}, found={}, extra=[], listed={Issue:'', Res:''};
+  IL_SIM_FIELDS.forEach(function(f){ fields[f.key]=''; });
+  var s=String(text==null?'':text).replace(/\r\n?/g,'\n');
+  if(!s.trim() || s.trim()==='-') return {fields:fields, listed:listed, extra:extra, found:found};
+  var idx=o.aliases ? _ilsKeyIdx.alias : _ilsKeyIdx.canon;
+  s.split('\n').forEach(function(raw){
+    if(!raw.trim()) return;
+    var segs=_ilsSplitLine(raw, !!o.aliases);
+    segs.forEach(function(seg){
+      var m=seg.replace(/\*\*/g,'').match(/^\s*(?:[-*\u2022]\s*)?([^:]+?)\s*:[ \t]*(.*)$/);
+      var k=m ? idx[_ilsNormKey(m[1])] : null;
+      if(!k || Object.prototype.hasOwnProperty.call(found,k)){ extra.push(segs.length>1 ? seg.trim() : raw); return; }
+      found[k]=m[2].replace(/\s+/g,' ').trim();
+    });
+  });
+  IL_SIM_FIELDS.forEach(function(f){
+    var v=found[f.key]; if(v==null) return;
+    if(f.type==='issue') listed.Issue=_ilsCanon(o.issues,v);
+    else if(f.type==='res') listed.Res=_ilsCanon(o.res,v);
+    else if(f.type==='driv') v=ilSimDriv(v)||v;
+    else if(f.type==='cnt' && /^\d+$/.test(v)) v=String(parseInt(v,10));
+    fields[f.key]=v;
+  });
+  return {fields:fields, listed:listed, extra:extra, found:found};
+}
+// Fields (+ kept extra lines) -> the field text: every key on its own line in IL_SIM_FIELDS order
+// ("SID:" when empty; Cnt defaults to "Cnt: 0"), extra lines after them. Returns '' when nothing is
+// filled (all empty, Cnt 0, no extra lines) so a new log's untouched field still saves as "-".
+function ilSerializeSim(fields,extra){
+  var f=fields||{}, ex=(extra||[]).filter(function(l){ return String(l).trim(); });
+  var any=ex.length>0, lines=[];
+  IL_SIM_FIELDS.forEach(function(d){
+    var v=String(f[d.key]==null?'':f[d.key]).replace(/\s+/g,' ').trim();
+    if(d.type==='cnt' && !v) v='0';
+    if(v && !(d.type==='cnt' && v==='0')) any=true;
+    lines.push(d.key+':'+(v?' '+v:''));
+  });
+  return any ? lines.concat(ex).join('\n') : '';
+}
+// Import pop-up: map pasted text onto the fields. Only keys found with a usable value are returned
+// in `fields`: Issue / Res in the list's spelling (an unlisted value is still returned, to show as
+// "(not in list)", but reported as not matched); Driv only one of IL_SIM_DRIV; Date only when it
+// parses (-> MM/DD/YY); Cnt only a number. summary = "Filled 8 of 10 fields · not matched: Res".
+function ilSimImport(text,o){
+  o=o||{};
+  var p=ilParseSim(text,{aliases:true}), out={}, filled=[], nm=[];
+  IL_SIM_FIELDS.forEach(function(f){
+    if(!Object.prototype.hasOwnProperty.call(p.found,f.key)) return;
+    var v=p.found[f.key], c; if(!v || v==='-') return;
+    if(f.type==='issue' || f.type==='res'){
+      c=_ilsCanon(f.type==='issue'?o.issues:o.res, v);
+      out[f.key]=c||v; (c?filled:nm).push(f.key);
+    } else if(f.type==='driv'){ c=ilSimDriv(v); if(c){ out[f.key]=c; filled.push(f.key); } else nm.push(f.key); }
+    else if(f.type==='date'){ c=ilSimFmtDate(v); if(c){ out[f.key]=c; filled.push(f.key); } else nm.push(f.key); }
+    else if(f.type==='cnt'){ var cm=v.match(/^(\d+)\b/); out[f.key]=cm ? String(parseInt(cm[1],10)) : '0'; filled.push(f.key); }
+    else { out[f.key]=v; filled.push(f.key); }
+  });
+  // Cnt missing / blank / "-" in the pasted text -> 0 (the default).
+  if(!Object.prototype.hasOwnProperty.call(out,'Cnt')){ out.Cnt='0'; filled.push('Cnt'); }
+  var summary='Filled '+filled.length+' of '+IL_SIM_FIELDS.length+' fields'+(nm.length?' \u00b7 not matched: '+nm.join(', '):'');
+  return {fields:out, filled:filled, notMatched:nm, summary:summary};
+}
+
 // Assemble the structured form fields (DOM) into the standard copy/save format.
 // opts.omitSim === true drops the "SIM Root Cause Details" section (used by "Copy w/o RC Details").
 // opts.copy === true = a Copy (US/CA-only answers kept from a non-US/CA saved entry are left out);
@@ -579,6 +760,317 @@ function _ilhSetLocked(locked){
   _ilhLocked=!!locked;
   var box=document.getElementById('ilHist'); if(!box) return;
   Array.prototype.forEach.call(box.querySelectorAll('.ail-hctl'), function(el){ el.disabled=_ilhLocked; });
+}
+
+// ---- SIM Root Cause Details form DOM: #ilSimForm, controls "ils_<key>" ----
+// #ilSimRcd stays in the markup as a hidden textarea whose `value` is a live view of the form:
+// reading it serializes the controls (ilGetSim), assigning it parses the text into them (ilSetSim).
+// So the pages' `el.value=…` reset / edit-open code and every reader keep working unchanged.
+var _ilsExtra=[];      // saved lines that are not one of the keys; re-appended on save
+var _ilsOldCnt=null;   // a saved non-numeric Cnt (e.g. "N/A"), kept until the Cnt control changes
+var _ilsLocked=false;  // follows the field lock (pencil)
+var _ilsResList=(typeof window!=='undefined' && Array.isArray(window.RC_RESOLUTIONS)) ? window.RC_RESOLUTIONS.slice() : [];
+var _ilsResAsked=false;
+function _ilsEl(k){ return document.getElementById('ils_'+k); }
+function _ilsSlice(l){ return Array.prototype.slice.call(l||[]); }
+// Issue types = the Issue Types page taxonomy (window.IZ_CATS, issue-types-data.js), flat.
+function _ilsIssues(){
+  var out=[], cats=(typeof window!=='undefined' && Array.isArray(window.IZ_CATS)) ? window.IZ_CATS : [];
+  cats.forEach(function(c){ (c.types||[]).forEach(function(t){ if(t && t.type && out.indexOf(t.type)<0) out.push(t.type); }); });
+  return out;
+}
+function _ilsLists(){ return {issues:_ilsIssues(), res:_ilsResList}; }
+function _ilsIssueOptions(){
+  var cats=(typeof window!=='undefined' && Array.isArray(window.IZ_CATS)) ? window.IZ_CATS : [];
+  return '<option value="">Select issue type</option>'+cats.map(function(cat){
+    return '<optgroup label="'+_ileEsc(cat.category)+'">'+(cat.types||[]).map(function(t){
+      return '<option value="'+_ileEsc(t.type)+'">'+_ileEsc(t.type)+'</option>'; }).join('')+'</optgroup>';
+  }).join('');
+}
+function _ilsResOptions(list){
+  return '<option value="">Select resolution</option>'+(list||[]).map(function(r){ return '<option value="'+_ileEsc(r)+'">'+_ileEsc(r)+'</option>'; }).join('');
+}
+// PHD Resolutions: the phd-resolutions.html list (GET /api/phd-resolutions, read only), A-Z like the
+// other My Tickets dropdowns; window.RC_RESOLUTIONS until it loads / when it fails or no session.
+function ilSimLoadResolutions(){
+  if(_ilsResAsked || typeof window==='undefined') return;
+  var A=window.PHDAuth;
+  if(!(A && A.api && A.getUser && A.getUser())) return;   // no session: a 401 would pop the expired-session modal
+  _ilsResAsked=true;
+  Promise.resolve().then(function(){ return A.api('GET','/api/phd-resolutions'); }).then(function(r){
+    if(!(r && r.ok && Array.isArray(r.data))) return;
+    var names=[];
+    r.data.forEach(function(x){ var n=String((x&&x.name)||'').trim(); if(n && names.indexOf(n)<0) names.push(n); });
+    if(!names.length) return;
+    names.sort(function(a,b){ return a.localeCompare(b); });
+    _ilsResList=names;
+    var sel=_ilsEl('Res'); if(!sel) return;
+    var cur=_ilsSelVal(sel); sel.innerHTML=_ilsResOptions(names); _ilsSetSelect(sel,cur,_ilsCanon(names,cur));
+  }).catch(function(){});
+}
+// Selected dropdown value; a loaded spelling that differs from its list option only by case /
+// dashes (sel._ilsRaw, see _ilsSetSelect) is returned as saved while that option stays selected.
+function _ilsSelVal(sel){
+  if(!sel) return '';
+  var v=String(sel.value||'');
+  return (sel._ilsRaw && v===sel._ilsRaw.opt) ? sel._ilsRaw.raw : v;
+}
+// Set a dropdown. listed = the list option matching v loosely (ilParseSim .listed): that option is
+// selected and v's own spelling kept for saving. A value not in the list is added as
+// "<value> (not in list)" so nothing is lost.
+function _ilsSetSelect(sel,v,listed){
+  if(!sel) return;
+  _ilsSlice(sel.querySelectorAll('option[data-extra]')).forEach(function(o){ o.parentNode.removeChild(o); });
+  v=String(v==null?'':v).trim();
+  sel._ilsRaw=null;
+  if(v && listed && listed!==v && _ilsSlice(sel.options).some(function(o){ return o.value===listed; })){ sel._ilsRaw={opt:listed, raw:v}; v=listed; }
+  if(v && !_ilsSlice(sel.options).some(function(o){ return o.value===v; })){
+    var o=document.createElement('option'); o.value=v; o.textContent=v+' (not in list)'; o.setAttribute('data-extra','1'); sel.appendChild(o);
+  }
+  sel.value=v;
+  if(sel._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(sel);
+}
+// Driv: native radios (name ilsDriv) styled as chips; clicking the selected one clears it.
+function _ilsDrivRadios(){ var g=document.getElementById('ils_Driv'); return g ? _ilsSlice(g.querySelectorAll('input[type=radio]')) : []; }
+function _ilsDrivVal(){ var r=_ilsDrivRadios().filter(function(x){ return x.checked; })[0]; return r ? r.value : ''; }
+function _ilsDrivMark(){
+  var any=false;
+  _ilsDrivRadios().forEach(function(r){ r._ilsWas=r.checked; if(r.checked) any=true; });
+  var c=document.getElementById('ils_DrivClear'); if(c) c.hidden=!any;
+}
+function _ilsSetDriv(v){
+  var g=document.getElementById('ils_Driv'); if(!g) return;
+  _ilsSlice(g.querySelectorAll('[data-extra]')).forEach(function(n){ n.parentNode.removeChild(n); });
+  v=String(v==null?'':v).trim();
+  if(v && IL_SIM_DRIV.indexOf(v)<0){   // saved value that is not one of the three -> extra chip
+    var lab=document.createElement('label'); lab.className='ail-schip'; lab.setAttribute('data-extra','1');
+    lab.innerHTML='<input type="radio" class="ail-sctl" name="ilsDriv" id="ils_Driv_x" onclick="ilsDrivClick(this)"><span>'+_ileEsc(v)+' (not in list)</span>';
+    lab.querySelector('input').value=v; lab.querySelector('input').disabled=_ilsLocked;
+    g.appendChild(lab);
+  }
+  _ilsDrivRadios().forEach(function(r){ r.checked=(!!v && r.value===v); });
+  _ilsDrivMark();
+}
+function ilsDrivClick(el){
+  if(el && el._ilsWas) el.checked=false;   // click on the selected chip clears it
+  _ilsDrivMark(); ilSimChanged();
+}
+function ilsDrivClear(){
+  _ilsDrivRadios().forEach(function(r){ r.checked=false; });
+  _ilsDrivMark(); ilSimChanged();
+  var f=_ilsDrivRadios()[0]; if(f) try{ f.focus(); }catch(e){}
+}
+// Cnt: buttons 0..10 + "Other" (same control as the questionnaire's negative-feedback count).
+function _ilsCntBtns(){ var g=document.getElementById('ilsg_Cnt'); return g ? _ilsSlice(g.querySelectorAll('.ail-qnb')) : []; }
+function _ilsSetCntBtn(n){ _ilsCntBtns().forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-n')===String(n)?'true':'false'); }); }
+function _ilsCntNote(){
+  var o=document.getElementById('ils_Cnt_old'); if(!o) return;
+  o.hidden=_ilsOldCnt==null;
+  o.textContent=_ilsOldCnt==null ? '' : 'Saved value: "'+_ilsOldCnt+'" (kept until you change it)';
+}
+function _ilsCntVal(){
+  if(_ilsOldCnt!=null) return _ilsOldCnt;
+  var b=_ilsCntBtns().filter(function(x){ return x.getAttribute('aria-pressed')==='true'; })[0];
+  if(b) return b.getAttribute('data-n');
+  var el=_ilsEl('Cnt'), v=el ? String(el.value||'').trim() : '';
+  return /^\d+$/.test(v) ? String(parseInt(v,10)) : '0';
+}
+function _ilsSetCnt(v){
+  _ilsOldCnt=null;
+  var el=_ilsEl('Cnt'); if(el) el.value='';
+  v=String(v==null?'':v).trim();
+  if(!v) _ilsSetCntBtn(0);
+  // Leading number wins ("2 (prior)" -> 2); N/A / blank / any other text -> 0 (the default).
+  var lead=v.match(/^(\d+)\b/);
+  if(lead){ var n=parseInt(lead[1],10); if(n<=10) _ilsSetCntBtn(n); else { _ilsSetCntBtn(null); if(el) el.value=String(n); } }
+  else _ilsSetCntBtn(0);
+  _ilsCntNote();
+}
+function ilsPickCnt(n){
+  _ilsOldCnt=null; _ilsSetCntBtn(n);
+  var el=_ilsEl('Cnt'); if(el) el.value='';
+  _ilsCntNote(); ilSimChanged();
+}
+function ilsCntInput(){
+  _ilsOldCnt=null;
+  var el=_ilsEl('Cnt'), typed=!!(el && (String(el.value)!=='' || (el.validity && el.validity.badInput)));
+  _ilsSetCntBtn(typed ? null : 0);
+  _ilsCntNote(); ilSimChanged();
+}
+// Date: text input (stored MM/DD/YY) kept in sync with the calendar picker.
+function _ilsDateSync(){
+  var t=_ilsEl('Date'), pk=document.getElementById('ils_DatePick'); if(!t) return;
+  var v=String(t.value||'').trim(), p=ilSimParseDate(v);
+  if(pk) pk.value=_ilsIso(p);
+  var h=document.getElementById('ils_Date_hint'); if(h) h.hidden=!(v && !p);
+}
+function ilsDateText(el,commit){
+  if(commit && el){ var f=ilSimFmtDate(el.value); if(f) el.value=f; }
+  _ilsDateSync(); ilSimChanged();
+}
+function ilsDatePick(el){
+  var t=_ilsEl('Date'), v=String((el&&el.value)||'');
+  if(t) t.value=v ? (ilSimFmtDate(v)||t.value) : '';
+  _ilsDateSync(); ilSimChanged();
+}
+var IL_SIM_TEXT_KEYS=['SID','TID','Zip','CID','UPID','Date'];
+function _ilsRead(){
+  var f={};
+  if(typeof document==='undefined') return f;
+  var g=function(k){ var el=_ilsEl(k); return el ? String(el.value||'').replace(/\s+/g,' ').trim() : ''; };
+  IL_SIM_TEXT_KEYS.forEach(function(k){ f[k]=g(k); });
+  ['Issue','Res'].forEach(function(k){ f[k]=_ilsSelVal(_ilsEl(k)).replace(/\s+/g,' ').trim(); });
+  f.Driv=_ilsDrivVal(); f.Cnt=_ilsCntVal();
+  return f;
+}
+// Getter: the field text ('' while nothing is filled -> saved as "-").
+function ilGetSim(){
+  if(typeof document==='undefined' || !document.getElementById('ilSimForm')) return '';
+  return ilSerializeSim(_ilsRead(), _ilsExtra);
+}
+// Put values into the controls (only the keys present in `fields`).
+function _ilsApply(fields,listed){
+  var has=function(k){ return Object.prototype.hasOwnProperty.call(fields,k); };
+  listed=listed||{};
+  if(has('Issue')) _ilsSetSelect(_ilsEl('Issue'), fields.Issue, listed.Issue);
+  if(has('Res')) _ilsSetSelect(_ilsEl('Res'), fields.Res, listed.Res);
+  IL_SIM_TEXT_KEYS.forEach(function(k){ var el=_ilsEl(k); if(el && has(k)) el.value=String(fields[k]==null?'':fields[k]); });
+  if(has('Driv')) _ilsSetDriv(fields.Driv);
+  if(has('Cnt')) _ilsSetCnt(fields.Cnt);
+  _ilsDateSync();
+}
+// Setter: load the saved field text ('' = a new log: all empty, Driv none, Cnt 0).
+function ilSetSim(text){
+  if(typeof document==='undefined' || !document.getElementById('ilSimForm')) return;
+  ilSimLoadResolutions();
+  var L=_ilsLists(), p=ilParseSim(text,{issues:L.issues, res:L.res});
+  _ilsExtra=p.extra.slice();
+  _ilsApply(p.fields, p.listed);
+  var ex=document.getElementById('ilsExtra'), wrap=document.getElementById('ilsExtraWrap');
+  if(ex) ex.textContent=_ilsExtra.join('\n');
+  if(wrap) wrap.hidden=!_ilsExtra.length;
+  var st=document.getElementById('ilsStatus'); if(st){ st.textContent=''; st.hidden=true; }
+  _ilsMarkRows();
+  if(document.getElementById('ilPhdInvestigation')) _ilqSyncVisibility();   // Driv: Flex DP hides questions
+}
+// Any SIM control changed: Historical Incidents rows (Cnt), Empty marker / copy state, Flex DP questions.
+// Highlight each filled row (same look as a changed PHD Investigation row). Cnt counts above 0.
+function _ilsMarkRows(){
+  if(typeof document==='undefined') return;
+  var f=_ilsRead();
+  IL_SIM_FIELDS.forEach(function(x){
+    var cell=document.querySelector('#ilSimForm .ail-scell-'+x.key); if(!cell) return;
+    var v=String(f[x.key]==null?'':f[x.key]).trim();
+    cell.classList.toggle('is-changed', x.key==='Cnt' ? (v!=='' && v!=='0') : !!v);
+  });
+}
+function ilSimChanged(){
+  _ilsMarkRows();
+  ilHistSync();
+  ilMarkEmpty(document.getElementById('ilSimRcd'));
+  if(document.getElementById('ilPhdInvestigation')) _ilqSyncVisibility();
+}
+function _ilsSetLocked(locked){
+  _ilsLocked=!!locked;
+  var box=document.getElementById('ilSimForm'); if(!box) return;
+  box.classList.toggle('is-locked',_ilsLocked);
+  _ilsSlice(box.querySelectorAll('.ail-sctl')).forEach(function(el){ el.disabled=_ilsLocked; });
+  var is=_ilsEl('Issue'); if(is && is._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(is);
+}
+// First focusable SIM control (the Issue combobox face when searchable).
+function _ilsFirstCtl(){ var s=_ilsEl('Issue'); return s ? ((s._ssWrap && s._ssWrap.querySelector('.ss-field')) || s) : null; }
+// Control to jump to for a copy-check miss on the SIM field: Res for the PHD Resolution miss,
+// otherwise the first empty field.
+function _ilsMissTarget(m){
+  if(m && /Res:/.test(m.label||'')) return _ilsEl('Res');
+  var f=_ilsRead();
+  for(var i=0;i<IL_SIM_FIELDS.length;i++){
+    var k=IL_SIM_FIELDS[i].key; if(k==='Cnt' || f[k]) continue;
+    return k==='Driv' ? _ilsDrivRadios()[0] : _ilsEl(k);
+  }
+  return _ilsEl('Issue');
+}
+// Make #ilSimRcd's value a live view of the form (see above) and make the Issue list searchable.
+function _ilsInstall(){
+  var ta=document.getElementById('ilSimRcd'); if(!ta || ta._ilsProxy) return;
+  ta._ilsProxy=true;
+  Object.defineProperty(ta,'value',{configurable:true, get:function(){ return ilGetSim(); }, set:function(v){ ilSetSim(v); }});
+  var is=_ilsEl('Issue');
+  if(is && window.makeSearchableSelect){
+    window.makeSearchableSelect(is);
+    var face=is._ssField, val=face && face.querySelector('.ss-val');
+    if(face && val){ val.id='ils_Issue_val'; face.id='ils_Issue_face'; face.setAttribute('aria-labelledby','ils_Issue_lbl ils_Issue_val'); face.setAttribute('aria-haspopup','listbox'); face.classList.add('ail-sctl'); }
+    var lbl=document.getElementById('ils_Issue_lbl'); if(lbl && face) lbl.setAttribute('for','ils_Issue_face');
+  }
+  ilSetSim('');
+}
+// ---- Import pop-up (same dialog style as "Some fields are empty") ----
+var _ilsiOpener=null;
+function _ilsiBuild(){
+  var bg=document.getElementById('ilSimImport'); if(bg) return bg;
+  bg=document.createElement('div'); bg.id='ilSimImport'; bg.className='ilc-bg'; bg.hidden=true;
+  bg.innerHTML='<div class="ilc-dlg ils-dlg" role="dialog" aria-modal="true" aria-labelledby="ilSimImportTitle" aria-describedby="ilSimImportHint">'+
+      '<h3 class="ilc-title" id="ilSimImportTitle">Import SIM Root Cause Details</h3>'+
+      '<div class="ilc-body">'+
+        '<label class="ils-lbl" for="ilSimImportText">Paste SIM Root Cause Details</label>'+
+        '<textarea id="ilSimImportText" class="ils-ta" rows="12" spellcheck="false" placeholder="Issue: \u2026&#10;SID: \u2026&#10;Driv: \u2026&#10;Date: \u2026&#10;TID: \u2026&#10;Zip: \u2026&#10;Cnt: \u2026&#10;CID: \u2026&#10;UPID: \u2026&#10;Res: \u2026"></textarea>'+
+        '<p class="ils-hint" id="ilSimImportHint">Only fields with a matching value are filled; the others stay as they are.</p>'+
+        '<p class="ils-err" id="ilSimImportErr" role="alert" hidden></p>'+
+      '</div>'+
+      '<div class="ilc-actions">'+
+        '<button type="button" class="ilc-btn sec" id="ilSimImportCancel">Cancel</button>'+
+        '<button type="button" class="ilc-btn go" id="ilSimImportGo">Import</button>'+
+      '</div>'+
+    '</div>';
+  (document.getElementById('incidentModal')||document.body).appendChild(bg);
+  document.getElementById('ilSimImportCancel').addEventListener('click',function(){ ilSimImportClose(false); });
+  document.getElementById('ilSimImportGo').addEventListener('click',function(){ ilSimImportClose(true); });
+  bg.addEventListener('click',function(e){ e.stopPropagation(); if(e.target===bg) ilSimImportClose(false); });
+  window.addEventListener('keydown',_ilsiKeydown,true);
+  return bg;
+}
+function _ilsiOpen(){ var bg=document.getElementById('ilSimImport'); return !!(bg && !bg.hidden); }
+function _ilsiKeydown(e){
+  if(!_ilsiOpen()) return;
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); ilSimImportClose(false); return; }
+  if(e.key!=='Tab') return;
+  e.stopPropagation();
+  var dlg=document.querySelector('#ilSimImport .ilc-dlg');
+  var f=_ilsSlice(dlg.querySelectorAll('textarea,button')).filter(function(el){ return !el.disabled && el.offsetParent!==null; });
+  if(!f.length){ e.preventDefault(); return; }
+  var first=f[0], last=f[f.length-1], a=document.activeElement;
+  if(!dlg.contains(a)){ e.preventDefault(); first.focus(); }
+  else if(e.shiftKey && a===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && a===last){ e.preventDefault(); first.focus(); }
+}
+function ilSimImportOpen(btn){
+  var bg=_ilsiBuild();
+  _ilsiOpener=btn||document.activeElement;
+  var ta=document.getElementById('ilSimImportText'); ta.value='';
+  var er=document.getElementById('ilSimImportErr'); er.hidden=true; er.textContent='';
+  bg.hidden=false;
+  try{ ta.focus(); }catch(e){}
+}
+// apply=true parses the pasted text into the form (unlocking the field first when it is locked).
+function ilSimImportClose(apply){
+  var bg=document.getElementById('ilSimImport'); if(!bg || bg.hidden) return;
+  if(apply){
+    var ta=document.getElementById('ilSimImportText'), er=document.getElementById('ilSimImportErr');
+    var txt=String(ta.value||'');
+    var r=txt.trim() ? ilSimImport(txt,_ilsLists()) : null;
+    if(!r || (!r.filled.length && !r.notMatched.length)){
+      er.textContent=txt.trim() ? 'No SIM Root Cause Details fields found in the pasted text.' : 'Paste the SIM Root Cause Details first.';
+      er.hidden=false; try{ ta.focus(); }catch(e){} return;
+    }
+    bg.hidden=true;
+    if(_ilsLocked){ var pen=document.querySelector('.ail-fedit[data-for="ilSimRcd"]'); if(pen) ilEditField(pen); }
+    _ilsApply(r.fields);
+    ilSimChanged();
+    var st=document.getElementById('ilsStatus'); if(st){ st.textContent=r.summary; st.hidden=false; }
+    _ileToast(r.summary);
+  } else bg.hidden=true;
+  var op=_ilsiOpener; _ilsiOpener=null;
+  if(op && op.focus) try{ op.focus(); }catch(e){}
 }
 
 // ---- DOM helpers (fixed element ids from the shared markup) ----
@@ -810,6 +1302,7 @@ function _ilVal(id){
 // form field — it is taken from the SIM "Res:" line, see ilCurrentResolution.)
 var _ilSelectsFilled=false;
 function fillIncidentSelects(){
+  ilSimLoadResolutions();   // SIM "Res" dropdown: the PHD Resolutions list (once per page, when signed in)
   if(_ilSelectsFilled) return; _ilSelectsFilled=true;
   var rc=document.getElementById('ilRootCause');
   if(rc){ var causes=window.RC_ROOT_CAUSES||[];
@@ -818,7 +1311,7 @@ function fillIncidentSelects(){
 }
 // Resync the searchable Root Cause combobox (after its .value is set directly).
 function ilRefreshSelectUI(){
-  ['ilRootCause'].forEach(function(id){ var el=document.getElementById(id); if(el && el._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(el); });
+  ['ilRootCause','ils_Issue'].forEach(function(id){ var el=document.getElementById(id); if(el && el._ssWrap && window.makeSearchableSelect) window.makeSearchableSelect(el); });
 }
 // Reveal + paint the title's "copy ticket ID" icon for the given ShortId.
 function ilSetTitleCopyId(sid){
@@ -876,6 +1369,7 @@ function ilUpdateCopyState(){
 function ilPaintFieldCopyIcons(){
   document.querySelectorAll('.ail-fcopy').forEach(function(b){ if(!b.dataset.painted){ b.innerHTML=_ileIc('copy',14); b.dataset.painted='1'; } });
   document.querySelectorAll('.ail-fedit').forEach(function(b){ if(!b.dataset.painted){ b.innerHTML=_ileIc('edit',14); b.dataset.painted='1'; } });
+  document.querySelectorAll('.ail-simimp').forEach(function(b){ if(!b.dataset.painted){ var ic=_ileIc('upload',14); if(ic){ b.innerHTML=ic+'<span class="ail-simimp-tx">Import</span>'; b.dataset.painted='1'; } } });
 }
 // Click the pencil: unlock that one field for editing.
 function ilEditField(btn){
@@ -888,7 +1382,11 @@ function ilEditField(btn){
     return;
   }
   el.readOnly=false; btn.classList.add('editing');
-  if(el.id==='ilSimRcd') _ilhSetLocked(false);   // the Historical Incidents rows unlock with SIM
+  if(el.id==='ilSimRcd'){   // SIM form: unlock its controls + the Historical Incidents rows, focus Issue
+    _ilhSetLocked(false); _ilsSetLocked(false);
+    var sf=_ilsFirstCtl(); if(sf) try{ sf.focus(); }catch(e){}
+    return;
+  }
   try{ el.focus(); var n=el.value.length; el.setSelectionRange(n,n); }catch(e){}
   if(typeof ilAutosize==='function') ilAutosize(el);
 }
@@ -911,7 +1409,7 @@ function ilSetFieldLocks(locked){
     var forceEdit=(id==='ilSimRcd' && ilSimResPending());
     if(locked && hasContent && !forceEdit){ el.readOnly=true; if(btn){ btn.style.display=''; btn.classList.remove('editing'); } }
     else{ el.readOnly=false; if(btn){ btn.style.display=(locked&&hasContent)?'':'none'; btn.classList.toggle('editing',!!forceEdit); } }
-    if(id==='ilSimRcd') _ilhSetLocked(el.readOnly);   // Historical Incidents rows share the SIM lock
+    if(id==='ilSimRcd'){ _ilhSetLocked(el.readOnly); _ilsSetLocked(el.readOnly); }   // SIM form + Historical Incidents rows share the lock
   });
 }
 // Enable a field's copy icon only when that field is non-empty.
@@ -974,13 +1472,13 @@ function ilAutosize(ta){
 }
 function ilWireTextareaAutosize(){
   if(_ilTaWired) return; _ilTaWired=true;
-  document.querySelectorAll('.ail-field textarea:not(.ail-qta):not(.ail-hta)').forEach(function(ta){
+  document.querySelectorAll('.ail-field textarea:not(.ail-qta):not(.ail-hta):not(.ail-simraw)').forEach(function(ta){
     ta.addEventListener('input',function(){ ilAutosize(ta); });
   });
 }
 // Size every textarea to its current content (used when the modal opens / fields are (re)filled).
 function ilAutosizeAll(){
-  document.querySelectorAll('.ail-field textarea:not(.ail-qta):not(.ail-hta)').forEach(ilAutosize);
+  document.querySelectorAll('.ail-field textarea:not(.ail-qta):not(.ail-hta):not(.ail-simraw)').forEach(ilAutosize);
   document.querySelectorAll('#ilHist textarea.ail-hta').forEach(_ilhGrow);   // brief fields: grow to content
 }
 // Copy the formatted incident log. Empty / invalid fields ask for confirmation first.
@@ -1068,17 +1566,18 @@ function ilCopyConfirmClose(copy){
 // Scroll to / focus / highlight a missing field ({id}). Returns true if focus moved there.
 function _ilFocusMissing(m){
   var el=m && document.getElementById(m.id); if(!el) return false;
+  if(el.id==='ilSimRcd') el=_ilsMissTarget(m)||el;   // hidden text -> the SIM form control to fill
   var field=el.closest('.ail-field');
   if(el.classList.contains('ail-qctl') && el.disabled){   // locked questionnaire -> unlock it (pencil)
     var pen=document.querySelector('.ail-fedit[data-for="ilPhdInvestigation"]'); if(pen) ilEditField(pen);
   }
-  var isHist=el.classList.contains('ail-hctl');
+  var isHist=el.classList.contains('ail-hctl') || el.classList.contains('ail-sctl');
   if(isHist && el.disabled){   // locked Historical Incidents row -> unlock with the SIM pencil
     var spen=document.querySelector('.ail-fedit[data-for="ilSimRcd"]'); if(spen) ilEditField(spen);
   }
   ilMarkEmpty(el.classList.contains('ail-qctl') ? document.getElementById('ilPhdInvestigation') : (isHist ? document.getElementById('ilSimRcd') : el));
   var target=(el._ssWrap && el._ssWrap.querySelector('.ss-field')) || el;   // searchable select face
-  var row=el.closest('.ail-qrow')||el.closest('.ail-hcell')||field||target;
+  var row=el.closest('.ail-qrow')||el.closest('.ail-hcell')||el.closest('.ail-scell')||field||target;
   try{ row.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){ try{ row.scrollIntoView(); }catch(_){} }
   row.classList.add('ail-flash'); setTimeout(function(){ row.classList.remove('ail-flash'); },1800);
   if(target.disabled) return false;
@@ -1241,6 +1740,58 @@ var IncidentLogEditor=(function(){
         '<pre id="ilqExtra"></pre></div>'+
     '</div>';
   }
+  // "SIM Root Cause Details" form: one row per IL_SIM_FIELDS key, one below the other (label | control).
+  // Controls carry .ail-sctl (locked / unlocked together); styling reuses the questionnaire's
+  // .ail-qinp / .ail-qnb rules (the form box is also .ail-qn).
+  function simCell(f){
+    var k=f.key, id='ils_'+k;
+    var txt=_ileEsc(k)+(f.hint?' <span class="ail-shint">('+_ileEsc(f.hint)+')</span>':'');
+    var lab='<label class="ail-slabel" id="'+id+'_lbl" for="'+id+'">'+txt+'</label>', ctl;
+    if(f.type==='issue')
+      ctl='<select id="'+id+'" class="ail-sctl ail-qinp" onchange="ilSimChanged()">'+_ilsIssueOptions()+'</select>';
+    else if(f.type==='res')
+      ctl='<select id="'+id+'" class="ail-sctl ail-qinp" onchange="ilSimChanged()">'+_ilsResOptions(_ilsResList)+'</select>';
+    else if(f.type==='driv'){
+      lab='<span class="ail-slabel" id="'+id+'_lbl">'+txt+'</span>';
+      ctl='<div class="ail-sdriv"><div class="ail-schips" id="'+id+'" role="radiogroup" aria-labelledby="'+id+'_lbl">'+
+        IL_SIM_DRIV.map(function(o,i){
+          return '<label class="ail-schip"><input type="radio" class="ail-sctl" name="ilsDriv" id="'+id+'_'+i+'" value="'+_ileEsc(o)+'" onclick="ilsDrivClick(this)"><span>'+_ileEsc(o)+'</span></label>';
+        }).join('')+'</div>'+
+        '<button type="button" class="ail-sctl ail-sclear" id="ils_DrivClear" onclick="ilsDrivClear()" aria-label="Clear Driv" hidden>Clear</button></div>';
+    }
+    else if(f.type==='date')
+      ctl='<div class="ail-sdate">'+
+        '<input type="text" id="'+id+'" class="ail-sctl ail-qinp" autocomplete="off" placeholder="MM/DD/YY" aria-describedby="ils_Date_hint" oninput="ilsDateText(this,false)" onchange="ilsDateText(this,true)">'+
+        '<input type="date" id="ils_DatePick" class="ail-sctl ail-qinp ail-sdpick" aria-label="Date: pick from calendar" onchange="ilsDatePick(this)">'+
+        '</div><span class="ail-shelp" id="ils_Date_hint" hidden>Not a recognised date (kept as typed)</span>';
+    else if(f.type==='cnt'){
+      lab='<span class="ail-slabel" id="'+id+'_lbl">'+txt+'</span>';
+      var btns=''; for(var n=0;n<=10;n++) btns+='<button type="button" class="ail-sctl ail-qnb" data-n="'+n+'" aria-pressed="'+(n===0?'true':'false')+'" onclick="ilsPickCnt('+n+')">'+n+'</button>';
+      ctl='<div class="ail-scnt"><div class="ail-qnums" id="ilsg_Cnt" role="group" aria-labelledby="'+id+'_lbl">'+btns+'</div>'+
+        '<input type="number" id="'+id+'" class="ail-sctl ail-qinp ail-qnum" min="0" step="1" inputmode="numeric" placeholder="Other" aria-label="Cnt: other number" oninput="ilsCntInput()"></div>'+
+        '<span class="ail-qold" id="ils_Cnt_old" hidden></span>';
+    }
+    else ctl='<input type="text" id="'+id+'" class="ail-sctl ail-qinp" autocomplete="off" oninput="ilSimChanged()">';
+    return '<div class="ail-scell ail-scell-'+k+'">'+lab+ctl+'</div>';
+  }
+  function simField(){
+    var id='ilSimRcd', label='SIM Root Cause Details';
+    return '<div class="ail-field" data-ilfield>'+
+      '<div class="ail-flabel"><span class="ail-flabel-tx" id="ilSimRcdLbl">'+label+'</span> <span class="ail-empty-dot">Empty</span>'+
+        '<button type="button" class="ail-fedit" data-for="'+id+'" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit '+label+'" style="display:none"></button>'+
+        '<button type="button" class="ail-simimp" id="ilSimImportBtn" onclick="ilSimImportOpen(this)" title="Import SIM Root Cause Details from pasted text" aria-haspopup="dialog" aria-label="Import SIM Root Cause Details"><span class="ail-simimp-tx">Import</span></button>'+
+        '<button type="button" class="ail-fcopy" data-for="'+id+'" data-label="'+label+'" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy '+label+'"></button></div>'+
+      // The field text (value = live serialization of the form; see _ilsInstall). Not shown.
+      '<textarea id="'+id+'" class="ail-simraw" hidden aria-hidden="true" tabindex="-1"></textarea>'+
+      '<div id="ilSimForm" class="ail-qn ail-sim" role="group" aria-labelledby="ilSimRcdLbl">'+
+        '<div class="ail-sgrid">'+IL_SIM_FIELDS.map(simCell).join('')+'</div>'+
+        '<p class="ail-sim-status" id="ilsStatus" role="status" aria-live="polite" hidden></p>'+
+        '<div class="ail-qn-extra" id="ilsExtraWrap" hidden><div class="ail-qn-extra-h">Other lines from the saved entry (kept as-is on save)</div><pre id="ilsExtra"></pre></div>'+
+      '</div>'+
+      // Historical Incidents rows (shown when the SIM "Cnt:" value is 1 or more; see ilHistSync).
+      '<div class="ail-hist" id="ilHist" role="group" aria-labelledby="ilHistTitle" hidden></div>'+
+    '</div>';
+  }
   function markupHtml(){
     return '<div class="modal-bg ail-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">'+
       '<div class="modal ail-modal" role="dialog" aria-modal="true" aria-labelledby="incidentTitle">'+
@@ -1255,9 +1806,7 @@ var IncidentLogEditor=(function(){
           // PHD Findings, PHD Notes. PHD Related Link (hidden input, filled by the page with the ticket
           // URL) and PHD Resolution (the SIM "Res:" value) are not shown but are in every copy / save.
           field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>')+
-          field('ilSimRcd','SIM Root Cause Details','ta','<textarea id="ilSimRcd" class="ail-f" oninput="ilHistSync();ilMarkEmpty(this);_ilqSyncVisibility();ilUpdateCopyState()" onchange="ilHistSync();ilMarkEmpty(this);_ilqSyncVisibility()" placeholder="Issue: …&#10;SID: …&#10;Driv: …&#10;Date: …&#10;Res: …"></textarea>'+
-            // Historical Incidents rows (shown when the SIM "Cnt:" line is 1 or more; see ilHistSync).
-            '<div class="ail-hist" id="ilHist" role="group" aria-labelledby="ilHistTitle" hidden></div>')+
+          simField()+
           investigationField()+
           field('ilPhdFindings','PHD Findings','ta','<textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT\'26, a DSP DA from station …&#10;- …"></textarea>')+
           '<input type="hidden" id="ilRelatedLink">'+
@@ -1283,6 +1832,7 @@ var IncidentLogEditor=(function(){
     var node=tmp.firstChild;
     if(ph && ph.parentNode) ph.parentNode.replaceChild(node,ph); else document.body.appendChild(node);
     injectQnStyles();
+    _ilsInstall();   // SIM Root Cause Details form <-> #ilSimRcd text
   }
   // Questionnaire CSS (light theme). Injected by mount() on every page — my-tickets keeps its own
   // inline copy of the base editor CSS, so these rules are self-contained and scoped to .ail-qn.
@@ -1388,6 +1938,60 @@ var IncidentLogEditor=(function(){
     // Narrow: controls wrap below the label (aligned with it, not the checkbox).
     '@media (max-width:860px){.ail-qrow,.ail-qrow-txt{grid-template-columns:22px minmax(0,1fr);gap:4px 10px}.ail-qctls{grid-column:2;justify-content:flex-start}.ail-qrev{justify-content:flex-start}.ail-qhint{text-align:left}.ail-qctls:empty{display:none}}',
     '@media (max-width:640px){.ail-qsub{margin-left:8px}}',
+    // SIM Root Cause Details form: 2-column grid of labelled cells (1 column under 760px).
+    '.ail-simraw{display:none!important}',
+    '.ail-qn.ail-sim{padding:12px}',
+    // One field per row, one below the other: [label] [control] (label above the control when narrow).
+    '.ail-sgrid{display:flex;flex-direction:column}',
+    '.ail-scell{min-width:0;display:grid;grid-template-columns:200px minmax(0,1fr);gap:4px 14px;align-items:center;padding:8px 0;border-top:1px solid #eef1f4;border-radius:5px}',
+    '.ail-scell:first-child{border-top:0}',
+    // Filled row = same highlight as a changed PHD Investigation row (.ail-qrow.is-changed).
+    '.ail-scell.is-changed{background:#fff8f1;box-shadow:inset 3px 0 0 #ec7211;border-radius:6px;padding-left:8px;padding-right:8px;margin:0 -8px}',
+    '.ail-scell.is-changed .ail-slabel{font-weight:800}',
+    '.ail-scell>.ail-slabel{grid-column:1}',
+    '.ail-scell>:not(.ail-slabel){grid-column:2;min-width:0}',
+    '@media (max-width:640px){.ail-scell{grid-template-columns:minmax(0,1fr)}.ail-scell>:not(.ail-slabel){grid-column:1}}',
+    '.ail-slabel{font-size:.78em;font-weight:700;color:#1b2026}',
+    '.ail-shint{color:#5c6773;font-weight:400}',
+    '.ail-shelp{font-size:.76em;color:#8a5a00}',
+    '.ail-shelp[hidden],.ail-sim-status[hidden],.ail-sclear[hidden]{display:none!important}',
+    '.ail-sdate{display:flex;gap:8px;min-width:0}',
+    '.ail-field .ail-qn .ail-sdate .ail-qinp{flex:1 1 0;min-width:0}',
+    '.ail-field .ail-qn .ail-sdate input.ail-sdpick{flex:0 0 auto;width:150px}',
+    '.ail-sdriv{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}',
+    '.ail-schips{display:flex;flex-wrap:wrap;gap:6px}',
+    '.ail-schip{position:relative;display:inline-flex;margin:0}',
+    '.ail-field .ail-qn .ail-schip input{position:absolute;opacity:0;width:1px;height:1px;margin:0;padding:0;pointer-events:none}',
+    '.ail-schip span{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 12px;border:1px solid #d4dce4;border-radius:999px;background:#fff;color:#2a3340;font-size:.8em;font-weight:700;cursor:pointer;user-select:none;transition:background .12s,border-color .12s,color .12s}',
+    '.ail-schip span::before{content:"";flex:0 0 auto;width:14px;height:14px;box-sizing:border-box;border:1.5px solid #8793a0;border-radius:4px;background:#fff}',
+    '.ail-schip span:hover{border-color:#ec7211}',
+    '.ail-schip input:checked+span{background:#1f2a40;border-color:#1f2a40;color:#fff}',
+    '.ail-schip input:checked+span::before{border-color:#ec7211;background:#ec7211;box-shadow:inset 0 0 0 2px #1f2a40}',
+    '.ail-schip input:focus-visible+span{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ail-schip input:disabled+span{cursor:default;opacity:.7}',
+    '.ail-schip input:disabled+span:hover{border-color:#d4dce4}',
+    '.ail-schip input:checked:disabled+span:hover{border-color:#1f2a40}',
+    '.ail-field .ail-qn button.ail-sclear{height:28px;margin:0;padding:0 10px!important;border:1px solid transparent!important;border-radius:6px!important;background:transparent!important;color:#1577a0!important;font-family:inherit;font-size:.78em;font-weight:700;text-decoration:underline;cursor:pointer;box-shadow:none!important}',
+    '.ail-field .ail-qn button.ail-sclear:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ail-field .ail-qn button.ail-sclear:disabled{display:none}',
+    '.ail-scnt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}',
+    '.ail-sim-status{margin:10px 0 0;font-size:.8em;font-weight:600;color:#1f6f43}',
+    '.ail-sim .ail-qn-extra{margin-top:10px}',
+    '.ail-scell.ail-flash{animation:ailFlash 1.8s ease-out}',
+    // Import button (header, right corner, before the copy icon).
+    '.ail-simimp{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border:1px solid #d4dce4;border-radius:5px;background:transparent;color:#5c6773;font-family:inherit;font-size:1em;font-weight:700;cursor:pointer;flex:0 0 auto;transition:border-color .15s,color .15s,background .15s}',
+    '.ail-simimp svg{width:14px;height:14px}',
+    '.ail-simimp:hover{border-color:#1577a0;color:#1577a0;background:rgba(21,119,160,.08)}',
+    '.ail-simimp:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ail-simimp+.ail-fcopy{margin-left:0}',
+    // Import pop-up (ilc-* dialog, narrower).
+    '.ilc-dlg.ils-dlg{width:min(680px,96vw);max-width:min(680px,96vw)}',
+    '.ils-lbl{display:block;margin:0 0 6px;font-size:.88em;font-weight:700;color:#1b2026}',
+    '.ils-ta{box-sizing:border-box;display:block;width:100%;min-height:260px;max-height:55vh;resize:vertical;margin:0;padding:10px 12px;border:1px solid #d4dce4;border-radius:5px;background:#fff;color:#1b2026;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;line-height:1.5}',
+    '.ils-ta:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
+    '.ils-hint{margin:8px 0 0;font-size:.8em;color:#5c6773}',
+    '.ils-err{margin:6px 0 0;font-size:.82em;font-weight:600;color:#b42318}',
+    '.ils-err[hidden]{display:none}',
     '@media (prefers-reduced-motion:reduce){.ail-qsub,.ail-qrev{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
   ].join('\n');
   function injectQnStyles(){
@@ -1554,7 +2158,7 @@ var IncidentLogEditor=(function(){
     renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     setInvestigation:ilSetInvestigation, getInvestigation:ilGetInvestigation,
-    setHistorical:ilSetHistorical, getHistorical:ilGetHistorical };
+    setHistorical:ilSetHistorical, getHistorical:ilGetHistorical, setSim:ilSetSim, getSim:ilGetSim };
 })();
 if(typeof window!=='undefined') window.IncidentLogEditor=IncidentLogEditor;
 if(typeof module!=='undefined' && module.exports) module.exports={ parseIncidentOutput:parseIncidentOutput, ilSerializeFields:ilSerializeFields,
@@ -1563,4 +2167,5 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilParseHistorical:ilParseHistorical, ilSerializeHistorical:ilSerializeHistorical, ilHistMissing:ilHistMissing,
   ilRenderLogBody:ilRenderLogBody, ilRenderLogEntry:ilRenderLogEntry,
   ilResFromSim:ilResFromSim, ilTicketCountry:ilTicketCountry, ilIsUsCa:ilIsUsCa, ilRegionKeptLines:ilRegionKeptLines,
-  ilFieldCopyText:ilFieldCopyText };
+  ilFieldCopyText:ilFieldCopyText, IL_SIM_FIELDS:IL_SIM_FIELDS, IL_SIM_DRIV:IL_SIM_DRIV, ilParseSim:ilParseSim,
+  ilSerializeSim:ilSerializeSim, ilSimImport:ilSimImport, ilSimParseDate:ilSimParseDate, ilSimFmtDate:ilSimFmtDate, ilSimDriv:ilSimDriv };

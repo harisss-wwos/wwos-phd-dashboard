@@ -181,4 +181,63 @@ function mapLog(d) {
   return out;
 }
 
-module.exports = { ASSIGN_GROUPS, ASSIGN_SECTIONS, ASSIGN_MAX, ASSIGN_DUP_MS, groupByName, isAssignAdmin, assignmentStatus, pendingMap, validateAssign, handleAssign, handleRevoke, canRevoke, revokeDenied, mapLog, activeId };
+// ---- What happened to temp-assigned tickets after later uploads (read-only, computed per request) ----
+// SIM assignee login: strip 'kerberos:' / '@ANT.AMAZON.COM', the path tail of an ARN, lower-case.
+function assigneeLogin(raw) {
+  const l = String(raw == null ? '' : raw).trim().replace(/^kerberos:/i, '').replace(/@ANT\.AMAZON\.COM$/i, '').toLowerCase();
+  const i = l.lastIndexOf('/');
+  return i >= 0 ? l.slice(i + 1) : l;
+}
+// Current outcome of one temp-assigned ticket. t = latest data for the ticket:
+//   { open:bool, assignees:[login of every OPEN doc] } or null/undefined when it is not in the data.
+// registered = Set of registered user logins: an open ticket whose SIM assignee is not a registered
+// user (blank, LM-CAP, AutoSIM, ...) is still in the unassigned list -> 'waiting' (same rule as the list).
+// -> { k:'taken_by_assignee'|'taken_by_other'|'waiting'|'resolved'|'missing', by? }
+function ticketOutcome(assignee, t, registered) {
+  if (!t) return { k: 'missing' };
+  if (!t.open) return { k: 'resolved' };
+  const who = normLogin(assignee);
+  const as = (t.assignees || []).map(assigneeLogin).filter(Boolean);
+  if (as.includes(who)) return { k: 'taken_by_assignee' };
+  const other = as.find(l => !registered || registered.has(l));
+  return other ? { k: 'taken_by_other', by: other } : { k: 'waiting' };
+}
+// Outcome of every active (non-revoked) assign log entry + a summary per temp assignee.
+// logDocs: raw log docs (any order). info: Map shortId -> { open, assignees, title, createdAt, cur }
+// (cur = current SIM assignee display). A ticket temp-assigned again in a NEWER active entry is only
+// documented there ('reassigned' in the older one). Resolved / missing tickets are counted, not listed.
+// -> { outcomes: Map logId -> { takenByAssignee:[{shortId,title}], takenByOthers:[{shortId,title,by}],
+//      waiting:[{shortId,title,cur}], resolved, missing, reassigned },
+//      tempSummary: [{ assignee, given, took, byOthers, waiting, resolved, missing,
+//      waitingList:[{shortId,title,by,at,createdAt,cur}], othersList:[{shortId,title,takenBy,by,at}], tookList:[{shortId,title,by,at}] }] }
+function logOutcomes(logDocs, info, registered) {
+  const entries = (logDocs || []).filter(d => d && d.action !== 'revoke' && !d.revokedAt && Array.isArray(d.tickets))
+    .slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));   // newest first
+  const owned = new Set(), outcomes = new Map(), sum = new Map();
+  for (const e of entries) {
+    const o = { takenByAssignee: [], takenByOthers: [], waiting: [], resolved: 0, missing: 0, reassigned: 0 };
+    const who = normLogin(e.assignee);
+    const s = sum.get(who) || { assignee: who, given: 0, took: 0, byOthers: 0, waiting: 0, resolved: 0, missing: 0, waitingList: [], othersList: [], tookList: [] };
+    for (const tk of e.tickets) {
+      const sid = String((tk && tk.shortId) || '').trim(); if (!sid) continue;
+      if (owned.has(sid)) { o.reassigned++; continue; }
+      owned.add(sid);
+      const t = info.get(sid), r = ticketOutcome(who, t, registered);
+      const title = String((t && t.title) || (tk && tk.title) || '').slice(0, 300);
+      const by = e.by || '', at = e.at || '';
+      if (r.k === 'missing') { o.missing++; s.missing++; continue; }
+      if (r.k === 'resolved') { o.resolved++; s.resolved++; continue; }
+      s.given++;
+      if (r.k === 'taken_by_assignee') { o.takenByAssignee.push({ shortId: sid, title }); s.took++; s.tookList.push({ shortId: sid, title, by, at }); }
+      else if (r.k === 'taken_by_other') { o.takenByOthers.push({ shortId: sid, title, by: r.by }); s.byOthers++; s.othersList.push({ shortId: sid, title, takenBy: r.by, by, at }); }
+      else { const cur = (t && t.cur) || 'Unassigned'; o.waiting.push({ shortId: sid, title, cur }); s.waiting++; s.waitingList.push({ shortId: sid, title, by, at, createdAt: (t && t.createdAt) || '', cur }); }
+    }
+    outcomes.set(String(e._id), o);
+    sum.set(who, s);
+  }
+  const tempSummary = Array.from(sum.values()).filter(s => s.given > 0)
+    .sort((a, b) => (b.waiting - a.waiting) || (b.given - a.given) || a.assignee.localeCompare(b.assignee));
+  return { outcomes, tempSummary };
+}
+
+module.exports = { ASSIGN_GROUPS, ASSIGN_SECTIONS, ASSIGN_MAX, ASSIGN_DUP_MS, groupByName, isAssignAdmin, assignmentStatus, pendingMap, validateAssign, handleAssign, handleRevoke, canRevoke, revokeDenied, mapLog, activeId, assigneeLogin, ticketOutcome, logOutcomes };
