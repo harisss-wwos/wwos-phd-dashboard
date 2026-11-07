@@ -1805,7 +1805,8 @@ var IncidentLogEditor=(function(){
           // Display order (= copy / save order): Root Cause, SIM Root Cause Details, PHD Investigation,
           // PHD Findings, PHD Notes. PHD Related Link (hidden input, filled by the page with the ticket
           // URL) and PHD Resolution (the SIM "Res:" value) are not shown but are in every copy / save.
-          field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>')+
+          // Root Cause: label and dropdown side by side (.ail-field-inline).
+          field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>').replace('class="ail-field"','class="ail-field ail-field-inline"')+
           simField()+
           investigationField()+
           field('ilPhdFindings','PHD Findings','ta','<textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT\'26, a DSP DA from station …&#10;- …"></textarea>')+
@@ -1941,6 +1942,12 @@ var IncidentLogEditor=(function(){
     // SIM Root Cause Details form: 2-column grid of labelled cells (1 column under 760px).
     '.ail-simraw{display:none!important}',
     '.ail-qn.ail-sim{padding:12px}',
+    // Side-by-side field (Root Cause): [label + markers] [control], label above the control when narrow.
+    // Lives in QN_CSS (injected on every page that mounts the editor; My Tickets has its own base CSS).
+    '.ail-field.ail-field-inline{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;gap:6px 14px}',
+    '.ail-field.ail-field-inline>.ail-flabel{margin-bottom:0;flex-wrap:wrap}',
+    '.ail-field.ail-field-inline>:not(.ail-flabel){min-width:0}',
+    '@media (max-width:640px){.ail-field.ail-field-inline{grid-template-columns:minmax(0,1fr)}}',
     // One field per row, one below the other: [label] [control] (label above the control when narrow).
     '.ail-sgrid{display:flex;flex-direction:column}',
     '.ail-scell{min-width:0;display:grid;grid-template-columns:200px minmax(0,1fr);gap:4px 14px;align-items:center;padding:8px 0;border-top:1px solid #eef1f4;border-radius:5px}',
