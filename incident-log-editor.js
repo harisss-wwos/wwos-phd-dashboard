@@ -633,7 +633,10 @@ function ilSerializeSim(fields,extra){
   IL_SIM_FIELDS.forEach(function(d){
     var v=String(f[d.key]==null?'':f[d.key]).replace(/\s+/g,' ').trim();
     if(d.type==='cnt' && !v) v='0';
-    if(v && !(d.type==='cnt' && v==='0')) any=true;
+    // Driv with none of the 3 options chosen -> "Driv: N/A" (same as the Build Root Cause Details tool).
+    var na=d.type==='driv' && (!v || IL_SIM_DRIV.indexOf(v)<0 && /^n\/?a$/i.test(v));
+    if(na) v='N/A';
+    if(v && !na && !(d.type==='cnt' && v==='0')) any=true;
     lines.push(d.key+':'+(v?' '+v:''));
   });
   // "HIn: <type>" after Res, one per shown row (Cnt) that has a type chosen.
@@ -648,6 +651,13 @@ function ilSerializeSim(fields,extra){
 // in `fields`: Issue / Res in the list's spelling (an unlisted value is still returned, to show as
 // "(not in list)", but reported as not matched); Driv only one of IL_SIM_DRIV; Date only when it
 // parses (-> MM/DD/YY); Cnt only a number. summary = "Filled 8 of 10 fields · not matched: Res".
+// Exact list match after trimming both sides (case and punctuation must match); '' when not listed.
+function _ilsExact(list,v){
+  var t=String(v==null?'':v).trim(); if(!t) return '';
+  list=list||[];
+  for(var i=0;i<list.length;i++) if(String(list[i]==null?'':list[i]).trim()===t) return list[i];
+  return '';
+}
 function ilSimImport(text,o){
   o=o||{};
   var p=ilParseSim(text,{aliases:true}), out={}, filled=[], nm=[];
@@ -655,8 +665,10 @@ function ilSimImport(text,o){
     if(!Object.prototype.hasOwnProperty.call(p.found,f.key)) return;
     var v=p.found[f.key], c; if(!v || v==='-') return;
     if(f.type==='issue' || f.type==='res'){
-      c=_ilsCanon(f.type==='issue'?o.issues:o.res, v);
-      out[f.key]=c||v; (c?filled:nm).push(f.key);
+      // Import pastes Issue / Res ONLY on an exact match (after trimming) with a dropdown option;
+      // anything else is ignored and the dropdown is left blank.
+      c=_ilsExact(f.type==='issue'?o.issues:o.res, v);
+      out[f.key]=c; (c?filled:nm).push(f.key);
     } else if(f.type==='driv'){ c=ilSimDriv(v); if(c){ out[f.key]=c; filled.push(f.key); } else nm.push(f.key); }
     else if(f.type==='date'){ c=ilSimFmtDate(v); if(c){ out[f.key]=c; filled.push(f.key); } else nm.push(f.key); }
     else if(f.type==='cnt'){ var cm=v.match(/^(\d+)\b/); out[f.key]=cm ? String(parseInt(cm[1],10)) : '0'; filled.push(f.key); }
@@ -672,7 +684,7 @@ function ilSimImport(text,o){
     for(var i=0;i<hn;i++){
       var hv=String(p.fields.HI[i]||''), hc;
       if(!hv || hv==='-'){ out.HI.push(''); continue; }
-      hc=_ilsCanon(o.issues,hv); out.HI.push(hc||hv); (hc?filled:nm).push('HI'+(i+1));
+      hc=_ilsExact(o.issues,hv); out.HI.push(hc); (hc?filled:nm).push('HI'+(i+1));
     }
   }
   var summary='Filled '+filled.length+' of '+total+' fields'+(nm.length?' \u00b7 not matched: '+nm.join(', '):'');
