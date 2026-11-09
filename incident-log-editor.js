@@ -51,12 +51,14 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 //
 // f.severity ('1'..'5' or '') : the saved text starts with "**Severity**: Sev N" (left out when no
 // severity is chosen); a Copy has no Severity line — the severity is in the SIM Title instead.
-// Copy order (opts.copy only): SIM Title, Root Cause, EMT Link (when found), PHD Related Link, SIM
-// Root Cause Details, PHD Investigation, PHD Findings (+ Historical Incidents), "**PHD Resolution**:
+// Copy order (opts.copy only): SIM Title, PHD Related Link, EMT Link (when found), Root Cause, PHD
+// Findings (+ Historical Incidents), Determination / Evidence Details / Risk Assessment (IL_EXTRA_SECS,
+// each only when filled), PHD Investigation, SIM Root Cause Details, "**PHD Resolution**:
 // <value>" (+ directly below it the other lines of the notes' "PHD Resolution:" section, its first
 // bullet left out when it only restates the value — ilCopyResExtra), then PHD notes (without that
-// section). The saved order is unchanged.
-// f.reference = the "Reference — not copied" field: saved as a last "**Reference (not copied):**"
+// section). The saved order is unchanged apart from the IL_EXTRA_SECS sections (after PHD Findings).
+// f.determination / f.evidence / f.risk = the IL_EXTRA_SECS fields (optional).
+// f.reference = the "ONLY FOR PHD REFERENCE WILL NOT BE COPIED" field: saved as a last IL_REF_HEAD
 // section, NEVER in a Copy. f.emtLink = the EMT URL from an imported "Related Links:" section: saved
 // as "**EMT Link**: <url>" after PHD Related Link (only when set); a Copy also searches it (and the
 // reference) for the EMT number.
@@ -68,13 +70,14 @@ function ilSerializeFields(f,opts){
     parts.push('**SIM Title**: '+ilCopySimTitle(v('country'), v('sim'), sev));
     var emt=ilEmtNumber([v('notes'), v('findings'), v('rootCause'), v('sim'), v('invest'), v('hist'), v('link'), v('res'), v('reference'), v('emtLink')]);
     var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes); nothing left -> "-"
-    parts.push('**Root Cause**: '+(v('rootCause')||''));
-    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
     parts.push('**PHD Related Link**: '+(v('link')||''));
-    if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
-    parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
+    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
+    parts.push('**Root Cause**: '+(v('rootCause')||''));
     parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
     if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
+    IL_EXTRA_SECS.forEach(function(x){ if(v(x.k)) parts.push(x.head+'\n'+v(x.k)); });
+    parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
+    if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
     var resExtra=ilCopyResExtra(cn.res, v('res'));
     parts.push('**PHD Resolution**: '+(v('res')||'')+(resExtra?'\n'+resExtra:''));
     parts.push('**PHD notes**:\n'+(cn.notes||'-'));
@@ -87,6 +90,7 @@ function ilSerializeFields(f,opts){
   parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
   // Historical Incidents travel with PHD Findings (also kept in Copy w/o RC Details).
   if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
+  IL_EXTRA_SECS.forEach(function(x){ if(v(x.k)) parts.push(x.head+'\n'+v(x.k)); });
   parts.push('**PHD Related Link**: '+(v('link')||''));
   if(v('emtLink')) parts.push('**EMT Link**: '+v('emtLink'));
   parts.push('**PHD Resolution**: '+(v('res')||''));
@@ -94,7 +98,16 @@ function ilSerializeFields(f,opts){
   if(v('reference')) parts.push(IL_REF_HEAD+'\n'+v('reference'));
   return parts.join('\n\n');
 }
-var IL_REF_HEAD='**Reference (not copied):**';
+var IL_REF_HEAD='**ONLY FOR PHD REFERENCE WILL NOT BE COPIED:**';   // saved before v41 as "**Reference (not copied):**" (still parsed)
+var IL_REF_LABEL='ONLY FOR PHD REFERENCE WILL NOT BE COPIED';     // the field / view label
+// Optional sections right after PHD Findings (+ Historical Incidents), in this order, in the saved
+// text and in a Copy; each is left out when empty and never checked by the copy check.
+// k = field key (ilSerializeFields / parseIncidentOutput), id = form textarea, head = section heading.
+var IL_EXTRA_SECS=[
+  {k:'determination', id:'ilDetermination', label:'Determination',    head:'**Determination:**'},
+  {k:'evidence',      id:'ilEvidence',      label:'Evidence Details', head:'**Evidence Details:**'},
+  {k:'risk',          id:'ilRisk',          label:'Risk Assessment',  head:'**Risk Assessment:**'}
+];
 // Lines of the notes' "**PHD Resolution:**" section (ilSplitCopyNotesRes .res) that go directly under
 // the Copy's "**PHD Resolution**: <value>" line: the heading is left out, and so is the first bullet
 // when it only restates the value (compared without **, "(Primary)", a trailing "." and case).
@@ -264,7 +277,7 @@ function parseIncidentOutput(text){
   } else if(iN>=0 && mt && mt.index>iN){ tail=mt[1].trim(); s=s.slice(0, s.length-mt[1].length).replace(/\s+$/,''); }
   // Capture each labelled section up to the next known label (or end).
   var grab=function(re){ var m=s.match(re); return m?clean(m[1]):''; };
-  var NEXT='(?=\\n\\n(?:\\*\\*)?PHD Findings(?:\\*\\*)?:|\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Historical Incidents:\\*\\*|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|\\n\\n\\*\\*Severity\\*\\*|\\n\\n\\*\\*Reference \\(not copied\\):\\*\\*|$)';
+  var NEXT='(?=\\n\\n(?:\\*\\*)?PHD Findings(?:\\*\\*)?:|\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Historical Incidents:\\*\\*|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|\\n\\n\\*\\*Severity\\*\\*|\\n\\n\\*\\*(?:Determination|Evidence Details|Risk Assessment):\\*\\*|'+IL_REF_HEAD_RE+'|$)';
   var sevLine=s.match(/(?:^|\n)[ \t]*\*\*Severity\*\*:[ \t]*([^\n]*)/i);
   var notes=grab(new RegExp('\\*\\*PHD notes\\*\\*:\\n([\\s\\S]*?)'+NEXT, 'i'));
   // A pasted Copy: lines under "**PHD Resolution**: <value>" (ilCopyResExtra) go back to the end of notes.
@@ -284,10 +297,16 @@ function parseIncidentOutput(text){
     link:      grab(new RegExp('\\*\\*PHD Related Link\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
     res:       res,
     notes:     notes,
-    reference: grab(new RegExp('\\*\\*Reference \\(not copied\\):\\*\\*[ \\t]*\\n([\\s\\S]*?)'+NEXT, 'i')),
+    determination: grab(new RegExp('\\*\\*Determination:\\*\\*[ \\t]*\\n([\\s\\S]*?)'+NEXT, 'i')),
+    evidence:  grab(new RegExp('\\*\\*Evidence Details:\\*\\*[ \\t]*\\n([\\s\\S]*?)'+NEXT, 'i')),
+    risk:      grab(new RegExp('\\*\\*Risk Assessment:\\*\\*[ \\t]*\\n([\\s\\S]*?)'+NEXT, 'i')),
+    reference: grab(new RegExp(IL_REF_HEAD_RE.replace(/^\\n\\n/,'')+'[ \\t]*\\n([\\s\\S]*?)'+NEXT, 'i')),
     emtLink:   emtLine ? clean(emtLine[1]) : ''
   };
 }
+// Reference heading (regex source, with the leading blank line): the current IL_REF_HEAD or the
+// "**Reference (not copied):**" written before v41.
+var IL_REF_HEAD_RE='\\n\\n\\*\\*(?:ONLY FOR PHD REFERENCE WILL NOT BE COPIED|Reference \\(not copied\\)):\\*\\*';
 // ---- "PHD Investigation for mitigation" questionnaire (pure model; no DOM; exported for Node) ----
 // Saved text keeps the long-standing shape: one "- <Question>: <Answer>" line per question, with
 // conditional sub-questions as indented "    - <Sub>: <Answer>" lines directly under their parent.
@@ -974,15 +993,17 @@ function ilSimHiMissing(sim){
 //   SIM Root Cause Details -> the SIM form (ilSimImport rules); Root Cause -> the dropdown (exact
 //   match only); PHD Findings -> the findings field; Investigation / Evidence Checklist lines that
 //   name a questionnaire question (or sub-question) -> that question (_ilfAnswer rules).
-//   "Reference — not copied" field (kind 'ref', in the pasted order, headings as "**Title:**", lines
-//   as pasted): the text before the first heading, the "INTERNAL ONLY …" heading, Primary Case Tag
-//   and both checklists (every line, also the ones that set a question).
+//   "ONLY FOR PHD REFERENCE WILL NOT BE COPIED" field (headings as "**Title:**", lines as pasted), in
+//   this order: the text before the first heading (kind 'intro'), Primary Case Tag (kind 'tag'), the
+//   Investigation Checklist, the Evidence Checklist (every line, also the ones that set a question).
+//   The "INTERNAL ONLY …" heading line is dropped (kind 'drop'; lines under it, if any, go with the intro).
 //   Related Links (kind 'links'): the "PHD SIM:" t.corp link -> phdSimLink
 //   ("https://t.corp.amazon.com/issues/<id>"), the first EMT incident URL -> emtLink; other lines ->
-//   the reference. PHD Resolution (kind 'res'): its first bullet is the resolution value (res, the
-//   fallback when SIM has no "Res:"); further lines stay in PHD Notes under "PHD Resolution:".
-//   Determination, Evidence Details, Risk Assessment, PHD notes and unknown headings -> PHD Notes,
-//   verbatim minus **.
+//   the reference (after the checklists). PHD Resolution (kind 'res'): its first bullet is the
+//   resolution value (res, the fallback when SIM has no "Res:"); further lines stay in PHD Notes under
+//   "PHD Resolution:". Determination / Evidence Details / Risk Assessment -> their own fields
+//   (IL_EXTRA_SECS; ** stripped, bullets as "- " lines). PHD notes and unknown headings -> PHD Notes,
+//   verbatim minus **. Bullet indentation shared by a section (e.g. "    - …") is removed.
 var IL_FULL_HEADS=[
   {re:/^sim root cause details$/, kind:'sim'},
   {re:/^root cause$/, kind:'rootCause'},
@@ -990,9 +1011,12 @@ var IL_FULL_HEADS=[
   {re:/^(?:investigation|evidence) checklist$/, kind:'checklist'},
   {re:/^related links?$/, kind:'links'},
   {re:/^phd resolution$/, kind:'res'},
-  {re:/^primary case tag$/, kind:'ref'},
-  {re:/^(?:determination|evidence details|risk assessment|phd notes)$/, kind:'notes'},
-  {re:/^internal only\b/, kind:'ref'}
+  {re:/^primary case tag$/, kind:'tag'},
+  {re:/^determination$/, kind:'determination'},
+  {re:/^evidence details$/, kind:'evidence'},
+  {re:/^risk assessment$/, kind:'risk'},
+  {re:/^phd notes$/, kind:'notes'},
+  {re:/^internal only\b/, kind:'drop'}
 ];
 function _ilfHeadKind(name){
   var n=String(name||'').toLowerCase().replace(/\s+/g,' ').trim().replace(/\s*:$/,'');
@@ -1129,17 +1153,19 @@ function ilFullLogSummary(r,investN){
   if(r.findings) parts.push('PHD Findings');
   var n=investN==null ? Object.keys(r.invest).length : investN;
   if(n) parts.push('Investigation ('+n+(n===1?' answer)':' answers)'));
+  IL_EXTRA_SECS.forEach(function(x){ if(r[x.k]) parts.push(x.label); });
   if(r.notes) parts.push('PHD Notes');
-  if(r.reference) parts.push('Reference (not copied)');
+  if(r.reference) parts.push('PHD Reference (not copied)');
   return (parts.length ? 'Imported: '+parts.join(', ') : 'Nothing imported')+(nm.length?' \u00b7 not matched: '+nm.join(', '):'');
 }
 // text + {rootCauses, issues, res} (the dropdown lists) ->
 // {sim: ilSimImport result | null, rootCause:{found, raw, value}, findings, invest:{key:answer},
-//  notes, reference, phdSimLink, emtLink, res, known: number of recognised headings, summary}.
+//  notes, determination, evidence, risk, reference, phdSimLink, emtLink, res, known: number of
+//  recognised headings, summary}.
 function ilParseFullLog(text,o){
   o=o||{};
-  // The text before the first heading is reference-only (kind 'ref').
-  var cur={title:'', kind:'ref', lines:[], raw:[]}, secs=[cur], known=0;
+  // The text before the first heading is reference-only (kind 'intro').
+  var cur={title:'', kind:'intro', lines:[], raw:[]}, secs=[cur], known=0;
   String(text==null?'':text).replace(/\r\n?/g,'\n').split('\n').forEach(function(raw){
     if(!raw.trim() || /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(raw)) return;   // blank lines + "---" separators
     var h=_ilfHeading(raw,cur.kind);
@@ -1151,18 +1177,35 @@ function ilParseFullLog(text,o){
     cur.lines.push(raw.replace(/\*\*/g,'').replace(/\s+$/,''));
     cur.raw.push(raw.replace(/\s+$/,''));   // as pasted (the reference keeps its ** marks)
   });
+  // Bullet indentation shared by a section ("    - …" in the paste) is removed: every line loses up to
+  // the smallest bullet indent (no bullets: the smallest indent of all its lines).
+  var indOf=function(l){ return String(l).match(/^[ \t]*/)[0].length; };
+  secs.forEach(function(s){
+    var bul=s.raw.filter(function(l){ return /^\s*[-*\u2022]\s/.test(l); }), src=bul.length ? bul : s.raw;
+    var b=src.length ? Math.min.apply(null, src.map(indOf)) : 0;
+    if(!b) return;
+    var cut=function(l){ return String(l).slice(Math.min(b, indOf(l))); };
+    s.lines=s.lines.map(cut); s.raw=s.raw.map(cut);
+  });
   var unb=function(l){ return String(l).replace(/^\s*[-*\u2022]\s+/,'').trim(); };
   var refHead=function(t){ t=String(t||'').replace(/\*\*/g,'').trim(); return t ? '**'+t+'**' : ''; };
-  var sim=[], rc=[], fin=[], chk=[], notes=[], ref=[], phdSim='', emtLink='', res='';
-  var pushRef=function(title,lines){ var a=(title?[refHead(title)]:[]).concat(lines); if(a.length) ref.push(a.join('\n')); };
+  var sim=[], rc=[], fin=[], chk=[], notes=[], phdSim='', emtLink='', res='';
+  var extra={determination:[], evidence:[], risk:[]};
+  // Reference buckets, joined in this order: intro, Primary Case Tag, Investigation Checklist,
+  // Evidence Checklist, other Related Links lines.
+  var ref={intro:[], tag:[], inv:[], ev:[], other:[]};
+  var pushRef=function(bucket,title,lines){ var a=(title?[refHead(title)]:[]).concat(lines); if(a.length) ref[bucket].push(a.join('\n')); };
   secs.forEach(function(s){
     if(!s.title && !s.lines.length) return;
     if(s.kind==='sim'){ sim=sim.concat(s.lines.map(unb)); return; }
     if(s.kind==='rootCause'){ rc=rc.concat(s.lines.map(unb).filter(Boolean)); return; }
     if(s.kind==='findings'){ fin=fin.concat(s.lines); return; }
+    if(extra[s.kind]){ extra[s.kind]=extra[s.kind].concat(s.lines.map(function(l){ return String(l).replace(/^(\s*)[*\u2022]\s+/,'$1- '); })); return; }
     // Checklists: every line sets its question (when it maps to one) AND is shown in the reference.
-    if(s.kind==='checklist'){ chk=chk.concat(s.lines); pushRef(s.title, s.raw); return; }
-    if(s.kind==='ref'){ pushRef(s.title, s.raw); return; }
+    if(s.kind==='checklist'){ chk=chk.concat(s.lines); pushRef(/^\s*\**\s*evidence/i.test(s.title)?'ev':'inv', s.title, s.raw); return; }
+    if(s.kind==='intro'){ pushRef('intro', s.title, s.raw); return; }
+    if(s.kind==='drop'){ pushRef('intro', '', s.raw); return; }   // the INTERNAL ONLY heading itself is left out
+    if(s.kind==='tag'){ pushRef('tag', s.title, s.raw); return; }
     if(s.kind==='links'){
       var left=[];
       s.lines.forEach(function(l){
@@ -1172,7 +1215,7 @@ function ilParseFullLog(text,o){
         if(e){ if(!emtLink) emtLink=e[0].replace(/[.,;:]+$/,''); return; }
         left.push(l);
       });
-      if(left.length) pushRef(s.title, left);
+      if(left.length) pushRef('other', s.title, left);
       return;
     }
     if(s.kind==='res'){
@@ -1191,7 +1234,10 @@ function ilParseFullLog(text,o){
     findings:fin.join('\n').trim(),
     invest:_ilfInvest(chk),
     notes:notes.join('\n\n').trim(),
-    reference:ref.join('\n\n').trim(),
+    determination:extra.determination.join('\n').trim(),
+    evidence:extra.evidence.join('\n').trim(),
+    risk:extra.risk.join('\n').trim(),
+    reference:ref.intro.concat(ref.tag, ref.inv, ref.ev, ref.other).join('\n\n').trim(),
     phdSimLink:phdSim, emtLink:emtLink, res:res,
     severity:ilSevFromText(text),   // anywhere in the pasted text ('' = not found)
     known:known
@@ -1226,14 +1272,17 @@ function ilParseFullLog(text,o){
 function buildIncidentOutput(opts){
   opts=opts||{};
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
-  return ilSerializeFields({
+  var f={
     findings:g('ilPhdFindings'), invest:ilGetInvestigation(!opts.copy), sim:g('ilSimRcd'), hist:ilGetHistorical(),
     rootCause:g('ilRootCause'), link:ilCurrentLink(), res:ilCurrentResolution(), notes:g('ilPhdNotes'),
     reference:g('ilReference'), emtLink:g('ilEmtLink'),
     country:IL_TICKET_COUNTRY, severity:ilGetSeverity()
-  }, opts);
+  };
+  IL_EXTRA_SECS.forEach(function(x){ f[x.k]=g(x.id); });
+  return ilSerializeFields(f, opts);
 }
-// Fields that are not page-managed: the "Reference — not copied" textarea and the hidden
+// Fields that are not page-managed: the "ONLY FOR PHD REFERENCE …" textarea, the optional
+// Determination / Evidence Details / Risk Assessment textareas (IL_EXTRA_SECS) and the hidden
 // #ilPhdSimLink / #ilEmtLink (from an imported "Related Links:" section). f = parseIncidentOutput
 // result of the opened entry, or null (Add mode: all cleared). A saved PHD Related Link in the
 // "https://t.corp.amazon.com/issues/<id>" form comes back as #ilPhdSimLink (it wins over the
@@ -1243,6 +1292,7 @@ function ilSetSavedExtras(f){
   var set=function(id,v){ var el=document.getElementById(id); if(el) el.value=v||''; };
   var link=String(f.link||'').trim();
   set('ilReference', f.reference);
+  IL_EXTRA_SECS.forEach(function(x){ set(x.id, f[x.k]); });   // Determination / Evidence Details / Risk Assessment
   set('ilEmtLink', f.emtLink);
   set('ilPhdSimLink', /^https:\/\/t\.corp\.amazon\.com\/issues\/[A-Za-z0-9][A-Za-z0-9-]*$/i.test(link) ? link : '');
 }
@@ -1791,7 +1841,10 @@ function _ilfiBuild(){
       '<div class="ilc-body">'+
         '<label class="ils-lbl" for="ilLogImportText">Paste the full incident log</label>'+
         '<textarea id="ilLogImportText" class="ils-ta" rows="14" spellcheck="false" placeholder="**Determination:**&#10;- \u2026&#10;**PHD Findings:**&#10;- \u2026&#10;**Root Cause:**&#10;- \u2026&#10;**SIM Root Cause Details:**&#10;- Issue: \u2026"></textarea>'+
-        '<p class="ils-hint" id="ilLogImportHint">SIM Root Cause Details, Root Cause, PHD Findings and matching checklist answers fill their fields; the intro text, INTERNAL ONLY, Primary Case Tag and checklists go to Reference (not copied); everything else goes to PHD Notes.</p>'+
+        '<p class="ils-hint" id="ilLogImportHint">SIM Root Cause Details, Root Cause, PHD Findings, Determination, Evidence Details, Risk Assessment and matching checklist answers fill their fields; the intro text, Primary Case Tag and checklists go to the PHD reference (not copied); other sections go to PHD Notes.</p>'+
+        IL_EXTRA_SECS.map(function(x){
+          return '<label class="ilfi-rep" id="ilLogImportRepWrap_'+x.id+'" hidden><input type="checkbox" id="ilLogImportRep_'+x.id+'" checked> Replace existing '+x.label+'</label>';
+        }).join('')+
         '<label class="ilfi-rep" id="ilLogImportRepWrap" hidden><input type="checkbox" id="ilLogImportRep" checked> Replace existing PHD Notes</label>'+
         '<label class="ilfi-rep" id="ilLogImportRefRepWrap" hidden><input type="checkbox" id="ilLogImportRefRep" checked> Replace existing Reference</label>'+
         '<p class="ils-err" id="ilLogImportErr" role="alert" hidden></p>'+
@@ -1833,6 +1886,11 @@ function ilLogImportOpen(btn){
   var ref=document.getElementById('ilReference');
   document.getElementById('ilLogImportRefRepWrap').hidden=!(ref && String(ref.value||'').trim());
   document.getElementById('ilLogImportRefRep').checked=true;
+  IL_EXTRA_SECS.forEach(function(x){
+    var el=document.getElementById(x.id);
+    document.getElementById('ilLogImportRepWrap_'+x.id).hidden=!(el && String(el.value||'').trim());
+    document.getElementById('ilLogImportRep_'+x.id).checked=true;
+  });
   bg.hidden=false;
   try{ ta.focus(); }catch(e){}
 }
@@ -1858,6 +1916,8 @@ function ilLogImportClose(apply){
     }
     var repWrap=document.getElementById('ilLogImportRepWrap'), replace=repWrap.hidden || document.getElementById('ilLogImportRep').checked;
     var refWrap=document.getElementById('ilLogImportRefRepWrap'), replaceRef=refWrap.hidden || document.getElementById('ilLogImportRefRep').checked;
+    var replaceX={};
+    IL_EXTRA_SECS.forEach(function(x){ replaceX[x.id]=document.getElementById('ilLogImportRepWrap_'+x.id).hidden || document.getElementById('ilLogImportRep_'+x.id).checked; });
     bg.hidden=true;
     // SIM Root Cause Details (first: Driv: Flex DP hides questions below).
     if(r.sim && document.getElementById('ilSimForm')){
@@ -1897,6 +1957,7 @@ function ilLogImportClose(apply){
       });
       ilInvestChanged();
     }
+    IL_EXTRA_SECS.forEach(function(x){ if(r[x.k]) put(x.id, r[x.k], !replaceX[x.id]); });
     if(r.notes) put('ilPhdNotes', r.notes, !replace);
     if(r.reference) put('ilReference', r.reference, !replaceRef);
     // Related Links: PHD SIM link -> the copy's PHD Related Link; EMT URL -> saved, searched for the EMT Link.
@@ -2269,7 +2330,7 @@ function ilEditField(btn){
 // with a visible pencil; empty ones stay editable with the pencil hidden. `locked`=false (add mode)
 // leaves everything editable and hides all pencils.
 function ilSetFieldLocks(locked){
-  ['ilPhdFindings','ilPhdInvestigation','ilSimRcd','ilPhdNotes','ilReference'].forEach(function(id){
+  ['ilPhdFindings','ilDetermination','ilEvidence','ilRisk','ilPhdInvestigation','ilSimRcd','ilPhdNotes','ilReference'].forEach(function(id){
     var el=document.getElementById(id); if(!el) return;
     var btn=document.querySelector('.ail-fedit[data-for="'+id+'"]');
     if(id==='ilPhdInvestigation'){   // questionnaire: lock/unlock all of its controls together
@@ -2298,6 +2359,9 @@ function ilUpdateFieldCopyStates(){
 // (buildIncidentOutput). Block fields put the value on the next line; inline fields keep it on one.
 var IL_COPY_FMT={
   ilPhdFindings:      {prefix:'**PHD Findings**:', block:true},
+  ilDetermination:    {prefix:'**Determination:**', block:true},
+  ilEvidence:         {prefix:'**Evidence Details:**', block:true},
+  ilRisk:             {prefix:'**Risk Assessment:**', block:true},
   ilPhdInvestigation: {prefix:'**PHD Investigation for mitigation:**', block:true},
   ilSimRcd:           {prefix:'**SIM Root Cause Details:**', block:true},
   ilRootCause:        {prefix:'**Root Cause**:', block:false},
@@ -2599,12 +2663,13 @@ function ilRenderLogBody(text){
   var link=_ilvBlank(f.link) ? IL_VIEW_NP : _ilvLinkify(f.link.trim());
   var fact=function(l,v){ return '<div class="ilv-fact"><dt>'+l+'</dt><dd>'+v+'</dd></div>'; };
   var main=_ilvSec('PHD Findings',_ilvText(f.findings))+
+    IL_EXTRA_SECS.map(function(x){ return _ilvBlank(f[x.k]) ? '' : _ilvSec(x.label,_ilvText(f[x.k])); }).join('')+
     _ilvSec('PHD Investigation for mitigation',_ilvInvest(f.invest))+
     '<dl class="ilv-facts">'+fact('Root Cause',_ilvBlank(f.rootCause)?IL_VIEW_NP:_ileEsc(f.rootCause))+
       fact('PHD Resolution',_ilvBlank(f.res)?IL_VIEW_NP:_ileEsc(f.res))+fact('PHD Related Link',link)+
       (_ilvBlank(f.emtLink)?'':fact('EMT Link',_ilvLinkify(f.emtLink.trim())))+'</dl>'+
     _ilvSec('PHD notes',_ilvText(f.notes))+
-    (_ilvBlank(f.reference)?'':_ilvSec('Reference \u2014 not copied',_ilvText(f.reference)));
+    (_ilvBlank(f.reference)?'':_ilvSec(IL_REF_LABEL,_ilvText(f.reference)));
   var side=_ilvSec('SIM Root Cause Details',_ilvKv(f.sim))+(_ilvBlank(f.hist)?'':_ilvSec('Historical Incidents',_ilvText(f.hist)));
   return '<div class="ilv-cols"><div class="ilv-col">'+main+'</div><div class="ilv-col ilv-col-side">'+side+'</div></div>';
 }
@@ -2762,15 +2827,15 @@ var IncidentLogEditor=(function(){
       '<div class="ail-qn ail-sevbox"><div class="ail-qnums" id="ilSevGroup" role="group" aria-labelledby="ilSevLbl">'+btns+'</div></div>'+
     '</div>';
   }
-  // "Reference — not copied" (last field): saved with the log, never in any copy (no copy icon, no
-  // Empty marker). Same autosize / lock / pencil as PHD Notes.
+  // "ONLY FOR PHD REFERENCE WILL NOT BE COPIED" (last field): saved with the log, never in any copy
+  // (no copy icon, no Empty marker). Same autosize / lock / pencil as PHD Notes.
   function referenceField(){
-    var id='ilReference', label='Reference \u2014 not copied';
+    var id='ilReference', label=IL_REF_LABEL;
     return '<div class="ail-field ail-ref" data-ilfield>'+
       '<label class="ail-flabel" for="'+id+'"><span class="ail-flabel-tx">'+label+'</span> <span class="ail-ref-pill">Not copied</span>'+
         '<button type="button" class="ail-fedit" data-for="'+id+'" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit '+label+'" style="display:none"></button></label>'+
       '<p class="ail-ref-hint" id="ilReferenceHint">For reference only. This section is never copied to SIM or EMT.</p>'+
-      '<textarea id="'+id+'" class="ail-f" aria-describedby="ilReferenceHint" placeholder="Intro notes, INTERNAL ONLY checklists, Primary Case Tag \u2026"></textarea>'+
+      '<textarea id="'+id+'" class="ail-f" aria-describedby="ilReferenceHint" placeholder="Intro notes, Primary Case Tag, Investigation / Evidence Checklist \u2026"></textarea>'+
     '</div>';
   }
   function markupHtml(){
@@ -2796,6 +2861,12 @@ var IncidentLogEditor=(function(){
           simField()+
           investigationField()+
           field('ilPhdFindings','PHD Findings','ta','<textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT\'26, a DSP DA from station …&#10;- …"></textarea>')+
+          // Optional Determination / Evidence Details / Risk Assessment (IL_EXTRA_SECS): no Empty
+          // marker, not in the copy check; oninput only refreshes the copy icon.
+          IL_EXTRA_SECS.map(function(x){
+            return field(x.id,x.label,'ta','<textarea id="'+x.id+'" class="ail-f" oninput="ilUpdateFieldCopyStates()" placeholder="- \u2026"></textarea>')
+              .replace(' <span class="ail-empty-dot">Empty</span>','');
+          }).join('')+
           '<input type="hidden" id="ilRelatedLink">'+
           field('ilPhdNotes','PHD Notes','ta','<textarea id="ilPhdNotes" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- The DA has confessed …&#10;- …"></textarea>')+
           // From the whole-log Import (Related Links): PHD SIM link (copy's PHD Related Link) + EMT URL.
