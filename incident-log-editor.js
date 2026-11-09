@@ -51,9 +51,9 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 //
 // f.severity ('1'..'5' or '') : the saved text starts with "**Severity**: Sev N" (left out when no
 // severity is chosen); a Copy has no Severity line — the severity is in the SIM Title instead.
-// Copy order (opts.copy only): SIM Title, PHD Related Link, EMT Link (when found), Root Cause, PHD
-// Findings (+ Historical Incidents), Determination / Evidence Details / Risk Assessment (IL_EXTRA_SECS,
-// each only when filled), PHD Investigation, SIM Root Cause Details, "**PHD Resolution**:
+// Copy order (opts.copy only): SIM Title, Root Cause, EMT Link (when found), PHD Related Link,
+// SIM Root Cause Details, PHD Investigation, PHD Findings (+ Historical Incidents), Determination /
+// Evidence Details / Risk Assessment (IL_EXTRA_SECS, each only when filled), "**PHD Resolution**:
 // <value>" (+ directly below it the other lines of the notes' "PHD Resolution:" section, its first
 // bullet left out when it only restates the value — ilCopyResExtra), then PHD notes (without that
 // section). The saved order is unchanged apart from the IL_EXTRA_SECS sections (after PHD Findings).
@@ -70,14 +70,14 @@ function ilSerializeFields(f,opts){
     parts.push('**SIM Title**: '+ilCopySimTitle(v('country'), v('sim'), sev));
     var emt=ilEmtNumber([v('notes'), v('findings'), v('rootCause'), v('sim'), v('invest'), v('hist'), v('link'), v('res'), v('reference'), v('emtLink')]);
     var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes); nothing left -> "-"
-    parts.push('**PHD Related Link**: '+(v('link')||''));
-    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
     parts.push('**Root Cause**: '+(v('rootCause')||''));
+    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
+    parts.push('**PHD Related Link**: '+(v('link')||''));
+    if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
+    parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
     parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
     if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
     IL_EXTRA_SECS.forEach(function(x){ if(v(x.k)) parts.push(x.head+'\n'+v(x.k)); });
-    parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
-    if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
     var resExtra=ilCopyResExtra(cn.res, v('res'));
     parts.push('**PHD Resolution**: '+(v('res')||'')+(resExtra?'\n'+resExtra:''));
     parts.push('**PHD notes**:\n'+(cn.notes||'-'));
