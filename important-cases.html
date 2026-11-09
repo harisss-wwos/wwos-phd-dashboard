@@ -435,7 +435,7 @@ a.uc-link:hover{background:#dce8f8;border-color:#a9c3ea}
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=39"></script>
+<script src="incident-log-editor.js?v=40"></script>
 <script src="topbar-auth.js?v=231"></script>
 <script>
 const A=window.PHDAuth;
@@ -1160,6 +1160,7 @@ function openLogEntryEditor(id){
   ['ilRootCause'].forEach(id2=>{const el=$(id2),v=f.rootCause;
     if(el&&v&&!Array.prototype.some.call(el.options,o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (old)';el.appendChild(o);}});
   set('ilRootCause',f.rootCause);set('ilPhdNotes',f.notes);
+  ilSetSavedExtras(f);   // Reference (not copied) + saved PHD SIM / EMT links
   ilSetSavedResolution(f.res);   // PHD Resolution = SIM "Res:" line, else this saved value
   ilSetSavedSeverity(f.severity);   // saved "**Severity**:" line, else the ticket title's severity
   // Same as My Tickets: PHD Related Link is always the canonical ticket URL (read-only).

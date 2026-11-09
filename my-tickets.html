@@ -1139,7 +1139,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=39"></script>
+<script src="incident-log-editor.js?v=40"></script>
 <script src="topbar-auth.js?v=231"></script>
 <script>
 const A=window.PHDAuth;
@@ -2403,6 +2403,7 @@ function openIncidentLog(i){
   fillIncidentSelects();
   // Reset every field.
   ['ilPhdFindings','ilSimRcd','ilRelatedLink','ilPhdNotes','ilRootCause'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ilSetSavedExtras(null);   // Reference (not copied) + imported PHD SIM / EMT links
   ilSetSavedResolution('');   // PHD Resolution = the SIM "Res:" line (no saved fallback in add mode)
   ilSetTicketRegion(t&&t.title, t&&t.country);   // US/CA-only questions follow the ticket's country
   ilSetInvestigation('');   // reset the PHD Investigation questionnaire
@@ -2656,6 +2657,7 @@ function openEditIncidentStructured(i, id, savedText){
   ['ilRootCause'].forEach(function(id2){ var el=document.getElementById(id2), v=f.rootCause;
     if(el && v && !Array.prototype.some.call(el.options,function(o){return o.value===v;})){ var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; el.appendChild(o); } });
   set('ilRootCause',f.rootCause); set('ilPhdNotes',f.notes);
+  ilSetSavedExtras(f);   // Reference (not copied) + saved PHD SIM / EMT links
   ilSetSavedResolution(f.res);   // PHD Resolution fallback when SIM has no "Res:" line
   ilSetSavedSeverity(f.severity);   // saved "**Severity**:" line, else the ticket title's severity
   // PHD Related Link is hardcoded to this ticket's URL (read-only, copy-only) — never editable,
