@@ -19,8 +19,11 @@ const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToP
 const { resolutionGroupOf } = require('./resolution-groups');
 const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
-const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, buildScoreReport: sanBuildScoreReport } = require('./sanitization-score');
+const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
+const sanUpdate = require('./sanitization-update');
+const resolvedErrors = require('./resolved-errors');
+const hiLinesErrors = require('./hi-lines-errors');
 const lmhub = require('./lmhub-filter');
 const uploadRevoke = require('./upload-revoke');
 const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, handleRevoke: asgHandleRevoke, mapLog: asgMapLog, logOutcomes: asgLogOutcomes } = require('./assignments');
@@ -3426,7 +3429,7 @@ async function eirReport() {
     pruneCachedReports(EIR_CACHE_PREFIX + 'rep:', 1);
     setCachedReport(repKey, report);
   }
-  return { report, settings };
+  return { report, settings, evald };
 }
 function eirQ(v) { return String(v == null ? '' : v).trim().slice(0, 200); }
 
@@ -3477,6 +3480,20 @@ app.get('/api/errors-in-resolved/tickets', requireRole('user'), async (req, res)
   }
 });
 
+// GET /api/hi-lines-errors[?who=<login|others>] (hi-resolved.html "HI lines check" section; logic in
+// ./hi-lines-errors.js). READ-ONLY. The Errors in Resolved 'hi' section (B6 only, Resolved + Closed, all
+// agents) grouped by resolver: the 7 BLR / AZA team members + 'others'. Same caches as above (eirReport).
+// Any logged-in user, like /api/errors-in-resolved.
+app.get('/api/hi-lines-errors', requireRole('user'), async (req, res) => {
+  try {
+    const out = await hiLinesErrors.handle(req.query || {}, { load: async () => { const { report, evald } = await eirReport(); return { report, evald }; } });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('hi-lines-errors error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the HI lines check.' });
+  }
+});
+
 // harisss only: { disabledChecks: ['A2', ...] } -> stored as the single settings doc. Returns the settings.
 app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res) => {
   try {
@@ -3494,7 +3511,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 });
 
 // ---- Sanitization scores (ticket-sanitization.html, owner-only section) ----
-// Scores every Resolved / Closed ticket 0..10 (maths in ./sanitization-score.js; lowest = needs
+// Scores every Resolved / Closed ticket 0..11 (SAN_MAX_SCORE; maths in ./sanitization-score.js; lowest = needs
 // sanitizing most). Data source = ticket_docs (the collection Errors in Resolved / Resolutions read),
 // default 'since2026' = every quarter, CreateDate >= 1 Jan 2026 00:00 US Pacific (2026-01-01T08:00:00Z),
 // one doc per ShortId (newest quarter wins); or one quarter (`q`) at a time; or every quarter ('all',
@@ -3503,7 +3520,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
 // Cached 5 min per (latest data upload, quarter, issue types, resolution list).
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
-const SAN_CACHE_PREFIX = 'san:v6:';   // v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets
+const SAN_CACHE_PREFIX = 'san:v10:';   // v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
 const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)
@@ -3543,7 +3560,7 @@ async function sanScopeRows(quarter) {
   const match = since ? sanSinceMatch() : { Status: SAN_STATUS_MATCH };
   if (!since && quarter !== 'all') match.q = quarter;
   // CreateDate for every scope: the report groups each score's tickets by created quarter (Pacific).
-  const projection = { _id: 0, q: 1, ShortId: 1, IssueId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, IssueUrl: 1, ClosureCode: 1, Tags: 1, CreateDate: 1 };
+  const projection = { _id: 0, q: 1, ShortId: 1, IssueId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, IssueUrl: 1, ClosureCode: 1, Tags: 1, CreateDate: 1, ResolvedByIdentity: 1 };
   let docs = await coll.find(match, { projection }).toArray();
   if (since) docs = pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
   else if (quarter === 'all') docs = pzDedupeTickets(docs.sort(sanNewestFirst));
@@ -3573,6 +3590,19 @@ async function sanReportFor(data, resNames, quarter) {
   }
   return report;
 }
+// Owner-approved error tickets (COLLECTIONS.sanitizationExcluded): every sanitization feature reads
+// the score report through sanLiveReport, which takes them out (sanApplyApproved: excluded with
+// reason 'approved error'). Approvals change independently of the data stamp, so they are applied on
+// top of the stamp-cached report; the result is memoised per (report, approved set).
+const sanApproved = () => getCollection(COLLECTIONS.sanitizationExcluded)
+  .then(c => c.find({}, { projection: { _id: 0, shortId: 1, approvedBy: 1, approvedAt: 1, login: 1, reason: 1, note: 1 } }).toArray());
+let _sanLive = { base: null, sig: null, rep: null };
+function sanLiveReport(base, approved) {
+  const ids = (approved || []).map(d => d && d.shortId).filter(Boolean).sort();
+  const sig = ids.join(',');
+  if (_sanLive.base !== base || _sanLive.sig !== sig) _sanLive = { base, sig, rep: sanApplyApproved(base, new Set(ids)) };
+  return _sanLive.rep;
+}
 const sanResNames = () => getCollection(COLLECTIONS.phdResolutions).then(c => phdResList(c)).then(list => list.map(r => r.name));
 // Contractors (Assignment Center rule: analyst + role editor) with login + display name.
 async function sanContractors() {
@@ -3599,7 +3629,7 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
     const quarters = [{ id: SAN_SINCE_ID, label: SAN_SINCE_LABEL, isLive: false, count: sinceCount }]
       .concat(ids.sort((a, b) => b.localeCompare(a)).map(id => ({ id, label: quarterLabel(id), isLive: id === live, count: countOf(id) })));
     quarters.push({ id: 'all', label: 'All quarters', isLive: false, count: counts.reduce((s, c) => s + c.n, 0) });
-    const report = await sanReportFor(data, resNames, quarter);
+    const report = sanLiveReport(await sanReportFor(data, resNames, quarter), await sanApproved());
     // Sanitization assignments (read-only here): tickets locked in an active assignment carry `asg`
     // (assignee login) and are left out of the per-score `available` counts.
     const asgDocs = await (await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }).toArray();
@@ -3608,7 +3638,7 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
       quarter, quarterLabel: quarter === SAN_SINCE_ID ? SAN_SINCE_LABEL : (quarter === 'all' ? 'All quarters' : quarterLabel(quarter)), liveQuarter: live, quarters,
       asOf: data.stamp || report.computedAt, computedAt: report.computedAt,
       total: report.total, excluded: report.excluded, excludedBy: report.excludedBy || {}, buckets: report.buckets,
-      criteria: SAN_CRITERIA, typeCount: report.typeCount, resolutionCount: report.resolutionCount,
+      criteria: SAN_CRITERIA, maxScore: SAN_MAX_SCORE, typeCount: report.typeCount, resolutionCount: report.resolutionCount,
       available: sanAssign.availableCounts(report, locked),
       tickets: locked.size ? report.tickets.map(t => (locked.has(t.shortId) ? { ...t, asg: locked.get(t.shortId) } : t)) : report.tickets,
     });
@@ -3624,11 +3654,11 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
 //   GET  /api/sanitization-assign            contractors, assignments (+ live verification), performance, issues.
 //        Persists a verification snapshot only when the data stamp changed since the stored one
 //        (env SAN_ASSIGN_READONLY=1 turns that write off).
-//   POST /api/sanitization-assign            { score:0..9, count:1..2000, assignee:<contractor> } -> the server picks the tickets (409 + available when short)
+//   POST /api/sanitization-assign            { score:0..MAX_SCORE-1 (0..10), count:1..2000, assignee:<contractor> } -> the server picks the tickets (409 + available when short)
 //   POST /api/sanitization-assign/revoke     { id } -> status 'revoked' (never deleted)
 async function sanAssignDeps(req) {
-  const [data, resNames, contractors] = await Promise.all([eirDataStamp(), sanResNames(), sanContractors()]);
-  const report = await sanReportFor(data, resNames, SAN_SINCE_ID);
+  const [data, resNames, contractors, approved] = await Promise.all([eirDataStamp(), sanResNames(), sanContractors(), sanApproved()]);
+  const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID), approved);
   return { coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user, report, stamp: data.stamp, contractors };
 }
 app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
@@ -3660,6 +3690,133 @@ app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) =>
   } catch (e) {
     console.error('sanitization-assign revoke error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not revoke the assignment.' });
+  }
+});
+// GET /api/my-sanitization[?login=]: top-bar "My sanitization tickets" (logic in sanAssign.handleMine).
+// The owner and every contractor get the same data, scored live: the contractor
+// list (or ?login=<contractor>); anyone else 403. STRICTLY READ-ONLY: never persists verification
+// snapshots. The score report comes from the shared data-stamp cache (sanReportFor), loaded only
+// after the access check.
+app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
+  try {
+    const out = await sanAssign.handleMine(req.query || {}, {
+      user: req.user, contractors: await sanContractors(),
+      load: async () => {
+        const [data, resNames, coll, mcoll] = await Promise.all([eirDataStamp(), sanResNames(), getCollection(COLLECTIONS.sanitizationAssignments), getCollection(COLLECTIONS.sanitizationMarks)]);
+        const [base, docs, marks, approved] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), coll.find({ status: 'active' }).toArray(),
+          mcoll.find({}, { projection: { _id: 0, login: 1, shortId: 1, status: 1, reason: 1, at: 1, by: 1, dataStamp: 1, ownerNote: 1, returnedAt: 1, returnedBy: 1 } }).toArray(),
+          sanApproved()]);
+        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved };
+      },
+    });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('my-sanitization error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load your sanitization tickets.' });
+  }
+});
+// POST /api/my-sanitization/mark { shortId, status:'completed'|'error'|'', reason, login? } (logic in
+// sanAssign.handleMark): marks on the Sanitization Tracker, stored per (login, shortId) in
+// COLLECTIONS.sanitizationMarks with the current data stamp; a new data upload makes 'completed'
+// marks stale, 'error' marks stay until the owner reviews them (error-review below).
+app.post('/api/my-sanitization/mark', requireRole('user'), async (req, res) => {
+  try {
+    const out = await sanAssign.handleMark(req.body, {
+      user: req.user, contractors: await sanContractors(),
+      coll: await getCollection(COLLECTIONS.sanitizationMarks),
+      load: async () => {
+        const [data, resNames, coll, approved] = await Promise.all([eirDataStamp(), sanResNames(), getCollection(COLLECTIONS.sanitizationAssignments), sanApproved()]);
+        const [base, docs] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), coll.find({ status: 'active' }).toArray()]);
+        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp };
+      },
+    });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('my-sanitization mark error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not save the status.' });
+  }
+});
+// GET /api/resolved-errors[?who=<login|others>] (errors-in-resolved.html + the top-bar alert-triangle
+// chip; logic in ./resolved-errors.js). READ-ONLY. The 11-point sanitization score of every Resolved /
+// Closed ticket created since 1 Jan 2026 (Pacific), grouped by resolver: the 7 BLR / AZA team members
+// + 'others'. Only those 7 may read (403 otherwise). Same data-stamp report cache as the scores
+// (sanReportFor + sanLiveReport); the grouping is memoised per live report.
+app.get('/api/resolved-errors', requireRole('user'), async (req, res) => {
+  try {
+    const out = await resolvedErrors.handle(req.query || {}, {
+      user: req.user,
+      load: async () => {
+        const [data, resNames, approved] = await Promise.all([eirDataStamp(), sanResNames(), sanApproved()]);
+        const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID), approved);
+        return { report, asOf: data.stamp || report.computedAt };
+      },
+    });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('resolved-errors error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the resolved tickets.' });
+  }
+});
+// POST /api/my-sanitization/error-review { shortIds:[<=500], action:'approve'|'return', note } and
+// POST /api/my-sanitization/restore { shortId } (owner only; logic in sanAssign.handleErrorReview /
+// handleRestore). Approve writes COLLECTIONS.sanitizationExcluded (the ticket leaves sanitization
+// tracking everywhere); return sends the error mark back to the contractor with the owner's note.
+app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) => {
+  try {
+    const out = await sanAssign.handleErrorReview(req.body, {
+      user: req.user,
+      marksColl: await getCollection(COLLECTIONS.sanitizationMarks),
+      exclColl: await getCollection(COLLECTIONS.sanitizationExcluded),
+    });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('my-sanitization error-review error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not save the review.' });
+  }
+});
+app.post('/api/my-sanitization/restore', requireSanOwner, async (req, res) => {
+  try {
+    const out = await sanAssign.handleRestore(req.body, { user: req.user, exclColl: await getCollection(COLLECTIONS.sanitizationExcluded) });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('my-sanitization restore error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not restore the ticket.' });
+  }
+});
+
+// ---- Update tickets data (owner-only; logic + rules in ./sanitization-update.js) ----
+//   POST /api/sanitization-update { rows:[csv row], files:[names], dryRun:boolean }
+// Updates existing ticket_docs by ShortId (changed, non-blank, non-identity fields only; never inserts
+// or deletes). dryRun (default) only previews. A real write saves an undo snapshot (View Log Revoke),
+// bumps meta.publishedAt on the affected quarters and logs one data_log entry, so the data stamp
+// moves on: scores, the assignment verification and every stamp-keyed cache rebuild on the next read.
+app.post('/api/sanitization-update', requireSanOwner, async (req, res) => {
+  try {
+    const out = await sanUpdate.handleUpdate(req.body, {
+      user: req.user,
+      ticketColl: await getCollection(COLLECTIONS.ticketDocs),
+      quartersColl: await getCollection(COLLECTIONS.quarters),
+      logColl: await getCollection(COLLECTIONS.dataLog),
+      snapColl: await getCollection(COLLECTIONS.uploadSnapshots),
+      createSnapshotRecorder: uploadRevoke.createSnapshotRecorder,
+      quarterLabel,
+    });
+    res.status(out.status).json(out.body);
+    if (out.quarterIds && out.quarterIds.length) {
+      // Ticket data changed -> drop every cache keyed on the data stamp and rebuild the rollups.
+      invalidateLiveQuarterCache();
+      invalidateCountriesReport();
+      invalidateReportCache();
+      _aaResCache = { key: null, at: 0, rows: null };
+      const liveQ = await liveQuarterId();
+      recomputeRollup(liveQ).catch(e => console.error('rollup recompute after sanitization update failed:', e && e.message));
+      recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after sanitization update failed:', e && e.message));
+      recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after sanitization update failed:', e && e.message));
+      recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after sanitization update failed:', e && e.message));
+    }
+  } catch (e) {
+    console.error('sanitization-update error:', e && (e.stack || e.message));
+    if (!res.headersSent) res.status(500).json({ error: 'Could not update the ticket data.' });
   }
 });
 

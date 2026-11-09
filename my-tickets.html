@@ -572,7 +572,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
 @container (min-width:520px){.mt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @container (min-width:760px){.mt-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@container (min-width:1280px){.mt-kpis{grid-template-columns:repeat(7,minmax(0,1fr))}}
+@container (min-width:1280px){.mt-kpis{grid-template-columns:repeat(8,minmax(0,1fr))}}
 .mt-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--mt-line);border-radius:12px;padding:16px 18px 15px;margin:0;
   box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
 .mt-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
@@ -588,6 +588,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt-kpi.is-warn{--k:var(--mt-acc)}.mt-kpi.is-warn .mt-kpi-ic{background:var(--mt-acc-bg);color:#b5530a}
 .mt-kpi.is-noemt{--k:#7c5cf0}.mt-kpi.is-noemt .mt-kpi-v{color:#5b3fd0}.mt-kpi.is-noemt .mt-kpi-ic{background:#efebfd;color:#5b3fd0}
 .mt-kpi.is-sr{--k:#2563eb}.mt-kpi.is-sr .mt-kpi-v{color:#1d4ed8}.mt-kpi.is-sr .mt-kpi-ic{background:#e8effd;color:#1d4ed8}
+.mt-kpi.is-pet{--k:#c2410c}.mt-kpi.is-pet .mt-kpi-v{color:#9a3412}.mt-kpi.is-pet .mt-kpi-ic{background:#fdeee3;color:#9a3412}
 .mt-kpi.is-appeal{--k:#0d8a7f}.mt-kpi.is-appeal .mt-kpi-v{color:#0b7268}.mt-kpi.is-appeal .mt-kpi-ic{background:#e3f4f2;color:#0b7268}
 .mt-kpi.is-good{--k:#1f9d57}.mt-kpi.is-good .mt-kpi-v{color:var(--mt-grn)}.mt-kpi.is-good .mt-kpi-ic{background:var(--mt-grn-bg);color:var(--mt-grn)}
 
@@ -1039,7 +1040,7 @@ td.mt-actions .btn svg{flex-shrink:0}
     var sec='<section class="mt-sec"><div class="mt-sec-head" aria-hidden="true">'+S('170px',20)+S('min(42%,320px)',12)+'</div><div style="margin-top:14px">'+
       '<p class="mt-load-msg" aria-hidden="true"><span class="mt-spin"></span><span id="mtLoaderMsg">Getting things ready\u2026</span></p>'+
       '<div class="mt-cards">'+cards+'</div></div></section>';
-    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+k+k+k+'</div>'+tools+sec+'</div>';
+    return '<div class="mt">'+hero+'<div class="mt-kpis">'+k+k+k+k+k+k+k+k+'</div>'+tools+sec+'</div>';
   };
   document.getElementById('wrap').innerHTML=window.MT_SKEL();
   </script>
@@ -1135,11 +1136,11 @@ td.mt-actions .btn svg{flex-shrink:0}
   </div>
 </div>
 
-<script src="icons.js?v=2"></script>
+<script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=30"></script>
-<script src="topbar-auth.js?v=224"></script>
+<script src="incident-log-editor.js?v=37"></script>
+<script src="topbar-auth.js?v=231"></script>
 <script>
 const A=window.PHDAuth;
 // Build the shared Add/Edit incident-log modal into its placeholder (before anything can open it).
@@ -1895,7 +1896,7 @@ function kpiCard(cls,icon,label,value,sub,ratio){
 // Time-left bucket used by the KPI cards, the filter chips and each card's data-due.
 function dueOf(t){ return remaining(t.deadline).cls||'ok'; }
 function kpiHtml(){
-  let open=0,over=0,soon=0,temp=0,noEmt=0,sr=0,appeal=0;
+  let open=0,over=0,soon=0,temp=0,noEmt=0,sr=0,appeal=0,pet=0;
   TICKETS.forEach(function(t){
     if(TEMP_RESOLVED.has(String(t.shortId))){ temp++; return; }
     open++; const c=dueOf(t); if(c==='over') over++; else if(c==='warn') soon++;
@@ -1903,6 +1904,7 @@ function kpiHtml(){
     if(ticketIsNoEmt(t)) noEmt++;
     if(t.priority) sr++;
     if(ticketIsAppeal(t)) appeal++;
+    if(ticketIsPet(t)) pet++;
   });
   const n=TICKETS.length;
   return '<div class="mt-kpis">'+
@@ -1911,6 +1913,7 @@ function kpiHtml(){
     kpiCard('is-warn','hourglass','Due within 72h',soon,open?'<b>'+pct(soon,open)+'</b> of open tickets \u00b7 red, about to cross the 240h SLA':'Nothing open',open?soon/open:0)+
     kpiCard('is-noemt','no-entry','No EMT',noEmt,open?'<b>'+pct(noEmt,open)+'</b> of open tickets have no EMT':'Nothing open',open?noEmt/open:0)+
     kpiCard('is-sr','map-pin','Station requests',sr,open?'<b>'+pct(sr,open)+'</b> of open tickets \u00b7 Station Request / Address Exclusion':'Nothing open',open?sr/open:0)+
+    kpiCard('is-pet','paw','Pet incidents',pet,open?'<b>'+pct(pet,open)+'</b> of open tickets \u00b7 pet / dog / animal in the title':'Nothing open',open?pet/open:0)+
     kpiCard('is-appeal','repeat','Appeals',appeal,open?'<b>'+pct(appeal,open)+'</b> of open tickets \u00b7 \u201cappeal\u201d in the title':'Nothing open',open?appeal/open:0)+
     kpiCard('is-good','check-circle','Temporarily resolved',temp,'Working view \u00b7 not saved to the database',n?temp/n:0)+
     '</div>';
@@ -1931,10 +1934,16 @@ const MT_FILTERS=[
   ['green','G','#1f9d57','Green'],
   ['noemt','No EMT','#ff8080','No EMT'],
   ['sr','Station requests','#2563eb','Station requests'],
+  ['pet','Pet','#c2410c','Pet incidents (pet / dog / animal in the title)'],
   ['appeal','Appeals','#0d8a7f','Appeals']
 ];
 // Appeal ticket: 'appeal' anywhere in the title (case-insensitive) — same rule as the Resolutions page.
 function ticketIsAppeal(t){ return /appeal/i.test(String((t&&t.title)||'')); }
+// Pet incident from the TITLE: same word rule as the incident log editor (IL_PET_RE: pet, dog, puppy,
+// canine, K9, animal) used to show the pet-only investigation questions.
+// "Non-pet" / "non pet" / "nonpet" are NOT pet (the hyphen is a word boundary, so it needs the lookbehind).
+const MT_PET_RE=/(?<!non[\s\-_]?)\b(?:pets?|dogs?|pupp(?:y|ies)|canines?|k-?9s?|animals?)\b/i;
+function ticketIsPet(t){ return MT_PET_RE.test(String((t&&t.title)||'')); }
 // Age colour of a ticket: the server's t.color, else derived from the created date (purple needs the server).
 function colorOf(t){
   const c=String((t&&t.color)||'').toLowerCase(); if(c) return c;
@@ -1947,6 +1956,7 @@ function ticketMatches(t,f){
   if(f==='noemt') return !!ticketIsNoEmt(t);
   if(f==='sr') return !!t.priority;
   if(f==='appeal') return ticketIsAppeal(t);
+  if(f==='pet') return ticketIsPet(t);
   return colorOf(t)===f;   // purple / yellow / green
 }
 // Country of a ticket (same rule as the incident log editor: title prefix, else the ticket field).
@@ -2647,6 +2657,7 @@ function openEditIncidentStructured(i, id, savedText){
     if(el && v && !Array.prototype.some.call(el.options,function(o){return o.value===v;})){ var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; el.appendChild(o); } });
   set('ilRootCause',f.rootCause); set('ilPhdNotes',f.notes);
   ilSetSavedResolution(f.res);   // PHD Resolution fallback when SIM has no "Res:" line
+  ilSetSavedSeverity(f.severity);   // saved "**Severity**:" line, else the ticket title's severity
   // PHD Related Link is hardcoded to this ticket's URL (read-only, copy-only) — never editable,
   // so always use the canonical ticket URL rather than whatever was parsed from the saved text.
   set('ilRelatedLink',(t&&t.url)?t.url:(t&&t.shortId?('https://t.corp.amazon.com/'+t.shortId):(f.link||'')));

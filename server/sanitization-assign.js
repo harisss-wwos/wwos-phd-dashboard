@@ -10,10 +10,16 @@
 // scores, eirDataStamp) once that stamp is newer than assignedAt; the owner's GET persists a snapshot
 // only when the stamp differs from the stored one (the old one moves to history). Never deleted.
 // A ticket is LOCKED (not available to assign) while it is in an active assignment and its live
-// result is not 10/10; failed tickets stay with that contractor until the owner revokes.
+// result is not MAX_SCORE (11/11); failed tickets stay with that contractor until the owner revokes.
+// Assignments made before the ClosureCode point keep their stored scoreAtAssign (out of 10 then);
+// it is shown as stored.
 // Kept in its own module (pure functions + handlers taking deps) so it can be unit-tested without a DB.
+// Owner-approved error tickets (COLLECTIONS.sanitizationExcluded, see handleErrorReview) are taken
+// out of the score report before it gets here (sanitization-score.js applyApproved: excludedReason
+// 'approved error'), so they are never available / picked, and verification counts them as excluded
+// (neither passed nor failed). contractorView drops them altogether.
 'use strict';
-const { isOwner, CRITERIA, MAX_SCORE } = require('./sanitization-score');
+const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON } = require('./sanitization-score');
 
 const DUE_MS = 7 * 24 * 60 * 60 * 1000;
 const COUNT_MAX = 2000;
@@ -43,6 +49,12 @@ function reportIndex(report) {
   return ix;
 }
 const missingKeys = checks => CRITERIA.filter((c, i) => !(checks && checks[i] && checks[i][0])).map(c => c.key);
+// Missing chips for display; the ClosureCode chip carries '(<current> → <expected>)' from its check value.
+const missingChips = checks => CRITERIA.map((c, i) => {
+  const ck = checks && checks[i];
+  if (ck && ck[0]) return null;
+  return c.key === 'closure' && ck && ck[1] ? c.chip + ' (' + ck[1] + ')' : c.chip;
+}).filter(Boolean);
 
 // Live verification of one assignment against the current report, or null when the data stamp is not
 // newer than assignedAt (nothing uploaded since the assignment) or the assignment is not active.
@@ -62,7 +74,7 @@ function liveVerification(a, report, stamp, now) {
 }
 const passedResult = r => !!r && r.found && !r.excludedReason && r.score === MAX_SCORE;
 
-// Map shortId -> assignee for every locked ticket (active assignment, live result not 10/10).
+// Map shortId -> assignee for every locked ticket (active assignment, live result not MAX_SCORE).
 function lockedMap(assignments, report, stamp, now) {
   const out = new Map();
   (assignments || []).forEach(a => {
@@ -254,7 +266,7 @@ async function handleGet(deps) {
       avgGain: avgScoreBefore != null && avgScoreAfter != null ? Math.round((avgScoreAfter - avgScoreBefore) * 100) / 100 : null };
   }).sort((a, b) => ((b.passRate == null ? -1 : b.passRate) - (a.passRate == null ? -1 : a.passRate)) || a.login.localeCompare(b.login));
 
-  // Needs rework: Verified assignments with at least one ticket under 10/10.
+  // Needs rework: Verified assignments with at least one ticket under MAX_SCORE.
   const issues = [];
   docs.forEach(a => {
     const v = live.get(a);
@@ -269,10 +281,228 @@ async function handleGet(deps) {
     });
   });
 
-  return { status: 200, body: { asOf: deps.stamp || null, dueDays: DUE_MS / 86400000, contractors, assignments, performance, issues } };
+  return { status: 200, body: { asOf: deps.stamp || null, dueDays: DUE_MS / 86400000, maxScore: MAX_SCORE, contractors, assignments, performance, issues } };
+}
+
+// ---- My sanitization (GET /api/my-sanitization; strictly read-only, never persists) ----
+// One contractor's tickets across their ACTIVE assignments, scored live against the current report.
+// A ticket in several active assignments is listed once (its most recent assignment wins).
+// Ticket status: 'cleared' (MAX_SCORE, 11/11) | 'needs-correction' (< MAX_SCORE) | 'not-found' | 'excluded'.
+// `verified` = data uploaded after the assignment (the same stamp rule as liveVerification);
+// totals.pending counts the tickets not verified yet.
+// Marks (COLLECTIONS.sanitizationMarks, one doc per (login, shortId)):
+//   'completed' - TEMPORARY: a ticket below MAX_SCORE becomes 'temp-completed' while the mark's dataStamp
+//                 equals the current data stamp. Once new data is uploaded the mark is stale and
+//                 ignored (kept in the DB): the ticket is re-checked with its new score, and
+//                 `staleMark` lets the UI say "Marked completed on <date> - re-checked with the new data".
+//   'error'     - does NOT expire with an upload: the ticket stays 'error-ticket' (whatever its score)
+//                 until the owner approves it (handleErrorReview 'approve' -> excluded everywhere) or
+//                 sends it back ('return').
+//   'returned'  - sent back by the owner: the ticket counts as needs correction (or cleared at MAX_SCORE)
+//                 and carries `returned: { note, at, by }` until the contractor marks it again.
+// Tickets the owner approved as errors (approvedIds / excludedReason 'approved error') are left out.
+// Order: needs-correction (score ascending, then oldest assigned first), temp-completed / error-ticket
+// (most recently marked first), cleared (most recently assigned first), then excluded / not-found
+// (most recently assigned first).
+const STATUS_RANK = { 'needs-correction': 0, 'temp-completed': 1, 'error-ticket': 2, cleared: 3, excluded: 4, 'not-found': 5 };
+const MARK_STATUSES = { completed: 'temp-completed', error: 'error-ticket' };
+const REASON_MAX = 500;
+const REVIEW_MAX = 500;   // shortIds per error-review request
+// 'completed' counts only while it was made against the current data stamp; 'error' never expires.
+const markValid = (m, stamp) => !!m && !!MARK_STATUSES[m.status]
+  && (m.status === 'error' || (!!stamp && m.dataStamp === stamp));
+const markOut = m => ({ status: m.status, reason: m.reason || '', at: m.at || null, by: m.by || '' });
+const returnedOut = m => ((m && m.status === 'returned') ? { note: m.ownerNote || '', at: m.returnedAt || null, by: m.returnedBy || '' } : null);
+function contractorView(assignments, login, report, stamp, marks, approvedIds) {
+  const me = normLogin(login);
+  const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() };
+  const st = timeOf(stamp);
+  const appr = approvedIds instanceof Set ? approvedIds : new Set(approvedIds || []);
+  const mk = new Map((marks || []).filter(m => m && normLogin(m.login) === me && m.shortId).map(m => [m.shortId, m]));
+  const docs = (assignments || [])
+    .filter(a => a && a.status === 'active' && normLogin(a.assignee) === me)
+    .sort((a, b) => String(b.assignedAt || '').localeCompare(String(a.assignedAt || '')));
+  const seen = new Set(), tickets = [];
+  docs.forEach(a => {
+    const at = timeOf(a.assignedAt), verified = !isNaN(st) && !isNaN(at) && st > at;
+    (a.tickets || []).forEach(t => {
+      if (!t || !t.shortId || seen.has(t.shortId)) return;
+      seen.add(t.shortId);
+      const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
+      if (appr.has(t.shortId) || why === APPROVED_REASON) return;   // owner-approved error: not tracked
+      const scoreNow = cur && typeof cur.score === 'number' ? cur.score : null;
+      let status = cur ? (scoreNow === MAX_SCORE ? 'cleared' : 'needs-correction') : (why ? 'excluded' : 'not-found');
+      const m = mk.get(t.shortId), valid = markValid(m, stamp);
+      if (valid && cur && (status === 'needs-correction' || m.status === 'error')) status = MARK_STATUSES[m.status];
+      tickets.push({
+        shortId: t.shortId, url: t.url || (cur && cur.url) || '', title: (cur && cur.title) || t.title || '',
+        assignedAt: a.assignedAt || null, dueAt: a.dueAt || null,
+        scoreAtAssign: typeof t.scoreAtAssign === 'number' ? t.scoreAtAssign : null, scoreNow,
+        missingNow: cur ? missingChips(cur.checks) : [], status, excludedReason: why || null, verified,
+        mark: valid ? markOut(m) : null,
+        staleMark: (!valid && m && MARK_STATUSES[m.status]) ? markOut(m) : null,
+        returned: status === 'needs-correction' ? returnedOut(m) : null,
+      });
+    });
+  });
+  const atAsc = (x, y) => String(x.assignedAt || '').localeCompare(String(y.assignedAt || ''));
+  const markDesc = (x, y) => String((y.mark && y.mark.at) || '').localeCompare(String((x.mark && x.mark.at) || ''));
+  tickets.sort((x, y) => (STATUS_RANK[x.status] - STATUS_RANK[y.status])
+    || (x.status === 'needs-correction' ? ((x.scoreNow - y.scoreNow) || atAsc(x, y))
+      : (x.mark ? markDesc(x, y) : atAsc(y, x)))
+    || x.shortId.localeCompare(y.shortId));
+  const count = s => tickets.filter(t => t.status === s).length;
+  return {
+    login: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, tickets,
+    totals: { assigned: tickets.length, cleared: count('cleared'), needsCorrection: count('needs-correction'),
+      tempCompleted: count('temp-completed'), errorTickets: count('error-ticket'),
+      notFound: count('not-found'), excluded: count('excluded'), pending: tickets.filter(t => !t.verified).length },
+  };
+}
+
+// GET /api/my-sanitization[?login=]. Returns { status, body }. Never writes.
+//   owner AND contractors get the same data: without ?login -> { owner, viewer, contractors:[{login,
+//   displayName, assigned, cleared, needsCorrection, pending, notFound, excluded, ...}] }; with
+//   ?login=<contractor> that contractor's view (+ canMark: owner, or the contractor's own view);
+//   anyone else -> 403. The (expensive) data is loaded only after the access check.
+// deps: { user, contractors, load: async () => ({ docs (active assignments), report, stamp, marks? }) }
+async function handleMine(query, deps) {
+  const me = normLogin(deps.user && deps.user.username);
+  const list = deps.contractors || [];
+  const owner = !!me && isOwner(me);
+  const findC = l => list.find(c => c.login === l);
+  if (!me || (!owner && !findC(me))) return { status: 403, body: { error: 'My sanitization is available only to contractors.' } };
+  const want = normLogin(query && query.login);
+  if (want && !findC(want)) return { status: 404, body: { error: 'Unknown contractor.' } };
+  const { docs, report, stamp, marks, approved } = await deps.load();
+  const apprIds = new Set((approved || []).map(d => d && d.shortId).filter(Boolean));
+  if (!want) {
+    return { status: 200, body: { owner, viewer: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, contractors: list.map(c => ({ login: c.login, displayName: c.displayName || '', ...contractorView(docs, c.login, report, stamp, marks, apprIds).totals })) } };
+  }
+  const v = contractorView(docs, want, report, stamp, marks, apprIds);
+  // Error tickets are owner-only: everyone else gets only their count (totals.errorTickets), no rows.
+  if (!owner) v.tickets = v.tickets.filter(t => t.status !== 'error-ticket');
+  const body = { owner, viewer: me, canMark: owner || want === me, canReview: owner, displayName: (findC(want) || {}).displayName || '', ...v };
+  if (owner) {
+    // Approved errors reported by this contractor (the Restore safety net), most recent first.
+    const meta = new Map();
+    (docs || []).forEach(a => (a && a.tickets || []).forEach(t => { if (t && t.shortId && !meta.has(t.shortId)) meta.set(t.shortId, t); }));
+    body.approved = (approved || []).filter(d => d && d.shortId && normLogin(d.login) === want)
+      .map(d => { const t = meta.get(d.shortId) || {}; return { shortId: d.shortId, url: t.url || '', title: t.title || '', approvedBy: d.approvedBy || '', approvedAt: d.approvedAt || null, reason: d.reason || '', note: d.note || '' }; })
+      .sort((x, y) => String(y.approvedAt || '').localeCompare(String(x.approvedAt || '')) || x.shortId.localeCompare(y.shortId));
+  }
+  return { status: 200, body };
+}
+
+// POST /api/my-sanitization/mark { shortId, status:'completed'|'error'|'' (clear), reason, login? }.
+// A contractor marks only tickets in their own ACTIVE sanitization assignments (any `login` other than
+// their own -> 403); the owner may mark for any contractor via `login`. Only tickets currently below
+// MAX_SCORE can be marked; 'error' needs a reason (1..500 characters). One doc per (login, shortId),
+// upserted with the current data stamp; clearing (Undo) sets status '' (never deleted).
+// deps: { user, contractors, coll (marks), load: async () => ({ docs, report, stamp }), now? }
+async function handleMark(body, deps) {
+  const b = body || {};
+  const me = normLogin(deps.user && deps.user.username);
+  const list = deps.contractors || [];
+  const owner = !!me && isOwner(me);
+  const isC = l => list.some(c => c.login === l);
+  if (!me || (!owner && !isC(me))) return { status: 403, body: { error: 'Marking is available only to contractors.' } };
+  const asked = typeof b.login === 'string' ? normLogin(b.login) : '';
+  if (!owner && asked && asked !== me) return { status: 403, body: { error: 'You can mark only your own tickets.' } };
+  const login = owner ? asked : me;
+  if (!login) return { status: 400, body: { error: 'login is required.' } };
+  if (!isC(login)) return { status: 404, body: { error: 'Unknown contractor.' } };
+  const shortId = typeof b.shortId === 'string' ? b.shortId.trim() : '';
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(shortId)) return { status: 400, body: { error: 'Invalid ticket.' } };
+  const status = typeof b.status === 'string' ? b.status : null;
+  if (status !== '' && !MARK_STATUSES[status]) return { status: 400, body: { error: "status must be 'completed', 'error' or ''." } };
+  const reason = status === 'error' ? (typeof b.reason === 'string' ? b.reason.trim() : '') : '';
+  if (status === 'error' && !reason) return { status: 400, body: { error: 'Please say why this is an error ticket.' } };
+  if (reason.length > REASON_MAX) return { status: 400, body: { error: 'The reason can be at most ' + REASON_MAX + ' characters.' } };
+  const { docs, report, stamp } = await deps.load();
+  const mine = (docs || []).some(a => a && a.status === 'active' && normLogin(a.assignee) === login
+    && (a.tickets || []).some(t => t && t.shortId === shortId));
+  if (!mine) {
+    return owner ? { status: 404, body: { error: 'This ticket is not in ' + login + '\u2019s active sanitization assignments.' } }
+      : { status: 403, body: { error: 'You can mark only tickets in your own sanitization assignments.' } };
+  }
+  if (status) {
+    const cur = report ? reportIndex(report).byId.get(shortId) : null;
+    if (!cur || cur.score === MAX_SCORE) return { status: 409, body: { error: 'Only tickets below ' + MAX_SCORE + '/' + MAX_SCORE + ' can be marked.' } };
+  }
+  // A ticket sent to the owner for error review stays with the owner until approved or sent back.
+  if (!owner) {
+    const prev = await deps.coll.findOne({ login, shortId });
+    if (prev && prev.status === 'error') return { status: 409, body: { error: 'This ticket is with the owner for error review.' } };
+  }
+  const at = (deps.now ? deps.now() : new Date()).toISOString();
+  const doc = { login, shortId, status, reason, at, by: me, dataStamp: stamp || null };
+  await deps.coll.updateOne({ login, shortId }, { $set: doc }, { upsert: true });
+  return { status: 200, body: { ok: true, login, shortId, mark: status ? markOut(doc) : null, dataStamp: doc.dataStamp } };
+}
+
+// ---- Error review (owner only) ----
+const OWNER_REVIEW = 'Only harisss can review error tickets.';
+const SID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+// POST /api/my-sanitization/error-review { shortIds:[...], action:'approve'|'return', note }.
+// Only shortIds that currently have an 'error' mark are processed (the rest come back in `skipped`;
+// none valid -> 409).
+//   approve: upsert one doc per ticket into COLLECTIONS.sanitizationExcluded { shortId, approvedBy,
+//            approvedAt, login (who reported it), reason (their reason), note (optional, <= 500) }:
+//            permanent (not tied to the data stamp), the ticket leaves sanitization tracking
+//            everywhere. The mark is left as it is, so Restore brings it back to Error tickets.
+//   return:  the mark becomes { status:'returned', ownerNote: note (required, <= 500), returnedAt,
+//            returnedBy }: back to the contractor's Needs correction with the owner's message.
+// deps: { user, marksColl, exclColl, now? }
+async function handleErrorReview(body, deps) {
+  const me = normLogin(deps.user && deps.user.username);
+  if (!me || !isOwner(me)) return { status: 403, body: { error: OWNER_REVIEW } };
+  const b = body || {};
+  const bad = error => ({ status: 400, body: { error } });
+  if (!Array.isArray(b.shortIds) || !b.shortIds.length) return bad('shortIds must be a non-empty list.');
+  if (b.shortIds.length > REVIEW_MAX) return bad('At most ' + REVIEW_MAX + ' tickets at a time.');
+  const ids = Array.from(new Set(b.shortIds.map(s => (typeof s === 'string' ? s.trim() : ''))));
+  if (ids.some(s => !SID_RE.test(s))) return bad('Invalid ticket.');
+  const action = b.action;
+  if (action !== 'approve' && action !== 'return') return bad("action must be 'approve' or 'return'.");
+  const note = typeof b.note === 'string' ? b.note.trim() : '';
+  if (b.note != null && typeof b.note !== 'string') return bad('note must be text.');
+  if (action === 'return' && !note) return bad('Please write a message for the contractor.');
+  if (note.length > REASON_MAX) return bad('The message can be at most ' + REASON_MAX + ' characters.');
+  const marks = await deps.marksColl.find({ shortId: { $in: ids }, status: 'error' }).toArray();
+  const byId = new Map();
+  marks.forEach(m => { const p = byId.get(m.shortId); if (!p || String(m.at || '') > String(p.at || '')) byId.set(m.shortId, m); });
+  const done = ids.filter(s => byId.has(s)), skipped = ids.filter(s => !byId.has(s));
+  if (!done.length) return { status: 409, body: { error: 'None of these tickets has an error mark.', skipped } };
+  const at = (deps.now ? deps.now() : new Date()).toISOString();
+  if (action === 'approve') {
+    await deps.exclColl.bulkWrite(done.map(s => {
+      const m = byId.get(s);
+      return { updateOne: { filter: { shortId: s }, update: { $set: { shortId: s, approvedBy: me, approvedAt: at, login: normLogin(m.login), reason: m.reason || '', note } }, upsert: true } };
+    }), { ordered: false });
+  } else {
+    await deps.marksColl.bulkWrite(marks.filter(m => done.indexOf(m.shortId) >= 0).map(m => ({
+      updateOne: { filter: { login: m.login, shortId: m.shortId, status: 'error' }, update: { $set: { status: 'returned', ownerNote: note, returnedAt: at, returnedBy: me } } },
+    })), { ordered: false });
+  }
+  return { status: 200, body: { ok: true, action, done, skipped, at, by: me } };
+}
+
+// POST /api/my-sanitization/restore { shortId } (owner only): deletes the approval, so the ticket is
+// tracked again (its error mark, if still there, puts it back in Error tickets).
+// deps: { user, exclColl }
+async function handleRestore(body, deps) {
+  const me = normLogin(deps.user && deps.user.username);
+  if (!me || !isOwner(me)) return { status: 403, body: { error: OWNER_REVIEW } };
+  const shortId = typeof (body && body.shortId) === 'string' ? body.shortId.trim() : '';
+  if (!SID_RE.test(shortId)) return { status: 400, body: { error: 'Invalid ticket.' } };
+  const r = await deps.exclColl.deleteOne({ shortId });
+  if (!r || !r.deletedCount) return { status: 404, body: { error: 'This ticket is not an approved error.' } };
+  return { status: 200, body: { ok: true, shortId } };
 }
 
 module.exports = {
-  DUE_MS, COUNT_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts,
-  validateAssign, handleAssign, handleRevoke, handleGet, statusOf,
+  DUE_MS, COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts,
+  validateAssign, handleAssign, handleRevoke, handleGet, statusOf, contractorView, handleMine, handleMark, markValid,
+  handleErrorReview, handleRestore, missingChips, passedResult,
 };

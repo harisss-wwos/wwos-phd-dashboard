@@ -40,14 +40,42 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 // f.hist = serialized "Historical Incidents" body (ilSerializeHistorical); the section is written
 // right after PHD Findings (it is shown under SIM in the form but copied with the findings) and
 // omitted entirely when empty. Copy w/o RC Details keeps it.
-// Section order: Root Cause, SIM Root Cause Details, PHD Investigation, PHD Findings (+ Historical
+// Section order (saved): [Severity], Root Cause, SIM Root Cause Details, PHD Investigation, PHD Findings (+ Historical
 // Incidents), then PHD Related Link + PHD Resolution (not shown in the form),
 // then PHD notes. The headings are unchanged, and every parser (parseIncidentOutput, the server's
 // incident-log-merge.js) locates sections by heading, so older entries in the old order still parse.
+// opts.copy === true (footer Copy / Copy w/o RC Details only — not the saved text, not the per-field
+// copies) puts "**SIM Title**: …" (ilCopySimTitle; f.country = ticket country code) and, when an EMT
+// incident number is found (ilEmtNumber), "**EMT Link**: …" at the very top; the PHD notes then go
+// through ilCopyNotes (internal / tag sections left out, duplicate EMT URL dropped, bold headings).
+//
+// f.severity ('1'..'5' or '') : the saved text starts with "**Severity**: Sev N" (left out when no
+// severity is chosen); a Copy has no Severity line — the severity is in the SIM Title instead.
+// Copy order (opts.copy only): SIM Title, EMT Link, Root Cause, PHD Related Link, SIM Root Cause
+// Details, PHD Investigation, PHD Findings (+ Historical Incidents), PHD notes (without their
+// "PHD Resolution:" section), "**PHD Resolution**: <value>", then the notes' "**PHD Resolution:**"
+// section (ilSplitCopyNotesRes). The saved order is unchanged.
 function ilSerializeFields(f,opts){
   opts=opts||{}; f=f||{};
   var v=function(k){ return String(f[k]==null?'':f[k]).trim(); };
-  var parts=[];
+  var parts=[], notes=v('notes'), sev=ilNormSeverity(v('severity'));
+  if(opts.copy){
+    parts.push('**SIM Title**: '+ilCopySimTitle(v('country'), v('sim'), sev));
+    var emt=ilEmtNumber([v('notes'), v('findings'), v('rootCause'), v('sim'), v('invest'), v('hist'), v('link'), v('res')]);
+    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
+    var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes); nothing left -> "-"
+    parts.push('**Root Cause**: '+(v('rootCause')||''));
+    parts.push('**PHD Related Link**: '+(v('link')||''));
+    if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
+    parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
+    parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
+    if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
+    parts.push('**PHD notes**:\n'+(cn.notes||'-'));
+    parts.push('**PHD Resolution**: '+(v('res')||''));
+    if(cn.res) parts.push(cn.res);
+    return parts.join('\n\n');
+  }
+  if(sev) parts.push('**Severity**: Sev '+sev);
   parts.push('**Root Cause**: '+(v('rootCause')||''));
   if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
   parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
@@ -56,8 +84,113 @@ function ilSerializeFields(f,opts){
   if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
   parts.push('**PHD Related Link**: '+(v('link')||''));
   parts.push('**PHD Resolution**: '+(v('res')||''));
-  parts.push('**PHD notes**:\n'+(v('notes')||'-'));
+  parts.push('**PHD notes**:\n'+(notes||'-'));
   return parts.join('\n\n');
+}
+// Severity 1..5 found in a text: "Severity N" / "Sev N" / "Sev-N" / "SevN" / "Sev#N" / "Severity: N" /
+// "Severity level N" (any case), last match wins (same rule as the Assignment Center's title
+// severity, plus the optional "level"). '' when none.
+function ilSevFromText(text){
+  var re=/\b(?:severity|sev)(?:[\s\-_:#]*(?:level|lvl))?[\s\-_:#]*([1-5])\b/gi, m, last='';
+  var s=String(text==null?'':text);
+  while((m=re.exec(s))) last=m[1];
+  return last;
+}
+// '1'..'5' from a stored value ("3", 3, "Sev 3", "Severity 3"); '' otherwise.
+function ilNormSeverity(v){
+  var s=String(v==null?'':v).trim();
+  return /^[1-5]$/.test(s) ? s : ilSevFromText(s);
+}
+// Split copied notes (ilCopyNotes output) into the notes without their "**PHD Resolution:**"
+// section and that section (heading + its lines up to the next heading / the end). res is '' when
+// the notes have no such section (or it has no lines).
+function ilSplitCopyNotesRes(notes){
+  var lines=String(notes==null?'':notes).split('\n'), keep=[], sec=[], inRes=false;
+  var plain=function(l){ return String(l).replace(/\*\*/g,'').trim(); };
+  var isHead=function(l){ var p=plain(l); return !!p && !/^[-*\u2022]/.test(p) && /:$/.test(p); };
+  lines.forEach(function(l){
+    if(isHead(l)){ inRes=/^phd resolution\s*:$/i.test(plain(l)); if(inRes){ if(sec.length) sec.push(''); return; } }
+    else if(/^(?:-{3,}|\*{3,}|_{3,})$/.test(String(l).replace(/\s+/g,''))) inRes=false;
+    if(inRes) sec.push(l); else keep.push(l);
+  });
+  var trim=function(a){ return a.join('\n').replace(/\n{3,}/g,'\n\n').trim(); };
+  var body=trim(sec);
+  if(!body) return {notes:trim(keep), res:''};
+  return {notes:trim(keep), res:'**PHD Resolution:**\n'+body};
+}
+// Copied "SIM Title": "<CC> Customer Incident Escalation - Account ID: <CID> - Sev <N> - <Issue>" when
+// the SIM "CID:" holds an account id, else "<CC> Community Member Incident Escalation - Sev <N> -
+// <Issue>". CID blank / "-" / N/A / NA / None = absent. A missing country / severity / Issue is simply
+// left out (no dangling " - ").
+function ilCopySimTitle(country,sim,severity){
+  var p=ilParseSim(sim,{aliases:true}).found||{};
+  var cl=function(x){ x=String(x==null?'':x).replace(/\*\*/g,'').trim(); return /^(?:-|n\/?a|none)?$/i.test(x) ? '' : x; };
+  var cid=cl(p.CID), iss=cl(p.Issue), cc=String(country==null?'':country).trim().toUpperCase(), sev=ilNormSeverity(severity);
+  var parts=[(cc?cc+' ':'')+(cid?'Customer':'Community Member')+' Incident Escalation'];
+  if(cid) parts.push('Account ID: '+cid);
+  if(sev) parts.push('Sev '+sev);
+  if(iss) parts.push(iss);
+  return parts.join(' - ');
+}
+// EMT incident number: the digits of "incidentId=<digits>" in the first app.emt.amazon.dev URL found,
+// searching the texts in the given order; '' when none.
+var IL_EMT_URL_PRE='https://app.emt.amazon.dev/incidents/incidentId?accountId=account_amazongsoc&incidentId=';
+var IL_EMT_URL_POST='&tabV=&tabValue=Overview';
+function ilEmtNumber(texts){
+  var re=/https?:\/\/app\.emt\.amazon\.dev\/[^\s<>"')\]]*?[?&]incidentId=(\d+)/i;
+  for(var i=0;i<(texts||[]).length;i++){ var m=String(texts[i]==null?'':texts[i]).match(re); if(m) return m[1]; }
+  return '';
+}
+// PHD Notes as they go into a footer Copy (opts.copy only; the saved text keeps the notes as-is).
+//  - "Primary Case Tag:", "Evidence Checklist:" and "Investigation Checklist:" sections (heading +
+//    lines up to the next heading) and the "INTERNAL ONLY — … DO NOT COPY …" heading are left out,
+//    with a "---" rule directly above any of them.
+//  - o.emt (EMT number found -> "**EMT Link**" is already at the top): lines holding an
+//    app.emt.amazon.dev incident URL are left out, and so is a "Related Links:" heading left empty.
+//  - "Risk Assessment:" / "PHD Resolution:" heading lines become "**Risk Assessment:**" /
+//    "**PHD Resolution:**".
+// Headings match case-insensitively with or without ** markers. Runs of blank lines collapse to one;
+// leading / trailing blank lines (and rules) are trimmed. Returns '' when nothing is left.
+var IL_COPY_BOLD_HEADS={'risk assessment':'Risk Assessment', 'phd resolution':'PHD Resolution'};
+function ilCopyNotes(notes,o){
+  o=o||{};
+  var lines=String(notes==null?'':notes).replace(/\r\n?/g,'\n').split('\n');
+  var plain=function(l){ return String(l).replace(/\*\*/g,'').trim(); };
+  var isRule=function(l){ return /^(?:-{3,}|\*{3,}|_{3,})$/.test(String(l).replace(/\s+/g,'')); };
+  var isInternal=function(l){ return /^internal only\s*[\u2014\u2013-]/i.test(plain(l)); };
+  // Heading = a non-bullet line ending in ":" (after ** are removed), or the INTERNAL ONLY line.
+  var isHead=function(l){ var p=plain(l); return isInternal(l) || (!!p && !/^[-*\u2022]/.test(p) && /:$/.test(p)); };
+  var dropSec=function(l){ return /^(?:primary case tag|evidence checklist|investigation checklist)\s*:$/i.test(plain(l)); };
+  var emtRe=/https?:\/\/app\.emt\.amazon\.dev\/\S*?[?&]incidentId=\d+/i;
+  var nextText=function(i){ for(var j=i+1;j<lines.length;j++){ if(String(lines[j]).trim()) return lines[j]; } return ''; };
+  var out=[], skip=false;
+  lines.forEach(function(l,i){
+    if(isHead(l)){
+      if(isInternal(l)){ skip=false; return; }
+      skip=dropSec(l);
+      if(skip) return;
+      var b=IL_COPY_BOLD_HEADS[plain(l).replace(/\s*:$/,'').toLowerCase()];
+      out.push(b ? '**'+b+':**' : l);
+      return;
+    }
+    if(skip) return;
+    if(isRule(l)){ var n=nextText(i); if(n && (isInternal(n) || dropSec(n))) return; }
+    if(o.emt && emtRe.test(l)) return;
+    out.push(l);
+  });
+  // An emptied "Related Links:" heading (only blank lines up to the next heading / the end).
+  if(o.emt){
+    out=out.filter(function(l,i){
+      if(!/^related links?\s*:$/i.test(plain(l))) return true;
+      for(var j=i+1;j<out.length;j++){ if(isHead(out[j]) || isRule(out[j])) return false; if(String(out[j]).trim()) return true; }
+      return false;
+    });
+  }
+  var res=[];
+  out.forEach(function(l){ if(!String(l).trim() && (!res.length || !String(res[res.length-1]).trim())) return; res.push(l); });
+  while(res.length && (!String(res[res.length-1]).trim() || isRule(res[res.length-1]))) res.pop();
+  while(res.length && isRule(res[0])) { res.shift(); while(res.length && !String(res[0]).trim()) res.shift(); }
+  return res.join('\n').trim();
 }
 // PHD Resolution = the SIM Root Cause Details "Res:" value. Same rule as the server's
 // resolutionFromRcd (pulse-check.js): key "Res" / "Resolution" at the start or after whitespace,
@@ -86,13 +219,25 @@ function ilTicketCountry(title,country){
 function ilIsUsCa(code){ code=String(code||'').toUpperCase(); return code==='US' || code==='CA'; }
 // Reverse of ilSerializeFields: split a saved log blob back into the 7 structured fields so the
 // Edit flow reopens the same split form. Tolerant of extra whitespace; a lone "-" placeholder -> ''.
+// severity = the "**Severity**:" line ('1'..'5'), else the "Sev N" of a pasted Copy's SIM Title, else ''.
+// A pasted Copy (PHD notes before PHD Resolution, then the notes' "**PHD Resolution:**" section at the
+// very end): that trailing section goes back to the end of notes.
 function parseIncidentOutput(text){
   var s=String(text||'').replace(/\r\n/g,'\n');
+  var simTitle=s.match(/^\s*\*\*SIM Title\*\*:([^\n]*)/i);
+  // A pasted Copy starts with "**SIM Title**: …" / "**EMT Link**: …" lines — not part of any field.
+  s=s.replace(/^(?:[ \t]*\n)*(?:[ \t]*\*\*(?:SIM Title|EMT Link)\*\*:[^\n]*\n(?:[ \t]*\n)*)+/i,'');
   var clean=function(v){ v=String(v||'').trim(); return (v==='-')?'':v; };
+  var tail='', iN=s.search(/\n\n\*\*PHD notes\*\*:\n/i), mt=s.match(/\n\n\*\*PHD Resolution\*\*:[ \t]*[^\n]*\n\n(\*\*PHD Resolution:\*\*[ \t]*\n[\s\S]*)$/i);
+  if(iN>=0 && mt && mt.index>iN){ tail=mt[1].trim(); s=s.slice(0, s.length-mt[1].length).replace(/\s+$/,''); }
   // Capture each labelled section up to the next known label (or end).
   var grab=function(re){ var m=s.match(re); return m?clean(m[1]):''; };
-  var NEXT='(?=\\n\\n(?:\\*\\*)?PHD Findings(?:\\*\\*)?:|\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Historical Incidents:\\*\\*|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|$)';
+  var NEXT='(?=\\n\\n(?:\\*\\*)?PHD Findings(?:\\*\\*)?:|\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Historical Incidents:\\*\\*|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|\\n\\n\\*\\*Severity\\*\\*|$)';
+  var sevLine=s.match(/(?:^|\n)[ \t]*\*\*Severity\*\*:[ \t]*([^\n]*)/i);
+  var notes=grab(new RegExp('\\*\\*PHD notes\\*\\*:\\n([\\s\\S]*?)'+NEXT, 'i'));
+  if(tail) notes=notes ? notes+'\n\n'+tail : tail;
   return {
+    severity:  (sevLine && ilNormSeverity(sevLine[1])) || (simTitle ? ilSevFromText(simTitle[1]) : ''),
     findings:  grab(new RegExp('(?:\\*\\*)?PHD Findings(?:\\*\\*)?:\\n([\\s\\S]*?)'+NEXT, 'i')),
     invest:    grab(new RegExp('\\*\\*PHD Investigation for mitigation:\\*\\*\\n([\\s\\S]*?)'+NEXT, 'i')),
     sim:       grab(new RegExp('\\*\\*SIM Root Cause Details:\\*\\*\\n([\\s\\S]*?)'+NEXT, 'i')),
@@ -100,49 +245,79 @@ function parseIncidentOutput(text){
     rootCause: grab(new RegExp('\\*\\*Root Cause\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
     link:      grab(new RegExp('\\*\\*PHD Related Link\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
     res:       grab(new RegExp('\\*\\*PHD Resolution\\*\\*:[ \\t]*([\\s\\S]*?)'+NEXT, 'i')),
-    notes:     grab(new RegExp('\\*\\*PHD notes\\*\\*:\\n([\\s\\S]*?)'+NEXT, 'i'))
+    notes:     notes
   };
 }
 // ---- "PHD Investigation for mitigation" questionnaire (pure model; no DOM; exported for Node) ----
 // Saved text keeps the long-standing shape: one "- <Question>: <Answer>" line per question, with
 // conditional sub-questions as indented "    - <Sub>: <Answer>" lines directly under their parent.
 // `aliases` = labels used before the questionnaire existed, so old entries still parse.
+// `importAliases` = AI checklist labels ("**Investigation / Evidence Checklist:**") that the whole-log
+// Import maps onto the question (matched with and without a "(…)" suffix; see _ilfInvestKey). Not used
+// for saved text.
 var IL_INVEST_QS=[
-  {key:'dup',    label:'Does current ticket have any duplicate', type:'select', opts:['No','Yes']},
+  {key:'dup',    label:'Does current ticket have any duplicate', type:'select', opts:['No','Yes'],
+    importAliases:['Duplicate Check via TBA','Duplicate Check']},
   // Form: unchecked = "No"; checked -> dropdown Yes / Community Member (Unknown).
   // "No" reveals an optional free-text "Who is the POI?" saved inline as "No (<text>)".
   // "Community Member (Unknown)" hides the IL_POI_CM_HIDE questions (form, copies and saved text).
   // direct: a plain dropdown (no row checkbox) — Yes (default) / Community Member / No (+ "Who is the POI?").
   {key:'poi',    label:'Is POI the CX', type:'select', direct:true, opts:['Yes','Community Member (Unknown)','No'],
+    importAliases:['POI Is CX / Package Recipient vs CXID','POI Is CX / Package Recipient','POI Is CX'],
     poiWho:{key:'poiWho', label:'Who is the POI?', type:'text', optional:true, placeholder:"e.g. CX's father / neighbour / unknown person"}},
   {key:'susp',   label:'CX Account suspension requested from GSOC?', type:'select', opts:['No','Yes'],
-    aliases:['CX Account suspension requested?','CX Account suspension requested']},
+    aliases:['CX Account suspension requested?','CX Account suspension requested'],
+    importAliases:['CX Account Suspension Requested']},
   {key:'negFb',  label:'Negative Delivery Feedbacks reported in SIM against the Transporter', type:'number',
     aliases:['Negative Delivery Feedback or Fraud appeal reported in SIM against the Transporter',
              'Negative Delivery Feedbacks or Fraud appeal reported in SIM against the Transporter',
-             'Negative Delivery Feedback reported in SIM against the Transporter']},
+             'Negative Delivery Feedback reported in SIM against the Transporter'],
+    importAliases:['Concerning Transporter History','Negative Delivery Feedback','Negative Delivery Feedbacks']},
   {key:'histCx', label:'Historical incidents against CX in SIM [If CX is POI]', type:'number',
-    aliases:['Historical incidents against CX in SIM']},
-  {key:'locSim', label:'Location Historical incidents in SIM records (UPID)', type:'number'},
+    aliases:['Historical incidents against CX in SIM'],
+    importAliases:['CXID History','Historical incidents against CX']},
+  {key:'locSim', label:'Location Historical incidents in SIM records (UPID)', type:'number',
+    importAliases:['UPID History','Location Historical incidents in SIM']},
   {key:'cortex', label:'Cortex Driver Trace added to SIM & EMT', type:'select', opts:['Yes','No'],
-    aliases:['Cortex Driver Trace added to SIM','Cortex Driver Trace added to SIM and EMT']},
-  {key:'locEmt', label:'Location Historical incidents in EMT records (Physical address)', type:'number'},
+    aliases:['Cortex Driver Trace added to SIM','Cortex Driver Trace added to SIM and EMT'],
+    importAliases:['Cortex Driver Trace and Heat Map','Cortex Driver Trace']},
+  {key:'locEmt', label:'Location Historical incidents in EMT records (Physical address)', type:'number',
+    importAliases:['Historical Incidents at Physical Address','Historical Incidents at the Physical Address','Location Historical incidents in EMT']},
   // usCa: asked only for US / CA tickets (ilSetTicketRegion); see _ilqRegionHidden.
-  {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','Yes (low level offense)','N/A'], usCa:true},
+  {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','Yes (low level offense)','N/A'], usCa:true,
+    importAliases:['CLEAR POI History','CLEAR History of POI','CLEAR History']},
   // noFlex: also hidden when the SIM "Driv:" is Flex DP (see _ilqRegionHidden).
   {key:'station',label:'Station request made', type:'select', opts:['No','Yes'], usCa:true, noFlex:true,
+    importAliases:['Station Request'],
     sub:{key:'stationLink', label:'Station request link', type:'text', inputType:'url', placeholder:'LINK_IF_APPLICABLE'}},
   {key:'netra',  label:'Netradyne footage exists', type:'select', opts:['No','Yes'], usCa:true, noFlex:true,
+    importAliases:['Netradyne Footage'],
     // Multi-line free text (5-row textarea). Extra lines are saved as continuation lines indented
     // IL_INVEST_CONT_INDENT under the sub-line (see ilSerializeInvestigation / ilParseInvestigation).
     sub:{key:'netraInfo', label:'Netradyne footage review', type:'textarea', rows:5, placeholder:'IF_APPLICABLE',
-      aliases:['Netradyne footage request info']}},
-  {key:'addPkg', label:'Additional packages delivered after incident?', type:'select', opts:['Yes','No']},
+      aliases:['Netradyne footage request info'],
+      importAliases:['Netradyne Request Information','Netradyne Request Info','Netradyne Request']}},
+  {key:'addPkg', label:'Additional packages delivered after incident?', type:'select', opts:['Yes','No'],
+    importAliases:['Packages Delivered After Incident','Additional Packages Delivered After Incident']},
   {key:'di',     label:'Delivery instructions present', type:'select', opts:['Yes','No'],
-    sub:{key:'diUpd', label:'Delivery instructions updated after incident?', type:'select', opts:['Yes','No']}},
+    sub:{key:'diUpd', label:'Delivery instructions updated after incident?', type:'select', opts:['Yes','No'],
+      importAliases:['Delivery Instructions Updated After Incident','Delivery Instructions Updated']}},
   // Checkbox (unchecked by default): checked = "Yes" -> "- GeoStudio Delivery Photo (POD) added: Yes";
   // unchecked -> no line at all (copies and saved text). Not required by the copy check.
-  {key:'pod',    label:'GeoStudio Delivery Photo (POD) added', type:'check', opts:['Yes']}
+  {key:'pod',    label:'GeoStudio Delivery Photo (POD) added', type:'check', opts:['Yes'],
+    importAliases:['GeoStudio Delivery Photo Added','Delivery Photo (POD) Added','Delivery Photo Added']},
+  // Only for DA: noFlex -> hidden when the SIM "Driv:" is Flex DP (shown for DSP DA / Hub DA / no Driv yet).
+  // restToSub: a whole-log Import "Yes <more text>" puts the rest in the sub textarea (see _ilfInvest).
+  {key:'austin', label:'AUSTIN Investigation Findings (Only for DA)', type:'select', opts:['No','Yes'], noFlex:true, restToSub:true,
+    aliases:['AUSTIN Investigation Findings (DA)','AUSTIN Investigation Findings'],
+    sub:{key:'austinInfo', label:'AUSTIN Investigation', type:'textarea', rows:5, placeholder:'IF_APPLICABLE'}},
+  // petOnly: shown only for a pet incident (ilIsPetIncident; see _ilqRegionHidden).
+  {key:'petRisk',label:'GeoStudio Dog Risk Level Updated (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
+    aliases:['GeoStudio Dog Risk Level Updated','GeoStudio Dog Risk Level']},
+  {key:'pawLink',label:'Paw Print SIM Link Present (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
+    aliases:['Paw Print SIM Link Present','Paw Print SIM Link']},
+  {key:'vacc',   label:'Vaccination Records received from POI (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
+    aliases:['Vaccination Records received from POI','Vaccination Records']}
 ];
 // "Is POI the CX" = IL_POI_CM -> these questions (and their sub-questions) are hidden in the form and
 // left out of the serialized section / copy check. Their values stay in the controls for the session.
@@ -154,7 +329,38 @@ function _ilqPoiHidden(q,a){ return IL_POI_CM_HIDE.indexOf(q.key)>=0 && String((
 // usCa questions (+ their sub-questions). No ro / usca undefined -> shown (Node callers, old shape).
 // noFlex questions (Station request, Netradyne + their sub-questions) are also hidden when the SIM
 // Root Cause Details "Driv:" is Flex DP (ro.flex===true; see ilIsFlexDriv).
-function _ilqRegionHidden(q,ro){ return !!((q.usCa && ro && ro.usca===false) || (q.noFlex && ro && ro.flex===true)); }
+// petOnly questions (GeoStudio Dog Risk Level, Paw Print SIM Link, Vaccination Records) are hidden when
+// the ticket is not a pet incident (ro.pet===false; see ilIsPetIncident).
+function _ilqRegionHidden(q,ro){
+  return !!((q.usCa && ro && ro.usca===false) || (q.noFlex && ro && ro.flex===true) || (q.petOnly && ro && ro.pet===false));
+}
+// Pet incident rule (same order and keywords as Page ZERO's classifyTicket, server/page-zero.js):
+//   1. the SIM Root Cause Details "Issue:" value is one of the Issue Types "Pet" category
+//      (IZ_CATS: Attack w/pet, Unsecured pet - bite/injury / evasion injury / no contact) or contains a
+//      pet keyword (pet, dog, puppy, canine, K9, animal — e.g. "Pet Incident", "Dog bite",
+//      "Unsecured Animal Attack (CX Pet)") -> pet;
+//   2. an Issue that is another known Issue Type (e.g. "Threat of harm (verbal or written)") -> not pet;
+//   3. otherwise (no / unknown Issue) the ticket title decides with the same keywords
+//      (e.g. "US Community Member Incident Escalation - Sev 4 - Dog bite" -> pet).
+// cats = the Issue Types list (defaults to window.IZ_CATS).
+// "Non-pet" / "non pet" / "nonpet" are NOT pet (the hyphen is a word boundary, so it needs the lookbehind).
+var IL_PET_RE=/(?<!non[\s\-_]?)\b(?:pets?|dogs?|pupp(?:y|ies)|canines?|k-?9s?|animals?)\b/i;
+function ilSimIssue(sim){
+  var m=String(sim==null?'':sim).replace(/\*\*/g,'').match(/(?:^|\n)[ \t]*Issue[ \t]*:[ \t]*([^\r\n]*)/i);
+  return m ? m[1].trim() : '';
+}
+function ilIsPetIncident(issue,title,cats){
+  if(cats==null) cats=(typeof window!=='undefined' && Array.isArray(window.IZ_CATS)) ? window.IZ_CATS : [];
+  var iss=String(issue==null?'':issue).trim(), lo=iss.toLowerCase(), known=false, inPet=false;
+  if(iss){
+    (cats||[]).forEach(function(c){ (c.types||[]).forEach(function(t){
+      if(t && String(t.type||'').toLowerCase()===lo){ known=true; if(c.category==='Pet') inPet=true; }
+    }); });
+    if(inPet || IL_PET_RE.test(iss)) return true;
+    if(known) return false;
+  }
+  return IL_PET_RE.test(String(title==null?'':title));
+}
 // True when the SIM Root Cause Details text has "Driv:" / "Driver Type:" = Flex DP (any case/spacing,
 // e.g. "Flex DP", "FLEX-DP", "Flex").
 function ilIsFlexDriv(sim){
@@ -315,6 +521,28 @@ function ilInvestMissing(answers,ro){
     if(_ilqSubShown(q,a) && !val(q.sub.key)) miss.push(q.sub.key);
   });
   return miss;
+}
+// "DEFAULT" tag model (UI only; never part of saved / copied text). decided = {key:true} for every
+// question the user changed this session, an import set, or a saved entry answered.
+// Text answers and the optional "Who is the POI?" never get the tag.
+function _ilqDefaultable(d){ return !d.optional && d.type!=='text' && d.type!=='textarea'; }
+// decided map for a saved section body: every key with a saved answer; an entry with any saved
+// answer also counts the POD checkbox (unchecked writes no line) as decided.
+function ilInvestDecidedFromSaved(text){
+  var p=(text && typeof text==='object') ? text : ilParseInvestigation(text), out={}, any=false;
+  Object.keys(p.answers||{}).forEach(function(k){ out[k]=true; any=true; });
+  if(any) IL_INVEST_QS.forEach(function(q){ if(q.type==='check') out[q.key]=true; });
+  return out;
+}
+// Visible questions / shown sub-questions (same rules as the form) still at their untouched default.
+function ilInvestDefaultKeys(decided,answers,ro){
+  var d=decided||{}, a=answers||{}, out=[];
+  IL_INVEST_QS.forEach(function(q){
+    if(_ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;
+    if(_ilqDefaultable(q) && !d[q.key]) out.push(q.key);
+    if(_ilqSubShown(q,a) && _ilqDefaultable(q.sub) && !d[q.sub.key]) out.push(q.sub.key);
+  });
+  return out;
 }
 // Section labels (as shown in the modal) in form order, keyed by field id.
 var IL_FIELD_LABELS={ilRootCause:'Root Cause', ilSimRcd:'SIM Root Cause Details',
@@ -700,6 +928,239 @@ function ilSimHiMissing(sim){
   return out;
 }
 
+// ---- Whole-log Import (pure model; no DOM; exported for Node) ----
+// The pasted AI output is split into sections by heading lines ("**Determination:**", "PHD Findings:",
+// "**INTERNAL ONLY — …**"; ** optional, trailing colon optional, any case). Mapping:
+//   SIM Root Cause Details -> the SIM form (ilSimImport rules); Root Cause -> the dropdown (exact
+//   match only); PHD Findings -> the findings field; Investigation / Evidence Checklist lines that
+//   name a questionnaire question (or sub-question) -> that question (_ilfAnswer rules) and NOT the
+//   notes; the checklist lines that name no question and every other section (incl. unknown
+//   headings) -> PHD Notes, verbatim minus **.
+var IL_FULL_HEADS=[
+  {re:/^sim root cause details$/, kind:'sim'},
+  {re:/^root cause$/, kind:'rootCause'},
+  {re:/^phd findings$/, kind:'findings'},
+  {re:/^(?:investigation|evidence) checklist$/, kind:'checklist'},
+  {re:/^(?:determination|evidence details|risk assessment|phd resolution|primary case tag|phd notes)$/, kind:'notes'},
+  {re:/^internal only\b/, kind:'notes'}
+];
+function _ilfHeadKind(name){
+  var n=String(name||'').toLowerCase().replace(/\s+/g,' ').trim().replace(/\s*:$/,'');
+  for(var i=0;i<IL_FULL_HEADS.length;i++) if(IL_FULL_HEADS[i].re.test(n)) return IL_FULL_HEADS[i].kind;
+  return null;
+}
+// Heading line -> {title, kind, rest, known}; null for a content line. curKind = the section being read
+// (inside SIM / checklists an empty "Key:" line is a value, not an unknown heading).
+function _ilfHeading(raw,curKind){
+  var t=String(raw).trim().replace(/^#{1,6}\s+/,'');
+  if(/^[-\u2022]\s/.test(t) || /^\*\s/.test(t)) return null;   // bullet
+  var b=t.match(/^\*\*(.+?)\*\*\s*(.*)$/), k;
+  if(b){
+    var name=b[1].trim(), rest=b[2];
+    if(/^:/.test(rest)){ rest=rest.slice(1); if(!/:$/.test(name)) name+=':'; }
+    rest=rest.replace(/\*\*/g,'').trim(); k=_ilfHeadKind(name);
+    if(k) return {title:name, kind:k, rest:rest, known:true};
+    if(!rest && /:$/.test(name)) return {title:name, kind:'notes', rest:'', known:false};   // unknown bold heading
+    return null;
+  }
+  var p=t.replace(/\*\*/g,'').trim(), m=p.match(/^([^:]+?)\s*:\s*(.*)$/);
+  if((k=_ilfHeadKind(p))) return {title:p, kind:k, rest:'', known:true};
+  if(m && (k=_ilfHeadKind(m[1]))) return {title:m[1]+':', kind:k, rest:m[2].trim(), known:true};
+  if(m && !m[2] && curKind!=='sim' && curKind!=='checklist' && m[1].split(/\s+/).length<=8 &&
+     !_ilsKeyIdx.alias[_ilsNormKey(m[1])] && !/^HI\s*\d+$/i.test(m[1]))
+    return {title:p, kind:'notes', rest:'', known:false};   // unknown plain heading "Something:"
+  return null;
+}
+// Checklist label -> questionnaire key (first match wins; null = recognised but never filled).
+var IL_FULL_INVEST_MAP=[
+  ['clear',      /\bclear\b.*\bpoi\b|\bclear history\b/],
+  ['poi',        /\bpoi\b.*\b(?:cx|customer|recipient)\b|is poi the cx/],
+  ['susp',       /account suspension/],
+  ['dup',        /duplicate/],
+  ['negFb',      /concerning transporter history|negative delivery feedback/],
+  ['histCx',     /cxid history|historical incidents against cx/],
+  ['locSim',     /upid history|location historical incidents in sim/],
+  ['locEmt',     /historical incidents at (?:the )?physical address|location historical incidents in emt/],
+  ['cortex',     /cortex driver trace/],
+  ['stationLink',/station request link/],
+  ['station',    /^station request(?: made)?$/],
+  ['netraInfo',  /netradyne (?:request|footage review)/],
+  ['netra',      /netradyne footage(?: exists)?$/],
+  ['addPkg',     /packages delivered after incident/],
+  ['diUpd',      /delivery instructions updated/],
+  ['di',         /delivery instructions present/],
+  ['pod',        /delivery photo|\bpod\b/],
+  ['austin',     /^austin investigation findings\b/],
+  ['petRisk',    /^geostudio dog risk level\b/],
+  ['pawLink',    /^paw print sim link\b/],
+  ['vacc',       /^vaccination records\b/]
+];
+// normalised import label (with and without a "(…)" suffix) -> question / sub-question key.
+var _ilfImpIndex=(function(){
+  var m={}, add=function(d){
+    (d.importAliases||[]).forEach(function(l){ m[_ilqNorm(l)]=d.key; m[_ilqNorm(String(l).replace(/\([^)]*\)/g,' '))]=d.key; });
+  };
+  IL_INVEST_QS.forEach(function(q){ add(q); if(q.sub) add(q.sub); });
+  return m;
+})();
+// Checklist label -> questionnaire key: saved labels / aliases, then importAliases, then the loose
+// IL_FULL_INVEST_MAP patterns. null = the line maps to no question (it stays in PHD Notes).
+function _ilfInvestKey(label){
+  var full=_ilqNorm(label), n=_ilqNorm(String(label).replace(/\([^)]*\)/g,' '));
+  var hit=_ilqIndex[full] || _ilqIndex[n];
+  if(hit) return (hit.sub||hit.q).key;
+  if(_ilfImpIndex[full]) return _ilfImpIndex[full];
+  if(_ilfImpIndex[n]) return _ilfImpIndex[n];
+  for(var i=0;i<IL_FULL_INVEST_MAP.length;i++) if(IL_FULL_INVEST_MAP[i][1].test(n)) return IL_FULL_INVEST_MAP[i][0];
+  return null;
+}
+// Checklist answer -> the question's value; null = nothing to apply.
+//   "Not Documented" / "Not Provided" -> "No" (selects with No; the POD checkbox -> "No" = unchecked),
+//   "0" for numbers, '' for text sub-questions; "Not Applicable" -> "N/A" when offered, otherwise the same.
+//   A leading "Trace Mandatory — " style prefix is skipped. "Is POI the CX" is set only when the
+//   answer names one of its options. Otherwise an explicit leading option / number; text
+//   sub-questions take the text as-is.
+function _ilfAnswer(def,a){
+  if(!def) return null;
+  a=String(a==null?'':a).replace(/\*\*/g,'').trim().replace(/^[a-z][a-z ]*?\bmandatory\s*[\u2014\u2013:\-]+\s*/i,'');
+  var opts=def.opts||[], txt=(def.type==='text'||def.type==='textarea'), poi=!!def.poiWho;
+  var nd=/^not\s+(?:documented|provided)(?![a-z0-9])/i.test(a), na=/^not\s+applicable(?![a-z0-9])/i.test(a);
+  if((nd||na) && !poi){
+    if(txt) return '';
+    if(na && opts.indexOf('N/A')>=0) return 'N/A';
+    if(def.type==='number') return '0';
+    if(def.type==='check' || opts.indexOf('No')>=0) return 'No';
+    return null;
+  }
+  if(!a || nd || na) return null;
+  if(txt) return a;
+  if(def.type==='number'){ var m=a.match(/^(\d+)(?![.,]\d)\b/); return m ? String(parseInt(m[1],10)) : null; }
+  var so=opts.slice().sort(function(x,y){ return y.length-x.length; }), lo=a.toLowerCase();
+  for(var i=0;i<so.length;i++){
+    var ol=so[i].toLowerCase();
+    if(lo.indexOf(ol)===0 && !/[a-z0-9]/i.test(lo.charAt(ol.length))) return so[i];
+  }
+  if(opts.indexOf(IL_POI_CM)>=0 && /^community member(?![a-z0-9])/i.test(a)) return IL_POI_CM;
+  if(def.type==='check' && /^no(?![a-z0-9])/i.test(a)) return 'No';
+  return null;
+}
+// Checklist line -> the key it maps to (null = not a "Label: answer" line or no question).
+function _ilfLineKey(l){
+  var t=String(l).replace(/\*\*/g,'').replace(/^\s*[-*\u2022]\s+/,''), m=t.match(/^([^:]+?)\s*:/);
+  return m ? _ilfInvestKey(m[1]) : null;
+}
+// Checklist lines left for PHD Notes: every item that maps to a question is dropped (with its
+// continuation lines); items that map to no question stay. An item = a bullet or a "Label:" line.
+function _ilfNotesLines(lines){
+  var keep=[], drop=false;
+  lines.forEach(function(l){
+    var t=String(l).replace(/\*\*/g,'');
+    if(/^\s*[-*\u2022]\s+/.test(t) || /^\s*[^:\s][^:]*:/.test(t)) drop=!!_ilfLineKey(l);
+    if(!drop) keep.push(l);
+  });
+  return keep;
+}
+// Checklist lines -> {key: answer}. The first line per key wins; '' = an applied empty text answer.
+function _ilfInvest(lines){
+  var defs={}, out={}, has=function(k){ return Object.prototype.hasOwnProperty.call(out,k); };
+  IL_INVEST_QS.forEach(function(q){ defs[q.key]=q; if(q.sub) defs[q.sub.key]=q.sub; });
+  lines.forEach(function(l){
+    var t=String(l).replace(/\*\*/g,'').replace(/^\s*[-*\u2022]\s+/,''), m=t.match(/^([^:]+?)\s*:\s*(.*)$/);
+    if(!m) return;
+    var k=_ilfInvestKey(m[1]); if(!k || has(k)) return;
+    var v=_ilfAnswer(defs[k],m[2]); if(v!=null) out[k]=v;
+    // restToSub (AUSTIN): "Yes - <findings>" -> the rest goes into the sub textarea.
+    if(v==='Yes' && defs[k].restToSub && defs[k].sub && !Object.prototype.hasOwnProperty.call(out,defs[k].sub.key)){
+      var rest=String(m[2]).replace(/\*\*/g,'').trim().slice(3).trim(), par=/^\((.*)\)$/.exec(rest);
+      rest=(par ? par[1] : rest).replace(/^[\s,;:.\-\u2013\u2014]+/,'').trim();
+      if(rest) out[defs[k].sub.key]=rest;
+    }
+  });
+  // A sub-answer only applies under a "Yes" parent.
+  IL_INVEST_QS.forEach(function(q){ if(q.sub && has(q.sub.key) && out[q.key]!=='Yes') delete out[q.sub.key]; });
+  return out;
+}
+// "Imported: SIM Root Cause Details (10 of 10), Root Cause, … · not matched: Root Cause".
+// investN = questionnaire answers actually applied (defaults to every parsed one).
+function ilFullLogSummary(r,investN){
+  var parts=[], nm=[];
+  if(r.sim){
+    var total=IL_SIM_FIELDS.length+ilSimHiCount(r.sim.fields.Cnt).n;
+    parts.push(IL_FIELD_LABELS.ilSimRcd+' ('+r.sim.filled.length+' of '+total+')');
+    r.sim.notMatched.forEach(function(k){ nm.push('SIM '+k); });
+    if(r.drivInferred) parts.push('Driv: '+r.drivInferred+' (from the text)');
+  }
+  if(r.rootCause.found){ if(r.rootCause.value) parts.push('Root Cause'); else nm.unshift('Root Cause'); }
+  if(r.severity) parts.unshift('Severity'); else nm.unshift('Severity');
+  if(r.findings) parts.push('PHD Findings');
+  var n=investN==null ? Object.keys(r.invest).length : investN;
+  if(n) parts.push('Investigation ('+n+(n===1?' answer)':' answers)'));
+  if(r.notes) parts.push('PHD Notes');
+  return (parts.length ? 'Imported: '+parts.join(', ') : 'Nothing imported')+(nm.length?' \u00b7 not matched: '+nm.join(', '):'');
+}
+// text + {rootCauses, issues, res} (the dropdown lists) ->
+// {sim: ilSimImport result | null, rootCause:{found, raw, value}, findings, invest:{key:answer},
+//  notes, known: number of recognised headings, summary}.
+function ilParseFullLog(text,o){
+  o=o||{};
+  var cur={title:'', kind:'notes', lines:[]}, secs=[cur], known=0;
+  String(text==null?'':text).replace(/\r\n?/g,'\n').split('\n').forEach(function(raw){
+    if(!raw.trim() || /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(raw)) return;   // blank lines + "---" separators
+    var h=_ilfHeading(raw,cur.kind);
+    if(h){ cur={title:h.title, kind:h.kind, lines:[]}; secs.push(cur); if(h.known) known++; if(h.rest) cur.lines.push(h.rest); return; }
+    cur.lines.push(raw.replace(/\*\*/g,'').replace(/\s+$/,''));
+  });
+  var unb=function(l){ return String(l).replace(/^\s*[-*\u2022]\s+/,'').trim(); };
+  var sim=[], rc=[], fin=[], chk=[], notes=[];
+  // Checklist lines that map to a question go to the questionnaire only (not repeated in PHD Notes);
+  // a checklist heading with nothing left is dropped, and so is a bare "INTERNAL ONLY …" heading
+  // when no checklist line is left at all.
+  var anyChk=false;
+  secs.forEach(function(s){ if(s.kind==='checklist'){ s.rem=_ilfNotesLines(s.lines); if(s.rem.length) anyChk=true; } });
+  secs.forEach(function(s){
+    if(!s.title && !s.lines.length) return;
+    if(s.kind==='sim'){ sim=sim.concat(s.lines.map(unb)); return; }
+    if(s.kind==='rootCause'){ rc=rc.concat(s.lines.map(unb).filter(Boolean)); return; }
+    if(s.kind==='findings'){ fin=fin.concat(s.lines); return; }
+    if(s.kind==='checklist'){
+      chk=chk.concat(s.lines);
+      if(s.rem.length) notes.push((s.title?[s.title]:[]).concat(s.rem).join('\n'));
+      return;
+    }
+    if(!s.lines.length && !anyChk && /^internal only\b/i.test(String(s.title).trim())) return;
+    notes.push((s.title?[s.title]:[]).concat(s.lines).join('\n'));
+  });
+  var hasRc=secs.some(function(s){ return s.kind==='rootCause'; });
+  var r={
+    sim: secs.some(function(s){ return s.kind==='sim'; }) ? ilSimImport(sim.join('\n'),{issues:o.issues, res:o.res}) : null,
+    rootCause:{found:hasRc, raw:rc[0]||'', value:_ilsExact(o.rootCauses, rc[0]||'')},
+    findings:fin.join('\n').trim(),
+    invest:_ilfInvest(chk),
+    notes:notes.join('\n\n').trim(),
+    severity:ilSevFromText(text),   // anywhere in the pasted text ('' = not found)
+    known:known
+  };
+  // Bare "Driv: DA" / "Delivery Associate": the driver type comes from the rest of the paste when
+  // exactly one of "DSP" / "Hub" appears there (whole word, any case; "Flex" is not looked at).
+  // Neither or both -> today's rule (not matched, left as N/A).
+  if(r.sim && r.sim.notMatched.indexOf('Driv')>=0){
+    var dv=String(ilParseSim(sim.join('\n'),{aliases:true}).found.Driv||'').replace(/\*\*/g,'').trim();
+    if(/^(?:da|delivery\s+associate)$/i.test(dv)){
+      var other=secs.filter(function(s){ return s.kind!=='sim'; })
+        .map(function(s){ return (s.title||'')+'\n'+s.lines.join('\n'); }).join('\n');
+      var dsp=/\bdsp\b/i.test(other), hub=/\bhub\b/i.test(other);
+      if(dsp!==hub){
+        r.drivInferred=dsp ? 'DSP DA' : 'Hub DA';
+        r.sim.fields.Driv=r.drivInferred;
+        r.sim.notMatched=r.sim.notMatched.filter(function(k){ return k!=='Driv'; });
+        r.sim.filled.push('Driv');
+      }
+    }
+  }
+  r.summary=ilFullLogSummary(r);
+  return r;
+}
+
 // Assemble the structured form fields (DOM) into the standard copy/save format.
 // opts.omitSim === true drops the "SIM Root Cause Details" section (used by "Copy w/o RC Details").
 // opts.copy === true = a Copy (US/CA-only answers kept from a non-US/CA saved entry are left out);
@@ -711,8 +1172,36 @@ function buildIncidentOutput(opts){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   return ilSerializeFields({
     findings:g('ilPhdFindings'), invest:ilGetInvestigation(!opts.copy), sim:g('ilSimRcd'), hist:ilGetHistorical(),
-    rootCause:g('ilRootCause'), link:ilCurrentLink(), res:ilCurrentResolution(), notes:g('ilPhdNotes')
+    rootCause:g('ilRootCause'), link:ilCurrentLink(), res:ilCurrentResolution(), notes:g('ilPhdNotes'),
+    country:IL_TICKET_COUNTRY, severity:ilGetSeverity()
   }, opts);
+}
+// ---- Severity row (#ilSevField above Root Cause; buttons 1..5, single choice, none by default) ----
+var _ilSev='';        // '1'..'5' or ''
+var _ilSevNeed=false; // the whole-log Import found no severity -> amber "Select a severity" mark
+function ilGetSeverity(){ return _ilSev; }
+function _ilSevRender(){
+  if(typeof document==='undefined') return;
+  var g=document.getElementById('ilSevGroup'); if(!g) return;
+  Array.prototype.forEach.call(g.querySelectorAll('.ail-qnb'),function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-n')===_ilSev?'true':'false'); });
+  var fld=document.getElementById('ilSevField'), need=_ilSevNeed && !_ilSev;
+  if(fld){ fld.classList.toggle('is-changed', !!_ilSev); fld.classList.toggle('is-needed', need); }
+  var h=document.getElementById('ilSevHint'); if(h) h.hidden=!need;
+  if(need) g.setAttribute('aria-describedby','ilSevHint'); else g.removeAttribute('aria-describedby');
+}
+// v = 1..5 / "Sev 3" / '' (clears). o.need = show the "Select a severity" mark while it is empty.
+function ilSetSeverity(v,o){
+  _ilSev=ilNormSeverity(v);
+  _ilSevNeed=!!(o && o.need);
+  _ilSevRender();
+}
+// Opened saved entry: its "**Severity**:" value, else the ticket title's severity (ilSetTicketRegion).
+function ilSetSavedSeverity(v){ ilSetSeverity(ilNormSeverity(v) || ilSevFromText(IL_TICKET_TITLE)); }
+// Button click: pick N; clicking the selected one clears it.
+function ilSevPick(n){
+  n=String(n);
+  _ilSev=(_ilSev===n) ? '' : ilNormSeverity(n);
+  _ilSevRender();
 }
 // ---- PHD Related Link / PHD Resolution (computed, not shown in the form) ----
 var _ilSavedRes='';   // the opened entry's saved PHD Resolution (fallback when SIM has no Res line)
@@ -729,9 +1218,12 @@ function ilCurrentLink(){
 // ---- Ticket region (drives the US/CA-only questions) ----
 var _ilUsca=false;   // set per opened ticket by ilSetTicketRegion (unknown country -> not US/CA)
 var IL_TICKET_COUNTRY='';
+var IL_TICKET_TITLE='';   // the opened ticket's title (pet incident fallback when SIM has no Issue)
 // Call BEFORE ilSetInvestigation when opening the editor for a ticket.
 function ilSetTicketRegion(title,country){
+  IL_TICKET_TITLE=String(title==null?'':title);
   IL_TICKET_COUNTRY=ilTicketCountry(title,country);
+  ilSetSeverity(ilSevFromText(IL_TICKET_TITLE));   // per opened ticket: the title's severity ('' = none); ilSetSavedSeverity overrides
   _ilUsca=ilIsUsCa(IL_TICKET_COUNTRY);
   if(typeof document!=='undefined' && document.getElementById('ilPhdInvestigation')) _ilqSyncVisibility();
 }
@@ -1215,6 +1707,133 @@ function ilSimImportClose(apply){
   if(op && op.focus) try{ op.focus(); }catch(e){}
 }
 
+// ---- Whole-log Import pop-up (modal header button; same dialog style as the SIM Import) ----
+var _ilfiOpener=null;
+function _ilfiBuild(){
+  var bg=document.getElementById('ilLogImport'); if(bg) return bg;
+  bg=document.createElement('div'); bg.id='ilLogImport'; bg.className='ilc-bg'; bg.hidden=true;
+  bg.innerHTML='<div class="ilc-dlg ils-dlg" role="dialog" aria-modal="true" aria-labelledby="ilLogImportTitle" aria-describedby="ilLogImportHint">'+
+      '<h3 class="ilc-title" id="ilLogImportTitle">Import incident log</h3>'+
+      '<div class="ilc-body">'+
+        '<label class="ils-lbl" for="ilLogImportText">Paste the full incident log</label>'+
+        '<textarea id="ilLogImportText" class="ils-ta" rows="14" spellcheck="false" placeholder="**Determination:**&#10;- \u2026&#10;**PHD Findings:**&#10;- \u2026&#10;**Root Cause:**&#10;- \u2026&#10;**SIM Root Cause Details:**&#10;- Issue: \u2026"></textarea>'+
+        '<p class="ils-hint" id="ilLogImportHint">SIM Root Cause Details, Root Cause, PHD Findings and matching checklist answers fill their fields; everything else goes to PHD Notes.</p>'+
+        '<label class="ilfi-rep" id="ilLogImportRepWrap" hidden><input type="checkbox" id="ilLogImportRep" checked> Replace existing PHD Notes</label>'+
+        '<p class="ils-err" id="ilLogImportErr" role="alert" hidden></p>'+
+      '</div>'+
+      '<div class="ilc-actions">'+
+        '<button type="button" class="ilc-btn sec" id="ilLogImportCancel">Cancel</button>'+
+        '<button type="button" class="ilc-btn go" id="ilLogImportGo">Import</button>'+
+      '</div>'+
+    '</div>';
+  (document.getElementById('incidentModal')||document.body).appendChild(bg);
+  document.getElementById('ilLogImportCancel').addEventListener('click',function(){ ilLogImportClose(false); });
+  document.getElementById('ilLogImportGo').addEventListener('click',function(){ ilLogImportClose(true); });
+  bg.addEventListener('click',function(e){ e.stopPropagation(); if(e.target===bg) ilLogImportClose(false); });
+  window.addEventListener('keydown',_ilfiKeydown,true);
+  return bg;
+}
+function _ilfiOpen(){ var bg=document.getElementById('ilLogImport'); return !!(bg && !bg.hidden); }
+function _ilfiKeydown(e){
+  if(!_ilfiOpen()) return;
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); ilLogImportClose(false); return; }
+  if(e.key!=='Tab') return;
+  e.stopPropagation();
+  var dlg=document.querySelector('#ilLogImport .ilc-dlg');
+  var f=_ilsSlice(dlg.querySelectorAll('textarea,input,button')).filter(function(el){ return !el.disabled && el.offsetParent!==null; });
+  if(!f.length){ e.preventDefault(); return; }
+  var first=f[0], last=f[f.length-1], a=document.activeElement;
+  if(!dlg.contains(a)){ e.preventDefault(); first.focus(); }
+  else if(e.shiftKey && a===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && a===last){ e.preventDefault(); first.focus(); }
+}
+function ilLogImportOpen(btn){
+  var bg=_ilfiBuild();
+  _ilfiOpener=btn||document.activeElement;
+  var ta=document.getElementById('ilLogImportText'); ta.value='';
+  var er=document.getElementById('ilLogImportErr'); er.hidden=true; er.textContent='';
+  var notes=document.getElementById('ilPhdNotes');
+  document.getElementById('ilLogImportRepWrap').hidden=!(notes && String(notes.value||'').trim());
+  document.getElementById('ilLogImportRep').checked=true;
+  bg.hidden=false;
+  try{ ta.focus(); }catch(e){}
+}
+// Unlock a locked field before writing into it (same as clicking its pencil, without moving focus).
+function _ilfiUnlock(id){
+  var el=document.getElementById(id); if(!el) return;
+  var pen=document.querySelector('.ail-fedit[data-for="'+id+'"]'), was;
+  if(id==='ilPhdInvestigation'){ was=el.classList.contains('is-locked'); _ilqSetLocked(false); }
+  else if(id==='ilSimRcd'){ was=_ilsLocked || el.readOnly; el.readOnly=false; _ilhSetLocked(false); _ilsSetLocked(false); }
+  else { was=el.readOnly; el.readOnly=false; }
+  if(was && pen) pen.classList.add('editing');
+}
+// apply=true parses the pasted log into the form fields (nothing is saved).
+function ilLogImportClose(apply){
+  var bg=document.getElementById('ilLogImport'); if(!bg || bg.hidden) return;
+  if(apply){
+    var ta=document.getElementById('ilLogImportText'), er=document.getElementById('ilLogImportErr');
+    var txt=String(ta.value||''), L=_ilsLists();
+    var r=txt.trim() ? ilParseFullLog(txt,{rootCauses:window.RC_ROOT_CAUSES||[], issues:L.issues, res:L.res}) : null;
+    if(!r || !r.known){
+      er.textContent=txt.trim() ? 'No incident log sections found in the pasted text.' : 'Paste the full incident log first.';
+      er.hidden=false; try{ ta.focus(); }catch(e){} return;
+    }
+    var repWrap=document.getElementById('ilLogImportRepWrap'), replace=repWrap.hidden || document.getElementById('ilLogImportRep').checked;
+    bg.hidden=true;
+    // SIM Root Cause Details (first: Driv: Flex DP hides questions below).
+    if(r.sim && document.getElementById('ilSimForm')){
+      _ilfiUnlock('ilSimRcd');
+      _ilsApply(r.sim.fields);
+      ilSimChanged();
+      (r.sim.fields.HI||[]).forEach(function(v,i){ var s=_ilsHiSels()[i]; if(v && s) _ilsHiPrefill(i, String(s.value||'')); });
+    }
+    // Root Cause: exact match only; otherwise left as it is.
+    var rc=document.getElementById('ilRootCause');
+    if(rc && r.rootCause.value){ rc.value=r.rootCause.value; ilRefreshSelectUI(); }
+    // Severity: found in the text -> selected; not found -> a severity already chosen (title / user)
+    // stays, otherwise the row is left empty with the amber "Select a severity" mark.
+    if(r.severity) ilSetSeverity(r.severity);
+    else if(!ilGetSeverity()) ilSetSeverity('',{need:true});
+    var put=function(id,v,append){
+      var el=document.getElementById(id); if(!el) return;
+      _ilfiUnlock(id);
+      var cur=String(el.value||'').trim();
+      el.value=(append && cur) ? cur+'\n\n'+v : v;
+      ilAutosize(el);
+    };
+    if(r.findings) put('ilPhdFindings', r.findings, false);
+    // Questionnaire: write each mapped answer straight into its control — also for questions that
+    // are hidden right now (POI / region / Flex DP / pet rules; hidden ones are still left out of the
+    // saved / copied text) — and mark it decided (no DEFAULT tag).
+    var n=0, keys=Object.keys(r.invest);
+    if(keys.length && document.getElementById('ilPhdInvestigation')){
+      var defs={};
+      _ilqAllDefs().forEach(function(d){ defs[d.key]=d; });
+      _ilfiUnlock('ilPhdInvestigation');
+      keys.forEach(function(k){
+        var d=defs[k]; if(!d) return;
+        delete _ilqOld[k];
+        _ilqSetControl(d, r.invest[k]);
+        _ilqDecided[k]=true; n++;
+      });
+      ilInvestChanged();
+    }
+    if(r.notes) put('ilPhdNotes', r.notes, !replace);
+    ilRefreshEmptyMarks();
+    var summary=ilFullLogSummary(r,n);
+    // Import summary line at the top of the form: shown for 5 seconds, then hidden.
+    var st=document.getElementById('ilLogImportStatus');
+    if(st){
+      st.textContent=summary; st.hidden=false;
+      clearTimeout(st._ilfHide);
+      st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
+    }
+    _ileToast(summary);
+  } else bg.hidden=true;
+  var op=_ilfiOpener; _ilfiOpener=null;
+  if(op && op.focus) try{ op.focus(); }catch(e){}
+}
+
 // ---- DOM helpers (fixed element ids from the shared markup) ----
 var IL_FIELD_IDS=['ilRootCause','ilSimRcd','ilPhdInvestigation','ilPhdFindings','ilPhdNotes'];
 var IL_TICKET_SID='';  // the ticket ShortId the modal is currently open for (for the title copy icon)
@@ -1225,7 +1844,9 @@ var _ilqKept={};      // non-US/CA ticket: saved US/CA-only answer lines, re-wri
 function _ilqEl(key){ return document.getElementById('ilq_'+key); }
 // flex = the SIM Root Cause Details in the form currently says "Driv: Flex DP".
 function _ilFlexNow(){ var el=document.getElementById('ilSimRcd'); return !!(el && ilIsFlexDriv(el.value)); }
-function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), kept:forSave?_ilqKept:null}; }
+// pet = the form's SIM "Issue:" (else the ticket title) is a pet incident (ilIsPetIncident).
+function _ilPetNow(){ var el=document.getElementById('ilSimRcd'); return ilIsPetIncident(ilSimIssue(el?el.value:''), IL_TICKET_TITLE); }
+function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), pet:_ilPetNow(), kept:forSave?_ilqKept:null}; }
 // Every control definition in DOM order (questions, the POI free-text, sub-questions).
 function _ilqAllDefs(){
   var d=[]; IL_INVEST_QS.forEach(function(q){ d.push(q); if(q.poiWho) d.push(q.poiWho); if(q.sub) d.push(q.sub); }); return d;
@@ -1240,6 +1861,7 @@ function _ilqAllDefs(){
 //   text  sub-fields (station link, Netradyne review, Who is the POI?): plain control "ilq_<key>"
 // The answer text / pure model (ilSerializeInvestigation etc.) is unchanged.
 var _ilqOld={};   // saved answers the controls cannot show (old free text) -> kept as-is until that row changes
+var _ilqDecided={};   // keys changed by the user / set by an import / answered in the saved entry (no DEFAULT tag)
 function _ilqHasOld(k){ return Object.prototype.hasOwnProperty.call(_ilqOld,k); }
 function _ilqKind(d){
   if(d.type==='number') return 'num';
@@ -1281,6 +1903,7 @@ function _ilqReadAnswers(){
 // chosen gets the default "0" so it always has a value.
 function ilqToggle(key){
   delete _ilqOld[key];
+  _ilqDecided[key]=true;
   var cb=_ilqCb(key);
   if(cb && cb.checked && _ilqNumBtns(key).length && _ilqNumVal(key)==='' && !_ilqNumTyped(key)) _ilqSetNumBtn(key,0);
   ilInvestChanged();
@@ -1288,6 +1911,7 @@ function ilqToggle(key){
 // Number button clicked: press it (only one pressed), clear the "Other" input.
 function ilqPickNum(key,n){
   delete _ilqOld[key];
+  _ilqDecided[key]=true;
   _ilqSetNumBtn(key,n);
   var el=_ilqEl(key); if(el) el.value='';
   ilInvestChanged();
@@ -1296,6 +1920,7 @@ function ilqPickNum(key,n){
 // input again falls back to the default "0" button.
 function ilqNumInput(key){
   delete _ilqOld[key];
+  _ilqDecided[key]=true;
   _ilqSetNumBtn(key, _ilqNumTyped(key) ? null : 0);
   ilInvestChanged();
 }
@@ -1310,6 +1935,7 @@ function ilGetInvestigation(forSave){
 // into the (hidden) controls — their original lines are kept in _ilqKept for Save.
 function ilSetInvestigation(text){
   var p=ilParseInvestigation(text);
+  _ilqDecided=ilInvestDecidedFromSaved(p);   // a saved entry's answers count as decided (no DEFAULT tag)
   _ilqUnknown=p.unknown.slice();
   _ilqKept={};
   if(!_ilUsca){
@@ -1317,9 +1943,19 @@ function ilSetInvestigation(text){
     IL_INVEST_QS.forEach(function(q){ if(q.usCa){ delete p.answers[q.key]; if(q.sub) delete p.answers[q.sub.key]; } });
   }
   _ilqOld={};
-  _ilqAllDefs().forEach(function(d){
+  _ilqAllDefs().forEach(function(d){ _ilqSetControl(d, p.answers[d.key]); });
+  var ex=document.getElementById('ilqExtra'), wrap=document.getElementById('ilqExtraWrap');
+  if(ex) ex.textContent=_ilqUnknown.join('\n');
+  if(wrap) wrap.hidden=!_ilqUnknown.length;
+  _ilqSyncVisibility();
+  ilMarkEmpty(document.getElementById('ilPhdInvestigation'));
+}
+// Put one answer (saved-text form: "Yes" / "No" / "3" / option / text; null = blank) into the
+// control(s) of definition d. An answer the control cannot show is kept in _ilqOld.
+function _ilqSetControl(d,val){
+  (function(){
     var k=d.key, kind=_ilqKind(d), cb=_ilqCb(k), el=_ilqEl(k);
-    var v=p.answers[k]==null?'':String(p.answers[k]);
+    var v=val==null?'':String(val);
     if(kind==='text'){
       if(!el) return;
       // Single-line inputs strip "\n" (gluing words together) — join continuation lines with a space.
@@ -1357,12 +1993,7 @@ function ilSetInvestigation(text){
       var o=document.createElement('option'); o.value=v; o.textContent=v+' (old)'; o.setAttribute('data-old','1'); el.appendChild(o);
     }
     el.value=v;
-  });
-  var ex=document.getElementById('ilqExtra'), wrap=document.getElementById('ilqExtraWrap');
-  if(ex) ex.textContent=_ilqUnknown.join('\n');
-  if(wrap) wrap.hidden=!_ilqUnknown.length;
-  _ilqSyncVisibility();
-  ilMarkEmpty(document.getElementById('ilPhdInvestigation'));
+  })();
 }
 // Show / hide the conditional rows from the current parent answers.
 function _ilqSyncVisibility(){
@@ -1370,7 +2001,7 @@ function _ilqSyncVisibility(){
   var ro=_ilqRO(false);
   IL_INVEST_QS.forEach(function(q){
     var row, off=_ilqPoiHidden(q,a) || _ilqRegionHidden(q,ro);
-    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa || q.noFlex){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
+    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa || q.noFlex || q.petOnly){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
     if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=(a[q.key]!=='No'); }
     if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=off || !_ilqSubShown(q,a); }
   });
@@ -1397,6 +2028,23 @@ function _ilqSyncVisibility(){
     else if(kind==='dsel') on=!!v && v!=='Yes';
     row.classList.toggle('is-changed', on && !row.hidden);
   });
+  _ilqSyncDefaults(a,ro);
+}
+// "DEFAULT" tag (left of the control) on every shown question still at its untouched default
+// (ilInvestDefaultKeys) + the row's amber .is-default mark, plus the hint pill in the field header
+// (#ilqDefHint) while any tag is shown.
+function _ilqSyncDefaults(a,ro){
+  var keys=ilInvestDefaultKeys(_ilqDecided, a, ro), any=false;
+  _ilqAllDefs().forEach(function(d){
+    var tag=document.getElementById('ilqd_'+d.key); if(!tag) return;
+    var on=keys.indexOf(d.key)>=0 && !_ilqHasOld(d.key), ctl=_ilqCb(d.key)||_ilqEl(d.key);
+    tag.hidden=!on;
+    var row=document.querySelector('[data-ilq-row="'+d.key+'"]');
+    if(row) row.classList.toggle('is-default', on && !row.classList.contains('is-changed'));
+    if(ctl){ if(on) ctl.setAttribute('aria-describedby','ilqds_'+d.key); else if(ctl.getAttribute('aria-describedby')==='ilqds_'+d.key) ctl.removeAttribute('aria-describedby'); }
+    if(on) any=true;
+  });
+  var h=document.getElementById('ilqDefHint'); if(h) h.hidden=!any;
 }
 // aria-invalid / visual state per control + the "n questions need an answer" status line.
 function _ilqUpdateValidity(){
@@ -1424,8 +2072,9 @@ function _ilqUpdateValidity(){
     st.hidden=!miss.length;
   }
 }
-// Any questionnaire control changed.
-function ilInvestChanged(){
+// Any questionnaire control changed (key = the control's question -> no longer DEFAULT).
+function ilInvestChanged(key){
+  if(key) _ilqDecided[key]=true;
   _ilqSyncVisibility();
   ilMarkEmpty(document.getElementById('ilPhdInvestigation'));
 }
@@ -1486,7 +2135,7 @@ function ilCopyMissingNow(opts){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   ilHistSync(); _ilhCapture();
   return ilCopyMissing({findings:g('ilPhdFindings'), sim:g('ilSimRcd'), histRows:_ilhRows, rootCause:g('ilRootCause'),
-    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd'))}, opts||{}));
+    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd')), pet:_ilPetNow()}, opts||{}));
 }
 // True when every field has a value (the questionnaire: every visible question answered).
 function ilAllFilled(){ return ilCopyMissingNow().length===0; }
@@ -1628,18 +2277,90 @@ async function copyIncidentDraft(){
   var btn=document.getElementById('incidentCopyFooterBtn');
   if(ilSimResPending()){ _ileToast('Resolve the PENDING resolution before copying'); return; }
   var go=function(){ return _ilCopyText(buildIncidentOutput({copy:true}), btn, 'Copied'); };
-  var miss=ilCopyMissingNow();
-  if(miss.length){ ilCopyConfirm(miss, btn, go); return; }
-  await go();
+  var check=function(){
+    var miss=ilCopyMissingNow();
+    if(miss.length){ ilCopyConfirm(miss, btn, go); return; }
+    return go();
+  };
+  // No severity -> the "Select a severity" pop-up first; then the empty-fields check as before.
+  if(!ilGetSeverity()){ ilSevConfirm(btn, check); return; }
+  await check();
 }
 // Same as Copy, but omits the SIM Root Cause Details section (so SIM is not required).
 async function copyIncidentNoRc(btn){
   btn=btn||document.getElementById('incidentCopyNoRcBtn');
   if(ilSimResPending()){ _ileToast('Resolve the PENDING resolution before copying'); return; }
   var go=function(){ return _ilCopyText(buildIncidentOutput({omitSim:true, copy:true}), btn, 'Copied (no RC)'); };
-  var miss=ilCopyMissingNow({omitSim:true});
-  if(miss.length){ ilCopyConfirm(miss, btn, go); return; }
-  await go();
+  var check=function(){
+    var miss=ilCopyMissingNow({omitSim:true});
+    if(miss.length){ ilCopyConfirm(miss, btn, go); return; }
+    return go();
+  };
+  if(!ilGetSeverity()){ ilSevConfirm(btn, check); return; }
+  await check();
+}
+// ---- "Select a severity" pop-up (footer copies with no severity chosen) ----
+var _ilsvState=null;   // {opener, onGo} while open
+function _ilsvBuild(){
+  var bg=document.getElementById('ilSevConfirm'); if(bg) return bg;
+  bg=document.createElement('div'); bg.id='ilSevConfirm'; bg.className='ilc-bg'; bg.hidden=true;
+  bg.innerHTML='<div class="ilc-dlg ils-dlg" role="alertdialog" aria-modal="true" aria-labelledby="ilSevConfirmTitle" aria-describedby="ilSevConfirmDesc">'+
+      '<h3 class="ilc-title" id="ilSevConfirmTitle">Select a severity</h3>'+
+      '<div class="ilc-body"><p class="ilc-q" id="ilSevConfirmDesc">You should select a severity # before copying. If not, continue with the default Sev 5.</p></div>'+
+      '<div class="ilc-actions">'+
+        '<button type="button" class="ilc-btn sec" id="ilSevConfirmPick">Select severity</button>'+
+        '<button type="button" class="ilc-btn go" id="ilSevConfirmGo">Continue with Sev 5</button>'+
+      '</div>'+
+    '</div>';
+  (document.getElementById('incidentModal')||document.body).appendChild(bg);
+  document.getElementById('ilSevConfirmPick').addEventListener('click',function(){ ilSevConfirmClose(false); });
+  document.getElementById('ilSevConfirmGo').addEventListener('click',function(){ ilSevConfirmClose(true); });
+  bg.addEventListener('click',function(e){ e.stopPropagation(); });   // never reach the editor's backdrop-close
+  window.addEventListener('keydown',_ilsvKeydown,true);
+  return bg;
+}
+function _ilsvKeydown(e){
+  if(!_ilsvState) return;
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); ilSevConfirmClose(null); return; }
+  if(e.key!=='Tab') return;
+  e.stopPropagation();
+  var dlg=document.querySelector('#ilSevConfirm .ilc-dlg');
+  var f=Array.prototype.filter.call(dlg.querySelectorAll('button'),function(el){ return !el.disabled && el.offsetParent!==null; });
+  if(!f.length){ e.preventDefault(); return; }
+  var first=f[0], last=f[f.length-1], a=document.activeElement;
+  if(!dlg.contains(a)){ e.preventDefault(); first.focus(); }
+  else if(e.shiftKey && a===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && a===last){ e.preventDefault(); first.focus(); }
+}
+// onGo runs after "Continue with Sev 5" (Severity set to 5 first).
+function ilSevConfirm(opener,onGo){
+  var bg=_ilsvBuild();
+  _ilsvState={opener:opener||document.activeElement, onGo:onGo};
+  bg.hidden=false;
+  try{ document.getElementById('ilSevConfirmGo').focus(); }catch(e){}
+}
+// go=true: Sev 5 + copy; go=false ("Select severity"): jump to the Severity row, no copy;
+// go=null (Esc): cancel, focus back to the opener.
+function ilSevConfirmClose(go){
+  var st=_ilsvState; if(!st) return;
+  _ilsvState=null;
+  var bg=document.getElementById('ilSevConfirm'); if(bg) bg.hidden=true;
+  if(go){
+    ilSetSeverity('5');
+    if(st.opener && st.opener.focus) try{ st.opener.focus(); }catch(e){}
+    Promise.resolve(st.onGo && st.onGo());
+    return;
+  }
+  if(go===false){
+    var fld=document.getElementById('ilSevField'), b=document.querySelector('#ilSevGroup .ail-qnb');
+    if(fld){
+      _ilSevNeed=true; _ilSevRender();
+      try{ fld.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){ try{ fld.scrollIntoView(); }catch(_){} }
+      fld.classList.add('ail-flash'); setTimeout(function(){ fld.classList.remove('ail-flash'); },1800);
+      if(b) try{ b.focus({preventScroll:true}); return; }catch(e){}
+    }
+  }
+  if(st.opener && st.opener.focus) try{ st.opener.focus(); }catch(e){}
 }
 // ---- "Some fields are empty" confirmation (alertdialog on top of the incident-log modal) ----
 var _ilcState=null;   // {opener, onCopy, first} while the pop-up is open
@@ -1848,24 +2569,29 @@ var IncidentLogEditor=(function(){
       '</div>'+old;
     }
     if(kind==='dsel')
-      return '<select id="'+id+'" class="ail-qctl ail-qinp ail-qsel" aria-label="'+lbl+': answer"'+req+' onchange="ilInvestChanged()">'+
+      return '<select id="'+id+'" class="ail-qctl ail-qinp ail-qsel" aria-label="'+lbl+': answer"'+req+' onchange="ilInvestChanged(\''+k+'\')">'+
         def.opts.map(function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o===IL_POI_CM?'Community Member':o)+'</option>'; }).join('')+'</select>';
     if(kind==='cbsel')
       return '<span class="ail-qstate" id="ilqs_'+k+'" aria-hidden="true">No</span>'+
-        '<div class="ail-qrev" id="ilqv_'+k+'" hidden><select id="'+id+'" class="ail-qctl ail-qinp ail-qsel" aria-label="'+lbl+': answer" onchange="ilInvestChanged()">'+
+        '<div class="ail-qrev" id="ilqv_'+k+'" hidden><select id="'+id+'" class="ail-qctl ail-qinp ail-qsel" aria-label="'+lbl+': answer" onchange="ilInvestChanged(\''+k+'\')">'+
         def.opts.filter(function(o){ return o!=='No'; }).map(function(o){ return '<option value="'+_ileEsc(o)+'">'+_ileEsc(o)+'</option>'; }).join('')+'</select></div>';
     if(def.type==='textarea')
-      return '<textarea id="'+id+'" class="ail-qctl ail-qinp ail-qta" rows="'+(def.rows||5)+'" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged()"></textarea>';
-    return '<input type="'+(def.inputType||'text')+'" id="'+id+'" class="ail-qctl ail-qinp" autocomplete="off" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged()">';
+      return '<textarea id="'+id+'" class="ail-qctl ail-qinp ail-qta" rows="'+(def.rows||5)+'" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged(\''+k+'\')"></textarea>';
+    return '<input type="'+(def.inputType||'text')+'" id="'+id+'" class="ail-qctl ail-qinp" autocomplete="off" placeholder="'+_ileEsc(def.placeholder||'')+'"'+req+' oninput="ilInvestChanged(\''+k+'\')">';
   }
   // Row = [checkbox][label][controls]. Text sub-fields have no checkbox (empty lead cell).
+  // Defaultable rows (_ilqDefaultable) start the controls with the "DEFAULT" pill (ilqd_<key>,
+  // aria-hidden) and have a hidden "default value, not changed" text (ilqds_<key>) that
+  // _ilqSyncDefaults links to the row's control with aria-describedby while the pill is shown.
   function qRow(def,isSub){
     var k=def.key, kind=_ilqKind(def), plain=(kind==='text'||kind==='dsel'), lead=plain
       ? '<span class="ail-qlead" aria-hidden="true"></span>'
       : '<span class="ail-qlead"><input type="checkbox" id="ilqc_'+k+'" class="ail-qctl ail-qcb" onchange="ilqToggle(\''+k+'\')"></span>';
+    var dflt=_ilqDefaultable(def);
     return '<div class="ail-qrow'+(isSub?' ail-qsub':'')+(kind==='text'?' ail-qrow-txt':'')+(def.type==='textarea'?' ail-qrow-ta':'')+'" data-ilq-row="'+k+'"'+(isSub?' hidden':'')+'>'+
-      lead+'<label class="ail-qlabel" for="'+(plain?'ilq_':'ilqc_')+k+'">'+_ileEsc(def.label)+(def.optional?' <span class="ail-qopt">(optional)</span>':'')+'</label>'+
-      '<div class="ail-qctls">'+qControl(def,kind)+'</div></div>';
+      lead+'<label class="ail-qlabel" for="'+(plain?'ilq_':'ilqc_')+k+'">'+_ileEsc(def.label)+(def.optional?' <span class="ail-qopt">(optional)</span>':'')+
+        (dflt?'<span id="ilqds_'+k+'" hidden>default value, not changed</span>':'')+'</label>'+
+      '<div class="ail-qctls">'+(dflt?'<span class="ail-qdef" id="ilqd_'+k+'" aria-hidden="true" title="Default value - not changed yet" hidden>Default</span>':'')+qControl(def,kind)+'</div></div>';
   }
   function investigationField(){
     var id='ilPhdInvestigation', label='PHD Investigation for mitigation';
@@ -1874,6 +2600,9 @@ var IncidentLogEditor=(function(){
     }).join('');
     return '<div class="ail-field" data-ilfield>'+
       '<div class="ail-flabel"><span class="ail-flabel-tx" id="ilPhdInvestigationLbl">'+label+'</span> <span class="ail-empty-dot">Empty</span>'+
+        // DEFAULT hint pill: in the header, right side, just left of the pencil / copy icons (plain
+        // spans in the header <div>, no handler, so a click on it does nothing).
+        '<span class="ail-qn-defhint" id="ilqDefHint" title="DEFAULT = not changed yet. Please confirm these values." hidden><span class="ail-qdef">Default</span><span class="ail-qn-defhint-tx">= not changed yet. Please confirm these values.</span></span>'+
         '<button type="button" class="ail-fedit" data-for="'+id+'" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit '+label+'" style="display:none"></button>'+
         '<button type="button" class="ail-fcopy" data-for="'+id+'" data-label="'+label+'" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy '+label+'"></button></div>'+
       '<div id="'+id+'" class="ail-qn" role="group" aria-labelledby="ilPhdInvestigationLbl" aria-describedby="ilqStatus">'+rows+'</div>'+
@@ -1937,19 +2666,34 @@ var IncidentLogEditor=(function(){
       '<div class="ail-hist" id="ilHist" role="group" aria-labelledby="ilHistTitle" hidden></div>'+
     '</div>';
   }
+  // Severity row: not a data-ilfield (no Empty marker / copy icon). .ail-qn wrapper = the shared
+  // .ail-qnb button look (frame removed by .ail-sevbox). State: ilSevPick / _ilSevRender.
+  function sevField(){
+    var btns=''; for(var n=1;n<=5;n++) btns+='<button type="button" class="ail-qnb" data-n="'+n+'" aria-pressed="false" aria-label="Severity '+n+'" onclick="ilSevPick('+n+')">'+n+'</button>';
+    return '<div class="ail-field ail-field-inline ail-sev" id="ilSevField">'+
+      '<div class="ail-flabel"><span class="ail-flabel-tx" id="ilSevLbl">Severity</span>'+
+        '<span class="ail-qdef ail-sev-hint" id="ilSevHint" hidden>Select a severity</span></div>'+
+      '<div class="ail-qn ail-sevbox"><div class="ail-qnums" id="ilSevGroup" role="group" aria-labelledby="ilSevLbl">'+btns+'</div></div>'+
+    '</div>';
+  }
   function markupHtml(){
     return '<div class="modal-bg ail-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">'+
       '<div class="modal ail-modal" role="dialog" aria-modal="true" aria-labelledby="incidentTitle">'+
         '<div class="ail-head">'+
           '<span class="ail-head-ic" id="ailHeadIc"></span>'+
           '<div class="ail-head-tx"><h2 id="incidentTitle"><span id="incidentTitleText">Add incident log</span><button type="button" class="ail-idcopy" id="incidentIdCopyBtn" onclick="copyIncidentTicketId(this)" title="Copy ticket ID" aria-label="Copy ticket ID" style="display:none"></button></h2><span class="ail-head-sub">Structured PHD findings &amp; mitigation, saved to this ticket\'s log</span></div>'+
+          // Whole-log Import (same look as the SIM Import button), left of the page's head flags.
+          '<button type="button" class="ail-simimp ail-logimp" id="ilLogImportBtn" onclick="ilLogImportOpen(this)" title="Import the full incident log from pasted text" aria-haspopup="dialog" aria-label="Import the full incident log"><span class="ail-simimp-tx">Import</span></button>'+
           '<span class="mtc-icons ail-head-flags" id="ailHeadFlags"></span>'+
           '<button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>'+
         '</div>'+
         '<div class="ail-body">'+
+          '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
           // Display order (= copy / save order): Root Cause, SIM Root Cause Details, PHD Investigation,
           // PHD Findings, PHD Notes. PHD Related Link (hidden input, filled by the page with the ticket
           // URL) and PHD Resolution (the SIM "Res:" value) are not shown but are in every copy / save.
+          // Severity (above Root Cause, same side-by-side layout): buttons 1..5 like the SIM "Cnt" ones.
+          sevField()+
           // Root Cause: label and dropdown side by side (.ail-field-inline).
           field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>').replace('class="ail-field"','class="ail-field ail-field-inline"')+
           simField()+
@@ -2011,6 +2755,18 @@ var IncidentLogEditor=(function(){
     // State tag: Yes / No of a Yes/No row; "No" / "0" of an unchecked dropdown / number row.
     '.ail-qstate{font-size:.74em;font-weight:700;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:2px 10px;line-height:1.4}',
     '.ail-qstate.is-yes{color:#1f2a40;background:#fff3e8;border-color:#f7c99c}',
+    // "DEFAULT" highlight mark (amber) left of an untouched control + the hint pill in the field
+    // header (same colour family). A row still at its default gets a subtle amber left mark
+    // (.is-default, set by _ilqSyncDefaults); a changed row never has it (orange .is-changed wins).
+    '.ail-qdef{display:inline-block;font-size:.64em;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#7a4b00;background:#fff3c4;border:1px solid #f2c94c;border-radius:4px;padding:1px 6px;line-height:1.5;white-space:nowrap;cursor:default}',
+    '.ail-qdef[hidden],.ail-qn-defhint[hidden]{display:none!important}',
+    // Hint pill in the PHD Investigation header: pushed right, the copy icon then follows it directly.
+    '.ail-flabel>.ail-qn-defhint{display:inline-flex;align-items:center;gap:5px;margin:0 0 0 auto;min-width:0;max-width:60%;flex:0 1 auto;overflow:hidden;white-space:nowrap;font-size:.92em;font-weight:600;line-height:1.4;color:#7a4b00;background:none;border:0;border-radius:0;padding:0;cursor:default;user-select:none}',
+    '.ail-qn-defhint .ail-qdef{flex:0 0 auto;font-size:.84em}',
+    '.ail-qn-defhint-tx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.ail-flabel>.ail-qn-defhint:not([hidden])~.ail-fcopy{margin-left:0}',
+    '@media (max-width:640px){.ail-flabel:has(>.ail-qn-defhint:not([hidden])){flex-wrap:wrap}.ail-flabel>.ail-qn-defhint{order:10;max-width:100%;margin-left:0;white-space:normal;border-radius:10px}.ail-qn-defhint-tx{white-space:normal}.ail-flabel>.ail-qn-defhint:not([hidden])~.ail-fcopy{margin-left:auto}}',
+    '.ail-qrow.is-default:not(.is-changed){box-shadow:inset 3px 0 0 #f2c94c;border-radius:6px;padding-left:8px;padding-right:8px;margin:0 -8px}',
     // Row whose answer differs from the default (Yes, a number above 0, a CLEAR / POI change).
     '.ail-qrow.is-changed{background:#fff8f1;box-shadow:inset 3px 0 0 #ec7211;border-radius:6px;padding-left:8px;padding-right:8px;margin:0 -8px}',
     '.ail-qrow.is-changed .ail-qlabel{font-weight:700}',
@@ -2093,6 +2849,16 @@ var IncidentLogEditor=(function(){
     '.ail-field.ail-field-inline>.ail-flabel{margin-bottom:0;flex-wrap:wrap}',
     '.ail-field.ail-field-inline>:not(.ail-flabel){min-width:0}',
     '@media (max-width:640px){.ail-field.ail-field-inline{grid-template-columns:minmax(0,1fr)}}',
+    // Severity row (above Root Cause): buttons 1..5 (.ail-qnb look), no frame around them. Chosen =
+    // orange .is-changed (same as a filled SIM row); missing after an Import = amber mark + hint.
+    // #incidentModal-prefixed copies win over My Tickets' "#incidentModal .ail-field" card rule.
+    '.ail-field.ail-sev{padding:6px 8px;border-radius:6px}',
+    '.ail-qn.ail-sevbox{border:0;border-radius:0;background:transparent;padding:0}',
+    '.ail-field.ail-sev.is-changed,#incidentModal .ail-field.ail-sev.is-changed{background:#fff8f1;box-shadow:inset 3px 0 0 #ec7211}',
+    '.ail-field.ail-sev.is-changed .ail-flabel-tx{font-weight:800}',
+    '.ail-field.ail-sev.is-needed,#incidentModal .ail-field.ail-sev.is-needed{background:#fffbea;box-shadow:inset 3px 0 0 #f2c94c}',
+    '.ail-sev-hint{font-size:.84em;text-transform:none;letter-spacing:0}',
+    '.ail-sev-hint[hidden]{display:none!important}',
     // One field per row, one below the other: [label] [control] (label above the control when narrow).
     '.ail-sgrid{display:flex;flex-direction:column}',
     '.ail-scell{min-width:0;display:grid;grid-template-columns:200px minmax(0,1fr);gap:4px 14px;align-items:center;padding:8px 0;border-top:1px solid #eef1f4;border-radius:5px}',
@@ -2149,6 +2915,13 @@ var IncidentLogEditor=(function(){
     '.ils-hint{margin:8px 0 0;font-size:.8em;color:#5c6773}',
     '.ils-err{margin:6px 0 0;font-size:.82em;font-weight:600;color:#b42318}',
     '.ils-err[hidden]{display:none}',
+    // Whole-log Import: header button, "Replace existing PHD Notes" option, summary line.
+    '.ail-head .ail-simimp.ail-logimp{margin-left:0;margin-top:1px;font-size:.8em}',
+    '.ilfi-rep{display:inline-flex;align-items:center;gap:7px;margin:10px 0 0;font-size:.85em;font-weight:600;color:#1b2026;cursor:pointer}',
+    '.ilfi-rep input{width:16px;height:16px;margin:0;accent-color:#ec7211;cursor:pointer}',
+    '.ilfi-rep input:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ilfi-rep[hidden],.ail-log-status[hidden]{display:none!important}',
+    '.ail-log-status{margin:0 0 12px;font-size:.8em;font-weight:600;color:#1f6f43}',
     '@media (prefers-reduced-motion:reduce){.ail-qsub,.ail-qrev{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
   ].join('\n');
   function injectQnStyles(){
@@ -2326,4 +3099,10 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilResFromSim:ilResFromSim, ilTicketCountry:ilTicketCountry, ilIsUsCa:ilIsUsCa, ilRegionKeptLines:ilRegionKeptLines,
   ilFieldCopyText:ilFieldCopyText, IL_SIM_FIELDS:IL_SIM_FIELDS, IL_SIM_DRIV:IL_SIM_DRIV, ilParseSim:ilParseSim,
   ilSerializeSim:ilSerializeSim, ilSimImport:ilSimImport, ilSimParseDate:ilSimParseDate, ilSimFmtDate:ilSimFmtDate, ilSimDriv:ilSimDriv,
-  IL_SIM_HI_MAX:IL_SIM_HI_MAX, ilSimHiCount:ilSimHiCount, ilSimHiMissing:ilSimHiMissing };
+  IL_SIM_HI_MAX:IL_SIM_HI_MAX, ilSimHiCount:ilSimHiCount, ilSimHiMissing:ilSimHiMissing,
+  ilParseFullLog:ilParseFullLog, ilFullLogSummary:ilFullLogSummary,
+  ilInvestDecidedFromSaved:ilInvestDecidedFromSaved, ilInvestDefaultKeys:ilInvestDefaultKeys,
+  ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilCopyNotes:ilCopyNotes,
+  ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
+  ilSetTicketRegion:ilSetTicketRegion, ilSetSavedSeverity:ilSetSavedSeverity, ilGetSeverity:ilGetSeverity,
+  ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue };

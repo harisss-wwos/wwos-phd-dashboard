@@ -27,294 +27,122 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
-<style id="eir-light">
-/* Errors in Resolved — "audit ledger": dark slate hero with an orange rule, KPI cards that overlap it,
-   then white ledger cards. Everything is scoped under .eir (a size container for the responsive grids). */
+<style id="re-light">
+/* Errors in Resolved (the 7 BLR / AZA team members): the Sanitization Tracker's design - navy hero with
+   an orange rule, KPI cards overlapping it, one card per resolver (+ Others), then the picked card's
+   tickets with errors (score below 11/11). Data: GET /api/resolved-errors. Scoped under .st. */
 #wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
-.eir{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
-  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
-.eir button{font:inherit;text-transform:none}
-.eir :is(button,a,input):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.eir-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.st{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.st button{font-family:inherit;line-height:inherit;text-transform:none}
+.st :is(button,a,[tabindex],summary):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---- Hero ---- */
-.eir-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+.st-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
   background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
   box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
-.eir-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+.st-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
   background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
   background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
-.eir-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
-.eir-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
-.eir-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
-.eir-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+.st-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.st-hero.is-gate{padding-bottom:28px}
+.st-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.st-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.st-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
   background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
-.eir-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
-.eir-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
-.eir-hero-sub{margin-top:9px;max-width:62ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
-.eir-meta{display:grid;grid-template-columns:repeat(2,minmax(0,auto));gap:10px 26px;margin:0;padding:13px 16px;border-radius:10px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);max-width:100%}
-.eir-meta dt{font-size:.64em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
-.eir-meta dd{margin:3px 0 0;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.eir-meta .eir-meta-file,.eir-meta .eir-meta-wide{grid-column:1/-1}
-.eir-meta-box{max-width:100%;display:flex;flex-direction:column;gap:8px}
-.eir-meta-file dd{display:flex;gap:8px;align-items:center;font-size:.92em}
-.eir-meta-file dd svg{flex-shrink:0;color:#ffb26b}
-.eir-meta-none{font-size:.86em;font-weight:700;color:rgba(233,237,243,.85);padding:12px 16px;border-radius:10px;border:1px dashed rgba(255,255,255,.25)}
-.eir-hero-warn{max-width:46ch;padding:7px 10px;border-radius:7px;background:rgba(245,166,35,.16);border:1px solid rgba(245,166,35,.45);color:#ffd59a;font-size:.8em;font-weight:700;line-height:1.45}
+.st-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.st-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.st-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+@media (min-width:1100px){.st-hero-sub{max-width:none;white-space:nowrap}}
+.st-meta-k{font-size:.62em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
+.st-meta-v{display:inline-flex;align-items:center;gap:7px;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
+.st-meta-v svg{color:#ffb26b;flex-shrink:0}
+.st-hero-asof{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;min-height:40px;padding:9px 16px;border-radius:10px;margin-left:auto;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18)}
+@container (max-width:560px){
+  .st-hero{padding:20px 18px 72px 22px}
+  .st-hero h1{font-size:1.65em}
+  .st-hero-ic{width:40px;height:40px}
+  .st-hero-main{flex-basis:100%}
+  .st-hero-asof{margin-left:0}
+}
 
 /* ---- KPI row (overlaps the hero) ---- */
-.eir-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
-@container (min-width:520px){.eir-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@container (min-width:900px){.eir-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.eir-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+.st-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px;padding:0;list-style:none}
+@container (min-width:420px){.st-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.st-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (max-width:560px){.st-kpis{margin:-54px 10px 14px}}
+.st-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
   box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
-.eir-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
-.eir-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
-.eir-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
-.eir-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
-.eir-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
-.eir-kpi-s b{color:var(--ink);font-weight:800}
-.eir-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
-.eir-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
-.eir-kpi.is-base{--k:#1f2a40}
-.eir-kpi.is-bad{--k:#d92d20}.eir-kpi.is-bad .eir-kpi-v{color:var(--red)}.eir-kpi.is-bad .eir-kpi-ic{background:var(--red-bg);color:var(--red)}
-.eir-kpi.is-warn{--k:var(--acc)}.eir-kpi.is-warn .eir-kpi-ic{background:var(--acc-bg);color:#b5530a}
-.eir-kpi.is-good{--k:#1f9d57}.eir-kpi.is-good .eir-kpi-v{color:var(--grn)}.eir-kpi.is-good .eir-kpi-ic{background:var(--grn-bg);color:var(--grn)}
+.st-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.st-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.st-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.st-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.st-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.st-kpi.is-base{--k:#1f2a40}.st-kpi.is-base .st-kpi-ic{background:var(--blue-bg);color:var(--blue)}
+.st-kpi.is-ok{--k:#22a35a}.st-kpi.is-ok .st-kpi-v{color:var(--grn)}.st-kpi.is-ok .st-kpi-ic{background:var(--grn-bg);color:var(--grn)}
+.st-kpi.is-bad{--k:#d92d20}.st-kpi.is-bad .st-kpi-v{color:var(--red)}.st-kpi.is-bad .st-kpi-ic{background:var(--red-bg);color:var(--red)}
+.st-kpi.is-acc{--k:var(--acc)}.st-kpi.is-acc .st-kpi-ic{background:var(--acc-bg);color:#b5530a}
+.st-kpi.is-na .st-kpi-v{color:#a0a8b1}
 
-/* ---- Scope strip ---- */
-.eir-scope{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);
-  border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18)}
-.eir-scope-lead{display:flex;gap:12px;align-items:flex-start;flex:1 1 360px;min-width:0}
-.eir-scope-ic{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:#e9f0fb;color:#1f4f9a}
-.eir-scope-h{font-size:.68em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important;margin-bottom:3px}
-.eir-scope-p{font-size:.92em;font-weight:600;line-height:1.5;color:#2a3340}
-.eir-scope-p b{color:var(--ink);font-weight:800}
-.eir-ign{display:flex;flex-wrap:wrap;align-items:center;gap:6px;list-style:none;margin:0;padding:0}
-.eir-ign-k{font-size:.68em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);margin-right:4px}
-.eir-ign-c{display:inline-flex;align-items:center;gap:7px;padding:4px 5px 4px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.8em;font-weight:700;color:#3a4552;white-space:nowrap}
-.eir-ign-c b{min-width:24px;text-align:center;padding:1px 7px;border-radius:99px;background:#fff;border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+/* ---- Section cards ---- */
+.st-sec{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px;overflow:hidden}
+.st-sec-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.st-sec-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.st-sec-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-sec-t{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)!important}
+.st-sec-d{font-size:.82em;font-weight:500;color:var(--mut);line-height:1.4}
+.st-sec-b{padding:16px 20px 18px}
+@container (max-width:640px){.st-sec-h{padding:14px}.st-sec-b{padding:14px}}
+.st-empty{padding:18px;text-align:center;color:var(--mut);font-size:.9em;border:1px dashed #d4dade;border-radius:10px}
+.st-err{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border-radius:10px;background:var(--red-bg);border:1px solid #f5c2c2;color:#8a1c12;font-weight:700;font-size:.9em}
+.st-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid #161d2d;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;text-decoration:none}
+.st-btn:hover{background:#0f1420}
+.st-btn.is-ghost{background:#fff;border-color:#d4dade;color:#2a3340}
+.st-btn.is-ghost:hover{border-color:var(--acc);color:var(--acc-ink)}
 
-/* ---- Generic card ---- */
-.eir-card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;margin-bottom:16px}
-.eir-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 18px;flex-wrap:wrap;margin-bottom:16px}
-.eir-card-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
-.eir-help{margin-top:5px;font-size:.86em;color:var(--mut);line-height:1.5;max-width:72ch}
-.eir-mode{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
-  background:var(--acc-bg);color:var(--acc-ink);border:1px solid #f7c99c;white-space:nowrap}
-.eir-mode.is-view{background:#eef1f4;color:#3a4552;border-color:#d4dade}
-.eir-err{color:var(--red);font-size:.86em;font-weight:700;margin-top:12px}
-.eir-err:empty{display:none}
+/* ---- Resolver cards: 8 equal cards in one row; 4 / 2 / 1 columns on narrower widths ---- */
+.st-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n,8),minmax(0,1fr));gap:10px}
+@container (max-width:1180px){.st-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (max-width:720px){.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:440px){.st-grid{grid-template-columns:minmax(0,1fr)}}
+.st-card{width:100%;height:100%;display:flex;flex-direction:column;gap:9px;padding:12px 12px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.st-card:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,114,17,.12)}
+.st-card[aria-pressed="true"]{border-color:var(--acc);background:#fff8f1;box-shadow:0 0 0 3px rgba(236,114,17,.24)}
+/* The login never shrinks to nothing: on narrow cards the 'Selected' pill wraps under it instead. */
+.st-card-top{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;width:100%;min-width:0}
+.st-card-who{flex:0 1 auto;max-width:100%;min-width:0;font-size:1.02em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-card-grp{flex-shrink:0;padding:1px 7px;border-radius:99px;background:var(--blue-bg);color:#1f4f99;font-size:.66em;font-weight:800;letter-spacing:.6px}
+.st-card-sel{display:none;flex-shrink:0;align-items:center;gap:4px;margin-left:auto;padding:2px 8px;border-radius:99px;background:var(--acc);color:#fff;font-size:.68em;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.st-card[aria-pressed="true"] .st-card-sel{display:inline-flex}
+.st-card-cnt{display:block;width:100%;white-space:normal;font-size:.74em;font-weight:700;line-height:1.5;color:#2a3340;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
+.st-card-cnt>span{white-space:nowrap}
+.st-card-cnt b{font-weight:800}
+.st-card-cnt .is-bad{color:#a61b1b}
+.st-card-cnt i{font-style:normal;color:#a0a8b1}
+.st-card-rate{display:flex;align-items:center;gap:8px;width:100%}
+.st-bar{flex:1 1 auto;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.st-bar span{display:block;height:100%;border-radius:99px;background:hsl(var(--sc-h),68%,46%)}
+.st-card-rate b{flex-shrink:0;text-align:right;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-/* ---- Checks ---- */
-.eir-chk-head{flex-wrap:nowrap;align-items:center;gap:8px 14px}
-.eir-chk-head.is-shut{margin-bottom:0}
-.eir-chk-head h2{flex:0 0 auto;margin:0}
-.eir-chk-exp{display:inline-flex;align-items:center;gap:10px;margin:-4px -6px;padding:4px 8px 4px 6px;border:none;border-radius:8px;background:none;color:var(--ink);cursor:pointer;white-space:nowrap}
-.eir-chk-exp:hover{background:#fafbfc}
-.eir-chk-exp:hover .eir-chev{background:#e6f0fc;color:#2b66c1}
-.eir-chk-exp[aria-expanded="true"] .eir-chev svg{transform:rotate(90deg)}
-.eir-chk-sum{font-size:.66em;font-weight:700;letter-spacing:0;color:var(--mut);font-variant-numeric:tabular-nums}
-.eir-chk-sum b{color:var(--ink);font-weight:800}
-.eir-chk-sum .is-e{color:var(--red)}
-.eir-help-1{flex:1 1 auto;min-width:0;margin:0;font-size:.84em;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.eir-chk-head .eir-fchip,.eir-chk-head .eir-mode{flex-shrink:0}
-@container (max-width:700px){.eir-chk-head{flex-wrap:wrap}.eir-help-1{order:5;flex-basis:100%}}
-.eir-grp+.eir-grp{margin-top:18px}
-.eir-grp-h{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.7em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important}
-.eir-grp-h::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
-.eir-grp-h span{font-weight:700;letter-spacing:.4px;text-transform:none;color:#8793a0}
-.eir-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
-@container (min-width:560px){.eir-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@container (min-width:980px){.eir-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@container (min-width:1100px){.eir-grid.is-5{grid-template-columns:repeat(5,minmax(0,1fr))}}
-@container (min-width:980px){.eir-grid.is-6{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.eir-chk{position:relative;display:flex;flex-direction:column;gap:11px;padding:14px 14px 13px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;
-  transition:border-color .15s,box-shadow .15s}
-.eir-chk::before{content:'';position:absolute;left:-1px;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
-.eir-chk:hover{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
-.eir-chk.is-filter{border-color:var(--c);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
-.eir-chk-top{position:relative;display:flex;align-items:flex-start;gap:11px;cursor:pointer}
-.eir-sw-in{position:absolute;left:0;top:0;width:36px;height:20px;margin:0;opacity:0;cursor:pointer}
-.eir-sw{position:relative;flex-shrink:0;width:36px;height:20px;margin-top:1px;border-radius:99px;background:#c9d0d8;transition:background .15s}
-.eir-sw::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.28);transition:transform .15s}
-.eir-sw-in:checked+.eir-sw{background:var(--acc)}
-.eir-sw-in:checked+.eir-sw::after{transform:translateX(16px)}
-.eir-sw-in:focus-visible+.eir-sw{outline:3px solid var(--focus);outline-offset:2px}
-.eir-sw-in:disabled+.eir-sw{opacity:.5}
-.eir-chk-txt{flex:1 1 auto;min-width:0}
-.eir-chk-lbl{display:block;font-size:.95em;font-weight:800;line-height:1.25;color:var(--ink)}
-.eir-chk-desc{display:block;margin-top:3px;font-size:.78em;line-height:1.4;color:var(--mut)}
-.eir-code{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:5px;background:var(--soft);border:1px solid var(--line);
-  font-size:.7em;font-weight:800;letter-spacing:.4px;color:#3a4552;font-variant-numeric:tabular-nums}
-.eir-code::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--c)}
-.eir-chk-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:auto}
-.eir-cnt{display:inline-flex;align-items:baseline;gap:6px;margin:-3px -7px;padding:3px 7px;border:none;border-radius:7px;background:none;color:var(--red);cursor:pointer;transition:background .15s}
-.eir-cnt b{font-size:1.65em;font-weight:800;letter-spacing:-.6px;line-height:1;font-variant-numeric:tabular-nums}
-.eir-cnt span{font-size:.76em;font-weight:700;color:var(--mut)}
-.eir-cnt:hover:not(:disabled){background:var(--red-bg)}
-.eir-cnt[aria-pressed="true"]{background:var(--red-bg);box-shadow:inset 0 0 0 1px #f2b8b1}
-.eir-cnt:disabled{cursor:default}
-.eir-cnt.is-zero,.eir-cnt.is-off{color:#8793a0}
-.eir-chk-pct{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:.76em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
-.eir-chk-foot>.eir-cnt{flex-shrink:0}
-.eir-bar{height:4px;border-radius:99px;background:#eef1f4;overflow:hidden}
-.eir-bar i{display:block;height:100%;border-radius:inherit;background:var(--c);transition:width .5s ease}
-.eir-chk-note{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:2px 8px;border-radius:99px;background:#eef1f4;font-size:.72em;font-weight:800;color:#5c6773}
-.eir-chk.is-off{background:#f8f9fa}
-.eir-chk.is-off::before,.eir-chk.is-hidden::before{background:#c9d0d8}
-.eir-chk.is-off .eir-chk-lbl,.eir-chk.is-off .eir-chk-desc{color:#8793a0}
-.eir-chk.is-locked .eir-chk-top,.eir-chk.is-locked .eir-sw-in{cursor:not-allowed}
-.eir-chk.is-hidden .eir-chk-lbl,.eir-chk.is-hidden .eir-cnt b{text-decoration:line-through;color:#8793a0}
-.eir-chk.is-hidden .eir-bar i{background:#c9d0d8}
-
-/* ---- Resolver list + filters ---- */
-.eir-list-head{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;margin-bottom:14px}
-.eir-list-head h2{font-size:1.2em;font-weight:800;letter-spacing:-.3px}
-.eir-count{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
-.eir-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;padding:10px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
-.eir-search{position:relative;flex:1 1 260px;max-width:440px}
-.eir-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8793a0;pointer-events:none}
-.eir-search input{width:100%;font:inherit;font-size:.9em;padding:8px 12px 8px 36px;border-radius:8px}
-.eir-tog{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.84em;font-weight:700;color:#3a4552;cursor:pointer;user-select:none}
-.eir-tog input{width:15px;height:15px;margin:0;accent-color:var(--acc);cursor:pointer}
-.eir-tog:has(input:checked){background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
-.eir-fchip{display:inline-flex;align-items:center;gap:7px;padding:6px 8px 6px 11px;border-radius:99px;border:1px solid #f2b8b1;background:var(--red-bg);color:var(--red);font-size:.82em;font-weight:800;cursor:pointer}
-.eir-fchip svg{flex-shrink:0}
-.eir-view{margin-left:auto;display:inline-flex;padding:3px;border-radius:9px;background:#e7eaee}
-.eir-view button{padding:6px 14px;border:none;border-radius:7px;background:none;font-size:.84em;font-weight:700;color:#5c6773;cursor:pointer}
-.eir-view button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,30,50,.18)}
-.eir-res{border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:8px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
-.eir-res.is-open{border-color:#cfd6dd;box-shadow:0 12px 26px -22px rgba(20,30,50,.6)}
-.eir-res-h{width:100%;display:flex;align-items:center;gap:12px;padding:10px 14px;border:none;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
-.eir-res-h:hover{background:#fafbfc}
-.eir-res.is-open .eir-res-h{background:#f7f8fa;border-bottom:1px solid var(--line)}
-.eir .eir-res-h:focus-visible{outline-offset:-3px}
-.eir-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;color:#818284}
-.eir-chev svg{transition:transform .15s}
-.eir-res-h[aria-expanded="true"] .eir-chev svg{transform:rotate(90deg)}
-.eir-res-h:hover .eir-chev{background:#e6f0fc;color:#2b66c1}
-.eir-av{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.86em;font-weight:800;
-  background:hsl(var(--h) 60% 92%);color:hsl(var(--h) 55% 28%);border:1px solid hsl(var(--h) 45% 82%)}
-.eir-res-id{flex:1 1 auto;min-width:0;display:flex;align-items:center}
-.eir-res-name{font-size:.96em;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.eir-phd-tag{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:5px;font-size:.66em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
-  color:#136b67;background:#d2f0ee;border:1px solid #9fd9d4;vertical-align:middle;cursor:default;flex-shrink:0}
-.eir-res-bar{flex:0 0 170px}
-.eir-res-track{display:block;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
-.eir-res-fill{display:flex;height:100%;border-radius:inherit;overflow:hidden}
-.eir-res-fill i{display:block;height:100%;background:var(--c)}
-.eir-res-stats{flex:0 0 auto;min-width:180px;display:flex;justify-content:flex-end;gap:16px;font-size:.82em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
-.eir-res-stats b{font-size:1.15em;font-weight:800;color:var(--ink)}
-.eir-res-stats .is-e b{color:var(--red)}
-@container (max-width:700px){.eir-res-bar{display:none}.eir-res-stats{min-width:0;flex-direction:column;align-items:flex-end;gap:0}}
-.eir-res-body{padding:12px 14px 14px}
-
-/* ---- Ticket table ---- */
-.eir-scroll{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:8px}
-.eir-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.86em}
-.eir-tbl th,.eir-tbl td{padding:9px 12px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle}
-.eir-tbl thead th{position:sticky;top:0;z-index:1;background:#f5f6f8;border-bottom:1px solid var(--line);font-size:.72em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap}
-.eir-tbl tbody tr:last-child td{border-bottom:none}
-.eir-tbl th.c,.eir-tbl td.c{width:46px;padding-left:6px;padding-right:6px;text-align:center;white-space:nowrap}
-.eir-tbl abbr{text-decoration:none;cursor:help}
-.eir-th-dot{display:block;width:14px;height:3px;margin:4px auto 0;border-radius:2px;background:var(--c)}
-.eir-tbl a{color:#2b66c1;font-weight:800;text-decoration:none;white-space:nowrap}
-.eir-tbl a:hover{text-decoration:underline}
-.eir-title{display:block;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#2a3340}
-@container (max-width:900px){.eir-title{max-width:220px}}
-.eir-who{display:inline-flex;align-items:center;white-space:nowrap;font-weight:700}
-.eir-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-weight:800}
-.eir-ic.ok{background:var(--grn-bg);color:var(--grn)}
-.eir-ic.x{background:var(--red-bg);color:#c0261a}
-.eir-ic.x.eir-struck{background:#f1f3f5;color:#a0a8b1}
-.eir-ic.na{width:auto;border-radius:0;color:#8793a0;font-weight:700;font-size:.9em}
-.eir-msgs{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:5px;min-width:300px}
-.eir-msg{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;border-radius:6px;background:#fdf1f0;border:1px solid #f6d3cf;color:#8f1d14;font-size:.92em;font-weight:600;line-height:1.35}
-.eir-msg b{padding:1px 5px;border-radius:4px;background:#fff;border:1px solid #f0d7d4;color:#3a4552;font-size:.84em;font-weight:800}
-.eir-from{color:var(--red);font-weight:700}
-.eir-to{color:var(--grn);font-weight:800}
-.eir-msg.eir-struck{background:#f4f5f7;border-color:var(--line);color:#a0a8b1;text-decoration:line-through}
-.eir-msg.eir-struck b,.eir-msg.eir-struck .eir-from,.eir-msg.eir-struck .eir-to{color:#a0a8b1}
-.eir-tbl td.eir-date{white-space:nowrap;font-variant-numeric:tabular-nums;color:#2a3340;font-weight:600}
-.eir-tbl tr.eir-row-muted td{opacity:.55}
-
-/* ---- Pagination (inside a resolver card / the All tickets view) ---- */
-.eir-pg{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin-top:10px}
-.eir-pg-info{font-size:.82em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
-.eir-pg-nav ul{display:flex;flex-wrap:wrap;align-items:center;gap:4px;list-style:none;margin:0;padding:0}
-.eir-pg-b{min-width:34px;height:32px;padding:0 10px;border:1px solid #d4dade;border-radius:7px;background:#fff;color:#3a4552;font-size:.84em;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
-.eir-pg-b:hover:not(:disabled){background:#f5f6f8;border-color:#c4ccd4}
-.eir-pg-b.is-cur{background:var(--acc);border-color:var(--acc);color:#fff;cursor:default}
-.eir-pg-b:disabled{opacity:.45;cursor:default}
-.eir-pg-gap{min-width:20px;text-align:center;color:var(--mut);font-weight:700}
-.eir-tbl tr.eir-row-muted .eir-title{text-decoration:line-through}
-
-/* ---- States ---- */
-.eir-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
-.eir-empty-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--grn-bg);color:var(--grn);margin-bottom:4px}
-.eir-empty-ic.is-err{background:var(--red-bg);color:var(--red)}
-.eir-empty-ic.is-mute{background:#eef1f4;color:#5c6773}
-.eir-empty-t{font-size:1.08em!important;font-weight:800;color:var(--ink)!important}
-.eir-empty p{font-size:.9em;max-width:52ch;line-height:1.5}
-.eir-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:6px;background:#161d2d;color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
-.eir-btn:hover{background:#0f1420}
-.eir-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:eirShim 1.4s ease infinite}
-.eir-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.16) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
-@keyframes eirShim{0%{background-position:100% 0}100%{background-position:0 0}}
-
-/* ---- Sections (three collapsible cards, each with KPIs, per-check counts and a resolver list) ---- */
-.eir-kpi.is-blue{--k:#2b66c1}.eir-kpi.is-blue .eir-kpi-ic{background:#e6f0fc;color:#2b66c1}
-.eir-scope-l{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:.86em;font-weight:600;color:#2a3340;line-height:1.45}
-.eir-scope-l b{color:var(--ink);font-weight:800}
-.eir-sec-n{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:var(--acc-bg);
-  border:1px solid #f7c99c;color:var(--acc-ink);font-size:.72em;font-weight:800;font-variant-numeric:tabular-nums}
-.eir-sec-body{margin-top:2px}
-.eir-sec-body[hidden]{display:none}
-.eir-skpis{margin:0 0 16px}
-@container (min-width:520px){.eir-skpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.eir-kpi.is-sm{box-shadow:none;padding:13px 16px 12px}
-.eir-kpi.is-sm .eir-kpi-v{margin-top:9px;font-size:1.9em}
-.eir-sub-h{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.7em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important}
-.eir-sub-h::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
-.eir-scnt{list-style:none;margin:0 0 18px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:8px}
-.eir-sc-b{position:relative;width:100%;height:100%;display:flex;flex-direction:column;gap:8px;padding:10px 12px 10px 14px;border:1px solid var(--line);border-radius:9px;
-  background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
-.eir-sc-b::before{content:'';position:absolute;left:-1px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
-.eir-sc-b:hover:not(:disabled){border-color:#cfd6dd;background:#fafbfc}
-.eir-sc-b:disabled{cursor:default}
-.eir-sc.is-filter .eir-sc-b{border-color:var(--c);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
-.eir-sc-t{display:flex;align-items:center;gap:7px;min-width:0}
-.eir-sc-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8em;font-weight:700;color:#3a4552}
-.eir-sc-v{display:flex;align-items:baseline;gap:7px}
-.eir-sc-v b{font-size:1.35em;font-weight:800;letter-spacing:-.4px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums}
-.eir-sc-v span{font-size:.74em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
-.eir-sc.is-off .eir-sc-b{background:#f8f9fa}
-.eir-sc.is-off .eir-sc-b::before,.eir-sc.is-hidden .eir-sc-b::before{background:#c9d0d8}
-.eir-sc.is-off .eir-sc-l,.eir-sc.is-off .eir-sc-v b{color:#8793a0}
-.eir-sc.is-hidden .eir-sc-l,.eir-sc.is-hidden .eir-sc-v b{text-decoration:line-through;color:#8793a0}
-.eir-list-head h3{font-size:1.05em;font-weight:800;letter-spacing:-.2px}
-.eir-agents{display:inline-flex;flex-wrap:wrap;gap:6px}
-.eir-ag{display:inline-flex;align-items:center;gap:7px;padding:6px 6px 6px 12px;border:1px solid #d4dade;border-radius:99px;background:#fff;font-size:.84em;font-weight:700;color:#3a4552;cursor:pointer}
-.eir-ag b{min-width:24px;text-align:center;padding:1px 7px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
-.eir-ag:hover{background:#fafbfc}
-.eir-ag[aria-pressed="true"]{background:var(--acc-bg);border-color:#f7c99c;color:var(--acc-ink)}
-.eir-ag[aria-pressed="true"] b{background:#fff;border-color:#f7c99c}
-.eir-cnt.is-static{cursor:default}
-.eir-cnt.is-static:hover{background:none}
-
-/* One orchestrated entrance on first paint: hero, KPI cards (staggered), then the sections. */
-@keyframes eirUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.eir.is-anim .eir-hero{animation:eirUp .45s ease both}
-.eir.is-anim .eir-kpi{animation:eirUp .5s ease both}
-.eir.is-anim .eir-kpi:nth-child(1){animation-delay:.08s}
-.eir.is-anim .eir-kpi:nth-child(2){animation-delay:.14s}
-.eir.is-anim .eir-kpi:nth-child(3){animation-delay:.2s}
-.eir.is-anim .eir-kpi:nth-child(4){animation-delay:.26s}
-.eir.is-anim .eir-scope,.eir.is-anim .eir-card{animation:eirUp .5s ease .3s both}
-@media (prefers-reduced-motion:reduce){
-  .eir *,.eir *::before,.eir *::after{animation:none!important;transition:none!important}
-}
+/* ---- Selected card's tickets with errors (one line per ticket; .tb-asg-card / .tb-san-card base styles come from topbar-auth.js) ---- */
+.st-view.tb-asg-card .tb-asg-scroll{max-height:70vh}
+.st-view[aria-busy="true"]{opacity:.6}
+.st-view .tb-san-sum p{font-size:.92em}
+.st-view table.stv-tbl td{vertical-align:middle}
+.st-view table.stv-tbl tbody tr:hover td{background:#fafbfc}
+.st-view .stv-fit{width:1%;white-space:nowrap}
+.st-view table.stv-tbl .stv-ttl,.st-view table.stv-tbl .stv-mc{width:49%}
+.st-view td.stv-clip{max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
+.st-view td.stv-mc{color:#5c6773}
+@media (max-width:899px){.st-view td.stv-clip.stv-mc{white-space:normal;overflow-wrap:anywhere}}
+.st-view .stv-id,.st-view .stv-sc{white-space:nowrap}
+.st-view .stv-by{color:#2a3340;font-weight:700}
+.st-view .stv-sort{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.st-view .stv-sort:hover{border-color:#d4dade;background:#fff}
+.st-view .stv-sort:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.st-view .stv-sort-ic{font-size:.8em;color:#b5530a}
 </style>
 </head>
 <body data-nav-active="errors-in-resolved" data-back-href="app.html" data-back-label="Dashboard">
@@ -322,590 +150,240 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
 <div class="wrap" id="wrap"></div>
+<!-- One persistent polite live region (outside #wrap, so re-renders never replace it). -->
+<div id="stLive" class="st-sr" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
 
-<script src="icons.js?v=2"></script>
+<script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=224"></script>
+<script src="topbar-auth.js?v=231"></script>
+<script src="sanitization-view.js?v=5"></script>
 <script>
-(function(){
+// Errors in Resolved: the 7 BLR / AZA team members' Resolved / Closed tickets (created since 1 Jan 2026),
+// scored out of 11 with the sanitization score; one card per resolver + Others; the picked card lists
+// only its tickets with errors (score below 11/11). GET /api/resolved-errors[?who=] (read-only).
+var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, RE=window.PHDResErr;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
-var A=window.PHDAuth;
-function $(id){ return document.getElementById(id); }
-function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
-// Percentage text: one decimal below 10% (so 0.4% does not read as 0%), whole numbers above.
-function pct(n,d){ if(!d) return '0%'; var p=n/d*100; return (p>0&&p<10?p.toFixed(1).replace(/\.0$/,''):String(Math.round(p)))+'%'; }
-function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
-function idLink(id,url){ var s=safeUrl(url); return s?'<a href="'+esc(s)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'</a>':esc(id); }
-function fmtTz(iso,tz){
-  var d=new Date(iso); if(!iso||isNaN(d)) return '\u2014';
-  try{ return new Intl.DateTimeFormat('en-US',{timeZone:tz,month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d); }catch(e){ return '\u2014'; }
-}
-function fmtWhen(iso){ return fmtTz(iso,'America/Phoenix')+' MST \u00b7 '+fmtTz(iso,'Asia/Kolkata')+' IST'; }
-// "1 Jan 2026" (UTC calendar day, as the scope boundary is UTC).
-function fmtDay(iso){
-  var d=new Date(iso); if(!iso||isNaN(d)) return '\u2014';
-  try{ return new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric'}).format(d); }catch(e){ return '\u2014'; }
-}
-var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-var TICK='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 6.3l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-var CROSS='<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M2 2l6 6M8 2L2 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-var XSM='<svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M2 2l6 6M8 2L2 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+function ic(n,s){return window.icon?window.icon(n,s||14):'';}
+function $(id){return document.getElementById(id);}
+function num(n){return (Number(n)||0).toLocaleString('en-US');}
+function pct(a,b){return b?Math.round((Number(a)||0)/b*100):0;}
+function maxS(){ var m=Number(ST.max)||0; return m>0?m:11; }
+function full(){ return maxS()+'/'+maxS(); }
+function when(iso){ return S&&S.when?S.when(iso):(iso?String(iso).slice(0,10):''); }
+function announce(msg){ var l=$('stLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
 
-// Presentation-only details per check (the API supplies code/label/enabled/count).
-var META={
-  A1:{desc:'Title names one of the 28 issue types, spelled exactly',color:'#ec7211'},
-  A2:{desc:'Title has a severity tag, #1 to #5',color:'#f5a54a'},
-  B1:{desc:'Issue: line is one of the 28 issue types',color:'#1f5fbf'},
-  B2:{desc:'Issue: is the same type as the title',color:'#5b8fe6'},
-  B3:{desc:'Date: line is filled in',color:'#13827c'},
-  B4:{desc:'Res: is on the PHD resolutions list',color:'#4cb3aa'},
-  B5:{desc:'If a Cnt: line is present, its value must be 9 or less',color:'#7a5bd6'},
-  B6:{desc:'When Cnt is above 0, each historical incident needs an HI#: line with a valid issue type',color:'#a97ae8'},
-  C1:{desc:'Closure code is Successful',color:'#b42318'}
-};
-var GROUPS=[{k:'A',name:'Title'},{k:'B',name:'SIM Root Cause Details'},{k:'C',name:'Closure'}];
-function meta(code){ return META[code]||{desc:'',color:'#8793a0'}; }
+// ---- State ----
+var PAGE_SIZE=100;
+var ME=String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase();   // viewer login
+var ST={state:'loading', err:'', cards:[], asOf:null, max:11};
+var SEL=null;      // picked card key (login | 'others')
+var VIEWS={};      // key -> {loading, data, error}
+var PG=0;          // page of the shown list
+var SORT='asc';    // score order ('asc' = lowest first)
+var SEQ=0;         // guards against out-of-order responses
 
-// Per-user, view-only "scratched out" checks (non-admin users). The admin's toggles are global (server).
-var LS_KEY='phd_eir_hidden_checks';
-function loadHidden(){ try{ var v=JSON.parse(localStorage.getItem(LS_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
-function saveHidden(){ try{ localStorage.setItem(LS_KEY,JSON.stringify(Object.keys(HIDDEN).filter(function(k){ return HIDDEN[k]; }))); }catch(e){} }
+function findC(key){ for(var i=0;i<ST.cards.length;i++) if(ST.cards[i].key===key) return ST.cards[i]; return null; }
+function team(){ return ST.cards.filter(function(c){ return c.key!=='others'; }); }
+function totals(){ var t={resolved:0,withErrors:0,perfect:0}; team().forEach(function(c){ t.resolved+=Number(c.resolved)||0; t.withErrors+=Number(c.withErrors)||0; t.perfect+=Number(c.perfect)||0; }); return t; }
 
-// D = the summary: the global checks (admin toggles) and three sections, each with its own counts and
-// resolvers with fail-mask counts (no rows). Ticket rows are paged by the server
-// (/api/errors-in-resolved/tickets?section=, 10 per page, newest resolved first): tens of thousands of
-// tickets are in scope and thousands fail, far too many to ship in one payload.
-var D=null, LOADING=true, LOAD_ERR='', SAVE_ERR='', SAVING=false, FIRST=true;
-var HIDDEN={}; loadHidden().forEach(function(c){ HIDDEN[c]=true; });
-var AUTO_OPEN=5;   // while searching, the first AUTO_OPEN resolver cards open by default
-var PAGE_SIZE=10;
-var ROWS={};       // request key -> {loading} | {data} | {err}
-var SEC_NO={phd:1,hi:2,nonphd:3};
-var SEC_INFO={
-  phd:{short:'PHD agents',icon:'user-shield',kpi:'is-bad',help:'Resolved tickets (Closed excluded) of PHD agents, checked against every rule except B6.'},
-  hi:{short:'HI lines',icon:'history',kpi:'is-warn',help:'Resolved and Closed tickets of PHD and Non-PHD agents, checked for B6 (HI# lines) only.'},
-  nonphd:{short:'Non-PHD agents',icon:'users',kpi:'is-blue',help:'Resolved and Closed tickets of Non-PHD agents, checked against every rule except B6.'}
-};
-var AGENT_LBL={all:'All',phd:'PHD','nonphd':'Non-PHD'};
-// Per-section view state: search text, check filter, view, agents filter (section 2), server search
-// groups, expanded resolver cards (with / without a search), current page per list scope.
-var SS={};
-function st(k){ return SS[k]||(SS[k]={q:'',fchk:'',view:'res',agents:'all',m:null,mErr:'',timer:null,open:{},qopen:{},pages:{},focus:''}); }
-// Sections expanded/collapsed: 1 and 2 open by default, 3 collapsed (remembered in this browser).
-var LS_SEC='phd_eir_sections_open';
-var SEC_OPEN={phd:true,hi:true,nonphd:false};
-try{ var so=JSON.parse(localStorage.getItem(LS_SEC)||'null'); if(so&&typeof so==='object') Object.keys(SEC_OPEN).forEach(function(k){ if(typeof so[k]==='boolean') SEC_OPEN[k]=so[k]; }); }catch(e){}
-// Checks card expanded/collapsed (collapsed by default; remembered in this browser).
-var LS_OPEN='phd_eir_checks_open';
-var CHK_OPEN=false; try{ CHK_OPEN=localStorage.getItem(LS_OPEN)==='1'; }catch(e){}
-
-function canEdit(){ return !!(D&&D.canEdit); }
-function checkOf(code){ return D?D.checks.filter(function(c){ return c.code===code; })[0]:null; }
-function sec(k){ return D?(D.sections||[]).filter(function(s){ return s.key===k; })[0]:null; }
-// A check is "scratched" for this viewer when it is enabled but unticked locally (non-admin only).
-function isScratched(code){ return !canEdit() && !!HIDDEN[code]; }
-// Visible (un-scratched) failures of a ticket within its section's checks.
-function liveFails(t,s){ return s.checks.filter(function(c){ var r=t.results[c]; return r&&r.pass===false&&!isScratched(c); }); }
-// Drop a check filter that can no longer match (check turned off, scratched out or not in the section).
-function fixFilter(k){
-  var S=st(k), s=sec(k); if(!S.fchk) return;
-  var c=checkOf(S.fchk); if(!c||!c.enabled||isScratched(S.fchk)||!s||s.checks.indexOf(S.fchk)<0) S.fchk='';
+// ---- Hero / gate ----
+function heroHtml(gate){
+  var asOf=ST.state==='done'?(ST.asOf?esc(when(ST.asOf)):'Unknown'):(ST.state==='error'?'Not loaded':'Loading\u2026');
+  return '<header class="st-hero'+(gate?' is-gate':'')+'"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('alert-triangle',24)+'</span><div>'+
+    '<p class="st-eyebrow">Quality \u00b7 Resolved tickets</p><h1>Errors in Resolved</h1>'+
+    '<p class="st-hero-sub">Tickets resolved since 1 Jan 2026, scored out of 11. Only tickets with errors are listed.</p>'+
+    '</div></div>'+(gate?'':'<div class="st-hero-asof" aria-label="Data as of"><span class="st-meta-k">Data as of</span><span class="st-meta-v" id="stAsOf">'+ic('clock',14)+asOf+'</span></div>')+
+    '</div></header>';
 }
-function query(k){ return st(k).q.trim().toLowerCase(); }
-function anyFilter(k){ var S=st(k); return !!(query(k)||S.fchk||S.agents!=='all'); }
-function isOpen(k,login,idx){ var S=st(k); return query(k)?(login in S.qopen?S.qopen[login]:idx<AUTO_OPEN):!!S.open[login]; }
-// Fail masks: bit i = D.checks[i] failed (the section's enabled checks only; the server builds them in this order).
-function bitOf(code){ var i=D?D.checks.map(function(c){ return c.code; }).indexOf(code):-1; return i<0?0:(1<<i); }
-function hiddenMask(){ var m=0; D.checks.forEach(function(c,i){ if(c.enabled&&isScratched(c.code)) m|=1<<i; }); return m; }
-function bits(m){ var n=0; while(m){ n+=m&1; m>>>=1; } return n; }
-function agentOk(a,phd){ return a==='all'||(a==='phd')===!!phd; }
-// Search results come from the server (the rows' text is not on the page); null while loading.
-function matchGroups(k){ var S=st(k); return query(k)?(S.m&&S.m.q.toLowerCase()===query(k)?S.m.resolvers:null):sec(k).resolvers; }
-// Per-resolver counts of a section's filtered list for this viewer: n = rows listed, tickets = rows
-// with a visible (un-scratched) error, errors = visible errors, by = visible errors per check.
-function groupsOf(k,src){
-  var S=st(k), hid=hiddenMask(), fb=S.fchk?bitOf(S.fchk):0;
-  return (src||[]).map(function(r){
-    var g={login:r.login,phd:!!r.phd,n:0,tickets:0,errors:0,by:{}};
-    if(!agentOk(S.agents,g.phd)) return g;
-    Object.keys(r.masks||{}).forEach(function(key){
-      var m=Number(key), cnt=Number(r.masks[key])||0;
-      if(fb&&!(m&fb)) return;
-      g.n+=cnt;
-      var live=m&~hid; if(!live) return;
-      g.tickets+=cnt; g.errors+=bits(live)*cnt;
-      D.checks.forEach(function(c,i){ if(live&(1<<i)) g.by[c.code]=(g.by[c.code]||0)+cnt; });
-    });
-    return g;
-  }).filter(function(g){ return g.n>0; })
-    .sort(function(a,b){ return (b.errors-a.errors)||(b.tickets-a.tickets)||a.login.localeCompare(b.login); });
-}
-// A section's unfiltered totals for this viewer under an agents filter (default: the section's chip):
-// checked, tickets with a visible error, visible errors, and failures per check (scratched included).
-function secTotals(k,a){
-  var s=sec(k); a=a||st(k).agents;
-  var hid=hiddenMask(), o={checked:a==='all'?(Number(s.inScope)||0):(Number((s.inScopeAgents||{})[a])||0),withErr:0,errors:0,by:{}};
-  (s.resolvers||[]).forEach(function(r){
-    if(!agentOk(a,r.phd)) return;
-    Object.keys(r.masks||{}).forEach(function(key){
-      var m=Number(key), cnt=Number(r.masks[key])||0, live=m&~hid;
-      D.checks.forEach(function(c,i){ if(m&(1<<i)) o.by[c.code]=(o.by[c.code]||0)+cnt; });
-      if(live){ o.withErr+=cnt; o.errors+=bits(live)*cnt; }
-    });
-  });
-  return o;
+function gate(kind){
+  var body, head='BLR and AZA team only';
+  if(kind==='login'){ head='Login required'; body='<p class="st-empty">Please log in from the Live Dashboard to use this page.</p><p style="margin-top:12px"><a class="st-btn" href="app.html">Go to the live dashboard</a></p>'; }
+  else body='<p class="st-empty">This page is for the BLR and AZA team.</p>';
+  $('wrap').innerHTML='<div class="st">'+heroHtml(true)+'<section class="st-sec" aria-labelledby="stGateH" style="margin-top:16px"><div class="st-sec-h"><div class="st-sec-txt"><h2 class="st-sec-t" id="stGateH">'+head+'</h2></div></div><div class="st-sec-b">'+body+'</div></section></div>';
 }
 
-// ---------- Hero ----------
-function metaHtml(){
-  if(LOADING) return '<dl class="eir-meta" aria-hidden="true"><div class="eir-meta-file"><dt>Scope</dt><dd><span class="eir-skel eir-skel-d" style="width:220px;height:14px"></span></dd></div>'+
-    '<div><dt>MST</dt><dd><span class="eir-skel eir-skel-d" style="width:130px;height:12px"></span></dd></div><div><dt>IST</dt><dd><span class="eir-skel eir-skel-d" style="width:130px;height:12px"></span></dd></div></dl>';
-  if(!D) return '';
-  var s=D.source;
-  if(!s) return '<p class="eir-meta-none">No ticket data yet.</p>';
-  var scope='Resolved & Closed tickets \u00b7 '+fmtDay(s.from)+' \u2192 '+(s.to?fmtDay(s.to):'\u2014')+' \u00b7 '+num(s.rows)+' ticket'+(s.rows===1?'':'s');
-  return '<div class="eir-meta-box"><dl class="eir-meta"><div class="eir-meta-file"><dt>Scope</dt><dd>'+ic('calendar',15)+'<span>'+esc(scope)+'</span></dd></div>'+
-    (s.dataBy?'<div class="eir-meta-wide"><dt>Data uploaded by</dt><dd>'+esc(s.dataBy)+'</dd></div>':'')+
-    '<div><dt>Data as of (MST)</dt><dd>'+esc(fmtTz(s.dataAsOf,'America/Phoenix'))+'</dd></div>'+
-    '<div><dt>Data as of (IST)</dt><dd>'+esc(fmtTz(s.dataAsOf,'Asia/Kolkata'))+'</dd></div>'+
-    '</dl></div>';
-}
-function heroHtml(){
-  return '<div class="eir-hero"><div class="eir-hero-in"><div class="eir-hero-main"><span class="eir-hero-ic">'+ic('alert-triangle',24)+'</span><div>'+
-    '<p class="eir-eyebrow">Quality audit \u00b7 Resolved &amp; Closed tickets</p><h1>Errors in Resolved</h1>'+
-    '<p class="eir-hero-sub">Agent-resolved tickets since 1 Jan 2026, checked against the title, SIM root cause details and closure rules in three sections: PHD agents, HI lines for all agents, and Non-PHD agents. Only tickets with at least one error are listed.</p>'+
-    '</div></div>'+metaHtml()+'</div></div>';
-}
-
-// ---------- KPIs ----------
-function kpiCard(cls,icon,label,value,sub,ratio){
-  return '<div class="eir-kpi '+cls+'"><p class="eir-kpi-l"><span class="eir-kpi-ic">'+ic(icon,15)+'</span>'+label+'</p>'+
-    '<p class="eir-kpi-v">'+value+'</p><p class="eir-kpi-s">'+sub+'</p>'+
-    (ratio==null?'':'<div class="eir-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
-}
-// Overview: the union scope, then each section's tickets with errors (all agents, not the section chip).
-function kpiHtml(){
-  var checked=Number(D.inScope)||0, ss=D.inScopeStatuses||{};
-  var out=kpiCard('is-base','clipboard','Tickets checked',num(checked),'<b>'+num(ss.resolved)+'</b> Resolved \u00b7 <b>'+num(ss.closed)+'</b> Closed',null);
-  (D.sections||[]).forEach(function(s){
-    var t=secTotals(s.key,'all'), inf=SEC_INFO[s.key]||{};
-    out+=kpiCard(inf.kpi||'is-bad',inf.icon||'alert',SEC_NO[s.key]+' \u00b7 '+esc(inf.short||s.label),num(t.withErr),
-      '<b>'+pct(t.withErr,t.checked)+'</b> of '+num(t.checked)+' with errors',t.checked?t.withErr/t.checked:0);
-  });
-  return '<div class="eir-kpis">'+out+'</div>';
-}
-
-// ---------- Scope ----------
-function scopeHtml(){
-  var x=(D&&D.excluded)||{};
-  var chip=function(txt,n){ return '<li class="eir-ign-c">'+txt+'<b>'+num(n)+'</b></li>'; };
-  var code=function(c){ return '<span class="eir-code" style="--c:'+meta(c).color+'">'+c+'</span>'; };
-  return '<section class="eir-scope" aria-labelledby="eirScopeH"><div class="eir-scope-lead"><span class="eir-scope-ic">'+ic('info',17)+'</span><div>'+
-    '<h2 class="eir-scope-h" id="eirScopeH">What\u2019s checked</h2>'+
-    '<p class="eir-scope-p">Tickets <b>resolved by agents</b> since <b>1 Jan 2026</b>; the closure code must be <b>Successful</b> ('+code('C1')+').</p>'+
-    '<ul class="eir-scope-l">'+
-      '<li><b>1 \u00b7 PHD agents:</b> Resolved only (Closed excluded), every check except '+code('B6')+'.</li>'+
-      '<li><b>2 \u00b7 HI lines:</b> Resolved &amp; Closed, PHD and Non-PHD agents, '+code('B6')+' only.</li>'+
-      '<li><b>3 \u00b7 Non-PHD agents:</b> Resolved &amp; Closed, every check except '+code('B6')+'.</li>'+
-    '</ul></div></div><ul class="eir-ign" aria-label="Ignored tickets"><li class="eir-ign-k" aria-hidden="true">Ignored</li>'+
-    chip('Immediately / Automatically closed',(Number(x.immediatelyResolved)||0)+(Number(x.automaticallyClosed)||0))+
-    chip('Duplicate',x.duplicate)+
-    chip('Appeal',x.appeal)+
-    chip('AUTO-SIM',x.autosim)+
-    '</ul></section>';
-}
-
-// ---------- Checks (global toggles) ----------
-function chkCard(c,editor){
-  var m=meta(c.code), off=!c.enabled, hid=c.enabled&&isScratched(c.code);
-  var checked=editor?c.enabled:(c.enabled&&!HIDDEN[c.code]);
-  var locked=!editor&&off, dis=locked||SAVING;
-  var note=off?(editor?'Off for everyone':'Disabled by admin'):(hid?'Hidden for you only':'');
-  var cnt=Number(c.count)||0;
-  var where=c.code==='B6'?'section 2':'sections 1 and 3';
-  var noteId='eirChkN'+c.code, descId='eirChkD'+c.code;
-  var foot=c.enabled
-    ?'<span class="eir-cnt is-static'+(cnt?'':' is-zero')+'"><b>'+num(cnt)+'</b><span>ticket'+(cnt===1?'':'s')+'</span></span>'+
-       '<span class="eir-chk-pct" title="Failing in '+where+'">in '+where+'</span>'
-    :'<span class="eir-cnt is-off"><b>\u2014</b><span>not checked</span></span>';
-  return '<li class="eir-chk'+(off?' is-off':'')+(hid?' is-hidden':'')+(locked?' is-locked':'')+'" style="--c:'+m.color+'">'+
-    '<label class="eir-chk-top" for="eirChk'+c.code+'">'+
-      '<input type="checkbox" class="eir-sw-in" id="eirChk'+c.code+'" data-code="'+c.code+'"'+(checked?' checked':'')+(dis?' disabled':'')+
-        ' aria-describedby="'+descId+(note?' '+noteId:'')+'">'+
-      '<span class="eir-sw" aria-hidden="true"></span>'+
-      '<span class="eir-chk-txt"><span class="eir-chk-lbl">'+esc(c.label)+'</span><span class="eir-chk-desc" id="'+descId+'">'+esc(m.desc)+'</span></span>'+
-      '<span class="eir-code">'+c.code+'</span></label>'+
-    (note?'<span class="eir-chk-note" id="'+noteId+'">'+(off?ic('no-entry',12):ic('eye-off',12))+note+'</span>':'')+
-    '<div class="eir-chk-foot">'+foot+'</div></li>';
-}
-function checksHtml(){
-  var editor=canEdit();
-  var groups=GROUPS.map(function(g){
-    var list=D.checks.filter(function(c){ return String(c.code).charAt(0)===g.k; });
-    if(!list.length) return '';
-    var codes=list.map(function(c){ return c.code; });
-    return '<div class="eir-grp" role="group" aria-labelledby="eirGrp'+g.k+'"><h3 class="eir-grp-h" id="eirGrp'+g.k+'">'+esc(g.name)+
-      ' <span>'+codes[0]+(codes.length>1?'\u2013'+codes[codes.length-1]:'')+'</span></h3>'+
-      '<ul class="eir-grid'+(list.length===5?' is-5':(list.length===6?' is-6':''))+'">'+list.map(function(c){ return chkCard(c,editor); }).join('')+'</ul></div>';
-  }).join('');
-  // Any check whose code does not start with A/B/C still gets shown (future-proof).
-  var other=D.checks.filter(function(c){ return 'ABC'.indexOf(String(c.code).charAt(0))<0; });
-  if(other.length) groups+='<div class="eir-grp"><h3 class="eir-grp-h">Other</h3><ul class="eir-grid">'+other.map(function(c){ return chkCard(c,editor); }).join('')+'</ul></div>';
-  // Compact one-line summary, always visible in the header (reflects admin toggles and this viewer's unticks).
-  var nAll=D.checks.length, nAct=D.checks.filter(function(c){ return c.enabled&&!isScratched(c.code); }).length, nErr=0;
-  (D.sections||[]).forEach(function(s){ nErr+=secTotals(s.key,'all').errors; });
-  var sum='<span class="eir-chk-sum">'+num(nAll)+' check'+(nAll===1?'':'s')+' \u00b7 <b>'+num(nAct)+'</b> active \u00b7 <b class="is-e">'+num(nErr)+'</b> error'+(nErr===1?'':'s')+'</span>';
-  var full=editor
-    ?'Unticking turns a check off for everyone in every section: it is no longer evaluated or counted. Click a count inside a section to filter its list.'
-    :'Untick a check to scratch out its errors on your screen only, in every section (saved in this browser). Checks disabled by the admin are greyed out. Click a count inside a section to filter its list.';
-  var short=editor
-    ?'Unticking turns a check off for everyone, in every section.'
-    :'Untick to scratch out a check on your screen only, in every section.';
-  return '<section class="eir-card" aria-labelledby="eirChecksH"><div class="eir-card-head eir-chk-head'+(CHK_OPEN?'':' is-shut')+'">'+
-    '<h2 id="eirChecksH"><button type="button" class="eir-chk-exp" id="eirChecksBtn" aria-expanded="'+(CHK_OPEN?'true':'false')+'" aria-controls="eirChecksBody">'+
-      '<span class="eir-chev">'+CHEV+'</span>Checks'+sum+'</button></h2>'+
-    '<p class="eir-help-1" title="'+esc(full)+'">'+esc(short)+'</p>'+
-    (editor?'<span class="eir-mode">'+ic('users',13)+'Applies to everyone</span>':'<span class="eir-mode is-view">'+ic('eye',13)+'View only \u00b7 this browser</span>')+
-    '</div><div id="eirChecksBody"'+(CHK_OPEN?'':' hidden')+'>'+groups+'</div>'+
-    '<p class="eir-err" id="eirSaveErr" role="alert">'+esc(SAVE_ERR)+'</p>'+
-    '<span class="eir-sr" id="eirLive" aria-live="polite"></span></section>';
-}
-
-// ---------- Tickets ----------
-// Small PHD tag next to a resolver login that is a registered agent in the database.
-function phdTag(on){ return on?'<span class="eir-phd-tag" role="img" title="PHD agent" aria-label="PHD agent">PHD</span>':''; }
-function hueOf(s){ var h=0; s=String(s||''); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return [24,205,165,265,335,45,190,120][h%8]; }
-// A message may combine several parts with '; ' (B6); each part may carry a prefix such as 'HI2: '.
-function msgHtml(msg){
-  return String(msg||'').split('; ').map(function(p){
-    var m=/^((?:HI\d+: )?)Spelling: "([\s\S]*)" \u2192 "([\s\S]*)"$/.exec(p);
-    if(m) return esc(m[1])+'Spelling: <span class="eir-from">\u201c'+esc(m[2])+'\u201d</span> \u2192 <span class="eir-to">\u201c'+esc(m[3])+'\u201d</span>';
-    return esc(p);
-  }).join('; ');
-}
-function cell(t,c){
-  var r=t.results[c]||{}, lbl=(checkOf(c)||{}).label||c, nm=esc(c+' '+lbl);
-  if(r.disabled) return '<td class="c"><span class="eir-ic na" role="img" aria-label="'+nm+': disabled by admin" title="Disabled by admin">\u2014</span></td>';
-  if(r.na) return '<td class="c"><span class="eir-ic na" role="img" aria-label="'+nm+': not evaluated" title="Not evaluated (title or Issue: type not identified)">n/a</span></td>';
-  if(r.pass) return '<td class="c"><span class="eir-ic ok" role="img" aria-label="'+nm+': pass" title="Pass">'+TICK+'</span></td>';
-  var s=isScratched(c);
-  return '<td class="c"><span class="eir-ic x'+(s?' eir-struck':'')+'" role="img" aria-label="'+nm+': fail'+(s?' (hidden by you)':'')+' \u2014 '+esc(r.msg)+'" title="'+esc(r.msg)+'">'+CROSS+'</span></td>';
-}
-// Columns = the section's checks only.
-function ticketTable(s,list,showResolver){
-  var codes=s.checks, tagPhd=s.agents==='all';
-  var head='<tr><th scope="col">Ticket</th>'+(showResolver?'<th scope="col">Resolver</th>':'')+'<th scope="col" aria-sort="descending">Resolved</th><th scope="col">Title</th>'+
-    codes.map(function(c){ return '<th scope="col" class="c" style="--c:'+meta(c).color+'"><abbr title="'+esc((checkOf(c)||{}).label||c)+'">'+c+'</abbr><span class="eir-th-dot" aria-hidden="true"></span></th>'; }).join('')+
-    '<th scope="col">Errors</th></tr>';
-  var rows=list.map(function(t){
-    var muted=!liveFails(t,s).length;
-    var msgs=codes.filter(function(c){ var r=t.results[c]; return r&&r.pass===false; }).map(function(c){
-      var x=isScratched(c);
-      return '<li class="eir-msg'+(x?' eir-struck':'')+'">'+(x?'<span class="eir-sr">Hidden by you: </span>':'')+'<b>'+c+'</b><span>'+msgHtml(t.results[c].msg)+'</span></li>';
-    }).join('');
-    return '<tr'+(muted?' class="eir-row-muted"':'')+'><td>'+idLink(t.id,t.url)+'</td>'+
-      (showResolver?'<td><span class="eir-who">'+esc(t.resolver)+(tagPhd?phdTag(t.resolverPhd):'')+'</span></td>':'')+
-      '<td class="eir-date"><time datetime="'+esc(t.resolvedAt)+'" title="'+esc(fmtWhen(t.resolvedAt))+(t.status?' \u00b7 '+esc(t.status):'')+'">'+esc(fmtDay(t.resolvedAt))+'</time></td>'+
-      '<td><span class="eir-title" title="'+esc(t.title)+'">'+esc(t.title||'\u2014')+'</span></td>'+
-      codes.map(function(c){ return cell(t,c); }).join('')+
-      '<td><ul class="eir-msgs">'+msgs+'</ul></td></tr>';
-  }).join('');
-  return '<div class="eir-scroll" tabindex="0" role="region" aria-label="'+esc(s.label+': tickets with errors')+'"><table class="eir-tbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
-}
-// ---------- Paged rows (server) ----------
-// Page numbers with ellipses: 1 … p-1 p p+1 … last (all pages when 7 or fewer).
-function pageList(p,pages){
-  if(pages<=7){ var a=[]; for(var i=1;i<=pages;i++) a.push(i); return a; }
-  var s={}; [1,pages,p-1,p,p+1].forEach(function(n){ s[n]=1; });
-  if(p<=4) [2,3,4,5].forEach(function(n){ s[n]=1; });
-  if(p>=pages-3) [pages-4,pages-3,pages-2,pages-1].forEach(function(n){ s[n]=1; });
-  var ns=Object.keys(s).map(Number).filter(function(n){ return n>=1&&n<=pages; }).sort(function(x,y){ return x-y; }), out=[];
-  ns.forEach(function(n,k){ if(k&&n-ns[k-1]>1) out.push(0); out.push(n); });
-  return out;   // 0 = ellipsis
-}
-function pagerHtml(scope,label,page,pages,total){
-  var from=total?(page-1)*PAGE_SIZE+1:0, to=Math.min(total,page*PAGE_SIZE);
-  var info='<p class="eir-pg-info">Showing '+num(from)+'\u2013'+num(to)+' of '+num(total)+'</p>';
-  if(pages<=1) return '<div class="eir-pg">'+info+'</div>';
-  var fk=function(k){ return ' data-fk="'+esc('p:'+scope+':'+k)+'"'; };
-  var btn=function(target,k,html,aria,dis,cur){
-    return '<li><button type="button" class="eir-pg-b'+(cur?' is-cur':'')+'" data-pg-scope="'+esc(scope)+'" data-pg="'+target+'"'+fk(k)+
-      ' aria-label="'+aria+'"'+(cur?' aria-current="page"':'')+(dis?' disabled':'')+'>'+html+'</button></li>';
-  };
-  var items=btn(page-1,'prev','<span aria-hidden="true">\u2039</span> Prev','Previous page',page<=1,false)+
-    pageList(page,pages).map(function(n){ return n?btn(n,n,num(n),'Page '+n+' of '+pages,false,n===page):'<li class="eir-pg-gap" aria-hidden="true">\u2026</li>'; }).join('')+
-    btn(page+1,'next','Next <span aria-hidden="true">\u203a</span>','Next page',page>=pages,false);
-  return '<div class="eir-pg">'+info+'<nav class="eir-pg-nav" aria-label="'+esc('Pages of '+label)+'"><ul>'+items+'</ul></nav></div>';
-}
-function rowsParams(k,resolver,page){
-  var S=st(k), p=['section='+encodeURIComponent(k),'page='+page,'pageSize='+PAGE_SIZE];
-  if(resolver!=null) p.push('resolver='+encodeURIComponent(resolver));
-  if(query(k)) p.push('q='+encodeURIComponent(S.q.trim()));
-  if(S.fchk) p.push('check='+encodeURIComponent(S.fchk));
-  if(S.agents!=='all') p.push('agents='+encodeURIComponent(S.agents));
-  return p.join('&');
-}
-var PENDING=[];
-async function fetchRows(k,rk){
-  ROWS[rk]={loading:true};
-  var r=null; try{ r=await A.api('GET','/api/errors-in-resolved/tickets?'+rk); }catch(e){}
-  if(!ROWS[rk]) return;   // dropped by a reload meanwhile
-  ROWS[rk]=(r&&r.ok&&r.data&&Array.isArray(r.data.tickets))?{data:r.data}:{err:(r&&r.data&&r.data.error)||'Could not load the tickets.'};
-  renderSec(k);
-}
-// Table + pager for one list scope of a section; total = rows in the filtered list (from the summary counts).
-function rowsBlock(k,scope,resolver,total,label){
-  var S=st(k), pages=Math.max(1,Math.ceil(total/PAGE_SIZE)), page=Math.min(Math.max(1,S.pages[scope]||1),pages);
-  S.pages[scope]=page;
-  var rk=rowsParams(k,resolver,page), e=ROWS[rk], table;
-  if(!e){ PENDING.push(rk); e={loading:true}; }
-  if(e.data) table=ticketTable(sec(k),e.data.tickets,resolver==null);
-  else if(e.err) table='<div class="eir-empty"><p role="alert">'+esc(e.err)+'</p><button type="button" class="eir-btn" data-retry="'+esc(rk)+'">'+ic('refresh',14)+'Retry</button></div>';
-  else table='<div class="eir-scroll"><div class="phd-load" role="status"><span class="phd-spin sm"></span> Loading tickets\u2026</div></div>';
-  return table+pagerHtml(scope,label,page,pages,total);
-}
-function resolverHtml(k,g,i,maxErr){
-  var s=sec(k), open=isOpen(k,g.login,i), rid='eirRes-'+k+'-'+i;
-  var segs=D.checks.filter(function(c){ return g.by[c.code]; }).map(function(c){
-    return '<i style="--c:'+meta(c.code).color+';flex:'+g.by[c.code]+' 1 0"></i>';
-  }).join('');
-  var brk=D.checks.filter(function(c){ return g.by[c.code]; }).map(function(c){ return c.code+' '+g.by[c.code]; }).join(', ');
-  var w=maxErr?Math.max(4,g.errors/maxErr*100):0;
-  return '<div class="eir-res'+(open?' is-open':'')+'">'+
-    '<button type="button" class="eir-exp eir-res-h" data-login="'+esc(g.login)+'" data-idx="'+i+'" data-fk="'+esc('x:'+g.login)+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+rid+'">'+
-      '<span class="eir-chev">'+CHEV+'</span>'+
-      '<span class="eir-av" style="--h:'+hueOf(g.login)+'" aria-hidden="true">'+esc(String(g.login||'?').charAt(0).toUpperCase())+'</span>'+
-      '<span class="eir-res-id"><span class="eir-res-name">'+esc(g.login)+'</span>'+(s.agents==='all'?phdTag(g.phd):'')+'</span>'+
-      '<span class="eir-res-bar" title="'+esc(brk||'No visible errors')+'" aria-hidden="true"><span class="eir-res-track"><span class="eir-res-fill" style="width:'+(g.errors?w.toFixed(1):0)+'%">'+segs+'</span></span></span>'+
-      '<span class="eir-res-stats"><span><b>'+num(g.tickets)+'</b> ticket'+(g.tickets===1?'':'s')+'</span><span class="is-e"><b>'+num(g.errors)+'</b> error'+(g.errors===1?'':'s')+'</span></span>'+
-      (brk?'<span class="eir-sr">. By check: '+esc(brk)+'</span>':'')+
-    '</button>'+
-    '<div class="eir-res-body" id="'+rid+'"'+(open?'':' hidden')+'>'+(open?rowsBlock(k,'r:'+g.login,g.login,g.n,g.login+' tickets'):'')+'</div></div>';
-}
-function emptyHtml(icCls,icon,title,text,btn){
-  return '<div class="eir-empty"><span class="eir-empty-ic '+icCls+'">'+ic(icon,26)+'</span><h4 class="eir-empty-t">'+title+'</h4>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
-}
-
-// ---------- Sections ----------
-function secSumHtml(k){
-  var t=secTotals(k,'all');
-  return '<span class="eir-chk-sum"><b class="is-e">'+num(t.withErr)+'</b> with errors \u00b7 '+pct(t.withErr,t.checked)+' of '+num(t.checked)+' \u00b7 <b>'+num(t.errors)+'</b> error'+(t.errors===1?'':'s')+'</span>';
-}
-// The section card shell; renderSec() fills in its KPIs, check counts, agent chips and list.
-function sectionHtml(s){
-  var k=s.key, S=st(k), open=!!SEC_OPEN[k];
-  return '<section class="eir-card eir-sec" data-key="'+k+'" aria-labelledby="eirSecH-'+k+'">'+
-    '<div class="eir-card-head eir-chk-head'+(open?'':' is-shut')+'">'+
-      '<h2 id="eirSecH-'+k+'"><button type="button" class="eir-chk-exp" data-sec-toggle="'+k+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="eirSecB-'+k+'">'+
-        '<span class="eir-chev">'+CHEV+'</span><span class="eir-sec-n" aria-hidden="true">'+SEC_NO[k]+'</span><span class="eir-sr">Section '+SEC_NO[k]+': </span>'+esc(s.label)+
-        '<span id="eirSum-'+k+'">'+secSumHtml(k)+'</span></button></h2>'+
-      '<p class="eir-help-1" title="'+esc(SEC_INFO[k].help)+'">'+esc(SEC_INFO[k].help)+'</p></div>'+
-    '<div class="eir-sec-body" id="eirSecB-'+k+'"'+(open?'':' hidden')+'>'+
-      '<div class="eir-kpis eir-skpis" id="eirSk-'+k+'"></div>'+
-      '<h3 class="eir-sub-h" id="eirScH-'+k+'">Errors by check</h3><ul class="eir-scnt" id="eirSc-'+k+'" aria-labelledby="eirScH-'+k+'"></ul>'+
-      '<div class="eir-list-head"><h3 id="eirListH-'+k+'">Errors by resolver</h3><span class="eir-count" id="eirCount-'+k+'" aria-live="polite"></span></div>'+
-      '<div class="eir-tools" role="search" aria-label="'+esc('Filter '+s.label)+'">'+
-        '<div class="eir-search"><label for="eirQ-'+k+'" class="eir-sr">Search ticket ID, title or resolver</label>'+ic('search',15)+
-          '<input type="search" id="eirQ-'+k+'" data-q-sec="'+k+'" placeholder="Search ticket ID, title or resolver" autocomplete="off" value="'+esc(S.q)+'"></div>'+
-        (s.agents==='all'?'<div class="eir-agents" role="group" aria-label="Agents" id="eirAg-'+k+'"></div>':'')+
-        '<span id="eirFchk-'+k+'"></span>'+
-        '<div class="eir-view" role="group" aria-label="View">'+
-          '<button type="button" data-view="res" data-fk="v:res" aria-pressed="'+(S.view==='res')+'">By resolver</button>'+
-          '<button type="button" data-view="all" data-fk="v:all" aria-pressed="'+(S.view==='all')+'">All tickets</button></div>'+
-      '</div><div id="eirList-'+k+'"></div></div></section>';
-}
-function secKpisHtml(k){
-  var s=sec(k), S=st(k), t=secTotals(k), ss=s.inScopeStatuses||{};
-  var sub=S.agents!=='all'?esc(AGENT_LBL[S.agents])+' agents only'
-    :(s.statuses.length===1?'Resolved only \u00b7 Closed excluded':'<b>'+num(ss.resolved)+'</b> Resolved \u00b7 <b>'+num(ss.closed)+'</b> Closed');
-  return kpiCard('is-base is-sm','clipboard','Tickets checked',num(t.checked),sub,null)+
-    kpiCard('is-bad is-sm','alert','Tickets with errors',num(t.withErr),'<b>'+pct(t.withErr,t.checked)+'</b> of tickets checked',t.checked?t.withErr/t.checked:0)+
-    kpiCard('is-warn is-sm','flame','Total errors',num(t.errors),t.withErr?'<b>'+(t.errors/t.withErr).toFixed(1)+'</b> per ticket with errors':'No errors to count',null);
-}
-function secCountsHtml(k){
-  var s=sec(k), S=st(k), t=secTotals(k);
-  return (s.counts||[]).map(function(c){
-    var gc=checkOf(c.code)||c, m=meta(c.code), off=!gc.enabled, hid=!off&&isScratched(c.code), n=off?0:(t.by[c.code]||0), active=S.fchk===c.code, can=!off&&!hid&&n>0;
-    var aria=c.code+' '+c.label+': '+(off?'disabled by admin':num(n)+' ticket'+(n===1?'':'s')+' failing'+(hid?', hidden by you':'')+(can?(active?'. Showing only these; press to clear':'. Press to show only these'):''));
-    return '<li class="eir-sc'+(off?' is-off':'')+(hid?' is-hidden':'')+(active?' is-filter':'')+'" style="--c:'+m.color+'">'+
-      '<button type="button" class="eir-sc-b" data-filter="'+c.code+'" data-fk="f:'+c.code+'" aria-pressed="'+active+'" aria-label="'+esc(aria)+'" title="'+esc(m.desc)+'"'+(can?'':' disabled')+'>'+
-      '<span class="eir-sc-t"><span class="eir-code">'+c.code+'</span><span class="eir-sc-l">'+esc(c.label)+'</span></span>'+
-      '<span class="eir-sc-v"><b>'+(off?'\u2014':num(n))+'</b><span>'+(off?'off':pct(n,t.checked))+'</span></span></button></li>';
-  }).join('');
-}
-function agentsHtml(k){
-  var S=st(k);
-  return ['all','phd','nonphd'].map(function(a){
-    var n=secTotals(k,a).withErr;
-    return '<button type="button" class="eir-ag" data-agents="'+a+'" data-fk="a:'+a+'" aria-pressed="'+(S.agents===a)+'" aria-label="'+esc(AGENT_LBL[a]+' agents, '+num(n)+' tickets with errors')+'">'+AGENT_LBL[a]+'<b>'+num(n)+'</b></button>';
-  }).join('');
-}
-function listBody(k){
-  var s=sec(k), S=st(k), src=matchGroups(k), groups=src?groupsOf(k,src):[], n=0, tot=Number(s.withErrors)||0;
-  groups.forEach(function(g){ n+=g.n; });
-  var body;
-  if(!tot) body=emptyHtml('','check-circle','No errors in this section','Every ticket in this section passes its enabled checks.');
-  else if(!src) body=S.mErr?emptyHtml('is-err','alert-triangle','Search failed','<span role="alert">'+esc(S.mErr)+'</span>')
-    :'<div class="phd-load" role="status"><span class="phd-spin sm"></span> Searching\u2026</div>';
-  else if(!n) body=emptyHtml('is-mute','search','No tickets match these filters','Try a different search, or clear the filters to see every ticket with errors in this section.',
-    '<button type="button" class="eir-btn" data-clear-all>Clear filters</button>');
-  else if(S.view==='all') body=rowsBlock(k,'all',null,n,s.label+': all tickets with errors');
-  else { var mx=groups.reduce(function(m,g){ return Math.max(m,g.errors); },0); body=groups.map(function(g,i){ return resolverHtml(k,g,i,mx); }).join(''); }
-  return {html:body,n:n,tot:tot,groups:groups.length};
-}
-function renderSec(k){
-  var root=document.querySelector('.eir-sec[data-key="'+k+'"]'), s=sec(k); if(!root||!s) return;
-  var se=$('eirSum-'+k); if(se) se.innerHTML=secSumHtml(k);
-  if(!SEC_OPEN[k]) return;
-  var S=st(k), body=$('eirSecB-'+k);
-  fixFilter(k);
-  var ae=document.activeElement, keep=S.focus||(ae&&body.contains(ae)&&ae.getAttribute('data-fk'))||'';
-  S.focus='';
-  $('eirSk-'+k).innerHTML=secKpisHtml(k);
-  $('eirSc-'+k).innerHTML=secCountsHtml(k);
-  var ag=$('eirAg-'+k); if(ag) ag.innerHTML=agentsHtml(k);
-  PENDING=[];
-  var L=listBody(k);
-  $('eirList-'+k).innerHTML=L.html;
-  PENDING.forEach(function(rk){ if(!ROWS[rk]) fetchRows(k,rk); });
-  var h=$('eirListH-'+k); if(h) h.textContent=S.view==='all'?'All tickets with errors':'Errors by resolver';
-  var cnt=anyFilter(k)?num(L.n)+' of '+num(L.tot)+' ticket'+(L.tot===1?'':'s')+' match'
-    :(S.view==='res'?num(L.groups)+' resolver'+(L.groups===1?'':'s')+' \u00b7 ':'')+num(L.n)+' ticket'+(L.n===1?'':'s');
-  var ce=$('eirCount-'+k); if(ce) ce.textContent=L.tot?cnt:'';
-  var fc=$('eirFchk-'+k), fchk=S.fchk&&checkOf(S.fchk);
-  if(fc) fc.innerHTML=fchk?'<button type="button" class="eir-fchip" data-clear-filter data-fk="c:f" aria-label="Remove filter: failing '+S.fchk+' '+esc(fchk.label)+'">Failing '+S.fchk+' \u00b7 '+esc(fchk.label)+XSM+'</button>':'';
-  root.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-view')===S.view)); });
-  if(keep){
-    var all=body.querySelectorAll('[data-fk]'), el=null, i;
-    for(i=0;i<all.length;i++) if(all[i].getAttribute('data-fk')===keep){ el=all[i]; break; }
-    if((!el||el.disabled)&&/^p:/.test(keep)){ el=null; var cur=body.querySelectorAll('.eir-pg-b.is-cur'), sc=keep.replace(/^p:/,'').replace(/:[^:]*$/,'');
-      for(i=0;i<cur.length;i++) if(cur[i].getAttribute('data-pg-scope')===sc){ el=cur[i]; break; } }
-    if(el&&!el.disabled) el.focus();
+// ---- KPIs (the 7 team cards; Others is left out) ----
+function kpisHtml(){
+  var done=ST.state==='done', t=done?totals():null, oth=done?findC('others'):null;
+  function k(cls,icon,label,val,sub){
+    return '<li class="st-kpi '+cls+(done?'':' is-na')+'"><span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
+      '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span><span class="st-kpi-s" style="display:block">'+sub+'</span></li>';
   }
-}
-// Re-mount one section card (expand/collapse, clear filters).
-function mountSec(k){
-  var root=document.querySelector('.eir-sec[data-key="'+k+'"]'), s=sec(k); if(!root||!s) return;
-  var tmp=document.createElement('div'); tmp.innerHTML=sectionHtml(s);
-  root.parentNode.replaceChild(tmp.firstChild,root);
-  renderSec(k);
+  return '<ul class="st-kpis" id="stKpis" aria-label="Team totals"'+(done?'':' aria-busy="true"')+'>'+
+    k('is-base','users','Team resolved',done?num(t.resolved):'',done?('BLR + AZA \u00b7 Others '+num(oth?oth.resolved:0)):'BLR + AZA')+
+    k('is-bad','alert-triangle','With errors',done?num(t.withErrors):'','Below '+full())+
+    k('is-ok','check-circle','Perfect ('+full()+')',done?num(t.perfect):'','Scored '+maxS()+' out of '+maxS())+
+    k('is-acc','bar-chart','Pass rate',done?(pct(t.perfect,t.resolved)+'%'):'','Perfect of resolved')+
+    '</ul>';
 }
 
-// ---------- Page ----------
-function skeletonHtml(){
-  var k='<div class="eir-kpi" aria-hidden="true"><span class="eir-skel" style="width:55%;height:11px"></span><span class="eir-skel" style="width:40%;height:30px;margin-top:14px"></span><span class="eir-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
-  return '<div class="eir-kpis">'+k+k+k+k+'</div>'+
-    '<section class="eir-card"><div class="phd-load" role="status"><span class="phd-spin"></span> Loading Resolved &amp; Closed tickets since 1 Jan 2026\u2026</div></section>';
+// ---- Resolver cards ----
+function cardHtml(c){
+  var on=c.key===SEL, r=Number(c.resolved)||0, e=Number(c.withErrors)||0, p=Number(c.passPct)||0;
+  var sep=' <i aria-hidden="true">|</i> ';
+  return '<li><button type="button" class="st-card" data-who="'+esc(c.key)+'" aria-pressed="'+(on?'true':'false')+'" aria-controls="stViewSec">'+
+    '<span class="st-card-top"><span class="st-card-who">'+esc(c.label)+'</span>'+(c.group?'<span class="st-card-grp">'+esc(c.group)+'</span>':'')+
+      '<span class="st-card-sel">'+ic('check',12)+'Selected</span></span>'+
+    '<span class="st-card-cnt"><span>Resolved <b>'+num(r)+'</b></span>'+sep+'<span class="is-bad">With errors <b>'+num(e)+'</b></span></span>'+
+    '<span class="st-card-rate" style="--sc-h:'+V.hue(p/100*maxS())+'"><span class="st-bar" aria-hidden="true"><span style="width:'+p+'%"></span></span><b>'+p+'% perfect</b></span>'+
+    '</button></li>';
+}
+function cardsBody(){
+  if(ST.state==='loading') return '<p class="st-empty" role="status">Loading\u2026</p>';
+  if(ST.state==='error') return '<div class="st-err" role="alert">'+esc(ST.err)+'<button type="button" class="st-btn is-ghost" id="stRetry">Try again</button></div>';
+  return '<ul class="st-grid" aria-label="Resolvers" style="--n:'+ST.cards.length+'">'+ST.cards.map(cardHtml).join('')+'</ul>';
+}
+
+// ---- Shown card: tickets with errors ----
+function viewHead(){
+  if(!SEL) return 'Tickets with errors';
+  if(SEL==='others') return 'Others: tickets with errors';
+  if(SEL===ME) return 'My resolved tickets with errors';
+  return SEL+'\u2019s resolved tickets with errors';
+}
+// Score order: server order is score ascending, then oldest resolved first; 'desc' flips only the
+// score (ties keep oldest resolved first).
+function sortRows(list,dir){
+  var d=dir==='desc'?-1:1;
+  return list.map(function(t,i){ return {t:t,i:i}; }).sort(function(a,b){ return ((a.t.score-b.t.score)*d)||(a.i-b.i); }).map(function(x){ return x.t; });
+}
+function tableHtml(rows,others){
+  var dir=SORT, sortLbl=dir==='asc'?'lowest first':'highest first';
+  return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Tickets with errors" tabindex="0"><table class="stv-tbl">'+
+    '<caption class="tb-asg-sr">Resolved tickets with errors, score '+sortLbl+'.</caption>'+
+    '<thead><tr><th scope="col" class="stv-fit" aria-sort="'+(dir==='asc'?'ascending':'descending')+'"><button type="button" class="stv-sort" data-stvsort="1">Score'+
+      '<span class="stv-sort-ic" aria-hidden="true">'+(dir==='asc'?'\u25b2':'\u25bc')+'</span>'+
+      '<span class="tb-asg-sr">, sorted '+sortLbl+'. Activate to sort '+(dir==='asc'?'highest':'lowest')+' first.</span></button></th>'+
+    '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Missing</th>'+
+    (others?'<th scope="col" class="stv-fit">Resolved by</th>':'')+'</tr></thead><tbody>'+
+    rows.map(function(t){
+      var miss=V.missText(t.missing)||'\u2014', u=t.url||(S&&S.url?S.url(t):'');
+      return '<tr><td class="stv-sc stv-fit">'+V.scoreHtml(t.score)+'</td>'+
+        '<td class="stv-id stv-fit"><span class="tb-asg-id"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId)+'<span class="tb-asg-sr"> (opens in a new tab)</span></a></span></td>'+
+        '<td class="stv-clip stv-ttl" title="'+esc(t.title||'No title')+'">'+esc(t.title||'No title')+'</td>'+
+        '<td class="stv-clip stv-mc" title="'+esc(miss)+'">'+esc(miss)+'</td>'+
+        (others?'<td class="stv-by stv-fit">'+esc(t.resolvedBy||'\u2014')+'</td>':'')+'</tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function viewBody(){
+  if(ST.state!=='done'||!SEL) return '';
+  var v=VIEWS[SEL]||{};
+  if(v.loading&&!v.data) return '<p class="tb-asg-empty">Loading tickets\u2026</p>';
+  if(v.error) return '<div class="st-err" role="alert">'+esc(v.error)+'<button type="button" class="st-btn is-ghost" id="stViewRetry">Try again</button></div>';
+  if(!v.data) return '';
+  var list=v.data.tickets||[], c=findC(SEL)||v.data.card||{};
+  var sum='<div class="tb-san-sum"><p>Resolved '+num(c.resolved)+' \u00b7 With errors '+num(c.withErrors)+' \u00b7 Perfect '+num(c.perfect)+' ('+full()+')</p>'+
+    '<div class="tb-san-prog" aria-hidden="true"><span style="width:'+(Number(c.passPct)||0)+'%"></span></div></div>';
+  if(!list.length) return sum+'<p class="tb-asg-empty">No tickets with errors \ud83c\udf89</p>';
+  var all=sortRows(list,SORT), last=Math.ceil(all.length/PAGE_SIZE)-1;
+  PG=Math.max(0,Math.min(PG,last));
+  return sum+tableHtml(all.slice(PG*PAGE_SIZE,(PG+1)*PAGE_SIZE),SEL==='others')+V.pager('re',PG,PAGE_SIZE,all.length,'Tickets with errors');
+}
+function renderView(focusSel){
+  var h=$('stViewH'), b=$('stViewBody'); if(!b) return;
+  var v=SEL&&VIEWS[SEL];
+  if(h) h.textContent=viewHead();
+  b.setAttribute('aria-busy',v&&v.loading?'true':'false');
+  b.innerHTML=viewBody();
+  if(focusSel){ var f=b.querySelector(focusSel)||document.querySelector(focusSel); if(f) try{ f.focus(); }catch(e){} }
+}
+function renderCards(focusKey){
+  var b=$('stCardsBody'); if(!b) return;
+  b.innerHTML=cardsBody();
+  if(focusKey){ var f=b.querySelector('[data-who="'+String(focusKey).replace(/["\\]/g,'')+'"]'); if(f) try{ f.focus(); }catch(e){} }
 }
 function render(){
-  var w=$('wrap');
-  if(LOADING){ w.innerHTML='<div class="eir">'+heroHtml()+skeletonHtml()+'</div>'; return; }
-  if(!D){
-    w.innerHTML='<div class="eir">'+heroHtml()+'<div class="eir-kpis" aria-hidden="true"></div><section class="eir-card">'+
-      emptyHtml('is-err','alert-triangle','Couldn\u2019t load the report','<span role="alert">'+esc(LOAD_ERR||'Could not load the report.')+'</span>',
-        '<button type="button" class="eir-btn" id="eirRetry">'+ic('refresh',14)+'Retry</button>')+'</section></div>';
-    var rb=$('eirRetry'); if(rb) rb.addEventListener('click',function(){ load(false); });
-    return;
-  }
-  var secs=D.sections||[];
-  secs.forEach(function(s){ fixFilter(s.key); });
-  w.innerHTML='<div class="eir'+(FIRST?' is-anim':'')+'">'+heroHtml()+kpiHtml()+scopeHtml()+checksHtml()+secs.map(sectionHtml).join('')+'</div>';
-  FIRST=false;
-  secs.forEach(function(s){ renderSec(s.key); });
-}
-function announce(msg){ var l=$('eirLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
-function focusSel(sel){ var n=document.querySelector(sel); if(n) n.focus(); }
-
-document.addEventListener('click',function(ev){
-  var t=ev.target; if(!t||!t.closest) return;
-  if(t.closest('#eirChecksBtn')){ CHK_OPEN=!CHK_OPEN; try{ localStorage.setItem(LS_OPEN,CHK_OPEN?'1':'0'); }catch(e){} render(); focusSel('#eirChecksBtn'); return; }
-  var tg=t.closest('[data-sec-toggle]');
-  if(tg){ var tk=tg.getAttribute('data-sec-toggle'); SEC_OPEN[tk]=!SEC_OPEN[tk]; try{ localStorage.setItem(LS_SEC,JSON.stringify(SEC_OPEN)); }catch(e){}
-    mountSec(tk); focusSel('[data-sec-toggle="'+tk+'"]'); return; }
-  var root=t.closest('.eir-sec'); if(!root||!D) return;
-  var k=root.getAttribute('data-key'), S=st(k);
-  var v=t.closest('[data-view]');
-  if(v){ S.view=v.getAttribute('data-view'); renderSec(k); return; }
-  var ag=t.closest('[data-agents]');
-  if(ag){ S.agents=ag.getAttribute('data-agents'); S.pages={}; renderSec(k); announce('Showing '+AGENT_LBL[S.agents]+' agents.'); return; }
-  var pg=t.closest('[data-pg]');
-  if(pg){ if(pg.disabled) return;
-    var sc=pg.getAttribute('data-pg-scope'), np=Number(pg.getAttribute('data-pg'))||1;
-    S.pages[sc]=np; S.focus=pg.getAttribute('data-fk')||''; renderSec(k); announce('Page '+np+'.'); return; }
-  var rt=t.closest('[data-retry]');
-  if(rt){ delete ROWS[rt.getAttribute('data-retry')]; renderSec(k); return; }
-  var f=t.closest('[data-filter]');
-  if(f){ var code=f.getAttribute('data-filter'); S.fchk=S.fchk===code?'':code; S.pages={}; renderSec(k);
-    announce(S.fchk?'Showing only tickets failing '+code+'.':'Check filter cleared.'); return; }
-  if(t.closest('[data-clear-filter]')){ S.fchk=''; S.pages={}; renderSec(k); focusSel('#eirQ-'+k); announce('Check filter cleared.'); return; }
-  if(t.closest('[data-clear-all]')){ clearTimeout(S.timer); S.q=''; S.fchk=''; S.agents='all'; S.qopen={}; S.m=null; S.mErr=''; S.pages={}; mountSec(k); focusSel('#eirQ-'+k); return; }
-  var x=t.closest('.eir-exp');
-  if(x){
-    var login=x.getAttribute('data-login');
-    if(query(k)) S.qopen[login]=!isOpen(k,login,Number(x.getAttribute('data-idx'))||0); else S.open[login]=!S.open[login];
-    S.focus='x:'+login;
-    renderSec(k);
-  }
-});
-document.addEventListener('input',function(ev){
-  var el=ev.target; if(!el||!el.getAttribute||!el.getAttribute('data-q-sec')) return;
-  var k=el.getAttribute('data-q-sec'), S=st(k);
-  S.q=el.value; S.qopen={}; S.pages={}; S.mErr='';
-  clearTimeout(S.timer);
-  if(query(k)) S.timer=setTimeout(function(){ loadMatch(k,S.q.trim()); },250);
-  renderSec(k);
-});
-// Search: the server returns the per-resolver counts of a section's matching tickets (rows stay paged).
-async function loadMatch(k,q){
-  var S=st(k), r=null;
-  try{ r=await A.api('GET','/api/errors-in-resolved?section='+encodeURIComponent(k)+'&q='+encodeURIComponent(q)); }catch(e){}
-  if(S.q.trim()!==q) return;   // a newer search is pending
-  if(r&&r.ok&&r.data&&r.data.match){ S.m=r.data.match; S.mErr=''; } else { S.m=null; S.mErr=(r&&r.data&&r.data.error)||'Could not search the tickets.'; }
-  renderSec(k);
-}
-document.addEventListener('change',function(ev){
-  var el=ev.target; if(!el||!el.matches||!el.matches('.eir-chk input[data-code]')) return;
-  var code=el.getAttribute('data-code');
-  Object.keys(SS).forEach(function(k){ SS[k].pages={}; });
-  if(canEdit()){ saveGlobal(code,el.checked); return; }
-  HIDDEN[code]=!el.checked; saveHidden(); render();
-  focusSel('#eirChk'+code);
-  announce(code+(el.checked?' errors shown.':' errors scratched out on your screen.'));
-});
-
-// Admin (harisss): turn a check on/off for everyone, then reload the report.
-async function saveGlobal(code,on){
-  var dis=D.checks.filter(function(c){ return c.code===code?!on:!c.enabled; }).map(function(c){ return c.code; });
-  var chk=checkOf(code), was=chk?chk.enabled:!on;
-  if(chk) chk.enabled=on;   // show the new state while saving
-  SAVING=true; SAVE_ERR=''; render();
-  var r=null; try{ r=await A.api('PUT','/api/errors-in-resolved/settings',{disabledChecks:dis}); }catch(e){}
-  SAVING=false;
-  if(!(r&&r.ok)){ if(chk) chk.enabled=was; SAVE_ERR=(r&&r.data&&r.data.error)||'Could not save the setting.'; render(); focusSel('#eirChk'+code); return; }
-  await load(true);
-  focusSel('#eirChk'+code);
-  announce(code+(on?' turned on for everyone.':' turned off for everyone.'));
+  $('wrap').innerHTML='<div class="st">'+heroHtml(false)+kpisHtml()+
+    '<section class="st-sec" aria-labelledby="stCardsH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('users',18)+'</span>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stCardsH">Resolvers</h2><p class="st-sec-d">Team BLR and AZA, plus Others (resolved by anyone else). Pick a card to see its tickets with errors below.</p></div></div>'+
+      '<div class="st-sec-b" id="stCardsBody"></div></section>'+
+    '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('alert-triangle',18)+'</span>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Tickets scored below '+full()+', lowest score first (use the Score header to flip it), then oldest resolved. Ticket links open in a new tab.</p></div></div>'+
+      '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section></div>';
+  renderCards(); renderView();
 }
 
-async function load(keep){
-  if(!keep){ LOADING=true; render(); }
-  var r=null; try{ r=await A.api('GET','/api/errors-in-resolved'); }catch(e){}
-  LOADING=false;
-  if(r&&r.ok&&r.data&&Array.isArray(r.data.checks)&&Array.isArray(r.data.sections)){
-    D=r.data; LOAD_ERR=''; ROWS={};
-    Object.keys(SS).forEach(function(k){ SS[k].m=null; SS[k].mErr=''; if(query(k)) loadMatch(k,SS[k].q.trim()); });
-  }
-  else if(!keep){ D=null; LOAD_ERR=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the report.'); }
-  else SAVE_ERR=(r&&r.data&&r.data.error)||'Could not reload the report.';
+// ---- Data ----
+function setUrl(key){
+  try{ var u=new URL(location.href); if(key) u.searchParams.set('who',key); else u.searchParams.delete('who'); history.replaceState(history.state,'',u.pathname+u.search+u.hash); }catch(e){}
+}
+function errMsg(r,what){ return (r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||('Could not load '+what+'.')); }
+function loadView(key,force){
+  var v=VIEWS[key];
+  if(v&&v.data&&!force){ renderView(); return; }
+  var seq=++SEQ;
+  VIEWS[key]={loading:true}; renderView();
+  A.api('GET','/api/resolved-errors?who='+encodeURIComponent(key)).then(function(r){
+    VIEWS[key]=(r&&r.ok&&r.data&&Array.isArray(r.data.tickets))?{data:r.data}:{error:errMsg(r,'the tickets')};
+  },function(){ VIEWS[key]={error:'Could not load the tickets.'}; }).then(function(){
+    if(seq!==SEQ||SEL!==key) return;
+    var x=VIEWS[key]; renderView();
+    announce(x.error?x.error:(viewHead()+': '+num(x.data.tickets.length)+'.'));
+  });
+}
+function select(key,focusCard){
+  if(!findC(key)) return;
+  var same=key===SEL;
+  SEL=key; setUrl(key);
+  if(!same){ PG=0; SORT='asc'; }
+  renderCards(focusCard?key:null);
+  loadView(key,false);
+}
+function applyCards(d){
+  if(d&&Array.isArray(d.cards)) ST={state:'done',err:'',cards:d.cards,asOf:d.asOf||null,max:Number(d.maxScore)||11};
+  else ST={state:'error',err:'Could not load the resolved tickets.',cards:[],asOf:null,max:11};
+  if(V&&V.setMax) V.setMax(ST.max);
   render();
+  if(ST.state!=='done'){ announce(ST.err); return; }
+  // ?who= deep link first, else the viewer's own card.
+  var want=String(new URLSearchParams(location.search).get('who')||'').trim().toLowerCase();
+  var pick=findC(want)?want:(findC(ME)?ME:(ST.cards[0]&&ST.cards[0].key));
+  if(pick) select(pick,false);
+}
+function fetchCards(){
+  A.api('GET','/api/resolved-errors').then(function(r){
+    if(r&&r.status===403){ gate('none'); return; }
+    if(!(r&&r.ok)){ ST={state:'error',err:errMsg(r,'the resolved tickets'),cards:[],asOf:null,max:11}; render(); announce(ST.err); return; }
+    applyCards(r.data);
+  },function(){ applyCards(null); });
+}
+function loadCards(retry){
+  ST={state:'loading',err:'',cards:[],asOf:null,max:11}; render();
+  // First load reuses the top bar's request (same endpoint); Try again asks the server afresh.
+  if(retry||!RE||!RE.ready){ fetchCards(); return; }
+  RE.ready().then(function(d){ if(d&&Array.isArray(d.cards)) applyCards(d); else fetchCards(); },fetchCards);
 }
 
-(async function init(){
-  if(!A||!A.getUser||!A.getUser()||!A.getToken()){ try{A.clear&&A.clear();}catch(e){} location.replace('index.html'); return; }
-  try{ if(A.loadMyProfile) await A.loadMyProfile(); }catch(e){}
-  load(false);
-})();
+// ---- Events ----
+document.addEventListener('click',function(e){
+  var t=e.target; if(!t||!t.closest||!t.closest('#wrap')) return;
+  var card=t.closest('.st-card[data-who]');
+  if(card){ select(card.getAttribute('data-who'),true); return; }
+  if(t.closest('#stRetry')){ loadCards(true); return; }
+  if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
+  if(t.closest('[data-stvsort]')){
+    SORT=SORT==='asc'?'desc':'asc'; PG=0; renderView('[data-stvsort]');
+    announce('Sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
+  }
+  var pg=t.closest('[data-sanpage]');
+  if(pg&&!pg.disabled){
+    var np=Math.max(0,Number(pg.getAttribute('data-sanpage').split(':')[1])||0), dir=np>PG?'next':'prev';
+    PG=np; renderView();
+    var bs=document.querySelectorAll('#stViewBody [data-sanpage]'), f=dir==='next'?bs[bs.length-1]:bs[0];
+    if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
+    if(f) try{ f.focus(); }catch(err){}
+    var sc=document.querySelector('#stViewBody .tb-asg-scroll'); if(sc) sc.scrollTop=0;
+    announce('Tickets with errors: page '+(PG+1));
+  }
+});
+
+// ---- Start ----
+(function(){
+  if(!(A&&A.getUser&&A.getUser())){ gate('login'); return; }
+  if(!V||!RE||!RE.mayAsk()){ gate('none'); return; }
+  // Times in the account timezone (IST / MST), like the rest of the app.
+  if(S&&A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); var h=$('stAsOf'); if(h&&ST.state==='done') h.innerHTML=ic('clock',14)+(ST.asOf?esc(when(ST.asOf)):'Unknown'); } }).catch(function(){});
+  loadCards(false);
 })();
 </script>
 </body>

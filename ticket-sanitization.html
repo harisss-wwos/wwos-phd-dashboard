@@ -238,7 +238,7 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 .ts-mbtn.sec:hover{background:#f5f6f8}
 .ts-mbtn:disabled{opacity:.7;cursor:default}
 
-/* ---- Sanitization scores (owner-only card). --sc-h = the score's hue: 0 red ... 5 amber ... 10 green. ---- */
+/* ---- Sanitization scores (owner-only card). --sc-h = the score's hue: 0 red ... amber ... max (11) green. ---- */
 .ts-own{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.56em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
   background:var(--info-bg);color:var(--info);border:1px solid #c9dff0;white-space:nowrap}
 .ts-sc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -249,7 +249,7 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 .ts-sc-tot{margin:0 0 12px;font-size:.9em;font-weight:700;color:#2a3340;font-variant-numeric:tabular-nums}
 .ts-sc-tot b{font-weight:800;color:var(--ink)}
 .ts-sc-tot span{color:var(--mut);font-weight:600}
-.ts-sc-dist{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.ts-sc-dist{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
 .ts-sc-dist li{min-width:0}
 .ts-sc-dist button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:2px 0;border:none;background:transparent;font:inherit;cursor:pointer;border-radius:6px}
 .ts-sc-dist button:hover .ts-sc-bar{filter:brightness(.92)}
@@ -276,6 +276,9 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 .ts-chip{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:.86em;font-weight:700;white-space:nowrap;background:var(--red-bg);color:var(--red);border:1px solid #f2b8b1;cursor:help}
 .ts-chip.ok{background:var(--grn-bg);color:var(--grn);border-color:#b7e1c7;cursor:default}
 .ts-chip b{margin-left:5px;font-weight:800;font-variant-numeric:tabular-nums}
+.ts-chip.ts-chip-grp{white-space:normal;border-radius:8px;gap:0;display:inline-block;line-height:1.5}
+.ts-chip-grp b{margin-left:3px}
+.ts-chip-sep{margin:0 5px;opacity:.55;font-weight:600}
 /* Score header row: toggle (left) + missing-checks summary chips (right corner; wraps below the title when narrow). */
 .ts-sc-hrow{display:flex;align-items:center;flex-wrap:wrap;background:var(--soft)}
 .ts-sc-hrow>.ts-sec-h{flex:1 1 260px;min-width:0}
@@ -308,7 +311,7 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 .ts-sc-pgb .ts-mbtn:disabled{opacity:.45}
 @container (max-width:620px){ .ts-sc-dist{gap:3px;padding:10px 6px} .ts-sc-n{font-size:.66em} }
 
-/* ---- Sanitization assignments (owner-only): header Assign button, row tag, pop-up, performance / log / rework cards ---- */
+/* ---- Sanitization assignments (owner-only): header Assign button, row tag, pop-up, assignment log card ---- */
 .ts-sc-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 14px 6px 0}
 .ts-sc-av{font-size:.78em;font-weight:800;color:var(--acc-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ts-sc-av.is-none{color:var(--mut)}
@@ -360,20 +363,6 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 #tsAsgDlg .tsa-fb,.ts .tsa-fb{display:block;width:100%;min-height:96px;margin:10px 0 0;padding:8px 10px;border:1px solid #cdd4db;border-radius:8px;font:inherit;font-size:.82em;line-height:1.5;color:#1b2026;background:#fff;resize:vertical}
 .tsa-fbl{display:block;margin:10px 0 0;font-size:.8em;font-weight:700;color:#5c6773}
 .tsa-copied{font-size:.82em;font-weight:800;color:var(--grn,#1a7a43)}
-/* Performance table */
-.tsa-tw{overflow-x:auto}
-.tsa-tbl{width:100%;border-collapse:collapse;font-size:.86em;font-variant-numeric:tabular-nums}
-.tsa-tbl th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);font-size:.86em;font-weight:800;color:var(--mut);white-space:nowrap}
-.tsa-tbl td{padding:8px 10px;border-bottom:1px solid #eef1f4;color:#2a3340;vertical-align:middle}
-.tsa-tbl tr:last-child td{border-bottom:none}
-.tsa-tbl td.who b{display:block;color:var(--ink)}
-.tsa-tbl td.who small{color:var(--mut);font-weight:600}
-.tsa-tbl a{color:#1d5a8a;font-weight:800;text-decoration:none}
-.tsa-tbl a:hover{text-decoration:underline}
-.tsa-rate{display:flex;align-items:center;gap:8px;min-width:150px}
-.tsa-bar{flex:1 1 auto;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
-.tsa-bar span{display:block;height:100%;border-radius:99px;background:hsl(var(--sc-h),68%,46%)}
-.tsa-rate b{min-width:44px;text-align:right;color:var(--ink)}
 .tsa-mut{color:var(--mut);font-weight:600}
 /* Log */
 .tsa-days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
@@ -402,16 +391,8 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
 .tsa-ids .s{white-space:nowrap;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
 .tsa-fbh:empty{display:none}
 .tsa-fbh{flex-basis:100%}
-/* Needs rework */
-.tsa-iss{display:flex;flex-direction:column;gap:12px}
-.tsa-blk{border:1px solid #f2b8b1;border-left:4px solid #d92d20;border-radius:10px;overflow:hidden}
-.tsa-blk-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;background:#fffafa;border-bottom:1px solid #f6d6d2}
-.tsa-blk-t{flex:1 1 320px;min-width:0;margin:0;font-size:.98em;font-weight:800;color:var(--ink)}
-.tsa-blk-t small{display:block;margin-top:2px;font-size:.82em;font-weight:600;color:var(--mut)}
-.tsa-blk .tsa-tw{padding:4px 6px}
-.tsa-blk .tsa-tbl td.tt{min-width:220px;overflow-wrap:anywhere}
 
-/* ---- Top-level accordion cards (checklist / scores / log / performance / rework): one open at a time ---- */
+/* ---- Top-level accordion cards (checklist / scores / assignment log): one open at a time ---- */
 .ts-card.ts-acc{padding:0}
 .ts-acc>.ts-head{align-items:center;gap:0 10px;margin:0;background:#fff;transition:background .15s}
 .ts-acc>.ts-head:has(.ts-top-tog:hover){background:var(--soft)}
@@ -454,7 +435,7 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
       <span class="tbl-head-ic" aria-hidden="true" data-ic="plus" data-sz="20"></span>
       <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization &middot; Checklist</div><h2 class="tbl-title" id="tsAddTitle">Add new check</h2></div>
       <button type="button" class="tbl-x" onclick="tsCloseAdd()" aria-label="Close" data-ic="close" data-sz="18"></button>
-      <p class="tbl-sub" id="tsAddDesc">Add a check to the SIM Title, Root Cause Details or Hashtags section.</p>
+      <p class="tbl-sub" id="tsAddDesc">Add a check to the SIM Title, Root Cause Details, Hashtags or ClosureCode section.</p>
     </div>
     <div class="tbl-body">
       <label class="tbl-label" for="tsAddSec">Section</label>
@@ -497,22 +478,19 @@ button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
   </div>
 </div>
 
-<script src="icons.js?v=2"></script>
+<script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=224"></script>
+<script src="topbar-auth.js?v=231"></script>
 <script>
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||18):'';
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-// The shared SharePoint sheet where each analyst finds their assigned tickets and sanitizes them.
-var TS_SHEET_URL='https://amazon-my.sharepoint.com/:x:/r/personal/flofalgu_amazon_com/_layouts/15/doc2.aspx?sourcedoc=%7B1C13EF24-F76D-41A3-A9A4-CE41C2550BA8%7D&file=Book.xlsx&action=editnew&mobileredirect=true';
 // Edit access: only these two usernames (case-insensitive). The server enforces the same allow-list.
 var TS_EDITORS=['harisss','flofalgu'];
 function tsCanEdit(){ var u=A&&A.getUser&&A.getUser(); return !!(u && TS_EDITORS.indexOf(String(u.username||'').toLowerCase())>=0); }
 
 // Glyphs.
-var ICO_EXT='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 var ICO_COPY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 var ICO_CHEV='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 var ICO_EDIT='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
@@ -520,7 +498,6 @@ var ICO_DEL='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke=
 var ICO_PLUS='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 var ICO_RETRY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>';
 var ICO_INFO='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
-var ICO_SHEET='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>';
 var ICO_LIST='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h11M10 12h11M10 18h11"/><path d="M4 6h1v4M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>';
 var SPIN='<span class="ts-spin" aria-hidden="true"></span>';
 
@@ -540,11 +517,12 @@ function copyFallback(text,done){ try{ var ta=document.createElement('textarea')
 // ---- Section grouping helpers (pure; no DOM) ----
 // Stored lines start with a section prefix ("SIM Title - ...", "Root Cause Details - ...", "Hashtags - ...").
 // The prefix picks the sub-section and is stripped for display; edits still use the full stored text.
-var TS_PREFIX_RE=/^\s*(SIM Title|Title|Root ?Cause Details|RCD|Hashtags?|Labels?)\s*[-\u2013\u2014:]\s*/i;
+var TS_PREFIX_RE=/^\s*(SIM Title|Title|Root ?Cause Details|RCD|Hashtags?|Labels?|Closure ?Code)\s*[-\u2013\u2014:]\s*/i;
 var TS_SECTIONS=[
   {key:'title',label:'SIM Title',icon:'ticket'},
   {key:'rcd',label:'Root Cause Details',icon:'clipboard'},
-  {key:'tags',label:'Hashtags',icon:'hash'}
+  {key:'tags',label:'Hashtags',icon:'hash'},
+  {key:'closure',label:'ClosureCode',icon:'check-circle'}
 ];
 var TS_OTHER={key:'other',label:'Other',icon:'info'};
 var TS_ADD_SEC='SIM Title';  // last section picked in the editor's add row (kept across re-renders)
@@ -553,12 +531,13 @@ function tsSectionKey(text){
   var p=m[1].toLowerCase().replace(/\s+/g,' ');
   if(p==='sim title'||p==='title') return 'title';
   if(p==='root cause details'||p==='rootcause details'||p==='rcd') return 'rcd';
+  if(p==='closurecode'||p==='closure code') return 'closure';
   return 'tags';
 }
 function tsStripPrefix(text){ return String(text==null?'':text).replace(TS_PREFIX_RE,'').trim(); }
 // items -> [{key,label,icon,lines:[{idx,text}]}]; fixed section order, DB order within a section, 'Other' only when non-empty.
 function tsGroup(items){
-  var by={title:[],rcd:[],tags:[],other:[]};
+  var by={title:[],rcd:[],tags:[],closure:[],other:[]};
   (items||[]).forEach(function(it,idx){ by[tsSectionKey(it.text)].push({idx:idx,text:tsStripPrefix(it.text)}); });
   var out=TS_SECTIONS.map(function(s){ return {key:s.key,label:s.label,icon:s.icon,lines:by[s.key]}; });
   if(by.other.length) out.push({key:TS_OTHER.key,label:TS_OTHER.label,icon:TS_OTHER.icon,lines:by.other});
@@ -566,8 +545,9 @@ function tsGroup(items){
 }
 // ---- end section grouping helpers ----
 
-// Sub-section open state: in memory only (collapsed on every page load), kept across re-renders.
-var TS_OPEN={};
+// Sub-section open state: in memory only, kept across re-renders. The whole checklist (every
+// sub-section) is EXPANDED on every page load; before, the card opened with its sub-sections collapsed.
+var TS_OPEN={title:true,rcd:true,tags:true,other:true};
 function tsSetSec(key,open){
   TS_OPEN[key]=!!open;
   var btn=document.getElementById('tsSecBtn-'+key), body=document.getElementById('tsSecList-'+key);
@@ -575,15 +555,16 @@ function tsSetSec(key,open){
   if(body) body.hidden=!open;
   if(btn&&btn.closest) { var s=btn.closest('.ts-sec'); if(s) s.classList.toggle('is-open',!!open); }
 }
-// Only one sub-section open at a time: opening one closes the others.
+// Opening a sub-section closes the others (one at a time once the user starts toggling); closing one
+// leaves the rest as they are, so collapsing one of the all-open defaults keeps the other two open.
 function tsToggleSec(key){
   var open=!TS_OPEN[key];
-  Object.keys(TS_OPEN).forEach(function(k){ if(k!==key&&TS_OPEN[k]) tsSetSec(k,false); });
+  if(open) Object.keys(TS_OPEN).forEach(function(k){ if(k!==key&&TS_OPEN[k]) tsSetSec(k,false); });
   tsSetSec(key,open);
 }
 window.tsToggleSec=tsToggleSec;
 
-// ---- Top-level accordion (checklist, scores, assignment log, performance, needs rework) ----
+// ---- Top-level accordion (checklist, scores, assignment log) ----
 // TS_TOP = id of the one open card (null = all collapsed). The checklist is open on every page load. In memory only.
 // Toggling only flips attributes, so inner accordions / pages keep their state; re-renders read TS_TOP.
 var TS_TOP='tsGuide';
@@ -648,15 +629,14 @@ function heroHtml(editor){
       (editor?'<li class="is-acc">Editor access</li>':'<li>View only</li>');
   return '<header class="ts-hero"><div class="ts-hero-in"><span class="ts-hero-ic" aria-hidden="true">'+ic('check-circle',24)+'</span><div class="ts-hero-txt">'+
     '<p class="ts-eyebrow">Step-by-step guide</p><h1>Ticket Sanitization</h1>'+
-    '<p class="ts-sub">Open the shared sheet, find <b>your assigned tickets</b>, then work through the <b>sanitization checklist</b> below for each one.</p>'+
+    '<p class="ts-sub">Find <b>your assigned tickets</b>, then work through the <b>sanitization checklist</b> below for each one.</p>'+
     '<ul class="ts-hero-chips" aria-label="Summary">'+chips+'</ul></div>'+
-    '<div class="ts-hero-acts"><a class="ts-hero-link" href="'+esc(TS_SHEET_URL)+'" target="_blank" rel="noopener noreferrer" title="SharePoint \u00b7 Excel \u00b7 opens in a new tab">'+
-      '<span class="ts-hl-sheet" aria-hidden="true">'+ICO_SHEET+'</span>'+
-      '<span class="ts-hl-txt"><span class="ts-hl-t">Open assigned tickets sheet</span><span class="ts-hl-s" aria-hidden="true">SharePoint \u00b7 Excel \u00b7 opens in a new tab</span></span>'+
-      '<span class="ts-hl-ext" aria-hidden="true">'+ICO_EXT+'</span><span class="ts-sr"> (opens in a new tab)</span></a>'+
+    // Update tickets data / Generate / Open assigned tickets sheet live on sanitization-tracker.html now.
+    '<div class="ts-hero-acts">'+
       '<button type="button" class="ts-hero-link ts-hero-prompt" onclick="tsCopyPrompt(this)" title="Copy the AI prompt for writing PHD Findings, Primary Case Tag, SIM Root Cause Details and SIM Title">'+
         '<span class="ts-hl-sheet" aria-hidden="true">'+ICO_COPY+'</span>'+
-        '<span class="ts-hl-txt"><span class="ts-hl-t">Copy prompt</span><span class="ts-hl-s" aria-hidden="true">Paste it into your AI tool before the incident</span></span></button></div>'+
+        '<span class="ts-hl-txt"><span class="ts-hl-t">Copy prompt</span><span class="ts-hl-s" aria-hidden="true">Paste it into your AI tool before the incident</span></span></button>'+
+    '</div>'+
   '</div></header>';
 }
 
@@ -679,7 +659,7 @@ function tsLineHtml(key,text){
 function stepsHtml(editor,anim){
   if(LOADING) return skeletonSections();
   if(LOAD_ERR) return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
-      '<p class="ts-state-t">Couldn\u2019t load the checklist</p><p class="ts-state-p">'+esc(LOAD_ERR)+' The shared sheet link above still works.</p></div>'+
+      '<p class="ts-state-t">Couldn\u2019t load the checklist</p><p class="ts-state-p">'+esc(LOAD_ERR)+'</p></div>'+
       '<button type="button" class="ts-btn" id="tsRetry" onclick="tsRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
   if(!TS_ITEMS.length) return '<div class="ts-empty">'+ICO_INFO+'No checklist lines yet.</div>';
   var seq=0;
@@ -844,8 +824,8 @@ async function tsDelConfirm(){
 window.tsDelConfirm=tsDelConfirm;
 
 // ---- Sanitization scores (owner-only; the server enforces it too: GET /api/sanitization-score) ----
-// Every Resolved / Closed ticket scored 0..10 (one point per check); appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored.
-// 11 collapsible buckets, 0 points first (they matter most); one open at a time; each header lists its failing checks.
+// Every Resolved / Closed ticket scored 0..scMax() (11: one point per check); appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored.
+// scMax()+1 collapsible buckets, 0 points first (they matter most); one open at a time; each header lists its failing checks.
 // Inside: created-quarter sub-sections (Pacific, oldest first, collapsed); tickets paged by 100 in two 50-row columns.
 var TS_OWNER='harisss';
 function tsIsOwner(){ var u=A&&A.getUser&&A.getUser(); return !!(u && String(u.username||'').trim().toLowerCase()===TS_OWNER); }
@@ -853,8 +833,11 @@ function tsIsOwner(){ var u=A&&A.getUser&&A.getUser(); return !!(u && String(u.u
 var SC={loading:true, err:'', data:null, quarter:'', open:null, openQ:null, page:{}};
 var SC_PAGE=100;
 var ICO_SCORE='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>';
-// Hue per score: 0 red (0) -> 5 amber (38) -> 10 green (142).
-function scHue(s){ return s<=5 ? Math.round(s/5*38) : Math.round(38+(s-5)/5*104); }
+// Top score: the server's maxScore (MAX_SCORE in sanitization-score.js), 11 until the payload is here.
+var SC_MAX_DEFAULT=11;
+function scMax(){ var m=SC.data&&Number(SC.data.maxScore); return m>0?m:SC_MAX_DEFAULT; }
+// Hue per score: 0 red (0) -> half amber (38) -> max green (142).
+function scHue(s){ var M=scMax(), h=M/2; s=Math.max(0,Math.min(M,Number(s)||0)); return s<=h ? Math.round(s/h*38) : Math.round(38+(s-h)/(M-h)*104); }
 function scWhen(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):''; }
 
 function scSkel(){
@@ -869,15 +852,15 @@ function scQuarterSelect(){
   return '<div class="ts-sc-ctl ts-top-acts"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
 }
 function scDistHtml(d){
-  var max=0, i; for(i=0;i<=10;i++) max=Math.max(max,d.buckets[i]||0);
+  var M=scMax(), max=0, i; for(i=0;i<=M;i++) max=Math.max(max,d.buckets[i]||0);
   var li=[];
-  for(i=0;i<=10;i++){
+  for(i=0;i<=M;i++){
     var n=d.buckets[i]||0, h=max?Math.max(n?4:0,Math.round(n/max*100)):0;
     li.push('<li style="--sc-h:'+scHue(i)+'"><button type="button" onclick="tsScoreJump('+i+')" aria-label="'+i+' points: '+n+' '+(n===1?'ticket':'tickets')+'. Show this group">'+
       '<span class="ts-sc-n" aria-hidden="true">'+n+'</span><span class="ts-sc-col" aria-hidden="true"><span class="ts-sc-bar" style="height:'+h+'%"></span></span>'+
       '<span class="ts-sc-x" aria-hidden="true">'+i+'</span></button></li>');
   }
-  return '<ul class="ts-sc-dist" aria-label="Score distribution, 0 to 10 points">'+li.join('')+'</ul>';
+  return '<ul class="ts-sc-dist" style="grid-template-columns:repeat('+(M+1)+',minmax(0,1fr))" aria-label="Score distribution, 0 to '+M+' points">'+li.join('')+'</ul>';
 }
 // Created quarter id from the server ('2026-Q1'); anything else (no CreateDate) -> 'none'.
 function scQKey(t){ var q=t&&t.cq; return /^\d{4}-Q[1-4]$/.test(q||'')?q:'none'; }
@@ -891,14 +874,31 @@ function scMissText(t,crit){
 // Header summary: failing criteria among a score group's tickets, most frequent first.
 function scMissHtml(list,score,crit){
   if(!list.length) return '';
-  if(score===10) return '<ul class="ts-sc-miss" aria-label="Checks for '+score+' points"><li class="ts-chip ok">All checks pass</li></ul>';
+  if(score===scMax()) return '<ul class="ts-sc-miss" aria-label="Checks for '+score+' points"><li class="ts-chip ok">All checks pass</li></ul>';
   var cnt=crit.map(function(){ return 0; });
   list.forEach(function(t){ (t.checks||[]).forEach(function(c,i){ if(!c[0]&&i<cnt.length) cnt[i]++; }); });
-  var rows=cnt.map(function(n,i){ return {i:i,n:n}; }).filter(function(x){ return x.n>0; }).sort(function(a,b){ return (b.n-a.n)||(a.i-b.i); });
+  var rows=cnt.map(function(n,i){ return {i:i,n:n}; }).filter(function(x){ return x.n>0; });
   if(!rows.length) return '';
-  return '<ul class="ts-sc-miss" aria-label="Missing checks for '+score+' '+(score===1?'point':'points')+'">'+rows.map(function(x){
-    var cr=crit[x.i]||{chip:'Check '+(x.i+1),label:''}, n=x.n.toLocaleString();
-    return '<li class="ts-chip" title="'+esc(n+' of '+list.length.toLocaleString()+' tickets fail: '+(cr.label||cr.chip))+'">'+esc(cr.chip)+'<b>'+n+'</b><span class="ts-sr"> tickets</span></li>';
+  // Grouped by prefix in check order: [Title: no country code 39 | no severity 39 | …] [RCD: Issue 39 | SID 39 | …] [ClosureCode: not allowed 12]
+  var groups=[], gi={};
+  rows.forEach(function(x){
+    var cr=crit[x.i]||{chip:'Check '+(x.i+1),label:''}, chip=String(cr.chip||''), k=chip.indexOf(':');
+    var pre=k>0?chip.slice(0,k):'', name=k>0?chip.slice(k+1).trim():chip;
+    if(!(pre in gi)){ gi[pre]=groups.length; groups.push({pre:pre,items:[]}); }
+    // ClosureCode: the tooltip breaks the failures down by 'current → expected' code (the check value).
+    var by=null;
+    if(cr.key==='closure'){
+      var bc={}; list.forEach(function(t){ var c=(t.checks||[])[x.i]; if(c&&!c[0]){ var v=String(c[1]||'(blank)'); bc[v]=(bc[v]||0)+1; } });
+      by=Object.keys(bc).sort(function(a,b){ return bc[b]-bc[a]||a.localeCompare(b); }).map(function(v){ return '  '+v+': '+bc[v].toLocaleString(); });
+    }
+    groups[gi[pre]].items.push({name:name,n:x.n,label:cr.label||chip,by:by});
+  });
+  var tot=list.length.toLocaleString();
+  return '<ul class="ts-sc-miss" aria-label="Missing checks for '+score+' '+(score===1?'point':'points')+'">'+groups.map(function(g){
+    var tip=g.items.map(function(it){ return it.n.toLocaleString()+' of '+tot+' tickets fail: '+it.label+(it.by&&it.by.length?'\n'+it.by.join('\n'):''); }).join('\n');
+    return '<li class="ts-chip ts-chip-grp" title="'+esc(tip)+'">['+(g.pre?esc(g.pre)+': ':'')+g.items.map(function(it){
+      return esc(it.name)+' <b>'+it.n.toLocaleString()+'</b><span class="ts-sr"> tickets</span>';
+    }).join(' <span class="ts-chip-sep" aria-hidden="true">|</span> ')+']</li>';
   }).join('')+'</ul>';
 }
 function scColHtml(rows,from,score,qk,crit){
@@ -937,16 +937,16 @@ function scQuartersHtml(list,score,crit){
   }).join('')+'</div>';
 }
 function scBucketsHtml(d){
-  var by={}, i; for(i=0;i<=10;i++) by[i]=[];
+  var M=scMax(), by={}, i; for(i=0;i<=M;i++) by[i]=[];
   (d.tickets||[]).forEach(function(t){ if(by[t.score]) by[t.score].push(t); });
   var crit=d.criteria||[], out=[];
   if(!d._miss) d._miss={};   // header summaries, computed once per payload
-  for(i=0;i<=10;i++){
-    var n=(d.buckets&&d.buckets[i])||0, open=SC.open===i, great=i===10;
+  for(i=0;i<=M;i++){
+    var n=(d.buckets&&d.buckets[i])||0, open=SC.open===i, great=i===M;
     out.push('<section class="ts-sec ts-sc-sec'+(open?' is-open':'')+(great?' is-great':'')+'" style="--sc-h:'+scHue(i)+'" id="tsScSec-'+i+'" aria-labelledby="tsScH-'+i+'">'+
       '<div class="ts-sc-hrow"><h3 class="ts-sec-h" id="tsScH-'+i+'"><button type="button" class="ts-sec-tog" id="tsScB-'+i+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScL-'+i+'" onclick="tsScoreToggle('+i+')">'+
         '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
-        '<span class="ts-sc-badge">'+i+' / 10</span><span class="ts-sec-lbl">'+i+' '+(i===1?'point':'points')+'</span>'+
+        '<span class="ts-sc-badge">'+i+' / '+M+'</span><span class="ts-sec-lbl">'+i+' '+(i===1?'point':'points')+'</span>'+
         '<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> '+(n===1?'ticket':'tickets')+')</span></span>'+
         (great?'<span class="ts-sc-great">Great</span>':'')+'</button></h3>'+
         (great?'':saHeadActs(d,i,n))+
@@ -964,7 +964,7 @@ function scBodyHtml(){
     '<button type="button" class="ts-btn" id="tsScoreRetry" onclick="tsScoreRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
   var d=SC.data; if(!d) return '';
   var when=scWhen(d.asOf);
-  var xb=d.excludedBy||{}, XL=[['appeal','appeal'],['test','test'],['duplicate','duplicate'],['autosim','AUTO-SIM'],['cnt','Cnt &gt; 0']];
+  var xb=d.excludedBy||{}, XL=[['appeal','appeal'],['test','test'],['duplicate','duplicate'],['autosim','AUTO-SIM'],['cnt','Cnt &gt; 0'],['approved error','approved error']];
   var why=XL.filter(function(x){ return xb[x[0]]; }).map(function(x){ return Number(xb[x[0]]).toLocaleString()+' '+x[1]; }).join(', ');
   return '<p class="ts-sc-tot"><b>'+Number(d.total||0).toLocaleString()+'</b> '+(d.total===1?'ticket':'tickets')+' scored \u00b7 <b>'+Number(d.excluded||0).toLocaleString()+'</b> ignored'+(why?' ('+why+')':'')+
       (when?' <span>\u00b7 data as of '+esc(when)+'</span>':'')+'</p>'+
@@ -977,7 +977,7 @@ function scoreHtml(){
     tsTopHead('tsScore',{icon:ICO_SCORE,title:'Sanitization scores',
       sum:tot!=null?tsTopSum(tot.toLocaleString()+' scored'):'',
       tags:'<span class="ts-own">Only visible to you</span>',
-      sub:'Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details = 10). Lowest scores need sanitizing first.',
+      sub:'Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details + 1 ClosureCode = '+scMax()+'). Lowest scores need sanitizing first.',
       acts:scQuarterSelect()})+
     tsTopBody('tsScore')+scBodyHtml()+'</div></section>';
 }
@@ -1027,17 +1027,15 @@ window.tsScoreRetry=tsScoreRetry; window.tsScoreQuarter=tsScoreQuarter; window.t
 
 // ---- Sanitization assignments (owner-only; the server enforces it: /api/sanitization-assign) ----
 // Assign a score section's oldest available tickets to a contractor (the server picks them), then the
-// next data uploads verify them: Contractor performance, the assignment log and Needs rework.
-// SA = { loading, err, data:{contractors, assignments, performance, issues}, x:{id:true} (Show IDs), rv:{id:true} (revoking) }
+// next data uploads verify them (assignment log here; per-contractor results on sanitization-tracker.html).
+// SA = { loading, err, data:{contractors, assignments, ...}, x:{id:true} (Show IDs), rv:{id:true} (revoking) }
 var SA={loading:true, err:'', data:null, x:{}, rv:{}};
 function saPlural(n,one,many){ n=Number(n)||0; return n.toLocaleString()+' '+(n===1?one:(many||one+'s')); }
 function saDay(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'\u2014'; }
 function saDate(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'\u2014'; }
 function saDayKey(iso){ var d=new Date(iso); if(!iso||isNaN(d)) return 'unknown'; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function saAvg(v){ return v==null?'\u2014':Number(v).toFixed(1); }
 function saUrl(t){ return (t&&t.url)||(t&&t.shortId?'https://t.corp.amazon.com/issues/'+encodeURIComponent(t.shortId):''); }
 function saFind(id){ var d=SA.data; return d?(d.assignments||[]).filter(function(a){ return a.id===id; })[0]||null:null; }
-function saIssue(id){ var d=SA.data; return d?(d.issues||[]).filter(function(a){ return a.id===id; })[0]||null:null; }
 function saLinkCell(t){ var u=saUrl(t), id=t.shortId||'\u2014'; return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id); }
 function saExtractBtn(attr,label){ return '<button type="button" class="ts-abtn" '+attr+'>'+ICO_COPY+'<span class="tsa-bl">Extract tickets</span><span class="ts-sr"> '+esc(label||'')+'</span></button>'; }
 
@@ -1066,7 +1064,7 @@ function saCopy(urls,btn,fbHost){
   else copyFallback(text,done);
 }
 
-// Score section header: 'N available' + 'Assign to sanitize' (0..9 points).
+// Score section header: 'N available' + 'Assign to sanitize' (0..scMax()-1 points; the top section has none).
 function saHeadActs(d,i,n){
   var av=(d.available&&d.available[i]!=null)?d.available[i]:n;
   return '<div class="ts-sc-acts"><span class="ts-sc-av'+(av?'':' is-none')+'" id="tsScAv-'+i+'">'+Number(av).toLocaleString()+' available</span>'+
@@ -1086,11 +1084,11 @@ async function loadAssign(fromRetry,focusSel){
 }
 function tsAsgRetry(){ loadAssign(true); }
 window.tsAsgRetry=tsAsgRetry;
-// The three assignment cards are separate top-level accordion cards (page order: log, performance, rework);
-// each is re-rendered in place by id.
-var SA_CARDS=['tsAsgLog','tsPerf','tsRework'];
+// The assignment log is a top-level accordion card, re-rendered in place by id. (Contractor
+// performance and Needs rework moved to sanitization-tracker.html.)
+var SA_CARDS=['tsAsgLog'];
 function saRender(focusSel){
-  if(!document.getElementById('tsPerf')) return;
+  if(!document.getElementById('tsAsgLog')) return;
   tsKeepFocus(function(){ SA_CARDS.forEach(function(id){ var el=document.getElementById(id); if(el) el.outerHTML=saCardHtml(id); }); });
   if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); }
 }
@@ -1105,59 +1103,28 @@ function saErrHtml(){
     '<p class="ts-state-t">Couldn\u2019t load the sanitization assignments</p><p class="ts-state-p">'+esc(SA.err)+'</p></div>'+
     '<button type="button" class="ts-btn" id="tsAsgRetry" onclick="tsAsgRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
 }
-// One assignment card. On a load error only Contractor performance shows (with Retry); the log and rework
-// cards stay as hidden placeholders so saRender can fill them in once a reload succeeds.
+// The assignment log card (a load error shows inside it, with Retry).
 function saCardHtml(id){
   var d=SA.data, ready=!SA.loading&&!SA.err&&d;
-  if(id==='tsPerf'){
-    var nc=ready?(d.performance||[]).length:0;
-    return saCard('tsPerf',ic('users-gear',17),'Contractor performance','Tickets assigned to each contractor and how many reached 10/10 after the next data upload. Sorted by pass rate.',
-      SA.loading?saSkel():(SA.err?saErrHtml():saPerfHtml(d)), ready?tsTopSum(saPlural(nc,'contractor')):'');
-  }
-  if(SA.err&&!SA.loading) return '<section id="'+id+'" hidden></section>';
-  if(id==='tsAsgLog'){
-    return saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first. Due 7 days after assigning.',
-      SA.loading?saSkel():saLogHtml(d), ready?tsTopSum(saPlural((d.assignments||[]).length,'assignment')):'');
-  }
-  var nr=0; if(ready) (d.issues||[]).forEach(function(b){ nr+=Number(b.failedCount)||0; });
-  return saCard('tsRework',ic('alert-triangle',17),'Needs rework','Assignments verified against new data where some tickets are still below 10/10. Send these back to the contractor.',
-    SA.loading?saSkel():saIssuesHtml(d), ready?tsTopSum(saPlural(nr,'ticket')+' '+(nr===1?'needs':'need')+' rework',nr>0?'is-bad':''):'');
+  return saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first. Due 7 days after assigning.',
+    SA.loading?saSkel():(SA.err?saErrHtml():saLogHtml(d)), ready?tsTopSum(saPlural((d.assignments||[]).length,'assignment')):'');
 }
 function saSecsHtml(){
   if(!tsIsOwner()) return '';
   return SA_CARDS.map(saCardHtml).join('');
-}
-function saPerfHtml(d){
-  var rows=d.performance||[];
-  if(!rows.length) return '<div class="ts-empty">'+ICO_INFO+'No contractors found.</div>';
-  return '<div class="tsa-tw"><table class="tsa-tbl"><caption class="ts-sr">Contractor performance, sorted by pass rate</caption><thead><tr>'+
-    '<th scope="col">Contractor</th><th scope="col">Assigned</th><th scope="col">Verified</th><th scope="col">Passed (10/10)</th><th scope="col">Needs rework</th>'+
-    '<th scope="col">Pass rate</th><th scope="col">Avg score before \u2192 after</th><th scope="col">Pending</th></tr></thead><tbody>'+
-    rows.map(function(p){
-      var rate=p.passRate, h=rate==null?0:scHue(rate/10);
-      var rateHtml=rate==null?'<span class="tsa-mut">\u2014</span>':
-        '<div class="tsa-rate" style="--sc-h:'+h+'"><span class="tsa-bar" aria-hidden="true"><span style="width:'+Math.max(0,Math.min(100,rate))+'%"></span></span><b>'+rate+'%</b></div>';
-      var gain=p.avgGain==null?'':' <span class="tsa-mut">('+(p.avgGain>=0?'+':'')+Number(p.avgGain).toFixed(1)+')</span>';
-      return '<tr><td class="who"><b>'+esc(p.login)+'</b></td>'+
-        '<td>'+Number(p.ticketsAssigned||0).toLocaleString()+' <span class="tsa-mut">in '+saPlural(p.assignments,'assignment')+'</span></td>'+
-        '<td>'+Number(p.verified||0).toLocaleString()+'</td><td>'+Number(p.passed||0).toLocaleString()+'</td><td>'+Number(p.failed||0).toLocaleString()+'</td>'+
-        '<td>'+rateHtml+'</td>'+
-        '<td>'+(p.avgScoreBefore==null?'<span class="tsa-mut">\u2014</span>':saAvg(p.avgScoreBefore)+' \u2192 '+saAvg(p.avgScoreAfter)+gain)+'</td>'+
-        '<td>'+Number(p.pending||0).toLocaleString()+'</td></tr>';
-    }).join('')+'</tbody></table></div>';
 }
 function saStatusHtml(a){
   if(a.status==='revoked') return '<span class="tsa-pill revoked">Revoked by '+esc(a.revokedBy||'\u2014')+' \u00b7 '+esc(saDate(a.revokedAt))+'</span>';
   var nf=(a.notFound||0)+(a.excluded||0);
   if(a.statusLabel==='Verified') return '<span class="tsa-pill verified'+(a.failed?' has-bad':'')+'">Verified: '+Number(a.passed).toLocaleString()+' passed, '+Number(a.failed).toLocaleString()+' need rework'+(nf?', '+nf+' not found or ignored':'')+'</span>';
   if(a.statusLabel==='Awaiting new data') return '<span class="tsa-pill awaiting">Awaiting new data</span>';
-  return '<span class="tsa-pill progress">In progress until '+esc(saDay(a.dueAt))+(a.dataStamp&&a.verifiedCount?' \u00b7 '+Number(a.passed).toLocaleString()+' at 10/10 so far':'')+'</span>';
+  return '<span class="tsa-pill progress">In progress until '+esc(saDay(a.dueAt))+(a.dataStamp&&a.verifiedCount?' \u00b7 '+Number(a.passed).toLocaleString()+' at '+scMax()+'/'+scMax()+' so far':'')+'</span>';
 }
 function saEntryHtml(a){
   var id=a.id, x=SA.x[id]===true, rv=SA.rv[id]===true, list=a.tickets||[];
   var sum=a.assignedBy+' assigned '+saPlural(a.count,'ticket')+' to '+a.assignee+' on '+saDate(a.assignedAt);
   var ids=x?list.map(function(t){
-    var now=t.score!=null?(t.score+' / 10'):(t.excludedReason?'ignored ('+t.excludedReason+')':(t.found===false?'not found':'\u2014'));
+    var now=t.score!=null?(t.score+' / '+scMax()):(t.excludedReason?'ignored ('+t.excludedReason+')':(t.found===false?'not found':'\u2014'));
     return '<li>'+saLinkCell(t)+'<span class="t">'+esc(t.title||'No title')+'</span><span class="s">'+esc(String(t.scoreAtAssign))+' \u2192 '+esc(now)+'</span></li>';
   }).join(''):'';
   return '<li class="tsa-e'+(a.status==='revoked'?' is-rvk':'')+'">'+
@@ -1182,38 +1149,14 @@ function saLogHtml(d){
       '<ol class="tsa-log">'+items.map(saEntryHtml).join('')+'</ol></li>';
   }).join('')+'</ol>';
 }
-function saIssuesHtml(d){
-  var iss=d.issues||[];
-  if(!iss.length){
-    var waiting=(d.assignments||[]).some(function(a){ return a.status==='active'&&a.statusLabel!=='Verified'; });
-    return '<div class="ts-empty" role="status">'+ICO_INFO+'No issues found yet'+(waiting?' \u00b7 Waiting for the next data upload':'')+'</div>';
-  }
-  return '<div class="tsa-iss">'+iss.map(function(b){
-    var id=b.id, fc=Number(b.failedCount)||0;
-    var head=esc(b.assignee)+' was assigned '+saPlural(b.count,'ticket')+' but '+fc.toLocaleString()+' '+(fc===1?'has':'have')+' issues';
-    return '<section class="tsa-blk" aria-labelledby="tsaB-'+esc(id)+'"><div class="tsa-blk-h"><h3 class="tsa-blk-t" id="tsaB-'+esc(id)+'">'+head+
-        '<small>Assigned '+esc(saDate(b.assignedAt))+' \u00b7 '+b.score+' '+(b.score===1?'point':'points')+' at assign \u00b7 verified against data of '+esc(saDate(b.dataStamp))+'</small></h3>'+
-        saExtractBtn('data-sa="icopy" data-id="'+esc(id)+'"','for the '+saPlural(fc,'ticket')+' '+b.assignee+' needs to rework')+'</div>'+
-      '<span class="tsa-fbh" id="tsaG-'+esc(id)+'"></span>'+
-      '<div class="tsa-tw"><table class="tsa-tbl"><caption class="ts-sr">Tickets '+esc(b.assignee)+' needs to rework</caption><thead><tr>'+
-        '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Score</th><th scope="col">Missed fields</th></tr></thead><tbody>'+
-      (b.tickets||[]).map(function(t){
-        return '<tr><td>'+saLinkCell(t)+'</td><td class="tt">'+esc(t.title||'\u2014')+'</td>'+
-          '<td><span class="ts-sc-badge" style="--sc-h:'+scHue(Number(t.score)||0)+'">'+esc(String(t.score))+' / 10</span></td>'+
-          '<td><span class="ts-chips">'+(t.missing||[]).map(function(m){ return '<span class="ts-chip" style="cursor:default">'+esc(m)+'</span>'; }).join('')+'</span></td></tr>';
-      }).join('')+'</tbody></table></div></section>';
-  }).join('')+'</div>';
-}
-
-// Log / rework buttons (delegated: the cards are re-rendered).
+// Log buttons (delegated: the card is re-rendered).
 document.addEventListener('click',async function(ev){
   var b=ev.target&&ev.target.closest?ev.target.closest('[data-sa]'):null; if(!b||!tsIsOwner()) return;
   var act=b.getAttribute('data-sa'), id=b.getAttribute('data-id'), a=saFind(id);
   if(act==='x'&&a){ SA.x[id]=!SA.x[id]; saRender('#tsaX-'+id); return; }
   if(act==='copy'&&a){ saCopy((a.tickets||[]).map(saUrl),b,document.getElementById('tsaF-'+id)); return; }
-  if(act==='icopy'){ var is=saIssue(id); if(is) saCopy((is.tickets||[]).map(saUrl),b,document.getElementById('tsaG-'+id)); return; }
   if(act==='rv'&&a&&a.status==='active'&&!SA.rv[id]){
-    var ok=window.PHDConfirm?await window.PHDConfirm({title:'Revoke assignment',body:'Revoke the assignment of '+saPlural(a.count,'ticket')+' to '+a.assignee+'? Its tickets that are not 10/10 become available to assign again. The log entry is kept.',okLabel:'Revoke',danger:true}):window.confirm('Revoke this assignment?');
+    var ok=window.PHDConfirm?await window.PHDConfirm({title:'Revoke assignment',body:'Revoke the assignment of '+saPlural(a.count,'ticket')+' to '+a.assignee+'? Its tickets that are not '+scMax()+'/'+scMax()+' become available to assign again. The log entry is kept.',okLabel:'Revoke',danger:true}):window.confirm('Revoke this assignment?');
     if(!ok){ var b0=document.querySelector('[data-sa="rv"][data-id="'+id+'"]'); if(b0) b0.focus(); return; }
     SA.rv[id]=true; saRender();
     var r=null; try{ r=await A.api('POST','/api/sanitization-assign/revoke',{id:id}); }catch(e){ r=null; }
@@ -1458,7 +1401,7 @@ document.querySelectorAll('#tsAddModal [data-ic]').forEach(function(el){ el.inse
   if(!(A&&A.getUser&&A.getUser())){ gate('This page is for logged-in users. Log in from the Live Dashboard first.'); return; }
   loadChecklist();
   loadScores();   // owner only (no-op for everyone else; the server returns 403 to non-owners anyway)
-  loadAssign();   // owner only: sanitization assignments (performance / log / needs rework)
+  loadAssign();   // owner only: sanitization assignment log
 })();
 </script>
 </body>

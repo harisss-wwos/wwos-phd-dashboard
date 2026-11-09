@@ -1,0 +1,157 @@
+/* Sanitization tools (sanitization-tools.js): hero action buttons + the "Update tickets data" and
+   "Generate Title and Root Cause Details" pop-ups. Moved here from ticket-sanitization.html. */
+.ts-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.ts-spin{display:inline-block;flex-shrink:0;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:tsSpin .7s linear infinite;vertical-align:-1px}
+@keyframes tsSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.ts-spin{animation:none}}
+/* Hero action column (on the dark navy hero). */
+.ts-hero-link{flex-shrink:0;align-self:center;display:inline-flex;align-items:center;gap:10px;min-height:40px;padding:9px 16px;border-radius:10px;text-decoration:none;
+  color:#fff!important;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);transition:background .15s,border-color .15s}
+.ts-hero-link svg{flex-shrink:0;color:#ffb26b}
+.ts-hero-acts{flex-shrink:0;align-self:center;margin-left:auto;display:flex;flex-direction:column;gap:8px}
+.ts-hero-acts .ts-hero-link{margin-left:0;align-self:stretch}
+button.ts-hero-link{font:inherit;cursor:pointer;text-align:left}
+.ts-hl-sheet,.ts-hl-ext{display:inline-flex}
+.ts-hl-sheet svg{width:18px;height:18px}
+.ts-hl-ext{margin-left:auto;transition:transform .15s}
+.ts-hero-link:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.32)}
+.ts-hero-link:hover .ts-hl-ext{transform:translate(2px,-2px)}
+.ts-hero-link:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.ts-hl-txt{display:flex;flex-direction:column;line-height:1.25}
+.ts-hl-t{font-weight:800;font-size:.9em}
+.ts-hl-s{font-size:.72em;font-weight:600;color:rgba(233,237,243,.68)}
+@media (prefers-reduced-motion:reduce){.ts-hero-link,.ts-hl-ext{transition:none}}
+@media (max-width:700px){.ts-hero-acts{margin-left:0}}
+/* "Update tickets data" pop-up (owner only; shared .tbl-* shell). */
+#tsUpdDlg .tbl-card{width:90vw!important;max-width:min(680px,96vw)!important}
+#tsUpdDlg .tsu-drop{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 14px;border:2px dashed #cdd4db;border-radius:12px;background:#f7f9fb;color:#2a3340;text-align:center;transition:border-color .15s,background .15s}
+#tsUpdDlg .tsu-drop.is-over{border-color:#ec7211;background:#fff3e8}
+#tsUpdDlg .tsu-drop svg{color:#b5530a}
+#tsUpdDlg .tsu-drop-t{margin:0;font-weight:800;font-size:.92em}
+#tsUpdDlg .tsu-drop input[type=file]{max-width:100%;font:inherit;font-size:.86em;color:#2a3340}
+#tsUpdDlg .tsu-drop input[type=file]:focus-visible{outline:3px solid #f0a35a;outline-offset:2px;border-radius:6px}
+#tsUpdDlg .tsu-files{display:flex;flex-direction:column;gap:6px;margin:12px 0 0;padding:0;list-style:none}
+#tsUpdDlg .tsu-files li{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 12px;border:1px solid #e2e7eb;border-radius:10px;background:#fff;font-size:.88em}
+#tsUpdDlg .tsu-fn{flex:1 1 auto;min-width:0;font-weight:800;color:#1b2026;overflow-wrap:anywhere}
+#tsUpdDlg .tsu-fc{color:#5c6773;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+#tsUpdDlg .tsu-fc.is-bad{color:#b42318}
+#tsUpdDlg .tsu-rm{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#3a4552;cursor:pointer}
+#tsUpdDlg .tsu-rm:hover{border-color:#9aa6b1;background:#f5f6f8}
+#tsUpdDlg .tsu-rm:focus-visible{outline:3px solid #f0a35a;outline-offset:1px}
+#tsUpdDlg .tsu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+#tsUpdDlg .tsu-grid li{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border:1px solid #e2e7eb;border-radius:10px;background:#f7f9fb}
+#tsUpdDlg .tsu-grid b{font-size:1.15em;color:#1b2026;font-variant-numeric:tabular-nums}
+#tsUpdDlg .tsu-grid span{font-size:.76em;font-weight:700;color:#5c6773}
+#tsUpdDlg .tsu-grid li.is-hl{background:#fff3e8;border-color:#f6c89b}
+#tsUpdDlg .tsu-grid li.is-hl b{color:#8a3a00}
+#tsUpdDlg .tsu-h{margin:14px 0 6px;color:#2a3340;font-size:.8em;font-weight:800}
+#tsUpdDlg .tsu-pf{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+#tsUpdDlg .tsu-pf li{padding:3px 10px;border-radius:99px;border:1px solid #c9dff0;background:#eaf3fb;color:#1f3f5c;font-size:.8em;font-weight:800;font-variant-numeric:tabular-nums}
+#tsUpdDlg .tsu-note{margin:10px 0 0;padding:9px 12px;border:1px solid #f5d48c;border-radius:10px;background:#fff8e6;color:#6b4a06;font-size:.84em;font-weight:600;line-height:1.5}
+#tsUpdDlg .tsu-note b{color:#4a3304}
+#tsUpdDlg details.tsu-det{margin:10px 0 0;font-size:.84em}
+#tsUpdDlg details.tsu-det summary{cursor:pointer;font-weight:800;color:#2a3340}
+#tsUpdDlg details.tsu-det summary:focus-visible{outline:3px solid #f0a35a;outline-offset:2px;border-radius:4px}
+#tsUpdDlg .tsu-ids{margin:6px 0 0;padding:8px 10px;border:1px solid #e2e7eb;border-radius:8px;background:#fff;color:#1b2026;font-family:ui-monospace,Consolas,monospace;font-size:.92em;line-height:1.6;overflow-wrap:anywhere;max-height:120px;overflow:auto}
+#tsUpdDlg .tsu-tw{overflow-x:auto;border:1px solid #e2e7eb;border-radius:10px}
+#tsUpdDlg table.tsu-tbl{width:100%;border-collapse:collapse;font-size:.8em}
+#tsUpdDlg .tsu-tbl th,#tsUpdDlg .tsu-tbl td{padding:6px 9px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:top;color:#1b2026}
+#tsUpdDlg .tsu-tbl th{background:#f7f9fb;font-weight:800;color:#2a3340;white-space:nowrap}
+#tsUpdDlg .tsu-tbl tr:last-child td{border-bottom:none}
+#tsUpdDlg .tsu-tbl td.tsu-v{min-width:140px;overflow-wrap:anywhere;white-space:pre-wrap}
+#tsUpdDlg .tsu-tbl .tsu-old{color:#8a2a1e;text-decoration:line-through}
+#tsUpdDlg .tsu-tbl .tsu-new{color:#1d7a43;font-weight:700}
+#tsUpdDlg .tsu-hint{margin:8px 0 0;color:#5c6773;font-size:.82em;font-weight:600}
+#tsUpdDlg .tsu-ok{display:flex;align-items:center;gap:10px;margin:0;padding:12px 14px;border:1px solid #b7e1c6;border-radius:10px;background:#ecf8f0;color:#1d7a43;font-weight:800}
+#tsUpdDlg .tbl-card button.tbl-submit:disabled:not(.is-busy){cursor:not-allowed;opacity:.5}
+#tsUpdDlg .tbl-card button.tbl-submit:disabled:not(.is-busy)::before{content:none}
+@media (prefers-reduced-motion:reduce){#tsUpdDlg *{transition:none!important}}
+/* "Generate Title and Root Cause Details" pop-up (every logged-in user; shared .tbl-* shell, 80vw).
+   The card scrolls only when its content is taller than the viewport (shell: max-height calc(100vh - 40px)). */
+#tsGenDlg .tbl-card{width:80vw!important;max-width:80vw!important}
+#tsGenDlg .tsg-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+#tsGenDlg .tsg-left{display:flex;flex-direction:column;min-width:0}
+#tsGenDlg textarea.tsg-raw{display:block;width:100%;min-height:200px;height:calc(100vh - 290px);max-height:620px;resize:vertical;margin:0;padding:10px 12px;border:1px solid #cdd4db;border-radius:10px;background:#f7f9fb;color:#1b2026;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82em;line-height:1.5;box-sizing:border-box}
+#tsGenDlg textarea.tsg-raw:focus{outline:none;background:#fff;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+#tsGenDlg .tsg-hint{margin:6px 0 0;color:#5c6773;font-size:.78em;font-weight:600;line-height:1.45}
+#tsGenDlg .tsg-left-acts{display:flex;justify-content:flex-end;margin-top:8px}
+#tsGenDlg .tsg-ctls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+#tsGenDlg .tsg-f{min-width:0}
+#tsGenDlg .tsg-f.is-wide{grid-column:1/-1}
+#tsGenDlg .tsg-lbl{display:flex;align-items:center;gap:8px;margin:0 0 5px;color:#2a3340;font-size:.8em;font-weight:700}
+#tsGenDlg .tsg-req{color:#b42318;font-weight:800}
+#tsGenDlg select.tsg-sel,#tsGenDlg input.tsg-in{display:block;width:100%;box-sizing:border-box;margin:0;padding:9px 12px;border:1px solid #d4dce4;border-radius:8px;background:#fff;color:#1b2026;font-family:inherit;font-size:.9em}
+#tsGenDlg select.tsg-sel:focus,#tsGenDlg input.tsg-in:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}
+#tsGenDlg input.tsg-in[aria-invalid="true"]{border-color:#e23b3b}
+#tsGenDlg .ss-field:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+#tsGenDlg .tsg-note{margin:4px 0 0;color:#5c6773;font-size:.74em;font-weight:600;line-height:1.4}
+#tsGenDlg .tsg-note.is-warn{color:#b5680c}
+#tsGenDlg .tsg-note:empty{display:none}
+/* Severity buttons: same look as the incident log editor's Cnt / Severity buttons (.ail-qnb). */
+#tsGenDlg .tsg-sevs{display:inline-flex;flex-wrap:wrap;gap:4px}
+#tsGenDlg button.tsg-sevb{min-width:34px;height:34px;margin:0;padding:0 8px;border-radius:8px;border:1px solid #d4dce4;background:#fff;color:#2a3340;font-family:inherit;font-size:.84em;font-weight:700;line-height:1;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+#tsGenDlg button.tsg-sevb:hover{border-color:#ec7211;color:#b4500a}
+#tsGenDlg button.tsg-sevb[aria-pressed="true"]{background:#1f2a40;border-color:#1f2a40;color:#fff}
+/* Amber "DEFAULT" mark (same as the editor's .ail-qdef). */
+#tsGenDlg .tsg-def{display:inline-block;font-size:.72em;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#7a4b00;background:#fff3c4;border:1px solid #f2c94c;border-radius:4px;padding:1px 6px;line-height:1.5;white-space:nowrap}
+#tsGenDlg .tsg-def[hidden]{display:none}
+#tsGenDlg .tsg-def.is-emt{text-transform:none;letter-spacing:0;color:#0b4f8a;background:#e6f1fb;border-color:#9cc3e8}
+/* Issue suggestion chip (click to apply; never applied automatically). */
+#tsGenDlg .tsg-sug{margin:6px 0 0}
+#tsGenDlg .tsg-sug:empty{display:none}
+#tsGenDlg button.tsg-chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;margin:0;padding:3px 12px;border-radius:999px;border:1px dashed #c2570a;background:#fff7ef;color:#8a3a00;font-family:inherit;font-size:.78em;font-weight:700;cursor:pointer}
+#tsGenDlg button.tsg-chip:hover{background:#ffeedd;border-style:solid}
+#tsGenDlg .tsg-nosug{font-size:.76em;font-weight:600;color:#5c6773}
+/* Several tickets in one paste: notice + picker. */
+#tsGenDlg .tsg-multi{margin:8px 0 0;padding:8px 10px;border:1px solid #f6ddb8;border-radius:8px;background:#fff8ee}
+#tsGenDlg .tsg-multi[hidden]{display:none}
+#tsGenDlg .tsg-multi .tsg-note{margin:0 0 6px}
+/* "What was read" (key -> value as parsed). */
+#tsGenDlg details.tsg-read{margin-top:12px;border:1px solid #e2e6ea;border-radius:8px;background:#f7f9fc;padding:8px 12px}
+#tsGenDlg details.tsg-read>summary{cursor:pointer;color:#2a3340;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+#tsGenDlg dl.tsg-read-l{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 12px;margin:8px 0 0;font-size:.76em;line-height:1.45}
+#tsGenDlg dl.tsg-read-l dt{margin:0;color:#2a3340;font-weight:700}
+#tsGenDlg dl.tsg-read-l dd{margin:0;color:#1b2026;word-break:break-word}
+#tsGenDlg dl.tsg-read-l .tsg-rd-st{color:#5c6773;font-style:italic;font-weight:600}
+#tsGenDlg dl.tsg-read-l .tsg-rd-o{color:#1d7a43;font-weight:700}
+#tsGenDlg .tsg-read-x{margin:6px 0 0;color:#5c6773;font-size:.74em;font-weight:600}
+/* Historical incidents (HI1..HIN), driven by the parsed Cnt (same rules as tool-rcd.html). */
+#tsGenDlg .tsg-hi{grid-column:1/-1;background:#f7f9fc;border:1px solid #e2e6ea;border-radius:8px;padding:12px}
+#tsGenDlg .tsg-hi[hidden]{display:none}
+#tsGenDlg .tsg-hi-t{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:.74em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773}
+#tsGenDlg .tsg-hi-n{display:inline-block;border-radius:999px;padding:1px 8px;background:#fff3e8;color:#9a4100;border:1px solid #f6ddb8;letter-spacing:0}
+#tsGenDlg .tsg-hi-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+#tsGenDlg .tsg-hi-warn{margin:0 0 8px;font-size:.8em;font-weight:700;color:#b5680c;background:#fff3e0;border:1px solid #f6ddb8;border-radius:7px;padding:6px 10px}
+#tsGenDlg .tsg-hi-warn[hidden]{display:none}
+#tsGenDlg .tsg-hi-err{margin:4px 0 0;font-size:.76em;font-weight:700;color:#b02a2a}
+#tsGenDlg .tsg-hi-err:empty{display:none}
+/* Outputs */
+#tsGenDlg .tsg-out-sec{margin-top:16px;padding-top:14px;border-top:1px solid #eef1f4}
+#tsGenDlg .tsg-out-h{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+#tsGenDlg .tsg-out-h h3{margin:0;color:#2a3340;font-size:.78em;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+#tsGenDlg .tsg-out-h .tsg-copy{margin-left:auto}
+#tsGenDlg pre.tsg-out{margin:0;padding:10px 12px;min-height:40px;border:1px solid #243041;border-radius:8px;background:#0f1622;color:#e6edf3;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+#tsGenDlg pre.tsg-out.is-ph{color:#8b98a8}
+#tsGenDlg button.tsg-copy{display:inline-flex;align-items:center;gap:6px;height:34px;margin:0;padding:0 12px;border-radius:8px;border:1px solid #9a4100;background:linear-gradient(180deg,#c2570a,#a94a05);color:#fff;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer}
+#tsGenDlg button.tsg-copy:hover:not(:disabled){filter:brightness(1.08)}
+#tsGenDlg button.tsg-copy:disabled{cursor:not-allowed;opacity:.45;filter:saturate(.6)}
+#tsGenDlg button.tsg-copy.is-done{background:#1f9d57;border-color:#17824a}
+#tsGenDlg button.tsg-ghost{display:inline-flex;align-items:center;gap:6px;height:34px;margin:0;padding:0 12px;border-radius:8px;border:1px solid #cdd4db;background:#fff;color:#2a3340;font-family:inherit;font-size:.82em;font-weight:700;cursor:pointer}
+#tsGenDlg button.tsg-ghost:hover{background:#f5f6f8;border-color:#9aa6b1}
+#tsGenDlg :is(button,select,input,textarea):focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+#tsGenDlg ul.tsg-chk{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;padding:0;list-style:none}
+#tsGenDlg ul.tsg-chk li{display:inline-flex;align-items:center;gap:6px;font-size:.8em;font-weight:700}
+#tsGenDlg ul.tsg-chk li.is-ok{color:#1d7a43}
+#tsGenDlg ul.tsg-chk li.is-bad{color:#b42318}
+#tsGenDlg .tsg-tick{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;color:#fff;flex-shrink:0}
+#tsGenDlg li.is-ok .tsg-tick{background:#1f9d57}
+#tsGenDlg li.is-bad .tsg-tick{background:#d92d20}
+#tsGenDlg .tsg-msg{margin:6px 0 0;font-size:.8em;font-weight:700;color:#b5680c;line-height:1.45}
+#tsGenDlg .tsg-msg:empty{display:none}
+#tsGenDlg .tsg-msg.is-ok{color:#1d7a43}
+#tsGenDlg .tsg-err{margin:8px 0 0;padding:8px 12px;border:1px solid #f5c2c2;border-left:4px solid #e23b3b;border-radius:8px;background:#fdecec;color:#b02a2a;font-size:.8em;font-weight:700;line-height:1.45}
+#tsGenDlg .tsg-err:empty{display:none}
+#tsGenDlg .tsg-both{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid #eef1f4}
+@media (max-width:900px){#tsGenDlg .tsg-grid{grid-template-columns:minmax(0,1fr)}#tsGenDlg textarea.tsg-raw{height:220px}}
+@media (max-width:640px){#tsGenDlg .tbl-card{width:100%!important;max-width:100%!important}#tsGenDlg .tsg-ctls{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){#tsGenDlg *{transition:none!important}}

@@ -3,7 +3,7 @@
 // quarter(s), the issue-type list (issue-types-data.js, the same source as issue-types.html, via
 // errors-in-resolved.js) and the PHD resolution names (phd_resolutions, as phd-resolutions.html),
 // then calls buildScoreReport().
-// Every ticket scores 0..10, one point per criterion (CRITERIA, in this order):
+// Every ticket scores 0..11 (MAX_SCORE), one point per criterion (CRITERIA, in this order):
 //   SIM Title (3)          country  known country code at the start (incident-log-editor.js ilTicketCountry
 //                                   codes, any case, or an upper-case ISO 3166-1 alpha-2 code)
 //                          severity Severity N / Sev N / Sev-N / Sev#N / SevN / Severity level N / Severity - N (N 1-5)
@@ -15,6 +15,10 @@
 //                          cnt      Cnt: numeric and < 10
 //                          zip      Zip: found in the offline GeoNames index (zip-geo.js) or a postal-code pattern
 //                          res      Res: = a PHD resolution (normalised exact match)
+//   ClosureCode (1)        closure  ClosureCode (trimmed, any case) is Immediately Resolved, Successful or
+//                                   Duplicate; anything else (blank too) fails. The check value shows
+//                                   '<current> → <expected>': Automatically Closed -> Immediately Resolved,
+//                                   every other code (and blank) -> Successful (the sanitization checklist).
 // "Normalised" = lower-case, every run of non-alphanumerics -> one space, trimmed (so 'Verbal abuse'
 // == 'Verbal Abuse' and 'w/ weapon' == 'w/weapon'). RootCauseDetails fields reuse the Pulse Check
 // line regexes (pulse-check.js RCD_ISSUE_RE / RCD_RESOLUTION_RE / RCD_NEXT_KEYS / rcdPlain).
@@ -36,9 +40,10 @@ const CRITERIA = [
   { key: 'sid', group: 'rcd', label: 'SID: valid station', chip: 'RCD: SID' },
   { key: 'driv', group: 'rcd', label: 'Driv: valid driver type', chip: 'RCD: Driv' },
   { key: 'date', group: 'rcd', label: 'Date: valid date', chip: 'RCD: Date' },
-  { key: 'cnt', group: 'rcd', label: 'Cnt: numeric, under 10', chip: 'RCD: Cnt' },
+  { key: 'cnt', group: 'rcd', label: 'Cnt: numeric under 10, or N/A', chip: 'RCD: Cnt' },
   { key: 'zip', group: 'rcd', label: 'Zip: valid postal code', chip: 'RCD: Zip' },
   { key: 'res', group: 'rcd', label: 'Res: PHD resolution', chip: 'RCD: Res' },
+  { key: 'closure', group: 'closure', label: 'ClosureCode is Immediately Resolved, Successful or Duplicate', chip: 'ClosureCode: not allowed' },
 ];
 const MAX_SCORE = CRITERIA.length;
 const VALUE_MAX = 120;
@@ -182,6 +187,19 @@ function zipCheck(v, country) {
   return ZIP_PATTERNS.some(re => re.test(s)) ? 'pattern' : '';
 }
 
+// ---- ClosureCode ----
+// Allowed codes (compared trimmed, case-insensitive, inner whitespace collapsed); every other code
+// needs changing in SIM: Automatically Closed -> Immediately Resolved, the rest (blank too) -> Successful.
+const CLOSURE_ALLOWED = ['Immediately Resolved', 'Successful', 'Duplicate'];
+const closureKey = s => str(s).trim().replace(/\s+/g, ' ').toLowerCase();
+function closureExpected(code) { return closureKey(code) === 'automatically closed' ? 'Immediately Resolved' : 'Successful'; }
+// -> [pass 0|1, value]: the code when allowed, else '<code or (blank)> → <expected>'.
+function closureCheck(code) {
+  const c = str(code).trim().replace(/\s+/g, ' ');
+  if (CLOSURE_ALLOWED.some(a => a.toLowerCase() === c.toLowerCase())) return [1, clip(c)];
+  return [0, clip((c || '(blank)') + ' \u2192 ' + closureExpected(c))];
+}
+
 // ---- One ticket ----
 // -> { excluded:true, cnt } (Cnt numeric > 0) or { score, checks:[[pass 0|1, value]...] } in CRITERIA order.
 // Tickets left out of scoring (checked in this order; the first match is the reason):
@@ -224,9 +242,11 @@ function scoreTicket(t, ctx) {
     [validSid(v.sid) ? 1 : 0, rv('sid')],
     [validDriv(v.driv) ? 1 : 0, rv('driv')],
     [date ? 1 : 0, date && rv('date') !== date ? rv('date') + ' \u2192 ' + date : rv('date')],
-    [!isNaN(cnt) && cnt < 10 ? 1 : 0, rv('cnt')],
+    // Cnt: a number under 10, or N/A (NA, n/a, N.A.) - N/A is not an error (owner rule).
+    [(!isNaN(cnt) && cnt < 10) || /^\s*n\.?\s*\/?\s*a\.?\s*$/i.test(str(v.cnt)) ? 1 : 0, rv('cnt')],
     [zip ? 1 : 0, rv('zip')],
     [resMatch ? 1 : 0, rv('res')],
+    closureCheck(t.ClosureCode),
   ];
   return { score: checks.reduce((s, c) => s + c[0], 0), checks };
 }
@@ -251,7 +271,7 @@ function pacificQuarter(v) {
 // rows: ticket_docs (any of ShortId, IssueId, Title, RootCauseDetails, Status, ResolvedDate / rd,
 // IssueUrl, CreateDate). Only Status Resolved / Closed is scored. Each ticket carries cq = its
 // CreateDate quarter in Pacific time (pacificQuarter).
-// -> { total, excluded, buckets:{0..10}, tickets } sorted by score asc, then oldest resolved first
+// -> { total, excluded, buckets:{0..MAX_SCORE}, tickets } sorted by score asc, then oldest resolved first
 // (the resolved date only orders the list; it is not part of the payload).
 function buildScoreReport(rows, issueTypes, resolutionNames) {
   const ctx = { types: prepList(issueTypes), resolutions: prepList(resolutionNames) };
@@ -272,16 +292,45 @@ function buildScoreReport(rows, issueTypes, resolutionNames) {
       title: str(d.Title).trim(), status: str(d.Status).trim(),
       score: r.score, checks: r.checks,
       cq: pacificQuarter(d.CreateDate),   // created quarter (Pacific), e.g. '2026-Q1'; '' when CreateDate is missing
+      rbi: str(d.ResolvedByIdentity).trim(),   // raw resolver (Errors in Resolved groups by it, see resolved-errors.js)
     };
     at.set(t, timeOf(isoOf(d.rd != null ? d.rd : d.ResolvedDate)));
     tickets.push(t);
   });
   tickets.sort((a, b) => (a.score - b.score) || (at.get(a) - at.get(b)) || a.shortId.localeCompare(b.shortId));
+  excludedBy[APPROVED_REASON] = 0;
   return { total: tickets.length, excluded, excludedBy, excludedTickets, buckets, tickets, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
+}
+
+// ---- Owner-approved error tickets (COLLECTIONS.sanitizationExcluded) ----
+// The owner approved a contractor's "Error ticket" mark: the ticket leaves sanitization tracking
+// everywhere (scores, available counts, picking, contractor views, verification). Applied on top of
+// the cached report (approvals change independently of the data stamp): scored tickets whose shortId
+// is approved move to excludedTickets with reason 'approved error' and are counted in
+// excluded / excludedBy['approved error']; buckets and total are recomputed. Tickets already excluded
+// for another reason keep that reason. Pure: returns a NEW report (the input is not changed), or the
+// same report when nothing applies.
+const APPROVED_REASON = 'approved error';
+function applyApproved(report, ids) {
+  const set = ids instanceof Set ? ids : new Set(ids || []);
+  if (!report || !set.size || !(report.tickets || []).some(t => set.has(t.shortId))) return report;
+  const keep = [], gone = [];
+  report.tickets.forEach(t => (set.has(t.shortId) ? gone : keep).push(t));
+  const buckets = {};
+  for (let i = 0; i <= MAX_SCORE; i++) buckets[i] = 0;
+  keep.forEach(t => { buckets[t.score]++; });
+  const excludedBy = { ...(report.excludedBy || {}) };
+  excludedBy[APPROVED_REASON] = (excludedBy[APPROVED_REASON] || 0) + gone.length;
+  return {
+    ...report, total: keep.length, tickets: keep, buckets,
+    excluded: (report.excluded || 0) + gone.length, excludedBy,
+    excludedTickets: (report.excludedTickets || []).concat(gone.map(t => ({ shortId: t.shortId, reason: APPROVED_REASON }))),
+  };
 }
 
 module.exports = {
   OWNER, isOwner, CRITERIA, MAX_SCORE, DRIVER_TYPES,
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
-  scoreTicket, buildScoreReport, prepList, pacificQuarter,
+  scoreTicket, buildScoreReport, prepList, pacificQuarter, APPROVED_REASON, applyApproved,
+  CLOSURE_ALLOWED, closureCheck, closureExpected, excludeReason,
 };

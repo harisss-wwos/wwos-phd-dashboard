@@ -238,7 +238,8 @@ function checkHiLines(rcd, cntMatch, types) {
     }
     if (!bad.has(msg)) { bad.add(msg); msgs.push(msg); }
   });
-  return msgs.length ? { pass: false, msg: msgs.join('; ') } : { pass: true, msg: '' };
+  // cnt / missing feed the HI lines view (hi-lines-errors.js); they do not change the verdict.
+  return msgs.length ? { pass: false, msg: msgs.join('; '), cnt: n, missing } : { pass: true, msg: '', cnt: n };
 }
 // 'Duplicate' and 'Immediately Resolved' are out of scope (see evaluateUpload), so only Successful passes.
 const CLOSURE_OK = new Set(['successful']);

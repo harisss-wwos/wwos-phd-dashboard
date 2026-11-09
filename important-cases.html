@@ -432,11 +432,11 @@ a.uc-link:hover{background:#dce8f8;border-color:#a9c3ea}
 
 <div class="toast uc-toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="icons.js?v=2"></script>
+<script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=30"></script>
-<script src="topbar-auth.js?v=224"></script>
+<script src="incident-log-editor.js?v=37"></script>
+<script src="topbar-auth.js?v=231"></script>
 <script>
 const A=window.PHDAuth;
 // Shared structured incident-log editor (same modal + helpers as My Tickets).
@@ -1161,6 +1161,7 @@ function openLogEntryEditor(id){
     if(el&&v&&!Array.prototype.some.call(el.options,o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (old)';el.appendChild(o);}});
   set('ilRootCause',f.rootCause);set('ilPhdNotes',f.notes);
   ilSetSavedResolution(f.res);   // PHD Resolution = SIM "Res:" line, else this saved value
+  ilSetSavedSeverity(f.severity);   // saved "**Severity**:" line, else the ticket title's severity
   // Same as My Tickets: PHD Related Link is always the canonical ticket URL (read-only).
   const url=(CURRENT&&String(CURRENT.shortId)===sid&&CURRENT.url)?CURRENT.url:('https://t.corp.amazon.com/'+sid);
   set('ilRelatedLink',url);

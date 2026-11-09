@@ -270,6 +270,98 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 @media (prefers-reduced-motion:reduce){
   .hrx *,.hrx *::before,.hrx *::after{animation:none!important;transition:none!important}
 }
+.hrx .hr-range.rng-hil{--sc:#13827c;--sc-bg:#e3f4f2}
+</style>
+<style id="hil-eir">
+/* "HI lines check — all agents" (4th section): KPI cards, then one card per resolver (BLR / AZA + Others)
+   and the picked card's tickets with HI line errors. The KPI rules are the Errors in Resolved .eir-kpi ones;
+   the resolver cards + one-line ticket rows are copied from errors-in-resolved.html (#re-light .st-grid /
+   .st-card / .st-view rules, KEEP IN SYNC) and scoped under .eir. Table / pager base styles (.tb-asg-card,
+   .tb-san-card, .stv-*) come from topbar-auth.js; row markup helpers from sanitization-view.js. */
+.eir{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.eir button{font:inherit;text-transform:none}
+.eir :is(button,a,input,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.eir-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.eir-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px}
+@container (min-width:520px){.eir-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:900px){.eir-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.eir-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.eir-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.eir-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.eir-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.eir-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.eir-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.eir-kpi-s b{color:var(--ink);font-weight:800}
+.eir-kpi-bar{margin-top:12px;height:5px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.eir-kpi-bar i{display:block;height:100%;border-radius:inherit;background:var(--k)}
+.eir-kpi.is-base{--k:#1f2a40}
+.eir-kpi.is-bad{--k:#d92d20}.eir-kpi.is-bad .eir-kpi-v{color:var(--red)}.eir-kpi.is-bad .eir-kpi-ic{background:var(--red-bg);color:var(--red)}
+.eir-kpi.is-warn{--k:var(--acc)}.eir-kpi.is-warn .eir-kpi-ic{background:var(--acc-bg);color:#b5530a}
+.eir-list-head{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;margin:18px 0 4px}
+.eir-list-head h3{font-size:1.05em;font-weight:800;letter-spacing:-.2px}
+.eir-note{margin:0 0 12px;font-size:.82em;font-weight:500;color:var(--mut);line-height:1.4}
+.eir-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:38px 20px;text-align:center;color:var(--mut)}
+.eir-empty-ic{width:58px;height:58px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--grn-bg);color:var(--grn);margin-bottom:4px}
+.eir-empty-ic.is-err{background:var(--red-bg);color:var(--red)}
+.eir-empty-t{font-size:1.08em!important;font-weight:800;color:var(--ink)!important}
+.eir-empty p{font-size:.9em;max-width:52ch;line-height:1.5}
+.eir-btn{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 16px;border:none;border-radius:6px;background:#161d2d;color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
+.eir-btn:hover{background:#0f1420}
+.eir-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:eirShim 1.4s ease infinite}
+@keyframes eirShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.eir-skpis{margin:0 0 16px}
+@container (min-width:520px){.eir-skpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.eir-kpi.is-sm{box-shadow:none;padding:13px 16px 12px}
+.eir-kpi.is-sm .eir-kpi-v{margin-top:9px;font-size:1.9em}
+.eir-sub-h{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.7em!important;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)!important}
+.eir-sub-h::after{content:'';flex:1 1 auto;height:1px;background:var(--line)}
+.eir-cards-err{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border-radius:10px;background:var(--red-bg);border:1px solid #f5c2c2;color:#8a1c12;font-weight:700;font-size:.9em}
+
+/* ---- Resolver cards: 8 equal cards in one row; 4 / 2 / 1 columns on narrower widths ---- */
+.eir .st-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n,8),minmax(0,1fr));gap:10px}
+@container (max-width:1180px){.eir .st-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (max-width:720px){.eir .st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:440px){.eir .st-grid{grid-template-columns:minmax(0,1fr)}}
+.eir .st-card{width:100%;height:100%;display:flex;flex-direction:column;gap:9px;padding:12px 12px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.eir .st-card:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,114,17,.12)}
+.eir .st-card[aria-pressed="true"]{border-color:var(--acc);background:#fff8f1;box-shadow:0 0 0 3px rgba(236,114,17,.24)}
+.eir .st-card-top{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;width:100%;min-width:0}
+.eir .st-card-who{flex:0 1 auto;max-width:100%;min-width:0;font-size:1.02em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eir .st-card-grp{flex-shrink:0;padding:1px 7px;border-radius:99px;background:var(--blue-bg);color:#1f4f99;font-size:.66em;font-weight:800;letter-spacing:.6px}
+.eir .st-card-sel{display:none;flex-shrink:0;align-items:center;gap:4px;margin-left:auto;padding:2px 8px;border-radius:99px;background:var(--acc);color:#fff;font-size:.68em;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.eir .st-card[aria-pressed="true"] .st-card-sel{display:inline-flex}
+.eir .st-card-cnt{display:block;width:100%;white-space:normal;font-size:.74em;font-weight:700;line-height:1.5;color:#2a3340;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
+.eir .st-card-cnt>span{white-space:nowrap}
+.eir .st-card-cnt b{font-weight:800}
+.eir .st-card-cnt .is-bad{color:#a61b1b}
+.eir .st-card-cnt i{font-style:normal;color:#a0a8b1}
+.eir .st-card-rate{display:flex;align-items:center;gap:8px;width:100%}
+.eir .st-bar{flex:1 1 auto;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.eir .st-bar span{display:block;height:100%;border-radius:99px;background:hsl(var(--sc-h),68%,46%)}
+.eir .st-card-rate b{flex-shrink:0;text-align:right;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---- Picked card's tickets with HI line errors (one line per ticket) ---- */
+.eir .st-view.tb-asg-card .tb-asg-scroll{max-height:70vh}
+.eir .st-view[aria-busy="true"]{opacity:.6}
+.eir .st-view .tb-san-sum p{font-size:.92em}
+.eir .st-view table.stv-tbl td{vertical-align:middle}
+.eir .st-view table.stv-tbl tbody tr:hover td{background:#fafbfc}
+.eir .st-view .stv-fit{width:1%;white-space:nowrap}
+.eir .st-view table.stv-tbl .stv-ttl,.eir .st-view table.stv-tbl .stv-mc{width:49%}
+.eir .st-view td.stv-clip{max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
+.eir .st-view td.stv-mc{color:#5c6773}
+@media (max-width:899px){.eir .st-view td.stv-clip.stv-mc{white-space:normal;overflow-wrap:anywhere}}
+.eir .st-view .stv-id,.eir .st-view .stv-cnt{white-space:nowrap}
+.eir .st-view .stv-cnt{font-weight:800;font-variant-numeric:tabular-nums;text-align:center}
+.eir .st-view .stv-by{color:#2a3340;font-weight:700}
+.eir .st-view .stv-sort{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.eir .st-view .stv-sort:hover{border-color:#d4dade;background:#fff}
+.eir .st-view .stv-sort-ic{font-size:.8em;color:#b5530a}
+@media (prefers-reduced-motion:reduce){
+  .eir *,.eir *::before,.eir *::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body data-nav-active="hi-resolved" data-back-href="app.html" data-back-label="Dashboard">
@@ -292,9 +384,250 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
     </div>
   </div>
 </div>
-<script src="icons.js?v=2"></script>
+<script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=224"></script>
+<script src="topbar-auth.js?v=231"></script>
+<script src="sanitization-view.js?v=5"></script>
+<script>
+// ================= "HI lines check — all agents" section (4th section, below Pet Repeat incidents) =================
+// Resolved / Closed tickets since 1 Jan 2026 (the Errors in Resolved 'hi' section: B6 only, all agents):
+// when the RCD "Cnt:" is N > 0, lines HI1..HIN must be present. Layout like errors-in-resolved.html: KPI
+// cards, one card per resolver (the 7 BLR / AZA team members + Others = anyone else), and the picked card's
+// tickets with HI line errors (Cnt | Ticket ID | Title | Missing [+ Resolved by on Others]).
+// Data: GET /api/hi-lines-errors (cards + totals) and ?who=<login|others> (that card's rows). Row helpers
+// from sanitization-view.js (window.PHDSanView). Wrapped in an IIFE so its helpers don't clash with the page's.
+// window.HIL: bodyHtml() for the section shell, paintMeta() for the header chip, load() on first expand.
+(function(){
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
+var A=window.PHDAuth, V=window.PHDSanView;
+function $(id){ return document.getElementById(id); }
+function num(n){ return (Number(n)||0).toLocaleString('en-US'); }
+function pct(n,d){ if(!d) return '0%'; var p=n/d*100; return (p>0&&p<10?p.toFixed(1).replace(/\.0$/,''):String(Math.round(p)))+'%'; }
+function safeUrl(u){ u=String(u||''); return /^https?:\/\//i.test(u)?u:''; }
+
+var PAGE_SIZE=100;
+var ME=String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase();   // viewer login
+var D=null, STATE='idle', LOAD_ERR='';   // STATE: idle -> loading -> done | error
+var SEL=null;      // picked card key (login | 'others')
+var VIEWS={};      // key -> {loading} | {data} | {error}
+var PG=0;          // page of the shown list
+var SORT='desc';   // Cnt order ('desc' = highest first)
+var SEQ=0;         // guards against out-of-order responses
+
+function findC(key){ var c=(D&&D.cards)||[]; for(var i=0;i<c.length;i++) if(c[i].key===key) return c[i]; return null; }
+function announce(msg){ var l=$('hilLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+function errMsg(r,what){
+  if(!r) return 'The server didn\u2019t respond. Check your connection and try again.';
+  return r.status===401?'Your session has expired. Please log in again.':((r.data&&r.data.error)||('Could not load '+what+' ('+r.status+').'));
+}
+function emptyHtml(icCls,icon,title,text,btn){
+  return '<div class="eir-empty"><span class="eir-empty-ic '+icCls+'">'+ic(icon,26)+'</span><h4 class="eir-empty-t">'+title+'</h4>'+(text?'<p>'+text+'</p>':'')+(btn||'')+'</div>';
+}
+
+// ---------- KPIs ----------
+function kpiCard(cls,icon,label,value,sub,ratio){
+  return '<div class="eir-kpi '+cls+'"><p class="eir-kpi-l"><span class="eir-kpi-ic">'+ic(icon,15)+'</span>'+label+'</p>'+
+    '<p class="eir-kpi-v">'+value+'</p><p class="eir-kpi-s">'+sub+'</p>'+
+    (ratio==null?'':'<div class="eir-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
+}
+function kpisHtml(){
+  var t=D.totals||{};
+  return kpiCard('is-base is-sm','clipboard','Tickets checked',num(t.checked),'<b>'+num(t.resolved)+'</b> Resolved \u00b7 <b>'+num(t.closed)+'</b> Closed',null)+
+    kpiCard('is-bad is-sm','alert','Tickets with errors',num(t.withErrors),'<b>'+pct(t.withErrors,t.checked)+'</b> of tickets checked',t.checked?t.withErrors/t.checked:0)+
+    kpiCard('is-warn is-sm','flame','Total errors',num(t.errors),t.withErrors?'<b>'+num(t.missingLines)+'</b> missing HI line'+(t.missingLines===1?'':'s'):'No errors to count',null);
+}
+
+// ---------- Resolver cards ----------
+function cardHtml(c){
+  var on=c.key===SEL, n=Number(c.checked)||0, e=Number(c.withErrors)||0, p=Number(c.correctPct)||0;
+  var sep=' <i aria-hidden="true">|</i> ';
+  return '<li><button type="button" class="st-card" data-who="'+esc(c.key)+'" aria-pressed="'+(on?'true':'false')+'" aria-controls="hilView">'+
+    '<span class="st-card-top"><span class="st-card-who">'+esc(c.label)+'</span>'+(c.group?'<span class="st-card-grp">'+esc(c.group)+'</span>':'')+
+      '<span class="st-card-sel">'+ic('check',12)+'Selected</span></span>'+
+    '<span class="st-card-cnt"><span>Checked <b>'+num(n)+'</b></span>'+sep+'<span class="is-bad">With errors <b>'+num(e)+'</b></span></span>'+
+    '<span class="st-card-rate" style="--sc-h:'+V.hue(p/100*V.max())+'"><span class="st-bar" aria-hidden="true"><span style="width:'+p+'%"></span></span><b>'+p+'% correct</b></span>'+
+    '</button></li>';
+}
+function cardsHtml(){
+  var c=D.cards||[];
+  return '<ul class="st-grid" aria-labelledby="hilCardsH" style="--n:'+c.length+'">'+c.map(cardHtml).join('')+'</ul>';
+}
+
+// ---------- Picked card: tickets with HI line errors ----------
+function viewHead(){
+  if(!SEL) return 'Tickets with HI line errors';
+  if(SEL==='others') return 'Others: tickets with HI line errors';
+  if(SEL===ME) return 'My tickets with HI line errors';
+  return SEL+'\u2019s tickets with HI line errors';
+}
+// Missing: '[RCD: HI2 | HI3]' (sanitization-view.js grouped style), then any other HI problem
+// (extra / repeated line, no valid issue type).
+function missOf(t){
+  var m=V.missText((t.missing||[]).map(function(k){ return 'RCD: '+k; })), o=(t.other||[]).join('; ');
+  return [m,o].filter(Boolean).join(' \u00b7 ')||'\u2014';
+}
+// Server order = Cnt descending, ties oldest resolved first; 'asc' flips only the Cnt (ties keep that order).
+function sortRows(list,dir){
+  var d=dir==='asc'?-1:1;
+  return list.map(function(t,i){ return {t:t,i:i}; }).sort(function(a,b){ return ((b.t.cnt-a.t.cnt)*d)||(a.i-b.i); }).map(function(x){ return x.t; });
+}
+function tableHtml(rows,others){
+  var dir=SORT, sortLbl=dir==='desc'?'highest first':'lowest first';
+  return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Tickets with HI line errors" tabindex="0"><table class="stv-tbl">'+
+    '<caption class="tb-asg-sr">Tickets with HI line errors, Cnt '+sortLbl+'.</caption>'+
+    '<thead><tr><th scope="col" class="stv-fit" aria-sort="'+(dir==='asc'?'ascending':'descending')+'"><button type="button" class="stv-sort" data-hilsort="1">Cnt'+
+      '<span class="stv-sort-ic" aria-hidden="true">'+(dir==='asc'?'\u25b2':'\u25bc')+'</span>'+
+      '<span class="tb-asg-sr">, sorted '+sortLbl+'. Activate to sort '+(dir==='desc'?'lowest':'highest')+' first.</span></button></th>'+
+    '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Missing</th>'+
+    (others?'<th scope="col" class="stv-fit">Resolved by</th>':'')+'</tr></thead><tbody>'+
+    rows.map(function(t){
+      var miss=missOf(t), u=safeUrl(t.url)||('https://t.corp.amazon.com/issues/'+encodeURIComponent(t.shortId||''));
+      return '<tr><td class="stv-cnt stv-fit">'+num(t.cnt)+'</td>'+
+        '<td class="stv-id stv-fit"><span class="tb-asg-id"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId)+'<span class="tb-asg-sr"> (opens in a new tab)</span></a></span></td>'+
+        '<td class="stv-clip stv-ttl" title="'+esc(t.title||'No title')+'">'+esc(t.title||'No title')+'</td>'+
+        '<td class="stv-clip stv-mc" title="'+esc(miss)+'">'+esc(miss)+'</td>'+
+        (others?'<td class="stv-by stv-fit">'+esc(t.resolvedBy||'\u2014')+'</td>':'')+'</tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function viewBody(){
+  if(!SEL) return '';
+  var v=VIEWS[SEL]||{};
+  if(v.loading&&!v.data) return '<div class="phd-load" role="status"><span class="phd-spin sm"></span> Loading tickets\u2026</div>';
+  if(v.error) return '<div class="eir-cards-err" role="alert">'+esc(v.error)+'<button type="button" class="eir-btn" data-hil-vretry>'+ic('refresh',14)+'Retry</button></div>';
+  if(!v.data) return '';
+  var list=v.data.tickets||[], c=findC(SEL)||v.data.card||{}, n=Number(c.checked)||0, e=Number(c.withErrors)||0;
+  var sum='<div class="tb-san-sum"><p>Checked '+num(n)+' \u00b7 With errors '+num(e)+' \u00b7 Correct '+num(n-e)+' ('+(Number(c.correctPct)||0)+'%)</p>'+
+    '<div class="tb-san-prog" aria-hidden="true"><span style="width:'+(Number(c.correctPct)||0)+'%"></span></div></div>';
+  if(!list.length) return sum+'<p class="tb-asg-empty">No HI line errors \ud83c\udf89</p>';
+  var all=sortRows(list,SORT), last=Math.ceil(all.length/PAGE_SIZE)-1;
+  PG=Math.max(0,Math.min(PG,last));
+  return sum+tableHtml(all.slice(PG*PAGE_SIZE,(PG+1)*PAGE_SIZE),SEL==='others')+V.pager('hil',PG,PAGE_SIZE,all.length,'Tickets with HI line errors');
+}
+function renderView(focusSel){
+  var h=$('hilViewH'), b=$('hilView'); if(!b) return;
+  var v=SEL&&VIEWS[SEL];
+  if(h) h.textContent=viewHead();
+  b.setAttribute('aria-busy',v&&v.loading?'true':'false');
+  b.innerHTML=viewBody();
+  if(focusSel){ var f=b.querySelector(focusSel); if(f) try{ f.focus(); }catch(e){} }
+}
+function renderCards(focusKey){
+  var b=$('hilCards'); if(!b||!D) return;
+  b.innerHTML=cardsHtml();
+  if(focusKey){ var f=b.querySelector('[data-who="'+String(focusKey).replace(/["\\]/g,'')+'"]'); if(f) try{ f.focus(); }catch(e){} }
+}
+function loadView(key,force){
+  var v=VIEWS[key];
+  if(v&&v.data&&!force){ renderView(); return; }
+  var seq=++SEQ;
+  VIEWS[key]={loading:true}; renderView();
+  A.api('GET','/api/hi-lines-errors?who='+encodeURIComponent(key)).then(function(r){
+    VIEWS[key]=(r&&r.ok&&r.data&&Array.isArray(r.data.tickets))?{data:r.data}:{error:errMsg(r,'the tickets')};
+  },function(){ VIEWS[key]={error:'Could not load the tickets.'}; }).then(function(){
+    if(seq!==SEQ||SEL!==key) return;
+    var x=VIEWS[key]; renderView();
+    announce(x.error?x.error:(viewHead()+': '+num(x.data.tickets.length)+'.'));
+  });
+}
+function select(key,focusCard){
+  if(!findC(key)) return;
+  var same=key===SEL;
+  SEL=key;
+  if(!same){ PG=0; SORT='desc'; }
+  renderCards(focusCard?key:null);
+  loadView(key,false);
+}
+// Default card: the viewer's own (one of the 7), else the card with the most errors.
+function defaultCard(){
+  if(findC(ME)) return ME;
+  var best=null; (D.cards||[]).forEach(function(c){ if(!best||(Number(c.withErrors)||0)>(Number(best.withErrors)||0)) best=c; });
+  return best&&best.key;
+}
+
+// ---------- Section shell / states ----------
+// Static body shell (built once by the page's render()); paint() fills it for the current state.
+function bodyHtml(){
+  return '<div class="eir" id="hilRoot">'+
+    '<div id="hilState"></div>'+
+    '<div id="hilContent" hidden>'+
+      '<div class="eir-kpis eir-skpis" id="hilKpis"></div>'+
+      '<h3 class="eir-sub-h" id="hilCardsH">Resolvers</h3><div id="hilCards"></div>'+
+      '<div class="eir-list-head"><h3 id="hilViewH" tabindex="-1"></h3></div>'+
+      '<p class="eir-note">Tickets with Cnt above 0 whose HI lines are missing or wrong, highest Cnt first (use the Cnt header to flip it), then oldest resolved. Ticket links open in a new tab.</p>'+
+      '<div class="st-view tb-asg-card tb-san-card" id="hilView"></div>'+
+    '</div>'+
+    '<span class="eir-sr" id="hilLive" aria-live="polite"></span></div>';
+}
+function skeletonHtml(){
+  var k='<div class="eir-kpi is-sm" aria-hidden="true"><span class="eir-skel" style="width:55%;height:11px"></span><span class="eir-skel" style="width:40%;height:26px;margin-top:12px"></span><span class="eir-skel" style="width:70%;height:10px;margin-top:10px"></span></div>';
+  return '<div class="eir-kpis eir-skpis">'+k+k+k+'</div>'+
+    '<div class="phd-load" role="status"><span class="phd-spin"></span> Loading Resolved &amp; Closed tickets since 1 Jan 2026\u2026</div>';
+}
+// Header chip: tickets with errors (all agents).
+function paintMeta(){
+  var m=$('hrxMeta-hil'); if(!m) return;
+  m.className='hr-range-meta'+(STATE==='idle'?' is-idle':STATE==='error'?' is-err':'');
+  if(STATE==='done'&&D){ var t=D.totals||{}; m.innerHTML=num(t.withErrors)+' with error'+(t.withErrors===1?'':'s')+' \u00b7 '+pct(t.withErrors,t.checked); return; }
+  m.innerHTML=STATE==='error'?'Not loaded':STATE==='loading'?'<span class="hrx-skel" style="width:70px;height:10px" aria-hidden="true"></span>':'Expand to load';
+}
+function paint(){
+  paintMeta();
+  var stBox=$('hilState'), content=$('hilContent'), body=$('hrxBody-hil');
+  if(body) body.setAttribute('aria-busy',STATE==='loading'?'true':'false');
+  if(!stBox||!content) return;
+  if(STATE==='loading'){ stBox.innerHTML=skeletonHtml(); content.hidden=true; return; }
+  if(STATE==='error'){ stBox.innerHTML=emptyHtml('is-err','alert-triangle','Couldn\u2019t load the HI lines check','<span role="alert">'+esc(LOAD_ERR)+'</span>',
+    '<button type="button" class="eir-btn" data-hil-retry>'+ic('refresh',14)+'Retry</button>'); content.hidden=true; return; }
+  stBox.innerHTML=''; content.hidden=(STATE!=='done');
+  if(STATE==='done'){ $('hilKpis').innerHTML=kpisHtml(); renderCards(); renderView(); }
+}
+function focusSel(sel){ var n=document.querySelector(sel); if(n) n.focus(); }
+// Lazy load on the first expand (and again after a failure).
+async function load(){
+  if(STATE==='loading'||STATE==='done') return;
+  if(!V){ LOAD_ERR='A page script did not load. Refresh the page and try again.'; STATE='error'; paint(); return; }
+  STATE='loading'; paint();
+  announce('Loading the HI lines check\u2026');
+  var r=null; try{ r=await A.api('GET','/api/hi-lines-errors'); }catch(e){}
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.cards)){
+    D=r.data; VIEWS={}; STATE='done';
+    announce('HI lines check loaded.');
+    paint();
+    var pick=SEL&&findC(SEL)?SEL:defaultCard();
+    SEL=null; if(pick) select(pick,false);
+    return;
+  }
+  LOAD_ERR=errMsg(r,'the HI lines check');
+  STATE='error'; announce('Couldn\u2019t load the HI lines check. '+LOAD_ERR);
+  paint();
+}
+document.addEventListener('click',function(ev){
+  var t=ev.target; if(!t||!t.closest) return;
+  var root=t.closest('#hilRoot'); if(!root) return;
+  if(t.closest('[data-hil-retry]')){ STATE='idle'; load(); focusSel('#hrxHead-hil'); return; }
+  if(!D) return;
+  var card=t.closest('.st-card[data-who]');
+  if(card){ select(card.getAttribute('data-who'),true); return; }
+  if(t.closest('[data-hil-vretry]')){ if(SEL) loadView(SEL,true); return; }
+  if(t.closest('[data-hilsort]')){
+    SORT=SORT==='desc'?'asc':'desc'; PG=0; renderView('[data-hilsort]');
+    announce('Sorted by Cnt, '+(SORT==='desc'?'highest':'lowest')+' first.'); return;
+  }
+  var pg=t.closest('[data-sanpage]');
+  if(pg&&!pg.disabled){
+    var np=Math.max(0,Number(pg.getAttribute('data-sanpage').split(':')[1])||0), dir=np>PG?'next':'prev';
+    PG=np; renderView();
+    var bs=document.querySelectorAll('#hilView [data-sanpage]'), f=dir==='next'?bs[bs.length-1]:bs[0];
+    if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
+    if(f) try{ f.focus(); }catch(err){}
+    var sc=document.querySelector('#hilView .tb-asg-scroll'); if(sc) sc.scrollTop=0;
+    announce('Tickets with HI line errors: page '+(PG+1));
+  }
+});
+window.HIL={bodyHtml:bodyHtml,paintMeta:paintMeta,load:load};
+})();
+</script>
 <script>
 const A=window.PHDAuth;
 let HR_DATA=null;
@@ -477,9 +810,10 @@ function render(d){
         monthlyChartHtml()+
         nonPetSectionHtml()+
         petSectionHtml()+
+        hiLinesSectionHtml()+
       '</div>'+
     '</div>';
-  paintListMeta('nonpet'); paintListMeta('pet');
+  paintListMeta('nonpet'); paintListMeta('pet'); if(window.HIL) window.HIL.paintMeta();
   // No eager render: each section fetches + draws on its first expand (see hiLoad* functions).
   // The chart section is open by default, so init() kicks off hiLoadChart().
 }
@@ -780,6 +1114,16 @@ function petSectionHtml(){
   return repeatSectionHtml('pet',{p:'pt',lp:'hip',radio:'ptView',setFn:'ptSetView',kindFn:'ptToggleKind',kind:'pet',icon:'paw',
     title:'Pet Repeat incidents',desc:'Resolved pet tickets that came back as repeat incidents, YTD 2026.'});
 }
+// ================= "HI lines check — all agents" section (4th) =================
+// Same card shell as the sections above; the body and its logic come from window.HIL (the script block
+// above: resolver cards + the picked card's tickets with HI line errors, GET /api/hi-lines-errors).
+// Collapsed by default, loads on first expand.
+function hiLinesSectionHtml(){
+  return '<section class="hr-range rng-hil" data-range="hil">'+
+    sectionHead('hil','history','HI lines check \u2014 all agents','Resolved and Closed tickets of every agent: when Cnt is N above 0, lines HI1 to HIN must be present.',false)+
+    sectionBodyOpen('hil',false)+(window.HIL?window.HIL.bodyHtml():'')+'</div>'+
+  '</section>';
+}
 function ptSetView(v){ PT_VIEW=v; renderPetView(); }
 window.ptSetView=ptSetView;
 function ptToggleKind(which, cb){ if(which==='phd') PT_PHD=cb.checked; else PT_NONPHD=cb.checked; renderPetView(); }
@@ -1030,6 +1374,7 @@ function hrRangeToggle(btn){
     if(r==='chart'){ if(HI_CHART_STATE==='done'&&HR_MONTHLY) drawMonthlyChart(HR_MONTHLY); else hiLoadChart(); }
     else if(r==='nonpet') hiLoadNonPet();
     else if(r==='pet') hiLoadPet();
+    else if(r==='hil'&&window.HIL) window.HIL.load();
   }
 }
 window.hrRangeToggle=hrRangeToggle;

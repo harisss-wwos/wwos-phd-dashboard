@@ -1351,6 +1351,48 @@
       + '.tb-asg-card .tb-asg-note[hidden]{display:none}'
       + '.tb-asg-card .tbl-row .tbl-cancel{min-width:110px}'
       + '.tb-asg-card .tb-asg-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}'
+      // "My sanitization tickets" pop-up (same .tbl-* shell + .tb-asg-card table styles). --sc-h = score hue.
+      + '.tb-san-card .tb-san-sum{margin:0 0 12px}'
+      + '.tb-san-card .tb-san-sum p{margin:0 0 6px;color:#2a3340;font-size:.86em;font-weight:700}'
+      + '.tb-san-card .tb-san-sum p small{color:#5c6773;font-weight:600}'
+      + '.tb-san-card .tb-san-prog{height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}'
+      + '.tb-san-card .tb-san-prog span{display:block;height:100%;border-radius:99px;background:hsl(142,68%,40%)}'
+      + '.tb-san-card .tb-san-sec{margin:0 0 12px;border:1px solid #e2e6ea;border-radius:10px;background:#fff}'
+      + '.tb-san-card .tb-san-sec>summary{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;font-weight:800;font-size:.9em;color:#1f2a40;list-style:none;border-radius:10px}'
+      + '.tb-san-card .tb-san-sec>summary::-webkit-details-marker{display:none}'
+      + '.tb-san-card .tb-san-sec>summary::before{content:"\\25B8";color:#5c6773;transition:transform .15s}'
+      + '.tb-san-card .tb-san-sec[open]>summary::before{transform:rotate(90deg)}'
+      + '.tb-san-card .tb-san-sec>summary:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}'
+      + '.tb-san-card .tb-san-sec>summary b{min-width:22px;height:20px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;background:#eef1f4;color:#2a3340;font-size:.86em;font-variant-numeric:tabular-nums}'
+      + '.tb-san-card .tb-san-sec.is-bad>summary b{background:#fde8e8;color:#a61b1b}'
+      + '.tb-san-card .tb-san-sec.is-ok>summary b{background:#e5f5ec;color:#17663a}'
+      + '.tb-san-card .tb-san-in{padding:0 12px 12px}'
+      + '.tb-san-card .tb-san-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}'
+      + '.tb-san-card .tb-san-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#1f2a40;font:inherit;font-size:.8em;font-weight:800;cursor:pointer}'
+      + '.tb-san-card .tb-san-btn:hover{border-color:#ec7211;color:#b5530a}'
+      + '.tb-san-card .tb-san-btn:focus-visible,.tb-san-card .tb-san-who:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}'
+      + '.tb-san-card .tb-san-tnote{flex:1 1 220px;margin:0;color:#8a3a00;font-size:.8em;font-weight:700}'
+      + '.tb-san-card .tb-san-tnote[hidden]{display:none}'
+      + '.tb-san-card .tb-san-sc{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:3px 9px;border-radius:7px;font-size:.92em;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;background:hsl(var(--sc-h),78%,92%);color:hsl(var(--sc-h),72%,26%);border:1px solid hsl(var(--sc-h),55%,70%)}'
+      + '.tb-san-card .tb-san-chips{display:flex;flex-wrap:wrap;gap:4px}'
+      + '.tb-san-card .tb-san-chip{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:.86em;font-weight:700;white-space:nowrap;background:#fdecec;border:1px solid #f5c2c2;color:#a61b1b}'
+      + '.tb-san-card .tb-san-muted{margin:0;color:#5c6773;font-size:.8em;line-height:1.5}'
+      + '.tb-san-card .tb-san-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}'
+      + '.tb-san-card .tb-san-who{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 14px;border-radius:10px;border:1px solid #e2e6ea;background:#fff;color:#1f2a40;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s}'
+      + '.tb-san-card .tb-san-who:hover{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
+      + '.tb-san-card .tb-san-who b{font-size:.95em}'
+      + '.tb-san-card .tb-san-who small{color:#5c6773;font-weight:600;font-size:.78em}'
+      + '.tb-san-card .tb-san-who .tb-san-cnt{display:flex;flex-wrap:wrap;gap:6px;font-size:.76em;font-weight:800}'
+      + '.tb-san-card .tb-san-cnt span{padding:2px 8px;border-radius:99px;background:#eef1f4;color:#2a3340}'
+      + '.tb-san-card .tb-san-cnt .is-ok{background:#e5f5ec;color:#17663a}'
+      + '.tb-san-card .tb-san-cnt .is-bad{background:#fde8e8;color:#a61b1b}'
+      + '.tb-san-card .tb-san-back{margin:0 0 10px}'
+      + '.tb-san-card .tb-san-btn:disabled{opacity:.45;cursor:default;border-color:#d4dade;color:#1f2a40}'
+      + '.tb-san-card .tb-san-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:8px 0 0}'
+      + '.tb-san-card .tb-san-pg{color:#5c6773;font-size:.8em;font-weight:700;font-variant-numeric:tabular-nums}'
+      // Owner: the eraser chip is a link to sanitization-tracker.html.
+      + '#tbHomeChrome a.home-hdr-asg{text-decoration:none}'
+      + '#tbHomeChrome a.home-hdr-asg[aria-current="page"]{border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.14)}'
       + '#tbHomeChrome .home-hdr-live .hdr-live-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:hdrLiveBlink 1.2s ease-in-out infinite}'
       + '@keyframes hdrLiveBlink{0%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{opacity:.4;box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(255,255,255,0)}}'
       + '#tbHomeChrome .home-layout{display:flex;align-items:flex-start;gap:10px;max-width:100%;padding-top:72px}'
@@ -1761,6 +1803,7 @@
     for (var r = 1; r < rows.length; r++) { var o = {}; for (var j = 0; j < H.length; j++) o[H[j]] = rows[r][j] || ''; data.push(o); }
     return data;
   }
+  window.PHDParseCSV = tbParseCSV;   // same parser for page-level CSV tools (ticket-sanitization.html "Update tickets data")
   // ---- LM-HUB group gate (mirrors server/lmhub-filter.js; the server re-checks every upload) ----
   // Only rows whose AssignedGroup is 'LM-HUB' (trimmed, case-insensitive) are uploaded. Any other
   // group, or a blank group, is dropped and counted per group for the warning + the data log.
@@ -2674,7 +2717,8 @@
   var TBH_MAP = {
     'app': { title: 'Active Dashboard', icon: 'bolt', tone: 'amber' }, 'my-tickets': { title: 'My Tickets', icon: 'ticket', tone: 'amber' },
     'archive': { title: 'Program History', icon: 'inbox', tone: 'amber' }, 'issue-types': { title: 'Issue Standardization', icon: 'clipboard', tone: 'violet' },
-    'ticket-sanitization': { title: 'Ticket Sanitization', icon: 'check-circle', tone: 'rose' }, 'rules': { title: 'Rules & Definitions', icon: 'book', tone: 'teal' },
+    'ticket-sanitization': { title: 'Ticket Sanitization', icon: 'check-circle', tone: 'rose' },
+    'sanitization-tracker': { title: 'Sanitization Tracker', icon: 'eraser', tone: 'rose' }, 'rules': { title: 'Rules & Definitions', icon: 'book', tone: 'teal' },
     'hi-resolved': { title: 'Repeat Incidents', icon: 'repeat', tone: 'blue' }, 'sla-breach': { title: 'SLA Breaches', icon: 'clock', tone: 'rose' },
     'station-request': { title: 'Station Requests', icon: 'map-pin', tone: 'blue' }, 'agent-analytics': { title: 'Team Analytics', icon: 'bar-chart', tone: 'blue' },
     'performance-summary': { title: 'Performance Summary', icon: 'clipboard', tone: 'blue' },
@@ -2925,9 +2969,121 @@
     }).catch(function () {});
   };
   window.PHDRefreshMyAssigned = function () { return tbMyAsgFetch(true); };
+
+  // ---- Sanitization Tracker: eraser button left of the ticket badge ----
+  // GET /api/my-sanitization (read-only). Contractors (analyst + role editor) get their own tickets
+  // from their active sanitization assignments, scored live; the owner gets every contractor's totals.
+  // Only contractors / the owner ask (role editor or owner); a 403 / error keeps the button hidden.
+  // For both, the button is a link to sanitization-tracker.html with the needs-correction count.
+  var TB_SAN_OWNER = 'harisss';
+  var tbSan = { data: null, req: null, view: null, tz: 'IST' };
+  function tbSanLower(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
+  function tbSanMayAsk() {
+    var u = (A && A.getUser && A.getUser()) || {};
+    return tbSanLower(u.username) === TB_SAN_OWNER || tbSanLower(u.role) === 'editor';
+  }
+  // The owner and contractors see every contractor on the Sanitization Tracker; owner-only bits (Update tickets data) use this.
+  function tbSanIsOwner() { var u = (A && A.getUser && A.getUser()) || {}; return tbSanLower(u.username) === TB_SAN_OWNER; }
+  function tbSanFetch() {
+    if (!loggedIn() || !A || !A.api || !tbSanMayAsk()) return Promise.resolve(null);
+    if (tbSan.req) return tbSan.req;
+    tbSan.req = A.api('GET', '/api/my-sanitization').then(function (r) {
+      var d = r && r.ok && r.data;
+      tbSan.data = (d && (Array.isArray(d.contractors) || Array.isArray(d.tickets))) ? d : null;
+      tbSanPaint();
+      return tbSan.data;
+    }).catch(function () { tbSan.data = null; tbSanPaint(); return null; });
+    return tbSan.req;
+  }
+  // Tickets needing correction: the owner gets the sum across contractors; a contractor (who gets the
+  // same contractor list) their own count.
+  function tbSanNeed(d) {
+    if (!d) return 0;
+    if (Array.isArray(d.contractors)) {
+      if (!tbSanIsOwner()) {
+        var me = tbSanLower(((A && A.getUser && A.getUser()) || {}).username);
+        var c = d.contractors.filter(function (x) { return x && x.login === me; })[0];
+        return (c && Number(c.needsCorrection)) || 0;
+      }
+      return d.contractors.reduce(function (s, c) { return s + (Number(c.needsCorrection) || 0); }, 0);
+    }
+    return (d.totals && Number(d.totals.needsCorrection)) || 0;
+  }
+  function tbSanPaint() {
+    // Contractors' "Sanitization Tracker" menu item is rendered hidden and shown once the server says they are one.
+    var navs = document.querySelectorAll('[data-tbsan-nav]');
+    for (var i = 0; i < navs.length; i++) navs[i].style.display = tbSan.data ? '' : 'none';
+    var b = document.getElementById('tbhMySan'); if (!b) return;
+    if (!tbSan.data) { b.hidden = true; b.innerHTML = ''; return; }   // loading, not allowed, or failed
+    var n = tbSanNeed(tbSan.data), own = Array.isArray(tbSan.data.contractors) && tbSanIsOwner();
+    var what = n ? (n + ' ticket' + (n === 1 ? '' : 's') + ' need' + (n === 1 ? 's' : '') + ' correction' + (own ? ' across contractors' : '')) : 'nothing needs correction';
+    b.innerHTML = ic('eraser', 18) + '<span class="home-hdr-asg-n" aria-hidden="true">' + n + '</span>';
+    b.classList.toggle('is-zero', !n);
+    var lbl = own ? 'Sanitization Tracker' : 'My sanitization tickets';
+    b.title = lbl; b.setAttribute('aria-label', lbl + ': ' + what);
+    b.hidden = false;
+  }
+  // Top sanitization score: the server's maxScore (GET /api/my-sanitization), 11 until it is here.
+  function tbSanMax() { var m = tbSan.data && Number(tbSan.data.maxScore); return m > 0 ? m : 11; }
+  // Hue per score (same scale as the Sanitization scores page): 0 red -> half amber -> max green.
+  function tbSanHue(s) {
+    var M = tbSanMax(), h = M / 2; s = Math.max(0, Math.min(M, Number(s) || 0));
+    return s <= h ? Math.round(s / h * 38) : Math.round(38 + (s - h) / (M - h) * 104);
+  }
+  function tbSanScore(s) {
+    if (typeof s !== 'number') return '<span class="tb-san-muted">\u2014</span>';
+    return '<span class="tb-san-sc" style="--sc-h:' + tbSanHue(s) + '">' + s + ' / ' + tbSanMax() + '</span>';
+  }
+  function tbSanList(v, st) { return ((v && v.tickets) || []).filter(function (t) { return t.status === st; }); }
+  // Shared with sanitization-tracker.html (same scoring colours and links); its ticket view is sanitization-view.js.
+  window.PHDSan = {
+    OWNER: TB_SAN_OWNER, isOwner: tbSanIsOwner, mayAsk: tbSanMayAsk, ready: tbSanFetch,
+    hue: tbSanHue, max: tbSanMax, scoreHtml: tbSanScore, url: tbMyAsgUrl, list: tbSanList, need: tbSanNeed,
+    when: function (iso) { return tbMyAsgWhen(iso, tbSan.tz); },
+    setTz: function (tz) { tbSan.tz = tz === 'MST' ? 'MST' : 'IST'; },
+    tz: function () { return tbSan.tz; },
+    // Re-ask the server (after a status change on the tracker) so the top-bar count pill stays right.
+    refresh: function () { tbSan.req = null; return tbSanFetch(); }
+  };
+  // ---- Errors in Resolved: alert-triangle button left of the year button ----
+  // GET /api/resolved-errors (read-only): the 7 BLR / AZA team members' resolved tickets (since 1 Jan 2026)
+  // scored out of 11. The count pill = the viewer's own tickets with errors. Only the team asks (the
+  // server enforces the same list); loading / 403 / error keeps the button hidden.
+  var TB_RE_TEAM = ['harisss', 'punithsd', 'arunkzn', 'flofalgu', 'mbozied', 'nobregak', 'mellanej'];   // KEEP IN SYNC with server/assignments.js ASSIGN_GROUPS (BLR + AZA)
+  var tbReErr = { data: null, req: null };
+  function tbReErrMe() { return tbSanLower(((A && A.getUser && A.getUser()) || {}).username); }
+  function tbReErrMayAsk() { return TB_RE_TEAM.indexOf(tbReErrMe()) >= 0; }
+  function tbReErrFetch() {
+    if (!loggedIn() || !A || !A.api || !tbReErrMayAsk()) return Promise.resolve(null);
+    if (tbReErr.req) return tbReErr.req;
+    tbReErr.req = A.api('GET', '/api/resolved-errors').then(function (r) {
+      var d = r && r.ok && r.data;
+      tbReErr.data = (d && Array.isArray(d.cards)) ? d : null;
+      tbReErrPaint();
+      return tbReErr.data;
+    }).catch(function () { tbReErr.data = null; tbReErrPaint(); return null; });
+    return tbReErr.req;
+  }
+  function tbReErrMine(d) {
+    var me = tbReErrMe(), c = ((d && d.cards) || []).filter(function (x) { return x && x.key === me; })[0];
+    return (c && Number(c.withErrors)) || 0;
+  }
+  function tbReErrPaint() {
+    var b = document.getElementById('tbhResErr'); if (!b) return;
+    if (!tbReErr.data) { b.hidden = true; b.innerHTML = ''; return; }
+    var n = tbReErrMine(tbReErr.data), lbl = 'My resolved tickets with errors';
+    b.innerHTML = ic('alert-triangle', 18) + '<span class="home-hdr-asg-n" aria-hidden="true">' + n + '</span>';
+    b.classList.toggle('is-zero', !n);
+    b.title = lbl; b.setAttribute('aria-label', lbl + ': ' + n);
+    b.hidden = false;
+  }
+  // Shared with errors-in-resolved.html (reuses the top bar's request for the cards).
+  window.PHDResErr = { team: TB_RE_TEAM.slice(), mayAsk: tbReErrMayAsk, ready: tbReErrFetch, mine: tbReErrMine };
   function tbhWireChrome() {
     tbhRenderHdrProf(); tbhRenderRecent();
     if (tbMyAsg.data) tbMyAsgPaint(); else tbMyAsgFetch(false);
+    if (tbSan.req) tbSanPaint(); else tbSanFetch();
+    if (tbReErr.req) tbReErrPaint(); else tbReErrFetch();
     var clr = document.getElementById('tbhClear');
     if (clr) clr.onclick = function () { try { localStorage.removeItem('phd_recent_pages'); } catch (e) {} tbhRenderRecent(); };
   }
@@ -2953,7 +3109,11 @@
       + '</div>'
       + '<div class="home-hdr-right">'
       // Dashboard-assigned tickets waiting in my bucket (painted by tbMyAsgPaint; hidden when 0).
+      // Sanitization Tracker link (contractors + the owner only; painted by tbSanPaint, hidden otherwise).
+      + (li && tbSanMayAsk() ? '<a class="home-hdr-asg" id="tbhMySan" hidden href="sanitization-tracker.html"' + (hereFile === 'sanitization-tracker' ? ' aria-current="page"' : '') + '></a>' : '')
       + (li ? '<button type="button" class="home-hdr-asg" id="tbhMyAsg" hidden onclick="if(window.PHDOpenMyAssigned)window.PHDOpenMyAssigned()"></button>' : '')
+      // Errors in Resolved link (the 7 BLR / AZA team members only; painted by tbReErrPaint, hidden otherwise).
+      + (li && tbReErrMayAsk() ? '<a class="home-hdr-asg" id="tbhResErr" hidden href="errors-in-resolved.html"' + (hereFile === 'errors-in-resolved' ? ' aria-current="page"' : '') + '></a>' : '')
       + (li ? '<a class="home-hdr-live" href="app.html" title="Open the live dashboard"><span class="hdr-live-dot"></span> ' + new Date().getFullYear() + '</a>' : '')
       + '<span class="home-hdr-prof" id="tbhHdrProf"></span>'
       // Log out: icon-only button right of the profile icon (moved here from the menu's bottom group).
@@ -2963,9 +3123,9 @@
     // ---- Left column = three colour-coded button groups, equal gaps between them. ----
     // When logged OUT, the whole column renders but DISABLED (greyed, not clickable) via the
     // .home-navcol-disabled wrapper class; links become inert <span>s so a guest can't navigate.
-    var navBtn = function (href, label, icon) {
+    var navBtn = function (href, label, icon, title) {
       var inner = '<span class="home-nav-ic">' + ic(icon, 15) + '</span><span class="home-nav-lbl">' + label + '</span>';
-      var tt = ' title="' + label.replace(/"/g, '&quot;') + '"';   // hover tooltip (used by the icon rail)
+      var tt = ' title="' + (title || label).replace(/"/g, '&quot;') + '"';   // hover tooltip (used by the icon rail)
       var on = tbhFileOf(href) === hereFile;                        // current page -> active item
       return li
         ? '<a class="home-nav-btn' + (on ? ' is-current' : '') + '" href="' + href + '"' + tt + (on ? ' aria-current="page"' : '') + '>' + inner + '</a>'
@@ -2989,7 +3149,6 @@
       + navBtn('agent-analytics.html', 'Team Analytics', 'bar-chart')
       + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
       + navBtn('pulse-check.html', 'Pulse Check (24h)', 'line-chart')
-      + navBtn('errors-in-resolved.html', 'Errors in Resolved', 'alert-triangle')
       + '</nav>';
     // Resolutions: first item of the second group (directly above SLA Breaches), tagged .home-nav-res;
     // navBtn already marks it current (aria-current) while on resolutions.html.
@@ -3009,9 +3168,14 @@
     // Group 0 (top): Program & Reference — the Home page's history + reference guides.
     // (The 'history' glyph in icons.js is a list, so it marks PHD Resolutions; Program History uses clock-rewind.)
     var navRef = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavRef">' + grpHead('tbhNavRef', 'Program &amp; Reference')
-      + navBtn('archive.html?ds=archive', 'Program History (2021\u201325)', 'clock-rewind')
+      + navBtn('archive.html?ds=archive', 'Prog. History (21\u201325)', 'clock-rewind', 'Program History (2021\u201325)')
       + navBtn('issue-types.html', 'Issue Standardization', 'book')
       + navBtn('ticket-sanitization.html', 'Ticket Sanitization', 'check-circle')
+      // Sanitization Tracker: the owner always; contractors (role editor) get it hidden until GET
+      // /api/my-sanitization confirms they are one (tbSanPaint shows it). The page + API gate it too.
+      + (li && tbSanIsOwner() ? navBtn('sanitization-tracker.html', 'Sanitization Tracker', 'eraser')
+        : (li && tbSanMayAsk() ? navBtn('sanitization-tracker.html', 'Sanitization Tracker', 'eraser')
+            .replace('<a class="home-nav-btn', '<a data-tbsan-nav="1" style="display:none" class="home-nav-btn') : ''))
       + navBtn('phd-resolutions.html', 'PHD Resolutions', 'history')
       + '</nav>';
     // Group 3 (bottom): Upload / View log (upload-gated, logged-in only) + Log out.

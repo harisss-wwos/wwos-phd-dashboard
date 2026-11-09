@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanitization Tracker · WWOS-GSOC PHD Dashboard</title>
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<style id="st-light">
+/* Sanitization Tracker (the owner and every contractor see the same page): navy hero with an orange
+   rule (tool buttons on its right), KPI cards overlapping it, the contractor cards, then the selected
+   contractor's view. The view is sanitization-view.js markup.
+   Everything is scoped under .st. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.st{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
+.st button{font-family:inherit;line-height:inherit;text-transform:none}
+.st :is(button,a,[tabindex],summary):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.st-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.st-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.st-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.st-hero.is-gate{padding-bottom:28px}
+.st-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.st-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.st-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.st-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.st-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.st-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+@media (min-width:1100px){.st-hero-sub{max-width:none;white-space:nowrap}}
+.st-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;max-width:100%}
+.st-meta li{display:flex;flex-direction:column;gap:3px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:0}
+.st-meta-k{font-size:.62em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
+.st-meta-v{display:inline-flex;align-items:center;gap:7px;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
+.st-meta-v svg{color:#ffb26b;flex-shrink:0}
+@container (max-width:560px){
+  .st-hero{padding:20px 18px 72px 22px}
+  .st-hero h1{font-size:1.65em}
+  .st-hero-ic{width:40px;height:40px}
+  .st-hero-main{flex-basis:100%}
+}
+
+/* ---- KPI row (overlaps the hero) ---- */
+.st-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px;padding:0;list-style:none}
+@container (min-width:420px){.st-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:640px){.st-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (min-width:1000px){.st-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@container (max-width:560px){.st-kpis{margin:-54px 10px 14px}}
+.st-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
+  box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
+.st-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
+.st-kpi-l{display:flex;align-items:center;gap:9px;font-size:.7em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.st-kpi-ic{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:#3a4552}
+.st-kpi-v{margin-top:12px;font-size:2.4em;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.st-kpi-s{margin-top:7px;font-size:.82em;font-weight:600;color:var(--mut)}
+.st-kpi.is-base{--k:#1f2a40}.st-kpi.is-base .st-kpi-ic{background:var(--blue-bg);color:var(--blue)}
+.st-kpi.is-ok{--k:#22a35a}.st-kpi.is-ok .st-kpi-v{color:var(--grn)}.st-kpi.is-ok .st-kpi-ic{background:var(--grn-bg);color:var(--grn)}
+.st-kpi.is-bad{--k:#d92d20}.st-kpi.is-bad .st-kpi-v{color:var(--red)}.st-kpi.is-bad .st-kpi-ic{background:var(--red-bg);color:var(--red)}
+.st-kpi.is-acc{--k:var(--acc)}.st-kpi.is-acc .st-kpi-ic{background:var(--acc-bg);color:#b5530a}
+.st-kpi.is-na .st-kpi-v{color:#a0a8b1}
+
+/* ---- Section cards ---- */
+.st-sec{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px;overflow:hidden}
+.st-sec-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.st-sec-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.st-sec-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-sec-t{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)!important}
+.st-sec-d{font-size:.82em;font-weight:500;color:var(--mut);line-height:1.4}
+.st-sec-b{padding:16px 20px 18px}
+@container (max-width:640px){.st-sec-h{padding:14px}.st-sec-b{padding:14px}}
+.st-empty{padding:18px;text-align:center;color:var(--mut);font-size:.9em;border:1px dashed #d4dade;border-radius:10px}
+.st-err{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border-radius:10px;background:var(--red-bg);border:1px solid #f5c2c2;color:#8a1c12;font-weight:700;font-size:.9em}
+.st-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid #161d2d;border-radius:8px;background:#161d2d;color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;text-decoration:none}
+.st-btn:hover{background:#0f1420}
+.st-btn.is-ghost{background:#fff;border-color:#d4dade;color:#2a3340}
+.st-btn.is-ghost:hover{border-color:var(--acc);color:var(--acc-ink)}
+
+/* ---- Contractor cards ---- */
+/* One row of N equal cards (--n = number of contractors) across the full width; 3 / 2 / 1 columns on narrower widths. */
+.st-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n,6),minmax(0,1fr));gap:10px}
+@container (max-width:1180px){.st-grid{grid-template-columns:repeat(var(--n3,3),minmax(0,1fr))}}
+@container (max-width:720px){.st-grid{grid-template-columns:repeat(var(--n2,2),minmax(0,1fr))}}
+@container (max-width:440px){.st-grid{grid-template-columns:minmax(0,1fr)}}
+.st-card{width:100%;height:100%;display:flex;flex-direction:column;gap:9px;padding:12px 12px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.st-card:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,114,17,.12)}
+.st-card[aria-pressed="true"]{border-color:var(--acc);background:#fff8f1;box-shadow:0 0 0 3px rgba(236,114,17,.24)}
+/* Line 1: login + 'Selected' pill; line 2: 'Assigned n | Cleared n | Needs correction n' (one line on
+   desktop); line 3: progress bar + 'n% passed'. */
+.st-card-top{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
+.st-card-who{min-width:0;font-size:1.02em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-card-sel{display:none;flex-shrink:0;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:var(--acc);color:#fff;font-size:.68em;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.st-card[aria-pressed="true"] .st-card-sel{display:inline-flex}
+/* One line whenever the card is wide enough; on narrower cards it breaks only between the three
+   counts (each count stays whole), so nothing is clipped or spills into the next card. */
+.st-card-cnt{display:block;width:100%;white-space:normal;font-size:.74em;font-weight:700;line-height:1.5;color:#2a3340;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
+.st-card-cnt>span{white-space:nowrap}
+.st-card-cnt b{font-weight:800}
+.st-card-cnt .is-ok{color:#17663a}
+.st-card-cnt .is-bad{color:#a61b1b}
+.st-card-cnt i{font-style:normal;color:#a0a8b1}
+.st-card-rate{display:flex;align-items:center;gap:8px;width:100%}
+.st-bar{flex:1 1 auto;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
+.st-bar span{display:block;height:100%;border-radius:99px;background:hsl(var(--sc-h),68%,46%)}
+.st-card-rate b{flex-shrink:0;text-align:right;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---- Selected contractor view (sanitization-view.js markup; base styles come from topbar-auth.js) ---- */
+.st-view.tb-asg-card .tb-asg-scroll{max-height:70vh}
+.st-view.tb-san-card .tb-san-sum p{font-size:.92em}
+.st-view[aria-busy="true"]{opacity:.6}
+/* Hero tool row: the buttons (sanitization-tools.css .ts-hero-acts) + "Data as of", equal-width cells in one row. */
+.st-hero-bar{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;margin-top:18px}
+.st-hero-bar .ts-hero-acts{display:contents}
+.st-hero-bar .ts-hero-link{margin:0;align-self:stretch;min-width:0}
+.st-hero-bar .ts-hl-txt{min-width:0}
+.st-hero-bar .ts-hl-t,.st-hero-bar .ts-hl-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-hero-asof{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;min-height:40px;padding:9px 16px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18)}
+.st-hero-asof .st-meta-v{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){.st-hero-bar{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.st-hero-bar{grid-template-columns:minmax(0,1fr)}}
+/* Hero side column: the tool buttons (sanitization-tools.css .ts-hero-acts) above the data stamp. */
+.st-hero-side{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-left:auto;min-width:0}
+.st-hero-side .ts-hero-acts{margin-left:0;align-self:stretch}
+.st-hero-side .st-meta{justify-content:flex-end}
+@container (max-width:560px){.st-hero-side{margin-left:0;width:100%}.st-hero-side .st-meta{justify-content:flex-start}}
+.st-card-cnt .is-temp{background:#e9f0fb;color:#1f4f99}
+.st-card-cnt .is-err{background:#fff3e8;color:#8a3a00}
+/* Ticket view (sanitization-view.js): one line per ticket. Score / Ticket ID / Status (and Marked at /
+   Undo) fit their content; Title and Missing (Reason) share the rest, single line with ellipsis (full
+   text in the title tooltip). Missing may wrap below 900px. */
+.st-view .tb-san-sec.is-temp>summary b{background:#e9f0fb;color:#1f4f99}
+.st-view .tb-san-sec.is-err>summary b{background:#fff3e8;color:#8a3a00}
+.st-view table.stv-tbl tbody.stv-t+tbody.stv-t tr.stv-l1 td{border-top:1px solid #e2e6ea}
+.st-view table.stv-tbl tr.stv-l1 td{border-bottom:0}
+.st-view table.stv-tbl tbody.stv-t:hover td{background:#fafbfc}
+.st-view table.stv-tbl.is-flat td{vertical-align:middle}
+.st-view .stv-fit{width:1%;white-space:nowrap}
+.st-view table.stv-tbl.is-line .stv-ttl,.st-view table.stv-tbl.is-line .stv-mc{width:49%}
+.st-view td.stv-clip{max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
+.st-view td.stv-mc{color:#5c6773}
+@media (max-width:899px){.st-view td.stv-clip.stv-mc{white-space:normal;overflow-wrap:anywhere}}
+.st-view .stv-id{white-space:nowrap}
+.st-view .stv-sc{white-space:nowrap}
+.st-view .stv-stale{color:#1f4f99;font-weight:700}
+.st-view .stv-ro{color:#5c6773;font-weight:700}
+.st-view select.stv-st{width:auto;min-width:150px;height:34px;padding:0 8px;border:1px solid #cdd4db;border-radius:8px;background:#fff;color:#1b2026;font:inherit;font-size:.92em;font-weight:700;cursor:pointer}
+.st-view select.stv-st:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.st-view select.stv-st:disabled{opacity:.6;cursor:default}
+.st-view .stv-sort{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.st-view .stv-sort:hover{border-color:#d4dade;background:#fff}
+.st-view .stv-sort:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.st-view .stv-sort-ic{font-size:.8em;color:#b5530a}
+.st-view .stv-why{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:start;padding:10px 12px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
+.st-view .stv-why-l{grid-column:1/-1;font-size:.9em;font-weight:800;color:#2a3340}
+.st-view .stv-req{color:#b42318}
+.st-view textarea.stv-why-t{grid-column:1/-1;display:block;width:100%;min-height:58px;padding:8px 10px;border:1px solid #cdd4db;border-radius:8px;background:#fff;color:#1b2026;font:inherit;font-size:.92em;line-height:1.45;resize:vertical;box-sizing:border-box}
+.st-view textarea.stv-why-t:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+.st-view textarea.stv-why-t[aria-invalid="true"]{border-color:#d92d20}
+.st-view .stv-why-h{font-size:.8em;font-weight:600;color:#5c6773;font-variant-numeric:tabular-nums}
+.st-view .stv-why-e{grid-column:1/-1;font-size:.84em;font-weight:700;color:#b42318}
+.st-view .stv-why-e:empty{display:none}
+.st-view .stv-why-a{grid-column:2;grid-row:3;display:inline-flex;gap:8px;justify-self:end}
+.st-view .tb-san-btn.stv-save{background:#161d2d;border-color:#161d2d;color:#fff}
+.st-view .tb-san-btn.stv-save:hover{background:#0f1420;color:#fff}
+.st-view .tb-san-btn:disabled{opacity:.6;cursor:default}
+.st-view .stv-why-c{min-width:200px;line-height:1.4;overflow-wrap:anywhere}
+.st-view .stv-by{color:#5c6773;font-weight:600}
+.st-view .stv-act{text-align:right;white-space:nowrap}
+.st-view .stv-help{margin:0 0 8px;color:#5c6773;font-size:.82em;line-height:1.5}
+.st-view .stv-note{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#fdecec;border:1px solid #f5c2c2;color:#8a1c12;font-size:.86em;font-weight:700}
+.st-view .stv-note:empty{display:none}
+/* Owner's send-back note on a Needs correction row (amber), the contractor's "sent for error review" line. */
+.st-view .stv-ret{margin:0 0 4px;padding:6px 10px;border-radius:8px;background:#fff6e0;border:1px solid #f3d38a;color:#7a4b00;font-size:.86em;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
+.st-view .stv-sent{margin:8px 0 0;font-size:.82em;color:#5c6773}
+/* Owner's Error tickets review: checkbox column, selected rows, bulk toolbar, Approved errors list. */
+.st-view .stv-ck{text-align:center}
+.st-view .stv-ck input{width:18px;height:18px;margin:0;cursor:pointer;accent-color:#ec7211}
+.st-view .stv-ck input:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+.st-view table.stv-rev tr.is-sel td{background:#fff8f1}
+.st-view .stv-act .tb-san-btn+.tb-san-btn{margin-left:4px}
+.st-view .stv-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
+.st-view .stv-bulk-n{font-size:.86em;font-weight:800;color:#2a3340;margin-right:4px}
+.st-view .tb-san-btn.stv-link{border-color:transparent;background:transparent;text-decoration:underline}
+.st-view details.stv-appr{margin-top:12px;border:1px solid #e2e6ea;border-radius:10px;padding:8px 12px;background:#fafbfc}
+.st-view details.stv-appr>summary{cursor:pointer;font-size:.9em;font-weight:800;color:#2a3340}
+.st-view details.stv-appr>summary b{margin-left:4px;padding:1px 8px;border-radius:99px;background:#eef1f4;color:#2a3340}
+.st-view details.stv-appr[open]>summary{margin-bottom:8px}
+/* Error review pop-up (topbar-auth.js .tbl-* dialog shell). */
+#stRevDlg .st-rev-ids{margin:0 0 12px;font-size:.84em;font-weight:700;color:#2a3340;overflow-wrap:anywhere}
+#stRevDlg .st-rev-l{display:block;margin-bottom:6px;font-size:.88em;font-weight:800;color:#2a3340}
+#stRevDlg .st-rev-req{color:#b42318}
+#stRevDlg textarea.st-rev-t{display:block;width:100%;min-height:76px;padding:8px 10px;border:1px solid #cdd4db;border-radius:8px;background:#fff;color:#1b2026;font:inherit;font-size:.92em;line-height:1.45;resize:vertical;box-sizing:border-box}
+#stRevDlg textarea.st-rev-t:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+#stRevDlg textarea.st-rev-t[aria-invalid="true"]{border-color:#d92d20}
+#stRevDlg .st-rev-h{display:block;margin-top:4px;font-size:.8em;font-weight:600;color:#5c6773;text-align:right;font-variant-numeric:tabular-nums}
+#stRevDlg .st-rev-e{margin:6px 0 0;font-size:.85em;font-weight:700;color:#b42318}
+#stRevDlg .st-rev-e:empty{display:none}
+#stRevDlg .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+<link rel="stylesheet" href="sanitization-tools.css?v=1">
+</head>
+<body data-nav-active="sanitization-tracker" data-back-href="ticket-sanitization.html" data-back-label="Ticket Sanitization">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+<!-- One persistent polite live region (outside #wrap, so re-renders never replace it). -->
+<div id="stLive" class="st-sr" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
+
+<script src="icons.js?v=3"></script>
+<script src="api-config.js"></script>
+<!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
+<script src="issue-types-data.js?v=4"></script>
+<script src="topbar-auth.js?v=231"></script>
+<script src="sanitization-view.js?v=4"></script>
+<script src="sanitization-tools.js?v=1"></script>
+<script>
+var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function ic(n,s){return window.icon?window.icon(n,s||14):'';}
+function $(id){return document.getElementById(id);}
+function num(n){return (Number(n)||0).toLocaleString('en-US');}
+function pct(a,b){return b?Math.round((Number(a)||0)/b*100):0;}
+// Top score: the server's maxScore (via the top bar's /api/my-sanitization data), 11 until it is here.
+function maxS(){ var m=ST.max||(S&&S.max?Number(S.max()):0); return m>0?m:11; }
+function full(){ return maxS()+'/'+maxS(); }
+function announce(msg){ var l=$('stLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+
+// ---- State ----
+// The owner and every contractor get the same page: KPIs, contractor cards, the picked contractor's view.
+var PAGE_SIZE=100;
+var ME=String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase();   // viewer login
+var ST={state:'loading', err:'', list:[], asOf:null};
+var SEL=null;              // shown contractor login (the picked card)
+var VIEWS={};              // login -> {loading, data, error}
+var PG={need:0, ok:0};     // shown view: page per table
+var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|'temp'|'err'|'ok'|null; kept across re-renders
+var SELR={}, LASTI=-1;     // owner's Error tickets selection (shortId -> true) + last clicked row index (Shift+click range)
+var REVBUSY=false;         // an error-review request is running
+var APPR_OPEN=false;       // owner's "Approved errors" list open
+var SORT='asc';            // Needs correction score order ('asc' = lowest first)
+var ERRF=null;             // open "Why is this an error ticket?" form: {shortId, text, err, busy}
+var BUSY={};               // shortId -> true while its status is being saved
+var NOTE='';               // last save error (shown above the view)
+var SEQ=0;                 // guards against out-of-order view responses
+
+function nameOf(c){ return (c&&(c.displayName||c.login))||''; }
+function findC(login){ for(var i=0;i<ST.list.length;i++) if(ST.list[i].login===login) return ST.list[i]; return null; }
+// Most tickets needing correction first, then most assigned, then login.
+function sortList(l){ return l.slice().sort(function(a,b){
+  return (Number(b.needsCorrection)||0)-(Number(a.needsCorrection)||0) || (Number(b.assigned)||0)-(Number(a.assigned)||0) || String(a.login).localeCompare(String(b.login)); }); }
+function totals(){ var t={assigned:0,cleared:0,need:0,temp:0,err:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.temp+=Number(c.tempCompleted)||0; t.err+=Number(c.errorTickets)||0; }); return t; }
+
+// ---- Hero / gate ----
+function heroHtml(gate){
+  var asOf=ST.state==='done'?(ST.asOf?esc(S.when(ST.asOf)):'Unknown'):(ST.state==='error'?'Not loaded':'Loading\u2026');
+  // "Update tickets data" stays owner-only (the endpoint is owner-only too).
+  // One row under the subtitle: [Update tickets data (owner)] [Generate…] [Open sheet] [Data as of], equal widths.
+  var bar=gate?'':'<div class="st-hero-bar">'+(TOOLS?TOOLS.heroActsHtml({owner:S.isOwner()}):'')+
+    '<div class="st-hero-asof" aria-label="Data as of"><span class="st-meta-k">Data as of</span><span class="st-meta-v">'+ic('clock',14)+asOf+'</span></div></div>';
+  return '<header class="st-hero'+(gate?' is-gate':'')+'"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('eraser',24)+'</span><div>'+
+    '<p class="st-eyebrow">Ticket sanitization \u00b7 Tracker</p><h1>Sanitization Tracker</h1>'+
+    '<p class="st-hero-sub">Every contractor\u2019s sanitization tickets, scored live: what is cleared at '+full()+' and what still needs correction.</p>'+
+    '</div></div></div>'+bar+'</header>';
+}
+function gate(kind){
+  var body, head='Contractors and the owner only';
+  if(kind==='login'){ head='Login required'; body='<p class="st-empty">Please log in from the Live Dashboard to use this page.</p><p style="margin-top:12px"><a class="st-btn" href="app.html">Go to the live dashboard</a></p>'; }
+  else if(kind==='error') body='<div class="st-err" role="alert">Could not load the sanitization tickets.<button type="button" class="st-btn is-ghost" id="stGateRetry">Try again</button></div>';
+  else body='<p class="st-empty">This page is for sanitization contractors and the owner.</p><p style="margin-top:12px"><a class="st-btn is-ghost" href="ticket-sanitization.html">Go to Ticket Sanitization</a></p>';
+  $('wrap').innerHTML='<div class="st">'+heroHtml(true)+'<section class="st-sec" aria-labelledby="stGateH" style="margin-top:16px"><div class="st-sec-h"><div class="st-sec-txt"><h2 class="st-sec-t" id="stGateH">'+head+'</h2></div></div><div class="st-sec-b">'+body+'</div></section></div>';
+}
+
+// ---- KPIs (owner) ----
+function kpisHtml(){
+  var done=ST.state==='done', t=done?totals():null;
+  function k(cls,icon,label,val,sub){
+    return '<li class="st-kpi '+cls+(done?'':' is-na')+'"><span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
+      '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span><span class="st-kpi-s" style="display:block">'+sub+'</span></li>';
+  }
+  return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals"'+(done?'':' aria-busy="true"')+'>'+
+    k('is-base','users','Contractors',done?num(ST.list.length):'','With sanitization access')+
+    k('is-base','ticket','Tickets assigned',done?num(t.assigned):'','Active assignments')+
+    k('is-ok','check-circle','Cleared ('+full()+')',done?num(t.cleared):'','Scored '+maxS()+' out of '+maxS())+
+    k('is-bad','alert-triangle','Needs correction',done?num(t.need):'',done?('Below '+full()+' \u00b7 '+num(t.temp)+' temp. completed, '+num(t.err)+' error'):'Below '+maxS()+' out of '+maxS())+
+    k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Cleared of assigned')+
+    '</ul>';
+}
+function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
+
+// ---- Contractor cards (owner) ----
+function cardHtml(c){
+  var on=c.login===SEL, a=Number(c.assigned)||0, ok=Number(c.cleared)||0, bad=Number(c.needsCorrection)||0, p=pct(ok,a);
+  var sep=' <i aria-hidden="true">|</i> ';   // the spaces are the only break points (between counts)
+  return '<li><button type="button" class="st-card" data-login="'+esc(c.login)+'" aria-pressed="'+(on?'true':'false')+'" aria-controls="stViewSec"'+
+      (c.displayName&&c.displayName!==c.login?' title="'+esc(c.displayName)+'"':'')+'>'+
+    '<span class="st-card-top"><span class="st-card-who">'+esc(c.login)+'</span><span class="st-card-sel">'+ic('check',12)+'Selected</span></span>'+
+    '<span class="st-card-cnt"><span>Assigned <b>'+num(a)+'</b></span>'+sep+'<span class="is-ok">Cleared <b>'+num(ok)+'</b></span>'+sep+'<span class="is-bad">Needs correction <b>'+num(bad)+'</b></span></span>'+
+    '<span class="st-card-rate" style="--sc-h:'+S.hue(p/100*maxS())+'"><span class="st-bar" aria-hidden="true"><span style="width:'+p+'%"></span></span><b>'+p+'% passed</b></span>'+
+    '</button></li>';
+}
+function cardsBody(){
+  if(ST.state==='loading') return '<p class="st-empty" role="status">Loading contractors\u2026</p>';
+  if(ST.state==='error') return '<div class="st-err" role="alert">'+esc(ST.err)+'<button type="button" class="st-btn is-ghost" id="stRetry">Try again</button></div>';
+  if(!ST.list.length) return '<p class="st-empty">No contractors found.</p>';
+  var n=ST.list.length;
+  return '<ul class="st-grid" aria-label="Contractors" style="--n:'+n+';--n3:'+Math.min(n,3)+';--n2:'+Math.min(n,2)+'">'+ST.list.map(cardHtml).join('')+'</ul>';
+}
+
+// ---- Shown contractor view ----
+function viewHead(){
+  if(SEL&&SEL===ME&&!S.isOwner()) return 'My tickets';
+  var c=SEL?findC(SEL):null;
+  return c?(nameOf(c)+'\u2019s tickets'):'Contractor tickets';
+}
+function viewName(){ return (SEL===ME&&!S.isOwner())?'':nameOf(findC(SEL)); }
+// The owner marks for anyone; a contractor only their own tickets (the server enforces the same rule).
+function canMark(login){ var d=VIEWS[login]&&VIEWS[login].data; if(d&&typeof d.canMark==='boolean') return d.canMark; return S.isOwner()||login===ME; }
+function viewBody(){
+  if(ST.state!=='done') return '';
+  if(!SEL) return '<p class="tb-asg-empty">'+(ST.list.length?'Pick a contractor above to see their tickets.':'No contractors to show.')+'</p>';
+  var v=VIEWS[SEL]||{}, who=viewName();
+  if(v.loading&&!v.data) return '<p class="tb-asg-empty">Loading '+(who?esc(who)+'\u2019s':'your')+' tickets\u2026</p>';
+  if(v.error) return '<div class="st-err" role="alert">'+esc(v.error)+'<button type="button" class="st-btn is-ghost" id="stViewRetry">Try again</button></div>';
+  if(!v.data) return '';
+  var ro=!canMark(SEL);
+  return '<p class="stv-note" id="stvNote" role="alert">'+esc(NOTE)+'</p>'+
+    (ro?'<p class="stv-help">You are viewing '+esc(who)+'\u2019s tickets. Only '+esc(who)+' and the owner can change their status.</p>':'')+
+    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,sortDir:SORT,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
+      review:canReview(SEL),sel:SELR,revBusy:REVBUSY,apprOpen:APPR_OPEN,h:{ic:ic,when:S.when,url:S.url}});
+}
+// Error tickets are owner-only (the server sends contractors no error rows and enforces the review too).
+function canReview(login){ var d=VIEWS[login]&&VIEWS[login].data; return !!(S.isOwner()&&(!d||d.canReview!==false)); }
+function renderView(focusSel){
+  var h=$('stViewH'), b=$('stViewBody'); if(!b) return;
+  var v=SEL&&VIEWS[SEL];
+  if(h) h.textContent=viewHead();
+  b.setAttribute('aria-busy',v&&v.loading?'true':'false');
+  b.innerHTML=viewBody();
+  var all=b.querySelector('[data-stvall]'); if(all) all.indeterminate=all.hasAttribute('data-stvmixed');
+  if(focusSel){ var f=b.querySelector(focusSel)||document.querySelector(focusSel); if(f) try{ f.focus(); }catch(e){} }
+}
+function renderCards(focusLogin){
+  var b=$('stCardsBody'); if(!b) return;
+  b.innerHTML=cardsBody();
+  var d=$('stCardsD');
+  if(d) d.textContent=ST.state==='done'?(num(ST.list.length)+' contractor'+(ST.list.length===1?'':'s')+', most tickets needing correction first. Pick one to see their tickets below.'):'Loading\u2026';
+  if(focusLogin){ var f=b.querySelector('[data-login="'+String(focusLogin).replace(/["\\]/g,'')+'"]'); if(f) try{ f.focus(); }catch(e){} }
+}
+function viewSecHtml(){
+  return '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('eraser',18)+'</span>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Needs correction is sorted by score (lowest first by default; use the Score header to flip it), then oldest assigned. '+
+      'Set a ticket\u2019s status to Completed (re-checked after the next data upload) or Error ticket (sent to the owner for review). One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
+      '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
+}
+function render(){
+  $('wrap').innerHTML='<div class="st">'+heroHtml(false)+kpisHtml()+
+    '<section class="st-sec" aria-labelledby="stCardsH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('users',18)+'</span>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stCardsH">Contractors</h2><p class="st-sec-d" id="stCardsD"></p></div></div>'+
+      '<div class="st-sec-b" id="stCardsBody"></div></section>'+viewSecHtml()+'</div>';
+  renderCards(); renderView();
+}
+
+// ---- Data ----
+function setUrl(login){
+  try{ var u=new URL(location.href); if(login) u.searchParams.set('login',login); else u.searchParams.delete('login'); history.replaceState(history.state,'',u.pathname+u.search+u.hash); }catch(e){}
+}
+function needOf(d){ return (d&&d.totals&&d.totals.needsCorrection)||0; }
+// after(ok): optional, runs once the fresh data is shown (used after Restore).
+function loadView(login,force,after){
+  var v=VIEWS[login];
+  if(v&&v.data&&!force){ renderView(); announce('Showing '+nameOf(findC(login))+'\u2019s tickets: '+needOf(v.data)+' need correction.'); return; }
+  var seq=++SEQ, name=nameOf(findC(login));
+  VIEWS[login]={loading:true};
+  renderView(); announce('Loading '+name+'\u2019s tickets\u2026');
+  A.api('GET','/api/my-sanitization?login='+encodeURIComponent(login)).then(function(r){
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.tickets)){
+      var d=r.data;
+      // Error tickets the server counted but did not send (contractors): kept in the local totals.
+      d.errHidden=Math.max(0,((d.totals&&d.totals.errorTickets)||0)-V.sections(d).err.length);
+      VIEWS[login]={data:d};
+    }
+    else VIEWS[login]={error:(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets.')};
+  }).catch(function(){ VIEWS[login]={error:'Could not load the tickets.'}; }).then(function(){
+    if(seq!==SEQ||SEL!==login) return;
+    var x=VIEWS[login];
+    if(after){ after(!x.error); return; }
+    renderView();
+    announce(x.error?('Could not load '+name+'\u2019s tickets.'):('Loaded '+name+'\u2019s tickets: '+needOf(x.data)+' need correction, '+((x.data.totals&&x.data.totals.cleared)||0)+' cleared.'));
+  });
+}
+// Switching contractor resets paging / sort / forms / selection; the open section (OPEN) is kept.
+function resetViewState(){ PG={need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
+function select(login,focusCard){
+  if(!findC(login)) return;
+  var same=login===SEL;
+  SEL=login; setUrl(login);
+  if(!same) resetViewState();
+  renderCards(focusCard?login:null);
+  if(!same||!(VIEWS[login]&&VIEWS[login].data)) loadView(login);
+}
+function applyList(d){
+  if(d&&Array.isArray(d.contractors)){
+    ST={state:'done',err:'',list:sortList(d.contractors),asOf:d.dataAsOf||null,max:Number(d.maxScore)||0};
+  }else ST={state:'error',err:'Could not load the contractors.',list:[],asOf:null};
+  render();
+  if(ST.state!=='done'){ announce(ST.err); return; }
+  // ?login= deep link first; else a contractor sees their own tickets, the owner the one with most needing correction.
+  var want=String(new URLSearchParams(location.search).get('login')||'').trim().toLowerCase();
+  var pick=findC(want)?want:((!S.isOwner()&&findC(ME))?ME:(ST.list[0]&&ST.list[0].login));
+  announce('Loaded '+ST.list.length+' contractors.');
+  if(pick) select(pick,false); else setUrl('');
+}
+// Ask the server afresh; 403 (not a contractor / the owner) shows the gate.
+function fetchList(){
+  A.api('GET','/api/my-sanitization').then(function(r){
+    if(r&&r.status===403){ gate('none'); return; }
+    applyList(r&&r.ok?r.data:null);
+  },function(){ applyList(null); });
+}
+function loadList(retry){
+  ST={state:'loading',err:'',list:[],asOf:null}; render();
+  // First load reuses the top-bar's request (same endpoint); Try again asks the server afresh.
+  if(retry){ fetchList(); return; }
+  S.ready().then(function(d){ if(d&&Array.isArray(d.contractors)) applyList(d); else fetchList(); },fetchList);
+}
+
+// ---- Status marks (POST /api/my-sanitization/mark; temporary until the next data upload) ----
+function findT(sid){ var v=SEL&&VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return null; for(var i=0;i<v.tickets.length;i++) if(v.tickets[i].shortId===sid) return v.tickets[i]; return null; }
+// Totals of the shown contractor changed: refresh its card / KPIs (owner) and the top-bar count pill.
+function syncTotals(){
+  var v=VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return;
+  v.totals=V.totalsOf(v);
+  var c=findC(SEL);
+  if(c){ c.needsCorrection=v.totals.needsCorrection; c.tempCompleted=v.totals.tempCompleted; c.errorTickets=v.totals.errorTickets; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
+  if(S.refresh) S.refresh();
+}
+var STATUS_WORD={completed:'Completed','error':'Error ticket'};
+function saveMark(sid,status,reason){
+  var t=findT(sid); if(!t||BUSY[sid]||!canMark(SEL)) return;
+  var login=SEL, body={shortId:sid,status:status,reason:reason||'',login:login};
+  BUSY[sid]=true; NOTE=''; if(ERRF&&ERRF.shortId===sid) ERRF.busy=true;
+  renderView();
+  A.api('POST','/api/my-sanitization/mark',body).then(function(r){ return r; },function(){ return null; }).then(function(r){
+    delete BUSY[sid];
+    if(SEL!==login) return;
+    if(r&&r.ok&&r.data&&r.data.ok){
+      var mark=r.data.mark||null;
+      if(!mark) t.staleMark=null;   // an undo clears the mark (and any older note)
+      t.mark=mark; t.status=V.statusAfter(t,mark); t.returned=null;   // a new mark replaces the owner's send-back note
+      if(ERRF&&ERRF.shortId===sid) ERRF=null;
+      syncTotals(); renderView('#stViewH');
+      announce(sid+(status==='error'?(canReview(login)?' marked Error ticket.':' sent to the owner for error review.')
+        :(status?(' marked '+STATUS_WORD[status]+'. It is re-checked after the next data upload.'):' moved back to Needs correction.')));
+    } else {
+      var msg=(r&&r.data&&r.data.error)||'Could not save the status. Please try again.';
+      var inForm=!!(ERRF&&ERRF.shortId===sid);
+      if(inForm){ ERRF.busy=false; ERRF.err=msg; } else NOTE=msg;
+      renderView(inForm?'[data-stvwhy="'+sid+'"]':'#stvNote');
+      announce(msg);
+    }
+  });
+}
+function saveWhy(sid){
+  if(!ERRF||ERRF.shortId!==sid||ERRF.busy) return;
+  var ta=document.querySelector('[data-stvwhy="'+sid+'"]'); if(ta) ERRF.text=ta.value;
+  var txt=String(ERRF.text||'').trim();
+  if(!txt){ ERRF.err='Please say why this is an error ticket.'; renderView('[data-stvwhy="'+sid+'"]'); announce(ERRF.err); return; }
+  if(txt.length>500){ ERRF.err='The reason can be at most 500 characters.'; renderView('[data-stvwhy="'+sid+'"]'); announce(ERRF.err); return; }
+  ERRF.err=''; saveMark(sid,'error',txt);
+}
+
+// ---- Error review (owner only; POST /api/my-sanitization/error-review and /restore) ----
+function curView(){ return SEL&&VIEWS[SEL]&&VIEWS[SEL].data||null; }
+function errRows(){ var v=curView(); return v?V.sections(v).err:[]; }
+function selIds(){ return errRows().filter(function(t){ return SELR[t.shortId]; }).map(function(t){ return t.shortId; }); }
+var RV=null;   // open review pop-up: {action, ids, login, busy}
+function revOpen(action,ids){
+  if(!canReview(SEL)||!ids.length||REVBUSY) return;
+  revClose(true);
+  var n=ids.length, ap=action==='approve', who=nameOf(findC(SEL));
+  RV={action:action,ids:ids.slice(),login:SEL,busy:false};
+  var title=ap?('Approve '+V.plural(n,'error ticket')):('Send back '+V.plural(n,'ticket'));
+  var ov=document.createElement('div'); ov.id='stRevDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
+  ov.innerHTML='<div class="tbl-card st-rev" role="dialog" aria-modal="true" aria-labelledby="stRevT" aria-describedby="stRevD">'+
+    '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic(ap?'check-circle':'alert-triangle',20)+'</span>'+
+      '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization Tracker \u00b7 Error review</div><h2 class="tbl-title" id="stRevT">'+esc(title)+'</h2></div>'+
+      '<button type="button" class="tbl-x" data-strevx="1" aria-label="Close">'+ic('close',18)+'</button>'+
+      '<p class="tbl-sub" id="stRevD">'+(ap?('Exclude '+V.plural(n,'ticket')+' from sanitization tracking? '+(n===1?'It leaves':'They leave')+' the scores, assignments, verification and every contractor view. You can restore '+(n===1?'it':'them')+' later from Approved errors.')
+        :('The '+(n===1?'ticket goes':'tickets go')+' back to '+esc(who)+'\u2019s Needs correction with your message.'))+'</p></div>'+
+    '<div class="tbl-body">'+
+      '<p class="st-rev-ids"><span class="st-sr">Tickets: </span>'+esc(ids.slice(0,12).join(', '))+(n>12?' and '+(n-12)+' more':'')+'</p>'+
+      '<label class="st-rev-l" for="stRevMsg">'+(ap?'Note (optional)':('Message to '+esc(who)+' <span class="st-rev-req" aria-hidden="true">*</span>'))+'</label>'+
+      '<textarea id="stRevMsg" class="st-rev-t" maxlength="500" rows="3"'+(ap?'':' required aria-required="true"')+' aria-describedby="stRevH stRevE"></textarea>'+
+      '<span class="st-rev-h" id="stRevH">0 / 500</span>'+
+      '<p class="st-rev-e" id="stRevE" role="alert"></p>'+
+      '<div class="tbl-actions"><button type="button" class="tbl-submit" id="stRevGo">'+esc(ap?('Approve '+n):('Send back '+n))+'</button>'+
+      '<button type="button" class="tbl-cancel" data-strevx="1">Cancel</button></div>'+
+    '</div></div>';
+  ov.addEventListener('click',function(e){
+    if(e.target===ov){ revClose(); return; }
+    if(e.target.closest('[data-strevx]')){ revClose(); return; }
+    if(e.target.closest('#stRevGo')) revSubmit();
+  });
+  ov.addEventListener('input',function(e){ if(e.target&&e.target.id==='stRevMsg'){ $('stRevH').textContent=e.target.value.length+' / 500'; e.target.removeAttribute('aria-invalid'); $('stRevE').textContent=''; } });
+  ov.addEventListener('keydown',function(e){ if(e.target&&e.target.id==='stRevMsg'&&e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); revSubmit(); } });
+  document.body.appendChild(ov);
+  // Focus starts in the text box (never on the Approve button, so Enter cannot approve by accident).
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(ov,function(){ revClose(); },$('stRevMsg'));
+  else setTimeout(function(){ var x=$('stRevMsg'); if(x) x.focus(); },40);
+}
+function revClose(force){
+  var ov=$('stRevDlg'); if(!ov) return;
+  if(RV&&RV.busy&&!force) return;
+  RV=null; ov.remove(); if(window.PHDLoginUI) window.PHDLoginUI.closed(ov);
+}
+function revSetBusy(on){
+  if(RV) RV.busy=on; REVBUSY=on;
+  ['stRevGo','stRevMsg'].forEach(function(id){ var x=$(id); if(x) x.disabled=on; });
+  var g=$('stRevGo'); if(g){ if(on) g.setAttribute('aria-busy','true'); else g.removeAttribute('aria-busy'); }
+  var cs=document.querySelectorAll('#stRevDlg [data-strevx]'); for(var i=0;i<cs.length;i++) cs[i].disabled=on;
+}
+function revSubmit(){
+  if(!RV||RV.busy) return;
+  var ta=$('stRevMsg'), note=String(ta?ta.value:'').trim(), er=$('stRevE');
+  var bad=function(m){ if(er) er.textContent=m; if(ta){ ta.setAttribute('aria-invalid','true'); ta.focus(); } };
+  if(RV.action==='return'&&!note){ bad('Please write a message for the contractor.'); return; }
+  if(note.length>500){ bad('The message can be at most 500 characters.'); return; }
+  var job=RV, login=job.login;
+  revSetBusy(true); var g=$('stRevGo'); if(g) g.textContent=job.action==='approve'?'Approving\u2026':'Sending back\u2026';
+  A.api('POST','/api/my-sanitization/error-review',{shortIds:job.ids,action:job.action,note:note}).then(function(r){ return r; },function(){ return null; }).then(function(r){
+    REVBUSY=false;
+    if(!(r&&r.ok&&r.data&&r.data.ok)){
+      revSetBusy(false); if(g) g.textContent=job.action==='approve'?('Approve '+job.ids.length):('Send back '+job.ids.length);
+      var msg=(r&&r.data&&r.data.error)||'Could not save the review. Please try again.';
+      if(er) er.textContent=msg; announce(msg); return;
+    }
+    var d=r.data, done={}; (d.done||[]).forEach(function(s){ done[s]=true; delete SELR[s]; });
+    var v=VIEWS[login]&&VIEWS[login].data;
+    if(v){
+      if(job.action==='approve'){
+        var gone=v.tickets.filter(function(t){ return done[t.shortId]; });
+        v.tickets=v.tickets.filter(function(t){ return !done[t.shortId]; });
+        v.approved=gone.map(function(t){ var m=t.mark||{}; return {shortId:t.shortId,url:t.url,title:t.title,approvedBy:d.by||ME,approvedAt:d.at||null,reason:m.reason||'',note:note}; }).concat(v.approved||[]);
+      }else v.tickets.forEach(function(t){ if(done[t.shortId]){ t.mark=null; t.status=V.statusAfter(t,null); t.returned={note:note,at:d.at||null,by:d.by||ME}; } });
+    }
+    revClose(true);
+    if(SEL===login){ syncTotals(); LASTI=-1; renderView(errRows().length?'[data-stvall]':'#stViewH'); }
+    var n=(d.done||[]).length, sk=(d.skipped||[]).length;
+    announce((job.action==='approve'?('Approved '+V.plural(n,'ticket')+'; excluded from sanitization tracking.'):('Sent '+V.plural(n,'ticket')+' back to Needs correction.'))
+      +(sk?(' '+V.plural(sk,'ticket')+' skipped (no longer marked as error).'):''));
+  });
+}
+function restoreApproved(sid){
+  var v=curView(); if(!v||!canReview(SEL)||BUSY['r:'+sid]) return;
+  var login=SEL; BUSY['r:'+sid]=true; NOTE=''; renderView('[data-stvrestore="'+sid+'"]');
+  A.api('POST','/api/my-sanitization/restore',{shortId:sid}).then(function(r){ return r; },function(){ return null; }).then(function(r){
+    delete BUSY['r:'+sid];
+    if(SEL!==login) return;
+    if(!(r&&r.ok&&r.data&&r.data.ok)){
+      NOTE=(r&&r.data&&r.data.error)||'Could not restore the ticket. Please try again.';
+      renderView('#stvNote'); announce(NOTE); return;
+    }
+    // The ticket is tracked again: reload this contractor's view for its current status.
+    loadView(login,true,function(ok){ if(ok) syncTotals(); renderView('#stViewH'); announce(ok?(sid+' restored: it is tracked again.'):('Restored '+sid+', but the tickets could not be reloaded.')); });
+  });
+}
+
+// ---- Events ----
+document.addEventListener('change',function(e){
+  var t=e.target; if(!t||!t.closest||!t.closest('#stViewBody')) return;
+  var sid=t.getAttribute('data-stvst'); if(!sid) return;
+  if(t.value==='completed') saveMark(sid,'completed','');
+  else if(t.value==='error'){ ERRF={shortId:sid,text:'',err:'',busy:false}; renderView('[data-stvwhy="'+sid+'"]'); announce('Why is this an error ticket? Type the reason, then Save.'); }
+});
+document.addEventListener('input',function(e){
+  var t=e.target; if(!t||!ERRF||!t.getAttribute||t.getAttribute('data-stvwhy')!==ERRF.shortId) return;
+  ERRF.text=t.value; var hnt=$('stvWhy-'+ERRF.shortId+'H'); if(hnt) hnt.textContent=t.value.length+' / 500';
+});
+document.addEventListener('keydown',function(e){
+  var t=e.target; if(!t||!ERRF||!t.getAttribute||t.getAttribute('data-stvwhy')!==ERRF.shortId) return;
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); saveWhy(ERRF.shortId); }
+  else if(e.key==='Escape'&&!ERRF.busy){ e.preventDefault(); var sid=ERRF.shortId; ERRF=null; renderView('[data-stvst="'+sid+'"]'); }
+});
+document.addEventListener('click',function(e){
+  var t=e.target; if(!t||!t.closest||!t.closest('#wrap')) return;
+  var card=t.closest('.st-card[data-login]');
+  if(card){ select(card.getAttribute('data-login'),true); return; }
+  if(t.closest('#stRetry')){ loadList(true); return; }
+  if(t.closest('#stGateRetry')){ loadList(true); return; }
+  if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
+  if(t.closest('[data-stvsort]')){
+    SORT=SORT==='asc'?'desc':'asc'; PG.need=0; renderView('[data-stvsort]');
+    announce('Needs correction sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
+  }
+  var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
+  var cn=t.closest('[data-stvcancel]'); if(cn&&!cn.disabled){ var sid=cn.getAttribute('data-stvcancel'); ERRF=null; renderView('[data-stvst="'+sid+'"]'); return; }
+  var un=t.closest('[data-stvundo]'); if(un&&!un.disabled){ saveMark(un.getAttribute('data-stvundo'),'',''); return; }
+  // Owner's Error tickets: row checkboxes (Shift+click = range), select-all, bulk / row actions, Restore.
+  var pk=t.closest('[data-stvpick]');
+  if(pk&&!pk.disabled){
+    var rows=errRows(), psid=pk.getAttribute('data-stvpick'), pi=-1, on=pk.checked;
+    for(var i=0;i<rows.length;i++) if(rows[i].shortId===psid){ pi=i; break; }
+    var ids=(e.shiftKey&&LASTI>=0&&pi>=0)?V.rangeIds(rows,LASTI,pi):[psid];
+    ids.forEach(function(s){ if(on) SELR[s]=true; else delete SELR[s]; });
+    LASTI=pi; renderView('[data-stvpick="'+psid+'"]');
+    announce(V.plural(selIds().length,'ticket')+' selected.'); return;
+  }
+  var pa=t.closest('[data-stvall]');
+  if(pa&&!pa.disabled){
+    var er=errRows(), all=V.selState(er,SELR).state==='all';
+    SELR={}; if(!all) er.forEach(function(x){ SELR[x.shortId]=true; });
+    LASTI=-1; renderView('[data-stvall]');
+    announce(all?'Selection cleared.':('All '+V.plural(er.length,'error ticket')+' selected.')); return;
+  }
+  if(t.closest('[data-stvclear]')){ SELR={}; LASTI=-1; renderView('[data-stvall]'); announce('Selection cleared.'); return; }
+  var rv=t.closest('[data-stvrev]');
+  if(rv&&!rv.disabled){
+    var rb=rv.getAttribute('data-stvrev').split(':'), act=rb[0]==='approve'?'approve':'return';
+    revOpen(act,rb[1]==='*'?selIds():[rb.slice(1).join(':')]); return;
+  }
+  var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
+  var pg=t.closest('[data-sanpage]');
+  if(pg&&!pg.disabled){
+    var bits=pg.getAttribute('data-sanpage').split(':'), sec=bits[0]==='ok'?'ok':'need', dir=Number(bits[1])>PG[sec]?'next':'prev';
+    PG[sec]=Math.max(0,Number(bits[1])||0);
+    OPEN=sec;
+    renderView();
+    // Keep focus on the pager button pressed (or its sibling when that end is reached).
+    var bs=document.querySelectorAll('#stViewBody [data-sanpage^="'+sec+':"]'), f=dir==='next'?bs[bs.length-1]:bs[0];
+    if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
+    if(f) try{ f.focus(); }catch(err){}
+    var box=f&&f.closest('.tb-san-in'), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
+    announce((sec==='ok'?'Cleared tickets':'Tickets that need correction')+': page '+(PG[sec]+1));
+  }
+});
+// One-open-at-a-time accordion: opening a section closes the others; OPEN survives re-renders
+// (paging, marking, refresh). A re-render's open section fires 'toggle' too, which keeps OPEN the same.
+document.addEventListener('toggle',function(e){
+  var d=e.target; if(!d||!d.getAttribute||!d.closest||!d.closest('#stViewBody')) return;
+  var sec=d.getAttribute('data-stvsec');
+  if(sec){
+    OPEN=V.nextOpen(OPEN,sec,d.open);
+    if(d.open){ var ds=document.querySelectorAll('#stViewBody details[data-stvsec]'); for(var i=0;i<ds.length;i++) if(ds[i]!==d&&ds[i].open) ds[i].open=false; }
+    return;
+  }
+  if(d.hasAttribute('data-stvappr')) APPR_OPEN=d.open;
+},true);
+
+// ---- Start ----
+(function(){
+  if(!(A&&A.getUser&&A.getUser())){ gate('login'); return; }
+  if(!S||!V||!S.mayAsk()){ gate('none'); return; }
+  // Times in the account timezone (IST / MST), like the rest of the app.
+  if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ var h=$('wrap').querySelector('.st-meta-v'); if(h) h.innerHTML=ic('clock',14)+(ST.asOf?esc(S.when(ST.asOf)):'Unknown'); renderView(); } } }).catch(function(){});
+  // The owner and contractors (analyst + role editor; the server decides) get the same page.
+  loadList(false);
+})();
+</script>
+</body>
+</html>
