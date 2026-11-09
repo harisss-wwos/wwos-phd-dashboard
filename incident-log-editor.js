@@ -142,7 +142,7 @@ function ilEmtNumber(texts){
   return '';
 }
 // PHD Notes as they go into a footer Copy (opts.copy only; the saved text keeps the notes as-is).
-//  - "Primary Case Tag:", "Evidence Checklist:" and "Investigation Checklist:" sections (heading +
+//  - "Primary Case Tag:", "Related Links:", "Evidence Checklist:" and "Investigation Checklist:" sections (heading +
 //    lines up to the next heading) and the "INTERNAL ONLY — … DO NOT COPY …" heading are left out,
 //    with a "---" rule directly above any of them.
 //  - o.emt (EMT number found -> "**EMT Link**" is already at the top): lines holding an
@@ -160,7 +160,8 @@ function ilCopyNotes(notes,o){
   var isInternal=function(l){ return /^internal only\s*[\u2014\u2013-]/i.test(plain(l)); };
   // Heading = a non-bullet line ending in ":" (after ** are removed), or the INTERNAL ONLY line.
   var isHead=function(l){ var p=plain(l); return isInternal(l) || (!!p && !/^[-*\u2022]/.test(p) && /:$/.test(p)); };
-  var dropSec=function(l){ return /^(?:primary case tag|evidence checklist|investigation checklist)\s*:$/i.test(plain(l)); };
+  // "Related Links:" is dropped too: its links already sit at the top (PHD Related Link / EMT Link).
+  var dropSec=function(l){ return /^(?:primary case tag|evidence checklist|investigation checklist|related links?)\s*:$/i.test(plain(l)); };
   var emtRe=/https?:\/\/app\.emt\.amazon\.dev\/\S*?[?&]incidentId=\d+/i;
   var nextText=function(i){ for(var j=i+1;j<lines.length;j++){ if(String(lines[j]).trim()) return lines[j]; } return ''; };
   var out=[], skip=false;
