@@ -45,16 +45,16 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 // then PHD notes. The headings are unchanged, and every parser (parseIncidentOutput, the server's
 // incident-log-merge.js) locates sections by heading, so older entries in the old order still parse.
 // opts.copy === true (footer Copy / Copy w/o RC Details only — not the saved text, not the per-field
-// copies) puts "**SIM Title**: …" (ilCopySimTitle; f.country = ticket country code) and, when an EMT
-// incident number is found (ilEmtNumber), "**EMT Link**: …" at the very top; the PHD notes then go
+// copies) puts "**SIM Title**: …" (ilCopySimTitle; f.country = ticket country code) at the very top and,
+// when an EMT incident number is found (ilEmtNumber), "**EMT Link**: …" after Root Cause; the PHD notes go
 // through ilCopyNotes (internal / tag sections left out, duplicate EMT URL dropped, bold headings).
 //
 // f.severity ('1'..'5' or '') : the saved text starts with "**Severity**: Sev N" (left out when no
 // severity is chosen); a Copy has no Severity line — the severity is in the SIM Title instead.
-// Copy order (opts.copy only): SIM Title, EMT Link, Root Cause, PHD Related Link, SIM Root Cause
-// Details, PHD Investigation, PHD Findings (+ Historical Incidents), PHD notes (without their
-// "PHD Resolution:" section), "**PHD Resolution**: <value>", then the notes' "**PHD Resolution:**"
-// section (ilSplitCopyNotesRes). The saved order is unchanged.
+// Copy order (opts.copy only): SIM Title, Root Cause, EMT Link (when found), PHD Related Link, SIM
+// Root Cause Details, PHD Investigation, PHD Findings (+ Historical Incidents), "**PHD Resolution**:
+// <value>", the notes' "**PHD Resolution:**" section (ilSplitCopyNotesRes), then PHD notes (without
+// that section). The saved order is unchanged.
 function ilSerializeFields(f,opts){
   opts=opts||{}; f=f||{};
   var v=function(k){ return String(f[k]==null?'':f[k]).trim(); };
@@ -62,17 +62,17 @@ function ilSerializeFields(f,opts){
   if(opts.copy){
     parts.push('**SIM Title**: '+ilCopySimTitle(v('country'), v('sim'), sev));
     var emt=ilEmtNumber([v('notes'), v('findings'), v('rootCause'), v('sim'), v('invest'), v('hist'), v('link'), v('res')]);
-    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
     var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes); nothing left -> "-"
     parts.push('**Root Cause**: '+(v('rootCause')||''));
+    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
     parts.push('**PHD Related Link**: '+(v('link')||''));
     if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
     parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
     parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
     if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
-    parts.push('**PHD notes**:\n'+(cn.notes||'-'));
     parts.push('**PHD Resolution**: '+(v('res')||''));
     if(cn.res) parts.push(cn.res);
+    parts.push('**PHD notes**:\n'+(cn.notes||'-'));
     return parts.join('\n\n');
   }
   if(sev) parts.push('**Severity**: Sev '+sev);
@@ -220,16 +220,23 @@ function ilIsUsCa(code){ code=String(code||'').toUpperCase(); return code==='US'
 // Reverse of ilSerializeFields: split a saved log blob back into the 7 structured fields so the
 // Edit flow reopens the same split form. Tolerant of extra whitespace; a lone "-" placeholder -> ''.
 // severity = the "**Severity**:" line ('1'..'5'), else the "Sev N" of a pasted Copy's SIM Title, else ''.
-// A pasted Copy (PHD notes before PHD Resolution, then the notes' "**PHD Resolution:**" section at the
-// very end): that trailing section goes back to the end of notes.
+// A pasted Copy: the notes' "**PHD Resolution:**" section (right after "**PHD Resolution**: <value>",
+// before PHD notes; in older copies at the very end) goes back to the end of notes.
 function parseIncidentOutput(text){
   var s=String(text||'').replace(/\r\n/g,'\n');
   var simTitle=s.match(/^\s*\*\*SIM Title\*\*:([^\n]*)/i);
   // A pasted Copy starts with "**SIM Title**: …" / "**EMT Link**: …" lines — not part of any field.
   s=s.replace(/^(?:[ \t]*\n)*(?:[ \t]*\*\*(?:SIM Title|EMT Link)\*\*:[^\n]*\n(?:[ \t]*\n)*)+/i,'');
+  // Current Copy order has the "**EMT Link**: …" block after Root Cause — not part of any field.
+  s=s.replace(/\n\n[ \t]*\*\*EMT Link\*\*:[^\n]*(?=\n|$)/i,'');
   var clean=function(v){ v=String(v||'').trim(); return (v==='-')?'':v; };
-  var tail='', iN=s.search(/\n\n\*\*PHD notes\*\*:\n/i), mt=s.match(/\n\n\*\*PHD Resolution\*\*:[ \t]*[^\n]*\n\n(\*\*PHD Resolution:\*\*[ \t]*\n[\s\S]*)$/i);
-  if(iN>=0 && mt && mt.index>iN){ tail=mt[1].trim(); s=s.slice(0, s.length-mt[1].length).replace(/\s+$/,''); }
+  var tail='', iN=s.search(/\n\n\*\*PHD notes\*\*:\n/i);
+  var mr=s.match(/\n\n\*\*PHD Resolution\*\*:[ \t]*[^\n]*\n\n(\*\*PHD Resolution:\*\*[ \t]*\n[\s\S]*?)(?=\n\n\*\*PHD notes\*\*:\n)/i);
+  var mt=s.match(/\n\n\*\*PHD Resolution\*\*:[ \t]*[^\n]*\n\n(\*\*PHD Resolution:\*\*[ \t]*\n[\s\S]*)$/i);
+  if(mr && iN>mr.index){
+    var cut=mr.index+mr[0].length;
+    tail=mr[1].trim(); s=s.slice(0, cut-mr[1].length).replace(/\s+$/,'')+s.slice(cut);
+  } else if(iN>=0 && mt && mt.index>iN){ tail=mt[1].trim(); s=s.slice(0, s.length-mt[1].length).replace(/\s+$/,''); }
   // Capture each labelled section up to the next known label (or end).
   var grab=function(re){ var m=s.match(re); return m?clean(m[1]):''; };
   var NEXT='(?=\\n\\n(?:\\*\\*)?PHD Findings(?:\\*\\*)?:|\\n\\n\\*\\*PHD Investigation|\\n\\n\\*\\*SIM Root Cause|\\n\\n\\*\\*Historical Incidents:\\*\\*|\\n\\n\\*\\*Root Cause\\*\\*|\\n\\n\\*\\*PHD Related Link\\*\\*|\\n\\n\\*\\*PHD Resolution\\*\\*|\\n\\n\\*\\*PHD notes\\*\\*|\\n\\n\\*\\*Severity\\*\\*|$)';
