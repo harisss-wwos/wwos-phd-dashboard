@@ -233,7 +233,10 @@ button.ua-sec-h:hover{background:#fafbfc}
 button.ua-sec-h[aria-expanded="false"]{border-bottom-color:transparent}
 .ua-badge{flex-shrink:0;padding:3px 10px;border-radius:99px;background:var(--soft);border:1px solid var(--line);font-size:.8em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ua-chev{flex-shrink:0;display:inline-flex;color:#5c6773;transition:transform .15s}
-.ua-tog[aria-expanded="false"] .ua-chev{transform:rotate(-90deg)}
+.ua-tog[aria-expanded="false"] .ua-chev,.ua-mtog[aria-expanded="false"] .ua-chev{transform:rotate(-90deg)}
+.ua-mh{outline:none}
+.ua-mtog .ua-sec-t{font-size:1.12em}
+.ua-sec-b[hidden]{display:none!important}
 /* Severity section bar = expand button + Pet / Non-pet toggles on the right. */
 .ua-bhead{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);background:#fff}
 .ua-bhead.is-shut{border-bottom-color:transparent}
@@ -679,10 +682,27 @@ function secHead(tog,bodyId,btnId,icon,title,desc,badge,open,bare,lvl){
     '<span class="ua-sec-ic">'+ic(icon,18)+'</span><span class="ua-sec-txt"><span class="ua-sec-t">'+title+'</span>'+(desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</span>'+
     (bare?'':'<span class="ua-badge">'+badge+'</span>'+chev())+'</button></'+h+'>';
 }
-// Static (not collapsible) header of a main section: icon tile + title + one-line muted subtitle.
-function mainHead(icon,id,title,desc,badge){
-  return '<div class="ua-sec-h"><span class="ua-sec-ic">'+ic(icon,18)+'</span><div class="ua-sec-txt"><h2 class="ua-sec-t" id="'+id+'" tabindex="-1">'+title+'</h2>'+
-    (desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</div>'+(badge?'<span class="ua-badge">'+badge+'</span>':'')+'</div>';
+// Main sections (Current Team Assignment / Assignment log / Assignment Center): one-open-at-a-time
+// accordion, all collapsed on every page load. MAIN_OPEN = key of the open one (in memory only).
+var MAIN_OPEN=null;
+var MAIN_BODY={team:'uaTeamB',log:'uaLogB',center:'uaCenterB'};
+function mainHidden(key){ return MAIN_OPEN===key?'':' hidden'; }
+// Collapsible header of a main section: icon tile + title + one-line muted subtitle + badge + chevron.
+function mainHead(icon,id,title,desc,badge,key){
+  var open=MAIN_OPEN===key;
+  return '<h2 class="ua-sec-hh ua-mh" id="'+id+'" tabindex="-1"><button type="button" class="ua-sec-h ua-mtog" data-main="'+key+'" aria-expanded="'+open+'" aria-controls="'+MAIN_BODY[key]+'">'+
+    '<span class="ua-sec-ic">'+ic(icon,18)+'</span><span class="ua-sec-txt"><span class="ua-sec-t">'+title+'</span>'+
+    (desc?'<span class="ua-sec-d">'+desc+'</span>':'')+'</span>'+(badge?'<span class="ua-badge">'+badge+'</span>':'')+chev()+'</button></h2>';
+}
+function mainSet(key,open){
+  var btn=document.querySelector('.ua-mtog[data-main="'+key+'"]'), body=$(MAIN_BODY[key]);
+  if(btn) btn.setAttribute('aria-expanded',open?'true':'false');
+  if(body) body.hidden=!open;
+}
+function mainToggle(key){
+  var open=MAIN_OPEN!==key;
+  if(MAIN_OPEN&&MAIN_OPEN!==key) mainSet(MAIN_OPEN,false);
+  MAIN_OPEN=open?key:null; mainSet(key,open);
 }
 function skelRows(n){
   var s=''; for(var i=0;i<n;i++) s+='<div class="ua-skrow"><span class="ua-skel" style="width:34px;height:34px;border-radius:50%"></span><span class="ua-skel" style="width:140px;height:12px"></span><span class="ua-skel" style="flex:1;height:12px"></span><span class="ua-skel" style="width:220px;height:18px;border-radius:99px"></span></div>';
@@ -994,13 +1014,13 @@ function dayHtml(d,today){
 // Main section (always visible, not collapsible); the days inside keep their own expand / collapse.
 function logSecHtml(){
   var sub='Who assigned how many tickets to whom \u00b7 by day ('+esc(MY_TZ)+'), newest first';
-  if(STATE!=='done') return '<section class="ua-sec ua-main" id="uaLog" aria-labelledby="uaLogT" aria-busy="true">'+mainHead('history','uaLogT','Assignment log',sub,'\u2026')+'<div class="ua-sec-b" id="uaLogB">'+skelRows(2)+'</div></section>';
+  if(STATE!=='done') return '<section class="ua-sec ua-main" id="uaLog" aria-labelledby="uaLogT" aria-busy="true">'+mainHead('history','uaLogT','Assignment log',sub,'\u2026','log')+'<div class="ua-sec-b" id="uaLogB"'+mainHidden('log')+'>'+skelRows(2)+'</div></section>';
   var m=logList().length, today=tzDayKey(new Date().toISOString());
   var body=!m?'<p class="ua-none">No tickets have been assigned from the Assignment Center yet.</p>':
     '<ol class="ac-days" aria-label="Assignment log by day, newest first">'+logDays().map(function(d){ return dayHtml(d,today); }).join('')+'</ol>'+
     (m>=LOG_MAX?'<p class="ua-none">Showing the latest '+num(LOG_MAX)+' entries.</p>':'');
-  return '<section class="ua-sec ua-main" id="uaLog" aria-labelledby="uaLogT">'+mainHead('history','uaLogT','Assignment log',sub,num(logTodayCount())+' today')+
-    '<div class="ua-sec-b" id="uaLogB">'+body+'</div></section>';
+  return '<section class="ua-sec ua-main" id="uaLog" aria-labelledby="uaLogT">'+mainHead('history','uaLogT','Assignment log',sub,num(logTodayCount())+' today','log')+
+    '<div class="ua-sec-b" id="uaLogB"'+mainHidden('log')+'>'+body+'</div></section>';
 }
 function paintLog(focusSel){ var w=$('uaLogWrap'); if(w) w.innerHTML=logSecHtml(); if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); } }
 // Revoke (assigner only): undo every assignment of one log entry. The server re-checks the assigner.
@@ -1265,11 +1285,11 @@ function paintAll(){
   // Three main sections (always visible): Current Team Assignment (Core Team + Support Team
   // sub-sections), Assignment log, Assignment Center (severity sub-sections).
   var main=STATE==='error'?errorHtml():(
-    '<section class="ua-sec ua-main" id="uaTeam" aria-labelledby="uaTeamT">'+mainHead('users-gear','uaTeamT','Current Team Assignment','Open ticket workload of the Core Team and the Support Team')+
-      '<div class="ua-sec-b">'+adminSecHtml()+contractorsHtml()+'</div></section>'+
+    '<section class="ua-sec ua-main" id="uaTeam" aria-labelledby="uaTeamT">'+mainHead('users-gear','uaTeamT','Current Team Assignment','Open ticket workload of the Core Team and the Support Team','','team')+
+      '<div class="ua-sec-b" id="uaTeamB"'+mainHidden('team')+'>'+adminSecHtml()+contractorsHtml()+'</div></section>'+
     '<div id="uaLogWrap">'+logSecHtml()+'</div>'+
-    '<section class="ua-sec ua-main" id="uaCenter" aria-labelledby="uaCenterT">'+mainHead('inbox','uaCenterT','Assignment Center','Unassigned tickets by severity, oldest first \u00b7 select tickets to assign them')+
-      '<div class="ua-sec-b"><div id="uaMsg"></div><div id="uaBuckets"></div></div></section>');
+    '<section class="ua-sec ua-main" id="uaCenter" aria-labelledby="uaCenterT">'+mainHead('inbox','uaCenterT','Assignment Center','Unassigned tickets by severity, oldest first \u00b7 select tickets to assign them','','center')+
+      '<div class="ua-sec-b" id="uaCenterB"'+mainHidden('center')+'><div id="uaMsg"></div><div id="uaBuckets"></div></div></section>');
   $('wrap').innerHTML='<div class="ua"><div id="uaHero">'+heroHtml()+'</div><div id="uaKpis">'+kpisHtml()+'</div>'+main+'<p class="ua-sr" id="uaLive" aria-live="polite"></p></div>';
   paintBuckets();
 }
@@ -1311,6 +1331,7 @@ function togglePet(spec){
 function jumpTo(k){
   var sec=$('uaB-'+k);
   if(!sec){ announce('No matching tickets in '+bLabel(k)+'.'); return; }
+  if(MAIN_OPEN!=='center') mainToggle('center');   // severity cards open the Assignment Center section first
   var btn=$('uaBT-'+k); if(btn&&btn.getAttribute('aria-expanded')!=='true') toggle(btn);
   if(sec.scrollIntoView) sec.scrollIntoView({block:'start',behavior:'smooth'});
   if(btn) btn.focus({preventScroll:true});
@@ -1367,6 +1388,7 @@ document.addEventListener('click',function(ev){
   var cp=t.closest('[data-copy]'); if(cp){ copyTicketId(cp.getAttribute('data-copy'),cp); return; }
   var pfb=t.closest('[data-petf]'); if(pfb){ togglePet(pfb.getAttribute('data-petf')); return; }
   var tf=t.closest('[data-tog-for]'); if(tf){ var tb=$(tf.getAttribute('data-tog-for')); if(tb){ toggle(tb); tb.focus(); } return; }
+  var mt=t.closest('.ua-mtog'); if(mt){ mainToggle(mt.getAttribute('data-main')); return; }
   var tg=t.closest('.ua-tog'); if(tg){ toggle(tg); return; }
   var jp=t.closest('[data-jump]'); if(jp&&!jp.disabled){ jumpTo(jp.getAttribute('data-jump')); return; }
   var pg=t.closest('[data-page]'); if(pg&&!pg.disabled){
