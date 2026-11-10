@@ -3520,7 +3520,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
 // Cached 5 min per (latest data upload, quarter, issue types, resolution list).
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
-const SAN_CACHE_PREFIX = 'san:v10:';   // v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_CACHE_PREFIX = 'san:v11:';   // v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
 const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)

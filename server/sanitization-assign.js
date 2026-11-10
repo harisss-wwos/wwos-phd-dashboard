@@ -10,7 +10,8 @@
 // scores, eirDataStamp) once that stamp is newer than assignedAt; the owner's GET persists a snapshot
 // only when the stamp differs from the stored one (the old one moves to history). Never deleted.
 // A ticket is LOCKED (not available to assign) while it is in an active assignment and its live
-// result is not MAX_SCORE (11/11); failed tickets stay with that contractor until the owner revokes.
+// result is not cleared (every REQUIRED check passing, sanitization-score.js requiredChecks); failed
+// tickets stay with that contractor until the owner revokes.
 // Assignments made before the ClosureCode point keep their stored scoreAtAssign (out of 10 then);
 // it is shown as stored.
 // Kept in its own module (pure functions + handlers taking deps) so it can be unit-tested without a DB.
@@ -19,7 +20,7 @@
 // 'approved error'), so they are never available / picked, and verification counts them as excluded
 // (neither passed nor failed). contractorView drops them altogether.
 'use strict';
-const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON } = require('./sanitization-score');
+const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON, REQUIRED, REQUIRED_GROUPS, ticketCleared } = require('./sanitization-score');
 
 const DUE_MS = 7 * 24 * 60 * 60 * 1000;
 const COUNT_MAX = 2000;
@@ -49,12 +50,31 @@ function reportIndex(report) {
   return ix;
 }
 const missingKeys = checks => CRITERIA.filter((c, i) => !(checks && checks[i] && checks[i][0])).map(c => c.key);
-// Missing chips for display; the ClosureCode chip carries '(<current> → <expected>)' from its check value.
-const missingChips = checks => CRITERIA.map((c, i) => {
-  const ck = checks && checks[i];
-  if (ck && ck[0]) return null;
-  return c.key === 'closure' && ck && ck[1] ? c.chip + ' (' + ck[1] + ')' : c.chip;
-}).filter(Boolean);
+// Missing chip of one criterion; with a required-check group (sanitization-score.js requiredChecks)
+// the ClosureCode chip says what to change it to ('ClosureCode: change to Successful').
+const chipFor = (key, grp) => {
+  const c = CRITERIA.find(x => x.key === key) || { chip: key };
+  const req = grp && REQUIRED[grp];
+  return key === 'closure' && req && req.target ? 'ClosureCode: change to ' + req.target : c.chip;
+};
+// Missing chips for display. With grp: only the REQUIRED checks that fail (the tracker and Errors in
+// Resolved). Without: every failing check; the ClosureCode chip carries '(<current> → <expected>)'.
+const missingChips = (checks, grp) => {
+  const req = grp && REQUIRED[grp];
+  return CRITERIA.map((c, i) => {
+    const ck = checks && checks[i];
+    if (ck && ck[0]) return null;
+    if (req) return req.keys.indexOf(c.key) >= 0 ? chipFor(c.key, grp) : null;
+    return c.key === 'closure' && ck && ck[1] ? c.chip + ' (' + ck[1] + ')' : c.chip;
+  }).filter(Boolean);
+};
+// Failing REQUIRED criterion keys of a report ticket.
+const missingRequired = t => {
+  const req = t && REQUIRED[t.grp];
+  return req ? req.keys.filter(k => { const i = CRITERIA.findIndex(c => c.key === k); return !(t.checks && t.checks[i] && t.checks[i][0]); }) : missingKeys(t && t.checks);
+};
+// Verification result cleared: every required check passes (older snapshots without `cleared`: 11/11).
+const resCleared = r => (typeof r.cleared === 'boolean' ? r.cleared : r.score === MAX_SCORE);
 
 // Live verification of one assignment against the current report, or null when the data stamp is not
 // newer than assignedAt (nothing uploaded since the assignment) or the assignment is not active.
@@ -65,16 +85,16 @@ function liveVerification(a, report, stamp, now) {
   const ix = reportIndex(report);
   const results = (a.tickets || []).map(t => {
     const cur = ix.byId.get(t.shortId);
-    if (cur) return { shortId: t.shortId, score: cur.score, missing: missingKeys(cur.checks), found: true };
+    if (cur) return { shortId: t.shortId, score: cur.score, missing: missingRequired(cur), found: true, cleared: ticketCleared(cur), grp: cur.grp || null };
     const why = ix.excluded.get(t.shortId);
     if (why) return { shortId: t.shortId, score: null, missing: [], found: true, excludedReason: why };
     return { shortId: t.shortId, score: null, missing: [], found: false };
   });
   return { dataStamp: stamp, verifiedAt: (now || new Date()).toISOString(), results };
 }
-const passedResult = r => !!r && r.found && !r.excludedReason && r.score === MAX_SCORE;
+const passedResult = r => !!r && r.found && !r.excludedReason && resCleared(r);
 
-// Map shortId -> assignee for every locked ticket (active assignment, live result not MAX_SCORE).
+// Map shortId -> assignee for every locked ticket (active assignment, live result not cleared).
 function lockedMap(assignments, report, stamp, now) {
   const out = new Map();
   (assignments || []).forEach(a => {
@@ -188,7 +208,7 @@ function summarize(a, v, now) {
     if (!r.found) { s.notFound++; return; }
     if (r.excludedReason) { s.excluded++; return; }
     s.verifiedCount++;
-    if (r.score === MAX_SCORE) s.passed++; else s.failed++;
+    if (resCleared(r)) s.passed++; else s.failed++;
     if (typeof before.get(r.shortId) === 'number') b.push(before.get(r.shortId));
     af.push(r.score);
   });
@@ -254,7 +274,7 @@ async function handleGet(deps) {
     v.results.forEach(r => {
       if (!r.found || r.excludedReason) { p.notFound++; return; }
       p.verified++;
-      if (r.score === MAX_SCORE) p.passed++; else p.failed++;
+      if (resCleared(r)) p.passed++; else p.failed++;
       if (typeof before.get(r.shortId) === 'number') p._b.push(before.get(r.shortId));
       p._a.push(r.score);
     });
@@ -266,18 +286,18 @@ async function handleGet(deps) {
       avgGain: avgScoreBefore != null && avgScoreAfter != null ? Math.round((avgScoreAfter - avgScoreBefore) * 100) / 100 : null };
   }).sort((a, b) => ((b.passRate == null ? -1 : b.passRate) - (a.passRate == null ? -1 : a.passRate)) || a.login.localeCompare(b.login));
 
-  // Needs rework: Verified assignments with at least one ticket under MAX_SCORE.
+  // Needs rework: Verified assignments with at least one ticket whose required checks do not all pass.
   const issues = [];
   docs.forEach(a => {
     const v = live.get(a);
     if (statusOf(a, v, now).key !== 'verified') return;
     const meta = new Map((a.tickets || []).map(t => [t.shortId, t]));
-    const bad = v.results.filter(r => r.found && !r.excludedReason && r.score !== MAX_SCORE);
+    const bad = v.results.filter(r => r.found && !r.excludedReason && !resCleared(r));
     if (!bad.length) return;
     issues.push({
       id: String(a._id), assignee: a.assignee, assignedAt: a.assignedAt, dueAt: a.dueAt, score: a.score, count: a.count,
       failedCount: bad.length, dataStamp: v.dataStamp,
-      tickets: bad.map(r => { const t = meta.get(r.shortId) || {}; return { shortId: r.shortId, url: t.url || '', title: t.title || '', score: r.score, missing: r.missing.map(chipOf) }; }),
+      tickets: bad.map(r => { const t = meta.get(r.shortId) || {}; return { shortId: r.shortId, url: t.url || '', title: t.title || '', score: r.score, missing: r.missing.map(k => (r.grp ? chipFor(k, r.grp) : chipOf(k))) }; }),
     });
   });
 
@@ -287,7 +307,10 @@ async function handleGet(deps) {
 // ---- My sanitization (GET /api/my-sanitization; strictly read-only, never persists) ----
 // One contractor's tickets across their ACTIVE assignments, scored live against the current report.
 // A ticket in several active assignments is listed once (its most recent assignment wins).
-// Ticket status: 'cleared' (MAX_SCORE, 11/11) | 'needs-correction' (< MAX_SCORE) | 'not-found' | 'excluded'.
+// Ticket status: 'cleared' (every REQUIRED check passes, sanitization-score.js requiredChecks) |
+// 'needs-correction' (a required check fails) | 'not-found' | 'excluded'. Each ticket carries
+// passedNow / requiredNow (the pill), group (the Needs correction sub-section) and closureCode;
+// scoreNow stays the raw 0..11 score. totals.needBy = needs-correction count per group.
 // `verified` = data uploaded after the assignment (the same stamp rule as liveVerification);
 // totals.pending counts the tickets not verified yet.
 // Marks (COLLECTIONS.sanitizationMarks, one doc per (login, shortId)):
@@ -331,14 +354,18 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
       const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
       if (appr.has(t.shortId) || why === APPROVED_REASON) return;   // owner-approved error: not tracked
       const scoreNow = cur && typeof cur.score === 'number' ? cur.score : null;
-      let status = cur ? (scoreNow === MAX_SCORE ? 'cleared' : 'needs-correction') : (why ? 'excluded' : 'not-found');
+      const clearedNow = cur ? ticketCleared(cur) : false;
+      let status = cur ? (clearedNow ? 'cleared' : 'needs-correction') : (why ? 'excluded' : 'not-found');
       const m = mk.get(t.shortId), valid = markValid(m, stamp);
       if (valid && cur && (status === 'needs-correction' || m.status === 'error')) status = MARK_STATUSES[m.status];
       tickets.push({
         shortId: t.shortId, url: t.url || (cur && cur.url) || '', title: (cur && cur.title) || t.title || '',
         assignedAt: a.assignedAt || null, dueAt: a.dueAt || null,
         scoreAtAssign: typeof t.scoreAtAssign === 'number' ? t.scoreAtAssign : null, scoreNow,
-        missingNow: cur ? missingChips(cur.checks) : [], status, excludedReason: why || null, verified,
+        // Required-check rule: passed / required, cleared when equal; group = Needs correction sub-section.
+        passedNow: cur && typeof cur.pass === 'number' ? cur.pass : null, requiredNow: cur && typeof cur.need === 'number' ? cur.need : null,
+        clearedNow, group: (cur && cur.grp) || null, closureCode: cur ? (cur.cc || '') : null,
+        missingNow: cur ? missingChips(cur.checks, cur.grp) : [], status, excludedReason: why || null, verified,
         mark: valid ? markOut(m) : null,
         staleMark: (!valid && m && MARK_STATUSES[m.status]) ? markOut(m) : null,
         returned: status === 'needs-correction' ? returnedOut(m) : null,
@@ -347,14 +374,19 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
   });
   const atAsc = (x, y) => String(x.assignedAt || '').localeCompare(String(y.assignedAt || ''));
   const markDesc = (x, y) => String((y.mark && y.mark.at) || '').localeCompare(String((x.mark && x.mark.at) || ''));
+  const grpRank = t => { const i = REQUIRED_GROUPS.indexOf(t.group); return i < 0 ? REQUIRED_GROUPS.length : i; };
   tickets.sort((x, y) => (STATUS_RANK[x.status] - STATUS_RANK[y.status])
-    || (x.status === 'needs-correction' ? ((x.scoreNow - y.scoreNow) || atAsc(x, y))
+    || (x.status === 'needs-correction' ? ((grpRank(x) - grpRank(y)) || ((x.passedNow - y.passedNow) || 0) || atAsc(x, y))
       : (x.mark ? markDesc(x, y) : atAsc(y, x)))
     || x.shortId.localeCompare(y.shortId));
   const count = s => tickets.filter(t => t.status === s).length;
+  // Needs correction per closure-code group (the tracker's sub-sections).
+  const needBy = {};
+  REQUIRED_GROUPS.forEach(g => { needBy[g] = 0; });
+  tickets.forEach(t => { if (t.status === 'needs-correction' && needBy[t.group] != null) needBy[t.group]++; });
   return {
     login: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, tickets,
-    totals: { assigned: tickets.length, cleared: count('cleared'), needsCorrection: count('needs-correction'),
+    totals: { assigned: tickets.length, cleared: count('cleared'), needsCorrection: count('needs-correction'), needBy,
       tempCompleted: count('temp-completed'), errorTickets: count('error-ticket'),
       notFound: count('not-found'), excluded: count('excluded'), pending: tickets.filter(t => !t.verified).length },
   };
@@ -428,7 +460,7 @@ async function handleMark(body, deps) {
   }
   if (status) {
     const cur = report ? reportIndex(report).byId.get(shortId) : null;
-    if (!cur || cur.score === MAX_SCORE) return { status: 409, body: { error: 'Only tickets below ' + MAX_SCORE + '/' + MAX_SCORE + ' can be marked.' } };
+    if (!cur || ticketCleared(cur)) return { status: 409, body: { error: 'Only tickets that still need correction can be marked.' } };
   }
   // A ticket sent to the owner for error review stays with the owner until approved or sent back.
   if (!owner) {
@@ -504,5 +536,5 @@ async function handleRestore(body, deps) {
 module.exports = {
   DUE_MS, COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts,
   validateAssign, handleAssign, handleRevoke, handleGet, statusOf, contractorView, handleMine, handleMark, markValid,
-  handleErrorReview, handleRestore, missingChips, passedResult,
+  handleErrorReview, handleRestore, missingChips, passedResult, chipFor, missingRequired,
 };

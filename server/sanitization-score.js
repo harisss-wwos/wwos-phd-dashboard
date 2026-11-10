@@ -200,8 +200,54 @@ function closureCheck(code) {
   return [0, clip((c || '(blank)') + ' \u2192 ' + closureExpected(c))];
 }
 
+// ---- Required checks per ticket (owner rule) ----
+// Which of the 11 checks a ticket must pass to be CLEARED / perfect (the raw 0..11 score is kept as is,
+// the Sanitization scores page buckets stay on it). Decided in this order:
+//   1) pet incident (TITLE, same word rule as incident-log-editor.js IL_PET_RE, 'Non-pet' is not pet):
+//      group 'pet' - only the 3 SIM Title checks (no RCD, no ClosureCode).
+//   2) by ClosureCode (trimmed, any case):
+//      Immediately Resolved -> 'immediate'      Title 3 + ClosureCode (passes)
+//      Automatically Closed -> 'auto'           Title 3 + ClosureCode (fails: change to Immediately Resolved)
+//      Successful           -> 'successful'     all 11
+//      anything else, blank -> 'to-successful'  all 11 (ClosureCode fails: change to Successful)
+// (Duplicate and the other exclusions never get here: excludeReason.)
+const PET_RE = /(?<!non[\s\-_]?)\b(?:pets?|dogs?|pupp(?:y|ies)|canines?|k-?9s?|animals?)\b/i;
+const TITLE_KEYS = Object.freeze(['country', 'severity', 'type']);
+const ALL_KEYS = Object.freeze(CRITERIA.map(c => c.key));
+const REQUIRED = Object.freeze({
+  pet: Object.freeze({ keys: TITLE_KEYS, target: null }),
+  immediate: Object.freeze({ keys: Object.freeze(TITLE_KEYS.concat(['closure'])), target: 'Immediately Resolved' }),
+  auto: Object.freeze({ keys: Object.freeze(TITLE_KEYS.concat(['closure'])), target: 'Immediately Resolved' }),
+  successful: Object.freeze({ keys: ALL_KEYS, target: 'Successful' }),
+  'to-successful': Object.freeze({ keys: ALL_KEYS, target: 'Successful' }),
+});
+const REQUIRED_GROUPS = Object.freeze(['successful', 'immediate', 'auto', 'to-successful', 'pet']);
+function requiredGroup(t) {
+  if (PET_RE.test(str(t && t.Title))) return 'pet';
+  const k = closureKey(t && t.ClosureCode);
+  if (k === 'immediately resolved') return 'immediate';
+  if (k === 'automatically closed') return 'auto';
+  if (k === 'successful') return 'successful';
+  return 'to-successful';
+}
+// -> { keys:[criterion keys], group, target:'Immediately Resolved'|'Successful'|null }.
+function requiredChecks(t) {
+  const group = requiredGroup(t), r = REQUIRED[group];
+  return { keys: r.keys.slice(), group, target: r.target };
+}
+// Pass count of the required checks (checks in CRITERIA order) and the failing required keys.
+function requiredResult(checks, keys) {
+  const missing = [];
+  let passed = 0;
+  keys.forEach(k => { const i = ALL_KEYS.indexOf(k); if (checks[i] && checks[i][0]) passed++; else missing.push(k); });
+  return { passed, missing };
+}
+// A report ticket (buildScoreReport) is cleared when every required check passes.
+function ticketCleared(t) { return !!t && typeof t.need === 'number' && t.pass === t.need; }
+
 // ---- One ticket ----
-// -> { excluded:true, cnt } (Cnt numeric > 0) or { score, checks:[[pass 0|1, value]...] } in CRITERIA order.
+// -> { excluded:true, cnt } (Cnt numeric > 0) or { score, checks:[[pass 0|1, value]...], group,
+//    required (count), passedRequired, missingRequired:[keys] } (checks in CRITERIA order).
 // Tickets left out of scoring (checked in this order; the first match is the reason):
 //   appeal    - 'appeal' anywhere in the title
 //   test      - a word starting with 'test' in the title (test, testing, test202; not 'protest'/'latest')
@@ -248,7 +294,9 @@ function scoreTicket(t, ctx) {
     [resMatch ? 1 : 0, rv('res')],
     closureCheck(t.ClosureCode),
   ];
-  return { score: checks.reduce((s, c) => s + c[0], 0), checks };
+  const req = requiredChecks(t), rr = requiredResult(checks, req.keys);
+  return { score: checks.reduce((s, c) => s + c[0], 0), checks, group: req.group, target: req.target,
+    required: req.keys.length, passedRequired: rr.passed, missingRequired: rr.missing };
 }
 
 // ---- Report ----
@@ -291,6 +339,9 @@ function buildScoreReport(rows, issueTypes, resolutionNames) {
       shortId: id, url: /^https?:\/\//i.test(url) ? url : (id ? ISSUE_URL_BASE + encodeURIComponent(id) : ''),
       title: str(d.Title).trim(), status: str(d.Status).trim(),
       score: r.score, checks: r.checks,
+      // Required-check rule (requiredChecks): grp = 'pet'|'immediate'|'auto'|'successful'|'to-successful',
+      // need = required checks, pass = how many of them pass (cleared when pass === need), cc = ClosureCode.
+      grp: r.group, need: r.required, pass: r.passedRequired, cc: clip(str(d.ClosureCode).trim().replace(/\s+/g, ' ')),
       cq: pacificQuarter(d.CreateDate),   // created quarter (Pacific), e.g. '2026-Q1'; '' when CreateDate is missing
       rbi: str(d.ResolvedByIdentity).trim(),   // raw resolver (Errors in Resolved groups by it, see resolved-errors.js)
     };
@@ -333,4 +384,5 @@ module.exports = {
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
   scoreTicket, buildScoreReport, prepList, pacificQuarter, APPROVED_REASON, applyApproved,
   CLOSURE_ALLOWED, closureCheck, closureExpected, excludeReason,
+  PET_RE, REQUIRED, REQUIRED_GROUPS, requiredChecks, requiredResult, ticketCleared,
 };

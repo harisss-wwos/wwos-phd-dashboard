@@ -35,13 +35,56 @@
     });
     return order.map(function (g) { return '[' + (g ? g + ': ' : '') + by[g].join(' | ') + ']'; }).join(' ');
   }
-  // Needs correction order: score ascending (dir 'asc', the default) or descending; ties oldest assigned
-  // first, then ticket ID. Returns a new array.
+  // Required checks per ticket (server: sanitization-score.js requiredChecks). The pill is
+  // 'passed / required' (passedNow / requiredNow), hue by the passed / required ratio; tickets without
+  // them fall back to the raw score out of MAX.
+  function hasReq(t) { return !!t && typeof t.passedNow === 'number' && typeof t.requiredNow === 'number' && t.requiredNow > 0; }
+  function ratioOf(t) {
+    if (hasReq(t)) return t.passedNow / t.requiredNow;
+    return typeof (t && t.scoreNow) === 'number' ? t.scoreNow / MAX : -1;
+  }
+  // 0 red -> half amber (38) -> all green (142), the same scale as hueOf.
+  function hueRatio(r) { r = Math.max(0, Math.min(1, Number(r) || 0)); return r <= 0.5 ? Math.round(r / 0.5 * 38) : Math.round(38 + (r - 0.5) / 0.5 * 104); }
+  function ratioHtml(p, n) {
+    if (typeof p !== 'number' || !(n > 0)) return '<span class="tb-san-muted">\u2014</span>';
+    return '<span class="tb-san-sc" style="--sc-h:' + hueRatio(p / n) + '">' + p + ' / ' + n + '</span>';
+  }
+  function pillHtml(t) { return hasReq(t) ? ratioHtml(t.passedNow, t.requiredNow) : scoreHtml(t && t.scoreNow); }
+  // Needs correction sub-sections, in this order (server group keys).
+  var NEED_GROUPS = [
+    { key: 'successful', label: 'Successful \u2014 all 11 checks', hint: 'ClosureCode is Successful: every Title, RCD and ClosureCode check must pass.' },
+    { key: 'immediate', label: 'Immediately Resolved \u2014 title checks only', hint: 'Only the 3 SIM Title checks: country code, severity and issue type.' },
+    { key: 'auto', label: 'Automatically Closed \u2014 change to Immediately Resolved + title checks', hint: 'Change the ClosureCode to Immediately Resolved in SIM, and fix the 3 SIM Title checks.' },
+    { key: 'to-successful', label: 'Change to Successful \u2014 all 11 checks', hint: 'Successful with Problems, No Issue, Unsuccessful, No Plan to Fix or blank: change the ClosureCode to Successful in SIM, then all 11 checks.', code: true },
+    { key: 'pet', label: 'Pet incidents \u2014 title checks only', hint: 'Pet incident (from the title), any ClosureCode: only country code, severity and issue type in the SIM Title.' },
+  ];
+  var NEED_KEYS = NEED_GROUPS.map(function (g) { return g.key; });
+  // Needs correction tickets per group ({ key: [tickets] }); an unknown group goes with 'successful'.
+  function needGroups(list) {
+    var out = {}; NEED_KEYS.forEach(function (k) { out[k] = []; });
+    (list || []).forEach(function (t) { (out[t && t.group] || out.successful).push(t); });
+    return out;
+  }
+  // The open sub-section: cur when it is a non-empty group, null when the viewer closed them all (cur
+  // === null), otherwise the first non-empty group (default).
+  function subOpenOf(groups, cur) {
+    if (cur === null) return null;
+    if (cur && groups[cur] && groups[cur].length) return cur;
+    for (var i = 0; i < NEED_KEYS.length; i++) if (groups[NEED_KEYS[i]].length) return NEED_KEYS[i];
+    return null;
+  }
+  // One-open-at-a-time over the sub-sections (same rule as nextOpen).
+  function nextSubOpen(cur, key, open) {
+    if (NEED_KEYS.indexOf(key) < 0) return cur;
+    return open ? key : (cur === key ? null : cur);
+  }
+  // Needs correction order: passed / required ascending (dir 'asc', the default) or descending, then
+  // fewer passed; ties oldest assigned first, then ticket ID. Returns a new array.
   function sortNeed(list, dir) {
     var d = dir === 'desc' ? -1 : 1;
     return (list || []).slice().sort(function (a, b) {
-      var sa = typeof a.scoreNow === 'number' ? a.scoreNow : -1, sb = typeof b.scoreNow === 'number' ? b.scoreNow : -1;
-      return ((sa - sb) * d) || String(a.assignedAt || '').localeCompare(String(b.assignedAt || '')) || String(a.shortId).localeCompare(String(b.shortId));
+      var pa = hasReq(a) ? a.passedNow : (typeof a.scoreNow === 'number' ? a.scoreNow : -1), pb = hasReq(b) ? b.passedNow : (typeof b.scoreNow === 'number' ? b.scoreNow : -1);
+      return ((ratioOf(a) - ratioOf(b)) * d) || ((pa - pb) * d) || String(a.assignedAt || '').localeCompare(String(b.assignedAt || '')) || String(a.shortId).localeCompare(String(b.shortId));
     });
   }
   // Tickets per section (server order inside each).
@@ -55,7 +98,8 @@
   // v.errHidden = error tickets the server counted but did not send (contractors never get the rows).
   function totalsOf(v) {
     var s = sections(v), all = (v && v.tickets) || [], hid = Math.max(0, Number(v && v.errHidden) || 0);
-    return { assigned: all.length + hid, cleared: s.ok.length, needsCorrection: s.need.length, tempCompleted: s.temp.length,
+    var g = needGroups(s.need), needBy = {}; NEED_KEYS.forEach(function (k) { needBy[k] = g[k].length; });
+    return { assigned: all.length + hid, cleared: s.ok.length, needsCorrection: s.need.length, needBy: needBy, tempCompleted: s.temp.length,
       errorTickets: s.err.length + hid, notFound: s.nf.length, excluded: s.ex.length, pending: all.filter(function (t) { return !t.verified; }).length };
   }
   // One-open-at-a-time accordion over the four sections ('need' | 'temp' | 'err' | 'ok'; null = all
@@ -77,11 +121,12 @@
     for (var i = lo; i <= hi; i++) out.push(rows[i].shortId);
     return out;
   }
-  // Status after a successful mark / undo (only tickets below MAX/MAX can be marked).
+  // Status after a successful mark / undo (only tickets that still need correction can be marked).
   function statusAfter(t, mark) {
     if (mark && mark.status === 'completed') return 'temp-completed';
     if (mark && mark.status === 'error') return 'error-ticket';
-    return t.scoreNow === MAX ? 'cleared' : 'needs-correction';
+    var ok = typeof t.clearedNow === 'boolean' ? t.clearedNow : t.scoreNow === MAX;
+    return ok ? 'cleared' : 'needs-correction';
   }
 
   // ---- HTML ----
@@ -112,9 +157,9 @@
       + '<option value="" selected>\u2014 Select status \u2014</option><option value="completed">Completed</option><option value="error">Error ticket</option></select>';
   }
   // Inline "Why is this an error ticket?" form (f = { shortId, text, err, busy }).
-  function errFormRow(t, f) {
+  function errFormRow(t, f, span) {
     var sid = esc(t.shortId), id = 'stvWhy-' + sid;
-    return '<tr class="stv-l3"><td colspan="5"><div class="stv-why" role="group" aria-labelledby="' + id + 'L">'
+    return '<tr class="stv-l3"><td colspan="' + (span || 5) + '"><div class="stv-why" role="group" aria-labelledby="' + id + 'L">'
       + '<label class="stv-why-l" id="' + id + 'L" for="' + id + '">Why is this an error ticket? <span class="stv-req" aria-hidden="true">*</span></label>'
       + '<textarea class="stv-why-t" id="' + id + '" data-stvwhy="' + sid + '" maxlength="500" rows="2" required aria-required="true" aria-describedby="' + id + 'H ' + id + 'E"' + (f.err ? ' aria-invalid="true"' : '') + (f.busy ? ' disabled' : '') + '>' + esc(f.text || '') + '</textarea>'
       + '<span class="stv-why-h" id="' + id + 'H">' + String(f.text || '').length + ' / 500</span>'
@@ -134,27 +179,31 @@
   }
   // One line per ticket: Score | Ticket ID | Title | Missing | Status (the error-reason form opens on
   // a second row under it while editing).
+  // Small ClosureCode tag ('(blank)' when empty).
+  function codeTag(code) { var c = String(code == null ? '' : code).trim(); return '<span class="stv-cc">' + esc(c || '(blank)') + '</span>'; }
+  // o.label: the table's name (region / caption); o.codeCol: add a ClosureCode column after Ticket ID.
   function needTable(rows, o, h) {
-    var dir = o.sortDir === 'desc' ? 'desc' : 'asc', f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly;
-    var sortLbl = dir === 'asc' ? 'lowest first' : 'highest first';
-    return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Tickets that need correction" tabindex="0"><table class="stv-tbl is-line">'
-      + '<caption class="tb-asg-sr">Tickets that need correction, score ' + sortLbl + '.</caption>'
+    var dir = o.sortDir === 'desc' ? 'desc' : 'asc', f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly, cc = !!o.codeCol;
+    var sortLbl = dir === 'asc' ? 'lowest first' : 'highest first', lbl = o.label || 'Tickets that need correction', span = cc ? 6 : 5;
+    return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="' + esc(lbl) + '" tabindex="0"><table class="stv-tbl is-line">'
+      + '<caption class="tb-asg-sr">' + esc(lbl) + ', score ' + sortLbl + '.</caption>'
       + '<thead><tr><th scope="col" class="stv-fit" aria-sort="' + (dir === 'asc' ? 'ascending' : 'descending') + '"><button type="button" class="stv-sort" data-stvsort="1">Score'
       + '<span class="stv-sort-ic" aria-hidden="true">' + (dir === 'asc' ? '\u25b2' : '\u25bc') + '</span>'
-      + '<span class="tb-asg-sr">, sorted ' + sortLbl + '. Activate to sort ' + (dir === 'asc' ? 'highest' : 'lowest') + ' first.</span></button></th>'
-      + '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Missing</th>'
+      + '<span class="tb-asg-sr">, required checks passed, sorted ' + sortLbl + '. Activate to sort ' + (dir === 'asc' ? 'highest' : 'lowest') + ' first.</span></button></th>'
+      + '<th scope="col" class="stv-fit">Ticket ID</th>' + (cc ? '<th scope="col" class="stv-fit">ClosureCode</th>' : '') + '<th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Missing</th>'
       + '<th scope="col" class="stv-fit">Status</th></tr></thead>'
       + rows.map(function (t) {
         var miss = missText(t.missingNow), open = !ro && f && f.shortId === t.shortId;
         var st = t.staleMark ? (t.staleMark.status === 'error' ? 'Marked error ticket' : 'Marked completed') + ' on ' + h.when(t.staleMark.at) + ' - re-checked with the new data' : '';
         return '<tbody class="stv-t' + (open ? ' is-open' : '') + '"><tr class="stv-l1">'
-          + '<td class="stv-sc stv-fit">' + scoreHtml(t.scoreNow) + '</td>' + idCell(t, h)
+          + '<td class="stv-sc stv-fit">' + pillHtml(t) + '</td>' + idCell(t, h)
+          + (cc ? '<td class="stv-fit">' + codeTag(t.closureCode) + '</td>' : '')
           + clipCell('stv-ttl', t.title || 'No title')
           + '<td class="stv-clip stv-mc" title="' + esc((miss || '\u2014') + (st ? ' \u00b7 ' + st : '')) + '">' + (miss ? esc(miss) : '\u2014') + (st ? ' <span class="stv-stale">' + esc(st) + '</span>' : '') + '</td>'
           + '<td class="stv-stc stv-fit">' + (ro ? statusText(t) : statusSelect(t, !!busy[t.shortId] || open)) + '</td></tr>'
-          + (t.returned ? '<tr class="stv-l3"><td colspan="5"><p class="stv-ret">Sent back by ' + esc(t.returned.by || 'the owner') + ': ' + esc(t.returned.note || '')
+          + (t.returned ? '<tr class="stv-l3"><td colspan="' + span + '"><p class="stv-ret">Sent back by ' + esc(t.returned.by || 'the owner') + ': ' + esc(t.returned.note || '')
             + (t.returned.at ? ' \u00b7 ' + esc(h.when(t.returned.at)) : '') + '</p></td></tr>' : '')
-          + (open ? errFormRow(t, f) : '') + '</tbody>';
+          + (open ? errFormRow(t, f, span) : '') + '</tbody>';
       }).join('') + '</table></div>';
   }
   function markedTable(rows, kind, o, h) {
@@ -165,7 +214,7 @@
       + '<th scope="col" class="stv-fit">Marked at</th>' + (ro ? '' : '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Action</span></th>') + '</tr></thead><tbody>'
       + rows.map(function (t) {
         var m = t.mark || {}, sid = esc(t.shortId);
-        return '<tr><td class="stv-sc stv-fit">' + scoreHtml(t.scoreNow) + '</td>' + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title')
+        return '<tr><td class="stv-sc stv-fit">' + pillHtml(t) + '</td>' + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title')
           + (err ? clipCell('stv-mc', m.reason || '') : '')
           + '<td class="tb-asg-nw stv-fit">' + esc(h.when(m.at)) + (m.by && o.login && m.by !== o.login ? ' <small class="stv-by">by ' + esc(m.by) + '</small>' : '') + '</td>'
           + (ro ? '' : '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvundo="' + sid + '"' + (busy[t.shortId] ? ' disabled aria-busy="true"' : '') + '>'
@@ -193,7 +242,7 @@
       + rows.map(function (t) {
         var m = t.mark || {}, sid = esc(t.shortId), on = !!sel[t.shortId];
         return '<tr' + (on ? ' class="is-sel"' : '') + '><td class="stv-fit stv-ck"><input type="checkbox" data-stvpick="' + sid + '"' + (on ? ' checked' : '') + (rb ? ' disabled' : '') + ' aria-label="Select ' + sid + '"></td>'
-          + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title') + '<td class="stv-sc stv-fit">' + scoreHtml(t.scoreNow) + '</td>'
+          + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title') + '<td class="stv-sc stv-fit">' + pillHtml(t) + '</td>'
           + '<td class="stv-fit">' + esc(m.by || '\u2014') + '</td>' + clipCell('stv-mc', m.reason || '')
           + '<td class="tb-asg-nw stv-fit">' + esc(h.when(m.at)) + '</td>'
           + '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn stv-save" data-stvrev="approve:' + sid + '"' + (rb ? ' disabled' : '') + '>Approve<span class="tb-asg-sr"> ' + sid + '</span></button> '
@@ -219,21 +268,21 @@
         : '<p class="tb-asg-empty">No approved errors for this contractor.</p>')
       + '</details>';
   }
-  // v = the contractor's view; o = { who, login, pageSize, page:{need,ok}, open ('need'|'temp'|'err'|'ok'|null,
-  // default 'need'), sortDir, errForm, busy:{shortId:true}, readOnly (no status dropdown / Undo: the viewer may
+  // v = the contractor's view; o = { who, login, pageSize, page:{'need.<group>', ok}, open ('need'|'temp'|'err'|'ok'|null,
+  // default 'need'), subOpen (open Needs correction sub-section: a group key, null = none, undefined =
+  // the first non-empty one; see subOpenOf), sortDir, errForm, busy:{shortId:true}, readOnly (no status dropdown / Undo: the viewer may
   // not mark this contractor's tickets), review (owner: Error tickets section + review actions), sel
   // {shortId:true}, revBusy, apprOpen, h }.
   function viewHtml(v, o) {
     o = o || {}; var h = o.h || {};
     if (v && v.maxScore != null) setMax(v.maxScore);
-    var full = MAX + '/' + MAX;
     if (!h.when) h.when = function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
     var T = v.totals || totalsOf(v), S = sections(v);
     if (!T.assigned) return '<p class="tb-asg-empty">' + (o.who ? ('No sanitization tickets assigned to ' + esc(o.who)) : 'No sanitization tickets assigned to you') + '</p>';
     var size = o.pageSize || 0, pg = o.page || {};
     var clampPg = function (p, n) { return size ? Math.max(0, Math.min(Number(p) || 0, Math.ceil(n / size) - 1)) : 0; };
-    var need = sortNeed(S.need, o.sortDir), needPg = clampPg(pg.need, need.length), okPg = clampPg(pg.ok, S.ok.length);
-    var needRows = size ? need.slice(needPg * size, (needPg + 1) * size) : need;
+    var need = sortNeed(S.need, o.sortDir), okPg = clampPg(pg.ok, S.ok.length);
+    var groups = needGroups(need), subOpen = subOpenOf(groups, o.subOpen);
     var okRows = size ? S.ok.slice(okPg * size, (okPg + 1) * size) : S.ok;
     var pct = T.assigned ? Math.round((T.cleared || 0) / T.assigned * 100) : 0;
     var asOf = v.dataAsOf ? h.when(v.dataAsOf) : '';
@@ -242,17 +291,28 @@
     var sec = function (key, cls, label, n, extra) {
       return '<details class="tb-san-sec ' + cls + '" data-stvsec="' + key + '"' + (extra || '') + (openSec === key ? ' open' : '') + '><summary>' + label + ' <b>' + n + '</b></summary><div class="tb-san-in">';
     };
-    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + ' \u00b7 Cleared ' + (T.cleared || 0) + ' (' + full + ') \u00b7 Needs correction ' + (T.needsCorrection || 0)
+    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + ' \u00b7 Cleared ' + (T.cleared || 0) + ' \u00b7 Needs correction ' + (T.needsCorrection || 0)
       + ' \u00b7 Temporarily completed ' + (T.tempCompleted || 0) + (rev ? ' \u00b7 Error tickets ' + errN : '')
       + (asOf ? ' <small>\u00b7 data as of ' + esc(asOf) + '</small>' : '') + '</p>'
       + '<div class="tb-san-prog" aria-hidden="true"><span style="width:' + pct + '%"></span></div>'
       + (!rev && errN ? '<p class="tb-san-muted stv-sent">' + plural(errN, 'ticket') + ' sent to the owner for error review</p>' : '') + '</div>';
+    // Needs correction: one collapsible sub-section per closure-code group (only the non-empty ones, one
+    // open at a time), each with its own paging ('need.<group>').
+    var subHtml = NEED_GROUPS.filter(function (g) { return groups[g.key].length; }).map(function (g) {
+      var list = groups[g.key], pk = 'need.' + g.key, p = clampPg(pg[pk], list.length);
+      var rows = size ? list.slice(p * size, (p + 1) * size) : list;
+      var to = {}; for (var k in o) to[k] = o[k];
+      to.label = 'Needs correction: ' + g.label; to.codeCol = !!g.code;
+      return '<details class="stv-sub" data-stvsub="' + g.key + '"' + (subOpen === g.key ? ' open' : '') + '><summary><span class="stv-sub-t">' + esc(g.label) + '</span> <b>' + list.length + '</b>'
+        + '<span class="stv-sub-h">' + esc(g.hint) + '</span></summary><div class="stv-sub-in">'
+        + needTable(rows, to, h) + pager(pk, p, size, list.length, g.label) + '</div></details>';
+    }).join('');
     html += sec('need', 'is-bad', 'Needs correction', need.length)
-      + (need.length ? needTable(needRows, o, h) + pager('need', needPg, size, need.length, 'Tickets that need correction')
+      + (need.length ? subHtml
         : '<p class="tb-asg-empty">' + (S.temp.length || errN ? 'Nothing left to correct. Marked tickets are re-checked after the next data upload.' : 'Everything is cleared \ud83c\udf89') + '</p>')
       + '</div></details>';
     html += sec('temp', 'is-temp', 'Temporarily completed', S.temp.length)
-      + '<p class="stv-help">Marked Completed. They are re-checked with their new score after the next data upload: ' + full + ' moves to Cleared, anything lower comes back to Needs correction.</p>'
+      + '<p class="stv-help">Marked Completed. They are re-checked after the next data upload: when every required check passes they move to Cleared, otherwise they come back to Needs correction.</p>'
       + (S.temp.length ? markedTable(S.temp, 'temp', o, h) : '<p class="tb-asg-empty">No tickets marked completed.</p>') + '</div></details>';
     if (rev) {
       html += sec('err', 'is-err', 'Error tickets', S.err.length)
@@ -261,12 +321,12 @@
         + approvedHtml(v.approved, o, h) + '</div></details>';
     }
     html += sec('ok', 'is-ok', 'Cleared', S.ok.length, ' id="tbSanOkSec"');
-    if (!S.ok.length) html += '<p class="tb-asg-empty">No tickets at ' + full + ' yet.</p>';
+    if (!S.ok.length) html += '<p class="tb-asg-empty">No cleared tickets yet.</p>';
     else {
-      html += '<div class="tb-asg-scroll" role="region" aria-label="Cleared tickets" tabindex="0"><table><caption class="tb-asg-sr">Cleared tickets at ' + MAX + ' out of ' + MAX + ', most recently assigned first</caption>'
+      html += '<div class="tb-asg-scroll" role="region" aria-label="Cleared tickets" tabindex="0"><table><caption class="tb-asg-sr">Cleared tickets (every required check passes), most recently assigned first</caption>'
         + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Score</th><th scope="col">Assigned</th></tr></thead><tbody>'
         + okRows.map(function (t) {
-          return '<tr>' + idCell(t, h) + '<td class="tb-asg-t">' + esc(t.title || 'No title') + staleNote(t, h) + '</td><td>' + scoreHtml(t.scoreNow) + '</td>'
+          return '<tr>' + idCell(t, h) + '<td class="tb-asg-t">' + esc(t.title || 'No title') + staleNote(t, h) + '</td><td>' + pillHtml(t) + '</td>'
             + '<td class="tb-asg-nw">' + esc(h.when(t.assignedAt)) + '</td></tr>';
         }).join('') + '</tbody></table></div>'
         + pager('ok', okPg, size, S.ok.length, 'Cleared tickets');
@@ -283,7 +343,8 @@
   }
 
   var api = { setMax: setMax, max: function () { return MAX; }, hue: hueOf, missText: missText, scoreHtml: scoreHtml, pager: pager, sortNeed: sortNeed, sections: sections, totalsOf: totalsOf, statusAfter: statusAfter, viewHtml: viewHtml, plural: plural,
-    nextOpen: nextOpen, DEFAULT_OPEN: DEFAULT_OPEN, selState: selState, rangeIds: rangeIds };
+    nextOpen: nextOpen, DEFAULT_OPEN: DEFAULT_OPEN, selState: selState, rangeIds: rangeIds,
+    hueRatio: hueRatio, ratioHtml: ratioHtml, pillHtml: pillHtml, codeTag: codeTag, NEED_GROUPS: NEED_GROUPS, needGroups: needGroups, subOpenOf: subOpenOf, nextSubOpen: nextSubOpen };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PHDSanView = api;
 })(typeof window !== 'undefined' ? window : this);

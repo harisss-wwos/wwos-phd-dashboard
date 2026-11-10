@@ -3,13 +3,15 @@
 // live 11-point sanitization score report (sanitization-score.js via sanReportFor + sanLiveReport:
 // Resolved / Closed tickets created since 1 Jan 2026 Pacific, deduped by ShortId, with the same
 // exclusions - appeal, test, duplicate, AUTO-SIM, Cnt > 0, approved error). A ticket "has errors"
-// when its score is below MAX_SCORE.
+// when one of its REQUIRED checks fails (sanitization-score.js requiredChecks: pet incident = the 3
+// title checks, Immediately Resolved / Automatically Closed = title + ClosureCode, else all 11);
+// "perfect" = every required check passes (the same rule as the Sanitization Tracker).
 // Tickets are grouped by RESOLVER (report ticket `rbi` = raw ResolvedByIdentity, normalised by
 // resolverLogin): one card per team member (BLR + AZA from ASSIGN_GROUPS) + 'others' (anyone else,
 // blank resolver included). Only the team members may read (403 otherwise).
 'use strict';
 const { ASSIGN_GROUPS } = require('./assignments');
-const { MAX_SCORE } = require('./sanitization-score');
+const { MAX_SCORE, ticketCleared } = require('./sanitization-score');
 const { missingChips } = require('./sanitization-assign');
 
 const TEAM_GROUP_NAMES = ['BLR', 'AZA'];
@@ -33,12 +35,19 @@ function group(report) {
   ((report && report.tickets) || []).forEach(t => {
     const k = keyOf(t), s = stats.get(k);
     s.resolved++;
-    if (t.score < MAX_SCORE) {
+    if (!ticketCleared(t)) {
       s.withErrors++;
-      const row = { shortId: t.shortId, url: t.url, title: t.title, score: t.score, missing: missingChips(t.checks) };
+      // score = passed REQUIRED checks out of `required`; rawScore = the 0..11 score.
+      const row = { shortId: t.shortId, url: t.url, title: t.title, score: t.pass, required: t.need, rawScore: t.score,
+        group: t.grp || null, closureCode: t.cc || '', missing: missingChips(t.checks, t.grp) };
       if (k === OTHERS) row.resolvedBy = resolverLogin(t.rbi);
       lists.get(k).push(row);
     }
+  });
+  // Lowest passed / required ratio first, then fewer passed; ties keep the report order (oldest resolved first).
+  const ratio = r => (r.required ? r.score / r.required : 0);
+  lists.forEach((l, key) => {
+    lists.set(key, l.map((r, i) => ({ r, i })).sort((a, b) => (ratio(a.r) - ratio(b.r)) || (a.r.score - b.r.score) || (a.i - b.i)).map(x => x.r));
   });
   const card = (key, label, grp) => {
     const s = stats.get(key), perfect = s.resolved - s.withErrors;

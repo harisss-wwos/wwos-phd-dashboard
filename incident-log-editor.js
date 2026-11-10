@@ -2255,6 +2255,122 @@ function ilSetTitleCopyId(sid){
   var btn=document.getElementById('incidentIdCopyBtn'); if(!btn) return;
   if(IL_TICKET_SID){ btn.style.display=''; btn.innerHTML=_ileIc('copy',14); btn.classList.remove('copied'); btn.title='Copy ticket ID '+IL_TICKET_SID; }
   else { btn.style.display='none'; }
+  _ilCmtSync(IL_TICKET_SID);   // comments panel + temp-resolve switch (only when the page set a provider)
+}
+// ---- Ticket comments panel + temp-resolve switch (opt-in: IncidentLogEditor.setCommentsProvider) ----
+// The page supplies p = {
+//   list(sid)      -> Promise<{ok,status,data:[{id,user,at,text,mine}]}> (oldest first, as the API returns),
+//   add(sid,text)  -> Promise<{ok,status,data}>  (the page's existing add-comment call),
+//   onAdded(sid)   -> refresh the page's own comment count / preview (optional),
+//   fmtWhen(iso)   -> time string in the user's timezone (optional),
+//   tempResolve: { get(sid) -> bool, set(sid, checkboxEl) }  (optional; shows the header switch) }.
+// Without a provider the panel, the "Previous comments" list and the switch stay hidden.
+var _ilCmtProv=null, _ilCmtSid='', _ilCmtBusy=false, _ilCmtSeq=0;
+// Light tint + matching left border per author (stable: hashed login). Own comments use .is-mine.
+var IL_CMT_TINTS=[['#eef4ff','#5b84d6'],['#ecf8f1','#3a9a68'],['#f4f0fd','#8466c9'],['#eaf7f7','#2a8f8f'],['#fdf6e3','#b8892a'],['#fcf0f4','#c25a85']];
+function _ilCmtTint(user){
+  var s=String(user||'').toLowerCase(), h=0;
+  for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0;
+  return IL_CMT_TINTS[h%IL_CMT_TINTS.length];
+}
+function _ilCmtWhen(iso){
+  if(!iso) return '';
+  if(_ilCmtProv && typeof _ilCmtProv.fmtWhen==='function'){ try{ return String(_ilCmtProv.fmtWhen(iso)||''); }catch(e){} }
+  try{ return new Date(iso).toLocaleString(); }catch(e){ return String(iso); }
+}
+// Collapsible "Previous comments (N)" (newest first). uid = id of the panel the toggle controls.
+function _ilCmtListHtml(uid,list,open){
+  var items=(list||[]).slice().reverse(), n=items.length;
+  var body=n
+    ? '<ol class="ilcm-list" aria-label="Previous comments, newest first">'+items.map(function(c){
+        var user=String(c.user||'\u2014'), tint=_ilCmtTint(user), when=_ilCmtWhen(c.at);
+        return '<li class="ilcm-item'+(c.mine?' is-mine':'')+'"'+(c.mine?'':' style="--ilcm-bg:'+tint[0]+';--ilcm-bd:'+tint[1]+'"')+'>'+
+          '<div class="ilcm-meta"><span class="ilcm-user">'+_ileEsc(user)+'</span>'+(c.mine?'<span class="ilcm-you">You</span>':'')+
+            (when?'<time class="ilcm-when"'+(c.at?' datetime="'+_ileEsc(c.at)+'"':'')+'>'+_ileEsc(when)+'</time>':'')+'</div>'+
+          '<div class="ilcm-text">'+_ilvLinkify(String(c.text==null?'':c.text))+'</div></li>';
+      }).join('')+'</ol>'
+    : '<p class="ilcm-empty">No comments yet on this ticket.</p>';
+  return '<button type="button" class="ilcm-tog" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+uid+'" onclick="ilCmtToggle(this)">'+
+      '<span class="ilcm-car" aria-hidden="true"></span>Previous comments ('+n+')</button>'+
+    '<div class="ilcm-panel" id="'+uid+'"'+(open?'':' hidden')+'>'+body+'</div>';
+}
+function ilCmtToggle(btn){
+  var open=btn.getAttribute('aria-expanded')!=='true';
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  var p=document.getElementById(btn.getAttribute('aria-controls')); if(p) p.hidden=!open;
+}
+// Load sid's comments into box (needs an id) as the collapsible list. Hidden without a provider.
+function ilCmtLoadInto(box,sid,open){
+  if(!box) return Promise.resolve();
+  sid=String(sid||'');
+  if(!_ilCmtProv || !sid){ box.hidden=true; box.innerHTML=''; return Promise.resolve(); }
+  var seq=String(++_ilCmtSeq); box.setAttribute('data-seq',seq);
+  box.hidden=false; box.setAttribute('aria-busy','true');
+  box.innerHTML='<p class="ilcm-load" role="status">Loading comments\u2026</p>';
+  return Promise.resolve().then(function(){ return _ilCmtProv.list(sid); }).catch(function(){ return null; }).then(function(r){
+    if(box.getAttribute('data-seq')!==seq) return;   // reopened for another ticket meanwhile
+    box.removeAttribute('aria-busy');
+    if(!(r && r.ok && Array.isArray(r.data))){
+      box.innerHTML='<p class="ilcm-err" role="alert">Couldn\u2019t load the comments for '+_ileEsc(sid)+'. <button type="button" class="ilcm-retry">Retry</button></p>';
+      var rb=box.querySelector('.ilcm-retry'); if(rb) rb.addEventListener('click',function(){ ilCmtLoadInto(box,sid,open); });
+      return;
+    }
+    box.innerHTML=_ilCmtListHtml(box.id+'-panel',r.data,open);
+  });
+}
+function _ilCmtErr(msg){
+  var el=document.getElementById('ilCmtErr'); if(!el) return;
+  el.textContent=msg||''; el.hidden=!msg;
+}
+// Called whenever the editor opens for a ticket (ilSetTitleCopyId).
+function _ilCmtSync(sid){
+  var sec=document.getElementById('ilCmts');
+  if(sec){
+    if(!_ilCmtProv || !sid){ sec.hidden=true; }
+    else{
+      sec.hidden=false;
+      var ta=document.getElementById('ilCmtText');
+      if(ta && sid!==_ilCmtSid) ta.value='';   // keep a draft only when reopening the same ticket
+      _ilCmtErr('');
+      ilCmtLoadInto(document.getElementById('ilCmtList'),sid,false);
+    }
+  }
+  _ilCmtSid=sid;
+  _ilTempSync();
+}
+// Header temp-resolve switch: mirrors the page's state for the open ticket.
+function _ilTempSync(){
+  var lab=document.getElementById('ilTempTog'), cb=document.getElementById('ilTempCb'); if(!lab||!cb) return;
+  var tr=_ilCmtProv&&_ilCmtProv.tempResolve, sid=IL_TICKET_SID;
+  if(!tr || !sid){ lab.hidden=true; return; }
+  var on=false; try{ on=!!tr.get(sid); }catch(e){}
+  lab.hidden=false; cb.checked=on; lab.classList.toggle('on',on);
+  cb.setAttribute('aria-label','Temporarily resolve '+sid+' (working view only)');
+  lab.title=on?'Move back to open':'Temporarily resolve (working only)';
+}
+function ilTempChanged(cb){
+  var tr=_ilCmtProv&&_ilCmtProv.tempResolve;
+  if(tr && IL_TICKET_SID){ try{ tr.set(IL_TICKET_SID,cb); }catch(e){} }
+  _ilTempSync();
+}
+// "Post comment": the page's add call; then reload the list (expanded) and let the page refresh.
+function ilCmtPost(){
+  if(_ilCmtBusy || !_ilCmtProv || !IL_TICKET_SID) return;
+  var ta=document.getElementById('ilCmtText'), btn=document.getElementById('ilCmtPost'); if(!ta||!btn) return;
+  var text=String(ta.value||'').trim(), sid=IL_TICKET_SID;
+  if(!text){ _ilCmtErr('Write a comment first.'); ta.focus(); return; }
+  _ilCmtErr('');
+  _ilCmtBusy=true; btn.disabled=true; ta.readOnly=true; btn.setAttribute('aria-busy','true'); btn.textContent='Posting\u2026';
+  Promise.resolve().then(function(){ return _ilCmtProv.add(sid,text); }).catch(function(){ return null; }).then(function(r){
+    _ilCmtBusy=false; btn.disabled=false; ta.readOnly=false; btn.removeAttribute('aria-busy'); btn.textContent='Post comment';
+    if(!(r && r.ok)){
+      _ilCmtErr((r&&r.data&&r.data.error)||('Couldn\u2019t post the comment'+(r&&r.status?' (HTTP '+r.status+')':'')+'.'));
+      return;
+    }
+    _ileToast('Comment posted');
+    if(IL_TICKET_SID===sid){ ta.value=''; ilCmtLoadInto(document.getElementById('ilCmtList'),sid,true); }
+    if(typeof _ilCmtProv.onAdded==='function'){ try{ _ilCmtProv.onAdded(sid); }catch(e){} }
+  });
 }
 // Copy just the ticket ID shown in the modal title.
 async function copyIncidentTicketId(btn){
@@ -2847,9 +2963,22 @@ var IncidentLogEditor=(function(){
           // Whole-log Import (same look as the SIM Import button), left of the page's head flags.
           '<button type="button" class="ail-simimp ail-logimp" id="ilLogImportBtn" onclick="ilLogImportOpen(this)" title="Import the full incident log from pasted text" aria-haspopup="dialog" aria-label="Import the full incident log"><span class="ail-simimp-tx">Import</span></button>'+
           '<span class="mtc-icons ail-head-flags" id="ailHeadFlags"></span>'+
+          // Temp-resolve switch (page opt-in via setCommentsProvider({tempResolve})), left of the close X.
+          '<label class="mtc-toggle ail-temp" id="ilTempTog" hidden><input type="checkbox" class="ail-sr" id="ilTempCb" aria-label="Temporarily resolve (working view only)" onchange="ilTempChanged(this)"><i></i></label>'+
           '<button type="button" class="ail-x" onclick="closeIncidentLog()" aria-label="Close">&times;</button>'+
         '</div>'+
         '<div class="ail-body">'+
+          // Ticket comments (page opt-in via setCommentsProvider): composer + collapsed "Previous comments".
+          '<section class="ail-cmts" id="ilCmts" aria-labelledby="ilCmtsH" hidden>'+
+            '<h3 class="ail-cmts-h" id="ilCmtsH">Comments</h3>'+
+            '<div class="ail-cmts-row">'+
+              '<label class="ail-sr" for="ilCmtText">Add a comment</label>'+
+              '<textarea id="ilCmtText" class="ail-cmts-ta" rows="2" maxlength="2000" placeholder="Add a comment\u2026" aria-describedby="ilCmtErr"></textarea>'+
+              '<button type="button" class="ail-cmts-post" id="ilCmtPost" onclick="ilCmtPost()">Post comment</button>'+
+            '</div>'+
+            '<p class="ail-cmts-err" id="ilCmtErr" role="alert" hidden></p>'+
+            '<div class="ilcm" id="ilCmtList"></div>'+
+          '</section>'+
           '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
           // Display order (= copy / save order): Root Cause, SIM Root Cause Details, PHD Investigation,
           // PHD Findings, PHD Notes. PHD Related Link (hidden input, filled by the page with the ticket
@@ -3100,6 +3229,44 @@ var IncidentLogEditor=(function(){
     '#incidentModal .ail-field.ail-ref .ail-fedit{margin-left:auto}',
     '#incidentModal .ail-ref-hint{margin:0 0 6px;font-size:.78em;color:#4a5560}',
     '#incidentModal .ail-field.ail-ref textarea{background:#fafbfc!important;color:#3d4753!important;border-style:dashed!important}',
+    // Ticket comments panel (top of the editor body) + the shared "Previous comments" list (.ilcm,
+    // also used in the read-only view pop-up) + the header temp-resolve switch.
+    '.ail-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}',
+    '.ail-head .ail-temp{margin-top:6px}',
+    '.ail-head .ail-temp[hidden],.ail-cmts[hidden],.ail-cmts-err[hidden],.ilcm[hidden],.ilcm-panel[hidden]{display:none!important}',
+    '.ail-cmts{flex-shrink:0;margin:0 0 14px;padding:12px 14px;border:1px solid #d4dce4;border-left:3px solid #1577a0;border-radius:10px;background:#fff}',
+    'h3.ail-cmts-h{margin:0 0 8px!important;padding:0;font-size:.8em!important;font-weight:800!important;color:#1b2026!important;background:none!important;border:0!important;text-transform:none;letter-spacing:0}',
+    '.ail-cmts-row{display:flex;align-items:flex-end;gap:8px}',
+    '#incidentModal textarea.ail-cmts-ta{flex:1 1 auto;min-width:0;box-sizing:border-box;min-height:calc(2 * 1.5em + 16px);max-height:40vh;resize:vertical;margin:0;padding:8px 10px!important;font-family:inherit;font-size:.86em;line-height:1.5;color:#1b2026!important;background:#fff!important;border:1px solid #d4dce4!important;border-radius:8px!important}',
+    '#incidentModal textarea.ail-cmts-ta:focus{outline:none;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
+    '#incidentModal textarea.ail-cmts-ta[readonly]{background:#f3f5f7!important}',
+    '#incidentModal button.ail-cmts-post{flex:0 0 auto;margin:0;height:36px;padding:0 14px!important;border-radius:8px!important;border:1px solid #232f3e!important;background:#232f3e!important;color:#fff!important;font-family:inherit;font-size:.82em;font-weight:800;cursor:pointer;white-space:nowrap}',
+    '#incidentModal button.ail-cmts-post:hover:not(:disabled){background:#131a2a!important}',
+    '#incidentModal button.ail-cmts-post:disabled{opacity:.65;cursor:progress}',
+    '#incidentModal button.ail-cmts-post:focus-visible,.ilcm button:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '#incidentModal p.ail-cmts-err{margin:6px 0 0;font-size:.8em;font-weight:600;color:#b42318!important}',
+    '.ail-cmts .ilcm{margin-top:10px}',
+    '.ilcm button.ilcm-tog{display:inline-flex;align-items:center;gap:7px;margin:0;padding:4px 8px!important;border:0!important;border-radius:6px!important;background:transparent!important;color:#1b4f8a!important;font-family:inherit;font-size:.8em;font-weight:800;cursor:pointer;box-shadow:none!important}',
+    '.ilcm button.ilcm-tog:hover{background:rgba(21,119,160,.08)!important}',
+    '.ilcm-car{display:inline-block;flex-shrink:0;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s}',
+    '.ilcm-tog[aria-expanded="true"] .ilcm-car{transform:rotate(45deg)}',
+    '.ilcm-panel{margin-top:6px}',
+    '.ilcm ol.ilcm-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}',
+    '.ilcm li.ilcm-item{margin:0;padding:8px 10px;border-radius:8px;background:var(--ilcm-bg,#f4f6f8);border-left:4px solid var(--ilcm-bd,#8793a0);color:#1b2026}',
+    '.ilcm li.ilcm-item.is-mine{background:#fff1e3;border-left-color:#ec7211;box-shadow:inset 0 0 0 1px #f7c99c}',
+    '.ilcm-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.76em;line-height:1.4}',
+    '.ilcm-user{font-weight:800;color:#1b2026}',
+    '.ilcm-you{font-size:.9em;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#7a3300;background:#ffe0c2;border-radius:999px;padding:0 7px}',
+    '.ilcm-when{color:#4a5560}',
+    '.ilcm-text{margin-top:3px;font-size:.86em;line-height:1.5;color:#1b2026;white-space:pre-wrap;word-break:break-word}',
+    '.ilcm-text a{color:#0b5f8f;text-decoration:underline}',
+    '.ilcm-empty,.ilcm-load{margin:4px 0 0;font-size:.82em;color:#4a5560}',
+    '.ilcm-err{margin:4px 0 0;font-size:.82em;font-weight:600;color:#b42318}',
+    '.ilcm button.ilcm-retry{margin:0 0 0 6px;padding:2px 10px!important;border:1px solid #cdd4db!important;border-radius:6px!important;background:#fff!important;color:#2a3340!important;font-family:inherit;font-size:.95em;font-weight:700;cursor:pointer}',
+    // In the read-only view pop-up: its own card above the entries.
+    '.ilv-modal .ilv-cmts{margin:0 0 16px;padding:10px 12px;border:1px solid #e3e8ee;border-left:3px solid #1577a0;border-radius:12px;background:#fff}',
+    '.ilv-modal .ilv-cmts[hidden]{display:none!important}',
+    '@media (max-width:519.98px){.ail-cmts-row{flex-direction:column;align-items:stretch}}',
     '@media (prefers-reduced-motion:reduce){.ail-qsub,.ail-qrev{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
   ].join('\n');
   function injectQnStyles(){
@@ -3262,7 +3429,11 @@ var IncidentLogEditor=(function(){
     var st=document.createElement('style'); st.id='ile-view-css'; st.textContent=VIEW_CSS;
     document.head.appendChild(st);
   }
+  // Opt-in comments panel / "Previous comments" list / temp-resolve switch (see _ilCmtSync).
+  function setCommentsProvider(p){ _ilCmtProv=p||null; }
   return { markupHtml:markupHtml, mount:mount, injectStyles:injectStyles, injectViewStyles:injectViewStyles,
+    setCommentsProvider:setCommentsProvider, hasCommentsProvider:function(){ return !!_ilCmtProv; },
+    renderComments:ilCmtLoadInto, syncTempResolve:_ilTempSync,
     renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     setInvestigation:ilSetInvestigation, getInvestigation:ilGetInvestigation,

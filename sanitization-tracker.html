@@ -224,6 +224,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #stRevDlg .st-rev-h{display:block;margin-top:4px;font-size:.8em;font-weight:600;color:#5c6773;text-align:right;font-variant-numeric:tabular-nums}
 #stRevDlg .st-rev-e{margin:6px 0 0;font-size:.85em;font-weight:700;color:#b42318}
 #stRevDlg .st-rev-e:empty{display:none}
+/* Needs correction sub-sections (one per closure-code group, sanitization-view.js NEED_GROUPS). */
+.st-view details.stv-sub{margin:0 0 10px;border:1px solid #e2e6ea;border-radius:10px;background:#fff}
+.st-view details.stv-sub>summary{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:9px 12px;cursor:pointer;font-size:.92em;font-weight:800;color:#2a3340}
+.st-view details.stv-sub>summary b{padding:1px 8px;border-radius:99px;background:#fdecec;color:#8a1c12}
+.st-view details.stv-sub>summary:focus-visible{outline:3px solid #f0a35a;outline-offset:2px;border-radius:10px}
+.st-view .stv-sub-h{flex-basis:100%;font-size:.86em;font-weight:600;color:#5c6773}
+.st-view details.stv-sub[open]>summary{border-bottom:1px solid #e2e6ea}
+.st-view .stv-sub-in{padding:8px 10px 10px}
+.st-view .stv-cc{display:inline-block;padding:1px 7px;border-radius:99px;background:#eef1f4;color:#2a3340;font-size:.8em;font-weight:700;white-space:nowrap}
 #stRevDlg .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 <link rel="stylesheet" href="sanitization-tools.css?v=1">
@@ -241,7 +250,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=231"></script>
-<script src="sanitization-view.js?v=4"></script>
+<script src="sanitization-view.js?v=6"></script>
 <script src="sanitization-tools.js?v=1"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools;
@@ -253,6 +262,7 @@ function pct(a,b){return b?Math.round((Number(a)||0)/b*100):0;}
 // Top score: the server's maxScore (via the top bar's /api/my-sanitization data), 11 until it is here.
 function maxS(){ var m=ST.max||(S&&S.max?Number(S.max()):0); return m>0?m:11; }
 function full(){ return maxS()+'/'+maxS(); }
+function subLabel(key){ var g=((V&&V.NEED_GROUPS)||[]).filter(function(x){ return x.key===key; })[0]; return g?g.label:key; }
 function announce(msg){ var l=$('stLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
 
 // ---- State ----
@@ -262,8 +272,9 @@ var ME=String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase
 var ST={state:'loading', err:'', list:[], asOf:null};
 var SEL=null;              // shown contractor login (the picked card)
 var VIEWS={};              // login -> {loading, data, error}
-var PG={need:0, ok:0};     // shown view: page per table
+var PG={ok:0};             // shown view: page per table ('ok' + 'need.<group>' per Needs correction sub-section)
 var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|'temp'|'err'|'ok'|null; kept across re-renders
+var SUBOPEN;               // the one open Needs correction sub-section: group key | null (none) | undefined (first non-empty)
 var SELR={}, LASTI=-1;     // owner's Error tickets selection (shortId -> true) + last clicked row index (Shift+click range)
 var REVBUSY=false;         // an error-review request is running
 var APPR_OPEN=false;       // owner's "Approved errors" list open
@@ -289,7 +300,7 @@ function heroHtml(gate){
     '<div class="st-hero-asof" aria-label="Data as of"><span class="st-meta-k">Data as of</span><span class="st-meta-v">'+ic('clock',14)+asOf+'</span></div></div>';
   return '<header class="st-hero'+(gate?' is-gate':'')+'"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('eraser',24)+'</span><div>'+
     '<p class="st-eyebrow">Ticket sanitization \u00b7 Tracker</p><h1>Sanitization Tracker</h1>'+
-    '<p class="st-hero-sub">Every contractor\u2019s sanitization tickets, scored live: what is cleared at '+full()+' and what still needs correction.</p>'+
+    '<p class="st-hero-sub">Every contractor\u2019s sanitization tickets, scored live: what is cleared (every required check passes) and what still needs correction.</p>'+
     '</div></div></div>'+bar+'</header>';
 }
 function gate(kind){
@@ -310,8 +321,8 @@ function kpisHtml(){
   return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals"'+(done?'':' aria-busy="true"')+'>'+
     k('is-base','users','Contractors',done?num(ST.list.length):'','With sanitization access')+
     k('is-base','ticket','Tickets assigned',done?num(t.assigned):'','Active assignments')+
-    k('is-ok','check-circle','Cleared ('+full()+')',done?num(t.cleared):'','Scored '+maxS()+' out of '+maxS())+
-    k('is-bad','alert-triangle','Needs correction',done?num(t.need):'',done?('Below '+full()+' \u00b7 '+num(t.temp)+' temp. completed, '+num(t.err)+' error'):'Below '+maxS()+' out of '+maxS())+
+    k('is-ok','check-circle','Cleared',done?num(t.cleared):'','Every required check passes')+
+    k('is-bad','alert-triangle','Needs correction',done?num(t.need):'',done?('A required check fails \u00b7 '+num(t.temp)+' temp. completed, '+num(t.err)+' error'):'A required check fails')+
     k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Cleared of assigned')+
     '</ul>';
 }
@@ -355,7 +366,7 @@ function viewBody(){
   var ro=!canMark(SEL);
   return '<p class="stv-note" id="stvNote" role="alert">'+esc(NOTE)+'</p>'+
     (ro?'<p class="stv-help">You are viewing '+esc(who)+'\u2019s tickets. Only '+esc(who)+' and the owner can change their status.</p>':'')+
-    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,sortDir:SORT,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
+    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,subOpen:SUBOPEN,sortDir:SORT,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
       review:canReview(SEL),sel:SELR,revBusy:REVBUSY,apprOpen:APPR_OPEN,h:{ic:ic,when:S.when,url:S.url}});
 }
 // Error tickets are owner-only (the server sends contractors no error rows and enforces the review too).
@@ -378,7 +389,7 @@ function renderCards(focusLogin){
 }
 function viewSecHtml(){
   return '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('eraser',18)+'</span>'+
-      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Needs correction is sorted by score (lowest first by default; use the Score header to flip it), then oldest assigned. '+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Needs correction is split by ClosureCode (pet incidents on their own) because each group needs different checks; the score is passed / required checks, lowest first by default (use the Score header to flip it), then oldest assigned. '+
       'Set a ticket\u2019s status to Completed (re-checked after the next data upload) or Error ticket (sent to the owner for review). One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
 }
@@ -419,7 +430,7 @@ function loadView(login,force,after){
   });
 }
 // Switching contractor resets paging / sort / forms / selection; the open section (OPEN) is kept.
-function resetViewState(){ PG={need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
+function resetViewState(){ PG={ok:0}; SUBOPEN=undefined; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
 function select(login,focusCard){
   if(!findC(login)) return;
   var same=login===SEL;
@@ -619,7 +630,7 @@ document.addEventListener('click',function(e){
   if(t.closest('#stGateRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
   if(t.closest('[data-stvsort]')){
-    SORT=SORT==='asc'?'desc':'asc'; PG.need=0; renderView('[data-stvsort]');
+    SORT=SORT==='asc'?'desc':'asc'; Object.keys(PG).forEach(function(k){ if(k.indexOf('need.')===0) PG[k]=0; }); renderView('[data-stvsub][open] [data-stvsort]');
     announce('Needs correction sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
   }
   var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
@@ -651,22 +662,29 @@ document.addEventListener('click',function(e){
   var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
   var pg=t.closest('[data-sanpage]');
   if(pg&&!pg.disabled){
-    var bits=pg.getAttribute('data-sanpage').split(':'), sec=bits[0]==='ok'?'ok':'need', dir=Number(bits[1])>PG[sec]?'next':'prev';
+    // sec: 'ok' or 'need.<group>' (a Needs correction sub-section).
+    var bits=pg.getAttribute('data-sanpage').split(':'), sec=/^need\.[a-z-]+$/.test(bits[0])?bits[0]:'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
     PG[sec]=Math.max(0,Number(bits[1])||0);
-    OPEN=sec;
+    if(sec==='ok') OPEN='ok'; else { OPEN='need'; SUBOPEN=sec.slice(5); }
     renderView();
     // Keep focus on the pager button pressed (or its sibling when that end is reached).
     var bs=document.querySelectorAll('#stViewBody [data-sanpage^="'+sec+':"]'), f=dir==='next'?bs[bs.length-1]:bs[0];
     if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
     if(f) try{ f.focus(); }catch(err){}
-    var box=f&&f.closest('.tb-san-in'), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
-    announce((sec==='ok'?'Cleared tickets':'Tickets that need correction')+': page '+(PG[sec]+1));
+    var box=f&&(f.closest('.stv-sub-in')||f.closest('.tb-san-in')), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
+    announce((sec==='ok'?'Cleared tickets':'Tickets that need correction ('+subLabel(sec.slice(5))+')')+': page '+(PG[sec]+1));
   }
 });
 // One-open-at-a-time accordion: opening a section closes the others; OPEN survives re-renders
 // (paging, marking, refresh). A re-render's open section fires 'toggle' too, which keeps OPEN the same.
 document.addEventListener('toggle',function(e){
   var d=e.target; if(!d||!d.getAttribute||!d.closest||!d.closest('#stViewBody')) return;
+  var sub=d.getAttribute('data-stvsub');
+  if(sub){
+    SUBOPEN=V.nextSubOpen(SUBOPEN,sub,d.open);
+    if(d.open){ var ss=document.querySelectorAll('#stViewBody details[data-stvsub]'); for(var j=0;j<ss.length;j++) if(ss[j]!==d&&ss[j].open) ss[j].open=false; }
+    return;
+  }
   var sec=d.getAttribute('data-stvsec');
   if(sec){
     OPEN=V.nextOpen(OPEN,sec,d.open);

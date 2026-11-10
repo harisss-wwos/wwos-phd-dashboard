@@ -842,6 +842,11 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mtc.temp .mtc-tid{text-decoration:none!important;display:inline!important}
 .mtc.temp .mtc-title,.mtc.temp.viewed .mtc-title{display:inline-block!important;flex:1 1 auto;min-width:0;text-decoration:none;color:#5c6773}
 .mtc.temp::before{background:#8793a0}
+/* "View incident log" (log + comments, read-only) — only on temporarily resolved rows. */
+.mtc-viewlog{display:none}
+.mtc.temp .mtc-viewlog{display:inline-flex;padding:5px 12px}
+.mtc-viewlog svg{width:13px;height:13px}
+.mtc-viewlog:focus-visible{outline:3px solid var(--mt-focus);outline-offset:2px}
 .mt-noresults{padding:22px 12px;text-align:center;color:var(--mt-mut);font-size:.88em;border:1px dashed #d4dade;border-radius:10px}
 .mt-noresults[hidden]{display:none}
 
@@ -1085,7 +1090,10 @@ td.mt-actions .btn svg{flex-shrink:0}
       <button type="button" class="ilv-icbtn" id="viewIncidentCopyBtn" onclick="copyIncidentLog()" style="display:none" title="Copy all entries" aria-label="Copy all entries"><span class="ilog-copy-ic" aria-hidden="true"></span></button>
       <button type="button" class="ilv-icbtn" id="viewIncidentCloseBtn" onclick="closeViewIncident()" title="Close" aria-label="Close"><span class="ilog-close-ic" aria-hidden="true"></span></button>
     </div>
-    <div class="ilv-body" id="viewIncidentList"></div>
+    <div class="ilv-body">
+      <div class="ilcm ilv-cmts" id="viewIncidentCmts" hidden></div>
+      <div id="viewIncidentList"></div>
+    </div>
   </div>
 </div>
 
@@ -1139,12 +1147,22 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=42"></script>
+<script src="incident-log-editor.js?v=43"></script>
 <script src="topbar-auth.js?v=231"></script>
 <script>
 const A=window.PHDAuth;
 // Build the shared Add/Edit incident-log modal into its placeholder (before anything can open it).
-if(window.IncidentLogEditor){ window.IncidentLogEditor.mount('incidentModalMount'); window.IncidentLogEditor.injectViewStyles(); }
+if(window.IncidentLogEditor){ window.IncidentLogEditor.mount('incidentModalMount'); window.IncidentLogEditor.injectViewStyles();
+  // Opt in to the editor's comments panel + header temp-resolve switch, and the "Previous comments"
+  // list in the view pop-up. Same comment API calls / temp-resolve state as the ticket cards.
+  window.IncidentLogEditor.setCommentsProvider({
+    list:function(sid){ return A.api('GET','/api/tickets/'+encodeURIComponent(sid)+'/comments'); },
+    add:function(sid,text){ return A.api('POST','/api/tickets/'+encodeURIComponent(sid)+'/comments',{text:text}); },
+    onAdded:function(sid){ var i=TICKETS.findIndex(function(t){ return String(t.shortId)===String(sid); }); if(i>=0) refreshLatestComment(i); },
+    fmtWhen:function(iso){ return fmtTZ(iso,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ; },
+    tempResolve:{ get:function(sid){ return TEMP_RESOLVED.has(String(sid)); }, set:function(sid,cb){ toggleTempResolve(sid,cb); } }
+  });
+}
 const ic=(n,s)=>window.icon?window.icon(n,s||14):'';
 const isEditor=()=>A.role&&A.role()==='editor';
 let TICKETS=[];
@@ -2153,6 +2171,7 @@ function cardHtml(t,i,editor){
       <span class="mtc-head-right">
         <span class="mtc-pill mtc-pill-right ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
         <span class="mtc-icons mtc-icons-collapsed" id="ticons-c-${i}">${ticketIconsHtml(i,true)}</span>
+        <button type="button" class="mtc-b mtc-viewlog" title="View the incident log and comments" aria-label="View incident log for ${esc(sid)}" onclick="openViewIncident(${i})">${ic('clipboard',13)} View incident log</button>
         <label class="mtc-toggle${temp?' on':''}" title="${temp?'Move back to open':'Temporarily resolve (working only)'}"><input type="checkbox" class="mt-sr" aria-label="Temporarily resolve ${esc(sid)} (working view only)" ${temp?'checked':''} onchange="toggleTempResolve('${esc(sid)}',this)"><i></i></label>
       </span>
     </div>
@@ -2534,6 +2553,8 @@ async function openViewIncident(i){
   const ent='<div>'+sk('45%',10)+sk('100%',12)+sk('80%',12)+'</div>';
   listBox.setAttribute('aria-busy','true');
   listBox.innerHTML='<span class="mt-sr" role="status">Loading incident log\u2026</span><div class="mt-mskel" aria-hidden="true">'+ent+ent+'</div>';
+  // The ticket's comments (collapsed "Previous comments (N)", newest first) above the entries.
+  if(window.IncidentLogEditor&&window.IncidentLogEditor.renderComments) window.IncidentLogEditor.renderComments(document.getElementById('viewIncidentCmts'),t.shortId,false);
   document.getElementById('viewIncidentModal').style.display='flex';
   let r=null; try{ r=await A.api('GET','/api/tickets/'+encodeURIComponent(t.shortId)+'/incident-log'); }catch(e){}
   if(VIEW_INC_INDEX!==i) return;   // closed / reopened for another ticket meanwhile
@@ -2552,7 +2573,7 @@ async function openViewIncident(i){
     VIEW_INC_ITEMS=[];
     if(copyBtn)copyBtn.style.display='none';
     setViewIncidentHead(t,0);
-    document.getElementById('viewIncidentList').innerHTML='<div class="ilv-empty">No incident log exists for this ticket.</div>';
+    document.getElementById('viewIncidentList').innerHTML='<div class="ilv-empty">No incident log yet for this ticket.</div>';
     document.getElementById('viewIncidentModal').style.display='flex';
     return;
   }
