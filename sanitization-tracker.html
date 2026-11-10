@@ -28,10 +28,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
 <style id="st-light">
-/* Sanitization Tracker (the owner and every contractor see the same page): navy hero with an orange
-   rule (tool buttons on its right), KPI cards overlapping it, the contractor cards, then the selected
-   contractor's view. The view is sanitization-view.js markup.
-   Everything is scoped under .st. */
+/* Sanitization Tracker (also the Ticket Sanitization page): navy hero with an orange rule and two rows
+   of tool buttons, then one-open-at-a-time accordion sections (sanitization-checklist.css .ts-acc):
+   Sanitization checklist (everyone), Contractors (owner + contractors: KPI cards, the contractor cards,
+   the selected contractor's view = sanitization-view.js markup), Sanitization scores and the assignment
+   log (owner only; sanitization-checklist.js). Page styles are scoped under .st. */
 #wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
 .st{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
   --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
@@ -40,14 +41,23 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---- Hero ---- */
-.st-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 78px 32px;color:#e9edf3;
+.st-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 24px 32px;margin-bottom:16px;color:#e9edf3;
   background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
   box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
 .st-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
   background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
   background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
 .st-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
-.st-hero.is-gate{padding-bottom:28px}
+.st-hero-ttl{min-width:0;flex:1 1 auto}
+/* Summary chips (sanitization-checklist.js) + the "Data as of" pill, one wrapping row under the subtitle. */
+.st-hero-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+.st-hero-chips .ts-hero-chips{margin:0}
+.st-asof{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;color:#e9edf3;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st-asof svg{color:#ffb26b;flex-shrink:0}
+.st-asof b{color:#fff;font-weight:800}
+.st-asof[hidden]{display:none}
+.st-hero .ts-hero-acts.is-rows{position:relative;margin-top:18px}
 .st-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
 .st-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
 .st-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
@@ -63,18 +73,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-meta-v{display:inline-flex;align-items:center;gap:7px;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
 .st-meta-v svg{color:#ffb26b;flex-shrink:0}
 @container (max-width:560px){
-  .st-hero{padding:20px 18px 72px 22px}
+  .st-hero{padding:20px 18px 20px 22px}
   .st-hero h1{font-size:1.65em}
   .st-hero-ic{width:40px;height:40px}
   .st-hero-main{flex-basis:100%}
 }
 
-/* ---- KPI row (overlaps the hero) ---- */
-.st-kpis{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:-56px 18px 16px;padding:0;list-style:none}
+/* ---- KPI row (top of the Contractors section) ---- */
+.st-kpis{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0 0 16px;padding:0;list-style:none}
 @container (min-width:420px){.st-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @container (min-width:640px){.st-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @container (min-width:1000px){.st-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
-@container (max-width:560px){.st-kpis{margin:-54px 10px 14px}}
 .st-kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px 15px;
   box-shadow:0 16px 32px -24px rgba(20,30,50,.6)}
 .st-kpi::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--k,#c4ccd4)}
@@ -136,22 +145,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view.tb-asg-card .tb-asg-scroll{max-height:70vh}
 .st-view.tb-san-card .tb-san-sum p{font-size:.92em}
 .st-view[aria-busy="true"]{opacity:.6}
-/* Hero tool row: the buttons (sanitization-tools.css .ts-hero-acts) + "Data as of", equal-width cells in one row. */
-.st-hero-bar{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;margin-top:18px}
-.st-hero-bar .ts-hero-acts{display:contents}
-.st-hero-bar .ts-hero-link{margin:0;align-self:stretch;min-width:0}
-.st-hero-bar .ts-hl-txt{min-width:0}
-.st-hero-bar .ts-hl-t,.st-hero-bar .ts-hl-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.st-hero-asof{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;min-height:40px;padding:9px 16px;border-radius:10px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18)}
-.st-hero-asof .st-meta-v{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:900px){.st-hero-bar{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.st-hero-bar{grid-template-columns:minmax(0,1fr)}}
-/* Hero side column: the tool buttons (sanitization-tools.css .ts-hero-acts) above the data stamp. */
-.st-hero-side{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-left:auto;min-width:0}
-.st-hero-side .ts-hero-acts{margin-left:0;align-self:stretch}
-.st-hero-side .st-meta{justify-content:flex-end}
-@container (max-width:560px){.st-hero-side{margin-left:0;width:100%}.st-hero-side .st-meta{justify-content:flex-start}}
 .st-card-cnt .is-temp{background:#e9f0fb;color:#1f4f99}
 .st-card-cnt .is-err{background:#fff3e8;color:#8a3a00}
 /* Ticket view (sanitization-view.js): one line per ticket. Score / Ticket ID / Status (and Marked at /
@@ -234,10 +227,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view .stv-sub-in{padding:8px 10px 10px}
 .st-view .stv-cc{display:inline-block;padding:1px 7px;border-radius:99px;background:#eef1f4;color:#2a3340;font-size:.8em;font-weight:700;white-space:nowrap}
 #stRevDlg .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Contractors section (a top-level accordion card): KPIs, the cards, then the selected contractor's view. */
+.st-con-cards{margin-bottom:16px}
+.st-con .st-sec{margin-bottom:0}
 </style>
-<link rel="stylesheet" href="sanitization-tools.css?v=1">
+<link rel="stylesheet" href="sanitization-tools.css?v=2">
+<link rel="stylesheet" href="sanitization-checklist.css?v=1">
 </head>
-<body data-nav-active="sanitization-tracker" data-back-href="ticket-sanitization.html" data-back-label="Ticket Sanitization">
+<body data-nav-active="sanitization-tracker" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
   <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
 </div>
@@ -245,15 +242,67 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- One persistent polite live region (outside #wrap, so re-renders never replace it). -->
 <div id="stLive" class="st-sr" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
 
+<!-- Add-check pop-up (editors): the shared .tbl-* dialog shell from topbar-auth.js. -->
+<div class="tbl-bg" id="tsAddModal" style="display:none" onclick="if(event.target===this)tsCloseAdd()">
+  <div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="tsAddTitle" aria-describedby="tsAddDesc">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="plus" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization &middot; Checklist</div><h2 class="tbl-title" id="tsAddTitle">Add new check</h2></div>
+      <button type="button" class="tbl-x" onclick="tsCloseAdd()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub" id="tsAddDesc">Add a check to the SIM Title, Root Cause Details, Hashtags or ClosureCode section.</p>
+    </div>
+    <div class="tbl-body">
+      <label class="tbl-label" for="tsAddSec">Section</label>
+      <select id="tsAddSec"></select>
+      <label class="tbl-label" for="tsAddText">Check</label>
+      <textarea id="tsAddText" maxlength="1000" rows="4" placeholder="e.g. Has a valid country code"
+        onkeydown="if(event.key==='Enter'&amp;&amp;(event.ctrlKey||event.metaKey)){event.preventDefault();tsAdd();}"></textarea>
+      <div class="tbl-err" id="tsAddErr" role="alert"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" onclick="tsCloseAdd()">Cancel</button>
+        <button type="button" class="tbl-submit" id="tsAddSave" onclick="tsAdd()">Add check</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit-line modal (editors) -->
+<div class="ts-modal-bg" id="tsEditModal" onclick="if(event.target===this)tsCloseEdit()">
+  <div class="ts-modal" role="dialog" aria-modal="true" aria-labelledby="tsEditTitle">
+    <div class="ts-modal-head"><h2 id="tsEditTitle">Edit checklist line</h2><button class="ts-modal-x" type="button" onclick="tsCloseEdit()" aria-label="Close">&times;</button></div>
+    <label class="ts-sr" for="tsEditText">Checklist line text</label>
+    <textarea id="tsEditText" maxlength="1000" rows="3" placeholder="Checklist line text&hellip;"></textarea>
+    <div class="ts-modal-err" id="tsEditErr" role="alert"></div>
+    <div class="ts-modal-actions">
+      <button class="ts-mbtn sec" type="button" onclick="tsCloseEdit()">Cancel</button>
+      <button class="ts-mbtn primary" id="tsEditSave" type="button" onclick="tsEditSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete-confirm modal (editors) -->
+<div class="ts-modal-bg" id="tsDelModal" onclick="if(event.target===this)tsCloseDel()">
+  <div class="ts-modal ts-modal-danger" role="dialog" aria-modal="true" aria-labelledby="tsDelTitle">
+    <div class="ts-modal-head"><h2 id="tsDelTitle">Delete checklist line?</h2><button class="ts-modal-x" type="button" onclick="tsCloseDel()" aria-label="Close">&times;</button></div>
+    <p class="ts-modal-body" id="tsDelBody"></p>
+    <div class="ts-modal-actions">
+      <button class="ts-mbtn sec" type="button" onclick="tsCloseDel()">Cancel</button>
+      <button class="ts-mbtn danger" id="tsDelConfirm" type="button" onclick="tsDelConfirm()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
-<script src="topbar-auth.js?v=231"></script>
+<script src="topbar-auth.js?v=232"></script>
 <script src="sanitization-view.js?v=6"></script>
-<script src="sanitization-tools.js?v=1"></script>
+<script src="sanitization-tools.js?v=2"></script>
+<!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
+<script src="sanitization-checklist.js?v=1"></script>
 <script>
-var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools;
+var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function ic(n,s){return window.icon?window.icon(n,s||14):'';}
 function $(id){return document.getElementById(id);}
@@ -291,24 +340,26 @@ function sortList(l){ return l.slice().sort(function(a,b){
   return (Number(b.needsCorrection)||0)-(Number(a.needsCorrection)||0) || (Number(b.assigned)||0)-(Number(a.assigned)||0) || String(a.login).localeCompare(String(b.login)); }); }
 function totals(){ var t={assigned:0,cleared:0,need:0,temp:0,err:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.temp+=Number(c.tempCompleted)||0; t.err+=Number(c.errorTickets)||0; }); return t; }
 
-// ---- Hero / gate ----
+// ---- Hero / login gate ----
+// CON = the Contractors section is on the page (owner + contractors; removed if the server says 403).
+var CON=false;
+function asOfText(){ return ST.state==='done'?(ST.asOf?esc(S.when(ST.asOf)):'Unknown'):(ST.state==='error'?'Not loaded':'Loading\u2026'); }
+function asOfHtml(){ return ic('clock',13)+'<span>Data as of <b>'+asOfText()+'</b></span>'; }
+function renderAsOf(){ var el=$('stAsOf'); if(!el) return; el.hidden=!CON; el.innerHTML=asOfHtml(); }
 function heroHtml(gate){
-  var asOf=ST.state==='done'?(ST.asOf?esc(S.when(ST.asOf)):'Unknown'):(ST.state==='error'?'Not loaded':'Loading\u2026');
-  // "Update tickets data" stays owner-only (the endpoint is owner-only too).
-  // One row under the subtitle: [Update tickets data (owner)] [Generate…] [Open sheet] [Data as of], equal widths.
-  var bar=gate?'':'<div class="st-hero-bar">'+(TOOLS?TOOLS.heroActsHtml({owner:S.isOwner()}):'')+
-    '<div class="st-hero-asof" aria-label="Data as of"><span class="st-meta-k">Data as of</span><span class="st-meta-v">'+ic('clock',14)+asOf+'</span></div></div>';
-  return '<header class="st-hero'+(gate?' is-gate':'')+'"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('eraser',24)+'</span><div>'+
-    '<p class="st-eyebrow">Ticket sanitization \u00b7 Tracker</p><h1>Sanitization Tracker</h1>'+
-    '<p class="st-hero-sub">Every contractor\u2019s sanitization tickets, scored live: what is cleared (every required check passes) and what still needs correction.</p>'+
-    '</div></div></div>'+bar+'</header>';
+  // Two rows of equal-width buttons: [Update tickets data (owner only; the endpoint is owner-only too) | Generate…]
+  // and [Open assigned tickets sheet | Copy prompt (orange)]. "Data as of" (contractor data) is a pill by the chips.
+  var acts=gate?'':(TOOLS?TOOLS.heroActsHtml({owner:S&&S.isOwner(),extra:CK?CK.promptBtnHtml():''}):'');
+  var chips=gate?'':'<div class="st-hero-chips"><ul class="ts-hero-chips" id="tsHeroChips" aria-label="Summary">'+(CK?CK.chipsHtml():'')+'</ul>'+
+    '<span class="st-asof" id="stAsOf" aria-live="off"'+(CON?'':' hidden')+'>'+asOfHtml()+'</span></div>';
+  return '<header class="st-hero"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('eraser',24)+'</span><div class="st-hero-ttl">'+
+    '<p class="st-eyebrow">Ticket sanitization</p><h1>Sanitization Tracker</h1>'+
+    '<p class="st-hero-sub">Work through the sanitization checklist, and track every contractor\u2019s tickets scored live.</p>'+chips+
+    '</div></div></div>'+acts+'</header>';
 }
-function gate(kind){
-  var body, head='Contractors and the owner only';
-  if(kind==='login'){ head='Login required'; body='<p class="st-empty">Please log in from the Live Dashboard to use this page.</p><p style="margin-top:12px"><a class="st-btn" href="app.html">Go to the live dashboard</a></p>'; }
-  else if(kind==='error') body='<div class="st-err" role="alert">Could not load the sanitization tickets.<button type="button" class="st-btn is-ghost" id="stGateRetry">Try again</button></div>';
-  else body='<p class="st-empty">This page is for sanitization contractors and the owner.</p><p style="margin-top:12px"><a class="st-btn is-ghost" href="ticket-sanitization.html">Go to Ticket Sanitization</a></p>';
-  $('wrap').innerHTML='<div class="st">'+heroHtml(true)+'<section class="st-sec" aria-labelledby="stGateH" style="margin-top:16px"><div class="st-sec-h"><div class="st-sec-txt"><h2 class="st-sec-t" id="stGateH">'+head+'</h2></div></div><div class="st-sec-b">'+body+'</div></section></div>';
+function gate(){
+  var body='<p class="st-empty">Please log in from the Live Dashboard to use this page.</p><p style="margin-top:12px"><a class="st-btn" href="app.html">Go to the live dashboard</a></p>';
+  $('wrap').innerHTML='<div class="st">'+heroHtml(true)+'<section class="st-sec" aria-labelledby="stGateH"><div class="st-sec-h"><div class="st-sec-txt"><h2 class="st-sec-t" id="stGateH">Login required</h2></div></div><div class="st-sec-b">'+body+'</div></section></div>';
 }
 
 // ---- KPIs (owner) ----
@@ -384,7 +435,7 @@ function renderCards(focusLogin){
   var b=$('stCardsBody'); if(!b) return;
   b.innerHTML=cardsBody();
   var d=$('stCardsD');
-  if(d) d.textContent=ST.state==='done'?(num(ST.list.length)+' contractor'+(ST.list.length===1?'':'s')+', most tickets needing correction first. Pick one to see their tickets below.'):'Loading\u2026';
+  if(d) d.textContent=ST.state==='done'?('Totals, then the contractors (most tickets needing correction first). Pick one to see their tickets below.'):'Loading\u2026';
   if(focusLogin){ var f=b.querySelector('[data-login="'+String(focusLogin).replace(/["\\]/g,'')+'"]'); if(f) try{ f.focus(); }catch(e){} }
 }
 function viewSecHtml(){
@@ -393,12 +444,30 @@ function viewSecHtml(){
       'Set a ticket\u2019s status to Completed (re-checked after the next data upload) or Error ticket (sent to the owner for review). One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
 }
+// The Contractors section: a top-level accordion card (sanitization-checklist.js helpers) holding the
+// KPIs, the contractor cards and the selected contractor's view.
+function conSum(){ return ST.state==='done'?CK.topSum(num(ST.list.length)+' contractor'+(ST.list.length===1?'':'s')):''; }
+function conHtml(){
+  return '<section class="'+CK.topCls('stCon')+' st-con" id="stCon" aria-labelledby="stConHead">'+
+    CK.topHead('stCon',{icon:ic('users',17),title:'Contractors',sum:'<span id="stConSum">'+conSum()+'</span>',sub:'<span id="stCardsD"></span>'})+
+    CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
+}
+// The page shell (built once): hero, then Checklist / Contractors / Scores / Assignment log.
+function buildPage(){
+  $('wrap').innerHTML='<div class="st ts">'+heroHtml(false)+'<div class="ts-main">'+
+    CK.guideHtml()+(CON?conHtml():'')+CK.scoreHtml()+CK.logHtml()+'</div></div>';
+}
+// Re-render the Contractors section's contents in place (the other sections keep their state).
 function render(){
-  $('wrap').innerHTML='<div class="st">'+heroHtml(false)+kpisHtml()+
-    '<section class="st-sec" aria-labelledby="stCardsH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('users',18)+'</span>'+
-      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stCardsH">Contractors</h2><p class="st-sec-d" id="stCardsD"></p></div></div>'+
-      '<div class="st-sec-b" id="stCardsBody"></div></section>'+viewSecHtml()+'</div>';
+  if(!$('stCon')) return;
+  renderAsOf(); renderKpis();
+  var s=$('stConSum'); if(s) s.innerHTML=conSum();
   renderCards(); renderView();
+}
+// Not a contractor after all (403): drop the section and the "Data as of" pill.
+function dropCon(){
+  CON=false; var c=$('stCon'); if(c) c.remove(); renderAsOf();
+  if(CK.open()==='stCon') CK.open(null);
 }
 
 // ---- Data ----
@@ -451,10 +520,10 @@ function applyList(d){
   announce('Loaded '+ST.list.length+' contractors.');
   if(pick) select(pick,false); else setUrl('');
 }
-// Ask the server afresh; 403 (not a contractor / the owner) shows the gate.
+// Ask the server afresh; 403 (not a contractor / the owner) removes the Contractors section.
 function fetchList(){
   A.api('GET','/api/my-sanitization').then(function(r){
-    if(r&&r.status===403){ gate('none'); return; }
+    if(r&&r.status===403){ dropCon(); return; }
     applyList(r&&r.ok?r.data:null);
   },function(){ applyList(null); });
 }
@@ -627,7 +696,6 @@ document.addEventListener('click',function(e){
   var card=t.closest('.st-card[data-login]');
   if(card){ select(card.getAttribute('data-login'),true); return; }
   if(t.closest('#stRetry')){ loadList(true); return; }
-  if(t.closest('#stGateRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
   if(t.closest('[data-stvsort]')){
     SORT=SORT==='asc'?'desc':'asc'; Object.keys(PG).forEach(function(k){ if(k.indexOf('need.')===0) PG[k]=0; }); renderView('[data-stvsub][open] [data-stvsort]');
@@ -696,11 +764,16 @@ document.addEventListener('toggle',function(e){
 
 // ---- Start ----
 (function(){
-  if(!(A&&A.getUser&&A.getUser())){ gate('login'); return; }
-  if(!S||!V||!S.mayAsk()){ gate('none'); return; }
+  if(!(A&&A.getUser&&A.getUser())){ gate(); return; }
+  // Every logged-in user: hero + the checklist. Contractors section: the owner and contractors (analyst +
+  // role editor; the server decides, a 403 removes it). Scores + assignment log: the owner (CK decides).
+  // The checklist is open on load (a ?login= deep link still picks that contractor inside Contractors).
+  CON=!!(S&&V&&S.mayAsk());
+  buildPage();
+  CK.start();
+  if(!CON) return;
   // Times in the account timezone (IST / MST), like the rest of the app.
-  if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ var h=$('wrap').querySelector('.st-meta-v'); if(h) h.innerHTML=ic('clock',14)+(ST.asOf?esc(S.when(ST.asOf)):'Unknown'); renderView(); } } }).catch(function(){});
-  // The owner and contractors (analyst + role editor; the server decides) get the same page.
+  if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ renderAsOf(); renderView(); } } }).catch(function(){});
   loadList(false);
 })();
 </script>

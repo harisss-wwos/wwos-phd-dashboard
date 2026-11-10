@@ -1,0 +1,352 @@
+/* Ticket Sanitization sections of sanitization-tracker.html (sanitization-checklist.js; moved here from
+   ticket-sanitization.html): hero chips, the top-level accordion cards, the checklist (vertical numbered
+   stepper, circles joined by a rail), sanitization scores, the Assign pop-up and the assignment log.
+   Everything is scoped under .ts (a size container, so the layout reacts to the content column width).
+   The hero itself and its buttons are the page's (.st-hero) + sanitization-tools.css (.ts-hero-link). */
+.ts{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--info:#1d5a8a;--info-bg:#eaf3fb;--focus:#f0a35a;--navy:#161d2d;
+  container-type:inline-size;color:var(--ink)}
+.ts button,.ts-modal button{font-family:inherit}
+.ts :is(button,a,input,li[tabindex]):focus-visible,.ts-modal :is(button,textarea):focus-visible{outline:3px solid var(--focus,#f0a35a);outline-offset:2px}
+
+/* ---- Hero summary chips ('N steps', 'Editor access') ---- */
+.ts-hero-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
+.ts-hero-chips li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;
+  color:#e9edf3;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
+.ts-hero-chips li::before{content:'';width:6px;height:6px;border-radius:50%;background:#ffb26b}
+.ts-hero-chips li b{color:#fff;font-weight:800}
+.ts-hero-chips li.is-acc{background:rgba(236,114,17,.18);border-color:rgba(236,114,17,.5);color:#ffd2a8}
+.ts-hero-chips li.is-skel::before{display:none}
+
+/* ---- Layout: single full-width content column ---- */
+.ts-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* ---- Cards ---- */
+.ts-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;overflow:hidden;scroll-margin-top:90px}
+.ts-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#ff9f2e,#ec7211)}
+.ts-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:14px}
+.ts-head-t{display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1 1 300px}
+.ts-head-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.ts-head h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)}
+.ts-head h2:focus{outline:none}
+.ts-head-p{margin:5px 0 0;color:var(--mut);font-size:.86em;font-weight:600;line-height:1.5}
+.ts-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:2px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);
+  font-size:.66em;font-weight:800;letter-spacing:0;color:#3a4552;font-variant-numeric:tabular-nums}
+.ts-mode{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.56em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:var(--acc-bg);color:var(--acc-ink);border:1px solid #f7c99c;white-space:nowrap}
+.ts-mode::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--acc)}
+
+/* ---- Callouts ---- */
+.ts-callout{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;padding:10px 13px;border-radius:10px;border:1px solid #c9dff0;background:var(--info-bg);color:#1f3f5c;font-size:.86em;line-height:1.5}
+.ts-callout svg{flex-shrink:0;margin-top:1px;color:var(--info)}
+.ts-callout b{color:#12324d}
+.ts-callout.is-warn{border-color:#f5d48c;background:#fff8e6;color:#6b4a06}
+.ts-callout.is-warn svg{color:#b7791f}
+
+/* Buttons */
+.ts-ibtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;cursor:pointer;border-radius:8px;border:1px solid #d4dade;background:#fff;color:#3a4552;
+  width:32px;height:32px;padding:0;transition:border-color .15s,background .15s,color .15s}
+.ts-ibtn:hover{border-color:#9aa6b1;background:#f5f6f8;color:var(--ink)}
+.ts-ibtn.del{border-color:#f1c4c4;color:#c0261a}
+.ts-ibtn.del:hover{background:var(--red-bg);border-color:#dc2626;color:#c0261a}
+.ts-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:none;border-radius:8px;background:var(--navy);color:#f4f3ef!important;font-size:.86em;font-weight:800;cursor:pointer;text-decoration:none;transition:background .15s}
+.ts-btn svg{color:#ffb26b}
+.ts-btn:hover{background:#0f1420}
+
+/* ---- Stepper ---- */
+.ts-steps{list-style:none;margin:0;padding:0}
+.ts-step{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:14px;padding-bottom:12px;border-radius:10px;scroll-margin-top:90px}
+.ts-step:last-child{padding-bottom:0}
+/* Rail joining the circles. */
+.ts-step::before{content:'';position:absolute;left:19px;top:40px;bottom:0;width:2px;border-radius:2px;background:linear-gradient(180deg,#f7c99c,#e2e6ea)}
+.ts-step:last-child::before{display:none}
+.ts-step:focus{outline:none}
+.ts-step:focus-visible .ts-step-body{outline:3px solid var(--focus);outline-offset:2px}
+.ts-dot{position:relative;z-index:1;width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:2px solid #f3b77f;
+  color:var(--acc-ink);font-size:.92em;font-weight:800;font-variant-numeric:tabular-nums;box-shadow:0 0 0 4px #fff}
+.ts-step:first-child .ts-dot{background:linear-gradient(180deg,#ff9f2e,#ec7211);border-color:#ec7211;color:#fff}
+.ts-step-body{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:10px 12px 10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;
+  transition:border-color .15s,box-shadow .15s,background .15s}
+.ts-step:hover .ts-step-body{border-color:#cfd6dd;box-shadow:0 10px 22px -18px rgba(20,30,50,.55)}
+.ts-step-txt{flex:1 1 auto;min-width:0;padding-top:1px}
+.ts-step-k{display:block;font-size:.66em;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--acc-ink);margin-bottom:2px}
+.ts-text{display:block;color:#2a3340;font-size:.94em;font-weight:600;line-height:1.55;overflow-wrap:anywhere}
+.ts-step-act{flex-shrink:0;display:inline-flex;align-items:center;gap:6px}
+/* Sub-sections (SIM Title / Root Cause Details / Hashtags): collapsible disclosure header + its own numbered list. */
+.ts-secs{display:flex;flex-direction:column;gap:12px}
+.ts-sec{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.ts-sec-head{display:flex;align-items:center;gap:10px 12px;padding:10px 14px;background:var(--soft)}
+.ts-sec.is-open>.ts-sec-h{border-bottom:1px solid var(--line)}
+.ts-sec-h{margin:0;font-size:.98em;font-weight:800;letter-spacing:-.2px;line-height:1.25;color:var(--ink)}
+.ts-sec-tog{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:10px 14px;border:none;background:var(--soft);color:inherit;font:inherit;text-align:left;cursor:pointer;
+  transition:background .15s}
+.ts-sec-tog:hover{background:#eceff2}
+.ts .ts-sec .ts-sec-tog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ts-sec-chev{flex-shrink:0;display:inline-flex;color:#5c6773;transition:transform .2s ease}
+.ts-sec-tog[aria-expanded="true"] .ts-sec-chev{transform:rotate(90deg)}
+.ts-sec-lbl{min-width:0}
+.ts-sec-tog .ts-count{font-size:.74em;background:#fff}
+.ts-sec-ic{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.ts-sec-body[hidden]{display:none}
+.ts-sec-body>.ts-steps,.ts-sec-body>.ts-empty{margin:14px}
+.ts-text b{font-weight:800;color:var(--ink)}
+.ts-empty{display:flex;align-items:center;gap:10px;padding:14px;border:1px dashed #d4dade;border-radius:10px;color:var(--mut);font-size:.9em;font-style:italic}
+
+/* Editor "Add new check" (header button) + its pop-up: the shared .tbl-* dialog shell from topbar-auth.js. */
+.ts-head .ts-btn{flex-shrink:0;margin-left:auto}
+#tsAddModal .tbl-card{width:min(560px,92vw)!important}
+#tsAddModal .tbl-card :is(select,textarea){display:block;width:100%!important;margin:0 0 14px!important;background:#f7f9fb!important;color:#1b2026!important;border:1px solid #cdd4db!important;border-radius:10px!important;
+  font-size:.95em!important;font-family:inherit;box-shadow:none!important;outline:none!important;transition:border-color .15s,box-shadow .15s,background .15s}
+#tsAddModal .tbl-card select{height:44px!important;padding:0 12px!important;font-weight:700;cursor:pointer}
+#tsAddModal .tbl-card textarea{min-height:104px;padding:11px 14px!important;line-height:1.5;resize:vertical}
+#tsAddModal .tbl-card textarea::placeholder{color:#8a94a2!important}
+#tsAddModal .tbl-card :is(select,textarea):hover{border-color:#aeb8c2!important}
+#tsAddModal .tbl-card :is(select,textarea):focus{background:#fff!important;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.22)!important}
+#tsAddModal .tbl-card textarea + .tbl-err{margin-top:2px!important}
+#tsAddModal .tbl-row button.tbl-submit{width:auto;min-width:124px;height:42px}
+@media(max-width:479px){#tsAddModal .tbl-row button.tbl-submit{width:100%;height:44px}}
+.ts-err{display:none;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--red-bg);border:1px solid #f2b8b1;color:var(--red);font-size:.86em;font-weight:700;line-height:1.45}
+
+/* ---- Loading / error states ---- */
+.ts-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:tsShim 1.4s ease infinite}
+.ts-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes tsShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.ts-state{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;padding:16px 18px;border-radius:10px;border:1px solid #f2b8b1;background:#fffafa}
+.ts-state-ic{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red)}
+.ts-state.is-info{border-color:var(--line);background:var(--soft)}
+.ts-state.is-info .ts-state-ic{background:var(--acc-bg);color:#b5530a}
+.ts-state-txt{flex:1 1 240px;min-width:0}
+.ts-state-t{margin:0;font-size:1em;font-weight:800;color:var(--ink)}
+.ts-state-p{margin:3px 0 0;font-size:.86em;line-height:1.5;color:var(--mut)}
+.ts-state .ts-btn{align-self:center}
+
+/* Spinner (.ts-spin, inline busy state on modal buttons) and .ts-sr: sanitization-tools.css. */
+
+/* ---- One entrance on the checklist's first loaded paint ---- */
+@keyframes tsUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ts-acc.is-anim .ts-step{animation:tsUp .4s ease both;animation-delay:calc(.1s + var(--i,0) * 40ms)}
+@media (prefers-reduced-motion:reduce){
+  .ts *,.ts *::before,.ts *::after,.ts-modal *,.ts-modal-bg{animation:none!important;transition:none!important}
+}
+
+@container (max-width:520px){
+  .ts-step{grid-template-columns:32px minmax(0,1fr);column-gap:10px}
+  .ts-dot{width:32px;height:32px;font-size:.84em}
+  .ts-step::before{left:15px;top:32px}
+  .ts-step-body{flex-wrap:wrap;padding:10px 12px}
+  .ts-step-txt{flex-basis:100%}
+  .ts-step-act{margin-left:auto}
+}
+@media (max-width:700px){
+  .ts-card{padding:18px 14px}
+  .ts-head-ic{display:none}
+}
+
+/* ---- Edit / delete modal popup ---- */
+.ts-modal-bg{position:fixed;inset:0;background:rgba(16,24,38,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px}
+.ts-modal-bg.show{display:flex;animation:tsFade .16s ease-out}
+@keyframes tsFade{from{opacity:0}to{opacity:1}}
+.ts-modal{--focus:#f0a35a;position:relative;overflow:auto;background:#fff;border:1px solid #e2e6ea;border-radius:12px;width:min(560px,100%);max-height:88vh;padding:22px 22px 18px;color:#1b2026;
+  box-shadow:0 28px 70px -24px rgba(16,24,38,.5);animation:tsUp .2s ease-out}
+.ts-modal::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#ff9f2e,#ec7211)}
+.ts-modal-danger::before{background:linear-gradient(90deg,#d92d20,#f97066)}
+.ts-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.ts-modal-head h2{margin:0;color:#1b2026;font-size:1.15em;font-weight:800;letter-spacing:-.2px}
+.ts-modal-danger .ts-modal-head h2{color:#b42318}
+.ts-modal-x{background:transparent;border:none;color:#5c6773;font-size:1.6em;line-height:1;cursor:pointer;padding:0 6px;border-radius:6px}
+.ts-modal-x:hover{color:#1b2026;background:#f5f6f8}
+.ts-modal textarea{width:100%;background:#fff;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-size:.92em;font-family:inherit;line-height:1.5;padding:11px 13px;resize:vertical;min-height:84px}
+.ts-modal textarea:focus{outline:none;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.16)}
+.ts-modal-body{color:#2a3340;font-size:.92em;line-height:1.6;margin:0;background:#f7f9fb;border:1px solid #eef1f4;border-radius:8px;padding:12px 14px;word-break:break-word}
+.ts-modal-err{display:none;color:#b42318;font-size:.84em;font-weight:700;margin-top:10px}
+.ts-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid #eef1f4}
+.ts-mbtn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:8px;font-family:inherit;font-weight:800;font-size:.86em;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s,color .15s}
+.ts-mbtn.primary{background:#161d2d;color:#fff;border-color:#161d2d}
+.ts-mbtn.primary:hover{background:#0f1420}
+.ts-mbtn.danger{background:#c0261a;border-color:#c0261a;color:#fff}
+.ts-mbtn.danger:hover{background:#a51f15}
+.ts-mbtn.sec{background:#fff;border:1px solid #d4dade;color:#2a3340}
+.ts-mbtn.sec:hover{background:#f5f6f8}
+.ts-mbtn:disabled{opacity:.7;cursor:default}
+
+/* ---- Sanitization scores (owner-only card). --sc-h = the score's hue: 0 red ... amber ... max (11) green. ---- */
+.ts-own{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.56em;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
+  background:var(--info-bg);color:var(--info);border:1px solid #c9dff0;white-space:nowrap}
+.ts-sc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ts-sc-ctl label{font-size:.8em;font-weight:800;color:var(--mut)}
+.ts-sc-ctl select{height:36px;padding:0 10px;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-size:.88em;font-weight:700;font-family:inherit;background:#fff;cursor:pointer}
+.ts-sc-ctl select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.ts-sc-ctl select:disabled{opacity:.6;cursor:default}
+.ts-sc-tot{margin:0 0 12px;font-size:.9em;font-weight:700;color:#2a3340;font-variant-numeric:tabular-nums}
+.ts-sc-tot b{font-weight:800;color:var(--ink)}
+.ts-sc-tot span{color:var(--mut);font-weight:600}
+.ts-sc-dist{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.ts-sc-dist li{min-width:0}
+.ts-sc-dist button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:2px 0;border:none;background:transparent;font:inherit;cursor:pointer;border-radius:6px}
+.ts-sc-dist button:hover .ts-sc-bar{filter:brightness(.92)}
+.ts-sc-n{font-size:.74em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums}
+.ts-sc-col{display:flex;align-items:flex-end;width:100%;max-width:38px;height:64px}
+.ts-sc-bar{width:100%;min-height:2px;border-radius:4px 4px 0 0;background:hsl(var(--sc-h),68%,46%)}
+.ts-sc-x{font-size:.72em;font-weight:800;color:hsl(var(--sc-h),70%,28%)}
+.ts-sc-badge{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:3px 9px;border-radius:7px;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;
+  background:hsl(var(--sc-h),78%,92%);color:hsl(var(--sc-h),72%,26%);border:1px solid hsl(var(--sc-h),55%,70%)}
+.ts-sc-sec{border-left:4px solid hsl(var(--sc-h),68%,46%)}
+.ts-sc-sec.is-great .ts-sec-tog{background:#e5f5ec}
+.ts-sc-sec.is-great .ts-sec-tog:hover{background:#d6efe0}
+.ts-sc-great{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;background:var(--grn);color:#fff}
+.ts-sc-tw{overflow-x:auto;margin:14px}
+.ts-sc-tbl{width:100%;border-collapse:collapse;font-size:.84em}
+.ts-sc-tbl th{text-align:left;padding:7px 10px;border-bottom:2px solid var(--line);font-size:.86em;font-weight:800;color:var(--mut);white-space:nowrap}
+.ts-sc-tbl td{padding:7px 10px;border-bottom:1px solid #eef1f4;vertical-align:top;color:#2a3340;line-height:1.45}
+.ts-sc-tbl tr:last-child td{border-bottom:none}
+.ts-sc-tbl td.id{white-space:nowrap;font-weight:800}
+.ts-sc-tbl td.id a{color:#1d5a8a;text-decoration:none}
+.ts-sc-tbl td.id a:hover{text-decoration:underline}
+.ts-sc-tbl td.tt{min-width:220px;overflow-wrap:anywhere}
+.ts-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:180px}
+.ts-chip{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:.86em;font-weight:700;white-space:nowrap;background:var(--red-bg);color:var(--red);border:1px solid #f2b8b1;cursor:help}
+.ts-chip.ok{background:var(--grn-bg);color:var(--grn);border-color:#b7e1c7;cursor:default}
+.ts-chip b{margin-left:5px;font-weight:800;font-variant-numeric:tabular-nums}
+.ts-chip.ts-chip-grp{white-space:normal;border-radius:8px;gap:0;display:inline-block;line-height:1.5}
+.ts-chip-grp b{margin-left:3px}
+.ts-chip-sep{margin:0 5px;opacity:.55;font-weight:600}
+/* Score header row: toggle (left) + missing-checks summary chips (right corner; wraps below the title when narrow). */
+.ts-sc-hrow{display:flex;align-items:center;flex-wrap:wrap;background:var(--soft)}
+.ts-sc-hrow>.ts-sec-h{flex:1 1 260px;min-width:0}
+.ts-sc-sec.is-open>.ts-sc-hrow{border-bottom:1px solid var(--line)}
+.ts-sc-sec.is-great .ts-sc-hrow{background:#e5f5ec}
+.ts-sc-miss{flex:0 1 auto;max-width:62%;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;list-style:none;margin:0;padding:8px 14px 8px 0;font-size:.8em}
+@container (max-width:700px){ .ts-sc-miss{flex-basis:100%;max-width:none;justify-content:flex-start;padding:0 14px 10px 39px} }
+/* Quarter sub-sections inside an open score section. */
+.ts-sc-qs{display:flex;flex-direction:column;gap:8px;margin:14px}
+.ts-sc-q{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}
+.ts-sc-qh{margin:0;font-size:.92em;font-weight:800;line-height:1.25;color:var(--ink)}
+.ts-sc-q.is-open>.ts-sc-qh{border-bottom:1px solid var(--line)}
+.ts-sc-qtog{display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:8px 12px;border:none;background:#fff;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .15s}
+.ts-sc-qtog:hover{background:#f5f6f8}
+.ts .ts-sc-q .ts-sc-qtog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ts-sc-qtog[aria-expanded="true"] .ts-sec-chev{transform:rotate(90deg)}
+.ts-sc-qtog .ts-count{font-size:.78em;background:#fff}
+.ts-sc-qb[hidden]{display:none}
+.ts-sc-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}
+@container (max-width:899px){ .ts-sc-cols{grid-template-columns:minmax(0,1fr)} }
+.ts-sc-half{min-width:0;border:1px solid #eef1f4;border-radius:8px;overflow:hidden}
+.ts-sc-tbl.cmp{table-layout:fixed}
+.ts-sc-tbl.cmp th.id{width:120px}
+.ts-sc-tbl.cmp td{padding:6px 10px}
+.ts-sc-tbl.cmp td.tt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+.ts-sc-pg{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;padding:0 12px 12px}
+.ts-sc-pgs{font-size:.84em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.ts-sc-pgb{display:flex;gap:8px}
+.ts-sc-pgb .ts-mbtn{padding:7px 14px}
+.ts-sc-pgb .ts-mbtn:disabled{opacity:.45}
+@container (max-width:620px){ .ts-sc-dist{gap:3px;padding:10px 6px} .ts-sc-n{font-size:.66em} }
+
+/* ---- Sanitization assignments (owner-only): header Assign button, row tag, pop-up, assignment log card ---- */
+.ts-sc-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 14px 6px 0}
+.ts-sc-av{font-size:.78em;font-weight:800;color:var(--acc-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ts-sc-av.is-none{color:var(--mut)}
+.ts-abtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#2a3340;font:inherit;font-size:.78em;font-weight:800;cursor:pointer;white-space:nowrap}
+.ts-abtn:hover:not(:disabled){border-color:var(--acc);color:var(--acc-ink);background:#fffaf5}
+.ts-abtn:disabled{opacity:.5;cursor:not-allowed}
+.ts-abtn.is-red{border-color:#d92d20;background:#d92d20;color:#fff}
+.ts-abtn.is-red:hover:not(:disabled){background:#b42318;border-color:#b42318;color:#fff}
+.ts-abtn.is-red:focus-visible{outline-color:#7a271a}
+.ts-sc-atag{display:inline-flex;align-items:center;margin-right:6px;padding:0 7px;border-radius:99px;background:var(--info-bg);border:1px solid #c9dff0;color:var(--info);font-size:.86em;font-weight:800;vertical-align:1px}
+/* Pop-up (shared .tbl-* shell). */
+#tsAsgDlg .tbl-card{width:90vw!important;max-width:min(640px,96vw)!important}
+#tsAsgDlg input.tsa-num{display:block;width:160px;height:44px;padding:0 12px;border:1px solid #cdd4db;border-radius:10px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:1em;font-weight:700;font-variant-numeric:tabular-nums}
+#tsAsgDlg input.tsa-num:focus{outline:none;background:#fff;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+#tsAsgDlg input.tsa-num[aria-invalid="true"]{border-color:#d92d20}
+#tsAsgDlg .tsa-hint{margin:6px 0 0;color:#5c6773;font-size:.82em;font-weight:600}
+#tsAsgDlg .tsa-k{display:block;margin:0 0 8px;color:#2a3340;font-size:.8em;font-weight:800}
+/* Step 2 split: one row per contractor (login left, ticket count input right), single column, no inner scroll. */
+#tsAsgDlg .tsa-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+#tsAsgDlg .tsa-row{display:flex;align-items:center;gap:12px;min-height:56px;margin:0;padding:8px 10px 8px 14px;border:1px solid #cdd4db;border-radius:10px;background:#fff;cursor:text}
+#tsAsgDlg .tsa-row:hover{border-color:#9aa6b1}
+#tsAsgDlg .tsa-row:focus-within{border-color:#ec7211;box-shadow:inset 0 0 0 1px #ec7211}
+#tsAsgDlg .tsa-row.is-done{background:#ecf8f0;border-color:#b7e1c6;box-shadow:none;cursor:default}
+#tsAsgDlg .tsa-t{flex:1 1 auto;min-width:0;font-weight:800;color:#1b2026;font-size:.95em;overflow-wrap:anywhere}
+#tsAsgDlg input.tsa-q{flex:0 0 auto;width:96px;height:40px;margin:0;padding:0 10px;border:1px solid #cdd4db;border-radius:8px;background:#f7f9fb;color:#1b2026;font:inherit;font-size:1em;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+#tsAsgDlg input.tsa-q:focus{outline:none;background:#fff;border-color:#ec7211;box-shadow:0 0 0 3px rgba(236,114,17,.22)}
+#tsAsgDlg input.tsa-q[aria-invalid="true"]{border-color:#d92d20}
+#tsAsgDlg input.tsa-q:disabled{background:#fff;border-color:#b7e1c6;color:#1d7a43;opacity:1}
+#tsAsgDlg .tsa-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:.78em;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+#tsAsgDlg .tsa-tag.is-rem{background:#fff3e8;border:1px solid #f6c89b;color:#8a3a00}
+#tsAsgDlg .tsa-tag.is-all{background:#ecf8f0;border:1px solid #b7e1c6;color:#1d7a43}
+#tsAsgDlg .tsa-tag.is-over{background:var(--red-bg);border:1px solid #f2b8b1;color:#b42318}
+#tsAsgDlg .tsa-sum{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:14px 0 0;padding:10px 12px;border:1px solid #e2e7eb;border-radius:10px;background:#f7f9fb;color:#1b2026;font-size:.9em;font-weight:700;font-variant-numeric:tabular-nums}
+#tsAsgDlg .tsa-res{margin:12px 0 0;padding:10px 12px;border:1px solid #f2b8b1;border-radius:10px;background:var(--red-bg);color:#1b2026;font-size:.86em;font-weight:600;line-height:1.5}
+#tsAsgDlg .tsa-res p{margin:0}
+#tsAsgDlg .tsa-res p + p{margin-top:4px}
+#tsAsgDlg .tsa-res b.ok{color:#1d7a43}
+#tsAsgDlg .tsa-res b.bad{color:#b42318}
+#tsAsgDlg .tsa-prog{margin:12px 0 0;color:#2a3340;font-size:.86em;font-weight:700}
+#tsAsgDlg .tsa-prog:empty{display:none}
+#tsAsgDlg .tsa-dl{display:flex;flex-direction:column;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+#tsAsgDlg .tsa-dl li{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 10px 8px 14px;border:1px solid #e2e7eb;border-radius:10px;background:#fff}
+#tsAsgDlg .tsa-dl .tsa-c{color:#5c6773;font-size:.86em;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+#tsAsgDlg .tsa-all{display:flex;justify-content:flex-end;margin-top:12px}
+/* Only show the shared disabled-button spinner while actually submitting (same idea as .tb-asg-card in topbar-auth.js). */
+#tsAsgDlg .tbl-card button.tbl-submit:disabled:not(.is-busy){cursor:not-allowed;opacity:.5}
+#tsAsgDlg .tbl-card button.tbl-submit:disabled:not(.is-busy)::before{content:none}
+#tsAsgDlg .tsa-ok{display:flex;align-items:center;gap:10px;margin:0;padding:12px 14px;border:1px solid #b7e1c6;border-radius:10px;background:#ecf8f0;color:#1d7a43;font-weight:800}
+#tsAsgDlg .tsa-fb,.ts .tsa-fb{display:block;width:100%;min-height:96px;margin:10px 0 0;padding:8px 10px;border:1px solid #cdd4db;border-radius:8px;font:inherit;font-size:.82em;line-height:1.5;color:#1b2026;background:#fff;resize:vertical}
+.tsa-fbl{display:block;margin:10px 0 0;font-size:.8em;font-weight:700;color:#5c6773}
+.tsa-copied{font-size:.82em;font-weight:800;color:var(--grn,#1a7a43)}
+.tsa-mut{color:var(--mut);font-weight:600}
+/* Log */
+.tsa-days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.tsa-day{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tsa-day-h{margin:0;padding:9px 14px;background:var(--soft);border-bottom:1px solid var(--line);font-size:.9em;font-weight:800;color:var(--ink)}
+.tsa-log{list-style:none;margin:0;padding:0}
+.tsa-e{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;border-top:1px solid #eef1f4}
+.tsa-e:first-child{border-top:0}
+.tsa-e.is-rvk .tsa-what{color:var(--mut)}
+.tsa-what{flex:1 1 320px;min-width:0;font-size:.88em;line-height:1.5;color:#2a3340}
+.tsa-what b{color:var(--ink);font-weight:800}
+.tsa-pill{display:inline-flex;align-items:center;margin-left:6px;padding:1px 9px;border-radius:99px;font-size:.82em;font-weight:800;border:1px solid;white-space:nowrap;vertical-align:1px}
+.tsa-pill.progress{background:var(--info-bg);border-color:#c9dff0;color:var(--info)}
+.tsa-pill.awaiting{background:#fff8e6;border-color:#f5d48c;color:#6b4a06}
+.tsa-pill.verified{background:var(--grn-bg);border-color:#b7e1c7;color:var(--grn)}
+.tsa-pill.verified.has-bad{background:var(--red-bg);border-color:#f2b8b1;color:var(--red)}
+.tsa-pill.revoked{background:#f1f3f5;border-color:var(--line);color:#5c6773}
+.tsa-acts{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tsa-ids{flex-basis:100%;list-style:none;margin:2px 0 0;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tsa-ids[hidden]{display:none}
+.tsa-ids li{display:grid;grid-template-columns:max-content minmax(0,1fr) auto;gap:4px 12px;padding:6px 10px;border-top:1px solid #eef1f4;font-size:.84em}
+.tsa-ids li:first-child{border-top:0}
+.tsa-ids a{color:#1d5a8a;font-weight:800;text-decoration:none;white-space:nowrap}
+.tsa-ids a:hover{text-decoration:underline}
+.tsa-ids .t{overflow-wrap:anywhere;color:var(--ink)}
+.tsa-ids .s{white-space:nowrap;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.tsa-fbh:empty{display:none}
+.tsa-fbh{flex-basis:100%}
+
+/* ---- Top-level accordion cards (checklist / scores / assignment log): one open at a time ---- */
+.ts-card.ts-acc{padding:0}
+.ts-acc>.ts-head{align-items:center;gap:0 10px;margin:0;background:#fff;transition:background .15s}
+.ts-acc>.ts-head:has(.ts-top-tog:hover){background:var(--soft)}
+.ts-acc.is-open>.ts-head{border-bottom:1px solid var(--line)}
+.ts-acc .ts-top-h{display:block;flex:1 1 300px;min-width:0;margin:0;font-size:1em;font-weight:inherit;letter-spacing:0;line-height:inherit}
+.ts-top-tog{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:14px 18px 14px 22px;border:none;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ts .ts-acc .ts-top-tog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ts-top-tog .ts-head-ic{align-self:flex-start}
+.ts-top-txt{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+.ts-top-tl{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink);min-height:34px}
+.ts-top-sub{display:block}
+.ts-acc:not(.is-open) .ts-top-sub{display:none}
+.ts-top-sum{white-space:nowrap}
+.ts-count.is-bad{background:var(--red-bg);border-color:#f2b8b1;color:var(--red)}
+.ts-top-chev{flex-shrink:0;display:inline-flex;margin-left:auto;align-self:center;color:#5c6773;transition:transform .2s ease}
+.ts-top-tog[aria-expanded="true"] .ts-top-chev{transform:rotate(90deg)}
+.ts-top-acts{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:8px 18px 8px 0}
+.ts-acc>.ts-head>.ts-btn{margin:8px 18px 8px 0}
+.ts-top-body{padding:16px 22px 20px}
+.ts-top-body[hidden]{display:none}
+@media (max-width:700px){
+  .ts-top-tog{padding:12px 14px}
+  .ts-top-acts{padding:0 14px 12px}
+  .ts-acc>.ts-head>.ts-btn{margin:0 14px 12px}
+  .ts-top-body{padding:14px}
+}

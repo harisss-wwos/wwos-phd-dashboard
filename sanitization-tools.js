@@ -1,6 +1,6 @@
 // Sanitization tools shared by sanitization-tracker.html (moved here from ticket-sanitization.html):
 //   - the hero buttons "Update tickets data" (owner only), "Generate Title and Root Cause Details" and
-//     "Open assigned tickets sheet" (PHDSanTools.heroActsHtml),
+//     "Open assigned tickets sheet", two rows with the page's "Copy prompt" (PHDSanTools.heroActsHtml),
 //   - the "Update tickets data" pop-up (owner only; POST /api/sanitization-update, the server enforces it),
 //   - the "Generate Title and Root Cause Details" pop-up (front end only, nothing is saved).
 // Styles: sanitization-tools.css. Needs icons.js, api-config.js, topbar-auth.js (PHDAuth, PHDLoginUI,
@@ -27,21 +27,24 @@ function copyFallback(text, done) { try { var ta = document.createElement('texta
 var TS_SHEET_URL = 'https://amazon-my.sharepoint.com/:x:/r/personal/flofalgu_amazon_com/_layouts/15/doc2.aspx?sourcedoc=%7B1C13EF24-F76D-41A3-A9A4-CE41C2550BA8%7D&file=Book.xlsx&action=editnew&mobileredirect=true';
 var ICO_EXT = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 var ICO_SHEET = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>';
-// Hero action column (same look as the old Ticket Sanitization hero): Update (owner only), Generate, Open sheet.
+// Hero buttons in two rows of equal-width cells: [Update (owner only) | Generate] and [Open sheet | opts.extra]
+// (opts.extra = the page's "Copy prompt" button). A row with one button gives it the whole width.
 function heroActsHtml(opts) {
   opts = opts || {};
-  return '<div class="ts-hero-acts">' +
+  return '<div class="ts-hero-acts is-rows"><div class="ts-hero-row">' +
     (opts.owner ? '<button type="button" class="ts-hero-link ts-hero-upd" id="tsUpdBtn" onclick="tsUpdOpen()" aria-haspopup="dialog" title="Upload cleaned ticket CSVs to update existing tickets">' +
       '<span class="ts-hl-sheet" aria-hidden="true">' + ic('upload', 18) + '</span>' +
       '<span class="ts-hl-txt"><span class="ts-hl-t">Update tickets data</span><span class="ts-hl-s" aria-hidden="true">Upload cleaned ticket CSVs</span></span></button>' : '') +
     '<button type="button" class="ts-hero-link ts-hero-gen" id="tsGenBtn" onclick="tsGenOpen()" aria-haspopup="dialog" title="Paste a SIM ticket to generate the SIM Title and SIM Root Cause Details">' +
       '<span class="ts-hl-sheet" aria-hidden="true">' + ic('clipboard', 18) + '</span>' +
       '<span class="ts-hl-txt"><span class="ts-hl-t">Generate Title and Root Cause Details</span><span class="ts-hl-s" aria-hidden="true">Paste a SIM ticket, get the title + SIM RCD</span></span></button>' +
+    '</div><div class="ts-hero-row">' +
     '<a class="ts-hero-link" href="' + esc(TS_SHEET_URL) + '" target="_blank" rel="noopener noreferrer" title="SharePoint \u00b7 Excel \u00b7 opens in a new tab">' +
       '<span class="ts-hl-sheet" aria-hidden="true">' + ICO_SHEET + '</span>' +
       '<span class="ts-hl-txt"><span class="ts-hl-t">Open assigned tickets sheet</span><span class="ts-hl-s" aria-hidden="true">SharePoint \u00b7 Excel \u00b7 opens in a new tab</span></span>' +
       '<span class="ts-hl-ext" aria-hidden="true">' + ICO_EXT + '</span><span class="ts-sr"> (opens in a new tab)</span></a>' +
-    '</div>';
+    (opts.extra || '') +
+    '</div></div>';
 }
 
 /* TSG-PURE-BEGIN — "Generate Title and Root Cause Details": pure parse / generate helpers (no DOM).

@@ -1803,7 +1803,7 @@
     for (var r = 1; r < rows.length; r++) { var o = {}; for (var j = 0; j < H.length; j++) o[H[j]] = rows[r][j] || ''; data.push(o); }
     return data;
   }
-  window.PHDParseCSV = tbParseCSV;   // same parser for page-level CSV tools (ticket-sanitization.html "Update tickets data")
+  window.PHDParseCSV = tbParseCSV;   // same parser for page-level CSV tools (sanitization-tracker.html "Update tickets data")
   // ---- LM-HUB group gate (mirrors server/lmhub-filter.js; the server re-checks every upload) ----
   // Only rows whose AssignedGroup is 'LM-HUB' (trimmed, case-insensitive) are uploaded. Any other
   // group, or a blank group, is dropped and counted per group for the warning + the data log.
@@ -3010,9 +3010,6 @@
     return (d.totals && Number(d.totals.needsCorrection)) || 0;
   }
   function tbSanPaint() {
-    // Contractors' "Sanitization Tracker" menu item is rendered hidden and shown once the server says they are one.
-    var navs = document.querySelectorAll('[data-tbsan-nav]');
-    for (var i = 0; i < navs.length; i++) navs[i].style.display = tbSan.data ? '' : 'none';
     var b = document.getElementById('tbhMySan'); if (!b) return;
     if (!tbSan.data) { b.hidden = true; b.innerHTML = ''; return; }   // loading, not allowed, or failed
     var n = tbSanNeed(tbSan.data), own = Array.isArray(tbSan.data.contractors) && tbSanIsOwner();
@@ -3170,12 +3167,9 @@
     var navRef = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavRef">' + grpHead('tbhNavRef', 'Program &amp; Reference')
       + navBtn('archive.html?ds=archive', 'Prog. History (21\u201325)', 'clock-rewind', 'Program History (2021\u201325)')
       + navBtn('issue-types.html', 'Issue Standardization', 'book')
-      + navBtn('ticket-sanitization.html', 'Ticket Sanitization', 'check-circle')
-      // Sanitization Tracker: the owner always; contractors (role editor) get it hidden until GET
-      // /api/my-sanitization confirms they are one (tbSanPaint shows it). The page + API gate it too.
-      + (li && tbSanIsOwner() ? navBtn('sanitization-tracker.html', 'Sanitization Tracker', 'eraser')
-        : (li && tbSanMayAsk() ? navBtn('sanitization-tracker.html', 'Sanitization Tracker', 'eraser')
-            .replace('<a class="home-nav-btn', '<a data-tbsan-nav="1" style="display:none" class="home-nav-btn') : ''))
+      // Ticket Sanitization (one page with the Sanitization Tracker; ticket-sanitization.html redirects there):
+      // every logged-in user (checklist); its Contractors / Scores / Log sections are gated on the page + API.
+      + navBtn('sanitization-tracker.html', 'Ticket Sanitization', 'eraser')
       + navBtn('phd-resolutions.html', 'PHD Resolutions', 'history')
       + '</nav>';
     // Group 3 (bottom): Upload / View log (upload-gated, logged-in only) + Log out.

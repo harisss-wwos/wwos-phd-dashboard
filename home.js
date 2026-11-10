@@ -82,8 +82,8 @@ function renderQuarterCards(){
     navTile({ href:'issue-types.html', icon:'clipboard', tone:'violet',
       title:'Issue Standardization', sub:'Reference guide',
       desc:'Standard issue-type definitions, usage and examples.', action:'View issue types' }),
-    // Ticket Sanitization Process — step-by-step guide + links (page designed later).
-    navTile({ href:'ticket-sanitization.html', icon:'check-circle', tone:'rose',
+    // Ticket Sanitization Process — the checklist, tools and tracker (sanitization-tracker.html).
+    navTile({ href:'sanitization-tracker.html', icon:'check-circle', tone:'rose',
       title:'Ticket Sanitization Process', sub:'Step-by-step guide',
       desc:'Instructions and linked resources that walk you through sanitizing a ticket.', action:'Open the guide' }),
     // PHD Resolutions — the 12 allowed resolutions (same list as Tools + My Tickets).
