@@ -604,14 +604,21 @@ var TS_PROMPT=[
   'When I paste the next incident or information, reply with ONLY the four items below, in exactly this order, using exactly these headings. Do not add, remove, rename or reorder anything. No introduction, no commentary, no explanation, and no text before or after the four items.',
   '',
   '1. PHD Findings',
+  '',
   '2. Primary Case Tag',
+  '',
   '3. SIM Root Cause Details',
+  '',
   '4. SIM Title',
   '',
   'SIM Title rules:',
+  '',
   '- If a Customer Account ID is present, use: <COUNTRY CODE> Customer Incident Escalation - Account ID: <Customer Account ID> - Sev <N> - <Issue type>',
+  '',
   '- If there is no Customer Account ID, use (and leave out "Account ID" entirely): <COUNTRY CODE> Community Member Incident Escalation - Sev <N> - <Issue type>',
+  '',
   '- Sev <N> is the incident severity (1-5) from the pasted information. If no EMT was processed, or no severity is given, use Sev 5.',
+  '',
   '- Example: US Customer Incident Escalation - Account ID: A2BE6RJDLHJ794 - Sev 5 - Verbal abuse'
 ].join('\n');
 function tsCopyPrompt(btn){
