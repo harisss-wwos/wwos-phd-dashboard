@@ -72,9 +72,9 @@ function tsGroup(items){
 }
 // ---- end section grouping helpers ----
 
-// Sub-section open state: in memory only, kept across re-renders. The whole checklist (every
-// sub-section) is EXPANDED on every page load; before, the card opened with its sub-sections collapsed.
-var TS_OPEN={title:true,rcd:true,tags:true,other:true};
+// Sub-section open state: in memory only, kept across re-renders. On every page load the checklist
+// card is open and ALL its sub-sections (SIM Title / Root Cause Details / Hashtags / ClosureCode) are collapsed.
+var TS_OPEN={};
 function tsSetSec(key,open){
   TS_OPEN[key]=!!open;
   var btn=document.getElementById('tsSecBtn-'+key), body=document.getElementById('tsSecList-'+key);

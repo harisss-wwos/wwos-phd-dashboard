@@ -328,6 +328,12 @@
 .ts-acc>.ts-head{align-items:center;gap:0 10px;margin:0;background:#fff;transition:background .15s}
 .ts-acc>.ts-head:has(.ts-top-tog:hover){background:var(--soft)}
 .ts-acc.is-open>.ts-head{border-bottom:1px solid var(--line)}
+/* Sanitization checklist section: highlighted (warm amber tint) so it stands out from the other sections. */
+#tsGuide.ts-card{background:#fff8ec;border-color:#f3cf98}
+#tsGuide>.ts-head{background:linear-gradient(90deg,#ffeccc,#fff6e6)}
+#tsGuide>.ts-head:has(.ts-top-tog:hover){background:linear-gradient(90deg,#ffe2b0,#fff1d9)}
+#tsGuide.is-open>.ts-head{border-bottom-color:#f3cf98}
+#tsGuide .ts-head-ic{background:#ec7211;color:#fff}
 .ts-acc .ts-top-h{display:block;flex:1 1 300px;min-width:0;margin:0;font-size:1em;font-weight:inherit;letter-spacing:0;line-height:inherit}
 .ts-top-tog{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:14px 18px 14px 22px;border:none;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .ts .ts-acc .ts-top-tog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
