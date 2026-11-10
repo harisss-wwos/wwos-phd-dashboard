@@ -46,13 +46,13 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 // incident-log-merge.js) locates sections by heading, so older entries in the old order still parse.
 // opts.copy === true (footer Copy / Copy w/o RC Details only — not the saved text, not the per-field
 // copies) puts "**SIM Title**: …" (ilCopySimTitle; f.country = ticket country code) at the very top and,
-// when an EMT incident number is found (ilEmtNumber), "**EMT Link**: …" after Root Cause; the PHD notes go
+// "**EMT Link**: <url>" (EMT number found, ilEmtNumber) or "**EMT Link**: N/A" after PHD Related Link; the PHD notes go
 // through ilCopyNotes (internal / tag sections left out, duplicate EMT URL dropped, bold headings).
 //
 // f.severity ('1'..'5' or '') : the saved text starts with "**Severity**: Sev N" (left out when no
 // severity is chosen); a Copy has no Severity line — the severity is in the SIM Title instead.
 // Copy order (opts.copy only; = the editor's complete layout): SIM Title, PHD Related Link, EMT Link
-// (when found), Root Cause, SIM Root Cause Details, PHD Investigation, PHD Findings (only when
+// (always: the URL when found, else "N/A"), Root Cause, SIM Root Cause Details, PHD Investigation, PHD Findings (only when
 // filled; + Historical Incidents when present), Determination / Evidence Details / Risk Assessment
 // (IL_EXTRA_SECS, each only when filled), "**PHD Resolution**: <value>" (+ directly below it the
 // other lines of the notes' "PHD Resolution:" section, its first bullet left out when it only
@@ -73,7 +73,7 @@ function ilSerializeFields(f,opts){
     var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes)
     parts.push('**SIM Title**: '+ilCopySimTitle(v('country'), v('sim'), sev));
     parts.push('**PHD Related Link**: '+(v('link')||''));
-    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
+    parts.push('**EMT Link**: '+(emt ? IL_EMT_URL_PRE+emt+IL_EMT_URL_POST : 'N/A'));   // always present
     parts.push('**Root Cause**: '+(v('rootCause')||''));
     if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
     parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
@@ -186,6 +186,14 @@ function _ilEmtTexts(f){
 }
 // EMT Link of a field set (same URL the Copy writes); '' when no EMT number is found.
 function ilEmtUrlOf(f){ var n=ilEmtNumber(_ilEmtTexts(f)); return n ? IL_EMT_URL_PRE+n+IL_EMT_URL_POST : ''; }
+// Typed / pasted EMT Link (editor's EMT input): an app.emt.amazon.dev URL with incidentId=<digits>
+// (also truncated, e.g. "…&tabV") or just the digits -> the standard URL; anything else (N/A,
+// junk) -> ''.
+function ilEmtNormalize(s){
+  s=String(s==null?'':s).trim();
+  var n=/^\d+$/.test(s) ? s : ilEmtNumber([s]);
+  return n ? IL_EMT_URL_PRE+n+IL_EMT_URL_POST : '';
+}
 // Title recompute rule: the editor's Title (ilCopySimTitle) depends only on the ticket country, the
 // SIM "CID:" / "Issue:" values and the severity. This key changes exactly when one of them does, so
 // the Title is re-computed then (and not on other SIM edits).
@@ -1327,6 +1335,7 @@ function ilSetSavedExtras(f){
   set('ilReference', f.reference);
   IL_EXTRA_SECS.forEach(function(x){ set(x.id, f[x.k]); });   // Determination / Evidence Details / Risk Assessment
   set('ilEmtLink', f.emtLink);
+  _ilEmtUser=false;   // EMT input back to "N/A" (or the read-only known link)
   set('ilPhdSimLink', /^https:\/\/t\.corp\.amazon\.com\/issues\/[A-Za-z0-9][A-Za-z0-9-]*$/i.test(link) ? link : '');
   // Every open starts a fresh layout: default, or complete for a saved entry with a PHD SIM / EMT
   // link / imported sections. Applied by ilLayoutSync (ilRefreshEmptyMarks, end of every open).
@@ -1336,7 +1345,8 @@ function ilSetSavedExtras(f){
 // ---- Form layout (default / complete) ----
 // default : [Comments] Severity, Root Cause, SIM Root Cause Details, PHD Investigation, the optional
 //           sections that are shown, "Add section" row, PHD Notes, [Reference].
-// full    : [Comments] Title block (Title + Severity), PHD SIM, EMT Link (when known), Root Cause,
+// full    : [Comments] Title block (Title + Severity, one row), PHD SIM + EMT Link (one row; EMT
+//           editable "N/A" when none is known), Root Cause,
 //           SIM Root Cause Details, PHD Investigation, optional sections, "Add section" row,
 //           PHD Notes, [Reference]  (= the footer Copy order).
 // Optional sections (IL_OPT_SECS) and the Reference are hidden (hidden attribute) until they have
@@ -1355,23 +1365,25 @@ function ilLayoutSync(){
   if(!body || !anchor) return;
   var full=_ilLayout==='full';
   // Sticky visibility of the optional sections (+ the Reference, no "+" button).
-  var anyAdd=false;
+  var anyAdd=false, shownNow=[];
   _ilOptSecs().concat([{id:'ilReference'}]).forEach(function(s){
     var w=_ilWrapOf(s.id); if(!w) return;
     if(_ilVal(s.id)) _ilSecShown[s.id]=true;
     var shown=!!_ilSecShown[s.id];
+    if(w.hidden && shown) shownNow.push(s.id);   // filled while hidden -> size it once visible
     w.hidden=!shown;
     var b=document.getElementById('ilAdd_'+s.id);
     if(b){ b.hidden=shown; if(!shown) anyAdd=true; }
   });
   var add=document.getElementById('ilAddSec'); if(add) add.hidden=!anyAdd;
   var tb=document.getElementById('ilTitleBlock'), tbIn=tb, sev=document.getElementById('ilSevField');
-  var ps=document.getElementById('ilPhdSimField'), em=document.getElementById('ilEmtField');
+  var ps=document.getElementById('ilPhdSimField'), lr=document.getElementById('ilLinksRow');
   if(tb) tb.hidden=!full;
+  if(lr) lr.hidden=!full;
   if(ps) ps.hidden=!full;
   _ilLinksSync();
   // Severity sits in the Title block in the complete layout (the Title uses it), else on its own.
-  var order=[tb, ps, em];
+  var order=[tb, lr];
   if(full){ if(sev && tbIn && sev.parentNode!==tbIn) tbIn.appendChild(sev); }
   else order.push(sev);
   order=order.concat(['ilRootCause','ilSimRcd','ilPhdInvestigation'].map(_ilWrapOf),
@@ -1383,6 +1395,7 @@ function ilLayoutSync(){
     if(ref.nextElementSibling!==n) body.insertBefore(n, ref.nextSibling);
     ref=n;
   });
+  shownNow.forEach(function(id){ ilAutosize(document.getElementById(id)); });
   _ilTitleSync(true);
 }
 // Live Title (complete layout): re-computed when the country / SIM CID / Issue / severity change.
@@ -1397,13 +1410,47 @@ function _ilTitleSync(force){
   var b=document.querySelector('.ail-fcopy[data-for="ilSimTitleOut"]'); if(b) b.disabled=!out.value;
 }
 // Read-only PHD SIM (= the copy's PHD Related Link) and EMT Link rows.
+// EMT Link (complete layout): a known EMT link (saved / imported / found in a section) is shown
+// read-only; none known -> an editable input prefilled with "N/A", red border + hint, where the user
+// can paste the EMT URL (ilEmtInput: a valid one is normalised into #ilEmtLink, saved with the log).
+var _ilEmtUser=false;   // the user typed in the EMT input (it then stays editable, value kept)
 function _ilLinksSync(){
   if(typeof document==='undefined') return;
   var ps=document.getElementById('ilPhdSimOut'), eo=document.getElementById('ilEmtOut'), ef=document.getElementById('ilEmtField');
   if(ps) ps.value=ilCurrentLink();
-  var emt='';
-  if(eo){ emt=(_ilLayout==='full') ? ilEmtUrlOf(_ilFormFields({copy:true})) : ''; eo.value=emt; }
-  if(ef) ef.hidden=!emt;
+  if(!eo) return;
+  var full=_ilLayout==='full';
+  if(ef) ef.hidden=!full;
+  var known='', edit=true;
+  if(_ilEmtUser) known=ilEmtNormalize(eo.value);
+  else if(full){
+    known=ilEmtUrlOf(_ilFormFields({copy:true}));
+    edit=!known;
+    eo.value=known || 'N/A';
+  }
+  else eo.value='';   // default layout: row hidden
+  _ilEmtMark(edit, !known);
+}
+// EMT input look: editable (no "Read-only" pill) / read-only; missing = red border + hint.
+function _ilEmtMark(edit,missing){
+  var eo=document.getElementById('ilEmtOut'); if(!eo) return;
+  eo.readOnly=!edit;
+  eo.classList.toggle('ail-emt-edit', edit);
+  eo.classList.toggle('ail-emt-miss', edit && missing);
+  if(edit && missing) eo.setAttribute('aria-invalid','true'); else eo.removeAttribute('aria-invalid');
+  var h=document.getElementById('ilEmtHint'); if(h) h.hidden=!(edit && missing);
+  var p=document.getElementById('ilEmtRoPill'); if(p) p.hidden=edit;
+}
+// Typing / pasting in the EMT input: a valid EMT URL / number goes into #ilEmtLink (saved, copied);
+// the shown value is replaced by the standard URL on paste and on change (blur / Enter).
+function ilEmtInput(el,commit){
+  if(!el) return;
+  _ilEmtUser=true;
+  var url=ilEmtNormalize(el.value);
+  var hid=document.getElementById('ilEmtLink'); if(hid) hid.value=url;
+  if(url && commit) el.value=url;
+  _ilEmtMark(true, !url);
+  ilUpdateFieldCopyStates();
 }
 // "+ <section>" button: show that optional section (empty) and focus it.
 function ilAddSection(id){
@@ -2083,6 +2130,7 @@ function ilLogImportClose(apply){
     // Related Links: PHD SIM link -> the copy's PHD Related Link; EMT URL -> saved, searched for the EMT Link.
     var hid=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     hid('ilPhdSimLink', r.phdSimLink); hid('ilEmtLink', r.emtLink);
+    if(r.emtLink) _ilEmtUser=false;   // imported EMT link -> read-only row
     if(r.res) ilSetSavedResolution(r.res);   // PHD Resolution fallback when the SIM has no "Res:" line
     _ilLayout='full';        // complete incident log layout (applied by ilRefreshEmptyMarks -> ilLayoutSync)
     ilRefreshEmptyMarks();
@@ -2638,17 +2686,23 @@ async function ilCopyField(btn){
   btn.classList.add('copied'); var prev=btn.innerHTML; btn.innerHTML=_ileIc('check-circle',14);
   setTimeout(function(){ btn.classList.remove('copied'); btn.innerHTML=prev; },1200);
 }
-// Textarea auto-size: default ~5 lines, grow with content, cap at ~16 lines (then scroll).
+// Textarea auto-size: default ~5 lines, grow with content, cap at ~14 lines (then scroll inside it,
+// visible scroll bar; overflow-y stays auto so a field sized while hidden can still scroll).
 var _ilTaWired=false;
-// Resize ONE textarea to fit its content, clamped between the 5-line min and the 16-line cap.
+var IL_TA_MAX_LINES=14;
+// Resize ONE textarea to fit its content, clamped between the 5-line min and the 14-line cap.
+// Not laid out (field / modal hidden): drop the inline height (CSS min-height applies) and size
+// it later (ilLayoutSync when the section is shown, the modal-open hook in mount()).
 function ilAutosize(ta){
   if(!ta) return;
   var lh=parseFloat(getComputedStyle(ta).lineHeight)||20, pad=20;
-  var minH=Math.round(5*lh+pad), maxH=Math.round(16*lh+pad);
+  var minH=Math.round(5*lh+pad), maxH=Math.round(IL_TA_MAX_LINES*lh+pad);
+  ta.style.maxHeight=maxH+'px';
+  ta.style.overflowY='auto';
+  if(!ta.getClientRects().length){ ta.style.height=''; return; }
   ta.style.height='auto';                       // reset so scrollHeight reflects the true content height
   var h=Math.min(Math.max(ta.scrollHeight, minH), maxH);
   ta.style.height=h+'px';
-  ta.style.overflowY=(ta.scrollHeight>maxH)?'auto':'hidden';   // only scroll once past the cap
 }
 function ilWireTextareaAutosize(){
   if(_ilTaWired) return; _ilTaWired=true;
@@ -3088,7 +3142,19 @@ var IncidentLogEditor=(function(){
       '<input type="text" id="'+id+'" class="ail-ro" readonly autocomplete="off">'+
     '</div>';
   }
-  // Complete layout: Title (live SIM Title) with the Severity row moved in below it (ilLayoutSync).
+  // EMT Link row (complete layout, next to PHD SIM): read-only when an EMT link is known, else an
+  // editable "N/A" input with a red border + hint (_ilLinksSync / ilEmtInput).
+  function emtField(){
+    var id='ilEmtOut', label='EMT Link';
+    return '<div class="ail-field ail-field-inline ail-rofield ail-emtfield" id="ilEmtField" hidden>'+
+      '<label class="ail-flabel" for="'+id+'"><span class="ail-flabel-tx">'+label+'</span> <span class="ail-ro-pill" id="ilEmtRoPill">Read-only</span>'+
+        '<button type="button" class="ail-fcopy" data-for="'+id+'" data-label="'+label+'" onclick="ilCopyField(this)" title="Copy '+label+'" aria-label="Copy '+label+'"></button></label>'+
+      '<input type="text" id="'+id+'" class="ail-ro" readonly autocomplete="off" spellcheck="false" aria-describedby="ilEmtHint"'+
+        ' oninput="ilEmtInput(this,event.inputType===\'insertFromPaste\')" onchange="ilEmtInput(this,true)">'+
+      '<p class="ail-emt-hint" id="ilEmtHint" hidden>EMT link missing \u2014 add it or keep N/A</p>'+
+    '</div>';
+  }
+  // Complete layout: Title (live SIM Title) with the Severity row moved in beside it (ilLayoutSync).
   function titleBlock(){
     return '<div class="ail-titleblk" id="ilTitleBlock" role="group" aria-label="Title and severity" hidden>'+roField('ilSimTitleOut','Title')+'</div>';
   }
@@ -3135,8 +3201,9 @@ var IncidentLogEditor=(function(){
           // Complete layout only (after a whole-log Import / a saved entry with PHD SIM / EMT): Title
           // block, read-only PHD SIM + EMT Link. ilLayoutSync orders / shows every section.
           titleBlock()+
-          roField('ilPhdSimOut','PHD SIM','ilPhdSimField',true)+
-          roField('ilEmtOut','EMT Link','ilEmtField',true)+
+          '<div class="ail-linkrow" id="ilLinksRow" role="group" aria-label="PHD SIM and EMT Link" hidden>'+
+            roField('ilPhdSimOut','PHD SIM','ilPhdSimField',true)+emtField()+
+          '</div>'+
           sevField()+
           // Root Cause: label and dropdown side by side (.ail-field-inline).
           field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>').replace('class="ail-field"','class="ail-field ail-field-inline"')+
@@ -3181,6 +3248,42 @@ var IncidentLogEditor=(function(){
     if(ph && ph.parentNode) ph.parentNode.replaceChild(node,ph); else document.body.appendChild(node);
     injectQnStyles();
     _ilsInstall();   // SIM Root Cause Details form <-> #ilSimRcd text
+    _ilScrollLockInstall(node);
+  }
+  // While the editor is open the page behind does not scroll: html/body get overflow:hidden (the
+  // scroll bar width is padded back, the scroll position kept) and the modal body is the scroll
+  // container. Follows the modal's display (every page opens / closes it via style.display: Add,
+  // Edit, Esc, X, backdrop, after save), so no page code is involved. Textareas are re-sized once
+  // the modal is laid out (fields filled while it was hidden).
+  var _ilLock=null;
+  function _ilBodyLock(on){
+    var de=document.documentElement, b=document.body; if(!de || !b) return;
+    if(on){
+      if(_ilLock) return;
+      var sw=window.innerWidth-de.clientWidth;
+      _ilLock={x:window.pageXOffset||de.scrollLeft||0, y:window.pageYOffset||de.scrollTop||0,
+        ho:de.style.overflow, bo:b.style.overflow, bp:b.style.paddingRight};
+      if(sw>0) b.style.paddingRight=((parseFloat(getComputedStyle(b).paddingRight)||0)+sw)+'px';
+      de.style.overflow='hidden'; b.style.overflow='hidden';
+    } else {
+      if(!_ilLock) return;
+      var l=_ilLock; _ilLock=null;
+      de.style.overflow=l.ho; b.style.overflow=l.bo; b.style.paddingRight=l.bp;
+      if((window.pageYOffset||0)!==l.y || (window.pageXOffset||0)!==l.x) window.scrollTo(l.x,l.y);
+    }
+  }
+  function _ilScrollLockInstall(node){
+    if(!node || typeof MutationObserver==='undefined') return;
+    var sync=function(){
+      var open=getComputedStyle(node).display!=='none';
+      if(open && !_ilLock){
+        _ilBodyLock(true);
+        var raf=window.requestAnimationFrame||function(f){ return setTimeout(f,16); };
+        raf(function(){ if(_ilLock) ilAutosizeAll(); });
+      } else if(!open) _ilBodyLock(false);
+    };
+    new MutationObserver(sync).observe(node,{attributes:true, attributeFilter:['style','class','hidden']});
+    sync();
   }
   // Questionnaire CSS (light theme). Injected by mount() on every page — my-tickets keeps its own
   // inline copy of the base editor CSS, so these rules are self-contained and scoped to .ail-qn.
@@ -3396,9 +3499,33 @@ var IncidentLogEditor=(function(){
     '#incidentModal button.ail-addsec-btn:hover{border-color:#1577a0;background:rgba(21,119,160,.06)}',
     '#incidentModal button.ail-addsec-btn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
     '.ail-optag,.ail-ro-pill{display:inline-block;font-size:.84em;font-weight:600;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:0 8px;line-height:1.5;white-space:nowrap}',
-    '.ail-titleblk{margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fffaf5}',
-    '.ail-titleblk>.ail-field{margin-bottom:8px}',
-    '.ail-titleblk>.ail-field:last-child{margin-bottom:0}',
+    // Title block: [Title (rest of the width)] [Severity label + 1..5 (nowrap)] on one row; stacked < 760px.
+    '.ail-titleblk{display:flex;align-items:center;gap:8px 16px;margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fffaf5}',
+    '.ail-titleblk>.ail-field{margin-bottom:0}',
+    '.ail-titleblk>.ail-rofield{flex:1 1 auto;min-width:0}',
+    '.ail-titleblk>.ail-field.ail-sev{flex:0 0 auto;display:flex;align-items:center;gap:6px 10px;white-space:nowrap}',
+    '.ail-titleblk>.ail-field.ail-sev>.ail-flabel{margin-bottom:0;flex-wrap:nowrap}',
+    '.ail-titleblk>.ail-field.ail-sev .ail-qnums{flex-wrap:nowrap}',
+    '@media (max-width:759.98px){.ail-titleblk{flex-direction:column;align-items:stretch}.ail-titleblk>.ail-field.ail-sev{flex-wrap:wrap;white-space:normal}}',
+    // PHD SIM + EMT Link: one row, two equal columns ([label + pill + copy] [value]); stacked < 760px.
+    '.ail-linkrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:0 0 14px}',
+    '.ail-linkrow[hidden],.ail-emt-hint[hidden],.ail-ro-pill[hidden]{display:none!important}',
+    '.ail-linkrow>.ail-field{margin-bottom:0}',
+    '.ail-linkrow>.ail-field.ail-field-inline{grid-template-columns:auto minmax(0,1fr)}',
+    '@media (max-width:759.98px){.ail-linkrow{grid-template-columns:minmax(0,1fr)}}',
+    '@media (max-width:640px){.ail-linkrow>.ail-field.ail-field-inline{grid-template-columns:minmax(0,1fr)}}',
+    // EMT Link with no EMT known: editable "N/A" input, red border + red hint until a valid EMT URL.
+    '#incidentModal .ail-field input.ail-ro.ail-emt-edit{background:#fff!important;cursor:text}',
+    '#incidentModal .ail-field input.ail-ro.ail-emt-miss{border:2px solid #d33a3a!important;padding:7px 11px!important}',
+    '#incidentModal .ail-field input.ail-ro.ail-emt-miss:focus{border-color:#d33a3a!important;box-shadow:0 0 0 3px rgba(211,58,58,.16)}',
+    '.ail-emt-hint,#incidentModal p.ail-emt-hint{grid-column:1/-1;margin:0;font-size:.78em;font-weight:600;color:#b42318!important}',
+    // Scrolling: the modal body is the scroll container (page behind locked, see _ilBodyLock); long
+    // textareas scroll inside themselves with a visible scroll bar, never chaining to the page.
+    '#incidentModal .ail-body{overscroll-behavior:contain}',
+    '#incidentModal textarea,.ils-ta{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9aa5b1 #eef1f4}',
+    '#incidentModal textarea::-webkit-scrollbar,.ils-ta::-webkit-scrollbar{width:10px}',
+    '#incidentModal textarea::-webkit-scrollbar-track,.ils-ta::-webkit-scrollbar-track{background:#eef1f4;border-radius:8px}',
+    '#incidentModal textarea::-webkit-scrollbar-thumb,.ils-ta::-webkit-scrollbar-thumb{background:#9aa5b1;border-radius:8px;border:2px solid #eef1f4}',
     '#incidentModal .ail-field input.ail-ro{box-sizing:border-box;width:100%;margin:0;padding:8px 12px!important;background:#f3f5f7!important;color:#1b2026!important;border:1px solid #d4dce4!important;border-radius:8px!important;font-family:inherit;font-size:.86em;line-height:1.5;cursor:default;text-overflow:ellipsis}',
     '#incidentModal .ail-field input.ail-ro:focus{outline:none;border-color:#1577a0!important;box-shadow:0 0 0 3px rgba(21,119,160,.14)}',
     // Ticket comments panel (top of the editor body) + the shared "Previous comments" list (.ilcm,
@@ -3467,7 +3594,7 @@ var IncidentLogEditor=(function(){
     '.ail-fedit:hover,.ail-fedit.editing{border-color:#ec7211;color:#ec7211;background:rgba(236,114,17,.1)}',
     '.ail-fsub{color:#5c6773;font-weight:500}',
     '.ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#fff!important;border:1px solid #d4dce4!important;border-radius:5px;color:#1b2026!important;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}',
-    '.ail-field textarea{resize:vertical;min-height:calc(5 * 1.55em + 20px);max-height:calc(16 * 1.55em + 20px);white-space:pre-wrap;overflow-y:auto}',
+    '.ail-field textarea{resize:vertical;min-height:calc(5 * 1.55em + 20px);max-height:calc(14 * 1.55em + 20px);white-space:pre-wrap;overflow-y:auto}',
     '.ail-field textarea[readonly]{background:#f3f5f7!important;color:#2a3340!important;cursor:default;opacity:1}',
     '.ail-field select:focus,.ail-field input:focus,.ail-field textarea:focus{outline:none;border-color:#ec7211!important;box-shadow:0 0 0 3px rgba(236,114,17,.14)}',
     '.ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid #e6eaee}',
@@ -3623,7 +3750,7 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   IL_SIM_HI_MAX:IL_SIM_HI_MAX, ilSimHiCount:ilSimHiCount, ilSimHiMissing:ilSimHiMissing,
   ilParseFullLog:ilParseFullLog, ilFullLogSummary:ilFullLogSummary,
   ilInvestDecidedFromSaved:ilInvestDecidedFromSaved, ilInvestDefaultKeys:ilInvestDefaultKeys,
-  ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilEmtUrlOf:ilEmtUrlOf, ilTitleKey:ilTitleKey, ilSavedIsComplete:ilSavedIsComplete, ilCopyNotes:ilCopyNotes, ilCopyResExtra:ilCopyResExtra,
+  ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilEmtUrlOf:ilEmtUrlOf, ilEmtNormalize:ilEmtNormalize, ilTitleKey:ilTitleKey, ilSavedIsComplete:ilSavedIsComplete, ilCopyNotes:ilCopyNotes, ilCopyResExtra:ilCopyResExtra,
   ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
   ilSetTicketRegion:ilSetTicketRegion, ilSetSavedSeverity:ilSetSavedSeverity, ilGetSeverity:ilGetSeverity,
   ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue };

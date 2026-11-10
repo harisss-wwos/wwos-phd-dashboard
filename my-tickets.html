@@ -184,9 +184,9 @@ tbody tr.row-over td:last-child{border-right-color:rgba(255,82,82,.6)}
 .ail-field textarea[readonly]{background:#0b0f14;color:#cdd5dd;cursor:default;opacity:.95}
 .ail-fsub{color:var(--tm);font-weight:500}
 .ail-field textarea,.ail-field select,.ail-field input[type=text]{width:100%;background:#000;border:1px solid var(--bd);border-radius:5px;color:#fff;font-size:.88em;padding:10px 12px;font-family:inherit;line-height:1.55}
-/* Default ~5 lines; JS auto-grows the height to fit content and caps at ~16 lines (then scrolls).
+/* Default ~5 lines; JS auto-grows the height to fit content and caps at ~14 lines (then scrolls).
    (line-height 1.55 + 20px vertical padding; box-sizing: border-box.) */
-.ail-field textarea{resize:vertical;min-height:calc(5 * 1.55em + 20px);max-height:calc(16 * 1.55em + 20px);white-space:pre-wrap;overflow-y:auto}
+.ail-field textarea{resize:vertical;min-height:calc(5 * 1.55em + 20px);max-height:calc(14 * 1.55em + 20px);white-space:pre-wrap;overflow-y:auto}
 .ail-field select:focus,.ail-field input:focus,.ail-field textarea:focus{outline:none;border-color:var(--o);box-shadow:0 0 0 3px rgba(236,114,17,.14)}
 .ail-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--bd)}
 .ail-head-ic{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:rgba(68,185,214,.14);color:#44b9d6;display:inline-flex;align-items:center;justify-content:center}
@@ -1147,7 +1147,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=44"></script>
+<script src="incident-log-editor.js?v=45"></script>
 <script src="topbar-auth.js?v=232"></script>
 <script>
 const A=window.PHDAuth;
