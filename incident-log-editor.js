@@ -51,12 +51,14 @@ function _ileToast(m){ if(typeof window!=='undefined' && typeof window.toast==='
 //
 // f.severity ('1'..'5' or '') : the saved text starts with "**Severity**: Sev N" (left out when no
 // severity is chosen); a Copy has no Severity line — the severity is in the SIM Title instead.
-// Copy order (opts.copy only): SIM Title, Root Cause, EMT Link (when found), PHD Related Link,
-// SIM Root Cause Details, PHD Investigation, PHD Findings (+ Historical Incidents), Determination /
-// Evidence Details / Risk Assessment (IL_EXTRA_SECS, each only when filled), "**PHD Resolution**:
-// <value>" (+ directly below it the other lines of the notes' "PHD Resolution:" section, its first
-// bullet left out when it only restates the value — ilCopyResExtra), then PHD notes (without that
-// section). The saved order is unchanged apart from the IL_EXTRA_SECS sections (after PHD Findings).
+// Copy order (opts.copy only; = the editor's complete layout): SIM Title, PHD Related Link, EMT Link
+// (when found), Root Cause, SIM Root Cause Details, PHD Investigation, PHD Findings (only when
+// filled; + Historical Incidents when present), Determination / Evidence Details / Risk Assessment
+// (IL_EXTRA_SECS, each only when filled), "**PHD Resolution**: <value>" (+ directly below it the
+// other lines of the notes' "PHD Resolution:" section, its first bullet left out when it only
+// restates the value — ilCopyResExtra), then PHD notes (without that section; the whole block is
+// left out when nothing is left). The saved order is unchanged apart from the IL_EXTRA_SECS
+// sections (after PHD Findings).
 // f.determination / f.evidence / f.risk = the IL_EXTRA_SECS fields (optional).
 // f.reference = the "ONLY FOR PHD REFERENCE WILL NOT BE COPIED" field: saved as a last IL_REF_HEAD
 // section, NEVER in a Copy. f.emtLink = the EMT URL from an imported "Related Links:" section: saved
@@ -67,20 +69,20 @@ function ilSerializeFields(f,opts){
   var v=function(k){ return String(f[k]==null?'':f[k]).trim(); };
   var parts=[], notes=v('notes'), sev=ilNormSeverity(v('severity'));
   if(opts.copy){
+    var emt=ilEmtNumber(_ilEmtTexts(f));
+    var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes)
     parts.push('**SIM Title**: '+ilCopySimTitle(v('country'), v('sim'), sev));
-    var emt=ilEmtNumber([v('notes'), v('findings'), v('rootCause'), v('sim'), v('invest'), v('hist'), v('link'), v('res'), v('reference'), v('emtLink')]);
-    var cn=ilSplitCopyNotesRes(ilCopyNotes(notes,{emt:emt}));   // copy-only filtering (ilCopyNotes); nothing left -> "-"
-    parts.push('**Root Cause**: '+(v('rootCause')||''));
-    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
     parts.push('**PHD Related Link**: '+(v('link')||''));
+    if(emt) parts.push('**EMT Link**: '+IL_EMT_URL_PRE+emt+IL_EMT_URL_POST);
+    parts.push('**Root Cause**: '+(v('rootCause')||''));
     if(!opts.omitSim) parts.push('**SIM Root Cause Details:**\n'+(v('sim')||'-'));
     parts.push('**PHD Investigation for mitigation:**\n'+(v('invest')||'-'));
-    parts.push('**PHD Findings**:\n'+(v('findings')||'-'));
+    if(v('findings')) parts.push('**PHD Findings**:\n'+v('findings'));   // optional: left out when empty
     if(v('hist')) parts.push(IL_HIST_HEAD+'\n'+v('hist'));
     IL_EXTRA_SECS.forEach(function(x){ if(v(x.k)) parts.push(x.head+'\n'+v(x.k)); });
     var resExtra=ilCopyResExtra(cn.res, v('res'));
     parts.push('**PHD Resolution**: '+(v('res')||'')+(resExtra?'\n'+resExtra:''));
-    parts.push('**PHD notes**:\n'+(cn.notes||'-'));
+    if(cn.notes) parts.push('**PHD notes**:\n'+cn.notes);   // nothing left after ilCopyNotes -> block left out
     return parts.join('\n\n');
   }
   if(sev) parts.push('**Severity**: Sev '+sev);
@@ -176,6 +178,32 @@ function ilEmtNumber(texts){
   var re=/https?:\/\/app\.emt\.amazon\.dev\/[^\s<>"')\]]*?[?&]incidentId=(\d+)/i;
   for(var i=0;i<(texts||[]).length;i++){ var m=String(texts[i]==null?'':texts[i]).match(re); if(m) return m[1]; }
   return '';
+}
+// Texts searched for the EMT number (in this order) — the footer Copy and the editor's EMT Link row.
+function _ilEmtTexts(f){
+  f=f||{};
+  return ['notes','findings','rootCause','sim','invest','hist','link','res','reference','emtLink'].map(function(k){ return String(f[k]==null?'':f[k]).trim(); });
+}
+// EMT Link of a field set (same URL the Copy writes); '' when no EMT number is found.
+function ilEmtUrlOf(f){ var n=ilEmtNumber(_ilEmtTexts(f)); return n ? IL_EMT_URL_PRE+n+IL_EMT_URL_POST : ''; }
+// Title recompute rule: the editor's Title (ilCopySimTitle) depends only on the ticket country, the
+// SIM "CID:" / "Issue:" values and the severity. This key changes exactly when one of them does, so
+// the Title is re-computed then (and not on other SIM edits).
+function ilTitleKey(country,sim,severity){
+  var p=ilParseSim(sim,{aliases:true}).found||{};
+  var cl=function(x){ return String(x==null?'':x).replace(/\*\*/g,'').trim(); };
+  return JSON.stringify([String(country==null?'':country).trim().toUpperCase(), cl(p.CID), cl(p.Issue), ilNormSeverity(severity)]);
+}
+// Opened saved entry (parseIncidentOutput result) -> true when the editor opens in the complete
+// layout: a PHD SIM link other than the ticket itself (sid), an EMT link (saved or in any section),
+// or imported-only sections (Determination / Evidence Details / Risk Assessment / PHD reference).
+function ilSavedIsComplete(f,sid){
+  f=f||{};
+  var t=function(k){ return String(f[k]==null?'':f[k]).trim(); };
+  var m=/^https:\/\/t\.corp\.amazon\.com\/issues\/([A-Za-z0-9][A-Za-z0-9-]*)$/i.exec(t('link'));
+  if(m && m[1].toLowerCase()!==String(sid||'').trim().toLowerCase()) return true;
+  if(t('emtLink') || ilEmtNumber(_ilEmtTexts(f))) return true;
+  return IL_EXTRA_SECS.some(function(x){ return !!t(x.k); }) || !!t('reference');
 }
 // PHD Notes as they go into a footer Copy (opts.copy only; the saved text keeps the notes as-is).
 //  - "Primary Case Tag:", "Related Links:", "Evidence Checklist:" and "Investigation Checklist:" sections (heading +
@@ -617,7 +645,7 @@ function ilCopyMissing(f,answers,opts){
   f=f||{}; opts=opts||{};
   var out=[], txt=function(k){ return String(f[k]==null?'':f[k]).trim(); };
   var sec=function(id,k){ if(!txt(k)) out.push({id:id, key:'', label:IL_FIELD_LABELS[id]}); };
-  // Same order as the form on screen: Root Cause, SIM (+ historical rows), Investigation, Findings, Notes.
+  // Same order as the form on screen: Root Cause, SIM (+ historical rows), Investigation, Notes.
   sec('ilRootCause','rootCause');
   if(!opts.omitSim){
     sec('ilSimRcd','sim');
@@ -630,7 +658,7 @@ function ilCopyMissing(f,answers,opts){
   ilInvestMissing(answers, opts).forEach(function(k){
     out.push({id:'ilq_'+k, key:k, label:'PHD Investigation \u2014 '+defs[k].label});
   });
-  sec('ilPhdFindings','findings');
+  // PHD Findings is optional (like Determination / Evidence Details / Risk Assessment): not checked.
   if(!txt('res')) out.push({id:'ilSimRcd', key:'', label:'PHD Resolution (the "Res:" line of SIM Root Cause Details)'});
   sec('ilPhdNotes','notes');
   return out;
@@ -1271,6 +1299,11 @@ function ilParseFullLog(text,o){
 // pages fill with the ticket URL; the resolution is the SIM "Res:" value (ilCurrentResolution).
 function buildIncidentOutput(opts){
   opts=opts||{};
+  return ilSerializeFields(_ilFormFields(opts), opts);
+}
+// The open form as an ilSerializeFields field set (opts.copy: see buildIncidentOutput).
+function _ilFormFields(opts){
+  opts=opts||{};
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   var f={
     findings:g('ilPhdFindings'), invest:ilGetInvestigation(!opts.copy), sim:g('ilSimRcd'), hist:ilGetHistorical(),
@@ -1279,7 +1312,7 @@ function buildIncidentOutput(opts){
     country:IL_TICKET_COUNTRY, severity:ilGetSeverity()
   };
   IL_EXTRA_SECS.forEach(function(x){ f[x.k]=g(x.id); });
-  return ilSerializeFields(f, opts);
+  return f;
 }
 // Fields that are not page-managed: the "ONLY FOR PHD REFERENCE …" textarea, the optional
 // Determination / Evidence Details / Risk Assessment textareas (IL_EXTRA_SECS) and the hidden
@@ -1295,6 +1328,92 @@ function ilSetSavedExtras(f){
   IL_EXTRA_SECS.forEach(function(x){ set(x.id, f[x.k]); });   // Determination / Evidence Details / Risk Assessment
   set('ilEmtLink', f.emtLink);
   set('ilPhdSimLink', /^https:\/\/t\.corp\.amazon\.com\/issues\/[A-Za-z0-9][A-Za-z0-9-]*$/i.test(link) ? link : '');
+  // Every open starts a fresh layout: default, or complete for a saved entry with a PHD SIM / EMT
+  // link / imported sections. Applied by ilLayoutSync (ilRefreshEmptyMarks, end of every open).
+  _ilSecShown={};
+  _ilLayout=ilSavedIsComplete(f, IL_TICKET_SID) ? 'full' : 'default';
+}
+// ---- Form layout (default / complete) ----
+// default : [Comments] Severity, Root Cause, SIM Root Cause Details, PHD Investigation, the optional
+//           sections that are shown, "Add section" row, PHD Notes, [Reference].
+// full    : [Comments] Title block (Title + Severity), PHD SIM, EMT Link (when known), Root Cause,
+//           SIM Root Cause Details, PHD Investigation, optional sections, "Add section" row,
+//           PHD Notes, [Reference]  (= the footer Copy order).
+// Optional sections (IL_OPT_SECS) and the Reference are hidden (hidden attribute) until they have
+// content or are added with the "+" buttons; once shown they stay shown until the editor reopens.
+// Field nodes are moved, never rebuilt, so values / locks / searchable selects are kept.
+var _ilLayout='default';
+var _ilSecShown={};   // id -> true once shown (sticky for the open editor)
+var _ilTitleLastKey=null;
+function _ilOptSecs(){ return [{id:'ilPhdFindings', label:'PHD Findings'}].concat(IL_EXTRA_SECS.map(function(x){ return {id:x.id, label:x.label}; })); }
+function _ilWrapOf(id){ var el=document.getElementById(id); return el ? el.closest('.ail-field') : null; }
+// mode: 'default' | 'full' (also used by the whole-log Import).
+function ilSetLayout(mode){ _ilLayout=(mode==='full') ? 'full' : 'default'; ilLayoutSync(); }
+function ilLayoutSync(){
+  if(typeof document==='undefined') return;
+  var body=document.querySelector('#incidentModal .ail-body'), anchor=document.getElementById('ilLogImportStatus');
+  if(!body || !anchor) return;
+  var full=_ilLayout==='full';
+  // Sticky visibility of the optional sections (+ the Reference, no "+" button).
+  var anyAdd=false;
+  _ilOptSecs().concat([{id:'ilReference'}]).forEach(function(s){
+    var w=_ilWrapOf(s.id); if(!w) return;
+    if(_ilVal(s.id)) _ilSecShown[s.id]=true;
+    var shown=!!_ilSecShown[s.id];
+    w.hidden=!shown;
+    var b=document.getElementById('ilAdd_'+s.id);
+    if(b){ b.hidden=shown; if(!shown) anyAdd=true; }
+  });
+  var add=document.getElementById('ilAddSec'); if(add) add.hidden=!anyAdd;
+  var tb=document.getElementById('ilTitleBlock'), tbIn=tb, sev=document.getElementById('ilSevField');
+  var ps=document.getElementById('ilPhdSimField'), em=document.getElementById('ilEmtField');
+  if(tb) tb.hidden=!full;
+  if(ps) ps.hidden=!full;
+  _ilLinksSync();
+  // Severity sits in the Title block in the complete layout (the Title uses it), else on its own.
+  var order=[tb, ps, em];
+  if(full){ if(sev && tbIn && sev.parentNode!==tbIn) tbIn.appendChild(sev); }
+  else order.push(sev);
+  order=order.concat(['ilRootCause','ilSimRcd','ilPhdInvestigation'].map(_ilWrapOf),
+    _ilOptSecs().map(function(s){ return _ilWrapOf(s.id); }),
+    [document.getElementById('ilAddSec'), _ilWrapOf('ilPhdNotes'), _ilWrapOf('ilReference')]);
+  var ref=anchor;
+  order.forEach(function(n){
+    if(!n || n.parentNode!==body && n!==sev) return;
+    if(ref.nextElementSibling!==n) body.insertBefore(n, ref.nextSibling);
+    ref=n;
+  });
+  _ilTitleSync(true);
+}
+// Live Title (complete layout): re-computed when the country / SIM CID / Issue / severity change.
+function _ilTitleSync(force){
+  if(typeof document==='undefined') return;
+  var out=document.getElementById('ilSimTitleOut'); if(!out) return;
+  var sim=document.getElementById('ilSimRcd'), s=sim?sim.value:'';
+  var key=ilTitleKey(IL_TICKET_COUNTRY, s, _ilSev);
+  if(!force && key===_ilTitleLastKey) return;
+  _ilTitleLastKey=key;
+  out.value=ilCopySimTitle(IL_TICKET_COUNTRY, s, _ilSev);
+  var b=document.querySelector('.ail-fcopy[data-for="ilSimTitleOut"]'); if(b) b.disabled=!out.value;
+}
+// Read-only PHD SIM (= the copy's PHD Related Link) and EMT Link rows.
+function _ilLinksSync(){
+  if(typeof document==='undefined') return;
+  var ps=document.getElementById('ilPhdSimOut'), eo=document.getElementById('ilEmtOut'), ef=document.getElementById('ilEmtField');
+  if(ps) ps.value=ilCurrentLink();
+  var emt='';
+  if(eo){ emt=(_ilLayout==='full') ? ilEmtUrlOf(_ilFormFields({copy:true})) : ''; eo.value=emt; }
+  if(ef) ef.hidden=!emt;
+}
+// "+ <section>" button: show that optional section (empty) and focus it.
+function ilAddSection(id){
+  var el=document.getElementById(id); if(!el) return;
+  _ilSecShown[id]=true;
+  ilLayoutSync();
+  el.readOnly=false;
+  var pen=document.querySelector('.ail-fedit[data-for="'+id+'"]'); if(pen) pen.style.display='none';
+  ilAutosize(el);
+  try{ el.focus(); }catch(e){}
 }
 // ---- Severity row (#ilSevField above Root Cause; buttons 1..5, single choice, none by default) ----
 var _ilSev='';        // '1'..'5' or ''
@@ -1308,6 +1427,7 @@ function _ilSevRender(){
   if(fld){ fld.classList.toggle('is-changed', !!_ilSev); fld.classList.toggle('is-needed', need); }
   var h=document.getElementById('ilSevHint'); if(h) h.hidden=!need;
   if(need) g.setAttribute('aria-describedby','ilSevHint'); else g.removeAttribute('aria-describedby');
+  _ilTitleSync();   // the Title carries "Sev N"
 }
 // v = 1..5 / "Sev 3" / '' (clears). o.need = show the "Select a severity" mark while it is empty.
 function ilSetSeverity(v,o){
@@ -1964,7 +2084,9 @@ function ilLogImportClose(apply){
     var hid=function(id,v){ var el=document.getElementById(id); if(el && v) el.value=v; };
     hid('ilPhdSimLink', r.phdSimLink); hid('ilEmtLink', r.emtLink);
     if(r.res) ilSetSavedResolution(r.res);   // PHD Resolution fallback when the SIM has no "Res:" line
+    _ilLayout='full';        // complete incident log layout (applied by ilRefreshEmptyMarks -> ilLayoutSync)
     ilRefreshEmptyMarks();
+    _ilfiOpener=document.getElementById('ilSimTitleOut')||_ilfiOpener;   // focus moves to the Title block
     var summary=ilFullLogSummary(r,n);
     // Import summary line at the top of the form: shown for 5 seconds, then hidden.
     var st=document.getElementById('ilLogImportStatus');
@@ -2389,6 +2511,7 @@ function ilMarkEmpty(el){
 function ilRefreshEmptyMarks(){
   ilHistSync();   // SIM may have been set programmatically -> refresh the Historical Incidents rows
   IL_FIELD_IDS.forEach(function(id){ var el=document.getElementById(id); if(el){ var f=el.closest('.ail-field'); if(f) f.classList.toggle('is-empty', !_ilVal(id)); } });
+  ilLayoutSync();   // section order / visibility (default or complete layout), Title, PHD SIM / EMT rows
   ilUpdateCopyState();
 }
 // Missing / invalid fields in the open modal for a footer copy (opts.omitSim for Copy w/o RC Details).
@@ -2415,6 +2538,8 @@ function ilUpdateCopyState(){
   var btn2=document.getElementById('incidentCopyNoRcBtn');
   if(btn2) btn2.title=pending ? 'Resolve the PENDING SIM Root Cause Details resolution before copying' : 'Copy everything except the SIM Root Cause Details';
   _ilqUpdateValidity();
+  _ilTitleSync();   // live Title (SIM CID / Issue edits)
+  _ilLinksSync();   // EMT Link row follows the texts it is found in
   ilUpdateFieldCopyStates();
 }
 // Paint the per-field copy + edit icons (static HTML can't call ic()).
@@ -2487,7 +2612,7 @@ var IL_COPY_FMT={
 };
 // Fields whose own copy icon copies just the value, without the heading line. The SIM Root Cause
 // Details heading is still written by the footer Copy (Copy w/o RC Details leaves the section out).
-var IL_COPY_BARE={ilSimRcd:true};
+var IL_COPY_BARE={ilSimRcd:true, ilSimTitleOut:true, ilPhdSimOut:true, ilEmtOut:true};   // + the read-only Title / PHD SIM / EMT Link rows
 // Text one field's copy icon puts on the clipboard (pure; exported for Node).
 function ilFieldCopyText(id,val,label){
   if(IL_COPY_BARE[id]) return val;
@@ -2947,11 +3072,33 @@ var IncidentLogEditor=(function(){
   // (no copy icon, no Empty marker). Same autosize / lock / pencil as PHD Notes.
   function referenceField(){
     var id='ilReference', label=IL_REF_LABEL;
-    return '<div class="ail-field ail-ref" data-ilfield>'+
+    return '<div class="ail-field ail-ref" data-ilfield hidden>'+
       '<label class="ail-flabel" for="'+id+'"><span class="ail-flabel-tx">'+label+'</span> <span class="ail-ref-pill">Not copied</span>'+
         '<button type="button" class="ail-fedit" data-for="'+id+'" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit '+label+'" style="display:none"></button></label>'+
       '<p class="ail-ref-hint" id="ilReferenceHint">For reference only. This section is never copied to SIM or EMT.</p>'+
       '<textarea id="'+id+'" class="ail-f" aria-describedby="ilReferenceHint" placeholder="Intro notes, Primary Case Tag, Investigation / Evidence Checklist \u2026"></textarea>'+
+    '</div>';
+  }
+  // Read-only row of the complete layout (Title / PHD SIM / EMT Link): label + "Read-only" pill +
+  // copy icon (copies the bare value, IL_COPY_BARE), value in a read-only input.
+  function roField(id,label,wrapId,hidden){
+    return '<div class="ail-field ail-field-inline ail-rofield"'+(wrapId?' id="'+wrapId+'"':'')+(hidden?' hidden':'')+'>'+
+      '<label class="ail-flabel" for="'+id+'"><span class="ail-flabel-tx">'+label+'</span> <span class="ail-ro-pill">Read-only</span>'+
+        '<button type="button" class="ail-fcopy" data-for="'+id+'" data-label="'+label+'" onclick="ilCopyField(this)" title="Copy '+label+'" aria-label="Copy '+label+'"></button></label>'+
+      '<input type="text" id="'+id+'" class="ail-ro" readonly autocomplete="off">'+
+    '</div>';
+  }
+  // Complete layout: Title (live SIM Title) with the Severity row moved in below it (ilLayoutSync).
+  function titleBlock(){
+    return '<div class="ail-titleblk" id="ilTitleBlock" role="group" aria-label="Title and severity" hidden>'+roField('ilSimTitleOut','Title')+'</div>';
+  }
+  // "Add section" row (above PHD Notes): one button per hidden optional section.
+  function addSecRow(){
+    return '<div class="ail-addsec" id="ilAddSec" role="group" aria-labelledby="ilAddSecLbl">'+
+      '<span class="ail-addsec-lbl" id="ilAddSecLbl">Add section</span>'+
+      [{id:'ilPhdFindings', label:'PHD Findings'}].concat(IL_EXTRA_SECS).map(function(s){
+        return '<button type="button" class="ail-addsec-btn" id="ilAdd_'+s.id+'" onclick="ilAddSection(\''+s.id+'\')" aria-label="Add '+s.label+' section">+ '+s.label+'</button>';
+      }).join('')+
     '</div>';
   }
   function markupHtml(){
@@ -2980,24 +3127,35 @@ var IncidentLogEditor=(function(){
             '<div class="ilcm" id="ilCmtList"></div>'+
           '</section>'+
           '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
-          // Display order (= copy / save order): Root Cause, SIM Root Cause Details, PHD Investigation,
-          // PHD Findings, PHD Notes. PHD Related Link (hidden input, filled by the page with the ticket
-          // URL) and PHD Resolution (the SIM "Res:" value) are not shown but are in every copy / save.
+          // Markup order = default layout; ilLayoutSync re-orders (moves the nodes) for the complete
+          // layout and hides / shows the optional sections. PHD Related Link (hidden input, filled by
+          // the page with the ticket URL) and PHD Resolution (the SIM "Res:" value) are not form
+          // fields; the complete layout shows the link read-only as "PHD SIM".
           // Severity (above Root Cause, same side-by-side layout): buttons 1..5 like the SIM "Cnt" ones.
+          // Complete layout only (after a whole-log Import / a saved entry with PHD SIM / EMT): Title
+          // block, read-only PHD SIM + EMT Link. ilLayoutSync orders / shows every section.
+          titleBlock()+
+          roField('ilPhdSimOut','PHD SIM','ilPhdSimField',true)+
+          roField('ilEmtOut','EMT Link','ilEmtField',true)+
           sevField()+
           // Root Cause: label and dropdown side by side (.ail-field-inline).
           field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>').replace('class="ail-field"','class="ail-field ail-field-inline"')+
           simField()+
           investigationField()+
-          field('ilPhdFindings','PHD Findings','ta','<textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT\'26, a DSP DA from station …&#10;- …"></textarea>')+
+          // PHD Findings + IL_EXTRA_SECS: optional, hidden until filled / added (no Empty marker).
+          field('ilPhdFindings','PHD Findings','ta','<textarea id="ilPhdFindings" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- On 11OCT\'26, a DSP DA from station …&#10;- …"></textarea>')
+            .replace(' <span class="ail-empty-dot">Empty</span>','').replace('<div class="ail-field" data-ilfield>','<div class="ail-field" data-ilfield hidden>')+
           // Optional Determination / Evidence Details / Risk Assessment (IL_EXTRA_SECS): no Empty
           // marker, not in the copy check; oninput only refreshes the copy icon.
           IL_EXTRA_SECS.map(function(x){
             return field(x.id,x.label,'ta','<textarea id="'+x.id+'" class="ail-f" oninput="ilUpdateFieldCopyStates()" placeholder="- \u2026"></textarea>')
-              .replace(' <span class="ail-empty-dot">Empty</span>','');
+              .replace(' <span class="ail-empty-dot">Empty</span>','').replace('<div class="ail-field" data-ilfield>','<div class="ail-field" data-ilfield hidden>');
           }).join('')+
+          addSecRow()+
           '<input type="hidden" id="ilRelatedLink">'+
-          field('ilPhdNotes','PHD Notes','ta','<textarea id="ilPhdNotes" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- The DA has confessed …&#10;- …"></textarea>')+
+          // PHD Notes: empty by default; left out of the Copy when empty (muted tag next to the label).
+          field('ilPhdNotes','PHD Notes','ta','<textarea id="ilPhdNotes" class="ail-f" oninput="ilMarkEmpty(this)" placeholder="- The DA has confessed …&#10;- …"></textarea>')
+            .replace('<span class="ail-flabel-tx">PHD Notes</span>','<span class="ail-flabel-tx">PHD Notes</span> <span class="ail-optag">Not copied when empty</span>')+
           // From the whole-log Import (Related Links): PHD SIM link (copy's PHD Related Link) + EMT URL.
           '<input type="hidden" id="ilPhdSimLink"><input type="hidden" id="ilEmtLink">'+
           referenceField()+
@@ -3229,6 +3387,20 @@ var IncidentLogEditor=(function(){
     '#incidentModal .ail-field.ail-ref .ail-fedit{margin-left:auto}',
     '#incidentModal .ail-ref-hint{margin:0 0 6px;font-size:.78em;color:#4a5560}',
     '#incidentModal .ail-field.ail-ref textarea{background:#fafbfc!important;color:#3d4753!important;border-style:dashed!important}',
+    // Layout (ilLayoutSync): hidden sections, "Add section" row, PHD Notes tag, complete-layout
+    // Title block (Title + Severity) and read-only PHD SIM / EMT Link rows.
+    '#incidentModal .ail-field[hidden],.ail-titleblk[hidden],.ail-addsec[hidden],.ail-addsec-btn[hidden]{display:none!important}',
+    '.ail-addsec{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 14px}',
+    '.ail-addsec-lbl{font-size:.78em;font-weight:700;color:#5c6773;margin-right:2px}',
+    '#incidentModal button.ail-addsec-btn{display:inline-flex;align-items:center;min-height:28px;margin:0;padding:0 10px;border:1px dashed #b8c2cc;border-radius:999px;background:#fff;color:#1577a0;font-family:inherit;font-size:.78em;font-weight:700;cursor:pointer;box-shadow:none}',
+    '#incidentModal button.ail-addsec-btn:hover{border-color:#1577a0;background:rgba(21,119,160,.06)}',
+    '#incidentModal button.ail-addsec-btn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ail-optag,.ail-ro-pill{display:inline-block;font-size:.84em;font-weight:600;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:0 8px;line-height:1.5;white-space:nowrap}',
+    '.ail-titleblk{margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fffaf5}',
+    '.ail-titleblk>.ail-field{margin-bottom:8px}',
+    '.ail-titleblk>.ail-field:last-child{margin-bottom:0}',
+    '#incidentModal .ail-field input.ail-ro{box-sizing:border-box;width:100%;margin:0;padding:8px 12px!important;background:#f3f5f7!important;color:#1b2026!important;border:1px solid #d4dce4!important;border-radius:8px!important;font-family:inherit;font-size:.86em;line-height:1.5;cursor:default;text-overflow:ellipsis}',
+    '#incidentModal .ail-field input.ail-ro:focus{outline:none;border-color:#1577a0!important;box-shadow:0 0 0 3px rgba(21,119,160,.14)}',
     // Ticket comments panel (top of the editor body) + the shared "Previous comments" list (.ilcm,
     // also used in the read-only view pop-up) + the header temp-resolve switch.
     '.ail-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}',
@@ -3451,7 +3623,7 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   IL_SIM_HI_MAX:IL_SIM_HI_MAX, ilSimHiCount:ilSimHiCount, ilSimHiMissing:ilSimHiMissing,
   ilParseFullLog:ilParseFullLog, ilFullLogSummary:ilFullLogSummary,
   ilInvestDecidedFromSaved:ilInvestDecidedFromSaved, ilInvestDefaultKeys:ilInvestDefaultKeys,
-  ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilCopyNotes:ilCopyNotes, ilCopyResExtra:ilCopyResExtra,
+  ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilEmtUrlOf:ilEmtUrlOf, ilTitleKey:ilTitleKey, ilSavedIsComplete:ilSavedIsComplete, ilCopyNotes:ilCopyNotes, ilCopyResExtra:ilCopyResExtra,
   ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
   ilSetTicketRegion:ilSetTicketRegion, ilSetSavedSeverity:ilSetSavedSeverity, ilGetSeverity:ilGetSeverity,
   ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue };
