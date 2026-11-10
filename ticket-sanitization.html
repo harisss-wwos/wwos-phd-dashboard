@@ -609,8 +609,10 @@ var TS_PROMPT=[
   '4. SIM Title',
   '',
   'SIM Title rules:',
-  '- If a Customer Account ID is present, use: <COUNTRY CODE> Customer Incident Escalation - Account ID: <Customer Account ID> - <Issue type>',
-  '- If there is no Customer Account ID, use (and leave out "Account ID" entirely): <COUNTRY CODE> Community Member Incident Escalation - <Issue type>'
+  '- If a Customer Account ID is present, use: <COUNTRY CODE> Customer Incident Escalation - Account ID: <Customer Account ID> - Sev <N> - <Issue type>',
+  '- If there is no Customer Account ID, use (and leave out "Account ID" entirely): <COUNTRY CODE> Community Member Incident Escalation - Sev <N> - <Issue type>',
+  '- Sev <N> is the incident severity (1-5) from the pasted information. If no EMT was processed, or no severity is given, use Sev 5.',
+  '- Example: US Customer Incident Escalation - Account ID: A2BE6RJDLHJ794 - Sev 5 - Verbal abuse'
 ].join('\n');
 function tsCopyPrompt(btn){
   var lbl=btn&&btn.querySelector('.ts-hl-t'); var orig=lbl?lbl.textContent:'';
