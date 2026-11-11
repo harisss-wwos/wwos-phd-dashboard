@@ -122,7 +122,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card{width:100%;height:100%;display:flex;flex-direction:column;gap:9px;padding:12px 12px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
 .st-card:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,114,17,.12)}
 .st-card[aria-pressed="true"]{border-color:var(--acc);background:#fff8f1;box-shadow:0 0 0 3px rgba(236,114,17,.24)}
-/* Line 1: login + 'Selected' pill; line 2: 'Assigned n | Cleared n | Needs correction n' (one line on
+/* Line 1: login + 'Selected' pill; line 2: 'Assigned n | To sanitize n | Sanitized n' (one line on
    desktop); line 3: progress bar + 'n% passed'. */
 .st-card-top{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
 .st-card-who{min-width:0;font-size:1.02em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -292,11 +292,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="api-config.js"></script>
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
-<script src="topbar-auth.js?v=232"></script>
-<script src="sanitization-view.js?v=7"></script>
+<script src="topbar-auth.js?v=233"></script>
+<script src="sanitization-view.js?v=8"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=2"></script>
+<script src="sanitization-checklist.js?v=3"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -366,9 +366,9 @@ function kpisHtml(){
   return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals"'+(done?'':' aria-busy="true"')+'>'+
     k('is-base','users','Contractors',done?num(ST.list.length):'','With sanitization access')+
     k('is-base','ticket','Tickets assigned',done?num(t.assigned):'','Active assignments')+
-    k('is-ok','check-circle','Cleared',done?num(t.cleared):'','Allowed closure code, every check it needs passes')+
-    k('is-bad','alert-triangle','Needs correction',done?num(t.need):'',done?('A defect or a missing check \u00b7 '+num(t.wait)+' awaiting upload, '+num(t.err)+' error'):'A defect or a missing check')+
-    k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Cleared of assigned')+
+    k('is-bad','alert-triangle','To sanitize',done?num(t.need):'',done?('Not marked yet or failed the check \u00b7 '+num(t.wait)+' temporarily cleared, '+num(t.err)+' error'):'Not marked yet or failed the check')+
+    k('is-ok','check-circle','Sanitized',done?num(t.cleared):'','Marked, then verified on the SIM closure code after an upload')+
+    k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Sanitized of assigned')+
     '</ul>';
 }
 function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
@@ -380,7 +380,7 @@ function cardHtml(c){
   return '<li><button type="button" class="st-card" data-login="'+esc(c.login)+'" aria-pressed="'+(on?'true':'false')+'" aria-controls="stViewSec"'+
       (c.displayName&&c.displayName!==c.login?' title="'+esc(c.displayName)+'"':'')+'>'+
     '<span class="st-card-top"><span class="st-card-who">'+esc(c.login)+'</span><span class="st-card-sel">'+ic('check',12)+'Selected</span></span>'+
-    '<span class="st-card-cnt"><span>Assigned <b>'+num(a)+'</b></span>'+sep+'<span class="is-ok">Cleared <b>'+num(ok)+'</b></span>'+sep+'<span class="is-bad">Needs correction <b>'+num(bad)+'</b></span></span>'+
+    '<span class="st-card-cnt"><span>Assigned <b>'+num(a)+'</b></span>'+sep+'<span class="is-bad">To sanitize <b>'+num(bad)+'</b></span>'+sep+'<span class="is-ok">Sanitized <b>'+num(ok)+'</b></span></span>'+
     '<span class="st-card-rate" style="--sc-h:'+S.hue(p/100*maxS())+'"><span class="st-bar" aria-hidden="true"><span style="width:'+p+'%"></span></span><b>'+p+'% passed</b></span>'+
     '</button></li>';
 }
@@ -429,13 +429,13 @@ function renderCards(focusLogin){
   var b=$('stCardsBody'); if(!b) return;
   b.innerHTML=cardsBody();
   var d=$('stCardsD');
-  if(d) d.textContent=ST.state==='done'?('Totals, then the contractors (most tickets needing correction first). Pick one to see their tickets below.'):'Loading\u2026';
+  if(d) d.textContent=ST.state==='done'?('Totals, then the contractors (most tickets to sanitize first). Pick one to see their tickets below.'):'Loading\u2026';
   if(focusLogin){ var f=b.querySelector('[data-login="'+String(focusLogin).replace(/["\\]/g,'')+'"]'); if(f) try{ f.focus(); }catch(e){} }
 }
 function viewSecHtml(){
   return '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('eraser',18)+'</span>'+
-      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Allowed closure codes: Successful (all 11 checks), Immediately Resolved (only Out of Scope of PHD or unsecured pet issue types with Sev 3\u20135 in the title: the 3 title checks) and Duplicate (no checks). The score is passed / required checks, lowest first by default (use the Score header to flip it), then oldest assigned. '+
-      'Set a ticket\u2019s status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate; checked after the next data upload) or Error (sent to the owner for review). One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">After sanitizing a ticket, set its status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate) or Error (sent to the owner for review). A marked ticket is temporarily cleared until the next data upload; only then is the SIM closure code checked: Successful needs all 11 checks, Immediately Resolved (Out of Scope of PHD, or a pet type other than Attack w/pet with Sev 3\u20135 in the title) the 3 title checks, Duplicate none. '+
+      'The score is out of 11 until then (the checks of SIM\u2019s closure code after it), lowest first by default (use the Score header to flip it), then oldest assigned. One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
 }
 // The Contractors section: a top-level accordion card (sanitization-checklist.js helpers) holding the
@@ -472,7 +472,7 @@ function needOf(d){ return (d&&d.totals&&d.totals.needsCorrection)||0; }
 // after(ok): optional, runs once the fresh data is shown (used after Restore).
 function loadView(login,force,after){
   var v=VIEWS[login];
-  if(v&&v.data&&!force){ renderView(); announce('Showing '+nameOf(findC(login))+'\u2019s tickets: '+needOf(v.data)+' need correction.'); return; }
+  if(v&&v.data&&!force){ renderView(); announce('Showing '+nameOf(findC(login))+'\u2019s tickets: '+needOf(v.data)+' to sanitize.'); return; }
   var seq=++SEQ, name=nameOf(findC(login));
   VIEWS[login]={loading:true};
   renderView(); announce('Loading '+name+'\u2019s tickets\u2026');
@@ -489,7 +489,7 @@ function loadView(login,force,after){
     var x=VIEWS[login];
     if(after){ after(!x.error); return; }
     renderView();
-    announce(x.error?('Could not load '+name+'\u2019s tickets.'):('Loaded '+name+'\u2019s tickets: '+needOf(x.data)+' need correction, '+((x.data.totals&&x.data.totals.cleared)||0)+' cleared.'));
+    announce(x.error?('Could not load '+name+'\u2019s tickets.'):('Loaded '+name+'\u2019s tickets: '+needOf(x.data)+' to sanitize, '+((x.data.totals&&x.data.totals.cleared)||0)+' sanitized.'));
   });
 }
 // Switching contractor resets paging / sort / forms / selection; the open section (OPEN) is kept.
@@ -555,7 +555,7 @@ function saveMark(sid,status,reason){
       if(ERRF&&ERRF.shortId===sid) ERRF=null;
       syncTotals(); renderView('#stViewH');
       announce(sid+(status==='error'?(canReview(login)?' marked Error.':' sent to the owner for error review.')
-        :(status?(' marked '+(STATUS_WORD[status]||status)+'. It is checked after the next data upload.'):(' mark removed: '+(t.status==='cleared'?'Cleared.':'back to Needs correction.')))));
+        :(status?(' marked '+(STATUS_WORD[status]||status)+'. Temporarily cleared until the next data upload.'):(' mark removed: '+(t.status==='cleared'?'sanitized.':'back to Tickets to sanitize.')))));
     } else {
       var msg=(r&&r.data&&r.data.error)||'Could not save the status. Please try again.';
       var inForm=!!(ERRF&&ERRF.shortId===sid);
@@ -591,7 +591,7 @@ function revOpen(action,ids){
       '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization Tracker \u00b7 Error review</div><h2 class="tbl-title" id="stRevT">'+esc(title)+'</h2></div>'+
       '<button type="button" class="tbl-x" data-strevx="1" aria-label="Close">'+ic('close',18)+'</button>'+
       '<p class="tbl-sub" id="stRevD">'+(ap?('Exclude '+V.plural(n,'ticket')+' from sanitization tracking? '+(n===1?'It leaves':'They leave')+' the scores, assignments, verification and every contractor view. You can restore '+(n===1?'it':'them')+' later from Approved errors.')
-        :('The '+(n===1?'ticket goes':'tickets go')+' back to '+esc(who)+'\u2019s Needs correction with your message.'))+'</p></div>'+
+        :('The '+(n===1?'ticket goes':'tickets go')+' back to '+esc(who)+'\u2019s Tickets to sanitize with your message.'))+'</p></div>'+
     '<div class="tbl-body">'+
       '<p class="st-rev-ids"><span class="st-sr">Tickets: </span>'+esc(ids.slice(0,12).join(', '))+(n>12?' and '+(n-12)+' more':'')+'</p>'+
       '<label class="st-rev-l" for="stRevMsg">'+(ap?'Note (optional)':('Message to '+esc(who)+' <span class="st-rev-req" aria-hidden="true">*</span>'))+'</label>'+
@@ -651,7 +651,7 @@ function revSubmit(){
     revClose(true);
     if(SEL===login){ syncTotals(); LASTI=-1; renderView(errRows().length?'[data-stvall]':'#stViewH'); }
     var n=(d.done||[]).length, sk=(d.skipped||[]).length;
-    announce((job.action==='approve'?('Approved '+V.plural(n,'ticket')+'; excluded from sanitization tracking.'):('Sent '+V.plural(n,'ticket')+' back to Needs correction.'))
+    announce((job.action==='approve'?('Approved '+V.plural(n,'ticket')+'; excluded from sanitization tracking.'):('Sent '+V.plural(n,'ticket')+' back to Tickets to sanitize.'))
       +(sk?(' '+V.plural(sk,'ticket')+' skipped (no longer marked as error).'):''));
   });
 }
@@ -694,7 +694,7 @@ document.addEventListener('click',function(e){
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
   if(t.closest('[data-stvsort]')){
     SORT=SORT==='asc'?'desc':'asc'; PG.need=0; renderView('[data-stvsort]');
-    announce('Needs correction sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
+    announce('Tickets to sanitize sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
   }
   var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
   var cn=t.closest('[data-stvcancel]'); if(cn&&!cn.disabled){ var sid=cn.getAttribute('data-stvcancel'); ERRF=null; renderView('[data-stvst="'+sid+'"]'); return; }
@@ -725,7 +725,7 @@ document.addEventListener('click',function(e){
   var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
   var pg=t.closest('[data-sanpage]');
   if(pg&&!pg.disabled){
-    // sec: 'need' (Needs correction) or 'ok' (Cleared).
+    // sec: 'need' (Tickets to sanitize) or 'ok' (Tickets sanitized successfully).
     var bits=pg.getAttribute('data-sanpage').split(':'), sec=bits[0]==='need'?'need':'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
     PG[sec]=Math.max(0,Number(bits[1])||0);
     OPEN=sec;
@@ -735,7 +735,7 @@ document.addEventListener('click',function(e){
     if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
     if(f) try{ f.focus(); }catch(err){}
     var box=f&&f.closest('.tb-san-in'), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
-    announce((sec==='ok'?'Cleared tickets':'Tickets that need correction')+': page '+(PG[sec]+1));
+    announce((sec==='ok'?'Tickets sanitized successfully':'Tickets to sanitize')+': page '+(PG[sec]+1));
   }
 });
 // One-open-at-a-time accordion: opening a section closes the others; OPEN survives re-renders

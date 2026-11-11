@@ -228,17 +228,19 @@ const cleanCode = s => str(s).trim().replace(/\s+/g, ' ');
 // Severity number 1..5 from the title, or 0.
 function titleSevNumber(title) { const m = str(title).match(SEV_RE); return m ? Number(m[1]) : 0; }
 // info: { type (title issue type, '' when not in the list), cat (its category), sev (0..5) }
-// -> { ok:true } | { ok:false, why:'<defect message>' }.
+// -> { ok:true } | { ok:false, why:'<defect message>', irk:{ kind:'type'|'pet-sev'|'pet-nosev'|'scope', type, sev } }
+// (irk: why it is not eligible, for the tracker's verification messages, sanitization-assign.js).
 function irEligibility(info) {
   const type = str(info && info.type), cat = norm(info && info.cat), sev = Number(info && info.sev) || 0;
-  if (!type) return { ok: false, why: 'Title issue type not in the list: fix the issue type' };
+  const no = (kind, why) => ({ ok: false, why, irk: { kind, type, sev } });
+  if (!type) return no('type', 'Title issue type not in the list: fix the issue type');
   if (cat === CAT_OOS) return { ok: true };
   if (cat === CAT_PET && norm(type) !== TYPE_ATTACK_PET) {
     if (sev >= 3 && sev <= 5) return { ok: true };
-    if (sev) return { ok: false, why: 'Immediately Resolved not allowed for a pet incident with Sev ' + sev + ': needs Successful' };
-    return { ok: false, why: 'Immediately Resolved not allowed for a pet incident without a title severity: add Sev 3-5 to the title or change to Successful' };
+    if (sev) return no('pet-sev', 'Immediately Resolved not allowed for a pet incident with Sev ' + sev + ': needs Successful');
+    return no('pet-nosev', 'Immediately Resolved not allowed for a pet incident without a title severity: add Sev 3-5 to the title or change to Successful');
   }
-  return { ok: false, why: 'Immediately Resolved not allowed for ' + type + ' (in scope): change the closure code to Successful, or correct the title' };
+  return no('scope', 'Immediately Resolved not allowed for ' + type + ' (in scope): change the closure code to Successful, or correct the title');
 }
 // -> { grp, target (the code the ticket must end with), keys:[required criterion keys], defects:[messages] }.
 function closureRule(code, info) {
@@ -246,7 +248,7 @@ function closureRule(code, info) {
   if (k === 'duplicate') return { grp: 'duplicate', target: CODE_DUP, keys: [], defects: [] };
   if (k === 'immediately resolved') {
     if (elig.ok) return { grp: 'immediate', target: CODE_IR, keys: TITLE_KEYS.slice(), defects: [] };
-    return { grp: 'ir-not-eligible', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [elig.why] };
+    return { grp: 'ir-not-eligible', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [elig.why], irk: elig.irk };
   }
   if (k === 'successful') return { grp: 'successful', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [] };
   return { grp: 'not-allowed', target: elig.ok ? CODE_IR : CODE_SUCCESSFUL, keys: (elig.ok ? TITLE_KEYS : ALL_KEYS).slice(),
@@ -338,7 +340,7 @@ function scoreTicket(t, ctx) {
   ];
   const req = requiredChecks(t, checks, ctx);
   return { score: checks.reduce((s, c) => s + c[0], 0), checks, group: req.grp, target: req.target,
-    required: req.keys.length, passedRequired: req.passed, missingRequired: req.missing, defects: req.defects };
+    required: req.keys.length, passedRequired: req.passed, missingRequired: req.missing, defects: req.defects, irk: req.irk || null };
 }
 
 // ---- Report ----
@@ -386,6 +388,8 @@ function buildScoreReport(rows, issueTypes, resolutionNames, typeCategories) {
       // need = required checks, pass = how many of them pass, miss = failing required keys,
       // def = defect messages (cleared when pass === need and no defect), cc = SIM ClosureCode.
       grp: r.group, tgt: r.target, need: r.required, pass: r.passedRequired, miss: r.missingRequired, def: r.defects,
+      // irk: why Immediately Resolved is not eligible (grp 'ir-not-eligible' only, irEligibility), else null.
+      irk: r.irk,
       cc: clip(str(d.ClosureCode).trim().replace(/\s+/g, ' ')),
       cq: pacificQuarter(d.CreateDate),   // created quarter (Pacific), e.g. '2026-Q1'; '' when CreateDate is missing
       rbi: str(d.ResolvedByIdentity).trim(),   // raw resolver (Errors in Resolved groups by it, see resolved-errors.js)

@@ -1,12 +1,15 @@
 // Sanitization Tracker ticket view (sanitization-tracker.html): one contractor's tickets from
-// GET /api/my-sanitization, split into Needs correction / Marked — awaiting next upload / Error tickets /
-// Cleared. Pure string builders (no DOM, no network), so they also run under node for unit tests.
-// The server sets each ticket's status: 'needs-correction' | 'awaiting' | 'error-ticket' | 'cleared' |
-// 'not-found' | 'excluded' (sanitization-assign.js evalTicket: the closure-code rule on the SIM data,
-// plus the agent's status claim once a newer upload verifies it). A claim (Successful / Immediately
-// Resolved / Duplicate) waits in 'awaiting' until the next upload. Error tickets go to the owner for
-// review (owner-only section; contractors get only the count) and stay until approved or sent back
-// (`returned` note on the Needs correction row). The four sections are a one-open-at-a-time accordion
+// GET /api/my-sanitization, split into 1 Tickets to sanitize / 2 Temporarily cleared / 3 Error tickets
+// that need approval / 4 Tickets sanitized successfully. Pure string builders (no DOM, no network), so
+// they also run under node for unit tests.
+// The server sets each ticket's status: 'needs-correction' (to sanitize) | 'awaiting' (temporarily
+// cleared) | 'error-ticket' | 'cleared' (sanitized) | 'not-found' | 'excluded' (sanitization-assign.js
+// evalTicket). A ticket is verified ONLY once the agent marks it (Successful / Immediately Resolved /
+// Duplicate) and a newer upload arrives; then the SIM closure code is checked (rule A): pass ->
+// sanitized, fail -> back to to-sanitize with the defect (the mark is consumed). Before that there is
+// no closure-code check: unmarked rows show the raw score out of 11 and the missing Title / RCD checks.
+// Error tickets go to the owner for review (owner-only section; contractors get only the count) and
+// stay until approved or sent back (`returned` note on the to-sanitize row). The four sections are a one-open-at-a-time accordion
 // (nextOpen). Errors in Resolved (and hi-resolved.html) reuse the small helpers (hue, missText,
 // defect / pill / pager / codeTag).
 // Markup reuses the .tb-asg-card / .tb-san-card base styles from topbar-auth.js; .stv-* rules live in
@@ -118,8 +121,7 @@
   function statusAfter(t, mark) {
     if (mark && CLAIM[mark.status]) return 'awaiting';
     if (mark && mark.status === 'error') return 'error-ticket';
-    var ok = typeof t.clearedNow === 'boolean' ? t.clearedNow : t.scoreNow === MAX;
-    return ok ? 'cleared' : 'needs-correction';
+    return 'needs-correction';   // unmarked: never sanitized until a mark is verified by an upload
   }
 
   // ---- HTML ----
@@ -172,11 +174,12 @@
   }
   // Small ClosureCode tag ('(blank)' when empty).
   function codeTag(code) { var c = String(code == null ? '' : code).trim(); return '<span class="stv-cc">' + esc(c || '(blank)') + '</span>'; }
-  // Needs correction: one line per ticket: Score | Ticket ID | Title | Closure code | Missing / Defect |
-  // Status (the error-reason form opens on a second row under it while editing).
+  // Tickets to sanitize: one line per ticket: Score | Ticket ID | Title | Closure code | Missing / Defect |
+  // Status (the error-reason form opens on a second row under it while editing). A failed verification
+  // shows its defect in red first; unmarked rows only list the missing Title / RCD checks.
   function needTable(rows, o, h) {
     var dir = o.sortDir === 'desc' ? 'desc' : 'asc', f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly, span = 6;
-    var sortLbl = dir === 'asc' ? 'lowest first' : 'highest first', lbl = 'Tickets that need correction';
+    var sortLbl = dir === 'asc' ? 'lowest first' : 'highest first', lbl = 'Tickets to sanitize';
     return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="' + lbl + '" tabindex="0"><table class="stv-tbl is-line">'
       + '<caption class="tb-asg-sr">' + lbl + ', score ' + sortLbl + '.</caption>'
       + '<thead><tr><th scope="col" class="stv-fit" aria-sort="' + (dir === 'asc' ? 'ascending' : 'descending') + '"><button type="button" class="stv-sort" data-stvsort="1">Score'
@@ -197,10 +200,10 @@
           + (open ? errFormRow(t, f, span) : '') + '</tbody>';
       }).join('') + '</table></div>';
   }
-  // Marked — awaiting next upload: Score | Ticket ID | Title | Closure code (SIM now) | Marked as | Marked at | Undo.
+  // Temporarily cleared: Score | Ticket ID | Title | Closure code (SIM now) | Marked as | Marked at | Undo.
   function waitTable(rows, o, h) {
     var busy = o.busy || {}, ro = !!o.readOnly;
-    return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Marked tickets awaiting the next upload" tabindex="0"><table class="stv-tbl is-flat is-line">'
+    return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Temporarily cleared tickets" tabindex="0"><table class="stv-tbl is-flat is-line">'
       + '<caption class="tb-asg-sr">Tickets marked with a closure status, waiting for the next data upload, most recently marked first</caption>'
       + '<thead><tr><th scope="col" class="stv-fit">Score</th><th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th>'
       + '<th scope="col" class="stv-fit">Closure code</th><th scope="col" class="stv-fit">Marked as</th>'
@@ -284,38 +287,38 @@
     var sec = function (key, cls, label, n, extra) {
       return '<details class="tb-san-sec ' + cls + '" data-stvsec="' + key + '"' + (extra || '') + (openSec === key ? ' open' : '') + '><summary>' + label + ' <b>' + n + '</b></summary><div class="tb-san-in">';
     };
-    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + ' \u00b7 Cleared ' + (T.cleared || 0) + ' \u00b7 Needs correction ' + (T.needsCorrection || 0)
-      + ' \u00b7 Awaiting upload ' + (T.awaiting || 0) + (rev ? ' \u00b7 Error tickets ' + errN : '')
+    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + ' \u00b7 To sanitize ' + (T.needsCorrection || 0)
+      + ' \u00b7 Temporarily cleared ' + (T.awaiting || 0) + (rev ? ' \u00b7 Errors ' + errN : '') + ' \u00b7 Sanitized ' + (T.cleared || 0)
       + (asOf ? ' <small>\u00b7 data as of ' + esc(asOf) + '</small>' : '') + '</p>'
       + '<div class="tb-san-prog" aria-hidden="true"><span style="width:' + pct + '%"></span></div>'
       + (!rev && errN ? '<p class="tb-san-muted stv-sent">' + plural(errN, 'ticket') + ' sent to the owner for error review</p>' : '') + '</div>';
-    html += sec('need', 'is-bad', 'Needs correction', need.length)
-      + (need.length ? '<p class="stv-help">Allowed closure codes: Successful (all 11 checks), Immediately Resolved (only for an Out of Scope of PHD issue type, or an unsecured pet type with Sev 3\u20135: the 3 title checks) and Duplicate (no checks). Defects are in red.</p>'
-        + needTable(needRows, o, h) + pager('need', needPg, size, need.length, 'Tickets that need correction')
-        : '<p class="tb-asg-empty">' + (S.wait.length || errN ? 'Nothing left to correct. Marked tickets are checked after the next data upload.' : 'Everything is cleared \ud83c\udf89') + '</p>')
+    html += sec('need', 'is-bad', 'Tickets to sanitize', need.length)
+      + (need.length ? '<p class="stv-help">Fix the title and Root Cause Details, close the ticket in SIM, then set the status you closed it with. The closure code is checked only after the next data upload: Successful needs all 11 checks, Immediately Resolved (an Out of Scope of PHD issue type, or a pet type other than Attack w/pet with Sev 3\u20135) the 3 title checks, Duplicate none. Defects from that check are in red.</p>'
+        + needTable(needRows, o, h) + pager('need', needPg, size, need.length, 'Tickets to sanitize')
+        : '<p class="tb-asg-empty">' + (S.wait.length || errN ? 'Nothing left to sanitize. Temporarily cleared tickets are checked after the next data upload.' : 'Everything is sanitized \ud83c\udf89') + '</p>')
       + '</div></details>';
-    html += sec('wait', 'is-temp', 'Marked \u2014 awaiting next upload', S.wait.length)
-      + '<p class="stv-help">Your status is checked after the next data upload: the SIM closure code must match it and the checks it needs must pass, then the ticket moves to Cleared; otherwise it comes back to Needs correction with the defect.</p>'
+    html += sec('wait', 'is-temp', 'Temporarily cleared', S.wait.length)
+      + '<p class="stv-help">Checked after the next data upload against the SIM closure code: if it passes, the ticket moves to Tickets sanitized successfully; otherwise it comes back to Tickets to sanitize with the defect, and you mark it again after fixing.</p>'
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
     if (rev) {
-      html += sec('err', 'is-err', 'Error tickets', S.err.length)
-        + '<p class="stv-help">Marked as error tickets by the contractor. Approve leaves a ticket out of sanitization tracking; Send back returns it to Needs correction with your message.</p>'
+      html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length)
+        + '<p class="stv-help">Marked as error tickets by the contractor. Approve leaves a ticket out of sanitization tracking; Send back returns it to Tickets to sanitize with your message.</p>'
         + (S.err.length ? errReviewHtml(S.err, o, h) : '<p class="tb-asg-empty">No tickets waiting for error review.</p>')
         + approvedHtml(v.approved, o, h) + '</div></details>';
     }
-    html += sec('ok', 'is-ok', 'Cleared', S.ok.length, ' id="tbSanOkSec"');
-    if (!S.ok.length) html += '<p class="tb-asg-empty">No cleared tickets yet.</p>';
+    html += sec('ok', 'is-ok', 'Tickets sanitized successfully', S.ok.length, ' id="tbSanOkSec"');
+    if (!S.ok.length) html += '<p class="tb-asg-empty">No sanitized tickets yet.</p>';
     else {
-      html += '<div class="tb-asg-scroll" role="region" aria-label="Cleared tickets" tabindex="0"><table><caption class="tb-asg-sr">Cleared tickets (allowed closure code and every check it needs passes), most recently assigned first</caption>'
-        + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Status</th><th scope="col">Closure code</th><th scope="col">Score</th><th scope="col">Assigned</th></tr></thead><tbody>'
+      html += '<div class="tb-asg-scroll" role="region" aria-label="Tickets sanitized successfully" tabindex="0"><table><caption class="tb-asg-sr">Tickets sanitized successfully (marked, then verified on the SIM closure code after an upload), most recently assigned first</caption>'
+        + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Marked</th><th scope="col">SIM closure code</th><th scope="col">Score</th><th scope="col">Assigned</th></tr></thead><tbody>'
         + okRows.map(function (t) {
           var vm = t.verifiedMark && STATUS_LABEL[t.verifiedMark.status];
           return '<tr>' + idCell(t, h) + '<td class="tb-asg-t">' + esc(t.title || 'No title') + legacyNote(t) + '</td>'
-            + '<td class="tb-asg-nw">' + (vm ? esc(vm) + ' <small class="stv-by">verified</small>' : '<span class="tb-san-muted">From SIM data</span>') + '</td>'
+            + '<td class="tb-asg-nw">' + (vm ? esc(vm) : '<span class="tb-san-muted">\u2014</span>') + (t.note ? ' <small class="stv-by">' + esc(t.note) + '</small>' : '') + '</td>'
             + '<td>' + codeTag(t.closureCode) + '</td><td>' + pillHtml(t) + '</td>'
             + '<td class="tb-asg-nw">' + esc(h.when(t.assignedAt)) + '</td></tr>';
         }).join('') + '</tbody></table></div>'
-        + pager('ok', okPg, size, S.ok.length, 'Cleared tickets');
+        + pager('ok', okPg, size, S.ok.length, 'Tickets sanitized successfully');
     }
     html += '</div></details>';
     if (S.nf.length || S.ex.length) {

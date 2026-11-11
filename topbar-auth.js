@@ -2974,7 +2974,7 @@
   // GET /api/my-sanitization (read-only). Contractors (analyst + role editor) get their own tickets
   // from their active sanitization assignments, scored live; the owner gets every contractor's totals.
   // Only contractors / the owner ask (role editor or owner); a 403 / error keeps the button hidden.
-  // For both, the button is a link to sanitization-tracker.html with the needs-correction count.
+  // For both, the button is a link to sanitization-tracker.html with the to-sanitize count.
   var TB_SAN_OWNER = 'harisss';
   var tbSan = { data: null, req: null, view: null, tz: 'IST' };
   function tbSanLower(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
@@ -2995,8 +2995,8 @@
     }).catch(function () { tbSan.data = null; tbSanPaint(); return null; });
     return tbSan.req;
   }
-  // Tickets needing correction: the owner gets the sum across contractors; a contractor (who gets the
-  // same contractor list) their own count.
+  // Tickets to sanitize (totals.needsCorrection: unmarked + failed verification): the owner gets the sum
+  // across contractors; a contractor (who gets the same contractor list) their own count.
   function tbSanNeed(d) {
     if (!d) return 0;
     if (Array.isArray(d.contractors)) {
@@ -3013,7 +3013,7 @@
     var b = document.getElementById('tbhMySan'); if (!b) return;
     if (!tbSan.data) { b.hidden = true; b.innerHTML = ''; return; }   // loading, not allowed, or failed
     var n = tbSanNeed(tbSan.data), own = Array.isArray(tbSan.data.contractors) && tbSanIsOwner();
-    var what = n ? (n + ' ticket' + (n === 1 ? '' : 's') + ' need' + (n === 1 ? 's' : '') + ' correction' + (own ? ' across contractors' : '')) : 'nothing needs correction';
+    var what = n ? (n + ' ticket' + (n === 1 ? '' : 's') + ' to sanitize' + (own ? ' across contractors' : '')) : 'nothing to sanitize';
     b.innerHTML = ic('eraser', 18) + '<span class="home-hdr-asg-n" aria-hidden="true">' + n + '</span>';
     b.classList.toggle('is-zero', !n);
     var lbl = own ? 'Sanitization Tracker' : 'My sanitization tickets';

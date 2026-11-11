@@ -3520,7 +3520,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
 // Cached 5 min per (latest data upload, quarter, issue types, resolution list).
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
-const SAN_CACHE_PREFIX = 'san:v12:';   // v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_CACHE_PREFIX = 'san:v13:';   // v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
 const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)
@@ -3613,6 +3613,8 @@ function sanLiveReport(base, approved) {
   if (_sanLive.base !== base || _sanLive.sig !== sig) _sanLive = { base, sig, rep: sanApplyApproved(base, new Set(ids)) };
   return _sanLive.rep;
 }
+// Contractors' status marks (COLLECTIONS.sanitizationMarks, read-only here): a ticket is verified only once marked with a closure claim and a newer upload exists (sanitization-assign.js).
+const sanMarks = () => getCollection(COLLECTIONS.sanitizationMarks).then(c => c.find({}, { projection: { _id: 0, login: 1, shortId: 1, status: 1, reason: 1, at: 1, by: 1, dataStamp: 1, ownerNote: 1, returnedAt: 1, returnedBy: 1 } }).toArray());
 const sanResNames = () => getCollection(COLLECTIONS.phdResolutions).then(c => phdResList(c)).then(list => list.map(r => r.name));
 // Contractors (Assignment Center rule: analyst + role editor) with login + display name.
 async function sanContractors() {
@@ -3642,8 +3644,8 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
     const report = sanLiveReport(await sanReportFor(data, resNames, quarter), await sanApproved());
     // Sanitization assignments (read-only here): tickets locked in an active assignment carry `asg`
     // (assignee login) and are left out of the per-score `available` counts.
-    const asgDocs = await (await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }).toArray();
-    const locked = sanAssign.lockedMap(asgDocs, report, data.stamp, new Date());
+    const [asgDocs, asgMarks] = await Promise.all([(await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }).toArray(), sanMarks()]);
+    const locked = sanAssign.lockedMap(asgDocs, report, data.stamp, new Date(), asgMarks);
     res.json({
       quarter, quarterLabel: quarter === SAN_SINCE_ID ? SAN_SINCE_LABEL : (quarter === 'all' ? 'All quarters' : quarterLabel(quarter)), liveQuarter: live, quarters,
       asOf: data.stamp || report.computedAt, computedAt: report.computedAt,
@@ -3662,14 +3664,14 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
 // The owner hands a score section's oldest available tickets to a contractor; later uploads verify
 // them against the same score report (data stamp = eirDataStamp).
 //   GET  /api/sanitization-assign            contractors, assignments (+ live verification), performance, issues.
-//        Persists a verification snapshot only when the data stamp changed since the stored one
+//        Persists a snapshot of the VERIFIED tickets (closure mark + newer upload) only when it changed since the stored one
 //        (env SAN_ASSIGN_READONLY=1 turns that write off).
 //   POST /api/sanitization-assign            { score:0..MAX_SCORE-1 (0..10), count:1..2000, assignee:<contractor> } -> the server picks the tickets (409 + available when short)
 //   POST /api/sanitization-assign/revoke     { id } -> status 'revoked' (never deleted)
 async function sanAssignDeps(req) {
-  const [data, resNames, contractors, approved] = await Promise.all([eirDataStamp(), sanResNames(), sanContractors(), sanApproved()]);
+  const [data, resNames, contractors, approved, marks] = await Promise.all([eirDataStamp(), sanResNames(), sanContractors(), sanApproved(), sanMarks()]);
   const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID), approved);
-  return { coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user, report, stamp: data.stamp, contractors };
+  return { coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user, report, stamp: data.stamp, contractors, marks };
 }
 app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
   try {

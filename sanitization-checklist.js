@@ -759,7 +759,7 @@ function saErrHtml(){
 // The assignment log card (a load error shows inside it, with Retry).
 function saCardHtml(id){
   var d=SA.data, ready=!SA.loading&&!SA.err&&d;
-  return saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first. Due 7 days after assigning.',
+  return saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first, and where they are now.',
     SA.loading?saSkel():(SA.err?saErrHtml():saLogHtml(d)), ready?tsTopSum(saPlural((d.assignments||[]).length,'assignment')):'');
 }
 function saSecsHtml(){
@@ -768,10 +768,10 @@ function saSecsHtml(){
 }
 function saStatusHtml(a){
   if(a.status==='revoked') return '<span class="tsa-pill revoked">Revoked by '+esc(a.revokedBy||'\u2014')+' \u00b7 '+esc(saDate(a.revokedAt))+'</span>';
-  var nf=(a.notFound||0)+(a.excluded||0);
-  if(a.statusLabel==='Verified') return '<span class="tsa-pill verified'+(a.failed?' has-bad':'')+'">Verified: '+Number(a.passed).toLocaleString()+' passed, '+Number(a.failed).toLocaleString()+' need rework'+(nf?', '+nf+' not found or ignored':'')+'</span>';
-  if(a.statusLabel==='Awaiting new data') return '<span class="tsa-pill awaiting">Awaiting new data</span>';
-  return '<span class="tsa-pill progress">In progress until '+esc(saDay(a.dueAt))+(a.dataStamp&&a.verifiedCount?' \u00b7 '+Number(a.passed).toLocaleString()+' at '+scMax()+'/'+scMax()+' so far':'')+'</span>';
+  // Tracker section counts (server: sanitization-assign.js sectionCounts); no deadline.
+  var n=function(k){ return Number(a[k]||0).toLocaleString(); }, other=Number(a.other||0);
+  return '<span class="tsa-pill '+(a.status==='done'?'verified':'progress')+(a.failed?' has-bad':'')+'">'+n('toSanitize')+' to sanitize \u00b7 '+n('tempCleared')+' temporarily cleared \u00b7 '+
+    n('errors')+' '+(Number(a.errors)===1?'error':'errors')+' \u00b7 '+n('sanitized')+' sanitized'+(other?' \u00b7 '+other.toLocaleString()+' not found or ignored':'')+'</span>';
 }
 function saEntryHtml(a){
   var id=a.id, x=SA.x[id]===true, rv=SA.rv[id]===true, list=a.tickets||[];
@@ -782,7 +782,7 @@ function saEntryHtml(a){
   }).join(''):'';
   return '<li class="tsa-e'+(a.status==='revoked'?' is-rvk':'')+'">'+
     '<span class="tsa-what"><span class="tsa-mut">'+esc(new Date(a.assignedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+'</span> \u00b7 '+
-      '<b>'+esc(a.assignedBy)+'</b> assigned <b>'+saPlural(a.count,'ticket')+'</b> ('+a.score+' '+(a.score===1?'point':'points')+') to <b>'+esc(a.assignee)+'</b> \u00b7 due '+esc(saDay(a.dueAt))+saStatusHtml(a)+'</span>'+
+      '<b>'+esc(a.assignedBy)+'</b> assigned <b>'+saPlural(a.count,'ticket')+'</b> ('+a.score+' '+(a.score===1?'point':'points')+') to <b>'+esc(a.assignee)+'</b>'+saStatusHtml(a)+'</span>'+
     '<span class="tsa-acts">'+saExtractBtn('data-sa="copy" data-id="'+esc(id)+'"','for '+sum)+
       '<button type="button" class="ts-abtn" data-sa="x" data-id="'+esc(id)+'" id="tsaX-'+esc(id)+'" aria-expanded="'+x+'" aria-controls="tsaI-'+esc(id)+'">'+(x?'Hide':'Show')+' IDs<span class="ts-sr"> for '+esc(sum)+'</span></button>'+
       (a.status==='active'?'<button type="button" class="ts-abtn is-red" data-sa="rv" data-id="'+esc(id)+'"'+(rv?' disabled aria-busy="true"':'')+'>'+ic('clock-rewind',13)+(rv?'Revoking\u2026':'Revoke')+'<span class="ts-sr"> '+esc(sum)+'</span></button>':'')+
@@ -825,7 +825,7 @@ document.addEventListener('click',async function(ev){
 
 // ---- Assign pop-up: how many -> split across contractors -> done (Extract tickets) ----
 // SAD = { score, avail, step:1|2|3, count, split:{login:'typed'}, touched, busy, prog, err,
-//         done:[{assignee,count,dueAt,tickets:[{shortId,url}]}], failed:{login,count,status,msg}|null, rest:[{login,count}] }
+//         done:[{assignee,count,tickets:[{shortId,url}]}], failed:{login,count,status,msg}|null, rest:[{login,count}] }
 var SAD=null;
 var SAD_SUB={1:'Step 1 of 2 \u00b7 How many tickets?',2:'Step 2 of 2 \u00b7 Which contractors?',3:'Done'};
 function saContractors(){ return (SA.data&&SA.data.contractors)||[]; }
@@ -854,7 +854,7 @@ async function saRunSplit(api,score,queue,onStep){
     var q=queue[i]; if(onStep) onStep(q,i,queue.length);
     var r=null; try{ r=await api('POST','/api/sanitization-assign',{score:score,count:q.count,assignee:q.login}); }catch(e){ r=null; }
     if(r&&r.ok&&r.data&&r.data.ok){
-      done.push({login:q.login,assignee:r.data.assignee||q.login,count:r.data.count!=null?Number(r.data.count):q.count,dueAt:r.data.dueAt,tickets:r.data.tickets||[]});
+      done.push({login:q.login,assignee:r.data.assignee||q.login,count:r.data.count!=null?Number(r.data.count):q.count,tickets:r.data.tickets||[]});
       continue;
     }
     var msg=(r&&r.data&&r.data.error)||(r?'The server answered HTTP '+(r.status||'?')+'.':'Network error.');
@@ -967,7 +967,7 @@ function saBodyHtml(){
   var tot=SAD.done.reduce(function(s,d){ return s+d.count; },0), all=[];
   SAD.done.forEach(function(d){ all=all.concat(d.tickets.map(saUrl)); });
   return '<p class="tsa-ok" role="status">'+ic('check-circle',18)+'Assigned '+saPlural(tot,'ticket')+' to '+saPlural(SAD.done.length,'contractor')+'</p>'+
-    '<p class="tsa-hint">Due '+esc(saDate(SAD.done[0]&&SAD.done[0].dueAt))+'. Extract copies only the ticket links, one per line.</p>'+
+    '<p class="tsa-hint">No deadline: the tickets are checked once marked and a newer data upload arrives. Extract copies only the ticket links, one per line.</p>'+
     '<ul class="tsa-dl" aria-label="Assigned contractors">'+SAD.done.map(function(d,i){
       return '<li><span class="tsa-t">'+esc(d.assignee)+'</span><span class="tsa-c">'+saPlural(d.count,'ticket')+'</span>'+
         saExtractBtn('data-sacp="'+i+'"','for the '+saPlural(d.count,'ticket')+' assigned to '+d.assignee)+'</li>';
