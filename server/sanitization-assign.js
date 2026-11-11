@@ -20,7 +20,8 @@
 // 'approved error'), so they are never available / picked, and verification counts them as excluded
 // (neither passed nor failed). contractorView drops them altogether.
 'use strict';
-const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON, REQUIRED, REQUIRED_GROUPS, ticketCleared } = require('./sanitization-score');
+const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON, ticketCleared, closureKey, CODE_SUCCESSFUL, CODE_IR, CODE_DUP } = require('./sanitization-score');
+const DUP_REASON = 'duplicate';   // excludeReason of a SIM Duplicate: counts as cleared here (no checks)
 
 const DUE_MS = 7 * 24 * 60 * 60 * 1000;
 const COUNT_MAX = 2000;
@@ -50,29 +51,20 @@ function reportIndex(report) {
   return ix;
 }
 const missingKeys = checks => CRITERIA.filter((c, i) => !(checks && checks[i] && checks[i][0])).map(c => c.key);
-// Missing chip of one criterion; with a required-check group (sanitization-score.js requiredChecks)
-// the ClosureCode chip says what to change it to ('ClosureCode: change to Successful').
-const chipFor = (key, grp) => {
+// Missing chip of one criterion; with a target code (the closure-code rule, sanitization-score.js
+// closureRule) the ClosureCode chip says what to change it to ('ClosureCode: change to Successful').
+const chipFor = (key, target) => {
   const c = CRITERIA.find(x => x.key === key) || { chip: key };
-  const req = grp && REQUIRED[grp];
-  return key === 'closure' && req && req.target ? 'ClosureCode: change to ' + req.target : c.chip;
+  return key === 'closure' && target ? 'ClosureCode: change to ' + target : c.chip;
 };
-// Missing chips for display. With grp: only the REQUIRED checks that fail (the tracker and Errors in
-// Resolved). Without: every failing check; the ClosureCode chip carries '(<current> → <expected>)'.
-const missingChips = (checks, grp) => {
-  const req = grp && REQUIRED[grp];
-  return CRITERIA.map((c, i) => {
-    const ck = checks && checks[i];
-    if (ck && ck[0]) return null;
-    if (req) return req.keys.indexOf(c.key) >= 0 ? chipFor(c.key, grp) : null;
-    return c.key === 'closure' && ck && ck[1] ? c.chip + ' (' + ck[1] + ')' : c.chip;
-  }).filter(Boolean);
+// Missing chips of a report ticket: only the REQUIRED checks that fail (t.miss / t.tgt; the tracker
+// and Errors in Resolved), in CRITERIA order.
+const missingChips = t => {
+  const miss = (t && Array.isArray(t.miss)) ? t.miss : missingKeys(t && t.checks);
+  return CRITERIA.filter(c => miss.indexOf(c.key) >= 0).map(c => chipFor(c.key, t && t.tgt));
 };
 // Failing REQUIRED criterion keys of a report ticket.
-const missingRequired = t => {
-  const req = t && REQUIRED[t.grp];
-  return req ? req.keys.filter(k => { const i = CRITERIA.findIndex(c => c.key === k); return !(t.checks && t.checks[i] && t.checks[i][0]); }) : missingKeys(t && t.checks);
-};
+const missingRequired = t => ((t && Array.isArray(t.miss)) ? t.miss.slice() : missingKeys(t && t.checks));
 // Verification result cleared: every required check passes (older snapshots without `cleared`: 11/11).
 const resCleared = r => (typeof r.cleared === 'boolean' ? r.cleared : r.score === MAX_SCORE);
 
@@ -85,8 +77,10 @@ function liveVerification(a, report, stamp, now) {
   const ix = reportIndex(report);
   const results = (a.tickets || []).map(t => {
     const cur = ix.byId.get(t.shortId);
-    if (cur) return { shortId: t.shortId, score: cur.score, missing: missingRequired(cur), found: true, cleared: ticketCleared(cur), grp: cur.grp || null };
+    if (cur) return { shortId: t.shortId, score: cur.score, missing: missingRequired(cur), found: true, cleared: ticketCleared(cur), grp: cur.grp || null, tgt: cur.tgt || null, defects: (cur.def || []).slice() };
     const why = ix.excluded.get(t.shortId);
+    // SIM Duplicate: no checks, cleared (closure-code rule).
+    if (why === DUP_REASON) return { shortId: t.shortId, score: null, missing: [], found: true, cleared: true, grp: 'duplicate', tgt: CODE_DUP, defects: [] };
     if (why) return { shortId: t.shortId, score: null, missing: [], found: true, excludedReason: why };
     return { shortId: t.shortId, score: null, missing: [], found: false };
   });
@@ -209,6 +203,7 @@ function summarize(a, v, now) {
     if (r.excludedReason) { s.excluded++; return; }
     s.verifiedCount++;
     if (resCleared(r)) s.passed++; else s.failed++;
+    if (typeof r.score !== 'number') return;   // SIM Duplicate: cleared, no score
     if (typeof before.get(r.shortId) === 'number') b.push(before.get(r.shortId));
     af.push(r.score);
   });
@@ -275,6 +270,7 @@ async function handleGet(deps) {
       if (!r.found || r.excludedReason) { p.notFound++; return; }
       p.verified++;
       if (resCleared(r)) p.passed++; else p.failed++;
+      if (typeof r.score !== 'number') return;   // SIM Duplicate: cleared, no score
       if (typeof before.get(r.shortId) === 'number') p._b.push(before.get(r.shortId));
       p._a.push(r.score);
     });
@@ -297,7 +293,8 @@ async function handleGet(deps) {
     issues.push({
       id: String(a._id), assignee: a.assignee, assignedAt: a.assignedAt, dueAt: a.dueAt, score: a.score, count: a.count,
       failedCount: bad.length, dataStamp: v.dataStamp,
-      tickets: bad.map(r => { const t = meta.get(r.shortId) || {}; return { shortId: r.shortId, url: t.url || '', title: t.title || '', score: r.score, missing: r.missing.map(k => (r.grp ? chipFor(k, r.grp) : chipOf(k))) }; }),
+      tickets: bad.map(r => { const t = meta.get(r.shortId) || {}; return { shortId: r.shortId, url: t.url || '', title: t.title || '', score: r.score,
+        missing: (r.defects || []).concat(r.missing.map(k => (r.grp ? chipFor(k, r.tgt) : chipOf(k)))) }; }),
     });
   });
 
@@ -307,35 +304,74 @@ async function handleGet(deps) {
 // ---- My sanitization (GET /api/my-sanitization; strictly read-only, never persists) ----
 // One contractor's tickets across their ACTIVE assignments, scored live against the current report.
 // A ticket in several active assignments is listed once (its most recent assignment wins).
-// Ticket status: 'cleared' (every REQUIRED check passes, sanitization-score.js requiredChecks) |
-// 'needs-correction' (a required check fails) | 'not-found' | 'excluded'. Each ticket carries
-// passedNow / requiredNow (the pill), group (the Needs correction sub-section) and closureCode;
-// scoreNow stays the raw 0..11 score. totals.needBy = needs-correction count per group.
+// Ticket status: 'cleared' | 'needs-correction' | 'awaiting' | 'error-ticket' | 'not-found' | 'excluded'.
+// Unmarked tickets follow the closure-code rule on the SIM data (sanitization-score.js closureRule:
+// cleared = every required check passes and no defect; a SIM Duplicate - excluded from the score
+// report - counts as cleared). Each ticket carries passedNow / requiredNow (the pill), defects (the
+// red messages), missingNow (failing required checks), closureCode (SIM), target, group (rule group)
+// and reason (needs correction: 'mark' | 'closure' | 'ir' | 'missing'); scoreNow stays the raw 0..11.
 // `verified` = data uploaded after the assignment (the same stamp rule as liveVerification);
 // totals.pending counts the tickets not verified yet.
-// Marks (COLLECTIONS.sanitizationMarks, one doc per (login, shortId)):
-//   'completed' - TEMPORARY: a ticket below MAX_SCORE becomes 'temp-completed' while the mark's dataStamp
-//                 equals the current data stamp. Once new data is uploaded the mark is stale and
-//                 ignored (kept in the DB): the ticket is re-checked with its new score, and
-//                 `staleMark` lets the UI say "Marked completed on <date> - re-checked with the new data".
+// Marks (COLLECTIONS.sanitizationMarks, one doc per (login, shortId), never deleted):
+//   'successful' | 'immediate' | 'duplicate' - the agent's CLAIM of how the ticket is now closed in SIM.
+//                 Until a newer upload (claimPending: the data stamp is still the mark's) the ticket is
+//                 'awaiting'. After it the claim is verified: the SIM ClosureCode must equal the claim
+//                 (else defect 'Marked <status> but SIM shows <code>') on top of the closure-code rule
+//                 for the SIM code; pass -> cleared (verifiedMark), fail -> needs correction.
 //   'error'     - does NOT expire with an upload: the ticket stays 'error-ticket' (whatever its score)
 //                 until the owner approves it (handleErrorReview 'approve' -> excluded everywhere) or
 //                 sends it back ('return').
-//   'returned'  - sent back by the owner: the ticket counts as needs correction (or cleared at MAX_SCORE)
-//                 and carries `returned: { note, at, by }` until the contractor marks it again.
+//   'returned'  - sent back by the owner: rule as unmarked, with `returned: { note, at, by }` on a
+//                 needs-correction row until the contractor marks it again.
+//   'completed' - legacy (before the claims): carries NO claim, the ticket follows the rule as
+//                 unmarked; `legacyCompleted` lets the UI say "Previously marked Completed".
 // Tickets the owner approved as errors (approvedIds / excludedReason 'approved error') are left out.
-// Order: needs-correction (score ascending, then oldest assigned first), temp-completed / error-ticket
-// (most recently marked first), cleared (most recently assigned first), then excluded / not-found
-// (most recently assigned first).
-const STATUS_RANK = { 'needs-correction': 0, 'temp-completed': 1, 'error-ticket': 2, cleared: 3, excluded: 4, 'not-found': 5 };
-const MARK_STATUSES = { completed: 'temp-completed', error: 'error-ticket' };
+// Order: needs-correction (passed / required ascending, then oldest assigned first), awaiting /
+// error-ticket (most recently marked first), cleared (most recently assigned first), then excluded /
+// not-found (most recently assigned first).
+const STATUS_RANK = { 'needs-correction': 0, awaiting: 1, 'error-ticket': 2, cleared: 3, excluded: 4, 'not-found': 5 };
+// Claim marks -> the SIM ClosureCode they claim.
+const CLAIMS = Object.freeze({ successful: CODE_SUCCESSFUL, immediate: CODE_IR, duplicate: CODE_DUP });
+const MARK_STATUSES = Object.freeze({ successful: 'awaiting', immediate: 'awaiting', duplicate: 'awaiting', error: 'error-ticket' });
 const REASON_MAX = 500;
 const REVIEW_MAX = 500;   // shortIds per error-review request
-// 'completed' counts only while it was made against the current data stamp; 'error' never expires.
-const markValid = (m, stamp) => !!m && !!MARK_STATUSES[m.status]
-  && (m.status === 'error' || (!!stamp && m.dataStamp === stamp));
+// A claim is pending while no newer data was uploaded after it (the mark's data stamp is still current,
+// or the current stamp is not later than the mark).
+const claimPending = (m, stamp) => !stamp || m.dataStamp === stamp || !(timeOf(stamp) > timeOf(m.at));
+// The mark that drives the section: an 'error' mark, or a claim still pending. (Verified claims, the
+// legacy 'completed', 'returned' and '' do not.)
+const markValid = (m, stamp) => !!m && !!MARK_STATUSES[m.status] && (m.status === 'error' || claimPending(m, stamp));
 const markOut = m => ({ status: m.status, reason: m.reason || '', at: m.at || null, by: m.by || '' });
 const returnedOut = m => ((m && m.status === 'returned') ? { note: m.ownerNote || '', at: m.returnedAt || null, by: m.returnedBy || '' } : null);
+// Needs-correction reason (the tracker report): mark mismatch, closure code not allowed, Immediately
+// Resolved not eligible, or only missing checks.
+const reasonOf = (grp, mismatch) => (mismatch ? 'mark' : grp === 'not-allowed' ? 'closure' : grp === 'ir-not-eligible' ? 'ir' : 'missing');
+const NEED_REASONS = Object.freeze(['mark', 'closure', 'ir', 'missing']);
+// Rule result of one assigned ticket: cur = report ticket, why = exclusion reason, m = its mark doc.
+// -> null (approved / other exclusion / not found: the caller decides) or
+//    { status, passed, required, defects, missing, closureCode, target, group, reason, mark, verifiedMark, legacyCompleted }.
+function evalTicket(cur, why, m, stamp) {
+  if (!cur && why !== DUP_REASON) return null;
+  const base = cur
+    ? { pass: cur.pass, need: cur.need, def: cur.def || [], chips: missingChips(cur), cc: cur.cc || '', tgt: cur.tgt || null, grp: cur.grp || null }
+    : { pass: 0, need: 0, def: [], chips: [], cc: CODE_DUP, tgt: CODE_DUP, grp: 'duplicate' };
+  const out = { passed: base.pass, required: base.need, defects: base.def.slice(), missing: base.chips, closureCode: base.cc,
+    target: base.tgt, group: base.grp, reason: null, mark: null, verifiedMark: null, legacyCompleted: !!(m && m.status === 'completed') };
+  let mismatch = false;
+  if (m && m.status === 'error') { out.status = 'error-ticket'; out.mark = markOut(m); return out; }
+  if (m && CLAIMS[m.status]) {
+    if (claimPending(m, stamp)) { out.status = 'awaiting'; out.mark = markOut(m); return out; }
+    if (closureKey(base.cc) !== closureKey(CLAIMS[m.status])) {
+      mismatch = true;
+      out.defects.unshift('Marked ' + CLAIMS[m.status] + ' but SIM shows ' + (base.cc || '(blank)'));
+    }
+    out.verifiedMark = markOut(m);
+  }
+  const cleared = !out.defects.length && out.passed === out.required;
+  out.status = cleared ? 'cleared' : 'needs-correction';
+  if (!cleared) out.reason = reasonOf(base.grp, mismatch);
+  return out;
+}
 function contractorView(assignments, login, report, stamp, marks, approvedIds) {
   const me = normLogin(login);
   const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() };
@@ -351,44 +387,51 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
     (a.tickets || []).forEach(t => {
       if (!t || !t.shortId || seen.has(t.shortId)) return;
       seen.add(t.shortId);
-      const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
-      if (appr.has(t.shortId) || why === APPROVED_REASON) return;   // owner-approved error: not tracked
-      const scoreNow = cur && typeof cur.score === 'number' ? cur.score : null;
-      const clearedNow = cur ? ticketCleared(cur) : false;
-      let status = cur ? (clearedNow ? 'cleared' : 'needs-correction') : (why ? 'excluded' : 'not-found');
-      const m = mk.get(t.shortId), valid = markValid(m, stamp);
-      if (valid && cur && (status === 'needs-correction' || m.status === 'error')) status = MARK_STATUSES[m.status];
-      tickets.push({
-        shortId: t.shortId, url: t.url || (cur && cur.url) || '', title: (cur && cur.title) || t.title || '',
-        assignedAt: a.assignedAt || null, dueAt: a.dueAt || null,
-        scoreAtAssign: typeof t.scoreAtAssign === 'number' ? t.scoreAtAssign : null, scoreNow,
-        // Required-check rule: passed / required, cleared when equal; group = Needs correction sub-section.
-        passedNow: cur && typeof cur.pass === 'number' ? cur.pass : null, requiredNow: cur && typeof cur.need === 'number' ? cur.need : null,
-        clearedNow, group: (cur && cur.grp) || null, closureCode: cur ? (cur.cc || '') : null,
-        missingNow: cur ? missingChips(cur.checks, cur.grp) : [], status, excludedReason: why || null, verified,
-        mark: valid ? markOut(m) : null,
-        staleMark: (!valid && m && MARK_STATUSES[m.status]) ? markOut(m) : null,
-        returned: status === 'needs-correction' ? returnedOut(m) : null,
-      });
+      const row = rowOf(a, t, ix, mk.get(t.shortId), stamp, verified, appr);
+      if (row) tickets.push(row);
     });
   });
+  const ratio = t => (t.requiredNow > 0 ? t.passedNow / t.requiredNow : (t.defects && t.defects.length ? 0 : 1));
   const atAsc = (x, y) => String(x.assignedAt || '').localeCompare(String(y.assignedAt || ''));
   const markDesc = (x, y) => String((y.mark && y.mark.at) || '').localeCompare(String((x.mark && x.mark.at) || ''));
-  const grpRank = t => { const i = REQUIRED_GROUPS.indexOf(t.group); return i < 0 ? REQUIRED_GROUPS.length : i; };
   tickets.sort((x, y) => (STATUS_RANK[x.status] - STATUS_RANK[y.status])
-    || (x.status === 'needs-correction' ? ((grpRank(x) - grpRank(y)) || ((x.passedNow - y.passedNow) || 0) || atAsc(x, y))
+    || (x.status === 'needs-correction' ? ((ratio(x) - ratio(y)) || ((x.passedNow - y.passedNow) || 0) || atAsc(x, y))
       : (x.mark ? markDesc(x, y) : atAsc(y, x)))
     || x.shortId.localeCompare(y.shortId));
   const count = s => tickets.filter(t => t.status === s).length;
-  // Needs correction per closure-code group (the tracker's sub-sections).
+  // Needs correction per reason (mark mismatch / closure code not allowed / IR not eligible / missing checks).
   const needBy = {};
-  REQUIRED_GROUPS.forEach(g => { needBy[g] = 0; });
-  tickets.forEach(t => { if (t.status === 'needs-correction' && needBy[t.group] != null) needBy[t.group]++; });
+  NEED_REASONS.forEach(g => { needBy[g] = 0; });
+  tickets.forEach(t => { if (t.status === 'needs-correction' && needBy[t.reason] != null) needBy[t.reason]++; });
   return {
     login: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, tickets,
     totals: { assigned: tickets.length, cleared: count('cleared'), needsCorrection: count('needs-correction'), needBy,
-      tempCompleted: count('temp-completed'), errorTickets: count('error-ticket'),
-      notFound: count('not-found'), excluded: count('excluded'), pending: tickets.filter(t => !t.verified).length },
+      awaiting: count('awaiting'), errorTickets: count('error-ticket'),
+      notFound: count('not-found'), excluded: count('excluded'), pending: tickets.filter(t => !t.verified).length,
+      legacyCompleted: tickets.filter(t => t.legacyCompleted).length },
+  };
+}
+// One contractor-view row (assignment a, its ticket t, report index ix, mark doc m), or null for an
+// owner-approved error (not tracked).
+function rowOf(a, t, ix, m, stamp, verified, appr) {
+  const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
+  if ((appr && appr.has(t.shortId)) || why === APPROVED_REASON) return null;
+  const ev = evalTicket(cur, why, m, stamp);
+  const status = ev ? ev.status : (why ? 'excluded' : 'not-found');
+  return {
+    shortId: t.shortId, url: t.url || (cur && cur.url) || '', title: (cur && cur.title) || t.title || '',
+    assignedAt: a.assignedAt || null, dueAt: a.dueAt || null,
+    scoreAtAssign: typeof t.scoreAtAssign === 'number' ? t.scoreAtAssign : null,
+    scoreNow: cur && typeof cur.score === 'number' ? cur.score : null,
+    // Closure-code rule (+ a verified claim): passed / required; cleared when equal and no defect.
+    passedNow: ev ? ev.passed : null, requiredNow: ev ? ev.required : null,
+    clearedNow: status === 'cleared', defects: ev ? ev.defects : [], missingNow: ev ? ev.missing : [],
+    group: ev ? ev.group : null, target: ev ? ev.target : null, reason: ev ? ev.reason : null,
+    closureCode: ev ? ev.closureCode : null, status,
+    excludedReason: (why && why !== DUP_REASON) ? why : null, verified,
+    mark: ev && ev.mark ? ev.mark : null, verifiedMark: ev ? ev.verifiedMark : null,
+    legacyCompleted: !!(m && m.status === 'completed'),
+    returned: status === 'needs-correction' ? returnedOut(m) : null,
   };
 }
 
@@ -426,11 +469,13 @@ async function handleMine(query, deps) {
   return { status: 200, body };
 }
 
-// POST /api/my-sanitization/mark { shortId, status:'completed'|'error'|'' (clear), reason, login? }.
-// A contractor marks only tickets in their own ACTIVE sanitization assignments (any `login` other than
-// their own -> 403); the owner may mark for any contractor via `login`. Only tickets currently below
-// MAX_SCORE can be marked; 'error' needs a reason (1..500 characters). One doc per (login, shortId),
-// upserted with the current data stamp; clearing (Undo) sets status '' (never deleted).
+// POST /api/my-sanitization/mark { shortId, status:'successful'|'immediate'|'duplicate'|'error'|'' (clear),
+// reason, login? }. A contractor marks only tickets in their own ACTIVE sanitization assignments (any
+// `login` other than their own -> 403); the owner may mark for any contractor via `login`. Only tickets
+// that are not cleared right now (evalTicket with the current mark) can be marked; 'error' needs a
+// reason (1..500 characters). One doc per (login, shortId), upserted with the current data stamp (a
+// claim stays 'awaiting' until a newer upload); clearing (Undo) sets status '' (never deleted). The
+// response carries `ticket` = the row as the tracker shows it now (contractorView shape).
 // deps: { user, contractors, coll (marks), load: async () => ({ docs, report, stamp }), now? }
 async function handleMark(body, deps) {
   const b = body || {};
@@ -447,30 +492,35 @@ async function handleMark(body, deps) {
   const shortId = typeof b.shortId === 'string' ? b.shortId.trim() : '';
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(shortId)) return { status: 400, body: { error: 'Invalid ticket.' } };
   const status = typeof b.status === 'string' ? b.status : null;
-  if (status !== '' && !MARK_STATUSES[status]) return { status: 400, body: { error: "status must be 'completed', 'error' or ''." } };
+  if (status !== '' && !MARK_STATUSES[status]) return { status: 400, body: { error: "status must be 'successful', 'immediate', 'duplicate', 'error' or ''." } };
   const reason = status === 'error' ? (typeof b.reason === 'string' ? b.reason.trim() : '') : '';
   if (status === 'error' && !reason) return { status: 400, body: { error: 'Please say why this is an error ticket.' } };
   if (reason.length > REASON_MAX) return { status: 400, body: { error: 'The reason can be at most ' + REASON_MAX + ' characters.' } };
   const { docs, report, stamp } = await deps.load();
-  const mine = (docs || []).some(a => a && a.status === 'active' && normLogin(a.assignee) === login
-    && (a.tickets || []).some(t => t && t.shortId === shortId));
-  if (!mine) {
+  // The most recent active assignment holding the ticket (the one contractorView shows).
+  const asg = (docs || []).filter(a => a && a.status === 'active' && normLogin(a.assignee) === login
+    && (a.tickets || []).some(t => t && t.shortId === shortId))
+    .sort((x, y) => String(y.assignedAt || '').localeCompare(String(x.assignedAt || '')))[0];
+  if (!asg) {
     return owner ? { status: 404, body: { error: 'This ticket is not in ' + login + '\u2019s active sanitization assignments.' } }
       : { status: 403, body: { error: 'You can mark only tickets in your own sanitization assignments.' } };
   }
+  const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() };
+  const prev = await deps.coll.findOne({ login, shortId });
   if (status) {
-    const cur = report ? reportIndex(report).byId.get(shortId) : null;
-    if (!cur || ticketCleared(cur)) return { status: 409, body: { error: 'Only tickets that still need correction can be marked.' } };
+    const cur = ix.byId.get(shortId), why = cur ? null : ix.excluded.get(shortId);
+    const ev = why === APPROVED_REASON ? null : evalTicket(cur, why, prev, stamp);
+    if (!ev || ev.status === 'cleared') return { status: 409, body: { error: 'Only tickets that still need correction can be marked.' } };
   }
   // A ticket sent to the owner for error review stays with the owner until approved or sent back.
-  if (!owner) {
-    const prev = await deps.coll.findOne({ login, shortId });
-    if (prev && prev.status === 'error') return { status: 409, body: { error: 'This ticket is with the owner for error review.' } };
-  }
+  if (!owner && prev && prev.status === 'error') return { status: 409, body: { error: 'This ticket is with the owner for error review.' } };
   const at = (deps.now ? deps.now() : new Date()).toISOString();
   const doc = { login, shortId, status, reason, at, by: me, dataStamp: stamp || null };
   await deps.coll.updateOne({ login, shortId }, { $set: doc }, { upsert: true });
-  return { status: 200, body: { ok: true, login, shortId, mark: status ? markOut(doc) : null, dataStamp: doc.dataStamp } };
+  const st = timeOf(stamp), aat = timeOf(asg.assignedAt);
+  const t = (asg.tickets || []).find(x => x && x.shortId === shortId);
+  const ticket = rowOf(asg, t, ix, doc, stamp, !isNaN(st) && !isNaN(aat) && st > aat, null);
+  return { status: 200, body: { ok: true, login, shortId, mark: status ? markOut(doc) : null, dataStamp: doc.dataStamp, ticket } };
 }
 
 // ---- Error review (owner only) ----
@@ -537,4 +587,5 @@ module.exports = {
   DUE_MS, COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts,
   validateAssign, handleAssign, handleRevoke, handleGet, statusOf, contractorView, handleMine, handleMark, markValid,
   handleErrorReview, handleRestore, missingChips, passedResult, chipFor, missingRequired,
+  CLAIMS, NEED_REASONS, claimPending, evalTicket, rowOf,
 };

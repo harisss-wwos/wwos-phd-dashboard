@@ -18,7 +18,7 @@ const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FI
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
 const { resolutionGroupOf } = require('./resolution-groups');
 const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
-const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
+const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, loadIssueCategoriesFromFile, categoriesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
 const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
 const sanUpdate = require('./sanitization-update');
@@ -3520,7 +3520,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
 // Cached 5 min per (latest data upload, quarter, issue types, resolution list).
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
-const SAN_CACHE_PREFIX = 'san:v11:';   // v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_CACHE_PREFIX = 'san:v12:';   // v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
 const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)
@@ -3568,16 +3568,26 @@ async function sanScopeRows(quarter) {
   return docs;
 }
 const _sanInflight = new Map();   // cache key -> pending promise (one scan per key at a time)
+// { issue type: category } (issue-types-data.js IZ_CATS, the seed when the file is not deployed) for the closure-code rule.
+let _sanIssueCats = null;
+function sanIssueCategories() {
+  if (!_sanIssueCats || !Object.keys(_sanIssueCats).length) {
+    _sanIssueCats = loadIssueCategoriesFromFile();
+    if (!Object.keys(_sanIssueCats).length) _sanIssueCats = categoriesFromCats(ISSUE_TAXONOMY_SEED);
+  }
+  return _sanIssueCats;
+}
 // The cached 'since2026' score report for one data stamp (shared by the scores and the assignments).
 async function sanReportFor(data, resNames, quarter) {
-  const types = eirIssueTypes();
-  const key = SAN_CACHE_PREFIX + (data.stamp || '-') + ':' + quarter + ':' + types.join('|').toLowerCase() + ':' + resNames.join('|').toLowerCase();
+  const types = eirIssueTypes(), cats = sanIssueCategories();
+  const catSig = Object.keys(cats).map(k => k + '=' + cats[k]).join('|').toLowerCase();
+  const key = SAN_CACHE_PREFIX + (data.stamp || '-') + ':' + quarter + ':' + types.join('|').toLowerCase() + ':' + catSig + ':' + resNames.join('|').toLowerCase();
   let report = getCachedReport(key);
   if (!report) {
     let p = _sanInflight.get(key);
     if (!p) {
       p = (async () => {
-        const rep = sanBuildScoreReport(await sanScopeRows(quarter), types, resNames);
+        const rep = sanBuildScoreReport(await sanScopeRows(quarter), types, resNames, cats);
         rep.computedAt = new Date().toISOString();
         pruneCachedReports(SAN_CACHE_PREFIX, 3);
         setCachedReport(key, rep);
@@ -3715,10 +3725,11 @@ app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
     res.status(500).json({ error: 'Could not load your sanitization tickets.' });
   }
 });
-// POST /api/my-sanitization/mark { shortId, status:'completed'|'error'|'', reason, login? } (logic in
-// sanAssign.handleMark): marks on the Sanitization Tracker, stored per (login, shortId) in
-// COLLECTIONS.sanitizationMarks with the current data stamp; a new data upload makes 'completed'
-// marks stale, 'error' marks stay until the owner reviews them (error-review below).
+// POST /api/my-sanitization/mark { shortId, status:'successful'|'immediate'|'duplicate'|'error'|'', reason, login? }
+// (logic in sanAssign.handleMark): marks on the Sanitization Tracker, stored per (login, shortId) in
+// COLLECTIONS.sanitizationMarks with the current data stamp; a claim (successful / immediate /
+// duplicate) awaits the next upload, then is verified against the SIM ClosureCode; 'error' marks
+// stay until the owner reviews them (error-review below).
 app.post('/api/my-sanitization/mark', requireRole('user'), async (req, res) => {
   try {
     const out = await sanAssign.handleMark(req.body, {

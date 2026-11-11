@@ -200,54 +200,96 @@ function closureCheck(code) {
   return [0, clip((c || '(blank)') + ' \u2192 ' + closureExpected(c))];
 }
 
-// ---- Required checks per ticket (owner rule) ----
-// Which of the 11 checks a ticket must pass to be CLEARED / perfect (the raw 0..11 score is kept as is,
-// the Sanitization scores page buckets stay on it). Decided in this order:
-//   1) pet incident (TITLE, same word rule as incident-log-editor.js IL_PET_RE, 'Non-pet' is not pet):
-//      group 'pet' - only the 3 SIM Title checks (no RCD, no ClosureCode).
-//   2) by ClosureCode (trimmed, any case):
-//      Immediately Resolved -> 'immediate'      Title 3 + ClosureCode (passes)
-//      Automatically Closed -> 'auto'           Title 3 + ClosureCode (fails: change to Immediately Resolved)
-//      Successful           -> 'successful'     all 11
-//      anything else, blank -> 'to-successful'  all 11 (ClosureCode fails: change to Successful)
-// (Duplicate and the other exclusions never get here: excludeReason.)
-const PET_RE = /(?<!non[\s\-_]?)\b(?:pets?|dogs?|pupp(?:y|ies)|canines?|k-?9s?|animals?)\b/i;
+// ---- Required checks per ticket: the closure-code rule (owner rule A) ----
+// Allowed SIM closure codes: Successful, Immediately Resolved, Duplicate; anything else is a DEFECT.
+// The raw 0..11 score (and the closure check above) is kept as is for the Sanitization scores page;
+// this rule decides what a ticket must pass to be CLEARED (tracker) / perfect (Errors in Resolved):
+//   Duplicate            -> grp 'duplicate'    no checks (cleared).
+//   Immediately Resolved -> allowed only when the SIM Title's issue type (titleIssue: an exact,
+//                           normalised match to the Issue Types list) is in the 'Out of Scope of PHD'
+//                           category, or in the 'Pet' category except 'Attack w/pet' with title
+//                           severity 3, 4 or 5 (irEligibility). Eligible -> grp 'immediate': only the
+//                           3 SIM Title checks (RCD content is allowed, not checked). Not eligible ->
+//                           grp 'ir-not-eligible': a defect + the 11 checks of Successful (ClosureCode
+//                           fails until it is Successful).
+//   Successful           -> grp 'successful'   all 11 (ClosureCode passes).
+//   anything else, blank -> grp 'not-allowed'  defect 'Closure code <code> not allowed: ...' + the checks
+//                           of the code it should become: the 3 title checks when the title is
+//                           Immediately Resolved eligible, else the 11 checks of Successful.
+// In the required set the 'closure' check passes only when the SIM code equals the target code.
+// Pet detection is by the TITLE's issue type (category 'Pet'), not by a word rule.
 const TITLE_KEYS = Object.freeze(['country', 'severity', 'type']);
 const ALL_KEYS = Object.freeze(CRITERIA.map(c => c.key));
-const REQUIRED = Object.freeze({
-  pet: Object.freeze({ keys: TITLE_KEYS, target: null }),
-  immediate: Object.freeze({ keys: Object.freeze(TITLE_KEYS.concat(['closure'])), target: 'Immediately Resolved' }),
-  auto: Object.freeze({ keys: Object.freeze(TITLE_KEYS.concat(['closure'])), target: 'Immediately Resolved' }),
-  successful: Object.freeze({ keys: ALL_KEYS, target: 'Successful' }),
-  'to-successful': Object.freeze({ keys: ALL_KEYS, target: 'Successful' }),
-});
-const REQUIRED_GROUPS = Object.freeze(['successful', 'immediate', 'auto', 'to-successful', 'pet']);
-function requiredGroup(t) {
-  if (PET_RE.test(str(t && t.Title))) return 'pet';
-  const k = closureKey(t && t.ClosureCode);
-  if (k === 'immediately resolved') return 'immediate';
-  if (k === 'automatically closed') return 'auto';
-  if (k === 'successful') return 'successful';
-  return 'to-successful';
+const CODE_SUCCESSFUL = 'Successful', CODE_IR = 'Immediately Resolved', CODE_DUP = 'Duplicate';
+const CAT_OOS = 'out of scope of phd', CAT_PET = 'pet', TYPE_ATTACK_PET = 'attack w pet';
+// Rule groups (the defect kinds the tracker / Errors in Resolved report on).
+const RULE_GROUPS = Object.freeze(['duplicate', 'immediate', 'successful', 'ir-not-eligible', 'not-allowed']);
+const cleanCode = s => str(s).trim().replace(/\s+/g, ' ');
+// Severity number 1..5 from the title, or 0.
+function titleSevNumber(title) { const m = str(title).match(SEV_RE); return m ? Number(m[1]) : 0; }
+// info: { type (title issue type, '' when not in the list), cat (its category), sev (0..5) }
+// -> { ok:true } | { ok:false, why:'<defect message>' }.
+function irEligibility(info) {
+  const type = str(info && info.type), cat = norm(info && info.cat), sev = Number(info && info.sev) || 0;
+  if (!type) return { ok: false, why: 'Title issue type not in the list: fix the issue type' };
+  if (cat === CAT_OOS) return { ok: true };
+  if (cat === CAT_PET && norm(type) !== TYPE_ATTACK_PET) {
+    if (sev >= 3 && sev <= 5) return { ok: true };
+    if (sev) return { ok: false, why: 'Immediately Resolved not allowed for a pet incident with Sev ' + sev + ': needs Successful' };
+    return { ok: false, why: 'Immediately Resolved not allowed for a pet incident without a title severity: add Sev 3-5 to the title or change to Successful' };
+  }
+  return { ok: false, why: 'Immediately Resolved not allowed for ' + type + ' (in scope): change the closure code to Successful, or correct the title' };
 }
-// -> { keys:[criterion keys], group, target:'Immediately Resolved'|'Successful'|null }.
-function requiredChecks(t) {
-  const group = requiredGroup(t), r = REQUIRED[group];
-  return { keys: r.keys.slice(), group, target: r.target };
+// -> { grp, target (the code the ticket must end with), keys:[required criterion keys], defects:[messages] }.
+function closureRule(code, info) {
+  const k = closureKey(code), elig = irEligibility(info);
+  if (k === 'duplicate') return { grp: 'duplicate', target: CODE_DUP, keys: [], defects: [] };
+  if (k === 'immediately resolved') {
+    if (elig.ok) return { grp: 'immediate', target: CODE_IR, keys: TITLE_KEYS.slice(), defects: [] };
+    return { grp: 'ir-not-eligible', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [elig.why] };
+  }
+  if (k === 'successful') return { grp: 'successful', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [] };
+  return { grp: 'not-allowed', target: elig.ok ? CODE_IR : CODE_SUCCESSFUL, keys: (elig.ok ? TITLE_KEYS : ALL_KEYS).slice(),
+    defects: ['Closure code ' + (cleanCode(code) || '(blank)') + ' not allowed: change to Successful or Immediately Resolved'] };
 }
-// Pass count of the required checks (checks in CRITERIA order) and the failing required keys.
-function requiredResult(checks, keys) {
+// Pass count of the required checks (checks in CRITERIA order) and the failing required keys. The
+// 'closure' key passes only when the SIM code equals `target`.
+function requiredResult(checks, keys, code, target) {
   const missing = [];
   let passed = 0;
-  keys.forEach(k => { const i = ALL_KEYS.indexOf(k); if (checks[i] && checks[i][0]) passed++; else missing.push(k); });
+  keys.forEach(k => {
+    const i = ALL_KEYS.indexOf(k);
+    const ok = k === 'closure' ? closureKey(code) === closureKey(target) : !!(checks[i] && checks[i][0]);
+    if (ok) passed++; else missing.push(k);
+  });
   return { passed, missing };
 }
-// A report ticket (buildScoreReport) is cleared when every required check passes.
-function ticketCleared(t) { return !!t && typeof t.need === 'number' && t.pass === t.need; }
+// Requirement of one ticket doc (rule A) given its checks and the prepared lists (ctx.types, ctx.cats).
+function requiredChecks(t, checks, ctx) {
+  const title = str(t && t.Title);
+  const type = findInText(title, (ctx && ctx.types) || []);
+  const cat = type && ctx && ctx.cats ? (ctx.cats.get(norm(type)) || '') : '';
+  const rule = closureRule(t && t.ClosureCode, { type, cat, sev: titleSevNumber(title) });
+  const rr = requiredResult(checks || [], rule.keys, t && t.ClosureCode, rule.target);
+  return { ...rule, type, cat, passed: rr.passed, missing: rr.missing };
+}
+// A report ticket (buildScoreReport) is cleared when every required check passes and it has no defect.
+function ticketCleared(t) { return !!t && typeof t.need === 'number' && t.pass === t.need && !(t.def && t.def.length); }
+// Normalised category map { norm(type): category } from { type: category } (or a Map).
+function prepCats(cats) {
+  const m = new Map();
+  const add = (k, v) => { const key = norm(k); if (key && !m.has(key)) m.set(key, str(v).trim()); };
+  if (cats instanceof Map) cats.forEach((v, k) => add(k, v));
+  else if (cats && typeof cats === 'object') Object.keys(cats).forEach(k => add(k, cats[k]));
+  return m;
+}
 
 // ---- One ticket ----
-// -> { excluded:true, cnt } (Cnt numeric > 0) or { score, checks:[[pass 0|1, value]...], group,
-//    required (count), passedRequired, missingRequired:[keys] } (checks in CRITERIA order).
+// -> { excluded:true, cnt } (Cnt numeric > 0) or { score, checks:[[pass 0|1, value]...], group, target,
+//    required (count), passedRequired, missingRequired:[keys], defects:[messages] } (checks in CRITERIA
+//    order; group / target / required / defects = the closure-code rule, closureRule).
+// Duplicate tickets stay excluded from the score report (the scores page distribution); the tracker
+// verification counts an excluded 'duplicate' as cleared (sanitization-assign.js).
 // Tickets left out of scoring (checked in this order; the first match is the reason):
 //   appeal    - 'appeal' anywhere in the title
 //   test      - a word starting with 'test' in the title (test, testing, test202; not 'protest'/'latest')
@@ -294,9 +336,9 @@ function scoreTicket(t, ctx) {
     [resMatch ? 1 : 0, rv('res')],
     closureCheck(t.ClosureCode),
   ];
-  const req = requiredChecks(t), rr = requiredResult(checks, req.keys);
-  return { score: checks.reduce((s, c) => s + c[0], 0), checks, group: req.group, target: req.target,
-    required: req.keys.length, passedRequired: rr.passed, missingRequired: rr.missing };
+  const req = requiredChecks(t, checks, ctx);
+  return { score: checks.reduce((s, c) => s + c[0], 0), checks, group: req.grp, target: req.target,
+    required: req.keys.length, passedRequired: req.passed, missingRequired: req.missing, defects: req.defects };
 }
 
 // ---- Report ----
@@ -321,8 +363,9 @@ function pacificQuarter(v) {
 // CreateDate quarter in Pacific time (pacificQuarter).
 // -> { total, excluded, buckets:{0..MAX_SCORE}, tickets } sorted by score asc, then oldest resolved first
 // (the resolved date only orders the list; it is not part of the payload).
-function buildScoreReport(rows, issueTypes, resolutionNames) {
-  const ctx = { types: prepList(issueTypes), resolutions: prepList(resolutionNames) };
+// typeCategories: { issue type: category } (issue-types-data.js IZ_CATS) for the closure-code rule.
+function buildScoreReport(rows, issueTypes, resolutionNames, typeCategories) {
+  const ctx = { types: prepList(issueTypes), resolutions: prepList(resolutionNames), cats: prepCats(typeCategories) };
   const buckets = {};
   for (let i = 0; i <= MAX_SCORE; i++) buckets[i] = 0;
   const tickets = [], at = new Map();   // ticket -> resolved time (sort key only)
@@ -339,9 +382,11 @@ function buildScoreReport(rows, issueTypes, resolutionNames) {
       shortId: id, url: /^https?:\/\//i.test(url) ? url : (id ? ISSUE_URL_BASE + encodeURIComponent(id) : ''),
       title: str(d.Title).trim(), status: str(d.Status).trim(),
       score: r.score, checks: r.checks,
-      // Required-check rule (requiredChecks): grp = 'pet'|'immediate'|'auto'|'successful'|'to-successful',
-      // need = required checks, pass = how many of them pass (cleared when pass === need), cc = ClosureCode.
-      grp: r.group, need: r.required, pass: r.passedRequired, cc: clip(str(d.ClosureCode).trim().replace(/\s+/g, ' ')),
+      // Closure-code rule (closureRule): grp = RULE_GROUPS key, tgt = the code it must end with,
+      // need = required checks, pass = how many of them pass, miss = failing required keys,
+      // def = defect messages (cleared when pass === need and no defect), cc = SIM ClosureCode.
+      grp: r.group, tgt: r.target, need: r.required, pass: r.passedRequired, miss: r.missingRequired, def: r.defects,
+      cc: clip(str(d.ClosureCode).trim().replace(/\s+/g, ' ')),
       cq: pacificQuarter(d.CreateDate),   // created quarter (Pacific), e.g. '2026-Q1'; '' when CreateDate is missing
       rbi: str(d.ResolvedByIdentity).trim(),   // raw resolver (Errors in Resolved groups by it, see resolved-errors.js)
     };
@@ -383,6 +428,7 @@ module.exports = {
   OWNER, isOwner, CRITERIA, MAX_SCORE, DRIVER_TYPES,
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
   scoreTicket, buildScoreReport, prepList, pacificQuarter, APPROVED_REASON, applyApproved,
-  CLOSURE_ALLOWED, closureCheck, closureExpected, excludeReason,
-  PET_RE, REQUIRED, REQUIRED_GROUPS, requiredChecks, requiredResult, ticketCleared,
+  CLOSURE_ALLOWED, closureCheck, closureExpected, closureKey, excludeReason,
+  RULE_GROUPS, TITLE_KEYS, CODE_SUCCESSFUL, CODE_IR, CODE_DUP, titleSevNumber, irEligibility, closureRule,
+  requiredChecks, requiredResult, ticketCleared, prepCats,
 };

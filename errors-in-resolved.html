@@ -145,7 +145,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view .stv-sort-ic{font-size:.8em;color:#b5530a}
 /* Small ClosureCode tag per row (sanitization-view.js codeTag). */
 .st-view .stv-cc{display:inline-block;padding:1px 7px;border-radius:99px;background:#eef1f4;color:#2a3340;font-size:.8em;font-weight:700;white-space:nowrap}
-.st-view .stv-cc.is-pet{background:#e9f0fb;color:#1f4f99}
+/* Closure-code defect messages (sanitization-view.js missDef), red, before the missing checks. */
+.st-view .stv-def{color:#b42318;font-weight:700}
 </style>
 </head>
 <body data-nav-active="errors-in-resolved" data-back-href="app.html" data-back-label="Dashboard">
@@ -159,13 +160,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=232"></script>
-<script src="sanitization-view.js?v=6"></script>
+<script src="sanitization-view.js?v=7"></script>
 <script>
 // Errors in Resolved: the 7 BLR / AZA team members' Resolved / Closed tickets (created since 1 Jan 2026),
-// checked with the sanitization checks REQUIRED for each ticket (pet incident: the 3 title checks;
-// Immediately Resolved / Automatically Closed: title + ClosureCode; otherwise all 11); one card per
-// resolver + Others; the picked card lists only its tickets with errors (a required check fails),
-// score = passed / required. GET /api/resolved-errors[?who=] (read-only).
+// checked with the closure-code rule (server: sanitization-score.js closureRule; Successful = all 11,
+// eligible Immediately Resolved = the 3 title checks, anything else a defect); one card per resolver +
+// Others; the picked card lists only its tickets with errors (a defect or a failing required check:
+// defects in red, then the missing checks), score = passed / required. GET /api/resolved-errors[?who=] (read-only).
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, RE=window.PHDResErr;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function ic(n,s){return window.icon?window.icon(n,s||14):'';}
@@ -196,7 +197,7 @@ function heroHtml(gate){
   var asOf=ST.state==='done'?(ST.asOf?esc(when(ST.asOf)):'Unknown'):(ST.state==='error'?'Not loaded':'Loading\u2026');
   return '<header class="st-hero'+(gate?' is-gate':'')+'"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('alert-triangle',24)+'</span><div>'+
     '<p class="st-eyebrow">Quality \u00b7 Resolved tickets</p><h1>Errors in Resolved</h1>'+
-    '<p class="st-hero-sub">Tickets resolved since 1 Jan 2026, checked with the sanitization checks each one needs (pet incidents: title only; Immediately Resolved / Automatically Closed: title + ClosureCode; otherwise all 11). Only tickets with errors are listed.</p>'+
+    '<p class="st-hero-sub">Tickets resolved since 1 Jan 2026, checked by closure code: Successful needs all 11 checks; Immediately Resolved is allowed only for an Out of Scope of PHD or unsecured pet issue type with Sev 3\u20135 in the title (then the 3 title checks); any other code is a defect. Only tickets with errors are listed.</p>'+
     '</div></div>'+(gate?'':'<div class="st-hero-asof" aria-label="Data as of"><span class="st-meta-k">Data as of</span><span class="st-meta-v" id="stAsOf">'+ic('clock',14)+asOf+'</span></div>')+
     '</div></header>';
 }
@@ -216,8 +217,8 @@ function kpisHtml(){
   }
   return '<ul class="st-kpis" id="stKpis" aria-label="Team totals"'+(done?'':' aria-busy="true"')+'>'+
     k('is-base','users','Team resolved',done?num(t.resolved):'',done?('BLR + AZA \u00b7 Others '+num(oth?oth.resolved:0)):'BLR + AZA')+
-    k('is-bad','alert-triangle','With errors',done?num(t.withErrors):'','A required check fails')+
-    k('is-ok','check-circle','Perfect',done?num(t.perfect):'','Every required check passes')+
+    k('is-bad','alert-triangle','With errors',done?num(t.withErrors):'','A defect or a missing check')+
+    k('is-ok','check-circle','Perfect',done?num(t.perfect):'','Allowed closure code, every check it needs passes')+
     k('is-acc','bar-chart','Pass rate',done?(pct(t.perfect,t.resolved)+'%'):'','Perfect of resolved')+
     '</ul>';
 }
@@ -261,15 +262,15 @@ function tableHtml(rows,others){
     '<thead><tr><th scope="col" class="stv-fit" aria-sort="'+(dir==='asc'?'ascending':'descending')+'"><button type="button" class="stv-sort" data-stvsort="1">Score'+
       '<span class="stv-sort-ic" aria-hidden="true">'+(dir==='asc'?'\u25b2':'\u25bc')+'</span>'+
       '<span class="tb-asg-sr">, sorted '+sortLbl+'. Activate to sort '+(dir==='asc'?'highest':'lowest')+' first.</span></button></th>'+
-    '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-fit">ClosureCode</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Missing</th>'+
+    '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-fit">Closure code</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Missing / Defect</th>'+
     (others?'<th scope="col" class="stv-fit">Resolved by</th>':'')+'</tr></thead><tbody>'+
     rows.map(function(t){
-      var miss=V.missText(t.missing)||'\u2014', u=t.url||(S&&S.url?S.url(t):'');
+      var miss=V.missDef(t.defects,t.missing), u=t.url||(S&&S.url?S.url(t):'');
       return '<tr><td class="stv-sc stv-fit">'+(t.required>0?V.ratioHtml(t.score,t.required):V.scoreHtml(t.score))+'</td>'+
         '<td class="stv-id stv-fit"><span class="tb-asg-id"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(t.shortId)+'<span class="tb-asg-sr"> (opens in a new tab)</span></a></span></td>'+
-        '<td class="stv-fit"'+(t.group==='pet'?' title="Pet incident: title checks only"':'')+'>'+V.codeTag(t.closureCode)+(t.group==='pet'?' <span class="stv-cc is-pet">Pet</span>':'')+'</td>'+
+        '<td class="stv-fit">'+V.codeTag(t.closureCode)+'</td>'+
         '<td class="stv-clip stv-ttl" title="'+esc(t.title||'No title')+'">'+esc(t.title||'No title')+'</td>'+
-        '<td class="stv-clip stv-mc" title="'+esc(miss)+'">'+esc(miss)+'</td>'+
+        '<td class="stv-clip stv-mc" title="'+esc(miss.text)+'">'+miss.html+'</td>'+
         (others?'<td class="stv-by stv-fit">'+esc(t.resolvedBy||'\u2014')+'</td>':'')+'</tr>';
     }).join('')+'</tbody></table></div>';
 }
@@ -306,7 +307,7 @@ function render(){
       '<div class="st-sec-txt"><h2 class="st-sec-t" id="stCardsH">Resolvers</h2><p class="st-sec-d">Team BLR and AZA, plus Others (resolved by anyone else). Pick a card to see its tickets with errors below.</p></div></div>'+
       '<div class="st-sec-b" id="stCardsBody"></div></section>'+
     '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('alert-triangle',18)+'</span>'+
-      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Tickets where a required check fails, scored passed / required checks, lowest first (use the Score header to flip it), then oldest resolved. Ticket links open in a new tab.</p></div></div>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Tickets with a closure-code defect (in red) or a failing required check, scored passed / required checks, lowest first (use the Score header to flip it), then oldest resolved. Ticket links open in a new tab.</p></div></div>'+
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section></div>';
   renderCards(); renderView();
 }

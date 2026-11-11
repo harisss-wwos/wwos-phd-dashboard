@@ -217,14 +217,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #stRevDlg .st-rev-h{display:block;margin-top:4px;font-size:.8em;font-weight:600;color:#5c6773;text-align:right;font-variant-numeric:tabular-nums}
 #stRevDlg .st-rev-e{margin:6px 0 0;font-size:.85em;font-weight:700;color:#b42318}
 #stRevDlg .st-rev-e:empty{display:none}
-/* Needs correction sub-sections (one per closure-code group, sanitization-view.js NEED_GROUPS). */
-.st-view details.stv-sub{margin:0 0 10px;border:1px solid #e2e6ea;border-radius:10px;background:#fff}
-.st-view details.stv-sub>summary{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:9px 12px;cursor:pointer;font-size:.92em;font-weight:800;color:#2a3340}
-.st-view details.stv-sub>summary b{padding:1px 8px;border-radius:99px;background:#fdecec;color:#8a1c12}
-.st-view details.stv-sub>summary:focus-visible{outline:3px solid #f0a35a;outline-offset:2px;border-radius:10px}
-.st-view .stv-sub-h{flex-basis:100%;font-size:.86em;font-weight:600;color:#5c6773}
-.st-view details.stv-sub[open]>summary{border-bottom:1px solid #e2e6ea}
-.st-view .stv-sub-in{padding:8px 10px 10px}
+/* Missing / Defect cell: closure-code defects in red first; old Completed marks as a muted note; the marked status. */
+.st-view .stv-def{color:#b42318;font-weight:700}
+.st-view .stv-legacy{color:#5c6773;font-size:.86em;font-weight:600;font-style:italic}
+.st-view .stv-mk{font-weight:700;color:#1f4f99}
 .st-view .stv-cc{display:inline-block;padding:1px 7px;border-radius:99px;background:#eef1f4;color:#2a3340;font-size:.8em;font-weight:700;white-space:nowrap}
 #stRevDlg .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* Contractors section (a top-level accordion card): KPIs, the cards, then the selected contractor's view. */
@@ -297,7 +293,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=232"></script>
-<script src="sanitization-view.js?v=6"></script>
+<script src="sanitization-view.js?v=7"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=2"></script>
@@ -311,7 +307,6 @@ function pct(a,b){return b?Math.round((Number(a)||0)/b*100):0;}
 // Top score: the server's maxScore (via the top bar's /api/my-sanitization data), 11 until it is here.
 function maxS(){ var m=ST.max||(S&&S.max?Number(S.max()):0); return m>0?m:11; }
 function full(){ return maxS()+'/'+maxS(); }
-function subLabel(key){ var g=((V&&V.NEED_GROUPS)||[]).filter(function(x){ return x.key===key; })[0]; return g?g.label:key; }
 function announce(msg){ var l=$('stLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
 
 // ---- State ----
@@ -321,9 +316,8 @@ var ME=String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase
 var ST={state:'loading', err:'', list:[], asOf:null};
 var SEL=null;              // shown contractor login (the picked card)
 var VIEWS={};              // login -> {loading, data, error}
-var PG={ok:0};             // shown view: page per table ('ok' + 'need.<group>' per Needs correction sub-section)
-var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|'temp'|'err'|'ok'|null; kept across re-renders
-var SUBOPEN;               // the one open Needs correction sub-section: group key | null (none) | undefined (first non-empty)
+var PG={need:0,ok:0};      // shown view: page per table (Needs correction / Cleared)
+var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|'wait'|'err'|'ok'|null; kept across re-renders
 var SELR={}, LASTI=-1;     // owner's Error tickets selection (shortId -> true) + last clicked row index (Shift+click range)
 var REVBUSY=false;         // an error-review request is running
 var APPR_OPEN=false;       // owner's "Approved errors" list open
@@ -338,7 +332,7 @@ function findC(login){ for(var i=0;i<ST.list.length;i++) if(ST.list[i].login===l
 // Most tickets needing correction first, then most assigned, then login.
 function sortList(l){ return l.slice().sort(function(a,b){
   return (Number(b.needsCorrection)||0)-(Number(a.needsCorrection)||0) || (Number(b.assigned)||0)-(Number(a.assigned)||0) || String(a.login).localeCompare(String(b.login)); }); }
-function totals(){ var t={assigned:0,cleared:0,need:0,temp:0,err:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.temp+=Number(c.tempCompleted)||0; t.err+=Number(c.errorTickets)||0; }); return t; }
+function totals(){ var t={assigned:0,cleared:0,need:0,wait:0,err:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.wait+=Number(c.awaiting)||0; t.err+=Number(c.errorTickets)||0; }); return t; }
 
 // ---- Hero / login gate ----
 // CON = the Contractors section is on the page (owner + contractors; removed if the server says 403).
@@ -372,8 +366,8 @@ function kpisHtml(){
   return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals"'+(done?'':' aria-busy="true"')+'>'+
     k('is-base','users','Contractors',done?num(ST.list.length):'','With sanitization access')+
     k('is-base','ticket','Tickets assigned',done?num(t.assigned):'','Active assignments')+
-    k('is-ok','check-circle','Cleared',done?num(t.cleared):'','Every required check passes')+
-    k('is-bad','alert-triangle','Needs correction',done?num(t.need):'',done?('A required check fails \u00b7 '+num(t.temp)+' temp. completed, '+num(t.err)+' error'):'A required check fails')+
+    k('is-ok','check-circle','Cleared',done?num(t.cleared):'','Allowed closure code, every check it needs passes')+
+    k('is-bad','alert-triangle','Needs correction',done?num(t.need):'',done?('A defect or a missing check \u00b7 '+num(t.wait)+' awaiting upload, '+num(t.err)+' error'):'A defect or a missing check')+
     k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Cleared of assigned')+
     '</ul>';
 }
@@ -417,7 +411,7 @@ function viewBody(){
   var ro=!canMark(SEL);
   return '<p class="stv-note" id="stvNote" role="alert">'+esc(NOTE)+'</p>'+
     (ro?'<p class="stv-help">You are viewing '+esc(who)+'\u2019s tickets. Only '+esc(who)+' and the owner can change their status.</p>':'')+
-    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,subOpen:SUBOPEN,sortDir:SORT,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
+    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,sortDir:SORT,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
       review:canReview(SEL),sel:SELR,revBusy:REVBUSY,apprOpen:APPR_OPEN,h:{ic:ic,when:S.when,url:S.url}});
 }
 // Error tickets are owner-only (the server sends contractors no error rows and enforces the review too).
@@ -440,8 +434,8 @@ function renderCards(focusLogin){
 }
 function viewSecHtml(){
   return '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('eraser',18)+'</span>'+
-      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Needs correction is split by ClosureCode (pet incidents on their own) because each group needs different checks; the score is passed / required checks, lowest first by default (use the Score header to flip it), then oldest assigned. '+
-      'Set a ticket\u2019s status to Completed (re-checked after the next data upload) or Error ticket (sent to the owner for review). One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Allowed closure codes: Successful (all 11 checks), Immediately Resolved (only Out of Scope of PHD or unsecured pet issue types with Sev 3\u20135 in the title: the 3 title checks) and Duplicate (no checks). The score is passed / required checks, lowest first by default (use the Score header to flip it), then oldest assigned. '+
+      'Set a ticket\u2019s status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate; checked after the next data upload) or Error (sent to the owner for review). One section is open at a time. Ticket links open in a new tab.</p></div></div>'+
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
 }
 // The Contractors section: a top-level accordion card (sanitization-checklist.js helpers) holding the
@@ -499,7 +493,7 @@ function loadView(login,force,after){
   });
 }
 // Switching contractor resets paging / sort / forms / selection; the open section (OPEN) is kept.
-function resetViewState(){ PG={ok:0}; SUBOPEN=undefined; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
+function resetViewState(){ PG={need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
 function select(login,focusCard){
   if(!findC(login)) return;
   var same=login===SEL;
@@ -534,17 +528,17 @@ function loadList(retry){
   S.ready().then(function(d){ if(d&&Array.isArray(d.contractors)) applyList(d); else fetchList(); },fetchList);
 }
 
-// ---- Status marks (POST /api/my-sanitization/mark; temporary until the next data upload) ----
+// ---- Status marks (POST /api/my-sanitization/mark; a closure status is checked after the next data upload) ----
 function findT(sid){ var v=SEL&&VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return null; for(var i=0;i<v.tickets.length;i++) if(v.tickets[i].shortId===sid) return v.tickets[i]; return null; }
 // Totals of the shown contractor changed: refresh its card / KPIs (owner) and the top-bar count pill.
 function syncTotals(){
   var v=VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return;
   v.totals=V.totalsOf(v);
   var c=findC(SEL);
-  if(c){ c.needsCorrection=v.totals.needsCorrection; c.tempCompleted=v.totals.tempCompleted; c.errorTickets=v.totals.errorTickets; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
+  if(c){ c.needsCorrection=v.totals.needsCorrection; c.awaiting=v.totals.awaiting; c.errorTickets=v.totals.errorTickets; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
   if(S.refresh) S.refresh();
 }
-var STATUS_WORD={completed:'Completed','error':'Error ticket'};
+var STATUS_WORD=(V&&V.STATUS_LABEL)||{};
 function saveMark(sid,status,reason){
   var t=findT(sid); if(!t||BUSY[sid]||!canMark(SEL)) return;
   var login=SEL, body={shortId:sid,status:status,reason:reason||'',login:login};
@@ -554,13 +548,14 @@ function saveMark(sid,status,reason){
     delete BUSY[sid];
     if(SEL!==login) return;
     if(r&&r.ok&&r.data&&r.data.ok){
-      var mark=r.data.mark||null;
-      if(!mark) t.staleMark=null;   // an undo clears the mark (and any older note)
-      t.mark=mark; t.status=V.statusAfter(t,mark); t.returned=null;   // a new mark replaces the owner's send-back note
+      var mark=r.data.mark||null, row=r.data.ticket;
+      // The server sends the row as it is now (status, checks, defects); replace it in place.
+      if(row&&row.shortId===sid){ for(var k in row) if(Object.prototype.hasOwnProperty.call(row,k)) t[k]=row[k]; }
+      else { t.mark=mark; t.status=V.statusAfter(t,mark); t.returned=null; t.legacyCompleted=false; }   // a new mark replaces the owner's send-back note
       if(ERRF&&ERRF.shortId===sid) ERRF=null;
       syncTotals(); renderView('#stViewH');
-      announce(sid+(status==='error'?(canReview(login)?' marked Error ticket.':' sent to the owner for error review.')
-        :(status?(' marked '+STATUS_WORD[status]+'. It is re-checked after the next data upload.'):' moved back to Needs correction.')));
+      announce(sid+(status==='error'?(canReview(login)?' marked Error.':' sent to the owner for error review.')
+        :(status?(' marked '+(STATUS_WORD[status]||status)+'. It is checked after the next data upload.'):(' mark removed: '+(t.status==='cleared'?'Cleared.':'back to Needs correction.')))));
     } else {
       var msg=(r&&r.data&&r.data.error)||'Could not save the status. Please try again.';
       var inForm=!!(ERRF&&ERRF.shortId===sid);
@@ -679,7 +674,7 @@ function restoreApproved(sid){
 document.addEventListener('change',function(e){
   var t=e.target; if(!t||!t.closest||!t.closest('#stViewBody')) return;
   var sid=t.getAttribute('data-stvst'); if(!sid) return;
-  if(t.value==='completed') saveMark(sid,'completed','');
+  if(t.value==='successful'||t.value==='immediate'||t.value==='duplicate') saveMark(sid,t.value,'');
   else if(t.value==='error'){ ERRF={shortId:sid,text:'',err:'',busy:false}; renderView('[data-stvwhy="'+sid+'"]'); announce('Why is this an error ticket? Type the reason, then Save.'); }
 });
 document.addEventListener('input',function(e){
@@ -698,7 +693,7 @@ document.addEventListener('click',function(e){
   if(t.closest('#stRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
   if(t.closest('[data-stvsort]')){
-    SORT=SORT==='asc'?'desc':'asc'; Object.keys(PG).forEach(function(k){ if(k.indexOf('need.')===0) PG[k]=0; }); renderView('[data-stvsub][open] [data-stvsort]');
+    SORT=SORT==='asc'?'desc':'asc'; PG.need=0; renderView('[data-stvsort]');
     announce('Needs correction sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
   }
   var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
@@ -730,29 +725,23 @@ document.addEventListener('click',function(e){
   var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
   var pg=t.closest('[data-sanpage]');
   if(pg&&!pg.disabled){
-    // sec: 'ok' or 'need.<group>' (a Needs correction sub-section).
-    var bits=pg.getAttribute('data-sanpage').split(':'), sec=/^need\.[a-z-]+$/.test(bits[0])?bits[0]:'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
+    // sec: 'need' (Needs correction) or 'ok' (Cleared).
+    var bits=pg.getAttribute('data-sanpage').split(':'), sec=bits[0]==='need'?'need':'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
     PG[sec]=Math.max(0,Number(bits[1])||0);
-    if(sec==='ok') OPEN='ok'; else { OPEN='need'; SUBOPEN=sec.slice(5); }
+    OPEN=sec;
     renderView();
     // Keep focus on the pager button pressed (or its sibling when that end is reached).
     var bs=document.querySelectorAll('#stViewBody [data-sanpage^="'+sec+':"]'), f=dir==='next'?bs[bs.length-1]:bs[0];
     if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
     if(f) try{ f.focus(); }catch(err){}
-    var box=f&&(f.closest('.stv-sub-in')||f.closest('.tb-san-in')), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
-    announce((sec==='ok'?'Cleared tickets':'Tickets that need correction ('+subLabel(sec.slice(5))+')')+': page '+(PG[sec]+1));
+    var box=f&&f.closest('.tb-san-in'), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
+    announce((sec==='ok'?'Cleared tickets':'Tickets that need correction')+': page '+(PG[sec]+1));
   }
 });
 // One-open-at-a-time accordion: opening a section closes the others; OPEN survives re-renders
 // (paging, marking, refresh). A re-render's open section fires 'toggle' too, which keeps OPEN the same.
 document.addEventListener('toggle',function(e){
   var d=e.target; if(!d||!d.getAttribute||!d.closest||!d.closest('#stViewBody')) return;
-  var sub=d.getAttribute('data-stvsub');
-  if(sub){
-    SUBOPEN=V.nextSubOpen(SUBOPEN,sub,d.open);
-    if(d.open){ var ss=document.querySelectorAll('#stViewBody details[data-stvsub]'); for(var j=0;j<ss.length;j++) if(ss[j]!==d&&ss[j].open) ss[j].open=false; }
-    return;
-  }
   var sec=d.getAttribute('data-stvsec');
   if(sec){
     OPEN=V.nextOpen(OPEN,sec,d.open);

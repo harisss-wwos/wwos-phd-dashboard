@@ -34,17 +34,28 @@ function str(v) { return v == null ? '' : String(v); }
 // ---- Issue types: the same source as issue-types.html (issue-types-data.js -> window.IZ_CATS). ----
 // Returns the type names in page order, or [] when the file is not available (e.g. a deploy that
 // only ships the server folder); server.js then falls back to its own taxonomy seed.
-function loadIssueTypesFromFile(file) {
+function loadCatsFromFile(file) {
   try {
     const code = fs.readFileSync(file || path.join(__dirname, '..', 'issue-types-data.js'), 'utf8');
     const sandbox = { window: {} };
     // The file's later browser-only helpers touch `document`; IZ_CATS is assigned before that runs.
     try { vm.runInNewContext(code, sandbox, { timeout: 1000 }); } catch (e) { /* keep what was assigned */ }
-    const cats = Array.isArray(sandbox.window.IZ_CATS) ? sandbox.window.IZ_CATS : [];
-    return typesFromCats(cats);
+    return Array.isArray(sandbox.window.IZ_CATS) ? sandbox.window.IZ_CATS : [];
   } catch (e) {
     return [];
   }
+}
+function loadIssueTypesFromFile(file) { return typesFromCats(loadCatsFromFile(file)); }
+// { type name: category } from the same file (sanitization-score.js: Immediately Resolved eligibility
+// by the title's issue-type category), or {} when the file is not available.
+function loadIssueCategoriesFromFile(file) { return categoriesFromCats(loadCatsFromFile(file)); }
+function categoriesFromCats(cats) {
+  const out = {};
+  (Array.isArray(cats) ? cats : []).forEach(c => (c && Array.isArray(c.types) ? c.types : []).forEach(t => {
+    const name = str(t && t.type).trim();
+    if (name && !(name in out)) out[name] = str(c.category).trim();
+  }));
+  return out;
 }
 function typesFromCats(cats) {
   const out = [];
@@ -461,7 +472,7 @@ function pageOf(list, page, pageSize) {
 }
 
 module.exports = {
-  CHECKS, CHECK_CODES, SECTIONS, SECTION_KEYS, AGENT_FILTERS, SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, parseCsv, canon, levenshtein,
+  CHECKS, CHECK_CODES, SECTIONS, SECTION_KEYS, AGENT_FILTERS, SETTINGS_ID, loadIssueTypesFromFile, typesFromCats, loadIssueCategoriesFromFile, categoriesFromCats, parseCsv, canon, levenshtein,
   findTypeInText, matchValue, evaluateTicket, evaluateUpload, normalizeDisabled, buildReport, TITLE_SEV_RE, RCD_DATE_RE, HI_CNT_RE,
   hiLinesOf, checkHiLines, vocab, fromTicketDoc, newestFirst, filterTickets, maskGroups, pageOf,
 };
