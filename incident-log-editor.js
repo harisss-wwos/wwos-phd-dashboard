@@ -403,8 +403,8 @@ var IL_INVEST_QS=[
     importAliases:['GeoStudio Delivery Photo Added','Delivery Photo (POD) Added','Delivery Photo Added']},
   // Only for DA: noFlex -> hidden when the SIM "Driv:" is Flex DP (shown for DSP DA / Hub DA / no Driv yet).
   // restToSub: a whole-log Import "Yes <more text>" puts the rest in the sub textarea (see _ilfInvest).
-  {key:'austin', label:'AUSTIN Investigation Findings (Only for DA)', type:'select', opts:['No','Yes'], noFlex:true, restToSub:true,
-    aliases:['AUSTIN Investigation Findings (DA)','AUSTIN Investigation Findings'],
+  {key:'austin', label:'AUSTIN Investigation Findings', type:'select', opts:['No','Yes'], noFlex:true, restToSub:true,
+    aliases:['AUSTIN Investigation Findings (Only for DA)','AUSTIN Investigation Findings (DA)'],
     sub:{key:'austinInfo', label:'AUSTIN Investigation', type:'textarea', rows:5, placeholder:'IF_APPLICABLE'}},
   // petOnly: shown only for a pet incident (ilIsPetIncident; see _ilqRegionHidden).
   {key:'petRisk',label:'GeoStudio Dog Risk Level Updated (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
