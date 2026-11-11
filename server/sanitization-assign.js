@@ -461,7 +461,24 @@ function evalTicket(cur, why, m, stamp) {
     out.status = 'needs-correction'; out.reason = vr.reason; out.verifiedFailed = true;
     return out;
   }
+  // Unmarked but already passing rule A on the current SIM data (e.g. 11/11 Successful, an eligible
+  // Immediately Resolved with all title checks, or Duplicate): sanitized - no mark needed.
+  const ruleAPass = cur ? (!(cur.def && cur.def.length) && typeof cur.pass === 'number' && cur.pass === cur.need) : why === DUP_REASON;
+  if (ruleAPass) {
+    out.status = 'cleared';
+    out.passed = cur ? cur.pass : null; out.required = cur ? cur.need : null; out.missing = [];
+    out.target = cur ? (cur.tgt || null) : CODE_DUP; out.group = cur ? (cur.grp || null) : 'duplicate';
+    out.note = 'Passes all checks on the current SIM data';
+    return out;
+  }
   out.status = 'needs-correction'; out.reason = 'open';
+  // A full 11/11 that still fails rule A (e.g. Immediately Resolved with an in-scope issue type):
+  // show rule A's requirement and defect so the row does not look finished.
+  if (cur && raw === MAX_SCORE) {
+    out.passed = cur.pass; out.required = cur.need; out.missing = missingChips(cur);
+    out.target = cur.tgt || null; out.group = cur.grp || null;
+    out.defects = (cur.def || []).slice();
+  }
   return out;
 }
 function contractorView(assignments, login, report, stamp, marks, approvedIds) {
