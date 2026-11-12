@@ -140,9 +140,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card.is-on .st-card-sel{display:inline-flex}
 .st-card-tot{margin-left:auto;flex-shrink:0;padding-left:6px;font-size:.78em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
 .stv-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-/* Card stats: one hero row ('To sanitize' number left, '% tickets to sanitize' right), then 2-3 equal stat chips. */
-.stv-cst{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-variant-numeric:tabular-nums}
-.stv-cst.is-k2{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* Card stats: one hero row ('To sanitize' number left, '% tickets to sanitize' right), then 3-4 equal stat chips
+   (2 x 2 when the card is narrow; the card is a size container). */
+.st-card{container:stcard/inline-size}
+.stv-cst{margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-variant-numeric:tabular-nums}
+.stv-cst.is-k3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container stcard (max-width:299px){.stv-cst,.stv-cst.is-k3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stv-cst dd{margin:0}
 .stv-hero{grid-column:1/-1;min-width:0;margin-bottom:2px}
 .stv-hero dd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;line-height:1}
@@ -159,6 +162,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-chip.is-wait{background:var(--blue-bg);border-top-color:#1f5fbf}.stv-chip.is-wait dd b{color:#1f4f99}
 .stv-chip.is-errn{background:#fff3e0;border-top-color:#d98a1a}.stv-chip.is-errn dd b{color:#8a3a00}
 .stv-chip.is-zero{background:var(--soft);border-top-color:#d4dade}.stv-chip.is-zero dd b,.stv-chip.is-zero .stv-chip-p{color:#8a949e}
+/* Error deducted (after verification / new upload): light red like its section (.tb-san-sec.is-ded), also at 0. */
+.stv-chip.is-ded,.stv-chip.is-ded.is-zero{background:#fdf0f0;border-top-color:#d14343}.stv-chip.is-ded dd b,.stv-chip.is-ded.is-zero dd b{color:#a61b1b}.stv-chip.is-ded .stv-chip-p{color:#7a1616}
 /* Stacked bar: green sanitized, blue temp, amber errors, light red to sanitize; '% sanitized' right. */
 .stv-sbar{display:flex;align-items:center;gap:8px;width:100%}
 .stv-sbar.is-card{margin-top:auto}
@@ -166,12 +171,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-sbar-t span{display:block;height:100%}
 .stv-sbar-t .is-ok{background:#1a7a43}.stv-sbar-t .is-wait{background:#1f5fbf}.stv-sbar-t .is-errn{background:#d98a1a}.stv-sbar-t .is-bad{background:#f2aaa0}
 .stv-sbar b{flex-shrink:0;font-size:.72em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
-/* Selected contractor's summary: 5 equal KPI tiles (3 / 2 per row on smaller screens), bar, legend + 'Data as of'. */
+/* Selected contractor's summary: 6 equal KPI tiles (5 without Errors; 3 / 2 per row on smaller screens), bar, legend + 'Data as of'. */
 .st-view .tb-san-sum.stv-sum{display:flex;flex-direction:column;gap:10px;margin:0 0 14px}
-.stv-kpis{margin:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;font-variant-numeric:tabular-nums}
-.stv-kpis.is-k4{grid-template-columns:repeat(4,minmax(0,1fr))}
-@media (max-width:1099px){.stv-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.stv-kpis.is-k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:699px){.stv-kpis,.stv-kpis.is-k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stv-kpis{margin:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;font-variant-numeric:tabular-nums}
+.stv-kpis.is-k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:1099px){.stv-kpis,.stv-kpis.is-k5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:699px){.stv-kpis,.stv-kpis.is-k5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stv-kpi{min-width:0;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-top:3px solid #5c6773;border-radius:10px;background:#fff}
 .stv-kpi dt{font-size:.66em;font-weight:800;letter-spacing:.8px;line-height:1.3;text-transform:uppercase;color:var(--mut)}
 .stv-kpi dd{margin:0;display:flex;flex-direction:column;gap:3px}
@@ -182,6 +187,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-kpi.is-ok{border-top-color:#1a7a43}.stv-kpi.is-ok dd b{color:#17663a}
 .stv-kpi.is-errn{border-top-color:#d98a1a}.stv-kpi.is-errn dd b{color:#8a3a00}
 .stv-kpi.is-zero dd b{color:#8a949e}
+.stv-kpi.is-ded{background:#fdf0f0;border-color:#f2c4c4;border-top-color:#d14343}.stv-kpi.is-ded dd b,.stv-kpi.is-ded.is-zero dd b{color:#a61b1b}
 .stv-sbar.is-sum .stv-sbar-t{height:8px}
 .stv-sbar.is-sum b{font-size:.8em;font-weight:800;color:#17663a}
 .stv-leg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
@@ -237,6 +243,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
    text in the title tooltip). Missing may wrap below 900px. */
 .st-view .tb-san-sec.is-temp>summary b{background:#e9f0fb;color:#1f4f99}
 .st-view .tb-san-sec.is-err>summary b{background:#fff3e8;color:#8a3a00}
+/* Error Deducted tickets after verification/new Upload (first section): light red. */
+.st-view .tb-san-sec.is-ded{background:#fdf0f0;border-color:#f2c4c4}
+.st-view .tb-san-sec.is-ded>summary{color:#7a1616}
+.st-view .tb-san-sec.is-ded>summary b{background:#fff;color:#a61b1b;box-shadow:inset 0 0 0 1px #f2c4c4}
 .st-view table.stv-tbl tbody.stv-t+tbody.stv-t tr.stv-l1 td{border-top:1px solid #e2e6ea}
 .st-view table.stv-tbl tr.stv-l1 td{border-bottom:0}
 .st-view table.stv-tbl tbody.stv-t:hover td{background:#fafbfc}
@@ -397,7 +407,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=233"></script>
-<script src="sanitization-view.js?v=13"></script>
+<script src="sanitization-view.js?v=15"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=6"></script>
@@ -420,8 +430,8 @@ var ME=String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase
 var ST={state:'loading', err:'', list:[], asOf:null};
 var SEL=null;              // shown contractor login (the picked card)
 var VIEWS={};              // login -> {loading, data, error}
-var PG={need:0,ok:0};      // shown view: page per table (Needs correction / Cleared)
-var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|'wait'|'err'|'ok'|null; kept across re-renders
+var PG={ded:0,need:0,ok:0};   // shown view: page per table (Error deducted / Needs correction / Cleared)
+var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'ded'|'need'|'wait'|'err'|'ok'|null; kept across re-renders
 var SELR={}, LASTI=-1;     // owner's Error tickets selection (shortId -> true) + last clicked row index (Shift+click range)
 var REVBUSY=false;         // an error-review request is running
 var APPR_OPEN=false;       // owner's "Approved errors" list open
@@ -568,15 +578,15 @@ function viewSecHtml(){
 function conSum(){ return ST.state==='done'?CK.topSum(num(ST.list.length)+' contractor'+(ST.list.length===1?'':'s')):''; }
 function conHtml(){
   return '<section class="'+CK.topCls('stCon')+' st-con" id="stCon" aria-labelledby="stConHead">'+
-    CK.topHead('stCon',{icon:ic('users',17),title:'Contractors',sum:'<span id="stConSum">'+conSum()+'</span>',sub:'<span id="stCardsD"></span>',
+    CK.topHead('stCon',{icon:ic('users',17),title:'Sanitization Center',sum:'<span id="stConSum">'+conSum()+'</span>',sub:'<span id="stCardsD"></span>',
       // Info button outside the toggle (never collapses the section); its tooltip is #stInfoTip in <body>.
       acts:'<div class="ts-top-acts st-info"><button type="button" class="st-info-btn" id="stInfoBtn" aria-label="How it works" aria-describedby="stInfoTip">'+ic('info',18)+'</button></div>'})+
     CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
 }
-// The page shell (built once): hero, then Checklist / Contractors / Scores / Assignment log.
+// The page shell (built once): hero, then Checklist / Assignment log / Scores / Sanitization Center (#stCon).
 function buildPage(){
   $('wrap').innerHTML='<div class="st ts">'+heroHtml(false)+'<div class="ts-main">'+
-    CK.guideHtml()+(CON?conHtml():'')+CK.scoreHtml()+CK.logHtml()+'</div></div>';
+    CK.guideHtml()+CK.logHtml()+CK.scoreHtml()+(CON?conHtml():'')+'</div></div>';
 }
 // Re-render the Contractors section's contents in place (the other sections keep their state).
 function render(){
@@ -609,6 +619,13 @@ function loadView(login,force,after){
       // Error tickets the server counted but did not send (contractors): kept in the local totals.
       d.errHidden=Math.max(0,((d.totals&&d.totals.errorTickets)||0)-V.sections(d).err.length);
       VIEWS[login]={data:d};
+      // The card's Error deducted tile = this view's Error Deducted section count (an older API's list lacks it).
+      var dc=findC(login), dn=V.sections(d).ded.length;
+      if(dc&&dc.errorDeducted!==dn){
+        dc.errorDeducted=dn;
+        var fc=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#stCardsBody [data-login]');
+        renderCards(fc?fc.getAttribute('data-login'):null);
+      }
     }
     else VIEWS[login]={error:(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets.')};
   }).catch(function(){ VIEWS[login]={error:'Could not load the tickets.'}; }).then(function(){
@@ -620,7 +637,7 @@ function loadView(login,force,after){
   });
 }
 // Switching contractor resets paging / sort / forms / selection; the open section (OPEN) is kept.
-function resetViewState(){ PG={need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
+function resetViewState(){ PG={ded:0,need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
 function select(login,focusCard){
   if(!findC(login)) return;
   var same=login===SEL;
@@ -662,7 +679,7 @@ function syncTotals(){
   var v=VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return;
   v.totals=V.totalsOf(v);
   var c=findC(SEL);
-  if(c){ c.needsCorrection=v.totals.needsCorrection; c.awaiting=v.totals.awaiting; c.errorTickets=v.totals.errorTickets; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
+  if(c){ c.needsCorrection=v.totals.needsCorrection; c.awaiting=v.totals.awaiting; c.errorTickets=v.totals.errorTickets; c.errorDeducted=v.totals.errorDeducted; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
   if(S.refresh) S.refresh();
 }
 var STATUS_WORD=(V&&V.STATUS_LABEL)||{};
@@ -820,7 +837,7 @@ document.addEventListener('click',function(e){
   if(t.closest('#stRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
   if(t.closest('[data-stvsort]')){
-    SORT=SORT==='asc'?'desc':'asc'; PG.need=0; renderView('[data-stvsort]');
+    SORT=SORT==='asc'?'desc':'asc'; PG.need=0; PG.ded=0; renderView('details[open] [data-stvsort]');
     announce('Tickets to sanitize sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
   }
   var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
@@ -863,8 +880,8 @@ document.addEventListener('click',function(e){
   var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
   var pg=t.closest('[data-sanpage]');
   if(pg&&!pg.disabled){
-    // sec: 'need' (Tickets to sanitize) or 'ok' (Tickets sanitized successfully).
-    var bits=pg.getAttribute('data-sanpage').split(':'), sec=bits[0]==='need'?'need':'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
+    // sec: 'ded' (Error deducted), 'need' (Tickets to sanitize) or 'ok' (Tickets sanitized successfully).
+    var bits=pg.getAttribute('data-sanpage').split(':'), sec=(bits[0]==='need'||bits[0]==='ded')?bits[0]:'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
     PG[sec]=Math.max(0,Number(bits[1])||0);
     OPEN=sec;
     renderView();

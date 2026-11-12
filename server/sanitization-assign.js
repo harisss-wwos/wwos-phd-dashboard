@@ -571,6 +571,8 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
     login: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, tickets,
     totals: { assigned: tickets.length, cleared: count('cleared'), needsCorrection: count('needs-correction'), needBy,
       awaiting: count('awaiting'), errorTickets: count('error-ticket'),
+      // Error Deducted after verification/new Upload (part of needsCorrection; client: sanitization-view.js sections().ded).
+      errorDeducted: tickets.filter(t => t.status === 'needs-correction' && t.verifiedFailed).length,
       notFound: count('not-found'), excluded: count('excluded'), pending: tickets.filter(t => !t.verified).length,
       legacyCompleted: tickets.filter(t => t.legacyCompleted).length },
   };
