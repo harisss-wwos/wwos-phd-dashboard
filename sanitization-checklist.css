@@ -298,7 +298,16 @@
 /* Log */
 .tsa-days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .tsa-day{border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.tsa-day-h{margin:0;padding:9px 14px;background:var(--soft);border-bottom:1px solid var(--line);font-size:.9em;font-weight:800;color:var(--ink)}
+.tsa-day-h{margin:0;background:var(--soft);font-size:.9em;font-weight:800;color:var(--ink)}
+.tsa-day.is-open .tsa-day-h{border-bottom:1px solid var(--line)}
+/* Day header = expand/collapse button for that day's rows (collapsed by default). */
+.tsa-day-tog{display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:9px 14px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.tsa-day-tog:hover{background:#eceff3}
+.ts .tsa-day-tog:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.tsa-day-chev{flex-shrink:0;display:inline-flex;color:#5c6773;transition:transform .2s ease}
+.tsa-day-tog[aria-expanded="true"] .tsa-day-chev{transform:rotate(90deg)}
+.tsa-log[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.tsa-day-chev{transition:none}}
 .tsa-log{list-style:none;margin:0;padding:0}
 .tsa-e{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;border-top:1px solid #eef1f4}
 .tsa-e:first-child{border-top:0}

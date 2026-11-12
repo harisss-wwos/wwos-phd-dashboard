@@ -27,6 +27,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app-light.css?v=5">
+<link rel="stylesheet" href="shimmer.css">
 <style id="st-light">
 /* Sanitization Tracker (also the Ticket Sanitization page): navy hero with an orange rule and two rows
    of tool buttons, then one-open-at-a-time accordion sections (sanitization-checklist.css .ts-acc):
@@ -139,15 +140,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card.is-on .st-card-sel{display:inline-flex}
 .st-card-tot{margin-left:auto;flex-shrink:0;padding-left:6px;font-size:.78em;font-weight:700;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
 .stv-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-/* Card stats: hero 'To sanitize' number across the row, then 2-3 equal stat chips. */
+/* Card stats: one hero row ('To sanitize' number left, '% tickets to sanitize' right), then 2-3 equal stat chips. */
 .stv-cst{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-variant-numeric:tabular-nums}
 .stv-cst.is-k2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .stv-cst dd{margin:0}
-.stv-hero{grid-column:1/-1;display:flex;flex-direction:column;gap:1px;margin-bottom:2px}
-.stv-hero dd{order:-1;display:flex;align-items:baseline;gap:6px;line-height:1}
-.stv-hero dd b{font-size:1.9em;font-weight:800;letter-spacing:-.8px;color:#b42318}
-.stv-hero-p{font-size:.8em;font-weight:800;color:#a61b1b}
-.stv-hero dt{font-size:.76em;font-weight:700;color:var(--mut)}
+.stv-hero{grid-column:1/-1;min-width:0;margin-bottom:2px}
+.stv-hero dd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;line-height:1}
+.stv-hero dd b{flex-shrink:0;font-size:1.9em;font-weight:800;letter-spacing:-.8px;color:#b42318}
+.stv-hero-r{min-width:0;text-align:right;font-size:.76em;font-weight:700;line-height:1.25;color:var(--mut)}
+.stv-hero-p{font-size:1.05em;font-weight:800;color:#a61b1b}
 .stv-hero.is-zero dd b,.stv-hero.is-zero .stv-hero-p{color:#8a949e}
 .stv-chip{min-width:0;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border-radius:8px;background:var(--soft);border-top:2px solid #c3cad2}
 .stv-chip dt{font-size:.62em;font-weight:800;letter-spacing:.5px;line-height:1.25;text-transform:uppercase;color:var(--mut);overflow-wrap:anywhere}
@@ -189,14 +190,43 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-leg-l li::before{content:'';width:9px;height:9px;border-radius:50%;background:#c3cad2}
 .stv-leg-l .is-ok::before{background:#1a7a43}.stv-leg-l .is-wait::before{background:#1f5fbf}.stv-leg-l .is-errn::before{background:#d98a1a}.stv-leg-l .is-bad::before{background:#f2aaa0}
 .st-view .stv-leg .stv-asof{margin-left:auto;font-size:.76em;font-weight:600;color:var(--mut);white-space:nowrap}
-/* 'How it works' disclosure under the selected contractor's heading. */
-.st-how{margin-top:4px;font-size:.82em;color:var(--mut)}
-.st-how>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:800;color:#9a4100;list-style:none;border-radius:6px}
-.st-how>summary::-webkit-details-marker{display:none}
-.st-how>summary::before{content:'\25B8';font-size:.9em;transition:transform .15s}
-.st-how[open]>summary::before{transform:rotate(90deg)}
-.st-how ul{margin:8px 0 0;padding-left:18px;line-height:1.5;display:flex;flex-direction:column;gap:4px;max-width:110ch}
 .st-con-err{font-weight:800;color:#a14400}
+/* Loading skeleton (shimmer.css .shimmer blocks) shaped like the KPI tiles and the contractor cards. */
+.st .shimmer{display:block;border:0;border-radius:6px}
+.st-kpi.is-sk{--k:#dfe3e8}
+.st-sk-row{display:flex;align-items:center;gap:9px}
+.st-sk-ic{width:28px;height:28px;border-radius:8px!important;flex-shrink:0}
+.st-sk-l{height:11px;width:62%}
+.st-sk-v{height:34px;width:46%;margin-top:12px}
+.st-sk-s{height:11px;width:80%;margin-top:9px}
+.st-card.is-sk{cursor:default}
+.st-card.is-sk:hover{border-color:var(--line);box-shadow:0 1px 2px rgba(20,30,50,.06);transform:none}
+.st-sk-av{width:30px;height:30px;border-radius:50%!important;flex-shrink:0}
+.st-sk-who{height:14px;width:42%}
+.st-sk-tot{height:11px;width:64px;margin-left:auto}
+.st-sk-hero{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.st-sk-big{height:30px;width:72px;flex-shrink:0}
+.st-sk-bl{height:11px;width:130px;min-width:0}
+.st-sk-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.st-sk-chip{height:44px;border-radius:8px!important}
+.st-sk-bar{flex:1 1 auto;height:6px;border-radius:99px!important}
+.st-sk-pct{flex-shrink:0;height:11px;width:34px}
+@media (prefers-reduced-motion:reduce){.st .shimmer::after{animation:none;display:none}}
+/* 'How it works' info button (Contractors header, outside the toggle); the tooltip (#stInfoTip) is in <body>. */
+.st-info{padding-left:0}
+.st-info-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0;padding:0;border:1px solid #d4dade;border-radius:50%;background:#fff;color:#5c6773;cursor:help}
+.st-info-btn:hover,.st-info-btn[data-open]{border-color:var(--acc);color:var(--acc-ink);background:var(--acc-bg)}
+#stInfoTip{position:fixed;z-index:9000;width:480px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:14px 16px;border-radius:10px;
+  background:#131a2a;border:1px solid rgba(255,255,255,.16);color:#e9edf3;font-family:'Inter',-apple-system,sans-serif;font-size:13px;line-height:1.5;text-align:left;
+  box-shadow:0 18px 40px -16px rgba(0,0,0,.7)}
+#stInfoTip[hidden]{display:none}
+#stInfoTip p{margin:0}
+#stInfoTip p+p{margin-top:6px}
+/* Heading reset: app-light.css forces h1-h5 dark (!important); keep it light, unboxed, unclipped, flush with the paragraphs. */
+#stInfoTip .st-info-h{position:static;display:block;width:auto;margin:10px 0 6px;padding:10px 0 0;border:0;border-top:1px solid rgba(255,255,255,.14);border-radius:0;
+  background:none!important;box-shadow:none;text-indent:0;text-transform:none;text-shadow:none;overflow:visible;white-space:normal;
+  font-family:inherit;font-size:14.5px;font-weight:800;line-height:1.35;letter-spacing:.2px;color:#fff!important}
+#stInfoTip .st-info-h::before,#stInfoTip .st-info-h::after{content:none;display:none}
 
 /* ---- Selected contractor view (sanitization-view.js markup; base styles come from topbar-auth.js) ---- */
 .st-view.tb-asg-card .tb-asg-scroll{max-height:70vh}
@@ -293,7 +323,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con .st-sec{margin-bottom:0}
 </style>
 <link rel="stylesheet" href="sanitization-tools.css?v=2">
-<link rel="stylesheet" href="sanitization-checklist.css?v=3">
+<link rel="stylesheet" href="sanitization-checklist.css?v=4">
 </head>
 <body data-nav-active="sanitization-tracker" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
@@ -302,6 +332,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <div class="wrap" id="wrap"></div>
 <!-- One persistent polite live region (outside #wrap, so re-renders never replace it). -->
 <div id="stLive" class="st-sr" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
+<!-- 'How it works' tooltip for the Contractors header info button (#stInfoBtn); placed by stTip* below. -->
+<div id="stInfoTip" role="tooltip" hidden>
+  <p>Set each ticket&rsquo;s status after closing it in SIM; it is checked after the next data upload.</p>
+  <h3 class="st-info-h">How it works</h3>
+  <p>After sanitizing a ticket, set its status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate) or Error (sent to the owner for review).</p>
+  <p>A marked ticket is temporarily cleared until the next data upload; only then is the SIM closure code checked: Successful needs all 11 checks (a valid RCD Issue covers a missing title issue type), Immediately Resolved or Automatically Closed (Out of Scope of PHD, or a pet type other than Attack w/pet with Sev 3&ndash;5 in the title) the 3 title checks, Duplicate none.</p>
+  <p>The score is out of 11 until then (the checks of SIM&rsquo;s closure code after it), lowest first by default (use the Score header to flip it), then oldest assigned.</p>
+  <p>One section is open at a time. Ticket links open in a new tab.</p>
+</div>
 
 <!-- Add-check pop-up (editors): the shared .tbl-* dialog shell from topbar-auth.js. -->
 <div class="tbl-bg" id="tsAddModal" style="display:none" onclick="if(event.target===this)tsCloseAdd()">
@@ -358,10 +397,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=233"></script>
-<script src="sanitization-view.js?v=12"></script>
+<script src="sanitization-view.js?v=13"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=4"></script>
+<script src="sanitization-checklist.js?v=6"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -424,6 +463,12 @@ function gate(){
 // ---- KPIs (owner) ----
 function kpisHtml(){
   var done=ST.state==='done', t=done?totals():null;
+  if(ST.state==='loading'){
+    // Skeleton: 5 tiles (icon + label, big value, sub line), the same grid as the real KPIs.
+    var sk='<li class="st-kpi is-sk"><span class="st-sk-row"><span class="shimmer st-sk-ic"></span><span class="shimmer st-sk-l"></span></span>'+
+      '<span class="shimmer st-sk-v"></span><span class="shimmer st-sk-s"></span></li>';
+    return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals" aria-busy="true">'+sk+sk+sk+sk+sk+'</ul>';
+  }
   function k(cls,icon,label,val,sub){
     return '<li class="st-kpi '+cls+(done?'':' is-na')+'"><span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
       '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span><span class="st-kpi-s" style="display:block">'+sub+'</span></li>';
@@ -457,7 +502,14 @@ function cardHtml(c){
 }
 function errNeedText(n){ return V.plural(n,'ticket')+' marked Error and need approval'; }
 function cardsBody(){
-  if(ST.state==='loading') return '<p class="st-empty" role="status">Loading contractors\u2026</p>';
+  if(ST.state==='loading'){
+    // Skeleton: 6 cards in the real card grid (header row, big number left + '% to sanitize' right, 3 chips, bar + %).
+    var sk='<li><div class="st-card is-sk"><span class="st-card-top"><span class="shimmer st-sk-av"></span><span class="shimmer st-sk-who"></span><span class="shimmer st-sk-tot"></span></span>'+
+      '<span class="st-sk-hero"><span class="shimmer st-sk-big"></span><span class="shimmer st-sk-bl"></span></span>'+
+      '<span class="st-sk-chips"><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span></span>'+
+      '<span class="stv-sbar is-card"><span class="shimmer st-sk-bar"></span><span class="shimmer st-sk-pct"></span></span></div></li>';
+    return '<div role="status"><span class="st-sr">Loading contractors\u2026</span><ul class="st-grid" aria-hidden="true" style="--n3:3;--n2:2">'+sk+sk+sk+sk+sk+sk+'</ul></div>';
+  }
   if(ST.state==='error') return '<div class="st-err" role="alert">'+esc(ST.err)+'<button type="button" class="st-btn is-ghost" id="stRetry">Try again</button></div>';
   if(!ST.list.length) return '<p class="st-empty">No contractors found.</p>';
   var n=ST.list.length;
@@ -508,12 +560,7 @@ function renderCards(focusLogin){
 }
 function viewSecHtml(){
   return '<section class="st-sec" id="stViewSec" aria-labelledby="stViewH"><div class="st-sec-h"><span class="st-sec-ic" aria-hidden="true">'+ic('eraser',18)+'</span>'+
-      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2><p class="st-sec-d">Set each ticket\u2019s status after closing it in SIM; it is checked after the next data upload.</p>'+
-      '<details class="st-how"><summary>How it works</summary><ul>'+
-      '<li>After sanitizing a ticket, set its status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate) or Error (sent to the owner for review).</li>'+
-      '<li>A marked ticket is temporarily cleared until the next data upload; only then is the SIM closure code checked: Successful needs all 11 checks (a valid RCD Issue covers a missing title issue type), Immediately Resolved or Automatically Closed (Out of Scope of PHD, or a pet type other than Attack w/pet with Sev 3\u20135 in the title) the 3 title checks, Duplicate none.</li>'+
-      '<li>The score is out of 11 until then (the checks of SIM\u2019s closure code after it), lowest first by default (use the Score header to flip it), then oldest assigned.</li>'+
-      '<li>One section is open at a time. Ticket links open in a new tab.</li></ul></details></div></div>'+
+      '<div class="st-sec-txt"><h2 class="st-sec-t" id="stViewH" tabindex="-1"></h2></div></div>'+
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
 }
 // The Contractors section: a top-level accordion card (sanitization-checklist.js helpers) holding the
@@ -521,7 +568,9 @@ function viewSecHtml(){
 function conSum(){ return ST.state==='done'?CK.topSum(num(ST.list.length)+' contractor'+(ST.list.length===1?'':'s')):''; }
 function conHtml(){
   return '<section class="'+CK.topCls('stCon')+' st-con" id="stCon" aria-labelledby="stConHead">'+
-    CK.topHead('stCon',{icon:ic('users',17),title:'Contractors',sum:'<span id="stConSum">'+conSum()+'</span>',sub:'<span id="stCardsD"></span>'})+
+    CK.topHead('stCon',{icon:ic('users',17),title:'Contractors',sum:'<span id="stConSum">'+conSum()+'</span>',sub:'<span id="stCardsD"></span>',
+      // Info button outside the toggle (never collapses the section); its tooltip is #stInfoTip in <body>.
+      acts:'<div class="ts-top-acts st-info"><button type="button" class="st-info-btn" id="stInfoBtn" aria-label="How it works" aria-describedby="stInfoTip">'+ic('info',18)+'</button></div>'})+
     CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
 }
 // The page shell (built once): hero, then Checklist / Contractors / Scores / Assignment log.
@@ -840,6 +889,41 @@ document.addEventListener('toggle',function(e){
   if(d.hasAttribute('data-stvappr')) APPR_OPEN=d.open;
 },true);
 
+// ---- 'How it works' tooltip (info button in the Contractors header) ----
+// Shown on hover and keyboard focus (and tap); Escape, blur, leaving or an outside click hide it. Fixed
+// in <body>, its right edge on the button's right edge, below it (above if there is no room).
+var TIP_T=0, TIP_HOV=false;
+function tipPlace(){
+  var b=$('stInfoBtn'), t=$('stInfoTip'); if(!b||!t||t.hidden) return;
+  var r=b.getBoundingClientRect(), vw=document.documentElement.clientWidth, vh=window.innerHeight;
+  var right=Math.max(8,vw-r.right);
+  t.style.right=right+'px'; t.style.left='auto';
+  t.style.maxWidth=Math.max(200,Math.min(480,vw-right-8))+'px';
+  var h=t.offsetHeight, top=r.bottom+8;
+  if(top+h>vh-8&&r.top-8-h>=8) top=r.top-8-h;
+  t.style.top=Math.max(8,top)+'px';
+}
+function tipShow(){ clearTimeout(TIP_T); var b=$('stInfoBtn'), t=$('stInfoTip'); if(!b||!t) return; t.hidden=false; b.setAttribute('data-open',''); tipPlace(); }
+function tipHide(now){
+  clearTimeout(TIP_T);
+  var go=function(){ var t=$('stInfoTip'), b=$('stInfoBtn'); if(t) t.hidden=true; if(b) b.removeAttribute('data-open'); };
+  if(now) go(); else TIP_T=setTimeout(go,150);
+}
+function bindInfo(){
+  var b=$('stInfoBtn'), t=$('stInfoTip'); if(!b||!t) return;
+  function enter(){ TIP_HOV=true; tipShow(); }
+  function leave(){ TIP_HOV=false; if(document.activeElement!==b) tipHide(); }
+  b.addEventListener('click',function(e){ e.stopPropagation(); tipShow(); });
+  b.addEventListener('mouseenter',enter); b.addEventListener('mouseleave',leave);
+  t.addEventListener('mouseenter',enter); t.addEventListener('mouseleave',leave);
+  b.addEventListener('focus',tipShow);
+  b.addEventListener('blur',function(){ if(!TIP_HOV) tipHide(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!t.hidden) tipHide(true); });
+  document.addEventListener('click',function(e){ if(!t.hidden&&!b.contains(e.target)&&!t.contains(e.target)) tipHide(true); });
+  window.addEventListener('resize',tipPlace);
+  window.addEventListener('scroll',tipPlace,true);
+}
+
 // ---- Start ----
 (function(){
   if(!(A&&A.getUser&&A.getUser())){ gate(); return; }
@@ -850,6 +934,7 @@ document.addEventListener('toggle',function(e){
   buildPage();
   CK.start();
   if(!CON) return;
+  bindInfo();
   // Times in the account timezone (IST / MST), like the rest of the app.
   if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ renderAsOf(); renderView(); } } }).catch(function(){});
   loadList(false);

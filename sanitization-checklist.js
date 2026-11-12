@@ -487,7 +487,8 @@ window.tsDelConfirm=tsDelConfirm;
 
 // ---- Sanitization scores (owner-only; the server enforces it too: GET /api/sanitization-score) ----
 // Every Resolved / Closed ticket scored 0..scMax() (11: one point per check); appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored.
-// scMax()+1 collapsible buckets, 0 points first (they matter most); one open at a time; each header lists its failing checks.
+// Collapsible groups, 0 points first (they matter most): one per point value for tickets that do not pass rule A yet,
+// then Tickets with clear data (rule A pass, any raw score) and Approved errors & agent-marked duplicates; one open at a time.
 // Inside: created-quarter sub-sections (Pacific, oldest first, collapsed); tickets paged by 100 in two 50-row columns.
 var TS_OWNER='harisss';
 function tsIsOwner(){ var u=A&&A.getUser&&A.getUser(); return !!(u && String(u.username||'').trim().toLowerCase()===TS_OWNER); }
@@ -513,16 +514,32 @@ function scSkel(){
 function scQuarterSelect(){
   return '<div class="ts-sc-ctl ts-top-acts"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
 }
+// Groups: point values 0..scMax() (tickets NOT passing rule A), 'clear' (Tickets with clear data: the
+// server's clr flag = rule A pass, any raw score) and 'marked' (approved errors + agent-marked duplicates).
+// The top point value is only shown when tickets sit in it without passing rule A (e.g. an ineligible
+// Immediately Resolved with all 11 checks).
+var SC_CLEAR_CODES=['Successful','Immediately Resolved','Automatically Closed'];
+function scArg(k){ return typeof k==='number'?String(k):'\''+k+'\''; }
+function scName(k){ return k==='clear'?'Tickets with clear data':(k===1?'1 point':k+' points'); }
+function scList(k){
+  var all=(SC.data&&SC.data.tickets)||[];
+  return k==='clear'?all.filter(function(t){ return t.clr; }):all.filter(function(t){ return !t.clr&&t.score===k; });
+}
+function scClearTotal(d){ return (d.clear&&Number(d.clear.total))||0; }
 function scDistHtml(d){
-  var M=scMax(), max=0, i; for(i=0;i<=M;i++) max=Math.max(max,d.buckets[i]||0);
-  var li=[];
-  for(i=0;i<=M;i++){
-    var n=d.buckets[i]||0, h=max?Math.max(n?4:0,Math.round(n/max*100)):0;
-    li.push('<li style="--sc-h:'+scHue(i)+'"><button type="button" onclick="tsScoreJump('+i+')" aria-label="'+i+' points: '+n+' '+(n===1?'ticket':'tickets')+'. Show this group">'+
+  var M=scMax(), max=0, i, cols=[];
+  for(i=0;i<M;i++) cols.push(i);
+  if(d.buckets[M]) cols.push(M);
+  cols.push('clear');
+  var cnt=function(k){ return k==='clear'?scClearTotal(d):(d.buckets[k]||0); };
+  cols.forEach(function(k){ max=Math.max(max,cnt(k)); });
+  var li=cols.map(function(k){
+    var n=cnt(k), h=max?Math.max(n?4:0,Math.round(n/max*100)):0, hue=k==='clear'?142:scHue(k);
+    return '<li style="--sc-h:'+hue+'"><button type="button" onclick="tsScoreJump('+scArg(k)+')" aria-label="'+esc(scName(k))+': '+n+' '+(n===1?'ticket':'tickets')+'. Show this group">'+
       '<span class="ts-sc-n" aria-hidden="true">'+n+'</span><span class="ts-sc-col" aria-hidden="true"><span class="ts-sc-bar" style="height:'+h+'%"></span></span>'+
-      '<span class="ts-sc-x" aria-hidden="true">'+i+'</span></button></li>');
-  }
-  return '<ul class="ts-sc-dist" style="grid-template-columns:repeat('+(M+1)+',minmax(0,1fr))" aria-label="Score distribution, 0 to '+M+' points">'+li.join('')+'</ul>';
+      '<span class="ts-sc-x" aria-hidden="true">'+(k==='clear'?'Clear':k)+'</span></button></li>';
+  });
+  return '<ul class="ts-sc-dist" style="grid-template-columns:repeat('+cols.length+',minmax(0,1fr))" aria-label="Score distribution: 0 to '+(cols.length-2)+' points, then tickets with clear data">'+li.join('')+'</ul>';
 }
 // Created quarter id from the server ('2026-Q1'); anything else (no CreateDate) -> 'none'.
 function scQKey(t){ var q=t&&t.cq; return /^\d{4}-Q[1-4]$/.test(q||'')?q:'none'; }
@@ -536,7 +553,8 @@ function scMissText(t,crit){
 // Header summary: failing criteria among a score group's tickets, most frequent first.
 function scMissHtml(list,score,crit){
   if(!list.length) return '';
-  if(score===scMax()) return '<ul class="ts-sc-miss" aria-label="Checks for '+score+' points"><li class="ts-chip ok">All checks pass</li></ul>';
+  // Top score outside "clear data": every check passes but rule A fails (e.g. Immediately Resolved not eligible for the title).
+  if(score===scMax()) return '<ul class="ts-sc-miss" aria-label="Checks for '+score+' points"><li class="ts-chip">All '+score+' checks pass, but the closure code does not fit the title</li></ul>';
   var cnt=crit.map(function(){ return 0; });
   list.forEach(function(t){ (t.checks||[]).forEach(function(c,i){ if(!c[0]&&i<cnt.length) cnt[i]++; }); });
   var rows=cnt.map(function(n,i){ return {i:i,n:n}; }).filter(function(x){ return x.n>0; });
@@ -564,7 +582,7 @@ function scMissHtml(list,score,crit){
   }).join('')+'</ul>';
 }
 function scColHtml(rows,from,score,qk,crit){
-  return '<div class="ts-sc-half"><table class="ts-sc-tbl cmp"><caption class="ts-sr">'+esc(scQLabel(qk))+', '+score+' points: tickets '+from+' to '+(from+rows.length-1)+'</caption>'+
+  return '<div class="ts-sc-half"><table class="ts-sc-tbl cmp"><caption class="ts-sr">'+esc(scQLabel(qk))+', '+esc(scName(score))+': tickets '+from+' to '+(from+rows.length-1)+'</caption>'+
     '<thead><tr><th scope="col" class="id">Ticket ID</th><th scope="col">Title</th></tr></thead><tbody>'+rows.map(function(t){
       var id=t.shortId||'\u2014', title=t.title||'\u2014', miss=scMissText(t,crit);
       return '<tr title="'+esc(title+'\n'+miss)+'"><td class="id">'+(t.url?'<a href="'+esc(t.url)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id))+'</td>'+
@@ -580,8 +598,8 @@ function scQBodyHtml(list,score,qk,crit){
   return '<div class="ts-sc-cols">'+scColHtml(L,a+1,score,qk,crit)+(R.length?scColHtml(R,a+half+1,score,qk,crit):'')+'</div>'+
     '<div class="ts-sc-pg"><span class="ts-sc-pgs" id="tsScQS-'+id+'">'+st+'</span>'+
     (pages>1?'<div class="ts-sc-pgb" role="group" aria-label="'+esc(scQLabel(qk))+' pages">'+
-      '<button type="button" class="ts-mbtn sec" id="tsScQP-'+id+'" aria-describedby="tsScQS-'+id+'" onclick="tsScorePage('+score+',\''+qk+'\',-1)"'+(p<=1?' disabled':'')+'>Previous</button>'+
-      '<button type="button" class="ts-mbtn sec" id="tsScQN-'+id+'" aria-describedby="tsScQS-'+id+'" onclick="tsScorePage('+score+',\''+qk+'\',1)"'+(p>=pages?' disabled':'')+'>Next</button></div>':'')+
+      '<button type="button" class="ts-mbtn sec" id="tsScQP-'+id+'" aria-describedby="tsScQS-'+id+'" onclick="tsScorePage('+scArg(score)+',\''+qk+'\',-1)"'+(p<=1?' disabled':'')+'>Previous</button>'+
+      '<button type="button" class="ts-mbtn sec" id="tsScQN-'+id+'" aria-describedby="tsScQS-'+id+'" onclick="tsScorePage('+scArg(score)+',\''+qk+'\',1)"'+(p>=pages?' disabled':'')+'>Next</button></div>':'')+
     '</div>';
 }
 // Quarter sub-sections (oldest first, only quarters with tickets); one open at a time, collapsed by default.
@@ -592,32 +610,87 @@ function scQuartersHtml(list,score,crit){
   return '<div class="ts-sc-qs">'+keys.map(function(k){
     var open=SC.openQ===k, id=score+'-'+k, n=by[k].length;
     return '<section class="ts-sc-q'+(open?' is-open':'')+'" aria-labelledby="tsScQH-'+id+'">'+
-      '<h4 class="ts-sc-qh" id="tsScQH-'+id+'"><button type="button" class="ts-sc-qtog" id="tsScQB-'+id+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScQL-'+id+'" onclick="tsScoreQtr('+score+',\''+k+'\')">'+
+      '<h4 class="ts-sc-qh" id="tsScQH-'+id+'"><button type="button" class="ts-sc-qtog" id="tsScQB-'+id+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScQL-'+id+'" onclick="tsScoreQtr('+scArg(score)+',\''+k+'\')">'+
         '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span><span class="ts-sec-lbl">'+esc(scQLabel(k))+'</span>'+
         '<span class="ts-count"><span class="ts-sr">(</span>'+n.toLocaleString()+'<span class="ts-sr"> '+(n===1?'ticket':'tickets')+')</span></span></button></h4>'+
       '<div class="ts-sc-qb" id="tsScQL-'+id+'"'+(open?'':' hidden')+'>'+(open?scQBodyHtml(by[k],score,k,crit):'')+'</div></section>';
   }).join('')+'</div>';
 }
+// Collapsible group shell (point values, 'clear', 'marked'): k = group key, badge / label / n = header, extra = header-row HTML.
+function scSecHtml(k,o){
+  var open=SC.open===k, n=Number(o.n)||0;
+  return '<section class="ts-sec ts-sc-sec'+(open?' is-open':'')+(o.great?' is-great':'')+'" style="--sc-h:'+o.hue+'" id="tsScSec-'+k+'" aria-labelledby="tsScH-'+k+'">'+
+    '<div class="ts-sc-hrow"><h3 class="ts-sec-h" id="tsScH-'+k+'"><button type="button" class="ts-sec-tog" id="tsScB-'+k+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScL-'+k+'" onclick="tsScoreToggle('+scArg(k)+')">'+
+      '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
+      '<span class="ts-sc-badge">'+esc(o.badge)+'</span><span class="ts-sec-lbl">'+esc(o.label)+'</span>'+
+      '<span class="ts-count"><span class="ts-sr">(</span>'+n.toLocaleString()+'<span class="ts-sr"> '+(n===1?'ticket':'tickets')+')</span></span>'+
+      (o.tag?'<span class="ts-sc-great">'+esc(o.tag)+'</span>':'')+'</button></h3>'+(o.extra||'')+'</div>'+
+    '<div class="ts-sec-body" id="tsScL-'+k+'"'+(open?'':' hidden')+'>'+(open?o.body():'')+'</div></section>';
+}
+function scEmpty(){ return '<div class="ts-empty" style="margin:14px">'+ICO_INFO+'No tickets</div>'; }
+// Count chips: [[label, n], ...] (zero counts left out unless keepZero).
+function scCountChips(aria,rows,keepZero){
+  var li=rows.filter(function(r){ return keepZero||r[1]; }).map(function(r){
+    return '<li class="ts-chip ts-chip-grp'+(r[2]?' ok':'')+'">'+esc(r[0])+' <b>'+Number(r[1]).toLocaleString()+'</b><span class="ts-sr"> tickets</span></li>';
+  });
+  return li.length?'<ul class="ts-sc-miss" aria-label="'+esc(aria)+'">'+li.join('')+'</ul>':'';
+}
 function scBucketsHtml(d){
   var M=scMax(), by={}, i; for(i=0;i<=M;i++) by[i]=[];
-  (d.tickets||[]).forEach(function(t){ if(by[t.score]) by[t.score].push(t); });
+  var clear=[];
+  (d.tickets||[]).forEach(function(t){ if(t.clr) clear.push(t); else if(by[t.score]) by[t.score].push(t); });
   var crit=d.criteria||[], out=[];
   if(!d._miss) d._miss={};   // header summaries, computed once per payload
   for(i=0;i<=M;i++){
-    var n=(d.buckets&&d.buckets[i])||0, open=SC.open===i, great=i===M;
-    out.push('<section class="ts-sec ts-sc-sec'+(open?' is-open':'')+(great?' is-great':'')+'" style="--sc-h:'+scHue(i)+'" id="tsScSec-'+i+'" aria-labelledby="tsScH-'+i+'">'+
-      '<div class="ts-sc-hrow"><h3 class="ts-sec-h" id="tsScH-'+i+'"><button type="button" class="ts-sec-tog" id="tsScB-'+i+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="tsScL-'+i+'" onclick="tsScoreToggle('+i+')">'+
-        '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
-        '<span class="ts-sc-badge">'+i+' / '+M+'</span><span class="ts-sec-lbl">'+i+' '+(i===1?'point':'points')+'</span>'+
-        '<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> '+(n===1?'ticket':'tickets')+')</span></span>'+
-        (great?'<span class="ts-sc-great">Great</span>':'')+'</button></h3>'+
-        (great?'':saHeadActs(d,i,n))+
-        (d._miss[i]!=null?d._miss[i]:(d._miss[i]=scMissHtml(by[i],i,crit)))+'</div>'+
-      '<div class="ts-sec-body" id="tsScL-'+i+'"'+(open?'':' hidden')+'>'+
-        (open?(by[i].length?scQuartersHtml(by[i],i,crit):'<div class="ts-empty" style="margin:14px">'+ICO_INFO+'No tickets</div>'):'')+
-      '</div></section>');
+    var n=(d.buckets&&d.buckets[i])||0;
+    if(i===M&&!n) continue;   // the top score only when tickets sit in it without clear data
+    (function(i,n){
+      out.push(scSecHtml(i,{n:n,hue:scHue(i),badge:i+' / '+M,label:scName(i),
+        extra:(i===M?'':saHeadActs(d,i,n))+(d._miss[i]!=null?d._miss[i]:(d._miss[i]=scMissHtml(by[i],i,crit))),
+        body:function(){ return by[i].length?scQuartersHtml(by[i],i,crit):scEmpty(); }}));
+    })(i,n);
   }
+  // Tickets with clear data: rule A passes (Successful 11 checks; eligible Immediately Resolved / Automatically Closed: 3 title checks).
+  var bc=(d.clear&&d.clear.byCode)||{}, codes=SC_CLEAR_CODES.slice();
+  Object.keys(bc).forEach(function(c){ if(codes.indexOf(c)<0) codes.push(c); });
+  out.push(scSecHtml('clear',{n:scClearTotal(d),hue:142,great:true,badge:'Clear',label:scName('clear'),tag:'Great',
+    extra:scCountChips('Tickets with clear data by closure code',codes.map(function(c){ return [c,bc[c]||0,true]; }).filter(function(r,ix){ return ix<2||r[1]; }),true),
+    body:function(){ return clear.length?scQuartersHtml(clear,'clear',crit):scEmpty(); }}));
+  out.push(scMarkedSecHtml(d));
   return '<div class="ts-secs">'+out.join('')+'</div>';
+}
+// Approved error tickets + tickets agents marked Duplicate, with who marked them (server: markedTickets).
+function scMarkedSecHtml(d){
+  var mk=d.marked||{approvedErrors:[],duplicates:[],agents:[],simDuplicates:0};
+  var ae=mk.approvedErrors||[], du=mk.duplicates||[], n=ae.length+du.length;
+  var chips=scCountChips('Approved errors and agent-marked duplicates',[['Approved errors',ae.length],['Marked Duplicate',du.length]],true)+
+    ((mk.agents||[]).length?'<ul class="ts-sc-miss" aria-label="By agent">'+mk.agents.map(function(a){
+      return '<li class="ts-chip ts-chip-grp">['+esc(a.login)+': errors <b>'+Number(a.errors).toLocaleString()+'</b> <span class="ts-chip-sep" aria-hidden="true">|</span> duplicates <b>'+Number(a.duplicates).toLocaleString()+'</b>]</li>';
+    }).join('')+'</ul>':'');
+  return scSecHtml('marked',{n:n,hue:210,badge:'Agent',label:'Approved errors & agent-marked duplicates',extra:chips,
+    body:function(){ return scMarkedBodyHtml(ae,du,Number(mk.simDuplicates)||0); }});
+}
+function scMarkedBodyHtml(ae,du,simDup){
+  var rows=ae.map(function(r){ return {r:r,kind:'Error (approved)'}; }).concat(du.map(function(r){ return {r:r,kind:'Duplicate'}; }));
+  var note='<p class="ts-sc-tot" style="margin:12px 14px 0">'+Number(simDup).toLocaleString()+' '+(simDup===1?'ticket is':'tickets are')+' closed as Duplicate in SIM and left out of scoring; only the tickets an agent marked Duplicate are listed here.</p>';
+  if(!rows.length) return note+scEmpty();
+  var scopeTxt=function(r){
+    if(r.scope==='scored'||!r.scope) return '';
+    return r.scope==='not-found'?'Not in the current data':'Left out of scoring: '+r.scope;
+  };
+  var sim=function(x){
+    var r=x.r, s=r.cc||'\u2014';
+    if(x.kind==='Duplicate'&&r.pending) s+=' (no upload since the mark)';
+    var sc=scopeTxt(r); return esc(s)+(sc?'<br><small>'+esc(sc)+'</small>':'');
+  };
+  return note+'<div class="ts-sc-tw"><table class="ts-sc-tbl"><caption class="ts-sr">Approved error tickets and tickets marked Duplicate by agents</caption>'+
+    '<thead><tr><th scope="col" class="id">Ticket ID</th><th scope="col">Title</th><th scope="col">Marked as</th><th scope="col">Agent</th><th scope="col">Marked on</th><th scope="col">Approved</th><th scope="col">SIM closure code now</th></tr></thead><tbody>'+
+    rows.map(function(x){
+      var r=x.r, id=r.shortId||'\u2014';
+      return '<tr'+(r.reason?' title="'+esc('Reason: '+r.reason+(r.note?'\nOwner note: '+r.note:''))+'"':'')+'><td class="id">'+(r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id))+'</td>'+
+        '<td class="tt">'+esc(r.title||'\u2014')+'</td><td>'+esc(x.kind)+'</td><td>'+esc(r.login||'\u2014')+'</td><td>'+esc(scWhen(r.markedAt)||'\u2014')+'</td>'+
+        '<td>'+(x.kind==='Duplicate'?'\u2014':esc((r.approvedBy||'\u2014')+(r.approvedAt?' \u00b7 '+scWhen(r.approvedAt):'')))+'</td><td>'+sim(x)+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
 }
 function scBodyHtml(){
   if(SC.loading) return scSkel();
@@ -628,7 +701,7 @@ function scBodyHtml(){
   var when=scWhen(d.asOf);
   var xb=d.excludedBy||{}, XL=[['appeal','appeal'],['test','test'],['duplicate','duplicate'],['autosim','AUTO-SIM'],['cnt','Cnt &gt; 0'],['approved error','approved error']];
   var why=XL.filter(function(x){ return xb[x[0]]; }).map(function(x){ return Number(xb[x[0]]).toLocaleString()+' '+x[1]; }).join(', ');
-  return '<p class="ts-sc-tot"><b>'+Number(d.total||0).toLocaleString()+'</b> '+(d.total===1?'ticket':'tickets')+' scored \u00b7 <b>'+Number(d.excluded||0).toLocaleString()+'</b> ignored'+(why?' ('+why+')':'')+
+  return '<p class="ts-sc-tot"><b>'+Number(d.total||0).toLocaleString()+'</b> '+(d.total===1?'ticket':'tickets')+' scored (<b>'+scClearTotal(d).toLocaleString()+'</b> with clear data) \u00b7 <b>'+Number(d.excluded||0).toLocaleString()+'</b> ignored'+(why?' ('+why+')':'')+
       (when?' <span>\u00b7 data as of '+esc(when)+'</span>':'')+'</p>'+
     scDistHtml(d)+scBucketsHtml(d);
 }
@@ -639,7 +712,7 @@ function scoreHtml(){
     tsTopHead('tsScore',{icon:ICO_SCORE,title:'Sanitization scores',
       sum:tot!=null?tsTopSum(tot.toLocaleString()+' scored'):'',
       tags:'<span class="ts-own">Only visible to you</span>',
-      sub:'Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details + 1 ClosureCode = '+scMax()+'). Lowest scores need sanitizing first.',
+      sub:'Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details + 1 ClosureCode = '+scMax()+'). Tickets that already meet their closure code\u2019s checks (Successful: all '+scMax()+'; Immediately Resolved or Automatically Closed with an eligible title: the 3 title checks) are under Tickets with clear data. Lowest scores need sanitizing first.',
       acts:scQuarterSelect()})+
     tsTopBody('tsScore')+scBodyHtml()+'</div></section>';
 }
@@ -677,21 +750,22 @@ function tsScoreQtr(i,k){
 }
 function tsScorePage(i,k,dir){
   if(SC.open!==i||SC.openQ!==k||!SC.data) return;
-  var n=(SC.data.tickets||[]).filter(function(t){ return t.score===i&&scQKey(t)===k; }).length;
+  var n=scList(i).filter(function(t){ return scQKey(t)===k; }).length;
   var pages=Math.max(1,Math.ceil(n/SC_PAGE)), pk=i+'|'+k, p=Math.min(Math.max(1,(SC.page[pk]||1)+dir),pages);
   SC.page[pk]=p;
   var bid=(dir<0?'tsScQP-':'tsScQN-')+i+'-'+k, atEnd=dir<0?p<=1:p>=pages;
   scRender(atEnd?'tsScQB-'+i+'-'+k:bid);   // keep focus on the pressed button; the heading once it disables
   var a=(p-1)*SC_PAGE;
-  announce(scQLabel(k)+', '+i+' points: page '+p+' of '+pages+', showing '+(a+1)+' to '+Math.min(a+SC_PAGE,n)+' of '+n+'.');
+  announce(scQLabel(k)+', '+scName(i)+': page '+p+' of '+pages+', showing '+(a+1)+' to '+Math.min(a+SC_PAGE,n)+' of '+n+'.');
 }
 window.tsScoreRetry=tsScoreRetry; window.tsScoreQuarter=tsScoreQuarter; window.tsScoreToggle=tsScoreToggle; window.tsScoreJump=tsScoreJump; window.tsScoreQtr=tsScoreQtr; window.tsScorePage=tsScorePage;
 
 // ---- Sanitization assignments (owner-only; the server enforces it: /api/sanitization-assign) ----
 // Assign a score section's oldest available tickets to a contractor (the server picks them), then the
 // next data uploads verify them (assignment log here; per-contractor results on sanitization-tracker.html).
-// SA = { loading, err, data:{contractors, assignments, ...}, x:{id:true} (Show IDs), rv:{id:true} (revoking) }
-var SA={loading:true, err:'', data:null, x:{}, rv:{}};
+// SA = { loading, err, data:{contractors, assignments, ...}, x:{id:true} (Show IDs), rv:{id:true} (revoking),
+//        day:{dayKey:true} (expanded day groups; all collapsed by default) }
+var SA={loading:true, err:'', data:null, x:{}, rv:{}, day:{}};
 function saPlural(n,one,many){ n=Number(n)||0; return n.toLocaleString()+' '+(n===1?one:(many||one+'s')); }
 function saDay(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'\u2014'; }
 function saDate(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'\u2014'; }
@@ -807,14 +881,26 @@ function saLogHtml(d){
   return '<ol class="tsa-days" aria-label="Assignment log by day, newest first">'+days.map(function(k){
     var items=by[k], label=k==='unknown'?'Unknown date':new Date(items[0].assignedAt).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
     var tix=0; items.forEach(function(a){ tix+=Number(a.count)||0; });
-    return '<li class="tsa-day"><h3 class="tsa-day-h">'+esc(label)+' <span class="tsa-mut">\u00b7 '+saPlural(items.length,'assignment')+' \u00b7 '+saPlural(tix,'ticket')+'</span></h3>'+
-      '<ol class="tsa-log">'+items.map(saEntryHtml).join('')+'</ol></li>';
+    // Day header = an expand/collapse button for that day's rows (collapsed unless opened, SA.day).
+    var open=!!SA.day[k], did='tsaD-'+k;
+    return '<li class="tsa-day'+(open?' is-open':'')+'"><h3 class="tsa-day-h"><button type="button" class="tsa-day-tog" data-sa="day" data-day="'+esc(k)+'" aria-expanded="'+open+'" aria-controls="'+did+'">'+
+        '<span class="tsa-day-chev" aria-hidden="true">'+ICO_CHEV+'</span><span>'+esc(label)+' <span class="tsa-mut">\u00b7 '+saPlural(items.length,'assignment')+' \u00b7 '+saPlural(tix,'ticket')+'</span></span></button></h3>'+
+      '<ol class="tsa-log" id="'+did+'"'+(open?'':' hidden')+'>'+items.map(saEntryHtml).join('')+'</ol></li>';
   }).join('')+'</ol>';
 }
 // Log buttons (delegated: the card is re-rendered).
 document.addEventListener('click',async function(ev){
   var b=ev.target&&ev.target.closest?ev.target.closest('[data-sa]'):null; if(!b||!tsIsOwner()) return;
   var act=b.getAttribute('data-sa'), id=b.getAttribute('data-id'), a=saFind(id);
+  if(act==='day'){
+    // Flip in place (no re-render); SA.day keeps it across re-renders.
+    var k=b.getAttribute('data-day'), on=!SA.day[k], ol=document.getElementById(b.getAttribute('aria-controls'));
+    if(on) SA.day[k]=true; else delete SA.day[k];
+    b.setAttribute('aria-expanded',on?'true':'false');
+    if(ol) ol.hidden=!on;
+    var li=b.closest('.tsa-day'); if(li) li.classList.toggle('is-open',on);
+    return;
+  }
   if(act==='x'&&a){ SA.x[id]=!SA.x[id]; saRender('#tsaX-'+id); return; }
   if(act==='copy'&&a){ saCopy((a.tickets||[]).map(saUrl),b,document.getElementById('tsaF-'+id)); return; }
   if(act==='rv'&&a&&a.status==='active'&&!SA.rv[id]){

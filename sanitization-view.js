@@ -91,7 +91,7 @@
       + '</span><b>' + pctOf(B.ok[4], a) + '% sanitized</b></div>';
   }
   // Card stats: a <dl> laid out as a grid: total assigned (sr-only; the card header shows it), the hero
-  // 'To sanitize' number + %, then 2-3 equal stat chips (Sanitized | Temp sanitized | Errors), then the
+  // row ('To sanitize' number left, '% tickets to sanitize' right), then 2-3 equal stat chips (Sanitized | Temp sanitized | Errors), then the
   // stacked bar. Short labels on screen; the full labels are sr-only text and title tooltips.
   // o.showErr: the error chip / segment; o.id: dl id (the card button's aria-describedby).
   function cardStatsHtml(T, o) {
@@ -104,8 +104,8 @@
     };
     return '<dl class="stv-cst' + (o.showErr ? '' : ' is-k2') + '"' + (o.id ? ' id="' + esc(o.id) + '"' : '') + '>'
       + '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>'
-      + '<div class="stv-hero' + (bad[4] ? '' : ' is-zero') + '" title="' + esc(bad[1]) + '"><dt><span aria-hidden="true">tickets to sanitize</span><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
-      + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span></dd></div>'
+      + '<div class="stv-hero' + (bad[4] ? '' : ' is-zero') + '" title="' + esc(bad[1]) + '"><dt><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
+      + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r"><span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span> <span aria-hidden="true">tickets to sanitize</span></span></dd></div>'
       + chip(B.ok) + chip(B.wait) + (B.err ? chip(B.err) : '') + '</dl>'
       + barHtml(B, a, 'is-card');
   }

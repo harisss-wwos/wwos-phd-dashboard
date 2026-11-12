@@ -442,8 +442,27 @@ function applyApproved(report, ids) {
   };
 }
 
+// ---- Tickets with clear data (Sanitization scores page) ----
+// A scored ticket that passes rule A (ticketCleared: Successful with every required check, the RCD
+// Issue standing in for a missing title issue type; an eligible Immediately Resolved / Automatically
+// Closed with its 3 title checks) needs no sanitizing: it leaves the point buckets (and the available
+// / assign counts, sanitization-assign.js) and is counted once, per SIM closure code.
+// -> { buckets:{0..MAX_SCORE} of the other tickets, clear:{ total, byCode:{ <code>: n } } }.
+const CLEAR_CODE = Object.freeze({ successful: CODE_SUCCESSFUL, immediate: CODE_IR, 'auto-closed': CODE_AUTO });
+function clearSplit(report) {
+  const buckets = {}, byCode = {};
+  for (let i = 0; i <= MAX_SCORE; i++) buckets[i] = 0;
+  [CODE_SUCCESSFUL, CODE_IR, CODE_AUTO].forEach(c => { byCode[c] = 0; });
+  let total = 0;
+  ((report && report.tickets) || []).forEach(t => {
+    if (ticketCleared(t)) { total++; const c = CLEAR_CODE[t.grp] || t.cc || '(blank)'; byCode[c] = (byCode[c] || 0) + 1; return; }
+    if (buckets[t.score] != null) buckets[t.score]++;
+  });
+  return { buckets, clear: { total, byCode } };
+}
+
 module.exports = {
-  OWNER, isOwner, CRITERIA, MAX_SCORE, DRIVER_TYPES,
+  OWNER, isOwner, CRITERIA, MAX_SCORE, DRIVER_TYPES, clearSplit,
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
   scoreTicket, buildScoreReport, prepList, pacificQuarter, APPROVED_REASON, applyApproved,
   CLOSURE_ALLOWED, closureCheck, closureExpected, closureKey, excludeReason,

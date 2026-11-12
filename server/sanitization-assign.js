@@ -125,17 +125,59 @@ function lockedMap(assignments, report, stamp, now, marks) {
 function availableInSection(report, score, locked) {
   const qk = t => (/^\d{4}-Q[1-4]$/.test(t.cq || '') ? t.cq : '~');
   return (report.tickets || [])
-    .filter(t => t.score === score && t.shortId && !locked.has(t.shortId))
+    .filter(t => t.score === score && t.shortId && !locked.has(t.shortId) && !ticketCleared(t))
     .map((t, i) => ({ t, i }))
     .sort((a, b) => qk(a.t).localeCompare(qk(b.t)) || (a.i - b.i))
     .map(x => x.t);
 }
-// { score: available count } for 0..MAX_SCORE.
+// { score: available count } for 0..MAX_SCORE. Tickets that already pass rule A (ticketCleared: the
+// scores page's "Tickets with clear data") are never available, whatever their raw score.
 function availableCounts(report, locked) {
   const out = {};
   for (let i = 0; i <= MAX_SCORE; i++) out[i] = 0;
-  (report.tickets || []).forEach(t => { if (t.shortId && !locked.has(t.shortId) && out[t.score] != null) out[t.score]++; });
+  (report.tickets || []).forEach(t => { if (t.shortId && !locked.has(t.shortId) && out[t.score] != null && !ticketCleared(t)) out[t.score]++; });
   return out;
+}
+
+// Scores page row "Approved errors & agent-marked duplicates" (GET /api/sanitization-score):
+//   approvedErrors - owner-approved error tickets (COLLECTIONS.sanitizationExcluded): login = the agent
+//                    who marked it Error, markedAt = that Error mark's time (the mark is kept on approval).
+//   duplicates     - tickets an agent marked Duplicate (sanitizationMarks status 'duplicate'); simDup =
+//                    the current data shows ClosureCode Duplicate; pending = no upload after the mark yet.
+//   agents         - [{ login, errors, duplicates }] most first.
+//   simDuplicates  - tickets left out of scoring because SIM itself says Duplicate (for comparison).
+// Title / url / SIM code come from the score report BEFORE applyApproved (base), else from the
+// assignments' stored tickets. scope: 'scored' | the exclusion reason | 'not-found' (not in the data).
+function markedTickets(base, approved, marks, assignments, stamp) {
+  const ix = base ? reportIndex(base) : { byId: new Map(), excluded: new Map() };
+  const meta = new Map();
+  (assignments || []).forEach(a => (a && a.tickets || []).forEach(t => { if (t && t.shortId && !meta.has(t.shortId)) meta.set(t.shortId, t); }));
+  const mk = markMap(marks);
+  const info = sid => {
+    const cur = ix.byId.get(sid), why = cur ? null : ix.excluded.get(sid), t = meta.get(sid) || {};
+    return { shortId: sid, url: (cur && cur.url) || t.url || 'https://t.corp.amazon.com/issues/' + encodeURIComponent(sid),
+      title: (cur && cur.title) || t.title || '', cc: cur ? (cur.cc || '') : (why === DUP_REASON ? CODE_DUP : ''),
+      scope: cur ? 'scored' : (why || 'not-found') };
+  };
+  const newest = (x, y) => String(y.markedAt || '').localeCompare(String(x.markedAt || '')) || x.shortId.localeCompare(y.shortId);
+  const approvedErrors = (approved || []).filter(d => d && d.shortId).map(d => {
+    const login = normLogin(d.login), m = mk.get(markKey(login, d.shortId));
+    return { ...info(d.shortId), login, markedAt: (m && m.at) || null, reason: d.reason || (m && m.reason) || '',
+      approvedBy: d.approvedBy || '', approvedAt: d.approvedAt || null, note: d.note || '' };
+  }).sort(newest);
+  const duplicates = [];
+  mk.forEach(m => {
+    if (!m || m.status !== 'duplicate' || !m.shortId) return;
+    const it = info(m.shortId);
+    duplicates.push({ ...it, login: normLogin(m.login), markedAt: m.at || null, simDup: closureKey(it.cc) === closureKey(CODE_DUP), pending: claimPending(m, stamp) });
+  });
+  duplicates.sort(newest);
+  const by = new Map();
+  const add = (login, k) => { const l = login || '(unknown)'; if (!by.has(l)) by.set(l, { login: l, errors: 0, duplicates: 0 }); by.get(l)[k]++; };
+  approvedErrors.forEach(r => add(r.login, 'errors'));
+  duplicates.forEach(r => add(r.login, 'duplicates'));
+  const agents = Array.from(by.values()).sort((a, b) => (b.errors + b.duplicates) - (a.errors + a.duplicates) || a.login.localeCompare(b.login));
+  return { approvedErrors, duplicates, agents, simDuplicates: (base && base.excludedBy && base.excludedBy[DUP_REASON]) || 0 };
 }
 
 // Strict input check. -> { ok, value:{score,count,assignee} } | { ok:false, status, error }.
@@ -727,7 +769,7 @@ async function handleRestore(body, deps) {
 }
 
 module.exports = {
-  COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts,
+  COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts, markedTickets,
   validateAssign, handleAssign, handleRevoke, handleGet, statusOf, sectionCounts, contractorView, handleMine, handleMark, markValid,
   handleErrorReview, handleRestore, missingChips, passedResult, chipFor, missingRequired,
   CLAIMS, NEED_REASONS, claimPending, verifiedClaim, verifyClaim, evalTicket, rowOf, markMap,

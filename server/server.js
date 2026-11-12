@@ -19,7 +19,7 @@ const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToP
 const { resolutionGroupOf } = require('./resolution-groups');
 const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, loadIssueCategoriesFromFile, categoriesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
-const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved } = require('./sanitization-score');
+const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved, clearSplit: sanClearSplit, ticketCleared: sanTicketCleared } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
 const sanUpdate = require('./sanitization-update');
 const resolvedErrors = require('./resolved-errors');
@@ -3520,7 +3520,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
 // Cached 5 min per (latest data upload, quarter, issue types, resolution list).
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
-const SAN_CACHE_PREFIX = 'san:v14:';   // v14: Automatically Closed on an IR-eligible title = title checks only (grp 'auto-closed'); Successful: a valid RCD Issue covers a missing title issue type; v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_CACHE_PREFIX = 'san:v15:';   // v15: the GET splits off "Tickets with clear data" (rule A pass: buckets / available exclude them, tickets carry clr, payload clear + marked); v14: Automatically Closed on an IR-eligible title = title checks only (grp 'auto-closed'); Successful: a valid RCD Issue covers a missing title issue type; v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
 const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)
@@ -3641,18 +3641,29 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
     const quarters = [{ id: SAN_SINCE_ID, label: SAN_SINCE_LABEL, isLive: false, count: sinceCount }]
       .concat(ids.sort((a, b) => b.localeCompare(a)).map(id => ({ id, label: quarterLabel(id), isLive: id === live, count: countOf(id) })));
     quarters.push({ id: 'all', label: 'All quarters', isLive: false, count: counts.reduce((s, c) => s + c.n, 0) });
-    const report = sanLiveReport(await sanReportFor(data, resNames, quarter), await sanApproved());
+    const base = await sanReportFor(data, resNames, quarter), approved = await sanApproved();
+    const report = sanLiveReport(base, approved);
     // Sanitization assignments (read-only here): tickets locked in an active assignment carry `asg`
     // (assignee login) and are left out of the per-score `available` counts.
-    const [asgDocs, asgMarks] = await Promise.all([(await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }).toArray(), sanMarks()]);
+    const asgColl = await getCollection(COLLECTIONS.sanitizationAssignments);
+    const [asgDocs, asgMarks, asgMeta] = await Promise.all([asgColl.find({ status: 'active' }).toArray(), sanMarks(),
+      asgColl.find({}, { projection: { _id: 0, 'tickets.shortId': 1, 'tickets.url': 1, 'tickets.title': 1 } }).toArray()]);
     const locked = sanAssign.lockedMap(asgDocs, report, data.stamp, new Date(), asgMarks);
+    // Tickets with clear data (rule A pass, sanClearSplit): out of the point buckets, flagged clr:1.
+    const split = sanClearSplit(report);
+    const tag = t => {
+      const clr = sanTicketCleared(t), asg = locked.get(t.shortId);
+      return (clr || asg) ? { ...t, ...(asg ? { asg } : {}), ...(clr ? { clr: 1 } : {}) } : t;
+    };
     res.json({
       quarter, quarterLabel: quarter === SAN_SINCE_ID ? SAN_SINCE_LABEL : (quarter === 'all' ? 'All quarters' : quarterLabel(quarter)), liveQuarter: live, quarters,
       asOf: data.stamp || report.computedAt, computedAt: report.computedAt,
-      total: report.total, excluded: report.excluded, excludedBy: report.excludedBy || {}, buckets: report.buckets,
+      total: report.total, excluded: report.excluded, excludedBy: report.excludedBy || {}, buckets: split.buckets, clear: split.clear,
       criteria: SAN_CRITERIA, maxScore: SAN_MAX_SCORE, typeCount: report.typeCount, resolutionCount: report.resolutionCount,
       available: sanAssign.availableCounts(report, locked),
-      tickets: locked.size ? report.tickets.map(t => (locked.has(t.shortId) ? { ...t, asg: locked.get(t.shortId) } : t)) : report.tickets,
+      // Approved error tickets + agent-marked Duplicates, with the agent who marked them (sanitization-assign.js markedTickets).
+      marked: sanAssign.markedTickets(base, approved, asgMarks, asgMeta, data.stamp),
+      tickets: report.tickets.map(tag),
     });
   } catch (e) {
     console.error('sanitization-score error:', e && (e.stack || e.message));
