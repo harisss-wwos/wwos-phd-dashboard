@@ -246,6 +246,15 @@
           + '<button type="button" class="tb-san-btn" data-stvrev="return:' + sid + '"' + (rb ? ' disabled' : '') + '>Send back<span class="tb-asg-sr"> ' + sid + '</span></button></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
+  // Owner's Error tickets toolbar (top right): Open all (every listed error ticket) / Open selected,
+  // each in a new tab (the tracker's click handler opens them; data-stvopen = 'all' | 'sel').
+  function errOpenHtml(rows, o) {
+    var ss = selState(rows, o.sel || {}), n = rows.length, ic = (o.h && o.h.ic) ? o.h.ic('external-link', 14) : '';
+    return '<div class="stv-errtop" role="group" aria-label="Open error tickets">'
+      + '<p class="tb-asg-note stv-open-note" id="stvOpenNote" role="status" hidden></p>'
+      + (ss.n ? '<button type="button" class="tb-san-btn" data-stvopen="sel">' + ic + 'Open selected (' + ss.n + ')</button>' : '')
+      + '<button type="button" class="tb-san-btn" data-stvopen="all"' + (n ? '' : ' disabled') + '>' + ic + 'Open all (' + n + ')</button></div>';
+  }
   // Owner-only "Approved errors" (collapsible) with Restore per row.
   function approvedHtml(list, o, h) {
     list = list || []; var busy = o.busy || {};
@@ -301,7 +310,7 @@
       + '<p class="stv-help">Checked after the next data upload against the SIM closure code: if it passes, the ticket moves to Tickets sanitized successfully; otherwise it comes back to Tickets to sanitize with the defect, and you mark it again after fixing.</p>'
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
     if (rev) {
-      html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length)
+      html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length) + errOpenHtml(S.err, o)
         + '<p class="stv-help">Marked as error tickets by the contractor. Approve leaves a ticket out of sanitization tracking; Send back returns it to Tickets to sanitize with your message.</p>'
         + (S.err.length ? errReviewHtml(S.err, o, h) : '<p class="tb-asg-empty">No tickets waiting for error review.</p>')
         + approvedHtml(v.approved, o, h) + '</div></details>';

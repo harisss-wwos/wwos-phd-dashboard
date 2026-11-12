@@ -136,6 +136,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card-cnt .is-ok{color:#17663a}
 .st-card-cnt .is-bad{color:#a61b1b}
 .st-card-cnt i{font-style:normal;color:#a0a8b1}
+.st-card-err{display:block;width:100%;font-size:.74em;font-weight:800;line-height:1.4;color:#a14400}
+.st-con-err{font-weight:800;color:#a14400}
 .st-card-rate{display:flex;align-items:center;gap:8px;width:100%}
 .st-bar{flex:1 1 auto;height:8px;border-radius:99px;background:#eef1f4;overflow:hidden}
 .st-bar span{display:block;height:100%;border-radius:99px;background:hsl(var(--sc-h),68%,46%)}
@@ -201,6 +203,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view table.stv-rev tr.is-sel td{background:#fff8f1}
 .st-view .stv-act .tb-san-btn+.tb-san-btn{margin-left:4px}
 .st-view .stv-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
+.st-view .stv-errtop{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 8px}
+.st-view .stv-errtop .tb-san-btn{display:inline-flex;align-items:center;gap:5px}
+.st-view .stv-open-note{flex:1 1 220px;margin:0;font-size:.84em;font-weight:700;color:#8a3a00}
 .st-view .stv-bulk-n{font-size:.86em;font-weight:800;color:#2a3340;margin-right:4px}
 .st-view .tb-san-btn.stv-link{border-color:transparent;background:transparent;text-decoration:underline}
 .st-view details.stv-appr{margin-top:12px;border:1px solid #e2e6ea;border-radius:10px;padding:8px 12px;background:#fafbfc}
@@ -293,7 +298,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=233"></script>
-<script src="sanitization-view.js?v=8"></script>
+<script src="sanitization-view.js?v=9"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=4"></script>
@@ -376,14 +381,17 @@ function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
 // ---- Contractor cards (owner) ----
 function cardHtml(c){
   var on=c.login===SEL, a=Number(c.assigned)||0, ok=Number(c.cleared)||0, bad=Number(c.needsCorrection)||0, p=pct(ok,a);
+  var err=S.isOwner()?(Number(c.errorTickets)||0):0;   // error counts are owner-only
   var sep=' <i aria-hidden="true">|</i> ';   // the spaces are the only break points (between counts)
   return '<li><button type="button" class="st-card" data-login="'+esc(c.login)+'" aria-pressed="'+(on?'true':'false')+'" aria-controls="stViewSec"'+
       (c.displayName&&c.displayName!==c.login?' title="'+esc(c.displayName)+'"':'')+'>'+
     '<span class="st-card-top"><span class="st-card-who">'+esc(c.login)+'</span><span class="st-card-sel">'+ic('check',12)+'Selected</span></span>'+
     '<span class="st-card-cnt"><span>Assigned <b>'+num(a)+'</b></span>'+sep+'<span class="is-bad">To sanitize <b>'+num(bad)+'</b></span>'+sep+'<span class="is-ok">Sanitized <b>'+num(ok)+'</b></span></span>'+
     '<span class="st-card-rate" style="--sc-h:'+S.hue(p/100*maxS())+'"><span class="st-bar" aria-hidden="true"><span style="width:'+p+'%"></span></span><b>'+p+'% passed</b></span>'+
+    (err?'<span class="st-card-err">'+errNeedText(err)+'</span>':'')+
     '</button></li>';
 }
+function errNeedText(n){ return V.plural(n,'ticket')+' marked Error and need approval'; }
 function cardsBody(){
   if(ST.state==='loading') return '<p class="st-empty" role="status">Loading contractors\u2026</p>';
   if(ST.state==='error') return '<div class="st-err" role="alert">'+esc(ST.err)+'<button type="button" class="st-btn is-ghost" id="stRetry">Try again</button></div>';
@@ -429,7 +437,9 @@ function renderCards(focusLogin){
   var b=$('stCardsBody'); if(!b) return;
   b.innerHTML=cardsBody();
   var d=$('stCardsD');
-  if(d) d.textContent=ST.state==='done'?('Totals, then the contractors (most tickets to sanitize first). Pick one to see their tickets below.'):'Loading\u2026';
+  var en=(ST.state==='done'&&S.isOwner())?totals().err:0;
+  if(d) d.innerHTML=ST.state==='done'?('Totals, then the contractors (most tickets to sanitize first). Pick one to see their tickets below.'+
+    (en?' <span class="st-con-err">'+errNeedText(en)+'</span>':'')):'Loading\u2026';
   if(focusLogin){ var f=b.querySelector('[data-login="'+String(focusLogin).replace(/["\\]/g,'')+'"]'); if(f) try{ f.focus(); }catch(e){} }
 }
 function viewSecHtml(){
@@ -717,6 +727,17 @@ document.addEventListener('click',function(e){
     announce(all?'Selection cleared.':('All '+V.plural(er.length,'error ticket')+' selected.')); return;
   }
   if(t.closest('[data-stvclear]')){ SELR={}; LASTI=-1; renderView('[data-stvall]'); announce('Selection cleared.'); return; }
+  // Open all / Open selected error tickets in new tabs (same approach as the top bar's Open all:
+  // window.open returns null for a blocked pop-up -> note; the opener link is cut by hand).
+  var op=t.closest('[data-stvopen]');
+  if(op&&!op.disabled){
+    var orows=errRows(); if(op.getAttribute('data-stvopen')==='sel') orows=orows.filter(function(x){ return SELR[x.shortId]; });
+    var blocked=0;
+    orows.forEach(function(x){ var w=window.open(S.url?S.url(x):(x.url||''),'_blank'); if(w){ try{ w.opener=null; }catch(err){} } else blocked++; });
+    var onote=$('stvOpenNote');
+    if(onote){ onote.textContent=blocked?'Your browser blocked some tabs - allow pop-ups for this site and click Open all again.':''; onote.hidden=!blocked; }
+    return;
+  }
   var rv=t.closest('[data-stvrev]');
   if(rv&&!rv.disabled){
     var rb=rv.getAttribute('data-stvrev').split(':'), act=rb[0]==='approve'?'approve':'return';
