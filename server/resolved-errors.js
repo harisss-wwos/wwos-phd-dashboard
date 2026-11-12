@@ -4,9 +4,10 @@
 // Resolved / Closed tickets created since 1 Jan 2026 Pacific, deduped by ShortId, with the same
 // exclusions - appeal, test, duplicate, AUTO-SIM, Cnt > 0, approved error). A ticket "has errors"
 // when the closure-code rule (sanitization-score.js closureRule; no marks here) gives it a defect or
-// one of its REQUIRED checks fails: Successful = all 11; Immediately Resolved = the 3 title checks
-// when the title's issue type is Out of Scope of PHD / an unsecured pet type with Sev 3-5, else a
-// defect + 11; any other code = a defect + the checks of the code it should become. "perfect" = no
+// one of its REQUIRED checks fails: Successful = all 11 (a valid RCD Issue: covers a missing title
+// issue type); Immediately Resolved or Automatically Closed = the 3 title checks when the title's
+// issue type is Out of Scope of PHD / an unsecured pet type with Sev 3-5, else a defect + 11; any
+// other code = a defect + the checks of the code it should become. "perfect" = no
 // defect and every required check passes (the same rule as the Sanitization Tracker). Each error row
 // carries defects (messages) and missing (failing required checks).
 // Tickets are grouped by RESOLVER (report ticket `rbi` = raw ResolvedByIdentity, normalised by

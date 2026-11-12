@@ -66,6 +66,68 @@
     return '<span class="tb-san-sc" style="--sc-h:' + hueRatio(p / n) + '">' + p + ' / ' + n + '</span>';
   }
   function pillHtml(t) { return hasReq(t) ? ratioHtml(t.passedNow, t.requiredNow) : scoreHtml(t && t.scoreNow); }
+  // Contractor stats (tracker cards + the selected contractor's summary). The 5 buckets:
+  // [cls, full label (sr-only / tooltip), short label, tooltip, value]. T = contractor totals
+  // { assigned, needsCorrection, awaiting, cleared, errorTickets }; showErr: include the error bucket
+  // (the owner, or the contractor's own view).
+  function buckets(T, showErr) {
+    var n = function (v) { return Number(v) || 0; };
+    var b = {
+      tot: ['is-tot', 'Total tickets assigned to sanitize', 'Total assigned', '', n(T.assigned)],
+      bad: ['is-bad', 'Tickets that need to be sanitized', 'To sanitize', '', n(T.needsCorrection)],
+      wait: ['is-wait', 'Temporarily sanitized (waiting for new upload)', 'Temp sanitized', 'Waiting for the next data upload', n(T.awaiting)],
+      ok: ['is-ok', 'Tickets sanitized successfully', 'Sanitized', '', n(T.cleared)],
+      err: ['is-errn', 'Error tickets that need approval to be marked as sanitized', 'Errors', 'Marked Error \u2014 waiting for owner approval', n(T.errorTickets)],
+    };
+    if (!showErr) delete b.err;
+    return b;
+  }
+  function pctOf(v, a) { return a ? Math.round((Number(v) || 0) / a * 100) : 0; }
+  function numTxt(v) { return (Number(v) || 0).toLocaleString('en-US'); }
+  // Stacked bar (green sanitized, blue temp, amber errors, light red to sanitize) + '% sanitized'.
+  function barHtml(B, a, cls) {
+    var seg = function (k) { var r = B[k]; return r && r[4] ? '<span class="' + r[0] + '" style="width:' + (a ? Math.min(100, r[4] / a * 100).toFixed(2) : 0) + '%"></span>' : ''; };
+    return '<div class="stv-sbar' + (cls ? ' ' + cls : '') + '"><span class="stv-sbar-t" aria-hidden="true">' + seg('ok') + seg('wait') + seg('err') + seg('bad')
+      + '</span><b>' + pctOf(B.ok[4], a) + '% sanitized</b></div>';
+  }
+  // Card stats: a <dl> laid out as a grid: total assigned (sr-only; the card header shows it), the hero
+  // 'To sanitize' number + %, then 2-3 equal stat chips (Sanitized | Temp sanitized | Errors), then the
+  // stacked bar. Short labels on screen; the full labels are sr-only text and title tooltips.
+  // o.showErr: the error chip / segment; o.id: dl id (the card button's aria-describedby).
+  function cardStatsHtml(T, o) {
+    T = T || {}; o = o || {};
+    var B = buckets(T, o.showErr), a = B.tot[4], bad = B.bad;
+    var chip = function (r) {
+      return '<div class="stv-chip ' + r[0] + (r[4] ? '' : ' is-zero') + '" title="' + esc(r[3] || r[1]) + '">'
+        + '<dt><span aria-hidden="true">' + esc(r[2]) + '</span><span class="stv-sr">' + esc(r[1]) + '</span></dt>'
+        + '<dd><b>' + numTxt(r[4]) + '</b><span class="stv-chip-p"><span aria-hidden="true"> \u00b7 </span>' + pctOf(r[4], a) + '%</span></dd></div>';
+    };
+    return '<dl class="stv-cst' + (o.showErr ? '' : ' is-k2') + '"' + (o.id ? ' id="' + esc(o.id) + '"' : '') + '>'
+      + '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>'
+      + '<div class="stv-hero' + (bad[4] ? '' : ' is-zero') + '" title="' + esc(bad[1]) + '"><dt><span aria-hidden="true">tickets to sanitize</span><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
+      + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span></dd></div>'
+      + chip(B.ok) + chip(B.wait) + (B.err ? chip(B.err) : '') + '</dl>'
+      + barHtml(B, a, 'is-card');
+  }
+  // Selected contractor's summary: one strip of KPI tiles (Total assigned | To sanitize | Temporarily
+  // sanitized | Sanitized successfully | Errors awaiting approval), each label / big number / % of
+  // assigned, then the stacked bar full width with a legend and 'Data as of' (o.asOf) at the right.
+  function sumStatsHtml(T, o) {
+    T = T || {}; o = o || {};
+    var B = buckets(T, o.showErr), a = B.tot[4];
+    var tiles = [[B.tot, 'Total assigned'], [B.bad, 'To sanitize'], [B.wait, 'Temporarily sanitized'], [B.ok, 'Sanitized successfully']];
+    if (B.err) tiles.push([B.err, 'Errors awaiting approval']);
+    var leg = [[B.ok, 'Sanitized'], [B.wait, 'Temporarily sanitized'], [B.err, 'Errors awaiting approval'], [B.bad, 'To sanitize']].filter(function (l) { return l[0]; });
+    return '<dl class="stv-kpis' + (B.err ? '' : ' is-k4') + '">' + tiles.map(function (t) {
+      var r = t[0], tot = r === B.tot;
+      return '<div class="stv-kpi ' + r[0] + (r[4] || tot ? '' : ' is-zero') + '" title="' + esc(r[3] || r[1]) + '">'
+        + '<dt><span aria-hidden="true">' + esc(t[1]) + '</span><span class="stv-sr">' + esc(r[1]) + '</span></dt>'
+        + '<dd><b>' + numTxt(r[4]) + '</b><span class="stv-kpi-p">' + (tot ? 'tickets' : pctOf(r[4], a) + '% of assigned') + '</span></dd></div>';
+    }).join('') + '</dl>'
+      + barHtml(B, a, 'is-sum')
+      + '<div class="stv-leg"><ul class="stv-leg-l" aria-hidden="true">' + leg.map(function (l) { return '<li class="' + l[0][0] + '">' + esc(l[1]) + '</li>'; }).join('') + '</ul>'
+      + (o.asOf ? '<small class="stv-asof">Data as of ' + esc(o.asOf) + '</small>' : '') + '</div>';
+  }
   // Status marks (the dropdown) and their labels; old 'completed' marks carry no claim.
   var STATUS_OPTS = [['successful', 'Successful'], ['immediate', 'Immediately Resolved'], ['duplicate', 'Duplicate'], ['error', 'Error']];
   var STATUS_LABEL = { successful: 'Successful', immediate: 'Immediately Resolved', duplicate: 'Duplicate', error: 'Error', completed: 'Completed' };
@@ -289,7 +351,6 @@
     var need = sortNeed(S.need, o.sortDir), needPg = clampPg(pg.need, need.length), okPg = clampPg(pg.ok, S.ok.length);
     var needRows = size ? need.slice(needPg * size, (needPg + 1) * size) : need;
     var okRows = size ? S.ok.slice(okPg * size, (okPg + 1) * size) : S.ok;
-    var pct = T.assigned ? Math.round((T.cleared || 0) / T.assigned * 100) : 0;
     var asOf = v.dataAsOf ? h.when(v.dataAsOf) : '';
     var rev = !!o.review, errN = T.errorTickets || 0;
     var openSec = o.open === undefined ? DEFAULT_OPEN : o.open;
@@ -298,14 +359,10 @@
     };
     // Every bucket: Errors (pending owner approval) for the owner and for the contractor's own view
     // (readOnly = someone else's tickets); Sanitized includes owner-approved errors.
-    var sumSep = ' <span aria-hidden="true">|</span><span class="tb-asg-sr">,</span> ';
-    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + sumSep + 'To sanitize ' + (T.needsCorrection || 0)
-      + sumSep + 'Temp cleared ' + (T.awaiting || 0) + (rev || !o.readOnly ? sumSep + 'Errors ' + errN : '') + sumSep + 'Sanitized ' + (T.cleared || 0)
-      + (asOf ? ' <small>\u00b7 data as of ' + esc(asOf) + '</small>' : '') + '</p>'
-      + '<div class="tb-san-prog" aria-hidden="true"><span style="width:' + pct + '%"></span></div>'
+    var html = '<div class="tb-san-sum stv-sum">' + sumStatsHtml(T, { showErr: rev || !o.readOnly, asOf: asOf })
       + (!rev && errN ? '<p class="tb-san-muted stv-sent">' + plural(errN, 'ticket') + ' sent to the owner for error review</p>' : '') + '</div>';
     html += sec('need', 'is-bad', 'Tickets to sanitize', need.length)
-      + (need.length ? '<p class="stv-help">Fix the title and Root Cause Details, close the ticket in SIM, then set the status you closed it with. The closure code is checked only after the next data upload: Successful needs all 11 checks, Immediately Resolved (an Out of Scope of PHD issue type, or a pet type other than Attack w/pet with Sev 3\u20135) the 3 title checks, Duplicate none. Defects from that check are in red.</p>'
+      + (need.length ? '<p class="stv-help">Fix the title and Root Cause Details, close the ticket in SIM, then set the status you closed it with. The closure code is checked only after the next data upload: Successful needs all 11 checks (a valid RCD Issue covers a missing title issue type), Immediately Resolved or Automatically Closed (an Out of Scope of PHD issue type, or a pet type other than Attack w/pet with Sev 3\u20135) the 3 title checks, Duplicate none. Defects from that check are in red.</p>'
         + needTable(needRows, o, h) + pager('need', needPg, size, need.length, 'Tickets to sanitize')
         : '<p class="tb-asg-empty">' + (S.wait.length || errN ? 'Nothing left to sanitize. Temporarily cleared tickets are checked after the next data upload.' : 'Everything is sanitized \ud83c\udf89') + '</p>')
       + '</div></details>';
@@ -357,7 +414,7 @@
   var api = { setMax: setMax, max: function () { return MAX; }, hue: hueOf, missText: missText, defectText: defectText, missDef: missDef, scoreHtml: scoreHtml, pager: pager,
     sortNeed: sortNeed, sections: sections, totalsOf: totalsOf, statusAfter: statusAfter, viewHtml: viewHtml, plural: plural,
     nextOpen: nextOpen, DEFAULT_OPEN: DEFAULT_OPEN, selState: selState, rangeIds: rangeIds,
-    hueRatio: hueRatio, ratioHtml: ratioHtml, pillHtml: pillHtml, codeTag: codeTag, STATUS_OPTS: STATUS_OPTS, STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
+    hueRatio: hueRatio, ratioHtml: ratioHtml, cardStatsHtml: cardStatsHtml, sumStatsHtml: sumStatsHtml, pillHtml: pillHtml, codeTag: codeTag, STATUS_OPTS: STATUS_OPTS, STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PHDSanView = api;
 })(typeof window !== 'undefined' ? window : this);

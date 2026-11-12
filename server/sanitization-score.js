@@ -212,7 +212,13 @@ function closureCheck(code) {
 //                           3 SIM Title checks (RCD content is allowed, not checked). Not eligible ->
 //                           grp 'ir-not-eligible': a defect + the 11 checks of Successful (ClosureCode
 //                           fails until it is Successful).
-//   Successful           -> grp 'successful'   all 11 (ClosureCode passes).
+//   Successful           -> grp 'successful'   all 11 (ClosureCode passes). The title 'type' check also
+//                           passes when the title has no valid issue type but the RCD Issue: line is a
+//                           valid one (the 'issue' check passes); country + severity stay required.
+//                           Only this requirement is relaxed: the raw 0..11 score is unchanged.
+//   Automatically Closed -> title Immediately Resolved eligible: grp 'auto-closed', treated like an
+//                           eligible Immediately Resolved (only the 3 title checks, no defect).
+//                           Not eligible: grp 'not-allowed' as below.
 //   anything else, blank -> grp 'not-allowed'  defect 'Closure code <code> not allowed: ...' + the checks
 //                           of the code it should become: the 3 title checks when the title is
 //                           Immediately Resolved eligible, else the 11 checks of Successful.
@@ -220,10 +226,10 @@ function closureCheck(code) {
 // Pet detection is by the TITLE's issue type (category 'Pet'), not by a word rule.
 const TITLE_KEYS = Object.freeze(['country', 'severity', 'type']);
 const ALL_KEYS = Object.freeze(CRITERIA.map(c => c.key));
-const CODE_SUCCESSFUL = 'Successful', CODE_IR = 'Immediately Resolved', CODE_DUP = 'Duplicate';
+const CODE_SUCCESSFUL = 'Successful', CODE_IR = 'Immediately Resolved', CODE_DUP = 'Duplicate', CODE_AUTO = 'Automatically Closed';
 const CAT_OOS = 'out of scope of phd', CAT_PET = 'pet', TYPE_ATTACK_PET = 'attack w pet';
 // Rule groups (the defect kinds the tracker / Errors in Resolved report on).
-const RULE_GROUPS = Object.freeze(['duplicate', 'immediate', 'successful', 'ir-not-eligible', 'not-allowed']);
+const RULE_GROUPS = Object.freeze(['duplicate', 'immediate', 'auto-closed', 'successful', 'ir-not-eligible', 'not-allowed']);
 const cleanCode = s => str(s).trim().replace(/\s+/g, ' ');
 // Severity number 1..5 from the title, or 0.
 function titleSevNumber(title) { const m = str(title).match(SEV_RE); return m ? Number(m[1]) : 0; }
@@ -251,6 +257,8 @@ function closureRule(code, info) {
     return { grp: 'ir-not-eligible', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [elig.why], irk: elig.irk };
   }
   if (k === 'successful') return { grp: 'successful', target: CODE_SUCCESSFUL, keys: ALL_KEYS.slice(), defects: [] };
+  // Automatically Closed on an Immediately Resolved eligible title: accepted as it is (title checks only).
+  if (k === 'automatically closed' && elig.ok) return { grp: 'auto-closed', target: CODE_AUTO, keys: TITLE_KEYS.slice(), defects: [] };
   return { grp: 'not-allowed', target: elig.ok ? CODE_IR : CODE_SUCCESSFUL, keys: (elig.ok ? TITLE_KEYS : ALL_KEYS).slice(),
     defects: ['Closure code ' + (cleanCode(code) || '(blank)') + ' not allowed: change to Successful or Immediately Resolved'] };
 }
@@ -272,7 +280,13 @@ function requiredChecks(t, checks, ctx) {
   const type = findInText(title, (ctx && ctx.types) || []);
   const cat = type && ctx && ctx.cats ? (ctx.cats.get(norm(type)) || '') : '';
   const rule = closureRule(t && t.ClosureCode, { type, cat, sev: titleSevNumber(title) });
-  const rr = requiredResult(checks || [], rule.keys, t && t.ClosureCode, rule.target);
+  let req = checks || [];
+  // Successful: a valid RCD Issue: stands in for a missing title issue type (only in the requirement).
+  const iType = ALL_KEYS.indexOf('type'), iIssue = ALL_KEYS.indexOf('issue');
+  if (rule.grp === 'successful' && !(req[iType] && req[iType][0]) && req[iIssue] && req[iIssue][0]) {
+    req = req.slice(); req[iType] = [1, req[iType] ? req[iType][1] : ''];
+  }
+  const rr = requiredResult(req, rule.keys, t && t.ClosureCode, rule.target);
   return { ...rule, type, cat, passed: rr.passed, missing: rr.missing };
 }
 // A report ticket (buildScoreReport) is cleared when every required check passes and it has no defect.
@@ -433,6 +447,6 @@ module.exports = {
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
   scoreTicket, buildScoreReport, prepList, pacificQuarter, APPROVED_REASON, applyApproved,
   CLOSURE_ALLOWED, closureCheck, closureExpected, closureKey, excludeReason,
-  RULE_GROUPS, TITLE_KEYS, CODE_SUCCESSFUL, CODE_IR, CODE_DUP, titleSevNumber, irEligibility, closureRule,
+  RULE_GROUPS, TITLE_KEYS, CODE_SUCCESSFUL, CODE_IR, CODE_DUP, CODE_AUTO, titleSevNumber, irEligibility, closureRule,
   requiredChecks, requiredResult, ticketCleared, prepCats,
 };

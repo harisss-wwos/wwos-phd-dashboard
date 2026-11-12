@@ -160,10 +160,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=233"></script>
-<script src="sanitization-view.js?v=8"></script>
+<script src="sanitization-view.js?v=12"></script>
 <script>
 // Errors in Resolved: the 7 BLR / AZA team members' Resolved / Closed tickets (created since 1 Jan 2026),
-// checked with the closure-code rule (server: sanitization-score.js closureRule; Successful = all 11,
+// checked with the closure-code rule (server: sanitization-score.js closureRule; Successful = all 11 (RCD Issue covers a missing title type),
 // eligible Immediately Resolved = the 3 title checks, anything else a defect); one card per resolver +
 // Others; the picked card lists only its tickets with errors (a defect or a failing required check:
 // defects in red, then the missing checks), score = passed / required. GET /api/resolved-errors[?who=] (read-only).
@@ -197,7 +197,7 @@ function heroHtml(gate){
   var asOf=ST.state==='done'?(ST.asOf?esc(when(ST.asOf)):'Unknown'):(ST.state==='error'?'Not loaded':'Loading\u2026');
   return '<header class="st-hero'+(gate?' is-gate':'')+'"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('alert-triangle',24)+'</span><div>'+
     '<p class="st-eyebrow">Quality \u00b7 Resolved tickets</p><h1>Errors in Resolved</h1>'+
-    '<p class="st-hero-sub">Tickets resolved since 1 Jan 2026, checked by closure code: Successful needs all 11 checks; Immediately Resolved is allowed only for an Out of Scope of PHD or unsecured pet issue type with Sev 3\u20135 in the title (then the 3 title checks); any other code is a defect. Only tickets with errors are listed.</p>'+
+    '<p class="st-hero-sub">Tickets resolved since 1 Jan 2026, checked by closure code: Successful needs all 11 checks (a valid RCD Issue covers a missing title issue type); Immediately Resolved or Automatically Closed is allowed only for an Out of Scope of PHD or unsecured pet issue type with Sev 3\u20135 in the title (then the 3 title checks); any other code is a defect. Only tickets with errors are listed.</p>'+
     '</div></div>'+(gate?'':'<div class="st-hero-asof" aria-label="Data as of"><span class="st-meta-k">Data as of</span><span class="st-meta-v" id="stAsOf">'+ic('clock',14)+asOf+'</span></div>')+
     '</div></header>';
 }

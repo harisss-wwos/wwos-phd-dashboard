@@ -435,6 +435,9 @@ function verifyClaim(cur, claim) {
     d = mism ? you + ': fix the title checks, or change the SIM closure code to ' + toClaim + '.'
       : 'The re-uploaded data shows Immediately Resolved: fix the title checks.';
     reason = mism ? 'mark' : 'missing';
+  } else if (cur.grp === 'auto-closed') {
+    // Automatically Closed on an Immediately Resolved eligible title: accepted, only the title checks count.
+    d = 'The re-uploaded data shows Automatically Closed (accepted for this issue type): fix the title checks.'; reason = 'missing';
   } else {
     d = 'SIM closure code ' + simTxt + ' could not be checked.'; reason = 'closure';
   }
