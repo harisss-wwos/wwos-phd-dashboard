@@ -3207,7 +3207,9 @@ var IncidentLogEditor=(function(){
     '</div>';
   }
   function markupHtml(){
-    return '<div class="modal-bg ail-bg" id="incidentModal" onclick="if(event.target===this)closeIncidentLog()">'+
+    // Clicking outside the dialog does NOT close it (avoids losing unsaved edits);
+    // it closes only via the Close button (footer) or the X button (header).
+    return '<div class="modal-bg ail-bg" id="incidentModal">'+
       '<div class="modal ail-modal" role="dialog" aria-modal="true" aria-labelledby="incidentTitle">'+
         '<div class="ail-head">'+
           '<span class="ail-head-ic" id="ailHeadIc"></span>'+
