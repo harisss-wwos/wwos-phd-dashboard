@@ -23,7 +23,8 @@
 // Owner-approved error tickets (COLLECTIONS.sanitizationExcluded, see handleErrorReview) are taken
 // out of the score report before it gets here (sanitization-score.js applyApproved: excludedReason
 // 'approved error'), so they are never available / picked, and verification counts them as excluded
-// (neither passed nor failed). contractorView drops them altogether.
+// (neither passed nor failed). On the TRACKER (contractorView rows / totals, sectionCounts) an approved
+// error of an assignment counts as SANITIZED: section 4 with approvedError { by, at, reason, note }.
 'use strict';
 const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON, ticketCleared, closureKey, CODE_SUCCESSFUL, CODE_IR, CODE_DUP } = require('./sanitization-score');
 const DUP_REASON = 'duplicate';   // excludeReason of a SIM Duplicate: counts as cleared here (no checks)
@@ -206,15 +207,16 @@ async function handleRevoke(body, deps) {
 const mean = xs => (xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length * 100) / 100 : null);
 // Tracker section counts of one assignment (the same per-ticket rule as the contractor view, evalTicket):
 // toSanitize (unmarked + failed verification) | tempCleared (marked, waiting for a newer upload) |
-// errors (error marks with the owner) | sanitized (verified pass) | other (excluded / not found /
-// owner-approved errors). No deadline: nothing here depends on the date.
+// errors (error marks with the owner) | sanitized (verified pass, or an owner-approved error) |
+// other (excluded / not found). No deadline: nothing here depends on the date.
 function sectionCounts(a, report, stamp, marks) {
   const c = { toSanitize: 0, tempCleared: 0, errors: 0, sanitized: 0, other: 0 };
   const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() }, mk = markMap(marks);
   (a.tickets || []).forEach(t => {
     if (!t || !t.shortId) return;
     const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
-    const ev = why === APPROVED_REASON ? null : evalTicket(cur, why, mk.get(markKey(a.assignee, t.shortId)), stamp);
+    if (why === APPROVED_REASON) { c.sanitized++; return; }   // owner-approved error: sanitized on the tracker
+    const ev = evalTicket(cur, why, mk.get(markKey(a.assignee, t.shortId)), stamp);
     const st = ev ? ev.status : '';
     if (st === 'needs-correction') c.toSanitize++;
     else if (st === 'awaiting') c.tempCleared++;
@@ -375,7 +377,8 @@ async function handleGet(deps) {
 //                 until the contractor marks it again.
 //   'completed' - legacy (before the claims): carries NO claim, the ticket counts as unmarked;
 //                 `legacyCompleted` lets the UI say "Previously marked Completed".
-// Tickets the owner approved as errors (approvedIds / excludedReason 'approved error') are left out.
+// Tickets the owner approved as errors (approvedIds / excludedReason 'approved error') count as
+// 'cleared' (sanitized) with approvedError { by, at, reason, note }.
 // Order: needs-correction (failed verifications first, then passed / required ascending, then oldest
 // assigned first), awaiting / error-ticket (most recently marked first), cleared (most recently
 // assigned first), then excluded / not-found (most recently assigned first).
@@ -481,10 +484,19 @@ function evalTicket(cur, why, m, stamp) {
   }
   return out;
 }
+// Approved errors lookup: Map shortId -> approval doc (or null) from a Map, a Set / array of shortIds,
+// or an array of approval docs ({ shortId, approvedBy, approvedAt, reason, note }).
+function apprMap(x) {
+  if (x instanceof Map) return x;
+  const m = new Map();
+  Array.from(x || []).forEach(d => { if (typeof d === 'string') m.set(d, null); else if (d && d.shortId) m.set(d.shortId, d); });
+  return m;
+}
+// approvedIds: see apprMap (the approval docs give the 'Approved error' row its by / at / reason).
 function contractorView(assignments, login, report, stamp, marks, approvedIds) {
   const me = normLogin(login);
   const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() };
-  const appr = approvedIds instanceof Set ? approvedIds : new Set(approvedIds || []);
+  const appr = apprMap(approvedIds);
   const mk = new Map((marks || []).filter(m => m && normLogin(m.login) === me && m.shortId).map(m => [m.shortId, m]));
   const docs = (assignments || [])
     .filter(a => a && a.status === 'active' && normLogin(a.assignee) === me)
@@ -518,11 +530,24 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
       legacyCompleted: tickets.filter(t => t.legacyCompleted).length },
   };
 }
-// One contractor-view row (assignment a, its ticket t, report index ix, mark doc m), or null for an
-// owner-approved error (not tracked).
+// One contractor-view row (assignment a, its ticket t, report index ix, mark doc m, approvals appr =
+// Map shortId -> approval doc). An owner-approved error is a 'cleared' row with approvedError.
 function rowOf(a, t, ix, m, stamp, appr) {
   const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
-  if ((appr && appr.has(t.shortId)) || why === APPROVED_REASON) return null;
+  if ((appr && appr.has(t.shortId)) || why === APPROVED_REASON) {
+    const d = (appr && appr.get(t.shortId)) || {};
+    return {
+      shortId: t.shortId, url: t.url || (cur && cur.url) || '', title: (cur && cur.title) || t.title || '',
+      assignedAt: a.assignedAt || null,
+      scoreAtAssign: typeof t.scoreAtAssign === 'number' ? t.scoreAtAssign : null, scoreNow: null,
+      passedNow: null, requiredNow: null, clearedNow: true, defects: [], missingNow: [],
+      group: null, target: null, reason: null, closureCode: null, status: 'cleared',
+      excludedReason: null, verified: true, verifiedFailed: false, note: null,
+      mark: null, verifiedMark: (m && m.status === 'error') ? markOut(m) : null,
+      legacyCompleted: false, returned: null,
+      approvedError: { by: d.approvedBy || '', at: d.approvedAt || null, reason: d.reason || (m && m.status === 'error' ? m.reason || '' : ''), note: d.note || '' },
+    };
+  }
   const ev = evalTicket(cur, why, m, stamp);
   const status = ev ? ev.status : (why ? 'excluded' : 'not-found');
   return {
@@ -558,7 +583,7 @@ async function handleMine(query, deps) {
   const want = normLogin(query && query.login);
   if (want && !findC(want)) return { status: 404, body: { error: 'Unknown contractor.' } };
   const { docs, report, stamp, marks, approved } = await deps.load();
-  const apprIds = new Set((approved || []).map(d => d && d.shortId).filter(Boolean));
+  const apprIds = apprMap(approved);
   if (!want) {
     return { status: 200, body: { owner, viewer: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, contractors: list.map(c => ({ login: c.login, displayName: c.displayName || '', ...contractorView(docs, c.login, report, stamp, marks, apprIds).totals })) } };
   }

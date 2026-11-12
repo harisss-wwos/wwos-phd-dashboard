@@ -122,20 +122,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card{width:100%;height:100%;display:flex;flex-direction:column;gap:9px;padding:12px 12px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
 .st-card:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,114,17,.12)}
 .st-card[aria-pressed="true"]{border-color:var(--acc);background:#fff8f1;box-shadow:0 0 0 3px rgba(236,114,17,.24)}
-/* Line 1: login + 'Selected' pill; line 2: 'Assigned n | To sanitize n | Sanitized n' (one line on
-   desktop); line 3: progress bar + 'n% passed'. */
+/* Line 1: login + 'Selected' pill; line 2: 'Assigned n | To sanitize n | Temp cleared n | Errors n |
+   Sanitized n' (wraps between counts); line 3: progress bar + 'n% passed'. */
 .st-card-top{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
 .st-card-who{min-width:0;font-size:1.02em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .st-card-sel{display:none;flex-shrink:0;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:var(--acc);color:#fff;font-size:.68em;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
 .st-card[aria-pressed="true"] .st-card-sel{display:inline-flex}
 /* One line whenever the card is wide enough; on narrower cards it breaks only between the three
    counts (each count stays whole), so nothing is clipped or spills into the next card. */
-.st-card-cnt{display:block;width:100%;white-space:normal;font-size:.74em;font-weight:700;line-height:1.5;color:#2a3340;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
-.st-card-cnt>span{white-space:nowrap}
+/* Counts wrap between items; each item's left rule is the separator, clipped (overflow) when the item
+   starts a line, so no line begins or ends with a stray '|'. The hidden ', ' keeps them apart for
+   screen readers. */
+.st-card-cnt{display:flex;flex-wrap:wrap;align-items:baseline;margin-left:-6px;width:calc(100% + 6px);overflow:hidden;white-space:normal;font-size:.74em;font-weight:700;line-height:1.5;color:#2a3340;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
+.st-card-cnt>span{white-space:nowrap;margin-left:-1px;padding:0 5px;border-left:1px solid #c3cad2;line-height:1.15;margin-block:2px}
+.st-card-cnt>i.st-cnt-sep{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .st-card-cnt b{font-weight:800}
 .st-card-cnt .is-ok{color:#17663a}
 .st-card-cnt .is-bad{color:#a61b1b}
 .st-card-cnt i{font-style:normal;color:#a0a8b1}
+.st-card-cnt .is-wait{color:#1f4f99}
+.st-card-cnt .is-errn{color:#8a3a00}
 .st-card-err{display:block;width:100%;font-size:.74em;font-weight:800;line-height:1.4;color:#a14400}
 .st-con-err{font-weight:800;color:#a14400}
 .st-card-rate{display:flex;align-items:center;gap:8px;width:100%}
@@ -212,7 +218,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view details.stv-appr>summary{cursor:pointer;font-size:.9em;font-weight:800;color:#2a3340}
 .st-view details.stv-appr>summary b{margin-left:4px;padding:1px 8px;border-radius:99px;background:#eef1f4;color:#2a3340}
 .st-view details.stv-appr[open]>summary{margin-bottom:8px}
-/* Error review pop-up (topbar-auth.js .tbl-* dialog shell). */
+/* Section 4: owner-approved error tickets (counted as sanitized). */
+.st-view .stv-appr-tag{display:inline-block;padding:1px 8px;border-radius:99px;background:#fff3e8;color:#8a3a00;border:1px solid #f6c89b;font-size:.82em;font-weight:800;white-space:nowrap}
+.st-view .stv-appr-why{display:block;margin-top:2px;color:#5c6773;font-weight:600;overflow-wrap:anywhere}
+/* Error review pop-up (topbar-auth.js .tbl-* dialog shell): 60vw wide (96vw <= 720px); Approve / Cancel
+   side by side at the right of the footer (stacked only on phones, the shell's .tbl-row rule). */
+#stRevDlg .tbl-card.st-rev{width:60vw!important;max-width:60vw!important}
+@media (max-width:720px){#stRevDlg.tbl-bg{padding:2vw}#stRevDlg .tbl-card.st-rev{width:96vw!important;max-width:96vw!important}}
+#stRevDlg .tbl-actions.tbl-row{flex-wrap:wrap}
 #stRevDlg .st-rev-ids{margin:0 0 12px;font-size:.84em;font-weight:700;color:#2a3340;overflow-wrap:anywhere}
 #stRevDlg .st-rev-l{display:block;margin-bottom:6px;font-size:.88em;font-weight:800;color:#2a3340}
 #stRevDlg .st-rev-req{color:#b42318}
@@ -298,7 +311,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=233"></script>
-<script src="sanitization-view.js?v=9"></script>
+<script src="sanitization-view.js?v=10"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=4"></script>
@@ -372,7 +385,7 @@ function kpisHtml(){
     k('is-base','users','Contractors',done?num(ST.list.length):'','With sanitization access')+
     k('is-base','ticket','Tickets assigned',done?num(t.assigned):'','Active assignments')+
     k('is-bad','alert-triangle','To sanitize',done?num(t.need):'',done?('Not marked yet or failed the check \u00b7 '+num(t.wait)+' temporarily cleared, '+num(t.err)+' error'):'Not marked yet or failed the check')+
-    k('is-ok','check-circle','Sanitized',done?num(t.cleared):'','Marked, then verified on the SIM closure code after an upload')+
+    k('is-ok','check-circle','Sanitized',done?num(t.cleared):'','Verified on the SIM closure code after an upload, or an approved error')+
     k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Sanitized of assigned')+
     '</ul>';
 }
@@ -381,12 +394,16 @@ function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
 // ---- Contractor cards (owner) ----
 function cardHtml(c){
   var on=c.login===SEL, a=Number(c.assigned)||0, ok=Number(c.cleared)||0, bad=Number(c.needsCorrection)||0, p=pct(ok,a);
-  var err=S.isOwner()?(Number(c.errorTickets)||0):0;   // error counts are owner-only
-  var sep=' <i aria-hidden="true">|</i> ';   // the spaces are the only break points (between counts)
+  var tmp=Number(c.awaiting)||0, en=Number(c.errorTickets)||0;
+  var err=S.isOwner()?en:0;   // the 'need approval' line is owner-only
+  var showErr=S.isOwner()||c.login===ME;   // Errors bucket: the owner, and a contractor on their own card
+  var sep='<i class="st-cnt-sep">, </i>';   // visual separators are the items' left rules (CSS)
   return '<li><button type="button" class="st-card" data-login="'+esc(c.login)+'" aria-pressed="'+(on?'true':'false')+'" aria-controls="stViewSec"'+
       (c.displayName&&c.displayName!==c.login?' title="'+esc(c.displayName)+'"':'')+'>'+
     '<span class="st-card-top"><span class="st-card-who">'+esc(c.login)+'</span><span class="st-card-sel">'+ic('check',12)+'Selected</span></span>'+
-    '<span class="st-card-cnt"><span>Assigned <b>'+num(a)+'</b></span>'+sep+'<span class="is-bad">To sanitize <b>'+num(bad)+'</b></span>'+sep+'<span class="is-ok">Sanitized <b>'+num(ok)+'</b></span></span>'+
+    '<span class="st-card-cnt"><span>Assigned <b>'+num(a)+'</b></span>'+sep+'<span class="is-bad">To sanitize <b>'+num(bad)+'</b></span>'+sep+
+      '<span class="is-wait">Temp cleared <b>'+num(tmp)+'</b></span>'+(showErr?sep+'<span class="is-errn">Errors <b>'+num(en)+'</b></span>':'')+
+      sep+'<span class="is-ok">Sanitized <b>'+num(ok)+'</b></span></span>'+
     '<span class="st-card-rate" style="--sc-h:'+S.hue(p/100*maxS())+'"><span class="st-bar" aria-hidden="true"><span style="width:'+p+'%"></span></span><b>'+p+'% passed</b></span>'+
     (err?'<span class="st-card-err">'+errNeedText(err)+'</span>':'')+
     '</button></li>';
@@ -600,7 +617,7 @@ function revOpen(action,ids){
     '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic(ap?'check-circle':'alert-triangle',20)+'</span>'+
       '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization Tracker \u00b7 Error review</div><h2 class="tbl-title" id="stRevT">'+esc(title)+'</h2></div>'+
       '<button type="button" class="tbl-x" data-strevx="1" aria-label="Close">'+ic('close',18)+'</button>'+
-      '<p class="tbl-sub" id="stRevD">'+(ap?('Exclude '+V.plural(n,'ticket')+' from sanitization tracking? '+(n===1?'It leaves':'They leave')+' the scores, assignments, verification and every contractor view. You can restore '+(n===1?'it':'them')+' later from Approved errors.')
+      '<p class="tbl-sub" id="stRevD">'+(ap?('Approve '+V.plural(n,'error ticket')+'? '+(n===1?'It counts':'They count')+' as sanitized on the tracker (tagged Approved error) and '+(n===1?'leaves':'leave')+' the sanitization scores and assignment picking. You can restore '+(n===1?'it':'them')+' later from Approved errors.')
         :('The '+(n===1?'ticket goes':'tickets go')+' back to '+esc(who)+'\u2019s Tickets to sanitize with your message.'))+'</p></div>'+
     '<div class="tbl-body">'+
       '<p class="st-rev-ids"><span class="st-sr">Tickets: </span>'+esc(ids.slice(0,12).join(', '))+(n>12?' and '+(n-12)+' more':'')+'</p>'+
@@ -608,7 +625,7 @@ function revOpen(action,ids){
       '<textarea id="stRevMsg" class="st-rev-t" maxlength="500" rows="3"'+(ap?'':' required aria-required="true"')+' aria-describedby="stRevH stRevE"></textarea>'+
       '<span class="st-rev-h" id="stRevH">0 / 500</span>'+
       '<p class="st-rev-e" id="stRevE" role="alert"></p>'+
-      '<div class="tbl-actions"><button type="button" class="tbl-submit" id="stRevGo">'+esc(ap?('Approve '+n):('Send back '+n))+'</button>'+
+      '<div class="tbl-actions tbl-row"><button type="button" class="tbl-submit" id="stRevGo">'+esc(ap?('Approve '+n):('Send back '+n))+'</button>'+
       '<button type="button" class="tbl-cancel" data-strevx="1">Cancel</button></div>'+
     '</div></div>';
   ov.addEventListener('click',function(e){

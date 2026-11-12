@@ -259,7 +259,7 @@
   function approvedHtml(list, o, h) {
     list = list || []; var busy = o.busy || {};
     return '<details class="stv-appr" data-stvappr="1"' + (o.apprOpen ? ' open' : '') + '><summary>Approved errors <b>' + list.length + '</b></summary>'
-      + (list.length ? '<p class="stv-help">Left out of sanitization tracking (scores, tracker, Errors in Resolved). Restore puts a ticket back under review.</p>'
+      + (list.length ? '<p class="stv-help">Counted as sanitized on the tracker (Tickets sanitized successfully, tagged Approved error) and left out of the sanitization scores, assignment picking and Errors in Resolved. Restore puts a ticket back under review.</p>'
         + '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Approved errors" tabindex="0"><table class="stv-tbl is-flat is-line">'
         + '<caption class="tb-asg-sr">Error tickets you approved, most recent first</caption>'
         + '<thead><tr><th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Reason</th>'
@@ -296,8 +296,11 @@
     var sec = function (key, cls, label, n, extra) {
       return '<details class="tb-san-sec ' + cls + '" data-stvsec="' + key + '"' + (extra || '') + (openSec === key ? ' open' : '') + '><summary>' + label + ' <b>' + n + '</b></summary><div class="tb-san-in">';
     };
-    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + ' \u00b7 To sanitize ' + (T.needsCorrection || 0)
-      + ' \u00b7 Temporarily cleared ' + (T.awaiting || 0) + (rev ? ' \u00b7 Errors ' + errN : '') + ' \u00b7 Sanitized ' + (T.cleared || 0)
+    // Every bucket: Errors (pending owner approval) for the owner and for the contractor's own view
+    // (readOnly = someone else's tickets); Sanitized includes owner-approved errors.
+    var sumSep = ' <span aria-hidden="true">|</span><span class="tb-asg-sr">,</span> ';
+    var html = '<div class="tb-san-sum"><p>Assigned ' + (T.assigned || 0) + sumSep + 'To sanitize ' + (T.needsCorrection || 0)
+      + sumSep + 'Temp cleared ' + (T.awaiting || 0) + (rev || !o.readOnly ? sumSep + 'Errors ' + errN : '') + sumSep + 'Sanitized ' + (T.cleared || 0)
       + (asOf ? ' <small>\u00b7 data as of ' + esc(asOf) + '</small>' : '') + '</p>'
       + '<div class="tb-san-prog" aria-hidden="true"><span style="width:' + pct + '%"></span></div>'
       + (!rev && errN ? '<p class="tb-san-muted stv-sent">' + plural(errN, 'ticket') + ' sent to the owner for error review</p>' : '') + '</div>';
@@ -311,16 +314,27 @@
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
     if (rev) {
       html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length) + errOpenHtml(S.err, o)
-        + '<p class="stv-help">Marked as error tickets by the contractor. Approve leaves a ticket out of sanitization tracking; Send back returns it to Tickets to sanitize with your message.</p>'
+        + '<p class="stv-help">Marked as error tickets by the contractor. Approve counts a ticket as sanitized here (tagged Approved error) and leaves it out of the sanitization scores; Send back returns it to Tickets to sanitize with your message.</p>'
         + (S.err.length ? errReviewHtml(S.err, o, h) : '<p class="tb-asg-empty">No tickets waiting for error review.</p>')
         + approvedHtml(v.approved, o, h) + '</div></details>';
     }
     html += sec('ok', 'is-ok', 'Tickets sanitized successfully', S.ok.length, ' id="tbSanOkSec"');
     if (!S.ok.length) html += '<p class="tb-asg-empty">No sanitized tickets yet.</p>';
     else {
-      html += '<div class="tb-asg-scroll" role="region" aria-label="Tickets sanitized successfully" tabindex="0"><table><caption class="tb-asg-sr">Tickets sanitized successfully (marked, then verified on the SIM closure code after an upload), most recently assigned first</caption>'
+      html += '<div class="tb-asg-scroll" role="region" aria-label="Tickets sanitized successfully" tabindex="0"><table><caption class="tb-asg-sr">Tickets sanitized successfully (marked, then verified on the SIM closure code after an upload, or approved by the owner as error tickets), most recently assigned first</caption>'
         + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Marked</th><th scope="col">SIM closure code</th><th scope="col">Score</th><th scope="col">Assigned</th></tr></thead><tbody>'
         + okRows.map(function (t) {
+          var ae = t.approvedError;
+          if (ae) {
+            // Owner-approved error: counted as sanitized; tag + approved by / at + the contractor's reason.
+            var ttl = (ae.reason ? 'Reason: ' + ae.reason : '') + (ae.note ? (ae.reason ? ' \u00b7 ' : '') + 'Note: ' + ae.note : '');
+            return '<tr>' + idCell(t, h) + '<td class="tb-asg-t">' + esc(t.title || 'No title')
+              + (ttl ? '<small class="stv-appr-why">' + esc(ttl) + '</small>' : '') + '</td>'
+              + '<td class="tb-asg-nw"><span class="stv-appr-tag">Approved error</span>'
+              + (ae.by || ae.at ? ' <small class="stv-by">' + esc([ae.by ? 'by ' + ae.by : '', ae.at ? h.when(ae.at) : ''].filter(Boolean).join(' \u00b7 ')) + '</small>' : '') + '</td>'
+              + '<td><span class="tb-san-muted">\u2014</span></td><td>' + pillHtml(t) + '</td>'
+              + '<td class="tb-asg-nw">' + esc(h.when(t.assignedAt)) + '</td></tr>';
+          }
           var vm = t.verifiedMark && STATUS_LABEL[t.verifiedMark.status];
           return '<tr>' + idCell(t, h) + '<td class="tb-asg-t">' + esc(t.title || 'No title') + legacyNote(t) + '</td>'
             + '<td class="tb-asg-nw">' + (vm ? esc(vm) : '<span class="tb-san-muted">\u2014</span>') + (t.note ? ' <small class="stv-by">' + esc(t.note) + '</small>' : '') + '</td>'
