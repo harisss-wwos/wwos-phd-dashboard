@@ -1527,6 +1527,88 @@ function ilSetTicketRegion(title,country){
   ilSetSeverity(ilSevFromText(IL_TICKET_TITLE));   // per opened ticket: the title's severity ('' = none); ilSetSavedSeverity overrides
   _ilUsca=ilIsUsCa(IL_TICKET_COUNTRY);
   if(typeof document!=='undefined' && document.getElementById('ilPhdInvestigation')) _ilqSyncVisibility();
+  _ilToolsSync();
+}
+
+// ---- Per-country tool links (row #ilTools below Comments; page opt-in: IncidentLogEditor.setToolLinksEnabled) ----
+// URLs copied as-is from the team's "AMZL Logistics Tools" / "GeoStudio" bookmarks. Keys = ticket
+// country code (IL_TICKET_COUNTRY; GB -> UK, AE -> UAE via IL_TOOLS_ALIAS). A country not listed shows no row.
+var IL_TOOL_LINKS={
+  US:['https://logistics.amazon.com/amconsole/','https://logistics.amazon.com/station/dashboard/calgaryboard','https://logistics.amazon.com/internal/operations/execution/'],
+  CA:['https://logistics.amazon.ca/amconsole/','https://logistics.amazon.com/station/dashboard/calgaryboard','https://logistics.amazon.ca/internal/operations/execution/'],
+  MX:['https://logistics.amazon.com.mx/amconsole','https://logistics.amazon.com.mx/station/dashboard/MainBoard','https://logistics.amazon.com.mx/internal/operations/execution/'],
+  BR:['https://logistics.amazon.com.br/amconsole/','https://logistics.amazon.com.br/station/dashboard/calgaryboard','https://logistics.amazon.com.br/internal/operations/execution/'],
+  IN:['https://logistics.amazon.in/amconsole/','https://logistics.amazon.in/station/dashboard/overview','https://logistics.amazon.in/internal/operations/execution/'],
+  UK:['https://logistics.amazon.co.uk/amconsole/','https://logistics.amazon.co.uk/station/dashboard/MainBoard','https://logistics.amazon.co.uk/internal/operations/execution/'],
+  IE:['https://ie-logistics.amazon.co.uk/amconsole/','https://ie-logistics.amazon.co.uk/station/dashboard/overview','https://ie-logistics.amazon.co.uk/internal/operations/execution/'],
+  TR:['https://logistics.amazon.com.tr/amconsole/','https://logistics.amazon.com.tr/station/dashboard/search','https://logistics.amazon.com.tr/internal/operations/execution/'],
+  DE:['https://logistics.amazon.de/amconsole/','https://logistics.amazon.de/station/dashboard/MainBoard','https://logistics.amazon.de/internal/operations/execution/'],
+  AT:['https://at-logistics.amazon.de/amconsole/','https://at-logistics.amazon.de/station/dashboard/overview','https://at-logistics.amazon.de/internal/operations/execution/'],
+  LU:['https://logistics.amazon.de/amconsole/','https://logistics.amazon.de/station/dashboard/MainBoard','https://logistics.amazon.de/internal/operations/execution/'],
+  NL:['https://logistics.amazon.nl/amconsole/','https://logistics.amazon.nl/station/dashboard/overview','https://logistics.amazon.nl/internal/operations/execution/'],
+  BE:['https://be-logistics.amazon.fr/amconsole/','https://be-logistics.amazon.fr/station/dashboard/overview','https://be-logistics.amazon.fr/internal/operations/execution/'],
+  FR:['https://logistics.amazon.fr/amconsole/','https://logistics.amazon.fr/station/dashboard/MainBoard','https://logistics.amazon.fr/internal/operations/execution/'],
+  IT:['https://logistics.amazon.it/amconsole/','https://logistics.amazon.it/station/dashboard/MainBoard','https://logistics.amazon.it/internal/operations/execution/'],
+  ES:['https://logistics.amazon.es/amconsole/','https://logistics.amazon.es/station/dashboard/MainBoard','https://logistics.amazon.es/internal/operations/execution/'],
+  UAE:['https://logistics.amazon.ae/amconsole/','https://logistics.amazon.ae/station/dashboard/MainBoard','https://logistics.amazon.ae/internal/operations/execution/'],
+  SA:['https://logistics.amazon.sa/amconsole/','https://logistics.amazon.sa/station/dashboard/overview','https://logistics.amazon.sa/internal/operations/execution/'],
+  EG:['https://logistics.amazon.eg/amconsole/','https://logistics.amazon.eg/station/dashboard/overview','https://logistics.amazon.eg/internal/operations/execution/'],
+  JP:['https://logistics.amazon.co.jp/amconsole/','https://logistics.amazon.co.jp/station/dashboard/MainBoard','https://logistics.amazon.co.jp/internal/operations/execution/'],
+  AU:['https://logistics.amazon.com.au/amconsole/','https://logistics.amazon.com.au/station/dashboard/MainBoard','https://logistics.amazon.com.au/internal/operations/execution/'],
+  SG:['https://logistics.amazon.com.sg/amconsole/','https://logistics.amazon.com.sg/station/dashboard/MainBoard','https://logistics.amazon.com.au/internal/operations/execution/']
+};
+var IL_TOOL_NAMES=['AM Console (ID/Email)','Station Command Center (SCC)','Cortex'];   // order of IL_TOOL_LINKS entries
+var IL_TOOLS_ALIAS={GB:'UK', AE:'UAE'};
+// GeoStudio is one link per region; IL_GEO_REGION maps a country to its region.
+var IL_GEO_LINKS={
+  USA:'https://na.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgEwAMAOgCMAVj4B2fgDYAnOIDMAFh4AOPjzroYUTDABOLEHCgBzFAFoFAlSplK+QxeKHiV4unAiYUiwSvlCKlIu8iqKIiJS4lQxQA===',
+  Canada:'https://na.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgEwAMAOgCMAVj4B2fgDYAnOIDMAFh4AOPjzroYUTDABOLEHCgBzFAFoFAlSplK+QxeKHiV4unAiYUiwSvlCKlIu8iqKIiJS4lQxQA===',
+  Europe:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
+  India:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
+  APAC:'https://fe.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA=='
+};
+// TR is not in Europe; MX, BR, UAE, SA, EG have no GeoStudio region (no button).
+var IL_GEO_REGION={US:'USA', CA:'Canada', IN:'India',
+  UK:'Europe', IE:'Europe', DE:'Europe', AT:'Europe', LU:'Europe', NL:'Europe', BE:'Europe', FR:'Europe', IT:'Europe', ES:'Europe',
+  JP:'APAC', AU:'APAC', SG:'APAC'};
+// CLEAR (Thomson Reuters) for US and CA only: sign-on entry point (no session tracetoken stored).
+var IL_CLEAR_URL='https://clear.thomsonreuters.com/a/Signon.do?productId=RFI&viewproductid=RFI';
+var IL_CLEAR_COUNTRIES=['US','CA'];
+var _ilToolsOn=false;
+// Short coloured monogram per tool label (decorative; k = colour class suffix).
+var IL_TOOL_MONO={'AM Console (ID/Email)':{t:'AM',k:'am'}, 'CLEAR':{t:'CL',k:'cl'}, 'Cortex':{t:'CX',k:'cx'},
+  'GeoStudio':{t:'GS',k:'gs'}, 'Station Command Center (SCC)':{t:'SCC',k:'scc'}};
+// Small "external link" arrow (same stroke style as icons.js).
+var IL_TOOL_EXT_SVG='<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7"/><polyline points="8 7 17 7 17 16"/></svg>';
+// Pure: [{label,url}] for a ticket country code ([] when the country has no tools).
+function ilToolLinks(cc){
+  cc=String(cc||'').toUpperCase(); cc=IL_TOOLS_ALIAS[cc]||cc;
+  var urls=IL_TOOL_LINKS[cc]; if(!urls) return [];
+  var out=IL_TOOL_NAMES.map(function(n,k){ return {label:n, url:urls[k]}; }).filter(function(x){ return !!x.url; });
+  var g=IL_GEO_REGION[cc]; if(g && IL_GEO_LINKS[g]) out.push({label:'GeoStudio', url:IL_GEO_LINKS[g]});
+  if(IL_CLEAR_COUNTRIES.indexOf(cc)>=0) out.push({label:'CLEAR', url:IL_CLEAR_URL});
+  // Alphabetical by label (case-insensitive) so every country's row reads the same way.
+  out.sort(function(a,b){ return a.label.localeCompare(b.label, undefined, {sensitivity:'base'}); });
+  return out;
+}
+// Paint #ilTools for the opened ticket (hidden when the page did not opt in or there are no tools).
+function _ilToolsSync(){
+  if(typeof document==='undefined') return;
+  var box=document.getElementById('ilTools'), list=document.getElementById('ilToolsList'); if(!box || !list) return;
+  var links=_ilToolsOn ? ilToolLinks(IL_TICKET_COUNTRY) : [];
+  var cc=String(IL_TICKET_COUNTRY||'').toUpperCase(); cc=IL_TOOLS_ALIAS[cc]||cc;
+  var ccEl=document.getElementById('ilToolsCc');
+  if(ccEl){ ccEl.textContent=cc; ccEl.hidden=!cc; }
+  box.setAttribute('aria-label', cc ? 'Tools for '+cc : 'Tools');
+  list.innerHTML=links.map(function(x){
+    var m=IL_TOOL_MONO[x.label]||{t:x.label.charAt(0), k:'x'};
+    return '<a class="ail-tool" href="'+_ileEsc(x.url)+'" target="_blank" rel="noopener noreferrer" title="'+_ileEsc(x.label+' - opens in a new tab (Ctrl+click to stay on this page)')+'">'+
+      '<span class="ail-tool-mono ail-tool-mono-'+m.k+'" aria-hidden="true">'+_ileEsc(m.t)+'</span>'+
+      '<span class="ail-tool-tx">'+_ileEsc(x.label)+'</span>'+
+      '<span class="ail-tool-ext" aria-hidden="true">'+IL_TOOL_EXT_SVG+'</span>'+
+      '<span class="ail-sr"> (opens in a new tab)</span></a>';
+  }).join('');
+  box.hidden=!links.length;
 }
 
 // ---- Historical incidents DOM: block #ilHist under the SIM textarea, controls "ilh_<n>_<key>" ----
@@ -3238,6 +3320,12 @@ var IncidentLogEditor=(function(){
               '<div class="ilcm" id="ilCmtList"></div>'+
             '</div>'+
           '</section>'+
+          // Per-country tool links (page opt-in via setToolLinksEnabled; filled by _ilToolsSync).
+          '<div class="ail-tools" id="ilTools" role="group" aria-label="Tools" hidden>'+
+            '<span class="ail-tools-lbl" aria-hidden="true"><span class="ail-tools-ic">'+_ileIc('tool',13)+'</span>Tools<span class="ail-tools-cc" id="ilToolsCc"></span></span>'+
+            '<span class="ail-tools-list" id="ilToolsList"></span>'+
+            '<span class="ail-tools-hint" aria-hidden="true">Ctrl+click to open in background</span>'+
+          '</div>'+
           '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
           // Markup order = default layout; ilLayoutSync re-orders (moves the nodes) for the complete
           // layout and hides / shows the optional sections. PHD Related Link (hidden input, filled by
@@ -3544,6 +3632,29 @@ var IncidentLogEditor=(function(){
     '#incidentModal button.ail-addsec-btn{display:inline-flex;align-items:center;min-height:28px;margin:0;padding:0 10px;border:1px dashed #b8c2cc;border-radius:999px;background:#fff;color:#1577a0;font-family:inherit;font-size:.78em;font-weight:700;cursor:pointer;box-shadow:none}',
     '#incidentModal button.ail-addsec-btn:hover{border-color:#1577a0;background:rgba(21,119,160,.06)}',
     '#incidentModal button.ail-addsec-btn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    // Tools row (below Comments): quick-links toolbar in a tinted panel (same frame as the Comments bar,
+    // orange accent). Label = icon + "Tools" + country chip; links = monogram + label + external arrow.
+    '.ail-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;flex-shrink:0;margin:0 0 14px;padding:8px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#f7f9fb}',
+    '.ail-tools[hidden],.ail-tools-cc[hidden]{display:none!important}',
+    '.ail-tools-list{display:contents}',
+    '.ail-tools-lbl{display:inline-flex;align-items:center;gap:6px;margin-right:4px;font-size:.78em;font-weight:800;color:#1b2026;white-space:nowrap}',
+    '.ail-tools-ic{display:inline-flex;color:#ec7211}',
+    '.ail-tools-cc{display:inline-block;padding:0 6px;border:1px solid #d4dce4;border-radius:999px;background:#fff;color:#4a5560;font-size:.9em;font-weight:700;letter-spacing:.04em;line-height:1.6}',
+    '#incidentModal a.ail-tool{display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:30px;margin:0;padding:0 9px 0 4px;border:1px solid #d4dce4;border-radius:8px;background:#fff;color:#1b2026!important;font-family:inherit;font-size:.78em;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap;box-shadow:0 1px 1px rgba(16,24,40,.04);transition:border-color .12s,background-color .12s,box-shadow .12s}',
+    '#incidentModal a.ail-tool:hover{border-color:#ec7211;background:#fffaf5;box-shadow:0 1px 3px rgba(236,114,17,.18)}',
+    '#incidentModal a.ail-tool:focus-visible{outline:2px solid #1577a0;outline-offset:2px;border-color:#1577a0}',
+    '.ail-tool-mono{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:5px;font-size:.82em;font-weight:800;letter-spacing:.02em}',
+    '.ail-tool-mono-am{background:#fdebd9;color:#8a4100}',
+    '.ail-tool-mono-cl{background:#e6eefc;color:#1d4ed8}',
+    '.ail-tool-mono-cx{background:#efe7fb;color:#6b2fb3}',
+    '.ail-tool-mono-gs{background:#e2f4ea;color:#1f6f43}',
+    '.ail-tool-mono-scc{background:#e3f1f7;color:#0f5f80}',
+    '.ail-tool-mono-x{background:#eef1f4;color:#4a5560}',
+    '.ail-tool-ext{display:inline-flex;color:#5c6773}',
+    '#incidentModal a.ail-tool:hover .ail-tool-ext,#incidentModal a.ail-tool:focus-visible .ail-tool-ext{color:#ec7211}',
+    '.ail-tools-hint{margin-left:auto;padding-left:8px;font-size:.72em;color:#5c6773;white-space:nowrap}',
+    '@media (max-width:759.98px){.ail-tools-hint{display:none}}',
+    '@media (prefers-reduced-motion:reduce){#incidentModal a.ail-tool{transition:none}}',
     '.ail-optag,.ail-ro-pill{display:inline-block;font-size:.84em;font-weight:600;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:0 8px;line-height:1.5;white-space:nowrap}',
     // Title block: [Title (rest of the width)] [Severity label + 1..5 (nowrap)] on one row; stacked < 760px.
     '.ail-titleblk{display:flex;align-items:center;gap:8px 16px;margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fffaf5}',
@@ -3787,8 +3898,11 @@ var IncidentLogEditor=(function(){
   }
   // Opt-in comments panel / "Previous comments" list / temp-resolve switch (see _ilCmtSync).
   function setCommentsProvider(p){ _ilCmtProv=p||null; }
+  // Opt-in per-country tool links row below Comments (see _ilToolsSync).
+  function setToolLinksEnabled(on){ _ilToolsOn=!!on; _ilToolsSync(); }
   return { markupHtml:markupHtml, mount:mount, injectStyles:injectStyles, injectViewStyles:injectViewStyles,
     setCommentsProvider:setCommentsProvider, hasCommentsProvider:function(){ return !!_ilCmtProv; },
+    setToolLinksEnabled:setToolLinksEnabled, toolLinks:ilToolLinks,
     renderComments:ilCmtLoadInto, syncTempResolve:_ilTempSync,
     renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
