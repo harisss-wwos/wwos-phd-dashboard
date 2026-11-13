@@ -1574,10 +1574,18 @@ var IL_GEO_REGION={US:'USA', CA:'Canada', IN:'India',
 // CLEAR (Thomson Reuters) for US and CA only: sign-on entry point (no session tracetoken stored).
 var IL_CLEAR_URL='https://clear.thomsonreuters.com/a/Signon.do?productId=RFI&viewproductid=RFI';
 var IL_CLEAR_COUNTRIES=['US','CA'];
+// Raise Exclusion (SIM create template) for US and CA only; always the last tool in the row.
+var IL_RAISE_EXCL_URL='https://sim.amazon.com/issues/create?template=095661d0-deff-40a2-9a7e-2ca003939f03';
+var IL_RAISE_EXCL_COUNTRIES=['US','CA'];
 var _ilToolsOn=false;
-// Short coloured monogram per tool label (decorative; k = colour class suffix).
+// Short coloured monogram per tool label (decorative; k = colour class suffix, also the tool's
+// stable id for the saved multi-open selection).
 var IL_TOOL_MONO={'AM Console (ID/Email)':{t:'AM',k:'am'}, 'CLEAR':{t:'CL',k:'cl'}, 'Cortex':{t:'CX',k:'cx'},
-  'GeoStudio':{t:'GS',k:'gs'}, 'Station Command Center (SCC)':{t:'SCC',k:'scc'}};
+  'GeoStudio':{t:'GS',k:'gs'}, 'Station Command Center (SCC)':{t:'SCC',k:'scc'}, 'Raise Exclusion':{t:'RE',k:'re'}};
+// Ticked tools per region: localStorage[IL_TOOLS_SEL_KEY+cc] = JSON array of tool ids (e.g. ["cx","gs"]).
+var IL_TOOLS_SEL_KEY='phdIlToolsSel.';
+var IL_TOOLS_BLOCKED_MSG='Your browser blocked some tabs. Allow pop-ups for this site to open them all.';
+var _ilToolsCc='', _ilToolsLinks=[], _ilToolsSel=[];
 // Small "external link" arrow (same stroke style as icons.js).
 var IL_TOOL_EXT_SVG='<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7"/><polyline points="8 7 17 7 17 16"/></svg>';
 // Pure: [{label,url}] for a ticket country code ([] when the country has no tools).
@@ -1589,7 +1597,99 @@ function ilToolLinks(cc){
   if(IL_CLEAR_COUNTRIES.indexOf(cc)>=0) out.push({label:'CLEAR', url:IL_CLEAR_URL});
   // Alphabetical by label (case-insensitive) so every country's row reads the same way.
   out.sort(function(a,b){ return a.label.localeCompare(b.label, undefined, {sensitivity:'base'}); });
+  if(IL_RAISE_EXCL_COUNTRIES.indexOf(cc)>=0) out.push({label:'Raise Exclusion', url:IL_RAISE_EXCL_URL});
   return out;
+}
+function ilToolId(label){ var m=IL_TOOL_MONO[label]; return m ? m.k : String(label||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
+function ilToolsBtnLabel(n){ return 'Open Selected Tools ('+(n|0)+')'; }
+// Pure: pills for #ilToolsList. Each pill = [checkbox (selects, never navigates)] [link (opens one tool)].
+function ilToolsListHtml(links,sel){
+  sel=sel||[];
+  return (links||[]).map(function(x){
+    var m=IL_TOOL_MONO[x.label]||{t:x.label.charAt(0), k:'x'}, id=ilToolId(x.label), on=sel.indexOf(id)>=0;
+    return '<span class="ail-tool'+(on?' is-sel':'')+'" data-il-tool="'+_ileEsc(id)+'">'+
+      '<label class="ail-tool-ck"><input type="checkbox" data-il-tool-ck="'+_ileEsc(id)+'"'+(on?' checked':'')+'>'+
+        '<span class="ail-sr">Select '+_ileEsc(x.label)+'</span></label>'+
+      '<a class="ail-tool-a" href="'+_ileEsc(x.url)+'" target="_blank" rel="noopener noreferrer" title="'+_ileEsc(x.label+' - opens in a new tab (Ctrl+click to stay on this page)')+'">'+
+        '<span class="ail-tool-mono ail-tool-mono-'+m.k+'" aria-hidden="true">'+_ileEsc(m.t)+'</span>'+
+        '<span class="ail-tool-tx">'+_ileEsc(x.label)+'</span>'+
+        '<span class="ail-tool-ext" aria-hidden="true">'+IL_TOOL_EXT_SVG+'</span>'+
+        '<span class="ail-sr"> (opens in a new tab)</span></a>'+
+    '</span>';
+  }).join('');
+}
+// Pure: URLs of the ticked tools, in row order (= the same URLs the pills link to).
+function ilToolsSelectedUrls(links,sel){
+  sel=sel||[];
+  return (links||[]).filter(function(x){ return sel.indexOf(ilToolId(x.label))>=0; }).map(function(x){ return x.url; });
+}
+// Open every URL in its own tab, synchronously (call straight from the click handler so the browser
+// treats each open as user-initiated). No 'noopener' feature: with it window.open always returns null
+// and a blocked tab could not be detected; the opener link is cut by hand instead. Returns the
+// number of tabs the browser blocked.
+function ilToolsOpenUrls(urls,openFn){
+  var blocked=0;
+  (urls||[]).forEach(function(u){
+    var w=null; try{ w=openFn(u,'_blank'); }catch(e){ w=null; }
+    if(!w){ blocked++; return; }
+    try{ w.opener=null; }catch(e){}
+  });
+  return blocked;
+}
+function _ilToolsLoadSel(cc){
+  try{ var v=JSON.parse(localStorage.getItem(IL_TOOLS_SEL_KEY+cc)||'[]'); return Array.isArray(v) ? v.map(String) : []; }catch(e){ return []; }
+}
+function _ilToolsSaveSel(){
+  if(!_ilToolsCc) return;
+  try{
+    if(_ilToolsSel.length) localStorage.setItem(IL_TOOLS_SEL_KEY+_ilToolsCc, JSON.stringify(_ilToolsSel));
+    else localStorage.removeItem(IL_TOOLS_SEL_KEY+_ilToolsCc);
+  }catch(e){}
+}
+function _ilToolsNote(msg){ var el=document.getElementById('ilToolsNote'); if(el) el.textContent=msg||''; }
+// Button label / disabled state, Clear visibility and each pill's highlight follow _ilToolsSel.
+function _ilToolsSelSync(){
+  var n=_ilToolsSel.length, btn=document.getElementById('ilToolsOpen'), clr=document.getElementById('ilToolsClr');
+  if(btn){ btn.textContent=ilToolsBtnLabel(n); btn.disabled=!n; }
+  if(clr) clr.hidden=!n;
+  var list=document.getElementById('ilToolsList');
+  if(list && list.querySelectorAll){
+    Array.prototype.forEach.call(list.querySelectorAll('[data-il-tool]'), function(p){
+      var on=_ilToolsSel.indexOf(p.getAttribute('data-il-tool'))>=0;
+      p.classList.toggle('is-sel', on);
+      var ck=p.querySelector('input[type=checkbox]'); if(ck) ck.checked=on;
+    });
+  }
+}
+function _ilToolsToggle(id,on){
+  id=String(id||''); var k=_ilToolsSel.indexOf(id);
+  if(on && k<0) _ilToolsSel.push(id);
+  if(!on && k>=0) _ilToolsSel.splice(k,1);
+  // Keep row order (and drop ids this region does not offer).
+  _ilToolsSel=_ilToolsLinks.map(function(x){ return ilToolId(x.label); }).filter(function(t){ return _ilToolsSel.indexOf(t)>=0; });
+  _ilToolsSaveSel(); _ilToolsNote(''); _ilToolsSelSync();
+}
+function _ilToolsOpenSel(){
+  var urls=ilToolsSelectedUrls(_ilToolsLinks,_ilToolsSel); if(!urls.length) return;
+  var blocked=ilToolsOpenUrls(urls, function(u,t){ return window.open(u,t); });
+  _ilToolsNote(blocked ? IL_TOOLS_BLOCKED_MSG : '');
+}
+function _ilToolsClear(){
+  _ilToolsSel=[]; _ilToolsSaveSel(); _ilToolsNote(''); _ilToolsSelSync();
+  // Clear hides itself: move focus to the first checkbox so keyboard users are not dropped.
+  var ck=document.querySelector && document.querySelector('#ilToolsList input[type=checkbox]'); if(ck && ck.focus) ck.focus();
+}
+function _ilToolsBind(box){
+  if(box._ilToolsBound || !box.addEventListener) return; box._ilToolsBound=true;
+  box.addEventListener('change', function(e){
+    var t=e.target, id=t && t.getAttribute && t.getAttribute('data-il-tool-ck'); if(id!=null) _ilToolsToggle(id, !!t.checked);
+  });
+  box.addEventListener('click', function(e){
+    var t=e.target && e.target.closest ? e.target.closest('[data-il-tools-act]') : null; if(!t) return;
+    var a=t.getAttribute('data-il-tools-act');
+    if(a==='open'){ e.preventDefault(); _ilToolsOpenSel(); }
+    else if(a==='clear'){ e.preventDefault(); _ilToolsClear(); }
+  });
 }
 // Paint #ilTools for the opened ticket (hidden when the page did not opt in or there are no tools).
 function _ilToolsSync(){
@@ -1600,14 +1700,13 @@ function _ilToolsSync(){
   var ccEl=document.getElementById('ilToolsCc');
   if(ccEl){ ccEl.textContent=cc; ccEl.hidden=!cc; }
   box.setAttribute('aria-label', cc ? 'Tools for '+cc : 'Tools');
-  list.innerHTML=links.map(function(x){
-    var m=IL_TOOL_MONO[x.label]||{t:x.label.charAt(0), k:'x'};
-    return '<a class="ail-tool" href="'+_ileEsc(x.url)+'" target="_blank" rel="noopener noreferrer" title="'+_ileEsc(x.label+' - opens in a new tab (Ctrl+click to stay on this page)')+'">'+
-      '<span class="ail-tool-mono ail-tool-mono-'+m.k+'" aria-hidden="true">'+_ileEsc(m.t)+'</span>'+
-      '<span class="ail-tool-tx">'+_ileEsc(x.label)+'</span>'+
-      '<span class="ail-tool-ext" aria-hidden="true">'+IL_TOOL_EXT_SVG+'</span>'+
-      '<span class="ail-sr"> (opens in a new tab)</span></a>';
-  }).join('');
+  _ilToolsBind(box);
+  // Restore this region's saved ticks (only ids the region offers, in row order).
+  _ilToolsCc=cc; _ilToolsLinks=links;
+  var saved=links.length ? _ilToolsLoadSel(cc) : [];
+  _ilToolsSel=links.map(function(x){ return ilToolId(x.label); }).filter(function(t){ return saved.indexOf(t)>=0; });
+  list.innerHTML=ilToolsListHtml(links,_ilToolsSel);
+  _ilToolsNote(''); _ilToolsSelSync();
   box.hidden=!links.length;
 }
 
@@ -3324,7 +3423,12 @@ var IncidentLogEditor=(function(){
           '<div class="ail-tools" id="ilTools" role="group" aria-label="Tools" hidden>'+
             '<span class="ail-tools-lbl" aria-hidden="true"><span class="ail-tools-ic">'+_ileIc('tool',13)+'</span>Tools<span class="ail-tools-cc" id="ilToolsCc"></span></span>'+
             '<span class="ail-tools-list" id="ilToolsList"></span>'+
-            '<span class="ail-tools-hint" aria-hidden="true">Ctrl+click to open in background</span>'+
+            // Right corner: "Open Selected Tools (N)" + Clear (wraps to its own line < 760px).
+            '<span class="ail-tools-end">'+
+              '<button type="button" class="ail-tools-open" id="ilToolsOpen" data-il-tools-act="open" disabled>Open Selected Tools (0)</button>'+
+              '<button type="button" class="ail-tools-clr" id="ilToolsClr" data-il-tools-act="clear" hidden>Clear</button>'+
+            '</span>'+
+            '<p class="ail-tools-note" id="ilToolsNote" role="status" aria-live="polite"></p>'+
           '</div>'+
           '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
           // Markup order = default layout; ilLayoutSync re-orders (moves the nodes) for the complete
@@ -3640,21 +3744,37 @@ var IncidentLogEditor=(function(){
     '.ail-tools-lbl{display:inline-flex;align-items:center;gap:6px;margin-right:4px;font-size:.78em;font-weight:800;color:#1b2026;white-space:nowrap}',
     '.ail-tools-ic{display:inline-flex;color:#ec7211}',
     '.ail-tools-cc{display:inline-block;padding:0 6px;border:1px solid #d4dce4;border-radius:999px;background:#fff;color:#4a5560;font-size:.9em;font-weight:700;letter-spacing:.04em;line-height:1.6}',
-    '#incidentModal a.ail-tool{display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:30px;margin:0;padding:0 9px 0 4px;border:1px solid #d4dce4;border-radius:8px;background:#fff;color:#1b2026!important;font-family:inherit;font-size:.78em;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap;box-shadow:0 1px 1px rgba(16,24,40,.04);transition:border-color .12s,background-color .12s,box-shadow .12s}',
-    '#incidentModal a.ail-tool:hover{border-color:#ec7211;background:#fffaf5;box-shadow:0 1px 3px rgba(236,114,17,.18)}',
-    '#incidentModal a.ail-tool:focus-visible{outline:2px solid #1577a0;outline-offset:2px;border-color:#1577a0}',
+    // Pill = [checkbox label] [link]; .is-sel = ticked for "Open Selected Tools".
+    '.ail-tool{display:inline-flex;align-items:stretch;box-sizing:border-box;height:30px;margin:0;border:1px solid #d4dce4;border-radius:8px;background:#fff;box-shadow:0 1px 1px rgba(16,24,40,.04);transition:border-color .12s,background-color .12s,box-shadow .12s}',
+    '.ail-tool:hover{border-color:#ec7211;background:#fffaf5;box-shadow:0 1px 3px rgba(236,114,17,.18)}',
+    '.ail-tool.is-sel{border-color:#ec7211;background:#fff1e3;box-shadow:inset 0 0 0 1px #ec7211}',
+    '.ail-tool-ck{display:inline-flex;align-items:center;padding:0 2px 0 7px;cursor:pointer}',
+    '#incidentModal .ail-tool-ck input[type=checkbox]{width:14px;height:14px;margin:0;accent-color:#ec7211;cursor:pointer}',
+    '#incidentModal .ail-tool-ck input[type=checkbox]:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '#incidentModal a.ail-tool-a{display:inline-flex;align-items:center;gap:6px;margin:0;padding:0 9px 0 4px;border-radius:0 7px 7px 0;color:#1b2026!important;font-family:inherit;font-size:.78em;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}',
+    '#incidentModal a.ail-tool-a:focus-visible{outline:2px solid #1577a0;outline-offset:-2px}',
     '.ail-tool-mono{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:5px;font-size:.82em;font-weight:800;letter-spacing:.02em}',
     '.ail-tool-mono-am{background:#fdebd9;color:#8a4100}',
     '.ail-tool-mono-cl{background:#e6eefc;color:#1d4ed8}',
     '.ail-tool-mono-cx{background:#efe7fb;color:#6b2fb3}',
     '.ail-tool-mono-gs{background:#e2f4ea;color:#1f6f43}',
     '.ail-tool-mono-scc{background:#e3f1f7;color:#0f5f80}',
+    '.ail-tool-mono-re{background:#fde8e6;color:#a8200d}',
     '.ail-tool-mono-x{background:#eef1f4;color:#4a5560}',
     '.ail-tool-ext{display:inline-flex;color:#5c6773}',
-    '#incidentModal a.ail-tool:hover .ail-tool-ext,#incidentModal a.ail-tool:focus-visible .ail-tool-ext{color:#ec7211}',
-    '.ail-tools-hint{margin-left:auto;padding-left:8px;font-size:.72em;color:#5c6773;white-space:nowrap}',
-    '@media (max-width:759.98px){.ail-tools-hint{display:none}}',
-    '@media (prefers-reduced-motion:reduce){#incidentModal a.ail-tool{transition:none}}',
+    '#incidentModal a.ail-tool-a:hover .ail-tool-ext,#incidentModal a.ail-tool-a:focus-visible .ail-tool-ext{color:#ec7211}',
+    // Right corner group: hint, "Open Selected Tools (N)" (disabled at 0), Clear. Own line < 760px.
+    '.ail-tools-end{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 10px;margin-left:auto;padding-left:8px}',
+        '#incidentModal button.ail-tools-open{display:inline-flex;align-items:center;height:30px;margin:0;padding:0 12px!important;border:1px solid #232f3e!important;border-radius:8px!important;background:#232f3e!important;color:#fff!important;font-family:inherit;font-size:.78em;font-weight:800;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:none}',
+    '#incidentModal button.ail-tools-open:hover:not(:disabled){background:#131a2a!important}',
+    '#incidentModal button.ail-tools-open:disabled{border-color:#d4dce4!important;background:#eef1f4!important;color:#5c6773!important;cursor:not-allowed}',
+    '#incidentModal button.ail-tools-clr{margin:0;padding:2px 2px!important;border:0!important;background:none!important;color:#1577a0!important;font-family:inherit;font-size:.76em;font-weight:700;text-decoration:underline;cursor:pointer;box-shadow:none}',
+    '#incidentModal button.ail-tools-clr[hidden]{display:none!important}',
+    '#incidentModal button.ail-tools-open:focus-visible,#incidentModal button.ail-tools-clr:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '#incidentModal p.ail-tools-note{flex:1 0 100%;margin:0;font-size:.76em;font-weight:600;color:#8a4100!important}',
+    '#incidentModal p.ail-tools-note:empty{display:none}',
+    '@media (max-width:759.98px){.ail-tools-end{flex:1 0 100%;justify-content:flex-start;margin-left:0;padding-left:0}}',
+    '@media (prefers-reduced-motion:reduce){.ail-tool{transition:none}}',
     '.ail-optag,.ail-ro-pill{display:inline-block;font-size:.84em;font-weight:600;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:0 8px;line-height:1.5;white-space:nowrap}',
     // Title block: [Title (rest of the width)] [Severity label + 1..5 (nowrap)] on one row; stacked < 760px.
     '.ail-titleblk{display:flex;align-items:center;gap:8px 16px;margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fffaf5}',
@@ -3924,4 +4044,6 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilEmtUrlOf:ilEmtUrlOf, ilEmtNormalize:ilEmtNormalize, ilTitleKey:ilTitleKey, ilSavedIsComplete:ilSavedIsComplete, ilCopyNotes:ilCopyNotes, ilCopyResExtra:ilCopyResExtra,
   ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
   ilSetTicketRegion:ilSetTicketRegion, ilSetSavedSeverity:ilSetSavedSeverity, ilGetSeverity:ilGetSeverity,
-  ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue };
+  ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue,
+  ilToolLinks:ilToolLinks, ilToolId:ilToolId, ilToolsListHtml:ilToolsListHtml, ilToolsBtnLabel:ilToolsBtnLabel,
+  ilToolsSelectedUrls:ilToolsSelectedUrls, ilToolsOpenUrls:ilToolsOpenUrls, IL_RAISE_EXCL_URL:IL_RAISE_EXCL_URL, IL_TOOLS_SEL_KEY:IL_TOOLS_SEL_KEY };
