@@ -307,7 +307,7 @@ async function handleGet(deps) {
   if (!deps.user || !isOwner(deps.user.username)) return { status: 403, body: { error: OWNER_ONLY } };
   const now = deps.now ? deps.now() : new Date();
   const coll = deps.coll, mk = markMap(deps.marks);
-  const docs = await coll.find({}).sort({ assignedAt: -1 }).toArray();
+  const docs = await coll.find({}, { projection: { history: 0 } }).sort({ assignedAt: -1 }).toArray();   // history is never read
   const live = new Map(), counts = new Map();
   for (const a of docs) {
     const v = liveVerification(a, deps.report, deps.stamp, now, mk);

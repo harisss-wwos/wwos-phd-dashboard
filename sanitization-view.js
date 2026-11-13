@@ -105,7 +105,7 @@
     var chip = function (r) {
       return '<div class="stv-chip ' + r[0] + (r[4] ? '' : ' is-zero') + '" title="' + esc(r[3] || r[1]) + '">'
         + '<dt><span aria-hidden="true">' + esc(r[2]) + '</span><span class="stv-sr">' + esc(r[1]) + '</span></dt>'
-        + '<dd>' + (r[4] == null ? '<b>\u2014</b>' : '<b>' + numTxt(r[4]) + '</b><span class="stv-chip-p"><span aria-hidden="true"> \u00b7 </span>' + pctOf(r[4], a) + '%</span>') + '</dd></div>';
+        + '<dd>' + (r[4] == null ? '<b>\u2014</b>' : '<b>' + numTxt(r[4]) + '</b> <span class="stv-chip-p">' + pctOf(r[4], a) + '%</span>') + '</dd></div>';
     };
     return '<dl class="stv-cst' + (o.showErr ? '' : ' is-k3') + '"' + (o.id ? ' id="' + esc(o.id) + '"' : '') + '>'
       + '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>'

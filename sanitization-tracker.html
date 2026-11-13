@@ -155,9 +155,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-hero.is-zero dd b,.stv-hero.is-zero .stv-hero-p{color:#8a949e}
 .stv-chip{min-width:0;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border-radius:8px;background:var(--soft);border-top:2px solid #c3cad2}
 .stv-chip dt{font-size:.62em;font-weight:800;letter-spacing:.5px;line-height:1.25;text-transform:uppercase;color:var(--mut);overflow-wrap:anywhere}
-.stv-chip dd{font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stv-chip dd b{font-size:1.15em;font-weight:800}
-.stv-chip-p{font-weight:700;color:var(--mut)}
+/* Count at the left edge, % at the right edge (same row; the % wraps right-aligned below only if the chip is too narrow). */
+.stv-chip dd{font-size:.8em;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 4px;min-width:0;line-height:1.2}
+.stv-chip dd b{font-size:1.15em;font-weight:800;white-space:nowrap}
+.stv-chip-p{margin-left:auto;font-size:.92em;font-weight:700;color:var(--mut);white-space:nowrap}
 .stv-chip.is-ok{background:var(--grn-bg);border-top-color:#1a7a43}.stv-chip.is-ok dd b{color:#17663a}
 .stv-chip.is-wait{background:var(--blue-bg);border-top-color:#1f5fbf}.stv-chip.is-wait dd b{color:#1f4f99}
 .stv-chip.is-errn{background:#fff3e0;border-top-color:#d98a1a}.stv-chip.is-errn dd b{color:#8a3a00}
@@ -407,7 +408,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=233"></script>
-<script src="sanitization-view.js?v=15"></script>
+<script src="sanitization-view.js?v=16"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=6"></script>

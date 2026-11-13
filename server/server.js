@@ -23,6 +23,7 @@ const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, b
 const sanAssign = require('./sanitization-assign');
 const sanUpdate = require('./sanitization-update');
 const resolvedErrors = require('./resolved-errors');
+const { createSingleFlight } = require('./single-flight');
 const hiLinesErrors = require('./hi-lines-errors');
 const lmhub = require('./lmhub-filter');
 const uploadRevoke = require('./upload-revoke');
@@ -1844,10 +1845,14 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
     invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
     invalidateReportCache();      // tickets changed -> drop cached hashtags/out-of-scope reports
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
-    recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message));
-    recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message));
-    recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after publish failed:', e && e.message));
-    recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after publish failed:', e && e.message));
+    const jobs = [
+      recomputeRollup(liveQ).catch(e => console.error('rollup recompute after publish failed:', e && e.message)),
+      recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after publish failed:', e && e.message)),
+      recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after publish failed:', e && e.message)),
+      recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after publish failed:', e && e.message)),
+    ];
+    // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
+    Promise.allSettled(jobs).then(() => sanWarm('publish'));
   } catch (e) {
     res.status(500).json({ error: 'Could not publish quarter data.' });
   }
@@ -2018,10 +2023,14 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     invalidateCountriesReport();  // tickets changed -> rebuild the cached countries report next read
     invalidateReportCache();      // tickets changed -> drop cached hashtags/out-of-scope reports
     // Refresh the precomputed rollups so /api/dash/* and /api/agent-summary stay instant (best-effort).
-    recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message));
-    recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message));
-    recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after patch failed:', e && e.message));
-    recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after patch failed:', e && e.message));
+    const jobs = [
+      recomputeRollup(liveQ).catch(e => console.error('rollup recompute after patch failed:', e && e.message)),
+      recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after patch failed:', e && e.message)),
+      recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after patch failed:', e && e.message)),
+      recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after patch failed:', e && e.message)),
+    ];
+    // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
+    Promise.allSettled(jobs).then(() => sanWarm('patch'));
   } catch (e) {
     res.status(500).json({ error: 'Could not apply the delta publish.' });
   }
@@ -2207,10 +2216,14 @@ app.post('/api/data-log/:id/revoke', requireRole('user'), async (req, res) => {
       invalidateReportCache();
       _aaResCache = { key: null, at: 0, rows: null };
       const liveQ = await liveQuarterId();
-      recomputeRollup(liveQ).catch(e => console.error('rollup recompute after revoke failed:', e && e.message));
-      recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after revoke failed:', e && e.message));
-      recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after revoke failed:', e && e.message));
-      recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after revoke failed:', e && e.message));
+      const jobs = [
+        recomputeRollup(liveQ).catch(e => console.error('rollup recompute after revoke failed:', e && e.message)),
+        recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after revoke failed:', e && e.message)),
+        recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after revoke failed:', e && e.message)),
+        recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after revoke failed:', e && e.message)),
+      ];
+      // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
+      Promise.allSettled(jobs).then(() => sanWarm('revoke'));
     }
   } catch (e) {
     if (!res.headersSent) res.status(500).json({ error: 'Could not finish revoking the upload. Try again; it is safe to repeat.' });
@@ -3523,6 +3536,7 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 const SAN_CACHE_PREFIX = 'san:v15:';   // v15: the GET splits off "Tickets with clear data" (rule A pass: buckets / available exclude them, tickets carry clr, payload clear + marked); v14: Automatically Closed on an IR-eligible title = title checks only (grp 'auto-closed'); Successful: a valid RCD Issue covers a missing title issue type; v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
+const SAN_URL_BASE = 'https://t.corp.amazon.com/issues/';   // IssueUrl of a ticket = this + ShortId (sanScopeRows)
 const SAN_SINCE_START = new Date('2026-01-01T08:00:00Z');   // 1 Jan 2026 00:00 America/Los_Angeles (PST, UTC-8)
 const SAN_STATUS_MATCH = { $regex: /^\s*(resolved|closed)\s*$/i };
 // CreateDate is stored as an ISO string (Date objects accepted too): coarse filter in Mongo, exact in JS.
@@ -3560,8 +3574,15 @@ async function sanScopeRows(quarter) {
   const match = since ? sanSinceMatch() : { Status: SAN_STATUS_MATCH };
   if (!since && quarter !== 'all') match.q = quarter;
   // CreateDate for every scope: the report groups each score's tickets by created quarter (Pacific).
-  const projection = { _id: 0, q: 1, ShortId: 1, IssueId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, IssueUrl: 1, ClosureCode: 1, Tags: 1, CreateDate: 1, ResolvedByIdentity: 1 };
+  // Fewer bytes over the wire: IssueUrl comes back as `true` when it is exactly SAN_URL_BASE + ShortId
+  // (restored below, before anything reads it), and IssueId is dropped when ShortId is a non-empty
+  // string (every reader uses ShortId || IssueId, so it is never read then).
+  const shortIsStr = { $eq: [{ $type: '$ShortId' }, 'string'] };
+  const projection = { _id: 0, q: 1, ShortId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, ClosureCode: 1, Tags: 1, CreateDate: 1, ResolvedByIdentity: 1,
+    IssueId: { $cond: [{ $and: [shortIsStr, { $ne: ['$ShortId', ''] }] }, '$$REMOVE', '$IssueId'] },
+    IssueUrl: { $cond: [{ $and: [shortIsStr, { $eq: ['$IssueUrl', { $cond: [shortIsStr, { $concat: [SAN_URL_BASE, '$ShortId'] }, null] }] }] }, true, '$IssueUrl'] } };
   let docs = await coll.find(match, { projection }).toArray();
+  for (const d of docs) if (d.IssueUrl === true) d.IssueUrl = SAN_URL_BASE + d.ShortId;
   if (since) docs = pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
   else if (quarter === 'all') docs = pzDedupeTickets(docs.sort(sanNewestFirst));
   else if (!docs.length) docs = await loadQuarterTickets(quarter);   // legacy quarter not split into ticket_docs
@@ -3587,10 +3608,16 @@ async function sanReportFor(data, resNames, quarter) {
     let p = _sanInflight.get(key);
     if (!p) {
       p = (async () => {
-        const rep = sanBuildScoreReport(await sanScopeRows(quarter), types, resNames, cats);
+        const rows = await sanScopeRows(quarter);
+        // The 'Since 1 Jan 2026' selector count (GET /api/sanitization-score) is the deduped row count:
+        // cache it here instead of a second scan of the same tickets (sanSinceCount stays the fallback).
+        // Cached together with the report (same age), so it never expires before it.
+        const sinceN = rows.length;
+        const rep = sanBuildScoreReport(rows, types, resNames, cats);
         rep.computedAt = new Date().toISOString();
         pruneCachedReports(SAN_CACHE_PREFIX, 3);
         setCachedReport(key, rep);
+        if (quarter === SAN_SINCE_ID) { setCachedReport('sanc:v1:' + (data.stamp || '-'), sinceN); pruneCachedReports('sanc:', 1); }
         return rep;
       })();
       _sanInflight.set(key, p);
@@ -3599,6 +3626,16 @@ async function sanReportFor(data, resNames, quarter) {
     report = await p;
   }
   return report;
+}
+// Background warm of the shared 'since2026' report (boot, after a data change), same cache key as the
+// GETs. Never throws; a failure caches nothing (sanReportFor), so the next request retries.
+async function sanWarm(why) {
+  const t0 = Date.now();
+  try {
+    const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
+    await sanReportFor(data, resNames, SAN_SINCE_ID);
+    console.log('Sanitization report warmed (' + why + ') in ' + (Date.now() - t0) + ' ms');
+  } catch (e) { console.error('Sanitization report warm (' + why + ') failed:', e && e.message); }
 }
 // Owner-approved error tickets (COLLECTIONS.sanitizationExcluded): every sanitization feature reads
 // the score report through sanLiveReport, which takes them out (sanApplyApproved: excluded with
@@ -3621,6 +3658,17 @@ async function sanContractors() {
   const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1, displayName: 1, role: 1, analyst: 1 } }).toArray();
   return sanAssign.contractorsOf(users);
 }
+// In-flight sharing of the small reads the four heavy GETs repeat (score, assign, my-sanitization,
+// resolved-errors): concurrent callers share one query; nothing is kept after it settles (no cache,
+// no poisoning). Every sanitization write route calls _sanReads.bump(). Shared arrays are read-only.
+// The assignment docs leave out history (never read) and verification (read only by handleGet).
+const _sanReads = createSingleFlight();
+const SAN_ASG_LIGHT = { projection: { history: 0, verification: 0 } };
+const sanActiveAsgShared = () => _sanReads.run('asg:active', async () => (await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }, SAN_ASG_LIGHT).toArray());
+const sanAsgMetaShared = () => _sanReads.run('asg:meta', async () => (await getCollection(COLLECTIONS.sanitizationAssignments)).find({}, { projection: { _id: 0, 'tickets.shortId': 1, 'tickets.url': 1, 'tickets.title': 1 } }).toArray());
+const sanMarksShared = () => _sanReads.run('marks', sanMarks);
+const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
+const sanContractorsShared = () => _sanReads.run('contractors', sanContractors);
 app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
   try {
     // Scope is fixed: only tickets created on/after 1 Jan 2026 (Pacific). Any ?quarter= value is ignored.
@@ -3631,6 +3679,8 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
       getCollection(COLLECTIONS.phdResolutions).then(c => phdResList(c)).then(list => list.map(r => r.name)),
     ]);
     const quarter = (!want || wl === SAN_SINCE_ID) ? SAN_SINCE_ID : (wl === 'all' ? 'all' : want);
+    // The report first: building it also caches the since count (sanReportFor), so no second scan.
+    const base = await sanReportFor(data, resNames, quarter), approved = await sanApprovedShared();
     const sinceKey = 'sanc:v1:' + (data.stamp || '-');
     let sinceCount = getCachedReport(sinceKey);
     if (sinceCount == null) { sinceCount = await sanSinceCount(); setCachedReport(sinceKey, sinceCount); pruneCachedReports('sanc:', 1); }
@@ -3641,13 +3691,10 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
     const quarters = [{ id: SAN_SINCE_ID, label: SAN_SINCE_LABEL, isLive: false, count: sinceCount }]
       .concat(ids.sort((a, b) => b.localeCompare(a)).map(id => ({ id, label: quarterLabel(id), isLive: id === live, count: countOf(id) })));
     quarters.push({ id: 'all', label: 'All quarters', isLive: false, count: counts.reduce((s, c) => s + c.n, 0) });
-    const base = await sanReportFor(data, resNames, quarter), approved = await sanApproved();
     const report = sanLiveReport(base, approved);
     // Sanitization assignments (read-only here): tickets locked in an active assignment carry `asg`
     // (assignee login) and are left out of the per-score `available` counts.
-    const asgColl = await getCollection(COLLECTIONS.sanitizationAssignments);
-    const [asgDocs, asgMarks, asgMeta] = await Promise.all([asgColl.find({ status: 'active' }).toArray(), sanMarks(),
-      asgColl.find({}, { projection: { _id: 0, 'tickets.shortId': 1, 'tickets.url': 1, 'tickets.title': 1 } }).toArray()]);
+    const [asgDocs, asgMarks, asgMeta] = await Promise.all([sanActiveAsgShared(), sanMarksShared(), sanAsgMetaShared()]);
     const locked = sanAssign.lockedMap(asgDocs, report, data.stamp, new Date(), asgMarks);
     // Tickets with clear data (rule A pass, sanClearSplit): out of the point buckets, flagged clr:1.
     const split = sanClearSplit(report);
@@ -3679,14 +3726,16 @@ app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
 //        (env SAN_ASSIGN_READONLY=1 turns that write off).
 //   POST /api/sanitization-assign            { score:0..MAX_SCORE-1 (0..10), count:1..2000, assignee:<contractor> } -> the server picks the tickets (409 + available when short)
 //   POST /api/sanitization-assign/revoke     { id } -> status 'revoked' (never deleted)
-async function sanAssignDeps(req) {
-  const [data, resNames, contractors, approved, marks] = await Promise.all([eirDataStamp(), sanResNames(), sanContractors(), sanApproved(), sanMarks()]);
+// shared: the GET joins in-flight reads (_sanReads); the POST reads directly.
+async function sanAssignDeps(req, shared) {
+  const [data, resNames, contractors, approved, marks] = await Promise.all([eirDataStamp(), sanResNames(),
+    shared ? sanContractorsShared() : sanContractors(), shared ? sanApprovedShared() : sanApproved(), shared ? sanMarksShared() : sanMarks()]);
   const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID), approved);
   return { coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user, report, stamp: data.stamp, contractors, marks };
 }
 app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
   try {
-    const deps = await sanAssignDeps(req);
+    const deps = await sanAssignDeps(req, true);
     const out = await sanAssign.handleGet({ ...deps, persist: process.env.SAN_ASSIGN_READONLY !== '1' });
     res.status(out.status).json(out.body);
   } catch (e) {
@@ -3697,6 +3746,7 @@ app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
 app.post('/api/sanitization-assign', requireSanOwner, async (req, res) => {
   try {
     const out = await sanAssign.handleAssign(req.body, await sanAssignDeps(req));
+    _sanReads.bump();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('sanitization-assign POST error:', e && (e.stack || e.message));
@@ -3709,6 +3759,7 @@ app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) =>
       coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user,
       toId: s => (/^[a-f0-9]{24}$/i.test(s) ? new ObjectId(s) : null),
     });
+    _sanReads.bump();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('sanitization-assign revoke error:', e && (e.stack || e.message));
@@ -3723,12 +3774,11 @@ app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) =>
 app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
   try {
     const out = await sanAssign.handleMine(req.query || {}, {
-      user: req.user, contractors: await sanContractors(),
+      user: req.user, contractors: await sanContractorsShared(),
       load: async () => {
-        const [data, resNames, coll, mcoll] = await Promise.all([eirDataStamp(), sanResNames(), getCollection(COLLECTIONS.sanitizationAssignments), getCollection(COLLECTIONS.sanitizationMarks)]);
-        const [base, docs, marks, approved] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), coll.find({ status: 'active' }).toArray(),
-          mcoll.find({}, { projection: { _id: 0, login: 1, shortId: 1, status: 1, reason: 1, at: 1, by: 1, dataStamp: 1, ownerNote: 1, returnedAt: 1, returnedBy: 1 } }).toArray(),
-          sanApproved()]);
+        const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
+        const [base, docs, marks, approved] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+          sanMarksShared(), sanApprovedShared()]);
         return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved };
       },
     });
@@ -3754,6 +3804,7 @@ app.post('/api/my-sanitization/mark', requireRole('user'), async (req, res) => {
         return { docs, report: sanLiveReport(base, approved), stamp: data.stamp };
       },
     });
+    _sanReads.bump();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization mark error:', e && (e.stack || e.message));
@@ -3770,7 +3821,7 @@ app.get('/api/resolved-errors', requireRole('user'), async (req, res) => {
     const out = await resolvedErrors.handle(req.query || {}, {
       user: req.user,
       load: async () => {
-        const [data, resNames, approved] = await Promise.all([eirDataStamp(), sanResNames(), sanApproved()]);
+        const [data, resNames, approved] = await Promise.all([eirDataStamp(), sanResNames(), sanApprovedShared()]);
         const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID), approved);
         return { report, asOf: data.stamp || report.computedAt };
       },
@@ -3792,6 +3843,7 @@ app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) 
       marksColl: await getCollection(COLLECTIONS.sanitizationMarks),
       exclColl: await getCollection(COLLECTIONS.sanitizationExcluded),
     });
+    _sanReads.bump();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization error-review error:', e && (e.stack || e.message));
@@ -3801,6 +3853,7 @@ app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) 
 app.post('/api/my-sanitization/restore', requireSanOwner, async (req, res) => {
   try {
     const out = await sanAssign.handleRestore(req.body, { user: req.user, exclColl: await getCollection(COLLECTIONS.sanitizationExcluded) });
+    _sanReads.bump();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization restore error:', e && (e.stack || e.message));
@@ -3833,10 +3886,14 @@ app.post('/api/sanitization-update', requireSanOwner, async (req, res) => {
       invalidateReportCache();
       _aaResCache = { key: null, at: 0, rows: null };
       const liveQ = await liveQuarterId();
-      recomputeRollup(liveQ).catch(e => console.error('rollup recompute after sanitization update failed:', e && e.message));
-      recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after sanitization update failed:', e && e.message));
-      recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after sanitization update failed:', e && e.message));
-      recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after sanitization update failed:', e && e.message));
+      const jobs = [
+        recomputeRollup(liveQ).catch(e => console.error('rollup recompute after sanitization update failed:', e && e.message)),
+        recomputeAgentRollups(liveQ).catch(e => console.error('agent rollup recompute after sanitization update failed:', e && e.message)),
+        recomputeGroupRollup(liveQ).catch(e => console.error('group rollup recompute after sanitization update failed:', e && e.message)),
+        recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after sanitization update failed:', e && e.message)),
+      ];
+      // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
+      Promise.allSettled(jobs).then(() => sanWarm('sanitization update'));
     }
   } catch (e) {
     console.error('sanitization-update error:', e && (e.stack || e.message));
@@ -9480,6 +9537,7 @@ app.put('/api/resolution-groups', requireFlag('canGroupingPage'), async (req, re
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('PHD API listening on port ' + PORT);
+  sanWarm('boot');   // build the shared sanitization report in the background (cold cache after a deploy)
   // One-time seed of the former hard-coded PHD Wiki / PHD Mitigation Matrix tiles as external links
   // owned by harisss (idempotent via a marker doc; a failure never blocks start-up).
   (async () => {
