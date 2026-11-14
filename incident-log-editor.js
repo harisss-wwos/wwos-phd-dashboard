@@ -2771,6 +2771,12 @@ function _ilCmtErr(msg){
   var el=document.getElementById('ilCmtErr'); if(!el) return;
   el.textContent=msg||''; el.hidden=!msg;
 }
+// Reset the modal body's scroll to the top so the Comments / Title area is what the user sees
+// first on open, never a leftover scroll position on the SIM / PHD sections further down.
+function _ilScrollBodyTop(){
+  var body=document.querySelector('#incidentModal .ail-body'); if(!body) return;
+  body.scrollTop=0;
+}
 // Called whenever the editor opens for a ticket (ilSetTitleCopyId).
 function _ilCmtSync(sid){
   var sec=document.getElementById('ilCmts');
@@ -2781,8 +2787,9 @@ function _ilCmtSync(sid){
       var ta=document.getElementById('ilCmtText');
       if(ta && sid!==_ilCmtSid) ta.value='';   // keep a draft only when reopening the same ticket
       _ilCmtErr('');
-      ilCmtsToggle(false);   // collapsed (last-comment preview) every time the editor opens
-      ilCmtLoadInto(document.getElementById('ilCmtList'),sid,false);
+      ilCmtsToggle(true);   // expanded every time the editor opens (user can collapse it afterwards)
+      ilCmtLoadInto(document.getElementById('ilCmtList'),sid,true);
+      _ilScrollBodyTop();   // show the Comments/Title area first, regardless of a previous scroll
     }
   }
   _ilCmtSid=sid;
@@ -3582,8 +3589,9 @@ var IncidentLogEditor=(function(){
       var open=getComputedStyle(node).display!=='none';
       if(open && !_ilLock){
         _ilBodyLock(true);
+        _ilScrollBodyTop();   // open at the top (Comments/Title in view), not a leftover scroll
         var raf=window.requestAnimationFrame||function(f){ return setTimeout(f,16); };
-        raf(function(){ if(_ilLock) ilAutosizeAll(); });
+        raf(function(){ if(_ilLock){ ilAutosizeAll(); _ilScrollBodyTop(); } });
       } else if(!open) _ilBodyLock(false);
     };
     new MutationObserver(sync).observe(node,{attributes:true, attributeFilter:['style','class','hidden']});
