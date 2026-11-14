@@ -407,11 +407,11 @@ var IL_INVEST_QS=[
     aliases:['AUSTIN Investigation Findings (Only for DA)','AUSTIN Investigation Findings (DA)'],
     sub:{key:'austinInfo', label:'AUSTIN Investigation', type:'textarea', rows:5, placeholder:'IF_APPLICABLE'}},
   // petOnly: shown only for a pet incident (ilIsPetIncident; see _ilqRegionHidden).
-  {key:'petRisk',label:'GeoStudio Dog Risk Level Updated (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
+  {key:'petRisk',label:'GeoStudio Dog Risk Level Updated', type:'select', opts:['No','Yes'], petOnly:true,
     aliases:['GeoStudio Dog Risk Level Updated','GeoStudio Dog Risk Level']},
-  {key:'pawLink',label:'Paw Print SIM Link Present (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
+  {key:'pawLink',label:'Paw Print SIM Link Present', type:'select', opts:['No','Yes'], petOnly:true,
     aliases:['Paw Print SIM Link Present','Paw Print SIM Link']},
-  {key:'vacc',   label:'Vaccination Records received from POI (Only for Pet incidents)', type:'select', opts:['No','Yes'], petOnly:true,
+  {key:'vacc',   label:'Vaccination Records received from POI', type:'select', opts:['No','Yes'], petOnly:true,
     aliases:['Vaccination Records received from POI','Vaccination Records']}
 ];
 // "Is POI the CX" = IL_POI_CM -> these questions (and their sub-questions) are hidden in the form and
@@ -1360,6 +1360,45 @@ var _ilLayout='default';
 var _ilSecShown={};   // id -> true once shown (sticky for the open editor)
 var _ilTitleShown=false;   // default layout: Title + Severity row shown (sticky for the open editor)
 var _ilTitleLastKey=null;
+// ---- Attention blink: Title / SIM Issue / SIM Res blink CONTINUOUSLY while filled (ail-blink). ----
+// Each of the three fields blinks (infinite orange pulse) whenever it currently holds a non-empty
+// value, and stops only when the field is emptied. The class is toggled purely on the current value,
+// re-evaluated on load, on change, on import and after save, so it keeps blinking after a Save and
+// regardless of how the value was set. _ilBlinkSync is called after SIM edits (ilSimChanged) and
+// after the Title recompute (_ilTitleSync); it is idempotent.
+var _ilBlinkArmed=true;   // retained for call-site compatibility; continuous blink no longer gates on it
+// Start the continuous pulse on el (idempotent: does not restart a running animation).
+function _ilBlink(el){
+  if(!el) return;
+  clearTimeout(el._ilBlinkT);
+  el.classList.add('ail-blink');
+}
+// Stop the pulse on el and restore the normal style.
+function _ilBlinkStop(el){
+  if(!el) return;
+  clearTimeout(el._ilBlinkT);
+  el.classList.remove('ail-blink');
+}
+// Toggle the continuous blink on each of the three fields by its current value: blink while non-empty,
+// stop when empty. force is accepted for call-site compatibility but no longer changes behaviour.
+function _ilBlinkSync(force){
+  if(typeof document==='undefined') return;
+  var sim=_ilsRead ? _ilsRead() : {};
+  var out=document.getElementById('ilSimTitleOut');
+  var cur={
+    Issue: String(sim.Issue==null?'':sim.Issue).trim(),
+    Res:   String(sim.Res==null?'':sim.Res).trim(),
+    Title: out ? String(out.value||'').trim() : ''
+  };
+  var targets={
+    Issue: document.querySelector('#ilSimForm .ail-scell-Issue'),
+    Res:   document.querySelector('#ilSimForm .ail-scell-Res'),
+    Title: out ? out.closest('.ail-field') : null
+  };
+  ['Issue','Res','Title'].forEach(function(k){
+    if(cur[k]) _ilBlink(targets[k]); else _ilBlinkStop(targets[k]);
+  });
+}
 function _ilOptSecs(){ return [{id:'ilPhdFindings', label:'PHD Findings'}].concat(IL_EXTRA_SECS.map(function(x){ return {id:x.id, label:x.label}; }), [{id:'ilPhdNotes', label:'PHD Notes'}]); }
 function _ilWrapOf(id){ var el=document.getElementById(id); return el ? el.closest('.ail-field') : null; }
 // mode: 'default' | 'full' (also used by the whole-log Import).
@@ -1414,6 +1453,7 @@ function _ilTitleSync(force){
   _ilTitleLastKey=key;
   out.value=ilCopySimTitle(IL_TICKET_COUNTRY, s, _ilSev);
   var b=document.querySelector('.ail-fcopy[data-for="ilSimTitleOut"]'); if(b) b.disabled=!out.value;
+  _ilBlinkSync();   // Title pulses when its value is newly filled / changed (armed by a user edit)
 }
 // Read-only PHD SIM (= the copy's PHD Related Link) and EMT Link rows.
 // EMT Link (complete layout): a known EMT link (saved / imported / found in a section) is shown
@@ -1579,15 +1619,22 @@ var IL_RAISE_EXCL_URL='https://sim.amazon.com/issues/create?template=095661d0-de
 var IL_RAISE_EXCL_COUNTRIES=['US','CA'];
 var _ilToolsOn=false;
 // Short coloured monogram per tool label (decorative; k = colour class suffix, also the tool's
-// stable id for the saved multi-open selection).
-var IL_TOOL_MONO={'AM Console (ID/Email)':{t:'AM',k:'am'}, 'CLEAR':{t:'CL',k:'cl'}, 'Cortex':{t:'CX',k:'cx'},
-  'GeoStudio':{t:'GS',k:'gs'}, 'Station Command Center (SCC)':{t:'SCC',k:'scc'}, 'Raise Exclusion':{t:'RE',k:'re'}};
+// stable id for the saved multi-open selection; s = short visible name, the full label stays in
+// title / aria-label).
+var IL_TOOL_MONO={'AM Console (ID/Email)':{t:'AM',k:'am',s:'AM Console'}, 'CLEAR':{t:'CL',k:'cl'}, 'Cortex':{t:'CX',k:'cx'},
+  'GeoStudio':{t:'GS',k:'gs'}, 'Station Command Center (SCC)':{t:'SCC',k:'scc',s:'SCC'}, 'Raise Exclusion':{t:'RE',k:'re'}};
+// Action tools (raise something rather than look something up): divider before + rose accent.
+var IL_TOOL_ACTIONS=['re'];
 // Ticked tools per region: localStorage[IL_TOOLS_SEL_KEY+cc] = JSON array of tool ids (e.g. ["cx","gs"]).
 var IL_TOOLS_SEL_KEY='phdIlToolsSel.';
 var IL_TOOLS_BLOCKED_MSG='Your browser blocked some tabs. Allow pop-ups for this site to open them all.';
 var _ilToolsCc='', _ilToolsLinks=[], _ilToolsSel=[];
 // Small "external link" arrow (same stroke style as icons.js).
 var IL_TOOL_EXT_SVG='<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7"/><polyline points="8 7 17 7 17 16"/></svg>';
+// White tick inside the custom check box (shown when the hidden checkbox is checked).
+var IL_TOOL_TICK_SVG='<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="2.5 6.3 5 8.7 9.5 3.6"/></svg>';
+// "Open selected" button icon (box + outgoing arrow).
+var IL_TOOLS_OPEN_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
 // Pure: [{label,url}] for a ticket country code ([] when the country has no tools).
 function ilToolLinks(cc){
   cc=String(cc||'').toUpperCase(); cc=IL_TOOLS_ALIAS[cc]||cc;
@@ -1602,19 +1649,23 @@ function ilToolLinks(cc){
 }
 function ilToolId(label){ var m=IL_TOOL_MONO[label]; return m ? m.k : String(label||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
 function ilToolsBtnLabel(n){ return 'Open Selected Tools ('+(n|0)+')'; }
-// Pure: pills for #ilToolsList. Each pill = [checkbox (selects, never navigates)] [link (opens one tool)].
+// Pure: chips for #ilToolsList. Each chip = [check area: visually hidden native checkbox + custom
+// box (selects, never navigates)] | [link: monogram + short name (opens one tool)]. Action tools
+// (IL_TOOL_ACTIONS) get a divider before them and the .ail-tool-act accent.
 function ilToolsListHtml(links,sel){
   sel=sel||[];
+  var sep=false;
   return (links||[]).map(function(x){
     var m=IL_TOOL_MONO[x.label]||{t:x.label.charAt(0), k:'x'}, id=ilToolId(x.label), on=sel.indexOf(id)>=0;
-    return '<span class="ail-tool'+(on?' is-sel':'')+'" data-il-tool="'+_ileEsc(id)+'">'+
-      '<label class="ail-tool-ck"><input type="checkbox" data-il-tool-ck="'+_ileEsc(id)+'"'+(on?' checked':'')+'>'+
-        '<span class="ail-sr">Select '+_ileEsc(x.label)+'</span></label>'+
-      '<a class="ail-tool-a" href="'+_ileEsc(x.url)+'" target="_blank" rel="noopener noreferrer" title="'+_ileEsc(x.label+' - opens in a new tab (Ctrl+click to stay on this page)')+'">'+
+    var act=IL_TOOL_ACTIONS.indexOf(id)>=0, pre='';
+    if(act && !sep){ sep=true; pre='<span class="ail-tools-sep" aria-hidden="true"></span>'; }
+    return pre+'<span class="ail-tool'+(act?' ail-tool-act':'')+(on?' is-sel':'')+'" data-il-tool="'+_ileEsc(id)+'">'+
+      '<label class="ail-tool-ck" title="'+_ileEsc('Select '+x.label)+'"><input type="checkbox" data-il-tool-ck="'+_ileEsc(id)+'"'+(on?' checked':'')+' aria-label="'+_ileEsc('Select '+x.label)+'">'+
+        '<span class="ail-tool-box" aria-hidden="true">'+IL_TOOL_TICK_SVG+'</span></label>'+
+      '<a class="ail-tool-a" href="'+_ileEsc(x.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+_ileEsc(x.label+', opens in a new tab')+'" title="'+_ileEsc(x.label+' - opens in a new tab (Ctrl+click to stay on this page)')+'">'+
         '<span class="ail-tool-mono ail-tool-mono-'+m.k+'" aria-hidden="true">'+_ileEsc(m.t)+'</span>'+
-        '<span class="ail-tool-tx">'+_ileEsc(x.label)+'</span>'+
-        '<span class="ail-tool-ext" aria-hidden="true">'+IL_TOOL_EXT_SVG+'</span>'+
-        '<span class="ail-sr"> (opens in a new tab)</span></a>'+
+        '<span class="ail-tool-tx" aria-hidden="true">'+_ileEsc(m.s||x.label)+'</span>'+
+        '<span class="ail-tool-ext" aria-hidden="true">'+IL_TOOL_EXT_SVG+'</span></a>'+
     '</span>';
   }).join('');
 }
@@ -1650,7 +1701,10 @@ function _ilToolsNote(msg){ var el=document.getElementById('ilToolsNote'); if(el
 // Button label / disabled state, Clear visibility and each pill's highlight follow _ilToolsSel.
 function _ilToolsSelSync(){
   var n=_ilToolsSel.length, btn=document.getElementById('ilToolsOpen'), clr=document.getElementById('ilToolsClr');
-  if(btn){ btn.textContent=ilToolsBtnLabel(n); btn.disabled=!n; }
+  if(btn){
+    btn.setAttribute('aria-label', ilToolsBtnLabel(n)); btn.disabled=!n;
+    var cnt=document.getElementById('ilToolsN'); if(cnt) cnt.textContent=String(n);
+  }
   if(clr) clr.hidden=!n;
   var list=document.getElementById('ilToolsList');
   if(list && list.querySelectorAll){
@@ -1684,6 +1738,11 @@ function _ilToolsBind(box){
   box.addEventListener('change', function(e){
     var t=e.target, id=t && t.getAttribute && t.getAttribute('data-il-tool-ck'); if(id!=null) _ilToolsToggle(id, !!t.checked);
   });
+  // Space toggles a checkbox natively; Enter does too here (same as a click -> 'change').
+  box.addEventListener('keydown', function(e){
+    var t=e.target;
+    if(e.key==='Enter' && t && t.getAttribute && t.getAttribute('data-il-tool-ck')!=null){ e.preventDefault(); t.click(); }
+  });
   box.addEventListener('click', function(e){
     var t=e.target && e.target.closest ? e.target.closest('[data-il-tools-act]') : null; if(!t) return;
     var a=t.getAttribute('data-il-tools-act');
@@ -1706,6 +1765,7 @@ function _ilToolsSync(){
   var saved=links.length ? _ilToolsLoadSel(cc) : [];
   _ilToolsSel=links.map(function(x){ return ilToolId(x.label); }).filter(function(t){ return saved.indexOf(t)>=0; });
   list.innerHTML=ilToolsListHtml(links,_ilToolsSel);
+  list.setAttribute('data-n', String(links.length));   // chip count -> narrow-bar grid columns
   _ilToolsNote(''); _ilToolsSelSync();
   box.hidden=!links.length;
 }
@@ -2058,6 +2118,7 @@ function ilSetSim(text){
   if(wrap) wrap.hidden=!_ilsExtra.length;
   var st=document.getElementById('ilsStatus'); if(st){ st.textContent=''; st.hidden=true; }
   _ilsMarkRows();
+  _ilBlinkSync(true);   // load: blink any field that already holds a value (continuous while filled)
   if(document.getElementById('ilPhdInvestigation')) _ilqSyncVisibility();   // Driv: Flex DP hides questions
 }
 // Any SIM control changed: Historical Incidents rows (Cnt), Empty marker / copy state, Flex DP questions.
@@ -2076,6 +2137,7 @@ function ilSimChanged(){
   _ilsSyncHi();
   _ilsMarkRows();
   ilHistSync();
+  _ilBlinkSync();       // Issue / Res blink while filled, stop when emptied (ilMarkEmpty below syncs Title)
   ilMarkEmpty(document.getElementById('ilSimRcd'));
   if(document.getElementById('ilPhdInvestigation')) _ilqSyncVisibility();
 }
@@ -3421,13 +3483,17 @@ var IncidentLogEditor=(function(){
           '</section>'+
           // Per-country tool links (page opt-in via setToolLinksEnabled; filled by _ilToolsSync).
           '<div class="ail-tools" id="ilTools" role="group" aria-label="Tools" hidden>'+
-            '<span class="ail-tools-lbl" aria-hidden="true"><span class="ail-tools-ic">'+_ileIc('tool',13)+'</span>Tools<span class="ail-tools-cc" id="ilToolsCc"></span></span>'+
-            '<span class="ail-tools-list" id="ilToolsList"></span>'+
-            // Right corner: "Open Selected Tools (N)" + Clear (wraps to its own line < 760px).
-            '<span class="ail-tools-end">'+
-              '<button type="button" class="ail-tools-open" id="ilToolsOpen" data-il-tools-act="open" disabled>Open Selected Tools (0)</button>'+
-              '<button type="button" class="ail-tools-clr" id="ilToolsClr" data-il-tools-act="clear" hidden>Clear</button>'+
-            '</span>'+
+            // One row: [Tools + region] [chips] [Clear + Open selected]. Narrow bars (container
+            // query) put the actions on the label's line and the chips in an even grid below.
+            '<div class="ail-tools-row">'+
+              '<span class="ail-tools-lbl" aria-hidden="true"><span class="ail-tools-ic">'+_ileIc('tool',13)+'</span>Tools<span class="ail-tools-cc" id="ilToolsCc"></span></span>'+
+              '<span class="ail-tools-list" id="ilToolsList"></span>'+
+              '<span class="ail-tools-end">'+
+                '<button type="button" class="ail-tools-clr" id="ilToolsClr" data-il-tools-act="clear" hidden>Clear</button>'+
+                '<button type="button" class="ail-tools-open" id="ilToolsOpen" data-il-tools-act="open" aria-label="Open Selected Tools (0)" disabled>'+
+                  IL_TOOLS_OPEN_SVG+'<span aria-hidden="true">Open selected</span><span class="ail-tools-n" id="ilToolsN" aria-hidden="true">0</span></button>'+
+              '</span>'+
+            '</div>'+
             '<p class="ail-tools-note" id="ilToolsNote" role="status" aria-live="polite"></p>'+
           '</div>'+
           '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
@@ -3590,6 +3656,11 @@ var IncidentLogEditor=(function(){
     '.ail-field .ail-qn textarea.ail-qta{display:block;width:100%;height:auto;min-height:calc(5 * 1.4em + 14px);max-height:calc(16 * 1.4em + 14px);resize:vertical;overflow-y:auto;white-space:pre-wrap}',
     '.ail-qrow.ail-flash,.ail-field.ail-flash{animation:ailFlash 1.8s ease-out}',
     '@keyframes ailFlash{0%,40%{background:rgba(236,114,17,.16);box-shadow:0 0 0 2px rgba(236,114,17,.45)}100%{background:transparent;box-shadow:none}}',
+    // Attention blink (Title / SIM Issue / SIM Res, see _ilBlink): continuous orange pulse that runs
+    // forever while the field holds a value, so it keeps blinking after a Save. The class is toggled
+    // on/off by the field's current value (_ilBlinkSync), not by animationend, so the field stays usable.
+    '.ail-field.ail-blink,.ail-scell.ail-blink{animation:ailBlink 1.3s ease-in-out infinite}',
+    '@keyframes ailBlink{0%,100%{background:transparent;box-shadow:none}50%{background:rgba(236,114,17,.2);box-shadow:0 0 0 2px rgba(236,114,17,.55)}}',
     // "Some fields are empty" confirmation pop-up (stacks above the editor dialog).
     // Same width as the incident-log modal (90vw; 96vw under 700px). ilCopyConfirm also pins it to
     // the modal's rendered width. The list scrolls inside the 80vh cap.
@@ -3737,23 +3808,44 @@ var IncidentLogEditor=(function(){
     '#incidentModal button.ail-addsec-btn:hover{border-color:#1577a0;background:rgba(21,119,160,.06)}',
     '#incidentModal button.ail-addsec-btn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
     // Tools row (below Comments): quick-links toolbar in a tinted panel (same frame as the Comments bar,
-    // orange accent). Label = icon + "Tools" + country chip; links = monogram + label + external arrow.
-    '.ail-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;flex-shrink:0;margin:0 0 14px;padding:8px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#f7f9fb}',
+    // orange accent, white panel). [Tools + region chip] [tool chips] [Clear + Open selected] on one
+    // row; chip = [custom check | monogram + short name]; .is-sel = ticked for "Open selected".
+    '.ail-tools{container-type:inline-size;flex-shrink:0;margin:0 0 14px;padding:10px 12px;border:1px solid #e3e8ee;border-left:3px solid #ec7211;border-radius:10px;background:#fff}',
     '.ail-tools[hidden],.ail-tools-cc[hidden]{display:none!important}',
-    '.ail-tools-list{display:contents}',
-    '.ail-tools-lbl{display:inline-flex;align-items:center;gap:6px;margin-right:4px;font-size:.78em;font-weight:800;color:#1b2026;white-space:nowrap}',
+    '.ail-tools-row{display:flex;align-items:center;gap:8px}',
+    '.ail-tools-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1 1 auto;min-width:0}',
+    '.ail-tools-lbl{display:inline-flex;align-items:center;gap:6px;flex:none;margin-right:4px;font-size:.78em;font-weight:800;color:#1b2026;white-space:nowrap}',
     '.ail-tools-ic{display:inline-flex;color:#ec7211}',
-    '.ail-tools-cc{display:inline-block;padding:0 6px;border:1px solid #d4dce4;border-radius:999px;background:#fff;color:#4a5560;font-size:.9em;font-weight:700;letter-spacing:.04em;line-height:1.6}',
-    // Pill = [checkbox label] [link]; .is-sel = ticked for "Open Selected Tools".
-    '.ail-tool{display:inline-flex;align-items:stretch;box-sizing:border-box;height:30px;margin:0;border:1px solid #d4dce4;border-radius:8px;background:#fff;box-shadow:0 1px 1px rgba(16,24,40,.04);transition:border-color .12s,background-color .12s,box-shadow .12s}',
-    '.ail-tool:hover{border-color:#ec7211;background:#fffaf5;box-shadow:0 1px 3px rgba(236,114,17,.18)}',
-    '.ail-tool.is-sel{border-color:#ec7211;background:#fff1e3;box-shadow:inset 0 0 0 1px #ec7211}',
-    '.ail-tool-ck{display:inline-flex;align-items:center;padding:0 2px 0 7px;cursor:pointer}',
-    '#incidentModal .ail-tool-ck input[type=checkbox]{width:14px;height:14px;margin:0;accent-color:#ec7211;cursor:pointer}',
-    '#incidentModal .ail-tool-ck input[type=checkbox]:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
-    '#incidentModal a.ail-tool-a{display:inline-flex;align-items:center;gap:6px;margin:0;padding:0 9px 0 4px;border-radius:0 7px 7px 0;color:#1b2026!important;font-family:inherit;font-size:.78em;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}',
+    '.ail-tools-cc{display:inline-flex;align-items:center;height:20px;padding:0 6px;box-sizing:border-box;border:1px solid #e3e8ee;border-radius:5px;background:#f7f9fb;color:#4a5560;font-size:.92em;font-weight:700;letter-spacing:.04em;line-height:1}',
+    '.ail-tools-sep{flex:none;width:1px;height:20px;margin:0 2px;background:#d4dce4}',
+    '.ail-tool{display:inline-flex;align-items:stretch;box-sizing:border-box;height:32px;margin:0;border:1px solid #dfe5eb;border-radius:7px;background:#fff;overflow:hidden;transition:border-color .12s,background-color .12s}',
+    '.ail-tool:hover{border-color:#c3ccd5}',
+    '.ail-tool.is-sel{border-color:#ec7211;background:#fff4ea}',
+    // Check area (select): hidden native checkbox stretched over it + 14px custom box; divider on the right.
+    '.ail-tool-ck{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;margin:0;border-right:1px solid #eef1f4;cursor:pointer;transition:background-color .12s}',
+    '.ail-tool-ck:hover{background:#fff4ea}',
+    '.ail-tool.is-sel .ail-tool-ck{border-right-color:#f7cfae}',
+    '.ail-tool.is-sel .ail-tool-ck:hover{background:#ffe8d4}',
+    '#incidentModal .ail-tool-ck input[type=checkbox]{position:absolute;top:0;left:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none}',
+    '.ail-tool-box{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;box-sizing:border-box;border:1.5px solid #9aa5b1;border-radius:4px;background:#fff;color:#fff;pointer-events:none;transition:background-color .12s,border-color .12s}',
+    '.ail-tool-box svg{opacity:0}',
+    '.ail-tool-ck:hover .ail-tool-box{border-color:#ec7211}',
+    '#incidentModal .ail-tool-ck input[type=checkbox]:checked+.ail-tool-box{border-color:#ec7211;background:#ec7211}',
+    '#incidentModal .ail-tool-ck input[type=checkbox]:checked+.ail-tool-box svg{opacity:1}',
+    '#incidentModal .ail-tool-ck input[type=checkbox]:focus-visible+.ail-tool-box{outline:2px solid #1577a0;outline-offset:2px}',
+    // Open area (link): monogram + short name; the arrow only shows on hover / focus.
+    '#incidentModal a.ail-tool-a{display:inline-flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;margin:0;padding:0 8px 0 7px;color:#1b2026!important;font-family:inherit;font-size:.78em;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap;transition:background-color .12s}',
+    '#incidentModal a.ail-tool-a:hover{background:#f5f7f9}',
+    '#incidentModal .ail-tool.is-sel a.ail-tool-a:hover{background:#ffe8d4}',
     '#incidentModal a.ail-tool-a:focus-visible{outline:2px solid #1577a0;outline-offset:-2px}',
-    '.ail-tool-mono{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:5px;font-size:.82em;font-weight:800;letter-spacing:.02em}',
+    '.ail-tool-tx{min-width:0;overflow:hidden;text-overflow:ellipsis}',
+    // Action tool (Raise Exclusion): rose accent; the selected state stays orange like the rest.
+    '.ail-tool.ail-tool-act:not(.is-sel){border-color:#f2c6bf}',
+    '.ail-tool.ail-tool-act:not(.is-sel):hover{border-color:#e39a8f}',
+    '#incidentModal .ail-tool-act a.ail-tool-a{color:#8f1d0e!important}',
+    '#incidentModal .ail-tool-act:not(.is-sel) a.ail-tool-a:hover{background:#fdf1ef}',
+    '.ail-tool-act:not(.is-sel) .ail-tool-ck{border-right-color:#f8dfdb}',
+    '.ail-tool-mono{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:22px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:4px;font-size:.82em;font-weight:800;letter-spacing:.02em}',
     '.ail-tool-mono-am{background:#fdebd9;color:#8a4100}',
     '.ail-tool-mono-cl{background:#e6eefc;color:#1d4ed8}',
     '.ail-tool-mono-cx{background:#efe7fb;color:#6b2fb3}',
@@ -3761,20 +3853,33 @@ var IncidentLogEditor=(function(){
     '.ail-tool-mono-scc{background:#e3f1f7;color:#0f5f80}',
     '.ail-tool-mono-re{background:#fde8e6;color:#a8200d}',
     '.ail-tool-mono-x{background:#eef1f4;color:#4a5560}',
-    '.ail-tool-ext{display:inline-flex;color:#5c6773}',
-    '#incidentModal a.ail-tool-a:hover .ail-tool-ext,#incidentModal a.ail-tool-a:focus-visible .ail-tool-ext{color:#ec7211}',
-    // Right corner group: hint, "Open Selected Tools (N)" (disabled at 0), Clear. Own line < 760px.
-    '.ail-tools-end{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 10px;margin-left:auto;padding-left:8px}',
-        '#incidentModal button.ail-tools-open{display:inline-flex;align-items:center;height:30px;margin:0;padding:0 12px!important;border:1px solid #232f3e!important;border-radius:8px!important;background:#232f3e!important;color:#fff!important;font-family:inherit;font-size:.78em;font-weight:800;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:none}',
-    '#incidentModal button.ail-tools-open:hover:not(:disabled){background:#131a2a!important}',
-    '#incidentModal button.ail-tools-open:disabled{border-color:#d4dce4!important;background:#eef1f4!important;color:#5c6773!important;cursor:not-allowed}',
+    '.ail-tool-ext{display:inline-flex;flex:none;margin-left:-2px;color:#ec7211;opacity:0;transition:opacity .12s}',
+    '#incidentModal a.ail-tool-a:hover .ail-tool-ext,#incidentModal a.ail-tool-a:focus-visible .ail-tool-ext{opacity:1}',
+    // Right end: Clear (only when N > 0) + "Open selected [N]" (orange primary; quiet ghost at 0).
+    '.ail-tools-end{display:inline-flex;align-items:center;justify-content:flex-end;gap:10px;flex:none;margin-left:auto;padding-left:4px}',
+    '#incidentModal button.ail-tools-open{display:inline-flex;align-items:center;gap:6px;height:32px;margin:0;padding:0 8px 0 11px!important;border:1px solid #ec7211!important;border-radius:7px!important;background:#ec7211!important;color:#fff!important;font-family:inherit;font-size:.78em;font-weight:800;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:none;transition:background-color .12s,border-color .12s,color .12s}',
+    '#incidentModal button.ail-tools-open:hover:not(:disabled){border-color:#d9650c!important;background:#d9650c!important}',
+    '#incidentModal button.ail-tools-open:disabled{border-color:#e3e8ee!important;background:#fff!important;color:#6b7682!important;cursor:default}',
+    '.ail-tools-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:#fff;color:#b45309;font-size:.92em;font-weight:800}',
+    '#incidentModal button.ail-tools-open:disabled .ail-tools-n{background:#eef1f4;color:#6b7682}',
     '#incidentModal button.ail-tools-clr{margin:0;padding:2px 2px!important;border:0!important;background:none!important;color:#1577a0!important;font-family:inherit;font-size:.76em;font-weight:700;text-decoration:underline;cursor:pointer;box-shadow:none}',
     '#incidentModal button.ail-tools-clr[hidden]{display:none!important}',
     '#incidentModal button.ail-tools-open:focus-visible,#incidentModal button.ail-tools-clr:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
-    '#incidentModal p.ail-tools-note{flex:1 0 100%;margin:0;font-size:.76em;font-weight:600;color:#8a4100!important}',
+    '#incidentModal p.ail-tools-note{margin:8px 0 0;font-size:.76em;font-weight:600;color:#8a4100!important}',
     '#incidentModal p.ail-tools-note:empty{display:none}',
-    '@media (max-width:759.98px){.ail-tools-end{flex:1 0 100%;justify-content:flex-start;margin-left:0;padding-left:0}}',
-    '@media (prefers-reduced-motion:reduce){.ail-tool{transition:none}}',
+    // Narrow bar: actions share the label's line (never alone), chips form an even grid below
+    // (6 chips -> 3x2 / 2x3; 4 -> one row / 2x2), so no chip is left on a row by itself.
+    '@container (max-width:980px){'+
+      '.ail-tools-row{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"lbl end" "list list";align-items:center;gap:8px}'+
+      '.ail-tools-lbl{grid-area:lbl}'+
+      '.ail-tools-end{grid-area:end}'+
+      '.ail-tools-list{grid-area:list;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}'+
+      '.ail-tools-list[data-n="6"]{grid-template-columns:repeat(3,minmax(0,1fr))}'+
+      '.ail-tools-sep{display:none}'+
+      '.ail-tool{width:100%}'+
+    '}',
+    '@container (max-width:520px){.ail-tools-list[data-n="4"],.ail-tools-list[data-n="6"]{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+    '@media (prefers-reduced-motion:reduce){.ail-tool,.ail-tool-ck,.ail-tool-box,.ail-tool-ext,#incidentModal a.ail-tool-a,#incidentModal button.ail-tools-open{transition:none}}',
     '.ail-optag,.ail-ro-pill{display:inline-block;font-size:.84em;font-weight:600;color:#5c6773;background:#f3f5f7;border:1px solid #e3e8ee;border-radius:999px;padding:0 8px;line-height:1.5;white-space:nowrap}',
     // Title block: [Title (rest of the width)] [Severity label + 1..5 (nowrap)] on one row; stacked < 760px.
     '.ail-titleblk{display:flex;align-items:center;gap:8px 16px;margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fffaf5}',
@@ -3854,6 +3959,8 @@ var IncidentLogEditor=(function(){
     '.ilv-modal .ilv-cmts{margin:0 0 16px;padding:10px 12px;border:1px solid #e3e8ee;border-left:3px solid #1577a0;border-radius:12px;background:#fff}',
     '.ilv-modal .ilv-cmts[hidden]{display:none!important}',
     '@media (max-width:519.98px){.ail-cmts-row{flex-direction:column;align-items:stretch}}',
+    // Reduced-motion: suppress the other animations, but per explicit request the three target blink
+    // fields (.ail-blink) keep blinking unconditionally, so they are intentionally NOT listed here.
     '@media (prefers-reduced-motion:reduce){.ail-qsub,.ail-qrev{animation:none}.ail-qrow.ail-flash,.ail-field.ail-flash{animation:none;outline:2px solid #ec7211}}'
   ].join('\n');
   function injectQnStyles(){
