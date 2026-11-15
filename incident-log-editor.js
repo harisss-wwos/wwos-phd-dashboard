@@ -379,7 +379,7 @@ var IL_INVEST_QS=[
   {key:'locEmt', label:'Location Historical incidents in EMT records (Physical address)', type:'number',
     importAliases:['Historical Incidents at Physical Address','Historical Incidents at the Physical Address','Location Historical incidents in EMT']},
   // usCa: asked only for US / CA tickets (ilSetTicketRegion); see _ilqRegionHidden.
-  {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','Yes (low level offense)','N/A'], usCa:true,
+  {key:'clear',  label:'CLEAR history of POI (Any violent/related charges exists?)', type:'select', opts:['No','Yes','Yes (low level offense)','Yes (Dated older than 10 years)','N/A'], usCa:true,
     importAliases:['CLEAR POI History','CLEAR History of POI','CLEAR History']},
   // noFlex: also hidden when the SIM "Driv:" is Flex DP (see _ilqRegionHidden).
   {key:'station',label:'Station request made', type:'select', opts:['No','Yes'], usCa:true, noFlex:true,
