@@ -429,6 +429,20 @@ function _ilqPoiHidden(q,a){ return IL_POI_CM_HIDE.indexOf(q.key)>=0 && String((
 function _ilqRegionHidden(q,ro){
   return !!((q.usCa && ro && ro.usca===false) || (q.noFlex && ro && ro.flex===true) || (q.petOnly && ro && ro.pet===false));
 }
+// Root Cause "Customer Service Escalation" -> the questionnaire asks ONLY IL_CS_ONLY (and the POI
+// free-text that belongs to "Is POI the CX"). Every other question (+ its sub-question) is hidden in
+// the form and left out of the serialized section / copy check, exactly like the Community Member POI
+// rule above; their values stay in the controls for the session, so switching the Root Cause back
+// restores them. ro.rootCause = the form's Root Cause value (no ro / empty -> nothing hidden).
+var IL_CS_ESC='Customer Service Escalation';
+var IL_CS_ONLY=['dup','poi','susp','histCx'];
+// True when the given Root Cause value is "Customer Service Escalation" (trimmed, case-insensitive).
+function ilIsCsEsc(rootCause){ return String(rootCause==null?'':rootCause).trim().toLowerCase()===IL_CS_ESC.toLowerCase(); }
+// True if question q (or, for a sub-question def, its parent) is hidden by the CSE root cause.
+function _ilqCsHidden(q,ro){
+  if(!(ro && ilIsCsEsc(ro.rootCause))) return false;
+  return IL_CS_ONLY.indexOf(q.key)<0;
+}
 // Pet incident rule (same order and keywords as Page ZERO's classifyTicket, server/page-zero.js):
 //   1. the SIM Root Cause Details "Issue:" value is one of the Issue Types "Pet" category
 //      (IZ_CATS: Attack w/pet, Unsecured pet - bite/injury / evasion injury / no contact) or contains a
@@ -588,6 +602,7 @@ function ilSerializeInvestigation(answers,unknown,ro){
     for(var i=1;i<ls.length;i++) lines.push(ls[i] ? IL_INVEST_CONT_INDENT+ls[i] : '');
   };
   IL_INVEST_QS.forEach(function(q){
+    if(_ilqCsHidden(q,ro)) return;   // Customer Service Escalation -> only IL_CS_ONLY gets a line
     if(_ilqRegionHidden(q,ro)){   // not a US / CA ticket (or Flex DP) -> no line, except saved answers kept as-is
       if(kept[q.key] && kept[q.key].length){ any=true; lines.push.apply(lines, kept[q.key]); }
       return;
@@ -609,7 +624,7 @@ function ilInvestMissing(answers,ro){
   var a=answers||{}, miss=[];
   var val=function(k){ return String(a[k]==null?'':a[k]).trim(); };
   IL_INVEST_QS.forEach(function(q){
-    if(_ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;   // hidden questions are not required
+    if(_ilqCsHidden(q,ro) || _ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;   // hidden questions are not required
     if(q.type==='check') return;                                // a checkbox is never "missing"
     var v=val(q.key);
     if(q.type==='number' ? !/^\d+$/.test(v) : !v) miss.push(q.key);
@@ -633,7 +648,7 @@ function ilInvestDecidedFromSaved(text){
 function ilInvestDefaultKeys(decided,answers,ro){
   var d=decided||{}, a=answers||{}, out=[];
   IL_INVEST_QS.forEach(function(q){
-    if(_ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;
+    if(_ilqCsHidden(q,ro) || _ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;
     if(_ilqDefaultable(q) && !d[q.key]) out.push(q.key);
     if(_ilqSubShown(q,a) && _ilqDefaultable(q.sub) && !d[q.sub.key]) out.push(q.sub.key);
   });
@@ -2348,7 +2363,7 @@ function ilLogImportClose(apply){
     }
     // Root Cause: exact match only; otherwise left as it is.
     var rc=document.getElementById('ilRootCause');
-    if(rc && r.rootCause.value){ rc.value=r.rootCause.value; ilRefreshSelectUI(); }
+    if(rc && r.rootCause.value){ rc.value=r.rootCause.value; ilRefreshSelectUI(); ilRootCauseChanged(); }
     // Severity: found in the text -> selected; not found -> a severity already chosen (title / user)
     // stays, otherwise the row is left empty with the amber "Select a severity" mark.
     if(r.severity) ilSetSeverity(r.severity);
@@ -2414,7 +2429,17 @@ function _ilqEl(key){ return document.getElementById('ilq_'+key); }
 function _ilFlexNow(){ var el=document.getElementById('ilSimRcd'); return !!(el && ilIsFlexDriv(el.value)); }
 // pet = the form's SIM "Issue:" (else the ticket title) is a pet incident (ilIsPetIncident).
 function _ilPetNow(){ var el=document.getElementById('ilSimRcd'); return ilIsPetIncident(ilSimIssue(el?el.value:''), IL_TICKET_TITLE); }
-function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), pet:_ilPetNow(), kept:forSave?_ilqKept:null}; }
+// rootCause = the form's Root Cause select (drives the Customer Service Escalation rule).
+function _ilRootCauseNow(){ var el=document.getElementById('ilRootCause'); return el?String(el.value||'').trim():''; }
+function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), pet:_ilPetNow(), rootCause:_ilRootCauseNow(), kept:forSave?_ilqKept:null}; }
+// The Root Cause select changed: re-apply the questionnaire's show/hide rules (the Customer Service
+// Escalation rule narrows it to IL_CS_ONLY). Called from the select's onchange and after an Import
+// sets the value programmatically. Answers stay in their controls, so switching back restores them.
+function ilRootCauseChanged(){
+  if(typeof document==='undefined' || !document.getElementById('ilPhdInvestigation')) return;
+  _ilqSyncVisibility();
+  if(typeof ilUpdateCopyState==='function') ilUpdateCopyState();
+}
 // Every control definition in DOM order (questions, the POI free-text, sub-questions).
 function _ilqAllDefs(){
   var d=[]; IL_INVEST_QS.forEach(function(q){ d.push(q); if(q.poiWho) d.push(q.poiWho); if(q.sub) d.push(q.sub); }); return d;
@@ -2568,8 +2593,11 @@ function _ilqSyncVisibility(){
   var a=_ilqReadAnswers();
   var ro=_ilqRO(false);
   IL_INVEST_QS.forEach(function(q){
-    var row, off=_ilqPoiHidden(q,a) || _ilqRegionHidden(q,ro);
-    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa || q.noFlex || q.petOnly){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
+    var row, off=_ilqPoiHidden(q,a) || _ilqRegionHidden(q,ro) || _ilqCsHidden(q,ro);
+    // Rows that any rule can hide: the Community Member / region / Flex / pet flags, plus — for the
+    // Customer Service Escalation rule — every question outside IL_CS_ONLY (e.g. negFb, which
+    // carries no flag of its own).
+    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa || q.noFlex || q.petOnly || IL_CS_ONLY.indexOf(q.key)<0){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
     if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=(a[q.key]!=='No'); }
     if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=off || !_ilqSubShown(q,a); }
   });
@@ -2854,7 +2882,7 @@ function ilCopyMissingNow(opts){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   ilHistSync(); _ilhCapture();
   return ilCopyMissing({findings:g('ilPhdFindings'), sim:g('ilSimRcd'), histRows:_ilhRows, rootCause:g('ilRootCause'),
-    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd')), pet:_ilPetNow()}, opts||{}));
+    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd')), pet:_ilPetNow(), rootCause:g('ilRootCause')}, opts||{}));
 }
 // True when every field has a value (the questionnaire: every visible question answered).
 function ilAllFilled(){ return ilCopyMissingNow().length===0; }
@@ -3516,7 +3544,7 @@ var IncidentLogEditor=(function(){
             roField('ilPhdSimOut','PHD SIM','ilPhdSimField',true)+emtField()+
           '</div>'+
           // Root Cause: label and dropdown side by side (.ail-field-inline).
-          field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this)"></select>').replace('class="ail-field"','class="ail-field ail-field-inline"')+
+          field('ilRootCause','Root Cause','select','<select id="ilRootCause" onchange="ilMarkEmpty(this);ilRootCauseChanged()"></select>').replace('class="ail-field"','class="ail-field ail-field-inline"')+
           simField()+
           investigationField()+
           // PHD Findings + IL_EXTRA_SECS: optional, hidden until filled / added (no Empty marker).
@@ -4160,5 +4188,6 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
   ilSetTicketRegion:ilSetTicketRegion, ilSetSavedSeverity:ilSetSavedSeverity, ilGetSeverity:ilGetSeverity,
   ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue,
+  ilIsCsEsc:ilIsCsEsc, IL_CS_ESC:IL_CS_ESC, IL_CS_ONLY:IL_CS_ONLY, _ilqCsHidden:_ilqCsHidden,
   ilToolLinks:ilToolLinks, ilToolId:ilToolId, ilToolsListHtml:ilToolsListHtml, ilToolsBtnLabel:ilToolsBtnLabel,
   ilToolsSelectedUrls:ilToolsSelectedUrls, ilToolsOpenUrls:ilToolsOpenUrls, IL_RAISE_EXCL_URL:IL_RAISE_EXCL_URL, IL_TOOLS_SEL_KEY:IL_TOOLS_SEL_KEY };
