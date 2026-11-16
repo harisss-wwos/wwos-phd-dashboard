@@ -1620,10 +1620,13 @@ var IL_GEO_LINKS={
   Canada:'https://na.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgEwAMAOgCMAVj4B2fgDYAnOIDMAFh4AOPjzroYUTDABOLEHCgBzFAFoFAlSplK+QxeKHiV4unAiYUiwSvlCKlIu8iqKIiJS4lQxQA===',
   Europe:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
   India:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
-  APAC:'https://fe.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA=='
+  APAC:'https://fe.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
+  // Egypt has its own link: the EU host with a different saved map state than Europe's, so it is a
+  // separate entry rather than EG:'Europe'.
+  Egypt:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgEwAMAOgCMAVj4B2fgDYAnOIDMAFh4AOPjzroYUTDABOLEHCgBzFAFoFAlSplK+QxeKHiV4unAiYUiwSvlCKlIu8iqKIiJS4lQxQA==='
 };
-// TR is not in Europe; MX, BR, UAE, SA, EG have no GeoStudio region (no button).
-var IL_GEO_REGION={US:'USA', CA:'Canada', IN:'India',
+// TR is not in Europe; MX, BR, UAE and SA have no GeoStudio region (no button).
+var IL_GEO_REGION={US:'USA', CA:'Canada', IN:'India', EG:'Egypt',
   UK:'Europe', IE:'Europe', DE:'Europe', AT:'Europe', LU:'Europe', NL:'Europe', BE:'Europe', FR:'Europe', IT:'Europe', ES:'Europe',
   JP:'APAC', AU:'APAC', SG:'APAC'};
 // CLEAR (Thomson Reuters) for US and CA only: sign-on entry point (no session tracetoken stored).
@@ -2730,6 +2733,34 @@ function _ilCmtWhen(iso){
   try{ return new Date(iso).toLocaleString(); }catch(e){ return String(iso); }
 }
 // Collapsible "Previous comments (N)" (newest first). uid = id of the panel the toggle controls.
+// ---- Comment text: markdown-ish inline formatting (comments only) ----
+// **bold** -> <strong>, *italic* -> <em>, ***both*** -> <em><strong>. Applied ONLY to comments:
+// the saved-log view keeps _ilvLinkify, because a log body legitimately contains "**PHD Findings**:"
+// markers that must stay literal.
+// Safety: the markers are applied to text that _ileEsc has ALREADY escaped (so any user "<" is
+// already "&lt;"), and only <strong>/<em> tags are introduced — the input can never inject HTML.
+// A lone "*" (e.g. a "* item" bullet) has no closing marker and stays literal.
+function _ilCmtMdEsc(s){
+  return _ileEsc(s)
+    .replace(/\*\*(?!\s)([^*]+?)(?<!\s)\*\*/g,'<strong>$1</strong>')   // bold first, so *** nests correctly
+    .replace(/\*(?!\s)([^*\n]+?)(?<!\s)\*/g,'<em>$1</em>');            // italic: single line only
+}
+// Escaped HTML with http(s) URLs as new-tab links AND the markdown above. Mirrors _ilvLinkify's URL
+// handling; the markdown runs per text segment, so a URL's own characters are never reformatted.
+function _ilCmtRich(s){
+  s=String(s==null?'':s);
+  var out='', re=/https?:\/\/[^\s<>"']+/g, last=0, m;
+  while((m=re.exec(s))){
+    var url=m[0].replace(/[).,;:!?\]]+$/,'');
+    out+=_ilCmtMdEsc(s.slice(last,m.index))+'<a href="'+_ileEsc(url)+'" target="_blank" rel="noopener noreferrer">'+_ileEsc(url)+'</a>';
+    last=m.index+url.length; re.lastIndex=last;
+  }
+  return out+_ilCmtMdEsc(s.slice(last));
+}
+// The same markers removed, for plain-text contexts (the collapsed-header preview / title tooltip).
+function _ilCmtPlain(s){
+  return String(s==null?'':s).replace(/\*\*([^*]+?)\*\*/g,'$1').replace(/\*([^*\n]+?)\*/g,'$1');
+}
 function _ilCmtListHtml(uid,list,open){
   var items=(list||[]).slice().reverse(), n=items.length;
   var body=n
@@ -2738,7 +2769,7 @@ function _ilCmtListHtml(uid,list,open){
         return '<li class="ilcm-item'+(c.mine?' is-mine':'')+'"'+(c.mine?'':' style="--ilcm-bg:'+tint[0]+';--ilcm-bd:'+tint[1]+'"')+'>'+
           '<div class="ilcm-meta"><span class="ilcm-user">'+_ileEsc(user)+'</span>'+(c.mine?'<span class="ilcm-you">You</span>':'')+
             (when?'<time class="ilcm-when"'+(c.at?' datetime="'+_ileEsc(c.at)+'"':'')+'>'+_ileEsc(when)+'</time>':'')+'</div>'+
-          '<div class="ilcm-text">'+_ilvLinkify(String(c.text==null?'':c.text))+'</div></li>';
+          '<div class="ilcm-text">'+_ilCmtRich(String(c.text==null?'':c.text))+'</div></li>';
       }).join('')+'</ol>'
     : '<p class="ilcm-empty">No comments yet on this ticket.</p>';
   return '<button type="button" class="ilcm-tog" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+uid+'" onclick="ilCmtToggle(this)">'+
@@ -2782,7 +2813,7 @@ function _ilCmtPreview(state,list){
   if(state==='err'){ el.textContent='Couldn\u2019t load the comments'; el.removeAttribute('title'); return; }
   var c=list && list.length ? list[list.length-1] : null;
   if(!c){ el.textContent='No Comment Added'; el.removeAttribute('title'); return; }
-  var text=String(c.text==null?'':c.text).replace(/\s+/g,' ').trim();
+  var text=_ilCmtPlain(String(c.text==null?'':c.text)).replace(/\s+/g,' ').trim();
   var line=[String(c.user||'\u2014'), _ilCmtWhen(c.at), text].filter(function(x){ return !!x; }).join(' \u00b7 ');
   el.textContent=line; el.title=line;
 }
