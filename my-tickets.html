@@ -1147,7 +1147,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=62"></script>
+<script src="incident-log-editor.js?v=63"></script>
 <script src="topbar-auth.js?v=233"></script>
 <script>
 const A=window.PHDAuth;
@@ -1602,6 +1602,17 @@ async function loadComments(i){
   paintComments(i,r.data);
 }
 // Render the COMMENTS thread (chat bubbles) + inline composer into a card's comment panel.
+// Comment body as HTML: escaped, http(s) links, and **bold** / *italic* (the shared renderer in
+// incident-log-editor.js). Falls back to plain escaping if the editor script hasn't loaded.
+function cmtHtml(s){
+  const E=window.IncidentLogEditor;
+  return (E&&E.cmtRichText) ? E.cmtRichText(String(s==null?'':s)) : esc(s);
+}
+// The same markers stripped, for one-line previews rendered with textContent.
+function cmtPreviewText(s){
+  const E=window.IncidentLogEditor;
+  return (E&&E.cmtPlainText) ? E.cmtPlainText(String(s==null?'':s)) : String(s==null?'':s);
+}
 function paintComments(i,list){
   const box=document.getElementById('cbody-'+i); if(!box)return;
   const t=TICKETS[i]; if(!t)return;
@@ -1616,7 +1627,7 @@ function paintComments(i,list){
         const del=(c.mine&&c.id)?'<button type="button" class="mtc-del" title="Delete this comment" aria-label="Delete this comment" onclick="deleteComment('+i+',\''+esc(c.id)+'\',this)">'+ic('trash',12)+'</button>':'';
         return '<div class="mtc-msg"><div class="mtc-av c">'+esc(initial)+'</div>'
           +'<div class="mtc-bub"><div class="mtc-m"><span class="k c">comment</span> <b>'+esc(c.user)+'</b> · '+esc(fmtTZ(c.at,zone))+del+'</div>'
-          +'<div class="mtc-t">'+esc(c.text)+'</div></div></div>';
+          +'<div class="mtc-t">'+cmtHtml(c.text)+'</div></div></div>';
       }).join('')
     : '<div class="mtc-empty">'+ic('message',12)+' No comments yet. Start the conversation below.</div>';
   const composer='<div class="mtc-composer"><label class="mt-sr" for="cvInput-'+i+'">Write a comment on '+esc(t.shortId)+'</label><input id="cvInput-'+i+'" maxlength="2000" placeholder="Write a comment\u2026" onkeydown="if(event.key===\'Enter\')sendInlineComment('+i+')">'
@@ -2321,13 +2332,16 @@ function paintLatestCell(i,c,unavailable){
   const n=(c&&typeof c.count==='number')?c.count:0;
   const badge=document.getElementById('cbadge-'+i); if(badge) badge.textContent=n;
   // Last-comment preview (italic bold) shown next to the comments button while OPEN.
-  const preview=(c&&c.text)?('\u201c'+c.text+'\u201d'):'';
+  // The markers are stripped here: these previews are plain text (textContent), so "**x**" would
+  // otherwise show its asterisks instead of reading as emphasis.
+  const plain=(c&&c.text)?cmtPreviewText(c.text):'';
+  const preview=plain?('\u201c'+plain+'\u201d'):'';
   const last=document.getElementById('clast-'+i);
-  if(last){ last.textContent=preview; if(c&&c.text)last.title=c.text; }
+  if(last){ last.textContent=preview; if(plain)last.title=plain; }
   // Collapsed header shows the last comment too — but falls back to "No comments added" when none.
   const head=document.getElementById('chead-'+i);
   if(head){
-    if(c&&c.text){ head.textContent=preview; head.title=c.text; head.classList.remove('mtc-head-last-empty'); }
+    if(c&&c.text){ head.textContent=preview; head.title=plain; head.classList.remove('mtc-head-last-empty'); }
     else { head.textContent='No comments added'; head.removeAttribute('title'); head.classList.add('mtc-head-last-empty'); }
   }
 }
@@ -2764,7 +2778,7 @@ async function openCmt(i){
   document.getElementById('cmtList').innerHTML=list.map(c=>`
     <div class="cmt">
       <div class="cmt-meta"><span>by <b>${esc(c.user)}</b></span><span>${esc(MY_TZ)}: ${fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)}</span></div>
-      <div class="cmt-text">${esc(c.text)}</div>
+      <div class="cmt-text">${cmtHtml(c.text)}</div>
     </div>`).join('');
 }
 function closeCmt(){document.getElementById('cmtModal').style.display='none';}

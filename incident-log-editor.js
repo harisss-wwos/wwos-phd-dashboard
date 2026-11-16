@@ -4198,6 +4198,10 @@ var IncidentLogEditor=(function(){
     setCommentsProvider:setCommentsProvider, hasCommentsProvider:function(){ return !!_ilCmtProv; },
     setToolLinksEnabled:setToolLinksEnabled, toolLinks:ilToolLinks,
     renderComments:ilCmtLoadInto, syncTempResolve:_ilTempSync,
+    // Comment text renderers, shared with the pages that draw their own comment threads
+    // (my-tickets.html): cmtRichText -> escaped HTML with links + **bold** / *italic*;
+    // cmtPlainText -> the same markers stripped, for plain-text previews and title tooltips.
+    cmtRichText:_ilCmtRich, cmtPlainText:_ilCmtPlain,
     renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     setInvestigation:ilSetInvestigation, getInvestigation:ilGetInvestigation,
