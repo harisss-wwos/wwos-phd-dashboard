@@ -4200,8 +4200,10 @@ var IncidentLogEditor=(function(){
     renderComments:ilCmtLoadInto, syncTempResolve:_ilTempSync,
     // Comment text renderers, shared with the pages that draw their own comment threads
     // (my-tickets.html): cmtRichText -> escaped HTML with links + **bold** / *italic*;
+    // cmtMdText -> escaped HTML with **bold** / *italic* but NO link-ification, for one-line
+    // headings like ticket titles (only <strong>/<em> introduced, ellipsis-safe);
     // cmtPlainText -> the same markers stripped, for plain-text previews and title tooltips.
-    cmtRichText:_ilCmtRich, cmtPlainText:_ilCmtPlain,
+    cmtRichText:_ilCmtRich, cmtMdText:_ilCmtMdEsc, cmtPlainText:_ilCmtPlain,
     renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     setInvestigation:ilSetInvestigation, getInvestigation:ilGetInvestigation,

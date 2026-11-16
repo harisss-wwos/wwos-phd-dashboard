@@ -1147,7 +1147,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="issue-types-data.js?v=4"></script>
-<script src="incident-log-editor.js?v=63"></script>
+<script src="incident-log-editor.js?v=64"></script>
 <script src="topbar-auth.js?v=233"></script>
 <script>
 const A=window.PHDAuth;
@@ -1286,7 +1286,7 @@ function rsRowHtml(t){
   return '<tr>'+
     '<td data-l="Ticket"><span class="rs-id"><a class="mtc-tid" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(sid)+'<span class="mt-sr"> (opens in a new tab)</span></a>'+
       '<button type="button" class="mtc-copy" title="Copy ticket ID" aria-label="Copy ticket ID '+esc(sid)+'" onclick="copyTicketId(\''+esc(sid)+'\',this)">'+ic('copy',12)+'</button></span></td>'+
-    '<td class="rs-t" data-l="Title" title="'+esc(t.title||'')+'">'+(t.title?esc(t.title):'<span class="rs-na">No title</span>')+'</td>'+
+    '<td class="rs-t" data-l="Title" title="'+titleTip(t.title||'')+'">'+(t.title?titleHtml(t.title):'<span class="rs-na">No title</span>')+'</td>'+
     '<td data-l="Country">'+(ct&&MT_COUNTRY_CODES[ct]?'<span class="mtc-country">'+esc(ct)+'</span>':'<span class="rs-na">N/A</span>')+'</td>'+
     '<td data-l="Root Cause" title="'+esc(t.rootCause||'Not specified')+'">'+rsNA(t.rootCause)+'</td>'+
     '<td data-l="Res" title="'+esc(t.res||'Not specified')+'">'+rsNA(t.res)+'</td>'+
@@ -1489,7 +1489,7 @@ async function openMarkImportant(sid, ev){
   if(d){
     MI_QUARTER=d.quarter||'';
     tbox.innerHTML='<span class="mt-id">'+esc(d.shortId)+'</span>'+
-      (d.title?('<div class="mt-title">'+esc(d.title)+'</div>'):'')+
+      (d.title?('<div class="mt-title">'+titleHtml(d.title)+'</div>'):'')+
       miDetailRows(d);
     var imp=d.important||{};
     document.getElementById('miInfo').value=imp.info||'';
@@ -1498,7 +1498,7 @@ async function openMarkImportant(sid, ev){
   }else{
     // Fall back to whatever we know locally so the user can still mark it.
     var t=TICKETS.find(function(x){ return String(x.shortId)===sid; })||{};
-    tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span>'+(t.title?('<div class="mt-title">'+esc(t.title)+'</div>'):'')+
+    tbox.innerHTML='<span class="mt-id">'+esc(sid)+'</span>'+(t.title?('<div class="mt-title">'+titleHtml(t.title)+'</div>'):'')+
       '<div class="mi-stats"><div class="mi-stat"><span class="k">When created</span><span class="v">'+miFmtTZ(t.createDate)+'</span></div>'+
       (t.country?'<div class="mi-stat"><span class="k">Country</span><span class="v">'+esc(t.country)+'</span></div>':'')+'</div>';
   }
@@ -1612,6 +1612,19 @@ function cmtHtml(s){
 function cmtPreviewText(s){
   const E=window.IncidentLogEditor;
   return (E&&E.cmtPlainText) ? E.cmtPlainText(String(s==null?'':s)) : String(s==null?'':s);
+}
+// Ticket TITLE / quoted summary as HTML: escaped + **bold** / *italic* (and ***both***), using the
+// SAME renderer as comments but WITHOUT link-ification — a title is a one-line heading, not a place
+// to click URLs, and the markdown-only variant keeps truncation/ellipsis intact. Falls back to plain
+// escaping if the editor script hasn't loaded. Only <strong>/<em> are ever introduced.
+function titleHtml(s){
+  const E=window.IncidentLogEditor;
+  return (E&&E.cmtMdText) ? E.cmtMdText(String(s==null?'':s)) : esc(s);
+}
+// The same markers stripped, for the plain-text title="" tooltip so it reads cleanly.
+function titleTip(s){
+  const E=window.IncidentLogEditor;
+  return esc((E&&E.cmtPlainText) ? E.cmtPlainText(String(s==null?'':s)) : String(s==null?'':s));
 }
 function paintComments(i,list){
   const box=document.getElementById('cbody-'+i); if(!box)return;
@@ -2177,7 +2190,7 @@ function cardHtml(t,i,editor){
       <span class="mtc-mk sr${t.priority?'':' off'}" title="Station Request / Address Exclusion" role="img" aria-label="Station Request / Address Exclusion">${ic('map-pin',14)}</span>
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
       <button type="button" class="mtc-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
-      ${t.title?('<span class="mtc-title" title="'+esc(t.title)+'">'+esc(t.title)+'</span>'):'<span class="mtc-title"></span>'}
+      ${t.title?('<span class="mtc-title" title="'+titleTip(t.title)+'">'+titleHtml(t.title)+'</span>'):'<span class="mtc-title"></span>'}
       ${countryTagHtml(t)}
       <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">${known?'No comments added':skl}</span>
       <span class="mtc-head-right">
