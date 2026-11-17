@@ -459,17 +459,15 @@ async function load(){
   // Refresh /api/me so a session cached before the flag existed still sees the latest access.
   try{ if(A._refreshMe) await A._refreshMe(); }catch(e){}
   if(!canDatabase()){gate('You do not have access to Database health.');return;}
-  // Cache (time-based): paint instantly from cache, then refresh in the background.
-  const res=await A.swrLoad({
-    key:'db-health',
-    fetch:()=>A.api('GET','/api/db-health'),
-    onData:(d)=>{ if(d)render(d); }
-  });
-  if(!res.painted){
-    if(res.status===401){gate('Session expired. Please log in again.');return;}
-    if(res.status===403){gate('You do not have access to Database health.');return;}
-    showError(res.status);
-  }
+  // Always fetch fresh — no stale-while-revalidate here. These are live storage figures, so a
+  // cached copy can be badly wrong (it kept showing 512 MB / 100% full long after a cleanup
+  // freed 367 MB). The shimmer skeleton from showLoading() stays up until the real data lands.
+  let r=null; try{ r=await A.api('GET','/api/db-health'); }catch(e){ r=null; }
+  if(r&&r.ok&&r.data){ render(r.data); return; }
+  const st=r?r.status:0;
+  if(st===401){gate('Session expired. Please log in again.');return;}
+  if(st===403){gate('You do not have access to Database health.');return;}
+  showError(st);
 }
 
 function render(d){
