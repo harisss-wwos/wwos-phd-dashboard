@@ -2270,7 +2270,11 @@
       await new Promise(function (rr) { setTimeout(rr, 400); });   // brief beat so 100% is visible
       if (!r.ok) {
         // Fallback: if there is no live doc yet, a delta can't apply — inform (rare; live quarter exists).
-        throw new Error((r.data && r.data.error) || ('Upload failed (HTTP ' + r.status + ')'));
+        // Show the server's `detail` when present: without it this dialog only ever said
+        // "Could not apply the delta publish.", which is not diagnosable.
+        var _upMsg = (r.data && r.data.error) || ('Upload failed (HTTP ' + r.status + ')');
+        if (r.data && r.data.detail) _upMsg += ' \u2014 ' + r.data.detail;
+        throw new Error(_upMsg);
       }
       tbRemove('tbPush');
       tbFlowOverlay('tbDone', tbuCard({
