@@ -744,6 +744,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mtc-copy.copied{color:var(--mt-grn);border-color:#9fd9b6}
 .mtc-title{flex:1 1 180px;min-width:0;color:#3a4552;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mtc-head-last{display:none;font-style:italic;font-weight:600;color:var(--mt-mut);font-size:.84em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mtc-when{font-style:normal;font-weight:600;color:#5f6b6c;white-space:nowrap}
 .mtc-head-last.mtc-head-last-empty{font-style:normal;color:#6b7681}
 .mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
 .mtc-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.74em;font-weight:800;white-space:nowrap;border:1px solid transparent;font-variant-numeric:tabular-nums}
@@ -2349,12 +2350,16 @@ function paintLatestCell(i,c,unavailable){
   // otherwise show its asterisks instead of reading as emphasis.
   const plain=(c&&c.text)?cmtPreviewText(c.text):'';
   const preview=plain?('\u201c'+plain+'\u201d'):'';
+  // When it was posted, in the viewer's timezone — same format as the expanded thread.
+  const pWhen=(c&&c.at)?fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST):'';
+  const pHtml=preview?(esc(preview)+(pWhen?(' <span class="mtc-when">\u00b7 '+esc(pWhen)+'</span>'):'')):'';
+  const pTitle=plain+(pWhen?(' \u00b7 '+pWhen+' '+MY_TZ):'');
   const last=document.getElementById('clast-'+i);
-  if(last){ last.textContent=preview; if(plain)last.title=plain; }
+  if(last){ last.innerHTML=pHtml; if(plain)last.title=pTitle; }
   // Collapsed header shows the last comment too — but falls back to "No comments added" when none.
   const head=document.getElementById('chead-'+i);
   if(head){
-    if(c&&c.text){ head.textContent=preview; head.title=plain; head.classList.remove('mtc-head-last-empty'); }
+    if(c&&c.text){ head.innerHTML=pHtml; head.title=pTitle; head.classList.remove('mtc-head-last-empty'); }
     else { head.textContent='No comments added'; head.removeAttribute('title'); head.classList.add('mtc-head-last-empty'); }
   }
 }
