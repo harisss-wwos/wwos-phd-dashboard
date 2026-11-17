@@ -2032,6 +2032,9 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
     Promise.allSettled(jobs).then(() => sanWarm('patch'));
   } catch (e) {
+    // Log the real cause: this catch used to swallow it, so a failed upload left nothing in
+    // the Render logs — "Could not apply the delta publish." was all anyone ever saw.
+    console.error('[live-quarter/patch] delta publish failed:', e && (e.stack || e.message || e));
     res.status(500).json({ error: 'Could not apply the delta publish.' });
   }
 });

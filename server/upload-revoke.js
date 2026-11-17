@@ -92,6 +92,9 @@ function createSnapshotRecorder(deps) {
         await deps.snapColl.updateOne({ _id: deps.id }, update, { upsert: true });
         rec.captured = true;
       } catch (e) {
+        // Was silent, which hid the cause of the sanitization-update 500s (a snapshot doc that
+        // outgrew MongoDB's 16 MB per-document limit looks like any other write failure).
+        console.error('[snapshot] capture failed for quarter', qid, '-', e && (e.stack || e.message || e));
         rec.failed = true;
       }
     },
