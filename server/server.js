@@ -7509,22 +7509,23 @@ function handoverFromFile(rows) {
 }
 app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
   try {
-    const { meta } = await eirLatestFileMeta();
-    let fromFile = null;
-    if (meta) {
-      const key = HANDOVER_CACHE_PREFIX + meta._id;
-      fromFile = getCachedReport(key);
-      if (!fromFile) {
-        // Sourced from ticket_docs, NOT the raw uploaded CSV: raw files are no longer stored (they
-        // filled the 512 MB Atlas quota), and reading that emptied collection made `created` and
-        // `resolvedSplit` silently report 0 while In Queue / No EMT stayed correct.
-        // Note: Labels are not kept in ticket_docs, so stationRequests/stationLabels stay 0 here.
-        const hTColl = await getCollection(COLLECTIONS.ticketDocs);
-        const hRows = await hTColl.find({}, { projection: { _id: 0, ShortId: 1, IssueId: 1, CreateDate: 1, ResolvedDate: 1, Status: 1, ResolvedByIdentity: 1, ClosureCode: 1 } }).toArray();
-        fromFile = handoverFromFile(hRows);
-        pruneCachedReports(HANDOVER_CACHE_PREFIX, 1);
-        setCachedReport(key, fromFile);
-      }
+    // Stamp + filename come from data_log (intact). We no longer call eirLatestFileMeta() here:
+    // it resolves `meta` out of upload_files, which is empty now that raw CSVs are not stored, so
+    // it returned null and this whole block was skipped — leaving created/resolvedSplit at 0.
+    const hLogColl = await getCollection(COLLECTIONS.dataLog);
+    const hLatest = (await hLogColl.find({}, { projection: { at: 1, publishedAt: 1, fileName: 1 } })
+      .sort({ at: -1 }).limit(1).toArray())[0] || null;
+    const hStamp = hLatest ? (hLatest.publishedAt || hLatest.at) : null;
+    // The 12h window always comes from ticket_docs now (Labels are not stored there, so
+    // stationRequests/stationLabels stay 0).
+    const hKey = HANDOVER_CACHE_PREFIX + (hStamp || 'none');
+    let fromFile = getCachedReport(hKey);
+    if (!fromFile) {
+      const hTColl = await getCollection(COLLECTIONS.ticketDocs);
+      const hRows = await hTColl.find({}, { projection: { _id: 0, ShortId: 1, IssueId: 1, CreateDate: 1, ResolvedDate: 1, Status: 1, ResolvedByIdentity: 1, ClosureCode: 1 } }).toArray();
+      fromFile = handoverFromFile(hRows);
+      pruneCachedReports(HANDOVER_CACHE_PREFIX, 1);
+      setCachedReport(hKey, fromFile);
     }
 
     // Current in-queue (open) snapshot — across all quarters, broken down by status, plus No EMT titles.
@@ -7538,8 +7539,8 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
     });
 
     res.json(Object.assign({
-      noFile: !meta,
-      file: meta ? { id: meta._id, name: meta.fileName || '', uploadedAt: meta.at || meta._id } : null,
+      noFile: !hStamp,
+      file: hStamp ? { id: hStamp, name: (hLatest && hLatest.fileName) || '', uploadedAt: hStamp } : null,
       inQueue: openDocs.length, queueByStatus, noEmt,
     }, fromFile || { anchor: null, anchorField: null, from: null, to: null, created: 0, stationRequests: 0, stationLabels: [], resolvedSplit: { autosim: 0, rule: 0 } }));
   } catch (e) {
