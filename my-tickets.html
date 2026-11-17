@@ -744,7 +744,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mtc-copy.copied{color:var(--mt-grn);border-color:#9fd9b6}
 .mtc-title{flex:1 1 180px;min-width:0;color:#3a4552;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mtc-head-last{display:none;font-style:italic;font-weight:600;color:var(--mt-mut);font-size:.84em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mtc-when{font-style:normal;font-weight:600;color:#5f6b6c;white-space:nowrap}
+.mtc-when{display:inline-flex;align-items:center;margin-left:7px;padding:1px 8px;border-radius:99px;background:#eef1f4;border:1px solid #e2e7eb;color:#4a5560;font-style:normal;font-weight:700;font-size:.82em;line-height:1.6;white-space:nowrap;vertical-align:middle}
 .mtc-head-last.mtc-head-last-empty{font-style:normal;color:#6b7681}
 .mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
 .mtc-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.74em;font-weight:800;white-space:nowrap;border:1px solid transparent;font-variant-numeric:tabular-nums}
@@ -1676,6 +1676,23 @@ async function deleteComment(i,id,btn){
 }
 window.deleteComment=deleteComment;
 // "N days ago" from a create date (relative to now).
+// Relative CALENDAR-day label for a comment timestamp: Today / Yesterday / N days ago.
+// Compared by calendar date in the viewer's timezone, not by elapsed hours — daysAgo() rounds,
+// so a comment from this morning would read '1 day ago' there. Older than 30 days falls back to
+// the short date, because '47 days ago' is harder to read than 'Oct 1'.
+function cmtAgo(iso){
+  const dt=new Date(iso); if(isNaN(dt)) return '';
+  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const key=x=>{ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(x); }
+    catch(e){ return x.toISOString().slice(0,10); } };
+  const a=key(dt), b=key(new Date());
+  if(a===b) return 'Today';
+  const diff=Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5);
+  if(diff===1) return 'Yesterday';
+  if(diff>1&&diff<=30) return diff+' days ago';
+  if(diff>30){ try{ return new Intl.DateTimeFormat('en-US',{timeZone:zone,month:'short',day:'numeric'}).format(dt); }catch(e){ return ''; } }
+  return 'Today';   // future timestamp / clock skew
+}
 function daysAgo(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '—';
   // Round to nearest day so "days ago" reconciles with the "time left" pill (both sum to ~10).
@@ -2351,9 +2368,9 @@ function paintLatestCell(i,c,unavailable){
   const plain=(c&&c.text)?cmtPreviewText(c.text):'';
   const preview=plain?('\u201c'+plain+'\u201d'):'';
   // When it was posted, in the viewer's timezone — same format as the expanded thread.
-  const pWhen=(c&&c.at)?fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST):'';
-  const pHtml=preview?(esc(preview)+(pWhen?(' <span class="mtc-when">\u00b7 '+esc(pWhen)+'</span>'):'')):'';
-  const pTitle=plain+(pWhen?(' \u00b7 '+pWhen+' '+MY_TZ):'');
+  const pWhen=(c&&c.at)?cmtAgo(c.at):'';
+  const pHtml=preview?(esc(preview)+(pWhen?(' <span class="mtc-when">'+esc(pWhen)+'</span>'):'')):'';
+  const pTitle=plain+((c&&c.at)?(' \u00b7 '+fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'');
   const last=document.getElementById('clast-'+i);
   if(last){ last.innerHTML=pHtml; if(plain)last.title=pTitle; }
   // Collapsed header shows the last comment too — but falls back to "No comments added" when none.
