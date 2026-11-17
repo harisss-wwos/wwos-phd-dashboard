@@ -1926,7 +1926,7 @@
       // Keep the raw file text so the publish can persist it for later download. Only retain it when
       // reasonably small (<= 12MB) to stay under the server's Mongo document limit; larger files skip
       // the stored-copy (download icon simply won't show for them).
-      if (txt.length <= 12 * 1024 * 1024) fileMeta.fileText = txt;
+      // Raw file text is no longer captured or uploaded (it filled the database quota).
       tbBeginUpload(txt, fileMeta);
     };
     reader.onerror = function () { window.PHDAlert({ title: 'Could not read file', body: 'Could not read the file.' }); };
@@ -2262,7 +2262,6 @@
       var fm = res.fileMeta || {};
       var body = { changed: res.changed, nonLive: res.nonLive, changeSummary: { added: res.zNew, updated: res.yUpdated }, fileName: fm.fileName || '', fileSize: fm.fileSize || 0, fileType: fm.fileType || '' };
       if (res.rejectedCount) body.rejectedGroups = res.rejectedGroups;   // client-side drops, recorded on the data log
-      if (fm.fileText) body.fileText = fm.fileText;   // raw uploaded file, persisted for later download
       var r = await A.api('POST', '/api/live-quarter/patch', body);
       clearTimeout(_pProgTimer); clearInterval(_pTicker); clearInterval(_pElapsedTimer); if (_pAlmostTimer) clearInterval(_pAlmostTimer);
       _pushSecs = Math.round((Date.now() - _pt0) / 1000);
@@ -4493,17 +4492,12 @@
           + '</div>';
         analystRows = headRow + '<div class="tb-pp-analyst-list"></div>';
       }
-      // Filename row — with a DOWNLOAD icon button on the right when a raw copy of the uploaded file
-      // was stored server-side (d.hasFile). Clicking it fetches /api/last-upload/file (auth) and saves
-      // the original file the analyst uploaded.
       var fnameVal = tbEsc(d.fileName || '\u2014');
-      var dlBtn = d.hasFile
-        ? '<button type="button" class="tb-pp-dl" id="tbPpDlFile" title="Download the uploaded file" aria-label="Download the uploaded file">' + ic('download', 13) + '</button>'
-        : '';
+      // The raw uploaded file is no longer stored, so there is no download button here any more.
       var filenameRow = '<div class="tb-pp-up-row">'
         + '<span class="tb-pp-up-k">Filename</span>'
         + '<span class="tb-pp-up-v tb-pp-up-fname">'
-        +   '<span class="tb-pp-up-trunc" title="' + fnameVal + '">' + fnameVal + '</span>' + dlBtn
+        +   '<span class="tb-pp-up-trunc" title="' + fnameVal + '">' + fnameVal + '</span>'
         + '</span></div>';
       body.innerHTML = '<div class="tb-pp-up">'
         + rowT('Uploaded by', d.user || '\u2014')
@@ -4590,31 +4584,7 @@
         naRow.onclick = function () { tbOpenNaPopup(); };
         naRow.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tbOpenNaPopup(); } };
       }
-      // Download icon -> fetch the stored raw file (with the auth bearer token) and save it. We can't
-      // use a plain <a href> because the endpoint requires the Authorization header, so fetch -> blob
-      // -> a transient object-URL anchor click.
-      var dlEl = document.getElementById('tbPpDlFile');
-      if (dlEl) {
-        dlEl.onclick = function () {
-          if (dlEl.classList.contains('busy')) return;
-          dlEl.classList.add('busy');
-          var tok = (A.getToken && A.getToken()) || '';
-          var base = (window.PHD_API_BASE || '');
-          fetch(base + '/api/last-upload/file', { headers: tok ? { Authorization: 'Bearer ' + tok } : {} })
-            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob().then(function (b) { return { b: b, r: r }; }); })
-            .then(function (o) {
-              // Prefer the server's Content-Disposition filename; fall back to the displayed one.
-              var name = d.fileName || 'upload.csv';
-              try { var cd = o.r.headers.get('Content-Disposition') || ''; var m = /filename="?([^"]+)"?/.exec(cd); if (m && m[1]) name = m[1]; } catch (e) {}
-              var url = URL.createObjectURL(o.b);
-              var a = document.createElement('a'); a.href = url; a.download = name;
-              document.body.appendChild(a); a.click(); document.body.removeChild(a);
-              setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-            })
-            .catch(function () { try { if (window.PHDAlert) window.PHDAlert({ title: 'Download failed', body: 'Could not download the uploaded file.' }); } catch (e) {} })
-            .then(function () { dlEl.classList.remove('busy'); });
-        };
-      }
+      // (removed) the raw-upload download handler — those files are no longer stored.
     };
     // Loading state: fixed labels hardcoded, a spinner in each server-value slot (also on a forced
     // reload). The real values replace them once /api/last-upload returns.
