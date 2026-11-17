@@ -7515,9 +7515,13 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
       const key = HANDOVER_CACHE_PREFIX + meta._id;
       fromFile = getCachedReport(key);
       if (!fromFile) {
-        const filesColl = await getCollection(COLLECTIONS.uploadFiles);
-        const doc = await filesColl.findOne({ _id: meta._id }, { projection: { text: 1 } });
-        fromFile = handoverFromFile(parseCsv(doc && doc.text));
+        // Sourced from ticket_docs, NOT the raw uploaded CSV: raw files are no longer stored (they
+        // filled the 512 MB Atlas quota), and reading that emptied collection made `created` and
+        // `resolvedSplit` silently report 0 while In Queue / No EMT stayed correct.
+        // Note: Labels are not kept in ticket_docs, so stationRequests/stationLabels stay 0 here.
+        const hTColl = await getCollection(COLLECTIONS.ticketDocs);
+        const hRows = await hTColl.find({}, { projection: { _id: 0, ShortId: 1, IssueId: 1, CreateDate: 1, ResolvedDate: 1, Status: 1, ResolvedByIdentity: 1, ClosureCode: 1 } }).toArray();
+        fromFile = handoverFromFile(hRows);
         pruneCachedReports(HANDOVER_CACHE_PREFIX, 1);
         setCachedReport(key, fromFile);
       }
