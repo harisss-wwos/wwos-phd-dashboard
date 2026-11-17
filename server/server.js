@@ -2035,7 +2035,9 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
     // Log the real cause: this catch used to swallow it, so a failed upload left nothing in
     // the Render logs — "Could not apply the delta publish." was all anyone ever saw.
     console.error('[live-quarter/patch] delta publish failed:', e && (e.stack || e.message || e));
-    res.status(500).json({ error: 'Could not apply the delta publish.' });
+    // `detail` is for diagnosing this failure: the route is canUpload-gated, so only trusted
+    // uploaders ever see it. Remove it once the root cause is fixed.
+    res.status(500).json({ error: 'Could not apply the delta publish.', detail: e && (e.message || String(e)), name: e && e.name });
   }
 });
 
