@@ -1720,7 +1720,7 @@ async function newUploadSnapshot(publishedAt, username) {
 // merged locally). Non-live buckets are MERGED by ShortId into their own quarter doc (uploaded
 // wins, existing preserved). Each quarter touched gets its OWN data-log entry. The client shows
 // the per-quarter breakdown + Upload/Cancel before calling this, so no server-side 409 is needed.
-app.post('/api/live-quarter', requireUploadOwner, async (req, res) => {
+app.post('/api/live-quarter', requireUploadTeam, async (req, res) => {
   try {
     const body = req.body || {};
     const data = body.data;
@@ -1862,7 +1862,7 @@ app.post('/api/live-quarter', requireUploadOwner, async (req, res) => {
 // by ShortId, instead of replacing the entire dataset. Much smaller payload + faster write.
 // Body: { changed: [ ...live tickets ], removed: [ shortId ], nonLive: [ ...rows ], changeSummary }.
 // If the live quarter doc doesn't exist yet, respond 409 so the client falls back to full replace.
-app.post('/api/live-quarter/patch', requireUploadOwner, async (req, res) => {
+app.post('/api/live-quarter/patch', requireUploadTeam, async (req, res) => {
   try {
     const body = req.body || {};
     const changedIn = Array.isArray(body.changed) ? body.changed : [];
@@ -2033,7 +2033,7 @@ app.post('/api/live-quarter/patch', requireUploadOwner, async (req, res) => {
 // Merge an uploaded ticket set INTO a specific PAST (non-live) quarter, by ShortId (admin+).
 // Newly uploaded tickets win on conflict; existing tickets not in the upload are preserved.
 // Records a data-log entry. Body: { data: { tickets: [...] } }.
-app.post('/api/quarter/:qid/merge', requireUploadOwner, async (req, res) => {
+app.post('/api/quarter/:qid/merge', requireUploadTeam, async (req, res) => {
   try {
     const qid = req.params.qid;
     if (!/^\d{4}-Q[1-4]$/.test(qid)) return res.status(400).json({ error: 'Invalid quarter id.' });
@@ -3541,11 +3541,13 @@ function requireSanScores(req, res, next) {
   if (SAN_SCORE_GROUPS.indexOf(sanGroupOf(req)) >= 0) return next();
   return res.status(403).json({ error: 'Sanitization scores are visible to the BLR and AZA teams.' });
 }
-// Owner-only guard for the data-upload routes (previously the canUpload flag).
-function requireUploadOwner(req, res, next) {
+// Data upload: the owner plus the BLR and AZA teams. WFH contractors cannot upload.
+// (SAN_SCORE_GROUPS is the same BLR + AZA pair used for the sanitization scores.)
+function requireUploadTeam(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Login required.' });
   if (sanIsOwner(req.user.username)) return next();
-  return res.status(403).json({ error: 'Only harisss can upload data.' });
+  if (SAN_SCORE_GROUPS.indexOf(grpOf(req.user.username)) >= 0) return next();
+  return res.status(403).json({ error: 'Only the BLR and AZA teams can upload data.' });
 }
 // Resolved / Closed ticket count per quarter in ticket_docs (newest quarter first).
 async function sanQuarterCounts() {
