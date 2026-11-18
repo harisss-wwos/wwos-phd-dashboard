@@ -214,19 +214,38 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* ---- Error-approval pop-up ---- */
 #apvModal .tbl-card.apv-card{width:90vw!important;max-width:90vw!important}
 @media (max-width:720px){#apvModal.tbl-bg{padding:2vw}#apvModal .tbl-card.apv-card{width:96vw!important;max-width:96vw!important}}
-.apv-bar{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:.86em;color:#2a3340}
-.apv-sec{border:1px solid #e3e8ed;border-radius:8px;margin-bottom:8px;overflow:hidden}
+.apv-bar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border-radius:8px;
+  background:#fff7ef;border:1px solid #f6d7b6;font-size:.86em;font-weight:700;color:#8a3a00}
+.apv-bar b{font-size:1.15em}
+.apv-sec{border:1px solid #dfe5ea;border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff}
 .apv-sec h3{margin:0;font-size:1em}
-.apv-h{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;background:#f7f9fb;border:0;cursor:pointer;font:inherit;text-align:left}
-.apv-h:hover{background:#eef1f4}
-.apv-cv{display:inline-flex;transition:transform .15s}
-.apv-h[aria-expanded="true"] .apv-cv{transform:rotate(180deg)}
-.apv-n{color:#5c6773;font-size:.84em;font-weight:600}
-.apv-p{margin-left:auto;color:#8a3a00;font-size:.84em;font-weight:800}
-.apv-b{padding:10px 12px}
-.apv-all{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;font-size:.86em;font-weight:700;color:#2a3340}
-#apvBody .stv-t{width:100%}
-#apvBody .stv-t td,#apvBody .stv-t th{vertical-align:top}
+.apv-h{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:#f5f7f9;border:0;
+  border-bottom:1px solid transparent;cursor:pointer;font:inherit;text-align:left;transition:background .14s}
+.apv-h:hover{background:#eceff3}
+.apv-h[aria-expanded="true"]{background:#fff3e8;border-bottom-color:#f6d7b6}
+.apv-h b{font-size:.98em;text-transform:capitalize}
+.apv-cv{display:inline-flex;color:#5c6773;transition:transform .15s}
+.apv-h[aria-expanded="true"] .apv-cv{transform:rotate(180deg);color:#b5530a}
+.apv-n{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;background:#e8edf2;
+  color:#3d4753;font-size:.78em;font-weight:800}
+.apv-p{margin-left:auto;padding:2px 9px;border-radius:5px;background:#b42318;color:#fff;font-size:.78em;font-weight:800}
+.apv-b{padding:12px 14px 14px}
+.apv-all{display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 11px;border-radius:6px;
+  background:#f5f7f9;border:1px solid #e3e8ed;font-size:.84em;font-weight:800;color:#2a3340;cursor:pointer}
+.apv-all:hover{background:#eceff3}
+.apv-all input,.apv-t input{width:16px;height:16px;cursor:pointer;accent-color:#b5530a}
+/* the ticket table: fixed columns so titles and messages stop colliding */
+.apv-t{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.84em}
+.apv-t col.c1{width:38px}.apv-t col.c2{width:132px}.apv-t col.c3{width:auto}.apv-t col.c4{width:34%}
+.apv-t thead th{position:sticky;top:0;z-index:1;padding:8px 10px;text-align:left;background:#eef1f4;
+  border-bottom:1px solid #dfe5ea;font-size:.92em;font-weight:800;color:#3d4753;white-space:nowrap}
+.apv-t td{padding:9px 10px;border-bottom:1px solid #eef1f4;vertical-align:top;line-height:1.45;overflow-wrap:anywhere}
+.apv-t tbody tr:hover{background:#fbfcfd}
+.apv-t tbody tr.is-sel{background:#fff7ef}
+.apv-t tbody tr:last-child td{border-bottom:none}
+.apv-t .apv-sid a{font-weight:800;color:#1f4f99;white-space:nowrap}
+.apv-t .apv-msg{color:#8a3a00;font-weight:600}
+.apv-empty{margin:0;padding:18px;text-align:center;color:#5c6773;font-size:.88em}
 /* clickable KPI tile */
 .st-kpi.is-click{padding:0}
 .st-kpi-btn{display:block;width:100%;height:100%;padding:16px 18px 15px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
@@ -1159,11 +1178,11 @@ function apvHtml(){
       '<span class="apv-n">'+a.tickets.length+' ticket'+(a.tickets.length===1?'':'s')+'</span>'+
       (picked?'<span class="apv-p">'+picked+' selected</span>':'')+'</button></h3>'+
       (open?('<div class="apv-b"><label class="apv-all"><input type="checkbox" data-apv="all" data-login="'+esc(a.login)+'"'+(picked===ids.length?' checked':'')+'> Select all '+ids.length+'</label>'+
-        '<table class="stv-t"><thead><tr><th></th><th>Ticket</th><th>Title</th><th>Error message from the agent</th></tr></thead><tbody>'+
+        '<table class="apv-t"><colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"></colgroup><thead><tr><th><span class="st-sr">Pick</span></th><th>Ticket</th><th>Title</th><th>Error message from the agent</th></tr></thead><tbody>'+
         a.tickets.map(function(x){
-          return '<tr><td><input type="checkbox" data-apv="one" data-sid="'+esc(x.shortId)+'"'+(APV.sel[x.shortId]?' checked':'')+'></td>'+
-            '<td>'+(x.url?('<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.shortId)+'</a>'):esc(x.shortId))+'</td>'+
-            '<td>'+esc(x.title||'\u2014')+'</td><td>'+esc(x.note||'\u2014')+'</td></tr>';
+          return '<tr'+(APV.sel[x.shortId]?' class="is-sel"':'')+'><td><input type="checkbox" data-apv="one" data-sid="'+esc(x.shortId)+'"'+(APV.sel[x.shortId]?' checked':'')+'></td>'+
+            '<td class=\"apv-sid\">'+(x.url?('<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.shortId)+'</a>'):esc(x.shortId))+'</td>'+
+            '<td>'+esc(x.title||'\u2014')+'</td><td class=\"apv-msg\">'+esc(x.note||'\u2014')+'</td></tr>';
         }).join('')+'</tbody></table></div>'):'')+'</section>';
   }).join('');
   return h;
@@ -1178,6 +1197,10 @@ function apvOpen(){
   if(!S.isOwner()) return;
   APV.open=true; APV.loading=true; APV.err=''; APV.sel={}; APV.sec=null; APV.busy=false;
   var bg=$('apvModal'); if(!bg) return;
+  // The shared dialog shell fills [data-ic] slots on pages that run that loop; this page does
+  // not, which is why the header tile showed as an empty square. Paint it here instead.
+  var _hi=document.querySelector('#apvModal .tbl-head-ic'); if(_hi&&!_hi.innerHTML.trim()) _hi.innerHTML=ic('flag',20);
+  var _hx=document.querySelector('#apvModal .tbl-x'); if(_hx&&!_hx.innerHTML.trim()) _hx.innerHTML=ic('close',18);
   bg.style.display='flex'; if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,apvClose,null);
   apvRender();
   A.api('GET','/api/my-sanitization/approvals').then(function(r){
