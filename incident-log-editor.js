@@ -1621,12 +1621,14 @@ var IL_GEO_LINKS={
   Europe:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
   India:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
   APAC:'https://fe.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwAcAOj4A2AJzCATAAY+AFlkBmYVIU866GFEwwATixBwoAcxQBaHj2ECArD1GjrK+6IXzRdOBEwpFN0TxUJUQB2FxDJayoooA==',
+  // Mexico has its own link: the NA host, but a different saved map state than USA/Canada's.
+  Mexico:'https://na.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgIwDsddDCiYYAJxYg4UAOYoAtAE5FAOgAMAFgCsWjRp5rDRgMx04ETL1Ua+PRQCZFfLSft8qHoA=',
   // Egypt has its own link: the EU host with a different saved map state than Europe's, so it is a
   // separate entry rather than EG:'Europe'.
   Egypt:'https://eu.geostudio.last-mile.amazon.dev/place#N4IgDghgdgpgNgZxALlBAxgFwJYDcYAK08SyA2gLoC+ANCALYRgqgBeA9u/SgEwAMAOgCMAVj4B2fgDYAnOIDMAFh4AOPjzroYUTDABOLEHCgBzFAFoFAlSplK+QxeKHiV4unAiYUiwSvlCKlIu8iqKIiJS4lQxQA==='
 };
-// TR is not in Europe; MX, BR, UAE and SA have no GeoStudio region (no button).
-var IL_GEO_REGION={US:'USA', CA:'Canada', IN:'India', EG:'Egypt',
+// TR is not in Europe; BR, UAE and SA have no GeoStudio region (no button).
+var IL_GEO_REGION={US:'USA', CA:'Canada', IN:'India', EG:'Egypt', MX:'Mexico',
   UK:'Europe', IE:'Europe', DE:'Europe', AT:'Europe', LU:'Europe', NL:'Europe', BE:'Europe', FR:'Europe', IT:'Europe', ES:'Europe',
   JP:'APAC', AU:'APAC', SG:'APAC'};
 // CLEAR (Thomson Reuters) for US and CA only: sign-on entry point (no session tracetoken stored).
