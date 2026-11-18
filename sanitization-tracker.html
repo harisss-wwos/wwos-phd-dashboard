@@ -120,6 +120,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 @media (min-width:700px){.st-grid{grid-template-columns:repeat(var(--n2,2),minmax(0,1fr))}}
 @media (min-width:1100px){.st-grid{grid-template-columns:repeat(var(--n3,3),minmax(0,1fr))}}
+/* Accordion layout: one contractor per row, full width, expanding in place. Overrides the
+   two multi-column media queries above (kept so the skeleton markup still reads sensibly). */
+.st-con-cards .st-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px}
+.st-con-cards .st-card{width:100%}
+.st-card-exp{grid-column:1/-1;margin-top:10px;padding-top:12px;border-top:1px solid #e8ebef}
+.st-card-exp .st-sec{margin:0}
+.st-card-exp .st-sec-h{padding-left:0}
 .st-grid>li{display:flex;min-width:0}
 .st-card{position:relative;width:100%;display:flex;flex-direction:column;gap:12px;padding:14px 16px 13px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;
   box-shadow:0 1px 2px rgba(20,30,50,.06);transition:border-color .15s,box-shadow .15s,background .15s,transform .15s}
@@ -503,12 +510,13 @@ function cardHtml(c){
   var on=c.login===SEL, sid='stCardS-'+String(c.login).replace(/[^a-z0-9_-]/gi,'');
   var showErr=S.isOwner()||c.login===ME;   // Errors chip: the owner, and a contractor on their own card
   return '<li><div class="st-card'+(on?' is-on':'')+'" data-login="'+esc(c.login)+'">'+
-    '<button type="button" class="st-card-btn" aria-pressed="'+(on?'true':'false')+'" aria-controls="stViewSec" aria-describedby="'+sid+'"'+
+    '<button type="button" class="st-card-btn" aria-pressed="'+(on?'true':'false')+'" aria-expanded="'+(on?'true':'false')+'" aria-controls="stViewSec" aria-describedby="'+sid+'"'+
       (c.displayName&&c.displayName!==c.login?' title="'+esc(c.displayName)+'"':'')+'>'+
       '<span class="st-card-top"><span class="st-card-av" aria-hidden="true">'+esc(String(c.login||'?').charAt(0))+'</span>'+
       '<span class="st-card-who">'+esc(c.login)+'</span><span class="st-card-sel">'+ic('check',11)+'Selected</span>'+
       '<span class="st-card-tot" aria-hidden="true">'+num(c.assigned)+' assigned</span></span></button>'+
     V.cardStatsHtml(c,{showErr:showErr,id:sid})+
+    (on?'<div class="st-card-exp" id="stCardExp"></div>':'')+
     '</div></li>';
 }
 function errNeedText(n){ return V.plural(n,'ticket')+' marked Error and need approval'; }
@@ -562,11 +570,19 @@ function renderView(focusSel){
 }
 function renderCards(focusLogin){
   var b=$('stCardsBody'); if(!b) return;
+  // The view section lives outside #stCardsBody between paints, otherwise re-rendering the cards
+  // would destroy it; it is then moved INTO the selected card so that contractor expands in place.
+  var vsec=$('stViewSec');
+  if(vsec&&b.contains(vsec)&&b.parentNode) b.parentNode.appendChild(vsec);
   b.innerHTML=cardsBody();
   var d=$('stCardsD');
   var en=(ST.state==='done'&&S.isOwner())?totals().err:0;
-  if(d) d.innerHTML=ST.state==='done'?('Totals, then the contractors (most tickets to sanitize first). Pick one to see their tickets below.'+
+  if(d) d.innerHTML=ST.state==='done'?('Totals, then the contractors (most tickets to sanitize first). Pick one to expand their tickets; click again to collapse.'+
     (en?' <span class="st-con-err">'+errNeedText(en)+'</span>':'')):'Loading\u2026';
+  if(vsec){
+    var exp=$('stCardExp');
+    if(SEL&&exp){ exp.appendChild(vsec); vsec.hidden=false; } else { vsec.hidden=!SEL; }
+  }
   if(focusLogin){ var f=b.querySelector('[data-login="'+String(focusLogin).replace(/["\\]/g,'')+'"] .st-card-btn'); if(f) try{ f.focus(); }catch(e){} }
 }
 function viewSecHtml(){
@@ -642,6 +658,8 @@ function resetViewState(){ PG={ded:0,need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={
 function select(login,focusCard){
   if(!findC(login)) return;
   var same=login===SEL;
+  // Re-clicking the open contractor collapses it. Only one can be open because SEL holds one login.
+  if(same){ SEL=null; setUrl(null); renderCards(focusCard?login:null); return; }
   SEL=login; setUrl(login);
   if(!same) resetViewState();
   renderCards(focusCard?login:null);
