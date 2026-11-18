@@ -1648,6 +1648,17 @@ function titleTip(s){
   const E=window.IncidentLogEditor;
   return esc((E&&E.cmtPlainText) ? E.cmtPlainText(String(s==null?'':s)) : String(s==null?'':s));
 }
+// The "Temp-resolved <ago>" pill rendered next to the title on temp-resolved cards. `sid` is the
+// ticket shortId; its temp-resolve time comes from TEMP_AT (epoch millis). When no timestamp exists
+// (legacy id, resolved before timestamps were recorded) it shows a neutral "Temp-resolved" with no
+// time rather than a wrong "0 min ago". The full local time (fmtTZ + MY_TZ) goes in the tooltip.
+function tempAtPillHtml(sid){
+  const ms=TEMP_AT&&TEMP_AT[sid];
+  const ago=(ms!=null)?agoShortFromMs(ms):'';
+  const label='Temp-resolved'+(ago?(' '+ago):'');
+  const tip=(ms!=null)?('Temp-resolved \u00b7 '+fmtTZ(new Date(ms).toISOString(),TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'Temp-resolved (time unknown)';
+  return '<span class="mtc-tempat" title="'+esc(tip)+'">'+ic('check-circle',12)+esc(label)+'</span>';
+}
 function paintComments(i,list){
   const box=document.getElementById('cbody-'+i); if(!box)return;
   const t=TICKETS[i]; if(!t)return;
