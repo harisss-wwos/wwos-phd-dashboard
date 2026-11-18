@@ -246,6 +246,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .apv-t .apv-sid a{font-weight:800;color:#1f4f99;white-space:nowrap}
 .apv-t .apv-msg{color:#8a3a00;font-weight:600}
 .apv-empty{margin:0;padding:18px;text-align:center;color:#5c6773;font-size:.88em}
+/* Approve button: the shared .tbl-submit:disabled rule (topbar-auth.js) shows a spinner + progress
+   cursor, which is wrong for the idle "nothing selected" disabled state. Scope-override it here (same
+   pattern as .tb-asg-card in topbar-auth.js): disabled looks like a plain disabled button, and the
+   spinner only shows during a real request, driven by aria-busy (set in apvRender). */
+#apvModal .tbl-card button.tbl-submit:disabled{cursor:not-allowed;filter:none}
+#apvModal .tbl-card button.tbl-submit:disabled::before{content:none}
+#apvModal .tbl-card button.tbl-submit[aria-busy="true"]{cursor:progress}
+#apvModal .tbl-card button.tbl-submit[aria-busy="true"]::before{content:"";width:16px;height:16px;flex-shrink:0;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:tbspin .7s linear infinite}
 /* clickable KPI tile */
 .st-kpi.is-click{padding:0}
 .st-kpi-btn{display:block;width:100%;height:100%;padding:16px 18px 15px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
@@ -519,7 +527,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <div class="tbl-bg" id="apvModal" style="display:none" onclick="if(event.target===this)apvClose()">
   <div class="tbl-card tbl-form apv-card" role="dialog" aria-modal="true" aria-labelledby="apvT">
     <div class="tbl-head">
-      <span class="tbl-head-ic" aria-hidden="true" data-ic="flag" data-sz="20"></span>
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="shield" data-sz="20"></span>
       <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization</div><h2 class="tbl-title" id="apvT">Error tickets that need approval</h2></div>
       <button type="button" class="tbl-x" onclick="apvClose()" aria-label="Close" data-ic="close" data-sz="18"></button>
       <p class="tbl-sub">Approving marks a ticket as sanitized. Only harisss can approve.</p>
@@ -1189,7 +1197,7 @@ function apvHtml(){
 }
 function apvRender(){
   var b=$('apvBody'); if(b) b.innerHTML=apvHtml();
-  var btn=$('apvGo'); if(btn){ var n=apvCount(); btn.disabled=APV.busy||!n; btn.textContent=APV.busy?'Approving\u2026':(n?('Approve '+n+' ticket'+(n===1?'':'s')):'Approve'); }
+  var btn=$('apvGo'); if(btn){ var n=apvCount(); btn.disabled=APV.busy||!n; if(APV.busy) btn.setAttribute('aria-busy','true'); else btn.removeAttribute('aria-busy'); btn.textContent=APV.busy?'Approving\u2026':(n?('Approve '+n+' ticket'+(n===1?'':'s')):'Approve'); }
 }
 function apvClose(){ APV.open=false; var bg=$('apvModal'); if(bg){ bg.style.display='none'; if(window.PHDLoginUI) window.PHDLoginUI.closed(bg); } }
 window.apvClose=apvClose;
@@ -1199,7 +1207,7 @@ function apvOpen(){
   var bg=$('apvModal'); if(!bg) return;
   // The shared dialog shell fills [data-ic] slots on pages that run that loop; this page does
   // not, which is why the header tile showed as an empty square. Paint it here instead.
-  var _hi=document.querySelector('#apvModal .tbl-head-ic'); if(_hi&&!_hi.innerHTML.trim()) _hi.innerHTML=ic('flag',20);
+  var _hi=document.querySelector('#apvModal .tbl-head-ic'); if(_hi&&!_hi.innerHTML.trim()) _hi.innerHTML=ic('shield',20);
   var _hx=document.querySelector('#apvModal .tbl-x'); if(_hx&&!_hx.innerHTML.trim()) _hx.innerHTML=ic('close',18);
   bg.style.display='flex'; if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,apvClose,null);
   apvRender();
