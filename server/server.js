@@ -1720,7 +1720,7 @@ async function newUploadSnapshot(publishedAt, username) {
 // merged locally). Non-live buckets are MERGED by ShortId into their own quarter doc (uploaded
 // wins, existing preserved). Each quarter touched gets its OWN data-log entry. The client shows
 // the per-quarter breakdown + Upload/Cancel before calling this, so no server-side 409 is needed.
-app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
+app.post('/api/live-quarter', requireUploadOwner, async (req, res) => {
   try {
     const body = req.body || {};
     const data = body.data;
@@ -1862,7 +1862,7 @@ app.post('/api/live-quarter', requireFlag('canUpload'), async (req, res) => {
 // by ShortId, instead of replacing the entire dataset. Much smaller payload + faster write.
 // Body: { changed: [ ...live tickets ], removed: [ shortId ], nonLive: [ ...rows ], changeSummary }.
 // If the live quarter doc doesn't exist yet, respond 409 so the client falls back to full replace.
-app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) => {
+app.post('/api/live-quarter/patch', requireUploadOwner, async (req, res) => {
   try {
     const body = req.body || {};
     const changedIn = Array.isArray(body.changed) ? body.changed : [];
@@ -2033,7 +2033,7 @@ app.post('/api/live-quarter/patch', requireFlag('canUpload'), async (req, res) =
 // Merge an uploaded ticket set INTO a specific PAST (non-live) quarter, by ShortId (admin+).
 // Newly uploaded tickets win on conflict; existing tickets not in the upload are preserved.
 // Records a data-log entry. Body: { data: { tickets: [...] } }.
-app.post('/api/quarter/:qid/merge', requireFlag('canUpload'), async (req, res) => {
+app.post('/api/quarter/:qid/merge', requireUploadOwner, async (req, res) => {
   try {
     const qid = req.params.qid;
     if (!/^\d{4}-Q[1-4]$/.test(qid)) return res.status(400).json({ error: 'Invalid quarter id.' });
@@ -3523,6 +3523,30 @@ function requireSanOwner(req, res, next) {
   if (sanIsOwner(req.user.username)) return next();
   return res.status(403).json({ error: 'Sanitization scores are visible only to harisss.' });
 }
+// Team access for the Sanitization Tracker. Roles are retired (see /api/users), so membership
+// comes from the group lists used everywhere else: grpOf -> 'A1' = BLR, 'B' = AZA,
+// 'A2' = the WFH contractors. Assigning, revoking, bulk edits and data upload stay owner-only.
+const SAN_VIEW_GROUPS = ['A1', 'B', 'A2'];     // BLR + AZA + WFH
+const SAN_SCORE_GROUPS = ['A1', 'B'];          // BLR + AZA (scores are per-agent performance)
+function sanGroupOf(req) { return req.user ? grpOf(req.user.username) : null; }
+function requireSanView(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (sanIsOwner(req.user.username)) return next();
+  if (SAN_VIEW_GROUPS.indexOf(sanGroupOf(req)) >= 0) return next();
+  return res.status(403).json({ error: 'The Sanitization Tracker is visible to the BLR, AZA and WFH teams.' });
+}
+function requireSanScores(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (sanIsOwner(req.user.username)) return next();
+  if (SAN_SCORE_GROUPS.indexOf(sanGroupOf(req)) >= 0) return next();
+  return res.status(403).json({ error: 'Sanitization scores are visible to the BLR and AZA teams.' });
+}
+// Owner-only guard for the data-upload routes (previously the canUpload flag).
+function requireUploadOwner(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Login required.' });
+  if (sanIsOwner(req.user.username)) return next();
+  return res.status(403).json({ error: 'Only harisss can upload data.' });
+}
 // Resolved / Closed ticket count per quarter in ticket_docs (newest quarter first).
 async function sanQuarterCounts() {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
@@ -3639,7 +3663,7 @@ const sanAsgMetaShared = () => _sanReads.run('asg:meta', async () => (await getC
 const sanMarksShared = () => _sanReads.run('marks', sanMarks);
 const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
 const sanContractorsShared = () => _sanReads.run('contractors', sanContractors);
-app.get('/api/sanitization-score', requireSanOwner, async (req, res) => {
+app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
   try {
     // Scope is fixed: only tickets created on/after 1 Jan 2026 (Pacific). Any ?quarter= value is ignored.
     const want = SAN_SINCE_ID;
