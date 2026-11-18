@@ -3767,8 +3767,10 @@ app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) =>
 // after the access check.
 app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
   try {
+    // BLR / AZA / WFH may view every contractor; assigning and approving stay owner-only.
+    const sanCanViewAll = sanIsOwner(req.user.username) || SAN_VIEW_GROUPS.indexOf(grpOf(req.user.username)) >= 0;
     const out = await sanAssign.handleMine(req.query || {}, {
-      user: req.user, contractors: await sanContractorsShared(),
+      user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
       load: async () => {
         const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
         const [base, docs, marks, approved] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),

@@ -626,7 +626,10 @@ async function handleMine(query, deps) {
   const list = deps.contractors || [];
   const owner = !!me && isOwner(me);
   const findC = l => list.find(c => c.login === l);
-  if (!me || (!owner && !findC(me))) return { status: 403, body: { error: 'My sanitization is available only to contractors.' } };
+  // canViewAll (set by the route for the BLR / AZA / WFH teams) may read every contractor's view;
+  // marking and error review stay gated by canMark / canReview below.
+  const canViewAll = owner || !!deps.canViewAll;
+  if (!me || (!canViewAll && !findC(me))) return { status: 403, body: { error: 'My sanitization is available only to the PHD teams.' } };
   const want = normLogin(query && query.login);
   if (want && !findC(want)) return { status: 404, body: { error: 'Unknown contractor.' } };
   const { docs, report, stamp, marks, approved } = await deps.load();
