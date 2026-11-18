@@ -744,7 +744,16 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mtc-copy.copied{color:var(--mt-grn);border-color:#9fd9b6}
 .mtc-title{flex:1 1 180px;min-width:0;color:#3a4552;font-size:.86em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mtc-head-last{display:none;font-style:italic;font-weight:600;color:var(--mt-mut);font-size:.84em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mtc-when{display:inline-flex;align-items:center;margin-left:7px;padding:1px 8px;border-radius:99px;background:#eef1f4;border:1px solid #e2e7eb;color:#4a5560;font-style:normal;font-weight:700;font-size:.82em;line-height:1.6;white-space:nowrap;vertical-align:middle}
+.mtc-when{display:inline-flex;align-items:center;margin-left:7px;padding:3px 9px;border-radius:99px;font-style:normal;font-weight:800;font-size:.73em;line-height:1.35;white-space:nowrap;vertical-align:middle;
+  background:var(--mt-soft);border:1px solid var(--mt-line);color:var(--mt-mut)}
+.mtc-when.is-today{color:var(--mt-grn);background:var(--mt-grn-bg);border-color:#a9dcbf}
+.mtc-when.is-yest{color:var(--mt-amb);background:var(--mt-amb-bg);border-color:#f1d58a}
+.mtc-when.is-recent{color:var(--mt-blue);background:#e8effd;border-color:#bcd2f4}
+.mtc-when.is-old{color:var(--mt-mut);background:var(--mt-soft);border-color:var(--mt-line)}
+/* "Temp-resolved <ago>" pill shown right after the title on temp-resolved cards only (calm green,
+   matching the "resolved" palette). flex-shrink:0 so it keeps its size while the title ellipsizes. */
+.mtc-tempat{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;padding:3px 9px;border-radius:99px;font-weight:800;font-size:.72em;line-height:1.35;white-space:nowrap;vertical-align:middle;color:var(--mt-grn);background:var(--mt-grn-bg);border:1px solid #a9dcbf}
+.mtc-tempat svg{flex-shrink:0}
 .mtc-head-last.mtc-head-last-empty{font-style:normal;color:#6b7681}
 .mtc-head-right{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
 .mtc-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:.74em;font-weight:800;white-space:nowrap;border:1px solid transparent;font-variant-numeric:tabular-nums}
@@ -1209,12 +1218,24 @@ window.toggleViewed=toggleViewed;
 // Moves a ticket into a separate "Temporarily Resolved" section below. Never touches the
 // shared database/CSV — when a re-uploaded CSV still has the ticket open, it stays open.
 let TEMP_RESOLVED=new Set();
+// Parallel "when was it temp-resolved" store: { shortId: epochMillis }. Kept SEPARATE from the id
+// Set (own localStorage key) so a browser that only has the legacy id-set keeps working — a missing
+// timestamp just means "unknown", rendered as a neutral tag rather than a wrong "0 min ago".
+let TEMP_AT={};
 function tempKey(){ var u=A.getUser(); return 'phd_mytickets_tempresolved_'+((u&&u.username)||'anon'); }
-function loadTempResolved(){ try{ var raw=localStorage.getItem(tempKey()); TEMP_RESOLVED=new Set(raw?JSON.parse(raw):[]); }catch(e){ TEMP_RESOLVED=new Set(); } }
-function saveTempResolved(){ try{ localStorage.setItem(tempKey(), JSON.stringify([...TEMP_RESOLVED])); }catch(e){} }
+function tempAtKey(){ var u=A.getUser(); return 'phd_mytickets_tempresolvedat_'+((u&&u.username)||'anon'); }
+function loadTempResolved(){
+  try{ var raw=localStorage.getItem(tempKey()); TEMP_RESOLVED=new Set(raw?JSON.parse(raw):[]); }catch(e){ TEMP_RESOLVED=new Set(); }
+  try{ var rawAt=localStorage.getItem(tempAtKey()); var o=rawAt?JSON.parse(rawAt):{}; TEMP_AT=(o&&typeof o==='object')?o:{}; }catch(e){ TEMP_AT={}; }
+}
+function saveTempResolved(){
+  try{ localStorage.setItem(tempKey(), JSON.stringify([...TEMP_RESOLVED])); }catch(e){}
+  try{ localStorage.setItem(tempAtKey(), JSON.stringify(TEMP_AT)); }catch(e){}
+}
 function toggleTempResolve(sid, cb){
   sid=String(sid);
-  if(cb.checked) TEMP_RESOLVED.add(sid); else TEMP_RESOLVED.delete(sid);
+  if(cb.checked){ TEMP_RESOLVED.add(sid); TEMP_AT[sid]=Date.now(); }
+  else{ TEMP_RESOLVED.delete(sid); delete TEMP_AT[sid]; }
   saveTempResolved();
   // Re-render to move the row between the main table and the temp section
   // (keeps the TICKETS index stable so latest-comment / incident buttons stay wired).
@@ -1680,18 +1701,38 @@ window.deleteComment=deleteComment;
 // Compared by calendar date in the viewer's timezone, not by elapsed hours — daysAgo() rounds,
 // so a comment from this morning would read '1 day ago' there. Older than 30 days falls back to
 // the short date, because '47 days ago' is harder to read than 'Oct 1'.
-function cmtAgo(iso){
-  const dt=new Date(iso); if(isNaN(dt)) return '';
+// Calendar-day difference (viewer timezone) between a timestamp and now: 0 = same day,
+// 1 = yesterday, etc. Negative for future/skew. null when the date is invalid.
+// Shared by cmtAgo() (label) and cmtBucket() (pill colour) so both agree on the day boundary.
+function cmtDayDiff(iso){
+  const dt=new Date(iso); if(isNaN(dt)) return null;
   const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
   const key=x=>{ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(x); }
     catch(e){ return x.toISOString().slice(0,10); } };
   const a=key(dt), b=key(new Date());
-  if(a===b) return 'Today';
-  const diff=Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5);
+  if(a===b) return 0;
+  return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5);
+}
+function cmtAgo(iso){
+  const dt=new Date(iso); if(isNaN(dt)) return '';
+  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const diff=cmtDayDiff(iso);
+  if(diff===0) return 'Today';
   if(diff===1) return 'Yesterday';
   if(diff>1&&diff<=30) return diff+' days ago';
   if(diff>30){ try{ return new Intl.DateTimeFormat('en-US',{timeZone:zone,month:'short',day:'numeric'}).format(dt); }catch(e){ return ''; } }
   return 'Today';   // future timestamp / clock skew
+}
+// Recency bucket for the .mtc-when pill colour, from the SAME calendar-day diff as cmtAgo (not the
+// label text). Today -> green, Yesterday -> amber, 2-6 days -> cool blue, 7+ days and the
+// date-fallback (>30d) -> muted grey. Future/skew (diff<0) reads as Today, matching cmtAgo.
+function cmtBucket(iso){
+  const diff=cmtDayDiff(iso);
+  if(diff===null) return 'is-old';
+  if(diff<=0) return 'is-today';
+  if(diff===1) return 'is-yest';
+  if(diff<=6) return 'is-recent';
+  return 'is-old';
 }
 function daysAgo(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '—';
@@ -1728,6 +1769,30 @@ function daysAgoShort(iso){
   const cd=new Date(iso); if(isNaN(cd)) return '\u2014';
   const d=Math.max(0,Math.round((Date.now()-cd.getTime())/864e5));
   return d+'D';
+}
+// Fine-grained "how long ago" from an epoch-millis timestamp — ELAPSED time, not calendar days, so
+// it can say minutes/hours (cmtAgo()/daysAgo() are calendar-day based and too coarse for this).
+// Thresholds: <60s -> 'just now'; <60min -> 'N min ago'; <24h -> 'N hour(s) ago';
+// exactly 1 calendar day -> 'yesterday'; 2..30 days -> 'N days ago'; else a short date
+// (same 'Mon D' format as cmtAgo's >30-day fallback). null/invalid input -> ''.
+function agoShortFromMs(ms){
+  if(ms==null || isNaN(ms)) return '';
+  const now=Date.now();
+  let sec=Math.floor((now-ms)/1000);
+  if(sec<0) sec=0;   // future timestamp / clock skew -> treat as just now
+  if(sec<60) return 'just now';
+  const min=Math.floor(sec/60);
+  if(min<60) return min+' min ago';
+  const hr=Math.floor(min/60);
+  if(hr<24) return hr+(hr===1?' hour ago':' hours ago');
+  const zone=TZ_ZONE[MY_TZ]||TZ_ZONE.IST;
+  const key=x=>{ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(x); }
+    catch(e){ return new Date(x).toISOString().slice(0,10); } };
+  const a=key(new Date(ms)), b=key(new Date(now));
+  const dayDiff=Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/864e5);
+  if(dayDiff<=1) return 'yesterday';
+  if(dayDiff<=30) return dayDiff+' days ago';
+  try{ return new Intl.DateTimeFormat('en-US',{timeZone:zone,month:'short',day:'numeric'}).format(new Date(ms)); }catch(e){ return ''; }
 }
 
 // ---- Instant-load cache (stale-while-revalidate) ----
@@ -2209,6 +2274,7 @@ function cardHtml(t,i,editor){
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
       <button type="button" class="mtc-copy" title="Copy ticket ID" aria-label="Copy ticket ID ${esc(sid)}" onclick="copyTicketId('${esc(sid)}',this)">${ic('copy',12)}</button>
       ${t.title?('<span class="mtc-title" title="'+titleTip(t.title)+'">'+titleHtml(t.title)+'</span>'):'<span class="mtc-title"></span>'}
+      ${temp?tempAtPillHtml(sid):''}
       ${countryTagHtml(t)}
       <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">${known?'No comments added':skl}</span>
       <span class="mtc-head-right">
@@ -2369,7 +2435,8 @@ function paintLatestCell(i,c,unavailable){
   const preview=plain?('\u201c'+plain+'\u201d'):'';
   // When it was posted, in the viewer's timezone — same format as the expanded thread.
   const pWhen=(c&&c.at)?cmtAgo(c.at):'';
-  const pHtml=preview?(esc(preview)+(pWhen?(' <span class="mtc-when">'+esc(pWhen)+'</span>'):'')):'';
+  const pWhenCls=(c&&c.at)?cmtBucket(c.at):'is-old';
+  const pHtml=preview?(esc(preview)+(pWhen?(' <span class="mtc-when '+pWhenCls+'">'+esc(pWhen)+'</span>'):'')):'';
   const pTitle=plain+((c&&c.at)?(' \u00b7 '+fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'');
   const last=document.getElementById('clast-'+i);
   if(last){ last.innerHTML=pHtml; if(plain)last.title=pTitle; }
