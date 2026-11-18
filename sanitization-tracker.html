@@ -248,6 +248,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
    covers the card (click anywhere) and carries the focus ring. Then the stats <dl> + bar (sanitization-view.js cardStatsHtml). */
 .st-card-btn{display:block;width:100%;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .st-card-btn::after{content:'';position:absolute;inset:0;border-radius:12px}
+/* The overlay that makes the whole header clickable must stop before the expanded panel,
+   otherwise it covers the tickets inside and swallows their clicks. */
+.st-con-cards .st-card-btn::after{inset:0 0 auto 0;height:46px;border-radius:12px}
+.st-con-cards .st-card-exp{position:relative;z-index:1}
 .st .st-card-btn:focus-visible{outline:none}
 .st .st-card-btn:focus-visible::after{outline:3px solid var(--focus);outline-offset:2px}
 .st-card-top{display:flex;align-items:center;gap:9px;width:100%;min-width:0}
@@ -965,6 +969,9 @@ document.addEventListener('keydown',function(e){
 document.addEventListener('click',function(e){
   var t=e.target; if(!t||!t.closest||!t.closest('#wrap')) return;
   var card=t.closest('.st-card[data-login]');
+  // The expanded panel now lives INSIDE the card, so a click on its sections, tables or
+  // buttons bubbles up to this row handler and used to toggle the agent shut. Ignore those.
+  if(t.closest&&t.closest('.st-card-exp')) return;
   if(card){ select(card.getAttribute('data-login'),true); return; }
   if(t.closest('#stRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
