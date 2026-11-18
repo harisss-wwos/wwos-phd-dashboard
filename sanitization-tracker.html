@@ -171,6 +171,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   margin-left:4px;border-radius:5px;color:var(--mut);background:#f4f6f8;border:1px solid #e3e8ed;transition:transform .16s ease,color .16s}
 .st-con-cards .st-card.is-on .st-card-cv{transform:rotate(180deg);color:#fff;background:var(--acc);border-color:var(--acc)}
 @media (prefers-reduced-motion:reduce){.st-con-cards .st-card-cv{transition:none}}
+/* One font size across the whole row; only the numbers are bold. */
+.st-con-cards .st-card{font-size:.8rem}
+.st-con-cards .st-card-who,.st-con-cards .st-card-tot,
+.st-con-cards .stv-hero dd,.st-con-cards .stv-hero dd b,.st-con-cards .stv-hero-r,
+.st-con-cards .stv-chip dt,.st-con-cards .stv-chip dd,.st-con-cards .stv-chip dd b,
+.st-con-cards .stv-sbar b{font-size:1em}
+.st-con-cards .stv-hero dd b,.st-con-cards .stv-chip dd b{font-weight:800}
+.st-con-cards .stv-chip dt,.st-con-cards .stv-hero-r{font-weight:700;text-transform:uppercase;letter-spacing:.2px}
+.st-con-cards .st-card-who{font-weight:800}
 /* the expanded panel always gets its own full-width line */
 .st-con-cards .st-card-exp{flex:0 0 100%;width:100%;grid-column:auto}
 @media (max-width:1240px){
@@ -471,7 +480,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=235"></script>
-<script src="sanitization-view.js?v=16"></script>
+<script src="sanitization-view.js?v=17"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=6"></script>

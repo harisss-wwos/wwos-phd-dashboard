@@ -77,9 +77,9 @@
     var b = {
       tot: ['is-tot', 'Total tickets assigned to sanitize', 'Total assigned', '', n(T.assigned)],
       bad: ['is-bad', 'Tickets that need to be sanitized', 'To sanitize', '', n(T.needsCorrection)],
-      wait: ['is-wait', 'Temporarily sanitized (waiting for new upload)', 'Temp sanitized', 'Waiting for the next data upload', n(T.awaiting)],
-      ok: ['is-ok', 'Tickets sanitized successfully', 'Sanitized', '', n(T.cleared)],
-      err: ['is-errn', 'Error tickets that need approval to be marked as sanitized', 'Errors', 'Marked Error \u2014 waiting for owner approval', n(T.errorTickets)],
+      wait: ['is-wait', 'Temporarily sanitized (waiting for new upload)', 'Temporarily sanitized', 'Waiting for the next data upload', n(T.awaiting)],
+      ok: ['is-ok', 'Tickets sanitized successfully', 'Successfully sanitized', '', n(T.cleared)],
+      err: ['is-errn', 'Error tickets that need approval to be marked as sanitized', 'Errors needing approvals', 'Marked Error \u2014 waiting for owner approval', n(T.errorTickets)],
       // Error Deducted tickets after verification/new Upload (sections().ded; part of To sanitize).
       // null = not known yet (an older server without totals.errorDeducted): shown as a dash.
       ded: ['is-ded', 'Error Deducted tickets after verification/new Upload', 'Error deducted', 'Marked, then failed the check after a newer data upload (still to sanitize)', T.errorDeducted == null ? null : n(T.errorDeducted)],
@@ -110,7 +110,7 @@
     return '<dl class="stv-cst' + (o.showErr ? '' : ' is-k3') + '"' + (o.id ? ' id="' + esc(o.id) + '"' : '') + '>'
       + '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>'
       + '<div class="stv-hero' + (bad[4] ? '' : ' is-zero') + '" title="' + esc(bad[1]) + '"><dt><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
-      + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r"><span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span> <span aria-hidden="true">tickets to sanitize</span></span></dd></div>'
+      + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r"><span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span> <span aria-hidden="true">tickets needs to sanitized</span></span></dd></div>'
       + chip(B.ok) + chip(B.wait) + (B.err ? chip(B.err) : '') + chip(B.ded) + '</dl>'
       + barHtml(B, a, 'is-card');
   }
