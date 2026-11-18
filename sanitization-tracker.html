@@ -211,6 +211,19 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 @keyframes stErrPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,35,24,.55)}50%{box-shadow:0 0 0 5px rgba(180,35,24,0)}}
 .st-con-cards .stv-chip.is-errn:not(.is-zero){animation:stErrPulse 1.4s ease-out infinite}
 @media (prefers-reduced-motion:reduce){.st-con-cards .stv-chip.is-errn:not(.is-zero){animation:none;outline:2px solid #ffb3a7;outline-offset:1px}}
+/* ---- Overlap fix ----
+   The tags are content-sized, and with the long labels their total width exceeded .stv-cst,
+   so they spilled out and sat on top of the bar and the chevron. Let the group wrap and let
+   each tag shrink, and keep the bar + chevron from being squeezed. */
+.st-con-cards .stv-cst{flex:1 1 auto;min-width:0;flex-wrap:wrap;row-gap:6px;column-gap:8px}
+.st-con-cards .stv-chip{flex:0 1 auto;min-width:0;max-width:100%}
+.st-con-cards .stv-chip dt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.st-con-cards .stv-chip dd{flex:0 0 auto}
+/* only the red group is pushed right; the green pair now follows the count tag directly, which
+   removes one forced gap and buys back the width that caused the spill. */
+.st-con-cards .stv-chip.is-wait{margin-left:0}
+.st-con-cards .stv-sbar.is-card,.st-con-cards .st-card-cv{flex-shrink:0}
+.st-con-cards .st-card{overflow:hidden}
 /* the bar sits last on the right, after the two red tags */
 .st-con-cards .stv-sbar.is-card{order:6;margin-left:10px;flex:0 0 130px}
 /* the expanded panel always gets its own full-width line */
