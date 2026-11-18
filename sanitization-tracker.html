@@ -127,6 +127,32 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card-exp{grid-column:1/-1;margin-top:10px;padding-top:12px;border-top:1px solid #e8ebef}
 .st-card-exp .st-sec{margin:0}
 .st-card-exp .st-sec-h{padding-left:0}
+/* Single-line rows: the card lays out horizontally so six contractors stay compact instead of
+   each taking four stacked bands. The expansion slot is forced onto its own full-width line. */
+.st-con-cards .st-card{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:9px 14px}
+.st-con-cards .st-card-btn{flex:0 0 auto;width:auto}
+.st-con-cards .st-card-top{width:auto;gap:8px}
+.st-con-cards .st-card-av{width:24px;height:24px;font-size:.72em}
+.st-con-cards .st-card-who{font-size:.95em}
+.st-con-cards .st-card-tot{margin-left:6px;font-size:.72em}
+/* stv-cst is a grid in the tall layout; flatten it to a row. */
+.st-con-cards .stv-cst{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;margin:0}
+.st-con-cards .stv-hero{grid-column:auto;flex:0 0 auto;margin:0}
+.st-con-cards .stv-hero dd{justify-content:flex-start;gap:7px}
+.st-con-cards .stv-hero dd b{font-size:1.45em;letter-spacing:-.5px}
+.st-con-cards .stv-hero-r{text-align:left;font-size:.7em;line-height:1.15}
+.st-con-cards .stv-chip{flex:1 1 0;min-width:0;padding:4px 8px;gap:0}
+.st-con-cards .stv-chip dt{font-size:.58em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-con-cards .stv-chip dd{font-size:.76em}
+.st-con-cards .stv-sbar.is-card{flex:0 0 clamp(120px,14vw,190px);margin:0}
+.st-con-cards .stv-sbar b{font-size:.68em}
+.st-con-cards .st-card-exp{flex:0 0 100%;width:100%;grid-column:auto}
+/* Narrow screens: let it stack again rather than crush the chips. */
+@media (max-width:900px){
+  .st-con-cards .st-card{flex-direction:column;align-items:stretch}
+  .st-con-cards .stv-cst{flex-wrap:wrap}
+  .st-con-cards .stv-sbar.is-card{flex:1 1 100%}
+}
 .st-grid>li{display:flex;min-width:0}
 .st-card{position:relative;width:100%;display:flex;flex-direction:column;gap:12px;padding:14px 16px 13px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;
   box-shadow:0 1px 2px rgba(20,30,50,.06);transition:border-color .15s,box-shadow .15s,background .15s,transform .15s}
